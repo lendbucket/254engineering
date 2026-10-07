@@ -2,7 +2,7 @@ import "server-only";
 import { DB_NOW } from "./db-now";
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { supabaseAdmin, SITE_KEY } from "./supabase";
-import { isProbeAddress, referenceForCustomer } from "./ops-files";
+import { DEMO_FILE_SEGMENT, referenceForCustomer } from "./ops-files";
 import { writeAudit } from "./ops-audit";
 import { createClient, createFile, SYSTEM_AUTHOR } from "./ops-crm";
 import { resolveCounty, twiaStatus, windstormAreaRefusal } from "./ops-counties";
@@ -354,8 +354,13 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
        * order path walk: a probe address gets a -DEMO- reference, the database
        * requires is_demo to agree, and this insert never set it, so every order
        * from an unroutable address was refused with the raw constraint message.
+       *
+       * Stated as the database's own rule (eng_orders_demo_reference_agrees:
+       * is_demo = reference like '%-DEMO-%'), on the reference this server just
+       * computed, rather than on the request's email: demo-audit refuses a
+       * flag a caller's input sets, and this is the row's own reference.
        */
-      is_demo: isProbeAddress(input.customer.email),
+      is_demo: reference.includes(`-${DEMO_FILE_SEGMENT}-`),
       service_slug: entry.serviceSlug,
       tier: entry.tier,
       order_type: entry.orderType,
@@ -460,6 +465,14 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
   });
 
   if (client.ok) {
+    /*
+     * A demonstration order's client is a demonstration too, decided by the
+     * order's own reference rather than by the request. Only ever set, never
+     * cleared, so a real client reached by a probe order is not unmarked.
+     */
+    if (reference.includes(`-${DEMO_FILE_SEGMENT}-`)) {
+      await db.from("eng_clients").update({ is_demo: reference.includes(`-${DEMO_FILE_SEGMENT}-`) }).eq("id", client.id);
+    }
     const file = await createFile(SYSTEM_AUTHOR, {
       clientId: client.id,
       serviceSlug: entry.serviceSlug,
@@ -469,7 +482,8 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
       postalCode: trimmed(input.property.postalCode) || null,
       notes: `Opened by the order engine from ${reference}.`,
       clientPriceCents: isKnown(priced.totalCents) ? priced.totalCents : null,
-      demo: isProbeAddress(input.customer.email),
+      /* The order's own reference decides, as for the order row above. */
+      demo: reference.includes(`-${DEMO_FILE_SEGMENT}-`),
     });
 
     if (file.ok) {

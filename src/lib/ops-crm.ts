@@ -8,7 +8,6 @@ import {
   formatFileNumber,
   formatDemoFileNumber,
   DEMO_FILE_SEGMENT,
-  isProbeAddress,
   STATUS_TIMESTAMP,
   type FileStatus,
 } from "./ops-files";
@@ -338,8 +337,6 @@ export async function createClient(
       city: input.city?.trim() || null,
       county: input.county?.trim() || null,
       notes: input.notes?.trim() || null,
-      /* A probe address is a demonstration client, by the predicate the order and its file use. */
-      ...(isProbeAddress(input.email) ? { is_demo: true } : {}),
       created_by: actor.id,
       ...(input.attribution ?? {}),
     })

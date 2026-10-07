@@ -668,6 +668,10 @@ export const CREDENTIALS: Credential[] = [
   { name: "ALLOW_PRODUCTION_PREVIEW", kind: "config", livesIn: "Never set.", grants: "Permission for a preview deployment to point at production. Almost never the right answer.", rotated: "Never." },
   { name: "MFA_BREAK_GLASS", kind: "config", livesIn: "Never set in a deployment.", grants: "Bypassing the second factor requirement. The most dangerous config value here, which is why it is named rather than left to be discovered.", rotated: "Never." },
   { name: "ORDER_PAYMENTS_FAKE", kind: "config", livesIn: "Development only.", grants: "Taking an order without calling Stripe.", rotated: "Never." },
+  /* The order flow capture's three ways to reproduce an upload failure on purpose, added 2026-10-07 (ruling 3). */
+  { name: "WALK_DELAY_PUT_MS", kind: "config", livesIn: "Typed by hand for one capture run.", grants: "Holds every storage upload in the capture's browser for that many milliseconds.", rotated: "Never." },
+  { name: "WALK_PRESS_DURING_UPLOAD", kind: "config", livesIn: "Typed by hand for one capture run.", grants: "Presses Continue while an upload is in flight and prints what the form says.", rotated: "Never." },
+  { name: "WALK_ABORT_PUT", kind: "config", livesIn: "Typed by hand for one capture run.", grants: "Drops the capture browser's storage uploads, to read the form's failure message.", rotated: "Never." },
   /*
    * THE OPT IN FOR DELIBERATELY SENDING, AND IT IS NAMED FOR WHAT IT DOES.
    *

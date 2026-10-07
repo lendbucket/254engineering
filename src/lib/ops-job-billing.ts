@@ -9,7 +9,7 @@ import { money } from "./ops-money";
 import { isOpen } from "./launch";
 import { catalogFor } from "@data/catalog";
 import { orderBlockedNow } from "./line-gate";
-import { isProbeAddress, referenceForCustomer } from "./ops-files";
+import { DEMO_FILE_SEGMENT, referenceForCustomer } from "./ops-files";
 import { paymentOptions } from "./job-intake-rules";
 import { refundDisclosure } from "./ops-orders";
 import type { Author } from "./ops-crm";
@@ -167,8 +167,8 @@ async function createOrderForFile(
     .insert({
       site: SITE_KEY,
       reference,
-      /* Set with the reference, by the same predicate; see placeOrder. */
-      is_demo: isProbeAddress(client.email),
+      /* The database's own rule, on the reference just computed; see placeOrder. */
+      is_demo: reference.includes(`-${DEMO_FILE_SEGMENT}-`),
       service_slug: file.service_slug,
       tier: file.deliverable,
       order_type: entry?.orderType ?? "desk",
