@@ -89,7 +89,7 @@ export default async function ProfilePage() {
             >
               <Link
                 href="/portal/profile/seal"
-                className="inline-flex min-h-[var(--tap-target)] items-center text-[14px] font-semibold text-[var(--navy)] underline underline-offset-2"
+                className="inline-flex min-h-[var(--tap-target)] items-center text-[13.5px] font-semibold text-[var(--navy)] underline underline-offset-2"
               >
                 Manage your seal and signature
               </Link>

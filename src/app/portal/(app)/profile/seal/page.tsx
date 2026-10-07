@@ -31,8 +31,23 @@ export default async function SealPage() {
   const actor = await currentActor();
   if (!holdsLicence(actor, "documents.seal")) notFound();
 
-  const [mfa, images] = await Promise.all([mfaStateFor(actor!.id), sealImageStatus(actor!.id)]);
+  /*
+   * THE STORE MAY NOT EXIST YET, AND THE SCREEN SAYS SO RATHER THAN FAILING.
+   * eng_seal_images is created by 0061, which runs on development and on
+   * production only when it is applied, production in a sitting. Until then
+   * the read fails, and the first board after this screen was built found it
+   * answering HTTP 500 on development for exactly that reason. A screen the
+   * engineer opens before the sitting must tell him the store is not ready,
+   * not show him an error page.
+   */
+  const mfa = await mfaStateFor(actor!.id);
   const enrolled = mfa.enrolled;
+  let images: Awaited<ReturnType<typeof sealImageStatus>> | null = null;
+  try {
+    images = await sealImageStatus(actor!.id);
+  } catch (err) {
+    console.error(`[seal] ${err instanceof Error ? err.message : String(err)}`);
+  }
 
   const when = (iso: string | null) =>
     iso
@@ -56,12 +71,12 @@ export default async function SealPage() {
         description="Every seal you store, and every document you seal, asks for a fresh code from your authenticator app."
       >
         {enrolled ? (
-          <p className="text-[14px] leading-[1.7] text-[var(--ink)]">
+          <p className="text-[13.5px] leading-[1.7] text-[var(--ink)]">
             Set up and verified. Codes from your authenticator app are accepted for storing a seal and for sealing.
           </p>
         ) : (
           <>
-            <p className="text-[14px] leading-[1.7] text-[var(--ink)]">
+            <p className="text-[13.5px] leading-[1.7] text-[var(--ink)]">
               Not set up yet. Sealing is refused until it is, and so is storing a seal or signature.
             </p>
             <Link
@@ -74,7 +89,19 @@ export default async function SealPage() {
         )}
       </Panel>
 
-      {images.map((image) => {
+      {images === null ? (
+        <Panel
+          title="Seal and signature"
+          description="The store for your seal and signature is not set up on this database yet."
+        >
+          <p className="text-[13.5px] leading-[1.7] text-[var(--ink)]">
+            Nothing can be stored until it is. It is created when the firm applies the change that
+            adds it, and this screen will show what is on file from then on.
+          </p>
+        </Panel>
+      ) : null}
+
+      {(images ?? []).map((image) => {
         const heading = image.kind === "seal" ? "Your seal" : "Your signature";
         return (
           <Panel
@@ -89,7 +116,7 @@ export default async function SealPage() {
             {enrolled ? (
               <SealImageForm kind={image.kind} heading={heading} />
             ) : (
-              <p className="text-[14px] leading-[1.7] text-[var(--secondary)]">
+              <p className="text-[13.5px] leading-[1.7] text-[var(--secondary)]">
                 Set up two-step verification first.
               </p>
             )}
