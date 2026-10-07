@@ -14,9 +14,53 @@ word, compared with whitespace removed), and the platform sentence against the
 file and line named here, read on `main` at `f1beeab`. Line numbers are as of
 that commit plus the two copy commits on `fix/solar-and-wpi8-copy`.
 
-**Status words.** BUILT means the change is committed and named. TO BUILD means
-the change is stated and not yet made. REFERRED means the session did not make
-the change and why. Each change is its own commit.
+**Status words.** BUILT means the change is committed and named. REFERRED means
+the session did not make the change, and the section says why.
+
+## Status, 2026-10-07
+
+This table is the status of every item; the sections below give the evidence
+and the change. BUILT means committed on `fix/solar-and-wpi8-copy` and boarded
+with that branch.
+
+| # | Item | Status |
+| --- | --- | --- |
+| 1 | WP-001 four visits, $150 extra | BUILT, `6c0efce`, pinned in price-book-audit |
+| 2 | Ongoing deliverable named WPI-8E | BUILT, `6c0efce` |
+| 3 | Ongoing accepts passed stages | BUILT, `6c0efce` |
+| 4 | Completed construction quoted | BUILT, `7607b11`, ruling 5 |
+| 5 | Completed accepts work in progress; existing building priced | BUILT, `6c0efce` |
+| 6 | No catastrophe area check | BUILT, `6c0efce` |
+| 7 | Pre-1988: page copy, form verdict, no date asked | BUILT, copy `7607b11`, verdict and date `6c0efce` |
+| 8 | Firm promised the certificate | BUILT, `6c0efce` |
+| 9 | WS-001 required uploads | BUILT, `6c0efce` |
+| 10 | MH below grade | BUILT, `e885631` |
+| 11 | MH frost depth | BUILT, `e885631` |
+| 12 | MH lender's written request | BUILT, `e885631` |
+| 13 | MH multi section and return visit prices | REFERRED, money ruling |
+| MH | Retrofit promised | BUILT, `e885631` |
+| 14 | Solar wind loading | BUILT, `d328df8`, ruling 4 |
+| 15 | Solar reinforcement detail | BUILT, `da80fca` |
+| 16, 17 | Solar "No site visit." and drawings alone | BUILT, copy `da80fca`; orderType REFERRED, money ruling |
+| 18 | Solar turned away without the array design | BUILT, `da80fca` |
+| 19 | Installer photographs | BUILT, `da80fca` |
+| 20 | Letter sold as desk review | BUILT, copy `d97e656`; orderType and site job price REFERRED |
+| 21 | Letter for any reader | BUILT, `d97e656` |
+| 22 | Beam sizing and remediation in the letter | BUILT, `d97e656` |
+| 23 | Specification without a visit | BUILT, copy `673894f`; orderType REFERRED |
+| 24 | Damage report required | BUILT, `673894f` |
+| 25 | Verification and stages | BUILT, `673894f`; a verification order REFERRED, needs a price |
+| RS | Adjusters on an open claim | BUILT, `673894f` |
+| 26 | DS "No site visit." | BUILT, `6c0efce` |
+| 27 | Front photo | BUILT, `6c0efce`, on six lines: WP-001 does not require it, so "all seven" below was one too many |
+| Turnaround | Solar, manufactured home, structural letter | BUILT, `da80fca`, `e885631`, `d97e656` |
+| WPI-8-C | Is TWIA's route current | REFERRED to the engineer |
+| Stages | Engineer selects stages | REFERRED to the engineer |
+
+**One correction to item 16 and 17 below.** It said the solar framing input
+"becomes required". It did not, on reading the protocol again: the framing is
+measured by the technician or shown in the installer's photographs, so asking
+the buyer for it adds nothing, and it stays optional.
 
 ## Already built on 2026-10-07
 
@@ -36,7 +80,7 @@ Nothing on the platform says either. `src/config/prices.ts`, the
 `data/catalog.ts`.
 **Change:** the ongoing sentence in `whatChangesIt` states that the price
 includes four stage visits and that each further visit is charged at a price
-held in `prices.ts` as its own constant, not typed into the sentence. TO BUILD.
+held in `prices.ts` as its own constant, not typed into the sentence.
 The $150 needs a home in the price book first; the cost-per-job report reads
 the same constant.
 
@@ -45,8 +89,7 @@ the appointed engineer "can certify compliance on Form WPI-2 and the owner can
 obtain a Certificate of Compliance, Form WPI-8". `data/catalog.ts` names the
 ongoing deliverable "WPI-8E windstorm evaluation, ongoing construction", and
 WPI-8E is the completed construction certificate (WP-001 section 12).
-**Change:** rename it "WPI-8 windstorm inspection, ongoing construction". TO
-BUILD.
+**Change:** rename it "WPI-8 windstorm inspection, ongoing construction".
 
 **3. The ongoing deliverable accepts work that has already passed a stage.**
 Section 6.2: "A structure that has already passed a stage that must be
@@ -55,7 +98,7 @@ inspected is declined for the ongoing path". The ongoing stage qualifier offers
 `disqualifyOn: []`.
 **Change:** on the ongoing deliverable, disqualify both, with a message routing
 the first to completed construction and the second to the windstorm inquiry
-page. TO BUILD.
+page.
 
 ## WS-001, windstorm, completed construction
 
@@ -66,7 +109,7 @@ progress and still open" with `disqualifyOn: []`.
 **Change:** disqualify it on the completed deliverable with a message routing to
 ongoing construction. And under ruling 5, "Existing building, no recent work" is
 quoted per job, so it is disqualified on BOTH fixed-price deliverables with a
-message routing to the inquiry page. TO BUILD.
+message routing to the inquiry page.
 
 **6. Nothing checks the catastrophe area.** Section 12: "A property outside the
 designated catastrophe area. Declined." The only location check on either
@@ -74,7 +117,7 @@ windstorm deliverable is "Is the property in Texas?"
 **Change:** a county qualifier on both windstorm deliverables, disqualifying any
 county outside the fourteen seacoast counties and the part of Harris County east
 of State Highway 146. Harris needs a yes or no follow-up rather than a county
-answer. TO BUILD, with the county list derived from the existing coastal county
+answer. with the county list derived from the existing coastal county
 declaration rather than typed again.
 
 **7. The inquiry form's pre-1988 verdict.** `src/lib/windstorm-inquiry.ts`, the
@@ -82,8 +125,7 @@ declaration rather than typed again.
 eligible without inspection at all". WS-001 declines it with a referral to TWIA.
 **Change:** the reason states the decline and the referral. The catalogue also
 asks for no date at all although section 6 records "the dates construction began
-and was completed": add a required date input on the completed deliverable. TO
-BUILD.
+and was completed": add a required date input on the completed deliverable.
 
 **8. The firm does not issue the certificate.** Section 3: "TDI issues the
 certificate. The firm does not issue it and does not promise that TDI will." The
@@ -94,12 +136,12 @@ only the WPI-2 and the WPI-8.
 actually delivers: the sealed report (completed) or the WPI-2 submission
 (ongoing), and says the certificate is TDI's to issue. The service page gains
 the completed route's WPI-2E and sealed report beside the ongoing route's WPI-2.
-TO BUILD.
+
 
 **9. Required uploads not collected.** Appendix A Part 2, required: "Photo of the
 front of the property" and "Contract or invoice for the work, showing the
 products installed". The completed deliverable collects only an optional permit.
-**Change:** both added as required inputs. TO BUILD. Item 27 makes the front
+**Change:** both added as required inputs. Item 27 makes the front
 photo a change to every line.
 
 ## MH-001, manufactured home foundation certification
@@ -108,17 +150,17 @@ photo a change to every line.
 non-invasive inspection" and is not a representation about concealed or
 below-grade conditions. `src/content/services.ts:293` says the inspection
 records "footing size and depth below grade".
-**Change:** "footing size, and depth where it can be seen". TO BUILD.
+**Change:** "footing size, and depth where it can be seen".
 
 **11. Frost depth as a failure reason.** `services.ts:321` lists "piers that
 were never founded below the frost or active zone depth" as a recurring reason a
 certification fails. Under section 3 that is a below-grade condition the
 inspection does not assess.
-**Change:** removed from the list. TO BUILD.
+**Change:** removed from the list.
 
 **12. The lender's written request.** Appendix A Part 2, required: "The lender's
 written request for the certification". The catalogue never asks for it.
-**Change:** added as a required file input. TO BUILD.
+**Change:** added as a required file input.
 
 **13. Multi section and return visit priced as modifiers with no figure.**
 `prices.ts`, `whatChangesIt`: "A multi section home ... or a return visit after
@@ -133,7 +175,7 @@ would bring it into compliance". The protocol's repair list does state what is
 required to close each item, so the sentence is true of the list and false only
 if read as a design.
 **Change:** "a repair list stating what each item needs, with any engineered
-retrofit as a separate engagement". TO BUILD.
+retrofit as a separate engagement".
 
 ## SL-001, solar structural letter
 
@@ -145,7 +187,7 @@ residential cases".
 **Change:** the deliverable says a repairs required letter lists what must change
 and that strengthening design is a separate engagement on the design line; the
 FAQ keeps the revised array (which section 10 recalculates without a revisit)
-and drops the promise to detail the strengthening. TO BUILD.
+and drops the promise to detail the strengthening.
 
 **16 and 17. Sold as a desk review with "No site visit."** Section 6: "There is
 no default. On every job the engineer decides at intake whether a technician
@@ -163,8 +205,7 @@ money ruling.
 without the array design." The catalogue disqualifies a buyer without the layout
 ("Come back when you do") and requires it as an input.
 **Change:** the qualifier stops disqualifying and the layout input becomes
-optional, with help text saying no calculation starts until it arrives. TO
-BUILD.
+optional, with help text saying no calculation starts until it arrives.
 
 **19. Installer photographs.** Section 9: "Installer site survey photographs are
 accepted only on the engineer's decision at intake". The general FAQ in
@@ -172,8 +213,7 @@ accepted only on the engineer's decision at intake". The general FAQ in
 own photographs. That answer is right for every other line (PL-001 and RS-001
 say the same) and wrong only for solar.
 **Change:** the FAQ answer adds that a solar letter is the one exception, where
-the engineer may accept the installer's site survey photographs at intake. TO
-BUILD.
+the engineer may accept the installer's site survey photographs at intake.
 
 ## PL-001, structural letter for permit
 
@@ -194,7 +234,7 @@ supplied." The catalogue help text says "A city, a lender, an insurer, a buyer",
 and the qualifier accepts "No, I was just told to get a letter".
 **Change:** help text names the permitting authority only; the qualifier
 disqualifies "No, I was just told to get a letter" with a message saying the
-written request comes first. TO BUILD.
+written request comes first.
 
 **22. Beam sizing and repair methods promised in the letter.** Section 12: "A
 request that needs drawings, calculations for new work, or a repair method.
@@ -205,7 +245,7 @@ each end", "A sketch or detail where the words alone would leave a framer
 guessing", and "specifies the remediation".
 **Change:** the structural letter page describes a letter answering the
 permitting authority's question about existing construction, and routes beam
-sizing to design and remediation to repair specification. TO BUILD.
+sizing to design and remediation to repair specification.
 
 ## RS-001, repair specification
 
@@ -221,7 +261,7 @@ photographs-alone sentence is removed. `orderType` REFERRED, as item 16.
 it exists". The catalogue requires one and disqualifies "No, nobody has looked
 at it yet".
 **Change:** the report input becomes optional and the qualifier stops
-disqualifying. TO BUILD.
+disqualifying.
 
 **25. Verification and stages.** Section 10: the contractor photographs work
 before it is covered, "The engineer may set a hold point on a single item", and
@@ -236,7 +276,7 @@ for verification; whether to add one is REFERRED, because it needs a price.
 insurance claim on the damage, where the specification would function as claim
 leverage". `services.ts:401` names "Adjusters and carriers" as buyers.
 **Change:** the buyer line is narrowed to adjusters and carriers who need repair
-scope established for a settled or non-adversarial claim. TO BUILD.
+scope established for a settled or non-adversarial claim.
 
 ## DS-001, structural design
 
@@ -244,14 +284,14 @@ scope established for a settled or non-adversarial claim. TO BUILD.
 CONDITIONS: "A site visit is needed, the engineer writes the job list". The
 beam and header and the carport catalogue entries say "No site visit."
 **Change:** "The engineer decides at acceptance whether a technician visits; the
-engineer does not attend." TO BUILD.
+engineer does not attend."
 
 ## All seven
 
 **27. The front of the property.** Every Appendix A requires "Photo of the front
 of the property". No catalogue entry collects it.
 **Change:** a required file input on every deliverable whose protocol requires
-it. TO BUILD.
+it.
 
 **Turnaround, resolved as a conflict.** MH-001, SL-001 and PL-001 section 4:
 staff relay a determination "without interpretation, addition, or estimate of
@@ -261,7 +301,7 @@ business days" for exactly those three lines, at `:260` (solar), `:309`
 **Change:** those three turnaround sentences say that review begins when the
 record is complete and that no issue date is estimated. The same phrase on the
 roof, foundation and windstorm lines is not governed by these three protocols and
-is left. TO BUILD.
+is left.
 
 ## Referred to the engineer, and not changed
 
