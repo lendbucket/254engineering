@@ -3,7 +3,7 @@ import { DB_NOW } from "./db-now";
 import { supabaseAdmin } from "./supabase";
 import { retentionReadiness } from "./ops-retention";
 import { sweepable } from "./ops-retention";
-import { opsNotification } from "./email-templates";
+import { retentionAlert } from "./email-templates";
 import { notify } from "./notify";
 import { business } from "@/config/business";
 import { emailIdentity } from "@/config/email-identity";
@@ -189,28 +189,29 @@ export async function watchRetention(
    * on 1 table" would throw that away and the operator would have to go and
    * reproduce it.
    */
-  const body = [
-    decision.because,
-    "",
-    ...decision.stalled.map((t) => `${t.table}: ${t.because ?? "no reason was given"}`),
-    "",
-    /*
-     * SAID THE WAY A PERSON SAYS IT. The cooldown moved to 1440 minutes and
-     * this sentence read "the next check is in 1440 minutes at the earliest",
-     * which nobody says and which reads as a machine quoting its own constant.
-     * It is derived from the constant rather than typed, so the two cannot
-     * disagree, and the plural is handled because "in 1 days" is the other way
-     * a generated sentence announces itself.
-     */
-    `Nothing has been deleted and nothing is at risk. ${cooldownInWords()}`,
-  ].join("\n");
+  /*
+   * SAID THE WAY A PERSON SAYS IT. The cooldown moved to 1440 minutes and
+   * this sentence read "the next check is in 1440 minutes at the earliest",
+   * which nobody says and which reads as a machine quoting its own constant.
+   * It is derived from the constant rather than typed, so the two cannot
+   * disagree, and the plural is handled because "in 1 days" is the other way
+   * a generated sentence announces itself.
+   */
+  const reassurance = `Nothing has been deleted and nothing is at risk. ${cooldownInWords()}`;
 
+  /*
+   * ITS OWN TEMPLATE SINCE 2026-10-07. It went out as opsNotification, the
+   * technician's notification email, and arrived as one wall of text under a
+   * footer about notification preferences. See retentionAlert.
+   */
   const result = await notify(
-    opsNotification({
+    retentionAlert({
       to: emailIdentity.senders.operator.replyTo,
-      title: decision.headline,
-      body,
-      href: `${business.url}/portal/status`,
+      headline: decision.headline,
+      because: decision.because,
+      stalled: decision.stalled.map((t) => ({ table: t.table, because: t.because ?? null })),
+      reassurance,
+      statusUrl: `${business.url}/portal/status`,
     }),
   );
 

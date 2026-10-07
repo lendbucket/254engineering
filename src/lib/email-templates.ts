@@ -1464,6 +1464,48 @@ export function opsNotification(input: {
 }
 
 
+/**
+ * THE RETENTION ALERT, TO THE OPERATOR, AS ITS OWN EMAIL.
+ *
+ * It went out as opsNotification until 2026-10-07, which is the technician's
+ * notification template, and the staff walk of 2026-10-03 read the result: one
+ * wall of text, because the body was lines joined with newlines inside one
+ * paragraph; a footer about notification preferences, a document expiring and a
+ * certification being withdrawn, which is about a technician's own profile and
+ * means nothing on a machine alert to the operator; and a generic "Open it in
+ * the portal" button. So the alert has its own shape, the way the outage alert
+ * does: the headline, each stalled table on its own line with its own sentence,
+ * what is and is not at risk, and a button that says where it goes.
+ */
+export function retentionAlert(input: {
+  to: string;
+  headline: string;
+  because: string;
+  stalled: { table: string; because: string | null }[];
+  reassurance: string;
+  statusUrl: string;
+}): RenderedEmail {
+  return compose(
+    "ops.retention",
+    "operator",
+    input.headline,
+    {
+      preheader: input.because,
+      blocks: [
+        { kind: "p", text: input.because },
+        {
+          kind: "list",
+          title: input.stalled.length === 1 ? "The table that stalled" : "The tables that stalled",
+          items: input.stalled.map((t) => `${t.table}: ${t.because ?? "no reason was given"}`),
+        },
+        { kind: "p", text: input.reassurance },
+      ],
+      button: { label: "Open the status screen", url: input.statusUrl },
+    },
+    { to: input.to },
+  );
+}
+
 export type OutageAlertInput = {
   /**
    * Which fault this is. Three of the four outcomes send the operator to three
@@ -1927,6 +1969,14 @@ export function allTemplatesForAudit(): RenderedEmail[] {
       detail: '{"ok":false}',
       checkedAt: "3 September 2026 at 13:29 UTC",
       everyMinutes: 5,
+    }),
+    retentionAlert({
+      to: "operator@254engineering.com",
+      headline: "Retention has stalled on one table",
+      because: "The nightly retention run refused to delete anything from one table, because its own checks did not pass.",
+      stalled: [{ table: "eng_cron_runs", because: "the rollup for 2026-09-30 counts 1,402 runs and the rows hold 1,398" }],
+      reassurance: "Nothing has been deleted and nothing is at risk. The next check is in a day at the earliest.",
+      statusUrl: "https://254engineering.com/portal/status",
     }),
     /*
      * Every portal notification goes out as this one template, so the audit
