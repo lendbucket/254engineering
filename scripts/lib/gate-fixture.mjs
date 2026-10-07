@@ -39,6 +39,8 @@
 import { readFileSync, writeFileSync, unlinkSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+/* The protocol registry is code, never patched by this fixture, so importing it once is safe. */
+const { protocolForLine } = await import("../../src/content/protocols/index.ts");
 
 const CONFIG = "src/config/credentials.ts";
 const READINESS = "src/config/launch-readiness.ts";
@@ -291,44 +293,16 @@ export async function withGateConditionsMet(fn) {
       what: "the charge and refund proof",
     },
 
-    /* --- one approved protocol per service line */
-    {
-      file: READINESS,
-      /*
-       * ANCHORED ON THE DECLARATION, NOT ON ITS EMPTINESS.
-       *
-       * The pattern was `= \[\];`, which matched only while the register was
-       * EMPTY. That was correct from the day the file was written until Aman's
-       * approval was recorded. The moment one entry went in it matched nothing
-       * and the fixture threw, correctly, on every audit that opens the gate.
-       * The fixture's own guard is the only reason that was a loud failure
-       * rather than thirteen audits quietly measuring the prelaunch state while
-       * reporting on the live one.
-       *
-       * IT IS THE TRANSITIONAL-SUBJECT DEFECT FROM THE OTHER SIDE: a pattern
-       * whose subject was the firm's STARTING state, which the firm was always
-       * going to leave. `trade-pricing-audit` met the same thing the day the
-       * last pending floor was ruled.
-       *
-       * FIXED TWICE, INDEPENDENTLY, A DAY APART, and the merge is where that
-       * showed. 2026-09-23 wrote `\[[\s\S]*?\n\];`, which matches a POPULATED
-       * array. 2026-09-24 wrote the alternation below, which matches either.
-       * The alternation is kept because it is the more general of the two: a
-       * branch whose register is still empty, which several are, would make the
-       * 09-23 pattern match nothing and throw all over again. A fixture must
-       * work on any tree it is checked out on, not only on the one where the
-       * register happens to be full.
-       *
-       * Locate by the thing you mean, which CLAUDE.md prescribes after a patch
-       * on supabase/applied.mjs found the last `];` in the file and edited a
-       * different array. The thing meant is the whole declaration, however long
-       * it has become, so this takes either an empty pair or everything through
-       * the first `];` sitting at the start of a line.
-       */
-      find: /export const approvedProtocols: ApprovedProtocol\[\] = (?:\[\]|\[[\s\S]*?\n\]);/,
-      replace: () => `export const approvedProtocols: ApprovedProtocol[] = ${JSON.stringify(fixtureProtocols(), null, 2)};`,
-      what: "the approved protocol registry",
-    },
+    /*
+     * --- one protocol per service line: NO PATCH SINCE 2026-10-07.
+     *
+     * This patched `approvedProtocols` in src/config/launch-readiness.ts, the
+     * typed approval list, which ruling 11 stage B removed. The protocols
+     * condition now asks whether every offered line has a protocol in force in
+     * PROTOCOL_ENTRIES, which is code and needs no patch, and the engineer's
+     * signature is read by the money doors from the database, where a
+     * fixture has no business writing it.
+     */
 
     /*
      * --- the firm's professional liability cover, and training on each protocol
@@ -391,9 +365,9 @@ export async function withGateConditionsMet(fn) {
         JSON.stringify(
           fixtureProtocols().map((p) => ({
             technician: "AUDIT FIXTURE, NOT A REAL TECHNICIAN",
-            protocolDocument: "AUDIT-FIXTURE",
-            protocolVersion: p.version,
-            protocolVersionLabel: String(p.version),
+            protocolDocument: p.documentNumber,
+            protocolVersion: 1,
+            protocolVersionLabel: p.versionLabel,
             serviceSlug: p.serviceSlug,
             trainedOn: "2000-01-01",
             trainedBy: "the gate fixture",
@@ -598,15 +572,29 @@ function fixtureProtocols() {
    * deriving it is a second account of that shape, and this is the third time
    * CLAUDE.md has recorded that about this file.
    */
-  return slugs.map((serviceSlug) => ({
-    serviceSlug,
-    protocolName: "AUDIT FIXTURE NOT A REAL PROTOCOL",
-    version: 1,
-    versionLabel: "AUDIT-FIXTURE",
-    approvedBy: "Audit Fixture",
-    approvedByLicense: "AUDIT-FIXTURE",
-    approvedOn: "2099-12-31",
-  }));
+  /*
+   * RULING 11 STAGE B, 2026-10-07: DERIVED FROM THE REGISTRY, NOT TYPED. The
+   * typed approval list this shape mirrored is gone, and the gate now matches
+   * training on the protocol IN FORCE for the line, by its document number and
+   * version label. So this reads both from PROTOCOL_ENTRIES rather than stating
+   * a fixture shape, which is the fourth time this file has needed the lesson
+   * above. An offered line with no protocol in force throws: the gate cannot
+   * open over it, and saying so here is louder than a downgraded audit.
+   */
+  return slugs.map((serviceSlug) => {
+    const protocol = protocolForLine(serviceSlug);
+    if (!protocol) {
+      throw new Error(
+        `The gate fixture found ${serviceSlug} offered with no protocol in force in PROTOCOL_ENTRIES, ` +
+          "so the protocols condition cannot be met and no fixture should pretend otherwise.",
+      );
+    }
+    return {
+      serviceSlug,
+      documentNumber: protocol.declaration.documentNumber,
+      versionLabel: protocol.declaration.version,
+    };
+  });
 }
 
 /**

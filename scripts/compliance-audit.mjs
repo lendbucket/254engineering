@@ -1489,7 +1489,7 @@ const RULED_CONDITIONS = [
   const OFFERED_AT_LAUNCH = ["roof-inspections"];
 
   const { offeredServiceLines } = await import("../src/config/launch-conditions.ts");
-  const { approvedProtocols } = await import("../src/config/launch-readiness.ts");
+  const { PROTOCOL_ENTRIES } = await import("../src/content/protocols/index.ts");
   const { services } = await import("../src/content/services.ts");
 
   const offered = [...offeredServiceLines].sort();
@@ -1501,23 +1501,31 @@ const RULED_CONDITIONS = [
       : `offered: ${offered.join(", ")}. Ruled: ${OFFERED_AT_LAUNCH.join(", ")}`,
   );
 
-  const approvedFor = new Set(approvedProtocols.map((p) => p.serviceSlug));
-  const offeredWithout = offeredServiceLines.filter((s) => !approvedFor.has(s));
+  /*
+   * RULING 11 STAGE B, 2026-10-07. These two asked the typed approval list,
+   * which is gone: approval lives in the database and the money doors read it
+   * (scripts/proofs/every-money-door-reads-the-signed-record.mjs). What code
+   * can still answer is whether each offered line has a protocol IN FORCE, an
+   * entry in PROTOCOL_ENTRIES, and whether any protocol is in force for a line
+   * nobody offered.
+   */
+  const inForceFor = new Set(PROTOCOL_ENTRIES.map((p) => p.declaration.serviceSlug));
+  const offeredWithout = offeredServiceLines.filter((s) => !inForceFor.has(s));
   rec(
-    "and every offered line has a protocol approved by the engineer of record",
+    "and every offered line has a protocol in force",
     offeredWithout.length === 0,
     offeredWithout.length === 0
-      ? `${offeredServiceLines.length} offered, all approved`
-      : `offered with no approved protocol: ${offeredWithout.join(", ")}`,
+      ? `${offeredServiceLines.length} offered, each with a protocol in force; its signature is read at the money doors`
+      : `offered with no protocol in force: ${offeredWithout.join(", ")}`,
   );
 
-  const approvedButUnoffered = [...approvedFor].filter((s) => !offeredServiceLines.includes(s));
+  const inForceButUnoffered = [...inForceFor].filter((s) => !offeredServiceLines.includes(s));
   rec(
-    "and no line is approved without being offered",
-    approvedButUnoffered.length === 0,
-    approvedButUnoffered.length === 0
-      ? `${services.length - offeredServiceLines.length} line(s) are a waitlist and none is approved`
-      : `approved but not offered, so orderable without a ruling: ${approvedButUnoffered.join(", ")}`,
+    "and no protocol is in force for a line nobody offered",
+    inForceButUnoffered.length === 0,
+    inForceButUnoffered.length === 0
+      ? `${services.length - offeredServiceLines.length} line(s) are a waitlist and none has a protocol in force`
+      : `in force but not offered: ${inForceButUnoffered.join(", ")}`,
   );
 
   const launchSource = readSource("src/lib/launch.ts");
@@ -1596,12 +1604,8 @@ const RULED_CONDITIONS = [
 /* ------------------ 5a. each new condition is stated in configuration, not code */
 
 {
-  const {
-    stripeAccount,
-    approvedProtocols,
-    pointInTimeRecovery,
-    placeholderPhonePatterns,
-  } = await import("../src/config/launch-readiness.ts");
+  const readiness = await import("../src/config/launch-readiness.ts");
+  const { stripeAccount, pointInTimeRecovery, placeholderPhonePatterns } = readiness;
 
   /* --- Stripe: the account's OWNER is part of the condition, not just its existence. */
   rec(
@@ -1625,49 +1629,63 @@ const RULED_CONDITIONS = [
     stripeAccount.because.slice(0, 90),
   );
 
-  /* --- Protocols: the registry decides what may be SOLD. */
+  /*
+   * --- Protocols: the registry decides what may be SOLD.
+   *
+   * RULING 11 STAGE B, 2026-10-07. Three checks here read the typed approval
+   * list: every approval names a real line, no line carries two approvals,
+   * and every approval names an engineer in the verified register. The list
+   * is removed, so which protocols are approved has one home, the signed
+   * record. The first two now ask the protocols IN FORCE in code; the third is
+   * asserted where the approval now lives, by lineIsSellable reading the
+   * approver's licence against the register (src/lib/line-gate.ts), and a
+   * fourth check refuses the typed list coming back.
+   */
   const { services } = await import("../src/content/services.ts");
+  const { PROTOCOL_ENTRIES } = await import("../src/content/protocols/index.ts");
   const slugs = new Set(services.map((s) => s.slug));
-  const unknown = approvedProtocols.filter((p) => !slugs.has(p.serviceSlug)).map((p) => p.serviceSlug);
+  const unknown = PROTOCOL_ENTRIES.filter((p) => !slugs.has(p.declaration.serviceSlug)).map((p) => p.declaration.serviceSlug);
   rec(
-    "every approved protocol names a real service line",
+    "every protocol in force names a real service line",
     unknown.length === 0,
     unknown.length === 0
-      ? `${approvedProtocols.length} approved, ${services.length} service lines exist`
+      ? `${PROTOCOL_ENTRIES.length} in force, ${services.length} service lines exist`
       : `names no such service line: ${unknown.join(", ")}`,
   );
 
-  /*
-   * ONE APPROVAL PER LINE. Two rows for one service line is two answers to
-   * which protocol governs it, and the dispatch would pick whichever came
-   * first in the array.
-   */
   const seen = new Set();
-  const duplicated = approvedProtocols.filter((p) => (seen.has(p.serviceSlug) ? true : (seen.add(p.serviceSlug), false)));
+  const duplicated = PROTOCOL_ENTRIES.filter((p) =>
+    seen.has(p.declaration.serviceSlug) ? true : (seen.add(p.declaration.serviceSlug), false),
+  );
   rec(
-    "and no service line carries two approvals",
+    "and no service line has two protocols in force",
     duplicated.length === 0,
-    duplicated.length === 0 ? "one protocol per line, or none" : `duplicated: ${duplicated.map((p) => p.serviceSlug).join(", ")}`,
+    duplicated.length === 0 ? "one protocol per line, or none" : `duplicated: ${duplicated.map((p) => p.declaration.serviceSlug).join(", ")}`,
   );
 
-  /*
-   * AND AN APPROVAL NAMES A LICENSED ENGINEER WHO IS IN THE REGISTER. An
-   * approval by a name nobody verified is the fabricated credential this whole
-   * register exists to prevent, wearing a protocol.
-   */
-  const { verifiedEngineers } = await import("../src/config/credentials.ts");
-  const licensed = new Set(verifiedEngineers.map((e) => e.licenseNumber));
-  const unverified = approvedProtocols
-    .filter((p) => !licensed.has(p.approvedByLicense))
-    .map((p) => `${p.serviceSlug} by ${p.approvedByLicense}`);
+  const lineGate = codeOnly(readSource("src/lib/line-gate.ts"));
   rec(
-    "and every approval names an engineer who is in the verified register",
-    unverified.length === 0,
-    unverified.length === 0
-      ? verifiedEngineers.length === 0
-        ? "no approvals and no verified engineers, which agree"
-        : `${verifiedEngineers.length} verified engineer(s)`
-      : `approved by somebody not in the register: ${unverified.join(", ")}`,
+    "and the approver's licence is checked against the verified register where approval now lives",
+    /verifiedEngineers\.some\(\(e\) => e\.licenseNumber === row\.approved_by_license\)/.test(lineGate),
+    "lineIsSellable refuses an approval under a licence the register does not hold",
+  );
+
+  const typedListBack = "approvedProtocols" in readiness;
+  const { readdirSync: rdP, statSync: stP } = await import("node:fs");
+  const protocolSrc = [];
+  const walkP = (dir) => {
+    for (const name of rdP(dir)) {
+      const p = `${dir}/${name}`;
+      if (stP(p).isDirectory()) walkP(p);
+      else if (/\.(ts|tsx)$/.test(name)) protocolSrc.push(p);
+    }
+  };
+  walkP("src");
+  const readersOfIt = protocolSrc.filter((f) => /\bapprovedProtocols\b/.test(codeOnly(readSource(f))));
+  rec(
+    "and the typed approval list stays removed, ruling 11: nothing exports or reads it",
+    !typedListBack && readersOfIt.length === 0,
+    typedListBack ? "launch-readiness.ts exports approvedProtocols again" : readersOfIt.join(", ") || "one home, the signed record",
   );
 
   /*

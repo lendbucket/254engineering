@@ -13,7 +13,6 @@ import {
 } from "@/config/credentials";
 import {
   stripeAccount,
-  approvedProtocols,
   pointInTimeRecovery,
   placeholderPhonePatterns,
 } from "@/config/launch-readiness";
@@ -38,6 +37,7 @@ import { stripeAccountBlockedReason } from "./stripe-account";
 import { contact } from "@/config/contact";
 import { services } from "@/content/services";
 import { offeredServiceLines, selfServiceSignUp } from "@/config/launch-conditions";
+import { protocolForLine } from "@/content/protocols";
 
 /**
  * The compliance gate.
@@ -323,7 +323,7 @@ export const LAUNCH_CONDITIONS: LaunchCondition[] = [
     what: "Every service line offered at launch has one protocol approved by the engineer of record.",
     whoClears: "The Professional Engineer in responsible charge approves each protocol.",
     statedIn:
-      "offeredServiceLines in src/config/launch-conditions.ts, and approvedProtocols in src/config/launch-readiness.ts",
+      "offeredServiceLines in src/config/launch-conditions.ts, the protocol in force in PROTOCOL_ENTRIES, and the engineer's signed record in the database, read by every money door (ruling 11)",
     /*
      * OFFERED LINES, NOT EVERY LINE. Operator ruling, 2026-09-28.
      *
@@ -346,9 +346,15 @@ export const LAUNCH_CONDITIONS: LaunchCondition[] = [
         return `offeredServiceLines names ${unknown.length} line(s) this platform does not have: ${unknown.join(", ")}. A slug that matches no service is a line nobody can order and nobody can dispatch.`;
       }
 
-      const waiting = offeredServiceLines.filter((slug) => !approvedProtocolFor(slug));
+      /*
+       * Ruling 11 stage B: the synchronous half asks whether the platform has a
+       * protocol in force for each offered line. Whether the engineer's
+       * signature on it stands is read by every money door from the database,
+       * which is the one place it lives.
+       */
+      const waiting = offeredServiceLines.filter((slug) => !registeredProtocolFor(slug));
       if (waiting.length === 0) return null;
-      return `${waiting.length} of ${offeredServiceLines.length} OFFERED service line(s) have no approved protocol: ${waiting.join(", ")}. A line is offered when it is listed and its protocol is approved, and both are needed.`;
+      return `${waiting.length} of ${offeredServiceLines.length} OFFERED service line(s) have no protocol in force: ${waiting.join(", ")}. A line is offered when it is listed and its protocol is signed by the engineer of record, and both are needed.`;
     },
   },
 
@@ -569,8 +575,23 @@ export function selfServiceSignUpClosedSentence(): string {
   return "Accounts are not open for sign up yet. Call the office or send a message and somebody will open one for you.";
 }
 
-export function approvedProtocolFor(serviceSlug: string) {
-  return approvedProtocols.find((p) => p.serviceSlug === serviceSlug) ?? null;
+/**
+ * THE PROTOCOL IN FORCE IN CODE FOR A LINE, AND NOTHING ABOUT ITS APPROVAL.
+ *
+ * Ruling 11 stage B, 2026-10-07. This was approvedProtocolFor(), which read a
+ * typed list in src/config/launch-readiness.ts naming who approved each
+ * protocol and when. Ruling 11 removed that list: which protocols are approved
+ * has one home, the signed record in the database, read by every money door
+ * through lineIsSellable() in src/lib/line-gate.ts.
+ *
+ * What stays synchronous, and has to for statically rendered pages, is whether
+ * the PLATFORM has a protocol in force for the line at all: an entry in
+ * PROTOCOL_ENTRIES, which a protocol joins in the change that records the
+ * engineer's signature, by deploy. That changes only with a deploy, which is
+ * the rule ruling 11 makes its one exception to, in the closing direction.
+ */
+export function registeredProtocolFor(serviceSlug: string) {
+  return protocolForLine(serviceSlug);
 }
 
 /**
@@ -635,7 +656,12 @@ export function approvedProtocolFor(serviceSlug: string) {
  * sealed. What it must not do is say so in the present tense before trading.
  */
 export function sealingIsAvailable(): boolean {
-  return isTrading() && peInResponsibleCharge() && approvedProtocols.length > 0;
+  /*
+   * Ruling 11 stage B: "any protocol approved" became "any offered line with a
+   * protocol in force". Copy is statically rendered and cannot read a
+   * database, and ruling 13 accepted that display surfaces read configuration.
+   */
+  return isTrading() && peInResponsibleCharge() && offeredServiceLines.some((slug) => registeredProtocolFor(slug) !== null);
 }
 
 /**
@@ -657,7 +683,7 @@ export function sealingIsAvailable(): boolean {
  * a caller rather than a comment. 0027 records what the other kind becomes.
  */
 export function sealingIsAvailableFor(serviceSlug: string): boolean {
-  return isTrading() && peInResponsibleCharge() && approvedProtocolFor(serviceSlug) !== null;
+  return isTrading() && peInResponsibleCharge() && registeredProtocolFor(serviceSlug) !== null;
 }
 
 /**
@@ -699,7 +725,7 @@ export function sealingIsAvailableFor(serviceSlug: string): boolean {
  * day the two facts diverge.
  */
 export function serviceLineIsOffered(serviceSlug: string): boolean {
-  return offeredServiceLines.includes(serviceSlug) && approvedProtocolFor(serviceSlug) !== null;
+  return offeredServiceLines.includes(serviceSlug) && registeredProtocolFor(serviceSlug) !== null;
 }
 
 /**
@@ -848,15 +874,22 @@ export function activeInsurance(): VerifiedInsurance | null {
  * ever across every future revision.
  */
 export function linesWithNobodyTrained(): string[] {
-  return approvedProtocols
-    .filter(
-      (p) =>
-        !verifiedTechnicianTraining.some(
-          (t) =>
-            t.serviceSlug === p.serviceSlug && t.protocolVersion === p.version,
-        ),
-    )
-    .map((p) => p.serviceSlug);
+  /*
+   * Ruling 11 stage B: asked of every OFFERED line with a protocol in force,
+   * matched on the document number and the version LABEL the protocol itself
+   * prints ("1.1"), which is what the training register records beside the
+   * integer the typed list used to carry.
+   */
+  return offeredServiceLines.filter((slug) => {
+    const protocol = registeredProtocolFor(slug);
+    if (!protocol) return false;
+    return !verifiedTechnicianTraining.some(
+      (t) =>
+        t.serviceSlug === slug &&
+        t.protocolDocument === protocol.declaration.documentNumber &&
+        t.protocolVersionLabel === protocol.declaration.version,
+    );
+  });
 }
 
 /**

@@ -34,11 +34,13 @@ import { execFileSync } from "node:child_process";
 
 const CREDENTIALS = "src/config/credentials.ts";
 const READINESS = "src/config/launch-readiness.ts";
+const CONDITIONS = "src/config/launch-conditions.ts";
 const TSX = "node_modules/tsx/dist/cli.mjs";
 
 const BACKUPS = {
   [CREDENTIALS]: `.insurance-proof-credentials-${process.pid}.bak`,
   [READINESS]: `.insurance-proof-readiness-${process.pid}.bak`,
+  [CONDITIONS]: `.insurance-proof-conditions-${process.pid}.bak`,
 };
 
 const out = [];
@@ -146,12 +148,17 @@ const DECLARATION = (name, type) =>
 
 const EMPTY_INSURANCE = DECLARATION("verifiedInsurance", "VerifiedInsurance");
 const EMPTY_TRAINING = DECLARATION("verifiedTechnicianTraining", "TechnicianTraining");
-const EMPTY_PROTOCOLS = DECLARATION("approvedProtocols", "ApprovedProtocol");
+/*
+ * RULING 11 STAGE B, 2026-10-07. This was the typed approval list, which is
+ * removed. "No protocol" is now "no line offered", because the protocol in
+ * force for an offered line is code (PROTOCOL_ENTRIES) and is never patched.
+ */
+const EMPTY_OFFERED = /export const offeredServiceLines: string\[\] = \[[^\]]*\];/;
 
 /** What each register is set to when a case needs it empty. */
 const NO_INSURANCE = "export const verifiedInsurance: VerifiedInsurance[] = [];";
 const NO_TRAINING = "export const verifiedTechnicianTraining: TechnicianTraining[] = [];";
-const NO_PROTOCOLS = "export const approvedProtocols: ApprovedProtocol[] = [];";
+const NO_OFFERED = "export const offeredServiceLines: string[] = [];";
 
 /*
  * THE OWNER OVERRIDE, WHICH THIS PROOF DID NOT KNOW ABOUT AND WHICH BROKE IT.
@@ -209,7 +216,7 @@ try {
    */
   ensure(CREDENTIALS, EMPTY_INSURANCE, NO_INSURANCE);
   ensure(CREDENTIALS, EMPTY_TRAINING, NO_TRAINING);
-  ensure(READINESS, EMPTY_PROTOCOLS, NO_PROTOCOLS);
+  ensure(CONDITIONS, EMPTY_OFFERED, NO_OFFERED);
   /* Nothing recorded means nothing recorded, the owner's decision included. */
   ensure(CREDENTIALS, OVERRIDE_DECLARATION, NO_OVERRIDE);
   const a = blockersInChild();
@@ -219,7 +226,7 @@ try {
     insuranceBlocker(a.blockers) ?? "NO insurance blocker, which is the defect this condition exists to prevent",
   );
   rec(
-    "A: and training does NOT block, because no protocol is approved",
+    "A: and training does NOT block, because no line is offered, so no protocol is in force",
     trainingBlocker(a.blockers) === null,
     "a line with no protocol is already shut by `protocols`; naming it twice reports one fault as two",
   );
@@ -286,18 +293,7 @@ try {
    * being empty on disk, which stopped being true the day the operator
    * attested the first training and is what broke this proof. */
   ensure(CREDENTIALS, EMPTY_TRAINING, NO_TRAINING);
-  patch(
-    READINESS,
-    EMPTY_PROTOCOLS,
-    `export const approvedProtocols: ApprovedProtocol[] = [{
-      serviceSlug: "roof-inspections",
-      protocolName: "PROOF FIXTURE",
-      version: 1,
-      approvedBy: "PROOF FIXTURE",
-      approvedByLicense: "000000",
-      approvedOn: "2000-01-01",
-    }];`,
-  );
+  /* No protocol patch since ruling 11 stage B: 254-RC-001 v1.1 is in force for the offered roof line in code. */
   const d = blockersInChild();
   rec(
     "D: with a protocol approved and nobody trained, training holds the gate shut",
@@ -316,9 +312,9 @@ try {
     EMPTY_TRAINING,
     `export const verifiedTechnicianTraining: TechnicianTraining[] = [{
       technician: "PROOF FIXTURE",
-      protocolDocument: "PROOF-FIXTURE",
+      protocolDocument: "254-RC-001",
       protocolVersion: 1,
-      protocolVersionLabel: "1",
+      protocolVersionLabel: "1.1",
       serviceSlug: "roof-inspections",
       trainedOn: "2000-01-01",
       trainedBy: "the proof",
@@ -346,23 +342,11 @@ try {
    */
   restoreAll();
   patch(
-    READINESS,
-    EMPTY_PROTOCOLS,
-    `export const approvedProtocols: ApprovedProtocol[] = [{
-      serviceSlug: "roof-inspections",
-      protocolName: "PROOF FIXTURE",
-      version: 2,
-      approvedBy: "PROOF FIXTURE",
-      approvedByLicense: "000000",
-      approvedOn: "2000-01-01",
-    }];`,
-  );
-  patch(
     CREDENTIALS,
     EMPTY_TRAINING,
     `export const verifiedTechnicianTraining: TechnicianTraining[] = [{
       technician: "PROOF FIXTURE",
-      protocolDocument: "PROOF-FIXTURE",
+      protocolDocument: "254-RC-001",
       protocolVersion: 1,
       protocolVersionLabel: "1.0",
       serviceSlug: "roof-inspections",
@@ -373,7 +357,7 @@ try {
   );
   const f = blockersInChild();
   rec(
-    "F: trained on version 1 while version 2 is approved, training STILL blocks",
+    "F: trained on 254-RC-001 v1.0 while v1.1 is in force, training STILL blocks",
     trainingBlocker(f.blockers) !== null,
     trainingBlocker(f.blockers) ??
       "stale training read as current, which is the defect the version in the match exists to prevent",

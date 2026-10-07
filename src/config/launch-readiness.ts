@@ -219,135 +219,30 @@ export const stripeAccount: {
     "which is a separate and real finding recorded in credential-inventory.ts.",
 };
 
-/**
- * ONE PROTOCOL, APPROVED BY THE ENGINEER OF RECORD, PER SERVICE LINE OFFERED.
- *
- * Operator ruling: a line with no approved protocol is not offered, it is a
- * waitlist, and the catalogue reads this registry to decide which is which so
- * nobody can list a line that cannot be dispatched.
- *
- * WHAT THIS IS NOT
- * ----------------
- * It is not a copy of `eng_protocol_templates`. That table is where an engineer
- * AUTHORS protocols and versions them, and it is the operational record. This is
- * the DECLARATION that a named engineer of record has approved a specific
- * version for a specific service line, and it is what the gate and the catalogue
- * read. Two reasons they are separate:
- *
- * First, the gate runs at build time and must not depend on a table.
- *
- * Second, and this is the regulatory half: publishing a protocol row is an act
- * inside the platform, and approving a service line for sale is an act by a
- * licensed Professional Engineer who is answerable for it. Those deserve to be
- * two different records, and collapsing them would mean anybody holding
- * `protocols.author` could put a service line on sale.
- *
- * EMPTY TODAY, AND THAT IS THE HONEST ANSWER
- * ------------------------------------------
- * No PE is in responsible charge, so no protocol has been approved by an
- * engineer of record, so every service line is a waitlist. That is not a gap in
- * this file. It is the firm's actual position, and it is the reason
- * `peInResponsibleCharge()` exists as a second gate.
- */
-export type ApprovedProtocol = {
-  /** Matches a slug in src/content/services.ts. Asserted by compliance-audit. */
-  serviceSlug: string;
-  /** The protocol as named in eng_protocol_templates. */
-  protocolName: string;
-  /**
-   * The row's integer version. A later version is a new approval, not an edit.
-   *
-   * IT IS NOT THE VERSION ANYBODY SAYS OUT LOUD, and that is why the field
-   * below exists. Operator ruling, 2026-09-23. `eng_protocol_templates` carries
-   * BOTH an integer `version`, which is 2 for the current roof protocol, and a
-   * `version_label`, which is "1.1" and is what the signed document itself
-   * says. A register that could hold only the integer would say "version 2"
-   * about a document headed v1.1, which is the status vocabulary defect this
-   * repository already records: the shortage is in the vocabulary and the cost
-   * is paid by whoever later reads the value and believes it.
-   *
-   * So both are held. This one is what layer two compares mechanically, because
-   * it is the row's own key. The label is what a person reads.
-   */
-  version: number;
-  /** The version as the signed document states it, for example "1.1". */
-  versionLabel: string;
-  /** The Professional Engineer who approved it, as their licence reads. */
-  approvedBy: string;
-  /** Their Texas PE licence number. Must also be in verifiedEngineers. */
-  approvedByLicense: string;
-  /** ISO date of the approval. */
-  approvedOn: string;
-};
-
 /*
  * ===========================================================================
- * THE FIRST APPROVED PROTOCOL, 2026-09-23.
+ * THE TYPED APPROVAL LIST WAS HERE, AND RULING 11 REMOVED IT. 2026-10-07.
  * ===========================================================================
  *
- * EVERY FIELD BELOW WAS READ OFF THE PRODUCTION ROW, not typed from memory and
- * not copied from the document. Operator instruction: the values come from a
- * read only query of `eng_protocol_templates`, because the register exists to
- * agree with that row and a register written from anything else is a second
- * account of the same fact.
+ * `approvedProtocols` named, for each offered line, the protocol, its version,
+ * and who approved it and when, typed by hand: on the day it was removed it
+ * held one entry, 254-RC-001 v1.1, approved by Aman Dhakal, PE 143295, on
+ * 2026-09-22.
  *
- * The row, read from fsaryeciduszuahgjbly on 2026-09-23:
+ * Operator ruling 11 of 2026-10-06, CLAUDE.md section 1: "The typed approval
+ * list in src/config/launch-readiness.ts is removed, so which protocols are
+ * approved has one home, the signed record." That record is the database:
+ * the published eng_protocol_templates row for 254-RC-001, signed on paper and
+ * approved in the platform, and eng_seal_acts for every protocol signed in the
+ * portal (0063). Every door that takes money reads it through lineIsSellable()
+ * in src/lib/line-gate.ts, and a voided or unreadable signature closes the line
+ * there at once.
  *
- *   document_number      254-RC-001
- *   version              2
- *   version_label        1.1
- *   status               published
- *   service_slug         roof-inspections
- *   name                 Roof Certification Protocol for Existing Roofs
- *   requires_discipline  structural
- *   issue_date           2026-09-18
- *   document_signed_at   2026-09-20
- *   document_sha256      d050a21a2b2d43114de47989ca731f41e26951f195c90187e99c11705011e4ef
- *   approved_by_license  143295
- *   approved_at          2026-09-22 21:09:34.338155+00
- *   item_count           51, all 51 required
- *
- * `approvedBy` is the ONE field the row cannot supply, because the row holds a
- * uuid and a licence number and no name. It is therefore DERIVED from
- * `verifiedEngineers` by matching the licence, rather than typed, which keeps
- * the engineer's name in the one place it already lives.
- *
- * THE DOCUMENT, THE ROW AND THE TRANSCRIPTION ALL AGREE, checked rather than
- * assumed: `src/content/protocols/rc-001.ts` carries version 1.1, issue date
- * 2026-09-18 and sha256 d050a21a..., and the row carries the same three.
- *
- * APPROVED IN HIS OWN ACCOUNT, and nobody else's. The operator's standing
- * instruction is that no one signs in as the engineer for any purpose.
- *
- * LAYER TWO WAS RUN AGAINST PRODUCTION ON 2026-09-23 AND PASSED, 8 checks:
- * "The register says what the row says." Run by the operator on his own
- * machine with the production key, which never entered the session that wrote
- * this entry.
- *
- * THAT RUN IS WHAT MAKES THIS ENTRY EVIDENCE RATHER THAN A CLAIM. Layer one,
- * on every board, proves the entry is coherent with the service list, the
- * transcribed document and the engineer register, and it would pass just as
- * happily over an approval that never happened. Only the comparison against
- * the ROW can tell those apart, and it needs a credential, so it is a script
- * somebody runs rather than a check that runs itself.
- *
- * IT IS RUN AGAIN BEFORE LAUNCH_MODE GOES LIVE, and that second run is not
- * ceremony. A protocol can be superseded, retired, or approved again at a new
- * version, and every one of those changes the row while leaving this file
- * exactly as it is. A register that was true in September is not thereby true
- * in November.
+ * What stays in code is which protocol is IN FORCE for a line, PROTOCOL_ENTRIES
+ * in src/content/protocols/index.ts, read by registeredProtocolFor() in
+ * src/lib/launch.ts. That changes only with a deploy, which is the rule ruling
+ * 11 makes its one exception to, in the closing direction only.
  */
-export const approvedProtocols: ApprovedProtocol[] = [
-  {
-    serviceSlug: "roof-inspections",
-    protocolName: "Roof Certification Protocol for Existing Roofs",
-    version: 2,
-    versionLabel: "1.1",
-    approvedBy: "Aman Dhakal",
-    approvedByLicense: "143295",
-    approvedOn: "2026-09-22",
-  },
-];
 
 /**
  * POINT IN TIME RECOVERY ON THE PRODUCTION PROJECT.
