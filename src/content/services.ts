@@ -123,9 +123,17 @@ export const services: Service[] = [
        * of record's reasons are stated rather than summarised, because each one
        * is a thing that can make a certification impossible and a buyer is
        * better served knowing that in a paragraph than in a refund.
+       *
+       * AMENDED BY OPERATOR RULING 5 OF 2026-10-07: three situations, not two.
+       * Ongoing and completed construction are both fixed prices, the two
+       * deliverables in data/catalog.ts; only an existing building with NO
+       * RECENT WORK is quoted per job. The copy had folded completed
+       * construction into the quoted case. The 1988 sentence follows WS-001
+       * v1.1 section 12 (declined, with a referral to TWIA) under ruling 6 of
+       * the same day: the protocol wins every conflict.
        */
-      "Two situations reach this page and they are not priced the same way. Work that has not started, or that is under way and still open to view, is inspected in sequence and carries a published price. An existing building where the work is already finished and covered is quoted after a conversation, because whether it can be certified at all is not knowable from a form.",
-      "Three things decide that case. The first is when the work was done rather than when the house went up: under Texas Insurance Code section 2210.251 the date that matters is the date of the work, and a structure can have more than one, so a roof replaced last year on a house built in 1975 is reached by it. The second is that the construction which would be inspected is already covered, so parts of it have to be opened up before anything can be verified. The third is that where opening protection does not meet the standard, doors and windows may need replacing before a certification is possible at all. Any of the three can change what the work is, which is why it is scoped one property at a time rather than sold at a price.",
+      "Three situations reach this page, and two of them carry a published price. Construction that has not started, or that is under way and still open to view, is inspected in stages as it goes. Construction that is already complete is evaluated after the fact, at its own price. Only an existing building with no recent work is quoted per job, because whether it can be certified at all is not knowable from a form.",
+      "What separates the second case from the third is when the work was done rather than when the house went up: under Texas Insurance Code section 2210.251 the date that matters is the date of the work, and a structure can have more than one, so a roof replaced last year on a house built in 1975 is completed construction at the published price. Where there is no recent work to certify, two more things decide the case. The construction that would be inspected is already covered, so parts of it have to be opened up before anything can be verified. And where opening protection does not meet the standard, doors and windows may need replacing before a certification is possible at all. Either can change what the work is, which is why that case is scoped one property at a time rather than sold at a price.",
     ],
     whoOrders: [
       "Builders and general contractors working inside the catastrophe area",
@@ -148,7 +156,7 @@ export const services: Service[] = [
       },
       {
         q: "The building is already finished and was never certified. What happens?",
-        a: "It is looked at one property at a time rather than quoted from a price list, and three things decide it. The age of the house is not the question: Texas Insurance Code section 2210.251 turns on the date of the work, so a reroof done last year on a house built in 1975 is reached by it, and work done before January 1, 1988 is treated differently and may be eligible without inspection at all. The construction that needs inspecting is already covered, so parts of it have to be opened up before it can be verified. And if the doors and windows do not meet the opening protection standard, they may need replacing before a certification is possible. That is why this case is quoted after a conversation about the property rather than carrying a published price, and why the answer is sometimes that it cannot be certified.",
+        a: "It depends on when the work was done, not on when the house went up. Texas Insurance Code section 2210.251 turns on the date of the work, so a reroof finished last year on a house built in 1975 is completed construction, evaluated after the fact at a published price. Work that began before January 1, 1988 is declined, with a referral to the Texas Windstorm Insurance Association. An existing building with no recent work is quoted per job rather than priced from a list, because the construction that needs inspecting is already covered and parts of it have to be opened up before it can be verified, and because doors and windows that do not meet the opening protection standard may need replacing before a certification is possible. That is also why the answer for that case is sometimes that it cannot be certified.",
       },
       {
         q: "Is the WPI-8 the same thing as the engineer's letter?",
