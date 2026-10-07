@@ -608,33 +608,56 @@ const DECLARED: CatalogDeclaration[] = [
     protocolServiceSlug: null,
     qualifiers: [
       ADDRESS_QUALIFIER,
+      /*
+       * PL-001 v1.1, ruling 6 of 2026-10-07. Section 2: the protocol covers a
+       * letter to a permitting authority that "has asked, in writing", and
+       * nothing else. Section 12: "No written request from the permitting
+       * authority. Not accepted until one is supplied." This qualifier used to
+       * accept "No, I was just told to get a letter" and disqualify nobody.
+       */
       {
         id: "question",
-        prompt: "Is there a specific question the letter has to answer?",
-        help: "A letter answers something. A letter that answers nothing in particular is not useful to whoever asked for it.",
+        prompt: "Has the permitting authority asked for the letter in writing?",
+        help: "The letter answers the authority's request exactly as it was written, so the request is where it starts.",
         options: ["Yes", "No, I was just told to get a letter"],
-        disqualifyOn: [],
-        disqualifiedMessage: "",
+        disqualifyOn: [1],
+        disqualifiedMessage:
+          "The letter answers a written request from the building department, as it was written. Ask the department for its request, comment or correction notice in writing, and the order can start once you have it.",
       },
     ],
     requiredInputs: [
       {
         id: "question_text",
-        label: "What does the letter need to say, and who asked for it",
-        help: "A city, a lender, an insurer, a buyer. Their words if you have them.",
+        label: "What the permitting authority asked for",
+        help: "The building department's request in its own words, and the permit number if there is one.",
         kind: "text",
         required: true,
       },
       {
-        id: "documents",
-        label: "Everything you have about the structure",
-        help: "Plans, prior reports, photographs, permits. The engineer works from what is here.",
+        id: "authority_request",
+        label: "The permitting authority's written request",
+        help: "The request, plan review comment, or correction notice itself.",
         kind: "file",
         required: true,
+        accepts: "PDF or a photograph of the notice",
+      },
+      {
+        id: "documents",
+        label: "Plans, earlier letters, or inspection reports, if there are any",
+        help: "Plans or specifications for the element, a failed inspection report or stop work order, an earlier engineer's letter. Photographs help the engineer decide, and do not replace a visit where the letter concerns existing construction.",
+        kind: "file",
+        required: false,
         accepts: "PDF or photographs",
       },
     ],
-    turnaround: "No site visit. The engineer's review begins when the documents are complete.",
+    /*
+     * PL-001 section 6: "A site job is any job where the letter concerns
+     * existing construction ... Photographs supplied by the customer do not
+     * replace a technician visit." This said "No site visit." orderType stays
+     * desk until the operator rules what a site job costs (conflicts item 20).
+     */
+    turnaround:
+      "The engineer triages the order within one business day and records whether it is a site job or a desk job. A letter about existing construction rests on a technician's visit. Review begins when the record is complete.",
     receives: ["The letter the engineer's review supports, sealed"],
   },
   {

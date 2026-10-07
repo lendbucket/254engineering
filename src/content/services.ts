@@ -337,41 +337,49 @@ export const services: Service[] = [
     shortName: "Structural Letters",
     h1: "Structural Letters for Permits in Texas",
     title: "Structural Letters for Texas Permits | 254 Engineering",
+    /*
+     * REWRITTEN TO PL-001 v1.1 BY RULING 6 OF 2026-10-07 (docs/conflicts-v1.1.md
+     * items 20 to 22). The page described a letter that sizes a beam, draws a
+     * detail and specifies a remediation. PL-001 section 12 routes every one
+     * of those to the design or repair specification line, and section 2
+     * limits the letter to a permitting authority's written request about a
+     * described structure or element.
+     */
     description:
-      "The sealed structural letter a Texas building department requires for wall removal, beam sizing, and small structural alterations. See the price.",
+      "The sealed letter a Texas building department asks for in writing about an existing element: its request, what was inspected, the opinion. See the price.",
     summary:
-      "The sealed letter a building department asks for when an alteration affects structure: wall removal, a new opening, a header or beam, or a change a plans examiner has questioned.",
+      "The sealed letter a building department asks for, in writing, when it needs an engineer's opinion on a described structure or element before it issues or closes a permit.",
     what: [
-      "A structural letter is the short form of a sealed engineering deliverable. It exists because a great many projects change something structural without justifying a full set of drawings: a load bearing wall comes out, an opening is widened, a beam has to be sized, a plans examiner has asked a single question and will not issue the permit until an engineer answers it.",
-      "What makes it a letter rather than a plan set is scope, not rigor. The loads are still traced, the member is still sized, the bearing and the load path down to the foundation are still checked, and the engineer still seals the result. What is omitted is everything the permit does not turn on.",
-      "The most common version in Texas residential work is wall removal. A wall carries a roof or a floor above it, or it does not, and the difference is settled in the attic rather than by looking at the wall. Once the load path is established the letter states the beam, the bearing at each end, and what has to happen at the posts below.",
+      "A structural letter for permit answers one written request from a permitting authority: an engineer's opinion that a described structure or element satisfies the requirement the authority named. The request is recorded as written and attached to the file, and the letter answers that request and nothing else. A request the owner can only describe is not enough to start from.",
+      "Where the letter concerns existing construction, which is most of them, it rests on a technician's visit: the element is measured and photographed in place against a job list the engineer writes, and photographs a customer supplies do not stand in for that. Only a letter that can be answered from drawings and documents alone is written without a visit, and the engineer decides which at acceptance.",
+      "What a letter does not do is design. Sizing a new beam for a wall that is coming out, drawing a detail, or setting out a repair method is design or a repair specification, each its own engagement, and a request that needs one is routed there. The letter states its opinion on the element named, with the date of inspection, and says plainly that it does not cover the rest of the structure or anything concealed.",
     ],
     whoOrders: [
-      "Homeowners and remodelers who have been told the permit needs an engineer's letter",
-      "General contractors opening up a plan in an existing house",
-      "Architects and designers who need one member or one condition sealed",
-      "Property owners answering a plan review comment from a building department",
+      "Homeowners and remodelers whose building department has asked in writing for an engineer's letter",
+      "Contractors answering a failed inspection or a plan review comment about an existing element",
+      "Owners closing a permit on work the authority wants an engineer to confirm",
+      "Architects and designers who need one existing condition confirmed for a permit file",
       "Contractors correcting work that was done without a permit and is now being inspected",
     ],
     deliverable: [
-      "A signed and sealed letter stating the condition reviewed, the loads applied, the member or detail specified, and the code edition it was checked against.",
-      "A sketch or detail where the words alone would leave a framer guessing, drawn to be built from rather than to be admired.",
+      "A signed and sealed letter addressed to the permitting authority, giving the property, the permit number, the authority's request as written, the element described, the adopted code, and the evidence and documents the opinion rests on.",
+      "Where the element satisfies the requirement subject to conditions, a schedule stating each one. Where it does not, a sealed letter saying so, with a list of what has to change.",
       "A PDF formatted for the permit file, addressed to the authority having jurisdiction where that is what the reviewer expects.",
     ],
     turnaround:
-      "Structural letters are ordinarily reviewed and sealed within a few business days once the field measurements are in hand. The field visit is usually the schedule, not the engineering.",
+      "The engineer triages each order within one business day and records whether it is a site job or a desk job. Review begins when the record is complete, and no issue date is estimated before the engineer has made a determination.",
     faqs: [
       {
         q: "When does a Texas building department require a sealed letter?",
-        a: "It varies by jurisdiction and by scope. Removing or altering a load bearing element, adding an opening in a shear wall or a masonry wall, and changing the load path in any way are the usual triggers. Many departments will tell you plainly at plan review, and it is worth asking before the wall comes out.",
+        a: "It varies by jurisdiction and by scope. Removing or altering a load bearing element, adding an opening in a shear wall or a masonry wall, and changing the load path in any way are the usual triggers. Many departments will tell you plainly at plan review, and it is worth asking for the request in writing, because the letter answers it as it was written.",
       },
       {
         q: "Can a letter be issued without anyone visiting the site?",
-        a: "Rarely, and it is usually a mistake to try. The letter turns on what is actually there: span, member size, bearing, what is above. An engineer who seals a member based on a homeowner's description of the attic is sealing a description, not a structure.",
+        a: "Only where the letter can be answered from drawings and documents alone, and the engineer decides that at acceptance. A letter about existing construction rests on a technician's visit, and photographs a customer takes do not replace it. An engineer who seals a member based on a homeowner's description of the attic is sealing a description, not a structure.",
       },
       {
         q: "What if the wall is already out?",
-        a: "It is still solvable, and it is a common enough situation. The engineer evaluates what is in place now, states what is required, and specifies the remediation. Work performed before review is more expensive to resolve, not impossible to resolve.",
+        a: "The engineer can give an opinion on what is in place now against what the authority asked. If something has to change, the letter says so with a list of what. Designing the fix is a separate engagement, on the design or the repair specification line.",
       },
       {
         q: "Is a letter cheaper than a full plan set?",
