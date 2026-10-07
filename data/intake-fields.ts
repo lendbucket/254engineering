@@ -68,6 +68,11 @@ export type IntakeField = {
   label: string;
   help?: string;
   kind: "text" | "longtext" | "select" | "date" | "tel" | "email" | "number" | "boolean" | "file";
+  /**
+   * A file field that is a PHOTOGRAPH, so the form offers the camera on a phone
+   * (accept="image/*") rather than a file browser. Order flow v2, 2026-10-07.
+   */
+  photo?: boolean;
   options?: string[];
   required: boolean;
   stage: FieldStage;
@@ -389,6 +394,7 @@ function fromCatalog(input: RequiredInput): IntakeField {
     label: input.label,
     help: input.help,
     kind: input.kind === "file" ? "file" : input.kind === "date" ? "date" : "text",
+    ...(input.kind === "file" && input.accepts === "A photograph" ? { photo: true } : {}),
     required: input.required,
     stage: "order",
     audience: "customer",

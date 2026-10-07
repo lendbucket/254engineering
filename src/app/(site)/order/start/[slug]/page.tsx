@@ -5,7 +5,8 @@ import { Container } from "@/components/ui/Container";
 import { OrderFlow } from "@/components/order/OrderFlow";
 import { deliverablesFor, orderBlockedReason } from "@data/catalog";
 import { serviceBySlug } from "@/content/services";
-import { launchMode } from "@/lib/launch";
+import { isTrading, launchMode, peInResponsibleCharge, registrationLine } from "@/lib/launch";
+import { displayPhone, postalAddressLine } from "@/config/contact";
 import { orderBlockedNow } from "@/lib/line-gate";
 import { orderHeading, serviceNameInSentence } from "@/lib/order-copy";
 import { currentCustomer } from "@/lib/customer-auth";
@@ -160,6 +161,12 @@ export default async function OrderStartPage({ params }: { params: Promise<{ slu
                 serviceName={service.name}
                 deliverables={available}
                 signedIn={Boolean(await currentCustomer())}
+                trust={{
+                  registration: registrationLine(),
+                  engineerInCharge: isTrading() && peInResponsibleCharge(),
+                  address: postalAddressLine(),
+                  phone: displayPhone(),
+                }}
               />
             </div>
           </>

@@ -48,6 +48,8 @@ export type QuestionPhrasing =
 export type ProtocolPhrasing = {
   questions: Record<number, QuestionPhrasing>;
   uploads: Record<string, string>;
+  /** Upload keys that are photographs, so a phone offers the camera. */
+  photos?: string[];
 };
 
 export const PROTOCOL_PHRASING: Record<string, ProtocolPhrasing> = {
@@ -108,5 +110,6 @@ export const PROTOCOL_PHRASING: Record<string, ProtocolPhrasing> = {
       "customer-photos": "Your own photos of any problem areas",
       "prior-inspection-report": "An earlier roof inspection report",
     },
+    photos: ["front-of-property", "customer-photos"],
   },
 };

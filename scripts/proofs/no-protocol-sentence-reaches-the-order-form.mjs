@@ -69,6 +69,33 @@ for (const entry of PROTOCOL_ENTRIES) {
   }
 }
 
+/*
+ * THE FORM'S REFUND DISCLOSURE IS THE SERVER'S, NOT A COPY. OrderFlow carried
+ * its own refundLines, "written here so the customer reads them before paying",
+ * and it had drifted from refundDisclosure on the unpublished fee sentence.
+ * The form now calls refundDisclosure and refundIfDeclinedEarly by name; this
+ * refuses a sentence of the disclosure typed back into the component, and the
+ * phrase the operator rejected as false on 2026-10-05.
+ */
+{
+  const { readFileSync } = await import("node:fs");
+  /*
+   * Whitespace collapsed first: JSX wraps a long sentence across lines, and the
+   * first version of this check passed over a wrapped occurrence of the very
+   * phrase it refuses, in a comment, because it searched for it on one line.
+   */
+  const flow = readFileSync("src/components/order/OrderFlow.tsx", "utf8").replace(/\s+/g, " ");
+  check(
+    "the order form renders the server's refund disclosure, by call",
+    flow.includes("refundDisclosure(entry)") && flow.includes("refundIfDeclinedEarly(entry)"),
+  );
+  const typed = ["you are refunded in full", "an inspection fee is retained", "Paying does not buy a seal"].filter((s) =>
+    flow.includes(s),
+  );
+  check("and types none of its sentences itself", typed.length === 0, typed.join("; ") || "none typed");
+  check("and never says there is no charge until the engineer accepts", !/no charge until the engineer accepts/i.test(flow));
+}
+
 console.log("");
 if (wrong === 0) {
   console.log("PASS: no protocol sentence reaches the order form, and every fact is asked once.");

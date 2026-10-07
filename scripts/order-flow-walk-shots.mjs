@@ -135,9 +135,16 @@ async function fillStep(page) {
    * of objects written to the development bucket at the minimum the step
    * requires, which is what makes the sweep afterwards a short list.
    */
-  const next = page.getByRole("button", { name: "Continue" });
+  /*
+   * ORDER FLOW V2, 2026-10-07: Continue is never disabled for a missing answer
+   * any more, so "stop as soon as Continue enables" has no signal to read.
+   * The walk uploads to the REQUIRED file inputs only, read off each label,
+   * which is the same minimum the old stopping rule was reaching for.
+   */
   for (const file of await page.locator("input[type=file]").all()) {
-    if ((await next.count()) > 0 && !(await next.isDisabled())) break;
+    const id = await file.getAttribute("id");
+    const label = id ? await page.locator(`label[for="${id}"]`).innerText().catch(() => "") : "";
+    if (label.includes("(optional)")) continue;
     const signed = page
       .waitForResponse((r) => r.url().includes("/api/order-flow") && r.request().method() === "POST", {
         timeout: 15_000,
@@ -267,18 +274,22 @@ try {
           await fillStep(page);
           const next = page.getByRole("button", { name: "Continue" });
           if ((await next.count()) === 0) break;
-          if (await next.isDisabled()) {
-            const blockers = await page.locator("text=Still needed").count();
-            console.log(
-              `  ${w.name.padEnd(5)} step ${i + 1}: Continue is disabled${blockers ? " and the blocker list is showing" : ""}. Stopping here.`,
-            );
+          await next.click();
+          await page.waitForTimeout(400);
+          /*
+           * A refused Continue now says why, under "Before you continue",
+           * rather than staying disabled. Its presence after a click is the
+           * blocked signal, and its items are the finding.
+           */
+          const before = page.locator("text=Before you continue");
+          if ((await before.count()) > 0) {
+            const items = await before.locator("xpath=following-sibling::ul[1]/li").allInnerTexts().catch(() => []);
+            console.log(`  ${w.name.padEnd(5)} step ${i + 1}: Continue refused, listing ${items.length} item(s). Stopping here.`);
             findings.push(
-              `at ${w.name}, the walk could not pass step ${i + 1} ("${heading}"): Continue stayed disabled after filling every control by kind.`,
+              `at ${w.name}, the walk could not pass step ${i + 1} ("${heading}") after filling every control by kind: ${items.join("; ") || "no items read"}.`,
             );
             break;
           }
-          await next.click();
-          await page.waitForTimeout(400);
         }
         await context.close();
       }

@@ -158,6 +158,7 @@ export function protocolIntakeFields(protocol: ProtocolEntry): IntakeField[] {
     fields.push({
       id: `${prefix}_upload_${u.key}`,
       label: phrasing?.uploads[u.key] ?? u.what,
+      ...(phrasing?.photos?.includes(u.key) ? { photo: true } : {}),
       help: u.when ?? undefined,
       kind: "file",
       /*

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import type { CatalogEntry } from "@data/catalog";
 import {
@@ -12,6 +12,23 @@ import {
   type FlowState,
   type StepId,
 } from "@/lib/order-flow";
+import { refundDisclosure, refundIfDeclinedEarly } from "@/lib/ops-orders";
+
+/**
+ * WHO THE CUSTOMER IS PAYING, read by the server page from the derivers and
+ * passed in, because this is a client component and cannot read the register
+ * or the gate. The signals are the four the operator approved on 2026-10-05,
+ * each from its one home: the registration line, the engineer in responsible
+ * charge (only when the gate says the firm is trading, so the sentence is never
+ * a premature claim), and the firm's address and telephone. Absent is absent:
+ * a null is not rendered as an empty line.
+ */
+export type TrustFacts = {
+  registration: string;
+  engineerInCharge: boolean;
+  address: string | null;
+  phone: string | null;
+};
 
 /**
  * The customer's order flow.
@@ -37,10 +54,12 @@ export function OrderFlow({
   serviceName,
   deliverables,
   signedIn = false,
+  trust,
 }: {
   serviceSlug: string;
   serviceName: string;
   deliverables: CatalogEntry[];
+  trust: TrustFacts;
   /**
    * Whether a customer session is open, read by the server page.
    *
@@ -97,6 +116,26 @@ export function OrderFlow({
       : [];
 
   const set = (patch: Partial<FlowState>) => setState((s) => ({ ...s, ...patch }));
+
+  /*
+   * ORDER FLOW V2, 2026-10-07: CONTINUE IS NEVER DISABLED FOR A MISSING ANSWER.
+   * A disabled button gave no reason, and a list of what was missing sat under
+   * every step before the person had tried anything. Now Continue always
+   * answers: with something missing, the list appears under "Before you
+   * continue" and takes focus, so the reason is stated where the person is
+   * looking and read out by a screen reader. Moving on, or back, clears it.
+   */
+  const [attempted, setAttempted] = useState(false);
+  const stillNeeded = useRef<HTMLDivElement>(null);
+  const blockedOrGo = (go: () => void) => {
+    if (blockers.length > 0) {
+      setAttempted(true);
+      requestAnimationFrame(() => stillNeeded.current?.focus());
+      return;
+    }
+    setAttempted(false);
+    go();
+  };
 
   function answer(qualifierId: string, optionIndex: number) {
     const q = entry?.qualifiers.find((x) => x.id === qualifierId);
@@ -575,10 +614,21 @@ export function OrderFlow({
                   />
                 ) : input.kind === "file" ? (
                   <div className="mt-2.5">
+                    {/*
+                      STYLED, STILL THE NATIVE CONTROL. Seven of these rendered
+                      as the browser's bare file picker. The `file:` variant
+                      styles the button the browser draws, so keyboard focus,
+                      the label and the screen reader's announcement are the
+                      platform's own rather than a re-implementation. A
+                      photograph accepts images, which on a phone offers the
+                      camera beside the library; `capture` is not set, because
+                      it would take the library away.
+                    */}
                     <input
                       id={input.id}
                       type="file"
-                      className="text-[14px]"
+                      accept={input.photo ? "image/*" : undefined}
+                      className="block w-full text-[14px] text-[var(--color-ink-quiet)] file:mr-3 file:min-h-[var(--tap-target)] file:cursor-pointer file:rounded-[3px] file:border file:border-[var(--color-limestone-edge)] file:bg-white file:px-4 file:text-[15px] file:font-semibold file:text-[var(--color-ink)]"
                       onChange={(e) => {
                         const f = e.target.files?.[0];
                         if (f) void upload(input.id, f);
@@ -607,13 +657,18 @@ export function OrderFlow({
         ) : null}
 
         {step.id === "review" && entry ? (
-          <ReviewStep entry={entry} state={state} onAccept={(v) => set({ acceptedTerms: v })} />
+          <ReviewStep entry={entry} state={state} trust={trust} onAccept={(v) => set({ acceptedTerms: v })} />
         ) : null}
       </div>
 
-      {blockers.length > 0 && index > 0 ? (
-        <div className="mt-8 border-t border-[var(--color-limestone-line)] pt-5">
-          <p className="text-[14px] font-semibold text-[var(--color-ink)]">Still needed</p>
+      {attempted && blockers.length > 0 ? (
+        <div
+          ref={stillNeeded}
+          tabIndex={-1}
+          aria-live="polite"
+          className="mt-8 border-l-2 border-[var(--color-ink)] pl-3 outline-none"
+        >
+          <p className="text-[14px] font-semibold text-[var(--color-ink)]">Before you continue</p>
           <ul className="mt-1.5 flex flex-col gap-1">
             {blockers.map((b) => (
               <li key={b} className="text-[14px] leading-[1.55] text-[var(--color-ink-quiet)]">
@@ -652,6 +707,7 @@ export function OrderFlow({
           type="button"
           disabled={index === 0 && (!onRequirements || partIndex === 0)}
           onClick={() => {
+            setAttempted(false);
             if (onRequirements && partIndex > 0) {
               setPart(partIndex - 1);
               return;
@@ -666,8 +722,8 @@ export function OrderFlow({
         {step.id === "review" ? (
           <button
             type="button"
-            disabled={blockers.length > 0 || submitting}
-            onClick={() => void submit()}
+            disabled={submitting}
+            onClick={() => blockedOrGo(() => void submit())}
             className="min-h-[var(--tap-target)] rounded-[3px] bg-[var(--color-slate)] px-6 text-[15px] font-semibold text-white disabled:opacity-40"
           >
             {submitting
@@ -679,22 +735,23 @@ export function OrderFlow({
         ) : (
           <button
             type="button"
-            disabled={blockers.length > 0}
-            onClick={() => {
-              if (onRequirements && partIndex < lastPart) {
-                setPart(partIndex + 1);
-                /*
-                 * Back to the top, because a sub page that opens halfway down
-                 * is a sub page whose first question nobody sees. The split
-                 * exists to make the screen short; landing mid screen would
-                 * give that back.
-                 */
-                window.scrollTo({ top: 0, behavior: "auto" });
-                return;
-              }
-              setPart(0);
-              setIndex((i) => Math.min(steps.length - 1, i + 1));
-            }}
+            onClick={() =>
+              blockedOrGo(() => {
+                if (onRequirements && partIndex < lastPart) {
+                  setPart(partIndex + 1);
+                  /*
+                   * Back to the top, because a sub page that opens halfway down
+                   * is a sub page whose first question nobody sees. The split
+                   * exists to make the screen short; landing mid screen would
+                   * give that back.
+                   */
+                  window.scrollTo({ top: 0, behavior: "auto" });
+                  return;
+                }
+                setPart(0);
+                setIndex((i) => Math.min(steps.length - 1, i + 1));
+              })
+            }
             className="min-h-[var(--tap-target)] rounded-[3px] bg-[var(--color-slate)] px-6 text-[15px] font-semibold text-white disabled:opacity-40"
           >
             Continue
@@ -766,10 +823,12 @@ const FIELD =
 function ReviewStep({
   entry,
   state,
+  trust,
   onAccept,
 }: {
   entry: CatalogEntry;
   state: FlowState;
+  trust: TrustFacts;
   onAccept: (v: boolean) => void;
 }) {
   const dollars = (c: number | null) =>
@@ -826,7 +885,7 @@ function ReviewStep({
         If the engineer declines
       </h3>
       <ul className="mt-4 flex flex-col gap-3">
-        {refundLines(entry).map((line) => (
+        {refundDisclosure(entry).map((line) => (
           <li key={line} className="text-[15px] leading-[1.65] text-[var(--color-ink-quiet)]">
             {line}
           </li>
@@ -844,39 +903,41 @@ function ReviewStep({
           I have read what happens if the engineer declines to seal.
         </span>
       </label>
+
+      {/*
+        WHO YOU ARE PAYING, AND HOW. The operator's approved signals of
+        2026-10-05, each from its one home (see TrustFacts). The card sentence
+        is true because checkout is Stripe's hosted page (payments-stripe.ts,
+        checkout.sessions.create with no embedded mode), so the card number is
+        typed on Stripe's page and never reaches this firm. The reassurance is
+        refundIfDeclinedEarly, by name, never the sentence the operator
+        rejected as false on 2026-10-05, because the customer pays at checkout. The "Powered by Stripe"
+        mark is approved and not here yet: it needs Stripe's own asset, used per
+        Stripe's branding guidelines, and none is in this repository.
+      */}
+      <h3 className="v10-label mt-9">Who you are paying</h3>
+      <ul className="mt-4 flex flex-col gap-2 text-[14px] leading-[1.65] text-[var(--color-ink-quiet)]">
+        <li>{trust.registration}</li>
+        {trust.engineerInCharge ? (
+          <li>A licensed Texas Professional Engineer is in responsible charge of the firm&apos;s engineering work.</li>
+        ) : null}
+        {trust.address ? <li>{trust.address}</li> : null}
+        {trust.phone ? <li>{trust.phone}</li> : null}
+        <li>
+          You pay on Stripe&apos;s secure checkout page. Your card number goes to Stripe and is never
+          seen or stored by the firm.
+        </li>
+        <li>{refundIfDeclinedEarly(entry)}</li>
+      </ul>
     </div>
   );
 }
 
 /*
- * The same four sentences the server stores on the order, written here so the
- * customer reads them before paying rather than after. The server's copy is the
- * record; this is the disclosure.
+ * THE DISCLOSURE IS THE SERVER'S OWN, SINCE 2026-10-07. A copy of
+ * refundDisclosure lived here, "written here so the customer reads them before
+ * paying", and it had already drifted: an unpublished fee read one way on this
+ * screen and another on the stored order. refundDisclosure imports nothing but
+ * types and the money formatter, so the form calls it directly and the words a
+ * customer reads before paying are the words the order stores.
  */
-function refundLines(entry: CatalogEntry): string[] {
-  const fee =
-    entry.inspectionFeeCents === null
-      ? null
-      : `$${(entry.inspectionFeeCents / 100).toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
-
-  const lines = [
-    "The engineer reviews what is gathered and decides. They may seal it, ask for revisions, ask for another visit, or decline to seal.",
-  ];
-  if (entry.orderType === "field") {
-    lines.push(
-      "If they decline before anyone attends the property, you are refunded in full.",
-      fee
-        ? `If they decline after a technician has attended, you are refunded everything except the ${fee} inspection, and you receive what the engineer found and why they could not seal it.`
-        : "If they decline after a technician has attended, an inspection fee is retained.",
-      "You are never charged more than the price shown above, and a decline is never a reason for a further charge.",
-    );
-  } else {
-    lines.push(
-      "There is no site visit on this service, so if they decline you are refunded in full and you still receive what the engineer found.",
-    );
-  }
-  lines.push(
-    "Paying does not buy a seal. It buys the review by a licensed Professional Engineer, and their conclusion is theirs.",
-  );
-  return lines;
-}

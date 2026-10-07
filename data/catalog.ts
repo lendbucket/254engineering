@@ -211,9 +211,9 @@ const ADDRESS_QUALIFIER: Qualifier = {
 
 const OWNER_QUALIFIER: Qualifier = {
   id: "authority",
-  prompt: "Do you own the property, or are you authorised by the owner to arrange this?",
+  prompt: "Do you own the property, or are you authorized by the owner to arrange this?",
   help: "A technician has to enter the property, and the engineer's document names it.",
-  options: ["I own it", "I am authorised by the owner", "Neither"],
+  options: ["I own it", "I am authorized by the owner", "Neither"],
   disqualifyOn: [2],
   disqualifiedMessage:
     "The firm needs the owner's authority before anyone attends a property or issues a document about it. Ask the owner to place the order, or to send written authority naming you.",
@@ -317,20 +317,22 @@ const DECLARED: CatalogDeclaration[] = [
       },
     ],
     requiredInputs: [
+      /*
+       * ORDER FLOW V2, 2026-10-07: EACH FACT ASKED ONCE. The access note's help
+       * used to ask for gate codes, dogs and who will be there, which the form
+       * now asks as their own fields; it asks only for what those cannot. And
+       * `prior_reports` ("Any prior roof report or repair invoice") is gone
+       * from this line: RC-001 asks for the prior inspection report and the
+       * roofing contract or invoice as its own uploads, so it was the same
+       * document asked twice, and its label carried "(optional)" while its
+       * help began "Optional.". Nothing read the field.
+       */
       {
         id: "access_notes",
         label: "How does the technician get in",
-        help: "Gate codes, dogs, who will be there, and anything about the property that would waste a trip.",
+        help: "Anything about getting in, or about the property, that the questions above do not cover and that would waste a trip.",
         kind: "text",
         required: true,
-      },
-      {
-        id: "prior_reports",
-        label: "Any prior roof report or repair invoice",
-        help: "Optional. If somebody has been on this roof before, the engineer would rather see it than rediscover it.",
-        kind: "file",
-        required: false,
-        accepts: "PDF or photographs",
       },
     ],
     turnaround:
