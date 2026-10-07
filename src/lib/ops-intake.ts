@@ -2,12 +2,13 @@ import "server-only";
 import { DB_NOW } from "./db-now";
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { supabaseAdmin, SITE_KEY } from "./supabase";
-import { referenceForCustomer } from "./ops-files";
+import { isProbeAddress, referenceForCustomer } from "./ops-files";
 import { writeAudit } from "./ops-audit";
 import { createClient, createFile, SYSTEM_AUTHOR } from "./ops-crm";
 import { resolveCounty, twiaStatus, windstormAreaRefusal } from "./ops-counties";
 import { launchMode } from "./launch";
 import { catalogFor, deliverablesFor, type CatalogEntry } from "@data/catalog";
+import { fieldsFor } from "@data/intake-fields";
 import { orderBlockedNow } from "./line-gate";
 import {
   landingStatusFor,
@@ -348,6 +349,13 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
     .insert({
       site: input.site,
       reference,
+      /*
+       * SET WITH THE REFERENCE, BY THE SAME PREDICATE. Found 2026-10-07 by the
+       * order path walk: a probe address gets a -DEMO- reference, the database
+       * requires is_demo to agree, and this insert never set it, so every order
+       * from an unroutable address was refused with the raw constraint message.
+       */
+      is_demo: isProbeAddress(input.customer.email),
       service_slug: entry.serviceSlug,
       tier: entry.tier,
       order_type: entry.orderType,
@@ -461,6 +469,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
       postalCode: trimmed(input.property.postalCode) || null,
       notes: `Opened by the order engine from ${reference}.`,
       clientPriceCents: isKnown(priced.totalCents) ? priced.totalCents : null,
+      demo: isProbeAddress(input.customer.email),
     });
 
     if (file.ok) {
@@ -523,8 +532,18 @@ async function recordInputs(
     });
   }
 
+  /*
+   * EVERY FIELD THE FORM ASKS, NOT ONLY THE CATALOGUE'S OWN. Found 2026-10-07
+   * by the order path walk. This looked each answer up in entry.requiredInputs,
+   * the handful of inputs the catalogue declares for one deliverable, so every
+   * universal question and every protocol question was dropped at checkout:
+   * the purpose and recipient the letter is written for, the five questions
+   * that route a job to the engineer, the protocol's uploads. The order form
+   * asks from fieldsFor, the one definition, and so does this now.
+   */
+  const asked = fieldsFor(entry.serviceSlug, entry.tier);
   for (const [key, value] of Object.entries(input.inputs ?? {})) {
-    const spec = entry.requiredInputs.find((i) => i.id === key);
+    const spec = asked.find((i) => i.id === key);
     if (!spec || !trimmed(value)) continue;
     rows.push({
       order_id: orderId,
@@ -536,7 +555,7 @@ async function recordInputs(
   }
 
   for (const file of input.files ?? []) {
-    const spec = entry.requiredInputs.find((i) => i.id === file.key);
+    const spec = asked.find((i) => i.id === file.key);
     if (!spec) continue;
     rows.push({
       order_id: orderId,

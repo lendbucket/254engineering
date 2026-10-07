@@ -8,6 +8,7 @@ import {
   formatFileNumber,
   formatDemoFileNumber,
   DEMO_FILE_SEGMENT,
+  isProbeAddress,
   STATUS_TIMESTAMP,
   type FileStatus,
 } from "./ops-files";
@@ -337,6 +338,8 @@ export async function createClient(
       city: input.city?.trim() || null,
       county: input.county?.trim() || null,
       notes: input.notes?.trim() || null,
+      /* A probe address is a demonstration client, by the predicate the order and its file use. */
+      ...(isProbeAddress(input.email) ? { is_demo: true } : {}),
       created_by: actor.id,
       ...(input.attribution ?? {}),
     })
@@ -490,6 +493,8 @@ export type CreateFileInput = {
   twiaOverride?: boolean;
   fromLeadId?: string | null;
   clientPriceCents?: number | null;
+  /** The customer is a probe address, so the file is a demonstration whoever opens it. */
+  demo?: boolean;
 
   /*
    * Phase 10 Section 1. Everything below was addable only because 0015 added
@@ -605,7 +610,15 @@ export async function createFile(
    * inflating the real figures, which is the class Phase 12 Section 2 already
    * found once as a sales tile counting a seeded client.
    */
-  const isDemo = "is_demo" in actor && actor.is_demo === true;
+  /*
+   * AND A FILE OPENED FOR A PROBE CUSTOMER IS A DEMONSTRATION TOO, whoever
+   * opens it. Found 2026-10-07 by the order path walk: the order engine opened
+   * a file for an .invalid customer under SYSTEM_AUTHOR, so it took the real
+   * sequence (254-2026-0002) while its order carried a -DEMO- reference. The
+   * caller says so with `demo`; this can only ever add the mark, never remove
+   * it, so the protection above is unchanged.
+   */
+  const isDemo = ("is_demo" in actor && actor.is_demo === true) || input.demo === true;
 
   /*
    * The two blocks are numbered separately and must be, because DEMO is a word

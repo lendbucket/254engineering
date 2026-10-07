@@ -9,7 +9,7 @@ import { money } from "./ops-money";
 import { isOpen } from "./launch";
 import { catalogFor } from "@data/catalog";
 import { orderBlockedNow } from "./line-gate";
-import { referenceForCustomer } from "./ops-files";
+import { isProbeAddress, referenceForCustomer } from "./ops-files";
 import { paymentOptions } from "./job-intake-rules";
 import { refundDisclosure } from "./ops-orders";
 import type { Author } from "./ops-crm";
@@ -167,6 +167,8 @@ async function createOrderForFile(
     .insert({
       site: SITE_KEY,
       reference,
+      /* Set with the reference, by the same predicate; see placeOrder. */
+      is_demo: isProbeAddress(client.email),
       service_slug: file.service_slug,
       tier: file.deliverable,
       order_type: entry?.orderType ?? "desk",
