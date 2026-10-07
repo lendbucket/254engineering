@@ -668,6 +668,19 @@ export const RETENTION_POLICY: RetentionEntry[] = [
   },
   { table: "eng_roles", rule: { kind: "not_a_record", because: "The roles themselves. Configuration, seeded by 0018." } },
   {
+    table: "eng_seal_acts",
+    rule: {
+      kind: "kept_forever",
+      because:
+        "EVERY ACT OF SEALING A LETTER OR SIGNING A PROTOCOL: what was sealed, by its SHA-256, which " +
+        "of the engineer's images sealed it, and when his second factor was verified. It is the record " +
+        "a sealed deliverable is checked against for as long as anybody relies on it. A seal that no " +
+        "longer stands is voided with a reason and stays. The database refuses DELETE and any change " +
+        "but a voiding through eng_seal_act_guard, and migration-audit proves it by firing it.",
+      ruledBy: "operator rulings 2 and 2a of 2026-10-06, and the trigger in 0063",
+    },
+  },
+  {
     table: "eng_seal_images",
     rule: {
       kind: "kept_forever",

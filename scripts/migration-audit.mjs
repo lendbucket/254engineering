@@ -164,11 +164,17 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * Moved again 2026-10-07 by 0062, which drops eng_credentials.storage_key. It
  * went red naming 8296e260aa51a41e47a3f829f6ec42db at 1,154 columns before this
  * edit: one column fewer, and nothing else in the shape or behaviour moved.
+ *
+ * Moved a third time 2026-10-07 by 0063, the seal act. It went red naming every
+ * figure below before this edit. 1,154 to 1,169 is the fifteen columns of
+ * eng_seal_acts; 82 tables to 83 is that table, with row level security on;
+ * 71 triggers to 75 is its check, guard and audit triggers and the sealed
+ * document lock on eng_documents.
  */
-const EXPECTED_FINGERPRINT = "8296e260aa51a41e47a3f829f6ec42db";
-const EXPECTED_COLUMNS = 1154;
-const EXPECTED_TABLES = 82;
-const EXPECTED_TRIGGERS = 71;
+const EXPECTED_FINGERPRINT = "3532eaf90c5b2342d48d8a5996a71ac2";
+const EXPECTED_COLUMNS = 1169;
+const EXPECTED_TABLES = 83;
+const EXPECTED_TRIGGERS = 75;
 /**
  * 0014 added eng_freeze_attribution and 0019 added two more, the partner
  * entry freeze and its delete refusal, which are trigger functions like the
@@ -182,8 +188,14 @@ const EXPECTED_TRIGGERS = 71;
  * eng_seal_image_audit and eng_record_seal_image, which bring it to 28; the
  * last is the second function called directly, the one door a replacement
  * seal image comes in through.
+ *
+ * 0063 adds seven, bringing it to 35: the three trigger functions behind the
+ * seal act (eng_seal_act_check, eng_seal_act_guard, eng_seal_act_audit), the
+ * sealed document lock, and the three doors a seal comes in and goes out
+ * through, eng_record_letter_seal, eng_record_protocol_signature and
+ * eng_void_seal_act.
  */
-const EXPECTED_FUNCTIONS = 28;
+const EXPECTED_FUNCTIONS = 35;
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
@@ -1062,6 +1074,176 @@ if (failedAt === null) {
         (await auditCount("seal_image.uploaded")) === uploadedBeforeDoor + 1 &&
         (await auditCount("seal_image.superseded")) === supersededBeforeDoor + 1,
       door ?? `current seal ${afterDoor.join(", ")}`,
+    );
+  }
+
+  /*
+   * ===================================================================
+   * 0063: A SEAL IS APPLIED ONCE, BY ONE PERSON, AND THEN NOTHING CHANGES IT.
+   * ===================================================================
+   *
+   * Sealing piece two, 2026-10-07. Each check fires a guard rather than trusting
+   * it, and each names the control in docs/sealing-controls.md it proves.
+   * Exercised here and never live: a live fixture would leave a sealed letter
+   * under a probe engineer's name on a table that refuses deletes.
+   */
+  {
+    const DET = "'00000000-0000-4000-8000-0000000006d1'";
+    const SIG = "'00000000-0000-4000-8000-0000000006e1'";
+    const OTHER = "'00000000-0000-4000-8000-0000000006b1'";
+    const OTHER_SEAL = "'00000000-0000-4000-8000-0000000006e2'";
+    const OTHER_SIG = "'00000000-0000-4000-8000-0000000006e3'";
+    const SEAL_NOW = "'00000000-0000-4000-8000-0000000005e3'";
+    const SEAL_OLD = "'00000000-0000-4000-8000-0000000005e1'";
+    const HASH = "'" + "d".repeat(64) + "'";
+    const auditCount = async (action) =>
+      Number((await db.query(`select count(*)::int as n from eng_audit_events where action = '${action}'`)).rows[0].n);
+
+    await db.exec(`
+      insert into eng_seal_images (id, profile_id, kind, storage_key, sha256, byte_size, width, height, mfa_verified_at)
+      values (${SIG}, ${SEALER}, 'signature', 'probe/signature-1.png', '${"e".repeat(64)}', 900, 800, 300, now());
+      insert into eng_determinations (id, file_id, protocol_document, determination, relied_on_item_keys, relied_on_evidence_ids, engineer_id)
+      values (${DET}, ${SEALED_FILE}, '254-RC-001', 'pass', array['probe'], array['00000000-0000-4000-8000-0000000000e1'::uuid], ${SEALER});
+      insert into auth.users (id) values (${OTHER});
+      insert into eng_profiles (id, email, display_name, role)
+      values (${OTHER}, 'probe-other-engineer@example.com', 'Probe Other Engineer, not a real person', 'engineer');
+      insert into eng_seal_images (id, profile_id, kind, storage_key, sha256, byte_size, width, height, mfa_verified_at)
+      values (${OTHER_SEAL}, ${OTHER}, 'seal', 'probe/other-seal.png', '${"f".repeat(64)}', 900, 600, 600, now()),
+             (${OTHER_SIG}, ${OTHER}, 'signature', 'probe/other-sig.png', '${"9".repeat(64)}', 900, 800, 300, now());
+    `);
+
+    const sealLetter = (act, doc, by, seal, sig) => `
+      select eng_record_letter_seal(
+        '${act}', '${doc}', ${SEALED_FILE}, null, 'Probe roof letter', 'probe/letter-${doc.slice(-4)}.pdf',
+        4096, ${HASH}, 'F-29811', ${DET}, ${by}, ${seal}, ${sig}, now()
+      );`;
+
+    /* Control 3: nobody but the engineer who recorded the determination. */
+    rec(
+      "another engineer cannot seal a letter whose determination he did not record (control 3)",
+      await refused(sealLetter("00000000-0000-4000-8000-0000000006a9", "00000000-0000-4000-8000-0000000006c9", OTHER, OTHER_SEAL, OTHER_SIG)),
+      "identity, not permission: no role or grant stands in for him",
+    );
+    /* Control 2: only his CURRENT images. */
+    rec(
+      "and the right engineer cannot seal with a superseded seal image (control 2)",
+      await refused(sealLetter("00000000-0000-4000-8000-0000000006a8", "00000000-0000-4000-8000-0000000006c8", SEALER, SEAL_OLD, SIG)),
+      "a replaced image seals nothing",
+    );
+    rec(
+      "nor with somebody else's image",
+      await refused(sealLetter("00000000-0000-4000-8000-0000000006a7", "00000000-0000-4000-8000-0000000006c7", SEALER, OTHER_SEAL, SIG)),
+    );
+
+    const appliedBefore = await auditCount("seal.applied");
+    const first = await attempt(sealLetter("00000000-0000-4000-8000-0000000006a1", "00000000-0000-4000-8000-0000000006c1", SEALER, SEAL_NOW, SIG));
+    const sealedDoc = (
+      await db.query(
+        "select sealed_at is not null as sealed, sealed_by, visibility, bucket from eng_documents where id = '00000000-0000-4000-8000-0000000006c1'",
+      )
+    ).rows[0];
+    rec(
+      "the engineer who recorded it seals it, in one act that creates the sealed document and is audited (controls 3, 9)",
+      first === null &&
+        sealedDoc?.sealed === true &&
+        sealedDoc?.visibility === "client" &&
+        sealedDoc?.bucket === "eng-documents" &&
+        (await auditCount("seal.applied")) === appliedBefore + 1,
+      first ?? JSON.stringify(sealedDoc),
+    );
+    rec(
+      "and a second live seal on the same determination is refused",
+      await refused(sealLetter("00000000-0000-4000-8000-0000000006a2", "00000000-0000-4000-8000-0000000006c2", SEALER, SEAL_NOW, SIG)),
+      "one live seal per determination",
+    );
+
+    /* Controls 7 and 8: locked. */
+    rec(
+      "a seal act cannot be deleted (control 8)",
+      await refused("delete from eng_seal_acts where id = '00000000-0000-4000-8000-0000000006a1'"),
+    );
+    rec(
+      "nor its hash rewritten (control 7)",
+      await refused(`update eng_seal_acts set content_sha256 = '${"0".repeat(64)}' where id = '00000000-0000-4000-8000-0000000006a1'`),
+    );
+    rec(
+      "a sealed document's content cannot change (control 7)",
+      await refused("update eng_documents set storage_key = 'probe/other.pdf' where id = '00000000-0000-4000-8000-0000000006c1'"),
+    );
+    /*
+     * ITS OWN UNSEALED DOCUMENT, NOT 0000b2. The first version updated 0000b2,
+     * which the 0032 checks above have already deleted, so the update touched
+     * no row, no trigger fired, and the check went red for the fixture rather
+     * than the lock. The count below asserts the row exists, so an update over
+     * nothing cannot read as a refusal or as a pass.
+     */
+    await db.exec(`
+      insert into eng_documents (id, file_id, kind, title, bucket, storage_key)
+      values ('00000000-0000-4000-8000-0000000006c0', ${SEALED_FILE}, 'deliverable', 'Probe unsealed draft', 'eng-documents', 'probe/unsealed.pdf');
+    `);
+    const unsealedRows = Number(
+      (await db.query("select count(*)::int as n from eng_documents where id = '00000000-0000-4000-8000-0000000006c0'")).rows[0].n,
+    );
+    rec(
+      "and an unsealed document cannot be sealed by an update (control 7)",
+      unsealedRows === 1 &&
+        (await refused(`update eng_documents set sealed_at = now(), sealed_by = ${SEALER} where id = '00000000-0000-4000-8000-0000000006c0'`)),
+      unsealedRows === 1
+        ? "a seal with no seal act behind it is the fabricated assurance the old rule was written against"
+        : "the unsealed fixture row does not exist, so nothing was tested",
+    );
+    rec(
+      "a sealed document can still change who may see it, which is not its content",
+      (await attempt("update eng_documents set visibility = 'internal' where id = '00000000-0000-4000-8000-0000000006c1'")) === null,
+    );
+
+    /* Control 8: a voiding needs a reason, happens once, and is audited. */
+    rec(
+      "a voiding with no reason is refused",
+      await refused(`select eng_void_seal_act('00000000-0000-4000-8000-0000000006a1', ${SEALER}, '  ')`),
+    );
+    const voidedBefore = await auditCount("seal.voided");
+    const voided = await attempt(`select eng_void_seal_act('00000000-0000-4000-8000-0000000006a1', ${SEALER}, 'Probe: superseded by a corrected letter')`);
+    rec(
+      "a seal is voided with a reason, and the voiding is audited (control 8)",
+      voided === null && (await auditCount("seal.voided")) === voidedBefore + 1,
+      voided ?? "",
+    );
+    rec(
+      "and a voided seal cannot be voided again",
+      await refused(`select eng_void_seal_act('00000000-0000-4000-8000-0000000006a1', ${SEALER}, 'again')`),
+    );
+    rec(
+      "after which the determination can be sealed again, as a new document",
+      (await attempt(sealLetter("00000000-0000-4000-8000-0000000006a3", "00000000-0000-4000-8000-0000000006c3", SEALER, SEAL_NOW, SIG))) === null,
+    );
+
+    /* Control 11: a protocol is signed by the same act. */
+    const signedBefore = await auditCount("protocol.signed");
+    const signed = await attempt(`
+      select eng_record_protocol_signature(
+        '00000000-0000-4000-8000-0000000006a4', '254-WS-001', '1.1', ${HASH}, ${SEALER}, ${SEAL_NOW}, ${SIG}, now()
+      );`);
+    rec(
+      "a protocol is signed by the same act, and audited (control 11)",
+      signed === null && (await auditCount("protocol.signed")) === signedBefore + 1,
+      signed ?? "",
+    );
+    rec(
+      "and a second live signature on the same version is refused",
+      await refused(`
+        select eng_record_protocol_signature(
+          '00000000-0000-4000-8000-0000000006a5', '254-WS-001', '1.1', ${HASH}, ${SEALER}, ${SEAL_NOW}, ${SIG}, now()
+        );`),
+    );
+    rec(
+      "and a profile that is not the licensed role cannot sign at all",
+      await refused(`
+        update eng_profiles set role = 'admin' where id = ${OTHER};
+        select eng_record_protocol_signature(
+          '00000000-0000-4000-8000-0000000006a6', '254-MH-001', '1.1', ${HASH}, ${OTHER}, ${OTHER_SEAL}, ${OTHER_SIG}, now()
+        );`),
+      "an administrator's own images seal nothing",
     );
   }
 

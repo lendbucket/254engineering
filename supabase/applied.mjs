@@ -1973,6 +1973,35 @@ export const APPLIED = [
       "until this entry is not pending. Bundled with the suspension trigger migration by the " +
       "operator's ruling of 2026-10-02.",
   },
+
+  {
+    file: "0063_a_seal_is_applied_once_and_locked.sql", appliedBy: null,
+    fingerprint: "3532eaf90c5b2342d48d8a5996a71ac2",
+    behaviour: "fc232b43290f9f4469aaa485aee07c12",
+    production: null,
+    development: { at: null, behaviour: null, facts: null },
+    proves: { table: "eng_seal_acts" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0063 on 2026-10-07: shape " +
+      "3532eaf90c5b2342d48d8a5996a71ac2 across 1169 columns, the fifteen of eng_seal_acts on " +
+      "0062's 1154; behaviour fc232b43290f9f4469aaa485aee07c12 across 967 facts. 83 tables, 75 " +
+      "triggers, 35 eng_ functions. THERE IS NO drop STATEMENT IN THE FILE, written so after the " +
+      "operator's note of 2026-10-07 that the connector refuses any statement containing drop or " +
+      "delete: every object is new, so the if-exists drops earlier migrations carried would be " +
+      "no-ops, and the file applies as written. The word delete does appear, in on delete " +
+      "restrict, in the trigger that refuses deletes, and in comments; 0061 carried the same and " +
+      "the connector applied it, so the refusal is read as being about statements, not the word, " +
+      "and that reading is flagged for whoever applies it rather than assumed.",
+    because:
+      "WRITTEN 2026-10-07 ON release/2026-10-20 AND APPLIED NOWHERE. Sealing piece two: one row " +
+      "per act of sealing a letter or signing a protocol, its identity checks at the database " +
+      "(the sealer's own current images; the licensed role; for a letter, the engineer who " +
+      "recorded the determination), refusal of delete and of any change but a voiding with a " +
+      "reason, an audit row for every act and voiding, and a lock on a sealed document's content. " +
+      "The controls are mapped to 22 TAC 137.33 and 137.35 in docs/sealing-controls.md. Every " +
+      "guard is fired in migration-audit's replay, 17 checks. The release branch merges only after " +
+      "the integration audit and a sitting at which production and development take it.",
+  },
 ];
 
 /**
