@@ -160,9 +160,13 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * functions behind them, eng_seal_image_guard and eng_seal_image_audit. The
  * behaviour digest moves to 9f10a0e46de201babebe0a772b05726a across 938 facts,
  * read off the replay by scripts/fingerprint-at.mjs rather than predicted.
+ *
+ * Moved again 2026-10-07 by 0062, which drops eng_credentials.storage_key. It
+ * went red naming 8296e260aa51a41e47a3f829f6ec42db at 1,154 columns before this
+ * edit: one column fewer, and nothing else in the shape or behaviour moved.
  */
-const EXPECTED_FINGERPRINT = "a4af1b6c8fc4cd070e15e9d5346f9004";
-const EXPECTED_COLUMNS = 1155;
+const EXPECTED_FINGERPRINT = "8296e260aa51a41e47a3f829f6ec42db";
+const EXPECTED_COLUMNS = 1154;
 const EXPECTED_TABLES = 82;
 const EXPECTED_TRIGGERS = 71;
 /**
