@@ -281,6 +281,29 @@ export function twiaStatus(county: string | null): TwiaStatus {
   return (FIRST_TIER_COASTAL as readonly string[]).includes(canonical) ? "designated" : "not_designated";
 }
 
+/**
+ * THE WINDSTORM LINE IS DECLINED OUTSIDE THE CATASTROPHE AREA. docs/conflicts-v1.1.md
+ * item 6, WS-001 section 12: "A property outside the designated catastrophe
+ * area. Declined." Every door that takes an order calls this with the order's
+ * OWN county, so the county is asked once and answered once; a qualifier asking
+ * it again was built and withdrawn on 2026-10-07 as a second home for the fact.
+ *
+ * Harris answers "check" and is NOT refused here: the part east of State
+ * Highway 146 is inside, a county name cannot say which part, and the file
+ * screen already asks staff to confirm it before anything is dispatched. A
+ * missing or unknown county is not "outside" either; each door already refuses
+ * an order whose county it cannot resolve, with its own sentence.
+ */
+export const WINDSTORM_SERVICE_SLUGS = ["windstorm-wpi-8"] as const;
+
+export function windstormAreaRefusal(serviceSlug: string, county: string | null): string | null {
+  if (!(WINDSTORM_SERVICE_SLUGS as readonly string[]).includes(serviceSlug)) return null;
+  const canonical = county ? canonicalCounty(county) : null;
+  if (!canonical) return null;
+  if (twiaStatus(canonical) !== "not_designated") return null;
+  return `The Texas Department of Insurance issues a windstorm certificate only for property inside its designated catastrophe area, and ${canonical} County is outside it, so this order cannot be taken. If the property is in a different county, correct the address.`;
+}
+
 /** The coverage region a county belongs to, for showing regional conditions. */
 export function regionForCounty(county: string | null): string | null {
   if (!county) return null;

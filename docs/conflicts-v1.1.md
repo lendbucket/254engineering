@@ -30,7 +30,7 @@ with that branch.
 | 3 | Ongoing accepts passed stages | BUILT, `6c0efce` |
 | 4 | Completed construction quoted | BUILT, `7607b11`, ruling 5 |
 | 5 | Completed accepts work in progress; existing building priced | BUILT, `6c0efce` |
-| 6 | No catastrophe area check | TO BUILD. A county qualifier was built in `6c0efce` and withdrawn before merge as a second home for the county; see the item |
+| 6 | No catastrophe area check | BUILT on `release/2026-10-20`, from the order's own county at all three doors; Harris goes to the staff SH 146 confirmation rather than being refused; see the item |
 | 7 | Pre-1988: page copy, form verdict, no date asked | BUILT, copy `7607b11`, verdict and date `6c0efce` |
 | 8 | Firm promised the certificate | BUILT, `6c0efce` |
 | 9 | WS-001 required uploads | BUILT, `6c0efce` |
@@ -128,6 +128,20 @@ the CRM already use, answers `not_designated` for the order's own county, and
 asks the State Highway 146 question only when it answers `check`, which is
 Harris. That is a change to the single property flow and to bulk ordering
 rather than a qualifier, and it is its own commit and board.
+
+**BUILT 2026-10-07.** `windstormAreaRefusal(serviceSlug, county)` in
+`src/lib/ops-counties.ts`, called by `placeOrder` (the site, the v1 API and
+each property of a placed batch), by the bulk split, and by the staff
+`takeJob`, each with the order's own county. **One departure from the change as
+written, for the operator to see:** Harris is not asked the SH 146 question at
+order. It answers `check`, the order is taken, and the file screen's existing
+"confirm whether the property is east of SH 146" line asks staff before
+dispatch, because a buyer-facing question that only one county should see is a
+conditional field the form does not have. If the operator wants the buyer
+asked, that is a form change. The refusal sentence is customer facing and is
+in the report for review. Proved by
+`scripts/proofs/a-windstorm-order-outside-the-area-is-declined.mjs`, all 254
+counties, the bulk door driven, the two writing doors by source position.
 
 **7. The inquiry form's pre-1988 verdict.** `src/lib/windstorm-inquiry.ts`, the
 `all_pre_1988` reason: "Work before that line is treated differently and may be

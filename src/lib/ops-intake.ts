@@ -5,7 +5,7 @@ import { supabaseAdmin, SITE_KEY } from "./supabase";
 import { referenceForCustomer } from "./ops-files";
 import { writeAudit } from "./ops-audit";
 import { createClient, createFile, SYSTEM_AUTHOR } from "./ops-crm";
-import { resolveCounty, twiaStatus } from "./ops-counties";
+import { resolveCounty, twiaStatus, windstormAreaRefusal } from "./ops-counties";
 import { launchMode } from "./launch";
 import { catalogFor, deliverablesFor, type CatalogEntry } from "@data/catalog";
 import { orderBlockedNow } from "./line-gate";
@@ -331,6 +331,8 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
     };
   }
   const county = resolved.county;
+  const outsideArea = windstormAreaRefusal(entry.serviceSlug, county);
+  if (outsideArea) return { ok: false, error: outsideArea, field: "property.county" };
   const twia = twiaStatus(county) === "designated";
 
   const priced = quoteFor(entry, twia, county);
