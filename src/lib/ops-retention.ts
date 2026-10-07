@@ -205,7 +205,7 @@ export async function retentionReadiness(
    */
   const rollupDays: RollupDay[] = [];
   if (rule.rollupRequired) {
-    const wanted = [...days.keys()].filter((d) => d !== "no date recorded").sort();
+    const wanted = datedDays(days);
     const held = new Map<string, number>();
     if (wanted.length > 0) {
       const { data, error } = await client
@@ -217,42 +217,77 @@ export async function retentionReadiness(
       for (const r of data ?? []) held.set(r.day as string, Number(r.value));
     }
 
-    for (const day of wanted) {
-      const plannedCount = days.get(day) ?? 0;
-      const rollup = held.has(day) ? (held.get(day) as number) : null;
-      rollupDays.push({ day, planned: plannedCount, rollup });
+    const verdict = reconcileDays(table, { rollupRequired: rule.rollupRequired, ageColumn: rule.ageColumn }, days, held);
+    if (!verdict.ok) return verdict;
+    rollupDays.push(...verdict.rollupDays);
+  }
 
-      if (rollup === null) {
-        return {
-          ok: false,
-          because:
-            `${day} has ${plannedCount} row(s) in ${table} and no ${rule.rollupRequired} figure in ` +
-            "eng_metrics_daily. The rollup that replaces this day does not exist yet, so the day is " +
-            "not deleted. Run the metrics rollup for that day first.",
-        };
-      }
-      if (rollup !== plannedCount) {
-        return {
-          ok: false,
-          because:
-            `${day} does not reconcile: ${table} holds ${plannedCount} row(s) for it and ` +
-            `${rule.rollupRequired} says ${rollup}. The rollup and its source disagree, so nothing is ` +
-            "deleted. Whichever is wrong, deleting the source would make the disagreement permanent.",
-        };
-      }
-    }
+  return { ok: true, cutoff, ids, days, rollupDays };
+}
 
-    if (days.has("no date recorded")) {
+/**
+ * THE PER-DAY COMPARISON, WITH NOTHING TO READ.
+ *
+ * Moved out of `retentionReadiness` on 2026-10-06, on the operator's ruling,
+ * so a proof can run the product's own refusal logic against production's real
+ * figures without a database. The reads stay where they were; this is only the
+ * part that decides. Same order, same sentences, same refusals: the sentence
+ * source was compared literal by literal before and after the move.
+ *
+ * `days` is the planned set grouped by `dayOf`, and `held` is the rollup as
+ * `eng_metrics_daily` holds it for those days. A day with no figure refuses, a
+ * day whose figure disagrees refuses, and rows with no age refuse, in that
+ * order, and the first refusal wins.
+ */
+export function reconcileDays(
+  table: string,
+  rule: { rollupRequired: string; ageColumn: string },
+  days: Map<string, number>,
+  held: Map<string, number>,
+): { ok: true; rollupDays: RollupDay[] } | { ok: false; because: string } {
+  const rollupDays: RollupDay[] = [];
+  const wanted = datedDays(days);
+
+  for (const day of wanted) {
+    const plannedCount = days.get(day) ?? 0;
+    const rollup = held.has(day) ? (held.get(day) as number) : null;
+    rollupDays.push({ day, planned: plannedCount, rollup });
+
+    if (rollup === null) {
       return {
         ok: false,
         because:
-          `${days.get("no date recorded")} row(s) in ${table} matched the cutoff with no ` +
-          `${rule.ageColumn}, so no day can be reconciled for them. A row with no age is not an old row.`,
+          `${day} has ${plannedCount} row(s) in ${table} and no ${rule.rollupRequired} figure in ` +
+          "eng_metrics_daily. The rollup that replaces this day does not exist yet, so the day is " +
+          "not deleted. Run the metrics rollup for that day first.",
+      };
+    }
+    if (rollup !== plannedCount) {
+      return {
+        ok: false,
+        because:
+          `${day} does not reconcile: ${table} holds ${plannedCount} row(s) for it and ` +
+          `${rule.rollupRequired} says ${rollup}. The rollup and its source disagree, so nothing is ` +
+          "deleted. Whichever is wrong, deleting the source would make the disagreement permanent.",
       };
     }
   }
 
-  return { ok: true, cutoff, ids, days, rollupDays };
+  if (days.has("no date recorded")) {
+    return {
+      ok: false,
+      because:
+        `${days.get("no date recorded")} row(s) in ${table} matched the cutoff with no ` +
+        `${rule.ageColumn}, so no day can be reconciled for them. A row with no age is not an old row.`,
+    };
+  }
+
+  return { ok: true, rollupDays };
+}
+
+/** The days a rollup is read and compared for, oldest first. One home for the filter. */
+function datedDays(days: Map<string, number>): string[] {
+  return [...days.keys()].filter((d) => d !== "no date recorded").sort();
 }
 
 export type Manifest = {
@@ -305,9 +340,29 @@ export function hashIds(ids: string[]): string {
   return createHash("sha256").update([...ids].sort().join("\n")).digest("hex");
 }
 
-/** The instant a floor of `days` puts the line at, as an ISO string. */
+/**
+ * WHERE A FLOOR OF `days` PUTS THE LINE: 00:00 UTC OF THE DAY THE EXACT
+ * INSTANT FALLS IN, AS AN ISO STRING.
+ *
+ * Operator ruling, 2026-10-06. Retention plans WHOLE DAYS ONLY, and a day is
+ * eligible only when all of it is older than the floor.
+ *
+ * IT USED TO BE THE EXACT INSTANT, AND THAT WAS A DEFECT THE ROLLUP GUARD
+ * TURNED INTO A PERMANENT STALL. The guard compares each planned day against
+ * that day's rollup, and the rollup counts the whole UTC day. With an exact
+ * cutoff the newest planned day was only partly planned, so it could never
+ * reconcile. Production showed it: at 2026-10-06 17:15:24 UTC the planner held
+ * 208 eng_jobs rows for 2026-09-06 and jobs.completed said 289, read on
+ * production by the operator's chat counterpart. No rows had left the table;
+ * the planner was counting part of a day.
+ *
+ * Every row older than the line sits in a day that ended at or before the
+ * exact instant, so a row is now kept for between `days` and `days + 1` days,
+ * never fewer than the ruled floor.
+ */
 export function cutoffFor(days: number, now: Date = new Date()): string {
-  return new Date(now.getTime() - days * 86_400_000).toISOString();
+  const exact = now.getTime() - days * 86_400_000;
+  return new Date(Math.floor(exact / 86_400_000) * 86_400_000).toISOString();
 }
 
 type Row = Record<string, unknown>;
@@ -363,7 +418,7 @@ async function planned(
   });
 }
 
-const dayOf = (value: unknown): string =>
+export const dayOf = (value: unknown): string =>
   typeof value === "string" ? value.slice(0, 10) : "no date recorded";
 
 /**
@@ -460,8 +515,10 @@ export async function planRetention(table: string, mode: RetentionMode): Promise
   }
 
   reading.push(
-    `CUTOFF IS THIS PLAN'S OWN CLOCK less ${rule.floorDays} days. Two plans made in one pass carry ` +
-      "cutoffs seconds apart, which is not an inconsistency between them.",
+    `CUTOFF IS THIS PLAN'S OWN CLOCK less ${rule.floorDays} days, floored to 00:00 UTC, so only days ` +
+      "wholly older than the floor are planned. Two plans made in one pass carry the same cutoff unless " +
+      "the pass crosses midnight UTC, and then they differ by exactly one day, which is not an " +
+      "inconsistency between them.",
   );
 
   const actor =
