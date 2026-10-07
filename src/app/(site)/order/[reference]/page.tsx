@@ -194,6 +194,30 @@ export default async function OrderStatusPage({
         </section>
 
         {/*
+          THE SEALED LETTER, WHEN THERE IS ONE. Sealing piece two, 2026-10-07.
+          The link carries the same token that opened this page, and the route
+          behind it serves the letter only if it is sealed, on this order's own
+          file, with a live seal, and still hashes to what was sealed.
+        */}
+        {view.letters.length > 0 && token ? (
+          <section className="mt-12">
+            <h2 className={LABEL}>Your sealed letter</h2>
+            <ul className="mt-3 space-y-2">
+              {view.letters.map((letter) => (
+                <li key={letter.id}>
+                  <a
+                    href={`/api/order-document?token=${encodeURIComponent(token)}&document=${encodeURIComponent(letter.id)}`}
+                    className="inline-flex min-h-[44px] items-center text-[17px] font-semibold text-[var(--color-ink)] underline underline-offset-4"
+                  >
+                    Download {letter.title} (PDF)
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
+
+        {/*
           THE DOT RAIL, AND IT SHOWS ONLY WHAT HAPPENED.
 
           V10C-tracker draws four stages with the unreached ones greyed, which

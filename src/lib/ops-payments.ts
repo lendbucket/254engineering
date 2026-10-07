@@ -1610,6 +1610,12 @@ async function sendOrderSealed(orderId: string): Promise<void> {
     return;
   }
 
+  const statusUrl = await statusUrlFor(orderId, order.reference as string);
+  if (!statusUrl) {
+    await event(orderId, "email.not_sent", false, "The seal notice could not be sent: a status link could not be issued.");
+    return;
+  }
+
   const queued = await queueEmail(
     orderSealed({
       customerName: order.customer_name as string,
@@ -1617,6 +1623,7 @@ async function sendOrderSealed(orderId: string): Promise<void> {
       reference: order.reference as string,
       propertyAddress: order.property_address as string,
       sealedAt: customerWhen(new Date().toISOString()) ?? "just now",
+      statusUrl,
     }),
     { orderId },
   );

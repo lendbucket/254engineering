@@ -860,20 +860,30 @@ export function orderSealed(input: {
   reference: string;
   propertyAddress: string;
   sealedAt: string;
+  /**
+   * THE DOWNLOAD CAME BACK ON 2026-10-07, with sealing piece two. The button
+   * was removed on 2026-10-03 because there was no link that answered; the
+   * order page now lists the sealed letter, served by /api/order-document,
+   * which re-hashes it on every read. The link is to the order page rather
+   * than to the PDF, so the email carries the same signed link every other
+   * order email does and never a document id.
+   */
+  statusUrl: string;
 }): RenderedEmail {
   return compose(
     "order.sealed",
     "human",
     `Sealed: ${input.reference}`,
     {
-      preheader: `The engineer has sealed the document for ${input.propertyAddress}.`,
+      preheader: `The engineer has sealed the letter for ${input.propertyAddress}.`,
       status: { reference: `Order ${input.reference}`, state: "Sealed" },
       signed: true,
+      button: { label: "Download the sealed letter", url: input.statusUrl },
       blocks: [
         { kind: "p", text: `${input.customerName},` },
         {
           kind: "p",
-          text: `The engineer has sealed the document for ${input.propertyAddress}. The firm will email it to you at ${input.customerEmail}.`,
+          text: `The engineer has sealed the letter for ${input.propertyAddress}. It is on your order page, ready to download.`,
         },
         {
           kind: "details",
@@ -1811,6 +1821,7 @@ export function allTemplatesForAudit(): RenderedEmail[] {
       reference: "254-O2026-ABCDEF",
       propertyAddress: "100 Sample Street, Corpus Christi",
       sealedAt: "5 September 2026 at 16:20",
+      statusUrl: "https://254engineering.com/order/254-O2026-ABCDEF?token=sample",
     }),
     refundFailed({
       reference: "254-O2026-ABCDEF",

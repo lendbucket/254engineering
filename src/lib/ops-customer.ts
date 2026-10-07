@@ -5,6 +5,7 @@ import { catalogFor } from "@data/catalog";
 import { orderForCustomerToken } from "./ops-intake";
 import { CUSTOMER_STATUS, type OrderStatus } from "./ops-orders";
 import { money, type Cents } from "./ops-money";
+import { customerLetters, type CustomerLetter } from "./letter-delivery";
 
 /**
  * What a customer sees about their own order.
@@ -41,6 +42,13 @@ export type CustomerView = {
   receives: string[];
   /** Set when money has come back, so the page leads with it. */
   refunded: { amount: string; retained: string; because: string } | null;
+  /**
+   * The sealed letters on this order's file that the customer may download:
+   * sealed, visible to the client, with a live seal. Empty until the engineer
+   * seals, which is what CUSTOMER_STATUS.complete's "Your document is below"
+   * has been waiting for since it was written.
+   */
+  letters: CustomerLetter[];
 };
 
 const cents = (v: unknown): Cents => (v === null || v === undefined ? null : Number(v));
@@ -174,5 +182,6 @@ export async function customerView(token: string): Promise<CustomerView | null> 
             because: refundCase ?? "The engineer could not seal this.",
           }
         : null,
+    letters: await customerLetters(subject.orderId),
   };
 }
