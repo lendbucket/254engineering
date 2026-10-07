@@ -1945,6 +1945,34 @@ export const APPLIED = [
       "merges, which also renames the worked example in docs/production-sitting-destructive.md.",
     proves: { table: "eng_seal_images", bucket: "eng-documents", constraint: "eng_documents_seal_is_whole_ck" },
   },
+
+  {
+    file: "0062_credentials_hold_no_documents.sql", appliedBy: null,
+    fingerprint: "8296e260aa51a41e47a3f829f6ec42db",
+    behaviour: "70395f83044f0ac82bb7f26142fa2422",
+    production: null,
+    proves: null,
+    provesNote:
+      "It REMOVES a column, eng_credentials.storage_key, and the production check asks only whether " +
+      "something a migration adds is present. Its read-back is a by hand query at the sitting: " +
+      "information_schema.columns holds no row for eng_credentials.storage_key.",
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0062 on 2026-10-07: shape " +
+      "8296e260aa51a41e47a3f829f6ec42db across 1154 columns, one fewer than 0061's 1155, which is " +
+      "exactly the dropped column; behaviour 70395f83044f0ac82bb7f26142fa2422 across 939 facts, " +
+      "unchanged, because a column with no constraint, index or trigger is no fact the behaviour " +
+      "digest counts, and two table comments are not facts either.",
+    because:
+      "WRITTEN 2026-10-02 AS 0061 IN e415ffc ON migration/credentials-hold-no-documents, AND " +
+      "RENUMBERED TO 0062 ON 2026-10-07 under ruling 4 of 2026-10-06, because 0061 holds the " +
+      "sealing schema. Applied nowhere under either number, including development: the session has " +
+      "no path to run DDL against development (the only database credential in .env.local is the " +
+      "service role key, which PostgREST will not run DDL with, and the Supabase connector is the " +
+      "operator's), so development and production both take it at the sitting. Its branch, " +
+      "migration/credentials-0062, stacks on feat/sealed-delivery for contiguity and does not merge " +
+      "until this entry is not pending. Bundled with the suspension trigger migration by the " +
+      "operator's ruling of 2026-10-02.",
+  },
 ];
 
 /**

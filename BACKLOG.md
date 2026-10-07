@@ -59,7 +59,11 @@ migration that was lost, which is the recovery case that audit exists for.
 **So the renumber is two edits on that branch**, not done here because the
 branch is the operator's and its sitting script names the file: rename
 `0061_credentials_hold_no_documents.sql` to `0062_...`, and update the two
-places `docs/production-sitting-destructive.md` names it. Its ledger entry is
+places `docs/production-sitting-destructive.md` names it. **RENUMBERED 2026-10-07
+on `migration/credentials-0062`**, stacked on `feat/sealed-delivery`, with its
+ledger entry and migration-audit's pins at 1,154 columns; the original branch
+is untouched. **Still open:** the sitting doc lives on
+`fix/customer-teardown-scope` and is renamed when that branch is split. Its ledger entry is
 written at the sitting either way.
 
 ## TWO DEFECTS THE STAFF WALK FOUND, 2026-10-03, AND NEITHER IS FIXED
