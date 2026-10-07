@@ -218,12 +218,23 @@ is stated true in a file somebody edits on purpose:
 | `trading-name` | **The board holds the operating name** | **`naming`, which gates NOTHING** | `operatingNameOnBoardRecord` |
 | `engineer-of-record` | A licensed PE is in responsible charge | `trading` | `verifiedEngineers` |
 | `stripe` | A live Stripe account belonging to 254, proven by a charge and its refund | `open` | `stripeAccount` |
-| `protocols` | One protocol per offered service line, approved by the engineer of record | `open` | `approvedProtocols` |
+| `protocols` | One protocol in force per offered service line; its signature is read from the database at every money door (ruling 11) | `open` | `offeredServiceLines`, `PROTOCOL_ENTRIES`, and the signed record |
 | `phone` | `FIRM_PHONE` is a real number, not a placeholder | `trading` | `FIRM_PHONE` |
+| `insurance` | Professional liability cover is in force, on record, with an expiry | `open` | `verifiedInsurance` |
+| `technician-training` | Every protocol in force for an offered line has somebody trained on that version | `open` | `verifiedTechnicianTraining` |
 | `recovery` | Point in time recovery on the production project | `open` | `pointInTimeRecovery` |
 | `self-service-signup` | Public sign up is cleared for production | `open` | `selfServiceSignup` |
 
+**ELEVEN CONDITIONS SINCE 2026-09-24, AND TEN OF THEM BLOCK.** Corrected here on
+2026-10-07: `insurance` and `technician-training` joined the gate on 2026-09-24
+and this table went on listing nine for thirteen days, which is the drift the
+paragraphs below already record once, about the same table, from seven to nine.
+The pinned list in `compliance-audit` was right throughout. The `protocols` row
+also changed that day: ruling 11 removed the typed approval list, and approval
+is read from the signed record in the database (`src/lib/line-gate.ts`).
+
 **NINE CONDITIONS, AND EIGHT OF THEM BLOCK. Operator ruling, 2026-09-22.**
+*(The count above supersedes this one; the reasoning below stands.)*
 
 The `gates` column was added that day because the table read as though all nine
 held the gate shut, and one does not. `trading-name` gates **`naming`**, and

@@ -436,7 +436,7 @@ export const LAUNCH_CONDITIONS: LaunchCondition[] = [
   {
     id: "technician-training",
     gates: "open",
-    what: "Every approved protocol has somebody trained on that version of it.",
+    what: "Every protocol in force for an offered line has somebody trained on that version of it.",
     whoClears: "The engineer of record, or somebody he names, by delivering it.",
     statedIn: "verifiedTechnicianTraining in src/config/credentials.ts",
     /*
