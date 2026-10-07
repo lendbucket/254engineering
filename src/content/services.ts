@@ -229,13 +229,13 @@ export const services: Service[] = [
     h1: "Solar Structural Letters for Texas Installations",
     title: "Solar Structural Engineering in Texas | 254 Engineering",
     description:
-      "The sealed structural review a Texas jurisdiction requires before a rooftop solar permit, covering framing capacity and wind loading. See the price.",
+      "The sealed structural review a Texas jurisdiction requires before a rooftop solar permit: gravity load on existing framing and each attachment. See the price.",
     summary:
-      "The sealed structural review most Texas jurisdictions require before a rooftop solar permit is issued: framing capacity, attachment detail, and wind loading for the site.",
+      "The sealed structural review most Texas jurisdictions require before a rooftop solar permit is issued: the existing framing and each attachment under the gravity load of the array.",
     what: [
       "A solar structural letter is the sealed engineering review a building official asks for before permitting a rooftop photovoltaic array. It answers one question in writing: can this roof structure carry this array, attached this way, under the loads that apply at this address.",
-      "The review takes the existing framing as it is. Rafter or truss size, spacing, span, and species, along with the condition of the members, are recorded from the field, together with the array layout, the racking system, the attachment type, and the spacing of the standoffs. Dead load from the array is combined with the wind loading derived for the site under ASCE 7 and the applicable edition of the International Residential Code or International Building Code.",
-      "Texas wind speeds are not uniform, and neither are the exposure categories. A design wind speed near the coast, on the Panhandle plains, and in a sheltered suburban infill lot inside Loop 410 produce three different answers for the same array, which is why the letter is written for an address rather than for a product.",
+      "The review takes the existing framing as it is. Rafter or truss size, spacing, span, and species, along with the condition of the members, are recorded from the field, together with the array layout, the racking system, the attachment type, and the spacing of the standoffs. The weight of the array is applied to that framing as gravity load, including the load at each attachment, under the applicable edition of the International Residential Code or International Building Code. Wind uplift is not calculated, and the letter says so.",
+      "The answer belongs to the roof rather than to the product. The same array on two houses with different rafters, spans, or member condition gives two different answers, which is why the letter is written for an address and a measured roof rather than for a racking system.",
     ],
     whoOrders: [
       "Solar installers and EPCs assembling a permit package",

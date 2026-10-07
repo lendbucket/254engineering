@@ -286,7 +286,7 @@ export const proximityPages: ProximityPage[] = [
         lede: "The cheapest structural engineering happens before the work, not after it.",
         body: [
           "Removing or opening a wall, cutting a new opening, adding a storey, [converting an attic or a garage to habitable space](/services/residential-light-commercial-design), or hanging significant new load such as heavy equipment all change the load path. Whether a wall is load bearing is frequently not obvious from inside the room, and the confident answer from somebody who has not looked at the framing is worth nothing.",
-          "Adding rooftop equipment or [a solar array](/services/solar-structural-letters) is the same question in a form people rarely recognize as structural, because the array is light and the wind uplift on it is not.",
+          "Adding rooftop equipment or [a solar array](/services/solar-structural-letters) is the same question in a form people rarely recognize as structural, because the array is light and the load it puts on each attachment point is not.",
           "In each of these the analysis is cheap relative to the work, and it is very cheap relative to discovering the answer afterwards.",
         ],
       },
