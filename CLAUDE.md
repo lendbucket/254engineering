@@ -307,8 +307,48 @@ would have put F-29811 next to "254 Engineering Services LLC".
 launch-audit asks whether the copy is right for a given mode. compliance-audit
 asks whether the mode may change at all.
 
-**A SEALED DOCUMENT IS UPLOADED, NEVER GENERATED. Operator ruling, 2026-09-06,
-and it is standing law rather than a phase decision.**
+**THE PLATFORM DRAFTS THE LETTER AND THE ENGINEER SEALS IT IN THE PORTAL.
+Operator ruling, 2026-10-06. It replaces the 2026-09-06 rule quoted below.**
+
+The platform drafts each letter from the fixed sentence for the determination
+the engineer records. The engineer reviews the draft in the portal and applies
+his seal and signature, stored on his profile, and that act makes it the sealed
+document. The requirements, each a condition of building it:
+
+- Only the engineer's own authenticated session, with MFA, can apply his seal.
+  No administrator path exists, including the operator's.
+- The seal and signature images are readable only by the sealing step, and are
+  never displayed or downloadable anywhere else.
+- At sealing the document is rendered, hashed and locked. Any change after that
+  voids the seal.
+- Every sealing writes to the immutable audit log.
+
+Each control is mapped to 22 TAC 137.33 and 137.35 before code is written. Letter
+drafting and sealing are built on `feat/sealed-delivery` with delivery, roof
+certification first, from the engineer's template 1 answers of 2026-10-05.
+
+**PROTOCOLS ARE SIGNED THE SAME WAY. Operator ruling, 2026-10-06.** The engineer
+opens the verbatim transcription in the portal, the text is hashed, he applies
+his stored seal and signature from his own MFA session, and the signed version is
+locked and becomes the registered protocol. A protocol signed this way needs no
+scan. Any change to the text after signing voids it. One mechanism serves letters
+and protocols, built once.
+
+This changes what a transcription is checked against. The source the engineer
+sends is an unsigned Word file, so the verbatim check compares the transcription
+against that file, and the signature attaches to the hash of the transcription
+he read and signed. The rule in section 3 stands: his text is carried exactly,
+punctuation included.
+
+**The argument of the rule below was that a permission model cannot keep a
+rendered seal under the engineer's control.** The new rule answers it with
+identity rather than permission: the seal is applied by one person's own
+session with a fresh second factor, and no role, grant or administrator can
+stand in for him. The reasoning is kept because it names the exact hazard the
+four requirements above exist to close.
+
+**THE RULE IT REPLACES: A SEALED DOCUMENT IS UPLOADED, NEVER GENERATED.
+Operator ruling, 2026-09-06.**
 
 A seal carries a named Professional Engineer's own seal and signature. A platform
 that RENDERS one is a platform where any account holding the right permission can
@@ -335,6 +375,24 @@ must say, what each must not say, and the claims neither may ever make. Flipping
 rebuild, because the pages are statically prerendered. That is deliberate: a compliance state that
 could change without a deploy leaving an audit trail is not one this firm should want.
 
+**THE ONE STATED EXCEPTION: A SIGNED PROTOCOL. Operator ruling 11, 2026-10-06.**
+The gate's protocols condition may read signed protocol records from the
+database. Nothing else in the gate may.
+
+- A line is sellable only when it is offered in configuration, which takes a
+  deploy and the operator's word, AND its protocol is signed in the database
+  with a hash that matches the transcription in code.
+- A signature alone never opens a line. Opening still takes the deploy.
+- A voided signature closes the line at once, without a deploy. The exception
+  runs in the closing direction only.
+- If the read fails or times out, the line is closed, and the order page says so
+  in plain words.
+- The typed approval list in `src/config/launch-readiness.ts` is removed, so
+  which protocols are approved has one home, the signed record.
+
+The audit trail the rule above asks for is kept by the signing itself: every
+signature and every voiding writes to the append-only audit log. That is why
+this exception is safe where a database-driven gate in general is not.
 ## 2. Brand differentiation (the ownership model is superseded)
 
 Three sites, one operator. To a search engine that is a doorway network unless each brand has a
@@ -3117,6 +3175,32 @@ night, if the lock is free and work is waiting, board it.
   **Main.** The session pushes to main only on Robert's merge word, given in
   chat, naming the branch and the commit. The board must have passed alone with
   its stated prediction met.
+
+  **Merging is the session's, from Claude Code, only on that word.** Operator
+  ruling, 2026-10-06. The merge word names the branch and the commit. Before
+  pushing, the session fetches, confirms `origin/main` is the commit it expects
+  and that the named commit descends from it, merges with a merge commit and
+  never a squash, and only then pushes main. The operator's permission rule
+  allows `git push origin main` and nothing else onto main: a force push, a
+  refspec onto main and a delete all stay denied. The first merge under this
+  rule was `fix/retention-whole-days` at `bd9fbff`, merged as `7ff2ec2` with
+  parents `4a7d883` and `bd9fbff`, its tree identical to the boarded commit.
+  The second was `feat/protocol-registry` at `7991895`, merged as `f1beeab`.
+
+  **A branch merges only after a board has passed on a tree that includes
+  main.** Operator ruling, 2026-10-06. Bringing a branch up to main does not
+  need its own board when the next piece of work on that branch will be
+  boarded anyway, because that board measures the combination. What may never
+  happen is a merge into main from a tree no board has measured together with
+  the main it lands on.
+
+  **The standing merge word for an unattended run**, 2026-10-06 into
+  2026-10-07: a branch carrying no migration may merge when it has been brought
+  up to the current main, its board on that exact tree passes alone with every
+  line of its stated prediction met, and `origin/main` is confirmed unmoved. A
+  branch carrying a migration does not merge in an unattended run: it is
+  brought up to main, its migration applied to development, boarded, pushed,
+  and staged for the morning sitting.
 
   **Never, under any word:** a force push, deleting or rewriting a remote branch,
   pushing a tag, or pushing main with a migration that is not applied to
