@@ -50,7 +50,7 @@
 process.loadEnvFile?.(".env.local");
 
 import { auditClient, refOf, DEVELOPMENT_REF } from "../lib/db-target.mjs";
-import { planRetention, runRetention, hashIds, abandonRun, manifestById } from "../../src/lib/ops-retention.ts";
+import { planRetention, runRetention, hashIds, abandonRun, manifestById, cutoffFor } from "../../src/lib/ops-retention.ts";
 import { METRICS } from "../../src/lib/ops-metrics.ts";
 
 const RUN = "2026-09-15";
@@ -82,7 +82,13 @@ const EXECUTE = { kind: "execute", authority: EXERCISE_AUTHORITY };
 
 const madeJobs = [];
 const manifests = [];
-const cutoff = new Date(Date.now() - 30 * 86_400_000).toISOString();
+/*
+ * The product's own cutoff, never a second copy of its formula. This line used
+ * to restate it as the exact instant, which stopped being the planner's line on
+ * 2026-10-06 when the cutoff was floored to 00:00 UTC: a fixture that states
+ * the rule rather than deriving it is the second account of the rule.
+ */
+const cutoff = cutoffFor(30);
 
 async function insertJobs(rows) {
   const { data, error } = await db.from("eng_jobs").insert(rows).select("id");
