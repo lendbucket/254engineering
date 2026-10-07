@@ -5,6 +5,7 @@ import { PageHead, Panel } from "@/components/portal/surfaces";
 import { services } from "@/content/services";
 import { priceFor, priceSentence } from "@/config/prices";
 import { estimateForLine, money } from "@/lib/price-book";
+import { costPerJob } from "@/lib/cost-per-job";
 import {
   TECHNICIAN_CALL_CENTS,
   PROCESSING_RATES,
@@ -65,6 +66,8 @@ export default async function PriceBookPage() {
     floor: floorCentsFor(service.slug, "standard"),
   }));
 
+  const costs = costPerJob();
+
   return (
     <>
       <PageHead
@@ -114,6 +117,61 @@ export default async function PriceBookPage() {
                 {tier === null ? " . No estimating tier." : ` . Estimating tier ${tier}.`}
               </p>
             </li>
+          ))}
+        </ul>
+      </Panel>
+
+      {/*
+        COST PER JOB, operator ruling of 2026-10-06 (docs/rulings-2026-10-06.md
+        section 7 item 2). Per DELIVERABLE rather than per line, with its own
+        visit count and card processing at the Stripe card rate, which is the
+        ruling's stated assumption and is labelled as one. A fee the repository
+        does not hold is shown as missing and the row states no net.
+      */}
+      <Panel
+        title="Cost per job"
+        description="A plan for a clean job, per deliverable: the marketed price, the technician at the visits the job includes, the engineer's fee from the agreement, and card processing at the Stripe card rate, assuming the customer pays by card. Not a record of any job."
+      >
+        <ul className="flex flex-col gap-4">
+          {costs.rows.map((r) => (
+            <li
+              key={`${r.serviceSlug}/${r.tier ?? "extra"}`}
+              className="border-t border-[var(--border)] pt-4 first:border-t-0 first:pt-0"
+            >
+              <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                <p className="text-[15px] font-semibold text-[var(--ink)]">{r.label}</p>
+                <p className="text-[15px] font-semibold text-[var(--ink)]">{money(r.revenueCents)}</p>
+              </div>
+              <p className="mt-2 text-[13.5px] leading-[1.6] text-[var(--secondary)]">
+                Technician {money(r.technicianCents)} ({r.visits} {r.visits === 1 ? "visit" : "visits"}).
+                Engineer {r.engineerCents === null ? "missing" : money(r.engineerCents)}. Card processing{" "}
+                {money(r.processingCents)}.{" "}
+                <strong className="text-[var(--ink)]">
+                  Net {r.netCents === null ? "not stated" : money(r.netCents)}.
+                </strong>
+              </p>
+              <p className="mt-1.5 text-[13px] leading-[1.6] text-[var(--secondary)]">
+                {r.missing ?? `Engineer's fee: ${r.engineerCitation}.`}
+              </p>
+              {r.caveat ? (
+                <p className="mt-1.5 text-[13px] leading-[1.6] text-[var(--ink)]">{r.caveat}</p>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+        {costs.notPriced.length > 0 ? (
+          <p className="mt-4 text-[13.5px] leading-[1.6] text-[var(--secondary)]">
+            Quoted per job, so not in this table: {costs.notPriced.map((n) => n.label).join("; ")}.
+          </p>
+        ) : null}
+        <p className="mt-4 text-[14px] leading-[1.7] text-[var(--ink)]">
+          The engineer&apos;s retainer, {money(costs.retainerCents)} a month, is a cost of having an
+          engineer of record rather than of any one job, so it is on its own line and not divided
+          into the rows above.
+        </p>
+        <ul className="mt-3 flex flex-col gap-1 text-[13px] leading-[1.6] text-[var(--secondary)]">
+          {costs.sources.map((s) => (
+            <li key={s}>{s}</li>
           ))}
         </ul>
       </Panel>

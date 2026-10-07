@@ -140,6 +140,14 @@ export const TIER_BY_DELIVERABLE: Record<string, PayTier> = {
   "repair-specifications/standard": 1,
 };
 
+/**
+ * THE ENGINEER'S MONTHLY RETAINER, $1,500. Operator ruling, 2026-10-06,
+ * docs/rulings-2026-10-06.md section 7 item 2: reported "on its own line, not
+ * divided into jobs". It is a cost of having an engineer of record, not of any
+ * one job, so nothing per job reads it. Pinned in price-book-audit.
+ */
+export const ENGINEER_MONTHLY_RETAINER_CENTS = 150_000;
+
 /** What the engineer is paid for a job at a given tier, in cents. */
 export function engineerPayCents(tier: PayTier): number {
   return ENGINEER_TIER_CENTS[tier];

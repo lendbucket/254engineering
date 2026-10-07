@@ -521,6 +521,63 @@ const BASE = {
   );
 }
 
+/* ------------------------------------------------------------ cost per job */
+
+/*
+ * COST PER JOB, operator ruling of 2026-10-06 (docs/rulings-2026-10-06.md
+ * section 7 item 2). The expected figures are WORKED BY HAND here from pinned
+ * literals, never read back from the report's own inputs: WP-001 ongoing is
+ * $995, four visits at $85, tier 3 at $525, and 2.9% plus 30 cents on $995 is
+ * $29.16 (28.855 rounds to 28.86), so the net is $100.84. A report that read
+ * its expectation from the code it reports would agree with itself whatever
+ * that code said.
+ */
+{
+  const RULED_RETAINER_CENTS = 150_000;
+  const { ENGINEER_MONTHLY_RETAINER_CENTS } = await import("../src/config/engineer-pay.ts");
+  rec("the engineer's monthly retainer is ruled at $1,500", ENGINEER_MONTHLY_RETAINER_CENTS === RULED_RETAINER_CENTS, money(ENGINEER_MONTHLY_RETAINER_CENTS));
+
+  const { costPerJob } = await import("../src/lib/cost-per-job.ts");
+  const report = costPerJob();
+  rec("and the report carries it on its own line, not in any row", report.retainerCents === RULED_RETAINER_CENTS);
+
+  const ongoing = report.rows.find((r) => r.serviceSlug === "windstorm-wpi-8" && r.tier === "ongoing");
+  rec(
+    "WP-001 ongoing: $995, four visits at $85, tier 3, card processing, net $100.84",
+    ongoing?.revenueCents === 99_500 &&
+      ongoing.visits === 4 &&
+      ongoing.technicianCents === 34_000 &&
+      ongoing.engineerCents === 52_500 &&
+      ongoing.processingCents === 2_916 &&
+      ongoing.netCents === 10_084,
+    ongoing ? `${money(ongoing.revenueCents)}, ${ongoing.visits} visits, net ${ongoing.netCents === null ? "none" : money(ongoing.netCents)}` : "NO ROW",
+  );
+
+  const extra = report.rows.find((r) => r.serviceSlug === "windstorm-wpi-8" && r.tier === null);
+  rec(
+    "the extra visit is its own row at $150 against $85, and its missing engineer fee states no net",
+    extra?.revenueCents === 15_000 && extra.technicianCents === 8_500 && extra.engineerCents === null && extra.netCents === null && Boolean(extra.missing),
+    extra ? extra.missing?.slice(0, 70) ?? "no missing note" : "NO ROW",
+  );
+
+  const guessed = report.rows.filter((r) => r.engineerCents === null && r.netCents !== null);
+  rec("no row states a net while a fee is missing", guessed.length === 0, guessed.map((r) => r.label).join("; ") || `${report.rows.length} rows`);
+
+  /*
+   * The three lines whose protocol sends a technician while the catalogue says
+   * desk (conflicts items 16 and 17, 20, 23, referred) must SAY their net is
+   * high. Found by reading the report: they showed $0 technician cost and the
+   * best margins in the book.
+   */
+  const silent = report.rows.filter(
+    (r) => ["solar-structural-letters", "structural-letters", "repair-specifications"].includes(r.serviceSlug) && r.visits === 0 && !r.caveat,
+  );
+  rec("a line costed at no visit while its protocol requires one says its net is high", silent.length === 0, silent.map((r) => r.label).join("; ") || "all three say so");
+
+  const deskWithVisit = report.rows.filter((r) => CATALOG.find((e) => e.serviceSlug === r.serviceSlug && e.tier === r.tier)?.orderType === "desk" && r.visits !== 0);
+  rec("a desk deliverable carries no technician visit", deskWithVisit.length === 0, deskWithVisit.map((r) => r.label).join("; ") || "none does");
+}
+
 /* ----------------------------------------------------------------- verdict */
 
 console.log("");
