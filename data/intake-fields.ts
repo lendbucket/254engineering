@@ -1,5 +1,5 @@
 import { catalogFor, type CatalogEntry, type RequiredInput } from "./catalog";
-import { allProtocolIntakeFields } from "./protocol-fields";
+import { allProtocolIntakeFields, supersededFields } from "./protocol-fields";
 
 /**
  * WHAT A JOB NEEDS, DEFINED ONCE.
@@ -416,7 +416,14 @@ export function fieldsFor(serviceSlug: string, tier: string): IntakeField[] {
    */
   const protocol = PROTOCOL_FIELDS.filter((f) => appliesTo(f, entry));
 
-  const universal = [...INTAKE_FIELDS, ...protocol].filter((f) => appliesTo(f, entry));
+  /*
+   * ORDER FLOW V2, 2026-10-07: THE ONE LINE THE DIAGNOSIS NAMED. These two sets
+   * were concatenated, so every fact both asked was asked twice. A customer
+   * field the line's protocol supersedes (data/protocol-phrasing.ts) is now
+   * dropped for this line, so each fact is asked once, in customer words.
+   */
+  const superseded = supersededFields(serviceSlug);
+  const universal = [...INTAKE_FIELDS.filter((f) => !superseded.has(f.id)), ...protocol].filter((f) => appliesTo(f, entry));
   const specific = entry.requiredInputs.map(fromCatalog);
 
   /*

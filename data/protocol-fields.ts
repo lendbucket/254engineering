@@ -1,5 +1,17 @@
 import type { IntakeField } from "./intake-fields";
 import { PROTOCOL_ENTRIES, type ProtocolEntry } from "@/content/protocols";
+import { PROTOCOL_PHRASING } from "./protocol-phrasing";
+
+/** The customer fields a line's protocol supersedes, because it asks the same fact. */
+export function supersededFields(serviceSlug: string): Set<string> {
+  const out = new Set<string>();
+  for (const p of PROTOCOL_ENTRIES.filter((e) => e.declaration.serviceSlug === serviceSlug)) {
+    for (const words of Object.values(PROTOCOL_PHRASING[p.declaration.documentNumber]?.questions ?? {})) {
+      if ("supersedes" in words) for (const id of words.supersedes ?? []) out.add(id);
+    }
+  }
+  return out;
+}
 
 /**
  * A PROTOCOL'S INTAKE QUESTIONS, AS INTAKE FIELDS. DERIVED, NEVER TYPED TWICE.
@@ -78,6 +90,16 @@ export function protocolIntakeFields(protocol: ProtocolEntry): IntakeField[] {
   const prefix = protocol.fieldPrefix;
   const serviceSlug = protocol.declaration.serviceSlug;
 
+  /*
+   * ORDER FLOW V2, 2026-10-07: THE WORDING COMES FROM data/protocol-phrasing.ts.
+   * The question's NUMBER still comes from the signed document, so every
+   * question the document asks still becomes a field; only the words a
+   * customer reads change. A question with no phrasing falls back to the
+   * document's own words rather than vanishing, and the proof beside the
+   * phrasing file goes red naming it.
+   */
+  const phrasing = PROTOCOL_PHRASING[protocol.declaration.documentNumber];
+
   for (const q of protocol.declaration.intakeQuestions) {
     const base = {
       required: true,
@@ -86,20 +108,24 @@ export function protocolIntakeFields(protocol: ProtocolEntry): IntakeField[] {
       applies: [serviceSlug],
       group: groupFor(q.group),
     };
+    const words = phrasing?.questions[q.number];
+    /* Asked by the order's own step, so not asked again. Counted by the proof. */
+    if (words && "byOrder" in words) continue;
+    const label = words?.label ?? q.ask;
 
     if (q.flag) {
       fields.push({
         ...base,
         id: `${prefix}_q${q.number}`,
-        label: q.ask,
-        help: "A yes routes this job to the engineer before anybody is dispatched.",
+        label,
+        help: words?.help,
         kind: "select",
         options: ["Yes", "No"],
       });
       fields.push({
         ...base,
         id: `${prefix}_q${q.number}${FLAG_DETAIL_SUFFIX}`,
-        label: `${q.ask} Details.`,
+        label: words?.detailLabel ?? "If yes, tell us more.",
         /*
          * Not required: the document asks for detail where there is detail to
          * give, and requiring it would make "No" impossible to answer.
@@ -110,25 +136,28 @@ export function protocolIntakeFields(protocol: ProtocolEntry): IntakeField[] {
       continue;
     }
 
+    const options = words && "options" in words ? words.options : undefined;
     fields.push({
       ...base,
       id: `${prefix}_q${q.number}`,
-      label: q.ask,
+      label,
       /*
        * VERBATIM QUESTIONS GET A FREE FIELD AND NEVER A SELECT. Section 6: the
        * purpose and the recipient are recorded exactly as given. A dropdown
-       * would normalise the one fact the letter is addressed for, and question
-       * 1 says "record exactly" in its own words.
+       * would normalise the one fact the letter is addressed for. A question
+       * the phrasing offers as choices (the attic) is a select; a verbatim one
+       * never is, whatever the phrasing says, and the registry audit asserts it.
        */
-      kind: q.verbatim ? "longtext" : "text",
-      help: q.verbatim ? "Recorded exactly as given. The letter is issued only for this purpose and to this recipient." : undefined,
+      kind: q.verbatim ? "longtext" : options ? "select" : "text",
+      ...(options && !q.verbatim ? { options } : {}),
+      help: words?.help,
     });
   }
 
   for (const u of protocol.declaration.intakeUploads) {
     fields.push({
       id: `${prefix}_upload_${u.key}`,
-      label: u.what,
+      label: phrasing?.uploads[u.key] ?? u.what,
       help: u.when ?? undefined,
       kind: "file",
       /*

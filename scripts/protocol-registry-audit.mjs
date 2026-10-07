@@ -334,9 +334,25 @@ rec(
   const fields = fieldsFor(RC001.serviceSlug, "standard");
   const ids = new Set(fields.map((f) => f.id));
 
-  const missingQ = RC001.intakeQuestions.filter((q) => !ids.has(`rc001_q${q.number}`));
+  /*
+   * ORDER FLOW V2, 2026-10-07: a question may be asked by the order's own step
+   * instead of a field (data/protocol-phrasing.ts, `byOrder`), and the
+   * property address and county is the one that is. The exemption is COUNTED,
+   * because an exemption nobody counts becomes the rule: exactly question 4,
+   * and a second one goes red here.
+   */
+  const { PROTOCOL_PHRASING } = await import("../data/protocol-phrasing.ts");
+  const byOrder = Object.entries(PROTOCOL_PHRASING["254-RC-001"]?.questions ?? {})
+    .filter(([, w]) => "byOrder" in w)
+    .map(([n]) => Number(n));
   rec(
-    "every intake question the document asks reaches the one field definition",
+    "exactly one question is asked by the order's own step rather than a field: the address and county",
+    byOrder.length === 1 && byOrder[0] === 4,
+    byOrder.map((n) => `Q${n}`).join(", ") || "none",
+  );
+  const missingQ = RC001.intakeQuestions.filter((q) => !ids.has(`rc001_q${q.number}`) && !byOrder.includes(q.number));
+  rec(
+    "every other intake question the document asks reaches the one field definition",
     missingQ.length === 0 && fields.length > 0,
     missingQ.map((q) => `Q${q.number}`).join(", ") || `${fields.length} fields for ${RC001.serviceSlug}`,
   );
