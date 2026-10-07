@@ -134,6 +134,11 @@ export const SURFACES = [
        * review queue, so an administrator probe is refused and the browser
        * audits would report the page as broken rather than the probe. */
       "/portal/waiting": "engineer",
+      /* The engineer's own seal and signature, 2026-10-07. Gated on
+       * holdsLicence and nested under /portal/profile, which an administrator
+       * opens, so inheritance from the parent would have probed it as admin
+       * and reported the refusal as a broken page. */
+      "/portal/profile/seal": "engineer",
       "/portal/jobs": "field_tech",
       "/portal/certification": "field_tech",
     },

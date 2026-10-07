@@ -1803,31 +1803,40 @@ export const APPLIED = [
 
   {
     file: "0061_a_sealed_deliverable_says_who_and_when.sql", appliedBy: null,
-    fingerprint: "e2bc81c9096a0eb4d8b8366ce3aea881",
-    behaviour: "50c1fa67080ae10a68b9f2aaf0d6037e",
+    fingerprint: "a4af1b6c8fc4cd070e15e9d5346f9004",
+    behaviour: "70395f83044f0ac82bb7f26142fa2422",
     production: null,
     note:
-      "THE SHAPE FINGERPRINT REPEATS 0060's AND THAT IS NOT A COPIED LINE. It reads " +
-      "information_schema.columns for eng_ tables; this migration adds no column, and the replay " +
-      "confirms it unmoved at 1143 columns and 81 tables. What DOES move is the behaviour digest, " +
-      "6f2ad57d4793229e8db629936f0cbb74 to 50c1fa67080ae10a68b9f2aaf0d6037e, and it moves by " +
-      "EXACTLY ONE FACT, 920 to 921, which is the one check constraint. That figure was derived from " +
-      "scripts/fingerprint-at.mjs at 0060 and at 0061 rather than predicted. " +
-      "The bucket is invisible to both digests, for the reason 0060 states at length, so the bucket " +
-      "is read back AS A BUCKET and never as a digest.",
+      "AMENDED 2026-10-07 BY RULINGS 2 AND 5 OF 2026-10-06, while still applied nowhere: the sealing " +
+      "schema goes into this migration. Part three adds eng_seal_images, the record of each seal and " +
+      "signature image the engineer uploads, with its guard and audit triggers, the function " +
+      "eng_record_seal_image that supersedes and inserts in one act, and the private eng-seals " +
+      "bucket. Both figures were re-derived from scripts/fingerprint-at.mjs at 0061 after the " +
+      "amendment: shape a4af1b6c8fc4cd070e15e9d5346f9004 across 1155 columns, up from 1143 by the " +
+      "twelve columns of eng_seal_images; behaviour 70395f83044f0ac82bb7f26142fa2422 across 939 " +
+      "facts, up from 921. Making the supersession reference DEFERRABLE did not move the behaviour " +
+      "digest, so the digest cannot see deferrability; migration-audit proves the deferred reference " +
+      "by replacing a seal inside one transaction instead. " +
+      "BEFORE THE AMENDMENT the shape repeated 0060's, because parts one and two add no column, and " +
+      "behaviour moved by exactly one fact, 920 to 921, the one check constraint. " +
+      "Neither bucket is visible to either digest, for the reason 0060 states at length, so both " +
+      "buckets are read back AS BUCKETS and never as a digest.",
     because:
       "WRITTEN 2026-10-03 AND APPLIED NOWHERE, INCLUDING DEVELOPMENT. The operator approved the " +
       "constraint in principle and ruled it goes to production in a sitting rather than through a " +
       "session. Its branch, feat/sealed-delivery, does not merge until this entry is not pending, " +
       "because a migration on main is never pending. " +
-      "WHAT IT DOES. One bucket, eng-documents, private, 25MB, application/pdf only; and one check " +
-      "constraint on eng_documents, ((sealed_at is null) = (sealed_by is null)). " +
-      "THE SHAPE FINGERPRINT IS UNCHANGED AND THAT IS NOT A COPIED LINE. It reads " +
-      "information_schema.columns for eng_ tables, this migration adds no column, and the replay " +
-      "confirmed it at 1143 columns and 81 tables. The BEHAVIOUR digest DOES move, by one check " +
-      "constraint, and it is recorded as null rather than guessed because no replay-against-replay " +
-      "has been run since the file was written; it is read back at the sitting. The bucket is " +
-      "invisible to both digests for the reason 0060 states, so the bucket is READ BACK as a bucket. " +
+      "WHAT IT DOES. One bucket, eng-documents, private, 25MB, application/pdf only; one check " +
+      "constraint on eng_documents, ((sealed_at is null) = (sealed_by is null)); and, from " +
+      "2026-10-07, the eng-seals bucket, private, 2MB, image/png only, with eng_seal_images and its " +
+      "two triggers: a guard that refuses deletion and any change but a single supersession, and an " +
+      "audit trigger that writes every upload and supersession to eng_audit_events in the same " +
+      "transaction. " +
+      "A CORRECTION TO THIS ENTRY, MADE 2026-10-07. It used to say the behaviour digest was " +
+      "'recorded as null rather than guessed' while the field above carried a digest. The field was " +
+      "right: it was derived from a replay at 0061. The sentence was the stale half. " +
+      "The live read-back at the sitting is judged on counts, never on the digest, under the " +
+      "2026-09-12 ruling. " +
       "WHY THE BUCKET IS HERE AT ALL. 0060 made it a rule that every bucket the code names is " +
       "created by this chain, and added the check that compares the two. eng-documents is named by " +
       "the upload path being built on this branch, so without this file migration-audit goes red " +
@@ -1844,7 +1853,7 @@ export const APPLIED = [
       "duplicate number is found by git when two branches meet, a gap is a chain that cannot be " +
       "replayed and reads like a lost migration. The parked branch renumbers to 0062 before it " +
       "merges, which also renames the worked example in docs/production-sitting-destructive.md.",
-    proves: { bucket: "eng-documents", constraint: "eng_documents_seal_is_whole_ck" },
+    proves: { table: "eng_seal_images", bucket: "eng-documents", constraint: "eng_documents_seal_is_whole_ck" },
   },
 ];
 

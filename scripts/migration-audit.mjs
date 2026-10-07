@@ -149,10 +149,22 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * red naming the old figure and the new one side by side, which is the whole
  * reason it is a constant rather than a fetch.
  */
-const EXPECTED_FINGERPRINT = "e2bc81c9096a0eb4d8b8366ce3aea881";
-const EXPECTED_COLUMNS = 1143;
-const EXPECTED_TABLES = 81;
-const EXPECTED_TRIGGERS = 69;
+/*
+ * Moved 2026-10-07 by part three of 0061, the engineer's seal and signature
+ * images, on rulings 2 and 5 of 2026-10-06. It went red here naming both
+ * figures, which is this constant doing its job.
+ *
+ * 1,143 to 1,155 is exactly the twelve columns of eng_seal_images. 81 tables to
+ * 82 is that table, with row level security on it like the rest. 69 triggers
+ * to 71 is its guard and its audit trigger, and 25 functions to 27 is the two
+ * functions behind them, eng_seal_image_guard and eng_seal_image_audit. The
+ * behaviour digest moves to 9f10a0e46de201babebe0a772b05726a across 938 facts,
+ * read off the replay by scripts/fingerprint-at.mjs rather than predicted.
+ */
+const EXPECTED_FINGERPRINT = "a4af1b6c8fc4cd070e15e9d5346f9004";
+const EXPECTED_COLUMNS = 1155;
+const EXPECTED_TABLES = 82;
+const EXPECTED_TRIGGERS = 71;
 /**
  * 0014 added eng_freeze_attribution and 0019 added two more, the partner
  * entry freeze and its delete refusal, which are trigger functions like the
@@ -162,9 +174,12 @@ const EXPECTED_TRIGGERS = 69;
  * consent records and eng_forbid_sealed_work_delete for sealed engineering
  * work, which is what put a refusal underneath the seven tables the
  * declaration was keeping on its own word. eng_claim_jobs is still the only
- * one called directly.
+ * one called directly. 0061's part three adds eng_seal_image_guard,
+ * eng_seal_image_audit and eng_record_seal_image, which bring it to 28; the
+ * last is the second function called directly, the one door a replacement
+ * seal image comes in through.
  */
-const EXPECTED_FUNCTIONS = 25;
+const EXPECTED_FUNCTIONS = 28;
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
@@ -908,6 +923,143 @@ if (failedAt === null) {
     openDoc === null,
     openDoc === null ? "the rule is about sealed work, and a draft is not sealed work" : `REFUSED: ${openDoc}`,
   );
+
+  /*
+   * ===================================================================
+   * THE ENGINEER'S SEAL IMAGES, 0061 PART THREE, ADDED 2026-10-07.
+   * ===================================================================
+   *
+   * Fired here rather than trusted, because a trigger nobody has fired is a
+   * sentence. Each check below names the property a seal relies on: the record
+   * of what was uploaded cannot be rewritten or removed, every upload and every
+   * supersession is in the audit log in the same transaction, a supersession
+   * happens once, and there is one current image of each kind.
+   */
+  {
+    const FIRST = "'00000000-0000-4000-8000-0000000005e1'";
+    const SECOND = "'00000000-0000-4000-8000-0000000005e2'";
+    const SHA_A = "'" + "a".repeat(64) + "'";
+    const SHA_B = "'" + "b".repeat(64) + "'";
+    const auditCount = async (action) =>
+      Number(
+        (
+          await db.query(
+            `select count(*)::int as n from eng_audit_events where action = '${action}' and entity_type = 'seal_image'`,
+          )
+        ).rows[0].n,
+      );
+
+    const uploadedBefore = await auditCount("seal_image.uploaded");
+    await db.exec(`
+      insert into eng_seal_images (id, profile_id, kind, storage_key, sha256, byte_size, width, height, mfa_verified_at)
+      values (${FIRST}, ${SEALER}, 'seal', 'probe/seal-1.png', ${SHA_A}, 1000, 600, 600, now());
+    `);
+    rec(
+      "an uploaded seal image writes its own audit row in the same transaction",
+      (await auditCount("seal_image.uploaded")) === uploadedBefore + 1,
+      "written by the database, so an image row cannot exist without its record",
+    );
+
+    rec(
+      "a seal image row cannot be deleted",
+      await refused(`delete from eng_seal_images where id = ${FIRST}`),
+      "a document sealed last month carries last month's seal, and the row is what says which",
+    );
+    rec(
+      "nor can the hash it was recorded with be rewritten",
+      await refused(`update eng_seal_images set sha256 = ${SHA_B} where id = ${FIRST}`),
+      "rewriting the hash would let a different image pass as the one on record",
+    );
+    rec(
+      "and there is only ever one current seal for an engineer",
+      await refused(`
+        insert into eng_seal_images (id, profile_id, kind, storage_key, sha256, byte_size, width, height, mfa_verified_at)
+        values ('00000000-0000-4000-8000-0000000005e9', ${SEALER}, 'seal', 'probe/seal-x.png', ${SHA_B}, 1000, 600, 600, now());
+      `),
+      "a second current seal would leave the sealing step to guess which one",
+    );
+
+    /*
+     * The one change a row may take: supersession, once. The replacement goes
+     * in after its predecessor is superseded, which is the order the upload
+     * route uses.
+     */
+    /*
+     * ONE TRANSACTION, because a replacement is one act: the old row names its
+     * successor and the successor is inserted, and the reference between them
+     * is checked at commit. Run as two separate statements it is refused, which
+     * is correct: a supersession naming a row that never arrives is not a
+     * replacement.
+     */
+    const supersededBefore = await auditCount("seal_image.superseded");
+    const replaced = await attempt(`
+      begin;
+      update eng_seal_images set superseded_at = now(), superseded_by = ${SECOND} where id = ${FIRST};
+      insert into eng_seal_images (id, profile_id, kind, storage_key, sha256, byte_size, width, height, mfa_verified_at)
+      values (${SECOND}, ${SEALER}, 'seal', 'probe/seal-2.png', ${SHA_B}, 1200, 600, 600, now());
+      commit;
+    `);
+    if (replaced !== null) await attempt("rollback;");
+    const current = (
+      await db.query(
+        `select id from eng_seal_images where profile_id = ${SEALER} and kind = 'seal' and superseded_at is null`,
+      )
+    ).rows.map((r) => r.id);
+    rec(
+      "a seal can be replaced by superseding the old row once, and the supersession is audited",
+      replaced === null &&
+        current.length === 1 &&
+        current[0] === SECOND.replace(/'/g, "") &&
+        (await auditCount("seal_image.superseded")) === supersededBefore + 1,
+      replaced ?? `current seal ${current.join(", ")}, one supersession in the audit log`,
+    );
+
+    /*
+     * Asked so that ONLY the guard can refuse it: the superseded row keeps a
+     * whole supersession (a date and a successor), so the check constraint is
+     * satisfied, and what is left to object is the rule that a superseded row
+     * never changes. The first version of this check updated a row that had
+     * never been superseded and was refused by the check constraint instead,
+     * which passed for the wrong reason.
+     */
+    const reSupersede = await attempt(
+      `update eng_seal_images set superseded_at = now() + interval '1 day' where id = ${FIRST}`,
+    );
+    rec(
+      "and a superseded row cannot change again, refused by the guard itself",
+      reSupersede !== null && /cannot change again/.test(reSupersede),
+      reSupersede ?? "IT CHANGED",
+    );
+
+    /*
+     * THE DOOR THE APPLICATION USES, called the way the upload route calls it:
+     * one statement that supersedes the current image and inserts its
+     * successor. Two separate calls would be refused at the first commit, which
+     * is why the function exists.
+     */
+    const THIRD = "00000000-0000-4000-8000-0000000005e3";
+    const uploadedBeforeDoor = await auditCount("seal_image.uploaded");
+    const supersededBeforeDoor = await auditCount("seal_image.superseded");
+    const door = await attempt(`
+      select eng_record_seal_image(
+        '${THIRD}', ${SEALER}, 'seal', 'probe/seal-3.png', '${"c".repeat(64)}', 1300, 600, 600, now()
+      );
+    `);
+    const afterDoor = (
+      await db.query(
+        `select id from eng_seal_images where profile_id = ${SEALER} and kind = 'seal' and superseded_at is null`,
+      )
+    ).rows.map((r) => r.id);
+    rec(
+      "the record function replaces the current seal in one act, and both halves are audited",
+      door === null &&
+        afterDoor.length === 1 &&
+        afterDoor[0] === THIRD &&
+        (await auditCount("seal_image.uploaded")) === uploadedBeforeDoor + 1 &&
+        (await auditCount("seal_image.superseded")) === supersededBeforeDoor + 1,
+      door ?? `current seal ${afterDoor.join(", ")}`,
+    );
+  }
 
   /*
    * And the five with no condition on them at all.
