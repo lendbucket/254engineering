@@ -1827,6 +1827,28 @@ export const APPLIED = [
     fingerprint: "a4af1b6c8fc4cd070e15e9d5346f9004",
     behaviour: "70395f83044f0ac82bb7f26142fa2422",
     production: null,
+    development: {
+      at: "0061",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-07",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-07 by the operator's chat counterpart through the Supabase " +
+        "connector's apply_migration, named 0061_a_sealed_deliverable_says_who_and_when, so it is in " +
+        "development's provider history. The connector refuses any statement containing drop, so the " +
+        "two drop trigger if exists lines (286 and 326, eng_seal_images_guard and " +
+        "eng_seal_images_audit on eng_seal_images) were left out; the file was not edited. Equivalent " +
+        "because the same file creates eng_seal_images at line 219, so on a database without that " +
+        "table neither trigger can exist and both drops are no-ops. Read back with both statements of " +
+        "the session's prediction, every line matching: buckets eng-documents (private, 26214400, " +
+        "application/pdf) and eng-seals (private, 2097152, image/png); constraints " +
+        "eng_documents_seal_is_whole_ck and eng_seal_images_superseded_whole_ck; eng_seal_images with " +
+        "12 columns and row level security on, zero policies; index eng_seal_images_one_current; " +
+        "triggers eng_seal_images_guard and eng_seal_images_audit; functions eng_seal_image_guard, " +
+        "eng_seal_image_audit and eng_record_seal_image; shape a4af1b6c8fc4cd070e15e9d5346f9004 across " +
+        "1155 columns. No fact count was read.",
+    },
     note:
       "AMENDED 2026-10-07 BY RULINGS 2 AND 5 OF 2026-10-06, while still applied nowhere: the sealing " +
       "schema goes into this migration. Part three adds eng_seal_images, the record of each seal and " +
