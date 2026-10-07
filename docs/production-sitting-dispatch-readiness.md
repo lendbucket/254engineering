@@ -29,8 +29,15 @@ One of these has to be ruled first:
 | b | Change Robert's one profile to `field_tech` | He loses the administrator screens. Not workable while he is the only administrator. |
 | c | A code change so an administrator can be dispatched | A change to who may be offered work, which is a behaviour ruling, and it touches the dispatch rule every audit of dispatch asserts. |
 
-**Recommendation: a.** The script below takes the profile id as its one input,
-so it serves either a or c unchanged.
+**RULED 2026-10-06: a.** A second profile for Robert with role `field_tech`,
+signing in as `robertreyna88@yahoo.com`. Every block below finds that profile by
+its email and role.
+
+**THAT PROFILE MUST EXIST BEFORE THIS SCRIPT RUNS, AND IT IS NOT CREATED HERE.**
+A profile is a sign-in account, so it is created through the portal's People
+screen like any other person, never by an insert in this script. If Block 1
+does not return exactly one `field_tech` row for that email, stop: every write
+below would attach to nothing, and the inserts would fail on a null profile.
 
 ---
 
@@ -38,7 +45,7 @@ so it serves either a or c unchanged.
 
 | Placeholder | What it is | Where it comes from |
 | --- | --- | --- |
-| `PROFILE_ID` | The `eng_profiles.id` the certification, coverage and credentials attach to | Block 1 prints it |
+| Robert's technician profile | **Filled in.** The profile signing in as `robertreyna88@yahoo.com` with role `field_tech`, ruled 2026-10-06. Every block finds it by that email and role, so no id is pasted by hand | The operator, 2026-10-06 |
 | `ROBERT_ADMIN_EMAIL` | The email on Robert's admin profile, so the verifier is named | Block 1 prints it |
 | `DL_EXPIRES` | Driver's licence expiry, `YYYY-MM-DD` | Read off the licence by the operator. The number is never recorded; Gusto holds identity documents |
 | `VI_EXPIRES` | Vehicle insurance expiry, `YYYY-MM-DD` | Read off the policy declarations page |
@@ -48,12 +55,19 @@ so it serves either a or c unchanged.
 ## Block 1. Dry run, read only
 
 ```sql
--- Who the writes will attach to. Expect Robert, and note his role.
+-- Who the writes will attach to. Expect exactly one row: the field_tech profile
+-- for robertreyna88@yahoo.com, active, with counties_now 0. Zero rows means the
+-- profile has not been created yet: stop.
 select id, email, display_name, role, status,
        coalesce(array_length(coverage_counties, 1), 0) as counties_now
 from public.eng_profiles
-where role in ('admin', 'field_tech')
-order by role, display_name;
+where lower(email) = 'robertreyna88@yahoo.com' and role = 'field_tech';
+
+-- The admin profile that verifies his credentials, for ROBERT_ADMIN_EMAIL below.
+select id, email, display_name, role, status
+from public.eng_profiles
+where role = 'admin'
+order by display_name;
 
 -- The protocol the certification is for. Expect one row: 254-RC-001, 1.1, published.
 select id, document_number, version, version_label, status, approved_at, published_at
@@ -63,10 +77,10 @@ order by version;
 
 -- What already exists for that profile. Expect zero rows in both.
 select profile_id, service_slug, status, certified_at
-from public.eng_certifications where profile_id = 'PROFILE_ID';
+from public.eng_certifications where profile_id = (select id from public.eng_profiles where lower(email) = 'robertreyna88@yahoo.com' and role = 'field_tech');
 
 select profile_id, kind, status, expires_on
-from public.eng_credentials where profile_id = 'PROFILE_ID';
+from public.eng_credentials where profile_id = (select id from public.eng_profiles where lower(email) = 'robertreyna88@yahoo.com' and role = 'field_tech');
 ```
 
 **Stop if** the protocol query does not return exactly one published row for
@@ -85,7 +99,7 @@ start of that day in Central time rather than invented.
 ```sql
 insert into public.eng_certifications
   (profile_id, service_slug, template_id, status, attempts, certified_at)
-select 'PROFILE_ID', 'roof-inspections', t.id, 'certified', 1,
+select (select id from public.eng_profiles where lower(email) = 'robertreyna88@yahoo.com' and role = 'field_tech'), 'roof-inspections', t.id, 'certified', 1,
        timestamptz '2026-09-23 00:00:00-05'
 from public.eng_protocol_templates t
 where t.service_slug = 'roof-inspections'
@@ -142,7 +156,7 @@ set coverage_counties = array[
   'Wharton', 'Wheeler', 'Wichita', 'Wilbarger', 'Willacy', 'Williamson', 'Wilson', 'Winkler',
   'Wise', 'Wood', 'Yoakum', 'Young', 'Zapata', 'Zavala'
 ]::text[]
-where id = 'PROFILE_ID';
+where id = (select id from public.eng_profiles where lower(email) = 'robertreyna88@yahoo.com' and role = 'field_tech');
 ```
 
 ### 2c. Credentials: the two that apply to anybody who drives to a property
@@ -156,7 +170,7 @@ as such rather than hidden.
 ```sql
 insert into public.eng_credentials
   (profile_id, kind, label, expires_on, status, verified_at, verified_by)
-select 'PROFILE_ID', k.kind, k.label, k.expires_on::date, 'verified', now(),
+select (select id from public.eng_profiles where lower(email) = 'robertreyna88@yahoo.com' and role = 'field_tech'), k.kind, k.label, k.expires_on::date, 'verified', now(),
        (select id from public.eng_profiles where role = 'admin' and email = 'ROBERT_ADMIN_EMAIL')
 from (values
   ('drivers_license',   'Texas driver licence, read by the operator',            'DL_EXPIRES'),
@@ -180,16 +194,16 @@ empty until the ruling.
 
 ```sql
 select service_slug, status, certified_at, template_id
-from public.eng_certifications where profile_id = 'PROFILE_ID';
+from public.eng_certifications where profile_id = (select id from public.eng_profiles where lower(email) = 'robertreyna88@yahoo.com' and role = 'field_tech');
 -- Expect one row: roof-inspections, certified, 2026-09-23 05:00:00+00.
 
 select role, array_length(coverage_counties, 1) as counties,
        'Nueces' = any(coverage_counties) as has_nueces
-from public.eng_profiles where id = 'PROFILE_ID';
+from public.eng_profiles where id = (select id from public.eng_profiles where lower(email) = 'robertreyna88@yahoo.com' and role = 'field_tech');
 -- Expect counties 254 and has_nueces true. Role is whatever option a, b or c left.
 
 select kind, status, expires_on, storage_key is null as holds_no_document
-from public.eng_credentials where profile_id = 'PROFILE_ID' order by kind;
+from public.eng_credentials where profile_id = (select id from public.eng_profiles where lower(email) = 'robertreyna88@yahoo.com' and role = 'field_tech') order by kind;
 -- Expect drivers_license and vehicle_insurance, verified, future expiry, true.
 ```
 
