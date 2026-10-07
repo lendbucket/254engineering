@@ -911,9 +911,12 @@ function ReviewStep({
         checkout.sessions.create with no embedded mode), so the card number is
         typed on Stripe's page and never reaches this firm. The reassurance is
         refundIfDeclinedEarly, by name, never the sentence the operator
-        rejected as false on 2026-10-05, because the customer pays at checkout. The "Powered by Stripe"
-        mark is approved and not here yet: it needs Stripe's own asset, used per
-        Stripe's branding guidelines, and none is in this repository.
+        rejected as false on 2026-10-05, because the customer pays at checkout.
+        The "Powered by Stripe" mark, approved 2026-10-07, is Stripe's own
+        asset, downloaded unmodified from Stripe's brand page (the black badge
+        in Powered_by_Stripe-badge.zip) to public/brand, and linked to
+        stripe.com as that page suggests. Its use is governed by Stripe's Marks
+        Usage Agreement, stripe.com/marks/legal.
       */}
       <h3 className="v10-label mt-9">Who you are paying</h3>
       <ul className="mt-4 flex flex-col gap-2 text-[14px] leading-[1.65] text-[var(--color-ink-quiet)]">
@@ -929,6 +932,15 @@ function ReviewStep({
         </li>
         <li>{refundIfDeclinedEarly(entry)}</li>
       </ul>
+      <a
+        href="https://stripe.com"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mt-4 inline-block"
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element -- an unmodified vendor SVG, served as the file it is */}
+        <img src="/brand/powered-by-stripe-black.svg" alt="Powered by Stripe" width={150} height={34} />
+      </a>
     </div>
   );
 }
