@@ -1536,7 +1536,21 @@ export const APPLIED = [
     behaviour: "2f4bbea41782d98686abfd5c61301493",
     proves: { function: "eng_protocol_in_force_holds_items" },
     production: "2026-09-23",
-    development: { at: null, behaviour: null, facts: null },
+    development: {
+      at: "0058",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-07",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-07, FIFTEEN DAYS AFTER PRODUCTION, by the operator's chat " +
+        "counterpart through the Supabase connector's apply_migration, so development's provider " +
+        "history now carries it. Read back the same day: eng_protocol_in_force_holds_items checks " +
+        "retired on UPDATE only. Until that day this record read at null, which was TRUE: every " +
+        "board from 2026-09-23 to 2026-10-07 ran against a development database without it, and no " +
+        "check reads this field for whether development has caught up. The shape fingerprint " +
+        "matched throughout because this migration changes no column. No fact count was read.",
+    },
     /*
      * APPLIED 2026-09-23, AND EVERY FIGURE BELOW WAS READ BACK RATHER THAN
      * PREDICTED. The provider's own history carries it WITH ITS NUMERIC PREFIX,
@@ -1654,7 +1668,26 @@ export const APPLIED = [
      * ACTION alone it would have revoked pricing.read from all three.
      */
     production: "2026-09-24",
-    development: { at: null, behaviour: null, facts: null },
+    development: {
+      at: "0059",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-07",
+      appliedBy: "execute_sql",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-07, THIRTEEN DAYS AFTER PRODUCTION, by the operator's chat " +
+        "counterpart through the Supabase connector's execute_sql, so development's provider history " +
+        "has NO row for it. The connector refuses any statement containing delete, so the file's " +
+        "delete of the engineer's pricing.read (lines 58 to 60) and its insert of " +
+        "pricing.read_own_pay were applied as ONE UPDATE of that row's action. Equivalent, and " +
+        "recorded as equivalent by the operator: the end state of the rows is identical, and " +
+        "eng_role_grants carries no trigger on development, so the audit trail is identical too. " +
+        "Read back the same day: engineer holds pricing.read_own_pay only; admin pricing.read and " +
+        "pricing.write; read_only pricing.read, identical to production. UNTIL THAT DAY DEVELOPMENT " +
+        "STILL GRANTED THE ENGINEER pricing.read, the ruling of 2026-09-24 did not hold on the " +
+        "database every audit points at, and this record read at null, truthfully, with nothing " +
+        "reading it. The shape fingerprint matched throughout because this moves rows, not columns.",
+    },
     /*
      * NO SHAPE CHANGE AND NO BEHAVIOUR CHANGE, WHICH IS UNUSUAL AND IS WHY IT
      * SAYS SO. This migration moves two ROWS in eng_role_grants: one inserted,
@@ -1790,7 +1823,21 @@ export const APPLIED = [
      * checks were one gap counted twice rather than two layers.
      */
     production: "2026-09-24",
-    development: { at: null, behaviour: null, facts: null },
+    development: {
+      at: "0060",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-07",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-07, THIRTEEN DAYS AFTER PRODUCTION, by the operator's chat " +
+        "counterpart through the Supabase connector's apply_migration, so development's provider " +
+        "history now carries it. It contains no drop and no delete. Read back the same day as " +
+        "buckets, which neither digest can see: eng-uploads 10485760 bytes with 6 types, " +
+        "eng-onboarding 15728640 with 6, eng-partner-assets 10485760 with 6, eng-messages 20971520 " +
+        "with 5. Until that day this record read at null, and every board in between ran against " +
+        "development's older bucket settings with nothing reading this field.",
+    },
     because:
       "APPLIED 2026-09-24. Drafted during an overnight run forbidden to touch production. The " +
       "buckets were read on production, read only, later the same day, and the file was AMENDED " +
