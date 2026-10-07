@@ -375,6 +375,24 @@ must say, what each must not say, and the claims neither may ever make. Flipping
 rebuild, because the pages are statically prerendered. That is deliberate: a compliance state that
 could change without a deploy leaving an audit trail is not one this firm should want.
 
+**THE ONE STATED EXCEPTION: A SIGNED PROTOCOL. Operator ruling 11, 2026-10-06.**
+The gate's protocols condition may read signed protocol records from the
+database. Nothing else in the gate may.
+
+- A line is sellable only when it is offered in configuration, which takes a
+  deploy and the operator's word, AND its protocol is signed in the database
+  with a hash that matches the transcription in code.
+- A signature alone never opens a line. Opening still takes the deploy.
+- A voided signature closes the line at once, without a deploy. The exception
+  runs in the closing direction only.
+- If the read fails or times out, the line is closed, and the order page says so
+  in plain words.
+- The typed approval list in `src/config/launch-readiness.ts` is removed, so
+  which protocols are approved has one home, the signed record.
+
+The audit trail the rule above asks for is kept by the signing itself: every
+signature and every voiding writes to the append-only audit log. That is why
+this exception is safe where a database-driven gate in general is not.
 ## 2. Brand differentiation (the ownership model is superseded)
 
 Three sites, one operator. To a search engine that is a doorway network unless each brand has a
