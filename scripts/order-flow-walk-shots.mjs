@@ -253,7 +253,14 @@ try {
           findings.push(`the flow has ${stepCount} steps: ${labels.map((l) => l.replace(/\s+/g, " ").trim()).join(" | ")}`);
         }
 
-        for (let i = 0; i < stepCount; i += 1) {
+        /*
+         * One Continue per PART, not per rail step, since step 3 was split into
+         * parts on 2026-09-30: the rail says five, the walk needs five plus the
+         * parts. Found 2026-10-07, when the 390 run ended inside step 3 having
+         * spent its five iterations, and read as reaching nothing further. The
+         * submit check below ends the loop at the review step either way.
+         */
+        for (let i = 0; i < stepCount + 12; i += 1) {
           const heading = (await page.locator("h2").first().innerText().catch(() => "")).trim();
           const slug = heading.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || `step${i + 1}`;
           const file = `${OUT}/order-${i + 1}-${slug}-${w.name}.png`;
@@ -284,6 +291,9 @@ try {
           const before = page.locator("text=Before you continue");
           if ((await before.count()) > 0) {
             const items = await before.locator("xpath=following-sibling::ul[1]/li").allInnerTexts().catch(() => []);
+            /* And whatever the form said on its own, such as a failed upload, so a refusal names its cause. */
+            const alerts = await page.locator("[role=alert]").allInnerTexts().catch(() => []);
+            if (alerts.length) items.push(`the form said: ${alerts.join(" / ")}`);
             console.log(`  ${w.name.padEnd(5)} step ${i + 1}: Continue refused, listing ${items.length} item(s). Stopping here.`);
             findings.push(
               `at ${w.name}, the walk could not pass step ${i + 1} ("${heading}") after filling every control by kind: ${items.join("; ") || "no items read"}.`,

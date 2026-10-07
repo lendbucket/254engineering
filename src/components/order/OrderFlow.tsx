@@ -645,7 +645,14 @@ export function OrderFlow({
                 ) : (
                   <textarea
                     id={input.id}
-                    rows={input.kind === "text" ? 3 : 1}
+                    /*
+                     * A long answer gets room, a short one a line. This read
+                     * `text` three rows and everything else one, backwards, so
+                     * the verbatim purpose and recipient questions, the two that
+                     * need the most room, were the ones given a single line.
+                     * Found in the capture of 2026-10-07.
+                     */
+                    rows={input.kind === "longtext" ? 3 : 1}
                     value={state.inputs[input.id] ?? ""}
                     onChange={(e) => set({ inputs: { ...state.inputs, [input.id]: e.target.value } })}
                     className={`${FIELD} py-2.5`}
@@ -907,9 +914,9 @@ function ReviewStep({
       {/*
         WHO YOU ARE PAYING, AND HOW. The operator's approved signals of
         2026-10-05, each from its one home (see TrustFacts). The card sentence
-        is true because checkout is Stripe's hosted page (payments-stripe.ts,
-        checkout.sessions.create with no embedded mode), so the card number is
-        typed on Stripe's page and never reaches this firm. The reassurance is
+        lives under the buttons, and is true because checkout is Stripe's hosted
+        page (payments-stripe.ts, checkout.sessions.create with no embedded
+        mode). The reassurance is
         refundIfDeclinedEarly, by name, never the sentence the operator
         rejected as false on 2026-10-05, because the customer pays at checkout.
         The "Powered by Stripe" mark, approved 2026-10-07, is Stripe's own
@@ -926,10 +933,12 @@ function ReviewStep({
         ) : null}
         {trust.address ? <li>{trust.address}</li> : null}
         {trust.phone ? <li>{trust.phone}</li> : null}
-        <li>
-          You pay on Stripe&apos;s secure checkout page. Your card number goes to Stripe and is never
-          seen or stored by the firm.
-        </li>
+        {/*
+          No card sentence here. One was added on 2026-10-07 and the capture
+          that day showed the flow already carries it, under the buttons ("Card
+          details are entered on Stripe's page and never reach this site."), so
+          it was the same fact twice on one screen. That one stays.
+        */}
         <li>{refundIfDeclinedEarly(entry)}</li>
       </ul>
       <a

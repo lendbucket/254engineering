@@ -148,7 +148,7 @@ export function protocolIntakeFields(protocol: ProtocolEntry): IntakeField[] {
        * the phrasing offers as choices (the attic) is a select; a verbatim one
        * never is, whatever the phrasing says, and the registry audit asserts it.
        */
-      kind: q.verbatim ? "longtext" : options ? "select" : "text",
+      kind: q.verbatim ? "longtext" : options ? "select" : words && "date" in words && words.date ? "date" : "text",
       ...(options && !q.verbatim ? { options } : {}),
       help: words?.help,
     });

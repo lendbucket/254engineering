@@ -38,6 +38,8 @@ export type QuestionPhrasing =
       detailLabel?: string;
       /** For a question the order form offers as a choice, the choices. */
       options?: string[];
+      /** A question whose answer is a date, asked with a date picker. */
+      date?: boolean;
       /** Customer fields in data/intake-fields.ts that asked the same fact, dropped for this line. */
       supersedes?: string[];
       /** A note shown to the operator in captures, never to a customer. */
@@ -65,7 +67,12 @@ export const PROTOCOL_PHRASING: Record<string, ProtocolPhrasing> = {
         help: "The insurer, buyer, lender or city, exactly as it should appear on the letter.",
         supersedes: ["addressed_to"],
       },
-      3: { label: "Is there a date you need it by?", supersedes: ["hard_deadline"] },
+      /*
+       * A date picker, as the customer field it supersedes was. The capture of
+       * 2026-10-07 found it had become a free text box when the protocol's
+       * question took over from hard_deadline.
+       */
+      3: { label: "Is there a date you need it by?", supersedes: ["hard_deadline"], date: true },
       4: { byOrder: "the property address and county, asked on the order's own address step" },
       5: {
         label: "What kind of building is it, and how many stories?",
