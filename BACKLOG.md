@@ -21,11 +21,27 @@ profile".** It was diagnosed from code without a production read and it was
 false. The counterpart read production: a new login, `profile.create` event 508
 correctly saying invited, and `auth.set_password` event 509 23 seconds later.
 The corrective event was cancelled unwritten. The account is in the sitting
-document under C1. **What remains open is narrower and hypothetical:** whether
+document under C1. **What remained open was narrower:** whether
 `createAccount`'s LINKING path, for an address that already has a login, writes
-a false `profile.create` row. That is being proven on development, and
-`fix/people-linked-audit` stays unmerged until it is; if the path cannot
-produce a false row, the branch closes.
+a false `profile.create` row.
+
+**PROVEN ON DEVELOPMENT 2026-10-07: IT DOES, ON MAIN.** A login made first on the
+probe domain, then the product's `createAccount` for the same address, returned
+`linked: true`, a profile with status `active`, and 0 set password tokens; main's
+People route writes `status: invited` and an invite delivery for every create,
+as a literal. The route itself was not called (it needs a session and a server);
+its diff depends on no data except the delivery choice. Teardown read back
+clean. **`fix/people-linked-audit` (`fe6f898`) records a linked profile as
+linked, and by operator ruling of the same day stays open and is boarded
+together with the credentials screen.**
+
+**AND NO PRODUCTION PROFILE CARRIES A FALSE ENTRY, read by the counterpart on
+2026-10-07.** The query for every profile whose login predates it by more than a
+minute returned one row: `fd2dceac-cb9e-4471-89d5-1b00ab9f25f9`, `ceo@36west.org`,
+active, login 2026-09-02 16:45:18 UTC, profile 17:57:25 UTC, and no
+`profile.create` event at all. That is the first administrator, seeded by
+`scripts/seed-admin.mjs`, not the People screen, so it carries no such row, true
+or false.
 
 ## WHAT THE ORDER PATH WALK OF 2026-10-07 LEFT FOR A RULING
 
