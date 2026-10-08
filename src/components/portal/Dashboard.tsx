@@ -64,7 +64,7 @@ function Card({
 const NUMBER_TONE: Record<Tile["tone"], string> = {
   neutral: "text-[var(--navy)]",
   good: "text-[var(--navy)]",
-  warn: "text-[var(--gold-deep)]",
+  warn: "text-[var(--ink)]",
   bad: "text-[var(--red)]",
 };
 

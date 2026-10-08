@@ -127,9 +127,9 @@ closer to the point than a defect.
 --navy: #012758;        /* primary, headings, sidebar, primary buttons */
 --navy-hover: #00152F;  /* hover/pressed on navy. 1.25 against --navy */
 --ink-navy: #0B1B36;    /* overlay scrims, device frames */
---gold: #D6A62A;        /* warnings, pending, active-nav bar — never decoration */
+--gold: #D6A62A;        /* V10: the header rule, the active nav marker, the current step. Never text */
 --gold-bright: #E8B04A; /* progress fills on navy */
---gold-deep: #8D610F;   /* warning text on light backgrounds */
+--gold-deep: #CA8A03;   /* V10 gold-deep: logo only. Never text */
 --gold-wash: #FDF6E7;   /* accent tint: the fill behind an explanation, not an alert */
 --on-navy: #FFFFFF;      /* text on navy */
 --on-navy-muted: #CFD7E3;/* body text on navy, 8.90:1 */
@@ -153,13 +153,16 @@ closer to the point than a defect.
 ```
 **THE PALETTE TOOK V10'S EXACT VALUES ON 2026-10-08**, on the operator's ruling
 of that day. Three tokens were added, `--faint`, `--select` and `--link`, because
-V10 names them and the portal had none. One V10 value is NOT carried: V10's
-`gold-deep` is `#CA8A03`, "logo only", while the portal's `--gold-deep` is the
-on-light text gold. `#CA8A03` measures 2.94 on white, so taking it would fail AA
-on every warning line still rendered, and AA wins where the two disagree (the
-operator's standing ruling in section 2b of CLAUDE.md). It goes when the last
-warning line goes, since V10 has no status colour at all. The warn, green and
-red tokens stay for the same reason, until the screens using them are restyled.
+V10 names them and the portal had none. Every V10 value is carried, gold-deep
+included, at `#CA8A03`.
+
+**GOLD IS NEVER TEXT, operator ruling of 2026-10-08.** V10 allows gold only on
+the header rule, the active nav marker and the current step. Every place a
+signed in surface set text in gold or gold-deep became ink, sub or faint by
+V10's type table, and the uppercase gold kicker became `.portal-label`, V10's
+label (12/600, faint, sentence case). `token-audit` refuses gold text on any
+signed in surface. The warn, green and red tokens stay until the screens using
+them are restyled, since V10 has no status colour at all.
 
 **--muted is not a text colour, and it was being used as one.** It measures
 3.1:1 on white, which fails AA for text at any size this system uses. It was on

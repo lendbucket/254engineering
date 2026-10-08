@@ -146,7 +146,7 @@ export default function OrderChooserPage() {
                 >
                   <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
                     <h2 className="text-[17px] leading-[1.3] font-semibold text-slate">
-                      <Link href={`/services/${offer.slug}`} className="hover:text-brass-ink">
+                      <Link href={`/services/${offer.slug}`} className="hover:underline active:opacity-70">
                         {offer.name}
                       </Link>
                     </h2>

@@ -89,7 +89,7 @@ export function DispatchPanel({
 
   return (
     <div className="rounded-[2px] border border-[var(--border)] bg-white px-4 py-4 sm:px-5">
-      <p className="portal-kicker text-[var(--gold-deep)]">Dispatch</p>
+      <p className="portal-label">Dispatch</p>
 
       {protocolName ? (
         <p className="mt-1.5 text-[14px] leading-[1.55] text-[var(--secondary)]">

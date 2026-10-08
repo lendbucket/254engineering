@@ -73,7 +73,7 @@ export default async function PartnerAppLayout({ children }: { children: React.R
                 <p className="truncate font-display text-[15px] leading-[1.2] font-bold text-white lg:text-[var(--navy)]">
                   {principal.partner.organisation}
                 </p>
-                <p className="portal-kicker mt-0.5 text-[var(--gold-bright)] lg:text-[var(--secondary)]">
+                <p className="portal-label mt-0.5 text-[var(--on-navy-muted)] lg:text-[var(--faint)]">
                   Referral partner
                 </p>
               </Link>

@@ -655,6 +655,13 @@ const STAFF_V10 = [
   "src/app/portal/(app)/review/TrainingDecisionPanel.tsx",
   "src/components/portal/CredentialTables.tsx",
   /*
+   * Tasks, 2026-10-08, the first of the technician's screens in the restyle
+   * the operator ordered that day: rows under one rule, square controls, no
+   * red error text, no boxed form.
+   */
+  "src/app/portal/(app)/tasks/page.tsx",
+  "src/app/portal/(app)/tasks/TasksClient.tsx",
+  /*
    * THE SHELL AND THE SHARED BUILDING BLOCKS, restyled to V10 on 2026-10-08
    * under the operator's ruling 1 of 2026-10-07: Panel, PageHead, the states,
    * the chip and the record list in surfaces.tsx; the status words, the system
@@ -723,9 +730,14 @@ const ALLOWED_RADIUS_PX = new Set([2, 3, 4, 8, 12, 16, 18]);
  * nothing reads stops being true; here the declaration was right and the code
  * was wrong, and the missing piece was the same: nothing compared them.
  *
- * GOLD IS NOT IN THIS LIST, because gold is a brand colour the rule explicitly
- * allows. `--gold-deep` is `#8d610f`, which DESIGN_SPEC.md added precisely as
- * "gold as text on light" at 4.81:1, so it clears AA as well as the palette.
+ * GOLD IS NOT IN THIS LIST, and this paragraph used to say gold was allowed as
+ * text, with the message below calling it "permitted and excluded". NO RULING
+ * EVER SAID SO: on 2026-10-08 the operator asked for any document claiming one
+ * to be quoted, and this comment and that message were the only ones. His
+ * ruling that day: V10 allows gold only on the header rule, the active nav
+ * marker and the current step, and never as text. That is its own check below,
+ * on EVERY signed in file rather than only the V10 list, because gold text was
+ * on screens of every stage.
  *
  * NAMED TOKENS RATHER THAN A HEX SWEEP, because a screen writes `var(--red)` and
  * a hex scan would not see it. The raw hex scan above still runs alongside.
@@ -822,8 +834,26 @@ rec(
   "no V10 screen uses red, green or amber",
   forbiddenColour.length === 0,
   forbiddenColour.length === 0
-    ? `${V10.length} V10 file(s), ${CUSTOMER_V10.length} customer and ${STAFF_V10.length} staff, checked against ${FORBIDDEN_COLOUR.length} forbidden token(s). Gold is permitted and excluded: it is brand, and --gold-deep is the spec's own gold-as-text-on-light at 4.81:1`
+    ? `${V10.length} V10 file(s), ${CUSTOMER_V10.length} customer and ${STAFF_V10.length} staff, checked against ${FORBIDDEN_COLOUR.length} forbidden token(s). Gold is checked separately, as never text`
     : forbiddenColour.slice(0, 6).join("  |  "),
+);
+
+/*
+ * GOLD IS NEVER TEXT, ON ANY SIGNED IN SURFACE. Operator ruling, 2026-10-08.
+ * A text utility or a color declaration naming a gold token, or the site's
+ * brass twins, is refused in every portal, partner and account file, ported or
+ * not. Gold as a border, a rule or a marker is not text and is not this check's
+ * business.
+ */
+const GOLD_TEXT = /text-\[var\(--gold[a-z-]*\)\]|text-brass[a-z-]*|\bcolor:\s*var\(--gold[a-z-]*\)/g;
+const goldText = [];
+for (const file of allPortalFiles) {
+  for (const m of codeOnly(file).matchAll(GOLD_TEXT)) goldText.push(`${file}: ${m[0]}`);
+}
+rec(
+  "no signed in surface sets text in gold",
+  allPortalFiles.length >= 100 && goldText.length === 0,
+  goldText.length ? goldText.slice(0, 6).join("  |  ") : `${allPortalFiles.length} file(s) read, none sets gold text`,
 );
 
 /*
@@ -990,7 +1020,14 @@ const TWINS = [
   ["--border-strong", "--color-limestone-edge"],
   ["--gold", "--color-brass"],
   ["--gold-bright", "--color-brass-light"],
-  ["--gold-deep", "--color-brass-ink"],
+  /*
+   * --gold-deep and --color-brass-ink WERE twins until 2026-10-08, both the
+   * on-light text gold. The operator ruled that day that gold is never text in
+   * the portal and that --gold-deep takes V10's logo value, #CA8A03, so the two
+   * no longer share a role: brass-ink is still the public site's text gold,
+   * which the site restyle decides. --gold-deep is held to V10's value by the
+   * check below instead, which is the stronger assertion of the two.
+   */
   ["--ink", "--color-ink"],
 ];
 
@@ -1016,10 +1053,11 @@ for (const [standard, site] of TWINS) {
 //
 // Each V10 token names the portal token(s) carrying its role. `page` is the
 // white ground, written as a literal on .portal-surface rather than a token.
-// ONE V10 VALUE IS NOT CARRIED, and it is named rather than skipped: gold-deep
-// #CA8A03 is "logo only" in V10, while --gold-deep is the on-light text gold,
-// and #CA8A03 measures 2.94 on white. AA wins (CLAUDE.md section 2b). The
-// exception is counted, so a second one cannot be added quietly.
+// EVERY V10 VALUE IS CARRIED. Gold-deep was the one exception, kept as the
+// on-light text gold for AA, until the operator ruled on 2026-10-08 that gold is
+// never text: it carries V10's #CA8A03, logo only, and the exception went with
+// the last gold text. There is no exception mechanism now, so adding one is an
+// edit to this check rather than an entry in a list.
 
 {
   const v10 = new Map();
@@ -1039,17 +1077,12 @@ for (const [standard, site] of TWINS) {
     "phone-ground": ["--canvas"],
     select: ["--select", "--row-hover"],
     link: ["--link"],
+    "gold-deep": ["--gold-deep"],
   };
-  const NOT_CARRIED = { "gold-deep": "logo only in V10; --gold-deep is on-light text, and #CA8A03 is 2.94 on white" };
   rec(
-    "V10's token table was read, and every token in it has a home or a named exception",
-    v10.size >= 13 && [...v10.keys()].every((k) => k in ROLE || k in NOT_CARRIED || k === "page"),
-    `${v10.size} tokens: ${[...v10.keys()].filter((k) => !(k in ROLE) && !(k in NOT_CARRIED) && k !== "page").join(", ") || "all placed"}`,
-  );
-  rec(
-    "exactly one V10 value is not carried, gold-deep, for AA",
-    Object.keys(NOT_CARRIED).length === 1 && v10.has("gold-deep"),
-    Object.entries(NOT_CARRIED).map(([k, why]) => `${k}: ${why}`).join("; "),
+    "V10's token table was read, and every token in it has a home",
+    v10.size >= 13 && [...v10.keys()].every((k) => k in ROLE || k === "page"),
+    `${v10.size} tokens: ${[...v10.keys()].filter((k) => !(k in ROLE) && k !== "page").join(", ") || "all placed"}`,
   );
   for (const [name, tokens] of Object.entries(ROLE)) {
     for (const token of tokens) {

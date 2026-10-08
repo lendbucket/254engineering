@@ -121,7 +121,7 @@ export function PartnerTabs() {
                 aria-current={active ? "page" : undefined}
                 className={`flex min-h-[56px] flex-col items-center justify-center gap-1 border-t-[var(--active-bar-width)] px-1 py-2 text-[11px] font-semibold ${
                   active
-                    ? "border-t-[var(--gold)] text-[var(--gold-bright)] active:bg-white/[0.12]"
+                    ? "border-t-[var(--gold)] text-[var(--on-navy)] active:bg-white/[0.12]"
                     : "border-t-transparent text-white/65 active:bg-white/[0.12]"
                 }`}
               >
@@ -209,7 +209,7 @@ export function PartnerIdentity({
         aria-haspopup="menu"
         className="flex min-h-[var(--tap-target)] items-center gap-2 rounded-[var(--radius-control)] px-2 text-[13.5px] font-semibold text-white active:bg-white/[0.12] lg:text-[var(--navy)] lg:active:bg-[var(--navy)]/[0.08]"
       >
-        <span className="grid h-7 w-7 place-items-center rounded-full bg-[var(--gold)] text-[12px] font-bold text-[var(--navy)]">
+        <span className="grid h-7 w-7 place-items-center rounded-full border border-white/25 bg-[var(--navy)] text-[12px] font-bold text-white">
           {organisation.slice(0, 1).toUpperCase()}
         </span>
         <span className="hidden sm:inline">{displayName}</span>

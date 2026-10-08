@@ -176,7 +176,7 @@ export default async function ChargeLogPage({
               <>
                 <dl className="mb-3 grid grid-cols-2 gap-3">
                   <div>
-                    <dt className="portal-kicker text-[var(--gold-deep)]">
+                    <dt className="portal-label">
                       This month
                     </dt>
                     <dd className="mt-1 font-display text-[17px] font-bold text-[var(--navy)]">
@@ -184,7 +184,7 @@ export default async function ChargeLogPage({
                     </dd>
                   </div>
                   <div>
-                    <dt className="portal-kicker text-[var(--gold-deep)]">
+                    <dt className="portal-label">
                       Unpaid
                     </dt>
                     <dd className="mt-1 font-display text-[17px] font-bold text-[var(--navy)]">

@@ -243,7 +243,7 @@ export function DecisionPanel({
   if (done) {
     return (
       <div>
-        <p className="portal-kicker text-[var(--gold-deep)]">Recorded</p>
+        <p className="portal-label">Recorded</p>
         <p className="mt-2 max-w-[70ch] text-[14px] leading-[1.6] text-[var(--ink)]">
           {done.action === "refuse"
             ? "You declined to seal this file."
@@ -300,7 +300,7 @@ export function DecisionPanel({
 
   return (
     <div>
-      <p className="portal-kicker text-[var(--gold-deep)]">Your decision</p>
+      <p className="portal-label">Your decision</p>
 
       {governed ? (
         <div className="mt-2">

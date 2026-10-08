@@ -87,7 +87,7 @@ export default async function AuditPage() {
             empty={<EmptyState title="Nothing recorded yet" body="Every action anyone takes in the platform lands here." />}
             card={(e) => (
               <div>
-                <p className="text-[12.5px] font-medium text-[var(--gold-deep)]">{actionLabel(e.action)}</p>
+                <p className="text-[12px] font-semibold text-[var(--faint)]">{actionLabel(e.action)}</p>
                 <p className="mt-1 text-[13.5px] leading-[1.5] break-words text-[var(--navy)]">{e.summary ?? e.entity_type}</p>
                 {/*
                   break-words on both lines, because everything on this card is

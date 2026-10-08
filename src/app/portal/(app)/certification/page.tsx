@@ -143,7 +143,7 @@ export default async function CertificationPage({
             />
           ) : (
             <section aria-labelledby="lines">
-              <h2 id="lines" className="portal-kicker text-[var(--gold-deep)]">
+              <h2 id="lines" className="portal-label">
                 Service lines
               </h2>
               <div className="mt-3">

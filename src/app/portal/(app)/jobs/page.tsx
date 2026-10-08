@@ -71,7 +71,7 @@ export default async function JobsPage() {
       />
 
       <section aria-labelledby="live-offers">
-        <h2 id="live-offers" className="portal-kicker text-[var(--gold-deep)]">
+        <h2 id="live-offers" className="portal-label">
           Offers waiting on you
         </h2>
         <div className="mt-3">
@@ -121,7 +121,7 @@ export default async function JobsPage() {
       </section>
 
       <section aria-labelledby="accepted" className="mt-9">
-        <h2 id="accepted" className="portal-kicker text-[var(--gold-deep)]">
+        <h2 id="accepted" className="portal-label">
           Work you have accepted
         </h2>
         <div className="mt-3">
@@ -164,7 +164,7 @@ export default async function JobsPage() {
 
       {past.length > 0 ? (
         <section aria-labelledby="past" className="mt-9">
-          <h2 id="past" className="portal-kicker text-[var(--gold-deep)]">
+          <h2 id="past" className="portal-label">
             Earlier
           </h2>
           <ul className="mt-3 divide-y divide-limestone-line rounded-[2px] border border-[var(--border)] bg-white px-4">

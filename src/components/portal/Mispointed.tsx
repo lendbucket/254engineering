@@ -35,7 +35,7 @@ export function MispointedDeployment({ fault }: { fault: Mispointing }) {
         </h1>
         <p className="mt-3 text-[15px] leading-[1.65] text-[var(--secondary)]">{fault.explanation}</p>
 
-        <p className="mt-5 portal-kicker text-[var(--gold-deep)]">
+        <p className="mt-5 portal-label">
           How to fix it
         </p>
         <p className="mt-2 text-[13.5px] leading-[1.65] text-[var(--secondary)]">{fault.fix}</p>

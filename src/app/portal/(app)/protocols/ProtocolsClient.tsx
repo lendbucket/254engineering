@@ -91,7 +91,7 @@ export function NewProtocolForm({
         }
       }}
     >
-      <p className="portal-kicker text-[var(--gold-deep)]">New protocol</p>
+      <p className="portal-label">New protocol</p>
 
       <div className="mt-3 flex flex-col gap-3">
         <div>
@@ -241,7 +241,7 @@ function AddItem({ templateId }: { templateId: string }) {
         }
       }}
     >
-      <p className="portal-kicker text-[var(--gold-deep)]">Add an item</p>
+      <p className="portal-label">Add an item</p>
 
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
         <div className="sm:col-span-2">
@@ -452,7 +452,7 @@ export function ApproveButton({
 
   return (
     <div>
-      <p className="portal-kicker text-[var(--gold-deep)]">Approve</p>
+      <p className="portal-label">Approve</p>
       <p className="mt-1.5 max-w-[70ch] text-[14px] leading-[1.55] text-[var(--secondary)]">
         {derivable ? (
           <>
@@ -538,7 +538,7 @@ export function QuestionEditor({
 
   return (
     <div>
-      <p className="portal-kicker text-[var(--gold-deep)]">
+      <p className="portal-label">
         Certification check
       </p>
       <p className="mt-1.5 max-w-[70ch] text-[14px] leading-[1.55] text-[var(--secondary)]">
@@ -624,7 +624,7 @@ export function QuestionEditor({
             }
           }}
         >
-          <p className="portal-kicker text-[var(--gold-deep)]">Add a question</p>
+          <p className="portal-label">Add a question</p>
 
           <div className="mt-3 flex flex-col gap-3">
             <div>

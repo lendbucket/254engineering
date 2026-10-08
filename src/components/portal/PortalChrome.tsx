@@ -191,7 +191,7 @@ export function MobileTabs({ items }: { items: NavItem[] }) {
                 aria-current={active ? "page" : undefined}
                 className={`flex min-h-[56px] flex-col items-center justify-center gap-1 border-t-[var(--active-bar-width)] px-1 py-2 text-[12px] font-semibold ${
                   active
-                    ? "border-t-[var(--gold)] text-[var(--gold-bright)] active:bg-white/[0.12]"
+                    ? "border-t-[var(--gold)] text-[var(--on-navy)] active:bg-white/[0.12]"
                     : "border-t-transparent text-white/65 active:bg-white/[0.12]"
                 }`}
               >
@@ -277,7 +277,7 @@ export function ProfileMenu({
           <div className="border-b border-[var(--border)] px-3 pt-2 pb-3">
             <p className="text-[14px] font-semibold text-[var(--navy)]">{displayName}</p>
             <p className="mt-0.5 text-[12px] break-all text-[var(--secondary)]">{email}</p>
-            <p className="portal-kicker mt-1 text-[var(--gold-deep)]">{roleLabel}</p>
+            <p className="portal-label mt-1">{roleLabel}</p>
           </div>
           <Link
             href="/portal/profile"
@@ -385,7 +385,7 @@ export function NotificationBell({
          * a screenshot and reading the titles.
          */
         <div className="fixed inset-x-4 top-[calc(60px+env(safe-area-inset-top))] z-50 rounded-[2px] border border-[var(--border)] bg-white sm:absolute sm:inset-x-auto sm:right-0 sm:top-auto sm:mt-2 sm:w-[340px]">
-          <p className="portal-kicker border-b border-[var(--border)] px-4 py-3 text-[var(--gold-deep)]">
+          <p className="portal-label border-b border-[var(--border)] px-4 py-3">
             Notifications
           </p>
           {items.length === 0 ? (
@@ -498,7 +498,7 @@ export function CommandPalette({ items }: { items: NavItem[] }) {
                     }}
                     className="flex min-h-[44px] w-full items-center gap-3 px-4 text-left text-[14px] font-semibold text-[var(--navy)] hover:bg-[var(--canvas)]"
                   >
-                    <span className="text-[var(--gold-deep)]">
+                    <span className="text-[var(--secondary)]">
                       <Icon name={item.icon} />
                     </span>
                     {item.label}

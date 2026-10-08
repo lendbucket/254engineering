@@ -40,14 +40,20 @@
   --ink-navy: #0b1b36;
 
   /*
-   * Gold appears only in the logo, warnings, pending states, and the active nav
-   * bar. It is never decoration and never body text on a light surface, where it
-   * measures 2.33:1. That is the operator's standing ruling and it predates this
-   * design; --gold-deep is the on-light text value.
+   * GOLD IS NEVER TEXT. Operator ruling of 2026-10-08, from DESIGN_V10.md: gold
+   * appears only on the 3px rule under the header bar, the active nav marker
+   * and the current step. Every place the portal set text in gold or gold-deep
+   * became ink, sub or faint by V10's type table that day.
+   *
+   * --gold-deep is V10's own value, #CA8A03, "logo only". It was #8D610F, the
+   * on-light text gold, and with no gold text left there is nothing for that
+   * value to be. The logo is an image and reads no token; this one exists so
+   * the palette carries V10's value rather than a different colour under its
+   * name.
    */
   --gold: #d6a62a;
   --gold-bright: #e8b04a;
-  --gold-deep: #8d610f;
+  --gold-deep: #ca8a03;
 
   /*
    * THE CREAM FILL, WHICH FOUR SCREENS HAVE BEEN ASKING FOR AND NOT GETTING.
@@ -298,6 +304,19 @@
   font-weight: var(--weight-bold);
   letter-spacing: var(--tracking-column-header);
   text-transform: uppercase;
+}
+
+/*
+ * V10'S LABEL, operator ruling of 2026-10-08: "Label 12 to 13 / 600", in
+ * faint, sentence case, no tracking. It replaces every gold uppercase kicker:
+ * V10 allows gold only on the header rule, the active nav marker and the
+ * current step, and never as text. Faint is text on white only (4.83; 4.39 on
+ * the phone ground), so a label never sits on a fill.
+ */
+.portal-label {
+  font-size: var(--type-meta-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--faint);
 }
 
 .portal-column-header {
