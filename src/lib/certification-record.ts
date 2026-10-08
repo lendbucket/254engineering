@@ -238,12 +238,26 @@ export async function trainingAwaitingEngineer(): Promise<
   if (records === null) return { ok: false, error: "The training records could not be read." };
   const waiting = records.filter((r) => r.status === "awaiting_engineer");
   const ids = [...new Set(waiting.map((r) => r.profileId))];
+  /*
+   * Only technicians who still exist and are active. A record outlives its
+   * profile (the event table keeps everything), and approving one for a
+   * removed or suspended account would certify nobody, or the wrong state.
+   */
   const names = new Map<string, string>();
   if (ids.length) {
-    const { data } = await db.from("eng_profiles").select("id, display_name").in("id", ids);
+    const { data, error } = await db
+      .from("eng_profiles")
+      .select("id, display_name")
+      .in("id", ids)
+      .eq("role", "field_tech")
+      .eq("status", "active");
+    if (error) return { ok: false, error: `The technicians could not be read: ${error.message}` };
     for (const p of data ?? []) names.set(p.id as string, p.display_name as string);
   }
-  return { ok: true, records: waiting.map((r) => ({ ...r, technician: names.get(r.profileId) ?? "A technician" })) };
+  return {
+    ok: true,
+    records: waiting.filter((r) => names.has(r.profileId)).map((r) => ({ ...r, technician: names.get(r.profileId) as string })),
+  };
 }
 
 /**
@@ -278,6 +292,10 @@ export async function decideTraining(
   const rec = records.find((r) => r.id === recordId);
   if (!rec) return { ok: false, error: "That training record does not exist." };
   if (rec.status !== "awaiting_engineer") return { ok: false, error: `That training was already ${rec.status}.` };
+  const { data: person } = await db.from("eng_profiles").select("role, status").eq("id", rec.profileId).maybeSingle();
+  if (!person || person.role !== "field_tech" || person.status !== "active") {
+    return { ok: false, error: "That technician's account is not active, so there is nobody to certify." };
+  }
 
   const written = reason.trim();
   if (decision === "refuse" && written.length < 10) {
