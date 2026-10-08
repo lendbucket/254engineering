@@ -11,11 +11,17 @@ import { createOnboarding } from "./onboarding";
 import {
   CREDENTIAL_LABEL,
   CREDENTIAL_OF_ITEM,
+  EXPIRING_KINDS,
+  EXPIRY_WARNING_DAYS,
+  RECORDABLE_KIND_OPTIONS,
   activationReadiness,
   credentialBlockers,
+  credentialStanding,
   exemptKindsFor,
   expiryState,
+  type CredentialKind,
   type CredentialRecord,
+  type CredentialStanding,
   type OnboardingItemView,
   type Readiness,
 } from "./ops-credentials";
@@ -458,6 +464,9 @@ export type CredentialRow = CredentialRecord & {
   id: string;
   profileId: string;
   issuedOn: string | null;
+  recordedAt: string;
+  verifiedAt: string | null;
+  verifiedBy: string | null;
 };
 
 export async function credentialsFor(profileIds: string[]): Promise<Map<string, CredentialRow[]>> {
@@ -467,8 +476,9 @@ export async function credentialsFor(profileIds: string[]): Promise<Map<string, 
 
   const { data } = await db
     .from("eng_credentials")
-    .select("id, profile_id, kind, label, status, issued_on, expires_on")
-    .in("profile_id", profileIds);
+    .select("id, profile_id, kind, label, status, issued_on, expires_on, created_at, verified_at, verified_by")
+    .in("profile_id", profileIds)
+    .order("created_at", { ascending: false });
 
   for (const row of data ?? []) {
     const entry: CredentialRow = {
@@ -479,6 +489,9 @@ export async function credentialsFor(profileIds: string[]): Promise<Map<string, 
       status: row.status as CredentialRecord["status"],
       issuedOn: (row.issued_on as string | null) ?? null,
       expiresOn: (row.expires_on as string | null) ?? null,
+      recordedAt: row.created_at as string,
+      verifiedAt: (row.verified_at as string | null) ?? null,
+      verifiedBy: (row.verified_by as string | null) ?? null,
     };
     byProfile.set(entry.profileId, [...(byProfile.get(entry.profileId) ?? []), entry]);
   }
@@ -507,52 +520,206 @@ export async function credentialBlockersFor(profileIds: string[]): Promise<Map<s
 }
 
 /**
- * Update or add a credential directly, for the operator maintaining a roster.
+ * A WORKING TECHNICIAN'S COVERAGE COUNTIES, SET BY AN ADMINISTRATOR.
+ *
+ * Operator ruling of 2026-10-07: no operational act needs SQL once live. Until
+ * this, coverage could be set only when a profile was created or an onboarding
+ * activated, so changing it afterwards was SQL (the sitting's step C2). It uses
+ * the same canonicalisation as setOnboardingCoverage, because dispatch matches
+ * on the county name and a typo would silently exclude the technician from
+ * every job there; unknown names are refused, never dropped.
+ *
+ * The audit diff names what was added and removed, not only the new count,
+ * because "set to 254" says nothing about which county somebody lost.
+ */
+export async function setTechCoverage(
+  actor: Actor & { email: string },
+  profileId: string,
+  counties: string[],
+  context: Context = {},
+): Promise<{ ok: true; counties: string[] } | { ok: false; error: string }> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+  if (!can(actor, "profiles.update")) return { ok: false, error: "Your role cannot set coverage." };
+
+  const canonical: string[] = [];
+  const rejected: string[] = [];
+  for (const raw of counties) {
+    const county = canonicalCounty(raw);
+    if (county) {
+      if (!canonical.includes(county)) canonical.push(county);
+    } else if (raw.trim()) {
+      rejected.push(raw.trim());
+    }
+  }
+  if (rejected.length) {
+    return {
+      ok: false,
+      error: `Not a Texas county: ${rejected.join(", ")}. Dispatch matches on the county name, so a typo would silently exclude this technician from every job there.`,
+    };
+  }
+  canonical.sort();
+
+  const { data: person, error: readError } = await db
+    .from("eng_profiles")
+    .select("id, role, coverage_counties")
+    .eq("id", profileId)
+    .maybeSingle();
+  if (readError || !person) return { ok: false, error: readError?.message ?? "That technician does not exist." };
+  if (person.role !== "field_tech") return { ok: false, error: "Coverage is set for a technician." };
+
+  const before: string[] = (person.coverage_counties as string[] | null) ?? [];
+  const added = canonical.filter((c) => !before.includes(c));
+  const removed = before.filter((c) => !canonical.includes(c));
+  if (added.length === 0 && removed.length === 0) return { ok: true, counties: canonical };
+
+  const { error } = await db.from("eng_profiles").update({ coverage_counties: canonical }).eq("id", profileId).eq("role", "field_tech");
+  if (error) return { ok: false, error: error.message };
+
+  await writeAudit({
+    actor,
+    action: "profile.coverage_set",
+    entityType: "profile",
+    entityId: profileId,
+    summary:
+      `Set coverage to ${canonical.length} count${canonical.length === 1 ? "y" : "ies"}` +
+      `${added.length ? `, adding ${added.length}` : ""}${removed.length ? `, removing ${removed.length}` : ""}`,
+    diff: {
+      coverage_count: { from: before.length, to: canonical.length },
+      added: { from: null, to: added },
+      removed: { from: removed, to: null },
+    },
+    ...context,
+  });
+  return { ok: true, counties: canonical };
+}
+
+/**
+ * ONE TECHNICIAN'S CREDENTIALS, AS DISPATCH SEES THEM. The credentials screen
+ * (operator, 2026-10-07) and the technician's own read-only view both render
+ * this. It reads the same rows (credentialsFor), the same exemption
+ * (exemptKindsFor on the profile's email) and the same rule
+ * (credentialStanding, which credentialBlockers is built from), so what the
+ * screen says is required, missing or expiring is what dispatch refuses on.
+ *
+ * A failed read is not an empty sheet: it returns null, and the screen says it
+ * could not read, because "nothing on file" would be a false statement.
+ */
+export type CredentialSheet = {
+  profile: { id: string; displayName: string; email: string; status: string; coverageCounties: string[] };
+  standing: CredentialStanding[];
+  /** Every record, newest first, including replaced ones. Nothing is edited, so this is the history. */
+  history: (CredentialRow & { label: string | null; verifiedByName: string | null })[];
+  /** True when nothing required blocks dispatch. Coverage and certification are separate gates. */
+  credentialsClear: boolean;
+  warningDays: number;
+};
+
+export async function credentialSheet(profileId: string): Promise<CredentialSheet | null> {
+  const db = supabaseAdmin();
+  if (!db) return null;
+  const { data: person, error } = await db
+    .from("eng_profiles")
+    .select("id, display_name, email, status, role, coverage_counties")
+    .eq("id", profileId)
+    .maybeSingle();
+  if (error || !person || person.role !== "field_tech") return null;
+
+  const held = (await credentialsFor([profileId])).get(profileId) ?? [];
+  const standing = credentialStanding(held, new Date(), exemptKindsFor(person.email as string));
+
+  const verifierIds = [...new Set(held.map((c) => c.verifiedBy).filter((v): v is string => Boolean(v)))];
+  const names = new Map<string, string>();
+  if (verifierIds.length) {
+    const { data: verifiers } = await db.from("eng_profiles").select("id, display_name").in("id", verifierIds);
+    for (const v of verifiers ?? []) names.set(v.id as string, v.display_name as string);
+  }
+
+  return {
+    profile: {
+      id: person.id as string,
+      displayName: person.display_name as string,
+      email: person.email as string,
+      status: person.status as string,
+      coverageCounties: ((person.coverage_counties as string[] | null) ?? []).slice().sort(),
+    },
+    standing,
+    history: held.map((c) => ({ ...c, label: c.label ?? null, verifiedByName: c.verifiedBy ? names.get(c.verifiedBy) ?? null : null })),
+    credentialsClear: standing.every((s) => !s.blocks),
+    warningDays: EXPIRY_WARNING_DAYS,
+  };
+}
+
+/**
+ * Record a credential for a technician, verified by the administrator recording
+ * it. The credentials screen on /portal/techs/[id] is its one caller.
  *
  * A renewed insurance certificate arrives by email eleven months after
  * onboarding finished, and there is no onboarding to attach it to. Without this
  * the only route would be re-running an onboarding for somebody who already
  * works here.
+ *
+ * A RECORD, NEVER A FILE, AND NEVER EDITED. Operator ruling of 2026-10-07: a
+ * credential is replaced by a new record and the old one stays. This used to
+ * take an `id` and UPDATE that row in place, which no screen called and which
+ * would have let a verified record be rewritten with nothing left to show what
+ * it said. It only inserts now. Dispatch counts a kind current while ANY
+ * verified copy is current (credentialStanding), so a renewal takes effect the
+ * moment it is recorded and the old copy sits beside it as history.
  */
 export async function recordCredential(
   actor: Actor & { email: string },
   profileId: string,
   input: {
-    id?: string | null;
     kind: string;
     label?: string | null;
     issuedOn?: string | null;
     expiresOn?: string | null;
-    status?: "pending" | "verified" | "rejected" | "expired";
   },
   context: Context = {},
-): Promise<{ ok: true } | { ok: false; error: string }> {
+): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
-  if (!can(actor, "profiles.update")) return { ok: false, error: "Your role cannot edit credentials." };
+  if (!can(actor, "profiles.update")) return { ok: false, error: "Your role cannot record credentials." };
 
+  const kind = input.kind as CredentialKind;
+  if (!RECORDABLE_KIND_OPTIONS.some((o) => o.kind === kind)) {
+    return { ok: false, error: "That is not a credential dispatch reads." };
+  }
   const iso = /^\d{4}-\d{2}-\d{2}$/;
   for (const value of [input.issuedOn, input.expiresOn]) {
     if (value && !iso.test(value)) return { ok: false, error: "Dates must be a calendar date." };
   }
+  if (EXPIRING_KINDS.includes(kind) && !input.expiresOn) {
+    return { ok: false, error: `${CREDENTIAL_LABEL[kind]} expires, so it needs its expiration date.` };
+  }
+  if (input.issuedOn && input.expiresOn && input.expiresOn < input.issuedOn) {
+    return { ok: false, error: "The expiration date is before the issue date." };
+  }
+  if (kind === "vehicle_insurance" && !input.label?.trim()) {
+    return { ok: false, error: "Insurance needs the insurer and policy number." };
+  }
+
+  const { data: person } = await db.from("eng_profiles").select("id, role").eq("id", profileId).maybeSingle();
+  if (!person || person.role !== "field_tech") {
+    return { ok: false, error: "Credentials are recorded for a technician." };
+  }
 
   const row = {
     profile_id: profileId,
-    kind: input.kind,
+    kind,
     label: input.label?.trim() || null,
     issued_on: input.issuedOn || null,
     expires_on: input.expiresOn || null,
-    status: input.status ?? "verified",
+    status: "verified" as const,
     /* DB_NOW. When a credential was verified decides whether somebody may be
      * dispatched, and expiry is measured from it against the database's clock. */
-    verified_at: (input.status ?? "verified") === "verified" ? DB_NOW : null,
+    verified_at: DB_NOW,
     verified_by: actor.id,
   };
 
-  const { error } = input.id
-    ? await db.from("eng_credentials").update(row).eq("id", input.id).eq("profile_id", profileId)
-    : await db.from("eng_credentials").insert(row);
-  if (error) return { ok: false, error: error.message };
+  const { data: inserted, error } = await db.from("eng_credentials").insert(row).select("id").single();
+  if (error || !inserted) return { ok: false, error: error?.message ?? "The credential was not recorded." };
 
   /*
    * If the document that was just recorded is already inside the warning
@@ -581,13 +748,23 @@ export async function recordCredential(
 
   await writeAudit({
     actor,
-    action: input.id ? "credential.update" : "credential.add",
+    action: "credential.recorded",
     entityType: "profile",
     entityId: profileId,
-    summary: `${input.id ? "Updated" : "Recorded"} ${input.kind}${input.expiresOn ? `, expires ${input.expiresOn}` : ""}`,
+    summary:
+      `Recorded and verified ${CREDENTIAL_LABEL[kind]}` +
+      `${row.label ? ` (${row.label})` : ""}` +
+      `${row.issued_on ? `, issued ${row.issued_on}` : ""}` +
+      `${row.expires_on ? `, expires ${row.expires_on}` : ""}`,
+    diff: {
+      credential_id: { from: null, to: inserted.id },
+      kind: { from: null, to: kind },
+      status: { from: null, to: "verified" },
+      expires_on: { from: null, to: row.expires_on },
+    },
     ...context,
   });
-  return { ok: true };
+  return { ok: true, id: inserted.id as string };
 }
 
 /** The checklist a role is invited to complete, for the invite screen's preview. */

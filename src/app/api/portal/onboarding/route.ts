@@ -6,7 +6,9 @@ import {
   recordCredential,
   setItemDates,
   setOnboardingCoverage,
+  setTechCoverage,
 } from "@/lib/ops-onboarding";
+import { recordTraining } from "@/lib/certification-record";
 import {
   addProtocolQuestion,
   removeProtocolQuestion,
@@ -110,21 +112,49 @@ export async function POST(request: NextRequest) {
         );
   }
 
+  /*
+   * A credential recorded on a technician's page, verified by the administrator
+   * recording it. Append only (operator ruling, 2026-10-07): there is no id to
+   * pass and no status to choose, so nothing here can rewrite a record.
+   */
   if (action === "record_credential") {
     const result = await recordCredential(
       actor,
       String(body?.profileId ?? ""),
       {
-        id: body?.id ? String(body.id) : null,
-        kind: String(body?.kind ?? "other"),
+        kind: String(body?.kind ?? ""),
         label: body?.label ? String(body.label) : null,
         issuedOn: body?.issuedOn ? String(body.issuedOn) : null,
         expiresOn: body?.expiresOn ? String(body.expiresOn) : null,
-        status: (body?.status as "pending" | "verified" | "rejected" | "expired") ?? "verified",
       },
       context,
     );
-    return result.ok ? NextResponse.json({ ok: true }) : bad(result.error);
+    return result.ok ? NextResponse.json({ ok: true, id: result.id }) : bad(result.error);
+  }
+
+  /*
+   * Supervised training recorded by an administrator, operator ruling of
+   * 2026-10-07. It counts for nothing until the engineer of record approves it.
+   */
+  if (action === "record_training") {
+    const result = await recordTraining(
+      actor,
+      String(body?.profileId ?? ""),
+      {
+        serviceSlug: String(body?.serviceSlug ?? ""),
+        trainedOn: String(body?.trainedOn ?? ""),
+        supervisedBy: String(body?.supervisedBy ?? ""),
+      },
+      context,
+    );
+    return result.ok ? NextResponse.json({ ok: true, id: result.id }) : bad(result.error);
+  }
+
+  /* A working technician's coverage counties, from the same page. setTechCoverage refuses unknown names. */
+  if (action === "set_coverage") {
+    const counties = Array.isArray(body?.counties) ? body.counties.map(String) : [];
+    const result = await setTechCoverage(actor, String(body?.profileId ?? ""), counties, context);
+    return result.ok ? NextResponse.json({ ok: true, counties: result.counties }) : bad(result.error);
   }
 
   // -------------------------------------------------------- certification

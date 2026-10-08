@@ -155,14 +155,28 @@ export async function POST(request: NextRequest) {
        * append only table is a credential that never expires from the reader's
        * point of view.
        */
+      /*
+       * LINKED TO AN EXISTING LOGIN IS RECORDED AS SUCH. Operator ruling 4 of
+       * 2026-10-07. This diff used to say status invited and name an invite
+       * delivery for every new profile, and a linked profile is ACTIVE with no
+       * link issued (createAccount, ops-auth.ts), so the permanent trail
+       * contradicted the row. Production's row for one profile carries the old
+       * shape and stays; a corrective event was written beside it.
+       */
       summary: created.linked
-        ? `Linked the existing account ${email} to a ${role} profile`
+        ? `Linked ${displayName} (${email}), an existing login, to a ${role} profile. Active at once; no invite link was issued.`
         : `Created ${displayName} (${email}) as ${role}. Invite ${byHand ? "handed to " + actor.display_name + " to deliver" : "queued by email"}.`,
-      diff: {
-        role: { from: null, to: role },
-        status: { from: null, to: "invited" },
-        invite_delivery: { from: null, to: byHand ? "by_hand" : "email" },
-      },
+      diff: created.linked
+        ? {
+            role: { from: null, to: role },
+            status: { from: null, to: "active" },
+            linked_to_existing_login: { from: null, to: true },
+          }
+        : {
+            role: { from: null, to: role },
+            status: { from: null, to: "invited" },
+            invite_delivery: { from: null, to: byHand ? "by_hand" : "email" },
+          },
       ip,
       userAgent,
     });

@@ -1035,6 +1035,17 @@ export function licenceIsCurrent(expires: string | null, todayISO: string): bool
 }
 
 /**
+ * Whether a register entry's license is current TODAY. Lives here because this
+ * file is the one declared (db-guard-audit) to read today's date for exactly
+ * this kind of comparison: an expiry read, never a stored value. Certification
+ * approval asks it, so the comparison is not a second use of the machine clock
+ * in another file.
+ */
+export function licenceIsCurrentToday(expires: string | null): boolean {
+  return licenceIsCurrent(expires, new Date().toISOString().slice(0, 10));
+}
+
+/**
  * The registration line that appears in the footer on every page.
  *
  * Two different sentences, both true at the time they render. The prelaunch one

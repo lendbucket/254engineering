@@ -373,6 +373,12 @@ const PORTED = [
   "src/app/portal/(app)/tasks/page.tsx",
   "src/app/portal/(app)/techs/TechsClient.tsx",
   "src/app/portal/(app)/techs/page.tsx",
+  "src/app/portal/(app)/techs/[id]/page.tsx",
+  "src/app/portal/(app)/techs/[id]/RecordCredentialForm.tsx",
+  "src/app/portal/(app)/techs/[id]/CoverageForm.tsx",
+  "src/app/portal/(app)/techs/[id]/RecordTrainingForm.tsx",
+  "src/app/portal/(app)/review/TrainingDecisionPanel.tsx",
+  "src/components/portal/CredentialTables.tsx",
   /*
    * /portal/waiting, added 2026-10-03, and it is the FOURTH screen in three days
    * found declared somewhere and absent from this list: the customer orders
@@ -620,6 +626,16 @@ const STAFF_V10 = [
   "src/app/portal/(app)/jobs/[id]/page.tsx",
   "src/app/portal/(app)/jobs/[id]/CaptureClient.tsx",
   "src/app/portal/(app)/waiting/page.tsx",
+  /*
+   * The credentials screen, operator ruling of 2026-10-07, built to V10 from
+   * the start, and the tables it shares with the technician's own view.
+   */
+  "src/app/portal/(app)/techs/[id]/page.tsx",
+  "src/app/portal/(app)/techs/[id]/RecordCredentialForm.tsx",
+  "src/app/portal/(app)/techs/[id]/CoverageForm.tsx",
+  "src/app/portal/(app)/techs/[id]/RecordTrainingForm.tsx",
+  "src/app/portal/(app)/review/TrainingDecisionPanel.tsx",
+  "src/components/portal/CredentialTables.tsx",
 ];
 
 /** Every file held to V10's interface rules, whichever surface it serves. */

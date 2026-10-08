@@ -4,7 +4,8 @@ import { can, holdsLicence } from "@/lib/ops-authz";
 import { checkFor, listProtocols } from "@/lib/ops-field";
 import { certificationLabel } from "@/lib/ops-certification";
 import { credentialsFor } from "@/lib/ops-onboarding";
-import { credentialBlockers, exemptKindsFor, expiringSoon, CREDENTIAL_LABEL } from "@/lib/ops-credentials";
+import { credentialBlockers, credentialStanding, exemptKindsFor, expiringSoon } from "@/lib/ops-credentials";
+import { CredentialStandingList } from "@/components/portal/CredentialTables";
 import { services } from "@/content/services";
 import { supabaseAdmin } from "@/lib/supabase";
 import { EmptyState, PageHead, Panel } from "@/components/portal/surfaces";
@@ -106,6 +107,7 @@ export default async function CertificationPage({
 
   const held = (await credentialsFor([actor!.id])).get(actor!.id) ?? [];
   const paperwork = credentialBlockers(held, new Date(), exemptKindsFor(actor!.email));
+  const standing = credentialStanding(held, new Date(), exemptKindsFor(actor!.email));
   const expiring = expiringSoon(held);
 
   const active = params.service ? await checkFor(actor, params.service) : null;
@@ -200,48 +202,36 @@ export default async function CertificationPage({
         </div>
 
         <div className="flex flex-col gap-6">
-          <Panel title="Your paperwork">
-            {paperwork.length === 0 ? (
-              <p className="text-[14px] leading-[1.55] text-[var(--secondary)]">
-                Everything required is on file and current. Nothing in your documents is stopping a
-                job reaching you.
-              </p>
-            ) : (
-              <>
-                <p className="text-[14px] leading-[1.55] font-semibold text-[var(--ink)]">
-                  This is stopping jobs reaching you.
-                </p>
-                <ul className="mt-2 flex flex-col gap-1.5">
-                  {paperwork.map((b) => (
-                    <li key={b.kind + b.reason} className="text-[14px] leading-[1.5] text-[var(--secondary)]">
-                      {b.reason}
-                    </li>
-                  ))}
-                </ul>
-                <p className="mt-3 text-[14px] leading-[1.55] text-[var(--secondary)]">
-                  Send the replacement document to the operator. Nothing on this site asks you to
-                  type a policy number, an account number, or a social security number, and it never
-                  will.
-                </p>
-              </>
-            )}
-
-            {expiring.length > 0 ? (
-              <div className="mt-5 border-t border-[var(--border)] pt-3">
-                <p className="text-[14px] font-semibold text-[var(--ink)]">Expiring soon</p>
-                <ul className="mt-1 flex flex-col gap-1">
-                  {expiring.map((e) => (
-                    <li key={e.kind} className="text-[14px] leading-[1.5] text-[var(--ink)]">
-                      {CREDENTIAL_LABEL[e.kind]} in {e.days} day{e.days === 1 ? "" : "s"}, on {e.expiresOn}.
-                    </li>
-                  ))}
-                </ul>
-                <p className="mt-1.5 text-[13px] leading-[1.5] text-[var(--secondary)]">
-                  This does not stop you working. It stops you the day it lapses.
-                </p>
-              </div>
-            ) : null}
-          </Panel>
+          {/*
+            YOUR CREDENTIALS, READ ONLY. Operator ruling of 2026-10-07: the
+            technician sees his own credentials and what is missing. The list is
+            the same credentialStanding the administrator's page and dispatch
+            read, with the same words, so the three cannot disagree. Design V10:
+            a heading with a 2px ink rule, rows, no card.
+          */}
+          <section aria-labelledby="your-credentials">
+            <h2
+              id="your-credentials"
+              className="border-b-2 border-[var(--ink)] pb-2 text-[15px] font-semibold text-[var(--ink)]"
+            >
+              Your credentials
+            </h2>
+            <p
+              className={`mt-3 text-[14px] leading-[1.55] ${paperwork.length ? "font-semibold text-[var(--ink)]" : "text-[var(--secondary)]"}`}
+            >
+              {paperwork.length === 0
+                ? "Everything required is on file and current. Nothing in your documents is stopping a job reaching you."
+                : "Something below is stopping jobs reaching you."}
+            </p>
+            <CredentialStandingList standing={standing} />
+            <p className="mt-3 text-[14px] leading-[1.55] text-[var(--secondary)]">
+              {expiring.length > 0
+                ? "An expiring credential does not stop you working. It stops you the day it lapses. "
+                : ""}
+              Send a new or replacement document to the operator, who records it. Nothing on this site
+              asks you to type a policy number, an account number, or a social security number.
+            </p>
+          </section>
 
           <Panel title="How the check works">
             <ul className="flex flex-col gap-2 text-[14px] leading-[1.55] text-[var(--secondary)]">

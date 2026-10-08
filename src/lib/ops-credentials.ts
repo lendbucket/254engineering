@@ -142,6 +142,16 @@ export const CREDENTIAL_LABEL: Record<CredentialKind, string> = {
 /** Days before expiry at which a credential starts warning. */
 export const EXPIRY_WARNING_DAYS = 45;
 
+/**
+ * What the credentials screen may record: exactly the kinds dispatch reads, and
+ * whether each needs an expiration date. Derived, so a fifth required kind is
+ * recordable the day it is required, and nothing dispatch ignores can be added
+ * there and mistaken for a gate.
+ */
+export const RECORDABLE_KIND_OPTIONS: { kind: CredentialKind; expires: boolean }[] = REQUIRED_FOR_DISPATCH.map(
+  (kind) => ({ kind, expires: EXPIRING_KINDS.includes(kind) }),
+);
+
 export type ExpiryState = "none" | "current" | "expiring" | "expired";
 
 const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -177,6 +187,88 @@ export function daysUntilExpiry(expiresOn: string | null | undefined, now: Date 
 export type CredentialBlocker = { kind: CredentialKind; reason: string };
 
 /**
+ * WHERE ONE REQUIRED CREDENTIAL STANDS, FOR DISPATCH AND FOR EVERY SCREEN.
+ *
+ * The credentials screen (operator, 2026-10-07) shows, per kind dispatch
+ * requires, whether it is recorded, missing, expiring or exempt, and the ruling
+ * is that "the screen and dispatch can never disagree". So both read this one
+ * function: credentialBlockers below takes its required-kind verdicts from it,
+ * and the screens render it. A second copy of the rule in a component is the
+ * two-homes defect this repository has met six times.
+ *
+ *   exempt      the owner exemption covers it (exemptKindsFor)
+ *   missing     nothing on file
+ *   unverified  on file, none verified
+ *   expired     verified, and no verified copy is current
+ *   expiring    the copy that keeps it current expires within EXPIRY_WARNING_DAYS
+ *   recorded    current
+ *
+ * `blocks` is true exactly for missing, unverified and expired, which is what
+ * credentialBlockers has always refused on.
+ */
+export type CredentialState = "exempt" | "missing" | "unverified" | "expired" | "expiring" | "recorded";
+export type CredentialStanding = {
+  kind: CredentialKind;
+  label: string;
+  state: CredentialState;
+  blocks: boolean;
+  /** The verified copy that keeps it current: the one expiring latest, or one that never expires. */
+  current: CredentialRecord | null;
+  /** Days until `current` expires, when it expires. */
+  days: number | null;
+  /** When state is expired: the expiry dispatch names in its reason. */
+  lapsedOn: string | null;
+  /** The blocker sentence dispatch gives, when it blocks. */
+  reason: string | null;
+};
+
+export function credentialStanding(
+  credentials: CredentialRecord[],
+  now: Date = new Date(),
+  exempt: CredentialKind[] = [],
+): CredentialStanding[] {
+  const byKind = new Map<CredentialKind, CredentialRecord[]>();
+  for (const c of credentials) {
+    byKind.set(c.kind, [...(byKind.get(c.kind) ?? []), c]);
+  }
+
+  return REQUIRED_FOR_DISPATCH.map((kind): CredentialStanding => {
+    const label = CREDENTIAL_LABEL[kind];
+    const base = { kind, label, current: null, days: null, reason: null, lapsedOn: null };
+    if (exempt.includes(kind)) return { ...base, state: "exempt", blocks: false };
+
+    const held = byKind.get(kind) ?? [];
+    const verified = held.filter((c) => c.status === "verified");
+
+    if (verified.length === 0) {
+      return held.length
+        ? { ...base, state: "unverified", blocks: true, reason: `${label} is on file but not verified yet.` }
+        : { ...base, state: "missing", blocks: true, reason: `No ${label.toLowerCase()} on file.` };
+    }
+
+    // Current if ANY verified copy is current. A renewal uploaded alongside the
+    // old one should not be defeated by the old one still sitting there.
+    const live = verified.filter((c) => expiryState(c.expiresOn, now) !== "expired");
+    if (live.length === 0) {
+      return {
+        ...base,
+        state: "expired",
+        blocks: true,
+        reason: `${label} expired on ${verified[0].expiresOn}.`,
+        lapsedOn: verified[0].expiresOn,
+      };
+    }
+
+    // The copy that keeps it current: one that never expires, else the latest expiry.
+    const current =
+      live.find((c) => !c.expiresOn) ??
+      [...live].sort((a, b) => String(b.expiresOn).localeCompare(String(a.expiresOn)))[0];
+    const state = expiryState(current.expiresOn, now) === "expiring" ? "expiring" : "recorded";
+    return { ...base, state, blocks: false, current, days: daysUntilExpiry(current.expiresOn, now) };
+  });
+}
+
+/**
  * Why this technician cannot be offered work, on credentials alone.
  *
  * Returns every reason rather than the first, because an operator fixing one
@@ -188,37 +280,9 @@ export function credentialBlockers(
   /** From exemptKindsFor; the owner's W-9 and contractor agreement. */
   exempt: CredentialKind[] = [],
 ): CredentialBlocker[] {
-  const blockers: CredentialBlocker[] = [];
-  const byKind = new Map<CredentialKind, CredentialRecord[]>();
-  for (const c of credentials) {
-    byKind.set(c.kind, [...(byKind.get(c.kind) ?? []), c]);
-  }
-
-  for (const kind of REQUIRED_FOR_DISPATCH) {
-    if (exempt.includes(kind)) continue;
-    const held = byKind.get(kind) ?? [];
-    const verified = held.filter((c) => c.status === "verified");
-
-    if (verified.length === 0) {
-      blockers.push({
-        kind,
-        reason: held.length
-          ? `${CREDENTIAL_LABEL[kind]} is on file but not verified yet.`
-          : `No ${CREDENTIAL_LABEL[kind].toLowerCase()} on file.`,
-      });
-      continue;
-    }
-
-    // Current if ANY verified copy is current. A renewal uploaded alongside the
-    // old one should not be defeated by the old one still sitting there.
-    const anyCurrent = verified.some((c) => expiryState(c.expiresOn, now) !== "expired");
-    if (!anyCurrent) {
-      blockers.push({
-        kind,
-        reason: `${CREDENTIAL_LABEL[kind]} expired on ${verified[0].expiresOn}.`,
-      });
-    }
-  }
+  const blockers: CredentialBlocker[] = credentialStanding(credentials, now, exempt)
+    .filter((s) => s.blocks)
+    .map((s) => ({ kind: s.kind, reason: s.reason as string }));
 
   /*
    * Anything else on file and lapsed also blocks. A lapsed certificate that
