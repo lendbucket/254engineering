@@ -305,6 +305,33 @@ from eng_profiles where lower(email) = 'robertreyna88@yahoo.com';
 
 **Predict:** one row, `field_tech`, `invited`, `none`, `0`.
 
+**RAN 2026-10-07.** Profile `c9d46cd2-9ee3-4479-9768-2b27e13c0044`,
+`field_tech`, certification `none`, 0 counties, as predicted, and status
+**`active`**, not `invited`.
+
+**WHY IT IS ACTIVE, READ FROM PRODUCTION BY THE COUNTERPART ON 2026-10-07.** It
+was a NEW login. `auth.users` holds `robertreyna88@yahoo.com` as
+`c9d46cd2-9ee3-4479-9768-2b27e13c0044`, created 02:53:44 UTC, one second before
+the profile. Audit event 508, 02:53:45 UTC: `profile.create`, status invited,
+invite delivered by hand. Event 509, 02:54:08 UTC: `auth.set_password`, "set
+their password and activated the account". Robert set his password 23 seconds
+after creating the profile, and that is what made it active. **The audit record
+is correct.** The prediction was right when it was written; the read came after
+he had already used the link.
+
+> **CORRECTED 2026-10-07. THIS SECTION FIRST CARRIED A WRONG EXPLANATION, AND
+> HOW IT WAS WRONG IS THE PART TO KEEP.** The session explained the `active`
+> status from `createAccount`'s code alone: that the address already had a
+> login on the shared auth table, so the profile was linked active with no
+> invite, and that the audit row therefore said invited falsely. It wrote that
+> here and in `BACKLOG.md`, opened `fix/people-linked-audit`, and drafted a
+> corrective audit event. **None of it had been read from production.** The
+> counterpart's read before running the correction showed a new login and a
+> correct record, and the corrective event was cancelled unwritten. Code says
+> what CAN happen; only a read says what DID. Operator ruling, the same day:
+> before any claim about production state, the session gives the query and
+> waits for the counterpart's read.
+
 ### C2. Coverage, all 254 counties
 
 The array below was **generated from `TEXAS_COUNTIES`** in
@@ -358,7 +385,7 @@ select cardinality(coverage_counties) as counties,
 from eng_profiles where lower(email) = 'robertreyna88@yahoo.com';
 ```
 
-**Predict:** `254`, `254`.
+**Predict:** `254`, `254`. **Held on 2026-10-07: 254 counties, 254 distinct.**
 
 ### C3. The roof certification, dated 2026-09-23
 
@@ -397,6 +424,14 @@ where lower(p.email) = 'robertreyna88@yahoo.com';
 
 **Predict:** one row, `roof-inspections`, `certified`, 2026-09-23, `1.1`,
 `certified`.
+
+**Held on 2026-10-07.** The template read returned exactly one row, RC-001 v1.1
+published. The certification read back `roof-inspections`, `certified`,
+`certified_at` 2026-09-23 05:00 UTC (00:00 Central), RC-001 v1.1, and the
+profile's `certification_status` `certified`.
+
+**C4 IS WAITING ON ROBERT'S DOCUMENTS**, as of 2026-10-07. Nothing is written
+for it until he is holding them.
 
 ### C4. His credentials: the licence and the vehicle insurance only
 
