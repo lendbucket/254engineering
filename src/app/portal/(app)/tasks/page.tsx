@@ -77,7 +77,13 @@ export default async function TasksPage({
       {can(actor, "profiles.list") && seeded.length === 0 ? (
         <Panel
           title="The compliance obligations are not seeded yet"
-          description="The PE license renewal, the DWC-005 filing, the TBPELS and errors and omissions renewals, and the monthly credential sweep. Two of them carry no due date on purpose, because nobody has given one and a guessed compliance deadline is worse than an empty field."
+          /*
+            Operator ruling of 2026-10-08 on the copy. It said "Two of them";
+            COMPLIANCE_SEEDS in ops-comms.ts has three with no anchor (the
+            TBPELS renewal, the E&O renewal and the credential sweep), and
+            firstDueFor gives each of those no due date.
+          */
+          description="The PE license renewal, the DWC-005 filing, the TBPELS and errors and omissions renewals, and the monthly credential sweep. Three of them carry no due date. No due date is filled in until someone enters the real one."
         >
           <SeedButton />
         </Panel>
@@ -183,10 +189,18 @@ export default async function TasksPage({
 
       {derived.length > 0 ? (
         <p className="max-w-[75ch] text-[13px] leading-[1.55] text-[var(--secondary)]">
-          {derived.length} of these came from the credentials record rather than from a person. They
-          appear when a document is inside 45 days of expiry and close themselves when it is
-          replaced, so the list shrinks on its own rather than filling with things somebody already
-          handled.
+          {/*
+            Operator ruling of 2026-10-08 on the copy, read against the code.
+            The sentence said these "close themselves when it is replaced", and
+            the approved replacement said they "close on their own when the
+            credential record is updated". Neither is what happens:
+            refreshCredentialTasks runs only inside seedComplianceTasks, from
+            the seed button, which this page shows only until the first seed,
+            and no scheduled job calls it. So this says what the code does.
+          */}
+          {derived.length} of these came from the credentials record rather than from a person: one
+          for each credential within 45 days of expiry or past it. They are raised and closed when
+          the compliance tasks are seeded.
         </p>
       ) : null}
     </>

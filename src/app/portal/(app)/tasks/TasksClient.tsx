@@ -250,8 +250,7 @@ export function SeedButton() {
         {busy ? "Seeding" : "Seed the compliance tasks"}
       </button>
       <p className="mt-2 text-[13px] leading-[1.5] text-[var(--secondary)]">
-        Safe to press twice. Anything already there is left alone rather than duplicated, because a
-        duplicated compliance task is one somebody closes without doing.
+        Pressing it twice creates no duplicates.
       </p>
     </div>
   );

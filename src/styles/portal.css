@@ -312,6 +312,12 @@
  * V10 allows gold only on the header rule, the active nav marker and the
  * current step, and never as text. Faint is text on white only (4.83; 4.39 on
  * the phone ground), so a label never sits on a fill.
+ *
+ * ITS COLOUR CANNOT BE OVERRIDDEN BY A UTILITY. This file is imported without a
+ * layer, so its rules beat every Tailwind utility whatever the specificity. A
+ * text-[...] beside this class does nothing; contrast-audit found the partner
+ * header's role line drawn in faint on navy at 3.03 that way. On any ground but
+ * white, do not use this class: write the size, weight and colour out.
  */
 .portal-label {
   font-size: var(--type-meta-sm);
