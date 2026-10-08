@@ -144,11 +144,19 @@
    * 12px on mobile; a component that hard coded either would be wrong at the
    * other width.
    */
-  --radius-card: 4px;
-  --radius-control: 3px;
-  --radius-pill: 12px;
+  /*
+   * DESIGN V10, operator rulings of 2026-10-07: "No cards ... no rounded
+   * panels" and "Buttons are square (2px radius)". So nothing rounds more than
+   * 2px, at any width, and a card is not rounded at all. The 4px card, 3px
+   * control, 12px pill and 16px chip above were the old standards file's, and
+   * the mobile overrides below that made cards 12px and controls 8px on a phone
+   * are gone. v10-layout-audit measures the rendered result.
+   */
+  --radius-card: 0px;
+  --radius-control: 2px;
+  --radius-pill: 2px;
   --radius-chip: 2px;
-  --radius-select-chip: 16px;
+  --radius-select-chip: 2px;
 
   /* -------------------------------------------------------------- space --- */
   --panel-padding: 18px;
@@ -162,8 +170,14 @@
    * card is the thing that makes an interface look like a template. These two
    * exist because a menu and a modal float above the page and have to say so.
    */
-  --shadow-menu: 0 8px 24px rgba(20, 49, 93, 0.18);
-  --shadow-modal: 0 18px 46px rgba(11, 27, 54, 0.42);
+  /*
+   * V10: "No ... shadows." A menu and a modal float above the page and still
+   * have to say so; they say it with their 1px border and, for the modal, the
+   * dimmed page behind it. Kept as tokens set to none so a component that
+   * still names one renders flat rather than failing to build.
+   */
+  --shadow-menu: none;
+  --shadow-modal: none;
 
   /* -------------------------------------------------------------- chrome --- */
   --sidebar-width: 230px;
@@ -180,8 +194,6 @@
  */
 @media (max-width: 767px) {
   :root {
-    --radius-card: 12px;
-    --radius-control: 8px;
     --page-gutter: 16px;
     --panel-padding: 16px;
   }
@@ -189,8 +201,12 @@
 
 /* ========================================================== base surfaces === */
 
+/*
+ * V10 rule 6: "white page" on a desktop; rule 7: the phone keeps its grey ground
+ * behind white sections. So the canvas is the phone's ground only.
+ */
 .portal-surface {
-  background: var(--canvas);
+  background: #ffffff;
   color: var(--ink);
   font-family: var(--font-sans);
   font-size: var(--type-body-sm);

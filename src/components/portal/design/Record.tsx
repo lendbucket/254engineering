@@ -49,7 +49,7 @@ export function RecordHeader({
   actions?: ReactNode;
 }) {
   return (
-    <header className="rounded-[var(--radius-card)] border border-[var(--border)] bg-white px-[var(--panel-padding)] py-4">
+    <header className="border-b-2 border-[var(--ink)] pb-4">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-3">
@@ -59,7 +59,7 @@ export function RecordHeader({
             {status}
           </div>
           {title ? (
-            <p className="mt-1.5 max-w-[70ch] text-[13.5px] leading-[1.55] text-[var(--secondary)]">{title}</p>
+            <p className="mt-1.5 max-w-[70ch] text-[14px] leading-[1.55] text-[var(--secondary)]">{title}</p>
           ) : null}
         </div>
         {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
@@ -82,7 +82,7 @@ export function FieldGrid({ fields }: { fields: { label: string; value: ReactNod
       {fields.map((f) => (
         <div key={f.label}>
           <dt className="portal-column-header">{f.label}</dt>
-          <dd className="mt-1 text-[13.5px] leading-[1.5] text-[var(--ink)]">
+          <dd className="mt-1 text-[14px] leading-[1.5] text-[var(--ink)]">
             {f.value === null || f.value === undefined || f.value === "" ? <AbsentChip /> : f.value}
           </dd>
         </div>
@@ -117,13 +117,13 @@ export function Timeline({
             ) : null}
           </div>
           <div className="min-w-0 pb-1">
-            <p className="text-[13.5px] leading-[1.5] font-semibold text-[var(--ink)]">{e.title}</p>
+            <p className="text-[14px] leading-[1.5] font-semibold text-[var(--ink)]">{e.title}</p>
             <p className="mt-0.5 text-[12px] text-[var(--secondary)]">
               {e.actor ? `${e.actor} · ` : ""}
               {e.at}
             </p>
             {e.detail ? (
-              <div className="mt-1 text-[13.5px] leading-[1.55] text-[var(--secondary)]">{e.detail}</div>
+              <div className="mt-1 text-[14px] leading-[1.55] text-[var(--secondary)]">{e.detail}</div>
             ) : null}
           </div>
         </li>
@@ -143,7 +143,7 @@ export function Timeline({
 export function DocumentSheet({ children }: { children: ReactNode }) {
   return (
     <div className="flex justify-center px-[var(--page-gutter)] py-6">
-      <article className="w-full max-w-[760px] rounded-[var(--radius-card)] border border-[var(--border)] bg-white px-6 py-8 sm:px-10 sm:py-12 print:border-0 print:px-0">
+      <article className="w-full max-w-[760px] bg-white py-2 print:border-0 print:px-0">
         {children}
       </article>
     </div>

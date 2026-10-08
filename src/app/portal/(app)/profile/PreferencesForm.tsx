@@ -58,7 +58,7 @@ export function PreferencesForm({
   return (
     <div>
       {error ? (
-        <p role="alert" className="mb-3 text-[13.5px] font-semibold text-[var(--red)]">
+        <p role="alert" className="mb-3 text-[14px] font-semibold text-[var(--ink)]">
           {error}
         </p>
       ) : null}
@@ -69,9 +69,9 @@ export function PreferencesForm({
           return (
             <li key={p.kind} className="flex items-center justify-between gap-4 py-3">
               <div className="min-w-0">
-                <p className="text-[13.5px] leading-[1.4] font-semibold text-[var(--navy)]">{p.label}</p>
+                <p className="text-[14px] leading-[1.4] font-semibold text-[var(--navy)]">{p.label}</p>
                 {fixed ? (
-                  <p className="mt-0.5 text-[12.5px] leading-[1.5] text-[var(--secondary)]">
+                  <p className="mt-0.5 text-[13px] leading-[1.5] text-[var(--secondary)]">
                     Always emailed. This one stops you being offered work, so you are told even if
                     you have turned everything else off.
                   </p>
@@ -79,7 +79,7 @@ export function PreferencesForm({
               </div>
 
               {fixed ? (
-                <span className="shrink-0 rounded-[3px] border border-[var(--border)] px-2.5 py-1 text-[12px] font-semibold text-[var(--secondary)]">
+                <span className="shrink-0 text-[13px] font-semibold text-[var(--secondary)]">
                   Always on
                 </span>
               ) : (
@@ -91,7 +91,7 @@ export function PreferencesForm({
                     onChange={(e) => void save(p.kind, e.target.checked)}
                     className="h-5 w-5 accent-[var(--navy)]"
                   />
-                  <span className="text-[13.5px] font-semibold text-[var(--navy)]">Email</span>
+                  <span className="text-[14px] font-semibold text-[var(--navy)]">Email</span>
                 </label>
               )}
             </li>
@@ -99,7 +99,7 @@ export function PreferencesForm({
         })}
       </ul>
 
-      <p className="mt-4 max-w-[70ch] text-[12.5px] leading-[1.55] text-[var(--secondary)]">
+      <p className="mt-4 max-w-[70ch] text-[13px] leading-[1.55] text-[var(--secondary)]">
         Everything appears in the portal whatever you choose here. Text messages are not sent by this
         platform at all yet; the preference exists in the record so that adding a provider later is a
         setting rather than a rebuild, and nothing pretends a message went out that did not.

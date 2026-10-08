@@ -672,6 +672,8 @@ export const CREDENTIALS: Credential[] = [
   { name: "WALK_DELAY_PUT_MS", kind: "config", livesIn: "Typed by hand for one capture run.", grants: "Holds every storage upload in the capture's browser for that many milliseconds.", rotated: "Never." },
   { name: "WALK_PRESS_DURING_UPLOAD", kind: "config", livesIn: "Typed by hand for one capture run.", grants: "Presses Continue while an upload is in flight and prints what the form says.", rotated: "Never." },
   { name: "WALK_ABORT_PUT", kind: "config", livesIn: "Typed by hand for one capture run.", grants: "Drops the capture browser's storage uploads, to read the form's failure message.", rotated: "Never." },
+  { name: "V10_ONLY", kind: "config", livesIn: "Typed by hand when running v10-layout-audit on one route.", grants: "Measures one route against V10's layout rules, ignoring the dated list.", rotated: "Never." },
+  { name: "V10_REPORT", kind: "config", livesIn: "Typed by hand when deriving v10-layout-audit's list.", grants: "Measures every route and prints which fail, as a report that never passes or fails a board.", rotated: "Never." },
   /*
    * THE OPT IN FOR DELIBERATELY SENDING, AND IT IS NAMED FOR WHAT IT DOES.
    *

@@ -79,11 +79,11 @@ export function DataTable<T extends { id: string }>({
         header answers "what is this value", and on a card the label is beside
         the value where the question is actually asked.
       */}
-      <ul className="flex flex-col gap-2 md:hidden">
+      <ul className="border-t border-[var(--row-rule)] md:hidden">
         {rows.map((row) => (
           <li
             key={row.id}
-            className="rounded-[var(--radius-card)] border border-[var(--border)] bg-white p-3"
+            className="border-b border-[var(--row-rule)] py-3"
           >
             <p className="text-[15px] leading-[1.35] font-bold text-[var(--navy)]">
               {onRowHref ? (
@@ -136,7 +136,7 @@ export function DataTable<T extends { id: string }>({
                         reference, an address or an email in any of them would
                         have done the same thing.
                       */
-                      className={`min-w-0 break-words text-[13.5px] leading-[1.45] text-[var(--ink)] ${
+                      className={`min-w-0 break-words text-[14px] leading-[1.45] text-[var(--ink)] ${
                         c.numeric ? "tabular-nums text-right" : ""
                       }`}
                     >
@@ -184,7 +184,7 @@ export function DataTable<T extends { id: string }>({
                 {columns.map((c) => (
                   <td
                     key={c.key}
-                    className={`py-[var(--row-padding-y)] pr-3 align-top text-[13.5px] text-[var(--ink)] ${
+                    className={`py-[var(--row-padding-y)] pr-3 align-top text-[14px] text-[var(--ink)] ${
                       c.numeric ? "text-right tabular-nums" : ""
                     } ${c.desktopOnly ? "hidden md:table-cell" : ""}`}
                   >
@@ -232,24 +232,22 @@ export function TableFooter({ shown, total }: { shown: number; total: number }) 
  * existing rule and it survives the restyle unchanged.
  */
 export function EmptyState({ title, body, action }: { title: string; body: string; action?: ReactNode }) {
+  /* V10, as surfaces.tsx's EmptyState: no box, dashed or otherwise. */
   return (
-    <div className="rounded-[var(--radius-card)] border border-dashed border-[var(--border)] px-5 py-10 text-center">
-      <p className="text-[15px] font-semibold text-[var(--navy)]">{title}</p>
-      <p className="mx-auto mt-2 max-w-[52ch] text-[13.5px] leading-[1.6] text-[var(--secondary)]">{body}</p>
-      {action ? <div className="mt-5 flex justify-center">{action}</div> : null}
+    <div className="py-6">
+      <p className="text-[15px] font-semibold text-[var(--ink)]">{title}</p>
+      <p className="mt-2 max-w-[62ch] text-[14px] leading-[1.6] text-[var(--secondary)]">{body}</p>
+      {action ? <div className="mt-4 flex">{action}</div> : null}
     </div>
   );
 }
 
-/** An honest failure. Never a blank screen, never a silent nothing. */
+/** An honest failure. Never a blank screen, never a silent nothing. V10: no tinted box; bold ink and words. */
 export function ErrorState({ title, body }: { title: string; body: string }) {
   return (
-    <div
-      role="alert"
-      className="rounded-[var(--radius-card)] border border-[var(--warn-border)] bg-[var(--warn-bg)] px-5 py-4"
-    >
-      <p className="text-[15px] font-semibold text-[var(--warn-ink)]">{title}</p>
-      <p className="mt-1.5 max-w-[62ch] text-[13.5px] leading-[1.6] text-[var(--warn-ink)]">{body}</p>
+    <div role="alert" className="py-2">
+      <p className="text-[15px] font-semibold text-[var(--ink)]">{title}</p>
+      <p className="mt-1.5 max-w-[62ch] text-[14px] leading-[1.6] text-[var(--ink)]">{body}</p>
     </div>
   );
 }

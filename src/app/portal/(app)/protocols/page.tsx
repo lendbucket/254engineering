@@ -85,7 +85,7 @@ export default async function ProtocolsPage({
       */}
       <section className="mb-8 border-t-2 border-[var(--ink)] pt-4">
         <h2 className="text-[16px] font-semibold text-[var(--ink)]">Protocols for your signature</h2>
-        <p className="mt-1.5 max-w-[75ch] text-[13.5px] leading-[1.6] text-[var(--secondary)]">
+        <p className="mt-1.5 max-w-[75ch] text-[14px] leading-[1.6] text-[var(--secondary)]">
           Each is the text you sent, transcribed word for word. Read it in full, then sign it with a fresh code. Your
           signature attaches to this exact text: if the text ever changes, the signature no longer covers it and the
           service line closes until you sign again.
@@ -93,10 +93,10 @@ export default async function ProtocolsPage({
         <ul className="mt-3">
           {signatures.map(({ protocol, status }) => (
             <li key={protocol.declaration.documentNumber} className="border-b border-[var(--row-rule)] py-3">
-              <p className="text-[13.5px] font-semibold text-[var(--ink)]">
+              <p className="text-[14px] font-semibold text-[var(--ink)]">
                 {protocol.declaration.documentNumber} v{protocol.declaration.version}, {protocol.declaration.title}
               </p>
-              <p className="mt-1 text-[13.5px] leading-[1.6] text-[var(--secondary)]">
+              <p className="mt-1 text-[14px] leading-[1.6] text-[var(--secondary)]">
                 {status.state === "signed"
                   ? `Signed ${status.signedAt.slice(0, 10)}, fingerprint ${status.sha256.slice(0, 12)}.`
                   : status.state === "void"
@@ -106,7 +106,7 @@ export default async function ProtocolsPage({
                       : "Not signed."}
               </p>
               <details className="mt-2">
-                <summary className="min-h-[44px] cursor-pointer text-[13.5px] font-semibold text-[var(--ink)] underline underline-offset-4">
+                <summary className="min-h-[44px] cursor-pointer text-[14px] font-semibold text-[var(--ink)] underline underline-offset-4">
                   Read the full text
                 </summary>
                 {/*
@@ -120,10 +120,10 @@ export default async function ProtocolsPage({
                   tabIndex={0}
                   role="region"
                   aria-label={`The full text of ${protocol.declaration.documentNumber}`}
-                  className="mt-2 max-h-[480px] overflow-y-auto border border-[var(--border)] bg-white px-4 py-3"
+                  className="mt-2 max-h-[480px] overflow-y-auto border-y border-[var(--border)] bg-white py-3"
                 >
                   {(protocol.declaration.text as readonly string[]).map((line, i) => (
-                    <p key={i} className="text-[13.5px] leading-[1.55] text-[var(--ink)] [overflow-wrap:anywhere]">
+                    <p key={i} className="text-[14px] leading-[1.55] text-[var(--ink)] [overflow-wrap:anywhere]">
                       {line}
                     </p>
                   ))}
@@ -141,11 +141,11 @@ export default async function ProtocolsPage({
       </section>
 
       {uncovered.length > 0 ? (
-        <div className="mb-6 rounded-[4px] border border-[var(--border)] bg-white px-4 py-3">
-          <p className="text-[13.5px] font-semibold text-[var(--navy)]">
+        <div className="mb-6 border-b border-[var(--row-rule)] pb-3">
+          <p className="text-[14px] font-semibold text-[var(--navy)]">
             {uncovered.length} service line{uncovered.length === 1 ? "" : "s"} cannot be dispatched yet
           </p>
-          <p className="mt-1 max-w-[75ch] text-[13.5px] leading-[1.55] text-[var(--secondary)]">
+          <p className="mt-1 max-w-[75ch] text-[14px] leading-[1.55] text-[var(--secondary)]">
             {uncovered.map((s) => s.name).join(", ")}. Each needs a published protocol before a
             technician can be offered work on it.
           </p>
@@ -169,21 +169,19 @@ export default async function ProtocolsPage({
                 body="A protocol is the checklist a technician works. Draft one above, add the items, then publish it."
               />
             ) : (
-              <ul className="flex flex-col gap-2">
+              <ul className="border-t border-[var(--row-rule)]">
                 {templates.map((t) => (
-                  <li key={t.id}>
+                  <li key={t.id} className="border-b border-[var(--row-rule)]">
                     <Link
                       href={`/portal/protocols?id=${t.id}`}
-                      className={`block rounded-[4px] border bg-white p-4 transition-colors hover:border-slate ${
-                        selected?.id === t.id
-                          ? "border-slate"
-                          : "border-[var(--border)]"
+                      className={`block px-3 py-3 transition-colors hover:bg-[var(--row-hover)] ${
+                        selected?.id === t.id ? "bg-[var(--canvas)]" : ""
                       }`}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="text-[13.5px] font-semibold text-[var(--navy)]">{t.name}</p>
-                          <p className="mt-0.5 text-[13.5px] text-[var(--secondary)]">
+                          <p className="text-[14px] font-semibold text-[var(--navy)]">{t.name}</p>
+                          <p className="mt-0.5 text-[14px] text-[var(--secondary)]">
                             {serviceName(t.service_slug)}, version {t.version}
                           </p>
                         </div>
@@ -204,23 +202,23 @@ export default async function ProtocolsPage({
           <div>
             <Link
               href="/portal/protocols"
-              className="mb-4 inline-flex min-h-[44px] items-center text-[13.5px] font-semibold text-[var(--secondary)] lg:hidden"
+              className="mb-4 inline-flex min-h-[44px] items-center text-[14px] font-semibold text-[var(--secondary)] lg:hidden"
             >
               Back to the list
             </Link>
 
-            <div className="rounded-[4px] border border-[var(--border)] bg-white">
-              <div className="border-b border-[var(--border)] px-4 py-4 sm:px-5">
+            <div>
+              <div className="border-b-2 border-[var(--ink)] pb-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
                     <h2 className="font-display text-[17px] leading-[1.2] font-bold text-[var(--navy)]">
                       {selected.name}
                     </h2>
-                    <p className="mt-1 text-[13.5px] text-[var(--secondary)]">
+                    <p className="mt-1 text-[14px] text-[var(--secondary)]">
                       {serviceName(selected.service_slug)}, version {selected.version}
                     </p>
                     {selected.summary ? (
-                      <p className="mt-2 max-w-[70ch] text-[13.5px] leading-[1.55] text-[var(--secondary)]">
+                      <p className="mt-2 max-w-[70ch] text-[14px] leading-[1.55] text-[var(--secondary)]">
                         {selected.summary}
                       </p>
                     ) : null}
@@ -236,7 +234,7 @@ export default async function ProtocolsPage({
 
               <div className="px-4 py-5 sm:px-5">
                 {selected.items.length === 0 ? (
-                  <p className="text-[13.5px] text-[var(--secondary)]">
+                  <p className="text-[14px] text-[var(--secondary)]">
                     Nothing on this checklist yet. A protocol with no items cannot be published,
                     because a technician could never finish it.
                   </p>
@@ -245,11 +243,11 @@ export default async function ProtocolsPage({
                     {selected.items.map((item, i) => (
                       <li key={item.id} className="flex items-start justify-between gap-3 py-3">
                         <div className="min-w-0">
-                          <p className="text-[13.5px] font-semibold text-[var(--navy)]">
+                          <p className="text-[14px] font-semibold text-[var(--navy)]">
                             {i + 1}. {item.label}
                             {item.required ? "" : " (optional)"}
                           </p>
-                          <p className="mt-0.5 text-[13.5px] text-[var(--secondary)]">
+                          <p className="mt-0.5 text-[14px] text-[var(--secondary)]">
                             {KIND_LABEL[item.kind] ?? item.kind}
                             {item.kind === "photo" && item.minCount && item.minCount > 1
                               ? `, ${item.minCount} frames`
@@ -260,7 +258,7 @@ export default async function ProtocolsPage({
                               : ""}
                           </p>
                           {item.instructions ? (
-                            <p className="mt-1 max-w-[70ch] text-[13.5px] leading-[1.5] text-[var(--secondary)]">
+                            <p className="mt-1 max-w-[70ch] text-[14px] leading-[1.5] text-[var(--secondary)]">
                               {item.instructions}
                             </p>
                           ) : null}
@@ -292,7 +290,7 @@ export default async function ProtocolsPage({
                      * Offering to approve one would be offering to put an
                      * unsigned document in force.
                      */}
-                    <p className="mt-6 border-t border-[var(--border)] pt-5 text-[13.5px] leading-[1.55] text-[var(--secondary)]">
+                    <p className="mt-6 border-t border-[var(--border)] pt-5 text-[14px] leading-[1.55] text-[var(--secondary)]">
                       This protocol is a draft, which means the engineer has not signed the
                       document. It cannot be approved until the signature date is recorded.
                     </p>
@@ -312,7 +310,7 @@ export default async function ProtocolsPage({
                     />
                   </div>
                 ) : (
-                  <p className="mt-6 border-t border-[var(--border)] pt-5 text-[13.5px] leading-[1.55] text-[var(--secondary)]">
+                  <p className="mt-6 border-t border-[var(--border)] pt-5 text-[14px] leading-[1.55] text-[var(--secondary)]">
                     A {selected.status} protocol cannot be edited. Files are being worked to it, and
                     changing the checklist under a technician on a roof moves the submission gate
                     while they are trying to clear it. Draft the next version instead.

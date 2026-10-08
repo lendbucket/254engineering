@@ -103,12 +103,17 @@ export async function ProtocolDocumentPage({ documentNumber }: { documentNumber:
         <div className="flex flex-col gap-5">
           {itemsBySection.map(({ section, items }) => (
             <div key={section.key}>
-              <p className="font-sans text-[0.72rem] font-semibold tracking-[0.14em] text-[var(--secondary)] uppercase">
+              {/*
+                The section heading as the document writes it, with no CSS case
+                transform: a transform makes the screen disagree with the
+                transcription, and V10's label is 13/600.
+              */}
+              <p className="text-[13px] font-semibold text-[var(--secondary)]">
                 {section.heading} ({items.length})
               </p>
               <ul className="mt-2 flex flex-col gap-1.5">
                 {items.map((item) => (
-                  <li key={item.key} className="text-[13.5px] leading-[1.6] text-[var(--ink)]">
+                  <li key={item.key} className="text-[14px] leading-[1.6] text-[var(--ink)]">
                     {item.label}
                     {item.photo || item.ruler || item.perOccurrence || item.coveringOnly ? (
                       <span className="text-[var(--secondary)]">
@@ -159,7 +164,7 @@ export async function ProtocolDocumentPage({ documentNumber }: { documentNumber:
               ) : null}
               <ul className="mt-2 flex flex-col gap-1.5">
                 {d.criteria.map((c) => (
-                  <li key={c} className="text-[13.5px] leading-[1.6] text-[var(--secondary)]">
+                  <li key={c} className="text-[14px] leading-[1.6] text-[var(--secondary)]">
                     {c}
                   </li>
                 ))}
@@ -175,7 +180,7 @@ export async function ProtocolDocumentPage({ documentNumber }: { documentNumber:
       >
         <ul className="flex flex-col gap-2">
           {doc.thresholds.map((t) => (
-            <li key={t.key} className="text-[13.5px] leading-[1.6] text-[var(--ink)]">
+            <li key={t.key} className="text-[14px] leading-[1.6] text-[var(--ink)]">
               {t.states}
               {t.settled ? null : (
                 <span className="text-[var(--secondary)]"> Unsettled: {t.question}</span>
@@ -191,7 +196,7 @@ export async function ProtocolDocumentPage({ documentNumber }: { documentNumber:
       >
         <ul className="flex flex-col gap-2">
           {protocol.enforced.map((r) => (
-            <li key={r.key} className="text-[13.5px] leading-[1.6] text-[var(--ink)]">
+            <li key={r.key} className="text-[14px] leading-[1.6] text-[var(--ink)]">
               {r.rule} <span className="text-[var(--secondary)]">({r.at})</span>
             </li>
           ))}
@@ -204,7 +209,7 @@ export async function ProtocolDocumentPage({ documentNumber }: { documentNumber:
       >
         <ul className="flex flex-col gap-2">
           {protocol.ambiguities.map((a) => (
-            <li key={a.question} className="text-[13.5px] leading-[1.6] text-[var(--ink)]">
+            <li key={a.question} className="text-[14px] leading-[1.6] text-[var(--ink)]">
               {a.question} <span className="text-[var(--secondary)]">({a.at})</span>
             </li>
           ))}

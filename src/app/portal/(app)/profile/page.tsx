@@ -46,8 +46,8 @@ export default async function ProfilePage() {
           <dl className="divide-y divide-limestone-line">
             {rows.map(([k, v]) => (
               <div key={k} className="grid gap-1 py-3 sm:grid-cols-[180px_1fr] sm:gap-4">
-                <dt className="text-[13.5px] font-semibold text-[var(--navy)]">{k}</dt>
-                <dd className="text-[13.5px] leading-[1.55] break-words text-[var(--secondary)]">{v}</dd>
+                <dt className="text-[14px] font-semibold text-[var(--navy)]">{k}</dt>
+                <dd className="text-[14px] leading-[1.55] break-words text-[var(--secondary)]">{v}</dd>
               </div>
             ))}
           </dl>
@@ -89,7 +89,7 @@ export default async function ProfilePage() {
             >
               <Link
                 href="/portal/profile/seal"
-                className="inline-flex min-h-[var(--tap-target)] items-center text-[13.5px] font-semibold text-[var(--navy)] underline underline-offset-2"
+                className="inline-flex min-h-[var(--tap-target)] items-center text-[14px] font-semibold text-[var(--navy)] underline underline-offset-2"
               >
                 Manage your seal and signature
               </Link>
@@ -113,12 +113,15 @@ export default async function ProfilePage() {
             title="What this role can do"
             description="The same list the platform checks on every request."
           >
-            <ul className="flex flex-wrap gap-1.5">
+            {/*
+              V10: no monospace and no boxes. These were one bordered monospace
+              tag per permission, about a hundred of them, and v10-layout-audit
+              proved this screen red on exactly that. They are the same names, a
+              plain list in the page's own face, separated by a 1px rule.
+            */}
+            <ul className="grid gap-x-6 border-t border-[var(--row-rule)] sm:grid-cols-2">
               {actionsFor(actor!.role).map((a) => (
-                <li
-                  key={a}
-                  className="rounded-[3px] border border-[var(--border)] bg-[var(--canvas)] px-2 py-1 font-mono text-[11px] text-[var(--secondary)]"
-                >
+                <li key={a} className="border-b border-[var(--row-rule)] py-1.5 text-[13px] text-[var(--secondary)]">
                   {a}
                 </li>
               ))}

@@ -144,7 +144,7 @@ export function Sheet({
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="grid h-11 w-11 shrink-0 place-items-center rounded-[4px] text-[var(--secondary)] hover:bg-[var(--canvas)] active:bg-[var(--row-hover)]"
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-[2px] text-[var(--secondary)] hover:bg-[var(--canvas)] active:bg-[var(--row-hover)]"
           >
             <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" aria-hidden>
               <path d="m6 6 12 12M18 6 6 18" />

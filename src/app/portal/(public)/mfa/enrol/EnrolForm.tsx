@@ -110,19 +110,20 @@ export function EnrolForm({
   if (codes) {
     return (
       <div className="mt-4 flex flex-col gap-3">
-        <p className="text-[13.5px] leading-[1.6] text-[var(--navy)]">
+        <p className="text-[14px] leading-[1.6] text-[var(--navy)]">
           Your second factor is on. Save these recovery codes somewhere that is not the phone
           holding your authenticator app. Each one works once, and this is the only time they are
           shown: nothing here can show them again, because only a hash of each one is stored.
         </p>
 
-        <ul className="grid grid-cols-2 gap-x-4 gap-y-1 rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface-muted,#f7f8f9)] p-3 font-mono text-[14px] text-[var(--navy)]">
+        {/* V10: no tinted box. The codes between two rules, in the page's own face. */}
+        <ul className="grid grid-cols-2 gap-x-4 gap-y-1 border-y border-[var(--border)] py-3 text-[15px] tracking-[0.04em] text-[var(--ink)]">
           {codes.map((c) => (
             <li key={c}>{c}</li>
           ))}
         </ul>
 
-        <label className="flex items-start gap-2.5 text-[13.5px] leading-[1.55] text-[var(--navy)]">
+        <label className="flex items-start gap-2.5 text-[14px] leading-[1.55] text-[var(--navy)]">
           <input
             type="checkbox"
             checked={saved}
@@ -135,7 +136,7 @@ export function EnrolForm({
         {error ? (
           <p
             role="alert"
-            className="rounded-[var(--radius-control)] border border-[var(--red-border)] bg-[var(--red-bg)] px-3 py-2.5 text-[13.5px] leading-[1.55] text-[var(--red)]"
+            className="text-[14px] leading-[1.55] font-semibold text-[var(--ink)]"
           >
             {error}
           </p>
@@ -191,7 +192,7 @@ export function EnrolForm({
           }
         }}
       >
-        <p className="text-[13.5px] leading-[1.6] text-[var(--navy)]">
+        <p className="text-[14px] leading-[1.6] text-[var(--navy)]">
           Scan this with your authenticator app, then enter the six digit code it shows.
         </p>
 
@@ -213,12 +214,12 @@ export function EnrolForm({
           />
         ) : null}
 
-        <details className="rounded-[var(--radius-control)] border border-[var(--border)]">
+        <details className="border-y border-[var(--border)]">
           <summary className="min-h-[var(--tap-target)] flex cursor-pointer items-center px-3 text-[13px] font-semibold text-[var(--navy)]">
             Cannot scan it? Type it instead
           </summary>
           <div className="border-t border-[var(--border)] p-3">
-            <p className="font-mono text-[15px] leading-[1.6] break-all text-[var(--navy)]">
+            <p className="text-[15px] leading-[1.6] break-all text-[var(--navy)]">
               {secret}
             </p>
             {uri ? (
@@ -253,7 +254,7 @@ export function EnrolForm({
           <p
             id="enrol-error"
             role="alert"
-            className="rounded-[var(--radius-control)] border border-[var(--red-border)] bg-[var(--red-bg)] px-3 py-2.5 text-[13.5px] leading-[1.55] text-[var(--red)]"
+            className="text-[14px] leading-[1.55] font-semibold text-[var(--ink)]"
           >
             {error}
           </p>
@@ -280,12 +281,12 @@ export function EnrolForm({
   return (
     <div className="mt-4 flex flex-col gap-3">
       {required ? (
-        <p className="text-[13.5px] leading-[1.6] text-[var(--navy)]">
+        <p className="text-[14px] leading-[1.6] text-[var(--navy)]">
           Your role requires a second factor, so this has to be set up before you can go further.
           It takes about a minute and you will need an authenticator app on your phone.
         </p>
       ) : (
-        <p className="text-[13.5px] leading-[1.6] text-[var(--navy)]">
+        <p className="text-[14px] leading-[1.6] text-[var(--navy)]">
           A second factor means a stolen password is not enough to reach this account.
         </p>
       )}
@@ -293,7 +294,7 @@ export function EnrolForm({
       {error ? (
         <p
           role="alert"
-          className="rounded-[var(--radius-control)] border border-[var(--red-border)] bg-[var(--red-bg)] px-3 py-2.5 text-[13.5px] leading-[1.55] text-[var(--red)]"
+          className="text-[14px] leading-[1.55] font-semibold text-[var(--ink)]"
         >
           {error}
         </p>
@@ -324,7 +325,7 @@ export function EnrolForm({
       {declineTo ? (
         <a
           href={declineTo}
-          className="min-h-[var(--tap-target)] flex items-center justify-center text-[13.5px] font-semibold text-[var(--navy)] underline"
+          className="min-h-[var(--tap-target)] flex items-center justify-center text-[14px] font-semibold text-[var(--navy)] underline"
         >
           Not now
         </a>

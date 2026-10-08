@@ -42,13 +42,14 @@ export default async function SetPasswordPage({
           <Wordmark height={44} priority />
         </div>
 
-        <div className="rounded-[var(--radius-card)] border border-[var(--border)] bg-white p-5 sm:p-7">
+        {/* V10, as the customer sign in: no card, the content under a 2px ink rule. */}
+        <div className="border-t-2 border-[var(--ink)] pt-5">
           {result.ok ? (
             <>
               <h1 className="font-display text-[24px] leading-[1.2] font-bold text-[var(--navy)]">
                 Choose your password
               </h1>
-              <p className="mt-2 text-[13.5px] leading-[1.6] text-[var(--secondary)]">
+              <p className="mt-2 text-[14px] leading-[1.6] text-[var(--secondary)]">
                 {result.profile.display_name}, your account is set up as{" "}
                 {roleLabel(result.profile.role)}. Your sign in address is{" "}
                 <span className="font-semibold break-all text-[var(--navy)]">{result.profile.email}</span>.
@@ -80,7 +81,7 @@ export default async function SetPasswordPage({
                     ? "That link has already been used"
                     : "That link is not valid"}
               </h1>
-              <p className="mt-3 text-[13.5px] leading-[1.6] text-[var(--secondary)]">
+              <p className="mt-3 text-[14px] leading-[1.6] text-[var(--secondary)]">
                 {result.reason === "expired"
                   ? "Links last three days. An administrator can send a new one."
                   : result.reason === "used"
@@ -89,7 +90,7 @@ export default async function SetPasswordPage({
               </p>
               <Link
                 href="/portal/login"
-                className="mt-6 inline-flex min-h-[48px] w-full items-center justify-center rounded-[3px] border border-[var(--border)] px-4 text-[15px] font-bold text-[var(--navy)] hover:bg-[var(--canvas)]"
+                className="mt-6 inline-flex min-h-[48px] w-full items-center justify-center rounded-[2px] border border-[var(--border)] px-4 text-[15px] font-bold text-[var(--navy)] hover:bg-[var(--canvas)]"
               >
                 Go to sign in
               </Link>

@@ -45,14 +45,14 @@ export function PrereviewPanel({ fileId, fileNumber }: { fileId: string; fileNum
         rows={3}
         value={note}
         onChange={(e) => setNote(e.target.value)}
-        className="mt-2 w-full rounded-[3px] border border-[var(--border)] bg-white px-3 py-2 text-[14px] text-[var(--ink)]"
+        className="mt-2 w-full rounded-[2px] border border-[var(--border)] bg-white px-3 py-2 text-[14px] text-[var(--ink)]"
       />
       <div className="mt-3 flex flex-wrap gap-3">
         <button
           type="button"
           disabled={busy}
           onClick={() => void decide("accept")}
-          className="min-h-[44px] rounded-[3px] bg-[var(--navy)] px-5 text-[14px] font-semibold text-white disabled:opacity-40"
+          className="min-h-[44px] rounded-[2px] bg-[var(--navy)] px-5 text-[14px] font-semibold text-white active:opacity-80 disabled:opacity-40"
         >
           Accept, release for dispatch
         </button>
@@ -60,7 +60,7 @@ export function PrereviewPanel({ fileId, fileNumber }: { fileId: string; fileNum
           type="button"
           disabled={busy}
           onClick={() => void decide("decline")}
-          className="min-h-[44px] rounded-[3px] border border-[var(--ink)] px-5 text-[14px] font-semibold text-[var(--ink)] disabled:opacity-40"
+          className="min-h-[44px] rounded-[2px] border border-[var(--ink)] px-5 text-[14px] font-semibold text-[var(--ink)] active:bg-[var(--row-hover)] disabled:opacity-40"
         >
           Decline with this referral
         </button>
