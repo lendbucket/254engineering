@@ -1619,6 +1619,13 @@ if (!db) {
           because:
             "Partner compensation. Gated on partners.manage, which an engineer does not hold.",
         },
+        {
+          route: "/portal/techs/[id]",
+          reaches: false,
+          because:
+            "A technician's credentials, recorded by an administrator. Gated on profiles.list like " +
+            "the roster it opens from, which an engineer does not hold. It shows no money.",
+        },
       ];
       const dir = "src/app/portal/(app)";
       const walk = (d, prefix) => {

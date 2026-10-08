@@ -110,21 +110,24 @@ export async function POST(request: NextRequest) {
         );
   }
 
+  /*
+   * A credential recorded on a technician's page, verified by the administrator
+   * recording it. Append only (operator ruling, 2026-10-07): there is no id to
+   * pass and no status to choose, so nothing here can rewrite a record.
+   */
   if (action === "record_credential") {
     const result = await recordCredential(
       actor,
       String(body?.profileId ?? ""),
       {
-        id: body?.id ? String(body.id) : null,
-        kind: String(body?.kind ?? "other"),
+        kind: String(body?.kind ?? ""),
         label: body?.label ? String(body.label) : null,
         issuedOn: body?.issuedOn ? String(body.issuedOn) : null,
         expiresOn: body?.expiresOn ? String(body.expiresOn) : null,
-        status: (body?.status as "pending" | "verified" | "rejected" | "expired") ?? "verified",
       },
       context,
     );
-    return result.ok ? NextResponse.json({ ok: true }) : bad(result.error);
+    return result.ok ? NextResponse.json({ ok: true, id: result.id }) : bad(result.error);
   }
 
   // -------------------------------------------------------- certification
