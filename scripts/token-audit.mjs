@@ -76,7 +76,7 @@ rec("the standards document carries a css token block", Boolean(cssBlock));
 const documented = new Map();
 if (cssBlock) {
   for (const line of cssBlock[1].split("\n")) {
-    const m = line.match(/^\s*(--[a-z-]+)\s*:\s*(#[0-9A-Fa-f]{3,8})\s*;/);
+    const m = line.match(/^\s*(--[a-z0-9-]+)\s*:\s*(#[0-9A-Fa-f]{3,8})\s*;/);
     if (m) documented.set(m[1], m[2].toLowerCase());
   }
 }
@@ -84,7 +84,11 @@ if (cssBlock) {
  * The exact set, not a count.
  *
  * A count passes when somebody deletes one token and adds another, which is
- * precisely the change worth catching. These twenty three names ARE the palette.
+ * precisely the change worth catching. These twenty six names ARE the palette.
+ *
+ * --faint, --select and --link joined on 2026-10-08, when the operator ruled
+ * that every colour take Design V10's exact value: V10 names all three and the
+ * portal had none of them.
  *
  * The three --on-navy values were added 2026-09-05 and were not a new decision
  * either: DESIGN_SPEC.md section 2 has defined the on navy scale with measured
@@ -105,23 +109,26 @@ const EXPECTED_COLOUR_TOKENS = [
   "--gold", "--gold-bright", "--gold-deep", "--gold-wash",
   "--on-navy", "--on-navy-muted", "--on-navy-dim",
   "--warn-bg", "--warn-border", "--warn-ink",
-  "--ink", "--secondary", "--muted",
-  "--border", "--border-strong", "--row-rule", "--row-hover", "--canvas",
+  "--ink", "--secondary", "--faint", "--muted",
+  "--border", "--border-strong", "--row-rule", "--row-hover", "--select", "--link", "--canvas",
   "--green", "--red",
 ];
 
 const missingFromDoc = EXPECTED_COLOUR_TOKENS.filter((t) => !documented.has(t));
 const extraInDoc = [...documented.keys()].filter((t) => !EXPECTED_COLOUR_TOKENS.includes(t));
 rec(
-  "the document defines exactly the twenty three colours of the palette",
+  "the document defines exactly the twenty six colours of the palette",
   missingFromDoc.length === 0 && extraInDoc.length === 0,
   [...missingFromDoc.map((t) => `missing ${t}`), ...extraInDoc.map((t) => `extra ${t}`)].join(", ") ||
     `${documented.size} tokens`,
 );
 
 const implemented = new Map();
+// Digits allowed since 2026-10-08, with the site twin parser below: a colour
+// token named --x-2 was invisible to "no colour token the document does not
+// define", which is the check that keeps the palette from growing unruled.
 for (const line of tokenText.split("\n")) {
-  const m = line.match(/^\s*(--[a-z-]+)\s*:\s*(#[0-9A-Fa-f]{3,8})\s*;/);
+  const m = line.match(/^\s*(--[a-z0-9-]+)\s*:\s*(#[0-9A-Fa-f]{3,8})\s*;/);
   if (m) implemented.set(m[1], m[2].toLowerCase());
 }
 
@@ -956,7 +963,9 @@ rec(
 const globals = readNormalised("src/app/globals.css");
 const siteTokens = new Map();
 for (const line of globals.split("\n")) {
-  const m = line.match(/^\s*(--color-[a-z-]+)\s*:\s*(#[0-9A-Fa-f]{3,8})\s*;/);
+  // Digits allowed since 2026-10-08: --color-line-2 is V10's own name, and a
+  // pattern of letters only read it as missing while it was declared.
+  const m = line.match(/^\s*(--color-[a-z0-9-]+)\s*:\s*(#[0-9A-Fa-f]{3,8})\s*;/);
   if (m) siteTokens.set(m[1], m[2].toLowerCase());
 }
 
@@ -965,8 +974,18 @@ const TWINS = [
   ["--navy-hover", "--color-slate-deep"],
   ["--ink-navy", "--color-slate-abyss"],
   ["--secondary", "--color-slate-muted"],
-  ["--canvas", "--color-limestone"],
-  ["--row-rule", "--color-limestone-sunk"],
+  /*
+   * RE-PAIRED BY ROLE ON 2026-10-08, not removed. --canvas and --row-rule took
+   * V10's phone ground and line-2. Their old twins, limestone and
+   * limestone-sunk, are the public site's grounds, and sunk as a ground under
+   * V10's line-2 value puts the site's gold text at 4.48. So each portal token
+   * is now asserted equal to the site token carrying the same V10 role, and the
+   * site's grounds are left for the site restyle. --link gained a twin it
+   * should always have had.
+   */
+  ["--canvas", "--color-phone-ground"],
+  ["--row-rule", "--color-line-2"],
+  ["--link", "--color-link"],
   ["--border", "--color-limestone-line"],
   ["--border-strong", "--color-limestone-edge"],
   ["--gold", "--color-brass"],
@@ -982,6 +1001,72 @@ for (const [standard, site] of TWINS) {
     `${standard} and ${site} are the same colour`,
     a !== undefined && b !== undefined && a === b,
     a === b ? a : `${standard}=${a ?? "missing"} ${site}=${b ?? "missing"}`,
+  );
+}
+
+// =========================================================================
+// 3b. THE PALETTE IS V10'S, VALUE FOR VALUE
+// =========================================================================
+//
+// Operator ruling, 2026-10-08: "align every V10 colour to the exact token
+// values in docs/design-v10/DESIGN_V10.md". The check above compares the token
+// file with the standards document, which is the portal's own account; this one
+// reads V10's token table itself, so a value drifting from the approved design
+// is red even when the two portal accounts agree with each other.
+//
+// Each V10 token names the portal token(s) carrying its role. `page` is the
+// white ground, written as a literal on .portal-surface rather than a token.
+// ONE V10 VALUE IS NOT CARRIED, and it is named rather than skipped: gold-deep
+// #CA8A03 is "logo only" in V10, while --gold-deep is the on-light text gold,
+// and #CA8A03 measures 2.94 on white. AA wins (CLAUDE.md section 2b). The
+// exception is counted, so a second one cannot be added quietly.
+
+{
+  const v10 = new Map();
+  for (const line of readNormalised("docs/design-v10/DESIGN_V10.md").split("\n")) {
+    const m = line.match(/^\|\s*([a-z0-9-]+)\s*\|\s*(#[0-9A-Fa-f]{6})\s*\|/);
+    if (m) v10.set(m[1], m[2].toLowerCase());
+  }
+  const ROLE = {
+    navy: ["--navy"],
+    gold: ["--gold"],
+    ink: ["--ink"],
+    sub: ["--secondary"],
+    faint: ["--faint"],
+    mute: ["--muted"],
+    line: ["--border", "--border-strong"],
+    "line-2": ["--row-rule"],
+    "phone-ground": ["--canvas"],
+    select: ["--select", "--row-hover"],
+    link: ["--link"],
+  };
+  const NOT_CARRIED = { "gold-deep": "logo only in V10; --gold-deep is on-light text, and #CA8A03 is 2.94 on white" };
+  rec(
+    "V10's token table was read, and every token in it has a home or a named exception",
+    v10.size >= 13 && [...v10.keys()].every((k) => k in ROLE || k in NOT_CARRIED || k === "page"),
+    `${v10.size} tokens: ${[...v10.keys()].filter((k) => !(k in ROLE) && !(k in NOT_CARRIED) && k !== "page").join(", ") || "all placed"}`,
+  );
+  rec(
+    "exactly one V10 value is not carried, gold-deep, for AA",
+    Object.keys(NOT_CARRIED).length === 1 && v10.has("gold-deep"),
+    Object.entries(NOT_CARRIED).map(([k, why]) => `${k}: ${why}`).join("; "),
+  );
+  for (const [name, tokens] of Object.entries(ROLE)) {
+    for (const token of tokens) {
+      const want = v10.get(name);
+      const have = implemented.get(token);
+      rec(
+        `${token} is V10's ${name}`,
+        want !== undefined && have === want,
+        `${token}=${have ?? "missing"} V10 ${name}=${want ?? "missing"}`,
+      );
+    }
+  }
+  const surface = tokenText.match(/\.portal-surface\s*\{[^}]*background:\s*(#[0-9a-fA-F]{6})/);
+  rec(
+    "the desktop ground is V10's page",
+    surface !== null && surface[1].toLowerCase() === v10.get("page"),
+    `.portal-surface ${surface ? surface[1] : "has no literal background"} V10 page ${v10.get("page")}`,
   );
 }
 

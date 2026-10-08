@@ -138,16 +138,29 @@ closer to the point than a defect.
 --warn-border: #E8D9AE; /* alert border */
 --warn-ink: #5C4A12;    /* alert text */
 --ink: #161B22;         /* body text. V10. 17.30 on white, was 11.46 */
---secondary: #555E6B;   /* labels, metadata, column headers */
---muted: #8A93A0;       /* inert status dots ONLY. 3.1:1 on white, so never text. */
---border: #DDE0E4;      /* card borders */
---border-strong: #C3C9D1; /* input/button borders */
---row-rule: #EDF1F7;    /* table row rules, tinted fills */
---row-hover: #F8F9FB;   /* table row hover */
---canvas: #F4F5F7;      /* page background */
+--secondary: #4B5563;   /* V10 sub: secondary text, the meta line. 7.56 on white */
+--faint: #6B7280;       /* V10 faint: labels, metadata. 4.83 on WHITE ONLY; 4.39 on the phone ground */
+--muted: #9AA3AF;       /* V10 mute: disabled, struck through. 2.55:1, so never text. */
+--border: #D3D8DF;      /* V10 line: rules, table header rule */
+--border-strong: #D3D8DF; /* V10 line: input borders */
+--row-rule: #E6E9ED;    /* V10 line-2: row dividers */
+--row-hover: #F3F4F6;   /* V10 select: row hover */
+--select: #F3F4F6;      /* V10 select: selected row fill */
+--link: #0B4F8A;        /* V10 link: links. 8.40 on white */
+--canvas: #F2F4F7;      /* V10 phone-ground: the phone's ground behind white sections */
 --green: #3E7A4E;       /* good status dots ONLY (bg #EEF4EF, border #CBDDCE) */
 --red: #B4232A;         /* failures and required-field asterisks, sparingly */
 ```
+**THE PALETTE TOOK V10'S EXACT VALUES ON 2026-10-08**, on the operator's ruling
+of that day. Three tokens were added, `--faint`, `--select` and `--link`, because
+V10 names them and the portal had none. One V10 value is NOT carried: V10's
+`gold-deep` is `#CA8A03`, "logo only", while the portal's `--gold-deep` is the
+on-light text gold. `#CA8A03` measures 2.94 on white, so taking it would fail AA
+on every warning line still rendered, and AA wins where the two disagree (the
+operator's standing ruling in section 2b of CLAUDE.md). It goes when the last
+warning line goes, since V10 has no status colour at all. The warn, green and
+red tokens stay for the same reason, until the screens using them are restyled.
+
 **--muted is not a text colour, and it was being used as one.** It measures
 3.1:1 on white, which fails AA for text at any size this system uses. It was on
 the absent data chip, the binder key line and two footnotes, and contrast-audit

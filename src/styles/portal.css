@@ -94,15 +94,26 @@
   --warn-border: #e8d9ae;
   --warn-ink: #5c4a12;
 
+  /*
+   * DESIGN V10'S EXACT VALUES, operator ruling of 2026-10-08: "align every V10
+   * colour to the exact token values in docs/design-v10/DESIGN_V10.md". Each
+   * name below is the V10 token it now carries: ink, sub, faint, mute, line,
+   * line-2, phone-ground, select, link. Measured on 2026-10-08: sub 7.56 on
+   * white and 6.21 on line-2; faint 4.83 on white and 4.39 on the phone ground,
+   * so faint is text on WHITE ONLY; mute 2.55, so never text.
+   */
   --ink: #161b22;
-  --secondary: #555e6b;
-  --muted: #8a93a0;
+  --secondary: #4b5563;
+  --faint: #6b7280;
+  --muted: #9aa3af;
 
-  --border: #dde0e4;
-  --border-strong: #c3c9d1;
-  --row-rule: #edf1f7;
-  --row-hover: #f8f9fb;
-  --canvas: #f4f5f7;
+  --border: #d3d8df;
+  --border-strong: #d3d8df;
+  --row-rule: #e6e9ed;
+  --row-hover: #f3f4f6;
+  --select: #f3f4f6;
+  --link: #0b4f8a;
+  --canvas: #f2f4f7;
 
   /* Green is for status dots and nothing else. */
   --green: #3e7a4e;
@@ -222,6 +233,32 @@
 }
 
 /*
+ * V10 RULE 7, operator ruling of 2026-10-08: "the phone ground is #F2F4F7 with
+ * full-width white sections, per V10". Below lg, which is where the shell
+ * becomes the phone shell, the signed in ground is --canvas (V10's
+ * phone-ground) and every block the page puts in its column is a white
+ * section the full width of the screen, 8px of ground between each.
+ *
+ * Scoped to the signed in shell, .portal-app, so the sign in screens keep
+ * their white ground. A section is white, so text inside one is measured on
+ * white: --faint is 4.39 on the ground itself and is never put there.
+ */
+@media (max-width: 1023px) {
+  .portal-app {
+    background: var(--canvas);
+  }
+  .portal-main {
+    padding-inline: 0;
+    padding-block: 8px;
+    gap: 8px;
+  }
+  .portal-main > * {
+    background: #ffffff;
+    padding: 16px var(--page-gutter);
+  }
+}
+
+/*
  * Sentence case is a rule, and it is enforced by writing rather than by CSS.
  *
  * text-transform is deliberately NOT used to force it. A CSS transform would
@@ -249,7 +286,8 @@
   font-weight: var(--weight-bold);
   letter-spacing: var(--tracking-column-header);
   text-transform: uppercase;
-  color: var(--secondary);
+  /* V10: labels are faint. Column headers sit on white, where it is 4.83. */
+  color: var(--faint);
 }
 
 /*

@@ -112,7 +112,7 @@ export default async function PortalLayout({ children }: { children: React.React
   const unread = await unreadCount(actor.id);
 
   return (
-    <div className="portal-surface h-dvh overflow-hidden lg:h-auto lg:min-h-dvh lg:overflow-visible">
+    <div className="portal-surface portal-app h-dvh overflow-hidden lg:h-auto lg:min-h-dvh lg:overflow-visible">
       {/*
         THE APP SHELL, AND WHY IT IS EXACTLY ONE VIEWPORT BELOW lg.
 
@@ -284,7 +284,7 @@ export default async function PortalLayout({ children }: { children: React.React
           className="portal-panel-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain lg:min-h-[auto] lg:flex-none lg:overflow-visible"
         >
           <ScrollMemory />
-          <main className="mx-auto flex w-full max-w-[1280px] flex-col gap-[var(--section-gap)] px-[var(--page-gutter)] py-6 lg:pb-10">
+          <main className="portal-main mx-auto flex w-full max-w-[1280px] flex-col gap-[var(--section-gap)] px-[var(--page-gutter)] py-6 lg:pb-10">
             {children}
           </main>
         </div>
