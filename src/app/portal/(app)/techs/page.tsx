@@ -115,7 +115,7 @@ export default async function TechsPage() {
 
                     <dl className="mt-4 grid gap-3 sm:grid-cols-2">
                       <div>
-                        <dt className="portal-kicker text-[var(--gold-deep)]">
+                        <dt className="portal-label">
                           Coverage
                         </dt>
                         <dd className="mt-1 text-[13.5px] leading-[1.5] text-[var(--secondary)]">
@@ -130,7 +130,7 @@ export default async function TechsPage() {
                       </div>
 
                       <div>
-                        <dt className="portal-kicker text-[var(--gold-deep)]">
+                        <dt className="portal-label">
                           Certified for
                         </dt>
                         <dd className="mt-1 text-[13.5px] leading-[1.5] text-[var(--secondary)]">
@@ -141,7 +141,7 @@ export default async function TechsPage() {
                       </div>
 
                       <div>
-                        <dt className="portal-kicker text-[var(--gold-deep)]">
+                        <dt className="portal-label">
                           Workload
                         </dt>
                         <dd className="mt-1 text-[13.5px] text-[var(--secondary)]">
@@ -150,7 +150,7 @@ export default async function TechsPage() {
                       </div>
 
                       <div>
-                        <dt className="portal-kicker text-[var(--gold-deep)]">
+                        <dt className="portal-label">
                           Owed
                         </dt>
                         <dd className="mt-1 text-[13.5px] text-[var(--secondary)]">
@@ -203,7 +203,7 @@ export default async function TechsPage() {
               <>
                 <dl className="mb-4 grid grid-cols-2 gap-3">
                   <div>
-                    <dt className="portal-kicker text-[var(--gold-deep)]">
+                    <dt className="portal-label">
                       Awaiting approval
                     </dt>
                     <dd className="mt-1 font-display text-[17px] font-bold text-[var(--navy)]">
@@ -211,7 +211,7 @@ export default async function TechsPage() {
                     </dd>
                   </div>
                   <div>
-                    <dt className="portal-kicker text-[var(--gold-deep)]">
+                    <dt className="portal-label">
                       Approved, unpaid
                     </dt>
                     <dd className="mt-1 font-display text-[17px] font-bold text-[var(--navy)]">

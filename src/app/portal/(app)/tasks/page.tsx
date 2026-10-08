@@ -4,7 +4,7 @@ import { can } from "@/lib/ops-authz";
 import { listTasks } from "@/lib/ops-tasks";
 import { isOverdue, RECURRENCE_LABEL, type Recurrence } from "@/lib/ops-comms";
 import { supabaseAdmin } from "@/lib/supabase";
-import { Chip, EmptyState, PageHead } from "@/components/portal/surfaces";
+import { Chip, EmptyState, PageHead, Panel } from "@/components/portal/surfaces";
 import { QuickAdd, SeedButton, TaskRowControls } from "./TasksClient";
 
 export const dynamic = "force-dynamic";
@@ -65,7 +65,7 @@ export default async function TasksPage({
       <PageHead
         eyebrow="Work"
         title="Tasks"
-        lede="What has to happen, including the compliance obligations that go wrong quietly when nobody is watching."
+        lede="What has to happen, including compliance deadlines."
       />
 
       <QuickAdd
@@ -74,7 +74,27 @@ export default async function TasksPage({
         selfId={actor!.id}
       />
 
-      <div className="mt-6 mb-4 flex flex-wrap items-center gap-2">
+      {can(actor, "profiles.list") && seeded.length === 0 ? (
+        <Panel
+          title="The compliance obligations are not seeded yet"
+          /*
+            Operator ruling of 2026-10-08 on the copy. It said "Two of them";
+            COMPLIANCE_SEEDS in ops-comms.ts has three with no anchor (the
+            TBPELS renewal, the E&O renewal and the credential sweep), and
+            firstDueFor gives each of those no due date.
+          */
+          description="The PE license renewal, the DWC-005 filing, the TBPELS and errors and omissions renewals, and the monthly credential sweep. Three of them carry no due date. No due date is filled in until someone enters the real one."
+        >
+          <SeedButton />
+        </Panel>
+      ) : null}
+
+      <section>
+      {/*
+        V10: the filter is three square controls, the chosen one in navy, and
+        the overdue count is a plain bold line. It was an amber box.
+      */}
+      <div className="mb-4 flex flex-wrap items-center gap-2">
         {[
           ["", "Open"],
           ["all", "Everything"],
@@ -83,55 +103,34 @@ export default async function TasksPage({
           <a
             key={label}
             href={`/portal/tasks${value ? `?status=${value}` : ""}`}
-            className={`inline-flex min-h-[40px] items-center rounded-[3px] border px-3 text-[13.5px] font-semibold ${
+            aria-current={(params.status ?? "") === value ? "page" : undefined}
+            className={`inline-flex min-h-[40px] items-center rounded-[var(--radius-control)] border px-3 text-[14px] font-semibold active:opacity-70 ${
               (params.status ?? "") === value
-                ? "border-slate bg-slate text-[var(--on-navy)]"
-                : "border-[var(--border)] text-[var(--secondary)]"
+                ? "border-[var(--navy)] bg-[var(--navy)] text-[var(--on-navy)]"
+                : "border-[var(--border-strong)] bg-white text-[var(--ink)]"
             }`}
           >
             {label}
           </a>
         ))}
         {overdue.length > 0 ? (
-          <span className="inline-flex min-h-[40px] items-center rounded-[3px] border border-[var(--warn-border)] bg-[var(--warn-bg)] px-3 text-[13.5px] font-semibold text-[var(--red)]">
-            {overdue.length} overdue
-          </span>
+          <span className="ml-2 text-[14px] font-semibold text-[var(--ink)]">{overdue.length} overdue</span>
         ) : null}
       </div>
-
-      {can(actor, "profiles.list") && seeded.length === 0 ? (
-        <div className="mb-5 rounded-[4px] border border-[var(--border)] bg-white px-4 py-4">
-          <p className="text-[13.5px] font-semibold text-[var(--navy)]">The compliance obligations are not seeded yet</p>
-          <p className="mt-1.5 max-w-[75ch] text-[13.5px] leading-[1.55] text-[var(--secondary)]">
-            The PE license renewal, the DWC-005 filing, the TBPELS and errors and omissions renewals,
-            and the monthly credential sweep. Two of them carry no due date on purpose, because
-            nobody has given one and a guessed compliance deadline is worse than an empty field.
-          </p>
-          <SeedButton />
-        </div>
-      ) : null}
 
       {tasks.length === 0 ? (
         <EmptyState
           title={params.status === "done" ? "Nothing finished yet" : "Nothing on the list"}
-          body="Type a title above and it exists. Everything else about a task is optional and can be filled in by whoever picks it up."
+          body="Add a title above. Due date, assignee and repeat are optional."
         />
       ) : (
-        <ul className="flex flex-col gap-2">
+        /* V10 rule 4: rows separated by a 1px line-2 rule, not bordered cards. */
+        <ul className="border-t border-[var(--row-rule)]">
           {tasks.map((task) => {
             const late = isOverdue(task.due_at);
             const derivedTask = task.source_key?.startsWith("credential:");
             return (
-              <li
-                key={task.id}
-                className={`rounded-[4px] border bg-white p-4 ${
-                  late
-                    ? "border-[var(--warn-border)] border-l-[var(--red)]"
-                    : task.priority === "urgent"
-                      ? "border-[var(--border)]"
-                      : "border-[var(--border)]"
-                }`}
-              >
+              <li key={task.id} className="border-b border-[var(--row-rule)] py-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
                     {/*
@@ -148,15 +147,15 @@ export default async function TasksPage({
                       else typed has to assume the longest unbreakable run in it
                       is an address.
                     */}
-                    <p className="text-[15px] leading-[1.35] font-semibold break-words text-[var(--navy)]">
+                    <p className="text-[15px] leading-[1.35] font-semibold break-words text-[var(--ink)]">
                       {task.title}
                     </p>
                     {task.description ? (
-                      <p className="mt-1 max-w-[75ch] text-[13.5px] leading-[1.55] break-words whitespace-pre-line text-[var(--secondary)]">
+                      <p className="mt-1 max-w-[75ch] text-[14px] leading-[1.55] break-words whitespace-pre-line text-[var(--secondary)]">
                         {task.description}
                       </p>
                     ) : null}
-                    <p className="mt-1.5 text-[12.5px] text-[var(--secondary)]">
+                    <p className="mt-1.5 text-[13px] text-[var(--secondary)]">
                       {task.due_at ? `Due ${when(task.due_at)}` : "No due date"}
                       {task.recurrence ? `, ${RECURRENCE_LABEL[task.recurrence as Recurrence] ?? task.recurrence}` : ""}
                       {task.assignee_id
@@ -186,13 +185,22 @@ export default async function TasksPage({
           })}
         </ul>
       )}
+      </section>
 
       {derived.length > 0 ? (
-        <p className="mt-6 max-w-[75ch] text-[12.5px] leading-[1.55] text-[var(--secondary)]">
-          {derived.length} of these came from the credentials record rather than from a person. They
-          appear when a document is inside 45 days of expiry and close themselves when it is
-          replaced, so the list shrinks on its own rather than filling with things somebody already
-          handled.
+        <p className="max-w-[75ch] text-[13px] leading-[1.55] text-[var(--secondary)]">
+          {/*
+            Operator ruling of 2026-10-08 on the copy, read against the code.
+            The sentence said these "close themselves when it is replaced", and
+            the approved replacement said they "close on their own when the
+            credential record is updated". Neither is what happens:
+            refreshCredentialTasks runs only inside seedComplianceTasks, from
+            the seed button, which this page shows only until the first seed,
+            and no scheduled job calls it. So this says what the code does.
+          */}
+          {derived.length} of these came from the credentials record rather than from a person: one
+          for each credential within 45 days of expiry or past it. They are raised and closed when
+          the compliance tasks are seeded.
         </p>
       ) : null}
     </>

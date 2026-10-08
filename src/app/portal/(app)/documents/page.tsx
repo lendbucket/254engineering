@@ -122,7 +122,7 @@ export default async function DocumentsPage() {
                 <span className="flex flex-wrap gap-x-3">
                   <a
                     href={`/portal/documents/binder/${f.id}`}
-                    className="font-semibold text-[var(--navy)] underline decoration-[var(--gold)] decoration-2 underline-offset-4"
+                    className="font-semibold text-[var(--link)] underline underline-offset-4"
                   >
                     Read
                   </a>
@@ -150,7 +150,7 @@ export default async function DocumentsPage() {
               </p>
               <a
                 href={`/portal/documents/binder/${f.id}`}
-                className="mt-3 inline-flex min-h-[var(--tap-target)] items-center text-[13.5px] font-bold text-[var(--navy)] underline decoration-[var(--gold)] decoration-2 underline-offset-4"
+                className="mt-3 inline-flex min-h-[var(--tap-target)] items-center text-[13.5px] font-bold text-[var(--link)] underline underline-offset-4"
               >
                 Read the binder
               </a>

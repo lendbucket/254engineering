@@ -139,12 +139,21 @@ export function SidebarNav({ items }: { items: NavItem[] }) {
             aria-current={active ? "page" : undefined}
             /*
               V10: the rail is white, labels in ink, the active item marked by
-              the 3px gold bar and a light fill, as the reference screens draw
-              it. No icons in the desktop rail; the phone tabs keep theirs.
+              the 3px gold bar ONLY: no fill, no corner. Operator ruling 4 of
+              2026-10-08. No icons in the desktop rail; the phone tabs keep
+              theirs.
+
+              THE BAR NEVER RENDERED UNTIL 2026-10-08. The width was written
+              border-l-[var(--active-bar-width)], and Tailwind, which cannot
+              see that a variable holds a length, compiled it as a border
+              COLOUR: the bar had no width and no gold ever showed. The fill was
+              the only thing marking the current page. Found by v10-layout-
+              audit's new nav rule. The `length:` hint is the fix, and
+              token-audit refuses the bare form now.
             */
-            className={`flex min-h-[var(--tap-target)] items-center gap-3 border-l-[var(--active-bar-width)] px-3 text-[14px] transition-colors ${
+            className={`flex min-h-[var(--tap-target)] items-center gap-3 border-l-[length:var(--active-bar-width)] px-3 text-[14px] transition-colors ${
               active
-                ? "border-l-[var(--gold)] bg-[var(--canvas)] font-semibold text-[var(--ink)] active:bg-[var(--row-hover)]"
+                ? "border-l-[var(--gold)] font-semibold text-[var(--ink)] active:opacity-70"
                 : "border-l-transparent text-[var(--ink)] hover:bg-[var(--row-hover)] active:bg-[var(--canvas)]"
             }`}
           >
@@ -189,9 +198,9 @@ export function MobileTabs({ items }: { items: NavItem[] }) {
               <Link
                 href={item.href}
                 aria-current={active ? "page" : undefined}
-                className={`flex min-h-[56px] flex-col items-center justify-center gap-1 border-t-[var(--active-bar-width)] px-1 py-2 text-[12px] font-semibold ${
+                className={`flex min-h-[56px] flex-col items-center justify-center gap-1 border-t-[length:var(--active-bar-width)] px-1 py-2 text-[12px] font-semibold ${
                   active
-                    ? "border-t-[var(--gold)] text-[var(--gold-bright)] active:bg-white/[0.12]"
+                    ? "border-t-[var(--gold)] text-[var(--on-navy)] active:bg-white/[0.12]"
                     : "border-t-transparent text-white/65 active:bg-white/[0.12]"
                 }`}
               >
@@ -277,7 +286,7 @@ export function ProfileMenu({
           <div className="border-b border-[var(--border)] px-3 pt-2 pb-3">
             <p className="text-[14px] font-semibold text-[var(--navy)]">{displayName}</p>
             <p className="mt-0.5 text-[12px] break-all text-[var(--secondary)]">{email}</p>
-            <p className="portal-kicker mt-1 text-[var(--gold-deep)]">{roleLabel}</p>
+            <p className="portal-label mt-1">{roleLabel}</p>
           </div>
           <Link
             href="/portal/profile"
@@ -385,7 +394,7 @@ export function NotificationBell({
          * a screenshot and reading the titles.
          */
         <div className="fixed inset-x-4 top-[calc(60px+env(safe-area-inset-top))] z-50 rounded-[2px] border border-[var(--border)] bg-white sm:absolute sm:inset-x-auto sm:right-0 sm:top-auto sm:mt-2 sm:w-[340px]">
-          <p className="portal-kicker border-b border-[var(--border)] px-4 py-3 text-[var(--gold-deep)]">
+          <p className="portal-label border-b border-[var(--border)] px-4 py-3">
             Notifications
           </p>
           {items.length === 0 ? (
@@ -498,7 +507,7 @@ export function CommandPalette({ items }: { items: NavItem[] }) {
                     }}
                     className="flex min-h-[44px] w-full items-center gap-3 px-4 text-left text-[14px] font-semibold text-[var(--navy)] hover:bg-[var(--canvas)]"
                   >
-                    <span className="text-[var(--gold-deep)]">
+                    <span className="text-[var(--secondary)]">
                       <Icon name={item.icon} />
                     </span>
                     {item.label}

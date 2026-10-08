@@ -105,7 +105,7 @@ export function CheckRunner({
   if (result?.passed) {
     return (
       <div className="border-t-2 border-[var(--ink)] pt-6">
-        <p className="portal-kicker text-[var(--gold-deep)]">Certified</p>
+        <p className="portal-label">Certified</p>
         <h2 className="mt-2 font-display text-[24px] leading-[1.2] font-bold text-[var(--navy)]">{serviceName}</h2>
         <p className="mt-2 max-w-[65ch] text-[14px] leading-[1.6] text-[var(--secondary)]">
           {result.correct} of {result.total}. You can be offered work on this line as soon as your
@@ -131,7 +131,7 @@ export function CheckRunner({
       </a>
 
       <div className="rounded-[2px] border border-[var(--border)] bg-white px-4 py-5 sm:px-5">
-        <p className="portal-kicker text-[var(--gold-deep)]">{protocolName}</p>
+        <p className="portal-label">{protocolName}</p>
         <h2 className="mt-1 font-display text-[17px] leading-[1.2] font-bold text-[var(--ink)]">{serviceName}</h2>
         <p className="mt-2 max-w-[70ch] text-[14px] leading-[1.55] text-[var(--secondary)]">
           This is what you would capture on every job in this line. Read it, then answer the

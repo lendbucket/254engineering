@@ -52,7 +52,21 @@ counterpart and read back on both, every prediction held**, recorded in the
 ledger. It opens no line. What stays open: Aman signs each in the portal, and
 loading them into the portal follows 10-20.
 
-## THE V10 LAYOUT CHECK, RULED 2026-10-07, NOT YET BUILT
+## A STANDALONE AUDIT TAKES NO MACHINE LOCK
+
+Found 2026-10-08, recorded on the operator's ruling 5 of that day. Only the
+board runner (`scripts/audit.mjs`) and the build preflight
+(`scripts/preflight-build.mjs`) call `takeLock`. An audit run on its own, as
+`npm run contrast-audit` or `npx tsx scripts/x-audit.mjs`, takes no lock, and
+most of them start a Next server, so a standalone run can sit beside a board,
+a build or another project's suite with nothing to stop it. The session has
+been wrapping standalone runs in the lock by hand from a scratchpad script.
+The fix is the `pre<audit>` preflight taking the lock (it already runs for
+every audit through npm), with `MACHINE_LOCK_HELD` keeping the board's own
+calls re-entrant. Not built: it changes every audit's entry path, so it boards
+on its own.
+
+## THE V10 LAYOUT CHECK, RULED 2026-10-07, BUILT AND MERGED 2026-10-08
 
 Operator rulings 2 and 3 of 2026-10-07. A board check that MEASURES THE
 RENDERED PAGE, not token names: any border radius above 2px outside inputs,

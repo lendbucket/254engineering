@@ -81,7 +81,7 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
 
       {view.file.notes ? (
         <div className="mb-6 rounded-[2px] border border-[var(--border)] bg-white px-4 py-3">
-          <p className="portal-kicker text-[var(--gold-deep)]">
+          <p className="portal-label">
             Notes on this file
           </p>
           <p className="mt-1.5 max-w-[70ch] text-[14px] leading-[1.55] text-[var(--secondary)]">

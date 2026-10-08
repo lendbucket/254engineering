@@ -108,7 +108,7 @@ export function TransitionControls({
 
   return (
     <div>
-      <p className="portal-kicker text-[var(--gold-deep)]">
+      <p className="portal-label">
         Move this file on
       </p>
       <p className="mt-1 text-[14px] text-[var(--secondary)]">
@@ -224,7 +224,7 @@ export function FileTabs({
             aria-current={active === key ? "page" : undefined}
             className={`min-h-[44px] shrink-0 border-b-2 px-3 text-[14px] font-semibold whitespace-nowrap ${
               active === key
-                ? "border-[var(--gold)] text-[var(--navy)]"
+                ? "border-[var(--navy)] text-[var(--navy)]"
                 : "border-transparent text-[var(--secondary)] hover:text-[var(--navy)]"
             }`}
           >

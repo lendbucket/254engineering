@@ -94,7 +94,7 @@ function FigureCell({
       */}
       <p
         className={`mt-1 font-display text-[24px] leading-none font-bold ${
-          absent ? "text-[var(--muted)] italic" : "text-[var(--navy)]"
+          absent ? "text-[var(--faint)] italic" : "text-[var(--navy)]"
         }`}
       >
         {formatFigure(figure)}

@@ -550,7 +550,7 @@ export function MessageSearch({ people }: { people: { id: string; name: string }
                     href={`/portal/messages?id=${r.threadId}`}
                     className="block rounded-[3px] border border-[var(--border)] p-3 hover:bg-[var(--canvas)] active:bg-[var(--row-hover)]"
                   >
-                    <p className="text-[12.5px] font-semibold text-[var(--gold-deep)]">{r.threadTitle}</p>
+                    <p className="text-[12px] font-semibold text-[var(--faint)]">{r.threadTitle}</p>
                     <p className="mt-1 text-[13.5px] leading-[1.5] text-[var(--navy)]">
                       {r.body.length > 180 ? `${r.body.slice(0, 177)}...` : r.body}
                       {r.attachmentCount > 0 && !r.body

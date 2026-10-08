@@ -162,7 +162,7 @@ export function BulkDispatchClient({ plans }: { plans: DispatchPlanRow[] }) {
         <div key={plan.fileId} className="rounded-[4px] border border-[var(--border)] bg-white p-4">
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div className="min-w-0">
-              <p className="font-mono text-[12.5px] text-[var(--gold-deep)]">{plan.fileNumber}</p>
+              <p className="text-[13px] text-[var(--secondary)]">{plan.fileNumber}</p>
               <p className="mt-1 text-[13.5px] font-semibold text-[var(--navy)]">{plan.propertyAddress}</p>
               <p className="mt-0.5 text-[13.5px] text-[var(--secondary)]">{plan.county} County</p>
             </div>

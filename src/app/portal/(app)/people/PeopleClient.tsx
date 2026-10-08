@@ -368,9 +368,9 @@ export function NewPersonForm({
           ref={linkPanel}
           role="status"
           tabIndex={-1}
-          className="mt-4 rounded-[3px] border border-[var(--gold-deep)] bg-[var(--gold-wash)] p-4 outline-none"
+          className="mt-4 border-t-2 border-[var(--ink)] pt-4 outline-none"
         >
-          <p className="portal-kicker text-[var(--gold-deep)]">Send this to {handedLink.name}</p>
+          <p className="portal-label">Send this to {handedLink.name}</p>
           <p className="mt-2 text-[13.5px] leading-[1.55] text-[var(--navy)]">
             Nothing was emailed. This link works once{handedLink.expires ? ` and expires ${handedLink.expires}` : ""}.
             It is not stored anywhere and will not be shown again. If you lose it, use Resend invite

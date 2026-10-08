@@ -64,7 +64,7 @@ function Card({
 const NUMBER_TONE: Record<Tile["tone"], string> = {
   neutral: "text-[var(--navy)]",
   good: "text-[var(--navy)]",
-  warn: "text-[var(--gold-deep)]",
+  warn: "text-[var(--ink)]",
   bad: "text-[var(--red)]",
 };
 
@@ -98,7 +98,7 @@ export function CountTiles({ tiles }: { tiles: Tile[] }) {
             eventually decide means zero.
           */}
           {tile.count === null ? (
-            <p className="font-display text-[30px] leading-none font-bold text-[var(--muted)] italic">
+            <p className="font-display text-[30px] leading-none font-bold text-[var(--faint)] italic">
               not known
             </p>
           ) : (
@@ -191,7 +191,7 @@ export function AttentionList({ items }: { items: Attention[] }) {
 export function BreakdownList({ breakdown }: { breakdown: Breakdown }) {
   if (breakdown.rows === null) {
     return (
-      <p className="text-[13.5px] text-[var(--muted)] italic">
+      <p className="text-[13.5px] text-[var(--faint)] italic">
         This could not be read, which is not the same as there being nothing. Tell an administrator.
       </p>
     );
@@ -221,7 +221,7 @@ export function BreakdownList({ breakdown }: { breakdown: Breakdown }) {
             </Card>
             <span className="shrink-0 font-display text-[15px] font-bold tabular-nums text-[var(--navy)]">
               {row.count === null ? (
-                <span className="text-[13.5px] font-normal text-[var(--muted)] italic">not known</span>
+                <span className="text-[13.5px] font-normal text-[var(--faint)] italic">not known</span>
               ) : (
                 row.count
               )}

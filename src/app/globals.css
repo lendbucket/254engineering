@@ -115,14 +115,28 @@
   --color-slate-deep: #00152f;
   --color-slate-abyss: #0b1b36;
   --color-slate-soft: #2e5288;
-  --color-slate-muted: #555e6b;
+  /* V10's sub, moved with its portal twin --secondary on 2026-10-08. */
+  --color-slate-muted: #4b5563;
 
-  /* Warm off white. Never pure white. */
+  /*
+   * Warm off white. Never pure white.
+   *
+   * THE SITE'S GROUNDS DID NOT MOVE ON 2026-10-08, WHEN THE PORTAL TOOK V10'S
+   * VALUES. limestone and limestone-sunk were twins of the portal's --canvas
+   * and --row-rule, and the portal uses those for V10's phone ground and row
+   * divider. Here they are SURFACES: sunk is the background of twenty site
+   * blocks, and gold text on V10's line-2 measures 4.48, under AA. So the two
+   * portal tokens are paired with the two site tokens below that carry the
+   * same V10 role, and the site's own grounds wait for the site restyle.
+   * line and edge are borders on both surfaces and moved with their twins.
+   */
   --color-limestone: #f4f5f7;
   --color-limestone-raised: #ffffff;
   --color-limestone-sunk: #edf1f7;
-  --color-limestone-line: #dde0e4;
-  --color-limestone-edge: #c3c9d1;
+  --color-limestone-line: #d3d8df;
+  --color-limestone-edge: #d3d8df;
+  --color-phone-ground: #f2f4f7;
+  --color-line-2: #e6e9ed;
 
   /*
    * Gold. Strictly an accent: rules, small marks, and highlight text on navy.
