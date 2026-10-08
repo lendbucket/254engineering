@@ -42,7 +42,7 @@ export default async function RolesPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="portal-sections flex flex-col gap-6">
       <PageHead
         eyebrow="The firm"
         title="Roles and permissions"

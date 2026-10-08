@@ -65,7 +65,7 @@ export default async function IntakePage() {
     .map((s) => ({ slug: s.slug, name: s.name }));
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="portal-sections flex flex-col gap-6">
       <PageHead
         eyebrow="Work"
         title="New job"

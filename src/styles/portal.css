@@ -255,6 +255,25 @@
   .portal-main > * {
     background: #ffffff;
     padding: 16px var(--page-gutter);
+    /* The 8px of ground is the only space between sections; a block's own
+     * top or bottom margin would show as a wider grey band. */
+    margin-block: 0;
+  }
+  /*
+   * A page that wraps everything in one element marks it .portal-sections, and
+   * its children become the sections instead: one white slab is not V10.
+   */
+  .portal-main > .portal-sections {
+    background: transparent;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .portal-sections > * {
+    background: #ffffff;
+    padding: 16px var(--page-gutter);
+    margin-top: 0;
   }
 }
 
