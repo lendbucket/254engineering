@@ -458,7 +458,15 @@ export function CommandPalette({ items }: { items: NavItem[] }) {
       >
         <Icon name="search" />
         <span>Search</span>
-        <kbd className="ml-2 rounded-[2px] border border-white/20 px-1.5 py-0.5 text-[12px]">Ctrl K</kbd>
+        {/*
+          A key cap, which V10 allows ("small bordered key caps, faint text"),
+          in the page's own face: a browser sets <kbd> in monospace by default,
+          and V10 names no monospace anywhere. v10-layout-audit found it on
+          every route.
+        */}
+        <kbd className="ml-2 rounded-[2px] border border-white/20 px-1.5 py-0.5 text-[12px]" style={{ fontFamily: "inherit" }}>
+          Ctrl K
+        </kbd>
       </button>
 
       {open ? (

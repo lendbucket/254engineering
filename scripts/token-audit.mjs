@@ -398,6 +398,17 @@ const PORTED = [
    */
   "src/app/portal/(app)/waiting/page.tsx",
   "src/app/portal/(public)/login/LoginForm.tsx",
+  /*
+   * Read from 2026-10-08, when the engineer's screens went to V10: the two-step
+   * setup and challenge, and the protocol document and RC-001's page. Five of
+   * the eighteen files this audit had never read.
+   */
+  "src/app/portal/(public)/mfa/page.tsx",
+  "src/app/portal/(public)/mfa/MfaChallengeForm.tsx",
+  "src/app/portal/(public)/mfa/enrol/page.tsx",
+  "src/app/portal/(public)/mfa/enrol/EnrolForm.tsx",
+  "src/app/portal/(app)/protocols/protocol-document.tsx",
+  "src/app/portal/(app)/protocols/rc-001/page.tsx",
   "src/app/portal/(public)/login/page.tsx",
   "src/app/portal/(public)/set-password/SetPasswordForm.tsx",
   "src/app/portal/(public)/set-password/page.tsx",
@@ -651,6 +662,30 @@ const STAFF_V10 = [
   /* The shell itself: the navy top bar with its gold rule, the white rail. */
   "src/app/portal/(app)/layout.tsx",
   "src/components/portal/PortalChrome.tsx",
+  /*
+   * THE ENGINEER'S SCREENS, 2026-10-08: profile, seal upload, protocols and
+   * signing, the two-step setup and challenge. The review screen and its
+   * panels were already here.
+   */
+  "src/app/portal/(app)/profile/page.tsx",
+  "src/app/portal/(app)/profile/PasswordForm.tsx",
+  "src/app/portal/(app)/profile/PreferencesForm.tsx",
+  "src/app/portal/(app)/profile/seal/page.tsx",
+  "src/app/portal/(app)/profile/seal/SealImageForm.tsx",
+  "src/app/portal/(app)/protocols/page.tsx",
+  "src/app/portal/(app)/protocols/ProtocolsClient.tsx",
+  "src/app/portal/(app)/protocols/SignProtocolPanel.tsx",
+  "src/app/portal/(app)/protocols/protocol-document.tsx",
+  "src/app/portal/(app)/protocols/rc-001/page.tsx",
+  "src/app/portal/(public)/mfa/page.tsx",
+  "src/app/portal/(public)/mfa/MfaChallengeForm.tsx",
+  "src/app/portal/(public)/mfa/enrol/page.tsx",
+  "src/app/portal/(public)/mfa/enrol/EnrolForm.tsx",
+  /* Sign in and set password, which the two-step pages hand back to. */
+  "src/app/portal/(public)/login/page.tsx",
+  "src/app/portal/(public)/login/LoginForm.tsx",
+  "src/app/portal/(public)/set-password/page.tsx",
+  "src/app/portal/(public)/set-password/SetPasswordForm.tsx",
 ];
 
 /** Every file held to V10's interface rules, whichever surface it serves. */

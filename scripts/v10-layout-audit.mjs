@@ -67,30 +67,51 @@ const LIST_EXPIRES = "2026-10-19";
 const TODAY = new Date().toISOString().slice(0, 10);
 
 /*
- * NOT YET V10, as measured on 2026-10-08 before any restyle. FROZEN: this array
- * is the original and may never gain an entry. NOT_YET_V10 below is what is
- * still on it; a route comes off NOT_YET_V10 in the commit that restyles it.
+ * NOT YET V10. FROZEN ORIGINAL: exactly the 64 routes that failed when this
+ * check, in report mode, measured the code BEFORE any restyle (commit a5786f4,
+ * 2026-10-08), not a guess. /account/orders and /account/statements already
+ * passed and were never on it. This array may never gain an entry.
  */
 const ORIGINAL_NOT_YET_V10 = [
-  "/account", "/account/forgot-password", "/account/login", "/account/order", "/account/orders",
-  "/account/orders/[reference]", "/account/set-password", "/account/settings", "/account/sign-up",
-  "/account/statements",
-  "/order/[reference]", "/order/start/[slug]",
-  "/partner", "/partner/agreement", "/partner/login", "/partner/materials", "/partner/referrals",
-  "/partner/set-password", "/partner/statements", "/partner/statements/[reference]",
-  "/portal", "/portal/accounts", "/portal/accounts/[id]/pricing", "/portal/applications", "/portal/audit",
-  "/portal/billing", "/portal/certification", "/portal/charge-log", "/portal/clients",
-  "/portal/deletion-requests", "/portal/documents", "/portal/documents/binder/[fileId]", "/portal/files",
-  "/portal/files/dispatch", "/portal/inquiries", "/portal/intake", "/portal/jobs", "/portal/jobs/[id]",
-  "/portal/launch", "/portal/login", "/portal/messages", "/portal/mfa", "/portal/mfa/enrol",
-  "/portal/onboarding", "/portal/orders", "/portal/partners", "/portal/partners/[id]",
-  "/portal/partners/disputes", "/portal/pay", "/portal/people", "/portal/pricebook", "/portal/profile",
-  "/portal/profile/seal", "/portal/protocols", "/portal/protocols/rc-001", "/portal/queue",
-  "/portal/reports", "/portal/review", "/portal/roles", "/portal/set-password", "/portal/status",
-  "/portal/suppressions", "/portal/tasks", "/portal/techs", "/portal/techs/[id]", "/portal/waiting",
-  "/portal/windstorm-inquiries",
+  "/account", "/account/forgot-password", "/account/login", "/account/order", "/account/set-password",
+  "/account/settings", "/account/sign-up", "/order/254-B2026-000000", "/order/start/[slug]",
+  "/order/start/roof-inspections", "/partner", "/partner/agreement", "/partner/login", "/partner/materials",
+  "/partner/referrals", "/partner/set-password", "/partner/statements", "/portal", "/portal/accounts",
+  "/portal/accounts/[id]/pricing", "/portal/applications", "/portal/audit", "/portal/billing",
+  "/portal/certification", "/portal/charge-log", "/portal/clients", "/portal/deletion-requests",
+  "/portal/documents", "/portal/documents/binder/[fileId]", "/portal/files", "/portal/files/dispatch",
+  "/portal/inquiries", "/portal/intake", "/portal/jobs", "/portal/jobs/[id]", "/portal/launch", "/portal/login",
+  "/portal/messages", "/portal/mfa", "/portal/mfa/enrol", "/portal/onboarding", "/portal/orders",
+  "/portal/partners", "/portal/partners/[id]", "/portal/partners/disputes", "/portal/pay", "/portal/people",
+  "/portal/pricebook", "/portal/profile", "/portal/profile/seal", "/portal/protocols",
+  "/portal/protocols/rc-001", "/portal/queue", "/portal/reports", "/portal/review", "/portal/roles",
+  "/portal/set-password", "/portal/status", "/portal/suppressions", "/portal/tasks", "/portal/techs",
+  "/portal/techs/[id]", "/portal/waiting", "/portal/windstorm-inquiries",
 ];
-const NOT_YET_V10 = [...ORIGINAL_NOT_YET_V10];
+/*
+ * WHAT IS STILL ON IT. A route comes off in the commit that makes it pass, and
+ * this check fails a listed route that passes, so the list cannot lag. Set from
+ * the measurement taken with the commit that last changed it.
+ */
+/*
+ * Measured 2026-10-08 after the shell, the shared pieces, the engineer screens
+ * and the sign in screens went to V10: 28 routes pass, these 38 do not. Off the
+ * original since then: the engineer's review, protocols and RC-001, profile and
+ * seal upload, waiting, certification, his jobs, the two-step pages, sign in and
+ * set password, the technician's credentials page, and eleven screens the shared
+ * pieces alone brought into line.
+ */
+const STILL_NOT_YET_V10 = [
+  "/account", "/account/forgot-password", "/account/login", "/account/order", "/account/set-password",
+  "/account/settings", "/account/sign-up", "/order/254-B2026-000000", "/order/start/[slug]",
+  "/order/start/roof-inspections", "/partner", "/partner/login", "/partner/materials", "/partner/set-password",
+  "/portal", "/portal/accounts", "/portal/accounts/[id]/pricing", "/portal/billing", "/portal/charge-log",
+  "/portal/clients", "/portal/deletion-requests", "/portal/documents/binder/[fileId]", "/portal/files",
+  "/portal/intake", "/portal/jobs/[id]", "/portal/launch", "/portal/messages", "/portal/onboarding",
+  "/portal/partners", "/portal/partners/[id]", "/portal/people", "/portal/queue", "/portal/reports",
+  "/portal/roles", "/portal/status", "/portal/suppressions", "/portal/tasks", "/portal/techs",
+];
+const NOT_YET_V10 = STILL_NOT_YET_V10 ?? [...ORIGINAL_NOT_YET_V10];
 
 /* Dynamic routes whose screen needs a record OWNED by the signed-in probe, which no probe helper makes yet. */
 const UNRESOLVED_UNTIL = {

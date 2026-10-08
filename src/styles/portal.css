@@ -201,8 +201,12 @@
 
 /* ========================================================== base surfaces === */
 
+/*
+ * V10 rule 6: "white page" on a desktop; rule 7: the phone keeps its grey ground
+ * behind white sections. So the canvas is the phone's ground only.
+ */
 .portal-surface {
-  background: var(--canvas);
+  background: #ffffff;
   color: var(--ink);
   font-family: var(--font-sans);
   font-size: var(--type-body-sm);

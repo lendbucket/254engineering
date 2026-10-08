@@ -71,12 +71,12 @@ export default async function SealPage() {
         description="Every seal you store, and every document you seal, asks for a fresh code from your authenticator app."
       >
         {enrolled ? (
-          <p className="text-[13.5px] leading-[1.7] text-[var(--ink)]">
+          <p className="text-[14px] leading-[1.7] text-[var(--ink)]">
             Set up and verified. Codes from your authenticator app are accepted for storing a seal and for sealing.
           </p>
         ) : (
           <>
-            <p className="text-[13.5px] leading-[1.7] text-[var(--ink)]">
+            <p className="text-[14px] leading-[1.7] text-[var(--ink)]">
               Not set up yet. Sealing is refused until it is, and so is storing a seal or signature.
             </p>
             <Link
@@ -94,7 +94,7 @@ export default async function SealPage() {
           title="Seal and signature"
           description="The store for your seal and signature is not set up on this database yet."
         >
-          <p className="text-[13.5px] leading-[1.7] text-[var(--ink)]">
+          <p className="text-[14px] leading-[1.7] text-[var(--ink)]">
             Nothing can be stored until it is. It is created when the firm applies the change that
             adds it, and this screen will show what is on file from then on.
           </p>
@@ -116,7 +116,7 @@ export default async function SealPage() {
             {enrolled ? (
               <SealImageForm kind={image.kind} heading={heading} />
             ) : (
-              <p className="text-[13.5px] leading-[1.7] text-[var(--secondary)]">
+              <p className="text-[14px] leading-[1.7] text-[var(--secondary)]">
                 Set up two-step verification first.
               </p>
             )}
