@@ -56,6 +56,13 @@ import { join } from "node:path";
 
 const BASE = process.env.BASE_URL ?? AUDIT_BASE_URL;
 const ONLY = process.env.V10_ONLY ?? null;
+/*
+ * V10_REPORT=1 measures every route and prints which fail, ignoring the list.
+ * It is how ORIGINAL_NOT_YET_V10 was derived (from a measurement of the code
+ * before any restyle, never from a guess), and it never passes or fails a board:
+ * it exits zero and says it is a report.
+ */
+const REPORT = process.env.V10_REPORT === "1";
 const LIST_EXPIRES = "2026-10-19";
 const TODAY = new Date().toISOString().slice(0, 10);
 
@@ -317,6 +324,32 @@ for (const r of results) {
   } else {
     rec(`${r.pattern} follows V10's layout rules`, false, detail);
   }
+}
+
+if (REPORT) {
+  console.log("");
+  const failing = [];
+  for (const r of results) {
+    if (!r.resolved) {
+      console.log(`  UNRESOLVED ${r.pattern}`);
+      continue;
+    }
+    if (!r.loaded) {
+      console.log(`  NOT LOADED ${r.pattern}`);
+      continue;
+    }
+    const broken = Object.entries(r.kinds);
+    if (broken.length) failing.push(r.pattern);
+    console.log(`  ${broken.length ? "FAILS" : "PASSES"} ${r.pattern}${broken.length ? `  | ${broken.map(([k, v]) => `${k} ${v.count}`).join(", ")}` : ""}`);
+  }
+  console.log("");
+  console.log(`V10_FAILING_ROUTES ${JSON.stringify(failing.sort())}`);
+  sayCouldNotTell(unmeasured, "these routes");
+  await destroyProbes("v10-layout");
+  await destroyPartnerProbes("v10-layout");
+  await destroyCustomerProbes("v10-layout");
+  console.log("REPORT ONLY: nothing passed or failed.");
+  process.exit(0);
 }
 
 console.log("");
