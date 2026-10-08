@@ -2385,10 +2385,23 @@ const RULED_CONDITIONS = [
  * server's own sitemap lists, plus the llms files and robots, and searches the
  * whole response. The forbidden set is the PINNED literal and every number the
  * register holds for an engineer or a TDI appointment, so a second engineer is
- * covered the day he is recorded. Standalone, with no server, it says COULD NOT
- * TELL rather than passing over nothing.
+ * covered the day he is recorded.
+ *
+ * THE WHOLE DOCUMENT, operator ruling 1 of 2026-10-08 on the 11:10 report:
+ * every response is searched as the full HTML the server sent, the head
+ * included, so a title, a meta description, an Open Graph tag or a JSON-LD
+ * block carrying the number is found as surely as a paragraph. sitemap.xml and
+ * robots.txt are searched themselves, not only used to find routes.
+ *
+ * ON THE BOARD, NOT MEASURING IS A FAILURE. Same ruling. When BASE_URL is set,
+ * a sitemap that does not answer, a page that cannot be read, or a sitemap
+ * shorter than the site are each FAIL, never COULD NOT TELL: the board is the
+ * one place this check is guaranteed a server, so a check that did not look
+ * there has not been done. Only a standalone run with no BASE_URL at all may
+ * say COULD NOT TELL, and that is not counted as a pass.
  */
 {
+  const NAME = "no public page carries the engineer's licence number or appointment number";
   const PINNED = "143295";
   const forbidden = new Set([
     PINNED,
@@ -2396,36 +2409,42 @@ const RULED_CONDITIONS = [
     ...verifiedCredentials.filter((c) => /TDI|Department of Insurance/i.test(c.issuer + c.name) && c.identifier).map((c) => String(c.identifier)),
   ]);
   const base = process.env.BASE_URL;
-  let routes = null;
-  if (base) {
-    try {
-      const sm = await (await fetch(`${base}/sitemap.xml`)).text();
-      routes = [...sm.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => new URL(m[1]).pathname);
-    } catch {
-      routes = null;
-    }
-  }
-  if (!routes) {
-    rec(
-      "no public page carries the engineer's licence number or appointment number",
-      "could-not-tell",
-      base ? `the server at ${base} did not answer for its sitemap` : "no server: BASE_URL is unset, so no rendered page was read. The board sets it",
-    );
+  if (!base) {
+    rec(NAME, "could-not-tell", "no server: BASE_URL is unset, so no rendered page was read. The board sets it, and there this cannot pass without reading");
   } else {
-    const pages = [...new Set([...routes, "/llms.txt", "/llms-full.txt", "/robots.txt"])];
     const found = [];
+    const unreadable = [];
+    const read = async (route) => {
+      try {
+        const res = await fetch(base + route);
+        if (!res.ok) {
+          unreadable.push(`${route} HTTP ${res.status}`);
+          return "";
+        }
+        return await res.text();
+      } catch (err) {
+        unreadable.push(`${route}: ${err instanceof Error ? err.message : String(err)}`);
+        return "";
+      }
+    };
+    const sitemap = await read("/sitemap.xml");
+    const routes = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => new URL(m[1]).pathname);
+    for (const n of forbidden) if (sitemap.includes(n)) found.push(`/sitemap.xml: ${n}`);
+    const pages = [...new Set([...routes, "/llms.txt", "/llms-full.txt", "/robots.txt"])];
     for (const route of pages) {
-      const body = await (await fetch(base + route)).text().catch(() => "");
+      const body = await read(route);
       for (const n of forbidden) if (body.includes(n)) found.push(`${route}: ${n}`);
     }
     rec(
-      "no public page carries the engineer's licence number or appointment number",
-      routes.length >= 50 && found.length === 0,
+      NAME,
+      routes.length >= 50 && unreadable.length === 0 && found.length === 0,
       found.length
         ? found.slice(0, 8).join("; ")
-        : routes.length < 50
-          ? `the sitemap listed only ${routes.length} routes, which is not the site`
-          : `${pages.length} pages read for ${[...forbidden].length} number(s), none found`,
+        : unreadable.length
+          ? `${unreadable.length} response(s) could not be read, so this did not measure them: ${unreadable.slice(0, 4).join("; ")}`
+          : routes.length < 50
+            ? `the sitemap at ${base} listed ${routes.length} routes, which is not the site, so this did not measure it`
+            : `${pages.length + 1} documents read whole, head included, for ${[...forbidden].length} number(s), none found`,
     );
   }
 }
