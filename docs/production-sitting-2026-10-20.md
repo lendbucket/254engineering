@@ -305,32 +305,32 @@ from eng_profiles where lower(email) = 'robertreyna88@yahoo.com';
 
 **Predict:** one row, `field_tech`, `invited`, `none`, `0`.
 
-**RAN 2026-10-07. ONE DIFFERENCE, AND IT IS EXPLAINED BY THE CODE, NOT A FAULT
-IN THE ROW.** Profile `c9d46cd2-9ee3-4479-9768-2b27e13c0044`, `field_tech`,
-certification `none`, 0 counties, as predicted, and status **`active`**, not
-`invited`.
+**RAN 2026-10-07.** Profile `c9d46cd2-9ee3-4479-9768-2b27e13c0044`,
+`field_tech`, certification `none`, 0 counties, as predicted, and status
+**`active`**, not `invited`.
 
-`createAccount` in `src/lib/ops-auth.ts` has two outcomes. The production auth
-table is shared with the other applications on the project, and
-`robertreyna88@yahoo.com` already had an auth user there. For an existing
-address the profile is created against that user and is active at once,
-because the person already has a working password: no set password link is
-issued and no password is touched, since resetting it would lock him out of the
-other application. **The prediction was written for the new-address branch and
-should have allowed for either.**
+**WHY IT IS ACTIVE, READ FROM PRODUCTION BY THE COUNTERPART ON 2026-10-07.** It
+was a NEW login. `auth.users` holds `robertreyna88@yahoo.com` as
+`c9d46cd2-9ee3-4479-9768-2b27e13c0044`, created 02:53:44 UTC, one second before
+the profile. Audit event 508, 02:53:45 UTC: `profile.create`, status invited,
+invite delivered by hand. Event 509, 02:54:08 UTC: `auth.set_password`, "set
+their password and activated the account". Robert set his password 23 seconds
+after creating the profile, and that is what made it active. **The audit record
+is correct.** The prediction was right when it was written; the read came after
+he had already used the link.
 
-What the invite path does that this one skipped: it creates the auth user,
-issues a one time set password token, and he chooses a password that has never
-existed before. Here he signs in to the portal with the password his existing
-account already uses. The invite email is still queued, in its existing-account
-form, with no link in it.
-
-**And the audit row this wrote is wrong in two fields.** The People route
-records `status: invited` and an `invite_delivery` in the `profile.create` diff
-unconditionally, so for a linked account the permanent trail says invited while
-the row says active, and names a delivery for an invite that has no link. The
-summary sentence beside it is right ("Linked the existing account"). In
-`BACKLOG.md` for a ruling; the row itself cannot be changed.
+> **CORRECTED 2026-10-07. THIS SECTION FIRST CARRIED A WRONG EXPLANATION, AND
+> HOW IT WAS WRONG IS THE PART TO KEEP.** The session explained the `active`
+> status from `createAccount`'s code alone: that the address already had a
+> login on the shared auth table, so the profile was linked active with no
+> invite, and that the audit row therefore said invited falsely. It wrote that
+> here and in `BACKLOG.md`, opened `fix/people-linked-audit`, and drafted a
+> corrective audit event. **None of it had been read from production.** The
+> counterpart's read before running the correction showed a new login and a
+> correct record, and the corrective event was cancelled unwritten. Code says
+> what CAN happen; only a read says what DID. Operator ruling, the same day:
+> before any claim about production state, the session gives the query and
+> waits for the counterpart's read.
 
 ### C2. Coverage, all 254 counties
 

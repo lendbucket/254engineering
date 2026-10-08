@@ -16,15 +16,16 @@ C's C1 to C3 ran the same day** (profile, 254 counties, the roof certification
 of 2026-09-23); **C4, his two credentials, waits on his documents.** The W-9
 and contractor agreement are covered by the owner exemption in code.
 
-**A defect C1 found, for a ruling: the People screen's audit row is wrong for a
-linked account.** `src/app/api/portal/people/route.ts` writes
-`status: invited` and an `invite_delivery` into every `profile.create` diff.
-When `createAccount` links an address that already has an auth user, the
-profile is ACTIVE and no link exists, so the permanent trail contradicts the
-row. Production's row for Robert's technician profile already carries it, and
-that table refuses edits. The summary sentence beside it is correct. The fix is
-small (write the status the profile actually got, and no delivery for a linked
-account); not made because it changes an audit record's shape.
+**WITHDRAWN 2026-10-07: "the People screen's audit row is wrong for Robert's
+profile".** It was diagnosed from code without a production read and it was
+false. The counterpart read production: a new login, `profile.create` event 508
+correctly saying invited, and `auth.set_password` event 509 23 seconds later.
+The corrective event was cancelled unwritten. The account is in the sitting
+document under C1. **What remains open is narrower and hypothetical:** whether
+`createAccount`'s LINKING path, for an address that already has a login, writes
+a false `profile.create` row. That is being proven on development, and
+`fix/people-linked-audit` stays unmerged until it is; if the path cannot
+produce a false row, the branch closes.
 
 ## WHAT THE ORDER PATH WALK OF 2026-10-07 LEFT FOR A RULING
 

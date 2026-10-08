@@ -2130,9 +2130,10 @@ export const APPLIED = [
  * 2026-10-07, Part C of the same document, Robert as a field technician, run by
  * the counterpart with the operator present. C1 by Robert on the portal's
  * People screen, not SQL: profile c9d46cd2-9ee3-4479-9768-2b27e13c0044,
- * field_tech, ACTIVE rather than the predicted invited, because his address
- * already had an auth user on the shared project and createAccount links an
- * existing address active with no set password link. C2: coverage_counties set
+ * field_tech, ACTIVE rather than the predicted invited: a new login, and Robert
+ * set his password 23 seconds after the profile was made (audit events 508 and
+ * 509, read from production by the counterpart). This note first gave a wrong,
+ * code-only explanation; corrected the same day. C2: coverage_counties set
  * to all 254 Texas counties, read back 254 and 254 distinct. C3: one
  * eng_certifications row, roof-inspections, certified, certified_at 2026-09-23
  * 05:00 UTC, on RC-001 v1.1, and certification_status certified. C4, his two
