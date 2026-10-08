@@ -356,6 +356,7 @@ const APIS_MEASURED_ELSEWHERE = {
     ["scripts/forms-audit.mjs", "every input and state"],
     ["scripts/security-audit.mjs", "the perimeter"],
     ["scripts/token-audit.mjs", "the design system"],
+    ["scripts/v10-layout-audit.mjs", "Design V10's layout rules on the rendered page"],
   ];
 
   for (const [file, what] of MUST_DERIVE) {

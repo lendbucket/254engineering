@@ -1,0 +1,341 @@
+/**
+ * DESIGN V10'S LAYOUT RULES, MEASURED ON THE RENDERED PAGE.
+ *
+ *   npx tsx scripts/v10-layout-audit.mjs                        against the suite's server
+ *   BASE_URL=http://localhost:4300 npx tsx scripts/v10-layout-audit.mjs
+ *   V10_ONLY=/portal/profile npx tsx scripts/v10-layout-audit.mjs   one route, list ignored
+ *
+ * Operator rulings 2 and 3 of 2026-10-07. Token compliance does not prove a
+ * screen matches V10: the staff portal passed token-audit for weeks while every
+ * screen was cards. DESIGN_V10.md layout rule 1: "No boxes. ... No cards, no
+ * shadows, no rounded panels"; rule 5: "Buttons are square (2px radius)"; type:
+ * "No monospace anywhere". So this asks the BROWSER, at 1280 and at 390, for
+ * every visible element on every signed in route:
+ *
+ *   radius     a corner rounder than 2px, except a true circle (a timeline dot,
+ *              an avatar, a radio) and a native radio or checkbox
+ *   shadow     any box-shadow at all
+ *   monospace  any element with its own text in a monospace face
+ *   box        a four-sided border around content on anything that is not a
+ *              form control, a button, or a key cap
+ *
+ * THE DATED LIST. Every route must pass except those on NOT_YET_V10, and an entry
+ * may stay there only until 2026-10-19; from 2026-10-20 any entry fails. The list
+ * may only SHRINK: an entry not on the frozen original fails, and a listed route
+ * that now passes fails too, naming itself, so a restyled screen comes off the
+ * list in the commit that restyles it. That is what makes "only shrinks"
+ * mechanical rather than a promise.
+ *
+ * ROUTES WITH AN ID IN THE PATH, operator ruling of 2026-10-07. routesOf skips
+ * every [segment] directory, so this audit finds them itself and resolves each
+ * to a real id. A dynamic route it has no resolver for FAILS rather than being
+ * skipped, so a new [id] screen cannot fall outside it by being new. Three need
+ * a record owned by the signed-in probe that no probe helper creates yet; they
+ * are named in UNRESOLVED_UNTIL with the same date, counted and printed, and an
+ * interim decision of the overnight run records why (rulings-2026-10-06.md
+ * section 9).
+ */
+import { chromium } from "playwright";
+import { allPages, SURFACES } from "./lib/surfaces.mjs";
+import { AUDIT_BASE_URL } from "./lib/ports.mjs";
+import { navigationVerdict, orCouldNotTell, sayCouldNotTell } from "./lib/reachable.mjs";
+import {
+  createProbe,
+  cookieFor,
+  destroyProbes,
+  createPartnerProbe,
+  partnerCookieFor,
+  destroyPartnerProbes,
+  createCustomerProbe,
+  customerCookieFor,
+  destroyCustomerProbes,
+} from "./lib/portal-probe.mjs";
+import { auditClient } from "./lib/db-target.mjs";
+import { readdirSync, statSync } from "node:fs";
+import { join } from "node:path";
+
+const BASE = process.env.BASE_URL ?? AUDIT_BASE_URL;
+const ONLY = process.env.V10_ONLY ?? null;
+const LIST_EXPIRES = "2026-10-19";
+const TODAY = new Date().toISOString().slice(0, 10);
+
+/*
+ * NOT YET V10, as measured on 2026-10-08 before any restyle. FROZEN: this array
+ * is the original and may never gain an entry. NOT_YET_V10 below is what is
+ * still on it; a route comes off NOT_YET_V10 in the commit that restyles it.
+ */
+const ORIGINAL_NOT_YET_V10 = [
+  "/account", "/account/forgot-password", "/account/login", "/account/order", "/account/orders",
+  "/account/orders/[reference]", "/account/set-password", "/account/settings", "/account/sign-up",
+  "/account/statements",
+  "/order/[reference]", "/order/start/[slug]",
+  "/partner", "/partner/agreement", "/partner/login", "/partner/materials", "/partner/referrals",
+  "/partner/set-password", "/partner/statements", "/partner/statements/[reference]",
+  "/portal", "/portal/accounts", "/portal/accounts/[id]/pricing", "/portal/applications", "/portal/audit",
+  "/portal/billing", "/portal/certification", "/portal/charge-log", "/portal/clients",
+  "/portal/deletion-requests", "/portal/documents", "/portal/documents/binder/[fileId]", "/portal/files",
+  "/portal/files/dispatch", "/portal/inquiries", "/portal/intake", "/portal/jobs", "/portal/jobs/[id]",
+  "/portal/launch", "/portal/login", "/portal/messages", "/portal/mfa", "/portal/mfa/enrol",
+  "/portal/onboarding", "/portal/orders", "/portal/partners", "/portal/partners/[id]",
+  "/portal/partners/disputes", "/portal/pay", "/portal/people", "/portal/pricebook", "/portal/profile",
+  "/portal/profile/seal", "/portal/protocols", "/portal/protocols/rc-001", "/portal/queue",
+  "/portal/reports", "/portal/review", "/portal/roles", "/portal/set-password", "/portal/status",
+  "/portal/suppressions", "/portal/tasks", "/portal/techs", "/portal/techs/[id]", "/portal/waiting",
+  "/portal/windstorm-inquiries",
+];
+const NOT_YET_V10 = [...ORIGINAL_NOT_YET_V10];
+
+/* Dynamic routes whose screen needs a record OWNED by the signed-in probe, which no probe helper makes yet. */
+const UNRESOLVED_UNTIL = {
+  "/account/orders/[reference]": "a customer probe's own order",
+  "/order/[reference]": "an order and its signed status link",
+  "/partner/statements/[reference]": "a partner probe's own statement",
+};
+
+const out = [];
+const rec = (name, ok, note = "") => out.push({ name, ok, note });
+const unmeasured = [];
+
+console.log("");
+console.log("================ DESIGN V10, MEASURED ON THE PAGE ================");
+
+// ------------------------------------------------------------------ the routes
+const IN_SCOPE = new Set(["portal", "account", "order", "partner"]);
+const pages = allPages().filter((p) => IN_SCOPE.has(p.surface));
+const surfaceByKey = new Map(SURFACES.map((s) => [s.key, s]));
+
+/** Every [segment] page under a measured surface, as a route pattern. */
+function dynamicRoutes() {
+  const found = [];
+  for (const s of SURFACES.filter((x) => IN_SCOPE.has(x.key))) {
+    for (const dir of [...(s.dirs ?? []), ...(s.publicDirs ?? [])]) {
+      const walk = (d, prefix) => {
+        let entries = [];
+        try {
+          entries = readdirSync(d);
+        } catch {
+          return;
+        }
+        for (const e of entries) {
+          const full = join(d, e);
+          if (!statSync(full).isDirectory()) continue;
+          const segment = e.startsWith("(") ? "" : `/${e}`;
+          const here = `${prefix}${segment}`;
+          try {
+            if (statSync(join(full, "page.tsx")).isFile() && here.includes("[")) found.push({ surface: s.key, pattern: here });
+          } catch {}
+          walk(full, here);
+        }
+      };
+      walk(dir, s.prefix);
+    }
+  }
+  return found;
+}
+const dynamic = dynamicRoutes();
+rec("the dynamic routes are found on disk, not listed by hand", dynamic.length > 0, `${dynamic.length}: ${dynamic.map((d) => d.pattern).join(", ")}`);
+
+// ------------------------------------------------------------------ sessions
+const sessions = {};
+const db = auditClient("v10-layout-audit", { neverProduction: true });
+await orCouldNotTell(
+  async () => {
+    for (const role of ["admin", "engineer", "field_tech", "customer_service"]) {
+      sessions[role] = await createProbe(BASE, role, "v10-layout");
+    }
+    sessions.partner = await createPartnerProbe(BASE, "v10-layout");
+    sessions.customer = await createCustomerProbe(BASE, "v10-layout");
+  },
+  `the server at ${BASE}`,
+  async () => {
+    await destroyProbes("v10-layout");
+    await destroyPartnerProbes("v10-layout");
+    await destroyCustomerProbes("v10-layout");
+  },
+);
+for (const k of Object.keys(sessions)) rec(`a ${k} session was created`, Boolean(sessions[k]?.cookie), sessions[k]?.fault ?? "");
+
+/** A real id for each dynamic route, from development records or a probe. Null when it cannot. */
+async function resolve(pattern) {
+  if (UNRESOLVED_UNTIL[pattern]) return null;
+  if (!db) return null;
+  if (pattern === "/portal/techs/[id]") return sessions.field_tech?.id ? pattern.replace("[id]", sessions.field_tech.id) : null;
+  if (pattern === "/portal/partners/[id]") return sessions.partner?.partnerId ? pattern.replace("[id]", sessions.partner.partnerId) : null;
+  if (pattern === "/order/start/[slug]") return "/order/start/roof-inspections";
+  if (pattern === "/portal/accounts/[id]/pricing") {
+    const id = sessions.customer?.accountId ?? null;
+    return id ? `/portal/accounts/${id}/pricing` : null;
+  }
+  if (pattern === "/portal/jobs/[id]" || pattern === "/portal/documents/binder/[fileId]") {
+    const { data } = await db
+      .from("eng_files")
+      .select("id")
+      .in("status", ["delivered", "in_review", "evidence_in_progress", "dispatched"])
+      .order("created_at", { ascending: false })
+      .limit(1);
+    const id = data?.[0]?.id ?? null;
+    if (!id) return null;
+    return pattern.includes("[fileId]") ? `/portal/documents/binder/${id}` : `/portal/jobs/${id}`;
+  }
+  return null;
+}
+
+/* Which session opens a route: the surface's own principal, or the staff role roleFor names. */
+function sessionFor(surfaceKey, path) {
+  if (surfaceKey === "partner") return { probe: sessions.partner, cookie: partnerCookieFor };
+  if (surfaceKey === "account") return { probe: sessions.customer, cookie: customerCookieFor };
+  if (surfaceKey === "order") return { probe: null, cookie: null };
+  const page = pages.find((p) => p.path === path);
+  const role = page?.role ?? (path.startsWith("/portal/jobs/") ? "engineer" : surfaceByKey.get(surfaceKey)?.defaultRole) ?? "admin";
+  return { probe: sessions[role] ?? sessions.admin, cookie: cookieFor };
+}
+
+const targets = [];
+for (const p of pages) targets.push({ pattern: p.path, path: p.path, surface: p.surface, signedIn: p.session !== "none" });
+for (const d of dynamic) {
+  const path = await resolve(d.pattern);
+  targets.push({ pattern: d.pattern, path, surface: d.surface, signedIn: d.surface !== "order" });
+}
+
+// ------------------------------------------------------------------ measure
+function measure() {
+  const found = [];
+  const textOf = (el) => [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim().length > 0);
+  const controlTags = new Set(["INPUT", "TEXTAREA", "SELECT", "OPTION", "BUTTON", "KBD"]);
+  const describe = (el) => {
+    const t = (el.innerText || el.getAttribute("aria-label") || "").trim().replace(/\s+/g, " ").slice(0, 40);
+    return `${el.tagName.toLowerCase()}${t ? ` "${t}"` : ""}`;
+  };
+  const buttonLike = (el, cs, r) =>
+    el.getAttribute("role") === "button" ||
+    (el.tagName === "A" && /inline-flex|inline-block|flex/.test(cs.display) && r.height <= 60);
+  for (const el of document.querySelectorAll("body *")) {
+    const cs = getComputedStyle(el);
+    if (cs.display === "none" || cs.visibility === "hidden" || Number(cs.opacity) === 0) continue;
+    const r = el.getBoundingClientRect();
+    if (r.width < 1 || r.height < 1) continue;
+
+    if (textOf(el) && /mono|courier|consolas|menlo/i.test(cs.fontFamily)) found.push({ kind: "monospace", at: describe(el) });
+    if (cs.boxShadow && cs.boxShadow !== "none") found.push({ kind: "shadow", at: describe(el) });
+
+    const radius = Math.max(
+      parseFloat(cs.borderTopLeftRadius) || 0,
+      parseFloat(cs.borderTopRightRadius) || 0,
+      parseFloat(cs.borderBottomLeftRadius) || 0,
+      parseFloat(cs.borderBottomRightRadius) || 0,
+    );
+    const circle = Math.abs(r.width - r.height) <= 2 && radius >= r.width / 2 - 1;
+    const nativeToggle = el.tagName === "INPUT" && /radio|checkbox/.test(el.type);
+    if (radius > 2 && !circle && !nativeToggle) found.push({ kind: "radius", at: `${describe(el)} ${Math.round(radius)}px` });
+
+    const sides = ["Top", "Right", "Bottom", "Left"];
+    const allFour = sides.every(
+      (s) => (parseFloat(cs[`border${s}Width`]) || 0) > 0 && cs[`border${s}Style`] !== "none" && !/rgba\(\s*0,\s*0,\s*0,\s*0\s*\)|transparent/.test(cs[`border${s}Color`]),
+    );
+    if (allFour && !controlTags.has(el.tagName) && !buttonLike(el, cs, r) && r.width > 48 && r.height > 24 && el.innerText.trim()) {
+      found.push({ kind: "box", at: describe(el) });
+    }
+  }
+  return found;
+}
+
+const browser = targets.length && Object.values(sessions).some((s) => s?.cookie) ? await chromium.launch() : null;
+const results = [];
+for (const t of targets) {
+  if (ONLY && t.pattern !== ONLY) continue;
+  if (!t.path) {
+    results.push({ ...t, resolved: false });
+    continue;
+  }
+  const kinds = {};
+  let loaded = true;
+  for (const width of [1280, 390]) {
+    if (!browser) {
+      loaded = false;
+      break;
+    }
+    const ctx = await browser.newContext({ viewport: { width, height: width === 390 ? 844 : 900 } });
+    if (t.signedIn) {
+      const s = sessionFor(t.surface, t.pattern);
+      if (s.probe?.cookie && s.cookie) await ctx.addCookies(s.cookie(s.probe, BASE));
+    }
+    const page = await ctx.newPage();
+    try {
+      const res = await page.goto(BASE + t.path, { waitUntil: "domcontentloaded", timeout: 45000 });
+      await page.waitForTimeout(500);
+      if (!res || res.status() >= 400) {
+        loaded = false;
+        unmeasured.push(`${t.path} at ${width}: HTTP ${res?.status() ?? "none"}`);
+      } else {
+        for (const f of await page.evaluate(measure)) {
+          kinds[f.kind] = kinds[f.kind] ?? [];
+          if (kinds[f.kind].length < 3) kinds[f.kind].push(`${f.at} at ${width}`);
+          kinds[f.kind].count = (kinds[f.kind].count ?? 0) + 1;
+        }
+      }
+    } catch (err) {
+      loaded = false;
+      unmeasured.push(`${t.path} at ${width}: ${navigationVerdict(err).reason}`);
+    }
+    await ctx.close();
+  }
+  results.push({ ...t, resolved: true, loaded, kinds });
+}
+if (browser) await browser.close();
+
+// ------------------------------------------------------------------ verdicts
+const listed = new Set(NOT_YET_V10);
+const expired = TODAY > LIST_EXPIRES;
+rec("the not-yet list only shrinks: every entry is on the frozen original", NOT_YET_V10.every((r) => ORIGINAL_NOT_YET_V10.includes(r)),
+  NOT_YET_V10.filter((r) => !ORIGINAL_NOT_YET_V10.includes(r)).join(", ") || `${NOT_YET_V10.length} of ${ORIGINAL_NOT_YET_V10.length} still listed`);
+rec(`and nothing is on it after ${LIST_EXPIRES}`, !expired || NOT_YET_V10.length === 0, expired ? `${NOT_YET_V10.length} route(s) still listed on ${TODAY}` : `until ${LIST_EXPIRES}`);
+
+let clean = 0;
+let stillListed = 0;
+for (const r of results) {
+  if (!r.resolved) {
+    const why = UNRESOLVED_UNTIL[r.pattern];
+    rec(
+      `${r.pattern} is measured`,
+      Boolean(why) && !expired,
+      why ? `NOT RESOLVED until ${LIST_EXPIRES}: needs ${why}` : "a dynamic route with no resolver; add one, a route with an id is not exempt",
+    );
+    continue;
+  }
+  if (!r.loaded) continue;
+  const broken = Object.entries(r.kinds);
+  const detail = broken.map(([k, v]) => `${k} ${v.count}: ${v.join("; ")}`).join(" | ");
+  if (ONLY) {
+    rec(`${r.pattern} follows V10's layout rules`, broken.length === 0, detail);
+    continue;
+  }
+  if (broken.length === 0) {
+    clean += 1;
+    rec(`${r.pattern} follows V10's layout rules`, !listed.has(r.pattern), listed.has(r.pattern) ? "it passes: take it off NOT_YET_V10 in this commit" : "");
+  } else if (listed.has(r.pattern) && !expired) {
+    stillListed += 1;
+  } else {
+    rec(`${r.pattern} follows V10's layout rules`, false, detail);
+  }
+}
+
+console.log("");
+for (const r of out) console.log(`  ${r.ok ? "PASS" : "FAIL"}: ${r.name}${r.note ? ` (${r.note})` : ""}`);
+if (!ONLY) {
+  console.log("");
+  console.log(`  NOTE: ${clean} route(s) follow V10; ${stillListed} still on the dated not-yet list until ${LIST_EXPIRES}.`);
+}
+sayCouldNotTell(unmeasured, "these routes");
+
+await destroyProbes("v10-layout");
+await destroyPartnerProbes("v10-layout");
+await destroyCustomerProbes("v10-layout");
+
+const failed = out.filter((r) => !r.ok).length;
+console.log("");
+if (failed) {
+  console.log(`FAIL: ${failed} of ${out.length} checks.`);
+  process.exitCode = 1;
+} else {
+  console.log(`PASS: ${out.length} checks. Every route measured follows V10's layout rules or is on the dated list.`);
+}
