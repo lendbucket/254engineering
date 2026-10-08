@@ -16,6 +16,27 @@ Part C, Robert as a field technician (profile, 254 counties, the roof
 certification of 2026-09-23, two credentials, the W-9 and contractor agreement
 covered by the owner exemption in code).
 
+## THE V10 LAYOUT CHECK, RULED 2026-10-07, NOT YET BUILT
+
+Operator rulings 2 and 3 of 2026-10-07. A board check that MEASURES THE
+RENDERED PAGE, not token names: any border radius above 2px outside inputs,
+any shadow, any monospace text, any four-sided box around content. Every route
+not on a dated "not yet V10" list must pass; the list may only shrink; any entry
+still on it after **2026-10-19** fails the board. Proven red on today's
+`/portal/profile` before anything comes off the list. Customer screens are held
+to it and fixed in the admin phase. It is built after the shell and shared
+pieces are restyled, per ruling 1.
+
+**IT MUST COVER ROUTES WITH AN ID IN THE PATH**, operator ruling of the same
+day, naming `/portal/techs/[id]`, `/portal/jobs/[id]` and `/portal/partners/[id]`.
+Today no browser audit visits any of them: `routesOf` in
+`scripts/lib/surfaces.mjs` skips every `[segment]` directory, so these screens
+have never been measured for contrast, overflow, tap targets or anything else.
+The check resolves a real id for each dynamic route from development data (a
+probe technician, a probe job, a probe partner it creates and sweeps), and
+fails, rather than skipping, a dynamic route it cannot resolve an id for, so a
+new `[id]` screen cannot fall outside it by being new.
+
 ## WHAT THE ORDER PATH WALK OF 2026-10-07 LEFT FOR A RULING
 
 `scripts/exercises/order-path-walk.mjs` drove an order to a sealed letter and a
