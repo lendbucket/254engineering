@@ -13,6 +13,7 @@ import {
   CREDENTIAL_OF_ITEM,
   activationReadiness,
   credentialBlockers,
+  exemptKindsFor,
   expiryState,
   type CredentialRecord,
   type OnboardingItemView,
@@ -487,9 +488,20 @@ export async function credentialsFor(profileIds: string[]): Promise<Map<string, 
 /** Blockers per technician, for dispatch and the roster. */
 export async function credentialBlockersFor(profileIds: string[]): Promise<Map<string, string[]>> {
   const held = await credentialsFor(profileIds);
+  /*
+   * The owner exemption is keyed on the profile's email, so the emails are read
+   * here. A failed read exempts nobody: the blockers are computed as if no
+   * exemption existed, which is the shut answer.
+   */
+  const db = supabaseAdmin();
+  const emails = new Map<string, string>();
+  if (db && profileIds.length > 0) {
+    const { data } = await db.from("eng_profiles").select("id, email").in("id", profileIds);
+    for (const p of data ?? []) emails.set(p.id as string, (p.email as string | null) ?? "");
+  }
   const out = new Map<string, string[]>();
   for (const id of profileIds) {
-    out.set(id, credentialBlockers(held.get(id) ?? []).map((b) => b.reason));
+    out.set(id, credentialBlockers(held.get(id) ?? [], new Date(), exemptKindsFor(emails.get(id))).map((b) => b.reason));
   }
   return out;
 }

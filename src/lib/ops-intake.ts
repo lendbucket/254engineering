@@ -2,12 +2,14 @@ import "server-only";
 import { DB_NOW } from "./db-now";
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { supabaseAdmin, SITE_KEY } from "./supabase";
-import { referenceForCustomer } from "./ops-files";
+import { DEMO_FILE_SEGMENT, referenceForCustomer } from "./ops-files";
 import { writeAudit } from "./ops-audit";
 import { createClient, createFile, SYSTEM_AUTHOR } from "./ops-crm";
-import { resolveCounty, twiaStatus } from "./ops-counties";
-import { launchMode, serviceLineIsOffered } from "./launch";
-import { catalogFor, deliverablesFor, orderBlockedReason, type CatalogEntry } from "@data/catalog";
+import { resolveCounty, twiaStatus, windstormAreaRefusal } from "./ops-counties";
+import { launchMode } from "./launch";
+import { catalogFor, deliverablesFor, type CatalogEntry } from "@data/catalog";
+import { fieldsFor } from "@data/intake-fields";
+import { orderBlockedNow } from "./line-gate";
 import {
   landingStatusFor,
   qualify,
@@ -289,7 +291,8 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
       field: "tier",
     };
   }
-  const blocked = orderBlockedReason(entry, launchMode(), entry ? serviceLineIsOffered(entry.serviceSlug) : false);
+  /* A MONEY DOOR, ruling 11: placeOrder reads the engineer's signed record before taking money. */
+  const blocked = await orderBlockedNow(entry, launchMode());
   if (!entry || blocked) {
     return { ok: false, error: blocked ?? "That service cannot be ordered.", field: "serviceSlug" };
   }
@@ -329,6 +332,8 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
     };
   }
   const county = resolved.county;
+  const outsideArea = windstormAreaRefusal(entry.serviceSlug, county);
+  if (outsideArea) return { ok: false, error: outsideArea, field: "property.county" };
   const twia = twiaStatus(county) === "designated";
 
   const priced = quoteFor(entry, twia, county);
@@ -344,6 +349,18 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
     .insert({
       site: input.site,
       reference,
+      /*
+       * SET WITH THE REFERENCE, BY THE SAME PREDICATE. Found 2026-10-07 by the
+       * order path walk: a probe address gets a -DEMO- reference, the database
+       * requires is_demo to agree, and this insert never set it, so every order
+       * from an unroutable address was refused with the raw constraint message.
+       *
+       * Stated as the database's own rule (eng_orders_demo_reference_agrees:
+       * is_demo = reference like '%-DEMO-%'), on the reference this server just
+       * computed, rather than on the request's email: demo-audit refuses a
+       * flag a caller's input sets, and this is the row's own reference.
+       */
+      is_demo: reference.includes(`-${DEMO_FILE_SEGMENT}-`),
       service_slug: entry.serviceSlug,
       tier: entry.tier,
       order_type: entry.orderType,
@@ -448,6 +465,14 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
   });
 
   if (client.ok) {
+    /*
+     * A demonstration order's client is a demonstration too, decided by the
+     * order's own reference rather than by the request. Only ever set, never
+     * cleared, so a real client reached by a probe order is not unmarked.
+     */
+    if (reference.includes(`-${DEMO_FILE_SEGMENT}-`)) {
+      await db.from("eng_clients").update({ is_demo: reference.includes(`-${DEMO_FILE_SEGMENT}-`) }).eq("id", client.id);
+    }
     const file = await createFile(SYSTEM_AUTHOR, {
       clientId: client.id,
       serviceSlug: entry.serviceSlug,
@@ -457,6 +482,8 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
       postalCode: trimmed(input.property.postalCode) || null,
       notes: `Opened by the order engine from ${reference}.`,
       clientPriceCents: isKnown(priced.totalCents) ? priced.totalCents : null,
+      /* The order's own reference decides, as for the order row above. */
+      demo: reference.includes(`-${DEMO_FILE_SEGMENT}-`),
     });
 
     if (file.ok) {
@@ -519,8 +546,18 @@ async function recordInputs(
     });
   }
 
+  /*
+   * EVERY FIELD THE FORM ASKS, NOT ONLY THE CATALOGUE'S OWN. Found 2026-10-07
+   * by the order path walk. This looked each answer up in entry.requiredInputs,
+   * the handful of inputs the catalogue declares for one deliverable, so every
+   * universal question and every protocol question was dropped at checkout:
+   * the purpose and recipient the letter is written for, the five questions
+   * that route a job to the engineer, the protocol's uploads. The order form
+   * asks from fieldsFor, the one definition, and so does this now.
+   */
+  const asked = fieldsFor(entry.serviceSlug, entry.tier);
   for (const [key, value] of Object.entries(input.inputs ?? {})) {
-    const spec = entry.requiredInputs.find((i) => i.id === key);
+    const spec = asked.find((i) => i.id === key);
     if (!spec || !trimmed(value)) continue;
     rows.push({
       order_id: orderId,
@@ -532,7 +569,7 @@ async function recordInputs(
   }
 
   for (const file of input.files ?? []) {
-    const spec = entry.requiredInputs.find((i) => i.id === file.key);
+    const spec = asked.find((i) => i.id === file.key);
     if (!spec) continue;
     rows.push({
       order_id: orderId,
@@ -626,7 +663,8 @@ export async function requestQuote(input: RequestQuoteInput): Promise<RequestQuo
   const quotable = deliverablesFor(input.serviceSlug).filter((d) => d.orderType === "quote");
   const entry =
     catalogFor(input.serviceSlug, input.tier) ?? (quotable.length === 1 ? quotable[0] : undefined);
-  const blocked = orderBlockedReason(entry, launchMode(), entry ? serviceLineIsOffered(entry.serviceSlug) : false);
+  /* The quote path asks the same question through the same door helper, ruling 11. */
+  const blocked = await orderBlockedNow(entry, launchMode());
   if (!entry || blocked) {
     return { ok: false, error: blocked ?? "That service is not in the catalog.", field: "serviceSlug" };
   }

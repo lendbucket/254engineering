@@ -1,5 +1,5 @@
 import type { CatalogEntry } from "@data/catalog";
-import { TEXAS_COUNTIES } from "./ops-counties";
+import { TEXAS_COUNTIES, windstormAreaRefusal } from "./ops-counties";
 import { qualify, quoteFor } from "./ops-orders";
 import type { Cents } from "./ops-money";
 import { isKnown } from "./ops-money";
@@ -228,6 +228,13 @@ export function splitBatch(
     const verdict = qualify(entry, p.answers);
     if (!verdict.ok) {
       rejected.push({ ref: p.ref, property: p, reason: verdict.message });
+      continue;
+    }
+
+    /* The single property flow's own refusal, read from this property's own county. */
+    const outsideArea = windstormAreaRefusal(entry.serviceSlug, p.county);
+    if (outsideArea) {
+      rejected.push({ ref: p.ref, property: p, reason: outsideArea });
       continue;
     }
 

@@ -39,6 +39,32 @@ const check = (name, ok, note) => {
   console.log(`${ok ? "PASS" : "FAIL"}  ${name}${note ? ` (${note})` : ""}`);
 };
 
+/*
+ * NEVER WHILE ANOTHER PROJECT HOLDS THE MACHINE. Found 2026-10-07: this proof
+ * moves the real lock aside and puts it back, and it was run by hand (through
+ * proofs-audit) while dispatch-scheduling held a live lock. The lock came back
+ * byte for byte, and for the length of the run another project's lock was not
+ * where its owner left it, which CLAUDE.md section 6d forbids. So a live lock
+ * held by any other project means this proof does not run: it says so and
+ * exits without touching the file. Under this project's own board, which holds
+ * the lock itself, it runs as before.
+ */
+{
+  const held = existsSync(LOCK_PATH) ? readLock() : null;
+  const alive = (pid) => {
+    try {
+      process.kill(pid, 0);
+      return true;
+    } catch (e) {
+      return e.code === "EPERM";
+    }
+  };
+  if (held && held.project !== "254engineering" && held.pid && alive(held.pid)) {
+    console.log(`COULD NOT TELL: ${held.project} (pid ${held.pid}) holds the machine lock, and this proof never moves another project's lock. Run it when the machine is free.`);
+    process.exit(0);
+  }
+}
+
 const ASIDE = `${LOCK_PATH}.proof-aside`;
 const hadReal = existsSync(LOCK_PATH);
 if (hadReal) copyFileSync(LOCK_PATH, ASIDE);

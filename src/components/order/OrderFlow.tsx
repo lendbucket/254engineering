@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import type { CatalogEntry } from "@data/catalog";
 import {
@@ -12,6 +12,23 @@ import {
   type FlowState,
   type StepId,
 } from "@/lib/order-flow";
+import { refundDisclosure } from "@/lib/ops-orders";
+
+/**
+ * WHO THE CUSTOMER IS PAYING, read by the server page from the derivers and
+ * passed in, because this is a client component and cannot read the register
+ * or the gate. The signals are the four the operator approved on 2026-10-05,
+ * each from its one home: the registration line, the engineer in responsible
+ * charge (only when the gate says the firm is trading, so the sentence is never
+ * a premature claim), and the firm's address and telephone. Absent is absent:
+ * a null is not rendered as an empty line.
+ */
+export type TrustFacts = {
+  registration: string;
+  engineerInCharge: boolean;
+  address: string | null;
+  phone: string | null;
+};
 
 /**
  * The customer's order flow.
@@ -37,10 +54,12 @@ export function OrderFlow({
   serviceName,
   deliverables,
   signedIn = false,
+  trust,
 }: {
   serviceSlug: string;
   serviceName: string;
   deliverables: CatalogEntry[];
+  trust: TrustFacts;
   /**
    * Whether a customer session is open, read by the server page.
    *
@@ -98,6 +117,38 @@ export function OrderFlow({
 
   const set = (patch: Partial<FlowState>) => setState((s) => ({ ...s, ...patch }));
 
+  /*
+   * ORDER FLOW V2, 2026-10-07: CONTINUE IS NEVER DISABLED FOR A MISSING ANSWER.
+   * A disabled button gave no reason, and a list of what was missing sat under
+   * every step before the person had tried anything. Now Continue always
+   * answers: with something missing, the list appears under "Before you
+   * continue" and takes focus, so the reason is stated where the person is
+   * looking and read out by a screen reader. Moving on, or back, clears it.
+   */
+  const [attempted, setAttempted] = useState(false);
+  const stillNeeded = useRef<HTMLDivElement>(null);
+  /*
+   * UPLOADS IN FLIGHT, BY INPUT, WITH THE LABEL A PERSON READS. Found
+   * 2026-10-07 and reproduced by holding the storage PUT: a Continue pressed
+   * while a photo was still uploading said the photo was MISSING, which was
+   * false, and nothing on the screen said an upload was under way. Now the
+   * field says "Uploading", and Continue names the file it is waiting for.
+   */
+  const [uploading, setUploading] = useState<Record<string, string>>({});
+  const inFlight = Object.values(uploading);
+  const waitingOn = inFlight.map((label) => `Still uploading: ${label}. Wait for it to finish.`);
+  /* A file still uploading is not also missing: its own entry gives way to the upload's. */
+  const shownBlockers = [...waitingOn, ...blockers.filter((b) => !inFlight.includes(b))];
+  const blockedOrGo = (go: () => void) => {
+    if (shownBlockers.length > 0) {
+      setAttempted(true);
+      requestAnimationFrame(() => stillNeeded.current?.focus());
+      return;
+    }
+    setAttempted(false);
+    go();
+  };
+
   function answer(qualifierId: string, optionIndex: number) {
     const q = entry?.qualifiers.find((x) => x.id === qualifierId);
     setState((s) => ({
@@ -113,32 +164,53 @@ export function OrderFlow({
     else setDisqualified(null);
   }
 
-  async function upload(inputKey: string, file: File) {
-    const res = await fetch("/api/order-flow", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "sign-upload",
-        draftId,
-        inputKey,
-        filename: file.name,
-        contentType: file.type,
-        size: file.size,
-      }),
-    });
-    const signed = await res.json();
-    if (!signed.ok) {
-      setError(signed.error);
+  async function upload(inputKey: string, label: string, file: File) {
+    /*
+     * IN FLIGHT FROM THE FIRST REQUEST TO THE LAST, AND NEVER SILENT. Both
+     * fetches can throw (a dropped connection, a storage host that will not
+     * answer), and before 2026-10-07 a throw here went nowhere: the call site
+     * is `void upload(...)`, so no message appeared and the photo was later
+     * reported missing. Now a throw says the upload failed, and the in flight
+     * mark is cleared whatever happens.
+     */
+    setUploading((u) => ({ ...u, [inputKey]: label }));
+    let signed: { ok: boolean; error?: string; uploadUrl?: string; storageKey?: string; bucket?: string };
+    try {
+      const res = await fetch("/api/order-flow", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "sign-upload",
+          draftId,
+          inputKey,
+          filename: file.name,
+          contentType: file.type,
+          size: file.size,
+        }),
+      });
+      signed = await res.json();
+      if (!signed.ok || !signed.uploadUrl || !signed.storageKey || !signed.bucket) {
+        setError(signed.error ?? "That file could not be prepared for upload. Try again.");
+        return;
+      }
+      const put = await fetch(signed.uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+      if (!put.ok) {
+        setError("That file did not upload. Try again, or a smaller one.");
+        return;
+      }
+    } catch {
+      setError("That file did not upload, because the connection failed. Try again.");
       return;
-    }
-    const put = await fetch(signed.uploadUrl, {
-      method: "PUT",
-      headers: { "Content-Type": file.type },
-      body: file,
-    });
-    if (!put.ok) {
-      setError("That file did not upload. Try again, or a smaller one.");
-      return;
+    } finally {
+      setUploading((u) => {
+        const rest = { ...u };
+        delete rest[inputKey];
+        return rest;
+      });
     }
     setError(null);
     setState((s) => ({
@@ -147,7 +219,7 @@ export function OrderFlow({
         ...s.files,
         [inputKey]: [
           ...(s.files[inputKey] ?? []),
-          { name: file.name, storageKey: signed.storageKey, bucket: signed.bucket },
+          { name: file.name, storageKey: signed.storageKey as string, bucket: signed.bucket as string },
         ],
       },
     }));
@@ -575,15 +647,31 @@ export function OrderFlow({
                   />
                 ) : input.kind === "file" ? (
                   <div className="mt-2.5">
+                    {/*
+                      STYLED, STILL THE NATIVE CONTROL. Seven of these rendered
+                      as the browser's bare file picker. The `file:` variant
+                      styles the button the browser draws, so keyboard focus,
+                      the label and the screen reader's announcement are the
+                      platform's own rather than a re-implementation. A
+                      photograph accepts images, which on a phone offers the
+                      camera beside the library; `capture` is not set, because
+                      it would take the library away.
+                    */}
                     <input
                       id={input.id}
                       type="file"
-                      className="text-[14px]"
+                      accept={input.photo ? "image/*" : undefined}
+                      className="block w-full text-[14px] text-[var(--color-ink-quiet)] file:mr-3 file:min-h-[var(--tap-target)] file:cursor-pointer file:rounded-[3px] file:border file:border-[var(--color-limestone-edge)] file:bg-white file:px-4 file:text-[15px] file:font-semibold file:text-[var(--color-ink)]"
                       onChange={(e) => {
                         const f = e.target.files?.[0];
-                        if (f) void upload(input.id, f);
+                        if (f) void upload(input.id, input.label, f);
                       }}
                     />
+                    {uploading[input.id] ? (
+                      <p aria-live="polite" className="mt-2 text-[14px] text-[var(--color-ink)]">
+                        Uploading
+                      </p>
+                    ) : null}
                     <ul className="mt-2 flex flex-col gap-1">
                       {(state.files[input.id] ?? []).map((f) => (
                         <li key={f.storageKey} className="text-[14px] text-[var(--color-ink-quiet)]">
@@ -595,7 +683,14 @@ export function OrderFlow({
                 ) : (
                   <textarea
                     id={input.id}
-                    rows={input.kind === "text" ? 3 : 1}
+                    /*
+                     * A long answer gets room, a short one a line. This read
+                     * `text` three rows and everything else one, backwards, so
+                     * the verbatim purpose and recipient questions, the two that
+                     * need the most room, were the ones given a single line.
+                     * Found in the capture of 2026-10-07.
+                     */
+                    rows={input.kind === "longtext" ? 3 : 1}
                     value={state.inputs[input.id] ?? ""}
                     onChange={(e) => set({ inputs: { ...state.inputs, [input.id]: e.target.value } })}
                     className={`${FIELD} py-2.5`}
@@ -607,15 +702,20 @@ export function OrderFlow({
         ) : null}
 
         {step.id === "review" && entry ? (
-          <ReviewStep entry={entry} state={state} onAccept={(v) => set({ acceptedTerms: v })} />
+          <ReviewStep entry={entry} state={state} trust={trust} onAccept={(v) => set({ acceptedTerms: v })} />
         ) : null}
       </div>
 
-      {blockers.length > 0 && index > 0 ? (
-        <div className="mt-8 border-t border-[var(--color-limestone-line)] pt-5">
-          <p className="text-[14px] font-semibold text-[var(--color-ink)]">Still needed</p>
+      {attempted && shownBlockers.length > 0 ? (
+        <div
+          ref={stillNeeded}
+          tabIndex={-1}
+          aria-live="polite"
+          className="mt-8 border-l-2 border-[var(--color-ink)] pl-3 outline-none"
+        >
+          <p className="text-[14px] font-semibold text-[var(--color-ink)]">Before you continue</p>
           <ul className="mt-1.5 flex flex-col gap-1">
-            {blockers.map((b) => (
+            {shownBlockers.map((b) => (
               <li key={b} className="text-[14px] leading-[1.55] text-[var(--color-ink-quiet)]">
                 {b}
               </li>
@@ -652,6 +752,7 @@ export function OrderFlow({
           type="button"
           disabled={index === 0 && (!onRequirements || partIndex === 0)}
           onClick={() => {
+            setAttempted(false);
             if (onRequirements && partIndex > 0) {
               setPart(partIndex - 1);
               return;
@@ -666,8 +767,8 @@ export function OrderFlow({
         {step.id === "review" ? (
           <button
             type="button"
-            disabled={blockers.length > 0 || submitting}
-            onClick={() => void submit()}
+            disabled={submitting}
+            onClick={() => blockedOrGo(() => void submit())}
             className="min-h-[var(--tap-target)] rounded-[3px] bg-[var(--color-slate)] px-6 text-[15px] font-semibold text-white disabled:opacity-40"
           >
             {submitting
@@ -679,22 +780,23 @@ export function OrderFlow({
         ) : (
           <button
             type="button"
-            disabled={blockers.length > 0}
-            onClick={() => {
-              if (onRequirements && partIndex < lastPart) {
-                setPart(partIndex + 1);
-                /*
-                 * Back to the top, because a sub page that opens halfway down
-                 * is a sub page whose first question nobody sees. The split
-                 * exists to make the screen short; landing mid screen would
-                 * give that back.
-                 */
-                window.scrollTo({ top: 0, behavior: "auto" });
-                return;
-              }
-              setPart(0);
-              setIndex((i) => Math.min(steps.length - 1, i + 1));
-            }}
+            onClick={() =>
+              blockedOrGo(() => {
+                if (onRequirements && partIndex < lastPart) {
+                  setPart(partIndex + 1);
+                  /*
+                   * Back to the top, because a sub page that opens halfway down
+                   * is a sub page whose first question nobody sees. The split
+                   * exists to make the screen short; landing mid screen would
+                   * give that back.
+                   */
+                  window.scrollTo({ top: 0, behavior: "auto" });
+                  return;
+                }
+                setPart(0);
+                setIndex((i) => Math.min(steps.length - 1, i + 1));
+              })
+            }
             className="min-h-[var(--tap-target)] rounded-[3px] bg-[var(--color-slate)] px-6 text-[15px] font-semibold text-white disabled:opacity-40"
           >
             Continue
@@ -766,10 +868,12 @@ const FIELD =
 function ReviewStep({
   entry,
   state,
+  trust,
   onAccept,
 }: {
   entry: CatalogEntry;
   state: FlowState;
+  trust: TrustFacts;
   onAccept: (v: boolean) => void;
 }) {
   const dollars = (c: number | null) =>
@@ -826,7 +930,7 @@ function ReviewStep({
         If the engineer declines
       </h3>
       <ul className="mt-4 flex flex-col gap-3">
-        {refundLines(entry).map((line) => (
+        {refundDisclosure(entry).map((line) => (
           <li key={line} className="text-[15px] leading-[1.65] text-[var(--color-ink-quiet)]">
             {line}
           </li>
@@ -844,39 +948,55 @@ function ReviewStep({
           I have read what happens if the engineer declines to seal.
         </span>
       </label>
+
+      {/*
+        WHO YOU ARE PAYING, AND HOW. The operator's approved signals of
+        2026-10-05, each from its one home (see TrustFacts). The card sentence
+        lives under the buttons, and is true because checkout is Stripe's hosted
+        page (payments-stripe.ts, checkout.sessions.create with no embedded
+        mode). The refund reassurance appears ONCE, in the refund terms above,
+        by the operator's ruling of 2026-10-07; it was briefly repeated here.
+        Never the sentence rejected as false on 2026-10-05, because the
+        customer pays at checkout.
+        The "Powered by Stripe" mark, approved 2026-10-07, is Stripe's own
+        asset, downloaded unmodified from Stripe's brand page (the black badge
+        in Powered_by_Stripe-badge.zip) to public/brand, and linked to
+        stripe.com as that page suggests. Its use is governed by Stripe's Marks
+        Usage Agreement, stripe.com/marks/legal.
+      */}
+      <h3 className="v10-label mt-9">Who you are paying</h3>
+      <ul className="mt-4 flex flex-col gap-2 text-[14px] leading-[1.65] text-[var(--color-ink-quiet)]">
+        <li>{trust.registration}</li>
+        {trust.engineerInCharge ? (
+          <li>A licensed Texas Professional Engineer is in responsible charge of the firm&apos;s engineering work.</li>
+        ) : null}
+        {trust.address ? <li>{trust.address}</li> : null}
+        {trust.phone ? <li>{trust.phone}</li> : null}
+        {/*
+          No card sentence here. One was added on 2026-10-07 and the capture
+          that day showed the flow already carries it, under the buttons ("Card
+          details are entered on Stripe's page and never reach this site."), so
+          it was the same fact twice on one screen. That one stays.
+        */}
+      </ul>
+      <a
+        href="https://stripe.com"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mt-4 inline-block"
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element -- an unmodified vendor SVG, served as the file it is */}
+        <img src="/brand/powered-by-stripe-black.svg" alt="Powered by Stripe" width={150} height={34} />
+      </a>
     </div>
   );
 }
 
 /*
- * The same four sentences the server stores on the order, written here so the
- * customer reads them before paying rather than after. The server's copy is the
- * record; this is the disclosure.
+ * THE DISCLOSURE IS THE SERVER'S OWN, SINCE 2026-10-07. A copy of
+ * refundDisclosure lived here, "written here so the customer reads them before
+ * paying", and it had already drifted: an unpublished fee read one way on this
+ * screen and another on the stored order. refundDisclosure imports nothing but
+ * types and the money formatter, so the form calls it directly and the words a
+ * customer reads before paying are the words the order stores.
  */
-function refundLines(entry: CatalogEntry): string[] {
-  const fee =
-    entry.inspectionFeeCents === null
-      ? null
-      : `$${(entry.inspectionFeeCents / 100).toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
-
-  const lines = [
-    "The engineer reviews what is gathered and decides. They may seal it, ask for revisions, ask for another visit, or decline to seal.",
-  ];
-  if (entry.orderType === "field") {
-    lines.push(
-      "If they decline before anyone attends the property, you are refunded in full.",
-      fee
-        ? `If they decline after a technician has attended, you are refunded everything except the ${fee} inspection, and you receive what the engineer found and why they could not seal it.`
-        : "If they decline after a technician has attended, an inspection fee is retained.",
-      "You are never charged more than the price shown above, and a decline is never a reason for a further charge.",
-    );
-  } else {
-    lines.push(
-      "There is no site visit on this service, so if they decline you are refunded in full and you still receive what the engineer found.",
-    );
-  }
-  lines.push(
-    "Paying does not buy a seal. It buys the review by a licensed Professional Engineer, and their conclusion is theirs.",
-  );
-  return lines;
-}

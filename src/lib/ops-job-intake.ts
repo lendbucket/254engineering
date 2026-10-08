@@ -4,7 +4,7 @@ import { writeAudit } from "./ops-audit";
 import { createClient, createFile, transitionFile, type Author } from "./ops-crm";
 import { catalogFor, orderBlockedReason } from "@data/catalog";
 import { quoteFor } from "./ops-orders";
-import { resolveCounty, twiaStatus } from "./ops-counties";
+import { resolveCounty, twiaStatus, windstormAreaRefusal } from "./ops-counties";
 import { isOpen } from "./launch";
 import { isKnown } from "./ops-money";
 import { fieldsFor, missingFor } from "@data/intake-fields";
@@ -197,6 +197,9 @@ export async function takeJob(
       field: "county",
     };
   }
+  /* The same refusal every door gives, read from this job's own county. */
+  const outsideArea = windstormAreaRefusal(input.serviceSlug, resolved.county);
+  if (outsideArea) return { ok: false, error: outsideArea, field: "county" };
 
   /*
    * The order stage questions are as blocking as the property address, because

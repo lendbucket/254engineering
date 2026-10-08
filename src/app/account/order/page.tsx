@@ -3,9 +3,10 @@ import { redirect } from "next/navigation";
 import { currentCustomer } from "@/lib/customer-auth";
 import { Wordmark } from "@/components/brand/Wordmark";
 import { registrationLine } from "@/lib/launch";
-import { deliverablesFor, orderBlockedReason } from "@data/catalog";
+import { deliverablesFor } from "@data/catalog";
 import { services } from "@/content/services";
-import { launchMode, notYetAcceptingEngagements, registrationStatement, serviceLineIsOffered } from "@/lib/launch";
+import { launchMode, notYetAcceptingEngagements, registrationStatement } from "@/lib/launch";
+import { orderBlockedNow } from "@/lib/line-gate";
 import { BulkOrderClient } from "./BulkOrderClient";
 
 export const dynamic = "force-dynamic";
@@ -39,14 +40,16 @@ export default async function BulkOrderPage({
    * has no price, so forty of them is forty conversations rather than one
    * payment, and offering it here would produce a submission nobody can price.
    */
-  const orderable = services
-    .map((s) => ({
-      service: s,
-      deliverables: deliverablesFor(s.slug).filter(
-        (d) => orderBlockedReason(d, mode, serviceLineIsOffered(d.serviceSlug)) === null && d.priceCents !== null,
-      ),
-    }))
-    .filter((s) => s.deliverables.length > 0);
+  /* A MONEY DOOR, ruling 11: each deliverable is asked through orderBlockedNow. */
+  const orderable = (
+    await Promise.all(
+      services.map(async (s) => {
+        const all = deliverablesFor(s.slug);
+        const blocked = await Promise.all(all.map((d) => orderBlockedNow(d, mode)));
+        return { service: s, deliverables: all.filter((d, i) => blocked[i] === null && d.priceCents !== null) };
+      }),
+    )
+  ).filter((s) => s.deliverables.length > 0);
 
   const chosen = orderable.find((s) => s.service.slug === service) ?? orderable[0];
 

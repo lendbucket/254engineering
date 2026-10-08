@@ -6,9 +6,10 @@ import { startCheckout } from "./ops-payments";
 import { queueEmail } from "./ops-jobs";
 import { jobPaymentLink } from "./email-templates";
 import { money } from "./ops-money";
-import { isOpen, serviceLineIsOffered } from "./launch";
-import { catalogFor, orderBlockedReason } from "@data/catalog";
-import { referenceForCustomer } from "./ops-files";
+import { isOpen } from "./launch";
+import { catalogFor } from "@data/catalog";
+import { orderBlockedNow } from "./line-gate";
+import { DEMO_FILE_SEGMENT, referenceForCustomer } from "./ops-files";
 import { paymentOptions } from "./job-intake-rules";
 import { refundDisclosure } from "./ops-orders";
 import type { Author } from "./ops-crm";
@@ -166,6 +167,8 @@ async function createOrderForFile(
     .insert({
       site: SITE_KEY,
       reference,
+      /* The database's own rule, on the reference just computed; see placeOrder. */
+      is_demo: reference.includes(`-${DEMO_FILE_SEGMENT}-`),
       service_slug: file.service_slug,
       tier: file.deliverable,
       order_type: entry?.orderType ?? "desk",
@@ -231,7 +234,7 @@ async function createOrderForFile(
  * the gate through paymentOptions, in the words the screen uses, and asking it
  * twice would replace that message with a less specific one.
  */
-function termsGap(file: FileForBilling): string | null {
+async function termsGap(file: FileForBilling): Promise<string | null> {
   const entry = file.deliverable ? catalogFor(file.service_slug, file.deliverable) : undefined;
   if (!entry) {
     return "That deliverable is not in the order catalog, so its refund terms cannot be stated and it cannot be billed.";
@@ -246,7 +249,8 @@ function termsGap(file: FileForBilling): string | null {
    * answer a question that is not its own, and the value now says which
    * question it is skipping rather than which boolean it is passing.
    */
-  const blocked = orderBlockedReason(entry, "open", serviceLineIsOffered(entry.serviceSlug));
+  /* A MONEY DOOR, ruling 11: the engineer's signed record is read before a job is billed. */
+  const blocked = await orderBlockedNow(entry, "open");
   if (blocked) return `${blocked} It cannot be billed by telephone either.`;
   return null;
 }
@@ -276,7 +280,7 @@ export async function sendPaymentLink(actor: Author, fileId: string): Promise<Bi
   const refusal = refusedBecause("link_sent", false, file.client_price_cents !== null);
 
   /* The terms before the money, on both doors. */
-  const gap = termsGap(file);
+  const gap = await termsGap(file);
   if (gap) return { ok: false, error: gap };
   if (refusal) return { ok: false, error: refusal };
 
@@ -377,7 +381,7 @@ export async function invoiceAccount(actor: Author, fileId: string): Promise<Bil
   const refusal = refusedBecause("invoiced", canInvoice, file.client_price_cents !== null);
 
   /* The terms before the money, on both doors. */
-  const gap = termsGap(file);
+  const gap = await termsGap(file);
   if (gap) return { ok: false, error: gap };
   if (refusal) return { ok: false, error: refusal };
 

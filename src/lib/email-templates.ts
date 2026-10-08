@@ -860,20 +860,30 @@ export function orderSealed(input: {
   reference: string;
   propertyAddress: string;
   sealedAt: string;
+  /**
+   * THE DOWNLOAD CAME BACK ON 2026-10-07, with sealing piece two. The button
+   * was removed on 2026-10-03 because there was no link that answered; the
+   * order page now lists the sealed letter, served by /api/order-document,
+   * which re-hashes it on every read. The link is to the order page rather
+   * than to the PDF, so the email carries the same signed link every other
+   * order email does and never a document id.
+   */
+  statusUrl: string;
 }): RenderedEmail {
   return compose(
     "order.sealed",
     "human",
     `Sealed: ${input.reference}`,
     {
-      preheader: `The engineer has sealed the document for ${input.propertyAddress}.`,
+      preheader: `The engineer has sealed the letter for ${input.propertyAddress}.`,
       status: { reference: `Order ${input.reference}`, state: "Sealed" },
       signed: true,
+      button: { label: "Download the sealed letter", url: input.statusUrl },
       blocks: [
         { kind: "p", text: `${input.customerName},` },
         {
           kind: "p",
-          text: `The engineer has sealed the document for ${input.propertyAddress}. The firm will email it to you at ${input.customerEmail}.`,
+          text: `The engineer has sealed the letter for ${input.propertyAddress}. It is on your order page, ready to download.`,
         },
         {
           kind: "details",
@@ -1454,6 +1464,48 @@ export function opsNotification(input: {
 }
 
 
+/**
+ * THE RETENTION ALERT, TO THE OPERATOR, AS ITS OWN EMAIL.
+ *
+ * It went out as opsNotification until 2026-10-07, which is the technician's
+ * notification template, and the staff walk of 2026-10-03 read the result: one
+ * wall of text, because the body was lines joined with newlines inside one
+ * paragraph; a footer about notification preferences, a document expiring and a
+ * certification being withdrawn, which is about a technician's own profile and
+ * means nothing on a machine alert to the operator; and a generic "Open it in
+ * the portal" button. So the alert has its own shape, the way the outage alert
+ * does: the headline, each stalled table on its own line with its own sentence,
+ * what is and is not at risk, and a button that says where it goes.
+ */
+export function retentionAlert(input: {
+  to: string;
+  headline: string;
+  because: string;
+  stalled: { table: string; because: string | null }[];
+  reassurance: string;
+  statusUrl: string;
+}): RenderedEmail {
+  return compose(
+    "ops.retention",
+    "operator",
+    input.headline,
+    {
+      preheader: input.because,
+      blocks: [
+        { kind: "p", text: input.because },
+        {
+          kind: "list",
+          title: input.stalled.length === 1 ? "The table that stalled" : "The tables that stalled",
+          items: input.stalled.map((t) => `${t.table}: ${t.because ?? "no reason was given"}`),
+        },
+        { kind: "p", text: input.reassurance },
+      ],
+      button: { label: "Open the status screen", url: input.statusUrl },
+    },
+    { to: input.to },
+  );
+}
+
 export type OutageAlertInput = {
   /**
    * Which fault this is. Three of the four outcomes send the operator to three
@@ -1811,6 +1863,7 @@ export function allTemplatesForAudit(): RenderedEmail[] {
       reference: "254-O2026-ABCDEF",
       propertyAddress: "100 Sample Street, Corpus Christi",
       sealedAt: "5 September 2026 at 16:20",
+      statusUrl: "https://254engineering.com/order/254-O2026-ABCDEF?token=sample",
     }),
     refundFailed({
       reference: "254-O2026-ABCDEF",
@@ -1916,6 +1969,14 @@ export function allTemplatesForAudit(): RenderedEmail[] {
       detail: '{"ok":false}',
       checkedAt: "3 September 2026 at 13:29 UTC",
       everyMinutes: 5,
+    }),
+    retentionAlert({
+      to: "operator@254engineering.com",
+      headline: "Retention has stalled on one table",
+      because: "The nightly retention run refused to delete anything from one table, because its own checks did not pass.",
+      stalled: [{ table: "eng_cron_runs", because: "the rollup for 2026-09-30 counts 1,402 runs and the rows hold 1,398" }],
+      reassurance: "Nothing has been deleted and nothing is at risk. The next check is in a day at the earliest.",
+      statusUrl: "https://254engineering.com/portal/status",
     }),
     /*
      * Every portal notification goes out as this one template, so the audit

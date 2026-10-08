@@ -68,7 +68,7 @@ export default function WindstormInquiryPage() {
         crumbs={crumbs}
         eyebrow="Windstorm"
         title="An existing building that was never certified"
-        lede="New and ongoing construction is inspected in sequence and carries a published price. A building that is already finished and covered is a different piece of work, and whether it can be certified at all is not knowable from a price list."
+        lede="Ongoing construction and construction that is already complete each carry a published price. An existing building with no recent work is a different piece of work, and whether it can be certified at all is not knowable from a price list."
       />
 
       <Container>
@@ -88,9 +88,10 @@ export default function WindstormInquiryPage() {
               The first question is when the work was done, not when the house went up. Under
               Texas Insurance Code section 2210.251 the date that matters is the date of the work,
               and a structure can have more than one: a roof replaced last year on a house built in
-              1975 is work done on or after January 1, {WINDSTORM_WORK_IN_SCOPE_YEAR}, and the
-              section reaches it. Work done before that line is treated differently and may be
-              eligible without inspection at all.
+              1975 is work done on or after January 1, {WINDSTORM_WORK_IN_SCOPE_YEAR}. Recent work
+              like that is completed construction, evaluated after the fact at its published price,
+              rather than this case. Work that began before that line is declined, with a referral
+              to the Texas Windstorm Insurance Association.
             </p>
             <p>
               After that, two things the engineer of record is plain about. The construction that

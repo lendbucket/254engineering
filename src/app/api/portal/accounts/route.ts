@@ -146,12 +146,30 @@ export async function POST(request: NextRequest) {
     const { error } = await db.from("eng_customer_accounts").update(patch).eq("id", accountId);
     if (error) return NextResponse.json({ ok: false, error: "That could not be saved." }, { status: 400 });
 
+    /*
+     * A SUSPENSION IS ITS OWN EVENT, NAMING WHO DID IT. Operator ruling of
+     * 2026-09-29, and closing too since 2026-10-07: the triggers in 0063,
+     * with 0064's function, are the guarantee that every live link
+     * for the account's users is spent, and it cannot know who suspended; this
+     * row is the record with the actor. Read beside the trigger's own
+     * customer_links.spent_at_suspension event for the same account.
+     */
     await writeAudit({
       actor: { id: g.actor.id, role: g.actor.role, email: g.actor.email },
-      action: "account.terms_changed",
+      action:
+        patch.status === "suspended"
+          ? "account.suspended"
+          : patch.status === "closed"
+            ? "account.closed"
+            : "account.terms_changed",
       entityType: "customer_account",
       entityId: accountId,
-      summary: `${g.actor.email} changed ${Object.keys(patch).join(", ")}`,
+      summary:
+        patch.status === "suspended"
+          ? `${g.actor.email} suspended the account${patch.suspended_reason ? `: ${String(patch.suspended_reason)}` : ""}`
+          : patch.status === "closed"
+            ? `${g.actor.email} closed the account`
+            : `${g.actor.email} changed ${Object.keys(patch).join(", ")}`,
     });
 
     return NextResponse.json({ ok: true });

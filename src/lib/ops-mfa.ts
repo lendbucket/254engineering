@@ -614,6 +614,84 @@ export async function answerChallenge(userId: string, answer: string): Promise<C
  * Spend a recovery code. Marked rather than deleted, so the audit trail can
  * name the one that was used and when.
  */
+/**
+ * ===========================================================================
+ * A FRESH CODE FOR AN ACT OF SEALING. Rulings 2 and 2a of 2026-10-06.
+ * ===========================================================================
+ *
+ * The engineer applies his seal, and uploads the images of it, only from his
+ * own session with a second factor checked AT THAT MOMENT. A session that
+ * reads "full" does not prove that: an optional role with no enrolment reaches
+ * "full" with a password alone. So the act asks for a code and this checks it.
+ *
+ * THREE WAYS IT IS STRICTER THAN `answerChallenge`, each on purpose:
+ *
+ *   1. An authenticator code only. A recovery code exists to get somebody back
+ *      into an account they have lost a phone for; it is not the factor an
+ *      engineer applies his seal with, and accepting it here would make a
+ *      printed sheet of codes as good as his phone.
+ *   2. No enrolment, or an unverified one, refuses with a sentence that says so
+ *      and where to enrol, because sealing must refuse until he verifies.
+ *   3. The code is SPENT ATOMICALLY. `answerChallenge` reads `last_step` and
+ *      then writes it, so two requests carrying the same code in the same
+ *      instant could both pass. This writes only where `last_step` is still
+ *      below the code's step, and counts the rows it changed: exactly one
+ *      request can spend a code.
+ *
+ * Returns the moment the factor was verified, which the caller records on the
+ * act itself rather than inferring it from a session afterwards.
+ */
+export type FreshCodeResult = { ok: true; verifiedAt: string } | { ok: false; error: string };
+
+export async function verifyFreshCode(userId: string, code: string): Promise<FreshCodeResult> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+
+  const { data, error } = await db
+    .from("eng_mfa_enrolments")
+    .select("secret_cipher, verified_at, last_step")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) return { ok: false, error: `The second factor could not be read: ${error.message}` };
+  if (!data?.secret_cipher || !data.verified_at) {
+    return {
+      ok: false,
+      error:
+        "This account has no verified second factor. Set one up under Two-step verification on your profile first. Sealing is refused until it is verified.",
+    };
+  }
+
+  const cleaned = code.replace(/\s+/g, "");
+  if (!/^\d{6}$/.test(cleaned)) {
+    return { ok: false, error: "Enter the six digit code from your authenticator app. A recovery code is not accepted here." };
+  }
+
+  const fault = keyFaultFor(data.secret_cipher as string);
+  if (fault) return { ok: false, error: keyFaultSentence(fault) };
+  const base32 = decryptSecret(data.secret_cipher as string);
+  if (!base32) return { ok: false, error: "The stored secret on this account is corrupted and cannot be read." };
+  const bytes = base32Decode(base32);
+  if (!bytes) return { ok: false, error: "The stored secret could not be read." };
+
+  const check = verifyTotp(bytes, cleaned);
+  if (!check.ok || check.step === null) return { ok: false, error: "That code is not right." };
+
+  const lastStep = (data.last_step as number | null) ?? null;
+  const spend = db
+    .from("eng_mfa_enrolments")
+    .update({ last_step: check.step, last_used_at: DB_NOW })
+    .eq("user_id", userId);
+  const { data: spent, error: spendError } = await (lastStep === null
+    ? spend.is("last_step", null)
+    : spend.lt("last_step", check.step)
+  ).select("last_used_at");
+  if (spendError) return { ok: false, error: `The code could not be recorded: ${spendError.message}` };
+  if (!spent || spent.length !== 1) {
+    return { ok: false, error: "That code has already been used. Wait for your app to show the next one." };
+  }
+  return { ok: true, verifiedAt: String(spent[0].last_used_at) };
+}
+
 async function spendRecoveryCode(userId: string, code: string): Promise<ChallengeResult> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };

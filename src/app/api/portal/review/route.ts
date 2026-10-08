@@ -3,6 +3,7 @@ import { currentActor, requestContext } from "@/lib/ops-auth";
 import { decideReview, monthlyExport, openReview, recordTime, type DeterminationInput } from "@/lib/ops-engineer";
 import { PROTOCOL_ENTRIES, type Determination } from "@/content/protocols";
 import { REVIEW_ACTIONS, type ReviewAction } from "@/lib/ops-review";
+import { recordPrereview } from "@/lib/dispatch-hold";
 
 /**
  * The engineer's decisions, and the export a regulator reads.
@@ -80,6 +81,18 @@ export async function POST(request: NextRequest) {
           paidCents: result.paidCents,
         })
       : bad(result.error);
+  }
+
+  /*
+   * A HELD JOB, DECIDED BY THE ENGINEER BEFORE DISPATCH. Operator ruling 1 of
+   * 2026-10-07. recordPrereview checks the licence, that the job is held, and
+   * that a decline carries his referral.
+   */
+  if (action === "prereview") {
+    const decision = String(body?.decision ?? "");
+    if (decision !== "accept" && decision !== "decline") return bad("Accept or decline.");
+    const result = await recordPrereview(actor, String(body?.fileId ?? ""), decision, String(body?.note ?? ""), context);
+    return result.ok ? NextResponse.json({ ok: true }) : bad(result.error);
   }
 
   if (action === "record_time") {

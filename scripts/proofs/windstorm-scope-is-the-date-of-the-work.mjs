@@ -158,13 +158,23 @@ console.log("");
   check("an empty list is undated rather than in scope", none.state === "undated", none.state);
 }
 
-/* ---- every pre-1988 case is a conversation, not a refusal ---- */
+/*
+ * ---- every pre-1988 case is declined and referred to TWIA ----
+ *
+ * REVERSED 2026-10-07 BY RULING 6 AND WS-001 v1.1 SECTION 12: "Work to be
+ * certified that began before January 1, 1988 ... Declined, with a referral to
+ * TWIA." This block used to assert the opposite, in these words: "all pre-1988
+ * work is not told it cannot be certified", on the reasoning that such work
+ * "may be eligible WITHOUT inspection, which is a better answer than a
+ * certification". The protocol wins. The rest of this proof, that the line is
+ * the date of the WORK rather than of the house, is unchanged by it.
+ */
 {
   const v = windstormScopeVerdict([{ what: "Original construction", year: 1962 }]);
   check(
-    "all pre-1988 work is not told it cannot be certified",
-    v.state === "all_pre_1988" && !/cannot be certified/i.test(v.because),
-    "pre-1988 work may be eligible WITHOUT inspection, which is a better answer than a certification",
+    "all pre-1988 work is declined and referred to the Texas Windstorm Insurance Association",
+    v.state === "all_pre_1988" && /declines/i.test(v.because) && /Texas Windstorm Insurance Association/.test(v.because),
+    v.because.slice(0, 90),
   );
 }
 

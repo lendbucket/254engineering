@@ -5,6 +5,7 @@ import { PageHead, Panel } from "@/components/portal/surfaces";
 import { services } from "@/content/services";
 import { priceFor, priceSentence } from "@/config/prices";
 import { estimateForLine, money } from "@/lib/price-book";
+import { costPerJob } from "@/lib/cost-per-job";
 import {
   TECHNICIAN_CALL_CENTS,
   PROCESSING_RATES,
@@ -65,6 +66,8 @@ export default async function PriceBookPage() {
     floor: floorCentsFor(service.slug, "standard"),
   }));
 
+  const costs = costPerJob();
+
   return (
     <>
       <PageHead
@@ -102,7 +105,7 @@ export default async function PriceBookPage() {
                 </p>
               )}
 
-              <p className="mt-1.5 text-[13px] leading-[1.6] text-[var(--secondary)]">
+              <p className="mt-1.5 text-[12.5px] leading-[1.6] text-[var(--secondary)]">
                 {/*
                   THE FLOOR IS READ FROM trade-floors AND IS PENDING ON EVERY
                   LINE. That is not a gap in this screen. The operator ruled that
@@ -118,18 +121,73 @@ export default async function PriceBookPage() {
         </ul>
       </Panel>
 
+      {/*
+        COST PER JOB, operator ruling of 2026-10-06 (docs/rulings-2026-10-06.md
+        section 7 item 2). Per DELIVERABLE rather than per line, with its own
+        visit count and card processing at the Stripe card rate, which is the
+        ruling's stated assumption and is labelled as one. A fee the repository
+        does not hold is shown as missing and the row states no net.
+      */}
+      <Panel
+        title="Cost per job"
+        description="A plan for a clean job, per deliverable: the marketed price, the technician at the visits the job includes, the engineer's fee from the agreement, and card processing at the Stripe card rate, assuming the customer pays by card. Not a record of any job."
+      >
+        <ul className="flex flex-col gap-4">
+          {costs.rows.map((r) => (
+            <li
+              key={`${r.serviceSlug}/${r.tier ?? "extra"}`}
+              className="border-t border-[var(--border)] pt-4 first:border-t-0 first:pt-0"
+            >
+              <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                <p className="text-[15px] font-semibold text-[var(--ink)]">{r.label}</p>
+                <p className="text-[15px] font-semibold text-[var(--ink)]">{money(r.revenueCents)}</p>
+              </div>
+              <p className="mt-2 text-[13.5px] leading-[1.6] text-[var(--secondary)]">
+                Technician {money(r.technicianCents)} ({r.visits} {r.visits === 1 ? "visit" : "visits"}).
+                Engineer {r.engineerCents === null ? "missing" : money(r.engineerCents)}. Card processing{" "}
+                {money(r.processingCents)}.{" "}
+                <strong className="text-[var(--ink)]">
+                  Net {r.netCents === null ? "not stated" : money(r.netCents)}.
+                </strong>
+              </p>
+              <p className="mt-1.5 text-[12.5px] leading-[1.6] text-[var(--secondary)]">
+                {r.missing ?? `Engineer's fee: ${r.engineerCitation}.`}
+              </p>
+              {r.caveat ? (
+                <p className="mt-1.5 text-[12.5px] leading-[1.6] text-[var(--ink)]">{r.caveat}</p>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+        {costs.notPriced.length > 0 ? (
+          <p className="mt-4 text-[13.5px] leading-[1.6] text-[var(--secondary)]">
+            Quoted per job, so not in this table: {costs.notPriced.map((n) => n.label).join("; ")}.
+          </p>
+        ) : null}
+        <p className="mt-4 text-[13.5px] leading-[1.7] text-[var(--ink)]">
+          The engineer&apos;s retainer, {money(costs.retainerCents)} a month, is a cost of having an
+          engineer of record rather than of any one job, so it is on its own line and not divided
+          into the rows above.
+        </p>
+        <ul className="mt-3 flex flex-col gap-1 text-[12.5px] leading-[1.6] text-[var(--secondary)]">
+          {costs.sources.map((s) => (
+            <li key={s}>{s}</li>
+          ))}
+        </ul>
+      </Panel>
+
       <Panel
         title="Margin per job"
         description="Nothing to report, and the reason is the correct one rather than a defect."
       >
-        <p className="text-[14px] leading-[1.7] text-[var(--secondary)]">
+        <p className="text-[13.5px] leading-[1.7] text-[var(--secondary)]">
           Margin is computed from what a job actually cost: the technician calls that actually
-          happened and the tier the engineer&apos;s determination actually attracted. No service line
-          is open, because no protocol has been approved, so there are no jobs and there is nothing
-          to compute. An empty margin table would look exactly like a full one from a distance,
+          happened and the tier the engineer&apos;s determination actually attracted. That needs
+          completed jobs, and this table is built against them when they exist rather than against
+          an empty set. An empty margin table would look exactly like a full one from a distance,
           which is why there is not one here.
         </p>
-        <p className="mt-3 text-[14px] leading-[1.7] text-[var(--secondary)]">
+        <p className="mt-3 text-[13.5px] leading-[1.7] text-[var(--secondary)]">
           Where any input is missing on a real job, the book refuses to state a margin and names the
           input rather than substituting a zero or the line&apos;s estimating tier. A margin that
           quietly omits the engineer&apos;s pay is not a smaller margin, it is a wrong one, in the
@@ -141,7 +199,7 @@ export default async function PriceBookPage() {
         title="The cost inputs"
         description="Where each number comes from, and which of them are still owed."
       >
-        <dl className="flex flex-col gap-3 text-[14px] leading-[1.7]">
+        <dl className="flex flex-col gap-3 text-[13.5px] leading-[1.7]">
           <div>
             <dt className="font-semibold text-[var(--ink)]">Field technician</dt>
             <dd className="text-[var(--secondary)]">

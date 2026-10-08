@@ -50,13 +50,17 @@ console.log("========== THE REGISTER AGAINST THE ROW ==========");
 console.log(`database: ${describeTarget(process.env.SUPABASE_URL)}`);
 console.log("");
 
-const { approvedProtocols } = await import("../src/config/launch-readiness.ts");
 /*
- * ONE PROTOCOL TO MANY, 2026-10-06. Each approved protocol is compared against
- * ITS OWN transcription, looked up in the registry by service line, rather than
- * every one against 254-RC-001's. With RC-001 the only approved protocol, every
- * comparison below is the one that ran before.
+ * RULING 11 STAGE B, 2026-10-07. This compared `approvedProtocols`, the typed
+ * approval list in src/config/launch-readiness.ts, with the row. Ruling 11
+ * removed the list: which protocols are approved has one home, the signed
+ * record. So this now compares what CODE holds for each offered line, the
+ * protocol in force in PROTOCOL_ENTRIES and the hash of the document its
+ * transcription is proved against, with the published row, which is the same
+ * question lineIsSellable asks on every order.
  */
+const { offeredServiceLines } = await import("../src/config/launch-conditions.ts");
+const { verifiedEngineers } = await import("../src/config/credentials.ts");
 const { protocolForLine } = await import("../src/content/protocols/index.ts");
 
 /*
@@ -80,84 +84,59 @@ if (!db) {
  * would otherwise exit zero, which is a green over a gate condition nobody has
  * satisfied.
  */
-const registerIsEmpty = approvedProtocols.length === 0;
+const inForce = offeredServiceLines
+  .map((slug) => ({ slug, entry: protocolForLine(slug) }))
+  .filter((x) => x.entry);
+const registerIsEmpty = inForce.length === 0;
 if (registerIsEmpty) {
-  console.log("FAIL: the register holds no approved protocol, so there is nothing to compare.");
-  console.log("An empty register is not a passing comparison.");
+  console.log("FAIL: no offered line has a protocol in force, so there is nothing to compare.");
+  console.log("An empty set is not a passing comparison.");
 }
 
-for (const p of approvedProtocols) {
-  const where = `${p.protocolName} v${p.versionLabel}`;
+for (const { slug, entry } of inForce) {
+  const RC001 = entry.declaration;
+  const where = `${RC001.documentNumber} v${RC001.version}`;
   console.log(`  ${where}`);
-
-  const transcribed = protocolForLine(p.serviceSlug);
-  if (!transcribed) {
-    rec(`${where}: a transcribed protocol is registered for this service line`, false, `none for ${p.serviceSlug}`);
-    continue;
-  }
-  const RC001 = transcribed.declaration;
+  const current = entry.versions.find((v) => v.supersededOn === null);
 
   const { data: rows, error } = await db
     .from("eng_protocol_templates")
-    .select("id, document_number, version, version_label, status, service_slug, name, approved_by_license, approved_at")
-    .eq("service_slug", p.serviceSlug)
+    .select("id, document_number, version, version_label, status, service_slug, name, approved_by_license, approved_at, document_sha256")
+    .eq("service_slug", slug)
     .eq("status", "published");
 
   if (error) {
     rec(`${where}: the row could be read`, false, error.message);
     continue;
   }
-
   rec(
     `${where}: exactly one published protocol for this service line`,
     (rows ?? []).length === 1,
-    `${(rows ?? []).length} published row(s) for ${p.serviceSlug}. Two would mean the gate cannot say which one governs.`,
+    `${(rows ?? []).length} published row(s) for ${slug}. Two would mean the gate cannot say which one governs.`,
   );
   if ((rows ?? []).length !== 1) continue;
-
   const row = rows[0];
 
-  /* The five fields the operator named, each compared on its own line. */
+  rec(`${where}: document number`, row.document_number === RC001.documentNumber, `row "${row.document_number}", code "${RC001.documentNumber}"`);
+  rec(`${where}: version label`, row.version_label === RC001.version, `row "${row.version_label}", code "${RC001.version}"`);
   rec(
-    `${where}: document number`,
-    row.document_number === RC001.documentNumber,
-    `row "${row.document_number}", document "${RC001.documentNumber}"`,
+    `${where}: the row's document hash is the PDF the transcription is proved against`,
+    Boolean(current) && row.document_sha256 === current.sha256,
+    `row ${String(row.document_sha256).slice(0, 12)}, code ${String(current?.sha256).slice(0, 12)}`,
   );
+  const engineer = verifiedEngineers.find((e) => e.licenseNumber === row.approved_by_license);
   rec(
-    `${where}: version`,
-    row.version === p.version,
-    `row ${row.version}, register ${p.version}`,
+    `${where}: the approver's licence is on the engineer register`,
+    Boolean(engineer),
+    engineer ? `${engineer.name}, licence ${row.approved_by_license}` : `licence ${row.approved_by_license} is on no engineer`,
   );
-  rec(
-    `${where}: version label`,
-    row.version_label === p.versionLabel,
-    `row "${row.version_label}", register "${p.versionLabel}"`,
-  );
-  rec(
-    `${where}: approved_by_license`,
-    row.approved_by_license === p.approvedByLicense,
-    `row "${row.approved_by_license}", register "${p.approvedByLicense}"`,
-  );
-
-  /*
-   * THE DATE, NOT THE INSTANT. The row carries a timestamp to the microsecond
-   * and the register carries an ISO date, because a date is what a person can
-   * check against a signed document. Comparing the first ten characters is the
-   * whole of the difference, and it is stated rather than left to look like
-   * sloppiness.
-   */
-  const rowDate = String(row.approved_at ?? "").slice(0, 10);
-  rec(
-    `${where}: approved_at date`,
-    rowDate === p.approvedOn,
-    `row ${rowDate} (${row.approved_at}), register ${p.approvedOn}`,
-  );
+  /* No code-side date to compare since the typed list went; printed for a person to read. */
+  console.log(`    approved ${String(row.approved_at ?? "").slice(0, 10)} (${row.approved_at}), as the row records it`);
 
   const { count, error: itemErr } = await db
     .from("eng_protocol_items")
     .select("id", { count: "exact", head: true })
     .eq("template_id", row.id);
-
   if (itemErr) {
     rec(`${where}: item count could be read`, false, itemErr.message);
   } else {
@@ -167,12 +146,7 @@ for (const p of approvedProtocols) {
       `row ${count}, transcribed document ${RC001.checklist.length}`,
     );
   }
-
-  rec(
-    `${where}: the row's name matches the register`,
-    row.name === p.protocolName,
-    `row "${row.name}", register "${p.protocolName}"`,
-  );
+  rec(`${where}: the row's name matches the transcribed title`, row.name === RC001.title, `row "${row.name}", document "${RC001.title}"`);
 }
 
 console.log("");

@@ -594,8 +594,23 @@ console.log("");
   const roof = fieldsFor("roof-inspections", "standard").map((f) => f.id);
   const beam = fieldsFor("residential-light-commercial-design", "beam-header-sizing").map((f) => f.id);
 
+  /*
+   * ORDER FLOW V2, 2026-10-07: A FACT IS ASKED ONCE. On a line whose protocol
+   * asks the same fact as a customer field, the protocol's question supersedes
+   * the customer field (data/protocol-phrasing.ts), so these checks accept
+   * EITHER the customer field OR the one protocol question declared as
+   * superseding it, and nothing else. Read from the declaration, never from a
+   * second list here.
+   */
+  const { PROTOCOL_PHRASING } = await import("../data/protocol-phrasing.ts");
+  const supersededBy = new Map();
+  for (const [n, w] of Object.entries(PROTOCOL_PHRASING["254-RC-001"]?.questions ?? {})) {
+    if ("supersedes" in w) for (const id of w.supersedes ?? []) supersededBy.set(id, `rc001_q${n}`);
+  }
+  const asks = (ids, id) => ids.includes(id) || (supersededBy.has(id) && ids.includes(supersededBy.get(id)));
+
   for (const id of ["gate_code", "dog_on_site", "alarm_on_site", "site_contact_name", "occupancy"]) {
-    rec(`field work is asked about ${id}`, roof.includes(id));
+    rec(`field work is asked about ${id}`, asks(roof, id), supersededBy.has(id) ? `through ${supersededBy.get(id)}` : "");
     rec(`and desk work is not`, !beam.includes(id), id);
   }
 
@@ -619,7 +634,11 @@ console.log("");
    * as free text, and nothing asked who it is addressed to.
    */
   for (const id of ["reason", "addressed_to", "requiring_party", "requiring_reference", "hard_deadline"]) {
-    rec(`every deliverable is asked ${id}`, roof.includes(id) && beam.includes(id));
+    rec(
+      `every deliverable is asked ${id}`,
+      asks(roof, id) && beam.includes(id),
+      supersededBy.has(id) ? `on the roof line through ${supersededBy.get(id)}` : "",
+    );
   }
 
   /*
@@ -628,8 +647,28 @@ console.log("");
    * not have to hand is worse than taking it and asking later.
    */
   const nothingAnswered = {};
-  const toOrder = missingFor("roof-inspections", "standard", nothingAnswered, "order").map((f) => f.id);
-  const toSeal = missingFor("roof-inspections", "standard", nothingAnswered, "seal").map((f) => f.id);
+  /*
+   * THE STAGING SUBJECT MOVED OFF THE ROOF LINE ON 2026-10-07, AND THE REASON
+   * IS A FINDING. These checks read the customer field ids on the roof line.
+   * That line's protocol has always asked the same facts at intake through its
+   * own fields (rc001_q1, rc001_q2, rc001_q3), required at order, so "the
+   * addressee is not needed to take the job" was never true of the roof line:
+   * the check passed because it looked only at addressed_to. With each fact
+   * now asked once (order flow v2), the roof line asks the addressee at order,
+   * as RC-001 Appendix A does, and the staging ruling is asserted on a field
+   * line with no protocol in force, foundation certification, where it holds.
+   * The disagreement between the staging ruling and the protocol on the roof
+   * line is reported to the operator rather than resolved here.
+   */
+  const STAGED = ["foundation-inspections", "standard"];
+  const toOrder = missingFor(...STAGED, nothingAnswered, "order").map((f) => f.id);
+  const toSeal = missingFor(...STAGED, nothingAnswered, "seal").map((f) => f.id);
+  const roofToOrder = missingFor("roof-inspections", "standard", nothingAnswered, "order").map((f) => f.id);
+  rec(
+    "on the roof line the addressee is asked to take the job, because RC-001 asks it at intake",
+    roofToOrder.includes("rc001_q2") && !roof.includes("addressed_to"),
+    "one field, the protocol's question 2, worded for the customer",
+  );
 
   rec("the reason is needed to take the job", toOrder.includes("reason"));
   rec(
@@ -648,13 +687,13 @@ console.log("");
   );
   rec(
     "answering a field removes it from what is missing",
-    !missingFor("roof-inspections", "standard", { reason: "A property sale" }, "order")
+    !missingFor(...STAGED, { reason: "A property sale" }, "order")
       .map((f) => f.id)
       .includes("reason"),
   );
   rec(
     "and an empty string does not count as an answer",
-    missingFor("roof-inspections", "standard", { reason: "" }, "order")
+    missingFor(...STAGED, { reason: "" }, "order")
       .map((f) => f.id)
       .includes("reason"),
     "a field somebody tabbed through is not a field somebody answered",

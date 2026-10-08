@@ -211,12 +211,26 @@ const ADDRESS_QUALIFIER: Qualifier = {
 
 const OWNER_QUALIFIER: Qualifier = {
   id: "authority",
-  prompt: "Do you own the property, or are you authorised by the owner to arrange this?",
+  prompt: "Do you own the property, or are you authorized by the owner to arrange this?",
   help: "A technician has to enter the property, and the engineer's document names it.",
-  options: ["I own it", "I am authorised by the owner", "Neither"],
+  options: ["I own it", "I am authorized by the owner", "Neither"],
   disqualifyOn: [2],
   disqualifiedMessage:
     "The firm needs the owner's authority before anyone attends a property or issues a document about it. Ask the owner to place the order, or to send written authority naming you.",
+};
+
+/*
+ * Required by Appendix A Part 2 of six of the seven v1.1 protocols: WS-001,
+ * MH-001, SL-001, PL-001, RS-001 and DS-001. WP-001 does not ask for it. Ruling
+ * 6 of 2026-10-07, docs/conflicts-v1.1.md item 27.
+ */
+const FRONT_PHOTO_INPUT: RequiredInput = {
+  id: "front_photo",
+  label: "A photograph of the front of the property",
+  help: "It confirms the address and the structure before anybody travels or starts a review.",
+  kind: "file",
+  required: true,
+  accepts: "A photograph",
 };
 
 /*
@@ -303,20 +317,22 @@ const DECLARED: CatalogDeclaration[] = [
       },
     ],
     requiredInputs: [
+      /*
+       * ORDER FLOW V2, 2026-10-07: EACH FACT ASKED ONCE. The access note's help
+       * used to ask for gate codes, dogs and who will be there, which the form
+       * now asks as their own fields; it asks only for what those cannot. And
+       * `prior_reports` ("Any prior roof report or repair invoice") is gone
+       * from this line: RC-001 asks for the prior inspection report and the
+       * roofing contract or invoice as its own uploads, so it was the same
+       * document asked twice, and its label carried "(optional)" while its
+       * help began "Optional.". Nothing read the field.
+       */
       {
         id: "access_notes",
         label: "How does the technician get in",
-        help: "Gate codes, dogs, who will be there, and anything about the property that would waste a trip.",
+        help: "Anything about getting in, or about the property, that the questions above do not cover and that would waste a trip.",
         kind: "text",
         required: true,
-      },
-      {
-        id: "prior_reports",
-        label: "Any prior roof report or repair invoice",
-        help: "Optional. If somebody has been on this roof before, the engineer would rather see it than rediscover it.",
-        kind: "file",
-        required: false,
-        accepts: "PDF or photographs",
       },
     ],
     turnaround:
@@ -350,6 +366,16 @@ const DECLARED: CatalogDeclaration[] = [
    * changed is only that the qualifier no longer silently decides the price: the
    * deliverable does, and the buyer chooses it before they see a number.
    */
+  /*
+   * THE STAGE QUALIFIER IS RULED, 2026-10-07. Ruling 5: completed and ongoing
+   * construction are the two fixed prices and only an existing building with
+   * no recent work is quoted per job. Ruling 6 with WS-001 and WP-001 v1.1:
+   * construction still in progress is routed to the ongoing line (WS-001
+   * section 12), and a structure that has already passed a stage that must be
+   * inspected is declined for the ongoing path (WP-001 section 6.2). So each
+   * deliverable now turns away the two stages it does not serve, and says
+   * where to go instead. docs/conflicts-v1.1.md items 3 and 5.
+   */
   {
     serviceSlug: "windstorm-wpi-8",
     tier: "completed",
@@ -370,17 +396,40 @@ const DECLARED: CatalogDeclaration[] = [
           "Complete and covered up",
           "Existing building, no recent work",
         ],
-        disqualifyOn: [],
-        disqualifiedMessage: "",
+        disqualifyOn: [0, 2],
+        disqualifiedMessage:
+          "This deliverable is for construction that is already complete. Work that has not started or is still open is inspected in stages under ongoing construction. An existing building with no recent work is quoted per job through the windstorm inquiry instead.",
       },
     ],
     requiredInputs: [
+      FRONT_PHOTO_INPUT,
       {
         id: "access_notes",
         label: "How does the technician get in",
         help: "Gate codes, dogs, who will be there, and anything about the property that would waste a trip.",
         kind: "text",
         required: true,
+      },
+      /*
+       * WS-001 v1.1 section 6 records "the dates construction began and was
+       * completed", and section 12 declines work that began before
+       * January 1, 1988. The catalogue asked for no date. Item 7.
+       */
+      {
+        id: "work_began",
+        label: "When the work being certified began",
+        help: "The date the work began, not the year the house was built. The permit or the contract usually shows it.",
+        kind: "date",
+        required: true,
+      },
+      /* WS-001 Appendix A Part 2, required. Item 9. */
+      {
+        id: "contract_invoice",
+        label: "The contract or invoice for the work",
+        help: "Showing the products installed. It is what tells the engineer what the construction was meant to be.",
+        kind: "file",
+        required: true,
+        accepts: "PDF or a photograph",
       },
       {
         id: "permit",
@@ -393,15 +442,22 @@ const DECLARED: CatalogDeclaration[] = [
     ],
     turnaround:
       "The visit is scheduled once a technician accepts. Construction that has been covered up takes longer, because what can still be evidenced has to be established first.",
+    /*
+     * WS-001 section 3: "TDI issues the certificate. The firm does not issue it
+     * and does not promise that TDI will." This read "The windstorm
+     * certification the engineer's review supports, sealed". Item 8.
+     */
     receives: [
-      "The windstorm certification the engineer's review supports, sealed",
+      "A sealed post-construction inspection report, supporting a Form WPI-2E application to the Texas Department of Insurance",
       "The photographic and measurement record it rests on",
+      "The certificate itself, Form WPI-8E, is issued by the Department rather than by the firm",
     ],
   },
   {
     serviceSlug: "windstorm-wpi-8",
     tier: "ongoing",
-    name: "WPI-8E windstorm evaluation, ongoing construction",
+    /* WP-001 section 1: Form WPI-2, then the WPI-8. WPI-8E is the completed route. Item 2. */
+    name: "WPI-8 windstorm inspection, ongoing construction",
     orderType: "field",
     coastalSurchargeCents: 7500,
     inspectionFeeCents: 17500,
@@ -418,8 +474,9 @@ const DECLARED: CatalogDeclaration[] = [
           "Complete and covered up",
           "Existing building, no recent work",
         ],
-        disqualifyOn: [],
-        disqualifiedMessage: "",
+        disqualifyOn: [1, 2],
+        disqualifiedMessage:
+          "This deliverable is for construction that has not started or is still open to view, inspected in stages. Construction that is already complete is evaluated under completed construction. An existing building with no recent work is quoted per job through the windstorm inquiry instead.",
       },
     ],
     requiredInputs: [
@@ -441,9 +498,11 @@ const DECLARED: CatalogDeclaration[] = [
     ],
     turnaround:
       "Attendance is staged against the construction programme rather than booked as a single visit, because the evidence has to be gathered while each stage is still open.",
+    /* WP-001 section 1, and the firm does not issue the certificate. Item 8. */
     receives: [
-      "The windstorm certification the engineer's review supports, sealed",
+      "Form WPI-2, prepared and submitted to the Texas Department of Insurance by the appointed engineer",
       "The photographic and measurement record it rests on, stage by stage",
+      "The certificate itself, Form WPI-8, is issued by the Department rather than by the firm",
     ],
   },
   {
@@ -512,12 +571,26 @@ const DECLARED: CatalogDeclaration[] = [
       },
     ],
     requiredInputs: [
+      FRONT_PHOTO_INPUT,
       {
         id: "access_notes",
         label: "How does the technician get in",
         help: "Gate codes, dogs, who will be there, and anything about the property that would waste a trip.",
         kind: "text",
         required: true,
+      },
+      /*
+       * MH-001 v1.1 Appendix A Part 2, required: "The lender's written request
+       * for the certification". Ruling 6 of 2026-10-07; the catalogue never
+       * asked for it.
+       */
+      {
+        id: "lender_request",
+        label: "The lender's written request for the certification",
+        help: "The lender's letter, email or condition naming the certification. The certification follows HUD-7584 unless the lender names another requirement in writing and the engineer approves it before the visit.",
+        kind: "file",
+        required: true,
+        accepts: "PDF or a photograph",
       },
       {
         id: "hud_label",
@@ -541,37 +614,51 @@ const DECLARED: CatalogDeclaration[] = [
     serviceSlug: "solar-structural-letters",
     tier: "standard",
     name: "Solar structural letter",
-    orderType: "desk",
+    /*
+     * FIELD SINCE 2026-10-07, operator ruling 7 that day: SL-001 sends a
+     * technician, so the line carries the visit, per the protocol-wins rule
+     * (docs/conflicts-v1.1.md items 16 and 17). Its inspection fee is $175,
+     * ruled the same day, like every other field line.
+     */
+    orderType: "field",
     coastalSurchargeCents: 7500,
-    inspectionFeeCents: null,
-    protocolServiceSlug: null,
+    /* $175, operator ruling of 2026-10-07: the same as every other field line. */
+    inspectionFeeCents: 17500,
+    protocolServiceSlug: "solar-structural-letters",
     qualifiers: [
       ADDRESS_QUALIFIER,
+      /*
+       * SL-001 v1.1 SECTION 6, ruling 6 of 2026-10-07: "An order is accepted
+       * without the array design. No calculation is started and no letter is
+       * issued until it is received." This qualifier used to turn the buyer
+       * away without it. It now gathers the fact and turns nobody away, and
+       * the layout input below is optional for the same reason.
+       */
       {
         id: "documents",
-        prompt: "Do you have the array layout and the mounting details?",
-        help: "A desk review is a review of documents. Without them there is nothing to review.",
-        options: ["Yes", "No"],
-        disqualifyOn: [1],
-        disqualifiedMessage:
-          "A structural letter is written from the layout and the attachment details. Your installer or the racking manufacturer will have them. Come back when you do.",
+        prompt: "Do you have the array layout and the mounting details yet?",
+        help: "The order can be placed without them. No calculation starts and no letter issues until they arrive.",
+        options: ["Yes", "Not yet"],
+        disqualifyOn: [],
+        disqualifiedMessage: "",
       },
     ],
     requiredInputs: [
+      FRONT_PHOTO_INPUT,
       {
         id: "layout",
-        label: "The array layout",
-        help: "Panel positions on the roof, with the module make and model.",
+        label: "The array layout, if you have it",
+        help: "Panel positions on the roof, with the module make and model. If your installer has not produced it yet, it can follow.",
         kind: "file",
-        required: true,
+        required: false,
         accepts: "PDF or a drawing",
       },
       {
         id: "mounting",
-        label: "The mounting and attachment details",
-        help: "The racking system, the attachment type, and the spacing.",
+        label: "The mounting and attachment details, if you have them",
+        help: "The racking system, the attachment type, and the spacing. They are part of the array design and can follow with it.",
         kind: "file",
-        required: true,
+        required: false,
         accepts: "PDF or manufacturer literature",
       },
       {
@@ -582,46 +669,79 @@ const DECLARED: CatalogDeclaration[] = [
         required: false,
       },
     ],
-    turnaround: "No site visit. The engineer's review begins when the documents are complete.",
+    /*
+     * SL-001 v1.1 section 6: "There is no default. On every job the engineer
+     * decides at intake whether a technician visits or the job rests on the
+     * installer's site survey photographs." Section 12: "The firm does not
+     * issue a solar letter from drawings alone." This said "No site visit."
+     */
+    turnaround:
+      "The engineer decides at intake whether a technician visits or the installer's site survey photographs are enough. No letter is issued from drawings alone, and no calculation starts until the array design arrives.",
     receives: ["The structural letter the engineer's review supports, sealed"],
   },
   {
     serviceSlug: "structural-letters",
     tier: "standard",
     name: "Structural letter for permit",
-    orderType: "desk",
+    /* FIELD SINCE 2026-10-07, ruling 7: PL-001 sends a technician (conflicts item 20). Fee $175, ruled the same day. */
+    orderType: "field",
     coastalSurchargeCents: 7500,
-    inspectionFeeCents: null,
-    protocolServiceSlug: null,
+    /* $175, operator ruling of 2026-10-07: the same as every other field line. */
+    inspectionFeeCents: 17500,
+    protocolServiceSlug: "structural-letters",
     qualifiers: [
       ADDRESS_QUALIFIER,
+      /*
+       * PL-001 v1.1, ruling 6 of 2026-10-07. Section 2: the protocol covers a
+       * letter to a permitting authority that "has asked, in writing", and
+       * nothing else. Section 12: "No written request from the permitting
+       * authority. Not accepted until one is supplied." This qualifier used to
+       * accept "No, I was just told to get a letter" and disqualify nobody.
+       */
       {
         id: "question",
-        prompt: "Is there a specific question the letter has to answer?",
-        help: "A letter answers something. A letter that answers nothing in particular is not useful to whoever asked for it.",
+        prompt: "Has the permitting authority asked for the letter in writing?",
+        help: "The letter answers the authority's request exactly as it was written, so the request is where it starts.",
         options: ["Yes", "No, I was just told to get a letter"],
-        disqualifyOn: [],
-        disqualifiedMessage: "",
+        disqualifyOn: [1],
+        disqualifiedMessage:
+          "The letter answers a written request from the building department, as it was written. Ask the department for its request, comment or correction notice in writing, and the order can start once you have it.",
       },
     ],
     requiredInputs: [
+      FRONT_PHOTO_INPUT,
       {
         id: "question_text",
-        label: "What does the letter need to say, and who asked for it",
-        help: "A city, a lender, an insurer, a buyer. Their words if you have them.",
+        label: "What the permitting authority asked for",
+        help: "The building department's request in its own words, and the permit number if there is one.",
         kind: "text",
         required: true,
       },
       {
-        id: "documents",
-        label: "Everything you have about the structure",
-        help: "Plans, prior reports, photographs, permits. The engineer works from what is here.",
+        id: "authority_request",
+        label: "The permitting authority's written request",
+        help: "The request, plan review comment, or correction notice itself.",
         kind: "file",
         required: true,
+        accepts: "PDF or a photograph of the notice",
+      },
+      {
+        id: "documents",
+        label: "Plans, earlier letters, or inspection reports, if there are any",
+        help: "Plans or specifications for the element, a failed inspection report or stop work order, an earlier engineer's letter. Photographs help the engineer decide, and do not replace a visit where the letter concerns existing construction.",
+        kind: "file",
+        required: false,
         accepts: "PDF or photographs",
       },
     ],
-    turnaround: "No site visit. The engineer's review begins when the documents are complete.",
+    /*
+     * PL-001 section 6: "A site job is any job where the letter concerns
+     * existing construction ... Photographs supplied by the customer do not
+     * replace a technician visit." This said "No site visit." orderType stays
+     * desk until the operator rules what a site job costs (conflicts item 20).
+     */
+    turnaround:
+      "The engineer triages the order within one business day and records whether it is a site job or a desk job. A letter about existing construction rests on a technician's visit. Review begins when the record is complete.",
     receives: ["The letter the engineer's review supports, sealed"],
   },
   {
@@ -640,29 +760,38 @@ const DECLARED: CatalogDeclaration[] = [
     serviceSlug: "repair-specifications",
     tier: "standard",
     name: "Repair specification",
-    orderType: "desk",
+    /* FIELD SINCE 2026-10-07, ruling 7: RS-001 sends a technician (conflicts item 23). Fee $175, ruled the same day. */
+    orderType: "field",
     coastalSurchargeCents: 7500,
-    inspectionFeeCents: null,
-    protocolServiceSlug: null,
+    /* $175, operator ruling of 2026-10-07: the same as every other field line. */
+    inspectionFeeCents: 17500,
+    protocolServiceSlug: "repair-specifications",
     qualifiers: [
       ADDRESS_QUALIFIER,
+      /*
+       * RS-001 v1.1, ruling 6 of 2026-10-07. Appendix A Part 2 makes a report
+       * on the damage "Required if it exists", and section 7 has the
+       * technician capture the damage on site. This qualifier used to turn
+       * away "No, nobody has looked at it yet" and the report was required.
+       * Both now follow the protocol.
+       */
       {
         id: "assessment",
         prompt: "Has the damage already been documented by an inspection or a report?",
-        help: "A specification describes the repair for damage somebody has established. It does not establish it.",
+        help: "If there is a report, it helps. If there is not, the technician's visit documents the damage the specification is written for.",
         options: ["Yes, I have a report", "No, nobody has looked at it yet"],
-        disqualifyOn: [1],
-        disqualifiedMessage:
-          "A repair specification is written from an assessment of the damage. Order the inspection for this structure first; its findings are what the specification is then written from.",
+        disqualifyOn: [],
+        disqualifiedMessage: "",
       },
     ],
     requiredInputs: [
+      FRONT_PHOTO_INPUT,
       {
         id: "assessment_report",
-        label: "The report or assessment of the damage",
-        help: "Whatever established what is wrong. An engineer's report, an inspection, an adjuster's scope.",
+        label: "Any report on the damage, if there is one",
+        help: "An engineer's report, an inspection, or an insurer's report.",
         kind: "file",
-        required: true,
+        required: false,
         accepts: "PDF",
       },
       {
@@ -674,7 +803,15 @@ const DECLARED: CatalogDeclaration[] = [
         accepts: "Photographs",
       },
     ],
-    turnaround: "No site visit. The engineer's review begins when the documents are complete.",
+    /*
+     * RS-001 section 7: "A specification is not written without a technician
+     * visit, except where an earlier job file of this firm already holds the
+     * evidence and the engineer finds it is still current." This said "No site
+     * visit." orderType stays desk until the operator rules it (conflicts
+     * item 23).
+     */
+    turnaround:
+      "A technician visits before the specification is written, unless an earlier job file of this firm already holds the evidence and the engineer finds it still current. Review begins when the record is complete.",
     receives: [
       "A sealed repair specification defining the scope of work",
       "A document three contractors can price against identically",
@@ -728,6 +865,7 @@ const DECLARED: CatalogDeclaration[] = [
       },
     ],
     requiredInputs: [
+      FRONT_PHOTO_INPUT,
       {
         id: "spans",
         label: "The span, and what the beam or header carries",
@@ -751,7 +889,8 @@ const DECLARED: CatalogDeclaration[] = [
         required: false,
       },
     ],
-    turnaround: "No site visit. The engineer's review begins when the span and the loads are complete.",
+    turnaround:
+      "The engineer decides at acceptance whether a technician visits; the engineer does not attend. Review begins when the span and the loads are complete.",
     receives: [
       "A sealed sizing for the beam or header, with the span and loads it was calculated for stated on it",
       "A written quote from the engineer's estimate of the hours, and no charge until you accept it",
@@ -777,6 +916,7 @@ const DECLARED: CatalogDeclaration[] = [
       },
     ],
     requiredInputs: [
+      FRONT_PHOTO_INPUT,
       {
         id: "dimensions",
         label: "The dimensions you want",
@@ -800,7 +940,8 @@ const DECLARED: CatalogDeclaration[] = [
         required: false,
       },
     ],
-    turnaround: "No site visit. The engineer's review begins when the dimensions and photographs are complete.",
+    turnaround:
+      "The engineer decides at acceptance whether a technician visits; the engineer does not attend. Review begins when the dimensions and photographs are complete.",
     receives: [
       "A sealed plan set for the cover, to the wind loads for the property's county",
       "A document a permit office can review without asking for more",
@@ -817,6 +958,7 @@ const DECLARED: CatalogDeclaration[] = [
     protocolServiceSlug: null,
     qualifiers: [ADDRESS_QUALIFIER],
     requiredInputs: [
+      FRONT_PHOTO_INPUT,
       {
         id: "project",
         label: "What are you building",

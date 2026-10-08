@@ -103,6 +103,9 @@ const ADMIN_PAGES = [
   "/portal/people",
   "/portal/audit",
   "/portal/profile",
+  /* The engineer's own seal and signature, 2026-10-07. Gated on the licence;
+   * closed to a signed out caller like every other portal page. */
+  "/portal/profile/seal",
   "/portal/review",
   /* Files waiting on an owner to have repairs done. Behind the same licensed
    * capability as the review queue, and closed to a signed out caller like
@@ -240,6 +243,13 @@ const ADMIN_APIS = [
 
   "/api/portal/people",
   "/api/portal/password",
+  /* Where the engineer stores his seal and signature, 2026-10-07. POST only,
+   * licence and a fresh second factor behind the perimeter. */
+  "/api/portal/seal",
+  // Sealing piece two, 2026-10-07: drafting and sealing the engineer's letter.
+  "/api/portal/letters",
+  // And signing a protocol in the portal, ruling 2a of 2026-10-06.
+  "/api/portal/protocols/sign",
   // Never listed since Phase 1 shipped it. Found by the coverage check below on
   // its first run, which is the argument for the coverage check.
   "/api/portal/files",
@@ -1369,6 +1379,41 @@ async function run() {
       "the customer page is never indexed",
       !badBody || /noindex/.test(badBody),
       "an order status page in a search result would be a leak",
+    );
+
+    /*
+     * THE CUSTOMER'S SEALED LETTER, the first public token-gated API route
+     * (BACKLOG.md, "no row for a public token-gated API route"), carrying the
+     * pair that entry asks of it. Read for the refusal and for the absence of a
+     * PDF, never for a status code alone.
+     */
+    const PROBE_DOC = "00000000-0000-4000-8000-000000000000";
+    const docNoToken = await fetch(`${BASE}/api/order-document?document=${PROBE_DOC}`, { redirect: "manual" });
+    const docNoTokenBody = await docNoToken.text();
+    rec(
+      "a sealed letter with no token serves nothing",
+      docNoToken.status === 404 &&
+        !/application\/pdf/.test(docNoToken.headers.get("content-type") ?? "") &&
+        /does not open a sealed letter/.test(docNoTokenBody),
+      `HTTP ${docNoToken.status}`,
+    );
+    const docBadToken = await fetch(`${BASE}/api/order-document?token=not-a-real-token&document=${PROBE_DOC}`, {
+      redirect: "manual",
+    });
+    const docBadTokenBody = await docBadToken.text();
+    rec(
+      "and a wrong token is refused the same way",
+      docBadToken.status === 404 && !/application\/pdf/.test(docBadToken.headers.get("content-type") ?? ""),
+      `HTTP ${docBadToken.status}`,
+    );
+    rec(
+      "and the two refusals are indistinguishable",
+      docNoToken.status === docBadToken.status && docNoTokenBody === docBadTokenBody,
+      "a different answer would tell somebody which of their guesses was a real letter",
+    );
+    rec(
+      "and neither is cached",
+      /no-store/.test(docNoToken.headers.get("cache-control") ?? "") && /no-store/.test(docBadToken.headers.get("cache-control") ?? ""),
     );
   }
 }

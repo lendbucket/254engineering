@@ -218,12 +218,23 @@ is stated true in a file somebody edits on purpose:
 | `trading-name` | **The board holds the operating name** | **`naming`, which gates NOTHING** | `operatingNameOnBoardRecord` |
 | `engineer-of-record` | A licensed PE is in responsible charge | `trading` | `verifiedEngineers` |
 | `stripe` | A live Stripe account belonging to 254, proven by a charge and its refund | `open` | `stripeAccount` |
-| `protocols` | One protocol per offered service line, approved by the engineer of record | `open` | `approvedProtocols` |
+| `protocols` | One protocol in force per offered service line; its signature is read from the database at every money door (ruling 11) | `open` | `offeredServiceLines`, `PROTOCOL_ENTRIES`, and the signed record |
 | `phone` | `FIRM_PHONE` is a real number, not a placeholder | `trading` | `FIRM_PHONE` |
+| `insurance` | Professional liability cover is in force, on record, with an expiry | `open` | `verifiedInsurance` |
+| `technician-training` | Every protocol in force for an offered line has somebody trained on that version | `open` | `verifiedTechnicianTraining` |
 | `recovery` | Point in time recovery on the production project | `open` | `pointInTimeRecovery` |
 | `self-service-signup` | Public sign up is cleared for production | `open` | `selfServiceSignup` |
 
+**ELEVEN CONDITIONS SINCE 2026-09-24, AND TEN OF THEM BLOCK.** Corrected here on
+2026-10-07: `insurance` and `technician-training` joined the gate on 2026-09-24
+and this table went on listing nine for thirteen days, which is the drift the
+paragraphs below already record once, about the same table, from seven to nine.
+The pinned list in `compliance-audit` was right throughout. The `protocols` row
+also changed that day: ruling 11 removed the typed approval list, and approval
+is read from the signed record in the database (`src/lib/line-gate.ts`).
+
 **NINE CONDITIONS, AND EIGHT OF THEM BLOCK. Operator ruling, 2026-09-22.**
+*(The count above supersedes this one; the reasoning below stands.)*
 
 The `gates` column was added that day because the table read as though all nine
 held the gate shut, and one does not. `trading-name` gates **`naming`**, and
@@ -307,8 +318,48 @@ would have put F-29811 next to "254 Engineering Services LLC".
 launch-audit asks whether the copy is right for a given mode. compliance-audit
 asks whether the mode may change at all.
 
-**A SEALED DOCUMENT IS UPLOADED, NEVER GENERATED. Operator ruling, 2026-09-06,
-and it is standing law rather than a phase decision.**
+**THE PLATFORM DRAFTS THE LETTER AND THE ENGINEER SEALS IT IN THE PORTAL.
+Operator ruling, 2026-10-06. It replaces the 2026-09-06 rule quoted below.**
+
+The platform drafts each letter from the fixed sentence for the determination
+the engineer records. The engineer reviews the draft in the portal and applies
+his seal and signature, stored on his profile, and that act makes it the sealed
+document. The requirements, each a condition of building it:
+
+- Only the engineer's own authenticated session, with MFA, can apply his seal.
+  No administrator path exists, including the operator's.
+- The seal and signature images are readable only by the sealing step, and are
+  never displayed or downloadable anywhere else.
+- At sealing the document is rendered, hashed and locked. Any change after that
+  voids the seal.
+- Every sealing writes to the immutable audit log.
+
+Each control is mapped to 22 TAC 137.33 and 137.35 before code is written. Letter
+drafting and sealing are built on `feat/sealed-delivery` with delivery, roof
+certification first, from the engineer's template 1 answers of 2026-10-05.
+
+**PROTOCOLS ARE SIGNED THE SAME WAY. Operator ruling, 2026-10-06.** The engineer
+opens the verbatim transcription in the portal, the text is hashed, he applies
+his stored seal and signature from his own MFA session, and the signed version is
+locked and becomes the registered protocol. A protocol signed this way needs no
+scan. Any change to the text after signing voids it. One mechanism serves letters
+and protocols, built once.
+
+This changes what a transcription is checked against. The source the engineer
+sends is an unsigned Word file, so the verbatim check compares the transcription
+against that file, and the signature attaches to the hash of the transcription
+he read and signed. The rule in section 3 stands: his text is carried exactly,
+punctuation included.
+
+**The argument of the rule below was that a permission model cannot keep a
+rendered seal under the engineer's control.** The new rule answers it with
+identity rather than permission: the seal is applied by one person's own
+session with a fresh second factor, and no role, grant or administrator can
+stand in for him. The reasoning is kept because it names the exact hazard the
+four requirements above exist to close.
+
+**THE RULE IT REPLACES: A SEALED DOCUMENT IS UPLOADED, NEVER GENERATED.
+Operator ruling, 2026-09-06.**
 
 A seal carries a named Professional Engineer's own seal and signature. A platform
 that RENDERS one is a platform where any account holding the right permission can
@@ -335,6 +386,24 @@ must say, what each must not say, and the claims neither may ever make. Flipping
 rebuild, because the pages are statically prerendered. That is deliberate: a compliance state that
 could change without a deploy leaving an audit trail is not one this firm should want.
 
+**THE ONE STATED EXCEPTION: A SIGNED PROTOCOL. Operator ruling 11, 2026-10-06.**
+The gate's protocols condition may read signed protocol records from the
+database. Nothing else in the gate may.
+
+- A line is sellable only when it is offered in configuration, which takes a
+  deploy and the operator's word, AND its protocol is signed in the database
+  with a hash that matches the transcription in code.
+- A signature alone never opens a line. Opening still takes the deploy.
+- A voided signature closes the line at once, without a deploy. The exception
+  runs in the closing direction only.
+- If the read fails or times out, the line is closed, and the order page says so
+  in plain words.
+- The typed approval list in `src/config/launch-readiness.ts` is removed, so
+  which protocols are approved has one home, the signed record.
+
+The audit trail the rule above asks for is kept by the signing itself: every
+signature and every voiding writes to the append-only audit log. That is why
+this exception is safe where a database-driven gate in general is not.
 ## 2. Brand differentiation (the ownership model is superseded)
 
 Three sites, one operator. To a search engine that is a doorway network unless each brand has a
@@ -2391,6 +2460,47 @@ actually applied the last migration before declaring anything unreachable, and
 never let "I could not measure it" stand in a ledger when it means "I did not
 try the other tool".**
 
+**AND THE ONE REFUSAL THAT IS NOT A REFUSAL OF ONE CALL: THE SUPABASE MCP
+CANCELS A DESTRUCTIVE STATEMENT BEFORE IT RUNS.** Operator ruling, 2026-10-03,
+and it is the exception to the paragraph directly above, which is why it sits
+here rather than anywhere else.
+
+**The evidence, from 45 MCP calls in one session.** Every cancelled call was
+DESTRUCTIVE and every write that succeeded was ADDITIVE:
+
+| Shape | Outcome |
+| --- | --- |
+| `create or replace function`, two `insert into` | ok |
+| two `update` | ok |
+| `alter table ... drop column` | **cancelled, twice** |
+| `do $$ ... delete from` | **cancelled, twice** |
+
+**The tell is the shape of the answer.** `{"status":"cancelled"}` with no error
+body is a call stopped BEFORE execution. A statement Postgres refuses comes back
+with a message, which is how the foreign key violations in the same session read.
+So a cancellation is not the database declining, and it is not the operator
+declining either: it was established on 2026-10-03 that he had declined no
+prompt.
+
+**NEVER RETRY A CANCELLED DESTRUCTIVE CALL.** The session that found this retried
+once before asking, which was wrong on its own terms: a cancellation whose cause
+is unknown may be a person saying no, and repeating the call overrides them.
+Report it and stop. The cause is found from the transcript, not from another
+attempt.
+
+**IT ALSO EXPLAINS 0061, WHICH HAD BEEN PARKED AS A MYSTERY.** That migration is
+`alter table eng_credentials drop column if exists storage_key`, it was cancelled
+twice on 2026-10-02, and nobody connected the two facts until the pattern above
+was counted. A thing filed as unexplained for a day was one `grep` of the
+transcript away.
+
+**THE CONSEQUENCE, AND IT IS A CHANGE TO HOW A SITTING RUNS.** A destructive
+migration cannot reach production through this tooling at all. So 0061 and every
+other destructive migration is run BY THE OPERATOR, in the Supabase SQL editor,
+from a script a session prepares: a dry run READ before, the statement itself,
+and a verification READ after. The session writes all three and runs neither.
+`docs/production-sitting-destructive.md` is the standing procedure.
+
 **EVERY PRODUCTION MIGRATION GOES THROUGH `apply_migration`, NEVER
 `execute_sql`.** Operator ruling, 2026-09-09. The two tools differ in a way that
 matters months later: `apply_migration` writes a row into
@@ -3117,6 +3227,32 @@ night, if the lock is free and work is waiting, board it.
   **Main.** The session pushes to main only on Robert's merge word, given in
   chat, naming the branch and the commit. The board must have passed alone with
   its stated prediction met.
+
+  **Merging is the session's, from Claude Code, only on that word.** Operator
+  ruling, 2026-10-06. The merge word names the branch and the commit. Before
+  pushing, the session fetches, confirms `origin/main` is the commit it expects
+  and that the named commit descends from it, merges with a merge commit and
+  never a squash, and only then pushes main. The operator's permission rule
+  allows `git push origin main` and nothing else onto main: a force push, a
+  refspec onto main and a delete all stay denied. The first merge under this
+  rule was `fix/retention-whole-days` at `bd9fbff`, merged as `7ff2ec2` with
+  parents `4a7d883` and `bd9fbff`, its tree identical to the boarded commit.
+  The second was `feat/protocol-registry` at `7991895`, merged as `f1beeab`.
+
+  **A branch merges only after a board has passed on a tree that includes
+  main.** Operator ruling, 2026-10-06. Bringing a branch up to main does not
+  need its own board when the next piece of work on that branch will be
+  boarded anyway, because that board measures the combination. What may never
+  happen is a merge into main from a tree no board has measured together with
+  the main it lands on.
+
+  **The standing merge word for an unattended run**, 2026-10-06 into
+  2026-10-07: a branch carrying no migration may merge when it has been brought
+  up to the current main, its board on that exact tree passes alone with every
+  line of its stated prediction met, and `origin/main` is confirmed unmoved. A
+  branch carrying a migration does not merge in an unattended run: it is
+  brought up to main, its migration applied to development, boarded, pushed,
+  and staged for the morning sitting.
 
   **Never, under any word:** a force push, deleting or rewriting a remote branch,
   pushing a tag, or pushing main with a migration that is not applied to

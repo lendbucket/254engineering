@@ -40,7 +40,33 @@ export async function answersFor(fileId: string): Promise<FileAnswers> {
     return {};
   }
 
+  /*
+   * THE ORDER'S ANSWERS FIRST, THE FILE'S OWN ON TOP. Found 2026-10-07 by the
+   * order path walk: a job placed on the site keeps the customer's answers in
+   * eng_order_inputs, checkout evidence written once, and nothing ever put
+   * them on the file. So every screen that asks what a file has been told (the
+   * letter, what is missing, the review queue) read an empty record for every
+   * web order, and the letter could never be drafted. 0016 keeps the two tables
+   * apart on purpose; this reads both, with the file's working record winning,
+   * because that is where a late answer or a correction lands. A failed read of
+   * the order's answers is not "nothing was answered": it returns what the file
+   * holds and says so in the log, the same as the read above.
+   */
   const answers: FileAnswers = {};
+  const { data: orders, error: orderError } = await db.from("eng_service_orders").select("id").eq("file_id", fileId);
+  if (orderError) console.error(`[file-inputs] could not read the orders for ${fileId}: ${orderError.message}`);
+  const orderIds = (orders ?? []).map((o) => o.id as string);
+  if (orderIds.length) {
+    const { data: given, error: givenError } = await db
+      .from("eng_order_inputs")
+      .select("key, value_text")
+      .in("order_id", orderIds)
+      .eq("kind", "input");
+    if (givenError) console.error(`[file-inputs] could not read the order answers for ${fileId}: ${givenError.message}`);
+    for (const row of given ?? []) {
+      if (typeof row.value_text === "string") answers[row.key as string] = row.value_text;
+    }
+  }
   for (const row of data ?? []) {
     if (typeof row.value_text === "string") answers[row.field_id as string] = row.value_text;
   }

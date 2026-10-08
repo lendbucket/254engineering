@@ -690,6 +690,29 @@ answer(out);
   }
 }
 
+/*
+ * THE FLOORS RULED ON 2026-10-07, PINNED AS LITERALS. Operator ruling: the
+ * three lines made field work that day each rise by the $85 technician visit,
+ * structural letter $295 to $380, solar and repair specification $325 to $410.
+ * Until then no floor was pinned anywhere, so one could move with the board
+ * green; these three are pinned now, and the older floors are named as not yet
+ * pinned rather than assumed to be.
+ */
+{
+  const RULED = {
+    "structural-letters/standard": 38_000,
+    "solar-structural-letters/standard": 41_000,
+    "repair-specifications/standard": 41_000,
+  };
+  const wrong = Object.entries(RULED).filter(([key, cents]) => TRADE_FLOORS[key]?.state !== "set" || TRADE_FLOORS[key].floorCents !== cents);
+  rec(
+    "the three floors ruled on 2026-10-07 are what was ruled: $380, $410 and $410",
+    wrong.length === 0,
+    wrong.map(([key, cents]) => `${key}: ruled ${cents}, declared ${TRADE_FLOORS[key]?.floorCents ?? TRADE_FLOORS[key]?.state}`).join("; ") ||
+      `${Object.keys(RULED).length} pinned; ${Object.values(TRADE_FLOORS).filter((f) => f.state === "set").length - Object.keys(RULED).length} older set floor(s) not yet pinned`,
+  );
+}
+
 console.log("========== A FLOOR IS THE OPERATOR'S ==========");
 await run();
 console.log("");

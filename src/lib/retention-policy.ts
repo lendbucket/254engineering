@@ -667,6 +667,33 @@ export const RETENTION_POLICY: RetentionEntry[] = [
     rule: { kind: "not_a_record", because: "The permission matrix. Configuration, seeded by migrations and edited on the roles screen." },
   },
   { table: "eng_roles", rule: { kind: "not_a_record", because: "The roles themselves. Configuration, seeded by 0018." } },
+  {
+    table: "eng_seal_acts",
+    rule: {
+      kind: "kept_forever",
+      because:
+        "EVERY ACT OF SEALING A LETTER OR SIGNING A PROTOCOL: what was sealed, by its SHA-256, which " +
+        "of the engineer's images sealed it, and when his second factor was verified. It is the record " +
+        "a sealed deliverable is checked against for as long as anybody relies on it. A seal that no " +
+        "longer stands is voided with a reason and stays. The database refuses DELETE and any change " +
+        "but a voiding through eng_seal_act_guard, and migration-audit proves it by firing it.",
+      ruledBy: "operator rulings 2 and 2a of 2026-10-06, and the trigger in 0062",
+    },
+  },
+  {
+    table: "eng_seal_images",
+    rule: {
+      kind: "kept_forever",
+      because:
+        "THE RECORD OF WHICH SEAL AND SIGNATURE THE ENGINEER UPLOADED, AND WHEN. A document sealed " +
+        "last month carries last month's seal, and somebody asking years later which image was on it, " +
+        "and whether it was the engineer's own, needs this row. A replaced image is superseded, never " +
+        "removed. The database refuses DELETE through eng_seal_image_guard, which also refuses any " +
+        "change but a single supersession, and migration-audit proves both by firing them. " +
+        "The images themselves live in the private eng-seals bucket, keyed by these rows.",
+      ruledBy: "operator ruling 2 of 2026-10-06, and the trigger in 0061",
+    },
+  },
   { table: "eng_service_orders", rule: { kind: "kept_pending_counsel", because: "An order that ever took money additionally cannot be deleted at all: eng_order_payments references it with ON DELETE RESTRICT and payments are kept forever. " + COUNSEL } },
   { table: "eng_statement_lines", rule: { kind: "kept_pending_counsel", because: "What a customer was billed, line by line. " + COUNSEL } },
   { table: "eng_statements", rule: { kind: "kept_pending_counsel", because: "What a customer was billed. " + COUNSEL } },

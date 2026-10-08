@@ -334,9 +334,25 @@ rec(
   const fields = fieldsFor(RC001.serviceSlug, "standard");
   const ids = new Set(fields.map((f) => f.id));
 
-  const missingQ = RC001.intakeQuestions.filter((q) => !ids.has(`rc001_q${q.number}`));
+  /*
+   * ORDER FLOW V2, 2026-10-07: a question may be asked by the order's own step
+   * instead of a field (data/protocol-phrasing.ts, `byOrder`), and the
+   * property address and county is the one that is. The exemption is COUNTED,
+   * because an exemption nobody counts becomes the rule: exactly question 4,
+   * and a second one goes red here.
+   */
+  const { PROTOCOL_PHRASING } = await import("../data/protocol-phrasing.ts");
+  const byOrder = Object.entries(PROTOCOL_PHRASING["254-RC-001"]?.questions ?? {})
+    .filter(([, w]) => "byOrder" in w)
+    .map(([n]) => Number(n));
   rec(
-    "every intake question the document asks reaches the one field definition",
+    "exactly one question is asked by the order's own step rather than a field: the address and county",
+    byOrder.length === 1 && byOrder[0] === 4,
+    byOrder.map((n) => `Q${n}`).join(", ") || "none",
+  );
+  const missingQ = RC001.intakeQuestions.filter((q) => !ids.has(`rc001_q${q.number}`) && !byOrder.includes(q.number));
+  rec(
+    "every other intake question the document asks reaches the one field definition",
     missingQ.length === 0 && fields.length > 0,
     missingQ.map((q) => `Q${q.number}`).join(", ") || `${fields.length} fields for ${RC001.serviceSlug}`,
   );
@@ -1098,71 +1114,50 @@ if (carriers.length === 1) {
  * substitute.
  */
 {
-  const { approvedProtocols } = await import("../src/config/launch-readiness.ts");
+  /*
+   * RULING 11 STAGE B, 2026-10-07: THE REGISTER IS GONE, SO LAYER ONE ASKS THE
+   * PROTOCOLS IN FORCE INSTEAD.
+   *
+   * This iterated `approvedProtocols`, the typed approval list, and compared
+   * each entry with the service list, the engineer register and the transcribed
+   * document. Ruling 11 removed the list: which protocols are approved has one
+   * home, the signed record in the database, read by every money door. The
+   * approver's name, licence and date now exist only there, so they are
+   * compared there, by lineIsSellable (src/lib/line-gate.ts) on every order
+   * and by scripts/protocol-register-check.mjs by hand with the production key.
+   *
+   * What is left for layer one is what code still holds: each protocol in force
+   * names a real line, and its discipline is one the engineer on the register
+   * seals.
+   */
+  const { PROTOCOL_ENTRIES } = await import("../src/content/protocols/index.ts");
   const { verifiedEngineers } = await import("../src/config/credentials.ts");
   const { services } = await import("../src/content/services.ts");
 
-  /*
-   * NOT A COUNT. An empty register satisfies every `every` below, and the gate
-   * would then be asserting that no line may be offered, which is a different
-   * state from a register that agrees with the row. So the subject is asserted
-   * to exist before anything is asked of it.
-   */
   rec(
-    "the register names at least one approved protocol",
-    approvedProtocols.length > 0,
-    `${approvedProtocols.length} entr(y|ies). An empty register makes every check below vacuous.`,
+    "at least one protocol is in force, so the checks below read something",
+    PROTOCOL_ENTRIES.length > 0,
+    `${PROTOCOL_ENTRIES.length} in force. An empty set makes every check below vacuous.`,
   );
 
-  for (const p of approvedProtocols) {
-    const where = `${p.serviceSlug} ${p.protocolName} v${p.versionLabel}`;
-
-    rec(
-      `${where}: names a service line that exists`,
-      services.some((s) => s.slug === p.serviceSlug),
-      p.serviceSlug,
-    );
-
-    /* The engineer is DERIVED, so this asserts the derivation still holds. */
-    const engineer = verifiedEngineers.find((e) => e.licenseNumber === p.approvedByLicense);
-    rec(
-      `${where}: the approving licence is on the engineer register`,
-      Boolean(engineer),
-      engineer ? `${engineer.name}, licence ${p.approvedByLicense}` : `licence ${p.approvedByLicense} is on no engineer`,
-    );
-    rec(
-      `${where}: and the name recorded is that engineer's name`,
-      Boolean(engineer) && engineer.name === p.approvedBy,
-      engineer ? `register says "${p.approvedBy}", the engineer register says "${engineer.name}"` : "",
-    );
-
+  for (const p of PROTOCOL_ENTRIES) {
+    const d = p.declaration;
+    const where = `${d.serviceSlug} ${d.documentNumber} v${d.version}`;
+    rec(`${where}: names a service line that exists`, services.some((s) => s.slug === d.serviceSlug), d.serviceSlug);
     /*
      * THE DISCIPLINE IS CHECKED AGAINST sealsOnly, NOT disciplines, and the
      * difference is the whole reason both fields exist. TBPELS grants a branch,
-     * his is Civil, and Texas restricts practice by COMPETENCE. `sealsOnly` is
-     * what the firm holds out and what he will seal.
+     * his is Civil, and Texas restricts practice by COMPETENCE.
      */
+    const sealer = verifiedEngineers.find((e) => d.requiresDiscipline && e.sealsOnly.includes(d.requiresDiscipline));
     rec(
-      `${where}: the protocol's discipline is one this engineer seals`,
-      Boolean(engineer) && engineer.sealsOnly.includes(RC001.requiresDiscipline),
-      engineer ? `document requires ${RC001.requiresDiscipline}, he seals ${engineer.sealsOnly.join(", ")}` : "",
-    );
-
-    /* The transcription of the signed document is the other thing we own. */
-    rec(
-      `${where}: the version label matches the transcribed document`,
-      p.versionLabel === RC001.version,
-      `register "${p.versionLabel}", document "${RC001.version}"`,
-    );
-    rec(
-      `${where}: the protocol name matches the transcribed document's title`,
-      p.protocolName === RC001.title,
-      `register "${p.protocolName}", document "${RC001.title}"`,
-    );
-    rec(
-      `${where}: the approval is dated on or after the document was issued`,
-      p.approvedOn >= RC001.issueDate,
-      `approved ${p.approvedOn}, issued ${RC001.issueDate}. An approval predating the document would be an approval of something else.`,
+      `${where}: an engineer on the register seals the discipline it requires`,
+      d.requiresDiscipline === null || Boolean(sealer),
+      d.requiresDiscipline === null
+        ? "no discipline is declared, so the line stays blocked by the discipline gate rather than here"
+        : sealer
+          ? `${d.requiresDiscipline}, sealed by ${sealer.name}`
+          : `nobody on the register seals ${d.requiresDiscipline}`,
     );
   }
 }
@@ -1343,6 +1338,226 @@ if (carriers.length === 1) {
         JSON.stringify(read.text),
       );
     }
+  }
+}
+
+/*
+ * ===========================================================================
+ * 8. THE PROTOCOLS RECEIVED AND NOT SIGNED, PROVED AGAINST THEIR PDFS
+ * ===========================================================================
+ *
+ * The engineer's seven v1.1 protocols, transcribed on 2026-10-07 into
+ * `src/content/protocols/received.ts`. Every comparison here reads the PDF on
+ * disk, never a second copy of the transcription.
+ *
+ * THE HASHES ARE LITERALS, NOT READ FROM THE DECLARATIONS. They are the figures
+ * recorded in commit 524fa76 when the files were committed unedited. A
+ * declaration that named a different file, or a PDF replaced on disk, turns
+ * this red; reading the expectation from the declaration would compare it to
+ * itself.
+ *
+ * THE FULL TEXT IS COMPARED FOR EQUALITY, which is both directions at once:
+ * nothing in the document is missing from the transcription and nothing in the
+ * transcription is absent from the document. The reading normalises exactly
+ * three things, each an extraction artefact rather than the document: page
+ * footers, form feeds, and the bullet glyph pdftotext cannot decode.
+ */
+{
+  const { RECEIVED_PROTOCOLS } = await import("../src/content/protocols/received.ts");
+  const { PROTOCOL_ENTRIES, protocolByDocument } = await import("../src/content/protocols/index.ts");
+  const { PROTOCOL_FIELDS } = await import("../data/intake-fields.ts");
+  const { squash: sq } = await import("./lib/protocol-source.mjs");
+
+  const PINNED_SHA256 = {
+    "254-WP-001": "e7515b42a3d319483c40dc2ded4d07527f8ada932410d64ad69ec9c45ccb3040",
+    "254-WS-001": "f4cbe248957298bbae6d968350d3732ef3197b46684959c6ec083f494f3ed6b5",
+    "254-MH-001": "5c88c73d9815cfae6825ef82d4368dd66a98dce746deed91b3c351cf2df09d4a",
+    "254-SL-001": "7bac29a7021086a7a40906021de5be9c2c2efaba747db33877410dd7b5c4e8f3",
+    "254-PL-001": "f1ff2e5883aac06ac1b468a74ea09535c074a468a31de4c04297bf4c74b11387",
+    "254-RS-001": "c7913d6637f2a08b1cd09a49c1767c682895db864143005a07bba99def8c2dd2",
+    "254-DS-001": "37dd6b2e44155108df1daa681277332ddb64450a0f58813979e538da469ee22b",
+  };
+
+  rec(
+    "the received register holds exactly the seven v1.1 protocols, so the checks below read every one",
+    RECEIVED_PROTOCOLS.length === 7 &&
+      Object.keys(PINNED_SHA256).every((n) => RECEIVED_PROTOCOLS.some((p) => p.declaration.documentNumber === n)),
+    RECEIVED_PROTOCOLS.map((p) => p.declaration.documentNumber).join(", "),
+  );
+
+  /* ---- unsigned means it drives nothing */
+  const reachable = RECEIVED_PROTOCOLS.filter(
+    (p) =>
+      p.status !== "unsigned" ||
+      protocolByDocument(p.declaration.documentNumber) !== null ||
+      PROTOCOL_ENTRIES.some((e) => e.declaration.sourceFile === p.declaration.sourceFile),
+  );
+  rec(
+    "no received protocol is registered where the line gate, the intake forms or the review screen read",
+    reachable.length === 0,
+    reachable.map((p) => p.declaration.documentNumber).join(", ") || "none of the seven is in PROTOCOL_ENTRIES",
+  );
+  const leaked = PROTOCOL_FIELDS.filter((f) =>
+    RECEIVED_PROTOCOLS.some((p) => String(f.id).startsWith(p.declaration.documentNumber.slice(4).replace("-", "").toLowerCase())),
+  );
+  rec(
+    "and no intake field on any order form comes from one of them",
+    leaked.length === 0,
+    leaked.map((f) => f.id).join(", ") || `${PROTOCOL_FIELDS.length} protocol fields, all from signed protocols`,
+  );
+
+  const FOOTER = /^254 Engineering Services \| 254-[A-Z]{2}-\d{3} .* \| Page \d+$/;
+  const UNDECODED = String.fromCodePoint(0xfffd);
+  const BULLET = String.fromCodePoint(0x2022);
+
+  for (const p of RECEIVED_PROTOCOLS) {
+    const d = p.declaration;
+    const where = d.documentNumber;
+
+    if (!existsSync(d.sourceFile)) {
+      rec(`${where}: its source PDF is on disk`, false, `${d.sourceFile} is not on disk`);
+      continue;
+    }
+    const sha = createHash("sha256").update(readFileSync(d.sourceFile)).digest("hex");
+    rec(
+      `${where}: the PDF on disk is the file committed unedited, by its SHA-256`,
+      sha === PINNED_SHA256[where] && d.sourceSha256 === PINNED_SHA256[where],
+      sha !== PINNED_SHA256[where]
+        ? `on disk ${sha.slice(0, 12)}, pinned ${String(PINNED_SHA256[where]).slice(0, 12)}`
+        : d.sourceSha256 !== sha
+          ? `the PDF is right; the declaration names ${String(d.sourceSha256).slice(0, 12)}`
+          : `${sha.slice(0, 12)}, and the declaration names the same`,
+    );
+
+    const run = spawnSync("pdftotext", ["-raw", d.sourceFile, "-"], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+    if (run.error || run.status !== 0) {
+      tell.push(`${where}: the transcription was not compared with its PDF, because pdftotext could not read it.`);
+      continue;
+    }
+    const lines = run.stdout
+      .split("\f")
+      .join("")
+      .split(/\r?\n/)
+      .map((l) => l.split(UNDECODED).join(BULLET))
+      .filter((l) => l.trim() !== "" && !FOOTER.test(l.trim()));
+    const docSq = sq(lines.join("\n"));
+    const textSq = sq(d.text.join("\n"));
+
+    rec(`${where}: the PDF was read, so the comparison reads something`, docSq.length > 5000, `${docSq.length} characters`);
+
+    let at = 0;
+    while (at < docSq.length && at < textSq.length && docSq[at] === textSq[at]) at += 1;
+    rec(
+      `${where}: the transcribed text is the whole document, word for word, in both directions`,
+      textSq === docSq,
+      textSq === docSq
+        ? `${d.text.length} lines, ${docSq.length} characters, identical`
+        : `first difference at character ${at}: document "${docSq.slice(at, at + 40)}", transcription "${textSq.slice(at, at + 40)}"`,
+    );
+
+    /* every structured string, against the PDF */
+    /*
+     * A WP-001 TABLE CELL IS COMPARED WORD BY WORD IN ORDER, NOT AS ONE RUN.
+     * Four of its cells cross a page break or have the reference column printed
+     * inside them in reading order ("Rough opening framing ... studs at"
+     * "Construction documents" "each opening; ..."), so the joined cell is not
+     * one unbroken run of the PDF's text however correctly it is read. Every
+     * word must appear, in order, within a short span. That is the claim the
+     * transcription makes about cells, and it is no wider.
+     */
+    const inOrder = (hay, s) => {
+      const words = s.split(" ").map(sq);
+      for (let start = hay.indexOf(words[0]); start >= 0; start = hay.indexOf(words[0], start + 1)) {
+        let at = start;
+        let ok = true;
+        for (const w of words) {
+          const k = hay.indexOf(w, at);
+          if (k < 0 || k - start > sq(s).length + 400) {
+            ok = false;
+            break;
+          }
+          at = k + w.length;
+        }
+        if (ok) return true;
+      }
+      return false;
+    };
+    const strings = [
+      ...d.intakeQuestions.map((q) => [`Q${q.number}`, q.ask]),
+      ...d.intakeUploads.map((u) => [u.key, u.what]),
+      ...d.sections.map((s) => [s.key, s.heading]),
+      ...d.checklist.flatMap((i) => [
+        [i.key, i.label],
+        ...(i.capture ? [[`${i.key} record`, i.capture.prompt, "cell"]] : []),
+        ...("reference" in i && i.reference ? [[`${i.key} reference`, i.reference, "cell"]] : []),
+      ]),
+      ...d.photoProcedure.map((s) => [`step ${s.step}`, s.text]),
+      ...[...d.determinations, ...p.otherRules].flatMap((r) => [[r.key, r.heading], ...r.criteria.map((c, n) => [`${r.key} ${n + 1}`, c])]),
+      ...p.counts.map((c) => [c.key, c.prompt]),
+    ];
+    const missing = strings.filter(([, s, kind]) =>
+      kind === "cell" && where === "254-WP-001" ? !inOrder(docSq, s) : !docSq.includes(sq(s)),
+    );
+    rec(
+      `${where}: every question, upload, heading, checklist line, criterion, step and capture field appears in the PDF`,
+      strings.length > 20 && missing.length === 0,
+      missing.length === 0 ? `${strings.length} strings compared` : `NOT IN THE PDF: ${missing.slice(0, 4).map(([k]) => k).join(", ")}`,
+    );
+
+    /*
+     * The counts, taken from the PDF by marker alone. A parser that dropped a
+     * question or a checklist line would still pass the comparison above,
+     * because every string it kept is genuine; only a count it did not produce
+     * can see what it lost.
+     */
+    const between = (a, b) => {
+      const i = lines.findIndex((l) => a.test(l));
+      const j = lines.findIndex((l, k) => k > i && b.test(l));
+      return i < 0 || j < 0 ? [] : lines.slice(i + 1, j);
+    };
+    if (where === "254-WP-001") {
+      const tableLines = between(/^Stage 1\. /, /^Appendix B\. /);
+      const notAtLineStart = d.checklist.filter((i) => {
+        const first = i.label.split(" ")[0];
+        return !tableLines.some((l) => l === first || l.startsWith(`${first} `));
+      });
+      rec(
+        `${where}: every item begins a line of the PDF's stage tables, so no item is a fragment of another`,
+        d.checklist.length > 40 && notAtLineStart.length === 0,
+        notAtLineStart.map((i) => i.key).join(", ") || `${d.checklist.length} items`,
+      );
+      const stages = between(/^Appendix A\. /, /^Appendix B\. /).filter((l) => /^Stage \d+\. /.test(l)).length;
+      rec(
+        `${where}: its stages match the PDF's, and no item sits outside one`,
+        stages === d.sections.length && d.checklist.every((i) => d.sections.some((s) => s.key === i.section)),
+        `${d.sections.length} stages, ${d.checklist.length} items; where a table cell ends is a reading of the layout and is not proved`,
+      );
+      continue;
+    }
+    const part1 = between(/^PART 1: /, /^PART 2: /);
+    const part2 = between(/^PART 2: /, /^Appendix B\. /);
+    const appB = between(/^Appendix B\. /, /^Appendix C\. /);
+    const appC = between(/^Appendix C\. /, /^Appendix D\. /);
+    const boxes = appB.filter((l) => l.startsWith("[ ]"));
+    const blank = boxes.filter((l) => l.slice(3).replace("[PHOTO]", "").replace(/_/g, "").trim() === "").length;
+    const counted = {
+      questions: [part1.filter((l) => /^\d+\. /.test(l)).length, d.intakeQuestions.length],
+      uploads: [part2.filter((l) => l.startsWith("-- ")).length, d.intakeUploads.length],
+      "checklist lines": [boxes.length - blank, d.checklist.length],
+      "blank job lines": [blank, p.blankJobListItems],
+      criteria: [
+        appC.filter((l) => l.startsWith("-- ")).length,
+        [...d.determinations, ...p.otherRules].reduce((n, r) => n + r.criteria.length, 0),
+      ],
+    };
+    const off = Object.entries(counted).filter(([, [pdf, ours]]) => pdf !== ours);
+    rec(
+      `${where}: the transcription holds as many questions, uploads, checklist lines and criteria as the PDF`,
+      off.length === 0,
+      off.length === 0
+        ? Object.entries(counted).map(([k, [n]]) => `${n} ${k}`).join(", ")
+        : off.map(([k, [pdf, ours]]) => `${k}: PDF ${pdf}, transcribed ${ours}`).join("; "),
+    );
   }
 }
 

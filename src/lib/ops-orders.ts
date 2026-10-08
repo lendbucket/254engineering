@@ -364,6 +364,21 @@ export function refundForFirmCancellation(input: { paidCents: Cents }): Refund {
 /** The stored refund_case for the fourth case. One spelling, used everywhere. */
 export const FIRM_CANCELLATION_CASE = "cancelled_by_the_firm";
 
+/**
+ * THE ONE SENTENCE THE ORDER FORM QUOTES OUTSIDE THE DISCLOSURE, BY NAME.
+ * Operator ruling of 2026-10-05: "No charge until the engineer accepts" was
+ * rejected as false, because the customer pays at checkout, and the form's
+ * reassurance is this sentence instead, read through a named accessor rather
+ * than an index into refundDisclosure, so reordering the disclosure cannot
+ * change which sentence the form shows. refundDisclosure is built from it, so
+ * the two cannot differ.
+ */
+export function refundIfDeclinedEarly(entry: CatalogEntry): string {
+  return entry.orderType === "field"
+    ? "If they decline before anyone attends the property, you are refunded in full."
+    : "There is no site visit on this service, so if they decline you are refunded in full and you still receive what the engineer found.";
+}
+
 export function refundDisclosure(entry: CatalogEntry): string[] {
   const lines = [
     "The engineer reviews what is gathered and decides. They may seal it, ask for revisions, ask for another visit, or decline to seal.",
@@ -371,7 +386,7 @@ export function refundDisclosure(entry: CatalogEntry): string[] {
 
   if (entry.orderType === "field") {
     lines.push(
-      `If they decline before anyone attends the property, you are refunded in full.`,
+      refundIfDeclinedEarly(entry),
       isKnown(entry.inspectionFeeCents)
         ? `If they decline after a technician has attended, you are refunded everything except the ${money(
             entry.inspectionFeeCents,
@@ -380,9 +395,7 @@ export function refundDisclosure(entry: CatalogEntry): string[] {
       "You are never charged more than the price shown above, and a decline is never a reason for a further charge.",
     );
   } else {
-    lines.push(
-      "There is no site visit on this service, so if they decline you are refunded in full and you still receive what the engineer found.",
-    );
+    lines.push(refundIfDeclinedEarly(entry));
   }
 
   lines.push(

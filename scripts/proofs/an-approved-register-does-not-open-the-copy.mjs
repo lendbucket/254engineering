@@ -77,12 +77,19 @@ const {
   sealingIsAvailableFor,
   launchMode,
 } = await import("../../src/lib/launch.ts");
-const { approvedProtocols } = await import("../../src/config/launch-readiness.ts");
+/*
+ * RULING 11 STAGE B, 2026-10-07: the typed approval list is gone. The premise
+ * this proof needs is "a protocol is in force for an offered line", which is
+ * what the copy predicates now read, so that is what is counted.
+ */
+const { PROTOCOL_ENTRIES } = await import("../../src/content/protocols/index.ts");
+const { offeredServiceLines } = await import("../../src/config/launch-conditions.ts");
+const inForce = PROTOCOL_ENTRIES.filter((p) => offeredServiceLines.includes(p.declaration.serviceSlug));
 const copy = await import("../../src/content/model-copy.ts");
 console.log(JSON.stringify({
   mode: launchMode(),
-  approvedCount: approvedProtocols.length,
-  approvedSlugs: approvedProtocols.map((p) => p.serviceSlug),
+  approvedCount: inForce.length,
+  approvedSlugs: inForce.map((p) => p.declaration.serviceSlug),
   prelaunch: isPrelaunch(),
   trading: isTrading(),
   engineer: peInResponsibleCharge(),

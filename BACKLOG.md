@@ -4,6 +4,311 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
+## THE SITTING FOR `release/2026-10-20`, PARTS A AND B RUN 2026-10-07, PART C OPEN
+
+`docs/production-sitting-2026-10-20.md`. **Parts A and B ran on 2026-10-07**
+with the operator present: 0061 to 0064 applied to production and read back,
+every prediction held, and recorded in `supabase/applied.mjs`; the rollup
+backfill wrote 15 rows for 2026-09-04 to 2026-09-08 (five days, not the two the
+document first named) and read back equal. The credentials column drop was
+deferred out of the release and waits on `migration/credentials-0062`. **Open:**
+Part C, Robert as a field technician (profile, 254 counties, the roof
+certification of 2026-09-23, two credentials, the W-9 and contractor agreement
+covered by the owner exemption in code).
+
+## WHAT THE ORDER PATH WALK OF 2026-10-07 LEFT FOR A RULING
+
+`scripts/exercises/order-path-walk.mjs` drove an order to a sealed letter and a
+refund on development, and fixed four defects on the way (commit `8e31266`).
+Three things it found are not the session's to decide:
+
+1. **RC-001's routing questions route nothing.** Questions 8 to 12 (open claim,
+   litigation, active leak, adverse report, recent storm damage) are documented
+   as "a yes routes this job to the engineer before anybody is dispatched".
+   `protocolRoutesToEngineer` in `data/protocol-fields.ts` implements the rule,
+   and `protocol-registry-audit` tests it with answers handed to it, and **no
+   product code calls it**: a yes is dispatched like a no. Building it means a
+   dispatch hold until the engineer pre-reviews, which is a behaviour ruling.
+   **BUILT 2026-10-07 by operator ruling 1** in `8608b7f`: any yes holds the job
+   before dispatch until the engineer records accept or decline; an open claim
+   is held like any other yes, with Aman's standing ruling shown as the reason,
+   and declined only by him, with his referral. `src/lib/dispatch-hold.ts`,
+   proved both ways.
+2. **Template 1 runs two lines together.** Aman's document has the recipient's
+   name and address in one paragraph, and "Texas File {{file_number}}" on the Re
+   line, so the sealed letter prints them run on. The transcription is his text
+   exactly and is not changed; whether those are separate lines is his to say.
+   **Ruled 2026-10-07: on Aman's list as question 3** in `docs/conflicts-v1.1.md`;
+   his text stays as it is.
+3. **Three walk files on development carry real sequence numbers.**
+   `254-2026-0001` to `0003`, opened before the demo-file fix, with is_demo false;
+   the database refuses the flag without the DEMO number, and `0002`'s number is
+   printed in a sealed, locked letter. **Ruled 2026-10-07: they stay, as
+   recorded here.**
+
+## SEVENTEEN PORTAL FILES TOKEN-AUDIT HAS NEVER READ
+
+Found 2026-10-07 by the integration board, which caught `text-[14px]` in two
+panels built that day and in no list: `docs/new-surface-checklist.md` row 8,
+the trap it already describes. A sweep then found **21 of 90** `.tsx` files
+under `src/app/portal` named nowhere in `scripts/token-audit.mjs`. The four that
+day's work touched were added (the two panels, `/portal/pricebook`,
+`/portal/launch`) and their off-scale sizes moved to the staff scale. **The
+other seventeen are not added yet**, because each may carry findings older than
+the release and the integration loop is not the place to open them: the trade
+pricing screen and its client, deletion requests, bulk dispatch, design and
+windstorm inquiries, the RC-001 protocol page and `protocol-document.tsx`, the
+open account client, and the four MFA enrol and challenge files. **The class
+fix** is a check in token-audit that every `.tsx` under `src/app/portal` is on
+`PORTED` or in a counted exemption, which is the shape of surface-audit's check
+for routes. Not built; it needs the seventeen read first.
+
+## MAY THE FIRM SEAL SOMETHING THAT IS NOT ONE JOB'S DELIVERABLE? NOBODY HAS RULED
+
+Raised 2026-10-03 by a constraint that was written, refused and withdrawn
+before it was applied anywhere. **It needs the operator and the engineer of
+record, not a session.**
+
+`0061_a_sealed_deliverable_says_who_and_when.sql` was drafted with two check
+constraints. The second read
+
+    check (sealed_at is null or kind = 'deliverable')
+
+on the argument that `eng_documents.kind` permits six values and five of them
+are the firm's own paperwork, so a seal on one of those would be a sealed
+engineering document the engineer never issued.
+
+**`migration-audit` refused it, and what it named settles that the question is
+real rather than pedantic.** A fixture in that audit inserts a sealed
+`firm_document` **with no file at all**, deliberately, to prove 0032's delete
+trigger reads `sealed_at` through `to_jsonb(old)` so a seal defends itself
+whatever it hangs off. Somebody had already decided a sealed document need not
+be a per-file deliverable, and wrote a check that depends on it.
+
+**So the clause was not a schema tightening, it was a ruling about what the firm
+may put a seal on, invented by a session in a migration comment.** An engineer
+may well seal a document that is not one job's letter: a sealed opinion on a
+standard detail, or a sealed statement about the firm itself. The constraint
+that survived, `(sealed_at is null) = (sealed_by is null)`, needs nobody's
+ruling, because neither half of a seal has a legitimate reading alone.
+
+**What a ruling has to decide:** which of the six `kind` values may ever carry a
+seal. If the answer is only `deliverable`, the clause goes back in and the
+fixture's `kind` changes to match. If it is more than one, nothing changes and
+this entry records why.
+
+## THE PARKED 0061 MUST RENUMBER TO 0062 BEFORE IT MERGES
+
+Recorded 2026-10-03. `0061_credentials_hold_no_documents.sql` on
+`migration/credentials-hold-no-documents` is the `drop column` parked because
+the Supabase MCP cancels a destructive statement before it runs. Its sitting
+procedure and worked example are in `docs/production-sitting-destructive.md`.
+
+**That number is now taken.** The sealed delivery migration was written as 0062
+precisely to avoid the collision, and `migration-audit` refused the gap:
+
+    FAIL: they are numbered contiguously from 0000 (got 0 ... 60, 62)
+
+**The check is right and the collision-avoidance was wrong**, because the two
+problems are not the same size. A duplicate number is found by `git` the moment
+two branches meet, loudly, with both files in front of somebody. A gap is a
+chain that cannot be replayed into an empty database and reads exactly like a
+migration that was lost, which is the recovery case that audit exists for.
+
+**So the renumber is two edits on that branch**, not done here because the
+branch is the operator's and its sitting script names the file: rename
+`0061_credentials_hold_no_documents.sql` to `0062_...`, and update the two
+places `docs/production-sitting-destructive.md` names it. **RENUMBERED 2026-10-07
+on `migration/credentials-0062`**, stacked on `feat/sealed-delivery`, with its
+ledger entry and migration-audit's pins at 1,154 columns; the original branch
+is untouched. **The sitting doc is renamed too, 2026-10-07:** the teardown
+branch was split, its three teardown commits merged into `release/2026-10-20`
+with the doc now naming 0062, and the unfinished staff walk harness
+(`scripts/walk/`, its captures, and `setup.mjs`, which had ridden in the first
+teardown commit) kept whole on `wip/staff-walk-harness` at `4607a2b` and
+removed from the release branch. Its ledger entry is written at the sitting
+either way.
+
+## TWO DEFECTS THE STAFF WALK FOUND, 2026-10-03, AND NEITHER IS FIXED
+
+Operator ruling, 2026-10-03: added to the fix list, not fixed now. Both were
+found by driving the product's own routes rather than by reading them, which is
+the argument for the walk.
+
+### 1. `create_client` has no double-submit protection
+
+`POST /api/portal/files` with `action: "create_client"`, fired twice with the
+same name and email, produced **two client rows 0.6 seconds apart**, both
+answering HTTP 200. There is no idempotency key, no unique index on the
+address, and no read-before-insert.
+
+**Why it is not merely untidy.** A coordinator who double-clicks, or whose
+connection retries, splits one customer into two clients. Everything that hangs
+off a client then splits with it: files, orders, the account a checkout opens,
+and every figure that counts clients. Nothing downstream can tell the two rows
+apart, because they are identical apart from the id.
+
+**The two rows it produced on development are the reason `demo-audit` went red
+on the board of 2026-10-03**, and they were marked `is_demo` by hand on the
+operator's ruling the same day, by UPDATE and never DELETE, ids recorded in
+that session. Marking them removed the symptom and not the defect.
+
+**What a fix has to decide**, and it is a behaviour question rather than a
+mechanical one: whether a second create with the same address is an error, a
+no-op returning the first row, or a legitimate second client at the same
+address. A household and a landlord are both real, so a unique index on the
+email would be the wrong answer on its own.
+
+**THE DOUBLE CLICK IS FIXED, 2026-10-07, ON `release/2026-10-20`, AND THE
+QUESTION ABOVE IS STILL OPEN.** `createClient` now returns the first row when
+the SAME PERSON creates a client with the same name and the same address (or
+both with none) within two minutes, which is a double click or a retry and
+nothing a person means as a second client. A different address, or a different
+person, is still a second client, and the order engine's own creates are
+outside the guard because they carry no author id. Proved on development by
+`scripts/proofs/a-client-created-twice-is-one-client.mjs`, both directions;
+a zero window turns exactly the three repeat checks red. **Not closed:** it is a
+read before the insert, so two requests in the same instant can still both
+insert, and closing that needs a constraint, which needs the ruling above.
+
+### 2. `/portal/clients` has no bound, so its list grows with the table
+
+`native-audit` failed on the board of 2026-10-03 with
+
+    FAIL: /portal/clients: the list is bounded (253 row(s))
+
+and it was right. The screen renders every client it reads, so its height is a
+function of the table. Development holds 913 clients, 653 of them probes, and
+the screen rendered 253 rows in one page.
+
+**This is the `/portal/queue` lesson with a different table.** That screen was
+38,744 pixels tall at 1280 and every check looking at it was green, because
+nothing on the board measured how tall a portal screen is. `native-audit` now
+does, which is why this one was caught rather than discovered by opening it.
+
+**It is the second half of the probe silt problem rather than a separate
+item.** The 641 stranded clients already recorded below are what pushed this
+screen over its bound, so the two interact: clearing the silt would hide this
+defect again without fixing it, and a bound on the list fixes it whatever the
+table holds. The bound is the real fix and the silt is the reason it was
+visible.
+
+## AND THE NINE ROW CHECKLIST HAS NO ROW FOR A PUBLIC TOKEN-GATED API ROUTE
+
+Found 2026-10-03 while reading `docs/new-surface-checklist.md` before building
+the sealed delivery path, which is what that document is for.
+
+Row 2 covers a PORTAL API route and row 1 covers any signed in SCREEN. A public
+API route whose only authorization is a signed token in the query string
+belongs to neither, and the customer's read of a sealed document is the first
+one this platform will have.
+
+**The precedent is a page rather than a route.** `/order/[reference]` is public
+and token-gated, and `security-audit.mjs:1351` asserts both halves of it: no
+token and a bad token must not open an order, read by looking for the failure
+SENTENCE rather than for a status code, because that page answers 200 while
+refusing. An API route of the same class needs the same pair and has no row
+telling anybody to write it.
+
+**Not closed as part of the delivery branch, deliberately.** The route being
+built there carries its own two assertions, so the instance is covered. Whether
+the checklist gains a tenth row, or row 2 widens from "a portal API route" to
+"any API route, with the public ones owing a token pair", is a decision about
+that document rather than about this feature, and the same reasoning that made
+row 1 say "any signed in screen" on 2026-10-03 applies: widening the scope is
+the class fix, adding one path is the instance.
+
+## 641 PROBE CLIENT ROWS ON DEVELOPMENT, DEFERRED BY RULING 2026-10-03
+
+**Deferred, not forgotten, and harmless where it sits.** `destroyCustomerProbes`
+attempted `delete from eng_clients` on every run and was refused every time:
+`eng_customer_accounts.client_id` is `on delete restrict` and the account had
+been superseded rather than removed. **The delete's return value was never
+read**, and `left` was computed by counting `eng_customer_users`, which really
+was zero, so it returned `ok` on every run for nineteen days.
+
+**The dry run, so the numbers are not re-derived later:**
+
+| | Count |
+| --- | --- |
+| probe clients (`audit-probe.invalid` **and** `is_demo`) | 641 |
+| probe accounts | 641 |
+| accounts blocked by a statement or a trade price | **141** |
+| accounts that would be deleted | **500** |
+| clients that would be deleted | **500** |
+| clients kept, held by a blocked account | **141** |
+| blocking rows: `eng_statements` | 21 |
+| blocking rows: `eng_account_trade_prices` | 277 |
+| oldest surviving probe client | 2026-09-14 |
+
+**Why it is harmless.** No credential: `eng_customer_users` and `auth.users` on
+the probe domain are both zero. No figure is wrong: all 641 carry `is_demo`,
+which migration 0027 and a check constraint tie to the reference, so they are
+excluded by construction rather than by care.
+
+**THE CLEARANCE IS DROPPED. Operator ruling, 2026-10-03. The silt stays,
+demo-marked.** Not deferred and not pending: there is nothing to come back to.
+
+**Why, and it is 0048 rather than the 141.** The first reason was that zero was
+unreachable: 141 accounts are held by `eng_statements` and
+`eng_account_trade_prices`, both `RESTRICT`, both financial records. Then the
+real answer appeared. **Migration 0048 installs `eng_forbid_account_delete()`, a
+trigger that raises on EVERY delete against `eng_customer_accounts`**, with no
+exemption for development:
+
+> An account is superseded, never deleted. Set superseded_at with a reason and an
+> actor. The orders, statements and trade prices attached to it are the record of
+> what somebody was charged.
+
+0048's own notes say it refuses every delete rather than only priced accounts,
+because a guarantee holding "only for accounts that happen to have been priced"
+is one nobody can state. **So not one of the 641 accounts can go, and a client
+cannot go while its account holds it.** The operator ruled on 2026-10-03 that
+0048 stands as written, no exemption, no workaround. An earlier ruling permitting
+a hard delete on development was withdrawn the same day on learning this.
+
+**It grows by one per customer-probe run**, and not only billing ones: any audit
+creating a customer probe adds one permanent client and one superseded account.
+Phase 0 of the staff walk took it from 641 to 642.
+
+**THE MCP CANCELLATIONS HAVE A CAUSE, FOUND 2026-10-03 FROM THE TRANSCRIPT RATHER
+THAN BY RETRYING.** Of 45 supabase MCP calls this session, every cancelled one is
+DESTRUCTIVE and every write that succeeded is additive:
+
+| Shape | Outcome |
+| --- | --- |
+| `create or replace function`, two `insert into` | ok |
+| two `update` | ok |
+| `alter table ... drop column` | CANCELLED, twice |
+| `do $$ ... delete from` | CANCELLED, twice |
+
+The result is `{"status":"cancelled"}` with no error body, which is a call
+stopped before execution rather than one Postgres refused. **This also explains
+migration 0061**, cancelled twice and parked as unexplained: it is
+`drop column storage_key`, the same destructive shape. The hosted MCP at
+`mcp.supabase.com` carries no local flags, so any destructive-operation guard is
+configured on Supabase's side, which is a console this repository cannot read.
+**A cancelled write is reported and stopped, never retried.**
+
+## A FIXED PROBE BILLING ACCOUNT, PROPOSED AND NOT BUILT
+
+The 141 exist because tests exercising statements and trade prices mint a fresh
+account each run, and both tables are `RESTRICT`. The set grows by about one per
+billing run, for ever.
+
+**Proposed:** one long-lived probe billing account on development, a known uuid,
+`is_demo`, created once by `seed-field-demo` and never torn down. Billing tests
+attach to it instead of minting. The teardown skips it by id and reports it as
+kept by design.
+
+**The cost, which is why it is a proposal.** The fixture carries history between
+runs, so a test asserting "this account has one statement" becomes "has one more
+than before". Resetting it between runs would mean deleting from append-only
+tables, which is not a workaround worth having.
+
+**Teardown now reports a per-run kept count** (`keptCount` and `kept`), which is
+the half of this that did ship.
+
 ## WAITING ON ROBERT
 
 Operator ruling, 2026-10-01: stop and ask only for behaviour, money, customer
@@ -16,12 +321,17 @@ a commit is one the next session has to go looking for.
 
 | Asked | Subject | State |
 | --- | --- | --- |
+| 2026-10-06 | **Technician onboarding cannot finish, queued after roof certification works end to end** | **QUEUED, NO BUILD, by operator ruling.** Surveyed read only on 2026-10-06 against main: (1) activation requires every dispatch-required and admin item to be `accepted` (`src/lib/ops-credentials.ts`, `activationReadiness`) and nothing in the portal can accept one: `setItemDecision` in `src/lib/onboarding.ts` has no caller, and `setVerification` in `src/lib/admin-onboarding.ts` has had no importer since the `/admin` screens were deleted on 2026-09-06, so the identity and I-9 verification steps lost their screen; (2) the `onboardingInvite` email has no sender, and the link is shown once for the operator to copy; (3) the step text in `src/content/onboarding-checklists.ts` still mentions photo ID, W-4 and I-9 uploads and a voided check, and the completion screen says two steps still need the firm when an engineer has five; (4) the engineer path never records a licence number at activation, and the coverage form renders only for technicians while readiness requires counties for every role. Until this is built, Aman and Robert's technician profile are set up through the People screen's create and invite. |
+| 2026-10-06 | **Technician training academy, queued after roof certification works end to end** | **QUEUED, NOT STARTED, by operator instruction.** Two courses a technician must graduate before the `field_tech` role is enrolled: (1) duties, responsibilities and each signed protocol, with content and quiz questions approved by Aman and versioned to the protocol version it teaches; (2) a firm safety course on ladder use and fall protection on roofs, written by Robert. Video lessons may be AI generated, never presenting a generated person as staff, with narration matching the protocol text. Graduation is the entry requirement only: certification still requires Aman's sign off after a supervised inspection. |
+| 2026-10-06 | **0055 carries `requires_discipline = null`, and it is known** | **KNOWN, NOT A DEFECT ON PRODUCTION.** Production's RC-001 row carries `structural`, read by the operator's chat counterpart on 2026-10-06, so 0056 corrected it there. The `null` in 0055 is a seed artifact. 0055 is applied and on main and is not changed. The generator no longer reproduces 0055 because of it, which is recorded on `feat/protocol-registry`. |
+| 2026-10-06 | **Dispatch readiness on production: a sitting script, and a role that blocks it** | **OPEN, SCRIPT WRITTEN, NOT RUN.** `docs/production-sitting-dispatch-readiness.md` writes Robert's roof certification, all 254 counties and two credentials. Dispatch only considers role `field_tech` and his profile is `admin`, so the role has to be ruled first (the document recommends a second technician profile). The W-9 and contractor agreement block is held for a ruling on whether an owner needs them. |
+| 2026-10-06 | **Four rulings, and two facts with two homes that disagree** | **RULED, recorded in `docs/rulings-2026-10-06.md`.** Ordering stays live; the platform drafts the letter and the engineer seals it in the portal (the law is in `CLAUDE.md` section 1); Robert's RC-001 v1.1 training is accepted on his statement; his coverage is all 254 counties. **OPEN:** the training register says trained while `eng_certifications` on production holds no row, and the TDI appointment register says not held while `eng_profiles` says appointed. Neither is fixed; the appointment waits on Aman's number and date. |
 | 2026-10-06 | **Three findings from the one-protocol-to-many groundwork, none fixed** | **OPEN, REPORTED.** (1) Since 0056 declared the discipline on 2026-09-21, `scripts/seed-protocol.mjs --document 254-RC-001 --emit-sql` no longer reproduces 0055: it would write `structural` where the applied file says `null`, so running it rewrites a migration that has run on production. Proven by re-emitting and diffing, then restored by copy. The generator should refuse to overwrite an existing migration. (2) The RC-001 portal screen still says the protocol "has not been approved in the platform"; it was approved on 2026-09-22. Carried unchanged because the ruling was that RC-001 behaves exactly as before, and replaced by the signed record when portal signing is built. (3) `protocol-register-check` against development reports the RC-001 row approved 2026-09-28 while the register says 2026-09-22; the check is written for production, where the dates agree, and development's row was approved on a later day. |
 | 2026-10-01 | HR pay rates | **RULED.** No defaults anywhere. Rates are entered per person in admin by the owner, with effective dates. A person with no rate set cannot be assigned paid work or appear in a pay export, and the screen says why in plain words. |
 | 2026-10-01 | Contractor agreement and handbook text | **RULED.** Build the flow that carries an uploaded document, its version, and a dated acknowledgement per person. Placeholder text marked "Awaiting attorney review" until he uploads the real documents, and nothing goes out while the placeholder is there. |
 | 2026-10-01 | The HR migration | **RULED.** Write it after the Part A and Part B report, apply it to development only, board it. Production waits for a sitting with him. |
 | 2026-10-02 | **254 needs its own project: production is shared with another app's data** | **OPEN, PLAN ONLY, AND IT IS NOT A NEW IDEA.** Established by a read-only production count on 2026-10-02: that project holds an `applications` bucket with 31 objects and an empty `resumes` bucket, neither `eng_` prefixed. This firm's code writes to neither, and the twelve buckets this codebase names are all `eng-` prefixed, so those belong to another app. **Not opened and not to be opened.** The operator wants the cutover planned as a sitting with him, with a written plan first: what moves, in what order, downtime, rollback, and how secrets and webhooks switch over. Plan only, no changes. **A plan and a target project already exist and both are stale:** `docs/production-cutover-plan.md`, PARKED by his ruling of 2026-09-15 and dated 2026-09-22, against project `qmvcqvkywmkogxbyzsaz`, which was replayed at **migration 0023** while the chain is now at **0060**, so thirty seven migrations of drift sit between the plan and the world. The new plan supersedes or revises that document rather than starting beside it, because two accounts of one cutover is the defect this repository records most often. |
-| 2026-10-02 | **Migration 0061, written and not applied** | **RULED and in flight.** Drops `eng_credentials.storage_key` and sharpens the comments on `eng_onboardings` and `eng_credentials`. Operator ruling: apply to development, board it, production in one sitting with him bundled with the suspension trigger migration. **Written on branch `migration/credentials-hold-no-documents`, which is held off `main` deliberately**, because standing law says a migration reachable from `main` is never pending and merging it would have blocked the onboarding hotfix from pushing. Not yet applied, not yet fingerprinted, not yet boarded: all three need processes that were not safe to start while the machine was short of memory. **Why the column goes rather than being guarded:** nothing writes it, development holds 17 credential rows with 0 documents and production holds 0 rows at all, and an empty register is a guard nobody has exercised. The credential KINDS stay, including `drivers_license` and `w9`, because two of them are `REQUIRED_FOR_DISPATCH` and a credential is the fact that something exists and when it lapses, never a copy of it. |
+| 2026-10-02 | **Migration 0061, written and not applied** | **DEFERRED 2026-10-07 by operator ruling: out of `release/2026-10-20` and the 2026-10-20 sitting, because the connector refuses the drop; it waits on `migration/credentials-0062` for a later number.** Previously: **RULED and in flight.** Drops `eng_credentials.storage_key` and sharpens the comments on `eng_onboardings` and `eng_credentials`. Operator ruling: apply to development, board it, production in one sitting with him bundled with the suspension trigger migration. **Written on branch `migration/credentials-hold-no-documents`, which is held off `main` deliberately**, because standing law says a migration reachable from `main` is never pending and merging it would have blocked the onboarding hotfix from pushing. Not yet applied, not yet fingerprinted, not yet boarded. **AND THE REASON IT COULD NOT BE APPLIED IS NOW KNOWN, 2026-10-03: the Supabase MCP CANCELS a destructive statement before it runs**, which is why `apply_migration` was cancelled twice on it and the cause was filed as a mystery for a day. It is `drop column`, and every `DROP` and `DELETE` in that session was cancelled while every additive write succeeded. **It is prepared for the sitting in `docs/production-sitting-destructive.md`**, as three blocks the operator runs in the Supabase SQL editor: a dry run read, the statement, and a verification read. The session wrote all three and runs none of them. **Why the column goes rather than being guarded:** nothing writes it, development holds 17 credential rows with 0 documents and production holds 0 rows at all, and an empty register is a guard nobody has exercised. The credential KINDS stay, including `drivers_license` and `w9`, because two of them are `REQUIRED_FOR_DISPATCH` and a credential is the fact that something exists and when it lapses, never a copy of it. |
 | 2026-10-03 | **`EXPECTED` in `roles-audit` states three roles and the platform ships seven** | **OPEN, AND IT IS THE REAL ANSWER TO THE CSR RULING RATHER THAN THE ONE I BUILT.** `EXPECTED` is the independent second statement of who may do what, and it carries `admin`, `engineer` and `field_tech` only. `customer_service`, `dispatcher`, `sales` and `read_only` are outside it entirely, so every action any of those four could gain would be gained silently: the table cannot disagree about a role it does not mention. **Tonight's CSR money ruling is enforced by a named rule instead**, which is injection-verified and catches `billing.read` where nothing else does, and that is a patch over the hole rather than the hole closed. **Recommendation: extend `EXPECTED` to all seven roles, which is roughly 350 cells and every one a judgment about who may do what.** That is a sitting with him, not a thing to type at the end of a long run, and it is the kind of work that is worth a morning because the output is the firm's own statement of its permissions. |
 | 2026-10-03 | **"Next payout run" is drawn on the owner dashboard and no payout run exists** | **OPEN, AND IT IS A MONEY QUESTION, SO NOTHING WAS BUILT.** `V10A-dashboard` draws "Next payout run, Fri Oct 2" in the Money panel. There is no payout run in the schema or in any code path: `payout_run`, `next_payout` and `payoutRun` return nothing across `src`. More to the point, his ruling of 2026-10-01 puts **all payroll and contractor payments in Gusto**, so a date drawn here would be this platform asserting a schedule another system owns, which is the same shape as the onboarding hotfix that was shipped on 2026-10-02. **Recommendation: do not build it. Replace the line with "Owed to technicians" and "Owed to engineers", which this platform does know, and let Gusto answer when they are paid.** Stage 2 ships the Money panel without the line. |
 | 2026-10-03 | **Two automatic checks drawn on the engineer's queue cannot be computed, and I left them off the screen** | **DECIDED AND BUILT THAT WAY, RECORDED BECAUSE IT IS WHAT THE ENGINEER SEES.** `V10E-queue` draws five "Automatic checks". Three are real: items captured, phone clock within 60 seconds (migration 0057 and the ruled tolerance), technician trained on the approved protocol version. **Two cannot be computed by anything.** "Location within 50 m of the property" has no property point to measure from: photographs carry `captured_lat`/`captured_lng` since 0001, but `eng_files.latitude` is never geocoded and three separate files in `src` say so outright. "No duplicate photos found" has no content hash on `eng_evidence_items` at all. Drawing either as a tick is the fabricated assurance this repository already ruled on when the evidence hash column was dropped from the responsible charge log. **They are off the screen entirely rather than greyed or marked unavailable**, because a row saying "unavailable" still teaches an engineer the check exists, and a busy reader takes an absence for a pass. The counter reads 3 of 3. **If he wants either check for real, each is a build: a geocoder this stack does not have, or a content hash on every evidence item.** Full reasoning in `docs/design-v10/stage-2-reconciliation.md`. |
@@ -35,6 +345,26 @@ are both decisions I made the only honest way and recorded because they are what
 the engineer and the owner see: nothing was fabricated and nothing waits. The
 other two screens in stage 1 item 3, the tracker and the done page, were already
 V10 and needed capturing rather than restyling.
+
+## DEVELOPMENT RAN THREE MIGRATIONS BEHIND MAIN, IN `docs/development-drift-2026-10-07.md`
+
+Recorded 2026-10-07. 0058, 0059 and 0060 were on production from 2026-09-24 and
+on development only from 2026-10-07; the engineer held `pricing.read` on
+development throughout. No check caught it because every check of the rule
+builds the engineer from `DEFAULT_ROLES`, and nothing reads the ledger's
+development record for whether development has caught up. A three-layer check
+is proposed there and is NOT BUILT, by the operator's order: report only until
+his word.
+
+## THE v1.1 PROTOCOLS DISAGREE WITH THE PLATFORM IN 27 PLACES, IN `docs/conflicts-v1.1.md`
+
+Recorded 2026-10-07 under operator ruling 6: the protocol wins every conflict,
+and each catalogue or copy change is built before its line opens. Three are
+built; the rest are TO BUILD or REFERRED, the referred ones because each needs a
+money ruling (moving solar, structural letters and repair specifications from
+desk to field orders, a price for the manufactured home return visit, a
+verification order for repair specifications) or the engineer's answer (whether
+TWIA's WPI-8-C route is still current). The file is the list; this is the pointer.
 
 ## STAGE 2 WAS READ AGAINST THE CODE BEFORE IT WAS STYLED
 
@@ -958,6 +1288,22 @@ on the operator's ruling: a deleted token leaves no evidence it existed, and the
 question afterwards is "was there a live link when we suspended them", which
 only a spent row can answer. Plus the application audit row naming the operator
 who suspended.
+
+**WRITTEN 2026-10-07 AS 0064, ON `release/2026-10-20`, APPLIED NOWHERE.**
+`0064_a_suspension_spends_every_live_link.sql` fires on a change INTO
+`suspended` on `eng_customer_users` and on `eng_customer_accounts`, marks every
+outstanding token for that person or that account's users spent, and writes one
+`customer_links.spent_at_suspension` event naming the token ids, because a spent
+row alone cannot say whether it was used or spent by a suspension. The portal's
+account route now writes `account.suspended` naming the operator, beside it.
+Eight replay checks in `migration-audit`, including the rows that must NOT move;
+removing the `used_at is null` guard turned exactly two of them red. It goes to
+production in the sitting with 0062, as ruled.
+
+**ONE QUESTION FOR THE OPERATOR, NOT DECIDED HERE.** An account can also be
+`closed`. The ruling names suspension, so the trigger does not fire on closing,
+and a closed account's users keep any live link. Whether closing should spend
+them too is a ruling.
 
 **Why it waits.** It is a production migration, and standing law says a
 migration on main is never pending, so the branch holding it does not merge

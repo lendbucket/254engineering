@@ -1536,7 +1536,21 @@ export const APPLIED = [
     behaviour: "2f4bbea41782d98686abfd5c61301493",
     proves: { function: "eng_protocol_in_force_holds_items" },
     production: "2026-09-23",
-    development: { at: null, behaviour: null, facts: null },
+    development: {
+      at: "0058",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-07",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-07, FIFTEEN DAYS AFTER PRODUCTION, by the operator's chat " +
+        "counterpart through the Supabase connector's apply_migration, so development's provider " +
+        "history now carries it. Read back the same day: eng_protocol_in_force_holds_items checks " +
+        "retired on UPDATE only. Until that day this record read at null, which was TRUE: every " +
+        "board from 2026-09-23 to 2026-10-07 ran against a development database without it, and no " +
+        "check reads this field for whether development has caught up. The shape fingerprint " +
+        "matched throughout because this migration changes no column. No fact count was read.",
+    },
     /*
      * APPLIED 2026-09-23, AND EVERY FIGURE BELOW WAS READ BACK RATHER THAN
      * PREDICTED. The provider's own history carries it WITH ITS NUMERIC PREFIX,
@@ -1654,7 +1668,26 @@ export const APPLIED = [
      * ACTION alone it would have revoked pricing.read from all three.
      */
     production: "2026-09-24",
-    development: { at: null, behaviour: null, facts: null },
+    development: {
+      at: "0059",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-07",
+      appliedBy: "execute_sql",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-07, THIRTEEN DAYS AFTER PRODUCTION, by the operator's chat " +
+        "counterpart through the Supabase connector's execute_sql, so development's provider history " +
+        "has NO row for it. The connector refuses any statement containing delete, so the file's " +
+        "delete of the engineer's pricing.read (lines 58 to 60) and its insert of " +
+        "pricing.read_own_pay were applied as ONE UPDATE of that row's action. Equivalent, and " +
+        "recorded as equivalent by the operator: the end state of the rows is identical, and " +
+        "eng_role_grants carries no trigger on development, so the audit trail is identical too. " +
+        "Read back the same day: engineer holds pricing.read_own_pay only; admin pricing.read and " +
+        "pricing.write; read_only pricing.read, identical to production. UNTIL THAT DAY DEVELOPMENT " +
+        "STILL GRANTED THE ENGINEER pricing.read, the ruling of 2026-09-24 did not hold on the " +
+        "database every audit points at, and this record read at null, truthfully, with nothing " +
+        "reading it. The shape fingerprint matched throughout because this moves rows, not columns.",
+    },
     /*
      * NO SHAPE CHANGE AND NO BEHAVIOUR CHANGE, WHICH IS UNUSUAL AND IS WHY IT
      * SAYS SO. This migration moves two ROWS in eng_role_grants: one inserted,
@@ -1790,7 +1823,21 @@ export const APPLIED = [
      * checks were one gap counted twice rather than two layers.
      */
     production: "2026-09-24",
-    development: { at: null, behaviour: null, facts: null },
+    development: {
+      at: "0060",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-07",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-07, THIRTEEN DAYS AFTER PRODUCTION, by the operator's chat " +
+        "counterpart through the Supabase connector's apply_migration, so development's provider " +
+        "history now carries it. It contains no drop and no delete. Read back the same day as " +
+        "buckets, which neither digest can see: eng-uploads 10485760 bytes with 6 types, " +
+        "eng-onboarding 15728640 with 6, eng-partner-assets 10485760 with 6, eng-messages 20971520 " +
+        "with 5. Until that day this record read at null, and every board in between ran against " +
+        "development's older bucket settings with nothing reading this field.",
+    },
     because:
       "APPLIED 2026-09-24. Drafted during an overnight run forbidden to touch production. The " +
       "buckets were read on production, read only, later the same day, and the file was AMENDED " +
@@ -1821,7 +1868,265 @@ export const APPLIED = [
       "the same second as the version. Somebody grepping that list for 0060 will not find it. It is " +
       "not renamed, for the reason 0055 gives.",
   },
+
+  {
+    file: "0061_a_sealed_deliverable_says_who_and_when.sql", appliedBy: "apply_migration",
+    fingerprint: "a4af1b6c8fc4cd070e15e9d5346f9004",
+    behaviour: "70395f83044f0ac82bb7f26142fa2422",
+    /*
+     * APPLIED TO PRODUCTION 2026-10-07, in the sitting, by the operator's chat
+     * counterpart through the connector's apply_migration, with the operator
+     * present. Step A1 of docs/production-sitting-2026-10-20.md.
+     *
+     * Left out: the two `drop trigger if exists` lines on eng_seal_images, as on
+     * development, AND every comment block, which development kept. The comments
+     * carry the words the connector stops on and change nothing in the schema;
+     * every statement went as written.
+     *
+     * Read back, every line matching its prediction:
+     *   step 0, before it  shape e2bc81c9096a0eb4d8b8366ce3aea881, 1143 columns;
+     *                      tables 81, triggers 69, functions 25
+     *   after it           shape a4af1b6c8fc4cd070e15e9d5346f9004, 1155 columns;
+     *                      buckets eng-documents and eng-seals present
+     */
+    production: "2026-10-07",
+    development: {
+      at: "0061",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-07",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-07 by the operator's chat counterpart through the Supabase " +
+        "connector's apply_migration, named 0061_a_sealed_deliverable_says_who_and_when, so it is in " +
+        "development's provider history. The connector refuses any statement containing drop, so the " +
+        "two drop trigger if exists lines (286 and 326, eng_seal_images_guard and " +
+        "eng_seal_images_audit on eng_seal_images) were left out; the file was not edited. Equivalent " +
+        "because the same file creates eng_seal_images at line 219, so on a database without that " +
+        "table neither trigger can exist and both drops are no-ops. Read back with both statements of " +
+        "the session's prediction, every line matching: buckets eng-documents (private, 26214400, " +
+        "application/pdf) and eng-seals (private, 2097152, image/png); constraints " +
+        "eng_documents_seal_is_whole_ck and eng_seal_images_superseded_whole_ck; eng_seal_images with " +
+        "12 columns and row level security on, zero policies; index eng_seal_images_one_current; " +
+        "triggers eng_seal_images_guard and eng_seal_images_audit; functions eng_seal_image_guard, " +
+        "eng_seal_image_audit and eng_record_seal_image; shape a4af1b6c8fc4cd070e15e9d5346f9004 across " +
+        "1155 columns. No fact count was read.",
+    },
+    note:
+      "AMENDED 2026-10-07 BY RULINGS 2 AND 5 OF 2026-10-06, while still applied nowhere: the sealing " +
+      "schema goes into this migration. Part three adds eng_seal_images, the record of each seal and " +
+      "signature image the engineer uploads, with its guard and audit triggers, the function " +
+      "eng_record_seal_image that supersedes and inserts in one act, and the private eng-seals " +
+      "bucket. Both figures were re-derived from scripts/fingerprint-at.mjs at 0061 after the " +
+      "amendment: shape a4af1b6c8fc4cd070e15e9d5346f9004 across 1155 columns, up from 1143 by the " +
+      "twelve columns of eng_seal_images; behaviour 70395f83044f0ac82bb7f26142fa2422 across 939 " +
+      "facts, up from 921. Making the supersession reference DEFERRABLE did not move the behaviour " +
+      "digest, so the digest cannot see deferrability; migration-audit proves the deferred reference " +
+      "by replacing a seal inside one transaction instead. " +
+      "BEFORE THE AMENDMENT the shape repeated 0060's, because parts one and two add no column, and " +
+      "behaviour moved by exactly one fact, 920 to 921, the one check constraint. " +
+      "Neither bucket is visible to either digest, for the reason 0060 states at length, so both " +
+      "buckets are read back AS BUCKETS and never as a digest.",
+    because:
+      "WRITTEN 2026-10-03 AND APPLIED NOWHERE, INCLUDING DEVELOPMENT. The operator approved the " +
+      "constraint in principle and ruled it goes to production in a sitting rather than through a " +
+      "session. Its branch, feat/sealed-delivery, does not merge until this entry is not pending, " +
+      "because a migration on main is never pending. " +
+      "WHAT IT DOES. One bucket, eng-documents, private, 25MB, application/pdf only; one check " +
+      "constraint on eng_documents, ((sealed_at is null) = (sealed_by is null)); and, from " +
+      "2026-10-07, the eng-seals bucket, private, 2MB, image/png only, with eng_seal_images and its " +
+      "two triggers: a guard that refuses deletion and any change but a single supersession, and an " +
+      "audit trigger that writes every upload and supersession to eng_audit_events in the same " +
+      "transaction. " +
+      "A CORRECTION TO THIS ENTRY, MADE 2026-10-07. It used to say the behaviour digest was " +
+      "'recorded as null rather than guessed' while the field above carried a digest. The field was " +
+      "right: it was derived from a replay at 0061. The sentence was the stale half. " +
+      "The live read-back at the sitting is judged on counts, never on the digest, under the " +
+      "2026-09-12 ruling. " +
+      "WHY THE BUCKET IS HERE AT ALL. 0060 made it a rule that every bucket the code names is " +
+      "created by this chain, and added the check that compares the two. eng-documents is named by " +
+      "the upload path being built on this branch, so without this file migration-audit goes red " +
+      "naming it, which is the bucket half of this migration's injection test and costs nothing to " +
+      "run because the check already exists. " +
+      "WHAT WAS WITHDRAWN BEFORE IT WAS APPLIED. A second constraint forbidding a seal on any kind " +
+      "but 'deliverable'. migration-audit refused it, naming a 0032 fixture that seals a " +
+      "firm_document with no file on purpose, to prove the delete trigger defends a seal whatever it " +
+      "hangs off. That fixture is evidence somebody already decided a sealed document need not be " +
+      "one job's letter, so the clause was a RULING about what the firm may seal, invented in a " +
+      "migration comment. It is in BACKLOG.md for the operator and the engineer of record. " +
+      "AND THE NUMBER MOVED. Written as 0062 to avoid colliding with the parked 0061 on " +
+      "migration/credentials-hold-no-documents, and the contiguity check refused the gap: a " +
+      "duplicate number is found by git when two branches meet, a gap is a chain that cannot be " +
+      "replayed and reads like a lost migration. The parked branch renumbers to 0062 before it " +
+      "merges, which also renames the worked example in docs/production-sitting-destructive.md. " +
+      "SUPERSEDED THE SAME DAY: the operator deferred the column drop out of this release, so it " +
+      "holds no number in this chain, 0062 is the seal act, and the drop waits on " +
+      "migration/credentials-0062 for a later number.",
+    proves: { table: "eng_seal_images", bucket: "eng-documents", constraint: "eng_documents_seal_is_whole_ck" },
+  },
+
+  {
+    file: "0062_a_seal_is_applied_once_and_locked.sql", appliedBy: "apply_migration",
+    fingerprint: "aff578e18d558ee5af26fb2cb8c9eb88",
+    behaviour: "fc232b43290f9f4469aaa485aee07c12",
+    /*
+     * APPLIED TO PRODUCTION 2026-10-07, in the sitting, through apply_migration
+     * under this number. Step A2. Comment blocks left out; every statement as
+     * written, INCLUDING the `comment on table eng_seal_acts` statement, whose
+     * text contains the word delete and which the connector accepted. So
+     * production's table carries its description, as the file says.
+     *
+     * Read back: shape aff578e18d558ee5af26fb2cb8c9eb88, 1170 columns, as
+     * predicted.
+     */
+    production: "2026-10-07",
+    development: {
+      at: "0062",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-07",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-07 by the operator's chat counterpart through the connector's " +
+        "apply_migration, AS 0063, the number this file carried that afternoon. The comment blocks " +
+        "were left out because they contain the word drop; every statement went as written. Read " +
+        "back: eng_seal_acts with row level security on; triggers eng_seal_acts_check, " +
+        "eng_seal_acts_guard, eng_seal_acts_audit and eng_documents_sealed_lock; indexes " +
+        "eng_seal_acts_one_live_letter and eng_seal_acts_one_live_protocol; all seven functions. No " +
+        "shape fingerprint or fact count was read. DEVELOPMENT'S PROVIDER HISTORY NAMES IT 0063, " +
+        "which is the earlier number of this same file and not a different migration.",
+    },
+    proves: { table: "eng_seal_acts" },
+    note:
+      "RENUMBERED FROM 0063 ON 2026-10-07, comments only, when the operator deferred the credentials " +
+      "column drop out of this release and its number left the chain with it. Both figures read off " +
+      "scripts/fingerprint-at.mjs at 0062 after the renumbering: shape " +
+      "aff578e18d558ee5af26fb2cb8c9eb88 across 1170 columns, the fifteen of eng_seal_acts on " +
+      "0061's 1155, because eng_credentials.storage_key stays; behaviour " +
+      "fc232b43290f9f4469aaa485aee07c12 across 967 facts, the same as under the old number, because " +
+      "the deferred column carried no fact the behaviour digest counts. 83 tables, 75 triggers, 35 " +
+      "eng_ functions. No drop statement in the file. The word delete appears in on delete restrict, " +
+      "in the trigger that refuses deletes and in comments, and the connector applied it on " +
+      "development.",
+    because:
+      "WRITTEN 2026-10-07 ON release/2026-10-20. Sealing piece two: one row per act of sealing a " +
+      "letter or signing a protocol, its identity checks at the database, refusal of delete and of " +
+      "any change but a voiding with a reason, an audit row for every act and voiding, and a lock " +
+      "on a sealed document's content. The controls are mapped to 22 TAC 137.33 and 137.35 in " +
+      "docs/sealing-controls.md. Every guard is fired in migration-audit's replay. Production takes " +
+      "it at the 2026-10-20 sitting, before the release merges.",
+  },
+  {
+    file: "0063_a_suspension_spends_every_live_link.sql", appliedBy: "apply_migration",
+    fingerprint: "aff578e18d558ee5af26fb2cb8c9eb88",
+    behaviour: "0faddc9ffa103fae0ec8cea6d8fd627f",
+    /*
+     * APPLIED TO PRODUCTION 2026-10-07, in the sitting, through apply_migration
+     * under this number. Step A3. Comment blocks left out.
+     *
+     * Read back: shape unchanged at aff578e18d558ee5af26fb2cb8c9eb88, 1170
+     * columns; triggers eng_customer_accounts_suspension_spends_links and
+     * eng_customer_users_suspension_spends_links present.
+     */
+    production: "2026-10-07",
+    development: {
+      at: "0063",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-07",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-07 by the operator's chat counterpart through apply_migration, " +
+        "AS 0064, the number this file carried that afternoon, comment blocks left out as for the " +
+        "seal act. Read back: triggers eng_customer_users_suspension_spends_links and " +
+        "eng_customer_accounts_suspension_spends_links, and the function eng_spend_links_on_suspension. " +
+        "DEVELOPMENT'S PROVIDER HISTORY NAMES IT 0064, the earlier number of this same file. 0064 in " +
+        "this chain is a different migration, the closing ruling, which development took later the same day.",
+    },
+    proves: { function: "eng_spend_links_on_suspension" },
+    note:
+      "RENUMBERED FROM 0064 ON 2026-10-07, comments only, for the same reason as 0062. Both figures " +
+      "read off scripts/fingerprint-at.mjs at 0063: shape aff578e18d558ee5af26fb2cb8c9eb88 across " +
+      "1170 columns, unchanged, because it adds no column; behaviour " +
+      "0faddc9ffa103fae0ec8cea6d8fd627f across 970 facts, 967 plus one function and two triggers. " +
+      "83 tables, 77 triggers, 36 eng_ functions. No drop and no delete statement.",
+    because:
+      "WRITTEN 2026-10-07 ON release/2026-10-20. The guarantee half of the operator's ruling of " +
+      "2026-09-29: suspending a customer user, or the account they belong to, marks every " +
+      "outstanding set_password and reset_password token spent (never deleted), and writes one " +
+      "audit event naming the tokens it spent. Production takes it at the 2026-10-20 sitting.",
+  },
+  {
+    file: "0064_closing_an_account_spends_its_links_too.sql", appliedBy: "apply_migration",
+    fingerprint: "aff578e18d558ee5af26fb2cb8c9eb88",
+    behaviour: "ab7050e125459faf67d7aad862902aae",
+    /*
+     * APPLIED TO PRODUCTION 2026-10-07, in the sitting, through apply_migration
+     * under this number. Step A4. Comment blocks left out.
+     *
+     * Read back: covers_closing true.
+     *
+     * AND THE COUNTS AFTER ALL FOUR, read once at the end of Part A: tables 83
+     * (+2), functions 36 (+11), triggers 77 (+8). The table and function counts
+     * were predicted and held. The trigger count was not predicted absolutely,
+     * because production's had never been read against the replay's; it now
+     * has, and 77 is the replay's own figure at 0063, recorded in 0063's note
+     * above. Production and the replay agree on all three counts.
+     */
+    production: "2026-10-07",
+    development: {
+      at: "0064",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-07",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-07 by the operator's chat counterpart through the connector's " +
+        "apply_migration, under this number, and read back: eng_spend_links_on_suspension now covers " +
+        "closed accounts. No shape fingerprint or fact count was read; the migration moves neither.",
+    },
+    proves: { function: "eng_spend_links_on_suspension" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0064 on 2026-10-07: shape unchanged at " +
+      "aff578e18d558ee5af26fb2cb8c9eb88 across 1170 columns; behaviour " +
+      "ab7050e125459faf67d7aad862902aae across 970 facts, the same COUNT as 0063, because it replaces " +
+      "a function body and adds no object, and a different digest, because the body changed. Its " +
+      "read-back is therefore the function's definition, not a count: prosrc contains 'closed'. " +
+      "proves names the function 0063 created, which this one redefines, so the production check " +
+      "cannot tell the two apart and says so here rather than implying otherwise.",
+    because:
+      "WRITTEN 2026-10-07 ON release/2026-10-20 AND APPLIED NOWHERE. The operator's ruling of " +
+      "2026-10-07: closing an account spends its users' links too, recorded as " +
+      "customer_links.spent_at_closing. A new migration rather than an edit to 0063, because " +
+      "development had already run 0063. Two checks in migration-audit's replay. Development and " +
+      "production both take it before the release merges.",
+  },
 ];
+
+/*
+ * A PRODUCTION DATA WRITE MADE IN A SITTING, WHICH IS NOT A MIGRATION AND SO
+ * HAS NO ENTRY ABOVE. Recorded here because this file is where a reader looks
+ * for what production was given and when.
+ *
+ * 2026-10-07, Part B of docs/production-sitting-2026-10-20.md, run by the
+ * operator's chat counterpart with the operator present: the eng_cron_runs
+ * rollup backfill. Production held no cron.runs rollup for 2026-09-04 to
+ * 2026-09-08; its rollups begin on 2026-09-09. The SQL is rollupDay's own
+ * computation, checked first against the rollup's stored output on 2026-09-10,
+ * 2026-09-15 and 2026-10-01 (computed equals stored on all nine rows), then
+ * upserted on the rollup's key. 15 rows into eng_metrics_daily, read back with
+ * stored equal to computed on all 15:
+ *
+ *   day          cron.runs  cron.failures  cron.seconds
+ *   2026-09-04         503              0           417
+ *   2026-09-05        1729              0          1299
+ *   2026-09-06        1729              0          1249
+ *   2026-09-07        1729              0          1374
+ *   2026-09-08        1729              0          1781
+ *
+ * The sitting document first named two days and six rows; the hole was five
+ * days. Corrected in that document before it ran.
+ */
 
 /**
  * WHAT THE SECOND FINGERPRINT FOUND ON ITS FIRST RUN.

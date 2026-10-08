@@ -110,6 +110,18 @@ export function money(cents: number): string {
  */
 const WPI8_BY_TIER: Record<string, number> = { completed: 79_500, ongoing: 99_500 };
 
+/*
+ * WPI-8 ONGOING INCLUDES FOUR STAGE VISITS, AND EACH FURTHER VISIT IS $150.
+ * WP-001 v1.1 section 8: "One job includes four stage visits ... Any further
+ * visit is made on an as-required basis as an additional visit." The price of
+ * that visit is the operator's ruling of 2026-10-06, and it is what the
+ * CUSTOMER pays; the technician is paid $85 a visit, included or extra, which
+ * is a cost and lives with the costs, not here. Exported so the cost per job
+ * report reads this rather than a second copy.
+ */
+export const WPI8_ONGOING_INCLUDED_VISITS = 4;
+export const WPI8_EXTRA_VISIT_CENTS = 15_000;
+
 /** The design minimum engagement, read by its own entry's prose rather than retyped. */
 const DESIGN_MINIMUM_CENTS = 200_000;
 
@@ -128,12 +140,18 @@ export const servicePrices: Record<string, ServicePrice> = {
     whatChangesIt:
       "A structure over a certain size, a property outside the standard service area, or a second visit after remediation.",
   },
+  /*
+   * $549 FROM 2026-10-07, operator ruling: raised from $395 because PL-001
+   * requires a technician visit (ruling 7 made the line field work the same
+   * day). The old sentence described a desktop review with any visit quoted
+   * separately, which is no longer how the line is performed.
+   */
   "structural-letters": {
     kind: "fixed",
-    byTier: { standard: 39_500 },
+    byTier: { standard: 54_900 },
     headlineTier: "standard",
     whatChangesIt:
-      "A desktop review assumes usable drawings or photographs exist. A site visit, where one is needed to answer the question honestly, is quoted before it is scheduled.",
+      "The price includes a technician's visit to the property, which most letters about existing construction rest on. A question that needs design or a repair method rather than a letter is its own engagement.",
   },
   "solar-structural-letters": {
     kind: "fixed",
@@ -165,7 +183,7 @@ export const servicePrices: Record<string, ServicePrice> = {
     kind: "fixed",
     byTier: WPI8_BY_TIER,
     headlineTier: "completed",
-    whatChangesIt: `This is the completed construction price, ${money(WPI8_BY_TIER.completed)}. Ongoing construction, inspected in stages while the work is open, is ${money(WPI8_BY_TIER.ongoing)} because it is more attendance rather than a premium on the same visit.`,
+    whatChangesIt: `This is the completed construction price, ${money(WPI8_BY_TIER.completed)}. Ongoing construction, inspected in stages while the work is open, is ${money(WPI8_BY_TIER.ongoing)} because it is more attendance rather than a premium on the same visit. That price includes ${WPI8_ONGOING_INCLUDED_VISITS} stage visits; each further visit the engineer calls for is ${money(WPI8_EXTRA_VISIT_CENTS)}. An existing building with no recent work is quoted per job.`,
   },
   "repair-specifications": {
     kind: "fixed",

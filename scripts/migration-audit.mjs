@@ -149,10 +149,40 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * red naming the old figure and the new one side by side, which is the whole
  * reason it is a constant rather than a fetch.
  */
-const EXPECTED_FINGERPRINT = "e2bc81c9096a0eb4d8b8366ce3aea881";
-const EXPECTED_COLUMNS = 1143;
-const EXPECTED_TABLES = 81;
-const EXPECTED_TRIGGERS = 69;
+/*
+ * Moved 2026-10-07 by part three of 0061, the engineer's seal and signature
+ * images, on rulings 2 and 5 of 2026-10-06. It went red here naming both
+ * figures, which is this constant doing its job.
+ *
+ * 1,143 to 1,155 is exactly the twelve columns of eng_seal_images. 81 tables to
+ * 82 is that table, with row level security on it like the rest. 69 triggers
+ * to 71 is its guard and its audit trigger, and 25 functions to 27 is the two
+ * functions behind them, eng_seal_image_guard and eng_seal_image_audit. The
+ * behaviour digest moves to 9f10a0e46de201babebe0a772b05726a across 938 facts,
+ * read off the replay by scripts/fingerprint-at.mjs rather than predicted.
+ *
+ * Moved again 2026-10-07 by 0062, which drops eng_credentials.storage_key. It
+ * went red naming 8296e260aa51a41e47a3f829f6ec42db at 1,154 columns before this
+ * edit: one column fewer, and nothing else in the shape or behaviour moved.
+ *
+ * Moved a third time 2026-10-07 by 0063, the seal act. It went red naming every
+ * figure below before this edit. 1,154 to 1,169 is the fifteen columns of
+ * eng_seal_acts; 82 tables to 83 is that table, with row level security on;
+ * 71 triggers to 75 is its check, guard and audit triggers and the sealed
+ * document lock on eng_documents.
+ *
+ * AND THE SAME DAY THE OPERATOR DEFERRED THE COLUMN DROP OUT OF THE RELEASE.
+ * The credentials migration left the chain, the seal act became 0062 and the
+ * suspension trigger 0063, and storage_key stays: 1,155 plus fifteen is 1,170,
+ * shape aff578e18d558ee5af26fb2cb8c9eb88. Tables and functions are unchanged
+ * by the deferral. 0064, closing an account, replaces a function and adds no
+ * object.
+ */
+const EXPECTED_FINGERPRINT = "aff578e18d558ee5af26fb2cb8c9eb88";
+const EXPECTED_COLUMNS = 1170;
+const EXPECTED_TABLES = 83;
+/* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts. */
+const EXPECTED_TRIGGERS = 77;
 /**
  * 0014 added eng_freeze_attribution and 0019 added two more, the partner
  * entry freeze and its delete refusal, which are trigger functions like the
@@ -162,9 +192,21 @@ const EXPECTED_TRIGGERS = 69;
  * consent records and eng_forbid_sealed_work_delete for sealed engineering
  * work, which is what put a refusal underneath the seven tables the
  * declaration was keeping on its own word. eng_claim_jobs is still the only
- * one called directly.
+ * one called directly. 0061's part three adds eng_seal_image_guard,
+ * eng_seal_image_audit and eng_record_seal_image, which bring it to 28; the
+ * last is the second function called directly, the one door a replacement
+ * seal image comes in through.
+ *
+ * 0062 (the seal act, numbered 0063 until the deferral) adds seven, bringing it to 35: the three trigger functions behind the
+ * seal act (eng_seal_act_check, eng_seal_act_guard, eng_seal_act_audit), the
+ * sealed document lock, and the three doors a seal comes in and goes out
+ * through, eng_record_letter_seal, eng_record_protocol_signature and
+ * eng_void_seal_act.
+ *
+ * 0063 adds one, eng_spend_links_on_suspension, bringing it to 36; 0064
+ * replaces that function's body and adds none.
  */
-const EXPECTED_FUNCTIONS = 25;
+const EXPECTED_FUNCTIONS = 36;
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
@@ -198,7 +240,14 @@ rec(
  */
 for (const f of files) {
   const body = readSource(join(DIR, f));
-  const dollars = (body.match(/\$\$/g) ?? []).length;
+  /*
+   * EVERY TAG, NOT ONLY $$. Found 2026-10-07: this counted `$$` alone, so
+   * 0061 and the seal act and suspension files, whose functions use `$fn$`, printed "0 pair(s) for
+   * N function(s)" and passed over nothing. Each tag must pair on its own.
+   */
+  const tags = body.match(/\$[A-Za-z_]*\$/g) ?? [];
+  const byTag = tags.reduce((m, t) => m.set(t, (m.get(t) ?? 0) + 1), new Map());
+  const dollars = [...byTag.values()].every((n) => n % 2 === 0) ? tags.length : tags.length + 1;
   const lone = (body.match(/^[ \t]*as \$[ \t]*$|^\$;[ \t]*$/gm) ?? []).length;
   const fns = (body.match(/^create or replace function/gm) ?? []).length;
 
@@ -208,7 +257,9 @@ for (const f of files) {
       lone === 0 && dollars % 2 === 0,
       lone > 0
         ? `${lone} lone dollar delimiter(s): this file cannot be replayed`
-        : `${dollars / 2} pair(s) for ${fns} function(s)`,
+        : dollars % 2 !== 0
+          ? `unpaired: ${[...byTag].filter(([, n]) => n % 2 !== 0).map(([t, n]) => `${t} x${n}`).join(", ")}`
+          : `${dollars / 2} pair(s) for ${fns} function(s)`,
     );
   }
 }
@@ -781,14 +832,41 @@ if (failedAt === null) {
    */
   const SEALED_FILE = "'00000000-0000-4000-8000-0000000000ab'";
   const OPEN_FILE = "'00000000-0000-4000-8000-0000000000ac'";
+  /*
+   * THE SEALER, ADDED 2026-10-03 BECAUSE 0062 MADE THE OLD FIXTURE
+   * UNREPRESENTABLE, AND THAT IS THE CONSTRAINT WORKING.
+   *
+   * This fixture used to insert `sealed_at` with no `sealed_by`, because
+   * nothing required one. 0062 adds
+   * `check ((sealed_at is null) = (sealed_by is null))`, so the row the
+   * fixture wanted is now a row the database refuses, and the replay failed
+   * naming the constraint.
+   *
+   * THE FIXTURE WAS WRONG AND THE CONSTRAINT IS RIGHT, so the fixture gains
+   * the column rather than the constraint losing the clause. Loosening it so
+   * both shapes pass is how a check becomes a check on nothing, which this
+   * repository has recorded twice; and a half sealed row is exactly what 0062
+   * exists to make impossible, so a fixture that depends on one is a fixture
+   * asserting a state the firm has ruled out.
+   *
+   * It is also the integration lesson arriving on a single branch: a change
+   * that RECORDS something a fixture assumed absent breaks that fixture, and
+   * the fixture usually lives in a file the change has no reason to open.
+   */
+  const SEALER = "'00000000-0000-4000-8000-0000000000bf'";
 
   await db.exec(`
+    insert into auth.users (id) values (${SEALER});
+
+    insert into eng_profiles (id, email, display_name, role)
+    values (${SEALER}, 'probe-sealer@example.com', 'Probe Sealer, not a real person', 'engineer');
+
     insert into eng_files (id, client_id, file_number, property_address, county, service_slug)
     values (${SEALED_FILE}, '00000000-0000-4000-8000-0000000000dd', '254-PROBE-SEAL', '2 Probe Street', 'Nueces', 'windstorm'),
            (${OPEN_FILE}, '00000000-0000-4000-8000-0000000000dd', '254-PROBE-OPEN', '3 Probe Street', 'Nueces', 'windstorm');
 
-    insert into eng_documents (id, file_id, kind, title, bucket, storage_key, sealed_at)
-    values ('00000000-0000-4000-8000-0000000000b1', ${SEALED_FILE}, 'deliverable', 'Probe sealed letter', 'docs', 'probe/sealed', now());
+    insert into eng_documents (id, file_id, kind, title, bucket, storage_key, sealed_at, sealed_by)
+    values ('00000000-0000-4000-8000-0000000000b1', ${SEALED_FILE}, 'deliverable', 'Probe sealed letter', 'docs', 'probe/sealed', now(), ${SEALER});
 
     insert into eng_documents (id, file_id, kind, title, bucket, storage_key)
     values ('00000000-0000-4000-8000-0000000000b2', ${OPEN_FILE}, 'deliverable', 'Probe draft', 'docs', 'probe/draft');
@@ -827,9 +905,20 @@ if (failedAt === null) {
    * eng_documents.file_id is NULLABLE. A sealed firm document with no file
    * is protected by the first branch alone, and by nothing else.
    */
+  /*
+   * `sealed_by` added 2026-10-03, for the same reason the sealed-work fixture
+   * above gained it: 0062 makes a seal with no sealer unrepresentable, and this
+   * row had one date and nobody's name. The `kind` is UNTOUCHED on purpose.
+   * 0062 also carried a clause forbidding a seal on anything but a
+   * 'deliverable', this fixture is what refused it, and the clause was
+   * withdrawn rather than the fixture bent: whether the firm may seal a
+   * document that is not one job's letter is a ruling nobody has made, and it
+   * is in BACKLOG.md. What this fixture is FOR is file independence, and that
+   * is unchanged.
+   */
   await db.exec(`
-    insert into eng_documents (id, kind, title, bucket, storage_key, sealed_at)
-    values ('00000000-0000-4000-8000-0000000000b3', 'firm_document', 'Probe sealed, no file', 'docs', 'probe/loose', now());
+    insert into eng_documents (id, kind, title, bucket, storage_key, sealed_at, sealed_by)
+    values ('00000000-0000-4000-8000-0000000000b3', 'firm_document', 'Probe sealed, no file', 'docs', 'probe/loose', now(), ${SEALER});
   `);
   rec(
     "a sealed document with no file is refused by the branch that is only about sealing",
@@ -870,6 +959,429 @@ if (failedAt === null) {
     openDoc === null,
     openDoc === null ? "the rule is about sealed work, and a draft is not sealed work" : `REFUSED: ${openDoc}`,
   );
+
+  /*
+   * ===================================================================
+   * THE ENGINEER'S SEAL IMAGES, 0061 PART THREE, ADDED 2026-10-07.
+   * ===================================================================
+   *
+   * Fired here rather than trusted, because a trigger nobody has fired is a
+   * sentence. Each check below names the property a seal relies on: the record
+   * of what was uploaded cannot be rewritten or removed, every upload and every
+   * supersession is in the audit log in the same transaction, a supersession
+   * happens once, and there is one current image of each kind.
+   */
+  {
+    const FIRST = "'00000000-0000-4000-8000-0000000005e1'";
+    const SECOND = "'00000000-0000-4000-8000-0000000005e2'";
+    const SHA_A = "'" + "a".repeat(64) + "'";
+    const SHA_B = "'" + "b".repeat(64) + "'";
+    const auditCount = async (action) =>
+      Number(
+        (
+          await db.query(
+            `select count(*)::int as n from eng_audit_events where action = '${action}' and entity_type = 'seal_image'`,
+          )
+        ).rows[0].n,
+      );
+
+    const uploadedBefore = await auditCount("seal_image.uploaded");
+    await db.exec(`
+      insert into eng_seal_images (id, profile_id, kind, storage_key, sha256, byte_size, width, height, mfa_verified_at)
+      values (${FIRST}, ${SEALER}, 'seal', 'probe/seal-1.png', ${SHA_A}, 1000, 600, 600, now());
+    `);
+    rec(
+      "an uploaded seal image writes its own audit row in the same transaction",
+      (await auditCount("seal_image.uploaded")) === uploadedBefore + 1,
+      "written by the database, so an image row cannot exist without its record",
+    );
+
+    rec(
+      "a seal image row cannot be deleted",
+      await refused(`delete from eng_seal_images where id = ${FIRST}`),
+      "a document sealed last month carries last month's seal, and the row is what says which",
+    );
+    rec(
+      "nor can the hash it was recorded with be rewritten",
+      await refused(`update eng_seal_images set sha256 = ${SHA_B} where id = ${FIRST}`),
+      "rewriting the hash would let a different image pass as the one on record",
+    );
+    rec(
+      "and there is only ever one current seal for an engineer",
+      await refused(`
+        insert into eng_seal_images (id, profile_id, kind, storage_key, sha256, byte_size, width, height, mfa_verified_at)
+        values ('00000000-0000-4000-8000-0000000005e9', ${SEALER}, 'seal', 'probe/seal-x.png', ${SHA_B}, 1000, 600, 600, now());
+      `),
+      "a second current seal would leave the sealing step to guess which one",
+    );
+
+    /*
+     * The one change a row may take: supersession, once. The replacement goes
+     * in after its predecessor is superseded, which is the order the upload
+     * route uses.
+     */
+    /*
+     * ONE TRANSACTION, because a replacement is one act: the old row names its
+     * successor and the successor is inserted, and the reference between them
+     * is checked at commit. Run as two separate statements it is refused, which
+     * is correct: a supersession naming a row that never arrives is not a
+     * replacement.
+     */
+    const supersededBefore = await auditCount("seal_image.superseded");
+    const replaced = await attempt(`
+      begin;
+      update eng_seal_images set superseded_at = now(), superseded_by = ${SECOND} where id = ${FIRST};
+      insert into eng_seal_images (id, profile_id, kind, storage_key, sha256, byte_size, width, height, mfa_verified_at)
+      values (${SECOND}, ${SEALER}, 'seal', 'probe/seal-2.png', ${SHA_B}, 1200, 600, 600, now());
+      commit;
+    `);
+    if (replaced !== null) await attempt("rollback;");
+    const current = (
+      await db.query(
+        `select id from eng_seal_images where profile_id = ${SEALER} and kind = 'seal' and superseded_at is null`,
+      )
+    ).rows.map((r) => r.id);
+    rec(
+      "a seal can be replaced by superseding the old row once, and the supersession is audited",
+      replaced === null &&
+        current.length === 1 &&
+        current[0] === SECOND.replace(/'/g, "") &&
+        (await auditCount("seal_image.superseded")) === supersededBefore + 1,
+      replaced ?? `current seal ${current.join(", ")}, one supersession in the audit log`,
+    );
+
+    /*
+     * Asked so that ONLY the guard can refuse it: the superseded row keeps a
+     * whole supersession (a date and a successor), so the check constraint is
+     * satisfied, and what is left to object is the rule that a superseded row
+     * never changes. The first version of this check updated a row that had
+     * never been superseded and was refused by the check constraint instead,
+     * which passed for the wrong reason.
+     */
+    const reSupersede = await attempt(
+      `update eng_seal_images set superseded_at = now() + interval '1 day' where id = ${FIRST}`,
+    );
+    rec(
+      "and a superseded row cannot change again, refused by the guard itself",
+      reSupersede !== null && /cannot change again/.test(reSupersede),
+      reSupersede ?? "IT CHANGED",
+    );
+
+    /*
+     * THE DOOR THE APPLICATION USES, called the way the upload route calls it:
+     * one statement that supersedes the current image and inserts its
+     * successor. Two separate calls would be refused at the first commit, which
+     * is why the function exists.
+     */
+    const THIRD = "00000000-0000-4000-8000-0000000005e3";
+    const uploadedBeforeDoor = await auditCount("seal_image.uploaded");
+    const supersededBeforeDoor = await auditCount("seal_image.superseded");
+    const door = await attempt(`
+      select eng_record_seal_image(
+        '${THIRD}', ${SEALER}, 'seal', 'probe/seal-3.png', '${"c".repeat(64)}', 1300, 600, 600, now()
+      );
+    `);
+    const afterDoor = (
+      await db.query(
+        `select id from eng_seal_images where profile_id = ${SEALER} and kind = 'seal' and superseded_at is null`,
+      )
+    ).rows.map((r) => r.id);
+    rec(
+      "the record function replaces the current seal in one act, and both halves are audited",
+      door === null &&
+        afterDoor.length === 1 &&
+        afterDoor[0] === THIRD &&
+        (await auditCount("seal_image.uploaded")) === uploadedBeforeDoor + 1 &&
+        (await auditCount("seal_image.superseded")) === supersededBeforeDoor + 1,
+      door ?? `current seal ${afterDoor.join(", ")}`,
+    );
+  }
+
+  /*
+   * ===================================================================
+   * 0062: A SEAL IS APPLIED ONCE, BY ONE PERSON, AND THEN NOTHING CHANGES IT.
+   * ===================================================================
+   *
+   * Sealing piece two, 2026-10-07. Each check fires a guard rather than trusting
+   * it, and each names the control in docs/sealing-controls.md it proves.
+   * Exercised here and never live: a live fixture would leave a sealed letter
+   * under a probe engineer's name on a table that refuses deletes.
+   */
+  {
+    const DET = "'00000000-0000-4000-8000-0000000006d1'";
+    const SIG = "'00000000-0000-4000-8000-0000000006e1'";
+    const OTHER = "'00000000-0000-4000-8000-0000000006b1'";
+    const OTHER_SEAL = "'00000000-0000-4000-8000-0000000006e2'";
+    const OTHER_SIG = "'00000000-0000-4000-8000-0000000006e3'";
+    const SEAL_NOW = "'00000000-0000-4000-8000-0000000005e3'";
+    const SEAL_OLD = "'00000000-0000-4000-8000-0000000005e1'";
+    const HASH = "'" + "d".repeat(64) + "'";
+    const auditCount = async (action) =>
+      Number((await db.query(`select count(*)::int as n from eng_audit_events where action = '${action}'`)).rows[0].n);
+
+    await db.exec(`
+      insert into eng_seal_images (id, profile_id, kind, storage_key, sha256, byte_size, width, height, mfa_verified_at)
+      values (${SIG}, ${SEALER}, 'signature', 'probe/signature-1.png', '${"e".repeat(64)}', 900, 800, 300, now());
+      insert into eng_determinations (id, file_id, protocol_document, determination, relied_on_item_keys, relied_on_evidence_ids, engineer_id)
+      values (${DET}, ${SEALED_FILE}, '254-RC-001', 'pass', array['probe'], array['00000000-0000-4000-8000-0000000000e1'::uuid], ${SEALER});
+      insert into auth.users (id) values (${OTHER});
+      insert into eng_profiles (id, email, display_name, role)
+      values (${OTHER}, 'probe-other-engineer@example.com', 'Probe Other Engineer, not a real person', 'engineer');
+      insert into eng_seal_images (id, profile_id, kind, storage_key, sha256, byte_size, width, height, mfa_verified_at)
+      values (${OTHER_SEAL}, ${OTHER}, 'seal', 'probe/other-seal.png', '${"f".repeat(64)}', 900, 600, 600, now()),
+             (${OTHER_SIG}, ${OTHER}, 'signature', 'probe/other-sig.png', '${"9".repeat(64)}', 900, 800, 300, now());
+    `);
+
+    const sealLetter = (act, doc, by, seal, sig) => `
+      select eng_record_letter_seal(
+        '${act}', '${doc}', ${SEALED_FILE}, null, 'Probe roof letter', 'probe/letter-${doc.slice(-4)}.pdf',
+        4096, ${HASH}, 'F-29811', ${DET}, ${by}, ${seal}, ${sig}, now()
+      );`;
+
+    /* Control 3: nobody but the engineer who recorded the determination. */
+    rec(
+      "another engineer cannot seal a letter whose determination he did not record (control 3)",
+      await refused(sealLetter("00000000-0000-4000-8000-0000000006a9", "00000000-0000-4000-8000-0000000006c9", OTHER, OTHER_SEAL, OTHER_SIG)),
+      "identity, not permission: no role or grant stands in for him",
+    );
+    /* Control 2: only his CURRENT images. */
+    rec(
+      "and the right engineer cannot seal with a superseded seal image (control 2)",
+      await refused(sealLetter("00000000-0000-4000-8000-0000000006a8", "00000000-0000-4000-8000-0000000006c8", SEALER, SEAL_OLD, SIG)),
+      "a replaced image seals nothing",
+    );
+    rec(
+      "nor with somebody else's image",
+      await refused(sealLetter("00000000-0000-4000-8000-0000000006a7", "00000000-0000-4000-8000-0000000006c7", SEALER, OTHER_SEAL, SIG)),
+    );
+
+    const appliedBefore = await auditCount("seal.applied");
+    const first = await attempt(sealLetter("00000000-0000-4000-8000-0000000006a1", "00000000-0000-4000-8000-0000000006c1", SEALER, SEAL_NOW, SIG));
+    const sealedDoc = (
+      await db.query(
+        "select sealed_at is not null as sealed, sealed_by, visibility, bucket from eng_documents where id = '00000000-0000-4000-8000-0000000006c1'",
+      )
+    ).rows[0];
+    rec(
+      "the engineer who recorded it seals it, in one act that creates the sealed document and is audited (controls 3, 9)",
+      first === null &&
+        sealedDoc?.sealed === true &&
+        sealedDoc?.visibility === "client" &&
+        sealedDoc?.bucket === "eng-documents" &&
+        (await auditCount("seal.applied")) === appliedBefore + 1,
+      first ?? JSON.stringify(sealedDoc),
+    );
+    rec(
+      "and a second live seal on the same determination is refused",
+      await refused(sealLetter("00000000-0000-4000-8000-0000000006a2", "00000000-0000-4000-8000-0000000006c2", SEALER, SEAL_NOW, SIG)),
+      "one live seal per determination",
+    );
+
+    /* Controls 7 and 8: locked. */
+    rec(
+      "a seal act cannot be deleted (control 8)",
+      await refused("delete from eng_seal_acts where id = '00000000-0000-4000-8000-0000000006a1'"),
+    );
+    rec(
+      "nor its hash rewritten (control 7)",
+      await refused(`update eng_seal_acts set content_sha256 = '${"0".repeat(64)}' where id = '00000000-0000-4000-8000-0000000006a1'`),
+    );
+    rec(
+      "a sealed document's content cannot change (control 7)",
+      await refused("update eng_documents set storage_key = 'probe/other.pdf' where id = '00000000-0000-4000-8000-0000000006c1'"),
+    );
+    /*
+     * ITS OWN UNSEALED DOCUMENT, NOT 0000b2. The first version updated 0000b2,
+     * which the 0032 checks above have already deleted, so the update touched
+     * no row, no trigger fired, and the check went red for the fixture rather
+     * than the lock. The count below asserts the row exists, so an update over
+     * nothing cannot read as a refusal or as a pass.
+     */
+    await db.exec(`
+      insert into eng_documents (id, file_id, kind, title, bucket, storage_key)
+      values ('00000000-0000-4000-8000-0000000006c0', ${SEALED_FILE}, 'deliverable', 'Probe unsealed draft', 'eng-documents', 'probe/unsealed.pdf');
+    `);
+    const unsealedRows = Number(
+      (await db.query("select count(*)::int as n from eng_documents where id = '00000000-0000-4000-8000-0000000006c0'")).rows[0].n,
+    );
+    rec(
+      "and an unsealed document cannot be sealed by an update (control 7)",
+      unsealedRows === 1 &&
+        (await refused(`update eng_documents set sealed_at = now(), sealed_by = ${SEALER} where id = '00000000-0000-4000-8000-0000000006c0'`)),
+      unsealedRows === 1
+        ? "a seal with no seal act behind it is the fabricated assurance the old rule was written against"
+        : "the unsealed fixture row does not exist, so nothing was tested",
+    );
+    rec(
+      "a sealed document can still change who may see it, which is not its content",
+      (await attempt("update eng_documents set visibility = 'internal' where id = '00000000-0000-4000-8000-0000000006c1'")) === null,
+    );
+
+    /* Control 8: a voiding needs a reason, happens once, and is audited. */
+    rec(
+      "a voiding with no reason is refused",
+      await refused(`select eng_void_seal_act('00000000-0000-4000-8000-0000000006a1', ${SEALER}, '  ')`),
+    );
+    const voidedBefore = await auditCount("seal.voided");
+    const voided = await attempt(`select eng_void_seal_act('00000000-0000-4000-8000-0000000006a1', ${SEALER}, 'Probe: superseded by a corrected letter')`);
+    rec(
+      "a seal is voided with a reason, and the voiding is audited (control 8)",
+      voided === null && (await auditCount("seal.voided")) === voidedBefore + 1,
+      voided ?? "",
+    );
+    rec(
+      "and a voided seal cannot be voided again",
+      await refused(`select eng_void_seal_act('00000000-0000-4000-8000-0000000006a1', ${SEALER}, 'again')`),
+    );
+    rec(
+      "after which the determination can be sealed again, as a new document",
+      (await attempt(sealLetter("00000000-0000-4000-8000-0000000006a3", "00000000-0000-4000-8000-0000000006c3", SEALER, SEAL_NOW, SIG))) === null,
+    );
+
+    /* Control 11: a protocol is signed by the same act. */
+    const signedBefore = await auditCount("protocol.signed");
+    const signed = await attempt(`
+      select eng_record_protocol_signature(
+        '00000000-0000-4000-8000-0000000006a4', '254-WS-001', '1.1', ${HASH}, ${SEALER}, ${SEAL_NOW}, ${SIG}, now()
+      );`);
+    rec(
+      "a protocol is signed by the same act, and audited (control 11)",
+      signed === null && (await auditCount("protocol.signed")) === signedBefore + 1,
+      signed ?? "",
+    );
+    rec(
+      "and a second live signature on the same version is refused",
+      await refused(`
+        select eng_record_protocol_signature(
+          '00000000-0000-4000-8000-0000000006a5', '254-WS-001', '1.1', ${HASH}, ${SEALER}, ${SEAL_NOW}, ${SIG}, now()
+        );`),
+    );
+    rec(
+      "and a profile that is not the licensed role cannot sign at all",
+      await refused(`
+        update eng_profiles set role = 'admin' where id = ${OTHER};
+        select eng_record_protocol_signature(
+          '00000000-0000-4000-8000-0000000006a6', '254-MH-001', '1.1', ${HASH}, ${OTHER}, ${OTHER_SEAL}, ${OTHER_SIG}, now()
+        );`),
+      "an administrator's own images seal nothing",
+    );
+  }
+
+  /*
+   * ===================================================================
+   * 0063: A SUSPENSION SPENDS EVERY LIVE LINK, AT THE DATABASE, AND 0064: SO DOES CLOSING.
+   * ===================================================================
+   *
+   * Operator ruling of 2026-09-29. Each check suspends and reads the token rows
+   * back, including the ones that must NOT move: an already used token keeps
+   * its original used_at, a token belonging to somebody else stays live, and a
+   * suspension that is not a change of status spends nothing. A check that only
+   * looked for "used_at is not null" would pass on a trigger that spent every
+   * token in the table.
+   */
+  {
+    const CL = "'00000000-0000-4000-8000-0000000007c1'";
+    /* One account per site and client, so the second account needs its own client. */
+    const CL2 = "'00000000-0000-4000-8000-0000000007c2'";
+    const ACC ="'00000000-0000-4000-8000-0000000007a1'";
+    const ACC2 = "'00000000-0000-4000-8000-0000000007a2'";
+    const U1 = "'00000000-0000-4000-8000-0000000007b1'";
+    const U2 = "'00000000-0000-4000-8000-0000000007b2'";
+    const U3 = "'00000000-0000-4000-8000-0000000007b3'";
+    const tok = (n) => `'00000000-0000-4000-8000-0000000007f${n}'`;
+    const usedAt = async (n) =>
+      /* As epoch seconds, so the replay's session time zone cannot make one instant read as two. */
+      (await db.query(`select extract(epoch from used_at)::bigint::text as u from eng_customer_auth_tokens where id = ${tok(n)}`)).rows[0]?.u ?? null;
+    const spentEvents = async () =>
+      Number((await db.query(`select count(*)::int as n from eng_audit_events where action = 'customer_links.spent_at_suspension'`)).rows[0].n);
+
+    await db.exec(`
+      insert into eng_clients (id, kind, name) values
+        (${CL}, 'organization', 'Probe Organisation, not a real one'),
+        (${CL2}, 'organization', 'Probe Organisation Two, not a real one');
+      insert into eng_customer_accounts (id, site, client_id) values (${ACC}, '254', ${CL}), (${ACC2}, '254', ${CL2});
+      insert into eng_customer_users (id, account_id, email, display_name, status) values
+        (${U1}, ${ACC}, 'probe-u1@example.com', 'Probe One', 'active'),
+        (${U2}, ${ACC}, 'probe-u2@example.com', 'Probe Two', 'invited'),
+        (${U3}, ${ACC2}, 'probe-u3@example.com', 'Probe Three', 'active');
+      insert into eng_customer_auth_tokens (id, customer_user_id, purpose, token_hash, expires_at, used_at) values
+        (${tok(1)}, ${U1}, 'reset_password', 'probe-hash-1', now() + interval '1 day', null),
+        (${tok(2)}, ${U1}, 'set_password',   'probe-hash-2', now() + interval '1 day', '2026-01-01 00:00:00+00'),
+        (${tok(3)}, ${U2}, 'set_password',   'probe-hash-3', now() + interval '1 day', null),
+        (${tok(4)}, ${U3}, 'reset_password', 'probe-hash-4', now() + interval '1 day', null);
+    `);
+    const eventsBefore = await spentEvents();
+
+    await db.exec(`update eng_customer_users set status = 'suspended' where id = ${U1};`);
+    rec(
+      "suspending a person spends their outstanding link",
+      (await usedAt(1)) !== null,
+      "marked spent, not deleted",
+    );
+    rec(
+      "and leaves an already used link's time as it was",
+      (await usedAt(2)) === String(Date.UTC(2026, 0, 1) / 1000),
+      (await usedAt(2)) ?? "null",
+    );
+    rec(
+      "and leaves a colleague's link live",
+      (await usedAt(3)) === null && (await usedAt(4)) === null,
+      "only the suspended person's links move",
+    );
+    rec(
+      "and writes one audit event naming the token it spent",
+      (await spentEvents()) === eventsBefore + 1 &&
+        JSON.stringify(
+          (await db.query(`select diff->'token_ids' as t from eng_audit_events where action = 'customer_links.spent_at_suspension' and entity_id = ${U1}`)).rows[0]?.t,
+        ) === JSON.stringify([tok(1).slice(1, -1)]),
+      "so a spent row says why it was spent",
+    );
+
+    await db.exec(`update eng_customer_users set status = 'suspended', display_name = 'Probe One again' where id = ${U1};`);
+    rec(
+      "a second write to an already suspended person spends nothing and writes nothing",
+      (await spentEvents()) === eventsBefore + 1,
+      "only a change into suspension counts",
+    );
+
+    await db.exec(`update eng_customer_accounts set status = 'suspended' where id = ${ACC};`);
+    rec(
+      "suspending an account spends every outstanding link for its users",
+      (await usedAt(3)) !== null,
+      "the ruling: every outstanding token for its users",
+    );
+    rec(
+      "and not a link belonging to a different account",
+      (await usedAt(4)) === null,
+      "the other account's user is untouched",
+    );
+    rec(
+      "the tokens are still there afterwards, because evidence of a link is the point",
+      Number((await db.query(`select count(*)::int as n from eng_customer_auth_tokens where id in (${[1, 2, 3, 4].map(tok).join(", ")})`)).rows[0].n) === 4,
+      "four rows in, four rows out",
+    );
+
+    /*
+     * 0064, the operator's ruling of 2026-10-07: closing an account spends its
+     * users' links too, under its own audit action. The second account has
+     * been untouched until now, so its one live token is the subject.
+     */
+    const closingBefore = Number(
+      (await db.query(`select count(*)::int as n from eng_audit_events where action = 'customer_links.spent_at_closing'`)).rows[0].n,
+    );
+    await db.exec(`update eng_customer_accounts set status = 'closed' where id = ${ACC2};`);
+    rec(
+      "closing an account spends its users' outstanding links (0064)",
+      (await usedAt(4)) !== null,
+      "the operator's ruling of 2026-10-07",
+    );
+    rec(
+      "and records it as a closing, not a suspension",
+      Number((await db.query(`select count(*)::int as n from eng_audit_events where action = 'customer_links.spent_at_closing' and entity_id = ${ACC2}`)).rows[0].n) ===
+        closingBefore + 1,
+      "customer_links.spent_at_closing",
+    );
+  }
 
   /*
    * And the five with no condition on them at all.

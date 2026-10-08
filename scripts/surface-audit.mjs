@@ -126,6 +126,12 @@ const APIS_MEASURED_ELSEWHERE = {
   lead: ["scripts/forms-audit.mjs", "the marketing intake"],
   onboarding: ["scripts/jobs-audit.mjs", "the invite and reminder mail the flow queues"],
   "order-flow": ["scripts/security-audit.mjs", "the one write path a visitor can reach, checked for what it refuses"],
+  /*
+   * The sealed letter download, added 2026-10-07 and named by the integration
+   * board that day as unclaimed. Token gated, no session; security-audit
+   * asserts the uniform 404 with no token and with a bad one.
+   */
+  "order-document": ["scripts/security-audit.mjs", "the sealed letter download, refused without a valid order token"],
   orders: ["scripts/security-audit.mjs", "the customer facing order lookup"],
   referral: ["scripts/partner-audit.mjs", "partner attribution"],
   stripe: ["scripts/order-audit.mjs", "the payment webhook"],
@@ -261,16 +267,40 @@ const APIS_MEASURED_ELSEWHERE = {
    * the question is what would have to be true on disk for the declaration to
    * be honest, and this asks it.
    */
+  /*
+   * MATCH THE GUARD, NOT THE NAME. Sharpened 2026-10-07.
+   *
+   * This matched any call to holdsLicence in a page. A page can call it to
+   * decide whether to SHOW something, a link on the profile screen or the
+   * authoring panel on the certification screen, and neither page refuses an
+   * administrator. The profile screen gaining a seal link made it read as a
+   * licence gated screen and turned this red, asking for roleFor to probe the
+   * whole profile screen as an engineer, which would have taken the screen
+   * everybody uses out of the administrator probe. It is the recurring defect
+   * of a matcher finding a NAME when it means a call of one particular shape.
+   *
+   * A gate is `if (!holdsLicence(...))`, followed by the refusal. That is what
+   * makes an administrator's probe come back 404, and it is the only thing this
+   * check exists to find. The pages that call holdsLicence WITHOUT gating are
+   * named in their own line below, so the narrowing is visible rather than a
+   * set quietly getting smaller.
+   */
   const portal = surfaces().find((s) => s.key === "portal");
   if (portal) {
     const licensed = [];
     const undeclared = [];
+    const conditionalOnly = [];
     for (const route of routesOf(portal, { include: "signed-in" })) {
       /* /portal -> src/app/portal/(app)/page.tsx, /portal/x -> .../x/page.tsx */
       const rel = route.replace(/^\/portal\/?/, "");
       const file = join("src/app/portal/(app)", rel, "page.tsx");
       if (!existsSync(join(process.cwd(), file))) continue;
-      if (!/holdsLicence\s*\(/.test(readSource(file))) continue;
+      const source = readSource(file);
+      if (!/holdsLicence\s*\(/.test(source)) continue;
+      if (!/if\s*\(\s*!\s*holdsLicence\s*\(/.test(source)) {
+        conditionalOnly.push(route);
+        continue;
+      }
       licensed.push(route);
       if (roleForRoute(portal, route) === (portal.defaultRole ?? null)) undeclared.push(route);
     }
@@ -288,6 +318,15 @@ const APIS_MEASURED_ELSEWHERE = {
       undeclared.length === 0
         ? "no screen is probed by a role its own guard refuses"
         : `probed as ${portal.defaultRole} and gated on a licence: ${undeclared.join(", ")}`,
+    );
+    /*
+     * PRINTED, NOT COUNTED. There is nothing about these screens that could
+     * fail; what matters is that a reader sees which screens the narrowing left
+     * out, so the set getting smaller is visible on every run.
+     */
+    console.log(
+      `  NOTE: ${conditionalOnly.length} screen(s) call holdsLicence to show something without refusing anybody, ` +
+        `and are not counted as gated: ${conditionalOnly.join(", ") || "none"}`,
     );
   }
 

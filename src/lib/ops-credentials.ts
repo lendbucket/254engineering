@@ -88,6 +88,34 @@ export const REQUIRED_FOR_DISPATCH: CredentialKind[] = [
   "ic_agreement",
 ];
 
+/**
+ * THE OWNER IS NOT HIS OWN CONTRACTOR. Operator ruling, 2026-10-06
+ * (docs/rulings-2026-10-06.md): Robert works as a field technician for his own
+ * firm, under a second profile, and a W-9 and an independent contractor
+ * agreement are documents a firm collects from somebody it pays as a
+ * contractor. The firm's owner signing one to himself would be a credential
+ * row for a document that does not exist, which the operator has forbidden in
+ * those words. So the exemption is IN CODE, named, and narrow:
+ *
+ *   - exactly these two kinds, never the licence or the vehicle insurance,
+ *     which are facts about the person and the car whoever owns the firm;
+ *   - exactly this profile, by the address the operator gave for it.
+ *
+ * Nothing writes a row for it. An exemption list nobody counts grows, so
+ * scripts/proofs/the-owner-is-not-his-own-contractor.mjs pins it at one entry
+ * and two kinds.
+ */
+export const OWNER_EXEMPTIONS: { email: string; exempt: CredentialKind[]; ruledOn: string }[] = [
+  { email: "robertreyna88@yahoo.com", exempt: ["w9", "ic_agreement"], ruledOn: "2026-10-06" },
+];
+
+/** The credential kinds this profile is exempt from, by its email. Empty for everybody else. */
+export function exemptKindsFor(email: string | null | undefined): CredentialKind[] {
+  const key = (email ?? "").trim().toLowerCase();
+  if (!key) return [];
+  return OWNER_EXEMPTIONS.find((o) => o.email.toLowerCase() === key)?.exempt ?? [];
+}
+
 /** Kinds that carry an expiry date, so the flow knows when to ask for one. */
 export const EXPIRING_KINDS: CredentialKind[] = [
   "drivers_license",
@@ -157,6 +185,8 @@ export type CredentialBlocker = { kind: CredentialKind; reason: string };
 export function credentialBlockers(
   credentials: CredentialRecord[],
   now: Date = new Date(),
+  /** From exemptKindsFor; the owner's W-9 and contractor agreement. */
+  exempt: CredentialKind[] = [],
 ): CredentialBlocker[] {
   const blockers: CredentialBlocker[] = [];
   const byKind = new Map<CredentialKind, CredentialRecord[]>();
@@ -165,6 +195,7 @@ export function credentialBlockers(
   }
 
   for (const kind of REQUIRED_FOR_DISPATCH) {
+    if (exempt.includes(kind)) continue;
     const held = byKind.get(kind) ?? [];
     const verified = held.filter((c) => c.status === "verified");
 

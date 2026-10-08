@@ -1,6 +1,8 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { currentActor, MIN_PASSWORD_LENGTH } from "@/lib/ops-auth";
-import { actionsFor, can, roleLabel } from "@/lib/ops-authz";
+import { actionsFor, can, holdsLicence, roleLabel } from "@/lib/ops-authz";
+import { mfaStateFor } from "@/lib/ops-mfa";
 import { PageHead, Panel } from "@/components/portal/surfaces";
 import { preferencesFor } from "@/lib/ops-notify";
 import { kindsForRole } from "@/lib/ops-comms";
@@ -13,6 +15,7 @@ export default async function ProfilePage() {
   const actor = await currentActor();
   const stored = actor ? await preferencesFor(actor.id, actor.role) : [];
   if (!can(actor, "profiles.read_self")) notFound();
+  const mfa = await mfaStateFor(actor!.id);
 
   const rows: [string, string][] = [
     ["Name", actor!.display_name],
@@ -54,6 +57,44 @@ export default async function ProfilePage() {
           <Panel title="Password" description="Only you ever know it. Nobody at the firm can see it.">
             <PasswordForm minLength={MIN_PASSWORD_LENGTH} />
           </Panel>
+
+          {/*
+            TWO-STEP VERIFICATION, REACHABLE FROM HERE. Added 2026-10-07: until
+            then the enrolment screen was reached only at sign in or by typing its
+            address, and the engineer's sealing is refused until he has a
+            verified second factor (ruling 2 of 2026-10-06).
+          */}
+          <Panel
+            title="Two-step verification"
+            description={
+              mfa.enrolled
+                ? "Set up. A code from your authenticator app is asked for at sign in."
+                : "Not set up. It protects your account with a code from an authenticator app."
+            }
+          >
+            {mfa.enrolled ? null : (
+              <Link
+                href="/portal/mfa/enrol"
+                className="inline-flex min-h-[var(--tap-target)] items-center rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[15px] font-bold text-white hover:bg-[var(--navy-hover)]"
+              >
+                Set up two-step verification
+              </Link>
+            )}
+          </Panel>
+
+          {holdsLicence(actor, "documents.seal") ? (
+            <Panel
+              title="Seal and signature"
+              description="The images you apply when you seal a document. Stored by you, never shown on any screen."
+            >
+              <Link
+                href="/portal/profile/seal"
+                className="inline-flex min-h-[var(--tap-target)] items-center text-[13.5px] font-semibold text-[var(--navy)] underline underline-offset-2"
+              >
+                Manage your seal and signature
+              </Link>
+            </Panel>
+          ) : null}
 
           <Panel
             title="Notifications"

@@ -1693,6 +1693,13 @@ if (!db) {
          * while looking at a list of roofs he refused to certify.
          */
         "/portal/waiting",
+        /*
+         * His own seal and signature, 2026-10-07. Only he stores them, from his
+         * own session with a fresh second factor, and the screen shows when
+         * each went on file and a fingerprint, never the image. Gated on
+         * documents.seal, a licensed capability rather than a grant.
+         */
+        "/portal/profile/seal",
         // Ordinary working surfaces an engineer holds by grant, not by licence.
         "/portal/files",
         "/portal/clients",

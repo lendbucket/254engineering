@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
 import { launchReadiness, launchMode } from "@/lib/launch";
+import { lineIsSellable } from "@/lib/line-gate";
+import { offeredServiceLines } from "@/config/launch-conditions";
 import { Chip, PageHead, Panel } from "@/components/portal/surfaces";
 
 export const dynamic = "force-dynamic";
@@ -52,6 +54,9 @@ export default async function LaunchReadinessPage() {
   const rows = launchReadiness();
   const outstanding = rows.filter((r) => r.blocker !== null);
   const mode = launchMode();
+  const sellability = await Promise.all(
+    offeredServiceLines.map(async (slug) => ({ slug, sellable: await lineIsSellable(slug) })),
+  );
 
   return (
     <>
@@ -97,7 +102,7 @@ export default async function LaunchReadinessPage() {
                 * not open is the reason, and a list of falses is a puzzle.
                 */}
               {blocker !== null && (
-                <p className="mt-2 text-[14px] leading-[1.65] text-[var(--secondary)]">{blocker}</p>
+                <p className="mt-2 text-[13.5px] leading-[1.65] text-[var(--secondary)]">{blocker}</p>
               )}
 
               <dl className="mt-2 flex flex-col gap-1 text-[13.5px] leading-[1.6] text-[var(--secondary)]">
@@ -115,11 +120,37 @@ export default async function LaunchReadinessPage() {
         </ul>
       </Panel>
 
+      {/*
+        RULING 11, THE LAUNCH SCREEN'S DOOR. Which protocols are approved has
+        one home since 2026-10-07, the engineer's signed record in the
+        database, and this reads it exactly as every money door does, through
+        lineIsSellable, so the operator sees the answer a customer would get.
+        Read live on every visit: a voided signature shows here at once.
+      */}
+      <Panel
+        title="Each offered line, as the order page sees it now"
+        description="Read from the engineer's signed record in the database, the same way every page that takes money reads it. A line is sellable only when it is offered here and its protocol is signed with a hash that matches the text the platform runs."
+      >
+        <ul className="flex flex-col gap-3">
+          {sellability.map(({ slug, sellable }) => (
+            <li key={slug} className="border-t border-[var(--border)] pt-3 first:border-t-0 first:pt-0">
+              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                <Chip label={sellable.ok ? "Sellable" : "Closed"} tone={sellable.ok ? "good" : "warn"} />
+                <p className="text-[15px] font-semibold text-[var(--navy)]">{slug}</p>
+              </div>
+              {!sellable.ok ? (
+                <p className="mt-2 text-[13.5px] leading-[1.65] text-[var(--secondary)]">{sellable.why}</p>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      </Panel>
+
       <Panel
         title="What this screen cannot tell you"
         description="A condition here is an assertion somebody wrote down. Nothing in this platform can see a filing cabinet, a Stripe dashboard or a provider setting, and a screen that implied otherwise would be worse than one that says so."
       >
-        <p className="text-[14px] leading-[1.7] text-[var(--secondary)]">
+        <p className="text-[13.5px] leading-[1.7] text-[var(--secondary)]">
           Each condition is true here when a person stated it true in the file named beside it.
           The compliance audit asserts that the gate reads every one of them and that none
           has been quietly dropped. It deliberately does not verify the outside world, because a

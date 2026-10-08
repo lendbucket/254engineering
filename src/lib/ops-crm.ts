@@ -275,6 +275,9 @@ export const SYSTEM_AUTHOR = {
   grants: new Set(actionsFor("admin")),
 } as const;
 
+/** Two minutes: a double click or a retry, and nothing a person would mean as a second client. */
+export const DOUBLE_SUBMIT_WINDOW_MS = 120_000;
+
 export async function createClient(
   actor: Author,
   input: CreateClientInput,
@@ -283,6 +286,45 @@ export async function createClient(
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
   if (!input.name?.trim()) return { ok: false, error: "A client needs a name." };
+
+  /*
+   * THE SAME CREATE TWICE IS ONE CLIENT. BACKLOG.md, "create_client has no
+   * double-submit protection": the staff walk of 2026-10-03 fired it twice and
+   * got two rows 0.6 seconds apart. This answers ONLY that case, a double
+   * click or a retry: the same person creating a client with the same name
+   * and the same address (or both with none) within two minutes gets the
+   * first row back, and nothing is written twice. It deliberately does NOT
+   * decide whether two clients may share an address, because a household and
+   * a landlord are both real; that remains the operator's ruling.
+   *
+   * A read before the insert, so two requests landing in the same instant can
+   * still both insert. Closing that needs a constraint, which needs the ruling
+   * above; the walk's 0.6 seconds is well outside it.
+   */
+  /*
+   * A PERSON ONLY. SYSTEM_AUTHOR has no id, and the order engine creates
+   * clients through it at checkout, where a match on "created by nobody" would
+   * merge two different customers with the same name. The defect was a person
+   * double clicking; that is the case this answers.
+   */
+  if (actor.id) {
+    const name = input.name.trim();
+    const email = input.email?.trim() || null;
+    const sameCreate = db
+      .from("eng_clients")
+      .select("id, created_at")
+      .eq("created_by", actor.id)
+      .eq("name", name)
+      .order("created_at", { ascending: false })
+      .limit(1);
+    const { data: prior, error: priorError } = await (email ? sameCreate.eq("email", email) : sameCreate.is("email", null));
+    /* A failed read is not "no duplicate": refuse rather than risk the split. */
+    if (priorError) return { ok: false, error: "The client could not be checked for a duplicate. Try again." };
+    const last = prior?.[0];
+    if (last && Date.now() - new Date(last.created_at as string).getTime() < DOUBLE_SUBMIT_WINDOW_MS) {
+      return { ok: true, id: last.id as string };
+    }
+  }
 
   const { data, error } = await db
     .from("eng_clients")
@@ -448,6 +490,8 @@ export type CreateFileInput = {
   twiaOverride?: boolean;
   fromLeadId?: string | null;
   clientPriceCents?: number | null;
+  /** The customer is a probe address, so the file is a demonstration whoever opens it. */
+  demo?: boolean;
 
   /*
    * Phase 10 Section 1. Everything below was addable only because 0015 added
@@ -563,7 +607,15 @@ export async function createFile(
    * inflating the real figures, which is the class Phase 12 Section 2 already
    * found once as a sales tile counting a seeded client.
    */
-  const isDemo = "is_demo" in actor && actor.is_demo === true;
+  /*
+   * AND A FILE OPENED FOR A PROBE CUSTOMER IS A DEMONSTRATION TOO, whoever
+   * opens it. Found 2026-10-07 by the order path walk: the order engine opened
+   * a file for an .invalid customer under SYSTEM_AUTHOR, so it took the real
+   * sequence (254-2026-0002) while its order carried a -DEMO- reference. The
+   * caller says so with `demo`; this can only ever add the mark, never remove
+   * it, so the protection above is unchanged.
+   */
+  const isDemo = ("is_demo" in actor && actor.is_demo === true) || input.demo === true;
 
   /*
    * The two blocks are numbered separately and must be, because DEMO is a word

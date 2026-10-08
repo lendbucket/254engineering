@@ -4,7 +4,7 @@ import { can, holdsLicence } from "@/lib/ops-authz";
 import { checkFor, listProtocols } from "@/lib/ops-field";
 import { certificationLabel } from "@/lib/ops-certification";
 import { credentialsFor } from "@/lib/ops-onboarding";
-import { credentialBlockers, expiringSoon, CREDENTIAL_LABEL } from "@/lib/ops-credentials";
+import { credentialBlockers, exemptKindsFor, expiringSoon, CREDENTIAL_LABEL } from "@/lib/ops-credentials";
 import { services } from "@/content/services";
 import { supabaseAdmin } from "@/lib/supabase";
 import { EmptyState, PageHead, Panel } from "@/components/portal/surfaces";
@@ -105,7 +105,7 @@ export default async function CertificationPage({
   );
 
   const held = (await credentialsFor([actor!.id])).get(actor!.id) ?? [];
-  const paperwork = credentialBlockers(held);
+  const paperwork = credentialBlockers(held, new Date(), exemptKindsFor(actor!.email));
   const expiring = expiringSoon(held);
 
   const active = params.service ? await checkFor(actor, params.service) : null;

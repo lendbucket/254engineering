@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
      * same defect as one honoured at checkout and not on the statement.
      */
     const agreed = await tradePriceInForce(me.accountId, serviceSlug, tier ?? "standard");
-    const preview = previewBatch(serviceSlug, tier, properties, agreed);
+    const preview = await previewBatch(serviceSlug, tier, properties, agreed);
     if (!preview.ok) return NextResponse.json({ ok: false, error: preview.error }, { status: 409 });
 
     /*

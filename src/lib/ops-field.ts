@@ -37,6 +37,7 @@ import {
 import { protocolItemRowsFor } from "./protocol-run";
 import { verifiedEngineers } from "@/config/credentials";
 import { licenceIsCurrent } from "./launch";
+import { holdFor, holdRefusal } from "./dispatch-hold";
 
 /**
  * The field layer: protocols, offers, evidence, and what a technician is owed.
@@ -745,6 +746,14 @@ export async function sendOffers(
         "Offers are only sent for a file in Needs dispatch.",
     };
   }
+
+  /*
+   * HELD FOR THE ENGINEER, operator ruling 1 of 2026-10-07: a yes to RC-001's
+   * questions 8 to 12 holds the job here until the engineer records accept or
+   * decline. A failed read of the hold refuses too. See dispatch-hold.ts.
+   */
+  const heldBy = holdRefusal(await holdFor(fileId));
+  if (heldBy) return { ok: false, error: heldBy };
 
   const protocol = await publishedProtocolFor(file.service_slug as string);
   if (!protocol) {
