@@ -99,7 +99,7 @@ const ORIGINAL_NOT_YET_V10 = [
  * original since then: the engineer's review, protocols and RC-001, profile and
  * seal upload, waiting, certification, his jobs, the two-step pages, sign in and
  * set password, the technician's credentials page, and eleven screens the shared
- * pieces alone brought into line.
+ * pieces alone brought into line. 2026-10-08: tasks, restyled, and 37 remain.
  */
 const STILL_NOT_YET_V10 = [
   "/account", "/account/forgot-password", "/account/login", "/account/order", "/account/set-password",
@@ -109,7 +109,7 @@ const STILL_NOT_YET_V10 = [
   "/portal/clients", "/portal/deletion-requests", "/portal/documents/binder/[fileId]", "/portal/files",
   "/portal/intake", "/portal/jobs/[id]", "/portal/launch", "/portal/messages", "/portal/onboarding",
   "/portal/partners", "/portal/partners/[id]", "/portal/people", "/portal/queue", "/portal/reports",
-  "/portal/roles", "/portal/status", "/portal/suppressions", "/portal/tasks", "/portal/techs",
+  "/portal/roles", "/portal/status", "/portal/suppressions", "/portal/techs",
 ];
 const NOT_YET_V10 = STILL_NOT_YET_V10 ?? [...ORIGINAL_NOT_YET_V10];
 
