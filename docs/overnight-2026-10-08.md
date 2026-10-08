@@ -76,3 +76,16 @@ behind white sections either. It is open and recorded.
 
 **Lint**: four "setState in an effect" errors in `PortalChrome.tsx` and
 `Sheet.tsx` are pre-existing: the same counts on main's versions of both files.
+
+## 04:37, the 05:00 note, written 23 minutes early
+
+**The V10 board on `0e68723` returned 58 of 60 against a prediction of 60.** It
+waited about two hours on the machine lock first. Both misses were mine:
+`v10-layout-audit` had no npm script, so the suite could not run it at all (a
+check never run through the path the board uses), and its two switches were
+undeclared environment values (`soc2-audit`). Fixed in `a75e219`; re-boarding
+now, predicted 60 of 60. If it passes, V10 merges under the standing word.
+
+**Not reached tonight:** item 5 (technician, admin and customer V10) and item 6
+(the approval-backed screens). Item 3's branch, `feat/protocols-v1-1`, is built
+and staged but has had no board: the lock allowed three boards in eight hours.
