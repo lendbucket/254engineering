@@ -391,6 +391,16 @@ async function main() {
     const missing = Object.entries(sessions).filter(([, p]) => !p?.cookie).map(([r]) => r);
     if (missing.length) {
       log(`  probe sign in failed for: ${missing.join(", ")}`);
+      /*
+       * EACH ONE NAMES ITS FAULT. The probe library has returned a reason since
+       * 2026-09-22 and this audit dropped it, so the re-board of d725711 on
+       * 2026-10-08 went red with four principals unmeasured and nothing on
+       * record to say whether the database, the account or the sign in had
+       * failed. A note that names no fault cannot be told from a real finding.
+       */
+      for (const role of missing) {
+        log(`    ${role}: ${sessions[role]?.fault ?? "the probe returned no reason"}`);
+      }
     }
 
     const browser = await chromium.launch();
