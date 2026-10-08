@@ -76,7 +76,7 @@ rec("the standards document carries a css token block", Boolean(cssBlock));
 const documented = new Map();
 if (cssBlock) {
   for (const line of cssBlock[1].split("\n")) {
-    const m = line.match(/^\s*(--[a-z-]+)\s*:\s*(#[0-9A-Fa-f]{3,8})\s*;/);
+    const m = line.match(/^\s*(--[a-z0-9-]+)\s*:\s*(#[0-9A-Fa-f]{3,8})\s*;/);
     if (m) documented.set(m[1], m[2].toLowerCase());
   }
 }
@@ -84,7 +84,11 @@ if (cssBlock) {
  * The exact set, not a count.
  *
  * A count passes when somebody deletes one token and adds another, which is
- * precisely the change worth catching. These twenty three names ARE the palette.
+ * precisely the change worth catching. These twenty six names ARE the palette.
+ *
+ * --faint, --select and --link joined on 2026-10-08, when the operator ruled
+ * that every colour take Design V10's exact value: V10 names all three and the
+ * portal had none of them.
  *
  * The three --on-navy values were added 2026-09-05 and were not a new decision
  * either: DESIGN_SPEC.md section 2 has defined the on navy scale with measured
@@ -105,23 +109,26 @@ const EXPECTED_COLOUR_TOKENS = [
   "--gold", "--gold-bright", "--gold-deep", "--gold-wash",
   "--on-navy", "--on-navy-muted", "--on-navy-dim",
   "--warn-bg", "--warn-border", "--warn-ink",
-  "--ink", "--secondary", "--muted",
-  "--border", "--border-strong", "--row-rule", "--row-hover", "--canvas",
+  "--ink", "--secondary", "--faint", "--muted",
+  "--border", "--border-strong", "--row-rule", "--row-hover", "--select", "--link", "--canvas",
   "--green", "--red",
 ];
 
 const missingFromDoc = EXPECTED_COLOUR_TOKENS.filter((t) => !documented.has(t));
 const extraInDoc = [...documented.keys()].filter((t) => !EXPECTED_COLOUR_TOKENS.includes(t));
 rec(
-  "the document defines exactly the twenty three colours of the palette",
+  "the document defines exactly the twenty six colours of the palette",
   missingFromDoc.length === 0 && extraInDoc.length === 0,
   [...missingFromDoc.map((t) => `missing ${t}`), ...extraInDoc.map((t) => `extra ${t}`)].join(", ") ||
     `${documented.size} tokens`,
 );
 
 const implemented = new Map();
+// Digits allowed since 2026-10-08, with the site twin parser below: a colour
+// token named --x-2 was invisible to "no colour token the document does not
+// define", which is the check that keeps the palette from growing unruled.
 for (const line of tokenText.split("\n")) {
-  const m = line.match(/^\s*(--[a-z-]+)\s*:\s*(#[0-9A-Fa-f]{3,8})\s*;/);
+  const m = line.match(/^\s*(--[a-z0-9-]+)\s*:\s*(#[0-9A-Fa-f]{3,8})\s*;/);
   if (m) implemented.set(m[1], m[2].toLowerCase());
 }
 
@@ -648,6 +655,13 @@ const STAFF_V10 = [
   "src/app/portal/(app)/review/TrainingDecisionPanel.tsx",
   "src/components/portal/CredentialTables.tsx",
   /*
+   * Tasks, 2026-10-08, the first of the technician's screens in the restyle
+   * the operator ordered that day: rows under one rule, square controls, no
+   * red error text, no boxed form.
+   */
+  "src/app/portal/(app)/tasks/page.tsx",
+  "src/app/portal/(app)/tasks/TasksClient.tsx",
+  /*
    * THE SHELL AND THE SHARED BUILDING BLOCKS, restyled to V10 on 2026-10-08
    * under the operator's ruling 1 of 2026-10-07: Panel, PageHead, the states,
    * the chip and the record list in surfaces.tsx; the status words, the system
@@ -716,9 +730,14 @@ const ALLOWED_RADIUS_PX = new Set([2, 3, 4, 8, 12, 16, 18]);
  * nothing reads stops being true; here the declaration was right and the code
  * was wrong, and the missing piece was the same: nothing compared them.
  *
- * GOLD IS NOT IN THIS LIST, because gold is a brand colour the rule explicitly
- * allows. `--gold-deep` is `#8d610f`, which DESIGN_SPEC.md added precisely as
- * "gold as text on light" at 4.81:1, so it clears AA as well as the palette.
+ * GOLD IS NOT IN THIS LIST, and this paragraph used to say gold was allowed as
+ * text, with the message below calling it "permitted and excluded". NO RULING
+ * EVER SAID SO: on 2026-10-08 the operator asked for any document claiming one
+ * to be quoted, and this comment and that message were the only ones. His
+ * ruling that day: V10 allows gold only on the header rule, the active nav
+ * marker and the current step, and never as text. That is its own check below,
+ * on EVERY signed in file rather than only the V10 list, because gold text was
+ * on screens of every stage.
  *
  * NAMED TOKENS RATHER THAN A HEX SWEEP, because a screen writes `var(--red)` and
  * a hex scan would not see it. The raw hex scan above still runs alongside.
@@ -815,8 +834,54 @@ rec(
   "no V10 screen uses red, green or amber",
   forbiddenColour.length === 0,
   forbiddenColour.length === 0
-    ? `${V10.length} V10 file(s), ${CUSTOMER_V10.length} customer and ${STAFF_V10.length} staff, checked against ${FORBIDDEN_COLOUR.length} forbidden token(s). Gold is permitted and excluded: it is brand, and --gold-deep is the spec's own gold-as-text-on-light at 4.81:1`
+    ? `${V10.length} V10 file(s), ${CUSTOMER_V10.length} customer and ${STAFF_V10.length} staff, checked against ${FORBIDDEN_COLOUR.length} forbidden token(s). Gold is checked separately, as never text`
     : forbiddenColour.slice(0, 6).join("  |  "),
+);
+
+/*
+ * GOLD IS NEVER TEXT, ON ANY SIGNED IN SURFACE. Operator ruling, 2026-10-08.
+ * A text utility or a color declaration naming a gold token, or the site's
+ * brass twins, is refused in every portal, partner and account file, ported or
+ * not. Gold as a border, a rule or a marker is not text and is not this check's
+ * business.
+ */
+const GOLD_TEXT = /text-\[var\(--gold[a-z-]*\)\]|text-brass[a-z-]*|\bcolor:\s*var\(--gold[a-z-]*\)/g;
+const goldText = [];
+for (const file of allPortalFiles) {
+  for (const m of codeOnly(file).matchAll(GOLD_TEXT)) goldText.push(`${file}: ${m[0]}`);
+}
+rec(
+  "no signed in surface sets text in gold",
+  allPortalFiles.length >= 100 && goldText.length === 0,
+  goldText.length ? goldText.slice(0, 6).join("  |  ") : `${allPortalFiles.length} file(s) read, none sets gold text`,
+);
+
+/*
+ * A BORDER WIDTH GIVEN THROUGH A VARIABLE CARRIES ITS TYPE. Found 2026-10-08.
+ * `border-l-[var(--active-bar-width)]` compiles to border-left-COLOR, because
+ * Tailwind cannot see that a variable holds a length, so the active nav bar in
+ * the staff rail and both phone tab bars had no width and their gold marker
+ * never rendered, for as long as they existed. Putting the `length:` type hint
+ * first inside the brackets is the form that sets the width. Refused in its
+ * bare form on every signed in file, for any variable whose name says it is a
+ * width or a size.
+ *
+ * AND NEVER WRITE A WHOLE CLASS IN A COMMENT TO ILLUSTRATE IT. Tailwind v4 scans
+ * every file in the project, comments and scripts included, and generates CSS
+ * for any string shaped like a class. The first version of this comment spelled
+ * the corrected class with "..." for the variable, Tailwind emitted
+ * `border-left-width: var(...)`, the development server could not parse its own
+ * stylesheet, and contrast-audit's server answered 500 and never came up.
+ */
+const BARE_WIDTH = /(?:border|outline|divide)(?:-[trblxyse])?-\[var\(--[a-z0-9-]*(?:width|size|thick)[a-z0-9-]*\)\]/g;
+const bareWidth = [];
+for (const file of allPortalFiles) {
+  for (const m of codeOnly(file).matchAll(BARE_WIDTH)) bareWidth.push(`${file}: ${m[0]}`);
+}
+rec(
+  "no border width is given through a variable without its length hint",
+  bareWidth.length === 0,
+  bareWidth.length ? `${bareWidth.slice(0, 6).join("  |  ")} (put the length: type hint first inside the brackets)` : `${allPortalFiles.length} file(s) read`,
 );
 
 /*
@@ -956,7 +1021,9 @@ rec(
 const globals = readNormalised("src/app/globals.css");
 const siteTokens = new Map();
 for (const line of globals.split("\n")) {
-  const m = line.match(/^\s*(--color-[a-z-]+)\s*:\s*(#[0-9A-Fa-f]{3,8})\s*;/);
+  // Digits allowed since 2026-10-08: --color-line-2 is V10's own name, and a
+  // pattern of letters only read it as missing while it was declared.
+  const m = line.match(/^\s*(--color-[a-z0-9-]+)\s*:\s*(#[0-9A-Fa-f]{3,8})\s*;/);
   if (m) siteTokens.set(m[1], m[2].toLowerCase());
 }
 
@@ -965,13 +1032,30 @@ const TWINS = [
   ["--navy-hover", "--color-slate-deep"],
   ["--ink-navy", "--color-slate-abyss"],
   ["--secondary", "--color-slate-muted"],
-  ["--canvas", "--color-limestone"],
-  ["--row-rule", "--color-limestone-sunk"],
+  /*
+   * RE-PAIRED BY ROLE ON 2026-10-08, not removed. --canvas and --row-rule took
+   * V10's phone ground and line-2. Their old twins, limestone and
+   * limestone-sunk, are the public site's grounds, and sunk as a ground under
+   * V10's line-2 value puts the site's gold text at 4.48. So each portal token
+   * is now asserted equal to the site token carrying the same V10 role, and the
+   * site's grounds are left for the site restyle. --link gained a twin it
+   * should always have had.
+   */
+  ["--canvas", "--color-phone-ground"],
+  ["--row-rule", "--color-line-2"],
+  ["--link", "--color-link"],
   ["--border", "--color-limestone-line"],
   ["--border-strong", "--color-limestone-edge"],
   ["--gold", "--color-brass"],
   ["--gold-bright", "--color-brass-light"],
-  ["--gold-deep", "--color-brass-ink"],
+  /*
+   * --gold-deep and --color-brass-ink WERE twins until 2026-10-08, both the
+   * on-light text gold. The operator ruled that day that gold is never text in
+   * the portal and that --gold-deep takes V10's logo value, #CA8A03, so the two
+   * no longer share a role: brass-ink is still the public site's text gold,
+   * which the site restyle decides. --gold-deep is held to V10's value by the
+   * check below instead, which is the stronger assertion of the two.
+   */
   ["--ink", "--color-ink"],
 ];
 
@@ -982,6 +1066,68 @@ for (const [standard, site] of TWINS) {
     `${standard} and ${site} are the same colour`,
     a !== undefined && b !== undefined && a === b,
     a === b ? a : `${standard}=${a ?? "missing"} ${site}=${b ?? "missing"}`,
+  );
+}
+
+// =========================================================================
+// 3b. THE PALETTE IS V10'S, VALUE FOR VALUE
+// =========================================================================
+//
+// Operator ruling, 2026-10-08: "align every V10 colour to the exact token
+// values in docs/design-v10/DESIGN_V10.md". The check above compares the token
+// file with the standards document, which is the portal's own account; this one
+// reads V10's token table itself, so a value drifting from the approved design
+// is red even when the two portal accounts agree with each other.
+//
+// Each V10 token names the portal token(s) carrying its role. `page` is the
+// white ground, written as a literal on .portal-surface rather than a token.
+// EVERY V10 VALUE IS CARRIED. Gold-deep was the one exception, kept as the
+// on-light text gold for AA, until the operator ruled on 2026-10-08 that gold is
+// never text: it carries V10's #CA8A03, logo only, and the exception went with
+// the last gold text. There is no exception mechanism now, so adding one is an
+// edit to this check rather than an entry in a list.
+
+{
+  const v10 = new Map();
+  for (const line of readNormalised("docs/design-v10/DESIGN_V10.md").split("\n")) {
+    const m = line.match(/^\|\s*([a-z0-9-]+)\s*\|\s*(#[0-9A-Fa-f]{6})\s*\|/);
+    if (m) v10.set(m[1], m[2].toLowerCase());
+  }
+  const ROLE = {
+    navy: ["--navy"],
+    gold: ["--gold"],
+    ink: ["--ink"],
+    sub: ["--secondary"],
+    faint: ["--faint"],
+    mute: ["--muted"],
+    line: ["--border", "--border-strong"],
+    "line-2": ["--row-rule"],
+    "phone-ground": ["--canvas"],
+    select: ["--select", "--row-hover"],
+    link: ["--link"],
+    "gold-deep": ["--gold-deep"],
+  };
+  rec(
+    "V10's token table was read, and every token in it has a home",
+    v10.size >= 13 && [...v10.keys()].every((k) => k in ROLE || k === "page"),
+    `${v10.size} tokens: ${[...v10.keys()].filter((k) => !(k in ROLE) && k !== "page").join(", ") || "all placed"}`,
+  );
+  for (const [name, tokens] of Object.entries(ROLE)) {
+    for (const token of tokens) {
+      const want = v10.get(name);
+      const have = implemented.get(token);
+      rec(
+        `${token} is V10's ${name}`,
+        want !== undefined && have === want,
+        `${token}=${have ?? "missing"} V10 ${name}=${want ?? "missing"}`,
+      );
+    }
+  }
+  const surface = tokenText.match(/\.portal-surface\s*\{[^}]*background:\s*(#[0-9a-fA-F]{6})/);
+  rec(
+    "the desktop ground is V10's page",
+    surface !== null && surface[1].toLowerCase() === v10.get("page"),
+    `.portal-surface ${surface ? surface[1] : "has no literal background"} V10 page ${v10.get("page")}`,
   );
 }
 

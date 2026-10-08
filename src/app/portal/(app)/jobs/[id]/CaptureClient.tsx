@@ -358,7 +358,7 @@ export function Checklist({
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
-        <p className="portal-kicker text-[var(--gold-deep)]">
+        <p className="portal-label">
           {protocolName}
         </p>
         <p className="text-[14px] font-semibold text-[var(--ink)]">{progressLabel(state)}</p>
@@ -526,7 +526,7 @@ export function Checklist({
           <>
             {!state.canSubmit && state.blockers.length > 0 ? (
               <div className="mb-4">
-                <p className="portal-kicker text-[var(--gold-deep)]">
+                <p className="portal-label">
                   Still needed
                 </p>
                 <ul className="mt-2 flex flex-col gap-1">
@@ -764,7 +764,7 @@ export function RepairList({
 
   return (
     <div className="mb-6 rounded-[2px] border border-[var(--gold)] bg-[var(--gold-wash)] p-4">
-      <p className="portal-kicker text-[var(--gold-deep)]">Repairs to verify</p>
+      <p className="portal-label">Repairs to verify</p>
       <p className="mt-1.5 max-w-[70ch] text-[14px] leading-[1.55] text-[var(--ink)]">
         {open === 0
           ? "Every repair on this list has been verified. The engineer decides from here."

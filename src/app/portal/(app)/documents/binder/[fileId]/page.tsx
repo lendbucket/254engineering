@@ -211,7 +211,7 @@ export default async function BinderPage({ params }: { params: Promise<{ fileId:
         {/* -------------------------------------- sent in the conversation */}
         {binder.conversationAttachments.length > 0 ? (
           <section className="mt-8">
-            <h2 className="portal-kicker text-[var(--gold-deep)]">Sent in the conversation</h2>
+            <h2 className="portal-label">Sent in the conversation</h2>
             {/*
               THE LABEL IS THE POINT, NOT THE LIST.
 

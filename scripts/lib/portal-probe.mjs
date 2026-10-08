@@ -265,7 +265,15 @@ export async function createProbe(base, role, label = "audit") {
     );
   }
 
-  return { id: data.user.id, email, role, cookie: signedIn.cookie, fault: null };
+  /* A sign in that fails is a fault too, and says so to the caller as well as
+   * on stderr: a caller printing `fault` would otherwise print null for it. */
+  return {
+    id: data.user.id,
+    email,
+    role,
+    cookie: signedIn.cookie,
+    fault: signedIn.cookie ? null : `signing in did not reach a full session: ${signedIn.error ?? "no cookie"}`,
+  };
 }
 
 /**

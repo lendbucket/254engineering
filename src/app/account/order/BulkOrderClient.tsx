@@ -371,7 +371,7 @@ export function BulkOrderClient({
                       <span className="text-[13px] text-[var(--secondary)]">{a.ref}</span>
                       <span className="text-[14px] text-[var(--navy)]">{a.address}</span>
                       {a.twiaCounty ? (
-                        <span className="text-[12px] text-[var(--gold-deep)]">coastal county</span>
+                        <span className="text-[12px] text-[var(--faint)]">coastal county</span>
                       ) : null}
                       <span className="ml-auto text-[14px] font-semibold text-[var(--navy)]">
                         {money(a.priceCents)}

@@ -143,7 +143,7 @@ export default async function CertificationPage({
             />
           ) : (
             <section aria-labelledby="lines">
-              <h2 id="lines" className="portal-kicker text-[var(--gold-deep)]">
+              <h2 id="lines" className="portal-label">
                 Service lines
               </h2>
               <div className="mt-3">
@@ -226,7 +226,7 @@ export default async function CertificationPage({
             <CredentialStandingList standing={standing} />
             <p className="mt-3 text-[14px] leading-[1.55] text-[var(--secondary)]">
               {expiring.length > 0
-                ? "An expiring credential does not stop you working. It stops you the day it lapses. "
+                ? "You can keep working until the credential lapses. From that day, dispatch offers you nothing. "
                 : ""}
               Send a new or replacement document to the operator, who records it. Nothing on this site
               asks you to type a policy number, an account number, or a social security number.
@@ -235,20 +235,26 @@ export default async function CertificationPage({
 
           <Panel title="How the check works">
             <ul className="flex flex-col gap-2 text-[14px] leading-[1.55] text-[var(--secondary)]">
+              <li>The protocol is on the page while you answer.</li>
+              {/*
+                Operator ruling of 2026-10-08 on the copy, read against the code.
+                The approved line said that without a photograph "the engineer
+                cannot seal and the visit is repeated". The code stops it sooner:
+                ops-evidence.ts will not let a checklist be submitted until every
+                required item is captured, so the engineer never receives a
+                package missing one. This says what the code does, and keeps the
+                original's first fact, that every question has to be right.
+              */}
               <li>
-                The protocol is on the page while you answer. It is meant to be read, not memorised.
-              </li>
-              <li>
-                Every question has to be right. There is no such thing as most of an evidence
-                package: a missing photograph means the engineer cannot seal and somebody drives
-                back.
+                Every question has to be right. Every photograph the checklist requires has to be
+                taken before the job can be submitted.
               </li>
               <li>
                 Getting one wrong costs nothing. You are told why, straight away, and you can take it
                 again immediately.
               </li>
               <li>
-                Attempts are counted so the engineer can see which questions are hard, not to hold
+                Attempts are counted to show the engineer which questions are hard. They do not count
                 against you.
               </li>
             </ul>

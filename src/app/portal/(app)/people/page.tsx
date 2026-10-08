@@ -149,7 +149,7 @@ export default async function PeoplePage() {
                   </div>
                   <Chip label={p.status} tone={STATUS_TONE[p.status]} />
                 </div>
-                <p className="mt-2 portal-kicker text-[var(--gold-deep)]">
+                <p className="mt-2 portal-label">
                   {roleLabel(p.role, roleName.get(p.role))}
                 </p>
                 <p className="mt-1 text-[13.5px] text-[var(--secondary)]">Last sign in {when(p.last_sign_in_at)}</p>

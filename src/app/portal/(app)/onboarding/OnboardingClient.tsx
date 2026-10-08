@@ -275,7 +275,7 @@ export function CoverageForm({
   if (locked) {
     return (
       <div>
-        <p className="portal-kicker text-[var(--gold-deep)]">Coverage</p>
+        <p className="portal-label">Coverage</p>
         <p className="mt-2 text-[13.5px] leading-[1.55] text-[var(--secondary)]">
           {counties.length} count{counties.length === 1 ? "y" : "ies"}: {counties.join(", ")}. Change
           this on the technician roster now that the account exists.
@@ -290,7 +290,7 @@ export function CoverageForm({
 
   return (
     <div>
-      <p className="portal-kicker text-[var(--gold-deep)]">Coverage</p>
+      <p className="portal-label">Coverage</p>
       <p className="mt-1.5 max-w-[70ch] text-[13.5px] leading-[1.55] text-[var(--secondary)]">
         Where this technician would work. A technician with none is offered nothing and would sit in
         the roster looking available, so activation refuses until there is at least one.
@@ -428,7 +428,7 @@ export function ActivatePanel({
   if (activatedAt) {
     return (
       <div>
-        <p className="portal-kicker text-[var(--gold-deep)]">Activated</p>
+        <p className="portal-label">Activated</p>
         <p className="mt-2 max-w-[70ch] text-[13.5px] leading-[1.55] text-[var(--secondary)]">
           The account exists and the credentials are on file. This person is not certified for any
           service line yet, so dispatch will not offer them work until they pass a protocol check.
@@ -473,7 +473,7 @@ export function ActivatePanel({
 
   return (
     <div>
-      <p className="portal-kicker text-[var(--gold-deep)]">Activate</p>
+      <p className="portal-label">Activate</p>
       <p className="mt-1.5 max-w-[70ch] text-[13.5px] leading-[1.55] text-[var(--secondary)]">
         Creates the account, copies every accepted document into their credentials with the expiry
         dates recorded above, sets the coverage, and issues a one time link to set a password. It
@@ -482,7 +482,7 @@ export function ActivatePanel({
 
       {!ready ? (
         <div className="mt-3">
-          <p className="portal-kicker text-[var(--gold-deep)]">Not ready</p>
+          <p className="portal-label">Not ready</p>
           <ul className="mt-2 flex flex-col gap-1">
             {blockers.map((b) => (
               <li key={b} className="text-[13.5px] leading-[1.5] text-[var(--secondary)]">

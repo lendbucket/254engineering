@@ -313,7 +313,7 @@ export default async function FilesPage({
 
         <div className="grid gap-5 px-4 py-5 sm:px-5 lg:grid-cols-2">
           <div>
-            <p className="portal-kicker text-[var(--gold-deep)]">Overview</p>
+            <p className="portal-label">Overview</p>
             <dl className="mt-3 divide-y divide-limestone-line">
               {[
                 ["Service line", services.find((s) => s.slug === selected.service_slug)?.name ?? selected.service_slug],
@@ -331,7 +331,7 @@ export default async function FilesPage({
 
             {can(actor, "pricing.read") ? (
               <>
-                <p className="mt-6 portal-kicker text-[var(--gold-deep)]">Billing</p>
+                <p className="mt-6 portal-label">Billing</p>
                 <dl className="mt-3 divide-y divide-limestone-line">
                   {[
                     ["Client price", money(selected.client_price_cents ?? null)],
@@ -381,7 +381,7 @@ export default async function FilesPage({
               })}
             />
 
-            <p className="mt-7 portal-kicker text-[var(--gold-deep)]">Timeline</p>
+            <p className="mt-7 portal-label">Timeline</p>
             {timeline.length === 0 ? (
               <p className="mt-2 text-[14px] text-[var(--secondary)]">Nothing recorded yet.</p>
             ) : (
@@ -409,7 +409,7 @@ export default async function FilesPage({
 
             {job?.protocol ? (
               <>
-                <p className="mt-7 portal-kicker text-[var(--gold-deep)]">
+                <p className="mt-7 portal-label">
                   Evidence
                 </p>
                 <p className="mt-2 text-[14px] font-semibold text-[var(--ink)]">

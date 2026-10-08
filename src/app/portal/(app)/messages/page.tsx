@@ -287,7 +287,7 @@ export default async function MessagesPage({
                               mine ? "border-slate bg-[var(--canvas)]" : "border-[var(--border)] bg-white"
                             }`}
                           >
-                            <p className="text-[12.5px] font-semibold text-[var(--gold-deep)]">
+                            <p className="text-[12px] font-semibold text-[var(--faint)]">
                               {mine ? "You" : m.author_name}
                               {m.author_role && !mine ? `, ${roleLabel(m.author_role)}` : ""}
                             </p>

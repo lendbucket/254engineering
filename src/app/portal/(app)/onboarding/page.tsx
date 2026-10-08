@@ -72,7 +72,7 @@ export default async function OnboardingPage({
       <div className="grid gap-6 lg:grid-cols-[minmax(300px,380px)_1fr]">
         <div className={selected ? "hidden lg:block" : "block"}>
           <section aria-labelledby="applications">
-            <h2 id="applications" className="portal-kicker text-[var(--gold-deep)]">
+            <h2 id="applications" className="portal-label">
               Applications not yet invited
             </h2>
             <div className="mt-3">
@@ -104,7 +104,7 @@ export default async function OnboardingPage({
           </section>
 
           <section aria-labelledby="onboardings" className="mt-8">
-            <h2 id="onboardings" className="portal-kicker text-[var(--gold-deep)]">
+            <h2 id="onboardings" className="portal-label">
               In onboarding
             </h2>
             <div className="mt-3">
@@ -169,7 +169,7 @@ export default async function OnboardingPage({
               </div>
 
               <div className="px-4 py-5 sm:px-5">
-                <p className="portal-kicker text-[var(--gold-deep)]">Checklist</p>
+                <p className="portal-label">Checklist</p>
                 <ul className="mt-3 divide-y divide-limestone-line">
                   {selected.items.map((item) => (
                     <li key={item.itemKey} className="py-3">

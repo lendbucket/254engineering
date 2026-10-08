@@ -99,7 +99,7 @@ const ORIGINAL_NOT_YET_V10 = [
  * original since then: the engineer's review, protocols and RC-001, profile and
  * seal upload, waiting, certification, his jobs, the two-step pages, sign in and
  * set password, the technician's credentials page, and eleven screens the shared
- * pieces alone brought into line.
+ * pieces alone brought into line. 2026-10-08: tasks, restyled, and 37 remain.
  */
 const STILL_NOT_YET_V10 = [
   "/account", "/account/forgot-password", "/account/login", "/account/order", "/account/set-password",
@@ -109,7 +109,7 @@ const STILL_NOT_YET_V10 = [
   "/portal/clients", "/portal/deletion-requests", "/portal/documents/binder/[fileId]", "/portal/files",
   "/portal/intake", "/portal/jobs/[id]", "/portal/launch", "/portal/messages", "/portal/onboarding",
   "/portal/partners", "/portal/partners/[id]", "/portal/people", "/portal/queue", "/portal/reports",
-  "/portal/roles", "/portal/status", "/portal/suppressions", "/portal/tasks", "/portal/techs",
+  "/portal/roles", "/portal/status", "/portal/suppressions", "/portal/techs",
 ];
 const NOT_YET_V10 = STILL_NOT_YET_V10 ?? [...ORIGINAL_NOT_YET_V10];
 
@@ -264,11 +264,64 @@ function measure() {
       found.push({ kind: "box", at: describe(el) });
     }
   }
+
+  /*
+   * NO TINTED GROUND INSIDE MAIN, operator ruling 3 on the 11:10 report of
+   * 2026-10-08, closing the gap the box rule left: a box is found by its four
+   * borders, so a tinted block with no border passed. Inside main, any
+   * background other than transparent, white or the phone ground is a finding,
+   * unless the element is a button, an input or a link drawn as a button.
+   * Applied as ruled, with no further exemption: V10 names a grey selected row
+   * fill, and if one appears it is reported to the operator rather than excused
+   * here.
+   */
+  const ALLOWED_GROUNDS = new Set(["rgb(255, 255, 255)", "rgb(242, 244, 247)"]);
+  const mainEl = document.querySelector("main");
+  if (mainEl) {
+    for (const el of mainEl.querySelectorAll("*")) {
+      const cs = getComputedStyle(el);
+      if (cs.display === "none" || cs.visibility === "hidden" || Number(cs.opacity) === 0) continue;
+      const r = el.getBoundingClientRect();
+      if (r.width < 1 || r.height < 1) continue;
+      const bg = cs.backgroundColor;
+      if (!bg || /rgba\(\s*0,\s*0,\s*0,\s*0\s*\)|transparent/.test(bg) || ALLOWED_GROUNDS.has(bg)) continue;
+      /* Exactly the ruling's exemption: a button or an input. Not the box rule's
+       * wider control set, which also excuses a key cap. */
+      if (["BUTTON", "INPUT", "SELECT", "TEXTAREA", "OPTION"].includes(el.tagName) || buttonLike(el, cs, r)) continue;
+      found.push({ kind: "tint", at: `${describe(el)} ${bg}` });
+    }
+  }
+
+  /*
+   * THE ACTIVE NAV ITEM, operator ruling 4 of 2026-10-08: "gold marker only, no
+   * grey ground, no radius", in all four portals. Every visible
+   * nav a[aria-current="page"] is read: a fill is a finding, a corner is a
+   * finding, and no gold border on any side is a finding. Each one seen is also
+   * COUNTED, as a "_navseen" entry the runner tallies by portal, so a check that
+   * found no active item anywhere cannot pass over nothing.
+   */
+  const GOLD = "rgb(214, 166, 42)";
+  for (const a of document.querySelectorAll('nav a[aria-current="page"]')) {
+    const cs = getComputedStyle(a);
+    const r = a.getBoundingClientRect();
+    if (cs.display === "none" || cs.visibility === "hidden" || r.width < 1 || r.height < 1) continue;
+    found.push({ kind: "_navseen", at: describe(a) });
+    const bg = cs.backgroundColor;
+    if (bg && !/rgba\(\s*0,\s*0,\s*0,\s*0\s*\)|transparent/.test(bg)) found.push({ kind: "nav-fill", at: `${describe(a)} ${bg}` });
+    const radius = Math.max(...["TopLeft", "TopRight", "BottomLeft", "BottomRight"].map((c) => parseFloat(cs[`border${c}Radius`]) || 0));
+    if (radius > 0) found.push({ kind: "nav-radius", at: `${describe(a)} ${radius}px` });
+    const marked = ["Top", "Right", "Bottom", "Left"].some(
+      (s) => (parseFloat(cs[`border${s}Width`]) || 0) >= 2 && cs[`border${s}Style`] !== "none" && cs[`border${s}Color`] === GOLD,
+    );
+    if (!marked) found.push({ kind: "nav-marker", at: `${describe(a)}: no gold marker` });
+  }
   return found;
 }
 
 const browser = targets.length && Object.values(sessions).some((s) => s?.cookie) ? await chromium.launch() : null;
 const results = [];
+/** Active nav items measured, by portal: admin, engineer, field_tech, partner. */
+const navSeen = {};
 for (const t of targets) {
   if (ONLY && t.pattern !== ONLY) continue;
   if (!t.path) {
@@ -296,6 +349,12 @@ for (const t of targets) {
         unmeasured.push(`${t.path} at ${width}: HTTP ${res?.status() ?? "none"}`);
       } else {
         for (const f of await page.evaluate(measure)) {
+          if (f.kind === "_navseen") {
+            const s = t.signedIn ? sessionFor(t.surface, t.pattern) : null;
+            const portal = t.surface === "partner" ? "partner" : t.surface === "portal" ? (s?.probe?.role ?? "unknown") : t.surface;
+            navSeen[portal] = (navSeen[portal] ?? 0) + 1;
+            continue;
+          }
           kinds[f.kind] = kinds[f.kind] ?? [];
           if (kinds[f.kind].length < 3) kinds[f.kind].push(`${f.at} at ${width}`);
           kinds[f.kind].count = (kinds[f.kind].count ?? 0) + 1;
@@ -317,6 +376,22 @@ const expired = TODAY > LIST_EXPIRES;
 rec("the not-yet list only shrinks: every entry is on the frozen original", NOT_YET_V10.every((r) => ORIGINAL_NOT_YET_V10.includes(r)),
   NOT_YET_V10.filter((r) => !ORIGINAL_NOT_YET_V10.includes(r)).join(", ") || `${NOT_YET_V10.length} of ${ORIGINAL_NOT_YET_V10.length} still listed`);
 rec(`and nothing is on it after ${LIST_EXPIRES}`, !expired || NOT_YET_V10.length === 0, expired ? `${NOT_YET_V10.length} route(s) still listed on ${TODAY}` : `until ${LIST_EXPIRES}`);
+
+/*
+ * AND THE NAV RULE HAD SOMETHING TO MEASURE IN EVERY PORTAL. A selector that
+ * matched nothing, or a shell that stopped marking its current page, would
+ * otherwise leave nav-fill, nav-radius and nav-marker silent everywhere. Not
+ * asked in ONLY mode, which measures one route.
+ */
+if (!ONLY && browser) {
+  const PORTALS = ["admin", "engineer", "field_tech", "partner"];
+  const missing = PORTALS.filter((p) => !navSeen[p]);
+  rec(
+    "the active nav item was measured in all four portals",
+    missing.length === 0,
+    missing.length ? `none seen for: ${missing.join(", ")}` : PORTALS.map((p) => `${p} ${navSeen[p]}`).join(", "),
+  );
+}
 
 let clean = 0;
 let stillListed = 0;

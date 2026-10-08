@@ -57,7 +57,8 @@ export default async function TechnicianPage({ params }: { params: Promise<{ id:
       : "";
 
   return (
-    <div className="max-w-[960px]">
+    <div className="portal-sections max-w-[960px]">
+      <div>
       <p className="text-[13px] text-[var(--secondary)]">
         <Link href="/portal/techs" className="text-[var(--navy)] underline active:opacity-70">
           Technicians
@@ -77,6 +78,7 @@ export default async function TechnicianPage({ params }: { params: Promise<{ id:
           </span>
         )}
       </p>
+      </div>
 
       <section className="mt-10">
         <h2 className="border-b-2 border-[var(--ink)] pb-2 text-[15px] font-semibold text-[var(--ink)]">
