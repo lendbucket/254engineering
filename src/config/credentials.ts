@@ -957,6 +957,14 @@ export type HeldCredential = {
   verifiedOn: string;
   /** Where a reader could check it themselves. Null when not held. */
   reference: string | null;
+  /**
+   * The date printed on the issuer's own document, where the register cites
+   * one. Added 2026-10-08 for the TDI appointment, whose letter is dated a
+   * fortnight before anybody here confirmed it: `verifiedOn` is when it was
+   * checked, this is when the issuer issued it, and a page that printed one as
+   * the other would misstate both.
+   */
+  issuedOn?: string;
   /** Who checked, what they saw, and what would change it. Never empty. */
   verified: string;
 };
@@ -979,25 +987,39 @@ export const verifiedCredentials: HeldCredential[] = [
     name: WINDSTORM_APPOINTMENT_CREDENTIAL,
     issuer: "Texas Department of Insurance",
     /*
-     * NOT HELD, AND IT IS RECORDED HERE BECAUSE THE RULING NAMES IT. The
-     * windstorm pages already disclose the absence, which they must: a WPI-8 on
-     * ongoing construction is inspected by a TDI appointed engineer, so a
-     * reader on that page is entitled to know before they enquire.
+     * HELD SINCE 2026-10-08, operator ruling of that day. Aman Dhakal, P.E.,
+     * the engineer of record, holds TDI windstorm appointment 143295, under a
+     * TDI appointment letter dated 2026-09-23 that Robert has seen. The number
+     * had been held back because it is the same number as his PE licence in
+     * `verifiedEngineers` above; the operator confirmed it on 2026-10-08.
      *
-     * The disclosure is the NEGATIVE form and `compliance-audit` asserts it
-     * stays negative, rather than banning the phrase outright. Banning it would
-     * delete a disclosure the reader needs; asserting the shape means flipping
-     * it into a claim turns the board red.
+     * HOLDING IT OPENS NOTHING. The windstorm line is offered only by
+     * configuration and a signed protocol (WP-001 and WS-001, unsigned today),
+     * and nothing reads this entry to decide what can be ordered: the only
+     * reader is `windstormAppointmentHeld()` in src/lib/launch.ts, which feeds
+     * the disclosure sentences on the windstorm page. Windstorm stays an
+     * enquiry.
+     *
+     * UNTIL 2026-10-08 this entry was NOT HELD, and the windstorm pages
+     * disclosed the absence, which they had to: a WPI-8 on ongoing construction
+     * is inspected by a TDI appointed engineer, so a reader on that page is
+     * entitled to know before they enquire. `compliance-audit` asserts the
+     * disclosure agrees with this entry in whichever direction it points.
      */
-    held: false,
-    identifier: null,
-    verifiedOn: "2026-09-17",
-    reference: null,
+    held: true,
+    identifier: "143295",
+    issuedOn: "2026-09-23",
+    verifiedOn: "2026-10-08",
+    reference:
+      "The Texas Department of Insurance's appointment letter to Aman Dhakal, P.E., dated " +
+      "2026-09-23. A copy is requested for the firm's file and is not yet on it.",
     verified:
-      "No engineer at this firm holds a Texas Department of Insurance windstorm inspector " +
-      "appointment as of 2026-09-17. The windstorm pages state the absence plainly. This becomes a " +
-      "held credential only when an appointed engineer is on the roster and the appointment number " +
-      "is recorded here from TDI's own record.",
+      "Robert Reyna, operator, has seen TDI's appointment letter, dated 2026-09-23, appointing Aman " +
+      "Dhakal, P.E. as a windstorm inspector under number 143295, and confirmed the number to this " +
+      "session on 2026-10-08. The number equals his PE licence number, which is why it was held back " +
+      "until confirmed. The letter is the authority this entry cites; a copy is requested for the " +
+      "firm's file. Before 2026-10-08 this read: no engineer at this firm holds a TDI windstorm " +
+      "inspector appointment, as of 2026-09-17.",
   },
   {
     name: "SAM.gov registration",

@@ -1150,20 +1150,38 @@ export function boardHeldDbas(): string[] {
  * THE POSITIVE BRANCH NAMES NO ENGINEER, and it is not an oversight.
  * `HeldCredential` has no link to `verifiedEngineers`, so the register cannot
  * say WHICH engineer holds it, and standing law does not publish his name in
- * any case. It states the appointment number and the date somebody checked it
- * against TDI's own record, which is what a reader can verify.
+ * any case. It states the appointment number and the date on TDI's letter.
+ *
+ * THE DATE IS THE LETTER'S, operator ruling of 2026-10-08: "the public pages
+ * may say the appointment is held, with its number and date". It was
+ * `verifiedOn`, the date somebody checked, which for this appointment is
+ * 2026-10-08 against a letter dated 2026-09-23; printing one as the other
+ * would misstate both. A held entry with no `issuedOn` cannot say when, so it
+ * falls into the shut answer like every other unexpected state.
+ *
+ * HOLDING THE APPOINTMENT OPENS NO ORDER. Nothing reads this to decide what
+ * is sellable; the windstorm line is offered by configuration and a signed
+ * protocol, and stays an enquiry until both.
  */
-export function windstormAppointmentStatement(): string {
+export function windstormAppointmentHeld(): { identifier: string; issuedOn: string } | null {
   const entries = verifiedCredentials.filter((c) => c.name === WINDSTORM_APPOINTMENT_CREDENTIAL);
-  const held = entries.filter((c) => c.held && c.identifier !== null);
+  const held = entries.filter((c) => c.held && c.identifier !== null && Boolean(c.issuedOn));
+  if (entries.length !== 1 || held.length !== 1) return null;
+  return { identifier: held[0].identifier as string, issuedOn: held[0].issuedOn as string };
+}
 
-  if (entries.length !== 1 || held.length !== 1) {
+export function windstormAppointmentStatement(): string {
+  const held = windstormAppointmentHeld();
+  if (!held) {
     return `No engineer at ${firmName()} currently holds a Texas Department of Insurance windstorm appointment.`;
   }
-
+  /* Written out from the date's own parts, so no time zone can move the day. */
+  const [y, m, d] = held.issuedOn.split("-").map(Number);
+  const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const dated = `${MONTHS[m - 1]} ${d}, ${y}`;
   return (
     `An engineer at ${firmName()} holds a Texas Department of Insurance windstorm appointment, ` +
-    `${held[0].identifier}, verified against the department's own record on ${held[0].verifiedOn}.`
+    `number ${held.identifier}, dated ${dated}.`
   );
 }
 
