@@ -1292,6 +1292,32 @@ async function signIn(email, password) {
  */
 const db = auditClient("roles-audit", { neverProduction: true });
 
+/*
+ * TEARDOWN NEVER SWALLOWS AN ERROR. Operator ruling, 2026-10-08.
+ *
+ * The board on 7b53da4 that day left eight probe accounts behind and could not
+ * say why: the profile delete's error was discarded and the auth delete ended in
+ * .catch(() => {}). A retry by hand minutes later succeeded, so the database had
+ * not refused them, and nothing on record said what had. Every delete here now
+ * returns its error, each one is printed with the database's own message, and
+ * the audit fails on any failure as well as on any row left.
+ */
+const teardownFaults = [];
+async function removeProbe(c) {
+  const { error: pErr } = await db.from("eng_profiles").delete().eq("id", c.id);
+  if (pErr) teardownFaults.push(`profile ${c.email}: ${pErr.code ?? ""} ${pErr.message}`);
+  try {
+    const { error: uErr } = await db.auth.admin.deleteUser(c.id);
+    if (uErr) teardownFaults.push(`auth user ${c.email}: ${uErr.message}`);
+  } catch (err) {
+    teardownFaults.push(`auth user ${c.email}: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+async function removeRows(table, column, value) {
+  const { error } = await db.from(table).delete().eq(column, value);
+  if (error) teardownFaults.push(`${table} where ${column} = ${value}: ${error.code ?? ""} ${error.message}`);
+}
+
 if (!db) {
   rec("live cross role probes ran", false, "SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY missing, so the HTTP half was SKIPPED");
 } else {
@@ -2209,18 +2235,21 @@ if (!db) {
          */
         for (const key of madeRoles) {
           for (const c of created.filter((x) => x.role === key)) {
-            await db.from("eng_profiles").delete().eq("id", c.id);
-            await db.auth.admin.deleteUser(c.id).catch(() => {});
+            await removeProbe(c);
             created.splice(created.indexOf(c), 1);
           }
-          await db.from("eng_role_grants").delete().eq("role_key", key);
-          await db.from("eng_roles").delete().eq("key", key);
+          await removeRows("eng_role_grants", "role_key", key);
+          await removeRows("eng_roles", "key", key);
         }
-        const { data: leftRoles } = await db.from("eng_roles").select("key").in("key", madeRoles);
+        const { data: leftRoles, error: leftErr } = await db.from("eng_roles").select("key").in("key", madeRoles);
         rec(
           "the invented roles were removed",
-          (leftRoles?.length ?? 0) === 0,
-          leftRoles?.length ? `left behind: ${leftRoles.map((r) => r.key).join(", ")}` : `${madeRoles.length} removed`,
+          !leftErr && (leftRoles?.length ?? 0) === 0,
+          leftErr
+            ? `the read back failed, so removal is unproven: ${leftErr.message}`
+            : leftRoles?.length
+              ? `left behind: ${leftRoles.map((r) => r.key).join(", ")}`
+              : `${madeRoles.length} removed`,
         );
       }
     }
@@ -2245,18 +2274,38 @@ if (!db) {
     }
   } finally {
     // ---- teardown, and it is verified ----
-    for (const c of created) {
-      await db.from("eng_profiles").delete().eq("id", c.id);
-      await db.auth.admin.deleteUser(c.id).catch(() => {});
-    }
-    const { data: survivors } = await db
+    for (const c of created) await removeProbe(c);
+    const { data: survivors, error: survErr } = await db
       .from("eng_profiles")
       .select("id, email")
       .like("email", `%@${PROBE_DOMAIN}`);
+    /*
+     * And the sign in accounts, read separately: a verification that reads the
+     * same table the delete read agrees by construction (destroyProbes, 2026-09-22).
+     */
+    const authLeft = [];
+    for (const c of created) {
+      const { data: u, error: gErr } = await db.auth.admin.getUserById(c.id);
+      if (u?.user) authLeft.push(c.email);
+      else if (gErr && !/not.?found|404/i.test(String(gErr.message) + String(gErr.status ?? ""))) {
+        teardownFaults.push(`reading auth user ${c.email} back: ${gErr.message}`);
+      }
+    }
+    for (const f of teardownFaults) console.log(`  TEARDOWN FAULT: ${f}`);
     rec(
       "probe accounts were removed",
-      (survivors?.length ?? 0) === 0,
-      survivors?.length ? `${survivors.length} left behind: ${survivors.map((s) => s.email).join(", ")}` : "",
+      !survErr && (survivors?.length ?? 0) === 0 && authLeft.length === 0,
+      survErr
+        ? `the read back failed, so removal is unproven: ${survErr.message}`
+        : [
+            survivors?.length ? `${survivors.length} profile(s) left behind: ${survivors.map((s) => s.email).join(", ")}` : "",
+            authLeft.length ? `${authLeft.length} sign in account(s) left behind: ${authLeft.join(", ")}` : "",
+          ].filter(Boolean).join("; "),
+    );
+    rec(
+      "and no teardown step failed",
+      teardownFaults.length === 0,
+      teardownFaults.length ? `${teardownFaults.length}: ${teardownFaults.slice(0, 4).join("; ")}` : "every delete returned no error",
     );
   }
 }
