@@ -218,6 +218,14 @@ export type CredentialStanding = {
   days: number | null;
   /** When state is expired: the expiry dispatch names in its reason. */
   lapsedOn: string | null;
+  /**
+   * When state is expired: the record that lapsed, the one `lapsedOn` is read
+   * from. Added 2026-10-08 so the credential task refresh keys its task on the
+   * same record dispatch names, rather than walking every verified row: a
+   * replaced credential's old row stays verified (recording is append-only),
+   * and walking the rows kept its task open after the replacement.
+   */
+  lapsed: CredentialRecord | null;
   /** The blocker sentence dispatch gives, when it blocks. */
   reason: string | null;
 };
@@ -234,7 +242,7 @@ export function credentialStanding(
 
   return REQUIRED_FOR_DISPATCH.map((kind): CredentialStanding => {
     const label = CREDENTIAL_LABEL[kind];
-    const base = { kind, label, current: null, days: null, reason: null, lapsedOn: null };
+    const base = { kind, label, current: null, days: null, reason: null, lapsedOn: null, lapsed: null };
     if (exempt.includes(kind)) return { ...base, state: "exempt", blocks: false };
 
     const held = byKind.get(kind) ?? [];
@@ -256,6 +264,7 @@ export function credentialStanding(
         blocks: true,
         reason: `${label} expired on ${verified[0].expiresOn}.`,
         lapsedOn: verified[0].expiresOn,
+        lapsed: verified[0],
       };
     }
 

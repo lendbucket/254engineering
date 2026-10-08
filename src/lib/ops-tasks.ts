@@ -4,8 +4,8 @@ import { supabaseAdmin } from "./supabase";
 import { writeAudit } from "./ops-audit";
 import { can, type Actor } from "./ops-authz";
 import { raise } from "./ops-notify";
-import { credentialsFor } from "./ops-onboarding";
-import { CREDENTIAL_LABEL, expiryState } from "./ops-credentials";
+import { credentialsFor, type CredentialRow } from "./ops-onboarding";
+import { credentialStanding, exemptKindsFor } from "./ops-credentials";
 import {
   COMPLIANCE_SEEDS,
   canSeeTask,
@@ -352,9 +352,19 @@ export async function seedComplianceTasks(
     if (!error) seeded++;
   }
 
-  const derived = await refreshCredentialTasks(actor);
+  const derived = (await refreshCredentialTasks(actor.id)).wanted;
   return { ok: true, result: { seeded, alreadyThere, derived } };
 }
+
+export type CredentialTaskReport = {
+  /** Tasks the credential records call for, after this run. */
+  wanted: number;
+  raised: number;
+  updated: number;
+  closed: number;
+  /** Every database error met, with its message. Empty on a clean run. */
+  faults: string[];
+};
 
 /**
  * One task per expiring or expired credential, refreshed.
@@ -362,62 +372,100 @@ export async function seedComplianceTasks(
  * A credential that has been renewed no longer produces a task, and its old task
  * is closed rather than left open forever. That is the difference between a
  * derived list and a seeded one: the derived list is allowed to shrink.
+ *
+ * DAILY, FROM THE SCHEDULED JOB RUNNER, SINCE 2026-10-08. Operator ruling of
+ * that day. Until then this ran only inside seedComplianceTasks, from a button
+ * the tasks screen shows only until the first seed, so after the first press a
+ * credential could expire and no task appeared, and a replaced one's task never
+ * closed. The `credentials.refresh_tasks` job runs it every day; the seed button
+ * still runs it once, on first use. scripts/proofs/credential-tasks-refresh-
+ * every-day.mjs fails if nothing schedules it.
+ *
+ * IT READS THE STANDING, NOT THE ROWS. Recording a credential is append-only:
+ * a replacement is a new row and the old one stays verified. Walking every
+ * verified row kept the old, expiring row's task wanted after the replacement,
+ * so it never closed, which is the behaviour the daily refresh exists for.
+ * credentialStanding is the one rule dispatch and the screens already share for
+ * which record governs each kind, so the task is keyed on that record (the
+ * current one when expiring, the lapsed one when expired), and an exempt kind
+ * raises nothing, as it blocks nothing.
+ *
+ * `createdBy` is the person who pressed the seed button, or null when the
+ * platform runs it: eng_tasks.created_by references eng_profiles and the system
+ * principal has no profile, the rule raiseSystemTask records. Every database
+ * error is returned in `faults`, never swallowed.
  */
-export async function refreshCredentialTasks(actor: Actor & { email: string }): Promise<number> {
+export async function refreshCredentialTasks(createdBy: string | null): Promise<CredentialTaskReport> {
+  const report: CredentialTaskReport = { wanted: 0, raised: 0, updated: 0, closed: 0, faults: [] };
   const db = supabaseAdmin();
-  if (!db) return 0;
+  if (!db) {
+    report.faults.push("The database is not configured.");
+    return report;
+  }
 
-  const { data: techs } = await db
+  const { data: techs, error: techErr } = await db
     .from("eng_profiles")
-    .select("id, display_name")
+    .select("id, display_name, email")
     .in("role", ["field_tech", "engineer"]);
-  if (!techs?.length) return 0;
+  if (techErr) {
+    report.faults.push(`reading technicians: ${techErr.message}`);
+    return report;
+  }
 
-  const nameById = new Map(techs.map((t) => [t.id as string, t.display_name as string]));
-  const held = await credentialsFor(techs.map((t) => t.id as string));
+  const held = await credentialsFor((techs ?? []).map((t) => t.id as string));
 
   const expiring = [];
-  for (const [profileId, credentials] of held) {
-    for (const credential of credentials) {
-      if (credential.status !== "verified") continue;
-      const state = expiryState(credential.expiresOn);
-      if (state !== "expiring" && state !== "expired") continue;
+  for (const t of techs ?? []) {
+    const id = t.id as string;
+    for (const s of credentialStanding(held.get(id) ?? [], new Date(), exemptKindsFor(t.email as string))) {
+      /* credentialStanding returns the very records it was given, and these are rows. */
+      const record = (s.state === "expiring" ? s.current : s.state === "expired" ? s.lapsed : null) as CredentialRow | null;
+      if (!record?.expiresOn) continue;
       expiring.push({
-        credentialId: credential.id,
-        profileId,
-        personName: nameById.get(profileId) ?? "A technician",
-        kindLabel: CREDENTIAL_LABEL[credential.kind] ?? credential.kind,
-        expiresOn: credential.expiresOn as string,
-        state,
+        credentialId: record.id,
+        profileId: id,
+        personName: (t.display_name as string) ?? "A technician",
+        kindLabel: s.label,
+        expiresOn: record.expiresOn,
+        state: s.state as "expiring" | "expired",
       });
     }
   }
 
   const wanted = credentialTasks(expiring);
   const wantedKeys = new Set(wanted.map((t) => t.key));
+  report.wanted = wanted.length;
 
   for (const task of wanted) {
-    const { data: existing } = await db
+    const { data: existing, error: findErr } = await db
       .from("eng_tasks")
       .select("id, status")
       .eq("source_key", task.key)
       .maybeSingle();
+    if (findErr) {
+      report.faults.push(`reading the task for ${task.key}: ${findErr.message}`);
+      continue;
+    }
     if (existing) {
       // Update rather than duplicate. The date or the state may have moved.
-      await db
+      const { error } = await db
         .from("eng_tasks")
         .update({ title: task.title, description: task.description, due_at: task.dueAt, priority: task.priority })
         .eq("id", existing.id);
+      if (error) report.faults.push(`updating ${task.key}: ${error.message}`);
+      else report.updated += 1;
       continue;
     }
-    await db.from("eng_tasks").insert({
+    const { error } = await db.from("eng_tasks").insert({
       title: task.title,
       description: task.description,
-      created_by: actor.id,
+      created_by: createdBy,
       due_at: task.dueAt,
       priority: task.priority,
       source_key: task.key,
     });
+    if (error) report.faults.push(`raising ${task.key}: ${error.message}`);
+    else report.raised += 1;
   }
 
   /*
@@ -425,21 +473,24 @@ export async function refreshCredentialTasks(actor: Actor & { email: string }): 
    * it rather than deleting it, so the record that it was once a problem
    * survives.
    */
-  const { data: stale } = await db
+  const { data: stale, error: staleErr } = await db
     .from("eng_tasks")
     .select("id, source_key")
     .like("source_key", "credential:%")
     .not("status", "in", "(done,cancelled)");
+  if (staleErr) report.faults.push(`reading open credential tasks: ${staleErr.message}`);
   for (const row of stale ?? []) {
     if (!wantedKeys.has(row.source_key as string)) {
-      await db
+      const { error } = await db
         .from("eng_tasks")
         .update({ status: "done", completed_at: DB_NOW })
         .eq("id", row.id);
+      if (error) report.faults.push(`closing ${row.source_key}: ${error.message}`);
+      else report.closed += 1;
     }
   }
 
-  return wanted.length;
+  return report;
 }
 
 /** Counts for the dashboard and the tab bar. */

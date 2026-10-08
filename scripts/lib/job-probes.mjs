@@ -144,6 +144,16 @@ export const PROBES = [
       "to match, because a probe rewritten to agree with the code is a check on nothing.",
   },
   {
+    kind: "credentials.refresh_tasks",
+    payload: { day: "not-a-day" },
+    expect: "dead",
+    realSubject: false,
+    why:
+      "Added 2026-10-08. A malformed day is fatal, as for metrics.rollup. A real day would run the refresh " +
+      "over every technician on the database and raise or close real tasks on each board run, which is the " +
+      "credential proof's question, asked there against a probe technician with the result read back.",
+  },
+  {
     kind: "errors.alert",
     payload: {},
     expect: "done",

@@ -14,6 +14,8 @@ import { opsNotification } from "./email-templates";
 import { issueStatement } from "./ops-statements";
 import { reconcileAll } from "./ops-reconcile";
 import { rollupDay } from "./ops-metrics";
+import { refreshCredentialTasks } from "./ops-tasks";
+import { recordSystemAudit } from "./system-work";
 import { runRetention } from "./ops-retention";
 import { errorAlert } from "./email-templates";
 import { RELEASE, ENVIRONMENT } from "./ops-observability";
@@ -519,6 +521,46 @@ registerJob("metrics.rollup", {
       };
     }
 
+    return { kind: "done" };
+  },
+});
+
+// -------------------------------------------------- credentials.refresh_tasks
+
+/**
+ * The daily credential task refresh. Operator ruling, 2026-10-08.
+ *
+ * Raises one task per credential inside 45 days of expiry or past it, updates
+ * the ones that exist, and closes the ones a replacement has made unnecessary.
+ * Queued by /api/cron/daily, once per day by key. It writes tasks and one audit
+ * row in the platform's name; it emails and texts nobody, because the tasks it
+ * raises are unassigned and refreshCredentialTasks notifies no one.
+ *
+ * A day that is not a day is fatal, as for metrics.rollup: the day is only the
+ * idempotency key, and a malformed one will be malformed on every attempt. A
+ * database error is a retry, so a refresh that half ran is run again rather
+ * than reported done.
+ */
+registerJob("credentials.refresh_tasks", {
+  reachesOutside: false,
+  idempotency: (p) => keyOf("credential-tasks", p.day ?? "today"),
+  run: async (p): Promise<JobOutcome> => {
+    const day = typeof p.day === "string" ? p.day : undefined;
+    if (day !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(day)) {
+      return { kind: "fatal", error: `"${day}" is not a day, so this refresh will never be keyed.` };
+    }
+    const report = await refreshCredentialTasks(null);
+    console.log(
+      `[credentials.refresh_tasks] ${day ?? "today"}: ${report.wanted} wanted, ${report.raised} raised, ` +
+        `${report.updated} updated, ${report.closed} closed, ${report.faults.length} fault(s)`,
+    );
+    await recordSystemAudit({
+      action: "tasks.credential_refresh",
+      entityType: "task",
+      summary: `The platform refreshed credential tasks for ${day ?? "today"}: ${report.raised} raised, ${report.closed} closed.`,
+      diff: { day: day ?? null, ...report },
+    });
+    if (report.faults.length > 0) return { kind: "retry", error: report.faults.slice(0, 3).join("; ") };
     return { kind: "done" };
   },
 });

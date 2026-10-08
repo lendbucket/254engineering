@@ -35,6 +35,11 @@ export type JobKind =
   | "statement.issue"
   | "orders.reconcile"
   | "metrics.rollup"
+  /*
+   * 2026-10-08, operator ruling. The credential task refresh, queued once a
+   * day by /api/cron/daily. Until then it ran only from the seed button.
+   */
+  | "credentials.refresh_tasks"
   | "errors.alert"
   /*
    * Phase 12 Section 2, the reporting prompt's Section 3. NOT the export itself: the RECORD that one was

@@ -226,7 +226,7 @@ export default async function CertificationPage({
             <CredentialStandingList standing={standing} />
             <p className="mt-3 text-[14px] leading-[1.55] text-[var(--secondary)]">
               {expiring.length > 0
-                ? "You can keep working until the credential lapses. From that day, dispatch offers you nothing. "
+                ? "You can keep working through the credential's expiry date. From the next day, dispatch offers you nothing. "
                 : ""}
               Send a new or replacement document to the operator, who records it. Nothing on this site
               asks you to type a policy number, an account number, or a social security number.
@@ -242,12 +242,13 @@ export default async function CertificationPage({
                 cannot seal and the visit is repeated". The code stops it sooner:
                 ops-evidence.ts will not let a checklist be submitted until every
                 required item is captured, so the engineer never receives a
-                package missing one. This says what the code does, and keeps the
-                original's first fact, that every question has to be right.
+                package missing one. The operator's wording of the same day says
+                that, and the original's first fact, that every question has to
+                be right, is kept.
               */}
               <li>
-                Every question has to be right. Every photograph the checklist requires has to be
-                taken before the job can be submitted.
+                Every question has to be right. The job cannot be submitted until every required
+                photograph is captured.
               </li>
               <li>
                 Getting one wrong costs nothing. You are told why, straight away, and you can take it

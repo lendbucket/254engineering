@@ -83,7 +83,7 @@ export default async function TasksPage({
             TBPELS renewal, the E&O renewal and the credential sweep), and
             firstDueFor gives each of those no due date.
           */
-          description="The PE license renewal, the DWC-005 filing, the TBPELS and errors and omissions renewals, and the monthly credential sweep. Three of them carry no due date. No due date is filled in until someone enters the real one."
+          description="The PE license renewal, the DWC-005 filing, the TBPELS and errors and omissions renewals, and the monthly credential sweep. Three of the five carry no due date until someone enters the real one."
         >
           <SeedButton />
         </Panel>
@@ -193,14 +193,14 @@ export default async function TasksPage({
             Operator ruling of 2026-10-08 on the copy, read against the code.
             The sentence said these "close themselves when it is replaced", and
             the approved replacement said they "close on their own when the
-            credential record is updated". Neither is what happens:
-            refreshCredentialTasks runs only inside seedComplianceTasks, from
-            the seed button, which this page shows only until the first seed,
-            and no scheduled job calls it. So this says what the code does.
+            credential record is updated". Neither was what happened then:
+            refreshCredentialTasks ran only from the seed button. Since the same
+            day it runs every day from the credentials.refresh_tasks job, which
+            /api/cron/daily queues, and the operator's wording below is true.
           */}
           {derived.length} of these came from the credentials record rather than from a person: one
-          for each credential within 45 days of expiry or past it. They are raised and closed when
-          the compliance tasks are seeded.
+          for each credential within 45 days of expiry or past it. These tasks are raised and closed
+          each day from the credential records.
         </p>
       ) : null}
     </>
