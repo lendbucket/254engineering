@@ -106,7 +106,7 @@ export function RecordTrainingForm({
         <button
           type="submit"
           disabled={busy}
-          className="min-h-[44px] rounded-[2px] bg-[var(--navy)] px-5 text-[15px] font-semibold text-white disabled:opacity-40"
+          className="min-h-[44px] rounded-[2px] bg-[var(--navy)] px-5 text-[15px] font-semibold text-white active:opacity-80 disabled:opacity-40"
         >
           {busy ? "Recording" : "Record for the engineer's approval"}
         </button>

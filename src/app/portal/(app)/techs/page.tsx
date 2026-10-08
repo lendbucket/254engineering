@@ -92,7 +92,7 @@ export default async function TechsPage() {
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="min-w-0">
                         <p className="font-display text-[17px] leading-[1.25] font-bold text-[var(--navy)]">
-                          <Link href={`/portal/techs/${tech.id}`} className="hover:underline">
+                          <Link href={`/portal/techs/${tech.id}`} className="hover:underline active:opacity-70">
                             {tech.display_name}
                           </Link>
                         </p>
