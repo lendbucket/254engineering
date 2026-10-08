@@ -119,7 +119,7 @@ export function PartnerTabs() {
               <Link
                 href={item.href}
                 aria-current={active ? "page" : undefined}
-                className={`flex min-h-[56px] flex-col items-center justify-center gap-1 border-t-[var(--active-bar-width)] px-1 py-2 text-[11px] font-semibold ${
+                className={`flex min-h-[56px] flex-col items-center justify-center gap-1 border-t-[length:var(--active-bar-width)] px-1 py-2 text-[11px] font-semibold ${
                   active
                     ? "border-t-[var(--gold)] text-[var(--on-navy)] active:bg-white/[0.12]"
                     : "border-t-transparent text-white/65 active:bg-white/[0.12]"
@@ -157,8 +157,16 @@ export function PartnerTopNav() {
               <Link
                 href={item.href}
                 aria-current={active ? "page" : undefined}
-                className={`flex min-h-[var(--tap-target)] items-center rounded-[var(--radius-control)] px-3 text-[13.5px] font-semibold active:bg-[var(--navy)]/[0.08] ${
-                  active ? "bg-[var(--navy)]/[0.06] text-[var(--navy)]" : "text-[var(--secondary)]"
+                /*
+                  V10's active nav marker, operator ruling of 2026-10-08: the
+                  gold bar only, no fill, no corner. This nav is horizontal, so
+                  the bar is on the bottom edge, as the phone tab bars carry it
+                  on theirs. It was a navy tinted fill with rounded corners and
+                  no gold at all. A transparent bar of the same width sits under
+                  every other item so nothing moves when the selection does.
+                */
+                className={`flex min-h-[var(--tap-target)] items-center border-b-[length:var(--active-bar-width)] px-3 text-[13.5px] font-semibold active:opacity-70 ${
+                  active ? "border-b-[var(--gold)] text-[var(--ink)]" : "border-b-transparent text-[var(--secondary)]"
                 }`}
               >
                 {item.label}

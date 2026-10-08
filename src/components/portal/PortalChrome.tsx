@@ -139,12 +139,21 @@ export function SidebarNav({ items }: { items: NavItem[] }) {
             aria-current={active ? "page" : undefined}
             /*
               V10: the rail is white, labels in ink, the active item marked by
-              the 3px gold bar and a light fill, as the reference screens draw
-              it. No icons in the desktop rail; the phone tabs keep theirs.
+              the 3px gold bar ONLY: no fill, no corner. Operator ruling 4 of
+              2026-10-08. No icons in the desktop rail; the phone tabs keep
+              theirs.
+
+              THE BAR NEVER RENDERED UNTIL 2026-10-08. The width was written
+              border-l-[var(--active-bar-width)], and Tailwind, which cannot
+              see that a variable holds a length, compiled it as a border
+              COLOUR: the bar had no width and no gold ever showed. The fill was
+              the only thing marking the current page. Found by v10-layout-
+              audit's new nav rule. The `length:` hint is the fix, and
+              token-audit refuses the bare form now.
             */
-            className={`flex min-h-[var(--tap-target)] items-center gap-3 border-l-[var(--active-bar-width)] px-3 text-[14px] transition-colors ${
+            className={`flex min-h-[var(--tap-target)] items-center gap-3 border-l-[length:var(--active-bar-width)] px-3 text-[14px] transition-colors ${
               active
-                ? "border-l-[var(--gold)] bg-[var(--canvas)] font-semibold text-[var(--ink)] active:bg-[var(--row-hover)]"
+                ? "border-l-[var(--gold)] font-semibold text-[var(--ink)] active:opacity-70"
                 : "border-l-transparent text-[var(--ink)] hover:bg-[var(--row-hover)] active:bg-[var(--canvas)]"
             }`}
           >
@@ -189,7 +198,7 @@ export function MobileTabs({ items }: { items: NavItem[] }) {
               <Link
                 href={item.href}
                 aria-current={active ? "page" : undefined}
-                className={`flex min-h-[56px] flex-col items-center justify-center gap-1 border-t-[var(--active-bar-width)] px-1 py-2 text-[12px] font-semibold ${
+                className={`flex min-h-[56px] flex-col items-center justify-center gap-1 border-t-[length:var(--active-bar-width)] px-1 py-2 text-[12px] font-semibold ${
                   active
                     ? "border-t-[var(--gold)] text-[var(--on-navy)] active:bg-white/[0.12]"
                     : "border-t-transparent text-white/65 active:bg-white/[0.12]"

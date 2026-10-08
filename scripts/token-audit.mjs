@@ -857,6 +857,26 @@ rec(
 );
 
 /*
+ * A BORDER WIDTH GIVEN THROUGH A VARIABLE CARRIES ITS TYPE. Found 2026-10-08.
+ * `border-l-[var(--active-bar-width)]` compiles to border-left-COLOR, because
+ * Tailwind cannot see that a variable holds a length, so the active nav bar in
+ * the staff rail and both phone tab bars had no width and their gold marker
+ * never rendered, for as long as they existed. `border-l-[length:var(...)]` is
+ * the form that sets the width. Refused in its bare form on every signed in
+ * file, for any variable whose name says it is a width or a size.
+ */
+const BARE_WIDTH = /(?:border|outline|divide)(?:-[trblxyse])?-\[var\(--[a-z0-9-]*(?:width|size|thick)[a-z0-9-]*\)\]/g;
+const bareWidth = [];
+for (const file of allPortalFiles) {
+  for (const m of codeOnly(file).matchAll(BARE_WIDTH)) bareWidth.push(`${file}: ${m[0]}`);
+}
+rec(
+  "no border width is given through a variable without its length hint",
+  bareWidth.length === 0,
+  bareWidth.length ? `${bareWidth.slice(0, 6).join("  |  ")} (write it border-l-[length:var(--x)])` : `${allPortalFiles.length} file(s) read`,
+);
+
+/*
  * AND THE CHECK ABOVE MUST BE LOOKING AT SOMETHING. A customer list that emptied,
  * or a forbidden list that emptied, would make it pass for ever over nothing,
  * which is the vacuous green this repository keeps meeting. Both floors are
