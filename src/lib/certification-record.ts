@@ -3,7 +3,7 @@ import { supabaseAdmin } from "./supabase";
 import { can, holdsLicence, licenceRefusal, type Actor } from "./ops-authz";
 import { DB_NOW } from "./db-now";
 import { verifiedEngineers } from "@/config/credentials";
-import { licenceIsCurrent } from "./launch";
+import { licenceIsCurrentToday } from "./launch";
 
 /**
  * ===========================================================================
@@ -283,7 +283,7 @@ export async function decideTraining(
   if (!onRegister) {
     return { ok: false, error: "Only the engineer of record approves a certification, and your license is not the one the register holds." };
   }
-  if (!licenceIsCurrent(onRegister.expires, new Date().toISOString().slice(0, 10))) {
+  if (!licenceIsCurrentToday(onRegister.expires)) {
     return { ok: false, error: `The register has no current expiry for license ${licence}.` };
   }
 
