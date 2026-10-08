@@ -74,6 +74,7 @@ import {
   notYetTakingOrders,
   registrationStatement,
   responsibleChargeStatement,
+  windstormAppointmentHeld,
   windstormAppointmentStatement,
 } from "@/lib/launch";
 
@@ -405,7 +406,16 @@ export const windstormPages: WindstormPage[] = [
           ]
             .filter(Boolean)
             .join(" "),
-          "The firm is being built in the Coastal Bend, inside the designated area, around this program specifically. When an appointment is held, this page will say so and will say when. Until then it says this instead, because a firm that is vague about its own credentials on a page explaining why credentials matter has answered the question anyway.",
+          /*
+           * DERIVED SINCE 2026-10-08. This was typed, and promised that "when
+           * an appointment is held, this page will say so and will say when",
+           * which is a sentence about the register's state sitting outside the
+           * register: the day the appointment was recorded it became false.
+           * It reads the same predicate as the disclosure above it now.
+           */
+          windstormAppointmentHeld()
+            ? "The firm is being built in the Coastal Bend, inside the designated area, around this program specifically."
+            : "The firm is being built in the Coastal Bend, inside the designated area, around this program specifically. When an appointment is held, this page will say so and will say when. Until then it says this instead, because a firm that is vague about its own credentials on a page explaining why credentials matter has answered the question anyway.",
         ],
       },
     ],

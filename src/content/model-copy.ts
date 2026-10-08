@@ -73,8 +73,11 @@ export function specialistsCopy(): string {
    *
    * It said the firm "holds specialists ... including engineers appointed by
    * the Texas Department of Insurance for windstorm inspections". No engineer
-   * here holds a TDI appointment; `verifiedCredentials` records it as not held
-   * and the windstorm pages disclose the absence. The new credential check
+   * here held a TDI appointment then; `verifiedCredentials` recorded it as not
+   * held and the windstorm pages disclosed the absence. (Since 2026-10-08 the
+   * register holds one, appointment 143295. "Engineers", plural, would still
+   * overstate it, and both branches below still describe the model rather than
+   * the roster, which stays true either way.) The new credential check
    * would not have caught this one, because it does not name TDI in these
    * words, which is worth knowing about that check.
    *
