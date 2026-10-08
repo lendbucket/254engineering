@@ -759,16 +759,31 @@ const {
    * POINTS. Not held means the sentence must deny an appointment. Held means
    * it must not, because a firm that has the appointment and still says no
    * engineer holds one is telling a different lie.
+   *
+   * HELD, IT STATES THE APPOINTMENT AND ITS DATE AND NEVER ITS NUMBER. Operator
+   * ruling of 2026-10-08: the number, 143295, is also the engineer's PE licence
+   * number, and the standing rule against publishing that stands. This check
+   * required the number in the sentence until that day; it now refuses it, and
+   * requires the year on TDI's letter, so a held sentence that cannot say when
+   * is red.
    */
   const sentence = windstormAppointmentStatement();
   const deniesAppointment = /^No engineer at .+ currently holds a Texas Department of Insurance windstorm appointment\.$/.test(
     sentence,
   );
+  const letterYear = tdi?.issuedOn ? tdi.issuedOn.slice(0, 4) : null;
   rec(
     tdi && !tdi.held
       ? "and it denies an appointment, because the register holds none"
-      : "and it states the appointment the register holds, rather than denying one",
-    Boolean(tdi) && (tdi.held ? !deniesAppointment && sentence.includes(String(tdi.identifier)) : deniesAppointment),
+      : "and it states the appointment and the date on TDI's letter, never the number",
+    Boolean(tdi) &&
+      (tdi.held
+        ? !deniesAppointment &&
+          !sentence.includes(String(tdi.identifier)) &&
+          letterYear !== null &&
+          sentence.includes(` dated `) &&
+          sentence.includes(letterYear)
+        : deniesAppointment),
     tdi ? `register: held ${tdi.held}; rendered: ${sentence}` : "no TDI record in the register, so nothing decides this",
   );
 
@@ -2351,12 +2366,78 @@ const RULED_CONDITIONS = [
   );
 }
 
+/*
+ * =====================================================================
+ * THE ENGINEER'S LICENCE NUMBER IS ON NO PUBLIC PAGE. Operator ruling,
+ * 2026-10-08.
+ * =====================================================================
+ *
+ * A standing constraint: never publish the engineer's name or licence number.
+ * It had no check, and on 2026-10-08 it nearly broke: Aman's TDI windstorm
+ * appointment number is 143295, the same number as his PE licence, and the
+ * first draft of the disclosure printed the appointment number. The operator
+ * ruled the rule stands: the page says the appointment is held and when, and
+ * the register keeps the number internally.
+ *
+ * READ FROM THE RENDERED PAGES, NOT THE SOURCE, because a number reaches a page
+ * through a deriver and no grep of the source finds that. The board hands every
+ * audit its server's address in BASE_URL; this fetches every route the
+ * server's own sitemap lists, plus the llms files and robots, and searches the
+ * whole response. The forbidden set is the PINNED literal and every number the
+ * register holds for an engineer or a TDI appointment, so a second engineer is
+ * covered the day he is recorded. Standalone, with no server, it says COULD NOT
+ * TELL rather than passing over nothing.
+ */
+{
+  const PINNED = "143295";
+  const forbidden = new Set([
+    PINNED,
+    ...verifiedEngineers.map((e) => String(e.licenseNumber)),
+    ...verifiedCredentials.filter((c) => /TDI|Department of Insurance/i.test(c.issuer + c.name) && c.identifier).map((c) => String(c.identifier)),
+  ]);
+  const base = process.env.BASE_URL;
+  let routes = null;
+  if (base) {
+    try {
+      const sm = await (await fetch(`${base}/sitemap.xml`)).text();
+      routes = [...sm.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => new URL(m[1]).pathname);
+    } catch {
+      routes = null;
+    }
+  }
+  if (!routes) {
+    rec(
+      "no public page carries the engineer's licence number or appointment number",
+      "could-not-tell",
+      base ? `the server at ${base} did not answer for its sitemap` : "no server: BASE_URL is unset, so no rendered page was read. The board sets it",
+    );
+  } else {
+    const pages = [...new Set([...routes, "/llms.txt", "/llms-full.txt", "/robots.txt"])];
+    const found = [];
+    for (const route of pages) {
+      const body = await (await fetch(base + route)).text().catch(() => "");
+      for (const n of forbidden) if (body.includes(n)) found.push(`${route}: ${n}`);
+    }
+    rec(
+      "no public page carries the engineer's licence number or appointment number",
+      routes.length >= 50 && found.length === 0,
+      found.length
+        ? found.slice(0, 8).join("; ")
+        : routes.length < 50
+          ? `the sitemap listed only ${routes.length} routes, which is not the site`
+          : `${pages.length} pages read for ${[...forbidden].length} number(s), none found`,
+    );
+  }
+}
+
 /* ----------------------------------------------------------------- verdict */
 
 console.log("");
 const failed = out.filter((r) => r.ok === false);
 const acknowledged = out.filter((r) => r.ok === "acknowledged");
-const verdictOf = (r) => (r.ok === "acknowledged" ? "ACKNOWLEDGED" : r.ok ? "PASS" : "FAIL");
+const unknown = out.filter((r) => r.ok === "could-not-tell");
+const verdictOf = (r) =>
+  r.ok === "acknowledged" ? "ACKNOWLEDGED" : r.ok === "could-not-tell" ? "COULD NOT TELL" : r.ok ? "PASS" : "FAIL";
 for (const r of out) console.log(`  ${verdictOf(r)}: ${r.name}${r.note ? ` (${r.note})` : ""}`);
 console.log("");
 
@@ -2370,10 +2451,19 @@ if (acknowledged.length) {
   console.log("");
 }
 
+/* Unreachable is not failed, and it is not passed either: said, and not counted
+ * among the passes. */
+if (unknown.length) {
+  console.log(`COULD NOT TELL: ${unknown.length} of ${out.length} checks did not measure anything:`);
+  for (const r of unknown) console.log(`  ${r.name}: ${r.note}`);
+  console.log("");
+}
+
 if (failed.length === 0) {
   console.log(
-    `PASS: ${out.length - acknowledged.length} checks. The gate is shut, and every condition of opening it is named.` +
-      (acknowledged.length ? ` ${acknowledged.length} acknowledged and listed above, each with the date it becomes a finding again.` : ""),
+    `PASS: ${out.length - acknowledged.length - unknown.length} checks. The gate is shut, and every condition of opening it is named.` +
+      (acknowledged.length ? ` ${acknowledged.length} acknowledged and listed above, each with the date it becomes a finding again.` : "") +
+      (unknown.length ? ` ${unknown.length} could not tell, listed above.` : ""),
   );
   process.exitCode = 0;
 } else {

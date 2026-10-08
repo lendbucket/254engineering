@@ -1150,24 +1150,31 @@ export function boardHeldDbas(): string[] {
  * THE POSITIVE BRANCH NAMES NO ENGINEER, and it is not an oversight.
  * `HeldCredential` has no link to `verifiedEngineers`, so the register cannot
  * say WHICH engineer holds it, and standing law does not publish his name in
- * any case. It states the appointment number and the date on TDI's letter.
+ * any case.
  *
- * THE DATE IS THE LETTER'S, operator ruling of 2026-10-08: "the public pages
- * may say the appointment is held, with its number and date". It was
- * `verifiedOn`, the date somebody checked, which for this appointment is
- * 2026-10-08 against a letter dated 2026-09-23; printing one as the other
- * would misstate both. A held entry with no `issuedOn` cannot say when, so it
- * falls into the shut answer like every other unexpected state.
+ * NOR HIS NUMBER, operator ruling of 2026-10-08. The appointment number is
+ * 143295, the same number as his PE licence, and the standing constraint is
+ * "never publish the engineer's name or licence number". The rule stands: the
+ * sentence says the appointment is held and the date on TDI's letter, and the
+ * register keeps the number internally. So the predicate below does not even
+ * RETURN the identifier: no caller can print what it is never handed.
+ * `compliance-audit` reads every rendered public page for it.
+ *
+ * THE DATE IS THE LETTER'S. `verifiedOn` is the date somebody checked, which
+ * for this appointment is 2026-10-08 against a letter dated 2026-09-23;
+ * printing one as the other would misstate both. A held entry with no
+ * `issuedOn` cannot say when, so it falls into the shut answer like every
+ * other unexpected state.
  *
  * HOLDING THE APPOINTMENT OPENS NO ORDER. Nothing reads this to decide what
  * is sellable; the windstorm line is offered by configuration and a signed
  * protocol, and stays an enquiry until both.
  */
-export function windstormAppointmentHeld(): { identifier: string; issuedOn: string } | null {
+export function windstormAppointmentHeld(): { issuedOn: string } | null {
   const entries = verifiedCredentials.filter((c) => c.name === WINDSTORM_APPOINTMENT_CREDENTIAL);
   const held = entries.filter((c) => c.held && c.identifier !== null && Boolean(c.issuedOn));
   if (entries.length !== 1 || held.length !== 1) return null;
-  return { identifier: held[0].identifier as string, issuedOn: held[0].issuedOn as string };
+  return { issuedOn: held[0].issuedOn as string };
 }
 
 export function windstormAppointmentStatement(): string {
@@ -1180,8 +1187,7 @@ export function windstormAppointmentStatement(): string {
   const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
   const dated = `${MONTHS[m - 1]} ${d}, ${y}`;
   return (
-    `An engineer at ${firmName()} holds a Texas Department of Insurance windstorm appointment, ` +
-    `number ${held.identifier}, dated ${dated}.`
+    `An engineer at ${firmName()} holds a Texas Department of Insurance windstorm appointment, dated ${dated}.`
   );
 }
 
