@@ -12,6 +12,9 @@ import {
 } from "@/components/portal/CredentialTables";
 import { RecordCredentialForm } from "./RecordCredentialForm";
 import { CoverageForm } from "./CoverageForm";
+import { RecordTrainingForm } from "./RecordTrainingForm";
+import { certificationsFor, trainableLines, trainingRecords } from "@/lib/certification-record";
+import { services } from "@/content/services";
 import { TEXAS_COUNTIES } from "@/lib/ops-counties";
 
 export const dynamic = "force-dynamic";
@@ -42,6 +45,16 @@ export default async function TechnicianPage({ params }: { params: Promise<{ id:
 
   const blocking = sheet.standing.filter((s) => s.blocks);
   const canRecord = can(actor, "profiles.update");
+  const [certifications, training, lines] = await Promise.all([
+    certificationsFor(id),
+    trainingRecords(id),
+    trainableLines(),
+  ]);
+  const lineName = (slug: string) => services.find((s) => s.slug === slug)?.name ?? slug;
+  const longDate = (iso: string | null) =>
+    iso
+      ? new Date(`${iso.slice(0, 10)}T00:00:00`).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
+      : "";
 
   return (
     <div className="max-w-[960px]">
@@ -97,6 +110,68 @@ export default async function TechnicianPage({ params }: { params: Promise<{ id:
           />
         </section>
       ) : null}
+
+      {/*
+        CERTIFICATION, operator ruling of 2026-10-07. A certification from
+        supervised training is recorded here and counts for dispatch only once
+        the engineer of record approves it from his own session. "Certified"
+        below is the row dispatch reads; a record awaiting him is not.
+      */}
+      <section className="mt-10">
+        <h2 className="border-b-2 border-[var(--ink)] pb-2 text-[15px] font-semibold text-[var(--ink)]">
+          Certification
+        </h2>
+        {certifications === null || training === null ? (
+          <p role="alert" className="mt-3 text-[14px] font-semibold text-[var(--ink)]">
+            Certifications could not be read, so none are shown.
+          </p>
+        ) : (
+          <ul className="mt-3 border-t border-[var(--row-rule)]">
+            {certifications.filter((c) => c.status === "certified").map((c) => (
+              <li key={`c-${c.serviceSlug}`} className="border-b border-[var(--row-rule)] py-3 text-[14px]">
+                <p className="font-semibold text-[var(--ink)]">{lineName(c.serviceSlug)}</p>
+                <p className="text-[var(--secondary)]">
+                  Certified{c.certifiedAt ? ` ${longDate(c.certifiedAt)}` : ""}. Dispatch can offer him this line.
+                </p>
+              </li>
+            ))}
+            {training.map((t) => (
+              <li key={`t-${t.id}`} className="border-b border-[var(--row-rule)] py-3 text-[14px]">
+                <p className="font-semibold text-[var(--ink)]">{lineName(t.serviceSlug)}</p>
+                <p className={t.status === "awaiting_engineer" ? "font-semibold text-[var(--ink)]" : "text-[var(--secondary)]"}>
+                  {t.status === "awaiting_engineer"
+                    ? "Awaiting the engineer's approval. Dispatch refuses until he gives it."
+                    : t.status === "approved"
+                      ? `Approved by the engineer ${longDate(t.decidedAt)}.`
+                      : `Refused by the engineer ${longDate(t.decidedAt)}: ${t.refusalReason}`}
+                </p>
+                <p className="text-[13px] text-[var(--secondary)]">
+                  Supervised training on v{t.protocolVersion}, {longDate(t.trainedOn)}, supervised by {t.supervisedBy}.
+                  Recorded {longDate(t.recordedAt)}.
+                </p>
+              </li>
+            ))}
+            {certifications.every((c) => c.status !== "certified") && training.length === 0 ? (
+              <li className="border-b border-[var(--row-rule)] py-3 text-[14px] font-semibold text-[var(--ink)]">
+                Not certified for any line. Dispatch offers him nothing.
+              </li>
+            ) : null}
+          </ul>
+        )}
+        {canRecord ? (
+          <>
+            <h3 className="mt-6 text-[14px] font-semibold text-[var(--ink)]">Record supervised training</h3>
+            <RecordTrainingForm
+              profileId={sheet.profile.id}
+              lines={lines.map((l) => ({
+                serviceSlug: l.serviceSlug,
+                name: lineName(l.serviceSlug),
+                protocol: `${l.documentNumber} v${l.version}`,
+              }))}
+            />
+          </>
+        ) : null}
+      </section>
 
       {/*
         COVERAGE COUNTIES, operator ruling of 2026-10-07: changed here rather

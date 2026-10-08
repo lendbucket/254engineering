@@ -8,6 +8,7 @@ import {
   setOnboardingCoverage,
   setTechCoverage,
 } from "@/lib/ops-onboarding";
+import { recordTraining } from "@/lib/certification-record";
 import {
   addProtocolQuestion,
   removeProtocolQuestion,
@@ -125,6 +126,24 @@ export async function POST(request: NextRequest) {
         label: body?.label ? String(body.label) : null,
         issuedOn: body?.issuedOn ? String(body.issuedOn) : null,
         expiresOn: body?.expiresOn ? String(body.expiresOn) : null,
+      },
+      context,
+    );
+    return result.ok ? NextResponse.json({ ok: true, id: result.id }) : bad(result.error);
+  }
+
+  /*
+   * Supervised training recorded by an administrator, operator ruling of
+   * 2026-10-07. It counts for nothing until the engineer of record approves it.
+   */
+  if (action === "record_training") {
+    const result = await recordTraining(
+      actor,
+      String(body?.profileId ?? ""),
+      {
+        serviceSlug: String(body?.serviceSlug ?? ""),
+        trainedOn: String(body?.trainedOn ?? ""),
+        supervisedBy: String(body?.supervisedBy ?? ""),
       },
       context,
     );

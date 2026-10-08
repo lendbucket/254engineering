@@ -15,6 +15,8 @@ import { LetterSealPanel } from "./LetterSealPanel";
 import { lettersAwaitingSeal } from "@/lib/letter-seal";
 import { heldFiles } from "@/lib/dispatch-hold";
 import { PrereviewPanel } from "./PrereviewPanel";
+import { TrainingDecisionPanel } from "./TrainingDecisionPanel";
+import { trainingAwaitingEngineer } from "@/lib/certification-record";
 import { protocolByDocument } from "@/content/protocols";
 
 export const dynamic = "force-dynamic";
@@ -62,6 +64,7 @@ export default async function ReviewPage({
    */
   const awaiting = await lettersAwaitingSeal(actor);
   const held = await heldFiles();
+  const trainingWaiting = await trainingAwaitingEngineer();
   const selectedAwaiting = selected ? awaiting.filter((l) => l.fileId === selected.file.id) : [];
 
   /*
@@ -153,6 +156,38 @@ export default async function ReviewPage({
                   ))}
                 </ul>
                 <PrereviewPanel fileId={f.id} fileNumber={f.fileNumber} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      {/*
+        CERTIFICATIONS AWAITING YOUR APPROVAL, operator ruling of 2026-10-07. A
+        certification from supervised training counts for dispatch only once
+        the engineer of record approves it here. A failed read says so.
+      */}
+      {!trainingWaiting.ok ? (
+        <p role="alert" className="mb-6 text-[14px] text-[var(--ink)]">
+          Certifications awaiting your approval could not be read: {trainingWaiting.error}
+        </p>
+      ) : trainingWaiting.records.length > 0 ? (
+        <section className="mb-6 border-t-2 border-[var(--ink)] pt-4">
+          <h2 className="text-[16px] font-semibold text-[var(--ink)]">Certifications awaiting your approval</h2>
+          <p className="mt-1 text-[14px] text-[var(--secondary)]">
+            Recorded by an administrator from supervised training. The technician is not offered work on the line until you approve.
+          </p>
+          <ul className="mt-2 border-t border-[var(--row-rule)]">
+            {trainingWaiting.records.map((t) => (
+              <li key={t.id} className="border-b border-[var(--row-rule)] py-3">
+                <p className="text-[14px] text-[var(--ink)]">
+                  <span className="font-semibold">{t.technician}</span>,{" "}
+                  {services.find((s) => s.slug === t.serviceSlug)?.name ?? t.serviceSlug}
+                </p>
+                <p className="text-[14px] leading-[1.6] text-[var(--secondary)]">
+                  Supervised training on v{t.protocolVersion}, {t.trainedOn}, supervised by {t.supervisedBy}.
+                </p>
+                <TrainingDecisionPanel recordId={t.id} technician={t.technician} />
               </li>
             ))}
           </ul>

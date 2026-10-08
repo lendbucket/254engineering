@@ -4,6 +4,7 @@ import { decideReview, monthlyExport, openReview, recordTime, type Determination
 import { PROTOCOL_ENTRIES, type Determination } from "@/content/protocols";
 import { REVIEW_ACTIONS, type ReviewAction } from "@/lib/ops-review";
 import { recordPrereview } from "@/lib/dispatch-hold";
+import { decideTraining } from "@/lib/certification-record";
 
 /**
  * The engineer's decisions, and the export a regulator reads.
@@ -92,6 +93,18 @@ export async function POST(request: NextRequest) {
     const decision = String(body?.decision ?? "");
     if (decision !== "accept" && decision !== "decline") return bad("Accept or decline.");
     const result = await recordPrereview(actor, String(body?.fileId ?? ""), decision, String(body?.note ?? ""), context);
+    return result.ok ? NextResponse.json({ ok: true }) : bad(result.error);
+  }
+
+  /*
+   * A CERTIFICATION FROM SUPERVISED TRAINING, decided by the engineer of record
+   * from his own session. Operator ruling of 2026-10-07. decideTraining checks
+   * the licence against the register, and that a refusal carries his reason.
+   */
+  if (action === "training_decision") {
+    const decision = String(body?.decision ?? "");
+    if (decision !== "approve" && decision !== "refuse") return bad("Approve or refuse.");
+    const result = await decideTraining(actor, Number(body?.recordId ?? 0), decision, String(body?.reason ?? ""), context);
     return result.ok ? NextResponse.json({ ok: true }) : bad(result.error);
   }
 
