@@ -244,7 +244,13 @@ const unionBlock = jobsSource.slice(
   jobsSource.indexOf("export type JobKind"),
   jobsSource.indexOf(";", jobsSource.indexOf("export type JobKind")),
 );
-const declaredKinds = [...unionBlock.matchAll(/"([a-z.]+)"/g)].map((m) => m[1]);
+/*
+ * Underscores and digits allowed since 2026-10-08. The pattern was letters and
+ * dots, so credentials.refresh_tasks, declared in the union and registered, read
+ * as a stray. The hole ran the other way too: a kind with an underscore in the
+ * union and never registered would have been invisible here and passed.
+ */
+const declaredKinds = [...unionBlock.matchAll(/"([a-z][a-z0-9._]*)"/g)].map((m) => m[1]);
 rec(
   "every kind in the JobKind union is registered",
   declaredKinds.every((k) => kinds.includes(k)),
