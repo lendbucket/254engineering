@@ -520,6 +520,81 @@ export async function credentialBlockersFor(profileIds: string[]): Promise<Map<s
 }
 
 /**
+ * A WORKING TECHNICIAN'S COVERAGE COUNTIES, SET BY AN ADMINISTRATOR.
+ *
+ * Operator ruling of 2026-10-07: no operational act needs SQL once live. Until
+ * this, coverage could be set only when a profile was created or an onboarding
+ * activated, so changing it afterwards was SQL (the sitting's step C2). It uses
+ * the same canonicalisation as setOnboardingCoverage, because dispatch matches
+ * on the county name and a typo would silently exclude the technician from
+ * every job there; unknown names are refused, never dropped.
+ *
+ * The audit diff names what was added and removed, not only the new count,
+ * because "set to 254" says nothing about which county somebody lost.
+ */
+export async function setTechCoverage(
+  actor: Actor & { email: string },
+  profileId: string,
+  counties: string[],
+  context: Context = {},
+): Promise<{ ok: true; counties: string[] } | { ok: false; error: string }> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+  if (!can(actor, "profiles.update")) return { ok: false, error: "Your role cannot set coverage." };
+
+  const canonical: string[] = [];
+  const rejected: string[] = [];
+  for (const raw of counties) {
+    const county = canonicalCounty(raw);
+    if (county) {
+      if (!canonical.includes(county)) canonical.push(county);
+    } else if (raw.trim()) {
+      rejected.push(raw.trim());
+    }
+  }
+  if (rejected.length) {
+    return {
+      ok: false,
+      error: `Not a Texas county: ${rejected.join(", ")}. Dispatch matches on the county name, so a typo would silently exclude this technician from every job there.`,
+    };
+  }
+  canonical.sort();
+
+  const { data: person, error: readError } = await db
+    .from("eng_profiles")
+    .select("id, role, coverage_counties")
+    .eq("id", profileId)
+    .maybeSingle();
+  if (readError || !person) return { ok: false, error: readError?.message ?? "That technician does not exist." };
+  if (person.role !== "field_tech") return { ok: false, error: "Coverage is set for a technician." };
+
+  const before: string[] = (person.coverage_counties as string[] | null) ?? [];
+  const added = canonical.filter((c) => !before.includes(c));
+  const removed = before.filter((c) => !canonical.includes(c));
+  if (added.length === 0 && removed.length === 0) return { ok: true, counties: canonical };
+
+  const { error } = await db.from("eng_profiles").update({ coverage_counties: canonical }).eq("id", profileId).eq("role", "field_tech");
+  if (error) return { ok: false, error: error.message };
+
+  await writeAudit({
+    actor,
+    action: "profile.coverage_set",
+    entityType: "profile",
+    entityId: profileId,
+    summary:
+      `Set coverage to ${canonical.length} count${canonical.length === 1 ? "y" : "ies"}` +
+      `${added.length ? `, adding ${added.length}` : ""}${removed.length ? `, removing ${removed.length}` : ""}`,
+    diff: {
+      coverage_count: { from: before.length, to: canonical.length },
+      added: { from: null, to: added },
+      removed: { from: removed, to: null },
+    },
+    ...context,
+  });
+  return { ok: true, counties: canonical };
+}
+
+/**
  * ONE TECHNICIAN'S CREDENTIALS, AS DISPATCH SEES THEM. The credentials screen
  * (operator, 2026-10-07) and the technician's own read-only view both render
  * this. It reads the same rows (credentialsFor), the same exemption
@@ -531,7 +606,7 @@ export async function credentialBlockersFor(profileIds: string[]): Promise<Map<s
  * could not read, because "nothing on file" would be a false statement.
  */
 export type CredentialSheet = {
-  profile: { id: string; displayName: string; email: string; status: string };
+  profile: { id: string; displayName: string; email: string; status: string; coverageCounties: string[] };
   standing: CredentialStanding[];
   /** Every record, newest first, including replaced ones. Nothing is edited, so this is the history. */
   history: (CredentialRow & { label: string | null; verifiedByName: string | null })[];
@@ -545,7 +620,7 @@ export async function credentialSheet(profileId: string): Promise<CredentialShee
   if (!db) return null;
   const { data: person, error } = await db
     .from("eng_profiles")
-    .select("id, display_name, email, status, role")
+    .select("id, display_name, email, status, role, coverage_counties")
     .eq("id", profileId)
     .maybeSingle();
   if (error || !person || person.role !== "field_tech") return null;
@@ -566,6 +641,7 @@ export async function credentialSheet(profileId: string): Promise<CredentialShee
       displayName: person.display_name as string,
       email: person.email as string,
       status: person.status as string,
+      coverageCounties: ((person.coverage_counties as string[] | null) ?? []).slice().sort(),
     },
     standing,
     history: held.map((c) => ({ ...c, label: c.label ?? null, verifiedByName: c.verifiedBy ? names.get(c.verifiedBy) ?? null : null })),

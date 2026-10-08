@@ -375,6 +375,7 @@ const PORTED = [
   "src/app/portal/(app)/techs/page.tsx",
   "src/app/portal/(app)/techs/[id]/page.tsx",
   "src/app/portal/(app)/techs/[id]/RecordCredentialForm.tsx",
+  "src/app/portal/(app)/techs/[id]/CoverageForm.tsx",
   "src/components/portal/CredentialTables.tsx",
   /*
    * /portal/waiting, added 2026-10-03, and it is the FOURTH screen in three days
@@ -629,6 +630,7 @@ const STAFF_V10 = [
    */
   "src/app/portal/(app)/techs/[id]/page.tsx",
   "src/app/portal/(app)/techs/[id]/RecordCredentialForm.tsx",
+  "src/app/portal/(app)/techs/[id]/CoverageForm.tsx",
   "src/components/portal/CredentialTables.tsx",
 ];
 

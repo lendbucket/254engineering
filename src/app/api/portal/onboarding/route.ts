@@ -6,6 +6,7 @@ import {
   recordCredential,
   setItemDates,
   setOnboardingCoverage,
+  setTechCoverage,
 } from "@/lib/ops-onboarding";
 import {
   addProtocolQuestion,
@@ -128,6 +129,13 @@ export async function POST(request: NextRequest) {
       context,
     );
     return result.ok ? NextResponse.json({ ok: true, id: result.id }) : bad(result.error);
+  }
+
+  /* A working technician's coverage counties, from the same page. setTechCoverage refuses unknown names. */
+  if (action === "set_coverage") {
+    const counties = Array.isArray(body?.counties) ? body.counties.map(String) : [];
+    const result = await setTechCoverage(actor, String(body?.profileId ?? ""), counties, context);
+    return result.ok ? NextResponse.json({ ok: true, counties: result.counties }) : bad(result.error);
   }
 
   // -------------------------------------------------------- certification

@@ -11,6 +11,8 @@ import {
   CredentialStandingTable,
 } from "@/components/portal/CredentialTables";
 import { RecordCredentialForm } from "./RecordCredentialForm";
+import { CoverageForm } from "./CoverageForm";
+import { TEXAS_COUNTIES } from "@/lib/ops-counties";
 
 export const dynamic = "force-dynamic";
 
@@ -96,9 +98,34 @@ export default async function TechnicianPage({ params }: { params: Promise<{ id:
         </section>
       ) : null}
 
+      {/*
+        COVERAGE COUNTIES, operator ruling of 2026-10-07: changed here rather
+        than by SQL. Dispatch offers a job only to a technician whose coverage
+        names the job's county.
+      */}
       <section className="mt-10">
         <h2 className="border-b-2 border-[var(--ink)] pb-2 text-[15px] font-semibold text-[var(--ink)]">
-          Every record
+          Coverage counties
+        </h2>
+        <p className="mt-3 text-[14px] leading-[1.55] text-[var(--secondary)]">
+          {sheet.profile.coverageCounties.length === 0 ? (
+            <span className="font-semibold text-[var(--ink)]">
+              No counties set. Dispatch offers this technician nothing.
+            </span>
+          ) : sheet.profile.coverageCounties.length === TEXAS_COUNTIES.length ? (
+            `All ${TEXAS_COUNTIES.length} Texas counties.`
+          ) : (
+            `${sheet.profile.coverageCounties.length} count${sheet.profile.coverageCounties.length === 1 ? "y" : "ies"}: ${sheet.profile.coverageCounties.join(", ")}.`
+          )}
+        </p>
+        {canRecord ? (
+          <CoverageForm profileId={sheet.profile.id} current={sheet.profile.coverageCounties} allCounties={TEXAS_COUNTIES} />
+        ) : null}
+      </section>
+
+      <section className="mt-10">
+        <h2 className="border-b-2 border-[var(--ink)] pb-2 text-[15px] font-semibold text-[var(--ink)]">
+          Every credential record
         </h2>
         <div className="sm:hidden">
           <CredentialHistoryList history={sheet.history} />

@@ -36,7 +36,7 @@ if (!db) {
 if (isProduction(process.env.SUPABASE_URL)) throw new Error("refusing: production");
 
 const { dispatchContext } = await import("../../src/lib/ops-field.ts");
-const { recordCredential, credentialSheet } = await import("../../src/lib/ops-onboarding.ts");
+const { recordCredential, credentialSheet, setTechCoverage } = await import("../../src/lib/ops-onboarding.ts");
 const { destroyProbes } = await import("../lib/portal-probe.mjs");
 
 const STAMP = Date.now();
@@ -139,6 +139,26 @@ try {
     .from("eng_audit_events").select("id", { count: "exact", head: true })
     .eq("action", "credential.recorded").eq("entity_id", tech.id);
   check("every recording wrote an audit event, five recordings and five events", audited === 5, `${audited} event(s)`);
+
+  // 7. Coverage counties, set on the same page: dispatch reads them, both ways.
+  const away = await setTechCoverage(admin, tech.id, ["Bexar"]);
+  check("coverage is set through the page's function", away.ok, away.ok ? "" : away.error);
+  const uncovered = await ask();
+  check("with the job's county off his coverage, dispatch refuses him", !uncovered.offered, uncovered.reason ?? "offered");
+  const back = await setTechCoverage(admin, tech.id, ["Bexar", COUNTY.toLowerCase()]);
+  check("and a county typed in lower case is stored as its canonical name", back.ok && back.counties.includes(COUNTY), back.ok ? back.counties.join(", ") : back.error);
+  const covered = await ask();
+  check("with it back on his coverage, dispatch offers him the job", covered.offered, covered.reason ?? "");
+  const typo = await setTechCoverage(admin, tech.id, ["Bexar", "Kenedyy"]);
+  check("a name that is not a Texas county is refused, not dropped", !typo.ok && /Not a Texas county: Kenedyy/.test(typo.error ?? ""));
+  const { data: after } = await db.from("eng_profiles").select("coverage_counties").eq("id", tech.id).single();
+  check("and the refused save changed nothing", (after?.coverage_counties ?? []).includes(COUNTY));
+  const byTechCoverage = await setTechCoverage(tech, tech.id, ["Bexar"]);
+  check("a technician cannot set his own coverage", !byTechCoverage.ok);
+  const { data: coverageEvents } = await db
+    .from("eng_audit_events").select("diff").eq("action", "profile.coverage_set").eq("entity_id", tech.id).order("id");
+  const removedKenedy = (coverageEvents ?? []).some((e) => (e.diff?.removed?.from ?? []).includes(COUNTY));
+  check("each change wrote an audit event naming what was removed", (coverageEvents ?? []).length === 2 && removedKenedy, `${(coverageEvents ?? []).length} event(s)`);
 } catch (e) {
   wrong += 1;
   console.log(`  FAIL: the proof could not complete (${e.message})`);
