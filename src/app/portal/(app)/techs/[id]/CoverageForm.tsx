@@ -75,14 +75,14 @@ export function CoverageForm({
         <button
           type="submit"
           disabled={busy}
-          className="min-h-[44px] rounded-[2px] bg-[var(--navy)] px-5 text-[15px] font-semibold text-white disabled:opacity-40"
+          className="min-h-[44px] rounded-[2px] bg-[var(--navy)] px-5 text-[15px] font-semibold text-white active:opacity-80 disabled:opacity-40"
         >
           {busy ? "Saving" : "Save coverage"}
         </button>
         <button
           type="button"
           onClick={() => setText(allCounties.join(", "))}
-          className="min-h-[44px] rounded-[2px] border border-[var(--ink)] bg-white px-5 text-[15px] font-semibold text-[var(--ink)]"
+          className="min-h-[44px] rounded-[2px] border border-[var(--ink)] bg-white px-5 text-[15px] font-semibold text-[var(--ink)] active:bg-[var(--row-hover)]"
         >
           Fill in all {allCounties.length} Texas counties
         </button>

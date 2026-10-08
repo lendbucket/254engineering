@@ -51,7 +51,7 @@ export function TrainingDecisionPanel({ recordId, technician }: { recordId: numb
           type="button"
           disabled={busy}
           onClick={() => void decide("approve")}
-          className="min-h-[44px] rounded-[2px] bg-[var(--navy)] px-5 text-[14px] font-semibold text-white disabled:opacity-40"
+          className="min-h-[44px] rounded-[2px] bg-[var(--navy)] px-5 text-[14px] font-semibold text-white active:opacity-80 disabled:opacity-40"
         >
           Approve, certify for dispatch
         </button>
@@ -59,7 +59,7 @@ export function TrainingDecisionPanel({ recordId, technician }: { recordId: numb
           type="button"
           disabled={busy}
           onClick={() => void decide("refuse")}
-          className="min-h-[44px] rounded-[2px] border border-[var(--ink)] px-5 text-[14px] font-semibold text-[var(--ink)] disabled:opacity-40"
+          className="min-h-[44px] rounded-[2px] border border-[var(--ink)] px-5 text-[14px] font-semibold text-[var(--ink)] active:bg-[var(--row-hover)] disabled:opacity-40"
         >
           Refuse with this reason
         </button>

@@ -59,7 +59,7 @@ export default async function TechnicianPage({ params }: { params: Promise<{ id:
   return (
     <div className="max-w-[960px]">
       <p className="text-[13px] text-[var(--secondary)]">
-        <Link href="/portal/techs" className="text-[var(--navy)] underline">
+        <Link href="/portal/techs" className="text-[var(--navy)] underline active:opacity-70">
           Technicians
         </Link>
       </p>
