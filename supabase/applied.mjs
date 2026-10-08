@@ -2102,11 +2102,36 @@ export const APPLIED = [
       "production both take it before the release merges.",
   },
   {
-    file: "0065_seven_protocols_enter_as_drafts.sql", appliedBy: null,
+    file: "0065_seven_protocols_enter_as_drafts.sql", appliedBy: "apply_migration",
     fingerprint: "aff578e18d558ee5af26fb2cb8c9eb88",
     behaviour: "ab7050e125459faf67d7aad862902aae",
-    production: null,
-    development: null,
+    /*
+     * APPLIED TO PRODUCTION 2026-10-08, in the sitting staged by
+     * docs/production-sitting-2026-10-08.md, by the operator's chat counterpart
+     * through apply_migration, the file as written without its header comment.
+     *
+     * Read back: seven rows, each v1.1, draft, unsigned, firm name on document
+     * 254 Engineering Services, each digest as tabled in the sitting document.
+     * Versions: 254-WP-001 1, 254-WS-001 2 (both on windstorm-wpi-8, so WS-001
+     * sits one above WP-001), 254-MH-001, 254-SL-001, 254-PL-001, 254-RS-001
+     * and 254-DS-001 each 1. Every version one above its line's highest, as
+     * predicted. Shape aff578e18d558ee5af26fb2cb8c9eb88 across 1170 columns,
+     * unchanged, as predicted.
+     */
+    production: "2026-10-08",
+    development: {
+      at: "0065",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-08",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-08 by the operator's chat counterpart through the connector's " +
+        "apply_migration, the file as written without its header comment, and read back: the same seven " +
+        "rows and digests as production. 254-WP-001 is version 2 and 254-WS-001 version 3, one higher " +
+        "than production's, because development already held a windstorm-wpi-8 version 1 row; every " +
+        "version is one above its line's highest on that database, as predicted. Shape unchanged.",
+    },
     proves: { row: { table: "eng_protocol_templates", where: "document_number = '254-PL-001' and version_label = '1.1' and status = 'draft'" } },
     note:
       "Both figures read off scripts/fingerprint-at.mjs at 0065 on 2026-10-08: shape unchanged at " +

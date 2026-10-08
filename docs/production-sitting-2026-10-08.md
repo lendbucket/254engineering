@@ -108,6 +108,24 @@ records in `supabase/applied.mjs` from the pasted output, and the branch merges
 only after that, under the operator's word: a migration on main is never
 pending.
 
+## Run 2026-10-08, by the counterpart: every prediction held
+
+Applied to both databases through `apply_migration`, the file as written
+without its header comment, and read back on each.
+
+| | Production | Development |
+| --- | --- | --- |
+| Rows | Seven, v1.1, draft, unsigned, 254 Engineering Services | The same seven |
+| Digests | As tabled above | The same |
+| 254-WP-001 version | 1 | 2 |
+| 254-WS-001 version | 2 | 3 |
+| The other five | 1 each | 1 each |
+| Shape | `aff578e18d558ee5af26fb2cb8c9eb88`, 1170, unchanged | unchanged |
+
+Development's two windstorm versions are one higher because it already held a
+`windstorm-wpi-8` version 1 row. On each database every version is one above
+its line's highest, which is the prediction. Recorded in `supabase/applied.mjs`.
+
 ## What the session could not check
 
 That development holds 0061 to 0064. The ledger says the counterpart applied
