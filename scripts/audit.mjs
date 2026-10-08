@@ -552,6 +552,17 @@ const PHASE_ONE = [
   },
   {
     /*
+     * Operator rulings of 2026-10-07. Phase one because it measures the
+     * RENDERED page in a browser against the suite's server: radius above 2px,
+     * shadows, monospace, four-sided boxes, at 1280 and 390, on every signed in
+     * route including those with an id in the path, against a dated list that
+     * only shrinks and expires 2026-10-19.
+     */
+    name: "v10-layout-audit",
+    why: "Design V10's layout rules, measured on the rendered page",
+  },
+  {
+    /*
      * Phase 12 Section 2. Derives the four reports from the registry in
      * ops-reports.ts and fails on one it is not measuring, which is the
      * surfaces idiom applied to figures. email-audit learned why the hard way:

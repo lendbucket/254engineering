@@ -132,7 +132,7 @@ export function LetterSealPanel({
       </div>
 
       {lines ? (
-        <div className="mt-4 border border-[var(--border)] bg-white px-4 py-3">
+        <div className="mt-4 border-y border-[var(--border)] py-3">
           {lines.map((line, i) => (
             <p
               key={i}

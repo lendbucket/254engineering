@@ -15,10 +15,10 @@ import type { EvidenceKind } from "@/lib/ops-evidence";
  */
 
 const field =
-  "min-h-[44px] w-full rounded-[3px] border border-[var(--border)] bg-white px-3 text-[16px] text-[var(--navy)] outline-none focus:border-slate";
-const label = "block text-[13.5px] font-semibold text-[var(--navy)]";
+  "min-h-[44px] w-full rounded-[2px] border border-[var(--border)] bg-white px-3 text-[16px] text-[var(--navy)] outline-none focus:border-slate";
+const label = "block text-[14px] font-semibold text-[var(--navy)]";
 const button =
-  "inline-flex min-h-[var(--tap-target)] items-center justify-center rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[13.5px] font-bold text-white transition-colors hover:bg-[var(--navy-hover)] disabled:opacity-50";
+  "inline-flex min-h-[var(--tap-target)] items-center justify-center rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[14px] font-bold text-white transition-colors hover:bg-[var(--navy-hover)] disabled:opacity-50";
 
 async function post(payload: Record<string, unknown>) {
   const res = await fetch("/api/portal/field", {
@@ -34,7 +34,7 @@ async function post(payload: Record<string, unknown>) {
 function Problem({ message }: { message: string | null }) {
   if (!message) return null;
   return (
-    <p role="alert" className="mt-2 text-[13.5px] leading-[1.5] font-semibold text-[var(--red)]">
+    <p role="alert" className="mt-2 text-[14px] leading-[1.5] font-semibold font-semibold text-[var(--ink)]">
       {message}
     </p>
   );
@@ -66,7 +66,7 @@ export function NewProtocolForm({
 
   return (
     <form
-      className="rounded-[4px] border border-[var(--border)] bg-white p-4"
+      className="border-t-2 border-[var(--ink)] pt-4"
       onSubmit={async (e) => {
         e.preventDefault();
         setBusy(true);
@@ -156,7 +156,7 @@ export function NewProtocolForm({
                 </option>
               ))}
             </select>
-            <p className="mt-1.5 text-[12.5px] leading-[1.5] text-[var(--secondary)]">
+            <p className="mt-1.5 text-[13px] leading-[1.5] text-[var(--secondary)]">
               Copies every item. This is how a version two normally starts: change two items out of
               fifteen rather than retyping the other thirteen.
             </p>
@@ -173,7 +173,7 @@ export function NewProtocolForm({
         <button
           type="button"
           onClick={() => setOpen(false)}
-          className="inline-flex min-h-[44px] items-center rounded-[3px] border border-[var(--border)] px-4 text-[13.5px] font-semibold text-[var(--navy)]"
+          className="inline-flex min-h-[44px] items-center rounded-[2px] border border-[var(--border)] px-4 text-[14px] font-semibold text-[var(--navy)]"
         >
           Cancel
         </button>
@@ -274,7 +274,7 @@ function AddItem({ templateId }: { templateId: string }) {
               </option>
             ))}
           </select>
-          <p className="mt-1.5 text-[12.5px] leading-[1.5] text-[var(--secondary)]">
+          <p className="mt-1.5 text-[13px] leading-[1.5] text-[var(--secondary)]">
             {KINDS.find((k) => k.value === kind)?.hint}
           </p>
         </div>
@@ -290,7 +290,7 @@ function AddItem({ templateId }: { templateId: string }) {
             placeholder="derived from the label"
             className={`${field} mt-1.5`}
           />
-          <p className="mt-1.5 text-[12.5px] leading-[1.5] text-[var(--secondary)]">
+          <p className="mt-1.5 text-[13px] leading-[1.5] text-[var(--secondary)]">
             How this item is identified in the record. Stable across versions, so a review can
             compare the same item between them.
           </p>
@@ -373,7 +373,7 @@ function AddItem({ templateId }: { templateId: string }) {
         </div>
 
         <div className="sm:col-span-2">
-          <label className="flex min-h-[44px] items-center gap-2.5 text-[13.5px] text-[var(--navy)]">
+          <label className="flex min-h-[44px] items-center gap-2.5 text-[14px] text-[var(--navy)]">
             <input
               type="checkbox"
               checked={required}
@@ -410,7 +410,7 @@ function RemoveItem({ templateId, itemId }: { templateId: string; itemId: string
           setBusy(false);
         }
       }}
-      className="inline-flex min-h-[44px] shrink-0 items-center rounded-[3px] border border-[var(--border)] px-3 text-[13.5px] font-semibold text-[var(--secondary)] hover:border-slate hover:text-[var(--navy)]"
+      className="inline-flex min-h-[44px] shrink-0 items-center rounded-[2px] border border-[var(--border)] px-3 text-[14px] font-semibold text-[var(--secondary)] hover:border-slate hover:text-[var(--navy)]"
     >
       {busy ? "Removing" : "Remove"}
     </button>
@@ -453,7 +453,7 @@ export function ApproveButton({
   return (
     <div>
       <p className="portal-kicker text-[var(--gold-deep)]">Approve</p>
-      <p className="mt-1.5 max-w-[70ch] text-[13.5px] leading-[1.55] text-[var(--secondary)]">
+      <p className="mt-1.5 max-w-[70ch] text-[14px] leading-[1.55] text-[var(--secondary)]">
         {derivable ? (
           <>
             Approving puts {documentNumber} in force and writes its {itemsToSeed} items in the same
@@ -467,7 +467,7 @@ export function ApproveButton({
           </>
         )}
       </p>
-      <p className="mt-2 max-w-[70ch] text-[13.5px] leading-[1.55] text-[var(--secondary)]">
+      <p className="mt-2 max-w-[70ch] text-[14px] leading-[1.55] text-[var(--secondary)]">
         Only an engineer on the firm&rsquo;s register may do this, through his own account. It is
         recorded against his license.
       </p>
@@ -541,14 +541,14 @@ export function QuestionEditor({
       <p className="portal-kicker text-[var(--gold-deep)]">
         Certification check
       </p>
-      <p className="mt-1.5 max-w-[70ch] text-[13.5px] leading-[1.55] text-[var(--secondary)]">
+      <p className="mt-1.5 max-w-[70ch] text-[14px] leading-[1.55] text-[var(--secondary)]">
         A technician cannot be offered work on this service line until they answer all of these
         correctly. Retakes are free and a wrong answer shows your reasoning, so write the reasoning
         as if it is the only thing they will read about that item, because it is.
       </p>
 
       {questions.length === 0 ? (
-        <p className="mt-3 text-[13.5px] leading-[1.5] text-[var(--secondary)]">
+        <p className="mt-3 text-[14px] leading-[1.5] text-[var(--secondary)]">
           No questions yet. A protocol can be published without them, and until they exist nobody can
           certify against it, so nobody can be dispatched on this line.
         </p>
@@ -558,14 +558,14 @@ export function QuestionEditor({
             <li key={q.id} className="py-3">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-[13.5px] font-semibold text-[var(--navy)]">
+                  <p className="text-[14px] font-semibold text-[var(--navy)]">
                     {i + 1}. {q.prompt}
                   </p>
                   <ul className="mt-1.5 flex flex-col gap-0.5">
                     {q.options.map((o, index) => (
                       <li
                         key={o}
-                        className={`text-[13.5px] leading-[1.5] ${
+                        className={`text-[14px] leading-[1.5] ${
                           index === q.correctIndex ? "font-semibold text-[var(--navy)]" : "text-[var(--secondary)]"
                         }`}
                       >
@@ -574,7 +574,7 @@ export function QuestionEditor({
                       </li>
                     ))}
                   </ul>
-                  <p className="mt-1.5 max-w-[65ch] text-[13.5px] leading-[1.5] text-[var(--secondary)]">
+                  <p className="mt-1.5 max-w-[65ch] text-[14px] leading-[1.5] text-[var(--secondary)]">
                     Shown when wrong: {q.rationale}
                   </p>
                 </div>
@@ -585,7 +585,7 @@ export function QuestionEditor({
                       await send({ action: "remove_question", templateId, questionId: q.id });
                       router.refresh();
                     }}
-                    className="inline-flex min-h-[44px] shrink-0 items-center rounded-[3px] border border-[var(--border)] px-3 text-[13.5px] font-semibold text-[var(--secondary)] hover:border-slate hover:text-[var(--navy)]"
+                    className="inline-flex min-h-[44px] shrink-0 items-center rounded-[2px] border border-[var(--border)] px-3 text-[14px] font-semibold text-[var(--secondary)] hover:border-slate hover:text-[var(--navy)]"
                   >
                     Remove
                   </button>
@@ -669,7 +669,7 @@ export function QuestionEditor({
                           setOptions((prev) => prev.filter((_, i) => i !== index));
                           if (correctIndex >= index && correctIndex > 0) setCorrectIndex(correctIndex - 1);
                         }}
-                        className="inline-flex min-h-[44px] shrink-0 items-center px-2 text-[13.5px] font-semibold text-[var(--secondary)]"
+                        className="inline-flex min-h-[44px] shrink-0 items-center px-2 text-[14px] font-semibold text-[var(--secondary)]"
                       >
                         Remove
                       </button>
@@ -681,7 +681,7 @@ export function QuestionEditor({
                 <button
                   type="button"
                   onClick={() => setOptions((prev) => [...prev, ""])}
-                  className="mt-2 inline-flex min-h-[44px] items-center rounded-[3px] border border-[var(--border)] px-3 text-[13.5px] font-semibold text-[var(--navy)]"
+                  className="mt-2 inline-flex min-h-[44px] items-center rounded-[2px] border border-[var(--border)] px-3 text-[14px] font-semibold text-[var(--navy)]"
                 >
                   Another option
                 </button>
@@ -700,7 +700,7 @@ export function QuestionEditor({
                 placeholder="Photograph the obstruction so the engineer can see why there is no deck shot."
                 className={`${field} mt-1.5`}
               />
-              <p className="mt-1.5 text-[12.5px] leading-[1.5] text-[var(--secondary)]">
+              <p className="mt-1.5 text-[13px] leading-[1.5] text-[var(--secondary)]">
                 Shown to anybody who gets this wrong. It is the only thing they receive.
               </p>
             </div>

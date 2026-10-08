@@ -398,6 +398,17 @@ const PORTED = [
    */
   "src/app/portal/(app)/waiting/page.tsx",
   "src/app/portal/(public)/login/LoginForm.tsx",
+  /*
+   * Read from 2026-10-08, when the engineer's screens went to V10: the two-step
+   * setup and challenge, and the protocol document and RC-001's page. Five of
+   * the eighteen files this audit had never read.
+   */
+  "src/app/portal/(public)/mfa/page.tsx",
+  "src/app/portal/(public)/mfa/MfaChallengeForm.tsx",
+  "src/app/portal/(public)/mfa/enrol/page.tsx",
+  "src/app/portal/(public)/mfa/enrol/EnrolForm.tsx",
+  "src/app/portal/(app)/protocols/protocol-document.tsx",
+  "src/app/portal/(app)/protocols/rc-001/page.tsx",
   "src/app/portal/(public)/login/page.tsx",
   "src/app/portal/(public)/set-password/SetPasswordForm.tsx",
   "src/app/portal/(public)/set-password/page.tsx",
@@ -636,6 +647,45 @@ const STAFF_V10 = [
   "src/app/portal/(app)/techs/[id]/RecordTrainingForm.tsx",
   "src/app/portal/(app)/review/TrainingDecisionPanel.tsx",
   "src/components/portal/CredentialTables.tsx",
+  /*
+   * THE SHELL AND THE SHARED BUILDING BLOCKS, restyled to V10 on 2026-10-08
+   * under the operator's ruling 1 of 2026-10-07: Panel, PageHead, the states,
+   * the chip and the record list in surfaces.tsx; the status words, the system
+   * notice, the figure and Panel again in Primitives.tsx. Held to V10's scale
+   * and V10's colour rule from here.
+   */
+  "src/components/portal/surfaces.tsx",
+  "src/components/portal/design/Primitives.tsx",
+  "src/components/portal/design/Table.tsx",
+  "src/components/portal/design/Record.tsx",
+  "src/components/portal/design/Sheet.tsx",
+  /* The shell itself: the navy top bar with its gold rule, the white rail. */
+  "src/app/portal/(app)/layout.tsx",
+  "src/components/portal/PortalChrome.tsx",
+  /*
+   * THE ENGINEER'S SCREENS, 2026-10-08: profile, seal upload, protocols and
+   * signing, the two-step setup and challenge. The review screen and its
+   * panels were already here.
+   */
+  "src/app/portal/(app)/profile/page.tsx",
+  "src/app/portal/(app)/profile/PasswordForm.tsx",
+  "src/app/portal/(app)/profile/PreferencesForm.tsx",
+  "src/app/portal/(app)/profile/seal/page.tsx",
+  "src/app/portal/(app)/profile/seal/SealImageForm.tsx",
+  "src/app/portal/(app)/protocols/page.tsx",
+  "src/app/portal/(app)/protocols/ProtocolsClient.tsx",
+  "src/app/portal/(app)/protocols/SignProtocolPanel.tsx",
+  "src/app/portal/(app)/protocols/protocol-document.tsx",
+  "src/app/portal/(app)/protocols/rc-001/page.tsx",
+  "src/app/portal/(public)/mfa/page.tsx",
+  "src/app/portal/(public)/mfa/MfaChallengeForm.tsx",
+  "src/app/portal/(public)/mfa/enrol/page.tsx",
+  "src/app/portal/(public)/mfa/enrol/EnrolForm.tsx",
+  /* Sign in and set password, which the two-step pages hand back to. */
+  "src/app/portal/(public)/login/page.tsx",
+  "src/app/portal/(public)/login/LoginForm.tsx",
+  "src/app/portal/(public)/set-password/page.tsx",
+  "src/app/portal/(public)/set-password/SetPasswordForm.tsx",
 ];
 
 /** Every file held to V10's interface rules, whichever surface it serves. */
@@ -996,11 +1046,30 @@ for (const [standard, site] of TWINS) {
       "the only uppercase treatments are .portal-kicker and .portal-column-header",
   );
 
-  rec(
-    "the mobile shape overrides live in the token file rather than in components",
-    /@media \(max-width: 767px\)/.test(portalCss) && /--radius-card: 12px/.test(portalCss),
-    "a component hard coding either radius would be wrong at the other width",
-  );
+  /*
+   * THIS PINNED THE OLD STANDARDS FILE'S 12px PHONE CARD UNTIL 2026-10-08.
+   * It read "the mobile shape overrides live in the token file", and asserted
+   * --radius-card: 12px inside the max-width media query. Design V10
+   * (operator rulings of 2026-10-07) forbids rounded panels and makes buttons
+   * 2px at every width, so the phone override is gone and this asserts the V10
+   * rule instead: no radius token rounds more than 2px, at any width, and no
+   * media query rounds anything. The rendered result is v10-layout-audit's.
+   */
+  {
+    const radiusTokens = [...portalCss.matchAll(/--radius-[a-z-]+:\s*(\d+(?:\.\d+)?)px/g)];
+    const tooRound = radiusTokens.filter((m) => Number(m[1]) > 2).map((m) => m[0]);
+    rec(
+      "no radius token rounds more than 2px, at any width (Design V10)",
+      radiusTokens.length > 0 && tooRound.length === 0,
+      tooRound.join(", ") || `${radiusTokens.length} radius tokens, none above 2px`,
+    );
+    const phoneBlock = portalCss.match(/@media \(max-width: 767px\)\s*\{[\s\S]*?\n\}/)?.[0] ?? "";
+    rec(
+      "and the phone does not round anything a desktop does not",
+      !/--radius-/.test(phoneBlock),
+      /--radius-/.test(phoneBlock) ? "a radius override sits inside the phone media query" : "",
+    );
+  }
 
   rec(
     "tabular numerals are on the portal surface",

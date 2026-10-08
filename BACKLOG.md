@@ -11,10 +11,37 @@ with the operator present: 0061 to 0064 applied to production and read back,
 every prediction held, and recorded in `supabase/applied.mjs`; the rollup
 backfill wrote 15 rows for 2026-09-04 to 2026-09-08 (five days, not the two the
 document first named) and read back equal. The credentials column drop was
-deferred out of the release and waits on `migration/credentials-0062`. **Open:**
-Part C, Robert as a field technician (profile, 254 counties, the roof
-certification of 2026-09-23, two credentials, the W-9 and contractor agreement
-covered by the owner exemption in code).
+deferred out of the release and waits on `migration/credentials-0062`. **Part
+C's C1 to C3 ran the same day** (profile, 254 counties, the roof certification
+of 2026-09-23); **C4, his two credentials, waits on his documents.** The W-9
+and contractor agreement are covered by the owner exemption in code.
+
+**WITHDRAWN 2026-10-07: "the People screen's audit row is wrong for Robert's
+profile".** It was diagnosed from code without a production read and it was
+false. The counterpart read production: a new login, `profile.create` event 508
+correctly saying invited, and `auth.set_password` event 509 23 seconds later.
+The corrective event was cancelled unwritten. The account is in the sitting
+document under C1. **What remained open was narrower:** whether
+`createAccount`'s LINKING path, for an address that already has a login, writes
+a false `profile.create` row.
+
+**PROVEN ON DEVELOPMENT 2026-10-07: IT DOES, ON MAIN.** A login made first on the
+probe domain, then the product's `createAccount` for the same address, returned
+`linked: true`, a profile with status `active`, and 0 set password tokens; main's
+People route writes `status: invited` and an invite delivery for every create,
+as a literal. The route itself was not called (it needs a session and a server);
+its diff depends on no data except the delivery choice. Teardown read back
+clean. **`fix/people-linked-audit` (`fe6f898`) records a linked profile as
+linked, and by operator ruling of the same day stays open and is boarded
+together with the credentials screen.**
+
+**AND NO PRODUCTION PROFILE CARRIES A FALSE ENTRY, read by the counterpart on
+2026-10-07.** The query for every profile whose login predates it by more than a
+minute returned one row: `fd2dceac-cb9e-4471-89d5-1b00ab9f25f9`, `ceo@36west.org`,
+active, login 2026-09-02 16:45:18 UTC, profile 17:57:25 UTC, and no
+`profile.create` event at all. That is the first administrator, seeded by
+`scripts/seed-admin.mjs`, not the People screen, so it carries no such row, true
+or false.
 
 ## THE SITTING STAGED 2026-10-08: 0065, THE SEVEN PROTOCOLS AS DRAFTS
 

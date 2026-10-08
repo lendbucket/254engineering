@@ -499,7 +499,7 @@ export default async function ReviewPage({
                                     <img
                                       src={c.url}
                                       alt={`${item.label}, captured ${c.capturedAt ?? "at an unrecorded time"}`}
-                                      className="h-40 w-40 rounded-[3px] border border-[var(--border)] object-cover"
+                                      className="h-40 w-40 rounded-[2px] border border-[var(--border)] object-cover"
                                     />
                                     {/*
                                       254-RC-001 SECTION 9, THE THIRD TIME
@@ -538,7 +538,7 @@ export default async function ReviewPage({
                                     )}
                                   </a>
                                 ) : (
-                                  <p className="border border-[var(--border)] px-3 py-2 text-[14px] text-[var(--ink)]">
+                                  <p className="border-l-2 border-[var(--border)] py-1 pl-3 text-[14px] text-[var(--ink)]">
                                     {c.valueNumber !== null
                                       ? `${c.valueNumber}${c.unit ? ` ${c.unit}` : ""}`
                                       : (c.valueText ?? "Captured")}

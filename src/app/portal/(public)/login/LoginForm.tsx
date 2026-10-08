@@ -70,7 +70,7 @@ export function LoginForm({ next, disabled }: { next: string | null; disabled: b
     <form onSubmit={onSubmit} method="post" action="/api/portal/session" noValidate className="mt-7">
       <input type="hidden" name="next" value={target} />
 
-      <label htmlFor="email" className="block text-[13.5px] font-semibold text-[var(--ink)]">
+      <label htmlFor="email" className="block text-[14px] font-semibold text-[var(--ink)]">
         Email
       </label>
       <input
@@ -92,7 +92,7 @@ export function LoginForm({ next, disabled }: { next: string | null; disabled: b
         className="mt-1.5 min-h-[var(--tap-target)] w-full rounded-[var(--radius-control)] border border-[var(--border-strong)] bg-white px-3 text-[16px] text-[var(--ink)] outline-none focus:border-[var(--navy)]"
       />
 
-      <label htmlFor="password" className="mt-4 block text-[13.5px] font-semibold text-[var(--ink)]">
+      <label htmlFor="password" className="mt-4 block text-[14px] font-semibold text-[var(--ink)]">
         Password
       </label>
       <input
@@ -110,7 +110,7 @@ export function LoginForm({ next, disabled }: { next: string | null; disabled: b
       {error ? (
         <p
           role="alert"
-          className="mt-4 rounded-[var(--radius-control)] border border-[var(--warn-border)] bg-[var(--warn-bg)] px-3 py-2.5 text-[13.5px] leading-[1.5] text-[var(--red)]"
+          className="mt-4 text-[14px] leading-[1.5] font-semibold text-[var(--ink)]"
         >
           {error}
         </p>
@@ -134,7 +134,7 @@ export function LoginForm({ next, disabled }: { next: string | null; disabled: b
         {busy ? "Signing in" : "Sign in"}
       </button>
 
-      <p className="mt-5 text-[13.5px] leading-[1.6] text-[var(--secondary)]">
+      <p className="mt-5 text-[14px] leading-[1.6] text-[var(--secondary)]">
         Accounts are created by an administrator. If you have lost your password, ask them to send a
         reset link.
       </p>

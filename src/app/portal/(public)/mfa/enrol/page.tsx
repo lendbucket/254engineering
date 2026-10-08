@@ -89,7 +89,8 @@ export default async function MfaEnrolPage() {
           <Wordmark height={44} priority />
         </div>
 
-        <div className="rounded-[var(--radius-card)] border border-[var(--border)] bg-white p-5 sm:p-7">
+        {/* V10, as the customer sign in: no card, the content under a 2px ink rule. */}
+        <div className="border-t-2 border-[var(--ink)] pt-5">
           <h1 className="font-display text-[17px] leading-[1.25] font-bold text-[var(--navy)]">
             Set up a second factor
           </h1>

@@ -34,15 +34,20 @@ export function PageHead({
   lede?: string;
   actions?: ReactNode;
 }) {
+  /*
+    DESIGN V10: page title 24 to 28 / 600, letter spacing -0.4, in ink; the meta
+    line under it in secondary. The eyebrow stays as a plain label, in sentence
+    case as written, rather than an uppercase kicker.
+  */
   return (
     <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
       <div className="min-w-0">
-        {eyebrow ? <p className="portal-kicker text-[var(--secondary)]">{eyebrow}</p> : null}
-        <h1 className="mt-1 font-display text-[clamp(17px,3vw,30px)] leading-[1.15] font-bold tracking-[-0.01em] text-[var(--navy)]">
+        {eyebrow ? <p className="text-[13px] font-semibold text-[var(--secondary)]">{eyebrow}</p> : null}
+        <h1 className="mt-1 text-[26px] leading-[1.2] font-semibold tracking-[-0.4px] text-[var(--ink)]">
           {title}
         </h1>
         {lede ? (
-          <p className="mt-2 max-w-[70ch] text-[13.5px] leading-[1.6] text-[var(--secondary)]">{lede}</p>
+          <p className="mt-2 max-w-[70ch] text-[14px] leading-[1.6] text-[var(--secondary)]">{lede}</p>
         ) : null}
       </div>
       {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
@@ -65,28 +70,25 @@ export function Panel({
 }) {
   return (
     /*
-      THE ACCENT BORDER IS GONE.
-
-      The standards file is explicit: no accent borders, top or left, on cards.
-      Every panel carried a 3px navy top rule, which on a screen with six panels
-      is six horizontal lines competing with the content and none of them saying
-      anything. A card is a card because of its border and its ground.
+      DESIGN V10 LAYOUT RULE 1, operator rulings of 2026-10-07: "No boxes.
+      Sections are a heading with a 2px ink rule under it, content below,
+      separated by whitespace. No cards, no shadows, no rounded panels, no
+      tinted backgrounds." This was a bordered white card, and every screen that
+      used it was a stack of cards. It is a section now, under the same name, so
+      every caller changes at once and none is left behind. A section without a
+      title is content under whitespace, nothing more.
     */
-    <section
-      className={`rounded-[var(--radius-card)] border border-[var(--border)] bg-white ${className}`}
-    >
+    <section className={className}>
       {title ? (
-        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--border)] px-[var(--panel-padding)] py-3">
-          <div className="min-w-0">
-            <h2 className="font-display text-[16px] font-bold text-[var(--navy)]">{title}</h2>
-            {description ? (
-              <p className="mt-1 text-[13.5px] leading-[1.55] text-[var(--secondary)]">{description}</p>
-            ) : null}
-          </div>
-          {actions ? <div className="flex gap-2">{actions}</div> : null}
+        <div className="flex flex-wrap items-end justify-between gap-3 border-b-2 border-[var(--ink)] pb-2">
+          <h2 className="min-w-0 text-[15px] font-semibold text-[var(--ink)]">{title}</h2>
+          {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
         </div>
       ) : null}
-      <div className="px-[var(--panel-padding)] py-[var(--panel-padding)]">{children}</div>
+      {title && description ? (
+        <p className="mt-3 max-w-[70ch] text-[14px] leading-[1.55] text-[var(--secondary)]">{description}</p>
+      ) : null}
+      <div className={title ? "mt-4" : ""}>{children}</div>
     </section>
   );
 }
@@ -100,44 +102,41 @@ export function EmptyState({
   body: string;
   action?: ReactNode;
 }) {
+  /* V10: no box, dashed or otherwise. What will appear here, said plainly, where the rows would be. */
   return (
-    <div className="rounded-[var(--radius-card)] border border-dashed border-[var(--border)] px-5 py-10 text-center">
-      <p className="text-[15px] font-semibold text-[var(--navy)]">{title}</p>
-      <p className="mx-auto mt-2 max-w-[52ch] text-[13.5px] leading-[1.6] text-[var(--secondary)]">{body}</p>
-      {action ? <div className="mt-5 flex justify-center">{action}</div> : null}
+    <div className="py-6">
+      <p className="text-[15px] font-semibold text-[var(--ink)]">{title}</p>
+      <p className="mt-2 max-w-[62ch] text-[14px] leading-[1.6] text-[var(--secondary)]">{body}</p>
+      {action ? <div className="mt-4 flex">{action}</div> : null}
     </div>
   );
 }
 
-/** An honest failure. Never a blank screen, never a silent nothing. */
+/**
+ * An honest failure. Never a blank screen, never a silent nothing.
+ *
+ * V10: "No notices or banners" and "No status colors ... Urgency is shown with
+ * weight (bold) and words". This was an amber tinted box. It is the same words,
+ * in ink, the title bold, still announced to a screen reader as an alert.
+ */
 export function ErrorState({ title, body }: { title: string; body: string }) {
   return (
-    <div
-      role="alert"
-      /*
-        A full tinted box, not a card with a red left edge. The standards file
-        rules out accent borders and says alerts are tinted boxes, and a tint is
-        legible at a glance where a 3px edge is not.
-      */
-      className="rounded-[var(--radius-card)] border border-[var(--warn-border)] bg-[var(--warn-bg)] px-5 py-4"
-    >
-      <p className="text-[15px] font-semibold text-[var(--warn-ink)]">{title}</p>
-      <p className="mt-1.5 max-w-[62ch] text-[13.5px] leading-[1.6] text-[var(--warn-ink)]">{body}</p>
+    <div role="alert" className="py-2">
+      <p className="text-[15px] font-semibold text-[var(--ink)]">{title}</p>
+      <p className="mt-1.5 max-w-[62ch] text-[14px] leading-[1.6] text-[var(--ink)]">{body}</p>
     </div>
   );
 }
 
+/**
+ * A short state word. V10 has no badges and no status colour, so the tone that
+ * used to choose a colour now chooses weight: warn and bad are bold ink, good
+ * and neutral are secondary. The word itself carries the meaning.
+ */
 export function Chip({ label, tone = "neutral" }: { label: string; tone?: "neutral" | "good" | "warn" | "bad" }) {
-  const tones = {
-    neutral: "bg-[var(--row-rule)] text-[var(--secondary)] border-[var(--border)]",
-    good: "bg-[var(--green-bg)] text-[var(--green)] border-[var(--green-border)]",
-    warn: "bg-[var(--warn-bg)] text-[var(--warn-ink)] border-[var(--warn-border)]",
-    bad: "bg-[var(--warn-bg)] text-[var(--red)] border-[var(--warn-border)]",
-  } as const;
+  const urgent = tone === "warn" || tone === "bad";
   return (
-    <span
-      className={`portal-kicker inline-block rounded-[var(--radius-pill)] border px-2 py-0.5 ${tones[tone]}`}
-    >
+    <span className={`inline-block text-[13px] ${urgent ? "font-semibold text-[var(--ink)]" : "text-[var(--secondary)]"}`}>
       {label}
     </span>
   );
@@ -161,7 +160,7 @@ export function ButtonLink({
     most of why the portal did not look like the design.
   */
   const base =
-    "inline-flex min-h-[var(--tap-target)] items-center justify-center rounded-[var(--radius-control)] px-4 text-[13.5px] font-bold transition-colors";
+    "inline-flex min-h-[var(--tap-target)] items-center justify-center rounded-[var(--radius-control)] px-4 text-[14px] font-bold transition-colors";
   return (
     <Link
       href={href}
@@ -207,10 +206,10 @@ export function RecordTable<T extends { id: string }>({
 
   return (
     <>
-      {/* Phone: a stack of cards. No sideways scroll, ever. */}
-      <ul className="flex flex-col gap-3 lg:hidden">
+      {/* Phone: rows separated by a 1px rule, V10, not a stack of cards. No sideways scroll, ever. */}
+      <ul className="border-t border-[var(--row-rule)] lg:hidden">
         {rows.map((row) => (
-          <li key={row.id} className="rounded-[var(--radius-card)] border border-[var(--border)] bg-white p-4">
+          <li key={row.id} className="border-b border-[var(--row-rule)] py-3">
             {rowHref ? (
               <Link href={rowHref(row)} className="block">
                 {card(row)}
@@ -244,7 +243,7 @@ export function RecordTable<T extends { id: string }>({
                 {columns.map((c) => (
                   <td
                     key={c.key}
-                    className={`py-[var(--row-padding-y)] pr-4 align-top text-[13.5px] text-[var(--ink)] ${c.wide ? "hidden xl:table-cell" : ""}`}
+                    className={`py-[var(--row-padding-y)] pr-4 align-top text-[14px] text-[var(--ink)] ${c.wide ? "hidden xl:table-cell" : ""}`}
                   >
                     {c.cell(row)}
                   </td>

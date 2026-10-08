@@ -20,8 +20,8 @@ export function SealImageForm({ kind, heading }: { kind: "seal" | "signature"; h
   const [done, setDone] = useState<string | null>(null);
 
   const field =
-    "mt-1.5 min-h-[48px] w-full rounded-[3px] border border-[var(--border)] bg-white px-3 text-[16px] text-[var(--navy)] outline-none focus:border-slate";
-  const label = "block text-[13.5px] font-semibold text-[var(--navy)]";
+    "mt-1.5 min-h-[48px] w-full rounded-[2px] border border-[var(--border)] bg-white px-3 text-[16px] text-[var(--navy)] outline-none focus:border-slate";
+  const label = "block text-[14px] font-semibold text-[var(--navy)]";
   const fileId = `${kind}-file`;
   const codeId = `${kind}-code`;
 
@@ -71,16 +71,16 @@ export function SealImageForm({ kind, heading }: { kind: "seal" | "signature"; h
           required
           className={field}
         />
-        <p className="mt-1.5 text-[12.5px] text-[var(--secondary)]">Six digits. A recovery code is not accepted here.</p>
+        <p className="mt-1.5 text-[13px] text-[var(--secondary)]">Six digits. A recovery code is not accepted here.</p>
       </div>
 
       {error ? (
-        <p role="alert" className="mt-4 rounded-[3px] border border-[var(--warn-border)] bg-[var(--warn-bg)] px-3 py-2.5 text-[13.5px] text-[var(--red)]">
+        <p role="alert" className="mt-4 text-[14px] font-semibold text-[var(--ink)]">
           {error}
         </p>
       ) : null}
       {done ? (
-        <p role="status" className="mt-4 rounded-[3px] border border-[var(--green-border)] bg-[var(--green-bg)] px-3 py-2.5 text-[13.5px] text-[var(--green)]">
+        <p role="status" className="mt-4 text-[14px] text-[var(--ink)]">
           {done}
         </p>
       ) : null}

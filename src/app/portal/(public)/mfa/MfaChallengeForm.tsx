@@ -95,7 +95,7 @@ export function MfaChallengeForm({ breakGlassOffered }: { breakGlassOffered: boo
         <p
           id="mfa-error"
           role="alert"
-          className="rounded-[var(--radius-control)] border border-[var(--red-border)] bg-[var(--red-bg)] px-3 py-2.5 text-[13.5px] leading-[1.55] text-[var(--red)]"
+          className="text-[14px] leading-[1.55] font-semibold text-[var(--ink)]"
         >
           {error}
         </p>
