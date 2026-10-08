@@ -21,6 +21,18 @@ import {
 import { Wordmark } from "@/components/brand/Wordmark";
 
 /**
+ * The portal's name in the V10 top bar, as the reference screens draw it:
+ * "Engineer portal" for the engineer, "Customer service" for that role. Any
+ * other role is the firm's operations.
+ */
+function portalName(role: string): string {
+  if (role === "engineer") return "Engineer portal";
+  if (role === "field_tech") return "Technician portal";
+  if (role === "customer_service") return "Customer service";
+  return "Operations";
+}
+
+/**
  * The portal shell.
  *
  * WHY THE GUARD IS HERE AS WELL AS IN THE PROXY
@@ -119,13 +131,14 @@ export default async function PortalLayout({ children }: { children: React.React
         an interface fastest, and this one ran navy to navy so it was carrying
         no information at all.
       */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[var(--sidebar-width)] flex-col bg-[var(--navy)] lg:flex">
-        <div className="border-b border-white/10 px-5 py-5">
-          <Link href="/portal" aria-label="254 Engineering portal" className="block">
-            <Wordmark onDark height={34} />
-          </Link>
-          <p className="portal-kicker mt-2 text-[var(--gold-bright)]">Operations</p>
-        </div>
+      {/*
+        DESIGN V10 RULE 6, operator rulings of 2026-10-07: "Desktop shell: navy
+        top bar with logo and portal name, 3px gold rule, left nav, white page."
+        The rail was navy and carried the logo; the logo moves to the top bar,
+        which spans the full width, and the rail is white beneath it, starting
+        under the bar and its gold rule.
+      */}
+      <aside className="fixed bottom-0 left-0 top-[calc(var(--header-height)+3px)] z-20 hidden w-[var(--sidebar-width)] flex-col border-r border-[var(--border)] bg-white lg:flex">
         {/*
           min-h-0 is load bearing. A flex child defaults to min-height:auto,
           which refuses to shrink below its content, so flex-1 alone lets the
@@ -140,7 +153,7 @@ export default async function PortalLayout({ children }: { children: React.React
         <div className="portal-rail-scroll min-h-0 flex-1 overflow-y-auto px-3 py-4">
           <SidebarNav items={items} />
         </div>
-        <div className="border-t border-white/10 px-5 py-4">
+        <div className="border-t border-[var(--border)] px-5 py-4">
           {/*
             THE REGISTRATION LINE, NOT A SECOND COPY OF IT.
 
@@ -158,7 +171,7 @@ export default async function PortalLayout({ children }: { children: React.React
             registrationLine() is the one answer, and it is the same sentence
             the public footer and every email footer render.
           */}
-          <p className="text-[12px] leading-[1.5] text-[var(--on-navy-muted)]">
+          <p className="text-[12px] leading-[1.5] text-[var(--secondary)]">
             {registrationLine()}
           </p>
           {/*
@@ -203,7 +216,7 @@ export default async function PortalLayout({ children }: { children: React.React
         </div>
       </aside>
 
-      <div className="flex h-full flex-col lg:block lg:h-auto lg:pl-[var(--sidebar-width)]">
+      <div className="flex h-full flex-col lg:block lg:h-auto lg:pl-[var(--sidebar-width)] lg:pt-[calc(var(--header-height)+3px)]">
         {/*
           WHITE ON DESKTOP, NAVY ON A PHONE, AND THAT IS THE DESIGN.
 
@@ -212,13 +225,19 @@ export default async function PortalLayout({ children }: { children: React.React
           carries the logo; making it white there would leave the screen with no
           brand surface at all and a status bar that does not match the app.
         */}
-        <header className="z-30 shrink-0 border-b border-[var(--border)] bg-[var(--navy)] pt-[env(safe-area-inset-top)] lg:sticky lg:top-0 lg:border-[var(--border)] lg:bg-white">
+        {/*
+          V10: the top bar is navy at EVERY width, with the 3px gold rule under
+          it (rules 6 and 7). On a desktop it spans the full width above the
+          white rail, so it is fixed there and the column is padded beneath it.
+        */}
+        <header className="z-30 shrink-0 border-b-[3px] border-[var(--gold)] bg-[var(--navy)] pt-[env(safe-area-inset-top)] lg:fixed lg:inset-x-0 lg:top-0">
           <div className="flex min-h-[var(--header-height)] items-center gap-2 px-3 sm:px-5">
-            <div className="lg:hidden">
-              <Link href="/portal" aria-label="254 Engineering portal" className="block py-2">
-                <Wordmark onDark height={26} />
-              </Link>
-            </div>
+            <Link href="/portal" aria-label="254 Engineering portal" className="block py-2">
+              <Wordmark onDark height={26} />
+            </Link>
+            <p className="ml-1 hidden border-l border-white/20 pl-3 text-[13px] font-semibold text-[var(--on-navy)] sm:block">
+              {portalName(actor.role)}
+            </p>
             {/*
               The render time, and it is honest rather than decorative.
 
@@ -228,7 +247,7 @@ export default async function PortalLayout({ children }: { children: React.React
               same line would be a lie, which is why it says "data as of" and
               not "last updated".
             */}
-            <p className="ml-3 hidden text-[12px] text-[var(--secondary)] lg:block">
+            <p className="ml-3 hidden text-[12px] text-[var(--on-navy-muted)] lg:block">
               Data as of{" "}
               {new Date().toLocaleTimeString("en-US", {
                 timeZone: "America/Chicago",

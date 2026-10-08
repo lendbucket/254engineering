@@ -137,15 +137,17 @@ export function SidebarNav({ items }: { items: NavItem[] }) {
             key={item.href}
             href={item.href}
             aria-current={active ? "page" : undefined}
-            className={`flex min-h-[var(--tap-target)] items-center gap-3 border-l-[var(--active-bar-width)] px-3 text-[13.5px] font-semibold transition-colors ${
+            /*
+              V10: the rail is white, labels in ink, the active item marked by
+              the 3px gold bar and a light fill, as the reference screens draw
+              it. No icons in the desktop rail; the phone tabs keep theirs.
+            */
+            className={`flex min-h-[var(--tap-target)] items-center gap-3 border-l-[var(--active-bar-width)] px-3 text-[14px] transition-colors ${
               active
-                ? "border-l-[var(--gold)] bg-white/[0.08] text-white active:bg-white/[0.14]"
-                : "border-l-transparent text-white/70 hover:bg-white/[0.05] hover:text-white active:bg-white/[0.14]"
+                ? "border-l-[var(--gold)] bg-[var(--canvas)] font-semibold text-[var(--ink)] active:bg-[var(--row-hover)]"
+                : "border-l-transparent text-[var(--ink)] hover:bg-[var(--row-hover)] active:bg-[var(--canvas)]"
             }`}
           >
-            <span className={active ? "text-[var(--gold-bright)]" : "text-white/55"}>
-              <Icon name={item.icon} />
-            </span>
             {item.label}
           </Link>
         );
@@ -187,7 +189,7 @@ export function MobileTabs({ items }: { items: NavItem[] }) {
               <Link
                 href={item.href}
                 aria-current={active ? "page" : undefined}
-                className={`flex min-h-[56px] flex-col items-center justify-center gap-1 border-t-[var(--active-bar-width)] px-1 py-2 text-[11px] font-semibold ${
+                className={`flex min-h-[56px] flex-col items-center justify-center gap-1 border-t-[var(--active-bar-width)] px-1 py-2 text-[12px] font-semibold ${
                   active
                     ? "border-t-[var(--gold)] text-[var(--gold-bright)] active:bg-white/[0.12]"
                     : "border-t-transparent text-white/65 active:bg-white/[0.12]"
@@ -251,7 +253,7 @@ export function ProfileMenu({
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-haspopup="menu"
-        className="flex min-h-[44px] min-w-[44px] items-center gap-2 rounded-[4px] px-2 text-[var(--on-navy)] hover:bg-white/[0.08] active:bg-white/[0.16] lg:text-[var(--navy)] lg:hover:bg-[var(--canvas)] lg:active:bg-[var(--row-hover)]"
+        className="flex min-h-[44px] min-w-[44px] items-center gap-2 rounded-[2px] px-2 text-[var(--on-navy)] hover:bg-white/[0.08] active:bg-white/[0.16]"
       >
         {/*
           The avatar was a gold disc, which is gold as decoration and the one
@@ -262,18 +264,18 @@ export function ProfileMenu({
           {initials || "?"}
         </span>
         <span className="hidden text-left sm:block">
-          <span className="block text-[13.5px] leading-tight font-semibold">{displayName}</span>
-          <span className="block text-[11px] leading-tight text-[var(--on-navy-dim)] lg:text-[var(--secondary)]">{roleLabel}</span>
+          <span className="block text-[14px] leading-tight font-semibold">{displayName}</span>
+          <span className="block text-[12px] leading-tight text-[var(--on-navy-dim)]">{roleLabel}</span>
         </span>
       </button>
 
       {open ? (
         <div
           role="menu"
-          className="absolute right-0 z-50 mt-2 w-[260px] rounded-[4px] border border-[var(--border)] bg-white p-2 shadow-[var(--shadow-menu)]"
+          className="absolute right-0 z-50 mt-2 w-[260px] rounded-[2px] border border-[var(--border)] bg-white p-2"
         >
           <div className="border-b border-[var(--border)] px-3 pt-2 pb-3">
-            <p className="text-[13.5px] font-semibold text-[var(--navy)]">{displayName}</p>
+            <p className="text-[14px] font-semibold text-[var(--navy)]">{displayName}</p>
             <p className="mt-0.5 text-[12px] break-all text-[var(--secondary)]">{email}</p>
             <p className="portal-kicker mt-1 text-[var(--gold-deep)]">{roleLabel}</p>
           </div>
@@ -281,7 +283,7 @@ export function ProfileMenu({
             href="/portal/profile"
             role="menuitem"
             onClick={() => setOpen(false)}
-            className="mt-1 flex min-h-[44px] items-center rounded-[3px] px-3 text-[13.5px] font-semibold text-[var(--navy)] hover:bg-[var(--canvas)]"
+            className="mt-1 flex min-h-[44px] items-center rounded-[2px] px-3 text-[14px] font-semibold text-[var(--navy)] hover:bg-[var(--canvas)]"
           >
             Your profile and password
           </Link>
@@ -289,7 +291,7 @@ export function ProfileMenu({
             type="button"
             role="menuitem"
             onClick={signOut}
-            className="flex min-h-[44px] w-full items-center rounded-[3px] px-3 text-left text-[13.5px] font-semibold text-[var(--navy)] hover:bg-[var(--canvas)]"
+            className="flex min-h-[44px] w-full items-center rounded-[2px] px-3 text-left text-[14px] font-semibold text-[var(--navy)] hover:bg-[var(--canvas)]"
           >
             Sign out
           </button>
@@ -352,15 +354,16 @@ export function NotificationBell({
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-label={unread ? `Notifications, ${unread} unread` : "Notifications"}
-        className="relative grid h-11 w-11 place-items-center rounded-[4px] text-[var(--on-navy)] hover:bg-white/[0.08] active:bg-white/[0.16] lg:text-[var(--navy)] lg:hover:bg-[var(--canvas)] lg:active:bg-[var(--row-hover)]"
+        className="relative grid h-11 w-11 place-items-center rounded-[2px] text-[var(--on-navy)] hover:bg-white/[0.08] active:bg-white/[0.16]"
       >
         <Icon name="bell" />
         {/*
-          The unread count stays gold, and this is the legitimate use: it is a
-          pending state, which is one of the four things gold is for.
+          V10 has no badges: the unread count was a gold disc. It is the number
+          itself now, bold white beside the bell, and the button's label still
+          says how many are unread.
         */}
         {unread > 0 ? (
-          <span className="absolute top-1.5 right-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-[var(--gold)] px-1 text-[11px] font-bold text-[var(--ink-navy)]">
+          <span className="absolute top-1 right-0.5 text-[12px] leading-none font-bold text-white">
             {unread > 9 ? "9+" : unread}
           </span>
         ) : null}
@@ -381,12 +384,12 @@ export function NotificationBell({
          * and the page was, by that measure, fine. Found by opening the bell in
          * a screenshot and reading the titles.
          */
-        <div className="fixed inset-x-4 top-[calc(60px+env(safe-area-inset-top))] z-50 rounded-[4px] border border-[var(--border)] bg-white shadow-[var(--shadow-menu)] sm:absolute sm:inset-x-auto sm:right-0 sm:top-auto sm:mt-2 sm:w-[340px]">
+        <div className="fixed inset-x-4 top-[calc(60px+env(safe-area-inset-top))] z-50 rounded-[2px] border border-[var(--border)] bg-white sm:absolute sm:inset-x-auto sm:right-0 sm:top-auto sm:mt-2 sm:w-[340px]">
           <p className="portal-kicker border-b border-[var(--border)] px-4 py-3 text-[var(--gold-deep)]">
             Notifications
           </p>
           {items.length === 0 ? (
-            <p className="px-4 py-6 text-[13.5px] leading-[1.6] text-[var(--secondary)]">
+            <p className="px-4 py-6 text-[14px] leading-[1.6] text-[var(--secondary)]">
               Nothing yet. Job offers, review requests, and deadline reminders arrive here.
             </p>
           ) : (
@@ -400,8 +403,8 @@ export function NotificationBell({
                       n.read ? "" : ""
                     }`}
                   >
-                    <p className="text-[13.5px] font-semibold text-[var(--navy)]">{n.title}</p>
-                    {n.body ? <p className="mt-1 text-[13.5px] leading-[1.55] text-[var(--secondary)]">{n.body}</p> : null}
+                    <p className="text-[14px] font-semibold text-[var(--navy)]">{n.title}</p>
+                    {n.body ? <p className="mt-1 text-[14px] leading-[1.55] text-[var(--secondary)]">{n.body}</p> : null}
                   </Link>
                 </li>
               ))}
@@ -451,11 +454,11 @@ export function CommandPalette({ items }: { items: NavItem[] }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="hidden min-h-[40px] items-center gap-2 rounded-[4px] border border-[var(--border)] px-3 text-[13.5px] text-[var(--secondary)] hover:border-[var(--border-strong)] hover:text-[var(--navy)] active:bg-[var(--row-hover)] lg:flex"
+        className="hidden min-h-[40px] items-center gap-2 rounded-[2px] border border-white/25 bg-white/[0.06] px-3 text-[14px] text-[var(--on-navy-muted)] hover:border-white/40 hover:text-white active:bg-white/[0.16] lg:flex"
       >
         <Icon name="search" />
         <span>Search</span>
-        <kbd className="ml-2 rounded-[3px] border border-white/20 px-1.5 py-0.5 text-[11px]">Ctrl K</kbd>
+        <kbd className="ml-2 rounded-[2px] border border-white/20 px-1.5 py-0.5 text-[12px]">Ctrl K</kbd>
       </button>
 
       {open ? (
@@ -466,7 +469,7 @@ export function CommandPalette({ items }: { items: NavItem[] }) {
           <div
             role="dialog"
             aria-label="Command palette"
-            className="mx-auto w-full max-w-[520px] overflow-hidden rounded-[4px] border border-[var(--border)] bg-white shadow-[var(--shadow-modal)]"
+            className="mx-auto w-full max-w-[520px] overflow-hidden rounded-[2px] border border-[var(--border)] bg-white"
           >
             <input
               ref={inputRef}
@@ -485,7 +488,7 @@ export function CommandPalette({ items }: { items: NavItem[] }) {
                       setOpen(false);
                       router.push(item.href);
                     }}
-                    className="flex min-h-[44px] w-full items-center gap-3 px-4 text-left text-[13.5px] font-semibold text-[var(--navy)] hover:bg-[var(--canvas)]"
+                    className="flex min-h-[44px] w-full items-center gap-3 px-4 text-left text-[14px] font-semibold text-[var(--navy)] hover:bg-[var(--canvas)]"
                   >
                     <span className="text-[var(--gold-deep)]">
                       <Icon name={item.icon} />
@@ -495,7 +498,7 @@ export function CommandPalette({ items }: { items: NavItem[] }) {
                 </li>
               ))}
               {matches.length === 0 ? (
-                <li className="px-4 py-4 text-[13.5px] text-[var(--secondary)]">Nothing here matches that.</li>
+                <li className="px-4 py-4 text-[14px] text-[var(--secondary)]">Nothing here matches that.</li>
               ) : null}
             </ul>
             <p className="border-t border-[var(--border)] bg-[var(--canvas)] px-4 py-3 text-[12px] leading-[1.5] text-[var(--secondary)]">
@@ -524,7 +527,7 @@ export function MobileMore({ items }: { items: NavItem[] }) {
         type="button"
         onClick={() => setOpen(true)}
         aria-label="More"
-        className="grid h-11 w-11 place-items-center rounded-[4px] text-[var(--on-navy)] hover:bg-white/[0.08] active:bg-white/[0.16] lg:hidden"
+        className="grid h-11 w-11 place-items-center rounded-[2px] text-[var(--on-navy)] hover:bg-white/[0.08] active:bg-white/[0.16] lg:hidden"
       >
         <Icon name="menu" />
       </button>
@@ -534,7 +537,7 @@ export function MobileMore({ items }: { items: NavItem[] }) {
             <li key={item.href}>
               <Link
                 href={item.href}
-                className="flex min-h-[52px] items-center gap-3 rounded-[3px] px-3 text-[15px] font-semibold text-[var(--navy)] hover:bg-[var(--canvas)] active:bg-[var(--row-hover)]"
+                className="flex min-h-[52px] items-center gap-3 rounded-[2px] px-3 text-[15px] font-semibold text-[var(--navy)] hover:bg-[var(--canvas)] active:bg-[var(--row-hover)]"
               >
                 <span className="text-[var(--secondary)]">
                   <Icon name={item.icon} />

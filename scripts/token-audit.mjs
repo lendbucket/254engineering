@@ -645,6 +645,12 @@ const STAFF_V10 = [
    */
   "src/components/portal/surfaces.tsx",
   "src/components/portal/design/Primitives.tsx",
+  "src/components/portal/design/Table.tsx",
+  "src/components/portal/design/Record.tsx",
+  "src/components/portal/design/Sheet.tsx",
+  /* The shell itself: the navy top bar with its gold rule, the white rail. */
+  "src/app/portal/(app)/layout.tsx",
+  "src/components/portal/PortalChrome.tsx",
 ];
 
 /** Every file held to V10's interface rules, whichever surface it serves. */
