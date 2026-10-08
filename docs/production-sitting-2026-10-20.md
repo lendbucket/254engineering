@@ -305,6 +305,33 @@ from eng_profiles where lower(email) = 'robertreyna88@yahoo.com';
 
 **Predict:** one row, `field_tech`, `invited`, `none`, `0`.
 
+**RAN 2026-10-07. ONE DIFFERENCE, AND IT IS EXPLAINED BY THE CODE, NOT A FAULT
+IN THE ROW.** Profile `c9d46cd2-9ee3-4479-9768-2b27e13c0044`, `field_tech`,
+certification `none`, 0 counties, as predicted, and status **`active`**, not
+`invited`.
+
+`createAccount` in `src/lib/ops-auth.ts` has two outcomes. The production auth
+table is shared with the other applications on the project, and
+`robertreyna88@yahoo.com` already had an auth user there. For an existing
+address the profile is created against that user and is active at once,
+because the person already has a working password: no set password link is
+issued and no password is touched, since resetting it would lock him out of the
+other application. **The prediction was written for the new-address branch and
+should have allowed for either.**
+
+What the invite path does that this one skipped: it creates the auth user,
+issues a one time set password token, and he chooses a password that has never
+existed before. Here he signs in to the portal with the password his existing
+account already uses. The invite email is still queued, in its existing-account
+form, with no link in it.
+
+**And the audit row this wrote is wrong in two fields.** The People route
+records `status: invited` and an `invite_delivery` in the `profile.create` diff
+unconditionally, so for a linked account the permanent trail says invited while
+the row says active, and names a delivery for an invite that has no link. The
+summary sentence beside it is right ("Linked the existing account"). In
+`BACKLOG.md` for a ruling; the row itself cannot be changed.
+
 ### C2. Coverage, all 254 counties
 
 The array below was **generated from `TEXAS_COUNTIES`** in
@@ -358,7 +385,7 @@ select cardinality(coverage_counties) as counties,
 from eng_profiles where lower(email) = 'robertreyna88@yahoo.com';
 ```
 
-**Predict:** `254`, `254`.
+**Predict:** `254`, `254`. **Held on 2026-10-07: 254 counties, 254 distinct.**
 
 ### C3. The roof certification, dated 2026-09-23
 
@@ -397,6 +424,14 @@ where lower(p.email) = 'robertreyna88@yahoo.com';
 
 **Predict:** one row, `roof-inspections`, `certified`, 2026-09-23, `1.1`,
 `certified`.
+
+**Held on 2026-10-07.** The template read returned exactly one row, RC-001 v1.1
+published. The certification read back `roof-inspections`, `certified`,
+`certified_at` 2026-09-23 05:00 UTC (00:00 Central), RC-001 v1.1, and the
+profile's `certification_status` `certified`.
+
+**C4 IS WAITING ON ROBERT'S DOCUMENTS**, as of 2026-10-07. Nothing is written
+for it until he is holding them.
 
 ### C4. His credentials: the licence and the vehicle insurance only
 

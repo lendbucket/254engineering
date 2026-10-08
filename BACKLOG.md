@@ -11,10 +11,20 @@ with the operator present: 0061 to 0064 applied to production and read back,
 every prediction held, and recorded in `supabase/applied.mjs`; the rollup
 backfill wrote 15 rows for 2026-09-04 to 2026-09-08 (five days, not the two the
 document first named) and read back equal. The credentials column drop was
-deferred out of the release and waits on `migration/credentials-0062`. **Open:**
-Part C, Robert as a field technician (profile, 254 counties, the roof
-certification of 2026-09-23, two credentials, the W-9 and contractor agreement
-covered by the owner exemption in code).
+deferred out of the release and waits on `migration/credentials-0062`. **Part
+C's C1 to C3 ran the same day** (profile, 254 counties, the roof certification
+of 2026-09-23); **C4, his two credentials, waits on his documents.** The W-9
+and contractor agreement are covered by the owner exemption in code.
+
+**A defect C1 found, for a ruling: the People screen's audit row is wrong for a
+linked account.** `src/app/api/portal/people/route.ts` writes
+`status: invited` and an `invite_delivery` into every `profile.create` diff.
+When `createAccount` links an address that already has an auth user, the
+profile is ACTIVE and no link exists, so the permanent trail contradicts the
+row. Production's row for Robert's technician profile already carries it, and
+that table refuses edits. The summary sentence beside it is correct. The fix is
+small (write the status the profile actually got, and no delivery for a linked
+account); not made because it changes an audit record's shape.
 
 ## WHAT THE ORDER PATH WALK OF 2026-10-07 LEFT FOR A RULING
 
