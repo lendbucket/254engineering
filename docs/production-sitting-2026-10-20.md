@@ -123,9 +123,54 @@ against the replay's.
 **Then the ledger**: each of 0061 to 0064 gets its `production` record in
 `supabase/applied.mjs` from the pasted output, written by the session afterwards.
 
+### PART A RAN ON 2026-10-07, AND EVERY PREDICTION HELD
+
+Applied by the operator's chat counterpart with the operator present, through
+`apply_migration`, and read back:
+
+| Step | Read back |
+| --- | --- |
+| 0 | shape `e2bc81c9096a0eb4d8b8366ce3aea881`, 1143 columns; tables 81, triggers 69, functions 25 |
+| A1, 0061 | shape `a4af1b6c8fc4cd070e15e9d5346f9004`, 1155; buckets `eng-documents` and `eng-seals` present |
+| A2, 0062 | shape `aff578e18d558ee5af26fb2cb8c9eb88`, 1170 |
+| A3, 0063 | shape unchanged; both suspension triggers present |
+| A4, 0064 | `covers_closing` true |
+| After Part A | tables 83 (+2), functions 36 (+11), triggers 77 (+8) |
+
+**Two departures from the steps as written, both recorded.** A1 left out
+0061's comment blocks as well as its two drop lines, which development had not
+done; the comments carry the words the connector stops on and change nothing in
+the schema. A2 kept the `comment on table eng_seal_acts` statement, whose text
+contains the word delete, and the connector accepted it, so production's table
+carries its description. The trigger count was not predicted absolutely; 77 is
+the replay's own figure at 0063, so production and the replay now agree on all
+three counts. Each migration's record is in `supabase/applied.mjs`.
+
 ---
 
-## Part B. The `eng_cron_runs` rollup backfill, six rows
+## Part B. The `eng_cron_runs` rollup backfill, fifteen rows
+
+> **CORRECTED 2026-10-07, AT THE SITTING, AND RUN THE SAME DAY.** This part was
+> written for two days, six rows, with 2026-09-06 as the control. **Both were
+> wrong.** Production holds no `cron.runs` rollup for ANY day from 2026-09-04
+> to 2026-09-08 (503, 1729, 1729, 1729 and 1729 runs); its rollups begin on
+> 2026-09-09. So the B1 control as first written had nothing stored to compare
+> against, and the hole was five days, not two. The steps below are corrected
+> to what was run: the control on three days that do have a stored rollup, and
+> the backfill over the five-day range. The two-day reasoning that follows
+> immediately below is kept as written, because it is why the range was wrong.
+>
+> **RAN 2026-10-07.** Control: computed equals stored on all nine rows for
+> 2026-09-10, 2026-09-15 and 2026-10-01. Backfill: 15 rows upserted into
+> `eng_metrics_daily`, read back with stored equal to computed on all 15:
+>
+> | Day | `cron.runs` | `cron.failures` | `cron.seconds` |
+> | --- | --- | --- | --- |
+> | 2026-09-04 | 503 | 0 | 417 |
+> | 2026-09-05 | 1729 | 0 | 1299 |
+> | 2026-09-06 | 1729 | 0 | 1249 |
+> | 2026-09-07 | 1729 | 0 | 1374 |
+> | 2026-09-08 | 1729 | 0 | 1781 |
 
 **READ BY THE COUNTERPART ON 2026-10-07: THE ROWS ARE THERE.** Production
 held **503** `eng_cron_runs` rows for 2026-09-04 and **1729** for 2026-09-05
@@ -148,13 +193,15 @@ first**.
 
 ### B1. The control, read only
 
-Run the computation for **2026-09-06**, a day production's rollup did compute,
-beside what it stored:
+Run the computation for days production's rollup DID compute, beside what it
+stored. **Corrected 2026-10-07:** first written for 2026-09-06, which has no
+stored rollup; run instead on **2026-09-10, 2026-09-15 and 2026-10-01**, once
+per day, setting `D` to the day and `D+1` to the next:
 
 ```sql
 with runs as (
   select ok, started_at, finished_at from eng_cron_runs
-  where started_at >= '2026-09-06T00:00:00Z' and started_at < '2026-09-07T00:00:00Z'
+  where started_at >= 'DT00:00:00Z' and started_at < 'D+1T00:00:00Z'
 ), computed as (
   select 'cron.runs' as metric, count(*)::numeric as value from runs
   union all
@@ -164,11 +211,12 @@ with runs as (
            filter (where finished_at is not null and finished_at >= started_at), 0)) from runs
 )
 select c.metric, c.value as computed, m.value as stored
-from computed c left join eng_metrics_daily m on m.day = '2026-09-06' and m.metric = c.metric
+from computed c left join eng_metrics_daily m on m.day = 'D' and m.metric = c.metric
 order by c.metric;
 ```
 
-**Predict:** `computed` equals `stored` on all three rows. **If any differs,
+**Predict:** `computed` equals `stored` on all three rows of each day, nine in
+all. **Held on 2026-10-07.** **If any differs,
 STOP**: either the SQL does not mirror the code, or rows for that day have been
 pruned since the rollup ran, and the backfill would write figures nothing can
 vouch for. (Retention prunes `eng_cron_runs` after its floor, so a day older than
@@ -177,14 +225,15 @@ use a hand count.)
 
 ### B2. The dry run, read only
 
-The same computation for the two days, beside whatever is stored:
+The same computation for the five days, beside whatever is stored:
 
 ```sql
-with days(day) as (values (date '2026-09-04'), (date '2026-09-05')),
+with days(day) as (values (date '2026-09-04'), (date '2026-09-05'), (date '2026-09-06'),
+                          (date '2026-09-07'), (date '2026-09-08')),
 runs as (
   select (started_at at time zone 'UTC')::date as day, ok, started_at, finished_at
   from eng_cron_runs
-  where started_at >= '2026-09-04T00:00:00Z' and started_at < '2026-09-06T00:00:00Z'
+  where started_at >= '2026-09-04T00:00:00Z' and started_at < '2026-09-09T00:00:00Z'
 ), computed as (
   select d.day, 'cron.runs' as metric, count(r.started_at)::numeric as value
     from days d left join runs r on r.day = d.day group by d.day
@@ -201,8 +250,8 @@ from computed c left join eng_metrics_daily m on m.day = c.day and m.metric = c.
 order by c.day, c.metric;
 ```
 
-**Predict:** six rows, `stored` empty on all six (the hole), and `cron.runs`
-greater than zero on both days. **If `cron.runs` is 0 on a day, STOP**: the rows
+**Predict:** fifteen rows, `stored` empty on all fifteen (the hole), and
+`cron.runs` greater than zero on every day. **If `cron.runs` is 0 on a day, STOP**: the rows
 have been pruned and there is nothing to compute from.
 
 ### B3. The write
@@ -212,7 +261,7 @@ insert into eng_metrics_daily (day, metric, value, computed_at)
 with runs as (
   select (started_at at time zone 'UTC')::date as day, ok, started_at, finished_at
   from eng_cron_runs
-  where started_at >= '2026-09-04T00:00:00Z' and started_at < '2026-09-06T00:00:00Z'
+  where started_at >= '2026-09-04T00:00:00Z' and started_at < '2026-09-09T00:00:00Z'
 )
 select day, 'cron.runs', count(*)::numeric, now() from runs group by day
 union all
@@ -229,7 +278,8 @@ exactly as `rollupDay` does.
 
 ### B4. The read-back, its own statement
 
-Run B2 again. **Predict:** `stored` now equals `computed` on all six rows.
+Run B2 again. **Predict:** `stored` now equals `computed` on all fifteen rows.
+**Held on 2026-10-07**, with the figures in the table at the head of this part.
 
 ---
 

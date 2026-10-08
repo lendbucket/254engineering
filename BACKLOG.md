@@ -4,18 +4,17 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
-## THE SITTING FOR `release/2026-10-20`, WRITTEN AND NOT RUN
+## THE SITTING FOR `release/2026-10-20`, PARTS A AND B RUN 2026-10-07, PART C OPEN
 
-`docs/production-sitting-2026-10-20.md`, written 2026-10-07: 0061 to 0064 in
-order (the seal act, the suspension trigger and the closing ruling; the
-credentials column drop was deferred out of the release the same day and waits
-on `migration/credentials-0062`), the six `eng_cron_runs` rollup rows, and
-Robert as a field technician (profile, 254 counties, the roof certification of
-2026-09-23, two credentials, the W-9 and contractor agreement covered by the
-owner exemption in code). **Open:** the rollup's source rows were still on
-production on 2026-10-07 (503 and 1729) though past the 30-day floor, so
-whether Part B runs before the sitting is a question for the operator.
-Development holds 0061 to 0064.
+`docs/production-sitting-2026-10-20.md`. **Parts A and B ran on 2026-10-07**
+with the operator present: 0061 to 0064 applied to production and read back,
+every prediction held, and recorded in `supabase/applied.mjs`; the rollup
+backfill wrote 15 rows for 2026-09-04 to 2026-09-08 (five days, not the two the
+document first named) and read back equal. The credentials column drop was
+deferred out of the release and waits on `migration/credentials-0062`. **Open:**
+Part C, Robert as a field technician (profile, 254 counties, the roof
+certification of 2026-09-23, two credentials, the W-9 and contractor agreement
+covered by the owner exemption in code).
 
 ## WHAT THE ORDER PATH WALK OF 2026-10-07 LEFT FOR A RULING
 

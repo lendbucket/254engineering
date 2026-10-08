@@ -1870,10 +1870,26 @@ export const APPLIED = [
   },
 
   {
-    file: "0061_a_sealed_deliverable_says_who_and_when.sql", appliedBy: null,
+    file: "0061_a_sealed_deliverable_says_who_and_when.sql", appliedBy: "apply_migration",
     fingerprint: "a4af1b6c8fc4cd070e15e9d5346f9004",
     behaviour: "70395f83044f0ac82bb7f26142fa2422",
-    production: null,
+    /*
+     * APPLIED TO PRODUCTION 2026-10-07, in the sitting, by the operator's chat
+     * counterpart through the connector's apply_migration, with the operator
+     * present. Step A1 of docs/production-sitting-2026-10-20.md.
+     *
+     * Left out: the two `drop trigger if exists` lines on eng_seal_images, as on
+     * development, AND every comment block, which development kept. The comments
+     * carry the words the connector stops on and change nothing in the schema;
+     * every statement went as written.
+     *
+     * Read back, every line matching its prediction:
+     *   step 0, before it  shape e2bc81c9096a0eb4d8b8366ce3aea881, 1143 columns;
+     *                      tables 81, triggers 69, functions 25
+     *   after it           shape a4af1b6c8fc4cd070e15e9d5346f9004, 1155 columns;
+     *                      buckets eng-documents and eng-seals present
+     */
+    production: "2026-10-07",
     development: {
       at: "0061",
       behaviour: null,
@@ -1950,10 +1966,20 @@ export const APPLIED = [
   },
 
   {
-    file: "0062_a_seal_is_applied_once_and_locked.sql", appliedBy: null,
+    file: "0062_a_seal_is_applied_once_and_locked.sql", appliedBy: "apply_migration",
     fingerprint: "aff578e18d558ee5af26fb2cb8c9eb88",
     behaviour: "fc232b43290f9f4469aaa485aee07c12",
-    production: null,
+    /*
+     * APPLIED TO PRODUCTION 2026-10-07, in the sitting, through apply_migration
+     * under this number. Step A2. Comment blocks left out; every statement as
+     * written, INCLUDING the `comment on table eng_seal_acts` statement, whose
+     * text contains the word delete and which the connector accepted. So
+     * production's table carries its description, as the file says.
+     *
+     * Read back: shape aff578e18d558ee5af26fb2cb8c9eb88, 1170 columns, as
+     * predicted.
+     */
+    production: "2026-10-07",
     development: {
       at: "0062",
       behaviour: null,
@@ -1991,10 +2017,18 @@ export const APPLIED = [
       "it at the 2026-10-20 sitting, before the release merges.",
   },
   {
-    file: "0063_a_suspension_spends_every_live_link.sql", appliedBy: null,
+    file: "0063_a_suspension_spends_every_live_link.sql", appliedBy: "apply_migration",
     fingerprint: "aff578e18d558ee5af26fb2cb8c9eb88",
     behaviour: "0faddc9ffa103fae0ec8cea6d8fd627f",
-    production: null,
+    /*
+     * APPLIED TO PRODUCTION 2026-10-07, in the sitting, through apply_migration
+     * under this number. Step A3. Comment blocks left out.
+     *
+     * Read back: shape unchanged at aff578e18d558ee5af26fb2cb8c9eb88, 1170
+     * columns; triggers eng_customer_accounts_suspension_spends_links and
+     * eng_customer_users_suspension_spends_links present.
+     */
+    production: "2026-10-07",
     development: {
       at: "0063",
       behaviour: null,
@@ -2023,10 +2057,23 @@ export const APPLIED = [
       "audit event naming the tokens it spent. Production takes it at the 2026-10-20 sitting.",
   },
   {
-    file: "0064_closing_an_account_spends_its_links_too.sql", appliedBy: null,
+    file: "0064_closing_an_account_spends_its_links_too.sql", appliedBy: "apply_migration",
     fingerprint: "aff578e18d558ee5af26fb2cb8c9eb88",
     behaviour: "ab7050e125459faf67d7aad862902aae",
-    production: null,
+    /*
+     * APPLIED TO PRODUCTION 2026-10-07, in the sitting, through apply_migration
+     * under this number. Step A4. Comment blocks left out.
+     *
+     * Read back: covers_closing true.
+     *
+     * AND THE COUNTS AFTER ALL FOUR, read once at the end of Part A: tables 83
+     * (+2), functions 36 (+11), triggers 77 (+8). The table and function counts
+     * were predicted and held. The trigger count was not predicted absolutely,
+     * because production's had never been read against the replay's; it now
+     * has, and 77 is the replay's own figure at 0063, recorded in 0063's note
+     * above. Production and the replay agree on all three counts.
+     */
+    production: "2026-10-07",
     development: {
       at: "0064",
       behaviour: null,
@@ -2055,6 +2102,31 @@ export const APPLIED = [
       "production both take it before the release merges.",
   },
 ];
+
+/*
+ * A PRODUCTION DATA WRITE MADE IN A SITTING, WHICH IS NOT A MIGRATION AND SO
+ * HAS NO ENTRY ABOVE. Recorded here because this file is where a reader looks
+ * for what production was given and when.
+ *
+ * 2026-10-07, Part B of docs/production-sitting-2026-10-20.md, run by the
+ * operator's chat counterpart with the operator present: the eng_cron_runs
+ * rollup backfill. Production held no cron.runs rollup for 2026-09-04 to
+ * 2026-09-08; its rollups begin on 2026-09-09. The SQL is rollupDay's own
+ * computation, checked first against the rollup's stored output on 2026-09-10,
+ * 2026-09-15 and 2026-10-01 (computed equals stored on all nine rows), then
+ * upserted on the rollup's key. 15 rows into eng_metrics_daily, read back with
+ * stored equal to computed on all 15:
+ *
+ *   day          cron.runs  cron.failures  cron.seconds
+ *   2026-09-04         503              0           417
+ *   2026-09-05        1729              0          1299
+ *   2026-09-06        1729              0          1249
+ *   2026-09-07        1729              0          1374
+ *   2026-09-08        1729              0          1781
+ *
+ * The sitting document first named two days and six rows; the hole was five
+ * days. Corrected in that document before it ran.
+ */
 
 /**
  * WHAT THE SECOND FINGERPRINT FOUND ON ITS FIRST RUN.
