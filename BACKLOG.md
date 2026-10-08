@@ -16,6 +16,14 @@ Part C, Robert as a field technician (profile, 254 counties, the roof
 certification of 2026-09-23, two credentials, the W-9 and contractor agreement
 covered by the owner exemption in code).
 
+## THE SITTING STAGED 2026-10-08: 0065, THE SEVEN PROTOCOLS AS DRAFTS
+
+`docs/production-sitting-2026-10-08.md`. One migration, `feat/protocols-v1-1`,
+written overnight and applied nowhere: seven `eng_protocol_templates` rows at
+v1.1, status draft, with each PDF's digest. Development first, then
+production, each with a read-back and prediction. The branch merges only after
+the ledger records both, under the operator's word. It opens no line.
+
 ## THE V10 LAYOUT CHECK, RULED 2026-10-07, NOT YET BUILT
 
 Operator rulings 2 and 3 of 2026-10-07. A board check that MEASURES THE
