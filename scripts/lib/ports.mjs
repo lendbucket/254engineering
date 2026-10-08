@@ -146,6 +146,12 @@ export const PORTS = {
   exploratory: PORT_BASE + 18,
   /** wordmark-measure.mjs. Was 3231, which break-glass-audit also used. */
   wordmarkMeasure: PORT_BASE + 19,
+  /**
+   * compliance-audit's rendered public pages, 2026-10-08. It runs in phase two,
+   * where the board passes no BASE_URL, so the check that the engineer's licence
+   * number is on no public page starts the production build here itself.
+   */
+  compliancePublic: PORT_BASE + 20,
 };
 
 /**
@@ -180,4 +186,4 @@ export const ALL_PORTS = Object.values(PORTS);
  * The top of the block, exclusive, for a check that wants to know whether a
  * literal somebody wrote falls inside our range.
  */
-export const PORT_RANGE = { from: PORT_BASE, to: PORT_BASE + 20 };
+export const PORT_RANGE = { from: PORT_BASE, to: PORT_BASE + 21 };

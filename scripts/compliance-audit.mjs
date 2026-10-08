@@ -2393,12 +2393,19 @@ const RULED_CONDITIONS = [
  * block carrying the number is found as surely as a paragraph. sitemap.xml and
  * robots.txt are searched themselves, not only used to find routes.
  *
- * ON THE BOARD, NOT MEASURING IS A FAILURE. Same ruling. When BASE_URL is set,
- * a sitemap that does not answer, a page that cannot be read, or a sitemap
- * shorter than the site are each FAIL, never COULD NOT TELL: the board is the
- * one place this check is guaranteed a server, so a check that did not look
- * there has not been done. Only a standalone run with no BASE_URL at all may
- * say COULD NOT TELL, and that is not counted as a pass.
+ * ON THE BOARD, NOT MEASURING IS A FAILURE. Same ruling. A sitemap that does
+ * not answer, a page that cannot be read, a sitemap shorter than the site, or
+ * no server at all are each FAIL on the board, never COULD NOT TELL.
+ *
+ * AND THE BOARD DOES NOT HAND THIS AUDIT A SERVER, which the first version of
+ * this check assumed. compliance-audit runs in PHASE TWO, whose audits start
+ * their own servers and are given no BASE_URL; on the board of 2026-10-08 the
+ * check reported COULD NOT TELL and the audit passed, the exact outcome the
+ * ruling forbids. So with no BASE_URL it starts the production build the board
+ * has just made, on its own declared port, as its phase two neighbours do. It
+ * knows it is on the board by MACHINE_LOCK_HELD, which the runner sets for every
+ * audit. Only a standalone run with no BASE_URL and no build may say COULD NOT
+ * TELL, and that is not counted as a pass.
  */
 {
   const NAME = "no public page carries the engineer's licence number or appointment number";
@@ -2408,9 +2415,27 @@ const RULED_CONDITIONS = [
     ...verifiedEngineers.map((e) => String(e.licenseNumber)),
     ...verifiedCredentials.filter((c) => /TDI|Department of Insurance/i.test(c.issuer + c.name) && c.identifier).map((c) => String(c.identifier)),
   ]);
-  const base = process.env.BASE_URL;
+  const onBoard = Boolean(process.env.MACHINE_LOCK_HELD);
+  let base = process.env.BASE_URL ?? null;
+  let ownServer = null;
+  let noServer = null;
   if (!base) {
-    rec(NAME, "could-not-tell", "no server: BASE_URL is unset, so no rendered page was read. The board sets it, and there this cannot pass without reading");
+    const { existsSync } = await import("node:fs");
+    if (!existsSync(".next/BUILD_ID")) {
+      noServer = "no BASE_URL and no production build in .next, so no rendered page was read";
+    } else {
+      try {
+        const { startNextServer } = await import("./lib/dev-server.mjs");
+        const { PORTS } = await import("./lib/ports.mjs");
+        ownServer = await startNextServer({ port: PORTS.compliancePublic, command: "start", timeoutMs: 180_000 });
+        base = ownServer.base;
+      } catch (err) {
+        noServer = `the production build could not be started: ${err instanceof Error ? err.message : String(err)}`;
+      }
+    }
+  }
+  if (!base) {
+    rec(NAME, onBoard ? false : "could-not-tell", onBoard ? `ON THE BOARD, and ${noServer}` : `${noServer}. On the board this is a FAIL`);
   } else {
     const found = [];
     const unreadable = [];
@@ -2444,9 +2469,10 @@ const RULED_CONDITIONS = [
           ? `${unreadable.length} response(s) could not be read, so this did not measure them: ${unreadable.slice(0, 4).join("; ")}`
           : routes.length < 50
             ? `the sitemap at ${base} listed ${routes.length} routes, which is not the site, so this did not measure it`
-            : `${pages.length + 1} documents read whole, head included, for ${[...forbidden].length} number(s), none found`,
+            : `${pages.length + 1} documents read whole, head included, for ${[...forbidden].length} number(s), none found${ownServer ? `, from the production build it started on ${base}` : ""}`,
     );
   }
+  if (ownServer) await ownServer.stop();
 }
 
 /* ----------------------------------------------------------------- verdict */

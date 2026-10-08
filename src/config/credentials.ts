@@ -1016,7 +1016,7 @@ export const verifiedCredentials: HeldCredential[] = [
     verified:
       "Robert Reyna, operator, has seen TDI's appointment letter, dated 2026-09-23, appointing Aman " +
       "Dhakal, P.E. as a windstorm inspector under number 143295, and confirmed the number to this " +
-      "session on 2026-10-08. The number equals his PE licence number, which is why it was held back " +
+      "session on 2026-10-08. The number equals his PE license number, which is why it was held back " +
       "until confirmed. The letter is the authority this entry cites; a copy is requested for the " +
       "firm's file. Before 2026-10-08 this read: no engineer at this firm holds a TDI windstorm " +
       "inspector appointment, as of 2026-09-17.",
