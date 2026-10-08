@@ -43,6 +43,15 @@ active, login 2026-09-02 16:45:18 UTC, profile 17:57:25 UTC, and no
 `scripts/seed-admin.mjs`, not the People screen, so it carries no such row, true
 or false.
 
+## THE SITTING OF 2026-10-08: 0065, THE SEVEN PROTOCOLS AS DRAFTS, RUN
+
+`docs/production-sitting-2026-10-08.md`. One migration, `feat/protocols-v1-1`:
+seven `eng_protocol_templates` rows at v1.1, status draft, with each PDF's
+digest. **Applied to development and production on 2026-10-08 by the
+counterpart and read back on both, every prediction held**, recorded in the
+ledger. It opens no line. What stays open: Aman signs each in the portal, and
+loading them into the portal follows 10-20.
+
 ## THE V10 LAYOUT CHECK, RULED 2026-10-07, NOT YET BUILT
 
 Operator rulings 2 and 3 of 2026-10-07. A board check that MEASURES THE

@@ -1,0 +1,157 @@
+/**
+ * EMIT THE ONE MIGRATION THAT ENTERS THE SEVEN v1.1 PROTOCOLS AS DRAFTS.
+ *
+ *   npx tsx --conditions=react-server scripts/emit-received-protocols-migration.mjs           (check only)
+ *   npx tsx --conditions=react-server scripts/emit-received-protocols-migration.mjs --write   (write the file)
+ *
+ * Operator order of 2026-10-07, item 3 of the overnight run: Aman's seven v1.1
+ * protocols, one draft migration for all seven, staged for the sitting, no line
+ * opened. The transcriptions are RECEIVED_PROTOCOLS in
+ * src/content/protocols/received.ts, proved word for word against the PDFs by
+ * protocol-registry-audit section 8.
+ *
+ * WHAT THE MIGRATION SEEDS IS A DRAFT, AND DRAFT IS THE TRUE WORD. 0049 defines
+ * it: the engineer has not signed. These seven carry his typed name and no
+ * signature; he signs each in the portal (ruling 2a of 2026-10-06), and that
+ * signature is a seal record keyed by document and version, which needs no row
+ * here. A draft row carries no signature date, no approver and no publication
+ * date, so nothing in it can open a line: the line gate reads the signed record
+ * and the offered lines in configuration, and offered lines stay roof only.
+ *
+ * NO HAND-TYPED DIGEST. Each PDF on disk is hashed here and must equal the
+ * declaration's sourceSha256, or nothing is written. The version integer is the
+ * line's next free number at the moment each insert runs, because
+ * unique (service_slug, version) is per line, WP-001 and WS-001 share
+ * windstorm-wpi-8, and production's existing numbers are not read from here.
+ *
+ * The emitted file avoids two words the Supabase connector refuses anywhere in
+ * a statement or comment (docs/production-sitting-2026-10-20.md); this script
+ * asserts that before writing.
+ */
+import { createHash } from "node:crypto";
+import { readFileSync, writeFileSync } from "node:fs";
+
+const OUT = "supabase/migrations/0065_seven_protocols_enter_as_drafts.sql";
+const WRITE = process.argv.includes("--write");
+
+const { RECEIVED_PROTOCOLS } = await import("../src/content/protocols/received.ts");
+
+const q = (s) => `'${String(s).replace(/'/g, "''")}'`;
+const problems = [];
+const rows = [];
+for (const p of RECEIVED_PROTOCOLS) {
+  const d = p.declaration;
+  const onDisk = createHash("sha256").update(readFileSync(d.sourceFile)).digest("hex");
+  if (onDisk !== d.sourceSha256) problems.push(`${d.documentNumber}: the PDF on disk hashes ${onDisk}, the declaration records ${d.sourceSha256}`);
+  rows.push(d);
+}
+if (rows.length !== 7) problems.push(`expected seven received protocols, found ${rows.length}`);
+if (problems.length) {
+  console.error("STOP, nothing written:\n  " + problems.join("\n  "));
+  process.exit(1);
+}
+
+const blocks = rows.map((d) => {
+  const summary =
+    `${d.documentNumber} v${d.version}, issued ${d.issueDate}, received as a PDF with the engineer's typed name ` +
+    `and no signature. A draft until he signs it in the portal.` +
+    (d.serviceTier ? ` Covers the ${d.serviceTier} construction tier of this line.` : "");
+  return `-- ${d.documentNumber} v${d.version}: ${d.title}
+do $$
+declare
+  wrong integer;
+begin
+  select count(*) into wrong
+  from eng_protocol_templates
+  where document_number = ${q(d.documentNumber)}
+    and version_label   = ${q(d.version)}
+    and document_sha256 is distinct from ${q(d.sourceSha256)};
+  if wrong > 0 then
+    raise exception
+      'eng: % row(s) already record % v% under a different document digest. Somebody must decide which document this protocol is.',
+      wrong, ${q(d.documentNumber)}, ${q(d.version)};
+  end if;
+end;
+$$;
+
+insert into eng_protocol_templates (
+  service_slug, name, version, version_label, status, summary, document_number, issue_date, document_sha256, firm_name_on_document, requires_discipline, document_signed_at
+)
+select
+  ${q(d.serviceSlug)}, ${q(d.title)},
+  coalesce((select max(version) from eng_protocol_templates where service_slug = ${q(d.serviceSlug)}), 0) + 1,
+  ${q(d.version)}, 'draft', ${q(summary)}, ${q(d.documentNumber)}, ${q(d.issueDate)}, ${q(d.sourceSha256)},
+  ${q(d.firmNameOnDocument)}, null, null
+where not exists (
+  select 1 from eng_protocol_templates
+  where document_number = ${q(d.documentNumber)}
+    and version_label   = ${q(d.version)}
+);
+
+do $$
+declare
+  n integer;
+begin
+  select count(*) into n
+  from eng_protocol_templates
+  where document_number = ${q(d.documentNumber)}
+    and version_label   = ${q(d.version)}
+    and status          = 'draft'
+    and document_sha256 = ${q(d.sourceSha256)};
+  if n <> 1 then
+    raise exception 'eng: % draft row(s) record % v% with its digest and exactly one is required.',
+      n, ${q(d.documentNumber)}, ${q(d.version)};
+  end if;
+end;
+$$;
+`;
+});
+
+const header = `/*
+ * ===========================================================================
+ * 0065  THE SEVEN v1.1 PROTOCOLS ENTER THE PLATFORM AS DRAFTS.
+ * ===========================================================================
+ *
+ * GENERATED BY scripts/emit-received-protocols-migration.mjs --write. Not hand
+ * edited. The generator hashes each PDF in docs/protocols/incoming/v1.1 and
+ * writes nothing if a digest disagrees with the transcription's declaration.
+ *
+ * ${rows.map((d) => `${d.documentNumber} v${d.version}`).join(", ")}.
+ *
+ * DRAFT IS THE TRUE STATUS: the engineer of record has not signed these. He
+ * signs each in the portal from his own session, and that signature is a seal
+ * record, not a column here. A draft row holds no signature date, no approver
+ * and no publication date (0049's constraints), so this migration cannot open a
+ * line. Offered lines stay roof only, in configuration.
+ *
+ * The version integer is each line's next free number when its insert runs,
+ * because unique (service_slug, version) is per line and 254-WP-001 and
+ * 254-WS-001 both describe windstorm-wpi-8.
+ *
+ * Each insert is guarded by NOT EXISTS and followed by an assertion that
+ * exactly one draft row names that document at that version with its digest,
+ * so applying it twice changes nothing and a silent miss rolls back.
+ *
+ * No table, column, constraint, index, trigger or function changes, so neither
+ * the shape fingerprint nor any count moves; the read back is the rows.
+ */
+
+`;
+const sql = header + blocks.join("\n");
+
+const refused = sql.match(/\b(drop|delete)\b/gi);
+if (refused) {
+  console.error(`STOP, nothing written: the emitted SQL contains ${[...new Set(refused)].join(", ")}, which the connector refuses.`);
+  process.exit(1);
+}
+
+if (!WRITE) {
+  let same = false;
+  try {
+    same = readFileSync(OUT, "utf8") === sql;
+  } catch {}
+  console.log(`${same ? "UNCHANGED" : "WOULD WRITE"}: ${OUT}, seven drafts, every PDF digest agreeing.`);
+  process.exit(same ? 0 : 1);
+}
+writeFileSync(OUT, sql);
+console.log(`WROTE ${OUT}: seven drafts, every PDF digest agreeing.`);
