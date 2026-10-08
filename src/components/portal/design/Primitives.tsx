@@ -32,7 +32,7 @@ type ButtonProps = {
 
 const BUTTON_BASE =
   "inline-flex items-center justify-center gap-2 rounded-[var(--radius-control)] " +
-  "min-h-[var(--tap-target)] px-4 text-[13.5px] transition-colors disabled:opacity-45 " +
+  "min-h-[var(--tap-target)] px-4 text-[14px] transition-colors disabled:opacity-45 " +
   "disabled:cursor-not-allowed";
 
 /**
@@ -84,7 +84,7 @@ export function SecondaryButton({ children, className = "", href, ...rest }: But
 export function ToolbarButton({ children, className = "", href, ...rest }: ButtonProps) {
   const cls =
     "inline-flex items-center gap-1.5 rounded-[var(--radius-control)] border " +
-    "border-[var(--border-strong)] bg-white px-3 py-1.5 text-[12.5px] font-semibold " +
+    "border-[var(--border-strong)] bg-white px-3 py-1.5 text-[13px] font-semibold " +
     `text-[var(--navy)] hover:bg-[var(--row-hover)] active:bg-[var(--canvas)] ` +
     `disabled:opacity-45 ${className}`;
   return href ? (
@@ -110,37 +110,33 @@ export function ToolbarButton({ children, className = "", href, ...rest }: Butto
  */
 export type StatusTone = "good" | "pending" | "in-motion" | "inert" | "failed";
 
-const DOT_COLOUR: Record<StatusTone, string> = {
-  good: "bg-[var(--green)]",
-  pending: "bg-[var(--gold)]",
-  "in-motion": "bg-[var(--navy)]",
-  inert: "bg-[var(--muted)]",
-  failed: "bg-[var(--red)]",
+/*
+ * DESIGN V10: "No status colors. No red, green or amber anywhere in the UI.
+ * Urgency is shown with weight (bold) and words ... never with color, dots,
+ * badges or tinted boxes." The dot and the pill below keep their names and
+ * their tone argument so no caller changes, and render a word: failed and
+ * pending in bold ink, the rest in secondary. The colour maps they painted
+ * with are removed rather than kept unread; git holds what they were.
+ */
+const URGENT_TONE: Record<StatusTone, boolean> = {
+  good: false,
+  pending: true,
+  "in-motion": false,
+  inert: false,
+  failed: true,
 };
 
 export function StatusDot({ tone, label }: { tone: StatusTone; label: string }) {
   return (
-    <span className="inline-flex items-center gap-2 text-[12.5px] text-[var(--ink)]">
-      <span className={`h-[7px] w-[7px] shrink-0 rounded-full ${DOT_COLOUR[tone]}`} aria-hidden="true" />
+    <span className={`inline-block text-[13px] ${URGENT_TONE[tone] ? "font-semibold text-[var(--ink)]" : "text-[var(--secondary)]"}`}>
       {label}
     </span>
   );
 }
 
-const PILL_SKIN: Record<StatusTone, string> = {
-  good: "bg-[var(--green-bg)] border-[var(--green-border)] text-[var(--green)]",
-  pending: "bg-[var(--warn-bg)] border-[var(--warn-border)] text-[var(--warn-ink)]",
-  "in-motion": "bg-[var(--row-rule)] border-[var(--border)] text-[var(--navy)]",
-  inert: "bg-[var(--row-rule)] border-[var(--border)] text-[var(--secondary)]",
-  failed: "bg-[var(--warn-bg)] border-[var(--warn-border)] text-[var(--red)]",
-};
-
 export function StatusPill({ tone, children }: { tone: StatusTone; children: ReactNode }) {
   return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-[var(--radius-pill)] border px-2.5 py-0.5 text-[12px] font-semibold ${PILL_SKIN[tone]}`}
-    >
-      <span className={`h-[7px] w-[7px] shrink-0 rounded-full ${DOT_COLOUR[tone]}`} aria-hidden="true" />
+    <span className={`inline-block text-[13px] ${URGENT_TONE[tone] ? "font-semibold text-[var(--ink)]" : "text-[var(--secondary)]"}`}>
       {children}
     </span>
   );
@@ -168,30 +164,15 @@ export function SystemAlert({
   children: ReactNode;
   tone?: "pending" | "failed";
 }) {
+  /*
+    V10: "No notices or banners. Status goes in a plain line of text." This was
+    an amber tinted box with a warning icon. It is one line now, the condition
+    in bold ink and the rest in ink, still announced as an alert or a status.
+  */
   return (
-    <div
-      role={tone === "failed" ? "alert" : "status"}
-      className="flex gap-3 rounded-[var(--radius-card)] border border-[var(--warn-border)] bg-[var(--warn-bg)] px-4 py-3"
-    >
-      <svg
-        aria-hidden="true"
-        viewBox="0 0 24 24"
-        className={`mt-0.5 h-4 w-4 shrink-0 ${tone === "failed" ? "stroke-[var(--red)]" : "stroke-[var(--gold-deep)]"}`}
-        fill="none"
-        strokeWidth="2"
-        strokeLinecap="round"
-      >
-        <path d="M12 8v5" />
-        <path d="M12 16.5h.01" />
-        <circle cx="12" cy="12" r="9" />
-      </svg>
-      <p className="text-[13.5px] leading-[1.55] text-[var(--warn-ink)]">
-        <strong className={tone === "failed" ? "font-bold text-[var(--red)]" : "font-bold"}>
-          {condition}
-        </strong>{" "}
-        {children}
-      </p>
-    </div>
+    <p role={tone === "failed" ? "alert" : "status"} className="max-w-[72ch] text-[14px] leading-[1.55] text-[var(--ink)]">
+      <strong className="font-semibold">{condition}</strong> {children}
+    </p>
   );
 }
 
@@ -221,7 +202,7 @@ export function SystemAlert({
  */
 export function AbsentChip({ children = "not set" }: { children?: ReactNode }) {
   return (
-    <span className="inline-block rounded-[var(--radius-chip)] border border-dashed border-[var(--border-strong)] px-1.5 py-px text-[12px] italic text-[var(--secondary)]">
+    <span className="inline-block text-[13px] italic text-[var(--secondary)]">
       {children}
     </span>
   );
@@ -264,22 +245,19 @@ export function Panel({
   children: ReactNode;
   className?: string;
 }) {
+  /* V10 layout rule 1, as the Panel in surfaces.tsx: a heading over a 2px ink rule, content below, no card. */
   return (
-    <section
-      className={`rounded-[var(--radius-card)] border border-[var(--border)] bg-white ${className}`}
-    >
+    <section className={className}>
       {title ? (
-        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--border)] px-[var(--panel-padding)] py-3">
-          <div className="min-w-0">
-            <h2 className="font-display text-[16px] font-bold text-[var(--navy)]">{title}</h2>
-            {description ? (
-              <p className="mt-1 text-[13.5px] leading-[1.55] text-[var(--secondary)]">{description}</p>
-            ) : null}
-          </div>
+        <div className="flex flex-wrap items-end justify-between gap-3 border-b-2 border-[var(--ink)] pb-2">
+          <h2 className="min-w-0 text-[15px] font-semibold text-[var(--ink)]">{title}</h2>
           {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
         </div>
       ) : null}
-      <div className="px-[var(--panel-padding)] py-[var(--panel-padding)]">{children}</div>
+      {title && description ? (
+        <p className="mt-3 max-w-[70ch] text-[14px] leading-[1.55] text-[var(--secondary)]">{description}</p>
+      ) : null}
+      <div className={title ? "mt-4" : ""}>{children}</div>
     </section>
   );
 }
@@ -296,18 +274,16 @@ export function Figure({
   note?: ReactNode;
   tone?: "neutral" | "warn" | "bad";
 }) {
-  const colour =
-    tone === "bad"
-      ? "text-[var(--red)]"
-      : tone === "warn"
-        ? "text-[var(--gold-deep)]"
-        : "text-[var(--navy)]";
+  /*
+    V10's KPI row: "label, value 26/600, change in faint text ... No dividers,
+    no color." This was a bordered card with the value in red or gold for a bad
+    or warn tone. The tone now only underlines the label's weight; the value is
+    ink, unboxed.
+  */
   return (
-    <div className="rounded-[var(--radius-card)] border border-[var(--border)] bg-white px-4 py-3">
-      <p className="portal-column-header">{label}</p>
-      <p className={`mt-1 font-display text-[24px] leading-[1.1] font-bold tabular-nums ${colour}`}>
-        {value}
-      </p>
+    <div className="py-1">
+      <p className={`text-[13px] ${tone === "neutral" ? "text-[var(--secondary)]" : "font-semibold text-[var(--ink)]"}`}>{label}</p>
+      <p className="mt-1 text-[26px] leading-[1.1] font-semibold tabular-nums text-[var(--ink)]">{value}</p>
       {note ? <p className="mt-1 text-[12px] leading-[1.5] text-[var(--secondary)]">{note}</p> : null}
     </div>
   );

@@ -636,6 +636,15 @@ const STAFF_V10 = [
   "src/app/portal/(app)/techs/[id]/RecordTrainingForm.tsx",
   "src/app/portal/(app)/review/TrainingDecisionPanel.tsx",
   "src/components/portal/CredentialTables.tsx",
+  /*
+   * THE SHELL AND THE SHARED BUILDING BLOCKS, restyled to V10 on 2026-10-08
+   * under the operator's ruling 1 of 2026-10-07: Panel, PageHead, the states,
+   * the chip and the record list in surfaces.tsx; the status words, the system
+   * notice, the figure and Panel again in Primitives.tsx. Held to V10's scale
+   * and V10's colour rule from here.
+   */
+  "src/components/portal/surfaces.tsx",
+  "src/components/portal/design/Primitives.tsx",
 ];
 
 /** Every file held to V10's interface rules, whichever surface it serves. */
@@ -996,11 +1005,30 @@ for (const [standard, site] of TWINS) {
       "the only uppercase treatments are .portal-kicker and .portal-column-header",
   );
 
-  rec(
-    "the mobile shape overrides live in the token file rather than in components",
-    /@media \(max-width: 767px\)/.test(portalCss) && /--radius-card: 12px/.test(portalCss),
-    "a component hard coding either radius would be wrong at the other width",
-  );
+  /*
+   * THIS PINNED THE OLD STANDARDS FILE'S 12px PHONE CARD UNTIL 2026-10-08.
+   * It read "the mobile shape overrides live in the token file", and asserted
+   * --radius-card: 12px inside the max-width media query. Design V10
+   * (operator rulings of 2026-10-07) forbids rounded panels and makes buttons
+   * 2px at every width, so the phone override is gone and this asserts the V10
+   * rule instead: no radius token rounds more than 2px, at any width, and no
+   * media query rounds anything. The rendered result is v10-layout-audit's.
+   */
+  {
+    const radiusTokens = [...portalCss.matchAll(/--radius-[a-z-]+:\s*(\d+(?:\.\d+)?)px/g)];
+    const tooRound = radiusTokens.filter((m) => Number(m[1]) > 2).map((m) => m[0]);
+    rec(
+      "no radius token rounds more than 2px, at any width (Design V10)",
+      radiusTokens.length > 0 && tooRound.length === 0,
+      tooRound.join(", ") || `${radiusTokens.length} radius tokens, none above 2px`,
+    );
+    const phoneBlock = portalCss.match(/@media \(max-width: 767px\)\s*\{[\s\S]*?\n\}/)?.[0] ?? "";
+    rec(
+      "and the phone does not round anything a desktop does not",
+      !/--radius-/.test(phoneBlock),
+      /--radius-/.test(phoneBlock) ? "a radius override sits inside the phone media query" : "",
+    );
+  }
 
   rec(
     "tabular numerals are on the portal surface",
