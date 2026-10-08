@@ -861,9 +861,17 @@ rec(
  * `border-l-[var(--active-bar-width)]` compiles to border-left-COLOR, because
  * Tailwind cannot see that a variable holds a length, so the active nav bar in
  * the staff rail and both phone tab bars had no width and their gold marker
- * never rendered, for as long as they existed. `border-l-[length:var(...)]` is
- * the form that sets the width. Refused in its bare form on every signed in
- * file, for any variable whose name says it is a width or a size.
+ * never rendered, for as long as they existed. Putting the `length:` type hint
+ * first inside the brackets is the form that sets the width. Refused in its
+ * bare form on every signed in file, for any variable whose name says it is a
+ * width or a size.
+ *
+ * AND NEVER WRITE A WHOLE CLASS IN A COMMENT TO ILLUSTRATE IT. Tailwind v4 scans
+ * every file in the project, comments and scripts included, and generates CSS
+ * for any string shaped like a class. The first version of this comment spelled
+ * the corrected class with "..." for the variable, Tailwind emitted
+ * `border-left-width: var(...)`, the development server could not parse its own
+ * stylesheet, and contrast-audit's server answered 500 and never came up.
  */
 const BARE_WIDTH = /(?:border|outline|divide)(?:-[trblxyse])?-\[var\(--[a-z0-9-]*(?:width|size|thick)[a-z0-9-]*\)\]/g;
 const bareWidth = [];
@@ -873,7 +881,7 @@ for (const file of allPortalFiles) {
 rec(
   "no border width is given through a variable without its length hint",
   bareWidth.length === 0,
-  bareWidth.length ? `${bareWidth.slice(0, 6).join("  |  ")} (write it border-l-[length:var(--x)])` : `${allPortalFiles.length} file(s) read`,
+  bareWidth.length ? `${bareWidth.slice(0, 6).join("  |  ")} (put the length: type hint first inside the brackets)` : `${allPortalFiles.length} file(s) read`,
 );
 
 /*

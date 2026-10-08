@@ -65,7 +65,7 @@ export default async function TasksPage({
       <PageHead
         eyebrow="Work"
         title="Tasks"
-        lede="What has to happen, including the compliance obligations that go wrong quietly when nobody is watching."
+        lede="What has to happen, including compliance deadlines."
       />
 
       <QuickAdd
@@ -115,7 +115,7 @@ export default async function TasksPage({
       {tasks.length === 0 ? (
         <EmptyState
           title={params.status === "done" ? "Nothing finished yet" : "Nothing on the list"}
-          body="Type a title above and it exists. Everything else about a task is optional and can be filled in by whoever picks it up."
+          body="Add a title above. Due date, assignee and repeat are optional."
         />
       ) : (
         /* V10 rule 4: rows separated by a 1px line-2 rule, not bordered cards. */
