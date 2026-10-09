@@ -16,12 +16,12 @@ import { useRouter } from "next/navigation";
  */
 
 const FIELD =
-  "mt-1.5 min-h-[var(--tap-target)] w-full rounded-[var(--radius-control)] border border-[var(--border-strong)] bg-white px-3 text-[16px] text-[var(--ink)] outline-none focus:border-[var(--navy)]";
-const LABEL = "block text-[13.5px] font-semibold text-[var(--ink)]";
+  "mt-1.5 min-h-[var(--tap-target)] w-full rounded-[2px] border border-[var(--border-strong)] bg-white px-3 text-[16px] text-[var(--ink)] outline-none focus:border-[var(--navy)]";
+const LABEL = "block text-[14px] font-semibold text-[var(--ink)]";
 const PRIMARY =
-  "min-h-[var(--tap-target)] rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[15px] font-bold text-white active:bg-[var(--navy-hover)] disabled:cursor-not-allowed disabled:opacity-45";
+  "min-h-[var(--tap-target)] rounded-[2px] bg-[var(--navy)] px-4 text-[15px] font-bold text-white active:bg-[var(--navy-hover)] disabled:cursor-not-allowed disabled:opacity-45";
 const SECONDARY =
-  "min-h-[var(--tap-target)] rounded-[var(--radius-control)] border border-[var(--border-strong)] px-3 text-[13.5px] font-semibold text-[var(--navy)] active:bg-[var(--canvas)] disabled:opacity-45";
+  "min-h-[var(--tap-target)] rounded-[2px] border border-[var(--border-strong)] px-3 text-[14px] font-semibold text-[var(--ink)] active:bg-[var(--row-hover)] disabled:opacity-45";
 
 type Result = { ok: boolean; error?: string; note?: string; setPasswordUrl?: string; expiresAt?: string };
 
@@ -55,13 +55,13 @@ function useAction(partnerId: string) {
 function Feedback({ result }: { result: Result | null }) {
   if (!result) return null;
   return result.ok ? (
-    <p className="mt-3 rounded-[var(--radius-control)] border border-[var(--green-border)] bg-[var(--green-bg)] px-3 py-2.5 text-[13.5px] leading-[1.55] text-[var(--green)]">
+    <p className="mt-3 border-l-2 border-[var(--ink)] py-1 pl-3 text-[14px] leading-[1.55] text-[var(--ink)]">
       {result.note ?? "Done."}
     </p>
   ) : (
     <p
       role="alert"
-      className="mt-3 rounded-[var(--radius-control)] border border-[var(--warn-border)] bg-[var(--warn-bg)] px-3 py-2.5 text-[13.5px] leading-[1.55] text-[var(--red)]"
+      className="mt-3 rounded-[2px] border-l-2 border-[var(--ink)] px-3 py-2.5 text-[14px] leading-[1.55] text-[var(--ink)]"
     >
       {result.error}
     </p>
@@ -101,7 +101,7 @@ export function StatusForm({ partnerId, status }: { partnerId: string; status: s
         </div>
       </div>
 
-      <p className="mt-3 max-w-[74ch] text-[12.5px] leading-[1.6] text-[var(--secondary)]">
+      <p className="mt-3 max-w-[74ch] text-[13px] leading-[1.6] text-[var(--secondary)]">
         Suspending stops their links earning as well as stopping them signing in, because the code
         resolver refuses a partner who is not active. It does not touch the ledger: what they earned
         before is still owed, and refusing to pay for work already delivered is a different decision
@@ -210,14 +210,14 @@ export function TermsForm({ partnerId }: { partnerId: string }) {
       </div>
 
       {isTiered ? (
-        <p className="mt-3 rounded-[var(--radius-control)] border border-[var(--warn-border)] bg-[var(--gold-wash)] px-3 py-2.5 text-[13.5px] leading-[1.55] text-[var(--warn-ink)]">
+        <p className="mt-3 border-l-2 border-[var(--ink)] py-1 pl-3 text-[14px] leading-[1.55] text-[var(--ink)]">
           A volume ladder is set from here with a default of 2.5 percent from the first delivery and 3
           percent from the tenth. Tiers apply forward: reaching a step improves the rate on what comes
           next and does not reprice what came before.
         </p>
       ) : null}
 
-      <p className="mt-3 max-w-[74ch] text-[12.5px] leading-[1.6] text-[var(--secondary)]">
+      <p className="mt-3 max-w-[74ch] text-[13px] leading-[1.6] text-[var(--secondary)]">
         These are effective dated. The current terms are closed the day before these start, and what
         was already earned keeps the terms it was earned under: a ledger entry snapshots the model
         and the rate, so editing the old row would make the entry and the terms disagree.
@@ -282,7 +282,7 @@ export function InviteForm({ partnerId }: { partnerId: string }) {
         </div>
       </div>
 
-      <p className="mt-3 max-w-[74ch] text-[12.5px] leading-[1.6] text-[var(--secondary)]">
+      <p className="mt-3 max-w-[74ch] text-[13px] leading-[1.6] text-[var(--secondary)]">
         Nothing is emailed. The link comes back here once, and you send it yourself with whatever
         context the person needs, so no credential moves through a mail server this firm does not
         run.
@@ -298,15 +298,15 @@ export function InviteForm({ partnerId }: { partnerId: string }) {
       </button>
 
       {result?.ok && result.setPasswordUrl ? (
-        <div className="mt-3 rounded-[var(--radius-control)] border border-[var(--green-border)] bg-[var(--green-bg)] p-3">
-          <p className="text-[13.5px] font-semibold text-[var(--green)]">
+        <div className="mt-3 border-l-2 border-[var(--ink)] py-1 pl-3">
+          <p className="text-[14px] font-semibold text-[var(--ink)]">
             Copy this now. It is shown once and it is not written to the audit trail.
           </p>
-          <p className="mt-2 break-all text-[12.5px] leading-[1.5] text-[var(--ink)]">
+          <p className="mt-2 break-all text-[13px] leading-[1.5] text-[var(--ink)]">
             {result.setPasswordUrl}
           </p>
           {result.expiresAt ? (
-            <p className="mt-2 text-[12.5px] text-[var(--secondary)]">
+            <p className="mt-2 text-[13px] text-[var(--secondary)]">
               It stops working on{" "}
               {new Date(result.expiresAt).toLocaleDateString("en-US", {
                 year: "numeric",
@@ -348,7 +348,7 @@ export function MoneyActions({
           Close a period
         </label>
         <input id="period" value={period} onChange={(e) => setPeriod(e.target.value)} className={FIELD} />
-        <p className="mt-1.5 max-w-[74ch] text-[12.5px] leading-[1.6] text-[var(--secondary)]">
+        <p className="mt-1.5 max-w-[74ch] text-[13px] leading-[1.6] text-[var(--secondary)]">
           Gathers everything that has become payable by the end of that month, whenever it was
           earned. Nothing is opened if the net is zero or negative: the balance carries forward
           rather than the firm issuing a document saying it settled with somebody it did not.
@@ -411,7 +411,7 @@ export function MoneyActions({
               <input id="paynote" value={note} onChange={(e) => setNote(e.target.value)} className={FIELD} />
             </div>
           </div>
-          <p className="mt-1.5 max-w-[74ch] text-[12.5px] leading-[1.6] text-[var(--secondary)]">
+          <p className="mt-1.5 max-w-[74ch] text-[13px] leading-[1.6] text-[var(--secondary)]">
             This platform does not send money and will not. Pay the partner however the firm pays
             anybody, then record what you did and the reference it was paid under.
           </p>
@@ -451,7 +451,7 @@ export function AdjustmentForm({ partnerId }: { partnerId: string }) {
             aria-describedby="adjustHint"
             className={FIELD}
           />
-          <p id="adjustHint" className="mt-1.5 text-[12.5px] leading-[1.5] text-[var(--secondary)]">
+          <p id="adjustHint" className="mt-1.5 text-[13px] leading-[1.5] text-[var(--secondary)]">
             Negative takes money back.
           </p>
         </div>
@@ -468,7 +468,7 @@ export function AdjustmentForm({ partnerId }: { partnerId: string }) {
         </div>
       </div>
 
-      <p className="mt-3 max-w-[74ch] text-[12.5px] leading-[1.6] text-[var(--secondary)]">
+      <p className="mt-3 max-w-[74ch] text-[13px] leading-[1.6] text-[var(--secondary)]">
         This is how a disputed attribution is settled. Nothing already written is edited: the
         adjustment stands beside it, both are on the partner's statement, and the sentence you write
         here is the only account of it anybody will have.
@@ -511,7 +511,7 @@ export function DecideSubmission({
         rows={3}
         className={`${FIELD} min-h-[84px] py-2 leading-[1.6]`}
       />
-      <p className="mt-1.5 max-w-[74ch] text-[12.5px] leading-[1.6] text-[var(--secondary)]">
+      <p className="mt-1.5 max-w-[74ch] text-[13px] leading-[1.6] text-[var(--secondary)]">
         Name the sentence if the answer is no. A partner cannot fix a refusal with no reason in it,
         and this answer is frozen once it is given: changing your mind is a new submission, so both
         answers survive.

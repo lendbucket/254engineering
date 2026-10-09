@@ -434,6 +434,12 @@ const PORTED = [
   "src/components/portal/design/RestrictedMode.tsx",
   "src/components/portal/design/Table.tsx",
   "src/components/portal/surfaces.tsx",
+  /* Read from the admin-accounts batch of 2026-10-09, which declared them V10. */
+  "src/app/portal/(app)/accounts/OpenAccountClient.tsx",
+  "src/app/portal/(app)/partners/[id]/page.tsx",
+  "src/app/portal/(app)/partners/[id]/PartnerActions.tsx",
+  "src/app/portal/(app)/deletion-requests/page.tsx",
+  "src/app/portal/(app)/deletion-requests/DeletionRequestsClient.tsx",
 ];
 
 /**
@@ -676,6 +682,21 @@ const STAFF_V10 = [
   "src/app/portal/(app)/status/StatusClient.tsx",
   "src/app/portal/(app)/charge-log/page.tsx",
   "src/app/portal/(app)/charge-log/ChargeLogClient.tsx",
+  /* The admin-accounts batch of 2026-10-09: accounts, billing, clients, a
+   * partner's record, reports, suppressions and deletion requests. */
+  "src/app/portal/(app)/accounts/page.tsx",
+  "src/app/portal/(app)/accounts/AccountsClient.tsx",
+  "src/app/portal/(app)/accounts/OpenAccountClient.tsx",
+  "src/app/portal/(app)/billing/page.tsx",
+  "src/app/portal/(app)/clients/page.tsx",
+  "src/app/portal/(app)/clients/ClientsClient.tsx",
+  "src/app/portal/(app)/partners/[id]/page.tsx",
+  "src/app/portal/(app)/partners/[id]/PartnerActions.tsx",
+  "src/app/portal/(app)/reports/page.tsx",
+  "src/app/portal/(app)/suppressions/page.tsx",
+  "src/app/portal/(app)/suppressions/SuppressionsClient.tsx",
+  "src/app/portal/(app)/deletion-requests/page.tsx",
+  "src/app/portal/(app)/deletion-requests/DeletionRequestsClient.tsx",
   "src/app/portal/(app)/waiting/page.tsx",
   /*
    * The credentials screen, operator ruling of 2026-10-07, built to V10 from

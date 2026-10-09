@@ -71,7 +71,7 @@ export default async function PartnerPage({ params }: { params: Promise<{ id: st
       <p className="-mb-2">
         <Link
           href="/portal/partners"
-          className="inline-flex min-h-[var(--tap-target)] items-center text-[13.5px] font-semibold text-[var(--secondary)]"
+          className="inline-flex min-h-[var(--tap-target)] items-center text-[14px] font-semibold text-[var(--secondary)]"
         >
           All partners
         </Link>
@@ -90,7 +90,7 @@ export default async function PartnerPage({ params }: { params: Promise<{ id: st
           >
             {partner.status === "active" ? "Active" : partner.status === "suspended" ? "Suspended" : "Ended"}
           </StatusPill>
-          <p className="mt-2 text-[12.5px] leading-[1.55] text-[var(--secondary)]">
+          <p className="mt-2 text-[13px] leading-[1.55] text-[var(--secondary)]">
             {partner.agreementVersion
               ? `On agreement version ${partner.agreementVersion}.`
               : "No agreement version accepted."}
@@ -98,19 +98,19 @@ export default async function PartnerPage({ params }: { params: Promise<{ id: st
         </Panel>
 
         <Panel title="Net on the ledger">
-          <p className="font-display text-[24px] leading-none font-bold tabular-nums text-[var(--navy)]">
+          <p className="font-display text-[24px] leading-none font-bold tabular-nums text-[var(--ink)]">
             {money(netCents)}
           </p>
-          <p className="mt-2 text-[12.5px] leading-[1.55] text-[var(--secondary)]">
+          <p className="mt-2 text-[13px] leading-[1.55] text-[var(--secondary)]">
             Accruals, reversals and adjustments together, whether or not they are on a statement.
           </p>
         </Panel>
 
         <Panel title="Waiting for a figure">
-          <p className="font-display text-[24px] leading-none font-bold tabular-nums text-[var(--navy)]">
+          <p className="font-display text-[24px] leading-none font-bold tabular-nums text-[var(--ink)]">
             {blocked}
           </p>
-          <p className="mt-2 text-[12.5px] leading-[1.55] text-[var(--secondary)]">
+          <p className="mt-2 text-[13px] leading-[1.55] text-[var(--secondary)]">
             Owed, and not yet computable. Excluded from every total rather than counted as nothing.
           </p>
         </Panel>
@@ -118,18 +118,18 @@ export default async function PartnerPage({ params }: { params: Promise<{ id: st
 
       <Panel title="Compensation terms" description="Effective dated. A change is a new row, never an edit.">
         {current ? (
-          <div className="mb-5 rounded-[var(--radius-card)] border border-[var(--border)] p-3">
-            <p className="text-[15px] font-bold text-[var(--navy)]">
+          <div className="mb-5 border-t-2 border-[var(--ink)] pt-3">
+            <p className="text-[15px] font-bold text-[var(--ink)]">
               {MODEL_LABEL[current.model] ?? current.model}
             </p>
-            <p className="mt-1 text-[13.5px] leading-[1.55] text-[var(--ink)]">
+            <p className="mt-1 text-[14px] leading-[1.55] text-[var(--ink)]">
               {current.percentBps !== null ? `${current.percentBps / 100} percent. ` : ""}
               {current.flatCents !== null ? `${money(current.flatCents)} each. ` : ""}
               Holdback {current.holdbackDays} days. In force from {current.effectiveFrom}
               {current.effectiveTo ? ` to ${current.effectiveTo}` : ""}.
             </p>
             {current.note ? (
-              <p className="mt-1 text-[12.5px] leading-[1.5] text-[var(--secondary)]">{current.note}</p>
+              <p className="mt-1 text-[13px] leading-[1.5] text-[var(--secondary)]">{current.note}</p>
             ) : null}
           </div>
         ) : (
@@ -143,12 +143,12 @@ export default async function PartnerPage({ params }: { params: Promise<{ id: st
 
         {terms.length > 1 ? (
           <details className="mb-5">
-            <summary className="min-h-[var(--tap-target)] cursor-pointer text-[13.5px] font-semibold text-[var(--navy)]">
+            <summary className="min-h-[var(--tap-target)] cursor-pointer text-[14px] font-semibold text-[var(--ink)]">
               {terms.length - 1} earlier set{terms.length - 1 === 1 ? "" : "s"} of terms
             </summary>
             <ul className="mt-2 flex flex-col gap-2">
               {terms.slice(1).map((t) => (
-                <li key={t.id} className="text-[13.5px] leading-[1.55] text-[var(--secondary)]">
+                <li key={t.id} className="text-[14px] leading-[1.55] text-[var(--secondary)]">
                   {MODEL_LABEL[t.model] ?? t.model}, from {t.effectiveFrom}
                   {t.effectiveTo ? ` to ${t.effectiveTo}` : ""}
                 </li>
@@ -173,11 +173,11 @@ export default async function PartnerPage({ params }: { params: Promise<{ id: st
             {people.map((u) => (
               <li
                 key={u.id}
-                className="flex flex-wrap items-baseline justify-between gap-2 rounded-[var(--radius-card)] border border-[var(--border)] p-3"
+                className="flex flex-wrap items-baseline justify-between gap-2 border-b border-[var(--row-rule)] py-3"
               >
                 <div>
-                  <p className="text-[15px] font-semibold text-[var(--navy)]">{u.displayName}</p>
-                  <p className="text-[12.5px] text-[var(--secondary)]">{u.email}</p>
+                  <p className="text-[15px] font-semibold text-[var(--ink)]">{u.displayName}</p>
+                  <p className="text-[13px] text-[var(--secondary)]">{u.email}</p>
                 </div>
                 <StatusPill tone={u.status === "active" ? "good" : u.status === "invited" ? "pending" : "failed"}>
                   {u.status === "active" ? "Active" : u.status === "invited" ? "Invited" : "Suspended"}
@@ -202,11 +202,11 @@ export default async function PartnerPage({ params }: { params: Promise<{ id: st
             {statements.map((s) => (
               <li
                 key={s.id}
-                className="flex flex-wrap items-baseline justify-between gap-2 rounded-[var(--radius-card)] border border-[var(--border)] p-3"
+                className="flex flex-wrap items-baseline justify-between gap-2 border-b border-[var(--row-rule)] py-3"
               >
                 <div>
-                  <p className="text-[13.5px] font-semibold text-[var(--navy)]">{s.reference}</p>
-                  <p className="text-[12.5px] text-[var(--secondary)]">
+                  <p className="text-[14px] font-semibold text-[var(--ink)]">{s.reference}</p>
+                  <p className="text-[13px] text-[var(--secondary)]">
                     {s.period}
                     {s.paidAt
                       ? `, paid ${new Date(s.paidAt).toLocaleDateString("en-US", { month: "long", day: "numeric" })}`
@@ -214,7 +214,7 @@ export default async function PartnerPage({ params }: { params: Promise<{ id: st
                   </p>
                 </div>
                 <div className="flex items-baseline gap-3">
-                  <span className="text-[13.5px] font-semibold tabular-nums text-[var(--navy)]">
+                  <span className="text-[14px] font-semibold tabular-nums text-[var(--ink)]">
                     {money(s.totalCents)}
                   </span>
                   <StatusPill tone={s.status === "paid" ? "good" : s.status === "issued" ? "in-motion" : "pending"}>
@@ -244,11 +244,11 @@ export default async function PartnerPage({ params }: { params: Promise<{ id: st
         ) : (
           <ul className="flex flex-col gap-2">
             {ledger.map((e) => (
-              <li key={e.id} className="rounded-[var(--radius-card)] border border-[var(--border)] p-3">
+              <li key={e.id} className="border-b border-[var(--row-rule)] py-3">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <p
                     className={`text-[15px] font-bold tabular-nums ${
-                      e.kind === "reversal" ? "text-[var(--red)]" : "text-[var(--navy)]"
+                      e.kind === "reversal" ? "text-[var(--ink)]" : "text-[var(--ink)]"
                     }`}
                   >
                     {e.status === "blocked" ? <AbsentChip>owed, figure not known</AbsentChip> : money(e.amountCents)}
@@ -259,7 +259,7 @@ export default async function PartnerPage({ params }: { params: Promise<{ id: st
                     {e.kind}
                   </StatusPill>
                 </div>
-                <p className="mt-1.5 text-[13.5px] leading-[1.55] text-[var(--ink)]">{e.explanation}</p>
+                <p className="mt-1.5 text-[14px] leading-[1.55] text-[var(--ink)]">{e.explanation}</p>
                 <p className="mt-1.5 text-[12px] text-[var(--secondary)]">
                   {new Date(e.occurredAt).toLocaleDateString("en-US", {
                     year: "numeric",
@@ -287,9 +287,9 @@ export default async function PartnerPage({ params }: { params: Promise<{ id: st
         ) : (
           <ul className="flex flex-col gap-3">
             {(submissions ?? []).map((s) => (
-              <li key={s.id as string} className="rounded-[var(--radius-card)] border border-[var(--border)] p-3">
+              <li key={s.id as string} className="border-b border-[var(--row-rule)] py-3">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <p className="text-[15px] font-bold text-[var(--navy)]">{s.title as string}</p>
+                  <p className="text-[15px] font-bold text-[var(--ink)]">{s.title as string}</p>
                   <StatusPill
                     tone={
                       s.status === "approved" ? "good" : s.status === "changes_requested" ? "failed" : "pending"
@@ -300,12 +300,12 @@ export default async function PartnerPage({ params }: { params: Promise<{ id: st
                 </div>
 
                 {s.body ? (
-                  <p className="mt-2 max-w-[74ch] text-[13.5px] leading-[1.6] text-[var(--ink)]">
+                  <p className="mt-2 max-w-[74ch] text-[14px] leading-[1.6] text-[var(--ink)]">
                     {s.body as string}
                   </p>
                 ) : null}
                 {s.link ? (
-                  <p className="mt-2 break-all text-[13.5px] text-[var(--secondary)]">{s.link as string}</p>
+                  <p className="mt-2 break-all text-[14px] text-[var(--secondary)]">{s.link as string}</p>
                 ) : null}
 
                 {/*
@@ -317,13 +317,13 @@ export default async function PartnerPage({ params }: { params: Promise<{ id: st
                   this one.
                 */}
                 {!s.decided_at && s.decision_note ? (
-                  <p className="mt-2 rounded-[var(--radius-control)] border border-[var(--warn-border)] bg-[var(--gold-wash)] px-3 py-2 text-[13.5px] leading-[1.55] text-[var(--warn-ink)]">
+                  <p className="mt-2 border-l-2 border-[var(--ink)] py-1 pl-3 text-[14px] leading-[1.55] text-[var(--ink)]">
                     Before anybody read it: {s.decision_note as string}
                   </p>
                 ) : null}
 
                 {s.decided_at ? (
-                  <p className="mt-2 text-[13.5px] leading-[1.55] text-[var(--ink)]">
+                  <p className="mt-2 text-[14px] leading-[1.55] text-[var(--ink)]">
                     {(s.decision_note as string) ?? ""}
                   </p>
                 ) : (

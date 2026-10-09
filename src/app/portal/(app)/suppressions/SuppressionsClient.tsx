@@ -18,7 +18,7 @@ import { useRouter } from "next/navigation";
  */
 
 const field =
-  "min-h-[44px] w-full rounded-[3px] border border-[var(--border)] bg-white px-3 text-[16px] text-[var(--navy)] outline-none focus:border-slate";
+  "min-h-[44px] w-full rounded-[2px] border border-[var(--border)] bg-white px-3 text-[16px] text-[var(--ink)] outline-none focus:border-slate";
 
 export function AddSuppression() {
   const router = useRouter();
@@ -55,7 +55,7 @@ export function AddSuppression() {
   return (
     <form onSubmit={submit} className="flex flex-col gap-3">
       <div>
-        <label htmlFor="sup-email" className="mb-1 block text-[13.5px] font-semibold text-[var(--navy)]">
+        <label htmlFor="sup-email" className="mb-1 block text-[14px] font-semibold text-[var(--ink)]">
           Email address
         </label>
         <input
@@ -70,7 +70,7 @@ export function AddSuppression() {
       </div>
 
       <div>
-        <label htmlFor="sup-because" className="mb-1 block text-[13.5px] font-semibold text-[var(--navy)]">
+        <label htmlFor="sup-because" className="mb-1 block text-[14px] font-semibold text-[var(--ink)]">
           How the request arrived
         </label>
         <input
@@ -90,12 +90,12 @@ export function AddSuppression() {
       </div>
 
       {error ? (
-        <p role="alert" className="text-[13.5px] font-semibold text-[var(--bad)]">
+        <p role="alert" className="text-[14px] font-semibold text-[var(--bad)]">
           {error}
         </p>
       ) : null}
       {done ? (
-        <p role="status" className="text-[13.5px] font-semibold text-[var(--good)]">
+        <p role="status" className="text-[14px] font-semibold text-[var(--good)]">
           {done}
         </p>
       ) : null}
@@ -103,7 +103,7 @@ export function AddSuppression() {
       <button
         type="submit"
         disabled={busy}
-        className="inline-flex min-h-[var(--tap-target)] items-center justify-center rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[13.5px] font-bold text-white transition-colors hover:bg-[var(--navy-hover)] disabled:opacity-60"
+        className="inline-flex min-h-[var(--tap-target)] items-center justify-center rounded-[2px] bg-[var(--navy)] px-4 text-[14px] font-bold text-white transition-colors hover:bg-[var(--navy-hover)] disabled:opacity-60"
       >
         {busy ? "Recording" : "Record the request"}
       </button>
@@ -176,7 +176,7 @@ export function VoidSuppression({ email }: { email: string }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex min-h-[var(--tap-target)] items-center text-[12.5px] font-semibold text-[var(--navy)] underline"
+        className="inline-flex min-h-[var(--tap-target)] items-center text-[13px] font-semibold text-[var(--ink)] underline"
       >
         Typed in error
       </button>
@@ -201,7 +201,7 @@ export function VoidSuppression({ email }: { email: string }) {
           value={because}
           onChange={(e) => setBecause(e.target.value)}
           placeholder="Wrong address typed on the call"
-          className="mt-1 w-full min-w-0 rounded-[var(--radius-sm)] border border-[var(--line)] px-3 py-2 text-[13.5px]"
+          className="mt-1 w-full min-w-0 rounded-[var(--radius-sm)] border border-[var(--line)] px-3 py-2 text-[14px]"
         />
       </label>
       {/*
@@ -222,7 +222,7 @@ export function VoidSuppression({ email }: { email: string }) {
             value={noneBecause}
             onChange={(e) => setNoneBecause(e.target.value)}
             placeholder="Nobody asked; this was the wrong record entirely"
-            className="mt-1 w-full min-w-0 rounded-[var(--radius-sm)] border border-[var(--line)] px-3 py-2 text-[13.5px]"
+            className="mt-1 w-full min-w-0 rounded-[var(--radius-sm)] border border-[var(--line)] px-3 py-2 text-[14px]"
           />
         </label>
       ) : (
@@ -235,7 +235,7 @@ export function VoidSuppression({ email }: { email: string }) {
             value={instead}
             onChange={(e) => setInstead(e.target.value)}
             placeholder="the address they actually asked about"
-            className="mt-1 w-full min-w-0 rounded-[var(--radius-sm)] border border-[var(--line)] px-3 py-2 text-[13.5px]"
+            className="mt-1 w-full min-w-0 rounded-[var(--radius-sm)] border border-[var(--line)] px-3 py-2 text-[14px]"
           />
           <span className="mt-1 block text-[12px] text-[var(--ink-soft)]">
             Suppressed in the same motion, so their request is not lost.
@@ -255,7 +255,7 @@ export function VoidSuppression({ email }: { email: string }) {
         <button
           type="button"
           onClick={() => { setOpen(false); setError(null); }}
-          className="inline-flex min-h-[var(--tap-target)] items-center text-[12.5px] font-semibold text-[var(--ink-soft)] underline"
+          className="inline-flex min-h-[var(--tap-target)] items-center text-[13px] font-semibold text-[var(--ink-soft)] underline"
         >
           Cancel
         </button>
@@ -263,7 +263,7 @@ export function VoidSuppression({ email }: { email: string }) {
           type="button"
           onClick={mark}
           disabled={busy}
-          className="inline-flex min-h-[var(--tap-target)] items-center text-[12.5px] font-semibold text-[var(--navy)] underline disabled:opacity-60"
+          className="inline-flex min-h-[var(--tap-target)] items-center text-[13px] font-semibold text-[var(--ink)] underline disabled:opacity-60"
         >
           {busy ? "Marking" : "Mark as a mistake"}
         </button>

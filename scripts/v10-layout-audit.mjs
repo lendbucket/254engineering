@@ -103,9 +103,7 @@ const ORIGINAL_NOT_YET_V10 = [
  * pieces alone brought into line. 2026-10-08: tasks, restyled, and 37 remain.
  */
 const STILL_NOT_YET_V10 = [
-  "/partner/login", "/partner/materials", "/partner/set-password", "/portal/accounts", "/portal/billing",
-  "/portal/clients", "/portal/deletion-requests", "/portal/partners/[id]", "/portal/reports",
-  "/portal/suppressions", "/portal/techs",
+  "/partner/login", "/partner/materials", "/partner/set-password", "/portal/techs",
 ];
 const NOT_YET_V10 = STILL_NOT_YET_V10 ?? [...ORIGINAL_NOT_YET_V10];
 

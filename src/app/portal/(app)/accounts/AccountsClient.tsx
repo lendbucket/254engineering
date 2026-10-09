@@ -159,7 +159,7 @@ export function AccountsClient({ rows }: { rows: Row[] }) {
              * mobile-audit measures, and py-2 alone lands it under the tap
              * target minimum. Caught by asking, before the board, which rules
              * a change makes newly applicable rather than waiting to be told. */
-            className="min-h-[44px] w-full rounded-[4px] border border-limestone-line px-3 py-2 text-[13.5px] text-[var(--navy)]"
+            className="min-h-[44px] w-full rounded-[2px] border border-limestone-line px-3 py-2 text-[14px] text-[var(--ink)]"
           />
         </label>
         {/*
@@ -168,7 +168,7 @@ export function AccountsClient({ rows }: { rows: Row[] }) {
           have seen everything; the total without the window is a reader
           wondering where the rest went.
         */}
-        <p className="text-[13.5px] text-[var(--secondary)]">
+        <p className="text-[14px] text-[var(--secondary)]">
           {matching.length === 0
             ? needle
               ? `No account matches "${query.trim()}". ${rows.length} in total.`
@@ -183,34 +183,34 @@ export function AccountsClient({ rows }: { rows: Row[] }) {
         {shown.map((r) => (
           <li key={r.id} className="py-4">
             <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-              <span className="text-[13.5px] font-semibold text-[var(--navy)]">{r.clientName}</span>
+              <span className="text-[14px] font-semibold text-[var(--ink)]">{r.clientName}</span>
               <Chip
                 label={r.billingMode === "invoice" ? `invoiced, net ${r.netDays}` : "pays by card"}
                 tone="neutral"
               />
               {r.status !== "active" ? <Chip label={r.status} tone="bad" /> : null}
               {!r.canOrder && r.status === "active" ? <Chip label="cannot order" tone="bad" /> : null}
-              <span className="ml-auto text-[13.5px] text-[var(--secondary)]">
+              <span className="ml-auto text-[14px] text-[var(--secondary)]">
                 {r.orders} order{r.orders === 1 ? "" : "s"}, {r.ordersThisPeriod} this period
               </span>
             </div>
 
             {r.billingMode === "invoice" ? (
-              <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-[13.5px] text-[var(--secondary)]">
+              <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-[14px] text-[var(--secondary)]">
                 <span>
-                  Issued and unpaid <span className="font-semibold text-[var(--navy)]">{money(r.issuedUnpaidCents)}</span>
+                  Issued and unpaid <span className="font-semibold text-[var(--ink)]">{money(r.issuedUnpaidCents)}</span>
                 </span>
                 <span>
-                  Not yet billed <span className="font-semibold text-[var(--navy)]">{money(r.unbilledCents)}</span>
+                  Not yet billed <span className="font-semibold text-[var(--ink)]">{money(r.unbilledCents)}</span>
                 </span>
                 <span>
                   Limit{" "}
-                  <span className="font-semibold text-[var(--navy)]">
+                  <span className="font-semibold text-[var(--ink)]">
                     {r.creditLimitCents === null ? "none agreed" : money(r.creditLimitCents)}
                   </span>
                 </span>
                 {r.oldestUnpaidDays !== null ? (
-                  <span className="text-[var(--red)]">
+                  <span className="text-[var(--ink)]">
                     Oldest unpaid {r.oldestUnpaidDays} day{r.oldestUnpaidDays === 1 ? "" : "s"} past due
                   </span>
                 ) : null}
@@ -218,7 +218,7 @@ export function AccountsClient({ rows }: { rows: Row[] }) {
             ) : null}
 
             {!r.canOrder && r.status === "active" ? (
-              <p className="mt-2 max-w-[76ch] rounded-[3px] bg-[var(--warn-bg)] px-3 py-2 text-[13.5px] leading-[1.55] text-[var(--warn-ink)]">
+              <p className="mt-2 max-w-[76ch] rounded-[2px] px-3 py-2 text-[14px] leading-[1.55] text-[var(--ink)]">
                 {r.blockedReason}
               </p>
             ) : null}
@@ -236,7 +236,7 @@ export function AccountsClient({ rows }: { rows: Row[] }) {
             <div className="mt-3">
               <Link
                 href={`/portal/accounts/${r.id}/pricing`}
-                className="inline-flex min-h-[44px] items-center text-[13.5px] font-semibold text-[var(--navy)] underline underline-offset-2"
+                className="inline-flex min-h-[44px] items-center text-[14px] font-semibold text-[var(--ink)] underline underline-offset-2"
               >
                 Trade pricing
               </Link>
@@ -248,14 +248,14 @@ export function AccountsClient({ rows }: { rows: Row[] }) {
                   type="button"
                   disabled={busy !== null}
                   onClick={() => act({ action: "close-period", accountId: r.id }, `close-${r.id}`)}
-                  className="inline-flex min-h-[44px] items-center rounded-[3px] border border-[var(--border)] bg-white px-4 text-[13.5px] font-semibold text-[var(--navy)] disabled:opacity-45"
+                  className="inline-flex min-h-[44px] items-center rounded-[2px] border border-[var(--border)] bg-white px-4 text-[14px] font-semibold text-[var(--ink)] disabled:opacity-45"
                 >
                   {busy === `close-${r.id}` ? "Closing" : "Close this period"}
                 </button>
 
                 {r.openStatement ? (
                   <>
-                    <span className="text-[12.5px] text-[var(--secondary)]">
+                    <span className="text-[13px] text-[var(--secondary)]">
                       {r.openStatement.reference} open, {money(r.openStatement.totalCents)}
                     </span>
                     <button
@@ -267,7 +267,7 @@ export function AccountsClient({ rows }: { rows: Row[] }) {
                           `issue-${r.id}`,
                         )
                       }
-                      className="inline-flex min-h-[44px] items-center rounded-[3px] bg-slate px-4 text-[13.5px] font-bold text-white disabled:opacity-45"
+                      className="inline-flex min-h-[44px] items-center rounded-[2px] bg-slate px-4 text-[14px] font-bold text-white disabled:opacity-45"
                     >
                       {busy === `issue-${r.id}` ? "Queueing" : "Issue it"}
                     </button>
@@ -280,12 +280,12 @@ export function AccountsClient({ rows }: { rows: Row[] }) {
       </ul>
 
       {error ? (
-        <p role="alert" className="mt-4 rounded-[3px] bg-[var(--warn-bg)] px-3 py-2 text-[13.5px] text-[var(--red)]">
+        <p role="alert" className="mt-4 rounded-[2px] px-3 py-2 text-[14px] text-[var(--ink)]">
           {error}
         </p>
       ) : null}
       {note ? (
-        <p role="status" className="mt-4 rounded-[3px] bg-[var(--green-bg)] px-3 py-2 text-[13.5px] text-[var(--green)]">
+        <p role="status" className="mt-4 border-l-2 border-[var(--ink)] py-1 pl-3 text-[14px] text-[var(--ink)]">
           {note}
         </p>
       ) : null}
@@ -296,18 +296,18 @@ export function AccountsClient({ rows }: { rows: Row[] }) {
             type="button"
             onClick={() => setPage(current - 1)}
             disabled={current === 1}
-            className="min-h-[44px] rounded-[4px] border border-limestone-line px-4 text-[13.5px] text-[var(--navy)] disabled:opacity-40"
+            className="min-h-[44px] rounded-[2px] border border-limestone-line px-4 text-[14px] text-[var(--ink)] disabled:opacity-40"
           >
             Previous
           </button>
-          <span className="text-[13.5px] text-[var(--secondary)]">
+          <span className="text-[14px] text-[var(--secondary)]">
             Page {current} of {pages}
           </span>
           <button
             type="button"
             onClick={() => setPage(current + 1)}
             disabled={current === pages}
-            className="min-h-[44px] rounded-[4px] border border-limestone-line px-4 text-[13.5px] text-[var(--navy)] disabled:opacity-40"
+            className="min-h-[44px] rounded-[2px] border border-limestone-line px-4 text-[14px] text-[var(--ink)] disabled:opacity-40"
           >
             Next
           </button>
@@ -352,8 +352,8 @@ function SendResetLink() {
 
   return (
     <section className="mt-8 border-t border-limestone-line pt-6">
-      <h2 className="text-[16px] font-bold text-[var(--navy)]">Send a password reset link</h2>
-      <p className="mt-1.5 max-w-[62ch] text-[13.5px] leading-[1.6] text-[var(--secondary)]">
+      <h2 className="text-[16px] font-bold text-[var(--ink)]">Send a password reset link</h2>
+      <p className="mt-1.5 max-w-[62ch] text-[14px] leading-[1.6] text-[var(--secondary)]">
         For a customer who cannot sign in. The link goes to the address on their account and
         nowhere else, it works once, and their current password keeps working until they use it.
         Nobody here sees the link or their password.
@@ -390,7 +390,7 @@ function SendResetLink() {
         }}
       >
         <label className="flex flex-col gap-1.5">
-          <span className="text-[12.5px] font-bold text-[var(--secondary)]">
+          <span className="text-[13px] font-bold text-[var(--secondary)]">
             Customer email address
           </span>
           <input
@@ -399,13 +399,13 @@ function SendResetLink() {
             onChange={(e) => setEmail(e.target.value)}
             required
             autoComplete="off"
-            className="min-h-[44px] w-[min(100%,22rem)] rounded-[3px] border border-limestone-line px-3 text-[13.5px] text-[var(--navy)]"
+            className="min-h-[44px] w-[min(100%,22rem)] rounded-[2px] border border-limestone-line px-3 text-[14px] text-[var(--ink)]"
           />
         </label>
         <button
           type="submit"
           disabled={busy}
-          className="min-h-[44px] rounded-[3px] bg-[var(--navy)] px-5 text-[13.5px] font-bold text-white disabled:opacity-50"
+          className="min-h-[44px] rounded-[2px] bg-[var(--navy)] px-5 text-[14px] font-bold text-white disabled:opacity-50"
         >
           {busy ? "Sending" : "Send the link"}
         </button>
@@ -414,7 +414,7 @@ function SendResetLink() {
       {error ? (
         <p
           role="alert"
-          className="mt-3 rounded-[3px] bg-[var(--warn-bg)] px-3 py-2 text-[13.5px] leading-[1.6] text-[var(--red)]"
+          className="mt-3 rounded-[2px] px-3 py-2 text-[14px] leading-[1.6] text-[var(--ink)]"
         >
           {error}
         </p>
@@ -422,7 +422,7 @@ function SendResetLink() {
       {note ? (
         <p
           role="status"
-          className="mt-3 rounded-[3px] bg-[var(--green-bg)] px-3 py-2 text-[13.5px] leading-[1.6] text-[var(--green)]"
+          className="mt-3 border-l-2 border-[var(--ink)] py-1 pl-3 text-[14px] leading-[1.6] text-[var(--ink)]"
         >
           {note}
         </p>

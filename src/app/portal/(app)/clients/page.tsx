@@ -78,8 +78,8 @@ export default async function ClientsPage() {
       head: "Client",
       cell: (c) => (
         <div>
-          <p className="font-semibold text-[var(--navy)]">{c.name}</p>
-          <p className="text-[12.5px] text-[var(--secondary)]">
+          <p className="font-semibold text-[var(--ink)]">{c.name}</p>
+          <p className="text-[13px] text-[var(--secondary)]">
             {c.kind === "organization" ? "Organization" : "Individual"}
             {c.client_type ? `, ${c.client_type.replace(/_/g, " ")}` : ""}
           </p>
@@ -90,7 +90,7 @@ export default async function ClientsPage() {
       key: "contact",
       head: "Contact",
       cell: (c) => (
-        <div className="text-[13.5px] text-[var(--secondary)]">
+        <div className="text-[14px] text-[var(--secondary)]">
           {c.email ? <p className="break-all">{c.email}</p> : null}
           {c.phone ? <p>{c.phone}</p> : null}
           {!c.email && !c.phone ? "none recorded" : null}
@@ -140,17 +140,17 @@ export default async function ClientsPage() {
           ) : (
             <ul className="flex flex-col gap-3">
               {leads.map((lead) => (
-                <li key={lead.id} className="rounded-[4px] border border-[var(--border)] bg-white p-4">
+                <li key={lead.id} className="border-b border-[var(--row-rule)] py-3">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-[13.5px] font-semibold text-[var(--navy)]">
+                      <p className="text-[14px] font-semibold text-[var(--ink)]">
                         {lead.company || lead.name || "Unnamed enquirer"}
                       </p>
-                      <p className="mt-0.5 text-[13.5px] break-all text-[var(--secondary)]">
+                      <p className="mt-0.5 text-[14px] break-all text-[var(--secondary)]">
                         {[lead.email, lead.phone, lead.city].filter(Boolean).join("  ")}
                       </p>
                       {lead.message ? (
-                        <p className="mt-2 max-w-[70ch] text-[13.5px] leading-[1.55] text-[var(--secondary)]">
+                        <p className="mt-2 max-w-[70ch] text-[14px] leading-[1.55] text-[var(--secondary)]">
                           {lead.message}
                         </p>
                       ) : null}
@@ -201,7 +201,7 @@ export default async function ClientsPage() {
         }
       >
         {truncated ? (
-          <p className="mb-4 text-[13.5px] leading-[1.6] text-[var(--secondary)]">
+          <p className="mb-4 text-[14px] leading-[1.6] text-[var(--secondary)]">
             The {clients.length} most recently added are shown. Search and paging for the rest are
             not built yet, so an older client is reached through the file it belongs to.
           </p>
@@ -219,14 +219,14 @@ export default async function ClientsPage() {
             <div>
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-[15px] font-semibold text-[var(--navy)]">{c.name}</p>
-                  <p className="mt-0.5 text-[13.5px] break-all text-[var(--secondary)]">
+                  <p className="text-[15px] font-semibold text-[var(--ink)]">{c.name}</p>
+                  <p className="mt-0.5 text-[14px] break-all text-[var(--secondary)]">
                     {c.email ?? c.phone ?? "no contact recorded"}
                   </p>
                 </div>
                 <Chip label={c.kind === "organization" ? "Org" : "Person"} />
               </div>
-              <p className="mt-2 text-[12.5px] text-[var(--secondary)]">
+              <p className="mt-2 text-[13px] text-[var(--secondary)]">
                 {c.city ? `${c.city}  ` : ""}
                 added {when(c.created_at)}
               </p>
@@ -235,7 +235,7 @@ export default async function ClientsPage() {
         />
       </Panel>
 
-      <p className="mt-6 text-[13.5px] leading-[1.6] text-[var(--secondary)]">
+      <p className="mt-6 text-[14px] leading-[1.6] text-[var(--secondary)]">
         Files live on the{" "}
         <Link href="/portal/files" className="underline underline-offset-2">
           files screen

@@ -111,11 +111,11 @@ columns={PERIOD_COLUMNS}
           </Panel>
 
           {incomplete.length > 0 ? (
-            <div className="mt-4 rounded-[4px] border border-[var(--warn-border)] bg-[var(--warn-bg)] px-4 py-3.5">
-              <p className="portal-kicker text-[var(--warn-ink)]">
+            <div className="mt-4 rounded-[2px] border-l-2 border-[var(--ink)] px-4 py-3.5">
+              <p className="portal-kicker text-[var(--ink)]">
                 {incomplete.length} file{incomplete.length === 1 ? "" : "s"} left out of the totals
               </p>
-              <p className="mt-1.5 max-w-[74ch] text-[13.5px] leading-[1.6] text-[var(--warn-ink)]">
+              <p className="mt-1.5 max-w-[74ch] text-[14px] leading-[1.6] text-[var(--ink)]">
                 Each is missing at least one of the four figures. They are excluded rather than
                 counted as nothing, because adding up what is present would report a margin higher
                 than the truth by exactly the amount nobody has entered. The table below names what
@@ -170,7 +170,7 @@ columns={PERIOD_COLUMNS}
                     return m.missing.length === 0 ? (
                       <Chip label="Complete" tone="good" />
                     ) : (
-                      <span className="text-[12.5px] text-[var(--secondary)]">{m.missing.join(", ")}</span>
+                      <span className="text-[13px] text-[var(--secondary)]">{m.missing.join(", ")}</span>
                     );
                   },
                 },
@@ -180,30 +180,30 @@ columns={PERIOD_COLUMNS}
                 return (
                   <div>
                     <div className="flex items-start justify-between gap-3">
-                      <p className="text-[15px] font-bold text-[var(--navy)]">{f.file_number}</p>
+                      <p className="text-[15px] font-bold text-[var(--ink)]">{f.file_number}</p>
                       {m.missing.length === 0 ? (
                         <Chip label="Complete" tone="good" />
                       ) : (
                         <Chip label="Incomplete" tone="warn" />
                       )}
                     </div>
-                    <p className="mt-1 text-[13.5px] leading-[1.5] text-[var(--secondary)]">
+                    <p className="mt-1 text-[14px] leading-[1.5] text-[var(--secondary)]">
                       {f.property_address}, {f.county} County
                     </p>
-                    <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5 text-[13.5px]">
+                    <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5 text-[14px]">
                       <dt className="text-[var(--secondary)]">Client price</dt>
-                      <dd className="text-right text-[var(--navy)]">{money(f.clientPriceCents)}</dd>
+                      <dd className="text-right text-[var(--ink)]">{money(f.clientPriceCents)}</dd>
                       <dt className="text-[var(--secondary)]">Technician</dt>
-                      <dd className="text-right text-[var(--navy)]">{money(f.techCostCents)}</dd>
+                      <dd className="text-right text-[var(--ink)]">{money(f.techCostCents)}</dd>
                       <dt className="text-[var(--secondary)]">Production</dt>
-                      <dd className="text-right text-[var(--navy)]">{money(f.engineerCostCents)}</dd>
+                      <dd className="text-right text-[var(--ink)]">{money(f.engineerCostCents)}</dd>
                       <dt className="text-[var(--secondary)]">Partner</dt>
-                      <dd className="text-right text-[var(--navy)]">{money(f.partnerCostCents)}</dd>
-                      <dt className="font-semibold text-[var(--navy)]">Margin</dt>
-                      <dd className="text-right font-semibold text-[var(--navy)]">{money(m.margin)}</dd>
+                      <dd className="text-right text-[var(--ink)]">{money(f.partnerCostCents)}</dd>
+                      <dt className="font-semibold text-[var(--ink)]">Margin</dt>
+                      <dd className="text-right font-semibold text-[var(--ink)]">{money(m.margin)}</dd>
                     </dl>
                     {m.missing.length > 0 ? (
-                      <p className="mt-2.5 text-[12.5px] leading-[1.5] text-[var(--secondary)]">
+                      <p className="mt-2.5 text-[13px] leading-[1.5] text-[var(--secondary)]">
                         Not counted in any total. Missing: {m.missing.join(", ")}.
                       </p>
                     ) : null}
