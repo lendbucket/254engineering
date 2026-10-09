@@ -66,17 +66,34 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ ok: false, error: queued.error }, { status: 503 });
     }
 
+    /*
+     * THE CREDENTIAL TASK REFRESH, DAILY. Operator ruling of 2026-10-08. Keyed
+     * on today, so a second call the same day finds the first job rather than
+     * queueing another; the refresh itself is idempotent by task key besides.
+     */
+    const today = dayKey(new Date());
+    const refresh = await enqueue("credentials.refresh_tasks", { day: today });
+    if (!refresh.ok) {
+      await cronFinished(runId, false, refresh.error);
+      await captureError(new Error(refresh.error), { route: "/api/cron/daily", kind: "cron" });
+      return NextResponse.json({ ok: false, error: refresh.error }, { status: 503 });
+    }
+
     await cronFinished(
       runId,
       true,
-      queued.duplicate ? `${yesterday} was already queued` : `queued the rollup for ${yesterday}`,
+      [
+        queued.duplicate ? `${yesterday} was already queued` : `queued the rollup for ${yesterday}`,
+        refresh.duplicate ? `the credential refresh for ${today} was already queued` : `queued the credential refresh for ${today}`,
+      ].join("; "),
     );
 
     console.log(
-      `[daily] rollup for ${yesterday} ${queued.duplicate ? "was already queued" : "queued"} as job ${queued.id}`,
+      `[daily] rollup for ${yesterday} ${queued.duplicate ? "was already queued" : "queued"} as job ${queued.id}; ` +
+        `credential refresh for ${today} ${refresh.duplicate ? "was already queued" : "queued"} as job ${refresh.id}`,
     );
 
-    return NextResponse.json({ ok: true, day: yesterday, duplicate: queued.duplicate });
+    return NextResponse.json({ ok: true, day: yesterday, duplicate: queued.duplicate, refreshDuplicate: refresh.duplicate });
   } catch (err) {
     await cronFinished(runId, false, err instanceof Error ? err.message : "unknown");
     await captureError(err, { route: "/api/cron/daily", kind: "cron" });
