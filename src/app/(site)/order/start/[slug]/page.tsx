@@ -134,7 +134,7 @@ export default async function OrderStartPage({ params }: { params: Promise<{ slu
               */}
             <Link
               href={mode === "prelaunch" ? `/waitlist?service=${encodeURIComponent(service.name)}` : "/contact"}
-              className="mt-7 inline-flex min-h-[var(--tap-target)] items-center rounded-[3px] bg-[var(--color-slate)] px-6 text-[15px] font-semibold text-white"
+              className="mt-7 inline-flex min-h-[var(--tap-target)] items-center rounded-[2px] bg-[var(--color-slate)] px-6 text-[15px] font-semibold text-white"
             >
               {mode === "prelaunch" ? "Join the waitlist" : "Contact the firm"}
             </Link>

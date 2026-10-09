@@ -81,7 +81,7 @@ export default async function AccountHomePage() {
           </p>
           <Link
             href="/account/order"
-            className="mt-5 inline-flex min-h-[var(--tap-target)] items-center rounded-[3px] bg-[var(--color-slate)] px-6 text-[15px] font-semibold text-white"
+            className="mt-5 inline-flex min-h-[var(--tap-target)] items-center rounded-[2px] bg-[var(--color-slate)] px-6 text-[15px] font-semibold text-white"
           >
             Start a submission
           </Link>

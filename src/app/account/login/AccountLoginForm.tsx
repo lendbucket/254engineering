@@ -54,7 +54,7 @@ export function AccountLoginForm({ next }: { next: string }) {
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         required
-        className="mt-1.5 w-full rounded-[3px] border border-[var(--border)] px-3 py-2.5 text-[15px] text-[var(--navy)]"
+        className="mt-1.5 w-full rounded-[2px] border border-[var(--border-strong)] px-3 py-2.5 text-[15px] text-[var(--ink)]"
       />
 
       {/*
@@ -81,7 +81,7 @@ export function AccountLoginForm({ next }: { next: string }) {
         value={password}
         onChange={(e) => setPassword(e.target.value)}
         required
-        className="mt-1.5 w-full rounded-[3px] border border-[var(--border)] px-3 py-2.5 text-[15px] text-[var(--navy)]"
+        className="mt-1.5 w-full rounded-[2px] border border-[var(--border-strong)] px-3 py-2.5 text-[15px] text-[var(--ink)]"
       />
 
       {/* Ink, not red, and no tint. See the note on the sign up form for why. */}
@@ -98,7 +98,7 @@ export function AccountLoginForm({ next }: { next: string }) {
       <button
         type="submit"
         disabled={busy}
-        className="mt-5 inline-flex min-h-[44px] w-full items-center justify-center rounded-[3px] bg-slate px-5 text-[14px] font-bold text-white disabled:opacity-50"
+        className="mt-5 inline-flex min-h-[44px] w-full items-center justify-center rounded-[2px] bg-slate px-5 text-[14px] font-bold text-white disabled:opacity-50"
       >
         {busy ? "Signing in" : "Sign in"}
       </button>

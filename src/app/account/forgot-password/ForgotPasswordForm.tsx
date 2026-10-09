@@ -86,7 +86,7 @@ export function ForgotPasswordForm() {
           aria-describedby={error ? "forgot-error" : undefined}
           aria-invalid={error ? true : undefined}
           /* 16px is the form control step, and it is the iOS zoom guard. */
-          className="min-h-[var(--tap-target)] w-full rounded-[3px] border border-[var(--color-limestone-edge)] bg-white px-3 text-[16px] text-[var(--color-ink)]"
+          className="min-h-[var(--tap-target)] w-full rounded-[2px] border border-[var(--color-limestone-edge)] bg-white px-3 text-[16px] text-[var(--color-ink)]"
         />
       </label>
 
@@ -127,7 +127,7 @@ export function ForgotPasswordForm() {
       <button
         type="submit"
         disabled={busy}
-        className="mt-1 flex min-h-[var(--tap-target)] w-full items-center justify-center rounded-[3px] bg-[var(--color-slate)] px-4 text-[15px] font-semibold text-white disabled:opacity-60"
+        className="mt-1 flex min-h-[var(--tap-target)] w-full items-center justify-center rounded-[2px] bg-[var(--color-slate)] px-4 text-[15px] font-semibold text-white disabled:opacity-60"
       >
         {busy ? "Sending" : "Email me a link"}
       </button>
