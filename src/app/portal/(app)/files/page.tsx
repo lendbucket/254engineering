@@ -214,7 +214,7 @@ export default async function FilesPage({
         Back to the list
       </Link>
 
-      <div className="rounded-[2px] border border-[var(--border)] bg-white">
+      <div className="border-t-2 border-[var(--ink)]">
         <div className="border-b border-[var(--border)] px-4 py-4 sm:px-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
@@ -436,7 +436,7 @@ export default async function FilesPage({
               </>
             ) : null}
 
-            <div className="mt-7 rounded-[2px] border border-dashed border-[var(--border)] px-4 py-4">
+            <div className="mt-7 border-t border-[var(--row-rule)] pt-4">
               <p className="text-[14px] font-semibold text-[var(--ink)]">Documents, tasks, messages</p>
               <p className="mt-1.5 text-[13px] leading-[1.55] text-[var(--secondary)]">
                 Documents and sealing arrive with review, and tasks and messages after that. They are
@@ -469,7 +469,7 @@ export default async function FilesPage({
           can(actor, "files.create") ? (
             <Link
               href="/portal/intake"
-              className="inline-flex min-h-[var(--tap-target)] items-center rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[14px] font-bold text-white hover:bg-[var(--navy-hover)]"
+              className="inline-flex min-h-[var(--tap-target)] items-center rounded-[2px] bg-[var(--navy)] px-4 text-[14px] font-bold text-white hover:bg-[var(--navy-hover)]"
             >
               New job
             </Link>

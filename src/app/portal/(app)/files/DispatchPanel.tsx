@@ -88,7 +88,7 @@ export function DispatchPanel({
   }
 
   return (
-    <div className="rounded-[2px] border border-[var(--border)] bg-white px-4 py-4 sm:px-5">
+    <div className="border-t-2 border-[var(--ink)] pt-3">
       <p className="portal-label">Dispatch</p>
 
       {protocolName ? (
@@ -131,7 +131,7 @@ export function DispatchPanel({
               <li key={o.techId}>
                 <label
                   className={`flex min-h-[52px] cursor-pointer items-center gap-3 rounded-[2px] border px-3 py-2.5 ${
-                    selected.includes(o.techId) ? "border-slate bg-[var(--canvas)]" : "border-[var(--border)]"
+                    selected.includes(o.techId) ? "border-2 border-[var(--navy)]" : "border-[var(--border)]"
                   } ${disabled ? "cursor-default opacity-60" : ""}`}
                 >
                   <input
@@ -208,7 +208,7 @@ export function DispatchPanel({
             type="button"
             disabled={busy || selected.length === 0}
             onClick={() => void send()}
-            className="mt-4 inline-flex min-h-[var(--tap-target)] items-center justify-center rounded-[var(--radius-control)] bg-[var(--navy)] px-5 text-[15px] font-bold text-white transition-colors hover:bg-[var(--navy-hover)] disabled:opacity-50"
+            className="mt-4 inline-flex min-h-[var(--tap-target)] items-center justify-center rounded-[2px] bg-[var(--navy)] px-5 text-[15px] font-bold text-white transition-colors hover:bg-[var(--navy-hover)] disabled:opacity-50"
           >
             {busy
               ? "Sending"

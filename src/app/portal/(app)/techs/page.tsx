@@ -87,11 +87,11 @@ export default async function TechsPage() {
                 return (
                   <li
                     key={tech.id}
-                    className="rounded-[4px] border border-[var(--border)] bg-white p-4 sm:p-5"
+                    className="border-b border-[var(--row-rule)] py-3"
                   >
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="font-display text-[17px] leading-[1.25] font-bold text-[var(--navy)]">
+                        <p className="font-display text-[17px] leading-[1.25] font-bold text-[var(--ink)]">
                           {/*
                             inline-block, so a name that wraps is ONE box. A wrapped
                             inline link's bounding box has a gap between its line
@@ -102,7 +102,7 @@ export default async function TechsPage() {
                             {tech.display_name}
                           </Link>
                         </p>
-                        <p className="mt-0.5 text-[13.5px] text-[var(--secondary)]">
+                        <p className="mt-0.5 text-[14px] text-[var(--secondary)]">
                           {tech.email}
                           {tech.phone ? `, ${tech.phone}` : ""}
                         </p>
@@ -118,7 +118,7 @@ export default async function TechsPage() {
                         <dt className="portal-label">
                           Coverage
                         </dt>
-                        <dd className="mt-1 text-[13.5px] leading-[1.5] text-[var(--secondary)]">
+                        <dd className="mt-1 text-[14px] leading-[1.5] text-[var(--secondary)]">
                           {tech.coverage_counties.length === 0
                             ? "No counties set. This technician is offered nothing."
                             : `${tech.coverage_counties.length} count${
@@ -133,7 +133,7 @@ export default async function TechsPage() {
                         <dt className="portal-label">
                           Certified for
                         </dt>
-                        <dd className="mt-1 text-[13.5px] leading-[1.5] text-[var(--secondary)]">
+                        <dd className="mt-1 text-[14px] leading-[1.5] text-[var(--secondary)]">
                           {certified.length === 0
                             ? "Nothing yet. Certification is the gate dispatch cannot pass."
                             : certified.map((c) => serviceName(c.service_slug)).join(", ")}
@@ -144,7 +144,7 @@ export default async function TechsPage() {
                         <dt className="portal-label">
                           Workload
                         </dt>
-                        <dd className="mt-1 text-[13.5px] text-[var(--secondary)]">
+                        <dd className="mt-1 text-[14px] text-[var(--secondary)]">
                           {tech.openJobs} open, {tech.completedJobs} finished
                         </dd>
                       </div>
@@ -153,14 +153,14 @@ export default async function TechsPage() {
                         <dt className="portal-label">
                           Owed
                         </dt>
-                        <dd className="mt-1 text-[13.5px] text-[var(--secondary)]">
+                        <dd className="mt-1 text-[14px] text-[var(--secondary)]">
                           {money(tech.pendingCents)} outstanding, {money(tech.paidCents)} paid to date
                         </dd>
                       </div>
                     </dl>
 
                     {tech.expiringCredentials.length > 0 ? (
-                      <p className="mt-3 rounded-[3px] border border-[var(--warn-border)] bg-[var(--warn-bg)] px-3 py-2 text-[13.5px] leading-[1.5] text-[var(--warn-ink)]">
+                      <p className="mt-3 rounded-[2px] border-l-2 border-[var(--ink)] px-3 py-2 text-[14px] leading-[1.5] text-[var(--ink)]">
                         Expiring within 45 days:{" "}
                         {tech.expiringCredentials
                           .map((c) => `${c.kind.replace(/_/g, " ")} on ${c.expires_on}`)
@@ -196,7 +196,7 @@ export default async function TechsPage() {
             description="An entry is written when a technician submits a package, not when the file is sealed. What they were paid for is the visit, and the visit is done."
           >
             {ledger.length === 0 ? (
-              <p className="text-[13.5px] leading-[1.55] text-[var(--secondary)]">
+              <p className="text-[14px] leading-[1.55] text-[var(--secondary)]">
                 Nothing yet. The first entry appears when a technician submits an evidence package.
               </p>
             ) : (
@@ -206,7 +206,7 @@ export default async function TechsPage() {
                     <dt className="portal-label">
                       Awaiting approval
                     </dt>
-                    <dd className="mt-1 font-display text-[17px] font-bold text-[var(--navy)]">
+                    <dd className="mt-1 font-display text-[17px] font-bold text-[var(--ink)]">
                       {money(sumKnown(pending))}
                     </dd>
                   </div>
@@ -214,7 +214,7 @@ export default async function TechsPage() {
                     <dt className="portal-label">
                       Approved, unpaid
                     </dt>
-                    <dd className="mt-1 font-display text-[17px] font-bold text-[var(--navy)]">
+                    <dd className="mt-1 font-display text-[17px] font-bold text-[var(--ink)]">
                       {money(sumKnown(approved))}
                     </dd>
                   </div>
@@ -235,7 +235,7 @@ export default async function TechsPage() {
           </Panel>
 
           <Panel title="Certification">
-            <p className="text-[13.5px] leading-[1.55] text-[var(--secondary)]">
+            <p className="text-[14px] leading-[1.55] text-[var(--secondary)]">
               A technician is offered work only in service lines they are certified for, and that
               gate is not a preference dispatch weighs. The certification workflow itself, the
               training run and the score, is Phase 3. Until it ships, certifications are set
@@ -243,7 +243,7 @@ export default async function TechsPage() {
             </p>
             <Link
               href="/portal/people"
-              className="mt-3 inline-flex min-h-[44px] items-center text-[13.5px] font-semibold text-[var(--navy)] underline underline-offset-4"
+              className="mt-3 inline-flex min-h-[44px] items-center text-[14px] font-semibold text-[var(--ink)] underline underline-offset-4"
             >
               Manage accounts on the people screen
             </Link>

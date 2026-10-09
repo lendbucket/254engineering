@@ -57,7 +57,7 @@ export function RequestInformation({ fileId }: { fileId: string }) {
         type="button"
         onClick={send}
         disabled={busy}
-        className="inline-flex min-h-[var(--tap-target)] items-center rounded-[var(--radius-control)] border border-[var(--border)] bg-white px-4 text-[14px] font-bold text-[var(--ink)] hover:bg-[var(--canvas)] disabled:opacity-50"
+        className="inline-flex min-h-[var(--tap-target)] items-center rounded-[2px] border border-[var(--border)] bg-white px-4 text-[14px] font-bold text-[var(--ink)] hover:bg-[var(--row-hover)] disabled:opacity-50"
       >
         {busy ? "Sending" : "Ask the customer for these"}
       </button>
@@ -156,8 +156,8 @@ export function TransitionControls({
                 }}
                 className={
                   destructive
-                    ? "inline-flex min-h-[44px] items-center rounded-[2px] border-2 border-[var(--ink)] px-4 text-[14px] font-semibold text-[var(--ink)] hover:bg-[var(--canvas)] disabled:opacity-60"
-                    : "inline-flex min-h-[var(--tap-target)] items-center rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[14px] font-bold text-white hover:bg-[var(--navy-hover)] disabled:opacity-60"
+                    ? "inline-flex min-h-[44px] items-center rounded-[2px] border-2 border-[var(--ink)] px-4 text-[14px] font-semibold text-[var(--ink)] hover:bg-[var(--row-hover)] disabled:opacity-60"
+                    : "inline-flex min-h-[var(--tap-target)] items-center rounded-[2px] bg-[var(--navy)] px-4 text-[14px] font-bold text-white hover:bg-[var(--navy-hover)] disabled:opacity-60"
                 }
               >
                 {busy === o.to ? "Moving..." : STATUS_LABEL[o.to]}
@@ -224,8 +224,8 @@ export function FileTabs({
             aria-current={active === key ? "page" : undefined}
             className={`min-h-[44px] shrink-0 border-b-2 px-3 text-[14px] font-semibold whitespace-nowrap ${
               active === key
-                ? "border-[var(--navy)] text-[var(--navy)]"
-                : "border-transparent text-[var(--secondary)] hover:text-[var(--navy)]"
+                ? "border-[var(--navy)] text-[var(--ink)]"
+                : "border-transparent text-[var(--secondary)] hover:text-[var(--ink)]"
             }`}
           >
             {label}
@@ -323,7 +323,7 @@ export function NewFileForm({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex min-h-[var(--tap-target)] items-center rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[14px] font-bold text-white hover:bg-[var(--navy-hover)]"
+        className="inline-flex min-h-[var(--tap-target)] items-center rounded-[2px] bg-[var(--navy)] px-4 text-[14px] font-bold text-white hover:bg-[var(--navy-hover)]"
       >
         {open ? "Cancel" : "Open a file"}
       </button>
@@ -395,7 +395,7 @@ export function NewFileForm({
           <button
             type="submit"
             disabled={busy}
-            className="mt-4 min-h-[var(--tap-target)] w-full rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[15px] font-bold text-white hover:bg-[var(--navy-hover)] disabled:opacity-60 sm:w-auto sm:px-6"
+            className="mt-4 min-h-[var(--tap-target)] w-full rounded-[2px] bg-[var(--navy)] px-4 text-[15px] font-bold text-white hover:bg-[var(--navy-hover)] disabled:opacity-60 sm:w-auto sm:px-6"
           >
             {busy ? "Opening..." : "Open the file"}
           </button>

@@ -131,7 +131,7 @@ export function FileSelection({
     <>
       {ticked.size > 0 && (
         <div
-          className="mb-3 flex flex-wrap items-center gap-2 rounded-[2px] border border-[var(--border)] bg-[var(--canvas)] p-3"
+          className="mb-3 flex flex-wrap items-center gap-2 border-y border-[var(--row-rule)] py-3"
           role="group"
           aria-label="Actions for the selected files"
         >

@@ -68,19 +68,19 @@ export function QueueClient({ jobs }: { jobs: DeadJob[] }) {
         {jobs.map((j) => (
           <li key={j.id} className="py-4">
             <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-              <span className="text-[13.5px] font-semibold text-[var(--navy)]">{j.kind}</span>
+              <span className="text-[14px] font-semibold text-[var(--ink)]">{j.kind}</span>
               <span className="text-[12px] text-[var(--secondary)]">#{j.id}</span>
-              <span className="text-[12.5px] text-[var(--secondary)]">
+              <span className="text-[13px] text-[var(--secondary)]">
                 {j.attempts} of {j.maxAttempts} attempts
               </span>
               {j.finishedAt ? (
-                <span className="text-[12.5px] text-[var(--secondary)]">
+                <span className="text-[13px] text-[var(--secondary)]">
                   gave up {new Date(j.finishedAt).toLocaleString("en-US")}
                 </span>
               ) : null}
             </div>
 
-            <p className="mt-2 max-w-[80ch] rounded-[3px] bg-[var(--warn-bg)] px-3 py-2 text-[13.5px] leading-[1.55] text-[var(--red)]">
+            <p className="mt-2 max-w-[80ch] rounded-[2px] px-3 py-2 text-[14px] leading-[1.55] text-[var(--ink)]">
               {j.lastError || "No error was recorded, which is itself worth looking at."}
             </p>
 
@@ -138,7 +138,7 @@ export function QueueClient({ jobs }: { jobs: DeadJob[] }) {
               type="button"
               disabled={busy !== null}
               onClick={() => retry(j.id)}
-              className="mt-2 inline-flex min-h-[44px] items-center rounded-[3px] border border-[var(--border)] bg-white px-4 text-[13.5px] font-semibold text-[var(--navy)] disabled:opacity-45"
+              className="mt-2 inline-flex min-h-[44px] items-center rounded-[2px] border border-[var(--border)] bg-white px-4 text-[14px] font-semibold text-[var(--ink)] disabled:opacity-45"
             >
               {busy === j.id ? "Putting it back" : "Retry it"}
             </button>
@@ -146,18 +146,18 @@ export function QueueClient({ jobs }: { jobs: DeadJob[] }) {
         ))}
       </ul>
 
-      <p className="mt-3 text-[12.5px] leading-[1.55] text-[var(--secondary)]">
+      <p className="mt-3 text-[13px] leading-[1.55] text-[var(--secondary)]">
         A retry resets the attempts, because somebody retrying by hand has usually fixed what killed
         it. The error stays on the row: what it died of is worth more than a tidy record.
       </p>
 
       {error ? (
-        <p role="alert" className="mt-3 rounded-[3px] bg-[var(--warn-bg)] px-3 py-2 text-[13.5px] text-[var(--red)]">
+        <p role="alert" className="mt-3 rounded-[2px] px-3 py-2 text-[14px] text-[var(--ink)]">
           {error}
         </p>
       ) : null}
       {note ? (
-        <p role="status" className="mt-3 rounded-[3px] bg-[var(--green-bg)] px-3 py-2 text-[13.5px] text-[var(--green)]">
+        <p role="status" className="mt-3 border-l-2 border-[var(--ink)] py-1 pl-3 text-[14px] font-semibold text-[var(--ink)]">
           {note}
         </p>
       ) : null}

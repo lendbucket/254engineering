@@ -132,7 +132,12 @@ export default async function PortalHome() {
 
       <CountTiles tiles={dashboard.tiles} />
 
-      <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+      {/*
+        Two sections on a phone, not one: "Needs you" and the money panel each
+        get their own white section with the ground between them. Operator
+        ruling of 2026-10-08. .portal-sections does nothing on a desktop.
+      */}
+      <div className="portal-sections mt-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <Panel
           title="Needs you"
           description="Only things somebody has to act on. An empty list is a result, not a gap."

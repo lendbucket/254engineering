@@ -71,6 +71,19 @@ export function serviceNameInSentence(shortName: string): string {
 }
 
 /**
+ * "What roof certifications cover", "what windstorm WPI-8 covers".
+ *
+ * Operator ruling of 2026-10-08: "Read what roof certifications covers" had a
+ * plural subject and a singular verb. Six short names are plural and two are
+ * not ("Windstorm WPI-8", "Design"), so the verb follows the name rather than
+ * every line taking "cover". A name is plural when its last word ends in s.
+ */
+export function coverVerbFor(shortName: string): "cover" | "covers" {
+  const last = shortName.trim().split(" ").pop() ?? "";
+  return /s$/.test(last) ? "cover" : "covers";
+}
+
+/**
  * The H1 for the order page of one service line.
  *
  * ONE HOME FOR THE PHRASE. The page title and the H1 both render it, and a
