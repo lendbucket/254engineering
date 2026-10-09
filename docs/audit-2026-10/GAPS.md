@@ -20,10 +20,16 @@ they were fixed in the batch. Each line carries its ruling where one was given
 - `/services/[slug]`, "What arrives at the end": each public service page lists its own deliverable in the firm's words, not its protocol's (foundation "the engineer's opinion of foundation performance"; roof a photographic record and a loan-file PDF RC-001 does not promise). **Ruled overnight: same rule as "what you receive"; merged in bce1a41.** The roof page's removed items are candidates for RC-001's next version (morning report).
 - The order email's pending sentence says the scope "is published here", and in an email "here" is the email. The operator's wording, kept; noted for the operator.
 
+## For the product audit (operator, 2026-10-09)
+
+- **The admin sidebar** has 30 ungrouped items, mixing administrator tools (roles, audit trail, platform status, job queue) with personal work items (my jobs, your pay, tasks, messages, your profile). It needs grouped sections.
+- **`/portal/accounts` takes about 4.2 s to render** on development, 2.3 s of it computing balances over 1,327 accounts, nearly all of them test accounts from audit runs.
+
 ## Admin ops (feat/v10-admin-ops)
 
-- `/portal/techs`: stays on the dated list. Its only findings are ten "tints", and they are the coverage map legend's colour swatches (`rgb(29, 42, 53)` and darker), which encode data rather than tint a box. **On the decisions list:** does V10's no-tint rule apply to a map legend? Not redrawn to dodge the check.
-- `/portal` (administrator): the "Margin by period" table's last two column headers render run together as "MARGINCOVERAGE". For the admin-accounts batch, which owns the shared table header.
+- `/portal/techs`: its only findings were the coverage map legend's colour swatches. **Ruled 2026-10-09: colour allowed inside a `data-v10-map` element only, on swatches and map features, never on text or behind content; on feat/v10-techs-finish.**
+- `/portal` (administrator): the "Margin by period" table's last two column headers rendered run together as "MARGINCOVERAGE". The header padding was fixed in the admin-accounts batch; **ruled 2026-10-09: a check for touching headers on every table at 1280, on feat/v10-techs-finish.**
+- `/portal` (administrator): the money tiles printed $0.00 under a note saying there was no total. **Ruled 2026-10-09: "No total", with an audit; on feat/v10-techs-finish.** The cause was a `??` that turned periodTotals' null into a zero.
 - `/portal/intake` on a phone: the whole form is one white section under the title; the check passes because the title and the form are two. V10 would likely want each group (who, what, property, price, getting paid) as its own section. No reference screen; patterned on /portal/tasks.
 - `/portal/files`, `/portal/onboarding`, `/portal/intake`: no reference screens; patterned on /portal/tasks (ruled rows), with the selected row marked by the navy bar per the ruling of 2026-10-08.
 
@@ -51,7 +57,9 @@ they were fixed in the batch. Each line carries its ruling where one was given
 - `/portal`: no reference for the technician's dashboard (V10T-today is drawn for the day's jobs, not counts); patterned on V10's KPI row.
 - `/portal/messages`: a selected thread is marked by a navy left bar only. **Ruled: navy left bar only; the grey select fill comes out of DESIGN_V10.md with the ruling date, in feat/v10-admin-ops.**
 
-## Decisions list (overnight of 2026-10-08, neither path taken)
+## Decisions list (overnight of 2026-10-08; all three ruled 2026-10-09)
+
+Ruled: 1, the exception, scoped to `data-v10-map`; 2, by number, confirmed; 3, the audit seed makes one of each, once, demo-marked.
 
 1. **The coverage map legend on `/portal/techs`.** V10 refuses tinted fills; the legend's swatches are colour that carries data. Either V10's tint rule excepts a map legend (recorded in DESIGN_V10.md, and the check learns the exception by a property it can test), or the legend is redrawn without fills (for example labelled bands). Recommendation: the exception, because a choropleth with no colour is not a map. `/portal/techs` stays on the dated list until ruled.
 2. **"Read what ... cover" for singular names.** Ruled as "cover"; applied as the name's number requires: "cover" after the six plural names, "covers" after "Windstorm WPI-8" and "Design". Recorded rather than asked, because the literal ruling would have written "what design cover"; say if every line should read otherwise.

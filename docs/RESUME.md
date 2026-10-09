@@ -28,14 +28,35 @@ position, not the reasoning (that is in GAPS.md and the commit messages).
 
 ## Open decisions
 
-Two, both in GAPS.md under "Decisions list": the map legend on /portal/techs, and the cover verb after a singular name.
+None. All three were ruled on 2026-10-09: the map legend allowed inside a
+`data-v10-map` element only; "cover"/"covers" by number confirmed; the audit
+seed makes one partner statement and one customer bulk order, once,
+demo-marked.
+
+## Correction to the morning report of 2026-10-09
+
+The report predicted that production held a false "Exported margin by period"
+audit row for every administrator dashboard view since the Export button
+shipped. **That prediction was wrong.** The operator read production: there are
+**2** `export.period` rows (2026-09-04, and 2026-10-07 at 21:54 CT, the same
+account), not one per view. No annotation is wanted. Development's 1,196 rows
+came from audit and screenshot runs loading the dashboard many times a day;
+production's dashboard is opened far less, and the prediction extrapolated
+development's count to a system with different traffic without saying so. The
+defect and the fix stand as merged in b190559; only the claim about
+production's extent was wrong.
+
+## Current branch
+
+`feat/v10-techs-finish` (worktree 254engineering-v10): the map exception, No
+total on the dashboard, the table header check, the partner sign in lede. List
+at **0** on the branch.
 
 ## Things a resumed session must know
 
 - The machine lock: launch only when `C:/Users/salon/.test-lock` is ABSENT, and
-  read it after launching to confirm it names our pid. Until 1771eb1 merges, any
-  script that loads .env.local before taking the lock skips it silently. The
-  board is not affected.
+  read it after launching to confirm it names our pid. 1771eb1 (merged in
+  b190559) stops .env.local's VERCEL from making the lock skip itself.
 - The first dashboard timing (12 to 16 ms response) did not record what page it
   measured and is not trusted; the measuring mode now records the final URL and
   the heading.
