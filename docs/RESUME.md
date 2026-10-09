@@ -1,4 +1,4 @@
-# Resume note, overnight 2026-10-08 into 2026-10-09
+# Resume note, 2026-10-09
 
 Updated after every merge. Read this first after a restart; it is the queue
 position, not the reasoning (that is in GAPS.md and the commit messages).
@@ -13,17 +13,22 @@ position, not the reasoning (that is in GAPS.md and the commit messages).
 | 3 | V10 admin-ops | `feat/v10-admin-ops` at c3cd79e | **MERGED as 64fb7d3**, board 61 of 61; list 19 to 11; /portal/techs stays listed (map legend decision) |
 | 4 | V10 admin-accounts | `feat/v10-admin-accounts` at 2af5641 | **MERGED as 33bdbb2**, 61 of 61 on the permitted re-board (first board: two roles-audit lines, an engineer session refused twice between successes); list 11 to 4 |
 | 5 | V10 partner | `feat/v10-partner` at 7545f9c | **MERGED as 62d3133**, board 61 of 61; list 4 to 1; the partner surface is held to the phone sections rule |
-| 6 | Product audit | | **NOT STARTED, by the run's own condition**: it starts when the list is at zero, and /portal/techs waits on decision 1 (the map legend) |
+| 6 | V10 techs finish | `feat/v10-techs-finish` | **MERGED as 804fc29**; list 1 to 0 |
+| 7 | Audit seed | `feat/audit-seed` at 60171b3 | **MERGED as f2b6031**, on the permitted re-board (first: a demo-audit fetch failed) |
+| 8 | Certification unblock | `fix/certification-unblock` at 2bff1b5 | **MERGED as 3bb883e** (parents f2b6031, 2bff1b5), board 60 of 61, the one predicted line being schema-ledger-audit's parity on 0066, which the merge resolves. schema-ledger-audit on main afterwards: 32 of 32, applied 67, pending 0. The first board, d1e18d2, missed (59 of 61): migration-audit's pinned shape had not moved with 0066 |
+| 9 | Probe transient retry | `fix/probe-transient-retry` from 3bb883e | **NEXT**; carries the checklist rule on migrations (ab52bdd) |
+| 10 | Product audit, portal by portal | this branch | preflight recorded; portal runs after 9 |
+| 11 | Public site colours | | after the audit |
 
 ## Main
 
-`origin/main` at 62d3133 (feat/v10-partner merged). Dated not-yet-V10 list: **1** (/portal/techs). The board has **61** audits since dashboard-speed-audit joined.
+`origin/main` at 3bb883e (fix/certification-unblock merged). Dated not-yet-V10 list: **0**. The board has **61** audits.
 
 ## Worktrees
 
-- `C:/Users/salon/projects/254engineering`: main, next fix/admin-dashboard-speed
-- `C:/Users/salon/projects/254engineering-v10`: feat/v10-admin-ops
-- `C:/Users/salon/projects/254engineering-tdi`: fix/machine-lock-env
+- `C:/Users/salon/projects/254engineering`: main
+- `C:/Users/salon/projects/254engineering-v10`: fix/probe-transient-retry
+- `C:/Users/salon/projects/254engineering-tdi`: fix/machine-lock-env (merged)
 - `C:/Users/salon/projects/254engineering-audit`: docs/product-audit-2026-10 (this file)
 
 ## Open decisions
@@ -48,9 +53,7 @@ production's extent was wrong.
 
 ## Current branch
 
-`feat/v10-techs-finish` (worktree 254engineering-v10): the map exception, No
-total on the dashboard, the table header check, the partner sign in lede. List
-at **0** on the branch.
+`fix/probe-transient-retry` (worktree 254engineering-v10), from 3bb883e.
 
 ## Things a resumed session must know
 
