@@ -27,6 +27,12 @@ they were fixed in the batch. Each line carries its ruling where one was given
 - `/portal/intake` on a phone: the whole form is one white section under the title; the check passes because the title and the form are two. V10 would likely want each group (who, what, property, price, getting paid) as its own section. No reference screen; patterned on /portal/tasks.
 - `/portal/files`, `/portal/onboarding`, `/portal/intake`: no reference screens; patterned on /portal/tasks (ruled rows), with the selected row marked by the navy bar per the ruling of 2026-10-08.
 
+## Admin accounts (feat/v10-admin-accounts)
+
+- `/portal/accounts` renders about 9,100 px tall at 1280 on development, 25 accounts a page, nearly all probe accounts from audit runs (the 641 probe client rows deferred by the ruling of 2026-10-03). A real firm's list will be shorter; the probe rows are the existing backlog item.
+- The table header fix (headers now carry the cells' right padding) is in the shared table, so it reaches every portal table, not only the dashboard's.
+- No reference screens for these seven; patterned on /portal/tasks.
+
 ## Admin dashboard speed (fix/admin-dashboard-speed, merged as b190559)
 
 - Opening `/portal` as an administrator prefetched the margin export and wrote an "Exported margin by period" audit row on every view; development held 1,196 such rows before the fix. Production is not read here: **needs a counterpart read** (query and prediction in the morning report). The rows are append-only and are not touched.
