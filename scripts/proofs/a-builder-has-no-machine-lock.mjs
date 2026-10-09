@@ -247,6 +247,47 @@ check(
   "an unreleased lock would wedge the next run until the reaper noticed",
 );
 
+// ------------------------------------------ at home, with .env.local's VERCEL
+
+/*
+ * THE FOURTH CASE, 2026-10-09. `.env.local` was pulled from Vercel and carries
+ * `VERCEL=`, and `db-target.mjs` loads it into process.env. A script that
+ * imported db-target before taking the lock read this machine as a builder and
+ * skipped the lock in silence, twice, while another project held it.
+ *
+ * So the preflight is run with VERCEL set to exactly the value this
+ * repository's own `.env.local` gives it, and a home that exists. It must NOT
+ * report the CI skip. The value is read from the file and never printed.
+ * Without this case the first two cases pass whether or not the machine lock
+ * honours a developer's environment, which is how it went unnoticed.
+ */
+const envLine = (() => {
+  try {
+    return readFileSync(join(REPO, ".env.local"), "utf8").split(/\r?\n/).find((l) => l.startsWith("VERCEL=")) ?? null;
+  } catch {
+    return null;
+  }
+})();
+if (envLine === null) {
+  console.log("COULD NOT TELL: this checkout has no .env.local carrying VERCEL, so the developer case was not run.");
+} else {
+  const fromFile = envLine.slice("VERCEL=".length).trim().replace(/^"(.*)"$/, "$1");
+  const ENV_HOME = mkdtempSync(join(tmpdir(), "env-home-"));
+  const withEnvFile = runPreflight({
+    VERCEL: fromFile,
+    CI: "",
+    GITHUB_ACTIONS: "",
+    MACHINE_LOCK_HELD: "",
+    USERPROFILE: ENV_HOME,
+    HOME: ENV_HOME,
+  });
+  check(
+    "with VERCEL exactly as .env.local sets it, on a machine with a home, the lock is NOT skipped",
+    fromFile !== "" && !/skipping the machine lock/.test(withEnvFile.out),
+    fromFile === "" ? ".env.local sets VERCEL empty, so this case proves nothing" : withEnvFile.out.trim().split("\n")[0] ?? "no output",
+  );
+}
+
 console.log(
   wrong === 0
     ? "\nAll checks correct. The preflight coordinates on a developer machine and gets out of the way on a builder."
