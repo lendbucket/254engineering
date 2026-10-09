@@ -73,6 +73,21 @@ const PROTOCOL_APPROVED = true;
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
 
+/*
+ * The three places the order flow tells a quote customer nothing is charged
+ * until they accept, compared with whitespace removed because JSX wraps the
+ * terms step across two lines. Written out as literals, never read from the
+ * component, so a reworded promise is a red rather than a new expectation.
+ */
+const QUOTE_TERM_MISSING = (() => {
+  const flow = readSource("src/components/order/OrderFlow.tsx").replace(/\s+/g, "");
+  return [
+    "Quoted. Nothing is charged until you accept.",
+    "is quoted rather than priced. Nothing is charged now and nothing is owed until you accept a written scope.",
+    "Nothing is charged until you accept one.",
+  ].filter((s) => !flow.includes(s.replace(/\s+/g, "")));
+})();
+
 /** Fixture numbers. Never rendered, never published. */
 const FIXTURE_PRICE = 100000;
 const FIXTURE_COASTAL = 20000;
@@ -255,9 +270,19 @@ const answerAll = (entry, pick = () => 0) =>
       `${where}: every input explains itself`,
       entry.requiredInputs.every((i) => i.help.trim().length > 10),
     );
+    /*
+     * MOVED FROM THE CATALOGUE TO THE ORDER FLOW, 2026-10-08. This read the
+     * promise out of `receives`. The operator ruled that "what you receive"
+     * carries only the line's own signed protocol, quoted, or the pending
+     * sentence, so the payment term cannot live there. It never needed to: the
+     * order flow states it at the choice, at the terms step and on the
+     * confirmation, and those three are what a quote customer actually reads
+     * before committing. Each is now required by its own words.
+     */
     rec(
       `${where}: a quote order promises no charge until acceptance`,
-      entry.orderType !== "quote" || entry.receives.some((r) => /no charge until/i.test(r)),
+      entry.orderType !== "quote" || QUOTE_TERM_MISSING.length === 0,
+      QUOTE_TERM_MISSING.length ? `the order flow no longer says: ${QUOTE_TERM_MISSING.join("; ")}` : "",
     );
   }
 }

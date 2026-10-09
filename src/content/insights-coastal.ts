@@ -874,7 +874,7 @@ export const coastalInsights: Insight[] = [
       { kind: "h2", text: "The roof certification: an opinion about condition" },
       {
         kind: "p",
-        text: "A roof certification is a professional's written opinion about a roof as it stands: its condition, and often its remaining service life, for somebody who has to rely on it. When it is an engineer's, it carries a seal under section 1001.401 of the Occupations Code, and rule 137.33 makes the engineer fully responsible for what it states. What such an opinion properly rests on is set out on [the roof inspections page](/services/roof-inspections).",
+        text: "A roof certification is a professional's written opinion about a roof as it stands: its condition, and often its remaining service life, for somebody who has to rely on it. 254 Engineering's roof certification does not estimate remaining service life. When it is an engineer's, it carries a seal under section 1001.401 of the Occupations Code, and rule 137.33 makes the engineer fully responsible for what it states. What such an opinion properly rests on is set out on [the roof inspections page](/services/roof-inspections).",
       },
       {
         kind: "p",

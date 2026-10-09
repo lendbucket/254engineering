@@ -40,6 +40,8 @@ export type CustomerView = {
   timeline: { at: string; summary: string }[];
   /** What they receive at the end, from the catalog they bought from. */
   receives: string[];
+  /** What the firm does not provide, from the same entry. Limits only. */
+  notes: string[];
   /** Set when money has come back, so the page leads with it. */
   refunded: { amount: string; retained: string; because: string } | null;
   /**
@@ -174,6 +176,7 @@ export async function customerView(token: string): Promise<CustomerView | null> 
       summary: e.summary as string,
     })),
     receives: entry?.receives ?? [],
+    notes: entry?.notes ?? [],
     refunded:
       refundedCents > 0
         ? {
