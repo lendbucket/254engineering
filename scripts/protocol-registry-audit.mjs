@@ -800,6 +800,135 @@ if (pdftotext.error || pdftotext.status !== 0) {
 
 /*
  * ===========================================================================
+ * 4b. WHAT A CUSTOMER IS TOLD THEY RECEIVE IS QUOTED FROM A SIGNED PROTOCOL,
+ *     OR IT SAYS THE SCOPE IS NOT PUBLISHED YET. Operator rulings, 2026-10-08.
+ * ===========================================================================
+ *
+ * The check above forbids the phrases one protocol excludes. That catches a
+ * promise somebody already thought to forbid, and nothing else: the foundation
+ * line promised an opinion on "performance", the repair specification a
+ * document three contractors could price "identically", and neither phrase was
+ * on anybody's list. So this asks the positive question of EVERY deliverable,
+ * which no list of forbidden words can.
+ *
+ * A line passes only if every item is a sentence of its OWN line's SIGNED
+ * protocol, found in the signed PDF with whitespace removed (the extraction
+ * artifact section 3 explains), or if it carries exactly the pending sentence
+ * and nothing else. Signed means registered with signature evidence; a draft
+ * the engineer has not signed is not a source, whatever it says. And a line
+ * whose protocol IS signed may not carry the pending sentence, because that
+ * sentence would then be false.
+ *
+ * The pending sentence and the notes are written out here as literals, never
+ * imported, so a reworded sentence or a new note is a red rather than a new
+ * expectation. Every note is listed in this audit's output for the operator.
+ */
+{
+  const PENDING = "The scope of this service is published here once the engineer of record signs its protocol.";
+  const NOTES_PINNED = {
+    "windstorm-wpi-8/completed": ["The certificate itself, Form WPI-8E, is issued by the Department rather than by the firm"],
+    "windstorm-wpi-8/ongoing": ["The certificate itself, Form WPI-8, is issued by the Department rather than by the firm"],
+    "service:windstorm-wpi-8": [
+      "The certificate itself, the WPI-8 or the WPI-8E, which is issued by the Department on the strength of that submission and never by the firm.",
+    ],
+  };
+
+  const catalog = await import("../data/catalog.ts");
+  const { PROTOCOL_ENTRIES } = await import("../src/content/protocols/index.ts");
+  const { services } = await import("../src/content/services.ts");
+  /*
+   * AND THE PUBLIC SERVICE PAGES, SINCE THE OVERNIGHT OF 2026-10-08. Operator
+   * ruling: "What arrives at the end" on /services/[slug] follows the same rule
+   * as the catalogue's "what you receive". Each page is checked as one more
+   * line, keyed `service:<slug>`, with its list read from `deliverable`.
+   */
+  const entries = [
+    ...catalog.CATALOG,
+    ...services.map((s) => ({
+      serviceSlug: s.slug,
+      tier: "page",
+      receives: s.deliverable,
+      notes: s.notes,
+      _key: `service:${s.slug}`,
+    })),
+  ];
+  const squashed = new Map();
+  const signedText = (entry) => {
+    const file = entry.declaration.sourceFile;
+    if (!squashed.has(file)) {
+      const run = spawnSync("pdftotext", ["-layout", file, "-"], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+      squashed.set(file, run.error || run.status !== 0 ? null : run.stdout.replace(/\s+/g, ""));
+    }
+    return squashed.get(file);
+  };
+
+  rec(
+    "the catalogue's pending sentence is the one the operator worded",
+    catalog.SCOPE_PENDING === PENDING,
+    catalog.SCOPE_PENDING === PENDING ? "" : `the catalogue says "${catalog.SCOPE_PENDING}"`,
+  );
+
+  const wrong = [];
+  const quoted = [];
+  const pending = [];
+  let itemsCompared = 0;
+  let unread = 0;
+  for (const d of entries) {
+    const where = d._key ?? `${d.serviceSlug}/${d.tier}`;
+    const signed = PROTOCOL_ENTRIES.find(
+      (p) => p.declaration.serviceSlug === d.serviceSlug && p.signatureEvidence !== null,
+    );
+    if (d.receives.length === 1 && d.receives[0] === PENDING) {
+      if (signed) wrong.push(`${where}: its protocol ${signed.declaration.documentNumber} is signed, so the pending sentence is false; quote it`);
+      else pending.push(where);
+      continue;
+    }
+    if (!signed) {
+      wrong.push(`${where}: no signed protocol, so it must carry the pending sentence alone, and carries ${d.receives.length} item(s) of its own`);
+      continue;
+    }
+    const doc = signedText(signed);
+    if (doc === null) {
+      unread++;
+      continue;
+    }
+    const missing = d.receives.filter((r) => !doc.includes(r.replace(/\s+/g, "")));
+    itemsCompared += d.receives.length;
+    if (d.receives.length === 0) wrong.push(`${where}: an empty list says nothing at all`);
+    else if (missing.length) wrong.push(...missing.map((m) => `${where}: not a sentence of ${signed.declaration.documentNumber}: "${m.slice(0, 70)}"`));
+    else quoted.push(`${where} (${d.receives.length} from ${signed.declaration.documentNumber})`);
+  }
+  if (unread) tell.push(`${unread} deliverable(s) were not compared with their signed protocol, because pdftotext could not read it.`);
+
+  rec(
+    "every deliverable's \"what you receive\" and every service page's \"what arrives at the end\" quotes its own signed protocol or carries the pending sentence alone",
+    wrong.length === 0,
+    wrong.length ? wrong.join("; ") : `${quoted.length} quoted: ${quoted.join(", ")}; ${pending.length} pending: ${pending.join(", ")}`,
+  );
+  rec(
+    "and the comparison had something to compare (a quoted line and a pending line exist, and the service pages were read)",
+    quoted.length > 0 && pending.length > 0 && itemsCompared > 0 && services.length >= 8,
+    `${itemsCompared} item(s) compared against a signed PDF, ${pending.length} pending line(s), ${services.length} service page(s) among them`,
+  );
+
+  const notesFound = Object.fromEntries(
+    entries.filter((d) => (d.notes ?? []).length > 0).map((d) => [d._key ?? `${d.serviceSlug}/${d.tier}`, d.notes]),
+  );
+  const pinnedKeys = Object.keys(NOTES_PINNED).sort();
+  const foundKeys = Object.keys(notesFound).sort();
+  const notesAgree =
+    JSON.stringify(pinnedKeys) === JSON.stringify(foundKeys) &&
+    pinnedKeys.every((k) => JSON.stringify(NOTES_PINNED[k]) === JSON.stringify(notesFound[k]));
+  rec(
+    "every notes line is one the operator reviewed, word for word, and there are no others",
+    notesAgree,
+    (notesAgree ? "" : "MISMATCH. Found: ") +
+      Object.entries(notesFound).map(([k, v]) => `${k}: ${v.map((n) => `"${n}"`).join(" | ")}`).join("; "),
+  );
+}
+
+/*
+ * ===========================================================================
  * 5. THE MIGRATION THAT CARRIES THIS DOCUMENT TO A DATABASE NAMES THE SAME
  *    DOCUMENT. Operator ruling, 2026-09-21.
  * ===========================================================================

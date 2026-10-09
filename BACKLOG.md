@@ -52,6 +52,48 @@ counterpart and read back on both, every prediction held**, recorded in the
 ledger. It opens no line. What stays open: Aman signs each in the portal, and
 loading them into the portal follows 10-20.
 
+## WHEN AMAN SIGNS EACH v1.1 PROTOCOL, ITS LINE'S "WHAT YOU RECEIVE" IS QUOTED FROM IT
+
+Operator ruling, 2026-10-08. "What you receive" in `data/catalog.ts`, shown on
+the order status page and in the order email, carries a line's own SIGNED
+protocol quoted word for word, or `SCOPE_PENDING` alone: "The scope of this
+service is published here once the engineer of record signs its protocol."
+Today only roof certification quotes (254-RC-001 v1.1 section 11); the other
+ten deliverables carry the sentence.
+
+**Owed, one per signature:** when Aman signs 254-WP-001, WS-001, MH-001,
+SL-001, PL-001, RS-001 or DS-001, a follow-up branch replaces that line's
+pending sentence with sentences quoted from the signed document. The signature
+alone changes nothing on the page, because `protocol-registry-audit` reads
+"signed" from `PROTOCOL_ENTRIES` with signature evidence, and the drafts are not
+there; the follow-up registers the signed protocol and quotes it in the same
+branch. The check refuses a signed line that still carries the pending
+sentence, so the registration cannot quietly leave it behind.
+
+The WPI-8 disclaimers moved to `notes` word for word and are pinned in the same
+audit; a new note is a deliberate edit listed for the operator's review.
+
+## OUR LOCK AND WATTSMITH'S WERE BOTH HELD AT ONCE, 2026-10-09. NOT EXPLAINED.
+
+Read, not inferred. At 04:22:32Z the lock file named wattsmith
+(`test/reds-batch3`, pid 26716, start 04:20:51Z). At 04:22:43Z a screenshot run
+of ours printed `lock taken` without logging a single wait, built, and started
+a server. A later hand read, while ours was still running, showed wattsmith's
+record again, pid 26716 alive. Ours was stopped and its three processes ended
+(each verified ours by command line); wattsmith's process and lock were not
+touched.
+
+What differs between the two implementations, read from both files: wattsmith
+creates the file atomically (`openSync(path, "wx")`) and never overwrites;
+ours writes with `writeFileSync`, which overwrites, then reads back. Both judge
+liveness the same way (`process.kill(pid, 0)`, EPERM alive). Neither difference
+explains the sequence on its own, and no hypothesis is recorded as the cause.
+
+Until it is explained: a run of ours starts only when the lock file is ABSENT,
+and the file is read by hand after launch to confirm it names our pid. The fix
+worth considering is `wx` creation here too, so the two projects use the same
+primitive; it is not built.
+
 ## A STANDALONE AUDIT TAKES NO MACHINE LOCK
 
 Found 2026-10-08, recorded on the operator's ruling 5 of that day. Only the

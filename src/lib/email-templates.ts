@@ -1,6 +1,7 @@
 import { business } from "@/config/business";
 import { roleLabel as roleLabelFor, type RoleKey } from "./ops-authz";
 import { firmName } from "./launch";
+import { catalogFor, SCOPE_PENDING } from "@data/catalog";
 import { emailIdentity, footerEmail, fromHeader, type SenderPurpose } from "@/config/email-identity";
 import {
   OUTCOME_HEADLINE,
@@ -753,6 +754,8 @@ export function orderConfirmed(input: {
   refundDisclosure: string | null;
   /** What they receive at the end, from the catalog they bought from. */
   receives: string[];
+  /** What the firm does not provide, from the same entry. Limits only. */
+  notes: string[];
   statusUrl: string;
 }): RenderedEmail {
   const blocks: EmailBlock[] = [
@@ -786,8 +789,25 @@ export function orderConfirmed(input: {
    * A list rather than a sentence. The catalog's entries are full sentences of
    * their own, and joining two with a comma produced copy that read as a typo.
    */
-  if (input.receives.length > 0) {
-    blocks.push({ kind: "list", title: "What you receive", items: input.receives });
+  /*
+   * A LINE STILL WAITING ON ITS PROTOCOL SAYS NOTHING HERE. Operator ruling of
+   * the overnight of 2026-10-08: the pending sentence promises the scope will
+   * be "published here", and in an email "here" is the email. The order page
+   * keeps the heading and the sentence; the email omits both.
+   */
+  const receives = input.receives.filter((r) => r !== SCOPE_PENDING);
+  if (receives.length > 0) {
+    blocks.push({ kind: "list", title: "What you receive", items: receives });
+  }
+
+  /*
+   * Its own line, never an item of the list above. Operator ruling of
+   * 2026-10-08: a limit of what the firm provides is not part of what the
+   * customer receives, and the windstorm lines' statement that the Department
+   * issues the certificate moved here word for word.
+   */
+  if (input.notes.length > 0) {
+    blocks.push({ kind: "list", title: "Notes", items: input.notes });
   }
 
   if (input.refundDisclosure) {
@@ -1851,10 +1871,12 @@ export function allTemplatesForAudit(): RenderedEmail[] {
       total: "$925.00",
       refundDisclosure:
         "If the engineer cannot seal this and nobody has attended the property, the full amount is refunded.",
-      receives: [
-        "A sealed engineering opinion on the condition of the sample property",
-        "The photographic record the opinion rests on, keyed to where each photograph was taken",
-      ],
+      /*
+       * The windstorm entry as it stands, read from the catalogue rather than
+       * typed, so the sample cannot describe a deliverable the firm does not.
+       */
+      receives: catalogFor("windstorm-wpi-8", "completed")?.receives ?? [],
+      notes: catalogFor("windstorm-wpi-8", "completed")?.notes ?? [],
       statusUrl: "https://254engineering.com/order/254-O2026-ABCDEF?token=sample",
     }),
     orderSealed({

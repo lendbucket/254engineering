@@ -807,6 +807,7 @@ async function sendOrderConfirmation(orderId: string, token: string): Promise<vo
       total: view.total,
       refundDisclosure: view.refundDisclosure,
       receives: view.receives,
+      notes: view.notes,
       statusUrl: customerStatusUrl(view.reference, token),
     }),
     { orderId },
