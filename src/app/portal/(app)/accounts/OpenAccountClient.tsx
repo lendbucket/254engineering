@@ -51,7 +51,7 @@ export function OpenAccountClient() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="min-h-[var(--tap-target)] inline-flex items-center rounded-[var(--radius-control)] border border-[var(--border)] px-4 text-[14px] font-semibold text-[var(--navy)]"
+        className="min-h-[var(--tap-target)] inline-flex items-center rounded-[2px] border border-[var(--border)] px-4 text-[14px] font-semibold text-[var(--ink)]"
       >
         Open an account from a call
       </button>
@@ -115,37 +115,37 @@ export function OpenAccountClient() {
         WHAT SURVIVES IS THE PART THAT IS NOT A REPEAT and is load bearing: the
         operator never sets a password and cannot see one.
       */}
-      <p className="text-[13.5px] leading-[1.6] text-[var(--secondary)]">
+      <p className="text-[14px] leading-[1.6] text-[var(--secondary)]">
         They choose their own password from a link sent to the address below, so nobody here sets
         one or can see one.
       </p>
 
       <div className="grid gap-3.5 sm:grid-cols-2">
         <label className="flex flex-col gap-1.5">
-          <span className="text-[13px] font-semibold text-[var(--navy)]">Their name</span>
+          <span className="text-[13px] font-semibold text-[var(--ink)]">Their name</span>
           <input
             name="name"
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
-            className="min-h-[var(--tap-target)] rounded-[var(--radius-control)] border border-[var(--border)] px-3 text-[15px] text-[var(--navy)]"
+            className="min-h-[var(--tap-target)] rounded-[2px] border border-[var(--border)] px-3 text-[15px] text-[var(--ink)]"
           />
         </label>
 
         <label className="flex flex-col gap-1.5">
-          <span className="text-[13px] font-semibold text-[var(--navy)]">
+          <span className="text-[13px] font-semibold text-[var(--ink)]">
             Company <span className="font-normal text-[var(--secondary)]">(optional)</span>
           </span>
           <input
             name="organisation"
             value={organisation}
             onChange={(e) => setOrganisation(e.target.value)}
-            className="min-h-[var(--tap-target)] rounded-[var(--radius-control)] border border-[var(--border)] px-3 text-[15px] text-[var(--navy)]"
+            className="min-h-[var(--tap-target)] rounded-[2px] border border-[var(--border)] px-3 text-[15px] text-[var(--ink)]"
           />
         </label>
 
         <label className="flex flex-col gap-1.5">
-          <span className="text-[13px] font-semibold text-[var(--navy)]">Email address</span>
+          <span className="text-[13px] font-semibold text-[var(--ink)]">Email address</span>
           <input
             name="email"
             type="email"
@@ -155,12 +155,12 @@ export function OpenAccountClient() {
             required
             aria-describedby={error ? "open-account-error" : undefined}
             aria-invalid={error ? true : undefined}
-            className="min-h-[var(--tap-target)] rounded-[var(--radius-control)] border border-[var(--border)] px-3 text-[15px] text-[var(--navy)]"
+            className="min-h-[var(--tap-target)] rounded-[2px] border border-[var(--border)] px-3 text-[15px] text-[var(--ink)]"
           />
         </label>
 
         <label className="flex flex-col gap-1.5">
-          <span className="text-[13px] font-semibold text-[var(--navy)]">
+          <span className="text-[13px] font-semibold text-[var(--ink)]">
             Telephone <span className="font-normal text-[var(--secondary)]">(optional)</span>
           </span>
           <input
@@ -169,7 +169,7 @@ export function OpenAccountClient() {
             inputMode="tel"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            className="min-h-[var(--tap-target)] rounded-[var(--radius-control)] border border-[var(--border)] px-3 text-[15px] text-[var(--navy)]"
+            className="min-h-[var(--tap-target)] rounded-[2px] border border-[var(--border)] px-3 text-[15px] text-[var(--ink)]"
           />
         </label>
       </div>
@@ -178,7 +178,7 @@ export function OpenAccountClient() {
         <p
           id="open-account-error"
           role="alert"
-          className="rounded-[var(--radius-control)] border border-[var(--red-border)] bg-[var(--red-bg)] px-3 py-2.5 text-[13.5px] leading-[1.55] text-[var(--red)]"
+          className="rounded-[2px] border border-[var(--red-border)] bg-[var(--red-bg)] px-3 py-2.5 text-[14px] leading-[1.55] text-[var(--ink)]"
         >
           {error}
         </p>
@@ -187,7 +187,7 @@ export function OpenAccountClient() {
       {done ? (
         <p
           role="status"
-          className="rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface-muted,#f7f8f9)] px-3 py-2.5 text-[13.5px] leading-[1.55] text-[var(--navy)]"
+          className="border-l-2 border-[var(--ink)] py-1 pl-3 text-[14px] leading-[1.55] text-[var(--ink)]"
         >
           {done}
         </p>
@@ -197,7 +197,7 @@ export function OpenAccountClient() {
         <button
           type="submit"
           disabled={busy}
-          className="min-h-[var(--tap-target)] rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[14px] font-semibold text-white disabled:opacity-60"
+          className="min-h-[var(--tap-target)] rounded-[2px] bg-[var(--navy)] px-4 text-[14px] font-semibold text-white disabled:opacity-60"
         >
           {busy ? "Opening" : "Open the account"}
         </button>
@@ -208,7 +208,7 @@ export function OpenAccountClient() {
             setError(null);
             setDone(null);
           }}
-          className="min-h-[var(--tap-target)] rounded-[var(--radius-control)] border border-[var(--border)] px-4 text-[14px] font-semibold text-[var(--navy)]"
+          className="min-h-[var(--tap-target)] rounded-[2px] border border-[var(--border)] px-4 text-[14px] font-semibold text-[var(--ink)]"
         >
           Done
         </button>

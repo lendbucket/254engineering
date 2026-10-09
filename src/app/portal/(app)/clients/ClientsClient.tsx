@@ -4,8 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 const field =
-  "mt-1.5 min-h-[48px] w-full rounded-[3px] border border-[var(--border)] bg-white px-3 text-[16px] text-[var(--navy)] outline-none focus:border-slate";
-const label = "block text-[13.5px] font-semibold text-[var(--navy)]";
+  "mt-1.5 min-h-[48px] w-full rounded-[2px] border border-[var(--border)] bg-white px-3 text-[16px] text-[var(--ink)] outline-none focus:border-slate";
+const label = "block text-[14px] font-semibold text-[var(--ink)]";
 
 export function NewClientForm() {
   const router = useRouter();
@@ -55,7 +55,7 @@ export function NewClientForm() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex min-h-[var(--tap-target)] items-center rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[13.5px] font-bold text-white hover:bg-[var(--navy-hover)]"
+        className="inline-flex min-h-[var(--tap-target)] items-center rounded-[2px] bg-[var(--navy)] px-4 text-[14px] font-bold text-white hover:bg-[var(--navy-hover)]"
       >
         {open ? "Cancel" : "Add a client"}
       </button>
@@ -63,7 +63,7 @@ export function NewClientForm() {
       {open ? (
         <form
           onSubmit={onSubmit}
-          className="mt-4 rounded-[4px] border border-[var(--border)] bg-white p-4 sm:p-5"
+          className="mt-4 border-t-2 border-[var(--ink)] pt-3"
         >
           <fieldset>
             <legend className={label}>Kind</legend>
@@ -83,9 +83,9 @@ export function NewClientForm() {
               ] as const).map(([k, label]) => (
                 <label
                   key={k}
-                  className={`flex min-h-[var(--tap-target)] flex-1 cursor-pointer items-center gap-2 rounded-[var(--radius-control)] border px-3 text-[13.5px] font-semibold ${
+                  className={`flex min-h-[var(--tap-target)] flex-1 cursor-pointer items-center gap-2 rounded-[2px] border px-3 text-[14px] font-semibold ${
                     kind === k
-                      ? "border-[var(--navy)] bg-[var(--canvas)] text-[var(--navy)]"
+                      ? "border-2 border-[var(--navy)] text-[var(--ink)]"
                       : "border-[var(--border)] text-[var(--secondary)]"
                   }`}
                 >
@@ -136,7 +136,7 @@ export function NewClientForm() {
           </div>
 
           {error ? (
-            <p role="alert" className="mt-4 rounded-[3px] border border-[var(--warn-border)] bg-[var(--warn-bg)] px-3 py-2.5 text-[13.5px] text-[var(--red)]">
+            <p role="alert" className="mt-4 rounded-[2px] border-l-2 border-[var(--ink)] px-3 py-2.5 text-[14px] text-[var(--ink)]">
               {error}
             </p>
           ) : null}
@@ -144,7 +144,7 @@ export function NewClientForm() {
           <button
             type="submit"
             disabled={busy}
-            className="mt-4 min-h-[var(--tap-target)] w-full rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[15px] font-bold text-white hover:bg-[var(--navy-hover)] disabled:opacity-60 sm:w-auto sm:px-6"
+            className="mt-4 min-h-[var(--tap-target)] w-full rounded-[2px] bg-[var(--navy)] px-4 text-[15px] font-bold text-white hover:bg-[var(--navy-hover)] disabled:opacity-60 sm:w-auto sm:px-6"
           >
             {busy ? "Saving..." : "Add the client"}
           </button>
@@ -214,7 +214,7 @@ export function ConvertLead({
 
   if (done) {
     return (
-      <p className="text-[13.5px] text-[var(--green)]">
+      <p className="text-[14px] text-[var(--ink)]">
         Converted to file {done}.{" "}
         <a href="/portal/files" className="underline underline-offset-2">
           Open files
@@ -228,13 +228,13 @@ export function ConvertLead({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex min-h-[40px] items-center rounded-[3px] border border-[var(--border)] px-3 text-[13.5px] font-semibold text-[var(--navy)] hover:bg-[var(--canvas)]"
+        className="inline-flex min-h-[40px] items-center rounded-[2px] border border-[var(--border)] px-3 text-[14px] font-semibold text-[var(--ink)] hover:bg-[var(--row-hover)]"
       >
         {open ? "Cancel" : "Convert to client and file"}
       </button>
 
       {open ? (
-        <form onSubmit={onSubmit} className="mt-3 rounded-[3px] border border-[var(--border)] bg-[var(--canvas)] p-3">
+        <form onSubmit={onSubmit} className="mt-3 border-t-2 border-[var(--ink)] pt-3">
           <div className="grid gap-3 sm:grid-cols-3">
             <div>
               <label className={label} htmlFor={`svc-${lead.id}`}>Service line</label>
@@ -259,14 +259,14 @@ export function ConvertLead({
             </div>
           </div>
           {error ? (
-            <p role="alert" className="mt-3 rounded-[3px] border border-[var(--warn-border)] bg-[var(--warn-bg)] px-3 py-2 text-[13.5px] text-[var(--red)]">
+            <p role="alert" className="mt-3 rounded-[2px] border-l-2 border-[var(--ink)] px-3 py-2 text-[14px] text-[var(--ink)]">
               {error}
             </p>
           ) : null}
           <button
             type="submit"
             disabled={busy}
-            className="mt-3 min-h-[var(--tap-target)] rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[13.5px] font-bold text-white hover:bg-[var(--navy-hover)] disabled:opacity-60"
+            className="mt-3 min-h-[var(--tap-target)] rounded-[2px] bg-[var(--navy)] px-4 text-[14px] font-bold text-white hover:bg-[var(--navy-hover)] disabled:opacity-60"
           >
             {busy ? "Converting..." : "Convert"}
           </button>
