@@ -61,7 +61,7 @@ export default async function PartnerHome() {
         </h1>
         <p className="mt-1.5 max-w-[70ch] text-[13.5px] leading-[1.6] text-[var(--secondary)]">
           Your referral code is{" "}
-          <span className="font-mono font-semibold text-[var(--navy)]">{principal.partner.code}</span>. It
+          <span className="font-semibold text-[var(--navy)]">{principal.partner.code}</span>. It
           works as a link and as a code somebody says on the telephone, and either one credits you
           for thirty days.
         </p>

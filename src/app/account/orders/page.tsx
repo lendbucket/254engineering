@@ -267,14 +267,16 @@ function Shell({ children }: { children: React.ReactNode }) {
       </header>
 
       <main className="mx-auto w-full max-w-[900px] flex-1 px-4 py-12 sm:px-6 sm:py-16">
-        <h1 className="text-[26px] leading-[1.15] font-semibold tracking-[-0.4px] text-[var(--color-ink)]">
-          Your orders
-        </h1>
-        <p className="mt-2 text-[15px] leading-[1.6] text-[var(--color-ink-quiet)]">
-          Everything this account has ordered, newest first. A bulk submission
-          shows as one line.
-        </p>
-        {children}
+        <div>
+          <h1 className="text-[26px] leading-[1.15] font-semibold tracking-[-0.4px] text-[var(--color-ink)]">
+            Your orders
+          </h1>
+          <p className="mt-2 text-[15px] leading-[1.6] text-[var(--color-ink-quiet)]">
+            Everything this account has ordered, newest first. A bulk submission
+            shows as one line.
+          </p>
+        </div>
+        <div>{children}</div>
       </main>
 
       <footer className="border-t border-[var(--color-limestone-line)]">

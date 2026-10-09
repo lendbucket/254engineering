@@ -302,7 +302,7 @@ export function InviteForm({ partnerId }: { partnerId: string }) {
           <p className="text-[13.5px] font-semibold text-[var(--green)]">
             Copy this now. It is shown once and it is not written to the audit trail.
           </p>
-          <p className="mt-2 break-all font-mono text-[12.5px] leading-[1.5] text-[var(--ink)]">
+          <p className="mt-2 break-all text-[12.5px] leading-[1.5] text-[var(--ink)]">
             {result.setPasswordUrl}
           </p>
           {result.expiresAt ? (

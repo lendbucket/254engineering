@@ -151,7 +151,7 @@
   --weight-medium: 500;
   --weight-regular: 400;
 
-  --tracking-column-header: 0.08em;
+  /* No tracking token: V10 spaces no text out, operator ruling of 2026-10-08. */
 
   /* --------------------------------------------------------------- shape --- */
   /*
@@ -228,14 +228,26 @@
   font-family: var(--font-sans);
   font-size: var(--type-body-sm);
   /*
-   * Tabular figures on everything, not only on tables.
+   * PROPORTIONAL FIGURES, TABULAR ONLY IN TABLES. Operator ruling of 2026-10-08.
    *
-   * A KPI that reflows as it counts, or a timestamp column whose digits do not
-   * line up, is the difference between a tool and a web page. The standards file
-   * asks for it on tables and figures; applying it to the whole portal surface
-   * is simpler and there is no portal text where proportional digits are better.
+   * This set tabular figures on the whole surface, reasoning that there was no
+   * portal text where proportional digits are better. There was: in Inter the
+   * tabular feature also widens the hyphen, measured 5.98px to 8.44px at 13px,
+   * and the digits by about 1.5px each, so "F-29811" and an email address read
+   * as spaced out (47.83px against 58.27px). Tables keep tabular figures, where
+   * a column of numbers has to line up. token-audit asserts this.
    */
+  font-variant-numeric: normal;
+}
+.portal-surface :where(td, th),
+.v10-phone-ground :where(td, th),
+.v10-proportional :where(td, th) {
   font-variant-numeric: tabular-nums;
+}
+.v10-phone-ground,
+.v10-phone-ground-centred,
+.v10-proportional {
+  font-variant-numeric: normal;
 }
 
 /*
@@ -287,19 +299,29 @@
    * rulings of 2026-10-08: V10's phone ground on every account page, and on
    * the sign in and auth screens too, visual only.
    *
+   * SEPARATE WHITE SECTIONS WITH THE GROUND BETWEEN THEM, operator ruling of
+   * 2026-10-08 on 32cbd4d: "as on /portal/tasks. Not one white main filling
+   * the screen." 32cbd4d made main one white section; that was overruled.
+   *
    * .v10-phone-ground marks a page root with a header, a main and a footer
-   * (the account pages): the ground goes grey and the header, the main and the
-   * footer are three full width white sections with 8px of ground between.
-   * Main is ONE section, not one per child: the account pages put their
-   * eyebrow, title and lede bare in main, and a section per child split a
-   * title block into three white strips (seen on /account at 390, 2026-10-08).
+   * (the account pages): the ground goes grey, the header and footer are
+   * white, and every child of main is its own white section, 8px apart. Each
+   * page groups its title elements into one child so a title block stays one
+   * section (a section per bare element split it into strips at 390).
    *
    * .v10-phone-ground-centred marks a centred sign in screen with no header
-   * (the portal's): the ground goes grey and its one content block becomes the
-   * white section, the full width of the screen.
+   * (the portal's): the ground goes grey and its content is laid out the same
+   * way. By the same ruling an auth screen has two sections, its title block
+   * and its form.
    *
-   * Both beat the root's bg-white utility only here, below lg, because this
+   * .v10-sections passes the treatment down one level: it is transparent and
+   * its own children become the white sections, for a wrapper that holds
+   * several (the sign in grid, a form that splits into title and fields).
+   *
+   * All of this beats the bg-white utility only here, below lg, because this
    * file is unlayered; on a desktop the page stays white, V10 rule 6.
+   * v10-layout-audit fails a phone page with fewer than two white sections
+   * separated by visible ground.
    */
   .v10-phone-ground {
     background: var(--canvas);
@@ -308,21 +330,62 @@
   .v10-phone-ground > footer {
     background: #ffffff;
   }
-  .v10-phone-ground > main {
-    background: #ffffff;
-    margin-block: 8px;
-    padding: 24px var(--page-gutter);
+  .v10-phone-ground > main,
+  .v10-phone-ground-centred,
+  .v10-phone-ground-centred > *,
+  .v10-sections {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px 0;
+    background: transparent;
+    max-width: none;
   }
   .v10-phone-ground-centred {
     background: var(--canvas);
-    padding-inline: 0;
-    align-items: start;
+    padding: 0;
   }
-  .v10-phone-ground-centred > * {
+  .v10-sections {
+    padding: 0;
+  }
+  .v10-phone-ground > main > :not(.v10-sections),
+  .v10-phone-ground-centred > * > :not(.v10-sections),
+  .v10-sections > :not(.v10-sections) {
     background: #ffffff;
-    max-width: none;
-    padding: 24px var(--page-gutter);
+    padding: 16px var(--page-gutter);
+    margin: 0;
   }
+  /* A conditional block that rendered nothing is not drawn as an empty section. */
+  .v10-phone-ground > main > :empty,
+  .v10-phone-ground-centred > * > :empty,
+  .v10-sections > :empty {
+    display: none;
+  }
+}
+
+/*
+ * SHORT CODES AND EMAIL ADDRESSES, operator ruling of 2026-10-08. A short code
+ * (F-29811, an order reference such as 254-B2026-000000, a license or job
+ * number) never breaks across lines; an email address wraps anywhere, so a
+ * long one cannot push a 390 screen sideways.
+ */
+.v10-code {
+  white-space: nowrap;
+}
+.v10-email {
+  overflow-wrap: anywhere;
+}
+
+/*
+ * NO MONOSPACE ON A SIGNED IN OR ACCOUNT SURFACE, operator ruling of
+ * 2026-10-08. A browser sets code, kbd, pre and samp in monospace by default,
+ * so removing a font-mono class cannot reach them. On every portal, partner,
+ * account and order screen they take the page's own face.
+ */
+.portal-surface :where(code, kbd, pre, samp),
+.v10-phone-ground :where(code, kbd, pre, samp),
+.v10-phone-ground-centred :where(code, kbd, pre, samp) {
+  font-family: inherit;
 }
 
 /*
@@ -344,7 +407,6 @@
 .portal-kicker {
   font-size: var(--type-column-header);
   font-weight: var(--weight-bold);
-  letter-spacing: var(--tracking-column-header);
   text-transform: uppercase;
 }
 
@@ -370,7 +432,6 @@
 .portal-column-header {
   font-size: var(--type-column-header);
   font-weight: var(--weight-bold);
-  letter-spacing: var(--tracking-column-header);
   text-transform: uppercase;
   /* V10: labels are faint. Column headers sit on white, where it is 4.83. */
   color: var(--faint);

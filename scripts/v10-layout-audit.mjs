@@ -103,12 +103,10 @@ const ORIGINAL_NOT_YET_V10 = [
  * pieces alone brought into line. 2026-10-08: tasks, restyled, and 37 remain.
  */
 const STILL_NOT_YET_V10 = [
-  "/partner", "/partner/login", "/partner/materials", "/partner/set-password", "/portal", "/portal/accounts",
-  "/portal/accounts/[id]/pricing", "/portal/billing", "/portal/charge-log", "/portal/clients",
-  "/portal/deletion-requests", "/portal/documents/binder/[fileId]", "/portal/files", "/portal/intake",
-  "/portal/jobs/[id]", "/portal/launch", "/portal/messages", "/portal/onboarding", "/portal/partners",
-  "/portal/partners/[id]", "/portal/people", "/portal/queue", "/portal/reports", "/portal/roles",
-  "/portal/status", "/portal/suppressions", "/portal/techs",
+  "/partner/login", "/partner/materials", "/partner/set-password", "/portal/accounts", "/portal/billing",
+  "/portal/charge-log", "/portal/clients", "/portal/deletion-requests", "/portal/files", "/portal/intake",
+  "/portal/onboarding", "/portal/partners/[id]", "/portal/people", "/portal/queue", "/portal/reports",
+  "/portal/roles", "/portal/status", "/portal/suppressions", "/portal/techs",
 ];
 const NOT_YET_V10 = STILL_NOT_YET_V10 ?? [...ORIGINAL_NOT_YET_V10];
 
@@ -343,6 +341,12 @@ const navSeen = {};
 /** V10's phone-ground, and the surfaces held to it (see the check below). */
 const PHONE_GROUND = "rgb(242, 244, 247)";
 const PHONE_GROUND_SURFACES = new Set(["portal", "account"]);
+/**
+ * Screens V10 specifies as a single section on a phone. Empty: nothing has been
+ * named. An entry is a pattern and a reason, and the run prints the count, so
+ * this cannot grow quietly.
+ */
+const PHONE_SINGLE_SECTION = new Map();
 for (const t of targets) {
   if (ONLY && t.pattern !== ONLY) continue;
   if (!t.path) {
@@ -381,33 +385,86 @@ for (const t of targets) {
           kinds[f.kind].count = (kinds[f.kind].count ?? 0) + 1;
         }
         /*
-         * V10'S PHONE GROUND, operator ruling of 2026-10-08: on a phone, every
-         * portal and account page, sign in and auth screens included, has
-         * #F2F4F7 behind its white sections. Read at 390 as the ground behind
-         * main: main's own background when it has one, else the nearest
-         * ancestor's. The partner surface joins in the partner batch, whose
-         * screens it covers; three of them pass today and are not listed.
+         * V10'S PHONE GROUND, AS SECTIONS ON IT. Operator rulings of 2026-10-08:
+         * every portal and account page on a phone, sign in and auth screens
+         * included, shows separate white sections with #F2F4F7 visible between
+         * them, "as on /portal/tasks. Not one white main filling the screen."
+         * This REPLACES the first version, which read the colour behind main
+         * and so passed a page that was one white slab on a grey ground.
+         *
+         * At 390: a white section is an element with an opaque white
+         * background at least 90% of the screen wide; nested ones are one
+         * section. Two consecutive sections are SEPARATED when 8px or more lies
+         * between them and the ground there, the first opaque background
+         * behind them, is #F2F4F7. A page passes with at least one separation,
+         * that is two or more sections, or when V10 specifies it as a single
+         * section screen (PHONE_SINGLE_SECTION, counted, empty today). The
+         * partner surface joins in the partner batch.
          */
-        if (width === 390 && PHONE_GROUND_SURFACES.has(t.surface)) {
-          /*
-           * A WHITE MAIN IS A SECTION, NOT THE GROUND. On the account pages main
-           * is itself one white section on the ground (2026-10-08), so a white
-           * main is looked past, once; then the first opaque background behind
-           * it is the ground, whatever its colour. A page white all the way
-           * through reports white.
-           */
-          const ground = await page.evaluate(() => {
-            const opaque = (c) => c && !/rgba\(\s*0,\s*0,\s*0,\s*0\s*\)|transparent/.test(c);
-            const main = document.querySelector("main");
-            if (!main) return "no main";
-            const own = getComputedStyle(main).backgroundColor;
-            let el = opaque(own) && own !== "rgb(255, 255, 255)" ? main : main.parentElement;
-            while (el && !opaque(getComputedStyle(el).backgroundColor)) el = el.parentElement;
-            return el ? getComputedStyle(el).backgroundColor : "nothing opaque";
+        /*
+         * NO SIDEWAYS SCROLL AT 390, on every page this measures. Operator
+         * ruling of 2026-10-08, with the email and short code wrapping rules.
+         * The document, and the portal's own scrolling region where there is
+         * one, must be no wider than the screen. mobile-audit and
+         * mobile-overflow-audit ask the same of their route lists; this holds
+         * every route V10 measures to it, dynamic ones included.
+         */
+        if (width === 390) {
+          const over = await page.evaluate(() => {
+            const out = [];
+            const doc = document.scrollingElement ?? document.documentElement;
+            if (doc.scrollWidth > doc.clientWidth + 1) out.push(`document ${doc.scrollWidth}px in ${doc.clientWidth}px`);
+            for (const el of document.querySelectorAll("[data-portal-scroll]")) {
+              if (el.scrollWidth > el.clientWidth + 1) out.push(`scroll region ${el.scrollWidth}px in ${el.clientWidth}px`);
+            }
+            return out;
           });
-          if (ground !== PHONE_GROUND) {
+          for (const o of over) {
+            kinds.overflow = kinds.overflow ?? [];
+            if (kinds.overflow.length < 3) kinds.overflow.push(`${o} at 390`);
+            kinds.overflow.count = (kinds.overflow.count ?? 0) + 1;
+          }
+        }
+        if (width === 390 && PHONE_GROUND_SURFACES.has(t.surface) && !PHONE_SINGLE_SECTION.has(t.pattern)) {
+          const verdict = await page.evaluate((GROUND) => {
+            const WHITE = "rgb(255, 255, 255)";
+            const opaque = (c) => c && !/rgba\(\s*0,\s*0,\s*0,\s*0\s*\)|transparent/.test(c);
+            const vw = document.documentElement.clientWidth;
+            const visible = (el) => {
+              const cs = getComputedStyle(el);
+              const r = el.getBoundingClientRect();
+              return cs.display !== "none" && cs.visibility !== "hidden" && r.height > 0;
+            };
+            const whites = [...document.querySelectorAll("body *")].filter(
+              (el) => visible(el) && getComputedStyle(el).backgroundColor === WHITE && el.getBoundingClientRect().width >= vw * 0.9,
+            );
+            /* Outermost only: a white section inside a white section is the same section. */
+            const outer = whites.filter((el) => !whites.some((o) => o !== el && o.contains(el)));
+            const box = (el) => {
+              const r = el.getBoundingClientRect();
+              return { el, top: r.top + window.scrollY, bottom: r.bottom + window.scrollY };
+            };
+            const sections = outer.map(box).sort((a, b) => a.top - b.top);
+            const groundBehind = (el) => {
+              let p = el.parentElement;
+              while (p && !opaque(getComputedStyle(p).backgroundColor)) p = p.parentElement;
+              return p ? getComputedStyle(p).backgroundColor : "nothing opaque";
+            };
+            let separated = 0;
+            const seen = new Set();
+            for (let i = 1; i < sections.length; i++) {
+              const gap = sections[i].top - sections[i - 1].bottom;
+              const ground = groundBehind(sections[i].el);
+              seen.add(ground);
+              if (gap >= 8 && ground === GROUND) separated += 1;
+            }
+            return { sections: sections.length, separated, grounds: [...seen].join(" ") };
+          }, PHONE_GROUND);
+          if (verdict.separated < 1) {
             kinds["phone-ground"] = kinds["phone-ground"] ?? [];
-            kinds["phone-ground"].push(`${ground} at 390`);
+            kinds["phone-ground"].push(
+              `${verdict.sections} white section(s), ${verdict.separated} separated by #F2F4F7 (ground seen: ${verdict.grounds || "none"}) at 390`,
+            );
             kinds["phone-ground"].count = (kinds["phone-ground"].count ?? 0) + 1;
           }
         }
@@ -444,6 +501,11 @@ if (!ONLY && browser) {
     missing.length ? `none seen for: ${missing.join(", ")}` : PORTALS.map((p) => `${p} ${navSeen[p]}`).join(", "),
   );
 }
+rec(
+  "screens excused the phone sections rule as single-section are named, and none is",
+  PHONE_SINGLE_SECTION.size === 0,
+  PHONE_SINGLE_SECTION.size ? [...PHONE_SINGLE_SECTION].map(([p, why]) => `${p}: ${why}`).join("; ") : "0 excused",
+);
 
 let clean = 0;
 let stillListed = 0;

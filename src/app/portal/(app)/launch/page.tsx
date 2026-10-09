@@ -112,7 +112,7 @@ export default async function LaunchReadinessPage() {
                 </div>
                 <div className="flex flex-wrap gap-x-2">
                   <dt className="font-semibold">Stated true in</dt>
-                  <dd className="font-mono text-[12.5px]">{condition.statedIn}</dd>
+                  <dd className="text-[12.5px]">{condition.statedIn}</dd>
                 </div>
               </dl>
             </li>

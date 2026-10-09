@@ -53,7 +53,7 @@ export function RecordHeader({
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="font-display text-[clamp(20px,2.5vw,30px)] leading-[1.15] font-bold text-[var(--navy)] tabular-nums">
+            <h1 className="font-display text-[clamp(20px,2.5vw,30px)] leading-[1.15] font-bold text-[var(--navy)]">
               {reference}
             </h1>
             {status}

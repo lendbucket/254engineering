@@ -33,7 +33,7 @@ export default async function PartnerStatements() {
     {
       key: "reference",
       header: "Statement",
-      cell: (s) => <span className="font-mono font-semibold">{s.reference}</span>,
+      cell: (s) => <span className="font-semibold">{s.reference}</span>,
     },
     { key: "period", header: "Period", cell: (s) => s.period },
     {

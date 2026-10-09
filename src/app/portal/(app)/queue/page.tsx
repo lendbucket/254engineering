@@ -191,7 +191,7 @@ export default async function QueuePage() {
         <ul className="divide-y divide-limestone-line">
           {kinds.map((k) => (
             <li key={k.kind} className="flex flex-wrap items-baseline gap-x-3 gap-y-1.5 py-3 first:pt-0 last:pb-0">
-              <span className="font-mono text-[13.5px] font-semibold text-[var(--navy)]">{k.kind}</span>
+              <span className="text-[13.5px] font-semibold text-[var(--navy)]">{k.kind}</span>
               <span className="text-[12.5px] text-[var(--secondary)]">
                 {k.pending} waiting
               </span>

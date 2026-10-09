@@ -76,7 +76,7 @@ export default async function OrdersPage() {
                 <ul className="divide-y divide-limestone-line">
                   {watching.map((o) => (
                     <li key={o.id} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-3">
-                      <span className="font-mono text-[13.5px] font-semibold text-[var(--navy)]">{o.reference}</span>
+                      <span className="text-[13.5px] font-semibold text-[var(--navy)]">{o.reference}</span>
                       <Chip label={o.attention.label} tone={toneFor(o.attention.level)} />
                       <span className="text-[13.5px] text-[var(--secondary)]">{o.propertyAddress}</span>
                       <span className="ml-auto text-[13.5px] text-[var(--secondary)]">{money(o.totalCents)}</span>

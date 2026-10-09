@@ -121,7 +121,7 @@ export function OrdersClient({
           return (
             <li key={o.id} className="py-4">
               <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                <span className="font-mono text-[13.5px] font-semibold text-[var(--navy)]">{o.reference}</span>
+                <span className="text-[13.5px] font-semibold text-[var(--navy)]">{o.reference}</span>
                 <Chip label={o.attention.label} tone={toneFor(o.attention.level)} />
                 <span className="ml-auto text-[13.5px] font-semibold text-[var(--navy)]">{money(o.totalCents)}</span>
               </div>

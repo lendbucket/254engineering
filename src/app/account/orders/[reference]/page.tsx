@@ -72,6 +72,7 @@ export default async function BatchPage({
       </header>
 
       <main className="mx-auto w-full max-w-[820px] flex-1 px-4 py-12 sm:px-6 sm:py-16">
+        <div>
         <p className="v10-label">{batch.reference}</p>
         <h1 className="mt-2.5 text-[clamp(1.65rem,3vw,2rem)] leading-[1.15] font-semibold tracking-[-0.5px] text-[var(--color-ink)]">
           {batch.accepted_count} propert{batch.accepted_count === 1 ? "y" : "ies"} submitted together
@@ -88,16 +89,18 @@ export default async function BatchPage({
       </p>
 
       {batch.total_cents !== null ? (
-        <p className="mt-2 text-[1rem] font-semibold text-[var(--navy)]">
+        <p className="mt-2 text-[1rem] font-semibold text-[var(--ink)]">
           Total {money(Number(batch.total_cents))}
         </p>
       ) : null}
+        </div>
 
       {/*
         The V10 section heading, matching its sibling below and the account home.
         A gold kicker was the pre V10 treatment; V10 replaces it with a quiet
         heading over a 2px ink rule, which the top of this file already records.
       */}
+      <div>
       <h2 className="mt-8 border-b-2 border-[var(--color-ink)] pb-3 text-[17px] font-semibold text-[var(--color-ink)]">
         The properties
       </h2>
@@ -105,10 +108,10 @@ export default async function BatchPage({
         {(orders ?? []).map((o) => (
           <li key={o.id as string} className="py-3">
             <div className="flex flex-wrap items-baseline gap-x-3">
-              <span className="text-[13px] font-semibold text-[var(--navy)]">
+              <span className="v10-code text-[13px] font-semibold text-[var(--ink)]">
                 {o.reference as string}
               </span>
-              <span className="text-[14px] text-[var(--navy)]">{o.property_address as string}</span>
+              <span className="text-[14px] text-[var(--ink)]">{o.property_address as string}</span>
               <span className="ml-auto text-[14px] text-[var(--secondary)]">
                 {money(o.batch_share_cents === null ? null : Number(o.batch_share_cents))}
               </span>
@@ -119,9 +122,10 @@ export default async function BatchPage({
           </li>
         ))}
       </ul>
+      </div>
 
       {rejections.length > 0 ? (
-        <>
+        <div>
           {/*
             RULED ROWS, INK, NO TINT, matching the same list on the bulk order
             screen so the two places a person reads their rejections look alike.
@@ -144,7 +148,7 @@ export default async function BatchPage({
               </li>
             ))}
           </ul>
-        </>
+        </div>
       ) : null}
 
         <p className="mt-10 text-[14px] text-[var(--color-ink-quiet)]">

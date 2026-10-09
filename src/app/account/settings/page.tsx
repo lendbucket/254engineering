@@ -54,14 +54,16 @@ export default async function AccountSettingsPage() {
       </header>
 
       <main className="mx-auto w-full max-w-[720px] flex-1 px-4 py-12 sm:px-6 sm:py-16">
-        <p className="v10-label">Your account</p>
-        <h1 className="mt-2.5 text-[clamp(1.65rem,3vw,2rem)] leading-[1.15] font-semibold tracking-[-0.5px] text-[var(--color-ink)]">
-          Settings
-        </h1>
-        <p className="mt-3 max-w-[62ch] text-[16px] leading-[1.7] text-[var(--color-ink-quiet)]">
-          What the firm uses by default when this organization orders. Everything here can still be
-          changed on a single order.
-        </p>
+        <div>
+          <p className="v10-label">Your account</p>
+          <h1 className="mt-2.5 text-[clamp(1.65rem,3vw,2rem)] leading-[1.15] font-semibold tracking-[-0.5px] text-[var(--color-ink)]">
+            Settings
+          </h1>
+          <p className="mt-3 max-w-[62ch] text-[16px] leading-[1.7] text-[var(--color-ink-quiet)]">
+            What the firm uses by default when this organization orders. Everything here can still be
+            changed on a single order.
+          </p>
+        </div>
 
         <div className="mt-10">
         <SettingsClient

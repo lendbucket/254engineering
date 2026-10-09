@@ -643,6 +643,15 @@ const STAFF_V10 = [
   "src/app/portal/(app)/jobs/JobsClient.tsx",
   "src/app/portal/(app)/jobs/[id]/page.tsx",
   "src/app/portal/(app)/jobs/[id]/CaptureClient.tsx",
+  /*
+   * The technician batch of 2026-10-08: the dashboard every role lands on and
+   * the messages screen every role shares, restyled to V10 and held to its
+   * scale and colour rules from here.
+   */
+  "src/app/portal/(app)/page.tsx",
+  "src/components/portal/Dashboard.tsx",
+  "src/app/portal/(app)/messages/page.tsx",
+  "src/app/portal/(app)/messages/MessagesClient.tsx",
   "src/app/portal/(app)/waiting/page.tsx",
   /*
    * The credentials screen, operator ruling of 2026-10-07, built to V10 from
@@ -883,6 +892,36 @@ rec(
   bareWidth.length === 0,
   bareWidth.length ? `${bareWidth.slice(0, 6).join("  |  ")} (put the length: type hint first inside the brackets)` : `${allPortalFiles.length} file(s) read`,
 );
+
+/*
+ * NO MONOSPACE, NO SPACED OUT TEXT, NO NON-STANDARD HYPHEN, on any signed in,
+ * partner, account or order file, and in the token file. Operator rulings of
+ * 2026-10-08. Read from code, comments stripped.
+ *
+ * Letter-spacing is refused when POSITIVE: V10's type table gives page titles
+ * -0.4 tracking, so a negative value is the design, and a positive one is the
+ * spaced out eyebrow it does not draw. The hyphens are U+2010 and U+2011, which
+ * render wider than a hyphen and read as spacing; a code that must not break
+ * is .v10-code (white-space: nowrap) instead.
+ */
+{
+  const MONO = /\bfont-mono\b|font-family:\s*[^;"]*mono/;
+  const TRACK = /\btracking-(?:wide|wider|widest)\b|\btracking-\[\s*0*\.?[0-9]*[1-9][0-9.]*(?:em|px|rem)\]|letter-spacing:\s*0*\.?[0-9]*[1-9]/;
+  const HYPHEN = /[‐‑]/;
+  const subjects = [...allPortalFiles, TOKENS];
+  const hits = { mono: [], track: [], hyphen: [] };
+  for (const file of subjects) {
+    const lines = codeOnly(file).split("\n");
+    lines.forEach((line, i) => {
+      if (MONO.test(line)) hits.mono.push(`${file}:${i + 1}`);
+      if (TRACK.test(line)) hits.track.push(`${file}:${i + 1}`);
+      if (HYPHEN.test(line)) hits.hyphen.push(`${file}:${i + 1}`);
+    });
+  }
+  rec("no signed in, partner, account or order file sets a monospace face", subjects.length >= 100 && hits.mono.length === 0, hits.mono.slice(0, 6).join("  |  ") || `${subjects.length} file(s) read`);
+  rec("and none spaces text out with positive letter-spacing", hits.track.length === 0, hits.track.slice(0, 6).join("  |  ") || `${subjects.length} file(s) read`);
+  rec("and none carries a non-standard hyphen (U+2010, U+2011)", hits.hyphen.length === 0, hits.hyphen.slice(0, 6).join("  |  ") || `${subjects.length} file(s) read`);
+}
 
 /*
  * AND THE CHECK ABOVE MUST BE LOOKING AT SOMETHING. A customer list that emptied,
@@ -1217,9 +1256,23 @@ for (const [standard, site] of TWINS) {
     );
   }
 
+  /*
+   * REPLACED 2026-10-08, operator ruling: this asserted tabular numerals on the
+   * whole portal surface. In Inter that feature widens the hyphen (5.98px to
+   * 8.44px at 13px) and spaced out "F-29811" and every email address. The
+   * surfaces are proportional now and tables keep tabular figures; both halves
+   * are asserted, so the global setting cannot come back.
+   */
+  const surfaceRule = portalCss.match(/\.portal-surface \{[^}]*\}/)?.[0] ?? "";
   rec(
-    "tabular numerals are on the portal surface",
-    /font-variant-numeric: tabular-nums/.test(portalCss),
+    "figures are proportional on the portal surface, so a hyphen is not widened",
+    /font-variant-numeric: normal/.test(surfaceRule) && !/tabular-nums/.test(surfaceRule),
+    surfaceRule ? "" : "no .portal-surface rule found",
+  );
+  rec(
+    "and on the account and order surfaces, while table cells keep tabular figures",
+    /\.v10-phone-ground,\s*\.v10-phone-ground-centred,\s*\.v10-proportional \{\s*font-variant-numeric: normal;/.test(portalCss) &&
+      /:where\(td, th\)[^{]*\{\s*font-variant-numeric: tabular-nums;/.test(portalCss),
   );
 
   rec(

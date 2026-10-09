@@ -80,7 +80,7 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
       </div>
 
       {view.file.notes ? (
-        <div className="mb-6 rounded-[2px] border border-[var(--border)] bg-white px-4 py-3">
+        <div className="mb-6 border-t-2 border-[var(--ink)] pt-3">
           <p className="portal-label">
             Notes on this file
           </p>
@@ -141,7 +141,7 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
           }))}
         />
       ) : (
-        <div className="rounded-[2px] border border-[var(--border)] bg-white px-4 py-4">
+        <div className="border-t-2 border-[var(--ink)] pt-3">
           <p className="text-[14px] font-semibold text-[var(--ink)]">No protocol is attached to this file</p>
           <p className="mt-1.5 max-w-[70ch] text-[14px] leading-[1.55] text-[var(--secondary)]">
             There is nothing to capture against yet, and nothing can be submitted. An engineer

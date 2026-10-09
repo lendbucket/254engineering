@@ -377,7 +377,7 @@ export function Checklist({
       ) : null}
 
       {queued > 0 ? (
-        <div className="mb-4 rounded-[2px] border border-[var(--border)] bg-white px-4 py-3">
+        <div className="mb-4 border-t-2 border-[var(--ink)] pt-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-[14px] font-semibold text-[var(--ink)]">
               {queued} capture{queued === 1 ? "" : "s"} waiting to upload
@@ -628,7 +628,7 @@ function AbsenceControl({
   );
 
   return (
-    <div className="mt-3 rounded-[2px] border border-[var(--border)] bg-[var(--canvas)] p-3">
+    <div className="mt-3 border-l-2 border-[var(--ink)] pl-3">
       <p className="text-[14px] leading-[1.5] font-semibold text-[var(--ink)]">
         Which is it?
       </p>
@@ -763,7 +763,7 @@ export function RepairList({
   }
 
   return (
-    <div className="mb-6 rounded-[2px] border border-[var(--gold)] bg-[var(--gold-wash)] p-4">
+    <div className="mb-6 border-t-2 border-[var(--ink)] pt-3">
       <p className="portal-label">Repairs to verify</p>
       <p className="mt-1.5 max-w-[70ch] text-[14px] leading-[1.55] text-[var(--ink)]">
         {open === 0

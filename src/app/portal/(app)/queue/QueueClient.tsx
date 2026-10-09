@@ -68,8 +68,8 @@ export function QueueClient({ jobs }: { jobs: DeadJob[] }) {
         {jobs.map((j) => (
           <li key={j.id} className="py-4">
             <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-              <span className="font-mono text-[13.5px] font-semibold text-[var(--navy)]">{j.kind}</span>
-              <span className="font-mono text-[12px] text-[var(--secondary)]">#{j.id}</span>
+              <span className="text-[13.5px] font-semibold text-[var(--navy)]">{j.kind}</span>
+              <span className="text-[12px] text-[var(--secondary)]">#{j.id}</span>
               <span className="text-[12.5px] text-[var(--secondary)]">
                 {j.attempts} of {j.maxAttempts} attempts
               </span>
@@ -110,7 +110,7 @@ export function QueueClient({ jobs }: { jobs: DeadJob[] }) {
               is told about is the same screen lying more quietly.
             */}
             {Object.keys(j.payload).length > 0 ? (
-              <p className="mt-1.5 max-w-[76ch] font-mono text-[12px] leading-[1.5] break-all text-[var(--secondary)]">
+              <p className="mt-1.5 max-w-[76ch] text-[12px] leading-[1.5] break-all text-[var(--secondary)]">
                 {JSON.stringify(j.payload).slice(0, PAYLOAD_CHARS)}
                 {/*
                   --secondary, NOT --muted, and the board is why.
