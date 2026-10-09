@@ -512,7 +512,24 @@ const rec = (name, ok, note = "") => out.push({ name, ok, note });
   }
 
   const dash = read("src/components/portal/Dashboard.tsx") ?? "";
-  rec("the dashboard renders money through money()", /\bmoney\(/.test(dash));
+  /*
+   * THROUGH moneyOr SINCE 2026-10-09, operator ruling: a money tile whose files
+   * all lack a figure prints "No total", never $0.00. moneyOr is money() with
+   * words for an absence, so the property this check protects (no second
+   * formatter that forgets null) holds only if moneyOr IS that. Both halves are
+   * asserted: the dashboard calls moneyOr, and moneyOr's body delegates to
+   * money() and tests isKnown, with no arithmetic of its own.
+   */
+  rec("the dashboard renders money through moneyOr()", /\bmoneyOr\(tile\.value, tile\.absent\)/.test(dash));
+  {
+    const ops = read("src/lib/ops-money.ts") ?? "";
+    const body = ops.match(/export function moneyOr\([^)]*\): string \{([\s\S]*?)\n\}/)?.[1] ?? "";
+    rec(
+      "and moneyOr is money() with words for an absence, nothing else",
+      /\bmoney\(value\)/.test(body) && /!isKnown\(value\)/.test(body) && !/\/\s*100|toFixed|toLocaleString/.test(body),
+      body ? "" : "moneyOr was not found in ops-money.ts",
+    );
+  }
   rec(
     "and asks isKnown rather than testing truthiness",
     /isKnown\(/.test(dash) && !/tile\.value\s*\?/.test(dash),
