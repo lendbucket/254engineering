@@ -307,6 +307,23 @@ export default async function OrderStatusPage({
           </section>
         ) : null}
 
+        {/*
+          A limit of what the firm provides, on its own line and never inside
+          the list above. Operator ruling of 2026-10-08.
+        */}
+        {view.notes.length > 0 ? (
+          <section className="mt-12">
+            <h2 className={LABEL}>Notes</h2>
+            <ul className="mt-4 flex flex-col gap-3">
+              {view.notes.map((line) => (
+                <li key={line} className="text-[15px] leading-[1.65] text-[var(--color-ink-quiet)]">
+                  {line}
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
+
         {view.refundDisclosure ? (
           <section className="mt-12 border-t border-[var(--color-limestone-line)] pt-9">
             <h2 className={LABEL}>What you were told before you paid</h2>

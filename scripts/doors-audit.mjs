@@ -734,6 +734,43 @@ async function run() {
      * so a run that died earlier is cleaned up too. Clients and accounts go
      * with the users; the audit rows stay, because that table refuses deletes.
      */
+    /*
+     * THE ORDERS FIRST, AND THEIR ERRORS ARE KEPT. Found 2026-10-09: the board
+     * of ab36f3d left PROBE2-1791518216818-7da on development, a paid order
+     * whose client was deleted and whose own delete failed in silence (that
+     * board's first run met a "fetch failed" network fault). Every board after
+     * it then failed demo-audit, which found a probe counting in the firm's
+     * figures, and native-audit, which found /portal/reports rendering a table
+     * at 390 for the row. The deletes above discarded their results.
+     *
+     * So the sweep reads every order on the probe address, from this run or an
+     * earlier one that died, deletes each, keeps any error, and reads back. A
+     * row it could not remove is a red naming the reference and the error,
+     * here, rather than a red in two other audits on the next board.
+     */
+    const { data: probeOrders, error: probeOrdersErr } = await db
+      .from("eng_service_orders")
+      .select("id, reference")
+      .like("customer_email", `probe-door-%@${PROBE_DOMAIN}`);
+    const orderDeleteErrors = [];
+    for (const o of probeOrders ?? []) {
+      const { error } = await db.from("eng_service_orders").delete().eq("id", o.id);
+      if (error) orderDeleteErrors.push(`${o.reference}: ${error.message}`);
+    }
+    const { data: ordersLeft, error: ordersLeftErr } = await db
+      .from("eng_service_orders")
+      .select("reference")
+      .like("customer_email", `probe-door-%@${PROBE_DOMAIN}`);
+    rec(
+      "every probe order is removed, this run's and any an earlier run left",
+      !probeOrdersErr && !ordersLeftErr && (ordersLeft ?? []).length === 0,
+      probeOrdersErr || ordersLeftErr
+        ? `the sweep could not read: ${(probeOrdersErr ?? ordersLeftErr).message}`
+        : (ordersLeft ?? []).length
+          ? `${(ordersLeft ?? []).map((o) => o.reference).join(", ")} left; ${orderDeleteErrors.join("; ") || "no error was returned"}`
+          : `${(probeOrders ?? []).length} swept`,
+    );
+
     const { data: strays } = await db
       .from("eng_customer_users")
       .select("id, account_id")

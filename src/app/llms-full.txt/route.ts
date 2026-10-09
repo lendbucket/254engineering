@@ -92,7 +92,7 @@ ${service.whoOrders.map((w) => `- ${w}`).join("\n")}
 ### The deliverable
 
 ${service.deliverable.map((d) => `- ${d}`).join("\n")}
-${turnaroundCopy(service.turnaround) ? `\n### Turnaround\n\n${turnaroundCopy(service.turnaround)}\n` : ""}
+${service.notes?.length ? `\n### Notes\n\n${service.notes.map((n) => `- ${n}`).join("\n")}\n` : ""}${turnaroundCopy(service.turnaround) ? `\n### Turnaround\n\n${turnaroundCopy(service.turnaround)}\n` : ""}
 ### Questions
 
 ${service.faqs.map((f) => `Q: ${f.q}\nA: ${f.a}`).join("\n\n")}
