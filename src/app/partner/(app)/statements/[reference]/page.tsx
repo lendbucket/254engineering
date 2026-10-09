@@ -43,19 +43,19 @@ export default async function PartnerStatementPage({
       <div>
         <Link
           href="/partner/statements"
-          className="inline-flex min-h-[var(--tap-target)] items-center text-[13.5px] font-semibold text-[var(--secondary)]"
+          className="inline-flex min-h-[var(--tap-target)] items-center text-[14px] font-semibold text-[var(--secondary)]"
         >
           Statements
         </Link>
         <div className="flex flex-wrap items-baseline justify-between gap-3">
-          <h1 className="font-display text-[24px] leading-[1.2] font-bold text-[var(--navy)]">
+          <h1 className="font-display text-[24px] leading-[1.2] font-bold text-[var(--ink)]">
             <span>{statement.reference}</span>
           </h1>
           <StatusPill tone={statement.status === "paid" ? "good" : "in-motion"}>
             {statement.status === "paid" ? "Paid" : "Issued"}
           </StatusPill>
         </div>
-        <p className="mt-1.5 text-[13.5px] leading-[1.6] text-[var(--secondary)]">
+        <p className="mt-1.5 text-[14px] leading-[1.6] text-[var(--secondary)]">
           Period {statement.period}
           {statement.issuedAt
             ? `, issued ${new Date(statement.issuedAt).toLocaleDateString("en-US", {
@@ -69,10 +69,10 @@ export default async function PartnerStatementPage({
       </div>
 
       <Panel title="Total">
-        <p className="font-display text-[24px] leading-none font-bold tabular-nums text-[var(--navy)]">
+        <p className="font-display text-[24px] leading-none font-bold tabular-nums text-[var(--ink)]">
           {money(statement.totalCents)}
         </p>
-        <p className="mt-2 max-w-[70ch] text-[13.5px] leading-[1.6] text-[var(--secondary)]">
+        <p className="mt-2 max-w-[70ch] text-[14px] leading-[1.6] text-[var(--secondary)]">
           {statement.status === "paid"
             ? `Recorded as paid${
                 statement.paidAt
@@ -91,13 +91,13 @@ export default async function PartnerStatementPage({
         title="What is on it"
         description="Every entry, with the reason it was written. A reversal stands beside the accrual it answers rather than replacing it."
       >
-        <ul className="flex flex-col gap-2.5">
+        <ul className="border-t border-[var(--row-rule)]">
           {lines.map((line) => (
-            <li key={line.id} className="rounded-[var(--radius-card)] border border-[var(--border)] p-3">
+            <li key={line.id} className="border-b border-[var(--row-rule)] py-3">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <p
                   className={`text-[15px] font-bold tabular-nums ${
-                    line.kind === "reversal" ? "text-[var(--red)]" : "text-[var(--navy)]"
+                    line.kind === "reversal" ? "text-[var(--ink)]" : "text-[var(--ink)]"
                   }`}
                 >
                   {line.status === "blocked" ? (
@@ -114,7 +114,7 @@ export default async function PartnerStatementPage({
                       : "Earned"}
                 </StatusPill>
               </div>
-              <p className="mt-1.5 text-[13.5px] leading-[1.55] text-[var(--ink)]">{line.explanation}</p>
+              <p className="mt-1.5 text-[14px] leading-[1.55] text-[var(--ink)]">{line.explanation}</p>
               <p className="mt-1.5 text-[12px] text-[var(--secondary)]">
                 {new Date(line.occurredAt).toLocaleDateString("en-US", {
                   year: "numeric",

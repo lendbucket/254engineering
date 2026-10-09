@@ -50,6 +50,9 @@ import {
   createCustomerProbe,
   customerCookieFor,
   destroyCustomerProbes,
+  attachPartnerUser,
+  attachCustomerUser,
+  detachSeedUsers,
 } from "./lib/portal-probe.mjs";
 import { auditClient } from "./lib/db-target.mjs";
 import { readdirSync, statSync } from "node:fs";
@@ -107,11 +110,22 @@ const STILL_NOT_YET_V10 = [
 ];
 const NOT_YET_V10 = STILL_NOT_YET_V10 ?? [...ORIGINAL_NOT_YET_V10];
 
-/* Dynamic routes whose screen needs a record OWNED by the signed-in probe, which no probe helper makes yet. */
-const UNRESOLVED_UNTIL = {
-  "/account/orders/[reference]": "a customer probe's own order",
-  "/partner/statements/[reference]": "a partner probe's own statement",
-};
+/*
+ * Dynamic routes whose screen needs a record OWNED by the signed-in probe, which
+ * no probe helper makes yet. EMPTY since 2026-10-09: the audit seed
+ * (scripts/seed-audit-world.mjs) holds a partner statement and a customer bulk
+ * order, and a reader attached to each owner opens them. The object stays, so a
+ * route that loses its resolver is named rather than silently skipped.
+ */
+const UNRESOLVED_UNTIL = {};
+
+/*
+ * THE SEEDED RECORDS. Read rather than typed, so a re-seed with a new reference
+ * needs no edit here. A missing seed is a FAIL naming the script to run, never
+ * a skip: the two routes it serves have no other way to be measured.
+ */
+const SEED_PARTNER_EMAIL = "seed-partner@audit-probe.invalid";
+const SEED_BATCH = "254-B2026-DEMO01";
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
@@ -172,7 +186,38 @@ await orCouldNotTell(
     await destroyProbes("v10-layout");
     await destroyPartnerProbes("v10-layout");
     await destroyCustomerProbes("v10-layout");
+    await detachSeedUsers("v10-layout");
   },
+);
+
+/* The seeded owners, and a reader attached to each. */
+const seed = { statement: null, batch: null };
+if (db) {
+  const { data: sp } = await db.from("eng_partners").select("id").eq("contact_email", SEED_PARTNER_EMAIL).maybeSingle();
+  if (sp) {
+    const { data: st } = await db
+      .from("eng_partner_statements")
+      .select("reference, status")
+      .eq("partner_id", sp.id)
+      .in("status", ["issued", "paid"])
+      .limit(1);
+    if (st?.[0]) {
+      seed.statement = st[0].reference;
+      sessions.seedPartner = await attachPartnerUser(BASE, "v10-layout", sp.id);
+    }
+  }
+  const { data: sb } = await db.from("eng_order_batches").select("reference, account_id").eq("reference", SEED_BATCH).maybeSingle();
+  if (sb?.account_id) {
+    seed.batch = sb.reference;
+    sessions.seedCustomer = await attachCustomerUser(BASE, "v10-layout", sb.account_id);
+  }
+}
+rec(
+  "the audit seed is present (a partner statement and a customer bulk order)",
+  Boolean(seed.statement && seed.batch),
+  seed.statement && seed.batch
+    ? `${seed.statement}, ${seed.batch}`
+    : "run: npx tsx --conditions=react-server scripts/seed-audit-world.mjs",
 );
 for (const k of Object.keys(sessions)) rec(`a ${k} session was created`, Boolean(sessions[k]?.cookie), sessions[k]?.fault ?? "");
 
@@ -183,6 +228,13 @@ async function resolve(pattern) {
   if (pattern === "/portal/techs/[id]") return sessions.field_tech?.id ? pattern.replace("[id]", sessions.field_tech.id) : null;
   if (pattern === "/portal/partners/[id]") return sessions.partner?.partnerId ? pattern.replace("[id]", sessions.partner.partnerId) : null;
   if (pattern === "/order/start/[slug]") return "/order/start/roof-inspections";
+  /* The two the audit seed serves, opened by the reader attached to each owner. */
+  if (pattern === "/partner/statements/[reference]") {
+    return seed.statement && sessions.seedPartner?.cookie ? `/partner/statements/${seed.statement}` : null;
+  }
+  if (pattern === "/account/orders/[reference]") {
+    return seed.batch && sessions.seedCustomer?.cookie ? `/account/orders/${seed.batch}` : null;
+  }
   /*
    * The order status page, resolved 2026-10-08. It opens only with a signed
    * link, so the resolver issues one through issueCustomerLink, the product's
@@ -223,6 +275,9 @@ async function resolve(pattern) {
 
 /* Which session opens a route: the surface's own principal, or the staff role roleFor names. */
 function sessionFor(surfaceKey, path) {
+  /* A seeded record is opened by its owner's attached reader, never by the probe, which owns nothing. */
+  if (surfaceKey === "partner" && path?.startsWith("/partner/statements/")) return { probe: sessions.seedPartner, cookie: partnerCookieFor };
+  if (surfaceKey === "account" && path?.startsWith("/account/orders/")) return { probe: sessions.seedCustomer, cookie: customerCookieFor };
   if (surfaceKey === "partner") return { probe: sessions.partner, cookie: partnerCookieFor };
   if (surfaceKey === "account") return { probe: sessions.customer, cookie: customerCookieFor };
   if (surfaceKey === "order") return { probe: null, cookie: null };
@@ -628,11 +683,21 @@ if (REPORT) {
   await destroyProbes("v10-layout");
   await destroyPartnerProbes("v10-layout");
   await destroyCustomerProbes("v10-layout");
+  const detached = await detachSeedUsers("v10-layout");
+  if (!detached.ok) console.log(`  SEED READERS NOT REMOVED: ${detached.left} left; ${detached.note}`);
   console.log("REPORT ONLY: nothing passed or failed.");
   process.exit(0);
 }
 
 console.log("");
+/*
+ * THE SEED READERS GO BEFORE THE VERDICT IS PRINTED, so a reader left able to
+ * sign in to a seeded owner is a red here rather than a credential nobody saw.
+ */
+{
+  const detached = await detachSeedUsers("v10-layout");
+  rec("the readers attached to the seeded owners are removed", detached.ok, `${detached.left} left; ${detached.note}`);
+}
 for (const r of out) console.log(`  ${r.ok ? "PASS" : "FAIL"}: ${r.name}${r.note ? ` (${r.note})` : ""}`);
 if (!ONLY) {
   console.log("");
