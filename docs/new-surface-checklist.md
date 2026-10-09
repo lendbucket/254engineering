@@ -156,3 +156,27 @@ The import list is derived the same way every time, so it is a command rather
 than a memory:
 
     grep -rl "lib/<changed file>" scripts --include=*.mjs
+
+## Before the board: a new migration
+
+**Operator ruling, 2026-10-09. Standing.** Any new migration:
+
+1. moves `migration-audit`'s pinned shape, `EXPECTED_COLUMNS` and
+   `EXPECTED_FINGERPRINT` in `scripts/migration-audit.mjs` (and the table,
+   trigger and function counts if it changes them), **in the same commit** as
+   the migration, with a comment naming the migration and what moved; the
+   figures come from `scripts/fingerprint-at.mjs`, never from a guess;
+2. runs `migration-audit` standalone before the board, with its declared
+   condition (`npx tsx --conditions=react-server scripts/migration-audit.mjs`,
+   as package.json invokes it), along with every audit that reads
+   `supabase/migrations` or `supabase/applied.mjs`, the list found by searching
+   the imports, never recalled:
+
+    grep -rlE "supabase/applied|supabase/migrations|applied\.mjs" scripts --include=*.mjs
+
+The miss this rule exists for: `fix/certification-unblock` added 0066 and
+boarded without moving the pinned shape, and the board of d1e18d2 returned 59
+of 61 against a prediction of 60, migration-audit naming the replay at 1171
+columns against its pinned 1170. The constant is pinned so a migration moves it
+on purpose; the rule is that the move happens with the migration, not after a
+board finds it.
