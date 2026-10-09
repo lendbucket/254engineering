@@ -48,16 +48,19 @@ export default async function AccountHomePage() {
       </header>
 
       <main className="mx-auto w-full max-w-[68ch] flex-1 px-4 py-12 sm:px-6 sm:py-16">
-        <p className={LABEL}>Your account</p>
-        <h1 className="mt-2.5 text-[clamp(1.75rem,3vw,2.1rem)] leading-[1.15] font-semibold tracking-[-0.5px] text-[var(--color-ink)]">
-          {me.displayName}
-        </h1>
-        <p className="mt-2 text-[16px] leading-[1.7] text-[var(--color-ink-quiet)]">
-          Signed in as {me.email}.{" "}
-          {me.account.billingMode === "invoice"
-            ? `This account is invoiced, on ${me.account.netDays} day terms.`
-            : "This account pays by card at the time of ordering."}
-        </p>
+        {/* The title block is one section on a phone, V10 rule 7, 2026-10-08. */}
+        <div>
+          <p className={LABEL}>Your account</p>
+          <h1 className="mt-2.5 text-[clamp(1.75rem,3vw,2.1rem)] leading-[1.15] font-semibold tracking-[-0.5px] text-[var(--color-ink)]">
+            {me.displayName}
+          </h1>
+          <p className="mt-2 text-[16px] leading-[1.7] text-[var(--color-ink-quiet)]">
+            Signed in as <span className="v10-email">{me.email}</span>.{" "}
+            {me.account.billingMode === "invoice"
+              ? `This account is invoiced, on ${me.account.netDays} day terms.`
+              : "This account pays by card at the time of ordering."}
+          </p>
+        </div>
 
         {/*
           The three cards become three ruled sections. V10 rule 1: the border

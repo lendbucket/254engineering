@@ -15,7 +15,7 @@ import type { RoleKey } from "@/lib/ops-authz";
  */
 
 const field =
-  "min-h-[48px] w-full rounded-[3px] border border-[var(--border)] bg-white px-3 text-[16px] text-[var(--navy)] outline-none focus:border-slate";
+  "min-h-[48px] w-full rounded-[2px] border border-[var(--border)] bg-white px-3 text-[16px] text-[var(--ink)] outline-none focus:border-[var(--navy)]";
 
 async function post(payload: Record<string, unknown>) {
   const res = await fetch("/api/portal/comms", {
@@ -141,12 +141,12 @@ export function Composer({
             {pending.map((p) => (
               <li
                 key={p.key}
-                className="flex items-center gap-2 rounded-[3px] border border-[var(--border)] bg-[var(--canvas)] py-1 pr-1 pl-2"
+                className="flex items-center gap-2 rounded-[2px] border border-[var(--border-strong)] bg-white py-1 pr-1 pl-2"
               >
                 {p.preview ? (
                   <img src={p.preview} alt="" className="h-8 w-8 rounded-[2px] object-cover" />
                 ) : null}
-                <span className="max-w-[12ch] truncate text-[12.5px] text-[var(--ink)]">{p.name}</span>
+                <span className="max-w-[12ch] truncate text-[13px] text-[var(--ink)]">{p.name}</span>
                 <button
                   type="button"
                   aria-label={`Remove ${p.name}`}
@@ -203,7 +203,7 @@ export function Composer({
               The placeholder is short for the same reason: at 390 the camera,
               attach and send buttons take 148px before this starts.
             */
-            className="max-h-[120px] min-h-[44px] w-full resize-none rounded-[var(--radius-control)] border border-[var(--border)] bg-white px-3 py-2.5 text-[16px] leading-[1.4] text-[var(--navy)] outline-none focus:border-slate"
+            className="max-h-[120px] min-h-[44px] w-full resize-none rounded-[var(--radius-control)] border border-[var(--border)] bg-white px-3 py-2.5 text-[16px] leading-[1.4] text-[var(--ink)] outline-none focus:border-[var(--navy)]"
           />
 
           <div className="flex items-center gap-2">
@@ -212,7 +212,7 @@ export function Composer({
             aria-label="Take a photograph"
             disabled={uploading || pending.length >= 6}
             onClick={() => camera.current?.click()}
-            className="grid h-11 w-11 shrink-0 place-items-center rounded-[var(--radius-control)] border border-[var(--border-strong)] text-[var(--navy)] active:bg-[var(--row-hover)] disabled:opacity-45 sm:hidden"
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-[var(--radius-control)] border border-[var(--border-strong)] text-[var(--ink)] active:bg-[var(--row-hover)] disabled:opacity-45 sm:hidden"
           >
             <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
               <path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z" />
@@ -224,7 +224,7 @@ export function Composer({
             aria-label="Attach a file"
             disabled={uploading || pending.length >= 6}
             onClick={() => library.current?.click()}
-            className="grid h-11 w-11 shrink-0 place-items-center rounded-[var(--radius-control)] border border-[var(--border-strong)] text-[var(--navy)] active:bg-[var(--row-hover)] disabled:opacity-45"
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-[var(--radius-control)] border border-[var(--border-strong)] text-[var(--ink)] active:bg-[var(--row-hover)] disabled:opacity-45"
           >
             <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
               <path d="M20 11.5 12.5 19a4.5 4.5 0 0 1-6.4-6.4l7.6-7.6a3 3 0 0 1 4.3 4.3l-7.6 7.6a1.5 1.5 0 0 1-2.2-2.2l7-7" />
@@ -244,7 +244,7 @@ export function Composer({
           </div>
         </div>
 
-        <p className="mt-1.5 text-[12.5px] leading-[1.5] text-[var(--secondary)]">
+        <p className="mt-1.5 text-[13px] leading-[1.5] text-[var(--secondary)]">
           {uploading
             ? "Uploading."
             : mentioned.length > 0
@@ -255,7 +255,7 @@ export function Composer({
         </p>
 
         {error ? (
-          <p role="alert" className="mt-2 text-[13.5px] font-semibold text-[var(--red)]">
+          <p role="alert" className="mt-2 text-[14px] font-semibold text-[var(--ink)]">
             {error}
           </p>
         ) : null}
@@ -277,7 +277,7 @@ export function StartDirect({ people }: { people: { id: string; name: string; ro
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex min-h-[var(--tap-target)] items-center justify-center rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[13.5px] font-bold text-white"
+        className="inline-flex min-h-[var(--tap-target)] items-center justify-center rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[14px] font-bold text-white"
       >
         Message somebody
       </button>
@@ -285,10 +285,10 @@ export function StartDirect({ people }: { people: { id: string; name: string; ro
   }
 
   return (
-    <div className="rounded-[4px] border border-[var(--border)] bg-white p-3">
-      <p className="text-[13.5px] font-semibold text-[var(--navy)]">Who</p>
+    <div className="border-t-2 border-[var(--ink)] pt-3">
+      <p className="text-[14px] font-semibold text-[var(--ink)]">Who</p>
       {error ? (
-        <p role="alert" className="mt-1.5 text-[13.5px] font-semibold text-[var(--red)]">
+        <p role="alert" className="mt-1.5 text-[14px] font-semibold text-[var(--ink)]">
           {error}
         </p>
       ) : null}
@@ -312,7 +312,7 @@ export function StartDirect({ people }: { people: { id: string; name: string; ro
                   setBusy(false);
                 }
               }}
-              className="flex min-h-[44px] w-full items-center justify-between rounded-[3px] border border-[var(--border)] px-3 text-left text-[13.5px] text-[var(--navy)] hover:border-slate disabled:opacity-50"
+              className="flex min-h-[44px] w-full items-center justify-between rounded-[2px] border border-[var(--border)] px-3 text-left text-[14px] text-[var(--ink)] hover:border-slate disabled:opacity-50"
             >
               <span>{p.name}</span>
               <span className="text-[12px] text-[var(--secondary)]">{p.role.replace(/_/g, " ")}</span>
@@ -323,7 +323,7 @@ export function StartDirect({ people }: { people: { id: string; name: string; ro
       <button
         type="button"
         onClick={() => setOpen(false)}
-        className="mt-2 inline-flex min-h-[40px] items-center text-[13.5px] font-semibold text-[var(--secondary)]"
+        className="mt-2 inline-flex min-h-[40px] items-center text-[14px] font-semibold text-[var(--secondary)]"
       >
         Cancel
       </button>
@@ -344,7 +344,7 @@ export function NewChannel() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex min-h-[44px] items-center justify-center rounded-[3px] border border-[var(--border)] px-4 text-[13.5px] font-semibold text-[var(--navy)] hover:border-slate"
+        className="inline-flex min-h-[44px] items-center justify-center rounded-[2px] border border-[var(--border)] px-4 text-[14px] font-semibold text-[var(--ink)] hover:border-slate"
       >
         Open a channel
       </button>
@@ -353,7 +353,7 @@ export function NewChannel() {
 
   return (
     <form
-      className="rounded-[4px] border border-[var(--border)] bg-white p-3"
+      className="border-t-2 border-[var(--ink)] pt-3"
       onSubmit={async (e) => {
         e.preventDefault();
         setBusy(true);
@@ -372,7 +372,7 @@ export function NewChannel() {
         }
       }}
     >
-      <label htmlFor="channel-name" className="block text-[13.5px] font-semibold text-[var(--navy)]">
+      <label htmlFor="channel-name" className="block text-[14px] font-semibold text-[var(--ink)]">
         Channel name
       </label>
       <input
@@ -385,14 +385,14 @@ export function NewChannel() {
       />
 
       <fieldset className="mt-3">
-        <legend className="text-[13.5px] font-semibold text-[var(--navy)]">Who can read it</legend>
+        <legend className="text-[14px] font-semibold text-[var(--ink)]">Who can read it</legend>
         <div className="mt-1.5 flex flex-col gap-1.5">
           {[
             ["admin", "Administrators"],
             ["engineer", "Engineers"],
             ["field_tech", "Field technicians"],
           ].map(([value, label]) => (
-            <label key={value} className="flex min-h-[44px] items-center gap-2.5 text-[13.5px] text-[var(--navy)]">
+            <label key={value} className="flex min-h-[44px] items-center gap-2.5 text-[14px] text-[var(--ink)]">
               <input
                 type="checkbox"
                 checked={roles.includes(value)}
@@ -405,14 +405,14 @@ export function NewChannel() {
             </label>
           ))}
         </div>
-        <p className="mt-1 text-[12.5px] leading-[1.5] text-[var(--secondary)]">
+        <p className="mt-1 text-[13px] leading-[1.5] text-[var(--secondary)]">
           Anybody with one of these roles can read the channel without being added to it. A channel
           with no roles is readable by nobody, so at least one is required.
         </p>
       </fieldset>
 
       {error ? (
-        <p role="alert" className="mt-2 text-[13.5px] font-semibold text-[var(--red)]">
+        <p role="alert" className="mt-2 text-[14px] font-semibold text-[var(--ink)]">
           {error}
         </p>
       ) : null}
@@ -421,14 +421,14 @@ export function NewChannel() {
         <button
           type="submit"
           disabled={busy}
-          className="inline-flex min-h-[var(--tap-target)] items-center rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[13.5px] font-bold text-white disabled:opacity-50"
+          className="inline-flex min-h-[var(--tap-target)] items-center rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[14px] font-bold text-white disabled:opacity-50"
         >
           {busy ? "Opening" : "Open the channel"}
         </button>
         <button
           type="button"
           onClick={() => setOpen(false)}
-          className="inline-flex min-h-[44px] items-center rounded-[3px] border border-[var(--border)] px-4 text-[13.5px] font-semibold text-[var(--navy)]"
+          className="inline-flex min-h-[44px] items-center rounded-[2px] border border-[var(--border)] px-4 text-[14px] font-semibold text-[var(--ink)]"
         >
           Cancel
         </button>
@@ -458,10 +458,10 @@ export function MessageSearch({ people }: { people: { id: string; name: string }
   } | null>(null);
 
   const field =
-    "min-h-[44px] w-full rounded-[3px] border border-[var(--border)] bg-white px-3 text-[16px] text-[var(--navy)] outline-none focus:border-slate";
+    "min-h-[44px] w-full rounded-[2px] border border-[var(--border)] bg-white px-3 text-[16px] text-[var(--ink)] outline-none focus:border-[var(--navy)]";
 
   return (
-    <div className="rounded-[var(--radius-card)] border border-[var(--border)] bg-white p-4">
+    <div className="border-t-2 border-[var(--ink)] pt-3">
       <form
         onSubmit={async (e) => {
           e.preventDefault();
@@ -482,7 +482,7 @@ export function MessageSearch({ people }: { people: { id: string; name: string }
           }
         }}
       >
-        <label htmlFor="msg-q" className="block text-[13.5px] font-semibold text-[var(--navy)]">
+        <label htmlFor="msg-q" className="block text-[14px] font-semibold text-[var(--ink)]">
           Search every conversation you can read
         </label>
         <input
@@ -495,7 +495,7 @@ export function MessageSearch({ people }: { people: { id: string; name: string }
 
         <div className="mt-2 grid gap-2 sm:grid-cols-2">
           <div>
-            <label htmlFor="msg-who" className="block text-[12.5px] font-semibold text-[var(--secondary)]">
+            <label htmlFor="msg-who" className="block text-[13px] font-semibold text-[var(--secondary)]">
               Written by
             </label>
             <select id="msg-who" value={authorId} onChange={(e) => setAuthorId(e.target.value)} className={`mt-1 ${field}`}>
@@ -508,7 +508,7 @@ export function MessageSearch({ people }: { people: { id: string; name: string }
             </select>
           </div>
           <div>
-            <label htmlFor="msg-since" className="block text-[12.5px] font-semibold text-[var(--secondary)]">
+            <label htmlFor="msg-since" className="block text-[13px] font-semibold text-[var(--secondary)]">
               Since
             </label>
             <input id="msg-since" type="date" value={since} onChange={(e) => setSince(e.target.value)} className={`mt-1 ${field}`} />
@@ -525,20 +525,20 @@ export function MessageSearch({ people }: { people: { id: string; name: string }
       </form>
 
       {error ? (
-        <p role="alert" className="mt-3 text-[13.5px] font-semibold text-[var(--red)]">
+        <p role="alert" className="mt-3 text-[14px] font-semibold text-[var(--ink)]">
           {error}
         </p>
       ) : null}
 
       {found ? (
         found.results.length === 0 ? (
-          <p className="mt-3 text-[13.5px] leading-[1.55] text-[var(--secondary)]">
+          <p className="mt-3 text-[14px] leading-[1.55] text-[var(--secondary)]">
             Nothing matched, in any conversation you can read. A direct message you are not part of
             is not searched and never will be.
           </p>
         ) : (
           <>
-            <p className="mt-3 text-[12.5px] text-[var(--secondary)]">
+            <p className="mt-3 text-[13px] text-[var(--secondary)]">
               {found.truncated
                 ? `The first ${found.results.length} matches, newest first. Narrow it to see the rest.`
                 : `${found.results.length} ${found.results.length === 1 ? "match" : "matches"}, newest first.`}
@@ -548,10 +548,10 @@ export function MessageSearch({ people }: { people: { id: string; name: string }
                 <li key={r.id}>
                   <a
                     href={`/portal/messages?id=${r.threadId}`}
-                    className="block rounded-[3px] border border-[var(--border)] p-3 hover:bg-[var(--canvas)] active:bg-[var(--row-hover)]"
+                    className="block border-b border-[var(--row-rule)] py-3 active:bg-[var(--row-hover)]"
                   >
                     <p className="text-[12px] font-semibold text-[var(--faint)]">{r.threadTitle}</p>
-                    <p className="mt-1 text-[13.5px] leading-[1.5] text-[var(--navy)]">
+                    <p className="mt-1 text-[14px] leading-[1.5] text-[var(--ink)]">
                       {r.body.length > 180 ? `${r.body.slice(0, 177)}...` : r.body}
                       {r.attachmentCount > 0 && !r.body
                         ? `${r.attachmentCount} ${r.attachmentCount === 1 ? "attachment" : "attachments"}`

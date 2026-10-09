@@ -46,7 +46,7 @@ export default async function PartnersPage() {
       header: "Partner",
       cell: (p) => <span className="font-semibold">{p.organisation}</span>,
     },
-    { key: "code", header: "Code", cell: (p) => <span className="font-mono">{p.code}</span> },
+    { key: "code", header: "Code", cell: (p) => <span>{p.code}</span> },
     {
       key: "status",
       header: "State",
@@ -190,7 +190,7 @@ export default async function PartnersPage() {
                   >
                     {p.organisation}
                   </Link>
-                  <span className="font-mono text-[12.5px] text-[var(--secondary)]">{p.code}</span>
+                  <span className="text-[12.5px] text-[var(--secondary)]">{p.code}</span>
                 </li>
               ))}
             </ul>

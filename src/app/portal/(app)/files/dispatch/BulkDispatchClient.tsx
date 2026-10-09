@@ -92,7 +92,7 @@ export function BulkDispatchClient({ plans }: { plans: DispatchPlanRow[] }) {
           {done.sent.length > 0 && (
             <ul className="mt-2 flex flex-col gap-1">
               {done.sent.map((s) => (
-                <li key={s.fileNumber} className="font-mono text-[12.5px] text-[var(--secondary)]">
+                <li key={s.fileNumber} className="text-[12.5px] text-[var(--secondary)]">
                   {s.fileNumber}: {s.count} offer{s.count === 1 ? "" : "s"}
                 </li>
               ))}
@@ -106,7 +106,7 @@ export function BulkDispatchClient({ plans }: { plans: DispatchPlanRow[] }) {
               <ul className="mt-2 flex flex-col gap-1">
                 {done.refused.map((r) => (
                   <li key={r.fileNumber} className="text-[13px] text-[var(--secondary)]">
-                    <span className="font-mono text-[12.5px]">{r.fileNumber}</span>: {r.reason}
+                    <span className="text-[12.5px]">{r.fileNumber}</span>: {r.reason}
                   </li>
                 ))}
               </ul>

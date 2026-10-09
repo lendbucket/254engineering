@@ -255,7 +255,7 @@ export function AccountsClient({ rows }: { rows: Row[] }) {
 
                 {r.openStatement ? (
                   <>
-                    <span className="font-mono text-[12.5px] text-[var(--secondary)]">
+                    <span className="text-[12.5px] text-[var(--secondary)]">
                       {r.openStatement.reference} open, {money(r.openStatement.totalCents)}
                     </span>
                     <button

@@ -106,10 +106,10 @@ export default async function MessagesPage({
             <Link
               href="/portal/messages"
               aria-current={showing === "threads" ? "true" : undefined}
-              className={`flex min-h-[44px] flex-1 items-center justify-center rounded-[3px] border px-3 text-[13.5px] font-semibold ${
+              className={`flex min-h-[44px] flex-1 items-center justify-center rounded-[2px] border px-3 text-[14px] font-semibold ${
                 showing === "threads"
-                  ? "border-slate bg-[var(--canvas)] text-[var(--navy)]"
-                  : "border-[var(--border)] text-[var(--secondary)]"
+                  ? "border-[var(--navy)] bg-[var(--navy)] text-[var(--on-navy)]"
+                  : "border-[var(--border-strong)] bg-white text-[var(--ink)]"
               }`}
             >
               Conversations
@@ -117,10 +117,10 @@ export default async function MessagesPage({
             <Link
               href="/portal/messages?view=mentions"
               aria-current={showing === "mentions" ? "true" : undefined}
-              className={`flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-[3px] border px-3 text-[13.5px] font-semibold ${
+              className={`flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-[2px] border px-3 text-[14px] font-semibold ${
                 showing === "mentions"
-                  ? "border-slate bg-[var(--canvas)] text-[var(--navy)]"
-                  : "border-[var(--border)] text-[var(--secondary)]"
+                  ? "border-[var(--navy)] bg-[var(--navy)] text-[var(--on-navy)]"
+                  : "border-[var(--border-strong)] bg-white text-[var(--ink)]"
               }`}
             >
               Addressed to you
@@ -152,7 +152,7 @@ export default async function MessagesPage({
                     <li key={m.messageId}>
                       <Link
                         href={`/portal/messages?id=${m.threadId}`}
-                        className="block rounded-[4px] border border-[var(--border)] bg-white p-4 transition-colors hover:border-slate"
+                        className="block border-b border-[var(--row-rule)] py-4 active:opacity-70"
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
@@ -162,10 +162,10 @@ export default async function MessagesPage({
                               obvious line renders. Seen in a screenshot at 390
                               before this was written any other way.
                             */}
-                            <p className="text-[13.5px] font-semibold text-[var(--navy)]">
+                            <p className="text-[14px] font-semibold text-[var(--ink)]">
                               {m.kind === "direct" ? m.authorName : `${m.authorName} in ${m.threadTitle}`}
                             </p>
-                            <p className="mt-1 line-clamp-3 text-[13.5px] leading-[1.5] text-[var(--secondary)]">
+                            <p className="mt-1 line-clamp-3 text-[14px] leading-[1.5] text-[var(--secondary)]">
                               {m.body}
                             </p>
                             <p className="mt-1 text-[12px] text-[var(--secondary)]">
@@ -181,7 +181,7 @@ export default async function MessagesPage({
                 </ul>
               )}
               {mentions.truncated ? (
-                <p className="mt-3 text-[12.5px] leading-[1.5] text-[var(--secondary)]">
+                <p className="mt-3 text-[13px] leading-[1.5] text-[var(--secondary)]">
                   The {MENTION_PAGE} most recent are shown. Older ones are still in their
                   conversations, and search finds them.
                 </p>
@@ -200,21 +200,21 @@ export default async function MessagesPage({
                   <li key={t.id}>
                     <Link
                       href={`/portal/messages?id=${t.id}`}
-                      className={`block rounded-[4px] border bg-white p-4 transition-colors hover:border-slate ${
+                      className={`block border-b border-l-[length:var(--active-bar-width)] border-b-[var(--row-rule)] py-4 pl-3 active:opacity-70 ${
                         open?.thread.id === t.id
-                          ? "border-slate"
-                          : "border-[var(--border)]"
+                          ? "border-l-[var(--navy)]"
+                          : "border-l-transparent"
                       }`}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="text-[13.5px] font-semibold text-[var(--navy)]">{t.title}</p>
+                          <p className="text-[14px] font-semibold text-[var(--ink)]">{t.title}</p>
                           {t.preview ? (
-                            <p className="mt-1 line-clamp-2 text-[13.5px] leading-[1.5] text-[var(--secondary)]">
+                            <p className="mt-1 line-clamp-2 text-[14px] leading-[1.5] text-[var(--secondary)]">
                               {t.preview}
                             </p>
                           ) : (
-                            <p className="mt-1 text-[13.5px] text-[var(--secondary)]">Nothing said yet.</p>
+                            <p className="mt-1 text-[14px] text-[var(--secondary)]">Nothing said yet.</p>
                           )}
                           <p className="mt-1 text-[12px] text-[var(--secondary)]">
                             {KIND_LABEL[t.kind]}
@@ -236,17 +236,17 @@ export default async function MessagesPage({
           <div>
             <Link
               href="/portal/messages"
-              className="mb-3 inline-flex min-h-[44px] items-center text-[13.5px] font-semibold text-[var(--secondary)] lg:hidden"
+              className="mb-3 inline-flex min-h-[44px] items-center text-[14px] font-semibold text-[var(--secondary)] lg:hidden"
             >
               Back to conversations
             </Link>
 
-            <div className="rounded-[4px] border border-[var(--border)] bg-white">
+            <div className="border-t-2 border-[var(--ink)]">
               <div className="border-b border-[var(--border)] px-4 py-3 sm:px-5">
-                <h2 className="font-display text-[17px] leading-[1.25] font-bold text-[var(--navy)]">
+                <h2 className="font-display text-[17px] leading-[1.25] font-bold text-[var(--ink)]">
                   {open.thread.title}
                 </h2>
-                <p className="mt-0.5 text-[12.5px] text-[var(--secondary)]">
+                <p className="mt-0.5 text-[13px] text-[var(--secondary)]">
                   {KIND_LABEL[open.thread.kind]}
                   {open.thread.kind === "channel" && open.thread.channel_roles?.length
                     ? `, readable by ${open.thread.channel_roles.join(" and ")}`
@@ -259,14 +259,14 @@ export default async function MessagesPage({
 
               <div className="px-4 py-4 sm:px-5">
                 {open.messages.length === 0 ? (
-                  <p className="text-[13.5px] leading-[1.55] text-[var(--secondary)]">
+                  <p className="text-[14px] leading-[1.55] text-[var(--secondary)]">
                     Nothing said yet. Whatever you write here reaches everybody named above and
                     nobody else.
                   </p>
                 ) : (
                   <ol className="flex flex-col gap-4">
                     {open.olderCount > 0 ? (
-                      <li className="pb-1 text-center text-[12.5px] text-[var(--secondary)]">
+                      <li className="pb-1 text-center text-[13px] text-[var(--secondary)]">
                         {/*
                           SAYS WHAT IT IS NOT SHOWING. The read was capped at
                           500 silently before, taking the OLDEST 500, so a long
@@ -283,8 +283,8 @@ export default async function MessagesPage({
                       return (
                         <li key={m.id} className={mine ? "sm:pl-10" : "sm:pr-10"}>
                           <div
-                            className={`rounded-[4px] border px-3.5 py-3 ${
-                              mine ? "border-slate bg-[var(--canvas)]" : "border-[var(--border)] bg-white"
+                            className={`border-l-2 py-1 pl-3 ${
+                              mine ? "border-[var(--navy)]" : "border-[var(--row-rule)]"
                             }`}
                           >
                             <p className="text-[12px] font-semibold text-[var(--faint)]">
@@ -292,7 +292,7 @@ export default async function MessagesPage({
                               {m.author_role && !mine ? `, ${roleLabel(m.author_role)}` : ""}
                             </p>
                             {m.body ? (
-                              <p className="mt-1 text-[13.5px] leading-[1.55] whitespace-pre-wrap text-[var(--navy)]">
+                              <p className="mt-1 text-[14px] leading-[1.55] whitespace-pre-wrap text-[var(--ink)]">
                                 {m.body}
                               </p>
                             ) : null}
@@ -310,7 +310,7 @@ export default async function MessagesPage({
                                       image icon reads as "this was deleted".
                                     */}
                                     {a.url === null ? (
-                                      <p className="rounded-[3px] border border-[var(--warn-border)] bg-[var(--warn-bg)] px-2.5 py-1.5 text-[12.5px] text-[var(--warn-ink)]">
+                                      <p className="text-[13px] font-semibold text-[var(--ink)]">
                                         {a.name} could not be opened just now.
                                       </p>
                                     ) : a.contentType.startsWith("image/") ? (
@@ -319,7 +319,7 @@ export default async function MessagesPage({
                                         <img
                                           src={a.url}
                                           alt={a.name}
-                                          className="h-28 w-28 rounded-[3px] border border-[var(--border)] object-cover"
+                                          className="h-28 w-28 rounded-[2px] border border-[var(--border)] object-cover"
                                         />
                                       </a>
                                     ) : (
@@ -327,7 +327,7 @@ export default async function MessagesPage({
                                         href={a.url}
                                         target="_blank"
                                         rel="noreferrer"
-                                        className="inline-flex min-h-[40px] items-center rounded-[3px] border border-[var(--border)] bg-white px-3 text-[13.5px] font-semibold text-[var(--navy)] active:bg-[var(--row-hover)]"
+                                        className="inline-flex min-h-[40px] items-center rounded-[2px] border border-[var(--border)] bg-white px-3 text-[14px] font-semibold text-[var(--ink)] active:bg-[var(--row-hover)]"
                                       >
                                         {a.name}
                                       </a>
@@ -346,7 +346,7 @@ export default async function MessagesPage({
                 )}
 
                 {open.seenBy.length > 0 ? (
-                  <p className="mt-3 text-[12.5px] leading-[1.5] text-[var(--secondary)]">
+                  <p className="mt-3 text-[13px] leading-[1.5] text-[var(--secondary)]">
                     {/*
                       FILE THREADS ONLY, and the narrowness is the decision.
                       Whether the engineer saw the technician's question is
@@ -366,7 +366,7 @@ export default async function MessagesPage({
                     />
                   </div>
                 ) : (
-                  <p className="mt-5 border-t border-[var(--border)] pt-4 text-[13.5px] text-[var(--secondary)]">
+                  <p className="mt-5 border-t border-[var(--border)] pt-4 text-[14px] text-[var(--secondary)]">
                     You can read this conversation and not add to it.
                   </p>
                 )}

@@ -376,7 +376,7 @@ export function NewPersonForm({
             It is not stored anywhere and will not be shown again. If you lose it, use Resend invite
             on their row, which issues a new one.
           </p>
-          <p className="mt-3 break-all rounded-[3px] border border-[var(--border)] bg-white px-3 py-2.5 font-mono text-[12.5px] leading-[1.5] text-[var(--navy)]">
+          <p className="mt-3 break-all rounded-[3px] border border-[var(--border)] bg-white px-3 py-2.5 text-[12.5px] leading-[1.5] text-[var(--navy)]">
             {handedLink.url}
           </p>
           <div className="mt-3 flex flex-wrap gap-2">

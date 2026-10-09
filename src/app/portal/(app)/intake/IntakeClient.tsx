@@ -776,14 +776,14 @@ export function IntakeClient({
             {quote?.lines.map((line) => (
               <div key={line.label} className="flex items-baseline justify-between gap-4">
                 <dt className="text-[13.5px] text-[var(--ink)]">{line.label}</dt>
-                <dd className="font-mono text-[15px] font-semibold text-[var(--navy)]">
+                <dd className="text-[15px] font-semibold text-[var(--navy)]">
                   {isKnown(line.amountCents) ? money(line.amountCents) : "not set"}
                 </dd>
               </div>
             ))}
             <div className="flex items-baseline justify-between gap-4 border-t border-[var(--border)] pt-2">
               <dt className="text-[13.5px] font-semibold text-[var(--navy)]">Catalog total</dt>
-              <dd className="font-mono text-[15px] font-bold text-[var(--navy)]">
+              <dd className="text-[15px] font-bold text-[var(--navy)]">
                 {catalogCents === null ? "not set" : money(catalogCents)}
               </dd>
             </div>

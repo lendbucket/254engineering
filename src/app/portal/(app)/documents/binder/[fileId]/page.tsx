@@ -96,7 +96,7 @@ export default async function BinderPage({ params }: { params: Promise<{ fileId:
           <h1 className="mt-1.5 font-display text-[24px] leading-[1.2] font-bold text-[var(--navy)]">
             Evidence binder
           </h1>
-          <p className="mt-1 font-mono text-[13.5px] text-[var(--secondary)]">
+          <p className="mt-1 text-[13.5px] text-[var(--secondary)]">
             {binder.fileNumber} · assembled {WHEN(binder.generatedAt)}
           </p>
         </SheetLetterhead>
@@ -252,7 +252,7 @@ export default async function BinderPage({ params }: { params: Promise<{ fileId:
                     an hour; a key is what somebody fetches the object by in a
                     year.
                   */}
-                  <p className="mt-1 font-mono text-[12px] break-all text-[var(--secondary)]">
+                  <p className="mt-1 text-[12px] break-all text-[var(--secondary)]">
                     {a.storageKey}
                   </p>
                 </li>

@@ -91,7 +91,7 @@ export function RolesClient({
           {licensed.actions.map((a) => (
             <li
               key={a}
-              className="rounded-[3px] border border-[var(--border)] bg-white px-2.5 py-1 font-mono text-[12.5px] text-[var(--ink)]"
+              className="rounded-[3px] border border-[var(--border)] bg-white px-2.5 py-1 text-[12.5px] text-[var(--ink)]"
             >
               {a}
             </li>
@@ -109,7 +109,7 @@ export function RolesClient({
                 <h2 className="font-display text-[1.05rem] font-semibold leading-[1.3] text-[var(--navy)]">
                   {role.name}
                 </h2>
-                <span className="rounded-[3px] border border-[var(--border)] px-2 py-0.5 font-mono text-[12px] text-[var(--secondary)]">
+                <span className="rounded-[3px] border border-[var(--border)] px-2 py-0.5 text-[12px] text-[var(--secondary)]">
                   {role.key}
                 </span>
                 {role.is_system ? (
@@ -125,7 +125,7 @@ export function RolesClient({
               </div>
               <p className={hint}>
                 {role.grants.length} permission{role.grants.length === 1 ? "" : "s"}, lands on{" "}
-                <span className="font-mono">{role.landing_path}</span>
+                <span>{role.landing_path}</span>
               </p>
             </div>
             <button
@@ -201,7 +201,7 @@ export function RolesClient({
                           }}
                           className="h-4 w-4"
                         />
-                        <span className="font-mono text-[12.5px] text-[var(--ink)]">{a}</span>
+                        <span className="text-[12.5px] text-[var(--ink)]">{a}</span>
                       </label>
                     ))}
                   </div>

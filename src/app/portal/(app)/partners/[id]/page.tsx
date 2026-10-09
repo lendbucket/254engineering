@@ -205,7 +205,7 @@ export default async function PartnerPage({ params }: { params: Promise<{ id: st
                 className="flex flex-wrap items-baseline justify-between gap-2 rounded-[var(--radius-card)] border border-[var(--border)] p-3"
               >
                 <div>
-                  <p className="font-mono text-[13.5px] font-semibold text-[var(--navy)]">{s.reference}</p>
+                  <p className="text-[13.5px] font-semibold text-[var(--navy)]">{s.reference}</p>
                   <p className="text-[12.5px] text-[var(--secondary)]">
                     {s.period}
                     {s.paidAt

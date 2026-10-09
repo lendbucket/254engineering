@@ -45,7 +45,7 @@ export default async function PartnerReferrals() {
     {
       key: "reference",
       header: "Order",
-      cell: (r) => <span className="font-mono font-semibold">{r.reference}</span>,
+      cell: (r) => <span className="font-semibold">{r.reference}</span>,
     },
     {
       key: "placed",

@@ -121,9 +121,10 @@ export default async function AccountLoginPage({
       </header>
 
       <main className="mx-auto w-full max-w-[1200px] flex-1 px-4 py-12 sm:px-6 sm:py-16">
-        <div className="grid gap-12 lg:grid-cols-[minmax(0,420px)_1px_minmax(0,1fr)] lg:gap-14">
+        <div className="v10-sections grid gap-12 lg:grid-cols-[minmax(0,420px)_1px_minmax(0,1fr)] lg:gap-14">
           {/* ------------------------------------------------------ sign in */}
-          <section>
+          <section className="v10-sections">
+            <div>
             <h1 className="text-[26px] leading-[1.15] font-semibold tracking-[-0.4px] text-[var(--color-ink)]">
               Sign in
             </h1>
@@ -131,9 +132,10 @@ export default async function AccountLoginPage({
               For organizations that order regularly. If you placed a single order, the link emailed
               to you opens it without signing in.
             </p>
+            </div>
 
             {customerSessionConfigured() ? (
-              <div className="mt-7">
+              <div className="lg:mt-7">
                 <AccountLoginForm next={safeNext} />
               </div>
             ) : (
@@ -158,6 +160,7 @@ export default async function AccountLoginPage({
               sign up live on a firm that is not taking orders. Reading it here
               means this link cannot invite somebody through a door that refuses.
             */}
+            <div>
             {selfServiceSignUpOpen() ? (
               <p className="mt-8 text-[14px] text-[var(--color-ink-quiet)]">
                 New here?{" "}
@@ -185,6 +188,7 @@ export default async function AccountLoginPage({
                 Back to the site
               </Link>
             </p>
+            </div>
           </section>
 
           {/* The rule between the columns. A 1px line, not a border on a box. */}

@@ -80,7 +80,8 @@ export default async function MfaChallengePage() {
         </div>
 
         {/* V10, as the customer sign in: no card, the content under a 2px ink rule. */}
-        <div className="border-t-2 border-[var(--ink)] pt-5">
+        <div className="v10-sections border-t-2 border-[var(--ink)] pt-5">
+          <div>
           <h1 className="font-display text-[17px] leading-[1.25] font-bold text-[var(--navy)]">
             One more step
           </h1>
@@ -88,6 +89,7 @@ export default async function MfaChallengePage() {
             Your password was accepted. Enter the code from your authenticator app to finish
             signing in.
           </p>
+          </div>
 
           {ready ? null : (
             <div className="mt-4">

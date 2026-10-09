@@ -117,7 +117,7 @@ export function EnrolForm({
         </p>
 
         {/* V10: no tinted box. The codes between two rules, in the page's own face. */}
-        <ul className="grid grid-cols-2 gap-x-4 gap-y-1 border-y border-[var(--border)] py-3 text-[15px] tracking-[0.04em] text-[var(--ink)]">
+        <ul className="grid grid-cols-2 gap-x-4 gap-y-1 border-y border-[var(--border)] py-3 text-[15px] text-[var(--ink)]">
           {codes.map((c) => (
             <li key={c}>{c}</li>
           ))}

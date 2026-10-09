@@ -62,10 +62,10 @@ function Card({
  * number a person can actually act on.
  */
 const NUMBER_TONE: Record<Tile["tone"], string> = {
-  neutral: "text-[var(--navy)]",
-  good: "text-[var(--navy)]",
+  neutral: "text-[var(--ink)]",
+  good: "text-[var(--ink)]",
   warn: "text-[var(--ink)]",
-  bad: "text-[var(--red)]",
+  bad: "text-[var(--ink)]",
 };
 
 export function CountTiles({ tiles }: { tiles: Tile[] }) {
@@ -87,8 +87,8 @@ export function CountTiles({ tiles }: { tiles: Tile[] }) {
         <Card
           key={tile.label}
           href={tile.href}
-          className="block rounded-[var(--radius-card)] border border-[var(--border)] bg-white p-4"
-          hover="transition-colors hover:bg-[var(--row-hover)]"
+          className="block py-1"
+          hover="active:opacity-70"
         >
           {/*
             A count that is not known says so, in the same shape MoneyFigure
@@ -98,16 +98,16 @@ export function CountTiles({ tiles }: { tiles: Tile[] }) {
             eventually decide means zero.
           */}
           {tile.count === null ? (
-            <p className="font-display text-[30px] leading-none font-bold text-[var(--faint)] italic">
+            <p className="text-[26px] leading-none font-semibold text-[var(--faint)] italic">
               not known
             </p>
           ) : (
-            <p className={`font-display text-[30px] leading-none font-bold ${NUMBER_TONE[tile.tone]}`}>
+            <p className={`text-[26px] leading-none font-semibold ${NUMBER_TONE[tile.tone]}`}>
               {tile.count}
             </p>
           )}
-          <p className="mt-2 text-[13.5px] leading-[1.35] font-semibold text-[var(--navy)]">{tile.label}</p>
-          <p className="mt-1.5 text-[12px] leading-[1.45] text-[var(--secondary)]">{tile.note}</p>
+          <p className="mt-2 text-[13px] leading-[1.35] font-semibold text-[var(--ink)]">{tile.label}</p>
+          <p className="mt-1.5 text-[12px] leading-[1.45] text-[var(--faint)]">{tile.note}</p>
         </Card>
       ))}
     </div>
@@ -128,12 +128,12 @@ export function MoneyTiles({ tiles }: { tiles: MoneyTile[] }) {
       {tiles.map((tile) => (
         <div
           key={tile.label}
-          className="rounded-[4px] border border-[var(--border)] bg-white p-4"
+          className="py-1"
         >
-          <p className="text-[13.5px] font-semibold text-[var(--navy)]">{tile.label}</p>
+          <p className="text-[13px] font-semibold text-[var(--ink)]">{tile.label}</p>
           <p
-            className={`mt-1.5 font-display text-[24px] leading-none font-bold ${
-              isKnown(tile.value) ? "text-[var(--navy)]" : "text-[var(--secondary)]"
+            className={`mt-1.5 text-[26px] leading-none font-semibold ${
+              isKnown(tile.value) ? "text-[var(--ink)]" : "text-[var(--secondary)]"
             }`}
           >
             {money(tile.value)}
@@ -148,9 +148,9 @@ export function MoneyTiles({ tiles }: { tiles: MoneyTile[] }) {
 export function AttentionList({ items }: { items: Attention[] }) {
   if (items.length === 0) {
     return (
-      <div className="rounded-[4px] border border-dashed border-[var(--border)] px-5 py-8 text-center">
-        <p className="text-[15px] font-semibold text-[var(--navy)]">Nothing needs you right now</p>
-        <p className="mx-auto mt-2 max-w-[52ch] text-[13.5px] leading-[1.6] text-[var(--secondary)]">
+      <div>
+        <p className="text-[15px] font-semibold text-[var(--ink)]">Nothing needs you right now</p>
+        <p className="mt-2 max-w-[52ch] text-[14px] leading-[1.6] text-[var(--secondary)]">
           Overdue work, missing figures and expiring credentials appear here when they exist. An
           empty list means the checks ran and found nothing, not that nothing was checked.
         </p>
@@ -159,16 +159,16 @@ export function AttentionList({ items }: { items: Attention[] }) {
   }
 
   return (
-    <ul className="flex flex-col gap-2.5">
+    <ul className="border-t border-[var(--row-rule)]">
       {items.map((item) => (
         <li key={item.label}>
           <Card
             href={item.href}
-            className="block rounded-[4px] border border-[var(--border)] bg-white px-4 py-3"
-            hover="transition-colors hover:bg-[var(--canvas)]/50"
+            className="block border-b border-[var(--row-rule)] py-3"
+            hover="active:opacity-70"
           >
-            <p className="text-[13.5px] font-semibold text-[var(--navy)]">{item.label}</p>
-            <p className="mt-1 max-w-[74ch] text-[13.5px] leading-[1.55] text-[var(--secondary)]">{item.detail}</p>
+            <p className="text-[14px] font-semibold text-[var(--ink)]">{item.label}</p>
+            <p className="mt-1 max-w-[74ch] text-[14px] leading-[1.55] text-[var(--secondary)]">{item.detail}</p>
           </Card>
         </li>
       ))}
@@ -191,7 +191,7 @@ export function AttentionList({ items }: { items: Attention[] }) {
 export function BreakdownList({ breakdown }: { breakdown: Breakdown }) {
   if (breakdown.rows === null) {
     return (
-      <p className="text-[13.5px] text-[var(--faint)] italic">
+      <p className="text-[14px] text-[var(--faint)] italic">
         This could not be read, which is not the same as there being nothing. Tell an administrator.
       </p>
     );
@@ -199,7 +199,7 @@ export function BreakdownList({ breakdown }: { breakdown: Breakdown }) {
 
   if (breakdown.rows.length === 0) {
     return (
-      <p className="text-[13.5px] text-[var(--secondary)]">
+      <p className="text-[14px] text-[var(--secondary)]">
         The query ran and found nothing. That is a result rather than a gap.
       </p>
     );
@@ -214,22 +214,22 @@ export function BreakdownList({ breakdown }: { breakdown: Breakdown }) {
           <div className="flex items-baseline justify-between gap-3">
             <Card
               href={breakdown.href}
-              className="text-[13.5px] font-semibold text-[var(--navy)]"
+              className="text-[14px] font-semibold text-[var(--navy)]"
               hover="underline-offset-2 hover:underline"
             >
               {row.label}
             </Card>
             <span className="shrink-0 font-display text-[15px] font-bold tabular-nums text-[var(--navy)]">
               {row.count === null ? (
-                <span className="text-[13.5px] font-normal text-[var(--faint)] italic">not known</span>
+                <span className="text-[14px] font-normal text-[var(--faint)] italic">not known</span>
               ) : (
                 row.count
               )}
             </span>
           </div>
-          <div className="h-[3px] w-full rounded-full bg-[var(--border)]" aria-hidden="true">
+          <div className="w-full border-b-[3px] border-[var(--row-rule)]" aria-hidden="true">
             <div
-              className="h-[3px] rounded-full bg-slate"
+              className="-mb-[3px] border-b-[3px] border-[var(--navy)]"
               style={{ width: `${Math.round(((row.count ?? 0) / largest) * 100)}%` }}
             />
           </div>
@@ -255,7 +255,7 @@ export function BreakdownList({ breakdown }: { breakdown: Breakdown }) {
 export function NotComputable({ reasons }: { reasons: string[] }) {
   if (reasons.length === 0) {
     return (
-      <p className="text-[13.5px] text-[var(--secondary)]">
+      <p className="text-[14px] text-[var(--secondary)]">
         Everything this screen was asked to show, it can compute.
       </p>
     );
@@ -264,7 +264,7 @@ export function NotComputable({ reasons }: { reasons: string[] }) {
   return (
     <ul className="flex flex-col gap-3">
       {reasons.map((reason) => (
-        <li key={reason} className="text-[12.5px] leading-[1.5] text-[var(--secondary)]">
+        <li key={reason} className="text-[13px] leading-[1.5] text-[var(--secondary)]">
           {reason}
         </li>
       ))}

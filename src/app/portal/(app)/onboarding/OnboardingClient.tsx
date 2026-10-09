@@ -74,7 +74,7 @@ export function InviteButton({ applicationId, defaultRole }: { applicationId: st
     return (
       <div className="mt-3 rounded-[3px] border border-[var(--border)] bg-[var(--canvas)] px-3 py-3">
         <p className="text-[13.5px] font-semibold text-[var(--navy)]">Invitation link, shown once</p>
-        <p className="mt-1.5 font-mono text-[12px] leading-[1.5] break-all text-[var(--navy)]">{url}</p>
+        <p className="mt-1.5 text-[12px] leading-[1.5] break-all text-[var(--navy)]">{url}</p>
         <p className="mt-2 text-[12.5px] leading-[1.5] text-[var(--secondary)]">
           Send this to them. It is not stored and cannot be shown again; if it is lost, issue a new
           one.
@@ -453,7 +453,7 @@ export function ActivatePanel({
         <p className="text-[13.5px] font-semibold text-[var(--navy)]">Account created</p>
         {url ? (
           <>
-            <p className="mt-1.5 font-mono text-[12px] leading-[1.5] break-all text-[var(--navy)]">{url}</p>
+            <p className="mt-1.5 text-[12px] leading-[1.5] break-all text-[var(--navy)]">{url}</p>
             <p className="mt-2 text-[12.5px] leading-[1.5] text-[var(--secondary)]">
               Their one time link to set a password. Shown once and not stored.
             </p>

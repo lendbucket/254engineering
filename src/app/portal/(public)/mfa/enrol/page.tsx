@@ -90,7 +90,7 @@ export default async function MfaEnrolPage() {
         </div>
 
         {/* V10, as the customer sign in: no card, the content under a 2px ink rule. */}
-        <div className="border-t-2 border-[var(--ink)] pt-5">
+        <div className="v10-sections border-t-2 border-[var(--ink)] pt-5">
           <h1 className="font-display text-[17px] leading-[1.25] font-bold text-[var(--navy)]">
             Set up a second factor
           </h1>

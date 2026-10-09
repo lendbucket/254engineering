@@ -159,7 +159,7 @@ export default async function StatusPage() {
                 <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1.5">
                   <span className="text-[13.5px] font-semibold text-[var(--navy)]">{c.label}</span>
                   <Chip label={c.verdict} tone={VERDICT_TONE[c.verdict]} />
-                  <span className="font-mono text-[12px] text-[var(--secondary)]">{c.name}</span>
+                  <span className="text-[12px] text-[var(--secondary)]">{c.name}</span>
                   <span className="text-[12.5px] text-[var(--secondary)]">
                     expected every {c.everyMinutes === 1440 ? "day" : `${c.everyMinutes} min`}
                   </span>
@@ -304,7 +304,7 @@ export default async function StatusPage() {
                     <p className="portal-kicker text-[var(--secondary)]">
                       {label}
                     </p>
-                    <p className="mt-0.5 font-mono text-[16px] font-semibold text-[var(--navy)]">
+                    <p className="mt-0.5 text-[16px] font-semibold text-[var(--navy)]">
                       {value === null
                         ? "not computed"
                         : money

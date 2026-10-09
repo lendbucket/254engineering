@@ -77,7 +77,7 @@ export function StatusClient({ errors, windowMinutes }: { errors: Fault[]; windo
               {f.muted ? <Chip label="Muted" tone="neutral" /> : null}
             </div>
 
-            <p className="mt-1 max-w-[80ch] font-mono text-[12px] leading-[1.5] break-all text-[var(--secondary)]">
+            <p className="mt-1 max-w-[80ch] text-[12px] leading-[1.5] break-all text-[var(--secondary)]">
               {f.fingerprint}
             </p>
 
