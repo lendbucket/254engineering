@@ -499,6 +499,145 @@ export function customerCookieFor(probe, base) {
   ];
 }
 
+/*
+ * ===========================================================================
+ * THE AUDIT SEED, AND SIGNING IN AS ITS OWNER. Operator ruling of 2026-10-09:
+ * the audit seed makes one partner statement and one customer bulk order,
+ * once, demo-marked, so the two screens that need a record the signed in
+ * person OWNS can be measured.
+ * ===========================================================================
+ *
+ * SEEDED ROWS ARE MARKED "seed-" AND NO SWEEP MAY TOUCH THEM. Every sweep in
+ * this file matches the probe domain, and the operator ruled that seeded
+ * accounts use only that domain, so without the marker the next teardown of
+ * ANY audit would take a seeded owner: destroyCustomerProbes deletes every user
+ * of a swept account and supersedes it, and destroyPartnerProbes suspends a
+ * swept partner. Both sweeps exclude "seed-" addresses.
+ *
+ * A PROBE USER ATTACHED TO A SEEDED OWNER is "seed-attach-...", so the sweeps
+ * leave it alone too, and detachSeedUsers removes exactly those: the user and
+ * its tokens, from this run or one that died, and never the account or the
+ * partner it was attached to. Its verification reads both user tables for the
+ * marker, which is the thing that can sign in.
+ */
+export const SEED_MARK = "seed-";
+const ATTACH_MARK = "seed-attach-";
+
+/**
+ * WHAT A TEARDOWN WOULD SWEEP, asked without sweeping. destroyPartnerProbes and
+ * destroyCustomerProbes take their subjects from these two and nowhere else,
+ * so scripts/proofs/a-teardown-never-takes-the-seed.mjs can prove a seeded owner
+ * and an attached reader are out of scope without deleting anything.
+ */
+export function partnerSweepSubjects(d) {
+  return d
+    .from("eng_partners")
+    .select("id, contact_email")
+    .like("contact_email", `%@${PROBE_DOMAIN}`)
+    .not("contact_email", "like", `${SEED_MARK}%`);
+}
+export function customerSweepUsers(d) {
+  return d
+    .from("eng_customer_users")
+    .select("id, account_id, email")
+    .like("email", `%@${PROBE_DOMAIN}`)
+    .not("email", "like", `${SEED_MARK}%`);
+}
+
+async function setAndSignIn(base, kind, email, password, userId, d) {
+  const token = randomBytes(32).toString("base64url");
+  const table = kind === "partner" ? "eng_partner_tokens" : "eng_customer_auth_tokens";
+  const owner = kind === "partner" ? { user_id: userId } : { customer_user_id: userId };
+  const { error: tErr } = await d.from(table).insert({
+    ...owner,
+    purpose: "set_password",
+    token_hash: createHash("sha256").update(token, "utf8").digest("hex"),
+    expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+  });
+  if (tErr) return { cookie: null, fault: `the set password token insert was rejected: ${tErr.message}` };
+  const api = kind === "partner" ? "partner" : "account";
+  const set = await fetch(`${base}/api/${api}/set-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token, password }),
+  });
+  if (!set.ok) return { cookie: null, fault: `setting the password was refused (HTTP ${set.status})` };
+  const res = await fetch(`${base}/api/${api}/session`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  const name = kind === "partner" ? "eng_partner" : "eng_customer";
+  const m = (res.headers.get("set-cookie") ?? "").match(new RegExp(`${name}=([^;]+)`));
+  return m ? { cookie: m[1], fault: null } : { cookie: null, fault: `signing in returned no ${name} cookie (HTTP ${res.status})` };
+}
+
+/** A partner user attached to an existing (seeded) partner, signed in. */
+export async function attachPartnerUser(base, label, partnerId) {
+  const d = client(label);
+  if (!d) return partnerFailure("no database client, so no user could be attached");
+  const stamp = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+  const email = `${ATTACH_MARK}partner-${stamp}@${PROBE_DOMAIN}`;
+  const { data: user, error } = await d
+    .from("eng_partner_users")
+    .insert({ partner_id: partnerId, email, display_name: "Audit Seed Reader", status: "invited" })
+    .select("id")
+    .single();
+  if (error || !user) return partnerFailure(`the attached partner user insert was rejected: ${error?.message ?? "no row came back"}`);
+  const s = await setAndSignIn(base, "partner", email, `seed-${stamp}-${label}`, user.id, d);
+  return { partnerId, userId: user.id, email, cookie: s.cookie, fault: s.fault };
+}
+
+/** A customer user attached to an existing (seeded or adopted) account, signed in. */
+export async function attachCustomerUser(base, label, accountId) {
+  const d = client(label);
+  if (!d) return customerFailure("no database client, so no user could be attached");
+  const stamp = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+  const email = `${ATTACH_MARK}customer-${stamp}@${PROBE_DOMAIN}`;
+  const { data: user, error } = await d
+    .from("eng_customer_users")
+    .insert({ account_id: accountId, email, display_name: "Audit Seed Reader", status: "invited", account_role: "member" })
+    .select("id")
+    .single();
+  if (error || !user) return customerFailure(`the attached customer user insert was rejected: ${error?.message ?? "no row came back"}`);
+  const s = await setAndSignIn(base, "customer", email, `seed-${stamp}-${label}`, user.id, d);
+  return { accountId, userId: user.id, email, cookie: s.cookie, fault: s.fault };
+}
+
+/**
+ * Remove every attached seed reader, this run's and any a dead run left. Users
+ * and their tokens only; never an account, a client or a partner. Every error
+ * is kept, and the verification reads both user tables for the marker.
+ */
+export async function detachSeedUsers(label = "audit") {
+  const d = client(label);
+  if (!d) return { ok: true, left: 0, note: "no database client, nothing was attached" };
+  const like = `${ATTACH_MARK}%@${PROBE_DOMAIN}`;
+  const errors = [];
+  const { data: pu } = await d.from("eng_partner_users").select("id").like("email", like);
+  for (const u of pu ?? []) {
+    const { error: te } = await d.from("eng_partner_tokens").delete().eq("user_id", u.id);
+    if (te) errors.push(`partner tokens ${u.id}: ${te.message}`);
+    const { error: ue } = await d.from("eng_partner_users").delete().eq("id", u.id);
+    if (ue) errors.push(`partner user ${u.id}: ${ue.message}`);
+  }
+  const { data: cu } = await d.from("eng_customer_users").select("id").like("email", like);
+  for (const u of cu ?? []) {
+    const { error: te } = await d.from("eng_customer_auth_tokens").delete().eq("customer_user_id", u.id);
+    if (te) errors.push(`customer tokens ${u.id}: ${te.message}`);
+    const { error: ue } = await d.from("eng_customer_users").delete().eq("id", u.id);
+    if (ue) errors.push(`customer user ${u.id}: ${ue.message}`);
+  }
+  const { data: pl } = await d.from("eng_partner_users").select("id").like("email", like);
+  const { data: cl } = await d.from("eng_customer_users").select("id").like("email", like);
+  const left = (pl ?? []).length + (cl ?? []).length;
+  return {
+    ok: left === 0 && errors.length === 0,
+    left,
+    note: `${(pu ?? []).length + (cu ?? []).length} attached reader(s) removed${errors.length ? `; ${errors.join("; ")}` : ""}`,
+  };
+}
+
 /**
  * Remove every customer probe, and verify.
  *
@@ -613,10 +752,12 @@ export async function destroyCustomerProbes(label = "audit", options = {}) {
    * The subject. Under `own` the client end is NOT swept, so an orphan stays an
    * orphan and this run touches only what it can account for.
    */
-  const { data: strayUsers } = await d
-    .from("eng_customer_users")
-    .select("id, account_id")
-    .like("email", `%@${PROBE_DOMAIN}`);
+  /*
+   * Seeded readers ("seed-attach-") are never swept here: their account is a
+   * seeded or adopted demonstration account, and this sweep deletes every user
+   * of a swept account and supersedes it. detachSeedUsers removes them.
+   */
+  const { data: strayUsers } = await customerSweepUsers(d);
 
   let strayClients = [];
   if (scope === "domain") {
@@ -624,6 +765,7 @@ export async function destroyCustomerProbes(label = "audit", options = {}) {
       .from("eng_clients")
       .select("id")
       .like("email", `%@${PROBE_DOMAIN}`)
+      .not("email", "like", `${SEED_MARK}%`)
       .eq("is_demo", true);
     strayClients = data ?? [];
   }
@@ -732,7 +874,11 @@ export async function destroyCustomerProbes(label = "audit", options = {}) {
       ["eng_customer_users", "email"],
       ["eng_clients", "email"],
     ]) {
-      const { data } = await d.from(table).select("id").like(column, `%@${PROBE_DOMAIN}`);
+      const { data } = await d
+        .from(table)
+        .select("id")
+        .like(column, `%@${PROBE_DOMAIN}`)
+        .not(column, "like", `${SEED_MARK}%`);
       counts[table] = (data ?? []).length;
     }
     const { data: acctLeft } = await d
@@ -745,7 +891,8 @@ export async function destroyCustomerProbes(label = "audit", options = {}) {
     const { data: usersLeft } = await d
       .from("eng_customer_users")
       .select("id")
-      .like("email", `%@${PROBE_DOMAIN}`);
+      .like("email", `%@${PROBE_DOMAIN}`)
+      .not("email", "like", `${SEED_MARK}%`);
     counts.eng_customer_users = (usersLeft ?? []).length;
 
     /* And the rows THIS RUN made, asked for by id rather than by address. */
@@ -831,10 +978,8 @@ export async function destroyPartnerProbes(label = "audit") {
   const d = client(label);
   if (!d) return { ok: true, left: 0, note: "no database client, nothing was created" };
 
-  const { data: strays } = await d
-    .from("eng_partners")
-    .select("id")
-    .like("contact_email", `%@${PROBE_DOMAIN}`);
+  /* The seeded partner is never swept: see SEED_MARK above. */
+  const { data: strays } = await partnerSweepSubjects(d);
 
   const ids = new Set([...partnersMade.map((p) => p.partnerId), ...(strays ?? []).map((r) => r.id)]);
   const refused = [];
@@ -920,15 +1065,18 @@ export async function destroyPartnerProbes(label = "audit") {
    * cannot authenticate and its partner's acceptance may not be deleted. It is
    * reported in `disabled` instead, so nothing about it is silent.
    */
+  /* The seeded partner and its attached readers are not probes: see SEED_MARK. */
   const { data: partnersLeft } = await d
     .from("eng_partners")
     .select("id, status")
-    .like("contact_email", `%@${PROBE_DOMAIN}`);
+    .like("contact_email", `%@${PROBE_DOMAIN}`)
+    .not("contact_email", "like", `${SEED_MARK}%`);
 
   const { data: usersLeft } = await d
     .from("eng_partner_users")
     .select("id, status, password_hash")
-    .like("email", `%@${PROBE_DOMAIN}`);
+    .like("email", `%@${PROBE_DOMAIN}`)
+    .not("email", "like", `${SEED_MARK}%`);
 
   const liveUsers = (usersLeft ?? []).filter(
     (u) => u.password_hash !== null || u.status !== "suspended",
