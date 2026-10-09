@@ -281,6 +281,48 @@
     padding: 16px var(--page-gutter);
     margin-top: 0;
   }
+
+  /*
+   * THE SAME RULE FOR THE ACCOUNT PAGES AND EVERY SIGN IN SCREEN. Operator
+   * rulings of 2026-10-08: V10's phone ground on every account page, and on
+   * the sign in and auth screens too, visual only.
+   *
+   * .v10-phone-ground marks a page root with a header, a main and a footer
+   * (the account pages): the ground goes grey and the header, the main and the
+   * footer are three full width white sections with 8px of ground between.
+   * Main is ONE section, not one per child: the account pages put their
+   * eyebrow, title and lede bare in main, and a section per child split a
+   * title block into three white strips (seen on /account at 390, 2026-10-08).
+   *
+   * .v10-phone-ground-centred marks a centred sign in screen with no header
+   * (the portal's): the ground goes grey and its one content block becomes the
+   * white section, the full width of the screen.
+   *
+   * Both beat the root's bg-white utility only here, below lg, because this
+   * file is unlayered; on a desktop the page stays white, V10 rule 6.
+   */
+  .v10-phone-ground {
+    background: var(--canvas);
+  }
+  .v10-phone-ground > header,
+  .v10-phone-ground > footer {
+    background: #ffffff;
+  }
+  .v10-phone-ground > main {
+    background: #ffffff;
+    margin-block: 8px;
+    padding: 24px var(--page-gutter);
+  }
+  .v10-phone-ground-centred {
+    background: var(--canvas);
+    padding-inline: 0;
+    align-items: start;
+  }
+  .v10-phone-ground-centred > * {
+    background: #ffffff;
+    max-width: none;
+    padding: 24px var(--page-gutter);
+  }
 }
 
 /*

@@ -75,7 +75,7 @@ export default async function AccountLoginPage({
   const phone = displayPhone();
 
   return (
-    <div className="flex min-h-dvh flex-col bg-white">
+    <div className="v10-phone-ground flex min-h-dvh flex-col bg-white">
       {/*
         The header bar. White with a hairline under it, as the design draws it
         for the signed out screens. The navy bar with the gold rule is the

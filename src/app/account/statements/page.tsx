@@ -37,7 +37,7 @@ export default async function StatementsPage() {
      * rows below keep the portal's money styling for now, which is recorded in
      * BACKLOG.md with the other interiors still owed a pass.
      */
-    <div className="flex min-h-dvh flex-col bg-white">
+    <div className="v10-phone-ground flex min-h-dvh flex-col bg-white">
       <header className="border-b border-[var(--color-limestone-line)]">
         <div className="mx-auto flex w-full max-w-[1200px] items-center justify-between px-4 py-4 sm:px-6">
           <Link href="/account" prefetch={false} aria-label="254 Engineering Services, your account">

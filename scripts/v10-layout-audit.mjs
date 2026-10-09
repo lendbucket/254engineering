@@ -103,8 +103,7 @@ const ORIGINAL_NOT_YET_V10 = [
  * pieces alone brought into line. 2026-10-08: tasks, restyled, and 37 remain.
  */
 const STILL_NOT_YET_V10 = [
-  "/order/254-B2026-000000", "/order/start/[slug]", "/order/start/roof-inspections", "/partner",
-  "/partner/login", "/partner/materials", "/partner/set-password", "/portal", "/portal/accounts",
+  "/partner", "/partner/login", "/partner/materials", "/partner/set-password", "/portal", "/portal/accounts",
   "/portal/accounts/[id]/pricing", "/portal/billing", "/portal/charge-log", "/portal/clients",
   "/portal/deletion-requests", "/portal/documents/binder/[fileId]", "/portal/files", "/portal/intake",
   "/portal/jobs/[id]", "/portal/launch", "/portal/messages", "/portal/onboarding", "/portal/partners",
@@ -116,14 +115,6 @@ const NOT_YET_V10 = STILL_NOT_YET_V10 ?? [...ORIGINAL_NOT_YET_V10];
 /* Dynamic routes whose screen needs a record OWNED by the signed-in probe, which no probe helper makes yet. */
 const UNRESOLVED_UNTIL = {
   "/account/orders/[reference]": "a customer probe's own order",
-  /*
-   * Its resolver is written (resolve() below) and measured it on 2026-10-08:
-   * the shared site header's shadow is its one remaining finding. That shadow
-   * waits on an operator decision, and this route is not on the frozen
-   * original, so it cannot be listed. It stays here, as it stood in main, and
-   * comes out in the commit that settles the header.
-   */
-  "/order/[reference]": "an order and its signed status link",
   "/partner/statements/[reference]": "a partner probe's own statement",
 };
 
@@ -349,6 +340,9 @@ const browser = targets.length && Object.values(sessions).some((s) => s?.cookie)
 const results = [];
 /** Active nav items measured, by portal: admin, engineer, field_tech, partner. */
 const navSeen = {};
+/** V10's phone-ground, and the surfaces held to it (see the check below). */
+const PHONE_GROUND = "rgb(242, 244, 247)";
+const PHONE_GROUND_SURFACES = new Set(["portal", "account"]);
 for (const t of targets) {
   if (ONLY && t.pattern !== ONLY) continue;
   if (!t.path) {
@@ -385,6 +379,37 @@ for (const t of targets) {
           kinds[f.kind] = kinds[f.kind] ?? [];
           if (kinds[f.kind].length < 3) kinds[f.kind].push(`${f.at} at ${width}`);
           kinds[f.kind].count = (kinds[f.kind].count ?? 0) + 1;
+        }
+        /*
+         * V10'S PHONE GROUND, operator ruling of 2026-10-08: on a phone, every
+         * portal and account page, sign in and auth screens included, has
+         * #F2F4F7 behind its white sections. Read at 390 as the ground behind
+         * main: main's own background when it has one, else the nearest
+         * ancestor's. The partner surface joins in the partner batch, whose
+         * screens it covers; three of them pass today and are not listed.
+         */
+        if (width === 390 && PHONE_GROUND_SURFACES.has(t.surface)) {
+          /*
+           * A WHITE MAIN IS A SECTION, NOT THE GROUND. On the account pages main
+           * is itself one white section on the ground (2026-10-08), so a white
+           * main is looked past, once; then the first opaque background behind
+           * it is the ground, whatever its colour. A page white all the way
+           * through reports white.
+           */
+          const ground = await page.evaluate(() => {
+            const opaque = (c) => c && !/rgba\(\s*0,\s*0,\s*0,\s*0\s*\)|transparent/.test(c);
+            const main = document.querySelector("main");
+            if (!main) return "no main";
+            const own = getComputedStyle(main).backgroundColor;
+            let el = opaque(own) && own !== "rgb(255, 255, 255)" ? main : main.parentElement;
+            while (el && !opaque(getComputedStyle(el).backgroundColor)) el = el.parentElement;
+            return el ? getComputedStyle(el).backgroundColor : "nothing opaque";
+          });
+          if (ground !== PHONE_GROUND) {
+            kinds["phone-ground"] = kinds["phone-ground"] ?? [];
+            kinds["phone-ground"].push(`${ground} at 390`);
+            kinds["phone-ground"].count = (kinds["phone-ground"].count ?? 0) + 1;
+          }
         }
       }
     } catch (err) {

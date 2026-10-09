@@ -54,7 +54,7 @@ export default async function BatchPage({
   return (
     /* Restyled to V10, 2026-09-29. Shell and headings; the per property rows
      * keep their existing treatment, recorded in BACKLOG.md with the others. */
-    <div className="flex min-h-dvh flex-col bg-white">
+    <div className="v10-phone-ground flex min-h-dvh flex-col bg-white">
       <header className="border-b border-[var(--color-limestone-line)]">
         <div className="mx-auto flex w-full max-w-[1200px] items-center justify-between px-4 py-4 sm:px-6">
           <Link href="/account" prefetch={false} aria-label="254 Engineering Services, your account">

@@ -83,7 +83,7 @@ export default async function AccountSignUpPage() {
   const configured = customerSessionConfigured();
 
   return (
-    <div className="flex min-h-dvh flex-col bg-white">
+    <div className="v10-phone-ground flex min-h-dvh flex-col bg-white">
       {/*
         The signed out header. White with a hairline under it. The navy bar with
         the gold rule belongs to the signed in shell, and using it here would

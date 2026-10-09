@@ -65,6 +65,7 @@ const FILES = [
   ...walk("src/components/portal"),
   ...walk("src/app/account"),
   ...walk("src/app/(site)/order"),
+  ...walk("src/app/(order)"),
   ...walk("src/components/order"),
   /*
    * The partner surfaces, added with Phase 9 Section 4 and added because they

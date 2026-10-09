@@ -264,8 +264,8 @@ const PORTED = [
   "src/components/partner/PartnerChrome.tsx",
   // Every portal and customer surface. The list existed so the audit could be
   // real while the port was partial; it now names everything.
-  "src/app/(site)/order/[reference]/page.tsx",
-  "src/app/(site)/order/start/[slug]/page.tsx",
+  "src/app/(order)/order/[reference]/page.tsx",
+  "src/app/(order)/order/start/[slug]/page.tsx",
   "src/app/account/SignOutButton.tsx",
   "src/app/account/layout.tsx",
   /*
@@ -552,8 +552,8 @@ const CUSTOMER_V10 = [
   "src/app/account/page.tsx",
   "src/app/account/SignOutButton.tsx",
   "src/components/order/OrderFlow.tsx",
-  "src/app/(site)/order/[reference]/page.tsx",
-  "src/app/(site)/order/start/[slug]/page.tsx",
+  "src/app/(order)/order/[reference]/page.tsx",
+  "src/app/(order)/order/start/[slug]/page.tsx",
   /* The credential screens, restyled 2026-09-29. Every account door's link and
    * both reset paths land on set-password, so leaving it in the old card style
    * would have put a visual seam at the end of every one of them. */

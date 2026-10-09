@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Container } from "@/components/ui/Container";
 import { customerView } from "@/lib/ops-customer";
+import { FIRM_TIME_ZONE } from "@/lib/firm-calendar";
 
 export const dynamic = "force-dynamic";
 
@@ -256,10 +257,14 @@ export default async function OrderStatusPage({
                       {entry.summary}
                     </p>
                     <p className="mt-1 text-[14px] text-[var(--color-ink-quiet)]">
+                      {/* Central, labelled, operator ruling of 2026-10-08. It was the
+                          server's own zone, which on the deployment is UTC. */}
                       {new Date(entry.at).toLocaleString("en-US", {
                         dateStyle: "medium",
                         timeStyle: "short",
-                      })}
+                        timeZone: FIRM_TIME_ZONE,
+                      })}{" "}
+                      CT
                     </p>
                   </div>
                 </li>
