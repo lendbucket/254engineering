@@ -28,17 +28,17 @@ export function CopyBlock({ text }: { text: string }) {
 
   return (
     <div>
-      <p className="max-w-[74ch] text-[13.5px] leading-[1.65] text-[var(--ink)]">{text}</p>
+      <p className="max-w-[74ch] text-[14px] leading-[1.65] text-[var(--ink)]">{text}</p>
       <div className="mt-3 flex flex-wrap items-center gap-3">
         <button
           type="button"
           onClick={copy}
-          className="min-h-[var(--tap-target)] rounded-[var(--radius-control)] border border-[var(--border-strong)] px-3 text-[13.5px] font-semibold text-[var(--navy)] active:bg-[var(--canvas)]"
+          className="min-h-[var(--tap-target)] rounded-[2px] border border-[var(--border-strong)] px-3 text-[14px] font-semibold text-[var(--ink)] active:bg-[var(--canvas)]"
         >
           {state === "copied" ? "Copied" : "Copy"}
         </button>
         {state === "failed" ? (
-          <span className="text-[12.5px] leading-[1.5] text-[var(--secondary)]">
+          <span className="text-[13px] leading-[1.5] text-[var(--secondary)]">
             This browser would not let the page use the clipboard. Select the text above instead.
           </span>
         ) : null}

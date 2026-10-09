@@ -35,23 +35,26 @@ export default async function PartnerLoginPage({
   const ready = partnerSessionConfigured() && supabaseConfigured();
 
   return (
-    <main className="portal-surface grid min-h-dvh place-items-center px-4 py-6 sm:py-10">
+    <main className="portal-surface v10-phone-ground-centred grid min-h-dvh place-items-center px-4 py-6 sm:py-10">
       <div className="w-full max-w-[420px]">
         <div className="mb-4 flex justify-center sm:mb-6">
           <Wordmark height={44} priority />
         </div>
 
-        <div className="rounded-[var(--radius-card)] border border-[var(--border)] bg-white p-5 sm:p-7">
-          <h1 className="font-display text-[17px] leading-[1.25] font-bold text-[var(--navy)]">
-            Referral partners
-          </h1>
-          <p className="mt-2 text-[13.5px] leading-[1.6] text-[var(--secondary)]">
-            This area is not public and is not indexed.
-          </p>
+        {/* V10, as the portal sign in: no card, sections under a 2px ink rule. */}
+        <div className="v10-sections border-t-2 border-[var(--ink)] pt-5">
+          <div>
+            <h1 className="font-display text-[17px] leading-[1.25] font-bold text-[var(--navy)]">
+              Referral partners
+            </h1>
+            <p className="mt-2 text-[14px] leading-[1.6] text-[var(--secondary)]">
+              This area is not public and is not indexed.
+            </p>
+          </div>
 
           <div className="mt-4 flex flex-col gap-2.5 sm:mt-5 sm:gap-3">
             {params.set ? (
-              <p className="rounded-[var(--radius-control)] border border-[var(--green-border)] bg-[var(--green-bg)] px-3 py-2.5 text-[13.5px] leading-[1.55] text-[var(--green)]">
+              <p className="text-[14px] leading-[1.55] font-semibold text-[var(--ink)]">
                 Your password is set. Sign in with it.
               </p>
             ) : null}
