@@ -1,3 +1,4 @@
+// @runtime react-server
 /**
  * DESIGN V10'S LAYOUT RULES, MEASURED ON THE RENDERED PAGE.
  *
