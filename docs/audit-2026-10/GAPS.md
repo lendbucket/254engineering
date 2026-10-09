@@ -33,6 +33,12 @@ they were fixed in the batch. Each line carries its ruling where one was given
 - `/portal/intake` on a phone: the whole form is one white section under the title; the check passes because the title and the form are two. V10 would likely want each group (who, what, property, price, getting paid) as its own section. No reference screen; patterned on /portal/tasks.
 - `/portal/files`, `/portal/onboarding`, `/portal/intake`: no reference screens; patterned on /portal/tasks (ruled rows), with the selected row marked by the navy bar per the ruling of 2026-10-08.
 
+## Certification unblock (fix/certification-unblock)
+
+- `/portal/techs`: the right-hand "Certification" panel still says the certification workflow "is Phase 3. Until it ships, certifications are set directly against the record." The check has shipped and certifications are earned on /portal/certification, so the sentence is out of date. Not part of the ruling, so left; for the audit.
+- `/portal/techs` on development lists every probe and demonstration technician, the page is about 4,200 px tall at 1280. The queue of submissions sits above the roster, as ruled.
+- Development's 254-RC-001 v1.0 protocol row has status `awaiting_engineer`, while the register says v1.0 was superseded on 2026-09-20. Recorded, not changed.
+
 ## Partner (feat/v10-partner)
 
 - `/partner/statements/[reference]`: still not measured. Development holds no partner statement at all, and a statement stands on partner ledger rows, which cannot be deleted; a fixture making one per board would leave permanent rows on an append-only table every run, which the teardown ruling forbids. Resolved the way ruling 5 of 2026-10-08 resolved the customer's order page: by the product audit's one-time seed. Its excusal lapses 2026-10-19 either way.
