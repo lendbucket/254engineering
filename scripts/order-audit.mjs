@@ -675,6 +675,33 @@ const answerAll = (entry, pick = () => 0) =>
     "that spelling is what rendered Order windstorm wpi-8",
   );
 
+  /*
+   * "READ WHAT ROOF CERTIFICATIONS COVER", operator ruling of 2026-10-08. The
+   * verb follows the name's number. Every short name is pinned here with the
+   * verb a person would write, as literals, so a ninth name or a regression
+   * in coverVerbFor is a red rather than a quiet "covers" after a plural.
+   */
+  {
+    const { coverVerbFor } = await import("../src/lib/order-copy.ts");
+    const { services } = await import("../src/content/services.ts");
+    const WANT = {
+      "Roof Certifications": "cover",
+      "Windstorm WPI-8": "covers",
+      "Foundation Certifications": "cover",
+      "Solar Letters": "cover",
+      "Manufactured Home Certifications": "cover",
+      "Structural Letters": "cover",
+      "Repair Specifications": "cover",
+      Design: "covers",
+    };
+    const wrong = services.filter((s) => WANT[s.shortName] === undefined || coverVerbFor(s.shortName) !== WANT[s.shortName]);
+    rec(
+      "\"Read what ... cover\" agrees with every service's short name",
+      wrong.length === 0 && services.length === Object.keys(WANT).length,
+      wrong.map((s) => `${s.shortName}: ${coverVerbFor(s.shortName)}${WANT[s.shortName] ? `, want ${WANT[s.shortName]}` : ", not pinned"}`).join("; "),
+    );
+  }
+
   rec(
     "an unknown service is refused rather than defaulted",
     !orderable(catalogFor("no-such-service"), "open", PROTOCOL_APPROVED),

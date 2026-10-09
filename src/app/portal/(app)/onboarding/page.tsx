@@ -84,14 +84,14 @@ export default async function OnboardingPage({
               ) : (
                 <ul className="flex flex-col gap-2">
                   {open.map((a) => (
-                    <li key={a.id} className="rounded-[4px] border border-[var(--border)] bg-white p-4">
-                      <p className="text-[13.5px] font-semibold text-[var(--navy)]">{a.name ?? "No name given"}</p>
-                      <p className="mt-0.5 text-[13.5px] text-[var(--secondary)]">
+                    <li key={a.id} className="border-b border-[var(--row-rule)] py-3">
+                      <p className="text-[14px] font-semibold text-[var(--ink)]">{a.name ?? "No name given"}</p>
+                      <p className="mt-0.5 text-[14px] text-[var(--secondary)]">
                         {a.email}
                         {a.city ? `, ${a.city}` : ""}
                       </p>
                       {a.counties ? (
-                        <p className="mt-1 text-[13.5px] leading-[1.5] text-[var(--secondary)]">
+                        <p className="mt-1 text-[14px] leading-[1.5] text-[var(--secondary)]">
                           Says they cover: {a.counties}
                         </p>
                       ) : null}
@@ -116,16 +116,12 @@ export default async function OnboardingPage({
                     <li key={o.id}>
                       <Link
                         href={`/portal/onboarding?id=${o.id}`}
-                        className={`block rounded-[4px] border bg-white p-4 transition-colors hover:border-slate ${
-                          selected?.onboarding.id === o.id
-                            ? "border-slate"
-                            : "border-[var(--border)]"
-                        }`}
+                        className={`block ${selected?.onboarding.id === o.id ? "border-l-[length:var(--active-bar-width)] border-l-[var(--navy)] pl-3" : ""}`}
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
-                            <p className="text-[13.5px] font-semibold text-[var(--navy)]">{o.person_name}</p>
-                            <p className="mt-0.5 text-[13.5px] text-[var(--secondary)]">
+                            <p className="text-[14px] font-semibold text-[var(--ink)]">{o.person_name}</p>
+                            <p className="mt-0.5 text-[14px] text-[var(--secondary)]">
                               {o.role === "field_tech" ? "Field technician" : "Engineer"}, invited {when(o.invited_at)}
                             </p>
                           </div>
@@ -144,19 +140,19 @@ export default async function OnboardingPage({
           <div>
             <Link
               href="/portal/onboarding"
-              className="mb-4 inline-flex min-h-[44px] items-center text-[13.5px] font-semibold text-[var(--secondary)] lg:hidden"
+              className="mb-4 inline-flex min-h-[44px] items-center text-[14px] font-semibold text-[var(--secondary)] lg:hidden"
             >
               Back to the list
             </Link>
 
-            <div className="rounded-[4px] border border-[var(--border)] bg-white">
+            <div className="border-t-2 border-[var(--ink)]">
               <div className="border-b border-[var(--border)] px-4 py-4 sm:px-5">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <h2 className="font-display text-[17px] leading-[1.2] font-bold text-[var(--navy)]">
+                    <h2 className="font-display text-[17px] leading-[1.2] font-bold text-[var(--ink)]">
                       {selected.onboarding.person_name}
                     </h2>
-                    <p className="mt-1 text-[13.5px] text-[var(--secondary)]">
+                    <p className="mt-1 text-[14px] text-[var(--secondary)]">
                       {selected.onboarding.email}
                       {selected.onboarding.phone ? `, ${selected.onboarding.phone}` : ""}
                     </p>
@@ -175,8 +171,8 @@ export default async function OnboardingPage({
                     <li key={item.itemKey} className="py-3">
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="text-[13.5px] font-semibold text-[var(--navy)]">{item.label}</p>
-                          <p className="mt-0.5 text-[13.5px] text-[var(--secondary)]">
+                          <p className="text-[14px] font-semibold text-[var(--ink)]">{item.label}</p>
+                          <p className="mt-0.5 text-[14px] text-[var(--secondary)]">
                             {item.actor === "admin" ? "Operator verified" : "Uploaded by the applicant"}
                             {item.credentialKind
                               ? `, becomes ${CREDENTIAL_LABEL[item.credentialKind as keyof typeof CREDENTIAL_LABEL] ?? item.credentialKind}`

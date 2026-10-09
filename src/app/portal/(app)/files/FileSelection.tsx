@@ -131,7 +131,7 @@ export function FileSelection({
     <>
       {ticked.size > 0 && (
         <div
-          className="mb-3 flex flex-wrap items-center gap-2 rounded-[2px] border border-[var(--border)] bg-[var(--canvas)] p-3"
+          className="mb-3 flex flex-wrap items-center gap-2 border-y border-[var(--row-rule)] py-3"
           role="group"
           aria-label="Actions for the selected files"
         >
@@ -207,8 +207,8 @@ export function FileSelection({
             </label>
             <Link
               href={`/portal/files?id=${f.id}`}
-              className={`block flex-1 rounded-[2px] border bg-white p-4 transition-colors hover:border-slate ${
-                selectedId === f.id ? "border-slate" : "border-[var(--border)]"
+              className={`block flex-1 border-b border-[var(--row-rule)] py-3 ${
+                selectedId === f.id ? "border-l-[length:var(--active-bar-width)] border-l-[var(--navy)] pl-3" : ""
               }`}
             >
               <div className="flex items-start justify-between gap-3">

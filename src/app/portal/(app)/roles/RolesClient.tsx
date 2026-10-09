@@ -13,10 +13,10 @@ type Role = {
   holders: { id: string; display_name: string; email: string; status: string }[];
 };
 
-const label = "block text-[13.5px] font-semibold text-[var(--navy)]";
+const label = "block text-[14px] font-semibold text-[var(--ink)]";
 const field =
-  "mt-1.5 h-11 w-full rounded-[var(--radius-control)] border border-[var(--border)] bg-white px-3 text-[15px] text-[var(--ink)] focus:border-[var(--navy)] focus:outline-none focus:ring-2 focus:ring-[var(--navy)]/20";
-const hint = "mt-1.5 text-[12.5px] leading-[1.5] text-[var(--secondary)]";
+  "mt-1.5 h-11 w-full rounded-[2px] border border-[var(--border)] bg-white px-3 text-[15px] text-[var(--ink)] focus:border-[var(--navy)] focus:outline-none focus:ring-2 focus:ring-[var(--navy)]/20";
+const hint = "mt-1.5 text-[13px] leading-[1.5] text-[var(--secondary)]";
 
 export function RolesClient({
   roles,
@@ -71,10 +71,8 @@ export function RolesClient({
     <div className="flex flex-col gap-5">
       {said ? (
         <p
-          className={`rounded-[3px] border px-3 py-2.5 text-[13.5px] leading-[1.55] ${
-            said.tone === "ok"
-              ? "border-[var(--border)] bg-[var(--canvas)] text-[var(--ink)]"
-              : "border-[var(--danger)] bg-white font-semibold text-[var(--danger)]"
+          className={`border-l-2 border-[var(--ink)] py-1 pl-3 text-[14px] leading-[1.55] text-[var(--ink)] ${
+            said.tone === "ok" ? "" : "font-semibold"
           }`}
         >
           {said.text}
@@ -82,43 +80,43 @@ export function RolesClient({
       ) : null}
 
       {/* ------------------------------------------------- what cannot be granted */}
-      <section className="rounded-[4px] border border-[var(--gold)] bg-[var(--gold-wash)] p-4 sm:p-5">
+      <section className="border-t-2 border-[var(--ink)] pt-3">
         <p className="portal-kicker">Not permissions</p>
-        <h2 className="mt-1 font-display text-[1.05rem] font-semibold leading-[1.3] text-[var(--navy)]">
+        <h2 className="mt-1 font-display text-[1.05rem] font-semibold leading-[1.3] text-[var(--ink)]">
           What no role can be given
         </h2>
-        <ul className="mt-3 flex flex-wrap gap-2">
+        <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1">
           {licensed.actions.map((a) => (
             <li
               key={a}
-              className="rounded-[3px] border border-[var(--border)] bg-white px-2.5 py-1 text-[12.5px] text-[var(--ink)]"
+              className="text-[13px] text-[var(--ink)]"
             >
               {a}
             </li>
           ))}
         </ul>
-        <p className="mt-3 max-w-[68ch] text-[13.5px] leading-[1.6] text-[var(--ink)]">{licensed.why}</p>
+        <p className="mt-3 max-w-[68ch] text-[14px] leading-[1.6] text-[var(--ink)]">{licensed.why}</p>
       </section>
 
       {/* -------------------------------------------------------------- the roles */}
       {roles.map((role) => (
-        <section key={role.key} className="rounded-[4px] border border-[var(--border)] bg-white p-4 sm:p-5">
+        <section key={role.key} className="border-t-2 border-[var(--ink)] pt-3">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <h2 className="font-display text-[1.05rem] font-semibold leading-[1.3] text-[var(--navy)]">
+                <h2 className="font-display text-[1.05rem] font-semibold leading-[1.3] text-[var(--ink)]">
                   {role.name}
                 </h2>
-                <span className="rounded-[3px] border border-[var(--border)] px-2 py-0.5 text-[12px] text-[var(--secondary)]">
+                <span className="text-[12px] text-[var(--secondary)]">
                   {role.key}
                 </span>
                 {role.is_system ? (
-                  <span className="rounded-[3px] bg-[var(--canvas)] px-2 py-0.5 text-[12px] font-semibold text-[var(--secondary)]">
+                  <span className="text-[12px] font-semibold text-[var(--secondary)]">
                     Built in
                   </span>
                 ) : null}
                 {role.key === licensed.role ? (
-                  <span className="rounded-[3px] bg-[var(--gold-wash)] px-2 py-0.5 text-[12px] font-semibold text-[var(--ink)]">
+                  <span className="text-[12px] font-semibold text-[var(--ink)]">
                     Carries the license
                   </span>
                 ) : null}
@@ -131,7 +129,7 @@ export function RolesClient({
             <button
               type="button"
               onClick={() => (openKey === role.key ? setOpenKey(null) : edit(role))}
-              className="inline-flex min-h-[var(--tap-target)] items-center rounded-[var(--radius-control)] border border-[var(--border)] bg-white px-4 text-[13.5px] font-bold text-[var(--navy)] hover:bg-[var(--canvas)]"
+              className="inline-flex min-h-[var(--tap-target)] items-center rounded-[2px] border border-[var(--border)] bg-white px-4 text-[14px] font-bold text-[var(--ink)] hover:bg-[var(--row-hover)]"
             >
               {openKey === role.key ? "Close" : "Edit permissions"}
             </button>
@@ -145,11 +143,11 @@ export function RolesClient({
             ) : (
               <ul className="mt-1.5 flex flex-col gap-1.5">
                 {role.holders.map((h) => (
-                  <li key={h.id} className="flex flex-wrap items-center gap-2 text-[13.5px] text-[var(--ink)]">
-                    <span className="font-semibold text-[var(--navy)]">{h.display_name}</span>
+                  <li key={h.id} className="flex flex-wrap items-center gap-2 text-[14px] text-[var(--ink)]">
+                    <span className="font-semibold text-[var(--ink)]">{h.display_name}</span>
                     <span className="text-[var(--secondary)]">{h.email}</span>
                     {h.status !== "active" ? (
-                      <span className="rounded-[3px] bg-[var(--canvas)] px-2 py-0.5 text-[12px] font-semibold text-[var(--secondary)]">
+                      <span className="text-[12px] font-semibold text-[var(--secondary)]">
                         {h.status}
                       </span>
                     ) : null}
@@ -166,7 +164,7 @@ export function RolesClient({
                           `${h.display_name} moved to ${e.target.value}.`,
                         )
                       }
-                      className="ml-auto h-9 rounded-[var(--radius-control)] border border-[var(--border)] bg-white px-2 text-[12.5px]"
+                      className="ml-auto h-9 rounded-[2px] border border-[var(--border)] bg-white px-2 text-[13px]"
                     >
                       {roles.map((r) => (
                         <option key={r.key} value={r.key}>{r.name}</option>
@@ -188,7 +186,7 @@ export function RolesClient({
                     {group.actions.map((a) => (
                       <label
                         key={a}
-                        className="flex min-h-[var(--tap-target)] cursor-pointer items-center gap-2.5 rounded-[3px] px-2 hover:bg-[var(--canvas)]"
+                        className="flex min-h-[var(--tap-target)] cursor-pointer items-center gap-2.5 rounded-[2px] px-2 hover:bg-[var(--row-hover)]"
                       >
                         <input
                           type="checkbox"
@@ -201,7 +199,7 @@ export function RolesClient({
                           }}
                           className="h-4 w-4"
                         />
-                        <span className="text-[12.5px] text-[var(--ink)]">{a}</span>
+                        <span className="text-[13px] text-[var(--ink)]">{a}</span>
                       </label>
                     ))}
                   </div>
@@ -218,7 +216,7 @@ export function RolesClient({
                       `${role.name} updated. It takes effect on their next request.`,
                     )
                   }
-                  className="inline-flex min-h-[var(--tap-target)] items-center rounded-[var(--radius-control)] bg-[var(--navy)] px-5 text-[15px] font-bold text-white hover:bg-[var(--navy-hover)] disabled:opacity-50"
+                  className="inline-flex min-h-[var(--tap-target)] items-center rounded-[2px] bg-[var(--navy)] px-5 text-[15px] font-bold text-white hover:bg-[var(--navy-hover)] disabled:opacity-50"
                 >
                   {busy ? "Saving" : "Save permissions"}
                 </button>
@@ -227,7 +225,7 @@ export function RolesClient({
                     type="button"
                     disabled={busy}
                     onClick={() => post({ action: "delete_role", roleKey: role.key }, `${role.name} deleted.`)}
-                    className="inline-flex min-h-[var(--tap-target)] items-center rounded-[var(--radius-control)] border border-[var(--danger)] bg-white px-4 text-[13.5px] font-bold text-[var(--danger)] hover:bg-[var(--canvas)]"
+                    className="inline-flex min-h-[var(--tap-target)] items-center rounded-[2px] border border-[var(--ink)] bg-white px-4 text-[14px] font-bold text-[var(--ink)] hover:bg-[var(--row-hover)]"
                   >
                     Delete this role
                   </button>
@@ -239,11 +237,11 @@ export function RolesClient({
       ))}
 
       {/* ------------------------------------------------------------ a new role */}
-      <section className="rounded-[4px] border border-[var(--border)] bg-white p-4 sm:p-5">
+      <section className="border-t-2 border-[var(--ink)] pt-3">
         <button
           type="button"
           onClick={() => setCreating((v) => !v)}
-          className="inline-flex min-h-[var(--tap-target)] items-center rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[13.5px] font-bold text-white hover:bg-[var(--navy-hover)]"
+          className="inline-flex min-h-[var(--tap-target)] items-center rounded-[2px] bg-[var(--navy)] px-4 text-[14px] font-bold text-white hover:bg-[var(--navy-hover)]"
         >
           {creating ? "Cancel" : "Create a role"}
         </button>
@@ -291,7 +289,7 @@ export function RolesClient({
                     `${newRole.name || newRole.key} created with no permissions. Give it some below.`,
                   )
                 }
-                className="inline-flex min-h-[var(--tap-target)] items-center rounded-[var(--radius-control)] bg-[var(--navy)] px-5 text-[15px] font-bold text-white hover:bg-[var(--navy-hover)] disabled:opacity-50"
+                className="inline-flex min-h-[var(--tap-target)] items-center rounded-[2px] bg-[var(--navy)] px-5 text-[15px] font-bold text-white hover:bg-[var(--navy-hover)] disabled:opacity-50"
               >
                 {busy ? "Creating" : "Create the role"}
               </button>

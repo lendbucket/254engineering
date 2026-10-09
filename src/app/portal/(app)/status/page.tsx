@@ -110,7 +110,7 @@ export default async function StatusPage() {
         <ul className="divide-y divide-limestone-line">
           {deps.map((d) => (
             <li key={d.name} className="flex flex-wrap items-baseline gap-x-3 gap-y-1.5 py-3 first:pt-0 last:pb-0">
-              <span className="text-[13.5px] font-semibold text-[var(--navy)]">{d.name}</span>
+              <span className="text-[14px] font-semibold text-[var(--ink)]">{d.name}</span>
               {!d.configured ? (
                 <Chip label="Not configured" tone="warn" />
               ) : d.reachable === true ? (
@@ -120,7 +120,7 @@ export default async function StatusPage() {
               ) : (
                 <Chip label="Configured, not checked" tone="neutral" />
               )}
-              <p className="w-full max-w-[76ch] text-[13.5px] leading-[1.55] text-[var(--secondary)]">
+              <p className="w-full max-w-[76ch] text-[14px] leading-[1.55] text-[var(--secondary)]">
                 {/*
                   The detail is terminated before the reading time is added.
                   Without this the two run together, which on the Stripe row
@@ -157,15 +157,15 @@ export default async function StatusPage() {
             {crons.map((c) => (
               <li key={c.name} className="py-3 first:pt-0 last:pb-0">
                 <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1.5">
-                  <span className="text-[13.5px] font-semibold text-[var(--navy)]">{c.label}</span>
+                  <span className="text-[14px] font-semibold text-[var(--ink)]">{c.label}</span>
                   <Chip label={c.verdict} tone={VERDICT_TONE[c.verdict]} />
                   <span className="text-[12px] text-[var(--secondary)]">{c.name}</span>
-                  <span className="text-[12.5px] text-[var(--secondary)]">
+                  <span className="text-[13px] text-[var(--secondary)]">
                     expected every {c.everyMinutes === 1440 ? "day" : `${c.everyMinutes} min`}
                   </span>
                 </div>
 
-                <p className="mt-1.5 max-w-[76ch] text-[13.5px] leading-[1.55] text-[var(--secondary)]">
+                <p className="mt-1.5 max-w-[76ch] text-[14px] leading-[1.55] text-[var(--secondary)]">
                   {c.verdict === "never run" ? (
                     <>
                       No run has ever been recorded for this job. Either it is not in vercel.json,
@@ -182,7 +182,7 @@ export default async function StatusPage() {
                   {c.lastRunUnfinished ? (
                     <>
                       {" "}
-                      <strong className="font-semibold text-[var(--red)]">
+                      <strong className="font-semibold text-[var(--ink)]">
                         The most recent run started and never reported.
                       </strong>{" "}
                       That is what a function killed by its timeout looks like.
@@ -221,12 +221,12 @@ export default async function StatusPage() {
               },
               { label: "Gave up", value: String(queue.dead), bad: queue.dead > 0 },
             ].map((f) => (
-              <div key={f.label} className="rounded-[4px] border border-[var(--border)] bg-white px-4 py-3">
+              <div key={f.label} className="border-b border-[var(--row-rule)] py-3">
                 <p className="portal-kicker text-[var(--secondary)]">
                   {f.label}
                 </p>
                 <p
-                  className={`mt-1 font-display text-[24px] leading-[1.1] font-bold ${f.bad ? "text-[var(--red)]" : "text-[var(--navy)]"}`}
+                  className={`mt-1 font-display text-[24px] leading-[1.1] font-bold ${f.bad ? "text-[var(--ink)]" : "text-[var(--ink)]"}`}
                 >
                   {f.value}
                 </p>
@@ -275,7 +275,7 @@ export default async function StatusPage() {
           />
         ) : (
           <>
-            <p className="mb-3 text-[12.5px] text-[var(--secondary)]">
+            <p className="mb-3 text-[13px] text-[var(--secondary)]">
               {latestDay}, computed {AGO(yesterday[0]?.computedAt ?? null)}.
             </p>
             <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
@@ -299,12 +299,12 @@ export default async function StatusPage() {
                 return (
                   <li
                     key={metric}
-                    className="rounded-[4px] border border-[var(--border)] bg-white px-3 py-2.5"
+                    className="border-b border-[var(--row-rule)] py-3"
                   >
                     <p className="portal-kicker text-[var(--secondary)]">
                       {label}
                     </p>
-                    <p className="mt-0.5 text-[16px] font-semibold text-[var(--navy)]">
+                    <p className="mt-0.5 text-[16px] font-semibold text-[var(--ink)]">
                       {value === null
                         ? "not computed"
                         : money

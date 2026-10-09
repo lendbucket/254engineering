@@ -84,7 +84,11 @@ if (cssBlock) {
  * The exact set, not a count.
  *
  * A count passes when somebody deletes one token and adds another, which is
- * precisely the change worth catching. These twenty six names ARE the palette.
+ * precisely the change worth catching. These twenty five names ARE the palette.
+ *
+ * --select left on 2026-10-08, operator ruling of the overnight: a selected
+ * row is marked by a navy left bar only, and V10's grey selected-row fill was
+ * removed from DESIGN_V10.md. Nothing painted with it.
  *
  * --faint, --select and --link joined on 2026-10-08, when the operator ruled
  * that every colour take Design V10's exact value: V10 names all three and the
@@ -110,14 +114,14 @@ const EXPECTED_COLOUR_TOKENS = [
   "--on-navy", "--on-navy-muted", "--on-navy-dim",
   "--warn-bg", "--warn-border", "--warn-ink",
   "--ink", "--secondary", "--faint", "--muted",
-  "--border", "--border-strong", "--row-rule", "--row-hover", "--select", "--link", "--canvas",
+  "--border", "--border-strong", "--row-rule", "--row-hover", "--link", "--canvas",
   "--green", "--red",
 ];
 
 const missingFromDoc = EXPECTED_COLOUR_TOKENS.filter((t) => !documented.has(t));
 const extraInDoc = [...documented.keys()].filter((t) => !EXPECTED_COLOUR_TOKENS.includes(t));
 rec(
-  "the document defines exactly the twenty six colours of the palette",
+  "the document defines exactly the twenty five colours of the palette",
   missingFromDoc.length === 0 && extraInDoc.length === 0,
   [...missingFromDoc.map((t) => `missing ${t}`), ...extraInDoc.map((t) => `extra ${t}`)].join(", ") ||
     `${documented.size} tokens`,
@@ -652,6 +656,26 @@ const STAFF_V10 = [
   "src/components/portal/Dashboard.tsx",
   "src/app/portal/(app)/messages/page.tsx",
   "src/app/portal/(app)/messages/MessagesClient.tsx",
+  /*
+   * The admin-ops batch of 2026-10-09: the operations screens an
+   * administrator works from, restyled to V10 and held to its rules from here.
+   */
+  "src/app/portal/(app)/techs/page.tsx",
+  "src/app/portal/(app)/techs/TechsClient.tsx",
+  "src/app/portal/(app)/queue/page.tsx",
+  "src/app/portal/(app)/queue/QueueClient.tsx",
+  "src/app/portal/(app)/intake/page.tsx",
+  "src/app/portal/(app)/intake/IntakeClient.tsx",
+  "src/app/portal/(app)/people/page.tsx",
+  "src/app/portal/(app)/people/PeopleClient.tsx",
+  "src/app/portal/(app)/onboarding/page.tsx",
+  "src/app/portal/(app)/onboarding/OnboardingClient.tsx",
+  "src/app/portal/(app)/roles/page.tsx",
+  "src/app/portal/(app)/roles/RolesClient.tsx",
+  "src/app/portal/(app)/status/page.tsx",
+  "src/app/portal/(app)/status/StatusClient.tsx",
+  "src/app/portal/(app)/charge-log/page.tsx",
+  "src/app/portal/(app)/charge-log/ChargeLogClient.tsx",
   "src/app/portal/(app)/waiting/page.tsx",
   /*
    * The credentials screen, operator ruling of 2026-10-07, built to V10 from
@@ -1142,13 +1166,13 @@ for (const [standard, site] of TWINS) {
     line: ["--border", "--border-strong"],
     "line-2": ["--row-rule"],
     "phone-ground": ["--canvas"],
-    select: ["--select", "--row-hover"],
     link: ["--link"],
     "gold-deep": ["--gold-deep"],
   };
   rec(
     "V10's token table was read, and every token in it has a home",
-    v10.size >= 13 && [...v10.keys()].every((k) => k in ROLE || k === "page"),
+    /* Exactly twelve since the select fill was removed, 2026-10-08: a floor would pass a table that lost a row. */
+    v10.size === 12 && [...v10.keys()].every((k) => k in ROLE || k === "page"),
     `${v10.size} tokens: ${[...v10.keys()].filter((k) => !(k in ROLE) && k !== "page").join(", ") || "all placed"}`,
   );
   for (const [name, tokens] of Object.entries(ROLE)) {
@@ -1162,6 +1186,24 @@ for (const [standard, site] of TWINS) {
       );
     }
   }
+  /*
+   * A SELECTED ROW IS A NAVY BAR, NEVER A FILL. Operator ruling, 2026-10-08,
+   * overnight. V10 named a grey selected-row fill, the ruling removed it, and
+   * this asserts both halves so neither can come back alone: V10's table names
+   * no select token, and the portal declares no --select. --row-hover keeps its
+   * value as press and hover feedback, pinned here because V10 no longer gives
+   * it a role to be compared against.
+   */
+  rec(
+    "V10 names no selected-row fill, and the portal declares none",
+    !v10.has("select") && !implemented.has("--select"),
+    `V10 select=${v10.get("select") ?? "absent"}, portal --select=${implemented.get("--select") ?? "absent"}`,
+  );
+  rec(
+    "--row-hover stays press and hover feedback at #f3f4f6",
+    implemented.get("--row-hover") === "#f3f4f6",
+    `--row-hover=${implemented.get("--row-hover") ?? "missing"}`,
+  );
   const surface = tokenText.match(/\.portal-surface\s*\{[^}]*background:\s*(#[0-9a-fA-F]{6})/);
   rec(
     "the desktop ground is V10's page",

@@ -23,8 +23,9 @@ This is a presentation change. It must not change what any screen does, what it 
 | line-2 | #E6E9ED | row dividers |
 | page | #FFFFFF | desktop page ground |
 | phone-ground | #F2F4F7 | phone page ground behind white sections |
-| select | #F3F4F6 | selected row fill |
 | link | #0B4F8A | links |
+
+**A selected row is marked by a navy left bar only. Operator ruling, 2026-10-08.** The grey selected-row fill (`select`, #F3F4F6) this table carried until that day is removed: a tinted row inside main is the tinted box this system refuses, and the bar says selected without it.
 
 No status colors. No red, green or amber anywhere in the UI. Urgency is shown with weight (bold) and words ("Overdue 4h"), never with color, dots, badges or tinted boxes. Brand navy and gold are the only colors.
 

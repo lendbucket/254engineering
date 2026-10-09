@@ -19,8 +19,8 @@ type Person = {
 };
 
 const field =
-  "mt-1.5 min-h-[48px] w-full rounded-[3px] border border-[var(--border)] bg-white px-3 text-[16px] text-[var(--navy)] outline-none focus:border-slate";
-const label = "block text-[13.5px] font-semibold text-[var(--navy)]";
+  "mt-1.5 min-h-[48px] w-full rounded-[2px] border border-[var(--border)] bg-white px-3 text-[16px] text-[var(--ink)] outline-none focus:border-slate";
+const label = "block text-[14px] font-semibold text-[var(--ink)]";
 
 /**
  * Creating an account.
@@ -199,12 +199,12 @@ export function NewPersonForm({
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          className="inline-flex min-h-[var(--tap-target)] items-center rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[13.5px] font-bold text-white hover:bg-[var(--navy-hover)]"
+          className="inline-flex min-h-[var(--tap-target)] items-center rounded-[2px] bg-[var(--navy)] px-4 text-[14px] font-bold text-white hover:bg-[var(--navy-hover)]"
         >
           {open ? "Cancel" : "Add a person"}
         </button>
         {notice ? (
-          <p role="status" className="text-[13.5px] leading-[1.5] text-[var(--green)]">
+          <p role="status" className="text-[14px] leading-[1.5] text-[var(--ink)]">
             {notice}
           </p>
         ) : null}
@@ -213,7 +213,7 @@ export function NewPersonForm({
       {open ? (
         <form
           onSubmit={onSubmit}
-          className="mt-4 rounded-[4px] border border-[var(--border)] bg-white p-4 sm:p-5"
+          className="mt-4 border-t-2 border-[var(--ink)] pt-3"
         >
           <fieldset>
             <legend className={label}>Role</legend>
@@ -227,8 +227,8 @@ export function NewPersonForm({
               {roles.map((r) => (
                 <label
                   key={r.key}
-                  className={`flex min-h-[48px] cursor-pointer items-center gap-2 rounded-[3px] border px-3 text-[13.5px] font-semibold ${
-                    role === r.key ? "border-slate bg-[var(--canvas)] text-[var(--navy)]" : "border-[var(--border)] text-[var(--secondary)]"
+                  className={`flex min-h-[48px] cursor-pointer items-center gap-2 rounded-[2px] border px-3 text-[14px] font-semibold ${
+                    role === r.key ? "border-2 border-[var(--navy)] text-[var(--ink)]" : "border-[var(--border)] text-[var(--secondary)]"
                   }`}
                 >
                   <input
@@ -294,7 +294,7 @@ export function NewPersonForm({
                   </datalist>
                 </div>
               </div>
-              <p className="mt-4 text-[13.5px] leading-[1.55] text-[var(--secondary)]">
+              <p className="mt-4 text-[14px] leading-[1.55] text-[var(--secondary)]">
                 Coverage counties decide which job offers reach this technician. They can be set
                 here or later, and dispatch will not offer work in a county that is not on the list.
               </p>
@@ -306,7 +306,7 @@ export function NewPersonForm({
                 name="coverageCounties"
                 multiple
                 size={6}
-                className="mt-1.5 w-full rounded-[3px] border border-[var(--border)] bg-white px-3 py-2 text-[16px] text-[var(--navy)] outline-none focus:border-slate"
+                className="mt-1.5 w-full rounded-[2px] border border-[var(--border)] bg-white px-3 py-2 text-[16px] text-[var(--ink)] outline-none focus:border-slate"
               >
                 {counties.map((c) => (
                   <option key={c} value={c}>
@@ -318,12 +318,12 @@ export function NewPersonForm({
           ) : null}
 
           {error ? (
-            <p role="alert" className="mt-4 rounded-[3px] border border-[var(--warn-border)] bg-[var(--warn-bg)] px-3 py-2.5 text-[13.5px] text-[var(--red)]">
+            <p role="alert" className="mt-4 rounded-[2px] border-l-2 border-[var(--ink)] px-3 py-2.5 text-[14px] text-[var(--ink)]">
               {error}
             </p>
           ) : null}
 
-          <p className="mt-4 text-[13.5px] leading-[1.55] text-[var(--secondary)]">
+          <p className="mt-4 text-[14px] leading-[1.55] text-[var(--secondary)]">
             No password is set here. They receive a one time link and choose their own, which
             nobody at the firm can see.
           </p>
@@ -337,7 +337,7 @@ export function NewPersonForm({
             the first thing the person needs is context the template has no
             business guessing at.
           */}
-          <label className="mt-4 flex min-h-[var(--tap-target)] items-start gap-3 text-[13.5px] leading-[1.55] text-[var(--navy)]">
+          <label className="mt-4 flex min-h-[var(--tap-target)] items-start gap-3 text-[14px] leading-[1.55] text-[var(--ink)]">
             <input
               type="checkbox"
               checked={byHand}
@@ -356,7 +356,7 @@ export function NewPersonForm({
           <button
             type="submit"
             disabled={busy}
-            className="mt-4 min-h-[var(--tap-target)] w-full rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[15px] font-bold text-white hover:bg-[var(--navy-hover)] disabled:opacity-60 sm:w-auto sm:px-6"
+            className="mt-4 min-h-[var(--tap-target)] w-full rounded-[2px] bg-[var(--navy)] px-4 text-[15px] font-bold text-white hover:bg-[var(--navy-hover)] disabled:opacity-60 sm:w-auto sm:px-6"
           >
             {busy ? "Creating..." : byHand ? "Create and show me the link" : "Create and send the invite"}
           </button>
@@ -371,12 +371,12 @@ export function NewPersonForm({
           className="mt-4 border-t-2 border-[var(--ink)] pt-4 outline-none"
         >
           <p className="portal-label">Send this to {handedLink.name}</p>
-          <p className="mt-2 text-[13.5px] leading-[1.55] text-[var(--navy)]">
+          <p className="mt-2 text-[14px] leading-[1.55] text-[var(--ink)]">
             Nothing was emailed. This link works once{handedLink.expires ? ` and expires ${handedLink.expires}` : ""}.
             It is not stored anywhere and will not be shown again. If you lose it, use Resend invite
             on their row, which issues a new one.
           </p>
-          <p className="mt-3 break-all rounded-[3px] border border-[var(--border)] bg-white px-3 py-2.5 text-[12.5px] leading-[1.5] text-[var(--navy)]">
+          <p className="mt-3 break-all border-l-2 border-[var(--ink)] py-1 pl-3 text-[13px] leading-[1.5] text-[var(--ink)]">
             {handedLink.url}
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
@@ -388,7 +388,7 @@ export function NewPersonForm({
                   .then(() => setCopied(true))
                   .catch(() => setCopied(false));
               }}
-              className="min-h-[var(--tap-target)] rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[13.5px] font-bold text-white hover:bg-[var(--navy-hover)]"
+              className="min-h-[var(--tap-target)] rounded-[2px] bg-[var(--navy)] px-4 text-[14px] font-bold text-white hover:bg-[var(--navy-hover)]"
             >
               {copied ? "Copied" : "Copy the link"}
             </button>
@@ -398,7 +398,7 @@ export function NewPersonForm({
                 setHandedLink(null);
                 setCopied(false);
               }}
-              className="min-h-[var(--tap-target)] rounded-[var(--radius-control)] border border-[var(--border)] px-4 text-[13.5px] font-bold text-[var(--navy)]"
+              className="min-h-[var(--tap-target)] rounded-[2px] border border-[var(--border)] px-4 text-[14px] font-bold text-[var(--ink)]"
             >
               I have sent it
             </button>
@@ -457,7 +457,7 @@ export function PersonActions({ person, selfId }: { person: Person; selfId: stri
   }
 
   const btn =
-    "inline-flex min-h-[40px] items-center rounded-[3px] border border-[var(--border)] px-3 text-[13.5px] font-semibold text-[var(--navy)] hover:bg-[var(--canvas)] disabled:opacity-50";
+    "inline-flex min-h-[40px] items-center rounded-[2px] border border-[var(--border)] px-3 text-[14px] font-semibold text-[var(--ink)] hover:bg-[var(--row-hover)] disabled:opacity-50";
 
   return (
     <div>
@@ -478,7 +478,7 @@ export function PersonActions({ person, selfId }: { person: Person; selfId: stri
         )}
 
         {person.id === selfId ? (
-          <span className="inline-flex min-h-[40px] items-center text-[13.5px] text-[var(--secondary)]">
+          <span className="inline-flex min-h-[40px] items-center text-[14px] text-[var(--secondary)]">
             This is you
           </span>
         ) : person.status === "suspended" ? (
@@ -496,8 +496,8 @@ export function PersonActions({ person, selfId }: { person: Person; selfId: stri
           </button>
         )}
       </div>
-      {notice ? <p className="mt-2 text-[12.5px] text-[var(--green)]">{notice}</p> : null}
-      {error ? <p role="alert" className="mt-2 text-[12.5px] text-[var(--red)]">{error}</p> : null}
+      {notice ? <p className="mt-2 text-[13px] text-[var(--ink)]">{notice}</p> : null}
+      {error ? <p role="alert" className="mt-2 text-[13px] text-[var(--ink)]">{error}</p> : null}
     </div>
   );
 }

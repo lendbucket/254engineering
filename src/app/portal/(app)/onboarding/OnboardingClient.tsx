@@ -13,11 +13,11 @@ import type { ExpiryState } from "@/lib/ops-credentials";
  */
 
 const field =
-  "min-h-[44px] w-full rounded-[3px] border border-[var(--border)] bg-white px-3 text-[16px] text-[var(--navy)] outline-none focus:border-slate";
+  "min-h-[44px] w-full rounded-[2px] border border-[var(--border)] bg-white px-3 text-[16px] text-[var(--ink)] outline-none focus:border-slate";
 const primary =
-  "inline-flex min-h-[var(--tap-target)] items-center justify-center rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[13.5px] font-bold text-white transition-colors hover:bg-[var(--navy-hover)] disabled:opacity-50";
+  "inline-flex min-h-[var(--tap-target)] items-center justify-center rounded-[2px] bg-[var(--navy)] px-4 text-[14px] font-bold text-white transition-colors hover:bg-[var(--navy-hover)] disabled:opacity-50";
 const ghost =
-  "inline-flex min-h-[44px] items-center justify-center rounded-[3px] border border-[var(--border)] px-4 text-[13.5px] font-semibold text-[var(--navy)] hover:border-slate disabled:opacity-50";
+  "inline-flex min-h-[44px] items-center justify-center rounded-[2px] border border-[var(--border)] px-4 text-[14px] font-semibold text-[var(--ink)] hover:border-slate disabled:opacity-50";
 
 async function post(payload: Record<string, unknown>) {
   const res = await fetch("/api/portal/onboarding", {
@@ -40,11 +40,11 @@ function Problem({ message, blockers }: { message: string | null; blockers?: str
   if (!message) return null;
   return (
     <div role="alert" className="mt-3">
-      <p className="text-[13.5px] leading-[1.5] font-semibold text-[var(--red)]">{message}</p>
+      <p className="text-[14px] leading-[1.5] font-semibold text-[var(--ink)]">{message}</p>
       {blockers && blockers.length > 0 ? (
         <ul className="mt-1.5 flex flex-col gap-1">
           {blockers.map((b) => (
-            <li key={b} className="text-[13.5px] leading-[1.5] text-[var(--red)]">
+            <li key={b} className="text-[14px] leading-[1.5] text-[var(--ink)]">
               {b}
             </li>
           ))}
@@ -72,10 +72,10 @@ export function InviteButton({ applicationId, defaultRole }: { applicationId: st
   if (token) {
     const url = `${window.location.origin}/onboarding/${token}`;
     return (
-      <div className="mt-3 rounded-[3px] border border-[var(--border)] bg-[var(--canvas)] px-3 py-3">
-        <p className="text-[13.5px] font-semibold text-[var(--navy)]">Invitation link, shown once</p>
-        <p className="mt-1.5 text-[12px] leading-[1.5] break-all text-[var(--navy)]">{url}</p>
-        <p className="mt-2 text-[12.5px] leading-[1.5] text-[var(--secondary)]">
+      <div className="mt-3 border-t-2 border-[var(--ink)] pt-3">
+        <p className="text-[14px] font-semibold text-[var(--ink)]">Invitation link, shown once</p>
+        <p className="mt-1.5 text-[12px] leading-[1.5] break-all text-[var(--ink)]">{url}</p>
+        <p className="mt-2 text-[13px] leading-[1.5] text-[var(--secondary)]">
           Send this to them. It is not stored and cannot be shown again; if it is lost, issue a new
           one.
         </p>
@@ -90,7 +90,7 @@ export function InviteButton({ applicationId, defaultRole }: { applicationId: st
     <div className="mt-3">
       <div className="flex flex-wrap items-end gap-2">
         <div className="min-w-[160px] flex-1">
-          <label htmlFor={`role-${applicationId}`} className="block text-[13.5px] font-semibold text-[var(--navy)]">
+          <label htmlFor={`role-${applicationId}`} className="block text-[14px] font-semibold text-[var(--ink)]">
             Invite as
           </label>
           <select
@@ -132,8 +132,8 @@ export function InviteButton({ applicationId, defaultRole }: { applicationId: st
 const TONE: Record<ExpiryState, string> = {
   none: "text-[var(--secondary)]",
   current: "text-[var(--secondary)]",
-  expiring: "text-[var(--warn-ink)]",
-  expired: "text-[var(--red)]",
+  expiring: "text-[var(--ink)]",
+  expired: "text-[var(--ink)]",
 };
 
 /**
@@ -169,7 +169,7 @@ export function ItemDates({
 
   if (locked) {
     return (
-      <p className={`mt-2 text-[13.5px] ${TONE[state]}`}>
+      <p className={`mt-2 text-[14px] ${TONE[state]}`}>
         {expiresOn ? `Expires ${expiresOn}` : "No expiry recorded"}
       </p>
     );
@@ -200,7 +200,7 @@ export function ItemDates({
     >
       <div className="flex flex-wrap items-end gap-2">
         <div className="min-w-[130px]">
-          <label htmlFor={`issued-${itemKey}`} className="block text-[12.5px] font-semibold text-[var(--navy)]">
+          <label htmlFor={`issued-${itemKey}`} className="block text-[13px] font-semibold text-[var(--ink)]">
             Issued
           </label>
           <input
@@ -212,7 +212,7 @@ export function ItemDates({
           />
         </div>
         <div className="min-w-[130px]">
-          <label htmlFor={`expires-${itemKey}`} className="block text-[12.5px] font-semibold text-[var(--navy)]">
+          <label htmlFor={`expires-${itemKey}`} className="block text-[13px] font-semibold text-[var(--ink)]">
             Expires
           </label>
           <input
@@ -228,11 +228,11 @@ export function ItemDates({
         </button>
       </div>
       {state === "expired" ? (
-        <p className="mt-1.5 text-[13.5px] font-semibold text-[var(--red)]">
+        <p className="mt-1.5 text-[14px] font-semibold text-[var(--ink)]">
           {label} has already expired. Dispatch refuses anybody whose required documents have lapsed.
         </p>
       ) : state === "expiring" ? (
-        <p className="mt-1.5 text-[13.5px] text-[var(--warn-ink)]">
+        <p className="mt-1.5 text-[14px] text-[var(--ink)]">
           Expiring within 45 days. This warns on the roster and does not stop them working.
         </p>
       ) : null}
@@ -276,7 +276,7 @@ export function CoverageForm({
     return (
       <div>
         <p className="portal-label">Coverage</p>
-        <p className="mt-2 text-[13.5px] leading-[1.55] text-[var(--secondary)]">
+        <p className="mt-2 text-[14px] leading-[1.55] text-[var(--secondary)]">
           {counties.length} count{counties.length === 1 ? "y" : "ies"}: {counties.join(", ")}. Change
           this on the technician roster now that the account exists.
         </p>
@@ -291,7 +291,7 @@ export function CoverageForm({
   return (
     <div>
       <p className="portal-label">Coverage</p>
-      <p className="mt-1.5 max-w-[70ch] text-[13.5px] leading-[1.55] text-[var(--secondary)]">
+      <p className="mt-1.5 max-w-[70ch] text-[14px] leading-[1.55] text-[var(--secondary)]">
         Where this technician would work. A technician with none is offered nothing and would sit in
         the roster looking available, so activation refuses until there is at least one.
       </p>
@@ -303,7 +303,7 @@ export function CoverageForm({
               <button
                 type="button"
                 onClick={() => setChosen((prev) => prev.filter((x) => x !== c))}
-                className="inline-flex min-h-[36px] items-center gap-1.5 rounded-[3px] border border-[var(--border)] bg-[var(--canvas)] px-2.5 text-[13.5px] font-semibold text-[var(--navy)] hover:border-slate"
+                className="inline-flex min-h-[36px] items-center gap-1.5 rounded-[2px] border border-[var(--border)] bg-white px-2.5 text-[14px] font-semibold text-[var(--ink)] hover:border-slate"
               >
                 {c}
                 <span aria-hidden="true">x</span>
@@ -315,7 +315,7 @@ export function CoverageForm({
       ) : null}
 
       <div className="mt-3">
-        <label htmlFor="county-search" className="block text-[13.5px] font-semibold text-[var(--navy)]">
+        <label htmlFor="county-search" className="block text-[14px] font-semibold text-[var(--ink)]">
           Add a county
         </label>
         <input
@@ -347,13 +347,13 @@ export function CoverageForm({
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
         <div>
-          <label htmlFor="base-city" className="block text-[13.5px] font-semibold text-[var(--navy)]">
+          <label htmlFor="base-city" className="block text-[14px] font-semibold text-[var(--ink)]">
             Base city
           </label>
           <input id="base-city" value={city} onChange={(e) => setCity(e.target.value)} className={`${field} mt-1.5`} />
         </div>
         <div>
-          <label htmlFor="base-county" className="block text-[13.5px] font-semibold text-[var(--navy)]">
+          <label htmlFor="base-county" className="block text-[14px] font-semibold text-[var(--ink)]">
             Base county
           </label>
           <input
@@ -429,7 +429,7 @@ export function ActivatePanel({
     return (
       <div>
         <p className="portal-label">Activated</p>
-        <p className="mt-2 max-w-[70ch] text-[13.5px] leading-[1.55] text-[var(--secondary)]">
+        <p className="mt-2 max-w-[70ch] text-[14px] leading-[1.55] text-[var(--secondary)]">
           The account exists and the credentials are on file. This person is not certified for any
           service line yet, so dispatch will not offer them work until they pass a protocol check.
           That is the gate working, not a missing step.
@@ -437,7 +437,7 @@ export function ActivatePanel({
         {profileId ? (
           <a
             href="/portal/techs"
-            className="mt-3 inline-flex min-h-[44px] items-center text-[13.5px] font-semibold text-[var(--navy)] underline underline-offset-4"
+            className="mt-3 inline-flex min-h-[44px] items-center text-[14px] font-semibold text-[var(--ink)] underline underline-offset-4"
           >
             See them on the roster
           </a>
@@ -449,12 +449,12 @@ export function ActivatePanel({
   if (token || linked) {
     const url = token ? `${window.location.origin}/portal/set-password?token=${token}` : null;
     return (
-      <div className="rounded-[3px] border border-[var(--border)] bg-[var(--canvas)] px-3 py-3">
-        <p className="text-[13.5px] font-semibold text-[var(--navy)]">Account created</p>
+      <div className="border-t-2 border-[var(--ink)] pt-3">
+        <p className="text-[14px] font-semibold text-[var(--ink)]">Account created</p>
         {url ? (
           <>
-            <p className="mt-1.5 text-[12px] leading-[1.5] break-all text-[var(--navy)]">{url}</p>
-            <p className="mt-2 text-[12.5px] leading-[1.5] text-[var(--secondary)]">
+            <p className="mt-1.5 text-[12px] leading-[1.5] break-all text-[var(--ink)]">{url}</p>
+            <p className="mt-2 text-[13px] leading-[1.5] text-[var(--secondary)]">
               Their one time link to set a password. Shown once and not stored.
             </p>
             <button type="button" onClick={() => void navigator.clipboard.writeText(url)} className={`${ghost} mt-2`}>
@@ -462,7 +462,7 @@ export function ActivatePanel({
             </button>
           </>
         ) : (
-          <p className="mt-1.5 text-[13.5px] leading-[1.55] text-[var(--secondary)]">
+          <p className="mt-1.5 text-[14px] leading-[1.55] text-[var(--secondary)]">
             That address already had credentials on this project, so it was linked rather than given
             a new password. They sign in with the password they already use.
           </p>
@@ -474,7 +474,7 @@ export function ActivatePanel({
   return (
     <div>
       <p className="portal-label">Activate</p>
-      <p className="mt-1.5 max-w-[70ch] text-[13.5px] leading-[1.55] text-[var(--secondary)]">
+      <p className="mt-1.5 max-w-[70ch] text-[14px] leading-[1.55] text-[var(--secondary)]">
         Creates the account, copies every accepted document into their credentials with the expiry
         dates recorded above, sets the coverage, and issues a one time link to set a password. It
         does not certify them for anything.
@@ -485,7 +485,7 @@ export function ActivatePanel({
           <p className="portal-label">Not ready</p>
           <ul className="mt-2 flex flex-col gap-1">
             {blockers.map((b) => (
-              <li key={b} className="text-[13.5px] leading-[1.5] text-[var(--secondary)]">
+              <li key={b} className="text-[14px] leading-[1.5] text-[var(--secondary)]">
                 {b}
               </li>
             ))}
