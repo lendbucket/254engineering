@@ -177,9 +177,17 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * shape aff578e18d558ee5af26fb2cb8c9eb88. Tables and functions are unchanged
  * by the deferral. 0064, closing an account, replaces a function and adds no
  * object.
+ *
+ * Moved 2026-10-09 by 0066, a credential's issuing state: 1,170 to 1,171 is
+ * eng_credentials.issuing_state, shape 18826fa5b3e7d9c9979ca81b96666bb7. Its
+ * check constraint is a behaviour fact (970 to 971), not a table, trigger or
+ * function, so those three are unchanged. It went red on the board of d1e18d2
+ * naming both figures before this edit, which is this constant doing its job;
+ * the miss was that the migration's author did not run this audit standalone
+ * before boarding.
  */
-const EXPECTED_FINGERPRINT = "aff578e18d558ee5af26fb2cb8c9eb88";
-const EXPECTED_COLUMNS = 1170;
+const EXPECTED_FINGERPRINT = "18826fa5b3e7d9c9979ca81b96666bb7";
+const EXPECTED_COLUMNS = 1171;
 const EXPECTED_TABLES = 83;
 /* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts. */
 const EXPECTED_TRIGGERS = 77;

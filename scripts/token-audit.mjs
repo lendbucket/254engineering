@@ -318,6 +318,8 @@ const PORTED = [
   "src/app/portal/(app)/billing/page.tsx",
   "src/app/portal/(app)/certification/CertificationClient.tsx",
   "src/app/portal/(app)/certification/page.tsx",
+  "src/app/portal/(app)/certification/SubmitCredentialForm.tsx",
+  "src/app/portal/(app)/techs/VerificationQueue.tsx",
   "src/app/portal/(app)/charge-log/ChargeLogClient.tsx",
   "src/app/portal/(app)/charge-log/page.tsx",
   "src/app/portal/(app)/clients/ClientsClient.tsx",
@@ -630,6 +632,9 @@ const STAFF_V10 = [
   "src/app/portal/(app)/review/PrereviewPanel.tsx",
   "src/app/portal/(app)/certification/page.tsx",
   "src/app/portal/(app)/certification/CertificationClient.tsx",
+  /* fix/certification-unblock, 2026-10-09: the technician's submission form and the operator's verification queue. */
+  "src/app/portal/(app)/certification/SubmitCredentialForm.tsx",
+  "src/app/portal/(app)/techs/VerificationQueue.tsx",
   "src/app/portal/(app)/files/page.tsx",
   "src/app/portal/(app)/files/FileClient.tsx",
   "src/app/portal/(app)/files/FileSelection.tsx",

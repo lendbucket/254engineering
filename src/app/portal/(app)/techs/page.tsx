@@ -9,6 +9,9 @@ import { services } from "@/content/services";
 import { Chip, EmptyState, PageHead, Panel } from "@/components/portal/surfaces";
 import { CoverageMap } from "@/components/portal/CoverageMap";
 import { BaseForm, LedgerActions } from "./TechsClient";
+import { VerificationQueue } from "./VerificationQueue";
+import { awaitingVerification } from "@/lib/ops-credential-submissions";
+import { calendarDateLabel, firmDateLabel } from "@/lib/firm-calendar";
 
 export const dynamic = "force-dynamic";
 
@@ -65,6 +68,13 @@ export default async function TechsPage() {
   const pending = ledger.filter((l) => l.status === "pending");
   const approved = ledger.filter((l) => l.status === "approved");
 
+  /*
+   * CREDENTIALS TECHNICIANS HAVE SUBMITTED, AWAITING VERIFICATION, at the top.
+   * Operator ruling of 2026-10-09. Only somebody who can record credentials
+   * sees the queue, the same grant verify and reject are refused without.
+   */
+  const queue = can(actor, "profiles.update") ? await awaitingVerification() : [];
+
   return (
     <>
       <PageHead
@@ -72,6 +82,36 @@ export default async function TechsPage() {
         title="Technicians"
         lede="Who works where, what they are certified for, what they are carrying, and what they are owed."
       />
+
+      {can(actor, "profiles.update") ? (
+        <Panel
+          title={`Awaiting verification${queue && queue.length ? ` (${queue.length})` : ""}`}
+          description="Credentials technicians submitted themselves: the type, the issuing state and the expiry, never a document. Dispatch counts none of them until it is verified here."
+        >
+          {queue === null ? (
+            <p className="text-[14px] font-semibold text-[var(--ink)]">
+              The submissions could not be read, so this is not an empty queue.
+            </p>
+          ) : queue.length === 0 ? (
+            <p className="text-[14px] text-[var(--secondary)]">Nothing is waiting.</p>
+          ) : (
+            <VerificationQueue
+              rows={queue.map((s) => ({
+                id: s.id,
+                name: s.name,
+                label: s.label,
+                detail: [
+                  s.issuingState ? `Issued in ${s.issuingState}` : null,
+                  s.expiresOn ? `expires ${calendarDateLabel(s.expiresOn)}` : "no expiry",
+                ]
+                  .filter(Boolean)
+                  .join(", "),
+                submitted: firmDateLabel(s.submittedAt) ?? "on an unrecorded date",
+              }))}
+            />
+          )}
+        </Panel>
+      ) : null}
 
       <div className="grid gap-6 lg:grid-cols-[1fr_minmax(320px,420px)]">
         <div>

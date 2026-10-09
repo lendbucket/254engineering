@@ -135,3 +135,24 @@ anything assert it?**
 A screen nothing routes to, a route nothing secures, a table nothing retains,
 and a migration nothing declares are each a thing that looks finished. Three of
 those four are swept. The one that is not is the one a person meets.
+
+## Before the board: a change to a library the audits import
+
+**Operator ruling, 2026-10-09. Standing.** Any change to a file the audits and
+proofs import (`scripts/lib/portal-probe.mjs` and every shared helper under
+`scripts/lib/`) runs, standalone and before the board:
+
+1. the full `proofs-audit`, and
+2. every audit that imports the changed file, the list DERIVED by searching the
+   imports, never recalled.
+
+A green run of only the new proof is not enough, and it is the miss this rule
+exists for: `feat/audit-seed` changed the probe teardowns, ran only its own new
+proof, and the board found an existing proof whose stand-in client could not
+express the new call (60 of 61 at 7731c79). The full `proofs-audit` would have
+found it in a minute.
+
+The import list is derived the same way every time, so it is a command rather
+than a memory:
+
+    grep -rl "lib/<changed file>" scripts --include=*.mjs
