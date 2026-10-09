@@ -103,7 +103,7 @@ const ORIGINAL_NOT_YET_V10 = [
  * pieces alone brought into line. 2026-10-08: tasks, restyled, and 37 remain.
  */
 const STILL_NOT_YET_V10 = [
-  "/portal/techs",
+
 ];
 const NOT_YET_V10 = STILL_NOT_YET_V10 ?? [...ORIGINAL_NOT_YET_V10];
 
@@ -301,7 +301,50 @@ function measure() {
       /* Exactly the ruling's exemption: a button or an input. Not the box rule's
        * wider control set, which also excuses a key cap. */
       if (["BUTTON", "INPUT", "SELECT", "TEXTAREA", "OPTION"].includes(el.tagName) || buttonLike(el, cs, r)) continue;
+      /*
+       * THE ONE EXCEPTION: A MAP. Operator ruling of 2026-10-09, recorded in
+       * DESIGN_V10.md. Colour is permitted on swatches and map features inside
+       * an element marked data-v10-map, never on text and never as a background
+       * behind content. So the element must sit inside the marked map AND hold
+       * no text and no children: a swatch. A coloured label, or a coloured box
+       * with anything in it, is still a finding, map or not. Counted, so an
+       * exception that excuses nothing is visible.
+       */
+      if (el.closest("[data-v10-map]") && el.children.length === 0 && !(el.textContent ?? "").trim()) {
+        found.push({ kind: "_mapswatch" });
+        continue;
+      }
       found.push({ kind: "tint", at: `${describe(el)} ${bg}` });
+    }
+  }
+
+  /*
+   * TABLE HEADERS MUST NOT TOUCH, at desktop width. Operator ruling of
+   * 2026-10-09, after "MARGIN" and "COVERAGE" rendered as "MARGINCOVERAGE" on
+   * the dashboard. For every table, the TEXT of each header cell is measured
+   * (a range over its contents, not the cell, whose box always abuts the next)
+   * and two neighbours closer than 8px are a finding naming both.
+   */
+  if (window.innerWidth >= 1200) {
+    for (const row of document.querySelectorAll("thead tr")) {
+      const heads = [...row.children].filter((th) => {
+        const s = getComputedStyle(th);
+        return s.display !== "none" && (th.textContent ?? "").trim();
+      });
+      for (let i = 1; i < heads.length; i++) {
+        const a = document.createRange();
+        a.selectNodeContents(heads[i - 1]);
+        const b = document.createRange();
+        b.selectNodeContents(heads[i]);
+        const ra = a.getBoundingClientRect();
+        const rb = b.getBoundingClientRect();
+        if (ra.width === 0 || rb.width === 0) continue;
+        const gap = rb.left - ra.right;
+        if (gap < 8) {
+          found.push({ kind: "header-touch", at: `"${heads[i - 1].textContent.trim()}" and "${heads[i].textContent.trim()}" ${Math.round(gap)}px apart` });
+        }
+      }
+      found.push({ kind: "_headerpairs", n: Math.max(0, heads.length - 1) });
     }
   }
 
@@ -335,6 +378,9 @@ const browser = targets.length && Object.values(sessions).some((s) => s?.cookie)
 const results = [];
 /** Active nav items measured, by portal: admin, engineer, field_tech, partner. */
 const navSeen = {};
+/** Swatches the map exception excused, by route; and header pairs measured. */
+const mapSwatches = {};
+let headerPairs = 0;
 /** V10's phone-ground, and the surfaces held to it (see the check below). */
 const PHONE_GROUND = "rgb(242, 244, 247)";
 /* The partner surface joined on 2026-10-09 with the partner batch, which put its shell and sign in screens on the ground. */
@@ -376,6 +422,14 @@ for (const t of targets) {
             const s = t.signedIn ? sessionFor(t.surface, t.pattern) : null;
             const portal = t.surface === "partner" ? "partner" : t.surface === "portal" ? (s?.probe?.role ?? "unknown") : t.surface;
             navSeen[portal] = (navSeen[portal] ?? 0) + 1;
+            continue;
+          }
+          if (f.kind === "_mapswatch") {
+            mapSwatches[t.pattern] = (mapSwatches[t.pattern] ?? 0) + 1;
+            continue;
+          }
+          if (f.kind === "_headerpairs") {
+            headerPairs += f.n;
             continue;
           }
           kinds[f.kind] = kinds[f.kind] ?? [];
@@ -497,6 +551,24 @@ if (!ONLY && browser) {
     "the active nav item was measured in all four portals",
     missing.length === 0,
     missing.length ? `none seen for: ${missing.join(", ")}` : PORTALS.map((p) => `${p} ${navSeen[p]}`).join(", "),
+  );
+  /*
+   * THE MAP EXCEPTION EXCUSES SWATCHES ON THE MAP'S OWN SCREEN, AND NOWHERE
+   * ELSE. Operator ruling of 2026-10-09. Counted per route: an exception that
+   * excused nothing would mean the marked element vanished, and one excusing
+   * swatches on a screen with no map would mean the marker spread.
+   */
+  const MAP_SCREENS = ["/portal/techs"];
+  const where = Object.keys(mapSwatches);
+  rec(
+    "the map exception excuses swatches on the map's own screen and nowhere else",
+    MAP_SCREENS.every((p) => mapSwatches[p] > 0) && where.every((p) => MAP_SCREENS.includes(p)),
+    where.length ? where.map((p) => `${p} ${mapSwatches[p]}`).join(", ") : "none excused anywhere",
+  );
+  rec(
+    "and table headers were measured for touching (a check over no tables passes forever)",
+    headerPairs > 0,
+    `${headerPairs} neighbouring header pair(s) measured at 1280`,
   );
 }
 rec(

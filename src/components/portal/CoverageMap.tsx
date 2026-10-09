@@ -44,7 +44,13 @@ export function CoverageMap({
   const covered = Object.values(counts).filter((n) => n > 0).length;
 
   return (
-    <figure className={className}>
+    /*
+      data-v10-map: the one place V10 permits colour, on swatches and map
+      features only, never on text and never behind content. Operator ruling of
+      2026-10-09, recorded in DESIGN_V10.md and enforced by v10-layout-audit.
+    */
+    <figure className={className} data-v10-map="">
+
       <svg
         viewBox={`0 0 ${COUNTY_MAP_VIEWBOX.width} ${COUNTY_MAP_VIEWBOX.height}`}
         role="img"
@@ -66,12 +72,12 @@ export function CoverageMap({
       </svg>
 
       <figcaption className="mt-3">
-        <p className="text-[13.5px] font-semibold text-[var(--navy)]">
+        <p className="text-[14px] font-semibold text-[var(--ink)]">
           {covered} of 254 counties have at least one active technician
         </p>
         <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1.5">
           {TIERS.map((t) => (
-            <li key={t.label} className="flex items-center gap-1.5 text-[12.5px] text-[var(--secondary)]">
+            <li key={t.label} className="flex items-center gap-1.5 text-[13px] text-[var(--secondary)]">
               <span
                 aria-hidden="true"
                 className="inline-block h-3 w-3 rounded-[2px] border border-[var(--border)]"

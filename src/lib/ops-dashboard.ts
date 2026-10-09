@@ -55,6 +55,12 @@ export type MoneyTile = {
   /** Null means the figure is not known. It never means nothing. */
   value: Cents;
   note: string;
+  /**
+   * What to print instead of a figure when value is null because the files
+   * exist and none has every figure entered. Operator ruling of 2026-10-09:
+   * "No total", matching the dashboard's own lede, never $0.00.
+   */
+  absent?: string;
 };
 
 /** href is absent when this actor cannot open the destination. */
@@ -412,10 +418,19 @@ async function adminDashboard(actor: Actor): Promise<AdminDashboard> {
     },
   ];
 
+  /*
+   * NO TOTAL IS NOT A ZERO. Operator ruling of 2026-10-09. This read
+   * `thisPeriod?.margin ?? EMPTY_PERIOD.margin`, and periodTotals returns null
+   * for a period whose files all lack a figure, so the `??` turned "no total to
+   * show" into $0.00 under a note saying there was no total. The empty period's
+   * zero applies only when no file belongs to the month at all.
+   */
+  const noTotal = thisPeriod !== null && thisPeriod.complete === 0 && thisPeriod.files > 0;
   const money: MoneyTile[] = [
     {
       label: "Margin this period",
-      value: readFailed ? null : (thisPeriod?.margin ?? EMPTY_PERIOD.margin),
+      value: readFailed ? null : thisPeriod ? thisPeriod.margin : EMPTY_PERIOD.margin,
+      absent: !readFailed && noTotal ? "No total" : undefined,
       note: readFailed
         ? "The files could not be read, so this is not a zero. Tell an administrator."
         : thisPeriod
@@ -424,7 +439,8 @@ async function adminDashboard(actor: Actor): Promise<AdminDashboard> {
     },
     {
       label: "Revenue this period",
-      value: readFailed ? null : (thisPeriod?.revenue ?? EMPTY_PERIOD.revenue),
+      value: readFailed ? null : thisPeriod ? thisPeriod.revenue : EMPTY_PERIOD.revenue,
+      absent: !readFailed && noTotal ? "No total" : undefined,
       note: readFailed
         ? "The files could not be read, so this is not a zero. Tell an administrator."
         : thisPeriod

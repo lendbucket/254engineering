@@ -27,6 +27,8 @@ This is a presentation change. It must not change what any screen does, what it 
 
 **A selected row is marked by a navy left bar only. Operator ruling, 2026-10-08.** The grey selected-row fill (`select`, #F3F4F6) this table carried until that day is removed: a tinted row inside main is the tinted box this system refuses, and the bar says selected without it.
 
+**A map may carry colour, and only a map. Operator ruling, 2026-10-09.** Colour is permitted on swatches and map features inside an element marked `data-v10-map`, never on text and never as a background behind content. A swatch is an empty element: anything holding text or children inside the map is held to every rule below. The coverage map on /portal/techs is the one marked element today. v10-layout-audit accepts colour only there, and counts what it excuses.
+
 No status colors. No red, green or amber anywhere in the UI. Urgency is shown with weight (bold) and words ("Overdue 4h"), never with color, dots, badges or tinted boxes. Brand navy and gold are the only colors.
 
 ## Type

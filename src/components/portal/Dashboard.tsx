@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import type { Attention, Breakdown, MoneyTile, Tile } from "@/lib/ops-dashboard";
-import { isKnown, money } from "@/lib/ops-money";
+import { isKnown, money, moneyOr } from "@/lib/ops-money";
 
 /**
  * A link when there is somewhere to go, and a plain element when there is not.
@@ -136,7 +136,7 @@ export function MoneyTiles({ tiles }: { tiles: MoneyTile[] }) {
               isKnown(tile.value) ? "text-[var(--ink)]" : "text-[var(--secondary)]"
             }`}
           >
-            {money(tile.value)}
+            {moneyOr(tile.value, tile.absent)}
           </p>
           <p className="mt-2 max-w-[46ch] text-[12px] leading-[1.5] text-[var(--secondary)]">{tile.note}</p>
         </div>
