@@ -17,8 +17,19 @@ they were fixed in the batch. Each line carries its ruling where one was given
 - `/order/start/[slug]`: the line under the notice reads "Read what roof certifications covers"; the subject is plural, so the verb is wrong. **Ruled: "cover", in feat/v10-admin-ops.**
 - "What you receive" on three service lines makes claims the operator may want to rule on: foundation "condition and performance"; repair specification "a document three contractors can price against identically"; carport and patio plan set "a document a permit office can review without asking for more". **Ruled: every line quotes its own signed protocol or carries the pending sentence; on fix/receive-quotes-protocol.**
 - `src/content/insights-coastal.ts:877` says a roof certification often states remaining service life. **Ruled: one sentence added after it, on fix/receive-quotes-protocol.**
-- `/services/[slug]`, "What arrives at the end": each public service page lists its own deliverable in the firm's words, not its protocol's (foundation "the engineer's opinion of foundation performance"; roof a photographic record and a loan-file PDF RC-001 does not promise). Outside the "what you receive" ruling, which covers the catalogue only; on the decisions list.
+- `/services/[slug]`, "What arrives at the end": each public service page lists its own deliverable in the firm's words, not its protocol's (foundation "the engineer's opinion of foundation performance"; roof a photographic record and a loan-file PDF RC-001 does not promise). **Ruled overnight: same rule as "what you receive"; merged in bce1a41.** The roof page's removed items are candidates for RC-001's next version (morning report).
 - The order email's pending sentence says the scope "is published here", and in an email "here" is the email. The operator's wording, kept; noted for the operator.
+
+## Admin ops (feat/v10-admin-ops)
+
+- `/portal/techs`: stays on the dated list. Its only findings are ten "tints", and they are the coverage map legend's colour swatches (`rgb(29, 42, 53)` and darker), which encode data rather than tint a box. **On the decisions list:** does V10's no-tint rule apply to a map legend? Not redrawn to dodge the check.
+- `/portal` (administrator): the "Margin by period" table's last two column headers render run together as "MARGINCOVERAGE". For the admin-accounts batch, which owns the shared table header.
+- `/portal/intake` on a phone: the whole form is one white section under the title; the check passes because the title and the form are two. V10 would likely want each group (who, what, property, price, getting paid) as its own section. No reference screen; patterned on /portal/tasks.
+- `/portal/files`, `/portal/onboarding`, `/portal/intake`: no reference screens; patterned on /portal/tasks (ruled rows), with the selected row marked by the navy bar per the ruling of 2026-10-08.
+
+## Admin dashboard speed (fix/admin-dashboard-speed, merged as b190559)
+
+- Opening `/portal` as an administrator prefetched the margin export and wrote an "Exported margin by period" audit row on every view; development held 1,196 such rows before the fix. Production is not read here: **needs a counterpart read** (query and prediction in the morning report). The rows are append-only and are not touched.
 
 ## Technician (feat/v10-technician)
 
@@ -28,3 +39,8 @@ they were fixed in the batch. Each line carries its ruling where one was given
 - `/portal/messages`: no reference, patterned on /portal/tasks (rows, square controls, sections under the ink rule).
 - `/portal`: no reference for the technician's dashboard (V10T-today is drawn for the day's jobs, not counts); patterned on V10's KPI row.
 - `/portal/messages`: a selected thread is marked by a navy left bar only. **Ruled: navy left bar only; the grey select fill comes out of DESIGN_V10.md with the ruling date, in feat/v10-admin-ops.**
+
+## Decisions list (overnight of 2026-10-08, neither path taken)
+
+1. **The coverage map legend on `/portal/techs`.** V10 refuses tinted fills; the legend's swatches are colour that carries data. Either V10's tint rule excepts a map legend (recorded in DESIGN_V10.md, and the check learns the exception by a property it can test), or the legend is redrawn without fills (for example labelled bands). Recommendation: the exception, because a choropleth with no colour is not a map. `/portal/techs` stays on the dated list until ruled.
+2. **"Read what ... cover" for singular names.** Ruled as "cover"; applied as the name's number requires: "cover" after the six plural names, "covers" after "Windstorm WPI-8" and "Design". Recorded rather than asked, because the literal ruling would have written "what design cover"; say if every line should read otherwise.
