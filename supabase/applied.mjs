@@ -2148,20 +2148,38 @@ export const APPLIED = [
       "draft carries no signature, approver or publication date, and offered lines stay roof only.",
   },
   {
-    file: "0066_a_credential_names_its_issuing_state.sql",
+    file: "0066_a_credential_names_its_issuing_state.sql", appliedBy: "apply_migration",
     fingerprint: "18826fa5b3e7d9c9979ca81b96666bb7",
     behaviour: "08f6ee02b0fd1c50dfbd61bdaed30520",
-    production: null,
+    /*
+     * APPLIED TO PRODUCTION 2026-10-09, in the sitting staged by
+     * docs/production-sitting-2026-10-09.md, by the operator's chat counterpart
+     * through apply_migration, the file as written.
+     *
+     * Read back, every prediction held: column issuing_state, text, nullable;
+     * constraint eng_credentials_issuing_state_check = CHECK ((issuing_state IS
+     * NULL) OR (issuing_state ~ '^[A-Z]{2}$')); rows with a value 0; shape
+     * 18826fa5b3e7d9c9979ca81b96666bb7 across 1171 columns, from
+     * aff578e18d558ee5af26fb2cb8c9eb88 across 1170 before the apply.
+     */
+    production: "2026-10-09",
+    development: {
+      at: "0066",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-09",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-09 by the operator's chat counterpart through the connector's " +
+        "apply_migration, the file as written, and read back identical to production: column issuing_state " +
+        "text nullable, the check constraint as written, 0 rows with a value, shape " +
+        "18826fa5b3e7d9c9979ca81b96666bb7 across 1171 columns from aff578e18d558ee5af26fb2cb8c9eb88 across 1170.",
+    },
     proves: { table: "eng_credentials", column: "issuing_state" },
     note:
       "Both figures read off scripts/fingerprint-at.mjs at 0066 on 2026-10-09: shape 1170 to 1171 " +
       "columns (issuing_state), behaviour 970 to 971 facts (eng_credentials_issuing_state_check). " +
       "Additive only: one nullable column and one check, no row rewritten.",
-    because:
-      "WRITTEN 2026-10-09 ON fix/certification-unblock AND APPLIED NOWHERE, on the operator's ruling: a " +
-      "migration this branch needs is written unapplied with its read-back query, the session stops and " +
-      "reports, and the operator's chat counterpart applies it to development and production. The branch " +
-      "does not merge until production has it.",
   },
 ];
 

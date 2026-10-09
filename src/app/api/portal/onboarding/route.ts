@@ -9,6 +9,7 @@ import {
   setTechCoverage,
 } from "@/lib/ops-onboarding";
 import { recordTraining } from "@/lib/certification-record";
+import { rejectCredential, submitCredential, verifyCredential } from "@/lib/ops-credential-submissions";
 import {
   addProtocolQuestion,
   removeProtocolQuestion,
@@ -130,6 +131,34 @@ export async function POST(request: NextRequest) {
       context,
     );
     return result.ok ? NextResponse.json({ ok: true, id: result.id }) : bad(result.error);
+  }
+
+  /*
+   * THE TECHNICIAN'S OWN SUBMISSION, AND THE OPERATOR'S DECISION ON IT. Operator
+   * ruling of 2026-10-09. The submission carries the type, the issuing state and
+   * the expiry only, and is always the signed in technician's own: there is no
+   * profile id to pass. Verify and reject take only the submission's id; every
+   * rule lives in ops-credential-submissions.ts.
+   */
+  if (action === "submit_credential") {
+    const result = await submitCredential(
+      actor,
+      {
+        kind: String(body?.kind ?? ""),
+        issuingState: body?.issuingState ? String(body.issuingState) : null,
+        expiresOn: body?.expiresOn ? String(body.expiresOn) : null,
+      },
+      context,
+    );
+    return result.ok ? NextResponse.json({ ok: true, id: result.id }) : bad(result.error);
+  }
+  if (action === "verify_credential") {
+    const result = await verifyCredential(actor, String(body?.credentialId ?? ""), context);
+    return result.ok ? NextResponse.json({ ok: true }) : bad(result.error);
+  }
+  if (action === "reject_credential") {
+    const result = await rejectCredential(actor, String(body?.credentialId ?? ""), String(body?.reason ?? ""), context);
+    return result.ok ? NextResponse.json({ ok: true }) : bad(result.error);
   }
 
   /*

@@ -245,12 +245,19 @@ export function credentialStanding(
     const base = { kind, label, current: null, days: null, reason: null, lapsedOn: null, lapsed: null };
     if (exempt.includes(kind)) return { ...base, state: "exempt", blocks: false };
 
-    const held = byKind.get(kind) ?? [];
+    /*
+     * A REJECTED SUBMISSION IS NOT ON FILE. Since 2026-10-09 a technician can
+     * submit a credential and an operator can reject it with a reason; counted
+     * here, a rejection read "on file but not verified yet", which tells an
+     * operator something is waiting that was already turned away. Whether the
+     * kind blocks dispatch is unchanged: only a verified, current copy clears it.
+     */
+    const held = (byKind.get(kind) ?? []).filter((c) => c.status !== "rejected");
     const verified = held.filter((c) => c.status === "verified");
 
     if (verified.length === 0) {
       return held.length
-        ? { ...base, state: "unverified", blocks: true, reason: `${label} is on file but not verified yet.` }
+        ? { ...base, state: "unverified", blocks: true, reason: `${label} is submitted, awaiting verification.` }
         : { ...base, state: "missing", blocks: true, reason: `No ${label.toLowerCase()} on file.` };
     }
 

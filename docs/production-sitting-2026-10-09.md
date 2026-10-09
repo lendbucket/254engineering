@@ -80,3 +80,19 @@ against.
 The session records both read backs in `supabase/applied.mjs` and builds the
 certification screens on the branch. The branch merges only after production
 has 0066.
+
+## RUN 2026-10-09 by the counterpart. What came back
+
+**0066, both databases, identical, every prediction held:** column
+`issuing_state`, text, nullable; constraint
+`eng_credentials_issuing_state_check` = `CHECK ((issuing_state IS NULL) OR
+(issuing_state ~ '^[A-Z]{2}$'))`; rows with a value 0; shape
+`18826fa5b3e7d9c9979ca81b96666bb7` across 1171, from
+`aff578e18d558ee5af26fb2cb8c9eb88` across 1170 before the apply. Recorded in
+`supabase/applied.mjs`.
+
+**The production read for ruling 4: the prediction was WRONG.** One row:
+certified, `2026-09-23T05:00:00Z`, 254-RC-001 version 1.1, protocol published.
+It is the operator's own certification, taken against the current version. The
+prediction came from a BACKLOG.md entry saying production held no row, which
+nobody had read against production; that entry is corrected in place.
