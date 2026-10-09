@@ -27,6 +27,11 @@ they were fixed in the batch. Each line carries its ruling where one was given
 - `/portal/intake` on a phone: the whole form is one white section under the title; the check passes because the title and the form are two. V10 would likely want each group (who, what, property, price, getting paid) as its own section. No reference screen; patterned on /portal/tasks.
 - `/portal/files`, `/portal/onboarding`, `/portal/intake`: no reference screens; patterned on /portal/tasks (ruled rows), with the selected row marked by the navy bar per the ruling of 2026-10-08.
 
+## Partner (feat/v10-partner)
+
+- `/partner/statements/[reference]`: still not measured. Development holds no partner statement at all, and a statement stands on partner ledger rows, which cannot be deleted; a fixture making one per board would leave permanent rows on an append-only table every run, which the teardown ruling forbids. Resolved the way ruling 5 of 2026-10-08 resolved the customer's order page: by the product audit's one-time seed. Its excusal lapses 2026-10-19 either way.
+- No reference screens for the partner portal; the sign in screens are patterned on the portal sign in, the rest on /portal/tasks.
+
 ## Admin accounts (feat/v10-admin-accounts)
 
 - `/portal/accounts` renders about 9,100 px tall at 1280 on development, 25 accounts a page, nearly all probe accounts from audit runs (the 641 probe client rows deferred by the ruling of 2026-10-03). A real firm's list will be shorter; the probe rows are the existing backlog item.
@@ -49,4 +54,5 @@ they were fixed in the batch. Each line carries its ruling where one was given
 ## Decisions list (overnight of 2026-10-08, neither path taken)
 
 1. **The coverage map legend on `/portal/techs`.** V10 refuses tinted fills; the legend's swatches are colour that carries data. Either V10's tint rule excepts a map legend (recorded in DESIGN_V10.md, and the check learns the exception by a property it can test), or the legend is redrawn without fills (for example labelled bands). Recommendation: the exception, because a choropleth with no colour is not a map. `/portal/techs` stays on the dated list until ruled.
+3. **How `/partner/statements/[reference]` and `/account/orders/[reference]` get measured.** Both need a record the probe owns, and both records stand on append-only rows. Recommendation: the product audit's seed makes one of each, once, marked as demonstration, and the layout check reads them; no per-board fixture.
 2. **"Read what ... cover" for singular names.** Ruled as "cover"; applied as the name's number requires: "cover" after the six plural names, "covers" after "Windstorm WPI-8" and "Design". Recorded rather than asked, because the literal ruling would have written "what design cover"; say if every line should read otherwise.
