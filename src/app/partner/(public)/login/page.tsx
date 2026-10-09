@@ -48,7 +48,7 @@ export default async function PartnerLoginPage({
               Referral partners
             </h1>
             <p className="mt-2 text-[14px] leading-[1.6] text-[var(--secondary)]">
-              This area is not public and is not indexed.
+              Sign in to your partner account.
             </p>
           </div>
 

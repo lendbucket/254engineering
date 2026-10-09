@@ -460,6 +460,44 @@ console.log("");
   }
 
   /*
+   * NO TOTAL IS NOT $0.00. Operator ruling of 2026-10-09. The dashboard's money
+   * tiles read `thisPeriod?.margin ?? 0`, and periodTotals returns null for a
+   * period whose files all lack a figure, so the `??` printed $0.00 under a note
+   * saying there was no total to show, against the dashboard's own lede.
+   *
+   * Judged on the TEXT a tile renders, through the same moneyOr the dashboard
+   * calls, so a tile that kept a null value and rendered it as a zero is caught
+   * as well as one that computed a zero. The subject is development's current
+   * period; without files missing a figure there is nothing to judge, and it
+   * says so rather than passing.
+   */
+  {
+    const { moneyOr } = await import("../src/lib/ops-money.ts");
+    const period = dashboard?.period ?? null;
+    const incomplete = period !== null && period.files > 0 && period.complete < period.files;
+    if (!incomplete) {
+      console.log(
+        `  COULD NOT TELL: this period has no file missing a figure (${period ? `${period.files} file(s), ${period.complete} complete` : "no files"}), so the No total rule was not exercised.`,
+      );
+    } else {
+      const shown = (dashboard?.money ?? []).map((m) => ({ label: m.label, text: moneyOr(m.value, m.absent) }));
+      const zeros = shown.filter((s) => s.text === "$0.00");
+      rec(
+        "no money figure on the administrator's dashboard prints $0.00 over files with missing figures",
+        zeros.length === 0,
+        `${period.files} file(s), ${period.complete} complete: ${shown.map((s) => `${s.label} "${s.text}"`).join(", ")}`,
+      );
+      if (period.complete === 0) {
+        rec(
+          "and where no file in the period is complete, each tile says No total",
+          shown.length > 0 && shown.every((s) => s.text === "No total"),
+          shown.map((s) => `${s.label} "${s.text}"`).join(", "),
+        );
+      }
+    }
+  }
+
+  /*
    * AND THE OTHER DIRECTION, which is the half a careless fix breaks: a figure
    * whose INPUT is missing stays absent. Checked on periodTotals directly,
    * because it is the function that draws the line and it needs no database.

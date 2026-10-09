@@ -703,6 +703,9 @@ const STAFF_V10 = [
   "src/app/partner/(app)/materials/SubmitForm.tsx",
   "src/app/partner/(public)/login/page.tsx",
   "src/app/partner/(public)/set-password/page.tsx",
+  /* The coverage map, on V10's scale since the map ruling of 2026-10-09. Its
+   * county fills stay under COLOUR_EXEMPT: a map's colours are data. */
+  "src/components/portal/CoverageMap.tsx",
   "src/app/portal/(app)/waiting/page.tsx",
   /*
    * The credentials screen, operator ruling of 2026-10-07, built to V10 from
