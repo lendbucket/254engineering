@@ -103,7 +103,7 @@ const ORIGINAL_NOT_YET_V10 = [
  * pieces alone brought into line. 2026-10-08: tasks, restyled, and 37 remain.
  */
 const STILL_NOT_YET_V10 = [
-  "/partner/login", "/partner/materials", "/partner/set-password", "/portal/techs",
+  "/portal/techs",
 ];
 const NOT_YET_V10 = STILL_NOT_YET_V10 ?? [...ORIGINAL_NOT_YET_V10];
 
@@ -337,7 +337,8 @@ const results = [];
 const navSeen = {};
 /** V10's phone-ground, and the surfaces held to it (see the check below). */
 const PHONE_GROUND = "rgb(242, 244, 247)";
-const PHONE_GROUND_SURFACES = new Set(["portal", "account"]);
+/* The partner surface joined on 2026-10-09 with the partner batch, which put its shell and sign in screens on the ground. */
+const PHONE_GROUND_SURFACES = new Set(["portal", "account", "partner"]);
 /**
  * Screens V10 specifies as a single section on a phone. Empty: nothing has been
  * named. An entry is a pattern and a reason, and the run prints the count, so

@@ -62,11 +62,11 @@ export function SubmitForm() {
   }
 
   const field =
-    "mt-1.5 min-h-[var(--tap-target)] w-full rounded-[var(--radius-control)] border border-[var(--border-strong)] bg-white px-3 text-[16px] text-[var(--ink)] outline-none focus:border-[var(--navy)]";
+    "mt-1.5 min-h-[var(--tap-target)] w-full rounded-[2px] border border-[var(--border-strong)] bg-white px-3 text-[16px] text-[var(--ink)] outline-none focus:border-[var(--navy)]";
 
   return (
     <form onSubmit={onSubmit} noValidate>
-      <label htmlFor="kind" className="block text-[13.5px] font-semibold text-[var(--ink)]">
+      <label htmlFor="kind" className="block text-[14px] font-semibold text-[var(--ink)]">
         What is it
       </label>
       <select
@@ -81,7 +81,7 @@ export function SubmitForm() {
         <option value="other">Something else</option>
       </select>
 
-      <label htmlFor="title" className="mt-4 block text-[13.5px] font-semibold text-[var(--ink)]">
+      <label htmlFor="title" className="mt-4 block text-[14px] font-semibold text-[var(--ink)]">
         Title
       </label>
       <input
@@ -92,7 +92,7 @@ export function SubmitForm() {
         className={field}
       />
 
-      <label htmlFor="body" className="mt-4 block text-[13.5px] font-semibold text-[var(--ink)]">
+      <label htmlFor="body" className="mt-4 block text-[14px] font-semibold text-[var(--ink)]">
         The wording
       </label>
       <textarea
@@ -103,7 +103,7 @@ export function SubmitForm() {
         className={`${field} min-h-[120px] py-2 leading-[1.6]`}
       />
 
-      <label htmlFor="link" className="mt-4 block text-[13.5px] font-semibold text-[var(--ink)]">
+      <label htmlFor="link" className="mt-4 block text-[14px] font-semibold text-[var(--ink)]">
         Or a link to where it is
       </label>
       <input
@@ -119,14 +119,14 @@ export function SubmitForm() {
       {error ? (
         <p
           role="alert"
-          className="mt-4 rounded-[var(--radius-control)] border border-[var(--warn-border)] bg-[var(--warn-bg)] px-3 py-2.5 text-[13.5px] leading-[1.5] text-[var(--red)]"
+          className="mt-4 border-l-2 border-[var(--ink)] py-1 pl-3 font-semibold text-[14px] leading-[1.5] text-[var(--ink)]"
         >
           {error}
         </p>
       ) : null}
 
       {advice ? (
-        <p className="mt-4 rounded-[var(--radius-control)] border border-[var(--warn-border)] bg-[var(--gold-wash)] px-3 py-2.5 text-[13.5px] leading-[1.55] text-[var(--warn-ink)]">
+        <p className="mt-4 border-l-2 border-[var(--ink)] py-1 pl-3 text-[14px] leading-[1.55] text-[var(--ink)]">
           Sent. {advice}
         </p>
       ) : null}
@@ -134,7 +134,7 @@ export function SubmitForm() {
       <button
         type="submit"
         disabled={busy}
-        className="mt-6 min-h-[var(--tap-target)] w-full rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[15px] font-bold text-white active:bg-[var(--navy-hover)] disabled:cursor-not-allowed disabled:opacity-45 sm:w-auto"
+        className="mt-6 min-h-[var(--tap-target)] w-full rounded-[2px] bg-[var(--navy)] px-4 text-[15px] font-bold text-white active:bg-[var(--navy-hover)] disabled:cursor-not-allowed disabled:opacity-45 sm:w-auto"
       >
         {busy ? "Sending" : "Send for approval"}
       </button>

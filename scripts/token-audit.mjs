@@ -697,6 +697,12 @@ const STAFF_V10 = [
   "src/app/portal/(app)/suppressions/SuppressionsClient.tsx",
   "src/app/portal/(app)/deletion-requests/page.tsx",
   "src/app/portal/(app)/deletion-requests/DeletionRequestsClient.tsx",
+  /* The partner batch of 2026-10-09: materials and the two sign in screens. */
+  "src/app/partner/(app)/materials/page.tsx",
+  "src/app/partner/(app)/materials/CopyBlock.tsx",
+  "src/app/partner/(app)/materials/SubmitForm.tsx",
+  "src/app/partner/(public)/login/page.tsx",
+  "src/app/partner/(public)/set-password/page.tsx",
   "src/app/portal/(app)/waiting/page.tsx",
   /*
    * The credentials screen, operator ruling of 2026-10-07, built to V10 from
