@@ -2147,6 +2147,22 @@ export const APPLIED = [
       "on feat/protocols-v1-1, which does not merge until production has it. It opens no line: a " +
       "draft carries no signature, approver or publication date, and offered lines stay roof only.",
   },
+  {
+    file: "0066_a_credential_names_its_issuing_state.sql",
+    fingerprint: "18826fa5b3e7d9c9979ca81b96666bb7",
+    behaviour: "08f6ee02b0fd1c50dfbd61bdaed30520",
+    production: null,
+    proves: { table: "eng_credentials", column: "issuing_state" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0066 on 2026-10-09: shape 1170 to 1171 " +
+      "columns (issuing_state), behaviour 970 to 971 facts (eng_credentials_issuing_state_check). " +
+      "Additive only: one nullable column and one check, no row rewritten.",
+    because:
+      "WRITTEN 2026-10-09 ON fix/certification-unblock AND APPLIED NOWHERE, on the operator's ruling: a " +
+      "migration this branch needs is written unapplied with its read-back query, the session stops and " +
+      "reports, and the operator's chat counterpart applies it to development and production. The branch " +
+      "does not merge until production has it.",
+  },
 ];
 
 /*

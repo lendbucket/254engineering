@@ -43,6 +43,16 @@ active, login 2026-09-02 16:45:18 UTC, profile 17:57:25 UTC, and no
 `scripts/seed-admin.mjs`, not the People screen, so it carries no such row, true
 or false.
 
+## THE SITTING OF 2026-10-09: 0066, A CREDENTIAL'S ISSUING STATE, NOT YET RUN
+
+`docs/production-sitting-2026-10-09.md`. One additive migration on
+`fix/certification-unblock`, written unapplied: `eng_credentials.issuing_state`
+and its check, for the operator's ruling that a technician submits each
+credential with its type, issuing state and expiry. The counterpart applies it
+to development and production and reads it back; the branch's screens are built
+after, and it merges only once production has it. The same document carries one
+production read for ruling 4: what the roof certifications were taken against.
+
 ## THE SITTING OF 2026-10-08: 0065, THE SEVEN PROTOCOLS AS DRAFTS, RUN
 
 `docs/production-sitting-2026-10-08.md`. One migration, `feat/protocols-v1-1`:
