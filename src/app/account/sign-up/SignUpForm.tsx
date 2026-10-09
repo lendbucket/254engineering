@@ -54,7 +54,7 @@ import { useState } from "react";
  * platform's WCAG 2.5.8 floor and mobile-audit measures it.
  */
 const FIELD =
-  "min-h-[var(--tap-target)] w-full rounded-[3px] border border-[var(--color-limestone-edge)] bg-white px-3 text-[16px] text-[var(--color-ink)]";
+  "min-h-[var(--tap-target)] w-full rounded-[2px] border border-[var(--color-limestone-edge)] bg-white px-3 text-[16px] text-[var(--color-ink)]";
 
 export function SignUpForm() {
   const [name, setName] = useState("");
@@ -235,7 +235,7 @@ export function SignUpForm() {
       <button
         type="submit"
         disabled={busy}
-        className="mt-1 flex min-h-[var(--tap-target)] w-full items-center justify-center rounded-[3px] bg-[var(--color-slate)] px-4 text-[15px] font-semibold text-white disabled:opacity-60"
+        className="mt-1 flex min-h-[var(--tap-target)] w-full items-center justify-center rounded-[2px] bg-[var(--color-slate)] px-4 text-[15px] font-semibold text-white disabled:opacity-60"
       >
         {busy ? "Sending" : "Create the account"}
       </button>

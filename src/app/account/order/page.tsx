@@ -81,7 +81,7 @@ export default async function BulkOrderPage({
         </h1>
 
       {orderable.length === 0 ? (
-        <div className="mt-8 rounded-[4px] border border-[var(--border)] border-t-brass bg-white px-6 py-7">
+        <div className="mt-8 border-t-2 border-[var(--color-ink)] pt-6">
           <h2 className="font-display text-[1.25rem] font-semibold text-[var(--navy)]">
             {notYetOpen ? "The firm is not taking orders yet" : "Nothing can be ordered in bulk yet"}
           </h2>

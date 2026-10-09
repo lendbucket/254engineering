@@ -188,7 +188,7 @@ export default async function AccountLoginPage({
           </section>
 
           {/* The rule between the columns. A 1px line, not a border on a box. */}
-          <div aria-hidden className="hidden bg-[var(--color-limestone-line)] lg:block" />
+          <div aria-hidden className="hidden border-l border-[var(--color-limestone-line)] lg:block" />
 
           {/* -------------------------------------------- how ordering works */}
           <section>

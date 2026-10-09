@@ -1,3 +1,4 @@
+// @runtime react-server
 /**
  * DESIGN V10'S LAYOUT RULES, MEASURED ON THE RENDERED PAGE.
  *
@@ -102,20 +103,26 @@ const ORIGINAL_NOT_YET_V10 = [
  * pieces alone brought into line. 2026-10-08: tasks, restyled, and 37 remain.
  */
 const STILL_NOT_YET_V10 = [
-  "/account", "/account/forgot-password", "/account/login", "/account/order", "/account/set-password",
-  "/account/settings", "/account/sign-up", "/order/254-B2026-000000", "/order/start/[slug]",
-  "/order/start/roof-inspections", "/partner", "/partner/login", "/partner/materials", "/partner/set-password",
-  "/portal", "/portal/accounts", "/portal/accounts/[id]/pricing", "/portal/billing", "/portal/charge-log",
-  "/portal/clients", "/portal/deletion-requests", "/portal/documents/binder/[fileId]", "/portal/files",
-  "/portal/intake", "/portal/jobs/[id]", "/portal/launch", "/portal/messages", "/portal/onboarding",
-  "/portal/partners", "/portal/partners/[id]", "/portal/people", "/portal/queue", "/portal/reports",
-  "/portal/roles", "/portal/status", "/portal/suppressions", "/portal/techs",
+  "/order/254-B2026-000000", "/order/start/[slug]", "/order/start/roof-inspections", "/partner",
+  "/partner/login", "/partner/materials", "/partner/set-password", "/portal", "/portal/accounts",
+  "/portal/accounts/[id]/pricing", "/portal/billing", "/portal/charge-log", "/portal/clients",
+  "/portal/deletion-requests", "/portal/documents/binder/[fileId]", "/portal/files", "/portal/intake",
+  "/portal/jobs/[id]", "/portal/launch", "/portal/messages", "/portal/onboarding", "/portal/partners",
+  "/portal/partners/[id]", "/portal/people", "/portal/queue", "/portal/reports", "/portal/roles",
+  "/portal/status", "/portal/suppressions", "/portal/techs",
 ];
 const NOT_YET_V10 = STILL_NOT_YET_V10 ?? [...ORIGINAL_NOT_YET_V10];
 
 /* Dynamic routes whose screen needs a record OWNED by the signed-in probe, which no probe helper makes yet. */
 const UNRESOLVED_UNTIL = {
   "/account/orders/[reference]": "a customer probe's own order",
+  /*
+   * Its resolver is written (resolve() below) and measured it on 2026-10-08:
+   * the shared site header's shadow is its one remaining finding. That shadow
+   * waits on an operator decision, and this route is not on the frozen
+   * original, so it cannot be listed. It stays here, as it stood in main, and
+   * comes out in the commit that settles the header.
+   */
   "/order/[reference]": "an order and its signed status link",
   "/partner/statements/[reference]": "a partner probe's own statement",
 };
@@ -190,6 +197,26 @@ async function resolve(pattern) {
   if (pattern === "/portal/techs/[id]") return sessions.field_tech?.id ? pattern.replace("[id]", sessions.field_tech.id) : null;
   if (pattern === "/portal/partners/[id]") return sessions.partner?.partnerId ? pattern.replace("[id]", sessions.partner.partnerId) : null;
   if (pattern === "/order/start/[slug]") return "/order/start/roof-inspections";
+  /*
+   * The order status page, resolved 2026-10-08. It opens only with a signed
+   * link, so the resolver issues one through issueCustomerLink, the product's
+   * own issuer, for the newest DEMONSTRATION order, expiring in one day. Each
+   * run leaves that one expired access row on development (the table is kept
+   * pending counsel); recorded in docs/audit-2026-10/GAPS.md.
+   */
+  if (pattern === "/order/[reference]") {
+    const { data } = await db
+      .from("eng_service_orders")
+      .select("id, reference")
+      .eq("is_demo", true)
+      .order("created_at", { ascending: false })
+      .limit(1);
+    const order = data?.[0];
+    if (!order) return null;
+    const { issueCustomerLink } = await import("../src/lib/ops-intake.ts");
+    const link = await issueCustomerLink({ orderId: order.id }, 1);
+    return link ? `/order/${order.reference}?token=${encodeURIComponent(link.token)}` : null;
+  }
   if (pattern === "/portal/accounts/[id]/pricing") {
     const id = sessions.customer?.accountId ?? null;
     return id ? `/portal/accounts/${id}/pricing` : null;

@@ -237,10 +237,18 @@ export default async function OrderStatusPage({
             <ol className="mt-5">
               {view.timeline.map((entry, i) => (
                 <li key={entry.at} className="flex gap-4">
-                  <div className="flex flex-col items-center" aria-hidden>
-                    <span className="mt-1.5 size-[9px] shrink-0 rounded-full bg-[var(--color-slate)]" />
+                  {/*
+                    V10's timeline, 2026-10-08: a 14px navy circle for a step
+                    that happened and a 2px connector. Drawn as a mark and a
+                    rule, not as filled boxes, so the page has no tinted ground.
+                    Every entry here has happened, so every circle is filled.
+                  */}
+                  <div className="flex w-[14px] shrink-0 flex-col items-center" aria-hidden>
+                    <svg className="mt-1 shrink-0" width="14" height="14" viewBox="0 0 14 14">
+                      <circle cx="7" cy="7" r="7" fill="var(--color-slate)" />
+                    </svg>
                     {i < view.timeline.length - 1 ? (
-                      <span className="w-px flex-1 bg-[var(--color-limestone-line)]" />
+                      <span className="flex-1 border-l-2 border-[var(--color-slate)]" />
                     ) : null}
                   </div>
                   <div className={i < view.timeline.length - 1 ? "pb-6" : ""}>

@@ -47,7 +47,7 @@ export function AccountSetPasswordForm({ token, minLength }: { token: string; mi
         onChange={(e) => setPassword(e.target.value)}
         required
         /* 16px is the form control step, and it is the iOS zoom guard. */
-        className="mt-2 min-h-[var(--tap-target)] w-full rounded-[3px] border border-[var(--color-limestone-edge)] bg-white px-3 text-[16px] text-[var(--color-ink)]"
+        className="mt-2 min-h-[var(--tap-target)] w-full rounded-[2px] border border-[var(--color-limestone-edge)] bg-white px-3 text-[16px] text-[var(--color-ink)]"
       />
       <p className="mt-2 text-[13px] text-[var(--color-ink-quiet)]">
         At least {minLength} characters.
@@ -67,7 +67,7 @@ export function AccountSetPasswordForm({ token, minLength }: { token: string; mi
       <button
         type="submit"
         disabled={busy || password.length < minLength}
-        className="mt-6 inline-flex min-h-[var(--tap-target)] w-full items-center justify-center rounded-[3px] bg-[var(--color-slate)] px-5 text-[15px] font-semibold text-white disabled:opacity-50"
+        className="mt-6 inline-flex min-h-[var(--tap-target)] w-full items-center justify-center rounded-[2px] bg-[var(--color-slate)] px-5 text-[15px] font-semibold text-white disabled:opacity-50"
       >
         {busy ? "Saving" : "Set the password"}
       </button>

@@ -94,7 +94,7 @@ export default async function AccountSetPasswordPage({
             */}
             <Link
               href="/account/login"
-              className="mt-8 inline-flex min-h-[var(--tap-target)] items-center rounded-[3px] border border-[var(--color-limestone-edge)] px-6 text-[15px] font-semibold text-[var(--color-ink)]"
+              className="mt-8 inline-flex min-h-[var(--tap-target)] items-center rounded-[2px] border border-[var(--color-limestone-edge)] px-6 text-[15px] font-semibold text-[var(--color-ink)]"
             >
               Go to sign in
             </Link>

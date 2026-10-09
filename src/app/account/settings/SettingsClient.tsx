@@ -89,7 +89,7 @@ export function SettingsClient({
     }
   }
 
-  const field = "mt-1.5 w-full rounded-[3px] border border-[var(--border)] px-3 py-2.5 text-[15px] text-[var(--navy)] disabled:bg-[var(--canvas)] disabled:text-[var(--secondary)]";
+  const field = "mt-1.5 w-full rounded-[2px] border border-[var(--border-strong)] px-3 py-2.5 text-[15px] text-[var(--ink)] disabled:text-[var(--secondary)]";
 
   return (
     <div>
@@ -111,10 +111,10 @@ export function SettingsClient({
         </p>
       ) : null}
 
-      <section className="rounded-[4px] border border-[var(--border)] bg-white p-5">
+      <section>
         <h2 className="border-b-2 border-[var(--color-ink)] pb-3 text-[17px] font-semibold text-[var(--color-ink)]">Billing</h2>
 
-        <label htmlFor="billingContact" className="mt-4 block text-[14px] font-bold text-[var(--navy)]">
+        <label htmlFor="billingContact" className="mt-4 block text-[13px] font-semibold text-[var(--ink)]">
           Billing contact
         </label>
         <input
@@ -125,7 +125,7 @@ export function SettingsClient({
           className={field}
         />
 
-        <label htmlFor="billingEmail" className="mt-4 block text-[14px] font-bold text-[var(--navy)]">
+        <label htmlFor="billingEmail" className="mt-4 block text-[13px] font-semibold text-[var(--ink)]">
           Where statements go
         </label>
         <input
@@ -138,10 +138,10 @@ export function SettingsClient({
         />
       </section>
 
-      <section className="mt-4 rounded-[4px] border border-[var(--border)] bg-white p-5">
+      <section className="mt-10">
         <h2 className="border-b-2 border-[var(--color-ink)] pb-3 text-[17px] font-semibold text-[var(--color-ink)]">On every order</h2>
 
-        <label htmlFor="accessInstructions" className="mt-4 block text-[14px] font-bold text-[var(--navy)]">
+        <label htmlFor="accessInstructions" className="mt-4 block text-[13px] font-semibold text-[var(--ink)]">
           Standing access instructions
         </label>
         <p className="mt-1 text-[13px] leading-[1.55] text-[var(--secondary)]">
@@ -157,7 +157,7 @@ export function SettingsClient({
           className={field}
         />
 
-        <label htmlFor="preferredUrgency" className="mt-4 block text-[14px] font-bold text-[var(--navy)]">
+        <label htmlFor="preferredUrgency" className="mt-4 block text-[13px] font-semibold text-[var(--ink)]">
           Preferred turnaround
         </label>
         <p className="mt-1 text-[13px] leading-[1.55] text-[var(--secondary)]">
@@ -177,7 +177,7 @@ export function SettingsClient({
           <option value="emergency">Urgent</option>
         </select>
 
-        <label htmlFor="defaultCounties" className="mt-4 block text-[14px] font-bold text-[var(--navy)]">
+        <label htmlFor="defaultCounties" className="mt-4 block text-[13px] font-semibold text-[var(--ink)]">
           Counties you usually work in
         </label>
         <p className="mt-1 text-[13px] leading-[1.55] text-[var(--secondary)]">
@@ -208,14 +208,14 @@ export function SettingsClient({
                 "defaults",
               )
             }
-            className="mt-5 inline-flex min-h-[44px] items-center rounded-[3px] bg-slate px-5 text-[14px] font-bold text-white disabled:opacity-45"
+            className="mt-5 inline-flex min-h-[44px] items-center rounded-[2px] bg-slate px-5 text-[14px] font-bold text-white disabled:opacity-45"
           >
             {busy === "defaults" ? "Saving" : "Save"}
           </button>
         ) : null}
       </section>
 
-      <section className="mt-4 rounded-[4px] border border-[var(--border)] bg-white p-5">
+      <section className="mt-10">
         <h2 className="border-b-2 border-[var(--color-ink)] pb-3 text-[17px] font-semibold text-[var(--color-ink)]">Saved properties</h2>
         <p className="mt-1 text-[13px] leading-[1.55] text-[var(--secondary)]">
           Chosen when you order instead of being retyped. Removing one takes it out of the list and
@@ -226,7 +226,7 @@ export function SettingsClient({
           <ul className="mt-4 divide-y divide-limestone-line border-t border-[var(--border)]">
             {properties.map((p) => (
               <li key={p.id} className="flex flex-wrap items-baseline gap-x-3 py-2.5">
-                <span className="text-[14px] font-semibold text-[var(--navy)]">
+                <span className="text-[14px] font-semibold text-[var(--ink)]">
                   {p.label || p.propertyAddress}
                 </span>
                 <span className="text-[14px] text-[var(--secondary)]">
@@ -238,7 +238,7 @@ export function SettingsClient({
                     type="button"
                     disabled={busy !== null}
                     onClick={() => post({ action: "archive-property", propertyId: p.id }, p.id)}
-                    className="ml-auto min-h-[44px] text-[14px] font-semibold text-[var(--navy)] underline underline-offset-2"
+                    className="ml-auto min-h-[44px] text-[14px] font-semibold text-[var(--link)] underline underline-offset-2 active:opacity-70"
                   >
                     Remove
                   </button>
@@ -252,35 +252,35 @@ export function SettingsClient({
 
         {isOwner ? (
           <div className="mt-5 border-t border-[var(--border)] pt-4">
-            <p className="text-[14px] font-bold text-[var(--navy)]">Add one</p>
+            <p className="text-[15px] font-semibold text-[var(--ink)]">Add one</p>
             <div className="mt-2 grid gap-2 sm:grid-cols-2">
               <input
                 aria-label="Label"
                 placeholder="Label, optional"
                 value={prop.label}
                 onChange={(e) => setProp({ ...prop, label: e.target.value })}
-                className="rounded-[3px] border border-[var(--border)] px-3 py-2.5 text-[14px] text-[var(--navy)]"
+                className="rounded-[2px] border border-[var(--border-strong)] px-3 py-2.5 text-[14px] text-[var(--ink)]"
               />
               <input
                 aria-label="Address"
                 placeholder="Address"
                 value={prop.propertyAddress}
                 onChange={(e) => setProp({ ...prop, propertyAddress: e.target.value })}
-                className="rounded-[3px] border border-[var(--border)] px-3 py-2.5 text-[14px] text-[var(--navy)]"
+                className="rounded-[2px] border border-[var(--border-strong)] px-3 py-2.5 text-[14px] text-[var(--ink)]"
               />
               <input
                 aria-label="City"
                 placeholder="City"
                 value={prop.city}
                 onChange={(e) => setProp({ ...prop, city: e.target.value })}
-                className="rounded-[3px] border border-[var(--border)] px-3 py-2.5 text-[14px] text-[var(--navy)]"
+                className="rounded-[2px] border border-[var(--border-strong)] px-3 py-2.5 text-[14px] text-[var(--ink)]"
               />
               <input
                 aria-label="County"
                 placeholder="County"
                 value={prop.county}
                 onChange={(e) => setProp({ ...prop, county: e.target.value })}
-                className="rounded-[3px] border border-[var(--border)] px-3 py-2.5 text-[14px] text-[var(--navy)]"
+                className="rounded-[2px] border border-[var(--border-strong)] px-3 py-2.5 text-[14px] text-[var(--ink)]"
               />
             </div>
             <button
@@ -290,7 +290,7 @@ export function SettingsClient({
                 const ok = await post({ action: "add-property", ...prop }, "add");
                 if (ok) setProp({ label: "", propertyAddress: "", city: "", county: "", postalCode: "" });
               }}
-              className="mt-3 inline-flex min-h-[44px] items-center rounded-[3px] border border-[var(--border)] bg-white px-4 text-[14px] font-semibold text-[var(--navy)] disabled:opacity-45"
+              className="mt-3 inline-flex min-h-[44px] items-center rounded-[2px] border border-[var(--border-strong)] bg-white px-4 text-[14px] font-semibold text-[var(--ink)] disabled:opacity-45"
             >
               {busy === "add" ? "Adding" : "Add property"}
             </button>
@@ -298,7 +298,7 @@ export function SettingsClient({
         ) : null}
       </section>
 
-      <section className="mt-4 rounded-[4px] border border-[var(--border)] bg-white p-5">
+      <section className="mt-10">
         <h2 className="border-b-2 border-[var(--color-ink)] pb-3 text-[17px] font-semibold text-[var(--color-ink)]">API keys</h2>
         <p className="mt-1 text-[13px] leading-[1.55] text-[var(--secondary)]">
           For placing orders from your own systems. A key can order only for this organization,
@@ -309,8 +309,8 @@ export function SettingsClient({
           <ul className="mt-4 divide-y divide-limestone-line border-t border-[var(--border)]">
             {apiKeys.map((k) => (
               <li key={k.id} className="flex flex-wrap items-baseline gap-x-3 py-2.5">
-                <span className="text-[13px] text-[var(--navy)]">{k.prefix}…</span>
-                <span className="text-[14px] font-semibold text-[var(--navy)]">{k.label}</span>
+                <span className="text-[13px] text-[var(--secondary)]">{k.prefix}…</span>
+                <span className="text-[14px] font-semibold text-[var(--ink)]">{k.label}</span>
                 <span className="text-[13px] text-[var(--secondary)]">
                   {k.revokedAt
                     ? "revoked"
@@ -323,7 +323,7 @@ export function SettingsClient({
                     type="button"
                     disabled={busy !== null}
                     onClick={() => post({ action: "revoke-key", keyId: k.id }, k.id)}
-                    className="ml-auto min-h-[44px] text-[14px] font-semibold text-[var(--navy)] underline underline-offset-2"
+                    className="ml-auto min-h-[44px] text-[14px] font-semibold text-[var(--link)] underline underline-offset-2 active:opacity-70"
                   >
                     Revoke
                   </button>
@@ -356,7 +356,7 @@ export function SettingsClient({
               This is the only time it can be shown. Only a hash of it is stored, so the firm cannot
               show it to you again and cannot recover it if you lose it.
             </p>
-            <code className="mt-2.5 block overflow-x-auto border border-[var(--color-limestone-edge)] px-2.5 py-2 text-[13px] break-all text-[var(--color-ink)]">
+            <code className="mt-2.5 block overflow-x-auto border-y border-[var(--color-limestone-edge)] py-2 text-[13px] break-all text-[var(--color-ink)]">
               {freshKey}
             </code>
             <button
@@ -371,7 +371,7 @@ export function SettingsClient({
 
         {isOwner ? (
           <div className="mt-5 border-t border-[var(--border)] pt-4">
-            <label htmlFor="keyLabel" className="block text-[14px] font-bold text-[var(--navy)]">
+            <label htmlFor="keyLabel" className="block text-[13px] font-semibold text-[var(--ink)]">
               Create a key
             </label>
             <input
@@ -408,7 +408,7 @@ export function SettingsClient({
                   setBusy(null);
                 }
               }}
-              className="mt-3 inline-flex min-h-[44px] items-center rounded-[3px] border border-[var(--border)] bg-white px-4 text-[14px] font-semibold text-[var(--navy)] disabled:opacity-45"
+              className="mt-3 inline-flex min-h-[44px] items-center rounded-[2px] border border-[var(--border-strong)] bg-white px-4 text-[14px] font-semibold text-[var(--ink)] disabled:opacity-45"
             >
               {busy === "key" ? "Creating" : "Create key"}
             </button>
