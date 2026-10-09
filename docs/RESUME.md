@@ -8,8 +8,8 @@ position, not the reasoning (that is in GAPS.md and the commit messages).
 | # | Item | Branch | State |
 | --- | --- | --- | --- |
 | 1 | What a customer receives quotes a signed protocol | `fix/receive-quotes-protocol` at 50e61ca | **MERGED as bce1a41**, board 60 of 60. Carried fix/doors-probe-teardown (92786d7), whose stranded probe order failed the first board 58 of 60 |
-| 1a | The machine lock skips itself when .env.local carries VERCEL | `fix/machine-lock-env` at 1771eb1 (worktree 254engineering-tdi) | committed, NOT pushed, proof not yet run (it runs from the main checkout) |
-| 2 | Admin dashboard speed | `fix/admin-dashboard-speed` | not started; first measurement suspect (see below) |
+| 1a | The machine lock skips itself when .env.local carries VERCEL | `fix/machine-lock-env` at 1771eb1 | **MERGED** inside b190559; proof's fourth case injection-verified |
+| 2 | Admin dashboard speed | `fix/admin-dashboard-speed` at abe2486 | **MERGED as b190559**, board 61 of 61. Cause: a prefetched export link hung and wrote an export audit row per view. Median 807 ms after (board: 673 ms) |
 | 3 | V10 admin-ops | `feat/v10-admin-ops` at ce1224f (worktree 254engineering-v10) | carried rulings and the nine screens edited, token-audit 113 of 113; committed as WIP; not measured rendered |
 | 4 | V10 admin-accounts | | not started |
 | 5 | V10 partner | | not started |
@@ -17,7 +17,7 @@ position, not the reasoning (that is in GAPS.md and the commit messages).
 
 ## Main
 
-`origin/main` at bce1a41 (fix/receive-quotes-protocol merged). Dated not-yet-V10 list: **19**.
+`origin/main` at b190559 (fix/admin-dashboard-speed merged). Dated not-yet-V10 list: **19**. The board has **61** audits since dashboard-speed-audit joined.
 
 ## Worktrees
 
