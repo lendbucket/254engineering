@@ -337,8 +337,17 @@ const DECLARED: CatalogDeclaration[] = [
     ],
     turnaround:
       "The visit is scheduled once a technician accepts. The engineer's review begins when the evidence is complete.",
+    /*
+     * QUOTED FROM 254-RC-001 SECTION 11, operator ruling of 2026-10-08. Until
+     * that day this line promised a forecast of how long the roof would last,
+     * on the order status page and in the order email, which the signed
+     * protocol excludes in so many words. The old text is in the commit that
+     * replaced it. The protocol is quoted, not paraphrased, and
+     * protocol-registry-audit now reads this file. This comment deliberately
+     * does not spell the excluded phrases, so the check reads only copy.
+     */
     receives: [
-      "A sealed engineering opinion on the condition of the roof and the service life it can reasonably be expected to have left",
+      'A sealed engineering letter. From 254-RC-001, section 11: "The letter states observed condition only. It does not estimate remaining service life, forecast future performance, or represent that the roof will not leak."',
       "The photographic record the opinion rests on, keyed to where each photograph was taken",
     ],
   },

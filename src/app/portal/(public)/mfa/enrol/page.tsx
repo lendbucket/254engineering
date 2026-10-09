@@ -83,7 +83,7 @@ export default async function MfaEnrolPage() {
   const declineTo = full ? homeFor(role) : null;
 
   return (
-    <main className="portal-surface grid min-h-dvh place-items-center px-4 py-6 sm:py-10">
+    <main className="portal-surface v10-phone-ground-centred grid min-h-dvh place-items-center px-4 py-6 sm:py-10">
       <div className="w-full max-w-[460px]">
         <div className="mb-4 flex justify-center sm:mb-6">
           <Wordmark height={44} priority />

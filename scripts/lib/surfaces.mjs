@@ -97,8 +97,8 @@ export const SURFACES = [
      * itself a screen a person sees.
      */
     routes: ["/order/start/roof-inspections", "/order/254-B2026-000000"],
-    dirs: ["src/app/(site)/order"],
-    sourceDirs: ["src/app/(site)/order", "src/components/order"],
+    dirs: ["src/app/(order)/order"],
+    sourceDirs: ["src/app/(order)", "src/components/order"],
     session: "none",
     probe: null,
     shell: false,
@@ -191,6 +191,7 @@ export const SURFACES = [
 export const NOT_A_SURFACE = {
   api: "route handlers, covered by each surface's apiDirs and by security-audit",
   "(site)": "the public website's own group, declared as the site surface",
+  "(order)": "the order flow's own group since 2026-10-08, declared as the order surface",
   onboarding: "a token addressed link, measured by onboarding-audit end to end",
   apply: "the careers application flow, measured by the careers module in forms-audit",
 };

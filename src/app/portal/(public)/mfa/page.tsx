@@ -73,7 +73,7 @@ export default async function MfaChallengePage() {
   const brokenGlass = breakGlassMalformed();
 
   return (
-    <main className="portal-surface grid min-h-dvh place-items-center px-4 py-6 sm:py-10">
+    <main className="portal-surface v10-phone-ground-centred grid min-h-dvh place-items-center px-4 py-6 sm:py-10">
       <div className="w-full max-w-[420px]">
         <div className="mb-4 flex justify-center sm:mb-6">
           <Wordmark height={44} priority />

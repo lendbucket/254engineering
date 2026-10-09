@@ -28,7 +28,7 @@ export default async function SetPasswordPage({
   const result = token ? await inspectToken(token) : ({ ok: false, reason: "invalid" } as const);
 
   return (
-    <main className="portal-surface grid min-h-dvh place-items-center px-4 py-6 sm:py-10">
+    <main className="portal-surface v10-phone-ground-centred grid min-h-dvh place-items-center px-4 py-6 sm:py-10">
       <div className="w-full max-w-[420px]">
         {/*
           THE LIGHT LOCKUP, BECAUSE THIS SURFACE IS LIGHT.

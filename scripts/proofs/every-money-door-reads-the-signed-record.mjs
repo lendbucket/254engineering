@@ -30,7 +30,7 @@ const check = (name, ok, note = "") => {
 
 /* The doors, declared: the file and how many calls it makes. */
 const DOORS = {
-  "src/app/(site)/order/start/[slug]/page.tsx": 1,
+  "src/app/(order)/order/start/[slug]/page.tsx": 1,
   "src/app/account/order/page.tsx": 1,
   "src/lib/ops-bulk.ts": 1,
   "src/lib/ops-intake.ts": 2,

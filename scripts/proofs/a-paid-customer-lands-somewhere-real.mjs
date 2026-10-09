@@ -119,7 +119,7 @@ for (const f of found) {
  * existed the whole time and told a paying customer his link was no good. This
  * asserts the branch that answers him, and asserts it is NOT the refusal.
  */
-const orderPage = readFileSync(join(REPO, "src/app/(site)/order/[reference]/page.tsx"), "utf8");
+const orderPage = readFileSync(join(REPO, "src/app/(order)/order/[reference]/page.tsx"), "utf8");
 check(
   "the order page has a branch for a paid customer with no token",
   /if\s*\(!view\s*&&\s*paid\)/.test(orderPage),

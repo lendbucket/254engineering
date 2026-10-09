@@ -51,7 +51,7 @@ export default async function ForgotPasswordPage() {
      * cut from main; this brings it onto the same surface as sign in and sign
      * up, so a person moving between the three does not cross a visual seam.
      */
-    <div className="flex min-h-dvh flex-col bg-white">
+    <div className="v10-phone-ground flex min-h-dvh flex-col bg-white">
       <header className="border-b border-[var(--color-limestone-line)]">
         <div className="mx-auto flex w-full max-w-[1200px] items-center justify-between px-4 py-4 sm:px-6">
           <Link href="/" prefetch={false} aria-label="254 Engineering Services, home">

@@ -740,6 +740,19 @@ if (pdftotext.error || pdftotext.status !== 0) {
       /* Drop the leading verb to leave the thing itself. */
       const phrase = clause.split(/\s+/).slice(1).join(" ").trim();
       if (phrase.length >= 8) forbidden.push({ phrase, from: rule.key });
+      /*
+       * AND THE PHRASE WITHOUT ITS MODIFIER, 2026-10-08, where two or more
+       * words remain. The catalogue promised "the service life it can
+       * reasonably be expected to have left": no "remaining", so the exact
+       * phrase never matched it. "remaining service life" also yields "service
+       * life"; "that the roof will not leak" also yields "the roof will not
+       * leak". Still derived from the rule, never typed.
+       */
+      const words = phrase.split(/\s+/);
+      if (words.length >= 3) {
+        const shorter = words.slice(1).join(" ");
+        if (shorter.length >= 8) forbidden.push({ phrase: shorter, from: rule.key });
+      }
     }
   }
 
@@ -754,7 +767,25 @@ if (pdftotext.error || pdftotext.status !== 0) {
    * than globbed, because a glob that matched nothing would pass silently and
    * that is the failure this whole audit exists to prevent.
    */
-  const copy = readSource("src/content/services.ts").toLowerCase();
+  /*
+   * AND THE CATALOGUE, SINCE 2026-10-08. The deliverable a customer is told
+   * they RECEIVE lives in data/catalog.ts and renders on the order status page
+   * and in the order email. It promised the remaining service life this check
+   * forbids, for weeks, because this check read services.ts alone.
+   *
+   * A VERBATIM QUOTATION OF THE EXCLUSION IS NOT A PROMISE. The catalogue now
+   * quotes section 11 itself, which contains every excluded phrase in the
+   * negative. Each exclusion rule's exact sentence is removed before matching,
+   * derived from the rule rather than typed, so only the protocol's own words
+   * are excused, and a paraphrase is still caught.
+   */
+  const SUBJECTS = ["src/content/services.ts", "data/catalog.ts"];
+  const strip = (text) => {
+    let out = text.toLowerCase();
+    for (const rule of exclusions) out = out.split(rule.rule.toLowerCase()).join(" ");
+    return out;
+  };
+  const copy = SUBJECTS.map((p) => strip(readSource(p))).join("\n");
   const promised = forbidden.filter((f) => copy.includes(f.phrase.toLowerCase()));
 
   rec(
@@ -763,7 +794,7 @@ if (pdftotext.error || pdftotext.status !== 0) {
     promised.length
       ? promised.map((p) => `"${p.phrase}" (excluded by ${p.from})`).join("; ") +
           ". The signed protocol says the letter does not do this. A page that promises it is promising something the engineer will not seal."
-      : `${forbidden.length} excluded phrase(s) checked against the service copy`,
+      : `${forbidden.length} excluded phrase(s) checked against ${SUBJECTS.join(" and ")}`,
   );
 }
 

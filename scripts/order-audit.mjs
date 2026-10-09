@@ -638,7 +638,7 @@ const answerAll = (entry, pick = () => 0) =>
    * defect this repository records about a rule tested with its input handed
    * to it: the function would pass for ever while the page went on lowercasing.
    */
-  const orderPage = readSource("src/app/(site)/order/start/[slug]/page.tsx");
+  const orderPage = readSource("src/app/(order)/order/start/[slug]/page.tsx");
   rec(
     "the order page renders the heading through the deriver",
     /orderHeading\(/.test(orderPage),
