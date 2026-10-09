@@ -104,9 +104,8 @@ const ORIGINAL_NOT_YET_V10 = [
  */
 const STILL_NOT_YET_V10 = [
   "/partner/login", "/partner/materials", "/partner/set-password", "/portal/accounts", "/portal/billing",
-  "/portal/charge-log", "/portal/clients", "/portal/deletion-requests", "/portal/files", "/portal/intake",
-  "/portal/onboarding", "/portal/partners/[id]", "/portal/people", "/portal/queue", "/portal/reports",
-  "/portal/roles", "/portal/status", "/portal/suppressions", "/portal/techs",
+  "/portal/clients", "/portal/deletion-requests", "/portal/partners/[id]", "/portal/reports",
+  "/portal/suppressions", "/portal/techs",
 ];
 const NOT_YET_V10 = STILL_NOT_YET_V10 ?? [...ORIGINAL_NOT_YET_V10];
 

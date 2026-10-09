@@ -827,14 +827,12 @@ export function IntakeClient({
         title="Getting paid"
         note="Work released before payment is a decision the firm makes, not one it discovers."
       >
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col border-t border-[var(--row-rule)]">
           {options.map((o) => (
             <label
               key={o.intent}
-              className={`flex min-h-[var(--tap-target)] cursor-pointer items-start gap-3 rounded-[2px] border px-3 py-2.5 ${
-                paymentIntent === o.intent
-                  ? "border-2 border-[var(--navy)]"
-                  : "border-[var(--border)] bg-white"
+              className={`flex min-h-[var(--tap-target)] cursor-pointer items-start gap-3 border-b border-[var(--row-rule)] py-2.5 ${
+                paymentIntent === o.intent ? "border-l-[length:var(--active-bar-width)] border-l-[var(--navy)] pl-3" : ""
               } ${o.available ? "" : "opacity-60"}`}
             >
               <input

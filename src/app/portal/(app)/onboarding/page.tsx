@@ -116,11 +116,7 @@ export default async function OnboardingPage({
                     <li key={o.id}>
                       <Link
                         href={`/portal/onboarding?id=${o.id}`}
-                        className={`block rounded-[2px] border bg-white p-4 transition-colors hover:border-slate ${
-                          selected?.onboarding.id === o.id
-                            ? "border-slate"
-                            : "border-[var(--border)]"
-                        }`}
+                        className={`block ${selected?.onboarding.id === o.id ? "border-l-[length:var(--active-bar-width)] border-l-[var(--navy)] pl-3" : ""}`}
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">

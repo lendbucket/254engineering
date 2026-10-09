@@ -85,11 +85,11 @@ export function RolesClient({
         <h2 className="mt-1 font-display text-[1.05rem] font-semibold leading-[1.3] text-[var(--ink)]">
           What no role can be given
         </h2>
-        <ul className="mt-3 flex flex-wrap gap-2">
+        <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1">
           {licensed.actions.map((a) => (
             <li
               key={a}
-              className="rounded-[2px] border border-[var(--border)] bg-white px-2.5 py-1 text-[13px] text-[var(--ink)]"
+              className="text-[13px] text-[var(--ink)]"
             >
               {a}
             </li>
