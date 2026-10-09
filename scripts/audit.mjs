@@ -597,6 +597,18 @@ const PHASE_ONE = [
   },
   {
     /*
+     * Operator ruling of the overnight of 2026-10-08: the administrator's
+     * dashboard under two seconds, a check failing above three. The
+     * measurement found the page was never slow: a prefetched export link hung
+     * and, worse, wrote an export into the audit log on every view. Timed on
+     * this board's own production server, with the cause and the false record
+     * each checked separately.
+     */
+    name: "dashboard-speed-audit",
+    why: "the administrator's dashboard settles within three seconds, and opening it exports nothing",
+  },
+  {
+    /*
      * Phase 12 Section 3. The only audit in this suite covering something that
      * makes a wrong answer PERMANENT: a deletion leaves the absence of
      * evidence, which reads exactly like the thing never having happened, and
