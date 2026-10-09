@@ -12,12 +12,12 @@ position, not the reasoning (that is in GAPS.md and the commit messages).
 | 2 | Admin dashboard speed | `fix/admin-dashboard-speed` at abe2486 | **MERGED as b190559**, board 61 of 61. Cause: a prefetched export link hung and wrote an export audit row per view. Median 807 ms after (board: 673 ms) |
 | 3 | V10 admin-ops | `feat/v10-admin-ops` at c3cd79e | **MERGED as 64fb7d3**, board 61 of 61; list 19 to 11; /portal/techs stays listed (map legend decision) |
 | 4 | V10 admin-accounts | `feat/v10-admin-accounts` at 2af5641 | **MERGED as 33bdbb2**, 61 of 61 on the permitted re-board (first board: two roles-audit lines, an engineer session refused twice between successes); list 11 to 4 |
-| 5 | V10 partner | `feat/v10-partner` (worktree 254engineering-v10) | in progress |
-| 6 | Product audit | | not started |
+| 5 | V10 partner | `feat/v10-partner` at 7545f9c | **MERGED as 62d3133**, board 61 of 61; list 4 to 1; the partner surface is held to the phone sections rule |
+| 6 | Product audit | | **NOT STARTED, by the run's own condition**: it starts when the list is at zero, and /portal/techs waits on decision 1 (the map legend) |
 
 ## Main
 
-`origin/main` at 33bdbb2 (feat/v10-admin-accounts merged). Dated not-yet-V10 list: **4** (/portal/techs, /partner/login, /partner/materials, /partner/set-password). The board has **61** audits since dashboard-speed-audit joined.
+`origin/main` at 62d3133 (feat/v10-partner merged). Dated not-yet-V10 list: **1** (/portal/techs). The board has **61** audits since dashboard-speed-audit joined.
 
 ## Worktrees
 
