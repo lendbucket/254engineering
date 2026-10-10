@@ -69,6 +69,10 @@ export const metadata: Metadata = buildMetadata({
   path: "/order",
 });
 
+/* The half of the price story /process tells, said the same way here (gap 8, 2026-10-10). */
+const PUBLISHED_IS_THE_QUOTE =
+  "Where a line has a published price, that is the price you are quoted, with the coastal line where it applies.";
+
 export default function OrderChooserPage() {
   const offers = allLineOffers();
   const open = orderableLineOffers();
@@ -131,11 +135,19 @@ export default function OrderChooserPage() {
                 grammar nobody should be writing into a marketing page, and
                 getting it wrong is visible to every reader.
               */}
+              {/*
+                ONE PRICE STORY, operator ruling 2026-10-10 (gap 8). This said
+                every other line "is quoted by the firm" and "we will send you a
+                price", while /process says each line's price is published before
+                you call. Both are now one sentence: a line not open online starts
+                with a request for a quote, and where the line has a published
+                price, that published price is the quote.
+              */}
               {open.length === 0
-                ? "Every line below is quoted by the firm. Tell us what you need and we will send you a price."
+                ? `Every line below starts with a request for a quote. ${PUBLISHED_IS_THE_QUOTE}`
                 : open.length === 1 && open[0].deliverable
-                  ? `A ${open[0].deliverable.toLowerCase()} can be ordered online now. Everything else is quoted by the firm. Tell us what you need and we will send you a price.`
-                  : `${open.length} lines can be ordered online now. Everything else is quoted by the firm. Tell us what you need and we will send you a price.`}
+                  ? `A ${open[0].deliverable.toLowerCase()} can be ordered online now. Everything else starts with a request for a quote. ${PUBLISHED_IS_THE_QUOTE}`
+                  : `${open.length} lines can be ordered online now. Everything else starts with a request for a quote. ${PUBLISHED_IS_THE_QUOTE}`}
             </p>
 
             <ul className="mt-10 border-t border-[var(--color-limestone-line)]">
