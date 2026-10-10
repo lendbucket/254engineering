@@ -43,6 +43,17 @@ active, login 2026-09-02 16:45:18 UTC, profile 17:57:25 UTC, and no
 `scripts/seed-admin.mjs`, not the People screen, so it carries no such row, true
 or false.
 
+## THE SITTING OF 2026-10-10: 0067, ONE PENDING CREDENTIAL OF EACH KIND, STAGED
+
+`docs/production-sitting-2026-10-10.md`. One additive migration on
+`fix/credential-one-pending`: a unique partial index so two submissions in
+flight cannot both write a pending row (reproduced twice by the product audit).
+**Not applied anywhere.** The same document carries two read-only queries for
+the counterpart: technicians holding offers with no rate (ruling 2 of
+2026-10-09), and the five protocol seal acts' digests against the digests the
+transcriptions produce. What stays open: apply and read back 0067 on both
+databases, then the branch is boarded and merged.
+
 ## THE SITTING OF 2026-10-09: 0066, A CREDENTIAL'S ISSUING STATE, RUN
 
 `docs/production-sitting-2026-10-09.md`. One additive migration on

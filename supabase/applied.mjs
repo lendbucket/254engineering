@@ -2181,6 +2181,31 @@ export const APPLIED = [
       "columns (issuing_state), behaviour 970 to 971 facts (eng_credentials_issuing_state_check). " +
       "Additive only: one nullable column and one check, no row rewritten.",
   },
+  {
+    file: "0067_one_pending_credential_of_a_kind.sql", appliedBy: "apply_migration",
+    fingerprint: "18826fa5b3e7d9c9979ca81b96666bb7",
+    behaviour: "a486dd4e73f0e15e148f75da57f45b1c",
+    /*
+     * PENDING, BY THE OVERNIGHT RULE: nothing applies a migration, so this is
+     * written unapplied on fix/credential-one-pending and staged for the
+     * sitting. It does not merge until production has it.
+     */
+    production: null,
+    development: { at: "0067", behaviour: null, facts: null },
+    because:
+      "WRITTEN 2026-10-10 UNAPPLIED, on the overnight rule that nothing applies a migration. A defect from " +
+      "the product audit, reproduced twice: one credential submitted from two tabs at once wrote two pending " +
+      "rows, because submitCredential reads then inserts. The index makes the second insert fail and the " +
+      "code answers it with the sentence the read already gives. The counterpart applies it to development " +
+      "and production through apply_migration and reads it back with the query in " +
+      "docs/production-sitting-2026-10-10.md; the branch merges after.",
+    proves: { table: "eng_credentials" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0067 on 2026-10-10: shape unchanged at " +
+      "18826fa5b3e7d9c9979ca81b96666bb7 across 1171 columns, behaviour 971 to 972 facts " +
+      "(eng_credentials_one_pending_per_kind, ix). Additive only: one unique partial index; it raises and " +
+      "changes nothing if duplicates already exist.",
+  },
 ];
 
 /*
