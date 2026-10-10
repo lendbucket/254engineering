@@ -8,6 +8,29 @@ import { money } from "./ops-money";
 import { paymentProvider } from "./ops-payments";
 import { deploymentOrigin } from "./site-url";
 import { event } from "./ops-intake";
+import { todayInFirmCalendar } from "./firm-calendar";
+
+/*
+ * A CLOSED ACCOUNT IS BILLED FOR THE MONTH IT CLOSED IN, AND NO LATER. Operator
+ * ruling, 2026-10-10 (decision 5). closePeriod issued statements to a closed
+ * account for any period; a final invoice for work before closure may be right,
+ * a statement for a month after it never is.
+ *
+ * The month is the firm's own (America/Chicago), taken from the account.closed
+ * audit row the accounts API writes, which the audit trail refuses to edit. A
+ * closed account with no such row (closed before the row existed, or by hand)
+ * is refused outright: the date it closed is unknown, and the unknown answer for
+ * a bill is the shut one.
+ */
+export function statementAfterClosure(period: string, closedAt: string | null): string | null {
+  if (!closedAt) {
+    return "This account is closed and the date it closed is not on record, so no statement is issued. Record the closure first.";
+  }
+  const closedPeriod = todayInFirmCalendar(new Date(closedAt)).slice(0, 7);
+  return period > closedPeriod
+    ? `This account closed in ${closedPeriod}. A statement for ${period} would bill a month after the closure, so none is issued.`
+    : null;
+}
 
 /**
  * Statements: what an invoiced account owes for a period.
@@ -86,6 +109,18 @@ export async function closePeriod(
   if (!account) return { ok: false, error: "That account does not exist." };
   if (account.billing_mode !== "invoice") {
     return { ok: false, error: "That account pays by card, so it has nothing to be invoiced for." };
+  }
+  if (account.status === "closed") {
+    const { data: closing } = await db
+      .from("eng_audit_events")
+      .select("created_at")
+      .eq("action", "account.closed")
+      .eq("entity_type", "customer_account")
+      .eq("entity_id", accountId)
+      .order("created_at", { ascending: false })
+      .limit(1);
+    const refusal = statementAfterClosure(period, (closing?.[0]?.created_at as string | undefined) ?? null);
+    if (refusal) return { ok: false, error: refusal };
   }
 
   /*
