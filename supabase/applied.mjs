@@ -2316,7 +2316,8 @@ export const APPLIED = [
   {
     file: "0072_a_partner_logo_is_approved_before_it_shows.sql", appliedBy: "apply_migration",
     fingerprint: "3cffb39b56eda13ab54bbe8823b4c26d",
-    behaviour: "beaed922e574a0feb5f12b6cdf8b79f2",
+    /* Re-read after 0070 was amended to the engineer row only (it read beaed922 over the first 0070). */
+    behaviour: "15b2e8632bd8d0e12144eac903baaa34",
     /*
      * PENDING, BY THE WEEKEND RUN RULE: written unapplied on
      * feat/partner-branding-upload (on fix/sign-in-limiter-in-the-database,
