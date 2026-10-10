@@ -43,6 +43,21 @@ active, login 2026-09-02 16:45:18 UTC, profile 17:57:25 UTC, and no
 `scripts/seed-admin.mjs`, not the People screen, so it carries no such row, true
 or false.
 
+## CONTRAST-AUDIT CANNOT SEE TEXT ON A GRADIENT BAND
+
+Found 2026-10-10 from product audit defect 25. Two links on /about and
+/government were `text-slate` on a `from-slate to-slate-deep` band, navy on
+navy, visible only by their underline, and contrast-audit was green over both.
+axe cannot compute contrast against a background image, so it files every such
+node as INCOMPLETE rather than as a violation, and `scripts/contrast-audit.mjs`
+reads violations only. Every text node on `Section tone="navy"` and on /about's
+model band has therefore never been measured. **`fix/links-on-the-navy-band`
+fixed the two instances, not the class.** The class fix is a check that takes
+each incomplete color-contrast node whose background is a gradient, parses the
+gradient's stops, and fails on the worst stop under AA; it needs a server to
+run standalone, so it was not written in a run whose lock another project held.
+Its injection is this branch's two links put back.
+
 ## THE SITTING OF 2026-10-10: 0067, ONE PENDING CREDENTIAL OF EACH KIND, RUN
 
 `docs/production-sitting-2026-10-10.md`. One additive migration on
