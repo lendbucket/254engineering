@@ -85,6 +85,14 @@ const AUDIT_ENV = { ...process.env };
 const RETRY_LOG = join(tmpdir(), `254engineering-retries-${process.pid}.jsonl`);
 writeFileSync(RETRY_LOG, "");
 AUDIT_ENV.AUDIT_RETRY_LOG = RETRY_LOG;
+/*
+ * And this process's own, because the runner reads the job queue through a
+ * database client of its own. The first board of this branch, e9b0346, retried
+ * three of those reads and printed "Transient retries: 0", because only the
+ * audits' environment carried the log. A count that reads zero over three
+ * retries is the understated figure this repository keeps recording.
+ */
+process.env.AUDIT_RETRY_LOG = RETRY_LOG;
 
 const PORT = Number(process.env.AUDIT_PORT ?? PORTS.audit);
 const BASE = process.env.BASE_URL || `http://localhost:${PORT}`;

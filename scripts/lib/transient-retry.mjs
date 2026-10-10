@@ -38,11 +38,20 @@ import { appendFileSync } from "node:fs";
 export const RETRY_DELAYS_MS = [1000, 3000, 9000];
 
 /*
- * The socket's own codes, and undici's connect, socket and headers timeouts.
- * A pattern rather than a list of strings: soc2-audit reads an all-caps
- * underscored string literal as a candidate secret, rightly, and these are not.
+ * undici's connect, socket and headers timeouts, declared as constants. Each
+ * is an all-caps underscored string, which soc2-audit's secret scan reads as a
+ * candidate credential, rightly; a constant this source defines and nothing
+ * reads from an environment is the scan's own declared, counted exemption.
+ * (Operator ruling of 2026-10-09: never restructure code so a check stops
+ * seeing it. The first version of this file used a regular expression to
+ * that end, and was reverted to this list before it merged.)
  */
-const FAULT_CODE = /^(ECONNRESET|ETIMEDOUT|UND_ERR_(CONNECT_TIMEOUT|SOCKET|HEADERS_TIMEOUT))$/;
+export const UND_ERR_CONNECT_TIMEOUT = "UND_ERR_CONNECT_TIMEOUT";
+export const UND_ERR_SOCKET = "UND_ERR_SOCKET";
+export const UND_ERR_HEADERS_TIMEOUT = "UND_ERR_HEADERS_TIMEOUT";
+
+/* The socket's own codes, and undici's timeouts underneath a fetch failed. */
+const FAULT_CODES = new Set(["ECONNRESET", "ETIMEDOUT", UND_ERR_CONNECT_TIMEOUT, UND_ERR_SOCKET, UND_ERR_HEADERS_TIMEOUT]);
 const SOCKET_MESSAGE = /socket hang up|ECONNRESET|ETIMEDOUT/i;
 
 /**
@@ -55,7 +64,7 @@ export function isTransientFault(err) {
   if (!err || err.name === "AbortError") return false;
   if (err.name === "TypeError" && err.message === "fetch failed") return true;
   for (let e = err, depth = 0; e && depth < 5; e = e.cause, depth += 1) {
-    if (typeof e.code === "string" && FAULT_CODE.test(e.code)) return true;
+    if (typeof e.code === "string" && FAULT_CODES.has(e.code)) return true;
     if (typeof e.message === "string" && SOCKET_MESSAGE.test(e.message)) return true;
   }
   return false;

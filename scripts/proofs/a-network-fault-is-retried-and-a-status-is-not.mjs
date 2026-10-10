@@ -18,7 +18,8 @@
  */
 delete process.env.AUDIT_RETRY_LOG;
 
-const { retryingFetch, isTransientFault, RETRY_DELAYS_MS } = await import("../lib/transient-retry.mjs");
+/* undici's connect timeout, the fault the boards actually met, from the library's declaration. */
+const { retryingFetch, isTransientFault, RETRY_DELAYS_MS, UND_ERR_CONNECT_TIMEOUT } = await import("../lib/transient-retry.mjs");
 
 let wrong = 0;
 const check = (name, ok, note = "") => {
@@ -26,9 +27,6 @@ const check = (name, ok, note = "") => {
   console.log(`  ${ok ? "PASS" : "FAIL"}: ${name}${note ? ` (${note})` : ""}`);
 };
 
-/* undici's connect timeout, the fault the boards actually met. A constant this
- * file defines, so soc2-audit's secret scan reads it as one and says so. */
-const UND_ERR_CONNECT_TIMEOUT = "UND_ERR_CONNECT_TIMEOUT";
 const fault = (code = "ECONNRESET") => Object.assign(new TypeError("fetch failed"), { cause: Object.assign(new Error(code), { code }) });
 const REST = "https://example.invalid/rest/v1";
 

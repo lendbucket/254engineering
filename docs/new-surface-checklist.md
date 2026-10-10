@@ -180,3 +180,18 @@ of 61 against a prediction of 60, migration-audit naming the replay at 1171
 columns against its pinned 1170. The constant is pinned so a migration moves it
 on purpose; the rule is that the move happens with the migration, not after a
 board finds it.
+
+## When a check flags something that is not what it exists for
+
+**Operator ruling, 2026-10-09. Standing.** Never restructure code to make a
+check stop seeing it. If a check flags a false positive, use that check's own
+declared exemption mechanism (soc2-audit's counted constant exemption, a dated
+ACKNOWLEDGED, an entry on a dated list), or report it. Rewriting the flagged
+line into a shape the matcher happens not to read is the check covering less
+while still printing the same green line.
+
+The instance: `fix/probe-transient-retry` met soc2-audit's secret scan on
+undici's error codes, all-caps underscored strings, and rewrote a list of them
+as a regular expression so the scan stopped seeing them. That was reverted
+before merge: the codes are declared constants, inside the exemption the scan
+already counts and names.
