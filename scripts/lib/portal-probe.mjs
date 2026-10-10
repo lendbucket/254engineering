@@ -22,7 +22,7 @@
  * carries in roles-audit and seed-field-demo.
  */
 
-import { createHash, randomBytes } from "node:crypto";
+import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { auditClient, refOf, DEVELOPMENT_REF } from "./db-target.mjs";
 import { signInFully } from "./probe-mfa.mjs";
 
@@ -197,7 +197,9 @@ export async function createProbe(base, role, label = "audit") {
   let data = null;
   let error = null;
   try {
-    ({ data, error } = await d.auth.admin.createUser({ email, password, email_confirm: true }));
+    /* The id is named so a network fault on the create is retriable after a
+     * read confirms it did not land (transient-retry.mjs, 2026-10-09). */
+    ({ data, error } = await d.auth.admin.createUser({ id: randomUUID(), email, password, email_confirm: true }));
   } catch (err) {
     return probeFailure(role, `creating the account threw: ${err instanceof Error ? err.message : String(err)}`);
   }
