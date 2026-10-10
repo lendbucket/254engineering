@@ -1091,6 +1091,43 @@ else process.env.OPS_SESSION_SECRET = HAD;
 
               if (secondCookie) {
                 /*
+                 * A PASSWORD ALONE CANNOT REPLACE THE FACTOR. Product audit,
+                 * 2026-10-10: from exactly this position, begin then confirm
+                 * with a code from a secret the caller had just begun made it
+                 * the account's active factor, and codes_saved opened the
+                 * portal. Both steps must now be refused, and the active
+                 * secret must be the one the account enrolled with.
+                 */
+                const { data: factorBefore } = await db
+                  .from("eng_mfa_enrolments").select("secret_cipher").eq("user_id", stale.id).maybeSingle();
+                const hijackBegin = await fetch(`${BASE}/api/portal/mfa`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json", cookie: `eng_ops=${secondCookie}` },
+                  body: JSON.stringify({ action: "begin" }),
+                });
+                const hijackBegun = await hijackBegin.json().catch(() => null);
+                const hijackBytes = hijackBegun?.secret ? base32Decode(hijackBegun.secret) : null;
+                const hijackConfirm = await fetch(`${BASE}/api/portal/mfa`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json", cookie: `eng_ops=${secondCookie}` },
+                  body: JSON.stringify({ action: "confirm", code: hijackBytes ? codeForStep(hijackBytes, stepAt(Date.now())) : "000000" }),
+                });
+                const { data: factorAfter } = await db
+                  .from("eng_mfa_enrolments").select("secret_cipher").eq("user_id", stale.id).maybeSingle();
+                rec(
+                  "a password alone cannot begin replacing an enrolled account's second factor",
+                  hijackBegin.status === 403 && !hijackBegun?.secret,
+                  hijackBegun?.secret ? "BEGIN HANDED A NEW SECRET TO A PASSWORD-ONLY SESSION" : `refused with ${hijackBegin.status}`,
+                );
+                rec(
+                  "nor confirm one, and the account's active factor is the one it enrolled with",
+                  hijackConfirm.status === 403 && Boolean(factorBefore?.secret_cipher) && factorAfter?.secret_cipher === factorBefore?.secret_cipher,
+                  factorAfter?.secret_cipher !== factorBefore?.secret_cipher
+                    ? "THE ACTIVE FACTOR WAS REPLACED FROM A PASSWORD-ONLY SESSION"
+                    : `confirm refused with ${hijackConfirm.status}`,
+                );
+
+                /*
                  * THE ATTACKER'S POSITION, EXACTLY: the password, a pending
                  * session, and no completion token, because only the confirm
                  * that produced the codes can mint one and that confirm
