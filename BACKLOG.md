@@ -43,6 +43,18 @@ active, login 2026-09-02 16:45:18 UTC, profile 17:57:25 UTC, and no
 `scripts/seed-admin.mjs`, not the People screen, so it carries no such row, true
 or false.
 
+## STAGED: 0069, WP-001 v1.2 AND FC-001 v1.0 ENTER AS DRAFTS
+
+`docs/production-sitting-feat-wp-001-v1-2-and-fc-001.md`. Two draft template
+rows, each carrying its Word file's SHA-256; transcribed verbatim into
+`src/content/protocols/docx-received.ts` and proved word for word by
+protocol-registry-audit section 9. On `feat/wp-001-v1-2-and-fc-001`, which sits
+on `fix/review-and-credit-one-write` because 0069 follows 0068. **Not applied
+anywhere.** Open: apply after 0068, read back, merge after it. The two are TEXT,
+not yet STRUCTURE (intake, checklist, decision rules): that is parsed when the
+engineer signs and the protocol moves into PROTOCOL_ENTRIES, which waits on the
+operator's ruling recorded in `docs/audit-2026-10/RUN-2026-10-10.md` (item 4).
+
 ## STAGED: 0068, A DECISION AND ITS CREDIT ARE ONE WRITE
 
 `docs/production-sitting-fix-review-and-credit-one-write.md`. One function,

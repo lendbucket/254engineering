@@ -1722,6 +1722,105 @@ if (carriers.length === 1) {
 }
 
 /*
+ * ===========================================================================
+ * 9. THE PROTOCOLS RECEIVED AS WORD FILES, PROVED AGAINST THE .docx ITSELF
+ * ===========================================================================
+ *
+ * Operator ruling, 2026-10-10: 254-WP-001 v1.2 and 254-FC-001 v1.0 arrived as
+ * .docx files, and the .docx is the source of record. "If the audit can only
+ * read PDFs, extend it to read .docx; don't convert the file and audit the
+ * conversion." So this reads each file's own word/document.xml through
+ * documentText() in scripts/lib/protocol-source.mjs, the reader proved against
+ * a known answer above, and never imports the transcriber. When the file
+ * cannot be read the comparison says COULD NOT TELL rather than passing.
+ *
+ * THE HASHES ARE LITERALS: the figures the operator's counterpart took from
+ * the engineer's email and the session confirmed on disk on 2026-10-10.
+ *
+ * THE FULL TEXT IS COMPARED FOR EQUALITY, so both directions at once, with
+ * whitespace removed and nothing else normalised: a .docx has no page footers
+ * or undecodable glyphs to excuse. And the header fields are proved to be the
+ * document's own, by finding each as the line that follows its label.
+ */
+{
+  const { DOCX_RECEIVED_PROTOCOLS } = await import("../src/content/protocols/docx-received.ts");
+  const { PROTOCOL_ENTRIES } = await import("../src/content/protocols/index.ts");
+  const { squash: sq, documentText } = await import("./lib/protocol-source.mjs");
+
+  const PINNED_SHA256 = {
+    "254-WP-001": "635168e3fb2aad1c5d44db72671606eabba92b8e00667968502fa987846257c4",
+    "254-FC-001": "264d3b5d7b6c8210ba6802d9769b36e40f867067870b90459747a96e4fefbf8d",
+  };
+
+  rec(
+    "the Word file register holds exactly WP-001 v1.2 and FC-001 v1.0, so the checks below read both",
+    DOCX_RECEIVED_PROTOCOLS.length === 2 &&
+      DOCX_RECEIVED_PROTOCOLS.some((p) => p.documentNumber === "254-WP-001" && p.version === "1.2") &&
+      DOCX_RECEIVED_PROTOCOLS.some((p) => p.documentNumber === "254-FC-001" && p.version === "1.0"),
+    DOCX_RECEIVED_PROTOCOLS.map((p) => `${p.documentNumber} v${p.version}`).join(", "),
+  );
+  rec(
+    "and neither is registered where the line gate, the intake forms or the review screen read",
+    !PROTOCOL_ENTRIES.some((e) =>
+      DOCX_RECEIVED_PROTOCOLS.some((p) => e.declaration.documentNumber === p.documentNumber && e.declaration.version === p.version),
+    ),
+  );
+
+  for (const p of DOCX_RECEIVED_PROTOCOLS) {
+    const where = `${p.documentNumber} v${p.version}`;
+    if (!existsSync(p.sourceFile)) {
+      rec(`${where}: its .docx is on disk`, false, `${p.sourceFile} is not on disk`);
+      continue;
+    }
+    const sha = createHash("sha256").update(readFileSync(p.sourceFile)).digest("hex");
+    rec(
+      `${where}: the .docx on disk is the engineer's file, by its SHA-256`,
+      sha === PINNED_SHA256[p.documentNumber] && p.sourceSha256 === sha,
+      sha === PINNED_SHA256[p.documentNumber] ? `${sha.slice(0, 12)}, and the declaration names the same` : `on disk ${sha.slice(0, 12)}, pinned ${String(PINNED_SHA256[p.documentNumber]).slice(0, 12)}`,
+    );
+
+    const read = documentText(p.sourceFile);
+    if (!read.ok) {
+      tell.push(`${where}: the transcription was not compared with its .docx: ${read.why}`);
+      continue;
+    }
+    const lines = read.text.split("\n").filter((l) => l.trim() !== "");
+    const docSq = sq(lines.join("\n"));
+    const textSq = sq(p.text.join("\n"));
+    rec(`${where}: the .docx was read, so the comparison reads something`, docSq.length > 5000, `${docSq.length} characters`);
+    let at = 0;
+    while (at < docSq.length && at < textSq.length && docSq[at] === textSq[at]) at += 1;
+    rec(
+      `${where}: the transcribed text is the whole document, word for word, in both directions`,
+      textSq === docSq,
+      textSq === docSq
+        ? `${p.text.length} lines, ${docSq.length} characters, identical`
+        : `first difference at character ${at}: document "${docSq.slice(at, at + 40)}", transcription "${textSq.slice(at, at + 40)}"`,
+    );
+
+    const fieldAfter = (label) => {
+      const i = lines.indexOf(label);
+      return i >= 0 ? lines[i + 1] : undefined;
+    };
+    const fields = [
+      ["Title", p.title],
+      ["Document number", p.documentNumber],
+      ["Version", p.version],
+      ["Prepared by", p.preparedBy],
+      ["Approval", p.approval],
+      ["Applies to", p.appliesTo],
+      ["Supersedes", p.supersedes],
+    ];
+    const wrongFields = fields.filter(([label, value]) => fieldAfter(label) !== value);
+    rec(
+      `${where}: its header fields are the document's own, each read as the line after its label`,
+      wrongFields.length === 0,
+      wrongFields.length ? wrongFields.map(([l]) => l).join(", ") : `${fields.length} fields`,
+    );
+  }
+}
+
+/*
  * THE PRINTING SITS HERE, BELOW LAYER ONE, AND IT MOVED TO GET HERE.
  *
  * It used to run above that block, so the seven layer one checks were counted

@@ -2241,6 +2241,30 @@ export const APPLIED = [
       "behaviour 972 to 973 facts (eng_record_review_decision). Three check constraints are dropped and " +
       "re-added wider in the same statement batch; no row is rewritten.",
   },
+  {
+    file: "0069_wp001_v1_2_and_fc001_enter_as_drafts.sql", appliedBy: "apply_migration",
+    fingerprint: "18826fa5b3e7d9c9979ca81b96666bb7",
+    behaviour: "95c18c8b7cd230bdc7fb1349ddc572c1",
+    /*
+     * PENDING, BY THE WEEKEND RUN RULE: written unapplied on
+     * feat/wp-001-v1-2-and-fc-001, which sits on fix/review-and-credit-one-write
+     * because 0069 follows 0068, and staged with
+     * docs/production-sitting-feat-wp-001-v1-2-and-fc-001.md. It merges after
+     * 0068, once production has both.
+     */
+    production: null,
+    development: { at: "0069", behaviour: null, facts: null },
+    because:
+      "WRITTEN 2026-10-10 UNAPPLIED, operator ruling of that day: 254-WP-001 v1.2 and 254-FC-001 v1.0 enter " +
+      "as drafts, each carrying its .docx's SHA-256 as the document digest, transcribed verbatim into " +
+      "src/content/protocols/docx-received.ts and proved word for word by protocol-registry-audit section 9. " +
+      "The counterpart applies it from the sitting document after 0068 and reads it back.",
+    proves: { row: { table: "eng_protocol_templates", where: "document_number = '254-FC-001' and version_label = '1.0' and status = 'draft'" } },
+    note:
+      "BOTH fingerprints repeat 0068's, which is what a migration with no DDL in it must do: it inserts two " +
+      "template rows and changes no shape and no behaviour fact. Read off scripts/fingerprint-at.mjs at 0069 " +
+      "on 2026-10-10.",
+  },
 ];
 
 /*
