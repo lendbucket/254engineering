@@ -20,13 +20,13 @@ position, not the reasoning (that is in GAPS.md and the commit messages).
 | 10 | Health watch log level | `fix/health-watch-log-level` at ab38049 | **MERGED in d282d5a** via `integrate/2026-10-10` at a823a2a, board 61 of 61, retries 3 equal to the log |
 | 10a | Probe ids | `fix/probe-ids` at 45a6aae | **MERGED in d282d5a**, same board |
 | 11 | Product audit, portal by portal | this branch | **IN PROGRESS**: inventory, 220 valid screenshots, notes for all five portals, brute force log, defects pushed (7f71185). Pending: 220 captures to retake, the break-it sweep re-run |
-| 12 | Defect fixes, no migration | `integrate/2026-10-10b` (15 branches: offer-needs-a-rate, partner-window-copy, dates-in-central, customer-sign-in-limit, credential-form-offline, mfa-no-replace-from-password, review-belongs-to-its-engineer, pay-owed-one-home, refund-reason-per-order, mfa-sign-out, waiting-links, launch-sellable-needs-the-gate, engineer-dead-links, csr-most-recent, partner-true-totals) | **WAITING ON THE MACHINE LOCK** (held by wattsmith since 04:42Z). Next: the MFA reproduction on main, the importing audits standalone, then the board; prediction 61 of 61. If it fails: split, never debug together |
+| 12 | Defect fixes, no migration | `integrate/2026-10-10b` at b631786 (15 branches: offer-needs-a-rate, partner-window-copy, dates-in-central, customer-sign-in-limit, credential-form-offline, mfa-no-replace-from-password, review-belongs-to-its-engineer, pay-owed-one-home, refund-reason-per-order, mfa-sign-out, waiting-links, launch-sellable-needs-the-gate, engineer-dead-links, csr-most-recent, partner-true-totals) | **MERGED as 8c991fd** (parents d282d5a, b631786), board 61 of 61, retries 3 equal to the log; importing audits standalone 19 of 19. The MFA bypass was reproduced live on d282d5a first. The lock was held by other projects 04:42Z to 08:02Z and 08:08Z to 08:26Z |
 | 13 | Two tabs, two pending credentials | `fix/credential-one-pending` at 080fedc, migration 0067 | **STAGED, NOT MERGED**: 0067 written unapplied; docs/production-sitting-2026-10-10.md |
 | 14 | Public site colours | | after the audit and the defects |
 
 ## Main
 
-`origin/main` at d282d5a (integrate/2026-10-10 merged). Dated not-yet-V10 list: **0**. The board has **61** audits and prints a transient retry count.
+`origin/main` at 8c991fd (integrate/2026-10-10b merged). Dated not-yet-V10 list: **0**. The board has **61** audits and prints a transient retry count.
 
 ## Worktrees
 
