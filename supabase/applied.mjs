@@ -2220,19 +2220,35 @@ export const APPLIED = [
     fingerprint: "18826fa5b3e7d9c9979ca81b96666bb7",
     behaviour: "95c18c8b7cd230bdc7fb1349ddc572c1",
     /*
-     * PENDING, BY THE WEEKEND RUN RULE: nothing applies a migration, so this is
-     * written unapplied on fix/review-and-credit-one-write and staged with
-     * docs/production-sitting-fix-review-and-credit-one-write.md. It does not
-     * merge until production has it.
+     * APPLIED TO PRODUCTION 2026-10-10 at 11:55 CT, from
+     * docs/production-sitting-fix-review-and-credit-one-write.md, by the
+     * operator's chat counterpart, development first and then production, the
+     * file as written. Written unapplied on fix/review-and-credit-one-write
+     * under the weekend run rule; merged after.
+     *
+     * Operator rulings of that day: a decided review and its credit are one
+     * database function (eng_record_review_decision), the outside work is
+     * enqueued in eng_jobs in the same transaction, and the three decision
+     * checks from 0004 are widened to include repairs. Read back as the sitting
+     * document predicted, on both projects.
+     *
+     * THE ROUTE IS RECORDED, NOT READ. The report of the apply did not say
+     * whether apply_migration took it or came back cancelled (it drops three
+     * checks) and the SQL editor did. apply_migration is the sitting document's
+     * first route and is what is written here; if it was the editor, this
+     * entry is hand applied and needs a handApplied sentence.
      */
-    production: null,
-    development: { at: "0068", behaviour: null, facts: null },
-    because:
-      "WRITTEN 2026-10-10 UNAPPLIED, operator rulings of that day: a decided review and its credit are one " +
-      "database function (eng_record_review_decision), the outside work is enqueued in eng_jobs in the same " +
-      "transaction, and the three decision checks from 0004 are widened to include repairs. The counterpart " +
-      "applies it to development and production from the sitting document and reads it back; the branch " +
-      "merges after.",
+    production: "2026-10-10",
+    development: {
+      at: "0068",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-10",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-10 by the operator's chat counterpart, before production, the file " +
+        "as written, and read back as the sitting document predicted.",
+    },
     proves: { table: "eng_review_sessions" },
     note:
       "Both figures read off scripts/fingerprint-at.mjs at 0068 on 2026-10-10: shape unchanged at " +
@@ -2246,19 +2262,29 @@ export const APPLIED = [
     fingerprint: "18826fa5b3e7d9c9979ca81b96666bb7",
     behaviour: "95c18c8b7cd230bdc7fb1349ddc572c1",
     /*
-     * PENDING, BY THE WEEKEND RUN RULE: written unapplied on
-     * feat/wp-001-v1-2-and-fc-001, which sits on fix/review-and-credit-one-write
-     * because 0069 follows 0068, and staged with
-     * docs/production-sitting-feat-wp-001-v1-2-and-fc-001.md. It merges after
-     * 0068, once production has both.
+     * APPLIED TO PRODUCTION 2026-10-10 at 11:55 CT, after 0068, from
+     * docs/production-sitting-feat-wp-001-v1-2-and-fc-001.md, by the
+     * operator's chat counterpart, development first and then production, the
+     * file as written. Written unapplied on feat/wp-001-v1-2-and-fc-001 under
+     * the weekend run rule; merged after.
+     *
+     * Operator ruling of that day: 254-WP-001 v1.2 and 254-FC-001 v1.0 enter
+     * as drafts, each carrying its .docx's SHA-256 as the document digest,
+     * transcribed verbatim into src/content/protocols/docx-received.ts and
+     * proved word for word by protocol-registry-audit section 9. Read back as
+     * the sitting document predicted, on both projects.
      */
-    production: null,
-    development: { at: "0069", behaviour: null, facts: null },
-    because:
-      "WRITTEN 2026-10-10 UNAPPLIED, operator ruling of that day: 254-WP-001 v1.2 and 254-FC-001 v1.0 enter " +
-      "as drafts, each carrying its .docx's SHA-256 as the document digest, transcribed verbatim into " +
-      "src/content/protocols/docx-received.ts and proved word for word by protocol-registry-audit section 9. " +
-      "The counterpart applies it from the sitting document after 0068 and reads it back.",
+    production: "2026-10-10",
+    development: {
+      at: "0069",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-10",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-10 by the operator's chat counterpart, before production, the file " +
+        "as written, and read back as the sitting document predicted.",
+    },
     proves: { row: { table: "eng_protocol_templates", where: "document_number = '254-FC-001' and version_label = '1.0' and status = 'draft'" } },
     note:
       "BOTH fingerprints repeat 0068's, which is what a migration with no DDL in it must do: it inserts two " +
@@ -2270,18 +2296,31 @@ export const APPLIED = [
     fingerprint: "18826fa5b3e7d9c9979ca81b96666bb7",
     behaviour: "d7713204a6a44db437588585af0d0f8a",
     /*
-     * PENDING, BY THE WEEKEND RUN RULE: written unapplied on
-     * fix/second-factor-required (on feat/wp-001-v1-2-and-fc-001, because 0070
-     * follows 0069), staged with docs/production-sitting-fix-second-factor-required.md.
+     * APPLIED TO PRODUCTION 2026-10-10 at 15:06 CT, after 0069, the amended
+     * engineer-only file from cbb718c, from
+     * docs/production-sitting-fix-second-factor-required.md, by the operator's
+     * chat counterpart, development first and then production. Read back as
+     * predicted on both: engineer required, administrator optional.
+     *
+     * Operator ruling of 2026-10-10 (gap 3): the second factor is required for
+     * the engineer role. Amended before any apply, the same day: the
+     * administrator role stays optional by the operator's ruling replacing gap
+     * 4's, so 0070 updates the engineer row only and asserts the administrator
+     * still reads optional. Renamed from
+     * 0070_the_second_factor_is_required_for_staff_who_seal_or_administer.sql,
+     * which no database ever ran.
      */
-    production: null,
-    development: { at: "0070", behaviour: null, facts: null },
-    because:
-      "WRITTEN 2026-10-10 UNAPPLIED, operator ruling of that day (gap 3): the second factor is required for the " +
-      "engineer role. AMENDED BEFORE ANY APPLY, the same day: the administrator role stays optional by the " +
-      "operator's ruling replacing gap 4's, so 0070 updates the engineer row only and asserts the administrator " +
-      "still reads optional. Renamed from 0070_the_second_factor_is_required_for_staff_who_seal_or_administer.sql, " +
-      "which no database ever ran. The sitting document reads which engineers are not enrolled before the apply.",
+    production: "2026-10-10",
+    development: {
+      at: "0070",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-10",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-10 by the operator's chat counterpart, before production, the amended " +
+        "file from cbb718c: engineer required, administrator optional, as predicted.",
+    },
     proves: { row: { table: "eng_roles", where: "key = 'engineer' and mfa_requirement = 'required'" } },
     note:
       "The shape fingerprint repeats 0069's and the fact count stays 973: it updates one seeded row and has no " +
