@@ -58,6 +58,7 @@
 
 process.loadEnvFile?.(".env.local");
 
+import { randomUUID } from "node:crypto";
 import { auditClient } from "./lib/db-target.mjs";
 import { DEMO_SCOPED_TABLES } from "../src/lib/reporting-scope.ts";
 import { isProbeAddress } from "../src/lib/ops-files.ts";
@@ -634,9 +635,15 @@ if (!db) {
       report: "partner",
       what: "a demonstration partner with an issued statement",
       async insert() {
+        /*
+         * The ids are named here, 2026-10-09, so a network fault on the insert
+         * can be retried: a read of the id confirms whether it landed. This
+         * insert met that fault twice in a week (scripts/lib/transient-retry.mjs).
+         */
         const { data: partner, error: pErr } = await db
           .from("eng_partners")
           .insert({
+            id: randomUUID(),
             organisation: `Demo Partner ${TAIL}`,
             contact_name: "Demo Audit",
             contact_email: `demo.partner.${STAMP}@example.com`,
@@ -651,6 +658,7 @@ if (!db) {
         const { data: statement, error: sErr } = await db
           .from("eng_partner_statements")
           .insert({
+            id: randomUUID(),
             partner_id: partner.id,
             reference,
             period: PERIOD,
