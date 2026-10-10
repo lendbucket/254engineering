@@ -961,6 +961,22 @@ export async function acceptOffer(
   );
   if (!verdict.ok) return { ok: false, error: verdict.reason };
 
+  /*
+   * NO RATE, NO ACCEPTANCE. Operator ruling, 2026-10-09, a money defect found by
+   * the product audit: an offer is made with a null rate whenever no scheduled
+   * rate covers the work, this function accepted it anyway, and submitEvidence
+   * writes the pay entry only when a rate exists. So a technician could accept,
+   * drive out, submit, and be owed nothing on any record, on a screen that
+   * promises "you will see the flat rate before you accept". Refused here, on the
+   * server, before the claim, so no client can get past it.
+   */
+  if (offer.offer_amount_cents === null || offer.offer_amount_cents === undefined) {
+    return {
+      ok: false,
+      error: "This offer has no rate on it yet, so it cannot be accepted. Ask the office to set the rate first.",
+    };
+  }
+
   // The claim. Everything above this line is a courtesy; this is the decision.
   const { data: claimed } = await db
     .from("eng_files")
