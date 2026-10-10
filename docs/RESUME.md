@@ -16,13 +16,15 @@ position, not the reasoning (that is in GAPS.md and the commit messages).
 | 6 | V10 techs finish | `feat/v10-techs-finish` | **MERGED as 804fc29**; list 1 to 0 |
 | 7 | Audit seed | `feat/audit-seed` at 60171b3 | **MERGED as f2b6031**, on the permitted re-board (first: a demo-audit fetch failed) |
 | 8 | Certification unblock | `fix/certification-unblock` at 2bff1b5 | **MERGED as 3bb883e** (parents f2b6031, 2bff1b5), board 60 of 61, the one predicted line being schema-ledger-audit's parity on 0066, which the merge resolves. schema-ledger-audit on main afterwards: 32 of 32, applied 67, pending 0. The first board, d1e18d2, missed (59 of 61): migration-audit's pinned shape had not moved with 0066 |
-| 9 | Probe transient retry | `fix/probe-transient-retry` from 3bb883e | **NEXT**; carries the checklist rule on migrations (ab52bdd) |
-| 10 | Product audit, portal by portal | this branch | preflight recorded; portal runs after 9 |
-| 11 | Public site colours | | after the audit |
+| 9 | Probe transient retry | `fix/probe-transient-retry` at fdc6015 | **MERGED as b24046a** (parents 3bb883e, fdc6015), 61 of 61 on the permitted re-board, Transient retries 3 equal to the log. Boards before it: e9b0346 61 of 61 but its retry count read 0 over 3 retries (fixed), and the pattern change reverted under the operator's ruling; fdc6015's first board 60 + 1 could not tell (roles-audit probe create, connect timeout, correctly not retried) |
+| 10 | Health watch log level | `fix/health-watch-log-level` | NEXT: the cooldown notice logs at info, a real failure stays at error (operator, 2026-10-09) |
+| 10a | Probe ids | `fix/probe-ids` | roles-audit's and portal-probe's Auth creates name their ids, so a connect fault is retriable; boarded together with 10 |
+| 11 | Product audit, portal by portal | this branch | preflight recorded; portal runs after 10 |
+| 12 | Public site colours | | after the audit |
 
 ## Main
 
-`origin/main` at 3bb883e (fix/certification-unblock merged). Dated not-yet-V10 list: **0**. The board has **61** audits.
+`origin/main` at b24046a (fix/probe-transient-retry merged). Dated not-yet-V10 list: **0**. The board has **61** audits and prints a transient retry count.
 
 ## Worktrees
 
@@ -53,7 +55,7 @@ production's extent was wrong.
 
 ## Current branch
 
-`fix/probe-transient-retry` (worktree 254engineering-v10), from 3bb883e.
+`fix/health-watch-log-level` and `fix/probe-ids` (worktree 254engineering-v10), from b24046a, boarded together on an integration branch.
 
 ## Things a resumed session must know
 
