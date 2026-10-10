@@ -51,11 +51,14 @@ export default async function PartnerAgreementPage() {
           {principal.partner.agreementVersion
             ? `${principal.partner.organisation} accepted version ${principal.partner.agreementVersion}${
                 principal.partner.agreementAcceptedAt
-                  ? ` on ${(formatInFirmZone(principal.partner.agreementAcceptedAt, {
+                  ? /* With the time and the zone (run item 19): acceptance is recorded to the moment, and a date alone cannot settle which version was in force. */
+                    ` on ${(formatInFirmZone(principal.partner.agreementAcceptedAt, {
                       year: "numeric",
                       month: "long",
                       day: "numeric",
-                    }) ?? "")}`
+                      hour: "numeric",
+                      minute: "2-digit",
+                    }) ?? "")} CT`
                   : ""
               }.`
             : "Nothing has been accepted on this account yet."}
@@ -93,8 +96,8 @@ export default async function PartnerAgreementPage() {
       ) : (
         <Panel>
           <EmptyState
-            title="No agreement is published"
-            body="The firm has not published a program agreement yet. Nothing here needs your acceptance until it does, and what you have earned is unaffected either way."
+            title="The program agreement is awaiting counsel"
+            body="No agreement has been published, because its text is with counsel. Nothing here needs your acceptance until it is, and what you have earned is unaffected either way."
           />
         </Panel>
       )}

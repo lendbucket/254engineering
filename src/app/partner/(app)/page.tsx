@@ -98,6 +98,49 @@ export default async function PartnerHome() {
       </div>
 
       {/*
+        GETTING SET UP. Run item 19, 2026-10-10. Each step says where it stands
+        from the record, and a step whose text is with counsel says exactly
+        that, rather than carrying legal text nobody has approved.
+      */}
+      <Panel title="Getting set up">
+        <dl className="flex flex-col gap-3">
+          <div>
+            <dt className="text-[13.5px] font-semibold text-[var(--ink)]">Program agreement</dt>
+            <dd className="mt-0.5 text-[13.5px] leading-[1.6] text-[var(--secondary)]">
+              {!agreement ? (
+                "Awaiting counsel. Nothing needs your acceptance until it is published."
+              ) : outstanding ? (
+                <>
+                  Version {agreement.version} is waiting for your acceptance.{" "}
+                  <Link href="/partner/agreement" className="font-semibold underline">
+                    Read it
+                  </Link>
+                </>
+              ) : (
+                `Version ${principal.partner.agreementVersion ?? agreement.version} accepted${
+                  principal.partner.agreementAcceptedAt
+                    ? ` on ${formatInFirmZone(principal.partner.agreementAcceptedAt, {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                        hour: "numeric",
+                        minute: "2-digit",
+                      }) ?? ""} CT`
+                    : ""
+                }.`
+              )}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-[13.5px] font-semibold text-[var(--ink)]">Training</dt>
+            <dd className="mt-0.5 text-[13.5px] leading-[1.6] text-[var(--secondary)]">
+              Awaiting counsel. The training on what a partner may say about the firm&apos;s work is with counsel.
+            </dd>
+          </div>
+        </dl>
+      </Panel>
+
+      {/*
         THEIR OWN TERMS. Run item 20, product audit gap 30: a partner could see
         what they had earned and not the rate or the holdback it was computed
         under, so no figure on this screen could be checked. Read through
