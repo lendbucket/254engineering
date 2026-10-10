@@ -96,7 +96,8 @@ export default async function ReviewPage({
         {
           status: selected.file.status as FileStatus,
           packageComplete: selected.complete,
-          assignedEngineerId: actor!.id,
+          /* The file's assignee, so another engineer's file shows its actions refused (2026-10-10). */
+          assignedEngineerId: selected.file.assigned_engineer_id ?? null,
         },
         { prelaunch: isPrelaunch() },
       )
