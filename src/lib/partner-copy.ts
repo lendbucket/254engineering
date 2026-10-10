@@ -1,4 +1,5 @@
 import {
+  EARNINGS_CLAIMS,
   NEVER_CLAIMS,
   OPEN_GATED,
   SEALING_GATED,
@@ -48,10 +49,12 @@ const TRADING_GATED_P = TRADING_GATED as Pattern[];
 const SEALING_GATED_P = SEALING_GATED as Pattern[];
 const OPEN_GATED_P = OPEN_GATED as Pattern[];
 const NEVER = NEVER_CLAIMS as Pattern[];
+/* Run item 22: no partner copy promises what a partner will make, under any gate. */
+const EARNINGS = EARNINGS_CLAIMS as Pattern[];
 const BANNED = BANNED_PHRASES as Pattern[];
 
 export type CopyFinding = {
-  kind: "regulated" | "never" | "voice" | "style";
+  kind: "regulated" | "never" | "earnings" | "voice" | "style";
   why: string;
   match: string;
 };
@@ -143,6 +146,7 @@ export function copyVerdict(text: string): CopyVerdict {
   if (!sealingIsAvailable()) check(SEALING_GATED_P, "regulated");
   if (!isOpen()) check(OPEN_GATED_P, "regulated");
   check(NEVER, "never");
+  check(EARNINGS, "earnings");
   check(BANNED, "voice");
   check(STYLE, "style");
 
@@ -155,6 +159,15 @@ export function copyVerdict(text: string): CopyVerdict {
 
 function summarise(findings: CopyFinding[]): string {
   if (findings.length === 0) return "Nothing in this would fail the firm's own copy rules.";
+
+  /* Its own sentence, because the gate has nothing to do with it: never, under any mode. */
+  const earnings = findings.filter((f) => f.kind === "earnings");
+  if (earnings.length > 0) {
+    return (
+      `This promises what a partner will make: ${earnings.map((f) => `"${f.match}" (${f.why})`).join(", ")}. ` +
+      `No partner material may make an earnings claim.`
+    );
+  }
 
   const regulated = findings.filter((f) => f.kind === "regulated" || f.kind === "never");
   if (regulated.length > 0) {

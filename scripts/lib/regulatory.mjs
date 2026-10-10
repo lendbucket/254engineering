@@ -363,6 +363,32 @@ export const OPEN_GATED = [
   { pattern: /\bget started today\b/i, why: "invites an order" },
 ];
 
+/*
+ * ===========================================================================
+ * EARNINGS CLAIMS: NEVER, IN ANY PARTNER COPY. Run item 22, 2026-10-10.
+ * ===========================================================================
+ *
+ * The reseller program sells access for $800 and $99 a month. A sentence
+ * promising what a partner will make from it is an income claim about a paid
+ * opportunity, and nothing on a partner surface may make one, under any gate.
+ *
+ * A SEPARATE SET, NOT PART OF NEVER_CLAIMS, because NEVER_CLAIMS is also swept
+ * over the whole public site, where /careers states real pay for real roles.
+ * These apply to partner copy (copyVerdict) and to partner pages.
+ *
+ * Grouped by the claim. Past tense statements of record ("you earned $120 in
+ * September", on a statement) are not claims and do not match.
+ */
+export const EARNINGS_CLAIMS = [
+  { pattern: /\b(?:earn|make)s?\s+(?:up\s+to\s+|over\s+|at\s+least\s+)?\$\s?\d/i, why: "promises an amount a partner will make" },
+  { pattern: /\b(?:average|typical|top)\s+partners?\s+(?:earns?|makes?)\b/i, why: "states what partners make" },
+  { pattern: /\bpassive\s+income\b/i, why: "promises income" },
+  { pattern: /\bsix[\s-]figures?\b/i, why: "promises income" },
+  { pattern: /\bincome\s+(?:potential|opportunity|stream)\b/i, why: "promises income" },
+  { pattern: /\bguaranteed\s+(?:commission|income|earnings|payouts?)\b/i, why: "guarantees earnings" },
+  { pattern: /\bpays?\s+for\s+itself\b/i, why: "promises the fee is recovered" },
+];
+
 /** Matches from a pattern group, as { why, match, index }. */
 export function findClaims(text, group) {
   const hits = [];
