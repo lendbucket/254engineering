@@ -80,6 +80,7 @@ export async function POST(request: NextRequest) {
           action: result.action,
           minutes: result.minutes,
           paidCents: result.paidCents,
+          payNote: result.payNote,
         })
       : bad(result.error);
   }

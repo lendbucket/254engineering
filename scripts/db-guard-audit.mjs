@@ -810,7 +810,6 @@ console.log(`configured target: ${current ? describeTarget(current) : "unset"}\n
     "src/lib/ops-dashboard.ts": "three comparisons against ages, reading rather than writing",
     "src/lib/ops-docs.ts":
       "generatedAt on an in memory binder manifest, and two date cells in a CSV a person reads",
-    "src/lib/ops-engineer.ts": "today, for comparison",
     "src/lib/ops-field.ts": "today for comparison, and the YYYY-MM period a ledger row is bucketed under",
     "src/lib/ops-observability.ts": "a comparison and an in memory health report",
     "src/lib/ops-payments.ts": "sealedAt as a rendered phrase inside an email, never a column",
