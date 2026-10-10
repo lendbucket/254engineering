@@ -114,17 +114,41 @@ if (!db) {
   };
   walk("src");
   /*
+   * AND THE DATABASE, BECAUSE A FUNCTION CAN WRITE AN ASSIGNMENT TOO.
+   *
+   * 0068 moved the release of the technician on a site visit or repairs
+   * decision out of ops-engineer.ts and into eng_record_review_decision, so a
+   * scan of src alone counted two writers where there are three, and would
+   * have counted none had both setters moved the same way. The subject is
+   * widened rather than the number lowered: a statement in any migration that
+   * updates eng_files and assigns either column is a writer. Matched per
+   * STATEMENT, split on the semicolon, because SQL puts the set clause on
+   * whichever line it likes and a line match would miss the next one.
+   */
+  for (const entry of readdirSync("supabase/migrations").sort()) {
+    if (!/\.sql$/.test(entry)) continue;
+    const full = `supabase/migrations/${entry}`;
+    for (const statement of readSource(full).split(";")) {
+      const flat = statement.replace(/\s+/g, " ").trim();
+      if (/\bupdate (public\.)?eng_files set\b.*\bassigned_(engineer|tech)_id =/i.test(flat)) {
+        const at = flat.search(/\bupdate (public\.)?eng_files/i);
+        writers.push(`${full}: ${flat.slice(at, at + 70)}`);
+      }
+    }
+  }
+  /*
    * THREE, AND THE THIRD IS NOT AN ASSIGNMENT.
    *
    * Two of them SET an assignment, both when somebody accepts work: an engineer
    * taking a file into review, and a technician accepting an offer. The third
-   * CLEARS one, when a review is withdrawn.
+   * CLEARS one, when a site visit or repairs decision sends the file back
+   * through dispatch; since 0068 it is a statement in eng_record_review_decision.
    *
    * The number is stated rather than a ceiling, because "at most three" would
    * pass just as happily on a fourth that gave a file to somebody, and this
    * check exists to notice exactly that.
    */
-  const setters = writers.filter((w) => !/:\s*null/.test(w));
+  const setters = writers.filter((w) => !/(:|=)\s*null\b/.test(w));
   rec(
     `only accepting work writes an assignment (${writers.length} writer(s), ${setters.length} of which set one)`,
     writers.length === 3 && setters.length === 2,
