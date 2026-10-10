@@ -11,6 +11,7 @@ import { periodOf } from "./ops-review";
 import { ordersNeedingAttention } from "./ops-reconcile";
 import { marginOf, type Cents, type PeriodTotals } from "./ops-money";
 import { isOwed, isPaid } from "./pay-figures";
+import { credentialBlockersFor } from "./ops-onboarding";
 
 /**
  * The three dashboards.
@@ -880,7 +881,67 @@ async function techDashboard(actor: Actor): Promise<TechDashboard> {
     });
   }
 
+  attention.push(...(await dispatchBlockersFor(actor.id)));
+
   return { role: "field_tech", tiles, money, attention };
+}
+
+/*
+ * =========================================================================
+ * WHY NO JOB IS BEING OFFERED TO YOU. Operator ruling, 2026-10-10 (gap 1 of
+ * the product audit).
+ * =========================================================================
+ *
+ * planDispatch (ops-dispatch.ts) leaves a technician out for four reasons: the
+ * account is not active, they do not cover the county, they are not certified
+ * for the line, or a credential blocks them (the W-9 and the contractor
+ * agreement are credentials, so the documents are among these). The operator
+ * saw those reasons on the dispatch screen; the technician saw nothing, and a
+ * technician who is never offered work cannot tell "no jobs nearby" from "my
+ * W-9 is missing".
+ *
+ * Each reason here is read with what dispatch reads: the profile's status and
+ * coverage, the certifications whose status is certified, and
+ * credentialBlockersFor, the function candidateTechs calls. The county a job is
+ * in is per job, so the coverage line here is the general case: none set.
+ */
+async function dispatchBlockersFor(profileId: string): Promise<Attention[]> {
+  const db = supabaseAdmin();
+  if (!db) return [];
+  const [{ data: profile }, { data: certs }, blockersBy] = await Promise.all([
+    db.from("eng_profiles").select("status, coverage_counties").eq("id", profileId).maybeSingle(),
+    db.from("eng_certifications").select("service_slug").eq("profile_id", profileId).eq("status", "certified"),
+    credentialBlockersFor([profileId]),
+  ]);
+  const out: Attention[] = [];
+  if (profile && profile.status !== "active") {
+    out.push({
+      label: "No job can be offered to you: your account is not active",
+      detail: `It reads ${profile.status}. An administrator can tell you why.`,
+    });
+  }
+  if (profile && ((profile.coverage_counties as string[] | null) ?? []).length === 0) {
+    out.push({
+      label: "No job can be offered to you: you cover no counties",
+      detail: "Dispatch offers a job only to somebody who covers its county, and the office sets your counties. Ask an administrator.",
+      href: "/portal/profile",
+    });
+  }
+  if ((certs ?? []).length === 0) {
+    out.push({
+      label: "No job can be offered to you: you are not certified for any service line",
+      detail: "Each line needs its own certification before dispatch will offer you one of its jobs.",
+      href: "/portal/certification",
+    });
+  }
+  for (const reason of blockersBy.get(profileId) ?? []) {
+    out.push({
+      label: "No job can be offered to you until this is fixed",
+      detail: reason,
+      href: "/portal/certification",
+    });
+  }
+  return out;
 }
 
 /** The dashboard for whoever is asking. Role decides it, never a query parameter. */
