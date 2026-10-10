@@ -5,7 +5,7 @@ import { writeAudit } from "./ops-audit";
 import { can, type Actor } from "./ops-authz";
 import { normaliseCode, looksLikeCode } from "./attribution-rules";
 import { issuePartnerToken } from "./partner-auth";
-import { netOf, type CompModel, type Tier } from "./partner-comp";
+import { modelRefusal, netOf, type CompModel, type Tier } from "./partner-comp";
 import type { Cents } from "./ops-money";
 
 /**
@@ -517,6 +517,10 @@ export async function setPartnerTerms(
   if (input.holdbackDays < 0 || input.holdbackDays > 365) {
     return { ok: false, error: "A holdback is between zero and three hundred and sixty five days." };
   }
+
+  /* A percentage model waits for counsel's answer in the register (run item 21). */
+  const refusal = modelRefusal(input.model);
+  if (refusal) return { ok: false, error: refusal };
 
   /*
    * The figure the model needs has to be present. Terms that cannot produce a

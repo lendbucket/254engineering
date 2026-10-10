@@ -16,6 +16,7 @@ import {
   TermsForm,
 } from "./PartnerActions";
 import { formatInFirmZone } from "@/lib/firm-calendar";
+import { percentageCompensationAllowed } from "@/lib/partner-comp";
 
 export const dynamic = "force-dynamic";
 
@@ -158,7 +159,7 @@ export default async function PartnerPage({ params }: { params: Promise<{ id: st
           </details>
         ) : null}
 
-        <TermsForm partnerId={partner.id} />
+        <TermsForm partnerId={partner.id} percentageAllowed={percentageCompensationAllowed()} />
       </Panel>
 
       <Panel title="Who signs in" description="An organization outlives whoever holds the login.">

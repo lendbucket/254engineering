@@ -635,6 +635,34 @@ export const verifiedInsurance: VerifiedInsurance[] = [];
 
 /**
  * ===========================================================================
+ * COUNSEL'S ANSWER ON PAYING A PARTNER A PERCENTAGE. Run item 21, 2026-10-10.
+ * ===========================================================================
+ *
+ * Whether a percentage of an engineering fee may be paid to an unlicensed
+ * referrer is a question for TBPELS or a licensing attorney
+ * (src/lib/partner-comp.ts says so at its head). Until an answer is recorded
+ * here, `percentageCompensationAllowed()` is false and the two percentage
+ * models, percent_of_order and tiered_by_volume, cannot be selected: the
+ * flat fee models can.
+ *
+ * NULL, AND THE NULL IS THE CURRENT ANSWER: nobody has recorded counsel's
+ * view. It is recorded by editing this file on purpose, with who answered, when,
+ * and where the answer is kept, as every other entry here is.
+ */
+export type CounselAnswer = {
+  answer: "permitted" | "not_permitted";
+  /** Who gave the answer: counsel's name and firm, or the board. */
+  by: string;
+  /** YYYY-MM-DD. */
+  on: string;
+  /** Where the written answer is kept. */
+  reference: string;
+};
+
+export const counselOnPercentageCompensation: CounselAnswer | null = null;
+
+/**
+ * ===========================================================================
  * OPERATING WITHOUT PROFESSIONAL LIABILITY COVER, BY OWNER DECISION, WITH A DATE
  * ===========================================================================
  *

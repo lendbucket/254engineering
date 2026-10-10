@@ -1171,13 +1171,16 @@ console.error("");
     .limit(1)
     .maybeSingle();
   if (!terms) {
+    /* A flat fee, because a percentage model waits for counsel's answer in the
+     * register and setPartnerTerms refuses it (run item 21). Existing demo
+     * terms are left as they are; only a fresh seed reads this. */
     await mustInsert("eng_partner_terms", {
       partner_id: partnerId,
-      model: "percent_of_order",
-      percent_bps: 250,
+      model: "flat_per_order",
+      flat_cents: 5000,
       holdback_days: 30,
       effective_from: "2026-01-01",
-      note: "Seeded. Two and a half percent of order value, thirty day holdback.",
+      note: "Seeded. Fifty dollars for each delivered order, thirty day holdback.",
     });
   }
 

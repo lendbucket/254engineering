@@ -1,3 +1,5 @@
+import { counselOnPercentageCompensation } from "@/config/credentials";
+
 /**
  * What a partner earned, and what a refund takes back.
  *
@@ -27,6 +29,32 @@ export type CompModel =
   | "flat_per_order"
   | "flat_per_qualified_lead"
   | "tiered_by_volume";
+
+/*
+ * THE TWO MODELS THAT PAY A PERCENTAGE, AND THE ANSWER THEY WAIT FOR. Run item
+ * 21, 2026-10-10. Neither may be selected until the register records counsel's
+ * answer as "permitted" (counselOnPercentageCompensation in credentials.ts).
+ * The answer is passed in, so this module stays pure and the check can be
+ * proved with either answer.
+ */
+export const PERCENTAGE_MODELS: readonly CompModel[] = ["percent_of_order", "tiered_by_volume"];
+
+export function percentageCompensationAllowed(
+  counsel: { answer: "permitted" | "not_permitted" } | null = counselOnPercentageCompensation,
+): boolean {
+  return counsel?.answer === "permitted";
+}
+
+/** Null when this model may be selected, otherwise the sentence the screen shows. */
+export function modelRefusal(
+  model: CompModel,
+  counsel: { answer: "permitted" | "not_permitted" } | null = counselOnPercentageCompensation,
+): string | null {
+  if (!PERCENTAGE_MODELS.includes(model) || percentageCompensationAllowed(counsel)) return null;
+  return counsel?.answer === "not_permitted"
+    ? "Counsel has answered that a partner may not be paid a percentage. Choose a flat fee."
+    : "A percentage model waits for counsel's answer on paying a partner a percentage. Choose a flat fee until it is recorded.";
+}
 
 /** One step of a volume ladder. `min` is the count at which `bps` starts. */
 export type Tier = { min: number; bps: number };

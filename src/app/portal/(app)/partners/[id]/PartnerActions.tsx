@@ -124,9 +124,14 @@ export function StatusForm({ partnerId, status }: { partnerId: string; status: s
 
 // -------------------------------------------------------------------- terms
 
-export function TermsForm({ partnerId }: { partnerId: string }) {
+/*
+ * percentageAllowed comes from the register, read on the server (run item 21):
+ * until counsel's answer is recorded, the two percentage models are shown
+ * disabled with the reason, and setPartnerTerms refuses them whatever is posted.
+ */
+export function TermsForm({ partnerId, percentageAllowed }: { partnerId: string; percentageAllowed: boolean }) {
   const { busy, result, run } = useAction(partnerId);
-  const [model, setModel] = useState("percent_of_order");
+  const [model, setModel] = useState(percentageAllowed ? "percent_of_order" : "flat_per_order");
   const [percent, setPercent] = useState("2.5");
   const [flat, setFlat] = useState("50.00");
   const [holdback, setHoldback] = useState("30");
@@ -145,11 +150,20 @@ export function TermsForm({ partnerId }: { partnerId: string }) {
             Model
           </label>
           <select id="model" value={model} onChange={(e) => setModel(e.target.value)} className={FIELD}>
-            <option value="percent_of_order">A percentage of the order</option>
+            <option value="percent_of_order" disabled={!percentageAllowed}>
+              A percentage of the order{percentageAllowed ? "" : " (waits for counsel)"}
+            </option>
             <option value="flat_per_order">A flat fee for each order</option>
             <option value="flat_per_qualified_lead">A flat fee for each qualified lead</option>
-            <option value="tiered_by_volume">A percentage that improves with volume</option>
+            <option value="tiered_by_volume" disabled={!percentageAllowed}>
+              A percentage that improves with volume{percentageAllowed ? "" : " (waits for counsel)"}
+            </option>
           </select>
+          {percentageAllowed ? null : (
+            <p className="mt-1.5 text-[13px] leading-[1.5] text-[var(--color-ink-quiet)]">
+              The percentage models wait for counsel&apos;s answer on paying a partner a percentage.
+            </p>
+          )}
         </div>
 
         {needsPercent ? (
