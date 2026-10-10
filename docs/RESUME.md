@@ -23,12 +23,14 @@ position, not the reasoning (that is in GAPS.md and the commit messages).
 | 12 | Defect fixes, no migration | `integrate/2026-10-10b` at b631786 (15 branches: offer-needs-a-rate, partner-window-copy, dates-in-central, customer-sign-in-limit, credential-form-offline, mfa-no-replace-from-password, review-belongs-to-its-engineer, pay-owed-one-home, refund-reason-per-order, mfa-sign-out, waiting-links, launch-sellable-needs-the-gate, engineer-dead-links, csr-most-recent, partner-true-totals) | **MERGED as 8c991fd** (parents d282d5a, b631786), board 61 of 61, retries 3 equal to the log; importing audits standalone 19 of 19. The MFA bypass was reproduced live on d282d5a first. The lock was held by other projects 04:42Z to 08:02Z and 08:08Z to 08:26Z |
 | 12a | Three more small fixes | `integrate/2026-10-10c` at ee3f487 | Board **59 of 61** (voice-audit: "Cancelled"; token-audit: a 13.5px size), split per the rule. `fix/cancelled-job-stays-visible` at f19438b boarded alone 61 of 61, **MERGED as 7cdb9d0**. `fix/files-list-says-when-capped` (75d9c8e) and `fix/file-panel-stale-copy` (1d50cea) fixed and pushed, **NOT YET BOARDED ALONE**: next |
 | 13 | Two tabs, two pending credentials | `fix/credential-one-pending` at 39863c3, migration 0067 | **MERGED as d99ede9** (parents 7cdb9d0, 39863c3), board 60 of 61, the one predicted line being schema-ledger-audit's 0067-not-on-main, which the merge resolves. 0067 applied to development then production by the counterpart 2026-10-10, read back as predicted |
+| 13b | Engineer pay, one home | `fix/engineer-pay-one-home` at b57eb60 | **MERGED as b3482dd** (parents d99ede9, b57eb60), 61 of 61. First board 7f561eb 60 of 61 (stale db-guard clock allowance) |
+| 13c | Queue after b3482dd | | (1) `fix/search-appearance`: grep of /services sentence, name inventory and titles table to Robert UNCOMMITTED; brand removal HELD for his reading of the Board's assumed names. (2) `fix/review-and-credit-one-write`: one DB function (decision, credit, status, review rows, eng_jobs enqueue), outside work after commit, live rollback proofs, windstorm no-deliverable to attention queue; migration unapplied. (3) template publishing. (4) WP-001 v1.2, FC-001 v1.0 (sha256 confirmed). Then question pages, coastal county pages, review request |
 | 13a | Rulings of 2026-10-10 morning | | Order: engineer pay one home (`engineer-pay.ts`, productionFeeFor reads the tier; production eng_fee_schedule is EMPTY), then template published on signing (migration unapplied), then WP-001 v1.2 and FC-001 v1.0 transcriptions (migration unapplied), then the rest |
 | 14 | Public site colours | | after the audit and the defects |
 
 ## Main
 
-`origin/main` at d99ede9 (fix/credential-one-pending, with 0067, merged after 7cdb9d0). Dated not-yet-V10 list: **0**. The board has **61** audits and prints a transient retry count.
+`origin/main` at b3482dd (fix/engineer-pay-one-home merged after d99ede9). Dated not-yet-V10 list: **0**. The board has **61** audits and prints a transient retry count.
 
 ## Worktrees
 
