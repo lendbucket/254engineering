@@ -1733,7 +1733,17 @@ async function customerServiceDashboard(): Promise<CustomerServiceDashboard> {
       rows: groupBy(
         suppressions,
         (s) => (s.token_hash === null ? "recorded by somebody here" : "they clicked the link"),
-        (group) => `most recent ${daysSince((group[0].created_at as string) ?? null)} day(s) ago`,
+        /*
+         * The NEWEST row in the group. Product audit, 2026-10-10: the list is
+         * read oldest first, so group[0] was the oldest row printed as "most
+         * recent". ISO timestamps compare correctly as strings.
+         */
+        (group) => {
+          const newest = group
+            .map((s) => (s.created_at as string | null) ?? "")
+            .reduce((a, b) => (b > a ? b : a), "");
+          return `most recent ${daysSince(newest || null)} day(s) ago`;
+        },
       ),
     },
   ];
