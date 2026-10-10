@@ -43,6 +43,13 @@ active, login 2026-09-02 16:45:18 UTC, profile 17:57:25 UTC, and no
 `scripts/seed-admin.mjs`, not the People screen, so it carries no such row, true
 or false.
 
+## QUESTION PAGES: A LIST AWAITING APPROVAL
+
+`docs/question-pages-list.md`, item 23 of the run of 2026-10-10: ten
+questions from the five signed v1.1 protocols and one (roof) waiting on RC-001's
+live status. Phase 1 only; no volumes until Search Console figures or an
+approved Ahrefs pull. Nothing is written until Robert approves rows.
+
 ## THE SITTING OF 2026-10-10: 0067, ONE PENDING CREDENTIAL OF EACH KIND, RUN
 
 `docs/production-sitting-2026-10-10.md`. One additive migration on
