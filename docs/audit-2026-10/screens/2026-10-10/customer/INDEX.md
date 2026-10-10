@@ -1,0 +1,16 @@
+# Customer account: screenshots
+
+Product audit, 2026-10-10, from main at d282d5a on development (probe and demonstration accounts only; no real person). Each route was opened by every principal that could plausibly reach it; the screens below are the ones each principal reached, at 390 and 1280, captured at their full scroll height. `who` names the principal: a probe (empty), a demo-* account (populated), seedPartner or seedCustomer (the audit seed's owners), or public (signed out).
+
+| Route | Reached by | Refused (status, landed on) | Screenshots |
+| --- | --- | --- | --- |
+| `/account` | customer, seedCustomer | signed out (200, /account/login) | [customer__1280](account__customer__1280.jpg) [customer__390](account__customer__390.jpg) [seedCustomer__1280](account__seedCustomer__1280.jpg) [seedCustomer__390](account__seedCustomer__390.jpg) |
+| `/account/forgot-password` | signed out | customer (200, /account/settings); seedCustomer (200, /account/settings) | [public__1280](account-forgot-password__public__1280.jpg) [public__390](account-forgot-password__public__390.jpg) |
+| `/account/order` | customer, seedCustomer | signed out (200, /account/login) | [customer__1280](account-order__customer__1280.jpg) [customer__390](account-order__customer__390.jpg) [seedCustomer__1280](account-order__seedCustomer__1280.jpg) [seedCustomer__390](account-order__seedCustomer__390.jpg) |
+| `/account/orders` | customer, seedCustomer | signed out (200, /account/login) | [customer__1280](account-orders__customer__1280.jpg) [customer__390](account-orders__customer__390.jpg) [seedCustomer__1280](account-orders__seedCustomer__1280.jpg) [seedCustomer__390](account-orders__seedCustomer__390.jpg) |
+| `/account/settings` | customer, seedCustomer | signed out (200, /account/login) | [customer__1280](account-settings__customer__1280.jpg) [customer__390](account-settings__customer__390.jpg) [seedCustomer__1280](account-settings__seedCustomer__1280.jpg) [seedCustomer__390](account-settings__seedCustomer__390.jpg) |
+| `/account/sign-up` | signed out | customer (200, /account); seedCustomer (200, /account) | [public__1280](account-sign-up__public__1280.jpg) [public__390](account-sign-up__public__390.jpg) |
+| `/account/statements` | customer, seedCustomer | signed out (200, /account/login) | [customer__1280](account-statements__customer__1280.jpg) [customer__390](account-statements__customer__390.jpg) [seedCustomer__1280](account-statements__seedCustomer__1280.jpg) [seedCustomer__390](account-statements__seedCustomer__390.jpg) |
+| `/account/login` | signed out | customer (200, /account); seedCustomer (200, /account) | [public__1280](account-login__public__1280.jpg) [public__390](account-login__public__390.jpg) |
+| `/account/set-password` | customer, seedCustomer, signed out | nobody | [customer__1280](account-set-password__customer__1280.jpg) [customer__390](account-set-password__customer__390.jpg) [public__1280](account-set-password__public__1280.jpg) [public__390](account-set-password__public__390.jpg) [seedCustomer__1280](account-set-password__seedCustomer__1280.jpg) [seedCustomer__390](account-set-password__seedCustomer__390.jpg) |
+| `/account/orders/[reference]` | seedCustomer | nobody | [seedCustomer__1280](account-orders-reference-__seedCustomer__1280.jpg) [seedCustomer__390](account-orders-reference-__seedCustomer__390.jpg) |
