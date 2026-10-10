@@ -173,6 +173,40 @@ console.log("");
     `the module says ${ATTRIBUTION_WINDOW_DAYS}`,
   );
 
+  /*
+   * AND WHAT A PARTNER IS TOLD IS THE SAME NUMBER. Found by the product audit,
+   * 2026-10-09: the partner overview said a code "credits you for thirty days"
+   * and the referrals page "within thirty days of the order", while the rule
+   * credited ninety. The pages now derive it; this refuses a window typed back
+   * into any partner page, in words or digits, and asserts the two sentences
+   * still carry the derived value, so it cannot pass by both being deleted.
+   */
+  const partnerPages = [];
+  const walkPartner = (dir) => {
+    for (const entry of readdirSync(dir)) {
+      const full = `${dir}/${entry}`;
+      if (statSync(full).isDirectory()) walkPartner(full);
+      else if (/\.tsx?$/.test(entry)) partnerPages.push(full);
+    }
+  };
+  walkPartner("src/app/partner");
+  const NUMBER = "(?:\\d+|one|two|three|four|five|six|seven|eight|nine|ten|fourteen|fifteen|twenty|thirty|forty|forty five|sixty|ninety|a hundred|one hundred)";
+  const TYPED_WINDOW = new RegExp(`(credits you\\s+for|within)\\s+${NUMBER}\\s+days`, "i");
+  const typed = partnerPages.filter((f) => TYPED_WINDOW.test(readSource(f).replace(/\/\*[\s\S]*?\*\//g, "").replace(/\{\/\*[\s\S]*?\*\/\}/g, "")));
+  rec(
+    "no partner page types the attribution window; each derives ATTRIBUTION_WINDOW_DAYS",
+    partnerPages.length > 0 && typed.length === 0,
+    typed.length ? `typed in ${typed.join(", ")}` : `${partnerPages.length} partner source file(s) read`,
+  );
+  const derives = ["src/app/partner/(app)/page.tsx", "src/app/partner/(app)/referrals/page.tsx"].filter((f) =>
+    /\{ATTRIBUTION_WINDOW_DAYS\} days/.test(readSource(f)),
+  );
+  rec(
+    "and the overview and the referrals page state the window from the rule",
+    derives.length === 2,
+    `${derives.length} of 2 carry {ATTRIBUTION_WINDOW_DAYS} days`,
+  );
+
   rec(
     `a touch ${WINDOW_DAYS} days old is still inside the window`,
     call([link(ALPHA, "bayside", WINDOW_DAYS)]).attributed === true,

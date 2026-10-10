@@ -2,6 +2,7 @@ import Link from "next/link";
 import { currentPartner } from "@/lib/partner-auth";
 import { agreementOutstanding, currentAgreement, partnerOverview } from "@/lib/ops-partner-portal";
 import { money } from "@/lib/ops-money";
+import { ATTRIBUTION_WINDOW_DAYS } from "@/lib/attribution-rules";
 import {
   AbsentChip,
   EmptyState,
@@ -64,7 +65,8 @@ export default async function PartnerHome() {
           Your referral code is{" "}
           <span className="font-semibold text-[var(--navy)]">{principal.partner.code}</span>. It
           works as a link and as a code somebody says on the telephone, and either one credits you
-          for thirty days.
+          for {ATTRIBUTION_WINDOW_DAYS} days.
+          {/* Derived, 2026-10-09: this said "thirty days" while the rule credits ATTRIBUTION_WINDOW_DAYS (90). */}
         </p>
       </div>
 
