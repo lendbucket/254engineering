@@ -277,6 +277,12 @@ export const NOT_CREDENTIALS = new Set([
    */
   "MACHINE_LOCK_HELD",
   /*
+   * AUDIT_RETRY_LOG, 2026-10-09. A file path under the system temp directory
+   * where each audit records the network faults it retried, so the board can
+   * count them (scripts/lib/transient-retry.mjs). A path and nothing else.
+   */
+  "AUDIT_RETRY_LOG",
+  /*
    * break-glass-audit starts three servers one after another, because a
    * process environment is fixed when it boots and the audit needs three
    * different values of MFA_BREAK_GLASS. Three ports, three names.

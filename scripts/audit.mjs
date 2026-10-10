@@ -33,6 +33,9 @@
 // first failure hides how much else is broken, which turns one fix into five
 // round trips.
 import { spawnSync } from "node:child_process";
+import { readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { readSource } from "./lib/read-source.mjs";
 
 import { runtimeFor, DECLARATION } from "./lib/audit-runtime.mjs";
@@ -73,6 +76,23 @@ import { PORTS } from "./lib/ports.mjs";
  * to each audit and not to the runner.
  */
 const AUDIT_ENV = { ...process.env };
+
+/*
+ * Where every audit's transient retries are recorded for this board, so the
+ * board can count them (scripts/lib/transient-retry.mjs). Added to the frozen
+ * env on purpose, and emptied here so a count is of this run only.
+ */
+const RETRY_LOG = join(tmpdir(), `254engineering-retries-${process.pid}.jsonl`);
+writeFileSync(RETRY_LOG, "");
+AUDIT_ENV.AUDIT_RETRY_LOG = RETRY_LOG;
+/*
+ * And this process's own, because the runner reads the job queue through a
+ * database client of its own. The first board of this branch, e9b0346, retried
+ * three of those reads and printed "Transient retries: 0", because only the
+ * audits' environment carried the log. A count that reads zero over three
+ * retries is the understated figure this repository keeps recording.
+ */
+process.env.AUDIT_RETRY_LOG = RETRY_LOG;
 
 const PORT = Number(process.env.AUDIT_PORT ?? PORTS.audit);
 const BASE = process.env.BASE_URL || `http://localhost:${PORT}`;
@@ -1180,6 +1200,37 @@ if (setupError) {
   const passed = results.filter((r) => r.code === 0);
   const tallied = passed.length + failed.length + unmeasured.length;
   let arithmeticBroken = false;
+
+  /*
+   * HOW MANY NETWORK FAULTS THIS BOARD RETRIED, BY AUDIT. Operator ruling,
+   * 2026-10-09: every retry is logged, the board prints a count, and a board
+   * with more than five says so. A retry that recovered is still a fault that
+   * happened, and a run of them is the network rather than the product. It does
+   * not change the verdict: a recovered read measured what it was meant to.
+   */
+  console.log("");
+  const retries = (() => {
+    try {
+      return readFileSync(RETRY_LOG, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
+    } catch {
+      return [];
+    }
+  })();
+  const retried = retries.filter((r) => typeof r.attempt === "number");
+  const refused = retries.filter((r) => typeof r.attempt !== "number");
+  const byAudit = new Map();
+  for (const r of retried) byAudit.set(r.audit, (byAudit.get(r.audit) ?? 0) + 1);
+  console.log(
+    `Transient retries: ${retried.length}${byAudit.size ? ` (${[...byAudit].map(([a, n]) => `${a} ${n}`).join(", ")})` : ""}.` +
+      `${refused.length ? ` ${refused.length} fault(s) were not retried, by rule; each is in its audit's output under [transient-retry].` : ""}`,
+  );
+  if (retried.length > 5) {
+    console.log(
+      `  MORE THAN FIVE RETRIES ON ONE BOARD (${retried.length}). The network to the database was unwell during this run;`,
+    );
+    console.log("  read the [transient-retry] lines before trusting what it measured.");
+  }
+
   /*
    * WHAT THE RUN LEFT IN THE JOB QUEUE, NAMED BY AUDIT. Operator ruling,
    * 2026-09-24, after development's queue reached 1,017 pending and 577 dead

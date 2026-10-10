@@ -52,6 +52,7 @@
  * exactly that.
  */
 import { createClient } from "@supabase/supabase-js";
+import { retryingFetch } from "./transient-retry.mjs";
 
 /*
  * The credentials come from the same file the dev server reads.
@@ -200,8 +201,23 @@ export function auditClient(purpose = "this script", options = {}) {
     process.exit(1);
   }
 
+  /*
+   * A fault before any response is retried, and nothing else is: see
+   * transient-retry.mjs for the ruling of 2026-10-09 and its limits.
+   * `options.fetch` exists for the proof, which hands in a fetch that fails.
+   *
+   * AND THE CLIENT'S OWN RETRY IS OFF, `db.retry: false`. Found 2026-10-09 by
+   * the proof's injection: postgrest-js 2.112 retries every GET and HEAD three
+   * times on any thrown fetch, at 1, 2 and 4 seconds, and ALSO on an HTTP 503
+   * or 520, with nothing logged. The ruling says never on a status and every
+   * retry logged; with two retry layers, neither is true. One layer, this one.
+   */
   return createClient(url, key, {
     auth: { persistSession: false, autoRefreshToken: false },
-    global: { headers: { "x-application-name": "254engineering-audit" } },
+    db: { retry: false },
+    global: {
+      headers: { "x-application-name": "254engineering-audit" },
+      fetch: retryingFetch(options.fetch ?? globalThis.fetch),
+    },
   });
 }
