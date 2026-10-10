@@ -186,7 +186,7 @@ export default async function JobsPage() {
                   {o.state === "withdrawn"
                     ? "Taken by someone else"
                     : o.state === "accepted" && o.file?.status === "cancelled"
-                      ? "Cancelled by the office"
+                      ? "Canceled by the office"
                       : o.state === "accepted"
                         ? "Completed"
                         : o.state}
