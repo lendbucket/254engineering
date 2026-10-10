@@ -57,7 +57,9 @@ export default async function JobsPage() {
   );
   const past = offers.filter(
     (o) =>
-      (o.state === "accepted" && o.file && ["delivered", "closed"].includes(o.file.status)) ||
+      /* "cancelled" too: an accepted job whose file was later cancelled matched
+       * neither list and vanished from the screen (product audit, 2026-10-10). */
+      (o.state === "accepted" && o.file && ["delivered", "closed", "cancelled"].includes(o.file.status)) ||
       o.state === "declined" ||
       o.state === "withdrawn" ||
       o.state === "expired",
@@ -183,9 +185,11 @@ export default async function JobsPage() {
                 <p className="shrink-0 text-[13px] font-semibold text-[var(--ink)]">
                   {o.state === "withdrawn"
                     ? "Taken by someone else"
-                    : o.state === "accepted"
-                      ? "Completed"
-                      : o.state}
+                    : o.state === "accepted" && o.file?.status === "cancelled"
+                      ? "Cancelled by the office"
+                      : o.state === "accepted"
+                        ? "Completed"
+                        : o.state}
                 </p>
               </li>
             ))}
