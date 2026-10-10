@@ -24,13 +24,14 @@ position, not the reasoning (that is in GAPS.md and the commit messages).
 | 12a | Three more small fixes | `integrate/2026-10-10c` at ee3f487 | Board **59 of 61** (voice-audit: "Cancelled"; token-audit: a 13.5px size), split per the rule. `fix/cancelled-job-stays-visible` at f19438b boarded alone 61 of 61, **MERGED as 7cdb9d0**. `fix/files-list-says-when-capped` (75d9c8e) and `fix/file-panel-stale-copy` (1d50cea) fixed and pushed, **NOT YET BOARDED ALONE**: next |
 | 13 | Two tabs, two pending credentials | `fix/credential-one-pending` at 39863c3, migration 0067 | **MERGED as d99ede9** (parents 7cdb9d0, 39863c3), board 60 of 61, the one predicted line being schema-ledger-audit's 0067-not-on-main, which the merge resolves. 0067 applied to development then production by the counterpart 2026-10-10, read back as predicted |
 | 13b | Engineer pay, one home | `fix/engineer-pay-one-home` at b57eb60 | **MERGED as b3482dd** (parents d99ede9, b57eb60), 61 of 61. First board 7f561eb 60 of 61 (stale db-guard clock allowance) |
-| 13c | Queue after b3482dd | | (1) `fix/search-appearance`: grep of /services sentence, name inventory and titles table to Robert UNCOMMITTED; brand removal HELD for his reading of the Board's assumed names. (2) `fix/review-and-credit-one-write`: one DB function (decision, credit, status, review rows, eng_jobs enqueue), outside work after commit, live rollback proofs, windstorm no-deliverable to attention queue; migration unapplied. (3) template publishing. (4) WP-001 v1.2, FC-001 v1.0 (sha256 confirmed). Then question pages, coastal county pages, review request |
+| 13d | Tech dashboard names dispatch blockers | `fix/tech-dashboard-names-blockers` at e9da5f3 | **MERGED as 2beb06c** (parents b3482dd, e9da5f3), 61 of 61 as predicted |
+| 13e | The run of 2026-10-10 | | Everything else built that day, its branches, boards and questions: `docs/audit-2026-10/RUN-2026-10-10.md`. 0070 amended before any apply to the engineer role only (admin stays optional, operator ruling 2026-10-10); staged chain 0068, 0069, 0070, 0071, 0072, in that order |
 | 13a | Rulings of 2026-10-10 morning | | Order: engineer pay one home (`engineer-pay.ts`, productionFeeFor reads the tier; production eng_fee_schedule is EMPTY), then template published on signing (migration unapplied), then WP-001 v1.2 and FC-001 v1.0 transcriptions (migration unapplied), then the rest |
 | 14 | Public site colours | | after the audit and the defects |
 
 ## Main
 
-`origin/main` at b3482dd (fix/engineer-pay-one-home merged after d99ede9). Dated not-yet-V10 list: **0**. The board has **61** audits and prints a transient retry count.
+`origin/main` at 2beb06c (fix/tech-dashboard-names-blockers merged after b3482dd). Dated not-yet-V10 list: **0**. The board has **61** audits and prints a transient retry count.
 
 ## Worktrees
 
