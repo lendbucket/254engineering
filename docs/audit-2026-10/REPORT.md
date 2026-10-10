@@ -168,3 +168,27 @@ which is said) before it counted. Access and money first.
 | 24 | An accepted job whose file is later cancelled disappears from My jobs (matches neither list) | `jobs/page.tsx:51-63` | Not reached tonight |
 | 25 | Two links on /about and /government are navy on the navy band, visible only by their underline, and contrast-audit is green over both | `about/page.tsx:115`, `government/page.tsx:116` | Not reproduced tonight (a contrast-audit blind spot if it holds) |
 | 26 | Statements can be closed and issued on a closed account | `ops-statements.ts:81` | Not a clear defect: a final invoice for work before closure may be right. On the decisions list |
+
+## The break-it sweep, re-run against 8c991fd
+
+`break-it-sweep-2026-10-10.md`, beside this file: 121 routes, 63 API routes as 7
+principals, 16 forms with 37 hostile submissions, 668 of 749 controls pressed
+at 390 and 1280. 72 distinct findings from 1,049 observations, 2 could not tell.
+Read against tonight's work:
+
+- **The customer sign in limit holds live**: ten wrong passwords are refused
+  with 429 (it found the same route unlimited on 2026-10-02).
+- **And it masked three of the sweep's own checks.** The email typed in
+  capitals, or with a leading or trailing space, also met 429, because the same
+  run had just spent the address's attempts. Those three measured the limiter,
+  not email normalisation; the route trims and lowercases before it limits, but
+  the sweep should run them before its password guessing. A sweep fix, not a
+  product defect.
+- **`/portal/partners/disputes`, "Look it up" with empty, oversized or markup
+  input, reported as showing no message.** Not reproduced: the form sets a
+  message for each case (`LookupForm.tsx:60-68`) in an aria-live paragraph; the
+  sweep's detector is looking for a different signal. Recorded, not counted.
+- **Length**: every public page is long by design; `/order` is 3,342 px, four
+  phone heights on an app screen, which is gap material, not a defect.
+- **Wording that warrants**: "usually" on `/account/settings` and the customer
+  service dashboard, as on 2026-10-02.
