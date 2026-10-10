@@ -238,6 +238,8 @@ const PORTED = [
   // list on the day they are built: a screen written today has no excuse for
   // being outside the design system, and the list may only grow.
   "src/app/portal/(app)/reports/page.tsx",
+  /* The record search, 2026-10-10, on the day it was built. */
+  "src/app/portal/(app)/search/page.tsx",
   "src/app/portal/(app)/suppressions/page.tsx",
   "src/app/portal/(app)/suppressions/SuppressionsClient.tsx",
   "src/app/portal/(app)/applications/page.tsx",
@@ -626,6 +628,8 @@ const CUSTOMER_V10 = [
  * said what the colour was saying a second time.
  */
 const STAFF_V10 = [
+  /* The record search, 2026-10-10, held to the staff rules from its first commit. */
+  "src/app/portal/(app)/search/page.tsx",
   "src/app/portal/(app)/review/page.tsx",
   "src/app/portal/(app)/review/ReviewClient.tsx",
   "src/app/portal/(app)/review/LetterSealPanel.tsx",

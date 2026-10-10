@@ -1742,6 +1742,13 @@ if (!db) {
         "/portal/clients",
         "/portal/documents",
         "/portal/messages",
+        /*
+         * The record search, 2026-10-10. Gated on files.list, which he holds,
+         * and it widens nothing: files come through his own scope with money
+         * redacted, and orders appear only to payments.reconcile, which he
+         * does not hold. So it is a working surface by grant, like Files.
+         */
+        "/portal/search",
         "/portal/tasks",
         "/portal/profile",
         "/portal/charge-log",
