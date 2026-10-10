@@ -43,16 +43,18 @@ active, login 2026-09-02 16:45:18 UTC, profile 17:57:25 UTC, and no
 `scripts/seed-admin.mjs`, not the People screen, so it carries no such row, true
 or false.
 
-## THE SITTING OF 2026-10-10: 0067, ONE PENDING CREDENTIAL OF EACH KIND, STAGED
+## THE SITTING OF 2026-10-10: 0067, ONE PENDING CREDENTIAL OF EACH KIND, RUN
 
 `docs/production-sitting-2026-10-10.md`. One additive migration on
 `fix/credential-one-pending`: a unique partial index so two submissions in
 flight cannot both write a pending row (reproduced twice by the product audit).
-**Not applied anywhere.** The same document carries two read-only queries for
-the counterpart: technicians holding offers with no rate (ruling 2 of
-2026-10-09), and the five protocol seal acts' digests against the digests the
-transcriptions produce. What stays open: apply and read back 0067 on both
-databases, then the branch is boarded and merged.
+**Applied to development and then production on 2026-10-10 by the counterpart;
+the duplicate dry run returned no rows on both and the index read back as
+predicted on both**, recorded in the ledger. The two read-only queries: no
+offer or assignment holds a null rate, and all five protocol seal acts'
+`content_sha256` equal the transcriptions' digests. The same sitting found
+production's `eng_fee_schedule` empty, which is the engineer pay branch. What
+stays open: the branch merges once its board passes.
 
 ## THE SITTING OF 2026-10-09: 0066, A CREDENTIAL'S ISSUING STATE, RUN
 
