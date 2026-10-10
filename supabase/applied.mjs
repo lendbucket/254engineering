@@ -2296,18 +2296,31 @@ export const APPLIED = [
     fingerprint: "18826fa5b3e7d9c9979ca81b96666bb7",
     behaviour: "d7713204a6a44db437588585af0d0f8a",
     /*
-     * PENDING, BY THE WEEKEND RUN RULE: written unapplied on
-     * fix/second-factor-required (on feat/wp-001-v1-2-and-fc-001, because 0070
-     * follows 0069), staged with docs/production-sitting-fix-second-factor-required.md.
+     * APPLIED TO PRODUCTION 2026-10-10 at 15:06 CT, after 0069, the amended
+     * engineer-only file from cbb718c, from
+     * docs/production-sitting-fix-second-factor-required.md, by the operator's
+     * chat counterpart, development first and then production. Read back as
+     * predicted on both: engineer required, administrator optional.
+     *
+     * Operator ruling of 2026-10-10 (gap 3): the second factor is required for
+     * the engineer role. Amended before any apply, the same day: the
+     * administrator role stays optional by the operator's ruling replacing gap
+     * 4's, so 0070 updates the engineer row only and asserts the administrator
+     * still reads optional. Renamed from
+     * 0070_the_second_factor_is_required_for_staff_who_seal_or_administer.sql,
+     * which no database ever ran.
      */
-    production: null,
-    development: { at: "0070", behaviour: null, facts: null },
-    because:
-      "WRITTEN 2026-10-10 UNAPPLIED, operator ruling of that day (gap 3): the second factor is required for the " +
-      "engineer role. AMENDED BEFORE ANY APPLY, the same day: the administrator role stays optional by the " +
-      "operator's ruling replacing gap 4's, so 0070 updates the engineer row only and asserts the administrator " +
-      "still reads optional. Renamed from 0070_the_second_factor_is_required_for_staff_who_seal_or_administer.sql, " +
-      "which no database ever ran. The sitting document reads which engineers are not enrolled before the apply.",
+    production: "2026-10-10",
+    development: {
+      at: "0070",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-10",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-10 by the operator's chat counterpart, before production, the amended " +
+        "file from cbb718c: engineer required, administrator optional, as predicted.",
+    },
     proves: { row: { table: "eng_roles", where: "key = 'engineer' and mfa_requirement = 'required'" } },
     note:
       "The shape fingerprint repeats 0069's and the fact count stays 973: it updates one seeded row and has no " +
