@@ -106,7 +106,6 @@ const TEMPLATES = [
   { name: "position: engineer", path: "/careers/professional-engineer" },
   { name: "position: technician", path: "/careers/field-inspection-technician" },
   { name: "contact", path: "/contact" },
-  { name: "waitlist", path: "/waitlist" },
   { name: "privacy", path: "/privacy" },
   { name: "terms", path: "/terms" },
   { name: "404", path: "/this-route-does-not-exist", expectStatus: 404 },
@@ -124,12 +123,6 @@ const TEMPLATES = [
     name: "contact form errors",
     path: "/contact",
     submitEmpty: "Send message",
-    expect: "Enter your name.",
-  },
-  {
-    name: "waitlist form errors",
-    path: "/waitlist",
-    submitEmpty: "Join the waitlist",
     expect: "Enter your name.",
   },
   {

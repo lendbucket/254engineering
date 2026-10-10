@@ -57,7 +57,7 @@ export const services: Service[] = [
     name: "Roof Inspections and Certifications",
     shortName: "Roof Certifications",
     h1: "Roof Certification in Texas, Sealed by a Licensed Engineer",
-    title: "Roof Certification in Texas, Sealed | 254 Engineering",
+    title: "Roof Certification Letters in Texas | 254 Engineering",
     description:
       "A roof certification is a sealed opinion on the observed condition of a roof on the date it was inspected. Read what it covers, who orders one, and the cost.",
     summary:
@@ -120,9 +120,9 @@ export const services: Service[] = [
     name: "Windstorm WPI-8 Certifications",
     shortName: "Windstorm WPI-8",
     h1: "Windstorm WPI-8 Certifications in Texas",
-    title: "Texas Windstorm WPI-8 Certification | 254 Engineering",
+    title: "Windstorm WPI-8 Certification in Texas | 254 Engineering",
     description:
-      "How WPI-8 windstorm certification works on the Texas coast, which counties require one, and what a TDI appointed engineer inspects. See the price.",
+      "How WPI-8 windstorm certification works on the Texas coast, which counties require one, and what a TDI appointed engineer inspects. See what it covers.",
     summary:
       "The windstorm certificate of compliance required in the Texas coastal catastrophe area, inspected and submitted by an engineer appointed by the Texas Department of Insurance.",
     what: [
@@ -206,9 +206,9 @@ export const services: Service[] = [
     name: "Foundation Inspections and Certifications",
     shortName: "Foundation Certifications",
     h1: "Foundation Inspections and Certifications in Texas",
-    title: "Foundation Inspection and Certification | 254 Engineering",
+    title: "Foundation Inspections in Texas, Statewide | 254 Engineering",
     description:
-      "A sealed engineering opinion on how a foundation is performing, based on floor elevation measurement and a documented site inspection. See the price.",
+      "A sealed engineering opinion on how a foundation is performing, based on floor elevation measurement and a documented site inspection. See the published price.",
     summary:
       "A sealed engineering opinion on how a foundation is performing, supported by floor elevation measurement and a documented inspection of the structure, the drainage, and the site.",
     what: [
@@ -256,7 +256,7 @@ export const services: Service[] = [
     name: "Solar Structural Letters",
     shortName: "Solar Letters",
     h1: "Solar Structural Letters for Texas Installations",
-    title: "Solar Structural Engineering in Texas | 254 Engineering",
+    title: "Solar Structural Letters in Texas | 254 Engineering",
     description:
       "The sealed structural review a Texas jurisdiction requires before a rooftop solar permit: gravity load on existing framing and each attachment. See the price.",
     summary:
@@ -300,10 +300,10 @@ export const services: Service[] = [
     slug: "manufactured-home-foundation-certifications",
     name: "Manufactured Home Foundation Certifications",
     shortName: "Manufactured Home Certifications",
-    h1: "What Lenders Require on a Manufactured Home Foundation",
+    h1: "Manufactured Home Foundation Certification: What Lenders Require",
     title: "Manufactured Home Foundation Certification | 254 Engineering",
     description:
-      "The engineer's foundation certification an FHA, VA, or USDA loan requires on a manufactured home in Texas, and what it confirms. See the price.",
+      "The engineer's foundation certification an FHA, VA, or USDA loan requires on a manufactured home in Texas, and what it confirms. See the scope and the price.",
     summary:
       "The engineer's foundation certification required before an FHA, VA, or USDA loan will close on a manufactured home, measured against the HUD permanent foundations guide.",
     what: [
@@ -351,7 +351,7 @@ export const services: Service[] = [
     name: "Structural Letters for Permits",
     shortName: "Structural Letters",
     h1: "Structural Letters for Permits in Texas",
-    title: "Structural Letters for Texas Permits | 254 Engineering",
+    title: "Structural Letters for Permits in Texas | 254 Engineering",
     /*
      * REWRITTEN TO PL-001 v1.1 BY RULING 6 OF 2026-10-07 (docs/conflicts-v1.1.md
      * items 20 to 22). The page described a letter that sizes a beam, draws a
@@ -404,8 +404,8 @@ export const services: Service[] = [
     slug: "repair-specifications",
     name: "Repair Specifications",
     shortName: "Repair Specifications",
-    h1: "Engineered Repair Specifications in Texas",
-    title: "Engineered Repair Specifications | 254 Engineering",
+    h1: "Repair Specifications in Texas",
+    title: "Repair Specifications in Texas, Engineered | 254 Engineering",
     description:
       "A sealed repair specification defines what is repaired and how, so contractors bid the same scope and a building department can permit it. See the price.",
     summary:
@@ -453,7 +453,7 @@ export const services: Service[] = [
     h1: "Residential and Light Commercial Design in Texas",
     title: "Residential and Light Commercial Design | 254 Engineering",
     description:
-      "Sealed structural design for Texas homes, additions, and light commercial buildings: foundations for expansive soil and framing plans. See the price.",
+      "Sealed structural design for Texas homes, additions, and light commercial buildings: foundations for expansive soil and framing plans. See the hourly rate.",
     summary:
       "Sealed structural design for homes, additions, and light commercial buildings: foundation design for the soil on site, framing plans, and drawings a permit office can review.",
     what: [

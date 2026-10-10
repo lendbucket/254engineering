@@ -18,7 +18,7 @@ import {
 } from "@/content/model-copy";
 
 export const metadata: Metadata = buildMetadata({
-  title: "About Our Texas Engineering Firm | 254 Engineering",
+  title: "Veteran Owned Texas Engineering Firm | 254 Engineering",
   description:
     "A veteran owned Texas engineering firm named for the 254 counties of Texas. How the firm is organized, and why it is organized that way. Read the model.",
   path: "/about",
@@ -36,7 +36,7 @@ export default function AboutPage() {
 
       <PageHeader
         eyebrow="The firm"
-        title="A Texas engineering firm built for all 254 counties"
+        title="Veteran Owned Texas Engineering Firm, Built for All 254 Counties"
         lede={`${firmName()} is a veteran owned engineering firm serving the whole state of Texas. This page explains how it is put together and why, because the how is the part that determines whether a firm can actually do what it says it covers.`}
         crumbs={crumbs}
       />

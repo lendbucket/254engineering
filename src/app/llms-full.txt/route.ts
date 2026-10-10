@@ -20,6 +20,8 @@ import { regions } from "@/content/regions";
  */
 import { notYetTakingOrders, registrationLine, registrationStatement, responsibleChargeStatement } from "@/lib/launch";
 import { responsibleChargeCopy, specialistsCopy, turnaroundCopy } from "@/content/model-copy";
+import { parentCompany } from "@/config/credentials";
+import { displayPhone, hasPostalAddress, postalAddressLine } from "@/config/contact";
 
 /**
  * /llms-full.txt
@@ -41,12 +43,14 @@ ${business.legalName}. A veteran owned Texas engineering firm named for the 254 
 
 Website: ${business.url}
 Email: ${business.email}
-Area served: All ${business.countyCount} counties of Texas
+${hasPostalAddress() ? `Address: ${postalAddressLine()}\n` : ""}${displayPhone() ? `Telephone: ${displayPhone()}\n` : ""}Area served: All ${business.countyCount} counties of Texas
 Ownership: Veteran owned
+Parent company: ${parentCompany.name} (${parentCompany.url})
 
 ## Current status
 
 ${registrationLine()}
+A ${parentCompany.name} Company (${parentCompany.url})
 
 ${[notYetTakingOrders(), responsibleChargeStatement()].filter(Boolean).join(" ")}
 `);

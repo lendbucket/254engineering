@@ -1,5 +1,10 @@
 import Link from "next/link";
-import { isPrelaunch, notYetAcceptingEngagements, registrationStatement } from "@/lib/launch";
+import {
+  isPrelaunch,
+  notYetAcceptingEngagements,
+  peInResponsibleCharge,
+  registrationStatement,
+} from "@/lib/launch";
 
 /**
  * The service page disclosure.
@@ -17,28 +22,38 @@ import { isPrelaunch, notYetAcceptingEngagements, registrationStatement } from "
  * on the homepage and the callouts on the region pages. It used to be a fully
  * outlined box, which was the only outlined box left on the site once the design
  * port landed and read as a component from a different system.
+ *
+ * REWRITTEN 2026-10-10, operator ruling. It said "Opening soon", typed "No
+ * engineer of record is yet in responsible charge" whatever the register held,
+ * and sent the reader to /waitlist, which is now a permanent redirect to
+ * /contact. Each sentence is derived instead: the engineer line appears only
+ * when the register holds no active engineer, and the link is an enquiry, which
+ * the firm takes in every state.
  */
 export function PrelaunchNotice({ service }: { service?: string }) {
   if (!isPrelaunch()) return null;
 
-  const waitlistHref = service ? `/waitlist?service=${encodeURIComponent(service)}` : "/waitlist";
+  const contactHref = service ? `/contact?service=${encodeURIComponent(service)}` : "/contact";
+  const sentences = [
+    notYetAcceptingEngagements(),
+    registrationStatement(),
+    peInResponsibleCharge() ? null : "No engineer of record is in responsible charge.",
+  ].filter(Boolean);
 
   return (
     <aside className="border-l-4 border-brass bg-white/[0.07] px-5 py-[18px]">
       <p className="text-[12px] font-bold tracking-[0.1em] text-brass-light uppercase">
-        Opening soon
+        Enquiries only
       </p>
       <p className="mt-2 text-[15px] leading-[1.65] text-slate-fg-muted">
-        {[notYetAcceptingEngagements(), registrationStatement()].filter(Boolean).join(" ")} No engineer
-        of record is yet in responsible charge, and this page describes a service the firm is being
-        built to deliver.{" "}
+        {sentences.join(" ")}{" "}
         <Link
-          href={waitlistHref}
+          href={contactHref}
           className="font-medium text-slate-fg underline decoration-brass underline-offset-4 transition-colors hover:text-brass-light"
         >
-          Join the waitlist
+          Send an enquiry
         </Link>{" "}
-        and you will hear directly when it is active.
+        and the firm will answer directly.
       </p>
     </aside>
   );

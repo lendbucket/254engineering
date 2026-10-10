@@ -72,7 +72,6 @@ const ROUTES = [
   "/government",
   "/careers",
   "/contact",
-  "/waitlist",
   "/privacy",
   "/terms",
   "/llms.txt",
@@ -100,6 +99,9 @@ async function crawl(base) {
     const html = await res.text();
     pages.set(route, { status: res.status, html, text: visibleText(html) });
   }
+  /* /waitlist, read as the redirect it has been since 2026-10-10, not followed. */
+  const hop = await fetch(base + "/waitlist", { redirect: "manual" });
+  pages.set("/waitlist (redirect)", { status: hop.status, html: "", text: "", location: hop.headers.get("location") ?? "" });
   return pages;
 }
 
@@ -427,16 +429,16 @@ async function run() {
      * remembering this line exists.
      */
     const servicePages = ROUTES.filter((r) => r === "/services" || r.startsWith("/services/"));
-    const missingNotice = servicePages.filter((r) => !/Opening soon/i.test(pre.get(r).text));
+    const missingNotice = servicePages.filter((r) => !/Enquiries only/i.test(pre.get(r).text));
     rec(
-      "prelaunch: every service surface carries the opening soon treatment",
+      "prelaunch: every service surface carries the enquiries only treatment",
       missingNotice.length === 0,
       missingNotice.join(", "),
     );
 
-    const missingWaitlistCta = servicePages.filter((r) => !pre.get(r).html.includes('href="/waitlist'));
+    const missingWaitlistCta = servicePages.filter((r) => !pre.get(r).html.includes('href="/contact?service='));
     rec(
-      "prelaunch: every service surface routes its CTA to the waitlist",
+      "prelaunch: every service surface routes its notice to an enquiry",
       missingWaitlistCta.length === 0,
       missingWaitlistCta.join(", "),
     );
@@ -454,8 +456,8 @@ async function run() {
     );
 
     rec(
-      "prelaunch: the waitlist page states plainly that work is not being accepted",
-      /not yet accepting engagements/i.test(pre.get("/waitlist").text),
+      "prelaunch: the contact page states plainly that work is not being accepted",
+      /not yet accepting engagements/i.test(pre.get("/contact").text),
     );
 
     // ---------- the engineer of record gate ----------
@@ -588,9 +590,9 @@ async function run() {
       liveSealing.length === 0 ? "no page states that work is reviewed and sealed" : "",
     );
 
-    const liveNoticeLeak = routesMatching(live, /Opening soon/i);
+    const liveNoticeLeak = routesMatching(live, /Opening soon|Enquiries only/i);
     rec(
-      "live: the opening soon treatment is gone from every page",
+      "live: the enquiries only treatment is gone from every page",
       liveNoticeLeak.length === 0,
       liveNoticeLeak.join(", "),
     );
@@ -637,10 +639,10 @@ async function run() {
     );
 
     const offeredStillWaitlisted = offeredPages.filter((r) =>
-      live.get(r).html.includes('href="/waitlist'),
+      live.get(r).html.includes('href="/contact?service='),
     );
     rec(
-      "live: an OFFERED line no longer routes its CTA to the waitlist",
+      "live: an OFFERED line no longer routes its notice to an enquiry",
       offeredStillWaitlisted.length === 0,
       offeredStillWaitlisted.join(", ") || offeredPages.join(", "),
     );
@@ -697,10 +699,19 @@ async function run() {
           `${waitlistPages.length} unoffered line(s), none orderable`,
     );
 
-    rec(
-      "live: the waitlist URL still resolves and explains what it became, rather than 404ing old links",
-      live.get("/waitlist").status === 200 && /now open/i.test(live.get("/waitlist").text),
-    );
+    /*
+     * The same promise, kept a different way since 2026-10-10 (operator ruling):
+     * an old /waitlist link does not 404. It is a permanent redirect to /contact,
+     * in both modes, rather than a page explaining what it became.
+     */
+    for (const [mode, pages] of [["prelaunch", pre], ["live", live]]) {
+      const hop = pages.get("/waitlist (redirect)");
+      rec(
+        `${mode}: the waitlist URL is a permanent redirect to /contact, rather than 404ing old links`,
+        hop?.status === 308 && /\/contact$/.test(hop?.location ?? ""),
+        `${hop?.status} ${hop?.location}`,
+      );
+    }
 
     // A page that ignores the gate renders identically in both modes. The gated
     // surfaces are the ones that must differ, and this is the check that finds a

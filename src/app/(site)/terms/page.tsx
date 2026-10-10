@@ -60,7 +60,7 @@ export default function TermsPage() {
               </p>
               <p>
                 <strong>No engineer and client relationship is created by this website.</strong>{" "}
-                Reading these pages, submitting a form, joining the waitlist, or exchanging email
+                Reading these pages, submitting a form, or exchanging email
                 does not by itself create a professional relationship or place this firm in
                 responsible charge of anything. An engagement begins only under a signed written
                 agreement identifying the scope and the engineer in responsible charge.

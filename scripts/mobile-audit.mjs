@@ -99,7 +99,6 @@ const TEMPLATES = [
   { name: "insight post", path: "/insights/texas-professional-services-procurement-act" },
   { name: "careers", path: "/careers" },
   { name: "contact", path: "/contact" },
-  { name: "waitlist", path: "/waitlist" },
   { name: "privacy", path: "/privacy" },
   { name: "terms", path: "/terms" },
 ];

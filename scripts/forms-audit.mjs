@@ -684,16 +684,32 @@ async function windstormInquiryChecks() {
   await page.close();
 }
 
-// ---------- waitlist ----------
+// ---------- the retired waitlist ----------
 
+/*
+ * /waitlist IS A PERMANENT REDIRECT TO /contact SINCE 2026-10-10, operator
+ * ruling. These checks asked the waitlist form four questions; they now ask the
+ * redirect the questions a reader arriving by an old link would: does it land on
+ * the enquiry form, does the service a service page passed survive the hop, and
+ * does a made up service still fall through to nothing. The contact form's own
+ * submission is exercised by contactChecks, so nothing is submitted here.
+ */
 async function waitlistChecks() {
+  const hop = await fetch(BASE + "/waitlist?service=x", { redirect: "manual" });
+  const where = hop.headers.get("location") ?? "";
+  rec(
+    "waitlist: answers a permanent redirect (308) to /contact, keeping the query string",
+    hop.status === 308 && /^(https?:\/\/[^/]+)?\/contact\?service=x$/.test(where),
+    `${hop.status} ${where}`,
+  );
+
   const { page, posts } = await openForm(
     "/waitlist?service=" + encodeURIComponent("Roof Inspections and Certifications"),
     "/api/lead",
   );
-
+  rec("waitlist: an old link lands on the contact form", new URL(page.url()).pathname === "/contact", page.url());
   rec(
-    "waitlist: the service arrives preselected from the service page link",
+    "waitlist: the service an old service page link carried arrives preselected",
     (await page.locator('select[name="service"]').inputValue()) ===
       "Roof Inspections and Certifications",
   );
@@ -710,33 +726,12 @@ async function waitlistChecks() {
   );
   await rogue.close();
 
-  const submit = page.getByRole("button", { name: /join the waitlist/i });
+  const submit = page.getByRole("button", { name: /send message/i });
   await submit.click();
   await page.waitForTimeout(400);
   rec(
-    "waitlist: an empty submission blocks and posts nothing",
+    "waitlist: an empty submission on the form it lands on blocks and posts nothing",
     (await page.getByText("Enter your name.").isVisible().catch(() => false)) && posts.length === 0,
-  );
-
-  await page.locator('input[name="name"]').fill(MARKER);
-  await page.locator('input[name="email"]').fill("forms.audit@254engineering.com");
-  await submit.click();
-  const success = await page
-    .getByText(/we have your details/i)
-    .waitFor({ state: "visible", timeout: 15000 })
-    .then(() => true)
-    .catch(() => false);
-  if (success) submissionsSucceeded = true;
-  rec("waitlist: the message field is optional and the form submits without it", success);
-
-  const sent = posts[posts.length - 1];
-  rec(
-    "waitlist POST: marked as a waitlist entry, not a contact",
-    !!sent && sent.form === "waitlist",
-  );
-  rec(
-    "waitlist POST: carries the preselected service",
-    !!sent && sent.service === "Roof Inspections and Certifications",
   );
 
   await page.close();

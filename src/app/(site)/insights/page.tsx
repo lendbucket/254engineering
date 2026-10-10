@@ -47,7 +47,7 @@ export default function InsightsPage() {
 
       <PageHeader
         eyebrow="Insights"
-        title="Analysis for people who have to get this right"
+        title="Engineering Insights for Texas Buyers"
         lede="Texas regulates engineering closely, and most of what is written about it online either reproduces the statute without explaining it or explains it without citing anything. These pieces do both, and every source is listed and linked."
         crumbs={crumbs}
       />

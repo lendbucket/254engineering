@@ -1,6 +1,6 @@
 import type { Faq } from "./services";
 import { coastalInsights } from "./insights-coastal";
-import { registrationStatement } from "@/lib/launch";
+import { peInResponsibleCharge, registrationStatement } from "@/lib/launch";
 import type { FigureId } from "@/components/insights/figures";
 
 /**
@@ -98,7 +98,7 @@ export const insights: Insight[] = [
   {
     slug: "texas-professional-services-procurement-act",
     title: "Texas Professional Services Procurement | 254 Engineering",
-    h1: "The Texas Professional Services Procurement Act",
+    h1: "Texas Professional Services Procurement Act",
     description:
       "Texas Government Code 2254 bars competitive bidding for engineering and sets a two step selection. Read what the statute requires of a governmental entity.",
     summary:
@@ -254,7 +254,7 @@ export const insights: Insight[] = [
   {
     slug: "texas-engineering-firm-registration",
     title: "Texas Engineering Firm Registration | 254 Engineering",
-    h1: "What a Texas engineering firm registration is",
+    h1: "Texas Engineering Firm Registration: What It Is",
     description:
       "A Texas business may not practice or advertise engineering unless the firm is registered with TBPELS. See what the registration covers and how to check one.",
     summary:
@@ -314,7 +314,9 @@ export const insights: Insight[] = [
         kind: "p",
         text: [
           registrationStatement(),
-          "No engineer of record has been appointed, and under section 1001.405(e) a registration alone is not the whole of what the statute asks: it reserves the representation for an entity actively engaged in the practice, with a full time licensed engineer supervising it.",
+          peInResponsibleCharge()
+            ? "The firm has an engineer of record in responsible charge, which matters because under section 1001.405(e) a registration alone is not the whole of what the statute asks: it reserves the representation for an entity actively engaged in the practice, with a full time licensed engineer supervising it."
+            : "No engineer of record is in responsible charge, and under section 1001.405(e) a registration alone is not the whole of what the statute asks: it reserves the representation for an entity actively engaged in the practice, with a full time licensed engineer supervising it.",
         ]
           .filter(Boolean)
           .join(" "),
@@ -407,7 +409,7 @@ export const insights: Insight[] = [
   {
     slug: "engineer-of-record-texas",
     title: "Engineer of Record in Texas Explained | 254 Engineering",
-    h1: "The engineer of record in Texas, and what actually governs it",
+    h1: "Engineer of Record in Texas, and What Actually Governs It",
     description:
       "Engineer of record is not a defined term in Texas law. See what the Occupations Code and the board rules actually say about seals and responsible charge.",
     summary:
@@ -542,7 +544,7 @@ export const insights: Insight[] = [
   {
     slug: "texas-pe-license-lookup",
     title: "Texas PE License Lookup and Verification | 254 Engineering",
-    h1: "How to look up a Texas PE license, and what the roster leaves out",
+    h1: "Texas PE License Lookup, and What the Roster Leaves Out",
     description:
       "The TBPELS roster and an official verification are two different things. See which one answers your question, and what the roster stopped publishing in 2023.",
     summary:

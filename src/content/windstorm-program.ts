@@ -116,10 +116,10 @@ export type WindstormPage = {
 };
 
 export const windstormHub = {
-  h1: "The Texas Windstorm Inspection Program",
+  h1: "Texas Windstorm Inspection Program",
   title: "Texas Windstorm Inspection Program | 254 Engineering",
   description:
-    "How the Texas windstorm inspection program works: the catastrophe area, WPI-1, WPI-8, and TWIA eligibility. Join the waitlist for coastal engineering.",
+    "How the Texas windstorm inspection program works: the catastrophe area, WPI-1, WPI-8, and TWIA eligibility. Send an enquiry about coastal engineering work.",
   summary:
     "Along the Texas coast, a building becomes insurable through a paper trail that starts before the first nail. This is how that system fits together, and where each part of it is decided.",
 
@@ -159,7 +159,7 @@ export const windstormPages: WindstormPage[] = [
     slug: "catastrophe-area",
     name: "The designated catastrophe area",
     question: "Does this address fall inside the program at all?",
-    h1: "Which Texas Counties Are in the Catastrophe Area",
+    h1: "Texas Windstorm Catastrophe Area Counties",
     title: "Texas Windstorm Catastrophe Area Counties | 254 Engineering",
     description:
       "The fourteen Texas seacoast counties in the designated catastrophe area, the Harris County line, and what changes at the boundary. See the coverage map.",
@@ -219,7 +219,7 @@ export const windstormPages: WindstormPage[] = [
     slug: "before-work-begins",
     name: "WPI-1 and the inspection sequence",
     question: "What has to happen before the first nail, and in what order?",
-    h1: "Filing WPI-1 and Inspecting While Work Is Open",
+    h1: "WPI-1 and Windstorm Inspection Order: Filing Before Work Begins",
     title: "WPI-1 and Windstorm Inspection Order | 254 Engineering",
     description:
       "Why the WPI-1 is filed before coastal work starts, what must be inspected before it is covered up, and what it costs to skip it. See the coverage map.",
@@ -288,10 +288,10 @@ export const windstormPages: WindstormPage[] = [
     slug: "completed-construction",
     name: "Certificates for completed construction",
     question: "The work is already finished and nobody inspected it. Now what?",
-    h1: "Certifying Coastal Work That Is Already Finished",
+    h1: "WPI-8E Completed Construction Certificate for Finished Coastal Work",
     title: "WPI-8E Completed Construction Certificate | 254 Engineering",
     description:
-      "The WPI-2E and WPI-8E route for coastal work finished without inspection, and what a sealed post-construction report must establish. Join the waitlist.",
+      "The WPI-2E and WPI-8E route for coastal work finished without inspection, and what a sealed post-construction report must establish. Send the firm an enquiry.",
     summary:
       "There is a route for work that was never inspected. It runs on a sealed post-construction report rather than on observations, which makes it slower, more involved, and occasionally impossible without opening the building back up.",
     sections: [
@@ -349,10 +349,10 @@ export const windstormPages: WindstormPage[] = [
     slug: "appointed-engineers",
     name: "The TDI appointment",
     question: "What is an appointed engineer, and why can't any engineer do this?",
-    h1: "What a TDI Windstorm Appointment Actually Is",
+    h1: "TDI Appointed Windstorm Engineer: What the Appointment Is",
     title: "TDI Appointed Windstorm Engineer Explained | 254 Engineering",
     description:
-      "What the Texas Department of Insurance windstorm appointment permits, how it differs from a Texas PE license, and how to verify one. Join the waitlist.",
+      "What the Texas Department of Insurance windstorm appointment permits, how it differs from a Texas PE license, and how to verify one. Send the firm an enquiry.",
     summary:
       "A Texas engineering license permits an engineer to practice. The windstorm appointment is a separate thing entirely: permission to inspect on the department's behalf for this specific program.",
     sections: [
@@ -385,7 +385,7 @@ export const windstormPages: WindstormPage[] = [
       },
       {
         eyebrow: "This firm",
-        title: "Where 254 Engineering Services stands",
+        title: "Where 254 Engineering stands",
         lede: "Stated plainly, because a page about credentials that is vague about its own is not worth reading.",
         body: [
           /*
@@ -436,10 +436,10 @@ export const windstormPages: WindstormPage[] = [
     slug: "re-roofs-and-repairs",
     name: "Re-roofs, repairs, and alterations",
     question: "Is a re-roof really a certifiable improvement?",
-    h1: "Why a Coastal Re-Roof Needs a Windstorm Certificate",
+    h1: "Coastal Re-Roof Windstorm Certification, and Why It Is Needed",
     title: "Coastal Re-Roof Windstorm Certification | 254 Engineering",
     description:
-      "Why re-roofing inside the Texas catastrophe area is a certifiable improvement, and what an uncertified re-roof does to coverage. Join the waitlist.",
+      "Why re-roofing inside the Texas catastrophe area is a certifiable improvement, and what an uncertified re-roof does to coverage. Send the firm an enquiry today.",
     summary:
       "Replacing a roof inside the designated area is an improvement the program covers. It is also the single most common piece of coastal work that gets done without anyone filing anything.",
     sections: [
@@ -495,10 +495,10 @@ export const windstormPages: WindstormPage[] = [
     slug: "opening-protection",
     name: "Openings and opening protection",
     question: "Why do windows and doors decide so much of this?",
-    h1: "Why Openings Govern Coastal Wind Performance",
+    h1: "Coastal Opening Protection Requirements, and Why Openings Govern",
     title: "Coastal Opening Protection Requirements | 254 Engineering",
     description:
-      "Why windows, doors, and garage doors govern wind performance on the Texas coast, and what a missing element means for certification. Join the waitlist.",
+      "Why windows, doors, and garage doors govern wind performance on the Texas coast, and what a missing element means for certification. Send the firm an enquiry.",
     summary:
       "A roof that stays on a building whose openings have failed is holding down a structure that is already pressurized from the inside. Openings are where coastal wind performance is decided.",
     sections: [
@@ -557,7 +557,7 @@ export const windstormPages: WindstormPage[] = [
     h1: "Windstorm Certificates in a Coastal Closing",
     title: "Windstorm Certificates at Coastal Closing | 254 Engineering",
     description:
-      "What a coastal closing needs from the windstorm record, and how to check certificate history before the option period ends. Join the waitlist.",
+      "What a coastal closing needs from the windstorm record, and how to check certificate history before the option period ends. Send the firm an enquiry about it.",
     summary:
       "Certificates attach to the structure and stay on file, which means a coastal property carries its windstorm history into every transaction whether or not anyone looks at it before the closing date.",
     sections: [
@@ -615,10 +615,10 @@ export const windstormPages: WindstormPage[] = [
     slug: "twia-coverage",
     name: "TWIA coverage and eligibility",
     question: "How does a certificate turn into insurance?",
-    h1: "How a Windstorm Certificate Reaches TWIA Coverage",
+    h1: "TWIA Coverage and the WPI-8 Certificate",
     title: "TWIA Coverage and the WPI-8 Certificate | 254 Engineering",
     description:
-      "What the Texas Windstorm Insurance Association is, why the WPI-8 governs eligibility for wind and hail coverage, and what it does not cover. Join the waitlist.",
+      "What the Texas Windstorm Insurance Association is, why the WPI-8 governs eligibility for wind and hail coverage, and what it does not cover. Send an enquiry.",
     summary:
       "The association exists because ordinary carriers frequently will not write wind and hail on the coast. The certificate exists because an insurer of last resort still needs to know what it is insuring.",
     sections: [

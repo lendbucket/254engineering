@@ -56,7 +56,7 @@ export function SiteHeader() {
                 collapsed header is clutter a phone does not need. */}
             <div className="hidden text-right lg:block">
               {prelaunch ? (
-                <p className="font-display text-[15px] font-bold text-slate">Opening soon</p>
+                <p className="font-display text-[15px] font-bold text-slate">Taking enquiries</p>
               ) : null}
               <p className="mt-1 text-[14px] text-slate-muted">Serving all 254 Texas counties</p>
               <a
@@ -109,13 +109,14 @@ export function SiteHeader() {
               the body, because that audit strips the header and footer by design.
 
               The prelaunch branch is untouched: with the gate shut and the firm
-              not yet taking work, the waitlist is the honest destination.
+              not yet taking work, an enquiry is the honest destination. /waitlist
+              became a permanent redirect to /contact on 2026-10-10.
             */}
             <Link
-              href={prelaunch ? "/waitlist" : "/order"}
+              href={prelaunch ? "/contact" : "/order"}
               className="-mr-[clamp(1rem,4vw,1.75rem)] flex items-center bg-brass px-[18px] text-[14px] font-bold text-slate-ink transition-colors hover:bg-brass-light sm:px-[26px] sm:text-[15px]"
             >
-              {prelaunch ? "Join the Waitlist" : anythingOrderable ? "Order online" : "Start a job"}
+              {prelaunch ? "Send an Enquiry" : anythingOrderable ? "Order online" : "Start a job"}
             </Link>
           </div>
         </Container>

@@ -4,7 +4,7 @@
 blockers and the work in flight stand, written for a session with no memory of
 anything. This file is the law; that one is the position.
 
-# 254 Engineering Services: standing law
+# 254 Engineering: standing law
 
 This file is binding on every session in this repo. It is the operative summary of
 `TEXAS_ENGINEERING_DOMINANCE.md`, which is the full playbook and wins any conflict with the summary
@@ -57,6 +57,12 @@ The firm's TBPELS registration is pending, and no licensed PE is on staff yet. U
 - No invented PE names, license numbers, firm registration numbers, project counts, years of
   experience, or client examples. `scripts/placeholder-audit.mjs` fails the build on any credential
   string not present in `src/config/credentials.ts`.
+- **"Veteran owned" is a statement of ownership, never a credential.** Operator ruling, 2026-10-10:
+  the owner is a veteran and owns the firm, so "veteran owned" is true and may appear in titles,
+  descriptions and copy, in exactly those words. Never "certified", "VOSB", "SDVOSB", "service
+  disabled veteran owned", or an agency's name beside veteran status, until the firm holds that
+  certification and the register records it with a date and a reference. It holds none.
+  `compliance-audit` fails on that wording in any rendered public page.
 - "Engineer", "engineering", and "sealed" are regulated terms in Texas. Treat every sentence
   containing them as load bearing.
 
@@ -143,6 +149,31 @@ brand on the wordmark, the logo and the page titles, it is never the legal or
 firm name in a sentence, **and the board now holds it as a recorded assumed
 name** alongside Sealed Engineering and Stamp My Plans. Whether a registered DBA
 is ever printed on a page is a copy ruling nobody has made.
+
+> **THE PUBLIC BRAND IS "254 ENGINEERING" SINCE 2026-10-10. Operator's final
+> brand ruling of that day, replacing every earlier one that day.** The Board's
+> record for F-29811, read by the operator on the TBPELS firm page on
+> 2026-10-10: Name 254 Engineering LLC; DBAs Sealed Engineering, Stamp My
+> Plans, 254 Engineering Services. The register records them exactly so.
+>
+> - **The public brand is "254 Engineering"**: the site name, og:site_name,
+>   every title's suffix ("| 254 Engineering"), the wordmark's alt text and
+>   every public, email and portal string. The operator is filing "254
+>   Engineering" as an assumed name with the Secretary of State and the Board;
+>   `pendingAssumedNames` in `src/config/credentials.ts` records it as filing
+>   until he marks it filed.
+> - **The legal name is 254 Engineering LLC**, and every public footer keeps
+>   `registrationLine()` ("254 Engineering LLC, TBPELS Firm F-29811"), which
+>   ties the brand to the registration.
+> - **"254 Engineering Services" stays a registered DBA and leaves public copy.**
+>   compliance-audit fails on it in rendered public pages and metadata. Its
+>   counted exemptions: a page quoting a signed protocol, whose text is
+>   verbatim; the register; the protocol transcriptions; and
+>   `data/keyword-registry.ts`, which is shared with the sibling repositories
+>   and changes when they do. Sealed, sent and invoiced records stay as written.
+> - The sentence above that 254 Engineering Services "is the brand on the
+>   wordmark, the logo and the page titles" is superseded by this one, and kept
+>   because the reasoning before it is why the name is derived.
 
 **A KNOWN, ACCEPTED WINDOW, WRITTEN DOWN RATHER THAN DISCOVERED. IT OPENED
 2026-09-16 AND CLOSED 2026-09-21. THERE IS NO OPEN WINDOW TODAY.** For those

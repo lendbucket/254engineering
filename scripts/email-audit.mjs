@@ -55,8 +55,10 @@ const PRODUCTION_ORIGIN = "https://254engineering.com";
  * moment a footer prints both addresses, which is exactly what a half-finished
  * fix produces.
  */
-const EXPECTED_FOOTER_EMAIL = "support@254engineering.com";
-const REFUSED_FOOTER_EMAIL = "info@254engineering.com";
+/* Moved 2026-10-10, operator ruling: info@ is a live alias and is now the one
+ * address, public and Reply-To together; support@ is the refused one. */
+const EXPECTED_FOOTER_EMAIL = "info@254engineering.com";
+const REFUSED_FOOTER_EMAIL = "support@254engineering.com";
 
 /** Subject lines get truncated in a phone notification well before this. */
 const MAX_SUBJECT = 78;
@@ -190,7 +192,7 @@ if (templates.length === 0) {
    * independently for the same reason.
    */
   const EXPECTED_FROM = "254 Engineering <notifications@254engineering.com>";
-  const EXPECTED_REPLY_TO = "support@254engineering.com";
+  const EXPECTED_REPLY_TO = "info@254engineering.com";
   /*
    * THE FOOTER ADDRESS, PINNED 2026-10-04, AND IT HAD NEVER BEEN PINNED AT ALL.
    *

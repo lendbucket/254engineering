@@ -4,6 +4,8 @@ import { regions } from "@/content/regions";
 import { insightsByDate } from "@/content/insights";
 import { openPositions } from "@data/positions";
 import { registrationLine } from "@/lib/launch";
+import { parentCompany } from "@/config/credentials";
+import { displayPhone, hasPostalAddress, postalAddressLine } from "@/config/contact";
 import { modelSentence } from "@/content/model-copy";
 
 /**
@@ -39,13 +41,16 @@ export function GET() {
 ## Current status
 
 ${registrationLine()}
+A ${parentCompany.name} Company (${parentCompany.url})
 
 ## Identity
 
 - Legal name: ${business.legalName}
 - Brand: ${business.name}
+- Parent company: [${parentCompany.name}](${parentCompany.url})
 - Website: ${business.url}
 - Email: ${business.email}
+${hasPostalAddress() ? `- Address: ${postalAddressLine()}\n` : ""}${displayPhone() ? `- Telephone: ${displayPhone()}\n` : ""}
 - State: ${business.state}
 - Area served: All ${business.countyCount} counties of Texas
 - Ownership: Veteran owned
@@ -53,7 +58,7 @@ ${registrationLine()}
 
 ## Brand family
 
-${business.name} is the master entity for the following brands:
+${business.legalName} is the master entity for the following brands:
 ${business.brands.map((b) => `- ${b.name} (${b.url})`).join("\n")}
 
 ## Service lines

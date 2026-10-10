@@ -132,13 +132,12 @@ export default function WindstormHubPage() {
             , inside the designated area.
           </p>
           <p className="mt-6 text-[1.02rem] leading-[1.75] text-slate-muted">
-            What {firmName()} is built to deliver on windstorm work, once it
-            opens for work, is set out on the{" "}
+            What {firmName()} is built to deliver on windstorm work, and whether that line
+            takes orders today, is set out on the{" "}
             <Link href="/services/windstorm-wpi-8" className="underline underline-offset-4">
               windstorm capability page
             </Link>
-            . Nothing in this cluster is an offer to perform engineering services, because the firm
-            is not yet in a position to make one.
+            . Nothing in this cluster is itself an offer to perform engineering services.
           </p>
         </div>
       </Section>

@@ -1,6 +1,5 @@
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
-import { JsonLd, organizationSchema, websiteSchema } from "@/lib/schema";
 import { ReferralCapture } from "@/components/site/ReferralCapture";
 
 /**
@@ -31,16 +30,12 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
   return (
     <>
       {/*
-        The organization and website nodes ship on every public page rather than
-        on the homepage alone. A crawler that lands first on a region page should
-        resolve the entity from that page, and both nodes carry stable @id values
-        so repeating them joins rather than duplicates.
-
-        They are deliberately not on the admin routes: those are noindex, and
-        entity markup on a page no crawler may read is markup with no reader.
+        The organization and website nodes shipped on every public page from
+        here until 2026-10-10. Operator ruling that day: they live on the
+        homepage, and the organization node also on /corpus-christi under the
+        same @id, which is one entity on two pages rather than a second
+        location. seo-audit asserts both directions.
       */}
-      <JsonLd data={organizationSchema()} />
-      <JsonLd data={websiteSchema()} />
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-[60] focus:rounded-[3px] focus:bg-slate focus:px-4 focus:py-2 focus:text-slate-fg"

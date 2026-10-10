@@ -58,10 +58,10 @@ export const location = {
   city: "Corpus Christi",
   county: "Nueces County",
 
-  h1: "A Texas Engineering Firm Based in Corpus Christi",
+  h1: "Corpus Christi Engineering Firm on the Texas Coast",
   title: "Corpus Christi Texas Engineering Firm | 254 Engineering",
   description:
-    `Where ${firmName()} is based, and what building on the Corpus Christi coast asks of a structure. See the coverage map and join the waitlist.`,
+    `Where ${firmName()} is based, and what building on the Corpus Christi coast asks of a structure. See the coverage map, or send the firm an enquiry.`,
   summary:
     "The firm is based in Corpus Christi, inside the windstorm catastrophe area, in a city whose limits reach from a limestone bluff to the open Gulf side of two barrier islands.",
 

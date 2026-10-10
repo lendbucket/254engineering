@@ -17,9 +17,9 @@ import { business } from "@/config/business";
  * page an assistant should be able to read when somebody asks who a firm is.
  *
  * /api is disallowed because those routes accept POSTs and return nothing worth
- * indexing. /waitlist is disallowed because it is a temporary surface that
- * becomes a redirect the day the firm opens, and its metadata already carries
- * noindex; the two agree on purpose.
+ * indexing. /waitlist has been a permanent (308) redirect to /contact since
+ * 2026-10-10 (next.config.ts), so it needs no rule here; the history below is
+ * why it was never disallowed.
  */
 export default function robots(): MetadataRoute.Robots {
   /*

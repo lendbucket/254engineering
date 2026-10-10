@@ -188,9 +188,9 @@ export type LeadEmailInput = {
 };
 
 const BRAND_NAME: Record<string, string> = {
-  "254": "254 Engineering Services",
+  "254": "254 Engineering",
   sealed: "Sealed Engineering",
-  stamp: "StampMyPlans",
+  stamp: "Stamp My Plans",
 };
 
 export function leadNotification(input: LeadEmailInput): RenderedEmail {

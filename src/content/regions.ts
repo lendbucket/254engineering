@@ -55,7 +55,7 @@ export const regions: Region[] = [
     slug: "coastal-bend",
     name: "Coastal Bend",
     longName: "the Coastal Bend and the Golden Crescent",
-    h1: "Engineering Services Across the Texas Coastal Bend",
+    h1: "Coastal Bend Engineering Coverage",
     title: "Coastal Bend Engineering Coverage | 254 Engineering",
     description:
       "Engineering coverage across the Texas Coastal Bend and Golden Crescent, where windstorm certification and coastal clays set the work. See the county list.",
@@ -94,7 +94,7 @@ export const regions: Region[] = [
     slug: "greater-houston",
     name: "Greater Houston",
     longName: "Greater Houston and Southeast Texas",
-    h1: "Engineering Services Across Greater Houston",
+    h1: "Greater Houston Engineering Coverage",
     title: "Greater Houston Engineering Coverage | 254 Engineering",
     description:
       "Engineering coverage across Greater Houston and Southeast Texas, where high plasticity clay and ground subsidence govern the work. See the county list.",
@@ -132,7 +132,7 @@ export const regions: Region[] = [
     slug: "dallas-fort-worth",
     name: "Dallas Fort Worth",
     longName: "Dallas Fort Worth, North Texas, and East Texas",
-    h1: "Engineering Services Across Dallas Fort Worth and North Texas",
+    h1: "Dallas Fort Worth Engineering Coverage",
     title: "Dallas Fort Worth Engineering Coverage | 254 Engineering",
     description:
       "Engineering coverage across Dallas Fort Worth, North Texas, and East Texas, where Blackland Prairie clay and severe hail define the work. See the county list.",
@@ -176,10 +176,10 @@ export const regions: Region[] = [
     slug: "san-antonio",
     name: "San Antonio",
     longName: "San Antonio and South Central Texas",
-    h1: "Engineering Services Across San Antonio and South Central Texas",
+    h1: "San Antonio Engineering Coverage",
     title: "San Antonio Engineering Coverage | 254 Engineering",
     description:
-      "Engineering coverage across San Antonio and South Central Texas, where the Balcones Escarpment splits limestone from clay. See the county list.",
+      "Engineering coverage across San Antonio and South Central Texas, where the Balcones Escarpment splits limestone from clay. See the county list for the region.",
     summary:
       "Thirteen counties along the Balcones Escarpment. The single most useful fact about engineering here is that the escarpment runs through Bexar County, and the soil on either side of it is not the same soil.",
     anchors: ["San Antonio", "New Braunfels", "Kerrville", "Boerne", "Seguin", "Fredericksburg"],
@@ -214,10 +214,10 @@ export const regions: Region[] = [
     slug: "austin-central-texas",
     name: "Austin and Central Texas",
     longName: "Austin, Central Texas, and the Brazos Valley",
-    h1: "Engineering Services Across Austin and Central Texas",
+    h1: "Austin and Central Texas Engineering Coverage",
     title: "Austin and Central Texas Coverage | 254 Engineering",
     description:
-      "Engineering coverage across Austin, Central Texas, and the Brazos Valley, where Blackland clay and Hill Country rock meet. See the county list.",
+      "Engineering coverage across Austin, Central Texas, and the Brazos Valley, where Blackland clay and Hill Country rock meet. See the county list for the region.",
     summary:
       "Thirty counties from the Hill Country through the Blackland Prairie to the Brazos Valley, containing both the most demanding development review process in Texas and counties that require no building permit at all.",
     anchors: ["Austin", "Round Rock", "Waco", "Killeen", "College Station", "San Marcos"],
@@ -254,10 +254,10 @@ export const regions: Region[] = [
     slug: "rio-grande-valley",
     name: "Rio Grande Valley",
     longName: "the Rio Grande Valley and South Texas",
-    h1: "Engineering Services Across the Rio Grande Valley",
+    h1: "Rio Grande Valley Engineering Coverage",
     title: "Rio Grande Valley Engineering Coverage | 254 Engineering",
     description:
-      "Engineering coverage across the Rio Grande Valley and South Texas, where delta clays and a windstorm county line shape the work. See the county list.",
+      "Engineering coverage across the Rio Grande Valley and South Texas, where delta clays and a windstorm county line shape the work. See the full county list.",
     summary:
       "Sixteen counties along the river from Brownsville to Del Rio. Two of them are inside the windstorm catastrophe area and the rest are not, which is the distinction that decides what a project here actually needs.",
     anchors: ["McAllen", "Brownsville", "Harlingen", "Laredo", "Edinburg", "Del Rio"],
@@ -292,7 +292,7 @@ export const regions: Region[] = [
     slug: "west-texas",
     name: "West Texas",
     longName: "West Texas, the Permian Basin, and the Trans-Pecos",
-    h1: "Engineering Services Across West Texas",
+    h1: "West Texas Engineering Coverage",
     title: "West Texas Engineering Firm Coverage | 254 Engineering",
     description:
       "Engineering coverage across West Texas, the Permian Basin, and the Trans-Pecos, where collapsible soils and distance shape the work. See the county list.",
@@ -335,7 +335,7 @@ export const regions: Region[] = [
     slug: "panhandle",
     name: "Panhandle",
     longName: "the Texas Panhandle and the South Plains",
-    h1: "Engineering Services Across the Texas Panhandle",
+    h1: "Texas Panhandle Engineering Coverage",
     title: "Texas Panhandle Engineering Coverage | 254 Engineering",
     description:
       "Engineering coverage across the Texas Panhandle and South Plains, where wind exposure and frost depth change the design assumptions. See the county list.",

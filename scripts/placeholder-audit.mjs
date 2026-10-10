@@ -264,7 +264,7 @@ const routes =
 // The waitlist is not in the sitemap by design, and it is the single most
 // compliance sensitive page on the site. Crawled explicitly so that the one page
 // most likely to carry a slip is not the one page nobody checks.
-const EXTRA_ROUTES = ["/waitlist", "/llms.txt", "/llms-full.txt"];
+const EXTRA_ROUTES = ["/llms.txt", "/llms-full.txt"];
 
 if (sm.status !== 200) {
   bail(`cannot read sitemap at ${BASE}/sitemap.xml (status ${sm.status})`);

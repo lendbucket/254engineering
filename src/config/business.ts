@@ -12,8 +12,19 @@
  */
 
 export const business = {
-  /** The public brand. Used in titles, og:site_name, and WebSite schema. */
-  name: "254 Engineering Services",
+  /**
+   * The public brand. Used in titles, og:site_name, and WebSite schema.
+   *
+   * "254 Engineering" SINCE 2026-10-10, operator's final brand ruling of that
+   * day. It was "254 Engineering Services", which the Board holds as an assumed
+   * name on F-29811 and still does; the operator is filing "254 Engineering" as
+   * an assumed name with the Secretary of State and the Board, recorded as
+   * pending in src/config/credentials.ts. Every page footer keeps the
+   * registrant and the number from the register, which is what ties the brand
+   * to the registration. compliance-audit fails on the old brand in rendered
+   * public copy and metadata.
+   */
+  name: "254 Engineering",
   /** The registered entity. Used in the footer, contracts language, schema. */
   /**
    * THE ENTITY, AND IT WAS WRONG UNTIL 2026-09-13.
@@ -97,8 +108,14 @@ export const business = {
    * equals the email reply-to, so the public address and the mailbox a reply
    * reaches cannot drift apart again. A reminder in a comment is not a check,
    * which is what the paragraph above proves.
+   *
+   * info@ SINCE 2026-10-10, operator ruling: info@254engineering.com is a live
+   * alias on Google Workspace, confirmed by the operator that day, and it is
+   * the public address, the JSON-LD email and every email's Reply-To together
+   * (email-identity.ts REPLY_TO moved in the same commit), so the two stay one
+   * address. Recorded in the register with that source.
    */
-  email: "support@254engineering.com",
+  email: "info@254engineering.com",
 
   /**
    * Where form notifications go. Server side only, never rendered.
@@ -145,7 +162,8 @@ export const business = {
    */
   brands: [
     { name: "Sealed Engineering", url: "https://sealedengineering.com" },
-    { name: "StampMyPlans", url: "https://stampmyplans.com" },
+    /* The Board's spelling, three words, operator ruling 2026-10-10. The hostname stays. */
+    { name: "Stamp My Plans", url: "https://stampmyplans.com" },
   ],
 } as const;
 

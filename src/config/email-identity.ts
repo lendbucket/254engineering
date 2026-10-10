@@ -51,7 +51,8 @@ export type SenderPurpose = "operator" | "human";
  * over every template rather than trusting this file.
  */
 export const FROM_DISPLAY_NAME = "254 Engineering";
-export const REPLY_TO = `support@${business.domain}`;
+/* info@ since 2026-10-10 (operator ruling), together with business.email. */
+export const REPLY_TO = `info@${business.domain}`;
 
 /**
  * THE ADDRESS AN EMAIL'S FOOTER PRINTS, AND IT IS THE ONE A REPLY REACHES.

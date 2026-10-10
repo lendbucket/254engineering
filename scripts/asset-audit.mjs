@@ -92,7 +92,6 @@ const SURFACES = [
   "/",
   "/about",
   "/contact",
-  "/waitlist",
   "/careers",
   ...PUBLIC_DOORS,
   "/portal/login?suspended=1",

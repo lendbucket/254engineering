@@ -136,11 +136,11 @@ export function OfferCta({
       <Container>
         <div className="py-16 sm:py-20">
           <div className="max-w-2xl">
-            <Eyebrow onDark>{prelaunch ? "Opening soon" : "Start a job"}</Eyebrow>
+            <Eyebrow onDark>{prelaunch ? "Taking enquiries" : "Start a job"}</Eyebrow>
             <h2 className="mt-3 text-[1.8rem] leading-[1.2] font-semibold text-slate-fg sm:text-[2.2rem]">
               {headline ??
                 (prelaunch
-                  ? "Tell us what you need and we will contact you when the firm opens"
+                  ? "Tell us what you need and the firm will answer you directly"
                   : "Tell us what the letter is for and we will tell you yes or no")}
             </h2>
             <p className="mt-5 text-[1.02rem] leading-[1.7] text-slate-fg-muted">

@@ -42,7 +42,7 @@ import { WINDSTORM_WORK_IN_SCOPE_YEAR } from "@/lib/windstorm-inquiry";
  */
 export const metadata: Metadata = {
   ...buildMetadata({
-    title: "Windstorm Certification for an Existing Building | 254 Engineering",
+    title: "Existing Building Windstorm Certification | 254 Engineering Engineering",
     description:
       "An existing building that was never certified is looked at one property at a time. Tell us when it was built, what is covered up, and what has been done.",
     path: "/windstorm-inquiry",
@@ -67,7 +67,7 @@ export default function WindstormInquiryPage() {
       <PageHeader
         crumbs={crumbs}
         eyebrow="Windstorm"
-        title="An existing building that was never certified"
+        title="Existing Building Windstorm Certification, One Property at a Time"
         lede="Ongoing construction and construction that is already complete each carry a published price. An existing building with no recent work is a different piece of work, and whether it can be certified at all is not knowable from a price list."
       />
 

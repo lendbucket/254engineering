@@ -10,7 +10,7 @@ import { isPrelaunch, notYetAcceptingEngagements, registrationStatement } from "
 export const metadata: Metadata = buildMetadata({
   title: "Structural Design Brief for Texas Projects | 254 Engineering",
   description:
-    "Tell us what is being built, what has to be produced, and the date it is needed. Send the brief and an engineer reads it within one business day.",
+    "Tell us what is being built, what has to be produced, and the date it is needed. Send the design brief, and an engineer reads it within one business day.",
   path: "/design-inquiry",
 });
 
@@ -53,7 +53,7 @@ export default function DesignInquiryPage() {
 
       <PageHeader
         eyebrow="Design"
-        title="Tell us what you are building"
+        title="Structural Design Brief: Tell Us What You Are Building"
         lede={
           prelaunch
             ? [

@@ -123,8 +123,18 @@ export type VerifiedFirmRegistration = {
    * NOTHING RENDERS THESE YET. Whether and where the site states a registered
    * DBA is a copy ruling nobody has made. The list exists so the answer is
    * read off the record when somebody does.
+   *
+   * 2026-10-10: the brand list in business.ts now uses the Board's spelling as
+   * well, "Stamp My Plans", by the operator's ruling of that day; the
+   * hostname stays stampmyplans.com.
    */
   dbas: string[];
+  /**
+   * WHO LAST READ THE ASSUMED NAMES OFF THE BOARD, AND WHERE. The list above
+   * came from the 2026-09-21 verification letter; this is the most recent
+   * independent read of it, so a reader knows how current the list is.
+   */
+  dbasReadBack?: { by: string; source: string; on: string; reads: string };
   /** Exactly as the letter prints it, upper case included. */
   mailingAddress: string;
   /** ISO. The date the Board first registered this firm, as data not prose. */
@@ -286,6 +296,12 @@ export const verifiedFirmRegistrations: VerifiedFirmRegistration[] = [
     issuedTo: "254 Engineering LLC",
     /* Verbatim from the letter, in its order, semicolon separated there. */
     dbas: ["Sealed Engineering", "Stamp My Plans", "254 Engineering Services"],
+    dbasReadBack: {
+      by: "the operator",
+      source: "operator's reading of the TBPELS firm page",
+      on: "2026-10-10",
+      reads: "Name 254 Engineering LLC; DBA Sealed Engineering dba Stamp My Plans dba 254 Engineering Services",
+    },
     mailingAddress: "5601 SOUTH PADRE ISLAND DRIVE, SUITE E, CORPUS CHRISTI, TX 78412",
     initialRegistrationDate: "2026-09-10",
     status: "active",
@@ -562,6 +578,65 @@ export const secretaryOfStateAmendment: {
     "form go to TBPELS on 2026-09-16. F-29811 is still issued to 254 Services LLC until the board reissues " +
     "it, and no surface changes until it does.",
 };
+
+/**
+ * AN ASSUMED NAME BEING FILED, NOT YET HELD. Operator ruling, 2026-10-10.
+ *
+ * The public brand is "254 Engineering" from that day (business.ts). It is not
+ * on the Board's record yet: the operator is filing it as an assumed name with
+ * the Secretary of State and the Board. Recorded here as PENDING so the state
+ * is written down rather than implied, and the operator marks it filed, with
+ * the date and the filing reference, when it is. It does not join `dbas` until
+ * the Board shows it.
+ */
+export const pendingAssumedNames: {
+  name: string;
+  status: "filing" | "filed";
+  with: string;
+  recorded: string;
+  by: string;
+  filedOn: string | null;
+  reference: string | null;
+}[] = [
+  {
+    name: "254 Engineering",
+    status: "filing",
+    with: "Texas Secretary of State and TBPELS",
+    recorded: "2026-10-10",
+    by: "operator",
+    filedOn: null,
+    reference: null,
+  },
+];
+
+/**
+ * THE PUBLIC MAILBOX, AND WHO SAID IT IS LIVE. Operator, 2026-10-10.
+ *
+ * business.email and email-identity.ts REPLY_TO both read info@ from that day.
+ * info@ was recorded on 2026-10-04 as a mailbox that did not exist; it is now a
+ * live alias on Google Workspace, confirmed by the operator. Nothing in this
+ * repository can read Google Workspace, so this is a dated statement, in the
+ * same form as the console declarations.
+ */
+export const publicMailbox = {
+  address: "info@254engineering.com",
+  status: "live alias on Google Workspace",
+  confirmedBy: "operator",
+  confirmedOn: "2026-10-10",
+} as const;
+
+/**
+ * WHO OWNS THE FIRM. Operator's statement, 2026-10-10: 254 Engineering LLC is
+ * owned by Craftline Brands. Rendered as "A Craftline Brands Company" below the
+ * registration line in the public footer, as `parentOrganization` in the
+ * homepage JSON-LD, and in llms.txt; never in titles or descriptions.
+ */
+export const parentCompany = {
+  name: "Craftline Brands",
+  url: "https://craftlinebrands.com",
+  source: "operator's statement",
+  recorded: "2026-10-10",
+} as const;
 
 /**
  * ===========================================================================

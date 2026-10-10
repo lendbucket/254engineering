@@ -30,7 +30,7 @@ import { business } from "@/config/business";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Onboarding | 254 Engineering Services",
+  title: "Onboarding | 254 Engineering",
   robots: { index: false, follow: false, nocache: true },
 };
 

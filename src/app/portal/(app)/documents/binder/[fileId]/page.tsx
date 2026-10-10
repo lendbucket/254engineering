@@ -14,6 +14,7 @@ import {
   type StatusTone,
 } from "@/components/portal/design";
 import { formatInFirmZone } from "@/lib/firm-calendar";
+import { firmName } from "@/lib/launch";
 
 export const dynamic = "force-dynamic";
 
@@ -93,7 +94,8 @@ export default async function BinderPage({ params }: { params: Promise<{ fileId:
 
       <DocumentSheet>
         <SheetLetterhead>
-          <p className="portal-kicker text-[var(--secondary)]">254 Engineering Services LLC</p>
+          {/* The registrant from the register. It read "254 Engineering Services LLC", an entity that never existed. */}
+          <p className="portal-kicker text-[var(--secondary)]">{firmName()}</p>
           <h1 className="mt-1.5 font-display text-[24px] leading-[1.2] font-bold text-[var(--navy)]">
             Evidence binder
           </h1>

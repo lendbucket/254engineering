@@ -253,10 +253,10 @@ export const proximityPages: ProximityPage[] = [
     slug: "when-you-need-one",
     name: "When you actually need an engineer",
     question: "Is this a problem that needs an engineer, or not?",
-    h1: "When a Building Problem Needs a Structural Engineer",
+    h1: "When You Need a Structural Engineer for a Building Problem",
     title: "When You Need a Structural Engineer | 254 Engineering",
     description:
-      "The situations that genuinely call for a structural engineer, the ones that do not, and what to do first. See the coverage map for all 254 counties.",
+      "The situations that genuinely call for a structural engineer, the ones that do not, and what to do first. See the coverage map for all 254 Texas counties.",
     summary:
       "Some cracks matter and most do not. The useful question is not how bad it looks, but whether anything is moving and whether somebody is going to ask you for a document.",
     sections: [
@@ -379,7 +379,7 @@ export const proximityPages: ProximityPage[] = [
       },
       {
         eyebrow: "This firm",
-        title: "Where 254 Engineering Services currently stands",
+        title: "Where 254 Engineering currently stands",
         lede: "A page about verifying credentials should be checkable about its own.",
         body: [
           /*

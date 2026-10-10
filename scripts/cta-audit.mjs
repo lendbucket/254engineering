@@ -103,7 +103,8 @@ function pageBody(html) {
  */
 const CTA_HREF = /<a[^>]+href="(\/waitlist[^"]*|\/contact|\/order\/start\/[a-z0-9-]+|tel:[^"]+|\/careers(?:\/[a-z-]+)?|#apply)"[^>]*>/gi;
 const FORM = /<form\b/i;
-const WAITLIST_LANGUAGE = /join the waitlist|get notified|notify me|hear from us|opening soon/i;
+/* Enquiry wording since 2026-10-10, when the waitlist became a redirect to /contact. */
+const WAITLIST_LANGUAGE = /send an enquiry|taking enquiries|enquiries only/i;
 const ORDER_LANGUAGE = /\border (?:a|an|your)\b|\bbuy now\b|\bschedule (?:an|your) inspection\b|\bstart your order\b/i;
 
 const sm = await get("/sitemap.xml");
@@ -114,7 +115,7 @@ if (sm.status !== 200) {
 const routes = [...sm.html.matchAll(/<loc>([^<]+)<\/loc>/g)].map(
   (m) => m[1].replace(/^https?:\/\/[^/]+/, "") || "/",
 );
-const allRoutes = [...routes, "/waitlist"];
+const allRoutes = [...routes];
 
 if (allRoutes.length <= 1) {
   console.error("cta-audit: sitemap contained no URLs; refusing to report a pass on zero routes");
@@ -162,9 +163,9 @@ for (const route of allRoutes) {
   const isServiceSurface = route === "/" || route.startsWith("/services") || route.startsWith("/coverage");
   if (isServiceSurface) {
     rec(
-      `${route}: prelaunch CTA is waitlist or notify language`,
+      `${route}: prelaunch CTA is enquiry language`,
       WAITLIST_LANGUAGE.test(bodyText),
-      WAITLIST_LANGUAGE.test(bodyText) ? "" : "no waitlist or notify wording found in the page body",
+      WAITLIST_LANGUAGE.test(bodyText) ? "" : "no enquiry wording found in the page body",
     );
   }
 
@@ -246,11 +247,11 @@ for (const route of allRoutes) {
 
   if (GATE_ACTIVE) {
     rec(
-      "the gate is shut, so the header offers the waitlist rather than the chooser",
-      headerToWaitlist && !headerToOrder,
-      headerToWaitlist
-        ? "nothing is orderable, and the waitlist is the honest destination"
-        : "the prelaunch header points at neither the waitlist nor anything else expected",
+      "the gate is shut, so the header offers an enquiry rather than the chooser",
+      headerToContact && !headerToOrder && !headerToWaitlist,
+      headerToContact && !headerToOrder
+        ? "nothing is orderable, and an enquiry is the honest destination"
+        : "the prelaunch header points at the chooser, or at the retired waitlist",
     );
   } else {
     /*
@@ -362,7 +363,7 @@ for (const route of allRoutes) {
 
 console.log("=== CTA AUDIT ===");
 console.log(`${allRoutes.length} routes against ${BASE}`);
-console.log(GATE_ACTIVE ? "prelaunch gate ACTIVE: the honest CTA is the waitlist" : "live mode");
+console.log(GATE_ACTIVE ? "prelaunch gate ACTIVE: the honest CTA is an enquiry" : "live mode");
 console.log("");
 for (const r of out) {
   console.log(`  ${r.ok ? "PASS" : "FAIL"}: ${r.name}${r.note ? ` (${r.note})` : ""}`);

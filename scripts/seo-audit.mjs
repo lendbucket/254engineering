@@ -115,7 +115,8 @@ const BASE = process.env.BASE_URL || AUDIT_BASE_URL;
  * because the source can be right while the render is not, and nobody reads
  * JSON-LD by eye.
  */
-const PUBLIC_EMAIL = "support@254engineering.com";
+/* Moved to info@ 2026-10-10, operator ruling: a live alias, public and Reply-To together. */
+const PUBLIC_EMAIL = "info@254engineering.com";
 
 /*
  * HOW MANY RENDERED PAGES ACTUALLY CARRIED AN email PROPERTY TO CHECK.
@@ -183,7 +184,8 @@ let schemaEmailsSeen = 0;
  */
 const MIN_TITLE = 50;
 const MAX_TITLE = 60;
-const MIN_DESC = 140;
+/* 150 since 2026-10-10, operator ruling on the search appearance table (was 140). */
+const MIN_DESC = 150;
 const MAX_DESC = 160;
 
 /** A description has to end somewhere a reader can act. */
@@ -259,6 +261,27 @@ if (routes.length === 0) {
   process.exitCode = 1;
 }
 
+/*
+ * THE SITEMAP AND ROBOTS, operator ruling 2026-10-10 (and CLAUDE.md section 4).
+ * robots.txt names the sitemap; the sitemap lists no route twice and not the
+ * retired /waitlist; and a <lastmod> appears only on an insights post, the one
+ * kind of page with a true per-page date, never a build time on everything.
+ */
+{
+  const robots = await (await fetch(`${BASE}/robots.txt`)).text();
+  if (!/^Sitemap:\s*https:\/\/254engineering\.com\/sitemap\.xml\s*$/m.test(robots))
+    problems.push("robots.txt: does not point at https://254engineering.com/sitemap.xml");
+  const xml = await (await fetch(`${BASE}/sitemap.xml`)).text();
+  const entries = [...xml.matchAll(/<url>([\s\S]*?)<\/url>/g)].map((m) => m[1]);
+  const locs = entries.map((e) => (e.match(/<loc>([^<]+)<\/loc>/)?.[1] ?? "").replace(/^https?:\/\/[^/]+/, "") || "/");
+  if (new Set(locs).size !== locs.length) problems.push("sitemap.xml: a route is listed twice");
+  if (locs.includes("/waitlist")) problems.push("sitemap.xml: lists /waitlist, which is a permanent redirect");
+  const datedNotPost = entries.filter((e, i) => /<lastmod>/.test(e) && !locs[i].startsWith("/insights/"));
+  if (datedNotPost.length) problems.push(`sitemap.xml: ${datedNotPost.length} entr(ies) carry a lastmod with no true per-page date`);
+  const dated = entries.filter((e) => /<lastmod>/.test(e)).length;
+  console.log(`sitemap: ${locs.length} routes, ${dated} with a true lastmod (insights posts only)`);
+}
+
 for (const route of routes) {
   const res = await fetch(`${BASE}${route}`);
   if (res.status !== 200) {
@@ -277,8 +300,10 @@ for (const route of routes) {
     problems.push(`${route}: title is ${title.length} chars, over ${MAX_TITLE} ("${title}")`);
   else if (title.length < MIN_TITLE)
     problems.push(`${route}: title is only ${title.length} chars, under ${MIN_TITLE} ("${title}")`);
-  else if (!title.includes("254 Engineering"))
-    problems.push(`${route}: title carries no brand suffix ("${title}")`);
+  /* Sharpened 2026-10-10, operator ruling: titles END "| 254 Engineering", the brand
+   * whole, never "254 Engineering Services" and never a truncation of it. */
+  else if (!title.endsWith(" | 254 Engineering"))
+    problems.push(`${route}: title does not end "| 254 Engineering" ("${title}")`);
 
   if (!description) problems.push(`${route}: no meta description`);
   else if (description.length > MAX_DESC)
@@ -289,8 +314,25 @@ for (const route of routes) {
     problems.push(`${route}: description has no call to action ("${description.slice(-48)}")`);
 
   if (!meta.canonical) problems.push(`${route}: no canonical link`);
-  if (meta.ogSiteName !== "254 Engineering Services")
-    problems.push(`${route}: og:site_name is "${meta.ogSiteName}", expected "254 Engineering Services"`);
+  /* One canonical, not merely one present: two disagreeing canonicals are ignored by Google. */
+  const canonicals = (html.match(/<link\s+rel="canonical"/gi) ?? []).length;
+  if (canonicals > 1) problems.push(`${route}: ${canonicals} canonical links, expected exactly 1`);
+  /* The brand, operator ruling 2026-10-10. Was "254 Engineering Services". */
+  if (meta.ogSiteName !== "254 Engineering")
+    problems.push(`${route}: og:site_name is "${meta.ogSiteName}", expected "254 Engineering"`);
+  /* Every JSON-LD block parses. extract() answers a failed parse with null, which
+   * the type checks below would otherwise read as simply absent. */
+  const unparsed = meta.jsonLd.filter((d) => d === null).length;
+  if (unparsed) problems.push(`${route}: ${unparsed} JSON-LD block(s) do not parse`);
+  if (route === "/") {
+    /* The homepage carries no publish or modified date, operator ruling 2026-10-10. */
+    const dated =
+      /<meta[^>]+(?:article:published_time|article:modified_time|date)[^>]*>/i.test(html) ||
+      meta.jsonLd.some((d) => d && (d.datePublished || d.dateModified));
+    if (dated) problems.push(`${route}: the homepage carries a publish or modified date`);
+    if (meta.jsonLd.filter(Boolean).length < 3)
+      problems.push(`${route}: expected the Organization, WebSite and BreadcrumbList nodes, found ${meta.jsonLd.filter(Boolean).length}`);
+  }
 
   if (meta.h1s.length !== 1)
     problems.push(`${route}: ${meta.h1s.length} h1 elements, expected exactly 1`);
@@ -329,8 +371,20 @@ for (const route of routes) {
   // to a template and easy to lose on the page that does not use the template.
   const types = meta.jsonLd.filter(Boolean).map((d) => d["@type"]);
   if (!types.includes("BreadcrumbList")) problems.push(`${route}: no BreadcrumbList schema`);
-  if (!types.includes("ProfessionalService")) problems.push(`${route}: no Organization schema`);
-  if (!types.includes("WebSite")) problems.push(`${route}: no WebSite schema`);
+  /*
+   * THE ENTITY NODES LIVE ON THE HOMEPAGE, AND ON /corpus-christi UNDER THE SAME
+   * @id. Operator ruling, 2026-10-10. Until then they shipped on every public
+   * page from the site layout. Asserted in both directions: present where ruled,
+   * absent everywhere else, so a layout that puts them back fails here.
+   */
+  const ENTITY_ROUTES = new Set(["/", "/corpus-christi"]);
+  if (ENTITY_ROUTES.has(route)) {
+    if (!types.includes("ProfessionalService")) problems.push(`${route}: no Organization schema`);
+    if (route === "/" && !types.includes("WebSite")) problems.push(`${route}: no WebSite schema`);
+  } else {
+    if (types.includes("ProfessionalService")) problems.push(`${route}: Organization schema outside the homepage and /corpus-christi`);
+    if (types.includes("WebSite")) problems.push(`${route}: WebSite schema outside the homepage`);
+  }
 
   /*
    * ========================================================================

@@ -9,13 +9,14 @@ import {
   postalAddressSchema,
 } from "@/config/contact";
 import { firmName, isOpen, tbpelsFirmNumber } from "./launch";
+import { parentCompany } from "@/config/credentials";
 
 /**
  * Structured data for the whole brand family.
  *
  * THIS SITE IS THE MASTER ORGANIZATION RECORD
  * -------------------------------------------
- * 254 Engineering Services is the entity behind the sister brands, so the
+ * 254 Engineering LLC is the entity behind the sister brands, so the
  * Organization node here is the one the others should resolve to rather than
  * three unrelated organizations that happen to share an owner. That is what the
  * `brands` array and the stable `@id` are for: a crawler that reads a brand site
@@ -56,7 +57,7 @@ export function organizationSchema() {
     "@id": ORG_ID,
     name: business.name,
     legalName: business.legalName,
-    alternateName: business.shortName,
+    alternateName: business.legalName,
     url: business.url,
     email: business.email,
     description:
@@ -82,9 +83,26 @@ export function organizationSchema() {
     // The real mark, not the social card. schema.org logo is meant to be the
     // organisation logo itself, and a knowledge panel that picks up a 1200x630
     // card with a tagline on it renders the tagline as the logo.
-    logo: `${business.url}/brand/logo.png`,
+    /*
+     * SQUARE, 512 BY 512, AT A STABLE PATH. Operator ruling 2026-10-10: the
+     * logo is a square of at least 112px. The wordmark (2262 by 1147) is not;
+     * this is the site icon's mark, copied to a path that does not carry a
+     * build hash. seo-audit reads its dimensions.
+     */
+    logo: `${business.url}/brand/logo-square.png`,
     image: `${business.url}/og/default.png`,
-    sameAs: business.brands.map((b) => b.url),
+    /*
+     * EMPTY UNTIL THE OPERATOR GIVES EACH PROFILE URL, ruling 2026-10-10. It held
+     * the sister brands' sites until then, which `sameAs` does not mean: it
+     * asserts the same entity, and they are brands, already listed under
+     * `brand`.
+     */
+    sameAs: [],
+    parentOrganization: {
+      "@type": "Organization",
+      name: parentCompany.name,
+      url: parentCompany.url,
+    },
     /*
      * The founder is stated because an entity with a named human behind it is a
      * different trust proposition to a procurement officer than one without.
@@ -129,8 +147,8 @@ export function websiteSchema() {
     // Google derives the SERP site name from the domain, and "254engineering.com"
     // is not the brand.
     name: business.name,
-    alternateName: business.shortName,
-    url: business.url,
+    alternateName: business.legalName,
+    url: `${business.url}/`,
     publisher: { "@id": ORG_ID },
     inLanguage: "en-US",
   };

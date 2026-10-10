@@ -14,7 +14,7 @@ import { services } from "@/content/services";
 export const metadata: Metadata = buildMetadata({
   title: "Contact a Texas Engineering Firm | 254 Engineering",
   description:
-    "Contact a veteran owned Texas engineering firm serving all 254 counties. Send the project, the property, or the solicitation for a direct answer.",
+    "Contact a veteran owned Texas engineering firm serving all 254 counties. Send the project, the property, or the solicitation for a direct answer by email.",
   path: "/contact",
 });
 
@@ -47,7 +47,10 @@ export default async function ContactPage({
    * of their choosing into a field this firm reads.
    */
   const params = await searchParams;
-  const defaultService = services.find((s) => s.slug === params.service)?.name;
+  /* By slug, or by name, which is what /waitlist links carried before it became a
+   * permanent redirect here on 2026-10-10; the query string survives the 308.
+   * Anything else falls through to no selection. */
+  const defaultService = services.find((s) => s.slug === params.service || s.name === params.service)?.name;
 
   return (
     <>
@@ -55,7 +58,7 @@ export default async function ContactPage({
 
       <PageHeader
         eyebrow="Contact"
-        title="Contact 254 Engineering Services"
+        title="Contact a Texas Engineering Firm"
         lede="Send what you are working on and you will get a direct answer, including when the answer is that this is not work the firm should take."
         crumbs={crumbs}
       >

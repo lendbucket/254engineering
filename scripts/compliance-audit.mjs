@@ -2407,6 +2407,9 @@ const RULED_CONDITIONS = [
  * audit. Only a standalone run with no BASE_URL and no build may say COULD NOT
  * TELL, and that is not counted as a pass.
  */
+/* The rendered public documents, kept for the copy checks after this block. */
+const publicBodies = new Map();
+let publicOnBoard = false;
 {
   const NAME = "no public page carries the engineer's licence number or appointment number";
   const PINNED = "143295";
@@ -2416,6 +2419,7 @@ const RULED_CONDITIONS = [
     ...verifiedCredentials.filter((c) => /TDI|Department of Insurance/i.test(c.issuer + c.name) && c.identifier).map((c) => String(c.identifier)),
   ]);
   const onBoard = Boolean(process.env.MACHINE_LOCK_HELD);
+  publicOnBoard = onBoard;
   let base = process.env.BASE_URL ?? null;
   let ownServer = null;
   let noServer = null;
@@ -2458,6 +2462,7 @@ const RULED_CONDITIONS = [
     const pages = [...new Set([...routes, "/llms.txt", "/llms-full.txt", "/robots.txt"])];
     for (const route of pages) {
       const body = await read(route);
+      publicBodies.set(route, body);
       for (const n of forbidden) if (body.includes(n)) found.push(`${route}: ${n}`);
     }
     rec(
@@ -2473,6 +2478,119 @@ const RULED_CONDITIONS = [
     );
   }
   if (ownServer) await ownServer.stop();
+}
+
+/*
+ * ===========================================================================
+ * THREE RULES ON WHAT A PUBLIC PAGE MAY SAY ABOUT THE FIRM. Operator rulings,
+ * 2026-10-10, read off the SAME rendered documents as the check above (the
+ * whole response, head and JSON-LD included), never off the source, because a
+ * sentence reaches a page through a deriver.
+ * ===========================================================================
+ *
+ * 1. GATE SENTENCES. The firm is registered, has an engineer of record, takes
+ *    enquiries and quotes work (ruling of 2026-09-17, restated 2026-10-10). So
+ *    while the register holds an active registration AND an active engineer, a
+ *    public page saying the registration is pending, the firm is not yet
+ *    accepting work, it is opening soon, or it has no engineer of record is
+ *    false, and fails here. Whether a particular LINE takes orders comes from
+ *    the line gate and is not this check's subject. The register state is read
+ *    and printed, so a lapsed registration makes the check say which world it
+ *    saw rather than pass by matching nothing.
+ *
+ * 2. THE BRAND. "254 Engineering Services" is a DBA the Board holds and is no
+ *    longer the public brand (business.ts). It fails in public copy and
+ *    metadata, except where a page QUOTES a signed protocol, whose text is
+ *    verbatim (CLAUDE.md section 3). An occurrence is exempt only when the 60
+ *    characters from it appear in a protocol transcription; the exemptions are
+ *    COUNTED and NAMED in the output. The register and keyword-registry.ts are
+ *    source files no public page renders, so this check never meets them.
+ *
+ * 3. VETERAN OWNERSHIP, NOT CERTIFICATION. "Veteran owned" is a true statement
+ *    of the owner and is allowed. Certification wording (VOSB, SDVOSB, service
+ *    disabled, certified, VetCert, CVE, an agency named beside veteran status)
+ *    fails until the register holds that certification with a date and a
+ *    reference; it holds none.
+ */
+{
+  const NAMES = [
+    "no public page states a gate condition the register contradicts",
+    "no public page or metadata uses the retired brand 254 Engineering Services",
+    "no public page claims a veteran business certification the firm does not hold",
+  ];
+  if (publicBodies.size === 0) {
+    for (const n of NAMES) {
+      rec(n, publicOnBoard ? false : "could-not-tell", "no rendered page was read, see the licence number check above");
+    }
+  } else {
+    const { activeFirmRegistration, activeEngineer } = await import("../src/lib/launch.ts");
+    const registered = Boolean(activeFirmRegistration());
+    const engineer = Boolean(activeEngineer());
+    const text = (html) =>
+      html
+        .replace(/<script(?![^>]*ld\+json)[\s\S]*?<\/script>/gi, " ")
+        .replace(/<[^>]+>/g, " ")
+        .replace(/&#x27;|&#39;/g, "'")
+        .replace(/&amp;/g, "&")
+        .replace(/\s+/g, " ");
+
+    /* 1. gate sentences, each applying only while the register contradicts it */
+    const GATE = [
+      [/registration (?:is )?pending|pending with TBPELS/i, registered, "registration pending"],
+      [/not yet accepting (?:engineering )?(?:work|engagements)/i, registered && engineer, "not yet accepting work"],
+      [/opening soon|opens soon|once the firm opens|until it opens for work|when the firm opens/i, registered && engineer, "opening soon"],
+      [/no engineer of record|not yet in responsible charge/i, engineer, "no engineer of record"],
+      [/join the waitlist/i, registered && engineer, "join the waitlist"],
+    ];
+    const gateHits = [];
+    for (const [route, html] of publicBodies) {
+      const t = text(html);
+      for (const [re, applies, label] of GATE) if (applies && re.test(t)) gateHits.push(`${route}: ${label}`);
+    }
+    rec(
+      NAMES[0],
+      gateHits.length === 0,
+      gateHits.length
+        ? gateHits.slice(0, 10).join("; ")
+        : `register: registration ${registered ? "active" : "NOT active"}, engineer ${engineer ? "active" : "NOT active"}; ${publicBodies.size} documents read`,
+    );
+
+    /* 2. the retired brand, with counted protocol quotation exemptions */
+    const { readdirSync } = await import("node:fs");
+    const flat = (s) => s.replace(/\s+/g, " ");
+    const corpus = readdirSync("src/content/protocols")
+      .filter((f) => f.endsWith(".ts"))
+      .map((f) => flat(readSource(`src/content/protocols/${f}`)))
+      .join("\n");
+    const OLD = "254 Engineering Services";
+    const brandHits = [];
+    const exempt = [];
+    for (const [route, html] of publicBodies) {
+      const t = text(html);
+      for (let i = t.indexOf(OLD); i >= 0; i = t.indexOf(OLD, i + OLD.length)) {
+        const span = t.slice(i, i + 60).trim();
+        if (span.length >= 40 && corpus.includes(span)) exempt.push(`${route}: "${span.slice(0, 50)}"`);
+        else brandHits.push(`${route}: "${t.slice(Math.max(0, i - 30), i + 40).trim()}"`);
+      }
+    }
+    rec(
+      NAMES[1],
+      brandHits.length === 0,
+      brandHits.length
+        ? brandHits.slice(0, 8).join("; ")
+        : `${publicBodies.size} documents read; ${exempt.length} protocol quotation(s) exempt${exempt.length ? `: ${exempt.slice(0, 4).join("; ")}` : ""}`,
+    );
+
+    /* 3. veteran certification wording */
+    const CERT =
+      /\b(?:VOSB|SDVOSB|service[\s-]disabled[\s-]veteran|certified veteran|veteran[\s-]owned[\s\w-]{0,20}certif\w*|VetCert|CVE[\s-](?:verified|certified)|(?:SBA|VA)[\s-](?:certified|verified)|(?:certified|verified) by the (?:SBA|VA|Small Business Administration|Department of Veterans Affairs))\b/i;
+    const certHits = [];
+    for (const [route, html] of publicBodies) {
+      const m = text(html).match(CERT);
+      if (m) certHits.push(`${route}: "${m[0]}"`);
+    }
+    rec(NAMES[2], certHits.length === 0, certHits.length ? certHits.slice(0, 8).join("; ") : `${publicBodies.size} documents read`);
+  }
 }
 
 /* ----------------------------------------------------------------- verdict */

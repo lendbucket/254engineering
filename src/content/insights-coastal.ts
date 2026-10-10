@@ -335,7 +335,7 @@ export const coastalInsights: Insight[] = [
     title: "Texas Windstorm Certificate Lookup | 254 Engineering",
     h1: "Texas windstorm certificate lookup: the TDI search, the TWIA window, and what neither proves",
     description:
-      "Search the TDI windstorm certificate database by address or number, find a WPI-8C through TWIA, and see what a result can and cannot tell you.",
+      "Search the TDI windstorm certificate database by address or number, find a WPI-8C through TWIA, and see exactly what a search result can and cannot tell you.",
     summary:
       "There are two places to look, and the one a coastal file needs depends on when the work was certified. Neither one says anything about the roof as it is today.",
     eyebrow: "Windstorm law",
@@ -600,7 +600,7 @@ export const coastalInsights: Insight[] = [
     title: "Post-Construction Evaluation Report Rules | 254 Engineering",
     h1: "Post-construction evaluation reports: what the engineer affirms and answers for",
     description:
-      "What section 2210.2515 requires in a sealed post-construction evaluation report, when TDI may deny one, and how an engineer answers for it. Read on.",
+      "What section 2210.2515 requires in a sealed post-construction evaluation report, when TDI may deny one, and how an engineer answers for it. Read the section.",
     summary:
       "When coastal work was finished without inspection, the certificate rests on one engineer's sealed report. The statute says what that report must contain, and who may call the engineer to account for it.",
     eyebrow: "Windstorm law",
@@ -939,7 +939,7 @@ export const coastalInsights: Insight[] = [
     title: "Inspection vs Forensic Report on the Coast | 254 Engineering",
     h1: "Inspection vs forensic report vs certificate, three different coastal documents",
     description:
-      "After a coastal storm, an inspection, a certificate, and a forensic report answer different questions. See who produces each and what each can prove.",
+      "After a coastal storm, an inspection, a certificate, and a forensic report answer different questions. See who produces each one and what each one can prove.",
     summary:
       "An adjuster, an agent, and an owner can all say inspection after a storm and mean three different documents. Each has a different author, a different question, and a different weight.",
     eyebrow: "Windstorm law",

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Container } from "@/components/ui/Container";
 import { Wordmark } from "@/components/brand/Wordmark";
 import { business } from "@/config/business";
+import { parentCompany } from "@/config/credentials";
 import { registrationLine } from "@/lib/launch";
 import { displayPhone, hasPostalAddress, postalAddressLine, telHref } from "@/config/contact";
 
@@ -154,6 +155,15 @@ export function SiteFooter() {
           <div className="mx-auto max-w-[760px] text-center">
             <p className="font-display text-[15px] font-semibold text-slate-fg">{business.name}</p>
             <p className="mt-2 text-[14.5px] leading-[1.65] text-[#dce2eb]">{registrationLine()}</p>
+            {/* Below the registration line, from the register. Operator ruling 2026-10-10. */}
+            <p className="mt-1 text-[14.5px] leading-[1.65] text-[#dce2eb]">
+              <a
+                href={parentCompany.url}
+                className="inline-flex min-h-[44px] items-center px-1 text-brass underline-offset-4 transition-colors hover:text-brass-light hover:underline"
+              >
+                A {parentCompany.name} Company
+              </a>
+            </p>
           </div>
         </div>
 

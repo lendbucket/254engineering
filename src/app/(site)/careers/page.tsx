@@ -20,7 +20,7 @@ import { Section, SectionHead } from "@/components/ui/section";
 import { FaqBlock } from "@/components/site/FaqBlock";
 
 export const metadata: Metadata = buildMetadata({
-  title: "Engineering Careers Across Texas | 254 Engineering",
+  title: "Engineering Careers in Texas, PE and Field | 254 Engineering",
   description:
     "Two open positions at a veteran owned Texas engineering firm serving all 254 counties: a licensed PE seat and field inspection work. Read the roles and apply.",
   path: "/careers",
@@ -72,7 +72,7 @@ export default function CareersPage() {
       <PageHeader
         image={sectionPhotos.careers}
         eyebrow="Careers"
-        title="Build a Texas engineering firm from the ground up"
+        title="Engineering Careers in Texas: Build a Firm From the Ground Up"
         lede={`${firmName()} is a veteran owned firm named for the 254 counties of Texas and built to serve every one of them, on licensed professional judgment and statewide field operations. These are the seats that make that possible.`}
         crumbs={crumbs}
       >

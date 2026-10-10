@@ -50,7 +50,7 @@ export function HomeHero() {
           <div className="flex-1 basis-[400px]">
             {prelaunch ? (
               <span className="inline-block rounded-[2px] border border-brass/65 px-3.5 py-[7px] text-[12px] font-bold tracking-[0.14em] text-brass-light uppercase">
-                Opening soon
+                Taking enquiries
               </span>
             ) : null}
 
@@ -75,10 +75,17 @@ export function HomeHero() {
               engineer", which is 18,000 a month at difficulty 0 and the largest
               cluster on this site by a wide margin, and it reads as a sentence
               rather than a keyword string.
+
+              SUPERSEDED 2026-10-10 by the operator's approval of the search
+              appearance table: the H1 leads with the homepage title's keyword,
+              "Texas Engineering Firm", and keeps the written protocol as its
+              second half, which is the part of the 2026-09-18 reasoning that
+              survives. The original is kept above so the change reads as a
+              ruling rather than an accident.
             */}
             <h1 className="mt-[22px] max-w-[20ch] font-display text-[clamp(34px,5vw,56px)] leading-[1.12] font-bold tracking-[-0.015em] text-slate-fg">
-              Structural Engineering Across Texas,{" "}
-              <span className="text-brass-light">on a Written Protocol</span>
+              Texas Engineering Firm,{" "}
+              <span className="text-brass-light">Structural Work on a Written Protocol</span>
             </h1>
 
             <p className="mt-[22px] max-w-[56ch] text-[clamp(16px,1.9vw,18.5px)] leading-[1.7] text-slate-fg-muted">

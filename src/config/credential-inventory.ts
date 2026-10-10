@@ -599,7 +599,7 @@ export const CREDENTIALS: Credential[] = [
     name: "INTAKE_KEY_STAMP",
     kind: "secret",
     livesIn: "Vercel. Held by the stampmyplans deployment.",
-    grants: "Submitting leads and orders into this firm's database as StampMyPlans.",
+    grants: "Submitting leads and orders into this firm's database as Stamp My Plans.",
     rotated: "2026-09-12 on development. NEVER on production.",
   },
   /*

@@ -12,10 +12,19 @@ import { JsonLd, breadcrumbSchema } from "@/lib/schema";
 import { services } from "@/content/services";
 import { reviewStepCopy, sealedDeliverableSentence } from "@/content/model-copy";
 
+/*
+ * HOW MANY LINES, DERIVED. This page said "Nine" in four places and listed
+ * eight (product audit, 2026-10-10, defect 15). The count is the services
+ * list's own length, so the day a line is added or retired every sentence moves
+ * with it rather than one of them going stale.
+ */
+const COUNT = ["None", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Eleven", "Twelve"];
+const LINES = COUNT[services.length] ?? String(services.length);
+
 export const metadata: Metadata = buildMetadata({
-  title: "Engineering Service Lines in Texas | 254 Engineering",
+  title: `Engineering Services in Texas, ${LINES} Lines | 254 Engineering`,
   description:
-    "Nine engineering service lines for Texas property and construction: inspections, sealed letters, certifications, and design. See what each one involves.",
+    `${LINES} engineering service lines for Texas property and construction: inspections, sealed letters, certifications, and design. See what each one involves.`,
   path: "/services",
 });
 
@@ -33,7 +42,7 @@ export default function ServicesPage() {
         image={sectionPhotos.services}
         eyebrow="Service lines"
         title="Engineering services for Texas property and construction"
-        lede={`Nine service lines, each ending in a document somebody relies on: a lender, an insurer, a building official, or a court. ${sealedDeliverableSentence()}`}
+        lede={`${LINES} service lines, each ending in a document somebody relies on: a lender, an insurer, a building official, or a court. ${sealedDeliverableSentence()}`}
         crumbs={crumbs}
       >
         <PrelaunchNotice />
@@ -51,7 +60,7 @@ export default function ServicesPage() {
       <Section tone="sunk">
         <SectionHead
           eyebrow="The service lines"
-          title="Nine documents, one standard behind each"
+          title={`${LINES} documents, one standard behind each`}
           lede="Each line ends in something a lender, an insurer, a building official, or a court has to accept. They differ in what they examine. They do not differ in how the work is carried out."
         />
         <div className="mt-8 border-t border-limestone-line pt-7">

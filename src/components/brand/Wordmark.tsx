@@ -70,7 +70,7 @@ export function Wordmark({
   return (
     <Image
       src={src}
-      alt="254 Engineering Services"
+      alt="254 Engineering"
       width={Math.round(height * RATIO)}
       height={height}
       priority={priority}

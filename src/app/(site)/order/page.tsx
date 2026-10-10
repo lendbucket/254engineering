@@ -9,7 +9,7 @@ import { PhoneNumber } from "@/components/ui/PhoneNumber";
 
 /**
  * ===========================================================================
- * THE CHOOSER. "What do you need?" and then one press.
+ * THE CHOOSER. "Order Engineering Work Online: What Do You Need?" and then one press.
  * Operator ruling, 2026-10-03, instruction 2.
  * ===========================================================================
  *
@@ -63,9 +63,9 @@ import { PhoneNumber } from "@/components/ui/PhoneNumber";
  * than padding.
  */
 export const metadata: Metadata = buildMetadata({
-  title: "Order engineering work online | 254 Engineering Services",
+  title: "Order Engineering Work Online in Texas | 254 Engineering",
   description:
-    "Choose what you need. Lines open for online ordering show the price and take the order now. Every other line is quoted by the firm. Start here.",
+    "Choose what you need. Lines open for online ordering show the price and take the order now. Every other line is quoted by the firm. Start your order here.",
   path: "/order",
 });
 

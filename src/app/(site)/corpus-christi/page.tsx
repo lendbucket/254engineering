@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/site/PageHeader";
 import { PrelaunchNotice } from "@/components/launch/PrelaunchNotice";
 import { OfferCta } from "@/components/launch/OfferCta";
 import { buildMetadata } from "@/lib/seo";
-import { JsonLd, breadcrumbSchema } from "@/lib/schema";
+import { JsonLd, breadcrumbSchema, organizationSchema } from "@/lib/schema";
 import { location } from "@/content/location";
 import { contact, displayPhone, hasPostalAddress, telHref } from "@/config/contact";
 import { business } from "@/config/business";
@@ -47,6 +47,8 @@ export default function LocationPage() {
 
   return (
     <>
+      {/* The one entity node, the same @id as the homepage's: one firm on two pages. */}
+      <JsonLd data={organizationSchema()} />
       <JsonLd data={breadcrumbSchema(crumbs)} />
 
       {/* 1. white by construction: the header is its own dark surface */}

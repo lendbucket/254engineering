@@ -224,9 +224,10 @@ async function routes() {
   const found = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map(
     (m) => m[1].replace(/^https?:\/\/[^/]+/, "") || "/",
   );
-  // The homepage and the waitlist are reachable and indexable; whether they are
-  // in the sitemap is a separate question from whether they overflow.
-  for (const extra of ["/", "/waitlist"]) if (!found.includes(extra)) found.push(extra);
+  // The homepage is reachable and indexable; whether it is in the sitemap is a
+  // separate question from whether it overflows. /waitlist left this list on
+  // 2026-10-10, when it became a permanent redirect to /contact.
+  for (const extra of ["/"]) if (!found.includes(extra)) found.push(extra);
 
   /*
    * The sitemap is the public list and the inventory is everything else. Pages

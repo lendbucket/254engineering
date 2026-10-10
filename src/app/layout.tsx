@@ -131,7 +131,7 @@ export const metadata: Metadata = {
   // Pages set absolute titles. See the note in src/lib/seo.ts for why there is
   // no title template here.
   title: {
-    default: "Texas Engineering Services Statewide | 254 Engineering",
+    default: "Texas Engineering Firm, All 254 Counties | 254 Engineering",
     template: "%s",
   },
   description:

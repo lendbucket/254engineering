@@ -139,7 +139,7 @@ export default async function WindstormClusterPage({
           <Link href="/services/windstorm-wpi-8" className="underline underline-offset-4">
             windstorm capability page
           </Link>{" "}
-          covers what this firm is built to deliver once it opens for work.
+          covers what this firm is built to deliver and whether that line takes orders today.
         </p>
       </Section>
 

@@ -15,7 +15,7 @@ import { Callout, Section, SectionHead } from "@/components/ui/section";
 import { TexasCountyMap } from "@/components/map/TexasCountyMap";
 import { LeadForm } from "@/components/forms/LeadForm";
 import { buildMetadata } from "@/lib/seo";
-import { JsonLd, breadcrumbSchema } from "@/lib/schema";
+import { JsonLd, breadcrumbSchema, organizationSchema, websiteSchema } from "@/lib/schema";
 import { services } from "@/content/services";
 import { regions } from "@/content/regions";
 import { FIRST_TIER_COASTAL, FIRST_TIER_COUNT } from "@/content/windstorm";
@@ -39,7 +39,7 @@ import { isPrelaunch } from "@/lib/launch";
  */
 
 export const metadata: Metadata = buildMetadata({
-  title: "Texas Engineering Services Statewide | 254 Engineering",
+  title: "Texas Engineering Firm, All 254 Counties | 254 Engineering",
   description:
     "A veteran owned Texas engineering firm named for the 254 counties of Texas, built to serve every one of them. See the service lines and the coverage map.",
   path: "/",
@@ -59,6 +59,9 @@ export default function HomePage() {
 
   return (
     <>
+      {/* The entity nodes live here (and on /corpus-christi), operator ruling 2026-10-10. */}
+      <JsonLd data={organizationSchema()} />
+      <JsonLd data={websiteSchema()} />
       <JsonLd data={breadcrumbSchema([{ name: "Home", path: "/" }])} />
 
       <HomeHero />
@@ -284,17 +287,17 @@ export default function HomePage() {
         </div>
       </Section>
 
-      {/* Waitlist */}
-      <section id="waitlist" className="bg-limestone">
+      {/* Enquiry. It was the waitlist until 2026-10-10. */}
+      <section id="enquiry" className="bg-limestone">
         <Container>
           <div className="flex flex-wrap gap-[clamp(28px,5vw,80px)] py-[clamp(52px,8vw,96px)]">
             <div className="flex-1 basis-[300px]">
               <h2 className="font-display text-[clamp(28px,4vw,40px)] leading-[1.12] font-bold tracking-[-0.01em] text-slate">
-                {prelaunch ? "Join the Waitlist" : "Start a Project"}
+                {prelaunch ? "Send an Enquiry" : "Start a Project"}
               </h2>
               <p className="mt-4 max-w-[50ch] text-[16.5px] leading-[1.7] text-slate-muted">
                 {prelaunch
-                  ? "The firm opens soon. Join the waitlist and you will hear directly when it is active, before any general announcement."
+                  ? "Send the address, the scope, and the date it has to be in hand. The firm takes enquiries and quotes work, and you will get a direct answer."
                   : "Send the address, the scope, and the date it has to be in hand. You will get a straight answer on whether it is work this firm should take and what it involves."}
               </p>
               <div className="mt-7 flex gap-8">
@@ -305,9 +308,9 @@ export default function HomePage() {
             </div>
             <div className="flex-1 basis-[360px]">
               <LeadForm
-                variant={prelaunch ? "waitlist" : "contact"}
+                variant="contact"
                 serviceOptions={services.map((s) => s.name)}
-                framed={prelaunch ? "Reserve your place" : "Tell us what you need"}
+                framed="Tell us what you need"
               />
             </div>
           </div>
