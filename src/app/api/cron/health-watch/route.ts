@@ -6,7 +6,7 @@ import { notify } from "@/lib/notify";
 import { enqueue } from "@/lib/ops-jobs";
 import { cronStarted, cronFinished } from "@/lib/ops-observability";
 import { watchQueue } from "@/lib/queue-watch";
-import { watchRetention } from "@/lib/retention-watch";
+import { watchRetention, reportRetentionWatch } from "@/lib/retention-watch";
 import {
   HEALTH_PROBE_PATH,
   HEALTH_WATCH_EVERY_MINUTES,
@@ -199,8 +199,8 @@ export async function GET(request: NextRequest) {
    * so.
    */
   const retention = await watchRetention();
-  if (retention.sent) console.warn(`[retention-watch] alerted: ${retention.note}`);
-  if (!retention.looked) console.error(`[retention-watch] DID NOT LOOK: ${retention.note}`);
+  /* A deliberate cooldown skip logs at info, a watch that could not see at error. */
+  reportRetentionWatch(retention);
 
   if (!shouldAlert(outcome)) {
     /*
