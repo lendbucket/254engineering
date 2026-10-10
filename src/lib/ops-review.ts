@@ -227,6 +227,22 @@ export function canReview(
   }
 
   /*
+   * A FILE UNDER REVIEW IS DECIDED BY THE ENGINEER IT IS ASSIGNED TO. Product
+   * audit, 2026-10-10: this field was carried and never read, and decideFile
+   * passed the caller's own id as the assignee, so any account in the
+   * engineer role could decide, decline to seal or send back a file another
+   * engineer had taken into review. A file nobody is assigned to (older rows)
+   * is not refused here; openReview assigns on the way in.
+   */
+  if (subject.assignedEngineerId && actor && subject.assignedEngineerId !== actor.id) {
+    return {
+      ok: false,
+      reason:
+        "Another engineer has this file under review. It is decided by the engineer who took it into review.",
+    };
+  }
+
+  /*
    * Sealing an incomplete package is the one thing this function refuses that
    * an engineer might reasonably expect to be allowed. It is refused because
    * the seal says the engineer reviewed the evidence the protocol required, and
