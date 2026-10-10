@@ -1264,8 +1264,9 @@ export function refundFailed(input: {
  * NOTHING HERE STATES A FIGURE THE DISPATCH RECORD DOES NOT HOLD.
  *
  * `rate` is null when eng_job_offers.offer_amount_cents is null, which happens
- * whenever no scheduled rate covers the work, and it renders as "not set"
- * rather than as a number. A technician who accepts on a rate this email
+ * whenever no scheduled rate covers the work, and it says the offer cannot be
+ * accepted until the office sets one (2026-10-09: acceptOffer refuses a null
+ * rate, and a bare "not set" is never printed). A technician who accepts on a rate this email
  * invented would be owed it, and the record would not agree. Same for the
  * window: no expiry on the offer means the email says the offer does not expire,
  * because inventing a deadline to create urgency is how a firm loses people.
@@ -1313,7 +1314,12 @@ export function techOffer(input: {
         },
         {
           kind: "money",
-          rows: [{ label: "Flat rate on submission", value: input.rate }],
+          rows: [
+            {
+              label: "Flat rate on submission",
+              value: input.rate ?? "None yet. This offer cannot be accepted until the office sets its rate.",
+            },
+          ],
         },
         {
           kind: "note",

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
-import { money } from "@/lib/ops-money";
+import { money, isKnown } from "@/lib/ops-money";
 import { can } from "@/lib/ops-authz";
 import { listOffers } from "@/lib/ops-field";
 import { services } from "@/content/services";
@@ -90,8 +90,9 @@ export default async function JobsPage() {
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
+                      {/* Never a bare "not set" (operator ruling, 2026-10-09): a rate, or what its absence means. */}
                       <p className="font-display text-[17px] leading-[1.25] font-bold text-[var(--ink)]">
-                        {money(o.offer_amount_cents)}
+                        {isKnown(o.offer_amount_cents) ? money(o.offer_amount_cents) : "No rate on this offer yet"}
                       </p>
                       <p className="mt-1 text-[14px] font-semibold text-[var(--ink)]">
                         {o.file?.property_address}
@@ -113,7 +114,7 @@ export default async function JobsPage() {
                     ) : null}
                   </div>
 
-                  <OfferControls offerId={o.id} fileId={o.file_id} />
+                  <OfferControls offerId={o.id} fileId={o.file_id} hasRate={isKnown(o.offer_amount_cents)} />
                 </li>
               ))}
             </ul>
@@ -147,7 +148,8 @@ export default async function JobsPage() {
                         </p>
                         <p className="mt-0.5 text-[14px] text-[var(--secondary)]">
                           {o.file?.city ? `${o.file.city}, ` : ""}
-                          {o.file?.county} County, {money(o.offer_amount_cents)}
+                          {o.file?.county} County
+                          {isKnown(o.offer_amount_cents) ? `, rate ${money(o.offer_amount_cents)}` : ""}
                         </p>
                       </div>
                       <p className="text-[13px] font-semibold text-[var(--ink)]">
@@ -174,7 +176,8 @@ export default async function JobsPage() {
                 <div className="min-w-0">
                   <p className="text-[14px] font-semibold text-[var(--ink)]">{o.file?.property_address}</p>
                   <p className="mt-0.5 text-[14px] text-[var(--secondary)]">
-                    {o.file?.county} County, {money(o.offer_amount_cents)}
+                    {o.file?.county} County
+                    {isKnown(o.offer_amount_cents) ? `, rate ${money(o.offer_amount_cents)}` : ""}
                   </p>
                 </div>
                 <p className="shrink-0 text-[13px] font-semibold text-[var(--ink)]">
