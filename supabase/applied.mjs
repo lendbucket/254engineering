@@ -2181,6 +2181,40 @@ export const APPLIED = [
       "columns (issuing_state), behaviour 970 to 971 facts (eng_credentials_issuing_state_check). " +
       "Additive only: one nullable column and one check, no row rewritten.",
   },
+  {
+    file: "0067_one_pending_credential_of_a_kind.sql", appliedBy: "apply_migration",
+    fingerprint: "18826fa5b3e7d9c9979ca81b96666bb7",
+    behaviour: "a486dd4e73f0e15e148f75da57f45b1c",
+    /*
+     * APPLIED TO PRODUCTION 2026-10-10, in the sitting staged by
+     * docs/production-sitting-2026-10-10.md, by the operator's chat counterpart,
+     * development first and then production, the file as written. Written
+     * unapplied overnight on fix/credential-one-pending; merged after.
+     *
+     * Read back, every prediction held: the duplicate dry run returned no rows
+     * on both projects; the index eng_credentials_one_pending_per_kind reads
+     * back as predicted on both; shape 18826fa5b3e7d9c9979ca81b96666bb7 across
+     * 1171 columns on both, unchanged, because an index is not a column.
+     */
+    production: "2026-10-10",
+    development: {
+      at: "0067",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-10",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-10 by the operator's chat counterpart, before production, the file " +
+        "as written: the duplicate dry run returned no rows, the index reads back as predicted, and the " +
+        "shape is 18826fa5b3e7d9c9979ca81b96666bb7 across 1171 columns, unchanged.",
+    },
+    proves: { table: "eng_credentials" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0067 on 2026-10-10: shape unchanged at " +
+      "18826fa5b3e7d9c9979ca81b96666bb7 across 1171 columns, behaviour 971 to 972 facts " +
+      "(eng_credentials_one_pending_per_kind, ix). Additive only: one unique partial index; it raises and " +
+      "changes nothing if duplicates already exist.",
+  },
 ];
 
 /*
