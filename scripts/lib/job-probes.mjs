@@ -175,6 +175,17 @@ export const PROBES = [
       "belong in it.",
   },
   {
+    kind: "review.request",
+    payload: { orderId: NOWHERE },
+    expect: "dead",
+    realSubject: false,
+    why:
+      "Added 2026-10-10 (run item 25). A review request for an order that does not exist is fatal. A real " +
+      "order would queue a marketing email to a real customer address and write to that order's timeline, " +
+      "and no board run may ask a person for a review. The real path is proved against a probe order in " +
+      "scripts/proofs/a-review-request-goes-once-or-not-at-all.mjs.",
+  },
+  {
     kind: "retention.sweep",
     payload: { manifestId: NOWHERE },
     expect: "dead",

@@ -43,6 +43,16 @@ active, login 2026-09-02 16:45:18 UTC, profile 17:57:25 UTC, and no
 `scripts/seed-admin.mjs`, not the People screen, so it carries no such row, true
 or false.
 
+## THE REVIEW REQUEST WAITS ON A LINK AND A DELAY
+
+`feat/review-request`, run item 25 of 2026-10-10. Built and inert: nothing is
+sent while `REVIEW_LINK` in `src/config/review-request.ts` is empty, and every
+delivered order records on its timeline that it was not sent and why. Open:
+Robert gives the Google Business Profile review URL; the delay of 7 days is
+the run's default and needs his ruling (it is pinned in the proof). The email
+links to the firm's own `/review`, which redirects to the configured URL,
+because email-audit holds every email link to the production domain.
+
 ## THE SITTING OF 2026-10-10: 0067, ONE PENDING CREDENTIAL OF EACH KIND, RUN
 
 `docs/production-sitting-2026-10-10.md`. One additive migration on

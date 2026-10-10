@@ -12,6 +12,7 @@ import {
   type FileStatus,
 } from "./ops-files";
 import { accrueForDelivery, accrueForQualifiedLead } from "./ops-partner-comp";
+import { scheduleReviewRequest } from "./review-request";
 import { resolveCounty, twiaStatus, regionForCounty } from "./ops-counties";
 
 /**
@@ -867,6 +868,14 @@ export async function transitionFile(
         body: `The partner commission on this delivery could not be recorded: ${accrued.error}. The file is delivered; the commission is not written down yet.`,
       });
     }
+    /*
+     * THE ONE REVIEW REQUEST, queued here because this is the one door to
+     * delivered (run item 25). It runs after the delay and records on the
+     * order whether it sent and why not; a failure here never undoes delivery.
+     */
+    await scheduleReviewRequest(id).catch((err) =>
+      console.error(`[review] could not schedule a review request for file ${id}: ${err instanceof Error ? err.message : String(err)}`),
+    );
   }
 
   return { ok: true };

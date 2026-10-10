@@ -49,6 +49,8 @@ export type JobKind =
    * standing in front of.
    */
   | "report.export"
+  /* Run item 25, 2026-10-10: the one Google review request per delivered order (review-request.ts). */
+  | "review.request"
   /*
    * Phase 12 Section 3. Taking the rows a manifest already named.
    *

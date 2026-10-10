@@ -20,6 +20,7 @@ import { runRetention } from "./ops-retention";
 import { errorAlert } from "./email-templates";
 import { RELEASE, ENVIRONMENT } from "./ops-observability";
 import { business } from "@/config/business";
+import { reviewRequestKey, runReviewRequest } from "./review-request";
 import {
   selectAlerts,
   RATE_WINDOW_MINUTES,
@@ -852,5 +853,22 @@ registerJob("retention.sweep", {
 
     if (error) return { kind: "retry", error: `The sweep finished and its audit row did not write: ${error.message}` };
     return { kind: "done" };
+  },
+});
+
+// ----------------------------------------------------------- review.request
+
+registerJob("review.request", {
+  /*
+   * FALSE, ON THE errors.alert PATTERN. This handler sends nothing: it decides,
+   * writes the order's timeline and QUEUES an email.send, passing job.effectMode
+   * to it so a suppressed run never spawns a live send. Run item 25.
+   */
+  reachesOutside: false,
+  idempotency: (p) => reviewRequestKey(String(p.orderId ?? "")),
+  run: async (p, job): Promise<JobOutcome> => {
+    const orderId = typeof p.orderId === "string" ? p.orderId : "";
+    if (!orderId) return { kind: "fatal", error: "A review request needs an orderId." };
+    return runReviewRequest(orderId, job);
   },
 });
