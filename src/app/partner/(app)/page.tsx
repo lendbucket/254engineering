@@ -13,6 +13,8 @@ import {
   SystemAlert,
 } from "@/components/portal/design";
 import { formatInFirmZone } from "@/lib/firm-calendar";
+import { partnerLogo } from "@/lib/partner-branding";
+import { LogoUpload } from "./LogoUpload";
 
 export const dynamic = "force-dynamic";
 
@@ -40,6 +42,8 @@ export default async function PartnerHome() {
   if (!principal) return null;
 
   const overview = await partnerOverview(principal);
+  /* Their own logo, in any state, so they can see what they sent and where it stands. */
+  const logo = await partnerLogo(principal.partnerId, { approvedOnly: false });
   const agreement = await currentAgreement();
   const outstanding = agreementOutstanding(principal, agreement);
 
@@ -92,6 +96,24 @@ export default async function PartnerHome() {
           note={`${overview.delivered} of them have earned a commission entry.`}
         />
       </div>
+
+      {/* Their logo (run item 19, migration 0072): uploaded here, approved by the firm, then shown on their order page. */}
+      <Panel title="Your logo" description="It shows on your order page beside the firm's name once the firm approves it.">
+        {logo.url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={logo.url} alt={`${principal.partner.organisation} logo`} className="mb-3 max-h-[80px] max-w-[220px] object-contain" />
+        ) : null}
+        <p className="mb-3 text-[13.5px] leading-[1.6] text-[var(--secondary)]">
+          {logo.status === "none"
+            ? "No logo uploaded yet."
+            : logo.status === "pending"
+              ? "Waiting for the firm's approval."
+              : logo.status === "approved"
+                ? "Approved."
+                : "The firm did not approve this one. Upload another to try again."}
+        </p>
+        <LogoUpload />
+      </Panel>
 
       {overview.blocked > 0 ? (
         <SystemAlert condition={`${overview.blocked} commission${overview.blocked === 1 ? "" : "s"} is owed with no figure yet.`}>

@@ -539,3 +539,23 @@ export function DecideSubmission({
     </div>
   );
 }
+
+// ---------------------------------------------------------------- logo
+
+/* A partner's logo waiting for a decision (run item 19, migration 0072). */
+export function LogoDecision({ partnerId }: { partnerId: string }) {
+  const { busy, result, run } = useAction(partnerId);
+  return (
+    <div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button type="button" disabled={busy} onClick={() => run({ action: "logo", decision: "approved" })} className={SECONDARY}>
+          Approve the logo
+        </button>
+        <button type="button" disabled={busy} onClick={() => run({ action: "logo", decision: "refused" })} className={SECONDARY}>
+          Refuse it
+        </button>
+      </div>
+      <Feedback result={result} />
+    </div>
+  );
+}

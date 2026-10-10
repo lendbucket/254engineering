@@ -11,11 +11,13 @@ import {
   AdjustmentForm,
   DecideSubmission,
   InviteForm,
+  LogoDecision,
   MoneyActions,
   StatusForm,
   TermsForm,
 } from "./PartnerActions";
 import { formatInFirmZone } from "@/lib/firm-calendar";
+import { partnerLogo } from "@/lib/partner-branding";
 
 export const dynamic = "force-dynamic";
 
@@ -47,6 +49,8 @@ export default async function PartnerPage({ params }: { params: Promise<{ id: st
   if (!detail) notFound();
 
   const { partner, terms, people, statements, ledger, netCents, blocked } = detail;
+  /* The operator sees the file in any state, so there is something to decide on. */
+  const logo = await partnerLogo(partner.id, { approvedOnly: false });
 
   /*
    * Read here rather than in the module, because it is the one thing on this
@@ -116,6 +120,24 @@ export default async function PartnerPage({ params }: { params: Promise<{ id: st
           </p>
         </Panel>
       </div>
+
+      {/* The partner's logo (run item 19, migration 0072): shown nowhere public until approved here. */}
+      <Panel title="Logo" description="Shown on the partner's order page only once it is approved here.">
+        {logo.status === "none" ? (
+          <p className="text-[14px] leading-[1.55] text-[var(--secondary)]">The partner has not uploaded a logo.</p>
+        ) : (
+          <div>
+            {logo.url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={logo.url} alt={`${partner.organisation} logo, as uploaded`} className="max-h-[96px] max-w-[240px] object-contain" />
+            ) : null}
+            <p className="mt-2 text-[14px] leading-[1.55] text-[var(--ink)]">
+              {logo.status === "pending" ? "Waiting for a decision." : logo.status === "approved" ? "Approved." : "Refused."}
+            </p>
+            {logo.status === "pending" ? <LogoDecision partnerId={partner.id} /> : null}
+          </div>
+        )}
+      </Panel>
 
       <Panel title="Compensation terms" description="Effective dated. A change is a new row, never an edit.">
         {current ? (

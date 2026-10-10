@@ -2310,6 +2310,29 @@ export const APPLIED = [
       "level security, and the function). migration-audit's pinned shape and function count move in the same " +
       "commit. Additive only.",
   },
+  {
+    file: "0072_a_partner_logo_is_approved_before_it_shows.sql", appliedBy: "apply_migration",
+    fingerprint: "3cffb39b56eda13ab54bbe8823b4c26d",
+    behaviour: "beaed922e574a0feb5f12b6cdf8b79f2",
+    /*
+     * PENDING, BY THE WEEKEND RUN RULE: written unapplied on
+     * feat/partner-branding-upload (on fix/sign-in-limiter-in-the-database,
+     * because 0072 follows 0071), staged with
+     * docs/production-sitting-feat-partner-branding-upload.md.
+     */
+    production: null,
+    development: { at: "0072", behaviour: null, facts: null },
+    because:
+      "WRITTEN 2026-10-10 UNAPPLIED, run item 19 (partner onboarding, the branding upload): a partner's logo on " +
+      "eng_partners in four states (none, pending, approved, refused), shown only once approved, and the private " +
+      "eng-partner-branding bucket, raster images only. Until applied, an upload fails at the missing bucket and " +
+      "column and says nothing changed.",
+    proves: { column: { table: "eng_partners", name: "brand_logo_status" } },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0072 on 2026-10-10: shape 1176 to 1181 columns (five " +
+      "brand_logo_ columns), 84 tables, behaviour 979 to 983 facts (the three check constraints and the foreign " +
+      "key to eng_profiles). migration-audit's pinned shape moves in the same commit. Additive only.",
+  },
 ];
 
 /*

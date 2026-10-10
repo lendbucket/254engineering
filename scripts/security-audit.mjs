@@ -204,6 +204,8 @@ const ADMIN_APIS = [
    */
   "/api/partner/agreement",
   "/api/partner/materials",
+  /* A partner's logo upload (run item 19, migration 0072). */
+  "/api/partner/branding",
   "/api/account/bulk",
   "/api/account/settings",
   "/api/account/statements",

@@ -9,6 +9,7 @@ import {
   recordPartnerPayout,
 } from "@/lib/ops-partner-comp";
 import { decideSubmission } from "@/lib/ops-partner-assets";
+import { decidePartnerLogo } from "@/lib/partner-branding";
 import { deploymentOrigin } from "@/lib/site-url";
 import { money } from "@/lib/ops-money";
 import type { CompModel, Tier } from "@/lib/partner-comp";
@@ -185,6 +186,19 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
         ? NextResponse.json({
             ok: true,
             note: decision === "approved" ? "Approved, and the partner can see it." : "Sent back with your note.",
+          })
+        : bad(result.error);
+    }
+
+    /* A partner's logo, waiting for the operator (run item 19, migration 0072). */
+    case "logo": {
+      const decision = String(body?.decision ?? "");
+      if (!["approved", "refused"].includes(decision)) return bad("That is not a decision.");
+      const result = await decidePartnerLogo(actor, partnerId, decision as "approved" | "refused");
+      return result.ok
+        ? NextResponse.json({
+            ok: true,
+            note: decision === "approved" ? "Approved. It shows on the partner's order page." : "Refused. The partner can upload another.",
           })
         : bad(result.error);
     }
