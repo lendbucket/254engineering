@@ -3,7 +3,7 @@ import { RestrictedMode } from "@/components/portal/design";
 import { notFound } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
-import { listFiles, getFile, listClients, fileTimeline, fileRegion } from "@/lib/ops-crm";
+import { listFilesPage, FILE_LIST_CAP, getFile, listClients, fileTimeline, fileRegion } from "@/lib/ops-crm";
 import { availableTransitions, STATUS_LABEL, FILE_STATUSES } from "@/lib/ops-files";
 import { TEXAS_COUNTIES, twiaStatus } from "@/lib/ops-counties";
 import { outstandingFor, answeredFor } from "@/lib/ops-file-inputs";
@@ -49,7 +49,7 @@ export default async function FilesPage({
   if (!can(actor, "files.list")) notFound();
   const params = await searchParams;
 
-  const files = await listFiles(actor, {
+  const { rows: files, more: moreFiles } = await listFilesPage(actor, {
     status: params.status,
     county: params.county,
     search: params.q,
@@ -170,6 +170,13 @@ export default async function FilesPage({
           </Link>
         ))}
       </div>
+
+      {/* Said when the list is the newest FILE_LIST_CAP and more exist (2026-10-10). */}
+      {moreFiles ? (
+        <p className="mb-3 text-[13.5px] leading-[1.6] text-[var(--secondary)]">
+          Showing the newest {FILE_LIST_CAP} files. More exist: use a status or the search to find an older one.
+        </p>
+      ) : null}
 
       {files.length === 0 ? (
         <EmptyState
