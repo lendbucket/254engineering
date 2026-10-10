@@ -25,17 +25,30 @@ export function SubmitCredentialForm({ kinds, states }: { kinds: Kind[]; states:
     e.preventDefault();
     setBusy(true);
     setSaid(null);
-    const res = await fetch("/api/portal/onboarding", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "submit_credential",
-        kind,
-        issuingState: chosen?.asksState ? state : null,
-        expiresOn: chosen?.asksExpiry ? expiresOn : null,
-      }),
-    });
-    const body = (await res.json().catch(() => null)) as { ok?: boolean; error?: string } | null;
+    /*
+     * A fetch that throws (no signal, a dropped connection) is caught, so the
+     * button is never left disabled with nothing said. Found by the product
+     * audit's brute force, 2026-10-09, reproduced twice: offline, the submit
+     * stayed "busy" for good. The sentence is the one the jobs screen uses.
+     */
+    let body: { ok?: boolean; error?: string } | null = null;
+    try {
+      const res = await fetch("/api/portal/onboarding", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "submit_credential",
+          kind,
+          issuingState: chosen?.asksState ? state : null,
+          expiresOn: chosen?.asksExpiry ? expiresOn : null,
+        }),
+      });
+      body = (await res.json().catch(() => null)) as { ok?: boolean; error?: string } | null;
+    } catch {
+      setBusy(false);
+      setSaid({ ok: false, text: "The network dropped that. Nothing was submitted. Try again when you have signal." });
+      return;
+    }
     setBusy(false);
     if (!body?.ok) {
       setSaid({ ok: false, text: body?.error ?? "That did not go through. Nothing was submitted." });
