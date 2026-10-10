@@ -14,6 +14,7 @@ import {
   type Column,
 } from "@/components/portal/surfaces";
 import { NewPersonForm, PersonActions } from "./PeopleClient";
+import { formatInFirmZone } from "@/lib/firm-calendar";
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +40,7 @@ const STATUS_TONE = {
 
 function when(value: string | null): string {
   if (!value) return "never";
-  return new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  return (formatInFirmZone(value, { month: "short", day: "numeric", year: "numeric" }) ?? "");
 }
 
 export default async function PeoplePage() {

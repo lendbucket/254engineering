@@ -12,6 +12,7 @@ import {
   type Column,
 } from "@/components/portal/design";
 import { PageHead } from "@/components/portal/surfaces";
+import { formatInFirmZone } from "@/lib/firm-calendar";
 
 export const dynamic = "force-dynamic";
 
@@ -115,11 +116,11 @@ export default async function PortalApplicationsPage() {
       key: "when",
       header: "Applied",
       cell: (r) =>
-        new Date(r.createdAt).toLocaleDateString("en-US", {
+        (formatInFirmZone(r.createdAt, {
           year: "numeric",
           month: "short",
           day: "numeric",
-        }),
+        }) ?? ""),
     },
     {
       key: "docs",

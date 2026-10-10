@@ -4,6 +4,7 @@ import { can } from "@/lib/ops-authz";
 import { listSuppressions } from "@/lib/marketing-suppression";
 import { Chip, EmptyState, ErrorState, PageHead, Panel } from "@/components/portal/surfaces";
 import { AddSuppression, VoidSuppression } from "./SuppressionsClient";
+import { formatInFirmZone } from "@/lib/firm-calendar";
 
 export const dynamic = "force-dynamic";
 
@@ -105,11 +106,11 @@ export default async function SuppressionsPage() {
                         label={row.enteredByOperator ? "Recorded by somebody here" : "They clicked the link"}
                         tone={row.enteredByOperator ? "warn" : "good"}
                       />
-                      {new Date(row.createdAt).toLocaleDateString("en-US", {
+                      {(formatInFirmZone(row.createdAt, {
                         month: "short",
                         day: "numeric",
                         year: "numeric",
-                      })}
+                      }) ?? "")}
                     </p>
                   </div>
 

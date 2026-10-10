@@ -7,6 +7,7 @@ import { Wordmark } from "@/components/brand/Wordmark";
 import { money } from "@/lib/ops-money";
 import { registrationLine } from "@/lib/launch";
 import { PayStatementButton } from "./PayStatementButton";
+import { formatInFirmZone } from "@/lib/firm-calendar";
 
 export const dynamic = "force-dynamic";
 
@@ -97,7 +98,7 @@ export default async function StatementsPage() {
                         ? "paid"
                         : s.status === "issued"
                           ? s.due_at
-                            ? `due ${new Date(s.due_at as string).toLocaleDateString("en-US")}`
+                            ? `due ${(formatInFirmZone(s.due_at as string) ?? "")}`
                             : "issued"
                           : s.status === "void"
                             ? "cancelled"

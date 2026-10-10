@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { formatInFirmZone } from "@/lib/firm-calendar";
 
 /**
  * Everything an operator does to one partner.
@@ -308,11 +309,11 @@ export function InviteForm({ partnerId }: { partnerId: string }) {
           {result.expiresAt ? (
             <p className="mt-2 text-[13px] text-[var(--secondary)]">
               It stops working on{" "}
-              {new Date(result.expiresAt).toLocaleDateString("en-US", {
+              {(formatInFirmZone(result.expiresAt, {
                 year: "numeric",
                 month: "long",
                 day: "numeric",
-              })}
+              }) ?? "")}
               .
             </p>
           ) : null}

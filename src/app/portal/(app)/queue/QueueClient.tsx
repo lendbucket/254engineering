@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { formatInFirmZone } from "@/lib/firm-calendar";
 
 /**
  * How much of a dead job's payload this screen prints.
@@ -75,7 +76,7 @@ export function QueueClient({ jobs }: { jobs: DeadJob[] }) {
               </span>
               {j.finishedAt ? (
                 <span className="text-[13px] text-[var(--secondary)]">
-                  gave up {new Date(j.finishedAt).toLocaleString("en-US")}
+                  gave up {(formatInFirmZone(j.finishedAt, { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" }) ?? "")}
                 </span>
               ) : null}
             </div>

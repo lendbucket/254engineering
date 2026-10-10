@@ -4,6 +4,7 @@ import { can } from "@/lib/ops-authz";
 import { designInquiries, overdueBy } from "@/lib/ops-inquiries";
 import { Chip, EmptyState, PageHead } from "@/components/portal/surfaces";
 import { MarkAnswered } from "./InquiriesClient";
+import { formatInFirmZone } from "@/lib/firm-calendar";
 
 export const dynamic = "force-dynamic";
 
@@ -44,7 +45,7 @@ const DELIVERABLE: Record<string, string> = {
 };
 
 const when = (value: string) =>
-  new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  (formatInFirmZone(value, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) ?? "");
 
 export default async function InquiriesPage() {
   const actor = await currentActor();

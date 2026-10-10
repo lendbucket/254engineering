@@ -9,6 +9,7 @@ import {
   StatusPill,
   type Column,
 } from "@/components/portal/design";
+import { formatInFirmZone } from "@/lib/firm-calendar";
 
 export const dynamic = "force-dynamic";
 
@@ -56,7 +57,7 @@ export default async function PartnerStatements() {
       header: "Paid",
       cell: (s) =>
         s.paidAt
-          ? `${new Date(s.paidAt).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}${
+          ? `${(formatInFirmZone(s.paidAt, { year: "numeric", month: "short", day: "numeric" }) ?? "")}${
               s.payoutReference ? ` · ${s.payoutReference}` : ""
             }`
           : "not yet",

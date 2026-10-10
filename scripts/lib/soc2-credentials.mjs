@@ -277,6 +277,13 @@ export const NOT_CREDENTIALS = new Set([
    */
   "MACHINE_LOCK_HELD",
   /*
+   * TZ and EVERY_DATE_CHILD, 2026-10-09. scripts/proofs/every-date-names-its-zone.mjs
+   * re-runs itself in a child process with TZ=UTC, the zone Vercel renders in,
+   * and EVERY_DATE_CHILD=1 marks that child. A zone name and a flag; neither
+   * grants or opens anything.
+   */
+  "TZ", "EVERY_DATE_CHILD",
+  /*
    * AUDIT_RETRY_LOG, 2026-10-09. A file path under the system temp directory
    * where each audit records the network faults it retried, so the board can
    * count them (scripts/lib/transient-retry.mjs). A path and nothing else.

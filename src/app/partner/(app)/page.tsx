@@ -11,6 +11,7 @@ import {
   StatusPill,
   SystemAlert,
 } from "@/components/portal/design";
+import { formatInFirmZone } from "@/lib/firm-calendar";
 
 export const dynamic = "force-dynamic";
 
@@ -131,11 +132,11 @@ export default async function PartnerHome() {
                 </div>
                 <p className="mt-1.5 text-[13.5px] leading-[1.55] text-[var(--ink)]">{row.explanation}</p>
                 <p className="mt-1.5 text-[12px] text-[var(--secondary)]">
-                  {new Date(row.occurredAt).toLocaleDateString("en-US", {
+                  {(formatInFirmZone(row.occurredAt, {
                     year: "numeric",
                     month: "long",
                     day: "numeric",
-                  })}
+                  }) ?? "")}
                   {row.statementId ? " · on a statement" : ""}
                 </p>
               </li>

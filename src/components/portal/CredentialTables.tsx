@@ -1,5 +1,6 @@
 import type { CredentialStanding } from "@/lib/ops-credentials";
 import { CREDENTIAL_LABEL } from "@/lib/ops-credentials";
+import { formatCalendarDate } from "@/lib/firm-calendar";
 
 /**
  * The two credential tables, shared by the administrator's page for a
@@ -13,7 +14,7 @@ import { CREDENTIAL_LABEL } from "@/lib/ops-credentials";
 
 const longDate = (iso: string | null) =>
   iso
-    ? new Date(`${iso.slice(0, 10)}T00:00:00`).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
+    ? (formatCalendarDate(iso.slice(0, 10), { year: "numeric", month: "long", day: "numeric" }) ?? "")
     : null;
 
 /** The words for each state. Urgent ones are rendered bold by the caller. */

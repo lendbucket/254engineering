@@ -8,6 +8,7 @@ import { services } from "@/content/services";
 import { STATUS_LABEL, type FileStatus } from "@/lib/ops-files";
 import { EmptyState, PageHead } from "@/components/portal/surfaces";
 import { OfferControls } from "./JobsClient";
+import { formatInFirmZone } from "@/lib/firm-calendar";
 
 export const dynamic = "force-dynamic";
 
@@ -37,7 +38,7 @@ export const dynamic = "force-dynamic";
 
 const when = (value: string | null) =>
   value
-    ? new Date(value).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })
+    ? (formatInFirmZone(value, { weekday: "short", month: "short", day: "numeric" }) ?? "")
     : null;
 
 export default async function JobsPage() {

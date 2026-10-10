@@ -13,6 +13,7 @@ import {
   RestrictedMode,
   type StatusTone,
 } from "@/components/portal/design";
+import { formatInFirmZone } from "@/lib/firm-calendar";
 
 export const dynamic = "force-dynamic";
 
@@ -56,13 +57,13 @@ const DECISION_TONE: Record<string, StatusTone> = {
 
 const WHEN = (iso: string | null) =>
   iso
-    ? new Date(iso).toLocaleString("en-US", {
+    ? (formatInFirmZone(iso, {
         month: "short",
         day: "numeric",
         year: "numeric",
         hour: "numeric",
         minute: "2-digit",
-      })
+      }) ?? "")
     : null;
 
 export default async function BinderPage({ params }: { params: Promise<{ fileId: string }> }) {
