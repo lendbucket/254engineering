@@ -1,6 +1,7 @@
 import { currentPartner } from "@/lib/partner-auth";
 import { partnerReferrals, REFERRAL_LABEL } from "@/lib/ops-partner-portal";
 import { money } from "@/lib/ops-money";
+import { ATTRIBUTION_WINDOW_DAYS } from "@/lib/attribution-rules";
 import {
   AbsentChip,
   DataTable,
@@ -136,7 +137,8 @@ export default async function PartnerReferrals() {
       <Panel title="How credit is decided">
         <ul className="flex flex-col gap-2 text-[13.5px] leading-[1.6] text-[var(--ink)]">
           <li>A click on your link or your code given at checkout both count as a touch.</li>
-          <li>The most recent touch within thirty days of the order wins.</li>
+          {/* Derived, 2026-10-09: this said "thirty days" while the rule credits ATTRIBUTION_WINDOW_DAYS (90). */}
+          <li>The most recent touch within {ATTRIBUTION_WINDOW_DAYS} days of the order wins.</li>
           <li>
             A typed code beats a click on the same day, because somebody saying your name is a
             stronger signal than a cookie.
