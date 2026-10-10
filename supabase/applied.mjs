@@ -2266,9 +2266,9 @@ export const APPLIED = [
       "on 2026-10-10.",
   },
   {
-    file: "0070_the_second_factor_is_required_for_staff_who_seal_or_administer.sql", appliedBy: "apply_migration",
+    file: "0070_the_second_factor_is_required_for_the_engineer.sql", appliedBy: "apply_migration",
     fingerprint: "18826fa5b3e7d9c9979ca81b96666bb7",
-    behaviour: "1e242dac5365f07cec0e1482d6f34fae",
+    behaviour: "d7713204a6a44db437588585af0d0f8a",
     /*
      * PENDING, BY THE WEEKEND RUN RULE: written unapplied on
      * fix/second-factor-required (on feat/wp-001-v1-2-and-fc-001, because 0070
@@ -2277,14 +2277,16 @@ export const APPLIED = [
     production: null,
     development: { at: "0070", behaviour: null, facts: null },
     because:
-      "WRITTEN 2026-10-10 UNAPPLIED, operator ruling of that day (gaps 3 and 4): the second factor is required " +
-      "for the administrator and engineer roles. The sitting document reads who is not enrolled before the " +
-      "apply, because each is sent to enrolment at their next sign in.",
-    proves: { row: { table: "eng_roles", where: "key = 'admin' and mfa_requirement = 'required'" } },
+      "WRITTEN 2026-10-10 UNAPPLIED, operator ruling of that day (gap 3): the second factor is required for the " +
+      "engineer role. AMENDED BEFORE ANY APPLY, the same day: the administrator role stays optional by the " +
+      "operator's ruling replacing gap 4's, so 0070 updates the engineer row only and asserts the administrator " +
+      "still reads optional. Renamed from 0070_the_second_factor_is_required_for_staff_who_seal_or_administer.sql, " +
+      "which no database ever ran. The sitting document reads which engineers are not enrolled before the apply.",
+    proves: { row: { table: "eng_roles", where: "key = 'engineer' and mfa_requirement = 'required'" } },
     note:
-      "The shape fingerprint repeats 0069's and the fact count stays 973: it updates two seeded rows and has no " +
-      "DDL. The behaviour digest moves, 95c18c8b to 1e242dac, because eng_roles is a seeded table the digest " +
-      "hashes. Read off scripts/fingerprint-at.mjs at 0070 on 2026-10-10.",
+      "The shape fingerprint repeats 0069's and the fact count stays 973: it updates one seeded row and has no " +
+      "DDL. The behaviour digest moves, 95c18c8b to d7713204, because eng_roles is a seeded table the digest " +
+      "hashes (the first version, both rows, read 1e242dac). Read off scripts/fingerprint-at.mjs at 0070 on 2026-10-10.",
   },
 ];
 
