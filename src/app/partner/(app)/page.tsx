@@ -99,7 +99,7 @@ export default async function PartnerHome() {
 
       <Panel
         title="Recent activity"
-        description="Every entry on your ledger, in the order it happened, with the reason it was written."
+        description="Your most recent ledger entries, with the reason each was written."
       >
         {overview.recent.length === 0 ? (
           <EmptyState

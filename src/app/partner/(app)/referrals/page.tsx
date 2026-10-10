@@ -1,5 +1,5 @@
 import { currentPartner } from "@/lib/partner-auth";
-import { partnerReferrals, REFERRAL_LABEL } from "@/lib/ops-partner-portal";
+import { partnerReferrals, partnerReferralCount, REFERRAL_LABEL } from "@/lib/ops-partner-portal";
 import { money } from "@/lib/ops-money";
 import {
   AbsentChip,
@@ -40,6 +40,8 @@ export default async function PartnerReferrals() {
   if (!principal) return null;
 
   const referrals = await partnerReferrals(principal);
+  /* The true total, so a list capped at 100 never reads "Showing all 100" of more (2026-10-10). */
+  const referralTotal = Math.max((await partnerReferralCount(principal)) ?? referrals.length, referrals.length);
 
   const columns: Column<Referral>[] = [
     {
@@ -123,7 +125,7 @@ export default async function PartnerReferrals() {
           caption="Orders credited to this partner"
           columns={columns}
           rows={referrals}
-          total={referrals.length}
+          total={referralTotal}
           empty={
             <EmptyState
               title="No referrals yet"
