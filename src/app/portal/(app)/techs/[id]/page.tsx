@@ -16,6 +16,7 @@ import { RecordTrainingForm } from "./RecordTrainingForm";
 import { certificationsFor, trainableLines, trainingRecords } from "@/lib/certification-record";
 import { services } from "@/content/services";
 import { TEXAS_COUNTIES } from "@/lib/ops-counties";
+import { formatCalendarDate } from "@/lib/firm-calendar";
 
 export const dynamic = "force-dynamic";
 
@@ -53,7 +54,7 @@ export default async function TechnicianPage({ params }: { params: Promise<{ id:
   const lineName = (slug: string) => services.find((s) => s.slug === slug)?.name ?? slug;
   const longDate = (iso: string | null) =>
     iso
-      ? new Date(`${iso.slice(0, 10)}T00:00:00`).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
+      ? (formatCalendarDate(iso.slice(0, 10), { year: "numeric", month: "long", day: "numeric" }) ?? "")
       : "";
 
   return (

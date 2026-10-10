@@ -8,6 +8,7 @@ import { SITE_KEY } from "@/lib/supabase";
 import { EmptyState, Panel, RestrictedMode, StatusPill, SystemAlert } from "@/components/portal/design";
 import { PageHead } from "@/components/portal/surfaces";
 import { LookupForm } from "./LookupForm";
+import { formatInFirmZone } from "@/lib/firm-calendar";
 
 export const dynamic = "force-dynamic";
 
@@ -96,11 +97,11 @@ export default async function DisputesPage({
                 <dt className="portal-column-header">Placed</dt>
                 <dd className="mt-1 text-[13.5px] text-[var(--ink)]">
                   {view.order.placedAt
-                    ? new Date(view.order.placedAt).toLocaleDateString("en-US", {
+                    ? (formatInFirmZone(view.order.placedAt, {
                         year: "numeric",
                         month: "long",
                         day: "numeric",
-                      })
+                      }) ?? "")
                     : "not recorded"}
                 </dd>
               </div>
@@ -166,13 +167,13 @@ export default async function DisputesPage({
                       </div>
                     </div>
                     <p className="mt-1.5 text-[12.5px] text-[var(--secondary)]">
-                      {new Date(t.occurredAt).toLocaleString("en-US", {
+                      {(formatInFirmZone(t.occurredAt, {
                         year: "numeric",
                         month: "long",
                         day: "numeric",
                         hour: "numeric",
                         minute: "2-digit",
-                      })}
+                      }) ?? "")}
                       {t.landingPath ? ` · ${t.landingPath}` : ""}
                     </p>
                   </li>

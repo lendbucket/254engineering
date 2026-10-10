@@ -14,6 +14,7 @@ import {
   RestrictedMode,
   type StatusTone,
 } from "@/components/portal/design";
+import { formatInFirmZone } from "@/lib/firm-calendar";
 
 export const dynamic = "force-dynamic";
 
@@ -59,13 +60,13 @@ const STATUS: Record<string, { label: string; tone: StatusTone; means: string }>
 };
 
 const WHEN = (iso: string) =>
-  new Date(iso).toLocaleString("en-US", {
+  (formatInFirmZone(iso, {
     month: "short",
     day: "numeric",
     year: "numeric",
     hour: "numeric",
     minute: "2-digit",
-  });
+  }) ?? "");
 
 export default async function PayPage() {
   const actor = await currentActor();

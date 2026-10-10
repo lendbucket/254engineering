@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { KeyboardAwareComposer } from "@/components/portal/design";
 import type { RoleKey } from "@/lib/ops-authz";
+import { formatInFirmZone } from "@/lib/firm-calendar";
 
 /**
  * Writing, starting a conversation, and opening a channel.
@@ -558,7 +559,7 @@ export function MessageSearch({ people }: { people: { id: string; name: string }
                         : ""}
                     </p>
                     <p className="mt-1 text-[12px] text-[var(--secondary)]">
-                      {r.authorName}, {new Date(r.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                      {r.authorName}, {(formatInFirmZone(r.created_at, { month: "short", day: "numeric", year: "numeric" }) ?? "")}
                     </p>
                   </a>
                 </li>

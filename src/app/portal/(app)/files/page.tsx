@@ -17,6 +17,7 @@ import { partnerCostByFile } from "@/lib/ops-partner-comp";
 import { progressLabel } from "@/lib/ops-evidence";
 import { NewFileForm, TransitionControls, RequestInformation } from "./FileClient";
 import { DispatchPanel } from "./DispatchPanel";
+import { formatInFirmZone } from "@/lib/firm-calendar";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +37,7 @@ export const dynamic = "force-dynamic";
 
 function when(value: string | null): string {
   if (!value) return "not set";
-  return new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  return (formatInFirmZone(value, { month: "short", day: "numeric", year: "numeric" }) ?? "");
 }
 
 export default async function FilesPage({
@@ -395,12 +396,12 @@ export default async function FilesPage({
                     </p>
                     {e.body ? <p className="mt-0.5 text-[14px] leading-[1.5] text-[var(--secondary)]">{e.body}</p> : null}
                     <p className="mt-0.5 text-[12px] text-[var(--secondary)]">
-                      {new Date(e.created_at as string).toLocaleString("en-US", {
+                      {(formatInFirmZone(e.created_at as string, {
                         month: "short",
                         day: "numeric",
                         hour: "numeric",
                         minute: "2-digit",
-                      })}
+                      }) ?? "")}
                     </p>
                   </li>
                 ))}

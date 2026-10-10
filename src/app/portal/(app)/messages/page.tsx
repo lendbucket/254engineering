@@ -6,6 +6,7 @@ import { listThreads, MENTION_PAGE, mentionsFor, messageablepeople, threadView }
 import { roleLabel } from "@/lib/ops-authz";
 import { Chip, EmptyState, PageHead } from "@/components/portal/surfaces";
 import { Composer, MessageSearch, NewChannel, StartDirect } from "./MessagesClient";
+import { formatInFirmZone } from "@/lib/firm-calendar";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +37,7 @@ const KIND_LABEL: Record<string, string> = {
 
 const when = (value: string | null) =>
   value
-    ? new Date(value).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })
+    ? (formatInFirmZone(value, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) ?? "")
     : null;
 
 export default async function MessagesPage({

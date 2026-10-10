@@ -11,6 +11,7 @@ import {
   type Column,
 } from "@/components/portal/design";
 import type { Referral } from "@/lib/ops-partner-portal";
+import { formatInFirmZone } from "@/lib/firm-calendar";
 
 export const dynamic = "force-dynamic";
 
@@ -52,11 +53,11 @@ export default async function PartnerReferrals() {
       header: "Placed",
       cell: (r) =>
         r.placedAt
-          ? new Date(r.placedAt).toLocaleDateString("en-US", {
+          ? (formatInFirmZone(r.placedAt, {
               year: "numeric",
               month: "short",
               day: "numeric",
-            })
+            }) ?? "")
           : "not recorded",
     },
     {
