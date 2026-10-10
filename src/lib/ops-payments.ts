@@ -815,17 +815,20 @@ async function sendOrderConfirmation(orderId: string, token: string): Promise<vo
 
   await event(
     orderId,
-    queued.ok ? "email.sent" : "email.not_sent",
+    queued.ok ? "email.queued" : "email.not_sent",
     /*
      * The success is customer visible and the failure is not. They should see
-     * that a confirmation went to their address, so they know where to look and
-     * can say if it is the wrong one. They should not see the queue's reasons
+     * that a confirmation is on its way to their address, so they know where to
+     * look and can say if it is the wrong one. It says QUEUED, not sent:
+     * operator ruling 2026-10-10 (decision 10), because a send that later fails
+     * still read as sent. The email handler writes "Sent to" when the provider
+     * accepts it (job-handlers.ts). They should not see the queue's reasons
      * for not sending it; that is the firm's problem to fix, and it appears on
      * the order for whoever is looking at it internally.
      */
     queued.ok,
     queued.ok
-      ? `The order confirmation was sent to ${order.customer_email}.`
+      ? `The order confirmation is queued to ${order.customer_email}. The next entry says when it is sent.`
       : `The order confirmation could not be queued: ${queued.error}. It has to go out by hand.`,
   );
 }
@@ -1631,10 +1634,10 @@ async function sendOrderSealed(orderId: string): Promise<void> {
 
   await event(
     orderId,
-    queued.ok ? "email.sent" : "email.not_sent",
+    queued.ok ? "email.queued" : "email.not_sent",
     queued.ok,
     queued.ok
-      ? `The sealed document notice was sent to ${order.customer_email}.`
+      ? `The sealed document notice is queued to ${order.customer_email}. The next entry says when it is sent.`
       : `The sealed document notice could not be queued: ${queued.error}. It has to go out by hand.`,
   );
 }
@@ -1688,10 +1691,10 @@ async function sendOrderDeclined(
 
   await event(
     orderId,
-    queued.ok ? "email.sent" : "email.not_sent",
+    queued.ok ? "email.queued" : "email.not_sent",
     queued.ok,
     queued.ok
-      ? `The decision was sent to ${order.customer_email}.`
+      ? `The decision is queued to ${order.customer_email}. The next entry says when it is sent.`
       : `The decision could not be queued: ${queued.error}. It has to go out by hand.`,
   );
 }
