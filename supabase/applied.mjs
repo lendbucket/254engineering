@@ -2333,18 +2333,28 @@ export const APPLIED = [
     /* Re-read after 0070 was amended to the engineer row only (it read 9a5e27b3 over the first 0070). */
     behaviour: "bae15b68c2b3f370d09e868b6e813ace",
     /*
-     * PENDING, BY THE WEEKEND RUN RULE: written unapplied on
-     * fix/sign-in-limiter-in-the-database (on fix/second-factor-required,
-     * because 0071 follows 0070), staged with
-     * docs/production-sitting-fix-sign-in-limiter-in-the-database.md.
+     * APPLIED TO PRODUCTION 2026-10-10 at 15:06 CT, after 0070, from
+     * docs/production-sitting-fix-sign-in-limiter-in-the-database.md, by the
+     * operator's chat counterpart, development first and then production.
+     * Production's shape read back as bc55a14f40a4c7a78cc061fd262e785b across
+     * 1176 columns, as the sitting document predicted.
+     *
+     * Operator ruling of 2026-10-10 (decision 14): the sign in limiter counts
+     * in eng_sign_in_attempts through eng_take_sign_in_attempt rather than in
+     * each instance's memory. Until the code that calls it is deployed, the
+     * table sits unused and nothing changes for anybody.
      */
-    production: null,
-    development: { at: "0071", behaviour: null, facts: null },
-    because:
-      "WRITTEN 2026-10-10 UNAPPLIED, operator ruling of that day (decision 14): the sign in limiter counts in " +
-      "eng_sign_in_attempts through eng_take_sign_in_attempt rather than in each instance's memory. Until it " +
-      "is applied, the code's database call fails and the in-memory count answers, which is the protection " +
-      "there was before.",
+    production: "2026-10-10",
+    development: {
+      at: "0071",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-10",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-10 by the operator's chat counterpart, before production, the file " +
+        "as written, and read back as the sitting document predicted.",
+    },
     proves: { table: "eng_sign_in_attempts" },
     note:
       "Both figures read off scripts/fingerprint-at.mjs at 0071 on 2026-10-10: shape 1171 to 1176 columns " +
