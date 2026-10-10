@@ -28,6 +28,18 @@ export type CompModel =
   | "flat_per_qualified_lead"
   | "tiered_by_volume";
 
+/*
+ * What each model is called, in one place: the operator's partner screen and
+ * the partner's own home both read it (run item 20, gap 30), so the two cannot
+ * describe one set of terms in two ways.
+ */
+export const MODEL_LABEL: Record<CompModel, string> = {
+  percent_of_order: "A percentage of the order",
+  flat_per_order: "A flat fee for each order",
+  flat_per_qualified_lead: "A flat fee for each qualified lead",
+  tiered_by_volume: "A percentage that improves with volume",
+};
+
 /** One step of a volume ladder. `min` is the count at which `bps` starts. */
 export type Tier = { min: number; bps: number };
 

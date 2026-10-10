@@ -16,15 +16,12 @@ import {
   TermsForm,
 } from "./PartnerActions";
 import { formatInFirmZone } from "@/lib/firm-calendar";
+import { MODEL_LABEL as MODEL_LABELS } from "@/lib/partner-comp";
 
 export const dynamic = "force-dynamic";
 
-const MODEL_LABEL: Record<string, string> = {
-  percent_of_order: "A percentage of the order",
-  flat_per_order: "A flat fee for each order",
-  flat_per_qualified_lead: "A flat fee for each qualified lead",
-  tiered_by_volume: "A percentage that improves with volume",
-};
+/* One wording, shared with the partner's own home (run item 20). */
+const MODEL_LABEL: Record<string, string> = MODEL_LABELS;
 
 /**
  * One partner: what they have sent, what they are owed, and everything the firm

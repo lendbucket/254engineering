@@ -3,6 +3,8 @@ import { currentPartner } from "@/lib/partner-auth";
 import { agreementOutstanding, currentAgreement, partnerOverview } from "@/lib/ops-partner-portal";
 import { money } from "@/lib/ops-money";
 import { ATTRIBUTION_WINDOW_DAYS } from "@/lib/attribution-rules";
+import { termsInForce } from "@/lib/ops-partner-comp";
+import { MODEL_LABEL } from "@/lib/partner-comp";
 import {
   AbsentChip,
   EmptyState,
@@ -40,6 +42,8 @@ export default async function PartnerHome() {
   if (!principal) return null;
 
   const overview = await partnerOverview(principal);
+  /* Scoped by the session's own partner id, never by anything in the request. */
+  const terms = await termsInForce(principal.partner.id);
   const agreement = await currentAgreement();
   const outstanding = agreementOutstanding(principal, agreement);
 
@@ -92,6 +96,39 @@ export default async function PartnerHome() {
           note={`${overview.delivered} of them have earned a commission entry.`}
         />
       </div>
+
+      {/*
+        THEIR OWN TERMS. Run item 20, product audit gap 30: a partner could see
+        what they had earned and not the rate or the holdback it was computed
+        under, so no figure on this screen could be checked. Read through
+        termsInForce, the same read the accrual uses, in the firm's calendar.
+      */}
+      <Panel title="Your terms" description="What a referral earns, and how long it is held before it can go on a statement.">
+        {terms ? (
+          <div className="flex flex-col gap-1.5">
+            <p className="text-[15px] font-bold text-[var(--ink)]">{MODEL_LABEL[terms.model]}</p>
+            <p className="text-[13.5px] leading-[1.6] text-[var(--ink)]">
+              {terms.model === "percent_of_order" && terms.percentBps !== null ? `${terms.percentBps / 100} percent of the order. ` : ""}
+              {terms.flatCents !== null && (terms.model === "flat_per_order" || terms.model === "flat_per_qualified_lead")
+                ? `${money(terms.flatCents)} each. `
+                : ""}
+              {terms.model === "tiered_by_volume" && terms.tiers?.length
+                ? `${[...terms.tiers]
+                    .sort((a, b) => a.min - b.min)
+                    .map((t) => `${t.bps / 100} percent from ${t.min} ${t.min === 1 ? "delivery" : "deliveries"}`)
+                    .join(", ")}. `
+                : ""}
+              Held {terms.holdbackDays} {terms.holdbackDays === 1 ? "day" : "days"}, so a refund inside that window
+              reverses it before it is paid.
+            </p>
+          </div>
+        ) : (
+          <EmptyState
+            title="Your terms are not set yet"
+            body="Referrals are still credited to you. Until the firm sets your terms, a commission is recorded as owed with no figure, and nothing is lost."
+          />
+        )}
+      </Panel>
 
       {overview.blocked > 0 ? (
         <SystemAlert condition={`${overview.blocked} commission${overview.blocked === 1 ? "" : "s"} is owed with no figure yet.`}>
