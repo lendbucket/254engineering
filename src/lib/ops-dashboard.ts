@@ -1,7 +1,8 @@
 import "server-only";
 import { readEvery } from "./bounded-read";
 import { supabaseAdmin } from "./supabase";
-import { can, REVIEW_QUEUE_STATUSES, type Actor } from "./ops-authz";
+import { can, REVIEW_QUEUE_STATUSES, type Actor, type RoleKey } from "./ops-authz";
+import { threadsReadableBy } from "./ops-threads";
 import { reachableHref } from "./reachable-href";
 import { taskCounts } from "./ops-tasks";
 import { unreadCount } from "./ops-notify";
@@ -1010,7 +1011,7 @@ async function buildDashboard(actor: Actor | null): Promise<Dashboard | null> {
    */
   if (can(actor, "ledger.read_all") && can(actor, "billing.read")) return adminDashboard(actor);
   if (can(actor, "offers.dispatch")) return dispatcherDashboard();
-  if (can(actor, "suppressions.manage")) return customerServiceDashboard();
+  if (can(actor, "suppressions.manage")) return customerServiceDashboard(actor);
   if (can(actor, "clients.create") && can(actor, "files.create")) return salesDashboard();
   if (can(actor, "evidence.review")) return engineerDashboard(actor);
   if (can(actor, "offers.list_own")) return techDashboard(actor);
@@ -1568,7 +1569,7 @@ async function salesDashboard(): Promise<SalesDashboard> {
  *   threads that have gone quiet, from eng_threads.last_message_at, which is a
  *   different and honest thing.
  */
-async function customerServiceDashboard(): Promise<CustomerServiceDashboard> {
+async function customerServiceDashboard(actor: Actor): Promise<CustomerServiceDashboard> {
   const db = supabaseAdmin();
   const notComputable: string[] = [];
   if (!db) {
@@ -1608,12 +1609,29 @@ async function customerServiceDashboard(): Promise<CustomerServiceDashboard> {
   const threadRead = await readEvery<Record<string, unknown>>((from, to) =>
     db
       .from("eng_threads")
-      .select("id, kind, name, last_message_at, created_at")
+      .select("id, kind, file_id, channel_roles, name, last_message_at, created_at")
       .order("created_at", { ascending: true })
       .range(from, to),
   );
   if (!threadRead.ok) console.error("[dashboard] threads could not be read:", threadRead.error);
-  const threads = threadRead.ok ? threadRead.rows : null;
+  /*
+   * ONLY THE THREADS THIS PERSON MAY READ. Product audit, 2026-10-10, defect
+   * 17: the count was every thread in the table, so other people's direct
+   * messages, which are private even from an administrator, were counted on
+   * this screen (7 against the viewer's 1). Filtered by canReadThread, the rule
+   * the inbox applies, after the full read.
+   */
+  const threads = threadRead.ok
+    ? await threadsReadableBy(
+        actor,
+        threadRead.rows as (Record<string, unknown> & {
+          id: string;
+          kind: "file" | "direct" | "channel";
+          file_id: string | null;
+          channel_roles: RoleKey[] | null;
+        })[],
+      )
+    : null;
 
   /*
    * Refunds in flight, by case. COUNTED and not summed, which keeps the
