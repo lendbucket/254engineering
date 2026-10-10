@@ -244,6 +244,8 @@ export type PackageView = {
     notes: string | null;
     revision_count: number;
     refusal_reason: string | null;
+    /** Who took it into review, which is who decides it (canReview, 2026-10-10). */
+    assigned_engineer_id: string | null;
   };
   protocolName: string | null;
   /**
@@ -285,7 +287,7 @@ export async function packageFor(actor: Actor | null, fileId: string): Promise<P
   const { data: file } = await db
     .from("eng_files")
     .select(
-      "id, file_number, property_address, city, county, service_slug, deliverable, status, twia_county, notes, revision_count, refusal_reason, assigned_tech_id",
+      "id, file_number, property_address, city, county, service_slug, deliverable, status, twia_county, notes, revision_count, refusal_reason, assigned_tech_id, assigned_engineer_id",
     )
     .eq("id", fileId)
     .maybeSingle();
@@ -424,8 +426,21 @@ export async function openReview(
   if (!db) return { ok: false, error: "The database is not configured." };
   if (!holdsLicence(actor, "review.queue")) return { ok: false, error: licenceRefusal("Taking a file into review") };
 
-  const { data: file } = await db.from("eng_files").select("id, status, file_number").eq("id", fileId).maybeSingle();
+  const { data: file } = await db
+    .from("eng_files")
+    .select("id, status, file_number, assigned_engineer_id")
+    .eq("id", fileId)
+    .maybeSingle();
   if (!file) return { ok: false, error: "That file does not exist." };
+
+  /*
+   * Another engineer's review is not opened. Product audit, 2026-10-10: a file
+   * already under review opened a second session for whoever asked, and the
+   * decision check could not tell them apart (see canReview).
+   */
+  if (file.status === "under_review" && file.assigned_engineer_id && file.assigned_engineer_id !== actor.id) {
+    return { ok: false, error: "Another engineer has this file under review." };
+  }
 
   const { data: existingRows, error: existingErr } = await db
     .from("eng_review_sessions")
@@ -648,7 +663,8 @@ export async function decideReview(
   const subject: ReviewSubject = {
     status: pkg.file.status as ReviewSubject["status"],
     packageComplete: pkg.complete,
-    assignedEngineerId: actor.id,
+    /* The FILE's assignee, never the caller: passing actor.id made canReview's check vacuous (2026-10-10). */
+    assignedEngineerId: pkg.file.assigned_engineer_id ?? null,
   };
 
   const verdict = canReview(actor, subject, action, reason, { prelaunch: !isOpen() });

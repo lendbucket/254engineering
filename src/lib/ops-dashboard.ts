@@ -10,6 +10,7 @@ import { expiryState } from "./ops-credentials";
 import { periodOf } from "./ops-review";
 import { ordersNeedingAttention } from "./ops-reconcile";
 import { marginOf, type Cents, type PeriodTotals } from "./ops-money";
+import { isOwed, isPaid } from "./pay-figures";
 
 /**
  * The three dashboards.
@@ -627,7 +628,8 @@ async function engineerDashboard(actor: Actor): Promise<EngineerDashboard> {
    * are different facts, and the tile says which one it is.
    */
   const rows = ledger as { amount_cents?: unknown; status?: unknown }[] | null;
-  const unpaid = rows === null ? null : rows.filter((r) => r.status !== "paid");
+  /* Owed is pending or approved; a void entry is never owed (pay-figures.ts, 2026-10-10). */
+  const unpaid = rows === null ? null : rows.filter((r) => isOwed(r.status));
 
   const tiles: Tile[] = [
     {
@@ -790,8 +792,9 @@ async function techDashboard(actor: Actor): Promise<TechDashboard> {
       : (pay as { amount_cents?: unknown; status?: unknown; eng_files?: { is_demo?: boolean } | null }[]).filter(
           (r) => r.eng_files?.is_demo !== true,
         );
-  const outstanding = rows === null ? null : rows.filter((r) => r.status !== "paid");
-  const paid = rows === null ? null : rows.filter((r) => r.status === "paid");
+  /* Owed is pending or approved; a void entry is never owed (pay-figures.ts, 2026-10-10). */
+  const outstanding = rows === null ? null : rows.filter((r) => isOwed(r.status));
+  const paid = rows === null ? null : rows.filter((r) => isPaid(r.status));
 
   const tiles: Tile[] = [
     {
@@ -847,7 +850,7 @@ async function techDashboard(actor: Actor): Promise<TechDashboard> {
           ? "Your ledger could not be read, so this is not a zero. Tell an administrator."
           : outstanding.length
             ? `${outstanding.length} entr${outstanding.length === 1 ? "y" : "ies"} not yet marked paid.`
-            : "Nothing outstanding. An entry appears when a job you completed is approved.",
+            : "Nothing outstanding. An entry appears when you submit the evidence for a job.",
     },
     {
       label: "Paid to date",
@@ -1730,7 +1733,17 @@ async function customerServiceDashboard(): Promise<CustomerServiceDashboard> {
       rows: groupBy(
         suppressions,
         (s) => (s.token_hash === null ? "recorded by somebody here" : "they clicked the link"),
-        (group) => `most recent ${daysSince((group[0].created_at as string) ?? null)} day(s) ago`,
+        /*
+         * The NEWEST row in the group. Product audit, 2026-10-10: the list is
+         * read oldest first, so group[0] was the oldest row printed as "most
+         * recent". ISO timestamps compare correctly as strings.
+         */
+        (group) => {
+          const newest = group
+            .map((s) => (s.created_at as string | null) ?? "")
+            .reduce((a, b) => (b > a ? b : a), "");
+          return `most recent ${daysSince(newest || null)} day(s) ago`;
+        },
       ),
     },
   ];

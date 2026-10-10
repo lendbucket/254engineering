@@ -8,6 +8,7 @@ import {
 import { EmptyState, Panel, RestrictedMode, StatusPill } from "@/components/portal/design";
 import { CopyBlock } from "./CopyBlock";
 import { SubmitForm } from "./SubmitForm";
+import { formatInFirmZone } from "@/lib/firm-calendar";
 
 export const dynamic = "force-dynamic";
 
@@ -120,11 +121,11 @@ export default async function PartnerMaterials() {
                 <p className="mt-3 text-[12px] text-[var(--secondary)]">
                   Version {asset.version}
                   {asset.publishedAt
-                    ? `, published ${new Date(asset.publishedAt).toLocaleDateString("en-US", {
+                    ? `, published ${(formatInFirmZone(asset.publishedAt, {
                         year: "numeric",
                         month: "long",
                         day: "numeric",
-                      })}`
+                      }) ?? "")}`
                     : ""}
                 </p>
               </li>
@@ -183,11 +184,11 @@ export default async function PartnerMaterials() {
 
                 <p className="mt-2 text-[12px] text-[var(--secondary)]">
                   Sent{" "}
-                  {new Date(s.createdAt).toLocaleDateString("en-US", {
+                  {(formatInFirmZone(s.createdAt, {
                     year: "numeric",
                     month: "long",
                     day: "numeric",
-                  })}
+                  }) ?? "")}
                 </p>
               </li>
             ))}

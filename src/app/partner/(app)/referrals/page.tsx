@@ -1,6 +1,7 @@
 import { currentPartner } from "@/lib/partner-auth";
-import { partnerReferrals, REFERRAL_LABEL } from "@/lib/ops-partner-portal";
+import { partnerReferrals, partnerReferralCount, REFERRAL_LABEL } from "@/lib/ops-partner-portal";
 import { money } from "@/lib/ops-money";
+import { ATTRIBUTION_WINDOW_DAYS } from "@/lib/attribution-rules";
 import {
   AbsentChip,
   DataTable,
@@ -11,6 +12,7 @@ import {
   type Column,
 } from "@/components/portal/design";
 import type { Referral } from "@/lib/ops-partner-portal";
+import { formatInFirmZone } from "@/lib/firm-calendar";
 
 export const dynamic = "force-dynamic";
 
@@ -40,6 +42,8 @@ export default async function PartnerReferrals() {
   if (!principal) return null;
 
   const referrals = await partnerReferrals(principal);
+  /* The true total, so a list capped at 100 never reads "Showing all 100" of more (2026-10-10). */
+  const referralTotal = Math.max((await partnerReferralCount(principal)) ?? referrals.length, referrals.length);
 
   const columns: Column<Referral>[] = [
     {
@@ -52,11 +56,11 @@ export default async function PartnerReferrals() {
       header: "Placed",
       cell: (r) =>
         r.placedAt
-          ? new Date(r.placedAt).toLocaleDateString("en-US", {
+          ? (formatInFirmZone(r.placedAt, {
               year: "numeric",
               month: "short",
               day: "numeric",
-            })
+            }) ?? "")
           : "not recorded",
     },
     {
@@ -123,7 +127,7 @@ export default async function PartnerReferrals() {
           caption="Orders credited to this partner"
           columns={columns}
           rows={referrals}
-          total={referrals.length}
+          total={referralTotal}
           empty={
             <EmptyState
               title="No referrals yet"
@@ -136,7 +140,8 @@ export default async function PartnerReferrals() {
       <Panel title="How credit is decided">
         <ul className="flex flex-col gap-2 text-[13.5px] leading-[1.6] text-[var(--ink)]">
           <li>A click on your link or your code given at checkout both count as a touch.</li>
-          <li>The most recent touch within thirty days of the order wins.</li>
+          {/* Derived, 2026-10-09: this said "thirty days" while the rule credits ATTRIBUTION_WINDOW_DAYS (90). */}
+          <li>The most recent touch within {ATTRIBUTION_WINDOW_DAYS} days of the order wins.</li>
           <li>
             A typed code beats a click on the same day, because somebody saying your name is a
             stronger signal than a cookie.

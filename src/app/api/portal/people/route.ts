@@ -7,6 +7,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { queueEmail } from "@/lib/ops-jobs";
 import { portalInvite, portalPasswordReset } from "@/lib/email-templates";
 import { business } from "@/config/business";
+import { formatInFirmZone } from "@/lib/firm-calendar";
 
 /**
  * Account administration: create, resend an invite, suspend, restore, force a
@@ -61,7 +62,7 @@ function signInUrl(): string {
 }
 
 function expiryPhrase(at: Date): string {
-  return at.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+  return (formatInFirmZone(at, { month: "long", day: "numeric", year: "numeric" }) ?? "");
 }
 
 export async function POST(request: NextRequest) {

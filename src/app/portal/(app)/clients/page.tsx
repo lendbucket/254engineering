@@ -15,6 +15,7 @@ import {
   type Column,
 } from "@/components/portal/surfaces";
 import { NewClientForm, ConvertLead } from "./ClientsClient";
+import { formatInFirmZone } from "@/lib/firm-calendar";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +36,7 @@ type Lead = {
 };
 
 function when(value: string): string {
-  return new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  return (formatInFirmZone(value, { month: "short", day: "numeric", year: "numeric" }) ?? "");
 }
 
 export default async function ClientsPage() {

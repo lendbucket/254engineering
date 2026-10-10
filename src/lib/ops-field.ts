@@ -961,6 +961,22 @@ export async function acceptOffer(
   );
   if (!verdict.ok) return { ok: false, error: verdict.reason };
 
+  /*
+   * NO RATE, NO ACCEPTANCE. Operator ruling, 2026-10-09, a money defect found by
+   * the product audit: an offer is made with a null rate whenever no scheduled
+   * rate covers the work, this function accepted it anyway, and submitEvidence
+   * writes the pay entry only when a rate exists. So a technician could accept,
+   * drive out, submit, and be owed nothing on any record, on a screen that
+   * promises "you will see the flat rate before you accept". Refused here, on the
+   * server, before the claim, so no client can get past it.
+   */
+  if (offer.offer_amount_cents === null || offer.offer_amount_cents === undefined) {
+    return {
+      ok: false,
+      error: "This offer has no rate on it yet, so it cannot be accepted. Ask the office to set the rate first.",
+    };
+  }
+
   // The claim. Everything above this line is a courtesy; this is the decision.
   const { data: claimed } = await db
     .from("eng_files")
@@ -1999,6 +2015,8 @@ export type LedgerRow = {
   status: "pending" | "approved" | "paid" | "void";
   period: string | null;
   note: string | null;
+  /** Whether the row is on a demonstration file, which moves no figure (pay-figures.ts). */
+  is_demo: boolean;
 };
 
 /**
@@ -2015,17 +2033,30 @@ export async function payLedger(actor: Actor | null, techId?: string): Promise<L
   const all = can(actor, "ledger.read_all");
   if (!all && !can(actor, "ledger.read_own")) return [];
 
-  let query = db
-    .from("eng_tech_pay_ledger")
-    .select("id, created_at, tech_id, file_id, amount_cents, kind, status, period, note")
-    .order("created_at", { ascending: false })
-    .limit(300);
-
-  if (!all) query = query.eq("tech_id", actor.id);
-  else if (techId) query = query.eq("tech_id", techId);
-
-  const { data } = await query;
-  return ((data ?? []) as LedgerRow[]).map((r) => ({ ...r, amount_cents: Number(r.amount_cents) }));
+  /*
+   * EVERY ROW, NOT THE NEWEST 300. Product audit, 2026-10-10: this read stopped
+   * at 300 rows without saying so, and the Pay screen summed what it got, so
+   * past 300 entries "owed" and "paid" were totals of part of a ledger. readEvery
+   * reads the exact count first and refuses a short list.
+   */
+  const scope = !all ? actor.id : techId ?? null;
+  const read = await readEvery<Record<string, unknown>>((from, to) => {
+    let q = db
+      .from("eng_tech_pay_ledger")
+      .select("id, created_at, tech_id, file_id, amount_cents, kind, status, period, note, eng_files(is_demo)")
+      .order("created_at", { ascending: false })
+      .range(from, to);
+    if (scope) q = q.eq("tech_id", scope);
+    return q;
+  });
+  if (!read.ok) return [];
+  return read.rows.map((r) => {
+    const files = r.eng_files as { is_demo?: boolean } | { is_demo?: boolean }[] | null;
+    const isDemo = Array.isArray(files) ? files.some((f) => f?.is_demo === true) : files?.is_demo === true;
+    const { eng_files: _files, ...rest } = r;
+    void _files;
+    return { ...(rest as Omit<LedgerRow, "amount_cents" | "is_demo">), amount_cents: Number(r.amount_cents), is_demo: isDemo };
+  });
 }
 
 export async function setLedgerStatus(

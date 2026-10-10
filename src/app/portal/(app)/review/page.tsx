@@ -18,6 +18,7 @@ import { PrereviewPanel } from "./PrereviewPanel";
 import { TrainingDecisionPanel } from "./TrainingDecisionPanel";
 import { trainingAwaitingEngineer } from "@/lib/certification-record";
 import { protocolByDocument } from "@/content/protocols";
+import { formatInFirmZone } from "@/lib/firm-calendar";
 
 export const dynamic = "force-dynamic";
 
@@ -44,7 +45,7 @@ export const dynamic = "force-dynamic";
  */
 
 const when = (value: string | null) =>
-  value ? new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : null;
+  value ? (formatInFirmZone(value, { month: "short", day: "numeric" }) ?? "") : null;
 
 export default async function ReviewPage({
   searchParams,
@@ -95,7 +96,8 @@ export default async function ReviewPage({
         {
           status: selected.file.status as FileStatus,
           packageComplete: selected.complete,
-          assignedEngineerId: actor!.id,
+          /* The file's assignee, so another engineer's file shows its actions refused (2026-10-10). */
+          assignedEngineerId: selected.file.assigned_engineer_id ?? null,
         },
         { prelaunch: isPrelaunch() },
       )

@@ -27,12 +27,20 @@ export function VerificationQueue({ rows }: { rows: QueueRow[] }) {
   async function act(id: string, action: "verify_credential" | "reject_credential") {
     setBusy(id);
     setError(null);
-    const res = await fetch("/api/portal/onboarding", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action, credentialId: id, reason: action === "reject_credential" ? reason : undefined }),
-    });
-    const body = (await res.json().catch(() => null)) as { ok?: boolean; error?: string } | null;
+    /* A thrown fetch is caught, so a row is never left busy with nothing said (2026-10-09). */
+    let body: { ok?: boolean; error?: string } | null = null;
+    try {
+      const res = await fetch("/api/portal/onboarding", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, credentialId: id, reason: action === "reject_credential" ? reason : undefined }),
+      });
+      body = (await res.json().catch(() => null)) as { ok?: boolean; error?: string } | null;
+    } catch {
+      setBusy(null);
+      setError({ id, text: "The network dropped that. Nothing was changed. Try again when you have signal." });
+      return;
+    }
     setBusy(null);
     if (!body?.ok) {
       setError({ id, text: body?.error ?? "That did not go through. Nothing was changed." });
