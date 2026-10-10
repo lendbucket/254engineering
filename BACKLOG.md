@@ -43,6 +43,14 @@ active, login 2026-09-02 16:45:18 UTC, profile 17:57:25 UTC, and no
 `scripts/seed-admin.mjs`, not the People screen, so it carries no such row, true
 or false.
 
+## PARTNER BILLING: A PLAN AWAITING APPROVAL
+
+`docs/partner-billing-plan.md`, item 17 of the run of 2026-10-10. Nothing is
+built. Six questions for Robert at its end (grace period, the $800's refund
+rule, cancellation, a lapsed partner's past credit, sales tax, receipt name).
+Provisioning (item 18) and the billing migration wait on its approval; the
+feature stays off until counsel's sign-off is recorded.
+
 ## THE SITTING OF 2026-10-10: 0067, ONE PENDING CREDENTIAL OF EACH KIND, RUN
 
 `docs/production-sitting-2026-10-10.md`. One additive migration on
