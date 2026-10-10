@@ -173,7 +173,7 @@ export default async function FilesPage({
 
       {/* Said when the list is the newest FILE_LIST_CAP and more exist (2026-10-10). */}
       {moreFiles ? (
-        <p className="mb-3 text-[13.5px] leading-[1.6] text-[var(--secondary)]">
+        <p className="mb-3 text-[13px] leading-[1.6] text-[var(--secondary)]">
           Showing the newest {FILE_LIST_CAP} files. More exist: use a status or the search to find an older one.
         </p>
       ) : null}
