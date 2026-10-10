@@ -43,6 +43,19 @@ active, login 2026-09-02 16:45:18 UTC, profile 17:57:25 UTC, and no
 `scripts/seed-admin.mjs`, not the People screen, so it carries no such row, true
 or false.
 
+## STAGED: 0068, A DECISION AND ITS CREDIT ARE ONE WRITE
+
+`docs/production-sitting-fix-review-and-credit-one-write.md`. One function,
+`eng_record_review_decision`, and three decision checks widened to include
+`repairs` (a defect: a repairs decision could not write its charge log row or
+its credit). On `fix/review-and-credit-one-write`. **Not applied anywhere.**
+The second part drops and re-adds check constraints, which the MCP may cancel;
+the document says what to do then. What stays open: apply and read back on both
+databases, then the branch is boarded and merged. Also open from the same
+ruling: the transaction proof runs in an in-process replay, because no
+development database URL exists in this repository; a direct development
+transaction needs one.
+
 ## THE SITTING OF 2026-10-10: 0067, ONE PENDING CREDENTIAL OF EACH KIND, RUN
 
 `docs/production-sitting-2026-10-10.md`. One additive migration on

@@ -185,6 +185,17 @@ export const PROBES = [
       "retention-audit exercises the real path against a manifest it plans and then abandons; this asserts " +
       "the queue underneath it.",
   },
+  {
+    kind: "review.after_decision",
+    payload: { fileId: NOWHERE, fileNumber: "queue probe", decisionId: "queue-probe", action: "refuse", note: null, actorId: null, techId: null },
+    expect: "done",
+    realSubject: false,
+    why:
+      "A refusal's after-work for a file that does not exist, enqueued suppressed like every probe, so the " +
+      "handler returns at its mode check before it reads an order or raises a notice: no refund can be " +
+      "attempted and nobody is told anything. A real refusal would be money leaving a card. The one-write " +
+      "proof exercises the enqueue inside the decision's transaction; this asserts the queue under it.",
+  },
 ];
 
 /** The kinds this file declares, for comparing against what is registered. */

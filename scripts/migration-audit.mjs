@@ -214,7 +214,8 @@ const EXPECTED_TRIGGERS = 77;
  * 0063 adds one, eng_spend_links_on_suspension, bringing it to 36; 0064
  * replaces that function's body and adds none.
  */
-const EXPECTED_FUNCTIONS = 36;
+/* 37 since 0068: eng_record_review_decision, a decided review in one transaction. */
+const EXPECTED_FUNCTIONS = 37;
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });

@@ -11,6 +11,7 @@ import { periodOf } from "./ops-review";
 import { ordersNeedingAttention } from "./ops-reconcile";
 import { marginOf, type Cents, type PeriodTotals } from "./ops-money";
 import { isOwed, isPaid } from "./pay-figures";
+import { uncreditedReviews } from "./ops-engineer";
 
 /**
  * The three dashboards.
@@ -499,6 +500,25 @@ async function adminDashboard(actor: Actor): Promise<AdminDashboard> {
         "Those files are left out of every total rather than counted as nothing, so the margin above describes the rest.",
       href: "/portal/billing",
     });
+  }
+  /*
+   * A DECIDED REVIEW THAT CREDITED THE ENGINEER NOTHING. Operator ruling 2 of
+   * 2026-10-10: it lands here naming the file and what is missing, and Billing
+   * carries the control that fixes the record and writes the credit.
+   */
+  if (can(actor, "ledger.approve")) {
+    const uncredited = await uncreditedReviews();
+    if (uncredited.length > 0) {
+      const named = uncredited
+        .slice(0, 3)
+        .map((r) => `${r.fileNumber}: ${r.missing ?? "a credit is due and was never written"}`)
+        .join("; ");
+      attention.push({
+        label: `${uncredited.length} decided review${uncredited.length === 1 ? "" : "s"} credited the engineer nothing`,
+        detail: `${named}${uncredited.length > 3 ? `; and ${uncredited.length - 3} more` : ""}.`,
+        href: "/portal/billing",
+      });
+    }
   }
   if (unread > 0) {
     attention.push({

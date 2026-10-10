@@ -2,18 +2,21 @@ import "server-only";
 import { DB_NOW } from "./db-now";
 import { clockSentence } from "./clock-skew";
 import { supabaseAdmin } from "./supabase";
-import { deskPackageComplete, orderForFile, settleDecision } from "./ops-payments";
+import { deskPackageComplete } from "./ops-payments";
 import { writeAudit } from "./ops-audit";
 import { can, type Actor, holdsLicence, licenceRefusal } from "./ops-authz";
 import { transitionFile } from "./ops-crm";
 import { jobView } from "./ops-field";
 import { protocolItemRowsFor } from "./protocol-run";
 import type { Determination } from "@/content/protocols";
-import { raise } from "./ops-notify";
 import { isOpen } from "./launch";
 import { orderForFile as liveOrderForFile } from "./order-for-file";
 import { catalogFor, deliverablesFor } from "@data/catalog";
 import { engineerPayCents, tierForDeliverable, type PayTier } from "@/config/engineer-pay";
+import { randomUUID } from "node:crypto";
+import { canTransition, STATUS_TIMESTAMP, type FileStatus } from "./ops-files";
+import { effectModeFor } from "./fixture-identity";
+import { REVIEW_AFTER_DECISION, reviewAfterDecisionKey, type ReviewAfterDecisionPayload } from "./review-jobs";
 import {
   ACTION_LABEL,
   ACTION_TARGET,
@@ -251,6 +254,8 @@ export type PackageView = {
     refusal_reason: string | null;
     /** Who took it into review, which is who decides it (canReview, 2026-10-10). */
     assigned_engineer_id: string | null;
+    /** Read so the decision can tell the technician BEFORE it releases them. */
+    assigned_tech_id: string | null;
   };
   protocolName: string | null;
   /**
@@ -726,145 +731,65 @@ export async function decideReview(
   if (!verdict.ok) return { ok: false, error: verdict.reason };
 
   /*
-   * WRITTEN BEFORE THE FILE MOVES, WHICH IS THE OPPOSITE ORDER TO THE
-   * RESPONSIBLE CHARGE LOG BELOW, AND DELIBERATELY SO.
+   * =====================================================================
+   * ONE WRITE, OR NONE. Operator ruling, 2026-10-10; migration 0068.
+   * =====================================================================
    *
-   * That log is written after, and the comment beside it explains the cost: if
-   * it fails, the file has moved and the regulatory record is short a row, and
-   * the function shouts about it. This one is written FIRST because it can be:
-   * it depends on nothing the transition produces. A determination that failed
-   * to write leaves the file exactly where it was, so the engineer simply
-   * decides again. The append only trigger means a retry cannot produce two
-   * determinations for one review either, because the second one would be a new
-   * row on a file that is no longer under review.
+   * Everything above this line READS and JUDGES. Everything a decision writes
+   * is handed to eng_record_review_decision, which records it in one
+   * transaction: the determination and its repair list, the status move with
+   * its stamp, file event and audit row, the refusal or revision fields, the
+   * technician released, the review session closed, the responsible charge log
+   * row, the production ledger credit and the decision's audit row. Until
+   * 2026-10-10 those were a dozen separate requests, and a failure between two
+   * of them could leave a decided review with no pay, which is the state the
+   * ruling names.
+   *
+   * WHAT REACHES OUTSIDE IS QUEUED, NOT RUN. Two things here used to run inline
+   * after the writes: the notices raise() sends (the technician on revisions or
+   * a site visit, the administrators on a refusal), and on a refusal
+   * settleDecision, which can REFUND A CARD through Stripe and could send the
+   * order's email. Both are now one eng_jobs row of kind review.after_decision,
+   * inserted by the same transaction under an idempotency key, and done by the
+   * job runner after commit (job-handlers.ts). A rolled back decision leaves no
+   * job; a committed one cannot lose its refund to a crash in between.
+   *
+   * The rules stay here, in TypeScript, where their audits read them. The
+   * function re-checks the one thing only the database can: that the file is
+   * still in the status the rules were judged against.
    */
-  if (governing && determination) {
-    const { data: detRow, error: detError } = await db
-      .from("eng_determinations")
-      .insert({
-        file_id: fileId,
-        protocol_document: governing,
-        determination: determination.determination,
-        relied_on_item_keys: determination.reliedOnItemKeys,
-        relied_on_evidence_ids: determination.reliedOnEvidenceIds,
-        note: determination.note?.trim() || null,
-        engineer_id: actor.id,
-      })
-      .select("id")
-      .single();
-    if (detError || !detRow) {
-      return {
-        ok: false,
-        error: `The determination did not write: ${detError?.message ?? "no row came back"}. Nothing has moved, so decide again.`,
-      };
-    }
-
-    /*
-     * THE REPAIR LIST, WRITTEN BEFORE THE FILE MOVES, for the same reason the
-     * determination is: nothing here depends on the transition, so a failure
-     * leaves the file where it was and the engineer decides again.
-     *
-     * The ORDER within this block matters and is the opposite of the intuitive
-     * one. If the file moved first and the list failed, the owner would have a
-     * file withheld against a repair list that does not exist, which is the
-     * worst of the three possible states.
-     */
-    const repairs = (determination.repairRequirements ?? [])
-      .map((r) => r.trim())
-      .filter((r) => r.length >= 3);
-    if (repairs.length > 0) {
-      const { error: repairError } = await db.from("eng_repair_items").insert(
-        repairs.map((requirement, index) => ({
-          file_id: fileId,
-          determination_id: detRow.id,
-          sort_order: index,
-          requirement,
-          raised_by: actor.id,
-        })),
-      );
-      if (repairError) {
-        return {
-          ok: false,
-          error:
-            `The determination was recorded and the repair list did not write: ${repairError.message}. ` +
-            "The file has not moved. Decide again, and expect the determination to appear twice in the record.",
-        };
-      }
-    }
-  }
-
   const now = new Date();
   const session = pkg.session;
   const minutes = session ? minutesBetween(new Date(session.startedAt), now) : 0;
-
-  // 1. The file moves, except on a passing decision.
-  /*
-   * A PASSING DECISION IS NOT A SEAL. Operator ruling of 2026-10-06, CLAUDE.md
-   * section 1: the platform drafts the letter from the determination, and the
-   * engineer seals it in the portal from his own session with a fresh second
-   * factor. Until that act the file is under review in fact, with his
-   * determination recorded and his seal not yet applied, so it stays there.
-   * Moving it to sealed here, which is what this did until 2026-10-07, called a
-   * file sealed with no seal on anything. src/lib/letter-seal.ts moves it, at
-   * the moment the seal act is recorded.
-   */
   const target = ACTION_TARGET[action];
   const note = reason?.trim() || null;
-  if (action !== "seal") {
-    const moved = await transitionFile(actor, fileId, target, note, context);
-    if (!moved.ok) return { ok: false, error: moved.error };
-  }
 
-  if (action === "refuse") {
-    await db
-      .from("eng_files")
-      .update({ refused_at: DB_NOW, refusal_reason: note, refused_by: actor.id })
-      .eq("id", fileId);
-  }
-  if (action === "revisions" || action === "site_visit") {
-    await db
-      .from("eng_files")
-      .update({ revision_count: pkg.file.revision_count + 1 })
-      .eq("id", fileId);
-  }
   /*
-   * A FILE WAITING ON AN OWNER RELEASES ITS TECHNICIAN, for the same reason a
-   * site visit does and with a longer fuse.
-   *
-   * Nobody is working this file and nobody will for weeks or months. Leaving a
-   * technician named on it puts a job on their list they cannot act on, and
-   * when the revisit finally comes it may well go to somebody else entirely,
-   * which would leave the record showing two technicians on one file with no
-   * account of the handover.
-   *
-   * The load count was checked rather than assumed: candidateTechs counts only
-   * dispatched, evidence_in_progress and revisions_requested, so a parked file
-   * was never going to make a technician look busy. This is about the job list
-   * they read, not the ranking.
+   * A PASSING DECISION IS NOT A SEAL. Operator ruling of 2026-10-06: the file
+   * stays under review until the engineer seals its letter, and
+   * src/lib/letter-seal.ts moves it at the seal act. Every other action is
+   * judged by the same grammar transitionFile applies.
    */
-  if (action === "site_visit" || action === "repairs") {
-    /*
-     * A site visit is a new journey. The file goes back through dispatch, so the
-     * technician who held it is released rather than left assigned to a file
-     * that is being offered to somebody else.
-     */
-    await db.from("eng_files").update({ assigned_tech_id: null }).eq("id", fileId);
-    await db
-      .from("eng_assignments")
-      .update({ state: "withdrawn", responded_at: DB_NOW })
-      .eq("file_id", fileId)
-      .eq("state", "accepted");
+  if (action !== "seal") {
+    const verdict = canTransition(actor, pkg.file.status as FileStatus, target, {
+      assignedTech: Boolean(pkg.file.assigned_tech_id),
+    });
+    if (!verdict.ok) return { ok: false, error: verdict.reason };
   }
 
-  // Close the clock.
-  if (session) {
-    await db
-      .from("eng_review_sessions")
-      .update({ ended_at: DB_NOW, decision: action, minutes })
-      .eq("id", session.id);
+  const requirements = (determination?.repairRequirements ?? []).map((r) => r.trim()).filter((r) => r.length >= 3);
+
+  // The credit: productionCreditFor's figure and nothing else's (engineer-pay.ts).
+  let payNote: string | null = null;
+  const credit = session ? await productionCreditFor(pkg.file) : null;
+  if (!session) {
+    payNote = "No review session was open for this decision, so no production was credited.";
+  } else if (credit && !credit.ok) {
+    payNote =
+      `No production was credited: ${credit.reason}. It is on the administrators' attention list, ` +
+      "and the review is credited when the office records the file's deliverable.";
   }
 
-  // 2. The responsible charge log. Built by the pure module, inserted here.
   const row = chargeLogRow({
     engineerId: actor.id,
     fileId,
@@ -878,160 +803,215 @@ export async function decideReview(
     reason: note,
     at: now,
   });
-  const { error: logError } = await db
-    .from("eng_responsible_charge_log")
-    .insert({ ...row, review_session_id: session?.id ?? null });
-  if (logError && !/duplicate key/i.test(logError.message)) {
-    /*
-     * Reported rather than swallowed. The file has already moved, which is the
-     * ordering this module chose deliberately, and an operator seeing this
-     * message can repair a log that is short a row. A regulatory record that
-     * silently missed a review is the outcome worth shouting about.
-     */
-    return {
-      ok: false,
-      error:
-        `The file moved but the responsible charge log entry failed: ${logError.message}. ` +
-        "The regulatory record is now short a row for this review and needs repairing.",
+
+  /* The queued work, only for the actions that have any. */
+  const decisionId = randomUUID();
+  let job: { kind: string; payload: ReviewAfterDecisionPayload; idempotency_key: string; effect_mode: string } | null = null;
+  if (action === "revisions" || action === "site_visit" || action === "refuse") {
+    const order = action === "refuse" ? await liveOrderForFile(fileId, "customer_email") : null;
+    job = {
+      kind: REVIEW_AFTER_DECISION,
+      payload: {
+        fileId,
+        fileNumber: pkg.file.file_number,
+        decisionId,
+        action,
+        note,
+        actorId: actor.id,
+        techId: pkg.file.assigned_tech_id ?? null,
+      },
+      idempotency_key: reviewAfterDecisionKey(fileId, decisionId),
+      /* No outside effect for a probe engineer or a probe customer (fixture-identity.ts). */
+      effect_mode: effectModeFor(actor.email, (order?.customer_email as string | null | undefined) ?? null),
     };
   }
 
-  // 3. The production ledger. Paid on the completed review, not on the seal.
-  // The figure is productionCreditFor's and nothing else's (engineer-pay.ts).
-  let paidCents: number | null = null;
-  let payNote: string | null = null;
-  if (!session) {
-    payNote = "No review session was open for this decision, so no production was credited.";
-  } else {
-    const credit = await productionCreditFor(pkg.file);
-    if (!credit.ok) {
-      payNote = `No production was credited: ${credit.reason}. Tell the office, so the file's deliverable can be recorded and the review credited.`;
-    } else {
-      const { error } = await db.from("eng_production_ledger").insert({
-        engineer_id: actor.id,
-        file_id: fileId,
-        review_session_id: session.id,
-        decision: action,
-        amount_cents: credit.cents,
-        period: periodOf(now),
-        status: "pending",
-        note: `${pkg.file.file_number}, ${action === "refuse" ? "declined to seal" : action}, tier ${credit.tier}`,
-      });
-      if (!error) paidCents = credit.cents;
-      else if (!/duplicate key/i.test(error.message)) {
-        return { ok: false, error: `The review was recorded but production pay failed: ${error.message}` };
-      }
-    }
+  const { error: recordError } = await db.rpc("eng_record_review_decision", {
+    p: {
+      file_id: fileId,
+      expected_status: pkg.file.status,
+      action,
+      target_status: action === "seal" ? null : target,
+      stamp_column: action === "seal" ? null : (STATUS_TIMESTAMP[target] ?? null),
+      note,
+      actor_id: actor.id,
+      actor_email: actor.email,
+      actor_role: actor.role,
+      ip: context.ip ?? null,
+      user_agent: context.userAgent ?? null,
+      transition_summary: `${pkg.file.file_number}: ${pkg.file.status} to ${target}`,
+      decision_summary: `${pkg.file.file_number}: ${action === "refuse" ? "declined to seal" : action}${
+        session ? ` after ${minutes} minutes` : ""
+      }`,
+      determination:
+        governing && determination
+          ? {
+              protocol_document: governing,
+              determination: determination.determination,
+              relied_on_item_keys: determination.reliedOnItemKeys,
+              relied_on_evidence_ids: determination.reliedOnEvidenceIds,
+              note: determination.note?.trim() || null,
+            }
+          : null,
+      repairs: governing && determination ? requirements : [],
+      session: session ? { id: session.id, minutes } : null,
+      charge_log: row,
+      credit:
+        session && credit && credit.ok
+          ? {
+              amount_cents: credit.cents,
+              period: periodOf(now),
+              note: `${pkg.file.file_number}, ${action === "refuse" ? "declined to seal" : action}, tier ${credit.tier}`,
+            }
+          : null,
+      job,
+    },
+  });
+  if (recordError) {
+    return { ok: false, error: `Nothing was recorded, so decide again: ${recordError.message}` };
   }
 
-  /*
-   * Who a decision reaches depends on what it was.
-   *
-   * A technician is told when their package comes back, because they are the
-   * one who has to act. A refusal goes to administrators, because it is a
-   * commercial and regulatory event rather than a field one, and because
-   * telling a technician "an engineer would not certify your work" as a push
-   * notification is not how that conversation should start.
-   */
-  const { data: admins } = await db
-    .from("eng_profiles")
-    .select("id")
-    .eq("role", "admin")
-    .eq("status", "active");
+  const paidCents = session && credit && credit.ok ? credit.cents : null;
+  return { ok: true, action, minutes, paidCents, payNote };
+}
 
-  if (action === "revisions" || action === "site_visit") {
-    const { data: file } = await db
-      .from("eng_files")
-      .select("assigned_tech_id")
-      .eq("id", fileId)
-      .maybeSingle();
-    const techId = (file?.assigned_tech_id as string | null) ?? null;
-    if (techId) {
-      await raise({
-        profileId: techId,
-        role: "field_tech",
-        kind: "review.revisions",
-        title:
-          action === "revisions"
-            ? `${pkg.file.file_number} came back for revisions`
-            : `${pkg.file.file_number} needs another site visit`,
-        body: note,
-        href: `/portal/jobs/${fileId}`,
-        entityType: "file",
-        entityId: fileId,
-      });
+// --------------------------------------------- reviews that credited nothing
+
+/*
+ * A DECIDED REVIEW THAT CREDITED NOTHING IS THE OFFICE'S TO FIX. Operator
+ * ruling 2 of 2026-10-10.
+ *
+ * productionCreditFor refuses to guess a tier, so a windstorm file that records
+ * neither completed nor ongoing credits nothing, and the engineer is told why.
+ * That is right and it is not enough: somebody has to fix the record and the
+ * review has to be credited then. So every ended review session with a decision
+ * and no production ledger row is on the administrators' attention list,
+ * naming the file and what is missing, and creditUncreditedReviews records the
+ * deliverable (when that is what is missing) and writes the credit.
+ *
+ * This list also holds every decision made while production's fee schedule
+ * was empty, which is true: each of those credited the engineer nothing.
+ */
+export type UncreditedReview = {
+  sessionId: string;
+  fileId: string;
+  fileNumber: string;
+  decision: string;
+  endedAt: string;
+  /** What is missing, in a sentence, or null when a credit is due and simply was never written. */
+  missing: string | null;
+  /** The deliverables an administrator may choose between, when the deliverable is what is missing. */
+  choices: string[];
+  dueCents: number | null;
+};
+
+export async function uncreditedReviews(): Promise<UncreditedReview[]> {
+  const db = supabaseAdmin();
+  if (!db) return [];
+  const { data: sessions } = await db
+    .from("eng_review_sessions")
+    .select("id, file_id, decision, ended_at")
+    .not("ended_at", "is", null)
+    .not("decision", "is", null)
+    .order("ended_at", { ascending: false })
+    .limit(500);
+  const ids = (sessions ?? []).map((s) => s.id as string);
+  if (ids.length === 0) return [];
+  const { data: credited } = await db.from("eng_production_ledger").select("review_session_id").in("review_session_id", ids);
+  const done = new Set((credited ?? []).map((r) => r.review_session_id as string));
+  const open = (sessions ?? []).filter((s) => !done.has(s.id as string));
+  if (open.length === 0) return [];
+  const { data: files } = await db
+    .from("eng_files")
+    .select("id, file_number, service_slug, deliverable, is_demo")
+    .in("id", [...new Set(open.map((s) => s.file_id as string))]);
+  const byId = new Map((files ?? []).map((f) => [f.id as string, f]));
+  const out: UncreditedReview[] = [];
+  for (const s of open) {
+    const f = byId.get(s.file_id as string);
+    if (!f || f.is_demo) continue;
+    const credit = await productionCreditFor({
+      id: f.id as string,
+      service_slug: f.service_slug as string,
+      deliverable: (f.deliverable as string | null) ?? null,
+    });
+    out.push({
+      sessionId: s.id as string,
+      fileId: f.id as string,
+      fileNumber: f.file_number as string,
+      decision: s.decision as string,
+      endedAt: s.ended_at as string,
+      missing: credit.ok ? null : credit.reason,
+      choices: credit.ok ? [] : deliverablesFor(f.service_slug as string).map((d) => d.tier),
+      dueCents: credit.ok ? credit.cents : null,
+    });
+  }
+  return out;
+}
+
+export async function creditUncreditedReviews(
+  actor: Actor & { email: string },
+  fileId: string,
+  deliverable: string | null,
+): Promise<{ ok: true; credited: number } | { ok: false; error: string }> {
+  if (!can(actor, "ledger.approve")) return { ok: false, error: "Only somebody who approves pay can credit a review." };
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+  const { data: file } = await db
+    .from("eng_files")
+    .select("id, file_number, service_slug, deliverable")
+    .eq("id", fileId)
+    .maybeSingle();
+  if (!file) return { ok: false, error: "That file does not exist." };
+
+  let recorded = (file.deliverable as string | null) ?? null;
+  if (!recorded && deliverable) {
+    if (!catalogFor(file.service_slug as string, deliverable)) {
+      return { ok: false, error: `${deliverable} is not a deliverable of ${file.service_slug}.` };
     }
+    const { error } = await db.from("eng_files").update({ deliverable }).eq("id", fileId).is("deliverable", null);
+    if (error) return { ok: false, error: `The deliverable did not record: ${error.message}` };
+    recorded = deliverable;
+    await writeAudit({
+      actor,
+      action: "file.deliverable_recorded",
+      entityType: "file",
+      entityId: fileId,
+      summary: `${file.file_number}: deliverable recorded as ${deliverable}, so its reviews can be credited`,
+    });
   }
 
-  for (const admin of admins ?? []) {
-    if ((admin.id as string) === actor.id) continue;
-    if (action === "refuse") {
-      await raise({
-        profileId: admin.id as string,
-        role: "admin",
-        kind: "review.refused",
-        title: `An engineer declined to seal ${pkg.file.file_number}`,
-        body: note,
-        href: `/portal/review?id=${fileId}`,
-        entityType: "file",
-        entityId: fileId,
-      });
-    }
-    /*
-     * review.sealed is raised by the seal act now, not by the decision, for the
-     * reason at step 1: until the engineer seals, nothing has been sealed, and
-     * telling the administrator otherwise is the claim the 2026-10-06 ruling
-     * exists to stop.
-     */
-  }
+  const credit = await productionCreditFor({ id: fileId, service_slug: file.service_slug as string, deliverable: recorded });
+  if (!credit.ok) return { ok: false, error: `Still nothing to credit: ${credit.reason}.` };
 
+  const open = (await uncreditedReviews()).filter((r) => r.fileId === fileId);
+  const { data: sessions } = await db
+    .from("eng_review_sessions")
+    .select("id, engineer_id, decision, ended_at")
+    .in("id", open.map((r) => r.sessionId));
+  let credited = 0;
+  for (const s of sessions ?? []) {
+    const { error } = await db.from("eng_production_ledger").insert({
+      engineer_id: s.engineer_id,
+      file_id: fileId,
+      review_session_id: s.id,
+      decision: s.decision,
+      amount_cents: credit.cents,
+      period: periodOf(new Date(s.ended_at as string)),
+      status: "pending",
+      note: `${file.file_number}, ${s.decision === "refuse" ? "declined to seal" : s.decision}, tier ${credit.tier}, credited after the record was fixed`,
+    });
+    if (error && !/duplicate key/i.test(error.message)) return { ok: false, error: `A credit did not write: ${error.message}` };
+    if (!error) credited += 1;
+  }
   await writeAudit({
     actor,
-    action: `review.${action}`,
+    action: "ledger.credited_late",
     entityType: "file",
     entityId: fileId,
-    summary: `${pkg.file.file_number}: ${action === "refuse" ? "declined to seal" : action}${
-      session ? ` after ${minutes} minutes` : ""
-    }`,
-    ...context,
+    summary: `${file.file_number}: ${credited} review(s) credited at tier ${credit.tier}, ${credit.cents} cents each`,
   });
-
-  /*
-   * THE DECISION SETTLES THE MONEY, AND IT HAPPENS HERE
-   * --------------------------------------------------
-   * settleDecision is called for a seal as well as a refusal, so exactly one
-   * place knows what a decision does to a customer's payment. A caller that had
-   * to remember to skip it on a seal is one that will one day forget on a
-   * refusal, and the customer would be left charged for work the firm declined.
-   *
-   * It is called after the decision is already recorded, and its failure does
-   * not undo the decision. An engineer's professional judgment is not
-   * contingent on a payment provider being reachable: the file stays declined,
-   * the refund is recorded as needing a hand, and the operator can see it.
-   *
-   * A file with no order behind it, which is every file staff opened by hand,
-   * settles to nothing and says so.
-   */
-  /*
-   * A passing decision settles nothing yet: the order settles when the letter
-   * is sealed (src/lib/letter-seal.ts), because that is when the customer has
-   * been given what they paid for. A refusal settles here, as it always has.
-   */
-  const order = await orderForFile(fileId);
-  if (order && action === "refuse") {
-    const settled = await settleDecision({
-      orderId: order.id as string,
-      outcome: "refuse",
-      actorId: actor.id,
-    });
-    if (!settled.ok) {
-      console.error(
-        `[review] ${pkg.file.file_number}: the decision stands and the refund did not: ${settled.error}`,
-      );
-    }
-  }
-
-  return { ok: true, action, minutes, paidCents, payNote };
+  return { ok: true, credited };
 }
 
 // ------------------------------------------------------- the charge log view

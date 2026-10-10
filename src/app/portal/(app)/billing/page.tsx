@@ -8,6 +8,9 @@ import type { Column } from "@/components/portal/design";
 import { DataTable } from "@/components/portal/design";
 import { STATUS_LABEL, type FileStatus } from "@/lib/ops-files";
 import { ButtonLink, Chip, EmptyState, ErrorState, PageHead, Panel, RecordTable } from "@/components/portal/surfaces";
+import { can } from "@/lib/ops-authz";
+import { uncreditedReviews } from "@/lib/ops-engineer";
+import { UncreditedReviews } from "./UncreditedReviews";
 
 export const dynamic = "force-dynamic";
 
@@ -73,6 +76,8 @@ export default async function BillingPage() {
   const files = read;
   const periods = marginByPeriod(files);
   const incomplete = files.filter((f) => marginOf(f).missing.length > 0);
+  /* Ruling 2 of 2026-10-10: shown to whoever approves pay, and only when there is something to fix. */
+  const uncredited = can(actor, "ledger.approve") ? await uncreditedReviews() : [];
 
   return (
     <>
@@ -89,6 +94,15 @@ export default async function BillingPage() {
           </>
         }
       />
+
+      {uncredited.length > 0 ? (
+        <Panel
+          title="Reviews that credited the engineer nothing"
+          description="Each was decided and wrote no production credit. Fix what is missing and the credit is written at the tier in the engineer's agreement."
+        >
+          <UncreditedReviews rows={uncredited} />
+        </Panel>
+      ) : null}
 
       {files.length === 0 ? (
         <EmptyState

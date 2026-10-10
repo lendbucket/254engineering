@@ -60,7 +60,14 @@ export type JobKind =
    * somebody has to look at. The manifest is written before this is enqueued,
    * so the job carries an id and never a plan.
    */
-  | "retention.sweep";
+  | "retention.sweep"
+  /*
+   * 2026-10-10, operator ruling, migration 0068. What a decided review hands to
+   * the queue: the notices it raises and, on a refusal, the order's settlement.
+   * Enqueued by eng_record_review_decision in the decision's own transaction,
+   * never by enqueue(), so a rolled back decision leaves none. See review-jobs.ts.
+   */
+  | "review.after_decision";
 
 export type JobPayload = Record<string, unknown>;
 
