@@ -23,9 +23,14 @@ import { useEffect } from "react";
  * act on it. The endpoint answers 204 whatever happened, and the operator finds
  * out from the touch log, which is the only place the truth is useful.
  */
-export function ReferralCapture() {
+/*
+ * `code` is given by a partner's own order page (/order/referred/<code>, run
+ * item 16), where the partner is in the PATH rather than a ref parameter: the
+ * visit to that page is the touch, with no ref for anybody to strip.
+ */
+export function ReferralCapture({ code: given }: { code?: string } = {}) {
   useEffect(() => {
-    const code = new URLSearchParams(window.location.search).get("ref");
+    const code = given ?? new URLSearchParams(window.location.search).get("ref");
     if (!code) return;
 
     /*
@@ -46,7 +51,7 @@ export function ReferralCapture() {
     }).catch(() => {
       /* Deliberately silent. See above. */
     });
-  }, []);
+  }, [given]);
 
   return null;
 }

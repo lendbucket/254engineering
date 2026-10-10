@@ -96,7 +96,12 @@ export const SURFACES = [
      * reference page is expected to render its own "not found" state, which is
      * itself a screen a person sees.
      */
-    routes: ["/order/start/roof-inspections", "/order/254-B2026-000000"],
+    /*
+     * /order/referred/demo-title is a partner's order page (run item 16): the
+     * code is the development seed's active demo partner, so the audits measure
+     * the real page rather than a 404.
+     */
+    routes: ["/order/start/roof-inspections", "/order/254-B2026-000000", "/order/referred/demo-title"],
     dirs: ["src/app/(order)/order"],
     sourceDirs: ["src/app/(order)", "src/components/order"],
     session: "none",

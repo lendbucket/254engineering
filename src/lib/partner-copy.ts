@@ -5,7 +5,8 @@ import {
   TRADING_GATED,
 } from "../../scripts/lib/regulatory.mjs";
 import { BANNED_PHRASES } from "../../scripts/lib/voice-blocklist.mjs";
-import { firmName, isOpen, isTrading, registrationStatement, sealingIsAvailable } from "./launch";
+import { activeFirmRegistration, firmName, isOpen, isTrading, registrationStatement, sealingIsAvailable } from "./launch";
+import { serviceNameInSentence } from "./order-copy";
 
 /**
  * Whether a piece of partner marketing copy may be published.
@@ -186,4 +187,32 @@ export function performingFirmLine(): string {
   return !isOpen()
     ? [`${firmName()} is the firm of record for work referred through this program, and is the firm that will perform and seal it.`, registrationStatement()].filter(Boolean).join(" ")
     : `${firmName()} is the firm of record for work referred through this program, and is the firm that performs and seals it.`;
+}
+
+/*
+ * ===========================================================================
+ * THE FIXED ATTRIBUTION ON A PARTNER'S ORDER PAGE. Run item 16, 2026-10-10.
+ * ===========================================================================
+ *
+ * "Roof certifications by 254 Engineering, TBPELS Firm F-29811", one per open
+ * line, read from the register and never typed by the partner or by us.
+ *
+ * THE NAME BESIDE THE NUMBER IS ONE THE BOARD HOLDS (CLAUDE.md section 1). The
+ * ruled wording uses the public brand "254 Engineering", which on 2026-10-10 is
+ * being filed as an assumed name and is not yet on the board's record. So the
+ * brand is used only once the registration's own `dbas` holds it, and the
+ * registrant's name until then. The line switches by itself the day the
+ * read-back is recorded.
+ */
+export const PUBLIC_BRAND = "254 Engineering";
+
+/** "Roof certifications by <name>, TBPELS Firm <number>", or null with no active registration. */
+export function partnerAttributionLine(
+  lineShortName: string,
+  registration: { issuedTo: string; number: string; dbas: string[] } | null = activeFirmRegistration(),
+): string | null {
+  if (!registration) return null;
+  const name = registration.dbas.includes(PUBLIC_BRAND) ? PUBLIC_BRAND : registration.issuedTo;
+  const line = serviceNameInSentence(lineShortName);
+  return `${line.charAt(0).toUpperCase()}${line.slice(1)} by ${name}, TBPELS Firm ${registration.number}`;
 }
