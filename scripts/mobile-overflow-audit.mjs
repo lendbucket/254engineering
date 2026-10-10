@@ -53,6 +53,7 @@
  * because "some route is 12 pixels too wide" is not a finding anybody can act
  * on.
  */
+import { randomUUID } from "node:crypto";
 import { chromium } from "playwright";
 import { allPages } from "./lib/surfaces.mjs";
 import {
@@ -132,7 +133,8 @@ async function createProbe(role = "admin") {
   const stamp = Date.now();
   const email = `probe-${stamp}@${PROBE_DOMAIN}`;
   const password = `probe-${stamp}-mobile-overflow-audit`;
-  const { data, error } = await db.auth.admin.createUser({ email, password, email_confirm: true });
+  /* Id named so a network fault on the create is retriable (transient-retry.mjs). */
+  const { data, error } = await db.auth.admin.createUser({ id: randomUUID(), email, password, email_confirm: true });
   if (error || !data?.user) return null;
   const { error: pErr } = await db.from("eng_profiles").insert({
     id: data.user.id,

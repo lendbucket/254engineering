@@ -50,7 +50,37 @@ export type RetentionWatchResult = {
   decision: RetentionStallDecision | null;
   sent: boolean;
   note: string;
+  /**
+   * True ONLY when this run read nothing on purpose, because the firm was told
+   * inside the cooldown. `looked` is false then too, deliberately (see below),
+   * so without this field a routine skip and a failed read were the same value,
+   * and the cron logged both at error. Added 2026-10-09.
+   */
+  suppressed: boolean;
 };
+
+/**
+ * HOW A RUN IS LOGGED, AND AT WHICH LEVEL. Operator ruling, 2026-10-09.
+ *
+ * Production logged the cooldown notice at error every five minutes for about
+ * three days, 859 lines in a week, so a real error from this cron would have
+ * sat among hundreds of routine ones. A deliberate skip is information; a
+ * watch that could not see is an error, and keeps the exact line it always
+ * had. In one function the route calls, with the log as a parameter, so the
+ * proof asserts the level as behaviour rather than reading the route's text.
+ */
+export function reportRetentionWatch(
+  result: RetentionWatchResult,
+  log: Pick<Console, "info" | "warn" | "error"> = console,
+): void {
+  if (result.sent) log.warn(`[retention-watch] alerted: ${result.note}`);
+  if (result.looked) return;
+  if (result.suppressed) {
+    log.info(`[retention-watch] did not look, by design: ${result.note}`);
+  } else {
+    log.error(`[retention-watch] DID NOT LOOK: ${result.note}`);
+  }
+}
 
 /**
  * THE CLIENT IS A PARAMETER SO THE READ ORDER CAN BE PROVED.
@@ -67,7 +97,7 @@ export async function watchRetention(
   db = supabaseAdmin(),
 ): Promise<RetentionWatchResult> {
   if (!db) {
-    return { looked: false, decision: null, sent: false, note: "the database is not configured" };
+    return { looked: false, decision: null, sent: false, note: "the database is not configured", suppressed: false };
   }
 
   /*
@@ -116,6 +146,7 @@ export async function watchRetention(
       decision: null,
       sent: false,
       note: `the alert cooldown could not be read: ${stateError.message}`,
+      suppressed: false,
     };
   }
 
@@ -143,6 +174,7 @@ export async function watchRetention(
         note:
           `the firm was told ${sinceMinutes} minute(s) ago, inside the ` +
           `${RETENTION_STALL_COOLDOWN_MINUTES} minute cooldown, so no table was read`,
+        suppressed: true,
       };
     }
   }
@@ -177,7 +209,7 @@ export async function watchRetention(
   const decision = decideRetentionStall({ tables: readiness, lastAlertedAtMs }, now);
 
   if (!decision.send) {
-    return { looked: true, decision, sent: false, note: decision.because };
+    return { looked: true, decision, sent: false, note: decision.because, suppressed: false };
   }
 
   /*
@@ -245,5 +277,6 @@ export async function watchRetention(
     decision,
     sent: result.sent,
     note: result.sent ? decision.headline : `the alert could not be sent: ${result.reason ?? "unknown"}`,
+    suppressed: false,
   };
 }
