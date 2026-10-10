@@ -19,8 +19,10 @@ position, not the reasoning (that is in GAPS.md and the commit messages).
 | 9 | Probe transient retry | `fix/probe-transient-retry` at fdc6015 | **MERGED as b24046a** (parents 3bb883e, fdc6015), 61 of 61 on the permitted re-board, Transient retries 3 equal to the log. Boards before it: e9b0346 61 of 61 but its retry count read 0 over 3 retries (fixed), and the pattern change reverted under the operator's ruling; fdc6015's first board 60 + 1 could not tell (roles-audit probe create, connect timeout, correctly not retried) |
 | 10 | Health watch log level | `fix/health-watch-log-level` at ab38049 | **MERGED in d282d5a** via `integrate/2026-10-10` at a823a2a, board 61 of 61, retries 3 equal to the log |
 | 10a | Probe ids | `fix/probe-ids` at 45a6aae | **MERGED in d282d5a**, same board |
-| 11 | Product audit, portal by portal | this branch | **IN PROGRESS** from main at d282d5a: inventory and screenshots by role, then the break-it sweep re-run, then the brute force the sweep does not cover |
-| 12 | Public site colours | | after the audit |
+| 11 | Product audit, portal by portal | this branch | **IN PROGRESS**: inventory, 220 valid screenshots, notes for all five portals, brute force log, defects pushed (7f71185). Pending: 220 captures to retake, the break-it sweep re-run |
+| 12 | Defect fixes, no migration | `integrate/2026-10-10b` (15 branches: offer-needs-a-rate, partner-window-copy, dates-in-central, customer-sign-in-limit, credential-form-offline, mfa-no-replace-from-password, review-belongs-to-its-engineer, pay-owed-one-home, refund-reason-per-order, mfa-sign-out, waiting-links, launch-sellable-needs-the-gate, engineer-dead-links, csr-most-recent, partner-true-totals) | **WAITING ON THE MACHINE LOCK** (held by wattsmith since 04:42Z). Next: the MFA reproduction on main, the importing audits standalone, then the board; prediction 61 of 61. If it fails: split, never debug together |
+| 13 | Two tabs, two pending credentials | `fix/credential-one-pending` at 080fedc, migration 0067 | **STAGED, NOT MERGED**: 0067 written unapplied; docs/production-sitting-2026-10-10.md |
+| 14 | Public site colours | | after the audit and the defects |
 
 ## Main
 
@@ -28,8 +30,8 @@ position, not the reasoning (that is in GAPS.md and the commit messages).
 
 ## Worktrees
 
-- `C:/Users/salon/projects/254engineering`: main
-- `C:/Users/salon/projects/254engineering-v10`: fix/probe-transient-retry
+- `C:/Users/salon/projects/254engineering`: main (its .next is the audit's capture build)
+- `C:/Users/salon/projects/254engineering-v10`: integrate/2026-10-10b (do not switch while a run builds it)
 - `C:/Users/salon/projects/254engineering-tdi`: fix/machine-lock-env (merged)
 - `C:/Users/salon/projects/254engineering-audit`: docs/product-audit-2026-10 (this file)
 
