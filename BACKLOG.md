@@ -62,13 +62,16 @@ row, so nothing deletes. On `fix/sign-in-limiter-in-the-database`, after 0070.
 after 0070, read back. The sign up limiter in the same file still counts in
 memory, and was outside decision 14.
 
-## STAGED: 0070, THE SECOND FACTOR IS REQUIRED FOR ADMINISTRATOR AND ENGINEER
+## STAGED: 0070, THE SECOND FACTOR IS REQUIRED FOR THE ENGINEER
 
-`docs/production-sitting-fix-second-factor-required.md`. Two `eng_roles` rows
-move from optional to required (operator ruling 2026-10-10, gaps 3 and 4). On
+`docs/production-sitting-fix-second-factor-required.md`. The `engineer` row of
+`eng_roles` moves from optional to required (operator ruling 2026-10-10, gap
+3). The `admin` row stays optional by the operator's later ruling the same day,
+replacing gap 4's; 0070 was amended and renamed before any apply. On
 `fix/second-factor-required`, after 0069. **Not applied anywhere.** Open: read
-who is not enrolled, apply after 0069, read back. The SOC 2 gap entry records
-the ruling and closes on the apply.
+which engineer is not enrolled, apply after 0069, read back. The SOC 2 gap
+closes its engineer half on the apply; **its administrator half stays open,
+reason: operator's choice.**
 
 ## STAGED: 0069, WP-001 v1.2 AND FC-001 v1.0 ENTER AS DRAFTS
 
