@@ -11,6 +11,9 @@ import { protocolItemRowsFor } from "./protocol-run";
 import type { Determination } from "@/content/protocols";
 import { raise } from "./ops-notify";
 import { isOpen } from "./launch";
+import { orderForFile as liveOrderForFile } from "./order-for-file";
+import { catalogFor, deliverablesFor } from "@data/catalog";
+import { engineerPayCents, tierForDeliverable, type PayTier } from "@/config/engineer-pay";
 import {
   ACTION_LABEL,
   ACTION_TARGET,
@@ -239,6 +242,8 @@ export type PackageView = {
     city: string | null;
     county: string;
     service_slug: string;
+    /** The catalogue tier key, when the file records it; read for the pay tier. */
+    deliverable: string | null;
     status: string;
     twia_county: boolean;
     notes: string | null;
@@ -477,25 +482,75 @@ export async function openReview(
 
 // ------------------------------------------------------------- the decision
 
-/** What an engineer is paid for a completed review on this service line. */
-async function productionFeeFor(serviceSlug: string): Promise<number | null> {
-  const db = supabaseAdmin();
-  if (!db) return null;
-  const today = new Date().toISOString().slice(0, 10);
-  const { data } = await db
-    .from("eng_fee_schedule")
-    .select("amount_cents, effective_from, effective_to, tier")
-    .eq("kind", "engineer_production")
-    .eq("service_slug", serviceSlug)
-    .lte("effective_from", today)
-    .order("effective_from", { ascending: false })
-    .limit(5);
-  const live = (data ?? []).find((r) => !r.effective_to || (r.effective_to as string) >= today);
-  return live ? Number(live.amount_cents) : null;
+/*
+ * =========================================================================
+ * WHAT AN ENGINEER IS CREDITED FOR A DECISION HAS ONE HOME:
+ * src/config/engineer-pay.ts. Operator ruling 1 of 2026-10-10.
+ * =========================================================================
+ *
+ * This read `eng_fee_schedule` (kind engineer_production) by service line,
+ * while the price book and every margin read the tiers in the executed
+ * agreement. Two homes for one fact, and they disagreed: development's
+ * schedule held $95 for windstorm and nothing else, and PRODUCTION'S SCHEDULE
+ * IS EMPTY, so on production every decision the engineer made, roof included,
+ * credited him nothing, and the review screen said "no production rate is set".
+ *
+ * The credit is now the tier the JOB attracted, read the way the agreement
+ * defines it (by deliverable, not by line): the file's own deliverable, else
+ * the deliverable of the order it is worked under, else the line's only
+ * deliverable when it sells exactly one. Where none of those answers, NO
+ * figure is invented; the decision says why nothing was credited.
+ * `eng_fee_schedule` keeps `tech_pay`, which is a different fact.
+ */
+export type ProductionCredit =
+  | { ok: true; deliverable: string; tier: PayTier; cents: number }
+  | { ok: false; reason: string };
+
+/**
+ * The credit for a decided review on this file. Exported for the proof that
+ * reads it against real rows; decideReview writes exactly its figure.
+ */
+export async function productionCreditFor(file: {
+  id: string;
+  service_slug: string;
+  deliverable: string | null;
+}): Promise<ProductionCredit> {
+  const slug = file.service_slug;
+  let deliverable: string | null =
+    file.deliverable && catalogFor(slug, file.deliverable) ? file.deliverable : null;
+  if (!deliverable) {
+    const order = await liveOrderForFile(file.id, "tier");
+    const orderTier = (order?.tier as string | null | undefined) ?? null;
+    if (orderTier && catalogFor(slug, orderTier)) deliverable = orderTier;
+  }
+  if (!deliverable) {
+    const only = deliverablesFor(slug);
+    if (only.length === 1) deliverable = only[0].tier;
+  }
+  if (!deliverable) {
+    return {
+      ok: false,
+      reason:
+        "this file does not record which deliverable it is, and its service line sells more than one, " +
+        "so the pay tier cannot be read",
+    };
+  }
+  const tier = tierForDeliverable(slug, deliverable);
+  if (tier === null) {
+    return { ok: false, reason: `no pay tier is ruled for ${slug} (${deliverable})` };
+  }
+  return { ok: true, deliverable, tier, cents: engineerPayCents(tier) };
 }
 
 export type DecisionResult =
-  | { ok: true; action: ReviewAction; minutes: number; paidCents: number | null }
+  | {
+      ok: true;
+      action: ReviewAction;
+      minutes: number;
+      paidCents: number | null;
+      /** Why nothing was credited, when paidCents is null; a sentence for the engineer. */
+      payNote: string | null;
+    }
   | { ok: false; error: string };
 
 /**
@@ -842,21 +897,27 @@ export async function decideReview(
   }
 
   // 3. The production ledger. Paid on the completed review, not on the seal.
+  // The figure is productionCreditFor's and nothing else's (engineer-pay.ts).
   let paidCents: number | null = null;
-  if (session) {
-    const fee = await productionFeeFor(pkg.file.service_slug);
-    if (fee !== null) {
+  let payNote: string | null = null;
+  if (!session) {
+    payNote = "No review session was open for this decision, so no production was credited.";
+  } else {
+    const credit = await productionCreditFor(pkg.file);
+    if (!credit.ok) {
+      payNote = `No production was credited: ${credit.reason}. Tell the office, so the file's deliverable can be recorded and the review credited.`;
+    } else {
       const { error } = await db.from("eng_production_ledger").insert({
         engineer_id: actor.id,
         file_id: fileId,
         review_session_id: session.id,
         decision: action,
-        amount_cents: fee,
+        amount_cents: credit.cents,
         period: periodOf(now),
         status: "pending",
-        note: `${pkg.file.file_number}, ${action === "refuse" ? "declined to seal" : action}`,
+        note: `${pkg.file.file_number}, ${action === "refuse" ? "declined to seal" : action}, tier ${credit.tier}`,
       });
-      if (!error) paidCents = fee;
+      if (!error) paidCents = credit.cents;
       else if (!/duplicate key/i.test(error.message)) {
         return { ok: false, error: `The review was recorded but production pay failed: ${error.message}` };
       }
@@ -970,7 +1031,7 @@ export async function decideReview(
     }
   }
 
-  return { ok: true, action, minutes, paidCents };
+  return { ok: true, action, minutes, paidCents, payNote };
 }
 
 // ------------------------------------------------------- the charge log view

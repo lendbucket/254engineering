@@ -238,7 +238,12 @@ export function DecisionPanel({
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState<{ action: ReviewAction; minutes: number; paidCents: number | null } | null>(null);
+  const [done, setDone] = useState<{
+    action: ReviewAction;
+    minutes: number;
+    paidCents: number | null;
+    payNote: string | null;
+  } | null>(null);
 
   if (done) {
     return (
@@ -252,7 +257,7 @@ export function DecisionPanel({
           charge record.
           {done.paidCents !== null
             ? ` Production of ${money(done.paidCents)} is on the ledger, pending approval.`
-            : " No production rate is set for this service line, so nothing was written to the ledger."}
+            : ` ${done.payNote ?? "No production was credited for this decision."}`}
         </p>
         <a
           href="/portal/review"
@@ -588,6 +593,7 @@ export function DecisionPanel({
                     action?: ReviewAction;
                     minutes?: number;
                     paidCents?: number | null;
+                    payNote?: string | null;
                   } | null;
                   if (!res.ok || !body?.ok) {
                     setError(body?.error ?? "That did not work.");
@@ -597,6 +603,7 @@ export function DecisionPanel({
                     action: body.action ?? chosen,
                     minutes: body.minutes ?? 0,
                     paidCents: body.paidCents ?? null,
+                    payNote: body.payNote ?? null,
                   });
                   router.refresh();
                 } catch {
