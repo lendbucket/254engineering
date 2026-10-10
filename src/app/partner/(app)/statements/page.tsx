@@ -1,5 +1,5 @@
 import { currentPartner } from "@/lib/partner-auth";
-import { partnerStatements, type PartnerStatementRow } from "@/lib/ops-partner-portal";
+import { partnerStatements, partnerStatementCount, type PartnerStatementRow } from "@/lib/ops-partner-portal";
 import { money } from "@/lib/ops-money";
 import {
   DataTable,
@@ -9,6 +9,7 @@ import {
   StatusPill,
   type Column,
 } from "@/components/portal/design";
+import { formatInFirmZone } from "@/lib/firm-calendar";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +29,8 @@ export default async function PartnerStatements() {
   if (!principal) return null;
 
   const statements = await partnerStatements(principal);
+  /* The true total, so a list capped at 60 never reads "Showing all 60" of more (2026-10-10). */
+  const statementTotal = Math.max((await partnerStatementCount(principal)) ?? statements.length, statements.length);
 
   const columns: Column<PartnerStatementRow>[] = [
     {
@@ -56,7 +59,7 @@ export default async function PartnerStatements() {
       header: "Paid",
       cell: (s) =>
         s.paidAt
-          ? `${new Date(s.paidAt).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}${
+          ? `${(formatInFirmZone(s.paidAt, { year: "numeric", month: "short", day: "numeric" }) ?? "")}${
               s.payoutReference ? ` · ${s.payoutReference}` : ""
             }`
           : "not yet",
@@ -81,7 +84,7 @@ export default async function PartnerStatements() {
           caption="Statements issued to this partner"
           columns={columns}
           rows={statements}
-          total={statements.length}
+          total={statementTotal}
           onRowHref={(s) => `/partner/statements/${s.reference}`}
           empty={
             <EmptyState

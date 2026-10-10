@@ -40,11 +40,16 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
 
   return (
     <>
+      {/*
+        Back to wherever this reader can go. Product audit, 2026-10-10: it always
+        linked /portal/jobs, which an engineer is refused, so for the one role
+        that reaches this page from Files the link was a 404.
+      */}
       <Link
-        href="/portal/jobs"
+        href={can(actor, "offers.list_own") ? "/portal/jobs" : `/portal/files?id=${view.file.id}`}
         className="mb-3 inline-flex min-h-[44px] items-center text-[14px] font-semibold text-[var(--secondary)]"
       >
-        Back to my jobs
+        {can(actor, "offers.list_own") ? "Back to my jobs" : "Back to the file"}
       </Link>
 
       <PageHead

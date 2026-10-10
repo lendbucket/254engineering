@@ -17,6 +17,7 @@ import {
   type TaskPriority,
   type TaskStatus,
 } from "./ops-comms";
+import { formatInFirmZone } from "@/lib/firm-calendar";
 
 /**
  * Tasks, including the ones nobody types.
@@ -184,7 +185,7 @@ async function notifyAssignee(profileId: string, title: string, taskId: string, 
     role: person.role as Actor["role"],
     kind: "task.assigned",
     title: `A task is assigned to you: ${title}`,
-    body: dueAt ? `Due ${new Date(dueAt).toLocaleDateString("en-US", { month: "long", day: "numeric" })}.` : null,
+    body: dueAt ? `Due ${(formatInFirmZone(dueAt, { month: "long", day: "numeric" }) ?? "")}.` : null,
     href: "/portal/tasks",
     entityType: "task",
     entityId: taskId,

@@ -142,6 +142,35 @@ export type Referral = {
 
 const REFERRAL_PAGE = 100;
 
+/**
+ * THE TRUE TOTALS BEHIND THE TWO CAPPED LISTS. Product audit, 2026-10-10: the
+ * referrals list reads at most 100 and the statements list at most 60, and both
+ * pages passed the list's own length as the table's total, so past the cap the
+ * footer said "Showing all 100" of more. An exact count, read separately; null
+ * when it cannot be read, and the page then shows the rows without claiming
+ * they are all of them.
+ */
+export async function partnerReferralCount(principal: PartnerPrincipal): Promise<number | null> {
+  const db = supabaseAdmin();
+  if (!db) return null;
+  const { count, error } = await db
+    .from("eng_service_orders")
+    .select("id", { count: "exact", head: true })
+    .eq("partner_id", principal.partnerId);
+  return error ? null : (count ?? 0);
+}
+
+export async function partnerStatementCount(principal: PartnerPrincipal): Promise<number | null> {
+  const db = supabaseAdmin();
+  if (!db) return null;
+  const { count, error } = await db
+    .from("eng_partner_statements")
+    .select("id", { count: "exact", head: true })
+    .eq("partner_id", principal.partnerId)
+    .in("status", ["issued", "paid"]);
+  return error ? null : (count ?? 0);
+}
+
 export async function partnerReferrals(principal: PartnerPrincipal): Promise<Referral[]> {
   const db = supabaseAdmin();
   if (!db) return [];

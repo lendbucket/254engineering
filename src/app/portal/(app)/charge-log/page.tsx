@@ -6,6 +6,7 @@ import { chargeLog, chargeLogPeriods, productionLedger, timeLog } from "@/lib/op
 import { isBriskReview, outcomeLabel, periodOf } from "@/lib/ops-review";
 import { Chip, EmptyState, PageHead, Panel } from "@/components/portal/surfaces";
 import { ExportButton, TimeForm } from "./ChargeLogClient";
+import { formatInFirmZone } from "@/lib/firm-calendar";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +39,7 @@ const sumKnown = (rows: { amount_cents: number | null }[]): Cents =>
     : rows.reduce((s, r) => s + (r.amount_cents as number), 0);
 
 const when = (value: string) =>
-  new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  (formatInFirmZone(value, { month: "short", day: "numeric", year: "numeric" }) ?? "");
 
 export default async function ChargeLogPage({
   searchParams,

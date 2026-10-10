@@ -11,6 +11,7 @@ import {
   RecordTable,
   type Column,
 } from "@/components/portal/surfaces";
+import { formatInFirmZone } from "@/lib/firm-calendar";
 
 export const dynamic = "force-dynamic";
 
@@ -27,12 +28,12 @@ type Event = {
 };
 
 function stamp(value: string): string {
-  return new Date(value).toLocaleString("en-US", {
+  return (formatInFirmZone(value, {
     month: "short",
     day: "numeric",
     hour: "numeric",
     minute: "2-digit",
-  });
+  }) ?? "");
 }
 
 export default async function AuditPage() {

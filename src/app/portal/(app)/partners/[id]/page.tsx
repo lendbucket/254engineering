@@ -15,6 +15,7 @@ import {
   StatusForm,
   TermsForm,
 } from "./PartnerActions";
+import { formatInFirmZone } from "@/lib/firm-calendar";
 
 export const dynamic = "force-dynamic";
 
@@ -209,7 +210,7 @@ export default async function PartnerPage({ params }: { params: Promise<{ id: st
                   <p className="text-[13px] text-[var(--secondary)]">
                     {s.period}
                     {s.paidAt
-                      ? `, paid ${new Date(s.paidAt).toLocaleDateString("en-US", { month: "long", day: "numeric" })}`
+                      ? `, paid ${(formatInFirmZone(s.paidAt, { month: "long", day: "numeric" }) ?? "")}`
                       : ""}
                   </p>
                 </div>
@@ -261,11 +262,11 @@ export default async function PartnerPage({ params }: { params: Promise<{ id: st
                 </div>
                 <p className="mt-1.5 text-[14px] leading-[1.55] text-[var(--ink)]">{e.explanation}</p>
                 <p className="mt-1.5 text-[12px] text-[var(--secondary)]">
-                  {new Date(e.occurredAt).toLocaleDateString("en-US", {
+                  {(formatInFirmZone(e.occurredAt, {
                     year: "numeric",
                     month: "long",
                     day: "numeric",
-                  })}
+                  }) ?? "")}
                   {e.statementId ? " · on a statement" : " · not yet on a statement"}
                 </p>
               </li>

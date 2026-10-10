@@ -135,11 +135,25 @@ export default async function LaunchReadinessPage() {
           {sellability.map(({ slug, sellable }) => (
             <li key={slug} className="border-t border-[var(--border)] pt-3 first:border-t-0 first:pt-0">
               <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                <Chip label={sellable.ok ? "Sellable" : "Closed"} tone={sellable.ok ? "good" : "warn"} />
+                {/*
+                  Sellable only when the ORDER PAGE would sell it, which also needs the
+                  gate open (orderBlockedNow refuses any line while launchMode is not
+                  open). Product audit, 2026-10-10: this said "Sellable" for roof while
+                  the gate was shut, because it asked the signature and not the gate.
+                */}
+                <Chip
+                  label={sellable.ok && mode === "open" ? "Sellable" : sellable.ok ? "Signed, gate shut" : "Closed"}
+                  tone={sellable.ok && mode === "open" ? "good" : "warn"}
+                />
                 <p className="text-[15px] font-semibold text-[var(--navy)]">{slug}</p>
               </div>
               {!sellable.ok ? (
                 <p className="mt-2 text-[13.5px] leading-[1.65] text-[var(--secondary)]">{sellable.why}</p>
+              ) : mode !== "open" ? (
+                <p className="mt-2 text-[13.5px] leading-[1.65] text-[var(--secondary)]">
+                  Its protocol is signed and it is offered, so it opens the moment the gate does. Until then the order
+                  page refuses it, because launchMode() answers {mode}.
+                </p>
               ) : null}
             </li>
           ))}

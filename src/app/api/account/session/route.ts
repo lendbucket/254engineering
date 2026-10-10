@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { signInCustomer, issueCustomerSession } from "@/lib/customer-auth";
 import { CUSTOMER_COOKIE, customerCookieOptions } from "@/lib/customer-session";
 import { writeAudit } from "@/lib/ops-audit";
+import { takeLoginAttempt, clearLoginAttempts, clientKey } from "@/lib/ops-rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -32,10 +33,30 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  /*
+   * RATE LIMITED LIKE THE OTHER TWO DOORS, before anything is verified. Found by
+   * the product audit, 2026-10-09, and by the break-it sweep of 2026-10-02
+   * before it: twelve wrong passwords for one customer address all answered 401
+   * and nothing slowed a guess, while the staff and partner sign ins share this
+   * limiter (eight per account, twenty per address, fifteen minutes).
+   */
+  const attempted = email.trim().toLowerCase();
+  const limit = takeLoginAttempt(clientKey(request.headers), attempted || undefined);
+  if (!limit.allowed) {
+    const res = NextResponse.json(
+      { ok: false, error: "Too many attempts. Wait a few minutes and try again.", retryAfterSeconds: limit.retryAfterSeconds },
+      { status: 429 },
+    );
+    res.headers.set("Retry-After", String(limit.retryAfterSeconds));
+    return res;
+  }
+
   const result = await signInCustomer(email, password);
   if (!result.ok) {
     return NextResponse.json({ ok: false, error: result.error }, { status: 401 });
   }
+
+  clearLoginAttempts(clientKey(request.headers), attempted);
 
   const session = issueCustomerSession(result.principal.id, result.principal.accountId);
   if (!session) {

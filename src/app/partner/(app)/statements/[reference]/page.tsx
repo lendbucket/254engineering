@@ -4,6 +4,7 @@ import { currentPartner } from "@/lib/partner-auth";
 import { partnerStatement } from "@/lib/ops-partner-portal";
 import { money } from "@/lib/ops-money";
 import { AbsentChip, Panel, RestrictedMode, StatusPill } from "@/components/portal/design";
+import { formatInFirmZone } from "@/lib/firm-calendar";
 
 export const dynamic = "force-dynamic";
 
@@ -58,11 +59,11 @@ export default async function PartnerStatementPage({
         <p className="mt-1.5 text-[14px] leading-[1.6] text-[var(--secondary)]">
           Period {statement.period}
           {statement.issuedAt
-            ? `, issued ${new Date(statement.issuedAt).toLocaleDateString("en-US", {
+            ? `, issued ${(formatInFirmZone(statement.issuedAt, {
                 year: "numeric",
                 month: "long",
                 day: "numeric",
-              })}`
+              }) ?? "")}`
             : ""}
           .
         </p>
@@ -76,11 +77,11 @@ export default async function PartnerStatementPage({
           {statement.status === "paid"
             ? `Recorded as paid${
                 statement.paidAt
-                  ? ` on ${new Date(statement.paidAt).toLocaleDateString("en-US", {
+                  ? ` on ${(formatInFirmZone(statement.paidAt, {
                       year: "numeric",
                       month: "long",
                       day: "numeric",
-                    })}`
+                    }) ?? "")}`
                   : ""
               }${statement.payoutReference ? `, under ${statement.payoutReference}` : ""}. The firm records a payout after making it; this platform never moves money itself.`
             : "Issued and not yet recorded as paid. The firm pays a partner the way it pays anybody, and records the reference here afterwards."}
@@ -116,11 +117,11 @@ export default async function PartnerStatementPage({
               </div>
               <p className="mt-1.5 text-[14px] leading-[1.55] text-[var(--ink)]">{line.explanation}</p>
               <p className="mt-1.5 text-[12px] text-[var(--secondary)]">
-                {new Date(line.occurredAt).toLocaleDateString("en-US", {
+                {(formatInFirmZone(line.occurredAt, {
                   year: "numeric",
                   month: "long",
                   day: "numeric",
-                })}
+                }) ?? "")}
               </p>
             </li>
           ))}

@@ -8,6 +8,7 @@ import { homeFor } from "@/lib/ops-authz";
 import { Wordmark } from "@/components/brand/Wordmark";
 import { SystemAlert } from "@/components/portal/design";
 import { MfaChallengeForm } from "./MfaChallengeForm";
+import { SignOutControl } from "@/components/portal/SignOutControl";
 
 /**
  * The second factor challenge.
@@ -114,9 +115,7 @@ export default async function MfaChallengePage() {
         </div>
 
         <p className="mt-4 text-center text-[13px] text-[var(--secondary)]">
-          <a href="/api/portal/session" className="underline">
-            Not you? Sign out
-          </a>
+          <SignOutControl label="Not you? Sign out" />
         </p>
       </div>
     </main>

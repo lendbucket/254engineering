@@ -8,6 +8,7 @@ import { TEXAS_COUNTIES } from "@/lib/ops-counties";
 import { CREDENTIAL_LABEL, expiryState } from "@/lib/ops-credentials";
 import { Chip, EmptyState, PageHead } from "@/components/portal/surfaces";
 import { ActivatePanel, CoverageForm, InviteButton, ItemDates } from "./OnboardingClient";
+import { formatInFirmZone } from "@/lib/firm-calendar";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +37,7 @@ export const dynamic = "force-dynamic";
  */
 
 const when = (value: string | null) =>
-  value ? new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "not set";
+  value ? (formatInFirmZone(value, { month: "short", day: "numeric", year: "numeric" }) ?? "") : "not set";
 
 const STATUS_TONE: Record<string, "neutral" | "good" | "warn" | "bad"> = {
   invited: "warn",

@@ -16,6 +16,7 @@ import {
 import { PageHead } from "@/components/portal/surfaces";
 import { NewPartner } from "./NewPartner";
 import type { PartnerRow } from "@/lib/ops-partners-admin";
+import { formatInFirmZone } from "@/lib/firm-calendar";
 
 export const dynamic = "force-dynamic";
 
@@ -127,11 +128,11 @@ export default async function PartnersPage() {
                 </Link>
                 <p className="mt-1 text-[12.5px] text-[var(--secondary)]">
                   Sent{" "}
-                  {new Date(s.created_at as string).toLocaleDateString("en-US", {
+                  {(formatInFirmZone(s.created_at as string, {
                     year: "numeric",
                     month: "long",
                     day: "numeric",
-                  })}
+                  }) ?? "")}
                 </p>
               </li>
             ))}
