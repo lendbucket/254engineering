@@ -30,6 +30,7 @@
  * caller of readPendingSession anywhere in the tree.
  */
 
+import { randomUUID } from "node:crypto";
 import { readdirSync, statSync } from "node:fs";
 import { readSource } from "./lib/read-source.mjs";
 import { join } from "node:path";
@@ -559,7 +560,8 @@ else process.env.OPS_SESSION_SECRET = HAD;
           }
           const email = `mfaprobe-${tag}-${stamp}@mobile-audit.invalid`;
           const password = `mfaprobe-${tag}-${stamp}-enrolment-screen`;
-          const made = await db.auth.admin.createUser({ email, password, email_confirm: true });
+          /* Id named so a network fault on the create is retriable (transient-retry.mjs). */
+          const made = await db.auth.admin.createUser({ id: randomUUID(), email, password, email_confirm: true });
           if (!made.data?.user) {
             return {
               cookie: null, redirect: null, id: null,

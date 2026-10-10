@@ -45,6 +45,7 @@
  * probe events. Ruled development only on 2026-09-02, enforced by
  * neverProduction below rather than by remembering.
  */
+import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import { readSource } from "./lib/read-source.mjs";
 import { auditClient, describeTarget } from "./lib/db-target.mjs";
@@ -1244,7 +1245,10 @@ const created = [];
 async function makeProbe(db, role) {
   const email = `probe-${role}-${STAMP}@${PROBE_DOMAIN}`;
   const password = `probe-${STAMP}-${role}-Aa1!longenough`;
-  const { data, error } = await db.auth.admin.createUser({ email, password, email_confirm: true });
+  /* The id is named so a network fault on the create is retriable after a read
+   * confirms it did not land (transient-retry.mjs). This create met a connect
+   * timeout on the board of fdc6015, 2026-10-09, and was correctly refused. */
+  const { data, error } = await db.auth.admin.createUser({ id: randomUUID(), email, password, email_confirm: true });
   if (error || !data?.user) throw new Error(`could not create ${role}: ${error?.message}`);
   const isTech = role === "field_tech";
   const { error: pErr } = await db.from("eng_profiles").insert({
