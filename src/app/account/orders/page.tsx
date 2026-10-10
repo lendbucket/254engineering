@@ -130,7 +130,8 @@ export default async function OrdersPage() {
       status: words(o.status as string),
       totalCents: o.total_cents === null ? null : Number(o.total_cents),
       createdAt: o.created_at as string,
-      href: `/order/${encodeURIComponent(o.reference as string)}`,
+      /* The account's own page (decision 6, 2026-10-10): /order/<ref> needs a token this row never had. */
+      href: `/account/orders/single/${encodeURIComponent(o.reference as string)}`,
       beforeSignIn: false,
     })),
     ...(matchedRead.data ?? []).map((o) => ({
@@ -140,7 +141,7 @@ export default async function OrdersPage() {
       status: words(o.status as string),
       totalCents: o.total_cents === null ? null : Number(o.total_cents),
       createdAt: o.created_at as string,
-      href: `/order/${encodeURIComponent(o.reference as string)}`,
+      href: `/account/orders/single/${encodeURIComponent(o.reference as string)}`,
       beforeSignIn: true,
     })),
   ].sort((a, b) => b.createdAt.localeCompare(a.createdAt));

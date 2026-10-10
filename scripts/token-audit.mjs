@@ -269,6 +269,10 @@ const PORTED = [
   // Every portal and customer surface. The list existed so the audit could be
   // real while the port was partial; it now names everything.
   "src/app/(order)/order/[reference]/page.tsx",
+  /* That page's body, moved into a component on 2026-10-10 so the account renders it too. */
+  "src/components/order/OrderStatusBody.tsx",
+  /* The account's own single order page (decision 6, 2026-10-10). */
+  "src/app/account/orders/single/[reference]/page.tsx",
   "src/app/(order)/order/start/[slug]/page.tsx",
   "src/app/account/SignOutButton.tsx",
   "src/app/account/layout.tsx",
@@ -565,6 +569,10 @@ const CUSTOMER_V10 = [
   "src/app/account/SignOutButton.tsx",
   "src/components/order/OrderFlow.tsx",
   "src/app/(order)/order/[reference]/page.tsx",
+  /* That page's body, moved into a component on 2026-10-10 so the account renders it too. */
+  "src/components/order/OrderStatusBody.tsx",
+  /* The account's own single order page (decision 6, 2026-10-10). */
+  "src/app/account/orders/single/[reference]/page.tsx",
   "src/app/(order)/order/start/[slug]/page.tsx",
   /* The credential screens, restyled 2026-09-29. Every account door's link and
    * both reset paths land on set-password, so leaving it in the old card style

@@ -207,6 +207,8 @@ const ADMIN_APIS = [
   "/api/account/bulk",
   "/api/account/settings",
   "/api/account/statements",
+  /* A sealed letter fetched through the account (decision 6, 2026-10-10). */
+  "/api/account/order-document",
 
   /*
    * Phase 13 Section 1. Opens a customer account from a telephone call, so a
@@ -1283,6 +1285,8 @@ async function run() {
       "/account/order",
       "/account/settings",
       "/account/orders/254-B2026-XXXXXX",
+      /* The account's own single order page, decision 6 of 2026-10-10. */
+      "/account/orders/single/254-O2026-XXXXXX",
     ]) {
       const res = await fetch(`${BASE}${path}`, { redirect: "manual" });
       rec(

@@ -114,18 +114,50 @@ export function customerWhen(iso: string | null): string | null {
  * guessing.
  */
 export async function customerView(token: string): Promise<CustomerView | null> {
-  const db = supabaseAdmin();
-  if (!db) return null;
-
   const subject = await orderForCustomerToken(token);
   if (!subject?.orderId) return null;
+  return customerViewForOrder(subject.orderId);
+}
+
+/*
+ * A SIGNED IN CUSTOMER'S OWN SINGLE ORDER. Operator ruling, 2026-10-10
+ * (decision 6, defect 13 of the product audit). Your orders linked each single
+ * order to /order/<reference>, the token page, and the link carried no token,
+ * so every one of them opened on "this link does not open an order". The order
+ * is now resolved by the signed in account, in EXACTLY the scope Your orders
+ * lists: the account's own orders, and the orders placed under the same email
+ * before the account existed. Anything else is null, which the page answers
+ * with a 404, so the existence of somebody else's reference is not confirmed.
+ */
+export async function accountOrderId(
+  me: { accountId: string; email: string },
+  reference: string,
+): Promise<string | null> {
+  const db = supabaseAdmin();
+  if (!db) return null;
+  const { data } = await db
+    .from("eng_service_orders")
+    .select("id, account_id, customer_email, batch_id")
+    .eq("reference", reference)
+    .maybeSingle();
+  if (!data || data.batch_id !== null) return null;
+  const owned = data.account_id === me.accountId;
+  const before =
+    data.account_id === null && String(data.customer_email ?? "").toLowerCase() === me.email.toLowerCase();
+  return owned || before ? (data.id as string) : null;
+}
+
+/** The customer's view of one order, by its id; both doors above arrive here. */
+export async function customerViewForOrder(orderId: string): Promise<CustomerView | null> {
+  const db = supabaseAdmin();
+  if (!db) return null;
 
   const { data: order } = await db
     .from("eng_service_orders")
     .select(
       "id, reference, status, service_slug, tier, property_address, city, county, price_cents, coastal_surcharge_cents, total_cents, inspection_fee_cents, twia_county, placed_at, refund_disclosure",
     )
-    .eq("id", subject.orderId)
+    .eq("id", orderId)
     .maybeSingle();
   if (!order) return null;
 
@@ -185,6 +217,6 @@ export async function customerView(token: string): Promise<CustomerView | null> 
             because: refundCase ?? "The engineer could not seal this.",
           }
         : null,
-    letters: await customerLetters(subject.orderId),
+    letters: await customerLetters(orderId),
   };
 }
