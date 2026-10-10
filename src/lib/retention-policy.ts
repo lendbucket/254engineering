@@ -695,6 +695,16 @@ export const RETENTION_POLICY: RetentionEntry[] = [
     },
   },
   { table: "eng_service_orders", rule: { kind: "kept_pending_counsel", because: "An order that ever took money additionally cannot be deleted at all: eng_order_payments references it with ON DELETE RESTRICT and payments are kept forever. " + COUNSEL } },
+  /* 0071, decision 14 of 2026-10-10: the sign in limiter's count, moved out of process memory. */
+  {
+    table: "eng_sign_in_attempts",
+    rule: {
+      kind: "kept_pending_counsel",
+      because:
+        "Telemetry in shape, like the ordering API's request log, and the evidence behind a lockout somebody " +
+        "disputes. Nothing deletes from it: a reset is a row. " + COUNSEL,
+    },
+  },
   { table: "eng_statement_lines", rule: { kind: "kept_pending_counsel", because: "What a customer was billed, line by line. " + COUNSEL } },
   { table: "eng_statements", rule: { kind: "kept_pending_counsel", because: "What a customer was billed. " + COUNSEL } },
   { table: "eng_tasks", rule: { kind: "kept_pending_counsel", because: COUNSEL } },

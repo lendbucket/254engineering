@@ -43,6 +43,16 @@ active, login 2026-09-02 16:45:18 UTC, profile 17:57:25 UTC, and no
 `scripts/seed-admin.mjs`, not the People screen, so it carries no such row, true
 or false.
 
+## STAGED: 0071, SIGN IN ATTEMPTS ARE COUNTED IN THE DATABASE
+
+`docs/production-sitting-fix-sign-in-limiter-in-the-database.md`. The sign in
+limiter (decision 14) counts in `eng_sign_in_attempts` through
+`eng_take_sign_in_attempt` instead of in each instance's memory; a reset is a
+row, so nothing deletes. On `fix/sign-in-limiter-in-the-database`, after 0070.
+**Not applied anywhere**; until it is, the in-memory count answers. Open: apply
+after 0070, read back. The sign up limiter in the same file still counts in
+memory, and was outside decision 14.
+
 ## STAGED: 0070, THE SECOND FACTOR IS REQUIRED FOR ADMINISTRATOR AND ENGINEER
 
 `docs/production-sitting-fix-second-factor-required.md`. Two `eng_roles` rows

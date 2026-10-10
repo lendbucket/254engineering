@@ -2286,6 +2286,30 @@ export const APPLIED = [
       "DDL. The behaviour digest moves, 95c18c8b to 1e242dac, because eng_roles is a seeded table the digest " +
       "hashes. Read off scripts/fingerprint-at.mjs at 0070 on 2026-10-10.",
   },
+  {
+    file: "0071_sign_in_attempts_are_counted_in_the_database.sql", appliedBy: "apply_migration",
+    fingerprint: "bc55a14f40a4c7a78cc061fd262e785b",
+    behaviour: "9a5e27b3705cc9c8f2f88f2e07f5ad6d",
+    /*
+     * PENDING, BY THE WEEKEND RUN RULE: written unapplied on
+     * fix/sign-in-limiter-in-the-database (on fix/second-factor-required,
+     * because 0071 follows 0070), staged with
+     * docs/production-sitting-fix-sign-in-limiter-in-the-database.md.
+     */
+    production: null,
+    development: { at: "0071", behaviour: null, facts: null },
+    because:
+      "WRITTEN 2026-10-10 UNAPPLIED, operator ruling of that day (decision 14): the sign in limiter counts in " +
+      "eng_sign_in_attempts through eng_take_sign_in_attempt rather than in each instance's memory. Until it " +
+      "is applied, the code's database call fails and the in-memory count answers, which is the protection " +
+      "there was before.",
+    proves: { table: "eng_sign_in_attempts" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0071 on 2026-10-10: shape 1171 to 1176 columns " +
+      "(eng_sign_in_attempts), 84 tables, behaviour 973 to 979 facts (the table's key, check, index and row " +
+      "level security, and the function). migration-audit's pinned shape and function count move in the same " +
+      "commit. Additive only.",
+  },
 ];
 
 /*
