@@ -498,7 +498,11 @@ export const GAPS = [
     severity: "medium",
     consequence:
       "0025 made it optional deliberately, so that a single operator could not lock themselves out of a platform nobody else can administer. That reasoning is sound and it is still a finding: the two roles that can do the most are the two not required to hold a second factor.",
-    ruling: "Record it. Changing it needs a second administrator to exist first, which is the same gap as one person holding everything.",
+    ruling:
+      "Record it. Changing it needs a second administrator to exist first, which is the same gap as one person holding everything. " +
+      "SUPERSEDED 2026-10-10, operator ruling (gaps 3 and 4 of the product audit): the second factor is REQUIRED for the administrator and engineer roles. " +
+      "Migration 0070 sets it, written unapplied on fix/second-factor-required; this gap closes when production has 0070. " +
+      "What remains is the reasoning above, one administrator able to lock himself out, and the answer to it is the break-glass path the operator approved, not an optional factor.",
   },
   {
     id: "no-board-history",
