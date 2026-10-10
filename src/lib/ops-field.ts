@@ -1999,6 +1999,8 @@ export type LedgerRow = {
   status: "pending" | "approved" | "paid" | "void";
   period: string | null;
   note: string | null;
+  /** Whether the row is on a demonstration file, which moves no figure (pay-figures.ts). */
+  is_demo: boolean;
 };
 
 /**
@@ -2015,17 +2017,30 @@ export async function payLedger(actor: Actor | null, techId?: string): Promise<L
   const all = can(actor, "ledger.read_all");
   if (!all && !can(actor, "ledger.read_own")) return [];
 
-  let query = db
-    .from("eng_tech_pay_ledger")
-    .select("id, created_at, tech_id, file_id, amount_cents, kind, status, period, note")
-    .order("created_at", { ascending: false })
-    .limit(300);
-
-  if (!all) query = query.eq("tech_id", actor.id);
-  else if (techId) query = query.eq("tech_id", techId);
-
-  const { data } = await query;
-  return ((data ?? []) as LedgerRow[]).map((r) => ({ ...r, amount_cents: Number(r.amount_cents) }));
+  /*
+   * EVERY ROW, NOT THE NEWEST 300. Product audit, 2026-10-10: this read stopped
+   * at 300 rows without saying so, and the Pay screen summed what it got, so
+   * past 300 entries "owed" and "paid" were totals of part of a ledger. readEvery
+   * reads the exact count first and refuses a short list.
+   */
+  const scope = !all ? actor.id : techId ?? null;
+  const read = await readEvery<Record<string, unknown>>((from, to) => {
+    let q = db
+      .from("eng_tech_pay_ledger")
+      .select("id, created_at, tech_id, file_id, amount_cents, kind, status, period, note, eng_files(is_demo)")
+      .order("created_at", { ascending: false })
+      .range(from, to);
+    if (scope) q = q.eq("tech_id", scope);
+    return q;
+  });
+  if (!read.ok) return [];
+  return read.rows.map((r) => {
+    const files = r.eng_files as { is_demo?: boolean } | { is_demo?: boolean }[] | null;
+    const isDemo = Array.isArray(files) ? files.some((f) => f?.is_demo === true) : files?.is_demo === true;
+    const { eng_files: _files, ...rest } = r;
+    void _files;
+    return { ...(rest as Omit<LedgerRow, "amount_cents" | "is_demo">), amount_cents: Number(r.amount_cents), is_demo: isDemo };
+  });
 }
 
 export async function setLedgerStatus(

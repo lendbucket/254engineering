@@ -3,6 +3,7 @@ import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
 import { payLedger } from "@/lib/ops-field";
 import { isKnown } from "@/lib/ops-money";
+import { payFigures } from "@/lib/pay-figures";
 import { PageHead } from "@/components/portal/surfaces";
 import {
   Figure,
@@ -81,13 +82,8 @@ export default async function PayPage() {
    * an absent amount is excluded rather than counted as nothing, which is the
    * same rule the rest of the platform follows.
    */
-  const sum = (status: string) =>
-    rows
-      .filter((r) => r.status === status && isKnown(r.amount_cents))
-      .reduce((total, r) => total + r.amount_cents, 0);
-
-  const owed = sum("pending") + sum("approved");
-  const paid = sum("paid");
+  /* One rule for owed and paid, shared with the dashboards (pay-figures.ts, 2026-10-10). */
+  const { owedCents: owed, paidCents: paid } = payFigures(rows);
 
   /*
    * AN EMPTY LEDGER IS ZERO, NOT ABSENT, AND I HAD THAT BACKWARDS.
