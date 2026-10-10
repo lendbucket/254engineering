@@ -47,7 +47,7 @@
  */
 import { newPartnerPasswordRecord } from "../src/lib/partner-auth.ts";
 import { publishAsset } from "../src/lib/ops-partner-assets.ts";
-import { registrationStatement } from "../src/lib/launch.ts";
+import { REGISTRATION_PLACEHOLDER } from "../src/lib/partner-copy.ts";
 import { sweepLegacyResidue } from "./lib/probe-ledger.mjs";
 import { auditClient, describeTarget } from "./lib/db-target.mjs";
 
@@ -1329,10 +1329,13 @@ console.error("");
         kind: "copy_block",
         summary: "For the page where a client first meets the programme.",
         body:
-          "Engineering work referred through this programme will be carried out by 254 Engineering Services, " +
+          /* The registration is a placeholder the library fills from the register on
+           * every read (partner-copy.ts, run item 15). Typed here at seed time it
+           * froze: this asset went on saying the registration was pending. */
+          "Engineering work referred through this program will be carried out by 254 Engineering, " +
           "a Texas firm serving all 254 counties. They contract with the client, hold the engagement, " +
           "and are the firm of record on every deliverable. " +
-          (registrationStatement() ?? ""),
+          REGISTRATION_PLACEHOLDER,
       },
       {
         slug: "what-a-referral-is",
@@ -1340,7 +1343,7 @@ console.error("");
         kind: "email_snippet",
         summary: "For an introduction to a client who has asked who to use.",
         body:
-          "I have sent your details to 254 Engineering Services, who will contact you directly. They " +
+          "I have sent your details to 254 Engineering, who will contact you directly. They " +
           "handle the engagement and the engineering from here, and I am told what stage it reaches " +
           "rather than what it finds.",
       },

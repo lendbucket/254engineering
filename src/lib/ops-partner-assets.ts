@@ -2,7 +2,7 @@ import "server-only";
 import { DB_NOW } from "./db-now";
 import { supabaseAdmin } from "./supabase";
 import { writeAudit } from "./ops-audit";
-import { copyVerdict, performingFirmLine, type CopyVerdict } from "./partner-copy";
+import { copyVerdict, fillRegistration, performingFirmLine, typedRegistration, type CopyVerdict } from "./partner-copy";
 import type { PartnerPrincipal } from "./partner-auth";
 import type { Actor } from "./ops-authz";
 import { ALLOWED_UPLOAD_TYPES, MAX_UPLOAD_BYTES } from "./uploads";
@@ -82,13 +82,21 @@ export async function publishedAssets(): Promise<PublishedAsset[]> {
         (v) => v.asset_id === asset.id && Number(v.version) === Number(asset.current_version),
       );
       if (!version) return null;
+      /* The registration placeholder, filled from the register on every read;
+       * an asset that must state it is withheld while nothing is registered. */
+      const rawBody = (version.body as string | null) ?? null;
+      const body = rawBody === null ? null : fillRegistration(rawBody);
+      if (rawBody !== null && body === null) {
+        console.error(`[partner-assets] ${asset.slug as string} withheld: it states the registration and none is active`);
+        return null;
+      }
       return {
         id: asset.id as string,
         slug: asset.slug as string,
         title: asset.title as string,
         kind: asset.kind as AssetKind,
         version: Number(version.version),
-        body: (version.body as string | null) ?? null,
+        body,
         summary: (version.summary as string | null) ?? null,
         storageKey: (version.storage_key as string | null) ?? null,
         contentType: (version.content_type as string | null) ?? null,
@@ -190,7 +198,20 @@ export async function publishAsset(
    * list and gets copied into an email.
    */
   const checkable = [input.title, input.summary ?? "", input.body ?? ""].join("\n\n");
-  const verdict = copyVerdict(checkable);
+  /*
+   * A registration fact typed into asset copy is refused here, on top of the
+   * copy rules: the placeholder is the only way an asset may state one, so the
+   * register fills it on every read (partner-copy.ts, run item 15).
+   */
+  const base = copyVerdict(checkable);
+  const typed = typedRegistration(checkable);
+  const verdict: CopyVerdict = typed.length
+    ? {
+        ok: false,
+        findings: [...base.findings, ...typed],
+        summary: `This states the firm's registration by hand: ${typed.map((f) => `"${f.match}" (${f.why})`).join(", ")}.`,
+      }
+    : base;
   if (!verdict.ok) {
     await writeAudit({
       actor,

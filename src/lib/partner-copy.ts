@@ -187,3 +187,60 @@ export function performingFirmLine(): string {
     ? [`${firmName()} is the firm of record for work referred through this program, and is the firm that will perform and seal it.`, registrationStatement()].filter(Boolean).join(" ")
     : `${firmName()} is the firm of record for work referred through this program, and is the firm that performs and seals it.`;
 }
+
+/*
+ * ===========================================================================
+ * A PARTNER ASSET CARRIES THE REGISTRATION AS A PLACEHOLDER, NEVER AS TEXT.
+ * Operator ruling, 2026-10-10 (run item 15, product audit defect 14).
+ * ===========================================================================
+ *
+ * An asset version is approved wording and stays exactly as approved. The
+ * "Who performs the work" asset typed the registration in at the moment it was
+ * written, so it went on telling partners the registration was pending, and
+ * naming a firm by its old brand, after F-29811 issued. Approved text cannot
+ * derive; a placeholder in it can. The library fills it from the register every
+ * time it is read, so the approved wording and the register cannot disagree.
+ */
+export const REGISTRATION_PLACEHOLDER = "[firm registration]";
+
+/**
+ * The body with the placeholder filled from the register. Null when the body
+ * carries the placeholder and no registration is active: an asset that has to
+ * state the registration is withheld rather than shown without it.
+ */
+export function fillRegistration(body: string, statement: string | null = registrationStatement()): string | null {
+  if (!body.includes(REGISTRATION_PLACEHOLDER)) return body;
+  if (!statement) return null;
+  return body.split(REGISTRATION_PLACEHOLDER).join(statement);
+}
+
+/*
+ * Registration facts typed by hand into asset copy: the board's name, a firm
+ * number, or a sentence about registration status. Each goes stale the day the
+ * register moves, and nobody re-reads a published asset. Applied to ASSETS
+ * only, not inside copyVerdict, because performingFirmLine() and the
+ * announcements legitimately carry the derived sentence.
+ *
+ * A PATTERN FOR "REGISTRATION ... PENDING" IS DELIBERATELY NOT HERE. It was,
+ * and compliance-audit's sweep of src (no surface may say the registration is
+ * pending) matched the pattern's own source text: with comments stripped, a
+ * refusal and a claim read the same. Exempting this file would loosen that
+ * check, so the pattern came out and the question went to the operator (run of
+ * 2026-10-10). The stale asset's wording ("pending with TBPELS") is still
+ * refused, through the board's name.
+ */
+const TYPED_REGISTRATION: Pattern[] = [
+  { pattern: /TBPELS/i, why: "the board's name, typed" },
+  { pattern: /\bF-\d{3,}/, why: "a firm registration number, typed" },
+  { pattern: /not\s+yet\s+registered/i, why: "a registration status, typed" },
+];
+
+/** What in asset copy states a registration fact by hand. Empty when nothing does. */
+export function typedRegistration(text: string): CopyFinding[] {
+  const found: CopyFinding[] = [];
+  for (const { pattern, why } of TYPED_REGISTRATION) {
+    const m = text.match(pattern);
+    if (m) found.push({ kind: "never", why: `${why}; write ${REGISTRATION_PLACEHOLDER} and the register fills it`, match: m[0] });
+  }
+  return found;
+}
