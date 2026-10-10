@@ -686,6 +686,21 @@ export async function dispatchContext(
   };
 }
 
+/*
+ * NO OFFER WITHOUT A RATE. Operator ruling, 2026-10-10 (decision 3). An offer
+ * with no rate could already not be ACCEPTED (acceptOffer, 2026-10-10), but it
+ * could still be SENT: a technician was shown a job with "None yet" for pay and
+ * could do nothing with it. The rate is the technician fee for the line from the
+ * effective-dated schedule; with none in force, nothing is sent. A pure rule so
+ * the proof can ask it directly; sendOffers asks it before any offer is written.
+ */
+export function offerRateRefusal(feeCents: number | null): string | null {
+  return feeCents === null || !Number.isFinite(feeCents) || feeCents <= 0
+    ? "No technician rate is set for this service line, so no offer was sent. An offer has to say what " +
+        "the job pays. Set the line's technician fee, then dispatch."
+    : null;
+}
+
 /**
  * Send offers.
  *
@@ -772,6 +787,16 @@ export async function sendOffers(
    */
   const ctx = await dispatchContext(actor, file as never);
   if (!ctx) return { ok: false, error: "Could not plan this dispatch." };
+
+  /*
+   * NO OFFER WITHOUT A RATE. Operator ruling, 2026-10-10 (decision 3). An offer
+   * with no rate could already not be ACCEPTED (acceptOffer, 2026-10-10), but it
+   * could still be SENT: a technician was shown a job with "None yet" for pay
+   * and could do nothing with it. The rate is the technician fee for this line
+   * from the effective-dated schedule; with none in force, nothing is sent.
+   */
+  const noRate = offerRateRefusal(ctx.feeCents);
+  if (noRate) return { ok: false, error: noRate };
   const eligible = new Map(ctx.plan.offers.map((o) => [o.techId, o]));
 
   const rejected = techIds.filter((id) => !eligible.has(id));
