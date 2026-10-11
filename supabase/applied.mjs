@@ -2232,11 +2232,13 @@ export const APPLIED = [
      * checks from 0004 are widened to include repairs. Read back as the sitting
      * document predicted, on both projects.
      *
-     * THE ROUTE IS RECORDED, NOT READ. The report of the apply did not say
-     * whether apply_migration took it or came back cancelled (it drops three
-     * checks) and the SQL editor did. apply_migration is the sitting document's
-     * first route and is what is written here; if it was the editor, this
-     * entry is hand applied and needs a handApplied sentence.
+     * THE ROUTE, CONFIRMED BY THE OPERATOR 2026-10-11: apply_migration on
+     * development and on production, not cancelled although it drops three
+     * checks, and not hand applied. The stored body of
+     * eng_record_review_decision carries none of the file's comment lines; the
+     * code is otherwise identical. That is the comment stripping recorded
+     * above for the earlier functions whose bodies carry comments, and no
+     * audit compares function source.
      */
     production: "2026-10-10",
     development: {
