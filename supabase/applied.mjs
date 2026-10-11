@@ -2232,11 +2232,13 @@ export const APPLIED = [
      * checks from 0004 are widened to include repairs. Read back as the sitting
      * document predicted, on both projects.
      *
-     * THE ROUTE IS RECORDED, NOT READ. The report of the apply did not say
-     * whether apply_migration took it or came back cancelled (it drops three
-     * checks) and the SQL editor did. apply_migration is the sitting document's
-     * first route and is what is written here; if it was the editor, this
-     * entry is hand applied and needs a handApplied sentence.
+     * THE ROUTE, CONFIRMED BY THE OPERATOR 2026-10-11: apply_migration on
+     * development and on production, not cancelled although it drops three
+     * checks, and not hand applied. The stored body of
+     * eng_record_review_decision carries none of the file's comment lines; the
+     * code is otherwise identical. That is the comment stripping recorded
+     * above for the earlier functions whose bodies carry comments, and no
+     * audit compares function source.
      */
     production: "2026-10-10",
     development: {
@@ -2256,6 +2258,40 @@ export const APPLIED = [
       "columns, so migration-audit's pinned shape does not move; its function count moves 36 to 37), " +
       "behaviour 972 to 973 facts (eng_record_review_decision). Three check constraints are dropped and " +
       "re-added wider in the same statement batch; no row is rewritten.",
+  },
+  {
+    file: "0069_wp001_v1_2_and_fc001_enter_as_drafts.sql", appliedBy: "apply_migration",
+    fingerprint: "18826fa5b3e7d9c9979ca81b96666bb7",
+    behaviour: "95c18c8b7cd230bdc7fb1349ddc572c1",
+    /*
+     * APPLIED TO PRODUCTION 2026-10-10 at 11:55 CT, after 0068, from
+     * docs/production-sitting-feat-wp-001-v1-2-and-fc-001.md, by the
+     * operator's chat counterpart, development first and then production, the
+     * file as written. Written unapplied on feat/wp-001-v1-2-and-fc-001 under
+     * the weekend run rule; merged after.
+     *
+     * Operator ruling of that day: 254-WP-001 v1.2 and 254-FC-001 v1.0 enter
+     * as drafts, each carrying its .docx's SHA-256 as the document digest,
+     * transcribed verbatim into src/content/protocols/docx-received.ts and
+     * proved word for word by protocol-registry-audit section 9. Read back as
+     * the sitting document predicted, on both projects.
+     */
+    production: "2026-10-10",
+    development: {
+      at: "0069",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-10",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-10 by the operator's chat counterpart, before production, the file " +
+        "as written, and read back as the sitting document predicted.",
+    },
+    proves: { row: { table: "eng_protocol_templates", where: "document_number = '254-FC-001' and version_label = '1.0' and status = 'draft'" } },
+    note:
+      "BOTH fingerprints repeat 0068's, which is what a migration with no DDL in it must do: it inserts two " +
+      "template rows and changes no shape and no behaviour fact. Read off scripts/fingerprint-at.mjs at 0069 " +
+      "on 2026-10-10.",
   },
 ];
 
