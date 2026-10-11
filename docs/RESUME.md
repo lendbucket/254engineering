@@ -29,6 +29,7 @@ position, not the reasoning (that is in GAPS.md and the commit messages).
 | 13g | 0069, WP-001 v1.2 and FC-001 v1.0 drafts | `feat/wp-001-v1-2-and-fc-001` at 89389c4 | **MERGED as dcfe8af** (parents c14144f, 89389c4), 60 of 61 as predicted |
 | 13i | 0070, the second factor required for the engineer | `fix/second-factor-required` at a0c0457 | **MERGED as 446547d** (parents dcfe8af, a0c0457), 60 of 61 as predicted. Carried the SOC 2 gap's engineer half closing and the pack regenerated |
 | 13j | 0071, sign in attempts counted in the database | `fix/sign-in-limiter-in-the-database` at 8c23c75 | **MERGED as 3bb9cf7** (parents 446547d, 8c23c75), 60 of 61 as predicted; the first board with the limiter's table present, no fallback logged |
+| 13k | 0072, a partner's logo approved before it shows | `feat/partner-branding-upload` at 43416ad | **MERGED as 730df43** (parents 3bb9cf7, 43416ad), 60 of 61 as predicted; the first board with the logo columns present |
 | 13h | 0073, no eng_ function callable without the service role | `fix/function-grants` at 9306af9 | **STAGED**, pushed; sitting document `docs/production-sitting-fix-function-grants.md`. Boarded after 0070 to 0072 merge |
 | 13e | The run of 2026-10-10 | | Everything else built that day, its branches, boards and questions: `docs/audit-2026-10/RUN-2026-10-10.md`. 0070 amended before any apply to the engineer role only (admin stays optional, operator ruling 2026-10-10); staged chain 0068, 0069, 0070, 0071, 0072, in that order |
 | 13a | Rulings of 2026-10-10 morning | | Order: engineer pay one home (`engineer-pay.ts`, productionFeeFor reads the tier; production eng_fee_schedule is EMPTY), then template published on signing (migration unapplied), then WP-001 v1.2 and FC-001 v1.0 transcriptions (migration unapplied), then the rest |
@@ -36,7 +37,7 @@ position, not the reasoning (that is in GAPS.md and the commit messages).
 
 ## Main
 
-`origin/main` at 3bb9cf7 (0068 merged as c14144f, 0069 as dcfe8af, 0070 as 446547d, 0071 as 3bb9cf7). Production has 0068 to 0072 (counterpart, 2026-10-10); 0072 merges next, in order, on exact passes under the standing word. Dated not-yet-V10 list: **0**. The board has **61** audits and prints a transient retry count.
+`origin/main` at 730df43 (0068 merged as c14144f, 0069 as dcfe8af, 0070 as 446547d, 0071 as 3bb9cf7, 0072 as 730df43). Production has 0068 to 0072 (counterpart, 2026-10-10), all on main. Next: board fix/function-grants (0073, staged, not applied); then the rest of the run's queue, in order, on exact passes under the standing word. Dated not-yet-V10 list: **0**. The board has **61** audits and prints a transient retry count.
 
 ## Worktrees
 
