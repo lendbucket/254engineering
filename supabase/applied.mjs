@@ -2368,18 +2368,30 @@ export const APPLIED = [
     /* Re-read after 0070 was amended to the engineer row only (it read beaed922 over the first 0070). */
     behaviour: "15b2e8632bd8d0e12144eac903baaa34",
     /*
-     * PENDING, BY THE WEEKEND RUN RULE: written unapplied on
-     * feat/partner-branding-upload (on fix/sign-in-limiter-in-the-database,
-     * because 0072 follows 0071), staged with
-     * docs/production-sitting-feat-partner-branding-upload.md.
+     * APPLIED TO PRODUCTION 2026-10-10 at 16:41 CT, after 0071, from
+     * docs/production-sitting-feat-partner-branding-upload.md, by the
+     * operator's chat counterpart, development first and then production.
+     * Read back as predicted: shape 3cffb39b56eda13ab54bbe8823b4c26d across
+     * 1181 columns. The constraint query listed four rows, not the three the
+     * document predicted, because its like pattern also matches
+     * eng_partners_brand_logo_decided_by_fkey; the document is corrected.
+     *
+     * Run item 19 (partner onboarding, the branding upload): a partner's logo
+     * on eng_partners in four states (none, pending, approved, refused), shown
+     * only once approved, and the private eng-partner-branding bucket, raster
+     * images only.
      */
-    production: null,
-    development: { at: "0072", behaviour: null, facts: null },
-    because:
-      "WRITTEN 2026-10-10 UNAPPLIED, run item 19 (partner onboarding, the branding upload): a partner's logo on " +
-      "eng_partners in four states (none, pending, approved, refused), shown only once approved, and the private " +
-      "eng-partner-branding bucket, raster images only. Until applied, an upload fails at the missing bucket and " +
-      "column and says nothing changed.",
+    production: "2026-10-10",
+    development: {
+      at: "0072",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-10",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-10 by the operator's chat counterpart, before production, the file " +
+        "as written: shape 3cffb39b56eda13ab54bbe8823b4c26d across 1181 columns, as predicted.",
+    },
     proves: { column: { table: "eng_partners", name: "brand_logo_status" } },
     note:
       "Both figures read off scripts/fingerprint-at.mjs at 0072 on 2026-10-10: shape 1176 to 1181 columns (five " +

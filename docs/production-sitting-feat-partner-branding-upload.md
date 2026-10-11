@@ -49,7 +49,11 @@ select brand_logo_status, count(*) from eng_partners group by 1;
 ```
 
 **Predict:** five columns, `brand_logo_status` not null with default `'none'`;
-three constraints (`_decision_agrees`, `_file_agrees`, `_status_known`); the
+four rows from the constraint query: the three checks (`_decision_agrees`,
+`_file_agrees`, `_status_known`) and the foreign key
+`eng_partners_brand_logo_decided_by_fkey`, which the same `like` pattern
+matches. (Corrected 2026-10-11 after the apply: this said three, and the
+counterpart's read-back listed four, as the migration writes them.) The
 bucket `public` false, `file_size_limit` 1048576, types png, jpeg, webp; every
 partner `none`.
 
