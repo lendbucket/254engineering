@@ -27,6 +27,7 @@ position, not the reasoning (that is in GAPS.md and the commit messages).
 | 13d | Tech dashboard names dispatch blockers | `fix/tech-dashboard-names-blockers` at e9da5f3 | **MERGED as 2beb06c** (parents b3482dd, e9da5f3), 61 of 61 as predicted |
 | 13f | 0068, a decision and its credit are one write | `fix/review-and-credit-one-write` at 0a27586 | **MERGED as c14144f** (parents 2beb06c, 0a27586), 60 of 61 as predicted (schema-ledger: 0068 applied, not on main). First board 36e2dff 58 + 2 + 1: bulk-audit counted two assignment writers because 0068 moved the third into eng_record_review_decision (scan widened to migrations, injection-verified), and a mobile-overflow timeout on /portal/inquiries that did not recur. Pushed by the operator from PowerShell after the classifier refused the session's push |
 | 13g | 0069, WP-001 v1.2 and FC-001 v1.0 drafts | `feat/wp-001-v1-2-and-fc-001` at 89389c4 | **MERGED as dcfe8af** (parents c14144f, 89389c4), 60 of 61 as predicted |
+| 13i | 0070, the second factor required for the engineer | `fix/second-factor-required` at a0c0457 | **MERGED as 446547d** (parents dcfe8af, a0c0457), 60 of 61 as predicted. Carried the SOC 2 gap's engineer half closing and the pack regenerated |
 | 13h | 0073, no eng_ function callable without the service role | `fix/function-grants` at 9306af9 | **STAGED**, pushed; sitting document `docs/production-sitting-fix-function-grants.md`. Boarded after 0070 to 0072 merge |
 | 13e | The run of 2026-10-10 | | Everything else built that day, its branches, boards and questions: `docs/audit-2026-10/RUN-2026-10-10.md`. 0070 amended before any apply to the engineer role only (admin stays optional, operator ruling 2026-10-10); staged chain 0068, 0069, 0070, 0071, 0072, in that order |
 | 13a | Rulings of 2026-10-10 morning | | Order: engineer pay one home (`engineer-pay.ts`, productionFeeFor reads the tier; production eng_fee_schedule is EMPTY), then template published on signing (migration unapplied), then WP-001 v1.2 and FC-001 v1.0 transcriptions (migration unapplied), then the rest |
@@ -34,7 +35,7 @@ position, not the reasoning (that is in GAPS.md and the commit messages).
 
 ## Main
 
-`origin/main` at dcfe8af (0068 merged as c14144f, then 0069). Production has 0068 to 0072 (counterpart, 2026-10-10); 0070, 0071 and 0072 merge next, in order, on exact passes under the standing word. Dated not-yet-V10 list: **0**. The board has **61** audits and prints a transient retry count.
+`origin/main` at 446547d (0068 merged as c14144f, 0069 as dcfe8af, 0070 as 446547d). Production has 0068 to 0072 (counterpart, 2026-10-10); 0071 and 0072 merge next, in order, on exact passes under the standing word. Dated not-yet-V10 list: **0**. The board has **61** audits and prints a transient retry count.
 
 ## Worktrees
 
