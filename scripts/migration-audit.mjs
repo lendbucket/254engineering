@@ -190,9 +190,13 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * 1,176 is eng_sign_in_attempts' five columns (id, created_at, address,
  * identity, kind), 83 tables to 84 is that table with row level security on,
  * shape bc55a14f40a4c7a78cc061fd262e785b. 0068, 0069 and 0070 moved no shape.
+ *
+ * Moved 2026-10-10 by 0072, a partner's logo: 1,176 to 1,181 is eng_partners'
+ * five brand_logo_ columns (key, status, uploaded_at, decided_by, decided_at),
+ * no new table, shape 3cffb39b56eda13ab54bbe8823b4c26d.
  */
-const EXPECTED_FINGERPRINT = "bc55a14f40a4c7a78cc061fd262e785b";
-const EXPECTED_COLUMNS = 1176;
+const EXPECTED_FINGERPRINT = "3cffb39b56eda13ab54bbe8823b4c26d";
+const EXPECTED_COLUMNS = 1181;
 const EXPECTED_TABLES = 84;
 /* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts. */
 const EXPECTED_TRIGGERS = 77;

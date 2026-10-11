@@ -43,6 +43,16 @@ active, login 2026-09-02 16:45:18 UTC, profile 17:57:25 UTC, and no
 `scripts/seed-admin.mjs`, not the People screen, so it carries no such row, true
 or false.
 
+## APPLIED: 0072, A PARTNER'S LOGO IS APPROVED BEFORE IT SHOWS
+
+`docs/production-sitting-feat-partner-branding-upload.md`. Run item 19's
+branding upload: four logo states on `eng_partners` and a private raster-only
+bucket. **Applied to development and production 2026-10-10 16:41 CT** by the
+counterpart, after 0071, read back as predicted (shape 3cffb39b across 1181;
+the constraint query lists four rows, and the document now says so). What
+stays open: the partner order page (`feat/partner-order-page`) shows an
+approved logo, which is not wired yet because the two branches are separate.
+
 ## APPLIED: 0071, SIGN IN ATTEMPTS ARE COUNTED IN THE DATABASE
 
 `docs/production-sitting-fix-sign-in-limiter-in-the-database.md`. The sign in

@@ -257,6 +257,7 @@ const PORTED = [
   "src/app/partner/(app)/materials/page.tsx",
   "src/app/partner/(app)/materials/SubmitForm.tsx",
   "src/app/partner/(app)/page.tsx",
+  "src/app/partner/(app)/LogoUpload.tsx",
   "src/app/partner/(app)/referrals/page.tsx",
   "src/app/partner/(app)/statements/page.tsx",
   "src/app/partner/(app)/statements/[reference]/page.tsx",
