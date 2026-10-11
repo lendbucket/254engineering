@@ -43,28 +43,26 @@ active, login 2026-09-02 16:45:18 UTC, profile 17:57:25 UTC, and no
 `scripts/seed-admin.mjs`, not the People screen, so it carries no such row, true
 or false.
 
-## STAGED: 0069, WP-001 v1.2 AND FC-001 v1.0 ENTER AS DRAFTS
+## APPLIED: 0069, WP-001 v1.2 AND FC-001 v1.0 ENTER AS DRAFTS
 
 `docs/production-sitting-feat-wp-001-v1-2-and-fc-001.md`. Two draft template
 rows, each carrying its Word file's SHA-256; transcribed verbatim into
 `src/content/protocols/docx-received.ts` and proved word for word by
-protocol-registry-audit section 9. On `feat/wp-001-v1-2-and-fc-001`, which sits
-on `fix/review-and-credit-one-write` because 0069 follows 0068. **Not applied
-anywhere.** Open: apply after 0068, read back, merge after it. The two are TEXT,
+protocol-registry-audit section 9. **Applied to development and production
+2026-10-10 11:55 CT** by the counterpart, after 0068, read back as predicted;
+merges with `feat/wp-001-v1-2-and-fc-001`. What stays open: the two are TEXT,
 not yet STRUCTURE (intake, checklist, decision rules): that is parsed when the
 engineer signs and the protocol moves into PROTOCOL_ENTRIES, which waits on the
 operator's ruling recorded in `docs/audit-2026-10/RUN-2026-10-10.md` (item 4).
 
-## STAGED: 0068, A DECISION AND ITS CREDIT ARE ONE WRITE
+## APPLIED: 0068, A DECISION AND ITS CREDIT ARE ONE WRITE
 
 `docs/production-sitting-fix-review-and-credit-one-write.md`. One function,
 `eng_record_review_decision`, and three decision checks widened to include
 `repairs` (a defect: a repairs decision could not write its charge log row or
-its credit). On `fix/review-and-credit-one-write`. **Not applied anywhere.**
-The second part drops and re-adds check constraints, which the MCP may cancel;
-the document says what to do then. What stays open: apply and read back on both
-databases, then the branch is boarded and merged. Also open from the same
-ruling: the transaction proof runs in an in-process replay, because no
+its credit). **Applied to development and production 2026-10-10 11:55 CT**
+through `apply_migration`, not cancelled, read back as predicted; merged as
+c14144f. What stays open from the same ruling: the transaction proof runs in an in-process replay, because no
 development database URL exists in this repository; a direct development
 transaction needs one.
 
