@@ -2398,6 +2398,36 @@ export const APPLIED = [
       "brand_logo_ columns), 84 tables, behaviour 979 to 983 facts (the three check constraints and the foreign " +
       "key to eng_profiles). migration-audit's pinned shape moves in the same commit. Additive only.",
   },
+  {
+    file: "0073_no_function_is_callable_without_the_service_role.sql", appliedBy: "apply_migration",
+    fingerprint: "3cffb39b56eda13ab54bbe8823b4c26d",
+    behaviour: "15b2e8632bd8d0e12144eac903baaa34",
+    /*
+     * STAGED, written unapplied on fix/function-grants (on
+     * feat/partner-branding-upload, because 0073 follows 0072) with
+     * docs/production-sitting-fix-function-grants.md. A security fix: until it
+     * is applied, every eng_ function on production is callable through
+     * PostgREST rpc by anybody holding the publishable key.
+     */
+    production: null,
+    development: { at: "0073", behaviour: null, facts: null },
+    because:
+      "WRITTEN 2026-10-11 UNAPPLIED, operator ruling of 2026-10-10 on a defect the counterpart found on " +
+      "production: eng_set_trade_price is SECURITY DEFINER and EXECUTE was granted to PUBLIC, anon and " +
+      "authenticated. 0073 revokes EXECUTE on every public eng_ function from PUBLIC, anon and authenticated " +
+      "and grants it to service_role only, then raises if any is still open. The counterpart applies it from " +
+      "the sitting document, whose dry run lists every function and its grants.",
+    proves: null,
+    provesNote:
+      "Nothing in it is visible through PostgREST: it changes grants and creates no table, column or row. The " +
+      "sitting document's dry run and verification read pg_proc and has_function_privilege directly.",
+    note:
+      "BOTH fingerprints repeat 0072's, read off scripts/fingerprint-at.mjs at 0073 on 2026-10-11: shape " +
+      "3cffb39b across 1181 columns, behaviour 15b2e863 across 983 facts. Neither can see a grant: the shape " +
+      "reads columns and the behaviour digest hashes function bodies and settings. migration-audit's replay " +
+      "carries Supabase's roles and default grant (scripts/lib/replay-stubs.mjs) and asserts no function in " +
+      "public is executable by anon or authenticated after the chain.",
+  },
 ];
 
 /*
