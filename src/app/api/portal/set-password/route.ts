@@ -18,7 +18,7 @@ import { writeAudit } from "@/lib/ops-audit";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
-  const limit = takeLoginAttempt(clientKey(request.headers));
+  const limit = await takeLoginAttempt(clientKey(request.headers));
   if (!limit.allowed) {
     const res = NextResponse.json({ ok: false, error: "Too many attempts. Wait a moment." }, { status: 429 });
     res.headers.set("Retry-After", String(limit.retryAfterSeconds));

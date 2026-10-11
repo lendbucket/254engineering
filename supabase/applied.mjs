@@ -2329,6 +2329,41 @@ export const APPLIED = [
       "DDL. The behaviour digest moves, 95c18c8b to d7713204, because eng_roles is a seeded table the digest " +
       "hashes (the first version, both rows, read 1e242dac). Read off scripts/fingerprint-at.mjs at 0070 on 2026-10-10.",
   },
+  {
+    file: "0071_sign_in_attempts_are_counted_in_the_database.sql", appliedBy: "apply_migration",
+    fingerprint: "bc55a14f40a4c7a78cc061fd262e785b",
+    /* Re-read after 0070 was amended to the engineer row only (it read 9a5e27b3 over the first 0070). */
+    behaviour: "bae15b68c2b3f370d09e868b6e813ace",
+    /*
+     * APPLIED TO PRODUCTION 2026-10-10 at 15:06 CT, after 0070, from
+     * docs/production-sitting-fix-sign-in-limiter-in-the-database.md, by the
+     * operator's chat counterpart, development first and then production.
+     * Production's shape read back as bc55a14f40a4c7a78cc061fd262e785b across
+     * 1176 columns, as the sitting document predicted.
+     *
+     * Operator ruling of 2026-10-10 (decision 14): the sign in limiter counts
+     * in eng_sign_in_attempts through eng_take_sign_in_attempt rather than in
+     * each instance's memory. Until the code that calls it is deployed, the
+     * table sits unused and nothing changes for anybody.
+     */
+    production: "2026-10-10",
+    development: {
+      at: "0071",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-10",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-10 by the operator's chat counterpart, before production, the file " +
+        "as written, and read back as the sitting document predicted.",
+    },
+    proves: { table: "eng_sign_in_attempts" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0071 on 2026-10-10: shape 1171 to 1176 columns " +
+      "(eng_sign_in_attempts), 84 tables, behaviour 973 to 979 facts (the table's key, check, index and row " +
+      "level security, and the function). migration-audit's pinned shape and function count move in the same " +
+      "commit. Additive only.",
+  },
 ];
 
 /*
