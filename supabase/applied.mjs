@@ -2215,6 +2215,48 @@ export const APPLIED = [
       "(eng_credentials_one_pending_per_kind, ix). Additive only: one unique partial index; it raises and " +
       "changes nothing if duplicates already exist.",
   },
+  {
+    file: "0068_a_decision_and_its_credit_are_one_write.sql", appliedBy: "apply_migration",
+    fingerprint: "18826fa5b3e7d9c9979ca81b96666bb7",
+    behaviour: "95c18c8b7cd230bdc7fb1349ddc572c1",
+    /*
+     * APPLIED TO PRODUCTION 2026-10-10 at 11:55 CT, from
+     * docs/production-sitting-fix-review-and-credit-one-write.md, by the
+     * operator's chat counterpart, development first and then production, the
+     * file as written. Written unapplied on fix/review-and-credit-one-write
+     * under the weekend run rule; merged after.
+     *
+     * Operator rulings of that day: a decided review and its credit are one
+     * database function (eng_record_review_decision), the outside work is
+     * enqueued in eng_jobs in the same transaction, and the three decision
+     * checks from 0004 are widened to include repairs. Read back as the sitting
+     * document predicted, on both projects.
+     *
+     * THE ROUTE IS RECORDED, NOT READ. The report of the apply did not say
+     * whether apply_migration took it or came back cancelled (it drops three
+     * checks) and the SQL editor did. apply_migration is the sitting document's
+     * first route and is what is written here; if it was the editor, this
+     * entry is hand applied and needs a handApplied sentence.
+     */
+    production: "2026-10-10",
+    development: {
+      at: "0068",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-10",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-10 by the operator's chat counterpart, before production, the file " +
+        "as written, and read back as the sitting document predicted.",
+    },
+    proves: { table: "eng_review_sessions" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0068 on 2026-10-10: shape unchanged at " +
+      "18826fa5b3e7d9c9979ca81b96666bb7 across 1171 columns (a function and three re-made checks are not " +
+      "columns, so migration-audit's pinned shape does not move; its function count moves 36 to 37), " +
+      "behaviour 972 to 973 facts (eng_record_review_decision). Three check constraints are dropped and " +
+      "re-added wider in the same statement batch; no row is rewritten.",
+  },
 ];
 
 /*
