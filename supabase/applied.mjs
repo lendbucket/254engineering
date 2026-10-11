@@ -2293,6 +2293,42 @@ export const APPLIED = [
       "template rows and changes no shape and no behaviour fact. Read off scripts/fingerprint-at.mjs at 0069 " +
       "on 2026-10-10.",
   },
+  {
+    file: "0070_the_second_factor_is_required_for_the_engineer.sql", appliedBy: "apply_migration",
+    fingerprint: "18826fa5b3e7d9c9979ca81b96666bb7",
+    behaviour: "d7713204a6a44db437588585af0d0f8a",
+    /*
+     * APPLIED TO PRODUCTION 2026-10-10 at 15:06 CT, after 0069, the amended
+     * engineer-only file from cbb718c, from
+     * docs/production-sitting-fix-second-factor-required.md, by the operator's
+     * chat counterpart, development first and then production. Read back as
+     * predicted on both: engineer required, administrator optional.
+     *
+     * Operator ruling of 2026-10-10 (gap 3): the second factor is required for
+     * the engineer role. Amended before any apply, the same day: the
+     * administrator role stays optional by the operator's ruling replacing gap
+     * 4's, so 0070 updates the engineer row only and asserts the administrator
+     * still reads optional. Renamed from
+     * 0070_the_second_factor_is_required_for_staff_who_seal_or_administer.sql,
+     * which no database ever ran.
+     */
+    production: "2026-10-10",
+    development: {
+      at: "0070",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-10",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-10 by the operator's chat counterpart, before production, the amended " +
+        "file from cbb718c: engineer required, administrator optional, as predicted.",
+    },
+    proves: { row: { table: "eng_roles", where: "key = 'engineer' and mfa_requirement = 'required'" } },
+    note:
+      "The shape fingerprint repeats 0069's and the fact count stays 973: it updates one seeded row and has no " +
+      "DDL. The behaviour digest moves, 95c18c8b to d7713204, because eng_roles is a seeded table the digest " +
+      "hashes (the first version, both rows, read 1e242dac). Read off scripts/fingerprint-at.mjs at 0070 on 2026-10-10.",
+  },
 ];
 
 /*

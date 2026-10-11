@@ -43,6 +43,17 @@ active, login 2026-09-02 16:45:18 UTC, profile 17:57:25 UTC, and no
 `scripts/seed-admin.mjs`, not the People screen, so it carries no such row, true
 or false.
 
+## APPLIED: 0070, THE SECOND FACTOR IS REQUIRED FOR THE ENGINEER
+
+`docs/production-sitting-fix-second-factor-required.md`. The `engineer` row of
+`eng_roles` moves from optional to required (operator ruling 2026-10-10, gap
+3). The `admin` row stays optional by the operator's later ruling the same day,
+replacing gap 4's; 0070 was amended and renamed before any apply. **Applied to
+development and production 2026-10-10 15:06 CT** by the counterpart, the
+amended file from cbb718c, read back: engineer required, administrator
+optional. The SOC 2 gap's engineer half closes with it; **its administrator
+half stays open, reason: operator's choice.**
+
 ## APPLIED: 0069, WP-001 v1.2 AND FC-001 v1.0 ENTER AS DRAFTS
 
 `docs/production-sitting-feat-wp-001-v1-2-and-fc-001.md`. Two draft template
