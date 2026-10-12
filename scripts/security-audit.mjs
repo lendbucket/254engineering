@@ -118,6 +118,8 @@ const ADMIN_PAGES = [
    * above, files.create, and closed to a signed out caller like everything
    * else on this list. */
   "/portal/windstorm-inquiries",
+  /* The record search, 2026-10-10: behind files.list, closed to a signed out caller. */
+  "/portal/search",
   "/portal/jobs",
   "/portal/files",
   // Phase 12 Section 4, Section 1. Names every technician who could be offered
@@ -204,6 +206,8 @@ const ADMIN_APIS = [
    */
   "/api/partner/agreement",
   "/api/partner/materials",
+  /* A partner's logo upload (run item 19, migration 0072). */
+  "/api/partner/branding",
   "/api/account/bulk",
   "/api/account/settings",
   "/api/account/statements",
