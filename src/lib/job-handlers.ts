@@ -20,6 +20,10 @@ import { runRetention } from "./ops-retention";
 import { errorAlert } from "./email-templates";
 import { RELEASE, ENVIRONMENT } from "./ops-observability";
 import { business } from "@/config/business";
+import { raise } from "./ops-notify";
+import { settleDecision } from "./ops-payments";
+import { orderForFile as liveOrderForFile } from "./order-for-file";
+import { REVIEW_AFTER_DECISION, reviewAfterDecisionKey } from "./review-jobs";
 import {
   selectAlerts,
   RATE_WINDOW_MINUTES,
@@ -851,6 +855,104 @@ registerJob("retention.sweep", {
     }) ?? { error: null });
 
     if (error) return { kind: "retry", error: `The sweep finished and its audit row did not write: ${error.message}` };
+    return { kind: "done" };
+  },
+});
+
+// --------------------------------------------------- review.after_decision
+
+/*
+ * WHAT A DECIDED REVIEW DOES OUTSIDE THE DATABASE, AFTER IT COMMITS. Operator
+ * ruling, 2026-10-10; migration 0068.
+ *
+ * Until then decideReview did this inline, after a dozen separate writes:
+ * raise() to the technician on revisions or a site visit, raise() to every
+ * other active administrator on a refusal, and on a refusal settleDecision,
+ * which works out the refund and calls Stripe. The decision is now one
+ * transaction (eng_record_review_decision) and this job is inserted by it, so
+ * a decision that rolls back has no job, and one that commits cannot lose its
+ * refund to a crash in between.
+ *
+ * NEVER TWO REFUNDS. Stripe's own idempotency key on a refund is the charge and
+ * the amount (payments-stripe.ts), so a second call returns the first refund;
+ * and before calling, this reads whether the order already carries a refund
+ * row, and if it does the settlement is done. The notices are raised after the
+ * settlement, so a retry after a failed notice repeats a notice, never money.
+ *
+ * The kind is written as a literal here, as every other registration is,
+ * because queue-audit finds a handler by `registerJob("<kind>"` to read its
+ * mode check; review-jobs.ts holds the same string for the caller.
+ */
+registerJob("review.after_decision", {
+  reachesOutside: true,
+  reaches:
+    "Stripe, on a refusal: a refund of what the order's refund rule returns, idempotent at Stripe on the charge and amount. And the people a decision concerns, through raise(): the technician on revisions or a site visit, the other administrators on a refusal.",
+  idempotency: (p) => reviewAfterDecisionKey(String(p.fileId ?? ""), String(p.decisionId ?? "")),
+  run: async (p, job): Promise<JobOutcome> => {
+    const fileId = typeof p.fileId === "string" ? p.fileId : "";
+    const action = p.action;
+    if (!fileId || (action !== "revisions" && action !== "site_visit" && action !== "refuse")) {
+      return { kind: "fatal", error: "A review.after_decision job needs a fileId and one of revisions, site_visit, refuse." };
+    }
+    const fileNumber = String(p.fileNumber ?? fileId);
+    const note = typeof p.note === "string" ? p.note : null;
+    const actorId = typeof p.actorId === "string" ? p.actorId : null;
+
+    /* Suppressed before anything leaves: no refund, no notice, for a probe. */
+    if (job.effectMode === "no_external_effect") {
+      console.warn(`[jobs] ${REVIEW_AFTER_DECISION} #${job.id}: suppressed, no refund attempted and no notice raised.`);
+      return { kind: "done" };
+    }
+
+    const db = supabaseAdmin();
+    if (!db) return { kind: "retry", error: "The database is not configured." };
+
+    if (action === "refuse") {
+      const order = await liveOrderForFile(fileId, "id");
+      if (order) {
+        const { count, error } = await db
+          .from("eng_order_payments")
+          .select("id", { count: "exact", head: true })
+          .eq("order_id", order.id)
+          .eq("kind", "refund");
+        if (error) return { kind: "retry", error: `Whether the order was already refunded could not be read: ${error.message}` };
+        if ((count ?? 0) === 0) {
+          const settled = await settleDecision({ orderId: order.id, outcome: "refuse", actorId });
+          /* A provider failure is recorded by settleDecision as needing a hand; it is not retried here. */
+          if (!settled.ok) console.error(`[jobs] ${fileNumber}: the decision stands and the refund did not: ${settled.error}`);
+        }
+      }
+      const { data: admins } = await db.from("eng_profiles").select("id").eq("role", "admin").eq("status", "active");
+      for (const admin of admins ?? []) {
+        if ((admin.id as string) === actorId) continue;
+        await raise({
+          profileId: admin.id as string,
+          role: "admin",
+          kind: "review.refused",
+          title: `An engineer declined to seal ${fileNumber}`,
+          body: note,
+          href: `/portal/review?id=${fileId}`,
+          entityType: "file",
+          entityId: fileId,
+        });
+      }
+      return { kind: "done" };
+    }
+
+    /* Revisions or a site visit: the technician who held the file, read before the decision released them. */
+    const techId = typeof p.techId === "string" ? p.techId : null;
+    if (techId) {
+      await raise({
+        profileId: techId,
+        role: "field_tech",
+        kind: "review.revisions",
+        title: action === "revisions" ? `${fileNumber} came back for revisions` : `${fileNumber} needs another site visit`,
+        body: note,
+        href: `/portal/jobs/${fileId}`,
+        entityType: "file",
+        entityId: fileId,
+      });
+    }
     return { kind: "done" };
   },
 });

@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
    * first and meant an unconfigured deployment answered every attempt forever
    * without counting one. security-audit caught that against production.
    */
-  const limit = takeLoginAttempt(clientKey(request.headers), attempted || undefined);
+  const limit = await takeLoginAttempt(clientKey(request.headers), attempted || undefined);
   if (!limit.allowed) {
     const res = isForm
       ? NextResponse.redirect(new URL("/portal/login?throttled=1", request.url), { status: 303 })
@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
     return fail(401, GENERIC);
   }
 
-  clearLoginAttempts(clientKey(request.headers), attempted);
+  await clearLoginAttempts(clientKey(request.headers), attempted);
 
   /*
    * THE SECOND FACTOR DECIDES WHICH KIND OF SESSION THIS IS.
