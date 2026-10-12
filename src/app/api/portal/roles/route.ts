@@ -3,6 +3,7 @@ import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
 import { setGrants, setUserRole, createRole, deleteRole } from "@/lib/ops-roles";
 import type { Action } from "@/lib/ops-authz";
+import { withSaveOutcome } from "@/lib/save-outcome";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +19,7 @@ export const dynamic = "force-dynamic";
  * second copy in this file would be a second answer to whether the firm can
  * lock itself out.
  */
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   const actor = await currentActor();
   if (!actor) return NextResponse.json({ ok: false, error: "Not signed in." }, { status: 401 });
 
@@ -64,3 +65,6 @@ export async function POST(request: NextRequest) {
 
   return refuse("Unknown action.");
 }
+
+/* A save abandoned by the 20 second bound says it may not have saved, and a failed session read is never "Not signed in": save-outcome.ts. */
+export const POST = withSaveOutcome(handlePOST);

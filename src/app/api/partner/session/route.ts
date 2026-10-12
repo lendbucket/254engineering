@@ -4,6 +4,7 @@ import { PARTNER_COOKIE, partnerCookieOptions, partnerSessionConfigured } from "
 import { takeLoginAttempt, clearLoginAttempts, clientKey } from "@/lib/ops-rate-limit";
 import { writeAudit } from "@/lib/ops-audit";
 import { requestContext } from "@/lib/ops-auth";
+import { withSaveOutcome } from "@/lib/save-outcome";
 
 /**
  * Partner sign in and sign out.
@@ -34,7 +35,7 @@ export const dynamic = "force-dynamic";
 
 const GENERIC = "That email address and password do not match an account.";
 
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   const contentType = request.headers.get("content-type") ?? "";
   const isForm = contentType.includes("application/x-www-form-urlencoded");
 
@@ -155,7 +156,7 @@ export async function POST(request: NextRequest) {
 }
 
 /** Sign out. Clears the cookie whether or not one was valid. */
-export async function DELETE(request: NextRequest) {
+async function handleDELETE(request: NextRequest) {
   const res = NextResponse.json({ ok: true });
   res.cookies.set(PARTNER_COOKIE, "", partnerCookieOptions());
 
@@ -171,3 +172,7 @@ export async function DELETE(request: NextRequest) {
   void request;
   return res;
 }
+
+/* A save abandoned by the 20 second bound says it may not have saved, and a failed session read is never "Not signed in": save-outcome.ts. */
+export const POST = withSaveOutcome(handlePOST);
+export const DELETE = withSaveOutcome(handleDELETE);

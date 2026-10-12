@@ -86,8 +86,22 @@ export async function orderForFile(
   fileId: string,
   columns: string,
 ): Promise<OrderRow | null> {
+  const read = await orderForFileRead(fileId, columns);
+  return read.ok ? read.order : null;
+}
+
+/**
+ * The same, with the two facts kept apart for a caller that has to say which:
+ * `ok: false` is "the orders could not be read", `order: null` is "this file
+ * has no order". The pay credit reads this one, so a failed read is never
+ * reported as a file that does not record its deliverable (2026-10-12).
+ */
+export async function orderForFileRead(
+  fileId: string,
+  columns: string,
+): Promise<{ ok: true; order: OrderRow | null } | { ok: false }> {
   const db = supabaseAdmin();
-  if (!db) return null;
+  if (!db) return { ok: false };
 
   const { data, error } = await db
     .from("eng_service_orders")
@@ -98,13 +112,13 @@ export async function orderForFile(
 
   if (error) {
     console.error(`[orders] could not read the orders on file ${fileId}: ${error.message}`);
-    return null;
+    return { ok: false };
   }
 
   const rows = (data ?? []) as unknown as OrderRow[];
-  if (rows.length === 0) return null;
+  if (rows.length === 0) return { ok: true, order: null };
 
   /* Already newest first from the query, so a stable sort by rank alone gives
    * "best band, most recent within it" without a second comparison. */
-  return [...rows].sort((a, b) => rank(a.status) - rank(b.status))[0] ?? null;
+  return { ok: true, order: [...rows].sort((a, b) => rank(a.status) - rank(b.status))[0] ?? null };
 }

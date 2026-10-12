@@ -6,6 +6,7 @@ import { accountWelcome } from "@/lib/email-templates";
 import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
 import { queueEmail } from "@/lib/ops-jobs";
+import { withSaveOutcome } from "@/lib/save-outcome";
 
 export const dynamic = "force-dynamic";
 
@@ -47,7 +48,7 @@ export const dynamic = "force-dynamic";
  * answer and reveals nothing to anybody who was not already trusted with the
  * whole list.
  */
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   const actor = await currentActor();
   if (!actor) {
     return NextResponse.json({ ok: false, error: "Not signed in." }, { status: 401 });
@@ -120,3 +121,6 @@ export async function POST(request: NextRequest) {
     message: `The account is open and a set password link has been emailed. It lasts ${VERIFICATION_TTL_WORDS}.`,
   });
 }
+
+/* A save abandoned by the 20 second bound says it may not have saved, and a failed session read is never "Not signed in": save-outcome.ts. */
+export const POST = withSaveOutcome(handlePOST);

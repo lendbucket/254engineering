@@ -2,6 +2,8 @@ import "server-only";
 import { DB_NOW } from "./db-now";
 import { readEvery } from "./bounded-read";
 import { supabaseAdmin } from "./supabase";
+import { watchWrites, type AbandonedWrite } from "./bounded-fetch";
+import { MAY_NOT_HAVE_SAVED } from "./outcome-copy";
 import { LEASE_SECONDS, BATCH_SIZE, nextState, type JobOutcome } from "./job-rules";
 import { business } from "@/config/business";
 import type { RenderedEmail } from "./email-templates";
@@ -465,12 +467,31 @@ export async function runBatch(workerId: string): Promise<WorkerReport> {
  * repeats when the leases expire, which looks exactly like a queue that is
  * moving while nothing completes.
  */
-async function runOne(handler: Handler, job: JobRecord): Promise<JobOutcome> {
+/*
+ * Exported for the proof that an abandoned write is not retried, which runs one
+ * job through this exact path without claiming anybody else's queued work.
+ */
+export async function runOne(handler: Handler, job: JobRecord): Promise<JobOutcome> {
+  /*
+   * AN ABANDONED WRITE IS NEVER RETRIED AUTOMATICALLY. Operator ruling,
+   * 2026-10-12. A write the 20 second bound abandoned may have committed, so a
+   * job that failed after abandoning one goes straight to the dead letter queue
+   * with that said, rather than running again on its own. A person checks, and
+   * retries it by hand from the queue screen: the same row, the same payload,
+   * the same idempotency key.
+   */
+  const abandoned: AbandonedWrite[] = [];
+  let outcome: JobOutcome;
   try {
-    return await handler.run(job.payload, job);
+    outcome = await watchWrites(abandoned, () => handler.run(job.payload, job));
   } catch (err) {
-    return { kind: "retry", error: err instanceof Error ? err.message : "the handler threw" };
+    outcome = { kind: "retry", error: err instanceof Error ? err.message : "the handler threw" };
   }
+  if (outcome.kind !== "done" && abandoned.length > 0) {
+    const where = abandoned.map((w) => `${w.method} ${w.path}`).join(", ");
+    return { kind: "fatal", error: `${MAY_NOT_HAVE_SAVED} A write was abandoned after 20 seconds (${where}), so this job was not retried. ${outcome.error}` };
+  }
+  return outcome;
 }
 
 // -------------------------------------------------------------- the picture

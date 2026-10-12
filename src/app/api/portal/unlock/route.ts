@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { clientKey, inspectLock, releaseLock, RATE_LIMITS } from "@/lib/ops-rate-limit";
 import { writeAudit } from "@/lib/ops-audit";
+import { withSaveOutcome } from "@/lib/save-outcome";
 
 /**
  * The break glass, for when the rate limiter has locked the operator out of his
@@ -51,7 +52,7 @@ function matches(provided: string, expected: string): boolean {
   return diff === 0;
 }
 
-export async function GET(request: NextRequest) {
+async function handleGET(request: NextRequest) {
   const expected = configured();
   if (!expected) return new NextResponse("Not found", { status: 404 });
 
@@ -82,7 +83,7 @@ export async function GET(request: NextRequest) {
   });
 }
 
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   const expected = configured();
   if (!expected) return new NextResponse("Not found", { status: 404 });
 
@@ -116,3 +117,7 @@ export async function POST(request: NextRequest) {
         : "Cleared. Try signing in again.",
   });
 }
+
+/* A save abandoned by the 20 second bound says it may not have saved, and a failed session read is never "Not signed in": save-outcome.ts. */
+export const GET = withSaveOutcome(handleGET);
+export const POST = withSaveOutcome(handlePOST);

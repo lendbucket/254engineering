@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { setCustomerPassword } from "@/lib/customer-auth";
+import { withSaveOutcome } from "@/lib/save-outcome";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +12,7 @@ export const dynamic = "force-dynamic";
  * being handed a live session are two different grants, and somebody who set a
  * password on a shared machine should have to type it once.
  */
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
   const token = typeof body?.token === "string" ? body.token : "";
   const password = typeof body?.password === "string" ? body.password : "";
@@ -27,3 +28,6 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({ ok: true, redirect: "/account/login" });
 }
+
+/* A save abandoned by the 20 second bound says it may not have saved, and a failed session read is never "Not signed in": save-outcome.ts. */
+export const POST = withSaveOutcome(handlePOST);

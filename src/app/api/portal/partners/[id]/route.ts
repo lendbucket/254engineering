@@ -13,6 +13,7 @@ import { decidePartnerLogo } from "@/lib/partner-branding";
 import { deploymentOrigin } from "@/lib/site-url";
 import { money } from "@/lib/ops-money";
 import type { CompModel, Tier } from "@/lib/partner-comp";
+import { withSaveOutcome } from "@/lib/save-outcome";
 
 /**
  * Everything an operator does to one partner, behind one door.
@@ -44,7 +45,7 @@ function dollarsToCents(raw: unknown): number | null {
   return Math.round(value * 100);
 }
 
-export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+async function handlePOST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   const actor = await currentActor();
   if (!actor) return NextResponse.json({ ok: false, error: "Sign in first." }, { status: 401 });
   if (!can(actor, "partners.manage")) {
@@ -207,3 +208,6 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
       return bad("That is not something this screen does.");
   }
 }
+
+/* A save abandoned by the 20 second bound says it may not have saved, and a failed session read is never "Not signed in": save-outcome.ts. */
+export const POST = withSaveOutcome(handlePOST);
