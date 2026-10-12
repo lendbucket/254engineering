@@ -45,6 +45,22 @@ migration does not touch.
 tables, two triggers and an index and drops nothing, so the MCP should not
 cancel it; if it does, stop and report rather than retrying.
 
+**One retry is allowed after a timeout, and only after a clean read-back.**
+Operator ruling, 2026-10-12. The first `apply_migration` on development timed
+out after 230 seconds; the read-back after it found neither table, the shape
+unchanged at `3cffb39b56eda13ab54bbe8823b4c26d` across 1181, no 0074 row in the
+provider's migration history, and no blocking sessions. Nothing in the file can
+make it slow: two `create table` on new, empty tables, one index on an empty
+table, two triggers, two comments, and row level security switched on. It reads
+no rows and backfills nothing. The only lock it takes outside its own new tables
+is the one each foreign key takes on `eng_partners` (development 0 rows,
+production 12), which waits only if another session holds a conflicting lock on
+that table. So: after a timeout, run the section 1 dry run again; if it reads
+exactly as before (no tables, same shape, no ledger row, no blocking sessions),
+retry `apply_migration` once. A second timeout, or any difference in the
+read-back, stops the sitting and is reported. A cancellation is still never
+retried.
+
 ## 3. Read back, on each
 
 ```sql
