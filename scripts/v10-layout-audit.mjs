@@ -228,6 +228,8 @@ async function resolve(pattern) {
   if (pattern === "/portal/techs/[id]") return sessions.field_tech?.id ? pattern.replace("[id]", sessions.field_tech.id) : null;
   if (pattern === "/portal/partners/[id]") return sessions.partner?.partnerId ? pattern.replace("[id]", sessions.partner.partnerId) : null;
   if (pattern === "/order/start/[slug]") return "/order/start/roof-inspections";
+  /* A partner's order page (run item 16), by the development seed's demo partner. */
+  if (pattern === "/order/referred/[code]") return "/order/referred/demo-title";
   /* The two the audit seed serves, opened by the reader attached to each owner. */
   if (pattern === "/partner/statements/[reference]") {
     return seed.statement && sessions.seedPartner?.cookie ? `/partner/statements/${seed.statement}` : null;
