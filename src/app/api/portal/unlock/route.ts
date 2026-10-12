@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
 
   const address = clientKey(request.headers);
   const email = (request.nextUrl.searchParams.get("email") ?? "").trim().toLowerCase() || undefined;
-  const state = inspectLock(address, email);
+  const state = await inspectLock(address, email);
 
   return NextResponse.json({
     ok: true,
@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
   if (!matches(provided, expected)) return new NextResponse("Not found", { status: 404 });
 
   const address = clientKey(request.headers);
-  const dropped = releaseLock(address);
+  const dropped = await releaseLock(address);
 
   /*
    * Recorded, because clearing a security control is exactly the kind of event
