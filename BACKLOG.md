@@ -133,6 +133,32 @@ c14144f. What stays open from the same ruling: the transaction proof runs in an 
 development database URL exists in this repository; a direct development
 transaction needs one.
 
+## STAGED: 0074, PARTNER BILLING, BUILT AND OFF
+
+`docs/partner-billing-plan.md` (item 17 of the run of 2026-10-10), approved by
+the operator on 2026-10-11 as designed: $800 upfront and $99 a month, paid to
+254 through 254's one Stripe account. Built on `feat/partner-billing`: the
+webhook's partner lane, the two tables of 0074
+(`docs/production-sitting-feat-partner-billing.md`), the partner's billing
+panel and `/api/partner/billing`. **Not applied anywhere; billing is off.**
+Open, each the operator's or counsel's:
+- **Turning it on** is a separate step after the attorney confirms the
+  structure; `enabled` needs `counselSignOff` beside it, and the proof refuses
+  one without the other.
+- **The six questions** stay pending values in `src/config/partner-billing.ts`
+  and appear in no copy, order page, onboarding text or email until ruled:
+  grace period (null: nobody is suspended), the $800's refund rule (null: no
+  refund path), cancellation (null: no portal cancel), a lapsed partner's past
+  credit (compensation untouched), sales tax (not collected), receipt name.
+- **Before turning it on:** subscribe the Stripe endpoint to `invoice.paid`,
+  `invoice.payment_failed`, `customer.subscription.updated` and
+  `customer.subscription.deleted` (a dashboard change), and teach
+  `stripe-webhook-audit` the partner lane's events
+  (`PARTNER_BILLING_STRIPE_EVENTS` in `src/lib/partner-billing-rules.ts`); it
+  reads only `event.type ===` literals in the adapter today, so it does not see
+  them. Wire `partnerMayOrder` into partner ordering and the partner order page,
+  and write the suspension job that reads the grace period.
+
 ## THE SITTING OF 2026-10-10: 0067, ONE PENDING CREDENTIAL OF EACH KIND, RUN
 
 `docs/production-sitting-2026-10-10.md`. One additive migration on
