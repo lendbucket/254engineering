@@ -129,6 +129,20 @@ function headlineEntry(slug: string): CatalogEntry | null {
 }
 
 /**
+ * THE COASTAL LINE, ONE PHRASE WHEREVER A PRICE APPEARS. Operator ruling,
+ * 2026-10-10 (gap 8 of the product audit). It rode only on /order and the
+ * service cards; /process and the cost page printed the same line's price with
+ * no word that a first tier coastal property pays more. Read off the line's
+ * headline catalogue entry, the figure the price beside it is read from.
+ */
+export function coastalLine(slug: string): string | null {
+  const entry = headlineEntry(slug);
+  return entry && isKnown(entry.coastalSurchargeCents)
+    ? `plus ${money(entry.coastalSurchargeCents)} in first tier coastal counties`
+    : null;
+}
+
+/**
  * What this one line offers a reader today.
  *
  * TOTAL BY CONSTRUCTION. Every service line gets an answer, and a line that
@@ -162,10 +176,7 @@ export function lineOffer(slug: string): LineOffer {
      * you be charged if you press this".
      */
     price: orderable && entry && isKnown(entry.priceCents) ? money(entry.priceCents) : null,
-    coastal:
-      orderable && entry && isKnown(entry.coastalSurchargeCents)
-        ? `plus ${money(entry.coastalSurchargeCents)} in first tier coastal counties`
-        : null,
+    coastal: orderable ? coastalLine(slug) : null,
     /*
      * Not gated on `orderable`, unlike the price and the coastal line. Those two
      * are things a reader can act on and must not appear beside a line nobody can

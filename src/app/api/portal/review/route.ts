@@ -1,6 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { currentActor, requestContext } from "@/lib/ops-auth";
-import { decideReview, monthlyExport, openReview, recordTime, type DeterminationInput } from "@/lib/ops-engineer";
+import {
+  creditUncreditedReviews,
+  decideReview,
+  monthlyExport,
+  openReview,
+  recordTime,
+  type DeterminationInput,
+} from "@/lib/ops-engineer";
 import { PROTOCOL_ENTRIES, type Determination } from "@/content/protocols";
 import { REVIEW_ACTIONS, type ReviewAction } from "@/lib/ops-review";
 import { recordPrereview } from "@/lib/dispatch-hold";
@@ -26,6 +33,18 @@ export async function POST(request: NextRequest) {
   const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
   const action = String(body?.action ?? "");
   const context = await requestContext();
+
+  /*
+   * A DECIDED REVIEW THAT CREDITED NOTHING, FIXED BY THE OFFICE. Operator ruling
+   * 2 of 2026-10-10. Records the file's deliverable when that is what was
+   * missing, then writes the credit; creditUncreditedReviews holds the
+   * permission check (ledger.approve).
+   */
+  if (action === "credit") {
+    const deliverable = body?.deliverable ? String(body.deliverable) : null;
+    const result = await creditUncreditedReviews(actor, String(body?.fileId ?? ""), deliverable);
+    return result.ok ? NextResponse.json({ ok: true, credited: result.credited }) : bad(result.error);
+  }
 
   if (action === "open_review") {
     const result = await openReview(actor, String(body?.fileId ?? ""), context);

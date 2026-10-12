@@ -53,6 +53,79 @@ the run's default and needs his ruling (it is pinned in the proof). The email
 links to the firm's own `/review`, which redirects to the configured URL,
 because email-audit holds every email link to the production domain.
 
+## SURVEY OWED: READS WHOSE ERROR IS DISCARDED, SO A FAILED READ READS AS CLEAN
+
+Found 2026-10-11 by reading a green board's transient retry lines. demo-audit's
+"the clients screen lists none of them" looked up every listed client in one
+`in()` request and discarded the error; from the 0070 board on, the request
+failed on its size (`UND_ERR_HEADERS_OVERFLOW`, about four hundred ids), and the
+check passed over a read that never happened. `fix/demo-audit-reads-its-error`
+fixes THAT INSTANCE: paged reads, the error read, COULD NOT TELL on a fault, and
+demo-audit now exits 3 when anything is unmeasured instead of 0.
+
+**The class is not fixed.** A search for `const { data } = await ... .in(` with
+no `error` taken found 21 such reads under `scripts/`, mostly teardown checks
+over a handful of probe ids (`bulk-audit`, `queue-audit`, `doors-audit`,
+`scripts/lib/probe-ledger.mjs`, `scripts/lib/portal-probe.mjs`). A teardown
+verification that reads a null as "nothing left" is the mirror-sweep defect in
+CLAUDE.md 6c. Open: survey each, report which can read a failure as a pass,
+then fix those on a ruling.
+
+## APPLIED: 0072, A PARTNER'S LOGO IS APPROVED BEFORE IT SHOWS
+
+`docs/production-sitting-feat-partner-branding-upload.md`. Run item 19's
+branding upload: four logo states on `eng_partners` and a private raster-only
+bucket. **Applied to development and production 2026-10-10 16:41 CT** by the
+counterpart, after 0071, read back as predicted (shape 3cffb39b across 1181;
+the constraint query lists four rows, and the document now says so). What
+stays open: the partner order page (`feat/partner-order-page`) shows an
+approved logo, which is not wired yet because the two branches are separate.
+
+## APPLIED: 0071, SIGN IN ATTEMPTS ARE COUNTED IN THE DATABASE
+
+`docs/production-sitting-fix-sign-in-limiter-in-the-database.md`. The sign in
+limiter (decision 14) counts in `eng_sign_in_attempts` through
+`eng_take_sign_in_attempt` instead of in each instance's memory; a reset is a
+row, so nothing deletes. **Applied to development and production 2026-10-10
+15:06 CT** by the counterpart, read back as predicted (shape bc55a14f across
+1176); the in-memory count answers until this code is deployed. What stays
+open: the sign up limiter in the same file still counts in memory, and was
+outside decision 14.
+
+## APPLIED: 0070, THE SECOND FACTOR IS REQUIRED FOR THE ENGINEER
+
+`docs/production-sitting-fix-second-factor-required.md`. The `engineer` row of
+`eng_roles` moves from optional to required (operator ruling 2026-10-10, gap
+3). The `admin` row stays optional by the operator's later ruling the same day,
+replacing gap 4's; 0070 was amended and renamed before any apply. **Applied to
+development and production 2026-10-10 15:06 CT** by the counterpart, the
+amended file from cbb718c, read back: engineer required, administrator
+optional. The SOC 2 gap's engineer half closes with it; **its administrator
+half stays open, reason: operator's choice.**
+
+## APPLIED: 0069, WP-001 v1.2 AND FC-001 v1.0 ENTER AS DRAFTS
+
+`docs/production-sitting-feat-wp-001-v1-2-and-fc-001.md`. Two draft template
+rows, each carrying its Word file's SHA-256; transcribed verbatim into
+`src/content/protocols/docx-received.ts` and proved word for word by
+protocol-registry-audit section 9. **Applied to development and production
+2026-10-10 11:55 CT** by the counterpart, after 0068, read back as predicted;
+merges with `feat/wp-001-v1-2-and-fc-001`. What stays open: the two are TEXT,
+not yet STRUCTURE (intake, checklist, decision rules): that is parsed when the
+engineer signs and the protocol moves into PROTOCOL_ENTRIES, which waits on the
+operator's ruling recorded in `docs/audit-2026-10/RUN-2026-10-10.md` (item 4).
+
+## APPLIED: 0068, A DECISION AND ITS CREDIT ARE ONE WRITE
+
+`docs/production-sitting-fix-review-and-credit-one-write.md`. One function,
+`eng_record_review_decision`, and three decision checks widened to include
+`repairs` (a defect: a repairs decision could not write its charge log row or
+its credit). **Applied to development and production 2026-10-10 11:55 CT**
+through `apply_migration`, not cancelled, read back as predicted; merged as
+c14144f. What stays open from the same ruling: the transaction proof runs in an in-process replay, because no
+development database URL exists in this repository; a direct development
+transaction needs one.
+
 ## THE SITTING OF 2026-10-10: 0067, ONE PENDING CREDENTIAL OF EACH KIND, RUN
 
 `docs/production-sitting-2026-10-10.md`. One additive migration on
