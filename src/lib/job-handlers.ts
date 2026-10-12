@@ -2,7 +2,7 @@ import "server-only";
 import { DB_NOW } from "./db-now";
 import { READ_CAP } from "./bounded-read";
 import { createHash } from "node:crypto";
-import { registerJob, enqueue, queueEmail } from "./ops-jobs";
+import { registerJob, enqueue, queueEmail, keyFieldsMissing } from "./ops-jobs";
 import { isFixtureIdentity } from "./fixture-identity";
 import { resolveDeferred } from "./deferred-links";
 import { signedDownloadUrl } from "./uploads";
@@ -20,6 +20,7 @@ import { runRetention } from "./ops-retention";
 import { errorAlert } from "./email-templates";
 import { RELEASE, ENVIRONMENT } from "./ops-observability";
 import { business } from "@/config/business";
+import { reviewRequestKey, runReviewRequest } from "./review-request";
 import { raise } from "./ops-notify";
 import { settleDecision } from "./ops-payments";
 import { orderForFile as liveOrderForFile } from "./order-for-file";
@@ -85,7 +86,9 @@ registerJob("email.send", {
    * message twice is deduped; a genuinely different message to the same person
    * is not, because the subject or body differs.
    */
-  idempotency: (p) => keyOf(p.to, p.subject, p.text),
+  /* Every key below refuses when a field it is built from is absent, rather than
+   * hashing "undefined" or a default word: ops-jobs, KeyRefusal. */
+  idempotency: (p) => keyFieldsMissing(p, ["to", "subject", "text"]) ?? keyOf(p.to, p.subject, p.text),
   run: async (p, job): Promise<JobOutcome> => {
     const to = typeof p.to === "string" ? p.to : "";
     const subject = typeof p.subject === "string" ? p.subject : "";
@@ -211,7 +214,7 @@ registerJob("notification.deliver", {
    * The notification's own id. One row, one email, however many times this is
    * enqueued or retried.
    */
-  idempotency: (p) => keyOf("notification", p.notificationId),
+  idempotency: (p) => keyFieldsMissing(p, ["notificationId"]) ?? keyOf("notification", p.notificationId),
   run: async (p, job): Promise<JobOutcome> => {
     const client = db();
     if (!client) return { kind: "retry", error: "The database is not configured." };
@@ -324,7 +327,7 @@ registerJob("notification.deliver", {
 registerJob("evidence.thumbnail", {
   /* It returns fatal and does nothing at all. */
   reachesOutside: false,
-  idempotency: (p) => keyOf("thumb", p.evidenceItemId),
+  idempotency: (p) => keyFieldsMissing(p, ["evidenceItemId"]) ?? keyOf("thumb", p.evidenceItemId),
   run: async (): Promise<JobOutcome> => ({
     kind: "fatal",
     error:
@@ -345,7 +348,9 @@ registerJob("evidence.thumbnail", {
 registerJob("document.binder", {
   /* Reads a file, writes a file event. Nothing leaves. */
   reachesOutside: false,
-  idempotency: (p) => keyOf("binder", p.fileId, p.requestedFor ?? "latest"),
+  /* "latest" was the default when requestedFor was absent: two binders asked
+   * for at different times, one key. The one caller always sends a stamp. */
+  idempotency: (p) => keyFieldsMissing(p, ["fileId", "requestedFor"]) ?? keyOf("binder", p.fileId, p.requestedFor),
   run: async (p): Promise<JobOutcome> => {
     const client = db();
     if (!client) return { kind: "retry", error: "The database is not configured." };
@@ -390,7 +395,7 @@ registerJob("statement.issue", {
    * the statement, which is a different path entirely.
    */
   reachesOutside: false,
-  idempotency: (p) => keyOf("statement", p.statementId),
+  idempotency: (p) => keyFieldsMissing(p, ["statementId"]) ?? keyOf("statement", p.statementId),
   run: async (p): Promise<JobOutcome> => {
     const statementId = typeof p.statementId === "string" ? p.statementId : "";
     if (!statementId) return { kind: "fatal", error: "A statement job needs a statementId." };
@@ -482,7 +487,10 @@ registerJob("orders.reconcile", {
 registerJob("metrics.rollup", {
   /* Counts rows this platform already has and writes one row per day. */
   reachesOutside: false,
-  idempotency: (p) => keyOf("rollup", p.day ?? "yesterday"),
+  /* "yesterday" was the default when day was absent, a word whose meaning moves
+   * at midnight: a pending rollup for one day would have swallowed the next.
+   * The daily cron always names the day. */
+  idempotency: (p) => keyFieldsMissing(p, ["day"]) ?? keyOf("rollup", p.day),
   run: async (p): Promise<JobOutcome> => {
     const day = typeof p.day === "string" ? p.day : undefined;
 
@@ -547,7 +555,8 @@ registerJob("metrics.rollup", {
  */
 registerJob("credentials.refresh_tasks", {
   reachesOutside: false,
-  idempotency: (p) => keyOf("credential-tasks", p.day ?? "today"),
+  /* "today" was the default, refused for the reason "yesterday" is above. */
+  idempotency: (p) => keyFieldsMissing(p, ["day"]) ?? keyOf("credential-tasks", p.day),
   run: async (p): Promise<JobOutcome> => {
     const day = typeof p.day === "string" ? p.day : undefined;
     if (day !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(day)) {
@@ -727,7 +736,8 @@ registerJob("report.export", {
   /* One audit row. The CSV was built and handed over inside the request, and
    * nothing here delivers a file to anybody. */
   reachesOutside: false,
-  idempotency: (p) => keyOf("report-export", p.report, p.period, p.at, p.actorId),
+  idempotency: (p) =>
+    keyFieldsMissing(p, ["report", "period", "at", "actorId"]) ?? keyOf("report-export", p.report, p.period, p.at, p.actorId),
   run: async (p): Promise<JobOutcome> => {
     const client = db();
     if (!client) return { kind: "retry", error: "The database is not configured." };
@@ -802,7 +812,7 @@ registerJob("retention.sweep", {
    * confusing outcome: two workers reconciling the same intent against each
    * other's deletions.
    */
-  idempotency: (p) => keyOf("retention-sweep", p.manifestId),
+  idempotency: (p) => keyFieldsMissing(p, ["manifestId"]) ?? keyOf("retention-sweep", p.manifestId),
   run: async (p): Promise<JobOutcome> => {
     const manifestId = typeof p.manifestId === "string" ? p.manifestId : "";
     if (!manifestId) return { kind: "fatal", error: "A retention sweep needs a manifest id." };
@@ -859,6 +869,23 @@ registerJob("retention.sweep", {
   },
 });
 
+// ----------------------------------------------------------- review.request
+
+registerJob("review.request", {
+  /*
+   * FALSE, ON THE errors.alert PATTERN. This handler sends nothing: it decides,
+   * writes the order's timeline and QUEUES an email.send, passing job.effectMode
+   * to it so a suppressed run never spawns a live send. Run item 25.
+   */
+  reachesOutside: false,
+  idempotency: (p) => reviewRequestKey(p.orderId),
+  run: async (p, job): Promise<JobOutcome> => {
+    const orderId = typeof p.orderId === "string" ? p.orderId : "";
+    if (!orderId) return { kind: "fatal", error: "A review request needs an orderId." };
+    return runReviewRequest(orderId, job);
+  },
+});
+
 // --------------------------------------------------- review.after_decision
 
 /*
@@ -887,7 +914,8 @@ registerJob("review.after_decision", {
   reachesOutside: true,
   reaches:
     "Stripe, on a refusal: a refund of what the order's refund rule returns, idempotent at Stripe on the charge and amount. And the people a decision concerns, through raise(): the technician on revisions or a site visit, the other administrators on a refusal.",
-  idempotency: (p) => reviewAfterDecisionKey(String(p.fileId ?? ""), String(p.decisionId ?? "")),
+  idempotency: (p) =>
+    keyFieldsMissing(p, ["fileId", "decisionId"]) ?? reviewAfterDecisionKey(String(p.fileId), String(p.decisionId)),
   run: async (p, job): Promise<JobOutcome> => {
     const fileId = typeof p.fileId === "string" ? p.fileId : "";
     const action = p.action;
