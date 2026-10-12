@@ -185,10 +185,19 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * naming both figures before this edit, which is this constant doing its job;
  * the miss was that the migration's author did not run this audit standalone
  * before boarding.
+ *
+ * Moved 2026-10-10 by 0071, sign in attempts counted in the database: 1,171 to
+ * 1,176 is eng_sign_in_attempts' five columns (id, created_at, address,
+ * identity, kind), 83 tables to 84 is that table with row level security on,
+ * shape bc55a14f40a4c7a78cc061fd262e785b. 0068, 0069 and 0070 moved no shape.
+ *
+ * Moved 2026-10-10 by 0072, a partner's logo: 1,176 to 1,181 is eng_partners'
+ * five brand_logo_ columns (key, status, uploaded_at, decided_by, decided_at),
+ * no new table, shape 3cffb39b56eda13ab54bbe8823b4c26d.
  */
-const EXPECTED_FINGERPRINT = "18826fa5b3e7d9c9979ca81b96666bb7";
-const EXPECTED_COLUMNS = 1171;
-const EXPECTED_TABLES = 83;
+const EXPECTED_FINGERPRINT = "3cffb39b56eda13ab54bbe8823b4c26d";
+const EXPECTED_COLUMNS = 1181;
+const EXPECTED_TABLES = 84;
 /* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts. */
 const EXPECTED_TRIGGERS = 77;
 /**
@@ -214,7 +223,9 @@ const EXPECTED_TRIGGERS = 77;
  * 0063 adds one, eng_spend_links_on_suspension, bringing it to 36; 0064
  * replaces that function's body and adds none.
  */
-const EXPECTED_FUNCTIONS = 36;
+/* 37 since 0068: eng_record_review_decision, a decided review in one transaction.
+ * 38 since 0071: eng_take_sign_in_attempt, the sign in limiter's count. */
+const EXPECTED_FUNCTIONS = 38;
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
