@@ -1,6 +1,6 @@
 import "server-only";
 import { supabaseAdmin } from "./supabase";
-import { enqueue, queueEmail, type JobRecord } from "./ops-jobs";
+import { enqueue, queueEmail, keyFieldsMissing, type JobRecord, type KeyRefusal } from "./ops-jobs";
 import type { JobOutcome } from "./job-rules";
 import { orderForFile } from "./order-for-file";
 import { event as orderEvent } from "./ops-intake";
@@ -33,9 +33,15 @@ import { REVIEW_LINK, REVIEW_REQUEST_DELAY_DAYS } from "@/config/review-request"
 export const REVIEW_REQUEST_JOB = "review.request" as const;
 export const REVIEW_SENT_EVENT = "review_request.queued";
 
-/** The idempotency key for an order's one request. */
-export function reviewRequestKey(orderId: string): string {
-  return `review-request:${orderId}`;
+/**
+ * The idempotency key for an order's one request, or a refusal when there is
+ * no order. It used to build `review-request:` from a missing id, and every
+ * request queued without an order would then have shared that one key and been
+ * deduplicated away without a word. Operator ruling, 2026-10-12: never a bare
+ * prefix. The refusal is recorded by enqueue and never fails the delivery.
+ */
+export function reviewRequestKey(orderId: unknown): string | KeyRefusal {
+  return keyFieldsMissing({ orderId }, ["orderId"]) ?? `review-request:${String(orderId)}`;
 }
 
 /**
@@ -50,6 +56,9 @@ export async function scheduleReviewRequest(fileId: string): Promise<void> {
 
   const runAfter = new Date(Date.now() + REVIEW_REQUEST_DELAY_DAYS * 86_400_000);
   const queued = await enqueue(REVIEW_REQUEST_JOB, { orderId: order.id }, { runAfter });
+  /* With no order id there is no timeline to write on; enqueue has already
+   * recorded the refusal as a fault naming the missing field. */
+  if (!order.id) return;
   await orderEvent(
     order.id,
     "review_request.scheduled",
