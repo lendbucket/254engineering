@@ -35,9 +35,28 @@ position, not the reasoning (that is in GAPS.md and the commit messages).
 | 13m | Run item 9, staff record search | `feat/staff-record-search` at 0036f5e | **MERGED as 1d34e75**, 61 of 61 as predicted |
 | 13n | Run item 10, one price story with the coastal line | `fix/one-price-story` at ca31b4e | **MERGED as fb9ff42**, 61 of 61 as predicted |
 | 13o | Overnight item 3, template publishing | none yet | **BLOCKED, needs a ruling.** All five signed protocols (MH, SL, PL, RS, DS v1.1) carry `requires_discipline` null, in the database (0065) and in their transcriptions. The approval refuses a protocol with no stated discipline, because the engineer's declared competence is checked against it; RC-001 cleared only through 0056, which records Aman's written direction ("Structural Engineering governs this requirement"). Publishing the five through eng_approve_protocol now would skip that check, so nothing is written. Needed: Aman's written direction per protocol, as for RC-001. Checked meanwhile, operator's points 3 and 4: every checklist label (109), intake question (96) and determination heading and criterion (113) of the five is word for word in its signed text, no differences. Transcription sha each signature must carry: MH d5fb2893, SL c19522c8, PL c8814496, RS 47e8e9ec, DS c47536b8 (full values in the morning report). Development holds no protocol seal acts, so a backfill publishes nothing there |
+| 13p | Question for Aman, to paste into Robert's email | | See "For Aman" below the table |
 | 13e | The run of 2026-10-10 | | Everything else built that day, its branches, boards and questions: `docs/audit-2026-10/RUN-2026-10-10.md`. 0070 amended before any apply to the engineer role only (admin stays optional, operator ruling 2026-10-10); staged chain 0068, 0069, 0070, 0071, 0072, in that order |
 | 13a | Rulings of 2026-10-10 morning | | Order: engineer pay one home (`engineer-pay.ts`, productionFeeFor reads the tier; production eng_fee_schedule is EMPTY), then template published on signing (migration unapplied), then WP-001 v1.2 and FC-001 v1.0 transcriptions (migration unapplied), then the rest |
 | 14 | Public site colours | | after the audit and the defects |
+
+## For Aman, ready to paste
+
+Aman, a question about the five protocols below. Before the platform can put
+them in force, it needs one more answer from you for each: which
+engineering discipline the work under that protocol requires. For the roof
+certification protocol you told us on September 21 that Structural Engineering
+governs it, and the platform checks your declared competence against that
+answer before a protocol goes in force. Could you state the required discipline
+for each of these?
+
+1. 254-MH-001, Manufactured Home Foundation Certification Protocol
+2. 254-SL-001, Solar Structural Letter Protocol for Existing Roofs
+3. 254-PL-001, Structural Letter Protocol for Permits
+4. 254-RS-001, Repair Specification Protocol for Existing Structures
+5. 254-DS-001, Structural Design Protocol for Residential and Light Commercial Work
+
+A one line answer per protocol is enough, in your own words.
 
 ## Main
 
