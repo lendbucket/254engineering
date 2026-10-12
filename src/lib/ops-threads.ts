@@ -152,6 +152,41 @@ async function visibleFileIds(actor: Actor, fileIds: string[]): Promise<Set<stri
   return visible;
 }
 
+/**
+ * The rows of `rows` this actor may read, by canReadThread, the same rule the
+ * inbox below applies. For a caller that has read the threads itself, in full,
+ * rather than through listThreads' page: the customer service dashboard counted
+ * every thread in the table, other people's direct messages included (product
+ * audit, 2026-10-10, defect 17), and a count is not allowed a silent page cap.
+ * Participants and files are read in chunks so a long list stays one rule.
+ */
+export async function threadsReadableBy<T extends { id: string; kind: ThreadRow["kind"]; file_id: string | null; channel_roles: RoleKey[] | null }>(
+  actor: Actor,
+  rows: T[],
+): Promise<T[]> {
+  const CHUNK = 100;
+  const readable: T[] = [];
+  for (let i = 0; i < rows.length; i += CHUNK) {
+    const slice = rows.slice(i, i + CHUNK);
+    const byThread = await participantsOf(slice.map((r) => r.id));
+    const visibleFiles = await visibleFileIds(
+      actor,
+      slice.filter((r) => r.file_id).map((r) => r.file_id as string),
+    );
+    for (const row of slice) {
+      const subject: ThreadSubject = {
+        id: row.id,
+        kind: row.kind,
+        fileId: row.file_id,
+        participantIds: (byThread.get(row.id) ?? []).map((p) => p.id),
+        channelRoles: row.channel_roles ?? [],
+      };
+      if (canReadThread(actor, subject, row.file_id ? visibleFiles.has(row.file_id) : false)) readable.push(row);
+    }
+  }
+  return readable;
+}
+
 export async function listThreads(actor: Actor | null): Promise<ThreadListItem[]> {
   const db = supabaseAdmin();
   if (!db || !actor || actor.status !== "active") return [];
