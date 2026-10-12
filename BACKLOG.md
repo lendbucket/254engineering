@@ -43,6 +43,24 @@ active, login 2026-09-02 16:45:18 UTC, profile 17:57:25 UTC, and no
 `scripts/seed-admin.mjs`, not the People screen, so it carries no such row, true
 or false.
 
+## SURVEY OWED: READS WHOSE ERROR IS DISCARDED, SO A FAILED READ READS AS CLEAN
+
+Found 2026-10-11 by reading a green board's transient retry lines. demo-audit's
+"the clients screen lists none of them" looked up every listed client in one
+`in()` request and discarded the error; from the 0070 board on, the request
+failed on its size (`UND_ERR_HEADERS_OVERFLOW`, about four hundred ids), and the
+check passed over a read that never happened. `fix/demo-audit-reads-its-error`
+fixes THAT INSTANCE: paged reads, the error read, COULD NOT TELL on a fault, and
+demo-audit now exits 3 when anything is unmeasured instead of 0.
+
+**The class is not fixed.** A search for `const { data } = await ... .in(` with
+no `error` taken found 21 such reads under `scripts/`, mostly teardown checks
+over a handful of probe ids (`bulk-audit`, `queue-audit`, `doors-audit`,
+`scripts/lib/probe-ledger.mjs`, `scripts/lib/portal-probe.mjs`). A teardown
+verification that reads a null as "nothing left" is the mirror-sweep defect in
+CLAUDE.md 6c. Open: survey each, report which can read a failure as a pass,
+then fix those on a ruling.
+
 ## APPLIED: 0072, A PARTNER'S LOGO IS APPROVED BEFORE IT SHOWS
 
 `docs/production-sitting-feat-partner-branding-upload.md`. Run item 19's
