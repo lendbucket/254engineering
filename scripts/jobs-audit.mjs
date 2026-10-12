@@ -163,6 +163,10 @@ const PROBE_A = {
    * on the first board run after it shipped, for the third time and for the
    * same reason, and the field was added here rather than the check loosened. */
   manifestId: "manifest-a",
+  /* review.request is keyed on the order alone, one request per order. Its
+   * first board went red here, the fourth time this arrangement has caught a
+   * new key field, and the field was added rather than the check loosened. */
+  orderId: "order-a",
 };
 const PROBE_B = {
   id: "b",
@@ -180,6 +184,7 @@ const PROBE_B = {
   at: "2026-09-05",
   actorId: "actor-b",
   manifestId: "manifest-b",
+  orderId: "order-b",
 };
 
 /*
