@@ -43,7 +43,7 @@ active, login 2026-09-02 16:45:18 UTC, profile 17:57:25 UTC, and no
 `scripts/seed-admin.mjs`, not the People screen, so it carries no such row, true
 or false.
 
-## STAGED: 0073, NO eng_ FUNCTION IS CALLABLE WITHOUT THE SERVICE ROLE
+## APPLIED: 0073, NO eng_ FUNCTION IS CALLABLE WITHOUT THE SERVICE ROLE
 
 `docs/production-sitting-fix-function-grants.md`. A security defect the
 counterpart found on production on 2026-10-10: every `eng_` function was
@@ -52,9 +52,10 @@ call `eng_set_trade_price` (SECURITY DEFINER) through PostgREST and write a
 trade price. 0073 revokes those grants on every public `eng_` function and
 grants `service_role` only; migration-audit's replay now carries Supabase's
 roles and default grant (`scripts/lib/replay-stubs.mjs`) and fails if any
-function is executable by anon or authenticated. On `fix/function-grants`,
-after 0072. **Not applied anywhere.** Open: apply ahead of anything else
-waiting, read back. **Also open, for a ruling:** the public schema's default
+function is executable by anon or authenticated. **Applied to development
+and production 2026-10-11 13:54 CT** by the counterpart, read back on both:
+anon 0, authenticated 0, service_role 38 of 38; the jobs cron and health-watch
+ran ok after. **Still open, for a ruling:** the public schema's default
 privileges still grant a NEW function to anon; 0073 leaves them alone because
 production's public schema is shared with other applications, so the guard is
 the board rather than the database.
