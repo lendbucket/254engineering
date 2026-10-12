@@ -17,6 +17,7 @@ import { PGlite } from "@electric-sql/pglite";
 import { readdirSync } from "node:fs";
 import { join } from "node:path";
 import { readSource } from "../lib/read-source.mjs";
+import { SUPABASE_REPLAY_STUBS } from "../lib/replay-stubs.mjs";
 
 let wrong = 0;
 const check = (name, ok, note = "") => {
@@ -29,12 +30,7 @@ const MAX_ADDRESS = 20;
 const WINDOW = 15 * 60;
 
 const db = new PGlite();
-await db.exec(`
-  create schema if not exists auth;
-  create table if not exists auth.users (id uuid primary key);
-  create schema if not exists storage;
-  create table if not exists storage.buckets (id text primary key, name text, public boolean, file_size_limit bigint, allowed_mime_types text[]);
-`);
+await db.exec(SUPABASE_REPLAY_STUBS);
 const DIR = "supabase/migrations";
 for (const f of readdirSync(DIR).filter((x) => x.endsWith(".sql")).sort()) await db.exec(readSource(join(DIR, f)));
 

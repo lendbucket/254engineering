@@ -14,6 +14,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { PGlite } from "@electric-sql/pglite";
 import { readSource } from "../lib/read-source.mjs";
+import { SUPABASE_REPLAY_STUBS } from "../lib/replay-stubs.mjs";
 
 let wrong = 0;
 const check = (name, ok, note = "") => {
@@ -39,12 +40,7 @@ check("an empty file is refused", logoRefusal(new Uint8Array(0)) !== null);
 
 /* 2. The states, in the replayed schema. */
 const db = new PGlite();
-await db.exec(`
-  create schema if not exists auth;
-  create table if not exists auth.users (id uuid primary key);
-  create schema if not exists storage;
-  create table if not exists storage.buckets (id text primary key, name text, public boolean, file_size_limit bigint, allowed_mime_types text[]);
-`);
+await db.exec(SUPABASE_REPLAY_STUBS);
 for (const f of readdirSync("supabase/migrations").filter((x) => x.endsWith(".sql")).sort()) await db.exec(readSource(join("supabase/migrations", f)));
 
 const bucket = (await db.query("select public, file_size_limit, allowed_mime_types from storage.buckets where id = 'eng-partner-branding'")).rows[0];

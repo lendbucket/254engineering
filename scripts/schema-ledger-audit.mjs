@@ -36,6 +36,7 @@
 
 import { readdirSync } from "node:fs";
 import { readSource } from "./lib/read-source.mjs";
+import { SUPABASE_REPLAY_STUBS } from "./lib/replay-stubs.mjs";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
@@ -332,25 +333,11 @@ rec(`there are migrations to check (${files.length})`, files.length > 0);
 {
   const db = new PGlite();
 
-  /* The same stubs migration-audit uses. They sit outside the fingerprint,
-   * which covers eng_ tables in public only. Named, because the behaviour
-   * fingerprint replays the chain a second time and two spellings of the stubs
-   * would be two starting databases. */
-  const STUBS = `
-    create schema if not exists auth;
-    create table if not exists auth.users (
-      id uuid primary key, email text, created_at timestamptz not null default now()
-    );
-    create schema if not exists storage;
-    create table if not exists storage.buckets (
-      id text primary key, name text, public boolean default false,
-      file_size_limit bigint, allowed_mime_types text[]
-    );
-    create table if not exists storage.objects (
-      id uuid primary key default gen_random_uuid(),
-      bucket_id text, name text, metadata jsonb
-    );
-  `;
+  /* The same stubs every replay uses, from scripts/lib/replay-stubs.mjs. They
+   * sit outside the fingerprint, which covers eng_ tables in public only. One
+   * module, because the behaviour fingerprint replays the chain a second time
+   * and two spellings of the stubs would be two starting databases. */
+  const STUBS = SUPABASE_REPLAY_STUBS;
   await db.exec(STUBS);
 
   const fingerprintNow = async () => {
