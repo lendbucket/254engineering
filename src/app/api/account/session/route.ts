@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
    * limiter (eight per account, twenty per address, fifteen minutes).
    */
   const attempted = email.trim().toLowerCase();
-  const limit = takeLoginAttempt(clientKey(request.headers), attempted || undefined);
+  const limit = await takeLoginAttempt(clientKey(request.headers), attempted || undefined);
   if (!limit.allowed) {
     const res = NextResponse.json(
       { ok: false, error: "Too many attempts. Wait a few minutes and try again.", retryAfterSeconds: limit.retryAfterSeconds },
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: result.error }, { status: 401 });
   }
 
-  clearLoginAttempts(clientKey(request.headers), attempted);
+  await clearLoginAttempts(clientKey(request.headers), attempted);
 
   const session = issueCustomerSession(result.principal.id, result.principal.accountId);
   if (!session) {

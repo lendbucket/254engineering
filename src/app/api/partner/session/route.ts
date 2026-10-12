@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
    * first answers every attempt forever without counting one. security-audit
    * caught that second case against production once.
    */
-  const limit = takeLoginAttempt(clientKey(request.headers), attempted || undefined);
+  const limit = await takeLoginAttempt(clientKey(request.headers), attempted || undefined);
   if (!limit.allowed) {
     const res = isForm
       ? NextResponse.redirect(new URL("/partner/login?throttled=1", request.url), { status: 303 })
@@ -122,7 +122,7 @@ export async function POST(request: NextRequest) {
       : fail(401, GENERIC);
   }
 
-  clearLoginAttempts(clientKey(request.headers), attempted);
+  await clearLoginAttempts(clientKey(request.headers), attempted);
 
   const session = issuePartnerSession(result.principal.id, result.principal.partnerId);
   if (!session) return fail(503, "The partner program is not configured.");

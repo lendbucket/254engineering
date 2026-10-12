@@ -221,7 +221,7 @@ export async function POST(request: NextRequest) {
   /* ----------------------------------------------------------- confirm */
 
   if (action === "confirm") {
-    const limit = takeLoginAttempt(clientKey(request.headers), `${MFA_SCOPE}:${profile.id}`);
+    const limit = await takeLoginAttempt(clientKey(request.headers), `${MFA_SCOPE}:${profile.id}`);
     if (!limit.allowed) {
       return NextResponse.json(
         { ok: false, error: "Too many attempts. Wait a few minutes." },
@@ -390,7 +390,7 @@ export async function POST(request: NextRequest) {
 
   /* ------------------------------------------------------------ verify */
 
-  const limit = takeLoginAttempt(clientKey(request.headers), `${MFA_SCOPE}:${profile.id}`);
+  const limit = await takeLoginAttempt(clientKey(request.headers), `${MFA_SCOPE}:${profile.id}`);
   if (!limit.allowed) {
     return NextResponse.json(
       { ok: false, error: "Too many attempts. Wait a few minutes." },
