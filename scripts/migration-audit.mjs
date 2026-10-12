@@ -49,6 +49,7 @@
 
 import { readdirSync } from "node:fs";
 import { readSource } from "./lib/read-source.mjs";
+import { SUPABASE_REPLAY_STUBS } from "./lib/replay-stubs.mjs";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
 import { PGlite } from "@electric-sql/pglite";
@@ -288,21 +289,11 @@ for (const f of files) {
 const db = new PGlite();
 
 /*
- * The Supabase objects this platform's migrations reference. Minimal, and
- * outside the fingerprint.
+ * The Supabase objects this platform's migrations reference, the roles and
+ * their default grant included. Minimal, outside the fingerprint, and one copy
+ * for every replay: scripts/lib/replay-stubs.mjs.
  */
-await db.exec(`
-  create schema if not exists auth;
-  create table if not exists auth.users (id uuid primary key);
-  create schema if not exists storage;
-  create table if not exists storage.buckets (
-    id text primary key,
-    name text,
-    public boolean,
-    file_size_limit bigint,
-    allowed_mime_types text[]
-  );
-`);
+await db.exec(SUPABASE_REPLAY_STUBS);
 
 let replayed = 0;
 let failedAt = null;
@@ -379,6 +370,56 @@ if (failedAt === null) {
     "and every one has its search_path pinned",
     fns.length > 0 && fns.every((f) => f.pinned),
     fns.filter((f) => !f.pinned).map((f) => f.proname).join(", ") || "all pinned",
+  );
+
+  /*
+   * NO FUNCTION IN PUBLIC IS EXECUTABLE BY anon OR authenticated. 0073.
+   *
+   * Every eng_ function was callable through PostgREST rpc by anybody holding
+   * the publishable key until 0073, because Supabase's default privileges and
+   * PostgreSQL's grant to PUBLIC give EXECUTE on every new function. This
+   * platform calls every function with the service role and nothing else, so
+   * the only grant a function needs is service_role's.
+   *
+   * THE PREMISE FIRST. The check below asserts an absence, and an absence holds
+   * just as well in a replay that never granted anything. So a throwaway
+   * function is created after the chain and must be executable by anon: that
+   * is the replay reproducing production's default, which is what gives the
+   * real check something to find. It is dropped before anything else reads the
+   * schema.
+   */
+  await db.exec(`create function public.replay_default_grant_probe() returns int language sql as 'select 1'`);
+  const premise = (await db.query(
+    `select has_function_privilege('anon', 'public.replay_default_grant_probe()', 'EXECUTE') as anon`,
+  )).rows[0];
+  await db.exec(`drop function public.replay_default_grant_probe()`);
+  rec(
+    "the replay grants a new function to anon by default, as Supabase does",
+    premise.anon === true,
+    premise.anon ? "so the next check can find a function nobody revoked" : "the stub lost the default, so the next check passes over nothing",
+  );
+  const grantRows = (await db.query(`
+    select p.oid::regprocedure::text as sig,
+           p.proname like 'eng\\_%' as ours,
+           has_function_privilege('anon', p.oid, 'EXECUTE') as anon,
+           has_function_privilege('authenticated', p.oid, 'EXECUTE') as authenticated,
+           has_function_privilege('service_role', p.oid, 'EXECUTE') as service
+    from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public'
+    order by 1
+  `)).rows;
+  const open = grantRows.filter((r) => r.anon || r.authenticated);
+  rec(
+    `no function in public is executable by anon or authenticated (${grantRows.length} checked)`,
+    grantRows.length >= EXPECTED_FUNCTIONS && open.length === 0,
+    open.map((r) => `${r.sig}${r.anon ? " anon" : ""}${r.authenticated ? " authenticated" : ""}`).join(", ") ||
+      `none, and ${grantRows.length} is at least the ${EXPECTED_FUNCTIONS} eng_ functions`,
+  );
+  const closed = grantRows.filter((r) => r.ours && !r.service);
+  rec(
+    "and the service role can execute every eng_ function, which is how the platform calls them",
+    closed.length === 0 && grantRows.some((r) => r.ours),
+    closed.map((r) => r.sig).join(", ") || "all",
   );
 
   const trgRows = await db.query(`
