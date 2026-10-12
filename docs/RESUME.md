@@ -35,6 +35,9 @@ position, not the reasoning (that is in GAPS.md and the commit messages).
 | 13m | Run item 9, staff record search | `feat/staff-record-search` at 0036f5e | **MERGED as 1d34e75**, 61 of 61 as predicted |
 | 13n | Run item 10, one price story with the coastal line | `fix/one-price-story` at ca31b4e | **MERGED as fb9ff42**, 61 of 61 as predicted |
 | 13o | Overnight item 3, template publishing | none yet | **BLOCKED, needs a ruling.** All five signed protocols (MH, SL, PL, RS, DS v1.1) carry `requires_discipline` null, in the database (0065) and in their transcriptions. The approval refuses a protocol with no stated discipline, because the engineer's declared competence is checked against it; RC-001 cleared only through 0056, which records Aman's written direction ("Structural Engineering governs this requirement"). Publishing the five through eng_approve_protocol now would skip that check, so nothing is written. Needed: Aman's written direction per protocol, as for RC-001. Checked meanwhile, operator's points 3 and 4: every checklist label (109), intake question (96) and determination heading and criterion (113) of the five is word for word in its signed text, no differences. Transcription sha each signature must carry: MH d5fb2893, SL c19522c8, PL c8814496, RS 47e8e9ec, DS c47536b8 (full values in the morning report). Development holds no protocol seal acts, so a backfill publishes nothing there |
+| 13q | Overnight: 12.3 no offer without a rate | `fix/no-offer-without-a-rate` at 5c058dd | **MERGED as e986da0**, 61 of 61 |
+| 13r | Overnight: 0073 | `fix/function-grants` at 6e5cf9d | **MERGED as dbe7507**; first board 59 + 1 + 1 (a `/portal/login` timeout at 390, see the morning report), re-board exact 60 + 1 |
+| 13s | Overnight: partner billing, 0074 | `feat/partner-billing` at 90e6d4e | **STAGED**, `docs/production-sitting-feat-partner-billing.md`; billing off |
 | 13p | Question for Aman, to paste into Robert's email | | See "For Aman" below the table |
 | 13e | The run of 2026-10-10 | | Everything else built that day, its branches, boards and questions: `docs/audit-2026-10/RUN-2026-10-10.md`. 0070 amended before any apply to the engineer role only (admin stays optional, operator ruling 2026-10-10); staged chain 0068, 0069, 0070, 0071, 0072, in that order |
 | 13a | Rulings of 2026-10-10 morning | | Order: engineer pay one home (`engineer-pay.ts`, productionFeeFor reads the tier; production eng_fee_schedule is EMPTY), then template published on signing (migration unapplied), then WP-001 v1.2 and FC-001 v1.0 transcriptions (migration unapplied), then the rest |
@@ -60,7 +63,7 @@ A one line answer per protocol is enough, in your own words.
 
 ## Main
 
-`origin/main` at fb9ff42 (0068 merged as c14144f, 0069 as dcfe8af, 0070 as 446547d, 0071 as 3bb9cf7, 0072 as 730df43, the demo-audit fix as f828a56, item 9 as 1d34e75, item 10 as fb9ff42). Production has 0068 to 0072 (counterpart, 2026-10-10), all on main; 0073 staged. Next: the rest of the run's queue, item 12.3 at 5c058dd first, in order, on exact passes under the standing word. Dated not-yet-V10 list: **0**. The board has **61** audits and prints a transient retry count.
+`origin/main` at dbe7507 (0068 merged as c14144f, 0069 as dcfe8af, 0070 as 446547d, 0071 as 3bb9cf7, 0072 as 730df43, the demo-audit fix as f828a56, item 9 as 1d34e75, item 10 as fb9ff42, 12.3 as e986da0, 0073 as dbe7507). Production has 0068 to 0073, all on main; 0074 staged on feat/partner-billing. Next: the overnight order of 2026-10-12, see docs/MORNING-2026-10-12.md, in order, on exact passes under the standing word. Dated not-yet-V10 list: **0**. The board has **61** audits and prints a transient retry count.
 
 ## Worktrees
 
