@@ -343,11 +343,21 @@ if (templates.length === 0) {
      * first had not worked. Verified rather than assumed: the file imports no
      * send, no compose and no queue. */
     "src/app/(site)/unsubscribe/page.tsx",
+    /*
+     * The second path that consults it to decide whether to SEND: the Google
+     * review request, which is marketing by the operator's ruling of
+     * 2026-10-10 (run item 25), "it respects eng_marketing_suppressions ... a
+     * review request is not order correspondence". It sends one
+     * marketing.review_request and nothing transactional.
+     */
+    "src/lib/review-request.ts",
   ];
 
   const SUPPRESSION_READERS = [
     "src/lib/ops-announce.ts",
     "src/app/(site)/unsubscribe/page.tsx",
+    /* The review request, as above: it reads the gate and sends only marketing. */
+    "src/lib/review-request.ts",
     /* The operator screen for the list, and the route behind it. Neither sends
      * anything and neither imports the gate. */
     "src/app/portal/(app)/suppressions/page.tsx",

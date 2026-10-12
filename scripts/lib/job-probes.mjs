@@ -104,7 +104,9 @@ export const PROBES = [
   },
   {
     kind: "document.binder",
-    payload: { fileId: NOWHERE },
+    /* requestedFor since 2026-10-12: the key refuses without it rather than
+     * defaulting to "latest". */
+    payload: { fileId: NOWHERE, requestedFor: "queue-audit-probe" },
     expect: "dead",
     realSubject: false,
     why:
@@ -166,13 +168,28 @@ export const PROBES = [
   {
     kind: "report.export",
     payload: { report: "", period: "" },
-    expect: "dead",
+    expect: "refused",
+    missing: ["report", "period", "at", "actorId"],
     realSubject: false,
     why:
-      "A report export with no report and no period is fatal. A complete payload would write a row into " +
+      "Refused at the enqueue since 2026-10-12, when a key built from an absent field became a refusal " +
+      "(operator ruling). This probe was dead before that, reaching the handler's own 'needs a report and a " +
+      "period' fatal; the key now stops it first, so that branch is reachable only by a row written past " +
+      "enqueue. A payload the key accepts is the only other choice, and it would write a row into " +
       "eng_audit_events, which is append only and cannot be removed, so a board run would add a permanent " +
       "claim that a report was handed to somebody. That is the firm's regulatory memory and probes do not " +
       "belong in it.",
+  },
+  {
+    kind: "review.request",
+    payload: { orderId: NOWHERE },
+    expect: "dead",
+    realSubject: false,
+    why:
+      "Added 2026-10-10 (run item 25). A review request for an order that does not exist is fatal. A real " +
+      "order would queue a marketing email to a real customer address and write to that order's timeline, " +
+      "and no board run may ask a person for a review. The real path is proved against a probe order in " +
+      "scripts/proofs/a-review-request-goes-once-or-not-at-all.mjs.",
   },
   {
     kind: "retention.sweep",
