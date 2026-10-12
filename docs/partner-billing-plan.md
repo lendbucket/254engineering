@@ -1,7 +1,20 @@
-# Partner billing: the plan, for approval
+# Partner billing: the plan
 
-Item 17 of the run of 2026-10-10. **Nothing in this document is built.** It
-stops here for Robert's approval, and item 18 (provisioning) waits on it.
+Item 17 of the run of 2026-10-10. **Approved by Robert on 2026-10-11, as
+designed, and built on `feat/partner-billing` behind `enabled = false`.** It
+stopped here for that approval until then. Two things changed in the build and
+are recorded here so this document stays true:
+
+- **No Stripe Price ids.** The checkout uses inline `price_data` for both lines,
+  so no Price has to exist in the dashboard first; section 1's test and live id
+  pairs are not needed.
+- **The six questions below are still open.** Each is a pending value in
+  `src/config/partner-billing.ts`, null where a null holds the action back, and
+  none appears in any copy, order page, onboarding text or email until Robert
+  rules. Turning billing on is a separate step after the attorney confirms the
+  structure.
+
+Item 18 (provisioning) waits on billing being turned on.
 
 ## What is being billed
 

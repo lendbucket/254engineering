@@ -548,6 +548,23 @@ export const RETENTION_POLICY: RetentionEntry[] = [
   },
   { table: "eng_partner_assets", rule: { kind: "kept_pending_counsel", because: COUNSEL } },
   {
+    table: "eng_partner_billing",
+    rule: {
+      kind: "kept_pending_counsel",
+      because: "What a partner owes 254 now, one row per partner, updated in place. A billing record. " + COUNSEL,
+    },
+  },
+  {
+    table: "eng_partner_billing_events",
+    rule: {
+      kind: "kept_forever",
+      because:
+        REFUSES_DELETE("eng_forbid_mutation") +
+        " It is the record of every billing transition a partner went through and the Stripe event that caused it.",
+      ruledBy: "0074, and the trigger",
+    },
+  },
+  {
     table: "eng_partner_entries",
     rule: {
       kind: "kept_forever",

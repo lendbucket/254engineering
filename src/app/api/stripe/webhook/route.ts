@@ -9,6 +9,7 @@ import {
 } from "@/lib/ops-payments";
 import { markStatementPaid } from "@/lib/ops-statements";
 import { confirmStripeAccount } from "@/lib/payments-stripe";
+import { applyPartnerBillingEvent } from "@/lib/partner-billing";
 
 export const dynamic = "force-dynamic";
 
@@ -83,6 +84,30 @@ export async function POST(request: NextRequest) {
      * anywhere is indistinguishable from a webhook that was never delivered.
      */
     return NextResponse.json({ ok: true, handled: false });
+  }
+
+  /*
+   * THE PARTNER BILLING LANE (0074), before every order branch. It writes the
+   * partner billing tables and nothing else. A refused mix was already logged by
+   * the adapter and answers 200, because redelivering it will not make it valid;
+   * a failed write answers 500, so Stripe retries and the event id keeps the
+   * retry from applying twice.
+   */
+  if (parsed.kind === "partner_billing.refused") {
+    return NextResponse.json({ ok: true, handled: false, refused: true });
+  }
+  if (parsed.kind === "partner_billing") {
+    const result = await applyPartnerBillingEvent(parsed.event);
+    if (!result.ok) {
+      console.error(`[stripe] partner billing ${parsed.event.eventId}: ${result.error}`);
+      return NextResponse.json({ ok: false }, { status: 500 });
+    }
+    console.log(
+      `[stripe] partner billing ${parsed.event.type} for partner ${parsed.event.partnerId}: ${
+        result.duplicate ? "already applied" : `now ${result.status ?? "unchanged"}`
+      }`,
+    );
+    return NextResponse.json({ ok: true, handled: true, duplicate: result.duplicate });
   }
 
   if (parsed.kind === "checkout.completed") {

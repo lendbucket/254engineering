@@ -194,13 +194,22 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  *
  * Moved 2026-10-10 by 0072, a partner's logo: 1,176 to 1,181 is eng_partners'
  * five brand_logo_ columns (key, status, uploaded_at, decided_by, decided_at),
- * no new table, shape 3cffb39b56eda13ab54bbe8823b4c26d.
+ * no new table, shape 3cffb39b56eda13ab54bbe8823b4c26d. 0073 moved no shape.
+ *
+ * Moved 2026-10-12 by 0074, partner billing: 1,181 to 1,194 is
+ * eng_partner_billing's eight columns (partner_id, status, past_due_since,
+ * current_period_end, stripe_customer_ref, stripe_subscription_ref,
+ * created_at, updated_at) and eng_partner_billing_events' five
+ * (stripe_event_id, partner_id, event_type, status_after, applied_at); 84
+ * tables to 86, both with row level security on; shape
+ * e4b2e3505c71594d6aba4ca47025bf3f.
  */
-const EXPECTED_FINGERPRINT = "3cffb39b56eda13ab54bbe8823b4c26d";
-const EXPECTED_COLUMNS = 1181;
-const EXPECTED_TABLES = 84;
-/* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts. */
-const EXPECTED_TRIGGERS = 77;
+const EXPECTED_FINGERPRINT = "e4b2e3505c71594d6aba4ca47025bf3f";
+const EXPECTED_COLUMNS = 1194;
+const EXPECTED_TABLES = 86;
+/* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts.
+ * 0074 adds two: eng_partner_billing_touch and eng_partner_billing_events_immutable. */
+const EXPECTED_TRIGGERS = 79;
 /**
  * 0014 added eng_freeze_attribution and 0019 added two more, the partner
  * entry freeze and its delete refusal, which are trigger functions like the

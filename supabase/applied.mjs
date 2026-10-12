@@ -2441,6 +2441,30 @@ export const APPLIED = [
       "carries Supabase's roles and default grant (scripts/lib/replay-stubs.mjs) and asserts no function in " +
       "public is executable by anon or authenticated after the chain.",
   },
+  {
+    file: "0074_a_partner_pays_254_through_one_account.sql", appliedBy: "apply_migration",
+    fingerprint: "e4b2e3505c71594d6aba4ca47025bf3f",
+    behaviour: "af1999235595ca68c1976a3f1b2b0aa7",
+    /*
+     * STAGED, written unapplied on feat/partner-billing (on fix/function-grants,
+     * because 0074 follows 0073) with docs/production-sitting-feat-partner-billing.md.
+     * Billing is off in configuration, so nothing writes to either table on the
+     * day it is applied.
+     */
+    production: null,
+    development: { at: "0074", behaviour: null, facts: null },
+    because:
+      "WRITTEN 2026-10-12 UNAPPLIED, operator ruling of 2026-10-11 approving docs/partner-billing-plan.md: a " +
+      "partner pays $800 upfront and $99 a month to 254 through 254's one Stripe account. Two tables: " +
+      "eng_partner_billing (the state now, one row per partner) and eng_partner_billing_events (append only, " +
+      "keyed by Stripe's event id). The counterpart applies it from the sitting document and reads it back.",
+    proves: { table: "eng_partner_billing_events" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0074 on 2026-10-12: shape 1181 to 1194 columns (eight " +
+      "on eng_partner_billing, five on eng_partner_billing_events), 84 tables to 86, behaviour 983 to 998 facts. " +
+      "No function, so no grant to revoke. migration-audit's pinned shape and trigger count move in the same " +
+      "commit. Additive only.",
+  },
 ];
 
 /*

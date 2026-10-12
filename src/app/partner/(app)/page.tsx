@@ -15,8 +15,24 @@ import {
 import { formatInFirmZone } from "@/lib/firm-calendar";
 import { partnerLogo } from "@/lib/partner-branding";
 import { LogoUpload } from "./LogoUpload";
+import { PARTNER_BILLING } from "@/config/partner-billing";
+import { partnerBilling } from "@/lib/partner-billing";
+import type { BillingStatus } from "@/lib/partner-billing-rules";
 
 export const dynamic = "force-dynamic";
+
+/** What the billing panel shows: off, unreadable, not set up, or a status. Reads nothing while off. */
+async function billingForPanel(
+  partnerId: string,
+): Promise<{ state: "off" } | { state: "unread" } | { state: "none" } | { state: "status"; status: BillingStatus }> {
+  if (!PARTNER_BILLING.enabled) return { state: "off" };
+  try {
+    const row = await partnerBilling(partnerId);
+    return row ? { state: "status", status: row.status } : { state: "none" };
+  } catch {
+    return { state: "unread" };
+  }
+}
 
 /**
  * What this partner has sent, and what the firm owes them.
@@ -46,6 +62,7 @@ export default async function PartnerHome() {
   const logo = await partnerLogo(principal.partnerId, { approvedOnly: false });
   const agreement = await currentAgreement();
   const outstanding = agreementOutstanding(principal, agreement);
+  const billing = await billingForPanel(principal.partnerId);
 
   return (
     <>
@@ -113,6 +130,45 @@ export default async function PartnerHome() {
                 : "The firm did not approve this one. Upload another to try again."}
         </p>
         <LogoUpload />
+      </Panel>
+
+      {/*
+       * Program billing (0074, operator ruling 2026-10-11). While billing is off it
+       * says so and reads nothing, so this page cannot fail on a database that does
+       * not have the tables yet. No amount and none of the unruled terms are shown.
+       */}
+      <Panel title="Program billing">
+        {billing.state === "off" ? (
+          <p className="text-[13.5px] leading-[1.6] text-[var(--secondary)]">
+            Billing for the partner program is not open yet. You have not been charged, and nothing is owed.
+          </p>
+        ) : billing.state === "unread" ? (
+          <p className="text-[13.5px] leading-[1.6] text-[var(--secondary)]">
+            Your billing could not be read just now. Nothing about it has changed. Try again shortly.
+          </p>
+        ) : billing.state === "none" ? (
+          <form action="/api/partner/billing" method="post">
+            <p className="mb-3 text-[13.5px] leading-[1.6] text-[var(--secondary)]">
+              Billing has not been set up for your account yet.
+            </p>
+            <button
+              type="submit"
+              className="min-h-[var(--tap-target)] rounded-[2px] bg-[var(--navy)] px-4 text-[13.5px] font-bold text-white"
+            >
+              Set up billing
+            </button>
+          </form>
+        ) : (
+          <p className="text-[13.5px] leading-[1.6] text-[var(--ink)]">
+            {billing.status === "active"
+              ? "Paid up."
+              : billing.status === "past_due"
+                ? "A payment did not go through. Update the card on file with the firm."
+                : billing.status === "suspended"
+                  ? "Suspended for an unpaid balance. Ordering and your order page are paused."
+                  : "Cancelled. Ordering and your order page are paused."}
+          </p>
+        )}
       </Panel>
 
       {overview.blocked > 0 ? (
