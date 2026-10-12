@@ -154,6 +154,8 @@ export const NAV: NavItem[] = [
   { href: "/portal/tasks", label: "Tasks", short: "Tasks", action: "tasks.use", primary: true, icon: "tasks" },
   { href: "/portal/messages", label: "Messages", short: "Chat", action: "messages.use", primary: true, icon: "messages" },
   { href: "/portal/files", label: "Files", short: "Files", action: "files.list", primary: true, icon: "files" },
+  /* One search for a record by reference, email, phone or address (2026-10-10), the page's own guard. */
+  { href: "/portal/search", label: "Search", short: "Search", action: "files.list", icon: "files" },
   { href: "/portal/documents", label: "Documents", short: "Docs", action: "documents.read", icon: "documents" },
   { href: "/portal/orders", label: "Orders", short: "Orders", action: "payments.reconcile", icon: "orders" },
   { href: "/portal/accounts", label: "Accounts", short: "Accts", action: "accounts.manage", icon: "accounts" },

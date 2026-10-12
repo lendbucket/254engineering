@@ -11,6 +11,7 @@ import { JsonLd, breadcrumbSchema } from "@/lib/schema";
 import { processSteps, whatTheLetterSays, whyItMatters } from "@/content/process";
 import { services } from "@/content/services";
 import { priceSentence } from "@/config/prices";
+import { coastalLine } from "@/lib/ordering";
 import { turnaroundCopy } from "@/content/model-copy";
 
 /**
@@ -235,6 +236,8 @@ export default function ProcessPage() {
                     */}
                     <dd className="text-[0.97rem] leading-[1.6] text-slate-muted sm:col-span-6">
                       {price ?? "Quoted per matter."}
+                      {/* The coastal line wherever a price appears, operator ruling 2026-10-10. */}
+                      {price && coastalLine(service.slug) ? `, ${coastalLine(service.slug)}` : null}
                     </dd>
                   </div>
                 );
