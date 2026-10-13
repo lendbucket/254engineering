@@ -203,7 +203,7 @@ export default async function PartnerHome() {
                 ? "A payment did not go through. Update the card on file with the firm."
                 : billing.status === "suspended"
                   ? "Suspended for an unpaid balance. Ordering and your order page are paused."
-                  : "Cancelled. Ordering and your order page are paused."}
+                  : "Canceled. Ordering and your order page are paused."}
           </p>
         )}
       </Panel>
