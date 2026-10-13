@@ -1268,14 +1268,34 @@ else process.env.OPS_SESSION_SECRET = HAD;
 
           if (reachable) {
             await started.click();
-            await page.waitForTimeout(3000);
+            /*
+             * Waits for an outcome rather than a fixed three seconds: the QR, or
+             * the form's own error. On 2026-10-13 a board on a loaded machine
+             * went red here once while three standalone runs of the same build
+             * passed, and the note could not say what the screen showed instead.
+             * The bound is generous; the property is unchanged, a QR must appear.
+             * The error is matched as the form's own <p role="alert">: Next's
+             * route announcer is also role alert, always present and empty, and
+             * the first version of this wait matched it and waited for nothing.
+             */
+            await page
+              .locator("svg[role='img'], p[role='alert']")
+              .first()
+              .waitFor({ state: "visible", timeout: 15_000 })
+              .catch(() => {});
 
             const qr = page.locator("svg[role='img']").first();
             const drawn = (await page.locator("svg[role='img']").count()) > 0;
+            const shown = drawn
+              ? ""
+              : (await page.locator("p[role='alert']").first().textContent({ timeout: 1000 }).catch(() => null)) ??
+                `no QR and no error after 15 seconds; the button reads "${(await started.textContent({ timeout: 1000 }).catch(() => "gone")) ?? ""}"`;
             rec(
               "and a QR is on the page once it does",
               drawn,
-              drawn ? "" : "the encoder can be perfect and the screen still show nothing, which is exactly what shipped",
+              drawn
+                ? ""
+                : `the encoder can be perfect and the screen still show nothing, which is exactly what shipped (the screen showed: ${shown})`,
             );
 
             if (drawn) {
