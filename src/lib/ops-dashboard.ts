@@ -10,6 +10,7 @@ import { fileMargins, marginByPeriod, type FileMargin } from "./ops-docs";
 import { expiryState } from "./ops-credentials";
 import { periodOf } from "./ops-review";
 import { ordersNeedingAttentionRead } from "./ops-reconcile";
+import { unreleasedPayments } from "./payment-events";
 import { marginOf, type Cents, type PeriodTotals } from "./ops-money";
 import { isOwed, isPaid } from "./pay-figures";
 import { uncreditedReviewsRead } from "./ops-engineer";
@@ -485,6 +486,32 @@ async function adminDashboard(actor: Actor): Promise<AdminDashboard> {
   ];
 
   const attention: Attention[] = [];
+
+  /*
+   * PAID, WORK NOT RELEASED. Operator ruling, 2026-10-12, on 0075.
+   *
+   * A payment whose money is written and whose release (the file, the
+   * customer's link, the confirmation, the account) has not finished fifteen
+   * minutes later. Stripe's resends should finish it; this is where it shows
+   * when they have not. First, with the stuck orders below, because both can
+   * mean a customer has been charged and is waiting for nothing.
+   */
+  const unreleased = await unreleasedPayments();
+  if (unreleased === null) {
+    notComputable.push(
+      "The payment event ledger could not be read, so whether any paid order is waiting for its work to be released is not known.",
+    );
+  } else if (unreleased.length > 0) {
+    const named = unreleased
+      .slice(0, 3)
+      .map((u) => `${u.reference}, ${u.minutes} minutes${u.lastError ? `: ${u.lastError}` : ""}`)
+      .join("; ");
+    attention.push({
+      label: `Paid, work not released: ${unreleased.length} order${unreleased.length === 1 ? "" : "s"}`,
+      detail: `${named}${unreleased.length > 3 ? `; and ${unreleased.length - 3} more` : ""}.`,
+      href: "/portal/orders",
+    });
+  }
 
   /*
    * First in the list, ahead of everything else on this screen, because it is

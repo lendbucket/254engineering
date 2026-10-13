@@ -142,8 +142,10 @@ try {
 
   const good = refundEvent();
   const r1 = await post(good);
+  /* Non 2xx since 2026-10-12 (operator ruling, 0075): a refund that was not
+   * written is not handled, and Stripe's resend can find the charge later. */
   rec("a signed refund event in Stripe's real shape is verified, parsed, and reaches the recorder",
-    r1.status === 200 && r1.body?.handled === false && r1.body?.reason === "no charge on file",
+    r1.status === 409 && r1.body?.ok === false && r1.body?.reason === "no charge on file",
     `${r1.status} ${JSON.stringify(r1.body)}`);
   await new Promise((r) => setTimeout(r, 300));
   rec("and the server says, in its own log, which refund and why it did not attach",
@@ -151,7 +153,7 @@ try {
 
   const r2 = await post(good);
   rec("a redelivery of the same event answers the same, and still writes nothing",
-    r2.status === 200 && r2.body?.reason === "no charge on file");
+    r2.status === 409 && r2.body?.reason === "no charge on file");
 
   const forged = await post(refundEvent(), WRONG_SECRET);
   rec("an event signed with any other secret is refused at the boundary", forged.status === 400, `${forged.status}`);

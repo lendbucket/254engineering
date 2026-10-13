@@ -345,28 +345,45 @@ export async function accrueForQualifiedLead(leadId: string): Promise<AccrualRes
  * that is one more reason the idempotence lives in a unique index on the
  * payment row rather than in whichever of the three remembered to check.
  */
-export async function reverseForRefund(input: {
+/**
+ * The counter entries a refund on an order calls for, computed and not
+ * written. One home for the rule, used by reverseForRefund here and by the
+ * webhook's refund transaction (0075), which writes these rows in the same
+ * transaction as the refund they reverse.
+ *
+ * A failed read of the accruals is a failure, never "nothing accrued": the
+ * second reading would let a refund through with the partner still paid on it.
+ */
+export type PlannedReversal = {
+  partnerId: string;
+  amountCents: number;
+  explanation: string;
+  model: CompModel | null;
+  basisCents: number | null;
+  fileId: string | null;
+  reversesId: string;
+};
+
+export async function planReversals(input: {
   orderId: string;
-  /** eng_order_payments.id of the refund row. The idempotence key. */
-  paymentId: string | null;
   refundedCents: number;
-}): Promise<{ ok: true; reversed: number; note: string } | { ok: false; error: string }> {
+}): Promise<{ ok: true; reversals: PlannedReversal[]; notes: string[] } | { ok: false; error: string }> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
 
-  const { data: entries } = await db
+  const { data: entries, error } = await db
     .from("eng_partner_entries")
     .select("id, partner_id, kind, amount_cents, status, model, basis_cents, file_id, order_id, payable_at")
     .eq("order_id", input.orderId)
     .eq("kind", "accrual");
+  if (error) return { ok: false, error: `The commission on that order could not be read: ${error.message}` };
 
   if (!entries || entries.length === 0) {
-    return { ok: true, reversed: 0, note: "No commission was accrued on that order, so nothing is reversed." };
+    return { ok: true, reversals: [], notes: ["No commission was accrued on that order, so nothing is reversed."] };
   }
 
-  let reversed = 0;
+  const reversals: PlannedReversal[] = [];
   const notes: string[] = [];
-
   for (const accrual of entries) {
     if (accrual.status === "blocked" || accrual.amount_cents === null) {
       /*
@@ -390,17 +407,47 @@ export async function reverseForRefund(input: {
       continue;
     }
 
-    const written = await insertEntry(db, {
+    reversals.push({
       partnerId: accrual.partner_id as string,
-      kind: "reversal",
       amountCents: verdict.amountCents,
-      status: "accrued",
       explanation: verdict.explanation,
       model: (accrual.model as CompModel | null) ?? null,
       basisCents: accrual.basis_cents === null ? null : Number(accrual.basis_cents),
       fileId: (accrual.file_id as string | null) ?? null,
-      orderId: input.orderId,
       reversesId: accrual.id as string,
+    });
+  }
+  return { ok: true, reversals, notes };
+}
+
+export async function reverseForRefund(input: {
+  orderId: string;
+  /** eng_order_payments.id of the refund row. The idempotence key. */
+  paymentId: string | null;
+  refundedCents: number;
+}): Promise<{ ok: true; reversed: number; note: string } | { ok: false; error: string }> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+
+  const plan = await planReversals({ orderId: input.orderId, refundedCents: input.refundedCents });
+  if (!plan.ok) return plan;
+  if (plan.reversals.length === 0) return { ok: true, reversed: 0, note: plan.notes.join(" ") };
+
+  let reversed = 0;
+  const notes: string[] = [...plan.notes];
+
+  for (const r of plan.reversals) {
+    const written = await insertEntry(db, {
+      partnerId: r.partnerId,
+      kind: "reversal",
+      amountCents: r.amountCents,
+      status: "accrued",
+      explanation: r.explanation,
+      model: r.model,
+      basisCents: r.basisCents,
+      fileId: r.fileId,
+      orderId: input.orderId,
+      reversesId: r.reversesId,
       paymentId: input.paymentId,
       occurredAt: new Date(),
       /*

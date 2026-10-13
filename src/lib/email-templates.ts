@@ -1854,6 +1854,64 @@ export function queueAlert(input: QueueAlertInput): RenderedEmail {
   );
 }
 
+export type UnreleasedPaymentsAlertInput = {
+  /** The oldest first, already trimmed by the caller. */
+  payments: { reference: string; minutes: number; attempts: number; lastError: string | null }[];
+  total: number;
+  afterMinutes: number;
+  cooldownMinutes: number;
+  checkedAt: string;
+  dashboardUrl: string;
+  environment: string;
+};
+
+/**
+ * Paid, work not released. Operator ruling, 2026-10-12, on 0075.
+ *
+ * A payment's money is written in one transaction and the work it pays for is
+ * released after commit. When that release has not finished well after the
+ * payment, a customer has been charged and nothing has started: no file moved,
+ * no link, possibly no confirmation. Stripe's resends normally finish it; this
+ * is sent when they have not.
+ */
+export function unreleasedPaymentsAlert(input: UnreleasedPaymentsAlertInput): RenderedEmail {
+  return compose(
+    "ops.payments_unreleased",
+    "operator",
+    `Paid, work not released: ${input.total} order${input.total === 1 ? "" : "s"} on ${input.environment}`,
+    {
+      preheader: `${input.total} paid order${input.total === 1 ? " has" : "s have"} waited more than ${input.afterMinutes} minutes for the work to start. Checked at ${input.checkedAt}.`,
+      blocks: [
+        {
+          kind: "p",
+          text: `The payment is recorded and the work it pays for has not been released more than ${input.afterMinutes} minutes later. The customer has been charged. Until the release finishes, the file may not have moved, the customer may have no status link, and the confirmation may not have gone. Each delivery of the payment from Stripe tries the release again, so this usually clears; if it has not, the reason the last attempt gave is below.`,
+        },
+        {
+          kind: "details",
+          title: "Waiting, oldest first",
+          rows: rows(
+            input.payments.map(
+              (p) =>
+                [
+                  p.reference,
+                  `${p.minutes} minutes, ${p.attempts} release attempt${p.attempts === 1 ? "" : "s"}${p.lastError ? `. ${p.lastError}` : ""}`,
+                ] as [string, string],
+            ),
+          ),
+        },
+        {
+          kind: "p",
+          text: `The same list is on the admin dashboard as "Paid, work not released": ${input.dashboardUrl}`,
+        },
+        {
+          kind: "note",
+          text: `One email about this every ${input.cooldownMinutes} minutes at most. The dashboard shows the list whenever it is not empty.`,
+        },
+      ],
+    },
+  );
+}
+
 export function allTemplatesForAudit(): RenderedEmail[] {
 
   return [
@@ -2033,6 +2091,18 @@ export function allTemplatesForAudit(): RenderedEmail[] {
       checkedAt: "2026-09-06T21:00:00.000Z",
       cooldownMinutes: 60,
       statusUrl: "https://254engineering.com/portal/status",
+      environment: "production",
+    }),
+    unreleasedPaymentsAlert({
+      payments: [
+        { reference: "254-ORD-0042", minutes: 31, attempts: 2, lastError: "the order confirmation could not be queued" },
+        { reference: "254-ORD-0043", minutes: 18, attempts: 1, lastError: null },
+      ],
+      total: 2,
+      afterMinutes: 15,
+      cooldownMinutes: 60,
+      checkedAt: "2026-10-13T05:00:00.000Z",
+      dashboardUrl: "https://254engineering.com/portal",
       environment: "production",
     }),
     errorAlert({

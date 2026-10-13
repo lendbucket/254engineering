@@ -159,6 +159,13 @@ export const PORTS = {
    */
   stallProxy: PORT_BASE + 21,
   stallApp: PORT_BASE + 22,
+  /**
+   * The PostgREST stand-in over a replayed database and the production build
+   * that reads through it, for the proof that a payment event is applied once,
+   * 2026-10-13 (scripts/lib/replay-rest.mjs).
+   */
+  replayRest: PORT_BASE + 23,
+  replayApp: PORT_BASE + 24,
 };
 
 /**
@@ -193,4 +200,4 @@ export const ALL_PORTS = Object.values(PORTS);
  * The top of the block, exclusive, for a check that wants to know whether a
  * literal somebody wrote falls inside our range.
  */
-export const PORT_RANGE = { from: PORT_BASE, to: PORT_BASE + 23 };
+export const PORT_RANGE = { from: PORT_BASE, to: PORT_BASE + 25 };

@@ -336,7 +336,14 @@ export async function reconcileOrder(
     };
   }
 
+  /*
+   * The same ledger as the webhook (0075), keyed by the checkout session it
+   * found, so running the sweep twice records this payment once, and a
+   * webhook arriving after it finds the charge already on file.
+   */
   const recorded = await markPaid({
+    eventId: `reconcile:${sessionRef}`,
+    source: "reconcile",
     orderId: order.id,
     chargeRef: status.chargeRef,
     amountCents: status.amountCents,
