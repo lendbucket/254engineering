@@ -7,6 +7,7 @@ import { business } from "@/config/business";
 import { leadNotification } from "@/lib/email-templates";
 import { cookies } from "next/headers";
 import { partnerForVisitor, VISITOR_COOKIE } from "@/lib/ops-partners";
+import { withSaveOutcome } from "@/lib/save-outcome";
 
 /**
  * Contact and waitlist intake.
@@ -23,7 +24,7 @@ import { partnerForVisitor, VISITOR_COOKIE } from "@/lib/ops-partners";
  * an off-screen field, which has not been observed and would be visible in the
  * logs if it were.
  */
-export async function POST(request: Request) {
+async function handlePOST(request: Request) {
   let payload: unknown;
   try {
     payload = await request.json();
@@ -160,3 +161,6 @@ export async function POST(request: Request) {
     { status: answer.status },
   );
 }
+
+/* A save abandoned by the 20 second bound says it may not have saved, and a failed session read is never "Not signed in": save-outcome.ts. */
+export const POST = withSaveOutcome(handlePOST);

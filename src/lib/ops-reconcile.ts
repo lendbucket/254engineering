@@ -145,8 +145,20 @@ export type OrderNeedingAttention = {
  * wrong, which is when somebody is most likely to be staring at it.
  */
 export async function ordersNeedingAttention(): Promise<OrderNeedingAttention[]> {
+  return (await ordersNeedingAttentionRead()) ?? [];
+}
+
+/**
+ * The same list, or null when any of its three reads failed. Operator ruling,
+ * 2026-10-12. Each failure used to be folded into an answer: a failed order
+ * read was "nothing is waiting on a payment", a failed payment read made a paid
+ * order read as stuck, and a failed checkout read reported every stuck order
+ * as "abandoned before checkout. Nothing can have been charged on these",
+ * which says no money moved when it may have. The dashboard reads this one.
+ */
+export async function ordersNeedingAttentionRead(): Promise<OrderNeedingAttention[] | null> {
   const db = supabaseAdmin();
-  if (!db) return [];
+  if (!db) return null;
 
   // readEvery: an order missing here is one nobody chases for its money.
   const orderRead = await readEvery<Record<string, unknown>>((from, to) =>
@@ -160,7 +172,8 @@ export async function ordersNeedingAttention(): Promise<OrderNeedingAttention[]>
       .range(from, to),
   );
 
-  const orders = orderRead.ok ? orderRead.rows : [];
+  if (!orderRead.ok) return null;
+  const orders = orderRead.rows;
   if (!orders.length) return [];
 
   const ids = orders.map((o) => o.id as string);
@@ -184,12 +197,13 @@ export async function ordersNeedingAttention(): Promise<OrderNeedingAttention[]>
     ),
   ]);
 
-  const payments = paymentRead.ok ? paymentRead.rows : null;
-  const checkouts = checkoutRead.ok ? checkoutRead.rows : null;
+  if (!paymentRead.ok || !checkoutRead.ok) return null;
+  const payments = paymentRead.rows;
+  const checkouts = checkoutRead.rows;
 
-  const paid = new Set((payments ?? []).map((p) => p.order_id as string));
+  const paid = new Set(payments.map((p) => p.order_id as string));
   const sessions = new Map<string, string>();
-  for (const e of checkouts ?? []) {
+  for (const e of checkouts) {
     const ref = (e.detail as { session_ref?: unknown } | null)?.session_ref;
     if (typeof ref === "string" && ref) sessions.set(e.order_id as string, ref);
   }

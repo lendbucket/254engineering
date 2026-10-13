@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { currentPartner } from "@/lib/partner-auth";
 import { submitMaterial } from "@/lib/ops-partner-assets";
+import { withSaveOutcome } from "@/lib/save-outcome";
 
 /**
  * A partner sending material to the firm.
@@ -17,7 +18,7 @@ import { submitMaterial } from "@/lib/ops-partner-assets";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   const principal = await currentPartner();
   if (!principal) {
     return NextResponse.json({ ok: false, error: "Sign in first." }, { status: 401 });
@@ -43,3 +44,6 @@ export async function POST(request: NextRequest) {
     ? NextResponse.json({ ok: true, advice: result.advice })
     : NextResponse.json({ ok: false, error: result.error }, { status: 400 });
 }
+
+/* A save abandoned by the 20 second bound says it may not have saved, and a failed session read is never "Not signed in": save-outcome.ts. */
+export const POST = withSaveOutcome(handlePOST);

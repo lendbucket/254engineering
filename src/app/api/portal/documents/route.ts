@@ -3,6 +3,7 @@ import { currentActor, requestContext } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
 import { documentUrl } from "@/lib/ops-docs";
 import { writeAudit } from "@/lib/ops-audit";
+import { withSaveOutcome } from "@/lib/save-outcome";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,7 @@ export const dynamic = "force-dynamic";
  * The redirect is deliberate rather than proxying the bytes: the file goes from
  * storage to the person, and nothing in between keeps a copy.
  */
-export async function GET(request: NextRequest) {
+async function handleGET(request: NextRequest) {
   const actor = await currentActor();
   if (!actor) return NextResponse.json({ ok: false, error: "Not signed in." }, { status: 401 });
   if (!can(actor, "documents.read")) {
@@ -47,3 +48,6 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.redirect(url, { status: 302, headers: { "Cache-Control": "no-store, max-age=0" } });
 }
+
+/* A save abandoned by the 20 second bound says it may not have saved, and a failed session read is never "Not signed in": save-outcome.ts. */
+export const GET = withSaveOutcome(handleGET);

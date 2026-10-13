@@ -10,7 +10,7 @@ import { jobView } from "./ops-field";
 import { protocolItemRowsFor } from "./protocol-run";
 import type { Determination } from "@/content/protocols";
 import { isOpen } from "./launch";
-import { orderForFile as liveOrderForFile } from "./order-for-file";
+import { orderForFile as liveOrderForFile, orderForFileRead } from "./order-for-file";
 import { catalogFor, deliverablesFor } from "@data/catalog";
 import { engineerPayCents, tierForDeliverable, type PayTier } from "@/config/engineer-pay";
 import { randomUUID } from "node:crypto";
@@ -524,7 +524,12 @@ export async function productionCreditFor(file: {
   let deliverable: string | null =
     file.deliverable && catalogFor(slug, file.deliverable) ? file.deliverable : null;
   if (!deliverable) {
-    const order = await liveOrderForFile(file.id, "tier");
+    /* A failed read is its own reason, never "does not record which deliverable" (2026-10-12). */
+    const read = await orderForFileRead(file.id, "tier");
+    if (!read.ok) {
+      return { ok: false, reason: "the orders on this file could not be read, so its pay tier is not known" };
+    }
+    const order = read.order;
     const orderTier = (order?.tier as string | null | undefined) ?? null;
     if (orderTier && catalogFor(slug, orderTier)) deliverable = orderTier;
   }
@@ -906,25 +911,50 @@ export type UncreditedReview = {
 };
 
 export async function uncreditedReviews(): Promise<UncreditedReview[]> {
+  return (await uncreditedReviewsRead()) ?? [];
+}
+
+/**
+ * The same list, or null when any read beneath it failed. Operator ruling,
+ * 2026-10-12. Each of the three reads discarded its error: a failed ledger
+ * read listed every decided review as credited nothing, which is a false list,
+ * and the credit below acted on it. The dashboard and the credit read this one.
+ */
+export async function uncreditedReviewsRead(): Promise<UncreditedReview[] | null> {
   const db = supabaseAdmin();
-  if (!db) return [];
-  const { data: sessions } = await db
+  if (!db) return null;
+  const { data: sessions, error: sessionsError } = await db
     .from("eng_review_sessions")
     .select("id, file_id, decision, ended_at")
     .not("ended_at", "is", null)
     .not("decision", "is", null)
     .order("ended_at", { ascending: false })
     .limit(500);
+  if (sessionsError) {
+    console.error(`[engineer] the review sessions could not be read: ${sessionsError.message}`);
+    return null;
+  }
   const ids = (sessions ?? []).map((s) => s.id as string);
   if (ids.length === 0) return [];
-  const { data: credited } = await db.from("eng_production_ledger").select("review_session_id").in("review_session_id", ids);
+  const { data: credited, error: creditedError } = await db
+    .from("eng_production_ledger")
+    .select("review_session_id")
+    .in("review_session_id", ids);
+  if (creditedError) {
+    console.error(`[engineer] the production ledger could not be read: ${creditedError.message}`);
+    return null;
+  }
   const done = new Set((credited ?? []).map((r) => r.review_session_id as string));
   const open = (sessions ?? []).filter((s) => !done.has(s.id as string));
   if (open.length === 0) return [];
-  const { data: files } = await db
+  const { data: files, error: filesError } = await db
     .from("eng_files")
     .select("id, file_number, service_slug, deliverable, is_demo")
     .in("id", [...new Set(open.map((s) => s.file_id as string))]);
+  if (filesError) {
+    console.error(`[engineer] the files under review could not be read: ${filesError.message}`);
+    return null;
+  }
   const byId = new Map((files ?? []).map((f) => [f.id as string, f]));
   const out: UncreditedReview[] = [];
   for (const s of open) {
@@ -984,7 +1014,10 @@ export async function creditUncreditedReviews(
   const credit = await productionCreditFor({ id: fileId, service_slug: file.service_slug as string, deliverable: recorded });
   if (!credit.ok) return { ok: false, error: `Still nothing to credit: ${credit.reason}.` };
 
-  const open = (await uncreditedReviews()).filter((r) => r.fileId === fileId);
+  /* Never credit from a list that could not be read: a failed ledger read lists every review as uncredited. */
+  const listed = await uncreditedReviewsRead();
+  if (listed === null) return { ok: false, error: "The reviews could not be read, so nothing was credited. Try again." };
+  const open = listed.filter((r) => r.fileId === fileId);
   const { data: sessions } = await db
     .from("eng_review_sessions")
     .select("id, engineer_id, decision, ended_at")

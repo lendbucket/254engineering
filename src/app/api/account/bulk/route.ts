@@ -7,6 +7,7 @@ import { SITE_KEY } from "@/lib/supabase";
 import { accountDefaults } from "@/lib/ops-account";
 import type { BulkProperty } from "@/lib/bulk-order";
 import { tradePriceInForce } from "@/lib/trade-pricing";
+import { withSaveOutcome } from "@/lib/save-outcome";
 
 export const dynamic = "force-dynamic";
 
@@ -49,7 +50,7 @@ function readProperties(body: Record<string, unknown> | null): BulkProperty[] {
   });
 }
 
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   const me = await currentCustomer();
   if (!me) return NextResponse.json({ ok: false, error: "Not signed in." }, { status: 401 });
 
@@ -211,3 +212,6 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({ ok: false, error: "Unknown action." }, { status: 400 });
 }
+
+/* A save abandoned by the 20 second bound says it may not have saved, and a failed session read is never "Not signed in": save-outcome.ts. */
+export const POST = withSaveOutcome(handlePOST);

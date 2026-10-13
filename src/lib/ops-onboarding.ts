@@ -470,15 +470,25 @@ export type CredentialRow = CredentialRecord & {
 };
 
 export async function credentialsFor(profileIds: string[]): Promise<Map<string, CredentialRow[]>> {
+  return (await credentialsRead(profileIds)) ?? new Map();
+}
+
+/** The same, or null when the credentials could not be read, which is not "holds none" (2026-10-12). */
+export async function credentialsRead(profileIds: string[]): Promise<Map<string, CredentialRow[]> | null> {
   const db = supabaseAdmin();
   const byProfile = new Map<string, CredentialRow[]>();
-  if (!db || profileIds.length === 0) return byProfile;
+  if (profileIds.length === 0) return byProfile;
+  if (!db) return null;
 
-  const { data } = await db
+  const { data, error } = await db
     .from("eng_credentials")
     .select("id, profile_id, kind, label, status, issued_on, expires_on, created_at, verified_at, verified_by")
     .in("profile_id", profileIds)
     .order("created_at", { ascending: false });
+  if (error) {
+    console.error(`[onboarding] the credentials could not be read: ${error.message}`);
+    return null;
+  }
 
   for (const row of data ?? []) {
     const entry: CredentialRow = {
@@ -510,6 +520,34 @@ export async function credentialBlockersFor(profileIds: string[]): Promise<Map<s
   const emails = new Map<string, string>();
   if (db && profileIds.length > 0) {
     const { data } = await db.from("eng_profiles").select("id, email").in("id", profileIds);
+    for (const p of data ?? []) emails.set(p.id as string, (p.email as string | null) ?? "");
+  }
+  const out = new Map<string, string[]>();
+  for (const id of profileIds) {
+    out.set(id, credentialBlockers(held.get(id) ?? [], new Date(), exemptKindsFor(emails.get(id))).map((b) => b.reason));
+  }
+  return out;
+}
+
+/**
+ * The same blockers, or null when either read failed. Operator ruling,
+ * 2026-10-12. Dispatch keeps the shut answer above, where a failed read must
+ * never offer work. A screen that SHOWS the blockers to a person reads this
+ * one: the shut answer there tells a technician "No job can be offered to you
+ * until this is fixed" about credentials they hold, which is false.
+ */
+export async function credentialBlockersRead(profileIds: string[]): Promise<Map<string, string[]> | null> {
+  const held = await credentialsRead(profileIds);
+  if (held === null) return null;
+  const db = supabaseAdmin();
+  const emails = new Map<string, string>();
+  if (profileIds.length > 0) {
+    if (!db) return null;
+    const { data, error } = await db.from("eng_profiles").select("id, email").in("id", profileIds);
+    if (error) {
+      console.error(`[onboarding] the profiles could not be read for the owner exemption: ${error.message}`);
+      return null;
+    }
     for (const p of data ?? []) emails.set(p.id as string, (p.email as string | null) ?? "");
   }
   const out = new Map<string, string[]>();

@@ -12,6 +12,7 @@ import { PROTOCOL_ENTRIES, type Determination } from "@/content/protocols";
 import { REVIEW_ACTIONS, type ReviewAction } from "@/lib/ops-review";
 import { recordPrereview } from "@/lib/dispatch-hold";
 import { decideTraining } from "@/lib/certification-record";
+import { withSaveOutcome } from "@/lib/save-outcome";
 
 /**
  * The engineer's decisions, and the export a regulator reads.
@@ -26,7 +27,7 @@ export const dynamic = "force-dynamic";
 
 const bad = (error: string, status = 400) => NextResponse.json({ ok: false, error }, { status });
 
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   const actor = await currentActor();
   if (!actor) return bad("Not signed in.", 401);
 
@@ -154,7 +155,7 @@ export async function POST(request: NextRequest) {
  * keep for their own records, and making them copy JSON out of a browser
  * console is not that.
  */
-export async function GET(request: NextRequest) {
+async function handleGET(request: NextRequest) {
   const actor = await currentActor();
   if (!actor) return bad("Not signed in.", 401);
 
@@ -177,3 +178,7 @@ export async function GET(request: NextRequest) {
     },
   });
 }
+
+/* A save abandoned by the 20 second bound says it may not have saved, and a failed session read is never "Not signed in": save-outcome.ts. */
+export const GET = withSaveOutcome(handleGET);
+export const POST = withSaveOutcome(handlePOST);

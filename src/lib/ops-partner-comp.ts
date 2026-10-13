@@ -520,6 +520,22 @@ export async function recordAdjustment(
 export async function partnerCostByFile(
   files: { id: string; partnerId: string | null }[],
 ): Promise<Map<string, Cents>> {
+  const read = await partnerCostByFileRead(files);
+  if (read) return read;
+  const out = new Map<string, Cents>();
+  for (const file of files) out.set(file.id, file.partnerId ? null : 0);
+  return out;
+}
+
+/**
+ * The same map, or null when the ledger could not be read. Operator ruling,
+ * 2026-10-12: a failed read left every partner file with no cost, so the
+ * dashboard counted them as "missing a money figure", which names the wrong
+ * cause. The margin read takes this one and fails as a whole instead.
+ */
+export async function partnerCostByFileRead(
+  files: { id: string; partnerId: string | null }[],
+): Promise<Map<string, Cents> | null> {
   const out = new Map<string, Cents>();
   for (const file of files) out.set(file.id, file.partnerId ? null : 0);
 
@@ -527,12 +543,16 @@ export async function partnerCostByFile(
   if (withPartner.length === 0) return out;
 
   const db = supabaseAdmin();
-  if (!db) return out;
+  if (!db) return null;
 
-  const { data } = await db
+  const { data, error } = await db
     .from("eng_partner_entries")
     .select("file_id, amount_cents, status")
     .in("file_id", withPartner);
+  if (error) {
+    console.error(`[partners] the partner ledger could not be read: ${error.message}`);
+    return null;
+  }
 
   const byFile = new Map<string, { amountCents: number | null; status: "accrued" | "blocked" }[]>();
   for (const row of data ?? []) {

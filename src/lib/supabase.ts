@@ -1,6 +1,7 @@
 import "server-only";
 import { guardError, mispointing } from "./db-guard";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { boundedFetch } from "./bounded-fetch";
 
 /**
  * The one Supabase client on this site, and it never reaches a browser.
@@ -73,7 +74,8 @@ export function supabaseAdmin(): SupabaseClient | null {
 
   cached = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
     auth: { persistSession: false, autoRefreshToken: false },
-    global: { headers: { "x-application-name": "254engineering" } },
+    /* Every request bounded at 20 seconds, so a stalled socket is an error rather than a hung page: bounded-fetch.ts. */
+    global: { headers: { "x-application-name": "254engineering" }, fetch: boundedFetch() },
   });
   return cached;
 }
@@ -104,7 +106,7 @@ export function supabaseCredentialCheck(): SupabaseClient | null {
   if (!supabaseConfigured()) return null;
   return createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
-    global: { headers: { "x-application-name": "254engineering-auth" } },
+    global: { headers: { "x-application-name": "254engineering-auth" }, fetch: boundedFetch() },
   });
 }
 

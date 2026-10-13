@@ -950,7 +950,8 @@ rec(
   const api = codeOnly("src/app/api/portal/queue/route.ts");
   rec("the retry endpoint checks the permission", /can\(actor, "jobs\.manage"\)/.test(api));
   rec("and is audited", /writeAudit\(/.test(api) && /jobs\.retried/.test(api));
-  rec("and has no GET", !/export async function GET/.test(api));
+  // Both export shapes: a handler wrapped by withSaveOutcome is a const.
+  rec("and has no GET", !/export async function GET/.test(api) && !/export const GET\b/.test(api));
 
   const authz = readSource("src/lib/ops-authz.ts");
   rec("jobs.manage is a real permission", /"jobs\.manage"/.test(authz));
