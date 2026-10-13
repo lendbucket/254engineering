@@ -69,6 +69,17 @@ const rec = (name, ok, note = "") => out.push({ name, ok, note });
 /** Could not tell: the subject could not be built, so nothing was measured. */
 const cnt = (name, note) => out.push({ name, ok: null, note });
 
+/*
+ * HOW LONG THE ENROLMENT SCREEN TOOK, PRINTED ON EVERY RUN. Operator ruling,
+ * 2026-10-13: the 15 second wait below is a diagnostic, not a looser pass.
+ * The QR or the form's error is timed from the click, and anything over
+ * three seconds is printed as SLOW with the time, even when the check
+ * passes. SLOW on two boards in a row is a defect to investigate, never a
+ * reason to raise this number.
+ */
+const QR_SLOW_MS = 3000;
+let qrTiming = null;
+
 console.log("");
 console.log("========== THE SECOND FACTOR AT THE SESSION BOUNDARY ==========");
 console.log("");
@@ -1267,6 +1278,7 @@ else process.env.OPS_SESSION_SECRET = HAD;
           rec("the enrolment screen offers to start", reachable, page.url());
 
           if (reachable) {
+            const clickedAt = Date.now();
             await started.click();
             /*
              * Waits for an outcome rather than a fixed three seconds: the QR, or
@@ -1278,14 +1290,16 @@ else process.env.OPS_SESSION_SECRET = HAD;
              * route announcer is also role alert, always present and empty, and
              * the first version of this wait matched it and waited for nothing.
              */
-            await page
+            const appeared = await page
               .locator("svg[role='img'], p[role='alert']")
               .first()
               .waitFor({ state: "visible", timeout: 15_000 })
-              .catch(() => {});
+              .then(() => true, () => false);
+            const elapsedMs = Date.now() - clickedAt;
 
             const qr = page.locator("svg[role='img']").first();
             const drawn = (await page.locator("svg[role='img']").count()) > 0;
+            qrTiming = { ms: elapsedMs, appeared, what: drawn ? "the QR" : appeared ? "the form's error" : "nothing" };
             const shown = drawn
               ? ""
               : (await page.locator("p[role='alert']").first().textContent({ timeout: 1000 }).catch(() => null)) ??
@@ -1294,7 +1308,7 @@ else process.env.OPS_SESSION_SECRET = HAD;
               "and a QR is on the page once it does",
               drawn,
               drawn
-                ? ""
+                ? `${(elapsedMs / 1000).toFixed(1)}s after the click`
                 : `the encoder can be perfect and the screen still show nothing, which is exactly what shipped (the screen showed: ${shown})`,
             );
 
@@ -1396,6 +1410,22 @@ for (const r of out) console.log(`  ${verdictOf(r)}: ${r.name}${r.note ? ` (${r.
 const failed = out.filter((r) => r.ok === false);
 const unmeasured = out.filter((r) => r.ok === null);
 console.log("");
+
+if (qrTiming) {
+  const secs = (qrTiming.ms / 1000).toFixed(1);
+  const limit = `${QR_SLOW_MS / 1000} second limit`;
+  if (!qrTiming.appeared) {
+    console.log(`SLOW: the enrolment screen showed neither a QR nor an error within 15 seconds of the click (over the ${limit}).`);
+  } else if (qrTiming.ms > QR_SLOW_MS) {
+    console.log(`SLOW: ${qrTiming.what} appeared ${secs}s after the click, over the ${limit}. Two boards in a row is a defect to investigate.`);
+  } else {
+    console.log(`QR TIMING: ${qrTiming.what} appeared ${secs}s after the click (${limit}).`);
+  }
+  console.log("");
+} else {
+  console.log("QR TIMING: not measured on this run, because the enrolment screen was not reached.");
+  console.log("");
+}
 
 /*
  * SAID LOUDLY EVEN THOUGH IT DOES NOT FAIL THE RUN, because a green board over
