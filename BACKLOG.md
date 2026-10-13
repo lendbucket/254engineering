@@ -118,7 +118,11 @@ error sentence:
 - **The login redirect's `next`**: `(app)/layout.tsx` reads `x-invoke-path`,
   which Next 16 does not set, so it always sends `next=/portal`.
 
-## STAGED: 0075, A PAYMENT EVENT IS APPLIED ONCE
+## APPLIED: 0075, A PAYMENT EVENT IS APPLIED ONCE
+
+**Applied to development and then production 2026-10-13 07:0x CT** by the
+counterpart from d3d9766, after section 0 returned no rows on production, read
+back exact on both (shape 318b0fa3 across 1206). Merges on its board.
 
 Ruled 2026-10-12 (the entry that stood here asked for it): Stripe's resends are
 allowed, every payment event is recorded once by its id before any effect, each
@@ -140,14 +144,19 @@ for a ruling rather than fixed on the way past.
 
 1. **The partner billing lane keeps its own event table.** 0074's lane records
    each Stripe event once in `eng_partner_billing_events`, keyed by event id,
-   and does not use `eng_payment_events`. The ruling said one mechanism for all
-   paths. Folding it in means changing 0074's lane before it has ever run;
-   leaving it means two ledgers of event ids. For a ruling.
-2. **A pending refund is never marked succeeded.** settleDecision and
+   and does not use `eng_payment_events`. **Ruled 2026-10-13:** it stays
+   separate until billing is switched on, then folds into `eng_payment_events`
+   on its own branch, before the switch. Billing is not turned on until that
+   is done.
+2. **NEXT, ruled 2026-10-13, after the webhook merge and ahead of partner
+   onboarding. A pending refund is never marked succeeded.** settleDecision and
    cancelAndRefund write Stripe's status at the moment of the call, which can
    be pending, and nothing updates it later: the webhook is not subscribed to
    `charge.refund.updated`. 0075 now counts pending refunds as on file, which
    is what stops the double record, but a pending row stays pending for ever.
+   The ruling: handle the provider's refund update event through the same
+   ledger, one transaction, and prove pending to succeeded and pending to
+   failed.
 3. **settleDecision and cancelAndRefund count only succeeded refunds** when
    working out what is still owed. A pending refund there would make a second
    refund look owed. Stripe's own idempotency key (charge and amount) stops a
@@ -160,12 +169,16 @@ for a ruling rather than fixed on the way past.
    orders still cancelled, and nothing says a payment arrived. A single order in
    the same race gets a `payment.unexpected` event; the batch gets nothing.
    Behaviour unchanged by 0075.
-6. **An existing client paying from a new address** cannot open an account:
+6. **NEXT, ruled 2026-10-13, first after the webhook merge. An existing client
+   paying from a new address** cannot open an account:
    `eng_customer_accounts` is unique per site and client, so account creation
    refuses. Before 0075 that was an `account.not_opened` event and the release
    finished; now the release stays claimed and shows as "Paid, work not
    released" after fifteen minutes, which is visible but repeats on every
-   resend. Found by the proof's fixture.
+   resend. Found by the proof's fixture. The ruling: match the payer to the
+   existing account by the order's client record, not the payment email; with
+   no safe match, open nothing, show it on "Paid, work not released" with a
+   one-click staff action to attach the account, and prove both paths.
 7. **A completed checkout with no order, batch or statement id** still answers
    200 with nothing written. Money moved with nothing to attach it to; it is
    logged, and nothing else notices.
@@ -225,15 +238,19 @@ c14144f. What stays open from the same ruling: the transaction proof runs in an 
 development database URL exists in this repository; a direct development
 transaction needs one.
 
-## STAGED: 0074, PARTNER BILLING, BUILT AND OFF
+## APPLIED: 0074, PARTNER BILLING, BUILT AND OFF
 
 `docs/partner-billing-plan.md` (item 17 of the run of 2026-10-10), approved by
 the operator on 2026-10-11 as designed: $800 upfront and $99 a month, paid to
 254 through 254's one Stripe account. Built on `feat/partner-billing`: the
 webhook's partner lane, the two tables of 0074
 (`docs/production-sitting-feat-partner-billing.md`), the partner's billing
-panel and `/api/partner/billing`. **Not applied anywhere; billing is off.**
+panel and `/api/partner/billing`. **Applied to development and production
+2026-10-13 00:29 CT** by the counterpart from a898ba4, read back exact (shape
+e4b2e350 across 1194). **Billing is off.**
 Open, each the operator's or counsel's:
+- **Before turning it on, ruled 2026-10-13:** the lane folds into
+  `eng_payment_events` on its own branch (item 1 of the webhook list above).
 - **Turning it on** is a separate step after the attorney confirms the
   structure; `enabled` needs `counselSignOff` beside it, and the proof refuses
   one without the other.

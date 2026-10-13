@@ -1,5 +1,12 @@
 # Production sitting: fix/stripe-webhook-once (0075)
 
+**RUN 2026-10-13 07:0x CT** by the counterpart. Section 0 on production first:
+no rows. Dry run held on both. Applied development then production from
+d3d9766 (blob c775ccaa, verified), comments omitted and every statement
+identical. Read back exact on both as section 3 predicts, shape 318b0fa3
+across 1206. The record is in `supabase/applied.mjs`; the text below is the
+sitting as it was staged.
+
 Staged 2026-10-13. Nothing here has been run. The counterpart runs each step;
 the session runs none. **0075 follows 0074**, so 0074 is applied and read back
 first, from `docs/production-sitting-feat-partner-billing.md`, on each

@@ -2446,18 +2446,33 @@ export const APPLIED = [
     fingerprint: "e4b2e3505c71594d6aba4ca47025bf3f",
     behaviour: "af1999235595ca68c1976a3f1b2b0aa7",
     /*
-     * STAGED, written unapplied on feat/partner-billing (on fix/function-grants,
-     * because 0074 follows 0073) with docs/production-sitting-feat-partner-billing.md.
-     * Billing is off in configuration, so nothing writes to either table on the
-     * day it is applied.
+     * APPLIED TO PRODUCTION 2026-10-13 at 00:29 CT, from
+     * docs/production-sitting-feat-partner-billing.md at a898ba4 (both "drop
+     * trigger if exists" lines removed, operator ruling of 2026-10-12), by the
+     * operator's chat counterpart, on development (ythzaiqeoijlrdibnieo) and
+     * production (fsaryeciduszuahgjbly). Read back exact on both: 13 columns,
+     * 8 constraints, 2 triggers, row level security true on both tables, 0
+     * rows, shape e4b2e3505c71594d6aba4ca47025bf3f across 1194.
+     *
+     * Operator ruling of 2026-10-11 approving docs/partner-billing-plan.md: a
+     * partner pays $800 upfront and $99 a month to 254 through 254's one
+     * Stripe account. Billing is off in configuration, so nothing writes to
+     * either table. Operator ruling of 2026-10-13: this lane keeps its own
+     * event table until billing is switched on, then folds into
+     * eng_payment_events (0075) on its own branch before the switch.
      */
-    production: null,
-    development: { at: "0074", behaviour: null, facts: null },
-    because:
-      "WRITTEN 2026-10-12 UNAPPLIED, operator ruling of 2026-10-11 approving docs/partner-billing-plan.md: a " +
-      "partner pays $800 upfront and $99 a month to 254 through 254's one Stripe account. Two tables: " +
-      "eng_partner_billing (the state now, one row per partner) and eng_partner_billing_events (append only, " +
-      "keyed by Stripe's event id). The counterpart applies it from the sitting document and reads it back.",
+    production: "2026-10-13",
+    development: {
+      at: "0074",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-13",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-13 00:29 CT by the operator's chat counterpart, before production, from " +
+        "a898ba4: 13 columns, 8 constraints, 2 triggers, row level security true, 0 rows, shape " +
+        "e4b2e3505c71594d6aba4ca47025bf3f across 1194, as predicted.",
+    },
     proves: { table: "eng_partner_billing_events" },
     note:
       "Both figures read off scripts/fingerprint-at.mjs at 0074 on 2026-10-12: shape 1181 to 1194 columns (eight " +
@@ -2470,18 +2485,39 @@ export const APPLIED = [
     fingerprint: "318b0fa346fc0f92167df9b9f44ce1cf",
     behaviour: "ca40bae4dca081d10fba6a46922bcdb6",
     /*
-     * STAGED, written unapplied on fix/stripe-webhook-once, which builds on
-     * feat/partner-billing because 0075 follows 0074, with
-     * docs/production-sitting-fix-stripe-webhook-once.md. It merges only after
-     * 0074 and then 0075 are applied and read back on production.
+     * APPLIED TO PRODUCTION 2026-10-13 at 07:0x CT, from
+     * docs/production-sitting-fix-stripe-webhook-once.md at d3d9766 (file blob
+     * c775ccaa191103587f9a0c6d45d21111a3571870, verified), by the operator's
+     * chat counterpart, development first and then production. Section 0, the
+     * stuck charge query, ran read only on production first: no rows, no
+     * customer charged and waiting. The dry run held on both. Applied with the
+     * header and block comments and the two in-body line comments omitted;
+     * every statement identical to the file.
+     *
+     * Read back exact on both: 12 columns in order; 8 constraints; trigger
+     * eng_payment_events_guarded; indexes eng_payment_events_claimed_idx and
+     * eng_payment_events_pkey; row level security true; 8 functions each anon
+     * false, authenticated false, service_role true; 0 rows; shape
+     * 318b0fa346fc0f92167df9b9f44ce1cf across 1206.
+     *
+     * Operator rulings of 2026-10-12 on Stripe webhooks: every payment event is
+     * recorded once by its id before any effect, the money writes of each
+     * branch commit in one transaction with it, and the release of the work
+     * runs after commit under claimed then done.
      */
-    production: null,
-    development: { at: "0075", behaviour: null, facts: null },
-    because:
-      "WRITTEN 2026-10-13 UNAPPLIED, operator rulings of 2026-10-12 on Stripe webhooks: every payment event is " +
-      "recorded once by its id before any effect, the money writes of each branch commit in one transaction with " +
-      "it, and the release of the work runs after commit under claimed then done. The counterpart applies it from " +
-      "the sitting document, after the read-only stuck charge query, and reads it back.",
+    production: "2026-10-13",
+    development: {
+      at: "0075",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-13",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-13 07:0x CT by the operator's chat counterpart, before production, from " +
+        "d3d9766 with comments omitted and every statement identical: 12 columns, 8 constraints, 1 trigger, 2 " +
+        "indexes, row level security true, 8 functions closed to anon and authenticated, 0 rows, shape " +
+        "318b0fa346fc0f92167df9b9f44ce1cf across 1206, as predicted.",
+    },
     proves: { table: "eng_payment_events" },
     note:
       "Both figures read off scripts/fingerprint-at.mjs at 0075 on 2026-10-13: shape 1194 to 1206 columns " +

@@ -1,5 +1,10 @@
 # Production sitting: feat/partner-billing (0074)
 
+**RUN 2026-10-13 00:29 CT** by the counterpart, development then production,
+from a898ba4. Read back exact on both: 13 columns, 8 constraints, 2 triggers,
+row level security true, 0 rows, shape e4b2e350 across 1194. The record is in
+`supabase/applied.mjs`; the text below is the sitting as it was staged.
+
 Staged 2026-10-12 overnight. Nothing here has been run. The counterpart runs
 each step; the session runs none. **0074 follows 0073**, which development and
 production have had since 2026-10-11 13:54 CT.
