@@ -2525,6 +2525,28 @@ export const APPLIED = [
       "revoked from public, anon and authenticated in the same file (0073's rule), and one trigger. No drop " +
       "statement of any kind. migration-audit's pinned shape, trigger and function counts move in the same commit.",
   },
+  {
+    file: "0076_a_refund_update_is_applied_once.sql", appliedBy: "apply_migration",
+    fingerprint: "318b0fa346fc0f92167df9b9f44ce1cf",
+    behaviour: "f2380dab0f83023419bc357dfd80f042",
+    production: null,
+    development: null,
+    proves: { function: "eng_apply_refund_update" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0076 on 2026-10-13: shape unchanged at 1206 columns " +
+      "(no column is added), behaviour 1018 to 1019 facts, the one function. The event type constraint is " +
+      "dropped and added again wider in the same transaction, by ruling, so its count does not move. One " +
+      "function, revoked from public, anon and authenticated in the same file (0073's rule). migration-audit's " +
+      "function count moves 46 to 47 in the same commit.",
+    because:
+      "WRITTEN 2026-10-13 ON fix/refund-update-event AND APPLIED NOWHERE, INCLUDING DEVELOPMENT. Operator " +
+      "rulings of 2026-10-13: charge.refund.updated goes through the payment event ledger in one transaction. " +
+      "It carries one drop statement, the event type constraint, so the operator's counterpart tries the " +
+      "connector once and, if it cancels, the operator runs it in the Supabase SQL editor, never retried. " +
+      "docs/production-sitting-fix-refund-update-event.md, section 0 first: the constraint's definition and " +
+      "the row count by type on both databases. The branch merges only on the operator's word, and a " +
+      "migration on main is never pending.",
+  },
 ];
 
 /*

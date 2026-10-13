@@ -28,7 +28,10 @@ export type AppliedOutcome =
   | "claimed"
   | "charge_already_recorded"
   | "refund_already_recorded"
-  | "nothing_to_record";
+  | "nothing_to_record"
+  /* 0076: a refund update whose refund has no row here, or that moved nothing. */
+  | "no_refund_on_file"
+  | "unchanged";
 
 export type Applied =
   | { ok: true; outcome: AppliedOutcome; release: string[]; detail: Record<string, unknown> }
@@ -43,7 +46,8 @@ export async function applyPaymentEvent(
     | "eng_apply_batch_paid"
     | "eng_apply_statement_paid"
     | "eng_apply_checkout_expired"
-    | "eng_apply_refund",
+    | "eng_apply_refund"
+    | "eng_apply_refund_update",
   p: Record<string, unknown>,
 ): Promise<Applied> {
   const db = supabaseAdmin();

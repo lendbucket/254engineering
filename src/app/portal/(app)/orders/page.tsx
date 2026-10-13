@@ -7,7 +7,10 @@ import { money } from "@/lib/ops-money";
 import { Chip, EmptyState, PageHead, Panel } from "@/components/portal/surfaces";
 import { OrdersClient } from "./OrdersClient";
 import { AttachAccountClient } from "./AttachAccountClient";
-import { ordersAwaitingAccount } from "@/lib/ops-payments";
+import { ordersAwaitingAccount, refundsFailedAfterRefunded } from "@/lib/ops-payments";
+
+/* The named state, ruled 2026-10-13. One home, so the screen and the proof read the same words. */
+const REFUND_FAILED_AFTER_REFUNDED = "Refund failed at Stripe, order still marked refunded";
 
 export const dynamic = "force-dynamic";
 
@@ -46,6 +49,8 @@ export default async function OrdersPage() {
   const watching = orders.filter((o) => o.attention.level === "watch");
   /* Paid, and waiting for a person to choose its account (ruling 2026-10-13). */
   const awaitingAccount = await ordersAwaitingAccount();
+  /* Marked refunded, and the refund then failed or was canceled at Stripe (ruling 2026-10-13). */
+  const refundFailed = await refundsFailedAfterRefunded();
 
   return (
     <>
@@ -54,6 +59,35 @@ export default async function OrdersPage() {
         title="Orders needing attention"
         lede={`An order waiting on payment for more than ${CHECKOUT_SESSION_HOURS} hours has outlived its checkout session. It is either an abandonment nobody closed or a payment nobody recorded, and only the payment provider can say which.`}
       />
+
+      {refundFailed === null ? (
+        <div className="mb-4">
+          <Panel
+            title={REFUND_FAILED_AFTER_REFUNDED}
+            description="The refunds that failed after their order was marked refunded could not be read, so this is not a zero."
+          >
+            <p className="text-[13.5px] text-[var(--secondary)]">Try again in a minute. If it persists, tell an administrator.</p>
+          </Panel>
+        </div>
+      ) : refundFailed.length > 0 ? (
+        <div className="mb-4">
+          <Panel
+            title={REFUND_FAILED_AFTER_REFUNDED}
+            description="Each of these orders was marked refunded and the refund then did not go through at Stripe, so the customer may not have the money back. Nothing was reinstated and the customer has not been told. Check Stripe before doing anything else: issuing a second refund is the expensive mistake."
+          >
+            <ul className="divide-y divide-limestone-line">
+              {refundFailed.map((r) => (
+                <li key={r.orderId} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-3">
+                  <span className="text-[13.5px] font-semibold text-[var(--navy)]">{r.reference}</span>
+                  <Chip label={`Refund ${r.status.toLowerCase()}`} tone="bad" />
+                  <span className="text-[13.5px] text-[var(--secondary)]">{r.reason}</span>
+                  <span className="ml-auto text-[13.5px] text-[var(--secondary)]">{money(r.amountCents)}</span>
+                </li>
+              ))}
+            </ul>
+          </Panel>
+        </div>
+      ) : null}
 
       {awaitingAccount === null ? (
         <div className="mb-4">
