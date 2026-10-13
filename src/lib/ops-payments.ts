@@ -1065,10 +1065,12 @@ async function confirmationRecipient(orderId: string): Promise<Recipient> {
   const owner = owners?.[0]?.email;
   if (typeof owner === "string" && owner.trim()) return { kind: "account", email: owner.trim() };
 
+  /* See src/lib/account-scope.ts: a superseded record is nobody's address on file. */
   const { data: account, error: accountError } = await db
     .from("eng_customer_accounts")
     .select("billing_email")
     .eq("id", order.account_id as string)
+    .is("superseded_at", null)
     .maybeSingle();
   if (accountError) return { kind: "failed" };
   const billing = account?.billing_email;
@@ -1105,10 +1107,16 @@ async function accountForClientRecord(clientId: string | null, email: string): P
   if (!db) return { kind: "failed" };
   if (!clientId) return { kind: "none" };
 
+  /*
+   * Superseded rows excluded (src/lib/account-scope.ts): a duplicate opened
+   * twice is a record that should not exist, not a second active account, so
+   * it neither blocks the match nor can be chosen by it.
+   */
   const { data: accounts, error } = await db
     .from("eng_customer_accounts")
     .select("id, status")
     .eq("client_id", clientId)
+    .is("superseded_at", null)
     .order("created_at", { ascending: true });
   if (error) return { kind: "failed" };
   const rows = accounts ?? [];
@@ -1233,10 +1241,12 @@ export async function accountCandidatesFor(orderId: string): Promise<AccountCand
 
   const found = new Map<string, { status: string; clientId: string; because: AccountCandidate["because"] }>();
   if (order.client_id) {
+    /* Never offered a superseded record (src/lib/account-scope.ts). */
     const { data: own, error: ownError } = await db
       .from("eng_customer_accounts")
       .select("id, status, client_id")
       .eq("client_id", order.client_id as string)
+      .is("superseded_at", null)
       .order("created_at", { ascending: true });
     if (ownError) return null;
     for (const a of own ?? []) {
@@ -1256,6 +1266,7 @@ export async function accountCandidatesFor(orderId: string): Promise<AccountCand
         .from("eng_customer_accounts")
         .select("id, status, client_id")
         .eq("id", holder.account_id as string)
+        .is("superseded_at", null)
         .maybeSingle();
       if (theirsError) return null;
       if (theirs) {

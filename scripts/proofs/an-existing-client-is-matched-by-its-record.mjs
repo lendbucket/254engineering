@@ -82,22 +82,31 @@ const at = (name) => `${name}@audit-probe.invalid`;
  *   conflict the client has an account, and the paying address belongs to a
  *            DIFFERENT account: no rule may choose
  *   closed   the client's only account is suspended: a person decides
+ *   dup      the client has one account in use and a second, SUPERSEDED as a
+ *            duplicate, on the other site (unique site and client allows
+ *            exactly that). Superseded means the record should never have
+ *            existed, so it is not a second active account: the match is
+ *            safe, and nothing may resolve to the superseded row
  */
-const C = { match: 1, billing: 2, none: 3, conflict: 4, closed: 5, other: 6 };
+const C = { match: 1, billing: 2, none: 3, conflict: 4, closed: 5, other: 6, dup: 7 };
 const client = (k) => id(C[k]);
 const account = (k) => id(C[k] + 10);
-const ORDERS = { match: 101, billing: 102, none: 103, conflict: 104, closed: 105 };
+const SUPERSEDED_DUP = id(C.dup + 20);
+const ORDERS = { match: 101, billing: 102, none: 103, conflict: 104, closed: 105, dup: 106 };
 const orderId = (k) => id(ORDERS[k]);
 const fileId = (k) => id(ORDERS[k] + 100);
 const OWNER = { match: at("existing-client-owner"), other: at("existing-client-other-owner") };
 const BILLING = at("existing-client-billing");
 const CONFLICT_BILLING = at("existing-client-conflict-billing");
+const DUP_BILLING = at("existing-client-dup-billing");
+const DUP_STALE_BILLING = at("existing-client-dup-superseded-billing");
 const NEW_PAYER = {
   match: at("existing-client-new-payer"),
   billing: at("existing-client-new-payer-b"),
   none: at("existing-client-new-payer-n"),
   conflict: OWNER.other,
   closed: at("existing-client-new-payer-c"),
+  dup: at("existing-client-new-payer-d"),
 };
 
 await db.exec(`
@@ -109,7 +118,12 @@ await db.exec(`
     ('${account("none")}', '254', '${client("none")}', 'active', null),
     ('${account("conflict")}', '254', '${client("conflict")}', 'active', '${CONFLICT_BILLING}'),
     ('${account("closed")}', '254', '${client("closed")}', 'suspended', null),
-    ('${account("other")}', '254', '${client("other")}', 'active', null);
+    ('${account("other")}', '254', '${client("other")}', 'active', null),
+    ('${account("dup")}', '254', '${client("dup")}', 'active', '${DUP_BILLING}');
+  insert into eng_customer_accounts
+    (id, site, client_id, status, billing_email, superseded_at, superseded_reason, superseded_by_email) values
+    ('${SUPERSEDED_DUP}', '254engineering', '${client("dup")}', 'active', '${DUP_STALE_BILLING}',
+     now(), 'Opened twice for the same proof client, kept as the duplicate', '${at("existing-client-operator")}');
   insert into eng_customer_users (account_id, email, display_name, status, account_role, origin) values
     ('${account("match")}', '${OWNER.match}', 'Existing client proof owner, not a real person', 'active', 'owner', 'operator_created'),
     ('${account("other")}', '${OWNER.other}', 'Existing client proof other owner, not a real person', 'active', 'owner', 'operator_created');
@@ -217,6 +231,7 @@ const ledgerOf = (eventId) => one(`select status from eng_payment_events where e
 const before = {};
 for (const k of Object.keys(C)) before[k] = { ids: await identities(account(k)), row: await accountRow(account(k)) };
 const allAccounts = await n(`select count(*)::int as n from eng_customer_accounts`);
+const supersededBefore = await accountRow(SUPERSEDED_DUP);
 
 try {
   /* ============ A. a match by client record, owner on file ==================== */
@@ -273,6 +288,32 @@ try {
     );
   }
 
+  /* ============ B2. a match beside a superseded duplicate ===================== */
+  {
+    const r = await deliver(completed("evt_ec_dup", "dup"));
+    const to = await confirmationsTo(orderId("dup"));
+    check(
+      "a superseded duplicate is not a second account: the order is linked to the one in use and the payment is done",
+      r.status === 200 &&
+        (await accountOf(orderId("dup"))) === account("dup") &&
+        (await eventsNamed(orderId("dup"), "account.match_needed")) === 0 &&
+        (await ledgerOf("evt_ec_dup"))?.status === "done",
+      `${r.status} ${JSON.stringify(r.body)} account ${await accountOf(orderId("dup"))}`,
+    );
+    check(
+      "and the confirmation goes to the account in use, never to the superseded record's address",
+      to.length === 1 && to[0].to === DUP_BILLING && (await mailTo(DUP_STALE_BILLING)) === 0,
+      JSON.stringify(to),
+    );
+    check(
+      "and the superseded record, and the payer, are untouched",
+      (await accountRow(SUPERSEDED_DUP)) === supersededBefore &&
+        (await identities(SUPERSEDED_DUP)) === "[]" &&
+        (await mailTo(NEW_PAYER.dup)) === 0 &&
+        (await usersWith(NEW_PAYER.dup)) === 0,
+    );
+  }
+
   /* ============ C. a match, no address on file ================================ */
   {
     const r = await deliver(completed("evt_ec_none", "none"));
@@ -317,7 +358,15 @@ try {
 
     process.env.SUPABASE_URL = rest.url;
     process.env.SUPABASE_SERVICE_ROLE_KEY = "replay-stand-in";
-    const { ordersAwaitingAccount, attachOrderToAccount } = await import("../../src/lib/ops-payments.ts");
+    const { ordersAwaitingAccount, attachOrderToAccount, accountCandidatesFor } = await import("../../src/lib/ops-payments.ts");
+
+    /* A person is never offered the superseded record either. */
+    const dupOffered = await accountCandidatesFor(orderId("dup"));
+    check(
+      "a person is offered the account in use and never the superseded duplicate",
+      JSON.stringify((dupOffered ?? []).map((c) => c.accountId)) === JSON.stringify([account("dup")]),
+      JSON.stringify(dupOffered),
+    );
 
     const panel = await ordersAwaitingAccount();
     const row = (k) => (panel ?? []).find((o) => o.orderId === orderId(k));
