@@ -6,6 +6,8 @@ import { CHECKOUT_SESSION_HOURS, toneFor } from "@/lib/order-attention";
 import { money } from "@/lib/ops-money";
 import { Chip, EmptyState, PageHead, Panel } from "@/components/portal/surfaces";
 import { OrdersClient } from "./OrdersClient";
+import { AttachAccountClient } from "./AttachAccountClient";
+import { ordersAwaitingAccount } from "@/lib/ops-payments";
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +44,8 @@ export default async function OrdersPage() {
   const orders = await ordersNeedingAttention();
   const needsAction = orders.filter((o) => o.attention.level === "act");
   const watching = orders.filter((o) => o.attention.level === "watch");
+  /* Paid, and waiting for a person to choose its account (ruling 2026-10-13). */
+  const awaitingAccount = await ordersAwaitingAccount();
 
   return (
     <>
@@ -50,6 +54,26 @@ export default async function OrdersPage() {
         title="Orders needing attention"
         lede={`An order waiting on payment for more than ${CHECKOUT_SESSION_HOURS} hours has outlived its checkout session. It is either an abandonment nobody closed or a payment nobody recorded, and only the payment provider can say which.`}
       />
+
+      {awaitingAccount === null ? (
+        <div className="mb-4">
+          <Panel
+            title="Paid, waiting for an account"
+            description="The orders waiting for a person to attach their account could not be read, so this is not a zero."
+          >
+            <p className="text-[13.5px] text-[var(--secondary)]">Try again in a minute. If it persists, tell an administrator.</p>
+          </Panel>
+        </div>
+      ) : awaitingAccount.length > 0 ? (
+        <div className="mb-4">
+          <Panel
+            title="Paid, waiting for an account"
+            description="Each of these was paid for, and no rule could safely choose the account it belongs to, so nothing was opened. Attaching one decides who can sign in and see the order, and finishes releasing the work."
+          >
+            <AttachAccountClient orders={awaitingAccount} canAttach={can(actor, "accounts.manage")} />
+          </Panel>
+        </div>
+      ) : null}
 
       {orders.length === 0 ? (
         <EmptyState

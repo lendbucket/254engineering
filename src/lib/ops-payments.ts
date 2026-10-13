@@ -14,6 +14,7 @@ import {
   type PaymentEventSource,
 } from "./payment-events";
 import { writeAudit } from "./ops-audit";
+import { can, type Actor } from "./ops-authz";
 import { catalogFor } from "@data/catalog";
 import {
   canTransitionOrder,
@@ -694,45 +695,71 @@ export async function releaseForFulfilment(
    * The marker is the confirmation itself: a confirmation job already on the
    * queue for this order, or its acceptance already on the timeline.
    */
-  const { data: queuedConfirmation, error: queuedError } = prior.has("email.sent")
-    ? { data: [{ id: "sent" }], error: null }
-    : await db
-        .from("eng_jobs")
-        .select("id")
-        .eq("kind", "email.send")
-        .eq("payload->>id", "order.confirmed")
-        .eq("payload->>orderId", orderId)
-        .limit(1);
-  if (queuedError) {
-    missing.push(`whether a confirmation was already queued could not be read: ${queuedError.message}`);
-  } else if ((queuedConfirmation ?? []).length === 0) {
-    const link = await issueCustomerLink({ orderId });
-    if (!link) {
-      missing.push("the customer's status link could not be issued");
-    } else {
-      await event(orderId, "customer_link.issued", false, "A status link was minted. Nothing has been sent yet.");
-      const confirmation = await sendOrderConfirmation(orderId, link.token);
-      if (confirmation === "failed") missing.push("the order confirmation could not be queued");
-    }
-  }
-
   /*
-   * AND THE ACCOUNT, AFTER THE CONFIRMATION AND NOT BEFORE.
+   * THE ACCOUNT IS SETTLED FIRST, THEN THE CONFIRMATION IS SENT. Operator
+   * ruling, 2026-10-13. Who the confirmation goes to depends on it: an order
+   * matched to its client's existing account, or attached by a person, sends
+   * its confirmation (and the status link inside it) to the account's address
+   * on file, never to an address that merely paid. So the account is linked,
+   * or found to need a person, before anything is sent.
    *
-   * The order matters to what lands in the inbox. The confirmation is the email
-   * somebody is waiting for after paying, and the account invitation is an
-   * offer they can ignore; arriving in that order is the difference between a
-   * receipt followed by an offer and an offer followed by a receipt, which is
-   * the shape that gets the receipt marked as spam.
-   *
-   * Both go through the queue, so this is the order they are ENQUEUED in rather
-   * than a guarantee about delivery. That is as much as this platform can
-   * honestly promise, and it is worth doing.
+   * Only OPENING a new account waits until after the confirmation, because
+   * that sends an invitation, and a receipt followed by an offer is the order
+   * that does not get the receipt marked as spam. Linking sends nothing.
    *
    * Already safe twice: an order that names an account does nothing, and an
    * address that holds one is linked rather than duplicated.
    */
-  if ((await openAccountForOrder(orderId)) === "failed") missing.push("the customer's account could not be opened");
+  const settled = await openAccountForOrder(orderId, { open: false });
+  if (settled === "failed") missing.push("the customer's account could not be opened");
+  if (settled === "needs_person") {
+    /* No link and no confirmation until a person has chosen the account. */
+    missing.push("the customer's account needs a person to attach it");
+  } else if (settled !== "failed") {
+    const { data: queuedConfirmation, error: queuedError } = prior.has("email.sent")
+      ? { data: [{ id: "sent" }], error: null }
+      : await db
+          .from("eng_jobs")
+          .select("id")
+          .eq("kind", "email.send")
+          .eq("payload->>id", "order.confirmed")
+          .eq("payload->>orderId", orderId)
+          .limit(1);
+    if (queuedError) {
+      missing.push(`whether a confirmation was already queued could not be read: ${queuedError.message}`);
+    } else if ((queuedConfirmation ?? []).length === 0) {
+      const recipient = await confirmationRecipient(orderId);
+      if (recipient.kind === "failed") {
+        missing.push("who the confirmation goes to could not be read");
+      } else if (recipient.kind === "none_on_account") {
+        await eventOnce(
+          orderId,
+          CONFIRMATION_NO_ADDRESS,
+          "No confirmation was sent: the account this order belongs to has no active owner and no billing email on file. Add one in account management.",
+        );
+        missing.push("the account has no address on file to send the confirmation to");
+      } else {
+        const link = await issueCustomerLink({ orderId });
+        if (!link) {
+          missing.push("the customer's status link could not be issued");
+        } else {
+          await event(orderId, "customer_link.issued", false, "A status link was minted. Nothing has been sent yet.");
+          const confirmation = await sendOrderConfirmation(
+            orderId,
+            link.token,
+            recipient.kind === "account" ? recipient.email : null,
+          );
+          if (confirmation === "failed") missing.push("the order confirmation could not be queued");
+        }
+      }
+    }
+
+    if (settled === "open_new") {
+      const opened = await openAccountForOrder(orderId, { open: true });
+      if (opened === "failed") missing.push("the customer's account could not be opened");
+      if (opened === "needs_person") missing.push("the customer's account needs a person to attach it");
+    }
+  }
 
   /*
    * AND NOTHING IS COMPLETE IF ANY WRITE IN IT WAS ABANDONED. Every step above
@@ -789,8 +816,16 @@ export async function releaseForFulfilment(
  * payment's release stays claimed and the next delivery opens it (0075; found
  * by the proof, where the account insert was cut off and the event was marked
  * done regardless, so no resend would ever have opened the account).
+ *
+ * "needs_person" is a payment whose account no rule can safely choose: the
+ * release stays claimed, the order says why once, and "Paid, work not
+ * released" offers a person the accounts to attach it to (operator ruling,
+ * 2026-10-13).
  */
-async function openAccountForOrder(orderId: string): Promise<"settled" | "failed"> {
+async function openAccountForOrder(
+  orderId: string,
+  { open }: { open: boolean },
+): Promise<"settled" | "failed" | "needs_person" | "open_new"> {
   const db = supabaseAdmin();
   if (!db) return "failed";
 
@@ -806,6 +841,55 @@ async function openAccountForOrder(orderId: string): Promise<"settled" | "failed
     if (order.account_id) return "settled";
 
     const email = typeof order.customer_email === "string" ? order.customer_email.trim() : "";
+
+    /*
+     * AN EXISTING CLIENT IS MATCHED BY ITS RECORD, NOT BY THE PAYING ADDRESS.
+     * Operator ruling, 2026-10-13.
+     *
+     * A person chose this order's client (staff intake, a payment link), and
+     * that client may already have an account while the card was paid from an
+     * address nobody has seen. Matching by the address found no one, tried to
+     * open a second account for the same client, and was refused by the
+     * account's unique (site, client); the payment then sat claimed for ever.
+     * So the client record is asked first, and an address is only ever the
+     * second question.
+     */
+    const byRecord = await accountForClientRecord(order.client_id as string | null, email);
+    if (byRecord.kind === "failed") return "failed";
+    if (byRecord.kind === "match") {
+      const { data: linked, error: linkError } = await db
+        .from("eng_service_orders")
+        .update({ account_id: byRecord.accountId })
+        .eq("id", orderId)
+        .is("account_id", null)
+        .select("id");
+      if (linkError) return "failed";
+      /* Somebody attached it between the read and this write: theirs stands. */
+      if ((linked ?? []).length === 0) return "settled";
+      /*
+       * THE ORDER, AND NOTHING MORE. Operator ruling, 2026-10-13: the paying
+       * address is not added as a sign in, is sent no invitation or link, and
+       * the account's own email is not touched. The confirmation goes to the
+       * account's address on file (confirmationRecipient reads this event).
+       */
+      await event(
+        orderId,
+        ACCOUNT_LINKED_BY_CLIENT,
+        false,
+        "This order's client already has an account, so the order was attached to it by the client record. No second account was opened and nothing was sent to the paying address.",
+      );
+      return "settled";
+    }
+    if (byRecord.kind === "person") {
+      /* Said once. Every resend reaches here again and must not repeat it. */
+      const said = await eventOnce(
+        orderId,
+        ACCOUNT_MATCH_NEEDED,
+        `No account was opened or attached: ${byRecord.reason}. A person attaches it from Orders needing attention.`,
+      );
+      return said ? "needs_person" : "failed";
+    }
+
     if (!email) {
       await event(orderId, "account.not_opened", false, "No account was opened: the order carries no customer address.");
       return "settled";
@@ -839,6 +923,9 @@ async function openAccountForOrder(orderId: string): Promise<"settled" | "failed
       );
       return "settled";
     }
+
+    /* Opening sends an invitation, so it waits until the confirmation is queued. */
+    if (!open) return "open_new";
 
     const created = await createCustomerAccount({
       email,
@@ -905,6 +992,402 @@ async function openAccountForOrder(orderId: string): Promise<"settled" | "failed
   }
 }
 
+/** The order event that says a payment's account is waiting for a person. Written once per order. */
+export const ACCOUNT_MATCH_NEEDED = "account.match_needed";
+/** An order linked to its client's existing account by the client record. */
+export const ACCOUNT_LINKED_BY_CLIENT = "account.linked_by_client";
+/** An order a person attached to an account from the attach panel. */
+export const ACCOUNT_ATTACHED = "account.attached";
+/** A confirmation not sent because the order's account has no address on file. Written once per order. */
+export const CONFIRMATION_NO_ADDRESS = "email.no_account_address";
+
+/** Writes an order event unless the order already carries one of that name. False when it could not tell or write. */
+async function eventOnce(orderId: string, name: string, summary: string): Promise<boolean> {
+  const db = supabaseAdmin();
+  if (!db) return false;
+  const { data, error } = await db
+    .from("eng_order_events")
+    .select("id")
+    .eq("order_id", orderId)
+    .eq("event", name)
+    .limit(1);
+  if (error) return false;
+  if ((data ?? []).length === 0) await event(orderId, name, false, summary);
+  return true;
+}
+
+type Recipient =
+  | { kind: "order" }
+  | { kind: "account"; email: string }
+  | { kind: "none_on_account" }
+  | { kind: "failed" };
+
+/*
+ * WHO THE CONFIRMATION GOES TO. Operator ruling, 2026-10-13.
+ *
+ * An order linked to its client's existing account by the client record, or
+ * attached to one by a person, confirms to the account's address on file: its
+ * active owner, else its billing email, else nobody, and the attach panel says
+ * so. Every other order confirms to its own customer address, which is what
+ * any payer gets today. The paying address of a matched order is sent nothing
+ * by this platform; Stripe's own receipt is Stripe's.
+ */
+async function confirmationRecipient(orderId: string): Promise<Recipient> {
+  const db = supabaseAdmin();
+  if (!db) return { kind: "failed" };
+
+  const { data: how, error: howError } = await db
+    .from("eng_order_events")
+    .select("event")
+    .eq("order_id", orderId)
+    .in("event", [ACCOUNT_LINKED_BY_CLIENT, ACCOUNT_ATTACHED])
+    .limit(1);
+  if (howError) return { kind: "failed" };
+  if ((how ?? []).length === 0) return { kind: "order" };
+
+  const { data: order, error: orderError } = await db
+    .from("eng_service_orders")
+    .select("account_id")
+    .eq("id", orderId)
+    .maybeSingle();
+  if (orderError || !order) return { kind: "failed" };
+  if (!order.account_id) return { kind: "failed" };
+
+  const { data: owners, error: ownersError } = await db
+    .from("eng_customer_users")
+    .select("email")
+    .eq("account_id", order.account_id as string)
+    .eq("account_role", "owner")
+    .eq("status", "active")
+    .order("created_at", { ascending: true })
+    .limit(1);
+  if (ownersError) return { kind: "failed" };
+  const owner = owners?.[0]?.email;
+  if (typeof owner === "string" && owner.trim()) return { kind: "account", email: owner.trim() };
+
+  const { data: account, error: accountError } = await db
+    .from("eng_customer_accounts")
+    .select("billing_email")
+    .eq("id", order.account_id as string)
+    .maybeSingle();
+  if (accountError) return { kind: "failed" };
+  const billing = account?.billing_email;
+  if (typeof billing === "string" && billing.trim()) return { kind: "account", email: billing.trim() };
+  return { kind: "none_on_account" };
+}
+
+type ClientRecordMatch =
+  | { kind: "none" }
+  | { kind: "failed" }
+  | { kind: "match"; accountId: string }
+  | { kind: "person"; reason: string };
+
+/*
+ * THE CLIENT RECORD'S ANSWER, AND WHEN IT IS SAFE.
+ *
+ * Safe is exactly one active account for the order's client, and a paying
+ * address that belongs to no other account. Matched across sites, because the
+ * checkout door opens accounts on site "254" and staff conversion on the
+ * order's own site, so a match on site and client together would miss the
+ * account that is plainly there.
+ *
+ * Everything else is a person's decision, never a rule's guess: a client with
+ * no active account but a suspended or closed one, a client with more than one
+ * active account, and an address already holding a DIFFERENT account. Attaching
+ * an order to an account decides who can sign in and see it, so a wrong guess
+ * shows one customer's order to another.
+ *
+ * A client with no account at all is "none": the address path below runs as it
+ * always has, and a new customer's first payment opens their account.
+ */
+async function accountForClientRecord(clientId: string | null, email: string): Promise<ClientRecordMatch> {
+  const db = supabaseAdmin();
+  if (!db) return { kind: "failed" };
+  if (!clientId) return { kind: "none" };
+
+  const { data: accounts, error } = await db
+    .from("eng_customer_accounts")
+    .select("id, status")
+    .eq("client_id", clientId)
+    .order("created_at", { ascending: true });
+  if (error) return { kind: "failed" };
+  const rows = accounts ?? [];
+  if (rows.length === 0) return { kind: "none" };
+
+  const active = rows.filter((a) => a.status === "active");
+  if (active.length === 0) {
+    const states = [...new Set(rows.map((a) => String(a.status)))].join(" and ");
+    return { kind: "person", reason: `the order's client has an account and it is ${states}` };
+  }
+  if (active.length > 1) {
+    return { kind: "person", reason: `the order's client has ${active.length} active accounts` };
+  }
+
+  if (email) {
+    const { data: holder, error: holderError } = await db
+      .from("eng_customer_users")
+      .select("account_id")
+      .eq("email", normaliseAddress(email))
+      .maybeSingle();
+    if (holderError) return { kind: "failed" };
+    if (holder?.account_id && holder.account_id !== active[0].id) {
+      return { kind: "person", reason: "the paying address belongs to a different account from the order's client" };
+    }
+  }
+  return { kind: "match", accountId: active[0].id as string };
+}
+
+export type AccountCandidate = {
+  accountId: string;
+  /** The client the account belongs to, by name. */
+  name: string;
+  status: string;
+  /** Why it is offered: the order's own client, or the address that paid. */
+  because: "the order's client" | "the paying address";
+};
+
+export type OrderAwaitingAccount = {
+  orderId: string;
+  reference: string;
+  /** "account": no account chosen yet. "address": attached, and its account has no address to confirm to. */
+  needs: "account" | "address";
+  reason: string;
+  candidates: AccountCandidate[];
+};
+
+/**
+ * Every paid order waiting on a person over its account: the ones whose
+ * account no rule could choose and that still name none, and the ones whose
+ * account has no address on file and whose confirmation has still not gone
+ * (ruling 2026-10-13: "the panel says so for that order"). With the accounts a
+ * person may attach the first kind to. Null when it could not be read, which
+ * is not none.
+ */
+export async function ordersAwaitingAccount(): Promise<OrderAwaitingAccount[] | null> {
+  const db = supabaseAdmin();
+  if (!db) return null;
+
+  const { data: said, error } = await db
+    .from("eng_order_events")
+    .select("order_id, event, summary")
+    .in("event", [ACCOUNT_MATCH_NEEDED, CONFIRMATION_NO_ADDRESS])
+    .order("created_at", { ascending: true })
+    .limit(500);
+  if (error) return null;
+  const ids = [...new Set((said ?? []).map((e) => e.order_id as string))];
+  if (ids.length === 0) return [];
+
+  const { data: orders, error: ordersError } = await db
+    .from("eng_service_orders")
+    .select("id, reference, account_id")
+    .in("id", ids);
+  if (ordersError) return null;
+  const { data: sent, error: sentError } = await db
+    .from("eng_order_events")
+    .select("order_id")
+    .in("order_id", ids)
+    .eq("event", "email.sent");
+  if (sentError) return null;
+  const confirmed = new Set((sent ?? []).map((e) => e.order_id as string));
+
+  const out: OrderAwaitingAccount[] = [];
+  for (const o of orders ?? []) {
+    const mine = (said ?? []).filter((e) => e.order_id === o.id);
+    const needs: OrderAwaitingAccount["needs"] | null = !o.account_id
+      ? mine.some((e) => e.event === ACCOUNT_MATCH_NEEDED)
+        ? "account"
+        : null
+      : mine.some((e) => e.event === CONFIRMATION_NO_ADDRESS) && !confirmed.has(o.id as string)
+        ? "address"
+        : null;
+    if (!needs) continue;
+    const candidates = needs === "account" ? await accountCandidatesFor(o.id as string) : [];
+    if (candidates === null) return null;
+    const detail = mine.find((e) => e.event === (needs === "account" ? ACCOUNT_MATCH_NEEDED : CONFIRMATION_NO_ADDRESS))?.summary;
+    out.push({
+      orderId: o.id as string,
+      reference: o.reference as string,
+      needs,
+      reason: typeof detail === "string" ? detail : "No account was opened or attached.",
+      candidates,
+    });
+  }
+  return out;
+}
+
+/**
+ * The accounts a person may attach this order to: every account of the
+ * order's client, and the account the paying address belongs to. Nothing
+ * else, so the action cannot be pointed at a stranger's account.
+ */
+export async function accountCandidatesFor(orderId: string): Promise<AccountCandidate[] | null> {
+  const db = supabaseAdmin();
+  if (!db) return null;
+
+  const { data: order, error } = await db
+    .from("eng_service_orders")
+    .select("client_id, customer_email")
+    .eq("id", orderId)
+    .maybeSingle();
+  if (error || !order) return null;
+
+  const found = new Map<string, { status: string; clientId: string; because: AccountCandidate["because"] }>();
+  if (order.client_id) {
+    const { data: own, error: ownError } = await db
+      .from("eng_customer_accounts")
+      .select("id, status, client_id")
+      .eq("client_id", order.client_id as string)
+      .order("created_at", { ascending: true });
+    if (ownError) return null;
+    for (const a of own ?? []) {
+      found.set(a.id as string, { status: String(a.status), clientId: a.client_id as string, because: "the order's client" });
+    }
+  }
+  const email = typeof order.customer_email === "string" ? order.customer_email.trim() : "";
+  if (email) {
+    const { data: holder, error: holderError } = await db
+      .from("eng_customer_users")
+      .select("account_id")
+      .eq("email", normaliseAddress(email))
+      .maybeSingle();
+    if (holderError) return null;
+    if (holder?.account_id && !found.has(holder.account_id as string)) {
+      const { data: theirs, error: theirsError } = await db
+        .from("eng_customer_accounts")
+        .select("id, status, client_id")
+        .eq("id", holder.account_id as string)
+        .maybeSingle();
+      if (theirsError) return null;
+      if (theirs) {
+        found.set(theirs.id as string, {
+          status: String(theirs.status),
+          clientId: theirs.client_id as string,
+          because: "the paying address",
+        });
+      }
+    }
+  }
+  if (found.size === 0) return [];
+
+  const clientIds = [...new Set([...found.values()].map((f) => f.clientId))];
+  const { data: clients, error: clientsError } = await db.from("eng_clients").select("id, name").in("id", clientIds);
+  if (clientsError) return null;
+  const names = new Map((clients ?? []).map((c) => [c.id as string, c.name as string]));
+
+  return [...found.entries()].map(([accountId, f]) => ({
+    accountId,
+    name: names.get(f.clientId) ?? "a client with no name on file",
+    status: f.status,
+    because: f.because,
+  }));
+}
+
+export type AttachResult =
+  | { ok: true; released: boolean; note: string }
+  | { ok: false; status: number; error: string };
+
+/**
+ * A person attaches a paid order to an account, and the payment's release
+ * finishes. Operator ruling, 2026-10-13: the one-click staff action for a
+ * payment no rule could match safely.
+ *
+ * Only to an account accountCandidatesFor offers, only while the order names
+ * none, under accounts.manage because it decides who can see the order, and
+ * audited as that person. The release then runs again for every claimed
+ * payment event naming this order or its batch; it is safe to run twice, so a
+ * payment whose other steps already finished only finishes its event.
+ */
+export async function attachOrderToAccount(
+  actor: Actor & { email: string },
+  orderId: string,
+  accountId: string,
+): Promise<AttachResult> {
+  if (!can(actor, "accounts.manage")) return { ok: false, status: 403, error: "Not permitted." };
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, status: 503, error: "The order system is not configured." };
+
+  const { data: order, error } = await db
+    .from("eng_service_orders")
+    .select("id, reference, account_id, batch_id")
+    .eq("id", orderId)
+    .maybeSingle();
+  if (error) return { ok: false, status: 503, error: "The order could not be read. Nothing was changed." };
+  if (!order) return { ok: false, status: 404, error: "There is no such order." };
+  if (order.account_id) return { ok: false, status: 409, error: "This order already has an account. Nothing was changed." };
+
+  const candidates = await accountCandidatesFor(orderId);
+  if (candidates === null) return { ok: false, status: 503, error: "The accounts could not be read. Nothing was changed." };
+  const chosen = candidates.find((c) => c.accountId === accountId);
+  if (!chosen) {
+    return { ok: false, status: 400, error: "That account is not one this order can be attached to. Nothing was changed." };
+  }
+
+  const { data: attached, error: attachError } = await db
+    .from("eng_service_orders")
+    .update({ account_id: accountId })
+    .eq("id", orderId)
+    .is("account_id", null)
+    .select("id");
+  if (attachError) return { ok: false, status: 503, error: "The order could not be attached. Nothing was changed." };
+  if ((attached ?? []).length === 0) {
+    return { ok: false, status: 409, error: "Somebody attached this order a moment ago. Nothing was changed." };
+  }
+
+  await event(
+    orderId,
+    ACCOUNT_ATTACHED,
+    false,
+    `Attached by ${actor.email} to ${chosen.name}'s account (${chosen.because}).`,
+  );
+  await writeAudit({
+    actor: { id: actor.id, role: actor.role, email: actor.email },
+    action: "order.account_attached",
+    entityType: "service_order",
+    entityId: orderId,
+    summary: `Attached ${order.reference} to ${chosen.name}'s account, offered as ${chosen.because}`,
+    diff: { account_id: accountId, because: chosen.because, account_status: chosen.status },
+  });
+
+  /* The payments waiting on it: this order's own, and its batch's. */
+  const filter = order.batch_id ? `order_id.eq.${orderId},batch_id.eq.${order.batch_id}` : `order_id.eq.${orderId}`;
+  const { data: waiting, error: waitingError } = await db
+    .from("eng_payment_events")
+    .select("event_id, order_id, batch_id")
+    .eq("status", "claimed")
+    .or(filter);
+  if (waitingError) {
+    return { ok: true, released: false, note: "Attached. The payment waiting on it could not be read, so its release was not run; the next delivery from Stripe runs it." };
+  }
+
+  let released = true;
+  for (const w of waiting ?? []) {
+    let orderIds: string[] = [];
+    if (w.order_id) {
+      orderIds = [w.order_id as string];
+    } else if (w.batch_id) {
+      const { data: inBatch, error: batchError } = await db
+        .from("eng_service_orders")
+        .select("id")
+        .eq("batch_id", w.batch_id as string)
+        .eq("status", "in_fulfilment");
+      if (batchError) {
+        released = false;
+        continue;
+      }
+      orderIds = (inBatch ?? []).map((o) => o.id as string);
+    }
+    const result = await releaseAndFinish(w.event_id as string, orderIds);
+    if (!result.ok) released = false;
+  }
+  return {
+    ok: true,
+    released,
+    note: released
+      ? "Attached, and the payment's work is released."
+      : "Attached. The rest of the release did not finish and stays on this list with its reason.",
+  };
+}
+
 /**
  * The confirmation, carrying the link that was just minted.
  *
@@ -926,7 +1409,15 @@ async function openAccountForOrder(orderId: string): Promise<"settled" | "failed
  * out, the other is recorded for a person and a second attempt would say the
  * same. "failed" is one the next attempt can fix (0075).
  */
-async function sendOrderConfirmation(orderId: string, token: string): Promise<"queued" | "no_address" | "failed"> {
+/*
+ * `to` is the account's address on file when confirmationRecipient chose it;
+ * null sends to the order's own customer address, as every order did before.
+ */
+async function sendOrderConfirmation(
+  orderId: string,
+  token: string,
+  to: string | null,
+): Promise<"queued" | "no_address" | "failed"> {
   const db = supabaseAdmin();
   if (!db) return "failed";
 
@@ -943,15 +1434,16 @@ async function sendOrderConfirmation(orderId: string, token: string): Promise<"q
     .maybeSingle();
   if (orderError) return "failed";
 
-  if (!order?.customer_email) {
+  const address = to ?? (order?.customer_email as string | null | undefined) ?? null;
+  if (!address) {
     await event(orderId, "email.not_sent", false, "The confirmation could not be sent: no customer email on the order.");
     return "no_address";
   }
 
   const queued = await queueEmail(
     orderConfirmed({
-      customerName: order.customer_name as string,
-      customerEmail: order.customer_email as string,
+      customerName: order?.customer_name as string,
+      customerEmail: address,
       reference: view.reference,
       serviceName: view.serviceName,
       propertyAddress: view.propertyAddress,
@@ -978,7 +1470,7 @@ async function sendOrderConfirmation(orderId: string, token: string): Promise<"q
      */
     queued.ok,
     queued.ok
-      ? `The order confirmation was sent to ${order.customer_email}.`
+      ? `The order confirmation was sent to ${address}.`
       : `The order confirmation could not be queued: ${queued.error}. It has to go out by hand.`,
   );
   return queued.ok ? "queued" : "failed";

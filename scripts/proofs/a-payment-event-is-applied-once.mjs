@@ -82,9 +82,17 @@ const PARTNER = id(4);
 const ACCRUAL = id(5);
 const BATCH_PAID = id(6);
 const BATCH_EXPIRE = id(7);
-/* The account-cut order's own client: an account is unique per site and client,
- * and the other orders' releases open one for CLIENT. */
+/* The account-cut order's own client, with no account, so its release OPENS
+ * one; every order on CLIENT is matched to ACCOUNT by its client record. */
 const CLIENT_ACCOUNT_CUT = id(8);
+/*
+ * Also ACCOUNT's billing email. Every order on CLIENT is matched to ACCOUNT by
+ * its client record (ruling 2026-10-13) and confirms to the account's address
+ * on file; with none on file the release would rightly stay claimed, and this
+ * proof is about events applied once, not about that. The paying address and
+ * the account's address differing is proved in
+ * an-existing-client-is-matched-by-its-record.
+ */
 const EMAIL = "payment-events-proof@audit-probe.invalid";
 
 const ORDERS = {
@@ -99,7 +107,8 @@ await db.exec(`
   insert into eng_clients (id, kind, name) values
     ('${CLIENT}', 'individual', 'Payment events proof client, not a real person'),
     ('${CLIENT_ACCOUNT_CUT}', 'individual', 'Payment events proof second client, not a real person');
-  insert into eng_customer_accounts (id, site, client_id, billing_mode) values ('${ACCOUNT}', '254engineering', '${CLIENT}', 'invoice');
+  insert into eng_customer_accounts (id, site, client_id, billing_mode, billing_email)
+    values ('${ACCOUNT}', '254engineering', '${CLIENT}', 'invoice', '${EMAIL}');
   insert into eng_statements (id, account_id, reference, period, status) values ('${STATEMENT}', '${ACCOUNT}', '254-PROOF-ST-1', '2026-09', 'issued');
   insert into eng_order_batches (id, site, reference, service_slug, status) values
     ('${BATCH_PAID}', '254engineering', '254-PROOF-BA-1', 'roof-inspections', 'awaiting_payment'),
