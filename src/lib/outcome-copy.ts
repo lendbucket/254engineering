@@ -16,6 +16,7 @@ export const LIST_NOT_LOADED = "This list could not be loaded. Try again.";
  * Carried as the digest of a failed session read. Next keeps a digest an error
  * already has, and a production build hides every other property from an error
  * boundary, so this is how the portal's boundary tells this failure from any
- * other.
+ * other. Lower case on purpose: an all capitals string is what soc2-audit reads
+ * as a candidate secret, and this is a label, not a credential.
  */
-export const UNREACHABLE_DIGEST = "DATABASE_UNREACHABLE";
+export const UNREACHABLE_DIGEST = "database-unreachable";

@@ -893,7 +893,8 @@ const base = {
   const api = codeOnly("src/app/api/portal/status/route.ts");
   rec("the mute endpoint checks the permission", /can\(actor, "jobs\.manage"\)/.test(api));
   rec("and is audited", /writeAudit\(/.test(api) && /errors\.muted/.test(api));
-  rec("and has no GET", !/export async function GET/.test(api));
+  // Both export shapes: a handler wrapped by withSaveOutcome is a const.
+  rec("and has no GET", !/export async function GET/.test(api) && !/export const GET\b/.test(api));
   rec(
     "and takes the value rather than toggling",
     /body\.muted === true/.test(api),

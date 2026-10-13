@@ -1296,9 +1296,13 @@ const answerAll = (entry, pick = () => 0) =>
     "the reconcile route checks payments.reconcile",
     route.includes('can(actor, "payments.reconcile")'),
   );
+  // The GET is wrapped by withSaveOutcome since 2026-10-12, so its body is
+  // handleGET. The check first finds a GET body, or it would pass over nothing.
+  const reconcileGet = /(export async function GET|async function handleGET)\(/.exec(route);
+  rec("and the GET it reads is there to read", reconcileGet !== null);
   rec(
     "a GET on it can never apply",
-    !/export async function GET[\s\S]{0,500}apply: true/.test(route),
+    reconcileGet !== null && !/apply: true/.test(route.slice(reconcileGet.index, reconcileGet.index + 500)),
     "a link followed in a browser must not move money",
   );
   rec("and applying is opt in rather than the default", route.includes("body?.apply === true"));
@@ -1520,13 +1524,20 @@ const answerAll = (entry, pick = () => 0) =>
   rec("the refund route checks payments.refund", route.includes('can(actor, "payments.refund")'));
   rec(
     "and has no GET at all",
-    !/export async function GET/.test(route),
+    // Both export shapes: a handler wrapped by withSaveOutcome is a const.
+    !/export async function GET/.test(route) && !/export const GET\b/.test(route),
     "a link must never be able to move a customer money",
   );
 
   // The dashboard has to be able to see it, or nobody is told.
   const dash = readSource("src/lib/ops-dashboard.ts");
-  rec("the dashboard counts stuck orders", /ordersNeedingAttention\(\)/.test(dash));
+  rec("the dashboard counts stuck orders", /ordersNeedingAttentionRead\(\)/.test(dash));
+  // The Read variant answers null on a failed read (2026-10-12), and a null
+  // must reach the reader as unknown, never as no stuck orders.
+  rec(
+    "and a failed read says so rather than showing none stuck",
+    /if \(stuckOrders === null\) \{\s*notComputable\.push\(\s*"[^"]*stuck on payment is not known/.test(dash),
+  );
   rec("and gives them a tile", /Orders stuck on payment/.test(dash));
   rec("and puts them in the attention list", /stuck on payment/.test(dash));
 }
