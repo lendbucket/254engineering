@@ -32,6 +32,20 @@
  */
 import { readFileSync } from "node:fs";
 import { readSource } from "./lib/read-source.mjs";
+
+/*
+ * One function's body from 0075, where the webhook's money writes live since
+ * 2026-10-13. "" when it is not there, which every caller asserts against
+ * first, so a renamed function is a red line rather than a pattern tested
+ * against nothing.
+ */
+const PAYMENT_EVENTS_SQL = readSource("supabase/migrations/0075_a_payment_event_is_applied_once.sql");
+function sqlFunction(name) {
+  const start = PAYMENT_EVENTS_SQL.indexOf(`create or replace function ${name}(`);
+  if (start === -1) return "";
+  const end = PAYMENT_EVENTS_SQL.indexOf("$fn$;", start);
+  return end === -1 ? "" : PAYMENT_EVENTS_SQL.slice(start, end);
+}
 import { deliverablePriceCents, minimumEngagementCents } from "../src/config/prices.ts";
 import {
   CATALOG,
@@ -1340,13 +1354,38 @@ const answerAll = (entry, pick = () => 0) =>
     /const delta = input\.refundedToDateCents - alreadyRefunded/.test(recorder),
     "writing the total whole would double the ledger on a second partial refund",
   );
+  /*
+   * SINCE 0075 THE WRITE IS ONE TRANSACTION IN eng_apply_refund, so the checks
+   * that read "what is written" read that function. Each first asserts the
+   * function was found, or every pattern below would be tested against "".
+   */
+  const refundFn = sqlFunction("eng_apply_refund");
+  rec("the refund transaction is there to read (0075)", refundFn.length > 0);
   rec(
     "and writes nothing when the ledger already agrees",
-    /if \(delta <= 0\)/.test(recorder),
+    /delta_cents: delta/.test(recorder) &&
+      /if v_delta <= 0 then[\s\S]{0,160}'nothing_to_record'/.test(refundFn) &&
+      refundFn.indexOf("if v_delta <= 0 then") < refundFn.indexOf("insert into public.eng_order_payments"),
+  );
+  rec(
+    "and a pending refund counts as on file, so a platform refund still pending is not written twice",
+    /\.in\("status", \["pending", "succeeded"\]\)/.test(recorder) &&
+      /status in \('pending', 'succeeded'\)/.test(refundFn),
+    "the webhook's refund ref is the event id when the payload lists no refund, so the unique key could not catch it",
+  );
+  rec(
+    "and the refund row carries the charge's own subject, so a batch or statement refund is recorded",
+    /values\s*\(v_charge\.order_id, v_charge\.batch_id, v_charge\.statement_id, 'refund'/.test(refundFn),
+    "a refund row naming no order, batch or statement fails has_subject, and was answered 200",
+  );
+  rec(
+    "and the total it was computed from is re-read under a lock and refused if it moved",
+    /for update/.test(refundFn) && /v_prior <> \(p->>'expected_prior_cents'\)::bigint/.test(refundFn),
   );
   rec(
     "and an expired checkout closes the order rather than only noting it",
-    hook.includes("markAbandoned("),
+    hook.includes("expireCheckout(") &&
+      /update public\.eng_service_orders set status = 'cancelled'/.test(sqlFunction("eng_apply_checkout_expired")),
   );
 }
 
@@ -1769,20 +1808,34 @@ const answerAll = (entry, pick = () => 0) =>
    * would be ten times the money in the ledger, and every margin figure and
    * every refund computed from it would be wrong.
    */
+  /* Since 0075 the charge is written by eng_apply_batch_paid, in one transaction. */
+  const batchFn = sqlFunction("eng_apply_batch_paid");
+  rec("the batch payment transaction is there to read (0075)", batchFn.length > 0);
   rec(
     "a batch payment writes its charge against the BATCH",
-    /batch_id: input\.batchId,\s*\n\s*kind: "charge"/.test(batchPaid),
+    /insert into public\.eng_order_payments \(batch_id, kind,/.test(batchFn) && /batch_id: input\.batchId/.test(batchPaid),
     "one payment, one row",
   );
   rec(
     "and never a charge row per order",
-    !/order_id: o\.id[\s\S]{0,120}kind: "charge"/.test(batchPaid),
+    !/order_id: o\.id[\s\S]{0,120}kind: "charge"/.test(batchPaid) &&
+      !/insert into public\.eng_order_payments \(order_id/.test(batchFn),
     "ten rows for one payment would be ten times the money",
   );
   rec(
     "and it is idempotent on the charge ref",
-    /23505/.test(batchPaid),
+    /exception when unique_violation then\s*perform public\.eng_finish_payment_event/.test(batchFn),
     "Stripe delivers more than once",
+  );
+  rec(
+    "and on the event id before any effect",
+    batchFn.indexOf("eng_claim_payment_event") !== -1 &&
+      batchFn.indexOf("eng_claim_payment_event") < batchFn.indexOf("insert into public.eng_order_payments"),
+    "a resent event is recorded once by its id (operator ruling, 2026-10-12)",
+  );
+  rec(
+    "and each order moves only from the status it was judged at",
+    /if v_status is distinct from v_o->>'expected_status' then\s*raise exception/.test(batchFn),
   );
   rec(
     "and each order is released through the shared path",
@@ -1830,17 +1883,26 @@ const answerAll = (entry, pick = () => 0) =>
     /statement rather than being charged now/.test(invoice),
   );
 
-  // An abandoned batch closes its orders too.
-  const abandon = pay.slice(pay.indexOf("export async function abandonBatch"));
+  // An abandoned batch closes its orders too. Since 0075 it is expireCheckout,
+  // one transaction in eng_apply_checkout_expired.
+  const expiryAt = pay.indexOf("export async function expireCheckout");
+  const abandon = expiryAt === -1 ? "" : pay.slice(expiryAt, pay.indexOf("\n}\n", expiryAt));
+  rec("the expiry is there to read (0075)", abandon.length > 0);
   rec(
     "an abandoned batch closes every order under it",
-    /markAbandoned\(o\.id/.test(abandon),
+    /\.eq\("batch_id", input\.batchId as string\)/.test(abandon) &&
+      /cancel: batchOpen && canTransitionOrder\(o\.status as never, "cancelled"\)/.test(abandon),
     "otherwise one abandonment puts ten rows on the stuck order screen",
   );
   rec(
     "and refuses to abandon a batch that was already paid",
-    /status !== "awaiting_payment" && batch\.status !== "draft"/.test(abandon),
+    /const batchOpen = batchStatus === null \|\| batchStatus === "awaiting_payment" \|\| batchStatus === "draft"/.test(abandon),
     "Stripe does not guarantee a completion arrives before an expiry",
+  );
+  rec(
+    "and cancels an order only from the status it was judged at, so a payment that moved it first wins",
+    /if v_status is distinct from v_o->>'expected_status' then\s*raise exception/.test(sqlFunction("eng_apply_checkout_expired")),
+    "an expired checkout read the order, a payment released it, and the expiry's write cancelled a paid order",
   );
 
   // The webhook routes a batch before it routes an order.
@@ -1866,7 +1928,7 @@ const answerAll = (entry, pick = () => 0) =>
   );
   rec(
     "and an expired batch is closed as well as an expired order",
-    /abandonBatch\(/.test(hook),
+    /expireCheckout\(\{[\s\S]{0,200}batchId: parsed\.batchId/.test(hook),
   );
 
   // The batch wrapper does not reimplement placing an order.
@@ -2038,11 +2100,21 @@ const answerAll = (entry, pick = () => 0) =>
   rec("and the session says it is a statement", /subjectKind: "statement"/.test(checkout));
 
   // One charge row for one payment, idempotent, and the work is untouched.
-  rec("a paid statement writes one charge row against the statement", /statement_id: input\.statementId/.test(paid));
-  rec("and is idempotent on the charge ref", /23505/.test(paid));
+  // Since 0075 the writes are eng_apply_statement_paid, in one transaction.
+  const statementFn = sqlFunction("eng_apply_statement_paid");
+  rec("the statement payment transaction is there to read (0075)", statementFn.length > 0);
+  rec(
+    "a paid statement writes one charge row against the statement",
+    /statement_id: input\.statementId/.test(paid) &&
+      /insert into public\.eng_order_payments \(statement_id, kind,/.test(statementFn),
+  );
+  rec(
+    "and is idempotent on the charge ref",
+    /exception when unique_violation then\s*perform public\.eng_finish_payment_event/.test(statementFn),
+  );
   rec(
     "and does not touch the orders beneath it",
-    !/eng_service_orders/.test(paid),
+    !/eng_service_orders/.test(paid) && !/eng_service_orders/.test(statementFn),
     "paying the bill does not change the work",
   );
 

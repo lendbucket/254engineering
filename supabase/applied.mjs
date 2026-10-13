@@ -2465,6 +2465,30 @@ export const APPLIED = [
       "No function, so no grant to revoke. migration-audit's pinned shape and trigger count move in the same " +
       "commit. Additive only.",
   },
+  {
+    file: "0075_a_payment_event_is_applied_once.sql", appliedBy: "apply_migration",
+    fingerprint: "318b0fa346fc0f92167df9b9f44ce1cf",
+    behaviour: "ca40bae4dca081d10fba6a46922bcdb6",
+    /*
+     * STAGED, written unapplied on fix/stripe-webhook-once, which builds on
+     * feat/partner-billing because 0075 follows 0074, with
+     * docs/production-sitting-fix-stripe-webhook-once.md. It merges only after
+     * 0074 and then 0075 are applied and read back on production.
+     */
+    production: null,
+    development: { at: "0075", behaviour: null, facts: null },
+    because:
+      "WRITTEN 2026-10-13 UNAPPLIED, operator rulings of 2026-10-12 on Stripe webhooks: every payment event is " +
+      "recorded once by its id before any effect, the money writes of each branch commit in one transaction with " +
+      "it, and the release of the work runs after commit under claimed then done. The counterpart applies it from " +
+      "the sitting document, after the read-only stuck charge query, and reads it back.",
+    proves: { table: "eng_payment_events" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0075 on 2026-10-13: shape 1194 to 1206 columns " +
+      "(twelve on eng_payment_events), 86 tables to 87, behaviour 998 to 1018 facts. Eight functions, each " +
+      "revoked from public, anon and authenticated in the same file (0073's rule), and one trigger. No drop " +
+      "statement of any kind. migration-audit's pinned shape, trigger and function counts move in the same commit.",
+  },
 ];
 
 /*

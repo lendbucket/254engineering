@@ -59,6 +59,17 @@ export async function watchWrites<T>(
   return watch.run(abandoned, body);
 }
 
+/**
+ * How many writes the watch this call runs under has abandoned so far, and 0
+ * outside a watch. Read before and after a step to ask whether that step
+ * abandoned one, without opening a nested watch that would hide it from the
+ * caller's (2026-10-13: a payment's release is not finished if any of its
+ * writes was abandoned, whichever step swallowed the error).
+ */
+export function abandonedSoFar(): number {
+  return watch.getStore()?.length ?? 0;
+}
+
 function methodOf(input: RequestInfo | URL, init?: RequestInit): string {
   const method = init?.method ?? (typeof input === "object" && "method" in input ? input.method : "GET");
   return method.toUpperCase();

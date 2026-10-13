@@ -203,13 +203,20 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * (stripe_event_id, partner_id, event_type, status_after, applied_at); 84
  * tables to 86, both with row level security on; shape
  * e4b2e3505c71594d6aba4ca47025bf3f.
+ *
+ * Moved 2026-10-13 by 0075, a payment event applied once: 1,194 to 1,206 is
+ * eng_payment_events' twelve columns (event_id, source, event_type, order_id,
+ * batch_id, statement_id, charge_ref, status, claimed_at, done_at,
+ * release_attempts, last_error); 86 tables to 87, row level security on;
+ * shape 318b0fa346fc0f92167df9b9f44ce1cf, read off fingerprint-at.mjs.
  */
-const EXPECTED_FINGERPRINT = "e4b2e3505c71594d6aba4ca47025bf3f";
-const EXPECTED_COLUMNS = 1194;
-const EXPECTED_TABLES = 86;
+const EXPECTED_FINGERPRINT = "318b0fa346fc0f92167df9b9f44ce1cf";
+const EXPECTED_COLUMNS = 1206;
+const EXPECTED_TABLES = 87;
 /* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts.
- * 0074 adds two: eng_partner_billing_touch and eng_partner_billing_events_immutable. */
-const EXPECTED_TRIGGERS = 79;
+ * 0074 adds two: eng_partner_billing_touch and eng_partner_billing_events_immutable.
+ * 0075 adds one: eng_payment_events_guarded. */
+const EXPECTED_TRIGGERS = 80;
 /**
  * 0014 added eng_freeze_attribution and 0019 added two more, the partner
  * entry freeze and its delete refusal, which are trigger functions like the
@@ -234,8 +241,11 @@ const EXPECTED_TRIGGERS = 79;
  * replaces that function's body and adds none.
  */
 /* 37 since 0068: eng_record_review_decision, a decided review in one transaction.
- * 38 since 0071: eng_take_sign_in_attempt, the sign in limiter's count. */
-const EXPECTED_FUNCTIONS = 38;
+ * 38 since 0071: eng_take_sign_in_attempt, the sign in limiter's count.
+ * 46 since 0075: the payment event guard, claim and finish, and one function
+ * per webhook branch (order paid, batch paid, statement paid, checkout expired,
+ * refund), each a single transaction. */
+const EXPECTED_FUNCTIONS = 46;
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });

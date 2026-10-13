@@ -118,16 +118,57 @@ error sentence:
 - **The login redirect's `next`**: `(app)/layout.tsx` reads `x-invoke-path`,
   which Next 16 does not set, so it always sends `next=/portal`.
 
-## FOR A RULING: THE STRIPE WEBHOOK AND AN ABANDONED WRITE
+## STAGED: 0075, A PAYMENT EVENT IS APPLIED ONCE
 
-Operator ruling, 2026-10-12: no automatic retry of an aborted write anywhere.
-Every screen-facing route answers "This may not have saved" and nothing in the
-application retries. The Stripe webhook, the v1 API, the sister intake and the
-cron routes are not wrapped, being called by machines rather than screens. A
-webhook that abandons a write answers 500 and **Stripe retries it on its own**.
-Only the refund path is keyed on the event id (`payments-stripe.ts`, the
-`refundRef`); whether every other branch is safe to receive twice has not been
-read. Whether that retry is allowed is the operator's call.
+Ruled 2026-10-12 (the entry that stood here asked for it): Stripe's resends are
+allowed, every payment event is recorded once by its id before any effect, each
+webhook branch's money writes commit in one transaction with that record, the
+release runs after commit under claimed then done, and anything uncommitted
+answers non 2xx. Built on `fix/stripe-webhook-once`, which builds on
+`feat/partner-billing` because 0075 follows 0074. Sitting:
+`docs/production-sitting-fix-stripe-webhook-once.md`, whose section 0 is the
+read-only query for charges already taken with no work released. Proof:
+`scripts/proofs/a-payment-event-is-applied-once.mjs`, on a replay served by
+`scripts/lib/replay-rest.mjs`, because development refuses deletes on every
+money table. Merges only after 0074 and 0075 are applied to production and
+read back.
+
+## OPEN, FROM THE WEBHOOK WORK OF 2026-10-13, NOT BUILT
+
+Each found while building 0075, outside what the ruling asked for, and left
+for a ruling rather than fixed on the way past.
+
+1. **The partner billing lane keeps its own event table.** 0074's lane records
+   each Stripe event once in `eng_partner_billing_events`, keyed by event id,
+   and does not use `eng_payment_events`. The ruling said one mechanism for all
+   paths. Folding it in means changing 0074's lane before it has ever run;
+   leaving it means two ledgers of event ids. For a ruling.
+2. **A pending refund is never marked succeeded.** settleDecision and
+   cancelAndRefund write Stripe's status at the moment of the call, which can
+   be pending, and nothing updates it later: the webhook is not subscribed to
+   `charge.refund.updated`. 0075 now counts pending refunds as on file, which
+   is what stops the double record, but a pending row stays pending for ever.
+3. **settleDecision and cancelAndRefund count only succeeded refunds** when
+   working out what is still owed. A pending refund there would make a second
+   refund look owed. Stripe's own idempotency key (charge and amount) stops a
+   second identical refund leaving, so the money is safe; the figure is not.
+4. **A batch or statement refund reverses no commission.** Commission accrues
+   per order, and a refund against a batch or statement names no order, so the
+   refund is recorded and the audit row says the reversal is for a person. If
+   partners ever refer batch or statement customers, this needs a rule.
+5. **A paid batch whose expiry arrived first** is marked accepted with its
+   orders still cancelled, and nothing says a payment arrived. A single order in
+   the same race gets a `payment.unexpected` event; the batch gets nothing.
+   Behaviour unchanged by 0075.
+6. **An existing client paying from a new address** cannot open an account:
+   `eng_customer_accounts` is unique per site and client, so account creation
+   refuses. Before 0075 that was an `account.not_opened` event and the release
+   finished; now the release stays claimed and shows as "Paid, work not
+   released" after fifteen minutes, which is visible but repeats on every
+   resend. Found by the proof's fixture.
+7. **A completed checkout with no order, batch or statement id** still answers
+   200 with nothing written. Money moved with nothing to attach it to; it is
+   logged, and nothing else notices.
 
 ## APPLIED: 0072, A PARTNER'S LOGO IS APPROVED BEFORE IT SHOWS
 

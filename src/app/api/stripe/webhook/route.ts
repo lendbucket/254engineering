@@ -3,10 +3,10 @@ import {
   paymentProvider,
   markPaid,
   markBatchPaid,
-  markAbandoned,
-  abandonBatch,
+  expireCheckout,
   recordExternalRefund,
 } from "@/lib/ops-payments";
+import { watchWrites, type AbandonedWrite } from "@/lib/bounded-fetch";
 import { markStatementPaid } from "@/lib/ops-statements";
 import { confirmStripeAccount } from "@/lib/payments-stripe";
 import { applyPartnerBillingEvent } from "@/lib/partner-billing";
@@ -39,8 +39,42 @@ export const dynamic = "force-dynamic";
  * A verification failure is the exception and answers 400 without retrying
  * usefully, which is correct: a body we cannot verify will not verify later
  * either.
+ *
+ * AND 200 ONLY FOR AN EFFECT THAT COMMITTED. Operator rulings, 2026-10-12.
+ * --------------------------------------------------------------------
+ * Stripe's resends are allowed and relied on. Every handled event is recorded
+ * once by its id before any effect, in the same transaction as its money
+ * (0075), so a resend of a done event answers 200 and changes nothing, and a
+ * resend of one whose work was not fully released releases it.
+ *
+ * So everything that did not commit answers non 2xx, and Stripe sends it
+ * again: a refused write, a status that moved under it, a refund with no
+ * charge on file yet, a release that did not finish, and any write the 20
+ * second bound abandoned, which may or may not have committed and which the
+ * ledger makes safe to send again either way. A 200 means the effect is
+ * written or the event was already done.
  */
 export async function POST(request: NextRequest) {
+  const abandoned: AbandonedWrite[] = [];
+  let res: Response;
+  try {
+    res = await watchWrites(abandoned, () => handle(request));
+  } catch (err) {
+    console.error(`[stripe] the webhook failed: ${err instanceof Error ? err.message : String(err)}`);
+    return NextResponse.json({ ok: false }, { status: 500 });
+  }
+  if (abandoned.length > 0) {
+    const where = abandoned.map((w) => `${w.method} ${w.path}`).join(", ");
+    console.error(`[stripe] a write was abandoned (${where}), so this event answers 503 and Stripe sends it again.`);
+    return NextResponse.json({ ok: false, outcome: "unknown" }, { status: 503 });
+  }
+  return res;
+}
+
+/* Answered with 400: Stripe always sends an id, so only a malformed body lacks one. */
+const NO_EVENT_ID = "An event with no id cannot be recorded once, so it was refused.";
+
+async function handle(request: NextRequest): Promise<Response> {
   const raw = await request.text();
   const signature = request.headers.get("stripe-signature");
 
@@ -110,6 +144,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true, handled: true, duplicate: result.duplicate });
   }
 
+  if (!parsed.eventId) {
+    console.error(`[stripe] ${NO_EVENT_ID}`);
+    return NextResponse.json({ ok: false, error: NO_EVENT_ID }, { status: 400 });
+  }
+
   if (parsed.kind === "checkout.completed") {
     /*
      * A batch first, because a batch session carries batch_id and no order_id.
@@ -118,6 +157,7 @@ export async function POST(request: NextRequest) {
      */
     if (parsed.batchId) {
       const result = await markBatchPaid({
+        eventId: parsed.eventId,
         batchId: parsed.batchId,
         chargeRef: parsed.chargeRef,
         amountCents: parsed.amountCents,
@@ -131,13 +171,13 @@ export async function POST(request: NextRequest) {
 
       console.log(
         `[stripe] batch ${parsed.batchId}: ${
-          result.alreadyRecorded ? "already recorded" : `recorded and released ${result.released} properties`
+          result.duplicate ? `already recorded, ${result.released} released on this delivery` : `recorded and released ${result.released} properties`
         }`,
       );
       return NextResponse.json({
         ok: true,
         handled: true,
-        duplicate: result.alreadyRecorded,
+        duplicate: result.duplicate,
         released: result.released,
       });
     }
@@ -149,6 +189,7 @@ export async function POST(request: NextRequest) {
      */
     if (parsed.statementId) {
       const result = await markStatementPaid({
+        eventId: parsed.eventId,
         statementId: parsed.statementId,
         chargeRef: parsed.chargeRef,
         amountCents: parsed.amountCents,
@@ -176,6 +217,7 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await markPaid({
+      eventId: parsed.eventId,
       orderId: parsed.orderId,
       chargeRef: parsed.chargeRef,
       amountCents: parsed.amountCents,
@@ -202,27 +244,32 @@ export async function POST(request: NextRequest) {
      * which is precisely the state the stuck order screen exists to catch, ten
      * rows at a time instead of one.
      */
-    if (parsed.batchId) {
-      await abandonBatch(
-        parsed.batchId,
-        "You opened a checkout for these properties and did not finish it. Nothing was charged.",
-      );
-      return NextResponse.json({ ok: true, handled: true });
+    /*
+     * Closes the order rather than only noting the expiry. Writing an event
+     * and leaving the status at awaiting_payment is what made an expired
+     * checkout and a paid one whose webhook was lost the same row, which cost
+     * this platform three orders on 2026-09-03.
+     *
+     * A failure answers non 2xx (2026-10-12): the expiry that did not commit is
+     * sent again, and an order a payment moved first is judged again and left
+     * alone.
+     */
+    if (parsed.batchId || parsed.orderId) {
+      const result = await expireCheckout({
+        eventId: parsed.eventId,
+        orderId: parsed.orderId,
+        batchId: parsed.batchId,
+        reason: parsed.batchId
+          ? "You opened a checkout for these properties and did not finish it. Nothing was charged."
+          : "You opened a checkout and did not finish it, so the order was closed. Nothing was charged.",
+      });
+      if (!result.ok) {
+        console.error(`[stripe] could not record the expiry of ${parsed.sessionRef}: ${result.error}`);
+        return NextResponse.json({ ok: false }, { status: 500 });
+      }
+      return NextResponse.json({ ok: true, handled: true, duplicate: result.duplicate, closed: result.closed });
     }
-
-    if (parsed.orderId) {
-      /*
-       * Closes the order rather than only noting the expiry. Writing an event
-       * and leaving the status at awaiting_payment is what made an expired
-       * checkout and a paid one whose webhook was lost the same row, which cost
-       * this platform three orders on 2026-09-03.
-       */
-      await markAbandoned(
-        parsed.orderId,
-        "You opened a checkout and did not finish it, so the order was closed. Nothing was charged.",
-      );
-    }
-    return NextResponse.json({ ok: true, handled: true });
+    return NextResponse.json({ ok: true, handled: false });
   }
 
   if (parsed.kind === "charge.refunded") {
@@ -234,12 +281,18 @@ export async function POST(request: NextRequest) {
      * a trace: the firm's ledger would have shown a charge and no refund,
      * permanently, for money that had gone back to a customer.
      *
-     * recordExternalRefund is idempotent on the refund's own id, so a redelivery
-     * is one row, and it refuses when the charge is not on file rather than
-     * inventing one. That refusal is a 200 because retrying will not conjure the
-     * missing charge; reconciliation is what fixes that case.
+     * recordExternalRefund records the event once (0075), and it refuses when
+     * the charge is not on file rather than inventing one.
+     *
+     * THAT REFUSAL USED TO BE A 200, on the reasoning that retrying will not
+     * conjure the missing charge. By ruling (2026-10-12) it is non 2xx like
+     * every other refusal: a refund that is not written is not a refund that
+     * was handled, and the charge it needs can arrive in the meantime, through
+     * its own late webhook or the reconciliation sweep, in which case the next
+     * delivery records the refund.
      */
     const result = await recordExternalRefund({
+      eventId: parsed.eventId,
       chargeRef: parsed.chargeRef,
       refundRef: parsed.refundRef,
       refundedToDateCents: parsed.refundedToDateCents,
@@ -248,7 +301,10 @@ export async function POST(request: NextRequest) {
 
     if (!result.ok) {
       console.error(`[stripe] refund ${parsed.refundRef} could not be recorded: ${result.error}`);
-      return NextResponse.json({ ok: true, handled: false, reason: "no charge on file" });
+      return NextResponse.json(
+        { ok: false, reason: result.noCharge ? "no charge on file" : "not recorded" },
+        { status: result.noCharge ? 409 : 500 },
+      );
     }
 
     /*

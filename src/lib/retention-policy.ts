@@ -600,6 +600,17 @@ export const RETENTION_POLICY: RetentionEntry[] = [
     },
   },
   {
+    table: "eng_payment_events",
+    rule: {
+      kind: "kept_forever",
+      because:
+        REFUSES_DELETE("eng_guard_payment_event") +
+        " It is the record of which payment events were applied, and a deleted row is an event the next " +
+        "delivery would apply again.",
+      ruledBy: "0075, and the trigger",
+    },
+  },
+  {
     table: "eng_production_ledger",
     rule: {
       kind: "kept_forever",

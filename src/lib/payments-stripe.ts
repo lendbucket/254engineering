@@ -279,6 +279,7 @@ export function stripeProvider(): PaymentProvider {
         }
         return {
           kind: "checkout.completed",
+          eventId: event.id,
           sessionRef: session.id,
           chargeRef: intent,
           amountCents: session.amount_total ?? 0,
@@ -292,6 +293,7 @@ export function stripeProvider(): PaymentProvider {
         const session = event.data.object as Stripe.Checkout.Session;
         return {
           kind: "checkout.expired",
+          eventId: event.id,
           sessionRef: session.id,
           orderId: session.metadata?.order_id ?? null,
           batchId: session.metadata?.batch_id ?? null,
@@ -332,6 +334,7 @@ export function stripeProvider(): PaymentProvider {
         const latest = charge.refunds?.data?.[0];
         return {
           kind: "charge.refunded",
+          eventId: event.id,
           chargeRef: intent,
           // Only an idempotency key. The event id is stable across redeliveries.
           refundRef: latest?.id ?? event.id,
