@@ -4,6 +4,7 @@ import { signInCustomer, issueCustomerSession } from "@/lib/customer-auth";
 import { CUSTOMER_COOKIE, customerCookieOptions } from "@/lib/customer-session";
 import { writeAudit } from "@/lib/ops-audit";
 import { takeLoginAttempt, clearLoginAttempts, clientKey } from "@/lib/ops-rate-limit";
+import { withSaveOutcome } from "@/lib/save-outcome";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +22,7 @@ export const dynamic = "force-dynamic";
  * invited account that never set one, and a suspended user. A response that
  * distinguished them would tell somebody which addresses have accounts here.
  */
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
   const email = typeof body?.email === "string" ? body.email : "";
   const password = typeof body?.password === "string" ? body.password : "";
@@ -89,8 +90,12 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({ ok: true, redirect: "/account" });
 }
 
-export async function DELETE() {
+async function handleDELETE() {
   const jar = await cookies();
   jar.set(CUSTOMER_COOKIE, "", customerCookieOptions());
   return NextResponse.json({ ok: true, redirect: "/account/login" });
 }
+
+/* A save abandoned by the 20 second bound says it may not have saved, and a failed session read is never "Not signed in": save-outcome.ts. */
+export const POST = withSaveOutcome(handlePOST);
+export const DELETE = withSaveOutcome(handleDELETE);

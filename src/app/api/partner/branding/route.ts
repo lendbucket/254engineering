@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { currentPartner } from "@/lib/partner-auth";
 import { requestContext } from "@/lib/ops-auth";
 import { MAX_LOGO_BYTES, uploadPartnerLogo } from "@/lib/partner-branding";
+import { withSaveOutcome } from "@/lib/save-outcome";
 
 /*
  * A partner uploads its logo (run item 19, migration 0072). The partner is the
@@ -11,7 +12,7 @@ import { MAX_LOGO_BYTES, uploadPartnerLogo } from "@/lib/partner-branding";
  */
 export const dynamic = "force-dynamic";
 
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   const principal = await currentPartner();
   if (!principal) return NextResponse.json({ ok: false, error: "Sign in first." }, { status: 401 });
 
@@ -28,3 +29,6 @@ export async function POST(request: NextRequest) {
     ? NextResponse.json({ ok: true, note: "Uploaded. It shows on your order page once the firm approves it." })
     : NextResponse.json({ ok: false, error: result.error }, { status: 400 });
 }
+
+/* A save abandoned by the 20 second bound says it may not have saved, and a failed session read is never "Not signed in": save-outcome.ts. */
+export const POST = withSaveOutcome(handlePOST);

@@ -2,11 +2,12 @@ import { NextResponse, type NextRequest } from "next/server";
 import { changeOwnPassword, currentActor, requestContext } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
 import { writeAudit } from "@/lib/ops-audit";
+import { withSaveOutcome } from "@/lib/save-outcome";
 
 export const dynamic = "force-dynamic";
 
 /** A signed in person changing their own password. Never anybody else's. */
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   const actor = await currentActor();
   if (!can(actor, "profiles.update_self")) {
     return NextResponse.json({ ok: false, error: "Not signed in." }, { status: 401 });
@@ -49,3 +50,6 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({ ok: true });
 }
+
+/* A save abandoned by the 20 second bound says it may not have saved, and a failed session read is never "Not signed in": save-outcome.ts. */
+export const POST = withSaveOutcome(handlePOST);

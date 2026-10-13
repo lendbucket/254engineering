@@ -2,6 +2,8 @@ import "server-only";
 import { DB_NOW } from "./db-now";
 import { readEvery } from "./bounded-read";
 import { supabaseAdmin } from "./supabase";
+import { watchWrites, type AbandonedWrite } from "./bounded-fetch";
+import { MAY_NOT_HAVE_SAVED } from "./outcome-copy";
 import { LEASE_SECONDS, BATCH_SIZE, nextState, type JobOutcome } from "./job-rules";
 import { business } from "@/config/business";
 import type { RenderedEmail } from "./email-templates";
@@ -49,6 +51,8 @@ export type JobKind =
    * standing in front of.
    */
   | "report.export"
+  /* Run item 25, 2026-10-10: the one Google review request per delivered order (review-request.ts). */
+  | "review.request"
   /*
    * Phase 12 Section 3. Taking the rows a manifest already named.
    *
@@ -95,6 +99,40 @@ export type JobRecord = {
   effectMode: EffectMode;
 };
 
+/**
+ * A KEY THAT CANNOT BE BUILT IS REFUSED, NEVER DEFAULTED. Operator ruling,
+ * 2026-10-12.
+ *
+ * review.request keyed on `String(p.orderId ?? "")`, so a payload with no order
+ * produced the bare `review-request:` and every such job would have shared one
+ * key: the second and every later one deduplicated away against the first, and
+ * nobody told. A default inside a key is the same defect wearing a word
+ * ("latest", "today"): two different pieces of work, one key.
+ *
+ * So a key function returns this instead of a string when a field it is built
+ * from is absent, and enqueue refuses the job, says so loudly, and records it.
+ * It is a value rather than a throw because enqueue's callers are requests that
+ * have already done the thing that matters (delivery, payment) and are not
+ * written to expect one.
+ */
+export type KeyRefusal = { refused: true; missing: string[] };
+
+/** True when a payload field can carry a key: present and not blank. */
+function presentForKey(value: unknown): boolean {
+  if (value === undefined || value === null) return false;
+  return String(value).trim() !== "";
+}
+
+/** The fields of `payload` a key needs and does not have, as a refusal, or null. */
+export function keyFieldsMissing(payload: JobPayload, fields: string[]): KeyRefusal | null {
+  const missing = fields.filter((f) => !presentForKey(payload[f]));
+  return missing.length > 0 ? { refused: true, missing } : null;
+}
+
+export function isKeyRefusal(key: unknown): key is KeyRefusal {
+  return typeof key === "object" && key !== null && (key as KeyRefusal).refused === true;
+}
+
 type Handler = {
   /**
    * How this kind survives running twice.
@@ -103,7 +141,7 @@ type Handler = {
    * enqueue of the same work finds the first rather than adding a row.
    * "naturally" means the effect is already repeatable and says why.
    */
-  idempotency: ((payload: JobPayload) => string) | "naturally";
+  idempotency: ((payload: JobPayload) => string | KeyRefusal) | "naturally";
   /** Why, when it is "naturally". Required, so nobody asserts it without cause. */
   why?: string;
   /**
@@ -206,7 +244,29 @@ export async function enqueue(
     return { ok: false, error: `No handler is registered for ${kind}.` };
   }
 
-  const key = typeof handler.idempotency === "function" ? handler.idempotency(payload) : null;
+  const keyed = typeof handler.idempotency === "function" ? handler.idempotency(payload) : null;
+
+  /*
+   * A key that could not be built refuses the job, before any row is read or
+   * written. The console line always happens; the fault row is what survives
+   * the log, and captureError never throws, so recording the refusal cannot
+   * fail the request that tried to queue the work.
+   */
+  if (isKeyRefusal(keyed)) {
+    const why =
+      `${kind} was not queued: its idempotency key is built from ${keyed.missing.join(", ")}, ` +
+      `and the payload has no value for ${keyed.missing.length === 1 ? "it" : "them"}`;
+    console.error(`[jobs] refused: ${why}`);
+    const { captureError } = await import("./ops-observability");
+    await captureError(new Error(why), {
+      kind: "job",
+      level: "error",
+      route: `enqueue:${kind}`,
+      extra: { jobKind: kind, missing: keyed.missing },
+    });
+    return { ok: false, error: `${why}.` };
+  }
+  const key = keyed;
 
   /*
    * The live row check, done here rather than with ON CONFLICT.
@@ -407,12 +467,31 @@ export async function runBatch(workerId: string): Promise<WorkerReport> {
  * repeats when the leases expire, which looks exactly like a queue that is
  * moving while nothing completes.
  */
-async function runOne(handler: Handler, job: JobRecord): Promise<JobOutcome> {
+/*
+ * Exported for the proof that an abandoned write is not retried, which runs one
+ * job through this exact path without claiming anybody else's queued work.
+ */
+export async function runOne(handler: Handler, job: JobRecord): Promise<JobOutcome> {
+  /*
+   * AN ABANDONED WRITE IS NEVER RETRIED AUTOMATICALLY. Operator ruling,
+   * 2026-10-12. A write the 20 second bound abandoned may have committed, so a
+   * job that failed after abandoning one goes straight to the dead letter queue
+   * with that said, rather than running again on its own. A person checks, and
+   * retries it by hand from the queue screen: the same row, the same payload,
+   * the same idempotency key.
+   */
+  const abandoned: AbandonedWrite[] = [];
+  let outcome: JobOutcome;
   try {
-    return await handler.run(job.payload, job);
+    outcome = await watchWrites(abandoned, () => handler.run(job.payload, job));
   } catch (err) {
-    return { kind: "retry", error: err instanceof Error ? err.message : "the handler threw" };
+    outcome = { kind: "retry", error: err instanceof Error ? err.message : "the handler threw" };
   }
+  if (outcome.kind !== "done" && abandoned.length > 0) {
+    const where = abandoned.map((w) => `${w.method} ${w.path}`).join(", ");
+    return { kind: "fatal", error: `${MAY_NOT_HAVE_SAVED} A write was abandoned after 20 seconds (${where}), so this job was not retried. ${outcome.error}` };
+  }
+  return outcome;
 }
 
 // -------------------------------------------------------------- the picture

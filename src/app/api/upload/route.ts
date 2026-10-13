@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSignedUpload } from "@/lib/uploads";
+import { withSaveOutcome } from "@/lib/save-outcome";
 
 /**
  * Hands out a signed upload URL for one document on one application.
@@ -22,7 +23,7 @@ import { createSignedUpload } from "@/lib/uploads";
  * private bucket under a random UUID that no row will ever reference. That is
  * worth accepting to keep the form completable by the person it is for.
  */
-export async function POST(request: Request) {
+async function handlePOST(request: Request) {
   let body: unknown;
   try {
     body = await request.json();
@@ -59,3 +60,6 @@ export async function POST(request: Request) {
 
   return NextResponse.json({ ok: true, url: result.url, path: result.path });
 }
+
+/* A save abandoned by the 20 second bound says it may not have saved, and a failed session read is never "Not signed in": save-outcome.ts. */
+export const POST = withSaveOutcome(handlePOST);

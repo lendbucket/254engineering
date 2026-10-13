@@ -7,6 +7,7 @@ import { REPORTS, ROW_CEILING, periodOf } from "@/lib/ops-reports";
 import { exportFilename, exportRowCount, reportCsv } from "@/lib/ops-report-export";
 import { enqueue } from "@/lib/ops-jobs";
 import { writeAudit } from "@/lib/ops-audit";
+import { withSaveOutcome } from "@/lib/save-outcome";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +37,7 @@ function bad(message: string, status = 400) {
 
 const stamp = () => new Date().toISOString().slice(0, 10);
 
-export async function GET(request: NextRequest) {
+async function handleGET(request: NextRequest) {
   const actor = await currentActor();
   if (!actor) return bad("Not signed in.", 401);
   if (actor.status !== "active") return bad("This account is not active.", 403);
@@ -209,3 +210,6 @@ export async function GET(request: NextRequest) {
 
   return bad("That is not a report this platform produces.");
 }
+
+/* A save abandoned by the 20 second bound says it may not have saved, and a failed session read is never "Not signed in": save-outcome.ts. */
+export const GET = withSaveOutcome(handleGET);

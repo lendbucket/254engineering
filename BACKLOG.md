@@ -43,6 +43,16 @@ active, login 2026-09-02 16:45:18 UTC, profile 17:57:25 UTC, and no
 `scripts/seed-admin.mjs`, not the People screen, so it carries no such row, true
 or false.
 
+## THE REVIEW REQUEST WAITS ON A LINK AND A DELAY
+
+`feat/review-request`, run item 25 of 2026-10-10. Built and inert: nothing is
+sent while `REVIEW_LINK` in `src/config/review-request.ts` is empty, and every
+delivered order records on its timeline that it was not sent and why. Open:
+Robert gives the Google Business Profile review URL; the delay of 7 days is
+the run's default and needs his ruling (it is pinned in the proof). The email
+links to the firm's own `/review`, which redirects to the configured URL,
+because email-audit holds every email link to the production domain.
+
 ## APPLIED: 0073, NO eng_ FUNCTION IS CALLABLE WITHOUT THE SERVICE ROLE
 
 `docs/production-sitting-fix-function-grants.md`. A security defect the
@@ -77,6 +87,47 @@ over a handful of probe ids (`bulk-audit`, `queue-audit`, `doors-audit`,
 verification that reads a null as "nothing left" is the mirror-sweep defect in
 CLAUDE.md 6c. Open: survey each, report which can read a failure as a pass,
 then fix those on a ruling.
+
+## OPEN: SCREEN READS THAT STILL HIDE A FAILURE, FOUND BY THE FETCH TIMEOUT
+
+`fix/db-fetch-timeout`, 2026-10-12. Operator ruling: a failed or stalled read
+never renders as an empty state. That branch fixed the session read, the design
+brief list and every dashboard read (proof
+`a-stalled-database-is-said-not-hidden`). Reading the dashboard's helpers found
+the same defect on other screens, left for the survey because each needs its own
+error sentence:
+
+- **`/portal/orders`** reads `ordersNeedingAttention()`, which still answers a
+  failed read with an empty list ("nothing waiting on a payment"). The dashboard
+  now reads `ordersNeedingAttentionRead()`, which says null.
+- **`/portal/billing`** reads `uncreditedReviews()` the same way. The credit
+  itself now refuses on a failed read.
+- **`/portal/tasks`** reads `listTasks()`, which answers a failure with no tasks.
+- **The portal bell** (layout): `listNotifications` and `unreadCount` discard
+  their errors, and a stall in both holds every screen 40 seconds.
+- **`/portal/windstorm-inquiries`**: `windstormInquiries()` has the shape
+  `/portal/inquiries` had.
+- **Partner and customer session reads** (`partner-auth.ts`,
+  `customer-auth.ts`) still answer a failed read as signed out. The ruling named
+  the staff portal's session read.
+- **Partial reads, no failure involved**, found on the dashboard path:
+  `listTasks` `.limit(300)`, `fileMargins` and `uncreditedReviews` `.limit(500)`,
+  the unpaged credential, account, order and refund reads, and two `.in()` lists
+  that can exceed the 150 id cliff (`partnerCostByFile`, the production ledger
+  lookup). Each is a figure computed from part of its set with nothing saying so.
+- **The login redirect's `next`**: `(app)/layout.tsx` reads `x-invoke-path`,
+  which Next 16 does not set, so it always sends `next=/portal`.
+
+## FOR A RULING: THE STRIPE WEBHOOK AND AN ABANDONED WRITE
+
+Operator ruling, 2026-10-12: no automatic retry of an aborted write anywhere.
+Every screen-facing route answers "This may not have saved" and nothing in the
+application retries. The Stripe webhook, the v1 API, the sister intake and the
+cron routes are not wrapped, being called by machines rather than screens. A
+webhook that abandons a write answers 500 and **Stripe retries it on its own**.
+Only the refund path is keyed on the event id (`payments-stripe.ts`, the
+`refundRef`); whether every other branch is safe to receive twice has not been
+read. Whether that retry is allowed is the operator's call.
 
 ## APPLIED: 0072, A PARTNER'S LOGO IS APPROVED BEFORE IT SHOWS
 
