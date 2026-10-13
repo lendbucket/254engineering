@@ -179,6 +179,17 @@ for a ruling rather than fixed on the way past.
    existing account by the order's client record, not the payment email; with
    no safe match, open nothing, show it on "Paid, work not released" with a
    one-click staff action to attach the account, and prove both paths.
+   **Built on `fix/existing-client-account`**, with the second ruling of the
+   same day: a match links the order and nothing more, and the confirmation
+   goes to the account's active owner, else its billing email, else nobody
+   (the panel says so). Proof: `an-existing-client-is-matched-by-its-record`.
+   **Not built, by ruling:** adding the paying address as a sign in on the
+   account. It is never automatic; if staff ever need it, they add a user
+   through the existing account management path. A one-click "add this
+   address" on the attach panel would be its own decision.
+   **Also open:** an order whose account has no address on file waits for
+   Stripe's next delivery after somebody adds one (Stripe retries for three
+   days); there is no "release again" button.
 7. **A completed checkout with no order, batch or statement id** still answers
    200 with nothing written. Money moved with nothing to attach it to; it is
    logged, and nothing else notices.
