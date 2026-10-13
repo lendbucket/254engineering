@@ -42,8 +42,20 @@ migration does not touch.
 ## 2. Apply, development first, then production
 
 `apply_migration` with the file as written. Never `execute_sql`. It creates two
-tables, two triggers and an index and drops nothing, so the MCP should not
-cancel it; if it does, stop and report rather than retrying.
+tables, two triggers and an index, and **the file contains no drop statement of
+any kind** (check: a search of the file for `drop` finds only the comment that
+says so). If the MCP cancels it, stop and report rather than retrying.
+
+**Why the file changed, 2026-10-12.** The retry on development at 23:16 CT came
+back "cancelled". The counterpart's read-back after it was clean: neither table,
+1181 columns, no 0074 row in the ledger, production untouched. The most likely
+cause is the two `drop trigger if exists` lines that stood before each
+`create trigger`: a drop makes the tool ask the operator to confirm a destructive
+statement, and an unanswered confirmation ends as a timeout or a cancellation.
+Both lines are removed and nothing else in the file changed. They protected
+nothing: both tables are created in this same migration, so no trigger on either
+can exist before it runs. That was a hypothesis about the 230 second timeout as
+well, and the next attempt tests it.
 
 **One retry is allowed after a timeout, and only after a clean read-back.**
 Operator ruling, 2026-10-12. The first `apply_migration` on development timed

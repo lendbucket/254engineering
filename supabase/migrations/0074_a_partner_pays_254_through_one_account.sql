@@ -19,6 +19,13 @@
  * keyed by Stripe's own event id, so a redelivered event writes nothing the
  * second time. It is the record of every transition and what caused it.
  *
+ * NO DROP STATEMENT OF ANY KIND. The two "drop trigger if exists" lines that
+ * stood before each create trigger were removed on 2026-10-12, on the
+ * counterpart's report that the database tool cancelled the retry: a drop
+ * asks the operator to confirm a destructive statement, and an unanswered
+ * confirmation ends as a timeout or a cancellation. Both tables are created
+ * here, so no trigger on either can exist before this file runs.
+ *
  * BILLING IS OFF. src/config/partner-billing.ts holds enabled = false, so on
  * the day this is applied nothing writes to either table. The webhook's
  * partner lane records an event only for an object carrying
@@ -42,7 +49,6 @@ create table if not exists eng_partner_billing (
     check ((status = 'past_due') = (past_due_since is not null))
 );
 
-drop trigger if exists eng_partner_billing_touch on eng_partner_billing;
 create trigger eng_partner_billing_touch before update on eng_partner_billing
   for each row execute function eng_touch_updated_at();
 
@@ -67,7 +73,6 @@ create table if not exists eng_partner_billing_events (
 create index if not exists eng_partner_billing_events_partner_idx
   on eng_partner_billing_events (partner_id, applied_at desc);
 
-drop trigger if exists eng_partner_billing_events_immutable on eng_partner_billing_events;
 create trigger eng_partner_billing_events_immutable
   before update or delete on eng_partner_billing_events
   for each row execute function eng_forbid_mutation();
