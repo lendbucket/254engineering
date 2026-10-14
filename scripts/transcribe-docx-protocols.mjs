@@ -118,8 +118,9 @@ const src = `/**
  * TEXT, NOT YET STRUCTURE. These carry the document's text and header. Their
  * intake, checklist and decision rules are parsed into structure when the
  * engineer signs and the protocol moves into PROTOCOL_ENTRIES, which waits on
- * the operator's ruling. Until then nothing reads them except that audit and
- * the migration that enters each as a draft.
+ * the operator's ruling. Until then they are read by that audit, by the
+ * migration that enters each as a draft, and by signable.ts, which offers each
+ * for the engineer's signature in the portal (operator ruling, 2026-10-14).
  */
 
 export type DocxProtocol = {

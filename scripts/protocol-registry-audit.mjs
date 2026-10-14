@@ -1820,6 +1820,108 @@ if (carriers.length === 1) {
   }
 }
 
+/* --------------- 10. the one list the engineer signs from, signable.ts */
+
+/*
+ * =========================================================================
+ * WHAT THE PORTAL OFFERS FOR SIGNATURE. Operator ruling, 2026-10-14: WP-001
+ * v1.2 and FC-001 v1.0 join the signable list.
+ * =========================================================================
+ * The expected list is PINNED here, never read from signable.ts, so a
+ * protocol that quietly joins or leaves the list turns this red naming it.
+ *
+ * AND THE FIVE SIGNATURES ON PRODUCTION ARE PINNED BY THEIR HASHES. The
+ * counterpart read them on 2026-10-12 (docs/production-sitting-2026-10-12-
+ * protocol-signatures.md in the audit worktree): content_sha256 for MH, SL,
+ * PL, RS and DS v1.1. The hash is computed HERE from the offered text, the way
+ * the signing step computes it, and compared with those literals. A change to
+ * the list that altered what any of the five offers would void a signature he
+ * has already given, and this is where that shows.
+ */
+{
+  const { SIGNABLE_PROTOCOLS, SUPERSEDED_RECEIVED } = await import("../src/content/protocols/signable.ts");
+
+  const EXPECTED = [
+    "254-DS-001 v1.1",
+    "254-FC-001 v1.0",
+    "254-MH-001 v1.1",
+    "254-PL-001 v1.1",
+    "254-RS-001 v1.1",
+    "254-SL-001 v1.1",
+    "254-WP-001 v1.2",
+    "254-WS-001 v1.1",
+  ];
+  const offered = SIGNABLE_PROTOCOLS.map((p) => `${p.documentNumber} v${p.version}`).sort();
+  rec(
+    "the portal offers exactly the eight protocols ruled signable, WP-001 at v1.2 and FC-001 at v1.0 among them",
+    offered.join("|") === EXPECTED.join("|"),
+    offered.join(", "),
+  );
+  rec(
+    "and WP-001 v1.1 is the one received text not offered, because v1.2 supersedes it",
+    SUPERSEDED_RECEIVED.join("|") === "254-WP-001 v1.1",
+    SUPERSEDED_RECEIVED.join(", ") || "none",
+  );
+  const numbers = SIGNABLE_PROTOCOLS.map((p) => p.documentNumber);
+  rec(
+    "each document number is offered at one version only, so a signature names one text",
+    new Set(numbers).size === numbers.length,
+    `${numbers.length} offered, ${new Set(numbers).size} numbers`,
+  );
+
+  const SIGNED_ON_PRODUCTION = {
+    "254-MH-001": "d5fb2893f4d618dbdbf7a9d3d1c0998b1462e2adf72caa8d4ba59fb7b34a55d6",
+    "254-SL-001": "c19522c86abbba90622aa3c1a41f5194a8f6c97134abb8bf8608fc22576c536d",
+    "254-PL-001": "c8814496b1dd0b0f228b92447f547f7be4b8bf1553278bef5891817bdb6fb27e",
+    "254-RS-001": "47e8e9ecb2d5fe07f9b37899cf5ee5494202b6a6f59648bf3ab0d85b9f616508",
+    "254-DS-001": "c47536b8ab31009027e6f443a03bed1b28b6dbf443b85350b7e7bb817756958b",
+  };
+  for (const [number, signed] of Object.entries(SIGNED_ON_PRODUCTION)) {
+    const p = SIGNABLE_PROTOCOLS.find((s) => s.documentNumber === number && s.version === "1.1");
+    const now = p ? createHash("sha256").update(p.text.join("\n"), "utf8").digest("hex") : null;
+    rec(
+      `${number} v1.1: the text offered still hashes to the signature on production`,
+      now === signed,
+      now === signed ? signed.slice(0, 12) : `offered ${now ? now.slice(0, 12) : "nothing"}, signed ${signed.slice(0, 12)}`,
+    );
+  }
+
+  /*
+   * EACH WORD FILE PROTOCOL IS OFFERED AS THE TEXT SECTION 9 PROVED, line for
+   * line, rather than a copy of it. Section 9 proves DOCX_RECEIVED_PROTOCOLS
+   * against the .docx; this proves the offered text is that same array.
+   */
+  const { DOCX_RECEIVED_PROTOCOLS } = await import("../src/content/protocols/docx-received.ts");
+  for (const d of DOCX_RECEIVED_PROTOCOLS) {
+    const p = SIGNABLE_PROTOCOLS.find((s) => s.documentNumber === d.documentNumber && s.version === d.version);
+    rec(
+      `${d.documentNumber} v${d.version}: the text offered for signature is the text proved against the .docx`,
+      Boolean(p) && p.text.length === d.text.length && p.text.every((line, i) => line === d.text[i]),
+      p ? `${p.text.length} lines` : "not offered",
+    );
+  }
+
+  /*
+   * AND EVERY READER USES THIS LIST, read in the source. A reader still on
+   * received.ts would offer, hash or gate on WP-001 v1.1, and FC-001 would be
+   * missing from it: three homes for one list is the defect this replaces.
+   */
+  const READERS = ["src/lib/protocol-sign.ts", "src/lib/line-gate.ts", "src/app/portal/(app)/protocols/page.tsx"];
+  for (const file of READERS) {
+    const source = readFileSync(file, "utf8");
+    rec(
+      `${file} reads the signable list and not received.ts`,
+      source.includes('from "@/content/protocols/signable"') && !source.includes('from "@/content/protocols/received"'),
+    );
+  }
+  const sign = readFileSync("src/lib/protocol-sign.ts", "utf8");
+  rec(
+    "and the signing step hashes by number AND version, so WP-001's two versions cannot be confused",
+    /transcriptionSha256\(documentNumber: string, version: string\)/.test(sign) &&
+      !/transcriptionSha256\([a-zA-Z.]+\)/.test(sign),
+  );
+}
+
 /*
  * THE PRINTING SITS HERE, BELOW LAYER ONE, AND IT MOVED TO GET HERE.
  *
