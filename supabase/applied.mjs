@@ -2574,7 +2574,18 @@ export const APPLIED = [
     fingerprint: "318b0fa346fc0f92167df9b9f44ce1cf",
     behaviour: "f2380dab0f83023419bc357dfd80f042",
     production: null,
-    development: null,
+    development: {
+      at: "0077",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-14",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-14 by the operator's chat counterpart through the connector, in one try " +
+        "with no cancel, from feat/protocol-signing-wp-fc at 951d368. Read back exactly as the sitting's section 3 " +
+        "predicts: the eight rows read structural, WP-001 v1.1 null, every status, digest, approver and publish " +
+        "date unchanged, RC-001 untouched, shape 318b0fa346fc0f92167df9b9f44ce1cf across 1206.",
+    },
     proves: {
       table: "eng_protocol_templates",
       match: { document_number: "254-FC-001", version_label: "1.0", requires_discipline: "structural" },
@@ -2585,7 +2596,8 @@ export const APPLIED = [
       "document's SHA-256, and its own guards assert all eight before and after and that WP-001 v1.1 stays " +
       "null. `proves` asks about the column value on FC-001 v1.0, the row 0069 entered last.",
     because:
-      "WRITTEN 2026-10-14 ON feat/protocol-signing-wp-fc AND APPLIED NOWHERE, INCLUDING DEVELOPMENT. The " +
+      "WRITTEN 2026-10-14 ON feat/protocol-signing-wp-fc, APPLIED TO DEVELOPMENT THE SAME DAY (above) AND NOT " +
+      "TO PRODUCTION, which waits for an exact board and the operator's word. The " +
       "value is the engineer's written answer of 2026-10-14, recorded in src/config/engineer-directions.ts " +
       "as every-service-is-structural, whose evidence is the operator's attestation of his words. " +
       "docs/production-sitting-feat-protocol-signing-wp-fc.md, section 0 first: the eight rows read on both " +

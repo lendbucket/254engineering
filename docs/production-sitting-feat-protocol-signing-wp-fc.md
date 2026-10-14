@@ -1,7 +1,12 @@
 # Production sitting: feat/protocol-signing-wp-fc (0077)
 
-Staged 2026-10-14. Nothing here has been run. The counterpart runs each read
-and the apply; the session runs none. **0077 follows 0076**, which both
+**DEVELOPMENT APPLIED 2026-10-14** by the counterpart through the connector,
+in one try with no cancel, from 951d368, and read back exactly as section 3
+predicts. Production is not applied; it waits for an exact board and Robert's
+word. The record is in `supabase/applied.mjs`.
+
+Staged 2026-10-14. The counterpart runs each read and the apply; the session
+runs none. **0077 follows 0076**, which both
 databases have (applied 2026-10-13).
 
 `supabase/migrations/0077_every_protocol_requires_structural.sql`. It sets
