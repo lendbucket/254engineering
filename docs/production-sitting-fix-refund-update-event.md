@@ -5,10 +5,16 @@ one try with no cancel, from f77e972, and read back exactly as section 3
 predicts: four kinds, the function closed to anon and authenticated, no event
 rows, shape 318b0fa3 across 1206. **Production's section 0 was read the same
 day**: three-kind constraint, no event rows, no pending refunds, the same
-shape. Production is not applied; it waits for an exact board and Robert's
-word. The record is in `supabase/applied.mjs`.
+shape.
 
-Staged 2026-10-13. Nothing here has been run. The counterpart runs each read;
+**PRODUCTION APPLIED 2026-10-13**, after the exact board on 9a7922c, by the
+counterpart through the connector in one try with no cancel. Section 1 read
+clean before it. Section 3 read back exact: four kinds,
+`eng_apply_refund_update` anon false, authenticated false, service_role true,
+no event rows, shape 318b0fa3 across 1206. The record is in
+`supabase/applied.mjs`. Section 4 is what remains.
+
+Staged 2026-10-13, and run the same day as recorded above. The counterpart runs each read;
 the session runs none. **0076 follows 0075**, which both databases already
 have (applied 2026-10-13).
 

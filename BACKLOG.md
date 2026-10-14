@@ -137,7 +137,13 @@ read-only query for charges already taken with no work released. Proof:
 money table. Merges only after 0074 and 0075 are applied to production and
 read back.
 
-## STAGED: 0076, A REFUND UPDATE IS APPLIED ONCE
+## APPLIED: 0076, A REFUND UPDATE IS APPLIED ONCE
+
+**Applied to development and then production 2026-10-13** by the counterpart
+through the connector, each in one try with no cancel, read back exact on both
+(four kinds, the function closed to anon and authenticated, no event rows,
+shape 318b0fa3 across 1206). Open until Robert confirms the dashboard event
+and `registeredEvents` gains it.
 
 Ruled 2026-10-13: Stripe's `charge.refund.updated` through the same ledger in
 one transaction; pending to succeeded marks the refund row succeeded; pending to
