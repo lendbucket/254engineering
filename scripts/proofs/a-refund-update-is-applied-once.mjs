@@ -332,7 +332,11 @@ try {
     const counted = await n(`select coalesce(sum(amount_cents), 0)::int as n from eng_order_payments where kind = 'refund' and order_id = $1 and status in ('pending', 'succeeded')`, [orderId("failAfter")]);
     check("pending to failed: it no longer counts as given back", counted === 0, `${counted} cents counted`);
     const failedEvent = (await eventsOf("failAfter", "refund.failed"))[0];
-    check("pending to failed: one internal refund.failed event", failedEvent?.customer_visible === false, JSON.stringify(failedEvent));
+    check(
+      "pending to failed: one internal refund.failed event, saying it failed and why",
+      failedEvent?.customer_visible === false && /failed at Stripe: expired_or_canceled_card\./.test(failedEvent.summary ?? ""),
+      JSON.stringify(failedEvent),
+    );
     check(
       "pending to failed: one audit row",
       (await n(`select count(*)::int as n from eng_audit_events where action = 'order.refund_failed' and entity_id = $1`, [orderId("failAfter")])) === 1,
@@ -350,7 +354,13 @@ try {
   /* ============================ D. pending to canceled ============================ */
   await twice("pending to canceled", updated("evt_refund_proof_canceled", { refund: "re_refund_proof_cancel", status: "canceled", intent: pi("cancelPending") }), async () => {
     const row = await refundRow("re_refund_proof_cancel");
-    check("pending to canceled: the row is cancelled, the schema's spelling", row?.status === "cancelled", JSON.stringify(row));
+    check(
+      "pending to canceled: the row is cancelled, the schema's spelling, and with no reason from Stripe it stores none",
+      row?.status === "cancelled" && row.failure_reason === null,
+      JSON.stringify(row),
+    );
+    const cancelEvent = (await eventsOf("cancelPending", "refund.failed"))[0];
+    check("pending to canceled: its internal event says it was canceled", /was canceled at Stripe: Stripe gave no reason\./.test(cancelEvent?.summary ?? ""), cancelEvent?.summary);
     check("pending to canceled: the firm is alerted", (await jobsTo("cancelPending", "ops.refund_failed")).length === 1);
     check("pending to canceled: the order stays refunded", (await orderStatus("cancelPending")) === "refunded");
   });

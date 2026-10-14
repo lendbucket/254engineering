@@ -1,5 +1,13 @@
 # Production sitting: fix/refund-update-event (0076)
 
+**DEVELOPMENT APPLIED 2026-10-13** by the counterpart through the connector, in
+one try with no cancel, from f77e972, and read back exactly as section 3
+predicts: four kinds, the function closed to anon and authenticated, no event
+rows, shape 318b0fa3 across 1206. **Production's section 0 was read the same
+day**: three-kind constraint, no event rows, no pending refunds, the same
+shape. Production is not applied; it waits for an exact board and Robert's
+word. The record is in `supabase/applied.mjs`.
+
 Staged 2026-10-13. Nothing here has been run. The counterpart runs each read;
 the session runs none. **0076 follows 0075**, which both databases already
 have (applied 2026-10-13).

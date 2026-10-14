@@ -1833,9 +1833,10 @@ export async function recordRefundUpdate(input: {
   const decided = refundUpdateFor({ providerStatus: input.providerStatus, rowStatus });
   const amount = row ? Number(row.amount_cents) : input.amountCents;
   const because = input.failureReason ?? "Stripe gave no reason";
+  const fellVerb = decided.to === "cancelled" ? "was canceled" : "failed";
   const said = decided.to === "succeeded"
     ? `The refund of ${money(amount)} under ${input.refundRef} succeeded at Stripe.`
-    : `The refund of ${money(amount)} under ${input.refundRef} is ${refundStatusLabel(decided.to ?? "failed").toLowerCase()} at Stripe: ${because}. It no longer counts as given back. Nothing was reinstated and the customer has not been told.`;
+    : `The refund of ${money(amount)} under ${input.refundRef} ${fellVerb} at Stripe: ${because}. It no longer counts as given back. Nothing was reinstated and the customer has not been told.`;
 
   const applied = await applyPaymentEvent("eng_apply_refund_update", {
     event_id: input.eventId,
@@ -1848,7 +1849,8 @@ export async function recordRefundUpdate(input: {
     refund_ref: input.refundRef,
     expected_status: rowStatus,
     new_status: decided.to,
-    failure_reason: decided.to === "failed" || decided.to === "cancelled" ? because : null,
+    /* Stripe's own reason or nothing: the row never stores a sentence of ours as Stripe's. */
+    failure_reason: decided.to === "failed" || decided.to === "cancelled" ? input.failureReason : null,
     order_event_summary: said,
     audit_summary: `${said} ${decided.why}`,
   });
@@ -1867,7 +1869,7 @@ export async function recordRefundUpdate(input: {
       /* A batch or statement refund names no order for the alert to point at. */
       await raiseRefundTask({
         key: `refund-failed:${input.refundRef}`,
-        title: `A refund of ${money(amount)} ${refundStatusLabel(decided.to ?? "failed").toLowerCase()} at Stripe`,
+        title: `A refund of ${money(amount)} ${fellVerb} at Stripe`,
         description: `${said} It was against ${row.batch_id ? "a submission" : "a statement"}, which names no single order. Settle it by hand.`,
       });
     }

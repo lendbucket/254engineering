@@ -2530,7 +2530,20 @@ export const APPLIED = [
     fingerprint: "318b0fa346fc0f92167df9b9f44ce1cf",
     behaviour: "f2380dab0f83023419bc357dfd80f042",
     production: null,
-    development: null,
+    development: {
+      at: "0076",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-13",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-13 by the operator's chat counterpart through the connector, in one try " +
+        "with no cancel, from fix/refund-update-event at f77e972. Read back as predicted: " +
+        "eng_payment_events_type_known with the four kinds; eng_apply_refund_update with anon false, " +
+        "authenticated false, service_role true; no event rows; shape 318b0fa346fc0f92167df9b9f44ce1cf across 1206. " +
+        "Production's section 0 was read the same day and not applied: the three-kind constraint, no event rows, " +
+        "no pending refunds, the same shape.",
+    },
     proves: { function: "eng_apply_refund_update" },
     note:
       "Both figures read off scripts/fingerprint-at.mjs at 0076 on 2026-10-13: shape unchanged at 1206 columns " +
@@ -2539,7 +2552,8 @@ export const APPLIED = [
       "function, revoked from public, anon and authenticated in the same file (0073's rule). migration-audit's " +
       "function count moves 46 to 47 in the same commit.",
     because:
-      "WRITTEN 2026-10-13 ON fix/refund-update-event AND APPLIED NOWHERE, INCLUDING DEVELOPMENT. Operator " +
+      "WRITTEN 2026-10-13 ON fix/refund-update-event, APPLIED TO DEVELOPMENT THE SAME DAY (above) AND NOT TO " +
+      "PRODUCTION, which waits for an exact board and the operator's word. Operator " +
       "rulings of 2026-10-13: charge.refund.updated goes through the payment event ledger in one transaction. " +
       "It carries one drop statement, the event type constraint, so the operator's counterpart tries the " +
       "connector once and, if it cancels, the operator runs it in the Supabase SQL editor, never retried. " +
