@@ -343,6 +343,26 @@ export function stripeProvider(): PaymentProvider {
       }
 
       /*
+       * WHAT BECAME OF ONE REFUND (0076). The object is the Refund itself, so
+       * its id is the provider_ref a platform refund row carries. Its status is
+       * passed on as Stripe spells it; refundUpdateFor decides what it means.
+       */
+      if (event.type === "charge.refund.updated") {
+        const refund = event.data.object as Stripe.Refund;
+        const intent =
+          typeof refund.payment_intent === "string" ? refund.payment_intent : refund.payment_intent?.id ?? null;
+        return {
+          kind: "charge.refund.updated",
+          eventId: event.id,
+          refundRef: refund.id,
+          chargeRef: intent,
+          providerStatus: refund.status ?? "unknown",
+          amountCents: refund.amount,
+          failureReason: refund.failure_reason ?? null,
+        };
+      }
+
+      /*
        * Everything else. Returned as null rather than falling through, so a new
        * Stripe event type cannot take a branch written for a different one.
        *
@@ -353,7 +373,7 @@ export function stripeProvider(): PaymentProvider {
        * had before it was given a voice.
        */
       console.log(
-        `[stripe] ${event.type} verified and not acted on. This platform handles checkout.session.completed, checkout.session.expired and charge.refunded.`,
+        `[stripe] ${event.type} verified and not acted on. This platform handles checkout.session.completed, checkout.session.expired, charge.refunded and charge.refund.updated.`,
       );
       return null;
     },
@@ -401,6 +421,9 @@ export async function confirmStripeAccount(event: PaymentEvent): Promise<void> {
   const fetchOwnObject = () => {
     if (event.kind === "charge.refunded") {
       return stripe().paymentIntents.retrieve(event.chargeRef);
+    }
+    if (event.kind === "charge.refund.updated") {
+      return stripe().refunds.retrieve(event.refundRef);
     }
     return stripe().checkout.sessions.retrieve(event.sessionRef);
   };

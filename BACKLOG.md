@@ -137,6 +137,28 @@ read-only query for charges already taken with no work released. Proof:
 money table. Merges only after 0074 and 0075 are applied to production and
 read back.
 
+## APPLIED: 0076, A REFUND UPDATE IS APPLIED ONCE
+
+**Applied to development and then production 2026-10-13** by the counterpart
+through the connector, each in one try with no cancel, read back exact on both
+(four kinds, the function closed to anon and authenticated, no event rows,
+shape 318b0fa3 across 1206). Open until Robert confirms the dashboard event
+and `registeredEvents` gains it.
+
+Ruled 2026-10-13: Stripe's `charge.refund.updated` through the same ledger in
+one transaction; pending to succeeded marks the refund row succeeded; pending to
+failed or canceled marks it failed or cancelled, firm alerted, nothing
+reinstated and the customer not told; an unknown failed refund raises a staff
+task; the orders screen names "Refund failed at Stripe, order still marked
+refunded"; and a refund pending when issued is told to the customer as issued,
+never as refunded. Built on `fix/refund-update-event`. Proof:
+`scripts/proofs/a-refund-update-is-applied-once.mjs`. Sitting:
+`docs/production-sitting-fix-refund-update-event.md`, section 0 first. The
+migration carries one drop statement by ruling, so the connector is tried once
+and, if it cancels, Robert runs it in the SQL editor. After the merge and the
+deployment, Robert adds `charge.refund.updated` to the endpoint in the Stripe
+dashboard; until he confirms, `stripe-webhook-audit` fails one line naming it.
+
 ## OPEN, FROM THE WEBHOOK WORK OF 2026-10-13, NOT BUILT
 
 Each found while building 0075, outside what the ruling asked for, and left

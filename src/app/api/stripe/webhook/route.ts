@@ -5,6 +5,7 @@ import {
   markBatchPaid,
   expireCheckout,
   recordExternalRefund,
+  recordRefundUpdate,
 } from "@/lib/ops-payments";
 import { watchWrites, type AbandonedWrite } from "@/lib/bounded-fetch";
 import { markStatementPaid } from "@/lib/ops-statements";
@@ -316,6 +317,44 @@ async function handle(request: NextRequest): Promise<Response> {
     console.log(
       `[stripe] refund ${parsed.refundRef} on ${parsed.chargeRef}: ${
         result.alreadyRecorded ? "already on file, nothing written" : `recorded ${result.recordedCents} cents`
+      }`,
+    );
+
+    return NextResponse.json({ ok: true, handled: true, duplicate: result.alreadyRecorded });
+  }
+
+  if (parsed.kind === "charge.refund.updated") {
+    /*
+     * What became of one refund (0076, operator rulings 2026-10-13). Recorded
+     * once by its event id with the row's new status in one transaction; a
+     * refund that moved since it was read answers non 2xx so the next delivery
+     * judges it again. An id with no refund on file is recorded and answers
+     * 200, because a resend cannot produce the row.
+     */
+    const result = await recordRefundUpdate({
+      eventId: parsed.eventId,
+      refundRef: parsed.refundRef,
+      chargeRef: parsed.chargeRef,
+      providerStatus: parsed.providerStatus,
+      amountCents: parsed.amountCents,
+      failureReason: parsed.failureReason,
+      provider: provider.name,
+    });
+
+    if (!result.ok) {
+      console.error(`[stripe] refund update ${parsed.refundRef} could not be recorded: ${result.error}`);
+      return NextResponse.json({ ok: false, reason: "not recorded" }, { status: 500 });
+    }
+
+    console.log(
+      `[stripe] refund ${parsed.refundRef} is ${parsed.providerStatus} at Stripe: ${
+        result.alreadyRecorded
+          ? "already on file, nothing written"
+          : result.to
+            ? `recorded as ${result.to}`
+            : result.staffTask
+              ? "not on file here, staff task raised"
+              : "nothing changed"
       }`,
     );
 

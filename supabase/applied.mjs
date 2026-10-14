@@ -2525,6 +2525,50 @@ export const APPLIED = [
       "revoked from public, anon and authenticated in the same file (0073's rule), and one trigger. No drop " +
       "statement of any kind. migration-audit's pinned shape, trigger and function counts move in the same commit.",
   },
+  {
+    file: "0076_a_refund_update_is_applied_once.sql", appliedBy: "apply_migration",
+    fingerprint: "318b0fa346fc0f92167df9b9f44ce1cf",
+    behaviour: "f2380dab0f83023419bc357dfd80f042",
+    /*
+     * APPLIED TO PRODUCTION 2026-10-13, after the exact board on 9a7922c, from
+     * docs/production-sitting-fix-refund-update-event.md, by the operator's chat
+     * counterpart through the connector in one try with no cancel. Section 0 was
+     * read earlier the same day (the three-kind constraint, no event rows, no
+     * pending refunds, the same shape) and section 1 read clean before the
+     * apply.
+     *
+     * Read back exact: eng_payment_events_type_known with the four kinds;
+     * eng_apply_refund_update anon false, authenticated false, service_role
+     * true; no event rows; shape 318b0fa346fc0f92167df9b9f44ce1cf across 1206.
+     *
+     * Operator rulings of 2026-10-13: charge.refund.updated goes through the
+     * payment event ledger, recorded once by its event id in one transaction
+     * with its effect. It carries one drop statement, the event type
+     * constraint, dropped and added again wider in the same transaction.
+     */
+    production: "2026-10-13",
+    development: {
+      at: "0076",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-13",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-13 by the operator's chat counterpart through the connector, in one try " +
+        "with no cancel, from fix/refund-update-event at f77e972. Read back as predicted: " +
+        "eng_payment_events_type_known with the four kinds; eng_apply_refund_update with anon false, " +
+        "authenticated false, service_role true; no event rows; shape 318b0fa346fc0f92167df9b9f44ce1cf across 1206. " +
+        "Production's section 0 was read the same day and not applied: the three-kind constraint, no event rows, " +
+        "no pending refunds, the same shape.",
+    },
+    proves: { function: "eng_apply_refund_update" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0076 on 2026-10-13: shape unchanged at 1206 columns " +
+      "(no column is added), behaviour 1018 to 1019 facts, the one function. The event type constraint is " +
+      "dropped and added again wider in the same transaction, by ruling, so its count does not move. One " +
+      "function, revoked from public, anon and authenticated in the same file (0073's rule). migration-audit's " +
+      "function count moves 46 to 47 in the same commit.",
+  },
 ];
 
 /*

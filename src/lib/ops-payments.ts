@@ -38,6 +38,8 @@ import { LIVE_KEY_FIX, LIVE_KEY_HEADLINE, liveKeyOffProduction } from "./db-guar
 import { fakeProvider, type PaymentProvider } from "./payments";
 import { stripeProvider } from "./payments-stripe";
 import { abandonedSoFar } from "./bounded-fetch";
+import { raiseSystemTask } from "./system-work";
+import { REFUND_ISSUED_SENTENCE, refundStatusLabel, refundUpdateFor, type RefundRowStatus } from "./refund-update";
 
 /**
  * The platform side of money: starting a checkout, recording a payment, and
@@ -1789,6 +1791,192 @@ export async function recordExternalRefund(input: {
 }
 
 /**
+ * What became of one refund, from Stripe's charge.refund.updated (0076,
+ * operator rulings 2026-10-13).
+ *
+ * refundUpdateFor decides; eng_apply_refund_update records the event and the
+ * row's new status in one transaction, refusing if the row moved since it was
+ * read here. Two things reach outside the transaction and so run after it,
+ * only on the delivery that applied it: the firm-only alert for a refund that
+ * failed or was canceled, and the staff task for one with no row on file.
+ *
+ * NOTHING HERE WRITES TO THE CUSTOMER, reinstates a reversed commission or
+ * moves the order's status. A failed refund on an order already marked
+ * refunded is named on the orders screen (refundsFailedAfterRefunded) and
+ * waits for a person.
+ */
+export async function recordRefundUpdate(input: {
+  eventId: string;
+  refundRef: string;
+  chargeRef: string | null;
+  providerStatus: string;
+  amountCents: number;
+  failureReason: string | null;
+  provider: string;
+}): Promise<
+  | { ok: true; alreadyRecorded: boolean; to: RefundRowStatus | null; staffTask: boolean }
+  | { ok: false; error: string }
+> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The order system is not configured." };
+
+  const { data: row, error: rowError } = await db
+    .from("eng_order_payments")
+    .select("id, status, order_id, batch_id, statement_id, amount_cents, refund_case")
+    .eq("provider", input.provider)
+    .eq("provider_ref", input.refundRef)
+    .eq("kind", "refund")
+    .maybeSingle();
+  if (rowError) return { ok: false, error: `The refund on file could not be read: ${rowError.message}` };
+
+  const rowStatus = (row?.status as RefundRowStatus | undefined) ?? null;
+  const decided = refundUpdateFor({ providerStatus: input.providerStatus, rowStatus });
+  const amount = row ? Number(row.amount_cents) : input.amountCents;
+  const because = input.failureReason ?? "Stripe gave no reason";
+  const fellVerb = decided.to === "cancelled" ? "was canceled" : "failed";
+  const said = decided.to === "succeeded"
+    ? `The refund of ${money(amount)} under ${input.refundRef} succeeded at Stripe.`
+    : `The refund of ${money(amount)} under ${input.refundRef} ${fellVerb} at Stripe: ${because}. It no longer counts as given back. Nothing was reinstated and the customer has not been told.`;
+
+  const applied = await applyPaymentEvent("eng_apply_refund_update", {
+    event_id: input.eventId,
+    source: "stripe_webhook",
+    order_id: (row?.order_id as string | null | undefined) ?? null,
+    batch_id: (row?.batch_id as string | null | undefined) ?? null,
+    statement_id: (row?.statement_id as string | null | undefined) ?? null,
+    charge_ref: input.chargeRef,
+    provider: input.provider,
+    refund_ref: input.refundRef,
+    expected_status: rowStatus,
+    new_status: decided.to,
+    /* Stripe's own reason or nothing: the row never stores a sentence of ours as Stripe's. */
+    failure_reason: decided.to === "failed" || decided.to === "cancelled" ? input.failureReason : null,
+    order_event_summary: said,
+    audit_summary: `${said} ${decided.why}`,
+  });
+  if (!applied.ok) return applied;
+  if (applied.outcome === "done") return { ok: true, alreadyRecorded: true, to: null, staffTask: false };
+
+  if (decided.alertFirm && row) {
+    if (row.order_id) {
+      await alertRefundFailed(row.order_id as string, {
+        refundCase: (row.refund_case as string | null) ?? "Not recorded",
+        amountCents: amount,
+        because,
+        provider: input.provider,
+      });
+    } else {
+      /* A batch or statement refund names no order for the alert to point at. */
+      await raiseRefundTask({
+        key: `refund-failed:${input.refundRef}`,
+        title: `A refund of ${money(amount)} ${fellVerb} at Stripe`,
+        description: `${said} It was against ${row.batch_id ? "a submission" : "a statement"}, which names no single order. Settle it by hand.`,
+      });
+    }
+  }
+
+  if (decided.staffTask) {
+    const orderId = input.chargeRef ? await orderForCharge(input.provider, input.chargeRef) : null;
+    await raiseRefundTask({
+      key: `refund-update-unmatched:${input.refundRef}`,
+      title: `A refund of ${money(input.amountCents)} ${input.providerStatus === "canceled" ? "was canceled" : "failed"} at Stripe and is not on file here`,
+      description:
+        `Stripe reports refund ${input.refundRef} on charge ${input.chargeRef ?? "(none sent)"}, ${money(input.amountCents)}, ` +
+        `${input.providerStatus === "canceled" ? "canceled" : "failed"}: ${because}. No refund row here carries that id, so the ledger may count money that did not go back. ` +
+        (orderId ? `The charge is order ${business.url}/portal/orders?id=${orderId}.` : "The charge matches no order on file."),
+    });
+  }
+
+  return { ok: true, alreadyRecorded: false, to: decided.to, staffTask: decided.staffTask };
+}
+
+/**
+ * A refund sentence for the customer's timeline. Pending at Stripe adds the
+ * issued sentence after refundFor's own, which is never rewritten.
+ */
+function withIssuedSentence(explanation: string, status: string): string {
+  return status === "pending" ? `${explanation} ${REFUND_ISSUED_SENTENCE}` : explanation;
+}
+
+/** The order a recorded charge belongs to, oldest charge first. Null when none or unreadable. */
+async function orderForCharge(provider: string, chargeRef: string): Promise<string | null> {
+  const db = supabaseAdmin();
+  if (!db) return null;
+  const { data } = await db
+    .from("eng_order_payments")
+    .select("order_id")
+    .eq("provider", provider)
+    .eq("provider_ref", chargeRef)
+    .eq("kind", "charge")
+    .order("created_at", { ascending: true })
+    .limit(1);
+  return ((data ?? [])[0]?.order_id as string | null | undefined) ?? null;
+}
+
+/** A staff task about a refund. A failure to raise it is a console line: the event is already recorded. */
+async function raiseRefundTask(task: { key: string; title: string; description: string }): Promise<void> {
+  const raised = await raiseSystemTask(task);
+  if (!raised.ok) console.error(`[payments] the refund task ${task.key} could not be raised: ${raised.error}`);
+}
+
+export type RefundFailedAfterRefunded = {
+  orderId: string;
+  reference: string;
+  amountCents: number;
+  /** "Failed" or "Canceled", for the screen. */
+  status: string;
+  reason: string;
+};
+
+/**
+ * Orders marked refunded whose refund then failed or was canceled at Stripe
+ * (operator ruling 2026-10-13: the panel names the state, so a person sees it
+ * without searching). A refund that failed when it was issued never marked the
+ * order refunded, so it is not this state: only a row that moved after the
+ * order was marked counts. Null when it could not be read, which is not none.
+ */
+export async function refundsFailedAfterRefunded(): Promise<RefundFailedAfterRefunded[] | null> {
+  const db = supabaseAdmin();
+  if (!db) return null;
+
+  const { data: failed, error } = await db
+    .from("eng_order_payments")
+    .select("order_id, amount_cents, status, failure_reason, updated_at")
+    .eq("kind", "refund")
+    .in("status", ["failed", "cancelled"])
+    .not("order_id", "is", null)
+    .order("updated_at", { ascending: false })
+    .limit(500);
+  if (error) return null;
+  const ids = [...new Set((failed ?? []).map((r) => r.order_id as string))];
+  if (ids.length === 0) return [];
+
+  const { data: orders, error: ordersError } = await db
+    .from("eng_service_orders")
+    .select("id, reference, status, refunded_at")
+    .in("id", ids)
+    .eq("status", "refunded");
+  if (ordersError) return null;
+
+  const out: RefundFailedAfterRefunded[] = [];
+  for (const o of orders ?? []) {
+    const markedAt = o.refunded_at ? Date.parse(o.refunded_at as string) : null;
+    const after = (failed ?? []).find(
+      (r) => r.order_id === o.id && markedAt !== null && Date.parse(r.updated_at as string) >= markedAt,
+    );
+    if (!after) continue;
+    out.push({
+      orderId: o.id as string,
+      reference: o.reference as string,
+      amountCents: Number(after.amount_cents),
+      status: refundStatusLabel(after.status as RefundRowStatus),
+      reason: (after.failure_reason as string | null) ?? "Stripe gave no reason.",
+    });
+  }
+  return out;
+}
+
+/**
  * The firm cancels a paid order and gives everything back.
  *
  * THE FOURTH CASE, AND WHY IT IS NOT settleDecision
@@ -1956,10 +2144,12 @@ export async function cancelAndRefund(input: {
     refundedCents: result.amountCents,
   });
 
-  await event(input.orderId, "order.cancelled_by_firm", true, decision.explanation, {
+  /* Pending at Stripe: the customer is told it is issued, never that it landed (ruling 2026-10-13). */
+  await event(input.orderId, "order.cancelled_by_firm", true, withIssuedSentence(decision.explanation, result.status), {
     reason,
     refunded_cents: result.amountCents,
     provider_ref: result.ref,
+    refund_status: result.status,
   });
 
   await writeAudit({
@@ -2182,13 +2372,15 @@ export async function settleDecision(input: {
     refundedCents: decision.refundCents,
   });
 
-  await event(input.orderId, "refund.issued", true, decision.explanation, {
+  /* Pending at Stripe: the customer is told it is issued, never that it landed (ruling 2026-10-13). */
+  await event(input.orderId, "refund.issued", true, withIssuedSentence(decision.explanation, result.status), {
     refunded_cents: decision.refundCents,
     retained_cents: decision.retainedCents,
     case: decision.caseName,
+    refund_status: result.status,
   });
 
-  await sendOrderDeclined(input.orderId, decision);
+  await sendOrderDeclined(input.orderId, decision, result.status === "pending");
 
   await writeAudit({
     actor: input.actorId
@@ -2353,6 +2545,7 @@ async function sendOrderSealed(orderId: string): Promise<void> {
 async function sendOrderDeclined(
   orderId: string,
   decision: { explanation: string; refundCents: number | null; retainedCents: number | null },
+  refundPending = false,
 ): Promise<void> {
   const db = supabaseAdmin();
   if (!db) return;
@@ -2383,6 +2576,7 @@ async function sendOrderDeclined(
       explanation: decision.explanation,
       refunded: isKnown(decision.refundCents) ? money(decision.refundCents) : null,
       retained: isKnown(decision.retainedCents) ? money(decision.retainedCents) : null,
+      refundPending,
       statusUrl,
     }),
     { orderId },

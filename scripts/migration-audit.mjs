@@ -244,8 +244,10 @@ const EXPECTED_TRIGGERS = 80;
  * 38 since 0071: eng_take_sign_in_attempt, the sign in limiter's count.
  * 46 since 0075: the payment event guard, claim and finish, and one function
  * per webhook branch (order paid, batch paid, statement paid, checkout expired,
- * refund), each a single transaction. */
-const EXPECTED_FUNCTIONS = 46;
+ * refund), each a single transaction.
+ * 47 since 0076: eng_apply_refund_update, one Stripe refund update in one
+ * transaction. 0076 adds no column, so the shape above does not move. */
+const EXPECTED_FUNCTIONS = 47;
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });

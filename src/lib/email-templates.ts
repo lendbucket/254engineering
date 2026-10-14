@@ -1,6 +1,7 @@
 import { business } from "@/config/business";
 import { roleLabel as roleLabelFor, type RoleKey } from "./ops-authz";
 import { firmName } from "./launch";
+import { REFUND_ISSUED_SENTENCE, refundRowLabel } from "./refund-update";
 import { catalogFor, SCOPE_PENDING } from "@data/catalog";
 import { emailIdentity, footerEmail, fromHeader, type SenderPurpose } from "@/config/email-identity";
 import {
@@ -1183,6 +1184,12 @@ export function orderDeclined(input: {
   explanation: string;
   refunded: string | null;
   retained: string | null;
+  /**
+   * Stripe answered the refund as pending (ruling 2026-10-13): the money row
+   * says issued rather than refunded, and the issued sentence follows the
+   * explanation. Nothing is sent when it later succeeds.
+   */
+  refundPending?: boolean;
   statusUrl: string;
 }): RenderedEmail {
   const blocks: EmailBlock[] = [
@@ -1193,6 +1200,7 @@ export function orderDeclined(input: {
     },
     { kind: "p", text: input.explanation },
   ];
+  if (input.refundPending && input.refunded !== null) blocks.push({ kind: "p", text: REFUND_ISSUED_SENTENCE });
 
   /*
    * Shown only when there is something to show. A refund that has not been
@@ -1203,7 +1211,7 @@ export function orderDeclined(input: {
     blocks.push({
       kind: "money",
       rows: [
-        { label: "Refunded to your card", value: input.refunded },
+        { label: refundRowLabel(Boolean(input.refundPending)), value: input.refunded },
         { label: "Retained for the inspection", value: input.retained },
       ],
     });
