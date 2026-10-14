@@ -1201,15 +1201,34 @@ if (carriers.length === 1) {
         "the engineer has not stated it and nothing is writing one on his behalf",
     );
   } else {
+    /*
+     * SINCE 2026-10-14 THERE ARE TWO CARRIERS, AND EACH IS ACCOUNTED FOR BY
+     * NAME. 0077 writes the discipline for the eight signable protocols from
+     * the engineer's answer of that day, and section 11 reads its rows back
+     * against DISCIPLINE_BY_PROTOCOL. So this asks two questions where it asked
+     * one: exactly one migration writes RC-001's discipline, and every other
+     * carrier is on the PINNED list below, which section 11 checks. A third
+     * migration writing the column is still a red naming it.
+     */
+    const OTHER_CARRIERS = ["0077_every_protocol_requires_structural.sql"];
+    const rcCarriers = disciplineCarriers.filter((c) => c.text.includes("'254-RC-001'"));
+    const unaccounted = disciplineCarriers.filter(
+      (c) => !c.text.includes("'254-RC-001'") && !OTHER_CARRIERS.includes(c.file),
+    );
     rec(
-      "exactly one migration sets requires_discipline",
-      disciplineCarriers.length === 1,
-      disciplineCarriers.map((c) => c.file).join(", ") ||
+      "exactly one migration sets requires_discipline for 254-RC-001",
+      rcCarriers.length === 1,
+      rcCarriers.map((c) => c.file).join(", ") ||
         "the registry declares a discipline and no migration carries it to a database",
     );
+    rec(
+      "and every other migration that sets it is one this audit reads back row by row",
+      unaccounted.length === 0 && OTHER_CARRIERS.every((f) => disciplineCarriers.some((c) => c.file === f)),
+      unaccounted.map((c) => c.file).join(", ") || `${OTHER_CARRIERS.join(", ")}, read in section 11`,
+    );
 
-    if (disciplineCarriers.length === 1) {
-      const carrier = disciplineCarriers[0];
+    if (rcCarriers.length === 1) {
+      const carrier = rcCarriers[0];
       const setMatch = carrier.text.match(/set\s+requires_discipline\s*=\s*'([^']*)'/i);
 
       rec(
@@ -1919,6 +1938,76 @@ if (carriers.length === 1) {
     "and the signing step hashes by number AND version, so WP-001's two versions cannot be confused",
     /transcriptionSha256\(documentNumber: string, version: string\)/.test(sign) &&
       !/transcriptionSha256\([a-zA-Z.]+\)/.test(sign),
+  );
+}
+
+/* ------------- 11. the discipline every signable protocol requires, 0077 */
+
+/*
+ * =========================================================================
+ * THE ENGINEER'S ANSWER OF 2026-10-14, AND THE MIGRATION THAT RECORDS IT.
+ * =========================================================================
+ * DISCIPLINE_BY_PROTOCOL is the one home; 0077 writes it. This reads the
+ * migration's literals back against the declaration, the way section 6 reads
+ * 0056 against RC001, and it checks each declared digest against the document
+ * the signable list actually offers, so the discipline cannot be recorded on
+ * a row that is not the text he will sign.
+ */
+{
+  const { DISCIPLINE_BY_PROTOCOL, engineerDirections } = await import("../src/config/engineer-directions.ts");
+  const { SIGNABLE_PROTOCOLS } = await import("../src/content/protocols/signable.ts");
+  const { RECEIVED_PROTOCOLS } = await import("../src/content/protocols/received.ts");
+  const { DOCX_RECEIVED_PROTOCOLS } = await import("../src/content/protocols/docx-received.ts");
+
+  const direction = engineerDirections.find((d) => d.key === "every-service-is-structural");
+  rec(
+    "the discipline rests on a recorded direction from the engineer, with its evidence named",
+    Boolean(direction) && direction.on === "2026-10-14" && direction.evidence.file.startsWith("docs/compliance/"),
+    direction ? `${direction.medium}, ${direction.evidence.file}` : "no direction recorded",
+  );
+  rec(
+    "and every entry names that direction and states structural",
+    DISCIPLINE_BY_PROTOCOL.every((e) => e.direction === "every-service-is-structural" && e.discipline === "structural"),
+  );
+
+  const declared = DISCIPLINE_BY_PROTOCOL.map((e) => `${e.documentNumber} v${e.version}`).sort();
+  const offered = SIGNABLE_PROTOCOLS.map((p) => `${p.documentNumber} v${p.version}`).sort();
+  rec(
+    "every protocol offered for signature has its discipline declared, and nothing else does",
+    declared.join("|") === offered.join("|"),
+    declared.join(", "),
+  );
+  rec(
+    "and WP-001 v1.1 carries none, by the operator's ruling of 2026-10-14",
+    !DISCIPLINE_BY_PROTOCOL.some((e) => e.documentNumber === "254-WP-001" && e.version === "1.1"),
+  );
+
+  const sourceSha = (doc, ver) =>
+    DOCX_RECEIVED_PROTOCOLS.find((p) => p.documentNumber === doc && p.version === ver)?.sourceSha256 ??
+    RECEIVED_PROTOCOLS.map((p) => p.declaration).find((d) => d.documentNumber === doc && d.version === ver)?.sourceSha256;
+  const wrongDoc = DISCIPLINE_BY_PROTOCOL.filter((e) => sourceSha(e.documentNumber, e.version) !== e.documentSha256);
+  rec(
+    "each declared digest is the digest of the engineer's file the signable text was proved against",
+    wrongDoc.length === 0,
+    wrongDoc.map((e) => `${e.documentNumber} v${e.version}`).join(", ") || `${DISCIPLINE_BY_PROTOCOL.length} digests`,
+  );
+
+  const file = "supabase/migrations/0077_every_protocol_requires_structural.sql";
+  const sql = existsSync(file) ? readFileSync(file, "utf8") : "";
+  rec("0077 is on disk", sql.length > 0, file);
+  const tuples = [...sql.matchAll(/\('(254-[A-Z]{2}-\d{3})', '([\d.]+)', '([0-9a-f]{64})'\)/g)].map((m) => `${m[1]}|${m[2]}|${m[3]}`);
+  const expected = DISCIPLINE_BY_PROTOCOL.map((e) => `${e.documentNumber}|${e.version}|${e.documentSha256}`);
+  const guardAndUpdate = expected.every((t) => tuples.filter((x) => x === t).length === 2);
+  rec(
+    "0077 names exactly the declared rows, by number, version and digest, in its guard and in its update",
+    guardAndUpdate && tuples.length === expected.length * 2,
+    `${tuples.length} tuples read, ${expected.length * 2} expected`,
+  );
+  const setMatch = sql.match(/set requires_discipline = '([a-z]+)'/);
+  rec(
+    "and the value it writes is the declared discipline",
+    setMatch?.[1] === "structural",
+    setMatch ? setMatch[1] : "no set clause found",
   );
 }
 

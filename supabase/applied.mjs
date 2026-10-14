@@ -2569,6 +2569,29 @@ export const APPLIED = [
       "function, revoked from public, anon and authenticated in the same file (0073's rule). migration-audit's " +
       "function count moves 46 to 47 in the same commit.",
   },
+  {
+    file: "0077_every_protocol_requires_structural.sql", appliedBy: "apply_migration",
+    fingerprint: "318b0fa346fc0f92167df9b9f44ce1cf",
+    behaviour: "f2380dab0f83023419bc357dfd80f042",
+    production: null,
+    development: null,
+    proves: {
+      table: "eng_protocol_templates",
+      match: { document_number: "254-FC-001", version_label: "1.0", requires_discipline: "structural" },
+    },
+    note:
+      "BOTH fingerprints repeat 0076's, read off scripts/fingerprint-at.mjs at 0077 on 2026-10-14 rather " +
+      "than copied: an UPDATE with no DDL. It writes one column on eight existing rows, each found by its " +
+      "document's SHA-256, and its own guards assert all eight before and after and that WP-001 v1.1 stays " +
+      "null. `proves` asks about the column value on FC-001 v1.0, the row 0069 entered last.",
+    because:
+      "WRITTEN 2026-10-14 ON feat/protocol-signing-wp-fc AND APPLIED NOWHERE, INCLUDING DEVELOPMENT. The " +
+      "value is the engineer's written answer of 2026-10-14, recorded in src/config/engineer-directions.ts " +
+      "as every-service-is-structural, whose evidence is the operator's attestation of his words. " +
+      "docs/production-sitting-feat-protocol-signing-wp-fc.md, section 0 first: the eight rows read on both " +
+      "databases. No drop statement, so the connector is expected to apply it. The branch merges only on " +
+      "the operator's word, and a migration on main is never pending.",
+  },
 ];
 
 /*
