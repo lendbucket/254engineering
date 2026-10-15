@@ -49,17 +49,24 @@ export default async function JobsPage() {
   const serviceName = (slug: string) => services.find((s) => s.slug === slug)?.name ?? slug;
 
   const live = offers.filter((o) => o.state === "offered" && !o.file?.assigned_tech_id);
+  /*
+   * "refused" is FINISHED for the technician. Operator ruling 2026-10-10
+   * (decision 9): a file the engineer declined to seal sat in "mine" as a job
+   * still to work, because only delivered, closed and cancelled were excluded.
+   * It is Earlier now, and says the evidence is paid.
+   */
+  const FINISHED = ["delivered", "closed", "cancelled", "refused"];
   const mine = offers.filter(
     (o) =>
       o.state === "accepted" &&
       o.file &&
-      !["delivered", "closed", "cancelled"].includes(o.file.status),
+      !FINISHED.includes(o.file.status),
   );
   const past = offers.filter(
     (o) =>
       /* "cancelled" too: an accepted job whose file was later cancelled matched
        * neither list and vanished from the screen (product audit, 2026-10-10). */
-      (o.state === "accepted" && o.file && ["delivered", "closed", "cancelled"].includes(o.file.status)) ||
+      (o.state === "accepted" && o.file && FINISHED.includes(o.file.status)) ||
       o.state === "declined" ||
       o.state === "withdrawn" ||
       o.state === "expired",
@@ -187,6 +194,8 @@ export default async function JobsPage() {
                     ? "Taken by someone else"
                     : o.state === "accepted" && o.file?.status === "cancelled"
                       ? "Canceled by the office"
+                      : o.state === "accepted" && o.file?.status === "refused"
+                        ? "The engineer declined to seal. You are paid for the evidence."
                       : o.state === "accepted"
                         ? "Completed"
                         : o.state}
