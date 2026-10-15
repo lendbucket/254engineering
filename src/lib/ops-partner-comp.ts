@@ -17,6 +17,7 @@ import {
   type Terms,
   type Tier,
 } from "./partner-comp";
+import { PARTNER_BILLING } from "@/config/partner-billing";
 
 /**
  * Writing down what a partner earned.
@@ -152,6 +153,23 @@ export async function accrueForDelivery(fileId: string): Promise<AccrualResult> 
 
   const partnerId = file.partner_id as string;
 
+  const standing = await partnerStanding(db, partnerId);
+  if (!standing.ok) return { ok: false, error: standing.error };
+  if (!standing.earns) {
+    const occurredAtEnded = new Date((file.delivered_at as string | null) ?? Date.now());
+    return await insertEntry(db, {
+      partnerId,
+      kind: "accrual",
+      amountCents: 0,
+      status: "accrued",
+      explanation: standing.reason,
+      fileId,
+      orderId: ((await liveOrderForFile(fileId, "reference"))?.id as string | undefined) ?? null,
+      occurredAt: occurredAtEnded,
+      payableAtMs: occurredAtEnded.getTime(),
+    });
+  }
+
   /*
    * The LIVE order, by the precedence in order-for-file.ts, and on this call
    * site the difference is money: a commission is owed against the engagement
@@ -285,6 +303,22 @@ export async function accrueForQualifiedLead(leadId: string): Promise<AccrualRes
 
   const partnerId = lead.partner_id as string;
   const occurredAt = new Date();
+
+  const standing = await partnerStanding(db, partnerId);
+  if (!standing.ok) return { ok: false, error: standing.error };
+  if (!standing.earns) {
+    return await insertEntry(db, {
+      partnerId,
+      kind: "accrual",
+      amountCents: 0,
+      status: "accrued",
+      explanation: standing.reason,
+      leadId,
+      occurredAt,
+      payableAtMs: occurredAt.getTime(),
+    });
+  }
+
   const terms = await termsInForce(partnerId, occurredAt);
 
   if (!terms) {
@@ -1160,6 +1194,64 @@ type InsertInput = {
  * ok with no entry id rather than an error somebody has to interpret. Every
  * other failure is returned as itself.
  */
+/**
+ * WHETHER THIS PARTNER STILL EARNS. Operator ruling 4 of 2026-10-15.
+ *
+ * A partner who is suspended or ended earns nothing further, on every order,
+ * including orders already attributed to them. Until this ruling the two
+ * accrual paths read the attribution and the terms and never the partner's
+ * standing, so an ended partner went on earning on everything already
+ * attributed: `partnerByCode` stopped new links crediting, and nothing stopped
+ * the old ones.
+ *
+ * Once billing is on, a partner whose billing is suspended or cancelled is
+ * treated the same way. While it is off (PARTNER_BILLING.enabled), billing
+ * gates nothing, as everywhere else.
+ *
+ * WHAT IT DOES NOT DO IS TOUCH THE LEDGER BEHIND THEM. Credits earned before
+ * the partner ended stay owed: this is read when an accrual is written, and an
+ * entry already written is never revisited.
+ *
+ * A read that fails is not an answer. It returns the failure, so the caller
+ * records a problem rather than crediting, or zeroing, on a guess.
+ */
+async function partnerStanding(
+  db: NonNullable<ReturnType<typeof supabaseAdmin>>,
+  partnerId: string,
+): Promise<{ ok: true; earns: true } | { ok: true; earns: false; reason: string } | { ok: false; error: string }> {
+  const { data: partner, error } = await db
+    .from("eng_partners")
+    .select("status")
+    .eq("id", partnerId)
+    .maybeSingle();
+  if (error) return { ok: false, error: `Whether this partner still earns could not be read: ${error.message}` };
+  if (!partner) return { ok: false, error: "The partner this is attributed to does not exist." };
+  if (partner.status !== "active") {
+    return {
+      ok: true,
+      earns: false,
+      reason: `This partner is ${partner.status}, so this earns nothing. A partner who is suspended or ended earns on no further order, including orders already attributed to them; what they earned before stays owed.`,
+    };
+  }
+
+  if (PARTNER_BILLING.enabled) {
+    const { data: billing, error: billingError } = await db
+      .from("eng_partner_billing")
+      .select("status")
+      .eq("partner_id", partnerId)
+      .maybeSingle();
+    if (billingError) return { ok: false, error: `This partner's billing could not be read: ${billingError.message}` };
+    if (billing && (billing.status === "suspended" || billing.status === "cancelled")) {
+      return {
+        ok: true,
+        earns: false,
+        reason: `This partner's billing is ${billing.status}, so this earns nothing. What they earned before stays owed.`,
+      };
+    }
+  }
+  return { ok: true, earns: true };
+}
+
 async function insertEntry(
   db: NonNullable<ReturnType<typeof supabaseAdmin>>,
   input: InsertInput,
