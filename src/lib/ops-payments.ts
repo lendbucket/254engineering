@@ -2039,12 +2039,25 @@ export async function cancelAndRefund(input: {
     };
   }
 
-  const { data: charges } = await db
+  const { data: charges, error: chargeError } = await db
     .from("eng_order_payments")
     .select("provider, provider_ref, amount_cents")
     .eq("order_id", input.orderId)
     .eq("kind", "charge")
     .eq("status", "succeeded");
+
+  /*
+   * A failed read of the charges refuses the cancel. Operator ruling,
+   * 2026-10-15: read as nothing charged, a failure here took the branch below
+   * and closed a paid order as canceled with nothing charged, refunding
+   * nothing and telling the record the customer had never paid.
+   */
+  if (chargeError) {
+    return {
+      ok: false,
+      error: `The charges on this order could not be read, so nothing was canceled or refunded: ${chargeError.message}`,
+    };
+  }
 
   const paidCents = (charges ?? []).reduce((n, c) => n + Number(c.amount_cents), 0);
   const charge = (charges ?? [])[0];
