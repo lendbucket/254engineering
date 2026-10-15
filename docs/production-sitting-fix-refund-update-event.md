@@ -12,7 +12,14 @@ counterpart through the connector in one try with no cancel. Section 1 read
 clean before it. Section 3 read back exact: four kinds,
 `eng_apply_refund_update` anon false, authenticated false, service_role true,
 no event rows, shape 318b0fa3 across 1206. The record is in
-`supabase/applied.mjs`. Section 4 is what remains.
+`supabase/applied.mjs`.
+
+**SECTION 4 DONE 2026-10-14.** Merged as 449216f. The counterpart read 449216f
+READY in production at 16:16Z. Robert added `charge.refund.updated` to the
+live endpoint in the Stripe dashboard and confirmed it in chat, and
+`registeredEvents` gained it in its own commit, 0cc6792. What is left is the
+keyed live half of `stripe-webhook-audit` reading the four events back from
+the account; it is tracked in `BACKLOG.md` under 0076.
 
 Staged 2026-10-13, and run the same day as recorded above. The counterpart runs each read;
 the session runs none. **0076 follows 0075**, which both databases already
