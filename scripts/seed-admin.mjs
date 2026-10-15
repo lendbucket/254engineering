@@ -46,12 +46,24 @@ if (!db) {
 }
 console.error(`seeding against ${describeTarget(process.env.SUPABASE_URL)}`);
 
-const { count } = await db
+const { count, error: countError, status: countStatus } = await db
   .from("eng_profiles")
   .select("id", { count: "exact", head: true })
   .eq("role", "admin");
 
-if ((count ?? 0) > 0) {
+/*
+ * A count that failed stops the seed. Operator ruling, 2026-10-15, from the
+ * survey of discarded errors: read as zero, it went on to create an
+ * administrator, and this is the one script that runs against production.
+ */
+if (countError || typeof count !== "number") {
+  console.error(
+    `The administrators already on file could not be counted (${countError?.message || `HTTP ${countStatus}, no count came back`}). Nothing was created.`,
+  );
+  process.exit(1);
+}
+
+if (count > 0) {
   console.error(
     `An administrator already exists (${count}). Create further accounts from the portal, under People.`,
   );

@@ -69,7 +69,7 @@ import { PROBES, probedKinds, probeFor, NOWHERE } from "./lib/job-probes.mjs";
 import { registeredKinds, handlerFor, loadHandlers, enqueue, runBatch } from "../src/lib/ops-jobs.ts";
 import { nextState, LEASE_SECONDS, BATCH_SIZE } from "../src/lib/job-rules.ts";
 import { COULD_NOT_TELL } from "./lib/reachable.mjs";
-import { refuseIfOutwardWorkIsWaiting, makeBatchRunner } from "./lib/queue-drain.mjs";
+import { refuseIfOutwardWorkIsWaiting, makeBatchRunner, countLiveOutward } from "./lib/queue-drain.mjs";
 import { isFixtureIdentity } from "../src/lib/fixture-identity.ts";
 
 const out = [];
@@ -1440,21 +1440,33 @@ console.log("--- teardown");
    *
    * So the count is reported, and the outward reach is asserted.
    */
-  const { count: liveOutward } = await db
-    .from("eng_jobs")
-    .select("id", { count: "exact", head: true })
-    .eq("effect_mode", "live")
-    .in("kind", registeredKinds().filter((k) => handlerFor(k)?.reachesOutside === true))
-    .in("status", ["pending", "running"]);
+  const outward = await countLiveOutward({
+    db,
+    outwardKinds: registeredKinds().filter((k) => handlerFor(k)?.reachesOutside === true),
+  });
 
-  rec(
-    "nothing on this queue that could reach outside is eligible for an audit's worker to claim",
-    (liveOutward ?? 0) === 0,
-    (liveOutward ?? 0) === 0
-      ? "every waiting job of an outward reaching kind is marked no_external_effect"
-      : `${liveOutward} waiting job(s) of an outward reaching kind are marked live on the database this audit runs a worker against. ` +
-        "Running this file, or any worker, can send them. That is how 35 emails went out on 2026-09-09.",
-  );
+  /*
+   * A COUNT THAT FAILED IS COULD NOT TELL. Operator ruling, 2026-10-15, from the
+   * survey of discarded errors: `liveOutward ?? 0` read a failed count as zero
+   * and printed this check's PASS over a queue nobody had counted.
+   */
+  if (!outward.counted) {
+    console.log(
+      "  COULD NOT TELL: nothing on this queue that could reach outside is eligible for an audit's worker to claim " +
+        `(the live outward jobs could not be counted: ${outward.reason}). ` +
+        "That is not a pass: nobody knows whether this run's worker could have sent anything.",
+    );
+  } else {
+    const liveOutward = outward.count;
+    rec(
+      "nothing on this queue that could reach outside is eligible for an audit's worker to claim",
+      liveOutward === 0,
+      liveOutward === 0
+        ? "every waiting job of an outward reaching kind is marked no_external_effect"
+        : `${liveOutward} waiting job(s) of an outward reaching kind are marked live on the database this audit runs a worker against. ` +
+          "Running this file, or any worker, can send them. That is how 35 emails went out on 2026-09-09.",
+    );
+  }
 
   rec(
     `the queue moved by ${pendingBefore - pendingAfter}, and this run created ${probeIds.length}`,

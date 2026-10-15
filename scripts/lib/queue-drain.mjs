@@ -56,7 +56,7 @@ import { COULD_NOT_TELL } from "./reachable.mjs";
  * @param {string} o.label           The script, for the message.
  */
 export async function refuseIfOutwardWorkIsWaiting({ db, outwardKinds, label }) {
-  const { data: hazards } = await db
+  const { data: hazards, error: hazardError } = await db
     .from("eng_jobs")
     .select("id, kind, run_after")
     .eq("effect_mode", "live")
@@ -65,7 +65,22 @@ export async function refuseIfOutwardWorkIsWaiting({ db, outwardKinds, label }) 
     .order("run_after", { ascending: true })
     .limit(20);
 
-  if ((hazards ?? []).length === 0) return { ok: true, checked: outwardKinds.length };
+  /*
+   * A READ THAT FAILED REFUSES TOO. Operator ruling, 2026-10-15, from the survey
+   * of discarded errors: read as an empty list, a failed read let the caller run
+   * a worker while live outward jobs may be waiting, which is the one thing this
+   * guard exists to stop.
+   */
+  if (hazardError || !Array.isArray(hazards)) {
+    console.log("");
+    console.log(
+      `  REFUSED TO START: the waiting outward jobs could not be read (${hazardError?.message ?? "no rows and no error came back"}), so nobody can say whether a worker here would send them.`,
+    );
+    console.log(`  ${label} runs a worker. Nothing was enqueued and nothing was claimed.`);
+    return exitCouldNotTell();
+  }
+
+  if (hazards.length === 0) return { ok: true, checked: outwardKinds.length };
 
   console.log("");
   console.log(
@@ -82,7 +97,36 @@ export async function refuseIfOutwardWorkIsWaiting({ db, outwardKinds, label }) 
   console.log("  Nothing was enqueued and nothing was claimed. Work queued by a fixture is");
   console.log("  suppressed at creation now, so these are either older than that rule or");
   console.log("  they belong to somebody real, and which of the two is a decision.");
+  return exitCouldNotTell();
+}
 
+/**
+ * Count the waiting outward jobs marked live, saying whether the count was read.
+ *
+ * `{ counted: false }` is not zero. Operator ruling, 2026-10-15, from the survey
+ * of discarded errors: queue-audit read `count ?? 0`, so a failed count printed
+ * the PASS of the check that stands between an audit's worker and real email.
+ *
+ * @param {object} o
+ * @param {import("@supabase/supabase-js").SupabaseClient} o.db
+ * @param {string[]} o.outwardKinds
+ * @returns {Promise<{ counted: true, count: number } | { counted: false, reason: string }>}
+ */
+export async function countLiveOutward({ db, outwardKinds }) {
+  const { count, error, status } = await db
+    .from("eng_jobs")
+    .select("id", { count: "exact", head: true })
+    .eq("effect_mode", "live")
+    .in("kind", outwardKinds)
+    .in("status", ["pending", "running"]);
+  if (error || typeof count !== "number") {
+    /* A head request carries no body, so a failure can arrive with an empty message. */
+    return { counted: false, reason: error?.message || `HTTP ${status}, no count came back` };
+  }
+  return { counted: true, count };
+}
+
+async function exitCouldNotTell() {
   /*
    * EXITED AFTER A TICK, NOT INSIDE ONE.
    *
