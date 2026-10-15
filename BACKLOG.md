@@ -4,6 +4,25 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
+## AFTER LAUNCH: `/coverage` LCP SITS ACROSS ITS CEILING. FIND OUT WHY AND BRING IT UNDER
+
+Operator ruling, 2026-10-15: after launch, not now.
+
+The board on `95a15b4` printed perf's third verdict for the coverage hub:
+`LCP 3072ms against 3400ms, NOT STABLE ENOUGH TO GATE ON (/coverage, median of
+3, spread 536ms. The range 3070 to 3605ms straddles the ceiling)`. The same
+line is in at least nine earlier board logs. Robert ruled the same day that it
+counts as a standing note in every board prediction, and that the ceiling does
+not move: an LCP FAIL on `/coverage` or any page is still a failure.
+
+What is owed: find what the largest paint on `/coverage` is and why it lands
+between 3070 and 3605ms on this machine, then bring it under 3400ms with room to
+spare, so the verdict stops depending on the board's own load. The history is
+the 2026-09-21 entry further down ("SETTLED BY RERUN"), which recorded that this
+investigation would be owed. The place to start is the entry "The county map on
+the coverage routes, investigated and left alone": the largest paint on
+`/coverage` was measured as the prelaunch compliance paragraph, not the map.
+
 ## THE SITTING FOR `release/2026-10-20`, PARTS A AND B RUN 2026-10-07, PART C OPEN
 
 `docs/production-sitting-2026-10-20.md`. **Parts A and B ran on 2026-10-07**
