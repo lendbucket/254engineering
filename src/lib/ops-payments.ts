@@ -2274,6 +2274,52 @@ export async function settleDecision(input: {
     return { ok: true, refundedCents: 0, retainedCents: 0, caseName: decision.caseName };
   }
 
+  /*
+   * WHAT IS ALREADY GIVEN BACK COUNTS, PENDING INCLUDED. Operator ruling 7 of
+   * 2026-10-15. This function read no earlier refund at all, so a decline
+   * reaching an order the firm had already cancelled and refunded, by the
+   * pre-dispatch hold (dispatch-hold.ts), which checks for no refund first,
+   * would have refunded again. A pending refund counts, as it does for
+   * cancelAndRefund and the webhook (0075), and a read that fails refuses:
+   * read as none, a failure here would give the money back twice.
+   */
+  const { data: priorRefunds, error: priorError } = await db
+    .from("eng_order_payments")
+    .select("amount_cents")
+    .eq("order_id", input.orderId)
+    .eq("kind", "refund")
+    .in("status", ["pending", "succeeded"]);
+  if (priorError) {
+    await event(
+      input.orderId,
+      "refund.blocked",
+      false,
+      `The refunds already on file could not be read, so nothing was refunded: ${priorError.message}`,
+    );
+    return { ok: false, error: `The refunds already on file could not be read, so nothing was refunded: ${priorError.message}` };
+  }
+  const alreadyRefunded = (priorRefunds ?? []).reduce((n, r) => n + Number(r.amount_cents), 0);
+  if (alreadyRefunded >= paidCents) {
+    await event(
+      input.orderId,
+      "refund.already_given",
+      false,
+      `Nothing more was refunded: ${money(alreadyRefunded)} of the ${money(paidCents)} paid is already refunded or pending.`,
+    );
+    return { ok: true, refundedCents: 0, retainedCents: decision.retainedCents, caseName: decision.caseName };
+  }
+  if (alreadyRefunded > 0) {
+    /*
+     * Part is already given back. Refunding the rule's amount again would
+     * overpay, and refunding only the rest would tell the customer a sentence
+     * written for the whole amount. So nothing moves and the firm settles the
+     * rest by hand, which is rare enough to deserve a person.
+     */
+    const why = `${money(alreadyRefunded)} of the ${money(paidCents)} paid is already refunded or pending, and this decision returns ${money(decision.refundCents)}. Nothing more was refunded automatically; the rest has to be settled by hand.`;
+    await event(input.orderId, "refund.needs_hand", false, why);
+    return { ok: false, error: why };
+  }
+
   const provider = paymentProvider();
   const result = await provider.refund({
     chargeRef: charge.provider_ref as string,
