@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { setPartnerPassword } from "@/lib/partner-auth";
 import { writeAudit } from "@/lib/ops-audit";
 import { requestContext } from "@/lib/ops-auth";
+import { withSaveOutcome } from "@/lib/save-outcome";
 
 /**
  * Spend a one time link and set a partner's password.
@@ -18,7 +19,7 @@ import { requestContext } from "@/lib/ops-auth";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   const contentType = request.headers.get("content-type") ?? "";
   const isForm = contentType.includes("application/x-www-form-urlencoded");
 
@@ -69,3 +70,6 @@ export async function POST(request: NextRequest) {
     ? NextResponse.redirect(new URL("/partner/login?set=1", request.url), { status: 303 })
     : NextResponse.json({ ok: true });
 }
+
+/* A save abandoned by the 20 second bound says it may not have saved, and a failed session read is never "Not signed in": save-outcome.ts. */
+export const POST = withSaveOutcome(handlePOST);

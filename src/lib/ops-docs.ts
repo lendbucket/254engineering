@@ -9,7 +9,7 @@ import { services } from "@/content/services";
 import { attachmentRows, BINDER_HEADERS, binderRows, limitationsFor, type Binder } from "./ops-binder";
 import { csv } from "./csv";
 import { marginOf, moneyCell, periodTotals, type Cents, type FileMoney } from "./ops-money";
-import { partnerCostByFile } from "./ops-partner-comp";
+import { partnerCostByFileRead } from "./ops-partner-comp";
 
 /**
  * Documents, billing, and the numbers the dashboards read.
@@ -388,9 +388,11 @@ export async function fileMargins(actor: Actor | null): Promise<FileMargin[] | n
    * One read, in a batch, keyed by file. Files with no partner never reach the
    * database at all: their commission is a knowable zero.
    */
-  const partnerCosts = await partnerCostByFile(
+  const partnerCosts = await partnerCostByFileRead(
     (data ?? []).map((f) => ({ id: f.id as string, partnerId: (f.partner_id as string | null) ?? null })),
   );
+  /* The partner ledger is half of this read: if it failed, the margins could not be read (2026-10-12). */
+  if (partnerCosts === null) return null;
 
   return (data ?? []).map((f) => ({
     id: f.id as string,

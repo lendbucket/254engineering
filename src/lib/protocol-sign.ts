@@ -5,7 +5,7 @@ import { holdsLicence, type Actor } from "./ops-authz";
 import type { ProfileRow } from "./ops-auth";
 import { verifyFreshCode } from "./ops-mfa";
 import { verifiedEngineers } from "@/config/credentials";
-import { RECEIVED_PROTOCOLS } from "@/content/protocols/received";
+import { SIGNABLE_PROTOCOLS, signableProtocol } from "@/content/protocols/signable";
 
 /**
  * ===========================================================================
@@ -19,7 +19,8 @@ import { RECEIVED_PROTOCOLS } from "@/content/protocols/received";
  * signing voids it."
  *
  * WHAT IS HASHED is the transcription's own `text`, the whole document as
- * protocol-registry-audit section 8 proves it against his PDF, joined one line
+ * protocol-registry-audit proves it against his PDF (section 8) or his Word
+ * file (section 9), from the list in signable.ts, joined one line
  * per line. That is exactly what the portal shows him to read, so the
  * signature attaches to the words he read.
  *
@@ -36,10 +37,15 @@ import { RECEIVED_PROTOCOLS } from "@/content/protocols/received";
 
 type SignedIn = Actor & ProfileRow;
 
-export function transcriptionSha256(documentNumber: string): string | null {
-  const p = RECEIVED_PROTOCOLS.find((r) => r.declaration.documentNumber === documentNumber);
+/*
+ * BY NUMBER AND VERSION, since 2026-10-14. 254-WP-001 exists at v1.1 and v1.2,
+ * and a lookup by number alone would hash whichever came first. A version not
+ * offered in signable.ts answers null, so a signature on it reads as void.
+ */
+export function transcriptionSha256(documentNumber: string, version: string): string | null {
+  const p = SIGNABLE_PROTOCOLS.find((r) => r.documentNumber === documentNumber && r.version === version);
   if (!p) return null;
-  return createHash("sha256").update((p.declaration.text as readonly string[]).join("\n"), "utf8").digest("hex");
+  return createHash("sha256").update(p.text.join("\n"), "utf8").digest("hex");
 }
 
 export type SignatureStatus =
@@ -63,7 +69,7 @@ export async function signatureStatus(documentNumber: string, version: string): 
   /* An unknown is not a signature, ruling 11: a failed read closes the line. */
   if (error) return { state: "unknown", why: `The signature record could not be read: ${error.message}` };
   if (!data) return { state: "unsigned" };
-  const now = transcriptionSha256(documentNumber);
+  const now = transcriptionSha256(documentNumber, version);
   if (now !== data.content_sha256) {
     return {
       state: "void",
@@ -88,9 +94,9 @@ export async function signProtocol(
     return { ok: false, error: "Your license number on this account does not match the engineer on the firm's register." };
   }
 
-  const protocol = RECEIVED_PROTOCOLS.find((r) => r.declaration.documentNumber === input.documentNumber);
+  const protocol = signableProtocol(input.documentNumber);
   if (!protocol) return { ok: false, error: `${input.documentNumber} is not a protocol waiting for a signature.` };
-  const version = protocol.declaration.version as string;
+  const version = protocol.version;
 
   const status = await signatureStatus(input.documentNumber, version);
   if (status.state === "unknown") return { ok: false, error: status.why };
@@ -102,7 +108,7 @@ export async function signProtocol(
     };
   }
 
-  const sha256 = transcriptionSha256(input.documentNumber)!;
+  const sha256 = transcriptionSha256(input.documentNumber, version)!;
 
   const fresh = await verifyFreshCode(actor!.id, input.code);
   if (!fresh.ok) return { ok: false, error: fresh.error };

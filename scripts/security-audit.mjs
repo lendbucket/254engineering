@@ -118,6 +118,8 @@ const ADMIN_PAGES = [
    * above, files.create, and closed to a signed out caller like everything
    * else on this list. */
   "/portal/windstorm-inquiries",
+  /* The record search, 2026-10-10: behind files.list, closed to a signed out caller. */
+  "/portal/search",
   "/portal/jobs",
   "/portal/files",
   // Phase 12 Section 4, Section 1. Names every technician who could be offered
@@ -204,6 +206,10 @@ const ADMIN_APIS = [
    */
   "/api/partner/agreement",
   "/api/partner/materials",
+  /* A partner's logo upload (run item 19, migration 0072). */
+  "/api/partner/branding",
+  /* A partner starts paying for the program (0074); refused while billing is off. */
+  "/api/partner/billing",
   "/api/account/bulk",
   "/api/account/settings",
   "/api/account/statements",
@@ -293,6 +299,9 @@ const ADMIN_APIS = [
   // Moves a customer's money back. Closed to a signed out client, and admin
   // only behind that.
   "/api/portal/orders/refund",
+  // Attaches a paid order to an account, which decides who can sign in and
+  // see it, and finishes the payment's release (ruling 2026-10-13).
+  "/api/portal/orders/attach-account",
   // Customer ordering accounts: terms, credit limits, closing a period and
   // issuing a statement. It decides who may owe the firm money.
   "/api/portal/accounts",

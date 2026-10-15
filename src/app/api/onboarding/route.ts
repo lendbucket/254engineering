@@ -10,6 +10,7 @@ import { createOnboardingUpload } from "@/lib/onboarding-uploads";
 import { itemByKey } from "@/content/onboarding-checklists";
 import { queueEmail } from "@/lib/ops-jobs";
 import { onboardingSubmitted } from "@/lib/email-templates";
+import { withSaveOutcome } from "@/lib/save-outcome";
 
 /**
  * Every write the onboarding flow makes, behind one route.
@@ -39,7 +40,7 @@ import { onboardingSubmitted } from "@/lib/email-templates";
 
 type Action = "upload" | "item" | "submit";
 
-export async function POST(request: Request) {
+async function handlePOST(request: Request) {
   let body: Record<string, unknown>;
   try {
     body = (await request.json()) as Record<string, unknown>;
@@ -235,3 +236,6 @@ async function handleSubmit(
 
   return NextResponse.json({ ok: true });
 }
+
+/* A save abandoned by the 20 second bound says it may not have saved, and a failed session read is never "Not signed in": save-outcome.ts. */
+export const POST = withSaveOutcome(handlePOST);

@@ -238,6 +238,8 @@ const PORTED = [
   // list on the day they are built: a screen written today has no excuse for
   // being outside the design system, and the list may only grow.
   "src/app/portal/(app)/reports/page.tsx",
+  /* The record search, 2026-10-10, on the day it was built. */
+  "src/app/portal/(app)/search/page.tsx",
   "src/app/portal/(app)/suppressions/page.tsx",
   "src/app/portal/(app)/suppressions/SuppressionsClient.tsx",
   "src/app/portal/(app)/applications/page.tsx",
@@ -257,6 +259,7 @@ const PORTED = [
   "src/app/partner/(app)/materials/page.tsx",
   "src/app/partner/(app)/materials/SubmitForm.tsx",
   "src/app/partner/(app)/page.tsx",
+  "src/app/partner/(app)/LogoUpload.tsx",
   "src/app/partner/(app)/referrals/page.tsx",
   "src/app/partner/(app)/statements/page.tsx",
   "src/app/partner/(app)/statements/[reference]/page.tsx",
@@ -270,6 +273,7 @@ const PORTED = [
   // real while the port was partial; it now names everything.
   "src/app/(order)/order/[reference]/page.tsx",
   "src/app/(order)/order/start/[slug]/page.tsx",
+  "src/app/(order)/order/referred/[code]/page.tsx",
   "src/app/account/SignOutButton.tsx",
   "src/app/account/layout.tsx",
   /*
@@ -566,6 +570,7 @@ const CUSTOMER_V10 = [
   "src/components/order/OrderFlow.tsx",
   "src/app/(order)/order/[reference]/page.tsx",
   "src/app/(order)/order/start/[slug]/page.tsx",
+  "src/app/(order)/order/referred/[code]/page.tsx",
   /* The credential screens, restyled 2026-09-29. Every account door's link and
    * both reset paths land on set-password, so leaving it in the old card style
    * would have put a visual seam at the end of every one of them. */
@@ -626,6 +631,8 @@ const CUSTOMER_V10 = [
  * said what the colour was saying a second time.
  */
 const STAFF_V10 = [
+  /* The record search, 2026-10-10, held to the staff rules from its first commit. */
+  "src/app/portal/(app)/search/page.tsx",
   "src/app/portal/(app)/review/page.tsx",
   "src/app/portal/(app)/review/ReviewClient.tsx",
   "src/app/portal/(app)/review/LetterSealPanel.tsx",

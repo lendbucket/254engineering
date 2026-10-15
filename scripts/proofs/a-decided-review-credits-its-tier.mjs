@@ -21,11 +21,14 @@
  *      only one), plus the file whose tier cannot be read. Each figure is
  *      compared against the agreement's tier pay written here as literals, never
  *      imported from engineer-pay.ts.
- *   2. THE WRITE, in the source. The ledger insert in decideReview writes
- *      credit.cents and nothing else, from productionCreditFor(pkg.file); the
- *      package read carries the deliverable column; nothing in src reads
- *      engineer_production from the fee schedule; and the order engine records
- *      the deliverable it sold on the file it opens.
+ *   2. THE WRITE is no longer proved here by reading the source. Operator
+ *      ruling of 2026-10-10: the decision and its credit are one database
+ *      function (0068), and scripts/proofs/a-decision-and-its-credit-are-one-write.mjs
+ *      calls it for one file per tier inside a transaction, reads the ledger row,
+ *      and rolls back. What stays here in the source: the package read carries
+ *      the deliverable column, the credit decideReview hands the function is
+ *      productionCreditFor's, nothing in src reads engineer_production from the
+ *      fee schedule, and the order engine records the deliverable it sold.
  *
  * Probes are demonstration rows (DEMO in the file number and the order
  * reference); all removed and read back.
@@ -43,20 +46,17 @@ const check = (name, ok, note = "") => {
 /* The executed agreement's tier pay, in cents. Literals on purpose. */
 const AGREED = { 1: 17_500, 2: 35_000, 3: 52_500 };
 
-/* ------------------------------------------------------------ 2. the write */
+/* ---------------------------------------- 2. what decideReview hands over */
 
 const engineer = readFileSync("src/lib/ops-engineer.ts", "utf8");
 const decide = engineer.slice(engineer.indexOf("export async function decideReview"));
 check(
   "decideReview asks productionCreditFor about the package's own file",
-  /const credit = await productionCreditFor\(pkg\.file\);/.test(decide),
+  /const credit = session \? await productionCreditFor\(pkg\.file\) : null;/.test(decide),
 );
-const insertAt = decide.indexOf('.from("eng_production_ledger").insert(');
-const insert = insertAt >= 0 ? decide.slice(insertAt, decide.indexOf("});", insertAt)) : "";
 check(
-  "and its ledger insert writes credit.cents as the amount, and no other figure",
-  /amount_cents: credit\.cents,/.test(insert) && (insert.match(/amount_cents:/g) ?? []).length === 1,
-  insert ? "" : "no ledger insert found in decideReview",
+  "and the credit it hands the one-write function is credit.cents, and no other figure",
+  /amount_cents: credit\.cents,/.test(decide) && (decide.slice(0, decide.indexOf("\n}\n")).match(/amount_cents:/g) ?? []).length === 1,
 );
 check(
   "the review package reads the file's deliverable column",

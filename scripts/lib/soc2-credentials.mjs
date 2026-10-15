@@ -144,6 +144,13 @@ export const NOT_CREDENTIALS = new Set([
    */
   "SHOTS_OUT",
   /*
+   * NODE_OPTIONS, 2026-10-13. Node's own flags variable, read by the payment
+   * event proof so it can add one --require (the preload that refuses any
+   * connection to Stripe) to whatever flags the caller already set. A list of
+   * runtime flags, holding nothing and opening nothing.
+   */
+  "NODE_OPTIONS",
+  /*
    * SHOTS_GATE, SHOTS_ONLY and SHOTS_LABEL, 2026-10-03, all three on
    * scripts/design-shots.mjs and none of them a credential.
    *

@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { currentCustomer } from "@/lib/customer-auth";
 import { updateDefaults, addProperty, archiveProperty } from "@/lib/ops-account";
 import { issueApiKey, revokeApiKey } from "@/lib/account-api-keys";
+import { withSaveOutcome } from "@/lib/save-outcome";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +13,7 @@ export const dynamic = "force-dynamic";
  * cannot skip it. This route decides which action ran and nothing about who may
  * run it.
  */
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   const me = await currentCustomer();
   if (!me) return NextResponse.json({ ok: false, error: "Not signed in." }, { status: 401 });
 
@@ -95,3 +96,6 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({ ok: false, error: "Unknown action." }, { status: 400 });
 }
+
+/* A save abandoned by the 20 second bound says it may not have saved, and a failed session read is never "Not signed in": save-outcome.ts. */
+export const POST = withSaveOutcome(handlePOST);
