@@ -2073,13 +2073,22 @@ export async function cancelAndRefund(input: {
    * 2026-10-14, the same fix 0075 made on the webhook path: counting succeeded
    * refunds alone, a second cancellation while the first refund is still
    * pending at Stripe would issue the whole amount again.
+   *
+   * And a failed read refuses the cancel. Operator ruling, 2026-10-15: read
+   * as no prior refund, a failure here would refund the whole amount again.
    */
-  const { data: priorRefunds } = await db
+  const { data: priorRefunds, error: priorError } = await db
     .from("eng_order_payments")
     .select("amount_cents")
     .eq("order_id", input.orderId)
     .eq("kind", "refund")
     .in("status", ["pending", "succeeded"]);
+  if (priorError) {
+    return {
+      ok: false,
+      error: `The refunds already on file could not be read, so nothing was refunded: ${priorError.message}`,
+    };
+  }
 
   const alreadyRefunded = (priorRefunds ?? []).reduce((n, r) => n + Number(r.amount_cents), 0);
   const owed = paidCents - alreadyRefunded;

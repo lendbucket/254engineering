@@ -17,6 +17,9 @@
  *      refunded", not "refunded in full" or "is refunded".
  *   3. The status page says "Refund issued." until the refund succeeds.
  *
+ * And of 2026-10-15: a cancellation whose read of the refunds already on file
+ * fails is refused, rather than reading the failure as no refund given.
+ *
  * HOW IT RUNS, as a-refund-update-is-applied-once does for its in-process half:
  * every migration is replayed into PGlite and served as PostgREST by
  * scripts/lib/replay-rest.mjs, because every money table refuses deletes on
@@ -65,6 +68,7 @@ const EMAIL = "pending-refund-proof@audit-probe.invalid";
 const ORDERS = {
   raceCancel: 301, partialCancel: 302, cancelPending: 303,
   settleNoVisit: 304, settleVisited: 305, settleNow: 306, cancelNow: 307,
+  cancelReadFails: 308,
 };
 const orderId = (k) => id(ORDERS[k]);
 const fileId = (k) => id(ORDERS[k] + 100);
@@ -96,6 +100,32 @@ await db.exec(`
 `);
 
 /* ------------------------------------------------------------- the stand-in */
+
+/*
+ * Ruling of 2026-10-15: a failed read of the refunds already on file refuses
+ * the cancel. The admin client binds the global fetch when it is first made, so
+ * the failure is armed here, before anything makes it, and answers only the
+ * prior refund read for the one order named, so the charge read beside it
+ * still succeeds and the refusal can only come from the read under test.
+ */
+let failPriorRefundReadFor = null;
+const realFetch = globalThis.fetch;
+globalThis.fetch = async (input, init) => {
+  const url = decodeURIComponent(String(input instanceof Request ? input.url : input));
+  if (
+    failPriorRefundReadFor &&
+    url.includes("/eng_order_payments?") &&
+    url.includes("select=amount_cents") &&
+    url.includes("kind=eq.refund") &&
+    url.includes(`order_id=eq.${failPriorRefundReadFor}`)
+  ) {
+    return new Response(JSON.stringify({ code: "PROOF", message: "the proof failed this read", details: null, hint: null }), {
+      status: 500,
+      headers: { "content-type": "application/json" },
+    });
+  }
+  return realFetch(input, init);
+};
 
 const rest = await startReplayRest(db, PORTS.replayRest);
 process.env.SUPABASE_URL = rest.url;
@@ -172,6 +202,30 @@ try {
       rest2.ok === true && asks.length === 1 && asks[0].amountCents === 30000,
       `${JSON.stringify(asks)} ${JSON.stringify(rest2)}`,
     );
+  }
+
+  {
+    payments.setPaymentProvider(stripeAnswering("succeeded", "re_pending_proof_read_fails"));
+    const before = asked.length;
+    failPriorRefundReadFor = orderId("cancelReadFails");
+    let res;
+    try {
+      res = await payments.cancelAndRefund({
+        orderId: orderId("cancelReadFails"),
+        reason: "The proof cancels while the refunds on file cannot be read.",
+        actor,
+      });
+    } finally {
+      failPriorRefundReadFor = null;
+    }
+    const rows = await refundsOn("cancelReadFails");
+    const status = (await one(`select status from eng_service_orders where id = $1`, [orderId("cancelReadFails")]))?.status;
+    check(
+      "a cancellation whose prior refund read fails is refused and asks Stripe for nothing",
+      res?.ok === false && /could not be read/.test(res.error) && asked.length === before,
+      `${asked.length - before} refund(s) asked of Stripe; ${JSON.stringify(res)}`,
+    );
+    check("and writes no refund row and leaves the order as it was", rows.length === 0 && status === "in_fulfilment", `${JSON.stringify(rows)} ${status}`);
   }
 
   /* ============ rulings 2 and 3: what the customer is told while pending ============ */
