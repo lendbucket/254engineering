@@ -2573,7 +2573,23 @@ export const APPLIED = [
     file: "0077_every_protocol_requires_structural.sql", appliedBy: "apply_migration",
     fingerprint: "318b0fa346fc0f92167df9b9f44ce1cf",
     behaviour: "f2380dab0f83023419bc357dfd80f042",
-    production: null,
+    /*
+     * APPLIED TO PRODUCTION 2026-10-14, after the exact board on 6260e08, from
+     * docs/production-sitting-feat-protocol-signing-wp-fc.md, by the operator's
+     * chat counterpart through the connector in one try with no cancel. Section
+     * 0 read clean first: nine rows, every discipline null, the digests matching,
+     * nothing approved.
+     *
+     * Read back exact, as section 3 predicts: the eight rows read structural,
+     * WP-001 v1.1 null, RC-001 unchanged, every status, approver and publish
+     * date unchanged; shape 318b0fa346fc0f92167df9b9f44ce1cf across 1206 before
+     * and after.
+     *
+     * The value is the engineer's written answer of 2026-10-14, recorded in
+     * src/config/engineer-directions.ts as every-service-is-structural, whose
+     * evidence is the operator's attestation of his words.
+     */
+    production: "2026-10-14",
     development: {
       at: "0077",
       behaviour: null,
@@ -2595,14 +2611,6 @@ export const APPLIED = [
       "than copied: an UPDATE with no DDL. It writes one column on eight existing rows, each found by its " +
       "document's SHA-256, and its own guards assert all eight before and after and that WP-001 v1.1 stays " +
       "null. `proves` asks about the column value on FC-001 v1.0, the row 0069 entered last.",
-    because:
-      "WRITTEN 2026-10-14 ON feat/protocol-signing-wp-fc, APPLIED TO DEVELOPMENT THE SAME DAY (above) AND NOT " +
-      "TO PRODUCTION, which waits for an exact board and the operator's word. The " +
-      "value is the engineer's written answer of 2026-10-14, recorded in src/config/engineer-directions.ts " +
-      "as every-service-is-structural, whose evidence is the operator's attestation of his words. " +
-      "docs/production-sitting-feat-protocol-signing-wp-fc.md, section 0 first: the eight rows read on both " +
-      "databases. No drop statement, so the connector is expected to apply it. The branch merges only on " +
-      "the operator's word, and a migration on main is never pending.",
   },
 ];
 

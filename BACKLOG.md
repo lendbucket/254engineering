@@ -159,7 +159,12 @@ and, if it cancels, Robert runs it in the SQL editor. After the merge and the
 deployment, Robert adds `charge.refund.updated` to the endpoint in the Stripe
 dashboard; until he confirms, `stripe-webhook-audit` fails one line naming it.
 
-## STAGED: 0077, EVERY PROTOCOL REQUIRES STRUCTURAL; WP-001 v1.2 AND FC-001 SIGNABLE
+## APPLIED: 0077, EVERY PROTOCOL REQUIRES STRUCTURAL; WP-001 v1.2 AND FC-001 SIGNABLE
+
+**Applied to development and then production 2026-10-14** by the counterpart
+through the connector, each in one try with no cancel, read back exact on both
+(the eight read structural, WP-001 v1.1 null, RC-001 unchanged, shape 318b0fa3
+across 1206). Open for what is still owed, below.
 
 Ruled 2026-10-14. WP-001 v1.2 and FC-001 v1.0 join the list the engineer signs
 from (`src/content/protocols/signable.ts`), and WP-001 v1.1 leaves it because
