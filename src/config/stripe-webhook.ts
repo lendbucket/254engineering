@@ -54,11 +54,14 @@ export const stripeWebhookEndpoint: {
     "checkout.session.completed",
     "checkout.session.expired",
     "charge.refunded",
+    "charge.refund.updated",
   ],
   verified:
     "Registered by the operator on 2026-09-16 against the live 254 account, with STRIPE_WEBHOOK_SECRET " +
     "taken from the same account as STRIPE_SECRET_KEY in the same sitting. The live half of " +
-    "stripe-webhook-audit confirms this against the account the key belongs to.",
+    "stripe-webhook-audit confirms this against the account the key belongs to. " +
+    "charge.refund.updated was added to the same live endpoint by the operator in the Stripe " +
+    "dashboard, confirmed in chat on 2026-10-14; the live half has not yet read it back.",
 
   /*
    * CONFIRMED AT THE KEYBOARD 2026-09-16, 11 of 11 checks: one endpoint,
@@ -70,6 +73,11 @@ export const stripeWebhookEndpoint: {
    * registered in another account and this platform is never called at all.
    * Recording the date turns a pass into a baseline: the next run has something
    * to disagree with rather than only its own green.
+   *
+   * THAT RUN SAW THREE EVENTS, AND THE LIST ABOVE NOW HOLDS FOUR. The fourth,
+   * charge.refund.updated, joined on the operator's word of 2026-10-14 after
+   * 0076. So the date below confirms the first three only, and it moves when
+   * the keyed run reads all four back from the account.
    */
   liveConfirmedOn: "2026-09-16",
 };
