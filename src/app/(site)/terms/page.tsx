@@ -66,6 +66,20 @@ export default function TermsPage() {
                 agreement identifying the scope and the engineer in responsible charge.
               </p>
 
+              {/*
+                * Operator ruling, 2026-10-14, approving this wording as written.
+                * Its source is the engineer of record's answer of the same day,
+                * recorded as every-service-is-structural in
+                * src/config/engineer-directions.ts.
+                */}
+              <h2>Scope of the firm&apos;s work</h2>
+              <p>
+                The services this firm is built to deliver are structural: structural observation,
+                and structural calculation where a service calls for it. They do not include
+                architectural design, or mechanical, electrical or plumbing engineering, and no
+                engagement will be scoped to cover them.
+              </p>
+
               <h2>Firm registration status</h2>
               <p>
                 {/*

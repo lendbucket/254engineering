@@ -175,9 +175,9 @@ protocols through 0077; WP-001 v1.1's row gets none. Built on
 `feat/protocol-signing-wp-fc`. Sitting:
 `docs/production-sitting-feat-protocol-signing-wp-fc.md`, section 0 first.
 Still owed: his signature on WP-001 v1.2, WS-001 v1.1 and FC-001 v1.0, his
-approval of each protocol, and the operator's ruling on where the scope
-statement (no architectural or MEP work) appears to a customer: wording drafted
-for the terms page and the design inquiry form, rendered nowhere yet.
+approval of each protocol. The scope statement (no architectural or MEP work)
+is rendered in the operator's ruled wording of 2026-10-14 on `/terms` and
+`/design-inquiry`, on `copy/scope-structural`.
 
 ## OPEN, FROM THE WEBHOOK WORK OF 2026-10-13, NOT BUILT
 
