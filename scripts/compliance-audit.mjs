@@ -2098,6 +2098,13 @@ const RULED_CONDITIONS = [
     /\bpending with (?:the )?(?:TBPELS|Texas Board)/i,
     /application pending with the Texas Board/i,
     /registration (?:is )?not yet (?:issued|active)/i,
+    /*
+     * Wider, 2026-10-15: "The firm's registration with the Texas Board of
+     * Professional Engineers and Land Surveyors is not yet issued" sat in
+     * data/positions.ts past the pattern above, because the board's name stood
+     * between the two halves (product audit defect 15).
+     */
+    /registration[^.;"`]{0,120}\bnot yet (?:issued|active)\b/i,
     /(?:once|when|until) (?:its |the |firm )?registration (?:is )?(?:issued|issues|active)\b/i,
     /\bnot yet registered\b/i,
   ];
@@ -2203,6 +2210,55 @@ const RULED_CONDITIONS = [
     hits.length === 0,
     hits.length ? hits.join("; ") : `${files.length} files read against the register`,
   );
+
+  /* --------------------------------------------------------------------------
+   * NO SENTENCE TYPES THE GATE'S STATE OR THE LINE COUNT BY HAND.
+   * Operator ruling, 2026-10-15, product audit defect 15.
+   *
+   * Public sentences said there was no phone, no engineer of record and nine
+   * service lines, beside a footer and a grid that said otherwise, because each
+   * was typed. Each now derives: the phone from `displayPhone()` with its
+   * no-number sentence in one home, the engineer sentence from the register and
+   * the gate, and the count from the list the page renders. This refuses any of
+   * them being typed again, in code, anywhere the application imports from.
+   *
+   * THE ONE HOME IS COUNTED. The no-number sentence exists exactly once, in
+   * src/config/contact.ts as NO_PHONE_YET, and that count is asserted, so the
+   * exemption cannot quietly widen to a second file.
+   * ---------------------------------------------------------------------- */
+  {
+    const COUNT_WORD = "(?:One|Two|Three|Four|Five|Six|Seven|Eight|Nine|Ten|Eleven|Twelve)";
+    const TYPED = [
+      { pattern: /No telephone number is published yet/, why: "the phone, typed", home: "src/config/contact.ts" },
+      { pattern: /No engineer of record has been appointed/i, why: "the engineer of record, typed", home: null },
+      { pattern: new RegExp(`\\b${COUNT_WORD} (?:engineering )?service lines\\b`, "i"), why: "a typed count of service lines", home: null },
+      { pattern: new RegExp(`\\b${COUNT_WORD} documents, one standard\\b`, "i"), why: "a typed count of service lines", home: null },
+    ];
+    const typedHits = [];
+    let homeCount = 0;
+    for (const file of files) {
+      const text = codeOnly(readSource(file));
+      for (const { pattern, why, home } of TYPED) {
+        const found = text.match(new RegExp(pattern.source, `${pattern.flags.replace("g", "")}g`)) ?? [];
+        if (found.length === 0) continue;
+        if (home && file === home) {
+          homeCount += found.length;
+          continue;
+        }
+        typedHits.push(`${file}: "${found[0]}" (${why})`);
+      }
+    }
+    rec(
+      "no sentence types the phone, the engineer of record or the count of service lines by hand",
+      typedHits.length === 0,
+      typedHits.length ? typedHits.join("; ") : `${files.length} files read for ${TYPED.length} typed sentences`,
+    );
+    rec(
+      "and the no-number sentence has exactly one home",
+      homeCount === 1,
+      `${homeCount} in src/config/contact.ts`,
+    );
+  }
 
   /* --------------------------------------------------------------------------
    * AND THE FIRM'S NAME IS DERIVED, NOT TYPED. Operator ruling, 2026-09-15.

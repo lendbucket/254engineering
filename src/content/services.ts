@@ -496,3 +496,17 @@ export const services: Service[] = [
 
 export const serviceBySlug = (slug: string): Service | undefined =>
   services.find((s) => s.slug === slug);
+
+const COUNT_WORDS = ["Zero", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Eleven", "Twelve"];
+
+/**
+ * How many service lines the services page shows, as a word.
+ *
+ * Derived from the list the page renders. The page said "Nine" in three places
+ * while it showed eight (product audit defect 15, operator ruling 2026-10-15),
+ * because the count was typed and the list was not. compliance-audit refuses
+ * the typed count coming back.
+ */
+export function serviceLineCountWord(): string {
+  return COUNT_WORDS[services.length] ?? String(services.length);
+}

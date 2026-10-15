@@ -171,6 +171,16 @@ export function hasGeo(): boolean {
 }
 
 /**
+ * What a page says when no number is on record, and only then. Its one home, so
+ * a page renders it beside `displayPhone()` rather than typing it: the contact
+ * page carried it as a literal beside a footer that could say otherwise (product
+ * audit defect 15, operator ruling 2026-10-15). compliance-audit refuses the
+ * sentence anywhere else in src.
+ */
+export const NO_PHONE_YET =
+  "No telephone number is published yet. When one is, it will appear here and on every page of this site rather than only where it is convenient.";
+
+/**
  * The phone number as a person reads it, derived from the stored E.164 value.
  *
  * Returns null rather than a partially formatted string if the number is not in

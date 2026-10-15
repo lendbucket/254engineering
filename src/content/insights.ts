@@ -1,6 +1,6 @@
 import type { Faq } from "./services";
 import { coastalInsights } from "./insights-coastal";
-import { registrationStatement } from "@/lib/launch";
+import { activeEngineer, isOpen, registrationStatement } from "@/lib/launch";
 import type { FigureId } from "@/components/insights/figures";
 
 /**
@@ -314,7 +314,17 @@ export const insights: Insight[] = [
         kind: "p",
         text: [
           registrationStatement(),
-          "No engineer of record has been appointed, and under section 1001.405(e) a registration alone is not the whole of what the statute asks: it reserves the representation for an entity actively engaged in the practice, with a full time licensed engineer supervising it.",
+          /*
+           * The operator's wording, 2026-10-15 (product audit defect 15). It
+           * replaced a typed "No engineer of record has been appointed" that was
+           * false once the register held one. Rendered only while the gate is
+           * shut, and only while the register holds an active engineer, so it
+           * cannot outlive the fact. It names nobody: the engineer's name and
+           * licence never appear on a public page.
+           */
+          !isOpen() && activeEngineer()
+            ? "A licensed professional engineer is in responsible charge of the firm's engineering work."
+            : null,
         ]
           .filter(Boolean)
           .join(" "),

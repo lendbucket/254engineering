@@ -9,6 +9,8 @@ import { buildMetadata } from "@/lib/seo";
 import { JsonLd, breadcrumbSchema } from "@/lib/schema";
 import { business } from "@/config/business";
 import { isPrelaunch } from "@/lib/launch";
+import { displayPhone, telHref, NO_PHONE_YET } from "@/config/contact";
+import { PhoneNumber } from "@/components/ui/PhoneNumber";
 import { services } from "@/content/services";
 
 export const metadata: Metadata = buildMetadata({
@@ -130,10 +132,25 @@ export default async function ContactPage({
                 </div>
               </dl>
 
-              <p className="mt-8 text-[0.92rem] leading-[1.7] text-slate-muted">
-                No telephone number is published yet. When one is, it will appear here and on every
-                page of this site rather than only where it is convenient.
-              </p>
+              {/*
+                The firm's number when one is on record, through the derivers. This was a typed
+                "No telephone number is published yet" beside a footer that could say otherwise
+                (product audit defect 15, operator ruling 2026-10-15). compliance-audit refuses
+                the typed sentence coming back.
+              */}
+              {displayPhone() ? (
+                <p className="mt-8 text-[0.92rem] leading-[1.7] text-slate-muted">
+                  Telephone:{" "}
+                  <a
+                    href={telHref() ?? undefined}
+                    className="inline-flex min-h-[44px] items-center text-slate underline decoration-brass/60 underline-offset-4 transition-colors hover:decoration-brass"
+                  >
+                    <PhoneNumber />
+                  </a>
+                </p>
+              ) : (
+                <p className="mt-8 text-[0.92rem] leading-[1.7] text-slate-muted">{NO_PHONE_YET}</p>
+              )}
             </div>
 
             <div className="lg:col-span-7">

@@ -1,3 +1,14 @@
+import { activeFirmRegistration } from "@/lib/launch";
+
+/** The firm's registration, as the register records it, or nothing. */
+function registeredFirmParagraph(): string[] {
+  const registration = activeFirmRegistration();
+  if (!registration) return [];
+  return [
+    `One thing to be plain about, because it affects your decision. The firm is registered with the Texas Board of Professional Engineers and Land Surveyors as ${registration.issuedTo}, Firm ${registration.number}.`,
+  ];
+}
+
 /**
  * The open positions.
  *
@@ -144,7 +155,14 @@ export const positions: Position[] = [
       "This is the seat the firm is built around. A review engineer reads field records produced to a written protocol, forms the opinion, and takes responsible charge of the sealed deliverable. An engineer of record takes responsible charge of design work: foundations, framing, and the drawing sets that get a project permitted.",
       "The honest description of the review model is that it is remote and it is volume oriented. You are not driving to properties. You are reading a standardized record, applying judgment, and putting your seal on a document that a lender, a carrier, or a building official will rely on. Engineers who find that unappealing should say so early. Engineers who have been looking for exactly that arrangement usually recognize it in the first paragraph.",
       "What does not change is responsible charge. If the record in front of you does not support an opinion, the answer is that it does not, and the job goes back to the field. Nobody in this firm is authorized to ask you to seal past that. A firm that would ask is one that eventually costs an engineer their licence rather than its own.",
-      "One thing to be plain about, because it affects your decision. The firm's registration with the Texas Board of Professional Engineers and Land Surveyors is not yet issued. A Texas firm registration requires an engineer in responsible charge to be named, so the selected engineer is named on that application. You would be joining at the point where the firm becomes able to practise, not after it.",
+      /*
+       * Derived from the register. This paragraph said the registration "is not
+       * yet issued" for weeks after F-29811 issued, with two sentences built on
+       * that (product audit defect 15, operator ruling 2026-10-15). With no
+       * active registration on record the paragraph is left out rather than
+       * guessed.
+       */
+      ...registeredFirmParagraph(),
     ],
     responsibilities: [
       "Read field records produced to a written protocol, form the engineering opinion, and take responsible charge of the sealed deliverable.",

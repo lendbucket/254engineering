@@ -9,13 +9,13 @@ import { regions } from "@/content/regions";
 import { ServiceCard } from "@/components/services/ServiceCard";
 import { buildMetadata } from "@/lib/seo";
 import { JsonLd, breadcrumbSchema } from "@/lib/schema";
-import { services } from "@/content/services";
+import { services, serviceLineCountWord } from "@/content/services";
 import { reviewStepCopy, sealedDeliverableSentence } from "@/content/model-copy";
 
 export const metadata: Metadata = buildMetadata({
   title: "Engineering Service Lines in Texas | 254 Engineering",
   description:
-    "Nine engineering service lines for Texas property and construction: inspections, sealed letters, certifications, and design. See what each one involves.",
+    `${serviceLineCountWord()} engineering service lines for Texas property and construction: inspections, sealed letters, certifications, and design. See what each one involves.`,
   path: "/services",
 });
 
@@ -33,7 +33,7 @@ export default function ServicesPage() {
         image={sectionPhotos.services}
         eyebrow="Service lines"
         title="Engineering services for Texas property and construction"
-        lede={`Nine service lines, each ending in a document somebody relies on: a lender, an insurer, a building official, or a court. ${sealedDeliverableSentence()}`}
+        lede={`${serviceLineCountWord()} service lines, each ending in a document somebody relies on: a lender, an insurer, a building official, or a court. ${sealedDeliverableSentence()}`}
         crumbs={crumbs}
       >
         <PrelaunchNotice />
@@ -42,7 +42,7 @@ export default function ServicesPage() {
       {/*
         The opening statement the grid never had.
 
-        This section was nine cards and nothing else: a list wearing card chrome,
+        This section was the cards and nothing else: a list wearing card chrome,
         opening on the first card's own heading. Every homepage section opens
         eyebrow, heading, lede, and that device is most of why the homepage reads
         as composed rather than assembled. The stat rail underneath is the
@@ -51,7 +51,7 @@ export default function ServicesPage() {
       <Section tone="sunk">
         <SectionHead
           eyebrow="The service lines"
-          title="Nine documents, one standard behind each"
+          title={`${serviceLineCountWord()} documents, one standard behind each`}
           lede="Each line ends in something a lender, an insurer, a building official, or a court has to accept. They differ in what they examine. They do not differ in how the work is carried out."
         />
         <div className="mt-8 border-t border-limestone-line pt-7">
