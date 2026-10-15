@@ -6,6 +6,7 @@ import { SITE_KEY } from "@/lib/supabase";
 import { isOpen, notYetAcceptingEngagements } from "@/lib/launch";
 import { attributeOrder, VISITOR_COOKIE } from "@/lib/ops-partners";
 import { currentCustomer } from "@/lib/customer-auth";
+import { withSaveOutcome } from "@/lib/save-outcome";
 
 export const dynamic = "force-dynamic";
 
@@ -54,7 +55,7 @@ type Body = {
   attribution?: Record<string, string>;
 };
 
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   const body = (await request.json().catch(() => null)) as Body | null;
   if (!body) return bad("Send a JSON body.");
 
@@ -210,3 +211,6 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({ ok: true, reference: result.reference, checkoutUrl: checkout.url });
 }
+
+/* A save abandoned by the 20 second bound says it may not have saved, and a failed session read is never "Not signed in": save-outcome.ts. */
+export const POST = withSaveOutcome(handlePOST);

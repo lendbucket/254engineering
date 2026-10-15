@@ -25,6 +25,7 @@ import { qrSvg, qrFits, qrByteLength, QR_MAX_BYTES } from "@/lib/qr";
 import { takeLoginAttempt, clientKey } from "@/lib/ops-rate-limit";
 import { supabaseAdmin } from "@/lib/supabase";
 import { homeFor } from "@/lib/ops-authz";
+import { withSaveOutcome } from "@/lib/save-outcome";
 
 /**
  * The second factor: the challenge, the enrolment, and the break glass.
@@ -71,7 +72,7 @@ async function profileFor(userId: string) {
   return data as { id: string; email: string; display_name: string; role: string } | null;
 }
 
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   const jar = await cookies();
   const raw = jar.get(OPS_COOKIE)?.value;
 
@@ -221,7 +222,7 @@ export async function POST(request: NextRequest) {
   /* ----------------------------------------------------------- confirm */
 
   if (action === "confirm") {
-    const limit = takeLoginAttempt(clientKey(request.headers), `${MFA_SCOPE}:${profile.id}`);
+    const limit = await takeLoginAttempt(clientKey(request.headers), `${MFA_SCOPE}:${profile.id}`);
     if (!limit.allowed) {
       return NextResponse.json(
         { ok: false, error: "Too many attempts. Wait a few minutes." },
@@ -390,7 +391,7 @@ export async function POST(request: NextRequest) {
 
   /* ------------------------------------------------------------ verify */
 
-  const limit = takeLoginAttempt(clientKey(request.headers), `${MFA_SCOPE}:${profile.id}`);
+  const limit = await takeLoginAttempt(clientKey(request.headers), `${MFA_SCOPE}:${profile.id}`);
   if (!limit.allowed) {
     return NextResponse.json(
       { ok: false, error: "Too many attempts. Wait a few minutes." },
@@ -451,7 +452,7 @@ export async function POST(request: NextRequest) {
  * A FULL session only. A pending one has no business reading state beyond what
  * the challenge screen already shows it.
  */
-export async function GET() {
+async function handleGET() {
   const jar = await cookies();
   const claims = readOpsSession(jar.get(OPS_COOKIE)?.value);
   if (!claims) return NextResponse.json({ ok: false, error: "Not signed in." }, { status: 401 });
@@ -466,3 +467,7 @@ export async function GET() {
     );
   }
 }
+
+/* A save abandoned by the 20 second bound says it may not have saved, and a failed session read is never "Not signed in": save-outcome.ts. */
+export const GET = withSaveOutcome(handleGET);
+export const POST = withSaveOutcome(handlePOST);

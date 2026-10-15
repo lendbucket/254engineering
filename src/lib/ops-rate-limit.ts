@@ -52,6 +52,7 @@ import "server-only";
  */
 
 import { RESET_ATTEMPTS_PER_HOUR, SIGN_UP_ATTEMPTS_PER_HOUR } from "./account-doors";
+import { supabaseAdmin } from "./supabase";
 
 const WINDOW_MS = 15 * 60 * 1000;
 
@@ -132,7 +133,7 @@ function take(key: string, max: number, now: number): { allowed: boolean; remain
  * what separates a typo from an attack, so a caller that omits it gets the old
  * blunt behaviour and deserves it.
  */
-export function takeLoginAttempt(address: string, identity?: string, now: number = Date.now()): RateResult {
+export function takeLoginAttemptInMemory(address: string, identity?: string, now: number = Date.now()): RateResult {
   prune(now);
 
   const perAddress = take(`ip:${address}`, MAX_PER_ADDRESS, now);
@@ -147,7 +148,7 @@ export function takeLoginAttempt(address: string, identity?: string, now: number
 }
 
 /** A successful sign in. Clears both buckets for that caller and account. */
-export function clearLoginAttempts(address: string, identity?: string) {
+export function clearLoginAttemptsInMemory(address: string, identity?: string) {
   buckets.delete(`ip:${address}`);
   if (identity) buckets.delete(`id:${address}:${identity}`);
 }
@@ -158,7 +159,7 @@ export function clearLoginAttempts(address: string, identity?: string) {
  * Used by /api/portal/unlock, which requires a secret. Returns how many entries
  * were dropped so the caller can be told something true rather than "done".
  */
-export function releaseLock(address: string): number {
+export function releaseLockInMemory(address: string): number {
   let dropped = 0;
   for (const key of [...buckets.keys()]) {
     if (key === `ip:${address}` || key.startsWith(`id:${address}:`)) {
@@ -170,7 +171,7 @@ export function releaseLock(address: string): number {
 }
 
 /** What the caller's current position is, without recording an attempt. */
-export function inspectLock(address: string, identity?: string, now: number = Date.now()) {
+export function inspectLockInMemory(address: string, identity?: string, now: number = Date.now()) {
   const read = (key: string, max: number) => {
     const b = buckets.get(key);
     if (!b || now - b.first > WINDOW_MS) return { used: 0, max, secondsLeft: 0 };
@@ -304,3 +305,105 @@ export function clientKey(headers: Headers): string {
 }
 
 export const RATE_LIMITS = { WINDOW_MS, MAX_PER_IDENTITY, MAX_PER_ADDRESS };
+
+/*
+ * ===========================================================================
+ * THE SAME RULE, COUNTED IN THE DATABASE. Operator ruling, 2026-10-10
+ * (decision 14 of the product audit); migration 0071.
+ * ===========================================================================
+ *
+ * The Map above is per process, and on Vercel each warm instance holds its own:
+ * an attacker spread across instances got several times the limit, and a cold
+ * start forgot every count. These four keep the names every route already calls
+ * and count in eng_sign_in_attempts through eng_take_sign_in_attempt, which
+ * records the attempt and answers in one statement. The limits are unchanged and
+ * still live here; they are passed in.
+ *
+ * Nothing is deleted. A successful sign in and an administrator's release write
+ * a reset row, and counting starts after the latest one.
+ *
+ * WHEN THE DATABASE CANNOT BE REACHED, the in-memory count above answers and the
+ * failure is logged. A sign in cannot succeed without the database anyway, so
+ * refusing every attempt would lock everybody out to no purpose; the fallback is
+ * the protection there was before, not none.
+ */
+export async function takeLoginAttempt(address: string, identity?: string): Promise<RateResult> {
+  const db = supabaseAdmin();
+  if (db) {
+    const { data, error } = await db.rpc("eng_take_sign_in_attempt", {
+      p_address: address,
+      p_identity: identity ?? null,
+      p_max_address: MAX_PER_ADDRESS,
+      p_max_identity: MAX_PER_IDENTITY,
+      p_window_seconds: Math.round(WINDOW_MS / 1000),
+    });
+    if (!error && data) {
+      const r = data as { allowed: boolean; remaining: number; retry_after_seconds: number; scope?: "identity" | "address" };
+      return { allowed: r.allowed, remaining: r.remaining, retryAfterSeconds: r.retry_after_seconds, ...(r.scope ? { scope: r.scope } : {}) };
+    }
+    console.error(`[rate-limit] the database count failed, counting in this instance: ${error?.message ?? "no answer"}`);
+  }
+  return takeLoginAttemptInMemory(address, identity);
+}
+
+async function writeReset(address: string): Promise<boolean> {
+  const db = supabaseAdmin();
+  if (!db) return false;
+  const { error } = await db.from("eng_sign_in_attempts").insert({ address, identity: null, kind: "reset" });
+  if (error) console.error(`[rate-limit] a reset did not record: ${error.message}`);
+  return !error;
+}
+
+/** A successful sign in ends the count for its address, as the Map's delete did. */
+export async function clearLoginAttempts(address: string, identity?: string): Promise<void> {
+  clearLoginAttemptsInMemory(address, identity);
+  await writeReset(address);
+}
+
+/** The administrator's release (/api/portal/unlock). Answers how many attempts it cleared. */
+export async function releaseLock(address: string): Promise<number> {
+  const state = await inspectLock(address);
+  releaseLockInMemory(address);
+  await writeReset(address);
+  return state.address.used;
+}
+
+/** What the counts read now, for the unlock screen. */
+export async function inspectLock(address: string, identity?: string) {
+  const db = supabaseAdmin();
+  if (!db) return inspectLockInMemory(address, identity);
+  const windowStart = new Date(Date.now() - WINDOW_MS).toISOString();
+  const read = async (forIdentity: string | null, max: number) => {
+    /* "After the latest reset" by row id, as eng_take_sign_in_attempt counts it. */
+    const resets = await db
+      .from("eng_sign_in_attempts")
+      .select("id")
+      .eq("address", address)
+      .eq("kind", "reset")
+      .or(forIdentity === null ? "identity.is.null" : `identity.is.null,identity.eq.${forIdentity}`)
+      .order("id", { ascending: false })
+      .limit(1);
+    const afterId = Number(resets.data?.[0]?.id ?? 0);
+    let q = db
+      .from("eng_sign_in_attempts")
+      .select("created_at", { count: "exact" })
+      .eq("address", address)
+      .eq("kind", "attempt")
+      .gt("created_at", windowStart)
+      .gt("id", afterId)
+      .order("created_at", { ascending: true })
+      .limit(1);
+    if (forIdentity !== null) q = q.eq("identity", forIdentity);
+    const { data, count } = await q;
+    const first = data?.[0]?.created_at as string | undefined;
+    return {
+      used: count ?? 0,
+      max,
+      secondsLeft: first ? Math.max(0, Math.ceil((new Date(first).getTime() + WINDOW_MS - Date.now()) / 1000)) : 0,
+    };
+  };
+  return {
+    address: await read(null, MAX_PER_ADDRESS),
+    identity: identity ? await read(identity, MAX_PER_IDENTITY) : null,
+  };
+}

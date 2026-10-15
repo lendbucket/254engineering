@@ -5,6 +5,7 @@ import { closePeriod, issuableStatement, periodKey } from "@/lib/ops-statements"
 import { enqueue } from "@/lib/ops-jobs";
 import { supabaseAdmin } from "@/lib/supabase";
 import { writeAudit } from "@/lib/ops-audit";
+import { withSaveOutcome } from "@/lib/save-outcome";
 
 export const dynamic = "force-dynamic";
 
@@ -34,7 +35,7 @@ async function guard() {
   return { actor };
 }
 
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   const g = await guard();
   if (g.error) return g.error;
 
@@ -177,3 +178,6 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({ ok: false, error: "Unknown action." }, { status: 400 });
 }
+
+/* A save abandoned by the 20 second bound says it may not have saved, and a failed session read is never "Not signed in": save-outcome.ts. */
+export const POST = withSaveOutcome(handlePOST);

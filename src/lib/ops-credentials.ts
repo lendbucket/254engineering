@@ -126,6 +126,18 @@ export const EXPIRING_KINDS: CredentialKind[] = [
   "tdi_appointment",
 ];
 
+/*
+ * A label inside a sentence. It was label.toLowerCase(), which printed "No form
+ * w-9 on file", "texas pe license" and "tdi appointment" to the dispatcher and,
+ * since 2026-10-10, to the technician's own dashboard. Only a leading common
+ * word is lowered; a proper noun, a form's name and an acronym keep their case.
+ */
+export function inSentence(label: string): string {
+  const first = label.split(" ")[0];
+  if (/^(Texas|Form)$/.test(first) || /[A-Z].*[A-Z]/.test(first)) return label;
+  return first.charAt(0).toLowerCase() + label.slice(1);
+}
+
 export const CREDENTIAL_LABEL: Record<CredentialKind, string> = {
   drivers_license: "Driver license",
   gl_insurance: "General liability insurance",
@@ -258,7 +270,7 @@ export function credentialStanding(
     if (verified.length === 0) {
       return held.length
         ? { ...base, state: "unverified", blocks: true, reason: `${label} is submitted, awaiting verification.` }
-        : { ...base, state: "missing", blocks: true, reason: `No ${label.toLowerCase()} on file.` };
+        : { ...base, state: "missing", blocks: true, reason: `No ${inSentence(label)} on file.` };
     }
 
     // Current if ANY verified copy is current. A renewal uploaded alongside the

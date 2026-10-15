@@ -36,27 +36,17 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { PGlite } from "@electric-sql/pglite";
+import { SUPABASE_REPLAY_STUBS } from "../lib/replay-stubs.mjs";
 
 const DIR = join(process.cwd(), "supabase", "migrations");
 
 const db = new PGlite();
 
 /*
- * The Supabase objects the migrations reference, exactly as migration-audit
- * creates them. Minimal, and outside anything this proof asserts.
+ * The Supabase objects the migrations reference, from the one module every
+ * replay uses. Minimal, and outside anything this proof asserts.
  */
-await db.exec(`
-  create schema if not exists auth;
-  create table if not exists auth.users (id uuid primary key);
-  create schema if not exists storage;
-  create table if not exists storage.buckets (
-    id text primary key,
-    name text,
-    public boolean,
-    file_size_limit bigint,
-    allowed_mime_types text[]
-  );
-`);
+await db.exec(SUPABASE_REPLAY_STUBS);
 
 for (const f of readdirSync(DIR).filter((n) => n.endsWith(".sql")).sort()) {
   await db.exec(readFileSync(join(DIR, f), "utf8"));

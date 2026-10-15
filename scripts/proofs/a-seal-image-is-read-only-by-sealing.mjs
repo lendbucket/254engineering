@@ -103,7 +103,11 @@ rec(
 const route = readFileSync("src/app/api/portal/seal/route.ts", "utf8");
 rec(
   "the upload route answers POST and nothing else, so it cannot serve an image",
-  /export async function POST\(/.test(route) && !/export (async )?function (GET|HEAD|PUT|PATCH|DELETE)\(/.test(route),
+  // The handler is wrapped by withSaveOutcome since 2026-10-12, so a method is
+  // exported as a const as well as a function, and both shapes are refused.
+  /export const POST = withSaveOutcome\(handlePOST\);/.test(route) &&
+    !/export (async )?function (GET|HEAD|PUT|PATCH|DELETE)\(/.test(route) &&
+    !/export const (GET|HEAD|PUT|PATCH|DELETE)\b/.test(route),
   "no GET, HEAD, PUT, PATCH or DELETE",
 );
 

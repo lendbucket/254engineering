@@ -1,3 +1,5 @@
+import type { PartnerBillingEvent } from "./partner-billing-rules";
+
 /**
  * The payment provider boundary.
  *
@@ -81,6 +83,8 @@ export type RefundResult = {
 export type PaymentEvent =
   | {
       kind: "checkout.completed";
+      /** The provider's own event id, the key every effect is recorded once under (0075). */
+      eventId: string;
       /** The session ref we handed out. */
       sessionRef: string;
       /** The charge or payment intent that actually took the money. */
@@ -93,6 +97,7 @@ export type PaymentEvent =
     }
   | {
       kind: "checkout.expired";
+      eventId: string;
       sessionRef: string;
       orderId: string | null;
       batchId: string | null;
@@ -100,6 +105,7 @@ export type PaymentEvent =
     }
   | {
       kind: "charge.refunded";
+      eventId: string;
       chargeRef: string;
       /**
        * An idempotency key, not an amount carrier. The provider's refund id
@@ -116,7 +122,32 @@ export type PaymentEvent =
        * event is lost.
        */
       refundedToDateCents: number;
-    };
+    }
+  /*
+   * WHAT BECAME OF ONE REFUND (0076, operator rulings 2026-10-13). Stripe's
+   * own refund id, which is the provider_ref a platform refund row is written
+   * under, and the status Stripe now gives it, unmapped: the rule that decides
+   * what each status does lives in refundUpdateFor, not in the adapter.
+   */
+  | {
+      kind: "charge.refund.updated";
+      eventId: string;
+      refundRef: string;
+      /** The payment intent, which is what a charge row is recorded under. Null when Stripe sent none. */
+      chargeRef: string | null;
+      /** pending, requires_action, succeeded, failed or canceled, as Stripe spells it. */
+      providerStatus: string;
+      amountCents: number;
+      failureReason: string | null;
+    }
+  /*
+   * THE PARTNER BILLING LANE (0074, operator ruling 2026-10-11). A partner
+   * paying 254 for the program, through the same account and webhook. The
+   * adapter decides the lane before it reads anything as an order, and the
+   * route hands these to partner-billing.ts, which touches no order.
+   */
+  | { kind: "partner_billing"; event: PartnerBillingEvent }
+  | { kind: "partner_billing.refused"; eventId: string; why: string };
 
 /**
  * What the provider says about a checkout we started, asked long afterwards.

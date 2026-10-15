@@ -3,6 +3,7 @@ import { currentActor, requestContext } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
 import { writeAudit } from "@/lib/ops-audit";
 import { normaliseEmail, voidOperatorEntry, suppress } from "@/lib/marketing-suppression";
+import { withSaveOutcome } from "@/lib/save-outcome";
 
 export const dynamic = "force-dynamic";
 
@@ -41,7 +42,7 @@ async function gate() {
   return { actor };
 }
 
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   const gated = await gate();
   if (gated.error) return gated.error;
   const { actor } = gated;
@@ -82,7 +83,7 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({ ok: true });
 }
 
-export async function DELETE(request: NextRequest) {
+async function handleDELETE(request: NextRequest) {
   const gated = await gate();
   if (gated.error) return gated.error;
   const { actor } = gated;
@@ -147,3 +148,7 @@ export async function DELETE(request: NextRequest) {
 
   return NextResponse.json({ ok: true });
 }
+
+/* A save abandoned by the 20 second bound says it may not have saved, and a failed session read is never "Not signed in": save-outcome.ts. */
+export const POST = withSaveOutcome(handlePOST);
+export const DELETE = withSaveOutcome(handleDELETE);

@@ -1595,8 +1595,14 @@ const terms = (over = {}) => ({
   const docs = codeOnly("src/lib/ops-docs.ts");
   rec(
     "the margin reads the commission from the ledger",
-    /partnerCostByFile\(/.test(docs) && !/partner_cost_cents/.test(docs),
+    /partnerCostByFileRead\(/.test(docs) && !/partner_cost_cents/.test(docs),
     "a second copy of a figure is a figure that will one day disagree with itself",
+  );
+  // The Read variant answers null when the ledger could not be read
+  // (2026-10-12). A margin computed without it would carry no commission.
+  rec(
+    "and a ledger that could not be read gives no margin rather than one without commission",
+    /if \(partnerCosts === null\) return null;/.test(docs),
   );
 
   // ============================================ the portal, Section 4

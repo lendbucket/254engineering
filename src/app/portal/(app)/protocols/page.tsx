@@ -7,7 +7,7 @@ import { services } from "@/content/services";
 import { Chip, EmptyState, PageHead } from "@/components/portal/surfaces";
 import { ApproveButton, ItemEditor, NewProtocolForm, QuestionEditor } from "./ProtocolsClient";
 import { protocolItemRowsFor } from "@/lib/protocol-run";
-import { RECEIVED_PROTOCOLS } from "@/content/protocols/received";
+import { SIGNABLE_PROTOCOLS } from "@/content/protocols/signable";
 import { signatureStatus } from "@/lib/protocol-sign";
 import { SignProtocolPanel } from "./SignProtocolPanel";
 
@@ -60,9 +60,9 @@ export default async function ProtocolsPage({
 
   const serviceName = (slug: string) => services.find((s) => s.slug === slug)?.name ?? slug;
   const signatures = await Promise.all(
-    RECEIVED_PROTOCOLS.map(async (protocol) => ({
+    SIGNABLE_PROTOCOLS.map(async (protocol) => ({
       protocol,
-      status: await signatureStatus(protocol.declaration.documentNumber, protocol.declaration.version as string),
+      status: await signatureStatus(protocol.documentNumber, protocol.version),
     })),
   );
 
@@ -81,7 +81,8 @@ export default async function ProtocolsPage({
         THE PROTOCOLS WAITING FOR HIS SIGNATURE. Ruling 2a of 2026-10-06: he
         reads the verbatim transcription here, and signs the hash of exactly
         that text from his own session. The text is the transcription's own,
-        proved against his PDF by protocol-registry-audit section 8.
+        proved against his PDF or Word file by protocol-registry-audit
+        (sections 8 and 9), from the one list in signable.ts.
       */}
       <section className="mb-8 border-t-2 border-[var(--ink)] pt-4">
         <h2 className="text-[16px] font-semibold text-[var(--ink)]">Protocols for your signature</h2>
@@ -92,9 +93,9 @@ export default async function ProtocolsPage({
         </p>
         <ul className="mt-3">
           {signatures.map(({ protocol, status }) => (
-            <li key={protocol.declaration.documentNumber} className="border-b border-[var(--row-rule)] py-3">
+            <li key={protocol.documentNumber} className="border-b border-[var(--row-rule)] py-3">
               <p className="text-[14px] font-semibold text-[var(--ink)]">
-                {protocol.declaration.documentNumber} v{protocol.declaration.version}, {protocol.declaration.title}
+                {protocol.documentNumber} v{protocol.version}, {protocol.title}
               </p>
               <p className="mt-1 text-[14px] leading-[1.6] text-[var(--secondary)]">
                 {status.state === "signed"
@@ -119,10 +120,10 @@ export default async function ProtocolsPage({
                 <div
                   tabIndex={0}
                   role="region"
-                  aria-label={`The full text of ${protocol.declaration.documentNumber}`}
+                  aria-label={`The full text of ${protocol.documentNumber}`}
                   className="mt-2 max-h-[480px] overflow-y-auto border-y border-[var(--border)] bg-white py-3"
                 >
-                  {(protocol.declaration.text as readonly string[]).map((line, i) => (
+                  {protocol.text.map((line, i) => (
                     <p key={i} className="text-[14px] leading-[1.55] text-[var(--ink)] [overflow-wrap:anywhere]">
                       {line}
                     </p>
@@ -131,8 +132,8 @@ export default async function ProtocolsPage({
               </details>
               {status.state === "unsigned" ? (
                 <SignProtocolPanel
-                  documentNumber={protocol.declaration.documentNumber}
-                  version={protocol.declaration.version as string}
+                  documentNumber={protocol.documentNumber}
+                  version={protocol.version}
                 />
               ) : null}
             </li>

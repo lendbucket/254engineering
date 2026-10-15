@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { windstormInquirySchema, fieldErrors } from "@/lib/forms";
 import { insertWindstormInquiry } from "@/lib/intake";
+import { withSaveOutcome } from "@/lib/save-outcome";
 
 /**
  * The windstorm brief intake, for an existing building.
@@ -43,7 +44,7 @@ import { insertWindstormInquiry } from "@/lib/intake";
  * reasoning is kept because the next person to build a form before its table
  * should reach for the same shape.
  */
-export async function POST(request: Request) {
+async function handlePOST(request: Request) {
   let payload: unknown;
   try {
     payload = await request.json();
@@ -109,3 +110,6 @@ export async function POST(request: Request) {
    */
   return NextResponse.json({ ok: true });
 }
+
+/* A save abandoned by the 20 second bound says it may not have saved, and a failed session read is never "Not signed in": save-outcome.ts. */
+export const POST = withSaveOutcome(handlePOST);

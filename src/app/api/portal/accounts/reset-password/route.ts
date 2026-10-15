@@ -8,6 +8,7 @@ import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
 import { queueEmail } from "@/lib/ops-jobs";
 import { writeAudit } from "@/lib/ops-audit";
+import { withSaveOutcome } from "@/lib/save-outcome";
 
 export const dynamic = "force-dynamic";
 
@@ -45,7 +46,7 @@ export const dynamic = "force-dynamic";
  * not is worse off than one who is told the account is closed and can decide
  * whether to reopen it.
  */
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   const actor = await currentActor();
   if (!actor) {
     return NextResponse.json({ ok: false, error: "Not signed in." }, { status: 401 });
@@ -129,3 +130,6 @@ export async function POST(request: NextRequest) {
     message: `A password reset link has been emailed to ${address}. It lasts ${VERIFICATION_TTL_WORDS} and works once. Their current password keeps working until they use it.`,
   });
 }
+
+/* A save abandoned by the 20 second bound says it may not have saved, and a failed session read is never "Not signed in": save-outcome.ts. */
+export const POST = withSaveOutcome(handlePOST);

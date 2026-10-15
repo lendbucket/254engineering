@@ -14,6 +14,7 @@ import {
 import { supabaseAdmin } from "@/lib/supabase";
 import { markRead, savePreference } from "@/lib/ops-notify";
 import { TASK_STATUSES, type NotificationKind, type Recurrence, type TaskPriority } from "@/lib/ops-comms";
+import { withSaveOutcome } from "@/lib/save-outcome";
 
 /**
  * Tasks, threads, and notification preferences.
@@ -44,7 +45,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const bad = (error: string, status = 400) => NextResponse.json({ ok: false, error }, { status });
 
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   const actor = await currentActor();
   if (!actor) return bad("Not signed in.", 401);
 
@@ -227,3 +228,6 @@ export async function POST(request: NextRequest) {
 
   return bad("Unknown action.");
 }
+
+/* A save abandoned by the 20 second bound says it may not have saved, and a failed session read is never "Not signed in": save-outcome.ts. */
+export const POST = withSaveOutcome(handlePOST);

@@ -6,6 +6,7 @@ import { supabaseAdmin } from "./supabase";
 import { writeAudit } from "./ops-audit";
 import { money } from "./ops-money";
 import { paymentProvider } from "./ops-payments";
+import { applyPaymentEvent } from "./payment-events";
 import { deploymentOrigin } from "./site-url";
 import { event } from "./ops-intake";
 
@@ -443,8 +444,13 @@ export async function startStatementCheckout(
  * One charge row against the statement, for the same reason a batch gets one:
  * one payment happened. The orders beneath it are already in fulfilment and are
  * not touched, because paying the bill does not change the work.
+ *
+ * ONE TRANSACTION (0075): the event, the charge row, the statement marked paid
+ * under the status it was read at, and the audit row, in
+ * eng_apply_statement_paid. Nothing is released, so the event finishes there.
  */
 export async function markStatementPaid(input: {
+  eventId: string;
   statementId: string;
   chargeRef: string;
   amountCents: number;
@@ -453,41 +459,27 @@ export async function markStatementPaid(input: {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The order system is not configured." };
 
-  const { data: statement } = await db
+  const { data: statement, error: readError } = await db
     .from("eng_statements")
-    .select("id, reference, account_id")
+    .select("id, reference, account_id, status")
     .eq("id", input.statementId)
     .maybeSingle();
+  if (readError) return { ok: false, error: `The statement could not be read: ${readError.message}` };
   if (!statement) return { ok: false, error: "That statement does not exist." };
 
-  const { error } = await db.from("eng_order_payments").insert({
+  const applied = await applyPaymentEvent("eng_apply_statement_paid", {
+    event_id: input.eventId,
+    source: "stripe_webhook",
     statement_id: input.statementId,
-    kind: "charge",
+    charge_ref: input.chargeRef,
     amount_cents: input.amountCents,
     provider: input.provider,
-    provider_ref: input.chargeRef,
-    status: "succeeded",
+    expected_status: statement.status,
+    account_id: statement.account_id,
+    audit_summary: `${statement.reference}: ${money(input.amountCents)} received`,
   });
-
-  if (error) {
-    if (error.code === "23505") return { ok: true, alreadyRecorded: true };
-    return { ok: false, error: error.message };
-  }
-
-  await db
-    .from("eng_statements")
-    .update({ status: "paid", paid_at: DB_NOW })
-    .eq("id", input.statementId);
-
-  await writeAudit({
-    actor: { id: null, role: "admin", email: "order-engine@254engineering.com" },
-    action: "statement.paid",
-    entityType: "customer_account",
-    entityId: statement.account_id as string,
-    summary: `${statement.reference}: ${money(input.amountCents)} received`,
-  });
-
-  return { ok: true, alreadyRecorded: false };
+  if (!applied.ok) return applied;
+  return { ok: true, alreadyRecorded: applied.outcome !== "applied" };
 }
 
 /** Statements for one account, newest first. */
