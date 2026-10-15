@@ -1201,15 +1201,34 @@ if (carriers.length === 1) {
         "the engineer has not stated it and nothing is writing one on his behalf",
     );
   } else {
+    /*
+     * SINCE 2026-10-14 THERE ARE TWO CARRIERS, AND EACH IS ACCOUNTED FOR BY
+     * NAME. 0077 writes the discipline for the eight signable protocols from
+     * the engineer's answer of that day, and section 11 reads its rows back
+     * against DISCIPLINE_BY_PROTOCOL. So this asks two questions where it asked
+     * one: exactly one migration writes RC-001's discipline, and every other
+     * carrier is on the PINNED list below, which section 11 checks. A third
+     * migration writing the column is still a red naming it.
+     */
+    const OTHER_CARRIERS = ["0077_every_protocol_requires_structural.sql"];
+    const rcCarriers = disciplineCarriers.filter((c) => c.text.includes("'254-RC-001'"));
+    const unaccounted = disciplineCarriers.filter(
+      (c) => !c.text.includes("'254-RC-001'") && !OTHER_CARRIERS.includes(c.file),
+    );
     rec(
-      "exactly one migration sets requires_discipline",
-      disciplineCarriers.length === 1,
-      disciplineCarriers.map((c) => c.file).join(", ") ||
+      "exactly one migration sets requires_discipline for 254-RC-001",
+      rcCarriers.length === 1,
+      rcCarriers.map((c) => c.file).join(", ") ||
         "the registry declares a discipline and no migration carries it to a database",
     );
+    rec(
+      "and every other migration that sets it is one this audit reads back row by row",
+      unaccounted.length === 0 && OTHER_CARRIERS.every((f) => disciplineCarriers.some((c) => c.file === f)),
+      unaccounted.map((c) => c.file).join(", ") || `${OTHER_CARRIERS.join(", ")}, read in section 11`,
+    );
 
-    if (disciplineCarriers.length === 1) {
-      const carrier = disciplineCarriers[0];
+    if (rcCarriers.length === 1) {
+      const carrier = rcCarriers[0];
       const setMatch = carrier.text.match(/set\s+requires_discipline\s*=\s*'([^']*)'/i);
 
       rec(
@@ -1719,6 +1738,277 @@ if (carriers.length === 1) {
         : off.map(([k, [pdf, ours]]) => `${k}: PDF ${pdf}, transcribed ${ours}`).join("; "),
     );
   }
+}
+
+/*
+ * ===========================================================================
+ * 9. THE PROTOCOLS RECEIVED AS WORD FILES, PROVED AGAINST THE .docx ITSELF
+ * ===========================================================================
+ *
+ * Operator ruling, 2026-10-10: 254-WP-001 v1.2 and 254-FC-001 v1.0 arrived as
+ * .docx files, and the .docx is the source of record. "If the audit can only
+ * read PDFs, extend it to read .docx; don't convert the file and audit the
+ * conversion." So this reads each file's own word/document.xml through
+ * documentText() in scripts/lib/protocol-source.mjs, the reader proved against
+ * a known answer above, and never imports the transcriber. When the file
+ * cannot be read the comparison says COULD NOT TELL rather than passing.
+ *
+ * THE HASHES ARE LITERALS: the figures the operator's counterpart took from
+ * the engineer's email and the session confirmed on disk on 2026-10-10.
+ *
+ * THE FULL TEXT IS COMPARED FOR EQUALITY, so both directions at once, with
+ * whitespace removed and nothing else normalised: a .docx has no page footers
+ * or undecodable glyphs to excuse. And the header fields are proved to be the
+ * document's own, by finding each as the line that follows its label.
+ */
+{
+  const { DOCX_RECEIVED_PROTOCOLS } = await import("../src/content/protocols/docx-received.ts");
+  const { PROTOCOL_ENTRIES } = await import("../src/content/protocols/index.ts");
+  const { squash: sq, documentText } = await import("./lib/protocol-source.mjs");
+
+  const PINNED_SHA256 = {
+    "254-WP-001": "635168e3fb2aad1c5d44db72671606eabba92b8e00667968502fa987846257c4",
+    "254-FC-001": "264d3b5d7b6c8210ba6802d9769b36e40f867067870b90459747a96e4fefbf8d",
+  };
+
+  rec(
+    "the Word file register holds exactly WP-001 v1.2 and FC-001 v1.0, so the checks below read both",
+    DOCX_RECEIVED_PROTOCOLS.length === 2 &&
+      DOCX_RECEIVED_PROTOCOLS.some((p) => p.documentNumber === "254-WP-001" && p.version === "1.2") &&
+      DOCX_RECEIVED_PROTOCOLS.some((p) => p.documentNumber === "254-FC-001" && p.version === "1.0"),
+    DOCX_RECEIVED_PROTOCOLS.map((p) => `${p.documentNumber} v${p.version}`).join(", "),
+  );
+  rec(
+    "and neither is registered where the line gate, the intake forms or the review screen read",
+    !PROTOCOL_ENTRIES.some((e) =>
+      DOCX_RECEIVED_PROTOCOLS.some((p) => e.declaration.documentNumber === p.documentNumber && e.declaration.version === p.version),
+    ),
+  );
+
+  for (const p of DOCX_RECEIVED_PROTOCOLS) {
+    const where = `${p.documentNumber} v${p.version}`;
+    if (!existsSync(p.sourceFile)) {
+      rec(`${where}: its .docx is on disk`, false, `${p.sourceFile} is not on disk`);
+      continue;
+    }
+    const sha = createHash("sha256").update(readFileSync(p.sourceFile)).digest("hex");
+    rec(
+      `${where}: the .docx on disk is the engineer's file, by its SHA-256`,
+      sha === PINNED_SHA256[p.documentNumber] && p.sourceSha256 === sha,
+      sha === PINNED_SHA256[p.documentNumber] ? `${sha.slice(0, 12)}, and the declaration names the same` : `on disk ${sha.slice(0, 12)}, pinned ${String(PINNED_SHA256[p.documentNumber]).slice(0, 12)}`,
+    );
+
+    const read = documentText(p.sourceFile);
+    if (!read.ok) {
+      tell.push(`${where}: the transcription was not compared with its .docx: ${read.why}`);
+      continue;
+    }
+    const lines = read.text.split("\n").filter((l) => l.trim() !== "");
+    const docSq = sq(lines.join("\n"));
+    const textSq = sq(p.text.join("\n"));
+    rec(`${where}: the .docx was read, so the comparison reads something`, docSq.length > 5000, `${docSq.length} characters`);
+    let at = 0;
+    while (at < docSq.length && at < textSq.length && docSq[at] === textSq[at]) at += 1;
+    rec(
+      `${where}: the transcribed text is the whole document, word for word, in both directions`,
+      textSq === docSq,
+      textSq === docSq
+        ? `${p.text.length} lines, ${docSq.length} characters, identical`
+        : `first difference at character ${at}: document "${docSq.slice(at, at + 40)}", transcription "${textSq.slice(at, at + 40)}"`,
+    );
+
+    const fieldAfter = (label) => {
+      const i = lines.indexOf(label);
+      return i >= 0 ? lines[i + 1] : undefined;
+    };
+    const fields = [
+      ["Title", p.title],
+      ["Document number", p.documentNumber],
+      ["Version", p.version],
+      ["Prepared by", p.preparedBy],
+      ["Approval", p.approval],
+      ["Applies to", p.appliesTo],
+      ["Supersedes", p.supersedes],
+    ];
+    const wrongFields = fields.filter(([label, value]) => fieldAfter(label) !== value);
+    rec(
+      `${where}: its header fields are the document's own, each read as the line after its label`,
+      wrongFields.length === 0,
+      wrongFields.length ? wrongFields.map(([l]) => l).join(", ") : `${fields.length} fields`,
+    );
+  }
+}
+
+/* --------------- 10. the one list the engineer signs from, signable.ts */
+
+/*
+ * =========================================================================
+ * WHAT THE PORTAL OFFERS FOR SIGNATURE. Operator ruling, 2026-10-14: WP-001
+ * v1.2 and FC-001 v1.0 join the signable list.
+ * =========================================================================
+ * The expected list is PINNED here, never read from signable.ts, so a
+ * protocol that quietly joins or leaves the list turns this red naming it.
+ *
+ * AND THE FIVE SIGNATURES ON PRODUCTION ARE PINNED BY THEIR HASHES. The
+ * counterpart read them on 2026-10-12 (docs/production-sitting-2026-10-12-
+ * protocol-signatures.md in the audit worktree): content_sha256 for MH, SL,
+ * PL, RS and DS v1.1. The hash is computed HERE from the offered text, the way
+ * the signing step computes it, and compared with those literals. A change to
+ * the list that altered what any of the five offers would void a signature he
+ * has already given, and this is where that shows.
+ */
+{
+  const { SIGNABLE_PROTOCOLS, SUPERSEDED_RECEIVED } = await import("../src/content/protocols/signable.ts");
+
+  const EXPECTED = [
+    "254-DS-001 v1.1",
+    "254-FC-001 v1.0",
+    "254-MH-001 v1.1",
+    "254-PL-001 v1.1",
+    "254-RS-001 v1.1",
+    "254-SL-001 v1.1",
+    "254-WP-001 v1.2",
+    "254-WS-001 v1.1",
+  ];
+  const offered = SIGNABLE_PROTOCOLS.map((p) => `${p.documentNumber} v${p.version}`).sort();
+  rec(
+    "the portal offers exactly the eight protocols ruled signable, WP-001 at v1.2 and FC-001 at v1.0 among them",
+    offered.join("|") === EXPECTED.join("|"),
+    offered.join(", "),
+  );
+  rec(
+    "and WP-001 v1.1 is the one received text not offered, because v1.2 supersedes it",
+    SUPERSEDED_RECEIVED.join("|") === "254-WP-001 v1.1",
+    SUPERSEDED_RECEIVED.join(", ") || "none",
+  );
+  const numbers = SIGNABLE_PROTOCOLS.map((p) => p.documentNumber);
+  rec(
+    "each document number is offered at one version only, so a signature names one text",
+    new Set(numbers).size === numbers.length,
+    `${numbers.length} offered, ${new Set(numbers).size} numbers`,
+  );
+
+  const SIGNED_ON_PRODUCTION = {
+    "254-MH-001": "d5fb2893f4d618dbdbf7a9d3d1c0998b1462e2adf72caa8d4ba59fb7b34a55d6",
+    "254-SL-001": "c19522c86abbba90622aa3c1a41f5194a8f6c97134abb8bf8608fc22576c536d",
+    "254-PL-001": "c8814496b1dd0b0f228b92447f547f7be4b8bf1553278bef5891817bdb6fb27e",
+    "254-RS-001": "47e8e9ecb2d5fe07f9b37899cf5ee5494202b6a6f59648bf3ab0d85b9f616508",
+    "254-DS-001": "c47536b8ab31009027e6f443a03bed1b28b6dbf443b85350b7e7bb817756958b",
+  };
+  for (const [number, signed] of Object.entries(SIGNED_ON_PRODUCTION)) {
+    const p = SIGNABLE_PROTOCOLS.find((s) => s.documentNumber === number && s.version === "1.1");
+    const now = p ? createHash("sha256").update(p.text.join("\n"), "utf8").digest("hex") : null;
+    rec(
+      `${number} v1.1: the text offered still hashes to the signature on production`,
+      now === signed,
+      now === signed ? signed.slice(0, 12) : `offered ${now ? now.slice(0, 12) : "nothing"}, signed ${signed.slice(0, 12)}`,
+    );
+  }
+
+  /*
+   * EACH WORD FILE PROTOCOL IS OFFERED AS THE TEXT SECTION 9 PROVED, line for
+   * line, rather than a copy of it. Section 9 proves DOCX_RECEIVED_PROTOCOLS
+   * against the .docx; this proves the offered text is that same array.
+   */
+  const { DOCX_RECEIVED_PROTOCOLS } = await import("../src/content/protocols/docx-received.ts");
+  for (const d of DOCX_RECEIVED_PROTOCOLS) {
+    const p = SIGNABLE_PROTOCOLS.find((s) => s.documentNumber === d.documentNumber && s.version === d.version);
+    rec(
+      `${d.documentNumber} v${d.version}: the text offered for signature is the text proved against the .docx`,
+      Boolean(p) && p.text.length === d.text.length && p.text.every((line, i) => line === d.text[i]),
+      p ? `${p.text.length} lines` : "not offered",
+    );
+  }
+
+  /*
+   * AND EVERY READER USES THIS LIST, read in the source. A reader still on
+   * received.ts would offer, hash or gate on WP-001 v1.1, and FC-001 would be
+   * missing from it: three homes for one list is the defect this replaces.
+   */
+  const READERS = ["src/lib/protocol-sign.ts", "src/lib/line-gate.ts", "src/app/portal/(app)/protocols/page.tsx"];
+  for (const file of READERS) {
+    const source = readFileSync(file, "utf8");
+    rec(
+      `${file} reads the signable list and not received.ts`,
+      source.includes('from "@/content/protocols/signable"') && !source.includes('from "@/content/protocols/received"'),
+    );
+  }
+  const sign = readFileSync("src/lib/protocol-sign.ts", "utf8");
+  rec(
+    "and the signing step hashes by number AND version, so WP-001's two versions cannot be confused",
+    /transcriptionSha256\(documentNumber: string, version: string\)/.test(sign) &&
+      !/transcriptionSha256\([a-zA-Z.]+\)/.test(sign),
+  );
+}
+
+/* ------------- 11. the discipline every signable protocol requires, 0077 */
+
+/*
+ * =========================================================================
+ * THE ENGINEER'S ANSWER OF 2026-10-14, AND THE MIGRATION THAT RECORDS IT.
+ * =========================================================================
+ * DISCIPLINE_BY_PROTOCOL is the one home; 0077 writes it. This reads the
+ * migration's literals back against the declaration, the way section 6 reads
+ * 0056 against RC001, and it checks each declared digest against the document
+ * the signable list actually offers, so the discipline cannot be recorded on
+ * a row that is not the text he will sign.
+ */
+{
+  const { DISCIPLINE_BY_PROTOCOL, engineerDirections } = await import("../src/config/engineer-directions.ts");
+  const { SIGNABLE_PROTOCOLS } = await import("../src/content/protocols/signable.ts");
+  const { RECEIVED_PROTOCOLS } = await import("../src/content/protocols/received.ts");
+  const { DOCX_RECEIVED_PROTOCOLS } = await import("../src/content/protocols/docx-received.ts");
+
+  const direction = engineerDirections.find((d) => d.key === "every-service-is-structural");
+  rec(
+    "the discipline rests on a recorded direction from the engineer, with its evidence named",
+    Boolean(direction) && direction.on === "2026-10-14" && direction.evidence.file.startsWith("docs/compliance/"),
+    direction ? `${direction.medium}, ${direction.evidence.file}` : "no direction recorded",
+  );
+  rec(
+    "and every entry names that direction and states structural",
+    DISCIPLINE_BY_PROTOCOL.every((e) => e.direction === "every-service-is-structural" && e.discipline === "structural"),
+  );
+
+  const declared = DISCIPLINE_BY_PROTOCOL.map((e) => `${e.documentNumber} v${e.version}`).sort();
+  const offered = SIGNABLE_PROTOCOLS.map((p) => `${p.documentNumber} v${p.version}`).sort();
+  rec(
+    "every protocol offered for signature has its discipline declared, and nothing else does",
+    declared.join("|") === offered.join("|"),
+    declared.join(", "),
+  );
+  rec(
+    "and WP-001 v1.1 carries none, by the operator's ruling of 2026-10-14",
+    !DISCIPLINE_BY_PROTOCOL.some((e) => e.documentNumber === "254-WP-001" && e.version === "1.1"),
+  );
+
+  const sourceSha = (doc, ver) =>
+    DOCX_RECEIVED_PROTOCOLS.find((p) => p.documentNumber === doc && p.version === ver)?.sourceSha256 ??
+    RECEIVED_PROTOCOLS.map((p) => p.declaration).find((d) => d.documentNumber === doc && d.version === ver)?.sourceSha256;
+  const wrongDoc = DISCIPLINE_BY_PROTOCOL.filter((e) => sourceSha(e.documentNumber, e.version) !== e.documentSha256);
+  rec(
+    "each declared digest is the digest of the engineer's file the signable text was proved against",
+    wrongDoc.length === 0,
+    wrongDoc.map((e) => `${e.documentNumber} v${e.version}`).join(", ") || `${DISCIPLINE_BY_PROTOCOL.length} digests`,
+  );
+
+  const file = "supabase/migrations/0077_every_protocol_requires_structural.sql";
+  const sql = existsSync(file) ? readFileSync(file, "utf8") : "";
+  rec("0077 is on disk", sql.length > 0, file);
+  const tuples = [...sql.matchAll(/\('(254-[A-Z]{2}-\d{3})', '([\d.]+)', '([0-9a-f]{64})'\)/g)].map((m) => `${m[1]}|${m[2]}|${m[3]}`);
+  const expected = DISCIPLINE_BY_PROTOCOL.map((e) => `${e.documentNumber}|${e.version}|${e.documentSha256}`);
+  const guardAndUpdate = expected.every((t) => tuples.filter((x) => x === t).length === 2);
+  rec(
+    "0077 names exactly the declared rows, by number, version and digest, in its guard and in its update",
+    guardAndUpdate && tuples.length === expected.length * 2,
+    `${tuples.length} tuples read, ${expected.length * 2} expected`,
+  );
+  const setMatch = sql.match(/set requires_discipline = '([a-z]+)'/);
+  rec(
+    "and the value it writes is the declared discipline",
+    setMatch?.[1] === "structural",
+    setMatch ? setMatch[1] : "no set clause found",
+  );
 }
 
 /*

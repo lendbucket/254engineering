@@ -651,11 +651,28 @@ console.log("--- every kind, through runBatch");
 const ids = new Map();
 
 {
+  /*
+   * A probe declared "refused" asserts the other door, added 2026-10-12: a
+   * payload whose key cannot be built is refused at the enqueue, naming the
+   * fields, and no row exists to run. The refusal is read for WHICH fields it
+   * names, so a refusal for some other reason is not mistaken for this one.
+   */
+  const queuing = PROBES.filter((p) => p.expect !== "refused");
   for (const probe of PROBES) {
     const queued = await enqueue(probe.kind, probe.payload, {
       runAfter: PROBE_RUN_AFTER,
       effectMode: "no_external_effect",
     });
+    if (probe.expect === "refused") {
+      if (queued.ok && queued.id > 0) created.add(queued.id);
+      const named = !queued.ok && (probe.missing ?? []).length > 0 && probe.missing.every((f) => queued.error.includes(f));
+      rec(
+        `${probe.kind}: refused at the enqueue, naming ${(probe.missing ?? []).join(", ")}`,
+        named,
+        queued.ok ? `queued as #${queued.id}` : queued.error,
+      );
+      continue;
+    }
     if (queued.ok && queued.id > 0) {
       ids.set(probe.kind, queued.id);
       created.add(queued.id);
@@ -665,9 +682,9 @@ const ids = new Map();
   }
 
   rec(
-    `all ${PROBES.length} probes were enqueued`,
-    ids.size === PROBES.length,
-    `${ids.size} of ${PROBES.length}`,
+    `all ${queuing.length} probes that should queue were enqueued`,
+    ids.size === queuing.length,
+    `${ids.size} of ${queuing.length}`,
   );
 
   /*
@@ -710,7 +727,7 @@ const ids = new Map();
     `${byId.size} of ${ids.size}`,
   );
 
-  for (const probe of PROBES) {
+  for (const probe of queuing) {
     const id = ids.get(probe.kind);
     const row = id ? byId.get(id) : null;
     if (!row) {

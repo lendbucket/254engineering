@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
 import { setTradePrice } from "@/lib/trade-pricing";
+import { withSaveOutcome } from "@/lib/save-outcome";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +31,7 @@ export const dynamic = "force-dynamic";
  * and why, because a refusal that says only "too low" sends somebody to ask the
  * operator what the number is.
  */
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   const actor = await currentActor();
   if (!actor) {
     return NextResponse.json({ ok: false, error: "Not signed in." }, { status: 401 });
@@ -81,3 +82,6 @@ export async function POST(request: NextRequest) {
       : "The price is set.",
   });
 }
+
+/* A save abandoned by the 20 second bound says it may not have saved, and a failed session read is never "Not signed in": save-outcome.ts. */
+export const POST = withSaveOutcome(handlePOST);

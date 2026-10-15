@@ -6,6 +6,8 @@ import { cookies, headers } from "next/headers";
 import { supabaseAdmin, supabaseCredentialCheck } from "./supabase";
 import { OPS_COOKIE, readOpsSession } from "./ops-session";
 import type { Action, Actor, Role, RoleKey } from "./ops-authz";
+import { cache } from "react";
+import { DatabaseUnreachable, isDatabaseUnreachable } from "./save-outcome";
 
 /**
  * Everything that turns a request into an actor, and an admin's intent into an
@@ -88,8 +90,21 @@ export function generateToken(hours = SET_PASSWORD_TTL_HOURS) {
  * trust it. A suspended account or a changed role has to take effect on the next
  * request, not when a twelve hour cookie expires, so the profile is read and the
  * profile wins. If the row is gone, so is the session.
+ *
+ * NULL MEANS NOBODY IS SIGNED IN, AND NOTHING ELSE. Operator ruling,
+ * 2026-10-12. A read that failed or stalled used to return null as well, so
+ * the portal answered a database outage by sending a signed in person to the
+ * login screen, which reads as being signed out. It now throws
+ * DatabaseUnreachable, the layout and the login screen render "The portal could
+ * not reach the database. You are still signed in.", and no cookie is touched.
+ *
+ * Cached per render, so the layout and the page share one read and one answer:
+ * Next renders a page whether or not its layout shows it, and a page that read
+ * the session a second time could reach a different verdict than the layout.
  */
-export async function currentActor(): Promise<(Actor & ProfileRow) | null> {
+export const currentActor = cache(readActor);
+
+async function readActor(): Promise<(Actor & ProfileRow) | null> {
   const jar = await cookies();
   const claims = readOpsSession(jar.get(OPS_COOKIE)?.value);
   if (!claims) return null;
@@ -114,7 +129,8 @@ export async function currentActor(): Promise<(Actor & ProfileRow) | null> {
     .eq("id", claims.sub)
     .maybeSingle();
 
-  if (error || !data) return null;
+  if (error) throw new DatabaseUnreachable(error.message);
+  if (!data) return null;
   const profile = data as ProfileRow;
 
   /*
@@ -149,16 +165,18 @@ export async function currentActor(): Promise<(Actor & ProfileRow) | null> {
       .range(from, to),
   );
 
-  const grantRows = grantRead.ok ? grantRead.rows : null;
-  const grantError = grantRead.ok ? null : { message: grantRead.error };
-
-  if (grantError) {
-    console.error(`[ops-auth] could not read grants for ${profile.role}: ${grantError.message}`);
+  /*
+   * A FAILED GRANT READ IS THE UNREACHABLE PAGE, NOT AN EMPTY SET. Operator
+   * ruling, 2026-10-12. The empty set was a closed door and still would be, but
+   * every screen then answered with "That page is not here", which is false;
+   * the door stays closed (nothing renders) and the sentence is now true.
+   */
+  if (!grantRead.ok) {
+    console.error(`[ops-auth] could not read grants for ${profile.role}: ${grantRead.error}`);
+    throw new DatabaseUnreachable(grantRead.error);
   }
 
-  const grants = new Set(
-    (grantRows ?? []).map((r) => r.action as Action),
-  );
+  const grants = new Set(grantRead.rows.map((r) => r.action as Action));
 
   return {
     ...profile,
@@ -169,11 +187,16 @@ export async function currentActor(): Promise<(Actor & ProfileRow) | null> {
   };
 }
 
-/** For route handlers: the actor, or null, without throwing. */
+/**
+ * For route handlers: the actor, or null, without throwing, except that a
+ * failed session read still throws. Swallowing it would turn an outage back
+ * into "Not signed in", which is the sentence the 2026-10-12 ruling removed.
+ */
 export async function actorOrNull(): Promise<(Actor & ProfileRow) | null> {
   try {
     return await currentActor();
-  } catch {
+  } catch (error) {
+    if (isDatabaseUnreachable(error)) throw error;
     return null;
   }
 }

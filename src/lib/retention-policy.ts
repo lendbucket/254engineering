@@ -548,6 +548,23 @@ export const RETENTION_POLICY: RetentionEntry[] = [
   },
   { table: "eng_partner_assets", rule: { kind: "kept_pending_counsel", because: COUNSEL } },
   {
+    table: "eng_partner_billing",
+    rule: {
+      kind: "kept_pending_counsel",
+      because: "What a partner owes 254 now, one row per partner, updated in place. A billing record. " + COUNSEL,
+    },
+  },
+  {
+    table: "eng_partner_billing_events",
+    rule: {
+      kind: "kept_forever",
+      because:
+        REFUSES_DELETE("eng_forbid_mutation") +
+        " It is the record of every billing transition a partner went through and the Stripe event that caused it.",
+      ruledBy: "0074, and the trigger",
+    },
+  },
+  {
     table: "eng_partner_entries",
     rule: {
       kind: "kept_forever",
@@ -580,6 +597,17 @@ export const RETENTION_POLICY: RetentionEntry[] = [
       kind: "kept_forever",
       because: RESTRICTED("eng_partner_touches, eng_partner_entries and eng_partner_statements all reference a partner with ON DELETE RESTRICT, so a partner who was ever touched cannot be removed"),
       ruledBy: "the schema, confirmed by the operator 2026-09-09",
+    },
+  },
+  {
+    table: "eng_payment_events",
+    rule: {
+      kind: "kept_forever",
+      because:
+        REFUSES_DELETE("eng_guard_payment_event") +
+        " It is the record of which payment events were applied, and a deleted row is an event the next " +
+        "delivery would apply again.",
+      ruledBy: "0075, and the trigger",
     },
   },
   {
@@ -695,6 +723,16 @@ export const RETENTION_POLICY: RetentionEntry[] = [
     },
   },
   { table: "eng_service_orders", rule: { kind: "kept_pending_counsel", because: "An order that ever took money additionally cannot be deleted at all: eng_order_payments references it with ON DELETE RESTRICT and payments are kept forever. " + COUNSEL } },
+  /* 0071, decision 14 of 2026-10-10: the sign in limiter's count, moved out of process memory. */
+  {
+    table: "eng_sign_in_attempts",
+    rule: {
+      kind: "kept_pending_counsel",
+      because:
+        "Telemetry in shape, like the ordering API's request log, and the evidence behind a lockout somebody " +
+        "disputes. Nothing deletes from it: a reset is a row. " + COUNSEL,
+    },
+  },
   { table: "eng_statement_lines", rule: { kind: "kept_pending_counsel", because: "What a customer was billed, line by line. " + COUNSEL } },
   { table: "eng_statements", rule: { kind: "kept_pending_counsel", because: "What a customer was billed. " + COUNSEL } },
   { table: "eng_tasks", rule: { kind: "kept_pending_counsel", because: COUNSEL } },

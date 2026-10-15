@@ -124,6 +124,14 @@ export async function submitCredential(
     .insert({ profile_id: actor.id, kind: asked.kind, issuing_state: state, expires_on: expiresOn, status: "pending", label: null })
     .select("id")
     .single();
+  /*
+   * Two submissions in flight together both pass the read above. 0067's unique
+   * partial index refuses the second (23505), and it gets the same sentence the
+   * read gives, rather than a database message. Product audit, 2026-10-09.
+   */
+  if (error?.code === "23505") {
+    return { ok: false, error: `Your ${asked.label.toLowerCase()} is already submitted and awaiting verification.` };
+  }
   if (error || !inserted) return { ok: false, error: error?.message ?? "The submission was not recorded." };
 
   await writeAudit({

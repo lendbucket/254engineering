@@ -9,6 +9,7 @@ import { queueEmail } from "@/lib/ops-jobs";
 import { applicantConfirmation, applicationNotification } from "@/lib/email-templates";
 import { deferredLink } from "@/lib/deferred-links";
 import { positionByTrack } from "@data/positions";
+import { withSaveOutcome } from "@/lib/save-outcome";
 
 /**
  * Careers intake for both roles.
@@ -30,7 +31,7 @@ import { positionByTrack } from "@data/positions";
  * notification does not send, the application still exists and the outcome is
  * logged rather than surfaced.
  */
-export async function POST(request: Request) {
+async function handlePOST(request: Request) {
   let payload: unknown;
   try {
     payload = await request.json();
@@ -282,3 +283,6 @@ export async function POST(request: Request) {
 
   return NextResponse.json({ ok: true, applicationId: data.applicationId });
 }
+
+/* A save abandoned by the 20 second bound says it may not have saved, and a failed session read is never "Not signed in": save-outcome.ts. */
+export const POST = withSaveOutcome(handlePOST);

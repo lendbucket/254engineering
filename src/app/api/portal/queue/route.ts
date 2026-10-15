@@ -3,6 +3,7 @@ import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
 import { retryDeadJob } from "@/lib/ops-jobs";
 import { writeAudit } from "@/lib/ops-audit";
+import { withSaveOutcome } from "@/lib/save-outcome";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,7 @@ export const dynamic = "force-dynamic";
  * customer already had, or move money adjacent work forward. That the operator
  * chose to is worth a row.
  */
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   const actor = await currentActor();
   if (!actor) return NextResponse.json({ ok: false, error: "Not signed in." }, { status: 401 });
   if (!can(actor, "jobs.manage")) {
@@ -48,3 +49,6 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({ ok: true });
 }
+
+/* A save abandoned by the 20 second bound says it may not have saved, and a failed session read is never "Not signed in": save-outcome.ts. */
+export const POST = withSaveOutcome(handlePOST);

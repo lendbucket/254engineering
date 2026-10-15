@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { VISITOR_COOKIE, VISITOR_TTL_DAYS, newVisitorKey, recordTouch } from "@/lib/ops-partners";
 import { looksLikeCode } from "@/lib/attribution-rules";
+import { withSaveOutcome } from "@/lib/save-outcome";
 
 /**
  * The capture endpoint for a tracked partner link.
@@ -48,7 +49,7 @@ function cleanReferrer(raw: unknown): string | null {
   }
 }
 
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   let body: unknown;
   try {
     body = await request.json();
@@ -99,3 +100,6 @@ export async function POST(request: NextRequest) {
   });
   return response;
 }
+
+/* A save abandoned by the 20 second bound says it may not have saved, and a failed session read is never "Not signed in": save-outcome.ts. */
+export const POST = withSaveOutcome(handlePOST);

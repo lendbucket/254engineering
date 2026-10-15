@@ -61,19 +61,32 @@ const COLUMNS =
  * ordering the review queue and the waiting list use: a list sorted newest
  * first is one where the awkward item somebody keeps skipping sinks out of
  * sight, and here the one sinking would be the person waiting longest.
+ *
+ * A FAILED READ IS NOT AN EMPTY LIST. Operator ruling, 2026-10-12. This
+ * returned `data ?? []`, so a read that failed or stalled rendered "No briefs
+ * yet" over briefs waiting on a promised reply; the 2026-10-11 board lost this
+ * screen to exactly such a stall. It now says the read failed, and the screen
+ * says the list could not be loaded.
  */
-export async function designInquiries(actor: Actor | null): Promise<InquiryRow[]> {
+export async function designInquiries(
+  actor: Actor | null,
+): Promise<{ ok: true; rows: InquiryRow[] } | { ok: false; error: string }> {
   const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
   /* files.create, the intake grant. See the note on the page: an engineer
    * holds files.list, and the ruling is that design briefs are intake. */
-  if (!db || !can(actor, "files.create")) return [];
-  const { data } = await db
+  if (!can(actor, "files.create")) return { ok: true, rows: [] };
+  const { data, error } = await db
     .from("eng_design_inquiries")
     .select(COLUMNS)
     .order("responded_at", { ascending: true, nullsFirst: true })
     .order("respond_by", { ascending: true })
     .limit(200);
-  return (data ?? []) as InquiryRow[];
+  if (error) {
+    console.error(`[inquiries] the design briefs could not be read: ${error.message}`);
+    return { ok: false, error: error.message };
+  }
+  return { ok: true, rows: (data ?? []) as InquiryRow[] };
 }
 
 /**

@@ -3,6 +3,7 @@ import Stripe from "stripe";
 import { LIVE_KEY_EXPLANATION, LIVE_KEY_FIX, LIVE_KEY_HEADLINE, liveKeyOffProduction } from "./db-guard";
 import { modeDisagreement, establishAccountVerdict } from "./stripe-account";
 import { raiseSystemTask } from "./system-work";
+import { partnerBillingEventOf } from "./partner-billing-rules";
 import type {
   CheckoutRequest,
   CheckoutSession,
@@ -250,6 +251,20 @@ export function stripeProvider(): PaymentProvider {
         }).catch(() => {});
       }
 
+      /*
+       * THE PARTNER LANE IS DECIDED FIRST (0074). A partner's subscription
+       * checkout carries no payment intent, so the order branch below would log
+       * it as a charge with nothing to record against; and nothing a partner
+       * pays may reach the order path at all. An object carrying the partner
+       * kind beside an order, batch or statement id is refused outright.
+       */
+      const lane = partnerBillingEventOf(event);
+      if (lane.lane === "partner") return { kind: "partner_billing", event: lane.event };
+      if (lane.lane === "refused") {
+        console.error(`[stripe] partner billing: ${lane.why}`);
+        return { kind: "partner_billing.refused", eventId: event.id, why: lane.why };
+      }
+
       if (event.type === "checkout.session.completed") {
         const session = event.data.object as Stripe.Checkout.Session;
         const intent =
@@ -264,6 +279,7 @@ export function stripeProvider(): PaymentProvider {
         }
         return {
           kind: "checkout.completed",
+          eventId: event.id,
           sessionRef: session.id,
           chargeRef: intent,
           amountCents: session.amount_total ?? 0,
@@ -277,6 +293,7 @@ export function stripeProvider(): PaymentProvider {
         const session = event.data.object as Stripe.Checkout.Session;
         return {
           kind: "checkout.expired",
+          eventId: event.id,
           sessionRef: session.id,
           orderId: session.metadata?.order_id ?? null,
           batchId: session.metadata?.batch_id ?? null,
@@ -317,10 +334,31 @@ export function stripeProvider(): PaymentProvider {
         const latest = charge.refunds?.data?.[0];
         return {
           kind: "charge.refunded",
+          eventId: event.id,
           chargeRef: intent,
           // Only an idempotency key. The event id is stable across redeliveries.
           refundRef: latest?.id ?? event.id,
           refundedToDateCents: charge.amount_refunded,
+        };
+      }
+
+      /*
+       * WHAT BECAME OF ONE REFUND (0076). The object is the Refund itself, so
+       * its id is the provider_ref a platform refund row carries. Its status is
+       * passed on as Stripe spells it; refundUpdateFor decides what it means.
+       */
+      if (event.type === "charge.refund.updated") {
+        const refund = event.data.object as Stripe.Refund;
+        const intent =
+          typeof refund.payment_intent === "string" ? refund.payment_intent : refund.payment_intent?.id ?? null;
+        return {
+          kind: "charge.refund.updated",
+          eventId: event.id,
+          refundRef: refund.id,
+          chargeRef: intent,
+          providerStatus: refund.status ?? "unknown",
+          amountCents: refund.amount,
+          failureReason: refund.failure_reason ?? null,
         };
       }
 
@@ -335,7 +373,7 @@ export function stripeProvider(): PaymentProvider {
        * had before it was given a voice.
        */
       console.log(
-        `[stripe] ${event.type} verified and not acted on. This platform handles checkout.session.completed, checkout.session.expired and charge.refunded.`,
+        `[stripe] ${event.type} verified and not acted on. This platform handles checkout.session.completed, checkout.session.expired, charge.refunded and charge.refund.updated.`,
       );
       return null;
     },
@@ -361,10 +399,31 @@ export function stripeProvider(): PaymentProvider {
  * either block verification on Stripe being up or be fired and forgotten, and
  * the route is where the result can be acted on.
  */
+/**
+ * A partner's program checkout (0074). Built by partnerCheckoutParams and
+ * started only by startPartnerCheckout, which refuses while partner billing is
+ * off. It goes through stripe(), so the live-key guard refuses it off
+ * production exactly as it refuses an order charge.
+ */
+export async function createPartnerCheckout(
+  params: Stripe.Checkout.SessionCreateParams,
+  idempotencyKey: string,
+): Promise<string> {
+  const session = await stripe().checkout.sessions.create(params, { idempotencyKey });
+  if (!session.url) throw new Error("Stripe returned a session with no url.");
+  return session.url;
+}
+
 export async function confirmStripeAccount(event: PaymentEvent): Promise<void> {
+  /* The partner lane's objects are a subscription and its invoices, which the
+   * account check below has no fetch for; it is established by order events. */
+  if (event.kind === "partner_billing" || event.kind === "partner_billing.refused") return;
   const fetchOwnObject = () => {
     if (event.kind === "charge.refunded") {
       return stripe().paymentIntents.retrieve(event.chargeRef);
+    }
+    if (event.kind === "charge.refund.updated") {
+      return stripe().refunds.retrieve(event.refundRef);
     }
     return stripe().checkout.sessions.retrieve(event.sessionRef);
   };
