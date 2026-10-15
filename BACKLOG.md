@@ -142,7 +142,8 @@ read back.
 **Applied to development and then production 2026-10-13** by the counterpart
 through the connector, each in one try with no cancel, read back exact on both
 (four kinds, the function closed to anon and authenticated, no event rows,
-shape 318b0fa3 across 1206). Robert confirmed on 2026-10-14 that
+shape 318b0fa3 across 1206). Merged as 449216f, read READY in production by
+the counterpart at 16:16Z on 2026-10-14. Robert confirmed on 2026-10-14 that
 `charge.refund.updated` is on the live endpoint, and `registeredEvents` gains
 it on `copy/scope-structural`. Still open: the keyed live half of
 `stripe-webhook-audit` has not read the four events back from the account;
