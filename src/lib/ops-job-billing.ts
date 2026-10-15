@@ -58,7 +58,7 @@ function referenceFor(customerEmail?: string | null): string {
 }
 
 /** What the customer was told they were buying, in the catalog's words. */
-function entryName(file: FileForBilling): string {
+function entryName(file: Pick<FileForBilling, "service_slug" | "deliverable">): string {
   const entry = file.deliverable ? catalogFor(file.service_slug, file.deliverable) : undefined;
   return entry?.name ?? file.service_slug;
 }
@@ -303,6 +303,26 @@ export async function sendPaymentLink(actor: Author, fileId: string): Promise<Bi
     };
   }
 
+  /* createOrderForFile refuses a client with no address, so this only narrows the type. */
+  if (!client.email) return { ok: false, error: "That client has no email address, so there is nowhere to send a link." };
+  return announcePaymentLink(actor, file, { name: client.name, email: client.email }, order, checkout.url);
+}
+
+/**
+ * Queue the payment link email and record what happened on the file.
+ *
+ * Its own function so a proof can drive both of its outcomes against a replayed
+ * database (scripts/proofs/a-payment-link-says-queued.mjs): everything before it
+ * is gated until launch, and this is the part ruling 5 of 2026-10-15 changed.
+ */
+export async function announcePaymentLink(
+  actor: Author,
+  file: Pick<FileForBilling, "id" | "file_number" | "property_address" | "client_price_cents" | "service_slug" | "deliverable">,
+  client: { name: string; email: string },
+  order: { orderId: string; reference: string },
+  checkoutUrl: string,
+): Promise<BillResult> {
+  const fileId = file.id;
   /*
    * A composed template, not a string built here.
    *
@@ -328,7 +348,7 @@ export async function sendPaymentLink(actor: Author, fileId: string): Promise<Bi
       propertyAddress: file.property_address,
       deliverableName: entryName(file),
       amount: money(file.client_price_cents),
-      payUrl: checkout.url,
+      payUrl: checkoutUrl,
       takenBy: actor.email,
     }),
     { orderId: order.orderId },
@@ -376,7 +396,7 @@ export async function sendPaymentLink(actor: Author, fileId: string): Promise<Bi
     summary: `${file.file_number}: a payment link is queued to ${client.email} against ${order.reference}.`,
   });
 
-  return { ok: true, orderId: order.orderId, reference: order.reference, checkoutUrl: checkout.url };
+  return { ok: true, orderId: order.orderId, reference: order.reference, checkoutUrl };
 }
 
 /**
