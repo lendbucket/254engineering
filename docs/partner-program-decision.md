@@ -1,5 +1,16 @@
 # The partner program: the regulatory shape
 
+> **SUPERSEDED IN PART, 2026-10-15.** Operator ruling: partners do not operate
+> under any 254 mark. A partner sells under its own business name only; on the
+> referral page it appears as text only ("Referred by [partner name]"), with no
+> partner logo beside the firm's mark; checkout and order status stay the
+> firm's. Section 1's "promotes 254 Engineering Services under 254's name" and
+> "the partner's logo **alongside** 254's" describe the earlier decision and no
+> longer hold. The document below is kept unedited as the record of that
+> decision. The inventory is
+> `docs/audit-2026-10/FINDING-partners-under-a-254-mark-2026-10-15.md` on the
+> product audit branch.
+
 Phase 9 Section 0. Report and stop. No code has been written beyond this
 document and the branch it sits on.
 

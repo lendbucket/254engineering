@@ -29,7 +29,7 @@ import {
   looksLikeCode,
   ATTRIBUTION_WINDOW_DAYS,
 } from "../src/lib/attribution-rules.ts";
-import { copyVerdict, performingFirmLine } from "../src/lib/partner-copy.ts";
+import { copyVerdict, performingFirmLine, PARTNER_VOICE } from "../src/lib/partner-copy.ts";
 /*
  * The pattern sets themselves, so the check below can ask whether each one
  * actually fires rather than trusting that it was written correctly. Importing
@@ -687,16 +687,43 @@ const terms = (over = {}) => ({
      * and asserts the correct outcome FOR THAT MODE, which makes it true in
      * both worlds and says out loud which one it saw.
      */
+    /*
+     * AND SINCE 2026-10-15 IT IS REFUSED IN BOTH. Operator ruling: partners
+     * sell under their own business name, so a partner's "we" is the partner,
+     * and a partner never performs engineering. The old assertion read "trading:
+     * a partner may say the firm provides engineering, because it is registered
+     * with an engineer of record", and it is quoted rather than deleted because a
+     * reversed rule that leaves no trace reads as a rule nobody set. The mode is
+     * still read and printed, so the check says which world it refused in.
+     */
     const trading = isTrading();
     const provides = copyVerdict(
       "We provide structural engineering services to contractors across Texas.",
     );
     rec(
-      trading
-        ? "trading: a partner may say the firm provides engineering, because it is registered with an engineer of record"
-        : "prelaunch: a partner may not yet say the firm provides engineering",
-      provides.ok === trading,
+      "a partner may not say it provides engineering, trading or not, and it is refused as a never claim",
+      provides.ok === false && provides.findings.some((f) => f.kind === "never" && /partner/.test(f.why)),
       `gate reads ${trading ? "trading" : "prelaunch"}, sentence ${provides.ok ? "allowed" : "refused"}`,
+    );
+
+    /*
+     * AND ASKED WITH THE GATE OPEN, because this process usually reads
+     * prelaunch and a refusal there cannot tell "refused always" from
+     * "refused until trading". The child reads the configuration with every
+     * gate condition stated true, so the trading world is reached rather than
+     * assumed.
+     */
+    const { inOpenGateProcess } = await import("./lib/gate-fixture.mjs");
+    const opened = await inOpenGateProcess(
+      `const { copyVerdict } = await import("./src/lib/partner-copy.ts");\n` +
+        `const { isTrading } = await import("./src/lib/launch.ts");\n` +
+        `const v = copyVerdict("We provide structural engineering services to contractors across Texas.");\n` +
+        `answer({ trading: isTrading(), ok: v.ok, never: v.findings.some((f) => f.kind === "never") });\n`,
+    ).catch((err) => ({ error: err instanceof Error ? err.message : String(err) }));
+    rec(
+      "and with the gate open, trading, a partner still may not say it provides engineering",
+      opened?.trading === true && opened.ok === false && opened.never === true,
+      JSON.stringify(opened).slice(0, 160),
     );
 
     const sealing = copyVerdict(
@@ -867,8 +894,9 @@ const terms = (over = {}) => ({
     /if \(!isTrading\(\)\) check\(TRADING_GATED/.test(copyModule) &&
       /if \(!sealingIsAvailable\(\)\) check\(SEALING_GATED/.test(copyModule) &&
       /if \(!isOpen\(\)\) check\(OPEN_GATED/.test(copyModule) &&
-      /check\(NEVER, "never"\)/.test(copyModule),
-    "a service claim becomes true at trading, a sealing claim when a protocol is approved, an order when the firm opens, and a guaranteed approval never",
+      /check\(NEVER, "never"\)/.test(copyModule) &&
+      /^ {2}check\(PARTNER_VOICE, "never"\);$/m.test(copyModule),
+    "a service claim becomes true at trading, a sealing claim when a protocol is approved, an order when the firm opens, and a guaranteed approval and a partner claiming engineering never",
   );
 
   /*
@@ -892,6 +920,7 @@ const terms = (over = {}) => ({
       ["SEALING_GATED", SEALING_GATED, "Every deliverable is reviewed and sealed by a licensed Texas Professional Engineer."],
       ["OPEN_GATED", OPEN_GATED, "Order a roof certification today."],
       ["NEVER_CLAIMS", NEVER_CLAIMS, "Our engineers review every file."],
+      ["PARTNER_VOICE", PARTNER_VOICE, "We are an engineering firm, and our inspections are thorough."],
     ];
     const dead = fires
       .filter(([, set, sentence]) => !set.some((r) => r && r.pattern.test(sentence)))

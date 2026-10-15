@@ -151,8 +151,13 @@ export default async function PartnerHome() {
         )}
       </Panel>
 
-      {/* Their logo (run item 19, migration 0072): uploaded here, approved by the firm, then shown on their order page. */}
-      <Panel title="Your logo" description="It shows on your order page beside the firm's name once the firm approves it.">
+      {/*
+        Their logo (run item 19, migration 0072): uploaded here and approved by the firm. This said it
+        "shows on your order page beside the firm's name", which was never true: the order page has
+        never rendered it. And by the operator's ruling of 2026-10-15 the referral page names the
+        partner in text only, with no partner logo beside the firm's mark.
+      */}
+      <Panel title="Your logo" description="The firm keeps your approved logo on your partner record. Your order page names you in text and does not show a logo.">
         {logo.url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={logo.url} alt={`${principal.partner.organisation} logo`} className="mb-3 max-h-[80px] max-w-[220px] object-contain" />

@@ -50,6 +50,34 @@ const OPEN_GATED_P = OPEN_GATED as Pattern[];
 const NEVER = NEVER_CLAIMS as Pattern[];
 const BANNED = BANNED_PHRASES as Pattern[];
 
+/**
+ * NEVER RETIRED, IN A PARTNER'S VOICE. Operator ruling, 2026-10-15: partners
+ * do not operate under any 254 mark and sell under their own business name, so
+ * a partner's "we" is the partner's own business, and a partner never performs
+ * engineering. Applied at every stage, trading or not.
+ *
+ * It lives here rather than in scripts/lib/regulatory.mjs because that file
+ * travels verbatim between three repositories and this rule is about this
+ * firm's partners. TRADING_GATED still retires at trading for the firm's own
+ * copy; the reasoning beside it, that a partner writing "we provide" of the
+ * firm is stating a fact, assumed the partner spoke as the firm, and under
+ * this ruling it does not.
+ */
+export const PARTNER_VOICE: Pattern[] = [
+  {
+    pattern: /\bwe (?:offer|provide|perform|deliver|issue|inspect|certify|seal|stamp|engineer|design)\b/i,
+    why: "a partner saying it performs engineering",
+  },
+  {
+    pattern: /\bwe(?:'re| are) (?:an? )?(?:engineering firm|engineers?|licensed)\b/i,
+    why: "a partner presenting itself as an engineer",
+  },
+  {
+    pattern: /\bour (?:engineering|engineers?|inspections?|certifications?|seal|stamp)\b/i,
+    why: "a partner claiming engineering as its own",
+  },
+];
+
 export type CopyFinding = {
   kind: "regulated" | "never" | "voice" | "style";
   why: string;
@@ -139,6 +167,7 @@ export function copyVerdict(text: string): CopyVerdict {
    * engineer and no approved protocol can seal nothing, so those keep firing
    * through the whole of trading.
    */
+  check(PARTNER_VOICE, "never");
   if (!isTrading()) check(TRADING_GATED_P, "regulated");
   if (!sealingIsAvailable()) check(SEALING_GATED_P, "regulated");
   if (!isOpen()) check(OPEN_GATED_P, "regulated");

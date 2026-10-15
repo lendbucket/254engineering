@@ -18,7 +18,7 @@ import { useRouter } from "next/navigation";
  */
 export function SubmitForm() {
   const router = useRouter();
-  const [kind, setKind] = useState<"copy" | "artwork" | "page" | "other">("copy");
+  const [kind, setKind] = useState<"copy" | "page" | "other">("copy");
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [link, setLink] = useState("");
@@ -75,8 +75,8 @@ export function SubmitForm() {
         onChange={(e) => setKind(e.target.value as typeof kind)}
         className={field}
       >
+        {/* "Artwork carrying both marks" was removed on the operator's ruling of 2026-10-15: partners sell under their own name only. */}
         <option value="copy">Wording for my own site or an email</option>
-        <option value="artwork">Artwork carrying both marks</option>
         <option value="page">A page I have already published</option>
         <option value="other">Something else</option>
       </select>

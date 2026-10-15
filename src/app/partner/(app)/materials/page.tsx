@@ -15,7 +15,6 @@ export const dynamic = "force-dynamic";
 const KIND_LABEL: Record<string, string> = {
   copy_block: "Wording",
   one_pager: "Document",
-  logo: "Artwork",
   email_snippet: "Email wording",
   link_card: "Link",
 };

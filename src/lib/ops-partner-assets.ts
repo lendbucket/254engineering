@@ -33,7 +33,8 @@ import { ALLOWED_UPLOAD_TYPES, MAX_UPLOAD_BYTES } from "./uploads";
 export const ASSET_BUCKET = "eng-partner-assets";
 const SIGNED_URL_SECONDS = 60 * 10;
 
-export type AssetKind = "copy_block" | "one_pager" | "logo" | "email_snippet" | "link_card";
+/* No `logo`: the firm's mark is not distributed to partners (operator ruling, 2026-10-15). */
+export type AssetKind = "copy_block" | "one_pager" | "email_snippet" | "link_card";
 
 export type PublishedAsset = {
   id: string;
@@ -63,6 +64,14 @@ export async function publishedAssets(): Promise<PublishedAsset[]> {
     .from("eng_partner_assets")
     .select("id, slug, title, kind, status, current_version")
     .eq("status", "published")
+    /*
+     * The `logo` kind was the firm's mark, handed out for co-branded material
+     * (0020). Partners sell under their own name only (operator ruling,
+     * 2026-10-15), so the firm's mark is no longer given to them. The database
+     * still allows the value; a published row of it is left out here rather
+     * than offered to a partner.
+     */
+    .neq("kind", "logo")
     .order("kind", { ascending: true });
 
   const ids = (assets ?? []).map((a) => a.id as string);
