@@ -373,8 +373,7 @@ export default async function FilesPage({
                   ))}
                 </dl>
                 <p className="mt-2 text-[13px] leading-[1.5] text-[var(--secondary)]">
-                  Invoicing arrives with Stripe in a later phase. The figures are here so margin is
-                  visible from the start rather than reconstructed later.
+                  These are the figures this file&apos;s margin is computed from.
                 </p>
               </>
             ) : null}
@@ -447,9 +446,9 @@ export default async function FilesPage({
             <div className="mt-7 border-t border-[var(--row-rule)] pt-4">
               <p className="text-[14px] font-semibold text-[var(--ink)]">Documents, tasks, messages</p>
               <p className="mt-1.5 text-[13px] leading-[1.55] text-[var(--secondary)]">
-                Documents and sealing arrive with review, and tasks and messages after that. They are
-                empty because those phases have not shipped, not because this file is missing
-                anything.
+                {/* The old sentence said these "have not shipped"; all three have (product audit, 2026-10-10). */}
+                A file&apos;s filed and sealed documents are on Documents, and its tasks and threads are on
+                Tasks and Messages.
               </p>
             </div>
           </div>
