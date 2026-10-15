@@ -157,8 +157,12 @@ read back.
 **Applied to development and then production 2026-10-13** by the counterpart
 through the connector, each in one try with no cancel, read back exact on both
 (four kinds, the function closed to anon and authenticated, no event rows,
-shape 318b0fa3 across 1206). Open until Robert confirms the dashboard event
-and `registeredEvents` gains it.
+shape 318b0fa3 across 1206). Merged as 449216f, read READY in production by
+the counterpart at 16:16Z on 2026-10-14. Robert confirmed on 2026-10-14 that
+`charge.refund.updated` is on the live endpoint, and `registeredEvents` gains
+it on `copy/scope-structural`. Still open: the keyed live half of
+`stripe-webhook-audit` has not read the four events back from the account;
+`liveConfirmedOn` stays 2026-09-16 until it does.
 
 Ruled 2026-10-13: Stripe's `charge.refund.updated` through the same ledger in
 one transaction; pending to succeeded marks the refund row succeeded; pending to
@@ -190,9 +194,9 @@ protocols through 0077; WP-001 v1.1's row gets none. Built on
 `feat/protocol-signing-wp-fc`. Sitting:
 `docs/production-sitting-feat-protocol-signing-wp-fc.md`, section 0 first.
 Still owed: his signature on WP-001 v1.2, WS-001 v1.1 and FC-001 v1.0, his
-approval of each protocol, and the operator's ruling on where the scope
-statement (no architectural or MEP work) appears to a customer: wording drafted
-for the terms page and the design inquiry form, rendered nowhere yet.
+approval of each protocol. The scope statement (no architectural or MEP work)
+is rendered in the operator's ruled wording of 2026-10-14 on `/terms` and
+`/design-inquiry`, on `copy/scope-structural`.
 
 ## OPEN, FROM THE WEBHOOK WORK OF 2026-10-13, NOT BUILT
 

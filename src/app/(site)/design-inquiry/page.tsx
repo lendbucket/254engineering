@@ -93,6 +93,13 @@ export default function DesignInquiryPage() {
                     title: "Nothing here is a commitment",
                     body: "Sending a brief is not an order and creates no engagement. It is the start of a conversation, and if the firm cannot take the work you will be told plainly and pointed somewhere that can.",
                   },
+                  // Operator ruling, 2026-10-14, replacing the first draft. Its
+                  // source is the engineer of record's answer of the same day,
+                  // every-service-is-structural in src/config/engineer-directions.ts.
+                  {
+                    title: "Structural design only",
+                    body: "The design this firm is built to deliver is structural. Architectural design and mechanical, electrical or plumbing engineering are outside every service.",
+                  },
                 ].map((item) => (
                   <li key={item.title}>
                     <p className="font-display text-[18px] leading-[1.3] font-bold text-slate">
