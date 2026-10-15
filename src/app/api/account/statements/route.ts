@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { currentCustomer } from "@/lib/customer-auth";
 import { startStatementCheckout } from "@/lib/ops-statements";
 import { supabaseAdmin } from "@/lib/supabase";
+import { withSaveOutcome } from "@/lib/save-outcome";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,7 @@ export const dynamic = "force-dynamic";
  * another organisation matches nothing rather than being fetched and then
  * hidden.
  */
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   const me = await currentCustomer();
   if (!me) return NextResponse.json({ ok: false, error: "Not signed in." }, { status: 401 });
 
@@ -49,3 +50,6 @@ export async function POST(request: NextRequest) {
     ? NextResponse.json({ ok: true, checkoutUrl: result.url })
     : NextResponse.json({ ok: false, error: result.error }, { status: 400 });
 }
+
+/* A save abandoned by the 20 second bound says it may not have saved, and a failed session read is never "Not signed in": save-outcome.ts. */
+export const POST = withSaveOutcome(handlePOST);

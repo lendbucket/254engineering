@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { consumeTokenAndSetPassword, requestContext } from "@/lib/ops-auth";
 import { takeLoginAttempt, clientKey } from "@/lib/ops-rate-limit";
 import { writeAudit } from "@/lib/ops-audit";
+import { withSaveOutcome } from "@/lib/save-outcome";
 
 /**
  * Spend a one time link and set the password behind it.
@@ -17,8 +18,8 @@ import { writeAudit } from "@/lib/ops-audit";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(request: NextRequest) {
-  const limit = takeLoginAttempt(clientKey(request.headers));
+async function handlePOST(request: NextRequest) {
+  const limit = await takeLoginAttempt(clientKey(request.headers));
   if (!limit.allowed) {
     const res = NextResponse.json({ ok: false, error: "Too many attempts. Wait a moment." }, { status: 429 });
     res.headers.set("Retry-After", String(limit.retryAfterSeconds));
@@ -72,3 +73,6 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({ ok: true });
 }
+
+/* A save abandoned by the 20 second bound says it may not have saved, and a failed session read is never "Not signed in": save-outcome.ts. */
+export const POST = withSaveOutcome(handlePOST);

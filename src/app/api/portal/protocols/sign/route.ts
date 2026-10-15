@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { currentActor } from "@/lib/ops-auth";
 import { holdsLicence } from "@/lib/ops-authz";
 import { signProtocol } from "@/lib/protocol-sign";
+import { withSaveOutcome } from "@/lib/save-outcome";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,7 @@ export const dynamic = "force-dynamic";
 
 const bad = (error: string, status = 400) => NextResponse.json({ ok: false, error }, { status });
 
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   const actor = await currentActor();
   if (!actor) return bad("Not signed in.", 401);
   if (!holdsLicence(actor, "protocols.author")) {
@@ -29,3 +30,6 @@ export async function POST(request: NextRequest) {
   });
   return signed.ok ? NextResponse.json({ ok: true, sha256: signed.sha256 }) : bad(signed.error);
 }
+
+/* A save abandoned by the 20 second bound says it may not have saved, and a failed session read is never "Not signed in": save-outcome.ts. */
+export const POST = withSaveOutcome(handlePOST);

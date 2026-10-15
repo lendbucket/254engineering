@@ -476,6 +476,9 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
     const file = await createFile(SYSTEM_AUTHOR, {
       clientId: client.id,
       serviceSlug: entry.serviceSlug,
+      /* The deliverable bought, which is the key the engineer's pay tier is read
+       * by (engineer-pay.ts); the order engine knew it and did not record it. */
+      deliverable: entry.tier,
       propertyAddress: trimmed(input.property.propertyAddress),
       city: trimmed(input.property.city) || null,
       county,

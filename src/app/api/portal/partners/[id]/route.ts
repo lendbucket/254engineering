@@ -9,9 +9,11 @@ import {
   recordPartnerPayout,
 } from "@/lib/ops-partner-comp";
 import { decideSubmission } from "@/lib/ops-partner-assets";
+import { decidePartnerLogo } from "@/lib/partner-branding";
 import { deploymentOrigin } from "@/lib/site-url";
 import { money } from "@/lib/ops-money";
 import type { CompModel, Tier } from "@/lib/partner-comp";
+import { withSaveOutcome } from "@/lib/save-outcome";
 
 /**
  * Everything an operator does to one partner, behind one door.
@@ -43,7 +45,7 @@ function dollarsToCents(raw: unknown): number | null {
   return Math.round(value * 100);
 }
 
-export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+async function handlePOST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   const actor = await currentActor();
   if (!actor) return NextResponse.json({ ok: false, error: "Sign in first." }, { status: 401 });
   if (!can(actor, "partners.manage")) {
@@ -189,7 +191,23 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
         : bad(result.error);
     }
 
+    /* A partner's logo, waiting for the operator (run item 19, migration 0072). */
+    case "logo": {
+      const decision = String(body?.decision ?? "");
+      if (!["approved", "refused"].includes(decision)) return bad("That is not a decision.");
+      const result = await decidePartnerLogo(actor, partnerId, decision as "approved" | "refused");
+      return result.ok
+        ? NextResponse.json({
+            ok: true,
+            note: decision === "approved" ? "Approved. It shows on the partner's order page." : "Refused. The partner can upload another.",
+          })
+        : bad(result.error);
+    }
+
     default:
       return bad("That is not something this screen does.");
   }
 }
+
+/* A save abandoned by the 20 second bound says it may not have saved, and a failed session read is never "Not signed in": save-outcome.ts. */
+export const POST = withSaveOutcome(handlePOST);

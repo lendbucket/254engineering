@@ -7,6 +7,7 @@ import { currentActor, requestContext } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
 import { createFile, transitionFile, convertLead, createClient, getFile, getClient } from "@/lib/ops-crm";
 import type { FileStatus } from "@/lib/ops-files";
+import { withSaveOutcome } from "@/lib/save-outcome";
 
 /**
  * Everything that changes a client or a file.
@@ -25,7 +26,7 @@ import type { FileStatus } from "@/lib/ops-files";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   const actor = await currentActor();
   if (!actor) return NextResponse.json({ ok: false, error: "Not signed in." }, { status: 401 });
 
@@ -239,3 +240,6 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({ ok: false, error: "Unknown action." }, { status: 400 });
 }
+
+/* A save abandoned by the 20 second bound says it may not have saved, and a failed session read is never "Not signed in": save-outcome.ts. */
+export const POST = withSaveOutcome(handlePOST);

@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { placeOrder, requestQuote, siteFromKey } from "@/lib/ops-intake";
 import { startCheckout } from "@/lib/ops-payments";
 import { isOpen, notYetAcceptingEngagements } from "@/lib/launch";
+import { withSaveOutcome } from "@/lib/save-outcome";
 
 export const dynamic = "force-dynamic";
 
@@ -64,7 +65,7 @@ type Body = {
   attribution?: Record<string, string>;
 };
 
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   const site = siteFromKey(request.headers.get("x-intake-key"));
   if (!site) return NOWHERE();
 
@@ -193,3 +194,6 @@ export async function POST(request: NextRequest) {
     { status: result.duplicate ? 200 : 201 },
   );
 }
+
+/* A save abandoned by the 20 second bound says it may not have saved, and a failed session read is never "Not signed in": save-outcome.ts. */
+export const POST = withSaveOutcome(handlePOST);

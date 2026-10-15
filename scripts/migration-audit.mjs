@@ -49,6 +49,7 @@
 
 import { readdirSync } from "node:fs";
 import { readSource } from "./lib/read-source.mjs";
+import { SUPABASE_REPLAY_STUBS } from "./lib/replay-stubs.mjs";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
 import { PGlite } from "@electric-sql/pglite";
@@ -185,12 +186,37 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * naming both figures before this edit, which is this constant doing its job;
  * the miss was that the migration's author did not run this audit standalone
  * before boarding.
+ *
+ * Moved 2026-10-10 by 0071, sign in attempts counted in the database: 1,171 to
+ * 1,176 is eng_sign_in_attempts' five columns (id, created_at, address,
+ * identity, kind), 83 tables to 84 is that table with row level security on,
+ * shape bc55a14f40a4c7a78cc061fd262e785b. 0068, 0069 and 0070 moved no shape.
+ *
+ * Moved 2026-10-10 by 0072, a partner's logo: 1,176 to 1,181 is eng_partners'
+ * five brand_logo_ columns (key, status, uploaded_at, decided_by, decided_at),
+ * no new table, shape 3cffb39b56eda13ab54bbe8823b4c26d. 0073 moved no shape.
+ *
+ * Moved 2026-10-12 by 0074, partner billing: 1,181 to 1,194 is
+ * eng_partner_billing's eight columns (partner_id, status, past_due_since,
+ * current_period_end, stripe_customer_ref, stripe_subscription_ref,
+ * created_at, updated_at) and eng_partner_billing_events' five
+ * (stripe_event_id, partner_id, event_type, status_after, applied_at); 84
+ * tables to 86, both with row level security on; shape
+ * e4b2e3505c71594d6aba4ca47025bf3f.
+ *
+ * Moved 2026-10-13 by 0075, a payment event applied once: 1,194 to 1,206 is
+ * eng_payment_events' twelve columns (event_id, source, event_type, order_id,
+ * batch_id, statement_id, charge_ref, status, claimed_at, done_at,
+ * release_attempts, last_error); 86 tables to 87, row level security on;
+ * shape 318b0fa346fc0f92167df9b9f44ce1cf, read off fingerprint-at.mjs.
  */
-const EXPECTED_FINGERPRINT = "18826fa5b3e7d9c9979ca81b96666bb7";
-const EXPECTED_COLUMNS = 1171;
-const EXPECTED_TABLES = 83;
-/* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts. */
-const EXPECTED_TRIGGERS = 77;
+const EXPECTED_FINGERPRINT = "318b0fa346fc0f92167df9b9f44ce1cf";
+const EXPECTED_COLUMNS = 1206;
+const EXPECTED_TABLES = 87;
+/* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts.
+ * 0074 adds two: eng_partner_billing_touch and eng_partner_billing_events_immutable.
+ * 0075 adds one: eng_payment_events_guarded. */
+const EXPECTED_TRIGGERS = 80;
 /**
  * 0014 added eng_freeze_attribution and 0019 added two more, the partner
  * entry freeze and its delete refusal, which are trigger functions like the
@@ -214,7 +240,14 @@ const EXPECTED_TRIGGERS = 77;
  * 0063 adds one, eng_spend_links_on_suspension, bringing it to 36; 0064
  * replaces that function's body and adds none.
  */
-const EXPECTED_FUNCTIONS = 36;
+/* 37 since 0068: eng_record_review_decision, a decided review in one transaction.
+ * 38 since 0071: eng_take_sign_in_attempt, the sign in limiter's count.
+ * 46 since 0075: the payment event guard, claim and finish, and one function
+ * per webhook branch (order paid, batch paid, statement paid, checkout expired,
+ * refund), each a single transaction.
+ * 47 since 0076: eng_apply_refund_update, one Stripe refund update in one
+ * transaction. 0076 adds no column, so the shape above does not move. */
+const EXPECTED_FUNCTIONS = 47;
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
@@ -277,21 +310,11 @@ for (const f of files) {
 const db = new PGlite();
 
 /*
- * The Supabase objects this platform's migrations reference. Minimal, and
- * outside the fingerprint.
+ * The Supabase objects this platform's migrations reference, the roles and
+ * their default grant included. Minimal, outside the fingerprint, and one copy
+ * for every replay: scripts/lib/replay-stubs.mjs.
  */
-await db.exec(`
-  create schema if not exists auth;
-  create table if not exists auth.users (id uuid primary key);
-  create schema if not exists storage;
-  create table if not exists storage.buckets (
-    id text primary key,
-    name text,
-    public boolean,
-    file_size_limit bigint,
-    allowed_mime_types text[]
-  );
-`);
+await db.exec(SUPABASE_REPLAY_STUBS);
 
 let replayed = 0;
 let failedAt = null;
@@ -368,6 +391,56 @@ if (failedAt === null) {
     "and every one has its search_path pinned",
     fns.length > 0 && fns.every((f) => f.pinned),
     fns.filter((f) => !f.pinned).map((f) => f.proname).join(", ") || "all pinned",
+  );
+
+  /*
+   * NO FUNCTION IN PUBLIC IS EXECUTABLE BY anon OR authenticated. 0073.
+   *
+   * Every eng_ function was callable through PostgREST rpc by anybody holding
+   * the publishable key until 0073, because Supabase's default privileges and
+   * PostgreSQL's grant to PUBLIC give EXECUTE on every new function. This
+   * platform calls every function with the service role and nothing else, so
+   * the only grant a function needs is service_role's.
+   *
+   * THE PREMISE FIRST. The check below asserts an absence, and an absence holds
+   * just as well in a replay that never granted anything. So a throwaway
+   * function is created after the chain and must be executable by anon: that
+   * is the replay reproducing production's default, which is what gives the
+   * real check something to find. It is dropped before anything else reads the
+   * schema.
+   */
+  await db.exec(`create function public.replay_default_grant_probe() returns int language sql as 'select 1'`);
+  const premise = (await db.query(
+    `select has_function_privilege('anon', 'public.replay_default_grant_probe()', 'EXECUTE') as anon`,
+  )).rows[0];
+  await db.exec(`drop function public.replay_default_grant_probe()`);
+  rec(
+    "the replay grants a new function to anon by default, as Supabase does",
+    premise.anon === true,
+    premise.anon ? "so the next check can find a function nobody revoked" : "the stub lost the default, so the next check passes over nothing",
+  );
+  const grantRows = (await db.query(`
+    select p.oid::regprocedure::text as sig,
+           p.proname like 'eng\\_%' as ours,
+           has_function_privilege('anon', p.oid, 'EXECUTE') as anon,
+           has_function_privilege('authenticated', p.oid, 'EXECUTE') as authenticated,
+           has_function_privilege('service_role', p.oid, 'EXECUTE') as service
+    from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public'
+    order by 1
+  `)).rows;
+  const open = grantRows.filter((r) => r.anon || r.authenticated);
+  rec(
+    `no function in public is executable by anon or authenticated (${grantRows.length} checked)`,
+    grantRows.length >= EXPECTED_FUNCTIONS && open.length === 0,
+    open.map((r) => `${r.sig}${r.anon ? " anon" : ""}${r.authenticated ? " authenticated" : ""}`).join(", ") ||
+      `none, and ${grantRows.length} is at least the ${EXPECTED_FUNCTIONS} eng_ functions`,
+  );
+  const closed = grantRows.filter((r) => r.ours && !r.service);
+  rec(
+    "and the service role can execute every eng_ function, which is how the platform calls them",
+    closed.length === 0 && grantRows.some((r) => r.ours),
+    closed.map((r) => r.sig).join(", ") || "all",
   );
 
   const trgRows = await db.query(`

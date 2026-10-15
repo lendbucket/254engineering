@@ -1,16 +1,20 @@
 import "server-only";
 import { readEvery } from "./bounded-read";
 import { supabaseAdmin } from "./supabase";
-import { can, REVIEW_QUEUE_STATUSES, type Actor } from "./ops-authz";
+import { can, REVIEW_QUEUE_STATUSES, type Actor, type RoleKey } from "./ops-authz";
+import { threadsReadableBy } from "./ops-threads";
 import { reachableHref } from "./reachable-href";
 import { taskCounts } from "./ops-tasks";
-import { unreadCount } from "./ops-notify";
+import { unreadCountRead } from "./ops-notify";
 import { fileMargins, marginByPeriod, type FileMargin } from "./ops-docs";
 import { expiryState } from "./ops-credentials";
 import { periodOf } from "./ops-review";
-import { ordersNeedingAttention } from "./ops-reconcile";
+import { ordersNeedingAttentionRead } from "./ops-reconcile";
+import { unreleasedPayments } from "./payment-events";
 import { marginOf, type Cents, type PeriodTotals } from "./ops-money";
 import { isOwed, isPaid } from "./pay-figures";
+import { uncreditedReviewsRead } from "./ops-engineer";
+import { credentialBlockersRead } from "./ops-onboarding";
 
 /**
  * The three dashboards.
@@ -75,6 +79,8 @@ export type AdminDashboard = {
   /** Every period, so a trend is visible without an export. */
   periods: PeriodTotals[];
   attention: Attention[];
+  /** What could not be read on this render. Rendered as "What could not be counted" when not empty. */
+  notComputable: string[];
 };
 
 export type EngineerDashboard = {
@@ -84,6 +90,7 @@ export type EngineerDashboard = {
   reviewMinutesThisPeriod: number;
   reviewsThisPeriod: number;
   attention: Attention[];
+  notComputable: string[];
 };
 
 export type TechDashboard = {
@@ -91,7 +98,23 @@ export type TechDashboard = {
   tiles: Tile[];
   money: MoneyTile[];
   attention: Attention[];
+  notComputable: string[];
 };
+
+/**
+ * A READ THAT FAILED IS REPORTED, ON EVERY DASHBOARD. Operator ruling,
+ * 2026-10-12. The three money dashboards had no "What could not be counted" at
+ * all, and a dozen of their reads discarded the error into a zero, an empty
+ * list, or a false sentence. Each such read now leaves a sentence here, and the
+ * figure it fed shows "not known" rather than the fallback.
+ */
+const NOT_READ = "This could not be read, so it is not a count of zero.";
+const NO_DATABASE = "The database is not configured, so nothing on this screen could be counted.";
+
+/** A count's note: the read failed, it is zero, or it is some. */
+function countNote(count: Count, zero: string, some: string): string {
+  return count === null ? NOT_READ : count === 0 ? zero : some;
+}
 
 /**
  * A grouped answer, where one number is not the answer.
@@ -253,7 +276,7 @@ const sumCents = (rows: { amount_cents?: unknown }[] | null): Cents =>
 async function adminDashboard(actor: Actor): Promise<AdminDashboard> {
   const db = supabaseAdmin();
   if (!db) {
-    return { role: "admin", tiles: [], money: [], period: null, periods: [], attention: [] };
+    return { role: "admin", tiles: [], money: [], period: null, periods: [], attention: [], notComputable: [NO_DATABASE] };
   }
 
   const now = new Date().toISOString();
@@ -294,14 +317,27 @@ async function adminDashboard(actor: Actor): Promise<AdminDashboard> {
       ),
       countRows((d) => d.from("eng_files").select("id", { count: "exact", head: true }).in("status", ["intake", "needs_dispatch"]).eq("is_demo", false)),
       taskCounts(actor),
-      unreadCount(actor.id),
+      unreadCountRead(actor.id),
       fileMargins(actor),
       expiringCredentialCount(),
-      ordersNeedingAttention(),
+      ordersNeedingAttentionRead(),
     ]);
 
-  const needsAction = stuckOrders.filter((o) => o.attention.level === "act");
-  const watching = stuckOrders.filter((o) => o.attention.level === "watch");
+  const notComputable: string[] = [];
+  if (tasks === null) notComputable.push("Tasks could not be read, so the overdue count is not known.");
+  if (unread === null) notComputable.push("Notifications could not be read, so the unread count is not known.");
+  if (margins === null) {
+    notComputable.push("The files or the partner ledger could not be read, so no money figure and no margin by period is shown.");
+  }
+  if (expiring === null) notComputable.push("Credentials could not be read, so the count expiring is not known.");
+  if (stuckOrders === null) {
+    notComputable.push(
+      "Orders, payments or checkout records could not be read, so whether any order is stuck on payment is not known.",
+    );
+  }
+
+  const needsAction = (stuckOrders ?? []).filter((o) => o.attention.level === "act");
+  const watching = (stuckOrders ?? []).filter((o) => o.attention.level === "watch");
 
   /*
    * A FIRM THAT HAS DELIVERED NOTHING HAS REVENUE OF NOTHING, IN NUMBERS.
@@ -345,50 +381,48 @@ async function adminDashboard(actor: Actor): Promise<AdminDashboard> {
     {
       label: "Evidence past due",
       count: overdueEvidence,
-      note:
-        overdueEvidence === 0
-          ? "No dispatched file has run past its deadline."
-          : "A technician holds these and the deadline has gone.",
+      note: countNote(
+        overdueEvidence,
+        "No dispatched file has run past its deadline.",
+        "A technician holds these and the deadline has gone.",
+      ),
       href: "/portal/files",
-      tone: overdueEvidence === 0 ? "good" : "bad",
+      tone: overdueEvidence === null ? "neutral" : overdueEvidence === 0 ? "good" : "bad",
     },
     {
       label: "Due in 48 hours",
       count: dueSoon,
-      note: "Dispatched files with a deadline inside two days.",
+      note: dueSoon === null ? NOT_READ : "Dispatched files with a deadline inside two days.",
       href: "/portal/files",
-      tone: dueSoon === 0 ? "neutral" : "warn",
+      tone: dueSoon === null || dueSoon === 0 ? "neutral" : "warn",
     },
     {
       label: "Offers out",
       count: openOffers,
-      note: openOffers === 0 ? "No offer is waiting on a technician." : "Sent and not yet answered.",
+      note: countNote(openOffers, "No offer is waiting on a technician.", "Sent and not yet answered."),
       /* No href: /portal/files/dispatch lists files awaiting dispatch, which is not this question, and no screen lists offers already out. */
       tone: "neutral",
     },
     {
       label: "Not yet dispatched",
       count: atIntake,
-      note: "Opened, or waiting on dispatch, with nobody on them.",
+      note: atIntake === null ? NOT_READ : "Opened, or waiting on dispatch, with nobody on them.",
       href: "/portal/files",
-      tone: atIntake === 0 ? "neutral" : "warn",
+      tone: atIntake === null || atIntake === 0 ? "neutral" : "warn",
     },
     {
       label: "Dispatchable technicians",
       count: activeTechs,
-      note: activeTechs === 0 ? "Nobody can be offered work." : "Active field accounts.",
+      note: countNote(activeTechs, "Nobody can be offered work.", "Active field accounts."),
       href: "/portal/techs",
-      tone: activeTechs === 0 ? "bad" : "good",
+      tone: activeTechs === null ? "neutral" : activeTechs === 0 ? "bad" : "good",
     },
     {
       label: "Credentials expiring",
       count: expiring,
-      note:
-        expiring === 0
-          ? "Nothing is inside the warning window."
-          : "Inside the warning window or already past it.",
+      note: countNote(expiring, "Nothing is inside the warning window.", "Inside the warning window or already past it."),
       href: "/portal/techs",
-      tone: expiring === 0 ? "good" : "warn",
+      tone: expiring === null ? "neutral" : expiring === 0 ? "good" : "warn",
     },
     {
       /*
@@ -402,20 +436,21 @@ async function adminDashboard(actor: Actor): Promise<AdminDashboard> {
        * payment that may be lost.
        */
       label: "Orders stuck on payment",
-      count: needsAction.length,
-      note:
-        needsAction.length === 0
-          ? "Nothing is waiting on a payment that should have arrived."
-          : "A checkout was started and no payment was ever recorded.",
+      count: stuckOrders === null ? null : needsAction.length,
+      note: countNote(
+        stuckOrders === null ? null : needsAction.length,
+        "Nothing is waiting on a payment that should have arrived.",
+        "A checkout was started and no payment was ever recorded.",
+      ),
       href: "/portal/orders",
-      tone: needsAction.length === 0 ? "good" : "bad",
+      tone: stuckOrders === null ? "neutral" : needsAction.length === 0 ? "good" : "bad",
     },
     {
       label: "Tasks overdue",
-      count: tasks.overdue,
-      note: `${tasks.open} open in total.`,
+      count: tasks === null ? null : tasks.overdue,
+      note: tasks === null ? NOT_READ : `${tasks.open} open in total.`,
       href: "/portal/tasks",
-      tone: tasks.overdue === 0 ? "good" : "bad",
+      tone: tasks === null ? "neutral" : tasks.overdue === 0 ? "good" : "bad",
     },
   ];
 
@@ -453,6 +488,32 @@ async function adminDashboard(actor: Actor): Promise<AdminDashboard> {
   const attention: Attention[] = [];
 
   /*
+   * PAID, WORK NOT RELEASED. Operator ruling, 2026-10-12, on 0075.
+   *
+   * A payment whose money is written and whose release (the file, the
+   * customer's link, the confirmation, the account) has not finished fifteen
+   * minutes later. Stripe's resends should finish it; this is where it shows
+   * when they have not. First, with the stuck orders below, because both can
+   * mean a customer has been charged and is waiting for nothing.
+   */
+  const unreleased = await unreleasedPayments();
+  if (unreleased === null) {
+    notComputable.push(
+      "The payment event ledger could not be read, so whether any paid order is waiting for its work to be released is not known.",
+    );
+  } else if (unreleased.length > 0) {
+    const named = unreleased
+      .slice(0, 3)
+      .map((u) => `${u.reference}, ${u.minutes} minutes${u.lastError ? `: ${u.lastError}` : ""}`)
+      .join("; ");
+    attention.push({
+      label: `Paid, work not released: ${unreleased.length} order${unreleased.length === 1 ? "" : "s"}`,
+      detail: `${named}${unreleased.length > 3 ? `; and ${unreleased.length - 3} more` : ""}.`,
+      href: "/portal/orders",
+    });
+  }
+
+  /*
    * First in the list, ahead of everything else on this screen, because it is
    * the only entry that can mean a customer has been charged and has no order.
    */
@@ -479,7 +540,7 @@ async function adminDashboard(actor: Actor): Promise<AdminDashboard> {
       href: "/portal/files",
     });
   }
-  if (activeTechs === 0) {
+  if (activeTechs !== null && activeTechs === 0) {
     attention.push({
       label: "No technician can be dispatched",
       detail: "Every field account is inactive, suspended, or blocked on a credential.",
@@ -500,7 +561,28 @@ async function adminDashboard(actor: Actor): Promise<AdminDashboard> {
       href: "/portal/billing",
     });
   }
-  if (unread > 0) {
+  /*
+   * A DECIDED REVIEW THAT CREDITED THE ENGINEER NOTHING. Operator ruling 2 of
+   * 2026-10-10: it lands here naming the file and what is missing, and Billing
+   * carries the control that fixes the record and writes the credit.
+   */
+  if (can(actor, "ledger.approve")) {
+    const uncredited = await uncreditedReviewsRead();
+    if (uncredited === null) {
+      notComputable.push("Review sessions, the production ledger or their files could not be read, so whether any decided review went uncredited is not known.");
+    } else if (uncredited.length > 0) {
+      const named = uncredited
+        .slice(0, 3)
+        .map((r) => `${r.fileNumber}: ${r.missing ?? "a credit is due and was never written"}`)
+        .join("; ");
+      attention.push({
+        label: `${uncredited.length} decided review${uncredited.length === 1 ? "" : "s"} credited the engineer nothing`,
+        detail: `${named}${uncredited.length > 3 ? `; and ${uncredited.length - 3} more` : ""}.`,
+        href: "/portal/billing",
+      });
+    }
+  }
+  if (unread !== null && unread > 0) {
     attention.push({
       label: `${unread} unread notification${unread === 1 ? "" : "s"}`,
       detail: "In the bell, oldest first.",
@@ -508,17 +590,22 @@ async function adminDashboard(actor: Actor): Promise<AdminDashboard> {
     });
   }
 
-  return { role: "admin", tiles, money, period: thisPeriod, periods, attention };
+  return { role: "admin", tiles, money, period: thisPeriod, periods, attention, notComputable };
 }
 
-async function expiringCredentialCount(): Promise<number> {
+/** Null when the credentials could not be read, which is not "none expiring" (2026-10-12). */
+async function expiringCredentialCount(): Promise<number | null> {
   const db = supabaseAdmin();
-  if (!db) return 0;
-  const { data } = await db
+  if (!db) return null;
+  const { data, error } = await db
     .from("eng_credentials")
     .select("expires_on, status")
     .not("expires_on", "is", null)
     .neq("status", "rejected");
+  if (error) {
+    console.error(`[dashboard] the credentials could not be read: ${error.message}`);
+    return null;
+  }
   return (data ?? []).filter((c) => {
     const state = expiryState(c.expires_on as string | null);
     return state === "expiring" || state === "expired";
@@ -537,6 +624,7 @@ async function engineerDashboard(actor: Actor): Promise<EngineerDashboard> {
       reviewMinutesThisPeriod: 0,
       reviewsThisPeriod: 0,
       attention: [],
+      notComputable: [NO_DATABASE],
     };
   }
 
@@ -548,8 +636,11 @@ async function engineerDashboard(actor: Actor): Promise<EngineerDashboard> {
     ),
     countRows((d) => d.from("eng_files").select("id", { count: "exact", head: true }).eq("status", "under_review")),
     taskCounts(actor),
-    unreadCount(actor.id),
+    unreadCountRead(actor.id),
   ]);
+  const notComputable: string[] = [];
+  if (tasks === null) notComputable.push("Tasks could not be read, so the overdue count is not known.");
+  if (unread === null) notComputable.push("Notifications could not be read, so the unread count is not known.");
 
   /*
    * PAGED. This is the count of reviews an engineer's licence stands on and the
@@ -568,6 +659,10 @@ async function engineerDashboard(actor: Actor): Promise<EngineerDashboard> {
       .range(from, to),
   );
   const charge = chargeRead.ok ? chargeRead.rows : null;
+  if (charge === null) {
+    console.error(`[dashboard] the responsible charge log could not be read: ${chargeRead.ok ? "" : chargeRead.error}`);
+    notComputable.push(`The responsible charge log could not be read, so the reviews and minutes for ${period} are not known.`);
+  }
 
   const reviewsThisPeriod = (charge ?? []).length;
   const reviewMinutesThisPeriod = (charge ?? []).reduce(
@@ -647,28 +742,31 @@ async function engineerDashboard(actor: Actor): Promise<EngineerDashboard> {
     {
       label: "Open in review",
       count: open,
-      note: "Taken into review and not yet decided.",
+      note: open === null ? NOT_READ : "Taken into review and not yet decided.",
       href: "/portal/review",
       tone: "neutral",
     },
     {
       label: `Reviews in ${period}`,
-      count: reviewsThisPeriod,
-      note: `${reviewMinutesThisPeriod} minute${reviewMinutesThisPeriod === 1 ? "" : "s"} recorded against them.`,
+      count: charge === null ? null : reviewsThisPeriod,
+      note:
+        charge === null
+          ? NOT_READ
+          : `${reviewMinutesThisPeriod} minute${reviewMinutesThisPeriod === 1 ? "" : "s"} recorded against them.`,
       href: "/portal/charge-log",
       tone: "neutral",
     },
     {
       label: "Tasks overdue",
-      count: tasks.overdue,
-      note: `${tasks.open} open in total, including the license and filing dates.`,
+      count: tasks === null ? null : tasks.overdue,
+      note: tasks === null ? NOT_READ : `${tasks.open} open in total, including the license and filing dates.`,
       href: "/portal/tasks",
-      tone: tasks.overdue === 0 ? "good" : "bad",
+      tone: tasks === null ? "neutral" : tasks.overdue === 0 ? "good" : "bad",
     },
     {
       label: "Unread notifications",
       count: unread,
-      note: "In the bell.",
+      note: unread === null ? NOT_READ : "In the bell.",
       /* No href: the bell is a control in PortalChrome and there is no notifications page. The note says so. */
       tone: "neutral",
     },
@@ -705,7 +803,7 @@ async function engineerDashboard(actor: Actor): Promise<EngineerDashboard> {
       href: "/portal/review",
     });
   }
-  if (tasks.overdue > 0) {
+  if (tasks !== null && tasks.overdue > 0) {
     attention.push({
       label: `${tasks.overdue} compliance task${tasks.overdue === 1 ? "" : "s"} overdue`,
       detail: "License renewal, the nonsubscriber filing and the insurance dates all sit in that list.",
@@ -713,14 +811,14 @@ async function engineerDashboard(actor: Actor): Promise<EngineerDashboard> {
     });
   }
 
-  return { role: "engineer", tiles, money, reviewMinutesThisPeriod, reviewsThisPeriod, attention };
+  return { role: "engineer", tiles, money, reviewMinutesThisPeriod, reviewsThisPeriod, attention, notComputable };
 }
 
 // ------------------------------------------------------------ field tech
 
 async function techDashboard(actor: Actor): Promise<TechDashboard> {
   const db = supabaseAdmin();
-  if (!db) return { role: "field_tech", tiles: [], money: [], attention: [] };
+  if (!db) return { role: "field_tech", tiles: [], money: [], attention: [], notComputable: [NO_DATABASE] };
 
   const now = new Date().toISOString();
   const soon = new Date(Date.now() + HOURS_48).toISOString();
@@ -758,8 +856,11 @@ async function techDashboard(actor: Actor): Promise<TechDashboard> {
         .in("status", TECH_OPEN_STATUSES),
     ),
     taskCounts(actor),
-    unreadCount(actor.id),
+    unreadCountRead(actor.id),
   ]);
+  const notComputable: string[] = [];
+  if (tasks === null) notComputable.push("Tasks could not be read, so the overdue count is not known.");
+  if (unread === null) notComputable.push("Notifications could not be read, so the unread count is not known.");
 
   /*
    * Scoped through the FILE, for the reason written out on the engineer's
@@ -800,42 +901,42 @@ async function techDashboard(actor: Actor): Promise<TechDashboard> {
     {
       label: "Offers waiting on you",
       count: offers,
-      note: offers === 0 ? "Nothing has been offered to you right now." : "Answer before they expire.",
+      note: countNote(offers, "Nothing has been offered to you right now.", "Answer before they expire."),
       href: "/portal/jobs",
-      tone: offers === 0 ? "neutral" : "warn",
+      tone: offers === null || offers === 0 ? "neutral" : "warn",
     },
     {
       label: "Jobs you hold",
       count: active,
-      note: active === 0 ? "Nothing is assigned to you." : "Accepted and not yet submitted.",
+      note: countNote(active, "Nothing is assigned to you.", "Accepted and not yet submitted."),
       href: "/portal/jobs",
       tone: "neutral",
     },
     {
       label: "Due in 48 hours",
       count: dueSoon,
-      note: "Evidence deadlines inside two days.",
+      note: dueSoon === null ? NOT_READ : "Evidence deadlines inside two days.",
       href: "/portal/jobs",
-      tone: dueSoon === 0 ? "neutral" : "warn",
+      tone: dueSoon === null || dueSoon === 0 ? "neutral" : "warn",
     },
     {
       label: "Past due",
       count: overdue,
-      note: overdue === 0 ? "Nothing of yours is late." : "The deadline has gone and nothing is submitted.",
+      note: countNote(overdue, "Nothing of yours is late.", "The deadline has gone and nothing is submitted."),
       href: "/portal/jobs",
-      tone: overdue === 0 ? "good" : "bad",
+      tone: overdue === null ? "neutral" : overdue === 0 ? "good" : "bad",
     },
     {
       label: "Tasks overdue",
-      count: tasks.overdue,
-      note: `${tasks.open} open in total, including credential expiry.`,
+      count: tasks === null ? null : tasks.overdue,
+      note: tasks === null ? NOT_READ : `${tasks.open} open in total, including credential expiry.`,
       href: "/portal/tasks",
-      tone: tasks.overdue === 0 ? "good" : "bad",
+      tone: tasks === null ? "neutral" : tasks.overdue === 0 ? "good" : "bad",
     },
     {
       label: "Unread notifications",
       count: unread,
-      note: "In the bell.",
+      note: unread === null ? NOT_READ : "In the bell.",
       /* No href: the bell is a control in PortalChrome and there is no notifications page. The note says so. */
       tone: "neutral",
     },
@@ -880,7 +981,85 @@ async function techDashboard(actor: Actor): Promise<TechDashboard> {
     });
   }
 
-  return { role: "field_tech", tiles, money, attention };
+  const blockers = await dispatchBlockersFor(actor.id);
+  if (blockers === null) {
+    notComputable.push(
+      "Your account, certifications or credentials could not be read, so whether anything stops dispatch offering you work is not known.",
+    );
+  } else {
+    attention.push(...blockers);
+  }
+
+  return { role: "field_tech", tiles, money, attention, notComputable };
+}
+
+/*
+ * =========================================================================
+ * WHY NO JOB IS BEING OFFERED TO YOU. Operator ruling, 2026-10-10 (gap 1 of
+ * the product audit).
+ * =========================================================================
+ *
+ * planDispatch (ops-dispatch.ts) leaves a technician out for four reasons: the
+ * account is not active, they do not cover the county, they are not certified
+ * for the line, or a credential blocks them (the W-9 and the contractor
+ * agreement are credentials, so the documents are among these). The operator
+ * saw those reasons on the dispatch screen; the technician saw nothing, and a
+ * technician who is never offered work cannot tell "no jobs nearby" from "my
+ * W-9 is missing".
+ *
+ * Each reason here is read with what dispatch reads: the profile's status and
+ * coverage, the certifications whose status is certified, and
+ * credentialBlockersFor, the function candidateTechs calls. The county a job is
+ * in is per job, so the coverage line here is the general case: none set.
+ */
+/*
+ * NULL WHEN ANY OF THE THREE READS FAILED. Operator ruling, 2026-10-12. A
+ * failed certification read told the technician "you are not certified for any
+ * service line", and a failed credential read listed every credential they hold
+ * as a blocker. Those are false sentences about a person, so a failure is
+ * reported in "What could not be counted" and no blocker is stated.
+ */
+async function dispatchBlockersFor(profileId: string): Promise<Attention[] | null> {
+  const db = supabaseAdmin();
+  if (!db) return null;
+  const [{ data: profile, error: profileError }, { data: certs, error: certsError }, blockersBy] = await Promise.all([
+    db.from("eng_profiles").select("status, coverage_counties").eq("id", profileId).maybeSingle(),
+    db.from("eng_certifications").select("service_slug").eq("profile_id", profileId).eq("status", "certified"),
+    credentialBlockersRead([profileId]),
+  ]);
+  if (profileError || certsError || blockersBy === null) {
+    console.error(`[dashboard] the dispatch blockers could not be read: ${(profileError ?? certsError)?.message ?? "credentials"}`);
+    return null;
+  }
+  const out: Attention[] = [];
+  if (profile && profile.status !== "active") {
+    out.push({
+      label: "No job can be offered to you: your account is not active",
+      detail: `It reads ${profile.status}. An administrator can tell you why.`,
+    });
+  }
+  if (profile && ((profile.coverage_counties as string[] | null) ?? []).length === 0) {
+    out.push({
+      label: "No job can be offered to you: you cover no counties",
+      detail: "Dispatch offers a job only to somebody who covers its county, and the office sets your counties. Ask an administrator.",
+      href: "/portal/profile",
+    });
+  }
+  if ((certs ?? []).length === 0) {
+    out.push({
+      label: "No job can be offered to you: you are not certified for any service line",
+      detail: "Each line needs its own certification before dispatch will offer you one of its jobs.",
+      href: "/portal/certification",
+    });
+  }
+  for (const reason of blockersBy.get(profileId) ?? []) {
+    out.push({
+      label: "No job can be offered to you until this is fixed",
+      detail: reason,
+      href: "/portal/certification",
+    });
+  }
+  return out;
 }
 
 /** The dashboard for whoever is asking. Role decides it, never a query parameter. */
@@ -1010,7 +1189,7 @@ async function buildDashboard(actor: Actor | null): Promise<Dashboard | null> {
    */
   if (can(actor, "ledger.read_all") && can(actor, "billing.read")) return adminDashboard(actor);
   if (can(actor, "offers.dispatch")) return dispatcherDashboard();
-  if (can(actor, "suppressions.manage")) return customerServiceDashboard();
+  if (can(actor, "suppressions.manage")) return customerServiceDashboard(actor);
   if (can(actor, "clients.create") && can(actor, "files.create")) return salesDashboard();
   if (can(actor, "evidence.review")) return engineerDashboard(actor);
   if (can(actor, "offers.list_own")) return techDashboard(actor);
@@ -1568,7 +1747,7 @@ async function salesDashboard(): Promise<SalesDashboard> {
  *   threads that have gone quiet, from eng_threads.last_message_at, which is a
  *   different and honest thing.
  */
-async function customerServiceDashboard(): Promise<CustomerServiceDashboard> {
+async function customerServiceDashboard(actor: Actor): Promise<CustomerServiceDashboard> {
   const db = supabaseAdmin();
   const notComputable: string[] = [];
   if (!db) {
@@ -1608,12 +1787,35 @@ async function customerServiceDashboard(): Promise<CustomerServiceDashboard> {
   const threadRead = await readEvery<Record<string, unknown>>((from, to) =>
     db
       .from("eng_threads")
-      .select("id, kind, name, last_message_at, created_at")
+      .select("id, kind, file_id, channel_roles, name, last_message_at, created_at")
       .order("created_at", { ascending: true })
       .range(from, to),
   );
   if (!threadRead.ok) console.error("[dashboard] threads could not be read:", threadRead.error);
-  const threads = threadRead.ok ? threadRead.rows : null;
+  /*
+   * ONLY THE THREADS THIS PERSON MAY READ. Product audit, 2026-10-10, defect
+   * 17: the count was every thread in the table, so other people's direct
+   * messages, which are private even from an administrator, were counted on
+   * this screen (7 against the viewer's 1). Filtered by canReadThread, the rule
+   * the inbox applies, after the full read.
+   */
+  /* A failed participant or file read makes the whole count unknown, never a smaller one (2026-10-12). */
+  let visibilityFailed = false;
+  const readable = threadRead.ok
+    ? await threadsReadableBy(
+        actor,
+        threadRead.rows as (Record<string, unknown> & {
+          id: string;
+          kind: "file" | "direct" | "channel";
+          file_id: string | null;
+          channel_roles: RoleKey[] | null;
+        })[],
+        () => {
+          visibilityFailed = true;
+        },
+      )
+    : null;
+  const threads = visibilityFailed ? null : readable;
 
   /*
    * Refunds in flight, by case. COUNTED and not summed, which keeps the

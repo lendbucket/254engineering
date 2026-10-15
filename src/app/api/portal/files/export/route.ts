@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { currentActor, requestContext } from "@/lib/ops-auth";
 import { csvHeaders } from "@/lib/csv";
 import { exportFiles, EXPORT_LIMIT } from "@/lib/ops-bulk-files";
+import { withSaveOutcome } from "@/lib/save-outcome";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +34,7 @@ function bad(message: string, status = 400) {
   return NextResponse.json({ ok: false, error: message }, { status });
 }
 
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   const actor = await currentActor();
   if (!actor) return bad("Not signed in.", 401);
   if (actor.status !== "active") return bad("This account is not active.", 403);
@@ -67,3 +68,6 @@ export async function POST(request: NextRequest) {
 
   return new NextResponse(result.body, { headers: csvHeaders(result.filename) });
 }
+
+/* A save abandoned by the 20 second bound says it may not have saved, and a failed session read is never "Not signed in": save-outcome.ts. */
+export const POST = withSaveOutcome(handlePOST);

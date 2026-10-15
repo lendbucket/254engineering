@@ -163,6 +163,15 @@ const PROBE_A = {
    * on the first board run after it shipped, for the third time and for the
    * same reason, and the field was added here rather than the check loosened. */
   manifestId: "manifest-a",
+  /* review.request is keyed on the order alone, one request per order. Its
+   * first board went red here, the fourth time this arrangement has caught a
+   * new key field, and the field was added rather than the check loosened. */
+  orderId: "order-a",
+  /* review.after_decision is keyed on the file AND the decision. Neither probe
+   * carried a decisionId, and the old key hashed the missing one as an empty
+   * string, so this kind passed here on a key built from nothing. The
+   * refusal check found it on its first run. */
+  decisionId: "decision-a",
 };
 const PROBE_B = {
   id: "b",
@@ -180,6 +189,8 @@ const PROBE_B = {
   at: "2026-09-05",
   actorId: "actor-b",
   manifestId: "manifest-b",
+  orderId: "order-b",
+  decisionId: "decision-b",
 };
 
 /*
@@ -230,6 +241,32 @@ for (const kind of kinds) {
       `${kind} produces a bounded key`,
       typeof a === "string" && a.length > 0 && a.length <= 64,
       `${a.length} characters`,
+    );
+
+    /*
+     * A KEY FIELD THAT IS ABSENT REFUSES THE KEY. Operator ruling, 2026-10-12.
+     *
+     * review.request built `review-request:` from a missing order id, so every
+     * such job would have shared one key and been deduplicated away in silence;
+     * `?? "latest"`, `?? "today"` and `?? "yesterday"` were the same defect with
+     * a word in place of the blank. Dropping one probe field at a time asks
+     * every kind the class question rather than the one instance: either the
+     * key does not read that field (it comes back unchanged), or it refuses.
+     * Anything else, a different string, is a key built from nothing.
+     */
+    const defaulted = [];
+    for (const field of Object.keys(PROBE_A)) {
+      const { [field]: _dropped, ...without } = PROBE_A;
+      const k = handler.idempotency(without);
+      const refused = typeof k === "object" && k !== null && k.refused === true && k.missing.includes(field);
+      if (k !== a && !refused) defaulted.push(`${field} -> ${typeof k === "string" ? k : JSON.stringify(k)}`);
+    }
+    rec(`${kind} refuses a key when a field it is built from is absent`, defaulted.length === 0, defaulted.join("; ") || "every key field refuses when dropped");
+    const none = handler.idempotency({});
+    rec(
+      `${kind} builds no key from an empty payload`,
+      typeof none === "object" && none !== null && none.refused === true && none.missing.length > 0,
+      typeof none === "string" ? `built ${none}` : `refused, missing ${none.missing.join(", ")}`,
     );
   }
 }
@@ -913,7 +950,8 @@ rec(
   const api = codeOnly("src/app/api/portal/queue/route.ts");
   rec("the retry endpoint checks the permission", /can\(actor, "jobs\.manage"\)/.test(api));
   rec("and is audited", /writeAudit\(/.test(api) && /jobs\.retried/.test(api));
-  rec("and has no GET", !/export async function GET/.test(api));
+  // Both export shapes: a handler wrapped by withSaveOutcome is a const.
+  rec("and has no GET", !/export async function GET/.test(api) && !/export const GET\b/.test(api));
 
   const authz = readSource("src/lib/ops-authz.ts");
   rec("jobs.manage is a real permission", /"jobs\.manage"/.test(authz));

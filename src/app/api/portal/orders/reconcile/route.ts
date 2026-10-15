@@ -4,6 +4,7 @@ import { can } from "@/lib/ops-authz";
 import { writeAudit } from "@/lib/ops-audit";
 import { reconcileAll } from "@/lib/ops-reconcile";
 import { enqueue } from "@/lib/ops-jobs";
+import { withSaveOutcome } from "@/lib/save-outcome";
 
 export const dynamic = "force-dynamic";
 
@@ -53,7 +54,7 @@ async function guard() {
   return { actor };
 }
 
-export async function GET() {
+async function handleGET() {
   const g = await guard();
   if (g.error) return g.error;
 
@@ -61,7 +62,7 @@ export async function GET() {
   return NextResponse.json({ ok: true, ...report });
 }
 
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   const g = await guard();
   if (g.error) return g.error;
 
@@ -136,3 +137,7 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({ ok: true, ...report });
 }
+
+/* A save abandoned by the 20 second bound says it may not have saved, and a failed session read is never "Not signed in": save-outcome.ts. */
+export const GET = withSaveOutcome(handleGET);
+export const POST = withSaveOutcome(handlePOST);

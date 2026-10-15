@@ -6,6 +6,7 @@ import { emailRefusal, normaliseAddress } from "@/lib/email-address";
 import { passwordReset } from "@/lib/email-templates";
 import { queueEmail } from "@/lib/ops-jobs";
 import { clientKey, takeResetAttempt } from "@/lib/ops-rate-limit";
+import { withSaveOutcome } from "@/lib/save-outcome";
 
 export const dynamic = "force-dynamic";
 
@@ -61,7 +62,7 @@ function setPasswordUrl(token: string): string {
   return `${base.replace(/\/$/, "")}/account/set-password?token=${encodeURIComponent(token)}`;
 }
 
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
   const email = typeof body?.email === "string" ? body.email : "";
 
@@ -121,3 +122,6 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({ ok: true, message: SENT });
 }
+
+/* A save abandoned by the 20 second bound says it may not have saved, and a failed session read is never "Not signed in": save-outcome.ts. */
+export const POST = withSaveOutcome(handlePOST);
