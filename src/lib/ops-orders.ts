@@ -213,6 +213,13 @@ export type Refund = {
   caseName: string;
   /** Said to the customer. Plain language, no policy voice. */
   explanation: string;
+  /**
+   * Said instead while the refund is pending at Stripe. Operator ruling,
+   * 2026-10-14: a pending refund "is being refunded", never "refunded in full"
+   * or "is refunded", because the money has not settled. Written beside the
+   * settled sentence so the two cannot describe different cases.
+   */
+  explanationWhilePending: string;
   /** Whether the customer receives what the engineer found. */
   receivesFindings: boolean;
 };
@@ -254,6 +261,8 @@ export function refundFor(input: RefundInput): Refund {
       caseName: "Sealed",
       explanation:
         "The engineer sealed the document. It is yours, and there is nothing to refund.",
+      explanationWhilePending:
+        "The engineer sealed the document. It is yours, and there is nothing to refund.",
       receivesFindings: true,
     };
   }
@@ -271,6 +280,8 @@ export function refundFor(input: RefundInput): Refund {
       caseName: "Declined with no site visit",
       explanation:
         "The engineer could not seal this and nobody attended the property, so the full amount is refunded. You keep what the engineer found.",
+      explanationWhilePending:
+        "The engineer could not seal this and nobody attended the property, so the full amount is being refunded. You keep what the engineer found.",
       receivesFindings: true,
     };
   }
@@ -286,6 +297,8 @@ export function refundFor(input: RefundInput): Refund {
       retainedCents: null,
       caseName: "Declined after a site visit",
       explanation:
+        "The engineer could not seal this. A technician did attend, and the refund cannot be worked out until the disclosed inspection fee is on record. Nobody should act on this until it is.",
+      explanationWhilePending:
         "The engineer could not seal this. A technician did attend, and the refund cannot be worked out until the disclosed inspection fee is on record. Nobody should act on this until it is.",
       receivesFindings: true,
     };
@@ -306,6 +319,9 @@ export function refundFor(input: RefundInput): Refund {
     explanation: `The engineer could not seal this. A technician attended and documented the property, and that inspection is ${money(
       retained,
     )} of what you paid. The rest is refunded, and you receive what the engineer found and why they could not seal it.`,
+    explanationWhilePending: `The engineer could not seal this. A technician attended and documented the property, and that inspection is ${money(
+      retained,
+    )} of what you paid. The rest is being refunded, and you receive what the engineer found and why they could not seal it.`,
     receivesFindings: true,
   };
 }
@@ -357,6 +373,8 @@ export function refundForFirmCancellation(input: { paidCents: Cents }): Refund {
     caseName: "Canceled by the firm",
     explanation:
       "The firm canceled this order and refunded it in full. Nothing is retained, including any inspection that had already happened, because the decision to stop was the firm's and not yours.",
+    explanationWhilePending:
+      "The firm canceled this order, and the full amount is being refunded. Nothing is retained, including any inspection that had already happened, because the decision to stop was the firm's and not yours.",
     receivesFindings: true,
   };
 }
@@ -452,6 +470,13 @@ export const CUSTOMER_STATUS: Record<OrderStatus, string> = {
   refunded: "Refunded. What the engineer found is below.",
   cancelled: "Canceled. Nothing is owed.",
 };
+
+/**
+ * The refunded line while any refund on the order is still pending at Stripe.
+ * Operator ruling, 2026-10-14: the status page says "Refund issued." until the
+ * refund succeeds, because "Refunded." would say the money has landed.
+ */
+export const CUSTOMER_STATUS_REFUND_ISSUED = "Refund issued. What the engineer found is below.";
 
 const ORDER_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   draft: ["awaiting_payment", "cancelled"],
