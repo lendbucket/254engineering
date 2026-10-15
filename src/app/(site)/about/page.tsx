@@ -114,7 +114,7 @@ export default function AboutPage() {
                     asked to practice engineering. The standard behind that division is{" "}
                     <Link
                       href="/insights/engineer-of-record-texas"
-                      className="text-slate underline decoration-brass/60 underline-offset-4 hover:decoration-brass"
+                      className="font-medium text-slate-fg underline decoration-brass underline-offset-4 transition-colors hover:text-brass-light"
                     >
                       responsible charge, as Texas defines it
                     </Link>
