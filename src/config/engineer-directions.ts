@@ -172,14 +172,13 @@ export const engineerDirections: EngineerDirection[] = [
       "answers the question sent to him on 2026-10-14 about MH, SL, PL, RS and DS v1.1 and FC-001 " +
       "v1.0; his words say everything we do, so WP-001 v1.2 and WS-001 v1.1 are covered by the same " +
       "sentence. And the firm's scope: no architectural and no mechanical, electrical or plumbing work " +
-      "in any service.",
+      "in any service, rendered in the wording the operator ruled on 2026-10-14 on the terms page " +
+      "(Scope of the firm's work) and the design inquiry page (Structural design only).",
     stillOwed: [
       "The email itself. The evidence held is the operator's written attestation of its words, saved " +
       "on his instruction of 2026-10-14; the email is not on disk.",
       "His SIGNATURE on WP-001 v1.2, WS-001 v1.1 and FC-001 v1.0, and his APPROVAL of each protocol in " +
       "the platform. Naming the discipline is neither.",
-      "Where the scope statement appears to a customer, which waits on the operator's ruling of the " +
-      "wording; until then it is recorded here and rendered nowhere.",
     ],
   },
 ];
