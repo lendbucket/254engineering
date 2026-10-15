@@ -159,6 +159,26 @@ and, if it cancels, Robert runs it in the SQL editor. After the merge and the
 deployment, Robert adds `charge.refund.updated` to the endpoint in the Stripe
 dashboard; until he confirms, `stripe-webhook-audit` fails one line naming it.
 
+## APPLIED: 0077, EVERY PROTOCOL REQUIRES STRUCTURAL; WP-001 v1.2 AND FC-001 SIGNABLE
+
+**Applied to development and then production 2026-10-14** by the counterpart
+through the connector, each in one try with no cancel, read back exact on both
+(the eight read structural, WP-001 v1.1 null, RC-001 unchanged, shape 318b0fa3
+across 1206). Open for what is still owed, below.
+
+Ruled 2026-10-14. WP-001 v1.2 and FC-001 v1.0 join the list the engineer signs
+from (`src/content/protocols/signable.ts`), and WP-001 v1.1 leaves it because
+v1.2 supersedes it. The engineer's written answer of the same day, recorded as
+`every-service-is-structural` in `src/config/engineer-directions.ts` with the
+operator's attestation as its evidence, sets Structural on the eight signable
+protocols through 0077; WP-001 v1.1's row gets none. Built on
+`feat/protocol-signing-wp-fc`. Sitting:
+`docs/production-sitting-feat-protocol-signing-wp-fc.md`, section 0 first.
+Still owed: his signature on WP-001 v1.2, WS-001 v1.1 and FC-001 v1.0, his
+approval of each protocol, and the operator's ruling on where the scope
+statement (no architectural or MEP work) appears to a customer: wording drafted
+for the terms page and the design inquiry form, rendered nowhere yet.
+
 ## OPEN, FROM THE WEBHOOK WORK OF 2026-10-13, NOT BUILT
 
 Each found while building 0075, outside what the ruling asked for, and left
