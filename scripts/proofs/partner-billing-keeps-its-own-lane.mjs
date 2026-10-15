@@ -75,10 +75,12 @@ check("no cancellation from the portal: written notice, ended by an administrato
   PARTNER_BILLING.portalCancellation === false && PARTNER_BILLING.cancellation === "end-of-period" && /administrator/.test(PARTNER_BILLING.cancelledBy));
 check("a partner who cancels or is ended earns on nothing further", PARTNER_BILLING.earnsAfterEnded === false);
 check("no tax is collected, as the operator's ruling pending the accountant", PARTNER_BILLING.taxCollected === false && /accountant/.test(PARTNER_BILLING.taxRuling));
-check("the receipt name is 254 Partners, and the seller is Craftline Brands LLC doing business as 254 Partners",
-  PARTNER_BILLING.productName === "254 Partners" && PARTNER_BILLING.seller.legalName === "Craftline Brands LLC" && PARTNER_BILLING.seller.doingBusinessAs === "254 Partners");
-check("and the seller's own Stripe account is recorded as not wired, never 254 Engineering's",
-  PARTNER_BILLING.seller.stripeAccount === "craftline-own-account-not-wired");
+check("the receipt name is 254 Partners", PARTNER_BILLING.productName === "254 Partners");
+check("the selling entity is one value, pending counsel",
+  PARTNER_BILLING.sellingEntity === "Craftline Brands LLC doing business as 254 Partners" && PARTNER_BILLING.sellingEntityStatus === "pending counsel",
+  PARTNER_BILLING.sellingEntity);
+check("and the seller's own Stripe account is recorded as not existing yet, never 254 Engineering's",
+  PARTNER_BILLING.seller.stripeAccount === "partner-account-does-not-exist-yet");
 
 /* 2. The lane, through the real adapter. */
 const signer = new Stripe("sk_test_partner_billing_proof");

@@ -7,14 +7,16 @@
  * from customer orders by metadata and by a router in the webhook.
  *
  * WHO IS PAID CHANGED ON 2026-10-15, AND IT REVERSES PART OF THAT RULING. The
- * partner program is contracted by Craftline Brands LLC doing business as
- * 254 Partners, under a business opportunity exemption on file, and partner
- * billing must run on Craftline's own Stripe account, never 254 Engineering's.
- * The 2026-10-11 ruling said "to 254, through 254's one Stripe account. There
- * is no second account"; it is quoted here rather than deleted, because a
- * reversed rule that leaves no trace reads as a rule nobody set. THE SECOND
- * ACCOUNT IS NOT WIRED: `seller.stripeAccount` says so, and the plan for it is
- * a document, not code, until the operator says build.
+ * partner program is contracted by a selling entity of its own, under a
+ * business opportunity exemption on file, and partner billing must run on that
+ * entity's own Stripe account, never 254 Engineering's. Which entity waits on
+ * counsel (Craftline Brands LLC doing business as 254 Partners, or a new
+ * 254 Partners LLC), so it is ONE value, `sellingEntity`. The 2026-10-11 ruling
+ * said "to 254, through 254's one Stripe account. There is no second account";
+ * it is quoted here rather than deleted, because a reversed rule that leaves no
+ * trace reads as a rule nobody set. THE PARTNER ACCOUNT DOES NOT EXIST YET AND
+ * NOTHING IS WIRED: `seller.stripeAccount` says so, and nothing is built until
+ * the operator names the entity and the account exists.
  *
  * The amounts are pinned as literals in scripts/proofs/partner-billing-keeps-its-own-lane.mjs,
  * per CLAUDE.md 6c, so a change costs two edits made on purpose.
@@ -49,12 +51,18 @@
 export const PARTNER_BILLING = {
   enabled: false,
   counselSignOff: null as null | { by: string; on: string; text: string },
+  /*
+   * THE SELLING ENTITY, AS ONE VALUE. Operator ruling, 2026-10-15: it waits on
+   * counsel, between Craftline Brands LLC doing business as 254 Partners and a
+   * new 254 Partners LLC. Everything that names the seller reads this one
+   * string, so counsel's answer is one edit (and the proof's pinned literal).
+   */
+  sellingEntity: "Craftline Brands LLC doing business as 254 Partners",
+  sellingEntityStatus: "pending counsel" as "pending counsel" | "ruled",
   seller: {
-    legalName: "Craftline Brands LLC",
-    doingBusinessAs: "254 Partners",
     basis: "a business opportunity exemption on file",
-    /* Never 254 Engineering's account. Not wired: see the header. */
-    stripeAccount: "craftline-own-account-not-wired" as const,
+    /* Never 254 Engineering's account. It does not exist yet, and nothing is wired to it. */
+    stripeAccount: "partner-account-does-not-exist-yet" as const,
   },
   currency: "usd",
   upfrontCents: 80_000,

@@ -1,11 +1,27 @@
-# Partner billing on Craftline's own Stripe account: the plan
+# Partner billing on the selling entity's own Stripe account: the plan
 
-Operator ruling of 2026-10-15: the partner program is contracted by Craftline
-Brands LLC doing business as 254 Partners, under a business opportunity
-exemption on file, and partner billing must run on Craftline's own Stripe
-account, never 254 Engineering's. This reverses the 2026-10-11 one-account
-ruling. **Plan only. Nothing here is built until Robert says build.** Billing
-stays disabled and counsel's sign-off is still required to enable it.
+Operator ruling of 2026-10-15: the partner program is contracted by its own
+selling entity, under a business opportunity exemption on file, and partner
+billing must run on that entity's own Stripe account, never 254 Engineering's.
+This reverses the 2026-10-11 one-account ruling.
+
+**Which entity waits on counsel**: Craftline Brands LLC doing business as
+254 Partners, or a new 254 Partners LLC. **The partner Stripe account does not
+exist yet.** Nothing here is built until Robert names the entity and the
+account exists. Billing stays disabled and counsel's sign-off is still required
+to enable it.
+
+**The entity is one value.** `PARTNER_BILLING.sellingEntity` in
+`src/config/partner-billing.ts`, with `sellingEntityStatus` beside it, pinned as
+a literal in the lane proof. Everything below that names the seller (the console
+declaration, the receipt, the account check, any partner-facing sentence) reads
+that value, so counsel's answer costs one edit and the proof's literal. Where
+this plan says "Craftline" it means whatever that value names.
+
+**Ruled the same day:** the events log records which account each event came
+from (question 1 below, yes), and the administrator's end-of-period action is
+built with this wiring (question 2, yes). Both wait with the wiring. The
+`account_ref` migration stops after its development apply for a sitting.
 
 ## Where the code stands today (main at 828939f)
 
