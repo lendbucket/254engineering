@@ -2,9 +2,11 @@
  * PROOF: PARTNER BILLING KEEPS ITS OWN LANE, AND STAYS OFF.
  *
  * Operator ruling of 2026-10-11, on docs/partner-billing-plan.md: a partner
- * pays $800 upfront and $99 a month to 254, through 254's one Stripe account.
- * Billing stays off until the attorney confirms the structure, and the open
- * questions are pending values in configuration only.
+ * pays $800 upfront and $99 a month. Billing stays off until the attorney
+ * confirms the structure. On 2026-10-15 the operator ruled the open questions
+ * (pinned below as literals) and moved partner billing to Craftline Brands
+ * LLC doing business as 254 Partners, on its own Stripe account, which is not
+ * wired; the lane below is proved as it stands until that wiring is built.
  *
  * NO STRIPE CALL. Every event below is a test-mode shape built here and signed
  * here with a throwaway secret; the adapter verifies the signature locally,
@@ -54,10 +56,29 @@ check(
   PARTNER_BILLING.enabled === false || (PARTNER_BILLING.counselSignOff !== null && Boolean(PARTNER_BILLING.counselSignOff.by && PARTNER_BILLING.counselSignOff.on)),
   `enabled ${PARTNER_BILLING.enabled}, sign-off ${JSON.stringify(PARTNER_BILLING.counselSignOff)}`,
 );
-check(
-  "the unruled terms are unruled: grace, refund and cancellation null, no tax",
-  PARTNER_BILLING.gracePeriodDays === null && PARTNER_BILLING.upfrontRefundable === null && PARTNER_BILLING.cancellation === null && PARTNER_BILLING.taxCollected === false,
-);
+/*
+ * The operator's rulings of 2026-10-15, as literals. Until that day this
+ * asserted "the unruled terms are unruled: grace, refund and cancellation
+ * null, no tax"; each null is now a ruled value, so each is pinned here and
+ * a change costs this edit as well as the configuration's.
+ */
+check("the late fee is $24.75 (2475 cents), 25 percent of the monthly fee, charged once per missed payment",
+  PARTNER_BILLING.lateFeeCents === 2475 && PARTNER_BILLING.lateFeeCents * 4 === PARTNER_BILLING.monthlyCents && PARTNER_BILLING.lateFeeCharged === "once-per-missed-payment",
+  String(PARTNER_BILLING.lateFeeCents));
+check("the account is suspended at 10 days unpaid", PARTNER_BILLING.gracePeriodDays === 10, String(PARTNER_BILLING.gracePeriodDays));
+check("reinstatement takes the past due balance, the late fee and a $75.00 (7500 cents) fee",
+  PARTNER_BILLING.reinstatement.feeCents === 7500 &&
+    JSON.stringify(PARTNER_BILLING.reinstatement.requires) === JSON.stringify(["past-due-balance", "late-fee", "reinstatement-fee"]),
+  JSON.stringify(PARTNER_BILLING.reinstatement));
+check("the $800 is not refundable: all sales final", PARTNER_BILLING.upfrontRefundable === false);
+check("no cancellation from the portal: written notice, ended by an administrator at the end of the paid period",
+  PARTNER_BILLING.portalCancellation === false && PARTNER_BILLING.cancellation === "end-of-period" && /administrator/.test(PARTNER_BILLING.cancelledBy));
+check("a partner who cancels or is ended earns on nothing further", PARTNER_BILLING.earnsAfterEnded === false);
+check("no tax is collected, as the operator's ruling pending the accountant", PARTNER_BILLING.taxCollected === false && /accountant/.test(PARTNER_BILLING.taxRuling));
+check("the receipt name is 254 Partners, and the seller is Craftline Brands LLC doing business as 254 Partners",
+  PARTNER_BILLING.productName === "254 Partners" && PARTNER_BILLING.seller.legalName === "Craftline Brands LLC" && PARTNER_BILLING.seller.doingBusinessAs === "254 Partners");
+check("and the seller's own Stripe account is recorded as not wired, never 254 Engineering's",
+  PARTNER_BILLING.seller.stripeAccount === "craftline-own-account-not-wired");
 
 /* 2. The lane, through the real adapter. */
 const signer = new Stripe("sk_test_partner_billing_proof");
@@ -122,10 +143,17 @@ check("the subscription ending cancels", row?.status === "cancelled");
 check("a late invoice for the ended subscription changes nothing", rules.nextBillingRow(row, e("invoice.paid"), later) === null);
 check("a new checkout reopens it", rules.nextBillingRow(row, e("checkout.completed"), later)?.status === "active");
 
-/* 4. Nothing is suspended on an unruled number, and billing gates nothing while off. */
-const pastDue = { status: "past_due", past_due_since: "2026-01-01T00:00:00.000Z", current_period_end: null, stripe_customer_ref: null, stripe_subscription_ref: null };
-check("with the grace period unruled, no partner is ever out of grace", rules.graceExpired(pastDue, now) === null);
-check("with one stated, a long overdue partner is", rules.graceExpired(pastDue, now, 14) === true);
+/*
+ * 4. The ruled ten days, at the edge, and nothing suspended on an unruled
+ * number. The edge is built from `now` rather than a fixed date, so nine days
+ * and ten days can be told apart: a partner a year overdue is out of grace
+ * under any period anybody might choose.
+ */
+const daysBefore = (n) => new Date(Date.parse(now) - n * 86_400_000).toISOString();
+const pastDueFor = (n) => ({ status: "past_due", past_due_since: daysBefore(n), current_period_end: null, stripe_customer_ref: null, stripe_subscription_ref: null });
+check("nine days unpaid is not yet suspended under the ruled ten", rules.graceExpired(pastDueFor(9), now) === false);
+check("ten days unpaid is", rules.graceExpired(pastDueFor(10), now) === true);
+check("and with the period unruled, no partner is ever out of grace", rules.graceExpired(pastDueFor(400), now, null) === null);
 check("while billing is off, every partner may order, a cancelled one included", ["active", "past_due", "suspended", "cancelled", null].every((s) => rules.billingAllowsOrdering(s, false)));
 check(
   "once on, only active and past due may order, and no row at all may not",

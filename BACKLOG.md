@@ -326,11 +326,20 @@ Open, each the operator's or counsel's:
 - **Turning it on** is a separate step after the attorney confirms the
   structure; `enabled` needs `counselSignOff` beside it, and the proof refuses
   one without the other.
-- **The six questions** stay pending values in `src/config/partner-billing.ts`
-  and appear in no copy, order page, onboarding text or email until ruled:
-  grace period (null: nobody is suspended), the $800's refund rule (null: no
-  refund path), cancellation (null: no portal cancel), a lapsed partner's past
-  credit (compensation untouched), sales tax (not collected), receipt name.
+- **The six questions were ruled on 2026-10-15** and are recorded in
+  `src/config/partner-billing.ts`, pinned in the lane proof: a $24.75 late fee
+  once per missed payment, suspension at 10 days unpaid, reinstatement on the
+  balance, the late fee and a $75 fee, no refund of the $800, no portal cancel
+  (written notice, ended by an administrator at the end of the paid period),
+  no tax pending the accountant, receipt name "254 Partners". **Open:** a
+  partner who cancels or is ended stops earning on every order (compensation's
+  rule; earning logic changes only on the operator's word after he has seen
+  where compensation reads it), and the administrator's end-of-period action.
+- **Partner billing moves to Craftline's own Stripe account** (ruling of
+  2026-10-15, Craftline Brands LLC doing business as 254 Partners), reversing
+  the one-account design. Plan only, not built:
+  `docs/partner-billing-craftline-account-plan.md`. The bullet below about
+  254's endpoint is superseded by it.
 - **Before turning it on:** subscribe the Stripe endpoint to `invoice.paid`,
   `invoice.payment_failed`, `customer.subscription.updated` and
   `customer.subscription.deleted` (a dashboard change), and teach

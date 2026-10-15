@@ -1,5 +1,15 @@
 # Partner billing: the plan
 
+> **SUPERSEDED IN PART, 2026-10-15.** Operator rulings: the six questions
+> below are answered and recorded in `src/config/partner-billing.ts` (late
+> fee, suspension at 10 days, reinstatement, no refund of the $800, written
+> notice ended by an administrator, no tax pending the accountant). The
+> receipt name is "254 Partners". The program is contracted by Craftline
+> Brands LLC doing business as 254 Partners, and partner billing runs on
+> Craftline's own Stripe account, never 254 Engineering's; that reverses this
+> plan's one account design. The second account is not wired. This document
+> is kept as the record of the 2026-10-11 decision.
+
 Item 17 of the run of 2026-10-10. **Approved by Robert on 2026-10-11, as
 designed, and built on `feat/partner-billing` behind `enabled = false`.** It
 stopped here for that approval until then. Two things changed in the build and
