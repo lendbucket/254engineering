@@ -3,6 +3,8 @@ import { currentPartner } from "@/lib/partner-auth";
 import { agreementOutstanding, currentAgreement, partnerOverview } from "@/lib/ops-partner-portal";
 import { money } from "@/lib/ops-money";
 import { ATTRIBUTION_WINDOW_DAYS } from "@/lib/attribution-rules";
+import { termsInForce } from "@/lib/ops-partner-comp";
+import { MODEL_LABEL } from "@/lib/partner-comp";
 import {
   AbsentChip,
   EmptyState,
@@ -13,8 +15,26 @@ import {
   SystemAlert,
 } from "@/components/portal/design";
 import { formatInFirmZone } from "@/lib/firm-calendar";
+import { partnerLogo } from "@/lib/partner-branding";
+import { LogoUpload } from "./LogoUpload";
+import { PARTNER_BILLING } from "@/config/partner-billing";
+import { partnerBilling } from "@/lib/partner-billing";
+import type { BillingStatus } from "@/lib/partner-billing-rules";
 
 export const dynamic = "force-dynamic";
+
+/** What the billing panel shows: off, unreadable, not set up, or a status. Reads nothing while off. */
+async function billingForPanel(
+  partnerId: string,
+): Promise<{ state: "off" } | { state: "unread" } | { state: "none" } | { state: "status"; status: BillingStatus }> {
+  if (!PARTNER_BILLING.enabled) return { state: "off" };
+  try {
+    const row = await partnerBilling(partnerId);
+    return row ? { state: "status", status: row.status } : { state: "none" };
+  } catch {
+    return { state: "unread" };
+  }
+}
 
 /**
  * What this partner has sent, and what the firm owes them.
@@ -40,8 +60,13 @@ export default async function PartnerHome() {
   if (!principal) return null;
 
   const overview = await partnerOverview(principal);
+  /* Scoped by the session's own partner id, never by anything in the request. */
+  const terms = await termsInForce(principal.partner.id);
+  /* Their own logo, in any state, so they can see what they sent and where it stands. */
+  const logo = await partnerLogo(principal.partnerId, { approvedOnly: false });
   const agreement = await currentAgreement();
   const outstanding = agreementOutstanding(principal, agreement);
+  const billing = await billingForPanel(principal.partnerId);
 
   return (
     <>
@@ -92,6 +117,96 @@ export default async function PartnerHome() {
           note={`${overview.delivered} of them have earned a commission entry.`}
         />
       </div>
+
+      {/*
+        THEIR OWN TERMS. Run item 20, product audit gap 30: a partner could see
+        what they had earned and not the rate or the holdback it was computed
+        under, so no figure on this screen could be checked. Read through
+        termsInForce, the same read the accrual uses, in the firm's calendar.
+      */}
+      <Panel title="Your terms" description="What a referral earns, and how long it is held before it can go on a statement.">
+        {terms ? (
+          <div className="flex flex-col gap-1.5">
+            <p className="text-[15px] font-bold text-[var(--ink)]">{MODEL_LABEL[terms.model]}</p>
+            <p className="text-[13.5px] leading-[1.6] text-[var(--ink)]">
+              {terms.model === "percent_of_order" && terms.percentBps !== null ? `${terms.percentBps / 100} percent of the order. ` : ""}
+              {terms.flatCents !== null && (terms.model === "flat_per_order" || terms.model === "flat_per_qualified_lead")
+                ? `${money(terms.flatCents)} each. `
+                : ""}
+              {terms.model === "tiered_by_volume" && terms.tiers?.length
+                ? `${[...terms.tiers]
+                    .sort((a, b) => a.min - b.min)
+                    .map((t) => `${t.bps / 100} percent from ${t.min} ${t.min === 1 ? "delivery" : "deliveries"}`)
+                    .join(", ")}. `
+                : ""}
+              Held {terms.holdbackDays} {terms.holdbackDays === 1 ? "day" : "days"}, so a refund inside that window
+              reverses it before it is paid.
+            </p>
+          </div>
+        ) : (
+          <EmptyState
+            title="Your terms are not set yet"
+            body="Referrals are still credited to you. Until the firm sets your terms, a commission is recorded as owed with no figure, and nothing is lost."
+          />
+        )}
+      </Panel>
+
+      {/* Their logo (run item 19, migration 0072): uploaded here, approved by the firm, then shown on their order page. */}
+      <Panel title="Your logo" description="It shows on your order page beside the firm's name once the firm approves it.">
+        {logo.url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={logo.url} alt={`${principal.partner.organisation} logo`} className="mb-3 max-h-[80px] max-w-[220px] object-contain" />
+        ) : null}
+        <p className="mb-3 text-[13.5px] leading-[1.6] text-[var(--secondary)]">
+          {logo.status === "none"
+            ? "No logo uploaded yet."
+            : logo.status === "pending"
+              ? "Waiting for the firm's approval."
+              : logo.status === "approved"
+                ? "Approved."
+                : "The firm did not approve this one. Upload another to try again."}
+        </p>
+        <LogoUpload />
+      </Panel>
+
+      {/*
+       * Program billing (0074, operator ruling 2026-10-11). While billing is off it
+       * says so and reads nothing, so this page cannot fail on a database that does
+       * not have the tables yet. No amount and none of the unruled terms are shown.
+       */}
+      <Panel title="Program billing">
+        {billing.state === "off" ? (
+          <p className="text-[13.5px] leading-[1.6] text-[var(--secondary)]">
+            Billing for the partner program is not open yet. You have not been charged, and nothing is owed.
+          </p>
+        ) : billing.state === "unread" ? (
+          <p className="text-[13.5px] leading-[1.6] text-[var(--secondary)]">
+            Your billing could not be read just now. Nothing about it has changed. Try again shortly.
+          </p>
+        ) : billing.state === "none" ? (
+          <form action="/api/partner/billing" method="post">
+            <p className="mb-3 text-[13.5px] leading-[1.6] text-[var(--secondary)]">
+              Billing has not been set up for your account yet.
+            </p>
+            <button
+              type="submit"
+              className="min-h-[var(--tap-target)] rounded-[2px] bg-[var(--navy)] px-4 text-[13.5px] font-bold text-white"
+            >
+              Set up billing
+            </button>
+          </form>
+        ) : (
+          <p className="text-[13.5px] leading-[1.6] text-[var(--ink)]">
+            {billing.status === "active"
+              ? "Paid up."
+              : billing.status === "past_due"
+                ? "A payment did not go through. Update the card on file with the firm."
+                : billing.status === "suspended"
+                  ? "Suspended for an unpaid balance. Ordering and your order page are paused."
+                  : "Canceled. Ordering and your order page are paused."}
+          </p>
+        )}
+      </Panel>
 
       {overview.blocked > 0 ? (
         <SystemAlert condition={`${overview.blocked} commission${overview.blocked === 1 ? "" : "s"} is owed with no figure yet.`}>

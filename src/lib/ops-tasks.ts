@@ -64,8 +64,21 @@ export async function listTasks(
   actor: Actor | null,
   filters: { status?: string; mine?: boolean } = {},
 ): Promise<TaskRow[]> {
+  return (await listTasksRead(actor, filters)) ?? [];
+}
+
+/**
+ * The same, or null when the read failed, so a caller can tell an outage from
+ * an empty list. Operator ruling, 2026-10-12: the dashboard showed "Tasks
+ * overdue 0" over a read that had failed.
+ */
+export async function listTasksRead(
+  actor: Actor | null,
+  filters: { status?: string; mine?: boolean } = {},
+): Promise<TaskRow[] | null> {
   const db = supabaseAdmin();
-  if (!db || !actor || actor.status !== "active") return [];
+  if (!db) return null;
+  if (!actor || actor.status !== "active") return [];
 
   let query = db.from("eng_tasks").select(TASK_COLUMNS);
 
@@ -78,10 +91,14 @@ export async function listTasks(
   if (filters.status && filters.status !== "all") query = query.eq("status", filters.status);
   else query = query.not("status", "in", "(done,cancelled)");
 
-  const { data } = await query
+  const { data, error } = await query
     .order("due_at", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: false })
     .limit(300);
+  if (error) {
+    console.error(`[tasks] the tasks could not be read: ${error.message}`);
+    return null;
+  }
 
   return ((data ?? []) as TaskRow[]).filter((t) =>
     canSeeTask(actor, { assigneeId: t.assignee_id, createdBy: t.created_by, fileId: t.file_id }),
@@ -494,9 +511,10 @@ export async function refreshCredentialTasks(createdBy: string | null): Promise<
   return report;
 }
 
-/** Counts for the dashboard and the tab bar. */
-export async function taskCounts(actor: Actor | null): Promise<{ open: number; overdue: number }> {
-  const tasks = await listTasks(actor);
+/** Counts for the dashboard, or null when the tasks could not be read, which is not zero of them. */
+export async function taskCounts(actor: Actor | null): Promise<{ open: number; overdue: number } | null> {
+  const tasks = await listTasksRead(actor);
+  if (tasks === null) return null;
   return {
     open: tasks.length,
     overdue: tasks.filter((t) => isOverdue(t.due_at)).length,

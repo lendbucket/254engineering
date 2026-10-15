@@ -7,6 +7,8 @@ import { registrationLine } from "@/lib/launch";
 import { currentActor } from "@/lib/ops-auth";
 import { mispointing } from "@/lib/db-guard";
 import { MispointedDeployment } from "@/components/portal/Mispointed";
+import { PortalUnreachable } from "@/components/portal/Unreachable";
+import { isDatabaseUnreachable } from "@/lib/save-outcome";
 import { listNotifications, unreadCount } from "@/lib/ops-notify";
 import { can, roleLabel, may } from "@/lib/ops-authz";
 import { navFor, mobileTabsFor } from "@/components/portal/nav";
@@ -74,7 +76,19 @@ export default async function PortalLayout({ children }: { children: React.React
   const mispointed = mispointing();
   if (mispointed) return <MispointedDeployment fault={mispointed} />;
 
-  const actor = await currentActor();
+  /*
+   * A FAILED SESSION READ IS NOT A SIGN OUT. Operator ruling, 2026-10-12. The
+   * person is told the portal could not reach the database and that they are
+   * still signed in; no redirect, no cookie touched. Only a missing session
+   * goes to the login screen below.
+   */
+  let actor: Awaited<ReturnType<typeof currentActor>>;
+  try {
+    actor = await currentActor();
+  } catch (error) {
+    if (isDatabaseUnreachable(error)) return <PortalUnreachable />;
+    throw error;
+  }
 
   if (!actor) {
     const path = (await headers()).get("x-invoke-path") ?? "/portal";

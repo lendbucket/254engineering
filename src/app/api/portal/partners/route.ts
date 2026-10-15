@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
 import { createPartner } from "@/lib/ops-partners-admin";
+import { withSaveOutcome } from "@/lib/save-outcome";
 
 /**
  * Creating a partner.
@@ -13,7 +14,7 @@ import { createPartner } from "@/lib/ops-partners-admin";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   const actor = await currentActor();
   if (!actor) return NextResponse.json({ ok: false, error: "Sign in first." }, { status: 401 });
   if (!can(actor, "partners.manage")) {
@@ -38,3 +39,6 @@ export async function POST(request: NextRequest) {
     ? NextResponse.json({ ok: true, id: result.id })
     : NextResponse.json({ ok: false, error: result.error }, { status: 400 });
 }
+
+/* A save abandoned by the 20 second bound says it may not have saved, and a failed session read is never "Not signed in": save-outcome.ts. */
+export const POST = withSaveOutcome(handlePOST);

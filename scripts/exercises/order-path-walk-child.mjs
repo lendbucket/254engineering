@@ -206,7 +206,8 @@ async function order(n, overrides = {}) {
   if (!checkout.ok) await stop(`checkout ${n}: ${checkout.error}`);
   const { data: o } = await db.from("eng_service_orders").select("total_cents, file_id, client_id, reference").eq("id", placed.orderId).single();
   provider.settle(checkout.sessionRef, { paid: true, amountCents: o.total_cents, orderId: placed.orderId });
-  const paid = await pay.markPaid({ orderId: placed.orderId, chargeRef: `fake-${checkout.sessionRef}`, amountCents: o.total_cents, provider: "fake" });
+  /* The event id every payment is recorded once under (0075); the walk's own, as a reconciliation would be. */
+  const paid = await pay.markPaid({ eventId: `reconcile:${checkout.sessionRef}`, source: "reconcile", orderId: placed.orderId, chargeRef: `fake-${checkout.sessionRef}`, amountCents: o.total_cents, provider: "fake" });
   if (!paid.ok) await stop(`paid ${n}: ${paid.error}`);
   await db.from("eng_service_orders").update({ is_demo: true }).eq("id", placed.orderId);
   if (o.client_id) await db.from("eng_clients").update({ is_demo: true }).eq("id", o.client_id);

@@ -2215,6 +2215,403 @@ export const APPLIED = [
       "(eng_credentials_one_pending_per_kind, ix). Additive only: one unique partial index; it raises and " +
       "changes nothing if duplicates already exist.",
   },
+  {
+    file: "0068_a_decision_and_its_credit_are_one_write.sql", appliedBy: "apply_migration",
+    fingerprint: "18826fa5b3e7d9c9979ca81b96666bb7",
+    behaviour: "95c18c8b7cd230bdc7fb1349ddc572c1",
+    /*
+     * APPLIED TO PRODUCTION 2026-10-10 at 11:55 CT, from
+     * docs/production-sitting-fix-review-and-credit-one-write.md, by the
+     * operator's chat counterpart, development first and then production, the
+     * file as written. Written unapplied on fix/review-and-credit-one-write
+     * under the weekend run rule; merged after.
+     *
+     * Operator rulings of that day: a decided review and its credit are one
+     * database function (eng_record_review_decision), the outside work is
+     * enqueued in eng_jobs in the same transaction, and the three decision
+     * checks from 0004 are widened to include repairs. Read back as the sitting
+     * document predicted, on both projects.
+     *
+     * THE ROUTE, CONFIRMED BY THE OPERATOR 2026-10-11: apply_migration on
+     * development and on production, not cancelled although it drops three
+     * checks, and not hand applied. The stored body of
+     * eng_record_review_decision carries none of the file's comment lines; the
+     * code is otherwise identical. That is the comment stripping recorded
+     * above for the earlier functions whose bodies carry comments, and no
+     * audit compares function source.
+     */
+    production: "2026-10-10",
+    development: {
+      at: "0068",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-10",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-10 by the operator's chat counterpart, before production, the file " +
+        "as written, and read back as the sitting document predicted.",
+    },
+    proves: { table: "eng_review_sessions" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0068 on 2026-10-10: shape unchanged at " +
+      "18826fa5b3e7d9c9979ca81b96666bb7 across 1171 columns (a function and three re-made checks are not " +
+      "columns, so migration-audit's pinned shape does not move; its function count moves 36 to 37), " +
+      "behaviour 972 to 973 facts (eng_record_review_decision). Three check constraints are dropped and " +
+      "re-added wider in the same statement batch; no row is rewritten.",
+  },
+  {
+    file: "0069_wp001_v1_2_and_fc001_enter_as_drafts.sql", appliedBy: "apply_migration",
+    fingerprint: "18826fa5b3e7d9c9979ca81b96666bb7",
+    behaviour: "95c18c8b7cd230bdc7fb1349ddc572c1",
+    /*
+     * APPLIED TO PRODUCTION 2026-10-10 at 11:55 CT, after 0068, from
+     * docs/production-sitting-feat-wp-001-v1-2-and-fc-001.md, by the
+     * operator's chat counterpart, development first and then production, the
+     * file as written. Written unapplied on feat/wp-001-v1-2-and-fc-001 under
+     * the weekend run rule; merged after.
+     *
+     * Operator ruling of that day: 254-WP-001 v1.2 and 254-FC-001 v1.0 enter
+     * as drafts, each carrying its .docx's SHA-256 as the document digest,
+     * transcribed verbatim into src/content/protocols/docx-received.ts and
+     * proved word for word by protocol-registry-audit section 9. Read back as
+     * the sitting document predicted, on both projects.
+     */
+    production: "2026-10-10",
+    development: {
+      at: "0069",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-10",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-10 by the operator's chat counterpart, before production, the file " +
+        "as written, and read back as the sitting document predicted.",
+    },
+    proves: { row: { table: "eng_protocol_templates", where: "document_number = '254-FC-001' and version_label = '1.0' and status = 'draft'" } },
+    note:
+      "BOTH fingerprints repeat 0068's, which is what a migration with no DDL in it must do: it inserts two " +
+      "template rows and changes no shape and no behaviour fact. Read off scripts/fingerprint-at.mjs at 0069 " +
+      "on 2026-10-10.",
+  },
+  {
+    file: "0070_the_second_factor_is_required_for_the_engineer.sql", appliedBy: "apply_migration",
+    fingerprint: "18826fa5b3e7d9c9979ca81b96666bb7",
+    behaviour: "d7713204a6a44db437588585af0d0f8a",
+    /*
+     * APPLIED TO PRODUCTION 2026-10-10 at 15:06 CT, after 0069, the amended
+     * engineer-only file from cbb718c, from
+     * docs/production-sitting-fix-second-factor-required.md, by the operator's
+     * chat counterpart, development first and then production. Read back as
+     * predicted on both: engineer required, administrator optional.
+     *
+     * Operator ruling of 2026-10-10 (gap 3): the second factor is required for
+     * the engineer role. Amended before any apply, the same day: the
+     * administrator role stays optional by the operator's ruling replacing gap
+     * 4's, so 0070 updates the engineer row only and asserts the administrator
+     * still reads optional. Renamed from
+     * 0070_the_second_factor_is_required_for_staff_who_seal_or_administer.sql,
+     * which no database ever ran.
+     */
+    production: "2026-10-10",
+    development: {
+      at: "0070",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-10",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-10 by the operator's chat counterpart, before production, the amended " +
+        "file from cbb718c: engineer required, administrator optional, as predicted.",
+    },
+    proves: { row: { table: "eng_roles", where: "key = 'engineer' and mfa_requirement = 'required'" } },
+    note:
+      "The shape fingerprint repeats 0069's and the fact count stays 973: it updates one seeded row and has no " +
+      "DDL. The behaviour digest moves, 95c18c8b to d7713204, because eng_roles is a seeded table the digest " +
+      "hashes (the first version, both rows, read 1e242dac). Read off scripts/fingerprint-at.mjs at 0070 on 2026-10-10.",
+  },
+  {
+    file: "0071_sign_in_attempts_are_counted_in_the_database.sql", appliedBy: "apply_migration",
+    fingerprint: "bc55a14f40a4c7a78cc061fd262e785b",
+    /* Re-read after 0070 was amended to the engineer row only (it read 9a5e27b3 over the first 0070). */
+    behaviour: "bae15b68c2b3f370d09e868b6e813ace",
+    /*
+     * APPLIED TO PRODUCTION 2026-10-10 at 15:06 CT, after 0070, from
+     * docs/production-sitting-fix-sign-in-limiter-in-the-database.md, by the
+     * operator's chat counterpart, development first and then production.
+     * Production's shape read back as bc55a14f40a4c7a78cc061fd262e785b across
+     * 1176 columns, as the sitting document predicted.
+     *
+     * Operator ruling of 2026-10-10 (decision 14): the sign in limiter counts
+     * in eng_sign_in_attempts through eng_take_sign_in_attempt rather than in
+     * each instance's memory. Until the code that calls it is deployed, the
+     * table sits unused and nothing changes for anybody.
+     */
+    production: "2026-10-10",
+    development: {
+      at: "0071",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-10",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-10 by the operator's chat counterpart, before production, the file " +
+        "as written, and read back as the sitting document predicted.",
+    },
+    proves: { table: "eng_sign_in_attempts" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0071 on 2026-10-10: shape 1171 to 1176 columns " +
+      "(eng_sign_in_attempts), 84 tables, behaviour 973 to 979 facts (the table's key, check, index and row " +
+      "level security, and the function). migration-audit's pinned shape and function count move in the same " +
+      "commit. Additive only.",
+  },
+  {
+    file: "0072_a_partner_logo_is_approved_before_it_shows.sql", appliedBy: "apply_migration",
+    fingerprint: "3cffb39b56eda13ab54bbe8823b4c26d",
+    /* Re-read after 0070 was amended to the engineer row only (it read beaed922 over the first 0070). */
+    behaviour: "15b2e8632bd8d0e12144eac903baaa34",
+    /*
+     * APPLIED TO PRODUCTION 2026-10-10 at 16:41 CT, after 0071, from
+     * docs/production-sitting-feat-partner-branding-upload.md, by the
+     * operator's chat counterpart, development first and then production.
+     * Read back as predicted: shape 3cffb39b56eda13ab54bbe8823b4c26d across
+     * 1181 columns. The constraint query listed four rows, not the three the
+     * document predicted, because its like pattern also matches
+     * eng_partners_brand_logo_decided_by_fkey; the document is corrected.
+     *
+     * Run item 19 (partner onboarding, the branding upload): a partner's logo
+     * on eng_partners in four states (none, pending, approved, refused), shown
+     * only once approved, and the private eng-partner-branding bucket, raster
+     * images only.
+     */
+    production: "2026-10-10",
+    development: {
+      at: "0072",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-10",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-10 by the operator's chat counterpart, before production, the file " +
+        "as written: shape 3cffb39b56eda13ab54bbe8823b4c26d across 1181 columns, as predicted.",
+    },
+    proves: { column: { table: "eng_partners", name: "brand_logo_status" } },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0072 on 2026-10-10: shape 1176 to 1181 columns (five " +
+      "brand_logo_ columns), 84 tables, behaviour 979 to 983 facts (the three check constraints and the foreign " +
+      "key to eng_profiles). migration-audit's pinned shape moves in the same commit. Additive only.",
+  },
+  {
+    file: "0073_no_function_is_callable_without_the_service_role.sql", appliedBy: "apply_migration",
+    fingerprint: "3cffb39b56eda13ab54bbe8823b4c26d",
+    behaviour: "15b2e8632bd8d0e12144eac903baaa34",
+    /*
+     * APPLIED TO PRODUCTION 2026-10-11 at 13:54 CT, from
+     * docs/production-sitting-fix-function-grants.md, by the operator's chat
+     * counterpart, on development (ythzaiqeoijlrdibnieo) and production
+     * (fsaryeciduszuahgjbly). Read back on both: 38 public eng_ functions,
+     * anon execute 0, authenticated execute 0, service_role execute 38;
+     * eng_set_trade_price's acl reads postgres=X/postgres,service_role=X/postgres.
+     * The jobs cron and health-watch both ran ok after the apply, so the
+     * platform's own service-role calls still work.
+     *
+     * The defect it closes, operator ruling of 2026-10-10: eng_set_trade_price
+     * is SECURITY DEFINER and EXECUTE was granted to PUBLIC, anon and
+     * authenticated, so the publishable key could write a trade price through
+     * PostgREST rpc; the same grants stood on every eng_ function.
+     */
+    production: "2026-10-11",
+    development: {
+      at: "0073",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-11",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-11 13:54 CT by the operator's chat counterpart, the file as written: " +
+        "38 public eng_ functions, anon execute 0, authenticated execute 0, service_role execute 38.",
+    },
+    proves: null,
+    provesNote:
+      "Nothing in it is visible through PostgREST: it changes grants and creates no table, column or row. The " +
+      "sitting document's dry run and verification read pg_proc and has_function_privilege directly.",
+    note:
+      "BOTH fingerprints repeat 0072's, read off scripts/fingerprint-at.mjs at 0073 on 2026-10-11: shape " +
+      "3cffb39b across 1181 columns, behaviour 15b2e863 across 983 facts. Neither can see a grant: the shape " +
+      "reads columns and the behaviour digest hashes function bodies and settings. migration-audit's replay " +
+      "carries Supabase's roles and default grant (scripts/lib/replay-stubs.mjs) and asserts no function in " +
+      "public is executable by anon or authenticated after the chain.",
+  },
+  {
+    file: "0074_a_partner_pays_254_through_one_account.sql", appliedBy: "apply_migration",
+    fingerprint: "e4b2e3505c71594d6aba4ca47025bf3f",
+    behaviour: "af1999235595ca68c1976a3f1b2b0aa7",
+    /*
+     * APPLIED TO PRODUCTION 2026-10-13 at 00:29 CT, from
+     * docs/production-sitting-feat-partner-billing.md at a898ba4 (both "drop
+     * trigger if exists" lines removed, operator ruling of 2026-10-12), by the
+     * operator's chat counterpart, on development (ythzaiqeoijlrdibnieo) and
+     * production (fsaryeciduszuahgjbly). Read back exact on both: 13 columns,
+     * 8 constraints, 2 triggers, row level security true on both tables, 0
+     * rows, shape e4b2e3505c71594d6aba4ca47025bf3f across 1194.
+     *
+     * Operator ruling of 2026-10-11 approving docs/partner-billing-plan.md: a
+     * partner pays $800 upfront and $99 a month to 254 through 254's one
+     * Stripe account. Billing is off in configuration, so nothing writes to
+     * either table. Operator ruling of 2026-10-13: this lane keeps its own
+     * event table until billing is switched on, then folds into
+     * eng_payment_events (0075) on its own branch before the switch.
+     */
+    production: "2026-10-13",
+    development: {
+      at: "0074",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-13",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-13 00:29 CT by the operator's chat counterpart, before production, from " +
+        "a898ba4: 13 columns, 8 constraints, 2 triggers, row level security true, 0 rows, shape " +
+        "e4b2e3505c71594d6aba4ca47025bf3f across 1194, as predicted.",
+    },
+    proves: { table: "eng_partner_billing_events" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0074 on 2026-10-12: shape 1181 to 1194 columns (eight " +
+      "on eng_partner_billing, five on eng_partner_billing_events), 84 tables to 86, behaviour 983 to 998 facts. " +
+      "No function, so no grant to revoke. migration-audit's pinned shape and trigger count move in the same " +
+      "commit. Additive only.",
+  },
+  {
+    file: "0075_a_payment_event_is_applied_once.sql", appliedBy: "apply_migration",
+    fingerprint: "318b0fa346fc0f92167df9b9f44ce1cf",
+    behaviour: "ca40bae4dca081d10fba6a46922bcdb6",
+    /*
+     * APPLIED TO PRODUCTION 2026-10-13 at 07:0x CT, from
+     * docs/production-sitting-fix-stripe-webhook-once.md at d3d9766 (file blob
+     * c775ccaa191103587f9a0c6d45d21111a3571870, verified), by the operator's
+     * chat counterpart, development first and then production. Section 0, the
+     * stuck charge query, ran read only on production first: no rows, no
+     * customer charged and waiting. The dry run held on both. Applied with the
+     * header and block comments and the two in-body line comments omitted;
+     * every statement identical to the file.
+     *
+     * Read back exact on both: 12 columns in order; 8 constraints; trigger
+     * eng_payment_events_guarded; indexes eng_payment_events_claimed_idx and
+     * eng_payment_events_pkey; row level security true; 8 functions each anon
+     * false, authenticated false, service_role true; 0 rows; shape
+     * 318b0fa346fc0f92167df9b9f44ce1cf across 1206.
+     *
+     * Operator rulings of 2026-10-12 on Stripe webhooks: every payment event is
+     * recorded once by its id before any effect, the money writes of each
+     * branch commit in one transaction with it, and the release of the work
+     * runs after commit under claimed then done.
+     */
+    production: "2026-10-13",
+    development: {
+      at: "0075",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-13",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-13 07:0x CT by the operator's chat counterpart, before production, from " +
+        "d3d9766 with comments omitted and every statement identical: 12 columns, 8 constraints, 1 trigger, 2 " +
+        "indexes, row level security true, 8 functions closed to anon and authenticated, 0 rows, shape " +
+        "318b0fa346fc0f92167df9b9f44ce1cf across 1206, as predicted.",
+    },
+    proves: { table: "eng_payment_events" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0075 on 2026-10-13: shape 1194 to 1206 columns " +
+      "(twelve on eng_payment_events), 86 tables to 87, behaviour 998 to 1018 facts. Eight functions, each " +
+      "revoked from public, anon and authenticated in the same file (0073's rule), and one trigger. No drop " +
+      "statement of any kind. migration-audit's pinned shape, trigger and function counts move in the same commit.",
+  },
+  {
+    file: "0076_a_refund_update_is_applied_once.sql", appliedBy: "apply_migration",
+    fingerprint: "318b0fa346fc0f92167df9b9f44ce1cf",
+    behaviour: "f2380dab0f83023419bc357dfd80f042",
+    /*
+     * APPLIED TO PRODUCTION 2026-10-13, after the exact board on 9a7922c, from
+     * docs/production-sitting-fix-refund-update-event.md, by the operator's chat
+     * counterpart through the connector in one try with no cancel. Section 0 was
+     * read earlier the same day (the three-kind constraint, no event rows, no
+     * pending refunds, the same shape) and section 1 read clean before the
+     * apply.
+     *
+     * Read back exact: eng_payment_events_type_known with the four kinds;
+     * eng_apply_refund_update anon false, authenticated false, service_role
+     * true; no event rows; shape 318b0fa346fc0f92167df9b9f44ce1cf across 1206.
+     *
+     * Operator rulings of 2026-10-13: charge.refund.updated goes through the
+     * payment event ledger, recorded once by its event id in one transaction
+     * with its effect. It carries one drop statement, the event type
+     * constraint, dropped and added again wider in the same transaction.
+     */
+    production: "2026-10-13",
+    development: {
+      at: "0076",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-13",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-13 by the operator's chat counterpart through the connector, in one try " +
+        "with no cancel, from fix/refund-update-event at f77e972. Read back as predicted: " +
+        "eng_payment_events_type_known with the four kinds; eng_apply_refund_update with anon false, " +
+        "authenticated false, service_role true; no event rows; shape 318b0fa346fc0f92167df9b9f44ce1cf across 1206. " +
+        "Production's section 0 was read the same day and not applied: the three-kind constraint, no event rows, " +
+        "no pending refunds, the same shape.",
+    },
+    proves: { function: "eng_apply_refund_update" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0076 on 2026-10-13: shape unchanged at 1206 columns " +
+      "(no column is added), behaviour 1018 to 1019 facts, the one function. The event type constraint is " +
+      "dropped and added again wider in the same transaction, by ruling, so its count does not move. One " +
+      "function, revoked from public, anon and authenticated in the same file (0073's rule). migration-audit's " +
+      "function count moves 46 to 47 in the same commit.",
+  },
+  {
+    file: "0077_every_protocol_requires_structural.sql", appliedBy: "apply_migration",
+    fingerprint: "318b0fa346fc0f92167df9b9f44ce1cf",
+    behaviour: "f2380dab0f83023419bc357dfd80f042",
+    /*
+     * APPLIED TO PRODUCTION 2026-10-14, after the exact board on 6260e08, from
+     * docs/production-sitting-feat-protocol-signing-wp-fc.md, by the operator's
+     * chat counterpart through the connector in one try with no cancel. Section
+     * 0 read clean first: nine rows, every discipline null, the digests matching,
+     * nothing approved.
+     *
+     * Read back exact, as section 3 predicts: the eight rows read structural,
+     * WP-001 v1.1 null, RC-001 unchanged, every status, approver and publish
+     * date unchanged; shape 318b0fa346fc0f92167df9b9f44ce1cf across 1206 before
+     * and after.
+     *
+     * The value is the engineer's written answer of 2026-10-14, recorded in
+     * src/config/engineer-directions.ts as every-service-is-structural, whose
+     * evidence is the operator's attestation of his words.
+     */
+    production: "2026-10-14",
+    development: {
+      at: "0077",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-14",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-14 by the operator's chat counterpart through the connector, in one try " +
+        "with no cancel, from feat/protocol-signing-wp-fc at 951d368. Read back exactly as the sitting's section 3 " +
+        "predicts: the eight rows read structural, WP-001 v1.1 null, every status, digest, approver and publish " +
+        "date unchanged, RC-001 untouched, shape 318b0fa346fc0f92167df9b9f44ce1cf across 1206.",
+    },
+    proves: {
+      table: "eng_protocol_templates",
+      match: { document_number: "254-FC-001", version_label: "1.0", requires_discipline: "structural" },
+    },
+    note:
+      "BOTH fingerprints repeat 0076's, read off scripts/fingerprint-at.mjs at 0077 on 2026-10-14 rather " +
+      "than copied: an UPDATE with no DDL. It writes one column on eight existing rows, each found by its " +
+      "document's SHA-256, and its own guards assert all eight before and after and that WP-001 v1.1 stays " +
+      "null. `proves` asks about the column value on FC-001 v1.0, the row 0069 entered last.",
+  },
 ];
 
 /*

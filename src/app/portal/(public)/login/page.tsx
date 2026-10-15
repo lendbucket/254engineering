@@ -7,6 +7,8 @@ import { opsSessionConfigured } from "@/lib/ops-session";
 import { supabaseConfigured } from "@/lib/supabase";
 import { RestrictedMode, SystemAlert } from "@/components/portal/design";
 import { LoginForm } from "./LoginForm";
+import { PortalUnreachable } from "@/components/portal/Unreachable";
+import { isDatabaseUnreachable } from "@/lib/save-outcome";
 
 export const dynamic = "force-dynamic";
 
@@ -47,7 +49,17 @@ export default async function PortalLoginPage({
 
   // Already signed in: go where this role belongs rather than showing a form
   // that will immediately bounce.
-  const actor = await currentActor();
+  //
+  // A signed in person whose session could not be read is told so, and is not
+  // shown the sign in form, which would read as having been signed out.
+  // Operator ruling, 2026-10-12.
+  let actor: Awaited<ReturnType<typeof currentActor>>;
+  try {
+    actor = await currentActor();
+  } catch (error) {
+    if (isDatabaseUnreachable(error)) return <PortalUnreachable />;
+    throw error;
+  }
   if (actor && actor.status === "active") redirect(homeFor(actor.role));
 
   /*

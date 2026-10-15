@@ -88,15 +88,25 @@ export type ThreadListItem = ThreadRow & {
 
 const THREAD_COLUMNS = "id, kind, file_id, name, channel_roles, last_message_at, created_at";
 
-async function participantsOf(threadIds: string[]) {
+/*
+ * `onFailure`, on these two and on threadsReadableBy, is called when a read
+ * fails. The other callers go on as they did; the customer service dashboard
+ * passes one, so a failed read is reported there rather than counted as
+ * threads nobody may read (operator ruling, 2026-10-12).
+ */
+async function participantsOf(threadIds: string[], onFailure?: () => void) {
   const db = supabaseAdmin();
   const byThread = new Map<string, { id: string; name: string; role: RoleKey; lastReadAt: string | null }[]>();
   if (!db || threadIds.length === 0) return byThread;
 
-  const { data } = await db
+  const { data, error } = await db
     .from("eng_thread_participants")
     .select("thread_id, profile_id, last_read_at, eng_profiles!inner(display_name, role)")
     .in("thread_id", threadIds);
+  if (error) {
+    console.error(`[threads] the participants could not be read: ${error.message}`);
+    onFailure?.();
+  }
 
   for (const row of (data ?? []) as unknown as {
     thread_id: string;
@@ -118,7 +128,7 @@ async function participantsOf(threadIds: string[]) {
 }
 
 /** The file ids this actor can see, for scoping file threads in one pass. */
-async function visibleFileIds(actor: Actor, fileIds: string[]): Promise<Set<string>> {
+async function visibleFileIds(actor: Actor, fileIds: string[], onFailure?: () => void): Promise<Set<string>> {
   const db = supabaseAdmin();
   const visible = new Set<string>();
   if (!db || fileIds.length === 0) return visible;
@@ -127,16 +137,20 @@ async function visibleFileIds(actor: Actor, fileIds: string[]): Promise<Set<stri
     return visible;
   }
 
-  const { data: files } = await db
+  const { data: files, error: filesError } = await db
     .from("eng_files")
     .select("id, status, assigned_tech_id, assigned_engineer_id")
     .in("id", fileIds);
 
-  const { data: offers } = await db
+  const { data: offers, error: offersError } = await db
     .from("eng_assignments")
     .select("file_id, tech_id")
     .in("file_id", fileIds)
     .eq("tech_id", actor.id);
+  if (filesError || offersError) {
+    console.error(`[threads] the files behind file threads could not be read: ${(filesError ?? offersError)?.message}`);
+    onFailure?.();
+  }
   const offered = new Set((offers ?? []).map((o) => o.file_id as string));
 
   for (const file of files ?? []) {
@@ -150,6 +164,43 @@ async function visibleFileIds(actor: Actor, fileIds: string[]): Promise<Set<stri
     if (canSeeFile(actor, subject)) visible.add(file.id as string);
   }
   return visible;
+}
+
+/**
+ * The rows of `rows` this actor may read, by canReadThread, the same rule the
+ * inbox below applies. For a caller that has read the threads itself, in full,
+ * rather than through listThreads' page: the customer service dashboard counted
+ * every thread in the table, other people's direct messages included (product
+ * audit, 2026-10-10, defect 17), and a count is not allowed a silent page cap.
+ * Participants and files are read in chunks so a long list stays one rule.
+ */
+export async function threadsReadableBy<T extends { id: string; kind: ThreadRow["kind"]; file_id: string | null; channel_roles: RoleKey[] | null }>(
+  actor: Actor,
+  rows: T[],
+  onFailure?: () => void,
+): Promise<T[]> {
+  const CHUNK = 100;
+  const readable: T[] = [];
+  for (let i = 0; i < rows.length; i += CHUNK) {
+    const slice = rows.slice(i, i + CHUNK);
+    const byThread = await participantsOf(slice.map((r) => r.id), onFailure);
+    const visibleFiles = await visibleFileIds(
+      actor,
+      slice.filter((r) => r.file_id).map((r) => r.file_id as string),
+      onFailure,
+    );
+    for (const row of slice) {
+      const subject: ThreadSubject = {
+        id: row.id,
+        kind: row.kind,
+        fileId: row.file_id,
+        participantIds: (byThread.get(row.id) ?? []).map((p) => p.id),
+        channelRoles: row.channel_roles ?? [],
+      };
+      if (canReadThread(actor, subject, row.file_id ? visibleFiles.has(row.file_id) : false)) readable.push(row);
+    }
+  }
+  return readable;
 }
 
 export async function listThreads(actor: Actor | null): Promise<ThreadListItem[]> {

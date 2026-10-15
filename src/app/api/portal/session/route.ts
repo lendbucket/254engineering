@@ -7,6 +7,7 @@ import { takeLoginAttempt, clearLoginAttempts, clientKey } from "@/lib/ops-rate-
 import { writeAudit } from "@/lib/ops-audit";
 import { homeFor } from "@/lib/ops-authz";
 import { supabaseAdmin } from "@/lib/supabase";
+import { withSaveOutcome } from "@/lib/save-outcome";
 
 /**
  * Sign in and sign out.
@@ -35,7 +36,7 @@ export const dynamic = "force-dynamic";
 
 const GENERIC = "Check the email and password.";
 
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   const contentType = request.headers.get("content-type") ?? "";
   const isForm = contentType.includes("application/x-www-form-urlencoded");
 
@@ -83,7 +84,7 @@ export async function POST(request: NextRequest) {
    * first and meant an unconfigured deployment answered every attempt forever
    * without counting one. security-audit caught that against production.
    */
-  const limit = takeLoginAttempt(clientKey(request.headers), attempted || undefined);
+  const limit = await takeLoginAttempt(clientKey(request.headers), attempted || undefined);
   if (!limit.allowed) {
     const res = isForm
       ? NextResponse.redirect(new URL("/portal/login?throttled=1", request.url), { status: 303 })
@@ -131,7 +132,7 @@ export async function POST(request: NextRequest) {
     return fail(401, GENERIC);
   }
 
-  clearLoginAttempts(clientKey(request.headers), attempted);
+  await clearLoginAttempts(clientKey(request.headers), attempted);
 
   /*
    * THE SECOND FACTOR DECIDES WHICH KIND OF SESSION THIS IS.
@@ -248,7 +249,7 @@ export async function POST(request: NextRequest) {
 }
 
 /** Sign out. Clears the cookie whether or not one was valid. */
-export async function DELETE(request: NextRequest) {
+async function handleDELETE(request: NextRequest) {
   const res = NextResponse.json({ ok: true });
   res.cookies.set(OPS_COOKIE, "", opsCookieOptions());
 
@@ -264,3 +265,7 @@ export async function DELETE(request: NextRequest) {
   void request;
   return res;
 }
+
+/* A save abandoned by the 20 second bound says it may not have saved, and a failed session read is never "Not signed in": save-outcome.ts. */
+export const POST = withSaveOutcome(handlePOST);
+export const DELETE = withSaveOutcome(handleDELETE);
