@@ -20,7 +20,9 @@ const crumbs = [
   { name: "Terms", path: "/terms" },
 ];
 
-const EFFECTIVE = "16 August 2026";
+// Moved from 16 August 2026 by operator ruling of 2026-10-14, to the date the
+// "Scope of the firm's work" section merged, in the firm's calendar.
+const EFFECTIVE = "15 October 2026";
 
 export default function TermsPage() {
   return (
