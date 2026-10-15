@@ -312,7 +312,15 @@ export async function sendPaymentLink(actor: Author, fileId: string): Promise<Bi
    * plaintext part, the 375px layout, the signed sender. A template the audit
    * cannot see is a template nothing checks.
    */
-  await queueEmail(
+  /*
+   * QUEUED, NOT SENT. Operator ruling 5 of 2026-10-15, the way decision 10 of
+   * 2026-10-10 fixed the order timeline: enqueuing is not sending, and a note
+   * that said "sent" read the same whether the email later went or dead
+   * lettered. The order is named so the email handler writes "Sent to" on its
+   * timeline when the provider accepts it, which is the only moment anybody
+   * knows it left.
+   */
+  const queued = await queueEmail(
     jobPaymentLink({
       customerName: client.name,
       customerEmail: client.email,
@@ -323,23 +331,49 @@ export async function sendPaymentLink(actor: Author, fileId: string): Promise<Bi
       payUrl: checkout.url,
       takenBy: actor.email,
     }),
+    { orderId: order.orderId },
   );
 
   const db = supabaseAdmin();
+  if (!queued.ok) {
+    /*
+     * The order and its payment link exist and nobody was written to. The file
+     * is not marked as having a link out, because it does not, and the
+     * reference is named so nobody raises a second order.
+     */
+    await db
+      ?.from("eng_files")
+      .update({
+        payment_note: `Order ${order.reference} was raised and the payment link email could not be queued: ${queued.error}. It has to go out by hand.`,
+      })
+      .eq("id", fileId);
+    await writeAudit({
+      actor,
+      action: "file.payment_link_not_queued",
+      entityType: "file",
+      entityId: fileId,
+      summary: `${file.file_number}: the payment link email to ${client.email} against ${order.reference} could not be queued: ${queued.error}.`,
+    });
+    return {
+      ok: false,
+      error: `Order ${order.reference} was raised and the payment link email could not be queued: ${queued.error}. It has to go out by hand.`,
+    };
+  }
+
   await db
     ?.from("eng_files")
     .update({
       payment_intent: "link_sent",
-      payment_note: `Payment link sent to ${client.email} against ${order.reference}.`,
+      payment_note: `Payment link queued to ${client.email} against ${order.reference}. The order's timeline says when it is sent.`,
     })
     .eq("id", fileId);
 
   await writeAudit({
     actor,
-    action: "file.payment_link_sent",
+    action: "file.payment_link_queued",
     entityType: "file",
     entityId: fileId,
-    summary: `${file.file_number}: a payment link was sent to ${client.email} against ${order.reference}.`,
+    summary: `${file.file_number}: a payment link is queued to ${client.email} against ${order.reference}.`,
   });
 
   return { ok: true, orderId: order.orderId, reference: order.reference, checkoutUrl: checkout.url };
