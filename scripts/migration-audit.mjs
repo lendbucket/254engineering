@@ -209,9 +209,14 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * batch_id, statement_id, charge_ref, status, claimed_at, done_at,
  * release_attempts, last_error); 86 tables to 87, row level security on;
  * shape 318b0fa346fc0f92167df9b9f44ce1cf, read off fingerprint-at.mjs.
+ *
+ * Moved 2026-10-16 by 0078, an intake answer can be a stored file: 1,206 to
+ * 1,210 is eng_file_inputs' four (bucket, storage_key, content_type,
+ * byte_size), named as eng_order_inputs names them; no new table; shape
+ * 4ccff0ee13040992a71d16d2b14163a3, read off fingerprint-at.mjs.
  */
-const EXPECTED_FINGERPRINT = "318b0fa346fc0f92167df9b9f44ce1cf";
-const EXPECTED_COLUMNS = 1206;
+const EXPECTED_FINGERPRINT = "4ccff0ee13040992a71d16d2b14163a3";
+const EXPECTED_COLUMNS = 1210;
 const EXPECTED_TABLES = 87;
 /* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts.
  * 0074 adds two: eng_partner_billing_touch and eng_partner_billing_events_immutable.

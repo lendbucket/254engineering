@@ -2612,6 +2612,26 @@ export const APPLIED = [
       "document's SHA-256, and its own guards assert all eight before and after and that WP-001 v1.1 stays " +
       "null. `proves` asks about the column value on FC-001 v1.0, the row 0069 entered last.",
   },
+  {
+    file: "0078_an_intake_answer_can_be_a_stored_file.sql", appliedBy: "apply_migration",
+    fingerprint: "4ccff0ee13040992a71d16d2b14163a3",
+    behaviour: "92e4ca15c2ec0c69e075abf7f80d6fe9",
+    production: null,
+    development: null,
+    proves: { table: "eng_file_inputs", column: "storage_key" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0078 on 2026-10-16, with 0077 reproducing its " +
+      "recorded pair first: shape 1206 to 1210 columns (four nullable columns on eng_file_inputs, named as " +
+      "eng_order_inputs names them in 0006), behaviour 1019 to 1020 facts (the one check that a stored " +
+      "file names its bucket and its key together).",
+    because:
+      "WRITTEN 2026-10-16 ON migration/intake-photo-0078 IN AN UNATTENDED RUN, AND APPLIED NOWHERE, " +
+      "INCLUDING DEVELOPMENT. The firm could not open a 254-RC-001 job by telephone: the signed protocol " +
+      "requires a photo of the front of the property at order, and nothing let the firm attach one. " +
+      "docs/production-sitting-0078-intake-photo.md carries the development apply, the production apply " +
+      "and the read backs. Additive only, so the connector is expected to apply it. The branch merges only " +
+      "after the production apply is read back, and a migration on main is never pending.",
+  },
 ];
 
 /*

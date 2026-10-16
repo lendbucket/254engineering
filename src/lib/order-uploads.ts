@@ -54,6 +54,12 @@ export async function signOrderUpload(params: {
   filename: string;
   contentType: string;
   size: number;
+  /**
+   * Whose draft. A customer's order drafts under "orders"; a job the firm takes
+   * by telephone drafts under "intake" (0078), so neither door can write into
+   * the other's keys.
+   */
+  space?: "orders" | "intake";
 }): Promise<OrderUpload> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "Uploads are not configured." };
@@ -87,7 +93,7 @@ export async function signOrderUpload(params: {
             ? "webp"
             : "jpg";
 
-  const storageKey = `orders/${params.draftId}/${params.inputKey}/${crypto.randomUUID()}.${ext}`;
+  const storageKey = `${params.space ?? "orders"}/${params.draftId}/${params.inputKey}/${crypto.randomUUID()}.${ext}`;
 
   const { data, error } = await db.storage.from(BUCKET).createSignedUploadUrl(storageKey, {
     upsert: false,

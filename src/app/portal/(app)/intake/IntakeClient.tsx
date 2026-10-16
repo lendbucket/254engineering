@@ -108,6 +108,16 @@ export function IntakeClient({
   const [overridePrice, setOverridePrice] = useState("");
   const [overrideReason, setOverrideReason] = useState("");
   const [noChargeCode, setNoChargeCode] = useState("");
+
+  /*
+   * DOCUMENTS ATTACHED WHILE TAKING THE JOB (0078). Uploaded straight to the
+   * private bucket under this intake's own draft id, and posted with the job so
+   * the server can check each key belongs to this draft and this field.
+   */
+  const [draftId] = useState(() => crypto.randomUUID());
+  const [uploads, setUploads] = useState<
+    Record<string, { name: string; bucket: string; storageKey: string; contentType: string; byteSize: number }>
+  >({});
   const [paymentIntent, setPaymentIntent] = useState<PaymentIntent>("released_unpaid");
 
   /*
@@ -337,6 +347,42 @@ export function IntakeClient({
     !busy &&
     (!noCharge || noChargeCode.replace(/\s+/g, "").length === 6);
 
+  /** Upload one document for a file field. Resolves to an error sentence, or null when attached. */
+  async function attachFile(fieldId: string, file: File): Promise<string | null> {
+    try {
+      const res = await fetch("/api/portal/files", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "sign_intake_upload",
+          draftId,
+          fieldId,
+          filename: file.name,
+          contentType: file.type,
+          size: file.size,
+        }),
+      });
+      const signed = (await res.json().catch(() => null)) as
+        | { ok?: boolean; error?: string; uploadUrl?: string; bucket?: string; storageKey?: string }
+        | null;
+      if (!res.ok || !signed?.ok || !signed.uploadUrl || !signed.bucket || !signed.storageKey) {
+        return signed?.error ?? "That document could not be prepared for upload.";
+      }
+      const put = await fetch(signed.uploadUrl, { method: "PUT", headers: { "Content-Type": file.type }, body: file });
+      if (!put.ok) return "That document did not upload. Try again, or a smaller one.";
+      const { bucket, storageKey } = signed;
+      setUploads((u) => ({
+        ...u,
+        [fieldId]: { name: file.name, bucket, storageKey, contentType: file.type, byteSize: file.size },
+      }));
+      /* So the outstanding list on this screen reads it as answered; the server ignores this text. */
+      setAnswer(fieldId, `Attached: ${file.name}`);
+      return null;
+    } catch {
+      return "The network dropped that. Nothing was attached.";
+    }
+  }
+
   async function submit() {
     if (!canSubmit) return;
     setBusy(true);
@@ -373,6 +419,14 @@ export function IntakeClient({
           priceOverrideReason:
             "overridden" in priceDecision && priceDecision.overridden ? priceDecision.reason : null,
           noChargeCode: noCharge ? noChargeCode : null,
+          draftId,
+          uploads: Object.entries(uploads).map(([fieldId, u]) => ({
+            fieldId,
+            bucket: u.bucket,
+            storageKey: u.storageKey,
+            contentType: u.contentType,
+            byteSize: u.byteSize,
+          })),
           paymentIntent,
         }),
       });
@@ -748,6 +802,8 @@ export function IntakeClient({
                         field={f}
                         value={answers[f.id] ?? ""}
                         onChange={(v) => setAnswer(f.id, v)}
+                        onFile={f.kind === "file" ? (file) => attachFile(f.id, file) : undefined}
+                        attached={uploads[f.id]?.name ?? null}
                       />
                     ))}
                   </div>
@@ -984,12 +1040,20 @@ function FieldInput({
   field,
   value,
   onChange,
+  onFile,
+  attached,
 }: {
   field: IntakeField;
   value: string;
   onChange: (v: string) => void;
+  /** Uploads a document for a file field; resolves to an error sentence or null. */
+  onFile?: (file: File) => Promise<string | null>;
+  /** The name of the document attached to this field, if one is. */
+  attached?: string | null;
 }) {
   const id = `f_${field.id}`;
+  const [fileError, setFileError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   return (
     <div className={field.kind === "longtext" || field.kind === "file" ? "sm:col-span-2" : undefined}>
       <label htmlFor={id} className={label}>
@@ -1012,14 +1076,44 @@ function FieldInput({
         </select>
       ) : field.kind === "file" ? (
         /*
-         * A file cannot be uploaded from a telephone call, and pretending
-         * otherwise would put an input on the screen that does nothing. What
-         * the operator can do is record that it is outstanding, which is what
-         * the outstanding list above is for.
+         * ATTACHED BY THE FIRM, 0078. This said the document "cannot be
+         * attached on a call" and "stays outstanding on the file", while the
+         * submit button and the server both refused the job until it was
+         * attached, so a required document made the job impossible to take.
+         * The firm attaches it here, from whatever the customer sent or the
+         * firm has, and the server accepts only an upload made for this job.
          */
-        <p className={hint}>
-          Cannot be attached on a call. It stays outstanding on the file and can be requested.
-        </p>
+        <div className="mt-1.5">
+          <input
+            id={id}
+            type="file"
+            accept={field.photo ? "image/*" : "image/*,application/pdf"}
+            disabled={uploading || !onFile}
+            onChange={async (e) => {
+              const picked = e.target.files?.[0];
+              e.target.value = "";
+              if (!picked || !onFile) return;
+              setUploading(true);
+              setFileError(await onFile(picked));
+              setUploading(false);
+            }}
+            className="block w-full min-h-[44px] text-[16px] text-[var(--ink)]"
+          />
+          <p className={hint}>
+            {uploading
+              ? "Uploading."
+              : attached
+                ? `Attached: ${attached}.`
+                : field.required
+                  ? "Required to open this job. Attach what the customer sent."
+                  : "Attach it now if you have it."}
+          </p>
+          {fileError ? (
+            <p role="alert" className="mt-1 text-[14px] font-semibold text-[var(--ink)]">
+              {fileError}
+            </p>
+          ) : null}
+        </div>
       ) : (
         <input
           id={id}

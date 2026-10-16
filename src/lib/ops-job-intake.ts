@@ -12,6 +12,7 @@ import { fieldsFor, missingFor } from "@data/intake-fields";
 import { defaultAnswersFor } from "./ops-file-inputs";
 import {
   blockers,
+  applyIntakeUploads,
   decidePrice,
   isNoCharge,
   landsAt,
@@ -97,7 +98,20 @@ export type TakeJobInput = {
    * of its own to drift from the definition.
    */
   answers?: Record<string, string>;
+
+  /**
+   * Documents the firm attached while taking the job (0078), each answering one
+   * file field, uploaded beforehand under intake/<draftId>/<fieldId>/.
+   */
+  draftId?: string | null;
+  uploads?: { fieldId: string; bucket: string; storageKey: string; contentType?: string | null; byteSize?: number | null }[];
 };
+
+/** The bucket intake documents land in, which is the one order uploads use. */
+const INTAKE_BUCKET = "eng-uploads";
+
+/** What a file answer says in value_text, so the outstanding list reads it as answered. */
+export const ATTACHED_AT_INTAKE = "Attached by the firm when the job was taken.";
 
 export type TakeJobResult =
   | {
@@ -221,7 +235,29 @@ export async function takeJob(
    * answers does not stop a job being taken.
    */
   const defaults = await defaultAnswersFor(input.clientId ?? null);
-  const answers = { ...defaults, ...(input.answers ?? {}) };
+  const answers: Record<string, string> = { ...defaults, ...(input.answers ?? {}) };
+
+  /*
+   * A FILE FIELD IS ANSWERED BY A FILE, AND BY NOTHING ELSE. 0078.
+   *
+   * Any text posted against a file field is dropped first, so a sentence can
+   * never satisfy a document the signed protocol requires. Then each upload is
+   * checked: it answers a file field this deliverable asks, it is in the intake
+   * bucket, and its key is under this intake's own draft and that field. Only
+   * then does the field count as answered.
+   */
+  const uploads = input.uploads ?? [];
+  const filed = applyIntakeUploads({
+    fileFieldIds: fieldsFor(input.serviceSlug, input.tier).filter((f) => f.kind === "file").map((f) => f.id),
+    uploads,
+    draftId: input.draftId ?? null,
+    answers,
+    bucket: INTAKE_BUCKET,
+    attachedText: ATTACHED_AT_INTAKE,
+  });
+  if (!filed.ok) return { ok: false, error: filed.error, field: filed.field };
+  Object.keys(answers).forEach((k) => delete answers[k]);
+  Object.assign(answers, filed.answers);
 
   const missingToOrder = missingFor(input.serviceSlug, input.tier, answers, "order");
   if (missingToOrder.length) {
@@ -384,7 +420,8 @@ export async function takeJob(
    * like a fresh confirmation.
    */
   const typed = input.answers ?? {};
-  const supplied = Object.entries(answers).filter(([, v]) => typeof v === "string" && v.trim() !== "");
+  const uploadFor = (fieldId: string) => uploads.find((u) => u.fieldId === fieldId);
+  const supplied =Object.entries(answers).filter(([, v]) => typeof v === "string" && v.trim() !== "");
   if (supplied.length) {
     const known = new Set(fieldsFor(input.serviceSlug, input.tier).map((f) => f.id));
     const rows = supplied
@@ -393,8 +430,17 @@ export async function takeJob(
         file_id: file.id,
         field_id,
         value_text: value_text.trim(),
-        source: field_id in typed ? "firm" : "customer",
+        source: field_id in typed || uploadFor(field_id) ? "firm" : "customer",
         recorded_by: actor.id,
+        /* A document the firm attached carries where it landed (0078). */
+        ...(uploadFor(field_id)
+          ? {
+              bucket: uploadFor(field_id)!.bucket,
+              storage_key: uploadFor(field_id)!.storageKey,
+              content_type: uploadFor(field_id)!.contentType ?? null,
+              byte_size: uploadFor(field_id)!.byteSize ?? null,
+            }
+          : {}),
       }));
 
     if (rows.length) {

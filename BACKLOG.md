@@ -4,6 +4,14 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
+## THE SITTING FOR 0078, AN INTAKE ANSWER CAN BE A STORED FILE, OPEN
+
+`docs/production-sitting-0078-intake-photo.md`. Written 2026-10-16 on
+`migration/intake-photo-0078` and applied nowhere. Without it the firm cannot
+open a 254-RC-001 job by telephone, because the signed protocol requires a
+front-of-property photo at order and nothing let the firm attach one. Additive
+only; development first, then production, each read back.
+
 ## THE SITTING FOR `release/2026-10-20`, PARTS A AND B RUN 2026-10-07, PART C OPEN
 
 `docs/production-sitting-2026-10-20.md`. **Parts A and B ran on 2026-10-07**
