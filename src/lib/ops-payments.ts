@@ -1894,11 +1894,12 @@ export async function recordRefundUpdate(input: {
 }
 
 /**
- * A refund sentence for the customer's timeline. Pending at Stripe adds the
- * issued sentence after refundFor's own, which is never rewritten.
+ * A refund sentence for the customer's timeline. Pending at Stripe takes the
+ * rule's own pending sentence, "is being refunded" (ruling 2026-10-14), and adds
+ * the issued sentence after it. Neither is rewritten here.
  */
-function withIssuedSentence(explanation: string, status: string): string {
-  return status === "pending" ? `${explanation} ${REFUND_ISSUED_SENTENCE}` : explanation;
+function withIssuedSentence(decision: { explanation: string; explanationWhilePending: string }, status: string): string {
+  return status === "pending" ? `${decision.explanationWhilePending} ${REFUND_ISSUED_SENTENCE}` : decision.explanation;
 }
 
 /** The order a recorded charge belongs to, oldest charge first. Null when none or unreadable. */
@@ -2070,12 +2071,27 @@ export async function cancelAndRefund(input: {
     return { ok: true, refundedCents: 0, providerRef: "", alreadyRefunded: false };
   }
 
-  const { data: priorRefunds } = await db
+  /*
+   * A pending refund counts as already given back. Operator ruling,
+   * 2026-10-14, the same fix 0075 made on the webhook path: counting succeeded
+   * refunds alone, a second cancellation while the first refund is still
+   * pending at Stripe would issue the whole amount again.
+   *
+   * And a failed read refuses the cancel. Operator ruling, 2026-10-15: read
+   * as no prior refund, a failure here would refund the whole amount again.
+   */
+  const { data: priorRefunds, error: priorError } = await db
     .from("eng_order_payments")
     .select("amount_cents")
     .eq("order_id", input.orderId)
     .eq("kind", "refund")
-    .eq("status", "succeeded");
+    .in("status", ["pending", "succeeded"]);
+  if (priorError) {
+    return {
+      ok: false,
+      error: `The refunds already on file could not be read, so nothing was refunded: ${priorError.message}`,
+    };
+  }
 
   const alreadyRefunded = (priorRefunds ?? []).reduce((n, r) => n + Number(r.amount_cents), 0);
   const owed = paidCents - alreadyRefunded;
@@ -2148,7 +2164,7 @@ export async function cancelAndRefund(input: {
   });
 
   /* Pending at Stripe: the customer is told it is issued, never that it landed (ruling 2026-10-13). */
-  await event(input.orderId, "order.cancelled_by_firm", true, withIssuedSentence(decision.explanation, result.status), {
+  await event(input.orderId, "order.cancelled_by_firm", true, withIssuedSentence(decision, result.status), {
     reason,
     refunded_cents: result.amountCents,
     provider_ref: result.ref,
@@ -2376,7 +2392,7 @@ export async function settleDecision(input: {
   });
 
   /* Pending at Stripe: the customer is told it is issued, never that it landed (ruling 2026-10-13). */
-  await event(input.orderId, "refund.issued", true, withIssuedSentence(decision.explanation, result.status), {
+  await event(input.orderId, "refund.issued", true, withIssuedSentence(decision, result.status), {
     refunded_cents: decision.refundCents,
     retained_cents: decision.retainedCents,
     case: decision.caseName,
@@ -2547,7 +2563,7 @@ async function sendOrderSealed(orderId: string): Promise<void> {
  */
 async function sendOrderDeclined(
   orderId: string,
-  decision: { explanation: string; refundCents: number | null; retainedCents: number | null },
+  decision: { explanation: string; explanationWhilePending: string; refundCents: number | null; retainedCents: number | null },
   refundPending = false,
 ): Promise<void> {
   const db = supabaseAdmin();
@@ -2576,7 +2592,7 @@ async function sendOrderDeclined(
       customerEmail: order.customer_email as string,
       reference: order.reference as string,
       propertyAddress: order.property_address as string,
-      explanation: decision.explanation,
+      explanation: refundPending ? decision.explanationWhilePending : decision.explanation,
       refunded: isKnown(decision.refundCents) ? money(decision.refundCents) : null,
       retained: isKnown(decision.retainedCents) ? money(decision.retainedCents) : null,
       refundPending,

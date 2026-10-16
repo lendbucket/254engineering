@@ -444,13 +444,37 @@ export async function fileThread(actor: Actor & { email: string }, fileId: strin
   const db = supabaseAdmin();
   if (!db) return null;
 
+  if (!can(actor, "messages.use")) return null;
+
   const { data: existing } = await db.from("eng_threads").select("id").eq("file_id", fileId).maybeSingle();
   const { data: file } = await db
     .from("eng_files")
-    .select("id, file_number, assigned_tech_id, assigned_engineer_id")
+    .select("id, file_number, status, assigned_tech_id, assigned_engineer_id")
     .eq("id", fileId)
     .maybeSingle();
   if (!file) return null;
+
+  /*
+   * ONLY SOMEBODY WHO CAN SEE THE FILE OPENS ITS THREAD. 2026-10-15, with the
+   * button that opens it. This read nothing about the caller, so anybody who
+   * reached the route could open a thread on any file and be added as a
+   * participant, and participants are who a message notifies. Reading the
+   * thread already followed the file; joining it now does too, through the same
+   * canSeeFile the file screens use, offers included.
+   */
+  const { data: offers } = await db.from("eng_assignments").select("tech_id").eq("file_id", fileId);
+  const offeredTechIds = (offers ?? []).map((o) => o.tech_id as string);
+  if (
+    !canSeeFile(actor, {
+      id: file.id as string,
+      status: file.status as string,
+      assigned_tech_id: (file.assigned_tech_id as string | null) ?? null,
+      assigned_engineer_id: (file.assigned_engineer_id as string | null) ?? null,
+      offered_tech_ids: offeredTechIds,
+    })
+  ) {
+    return null;
+  }
 
   let threadId = existing?.id as string | undefined;
   if (!threadId) {
