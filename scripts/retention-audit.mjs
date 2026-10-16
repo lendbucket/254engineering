@@ -794,10 +794,36 @@ try {
      * away between the plan and the run, which is what this does now. It is
      * the same lesson as the paging check at gate 1: an injection that cannot
      * produce the failure is a green mark for a guard nobody tested.
+     *
+     * AND THE SECOND VERSION DELETED A REAL ROW ON EVERY BOARD. Operator
+     * ruling, 2026-10-16. It removed `moved.manifest.idLow`, which is the
+     * lowest id in the planned set, and the planned set is every cron row past
+     * the floor on development, not only this audit's. The lowest id is the
+     * oldest REAL row. Each board took one, and the day it came from then
+     * stopped reconciling with its rollup, so the next board's plan was
+     * refused and this check stopped running at all. Row 1238 of 2026-09-15
+     * went that way. A run may delete only rows it created (CLAUDE.md 6b).
+     *
+     * So the row that moves the set is one of this run's own 2019 fixture
+     * rows inside the planned range, read back and asserted to be ours before
+     * anything deletes it. If it is not, nothing is deleted.
      */
     const moved = await planAndTrack("eng_cron_runs", { kind: "dry_run", askedBy: AUDIT_ASKED });
     if (moved.ok && moved.manifest.idLow !== null) {
-      const removed = await db.from("eng_cron_runs").delete().eq("id", moved.manifest.idLow);
+      const victim = madeCron.filter((id) => id >= moved.manifest.idLow && id <= moved.manifest.idHigh).sort((a, b) => a - b)[0] ?? null;
+      const victimRow = victim === null
+        ? null
+        : (await db.from("eng_cron_runs").select("id, name, started_at").eq("id", victim).maybeSingle()).data;
+      const ours = victimRow !== null && madeCron.includes(victimRow.id) &&
+        victimRow.name === "retention-audit-probe" && String(victimRow.started_at).startsWith("2019-");
+      rec(
+        "the row it removes to move the set is one this run inserted, in its 2019 fixture year",
+        ours,
+        victimRow ? `row ${victimRow.id}, ${victimRow.name}, started ${victimRow.started_at}` : "no fixture row inside the planned range, so nothing was deleted",
+      );
+      const removed = ours
+        ? await db.from("eng_cron_runs").delete().eq("id", victimRow.id)
+        : { error: { message: "not deleted: the row is not this run's" } };
       const refused = await runRetention(moved.manifest.id);
       rec(
         "a set that changed between the plan and the run is refused by its hash",
@@ -812,6 +838,7 @@ try {
         failedRun.data ? `${failedRun.data.status}: ${(failedRun.data.note ?? "").slice(0, 70)}` : "no manifest read back",
       );
     } else {
+      rec("the row it removes to move the set is one this run inserted, in its 2019 fixture year", false, "could not plan the fixture for it");
       rec("a set that changed between the plan and the run is refused by its hash", false, "could not plan the fixture for it");
       rec("and the manifest records that it refused, rather than staying planned forever", false, "no fixture");
     }
