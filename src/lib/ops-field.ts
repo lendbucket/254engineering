@@ -34,7 +34,7 @@ import {
   type EvidenceKind,
   type ProtocolItem,
 } from "./ops-evidence";
-import { protocolItemRowsFor } from "./protocol-run";
+import { photoAnswerRefusal, photoAnswersFor, protocolItemRowsFor } from "./protocol-run";
 import { verifiedEngineers } from "@/config/credentials";
 import { licenceIsCurrent } from "./launch";
 import { holdFor, holdRefusal } from "./dispatch-hold";
@@ -1431,6 +1431,15 @@ export async function recordCapture(
   if (!item) return { ok: false, error: "That item is not in this file's protocol." };
   if (item.kind !== input.kind) return { ok: false, error: `${item.label} expects a ${item.kind}.` };
   if (!input.clientCaptureId) return { ok: false, error: "That capture has no id." };
+
+  /*
+   * A photograph item that also asks for a written answer takes the answer with
+   * the photograph. Operator ruling, 2026-10-15: the document prints a value to
+   * record beside these, and section 7 says no item is left blank.
+   */
+  const asks = item.kind === "photo" ? photoAnswersFor(view.protocol?.document_number ?? null)[item.itemKey] : undefined;
+  const unanswered = photoAnswerRefusal(asks, input);
+  if (unanswered) return { ok: false, error: unanswered };
 
   /*
    * THE SERVER CLOCK, READ ONCE. Both the skew below and the row's own
