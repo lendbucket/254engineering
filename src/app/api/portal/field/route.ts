@@ -216,6 +216,7 @@ async function handlePOST(request: NextRequest) {
         valueNumber: nullableNumber(body?.valueNumber),
         storageKey: body?.storageKey ? String(body.storageKey) : null,
         capturedAt: body?.capturedAt ? String(body.capturedAt) : null,
+        deviceNow: body?.deviceNow ? String(body.deviceNow) : null,
         lat: nullableNumber(body?.lat),
         lng: nullableNumber(body?.lng),
         accuracy: nullableNumber(body?.accuracy),

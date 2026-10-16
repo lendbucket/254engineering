@@ -4,10 +4,12 @@ import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
 import { jobView } from "@/lib/ops-field";
 import { progressLabel } from "@/lib/ops-evidence";
+import { photoAnswersFor } from "@/lib/protocol-run";
 import { services } from "@/content/services";
 import { STATUS_LABEL, type FileStatus } from "@/lib/ops-files";
 import { PageHead } from "@/components/portal/surfaces";
 import { Checklist, RepairList } from "./CaptureClient";
+import { FileThreadButton } from "@/components/portal/FileThreadButton";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +35,9 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
       .filter(Boolean)
       .join(", "),
   );
+
+  /* The photograph items that also take a written answer, from the signed document. */
+  const photoAnswers = photoAnswersFor(view.protocol?.document_number ?? null);
 
   const closed = ["evidence_submitted", "under_review", "sealed", "delivered", "closed", "cancelled"].includes(
     view.file.status,
@@ -82,6 +87,7 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
         >
           Directions
         </a>
+        {can(actor, "messages.use") ? <FileThreadButton fileId={view.file.id} /> : null}
       </div>
 
       {view.file.notes ? (
@@ -130,6 +136,7 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
             minValue: i.minValue ?? null,
             maxValue: i.maxValue ?? null,
             minCount: i.minCount ?? null,
+            answer: photoAnswers[i.itemKey] ?? null,
           }))}
           captures={view.captures.map((c) => ({
             id: c.id,
