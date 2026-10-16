@@ -48,6 +48,8 @@ type Item = {
   minValue: number | null;
   maxValue: number | null;
   minCount: number | null;
+  /** A photograph item that also asks for a written answer, in the document's words. */
+  answer?: { prompt: string; numeric: boolean; wholeNonNegative: boolean } | null;
 };
 
 type ServerCapture = {
@@ -888,23 +890,79 @@ function CaptureControl({
   const inputId = `cap-${item.id}`;
 
   if (item.kind === "photo" || item.kind === "document") {
+    /*
+     * THE WRITTEN ANSWER GOES WITH THE PHOTOGRAPH. Operator ruling, 2026-10-15.
+     * Three RC-001 photograph items also print a value to record, and the
+     * server refuses the photograph without it, so the camera stays shut until
+     * the answer is typed. The answer stays in the box for the next photograph
+     * of the same item.
+     */
+    const asks = item.kind === "photo" ? (item.answer ?? null) : null;
+    const answerId = `${inputId}-answer`;
+    const answer = asks ? (asks.numeric ? value.trim() : text.trim()) : "";
+    const ready =
+      !asks ||
+      (asks.numeric
+        ? answer !== "" &&
+          Number.isFinite(Number(answer)) &&
+          (!asks.wholeNonNegative || (Number.isInteger(Number(answer)) && Number(answer) >= 0))
+        : answer !== "");
     return (
       <div className="mt-3">
+        {asks ? (
+          <div className="mb-2.5">
+            <label htmlFor={answerId} className="block text-[14px] font-semibold text-[var(--ink)]">
+              {asks.prompt}
+            </label>
+            {asks.numeric ? (
+              <input
+                id={answerId}
+                type="number"
+                {...(asks.wholeNonNegative ? { min: 0, step: 1 } : { step: "any" })}
+                inputMode={asks.wholeNonNegative ? "numeric" : "decimal"}
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                className="mt-1.5 min-h-[48px] w-full rounded-[2px] border border-[var(--border)] bg-white px-3 text-[16px] text-[var(--ink)] outline-none focus:border-slate"
+              />
+            ) : (
+              <input
+                id={answerId}
+                type="text"
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                className="mt-1.5 min-h-[48px] w-full rounded-[2px] border border-[var(--border)] bg-white px-3 text-[16px] text-[var(--ink)] outline-none focus:border-slate"
+              />
+            )}
+            {!ready ? (
+              <p className="mt-1 text-[14px] leading-[1.5] text-[var(--secondary)]">
+                Type this first. It is sent with the photograph.
+              </p>
+            ) : null}
+          </div>
+        ) : null}
         <label
           htmlFor={inputId}
-          className="inline-flex min-h-[48px] w-full cursor-pointer items-center justify-center rounded-[2px] border border-slate bg-slate px-4 text-[15px] font-bold text-[var(--on-navy)] sm:w-auto sm:px-6"
+          aria-disabled={!ready}
+          className={`inline-flex min-h-[48px] w-full items-center justify-center rounded-[2px] border border-slate bg-slate px-4 text-[15px] font-bold text-[var(--on-navy)] sm:w-auto sm:px-6 ${
+            ready ? "cursor-pointer" : "cursor-not-allowed opacity-50"
+          }`}
         >
           {KIND_VERB[item.kind]}
         </label>
         <input
           id={inputId}
           type="file"
+          disabled={!ready}
           accept={item.kind === "photo" ? "image/*" : "image/*,application/pdf"}
           {...(item.kind === "photo" ? { capture: "environment" as const } : {})}
           className="sr-only"
           onChange={(e) => {
             const file = e.target.files?.[0];
-            if (file) onCapture({ blob: file });
+            if (file) {
+              if (asks?.numeric) onCapture({ blob: file, value: Number(answer) });
+              else if (asks) onCapture({ blob: file, text: answer });
+              else onCapture({ blob: file });
+            }
             e.target.value = "";
           }}
         />
