@@ -229,6 +229,60 @@ export function protocolItemRowsFor(documentNumber: string | null): ProtocolItem
   return protocol ? protocolItemRows(protocol) : null;
 }
 
+/**
+ * THE PHOTOGRAPH ITEMS THAT ALSO ASK FOR A WRITTEN ANSWER. Operator ruling,
+ * 2026-10-15.
+ *
+ * kindFor makes an item with [PHOTO] a photo item even when the document also
+ * prints a value to record beside it, so the capture prompt reached the
+ * technician only as the words "Record: ..." under a camera button, with
+ * nowhere to type the answer. On 254-RC-001 that is four items: the seal-bond
+ * ambient temperature (section 8: the result "is not meaningful without it"),
+ * the tile count per plane, the deck material and thickness, and the
+ * owner-reported roof age. The ruling named three; the fourth is the same
+ * defect and was found by the proof's pinned list.
+ *
+ * Derived from the registry rather than listed, so the set is whatever the
+ * signed document prints, and the document's text is not touched: the prompt is
+ * the document's own words. A count is a whole number of zero or more, a
+ * temperature is any number, and anything else is text.
+ */
+export type PhotoAnswer = { prompt: string; numeric: boolean; wholeNonNegative: boolean };
+
+export function photoAnswersFor(documentNumber: string | null): Record<string, PhotoAnswer> {
+  const protocol = protocolByDocument(documentNumber);
+  const out: Record<string, PhotoAnswer> = {};
+  if (!protocol) return out;
+  for (const item of protocol.declaration.checklist) {
+    if (item.photo && item.capture) {
+      out[item.key] = {
+        prompt: item.capture.prompt,
+        numeric: item.capture.kind === "count" || item.capture.kind === "temperature",
+        wholeNonNegative: item.capture.kind === "count",
+      };
+    }
+  }
+  return out;
+}
+
+/**
+ * The refusal for a photograph sent without the answer its item asks for, or
+ * null when it may be recorded. One home, called by recordCapture.
+ */
+export function photoAnswerRefusal(
+  asks: PhotoAnswer | undefined,
+  input: { valueText?: string | null; valueNumber?: number | null },
+): string | null {
+  if (!asks) return null;
+  const n = input.valueNumber;
+  const answered = asks.numeric
+    ? typeof n === "number" &&
+      Number.isFinite(n) &&
+      (!asks.wholeNonNegative || (Number.isInteger(n) && n >= 0))
+    : Boolean(input.valueText?.trim());
+  return answered ? null : `Record ${asks.prompt.toLowerCase()} with this photograph.`;
+}
+
 /*
  * ===========================================================================
  * THE SUBMIT GATE IS NOT HERE, AND IT WAS, FOR TWO COMMITS.

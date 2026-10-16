@@ -203,6 +203,9 @@ export async function flushOne(entry: QueuedCapture): Promise<{ ok: true } | { o
         valueNumber: entry.valueNumber ?? null,
         storageKey,
         capturedAt: entry.capturedAt,
+        /* The clock at the moment of sending, so the server measures the clock
+         * and not how long the capture waited for signal. */
+        deviceNow: new Date().toISOString(),
         lat: entry.lat ?? null,
         lng: entry.lng ?? null,
         accuracy: entry.accuracy ?? null,
