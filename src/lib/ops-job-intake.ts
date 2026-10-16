@@ -1,6 +1,7 @@
 import "server-only";
 import { supabaseAdmin } from "./supabase";
-import { writeAudit } from "./ops-audit";
+import { writeAudit, writeAuditOrRefuse } from "./ops-audit";
+import { verifyFreshCode } from "./ops-mfa";
 import { createClient, createFile, transitionFile, type Author } from "./ops-crm";
 import { catalogFor, orderBlockedReason } from "@data/catalog";
 import { quoteFor } from "./ops-orders";
@@ -12,7 +13,9 @@ import { defaultAnswersFor } from "./ops-file-inputs";
 import {
   blockers,
   decidePrice,
+  isNoCharge,
   landsAt,
+  noChargeRefusal,
   paymentOptions,
   type IntakeChannel,
   type PaymentIntent,
@@ -80,6 +83,8 @@ export type TakeJobInput = {
   /** Only when the operator changed it. Null means take the catalog's. */
   priceCents?: number | null;
   priceOverrideReason?: string | null;
+  /** A fresh authenticator code, required only for a client price of zero. */
+  noChargeCode?: string | null;
 
   paymentIntent: PaymentIntent;
   paymentNote?: string | null;
@@ -271,6 +276,52 @@ export async function takeJob(
     };
   }
 
+  /*
+   * ------------------------------------------------------ a job at no charge
+   *
+   * Operator ruling, 2026-10-16. A client price of zero needs the administrator
+   * role, a fresh code from the administrator's own authenticator, a typed
+   * reason, and an audit row written BEFORE anything else is, so no client and
+   * no file can exist for a no-charge job that has no record. The audit row is
+   * written with writeAuditOrRefuse, which refuses the act when the row cannot
+   * be written rather than logging and carrying on as writeAudit does.
+   */
+  const clientCents = decision.overridden ? decision.cents : catalogCents;
+  let noChargeEventId: string | null = null;
+  if (isNoCharge(clientCents)) {
+    const refused = noChargeRefusal({
+      actorId: actor.id,
+      actorRole: actor.role,
+      reason: decision.overridden ? decision.reason : (input.priceOverrideReason ?? null),
+      paymentIntent: input.paymentIntent,
+      code: input.noChargeCode ?? null,
+    });
+    if (refused) return { ok: false, error: refused, field: "priceCents" };
+
+    const fresh = await verifyFreshCode(actor.id as string, input.noChargeCode ?? "", "A job at no charge");
+    if (!fresh.ok) return { ok: false, error: fresh.error, field: "noChargeCode" };
+
+    const recorded = await writeAuditOrRefuse({
+      actor,
+      action: "job.no_charge",
+      entityType: "file",
+      entityId: null,
+      summary: `No-charge ${entry.name} authorised for ${input.propertyAddress}, ${resolved.county} County`,
+      diff: {
+        reason: decision.overridden ? decision.reason : (input.priceOverrideReason ?? "").trim(),
+        catalog_price_cents: catalogCents,
+        client_price_cents: 0,
+        second_factor_verified_at: fresh.verifiedAt,
+        property_address: input.propertyAddress,
+        service: input.serviceSlug,
+        deliverable: input.tier,
+      },
+      ...context,
+    });
+    if (!recorded.ok) return { ok: false, error: recorded.error, field: "priceCents" };
+    noChargeEventId = recorded.id;
+  }
+
   // ------------------------------------------------------------ the client
   let clientId = input.clientId ?? null;
   if (!clientId) {
@@ -401,6 +452,8 @@ export async function takeJob(
       ...(decision.overridden
         ? { catalog_price_cents: catalogCents, client_price_cents: decision.cents }
         : {}),
+      /* The authorisation written before the file, so the two rows find each other. */
+      ...(noChargeEventId ? { no_charge_event_id: noChargeEventId } : {}),
     },
     ...context,
   });
