@@ -358,6 +358,112 @@ export const topics: Topic[] = [
       },
     },
   },
+  /*
+   * THE WINDSTORM SECTION, POSTS 11 TO 17 ON THIS SITE, 2026-10-16.
+   *
+   * One entry per primary keyword, each recording this brand's angle so that a
+   * Sealed Engineering page on the same subject is written as a different
+   * document for its ordering buyer. Status is "planned" until the branch
+   * content/blog-windstorm merges; whoever merges it sets these to "live".
+   * Post 12 ("wpi8 search") was folded into /insights/texas-windstorm-certificate-lookup
+   * and has no entry of its own. Plan: docs/blog/windstorm-section-plan.md.
+   */
+  {
+    topic: "WPI-8 certificate, the document and its forms",
+    cluster: "windstorm",
+    evidence: "2026-10-16, operator's Ahrefs pull, US, supplied with the brief: primary 'wpi8' 600/mo, KD 0. Supporting: 'wpi-8', 'wpi 8 certificate', 'windstorm certificate texas'.",
+    angles: {
+      "254": {
+        angle: "The certificate family (WPI-8, WPI-8-E, WPI-8-C) and the forms that produce each, read from TDI's forms and process pages: the WPI-1, the WPI-2-BC series assigned by construction start date, the WPI-2E, what one certificate records, and address corrections. Not the statute walk-through, which is /insights/windstorm-certificate-of-compliance.",
+        path: "/insights/wpi-8-certificate",
+        status: "planned",
+      },
+      sealed: {
+        angle: "Whether this property needs one and how to get it, in plain language, on Sealed's own order path. Must not reuse this post's form-by-form structure or its headings.",
+        status: "none",
+      },
+    },
+  },
+  {
+    topic: "Texas windstorm inspection, the inspection itself",
+    cluster: "windstorm",
+    evidence: "2026-10-16, operator's Ahrefs pull, US, supplied with the brief: primary 'texas windstorm' 1,700/mo, KD 5. Supporting: 'tdi windstorm', 'windstorm engineer'. 'windstorm inspection' is deliberately left to the coastal buyers post.",
+    angles: {
+      "254": {
+        angle: "Where the requirement reaches and its 1987 origin, the adopted code editions and zones it measures against, who may inspect which work under Insurance Code 2210.254, the load path an inspector needs to see open, timing and deficiencies, and the city permit beside it. Distinct from the /windstorm hub, which explains the program's actors.",
+        path: "/insights/texas-windstorm-inspections",
+        status: "planned",
+      },
+      sealed: {
+        angle: "Booking and preparing for an inspection on a specific job. Not this post's code and load path treatment.",
+        status: "none",
+      },
+    },
+  },
+  {
+    topic: "TWIA, the association and its policy",
+    cluster: "windstorm",
+    evidence: "2026-10-16, operator's Ahrefs pull, US, supplied with the brief: primary 'twia' 1,500/mo, KD 0. Supporting: 'texas windstorm insurance', 'twia requirements'.",
+    angles: {
+      "254": {
+        angle: "What the association is and how a policy works, from TWIA's and TDI's published pages: declination, agent, insurable condition, wind and hail only, 2026 limits and deductibles, the V zone flood requirement, funding layers, claim deadlines under 2210.573. Certificates get one section and link to /insights/twia-eligibility-requirements, which owns 'twia insurance' and the statute reading.",
+        path: "/insights/twia-insurance-and-windstorm-certificates",
+        status: "planned",
+      },
+      sealed: {
+        angle: "A homeowner told TWIA needs a certificate, and what to do this week. Not an institutional explainer.",
+        status: "none",
+      },
+    },
+  },
+  {
+    topic: "buying a coastal house without a windstorm certificate",
+    cluster: "windstorm",
+    evidence: "2026-10-16, operator's Ahrefs pull, US, supplied with the brief: primary 'windstorm inspection' 100/mo, KD 12. Supporting: 'buying a house without a windstorm certificate'.",
+    angles: {
+      "254": {
+        angle: "A buyer's decision path when the certificate is missing: which reason applies (pre-1988, WPI-8-C held by TWIA, uncertified later work), the 2210.258 exceptions a buyer can and cannot use, the completed construction route and its timing, CBRA and the V zone flood rule. Lookup mechanics are linked to /insights/texas-windstorm-certificate-lookup, not repeated.",
+        path: "/insights/windstorm-inspection-coastal-buyers",
+        status: "planned",
+      },
+      sealed: {
+        angle: "The order path for a buyer or realtor who needs the certificate before closing.",
+        status: "none",
+      },
+    },
+  },
+  {
+    topic: "hurricane damage, structural assessment",
+    cluster: "storm damage",
+    evidence: "2026-10-16, operator's Ahrefs pull, US, supplied with the brief: primary 'hurricane damage' 4,100/mo, KD 24. Supporting: 'what damage can a hurricane cause', 'hurricane damage repair'.",
+    angles: {
+      "254": {
+        angle: "Damage modes by NHC category and a structural checklist along FEMA's load path, roof deck to foundation, with the windstorm certificate consequences of permanent repair. Structural scope only: no covering, leak or MEP advice.",
+        path: "/insights/hurricane-damage-structural-checklist",
+        status: "planned",
+      },
+      sealed: {
+        angle: "An owner after a loss who needs an assessment ordered. Not this checklist.",
+        status: "none",
+      },
+    },
+  },
+  {
+    topic: "hurricane damage and homeowners insurance",
+    cluster: "storm damage",
+    evidence: "2026-10-16, operator's Ahrefs pull, US, supplied with the brief: primary 'does homeowners insurance cover hurricane damage' 500/mo, KD 3. Supporting: 'does home insurance cover hurricane damage'.",
+    angles: {
+      "254": {
+        angle: "Which policy answers which peril, quoted from TDI, OPIC, FEMA and the Insurance Code, deductibles, claim deadlines under 542.055, 542.056 and 2210.573, and where an engineer's report on cause fits. States that the firm is not an insurance adviser. Never claim advocacy.",
+        path: "/insights/hurricane-damage-insurance-claim",
+        status: "planned",
+      },
+      sealed: {
+        angle: "None. A claim page on the ordering brand reads as solicitation.",
+        status: "none",
+      },
+    },
+  },
 ];
 
 /* ---------------------------------------------------------------- accessors */
