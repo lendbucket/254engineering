@@ -9,6 +9,7 @@ import { services } from "@/content/services";
 import { STATUS_LABEL, type FileStatus } from "@/lib/ops-files";
 import { PageHead } from "@/components/portal/surfaces";
 import { Checklist, RepairList } from "./CaptureClient";
+import { FileThreadButton } from "@/components/portal/FileThreadButton";
 
 export const dynamic = "force-dynamic";
 
@@ -86,6 +87,7 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
         >
           Directions
         </a>
+        {can(actor, "messages.use") ? <FileThreadButton fileId={view.file.id} /> : null}
       </div>
 
       {view.file.notes ? (
