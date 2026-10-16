@@ -9,6 +9,7 @@ import { money, isKnown } from "@/lib/ops-money";
 import {
   blockers,
   decidePrice,
+  isNoCharge,
   landsAt,
   paymentOptions,
   MIN_OVERRIDE_REASON,
@@ -106,6 +107,7 @@ export function IntakeClient({
   // -------------------------------------------------------------- the money
   const [overridePrice, setOverridePrice] = useState("");
   const [overrideReason, setOverrideReason] = useState("");
+  const [noChargeCode, setNoChargeCode] = useState("");
   const [paymentIntent, setPaymentIntent] = useState<PaymentIntent>("released_unpaid");
 
   /*
@@ -262,6 +264,8 @@ export function IntakeClient({
 
   const catalogCents = quote && isKnown(quote.totalCents) ? quote.totalCents : null;
   const enteredCents = overridePrice.trim() ? Math.round(Number(overridePrice) * 100) : null;
+  /* A price of zero is a job at no charge, which the server only opens for an administrator with a fresh code. */
+  const noCharge = isNoCharge(enteredCents);
 
   /*
    * Everything this deliverable needs. Empty until a deliverable is chosen,
@@ -326,7 +330,12 @@ export function IntakeClient({
   });
 
   const priceError = "error" in priceDecision ? priceDecision.error : null;
-  const canSubmit = missing.length === 0 && missingToOrder.length === 0 && !priceError && !busy;
+  const canSubmit =
+    missing.length === 0 &&
+    missingToOrder.length === 0 &&
+    !priceError &&
+    !busy &&
+    (!noCharge || noChargeCode.replace(/\s+/g, "").length === 6);
 
   async function submit() {
     if (!canSubmit) return;
@@ -363,6 +372,7 @@ export function IntakeClient({
           priceCents: "overridden" in priceDecision && priceDecision.overridden ? priceDecision.cents : null,
           priceOverrideReason:
             "overridden" in priceDecision && priceDecision.overridden ? priceDecision.reason : null,
+          noChargeCode: noCharge ? noChargeCode : null,
           paymentIntent,
         }),
       });
@@ -817,6 +827,26 @@ export function IntakeClient({
           The catalog price stays on the file either way. A price that changed with no record of who
           changed it or why is a dispute the firm loses.
         </p>
+        {noCharge ? (
+          <div className="mt-4">
+            <label htmlFor="noChargeCode" className={label}>
+              Code from your authenticator app
+            </label>
+            <input
+              id="noChargeCode"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={6}
+              value={noChargeCode}
+              onChange={(e) => setNoChargeCode(e.target.value)}
+              className="mt-1.5 h-11 w-full max-w-[200px] rounded-[2px] border border-[var(--border)] bg-white px-3 text-[16px] tracking-[2px] text-[var(--ink)] focus:border-[var(--navy)] focus:outline-none focus:ring-2 focus:ring-[var(--navy)]/20"
+            />
+            <p className={hint}>
+              A job at no charge is opened by an administrator only, with a fresh code, and is
+              recorded with your reason before the file exists. It is opened unpaid.
+            </p>
+          </div>
+        ) : null}
         {priceError ? (
           <p className="mt-2 text-[14px] font-semibold leading-[1.5] text-[var(--danger)]">{priceError}</p>
         ) : null}

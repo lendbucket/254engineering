@@ -53,11 +53,8 @@ export type AuditInput = {
   userAgent?: string | null;
 };
 
-export async function writeAudit(input: AuditInput): Promise<void> {
-  const db = supabaseAdmin();
-  if (!db) return;
-
-  const { error } = await db.from("eng_audit_events").insert({
+function auditRow(input: AuditInput) {
+  return {
     actor_id: input.actor?.id ?? null,
     actor_email: input.actor?.email ?? null,
     actor_role: input.actor?.role ?? null,
@@ -68,11 +65,39 @@ export async function writeAudit(input: AuditInput): Promise<void> {
     diff: input.diff ?? null,
     ip: input.ip ?? null,
     user_agent: input.userAgent ?? null,
-  });
+  };
+}
+
+export async function writeAudit(input: AuditInput): Promise<void> {
+  const db = supabaseAdmin();
+  if (!db) return;
+
+  const { error } = await db.from("eng_audit_events").insert(auditRow(input));
 
   if (error) {
     console.error(`[ops-audit] FAILED to record ${input.action} on ${input.entityType}:`, error.message);
   }
+}
+
+/**
+ * THE ONE AUDIT ROW THAT IS NOT BEST EFFORT. Operator ruling, 2026-10-16.
+ *
+ * writeAudit swallows a failure because the act it describes has usually
+ * already happened. This is for the act that must not happen WITHOUT its row:
+ * it is written first, its id is returned, and a failure is a refusal of the
+ * act rather than a log line. The no-charge job is the first caller.
+ */
+export async function writeAuditOrRefuse(
+  input: AuditInput,
+): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured, so nothing could be recorded." };
+
+  const { data, error } = await db.from("eng_audit_events").insert(auditRow(input)).select("id").single();
+  if (error || !data) {
+    return { ok: false, error: `The record could not be written, so nothing was done: ${error?.message ?? "no row"}` };
+  }
+  return { ok: true, id: String(data.id) };
 }
 
 /**

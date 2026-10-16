@@ -643,7 +643,12 @@ export async function answerChallenge(userId: string, answer: string): Promise<C
  */
 export type FreshCodeResult = { ok: true; verifiedAt: string } | { ok: false; error: string };
 
-export async function verifyFreshCode(userId: string, code: string): Promise<FreshCodeResult> {
+export async function verifyFreshCode(
+  userId: string,
+  code: string,
+  /* What is refused without a factor, so the sentence names the act the person was attempting. */
+  refusedAct = "Sealing",
+): Promise<FreshCodeResult> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
 
@@ -657,7 +662,7 @@ export async function verifyFreshCode(userId: string, code: string): Promise<Fre
     return {
       ok: false,
       error:
-        "This account has no verified second factor. Set one up under Two-step verification on your profile first. Sealing is refused until it is verified.",
+        `This account has no verified second factor. Set one up under Two-step verification on your profile first. ${refusedAct} is refused until it is verified.`,
     };
   }
 
