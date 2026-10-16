@@ -23,6 +23,40 @@ investigation would be owed. The place to start is the entry "The county map on
 the coverage routes, investigated and left alone": the largest paint on
 `/coverage` was measured as the prelaunch compliance paragraph, not the map.
 
+**Two more routes, added by operator ruling of 2026-10-15, in this order.** The
+board on `29df1d7` printed the same verdict for two routes the ruling had not
+named. Robert ruled that any perf NOT STABLE line is a standing note on any
+route, as long as there is no LCP FAIL, and that both go here:
+
+1. `/services/windstorm-wpi-8` first, because it is a money page:
+   `LCP 2844ms against 3400ms`, median of 3, range 2842 to 3605ms.
+2. `/coverage/coastal-bend`: `LCP 3071ms against 3400ms`, median of 3, range
+   3070 to 3756ms.
+
+## RETENTION-AUDIT'S PLAN CHECK READS LIVE DEVELOPMENT ROWS. IT NEEDS A FIXTURE-ONLY SUBJECT
+
+Operator ruling, 2026-10-15: record it, do not change the check now.
+
+The board on `29df1d7` failed `retention-audit` on "with the rollups
+reconciling, a plan is written", naming 2026-09-15: 67 rows in `eng_cron_runs`
+and no `cron.runs` figure in `eng_metrics_daily`. The branch touched nothing in
+retention. The board ran past midnight UTC, the thirty day cutoff moved to
+2026-09-16, and the plan, which reads every `eng_cron_runs` row older than the
+cutoff rather than only the audit's own 2019 fixture, took in a real day on
+development that had never been rolled up.
+
+The check's verdict therefore depends on the state of development's data and on
+the hour the board runs. The five standing `eng_jobs` lines in the same audit
+are the same shape, landing as COULD NOT TELL rather than FAIL.
+
+What was done instead, on the ruling: the product's own `rollupDay` was run on
+development for 2026-09-15 alone, and read back as `cron.runs` 67 against 67
+source rows. The counterpart read both databases: development has cron rows on
+that day only, so it does not recur daily; production rolls up every day.
+
+What is owed: give the plan check a subject it builds itself, so that live rows
+on development cannot change its verdict, without loosening what it asserts.
+
 ## THE SITTING FOR `release/2026-10-20`, PARTS A AND B RUN 2026-10-07, PART C OPEN
 
 `docs/production-sitting-2026-10-20.md`. **Parts A and B ran on 2026-10-07**
