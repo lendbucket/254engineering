@@ -895,7 +895,7 @@ export function IntakeClient({
               maxLength={6}
               value={noChargeCode}
               onChange={(e) => setNoChargeCode(e.target.value)}
-              className="mt-1.5 h-11 w-full max-w-[200px] rounded-[2px] border border-[var(--border)] bg-white px-3 text-[16px] tracking-[2px] text-[var(--ink)] focus:border-[var(--navy)] focus:outline-none focus:ring-2 focus:ring-[var(--navy)]/20"
+              className="mt-1.5 h-11 w-full max-w-[200px] rounded-[2px] border border-[var(--border)] bg-white px-3 text-[16px] text-[var(--ink)] focus:border-[var(--navy)] focus:outline-none focus:ring-2 focus:ring-[var(--navy)]/20"
             />
             <p className={hint}>
               A job at no charge is opened by an administrator only, with a fresh code, and is
