@@ -748,7 +748,8 @@ console.log("");
    */
   rec(
     "the source distinguishes what was typed from what came from a default",
-    intakeLib.includes('field_id in typed ? "firm" : "customer"'),
+    /* 0078: a document the firm attached is the firm's too, so it joins the typed case and no other. */
+    intakeLib.includes('field_id in typed || uploadFor(field_id) ? "firm" : "customer"'),
     "a stored preference is not something the operator was told on this call",
   );
   rec(

@@ -165,6 +165,39 @@ export function decidePrice(input: {
 export const MIN_OVERRIDE_REASON = 10;
 
 /**
+ * A FILE FIELD IS ANSWERED BY A FILE, AND BY NOTHING ELSE. 0078, 2026-10-16.
+ *
+ * Text posted against a file field is dropped first, so a sentence can never
+ * satisfy a document the signed protocol requires. Each upload must answer a
+ * file field this deliverable asks, sit in the intake bucket, and have a key
+ * under this intake's own draft and that field. Only then does the field count
+ * as answered, with the fixed sentence the outstanding list reads.
+ */
+export function applyIntakeUploads(input: {
+  fileFieldIds: string[];
+  uploads: { fieldId: string; bucket: string; storageKey: string }[];
+  draftId: string | null;
+  answers: Record<string, string>;
+  bucket: string;
+  attachedText: string;
+}): { ok: true; answers: Record<string, string> } | { ok: false; error: string; field: string } {
+  const fileFields = new Set(input.fileFieldIds);
+  const answers: Record<string, string> = {};
+  for (const [k, v] of Object.entries(input.answers)) if (!fileFields.has(k)) answers[k] = v;
+  const draft = (input.draftId ?? "").trim();
+  for (const u of input.uploads) {
+    if (!fileFields.has(u.fieldId)) {
+      return { ok: false, error: "That document does not answer anything this job asks.", field: u.fieldId };
+    }
+    if (u.bucket !== input.bucket || !draft || !u.storageKey.startsWith(`intake/${draft}/${u.fieldId}/`)) {
+      return { ok: false, error: "That document was not uploaded for this job. Attach it again.", field: u.fieldId };
+    }
+    answers[u.fieldId] = input.attachedText;
+  }
+  return { ok: true, answers };
+}
+
+/**
  * ===========================================================================
  * A JOB AT NO CHARGE. Operator ruling, 2026-10-16.
  * ===========================================================================

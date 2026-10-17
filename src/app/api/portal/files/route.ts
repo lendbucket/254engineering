@@ -8,6 +8,7 @@ import { can } from "@/lib/ops-authz";
 import { createFile, transitionFile, convertLead, createClient, getFile, getClient } from "@/lib/ops-crm";
 import type { FileStatus } from "@/lib/ops-files";
 import { withSaveOutcome } from "@/lib/save-outcome";
+import { signOrderUpload } from "@/lib/order-uploads";
 
 /**
  * Everything that changes a client or a file.
@@ -68,6 +69,31 @@ async function handlePOST(request: NextRequest) {
    * IS opening a file; the difference is how much is known at the time, not who
    * is allowed to do it.
    */
+  /*
+   * A DOCUMENT THE FIRM ATTACHES WHILE TAKING A JOB. 0078.
+   *
+   * Signed the same way a customer's order upload is, into the same private
+   * bucket, under the "intake" namespace keyed on the intake's draft id. Same
+   * permission as taking the job, because attaching what the job requires is
+   * part of taking it.
+   */
+  if (action === "sign_intake_upload") {
+    if (!can(actor, "files.create")) {
+      return NextResponse.json({ ok: false, error: "Not permitted." }, { status: 403 });
+    }
+    const signed = await signOrderUpload({
+      draftId: String(body?.draftId ?? ""),
+      inputKey: String(body?.fieldId ?? ""),
+      filename: String(body?.filename ?? ""),
+      contentType: String(body?.contentType ?? ""),
+      size: Number(body?.size ?? 0),
+      space: "intake",
+    });
+    return signed.ok
+      ? NextResponse.json(signed)
+      : NextResponse.json({ ok: false, error: signed.error }, { status: 400 });
+  }
+
   if (action === "take_job") {
     if (!can(actor, "files.create")) {
       return NextResponse.json({ ok: false, error: "Not permitted." }, { status: 403 });
