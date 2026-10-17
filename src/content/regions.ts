@@ -138,7 +138,7 @@ export const regions: Region[] = [
       "Engineering coverage across Dallas Fort Worth, North Texas, and East Texas, where Blackland Prairie clay and severe hail define the work. See the county list.",
     summary:
       "Sixty five counties, from the Metroplex east to the Louisiana line and north to the Red River. Blackland Prairie clay under the western half, piney woods sands under the eastern, and the most damaging hail in the country over all of it.",
-    anchors: ["Dallas", "Fort Worth", "Tyler", "Denton", "Wichita Falls", "Texarkana", "Longview"],
+    anchors: ["Dallas", "Fort Worth", "Tyler", "Denton", "Wichita Falls", "Texarkana", "Longview", "Frisco"],
     wind: [
       "There is no coastal windstorm certification requirement anywhere in this region. Wind still governs plenty of design, but it arrives as thunderstorm outflow and tornado rather than as hurricane, and the design wind speeds are correspondingly lower than on the coast.",
       "Hail is the dominant peril and it is not a close contest. The corridor running through the Metroplex and north to the Red River produces some of the highest hail loss totals in the United States, and it is why roof condition is the most commonly asked engineering question in this region.",
