@@ -1,0 +1,14 @@
+# Partner portal: screenshots
+
+Product audit, 2026-10-10, from main at d282d5a on development (probe and demonstration accounts only; no real person). Each route was opened by every principal that could plausibly reach it; the screens below are the ones each principal reached, at 390 and 1280, captured at their full scroll height. `who` names the principal: a probe (empty), a demo-* account (populated), seedPartner or seedCustomer (the audit seed's owners), or public (signed out).
+
+| Route | Reached by | Refused (status, landed on) | Screenshots |
+| --- | --- | --- | --- |
+| `/partner` | partner, seedPartner | signed out (200, /partner/login) | [partner__1280](partner__partner__1280.jpg) [partner__390](partner__partner__390.jpg) [seedPartner__1280](partner__seedPartner__1280.jpg) [seedPartner__390](partner__seedPartner__390.jpg) |
+| `/partner/agreement` | partner, seedPartner | signed out (200, /partner/login) | [partner__1280](partner-agreement__partner__1280.jpg) [partner__390](partner-agreement__partner__390.jpg) [seedPartner__1280](partner-agreement__seedPartner__1280.jpg) [seedPartner__390](partner-agreement__seedPartner__390.jpg) |
+| `/partner/materials` | partner, seedPartner | signed out (200, /partner/login) | [partner__1280](partner-materials__partner__1280.jpg) [partner__390](partner-materials__partner__390.jpg) [seedPartner__1280](partner-materials__seedPartner__1280.jpg) [seedPartner__390](partner-materials__seedPartner__390.jpg) |
+| `/partner/referrals` | partner, seedPartner | signed out (200, /partner/login) | [partner__1280](partner-referrals__partner__1280.jpg) [partner__390](partner-referrals__partner__390.jpg) [seedPartner__1280](partner-referrals__seedPartner__1280.jpg) [seedPartner__390](partner-referrals__seedPartner__390.jpg) |
+| `/partner/statements` | partner, seedPartner | signed out (200, /partner/login) | [partner__1280](partner-statements__partner__1280.jpg) [partner__390](partner-statements__partner__390.jpg) [seedPartner__1280](partner-statements__seedPartner__1280.jpg) [seedPartner__390](partner-statements__seedPartner__390.jpg) |
+| `/partner/login` | signed out | partner (200, /partner); seedPartner (200, /partner) | [public__1280](partner-login__public__1280.jpg) [public__390](partner-login__public__390.jpg) |
+| `/partner/set-password` | partner, seedPartner, signed out | nobody | [partner__1280](partner-set-password__partner__1280.jpg) [partner__390](partner-set-password__partner__390.jpg) [public__1280](partner-set-password__public__1280.jpg) [public__390](partner-set-password__public__390.jpg) [seedPartner__1280](partner-set-password__seedPartner__1280.jpg) [seedPartner__390](partner-set-password__seedPartner__390.jpg) |
+| `/partner/statements/[reference]` | seedPartner | nobody | [seedPartner__1280](partner-statements-reference-__seedPartner__1280.jpg) [seedPartner__390](partner-statements-reference-__seedPartner__390.jpg) |
