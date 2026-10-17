@@ -1,7 +1,10 @@
 # Sitting: 0078, an intake answer can be a stored file
 
 Branch `migration/intake-photo-0078`. Written 2026-10-16 in an unattended run.
-Nothing here has been applied anywhere, development included.
+Applied to development 2026-10-16 at 07:06:21 UTC (version 20261016070621) and
+to production 2026-10-17 at 02:36:34 UTC (version 20261017023634), both read
+back by the operator's chat counterpart. The ledger entry in
+`supabase/applied.mjs` carries both read backs.
 
 ## Why
 

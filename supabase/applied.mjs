@@ -2616,8 +2616,34 @@ export const APPLIED = [
     file: "0078_an_intake_answer_can_be_a_stored_file.sql", appliedBy: "apply_migration",
     fingerprint: "4ccff0ee13040992a71d16d2b14163a3",
     behaviour: "92e4ca15c2ec0c69e075abf7f80d6fe9",
-    production: null,
-    development: null,
+    /*
+     * APPLIED TO PRODUCTION 2026-10-16 in Central time, 2026-10-17 02:36:34 UTC,
+     * provider version 20261017023634, name
+     * 0078_an_intake_answer_can_be_a_stored_file, after the exact board on
+     * 0ea9b29, from docs/production-sitting-0078-intake-photo.md, by the
+     * operator's chat counterpart through apply_migration. Section 0 read clean
+     * first: none of the four columns, no constraint, shape
+     * 318b0fa346fc0f92167df9b9f44ce1cf across 1206.
+     *
+     * Read back exact, as section 3 predicts: bucket text YES, byte_size bigint
+     * YES, content_type text YES, storage_key text YES;
+     * eng_file_inputs_stored_file_whole_ck present; shape
+     * 4ccff0ee13040992a71d16d2b14163a3 across 1210.
+     */
+    production: "2026-10-16",
+    development: {
+      at: "0078",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-16",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-16 at 07:06:21 UTC by the operator's chat counterpart through " +
+        "apply_migration, provider version 20261016070621, name 0078_an_intake_answer_can_be_a_stored_file. " +
+        "Read back that morning: four nullable columns on eng_file_inputs, eng_file_inputs_stored_file_whole_ck " +
+        "present, shape 4ccff0ee13040992a71d16d2b14163a3 across 1210. A read only session check the same day " +
+        "found bucket, storage_key, content_type and byte_size all present on development.",
+    },
     proves: { table: "eng_file_inputs", column: "storage_key" },
     note:
       "Both figures read off scripts/fingerprint-at.mjs at 0078 on 2026-10-16, with 0077 reproducing its " +
@@ -2625,8 +2651,12 @@ export const APPLIED = [
       "eng_order_inputs names them in 0006), behaviour 1019 to 1020 facts (the one check that a stored " +
       "file names its bucket and its key together).",
     because:
-      "WRITTEN 2026-10-16 ON migration/intake-photo-0078 IN AN UNATTENDED RUN, AND APPLIED NOWHERE, " +
-      "INCLUDING DEVELOPMENT. The firm could not open a 254-RC-001 job by telephone: the signed protocol " +
+      "APPLIED TO PRODUCTION 2026-10-16, provider version 20261017023634 (02:36:34 UTC on 2026-10-17, " +
+      "the evening of 2026-10-16 in Central time), and to development 2026-10-16 at 07:06:21 UTC, provider " +
+      "version 20261016070621, both as this entry records them. This sentence replaced 'WRITTEN 2026-10-16 " +
+      "ON migration/intake-photo-0078 IN AN UNATTENDED RUN, AND APPLIED NOWHERE, INCLUDING DEVELOPMENT.', " +
+      "which was wrong about development: the chat had applied it there that morning, and nothing on the " +
+      "branch recorded it until this entry. The firm could not open a 254-RC-001 job by telephone: the signed protocol " +
       "requires a photo of the front of the property at order, and nothing let the firm attach one. " +
       "docs/production-sitting-0078-intake-photo.md carries the development apply, the production apply " +
       "and the read backs. Additive only, so the connector is expected to apply it. The branch merges only " +
