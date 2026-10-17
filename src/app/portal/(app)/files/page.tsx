@@ -17,6 +17,7 @@ import { partnerCostByFile } from "@/lib/ops-partner-comp";
 import { progressLabel } from "@/lib/ops-evidence";
 import { NewFileForm, TransitionControls, RequestInformation } from "./FileClient";
 import { DispatchPanel } from "./DispatchPanel";
+import { FileThreadButton } from "@/components/portal/FileThreadButton";
 import { formatInFirmZone } from "@/lib/firm-calendar";
 
 export const dynamic = "force-dynamic";
@@ -271,6 +272,12 @@ export default async function FilesPage({
 
             {outstanding.now.length > 0 && can(actor, "messages.use") ? (
               <RequestInformation fileId={selected.id} />
+            ) : null}
+
+            {can(actor, "messages.use") ? (
+              <div className="mt-3">
+                <FileThreadButton fileId={selected.id} />
+              </div>
             ) : null}
 
             {outstanding.later.length > 0 ? (

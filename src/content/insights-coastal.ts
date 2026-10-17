@@ -1,4 +1,5 @@
 import type { Insight } from "./insights";
+import { registrationStatement, windstormAppointmentStatement } from "@/lib/launch";
 
 /**
  * TEN POSTS ON THE COASTAL WINDSTORM RECORD, READ FROM THE STATUTE.
@@ -100,11 +101,90 @@ const SRC = {
     label: "Tex. Occ. Code § 1001.401, Use of Seal",
     url: "https://texas.public.law/statutes/tex._occ._code_section_1001.401",
   },
+  tdiGenInfo: {
+    label: "Texas Department of Insurance, Windstorm Inspection Program: General Information",
+    url: "https://tdi.texas.gov/wind/geninfo.html",
+  },
+  tdiFaq: {
+    label: "Texas Department of Insurance, Windstorm Inspection Program: General Questions",
+    url: "https://tdi.texas.gov/WIND/generalquestio.html",
+  },
+  tdiForms: {
+    label: "Texas Department of Insurance, Windstorm Inspection Forms",
+    url: "https://agate.tdi.texas.gov/forms/form13windstorm.html",
+  },
+  tdiSystem: {
+    label: "Texas Department of Insurance, Windstorm System Information",
+    url: "https://tdi.texas.gov/Wind/windsysteminfo.html",
+  },
+  tdiTwiaOverview: {
+    label: "Texas Department of Insurance, Texas Windstorm Insurance Association Overview, June 8, 2026",
+    url: "https://agate.tdi.texas.gov/pubs/pc/twia-overview.pdf",
+  },
+  tdiCoast: {
+    label: "Texas Department of Insurance, TWIA Ombudsman and COAST Program, April 24, 2025",
+    url: "https://tdi.texas.gov/insured/documents/twia-coast-insured.pdf",
+  },
+  tdiHomeFloodWind: {
+    label: "Texas Department of Insurance, Home, Flood, Wind: Which Policies Do You Need?",
+    url: "https://tdi.texas.gov/CONSUMER/storms/home-flood-wind.html",
+  },
+  twiaOverview: {
+    label: "Texas Windstorm Insurance Association, Overview",
+    url: "https://www.twia.org/about-us/overview",
+  },
+  twiaCert: {
+    label: "Texas Windstorm Insurance Association, Windstorm Certification",
+    url: "https://www.twia.org/windstorm-certification",
+  },
+  ins2210_573: {
+    label: "Tex. Ins. Code § 2210.573, Filing of Claim; Claim Processing",
+    url: "https://texas.public.law/statutes/tex._ins._code_section_2210.573",
+  },
+  ins542_055: {
+    label: "Tex. Ins. Code § 542.055, Receipt of Notice of Claim",
+    url: "https://texas.public.law/statutes/tex._ins._code_section_542.055",
+  },
+  ins542_056: {
+    label: "Tex. Ins. Code § 542.056, Notice of Acceptance or Rejection of Claim",
+    url: "https://texas.public.law/statutes/tex._ins._code_section_542.056",
+  },
+  opicDeductibles: {
+    label: "Texas Office of Public Insurance Counsel, Decoding Residential Property Deductibles",
+    url: "https://www.opic.texas.gov/news/decoding-deductibles/",
+  },
+  femaFlood: {
+    label: "FEMA, 30 Day Waiting Period Exception to Flood Insurance Policies May Be Available Following Wildfires on Federal Lands",
+    url: "https://www.fema.gov/print/txt/node/315192",
+  },
+  femaP804: {
+    label: "FEMA P-804, Wind Retrofit Guide for Residential Buildings, Second Edition, April 2023",
+    url: "https://www.fema.gov/sites/default/files/documents/fema_p-804-wind-retrofit-guide-042023.pdf",
+  },
+  femaLoadPath: {
+    label: "FEMA 499, Home Builder's Guide to Coastal Construction, Technical Fact Sheet No. 10, Load Paths (2005), as hosted by the Louisiana Department of Energy and Natural Resources",
+    url: "https://www.dnr.louisiana.gov/assets/docs/energy/programs/residential/coastal/hgcc_fact10.pdf",
+  },
+  nhcScale: {
+    label: "National Hurricane Center, Saffir-Simpson Hurricane Wind Scale",
+    url: "https://www.nhc.noaa.gov/aboutsshws.php",
+  },
+  nhcHazards: {
+    label: "National Hurricane Center, Hurricane Hazards",
+    url: "https://www.nhc.noaa.gov/prepare/hazards.php",
+  },
+  asce7: {
+    label: "American Society of Civil Engineers, Newly Updated ASCE/SEI 7-22 Standard Now Available",
+    url: "https://www.asce.org/publications-and-news/civil-engineering-source/society-news/article/2021/12/01/newly-updated-minimum-design-loads-and-associated-criteria-for-building-and-other-structures-asce-sei-7-22-standard-now-available",
+  },
 } as const;
 
 const cite = (key: keyof typeof SRC, supports: string) => ({ ...SRC[key], supports });
 
 const DATE = "2026-09-15";
+
+/** The windstorm section, posts 11 to 17. A real date: the day they were written. */
+const WINDSTORM_SECTION_DATE = "2026-10-16";
 
 export const coastalInsights: Insight[] = [
   // ------------------------------------------------------------------------ 1
@@ -972,7 +1052,7 @@ export const coastalInsights: Insight[] = [
       { kind: "h2", text: "The forensic report: an engineer's opinion on cause" },
       {
         kind: "p",
-        text: "A forensic engineering report asks a question neither of the others does: what happened to this building, and why. When a Texas professional engineer issues one for a Texas project, section 1001.401 of the Occupations Code requires the seal, and rule 137.33 states that on sealing the engineer takes full professional responsibility for the work. That responsibility does not change with who is paying for the report. The approach to investigation behind it is described on [the forensic engineering page](/services/forensic-engineering).",
+        text: "A forensic engineering report asks a question neither of the others does: what happened to this building, and why. When a Texas professional engineer issues one for a Texas project, section 1001.401 of the Occupations Code requires the seal, and rule 137.33 states that on sealing the engineer takes full professional responsibility for the work. That responsibility does not change with who is paying for the report. Once cause is established, the scope of the repair is a separate sealed document, described on [the repair specifications page](/services/repair-specifications).",
       },
       {
         kind: "p",
@@ -1021,6 +1101,915 @@ export const coastalInsights: Insight[] = [
       {
         q: "After storm damage, does a forensic report replace the WPI-1?",
         a: "No. A repair is an improvement under section 2210.2515(a), and subsection (b) requires written notice to the department before the repair begins, whatever reports already exist about the damage.",
+      },
+    ],
+  },
+
+  /*
+   * ===========================================================================
+   * THE WINDSTORM SECTION, POSTS 11 TO 17. Written 2026-10-16.
+   * ===========================================================================
+   *
+   * Keyword research is the operator's Ahrefs pull (US), supplied with the
+   * brief; no Ahrefs call was made in the writing session. The plan, the
+   * cannibalization check and the internal link plan are in
+   * docs/blog/windstorm-section-plan.md.
+   *
+   * POST 12 IS FOLDED, NOT WRITTEN. "wpi8 search" has the same navigational
+   * intent as /insights/texas-windstorm-certificate-lookup, and the ruling
+   * recorded above post 3 is that the search and lookup cluster is served by ONE
+   * page. Its supporting terms are listed in the plan for a later edit of post 3.
+   *
+   * SOURCES READ 2026-10-16, IN ADDITION TO THOSE READ 2026-09-15
+   * -------------------------------------------------------------
+   *   TDI, Windstorm Inspection Program: General Information (adopted codes,
+   *        zones, effective dates)
+   *   TDI, Windstorm General Questions (1987 origin, 1988 start, WPI-1 as
+   *        permit enrollment proof, nightly data to TWIA, CBRA, address fixes)
+   *   TDI, Windstorm Inspection Forms (the WPI-2-BC series by start date)
+   *   TDI, Windstorm System Information (WPI-2E with a sealed report or design,
+   *        search fields, processing within 48 hours)
+   *   TDI, TWIA Overview, June 8, 2026 (declination, flood, limits, deductibles)
+   *   TDI, TWIA Ombudsman and COAST Program, April 24, 2025 (claim timelines)
+   *   TDI, Home, flood, wind: which policies do you need
+   *   TWIA, Overview and Windstorm Certification pages
+   *   Tex. Ins. Code 2210.573, 542.055 and 542.056
+   *   OPIC, Decoding Residential Property Deductibles
+   *   FEMA flood waiting period notice; FEMA P-804 (2023); FEMA 499 fact sheet
+   *        on load paths (2005 edition, hosted by the Louisiana DNR)
+   *   NHC, Saffir-Simpson Hurricane Wind Scale and Hurricane Hazards
+   *   ASCE, announcement of ASCE/SEI 7-22
+   *
+   * A CONFLICT RECORDED, NOT RESOLVED. TDI's inspection process page says an
+   * appointed engineer must perform a post-construction inspection; its
+   * completed construction page says any engineer licensed by the board can.
+   * windstorm-program.ts records the same conflict. No post here resolves it.
+   *
+   * THE FIRM'S STANDING IS DERIVED. The appointment and the registration render
+   * through windstormAppointmentStatement() and registrationStatement(), the way
+   * insights.ts and windstorm-program.ts already call them. No engineer is named
+   * and no license, appointment or registration number is typed.
+   */
+
+  // ----------------------------------------------------------------------- 11
+  {
+    slug: "wpi-8-certificate",
+    title: "WPI-8 Certificate Explained for Texas | 254 Engineering",
+    h1: "The WPI-8 certificate: what the document is, and the forms that produce it",
+    description:
+      "What a WPI-8 certificate is, how it differs from a WPI-8-E and a WPI-8-C, which forms produce it, and which coastal work needs one. Read the full guide.",
+    summary:
+      "The WPI-8 is one page issued by the Texas Department of Insurance, and a short chain of forms stands behind it. Knowing which form does what is most of the work of getting one.",
+    eyebrow: "Windstorm law",
+    primaryKeyword: "wpi8",
+    datePublished: WINDSTORM_SECTION_DATE,
+    dateModified: WINDSTORM_SECTION_DATE,
+    body: [
+      {
+        kind: "p",
+        text: "A WPI-8 is the certificate of compliance the Texas Department of Insurance issues once every required windstorm inspection on a coastal improvement has been approved. If a lender, an agent or a buyer has asked you for one, they are asking for the department's record that specific work inside the catastrophe area was inspected and found compliant, because wind and hail coverage through the Texas Windstorm Insurance Association requires it.",
+      },
+      {
+        kind: "p",
+        text: "The certificate is the end of a sequence, not a document anyone can produce on request. The scope of the windstorm work 254 Engineering describes, and its published prices for ongoing and completed construction, are on [the WPI-8 certification page](/services/windstorm-wpi-8).",
+      },
+      { kind: "h2", text: "Three certificates share the name" },
+      {
+        kind: "p",
+        text: "People say WPI-8 for any windstorm certificate. The Texas Windstorm Insurance Association lists three, and they come from different places.",
+      },
+      {
+        kind: "ul",
+        items: [
+          "WPI-8: issued by the department for new and ongoing improvements, the work an inspector saw while it was open.",
+          "WPI-8-E: issued by the department for completed improvements. The association's page says the department began accepting those applications on June 1, 2020.",
+          "WPI-8-C: issued by the association itself for completed improvements, on applications it accepted from January 1, 2017 to May 31, 2020.",
+        ],
+      },
+      {
+        kind: "p",
+        text: "The third one is the one that goes missing. The association says the certificates it issued are not on the department's website and that copies are requested through its own lookup, and it also says those certificates remain valid. A file built only from the department's search can therefore be short a certificate that exists. How to run both searches is set out on [the certificate lookup page](/insights/texas-windstorm-certificate-lookup).",
+      },
+      { kind: "h2", text: "The forms behind an ongoing improvement" },
+      {
+        kind: "p",
+        text: "Every WPI-8 for ongoing work starts with Form WPI-1, the application for a certificate of compliance, filed before construction begins. The department's process page says that holds whoever inspects: where an engineer inspects, the owner or builder still files the WPI-1 first. The department's general questions page adds a detail builders use every week, that the WPI-1 serves as proof of enrollment for a building permit.",
+      },
+      {
+        kind: "p",
+        text: "The inspector's side of the record is an inspection verification form, and which one applies depends on when construction began. The department's forms page lists them by start date:",
+      },
+      {
+        kind: "ul",
+        items: [
+          "WPI-2-BC-5, for ongoing improvements to construction that began between January 1, 2008 and December 31, 2016.",
+          "WPI-2-BC-6, for projects that began construction between January 1, 2017 and August 31, 2020.",
+          "WPI-2-BC-7, for ongoing improvements to construction that began on or after September 1, 2020 and before April 1, 2026.",
+          "WPI-2-BC-8, for ongoing improvements to construction that began on or after April 1, 2026.",
+        ],
+      },
+      {
+        kind: "p",
+        text: "The newest boundary lines up with the code table. The department's general information page lists the 2024 International Residential Code and International Building Code, under 28 Tex. Admin. Code 5.4013, as effective from April 1, 2026, the same date the forms page uses to divide WPI-2-BC-7 from WPI-2-BC-8. A job that straddles that date is worth confirming with the department before the first inspection rather than after the last.",
+      },
+      {
+        kind: "p",
+        text: "When the inspections are approved the department issues the WPI-8. Its general questions page says inspection and WPI-8 data go to the association nightly and that certificates are published online, which is why a new certificate can usually be found by address soon after it issues.",
+      },
+      { kind: "h2", text: "The forms behind a completed improvement" },
+      {
+        kind: "p",
+        text: "Work that was finished without inspection takes a different application. The department's system information page says it needs a signed WPI-2E together with either a sealed post-construction inspection report and its supporting documents, or a sealed design, and that the documents must carry the structure's address and the application ID. The result is a WPI-8-E rather than a WPI-8.",
+      },
+      {
+        kind: "p",
+        text: "Which side of that line a job falls on is a question of statutory definition rather than of whether the crew has left, and it is worked through on [the ongoing versus completed improvement page](/insights/ongoing-vs-completed-improvement). What the sealed report has to contain is on [the completed construction page](/windstorm/completed-construction).",
+      },
+      {
+        kind: "note",
+        title: "Who may inspect completed work: two TDI pages disagree",
+        body: [
+          "The department's inspection process page says that if work was completed without an inspection, an appointed engineer must perform a post-construction inspection. Its completed construction certificates page says any professional engineer licensed by the board can perform inspections on completed construction. Both were read for this post. They are recorded here rather than reconciled, and the department is the authority to confirm which applies to a particular job.",
+        ],
+      },
+      { kind: "h2", text: "What one certificate records" },
+      {
+        kind: "p",
+        text: "A certificate records an improvement, not a building. A coastal house can hold several: one for the original construction, another for a replacement roof, another for a window package. The department's own example is the air conditioning unit. Where the unit is not yet installed, the department can issue a WPI-8 for the rest of the home and a separate WPI-8 once the unit has been installed and inspected.",
+      },
+      {
+        kind: "p",
+        text: "That is why one certificate on file does not settle a question about the whole structure. The useful check is whether the certificates present account for each piece of work visible on the building.",
+      },
+      {
+        kind: "p",
+        text: "Once issued, a certificate stays issued. Section 2210.2515(k) of the Insurance Code says the department may not rescind a certificate of compliance after issuing it, and the reasons that matters are read through on [the certificate of compliance page](/insights/windstorm-certificate-of-compliance).",
+      },
+      { kind: "h2", text: "Which work needs one" },
+      {
+        kind: "p",
+        text: "The association's certification page lists the work that needs a certificate: new structures, additions or enlargements, windows, entry doors and garage doors, patio covers and decks, replacing a roof or repairing a significant portion of one, and re-siding a significant portion of an exterior wall.",
+      },
+      {
+        kind: "p",
+        text: "Its list of work that does not includes painting, carpeting and refinishing, plumbing and electrical repairs, fence repair, gutter repair or replacement, and temporary repairs after a storm. The department keeps the full list of work that needs no inspection on its own site. Two words in the first list do most of the arguing on real jobs, significant portion, and neither list puts a number on them. Where a repair is close to that line, the department's field office is the place to ask before work begins.",
+      },
+      {
+        kind: "p",
+        text: "For a re-roof, the department's process page says its own inspectors handle all non-structural work, including most repairs, alterations and re-roofs. The same page names an appointed engineer as the other kind of inspector, and which of the two a job calls for is the subject of [the Texas windstorm inspections page](/insights/texas-windstorm-inspections).",
+      },
+      { kind: "h2", text: "Fixing a certificate with the wrong address" },
+      {
+        kind: "p",
+        text: "Addresses go wrong on coastal certificates more often than anything else, usually because the physical address differs from the standardized one. The department's general questions page gives two routes. Where a TDI inspector did the inspection, the owner submits a written request to the department for a revised WPI-8. Where a Texas licensed engineer did it, the engineer resubmits corrected WPI-1 and WPI-2-BC forms.",
+      },
+      {
+        kind: "p",
+        text: "The system information page adds that the physical address is the one to record, and that where it differs from the standardized address the applicant keeps the physical address and submits the documents that support it.",
+      },
+      { kind: "h2", text: "What a WPI-8 does not say" },
+      {
+        kind: "p",
+        text: "It does not describe the condition of the work today, it says nothing about work done after it issued, and it is not a flood document. Section 2210.251(g) makes it evidence of insurability of the structure by the association, which is a narrower statement than it looks. The difference between that record and an opinion about a roof's present condition is set out on [the roof certification comparison](/insights/roof-certification-vs-wpi-8), and how the certificate meets the association's own rules is on [the TWIA insurance page](/insights/twia-insurance-and-windstorm-certificates).",
+      },
+    ],
+    sources: [
+      cite("twiaCert", "The three certificate types and who issues each, the June 1, 2020 start for WPI-8-E applications, the WPI-8-C window, that TWIA certificates are not on TDI's site and remain valid, and the lists of work that does and does not need a certificate."),
+      cite("tdiProcess", "That the WPI-1 is filed before construction whoever inspects, that TDI issues the WPI-8 once all inspections are approved and TWIA coverage requires it, that TDI inspectors handle all non-structural work including most re-roofs, the air conditioning example, and that an appointed engineer must perform a post-construction inspection."),
+      cite("tdiForms", "The WPI-1 application and the WPI-2-BC-5, 6, 7 and 8 inspection verification forms with their construction start dates, and the WPI-2E for completed improvements."),
+      cite("tdiGenInfo", "That the 2024 IRC and IBC are listed under 28 TAC 5.4013 as effective from April 1, 2026."),
+      cite("tdiFaq", "That the WPI-1 serves as proof of enrollment for a building permit, that WPI-8 data go to TWIA nightly and certificates are published online, and the two routes for correcting an address."),
+      cite("tdiSystem", "The WPI-2E with a sealed post-construction report or sealed design, the address and application ID requirement, and the rule on physical versus standardized addresses."),
+      cite("tdiCompleted", "That any professional engineer licensed by the board can perform inspections on completed construction."),
+      cite("ins2210_2515", "That the department may not rescind a certificate of compliance after issuing it."),
+      cite("ins2210_251", "That the certificate is evidence of insurability of the structure by the association."),
+    ],
+    faqs: [
+      {
+        q: "What is a WPI-8 certificate?",
+        a: "It is the certificate of compliance the Texas Department of Insurance issues after every required windstorm inspection on an improvement inside the catastrophe area has been approved. Wind and hail coverage through the Texas Windstorm Insurance Association requires it for covered work.",
+      },
+      {
+        q: "Does a re-roof need a WPI-8?",
+        a: "TWIA's certification page lists replacing a roof, or repairing a significant portion of one, as work that needs a certificate inside the catastrophe area. The department's process page says its own inspectors handle most re-roofs.",
+      },
+    ],
+  },
+
+  // ----------------------------------------------------------------------- 13
+  {
+    slug: "texas-windstorm-inspections",
+    title: "Texas Windstorm Inspections Explained | 254 Engineering",
+    h1: "Texas windstorm inspections: the code they measure against and who makes them",
+    description:
+      "How a Texas windstorm inspection works: where it applies, the adopted code and zones, who inspects which work, timing, and deficiencies. See the details.",
+    summary:
+      "A windstorm inspection is a look at open work against a code the Texas Department of Insurance has adopted. Who makes it, and what they need to see, depends on the work.",
+    eyebrow: "Windstorm law",
+    primaryKeyword: "texas windstorm",
+    datePublished: WINDSTORM_SECTION_DATE,
+    dateModified: WINDSTORM_SECTION_DATE,
+    body: [
+      {
+        kind: "p",
+        text: "A Texas windstorm inspection is the check, made while construction is still open to view, that coastal work meets the wind provisions of the building code the Texas Department of Insurance has adopted. It applies inside the designated catastrophe area, it is made by a TDI inspector or a TDI appointed engineer, and when every required inspection is approved the department issues the WPI-8 that wind and hail coverage through the Texas Windstorm Insurance Association depends on.",
+      },
+      { kind: "h2", text: "Where the requirement reaches, and where it came from" },
+      {
+        kind: "p",
+        text: "The department's general questions page says the Legislature created the windstorm inspection requirement in 1987, in House Bill 2012, to reduce hurricane losses on the Gulf Coast, and that inspections through the department began on January 1, 1988. That date is why 1988 recurs in every conversation about older coastal houses.",
+      },
+      {
+        kind: "p",
+        text: "The area is the fourteen first tier coastal counties and part of Harris County. The association's overview names the Harris County portion as parts of La Porte, Morgan's Point, Pasadena, Seabrook and Shore Acres east of Highway 146. How the line is drawn is on [the catastrophe area page](/windstorm/catastrophe-area). The department runs windstorm field offices in Beaumont, La Marque, Angleton and Corpus Christi, according to the association's certification page, so on the Coastal Bend the program's local office is in the same city as [254 Engineering's own office](/corpus-christi).",
+      },
+      { kind: "h2", text: "The code an inspection measures against" },
+      {
+        kind: "p",
+        text: "A windstorm inspection is not a general building inspection. It measures the work against the windstorm building code the department has adopted, and the department's general information page lists those codes by period and by zone. The zones are Inland II, Inland I and Seaward.",
+      },
+      {
+        kind: "ul",
+        items: [
+          "2024 International Residential Code and International Building Code, 28 Tex. Admin. Code 5.4013, effective April 1, 2026 to present, in all three zones.",
+          "2018 IRC and IBC, sections 5.4011 and 5.4012, listed as effective April 1, 2020 to March 31, 2026, in all three zones.",
+          "2006, 2003 and 2000 editions with Texas revisions for the periods before that, and the TWIA Building Code for Windstorm Construction from September 1, 1998 to January 31, 2003, which did not apply to Inland II.",
+        ],
+      },
+      {
+        kind: "p",
+        text: "The department's forms page assigns the inspection verification form by the date construction began, with WPI-2-BC-8 for ongoing improvements to construction begun on or after April 1, 2026. The start date of the job therefore decides both the code edition and the paperwork.",
+      },
+      {
+        kind: "p",
+        text: "Behind the code sits the load standard. The American Society of Civil Engineers describes ASCE 7 as the standard U.S. building codes have relied on as the authoritative source for loads, and says its 2022 edition brought new wind speeds along the hurricane coastline. Which edition of ASCE 7 governs a given job is a matter of what the adopted code references, and it is read from the code rather than assumed from the calendar.",
+      },
+      { kind: "h2", text: "Who makes the inspection" },
+      {
+        kind: "p",
+        text: "Section 2210.254 of the Insurance Code says a windstorm inspection may be made only by a qualified inspector, and that a qualified inspector must be approved and appointed or employed by the department before inspecting. In practice that means one of two people.",
+      },
+      {
+        kind: "p",
+        text: "The first is a TDI inspector. The department's process page says its inspectors handle all non-structural work, including most repairs, alterations and re-roofs.",
+      },
+      {
+        kind: "p",
+        text: "The second is a Texas licensed professional engineer the department has appointed. An appointment is separate from the engineering license, and the department publishes its list of appointed engineers and will confirm one by phone. That is the meaning of windstorm engineer in this program: not any engineer with coastal experience, but one the department has appointed, which is set out at length on [the appointed engineers page](/windstorm/appointed-engineers).",
+      },
+      {
+        kind: "p",
+        text: [
+          windstormAppointmentStatement(),
+          registrationStatement(),
+        ]
+          .filter(Boolean)
+          .join(" "),
+      },
+      {
+        kind: "p",
+        text: "If a TDI inspector disapproves the work, the department's page says the owner may hire an appointed engineer to finish the inspections.",
+      },
+      { kind: "h2", text: "What the inspector needs to see" },
+      {
+        kind: "p",
+        text: "Wind does not damage a house one component at a time. It pushes and lifts on the roof and walls, and that force has to travel through a chain of connections to the ground. FEMA's coastal construction fact sheet on load paths describes the chain as roof covering to sheathing, sheathing to roof framing, roof framing to the bearing walls, upper walls to lower walls and to the floor, and the floor to the foundation. FEMA's wind retrofit guide defines load paths as chains of connections that transfer loads from where they are applied to the foundation.",
+      },
+      {
+        kind: "p",
+        text: "Each of those connections is hidden by the next layer of construction. Sheathing covers the framing, the roof covering covers the sheathing, and drywall covers the straps inside the walls. That is the practical reason behind the department's rule that its inspectors must inspect during, and not before or after, the construction or repair.",
+      },
+      {
+        kind: "p",
+        text: "Openings are the other half. FEMA's guide notes that a broken window or glass door can let wind pressure build inside a house, which may cause structural damage, and the department's general questions page describes the WPI-2-BC as the inspection verification form for windborne debris resistant products, with each such product inspected on its own where a retrofit discount is sought. Why openings carry so much weight is on [the opening protection page](/windstorm/opening-protection).",
+      },
+      {
+        kind: "note",
+        title: "TDI does not publish a stage checklist on the pages read for this post",
+        body: [
+          "The department's system information page says that for a new structure the inspection type is new and the foundation, framing and roof are not certified separately, and that for an existing structure up to three inspections can be listed on one application. None of the department pages read for this post gives an itemized list of what an inspector checks at each visit. The load path above is FEMA's description of where wind load travels, offered so a builder knows what will be covered next. It is not a TDI checklist, and a job's own stages are agreed with the inspector.",
+        ],
+      },
+      { kind: "h2", text: "Timing, deficiencies and the paperwork after" },
+      {
+        kind: "p",
+        text: "TDI inspectors aim to inspect within 48 hours of the requested date, excluding weekends and holidays, and the department warns that large storms delay them. If work does not comply, the inspector posts a notice at the job describing the problems and returns to reinspect after they are corrected.",
+      },
+      {
+        kind: "p",
+        text: "On the engineer's side, the department's system information page sets out the order: hire an appointed inspector, apply for the certificate, start construction, and when construction is finished the inspector submits the inspection verification form. The department says it usually processes forms within 48 hours, with delays after disasters. Then section 2210.2515(e) applies: for an ongoing improvement, the department may not issue the certificate if fully completed forms and all fees owed have not reached it within six months after the final inspection. A roofer's version of the same sequence is on [the windstorm inspection for roofers page](/insights/windstorm-inspection-for-roofers).",
+      },
+      { kind: "h2", text: "The city permit runs beside it" },
+      {
+        kind: "p",
+        text: "A windstorm inspection does not replace the building department, and the building department does not replace it. Corpus Christi, Portland and Rockport each run their own building department. The department's general questions page notes that the WPI-1 serves as proof of enrollment for a building permit, which is one of the few points where the two tracks touch.",
+      },
+      {
+        kind: "p",
+        text: "The certificate the inspections lead to is described document by document on [the WPI-8 certificate page](/insights/wpi-8-certificate). For new construction or a structural alteration inside the catastrophe area, [the published scope and prices for windstorm inspection](/services/windstorm-wpi-8) are the next page to read.",
+      },
+    ],
+    sources: [
+      cite("tdiFaq", "The 1987 legislation in House Bill 2012, inspections from January 1, 1988, the WPI-1 as proof of enrollment for a building permit, and the WPI-2-BC as the verification form for windborne debris resistant products."),
+      cite("twiaOverview", "The fourteen first tier counties and the Harris County cities east of Highway 146."),
+      cite("twiaCert", "TDI's windstorm field offices in Beaumont, La Marque, Angleton and Corpus Christi."),
+      cite("tdiGenInfo", "The adopted codes by period and zone, including the 2024 IRC and IBC under 28 TAC 5.4013 from April 1, 2026."),
+      cite("tdiForms", "That the WPI-2-BC-8 applies to ongoing improvements to construction begun on or after April 1, 2026."),
+      cite("asce7", "That U.S. building codes have relied on ASCE 7 as the authoritative source for loads, and that the 2022 edition brought new wind speeds along the hurricane coastline."),
+      cite("ins2210_254", "That a windstorm inspection may be made only by a qualified inspector approved and appointed or employed by the department."),
+      cite("tdiProcess", "That TDI inspectors handle non-structural work, the published engineer list, inspection during and not before or after the work, the 48 hour target, posted notices and reinspection, and hiring an appointed engineer after a TDI disapproval."),
+      cite("femaLoadPath", "The chain of connections from roof covering to foundation."),
+      cite("femaP804", "The definition of load paths, and that a broken window or glass door can let wind pressure build inside a house."),
+      cite("tdiSystem", "The order of steps for an engineer inspection, processing within 48 hours, and that a new structure is not certified separately by foundation, framing and roof."),
+      cite("ins2210_2515", "The six month limit after final inspection for an ongoing improvement."),
+    ],
+    faqs: [
+      {
+        q: "Who can perform a windstorm inspection in Texas?",
+        a: "Only a qualified inspector approved and appointed or employed by the department, under section 2210.254 of the Insurance Code. In practice that is a TDI inspector, who handles non-structural work including most re-roofs, or a Texas licensed engineer the department has appointed.",
+      },
+      {
+        q: "Does a windstorm inspection replace the city's building inspection?",
+        a: "No. The two run in parallel and each has to be satisfied. The department notes that the WPI-1 serves as proof of enrollment for a building permit.",
+      },
+    ],
+  },
+
+  // ----------------------------------------------------------------------- 14
+  {
+    slug: "twia-insurance-and-windstorm-certificates",
+    title: "TWIA Insurance and Windstorm Certificates | 254 Engineering",
+    h1: "TWIA explained: who it insures, what a policy covers, and where certificates fit",
+    description:
+      "What TWIA is, who can buy a policy, what it covers and excludes, its 2026 limits and deductibles, and how windstorm certificates decide eligibility. Read on.",
+    summary:
+      "The Texas Windstorm Insurance Association is the coast's insurer of last resort for wind and hail. It is narrower than most people assume, and the certificate is only one of its conditions.",
+    eyebrow: "Windstorm law",
+    primaryKeyword: "twia",
+    datePublished: WINDSTORM_SECTION_DATE,
+    dateModified: WINDSTORM_SECTION_DATE,
+    body: [
+      {
+        kind: "p",
+        text: "TWIA is the Texas Windstorm Insurance Association, created by the Legislature in 1971 and governed by Chapter 2210 of the Insurance Code, and it insures coastal property against wind and hail when the private market will not. It covers only property inside the designated catastrophe area, only the perils of wind and hail, and for most structures built or changed since January 1, 1988 it requires a windstorm certificate of compliance before it will write the policy.",
+      },
+      {
+        kind: "p",
+        text: "254 Engineering is an engineering firm, not an insurance agent, and this page describes the association from its own published pages and the department's. Policy questions belong with a licensed agent or with the association. Where the question is the certificate, the [WPI-8 certification page](/services/windstorm-wpi-8) sets out the windstorm work the firm describes and its published prices.",
+      },
+      { kind: "h2", text: "What the association is" },
+      {
+        kind: "p",
+        text: "The association's overview says it is not a state agency and receives no general revenue. It describes itself as a residual insurer of last resort rather than a competitor to private insurers. The department's own overview of the association, dated June 8, 2026, gives the purpose in a sentence: to provide windstorm and hail coverage to those who are unable to obtain insurance from the voluntary insurance market.",
+      },
+      {
+        kind: "p",
+        text: "That design explains most of the rules below. An insurer that may decline a building it does not like can underwrite one property at a time. An insurer obliged to take property the market turned down relies on documents instead.",
+      },
+      { kind: "h2", text: "Who can buy a policy" },
+      {
+        kind: "p",
+        text: "Location comes first. The property has to be in the designated catastrophe area, which the association describes as the entire first tier of fourteen coastal counties and part of Harris County east of Highway 146. On the Coastal Bend that takes in all of Nueces, San Patricio and Aransas counties.",
+      },
+      {
+        kind: "p",
+        text: "Then a private insurer has to have said no. The department's overview says an applicant must first be declined by at least one licensed insurer that writes windstorm and hail coverage in the first tier coastal counties, and that an offer of a policy that is not substantially equivalent can also count.",
+      },
+      {
+        kind: "p",
+        text: "Applications go through an agent licensed by the department, with the full annual premium, according to the association. And the property has to be in insurable condition: in good repair, with no unrepaired damage or hazards, which the association says it may verify by an inspection on site or from the air. That last condition matters after a storm, when a house with open damage is not in the condition the association insures.",
+      },
+      { kind: "h2", text: "What a policy covers and what it does not" },
+      {
+        kind: "p",
+        text: "Wind and hail, and nothing else. The association's overview says no other perils are covered, and the department's COAST program sheet says in terms that the association does not cover storm surge or flood damage, which is administered separately through the National Flood Insurance Program.",
+      },
+      {
+        kind: "p",
+        text: "The department's overview lists the maximum limits in effect from January 1, 2026:",
+      },
+      {
+        kind: "ul",
+        items: [
+          "Dwellings: $1,773,000.",
+          "Contents of apartments, condominiums or townhouses: $374,000.",
+          "Commercial risks and public buildings: $4,424,000 each.",
+          "Manufactured homes: $119,000.",
+        ],
+      },
+      {
+        kind: "p",
+        text: "Residential deductibles are $100, $250 or 1 percent, with optional larger deductibles from 1.5 to 5 percent that carry premium credits. Commercial and public buildings carry a 1 percent deductible per item per occurrence, with optional 2 or 5 percent deductibles. A percentage deductible is a percentage of the amount of insurance, not of the claim, which is worked through on [the hurricane damage and insurance page](/insights/hurricane-damage-insurance-claim).",
+      },
+      { kind: "h2", text: "The flood requirement" },
+      {
+        kind: "p",
+        text: "Wind coverage can depend on flood coverage. The department's overview says that for a structure built, altered, remodeled or enlarged on or after September 1, 2009 in certain flood zones V or VE, the applicant must provide evidence of a flood policy if flood insurance is available through the National Flood Insurance Program. It also says the requirement does not apply to repairs.",
+      },
+      {
+        kind: "p",
+        text: "For a Gulf front property that is the requirement most likely to surprise an owner who thought of the two perils as separate purchases.",
+      },
+      { kind: "h2", text: "Where the windstorm certificate fits" },
+      {
+        kind: "p",
+        text: "The association's overview says structures built, altered or enlarged on or after January 1, 1988 need a certificate of compliance, a WPI-8, WPI-8-E or WPI-8-C, with limited exceptions, and that certificates the association issued itself remain valid. The department's overview adds that structures built before January 1, 1988 do not need a WPI-8, and the department's general questions page says inspection and certificate data go to the association every night.",
+      },
+      {
+        kind: "p",
+        text: "The association's certification page names two residential exceptions. A residential property built from 1988 to June 18, 2009 that is not certified may still be eligible, with a 15 percent surcharge on top of the premium. A residential property insured on or after June 19, 2009 that a private insurer nonrenewed or canceled, and that was missing a required certificate at the time, may be eligible.",
+      },
+      {
+        kind: "p",
+        text: "The statute behind the second exception has conditions that fail quietly, especially the one about work done after the cancellation, and they are read line by line on [the TWIA eligibility requirements page](/insights/twia-eligibility-requirements). How the 1988 date works for an older house, including the evidence of prior coverage the statute accepts, is on [the page about homes built before 1988](/insights/twia-coverage-homes-built-before-1988). What each certificate type is, and which forms produce it, is on [the WPI-8 certificate page](/insights/wpi-8-certificate).",
+      },
+      {
+        kind: "p",
+        text: "The practical sequence for anyone planning coastal work does not change. File the WPI-1 before the work starts, have it inspected while it is open, and the certificate that results is the document the association asks for. The [windstorm certification scope and prices](/services/windstorm-wpi-8) cover ongoing construction and construction already complete.",
+      },
+      { kind: "h2", text: "How the association pays for a large storm" },
+      {
+        kind: "p",
+        text: "The association's overview describes losses paid in layers. First come its premiums and the Catastrophe Reserve Trust Fund. Then public securities and assessments on member companies in three classes. Then reinsurance or other risk financing, sized to cover at least a 100 year hurricane season. It reports access to $4.3 billion for the 2026 season.",
+      },
+      {
+        kind: "p",
+        text: "The detail an owner should notice is repayment. The overview says some public securities may be repaid through surcharges on coastal policyholders, so the cost of a large storm can reach policyholders after it has passed as well as before it arrives.",
+      },
+      { kind: "h2", text: "Claims run on the statute's clock" },
+      {
+        kind: "p",
+        text: "Section 2210.573 of the Insurance Code requires an insured to file a claim under an association policy within one year of the date the damage occurred, subject to section 2210.205(b). The association may ask for missing information within 30 days after the claim is filed, and unless the commissioner extends the period it must give written notice within 60 days of receiving the claim, or of receiving the information it asked for, saying whether it accepts the claim in full, in part, or not at all.",
+      },
+      {
+        kind: "p",
+        text: "The department's COAST program sheet adds two dates for the policyholder. There are 60 days from receiving the association's notice to request appraisal, and replacement cost documentation is due within 545 days of receiving the claim decision. The department also notes that a claim can be started before the damage has been fully reviewed.",
+      },
+      {
+        kind: "note",
+        title: "Figures on this page carry a date",
+        body: [
+          "The limits, deductibles and funding figure are the ones the department and the association published for 2026, read on the date of this post. They change, and the association's own policy documents and the department's current overview govern a real application.",
+        ],
+      },
+      {
+        kind: "p",
+        text: "For coastal work that has not been certified yet, the certificate is the condition an owner controls. [The windstorm certification page](/services/windstorm-wpi-8) gives the published price for ongoing construction and for construction already complete.",
+      },
+    ],
+    sources: [
+      cite("twiaOverview", "TWIA's creation in 1971 under Chapter 2210, that it is not a state agency, the catastrophe area, applications through a licensed agent with the full premium, insurable condition and inspection, wind and hail only, the certificate requirement and validity of TWIA certificates, the funding layers, the 2026 funding figure, and repayment through coastal surcharges."),
+      cite("tdiTwiaOverview", "The stated purpose of TWIA, the declination requirement, the flood requirement for V and VE zones after September 1, 2009, that pre-1988 structures need no WPI-8, and the 2026 limits and deductibles."),
+      cite("tdiCoast", "That TWIA does not cover storm surge or flood, the 30 day, 60 day and 545 day claim timelines, and that a claim can be started before damage is reviewed."),
+      cite("twiaCert", "The 15 percent surcharge exception for residential property built from 1988 to June 18, 2009, and the exception for residential property nonrenewed or canceled by a private insurer."),
+      cite("tdiFaq", "That inspection and WPI-8 data go to TWIA nightly."),
+      cite("ins2210_573", "The one year filing deadline, the 30 day request for information, and the 60 day written decision."),
+      cite("ins2210_258", "The statutory exceptions linked from this page."),
+    ],
+    faqs: [
+      {
+        q: "What does TWIA stand for?",
+        a: "The Texas Windstorm Insurance Association. The Legislature created it in 1971 to write wind and hail coverage in the designated catastrophe area for property that cannot obtain it in the private market.",
+      },
+      {
+        q: "Does TWIA cover flood or storm surge?",
+        a: "No. The department's COAST program sheet says TWIA does not cover storm surge or flood damage, and that flood insurance is administered separately through the National Flood Insurance Program.",
+      },
+      {
+        q: "Do I have to be turned down by another insurer before TWIA will insure me?",
+        a: "The department's overview says an applicant must first be declined by at least one licensed insurer that writes windstorm and hail coverage in the first tier coastal counties, or have been offered a policy that is not substantially equivalent.",
+      },
+      {
+        q: "How long do I have to file a TWIA claim?",
+        a: "Section 2210.573 of the Insurance Code requires a claim under an association policy to be filed within one year of the date the damage occurred, subject to section 2210.205(b).",
+      },
+      {
+        q: "What are TWIA's maximum limits?",
+        a: "From January 1, 2026, the department lists $1,773,000 for dwellings, $374,000 for contents of apartments, condominiums or townhouses, $4,424,000 for commercial risks and public buildings, and $119,000 for manufactured homes.",
+      },
+    ],
+  },
+
+  // ----------------------------------------------------------------------- 15
+  {
+    slug: "windstorm-inspection-coastal-buyers",
+    title: "Windstorm Inspection for Coastal Buyers | 254 Engineering",
+    h1: "Buying a coastal house with no windstorm certificate: what it means and what to do",
+    description:
+      "Buying a Texas coastal house without a windstorm certificate? See why one goes missing, what it means for TWIA coverage, and what to settle before closing.",
+    summary:
+      "A missing windstorm certificate can mean nothing, or it can mean the house cannot be insured through TWIA as it stands. The reason it is missing decides which, and a buyer can find out before closing.",
+    eyebrow: "Windstorm law",
+    primaryKeyword: "windstorm inspection",
+    datePublished: WINDSTORM_SECTION_DATE,
+    dateModified: WINDSTORM_SECTION_DATE,
+    body: [
+      {
+        kind: "p",
+        text: "If the coastal house you are buying has no windstorm certificate, find out why before anything else, because the reason decides whether it matters. A missing WPI-8 can mean the house and everything done to it predate the 1988 program, that a certificate exists but sits with TWIA rather than the department, or that work was done without the windstorm inspection the law required, and only the last of those is a problem for wind coverage through the association.",
+      },
+      {
+        kind: "p",
+        text: "That last case has a remedy, but it takes time a closing date may not have. The scope and published price for certifying construction that is already complete are on [the windstorm certification page](/services/windstorm-wpi-8).",
+      },
+      { kind: "h2", text: "A home inspection is not a windstorm inspection" },
+      {
+        kind: "p",
+        text: "Buyers sometimes assume the general home inspection covered it. It did not. Section 2210.254 of the Insurance Code says a windstorm inspection may be made only by a qualified inspector, approved and appointed or employed by the Texas Department of Insurance. A home inspector's report describes the house. The windstorm record is the department's, and it is checked separately.",
+      },
+      { kind: "h2", text: "First, search both places" },
+      {
+        kind: "p",
+        text: "Certificates are public. The department's search returns WPI-8 and WPI-8-E certificates by number or by address, and the association holds the WPI-8-C certificates it issued on applications from January 1, 2017 to May 31, 2020, which are not in the department's results. An empty result in one place is not an answer. The mechanics, including entering an address more than one way, are on [the certificate lookup page](/insights/texas-windstorm-certificate-lookup).",
+      },
+      {
+        kind: "p",
+        text: "Then compare what came back with the house. List the improvements you can see, such as the roof, the windows, a garage door, an enclosed patio or an addition, and match each to a certificate. The association's certification page lists the work that needs one, and it includes windows, entry doors and garage doors, patio covers and decks, and replacing a roof or a significant portion of one.",
+      },
+      { kind: "h2", text: "Then work out which reason applies" },
+      {
+        kind: "h3",
+        text: "The house and every change to it predate 1988",
+      },
+      {
+        kind: "p",
+        text: "The department's overview of the association says structures built before January 1, 1988 do not need a WPI-8. Section 2210.251 sets the conditions, which differ depending on whether the area had a building code the association recognizes, and in one case turn on proof of windstorm and hail coverage within the twelve months before the application. A seller's prior policy is evidence a buyer should ask for now, while the seller still has it. The detail is on [the page about homes built before 1988](/insights/twia-coverage-homes-built-before-1988).",
+      },
+      {
+        kind: "p",
+        text: "The date belongs to the work, not to the house. A 1975 house with a roof replaced in 2021 has 2021 work on it, and that work is not covered by the house's age.",
+      },
+      { kind: "h3", text: "A certificate exists but is held by TWIA" },
+      {
+        kind: "p",
+        text: "Work certified as completed construction in the 2017 to 2020 window carries a WPI-8-C, which the association says remains valid and supplies on request through its own lookup. On the Coastal Bend that window opened the year Hurricane Harvey came ashore near Rockport, so a house repaired after Harvey is worth searching in both places.",
+      },
+      { kind: "h3", text: "Work after 1988 was never certified" },
+      {
+        kind: "p",
+        text: "This is the case that matters. Section 2210.258(b) says the association may not insure a structure with covered work until a certificate of compliance has issued, subject to that section's exceptions. The bar is written for the association. A private carrier's underwriting is its own and is not set by that section.",
+      },
+      { kind: "h2", text: "The exceptions a buyer can and cannot use" },
+      {
+        kind: "p",
+        text: "The association's certification page says a residential property built from 1988 to June 18, 2009 that is not certified may still be eligible, with a 15 percent surcharge on the premium. That is a cost, and it belongs in the buyer's numbers rather than in a surprise at binding.",
+      },
+      {
+        kind: "p",
+        text: "Section 2210.258(c) covers a residential structure a private insurer canceled or nonrenewed, and the proof it accepts can relate to coverage issued to the applicant or to the previous insured. For a buyer, the previous insured is usually the seller, so the seller's cancellation or nonrenewal letter is a document to obtain before closing. The subsection's third condition, that no work was done on the structure between the cancellation and the application, is read line by line on [the TWIA eligibility requirements page](/insights/twia-eligibility-requirements).",
+      },
+      {
+        kind: "p",
+        text: "Section 2210.258(d) allows a policy term of no more than 30 days where a department inspection form has issued while the certificate is sought. It is a bridge with a fixed length, and it does not exist until the department's form does. Where the work has to be certified after the fact, [the completed construction route and its published price](/services/windstorm-wpi-8) are the place to start.",
+      },
+      { kind: "h2", text: "The remedy, and why it belongs before closing" },
+      {
+        kind: "p",
+        text: "Uncertified work that is already finished goes through the completed construction route. The department's system information page says the application is a signed WPI-2E with either a sealed post-construction inspection report and supporting documents, or a sealed design. Section 2210.2515(c-1) lets the department deny an application that is not fully documented.",
+      },
+      {
+        kind: "p",
+        text: "The difficulty is evidence. The department requires inspectors to see work in progress, during and not before or after it, because the connections that matter are covered by the next layer of construction. A finished house has covered them all. Establishing what is behind a finished wall or under a finished roof can mean opening part of it, which is work, time and a conversation with the seller about whose house it still is. What the sealed report has to carry is on [the post-construction evaluation report page](/insights/post-construction-evaluation-report).",
+      },
+      {
+        kind: "p",
+        text: "Discovered inside an option period, this is a negotiation. Discovered two weeks before closing, with financing that requires wind coverage, it can move the closing. How the windstorm record behaves in a sale more generally is on [the coastal closing page](/windstorm/buying-and-selling).",
+      },
+      { kind: "h2", text: "Two location checks that are easy to miss" },
+      {
+        kind: "p",
+        text: "The department's general questions page says a property in a Coastal Barrier Resource Area must have had a building permit or plat filed before June 11, 2003 to be insurable for wind and hail through the association. The county permitting office, the Fish and Wildlife Service district office or the department's windstorm field office can confirm it.",
+      },
+      {
+        kind: "p",
+        text: "The department's overview of the association also says that for a structure built, altered, remodeled or enlarged on or after September 1, 2009 in certain V or VE flood zones, the association requires evidence of a flood policy where National Flood Insurance Program coverage is available. A Gulf front purchase can need both answers. The association's other conditions, including its policy limits, are on [the TWIA insurance page](/insights/twia-insurance-and-windstorm-certificates).",
+      },
+      { kind: "h2", text: "A buyer's list" },
+      {
+        kind: "ul",
+        items: [
+          "Search the department's database and the association's lookup, by address in more than one form.",
+          "List every visible improvement and match each to a certificate.",
+          "Ask the seller for WPI-1 application numbers, contractor invoices, permits and the dates of each piece of work.",
+          "If the house predates 1988, ask for the seller's windstorm and hail policy history for the last twelve months.",
+          "If a private insurer canceled or nonrenewed the seller, ask for the letter and for anything built since it.",
+          "Confirm whether the property is in a Coastal Barrier Resource Area and which flood zone it sits in.",
+          "Have your agent confirm, before the option period ends, what the association or a private carrier will write on the house as it stands.",
+        ],
+      },
+      {
+        kind: "p",
+        text: "If the answer is that work has to be certified after the fact, start it while the contract still gives you room. The [windstorm certification scope for a finished house](/services/windstorm-wpi-8) is published, and an existing building with no recent work is quoted one property at a time.",
+      },
+    ],
+    sources: [
+      cite("ins2210_254", "That a windstorm inspection may be made only by a qualified inspector approved and appointed or employed by the department."),
+      cite("twiaCert", "The WPI-8-C window and validity, the work that needs a certificate, and the 15 percent surcharge exception for residential property built from 1988 to June 18, 2009."),
+      cite("tdiTwiaOverview", "That pre-1988 structures need no WPI-8, and the V and VE zone flood requirement for structures built or altered on or after September 1, 2009."),
+      cite("ins2210_251", "The conditions for pre-1988 structures and the twelve month evidence of prior coverage."),
+      cite("ins2210_258", "That the association may not insure covered work until a certificate has issued, the cancellation or nonrenewal exception and its proof for the previous insured, and the 30 day term."),
+      cite("tdiSystem", "The WPI-2E with a sealed post-construction report or sealed design."),
+      cite("ins2210_2515", "That the department may deny an application that is not fully documented."),
+      cite("tdiProcess", "That inspectors must see the work in progress, during and not before or after it."),
+      cite("tdiFaq", "The Coastal Barrier Resource Area rule and its June 11, 2003 date, and who can confirm it."),
+    ],
+    faqs: [
+      {
+        q: "Can I buy a house in Texas that has no windstorm certificate?",
+        a: "Yes. The certificate is about insurability through TWIA, not about whether the sale can happen. What it changes is whether the association can insure the house as it stands, which depends on why the certificate is missing.",
+      },
+      {
+        q: "Will TWIA insure a house with no WPI-8?",
+        a: "If every part of the structure predates January 1, 1988, the department says no WPI-8 is needed. For later work, section 2210.258(b) bars the association until a certificate has issued, subject to its exceptions, and TWIA lists a 15 percent surcharge route for uncertified residential property built from 1988 to June 18, 2009.",
+      },
+      {
+        q: "Can a windstorm certificate be obtained after the work is finished?",
+        a: "Through the completed construction route: a signed WPI-2E with a sealed post-construction inspection report and supporting documents, or a sealed design, leading to a WPI-8-E. The department may deny an application that is not fully documented.",
+      },
+      {
+        q: "Is a home inspection the same as a windstorm inspection?",
+        a: "No. Under section 2210.254 of the Insurance Code a windstorm inspection may be made only by a qualified inspector approved and appointed or employed by the Texas Department of Insurance.",
+      },
+    ],
+  },
+
+  // ----------------------------------------------------------------------- 16
+  {
+    slug: "hurricane-damage-structural-checklist",
+    title: "Hurricane Damage: The Structural Checklist | 254 Engineering",
+    h1: "Hurricane damage to a house: a structural checklist from the roof deck to the foundation",
+    description:
+      "What damage a hurricane can cause to a house, how wind load travels through it, and a checklist for telling structural damage from surface loss. Read on.",
+    summary:
+      "After a hurricane the first question is not how much was damaged but which part of the structure the damage reached. This checklist follows the load path, from the roof deck down.",
+    eyebrow: "Storm damage",
+    primaryKeyword: "hurricane damage",
+    datePublished: WINDSTORM_SECTION_DATE,
+    dateModified: WINDSTORM_SECTION_DATE,
+    body: [
+      {
+        kind: "p",
+        text: "Hurricane damage to a house comes from wind pushing and lifting on the building, from debris the wind throws, from storm surge and waves, and from rain, and the structural question afterwards is whether any of that reached the frame. Missing shingles are damage to a covering; missing roof decking, trusses lifted off the walls or a fallen gable end are damage to the structure, and this checklist is for telling the two apart.",
+      },
+      {
+        kind: "p",
+        text: "It is written for owners, builders and agents looking at a building in the days after a storm. It stays inside structural scope: roof coverings, leaks, and mechanical and electrical systems are outside it. Where the damage is structural, the repair needs a defined scope before it can be bid or permitted, which is what [a repair specification](/services/repair-specifications) is for.",
+      },
+      { kind: "h2", text: "What damage a hurricane can cause" },
+      {
+        kind: "p",
+        text: "The National Hurricane Center rates hurricanes by maximum sustained wind alone, and says in terms that its scale does not take into account storm surge, rainfall flooding or tornadoes. Its damage descriptions for well-built framed homes are a useful map of where wind damage moves as speed rises:",
+      },
+      {
+        kind: "ul",
+        items: [
+          "Category 1, 74 to 95 mph: damage to roof, shingles, siding and gutters is possible.",
+          "Category 2, 96 to 110 mph: major roof and siding damage.",
+          "Category 3, 111 to 129 mph: major damage or removal of roof decking and gable ends.",
+          "Category 4, 130 to 156 mph: loss of most of the roof structure and some exterior walls.",
+          "Category 5, 157 mph or higher: a high percentage of framed homes destroyed, with total roof failure and wall collapse.",
+        ],
+      },
+      {
+        kind: "p",
+        text: "The progression is the point. Damage begins at the covering, moves to the deck and the gable ends, and then to the framing and the walls. A house that lost only its covering is in a different class of repair from one that lost its deck.",
+      },
+      {
+        kind: "p",
+        text: "Water is a separate threat with separate damage. The center's hazards page says storm surge and large waves pose the greatest threat to life and property along the coast, with buildings destroyed and beach and dune erosion among the results, and that flooding is the major threat for people living inland. It also notes that debris such as signs, roofing material and siding becomes flying missiles.",
+      },
+      { kind: "h2", text: "Why the damage follows a path" },
+      {
+        kind: "p",
+        text: "FEMA's wind retrofit guide defines load paths as chains of connections that transfer loads from where they are applied to the foundation. Its coastal construction fact sheet on load paths lists the links: roof covering to sheathing, sheathing to roof framing, roof framing to the bearing walls, upper walls to lower walls and the floor, and the floor to the foundation.",
+      },
+      {
+        kind: "p",
+        text: "The same fact sheet explains why damage spreads. If a connection fails, an alternative load path forms and the adjacent framing receives more load, and if that new path is too weak, progressive failure can occur. A storm that pulled one truss off a wall has put more load on the trusses beside it, whether or not they show it.",
+      },
+      {
+        kind: "p",
+        text: "FEMA's guide records what that looks like after real storms. It reports light-framed wood trusses lifted off exterior walls, which enabled gable end walls to collapse, and it notes that a broken window or glass door can let wind pressure build inside a house, which may cause structural damage. Older buildings that performed poorly, it says, often lacked a continuous load path for gravity, uplift and lateral loads.",
+      },
+      { kind: "h2", text: "The checklist, from the top down" },
+      {
+        kind: "p",
+        text: "Work from the outside first and from a safe distance. A roof with displaced framing or a wall out of line is not a place to stand while documenting it. Photograph each item before anything is moved, because the department's guidance for association policyholders after a storm is to take photos and video of damage and to keep receipts for temporary repairs.",
+      },
+      { kind: "h3", text: "Roof deck" },
+      {
+        kind: "ul",
+        items: [
+          "Sheathing panels missing, displaced or lifted at their edges, as distinct from shingles or tiles missing over intact sheathing.",
+          "Daylight visible from the attic through the deck.",
+          "A ridge or eave line that is no longer straight when sighted from the ground.",
+        ],
+      },
+      { kind: "h3", text: "Roof to wall connections and gable ends" },
+      {
+        kind: "ul",
+        items: [
+          "Trusses or rafters lifted from the top of the wall, visible in the attic as a gap at the bearing point or as bent or pulled connectors.",
+          "A gable end wall leaning out of plane, cracked at its base, or gone.",
+          "Soffits torn away, which exposes the roof framing and the attic to wind and water.",
+        ],
+      },
+      { kind: "h3", text: "Openings" },
+      {
+        kind: "ul",
+        items: [
+          "Broken windows or glass doors, and garage doors pushed in or pulled out of their tracks. FEMA's guide names unprotected openings, garage doors and soffits among the features of older buildings that performed poorly.",
+          "Damage on the leeward side of the house or to interior ceilings near a breached opening, which can follow a rise in internal pressure.",
+        ],
+      },
+      { kind: "h3", text: "Walls" },
+      {
+        kind: "ul",
+        items: [
+          "A wall out of plumb, or diagonal cracking at the corners of openings, either of which can indicate racking under lateral load.",
+          "Separation between an upper story and the story below, or between a wall and the floor it sits on.",
+          "Impact damage from trees or debris that reaches the framing rather than stopping at the siding.",
+        ],
+      },
+      { kind: "h3", text: "Foundation and the ground under it" },
+      {
+        kind: "ul",
+        items: [
+          "Erosion around or under the foundation after surge or flooding, and on piled houses any pile that is cracked, displaced or no longer bearing.",
+          "Floors that have moved, doors that no longer close, or new cracks in a slab after water has stood around the house.",
+          "Debris lodged against or under a house on piles, recorded where it lies before it is cleared.",
+        ],
+      },
+      {
+        kind: "p",
+        text: "Any yes on that list is a structural question. Whether a foundation has moved is a measurement rather than a judgment by eye, and [a foundation inspection](/services/foundation-inspections) records floor elevations so the answer rests on numbers.",
+      },
+      { kind: "h2", text: "Temporary repairs, permanent repairs and the certificate" },
+      {
+        kind: "p",
+        text: "Temporary repairs come first and are expected. The department's COAST program sheet lists boarding up broken windows and doors and removing standing water among them, and the association's certification page lists temporary repairs after a storm among the work that needs no windstorm certificate.",
+      },
+      {
+        kind: "p",
+        text: "Permanent repairs inside the catastrophe area are another matter. Section 2210.2515(a) of the Insurance Code defines an improvement to include repair, and subsection (b) requires written notice to the department before the work begins. A storm repair finished without that notice and without inspection while it was open can leave the house unable to be insured through the association until the repair is certified after the fact, which section 2210.258(b) and the completed construction route make slow and evidence heavy. The coastal repair sequence is on [the re-roofs and repairs page](/windstorm/re-roofs-and-repairs).",
+      },
+      {
+        kind: "p",
+        text: "A repair also opens connections that are otherwise covered, which makes it the practical moment to look at the load path. FEMA's guide organizes wind retrofits into three successive packages, Basic, Intermediate and Advanced, addressing roof and wall coverings, openings and load path connections, and says they correspond to the IBHS FORTIFIED Roof, Silver and Gold designations. Whether any of that is required for a given repair is a question of the adopted code and the scope, not of the guide.",
+      },
+      { kind: "h2", text: "When the damage needs an engineer" },
+      {
+        kind: "p",
+        text: "Covering damage over a sound deck is a roofing repair. A lifted truss, a displaced deck, a leaning wall or a moved foundation is a structural repair, and a structural repair needs somebody to say what failed, what has to be replaced and how it is to be reconnected. An engineer's sealed opinion on cause and extent is a different document from a windstorm inspection and from a certificate, a difference set out on [the inspection versus forensic report page](/insights/inspection-vs-forensic-report).",
+      },
+      {
+        kind: "p",
+        text: "Where the question is insurance rather than structure, which policy answers which part of the damage is covered on [the hurricane damage and insurance page](/insights/hurricane-damage-insurance-claim). On the Coastal Bend, where Hurricane Harvey came ashore near Rockport in 2017, the region's building departments and windstorm requirements are summarized on [the Coastal Bend coverage page](/coverage/coastal-bend). Where a building department or a lender needs a sealed statement that a repaired element is adequate, that is the purpose of [a structural letter](/services/structural-letters).",
+      },
+    ],
+    sources: [
+      cite("nhcScale", "That the scale rates hurricanes by maximum sustained wind only and excludes surge, rainfall flooding and tornadoes, and the wind ranges and damage descriptions for framed homes by category."),
+      cite("nhcHazards", "That storm surge and large waves pose the greatest threat to life and property on the coast, that surge destroys buildings and erodes beaches and dunes, that flooding is the major inland threat, and that debris becomes flying missiles."),
+      cite("femaP804", "The definition of load paths, trusses lifted off walls enabling gable end collapse, internal pressure after a broken window or glass door, the features of poorly performing older buildings, and the Basic, Intermediate and Advanced retrofit packages."),
+      cite("femaLoadPath", "The chain of connections from roof covering to foundation, alternative load paths, and progressive failure."),
+      cite("tdiCoast", "Taking photos and video of damage, temporary repairs such as boarding up windows and doors, and saving receipts."),
+      cite("twiaCert", "That temporary repairs after a storm need no windstorm certificate."),
+      cite("ins2210_2515", "That an improvement includes repair and requires written notice to the department before work begins."),
+      cite("ins2210_258", "That the association may not insure covered work until a certificate of compliance has issued."),
+    ],
+    faqs: [
+      {
+        q: "Do hurricane repairs need a windstorm certificate?",
+        a: "Temporary repairs after a storm do not, according to TWIA's certification page. Permanent repairs inside the catastrophe area are improvements under section 2210.2515 of the Insurance Code and require written notice to the department before the work begins.",
+      },
+    ],
+  },
+
+  // ----------------------------------------------------------------------- 17
+  {
+    slug: "hurricane-damage-insurance-claim",
+    title: "Hurricane Damage and Your Insurance Claim | 254 Engineering",
+    h1: "Does homeowners insurance cover hurricane damage? Wind, water, and the policy that answers each",
+    description:
+      "Does homeowners insurance cover hurricane damage in Texas? See how wind, flood and TWIA policies divide it, how deductibles work, and the claim deadlines.",
+    summary:
+      "A hurricane brings two perils, and on the Texas coast they are often insured by three different policies. Which one answers turns on what caused the damage.",
+    eyebrow: "Storm damage",
+    primaryKeyword: "does homeowners insurance cover hurricane damage",
+    datePublished: WINDSTORM_SECTION_DATE,
+    dateModified: WINDSTORM_SECTION_DATE,
+    body: [
+      {
+        kind: "p",
+        text: "Homeowners insurance usually covers wind damage from a hurricane and usually does not cover flood damage, and on the Texas coast most homeowners policies do not cover wind and hail either, which is why the Texas Windstorm Insurance Association exists. Whether a particular loss is covered turns on what caused it, wind or water, and on the wording of the policy you hold.",
+      },
+      {
+        kind: "p",
+        text: "254 Engineering is an engineering firm. It is not an insurance agent or an adjuster, it does not advise on any particular policy, and every coverage statement below is the regulator's own, cited in the sources. What an engineer contributes is the structural fact underneath a claim: what failed and why. Where a repair needs a defined scope, that is the job of [a repair specification](/services/repair-specifications).",
+      },
+      { kind: "h2", text: "Three policies, two perils" },
+      {
+        kind: "p",
+        text: "The Texas Department of Insurance sets it out in three lines. Homeowners insurance covers damage from events such as fire, lightning, theft, wind and hail. Flood insurance covers damage from rising water, and the department notes that most home policies do not cover floods. Wind and hail insurance covers wind and hail, and the department notes that most home policies on the coast do not cover wind and hail.",
+      },
+      {
+        kind: "p",
+        text: "So a coastal owner can hold three policies: a homeowners policy for everything except wind, hail and flood, a wind and hail policy, often through the association, and a flood policy through the National Flood Insurance Program or a private flood insurer. Inland, the homeowners policy usually carries the wind.",
+      },
+      {
+        kind: "p",
+        text: "Storm surge sits on the flood side. The department's COAST program sheet says the association does not cover storm surge or flood damage and that flood insurance is administered separately through the National Flood Insurance Program. FEMA says that most standard homeowners policies do not cover flood damage and that a flood policy typically takes 30 days to become active, which is why a flood policy bought as a storm approaches is unlikely to answer for that storm.",
+      },
+      { kind: "h2", text: "Why the cause of the damage decides the claim" },
+      {
+        kind: "p",
+        text: "A coastal house after a hurricane often has both kinds of damage. The roof deck lifted in the wind, rain came through the opening, and surge came up through the ground floor. Each of those can belong to a different policy, and a wind policy that excludes flood and a flood policy that excludes wind will each want to know which caused what.",
+      },
+      {
+        kind: "p",
+        text: "That is a structural question before it is an insurance one. A lifted truss, a breached opening and a displaced foundation each leave evidence of the force that caused them, and reading that evidence is engineering. A checklist for finding it is on [the hurricane damage structural checklist](/insights/hurricane-damage-structural-checklist).",
+      },
+      {
+        kind: "p",
+        text: "An engineer's report on cause answers to the facts and not to whoever paid for it. The rule behind that is set out on [the inspection versus forensic report page](/insights/inspection-vs-forensic-report): on sealing, the engineer takes full professional responsibility for the work. A report that reached the conclusion its client wanted would be worth nothing to either side. Where a sealed statement about a specific damaged element is what an insurer, a lender or a building department has asked for, [a structural letter](/services/structural-letters) is the document.",
+      },
+      { kind: "h2", text: "Deductibles are a percentage of the insurance, not of the claim" },
+      {
+        kind: "p",
+        text: "Many wind and hurricane deductibles are percentages. The Office of Public Insurance Counsel, a Texas state agency, explains that a percentage deductible is calculated on the amount of insurance on the home, not on the amount of the claim. Its example uses a home insured for $200,000 with a $7,000 claim. At 1 percent the deductible is $2,000 and the insurer pays $5,000. At 5 percent the deductible is $10,000, more than the claim, and the insurer pays nothing.",
+      },
+      {
+        kind: "p",
+        text: "The same agency notes that a wind and hail deductible typically applies to any damage from a wind or hail event, and that a named storm deductible is typically triggered when the National Weather Service names a storm. Which applies is in the declarations page of the policy. For association policies, the department lists residential deductibles of $100, $250 or 1 percent, with optional larger deductibles from 1.5 to 5 percent.",
+      },
+      { kind: "h2", text: "Claim deadlines in the Insurance Code" },
+      {
+        kind: "p",
+        text: "For a homeowners claim, section 542.055 of the Insurance Code requires the insurer, not later than the 15th day after receiving notice of the claim, to acknowledge it, begin any investigation and request the items it needs. Section 542.056 then requires written notice accepting or rejecting the claim by the 15th business day after the insurer receives everything it requires, and if the insurer needs more time it must say why within that period and decide by the 45th day after that notice. A rejection must state its reasons.",
+      },
+      {
+        kind: "p",
+        text: "For an association policy, section 2210.573 requires the claim to be filed within one year of the date the damage occurred, subject to section 2210.205(b), and requires a written decision within 60 days unless the commissioner extends the period. The department's COAST program sheet adds 60 days from the association's notice to request appraisal and 545 days from the claim decision to submit replacement cost documentation. The association's other rules are on [the TWIA insurance page](/insights/twia-insurance-and-windstorm-certificates).",
+      },
+      { kind: "h2", text: "When the association accepts only part of a claim" },
+      {
+        kind: "p",
+        text: "Section 2210.573 also says what the association's written decision has to contain. A full acceptance states the amount it will pay and the deadline to request appraisal under section 2210.574. A partial acceptance or a denial states the accepted portion and its amount, explains the denied portion in detail, and gives the deadlines to request appraisal and to give notice of intent to sue under section 2210.575, with a form for that notice attached.",
+      },
+      {
+        kind: "p",
+        text: "Where the dispute is about cause, wind against water or storm against age, the evidence that resolves it is physical. A detailed explanation of a denied portion tells an owner which fact the association relied on, and that is the fact a structural assessment either confirms or contradicts.",
+      },
+      {
+        kind: "note",
+        title: "Deadlines can move after a large storm",
+        body: [
+          "The department's June 2026 overview of the association notes that legislation gave the department flexibility to extend claim related deadlines for consumers, and section 542.059 of the Insurance Code is titled Extension of Deadlines. Neither was read in full for this post. After a declared disaster, the department's current bulletins and the policy itself govern, and the dates above are the starting rules rather than the last word.",
+        ],
+      },
+      { kind: "h2", text: "What to do in the first days" },
+      {
+        kind: "p",
+        text: "The department's guidance for association policyholders is practical. A claim can be started before the damage has been fully reviewed. Take photos and video of the damage. Make temporary repairs, such as boarding up broken windows and doors and removing standing water, and save the receipts. And skip any contractor offer to pay the deductible, which the department lists among storm repair scams.",
+      },
+      {
+        kind: "p",
+        text: "Before a permanent repair starts inside the catastrophe area, remember that a repair is an improvement under section 2210.2515 of the Insurance Code and needs written notice to the department before the work begins. A claim paid on a repair that then cannot be certified leaves the house outside what the association may insure under section 2210.258(b), subject to that section's exceptions. The repair sequence is on [the re-roofs and repairs page](/windstorm/re-roofs-and-repairs).",
+      },
+      {
+        kind: "p",
+        text: "Where the structural damage includes the foundation, an elevation survey turns an argument about movement into a set of numbers, which is what [a foundation inspection](/services/foundation-inspections) records.",
+      },
+    ],
+    sources: [
+      cite("tdiHomeFloodWind", "What homeowners, flood, and wind and hail policies cover, that most home policies do not cover floods, and that most home policies on the coast do not cover wind and hail."),
+      cite("tdiCoast", "That TWIA does not cover storm surge or flood, the TWIA claim timelines for appraisal and replacement cost documentation, starting a claim before review, photos and temporary repairs, and the warning about offers to pay the deductible."),
+      cite("femaFlood", "That most standard homeowners policies do not cover flood damage, and that flood insurance typically takes 30 days to become active."),
+      cite("opicDeductibles", "How a percentage deductible is calculated, the $200,000 worked example, and what triggers wind and hail and named storm deductibles."),
+      cite("tdiTwiaOverview", "TWIA residential deductibles, and that legislation gave the department flexibility to extend claim related deadlines."),
+      cite("ins542_055", "The 15 day deadline to acknowledge a claim, begin investigation and request items."),
+      cite("ins542_056", "The 15 business day deadline to accept or reject, the 45 day extension with notice, and that a rejection must state reasons."),
+      cite("ins2210_573", "The one year filing deadline for association claims, the 60 day written decision, and what a full acceptance, partial acceptance or denial notice must state."),
+      cite("ins2210_2515", "That a repair is an improvement requiring notice to the department before work begins."),
+      cite("ins2210_258", "That the association may not insure covered work until a certificate of compliance has issued."),
+      cite("rule137_33", "That on sealing, the engineer takes full professional responsibility for the work."),
+    ],
+    faqs: [
+      {
+        q: "Does homeowners insurance cover hurricane damage?",
+        a: "Usually for wind and usually not for flood. The Texas Department of Insurance says most home policies do not cover floods, and that most home policies on the coast do not cover wind and hail, which coastal owners insure separately, often through TWIA.",
+      },
+      {
+        q: "Does TWIA cover storm surge?",
+        a: "No. The department's COAST program sheet says TWIA does not cover storm surge or flood damage, and that flood insurance is administered separately through the National Flood Insurance Program.",
+      },
+      {
+        q: "How is a hurricane deductible calculated?",
+        a: "A percentage deductible is a percentage of the amount of insurance on the home, not of the claim. The Office of Public Insurance Counsel's example: on a home insured for $200,000, a 1 percent deductible is $2,000 and a 5 percent deductible is $10,000.",
+      },
+      {
+        q: "Can an engineer help with a hurricane insurance claim?",
+        a: "An engineer can establish what failed and why, in a sealed report that answers to the facts rather than to whoever paid for it. An engineer does not negotiate the claim or advise on the policy; that is the work of a licensed agent, an adjuster, or an attorney.",
       },
     ],
   },

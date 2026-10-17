@@ -165,6 +165,84 @@ export function decidePrice(input: {
 export const MIN_OVERRIDE_REASON = 10;
 
 /**
+ * A FILE FIELD IS ANSWERED BY A FILE, AND BY NOTHING ELSE. 0078, 2026-10-16.
+ *
+ * Text posted against a file field is dropped first, so a sentence can never
+ * satisfy a document the signed protocol requires. Each upload must answer a
+ * file field this deliverable asks, sit in the intake bucket, and have a key
+ * under this intake's own draft and that field. Only then does the field count
+ * as answered, with the fixed sentence the outstanding list reads.
+ */
+export function applyIntakeUploads(input: {
+  fileFieldIds: string[];
+  uploads: { fieldId: string; bucket: string; storageKey: string }[];
+  draftId: string | null;
+  answers: Record<string, string>;
+  bucket: string;
+  attachedText: string;
+}): { ok: true; answers: Record<string, string> } | { ok: false; error: string; field: string } {
+  const fileFields = new Set(input.fileFieldIds);
+  const answers: Record<string, string> = {};
+  for (const [k, v] of Object.entries(input.answers)) if (!fileFields.has(k)) answers[k] = v;
+  const draft = (input.draftId ?? "").trim();
+  for (const u of input.uploads) {
+    if (!fileFields.has(u.fieldId)) {
+      return { ok: false, error: "That document does not answer anything this job asks.", field: u.fieldId };
+    }
+    if (u.bucket !== input.bucket || !draft || !u.storageKey.startsWith(`intake/${draft}/${u.fieldId}/`)) {
+      return { ok: false, error: "That document was not uploaded for this job. Attach it again.", field: u.fieldId };
+    }
+    answers[u.fieldId] = input.attachedText;
+  }
+  return { ok: true, answers };
+}
+
+/**
+ * ===========================================================================
+ * A JOB AT NO CHARGE. Operator ruling, 2026-10-16.
+ * ===========================================================================
+ *
+ * "Open it unpaid" stays what it is: bill later, under files.create, and the
+ * only intake route while the gate is shut. What this governs is a client
+ * price of ZERO, which until now any files.create holder could enter with a ten
+ * character reason, Sales included.
+ *
+ * A zero price needs the administrator role, a fresh code from the
+ * administrator's own authenticator (verifyFreshCode, checked in ops-job-intake
+ * because it reads the database), a typed reason, and an audit row written
+ * BEFORE the file exists, so a no-charge job without its record cannot be
+ * made. It is opened unpaid: there is nothing to send a link for.
+ *
+ * The rule below is everything that can be decided without the database, in
+ * one place, so the screen and the server cannot disagree about it.
+ */
+export function isNoCharge(clientCents: number | null): boolean {
+  return clientCents === 0;
+}
+
+export function noChargeRefusal(input: {
+  actorId: string | null;
+  actorRole: string;
+  reason: string | null;
+  paymentIntent: PaymentIntent;
+  code: string | null;
+}): string | null {
+  if (!input.actorId || input.actorRole !== "admin") {
+    return "Only an administrator can open a job at no charge.";
+  }
+  if ((input.reason ?? "").trim().length < MIN_OVERRIDE_REASON) {
+    return `A job at no charge needs a reason of at least ${MIN_OVERRIDE_REASON} characters.`;
+  }
+  if (input.paymentIntent !== "released_unpaid") {
+    return "A job at no charge is opened unpaid. There is nothing to send a link or an invoice for.";
+  }
+  if (!(input.code ?? "").replace(/\s+/g, "")) {
+    return "A job at no charge needs a fresh code from your authenticator app.";
+  }
+  return null;
+}
+
+/**
  * WHAT THE INTAKE STILL NEEDS BEFORE IT CAN BE SUBMITTED.
  *
  * Returned as a list of sentences naming the field, never as a boolean, for the

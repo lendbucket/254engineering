@@ -12,6 +12,7 @@ import { EmptyState, PageHead } from "@/components/portal/surfaces";
 import { outstandingFor } from "@/lib/ops-file-inputs";
 import { DecisionPanel, OpenReviewButton } from "./ReviewClient";
 import { LetterSealPanel } from "./LetterSealPanel";
+import { FileThreadButton } from "@/components/portal/FileThreadButton";
 import { lettersAwaitingSeal } from "@/lib/letter-seal";
 import { heldFiles } from "@/lib/dispatch-hold";
 import { PrereviewPanel } from "./PrereviewPanel";
@@ -351,6 +352,11 @@ export default async function ReviewPage({
                   </span>
                   {selected.file.twia_county ? <span className="pl-5">Windstorm county</span> : null}
                 </p>
+                {can(actor, "messages.use") ? (
+                  <div className="mt-3">
+                    <FileThreadButton fileId={selected.file.id} />
+                  </div>
+                ) : null}
 
                 {selected.session ? (
                   <p className="mt-2 max-w-[70ch] text-[13px] leading-[1.55] text-[var(--secondary)]">

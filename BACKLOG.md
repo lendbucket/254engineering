@@ -4,6 +4,14 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
+## THE SITTING FOR 0078, AN INTAKE ANSWER CAN BE A STORED FILE, OPEN
+
+`docs/production-sitting-0078-intake-photo.md`. Written 2026-10-16 on
+`migration/intake-photo-0078` and applied nowhere. Without it the firm cannot
+open a 254-RC-001 job by telephone, because the signed protocol requires a
+front-of-property photo at order and nothing let the firm attach one. Additive
+only; development first, then production, each read back.
+
 ## THE SITTING FOR `release/2026-10-20`, PARTS A AND B RUN 2026-10-07, PART C OPEN
 
 `docs/production-sitting-2026-10-20.md`. **Parts A and B ran on 2026-10-07**
@@ -1850,6 +1858,37 @@ needs a ruling on which rule stands.
   partner commission terms apply.
 - The SOC 2 pack's "Generated on" date, which is the last job's timestamp.
 - Three tables nothing reads.
+
+## THE MORNING OF 2026-10-15 IS IN `docs/MORNING-2026-10-15.md`
+
+Pointer entry, not a second copy. That document carries why almost nothing
+boarded that night, what was blocked and on what, and the numbered questions
+with a recommendation each. Added 2026-10-17, when `backlog-audit` on
+`docs/product-audit-2026-10` found the document carrying open work and named
+nowhere here. The document had been on that branch since c1a2082 and the branch
+had not been boarded since, so nothing had read it.
+
+**Its open items**, each explained there:
+
+- The live half of 0076, which waits on the operator's keyed Stripe run.
+- Five defects, each waiting on a ruling.
+- Search appearance on `fix/search-appearance`, not started.
+- Partner onboarding and the ledger fold, not started by order.
+- The engineer's signatures and approvals on the incoming protocols.
+
+## A REGION HAS NO SOURCES, SO A REGION PAGE CANNOT CARRY A SOURCED FACT
+
+Operator ruling, 2026-10-17. Not built. `Region` in `src/content/regions.ts`
+has no sources field, and the coverage region page renders none, so a sentence
+there that needs a primary source has nowhere to show it. The instance was a
+Frisco sentence for the DFW region on `content/blog-windstorm`: by the rule that
+a sourced claim is shown the way post sources are shown, it was not written.
+Frisco went in as the fifth DFW anchor only, after the four that render.
+
+The work: a `sources` field on `Region` using the same `cite()` shape the posts
+use, a rendered list on the region page the way post sources render, and the
+audits that read regions taught to check it. Until then a region carries no
+sentence that needs a source.
 
 ## `voice-audit` HAS NO LIST OF BRITISH WORDS, AND "RING" WAS FOUND BY A PERSON
 
