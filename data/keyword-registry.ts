@@ -280,6 +280,134 @@ export const topics: Topic[] = [
       sealed: { angle: "The document pages and the city geo that serve an ordering buyer.", status: "live" },
     },
   },
+  /*
+   * THE BUYERS, AGENTS AND LENDERS SECTION ON THIS SITE, 2026-10-16.
+   *
+   * One entry per primary keyword, each recording this brand's angle so that a
+   * Sealed Engineering page on the same subject is written as a different
+   * document for its ordering buyer. Status is "planned" until the branch
+   * content/blog-buyers merges; whoever merges it sets these to "live".
+   * Placed here rather than at the end of the array so it does not collide
+   * with the windstorm section's entries on content/blog-windstorm.
+   *
+   * Three briefed posts were folded and have no entry: "structural engineer
+   * home inspection" (served by /structural-engineer/inspection), "structural
+   * engineer inspection cost" (served by /structural-engineer/cost) and
+   * "foundation inspection" (ruled to /services/foundation-inspections in
+   * docs/keyword-mapping.md). Plan: docs/blog/buyers-section-plan.md.
+   */
+  {
+    topic: "foundation inspection cost",
+    cluster: "buyers",
+    evidence: "2026-10-16, operator's Ahrefs pull, US, supplied with the brief: primary 'foundation inspection cost' 2,200/mo, KD 2. Supporting: 'how much is a foundation inspection'.",
+    angles: {
+      "254": {
+        angle: "What each of three providers sells under one name (TREC inspector under 22 TAC 535.227 and 535.228, a repair company's free visit, an engineer), the engineer's fee read through the ASCE Texas Section levels A, B and C, costs outside the fee (plumbing test, boring, repair documents, a city permit, post repair letter), who engages inspectors under TREC form 20-18, and the Fannie Mae B4-1.3-06 report standard. Types no price of its own; links /structural-engineer/cost, which owns 'structural engineer cost'.",
+        path: "/insights/foundation-inspection-cost",
+        status: "planned",
+      },
+      sealed: {
+        angle: "The price of the document a homeowner is ordering this week and how to book it. Not this provider comparison or its ASCE level structure.",
+        status: "none",
+      },
+    },
+  },
+  {
+    topic: "free foundation inspection",
+    cluster: "buyers",
+    evidence: "2026-10-16, operator's Ahrefs pull, US, supplied with the brief: primary 'free foundation inspection' 1,300/mo, KD 0. Supporting: 'foundation repair inspection'.",
+    angles: {
+      "254": {
+        angle: "Who offers a free inspection and why it is free, what it can and cannot be used for (Occupations Code 1001.003, 1001.301, 1001.401; TREC form 20-18 paragraph 7A; Fannie Mae settlement standard), conflict of interest under TBPELS rule 137.57 and ASCE Texas section 2.2, how to use free proposals well, and city permits as a check. Names no company.",
+        path: "/insights/free-foundation-inspection",
+        status: "planned",
+      },
+      sealed: {
+        angle: "None planned. A free versus paid page on the ordering brand reads as a pitch against competitors.",
+        status: "none",
+      },
+    },
+  },
+  {
+    topic: "pre purchase home inspection",
+    cluster: "buyers",
+    evidence: "2026-10-16, operator's Ahrefs pull, US, supplied with the brief: primary 'pre purchase home inspection' 1,000/mo, KD 1. Supporting: 'pre-purchase inspection', 'structural inspection', 'roof inspection before buying a house' (40/mo, a full section).",
+    angles: {
+      "254": {
+        angle: "The Texas buyer's inspection read from the rules: TREC form 20-18 and the termination option, what 22 TAC 535.227 and 535.228 require and exclude, the REI 7-6 form, when the report points to an engineer, a full roof section (inspector's roof duties versus an engineer's structural roof assessment and when to commission one before closing), and the Property Code 5.008 disclosure. Distinct from /structural-engineer/inspection, which describes the engineer's visit itself.",
+        path: "/insights/pre-purchase-home-inspection",
+        status: "planned",
+      },
+      sealed: {
+        angle: "A buyer in an option period ordering a foundation or roof letter. Not this rule by rule reading.",
+        status: "none",
+      },
+    },
+  },
+  {
+    topic: "structural engineer report",
+    cluster: "buyers",
+    evidence: "2026-10-16, operator's Ahrefs pull, US, supplied with the brief: primary 'structural engineer report' 150/mo, KD 0. Supporting: 'engineer report', 'structural engineer letter', 'foundation engineer report'.",
+    angles: {
+      "254": {
+        angle: "Written for agents, brokers and lenders: the seal under 1001.401 and rule 137.33, the five documents that share the name, reading scope, addressee, date and level, matching the conclusion to the Fannie Mae B4-1.3-06 wording, a report in hand and the 5.008 disclosure, and what to send the engineer. Separates the permit letter (/services/structural-letters) from transaction reports.",
+        path: "/insights/structural-engineer-report",
+        status: "planned",
+      },
+      sealed: {
+        angle: "A homeowner told to get an engineer's letter for a closing. Not the agent and lender reading guide.",
+        status: "none",
+      },
+    },
+  },
+  {
+    topic: "crack in foundation",
+    cluster: "buyers",
+    evidence: "2026-10-16, operator's Ahrefs pull, US, supplied with the brief: primary 'crack in foundation' 2,700/mo, KD 0. Supporting: 'crack in foundation of house', 'hairline crack in foundation', 'foundation crack'.",
+    angles: {
+      "254": {
+        angle: "Reading any foundation crack for movement: patterns, the TREC indications of adverse performance, a self monitoring method, the untraceable width rule in a note, seasonal clay movement (USDA Houston Black, the IRC test via TDLR), when to call an engineer, and how a Level B evaluation reads the crack. Slab specifics are left to the slab post; /structural-engineer/when-you-need-one keeps the general triggers.",
+        path: "/insights/crack-in-foundation",
+        status: "planned",
+      },
+      sealed: {
+        angle: "An owner with a crack who wants it looked at this week. Not this reading guide or its monitoring method.",
+        status: "none",
+      },
+    },
+  },
+  {
+    topic: "crack in concrete slab foundation",
+    cluster: "buyers",
+    evidence: "2026-10-16, operator's Ahrefs pull, US, supplied with the brief: primary 'crack in concrete slab foundation' 1,700/mo, KD 1. Supporting: 'cracks in foundation slab'.",
+    angles: {
+      "254": {
+        angle: "Texas slab on grade on expansive clay: conventional and post tensioned slabs (PTI DC10.5), the IRC as adopted under Local Government Code 214.212, shrinkage cracking per NRMCA CIP 4, slab cracks that point to movement, cracks found under flooring, locating tendons before cutting, and what a Level B survey measures with the ASCE Texas cautions and repair expectations.",
+        path: "/insights/crack-in-concrete-slab-foundation",
+        status: "planned",
+      },
+      sealed: {
+        angle: "None planned beyond its foundation document page.",
+        status: "none",
+      },
+    },
+  },
+  {
+    topic: "foundation engineer",
+    cluster: "buyers",
+    evidence: "2026-10-16, operator's Ahrefs pull, US, supplied with the brief: primary 'foundation engineer' 600/mo, KD 0. 'foundation repair inspection' is assigned to the free foundation inspection post, not here.",
+    angles: {
+      "254": {
+        angle: "Roles across a repair, stage by stage: evaluation, sealed remediation documents, city permit (Houston, Denton), construction, plumbing test, post repair elevations and the letter of substantial completion, from the ASCE Texas Section guidelines; competence under rule 137.59; geotechnical versus structural input; where roles merge under rule 137.57; the board's 2018 response; questions for each party. Distinct from /structural-engineer/how-to-choose, which covers verifying an engineer.",
+        path: "/insights/foundation-engineer-vs-repair-company",
+        status: "planned",
+      },
+      sealed: {
+        angle: "An owner commissioning an independent evaluation before a repair. Not this role by role account.",
+        status: "none",
+      },
+    },
+  },
   {
     topic: "Texas engineering firm registration",
     cluster: "institutional",

@@ -10,7 +10,7 @@ import { CardGrid, cardCell, SectionHeading } from "@/components/ui/primitives";
 import { Section } from "@/components/ui/section";
 import { buildMetadata } from "@/lib/seo";
 import { JsonLd, blogPostingSchema, breadcrumbSchema, faqSchema } from "@/lib/schema";
-import { insightBySlug, insights } from "@/content/insights";
+import { insightBySlug, insights, relatedReading } from "@/content/insights";
 
 /**
  * A single post.
@@ -59,7 +59,7 @@ export default async function InsightPage({ params }: { params: Promise<{ slug: 
     { name: post.eyebrow, path: `/insights/${post.slug}` },
   ];
 
-  const others = insights.filter((i) => i.slug !== post.slug);
+  const others = relatedReading(post);
 
   return (
     <>
