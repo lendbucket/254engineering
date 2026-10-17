@@ -1,5 +1,6 @@
 import type { Faq } from "./services";
 import { coastalInsights } from "./insights-coastal";
+import { topics } from "@data/keyword-registry";
 import { registrationStatement } from "@/lib/launch";
 import type { FigureId } from "@/components/insights/figures";
 
@@ -1914,4 +1915,56 @@ export function insightBySlug(slug: string): Insight | undefined {
 /** Newest first, for the hub. Dates are real and set by hand in this file. */
 export function insightsByDate(): Insight[] {
   return [...insights].sort((a, b) => b.datePublished.localeCompare(a.datePublished));
+}
+
+/*
+ * RELATED READING IS CAPPED, AND THE CAP IS WHY A POST'S HEIGHT STOPS GROWING
+ * WITH THE CORPUS. Operator ruling, 2026-10-17. The block under every post used
+ * to list every other post, so the buyers section put seven cards on every
+ * existing post and nine routes crossed the 16000px ceiling without a word of
+ * them changing. Six cards, ranked: same section first, then a shared keyword
+ * cluster in the registry, then newest. Nothing is orphaned by the cap: the hub
+ * and the sitemap still list every post.
+ */
+export const RELATED_READING_LIMIT = 6;
+
+export type InsightSection = "core" | "coastal" | "buyers";
+
+const COASTAL_SLUGS = new Set(coastalInsights.map((i) => i.slug));
+const BUYER_SLUGS = new Set(buyerInsights.map((i) => i.slug));
+
+export function sectionOf(slug: string): InsightSection {
+  if (COASTAL_SLUGS.has(slug)) return "coastal";
+  if (BUYER_SLUGS.has(slug)) return "buyers";
+  return "core";
+}
+
+/** The registry cluster of the topic whose 254 angle is this post, or null. */
+export function clusterOf(post: Insight): string | null {
+  const path = `/insights/${post.slug}`;
+  const byPath = topics.find((t) => t.angles["254"]?.path === path);
+  if (byPath) return byPath.cluster;
+  const byTopic = topics.find((t) => t.topic === post.primaryKeyword);
+  return byTopic ? byTopic.cluster : null;
+}
+
+export function relatedReading(post: Insight, limit = RELATED_READING_LIMIT): Insight[] {
+  const section = sectionOf(post.slug);
+  const cluster = clusterOf(post);
+  return insights
+    .filter((i) => i.slug !== post.slug)
+    .map((i) => ({
+      i,
+      sameSection: sectionOf(i.slug) === section ? 1 : 0,
+      sameCluster: cluster !== null && clusterOf(i) === cluster ? 1 : 0,
+    }))
+    .sort(
+      (a, b) =>
+        b.sameSection - a.sameSection ||
+        b.sameCluster - a.sameCluster ||
+        b.i.datePublished.localeCompare(a.i.datePublished) ||
+        a.i.slug.localeCompare(b.i.slug),
+    )
+    .slice(0, limit)
+    .map((r) => r.i);
 }
