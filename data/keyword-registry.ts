@@ -250,7 +250,7 @@ export const topics: Topic[] = [
     angles: {
       "254": {
         angle: "Independent investigation documented to one standard whichever party asked, and why the obligation runs to the facts.",
-        path: "/services/forensic-engineering",
+        path: "/insights/inspection-vs-forensic-report",
         status: "live",
       },
       sealed: { angle: "An owner after a loss who needs an assessment.", status: "live" },

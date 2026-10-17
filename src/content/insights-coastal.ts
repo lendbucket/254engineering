@@ -1052,7 +1052,7 @@ export const coastalInsights: Insight[] = [
       { kind: "h2", text: "The forensic report: an engineer's opinion on cause" },
       {
         kind: "p",
-        text: "A forensic engineering report asks a question neither of the others does: what happened to this building, and why. When a Texas professional engineer issues one for a Texas project, section 1001.401 of the Occupations Code requires the seal, and rule 137.33 states that on sealing the engineer takes full professional responsibility for the work. That responsibility does not change with who is paying for the report. The approach to investigation behind it is described on [the forensic engineering page](/services/forensic-engineering).",
+        text: "A forensic engineering report asks a question neither of the others does: what happened to this building, and why. When a Texas professional engineer issues one for a Texas project, section 1001.401 of the Occupations Code requires the seal, and rule 137.33 states that on sealing the engineer takes full professional responsibility for the work. That responsibility does not change with who is paying for the report. Once cause is established, the scope of the repair is a separate sealed document, described on [the repair specifications page](/services/repair-specifications).",
       },
       {
         kind: "p",
