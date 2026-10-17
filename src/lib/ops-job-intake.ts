@@ -1,6 +1,7 @@
 import "server-only";
 import { supabaseAdmin } from "./supabase";
-import { writeAudit } from "./ops-audit";
+import { writeAudit, writeAuditOrRefuse } from "./ops-audit";
+import { verifyFreshCode } from "./ops-mfa";
 import { createClient, createFile, transitionFile, type Author } from "./ops-crm";
 import { catalogFor, orderBlockedReason } from "@data/catalog";
 import { quoteFor } from "./ops-orders";
@@ -11,8 +12,11 @@ import { fieldsFor, missingFor } from "@data/intake-fields";
 import { defaultAnswersFor } from "./ops-file-inputs";
 import {
   blockers,
+  applyIntakeUploads,
   decidePrice,
+  isNoCharge,
   landsAt,
+  noChargeRefusal,
   paymentOptions,
   type IntakeChannel,
   type PaymentIntent,
@@ -80,6 +84,8 @@ export type TakeJobInput = {
   /** Only when the operator changed it. Null means take the catalog's. */
   priceCents?: number | null;
   priceOverrideReason?: string | null;
+  /** A fresh authenticator code, required only for a client price of zero. */
+  noChargeCode?: string | null;
 
   paymentIntent: PaymentIntent;
   paymentNote?: string | null;
@@ -92,7 +98,20 @@ export type TakeJobInput = {
    * of its own to drift from the definition.
    */
   answers?: Record<string, string>;
+
+  /**
+   * Documents the firm attached while taking the job (0078), each answering one
+   * file field, uploaded beforehand under intake/<draftId>/<fieldId>/.
+   */
+  draftId?: string | null;
+  uploads?: { fieldId: string; bucket: string; storageKey: string; contentType?: string | null; byteSize?: number | null }[];
 };
+
+/** The bucket intake documents land in, which is the one order uploads use. */
+const INTAKE_BUCKET = "eng-uploads";
+
+/** What a file answer says in value_text, so the outstanding list reads it as answered. */
+export const ATTACHED_AT_INTAKE = "Attached by the firm when the job was taken.";
 
 export type TakeJobResult =
   | {
@@ -216,7 +235,29 @@ export async function takeJob(
    * answers does not stop a job being taken.
    */
   const defaults = await defaultAnswersFor(input.clientId ?? null);
-  const answers = { ...defaults, ...(input.answers ?? {}) };
+  const answers: Record<string, string> = { ...defaults, ...(input.answers ?? {}) };
+
+  /*
+   * A FILE FIELD IS ANSWERED BY A FILE, AND BY NOTHING ELSE. 0078.
+   *
+   * Any text posted against a file field is dropped first, so a sentence can
+   * never satisfy a document the signed protocol requires. Then each upload is
+   * checked: it answers a file field this deliverable asks, it is in the intake
+   * bucket, and its key is under this intake's own draft and that field. Only
+   * then does the field count as answered.
+   */
+  const uploads = input.uploads ?? [];
+  const filed = applyIntakeUploads({
+    fileFieldIds: fieldsFor(input.serviceSlug, input.tier).filter((f) => f.kind === "file").map((f) => f.id),
+    uploads,
+    draftId: input.draftId ?? null,
+    answers,
+    bucket: INTAKE_BUCKET,
+    attachedText: ATTACHED_AT_INTAKE,
+  });
+  if (!filed.ok) return { ok: false, error: filed.error, field: filed.field };
+  Object.keys(answers).forEach((k) => delete answers[k]);
+  Object.assign(answers, filed.answers);
 
   const missingToOrder = missingFor(input.serviceSlug, input.tier, answers, "order");
   if (missingToOrder.length) {
@@ -269,6 +310,52 @@ export async function takeJob(
       error: chosen?.because ?? "That payment route is not available for this job.",
       field: "paymentIntent",
     };
+  }
+
+  /*
+   * ------------------------------------------------------ a job at no charge
+   *
+   * Operator ruling, 2026-10-16. A client price of zero needs the administrator
+   * role, a fresh code from the administrator's own authenticator, a typed
+   * reason, and an audit row written BEFORE anything else is, so no client and
+   * no file can exist for a no-charge job that has no record. The audit row is
+   * written with writeAuditOrRefuse, which refuses the act when the row cannot
+   * be written rather than logging and carrying on as writeAudit does.
+   */
+  const clientCents = decision.overridden ? decision.cents : catalogCents;
+  let noChargeEventId: string | null = null;
+  if (isNoCharge(clientCents)) {
+    const refused = noChargeRefusal({
+      actorId: actor.id,
+      actorRole: actor.role,
+      reason: decision.overridden ? decision.reason : (input.priceOverrideReason ?? null),
+      paymentIntent: input.paymentIntent,
+      code: input.noChargeCode ?? null,
+    });
+    if (refused) return { ok: false, error: refused, field: "priceCents" };
+
+    const fresh = await verifyFreshCode(actor.id as string, input.noChargeCode ?? "", "A job at no charge");
+    if (!fresh.ok) return { ok: false, error: fresh.error, field: "noChargeCode" };
+
+    const recorded = await writeAuditOrRefuse({
+      actor,
+      action: "job.no_charge",
+      entityType: "file",
+      entityId: null,
+      summary: `No-charge ${entry.name} authorised for ${input.propertyAddress}, ${resolved.county} County`,
+      diff: {
+        reason: decision.overridden ? decision.reason : (input.priceOverrideReason ?? "").trim(),
+        catalog_price_cents: catalogCents,
+        client_price_cents: 0,
+        second_factor_verified_at: fresh.verifiedAt,
+        property_address: input.propertyAddress,
+        service: input.serviceSlug,
+        deliverable: input.tier,
+      },
+      ...context,
+    });
+    if (!recorded.ok) return { ok: false, error: recorded.error, field: "priceCents" };
+    noChargeEventId = recorded.id;
   }
 
   // ------------------------------------------------------------ the client
@@ -333,7 +420,8 @@ export async function takeJob(
    * like a fresh confirmation.
    */
   const typed = input.answers ?? {};
-  const supplied = Object.entries(answers).filter(([, v]) => typeof v === "string" && v.trim() !== "");
+  const uploadFor = (fieldId: string) => uploads.find((u) => u.fieldId === fieldId);
+  const supplied =Object.entries(answers).filter(([, v]) => typeof v === "string" && v.trim() !== "");
   if (supplied.length) {
     const known = new Set(fieldsFor(input.serviceSlug, input.tier).map((f) => f.id));
     const rows = supplied
@@ -342,8 +430,17 @@ export async function takeJob(
         file_id: file.id,
         field_id,
         value_text: value_text.trim(),
-        source: field_id in typed ? "firm" : "customer",
+        source: field_id in typed || uploadFor(field_id) ? "firm" : "customer",
         recorded_by: actor.id,
+        /* A document the firm attached carries where it landed (0078). */
+        ...(uploadFor(field_id)
+          ? {
+              bucket: uploadFor(field_id)!.bucket,
+              storage_key: uploadFor(field_id)!.storageKey,
+              content_type: uploadFor(field_id)!.contentType ?? null,
+              byte_size: uploadFor(field_id)!.byteSize ?? null,
+            }
+          : {}),
       }));
 
     if (rows.length) {
@@ -401,6 +498,8 @@ export async function takeJob(
       ...(decision.overridden
         ? { catalog_price_cents: catalogCents, client_price_cents: decision.cents }
         : {}),
+      /* The authorisation written before the file, so the two rows find each other. */
+      ...(noChargeEventId ? { no_charge_event_id: noChargeEventId } : {}),
     },
     ...context,
   });

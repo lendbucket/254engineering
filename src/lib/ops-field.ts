@@ -34,7 +34,7 @@ import {
   type EvidenceKind,
   type ProtocolItem,
 } from "./ops-evidence";
-import { protocolItemRowsFor } from "./protocol-run";
+import { photoAnswerRefusal, photoAnswersFor, protocolItemRowsFor } from "./protocol-run";
 import { verifiedEngineers } from "@/config/credentials";
 import { licenceIsCurrent } from "./launch";
 import { holdFor, holdRefusal } from "./dispatch-hold";
@@ -1360,6 +1360,11 @@ export type CaptureInput = {
   valueNumber?: number | null;
   storageKey?: string | null;
   capturedAt?: string | null;
+  /**
+   * The device's own clock at the moment it sent this record, which is what
+   * the skew is measured from. Not the capture time: see recordCapture.
+   */
+  deviceNow?: string | null;
   lat?: number | null;
   lng?: number | null;
   accuracy?: number | null;
@@ -1428,13 +1433,33 @@ export async function recordCapture(
   if (!input.clientCaptureId) return { ok: false, error: "That capture has no id." };
 
   /*
+   * A photograph item that also asks for a written answer takes the answer with
+   * the photograph. Operator ruling, 2026-10-15: the document prints a value to
+   * record beside these, and section 7 says no item is left blank.
+   */
+  const asks = item.kind === "photo" ? photoAnswersFor(view.protocol?.document_number ?? null)[item.itemKey] : undefined;
+  const unanswered = photoAnswerRefusal(asks, input);
+  if (unanswered) return { ok: false, error: unanswered };
+
+  /*
    * THE SERVER CLOCK, READ ONCE. Both the skew below and the row's own
    * created_at are meant to describe the same instant, and reading the clock
    * twice would fold this function's own runtime into a figure whose entire
    * job is measuring the DEVICE against the server.
    */
   const serverNow = new Date().toISOString();
-  const reading = clockReading(input.capturedAt ?? null, serverNow);
+  /*
+   * THE DEVICE CLOCK AT SYNC, NOT THE CAPTURE TIME. Operator ruling,
+   * 2026-10-15. Comparing the capture time with the server measured how long
+   * the photograph waited in the queue, so every photograph that synced more
+   * than a minute after it was taken, which is every photograph taken on a
+   * roof with no signal, read as a clock that disagreed. The phone now sends
+   * its own clock with the record, and that is compared with the server's at
+   * the same instant, which measures the clock and not the wait. A phone set
+   * to the wrong hour is still caught, because it reports the wrong hour at
+   * sync as well. A record with no device clock is unmeasured, never agreeing.
+   */
+  const reading = clockReading(input.deviceNow ?? null, serverNow);
 
   const { data, error } = await db
     .from("eng_evidence_items")
