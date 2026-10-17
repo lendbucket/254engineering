@@ -101,13 +101,13 @@ export default async function AccountsPage() {
       ) : (
         <>
           {blocked.length > 0 ? (
-            <div className="mb-4 rounded-[4px] border border-[var(--warn-border)] bg-[var(--warn-bg)] px-4 py-3.5">
-              <p className="portal-kicker text-[var(--warn-ink)]">
+            <div className="mb-4 rounded-[2px] border-l-2 border-[var(--ink)] px-4 py-3.5">
+              <p className="portal-kicker text-[var(--ink)]">
                 {blocked.length} account{blocked.length === 1 ? "" : "s"} cannot order
               </p>
               <ul className="mt-2 space-y-1">
                 {blocked.map((r) => (
-                  <li key={r.id} className="text-[13.5px] leading-[1.55] text-[var(--warn-ink)]">
+                  <li key={r.id} className="text-[14px] leading-[1.55] text-[var(--ink)]">
                     <span className="font-semibold">{r.clientName}</span>: {r.blockedReason}
                   </li>
                 ))}
@@ -176,7 +176,7 @@ export default async function AccountsPage() {
             />
           </Panel>
 
-          <p className="mt-4 text-[13.5px] leading-[1.6] text-[var(--secondary)]">
+          <p className="mt-4 text-[14px] leading-[1.6] text-[var(--secondary)]">
             Nothing chases an overdue statement automatically. There are no reminders, no late fees
             and no automatic suspension: the only consequence is that an overdue account cannot place
             further invoiced work, and the reason is shown to them when they try.{" "}

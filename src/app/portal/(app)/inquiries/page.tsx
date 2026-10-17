@@ -4,6 +4,9 @@ import { can } from "@/lib/ops-authz";
 import { designInquiries, overdueBy } from "@/lib/ops-inquiries";
 import { Chip, EmptyState, PageHead } from "@/components/portal/surfaces";
 import { MarkAnswered } from "./InquiriesClient";
+import { formatInFirmZone } from "@/lib/firm-calendar";
+import { LIST_NOT_LOADED } from "@/lib/outcome-copy";
+import { RetryButton } from "@/components/portal/Unreachable";
 
 export const dynamic = "force-dynamic";
 
@@ -44,7 +47,7 @@ const DELIVERABLE: Record<string, string> = {
 };
 
 const when = (value: string) =>
-  new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  (formatInFirmZone(value, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) ?? "");
 
 export default async function InquiriesPage() {
   const actor = await currentActor();
@@ -68,7 +71,8 @@ export default async function InquiriesPage() {
    */
   if (!can(actor, "files.create")) notFound();
 
-  const rows = await designInquiries(actor);
+  const read = await designInquiries(actor);
+  const rows = read.ok ? read.rows : [];
   const open = rows.filter((r) => r.responded_at === null);
 
   return (
@@ -79,7 +83,15 @@ export default async function InquiriesPage() {
         lede="What somebody asked the firm to design, with the reply they were promised. Unanswered first, and the oldest promise at the top."
       />
 
-      {rows.length === 0 ? (
+      {/* A failed read never renders as "No briefs yet". Operator ruling, 2026-10-12, his wording. */}
+      {!read.ok ? (
+        <div role="alert" data-list-not-loaded className="py-6">
+          <p className="text-[15px] font-semibold text-[var(--ink)]">{LIST_NOT_LOADED}</p>
+          <div className="mt-4 flex">
+            <RetryButton />
+          </div>
+        </div>
+      ) : rows.length === 0 ? (
         <EmptyState
           title="No briefs yet"
           body="A row arrives here when somebody sends the design brief from the site. Each one carries a deadline to reply, and the deadline is recorded rather than remembered."

@@ -8,7 +8,7 @@ import { serviceBySlug } from "@/content/services";
 import { isTrading, launchMode, peInResponsibleCharge, registrationLine } from "@/lib/launch";
 import { displayPhone, postalAddressLine } from "@/config/contact";
 import { orderBlockedNow } from "@/lib/line-gate";
-import { orderHeading, serviceNameInSentence } from "@/lib/order-copy";
+import { coverVerbFor, orderHeading, serviceNameInSentence } from "@/lib/order-copy";
 import { currentCustomer } from "@/lib/customer-auth";
 
 export const dynamic = "force-dynamic";
@@ -177,7 +177,7 @@ export default async function OrderStartPage({ params }: { params: Promise<{ slu
             href={`/services/${slug}`}
             className="text-[var(--color-link)] underline underline-offset-2"
           >
-            Read what {serviceNameInSentence(service.shortName)} covers
+            Read what {serviceNameInSentence(service.shortName)} {coverVerbFor(service.shortName)}
           </Link>{" "}
           before ordering, if you have not already.
         </p>

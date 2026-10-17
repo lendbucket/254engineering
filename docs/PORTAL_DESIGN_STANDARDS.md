@@ -144,8 +144,7 @@ closer to the point than a defect.
 --border: #D3D8DF;      /* V10 line: rules, table header rule */
 --border-strong: #D3D8DF; /* V10 line: input borders */
 --row-rule: #E6E9ED;    /* V10 line-2: row dividers */
---row-hover: #F3F4F6;   /* V10 select: row hover */
---select: #F3F4F6;      /* V10 select: selected row fill */
+--row-hover: #F3F4F6;   /* hover and press feedback on a control, never a selected state */
 --link: #0B4F8A;        /* V10 link: links. 8.40 on white */
 --canvas: #F2F4F7;      /* V10 phone-ground: the phone's ground behind white sections */
 --green: #3E7A4E;       /* good status dots ONLY (bg #EEF4EF, border #CBDDCE) */
@@ -155,6 +154,12 @@ closer to the point than a defect.
 of that day. Three tokens were added, `--faint`, `--select` and `--link`, because
 V10 names them and the portal had none. Every V10 value is carried, gold-deep
 included, at `#CA8A03`.
+
+**`--select` WENT AGAIN ON 2026-10-08, operator ruling of the overnight.** A
+selected row is marked by a navy left bar only, so V10's grey selected-row fill
+was removed from DESIGN_V10.md and the token, which nothing painted with, from
+the palette. `--row-hover` stays: it is press and hover feedback on a control,
+not a selected state.
 
 **GOLD IS NEVER TEXT, operator ruling of 2026-10-08.** V10 allows gold only on
 the header rule, the active nav marker and the current step. Every place a

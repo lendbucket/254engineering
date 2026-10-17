@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { clientKey, inspectLock, releaseLock, RATE_LIMITS } from "@/lib/ops-rate-limit";
 import { writeAudit } from "@/lib/ops-audit";
+import { withSaveOutcome } from "@/lib/save-outcome";
 
 /**
  * The break glass, for when the rate limiter has locked the operator out of his
@@ -51,7 +52,7 @@ function matches(provided: string, expected: string): boolean {
   return diff === 0;
 }
 
-export async function GET(request: NextRequest) {
+async function handleGET(request: NextRequest) {
   const expected = configured();
   if (!expected) return new NextResponse("Not found", { status: 404 });
 
@@ -60,7 +61,7 @@ export async function GET(request: NextRequest) {
 
   const address = clientKey(request.headers);
   const email = (request.nextUrl.searchParams.get("email") ?? "").trim().toLowerCase() || undefined;
-  const state = inspectLock(address, email);
+  const state = await inspectLock(address, email);
 
   return NextResponse.json({
     ok: true,
@@ -82,7 +83,7 @@ export async function GET(request: NextRequest) {
   });
 }
 
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   const expected = configured();
   if (!expected) return new NextResponse("Not found", { status: 404 });
 
@@ -91,7 +92,7 @@ export async function POST(request: NextRequest) {
   if (!matches(provided, expected)) return new NextResponse("Not found", { status: 404 });
 
   const address = clientKey(request.headers);
-  const dropped = releaseLock(address);
+  const dropped = await releaseLock(address);
 
   /*
    * Recorded, because clearing a security control is exactly the kind of event
@@ -116,3 +117,7 @@ export async function POST(request: NextRequest) {
         : "Cleared. Try signing in again.",
   });
 }
+
+/* A save abandoned by the 20 second bound says it may not have saved, and a failed session read is never "Not signed in": save-outcome.ts. */
+export const GET = withSaveOutcome(handleGET);
+export const POST = withSaveOutcome(handlePOST);

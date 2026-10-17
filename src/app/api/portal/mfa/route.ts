@@ -25,6 +25,7 @@ import { qrSvg, qrFits, qrByteLength, QR_MAX_BYTES } from "@/lib/qr";
 import { takeLoginAttempt, clientKey } from "@/lib/ops-rate-limit";
 import { supabaseAdmin } from "@/lib/supabase";
 import { homeFor } from "@/lib/ops-authz";
+import { withSaveOutcome } from "@/lib/save-outcome";
 
 /**
  * The second factor: the challenge, the enrolment, and the break glass.
@@ -71,7 +72,7 @@ async function profileFor(userId: string) {
   return data as { id: string; email: string; display_name: string; role: string } | null;
 }
 
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   const jar = await cookies();
   const raw = jar.get(OPS_COOKIE)?.value;
 
@@ -95,6 +96,58 @@ export async function POST(request: NextRequest) {
 
   const { ip, userAgent } = await requestContext();
   const actor = { id: profile.id, role: profile.role, email: profile.email };
+
+  /*
+   * ======================================================================
+   * A PASSWORD ALONE NEVER REPLACES A SECOND FACTOR. Product audit, 2026-10-10.
+   * ======================================================================
+   *
+   * A pending session is what a correct PASSWORD earns before the second
+   * factor. From one, begin and confirm used to run for any account, enrolled
+   * or not: begin wrote a new pending secret, confirm with a code from the
+   * caller's OWN app made it the active factor, and codes_saved then issued a
+   * full session. So a stolen password was enough to replace somebody's factor
+   * and walk in. The confirm comment below says "somebody holding a stolen
+   * password has a pending session and no way to produce" a code; they could,
+   * for a secret they had just begun themselves.
+   *
+   * So from a pending session, enrolment is for an account with NO active
+   * factor, the first one the sign in asks for. An account that has one must
+   * answer the challenge with it, or a recovery code, or the break glass; a
+   * factor is replaced only from a full session. A state that cannot be read
+   * refuses, because mfaStateFor fails closed. codes_saved needs no guard of
+   * its own: it requires the completion token only confirm can mint.
+   */
+  if (pending && (action === "begin" || action === "confirm")) {
+    let enrolled: boolean;
+    try {
+      enrolled = (await mfaStateFor(profile.id)).enrolled;
+    } catch {
+      return NextResponse.json(
+        { ok: false, error: "The second factor on this account could not be checked just now. Try again in a moment." },
+        { status: 503 },
+      );
+    }
+    if (enrolled) {
+      await writeAudit({
+        actor,
+        action: "mfa.replace_refused",
+        entityType: "profile",
+        entityId: profile.id,
+        summary: `A sign in with the password alone tried to replace ${profile.display_name}'s second factor and was refused`,
+        ip,
+        userAgent,
+      });
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            "This account already has a second factor. Enter a code from your authenticator app, or one of your recovery codes. A factor can be replaced from your profile once you are signed in with it.",
+        },
+        { status: 403 },
+      );
+    }
+  }
 
   /* ------------------------------------------------------------- begin */
 
@@ -169,7 +222,7 @@ export async function POST(request: NextRequest) {
   /* ----------------------------------------------------------- confirm */
 
   if (action === "confirm") {
-    const limit = takeLoginAttempt(clientKey(request.headers), `${MFA_SCOPE}:${profile.id}`);
+    const limit = await takeLoginAttempt(clientKey(request.headers), `${MFA_SCOPE}:${profile.id}`);
     if (!limit.allowed) {
       return NextResponse.json(
         { ok: false, error: "Too many attempts. Wait a few minutes." },
@@ -338,7 +391,7 @@ export async function POST(request: NextRequest) {
 
   /* ------------------------------------------------------------ verify */
 
-  const limit = takeLoginAttempt(clientKey(request.headers), `${MFA_SCOPE}:${profile.id}`);
+  const limit = await takeLoginAttempt(clientKey(request.headers), `${MFA_SCOPE}:${profile.id}`);
   if (!limit.allowed) {
     return NextResponse.json(
       { ok: false, error: "Too many attempts. Wait a few minutes." },
@@ -399,7 +452,7 @@ export async function POST(request: NextRequest) {
  * A FULL session only. A pending one has no business reading state beyond what
  * the challenge screen already shows it.
  */
-export async function GET() {
+async function handleGET() {
   const jar = await cookies();
   const claims = readOpsSession(jar.get(OPS_COOKIE)?.value);
   if (!claims) return NextResponse.json({ ok: false, error: "Not signed in." }, { status: 401 });
@@ -414,3 +467,7 @@ export async function GET() {
     );
   }
 }
+
+/* A save abandoned by the 20 second bound says it may not have saved, and a failed session read is never "Not signed in": save-outcome.ts. */
+export const GET = withSaveOutcome(handleGET);
+export const POST = withSaveOutcome(handlePOST);

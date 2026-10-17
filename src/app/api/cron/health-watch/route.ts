@@ -6,7 +6,8 @@ import { notify } from "@/lib/notify";
 import { enqueue } from "@/lib/ops-jobs";
 import { cronStarted, cronFinished } from "@/lib/ops-observability";
 import { watchQueue } from "@/lib/queue-watch";
-import { watchRetention } from "@/lib/retention-watch";
+import { watchRetention, reportRetentionWatch } from "@/lib/retention-watch";
+import { watchUnreleasedPayments } from "@/lib/payments-watch";
 import {
   HEALTH_PROBE_PATH,
   HEALTH_WATCH_EVERY_MINUTES,
@@ -199,8 +200,17 @@ export async function GET(request: NextRequest) {
    * so.
    */
   const retention = await watchRetention();
-  if (retention.sent) console.warn(`[retention-watch] alerted: ${retention.note}`);
-  if (!retention.looked) console.error(`[retention-watch] DID NOT LOOK: ${retention.note}`);
+  /* A deliberate cooldown skip logs at info, a watch that could not see at error. */
+  reportRetentionWatch(retention);
+
+  /*
+   * AND WHETHER ANY PAYMENT IS WRITTEN WITH ITS WORK NOT RELEASED. Operator
+   * ruling, 2026-10-12, on 0075. Before the early return for the same reason
+   * as the two above: it has to run on the runs that find nothing else wrong.
+   */
+  const payments = await watchUnreleasedPayments();
+  if (!payments.looked) console.error(`[payments-watch] DID NOT LOOK: ${payments.note}`);
+  else if (payments.count) console.warn(`[payments-watch] ${payments.note}`);
 
   if (!shouldAlert(outcome)) {
     /*
@@ -217,9 +227,9 @@ export async function GET(request: NextRequest) {
     await cronFinished(
       runId,
       true,
-      `healthy, ${status}; queue: ${queue.note}; retention: ${retention.note}`,
+      `healthy, ${status}; queue: ${queue.note}; retention: ${retention.note}; payments: ${payments.note}`,
     );
-    return NextResponse.json({ ok: true, outcome, host, status, checkedAt, queue, retention });
+    return NextResponse.json({ ok: true, outcome, host, status, checkedAt, queue, retention, payments });
   }
 
   console.error(
@@ -235,7 +245,11 @@ export async function GET(request: NextRequest) {
    * successfully detected, and an operator would then distrust the one signal
    * that was working.
    */
-  await cronFinished(runId, true, `${outcome}, status ${status ?? "none"}; queue: ${queue.note}`);
+  await cronFinished(
+    runId,
+    true,
+    `${outcome}, status ${status ?? "none"}; queue: ${queue.note}; payments: ${payments.note}`,
+  );
 
   const result = await notify(
     outageAlert({

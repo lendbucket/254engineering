@@ -8,6 +8,7 @@ import { SITE_KEY } from "@/lib/supabase";
 import { EmptyState, Panel, RestrictedMode, StatusPill, SystemAlert } from "@/components/portal/design";
 import { PageHead } from "@/components/portal/surfaces";
 import { LookupForm } from "./LookupForm";
+import { formatInFirmZone } from "@/lib/firm-calendar";
 
 export const dynamic = "force-dynamic";
 
@@ -86,7 +87,7 @@ export default async function DisputesPage({
             <dl className="grid gap-x-6 gap-y-2 sm:grid-cols-2">
               <div>
                 <dt className="portal-column-header">Reference</dt>
-                <dd className="mt-1 font-mono text-[13.5px] text-[var(--navy)]">{view.order.reference}</dd>
+                <dd className="mt-1 text-[13.5px] text-[var(--navy)]">{view.order.reference}</dd>
               </div>
               <div>
                 <dt className="portal-column-header">Value</dt>
@@ -96,11 +97,11 @@ export default async function DisputesPage({
                 <dt className="portal-column-header">Placed</dt>
                 <dd className="mt-1 text-[13.5px] text-[var(--ink)]">
                   {view.order.placedAt
-                    ? new Date(view.order.placedAt).toLocaleDateString("en-US", {
+                    ? (formatInFirmZone(view.order.placedAt, {
                         year: "numeric",
                         month: "long",
                         day: "numeric",
-                      })
+                      }) ?? "")
                     : "not recorded"}
                 </dd>
               </div>
@@ -116,7 +117,7 @@ export default async function DisputesPage({
           <Panel title="What the rule decided, in its own words">
             {view.attributed.code ? (
               <p className="text-[15px] font-semibold text-[var(--navy)]">
-                Credited to <span className="font-mono">{view.attributed.code}</span>
+                Credited to <span>{view.attributed.code}</span>
               </p>
             ) : (
               <p className="text-[15px] font-semibold text-[var(--navy)]">Credited to nobody</p>
@@ -154,7 +155,7 @@ export default async function DisputesPage({
                   <li key={t.id} className="rounded-[var(--radius-card)] border border-[var(--border)] p-3">
                     <div className="flex flex-wrap items-baseline justify-between gap-2">
                       <p className="text-[15px] font-semibold text-[var(--navy)]">
-                        {t.organisation} <span className="font-mono text-[13.5px]">{t.code}</span>
+                        {t.organisation} <span className="text-[13.5px]">{t.code}</span>
                       </p>
                       <div className="flex items-center gap-2">
                         <StatusPill tone={t.kind === "code" ? "good" : "inert"}>
@@ -166,13 +167,13 @@ export default async function DisputesPage({
                       </div>
                     </div>
                     <p className="mt-1.5 text-[12.5px] text-[var(--secondary)]">
-                      {new Date(t.occurredAt).toLocaleString("en-US", {
+                      {(formatInFirmZone(t.occurredAt, {
                         year: "numeric",
                         month: "long",
                         day: "numeric",
                         hour: "numeric",
                         minute: "2-digit",
-                      })}
+                      }) ?? "")}
                       {t.landingPath ? ` · ${t.landingPath}` : ""}
                     </p>
                   </li>

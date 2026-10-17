@@ -6,6 +6,7 @@ import { isOverdue, RECURRENCE_LABEL, type Recurrence } from "@/lib/ops-comms";
 import { supabaseAdmin } from "@/lib/supabase";
 import { Chip, EmptyState, PageHead, Panel } from "@/components/portal/surfaces";
 import { QuickAdd, SeedButton, TaskRowControls } from "./TasksClient";
+import { formatInFirmZone } from "@/lib/firm-calendar";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +37,7 @@ const PRIORITY_TONE: Record<string, "neutral" | "good" | "warn" | "bad"> = {
 };
 
 const when = (value: string | null) =>
-  value ? new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : null;
+  value ? (formatInFirmZone(value, { month: "short", day: "numeric", year: "numeric" }) ?? "") : null;
 
 export default async function TasksPage({
   searchParams,

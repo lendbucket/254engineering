@@ -164,7 +164,7 @@ export default async function AccountPricingPage({
             */
           >
             <p className="mb-3 text-[13px] leading-[1.6] text-[var(--secondary)]">
-              A floor is ruled in <code className="font-mono">src/config/trade-floors.ts</code>, which is a
+              A floor is ruled in <code>src/config/trade-floors.ts</code>, which is a
               file rather than a form on purpose: it is a decision worth making deliberately, with the
               reason written beside it, rather than a number typed in at the end of a call.
             </p>
@@ -177,7 +177,7 @@ export default async function AccountPricingPage({
                       {b.catalogueCents === null ? "Quoted, no published price" : `Published ${money(b.catalogueCents)}`}
                     </span>
                   </div>
-                  <p className="mt-1 font-mono text-[12px] leading-[1.55] text-[var(--secondary)]">
+                  <p className="mt-1 text-[12px] leading-[1.55] text-[var(--secondary)]">
                     {b.serviceSlug}/{b.tier}
                   </p>
                   {/*
@@ -211,7 +211,7 @@ export default async function AccountPricingPage({
                     <span className="text-[14px] font-semibold text-[var(--navy)]">{b.name}</span>
                     <span className="text-[13px] text-[var(--secondary)]">Quoted from hours</span>
                   </div>
-                  <p className="mt-1 font-mono text-[12px] leading-[1.55] text-[var(--secondary)]">
+                  <p className="mt-1 text-[12px] leading-[1.55] text-[var(--secondary)]">
                     {b.serviceSlug}/{b.tier}
                   </p>
                   {b.refusal ? (
@@ -236,7 +236,7 @@ export default async function AccountPricingPage({
                   <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
                     <span className="text-[14px] font-semibold text-[var(--navy)]">{b.name}</span>
                   </div>
-                  <p className="mt-1 font-mono text-[12px] leading-[1.55] text-[var(--secondary)]">
+                  <p className="mt-1 text-[12px] leading-[1.55] text-[var(--secondary)]">
                     {b.serviceSlug}/{b.tier}
                   </p>
                   {b.refusal ? (

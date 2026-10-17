@@ -343,11 +343,21 @@ if (templates.length === 0) {
      * first had not worked. Verified rather than assumed: the file imports no
      * send, no compose and no queue. */
     "src/app/(site)/unsubscribe/page.tsx",
+    /*
+     * The second path that consults it to decide whether to SEND: the Google
+     * review request, which is marketing by the operator's ruling of
+     * 2026-10-10 (run item 25), "it respects eng_marketing_suppressions ... a
+     * review request is not order correspondence". It sends one
+     * marketing.review_request and nothing transactional.
+     */
+    "src/lib/review-request.ts",
   ];
 
   const SUPPRESSION_READERS = [
     "src/lib/ops-announce.ts",
     "src/app/(site)/unsubscribe/page.tsx",
+    /* The review request, as above: it reads the gate and sends only marketing. */
+    "src/lib/review-request.ts",
     /* The operator screen for the list, and the route behind it. Neither sends
      * anything and neither imports the gate. */
     "src/app/portal/(app)/suppressions/page.tsx",
@@ -911,6 +921,38 @@ for (const t of templates) {
     "and a path that cannot be signed keeps its token rather than losing the link",
     unsignable.includes(DEFERRED_HOST),
     "a message that silently drops its attachment reads as an application with no resume",
+  );
+}
+
+/*
+ * A LINE WAITING ON ITS PROTOCOL SAYS NOTHING IN THE ORDER EMAIL. Operator
+ * ruling of the overnight of 2026-10-08: the pending sentence says the scope is
+ * "published here", and in an email "here" is the email, so the heading and
+ * the sentence are both omitted. The order page keeps them. The sentence is a
+ * literal here, never imported, and the positive half proves the block still
+ * renders for a line that quotes a signed protocol, so an email that dropped
+ * the list for everybody would not pass.
+ */
+{
+  const { orderConfirmed } = await import("../src/lib/email-templates.ts");
+  const PENDING = "The scope of this service is published here once the engineer of record signs its protocol.";
+  const QUOTE = "The letter states observed condition only.";
+  const base = {
+    customerName: "Probe", customerEmail: "probe@example.com", reference: "254-O2026-PROBE1",
+    serviceName: "Probe", propertyAddress: "1 Probe Street", placedAt: "now",
+    lines: [], total: "$1.00", refundDisclosure: null, notes: [], statusUrl: "https://254engineering.com/order/x",
+  };
+  const pending = orderConfirmed({ ...base, receives: [PENDING] });
+  const quoted = orderConfirmed({ ...base, receives: [QUOTE] });
+  const said = (m, s) => m.text.toLowerCase().includes(s.toLowerCase()) || m.html.toLowerCase().includes(s.toLowerCase());
+  rec(
+    "an order email for a line waiting on its protocol carries neither the heading nor the pending sentence",
+    !said(pending, "What you receive") && !said(pending, PENDING),
+    said(pending, PENDING) ? "the pending sentence is in the email" : said(pending, "What you receive") ? "the heading is in the email" : "",
+  );
+  rec(
+    "and one for a line that quotes its signed protocol still carries both",
+    said(quoted, "What you receive") && said(quoted, QUOTE),
   );
 }
 console.log("=== EMAIL AUDIT ===");

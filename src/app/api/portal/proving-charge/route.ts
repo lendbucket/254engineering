@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { currentActor } from "@/lib/ops-auth";
+import { withSaveOutcome } from "@/lib/save-outcome";
 import {
   PROVING_AMOUNT_CENTS,
   PROVING_REFERENCE,
@@ -23,7 +24,7 @@ export const dynamic = "force-dynamic";
 
 const bad = (error: string, status = 400) => NextResponse.json({ ok: false, error }, { status });
 
-export async function GET() {
+async function handleGET() {
   const actor = await currentActor();
   if (!actor) return bad("Not signed in.", 401);
 
@@ -43,7 +44,7 @@ export async function GET() {
   });
 }
 
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   const actor = await currentActor();
   if (!actor) return bad("Not signed in.", 401);
 
@@ -71,3 +72,7 @@ export async function POST(request: NextRequest) {
     reference: PROVING_REFERENCE,
   });
 }
+
+/* A save abandoned by the 20 second bound says it may not have saved, and a failed session read is never "Not signed in": save-outcome.ts. */
+export const GET = withSaveOutcome(handleGET);
+export const POST = withSaveOutcome(handlePOST);

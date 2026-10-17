@@ -12,6 +12,7 @@ import {
   type FileStatus,
 } from "./ops-files";
 import { accrueForDelivery, accrueForQualifiedLead } from "./ops-partner-comp";
+import { scheduleReviewRequest } from "./review-request";
 import { resolveCounty, twiaStatus, regionForCounty } from "./ops-counties";
 
 /**
@@ -402,13 +403,30 @@ async function scopedFileQuery(actor: Actor) {
   return wrap(db.from("eng_files").select(FILE_COLUMNS).or(clauses.join(",")));
 }
 
+/** The most files one list shows, newest first. */
+export const FILE_LIST_CAP = 300;
+
 export async function listFiles(
   actor: Actor | null,
   filters: { status?: string; county?: string; search?: string } = {},
 ): Promise<FileRow[]> {
-  if (!actor) return [];
+  return (await listFilesPage(actor, filters)).rows;
+}
+
+/**
+ * The newest FILE_LIST_CAP files, and whether there are more. Product audit,
+ * 2026-10-10: the list stopped at 300 rows and said nothing, so a firm with more
+ * files saw a list that looked complete. One row past the cap is read, so the
+ * screen can say the list is the newest 300 without a second, separately
+ * scoped count.
+ */
+export async function listFilesPage(
+  actor: Actor | null,
+  filters: { status?: string; county?: string; search?: string } = {},
+): Promise<{ rows: FileRow[]; more: boolean }> {
+  if (!actor) return { rows: [], more: false };
   const scoped = await scopedFileQuery(actor);
-  if (!scoped) return [];
+  if (!scoped) return { rows: [], more: false };
   let query = scoped.query;
 
   if (filters.status) query = query.eq("status", filters.status);
@@ -418,8 +436,12 @@ export async function listFiles(
     query = query.or(`file_number.ilike.%${term}%,property_address.ilike.%${term}%`);
   }
 
-  const { data } = await query.order("created_at", { ascending: false }).limit(300);
-  return ((data ?? []) as FileRow[]).map((f) => redactFile(actor, f));
+  const { data } = await query.order("created_at", { ascending: false }).limit(FILE_LIST_CAP + 1);
+  const all = (data ?? []) as FileRow[];
+  return {
+    rows: all.slice(0, FILE_LIST_CAP).map((f) => redactFile(actor, f)),
+    more: all.length > FILE_LIST_CAP,
+  };
 }
 
 /**
@@ -867,6 +889,14 @@ export async function transitionFile(
         body: `The partner commission on this delivery could not be recorded: ${accrued.error}. The file is delivered; the commission is not written down yet.`,
       });
     }
+    /*
+     * THE ONE REVIEW REQUEST, queued here because this is the one door to
+     * delivered (run item 25). It runs after the delay and records on the
+     * order whether it sent and why not; a failure here never undoes delivery.
+     */
+    await scheduleReviewRequest(id).catch((err) =>
+      console.error(`[review] could not schedule a review request for file ${id}: ${err instanceof Error ? err.message : String(err)}`),
+    );
   }
 
   return { ok: true };

@@ -20,6 +20,8 @@
  * print a number it has not yet measured across a statewide technician network.
  */
 
+import { SCOPE_PENDING } from "@data/catalog";
+
 export type Faq = { q: string; a: string };
 
 export type Service = {
@@ -37,7 +39,14 @@ export type Service = {
   summary: string;
   what: string[];
   whoOrders: string[];
+  /**
+   * What arrives at the end, QUOTED RATHER THAN WRITTEN, by the same rule as
+   * the catalogue's receives: sentences of this line's own signed protocol, or
+   * SCOPE_PENDING alone. Checked by protocol-registry-audit.
+   */
   deliverable: string[];
+  /** A limit of what the firm provides, its own line. Pinned in the same audit. */
+  notes?: string[];
   turnaround: string;
   faqs: Faq[];
 };
@@ -65,10 +74,20 @@ export const services: Service[] = [
       "Property managers and commercial owners documenting the condition of a portfolio",
       "Roofing contractors whose customer has been asked for an engineer's opinion",
     ],
+    /*
+     * QUOTED FROM 254-RC-001 v1.1 SECTION 11, WORD FOR WORD. Operator ruling of
+     * the overnight of 2026-10-08: this list follows the same rule as the
+     * catalogue's "what you receive", a sentence of the signed protocol or the
+     * pending sentence. The items it replaced, including a photographic record
+     * and a PDF for a loan file, are not in the protocol; they are listed for
+     * the engineer as candidates for its next version. protocol-registry-audit
+     * compares each item against the signed PDF.
+     */
     deliverable: [
-      "A signed and sealed letter on firm letterhead, addressed to the party who needs it, stating the scope of the inspection, the date, the conditions observed, the engineer's opinion of that condition, and the limitations the opinion carries.",
-      "A photographic record keyed to the observations, so an underwriter or a loan officer can read the letter without arranging a second visit.",
-      "A PDF suitable for upload to a loan file, a carrier portal, or a closing package.",
+      "On a pass determination, the engineer issues a sealed letter addressed to the recipient recorded at intake, for the purpose recorded at intake.",
+      "The letter identifies the property, the date of inspection, the covering type, the method by which the evidence was collected and reviewed, and the observed condition.",
+      "The letter states observed condition only. It does not estimate remaining service life, forecast future performance, or represent that the roof will not leak.",
+      "The letter states that the inspection was visual and non-destructive, that it reflects condition on the date of inspection only, and that no representation is made about concealed conditions.",
     ],
     turnaround:
       "Roof certifications are ordinarily reviewed and sealed within a few business days of the field inspection. Where a closing date requires it, expedited review is available and is agreed before the inspection is scheduled rather than after.",
@@ -142,9 +161,14 @@ export const services: Service[] = [
       "Buyers and sellers who have found that a prior improvement was never certified",
       "Insurance agents assembling what a carrier needs before binding coverage",
     ],
-    deliverable: [
-      "For ongoing construction: field inspections at the stages the code requires, documented with photographs and measurements taken while the work is open to view, and Form WPI-2 prepared and submitted to the Texas Department of Insurance by the appointed engineer.",
-      "For completed construction: a sealed post-construction inspection report supporting a Form WPI-2E application to the Department.",
+    /*
+     * No signed protocol for this line yet: the pending sentence, 2026-10-08.
+     * The statement that the Department issues the certificate is a limit of
+     * what the firm provides, not part of the deliverable, so it moved to
+     * notes word for word, as the order email's did.
+     */
+    deliverable: [SCOPE_PENDING],
+    notes: [
       "The certificate itself, the WPI-8 or the WPI-8E, which is issued by the Department on the strength of that submission and never by the firm.",
     ],
     turnaround:
@@ -199,11 +223,8 @@ export const services: Service[] = [
       "Foundation repair contractors whose customer has been asked for an independent opinion",
       "Attorneys and owners documenting the condition of a structure at a point in time",
     ],
-    deliverable: [
-      "A signed and sealed report stating the scope, the elevation data as measured, the observed distress, the engineer's opinion of foundation performance, and the limitations of that opinion.",
-      "A floor elevation diagram showing the measurement grid and the relative elevations recorded on it.",
-      "Where repair is indicated, a plain statement of what the evidence supports, written so that a contractor can price the same scope and an owner can compare bids against a fixed document.",
-    ],
+    /* No signed protocol for this line yet: the pending sentence, 2026-10-08. */
+    deliverable: [SCOPE_PENDING],
     turnaround:
       "Foundation reports are ordinarily reviewed and sealed within a few business days of the field visit. Elevation data is reduced before review, so a report is never sealed ahead of the measurements it rests on.",
     faqs: [
@@ -251,11 +272,8 @@ export const services: Service[] = [
       "Commercial owners adding a ballasted or attached array to an existing roof",
       "Racking and equipment suppliers supporting a dealer network across multiple jurisdictions",
     ],
-    deliverable: [
-      "A signed and sealed letter stating the framing as found, the array and attachment reviewed, the loads applied, the code edition used, and the structural conclusion.",
-      "Where the roof will not carry the array as designed, a sealed letter saying so with a written list of what has to change. A revised array is recalculated without another visit; strengthening the structure is designed as a separate engagement.",
-      "A PDF formatted for submission to the authority having jurisdiction, with the address, the scope, and the seal where a plans examiner expects to find them.",
-    ],
+    /* No signed protocol for this line yet: the pending sentence, 2026-10-08. */
+    deliverable: [SCOPE_PENDING],
     turnaround:
       "Review begins when the record is complete: the array design and either the technician's field record or installer site survey photographs the engineer has accepted. No issue date is estimated before the engineer has made a determination.",
     faqs: [
@@ -300,11 +318,8 @@ export const services: Service[] = [
       "Homeowners refinancing a manufactured home into a federally backed program",
       "Retailers and installers who want the foundation right before a buyer finds out it is not",
     ],
-    deliverable: [
-      "A signed and sealed certification addressed to the lender, stating the standard applied, what was observed, and whether the foundation system complies with it.",
-      "A photographic record of the piers, footings, anchorage, enclosure, and drainage, which is what an underwriter reviews when a file is questioned.",
-      "Where the system does not comply, a sealed letter with a repair list stating what each item needs, so the deficiency can be corrected and reinspected rather than simply reported. Where an item needs an engineered retrofit, the list says so and the retrofit design is a separate engagement.",
-    ],
+    /* No signed protocol for this line yet: the pending sentence, 2026-10-08. */
+    deliverable: [SCOPE_PENDING],
     turnaround:
       "These are usually scheduled against a closing date, so say if the lender has set one. Review begins when the record is complete, and no issue date is estimated before the engineer has made a determination. Where a reinspection is needed after corrective work, it is scheduled as its own visit.",
     faqs: [
@@ -361,11 +376,8 @@ export const services: Service[] = [
       "Architects and designers who need one existing condition confirmed for a permit file",
       "Contractors correcting work that was done without a permit and is now being inspected",
     ],
-    deliverable: [
-      "A signed and sealed letter addressed to the permitting authority, giving the property, the permit number, the authority's request as written, the element described, the adopted code, and the evidence and documents the opinion rests on.",
-      "Where the element satisfies the requirement subject to conditions, a schedule stating each one. Where it does not, a sealed letter saying so, with a list of what has to change.",
-      "A PDF formatted for the permit file, addressed to the authority having jurisdiction where that is what the reviewer expects.",
-    ],
+    /* No signed protocol for this line yet: the pending sentence, 2026-10-08. */
+    deliverable: [SCOPE_PENDING],
     turnaround:
       "The engineer triages each order within one business day and records whether it is a site job or a desk job. Review begins when the record is complete, and no issue date is estimated before the engineer has made a determination.",
     faqs: [
@@ -410,11 +422,8 @@ export const services: Service[] = [
       "Condominium and homeowner associations putting repair work out to bid",
       "Owners correcting distress identified in a prior engineering report",
     ],
-    deliverable: [
-      "A signed and sealed specification stating the scope, the sequence, the materials and connections, and the standard the repair is measured against.",
-      "Details and sketches where a written description alone would leave the connection to the builder's judgment.",
-      "Where an item will be covered by later work, the instruction that the contractor photographs it first, and any hold point the engineer sets on a single item where a photograph is not enough.",
-    ],
+    /* No signed protocol for this line yet: the pending sentence, 2026-10-08. */
+    deliverable: [SCOPE_PENDING],
     turnaround:
       "Repair specifications follow the assessment they rest on, and the schedule depends on the size of the damage rather than on a queue. A scope is agreed before work begins so that the document arrives when the bidding does.",
     faqs: [
@@ -459,11 +468,8 @@ export const services: Service[] = [
       "Developers of small commercial shells, retail buildings, and light industrial structures",
       "Owner builders in jurisdictions that require sealed plans for a residential permit",
     ],
-    deliverable: [
-      "A sealed structural drawing set covering the foundation, framing, and connection details required to build and to permit the project.",
-      "Design criteria stated on the drawings: code edition, design wind speed and exposure, live and dead loads, soil parameters, and the geotechnical report relied on.",
-      "Response to plan review comments from the authority having jurisdiction, which is part of getting a permit issued rather than a separate engagement.",
-    ],
+    /* No signed protocol for this line yet: the pending sentence, 2026-10-08. */
+    deliverable: [SCOPE_PENDING],
     turnaround:
       "Design schedules are set per project, because a garage conversion and a small retail shell are not the same undertaking. A schedule is agreed in writing before the work starts, and it is tied to the receipt of the survey and the geotechnical report.",
     faqs: [

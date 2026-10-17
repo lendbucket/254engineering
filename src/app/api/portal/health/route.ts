@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
+import { withSaveOutcome } from "@/lib/save-outcome";
 
 export const dynamic = "force-dynamic";
 
@@ -52,7 +53,7 @@ export const dynamic = "force-dynamic";
  * the one auth itself reads, so a pass here means the path that was broken is
  * the path that is now working.
  */
-export async function GET() {
+async function handleGET() {
   const nope = NextResponse.json({ ok: false }, { status: 503 });
   nope.headers.set("Cache-Control", "no-store, max-age=0");
 
@@ -76,3 +77,6 @@ export async function GET() {
   ok.headers.set("Cache-Control", "no-store, max-age=0");
   return ok;
 }
+
+/* A save abandoned by the 20 second bound says it may not have saved, and a failed session read is never "Not signed in": save-outcome.ts. */
+export const GET = withSaveOutcome(handleGET);

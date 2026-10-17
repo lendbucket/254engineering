@@ -1,0 +1,17 @@
+OPERATOR ATTESTATION, 2026-10-14
+
+Source: Robert Reyna, operator, 254 Engineering LLC, stated in writing to the
+development session on 2026-10-14.
+
+His statement, verbatim:
+
+I’m the operator and I attest that Aman Dhakal replied by email on 2026-10-14 with these exact words: “Everything we do will be under structural as we will be doing structural observations and structural calculations if required. We won’t be covering any architectural or MEP aspects in any of the services.”
+
+What this file is: the operator's attestation of the engineer's words. The
+email itself is not held in this repository. This file was saved as the
+evidence on the operator's instruction of the same day, and its SHA-256 is
+recorded in src/config/engineer-directions.ts.
+
+What it answers: the question sent to the engineer of record on 2026-10-14,
+which discipline each protocol requires (254-MH-001, 254-SL-001, 254-PL-001,
+254-RS-001, 254-DS-001 at v1.1, and 254-FC-001 v1.0 as item 6).

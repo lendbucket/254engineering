@@ -9,6 +9,7 @@ import { money, isKnown } from "@/lib/ops-money";
 import {
   blockers,
   decidePrice,
+  isNoCharge,
   landsAt,
   paymentOptions,
   MIN_OVERRIDE_REASON,
@@ -50,10 +51,10 @@ type ClientMatch = {
   city: string | null;
 };
 
-const label = "block text-[13.5px] font-semibold text-[var(--navy)]";
+const label = "block text-[14px] font-semibold text-[var(--ink)]";
 const fieldClass =
-  "mt-1.5 h-11 w-full rounded-[var(--radius-control)] border border-[var(--border)] bg-white px-3 text-[15px] text-[var(--ink)] focus:border-[var(--navy)] focus:outline-none focus:ring-2 focus:ring-[var(--navy)]/20";
-const hint = "mt-1.5 text-[12.5px] leading-[1.5] text-[var(--secondary)]";
+  "mt-1.5 h-11 w-full rounded-[2px] border border-[var(--border)] bg-white px-3 text-[15px] text-[var(--ink)] focus:border-[var(--navy)] focus:outline-none focus:ring-2 focus:ring-[var(--navy)]/20";
+const hint = "mt-1.5 text-[13px] leading-[1.5] text-[var(--secondary)]";
 
 const CHANNELS: { value: IntakeChannel; label: string }[] = [
   { value: "phone", label: "Telephone" },
@@ -106,6 +107,17 @@ export function IntakeClient({
   // -------------------------------------------------------------- the money
   const [overridePrice, setOverridePrice] = useState("");
   const [overrideReason, setOverrideReason] = useState("");
+  const [noChargeCode, setNoChargeCode] = useState("");
+
+  /*
+   * DOCUMENTS ATTACHED WHILE TAKING THE JOB (0078). Uploaded straight to the
+   * private bucket under this intake's own draft id, and posted with the job so
+   * the server can check each key belongs to this draft and this field.
+   */
+  const [draftId] = useState(() => crypto.randomUUID());
+  const [uploads, setUploads] = useState<
+    Record<string, { name: string; bucket: string; storageKey: string; contentType: string; byteSize: number }>
+  >({});
   const [paymentIntent, setPaymentIntent] = useState<PaymentIntent>("released_unpaid");
 
   /*
@@ -262,6 +274,8 @@ export function IntakeClient({
 
   const catalogCents = quote && isKnown(quote.totalCents) ? quote.totalCents : null;
   const enteredCents = overridePrice.trim() ? Math.round(Number(overridePrice) * 100) : null;
+  /* A price of zero is a job at no charge, which the server only opens for an administrator with a fresh code. */
+  const noCharge = isNoCharge(enteredCents);
 
   /*
    * Everything this deliverable needs. Empty until a deliverable is chosen,
@@ -326,7 +340,48 @@ export function IntakeClient({
   });
 
   const priceError = "error" in priceDecision ? priceDecision.error : null;
-  const canSubmit = missing.length === 0 && missingToOrder.length === 0 && !priceError && !busy;
+  const canSubmit =
+    missing.length === 0 &&
+    missingToOrder.length === 0 &&
+    !priceError &&
+    !busy &&
+    (!noCharge || noChargeCode.replace(/\s+/g, "").length === 6);
+
+  /** Upload one document for a file field. Resolves to an error sentence, or null when attached. */
+  async function attachFile(fieldId: string, file: File): Promise<string | null> {
+    try {
+      const res = await fetch("/api/portal/files", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "sign_intake_upload",
+          draftId,
+          fieldId,
+          filename: file.name,
+          contentType: file.type,
+          size: file.size,
+        }),
+      });
+      const signed = (await res.json().catch(() => null)) as
+        | { ok?: boolean; error?: string; uploadUrl?: string; bucket?: string; storageKey?: string }
+        | null;
+      if (!res.ok || !signed?.ok || !signed.uploadUrl || !signed.bucket || !signed.storageKey) {
+        return signed?.error ?? "That document could not be prepared for upload.";
+      }
+      const put = await fetch(signed.uploadUrl, { method: "PUT", headers: { "Content-Type": file.type }, body: file });
+      if (!put.ok) return "That document did not upload. Try again, or a smaller one.";
+      const { bucket, storageKey } = signed;
+      setUploads((u) => ({
+        ...u,
+        [fieldId]: { name: file.name, bucket, storageKey, contentType: file.type, byteSize: file.size },
+      }));
+      /* So the outstanding list on this screen reads it as answered; the server ignores this text. */
+      setAnswer(fieldId, `Attached: ${file.name}`);
+      return null;
+    } catch {
+      return "The network dropped that. Nothing was attached.";
+    }
+  }
 
   async function submit() {
     if (!canSubmit) return;
@@ -363,6 +418,15 @@ export function IntakeClient({
           priceCents: "overridden" in priceDecision && priceDecision.overridden ? priceDecision.cents : null,
           priceOverrideReason:
             "overridden" in priceDecision && priceDecision.overridden ? priceDecision.reason : null,
+          noChargeCode: noCharge ? noChargeCode : null,
+          draftId,
+          uploads: Object.entries(uploads).map(([fieldId, u]) => ({
+            fieldId,
+            bucket: u.bucket,
+            storageKey: u.storageKey,
+            contentType: u.contentType,
+            byteSize: u.byteSize,
+          })),
           paymentIntent,
         }),
       });
@@ -383,9 +447,9 @@ export function IntakeClient({
   // ============================================================= done screen
   if (done) {
     return (
-      <div className="rounded-[4px] border border-[var(--border)] border-t-[3px] border-t-[var(--gold)] bg-white p-5 sm:p-6">
+      <div className="border-t-2 border-[var(--ink)] pt-3">
         <p className="portal-kicker">Job taken</p>
-        <h2 className="mt-1 font-display text-[1.5rem] font-semibold leading-[1.2] text-[var(--navy)]">
+        <h2 className="mt-1 font-display text-[1.5rem] font-semibold leading-[1.2] text-[var(--ink)]">
           {done.fileNumber}
         </h2>
         <p className="mt-3 text-[15px] leading-[1.6] text-[var(--secondary)]">
@@ -397,7 +461,7 @@ export function IntakeClient({
         </p>
 
         {done.landingWarning ? (
-          <p className="mt-3 rounded-[3px] border border-[var(--gold)] bg-[var(--gold-wash)] px-3 py-2 text-[13.5px] leading-[1.55] text-[var(--ink)]">
+          <p className="mt-3 border-l-2 border-[var(--ink)] py-1 pl-3 text-[14px] leading-[1.55] text-[var(--ink)]">
             The file was created and could not be moved on: {done.landingWarning} It is at intake and
             somebody has to move it by hand.
           </p>
@@ -406,9 +470,9 @@ export function IntakeClient({
         {done.landedAt === "needs_dispatch" ? (
           <div className="mt-5 border-t border-[var(--border)] pt-5">
             {dispatch === undefined ? (
-              <p className="text-[13.5px] text-[var(--secondary)]">Working out who can take it.</p>
+              <p className="text-[14px] text-[var(--secondary)]">Working out who can take it.</p>
             ) : dispatch === null ? (
-              <p className="text-[13.5px] leading-[1.55] text-[var(--secondary)]">
+              <p className="text-[14px] leading-[1.55] text-[var(--secondary)]">
                 The dispatch plan could not be loaded here. Open the file and offer it from there;
                 nothing about the job is wrong.
               </p>
@@ -432,7 +496,7 @@ export function IntakeClient({
         <div className="mt-5 flex flex-wrap gap-3">
           <Link
             href={`/portal/files?id=${done.fileId}`}
-            className="inline-flex min-h-[var(--tap-target)] items-center rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[13.5px] font-bold text-white hover:bg-[var(--navy-hover)]"
+            className="inline-flex min-h-[var(--tap-target)] items-center rounded-[2px] bg-[var(--navy)] px-4 text-[14px] font-bold text-white hover:bg-[var(--navy-hover)]"
           >
             Open the file
           </Link>
@@ -452,7 +516,7 @@ export function IntakeClient({
               setNotes("");
               router.refresh();
             }}
-            className="inline-flex min-h-[var(--tap-target)] items-center rounded-[var(--radius-control)] border border-[var(--border)] bg-white px-4 text-[13.5px] font-bold text-[var(--navy)] hover:bg-[var(--canvas)]"
+            className="inline-flex min-h-[var(--tap-target)] items-center rounded-[2px] border border-[var(--border)] bg-white px-4 text-[14px] font-bold text-[var(--ink)] hover:bg-[var(--row-hover)]"
           >
             Take another
           </button>
@@ -470,10 +534,10 @@ export function IntakeClient({
         note="Search before creating. The same installer becoming four clients is how a firm loses track of who it works for."
       >
         {chosen ? (
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-[3px] border border-[var(--border)] bg-[var(--canvas)] px-3 py-2.5">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t-2 border-[var(--ink)] pt-3">
             <div>
-              <p className="text-[15px] font-semibold text-[var(--navy)]">{chosen.name}</p>
-              <p className="text-[12.5px] text-[var(--secondary)]">
+              <p className="text-[15px] font-semibold text-[var(--ink)]">{chosen.name}</p>
+              <p className="text-[13px] text-[var(--secondary)]">
                 {[chosen.email, chosen.phone, chosen.city].filter(Boolean).join(" · ") || "no contact recorded"}
               </p>
             </div>
@@ -483,7 +547,7 @@ export function IntakeClient({
                 setChosen(null);
                 setQuery("");
               }}
-              className="min-h-[var(--tap-target)] text-[13.5px] font-semibold text-[var(--navy)] underline underline-offset-2"
+              className="min-h-[var(--tap-target)] text-[14px] font-semibold text-[var(--ink)] underline underline-offset-2"
             >
               Change
             </button>
@@ -512,10 +576,10 @@ export function IntakeClient({
                         setChosen(m);
                         setCreating(false);
                       }}
-                      className="flex min-h-[var(--tap-target)] w-full flex-col items-start rounded-[3px] border border-[var(--border)] bg-white px-3 py-2 text-left hover:border-[var(--navy)]"
+                      className="flex min-h-[var(--tap-target)] w-full flex-col items-start rounded-[2px] border border-[var(--border)] bg-white px-3 py-2 text-left hover:border-[var(--navy)]"
                     >
-                      <span className="text-[15px] font-semibold text-[var(--navy)]">{m.name}</span>
-                      <span className="text-[12.5px] text-[var(--secondary)]">
+                      <span className="text-[15px] font-semibold text-[var(--ink)]">{m.name}</span>
+                      <span className="text-[13px] text-[var(--secondary)]">
                         {[m.email, m.phone, m.city].filter(Boolean).join(" · ") || "no contact recorded"}
                       </span>
                     </button>
@@ -531,13 +595,13 @@ export function IntakeClient({
             <button
               type="button"
               onClick={() => setCreating((v) => !v)}
-              className="mt-3 min-h-[var(--tap-target)] text-[13.5px] font-semibold text-[var(--navy)] underline underline-offset-2"
+              className="mt-3 min-h-[var(--tap-target)] text-[14px] font-semibold text-[var(--ink)] underline underline-offset-2"
             >
               {creating ? "Cancel the new client" : "Create a new client"}
             </button>
 
             {creating ? (
-              <div className="mt-3 grid gap-4 rounded-[3px] border border-[var(--border)] bg-[var(--canvas)] p-3 sm:grid-cols-2">
+              <div className="mt-3 grid gap-4 border-t-2 border-[var(--ink)] pt-3 sm:grid-cols-2">
                 <div>
                   <label htmlFor="ncKind" className={label}>Kind</label>
                   <select
@@ -697,16 +761,16 @@ export function IntakeClient({
         </div>
 
         {/* What the platform actually resolved, shown back rather than assumed. */}
-        <div className="mt-4 rounded-[3px] border border-[var(--border)] bg-[var(--canvas)] px-3 py-2.5">
+        <div className="mt-4 border-t-2 border-[var(--ink)] pt-3">
           {effectiveCounty ? (
-            <p className="text-[13.5px] leading-[1.55] text-[var(--ink)]">
-              <span className="font-semibold text-[var(--navy)]">{effectiveCounty} County.</span>{" "}
+            <p className="text-[14px] leading-[1.55] text-[var(--ink)]">
+              <span className="font-semibold text-[var(--ink)]">{effectiveCounty} County.</span>{" "}
               {twia
                 ? "Inside the windstorm designated area, so the coastal line applies and windstorm evidence is required."
                 : "Inland. No windstorm requirements and no coastal line."}
             </p>
           ) : (
-            <p className="text-[13.5px] leading-[1.55] text-[var(--secondary)]">
+            <p className="text-[14px] leading-[1.55] text-[var(--secondary)]">
               No county yet. Dispatch matches on county, so this has to resolve before the job can go anywhere.
             </p>
           )}
@@ -738,6 +802,8 @@ export function IntakeClient({
                         field={f}
                         value={answers[f.id] ?? ""}
                         onChange={(v) => setAnswer(f.id, v)}
+                        onFile={f.kind === "file" ? (file) => attachFile(f.id, file) : undefined}
+                        attached={uploads[f.id]?.name ?? null}
                       />
                     ))}
                   </div>
@@ -747,13 +813,13 @@ export function IntakeClient({
           </div>
 
           {outstandingLater.length > 0 ? (
-            <div className="mt-5 rounded-[3px] border border-[var(--border)] bg-[var(--canvas)] px-3 py-2.5">
-              <p className="text-[13.5px] font-semibold text-[var(--navy)]">
+            <div className="mt-5 border-t-2 border-[var(--ink)] pt-3">
+              <p className="text-[14px] font-semibold text-[var(--ink)]">
                 Can follow, and the file will say so
               </p>
               <ul className="mt-1.5 flex flex-col gap-1">
                 {outstandingLater.map((f) => (
-                  <li key={f.id} className="text-[12.5px] leading-[1.5] text-[var(--secondary)]">
+                  <li key={f.id} className="text-[13px] leading-[1.5] text-[var(--secondary)]">
                     {f.label}, needed before {f.stage === "dispatch" ? "a technician is sent" : "it can be sealed"}.
                   </li>
                 ))}
@@ -766,24 +832,24 @@ export function IntakeClient({
       {/* -------------------------------------------------------- the price */}
       <Section title="The price">
         {!entry ? (
-          <p className="text-[13.5px] text-[var(--secondary)]">Choose a deliverable and the catalog price appears here.</p>
+          <p className="text-[14px] text-[var(--secondary)]">Choose a deliverable and the catalog price appears here.</p>
         ) : quote?.unavailable ? (
-          <p className="rounded-[3px] border border-[var(--gold)] bg-[var(--gold-wash)] px-3 py-2 text-[13.5px] leading-[1.55] text-[var(--ink)]">
+          <p className="border-l-2 border-[var(--ink)] py-1 pl-3 text-[14px] leading-[1.55] text-[var(--ink)]">
             {quote.unavailable} You can still take the job and set a price below, and the reason will be recorded.
           </p>
         ) : (
           <dl className="flex flex-col gap-2">
             {quote?.lines.map((line) => (
               <div key={line.label} className="flex items-baseline justify-between gap-4">
-                <dt className="text-[13.5px] text-[var(--ink)]">{line.label}</dt>
-                <dd className="font-mono text-[15px] font-semibold text-[var(--navy)]">
+                <dt className="text-[14px] text-[var(--ink)]">{line.label}</dt>
+                <dd className="text-[15px] font-semibold text-[var(--ink)]">
                   {isKnown(line.amountCents) ? money(line.amountCents) : "not set"}
                 </dd>
               </div>
             ))}
             <div className="flex items-baseline justify-between gap-4 border-t border-[var(--border)] pt-2">
-              <dt className="text-[13.5px] font-semibold text-[var(--navy)]">Catalog total</dt>
-              <dd className="font-mono text-[15px] font-bold text-[var(--navy)]">
+              <dt className="text-[14px] font-semibold text-[var(--ink)]">Catalog total</dt>
+              <dd className="text-[15px] font-bold text-[var(--ink)]">
                 {catalogCents === null ? "not set" : money(catalogCents)}
               </dd>
             </div>
@@ -817,8 +883,28 @@ export function IntakeClient({
           The catalog price stays on the file either way. A price that changed with no record of who
           changed it or why is a dispute the firm loses.
         </p>
+        {noCharge ? (
+          <div className="mt-4">
+            <label htmlFor="noChargeCode" className={label}>
+              Code from your authenticator app
+            </label>
+            <input
+              id="noChargeCode"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={6}
+              value={noChargeCode}
+              onChange={(e) => setNoChargeCode(e.target.value)}
+              className="mt-1.5 h-11 w-full max-w-[200px] rounded-[2px] border border-[var(--border)] bg-white px-3 text-[16px] text-[var(--ink)] focus:border-[var(--navy)] focus:outline-none focus:ring-2 focus:ring-[var(--navy)]/20"
+            />
+            <p className={hint}>
+              A job at no charge is opened by an administrator only, with a fresh code, and is
+              recorded with your reason before the file exists. It is opened unpaid.
+            </p>
+          </div>
+        ) : null}
         {priceError ? (
-          <p className="mt-2 text-[13.5px] font-semibold leading-[1.5] text-[var(--danger)]">{priceError}</p>
+          <p className="mt-2 text-[14px] font-semibold leading-[1.5] text-[var(--danger)]">{priceError}</p>
         ) : null}
       </Section>
 
@@ -827,14 +913,12 @@ export function IntakeClient({
         title="Getting paid"
         note="Work released before payment is a decision the firm makes, not one it discovers."
       >
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col border-t border-[var(--row-rule)]">
           {options.map((o) => (
             <label
               key={o.intent}
-              className={`flex min-h-[var(--tap-target)] cursor-pointer items-start gap-3 rounded-[3px] border px-3 py-2.5 ${
-                paymentIntent === o.intent
-                  ? "border-[var(--navy)] bg-[var(--canvas)]"
-                  : "border-[var(--border)] bg-white"
+              className={`flex min-h-[var(--tap-target)] cursor-pointer items-start gap-3 border-b border-[var(--row-rule)] py-2.5 ${
+                paymentIntent === o.intent ? "border-l-[length:var(--active-bar-width)] border-l-[var(--navy)] pl-3" : ""
               } ${o.available ? "" : "opacity-60"}`}
             >
               <input
@@ -847,9 +931,9 @@ export function IntakeClient({
                 className="mt-1 h-4 w-4"
               />
               <span>
-                <span className="block text-[15px] font-semibold text-[var(--navy)]">{o.label}</span>
+                <span className="block text-[15px] font-semibold text-[var(--ink)]">{o.label}</span>
                 {o.because ? (
-                  <span className="block text-[12.5px] leading-[1.5] text-[var(--secondary)]">{o.because}</span>
+                  <span className="block text-[13px] leading-[1.5] text-[var(--secondary)]">{o.because}</span>
                 ) : null}
               </span>
             </label>
@@ -892,25 +976,25 @@ export function IntakeClient({
       </Section>
 
       {/* --------------------------------------------------------- the tail */}
-      <div className="rounded-[4px] border border-[var(--border)] bg-white p-4 sm:p-5">
+      <div className="border-t-2 border-[var(--ink)] pt-3">
         {missing.length > 0 || missingToOrder.length > 0 ? (
           <div className="mb-3">
-            <p className="text-[13.5px] font-semibold text-[var(--navy)]">Still needed</p>
+            <p className="text-[14px] font-semibold text-[var(--ink)]">Still needed</p>
             <ul className="mt-1.5 flex flex-col gap-1">
               {missing.map((m) => (
-                <li key={m} className="text-[13.5px] leading-[1.5] text-[var(--secondary)]">{m}</li>
+                <li key={m} className="text-[14px] leading-[1.5] text-[var(--secondary)]">{m}</li>
               ))}
               {missingToOrder.map((f) => (
-                <li key={f.id} className="text-[13.5px] leading-[1.5] text-[var(--secondary)]">
+                <li key={f.id} className="text-[14px] leading-[1.5] text-[var(--secondary)]">
                   {f.label}.
                 </li>
               ))}
             </ul>
           </div>
         ) : entry ? (
-          <p className="mb-3 text-[13.5px] leading-[1.55] text-[var(--secondary)]">
+          <p className="mb-3 text-[14px] leading-[1.55] text-[var(--secondary)]">
             This will open a file and put it at{" "}
-            <span className="font-semibold text-[var(--navy)]">
+            <span className="font-semibold text-[var(--ink)]">
               {landsAt(entry.orderType) === "needs_dispatch"
                 ? "needs dispatch"
                 : landsAt(entry.orderType) === "evidence_submitted"
@@ -922,14 +1006,14 @@ export function IntakeClient({
         ) : null}
 
         {error ? (
-          <p className="mb-3 text-[13.5px] font-semibold leading-[1.5] text-[var(--danger)]">{error}</p>
+          <p className="mb-3 text-[14px] font-semibold leading-[1.5] text-[var(--danger)]">{error}</p>
         ) : null}
 
         <button
           type="button"
           onClick={submit}
           disabled={!canSubmit}
-          className="inline-flex min-h-[var(--tap-target)] items-center rounded-[var(--radius-control)] bg-[var(--navy)] px-5 text-[15px] font-bold text-white hover:bg-[var(--navy-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex min-h-[var(--tap-target)] items-center rounded-[2px] bg-[var(--navy)] px-5 text-[15px] font-bold text-white hover:bg-[var(--navy-hover)] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {busy ? "Saving" : "Take the job"}
         </button>
@@ -956,12 +1040,20 @@ function FieldInput({
   field,
   value,
   onChange,
+  onFile,
+  attached,
 }: {
   field: IntakeField;
   value: string;
   onChange: (v: string) => void;
+  /** Uploads a document for a file field; resolves to an error sentence or null. */
+  onFile?: (file: File) => Promise<string | null>;
+  /** The name of the document attached to this field, if one is. */
+  attached?: string | null;
 }) {
   const id = `f_${field.id}`;
+  const [fileError, setFileError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   return (
     <div className={field.kind === "longtext" || field.kind === "file" ? "sm:col-span-2" : undefined}>
       <label htmlFor={id} className={label}>
@@ -984,14 +1076,44 @@ function FieldInput({
         </select>
       ) : field.kind === "file" ? (
         /*
-         * A file cannot be uploaded from a telephone call, and pretending
-         * otherwise would put an input on the screen that does nothing. What
-         * the operator can do is record that it is outstanding, which is what
-         * the outstanding list above is for.
+         * ATTACHED BY THE FIRM, 0078. This said the document "cannot be
+         * attached on a call" and "stays outstanding on the file", while the
+         * submit button and the server both refused the job until it was
+         * attached, so a required document made the job impossible to take.
+         * The firm attaches it here, from whatever the customer sent or the
+         * firm has, and the server accepts only an upload made for this job.
          */
-        <p className={hint}>
-          Cannot be attached on a call. It stays outstanding on the file and can be requested.
-        </p>
+        <div className="mt-1.5">
+          <input
+            id={id}
+            type="file"
+            accept={field.photo ? "image/*" : "image/*,application/pdf"}
+            disabled={uploading || !onFile}
+            onChange={async (e) => {
+              const picked = e.target.files?.[0];
+              e.target.value = "";
+              if (!picked || !onFile) return;
+              setUploading(true);
+              setFileError(await onFile(picked));
+              setUploading(false);
+            }}
+            className="block w-full min-h-[44px] text-[16px] text-[var(--ink)]"
+          />
+          <p className={hint}>
+            {uploading
+              ? "Uploading."
+              : attached
+                ? `Attached: ${attached}.`
+                : field.required
+                  ? "Required to open this job. Attach what the customer sent."
+                  : "Attach it now if you have it."}
+          </p>
+          {fileError ? (
+            <p role="alert" className="mt-1 text-[14px] font-semibold text-[var(--ink)]">
+              {fileError}
+            </p>
+          ) : null}
+        </div>
       ) : (
         <input
           id={id}
@@ -1017,9 +1139,9 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-[4px] border border-[var(--border)] bg-white p-4 sm:p-5">
-      <h2 className="font-display text-[1.05rem] font-semibold leading-[1.3] text-[var(--navy)]">{title}</h2>
-      {note ? <p className="mt-1 text-[12.5px] leading-[1.5] text-[var(--secondary)]">{note}</p> : null}
+    <section className="border-t-2 border-[var(--ink)] pt-3">
+      <h2 className="font-display text-[1.05rem] font-semibold leading-[1.3] text-[var(--ink)]">{title}</h2>
+      {note ? <p className="mt-1 text-[13px] leading-[1.5] text-[var(--secondary)]">{note}</p> : null}
       <div className="mt-4">{children}</div>
     </section>
   );

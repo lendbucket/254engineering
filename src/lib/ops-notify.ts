@@ -232,13 +232,25 @@ export async function listNotifications(profileId: string, limit = 50): Promise<
 }
 
 export async function unreadCount(profileId: string): Promise<number> {
+  return (await unreadCountRead(profileId)) ?? 0;
+}
+
+/**
+ * The same count, or null when it could not be read. Operator ruling,
+ * 2026-10-12: the dashboard showed "Unread notifications 0" over a failed read.
+ */
+export async function unreadCountRead(profileId: string): Promise<number | null> {
   const db = supabaseAdmin();
-  if (!db) return 0;
-  const { count } = await db
+  if (!db) return null;
+  const { count, error } = await db
     .from("eng_notifications")
     .select("id", { count: "exact", head: true })
     .eq("profile_id", profileId)
     .is("read_at", null);
+  if (error) {
+    console.error(`[notify] the unread notifications could not be counted: ${error.message}`);
+    return null;
+  }
   return count ?? 0;
 }
 

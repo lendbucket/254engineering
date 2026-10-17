@@ -14,6 +14,7 @@ import {
   type Column,
 } from "@/components/portal/surfaces";
 import { NewPersonForm, PersonActions } from "./PeopleClient";
+import { formatInFirmZone } from "@/lib/firm-calendar";
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +40,7 @@ const STATUS_TONE = {
 
 function when(value: string | null): string {
   if (!value) return "never";
-  return new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  return (formatInFirmZone(value, { month: "short", day: "numeric", year: "numeric" }) ?? "");
 }
 
 export default async function PeoplePage() {
@@ -84,8 +85,8 @@ export default async function PeoplePage() {
       head: "Name",
       cell: (p) => (
         <div>
-          <p className="font-semibold text-[var(--navy)]">{p.display_name}</p>
-          <p className="text-[12.5px] break-all text-[var(--secondary)]">{p.email}</p>
+          <p className="font-semibold text-[var(--ink)]">{p.display_name}</p>
+          <p className="text-[13px] break-all text-[var(--secondary)]">{p.email}</p>
         </div>
       ),
     },
@@ -144,15 +145,15 @@ export default async function PeoplePage() {
               <div>
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="text-[15px] font-semibold text-[var(--navy)]">{p.display_name}</p>
-                    <p className="mt-0.5 text-[13.5px] break-all text-[var(--secondary)]">{p.email}</p>
+                    <p className="text-[15px] font-semibold text-[var(--ink)]">{p.display_name}</p>
+                    <p className="mt-0.5 text-[14px] break-all text-[var(--secondary)]">{p.email}</p>
                   </div>
                   <Chip label={p.status} tone={STATUS_TONE[p.status]} />
                 </div>
                 <p className="mt-2 portal-label">
                   {roleLabel(p.role, roleName.get(p.role))}
                 </p>
-                <p className="mt-1 text-[13.5px] text-[var(--secondary)]">Last sign in {when(p.last_sign_in_at)}</p>
+                <p className="mt-1 text-[14px] text-[var(--secondary)]">Last sign in {when(p.last_sign_in_at)}</p>
                 <div className="mt-3">
                   <PersonActions person={p} selfId={actor!.id} />
                 </div>

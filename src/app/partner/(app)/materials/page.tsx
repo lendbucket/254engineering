@@ -8,6 +8,7 @@ import {
 import { EmptyState, Panel, RestrictedMode, StatusPill } from "@/components/portal/design";
 import { CopyBlock } from "./CopyBlock";
 import { SubmitForm } from "./SubmitForm";
+import { formatInFirmZone } from "@/lib/firm-calendar";
 
 export const dynamic = "force-dynamic";
 
@@ -55,8 +56,8 @@ export default async function PartnerMaterials() {
       <RestrictedMode />
 
       <div>
-        <h1 className="font-display text-[24px] leading-[1.2] font-bold text-[var(--navy)]">Materials</h1>
-        <p className="mt-1.5 max-w-[70ch] text-[13.5px] leading-[1.6] text-[var(--secondary)]">
+        <h1 className="font-display text-[24px] leading-[1.2] font-bold text-[var(--ink)]">Materials</h1>
+        <p className="mt-1.5 max-w-[70ch] text-[14px] leading-[1.6] text-[var(--secondary)]">
           Wording and artwork the firm has approved for you to use as written. Anything you write
           yourself can be sent here to be looked at before you publish it.
         </p>
@@ -89,13 +90,13 @@ export default async function PartnerMaterials() {
         ) : (
           <ul className="flex flex-col gap-4">
             {assets.map((asset) => (
-              <li key={asset.id} className="rounded-[var(--radius-card)] border border-[var(--border)] p-3">
+              <li key={asset.id} className="border-b border-[var(--row-rule)] py-3">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <p className="text-[15px] font-bold text-[var(--navy)]">{asset.title}</p>
+                  <p className="text-[15px] font-bold text-[var(--ink)]">{asset.title}</p>
                   <StatusPill tone="inert">{KIND_LABEL[asset.kind] ?? asset.kind}</StatusPill>
                 </div>
                 {asset.summary ? (
-                  <p className="mt-1 text-[13.5px] leading-[1.55] text-[var(--secondary)]">{asset.summary}</p>
+                  <p className="mt-1 text-[14px] leading-[1.55] text-[var(--secondary)]">{asset.summary}</p>
                 ) : null}
 
                 <div className="mt-3">
@@ -104,12 +105,12 @@ export default async function PartnerMaterials() {
                     urlFor.get(asset.slug) ? (
                       <a
                         href={urlFor.get(asset.slug)!}
-                        className="inline-flex min-h-[var(--tap-target)] items-center rounded-[var(--radius-control)] border border-[var(--border-strong)] px-3 text-[13.5px] font-semibold text-[var(--navy)] active:bg-[var(--canvas)]"
+                        className="inline-flex min-h-[var(--tap-target)] items-center rounded-[2px] border border-[var(--border-strong)] px-3 text-[14px] font-semibold text-[var(--ink)] active:bg-[var(--canvas)]"
                       >
                         Download
                       </a>
                     ) : (
-                      <p className="text-[13.5px] leading-[1.55] text-[var(--secondary)]">
+                      <p className="text-[14px] leading-[1.55] text-[var(--secondary)]">
                         This file could not be prepared for download just now. Reload the page, and
                         tell the firm if it keeps happening.
                       </p>
@@ -120,11 +121,11 @@ export default async function PartnerMaterials() {
                 <p className="mt-3 text-[12px] text-[var(--secondary)]">
                   Version {asset.version}
                   {asset.publishedAt
-                    ? `, published ${new Date(asset.publishedAt).toLocaleDateString("en-US", {
+                    ? `, published ${(formatInFirmZone(asset.publishedAt, {
                         year: "numeric",
                         month: "long",
                         day: "numeric",
-                      })}`
+                      }) ?? "")}`
                     : ""}
                 </p>
               </li>
@@ -149,9 +150,9 @@ export default async function PartnerMaterials() {
         ) : (
           <ul className="flex flex-col gap-2.5">
             {submissions.map((s) => (
-              <li key={s.id} className="rounded-[var(--radius-card)] border border-[var(--border)] p-3">
+              <li key={s.id} className="border-b border-[var(--row-rule)] py-3">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <p className="text-[15px] font-bold text-[var(--navy)]">{s.title}</p>
+                  <p className="text-[15px] font-bold text-[var(--ink)]">{s.title}</p>
                   <StatusPill
                     tone={
                       s.status === "approved"
@@ -172,22 +173,22 @@ export default async function PartnerMaterials() {
                 </div>
 
                 {s.advice ? (
-                  <p className="mt-2 rounded-[var(--radius-control)] border border-[var(--warn-border)] bg-[var(--gold-wash)] px-3 py-2 text-[13.5px] leading-[1.55] text-[var(--warn-ink)]">
+                  <p className="mt-2 border-l-2 border-[var(--ink)] py-1 pl-3 text-[14px] leading-[1.55] text-[var(--ink)]">
                     Before anybody has read it: {s.advice}
                   </p>
                 ) : null}
 
                 {s.decisionNote ? (
-                  <p className="mt-2 text-[13.5px] leading-[1.55] text-[var(--ink)]">{s.decisionNote}</p>
+                  <p className="mt-2 text-[14px] leading-[1.55] text-[var(--ink)]">{s.decisionNote}</p>
                 ) : null}
 
                 <p className="mt-2 text-[12px] text-[var(--secondary)]">
                   Sent{" "}
-                  {new Date(s.createdAt).toLocaleDateString("en-US", {
+                  {(formatInFirmZone(s.createdAt, {
                     year: "numeric",
                     month: "long",
                     day: "numeric",
-                  })}
+                  }) ?? "")}
                 </p>
               </li>
             ))}
@@ -196,12 +197,12 @@ export default async function PartnerMaterials() {
       </Panel>
 
       <Panel title="What approval does and does not do">
-        <p className="max-w-[74ch] text-[13.5px] leading-[1.65] text-[var(--ink)]">
+        <p className="max-w-[74ch] text-[14px] leading-[1.65] text-[var(--ink)]">
           Approved wording is wording the firm has checked against the same rules its own website is
           held to. Using it as written means you are not making a claim the firm could not make
           itself, which is the thing that matters while it is not yet accepting engagements.
         </p>
-        <p className="mt-3 max-w-[74ch] text-[13.5px] leading-[1.65] text-[var(--ink)]">
+        <p className="mt-3 max-w-[74ch] text-[14px] leading-[1.65] text-[var(--ink)]">
           What this cannot do is police what is published elsewhere, and nothing here should be read
           as suggesting otherwise. The program agreement is what governs that, and the firm can
           withdraw approval at any time.

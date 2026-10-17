@@ -108,6 +108,7 @@ export default async function AccountSignUpPage() {
       </header>
 
       <main className="mx-auto w-full max-w-[560px] flex-1 px-4 py-12 sm:px-6 sm:py-16">
+        <div>
         <h1 className="text-[26px] leading-[1.15] font-semibold tracking-[-0.4px] text-[var(--color-ink)]">
           Create your account
         </h1>
@@ -122,6 +123,7 @@ export default async function AccountSignUpPage() {
           For organizations that expect to order more than once. You do not have to start here:
           paying for an order opens an account too, and the link emailed with it works either way.
         </p>
+        </div>
 
         {!open ? (
           /*
@@ -140,6 +142,7 @@ export default async function AccountSignUpPage() {
           <SignUpForm />
         )}
 
+        <div>
         <p className="mt-8 text-[14px] text-[var(--color-ink-quiet)]">
           Already have an account?{" "}
           <Link
@@ -164,6 +167,7 @@ export default async function AccountSignUpPage() {
             Back to the site
           </Link>
         </p>
+        </div>
       </main>
 
       <footer className="border-t border-[var(--color-limestone-line)]">

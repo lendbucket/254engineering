@@ -58,6 +58,7 @@
 
 process.loadEnvFile?.(".env.local");
 
+import { randomUUID } from "node:crypto";
 import { auditClient } from "./lib/db-target.mjs";
 import { DEMO_SCOPED_TABLES } from "../src/lib/reporting-scope.ts";
 import { isProbeAddress } from "../src/lib/ops-files.ts";
@@ -326,22 +327,44 @@ if (!db) {
 
     const listed = await listClients(actor);
     const ids = listed.map((c) => c.id);
+    /*
+     * THE READ IS PAGED AND ITS ERROR IS READ. Until 2026-10-11 this was one
+     * request carrying every listed id in an in() filter, with the error
+     * discarded. Once the screen listed about four hundred clients the request
+     * failed on its size (UND_ERR_HEADERS_OVERFLOW, from the 0070 board of
+     * 2026-10-11 onwards), flags came back null, nothing counted as leaked, and
+     * the check passed over a read that never happened. So the ids go in
+     * chunks a request can carry, every chunk's error is read, and a failed
+     * chunk makes the check COULD NOT TELL instead of a pass.
+     */
+    const CHUNK = 100;
     let leaked = [];
-    if (ids.length > 0) {
-      const { data: flags } = await db
+    let readFault = null;
+    let read = 0;
+    for (let at = 0; at < ids.length && !readFault; at += CHUNK) {
+      const chunk = ids.slice(at, at + CHUNK);
+      const { data: flags, error } = await db
         .from("eng_clients")
         .select("id, email, is_demo")
-        .in("id", ids)
+        .in("id", chunk)
         .eq("is_demo", true);
-      leaked = (flags ?? []).map((f) => f.email ?? f.id);
+      if (error) readFault = error.message;
+      else {
+        read += chunk.length;
+        leaked = leaked.concat((flags ?? []).map((f) => f.email ?? f.id));
+      }
     }
-    rec(
-      `and the clients screen lists none of them (${listed.length} listed)`,
-      leaked.length === 0,
-      leaked.length === 0
-        ? "a demonstration row on an operator's client list is a figure nobody can act on"
-        : `DEMONSTRATION CLIENTS ON THE SCREEN: ${leaked.slice(0, 5).join(", ")}`,
-    );
+    if (readFault) {
+      unmeasured.push(`the listed clients could not be looked up for demonstration rows: ${readFault}`);
+    } else {
+      rec(
+        `and the clients screen lists none of them (${listed.length} listed, ${read} looked up)`,
+        leaked.length === 0 && read === ids.length,
+        leaked.length === 0
+          ? "a demonstration row on an operator's client list is a figure nobody can act on"
+          : `DEMONSTRATION CLIENTS ON THE SCREEN: ${leaked.slice(0, 5).join(", ")}`,
+      );
+    }
   }
 
   // ------------------------------------- the detector: a probe with no DEMO number
@@ -634,9 +657,15 @@ if (!db) {
       report: "partner",
       what: "a demonstration partner with an issued statement",
       async insert() {
+        /*
+         * The ids are named here, 2026-10-09, so a network fault on the insert
+         * can be retried: a read of the id confirms whether it landed. This
+         * insert met that fault twice in a week (scripts/lib/transient-retry.mjs).
+         */
         const { data: partner, error: pErr } = await db
           .from("eng_partners")
           .insert({
+            id: randomUUID(),
             organisation: `Demo Partner ${TAIL}`,
             contact_name: "Demo Audit",
             contact_email: `demo.partner.${STAMP}@example.com`,
@@ -651,6 +680,7 @@ if (!db) {
         const { data: statement, error: sErr } = await db
           .from("eng_partner_statements")
           .insert({
+            id: randomUUID(),
             partner_id: partner.id,
             reference,
             period: PERIOD,
@@ -1150,5 +1180,14 @@ if (failed.length) {
   console.log("A figure that counts a demonstration is a plausible number, slightly too");
   console.log("high, that somebody acts on.");
   process.exit(1);
+}
+/*
+ * AND A PART THAT DID NOT RUN IS NOT A PASS, SO THE EXIT CODE SAYS SO. Until
+ * 2026-10-11 this printed "That is not a pass" above and then exited 0, which
+ * the suite scores as a pass; the suite's third verdict is exit code 3.
+ */
+if (unmeasured.length) {
+  console.log(`COULD NOT TELL: ${out.length} checks passed and ${unmeasured.length} part(s) could not be measured.`);
+  process.exit(3);
 }
 console.log(`PASS: ${out.length} checks. A demonstration moves no figure on any surface.`);

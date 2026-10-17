@@ -59,3 +59,70 @@ export function todayInFirmCalendar(at: Date = new Date()): string {
     day: "2-digit",
   }).format(at);
 }
+
+/**
+ * An INSTANT (a timestamp) as a date in the firm's calendar, "Oct 9, 2026".
+ * Operator ruling of 2026-10-09: certified on and verified on are shown in
+ * Central time. Null in, null out, so an absent date is never printed as one.
+ */
+export function firmDateLabel(instant: string | null | undefined): string | null {
+  if (!instant) return null;
+  const at = new Date(instant);
+  if (Number.isNaN(at.getTime())) return null;
+  return new Intl.DateTimeFormat("en-US", { timeZone: FIRM_TIME_ZONE, month: "short", day: "numeric", year: "numeric" }).format(at);
+}
+
+/**
+ * ===========================================================================
+ * THE ONE FORMATTER FOR AN INSTANT. Operator ruling, 2026-10-09.
+ * ===========================================================================
+ *
+ * The product audit found 39 server rendered date calls naming no time zone.
+ * A server renders in ITS zone, and Vercel's is UTC, so anything after about
+ * 7 pm Central printed as the next day: on a sealed letter, a statement, a
+ * payout, a certification. The ruling: one shared formatter that pins
+ * FIRM_TIME_ZONE, every call site moved to it, and a check that fails the board
+ * on any date formatting that names no zone. The options are the caller's own,
+ * so every screen keeps its wording and only gains the zone, which cannot be
+ * overridden here.
+ *
+ * Null, an empty string or an unparseable value returns null, so an absent
+ * date is never printed as one.
+ */
+export type FirmDateOptions = Omit<Intl.DateTimeFormatOptions, "timeZone">;
+
+export function formatInFirmZone(
+  value: string | number | Date | null | undefined,
+  options: FirmDateOptions = { month: "short", day: "numeric", year: "numeric" },
+): string | null {
+  if (value === null || value === undefined || value === "") return null;
+  const at = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(at.getTime())) return null;
+  return new Intl.DateTimeFormat("en-US", { ...options, timeZone: FIRM_TIME_ZONE }).format(at);
+}
+
+/**
+ * The same for a CALENDAR DATE, "YYYY-MM-DD": an expiry, a due date, an issue
+ * date. It belongs to no zone, so it is read at noon UTC and printed in UTC; a
+ * conversion would move it a day for somebody. Anything that is not a bare
+ * calendar date returns null rather than being guessed at.
+ */
+export function formatCalendarDate(
+  date: string | null | undefined,
+  options: FirmDateOptions = { month: "short", day: "numeric", year: "numeric" },
+): string | null {
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+  return new Intl.DateTimeFormat("en-US", { ...options, timeZone: "UTC" }).format(new Date(`${date}T12:00:00Z`));
+}
+
+/**
+ * A CALENDAR DATE ("YYYY-MM-DD", such as an expiry) in the same words. A
+ * calendar date belongs to no time zone, so it is read at noon UTC and printed
+ * in UTC: converting it would move an expiry by a day for somebody, and the
+ * date on the card is the date on the card.
+ */
+export function calendarDateLabel(date: string | null | undefined): string | null {
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+  const at = new Date(`${date}T12:00:00Z`);
+  return new Intl.DateTimeFormat("en-US", { timeZone: "UTC", month: "short", day: "numeric", year: "numeric" }).format(at);
+}

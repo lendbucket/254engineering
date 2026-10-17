@@ -43,17 +43,19 @@ export default async function SetPasswordPage({
         </div>
 
         {/* V10, as the customer sign in: no card, the content under a 2px ink rule. */}
-        <div className="border-t-2 border-[var(--ink)] pt-5">
+        <div className="v10-sections border-t-2 border-[var(--ink)] pt-5">
           {result.ok ? (
             <>
+              <div>
               <h1 className="font-display text-[24px] leading-[1.2] font-bold text-[var(--navy)]">
                 Choose your password
               </h1>
               <p className="mt-2 text-[14px] leading-[1.6] text-[var(--secondary)]">
                 {result.profile.display_name}, your account is set up as{" "}
                 {roleLabel(result.profile.role)}. Your sign in address is{" "}
-                <span className="font-semibold break-all text-[var(--navy)]">{result.profile.email}</span>.
+                <span className="v10-email font-semibold text-[var(--ink)]">{result.profile.email}</span>.
               </p>
+              </div>
               {/*
                 THE GATE, SAID ON THE FIRST SCREEN A NEW ENGINEER EVER SEES.
                 Sign in has carried this since it was ported and this screen
@@ -74,6 +76,7 @@ export default async function SetPasswordPage({
             </>
           ) : (
             <>
+              <div>
               <h1 className="font-display text-[24px] leading-[1.2] font-bold text-[var(--navy)]">
                 {result.reason === "expired"
                   ? "That link has expired"
@@ -88,6 +91,7 @@ export default async function SetPasswordPage({
                     ? "Your password is already set. Sign in with it, or ask an administrator for a reset."
                     : "Check that the whole link was copied. If it still does not work, ask an administrator for a new one."}
               </p>
+              </div>
               <Link
                 href="/portal/login"
                 className="mt-6 inline-flex min-h-[48px] w-full items-center justify-center rounded-[2px] border border-[var(--border)] px-4 text-[15px] font-bold text-[var(--navy)] hover:bg-[var(--canvas)]"

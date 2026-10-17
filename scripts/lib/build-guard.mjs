@@ -1,4 +1,6 @@
 import { spawnSync } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
+import { homedir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { PORT_RANGE } from "./ports.mjs";
@@ -87,7 +89,42 @@ const isWindows = process.platform === "win32";
  * table would be a worse bug than the one it is preventing.
  */
 export function inCiOrDeploy() {
-  return Boolean(process.env.VERCEL || process.env.CI || process.env.GITHUB_ACTIONS);
+  if (process.env.CI || process.env.GITHUB_ACTIONS) return true;
+  if (!process.env.VERCEL) return false;
+  return !vercelCameFromThisMachinesEnvFile();
+}
+
+/**
+ * WHETHER `VERCEL` IN THIS PROCESS IS THE ONE `.env.local` PUT THERE.
+ *
+ * Found 2026-10-09, after two screenshot runs printed "lock taken" with no lock
+ * file on disk while another project held it. `.env.local` was pulled from
+ * Vercel and carries `VERCEL=`, and `db-target.mjs` loads that file into
+ * process.env. Any script that imported it before taking the lock read this
+ * developer machine as a Vercel builder, and the lock and the build guard both
+ * skipped themselves without a word. No board was affected: the suite takes the
+ * lock before it imports db-target, and no board log carries the skip line.
+ *
+ * A builder has no `.env.local` (it is not committed), so a value that matches
+ * the file's own line, on a machine whose home directory exists, is a
+ * developer's environment rather than a deployment's. The home test keeps the
+ * builder proof's simulation honest: it runs from this repository, where the
+ * file exists, with a home that does not. Proven in
+ * scripts/proofs/a-builder-has-no-machine-lock.mjs, both ways.
+ */
+function vercelCameFromThisMachinesEnvFile() {
+  if (!existsSync(homedir())) return false;
+  const file = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..", ".env.local");
+  let text = "";
+  try {
+    text = readFileSync(file, "utf8");
+  } catch {
+    return false;
+  }
+  const line = text.split(/\r?\n/).find((l) => l.startsWith("VERCEL="));
+  if (line === undefined) return false;
+  const fromFile = line.slice("VERCEL=".length).trim().replace(/^"(.*)"$/, "$1");
+  return fromFile === process.env.VERCEL;
 }
 
 /** Run a command and return stdout, or "" if it is unavailable. Never throws. */

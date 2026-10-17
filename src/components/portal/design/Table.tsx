@@ -166,7 +166,7 @@ export function DataTable<T extends { id: string }>({
                 <th
                   key={c.key}
                   scope="col"
-                  className={`portal-column-header pb-2 ${c.numeric ? "text-right" : ""} ${
+                  className={`portal-column-header pr-3 pb-2 ${c.numeric ? "text-right" : ""} ${
                     c.desktopOnly ? "hidden md:table-cell" : ""
                   }`}
                 >

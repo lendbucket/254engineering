@@ -42,7 +42,7 @@ export function MispointedDeployment({ fault }: { fault: Mispointing }) {
 
         <p className="mt-5 border-t border-[var(--border)] pt-4 text-[13.5px] leading-[1.6] text-[var(--secondary)]">
           If you genuinely intend this, set
-          <span className="font-mono"> {fault.hatch}=1 </span>
+          <span> {fault.hatch}=1 </span>
           on this deployment. {fault.hatchNote}
         </p>
       </div>

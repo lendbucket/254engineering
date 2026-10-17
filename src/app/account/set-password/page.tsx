@@ -51,20 +51,25 @@ export default async function AccountSetPasswordPage({
       <main className="mx-auto w-full max-w-[520px] flex-1 px-4 py-12 sm:px-6 sm:py-16">
         {result.ok ? (
           <>
+            <div>
             <h1 className="text-[26px] leading-[1.15] font-semibold tracking-[-0.4px] text-[var(--color-ink)]">
               Choose your password
             </h1>
             <p className="mt-2 text-[15px] leading-[1.6] text-[var(--color-ink-quiet)]">
               {result.displayName}, your sign in address is{" "}
-              <span className="font-semibold break-all text-[var(--color-ink)]">
+              <span className="v10-email font-semibold text-[var(--color-ink)]">
                 {result.email}
               </span>
               .
             </p>
+            </div>
+            <div>
             <AccountSetPasswordForm token={token!} minLength={MIN_CUSTOMER_PASSWORD_LENGTH} />
+            </div>
           </>
         ) : (
           <>
+            <div>
             <h1 className="text-[26px] leading-[1.15] font-semibold tracking-[-0.4px] text-[var(--color-ink)]">
               {result.reason === "expired"
                 ? "That link has expired"
@@ -79,6 +84,8 @@ export default async function AccountSetPasswordPage({
                   ? "If that was not you, tell the firm."
                   : "Check the link came through whole. The firm can send a new one."}
             </p>
+            </div>
+            <div>
             {/*
               A DEAD END WITH NO NEXT STEP IS WHERE SOMEBODY GIVES UP.
 
@@ -98,6 +105,7 @@ export default async function AccountSetPasswordPage({
             >
               Go to sign in
             </Link>
+            </div>
           </>
         )}
       </main>

@@ -2,7 +2,7 @@ import "server-only";
 import { REPORTS, formatFigure, periodOf, type FigureRow } from "./ops-reports";
 import { dashboardFor, type Dashboard } from "./ops-dashboard";
 import { DEFAULT_ROLES, type Actor } from "./ops-authz";
-import { money } from "./ops-money";
+import { moneyOr } from "./ops-money";
 
 /**
  * EVERY SURFACE THAT RENDERS A FIGURE, IN ONE DECLARATION.
@@ -118,7 +118,7 @@ function dashboardFigures(key: string, dashboard: Dashboard | null): SurfaceFigu
   /* Money tiles exist on three of the six. The other three cannot hold one. */
   if ("money" in dashboard) {
     for (const tile of dashboard.money) {
-      out.push({ surface, section: "money", label: tile.label, rendered: money(tile.value), rows: null });
+      out.push({ surface, section: "money", label: tile.label, rendered: moneyOr(tile.value, tile.absent), rows: null });
     }
   }
 

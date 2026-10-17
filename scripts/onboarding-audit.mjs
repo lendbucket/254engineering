@@ -102,10 +102,26 @@ const fullSet = () => [
     NOW,
   );
   rec("a document on file but unverified blocks", unverified.length === 1);
+  /*
+   * THE WORDS CHANGED 2026-10-09, THE PROPERTY DID NOT. A pending credential is
+   * now one the technician submitted themselves (fix/certification-unblock), and
+   * the operator ruled its words: "submitted, awaiting verification". It still
+   * has to read as waiting rather than as missing, which is what this asks.
+   */
   rec(
-    "and says it is unverified rather than missing",
-    /not verified/i.test(unverified[0]?.reason ?? ""),
+    "and says it is awaiting verification rather than missing",
+    /awaiting verification/i.test(unverified[0]?.reason ?? "") && !/^No /.test(unverified[0]?.reason ?? ""),
     unverified[0]?.reason,
+  );
+  /* And the other half of that change: a REJECTED submission is not on file at all. */
+  const rejectedOnly = credentialBlockers(
+    [...fullSet().filter((c) => c.kind !== "w9"), cred("w9", { status: "rejected" })],
+    NOW,
+  );
+  rec(
+    "and a rejected submission reads as missing, never as on file",
+    rejectedOnly.length === 1 && /^No form w-9 on file/i.test(rejectedOnly[0]?.reason ?? ""),
+    rejectedOnly[0]?.reason,
   );
 
   const rejected = credentialBlockers(

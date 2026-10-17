@@ -167,6 +167,23 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
               </ul>
 
               {/*
+                A limit of what the firm provides, on its own line and never in
+                the list above. Operator rulings of 2026-10-08.
+              */}
+              {service.notes && service.notes.length > 0 ? (
+                <div className="mt-9">
+                  <p className="text-[0.98rem] font-semibold text-slate">Notes</p>
+                  <ul className="mt-3 space-y-3">
+                    {service.notes.map((note) => (
+                      <li key={note} className="text-[0.98rem] leading-[1.7] text-slate-muted">
+                        {note}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+
+              {/*
                 THE WHOLE BLOCK GOES WHEN THERE IS NO TURNAROUND TO STATE, not
                 just its text. A heading reading "Turnaround" above an empty
                 paragraph tells a reader the firm has one and would not say it,

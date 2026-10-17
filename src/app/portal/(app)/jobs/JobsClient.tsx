@@ -21,7 +21,7 @@ import { useRouter } from "next/navigation";
  * that. A silent failure here would have somebody driving to a job that is not
  * theirs.
  */
-export function OfferControls({ offerId, fileId }: { offerId: string; fileId: string }) {
+export function OfferControls({ offerId, fileId, hasRate }: { offerId: string; fileId: string; hasRate: boolean }) {
   const router = useRouter();
   const [busy, setBusy] = useState<"accept" | "decline" | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -94,9 +94,15 @@ export function OfferControls({ offerId, fileId }: { offerId: string; fileId: st
         </div>
       ) : (
         <div className="flex flex-wrap gap-2">
+          {/* No rate, no accept: the server refuses it too (acceptOffer). Decline stays. */}
+          {!hasRate ? (
+            <p className="w-full text-[14px] leading-[1.5] text-[var(--ink)]">
+              This offer cannot be accepted until the office sets its rate.
+            </p>
+          ) : null}
           <button
             type="button"
-            disabled={busy !== null}
+            disabled={busy !== null || !hasRate}
             onClick={() => respond("accept_offer")}
             className="inline-flex min-h-[var(--tap-target)] flex-1 items-center justify-center rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[15px] font-bold text-white transition-colors hover:bg-[var(--navy-hover)] disabled:opacity-50"
           >

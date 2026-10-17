@@ -804,13 +804,15 @@ console.log(`configured target: ${current ? describeTarget(current) : "unset"}\n
     "src/app/portal/(app)/partners/[id]/PartnerActions.tsx": "default values in a form, in the browser, twice",
     "src/lib/deletion-requests.ts": "a date inside a sentence written into a note",
     "src/lib/job-handlers.ts": "a local now for comparison; the writes beside it send DB_NOW",
+    "src/lib/offline-queue.ts":
+      "the DEVICE's clock at the moment a queued capture is sent, so the server measures the phone's clock " +
+      "against its own rather than how long the capture waited for signal. In the browser, never a column.",
     "src/lib/launch.ts":
       "today, to ask whether the firm registration has expired. A comparison, not a stored value: nothing in " +
       "the compliance gate writes a row, and an expiry read a second late is still the same date.",
     "src/lib/ops-dashboard.ts": "three comparisons against ages, reading rather than writing",
     "src/lib/ops-docs.ts":
       "generatedAt on an in memory binder manifest, and two date cells in a CSV a person reads",
-    "src/lib/ops-engineer.ts": "today, for comparison",
     "src/lib/ops-field.ts": "today for comparison, and the YYYY-MM period a ledger row is bucketed under",
     "src/lib/ops-observability.ts": "a comparison and an in memory health report",
     "src/lib/ops-payments.ts": "sealedAt as a rendered phrase inside an email, never a column",

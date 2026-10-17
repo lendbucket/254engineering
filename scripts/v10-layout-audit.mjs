@@ -50,6 +50,9 @@ import {
   createCustomerProbe,
   customerCookieFor,
   destroyCustomerProbes,
+  attachPartnerUser,
+  attachCustomerUser,
+  detachSeedUsers,
 } from "./lib/portal-probe.mjs";
 import { auditClient } from "./lib/db-target.mjs";
 import { readdirSync, statSync } from "node:fs";
@@ -103,20 +106,26 @@ const ORIGINAL_NOT_YET_V10 = [
  * pieces alone brought into line. 2026-10-08: tasks, restyled, and 37 remain.
  */
 const STILL_NOT_YET_V10 = [
-  "/partner", "/partner/login", "/partner/materials", "/partner/set-password", "/portal", "/portal/accounts",
-  "/portal/accounts/[id]/pricing", "/portal/billing", "/portal/charge-log", "/portal/clients",
-  "/portal/deletion-requests", "/portal/documents/binder/[fileId]", "/portal/files", "/portal/intake",
-  "/portal/jobs/[id]", "/portal/launch", "/portal/messages", "/portal/onboarding", "/portal/partners",
-  "/portal/partners/[id]", "/portal/people", "/portal/queue", "/portal/reports", "/portal/roles",
-  "/portal/status", "/portal/suppressions", "/portal/techs",
+
 ];
 const NOT_YET_V10 = STILL_NOT_YET_V10 ?? [...ORIGINAL_NOT_YET_V10];
 
-/* Dynamic routes whose screen needs a record OWNED by the signed-in probe, which no probe helper makes yet. */
-const UNRESOLVED_UNTIL = {
-  "/account/orders/[reference]": "a customer probe's own order",
-  "/partner/statements/[reference]": "a partner probe's own statement",
-};
+/*
+ * Dynamic routes whose screen needs a record OWNED by the signed-in probe, which
+ * no probe helper makes yet. EMPTY since 2026-10-09: the audit seed
+ * (scripts/seed-audit-world.mjs) holds a partner statement and a customer bulk
+ * order, and a reader attached to each owner opens them. The object stays, so a
+ * route that loses its resolver is named rather than silently skipped.
+ */
+const UNRESOLVED_UNTIL = {};
+
+/*
+ * THE SEEDED RECORDS. Read rather than typed, so a re-seed with a new reference
+ * needs no edit here. A missing seed is a FAIL naming the script to run, never
+ * a skip: the two routes it serves have no other way to be measured.
+ */
+const SEED_PARTNER_EMAIL = "seed-partner@audit-probe.invalid";
+const SEED_BATCH = "254-B2026-DEMO01";
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
@@ -177,7 +186,38 @@ await orCouldNotTell(
     await destroyProbes("v10-layout");
     await destroyPartnerProbes("v10-layout");
     await destroyCustomerProbes("v10-layout");
+    await detachSeedUsers("v10-layout");
   },
+);
+
+/* The seeded owners, and a reader attached to each. */
+const seed = { statement: null, batch: null };
+if (db) {
+  const { data: sp } = await db.from("eng_partners").select("id").eq("contact_email", SEED_PARTNER_EMAIL).maybeSingle();
+  if (sp) {
+    const { data: st } = await db
+      .from("eng_partner_statements")
+      .select("reference, status")
+      .eq("partner_id", sp.id)
+      .in("status", ["issued", "paid"])
+      .limit(1);
+    if (st?.[0]) {
+      seed.statement = st[0].reference;
+      sessions.seedPartner = await attachPartnerUser(BASE, "v10-layout", sp.id);
+    }
+  }
+  const { data: sb } = await db.from("eng_order_batches").select("reference, account_id").eq("reference", SEED_BATCH).maybeSingle();
+  if (sb?.account_id) {
+    seed.batch = sb.reference;
+    sessions.seedCustomer = await attachCustomerUser(BASE, "v10-layout", sb.account_id);
+  }
+}
+rec(
+  "the audit seed is present (a partner statement and a customer bulk order)",
+  Boolean(seed.statement && seed.batch),
+  seed.statement && seed.batch
+    ? `${seed.statement}, ${seed.batch}`
+    : "run: npx tsx --conditions=react-server scripts/seed-audit-world.mjs",
 );
 for (const k of Object.keys(sessions)) rec(`a ${k} session was created`, Boolean(sessions[k]?.cookie), sessions[k]?.fault ?? "");
 
@@ -188,6 +228,15 @@ async function resolve(pattern) {
   if (pattern === "/portal/techs/[id]") return sessions.field_tech?.id ? pattern.replace("[id]", sessions.field_tech.id) : null;
   if (pattern === "/portal/partners/[id]") return sessions.partner?.partnerId ? pattern.replace("[id]", sessions.partner.partnerId) : null;
   if (pattern === "/order/start/[slug]") return "/order/start/roof-inspections";
+  /* A partner's order page (run item 16), by the development seed's demo partner. */
+  if (pattern === "/order/referred/[code]") return "/order/referred/demo-title";
+  /* The two the audit seed serves, opened by the reader attached to each owner. */
+  if (pattern === "/partner/statements/[reference]") {
+    return seed.statement && sessions.seedPartner?.cookie ? `/partner/statements/${seed.statement}` : null;
+  }
+  if (pattern === "/account/orders/[reference]") {
+    return seed.batch && sessions.seedCustomer?.cookie ? `/account/orders/${seed.batch}` : null;
+  }
   /*
    * The order status page, resolved 2026-10-08. It opens only with a signed
    * link, so the resolver issues one through issueCustomerLink, the product's
@@ -228,6 +277,9 @@ async function resolve(pattern) {
 
 /* Which session opens a route: the surface's own principal, or the staff role roleFor names. */
 function sessionFor(surfaceKey, path) {
+  /* A seeded record is opened by its owner's attached reader, never by the probe, which owns nothing. */
+  if (surfaceKey === "partner" && path?.startsWith("/partner/statements/")) return { probe: sessions.seedPartner, cookie: partnerCookieFor };
+  if (surfaceKey === "account" && path?.startsWith("/account/orders/")) return { probe: sessions.seedCustomer, cookie: customerCookieFor };
   if (surfaceKey === "partner") return { probe: sessions.partner, cookie: partnerCookieFor };
   if (surfaceKey === "account") return { probe: sessions.customer, cookie: customerCookieFor };
   if (surfaceKey === "order") return { probe: null, cookie: null };
@@ -306,7 +358,50 @@ function measure() {
       /* Exactly the ruling's exemption: a button or an input. Not the box rule's
        * wider control set, which also excuses a key cap. */
       if (["BUTTON", "INPUT", "SELECT", "TEXTAREA", "OPTION"].includes(el.tagName) || buttonLike(el, cs, r)) continue;
+      /*
+       * THE ONE EXCEPTION: A MAP. Operator ruling of 2026-10-09, recorded in
+       * DESIGN_V10.md. Colour is permitted on swatches and map features inside
+       * an element marked data-v10-map, never on text and never as a background
+       * behind content. So the element must sit inside the marked map AND hold
+       * no text and no children: a swatch. A coloured label, or a coloured box
+       * with anything in it, is still a finding, map or not. Counted, so an
+       * exception that excuses nothing is visible.
+       */
+      if (el.closest("[data-v10-map]") && el.children.length === 0 && !(el.textContent ?? "").trim()) {
+        found.push({ kind: "_mapswatch" });
+        continue;
+      }
       found.push({ kind: "tint", at: `${describe(el)} ${bg}` });
+    }
+  }
+
+  /*
+   * TABLE HEADERS MUST NOT TOUCH, at desktop width. Operator ruling of
+   * 2026-10-09, after "MARGIN" and "COVERAGE" rendered as "MARGINCOVERAGE" on
+   * the dashboard. For every table, the TEXT of each header cell is measured
+   * (a range over its contents, not the cell, whose box always abuts the next)
+   * and two neighbours closer than 8px are a finding naming both.
+   */
+  if (window.innerWidth >= 1200) {
+    for (const row of document.querySelectorAll("thead tr")) {
+      const heads = [...row.children].filter((th) => {
+        const s = getComputedStyle(th);
+        return s.display !== "none" && (th.textContent ?? "").trim();
+      });
+      for (let i = 1; i < heads.length; i++) {
+        const a = document.createRange();
+        a.selectNodeContents(heads[i - 1]);
+        const b = document.createRange();
+        b.selectNodeContents(heads[i]);
+        const ra = a.getBoundingClientRect();
+        const rb = b.getBoundingClientRect();
+        if (ra.width === 0 || rb.width === 0) continue;
+        const gap = rb.left - ra.right;
+        if (gap < 8) {
+          found.push({ kind: "header-touch", at: `"${heads[i - 1].textContent.trim()}" and "${heads[i].textContent.trim()}" ${Math.round(gap)}px apart` });
+        }
+      }
+      found.push({ kind: "_headerpairs", n: Math.max(0, heads.length - 1) });
     }
   }
 
@@ -340,9 +435,19 @@ const browser = targets.length && Object.values(sessions).some((s) => s?.cookie)
 const results = [];
 /** Active nav items measured, by portal: admin, engineer, field_tech, partner. */
 const navSeen = {};
+/** Swatches the map exception excused, by route; and header pairs measured. */
+const mapSwatches = {};
+let headerPairs = 0;
 /** V10's phone-ground, and the surfaces held to it (see the check below). */
 const PHONE_GROUND = "rgb(242, 244, 247)";
-const PHONE_GROUND_SURFACES = new Set(["portal", "account"]);
+/* The partner surface joined on 2026-10-09 with the partner batch, which put its shell and sign in screens on the ground. */
+const PHONE_GROUND_SURFACES = new Set(["portal", "account", "partner"]);
+/**
+ * Screens V10 specifies as a single section on a phone. Empty: nothing has been
+ * named. An entry is a pattern and a reason, and the run prints the count, so
+ * this cannot grow quietly.
+ */
+const PHONE_SINGLE_SECTION = new Map();
 for (const t of targets) {
   if (ONLY && t.pattern !== ONLY) continue;
   if (!t.path) {
@@ -376,38 +481,99 @@ for (const t of targets) {
             navSeen[portal] = (navSeen[portal] ?? 0) + 1;
             continue;
           }
+          if (f.kind === "_mapswatch") {
+            mapSwatches[t.pattern] = (mapSwatches[t.pattern] ?? 0) + 1;
+            continue;
+          }
+          if (f.kind === "_headerpairs") {
+            headerPairs += f.n;
+            continue;
+          }
           kinds[f.kind] = kinds[f.kind] ?? [];
           if (kinds[f.kind].length < 3) kinds[f.kind].push(`${f.at} at ${width}`);
           kinds[f.kind].count = (kinds[f.kind].count ?? 0) + 1;
         }
         /*
-         * V10'S PHONE GROUND, operator ruling of 2026-10-08: on a phone, every
-         * portal and account page, sign in and auth screens included, has
-         * #F2F4F7 behind its white sections. Read at 390 as the ground behind
-         * main: main's own background when it has one, else the nearest
-         * ancestor's. The partner surface joins in the partner batch, whose
-         * screens it covers; three of them pass today and are not listed.
+         * V10'S PHONE GROUND, AS SECTIONS ON IT. Operator rulings of 2026-10-08:
+         * every portal and account page on a phone, sign in and auth screens
+         * included, shows separate white sections with #F2F4F7 visible between
+         * them, "as on /portal/tasks. Not one white main filling the screen."
+         * This REPLACES the first version, which read the colour behind main
+         * and so passed a page that was one white slab on a grey ground.
+         *
+         * At 390: a white section is an element with an opaque white
+         * background at least 90% of the screen wide; nested ones are one
+         * section. Two consecutive sections are SEPARATED when 8px or more lies
+         * between them and the ground there, the first opaque background
+         * behind them, is #F2F4F7. A page passes with at least one separation,
+         * that is two or more sections, or when V10 specifies it as a single
+         * section screen (PHONE_SINGLE_SECTION, counted, empty today). The
+         * partner surface joins in the partner batch.
          */
-        if (width === 390 && PHONE_GROUND_SURFACES.has(t.surface)) {
-          /*
-           * A WHITE MAIN IS A SECTION, NOT THE GROUND. On the account pages main
-           * is itself one white section on the ground (2026-10-08), so a white
-           * main is looked past, once; then the first opaque background behind
-           * it is the ground, whatever its colour. A page white all the way
-           * through reports white.
-           */
-          const ground = await page.evaluate(() => {
-            const opaque = (c) => c && !/rgba\(\s*0,\s*0,\s*0,\s*0\s*\)|transparent/.test(c);
-            const main = document.querySelector("main");
-            if (!main) return "no main";
-            const own = getComputedStyle(main).backgroundColor;
-            let el = opaque(own) && own !== "rgb(255, 255, 255)" ? main : main.parentElement;
-            while (el && !opaque(getComputedStyle(el).backgroundColor)) el = el.parentElement;
-            return el ? getComputedStyle(el).backgroundColor : "nothing opaque";
+        /*
+         * NO SIDEWAYS SCROLL AT 390, on every page this measures. Operator
+         * ruling of 2026-10-08, with the email and short code wrapping rules.
+         * The document, and the portal's own scrolling region where there is
+         * one, must be no wider than the screen. mobile-audit and
+         * mobile-overflow-audit ask the same of their route lists; this holds
+         * every route V10 measures to it, dynamic ones included.
+         */
+        if (width === 390) {
+          const over = await page.evaluate(() => {
+            const out = [];
+            const doc = document.scrollingElement ?? document.documentElement;
+            if (doc.scrollWidth > doc.clientWidth + 1) out.push(`document ${doc.scrollWidth}px in ${doc.clientWidth}px`);
+            for (const el of document.querySelectorAll("[data-portal-scroll]")) {
+              if (el.scrollWidth > el.clientWidth + 1) out.push(`scroll region ${el.scrollWidth}px in ${el.clientWidth}px`);
+            }
+            return out;
           });
-          if (ground !== PHONE_GROUND) {
+          for (const o of over) {
+            kinds.overflow = kinds.overflow ?? [];
+            if (kinds.overflow.length < 3) kinds.overflow.push(`${o} at 390`);
+            kinds.overflow.count = (kinds.overflow.count ?? 0) + 1;
+          }
+        }
+        if (width === 390 && PHONE_GROUND_SURFACES.has(t.surface) && !PHONE_SINGLE_SECTION.has(t.pattern)) {
+          const verdict = await page.evaluate((GROUND) => {
+            const WHITE = "rgb(255, 255, 255)";
+            const opaque = (c) => c && !/rgba\(\s*0,\s*0,\s*0,\s*0\s*\)|transparent/.test(c);
+            const vw = document.documentElement.clientWidth;
+            const visible = (el) => {
+              const cs = getComputedStyle(el);
+              const r = el.getBoundingClientRect();
+              return cs.display !== "none" && cs.visibility !== "hidden" && r.height > 0;
+            };
+            const whites = [...document.querySelectorAll("body *")].filter(
+              (el) => visible(el) && getComputedStyle(el).backgroundColor === WHITE && el.getBoundingClientRect().width >= vw * 0.9,
+            );
+            /* Outermost only: a white section inside a white section is the same section. */
+            const outer = whites.filter((el) => !whites.some((o) => o !== el && o.contains(el)));
+            const box = (el) => {
+              const r = el.getBoundingClientRect();
+              return { el, top: r.top + window.scrollY, bottom: r.bottom + window.scrollY };
+            };
+            const sections = outer.map(box).sort((a, b) => a.top - b.top);
+            const groundBehind = (el) => {
+              let p = el.parentElement;
+              while (p && !opaque(getComputedStyle(p).backgroundColor)) p = p.parentElement;
+              return p ? getComputedStyle(p).backgroundColor : "nothing opaque";
+            };
+            let separated = 0;
+            const seen = new Set();
+            for (let i = 1; i < sections.length; i++) {
+              const gap = sections[i].top - sections[i - 1].bottom;
+              const ground = groundBehind(sections[i].el);
+              seen.add(ground);
+              if (gap >= 8 && ground === GROUND) separated += 1;
+            }
+            return { sections: sections.length, separated, grounds: [...seen].join(" ") };
+          }, PHONE_GROUND);
+          if (verdict.separated < 1) {
             kinds["phone-ground"] = kinds["phone-ground"] ?? [];
-            kinds["phone-ground"].push(`${ground} at 390`);
+            kinds["phone-ground"].push(
+              `${verdict.sections} white section(s), ${verdict.separated} separated by #F2F4F7 (ground seen: ${verdict.grounds || "none"}) at 390`,
+            );
             kinds["phone-ground"].count = (kinds["phone-ground"].count ?? 0) + 1;
           }
         }
@@ -443,7 +609,30 @@ if (!ONLY && browser) {
     missing.length === 0,
     missing.length ? `none seen for: ${missing.join(", ")}` : PORTALS.map((p) => `${p} ${navSeen[p]}`).join(", "),
   );
+  /*
+   * THE MAP EXCEPTION EXCUSES SWATCHES ON THE MAP'S OWN SCREEN, AND NOWHERE
+   * ELSE. Operator ruling of 2026-10-09. Counted per route: an exception that
+   * excused nothing would mean the marked element vanished, and one excusing
+   * swatches on a screen with no map would mean the marker spread.
+   */
+  const MAP_SCREENS = ["/portal/techs"];
+  const where = Object.keys(mapSwatches);
+  rec(
+    "the map exception excuses swatches on the map's own screen and nowhere else",
+    MAP_SCREENS.every((p) => mapSwatches[p] > 0) && where.every((p) => MAP_SCREENS.includes(p)),
+    where.length ? where.map((p) => `${p} ${mapSwatches[p]}`).join(", ") : "none excused anywhere",
+  );
+  rec(
+    "and table headers were measured for touching (a check over no tables passes forever)",
+    headerPairs > 0,
+    `${headerPairs} neighbouring header pair(s) measured at 1280`,
+  );
 }
+rec(
+  "screens excused the phone sections rule as single-section are named, and none is",
+  PHONE_SINGLE_SECTION.size === 0,
+  PHONE_SINGLE_SECTION.size ? [...PHONE_SINGLE_SECTION].map(([p, why]) => `${p}: ${why}`).join("; ") : "0 excused",
+);
 
 let clean = 0;
 let stillListed = 0;
@@ -496,11 +685,21 @@ if (REPORT) {
   await destroyProbes("v10-layout");
   await destroyPartnerProbes("v10-layout");
   await destroyCustomerProbes("v10-layout");
+  const detached = await detachSeedUsers("v10-layout");
+  if (!detached.ok) console.log(`  SEED READERS NOT REMOVED: ${detached.left} left; ${detached.note}`);
   console.log("REPORT ONLY: nothing passed or failed.");
   process.exit(0);
 }
 
 console.log("");
+/*
+ * THE SEED READERS GO BEFORE THE VERDICT IS PRINTED, so a reader left able to
+ * sign in to a seeded owner is a red here rather than a credential nobody saw.
+ */
+{
+  const detached = await detachSeedUsers("v10-layout");
+  rec("the readers attached to the seeded owners are removed", detached.ok, `${detached.left} left; ${detached.note}`);
+}
 for (const r of out) console.log(`  ${r.ok ? "PASS" : "FAIL"}: ${r.name}${r.note ? ` (${r.note})` : ""}`);
 if (!ONLY) {
   console.log("");

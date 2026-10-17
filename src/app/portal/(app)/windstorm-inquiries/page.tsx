@@ -5,6 +5,7 @@ import { windstormInquiries, overdueBy } from "@/lib/ops-windstorm-inquiries";
 import { WINDSTORM_WORK_IN_SCOPE_YEAR, windstormScopeVerdict } from "@/lib/windstorm-inquiry";
 import { Chip, EmptyState, PageHead } from "@/components/portal/surfaces";
 import { MarkAnswered } from "./WindstormInquiriesClient";
+import { formatInFirmZone } from "@/lib/firm-calendar";
 
 export const dynamic = "force-dynamic";
 
@@ -50,7 +51,7 @@ const WILL_OPEN_UP: Record<string, string> = {
 };
 
 const when = (value: string) =>
-  new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  (formatInFirmZone(value, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) ?? "");
 
 export default async function WindstormInquiriesPage() {
   /*

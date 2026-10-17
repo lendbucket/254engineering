@@ -84,7 +84,11 @@ if (cssBlock) {
  * The exact set, not a count.
  *
  * A count passes when somebody deletes one token and adds another, which is
- * precisely the change worth catching. These twenty six names ARE the palette.
+ * precisely the change worth catching. These twenty five names ARE the palette.
+ *
+ * --select left on 2026-10-08, operator ruling of the overnight: a selected
+ * row is marked by a navy left bar only, and V10's grey selected-row fill was
+ * removed from DESIGN_V10.md. Nothing painted with it.
  *
  * --faint, --select and --link joined on 2026-10-08, when the operator ruled
  * that every colour take Design V10's exact value: V10 names all three and the
@@ -110,14 +114,14 @@ const EXPECTED_COLOUR_TOKENS = [
   "--on-navy", "--on-navy-muted", "--on-navy-dim",
   "--warn-bg", "--warn-border", "--warn-ink",
   "--ink", "--secondary", "--faint", "--muted",
-  "--border", "--border-strong", "--row-rule", "--row-hover", "--select", "--link", "--canvas",
+  "--border", "--border-strong", "--row-rule", "--row-hover", "--link", "--canvas",
   "--green", "--red",
 ];
 
 const missingFromDoc = EXPECTED_COLOUR_TOKENS.filter((t) => !documented.has(t));
 const extraInDoc = [...documented.keys()].filter((t) => !EXPECTED_COLOUR_TOKENS.includes(t));
 rec(
-  "the document defines exactly the twenty six colours of the palette",
+  "the document defines exactly the twenty five colours of the palette",
   missingFromDoc.length === 0 && extraInDoc.length === 0,
   [...missingFromDoc.map((t) => `missing ${t}`), ...extraInDoc.map((t) => `extra ${t}`)].join(", ") ||
     `${documented.size} tokens`,
@@ -234,6 +238,8 @@ const PORTED = [
   // list on the day they are built: a screen written today has no excuse for
   // being outside the design system, and the list may only grow.
   "src/app/portal/(app)/reports/page.tsx",
+  /* The record search, 2026-10-10, on the day it was built. */
+  "src/app/portal/(app)/search/page.tsx",
   "src/app/portal/(app)/suppressions/page.tsx",
   "src/app/portal/(app)/suppressions/SuppressionsClient.tsx",
   "src/app/portal/(app)/applications/page.tsx",
@@ -253,6 +259,7 @@ const PORTED = [
   "src/app/partner/(app)/materials/page.tsx",
   "src/app/partner/(app)/materials/SubmitForm.tsx",
   "src/app/partner/(app)/page.tsx",
+  "src/app/partner/(app)/LogoUpload.tsx",
   "src/app/partner/(app)/referrals/page.tsx",
   "src/app/partner/(app)/statements/page.tsx",
   "src/app/partner/(app)/statements/[reference]/page.tsx",
@@ -266,6 +273,7 @@ const PORTED = [
   // real while the port was partial; it now names everything.
   "src/app/(order)/order/[reference]/page.tsx",
   "src/app/(order)/order/start/[slug]/page.tsx",
+  "src/app/(order)/order/referred/[code]/page.tsx",
   "src/app/account/SignOutButton.tsx",
   "src/app/account/layout.tsx",
   /*
@@ -314,6 +322,8 @@ const PORTED = [
   "src/app/portal/(app)/billing/page.tsx",
   "src/app/portal/(app)/certification/CertificationClient.tsx",
   "src/app/portal/(app)/certification/page.tsx",
+  "src/app/portal/(app)/certification/SubmitCredentialForm.tsx",
+  "src/app/portal/(app)/techs/VerificationQueue.tsx",
   "src/app/portal/(app)/charge-log/ChargeLogClient.tsx",
   "src/app/portal/(app)/charge-log/page.tsx",
   "src/app/portal/(app)/clients/ClientsClient.tsx",
@@ -430,6 +440,12 @@ const PORTED = [
   "src/components/portal/design/RestrictedMode.tsx",
   "src/components/portal/design/Table.tsx",
   "src/components/portal/surfaces.tsx",
+  /* Read from the admin-accounts batch of 2026-10-09, which declared them V10. */
+  "src/app/portal/(app)/accounts/OpenAccountClient.tsx",
+  "src/app/portal/(app)/partners/[id]/page.tsx",
+  "src/app/portal/(app)/partners/[id]/PartnerActions.tsx",
+  "src/app/portal/(app)/deletion-requests/page.tsx",
+  "src/app/portal/(app)/deletion-requests/DeletionRequestsClient.tsx",
 ];
 
 /**
@@ -554,6 +570,7 @@ const CUSTOMER_V10 = [
   "src/components/order/OrderFlow.tsx",
   "src/app/(order)/order/[reference]/page.tsx",
   "src/app/(order)/order/start/[slug]/page.tsx",
+  "src/app/(order)/order/referred/[code]/page.tsx",
   /* The credential screens, restyled 2026-09-29. Every account door's link and
    * both reset paths land on set-password, so leaving it in the old card style
    * would have put a visual seam at the end of every one of them. */
@@ -614,12 +631,17 @@ const CUSTOMER_V10 = [
  * said what the colour was saying a second time.
  */
 const STAFF_V10 = [
+  /* The record search, 2026-10-10, held to the staff rules from its first commit. */
+  "src/app/portal/(app)/search/page.tsx",
   "src/app/portal/(app)/review/page.tsx",
   "src/app/portal/(app)/review/ReviewClient.tsx",
   "src/app/portal/(app)/review/LetterSealPanel.tsx",
   "src/app/portal/(app)/review/PrereviewPanel.tsx",
   "src/app/portal/(app)/certification/page.tsx",
   "src/app/portal/(app)/certification/CertificationClient.tsx",
+  /* fix/certification-unblock, 2026-10-09: the technician's submission form and the operator's verification queue. */
+  "src/app/portal/(app)/certification/SubmitCredentialForm.tsx",
+  "src/app/portal/(app)/techs/VerificationQueue.tsx",
   "src/app/portal/(app)/files/page.tsx",
   "src/app/portal/(app)/files/FileClient.tsx",
   "src/app/portal/(app)/files/FileSelection.tsx",
@@ -643,6 +665,62 @@ const STAFF_V10 = [
   "src/app/portal/(app)/jobs/JobsClient.tsx",
   "src/app/portal/(app)/jobs/[id]/page.tsx",
   "src/app/portal/(app)/jobs/[id]/CaptureClient.tsx",
+  /*
+   * The technician batch of 2026-10-08: the dashboard every role lands on and
+   * the messages screen every role shares, restyled to V10 and held to its
+   * scale and colour rules from here.
+   */
+  "src/app/portal/(app)/page.tsx",
+  "src/components/portal/Dashboard.tsx",
+  "src/app/portal/(app)/messages/page.tsx",
+  "src/app/portal/(app)/messages/MessagesClient.tsx",
+  /*
+   * The admin-ops batch of 2026-10-09: the operations screens an
+   * administrator works from, restyled to V10 and held to its rules from here.
+   */
+  "src/app/portal/(app)/techs/page.tsx",
+  "src/app/portal/(app)/techs/TechsClient.tsx",
+  "src/app/portal/(app)/queue/page.tsx",
+  "src/app/portal/(app)/queue/QueueClient.tsx",
+  "src/app/portal/(app)/intake/page.tsx",
+  "src/app/portal/(app)/intake/IntakeClient.tsx",
+  "src/app/portal/(app)/people/page.tsx",
+  "src/app/portal/(app)/people/PeopleClient.tsx",
+  "src/app/portal/(app)/onboarding/page.tsx",
+  "src/app/portal/(app)/onboarding/OnboardingClient.tsx",
+  "src/app/portal/(app)/roles/page.tsx",
+  "src/app/portal/(app)/roles/RolesClient.tsx",
+  "src/app/portal/(app)/status/page.tsx",
+  "src/app/portal/(app)/status/StatusClient.tsx",
+  "src/app/portal/(app)/charge-log/page.tsx",
+  "src/app/portal/(app)/charge-log/ChargeLogClient.tsx",
+  /* The admin-accounts batch of 2026-10-09: accounts, billing, clients, a
+   * partner's record, reports, suppressions and deletion requests. */
+  "src/app/portal/(app)/accounts/page.tsx",
+  "src/app/portal/(app)/accounts/AccountsClient.tsx",
+  "src/app/portal/(app)/accounts/OpenAccountClient.tsx",
+  "src/app/portal/(app)/billing/page.tsx",
+  "src/app/portal/(app)/clients/page.tsx",
+  "src/app/portal/(app)/clients/ClientsClient.tsx",
+  "src/app/portal/(app)/partners/[id]/page.tsx",
+  "src/app/portal/(app)/partners/[id]/PartnerActions.tsx",
+  "src/app/portal/(app)/reports/page.tsx",
+  "src/app/portal/(app)/suppressions/page.tsx",
+  "src/app/portal/(app)/suppressions/SuppressionsClient.tsx",
+  "src/app/portal/(app)/deletion-requests/page.tsx",
+  "src/app/portal/(app)/deletion-requests/DeletionRequestsClient.tsx",
+  /* The partner batch of 2026-10-09: materials and the two sign in screens. */
+  "src/app/partner/(app)/materials/page.tsx",
+  "src/app/partner/(app)/materials/CopyBlock.tsx",
+  "src/app/partner/(app)/materials/SubmitForm.tsx",
+  "src/app/partner/(public)/login/page.tsx",
+  "src/app/partner/(public)/set-password/page.tsx",
+  /* The coverage map, on V10's scale since the map ruling of 2026-10-09. Its
+   * county fills stay under COLOUR_EXEMPT: a map's colours are data. */
+  "src/components/portal/CoverageMap.tsx",
+  /* A partner's statement, measured for the first time on 2026-10-09 once the
+   * audit seed gave it a statement to show. */
+  "src/app/partner/(app)/statements/[reference]/page.tsx",
   "src/app/portal/(app)/waiting/page.tsx",
   /*
    * The credentials screen, operator ruling of 2026-10-07, built to V10 from
@@ -885,6 +963,36 @@ rec(
 );
 
 /*
+ * NO MONOSPACE, NO SPACED OUT TEXT, NO NON-STANDARD HYPHEN, on any signed in,
+ * partner, account or order file, and in the token file. Operator rulings of
+ * 2026-10-08. Read from code, comments stripped.
+ *
+ * Letter-spacing is refused when POSITIVE: V10's type table gives page titles
+ * -0.4 tracking, so a negative value is the design, and a positive one is the
+ * spaced out eyebrow it does not draw. The hyphens are U+2010 and U+2011, which
+ * render wider than a hyphen and read as spacing; a code that must not break
+ * is .v10-code (white-space: nowrap) instead.
+ */
+{
+  const MONO = /\bfont-mono\b|font-family:\s*[^;"]*mono/;
+  const TRACK = /\btracking-(?:wide|wider|widest)\b|\btracking-\[\s*0*\.?[0-9]*[1-9][0-9.]*(?:em|px|rem)\]|letter-spacing:\s*0*\.?[0-9]*[1-9]/;
+  const HYPHEN = /[‐‑]/;
+  const subjects = [...allPortalFiles, TOKENS];
+  const hits = { mono: [], track: [], hyphen: [] };
+  for (const file of subjects) {
+    const lines = codeOnly(file).split("\n");
+    lines.forEach((line, i) => {
+      if (MONO.test(line)) hits.mono.push(`${file}:${i + 1}`);
+      if (TRACK.test(line)) hits.track.push(`${file}:${i + 1}`);
+      if (HYPHEN.test(line)) hits.hyphen.push(`${file}:${i + 1}`);
+    });
+  }
+  rec("no signed in, partner, account or order file sets a monospace face", subjects.length >= 100 && hits.mono.length === 0, hits.mono.slice(0, 6).join("  |  ") || `${subjects.length} file(s) read`);
+  rec("and none spaces text out with positive letter-spacing", hits.track.length === 0, hits.track.slice(0, 6).join("  |  ") || `${subjects.length} file(s) read`);
+  rec("and none carries a non-standard hyphen (U+2010, U+2011)", hits.hyphen.length === 0, hits.hyphen.slice(0, 6).join("  |  ") || `${subjects.length} file(s) read`);
+}
+
+/*
  * AND THE CHECK ABOVE MUST BE LOOKING AT SOMETHING. A customer list that emptied,
  * or a forbidden list that emptied, would make it pass for ever over nothing,
  * which is the vacuous green this repository keeps meeting. Both floors are
@@ -1103,13 +1211,13 @@ for (const [standard, site] of TWINS) {
     line: ["--border", "--border-strong"],
     "line-2": ["--row-rule"],
     "phone-ground": ["--canvas"],
-    select: ["--select", "--row-hover"],
     link: ["--link"],
     "gold-deep": ["--gold-deep"],
   };
   rec(
     "V10's token table was read, and every token in it has a home",
-    v10.size >= 13 && [...v10.keys()].every((k) => k in ROLE || k === "page"),
+    /* Exactly twelve since the select fill was removed, 2026-10-08: a floor would pass a table that lost a row. */
+    v10.size === 12 && [...v10.keys()].every((k) => k in ROLE || k === "page"),
     `${v10.size} tokens: ${[...v10.keys()].filter((k) => !(k in ROLE) && k !== "page").join(", ") || "all placed"}`,
   );
   for (const [name, tokens] of Object.entries(ROLE)) {
@@ -1123,6 +1231,24 @@ for (const [standard, site] of TWINS) {
       );
     }
   }
+  /*
+   * A SELECTED ROW IS A NAVY BAR, NEVER A FILL. Operator ruling, 2026-10-08,
+   * overnight. V10 named a grey selected-row fill, the ruling removed it, and
+   * this asserts both halves so neither can come back alone: V10's table names
+   * no select token, and the portal declares no --select. --row-hover keeps its
+   * value as press and hover feedback, pinned here because V10 no longer gives
+   * it a role to be compared against.
+   */
+  rec(
+    "V10 names no selected-row fill, and the portal declares none",
+    !v10.has("select") && !implemented.has("--select"),
+    `V10 select=${v10.get("select") ?? "absent"}, portal --select=${implemented.get("--select") ?? "absent"}`,
+  );
+  rec(
+    "--row-hover stays press and hover feedback at #f3f4f6",
+    implemented.get("--row-hover") === "#f3f4f6",
+    `--row-hover=${implemented.get("--row-hover") ?? "missing"}`,
+  );
   const surface = tokenText.match(/\.portal-surface\s*\{[^}]*background:\s*(#[0-9a-fA-F]{6})/);
   rec(
     "the desktop ground is V10's page",
@@ -1217,9 +1343,23 @@ for (const [standard, site] of TWINS) {
     );
   }
 
+  /*
+   * REPLACED 2026-10-08, operator ruling: this asserted tabular numerals on the
+   * whole portal surface. In Inter that feature widens the hyphen (5.98px to
+   * 8.44px at 13px) and spaced out "F-29811" and every email address. The
+   * surfaces are proportional now and tables keep tabular figures; both halves
+   * are asserted, so the global setting cannot come back.
+   */
+  const surfaceRule = portalCss.match(/\.portal-surface \{[^}]*\}/)?.[0] ?? "";
   rec(
-    "tabular numerals are on the portal surface",
-    /font-variant-numeric: tabular-nums/.test(portalCss),
+    "figures are proportional on the portal surface, so a hyphen is not widened",
+    /font-variant-numeric: normal/.test(surfaceRule) && !/tabular-nums/.test(surfaceRule),
+    surfaceRule ? "" : "no .portal-surface rule found",
+  );
+  rec(
+    "and on the account and order surfaces, while table cells keep tabular figures",
+    /\.v10-phone-ground,\s*\.v10-phone-ground-centred,\s*\.v10-proportional \{\s*font-variant-numeric: normal;/.test(portalCss) &&
+      /:where\(td, th\)[^{]*\{\s*font-variant-numeric: tabular-nums;/.test(portalCss),
   );
 
   rec(

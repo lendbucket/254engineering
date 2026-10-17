@@ -193,9 +193,32 @@ export type CatalogEntry = {
   protocolServiceSlug: string | null;
   /** Qualitative. The firm has not measured a turnaround across a network yet. */
   turnaround: string;
-  /** What arrives at the end, in the customer's words. */
+  /**
+   * What arrives at the end, QUOTED RATHER THAN WRITTEN. Operator rulings of
+   * 2026-10-08: every item is a sentence of this line's own SIGNED protocol,
+   * word for word, or the line carries SCOPE_PENDING and nothing else. A
+   * description of a deliverable written by the firm is a promise the engineer
+   * has not put his seal behind. protocol-registry-audit compares every item
+   * against the signed document.
+   */
   receives: string[];
+  /**
+   * What the firm does NOT provide, as its own line beside receives. Limits
+   * only, never a scope claim. Every notes line is pinned as a literal in
+   * protocol-registry-audit, so adding one is two edits made on purpose and is
+   * listed for the operator's review.
+   */
+  notes?: string[];
 };
+
+/**
+ * THE LINE A DELIVERABLE CARRIES UNTIL ITS PROTOCOL IS SIGNED. Operator ruling
+ * of 2026-10-08, worded by the operator. When the engineer of record signs a
+ * line's protocol, a follow-up branch replaces this with sentences quoted from
+ * it (BACKLOG.md, tied to his signatures).
+ */
+export const SCOPE_PENDING =
+  "The scope of this service is published here once the engineer of record signs its protocol.";
 
 // ---------------------------------------------------------------------------
 
@@ -338,17 +361,22 @@ const DECLARED: CatalogDeclaration[] = [
     turnaround:
       "The visit is scheduled once a technician accepts. The engineer's review begins when the evidence is complete.",
     /*
-     * QUOTED FROM 254-RC-001 SECTION 11, operator ruling of 2026-10-08. Until
-     * that day this line promised a forecast of how long the roof would last,
-     * on the order status page and in the order email, which the signed
-     * protocol excludes in so many words. The old text is in the commit that
-     * replaced it. The protocol is quoted, not paraphrased, and
-     * protocol-registry-audit now reads this file. This comment deliberately
-     * does not spell the excluded phrases, so the check reads only copy.
+     * QUOTED FROM 254-RC-001 v1.1 SECTION 11, WORD FOR WORD. Operator rulings
+     * of 2026-10-08. Until that morning this line promised a forecast of how
+     * long the roof would last, which the signed protocol excludes in so many
+     * words; that afternoon the rule widened to every item: a sentence of the
+     * signed protocol or nothing. The first four sentences of section 11 are
+     * the ones that say what the letter is. The two items this replaced, an
+     * introduction and a photographic record keyed to locations, are not
+     * sentences of the protocol and are in the commit that removed them.
+     * protocol-registry-audit compares each item against the signed PDF. This
+     * comment deliberately does not spell the excluded phrases.
      */
     receives: [
-      'A sealed engineering letter. From 254-RC-001, section 11: "The letter states observed condition only. It does not estimate remaining service life, forecast future performance, or represent that the roof will not leak."',
-      "The photographic record the opinion rests on, keyed to where each photograph was taken",
+      "On a pass determination, the engineer issues a sealed letter addressed to the recipient recorded at intake, for the purpose recorded at intake.",
+      "The letter identifies the property, the date of inspection, the covering type, the method by which the evidence was collected and reviewed, and the observed condition.",
+      "The letter states observed condition only. It does not estimate remaining service life, forecast future performance, or represent that the roof will not leak.",
+      "The letter states that the inspection was visual and non-destructive, that it reflects condition on the date of inspection only, and that no representation is made about concealed conditions.",
     ],
   },
   /*
@@ -456,11 +484,8 @@ const DECLARED: CatalogDeclaration[] = [
      * and does not promise that TDI will." This read "The windstorm
      * certification the engineer's review supports, sealed". Item 8.
      */
-    receives: [
-      "A sealed post-construction inspection report, supporting a Form WPI-2E application to the Texas Department of Insurance",
-      "The photographic and measurement record it rests on",
-      "The certificate itself, Form WPI-8E, is issued by the Department rather than by the firm",
-    ],
+    receives: [SCOPE_PENDING],
+    notes: ["The certificate itself, Form WPI-8E, is issued by the Department rather than by the firm"],
   },
   {
     serviceSlug: "windstorm-wpi-8",
@@ -508,11 +533,8 @@ const DECLARED: CatalogDeclaration[] = [
     turnaround:
       "Attendance is staged against the construction programme rather than booked as a single visit, because the evidence has to be gathered while each stage is still open.",
     /* WP-001 section 1, and the firm does not issue the certificate. Item 8. */
-    receives: [
-      "Form WPI-2, prepared and submitted to the Texas Department of Insurance by the appointed engineer",
-      "The photographic and measurement record it rests on, stage by stage",
-      "The certificate itself, Form WPI-8, is issued by the Department rather than by the firm",
-    ],
+    receives: [SCOPE_PENDING],
+    notes: ["The certificate itself, Form WPI-8, is issued by the Department rather than by the firm"],
   },
   {
     serviceSlug: "foundation-inspections",
@@ -553,10 +575,7 @@ const DECLARED: CatalogDeclaration[] = [
     ],
     turnaround:
       "The visit is scheduled once a technician accepts. The engineer's review begins when the evidence is complete.",
-    receives: [
-      "A sealed engineering opinion on the condition and performance of the foundation",
-      "The elevation survey and photographic record the opinion rests on",
-    ],
+    receives: [SCOPE_PENDING],
   },
   {
     serviceSlug: "manufactured-home-foundation-certifications",
@@ -612,10 +631,7 @@ const DECLARED: CatalogDeclaration[] = [
     ],
     turnaround:
       "The visit is scheduled once a technician accepts. Lenders commonly set their own deadline, so say if you have one.",
-    receives: [
-      "The foundation certification the engineer's review supports, sealed",
-      "The record of anchorage and pier conditions it rests on",
-    ],
+    receives: [SCOPE_PENDING],
   },
 
   // -------------------------------------------------------------- desk orders
@@ -686,7 +702,7 @@ const DECLARED: CatalogDeclaration[] = [
      */
     turnaround:
       "The engineer decides at intake whether a technician visits or the installer's site survey photographs are enough. No letter is issued from drawings alone, and no calculation starts until the array design arrives.",
-    receives: ["The structural letter the engineer's review supports, sealed"],
+    receives: [SCOPE_PENDING],
   },
   {
     serviceSlug: "structural-letters",
@@ -751,7 +767,7 @@ const DECLARED: CatalogDeclaration[] = [
      */
     turnaround:
       "The engineer triages the order within one business day and records whether it is a site job or a desk job. A letter about existing construction rests on a technician's visit. Review begins when the record is complete.",
-    receives: ["The letter the engineer's review supports, sealed"],
+    receives: [SCOPE_PENDING],
   },
   {
     /*
@@ -821,10 +837,7 @@ const DECLARED: CatalogDeclaration[] = [
      */
     turnaround:
       "A technician visits before the specification is written, unless an earlier job file of this firm already holds the evidence and the engineer finds it still current. Review begins when the record is complete.",
-    receives: [
-      "A sealed repair specification defining the scope of work",
-      "A document three contractors can price against identically",
-    ],
+    receives: [SCOPE_PENDING],
   },
 
   // ------------------------------------------------------------- quote orders
@@ -900,10 +913,7 @@ const DECLARED: CatalogDeclaration[] = [
     ],
     turnaround:
       "The engineer decides at acceptance whether a technician visits; the engineer does not attend. Review begins when the span and the loads are complete.",
-    receives: [
-      "A sealed sizing for the beam or header, with the span and loads it was calculated for stated on it",
-      "A written quote from the engineer's estimate of the hours, and no charge until you accept it",
-    ],
+    receives: [SCOPE_PENDING],
   },
   {
     serviceSlug: "residential-light-commercial-design",
@@ -951,11 +961,7 @@ const DECLARED: CatalogDeclaration[] = [
     ],
     turnaround:
       "The engineer decides at acceptance whether a technician visits; the engineer does not attend. Review begins when the dimensions and photographs are complete.",
-    receives: [
-      "A sealed plan set for the cover, to the wind loads for the property's county",
-      "A document a permit office can review without asking for more",
-      "A written quote from the engineer's estimate of the hours, and no charge until you accept it",
-    ],
+    receives: [SCOPE_PENDING],
   },
   {
     serviceSlug: "residential-light-commercial-design",
@@ -992,7 +998,7 @@ const DECLARED: CatalogDeclaration[] = [
       },
     ],
     turnaround: "A person scopes this and comes back with a quote. Nothing is charged until you accept one.",
-    receives: ["A written quote with a defined scope", "No charge until you accept it"],
+    receives: [SCOPE_PENDING],
   },
 ];
 

@@ -239,9 +239,14 @@ export default async function DocumentsPage() {
 
       <p className="mt-4 max-w-[74ch] text-[13.5px] leading-[1.6] text-[var(--secondary)]">
         Every export is written to the{" "}
-        <Link href="/portal/audit" className="font-semibold text-[var(--navy)] underline underline-offset-2">
-          audit trail
-        </Link>{" "}
+        {/* A link only for a reader who can open the trail (2026-10-10: it was a 404 for an engineer). */}
+        {can(actor, "audit.read") ? (
+          <Link href="/portal/audit" className="font-semibold text-[var(--navy)] underline underline-offset-2">
+            audit trail
+          </Link>
+        ) : (
+          "audit trail"
+        )}{" "}
         with who took it and when. That is the point of the trail, and it applies to administrators
         too.
       </p>

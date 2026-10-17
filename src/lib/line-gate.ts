@@ -3,7 +3,7 @@ import { supabaseAdmin } from "./supabase";
 import { serviceLineIsOffered } from "./launch";
 import { verifiedEngineers } from "@/config/credentials";
 import { protocolForLine } from "@/content/protocols";
-import { RECEIVED_PROTOCOLS } from "@/content/protocols/received";
+import { SIGNABLE_PROTOCOLS } from "@/content/protocols/signable";
 import { signatureStatus } from "./protocol-sign";
 import { orderBlockedReason, type CatalogEntry, type OrderGateMode } from "@data/catalog";
 
@@ -76,18 +76,17 @@ async function signedInDatabase(serviceSlug: string, tier: string | null | undef
   const registered = protocolForLine(serviceSlug);
   if (registered?.declaration.documentNumber === "254-RC-001") return rc001Signed("254-RC-001");
 
-  const received = RECEIVED_PROTOCOLS.find(
-    (p) =>
-      p.declaration.serviceSlug === serviceSlug &&
-      ((p.declaration as { serviceTier?: string | null }).serviceTier ?? null) === (tier ?? null),
-  ) ?? RECEIVED_PROTOCOLS.find((p) => p.declaration.serviceSlug === serviceSlug && !(p.declaration as { serviceTier?: string | null }).serviceTier);
+  /* The same list the engineer signs from (signable.ts), so a superseded version cannot open a line. */
+  const received = SIGNABLE_PROTOCOLS.find(
+    (p) => p.serviceSlug === serviceSlug && p.serviceTier === (tier ?? null),
+  ) ?? SIGNABLE_PROTOCOLS.find((p) => p.serviceSlug === serviceSlug && !p.serviceTier);
   if (!received) return closed("This service line has no protocol, so it cannot be ordered.");
 
-  const status = await signatureStatus(received.declaration.documentNumber, received.declaration.version as string);
+  const status = await signatureStatus(received.documentNumber, received.version);
   if (status.state === "signed") return { ok: true };
   if (status.state === "unknown") return closed("The order system cannot confirm the engineer's signature right now.", true);
-  if (status.state === "void") return closed(`${received.declaration.documentNumber}'s signature no longer covers its text.`);
-  return closed(`${received.declaration.documentNumber} has not been signed by the engineer of record.`);
+  if (status.state === "void") return closed(`${received.documentNumber}'s signature no longer covers its text.`);
+  return closed(`${received.documentNumber} has not been signed by the engineer of record.`);
 }
 
 export async function lineIsSellable(serviceSlug: string, tier?: string | null): Promise<Sellable> {

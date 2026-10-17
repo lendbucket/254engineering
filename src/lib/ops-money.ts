@@ -41,6 +41,16 @@ export function money(value: Cents): string {
   return `$${(value / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+/**
+ * A money figure, or the words that stand in for an absent one. One home for
+ * the dashboard's money tile and figure-surfaces' sweep of it, so the two
+ * cannot disagree. Operator ruling of 2026-10-09: "No total" where files exist
+ * and none carries every figure, never $0.00.
+ */
+export function moneyOr(value: Cents, absent?: string): string {
+  return !isKnown(value) && absent ? absent : money(value);
+}
+
 /** The same, for a CSV cell, where an absent figure must not become 0. */
 export function moneyCell(value: Cents): string {
   return isKnown(value) ? (value / 100).toFixed(2) : "";

@@ -6,8 +6,15 @@ import { orderForFile as liveOrderForFile } from "./order-for-file";
 import { supabaseAdmin } from "./supabase";
 import { business } from "@/config/business";
 import { deploymentOrigin } from "./site-url";
-import { reverseForRefund } from "./ops-partner-comp";
+import { planReversals, reverseForRefund, type PlannedReversal } from "./ops-partner-comp";
+import {
+  applyPaymentEvent,
+  finishPaymentEvent,
+  recordReleaseFailure,
+  type PaymentEventSource,
+} from "./payment-events";
 import { writeAudit } from "./ops-audit";
+import { can, type Actor } from "./ops-authz";
 import { catalogFor } from "@data/catalog";
 import {
   canTransitionOrder,
@@ -30,6 +37,9 @@ import { isKnown, money } from "./ops-money";
 import { LIVE_KEY_FIX, LIVE_KEY_HEADLINE, liveKeyOffProduction } from "./db-guard";
 import { fakeProvider, type PaymentProvider } from "./payments";
 import { stripeProvider } from "./payments-stripe";
+import { abandonedSoFar } from "./bounded-fetch";
+import { raiseSystemTask } from "./system-work";
+import { REFUND_ISSUED_SENTENCE, refundStatusLabel, refundUpdateFor, type RefundRowStatus } from "./refund-update";
 
 /**
  * The platform side of money: starting a checkout, recording a payment, and
@@ -294,6 +304,56 @@ export async function startBatchCheckout(batchId: string): Promise<CheckoutResul
 }
 
 /**
+ * What a payment event did, for the webhook to answer with.
+ *
+ * `duplicate` is true when the event was already applied, or its charge was
+ * already on file, so this delivery wrote no money. A claimed event resent is
+ * also a duplicate, and its release still ran.
+ */
+export type PaymentApplied =
+  | { ok: true; duplicate: boolean; released: number }
+  | { ok: false; error: string };
+
+/**
+ * The work a committed payment released, run after commit, and the event
+ * finished only when every order's release completed (0075).
+ *
+ * Each order's release is safe to run twice, which is what makes a resend of a
+ * claimed event safe to process rather than skip.
+ */
+async function releaseAndFinish(eventId: string, orderIds: string[]): Promise<PaymentApplied> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The order system is not configured." };
+
+  const missing: string[] = [];
+  for (const orderId of orderIds) {
+    const { data: order, error } = await db
+      .from("eng_service_orders")
+      .select("id, reference, order_type, file_id")
+      .eq("id", orderId)
+      .maybeSingle();
+    if (error || !order) {
+      missing.push(`${orderId}: the order could not be read${error ? `: ${error.message}` : ""}`);
+      continue;
+    }
+    const released = await releaseForFulfilment(orderId, order.order_type as string, order.file_id as string | null);
+    if (!released.complete) missing.push(`${order.reference}: ${released.missing.join("; ")}`);
+  }
+
+  if (missing.length) {
+    const why = `Paid, and the work was not fully released: ${missing.join(" | ")}`;
+    await recordReleaseFailure(eventId, why);
+    return { ok: false, error: why };
+  }
+
+  const finished = await finishPaymentEvent(eventId);
+  if (!finished.ok) {
+    return { ok: false, error: `The work was released and the event could not be marked done: ${finished.error}` };
+  }
+  return { ok: true, duplicate: false, released: orderIds.length };
+}
+
+/**
  * A batch payment arrived.
  *
  * ONE charge row, on the batch, because one payment happened. Each order is then
@@ -301,144 +361,151 @@ export async function startBatchCheckout(batchId: string): Promise<CheckoutResul
  * a charge row of its own: ten charge rows for one payment would be ten times
  * the money in the ledger.
  *
- * Idempotent on the charge ref, exactly as markPaid is, because Stripe delivers
- * more than once.
+ * ONE TRANSACTION FOR THE MONEY, then the release (0075). The rules decide
+ * which orders a payment releases; eng_apply_batch_paid records the event, the
+ * charge, the batch and each released order under the status it was judged at,
+ * and refuses if any moved. The release runs after commit and finishes the
+ * event.
  */
 export async function markBatchPaid(input: {
+  eventId: string;
+  source?: PaymentEventSource;
   batchId: string;
   chargeRef: string;
   amountCents: number;
   provider: string;
-}): Promise<{ ok: true; alreadyRecorded: boolean; released: number } | { ok: false; error: string }> {
+}): Promise<PaymentApplied> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The order system is not configured." };
 
-  const { data: batch } = await db
+  const { data: batch, error: batchError } = await db
     .from("eng_order_batches")
     .select("id, reference, status")
     .eq("id", input.batchId)
     .maybeSingle();
+  if (batchError) return { ok: false, error: `The submission could not be read: ${batchError.message}` };
   if (!batch) return { ok: false, error: "That submission does not exist." };
 
-  const { error: payError } = await db.from("eng_order_payments").insert({
-    batch_id: input.batchId,
-    kind: "charge",
-    amount_cents: input.amountCents,
-    provider: input.provider,
-    provider_ref: input.chargeRef,
-    status: "succeeded",
-  });
-
-  if (payError) {
-    if (payError.code === "23505") return { ok: true, alreadyRecorded: true, released: 0 };
-    return { ok: false, error: payError.message };
-  }
-
-  await db
-    .from("eng_order_batches")
-    .update({ status: "accepted", paid_at: DB_NOW })
-    .eq("id", input.batchId);
-
   /*
-   * PAGED. Every row here is RELEASED to fulfilment by the loop below. An order
-   * past the cut stays at awaiting_payment after the batch was paid, which is a
-   * customer who has been charged and whose work never starts.
+   * PAGED, and a failed read refuses. Every row here is RELEASED to fulfilment;
+   * an order past the cut, or a read that failed and was taken as none, would
+   * be a customer who has been charged and whose work never starts.
    */
-  const releaseRead = await readEvery<{
-    id: string; reference: string; status: string; order_type: string; file_id: string | null;
-  }>((from, to) =>
+  const releaseRead = await readEvery<{ id: string; status: string }>((from, to) =>
     db
       .from("eng_service_orders")
-      .select("id, reference, status, order_type, file_id")
+      .select("id, status")
       .eq("batch_id", input.batchId)
       .order("created_at", { ascending: true })
       .range(from, to),
   );
-  const orders = releaseRead.ok ? releaseRead.rows : null;
+  if (!releaseRead.ok) return { ok: false, error: "The orders in that submission could not be read." };
 
-  let released = 0;
-  for (const o of orders ?? []) {
-    if (!canTransitionOrder(o.status as never, "paid")) continue;
-    await db
-      .from("eng_service_orders")
-      .update({ status: "in_fulfilment", paid_at: DB_NOW })
-      .eq("id", o.id);
-    await event(
-      o.id as string,
-      "payment.received",
-      true,
-      `Paid as part of ${batch.reference}. The firm is arranging the work.`,
-    );
-    await releaseForFulfilment(o.id as string, o.order_type as string, o.file_id as string | null);
-    released += 1;
-  }
+  const orders = releaseRead.rows.map((o) => ({
+    id: o.id,
+    expected_status: o.status,
+    release: canTransitionOrder(o.status as never, "paid"),
+  }));
+  const releasing = orders.filter((o) => o.release).length;
 
-  await writeAudit({
-    actor: { id: null, role: "admin", email: "order-engine@254engineering.com" },
-    action: "batch.paid",
-    entityType: "order_batch",
-    entityId: input.batchId,
-    summary: `${batch.reference}: ${money(input.amountCents)} received, ${released} properties released`,
+  const applied = await applyPaymentEvent("eng_apply_batch_paid", {
+    event_id: input.eventId,
+    source: input.source ?? "stripe_webhook",
+    batch_id: input.batchId,
+    charge_ref: input.chargeRef,
+    amount_cents: input.amountCents,
+    provider: input.provider,
+    expected_status: batch.status,
+    orders,
+    received_summary: `Paid as part of ${batch.reference}. The firm is arranging the work.`,
+    audit_summary: `${batch.reference}: ${money(input.amountCents)} received, ${releasing} properties released`,
   });
+  if (!applied.ok) return applied;
 
-  return { ok: true, alreadyRecorded: false, released };
+  const duplicate = applied.outcome !== "applied";
+  if (applied.release.length === 0) return { ok: true, duplicate, released: 0 };
+  const released = await releaseAndFinish(input.eventId, applied.release);
+  return released.ok ? { ...released, duplicate } : released;
 }
 
 /**
- * A batch checkout that will never be paid, closed out with its orders.
+ * A checkout that will never be paid, closed out: one order, or a batch with
+ * every order under it.
  *
  * The batch and every order under it, in one act. Closing the batch and leaving
  * ten orders at awaiting_payment would put ten rows on the stuck order screen
  * for one abandonment, and an operator who sees ten rows for one event stops
  * trusting the screen.
+ *
+ * ONE TRANSACTION, AND EACH ORDER CANCELLED ONLY UNDER THE STATUS IT WAS JUDGED
+ * AT (0075). Stripe does not guarantee that a completion precedes an expiry. A
+ * payment that moved an order between this read and the write leaves it no
+ * longer at its expected status, so eng_apply_checkout_expired refuses and
+ * cancels nothing, and the next delivery judges it again and leaves the paid
+ * order alone.
  */
-export async function abandonBatch(
-  batchId: string,
-  reason: string,
-): Promise<{ ok: true; closed: number } | { ok: false; error: string }> {
+export async function expireCheckout(input: {
+  eventId: string;
+  orderId: string | null;
+  batchId: string | null;
+  reason: string;
+}): Promise<{ ok: true; duplicate: boolean; closed: number } | { ok: false; error: string }> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The order system is not configured." };
 
-  const { data: batch } = await db
-    .from("eng_order_batches")
-    .select("id, reference, status")
-    .eq("id", batchId)
-    .maybeSingle();
-  if (!batch) return { ok: false, error: "That submission does not exist." };
+  let batchStatus: string | null = null;
+  let rows: { id: string; status: string }[] = [];
 
-  /*
-   * A batch that was paid is not abandoned, whatever order the events arrived
-   * in. Stripe does not guarantee that a completion precedes an expiry, so this
-   * refuses on state rather than assuming the expiry came last.
-   */
-  if (batch.status !== "awaiting_payment" && batch.status !== "draft") {
-    return { ok: true, closed: 0 };
-  }
+  if (input.batchId) {
+    const { data: batch, error } = await db
+      .from("eng_order_batches")
+      .select("id, status")
+      .eq("id", input.batchId)
+      .maybeSingle();
+    if (error) return { ok: false, error: `The submission could not be read: ${error.message}` };
+    if (!batch) return { ok: false, error: "That submission does not exist." };
+    batchStatus = batch.status as string;
 
-  /* PAGED, for the reason the release above gives: a row past the cut keeps a
-   * state nobody meant to leave it in. */
-  const abandonRead = await readEvery<{ id: string; status: string }>((from, to) =>
-    db
+    const read = await readEvery<{ id: string; status: string }>((from, to) =>
+      db
+        .from("eng_service_orders")
+        .select("id, status")
+        .eq("batch_id", input.batchId as string)
+        .order("created_at", { ascending: true })
+        .range(from, to),
+    );
+    if (!read.ok) return { ok: false, error: "The orders in that submission could not be read." };
+    rows = read.rows;
+  } else if (input.orderId) {
+    const { data: order, error } = await db
       .from("eng_service_orders")
       .select("id, status")
-      .eq("batch_id", batchId)
-      .order("created_at", { ascending: true })
-      .range(from, to),
-  );
-  const orders = abandonRead.ok ? abandonRead.rows : null;
-
-  let closed = 0;
-  for (const o of orders ?? []) {
-    const result = await markAbandoned(o.id as string, reason);
-    if (result.ok && result.changed) closed += 1;
+      .eq("id", input.orderId)
+      .maybeSingle();
+    if (error) return { ok: false, error: `The order could not be read: ${error.message}` };
+    if (!order) return { ok: false, error: "That order does not exist." };
+    rows = [{ id: order.id as string, status: order.status as string }];
   }
 
-  await db
-    .from("eng_order_batches")
-    .update({ status: "cancelled", cancelled_at: DB_NOW })
-    .eq("id", batchId);
+  /* A batch that was paid is not abandoned, whatever order the events arrived in. */
+  const batchOpen = batchStatus === null || batchStatus === "awaiting_payment" || batchStatus === "draft";
 
-  return { ok: true, closed };
+  const applied = await applyPaymentEvent("eng_apply_checkout_expired", {
+    event_id: input.eventId,
+    source: "stripe_webhook",
+    order_id: input.batchId ? null : input.orderId,
+    batch_id: input.batchId,
+    expected_batch_status: batchStatus,
+    cancel_batch: input.batchId !== null && batchOpen,
+    orders: rows.map((o) => ({
+      id: o.id,
+      expected_status: o.status,
+      cancel: batchOpen && canTransitionOrder(o.status as never, "cancelled"),
+    })),
+    reason: input.reason,
+  });
+  if (!applied.ok) return applied;
+  return { ok: true, duplicate: applied.outcome !== "applied", closed: Number(applied.detail.closed ?? 0) };
 }
 
 // -------------------------------------------------------------------- paid
@@ -446,13 +513,25 @@ export async function abandonBatch(
 /**
  * Record a completed payment and move the work forward.
  *
- * IDEMPOTENT, BECAUSE WEBHOOKS ARE DELIVERED MORE THAN ONCE
- * ---------------------------------------------------------
- * The unique index on (provider, provider_ref) is what actually enforces it: a
- * second delivery of the same charge conflicts and this returns the same
- * answer rather than dispatching the job twice.
+ * RECORDED ONCE, BECAUSE WEBHOOKS ARE DELIVERED MORE THAN ONCE (0075)
+ * --------------------------------------------------------------------
+ * The event id is recorded before any effect, in the same transaction as the
+ * charge row, the order's move to fulfilment under the status it was judged
+ * at, its payment event and the audit row (eng_apply_order_paid). A resent
+ * event that is done changes nothing. The unique index on (provider,
+ * provider_ref) still holds underneath: a charge already on file under
+ * another event finishes this one and writes nothing.
+ *
+ * The release reaches past the transaction, so it runs after commit with the
+ * event claimed, and the event is finished only when it completes. A resend
+ * of a claimed event releases again, which is safe twice.
+ *
+ * `eventId` is the provider's event id from the webhook, or "reconcile:" and
+ * the checkout session when the reconciliation pull found the payment.
  */
 export async function markPaid(input: {
+  eventId: string;
+  source?: PaymentEventSource;
   orderId: string;
   chargeRef: string;
   amountCents: number;
@@ -461,66 +540,34 @@ export async function markPaid(input: {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The order system is not configured." };
 
-  const { data: order } = await db
+  const { data: order, error: orderError } = await db
     .from("eng_service_orders")
-    .select("id, reference, status, order_type, file_id, customer_email, total_cents")
+    .select("id, reference, status")
     .eq("id", input.orderId)
     .maybeSingle();
+  if (orderError) return { ok: false, error: `The order could not be read: ${orderError.message}` };
   if (!order) return { ok: false, error: "That order does not exist." };
 
-  const { error: payError } = await db.from("eng_order_payments").insert({
+  const releases = canTransitionOrder(order.status as never, "paid");
+  const applied = await applyPaymentEvent("eng_apply_order_paid", {
+    event_id: input.eventId,
+    source: input.source ?? "stripe_webhook",
     order_id: input.orderId,
-    kind: "charge",
+    charge_ref: input.chargeRef,
     amount_cents: input.amountCents,
     provider: input.provider,
-    provider_ref: input.chargeRef,
-    status: "succeeded",
+    expected_status: order.status,
+    transition: releases ? "release" : "unexpected",
+    received_summary: `Payment of ${money(input.amountCents)} received. The firm is arranging the work.`,
+    unexpected_summary: `A payment arrived while the order was ${order.status}.`,
+    audit_summary: `${order.reference}: ${money(input.amountCents)} received via ${input.provider}`,
   });
+  if (!applied.ok) return applied;
 
-  if (payError) {
-    /*
-     * 23505 is the unique violation on (provider, provider_ref), which means
-     * this exact charge is already recorded. That is a duplicate delivery, not
-     * a failure, and everything below it has already happened.
-     */
-    if (payError.code === "23505") return { ok: true, alreadyRecorded: true };
-    return { ok: false, error: payError.message };
-  }
-
-  if (!canTransitionOrder(order.status as never, "paid")) {
-    await event(input.orderId, "payment.unexpected", false, `A payment arrived while the order was ${order.status}.`);
-    return { ok: true, alreadyRecorded: false };
-  }
-
-  /*
-   * DB_NOW. When an order was paid for is a money fact on the firm's own
-   * record, and it was written from whichever machine served the callback.
-   * The variable is kept because it is used once and reads better named.
-   */
-  const paidAt = DB_NOW;
-  await db
-    .from("eng_service_orders")
-    .update({ status: "in_fulfilment", paid_at: paidAt })
-    .eq("id", input.orderId);
-
-  await event(
-    input.orderId,
-    "payment.received",
-    true,
-    `Payment of ${money(input.amountCents)} received. The firm is arranging the work.`,
-  );
-
-  await releaseForFulfilment(input.orderId, order.order_type as string, order.file_id as string | null);
-
-  await writeAudit({
-    actor: { id: null, role: "admin", email: "order-engine@254engineering.com" },
-    action: "order.paid",
-    entityType: "service_order",
-    entityId: input.orderId,
-    summary: `${order.reference}: ${money(input.amountCents)} received via ${input.provider}`,
-  });
-
-  return { ok: true, alreadyRecorded: false };
+  const alreadyRecorded = applied.outcome !== "applied";
+  if (applied.release.length === 0) return { ok: true, alreadyRecorded };
+  const released = await releaseAndFinish(input.eventId, applied.release);
+  return released.ok ? { ok: true, alreadyRecorded } : released;
 }
 
 /**
@@ -536,14 +583,43 @@ export async function markPaid(input: {
  * eventually stop issuing the customer link, or release a field order into the
  * review queue, and the difference would only show up as a customer who never
  * got a status page.
+ *
+ * SAFE TO RUN TWICE (0075). A payment's release runs after its money commits,
+ * and a resend of an event whose release did not finish runs it again. So each
+ * step first asks whether it already happened: the file step by the order's
+ * own work.released or work.blocked event, or the file already at its target;
+ * the link and confirmation by a confirmation already queued or sent for this
+ * order; the account by the order already naming one. A step that already
+ * happened is skipped, never repeated.
+ *
+ * It answers whether the release COMPLETED. A step that failed in a way the
+ * next attempt can fix (a read that failed, a link that could not be issued, a
+ * confirmation that could not be queued) leaves it incomplete, and the payment
+ * event stays claimed. A step that recorded its own outcome for a person (no
+ * file, no customer address, a file the rules would not move) is complete:
+ * running it again would only say the same thing twice.
  */
+export type ReleaseResult = { complete: boolean; missing: string[] };
+
 export async function releaseForFulfilment(
   orderId: string,
   orderType: string,
   fileId: string | null,
-): Promise<void> {
+): Promise<ReleaseResult> {
   const db = supabaseAdmin();
-  if (!db) return;
+  if (!db) return { complete: false, missing: ["the database is not configured"] };
+  const missing: string[] = [];
+  const abandonedBefore = abandonedSoFar();
+
+  const { data: priorEvents, error: priorError } = await db
+    .from("eng_order_events")
+    .select("event")
+    .eq("order_id", orderId)
+    .in("event", ["work.released", "work.blocked", "email.sent"]);
+  if (priorError) {
+    return { complete: false, missing: [`the order's events could not be read: ${priorError.message}`] };
+  }
+  const prior = new Set((priorEvents ?? []).map((e) => e.event as string));
 
   /*
    * Where the work goes. A field order needs a technician before an engineer has
@@ -552,7 +628,24 @@ export async function releaseForFulfilment(
    * not need is ever created.
    */
   const target = landingStatusFor(orderType as "field" | "desk" | "quote");
-  if (target && fileId) {
+  const fileStepDone = prior.has("work.released") || prior.has("work.blocked");
+  const { data: fileNow, error: fileError } =
+    !fileStepDone && target && fileId
+      ? await db.from("eng_files").select("status").eq("id", fileId).maybeSingle()
+      : { data: null, error: null };
+  if (fileError) {
+    missing.push(`the file could not be read: ${fileError.message}`);
+  } else if (fileStepDone) {
+    /* Already released, or already recorded as blocked for a person. */
+  } else if (target && fileId && fileNow?.status === target) {
+    /* An earlier run moved it and stopped before its event. */
+    await event(
+      orderId,
+      "work.released",
+      false,
+      target === "needs_dispatch" ? "The file is released for dispatch." : "The file is released into the review queue.",
+    );
+  } else if (target && fileId) {
     /*
      * THROUGH transitionFile, NOT A RAW UPDATE.
      *
@@ -598,26 +691,91 @@ export async function releaseForFulfilment(
    * placement, so an abandoned checkout never produces a link to an order
    * nobody paid for.
    */
-  const link = await issueCustomerLink({ orderId });
-  if (link) {
-    await event(orderId, "customer_link.issued", false, "A status link was minted. Nothing has been sent yet.");
-    await sendOrderConfirmation(orderId, link.token);
+  /*
+   * ONCE. The confirmation's own queue key is built from its text, and its text
+   * carries a freshly minted link, so a second run would queue a second email.
+   * The marker is the confirmation itself: a confirmation job already on the
+   * queue for this order, or its acceptance already on the timeline.
+   */
+  /*
+   * THE ACCOUNT IS SETTLED FIRST, THEN THE CONFIRMATION IS SENT. Operator
+   * ruling, 2026-10-13. Who the confirmation goes to depends on it: an order
+   * matched to its client's existing account, or attached by a person, sends
+   * its confirmation (and the status link inside it) to the account's address
+   * on file, never to an address that merely paid. So the account is linked,
+   * or found to need a person, before anything is sent.
+   *
+   * Only OPENING a new account waits until after the confirmation, because
+   * that sends an invitation, and a receipt followed by an offer is the order
+   * that does not get the receipt marked as spam. Linking sends nothing.
+   *
+   * Already safe twice: an order that names an account does nothing, and an
+   * address that holds one is linked rather than duplicated.
+   */
+  const settled = await openAccountForOrder(orderId, { open: false });
+  if (settled === "failed") missing.push("the customer's account could not be opened");
+  if (settled === "needs_person") {
+    /* No link and no confirmation until a person has chosen the account. */
+    missing.push("the customer's account needs a person to attach it");
+  } else if (settled !== "failed") {
+    const { data: queuedConfirmation, error: queuedError } = prior.has("email.sent")
+      ? { data: [{ id: "sent" }], error: null }
+      : await db
+          .from("eng_jobs")
+          .select("id")
+          .eq("kind", "email.send")
+          .eq("payload->>id", "order.confirmed")
+          .eq("payload->>orderId", orderId)
+          .limit(1);
+    if (queuedError) {
+      missing.push(`whether a confirmation was already queued could not be read: ${queuedError.message}`);
+    } else if ((queuedConfirmation ?? []).length === 0) {
+      const recipient = await confirmationRecipient(orderId);
+      if (recipient.kind === "failed") {
+        missing.push("who the confirmation goes to could not be read");
+      } else if (recipient.kind === "none_on_account") {
+        await eventOnce(
+          orderId,
+          CONFIRMATION_NO_ADDRESS,
+          "No confirmation was sent: the account this order belongs to has no active owner and no billing email on file. Add one in account management.",
+        );
+        missing.push("the account has no address on file to send the confirmation to");
+      } else {
+        const link = await issueCustomerLink({ orderId });
+        if (!link) {
+          missing.push("the customer's status link could not be issued");
+        } else {
+          await event(orderId, "customer_link.issued", false, "A status link was minted. Nothing has been sent yet.");
+          const confirmation = await sendOrderConfirmation(
+            orderId,
+            link.token,
+            recipient.kind === "account" ? recipient.email : null,
+          );
+          if (confirmation === "failed") missing.push("the order confirmation could not be queued");
+        }
+      }
+    }
+
+    if (settled === "open_new") {
+      const opened = await openAccountForOrder(orderId, { open: true });
+      if (opened === "failed") missing.push("the customer's account could not be opened");
+      if (opened === "needs_person") missing.push("the customer's account needs a person to attach it");
+    }
   }
 
   /*
-   * AND THE ACCOUNT, AFTER THE CONFIRMATION AND NOT BEFORE.
-   *
-   * The order matters to what lands in the inbox. The confirmation is the email
-   * somebody is waiting for after paying, and the account invitation is an
-   * offer they can ignore; arriving in that order is the difference between a
-   * receipt followed by an offer and an offer followed by a receipt, which is
-   * the shape that gets the receipt marked as spam.
-   *
-   * Both go through the queue, so this is the order they are ENQUEUED in rather
-   * than a guarantee about delivery. That is as much as this platform can
-   * honestly promise, and it is worth doing.
+   * AND NOTHING IS COMPLETE IF ANY WRITE IN IT WAS ABANDONED. Every step above
+   * that swallows its failure into an event decides for itself whether the
+   * failure is final; a write abandoned by the 20 second bound is never final,
+   * because it may or may not have committed. Counted against the caller's own
+   * watch, so the caller still sees it too.
    */
-  await openAccountForOrder(orderId);
+  const abandonedHere = abandonedSoFar() - abandonedBefore;
+  if (abandonedHere > 0) {
+    missing.push(`${abandonedHere} write${abandonedHere === 1 ? " was" : "s were"} abandoned by the 20 second bound`);
+  }
+
+  return { complete: missing.length === 0, missing };
 }
 
 /**
@@ -654,25 +812,89 @@ export async function releaseForFulfilment(
  * an address that already holds an account is linked rather than duplicated,
  * which also covers the case that actually happens, a repeat customer.
  */
-async function openAccountForOrder(orderId: string): Promise<void> {
+/*
+ * "settled" means the order has an account, was linked to one, or carries no
+ * address and says so. "failed" is a failure the next attempt can fix, so a
+ * payment's release stays claimed and the next delivery opens it (0075; found
+ * by the proof, where the account insert was cut off and the event was marked
+ * done regardless, so no resend would ever have opened the account).
+ *
+ * "needs_person" is a payment whose account no rule can safely choose: the
+ * release stays claimed, the order says why once, and "Paid, work not
+ * released" offers a person the accounts to attach it to (operator ruling,
+ * 2026-10-13).
+ */
+async function openAccountForOrder(
+  orderId: string,
+  { open }: { open: boolean },
+): Promise<"settled" | "failed" | "needs_person" | "open_new"> {
   const db = supabaseAdmin();
-  if (!db) return;
+  if (!db) return "failed";
 
   try {
-    const { data: order } = await db
+    const { data: order, error: orderError } = await db
       .from("eng_service_orders")
       .select("id, account_id, client_id, customer_email, customer_name, customer_phone, customer_company")
       .eq("id", orderId)
       .maybeSingle();
-    if (!order) return;
+    if (orderError || !order) return "failed";
 
     /* Already has one. An invoiced B2B order arrives here that way every time. */
-    if (order.account_id) return;
+    if (order.account_id) return "settled";
 
     const email = typeof order.customer_email === "string" ? order.customer_email.trim() : "";
+
+    /*
+     * AN EXISTING CLIENT IS MATCHED BY ITS RECORD, NOT BY THE PAYING ADDRESS.
+     * Operator ruling, 2026-10-13.
+     *
+     * A person chose this order's client (staff intake, a payment link), and
+     * that client may already have an account while the card was paid from an
+     * address nobody has seen. Matching by the address found no one, tried to
+     * open a second account for the same client, and was refused by the
+     * account's unique (site, client); the payment then sat claimed for ever.
+     * So the client record is asked first, and an address is only ever the
+     * second question.
+     */
+    const byRecord = await accountForClientRecord(order.client_id as string | null, email);
+    if (byRecord.kind === "failed") return "failed";
+    if (byRecord.kind === "match") {
+      const { data: linked, error: linkError } = await db
+        .from("eng_service_orders")
+        .update({ account_id: byRecord.accountId })
+        .eq("id", orderId)
+        .is("account_id", null)
+        .select("id");
+      if (linkError) return "failed";
+      /* Somebody attached it between the read and this write: theirs stands. */
+      if ((linked ?? []).length === 0) return "settled";
+      /*
+       * THE ORDER, AND NOTHING MORE. Operator ruling, 2026-10-13: the paying
+       * address is not added as a sign in, is sent no invitation or link, and
+       * the account's own email is not touched. The confirmation goes to the
+       * account's address on file (confirmationRecipient reads this event).
+       */
+      await event(
+        orderId,
+        ACCOUNT_LINKED_BY_CLIENT,
+        false,
+        "This order's client already has an account, so the order was attached to it by the client record. No second account was opened and nothing was sent to the paying address.",
+      );
+      return "settled";
+    }
+    if (byRecord.kind === "person") {
+      /* Said once. Every resend reaches here again and must not repeat it. */
+      const said = await eventOnce(
+        orderId,
+        ACCOUNT_MATCH_NEEDED,
+        `No account was opened or attached: ${byRecord.reason}. A person attaches it from Orders needing attention.`,
+      );
+      return said ? "needs_person" : "failed";
+    }
+
     if (!email) {
       await event(orderId, "account.not_opened", false, "No account was opened: the order carries no customer address.");
-      return;
+      return "settled";
     }
 
     /*
@@ -682,22 +904,30 @@ async function openAccountForOrder(orderId: string): Promise<void> {
      * sign in and see one order out of two, which is worse than seeing none
      * because it looks like the platform lost something.
      */
-    const { data: existing } = await db
+    const { data: existing, error: existingError } = await db
       .from("eng_customer_users")
       .select("id, account_id")
       .eq("email", normaliseAddress(email))
       .maybeSingle();
+    if (existingError) return "failed";
 
     if (existing?.account_id) {
-      await db.from("eng_service_orders").update({ account_id: existing.account_id }).eq("id", orderId);
+      const { error: linkError } = await db
+        .from("eng_service_orders")
+        .update({ account_id: existing.account_id })
+        .eq("id", orderId);
+      if (linkError) return "failed";
       await event(
         orderId,
         "account.linked",
         false,
         "This address already has an account, so the order was attached to it and no second account was opened.",
       );
-      return;
+      return "settled";
     }
+
+    /* Opening sends an invitation, so it waits until the confirmation is queued. */
+    if (!open) return "open_new";
 
     const created = await createCustomerAccount({
       email,
@@ -720,10 +950,14 @@ async function openAccountForOrder(orderId: string): Promise<void> {
 
     if (!created.ok) {
       await event(orderId, "account.not_opened", false, `No account was opened: ${created.error}`);
-      return;
+      return "failed";
     }
 
-    await db.from("eng_service_orders").update({ account_id: created.accountId }).eq("id", orderId);
+    const { error: ownError } = await db
+      .from("eng_service_orders")
+      .update({ account_id: created.accountId })
+      .eq("id", orderId);
+    if (ownError) return "failed";
     await event(
       orderId,
       "account.opened",
@@ -743,6 +977,7 @@ async function openAccountForOrder(orderId: string): Promise<void> {
         }),
       );
     }
+    return "settled";
   } catch (err) {
     /*
      * Swallowed into an event rather than thrown. See the note at the top: the
@@ -755,7 +990,415 @@ async function openAccountForOrder(orderId: string): Promise<void> {
       false,
       `No account was opened: ${err instanceof Error ? err.message : "an unexpected failure"}.`,
     );
+    return "failed";
   }
+}
+
+/** The order event that says a payment's account is waiting for a person. Written once per order. */
+export const ACCOUNT_MATCH_NEEDED = "account.match_needed";
+/** An order linked to its client's existing account by the client record. */
+export const ACCOUNT_LINKED_BY_CLIENT = "account.linked_by_client";
+/** An order a person attached to an account from the attach panel. */
+export const ACCOUNT_ATTACHED = "account.attached";
+/** A confirmation not sent because the order's account has no address on file. Written once per order. */
+export const CONFIRMATION_NO_ADDRESS = "email.no_account_address";
+
+/** Writes an order event unless the order already carries one of that name. False when it could not tell or write. */
+async function eventOnce(orderId: string, name: string, summary: string): Promise<boolean> {
+  const db = supabaseAdmin();
+  if (!db) return false;
+  const { data, error } = await db
+    .from("eng_order_events")
+    .select("id")
+    .eq("order_id", orderId)
+    .eq("event", name)
+    .limit(1);
+  if (error) return false;
+  if ((data ?? []).length === 0) await event(orderId, name, false, summary);
+  return true;
+}
+
+type Recipient =
+  | { kind: "order" }
+  | { kind: "account"; email: string }
+  | { kind: "none_on_account" }
+  | { kind: "failed" };
+
+/*
+ * WHO THE CONFIRMATION GOES TO. Operator ruling, 2026-10-13.
+ *
+ * An order linked to its client's existing account by the client record, or
+ * attached to one by a person, confirms to the account's address on file: its
+ * active owner, else its billing email, else nobody, and the attach panel says
+ * so. Every other order confirms to its own customer address, which is what
+ * any payer gets today. The paying address of a matched order is sent nothing
+ * by this platform; Stripe's own receipt is Stripe's.
+ */
+async function confirmationRecipient(orderId: string): Promise<Recipient> {
+  const db = supabaseAdmin();
+  if (!db) return { kind: "failed" };
+
+  const { data: how, error: howError } = await db
+    .from("eng_order_events")
+    .select("event")
+    .eq("order_id", orderId)
+    .in("event", [ACCOUNT_LINKED_BY_CLIENT, ACCOUNT_ATTACHED])
+    .limit(1);
+  if (howError) return { kind: "failed" };
+  if ((how ?? []).length === 0) return { kind: "order" };
+
+  const { data: order, error: orderError } = await db
+    .from("eng_service_orders")
+    .select("account_id")
+    .eq("id", orderId)
+    .maybeSingle();
+  if (orderError || !order) return { kind: "failed" };
+  if (!order.account_id) return { kind: "failed" };
+
+  const { data: owners, error: ownersError } = await db
+    .from("eng_customer_users")
+    .select("email")
+    .eq("account_id", order.account_id as string)
+    .eq("account_role", "owner")
+    .eq("status", "active")
+    .order("created_at", { ascending: true })
+    .limit(1);
+  if (ownersError) return { kind: "failed" };
+  const owner = owners?.[0]?.email;
+  if (typeof owner === "string" && owner.trim()) return { kind: "account", email: owner.trim() };
+
+  /* See src/lib/account-scope.ts: a superseded record is nobody's address on file. */
+  const { data: account, error: accountError } = await db
+    .from("eng_customer_accounts")
+    .select("billing_email")
+    .eq("id", order.account_id as string)
+    .is("superseded_at", null)
+    .maybeSingle();
+  if (accountError) return { kind: "failed" };
+  const billing = account?.billing_email;
+  if (typeof billing === "string" && billing.trim()) return { kind: "account", email: billing.trim() };
+  return { kind: "none_on_account" };
+}
+
+type ClientRecordMatch =
+  | { kind: "none" }
+  | { kind: "failed" }
+  | { kind: "match"; accountId: string }
+  | { kind: "person"; reason: string };
+
+/*
+ * THE CLIENT RECORD'S ANSWER, AND WHEN IT IS SAFE.
+ *
+ * Safe is exactly one active account for the order's client, and a paying
+ * address that belongs to no other account. Matched across sites, because the
+ * checkout door opens accounts on site "254" and staff conversion on the
+ * order's own site, so a match on site and client together would miss the
+ * account that is plainly there.
+ *
+ * Everything else is a person's decision, never a rule's guess: a client with
+ * no active account but a suspended or closed one, a client with more than one
+ * active account, and an address already holding a DIFFERENT account. Attaching
+ * an order to an account decides who can sign in and see it, so a wrong guess
+ * shows one customer's order to another.
+ *
+ * A client with no account at all is "none": the address path below runs as it
+ * always has, and a new customer's first payment opens their account.
+ */
+async function accountForClientRecord(clientId: string | null, email: string): Promise<ClientRecordMatch> {
+  const db = supabaseAdmin();
+  if (!db) return { kind: "failed" };
+  if (!clientId) return { kind: "none" };
+
+  /*
+   * Superseded rows excluded (src/lib/account-scope.ts): a duplicate opened
+   * twice is a record that should not exist, not a second active account, so
+   * it neither blocks the match nor can be chosen by it.
+   */
+  const { data: accounts, error } = await db
+    .from("eng_customer_accounts")
+    .select("id, status")
+    .eq("client_id", clientId)
+    .is("superseded_at", null)
+    .order("created_at", { ascending: true });
+  if (error) return { kind: "failed" };
+  const rows = accounts ?? [];
+  if (rows.length === 0) return { kind: "none" };
+
+  const active = rows.filter((a) => a.status === "active");
+  if (active.length === 0) {
+    const states = [...new Set(rows.map((a) => String(a.status)))].join(" and ");
+    return { kind: "person", reason: `the order's client has an account and it is ${states}` };
+  }
+  if (active.length > 1) {
+    return { kind: "person", reason: `the order's client has ${active.length} active accounts` };
+  }
+
+  if (email) {
+    const { data: holder, error: holderError } = await db
+      .from("eng_customer_users")
+      .select("account_id")
+      .eq("email", normaliseAddress(email))
+      .maybeSingle();
+    if (holderError) return { kind: "failed" };
+    if (holder?.account_id && holder.account_id !== active[0].id) {
+      return { kind: "person", reason: "the paying address belongs to a different account from the order's client" };
+    }
+  }
+  return { kind: "match", accountId: active[0].id as string };
+}
+
+export type AccountCandidate = {
+  accountId: string;
+  /** The client the account belongs to, by name. */
+  name: string;
+  status: string;
+  /** Why it is offered: the order's own client, or the address that paid. */
+  because: "the order's client" | "the paying address";
+};
+
+export type OrderAwaitingAccount = {
+  orderId: string;
+  reference: string;
+  /** "account": no account chosen yet. "address": attached, and its account has no address to confirm to. */
+  needs: "account" | "address";
+  reason: string;
+  candidates: AccountCandidate[];
+};
+
+/**
+ * Every paid order waiting on a person over its account: the ones whose
+ * account no rule could choose and that still name none, and the ones whose
+ * account has no address on file and whose confirmation has still not gone
+ * (ruling 2026-10-13: "the panel says so for that order"). With the accounts a
+ * person may attach the first kind to. Null when it could not be read, which
+ * is not none.
+ */
+export async function ordersAwaitingAccount(): Promise<OrderAwaitingAccount[] | null> {
+  const db = supabaseAdmin();
+  if (!db) return null;
+
+  const { data: said, error } = await db
+    .from("eng_order_events")
+    .select("order_id, event, summary")
+    .in("event", [ACCOUNT_MATCH_NEEDED, CONFIRMATION_NO_ADDRESS])
+    .order("created_at", { ascending: true })
+    .limit(500);
+  if (error) return null;
+  const ids = [...new Set((said ?? []).map((e) => e.order_id as string))];
+  if (ids.length === 0) return [];
+
+  const { data: orders, error: ordersError } = await db
+    .from("eng_service_orders")
+    .select("id, reference, account_id")
+    .in("id", ids);
+  if (ordersError) return null;
+  const { data: sent, error: sentError } = await db
+    .from("eng_order_events")
+    .select("order_id")
+    .in("order_id", ids)
+    .eq("event", "email.sent");
+  if (sentError) return null;
+  const confirmed = new Set((sent ?? []).map((e) => e.order_id as string));
+
+  const out: OrderAwaitingAccount[] = [];
+  for (const o of orders ?? []) {
+    const mine = (said ?? []).filter((e) => e.order_id === o.id);
+    const needs: OrderAwaitingAccount["needs"] | null = !o.account_id
+      ? mine.some((e) => e.event === ACCOUNT_MATCH_NEEDED)
+        ? "account"
+        : null
+      : mine.some((e) => e.event === CONFIRMATION_NO_ADDRESS) && !confirmed.has(o.id as string)
+        ? "address"
+        : null;
+    if (!needs) continue;
+    const candidates = needs === "account" ? await accountCandidatesFor(o.id as string) : [];
+    if (candidates === null) return null;
+    const detail = mine.find((e) => e.event === (needs === "account" ? ACCOUNT_MATCH_NEEDED : CONFIRMATION_NO_ADDRESS))?.summary;
+    out.push({
+      orderId: o.id as string,
+      reference: o.reference as string,
+      needs,
+      reason: typeof detail === "string" ? detail : "No account was opened or attached.",
+      candidates,
+    });
+  }
+  return out;
+}
+
+/**
+ * The accounts a person may attach this order to: every account of the
+ * order's client, and the account the paying address belongs to. Nothing
+ * else, so the action cannot be pointed at a stranger's account.
+ */
+export async function accountCandidatesFor(orderId: string): Promise<AccountCandidate[] | null> {
+  const db = supabaseAdmin();
+  if (!db) return null;
+
+  const { data: order, error } = await db
+    .from("eng_service_orders")
+    .select("client_id, customer_email")
+    .eq("id", orderId)
+    .maybeSingle();
+  if (error || !order) return null;
+
+  const found = new Map<string, { status: string; clientId: string; because: AccountCandidate["because"] }>();
+  if (order.client_id) {
+    /* Never offered a superseded record (src/lib/account-scope.ts). */
+    const { data: own, error: ownError } = await db
+      .from("eng_customer_accounts")
+      .select("id, status, client_id")
+      .eq("client_id", order.client_id as string)
+      .is("superseded_at", null)
+      .order("created_at", { ascending: true });
+    if (ownError) return null;
+    for (const a of own ?? []) {
+      found.set(a.id as string, { status: String(a.status), clientId: a.client_id as string, because: "the order's client" });
+    }
+  }
+  const email = typeof order.customer_email === "string" ? order.customer_email.trim() : "";
+  if (email) {
+    const { data: holder, error: holderError } = await db
+      .from("eng_customer_users")
+      .select("account_id")
+      .eq("email", normaliseAddress(email))
+      .maybeSingle();
+    if (holderError) return null;
+    if (holder?.account_id && !found.has(holder.account_id as string)) {
+      const { data: theirs, error: theirsError } = await db
+        .from("eng_customer_accounts")
+        .select("id, status, client_id")
+        .eq("id", holder.account_id as string)
+        .is("superseded_at", null)
+        .maybeSingle();
+      if (theirsError) return null;
+      if (theirs) {
+        found.set(theirs.id as string, {
+          status: String(theirs.status),
+          clientId: theirs.client_id as string,
+          because: "the paying address",
+        });
+      }
+    }
+  }
+  if (found.size === 0) return [];
+
+  const clientIds = [...new Set([...found.values()].map((f) => f.clientId))];
+  const { data: clients, error: clientsError } = await db.from("eng_clients").select("id, name").in("id", clientIds);
+  if (clientsError) return null;
+  const names = new Map((clients ?? []).map((c) => [c.id as string, c.name as string]));
+
+  return [...found.entries()].map(([accountId, f]) => ({
+    accountId,
+    name: names.get(f.clientId) ?? "a client with no name on file",
+    status: f.status,
+    because: f.because,
+  }));
+}
+
+export type AttachResult =
+  | { ok: true; released: boolean; note: string }
+  | { ok: false; status: number; error: string };
+
+/**
+ * A person attaches a paid order to an account, and the payment's release
+ * finishes. Operator ruling, 2026-10-13: the one-click staff action for a
+ * payment no rule could match safely.
+ *
+ * Only to an account accountCandidatesFor offers, only while the order names
+ * none, under accounts.manage because it decides who can see the order, and
+ * audited as that person. The release then runs again for every claimed
+ * payment event naming this order or its batch; it is safe to run twice, so a
+ * payment whose other steps already finished only finishes its event.
+ */
+export async function attachOrderToAccount(
+  actor: Actor & { email: string },
+  orderId: string,
+  accountId: string,
+): Promise<AttachResult> {
+  if (!can(actor, "accounts.manage")) return { ok: false, status: 403, error: "Not permitted." };
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, status: 503, error: "The order system is not configured." };
+
+  const { data: order, error } = await db
+    .from("eng_service_orders")
+    .select("id, reference, account_id, batch_id")
+    .eq("id", orderId)
+    .maybeSingle();
+  if (error) return { ok: false, status: 503, error: "The order could not be read. Nothing was changed." };
+  if (!order) return { ok: false, status: 404, error: "There is no such order." };
+  if (order.account_id) return { ok: false, status: 409, error: "This order already has an account. Nothing was changed." };
+
+  const candidates = await accountCandidatesFor(orderId);
+  if (candidates === null) return { ok: false, status: 503, error: "The accounts could not be read. Nothing was changed." };
+  const chosen = candidates.find((c) => c.accountId === accountId);
+  if (!chosen) {
+    return { ok: false, status: 400, error: "That account is not one this order can be attached to. Nothing was changed." };
+  }
+
+  const { data: attached, error: attachError } = await db
+    .from("eng_service_orders")
+    .update({ account_id: accountId })
+    .eq("id", orderId)
+    .is("account_id", null)
+    .select("id");
+  if (attachError) return { ok: false, status: 503, error: "The order could not be attached. Nothing was changed." };
+  if ((attached ?? []).length === 0) {
+    return { ok: false, status: 409, error: "Somebody attached this order a moment ago. Nothing was changed." };
+  }
+
+  await event(
+    orderId,
+    ACCOUNT_ATTACHED,
+    false,
+    `Attached by ${actor.email} to ${chosen.name}'s account (${chosen.because}).`,
+  );
+  await writeAudit({
+    actor: { id: actor.id, role: actor.role, email: actor.email },
+    action: "order.account_attached",
+    entityType: "service_order",
+    entityId: orderId,
+    summary: `Attached ${order.reference} to ${chosen.name}'s account, offered as ${chosen.because}`,
+    diff: { account_id: accountId, because: chosen.because, account_status: chosen.status },
+  });
+
+  /* The payments waiting on it: this order's own, and its batch's. */
+  const filter = order.batch_id ? `order_id.eq.${orderId},batch_id.eq.${order.batch_id}` : `order_id.eq.${orderId}`;
+  const { data: waiting, error: waitingError } = await db
+    .from("eng_payment_events")
+    .select("event_id, order_id, batch_id")
+    .eq("status", "claimed")
+    .or(filter);
+  if (waitingError) {
+    return { ok: true, released: false, note: "Attached. The payment waiting on it could not be read, so its release was not run; the next delivery from Stripe runs it." };
+  }
+
+  let released = true;
+  for (const w of waiting ?? []) {
+    let orderIds: string[] = [];
+    if (w.order_id) {
+      orderIds = [w.order_id as string];
+    } else if (w.batch_id) {
+      const { data: inBatch, error: batchError } = await db
+        .from("eng_service_orders")
+        .select("id")
+        .eq("batch_id", w.batch_id as string)
+        .eq("status", "in_fulfilment");
+      if (batchError) {
+        released = false;
+        continue;
+      }
+      orderIds = (inBatch ?? []).map((o) => o.id as string);
+    }
+    const result = await releaseAndFinish(w.event_id as string, orderIds);
+    if (!result.ok) released = false;
+  }
+  return {
+    ok: true,
+    released,
+    note: released
+      ? "Attached, and the payment's work is released."
+      : "Attached. The rest of the release did not finish and stays on this list with its reason.",
+  };
 }
 
 /**
@@ -774,31 +1417,46 @@ async function openAccountForOrder(orderId: string): Promise<void> {
  * is not worth unwinding a paid order, and throwing here would leave the caller
  * believing the payment failed when it did not.
  */
-async function sendOrderConfirmation(orderId: string, token: string): Promise<void> {
+/*
+ * "queued" and "no_address" are outcomes the release can stand on: one went
+ * out, the other is recorded for a person and a second attempt would say the
+ * same. "failed" is one the next attempt can fix (0075).
+ */
+/*
+ * `to` is the account's address on file when confirmationRecipient chose it;
+ * null sends to the order's own customer address, as every order did before.
+ */
+async function sendOrderConfirmation(
+  orderId: string,
+  token: string,
+  to: string | null,
+): Promise<"queued" | "no_address" | "failed"> {
   const db = supabaseAdmin();
-  if (!db) return;
+  if (!db) return "failed";
 
   const view = await customerView(token);
   if (!view) {
     await event(orderId, "email.not_sent", false, "The confirmation could not be built: the status link did not resolve.");
-    return;
+    return "failed";
   }
 
-  const { data: order } = await db
+  const { data: order, error: orderError } = await db
     .from("eng_service_orders")
     .select("customer_name, customer_email")
     .eq("id", orderId)
     .maybeSingle();
+  if (orderError) return "failed";
 
-  if (!order?.customer_email) {
+  const address = to ?? (order?.customer_email as string | null | undefined) ?? null;
+  if (!address) {
     await event(orderId, "email.not_sent", false, "The confirmation could not be sent: no customer email on the order.");
-    return;
+    return "no_address";
   }
 
   const queued = await queueEmail(
     orderConfirmed({
-      customerName: order.customer_name as string,
-      customerEmail: order.customer_email as string,
+      customerName: order?.customer_name as string,
+      customerEmail: address,
       reference: view.reference,
       serviceName: view.serviceName,
       propertyAddress: view.propertyAddress,
@@ -807,6 +1465,7 @@ async function sendOrderConfirmation(orderId: string, token: string): Promise<vo
       total: view.total,
       refundDisclosure: view.refundDisclosure,
       receives: view.receives,
+      notes: view.notes,
       statusUrl: customerStatusUrl(view.reference, token),
     }),
     { orderId },
@@ -814,19 +1473,23 @@ async function sendOrderConfirmation(orderId: string, token: string): Promise<vo
 
   await event(
     orderId,
-    queued.ok ? "email.sent" : "email.not_sent",
+    queued.ok ? "email.queued" : "email.not_sent",
     /*
      * The success is customer visible and the failure is not. They should see
-     * that a confirmation went to their address, so they know where to look and
-     * can say if it is the wrong one. They should not see the queue's reasons
+     * that a confirmation is on its way to their address, so they know where to
+     * look and can say if it is the wrong one. It says QUEUED, not sent:
+     * operator ruling 2026-10-10 (decision 10), because a send that later fails
+     * still read as sent. The email handler writes "Sent to" when the provider
+     * accepts it (job-handlers.ts). They should not see the queue's reasons
      * for not sending it; that is the firm's problem to fix, and it appears on
      * the order for whoever is looking at it internally.
      */
     queued.ok,
     queued.ok
-      ? `The order confirmation was sent to ${order.customer_email}.`
+      ? `The order confirmation is queued to ${address}. The next entry says when it is sent.`
       : `The order confirmation could not be queued: ${queued.error}. It has to go out by hand.`,
   );
+  return queued.ok ? "queued" : "failed";
 }
 
 /**
@@ -918,12 +1581,22 @@ export async function markAbandoned(
     return { ok: true, changed: false };
   }
 
-  await event(orderId, "checkout.expired", true, reason);
-  await db
+  /*
+   * GUARDED BY THE STATUS IT WAS JUDGED AT (0075). A payment that moved the
+   * order between the read above and this write leaves no row matching, so a
+   * paid order is never cancelled by an expiry that read it a moment earlier.
+   * The event follows the write, so it is only written when the order closed.
+   */
+  const { data: closed, error: closeError } = await db
     .from("eng_service_orders")
     .update({ status: "cancelled", cancelled_at: DB_NOW })
-    .eq("id", orderId);
+    .eq("id", orderId)
+    .eq("status", order.status)
+    .select("id");
+  if (closeError) return { ok: false, error: closeError.message };
+  if (!closed || closed.length === 0) return { ok: true, changed: false };
 
+  await event(orderId, "checkout.expired", true, reason);
   return { ok: true, changed: true };
 }
 
@@ -938,15 +1611,39 @@ export async function markAbandoned(
  * It is deliberately not settleDecision. That function carries the operator's
  * three case rule and decides an AMOUNT; this one is told the amount by the
  * provider and only writes down what already happened.
+ *
+ * ONE TRANSACTION (0075). The delta and the commission reversals are computed
+ * here, and eng_apply_refund records the event, the refund row, the reversals,
+ * the order's event and status and the audit row together, after re-reading
+ * the refunds on file under a lock on the charge and refusing if they moved.
+ *
+ * TWO DEFECTS THIS CLOSES, both verified against the code before the fix.
+ *
+ * A pending platform refund was recorded twice. settleDecision and
+ * cancelAndRefund write their refund row with Stripe's status, which can be
+ * pending. The delta here counted succeeded refunds only, and the webhook's
+ * refund ref is the event id whenever the payload carries no refund list, so
+ * the same money was written a second time and its commission reversed twice.
+ * Pending refunds now count.
+ *
+ * A batch or statement refund was refused. Their charge rows carry no order,
+ * so the refund row was inserted with no subject at all, failed the
+ * has_subject check, and the webhook answered 200 "no charge on file". The
+ * refund row now carries the charge's own subject, and the delta reads
+ * refunds on that same subject.
  */
 export async function recordExternalRefund(input: {
+  eventId: string;
   chargeRef: string;
   /** Idempotency key only. Never an amount. */
   refundRef: string;
   /** CUMULATIVE refunds on the charge, from which the delta is derived. */
   refundedToDateCents: number;
   provider: string;
-}): Promise<{ ok: true; alreadyRecorded: boolean; recordedCents?: number } | { ok: false; error: string }> {
+}): Promise<
+  | { ok: true; alreadyRecorded: boolean; recordedCents?: number }
+  | { ok: false; error: string; noCharge?: true }
+> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The order system is not configured." };
 
@@ -965,7 +1662,7 @@ export async function recordExternalRefund(input: {
    */
   const { data: chargeRows, error: chargeErr } = await db
     .from("eng_order_payments")
-    .select("id, order_id, amount_cents")
+    .select("id, order_id, batch_id, statement_id, amount_cents")
     .eq("provider", input.provider)
     .eq("provider_ref", input.chargeRef)
     .eq("kind", "charge")
@@ -988,7 +1685,7 @@ export async function recordExternalRefund(input: {
     console.error(
       `[payments] refund ${input.refundRef} is against charge ${input.chargeRef}, which this platform has no record of. Reconcile the order before this will attach.`,
     );
-    return { ok: false, error: "No charge on file for that refund." };
+    return { ok: false, error: "No charge on file for that refund.", noCharge: true };
   }
 
   /*
@@ -999,39 +1696,28 @@ export async function recordExternalRefund(input: {
    * what is already on file makes the total converge on the provider's even if
    * an earlier event was never delivered, which is the failure this whole path
    * exists because of.
+   *
+   * On the charge's own subject, and pending refunds count: see above.
+   * eng_apply_refund re-reads this same total under a lock and refuses if it
+   * moved, so the figure the delta was computed from is the figure it lands on.
    */
-  const { data: priorRefunds } = await db
+  const subject = (column: "order_id" | "batch_id" | "statement_id") =>
+    (charge[column] as string | null) ?? null;
+  let priorQuery = db
     .from("eng_order_payments")
     .select("amount_cents")
-    .eq("order_id", charge.order_id)
     .eq("kind", "refund")
-    .eq("status", "succeeded");
+    .in("status", ["pending", "succeeded"]);
+  for (const column of ["order_id", "batch_id", "statement_id"] as const) {
+    const value = subject(column);
+    priorQuery = value === null ? priorQuery.is(column, null) : priorQuery.eq(column, value);
+  }
+  const { data: priorRefunds, error: priorError } = await priorQuery;
+  if (priorError) return { ok: false, error: `The refunds already on file could not be read: ${priorError.message}` };
 
   const alreadyRefunded = (priorRefunds ?? []).reduce((n, r) => n + Number(r.amount_cents), 0);
   const delta = input.refundedToDateCents - alreadyRefunded;
-
-  if (delta <= 0) {
-    // The ledger already agrees with the provider. Nothing to write.
-    return { ok: true, alreadyRecorded: true };
-  }
-
-  const { data: refundRow, error } = await db
-    .from("eng_order_payments")
-    .insert({
-      order_id: charge.order_id,
-      kind: "refund",
-      amount_cents: delta,
-      provider: input.provider,
-      provider_ref: input.refundRef,
-      status: "succeeded",
-      refund_case: "issued_outside_the_platform",
-    })
-    .select("id")
-    .maybeSingle();
-  if (error) {
-    if (error.code === "23505") return { ok: true, alreadyRecorded: true };
-    return { ok: false, error: error.message };
-  }
+  const orderId = subject("order_id");
 
   /*
    * A PARTNER'S COMMISSION FOLLOWS THE MONEY, EVEN WHEN THE MONEY MOVED
@@ -1040,49 +1726,258 @@ export async function recordExternalRefund(input: {
    * This path exists because somebody can refund in the Stripe dashboard, and a
    * commission that only reversed on the platform's own refunds would quietly
    * pay out on returned money exactly in the case nobody was watching.
+   *
+   * Computed here and written in the same transaction as the refund. A batch
+   * or statement refund names no order, so there is no accrual it can be
+   * proportioned against: the audit row says so, for a person to settle.
    */
-  await reverseForRefund({
-    orderId: charge.order_id,
-    paymentId: (refundRow?.id as string | undefined) ?? null,
-    refundedCents: delta,
-  });
-
-  await event(
-    charge.order_id as string,
-    "refund.recorded",
-    true,
-    `${money(delta)} was refunded to your card.`,
-    { provider_ref: input.refundRef, issued_outside_the_platform: true },
-  );
+  let reversals: PlannedReversal[] = [];
+  if (orderId && delta > 0) {
+    const plan = await planReversals({ orderId, refundedCents: delta });
+    if (!plan.ok) return plan;
+    reversals = plan.reversals;
+  }
 
   /*
    * Only a full refund changes the order's status. A partial one is the shape
    * of the operator's second case, where the inspection fee is retained, and
    * that order is still owed the engineer's finding.
    */
-  if (input.refundedToDateCents >= Number(charge.amount_cents)) {
-    const { data: order } = await db
+  let markRefunded = false;
+  let expectedOrderStatus: string | null = null;
+  if (orderId && delta > 0 && input.refundedToDateCents >= Number(charge.amount_cents)) {
+    const { data: order, error: orderError } = await db
       .from("eng_service_orders")
       .select("status")
-      .eq("id", charge.order_id)
+      .eq("id", orderId)
       .maybeSingle();
-    if (order && canTransitionOrder(order.status as never, "refunded")) {
-      await db
-        .from("eng_service_orders")
-        .update({ status: "refunded", refunded_at: DB_NOW })
-        .eq("id", charge.order_id);
+    if (orderError) return { ok: false, error: `The order could not be read: ${orderError.message}` };
+    expectedOrderStatus = (order?.status as string | undefined) ?? null;
+    markRefunded = Boolean(order && canTransitionOrder(order.status as never, "refunded"));
+  }
+
+  const subjectNote = orderId
+    ? ""
+    : ` against ${subject("batch_id") ? "a submission" : "a statement"}, which names no single order, so no commission was reversed and no order status changed. Settle those by hand if any apply.`;
+
+  const applied = await applyPaymentEvent("eng_apply_refund", {
+    event_id: input.eventId,
+    source: "stripe_webhook",
+    order_id: orderId,
+    batch_id: subject("batch_id"),
+    statement_id: subject("statement_id"),
+    charge_ref: input.chargeRef,
+    charge_id: charge.id,
+    expected_prior_cents: alreadyRefunded,
+    delta_cents: delta,
+    provider: input.provider,
+    refund_ref: input.refundRef,
+    reversals: reversals.map((r) => ({
+      partner_id: r.partnerId,
+      amount_cents: r.amountCents,
+      explanation: r.explanation,
+      model: r.model,
+      basis_cents: r.basisCents,
+      file_id: r.fileId,
+      reverses_id: r.reversesId,
+      audit_summary: `${money(r.amountCents)}: ${r.explanation}`,
+    })),
+    refund_summary: `${money(delta)} was refunded to your card.`,
+    mark_refunded: markRefunded,
+    expected_order_status: expectedOrderStatus,
+    audit_summary: `${money(Math.max(delta, 0))} refunded outside the platform, recorded from ${input.refundRef}${subjectNote}`,
+  });
+  if (!applied.ok) return applied;
+
+  if (applied.outcome !== "applied") return { ok: true, alreadyRecorded: true };
+  return { ok: true, alreadyRecorded: false, recordedCents: Number(applied.detail.recorded_cents ?? delta) };
+}
+
+/**
+ * What became of one refund, from Stripe's charge.refund.updated (0076,
+ * operator rulings 2026-10-13).
+ *
+ * refundUpdateFor decides; eng_apply_refund_update records the event and the
+ * row's new status in one transaction, refusing if the row moved since it was
+ * read here. Two things reach outside the transaction and so run after it,
+ * only on the delivery that applied it: the firm-only alert for a refund that
+ * failed or was canceled, and the staff task for one with no row on file.
+ *
+ * NOTHING HERE WRITES TO THE CUSTOMER, reinstates a reversed commission or
+ * moves the order's status. A failed refund on an order already marked
+ * refunded is named on the orders screen (refundsFailedAfterRefunded) and
+ * waits for a person.
+ */
+export async function recordRefundUpdate(input: {
+  eventId: string;
+  refundRef: string;
+  chargeRef: string | null;
+  providerStatus: string;
+  amountCents: number;
+  failureReason: string | null;
+  provider: string;
+}): Promise<
+  | { ok: true; alreadyRecorded: boolean; to: RefundRowStatus | null; staffTask: boolean }
+  | { ok: false; error: string }
+> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The order system is not configured." };
+
+  const { data: row, error: rowError } = await db
+    .from("eng_order_payments")
+    .select("id, status, order_id, batch_id, statement_id, amount_cents, refund_case")
+    .eq("provider", input.provider)
+    .eq("provider_ref", input.refundRef)
+    .eq("kind", "refund")
+    .maybeSingle();
+  if (rowError) return { ok: false, error: `The refund on file could not be read: ${rowError.message}` };
+
+  const rowStatus = (row?.status as RefundRowStatus | undefined) ?? null;
+  const decided = refundUpdateFor({ providerStatus: input.providerStatus, rowStatus });
+  const amount = row ? Number(row.amount_cents) : input.amountCents;
+  const because = input.failureReason ?? "Stripe gave no reason";
+  const fellVerb = decided.to === "cancelled" ? "was canceled" : "failed";
+  const said = decided.to === "succeeded"
+    ? `The refund of ${money(amount)} under ${input.refundRef} succeeded at Stripe.`
+    : `The refund of ${money(amount)} under ${input.refundRef} ${fellVerb} at Stripe: ${because}. It no longer counts as given back. Nothing was reinstated and the customer has not been told.`;
+
+  const applied = await applyPaymentEvent("eng_apply_refund_update", {
+    event_id: input.eventId,
+    source: "stripe_webhook",
+    order_id: (row?.order_id as string | null | undefined) ?? null,
+    batch_id: (row?.batch_id as string | null | undefined) ?? null,
+    statement_id: (row?.statement_id as string | null | undefined) ?? null,
+    charge_ref: input.chargeRef,
+    provider: input.provider,
+    refund_ref: input.refundRef,
+    expected_status: rowStatus,
+    new_status: decided.to,
+    /* Stripe's own reason or nothing: the row never stores a sentence of ours as Stripe's. */
+    failure_reason: decided.to === "failed" || decided.to === "cancelled" ? input.failureReason : null,
+    order_event_summary: said,
+    audit_summary: `${said} ${decided.why}`,
+  });
+  if (!applied.ok) return applied;
+  if (applied.outcome === "done") return { ok: true, alreadyRecorded: true, to: null, staffTask: false };
+
+  if (decided.alertFirm && row) {
+    if (row.order_id) {
+      await alertRefundFailed(row.order_id as string, {
+        refundCase: (row.refund_case as string | null) ?? "Not recorded",
+        amountCents: amount,
+        because,
+        provider: input.provider,
+      });
+    } else {
+      /* A batch or statement refund names no order for the alert to point at. */
+      await raiseRefundTask({
+        key: `refund-failed:${input.refundRef}`,
+        title: `A refund of ${money(amount)} ${fellVerb} at Stripe`,
+        description: `${said} It was against ${row.batch_id ? "a submission" : "a statement"}, which names no single order. Settle it by hand.`,
+      });
     }
   }
 
-  await writeAudit({
-    actor: { id: null, role: "admin", email: "order-engine@254engineering.com" },
-    action: "order.refund_recorded",
-    entityType: "service_order",
-    entityId: charge.order_id as string,
-    summary: `${money(delta)} refunded outside the platform, recorded from ${input.refundRef}`,
-  });
+  if (decided.staffTask) {
+    const orderId = input.chargeRef ? await orderForCharge(input.provider, input.chargeRef) : null;
+    await raiseRefundTask({
+      key: `refund-update-unmatched:${input.refundRef}`,
+      title: `A refund of ${money(input.amountCents)} ${input.providerStatus === "canceled" ? "was canceled" : "failed"} at Stripe and is not on file here`,
+      description:
+        `Stripe reports refund ${input.refundRef} on charge ${input.chargeRef ?? "(none sent)"}, ${money(input.amountCents)}, ` +
+        `${input.providerStatus === "canceled" ? "canceled" : "failed"}: ${because}. No refund row here carries that id, so the ledger may count money that did not go back. ` +
+        (orderId ? `The charge is order ${business.url}/portal/orders?id=${orderId}.` : "The charge matches no order on file."),
+    });
+  }
 
-  return { ok: true, alreadyRecorded: false, recordedCents: delta };
+  return { ok: true, alreadyRecorded: false, to: decided.to, staffTask: decided.staffTask };
+}
+
+/**
+ * A refund sentence for the customer's timeline. Pending at Stripe takes the
+ * rule's own pending sentence, "is being refunded" (ruling 2026-10-14), and adds
+ * the issued sentence after it. Neither is rewritten here.
+ */
+function withIssuedSentence(decision: { explanation: string; explanationWhilePending: string }, status: string): string {
+  return status === "pending" ? `${decision.explanationWhilePending} ${REFUND_ISSUED_SENTENCE}` : decision.explanation;
+}
+
+/** The order a recorded charge belongs to, oldest charge first. Null when none or unreadable. */
+async function orderForCharge(provider: string, chargeRef: string): Promise<string | null> {
+  const db = supabaseAdmin();
+  if (!db) return null;
+  const { data } = await db
+    .from("eng_order_payments")
+    .select("order_id")
+    .eq("provider", provider)
+    .eq("provider_ref", chargeRef)
+    .eq("kind", "charge")
+    .order("created_at", { ascending: true })
+    .limit(1);
+  return ((data ?? [])[0]?.order_id as string | null | undefined) ?? null;
+}
+
+/** A staff task about a refund. A failure to raise it is a console line: the event is already recorded. */
+async function raiseRefundTask(task: { key: string; title: string; description: string }): Promise<void> {
+  const raised = await raiseSystemTask(task);
+  if (!raised.ok) console.error(`[payments] the refund task ${task.key} could not be raised: ${raised.error}`);
+}
+
+export type RefundFailedAfterRefunded = {
+  orderId: string;
+  reference: string;
+  amountCents: number;
+  /** "Failed" or "Canceled", for the screen. */
+  status: string;
+  reason: string;
+};
+
+/**
+ * Orders marked refunded whose refund then failed or was canceled at Stripe
+ * (operator ruling 2026-10-13: the panel names the state, so a person sees it
+ * without searching). A refund that failed when it was issued never marked the
+ * order refunded, so it is not this state: only a row that moved after the
+ * order was marked counts. Null when it could not be read, which is not none.
+ */
+export async function refundsFailedAfterRefunded(): Promise<RefundFailedAfterRefunded[] | null> {
+  const db = supabaseAdmin();
+  if (!db) return null;
+
+  const { data: failed, error } = await db
+    .from("eng_order_payments")
+    .select("order_id, amount_cents, status, failure_reason, updated_at")
+    .eq("kind", "refund")
+    .in("status", ["failed", "cancelled"])
+    .not("order_id", "is", null)
+    .order("updated_at", { ascending: false })
+    .limit(500);
+  if (error) return null;
+  const ids = [...new Set((failed ?? []).map((r) => r.order_id as string))];
+  if (ids.length === 0) return [];
+
+  const { data: orders, error: ordersError } = await db
+    .from("eng_service_orders")
+    .select("id, reference, status, refunded_at")
+    .in("id", ids)
+    .eq("status", "refunded");
+  if (ordersError) return null;
+
+  const out: RefundFailedAfterRefunded[] = [];
+  for (const o of orders ?? []) {
+    const markedAt = o.refunded_at ? Date.parse(o.refunded_at as string) : null;
+    const after = (failed ?? []).find(
+      (r) => r.order_id === o.id && markedAt !== null && Date.parse(r.updated_at as string) >= markedAt,
+    );
+    if (!after) continue;
+    out.push({
+      orderId: o.id as string,
+      reference: o.reference as string,
+      amountCents: Number(after.amount_cents),
+      status: refundStatusLabel(after.status as RefundRowStatus),
+      reason: (after.failure_reason as string | null) ?? "Stripe gave no reason.",
+    });
+  }
+  return out;
 }
 
 /**
@@ -1176,12 +2071,27 @@ export async function cancelAndRefund(input: {
     return { ok: true, refundedCents: 0, providerRef: "", alreadyRefunded: false };
   }
 
-  const { data: priorRefunds } = await db
+  /*
+   * A pending refund counts as already given back. Operator ruling,
+   * 2026-10-14, the same fix 0075 made on the webhook path: counting succeeded
+   * refunds alone, a second cancellation while the first refund is still
+   * pending at Stripe would issue the whole amount again.
+   *
+   * And a failed read refuses the cancel. Operator ruling, 2026-10-15: read
+   * as no prior refund, a failure here would refund the whole amount again.
+   */
+  const { data: priorRefunds, error: priorError } = await db
     .from("eng_order_payments")
     .select("amount_cents")
     .eq("order_id", input.orderId)
     .eq("kind", "refund")
-    .eq("status", "succeeded");
+    .in("status", ["pending", "succeeded"]);
+  if (priorError) {
+    return {
+      ok: false,
+      error: `The refunds already on file could not be read, so nothing was refunded: ${priorError.message}`,
+    };
+  }
 
   const alreadyRefunded = (priorRefunds ?? []).reduce((n, r) => n + Number(r.amount_cents), 0);
   const owed = paidCents - alreadyRefunded;
@@ -1253,10 +2163,12 @@ export async function cancelAndRefund(input: {
     refundedCents: result.amountCents,
   });
 
-  await event(input.orderId, "order.cancelled_by_firm", true, decision.explanation, {
+  /* Pending at Stripe: the customer is told it is issued, never that it landed (ruling 2026-10-13). */
+  await event(input.orderId, "order.cancelled_by_firm", true, withIssuedSentence(decision, result.status), {
     reason,
     refunded_cents: result.amountCents,
     provider_ref: result.ref,
+    refund_status: result.status,
   });
 
   await writeAudit({
@@ -1479,13 +2391,15 @@ export async function settleDecision(input: {
     refundedCents: decision.refundCents,
   });
 
-  await event(input.orderId, "refund.issued", true, decision.explanation, {
+  /* Pending at Stripe: the customer is told it is issued, never that it landed (ruling 2026-10-13). */
+  await event(input.orderId, "refund.issued", true, withIssuedSentence(decision, result.status), {
     refunded_cents: decision.refundCents,
     retained_cents: decision.retainedCents,
     case: decision.caseName,
+    refund_status: result.status,
   });
 
-  await sendOrderDeclined(input.orderId, decision);
+  await sendOrderDeclined(input.orderId, decision, result.status === "pending");
 
   await writeAudit({
     actor: input.actorId
@@ -1630,10 +2544,10 @@ async function sendOrderSealed(orderId: string): Promise<void> {
 
   await event(
     orderId,
-    queued.ok ? "email.sent" : "email.not_sent",
+    queued.ok ? "email.queued" : "email.not_sent",
     queued.ok,
     queued.ok
-      ? `The sealed document notice was sent to ${order.customer_email}.`
+      ? `The sealed document notice is queued to ${order.customer_email}. The next entry says when it is sent.`
       : `The sealed document notice could not be queued: ${queued.error}. It has to go out by hand.`,
   );
 }
@@ -1649,7 +2563,8 @@ async function sendOrderSealed(orderId: string): Promise<void> {
  */
 async function sendOrderDeclined(
   orderId: string,
-  decision: { explanation: string; refundCents: number | null; retainedCents: number | null },
+  decision: { explanation: string; explanationWhilePending: string; refundCents: number | null; retainedCents: number | null },
+  refundPending = false,
 ): Promise<void> {
   const db = supabaseAdmin();
   if (!db) return;
@@ -1677,9 +2592,10 @@ async function sendOrderDeclined(
       customerEmail: order.customer_email as string,
       reference: order.reference as string,
       propertyAddress: order.property_address as string,
-      explanation: decision.explanation,
+      explanation: refundPending ? decision.explanationWhilePending : decision.explanation,
       refunded: isKnown(decision.refundCents) ? money(decision.refundCents) : null,
       retained: isKnown(decision.retainedCents) ? money(decision.retainedCents) : null,
+      refundPending,
       statusUrl,
     }),
     { orderId },
@@ -1687,10 +2603,10 @@ async function sendOrderDeclined(
 
   await event(
     orderId,
-    queued.ok ? "email.sent" : "email.not_sent",
+    queued.ok ? "email.queued" : "email.not_sent",
     queued.ok,
     queued.ok
-      ? `The decision was sent to ${order.customer_email}.`
+      ? `The decision is queued to ${order.customer_email}. The next entry says when it is sent.`
       : `The decision could not be queued: ${queued.error}. It has to go out by hand.`,
   );
 }

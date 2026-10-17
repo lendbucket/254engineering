@@ -350,12 +350,16 @@
    * declared here in the site's own stylesheet rather than in portal.css
    * because the two surfaces are different systems with different scales.
    */
+  /*
+   * V10'S LABEL SINCE 2026-10-08, operator ruling: "Label 12 to 13 / 600",
+   * sentence case, faint, no tracking. It was uppercase with 0.08em tracking,
+   * an eyebrow V10 does not draw. Every user writes its text in sentence case
+   * already, so dropping the transform is the whole change.
+   */
   .v10-label {
     font-size: 12px;
     font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--color-ink-quiet);
+    color: var(--faint);
   }
 
   .scroll-x {

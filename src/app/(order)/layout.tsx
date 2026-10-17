@@ -29,7 +29,7 @@ import { registrationLine } from "@/lib/launch";
 export default function OrderLayout({ children }: { children: React.ReactNode }) {
   const phone = displayPhone();
   return (
-    <div className="flex min-h-dvh flex-col bg-white">
+    <div className="v10-proportional flex min-h-dvh flex-col bg-white">
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-[60] focus:rounded-[2px] focus:bg-slate focus:px-4 focus:py-2 focus:text-slate-fg"

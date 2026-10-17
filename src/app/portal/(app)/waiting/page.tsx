@@ -59,7 +59,7 @@ export default async function WaitingPage() {
             return (
               <li key={f.id}>
                 <Link
-                  href={`/portal/files/${f.id}`}
+                  href={`/portal/files?id=${f.id}`}
                   className="block rounded-[2px] border border-[var(--border)] bg-white p-4 transition-colors hover:border-slate"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">

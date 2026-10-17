@@ -18,6 +18,7 @@
  * while being false, the firm is applying pressure to a licensed engineer's
  * professional judgment and nobody will find out from the software.
  */
+import { readFileSync } from "node:fs";
 import {
   ACTION_LABEL,
   ACTION_TARGET,
@@ -104,6 +105,37 @@ const GATED = { prelaunch: true };
 // =====================================================================
 {
   rec("an engineer can decline to seal", canReview(engineer, subject(), "refuse", REASON, LIVE).ok);
+
+  /*
+   * A FILE IS DECIDED BY THE ENGINEER WHO TOOK IT INTO REVIEW. Product audit,
+   * 2026-10-10: assignedEngineerId was carried and never read, and both callers
+   * passed the caller's own id, so any engineer account could decide another's
+   * file. The rule is asked of every action; a file nobody is assigned to is
+   * still decidable; and both callers must pass the FILE's assignee, which is
+   * the half the rule alone cannot see.
+   */
+  const other = actor("engineer", { id: "engineer-2" });
+  for (const a of ["seal", "refuse", "revisions", "site_visit"]) {
+    rec(
+      `another engineer cannot ${a} a file under someone else's review`,
+      !canReview(other, subject(), a, REASON, LIVE).ok,
+    );
+  }
+  /* Built directly: subject() coalesces a null assignee back to "engineer-1". */
+  const unassigned = { status: "under_review", packageComplete: true, assignedEngineerId: null };
+  rec("while an unassigned file under review is still decidable", canReview(other, unassigned, "refuse", REASON, LIVE).ok);
+  {
+    const callers = [
+      ["src/lib/ops-engineer.ts", /assignedEngineerId:\s*pkg\.file\.assigned_engineer_id/],
+      ["src/app/portal/(app)/review/page.tsx", /assignedEngineerId:\s*selected\.file\.assigned_engineer_id/],
+    ];
+    const wrong = callers.filter(([f, re]) => !re.test(readFileSync(f, "utf8")) || /assignedEngineerId:\s*actor/.test(readFileSync(f, "utf8")));
+    rec(
+      "and both callers pass the file's assignee, never the caller's own id",
+      wrong.length === 0,
+      wrong.length ? `wrong in ${wrong.map(([f]) => f).join(", ")}` : "decideFile and the review screen",
+    );
+  }
 
   const gated = canReview(engineer, subject(), "refuse", REASON, GATED);
   rec("and can decline while the compliance gate is active", gated.ok, gated.ok ? "" : gated.reason);

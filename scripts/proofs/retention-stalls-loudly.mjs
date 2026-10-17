@@ -206,6 +206,53 @@ const REAL_REFUSAL =
   );
 
   /*
+   * AND IT IS LOGGED AT INFO, WHILE A WATCH THAT COULD NOT SEE STAYS AT ERROR.
+   * Operator ruling, 2026-10-09: production logged this routine skip at error
+   * every five minutes for three days. Asked through reportRetentionWatch, the
+   * function the cron calls, with a log that records its levels.
+   */
+  const { reportRetentionWatch } = await import("../../src/lib/retention-watch.ts");
+  const levels = () => {
+    const lines = [];
+    const log = {
+      info: (m) => lines.push(["info", m]),
+      warn: (m) => lines.push(["warn", m]),
+      error: (m) => lines.push(["error", m]),
+    };
+    return { lines, log };
+  };
+  const skip = levels();
+  reportRetentionWatch(result, skip.log);
+  rec(
+    "a cooldown skip is marked suppressed and logged at info, never at error",
+    result.suppressed === true && skip.lines.length === 1 && skip.lines[0][0] === "info",
+    skip.lines.map(([l, m]) => `${l}: ${m}`).join(" | ") || "nothing logged",
+  );
+
+  const broken = {
+    from: () => {
+      const chain = {
+        select: () => chain,
+        eq: () => chain,
+        maybeSingle: async () => ({ data: null, error: { message: "relation eng_alert_state does not exist" } }),
+      };
+      return chain;
+    },
+  };
+  const failed = await watchRetention(NOW, broken);
+  const fault = levels();
+  reportRetentionWatch(failed, fault.log);
+  rec(
+    "and a cooldown that could not be read is not suppressed, and is logged at error as DID NOT LOOK",
+    failed.looked === false &&
+      failed.suppressed === false &&
+      fault.lines.length === 1 &&
+      fault.lines[0][0] === "error" &&
+      /DID NOT LOOK/.test(fault.lines[0][1]),
+    fault.lines.map(([l, m]) => `${l}: ${m}`).join(" | ") || "nothing logged",
+  );
+
+  /*
    * THE OTHER DIRECTION, so this is not a check that passes by the watcher
    * never reading anything. With no previous alert the cooldown cannot
    * suppress, and the source tables MUST be read.

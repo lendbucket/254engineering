@@ -126,6 +126,18 @@ export const EXPIRING_KINDS: CredentialKind[] = [
   "tdi_appointment",
 ];
 
+/*
+ * A label inside a sentence. It was label.toLowerCase(), which printed "No form
+ * w-9 on file", "texas pe license" and "tdi appointment" to the dispatcher and,
+ * since 2026-10-10, to the technician's own dashboard. Only a leading common
+ * word is lowered; a proper noun, a form's name and an acronym keep their case.
+ */
+export function inSentence(label: string): string {
+  const first = label.split(" ")[0];
+  if (/^(Texas|Form)$/.test(first) || /[A-Z].*[A-Z]/.test(first)) return label;
+  return first.charAt(0).toLowerCase() + label.slice(1);
+}
+
 export const CREDENTIAL_LABEL: Record<CredentialKind, string> = {
   drivers_license: "Driver license",
   gl_insurance: "General liability insurance",
@@ -245,13 +257,20 @@ export function credentialStanding(
     const base = { kind, label, current: null, days: null, reason: null, lapsedOn: null, lapsed: null };
     if (exempt.includes(kind)) return { ...base, state: "exempt", blocks: false };
 
-    const held = byKind.get(kind) ?? [];
+    /*
+     * A REJECTED SUBMISSION IS NOT ON FILE. Since 2026-10-09 a technician can
+     * submit a credential and an operator can reject it with a reason; counted
+     * here, a rejection read "on file but not verified yet", which tells an
+     * operator something is waiting that was already turned away. Whether the
+     * kind blocks dispatch is unchanged: only a verified, current copy clears it.
+     */
+    const held = (byKind.get(kind) ?? []).filter((c) => c.status !== "rejected");
     const verified = held.filter((c) => c.status === "verified");
 
     if (verified.length === 0) {
       return held.length
-        ? { ...base, state: "unverified", blocks: true, reason: `${label} is on file but not verified yet.` }
-        : { ...base, state: "missing", blocks: true, reason: `No ${label.toLowerCase()} on file.` };
+        ? { ...base, state: "unverified", blocks: true, reason: `${label} is submitted, awaiting verification.` }
+        : { ...base, state: "missing", blocks: true, reason: `No ${inSentence(label)} on file.` };
     }
 
     // Current if ANY verified copy is current. A renewal uploaded alongside the

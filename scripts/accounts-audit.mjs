@@ -983,6 +983,24 @@ withEnv({ CUSTOMER_SESSION_SECRET: CUS_SECRET }, () => {
     "isPrelaunch answers whether the firm may describe itself as practising, which is not whether it may take an order",
   );
 
+  /*
+   * AND THE CUSTOMER SIGN IN IS RATE LIMITED LIKE THE STAFF AND PARTNER ONES.
+   * Found by the product audit, 2026-10-09 (and the break-it sweep of
+   * 2026-10-02): twelve wrong passwords for one customer address all answered
+   * 401. The same shape partner-audit asserts for its own route: the limiter
+   * is taken before the password is checked, and cleared on a success.
+   */
+  {
+    const signIn = readSource("src/app/api/account/session/route.ts");
+    const took = signIn.indexOf("takeLoginAttempt(");
+    rec(
+      "the customer sign in is rate limited before the password is checked",
+      took > 0 && took < signIn.indexOf("signInCustomer("),
+      took > 0 ? "takeLoginAttempt precedes signInCustomer" : "no takeLoginAttempt in the route",
+    );
+    rec("and a success clears its attempts", /clearLoginAttempts\(/.test(signIn));
+  }
+
   // Rate limiting, and where it lives.
   rec("the API is rate limited", /withinRateLimit\(key\)/.test(route));
   rec(

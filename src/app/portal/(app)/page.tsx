@@ -132,7 +132,12 @@ export default async function PortalHome() {
 
       <CountTiles tiles={dashboard.tiles} />
 
-      <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+      {/*
+        Two sections on a phone, not one: "Needs you" and the money panel each
+        get their own white section with the ground between them. Operator
+        ruling of 2026-10-08. .portal-sections does nothing on a desktop.
+      */}
+      <div className="portal-sections mt-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <Panel
           title="Needs you"
           description="Only things somebody has to act on. An empty list is a result, not a gap."
@@ -171,6 +176,22 @@ export default async function PortalHome() {
           </Panel>
         )}
       </div>
+
+      {/*
+        THE MONEY DASHBOARDS REPORT A FAILED READ TOO. Operator ruling,
+        2026-10-12. Their slot above holds the money panel, so the list of what
+        could not be read sits below it, and only when a read failed: on a
+        healthy render the screen is unchanged.
+      */}
+      {"money" in dashboard && dashboard.notComputable.length > 0 ? (
+        <Panel
+          className="mt-4"
+          title="What could not be counted"
+          description="Each line is a read that failed on this screen. Nothing it fed is shown as a zero."
+        >
+          <NotComputable reasons={dashboard.notComputable} />
+        </Panel>
+      ) : null}
 
       {/*
         A grouped answer, where one number is not the answer. "Unassigned jobs"

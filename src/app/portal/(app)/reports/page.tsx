@@ -83,7 +83,7 @@ function FigureCell({
   return (
     <div
       id={figureKey}
-      className="rounded-[var(--radius-card)] border border-[var(--border)] bg-white p-4"
+      className="border-t-2 border-[var(--ink)] pt-3"
     >
       <p className="portal-kicker text-[var(--secondary)]">{figure.label}</p>
 
@@ -94,7 +94,7 @@ function FigureCell({
       */}
       <p
         className={`mt-1 font-display text-[24px] leading-none font-bold ${
-          absent ? "text-[var(--faint)] italic" : "text-[var(--navy)]"
+          absent ? "text-[var(--faint)] italic" : "text-[var(--ink)]"
         }`}
       >
         {formatFigure(figure)}
@@ -110,7 +110,7 @@ function FigureCell({
       */}
       {figure.rows && window ? (
         <details className="mt-2" open={open}>
-          <summary className="inline-flex min-h-[var(--tap-target)] cursor-pointer items-center text-[12.5px] font-semibold text-[var(--navy)] underline">
+          <summary className="inline-flex min-h-[var(--tap-target)] cursor-pointer items-center text-[13px] font-semibold text-[var(--ink)] underline">
             {figure.rows.length === 0
               ? "The set is empty"
               : `See the ${figure.rows.length} row${figure.rows.length === 1 ? "" : "s"}`}
@@ -126,9 +126,9 @@ function FigureCell({
                 <tbody>
                   {window.shown.map((row, i) => (
                     <tr key={`${row.label}-${i}`} className="border-t border-[var(--border)]">
-                      <td className="py-1 pr-2 align-top font-semibold text-[var(--navy)]">{row.label}</td>
+                      <td className="py-1 pr-2 align-top font-semibold text-[var(--ink)]">{row.label}</td>
                       <td className="py-1 pr-2 align-top text-[var(--secondary)]">{row.detail}</td>
-                      <td className="py-1 text-right align-top tabular-nums text-[var(--navy)]">
+                      <td className="py-1 text-right align-top tabular-nums text-[var(--ink)]">
                         {rowValue(figure, row.value)}
                       </td>
                     </tr>
@@ -155,7 +155,7 @@ function FigureCell({
               </span>
               {window.page > 1 ? (
                 <a
-                  className="inline-flex min-h-[var(--tap-target)] items-center font-semibold text-[var(--navy)] underline"
+                  className="inline-flex min-h-[var(--tap-target)] items-center font-semibold text-[var(--ink)] underline"
                   href={link(window.page - 1)}
                 >
                   Previous {ROWS_PER_PAGE}
@@ -163,7 +163,7 @@ function FigureCell({
               ) : null}
               {window.page < window.pages ? (
                 <a
-                  className="inline-flex min-h-[var(--tap-target)] items-center font-semibold text-[var(--navy)] underline"
+                  className="inline-flex min-h-[var(--tap-target)] items-center font-semibold text-[var(--ink)] underline"
                   href={link(window.page + 1)}
                 >
                   Next {ROWS_PER_PAGE}

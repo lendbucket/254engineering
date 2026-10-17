@@ -7,6 +7,7 @@ import { Wordmark } from "@/components/brand/Wordmark";
 import { money } from "@/lib/ops-money";
 import { registrationLine } from "@/lib/launch";
 import { PayStatementButton } from "./PayStatementButton";
+import { formatInFirmZone } from "@/lib/firm-calendar";
 
 export const dynamic = "force-dynamic";
 
@@ -55,31 +56,29 @@ export default async function StatementsPage() {
       </header>
 
       <main className="mx-auto w-full max-w-[760px] flex-1 px-4 py-12 sm:px-6 sm:py-16">
-        <p className="v10-label">Your account</p>
-        <h1 className="mt-2.5 text-[clamp(1.65rem,3vw,2rem)] leading-[1.15] font-semibold tracking-[-0.5px] text-[var(--color-ink)]">
-          Statements
-        </h1>
-
-      {me.account.billingMode !== "invoice" ? (
-        <p className="mt-3 max-w-[62ch] text-[1rem] leading-[1.7] text-[var(--secondary)]">
-          This account pays by card when it orders, so there is nothing to be billed for later and no
-          statements are produced.
-        </p>
-      ) : (
-        <>
+        <div>
+          <p className="v10-label">Your account</p>
+          <h1 className="mt-2.5 text-[clamp(1.65rem,3vw,2rem)] leading-[1.15] font-semibold tracking-[-0.5px] text-[var(--color-ink)]">
+            Statements
+          </h1>
           <p className="mt-3 max-w-[62ch] text-[1rem] leading-[1.7] text-[var(--secondary)]">
-            Work is billed at the end of each period on {me.account.netDays} day terms. Anything done
-            since the last statement shows below as not yet billed.
+            {me.account.billingMode !== "invoice"
+              ? "This account pays by card when it orders, so there is nothing to be billed for later and no statements are produced."
+              : `Work is billed at the end of each period on ${me.account.netDays} day terms. Anything done since the last statement shows below as not yet billed.`}
           </p>
+        </div>
 
-          <div className="mt-6 flex flex-wrap gap-x-8 gap-y-2 rounded-[4px] border border-[var(--border)] bg-white px-5 py-4">
+      {me.account.billingMode !== "invoice" ? null : (
+        <div>
+
+          <div className="flex flex-wrap gap-x-8 gap-y-2 border-b border-[var(--row-rule)] pb-4">
             <span className="text-[14px] text-[var(--secondary)]">
               Issued and unpaid{" "}
-              <span className="font-semibold text-[var(--navy)]">{money(balance.issuedUnpaidCents)}</span>
+              <span className="font-semibold text-[var(--ink)]">{money(balance.issuedUnpaidCents)}</span>
             </span>
             <span className="text-[14px] text-[var(--secondary)]">
               Not yet billed{" "}
-              <span className="font-semibold text-[var(--navy)]">{money(balance.unbilledCents)}</span>
+              <span className="font-semibold text-[var(--ink)]">{money(balance.unbilledCents)}</span>
             </span>
           </div>
 
@@ -90,22 +89,22 @@ export default async function StatementsPage() {
               {statements.map((s) => (
                 <li key={s.id as string} className="py-4">
                   <div className="flex flex-wrap items-baseline gap-x-3">
-                    <span className="tabular-nums text-[13px] font-semibold text-[var(--navy)]">
+                    <span className="v10-code text-[13px] font-semibold text-[var(--ink)]">
                       {s.reference as string}
                     </span>
-                    <span className="text-[14px] text-[var(--navy)]">{s.period as string}</span>
+                    <span className="text-[14px] text-[var(--ink)]">{s.period as string}</span>
                     <span className="text-[13px] text-[var(--secondary)]">
                       {s.status === "paid"
                         ? "paid"
                         : s.status === "issued"
                           ? s.due_at
-                            ? `due ${new Date(s.due_at as string).toLocaleDateString("en-US")}`
+                            ? `due ${(formatInFirmZone(s.due_at as string) ?? "")}`
                             : "issued"
                           : s.status === "void"
                             ? "cancelled"
                             : "still being prepared"}
                     </span>
-                    <span className="ml-auto text-[14px] font-semibold text-[var(--navy)]">
+                    <span className="ml-auto text-[14px] font-semibold text-[var(--ink)]">
                       {money(s.total_cents === null ? null : Number(s.total_cents))}
                     </span>
                   </div>
@@ -118,7 +117,7 @@ export default async function StatementsPage() {
               ))}
             </ul>
           )}
-        </>
+        </div>
       )}
 
         <p className="mt-10 text-[14px] text-[var(--color-ink-quiet)]">

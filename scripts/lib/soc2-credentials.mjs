@@ -144,6 +144,13 @@ export const NOT_CREDENTIALS = new Set([
    */
   "SHOTS_OUT",
   /*
+   * NODE_OPTIONS, 2026-10-13. Node's own flags variable, read by the payment
+   * event proof so it can add one --require (the preload that refuses any
+   * connection to Stripe) to whatever flags the caller already set. A list of
+   * runtime flags, holding nothing and opening nothing.
+   */
+  "NODE_OPTIONS",
+  /*
    * SHOTS_GATE, SHOTS_ONLY and SHOTS_LABEL, 2026-10-03, all three on
    * scripts/design-shots.mjs and none of them a credential.
    *
@@ -276,6 +283,19 @@ export const NOT_CREDENTIALS = new Set([
    * deadlocks on its own nested build.
    */
   "MACHINE_LOCK_HELD",
+  /*
+   * TZ and EVERY_DATE_CHILD, 2026-10-09. scripts/proofs/every-date-names-its-zone.mjs
+   * re-runs itself in a child process with TZ=UTC, the zone Vercel renders in,
+   * and EVERY_DATE_CHILD=1 marks that child. A zone name and a flag; neither
+   * grants or opens anything.
+   */
+  "TZ", "EVERY_DATE_CHILD",
+  /*
+   * AUDIT_RETRY_LOG, 2026-10-09. A file path under the system temp directory
+   * where each audit records the network faults it retried, so the board can
+   * count them (scripts/lib/transient-retry.mjs). A path and nothing else.
+   */
+  "AUDIT_RETRY_LOG",
   /*
    * break-glass-audit starts three servers one after another, because a
    * process environment is fixed when it boots and the audit needs three

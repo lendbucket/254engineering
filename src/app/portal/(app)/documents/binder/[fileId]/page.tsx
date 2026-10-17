@@ -13,6 +13,7 @@ import {
   RestrictedMode,
   type StatusTone,
 } from "@/components/portal/design";
+import { formatInFirmZone } from "@/lib/firm-calendar";
 
 export const dynamic = "force-dynamic";
 
@@ -56,13 +57,13 @@ const DECISION_TONE: Record<string, StatusTone> = {
 
 const WHEN = (iso: string | null) =>
   iso
-    ? new Date(iso).toLocaleString("en-US", {
+    ? (formatInFirmZone(iso, {
         month: "short",
         day: "numeric",
         year: "numeric",
         hour: "numeric",
         minute: "2-digit",
-      })
+      }) ?? "")
     : null;
 
 export default async function BinderPage({ params }: { params: Promise<{ fileId: string }> }) {
@@ -96,7 +97,7 @@ export default async function BinderPage({ params }: { params: Promise<{ fileId:
           <h1 className="mt-1.5 font-display text-[24px] leading-[1.2] font-bold text-[var(--navy)]">
             Evidence binder
           </h1>
-          <p className="mt-1 font-mono text-[13.5px] text-[var(--secondary)]">
+          <p className="mt-1 text-[13.5px] text-[var(--secondary)]">
             {binder.fileNumber} · assembled {WHEN(binder.generatedAt)}
           </p>
         </SheetLetterhead>
@@ -252,7 +253,7 @@ export default async function BinderPage({ params }: { params: Promise<{ fileId:
                     an hour; a key is what somebody fetches the object by in a
                     year.
                   */}
-                  <p className="mt-1 font-mono text-[12px] break-all text-[var(--secondary)]">
+                  <p className="mt-1 text-[12px] break-all text-[var(--secondary)]">
                     {a.storageKey}
                   </p>
                 </li>

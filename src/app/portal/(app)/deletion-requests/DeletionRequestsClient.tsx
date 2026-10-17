@@ -31,7 +31,7 @@ import { CHANNELS, type RequestChannel } from "@/lib/deletion-request-kinds";
  */
 
 const field =
-  "min-h-[44px] w-full rounded-[3px] border border-[var(--border)] bg-white px-3 text-[16px] text-[var(--navy)] outline-none focus:border-slate";
+  "min-h-[44px] w-full rounded-[2px] border border-[var(--border)] bg-white px-3 text-[16px] text-[var(--ink)] outline-none focus:border-slate";
 
 export function TakeRequest() {
   const router = useRouter();
@@ -81,7 +81,7 @@ export function TakeRequest() {
   return (
     <form onSubmit={submit} className="flex flex-col gap-3">
       <div>
-        <label htmlFor="del-email" className="mb-1 block text-[13.5px] font-semibold text-[var(--navy)]">
+        <label htmlFor="del-email" className="mb-1 block text-[14px] font-semibold text-[var(--ink)]">
           Their email address
         </label>
         <input
@@ -96,7 +96,7 @@ export function TakeRequest() {
       </div>
 
       <div>
-        <label htmlFor="del-who" className="mb-1 block text-[13.5px] font-semibold text-[var(--navy)]">
+        <label htmlFor="del-who" className="mb-1 block text-[14px] font-semibold text-[var(--ink)]">
           Who are they, as far as you can tell?
         </label>
         <input
@@ -114,7 +114,7 @@ export function TakeRequest() {
       </div>
 
       <div>
-        <label htmlFor="del-channel" className="mb-1 block text-[13.5px] font-semibold text-[var(--navy)]">
+        <label htmlFor="del-channel" className="mb-1 block text-[14px] font-semibold text-[var(--ink)]">
           How did it reach the firm?
         </label>
         <select
@@ -133,7 +133,7 @@ export function TakeRequest() {
 
       {channel === "other" ? (
         <div>
-          <label htmlFor="del-channel-note" className="mb-1 block text-[13.5px] font-semibold text-[var(--navy)]">
+          <label htmlFor="del-channel-note" className="mb-1 block text-[14px] font-semibold text-[var(--ink)]">
             Say how
           </label>
           <input
@@ -149,7 +149,7 @@ export function TakeRequest() {
       ) : null}
 
       <div>
-        <label htmlFor="del-asked" className="mb-1 block text-[13.5px] font-semibold text-[var(--navy)]">
+        <label htmlFor="del-asked" className="mb-1 block text-[14px] font-semibold text-[var(--ink)]">
           What did they ask for, in their words?
         </label>
         <textarea
@@ -158,7 +158,7 @@ export function TakeRequest() {
           rows={4}
           value={askedFor}
           onChange={(e) => setAskedFor(e.target.value)}
-          className="w-full rounded-[3px] border border-[var(--border)] bg-white p-3 text-[16px] text-[var(--navy)] outline-none focus:border-slate"
+          className="w-full rounded-[2px] border border-[var(--border)] bg-white p-3 text-[16px] text-[var(--ink)] outline-none focus:border-slate"
           placeholder="as close to what they said as you can manage"
         />
         <p className="mt-1 text-[12px] text-[var(--secondary)]">
@@ -170,7 +170,7 @@ export function TakeRequest() {
       <button
         type="submit"
         disabled={busy}
-        className="inline-flex min-h-[44px] items-center justify-center rounded-[3px] bg-[var(--navy)] px-4 text-[14px] font-semibold text-white disabled:opacity-60"
+        className="inline-flex min-h-[44px] items-center justify-center rounded-[2px] bg-[var(--navy)] px-4 text-[14px] font-semibold text-white disabled:opacity-60"
       >
         {busy ? "Recording" : "Record the request"}
       </button>
@@ -245,7 +245,7 @@ export function AnswerRequest({ id }: { id: string }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex min-h-[44px] items-center text-[12.5px] font-semibold text-[var(--navy)] underline"
+        className="inline-flex min-h-[44px] items-center text-[13px] font-semibold text-[var(--ink)] underline"
       >
         Record what was said
       </button>
@@ -262,7 +262,7 @@ export function AnswerRequest({ id }: { id: string }) {
           rows={3}
           value={because}
           onChange={(e) => setBecause(e.target.value)}
-          className="mt-1 w-full rounded-[3px] border border-[var(--border)] bg-white p-3 text-[16px] text-[var(--navy)] outline-none focus:border-slate"
+          className="mt-1 w-full rounded-[2px] border border-[var(--border)] bg-white p-3 text-[16px] text-[var(--ink)] outline-none focus:border-slate"
           placeholder="in the words you used with them"
         />
       </label>
@@ -274,7 +274,7 @@ export function AnswerRequest({ id }: { id: string }) {
         <button
           type="button"
           onClick={() => { setOpen(false); setError(null); }}
-          className="inline-flex min-h-[44px] items-center text-[12.5px] font-semibold text-[var(--secondary)] underline"
+          className="inline-flex min-h-[44px] items-center text-[13px] font-semibold text-[var(--secondary)] underline"
         >
           Cancel
         </button>
@@ -282,7 +282,7 @@ export function AnswerRequest({ id }: { id: string }) {
           type="button"
           onClick={submit}
           disabled={busy}
-          className="inline-flex min-h-[44px] items-center text-[12.5px] font-semibold text-[var(--navy)] underline disabled:opacity-60"
+          className="inline-flex min-h-[44px] items-center text-[13px] font-semibold text-[var(--ink)] underline disabled:opacity-60"
         >
           {busy ? "Recording" : "Record it"}
         </button>

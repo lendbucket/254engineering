@@ -4,6 +4,14 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
+## THE SITTING FOR 0078, AN INTAKE ANSWER CAN BE A STORED FILE, OPEN
+
+`docs/production-sitting-0078-intake-photo.md`. Written 2026-10-16 on
+`migration/intake-photo-0078` and applied nowhere. Without it the firm cannot
+open a 254-RC-001 job by telephone, because the signed protocol requires a
+front-of-property photo at order and nothing let the firm attach one. Additive
+only; development first, then production, each read back.
+
 ## THE SITTING FOR `release/2026-10-20`, PARTS A AND B RUN 2026-10-07, PART C OPEN
 
 `docs/production-sitting-2026-10-20.md`. **Parts A and B ran on 2026-10-07**
@@ -43,6 +51,327 @@ active, login 2026-09-02 16:45:18 UTC, profile 17:57:25 UTC, and no
 `scripts/seed-admin.mjs`, not the People screen, so it carries no such row, true
 or false.
 
+## CONTRAST-AUDIT CANNOT SEE TEXT ON A GRADIENT BAND
+
+Found 2026-10-10 from product audit defect 25. Two links on /about and
+/government were `text-slate` on a `from-slate to-slate-deep` band, navy on
+navy, visible only by their underline, and contrast-audit was green over both.
+axe cannot compute contrast against a background image, so it files every such
+node as INCOMPLETE rather than as a violation, and `scripts/contrast-audit.mjs`
+reads violations only. Every text node on `Section tone="navy"` and on /about's
+model band has therefore never been measured. **`fix/links-on-the-navy-band`
+fixed the two instances, not the class.** The class fix is a check that takes
+each incomplete color-contrast node whose background is a gradient, parses the
+gradient's stops, and fails on the worst stop under AA; it needs a server to
+run standalone, so it was not written in a run whose lock another project held.
+Its injection is this branch's two links put back.
+
+## THE REVIEW REQUEST WAITS ON A LINK AND A DELAY
+
+`feat/review-request`, run item 25 of 2026-10-10. Built and inert: nothing is
+sent while `REVIEW_LINK` in `src/config/review-request.ts` is empty, and every
+delivered order records on its timeline that it was not sent and why. Open:
+Robert gives the Google Business Profile review URL; the delay of 7 days is
+the run's default and needs his ruling (it is pinned in the proof). The email
+links to the firm's own `/review`, which redirects to the configured URL,
+because email-audit holds every email link to the production domain.
+
+## APPLIED: 0073, NO eng_ FUNCTION IS CALLABLE WITHOUT THE SERVICE ROLE
+
+`docs/production-sitting-fix-function-grants.md`. A security defect the
+counterpart found on production on 2026-10-10: every `eng_` function was
+executable by `PUBLIC`, `anon` and `authenticated`, so the publishable key could
+call `eng_set_trade_price` (SECURITY DEFINER) through PostgREST and write a
+trade price. 0073 revokes those grants on every public `eng_` function and
+grants `service_role` only; migration-audit's replay now carries Supabase's
+roles and default grant (`scripts/lib/replay-stubs.mjs`) and fails if any
+function is executable by anon or authenticated. **Applied to development
+and production 2026-10-11 13:54 CT** by the counterpart, read back on both:
+anon 0, authenticated 0, service_role 38 of 38; the jobs cron and health-watch
+ran ok after. **Still open, for a ruling:** the public schema's default
+privileges still grant a NEW function to anon; 0073 leaves them alone because
+production's public schema is shared with other applications, so the guard is
+the board rather than the database.
+
+## SURVEY OWED: READS WHOSE ERROR IS DISCARDED, SO A FAILED READ READS AS CLEAN
+
+Found 2026-10-11 by reading a green board's transient retry lines. demo-audit's
+"the clients screen lists none of them" looked up every listed client in one
+`in()` request and discarded the error; from the 0070 board on, the request
+failed on its size (`UND_ERR_HEADERS_OVERFLOW`, about four hundred ids), and the
+check passed over a read that never happened. `fix/demo-audit-reads-its-error`
+fixes THAT INSTANCE: paged reads, the error read, COULD NOT TELL on a fault, and
+demo-audit now exits 3 when anything is unmeasured instead of 0.
+
+**The class is not fixed.** A search for `const { data } = await ... .in(` with
+no `error` taken found 21 such reads under `scripts/`, mostly teardown checks
+over a handful of probe ids (`bulk-audit`, `queue-audit`, `doors-audit`,
+`scripts/lib/probe-ledger.mjs`, `scripts/lib/portal-probe.mjs`). A teardown
+verification that reads a null as "nothing left" is the mirror-sweep defect in
+CLAUDE.md 6c. Open: survey each, report which can read a failure as a pass,
+then fix those on a ruling.
+
+## OPEN: SCREEN READS THAT STILL HIDE A FAILURE, FOUND BY THE FETCH TIMEOUT
+
+`fix/db-fetch-timeout`, 2026-10-12. Operator ruling: a failed or stalled read
+never renders as an empty state. That branch fixed the session read, the design
+brief list and every dashboard read (proof
+`a-stalled-database-is-said-not-hidden`). Reading the dashboard's helpers found
+the same defect on other screens, left for the survey because each needs its own
+error sentence:
+
+- **`/portal/orders`** reads `ordersNeedingAttention()`, which still answers a
+  failed read with an empty list ("nothing waiting on a payment"). The dashboard
+  now reads `ordersNeedingAttentionRead()`, which says null.
+- **`/portal/billing`** reads `uncreditedReviews()` the same way. The credit
+  itself now refuses on a failed read.
+- **`/portal/tasks`** reads `listTasks()`, which answers a failure with no tasks.
+- **The portal bell** (layout): `listNotifications` and `unreadCount` discard
+  their errors, and a stall in both holds every screen 40 seconds.
+- **`/portal/windstorm-inquiries`**: `windstormInquiries()` has the shape
+  `/portal/inquiries` had.
+- **Partner and customer session reads** (`partner-auth.ts`,
+  `customer-auth.ts`) still answer a failed read as signed out. The ruling named
+  the staff portal's session read.
+- **Partial reads, no failure involved**, found on the dashboard path:
+  `listTasks` `.limit(300)`, `fileMargins` and `uncreditedReviews` `.limit(500)`,
+  the unpaged credential, account, order and refund reads, and two `.in()` lists
+  that can exceed the 150 id cliff (`partnerCostByFile`, the production ledger
+  lookup). Each is a figure computed from part of its set with nothing saying so.
+- **The login redirect's `next`**: `(app)/layout.tsx` reads `x-invoke-path`,
+  which Next 16 does not set, so it always sends `next=/portal`.
+
+## APPLIED: 0075, A PAYMENT EVENT IS APPLIED ONCE
+
+**Applied to development and then production 2026-10-13 07:0x CT** by the
+counterpart from d3d9766, after section 0 returned no rows on production, read
+back exact on both (shape 318b0fa3 across 1206). Merges on its board.
+
+Ruled 2026-10-12 (the entry that stood here asked for it): Stripe's resends are
+allowed, every payment event is recorded once by its id before any effect, each
+webhook branch's money writes commit in one transaction with that record, the
+release runs after commit under claimed then done, and anything uncommitted
+answers non 2xx. Built on `fix/stripe-webhook-once`, which builds on
+`feat/partner-billing` because 0075 follows 0074. Sitting:
+`docs/production-sitting-fix-stripe-webhook-once.md`, whose section 0 is the
+read-only query for charges already taken with no work released. Proof:
+`scripts/proofs/a-payment-event-is-applied-once.mjs`, on a replay served by
+`scripts/lib/replay-rest.mjs`, because development refuses deletes on every
+money table. Merges only after 0074 and 0075 are applied to production and
+read back.
+
+## APPLIED: 0076, A REFUND UPDATE IS APPLIED ONCE
+
+**Applied to development and then production 2026-10-13** by the counterpart
+through the connector, each in one try with no cancel, read back exact on both
+(four kinds, the function closed to anon and authenticated, no event rows,
+shape 318b0fa3 across 1206). Merged as 449216f, read READY in production by
+the counterpart at 16:16Z on 2026-10-14. Robert confirmed on 2026-10-14 that
+`charge.refund.updated` is on the live endpoint, and `registeredEvents` gains
+it on `copy/scope-structural`. Still open: the keyed live half of
+`stripe-webhook-audit` has not read the four events back from the account;
+`liveConfirmedOn` stays 2026-09-16 until it does.
+
+Ruled 2026-10-13: Stripe's `charge.refund.updated` through the same ledger in
+one transaction; pending to succeeded marks the refund row succeeded; pending to
+failed or canceled marks it failed or cancelled, firm alerted, nothing
+reinstated and the customer not told; an unknown failed refund raises a staff
+task; the orders screen names "Refund failed at Stripe, order still marked
+refunded"; and a refund pending when issued is told to the customer as issued,
+never as refunded. Built on `fix/refund-update-event`. Proof:
+`scripts/proofs/a-refund-update-is-applied-once.mjs`. Sitting:
+`docs/production-sitting-fix-refund-update-event.md`, section 0 first. The
+migration carries one drop statement by ruling, so the connector is tried once
+and, if it cancels, Robert runs it in the SQL editor. After the merge and the
+deployment, Robert adds `charge.refund.updated` to the endpoint in the Stripe
+dashboard; until he confirms, `stripe-webhook-audit` fails one line naming it.
+
+## APPLIED: 0077, EVERY PROTOCOL REQUIRES STRUCTURAL; WP-001 v1.2 AND FC-001 SIGNABLE
+
+**Applied to development and then production 2026-10-14** by the counterpart
+through the connector, each in one try with no cancel, read back exact on both
+(the eight read structural, WP-001 v1.1 null, RC-001 unchanged, shape 318b0fa3
+across 1206). Open for what is still owed, below.
+
+Ruled 2026-10-14. WP-001 v1.2 and FC-001 v1.0 join the list the engineer signs
+from (`src/content/protocols/signable.ts`), and WP-001 v1.1 leaves it because
+v1.2 supersedes it. The engineer's written answer of the same day, recorded as
+`every-service-is-structural` in `src/config/engineer-directions.ts` with the
+operator's attestation as its evidence, sets Structural on the eight signable
+protocols through 0077; WP-001 v1.1's row gets none. Built on
+`feat/protocol-signing-wp-fc`. Sitting:
+`docs/production-sitting-feat-protocol-signing-wp-fc.md`, section 0 first.
+Still owed: his signature on WP-001 v1.2, WS-001 v1.1 and FC-001 v1.0, his
+approval of each protocol. The scope statement (no architectural or MEP work)
+is rendered in the operator's ruled wording of 2026-10-14 on `/terms` and
+`/design-inquiry`, on `copy/scope-structural`.
+
+## OPEN, FROM THE WEBHOOK WORK OF 2026-10-13, NOT BUILT
+
+Each found while building 0075, outside what the ruling asked for, and left
+for a ruling rather than fixed on the way past.
+
+1. **The partner billing lane keeps its own event table.** 0074's lane records
+   each Stripe event once in `eng_partner_billing_events`, keyed by event id,
+   and does not use `eng_payment_events`. **Ruled 2026-10-13:** it stays
+   separate until billing is switched on, then folds into `eng_payment_events`
+   on its own branch, before the switch. Billing is not turned on until that
+   is done.
+2. **NEXT, ruled 2026-10-13, after the webhook merge and ahead of partner
+   onboarding. A pending refund is never marked succeeded.** settleDecision and
+   cancelAndRefund write Stripe's status at the moment of the call, which can
+   be pending, and nothing updates it later: the webhook is not subscribed to
+   `charge.refund.updated`. 0075 now counts pending refunds as on file, which
+   is what stops the double record, but a pending row stays pending for ever.
+   The ruling: handle the provider's refund update event through the same
+   ledger, one transaction, and prove pending to succeeded and pending to
+   failed.
+3. **settleDecision and cancelAndRefund count only succeeded refunds** when
+   working out what is still owed. A pending refund there would make a second
+   refund look owed. Stripe's own idempotency key (charge and amount) stops a
+   second identical refund leaving, so the money is safe; the figure is not.
+4. **A batch or statement refund reverses no commission.** Commission accrues
+   per order, and a refund against a batch or statement names no order, so the
+   refund is recorded and the audit row says the reversal is for a person. If
+   partners ever refer batch or statement customers, this needs a rule.
+5. **A paid batch whose expiry arrived first** is marked accepted with its
+   orders still cancelled, and nothing says a payment arrived. A single order in
+   the same race gets a `payment.unexpected` event; the batch gets nothing.
+   Behaviour unchanged by 0075.
+6. **NEXT, ruled 2026-10-13, first after the webhook merge. An existing client
+   paying from a new address** cannot open an account:
+   `eng_customer_accounts` is unique per site and client, so account creation
+   refuses. Before 0075 that was an `account.not_opened` event and the release
+   finished; now the release stays claimed and shows as "Paid, work not
+   released" after fifteen minutes, which is visible but repeats on every
+   resend. Found by the proof's fixture. The ruling: match the payer to the
+   existing account by the order's client record, not the payment email; with
+   no safe match, open nothing, show it on "Paid, work not released" with a
+   one-click staff action to attach the account, and prove both paths.
+   **Built on `fix/existing-client-account`**, with the second ruling of the
+   same day: a match links the order and nothing more, and the confirmation
+   goes to the account's active owner, else its billing email, else nobody
+   (the panel says so). Proof: `an-existing-client-is-matched-by-its-record`.
+   **Not built, by ruling:** adding the paying address as a sign in on the
+   account. It is never automatic; if staff ever need it, they add a user
+   through the existing account management path. A one-click "add this
+   address" on the attach panel would be its own decision.
+   **Also open:** an order whose account has no address on file waits for
+   Stripe's next delivery after somebody adds one (Stripe retries for three
+   days); there is no "release again" button.
+7. **A completed checkout with no order, batch or statement id** still answers
+   200 with nothing written. Money moved with nothing to attach it to; it is
+   logged, and nothing else notices.
+
+## APPLIED: 0072, A PARTNER'S LOGO IS APPROVED BEFORE IT SHOWS
+
+`docs/production-sitting-feat-partner-branding-upload.md`. Run item 19's
+branding upload: four logo states on `eng_partners` and a private raster-only
+bucket. **Applied to development and production 2026-10-10 16:41 CT** by the
+counterpart, after 0071, read back as predicted (shape 3cffb39b across 1181;
+the constraint query lists four rows, and the document now says so). What
+stays open: the partner order page (`feat/partner-order-page`) shows an
+approved logo, which is not wired yet because the two branches are separate.
+
+## APPLIED: 0071, SIGN IN ATTEMPTS ARE COUNTED IN THE DATABASE
+
+`docs/production-sitting-fix-sign-in-limiter-in-the-database.md`. The sign in
+limiter (decision 14) counts in `eng_sign_in_attempts` through
+`eng_take_sign_in_attempt` instead of in each instance's memory; a reset is a
+row, so nothing deletes. **Applied to development and production 2026-10-10
+15:06 CT** by the counterpart, read back as predicted (shape bc55a14f across
+1176); the in-memory count answers until this code is deployed. What stays
+open: the sign up limiter in the same file still counts in memory, and was
+outside decision 14.
+
+## APPLIED: 0070, THE SECOND FACTOR IS REQUIRED FOR THE ENGINEER
+
+`docs/production-sitting-fix-second-factor-required.md`. The `engineer` row of
+`eng_roles` moves from optional to required (operator ruling 2026-10-10, gap
+3). The `admin` row stays optional by the operator's later ruling the same day,
+replacing gap 4's; 0070 was amended and renamed before any apply. **Applied to
+development and production 2026-10-10 15:06 CT** by the counterpart, the
+amended file from cbb718c, read back: engineer required, administrator
+optional. The SOC 2 gap's engineer half closes with it; **its administrator
+half stays open, reason: operator's choice.**
+
+## APPLIED: 0069, WP-001 v1.2 AND FC-001 v1.0 ENTER AS DRAFTS
+
+`docs/production-sitting-feat-wp-001-v1-2-and-fc-001.md`. Two draft template
+rows, each carrying its Word file's SHA-256; transcribed verbatim into
+`src/content/protocols/docx-received.ts` and proved word for word by
+protocol-registry-audit section 9. **Applied to development and production
+2026-10-10 11:55 CT** by the counterpart, after 0068, read back as predicted;
+merges with `feat/wp-001-v1-2-and-fc-001`. What stays open: the two are TEXT,
+not yet STRUCTURE (intake, checklist, decision rules): that is parsed when the
+engineer signs and the protocol moves into PROTOCOL_ENTRIES, which waits on the
+operator's ruling recorded in `docs/audit-2026-10/RUN-2026-10-10.md` (item 4).
+
+## APPLIED: 0068, A DECISION AND ITS CREDIT ARE ONE WRITE
+
+`docs/production-sitting-fix-review-and-credit-one-write.md`. One function,
+`eng_record_review_decision`, and three decision checks widened to include
+`repairs` (a defect: a repairs decision could not write its charge log row or
+its credit). **Applied to development and production 2026-10-10 11:55 CT**
+through `apply_migration`, not cancelled, read back as predicted; merged as
+c14144f. What stays open from the same ruling: the transaction proof runs in an in-process replay, because no
+development database URL exists in this repository; a direct development
+transaction needs one.
+
+## APPLIED: 0074, PARTNER BILLING, BUILT AND OFF
+
+`docs/partner-billing-plan.md` (item 17 of the run of 2026-10-10), approved by
+the operator on 2026-10-11 as designed: $800 upfront and $99 a month, paid to
+254 through 254's one Stripe account. Built on `feat/partner-billing`: the
+webhook's partner lane, the two tables of 0074
+(`docs/production-sitting-feat-partner-billing.md`), the partner's billing
+panel and `/api/partner/billing`. **Applied to development and production
+2026-10-13 00:29 CT** by the counterpart from a898ba4, read back exact (shape
+e4b2e350 across 1194). **Billing is off.**
+Open, each the operator's or counsel's:
+- **Before turning it on, ruled 2026-10-13:** the lane folds into
+  `eng_payment_events` on its own branch (item 1 of the webhook list above).
+- **Turning it on** is a separate step after the attorney confirms the
+  structure; `enabled` needs `counselSignOff` beside it, and the proof refuses
+  one without the other.
+- **The six questions** stay pending values in `src/config/partner-billing.ts`
+  and appear in no copy, order page, onboarding text or email until ruled:
+  grace period (null: nobody is suspended), the $800's refund rule (null: no
+  refund path), cancellation (null: no portal cancel), a lapsed partner's past
+  credit (compensation untouched), sales tax (not collected), receipt name.
+- **Before turning it on:** subscribe the Stripe endpoint to `invoice.paid`,
+  `invoice.payment_failed`, `customer.subscription.updated` and
+  `customer.subscription.deleted` (a dashboard change), and teach
+  `stripe-webhook-audit` the partner lane's events
+  (`PARTNER_BILLING_STRIPE_EVENTS` in `src/lib/partner-billing-rules.ts`); it
+  reads only `event.type ===` literals in the adapter today, so it does not see
+  them. Wire `partnerMayOrder` into partner ordering and the partner order page,
+  and write the suspension job that reads the grace period.
+
+## THE SITTING OF 2026-10-10: 0067, ONE PENDING CREDENTIAL OF EACH KIND, RUN
+
+`docs/production-sitting-2026-10-10.md`. One additive migration on
+`fix/credential-one-pending`: a unique partial index so two submissions in
+flight cannot both write a pending row (reproduced twice by the product audit).
+**Applied to development and then production on 2026-10-10 by the counterpart;
+the duplicate dry run returned no rows on both and the index read back as
+predicted on both**, recorded in the ledger. The two read-only queries: no
+offer or assignment holds a null rate, and all five protocol seal acts'
+`content_sha256` equal the transcriptions' digests. The same sitting found
+production's `eng_fee_schedule` empty, which is the engineer pay branch. What
+stays open: the branch merges once its board passes.
+
+## THE SITTING OF 2026-10-09: 0066, A CREDENTIAL'S ISSUING STATE, RUN
+
+`docs/production-sitting-2026-10-09.md`. One additive migration on
+`fix/certification-unblock`: `eng_credentials.issuing_state` and its check.
+**Applied to development and production on 2026-10-09 by the counterpart and
+read back identical on both, every prediction held**, recorded in the ledger.
+The production read for ruling 4 found the operator's roof certification
+against 254-RC-001 v1.1, which the session had predicted absent; corrected in
+the rulings row below. What stays open: the branch merges once its board
+passes.
+
 ## THE SITTING OF 2026-10-08: 0065, THE SEVEN PROTOCOLS AS DRAFTS, RUN
 
 `docs/production-sitting-2026-10-08.md`. One migration, `feat/protocols-v1-1`:
@@ -51,6 +380,48 @@ digest. **Applied to development and production on 2026-10-08 by the
 counterpart and read back on both, every prediction held**, recorded in the
 ledger. It opens no line. What stays open: Aman signs each in the portal, and
 loading them into the portal follows 10-20.
+
+## WHEN AMAN SIGNS EACH v1.1 PROTOCOL, ITS LINE'S "WHAT YOU RECEIVE" IS QUOTED FROM IT
+
+Operator ruling, 2026-10-08. "What you receive" in `data/catalog.ts`, shown on
+the order status page and in the order email, carries a line's own SIGNED
+protocol quoted word for word, or `SCOPE_PENDING` alone: "The scope of this
+service is published here once the engineer of record signs its protocol."
+Today only roof certification quotes (254-RC-001 v1.1 section 11); the other
+ten deliverables carry the sentence.
+
+**Owed, one per signature:** when Aman signs 254-WP-001, WS-001, MH-001,
+SL-001, PL-001, RS-001 or DS-001, a follow-up branch replaces that line's
+pending sentence with sentences quoted from the signed document. The signature
+alone changes nothing on the page, because `protocol-registry-audit` reads
+"signed" from `PROTOCOL_ENTRIES` with signature evidence, and the drafts are not
+there; the follow-up registers the signed protocol and quotes it in the same
+branch. The check refuses a signed line that still carries the pending
+sentence, so the registration cannot quietly leave it behind.
+
+The WPI-8 disclaimers moved to `notes` word for word and are pinned in the same
+audit; a new note is a deliberate edit listed for the operator's review.
+
+## OUR LOCK AND WATTSMITH'S WERE BOTH HELD AT ONCE, 2026-10-09. NOT EXPLAINED.
+
+Read, not inferred. At 04:22:32Z the lock file named wattsmith
+(`test/reds-batch3`, pid 26716, start 04:20:51Z). At 04:22:43Z a screenshot run
+of ours printed `lock taken` without logging a single wait, built, and started
+a server. A later hand read, while ours was still running, showed wattsmith's
+record again, pid 26716 alive. Ours was stopped and its three processes ended
+(each verified ours by command line); wattsmith's process and lock were not
+touched.
+
+What differs between the two implementations, read from both files: wattsmith
+creates the file atomically (`openSync(path, "wx")`) and never overwrites;
+ours writes with `writeFileSync`, which overwrites, then reads back. Both judge
+liveness the same way (`process.kill(pid, 0)`, EPERM alive). Neither difference
+explains the sequence on its own, and no hypothesis is recorded as the cause.
+
+Until it is explained: a run of ours starts only when the lock file is ABSENT,
+and the file is read by hand after launch to confirm it names our pid. The fix
+worth considering is `wx` creation here too, so the two projects use the same
+primitive; it is not built.
 
 ## A STANDALONE AUDIT TAKES NO MACHINE LOCK
 
@@ -396,7 +767,7 @@ a commit is one the next session has to go looking for.
 | 2026-10-06 | **Technician training academy, queued after roof certification works end to end** | **QUEUED, NOT STARTED, by operator instruction.** Two courses a technician must graduate before the `field_tech` role is enrolled: (1) duties, responsibilities and each signed protocol, with content and quiz questions approved by Aman and versioned to the protocol version it teaches; (2) a firm safety course on ladder use and fall protection on roofs, written by Robert. Video lessons may be AI generated, never presenting a generated person as staff, with narration matching the protocol text. Graduation is the entry requirement only: certification still requires Aman's sign off after a supervised inspection. |
 | 2026-10-06 | **0055 carries `requires_discipline = null`, and it is known** | **KNOWN, NOT A DEFECT ON PRODUCTION.** Production's RC-001 row carries `structural`, read by the operator's chat counterpart on 2026-10-06, so 0056 corrected it there. The `null` in 0055 is a seed artifact. 0055 is applied and on main and is not changed. The generator no longer reproduces 0055 because of it, which is recorded on `feat/protocol-registry`. |
 | 2026-10-06 | **Dispatch readiness on production: a sitting script, and a role that blocks it** | **OPEN, SCRIPT WRITTEN, NOT RUN.** `docs/production-sitting-dispatch-readiness.md` writes Robert's roof certification, all 254 counties and two credentials. Dispatch only considers role `field_tech` and his profile is `admin`, so the role has to be ruled first (the document recommends a second technician profile). The W-9 and contractor agreement block is held for a ruling on whether an owner needs them. |
-| 2026-10-06 | **Four rulings, and two facts with two homes that disagree** | **RULED, recorded in `docs/rulings-2026-10-06.md`.** Ordering stays live; the platform drafts the letter and the engineer seals it in the portal (the law is in `CLAUDE.md` section 1); Robert's RC-001 v1.1 training is accepted on his statement; his coverage is all 254 counties. **OPEN:** the training register says trained while `eng_certifications` on production holds no row, and the TDI appointment register says not held while `eng_profiles` says appointed. Neither is fixed; the appointment waits on Aman's number and date. |
+| 2026-10-06 | **Four rulings, and two facts with two homes that disagree** | **RULED, recorded in `docs/rulings-2026-10-06.md`.** Ordering stays live; the platform drafts the letter and the engineer seals it in the portal (the law is in `CLAUDE.md` section 1); Robert's RC-001 v1.1 training is accepted on his statement; his coverage is all 254 counties. **OPEN:** ~~the training register says trained while `eng_certifications` on production holds no row~~ **CORRECTED 2026-10-09: that half was wrong.** The counterpart read production in the sitting of 2026-10-09: one roof certification row, status certified, certified_at 2026-09-23T05:00:00Z, against 254-RC-001 v1.1 (published), the operator's own, taken against the current version. The session predicted no row from this entry and the read disproved it; the entry was a claim nobody had read against production. The TDI appointment register says not held while `eng_profiles` says appointed; that half stands, and the appointment waits on Aman's number and date. |
 | 2026-10-06 | **Three findings from the one-protocol-to-many groundwork, none fixed** | **OPEN, REPORTED.** (1) Since 0056 declared the discipline on 2026-09-21, `scripts/seed-protocol.mjs --document 254-RC-001 --emit-sql` no longer reproduces 0055: it would write `structural` where the applied file says `null`, so running it rewrites a migration that has run on production. Proven by re-emitting and diffing, then restored by copy. The generator should refuse to overwrite an existing migration. (2) The RC-001 portal screen still says the protocol "has not been approved in the platform"; it was approved on 2026-09-22. Carried unchanged because the ruling was that RC-001 behaves exactly as before, and replaced by the signed record when portal signing is built. (3) `protocol-register-check` against development reports the RC-001 row approved 2026-09-28 while the register says 2026-09-22; the check is written for production, where the dates agree, and development's row was approved on a later day. |
 | 2026-10-01 | HR pay rates | **RULED.** No defaults anywhere. Rates are entered per person in admin by the owner, with effective dates. A person with no rate set cannot be assigned paid work or appear in a pay export, and the screen says why in plain words. |
 | 2026-10-01 | Contractor agreement and handbook text | **RULED.** Build the flow that carries an uploaded document, its version, and a dated acknowledgement per person. Placeholder text marked "Awaiting attorney review" until he uploads the real documents, and nothing goes out while the placeholder is there. |

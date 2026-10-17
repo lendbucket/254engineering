@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { designInquirySchema, fieldErrors } from "@/lib/forms";
 import { insertDesignInquiry } from "@/lib/intake";
+import { withSaveOutcome } from "@/lib/save-outcome";
 
 /**
  * The design inquiry intake.
@@ -23,7 +24,7 @@ import { insertDesignInquiry } from "@/lib/intake";
  * staff task is an unauthenticated request acting as a privileged principal.
  * The row carries respond_by; an operator raises the task from it.
  */
-export async function POST(request: Request) {
+async function handlePOST(request: Request) {
   let payload: unknown;
   try {
     payload = await request.json();
@@ -79,3 +80,6 @@ export async function POST(request: Request) {
 
   return NextResponse.json({ ok: true });
 }
+
+/* A save abandoned by the 20 second bound says it may not have saved, and a failed session read is never "Not signed in": save-outcome.ts. */
+export const POST = withSaveOutcome(handlePOST);

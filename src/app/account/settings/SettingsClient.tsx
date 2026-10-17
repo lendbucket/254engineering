@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { formatInFirmZone } from "@/lib/firm-calendar";
 
 type Defaults = {
   billingEmail: string | null;
@@ -315,7 +316,7 @@ export function SettingsClient({
                   {k.revokedAt
                     ? "revoked"
                     : k.lastUsedAt
-                      ? `last used ${new Date(k.lastUsedAt).toLocaleDateString("en-US")}`
+                      ? `last used ${(formatInFirmZone(k.lastUsedAt) ?? "")}`
                       : "never used"}
                 </span>
                 {isOwner && !k.revokedAt ? (

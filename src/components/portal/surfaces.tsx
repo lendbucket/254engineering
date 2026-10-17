@@ -161,15 +161,27 @@ export function ButtonLink({
   */
   const base =
     "inline-flex min-h-[var(--tap-target)] items-center justify-center rounded-[var(--radius-control)] px-4 text-[14px] font-bold transition-colors";
+  const className =
+    tone === "primary"
+      ? `${base} bg-[var(--navy)] text-white hover:bg-[var(--navy-hover)]`
+      : `${base} border border-[var(--border-strong)] bg-white text-[var(--navy)] hover:bg-[var(--row-hover)]`;
+  /*
+    AN API ROUTE IS A DOWNLOAD, NOT A PAGE, SO IT IS A PLAIN ANCHOR. Found
+    2026-10-09. A Next <Link> is prefetched as soon as it is in view, and the
+    export route writes its audit row before it answers: every administrator
+    who opened the dashboard recorded "Exported margin by period" without
+    exporting anything, and the prefetch hung, so the page never went quiet.
+    A plain anchor is never prefetched. dashboard-speed-audit proves both.
+  */
+  if (href.startsWith("/api/")) {
+    return (
+      <a href={href} className={className}>
+        {children}
+      </a>
+    );
+  }
   return (
-    <Link
-      href={href}
-      className={
-        tone === "primary"
-          ? `${base} bg-[var(--navy)] text-white hover:bg-[var(--navy-hover)]`
-          : `${base} border border-[var(--border-strong)] bg-white text-[var(--navy)] hover:bg-[var(--row-hover)]`
-      }
-    >
+    <Link href={href} className={className}>
       {children}
     </Link>
   );

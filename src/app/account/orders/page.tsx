@@ -7,6 +7,7 @@ import { Wordmark } from "@/components/brand/Wordmark";
 import { money, isKnown } from "@/lib/ops-money";
 import { CUSTOMER_STATUS, type OrderStatus } from "@/lib/ops-orders";
 import { registrationLine } from "@/lib/launch";
+import { formatInFirmZone } from "@/lib/firm-calendar";
 
 export const dynamic = "force-dynamic";
 
@@ -204,11 +205,11 @@ export default async function OrdersPage() {
                       {row.reference}
                     </Link>
                     <p className="mt-0.5 text-[13px] text-[var(--color-ink-quiet)]">
-                      {new Date(row.createdAt).toLocaleDateString("en-US", {
+                      {(formatInFirmZone(row.createdAt, {
                         year: "numeric",
                         month: "short",
                         day: "numeric",
-                      })}
+                      }) ?? "")}
                     </p>
                   </td>
                   <td className="py-3.5 pr-4 align-top text-[14px] leading-[1.5] text-[var(--color-ink)]">
@@ -267,14 +268,16 @@ function Shell({ children }: { children: React.ReactNode }) {
       </header>
 
       <main className="mx-auto w-full max-w-[900px] flex-1 px-4 py-12 sm:px-6 sm:py-16">
-        <h1 className="text-[26px] leading-[1.15] font-semibold tracking-[-0.4px] text-[var(--color-ink)]">
-          Your orders
-        </h1>
-        <p className="mt-2 text-[15px] leading-[1.6] text-[var(--color-ink-quiet)]">
-          Everything this account has ordered, newest first. A bulk submission
-          shows as one line.
-        </p>
-        {children}
+        <div>
+          <h1 className="text-[26px] leading-[1.15] font-semibold tracking-[-0.4px] text-[var(--color-ink)]">
+            Your orders
+          </h1>
+          <p className="mt-2 text-[15px] leading-[1.6] text-[var(--color-ink-quiet)]">
+            Everything this account has ordered, newest first. A bulk submission
+            shows as one line.
+          </p>
+        </div>
+        <div>{children}</div>
       </main>
 
       <footer className="border-t border-[var(--color-limestone-line)]">

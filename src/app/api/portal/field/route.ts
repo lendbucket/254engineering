@@ -3,6 +3,7 @@ import { currentActor, requestContext } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
 import { supabaseAdmin } from "@/lib/supabase";
 import type { EvidenceKind } from "@/lib/ops-evidence";
+import { withSaveOutcome } from "@/lib/save-outcome";
 import {
   acceptOffer,
   addProtocolItem,
@@ -68,7 +69,7 @@ const nullableNumber = (v: unknown): number | null => {
   return Number.isFinite(n) ? n : null;
 };
 
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   const actor = await currentActor();
   if (!actor) return bad("Not signed in.", 401);
 
@@ -215,6 +216,7 @@ export async function POST(request: NextRequest) {
         valueNumber: nullableNumber(body?.valueNumber),
         storageKey: body?.storageKey ? String(body.storageKey) : null,
         capturedAt: body?.capturedAt ? String(body.capturedAt) : null,
+        deviceNow: body?.deviceNow ? String(body.deviceNow) : null,
         lat: nullableNumber(body?.lat),
         lng: nullableNumber(body?.lng),
         accuracy: nullableNumber(body?.accuracy),
@@ -315,3 +317,6 @@ export async function POST(request: NextRequest) {
 
   return bad("Unknown action.");
 }
+
+/* A save abandoned by the 20 second bound says it may not have saved, and a failed session read is never "Not signed in": save-outcome.ts. */
+export const POST = withSaveOutcome(handlePOST);

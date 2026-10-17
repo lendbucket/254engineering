@@ -121,7 +121,7 @@ export function OrdersClient({
           return (
             <li key={o.id} className="py-4">
               <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                <span className="font-mono text-[13.5px] font-semibold text-[var(--navy)]">{o.reference}</span>
+                <span className="text-[13.5px] font-semibold text-[var(--navy)]">{o.reference}</span>
                 <Chip label={o.attention.label} tone={toneFor(o.attention.level)} />
                 <span className="ml-auto text-[13.5px] font-semibold text-[var(--navy)]">{money(o.totalCents)}</span>
               </div>
@@ -192,7 +192,16 @@ export function OrdersClient({
                 ) : (
                   <button
                     type="button"
-                    onClick={() => setRefunding(o.id)}
+                    onClick={() => {
+                      /*
+                       * A fresh reason for every order. Product audit, 2026-10-10:
+                       * the one reason box was shared by every row, so opening a
+                       * second order's refund kept the reason typed for the first,
+                       * one press from refunding B with A's explanation on record.
+                       */
+                      setReason("");
+                      setRefunding(o.id);
+                    }}
                     className="mt-2 inline-flex min-h-[44px] items-center text-[13.5px] font-semibold text-[var(--navy)] underline underline-offset-2"
                   >
                     Cancel and refund this order

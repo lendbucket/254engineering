@@ -69,6 +69,7 @@ export default async function ForgotPasswordPage() {
       </header>
 
       <main className="mx-auto w-full max-w-[520px] flex-1 px-4 py-12 sm:px-6 sm:py-16">
+        <div>
         <h1 className="text-[26px] leading-[1.15] font-semibold tracking-[-0.4px] text-[var(--color-ink)]">
           Reset your password
         </h1>
@@ -76,6 +77,7 @@ export default async function ForgotPasswordPage() {
           Give us the address the account is under and we will email a link for setting a new
           password.
         </p>
+        </div>
 
         {customerSessionConfigured() ? (
           <ForgotPasswordForm />
@@ -86,6 +88,7 @@ export default async function ForgotPasswordPage() {
           </p>
         )}
 
+        <div>
         <p className="mt-8 text-[14px] text-[var(--color-ink-quiet)]">
           <Link
             href="/account/login"
@@ -108,6 +111,7 @@ export default async function ForgotPasswordPage() {
             Back to the site
           </Link>
         </p>
+        </div>
       </main>
 
       <footer className="border-t border-[var(--color-limestone-line)]">

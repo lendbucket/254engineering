@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { orderForCustomerToken } from "@/lib/ops-intake";
 import { customerLetterFor } from "@/lib/letter-delivery";
+import { withSaveOutcome } from "@/lib/save-outcome";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +29,7 @@ export const dynamic = "force-dynamic";
 const NOT_HERE =
   "This link does not open a sealed letter. If you were sent it by the firm, use the link in your most recent email, or reply to that email.";
 
-export async function GET(request: NextRequest) {
+async function handleGET(request: NextRequest) {
   const token = request.nextUrl.searchParams.get("token") ?? "";
   const documentId = request.nextUrl.searchParams.get("document") ?? "";
   if (!token || !documentId) return new NextResponse(NOT_HERE, { status: 404, headers: { "Cache-Control": "no-store" } });
@@ -49,3 +50,6 @@ export async function GET(request: NextRequest) {
     },
   });
 }
+
+/* A save abandoned by the 20 second bound says it may not have saved, and a failed session read is never "Not signed in": save-outcome.ts. */
+export const GET = withSaveOutcome(handleGET);

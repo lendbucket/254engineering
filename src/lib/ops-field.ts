@@ -34,7 +34,7 @@ import {
   type EvidenceKind,
   type ProtocolItem,
 } from "./ops-evidence";
-import { protocolItemRowsFor } from "./protocol-run";
+import { photoAnswerRefusal, photoAnswersFor, protocolItemRowsFor } from "./protocol-run";
 import { verifiedEngineers } from "@/config/credentials";
 import { licenceIsCurrent } from "./launch";
 import { holdFor, holdRefusal } from "./dispatch-hold";
@@ -686,6 +686,21 @@ export async function dispatchContext(
   };
 }
 
+/*
+ * NO OFFER WITHOUT A RATE. Operator ruling, 2026-10-10 (decision 3). An offer
+ * with no rate could already not be ACCEPTED (acceptOffer, 2026-10-10), but it
+ * could still be SENT: a technician was shown a job with "None yet" for pay and
+ * could do nothing with it. The rate is the technician fee for the line from the
+ * effective-dated schedule; with none in force, nothing is sent. A pure rule so
+ * the proof can ask it directly; sendOffers asks it before any offer is written.
+ */
+export function offerRateRefusal(feeCents: number | null): string | null {
+  return feeCents === null || !Number.isFinite(feeCents) || feeCents <= 0
+    ? "No technician rate is set for this service line, so no offer was sent. An offer has to say what " +
+        "the job pays. Set the line's technician fee, then dispatch."
+    : null;
+}
+
 /**
  * Send offers.
  *
@@ -772,6 +787,16 @@ export async function sendOffers(
    */
   const ctx = await dispatchContext(actor, file as never);
   if (!ctx) return { ok: false, error: "Could not plan this dispatch." };
+
+  /*
+   * NO OFFER WITHOUT A RATE. Operator ruling, 2026-10-10 (decision 3). An offer
+   * with no rate could already not be ACCEPTED (acceptOffer, 2026-10-10), but it
+   * could still be SENT: a technician was shown a job with "None yet" for pay
+   * and could do nothing with it. The rate is the technician fee for this line
+   * from the effective-dated schedule; with none in force, nothing is sent.
+   */
+  const noRate = offerRateRefusal(ctx.feeCents);
+  if (noRate) return { ok: false, error: noRate };
   const eligible = new Map(ctx.plan.offers.map((o) => [o.techId, o]));
 
   const rejected = techIds.filter((id) => !eligible.has(id));
@@ -960,6 +985,22 @@ export async function acceptOffer(
     Boolean(file.assigned_tech_id),
   );
   if (!verdict.ok) return { ok: false, error: verdict.reason };
+
+  /*
+   * NO RATE, NO ACCEPTANCE. Operator ruling, 2026-10-09, a money defect found by
+   * the product audit: an offer is made with a null rate whenever no scheduled
+   * rate covers the work, this function accepted it anyway, and submitEvidence
+   * writes the pay entry only when a rate exists. So a technician could accept,
+   * drive out, submit, and be owed nothing on any record, on a screen that
+   * promises "you will see the flat rate before you accept". Refused here, on the
+   * server, before the claim, so no client can get past it.
+   */
+  if (offer.offer_amount_cents === null || offer.offer_amount_cents === undefined) {
+    return {
+      ok: false,
+      error: "This offer has no rate on it yet, so it cannot be accepted. Ask the office to set the rate first.",
+    };
+  }
 
   // The claim. Everything above this line is a courtesy; this is the decision.
   const { data: claimed } = await db
@@ -1319,6 +1360,11 @@ export type CaptureInput = {
   valueNumber?: number | null;
   storageKey?: string | null;
   capturedAt?: string | null;
+  /**
+   * The device's own clock at the moment it sent this record, which is what
+   * the skew is measured from. Not the capture time: see recordCapture.
+   */
+  deviceNow?: string | null;
   lat?: number | null;
   lng?: number | null;
   accuracy?: number | null;
@@ -1387,13 +1433,33 @@ export async function recordCapture(
   if (!input.clientCaptureId) return { ok: false, error: "That capture has no id." };
 
   /*
+   * A photograph item that also asks for a written answer takes the answer with
+   * the photograph. Operator ruling, 2026-10-15: the document prints a value to
+   * record beside these, and section 7 says no item is left blank.
+   */
+  const asks = item.kind === "photo" ? photoAnswersFor(view.protocol?.document_number ?? null)[item.itemKey] : undefined;
+  const unanswered = photoAnswerRefusal(asks, input);
+  if (unanswered) return { ok: false, error: unanswered };
+
+  /*
    * THE SERVER CLOCK, READ ONCE. Both the skew below and the row's own
    * created_at are meant to describe the same instant, and reading the clock
    * twice would fold this function's own runtime into a figure whose entire
    * job is measuring the DEVICE against the server.
    */
   const serverNow = new Date().toISOString();
-  const reading = clockReading(input.capturedAt ?? null, serverNow);
+  /*
+   * THE DEVICE CLOCK AT SYNC, NOT THE CAPTURE TIME. Operator ruling,
+   * 2026-10-15. Comparing the capture time with the server measured how long
+   * the photograph waited in the queue, so every photograph that synced more
+   * than a minute after it was taken, which is every photograph taken on a
+   * roof with no signal, read as a clock that disagreed. The phone now sends
+   * its own clock with the record, and that is compared with the server's at
+   * the same instant, which measures the clock and not the wait. A phone set
+   * to the wrong hour is still caught, because it reports the wrong hour at
+   * sync as well. A record with no device clock is unmeasured, never agreeing.
+   */
+  const reading = clockReading(input.deviceNow ?? null, serverNow);
 
   const { data, error } = await db
     .from("eng_evidence_items")
@@ -1999,6 +2065,8 @@ export type LedgerRow = {
   status: "pending" | "approved" | "paid" | "void";
   period: string | null;
   note: string | null;
+  /** Whether the row is on a demonstration file, which moves no figure (pay-figures.ts). */
+  is_demo: boolean;
 };
 
 /**
@@ -2015,17 +2083,30 @@ export async function payLedger(actor: Actor | null, techId?: string): Promise<L
   const all = can(actor, "ledger.read_all");
   if (!all && !can(actor, "ledger.read_own")) return [];
 
-  let query = db
-    .from("eng_tech_pay_ledger")
-    .select("id, created_at, tech_id, file_id, amount_cents, kind, status, period, note")
-    .order("created_at", { ascending: false })
-    .limit(300);
-
-  if (!all) query = query.eq("tech_id", actor.id);
-  else if (techId) query = query.eq("tech_id", techId);
-
-  const { data } = await query;
-  return ((data ?? []) as LedgerRow[]).map((r) => ({ ...r, amount_cents: Number(r.amount_cents) }));
+  /*
+   * EVERY ROW, NOT THE NEWEST 300. Product audit, 2026-10-10: this read stopped
+   * at 300 rows without saying so, and the Pay screen summed what it got, so
+   * past 300 entries "owed" and "paid" were totals of part of a ledger. readEvery
+   * reads the exact count first and refuses a short list.
+   */
+  const scope = !all ? actor.id : techId ?? null;
+  const read = await readEvery<Record<string, unknown>>((from, to) => {
+    let q = db
+      .from("eng_tech_pay_ledger")
+      .select("id, created_at, tech_id, file_id, amount_cents, kind, status, period, note, eng_files(is_demo)")
+      .order("created_at", { ascending: false })
+      .range(from, to);
+    if (scope) q = q.eq("tech_id", scope);
+    return q;
+  });
+  if (!read.ok) return [];
+  return read.rows.map((r) => {
+    const files = r.eng_files as { is_demo?: boolean } | { is_demo?: boolean }[] | null;
+    const isDemo = Array.isArray(files) ? files.some((f) => f?.is_demo === true) : files?.is_demo === true;
+    const { eng_files: _files, ...rest } = r;
+    void _files;
+    return { ...(rest as Omit<LedgerRow, "amount_cents" | "is_demo">), amount_cents: Number(r.amount_cents), is_demo: isDemo };
+  });
 }
 
 export async function setLedgerStatus(

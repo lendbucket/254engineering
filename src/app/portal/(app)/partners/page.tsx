@@ -16,6 +16,7 @@ import {
 import { PageHead } from "@/components/portal/surfaces";
 import { NewPartner } from "./NewPartner";
 import type { PartnerRow } from "@/lib/ops-partners-admin";
+import { formatInFirmZone } from "@/lib/firm-calendar";
 
 export const dynamic = "force-dynamic";
 
@@ -46,7 +47,7 @@ export default async function PartnersPage() {
       header: "Partner",
       cell: (p) => <span className="font-semibold">{p.organisation}</span>,
     },
-    { key: "code", header: "Code", cell: (p) => <span className="font-mono">{p.code}</span> },
+    { key: "code", header: "Code", cell: (p) => <span>{p.code}</span> },
     {
       key: "status",
       header: "State",
@@ -127,11 +128,11 @@ export default async function PartnersPage() {
                 </Link>
                 <p className="mt-1 text-[12.5px] text-[var(--secondary)]">
                   Sent{" "}
-                  {new Date(s.created_at as string).toLocaleDateString("en-US", {
+                  {(formatInFirmZone(s.created_at as string, {
                     year: "numeric",
                     month: "long",
                     day: "numeric",
-                  })}
+                  }) ?? "")}
                 </p>
               </li>
             ))}
@@ -190,7 +191,7 @@ export default async function PartnersPage() {
                   >
                     {p.organisation}
                   </Link>
-                  <span className="font-mono text-[12.5px] text-[var(--secondary)]">{p.code}</span>
+                  <span className="text-[12.5px] text-[var(--secondary)]">{p.code}</span>
                 </li>
               ))}
             </ul>

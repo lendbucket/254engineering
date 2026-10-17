@@ -2,6 +2,7 @@ import { currentPartner } from "@/lib/partner-auth";
 import { agreementOutstanding, currentAgreement } from "@/lib/ops-partner-portal";
 import { EmptyState, Panel, RestrictedMode, SystemAlert } from "@/components/portal/design";
 import { AcceptForm } from "./AcceptForm";
+import { formatInFirmZone } from "@/lib/firm-calendar";
 
 export const dynamic = "force-dynamic";
 
@@ -50,11 +51,11 @@ export default async function PartnerAgreementPage() {
           {principal.partner.agreementVersion
             ? `${principal.partner.organisation} accepted version ${principal.partner.agreementVersion}${
                 principal.partner.agreementAcceptedAt
-                  ? ` on ${new Date(principal.partner.agreementAcceptedAt).toLocaleDateString("en-US", {
+                  ? ` on ${(formatInFirmZone(principal.partner.agreementAcceptedAt, {
                       year: "numeric",
                       month: "long",
                       day: "numeric",
-                    })}`
+                    }) ?? "")}`
                   : ""
               }.`
             : "Nothing has been accepted on this account yet."}

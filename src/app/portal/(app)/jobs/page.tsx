@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
-import { money } from "@/lib/ops-money";
+import { money, isKnown } from "@/lib/ops-money";
 import { can } from "@/lib/ops-authz";
 import { listOffers } from "@/lib/ops-field";
 import { services } from "@/content/services";
 import { STATUS_LABEL, type FileStatus } from "@/lib/ops-files";
 import { EmptyState, PageHead } from "@/components/portal/surfaces";
 import { OfferControls } from "./JobsClient";
+import { formatInFirmZone } from "@/lib/firm-calendar";
 
 export const dynamic = "force-dynamic";
 
@@ -37,7 +38,7 @@ export const dynamic = "force-dynamic";
 
 const when = (value: string | null) =>
   value
-    ? new Date(value).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })
+    ? (formatInFirmZone(value, { weekday: "short", month: "short", day: "numeric" }) ?? "")
     : null;
 
 export default async function JobsPage() {
@@ -48,15 +49,24 @@ export default async function JobsPage() {
   const serviceName = (slug: string) => services.find((s) => s.slug === slug)?.name ?? slug;
 
   const live = offers.filter((o) => o.state === "offered" && !o.file?.assigned_tech_id);
+  /*
+   * "refused" is FINISHED for the technician. Operator ruling 2026-10-10
+   * (decision 9): a file the engineer declined to seal sat in "mine" as a job
+   * still to work, because only delivered, closed and cancelled were excluded.
+   * It is Earlier now, and says the evidence is paid.
+   */
+  const FINISHED = ["delivered", "closed", "cancelled", "refused"];
   const mine = offers.filter(
     (o) =>
       o.state === "accepted" &&
       o.file &&
-      !["delivered", "closed", "cancelled"].includes(o.file.status),
+      !FINISHED.includes(o.file.status),
   );
   const past = offers.filter(
     (o) =>
-      (o.state === "accepted" && o.file && ["delivered", "closed"].includes(o.file.status)) ||
+      /* "cancelled" too: an accepted job whose file was later cancelled matched
+       * neither list and vanished from the screen (product audit, 2026-10-10). */
+      (o.state === "accepted" && o.file && FINISHED.includes(o.file.status)) ||
       o.state === "declined" ||
       o.state === "withdrawn" ||
       o.state === "expired",
@@ -89,8 +99,9 @@ export default async function JobsPage() {
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
+                      {/* Never a bare "not set" (operator ruling, 2026-10-09): a rate, or what its absence means. */}
                       <p className="font-display text-[17px] leading-[1.25] font-bold text-[var(--ink)]">
-                        {money(o.offer_amount_cents)}
+                        {isKnown(o.offer_amount_cents) ? money(o.offer_amount_cents) : "No rate on this offer yet"}
                       </p>
                       <p className="mt-1 text-[14px] font-semibold text-[var(--ink)]">
                         {o.file?.property_address}
@@ -112,7 +123,7 @@ export default async function JobsPage() {
                     ) : null}
                   </div>
 
-                  <OfferControls offerId={o.id} fileId={o.file_id} />
+                  <OfferControls offerId={o.id} fileId={o.file_id} hasRate={isKnown(o.offer_amount_cents)} />
                 </li>
               ))}
             </ul>
@@ -146,7 +157,8 @@ export default async function JobsPage() {
                         </p>
                         <p className="mt-0.5 text-[14px] text-[var(--secondary)]">
                           {o.file?.city ? `${o.file.city}, ` : ""}
-                          {o.file?.county} County, {money(o.offer_amount_cents)}
+                          {o.file?.county} County
+                          {isKnown(o.offer_amount_cents) ? `, rate ${money(o.offer_amount_cents)}` : ""}
                         </p>
                       </div>
                       <p className="text-[13px] font-semibold text-[var(--ink)]">
@@ -173,15 +185,20 @@ export default async function JobsPage() {
                 <div className="min-w-0">
                   <p className="text-[14px] font-semibold text-[var(--ink)]">{o.file?.property_address}</p>
                   <p className="mt-0.5 text-[14px] text-[var(--secondary)]">
-                    {o.file?.county} County, {money(o.offer_amount_cents)}
+                    {o.file?.county} County
+                    {isKnown(o.offer_amount_cents) ? `, rate ${money(o.offer_amount_cents)}` : ""}
                   </p>
                 </div>
                 <p className="shrink-0 text-[13px] font-semibold text-[var(--ink)]">
                   {o.state === "withdrawn"
                     ? "Taken by someone else"
-                    : o.state === "accepted"
-                      ? "Completed"
-                      : o.state}
+                    : o.state === "accepted" && o.file?.status === "cancelled"
+                      ? "Canceled by the office"
+                      : o.state === "accepted" && o.file?.status === "refused"
+                        ? "The engineer declined to seal. You are paid for the evidence."
+                      : o.state === "accepted"
+                        ? "Completed"
+                        : o.state}
                 </p>
               </li>
             ))}

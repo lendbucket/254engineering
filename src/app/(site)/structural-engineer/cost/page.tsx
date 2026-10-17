@@ -11,6 +11,7 @@ import { buildMetadata } from "@/lib/seo";
 import { JsonLd, breadcrumbSchema, faqSchema } from "@/lib/schema";
 import { services } from "@/content/services";
 import { priceFor, priceSentence } from "@/config/prices";
+import { coastalLine } from "@/lib/ordering";
 import { turnaroundCopy } from "@/content/model-copy";
 
 /**
@@ -131,6 +132,10 @@ export default function StructuralEngineerCostPage() {
                         {price ?? "Quoted per matter"}
                       </dd>
                     </div>
+                    {/* The coastal line wherever a price appears, operator ruling 2026-10-10. */}
+                    {price && coastalLine(service.slug) ? (
+                      <p className="mt-1 text-[0.94rem] leading-[1.6] text-slate-muted">{coastalLine(service.slug)}</p>
+                    ) : null}
                     {detail ? (
                       <p className="mt-2 max-w-[70ch] text-[0.94rem] leading-[1.65] text-slate-muted">
                         {detail.whatChangesIt}

@@ -116,7 +116,7 @@ export default function GovernmentPage() {
                     negotiated after selection, in{" "}
                     <Link
                       href="/insights/texas-professional-services-procurement-act"
-                      className="text-slate underline decoration-brass/60 underline-offset-4 hover:decoration-brass"
+                      className="font-medium text-slate-fg underline decoration-brass underline-offset-4 transition-colors hover:text-brass-light"
                     >
                       the sequence Chapter 2254 sets out
                     </Link>

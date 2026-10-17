@@ -64,6 +64,7 @@
  * measured by anything.
  */
 
+import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import { startNextServer } from "./lib/dev-server.mjs";
 import { auditClient } from "./lib/db-target.mjs";
@@ -223,7 +224,12 @@ async function run() {
     say(`1. MFA_BREAK_GLASS unset, on ${PORT_UNSET}`);
     server = await startNextServer({ port: PORT_UNSET, env: { MFA_BREAK_GLASS: "" } });
 
-    const made = await db.auth.admin.createUser({ email, password, email_confirm: true });
+    /*
+     * The id is named here, 2026-10-09, so a network fault on the create can be
+     * retried: a read of that id confirms whether the account exists. This
+     * probe met that fault twice (scripts/lib/transient-retry.mjs).
+     */
+    const made = await db.auth.admin.createUser({ id: randomUUID(), email, password, email_confirm: true });
     if (made.error || !made.data?.user) throw new Error(`probe account: ${made.error?.message}`);
     userId = made.data.user.id;
 

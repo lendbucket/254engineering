@@ -11,7 +11,7 @@ import { useRouter } from "next/navigation";
  */
 
 const field =
-  "min-h-[44px] w-full rounded-[3px] border border-[var(--border)] bg-white px-3 text-[16px] text-[var(--navy)] outline-none focus:border-slate";
+  "min-h-[44px] w-full rounded-[2px] border border-[var(--border)] bg-white px-3 text-[16px] text-[var(--ink)] outline-none focus:border-slate";
 
 async function post(payload: Record<string, unknown>) {
   const res = await fetch("/api/portal/field", {
@@ -64,7 +64,7 @@ export function BaseForm({
   if (!open) {
     return (
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-[13.5px] text-[var(--secondary)]">
+        <p className="text-[14px] text-[var(--secondary)]">
           {baseCity || baseCounty
             ? `Based in ${[baseCity, baseCounty ? `${baseCounty} County` : null].filter(Boolean).join(", ")}`
             : "No base recorded"}
@@ -75,7 +75,7 @@ export function BaseForm({
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="inline-flex min-h-[44px] items-center rounded-[3px] border border-[var(--border)] px-3 text-[13.5px] font-semibold text-[var(--navy)] hover:border-slate"
+          className="inline-flex min-h-[44px] items-center rounded-[2px] border border-[var(--border)] px-3 text-[14px] font-semibold text-[var(--ink)] hover:border-slate"
         >
           Set base
         </button>
@@ -109,7 +109,7 @@ export function BaseForm({
     >
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
-          <label htmlFor={`city-${techId}`} className="block text-[13.5px] font-semibold text-[var(--navy)]">
+          <label htmlFor={`city-${techId}`} className="block text-[14px] font-semibold text-[var(--ink)]">
             Base city
           </label>
           <input
@@ -120,7 +120,7 @@ export function BaseForm({
           />
         </div>
         <div>
-          <label htmlFor={`county-${techId}`} className="block text-[13.5px] font-semibold text-[var(--navy)]">
+          <label htmlFor={`county-${techId}`} className="block text-[14px] font-semibold text-[var(--ink)]">
             Base county
           </label>
           <input
@@ -131,7 +131,7 @@ export function BaseForm({
           />
         </div>
         <div>
-          <label htmlFor={`lat-${techId}`} className="block text-[13.5px] font-semibold text-[var(--navy)]">
+          <label htmlFor={`lat-${techId}`} className="block text-[14px] font-semibold text-[var(--ink)]">
             Latitude
           </label>
           <input
@@ -146,7 +146,7 @@ export function BaseForm({
           />
         </div>
         <div>
-          <label htmlFor={`lng-${techId}`} className="block text-[13.5px] font-semibold text-[var(--navy)]">
+          <label htmlFor={`lng-${techId}`} className="block text-[14px] font-semibold text-[var(--ink)]">
             Longitude
           </label>
           <input
@@ -162,13 +162,13 @@ export function BaseForm({
         </div>
       </div>
 
-      <p className="mt-2 max-w-[70ch] text-[12.5px] leading-[1.5] text-[var(--secondary)]">
+      <p className="mt-2 max-w-[70ch] text-[13px] leading-[1.5] text-[var(--secondary)]">
         Coordinates are optional and nothing looks them up. With them, offers are ranked by workload
         and then by distance. Without them, by workload alone, and the dispatch screen says so.
       </p>
 
       {error ? (
-        <p role="alert" className="mt-2 text-[13.5px] font-semibold text-[var(--red)]">
+        <p role="alert" className="mt-2 text-[14px] font-semibold text-[var(--ink)]">
           {error}
         </p>
       ) : null}
@@ -177,14 +177,14 @@ export function BaseForm({
         <button
           type="submit"
           disabled={busy}
-          className="inline-flex min-h-[var(--tap-target)] items-center justify-center rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[13.5px] font-bold text-white disabled:opacity-50"
+          className="inline-flex min-h-[var(--tap-target)] items-center justify-center rounded-[2px] bg-[var(--navy)] px-4 text-[14px] font-bold text-white disabled:opacity-50"
         >
           {busy ? "Saving" : "Save base"}
         </button>
         <button
           type="button"
           onClick={() => setOpen(false)}
-          className="inline-flex min-h-[44px] items-center rounded-[3px] border border-[var(--border)] px-4 text-[13.5px] font-semibold text-[var(--navy)]"
+          className="inline-flex min-h-[44px] items-center rounded-[2px] border border-[var(--border)] px-4 text-[14px] font-semibold text-[var(--ink)]"
         >
           Cancel
         </button>
@@ -244,10 +244,10 @@ export function LedgerActions({
                 className="h-5 w-5 shrink-0 accent-[var(--navy)]"
               />
               <span className="min-w-0 flex-1">
-                <span className="block text-[13.5px] font-semibold text-[var(--navy)]">
+                <span className="block text-[14px] font-semibold text-[var(--ink)]">
                   {row.techName}, {row.amount}
                 </span>
-                <span className="mt-0.5 block text-[12.5px] text-[var(--secondary)]">
+                <span className="mt-0.5 block text-[13px] text-[var(--secondary)]">
                   {row.status}
                   {row.note ? `, ${row.note}` : ""}
                 </span>
@@ -258,7 +258,7 @@ export function LedgerActions({
       </ul>
 
       {error ? (
-        <p role="alert" className="mt-3 text-[13.5px] font-semibold text-[var(--red)]">
+        <p role="alert" className="mt-3 text-[14px] font-semibold text-[var(--ink)]">
           {error}
         </p>
       ) : null}
@@ -270,7 +270,7 @@ export function LedgerActions({
             type="button"
             disabled={busy || selected.length === 0}
             onClick={() => void mark(status)}
-            className="inline-flex min-h-[44px] items-center rounded-[3px] border border-[var(--border)] px-3 text-[13.5px] font-semibold text-[var(--navy)] hover:border-slate disabled:opacity-50"
+            className="inline-flex min-h-[44px] items-center rounded-[2px] border border-[var(--border)] px-3 text-[14px] font-semibold text-[var(--ink)] hover:border-slate disabled:opacity-50"
           >
             Mark {status}
           </button>

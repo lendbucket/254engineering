@@ -1,6 +1,8 @@
 import { business } from "@/config/business";
 import { roleLabel as roleLabelFor, type RoleKey } from "./ops-authz";
 import { firmName } from "./launch";
+import { REFUND_ISSUED_SENTENCE, refundRowLabel } from "./refund-update";
+import { catalogFor, SCOPE_PENDING } from "@data/catalog";
 import { emailIdentity, footerEmail, fromHeader, type SenderPurpose } from "@/config/email-identity";
 import {
   OUTCOME_HEADLINE,
@@ -71,6 +73,12 @@ export const MARKETING_TEMPLATES: readonly string[] = [
    * recorded in BACKLOG rather than assumed.
    */
   "marketing.launch",
+  /*
+   * The Google review request (run item 25, 2026-10-10). Not order
+   * correspondence, by the operator's ruling, so it carries an unsubscribe and
+   * respects the suppression list.
+   */
+  "marketing.review_request",
 ];
 
 /** Whether a template id is marketing shaped, and therefore carries an unsubscribe. */
@@ -753,6 +761,8 @@ export function orderConfirmed(input: {
   refundDisclosure: string | null;
   /** What they receive at the end, from the catalog they bought from. */
   receives: string[];
+  /** What the firm does not provide, from the same entry. Limits only. */
+  notes: string[];
   statusUrl: string;
 }): RenderedEmail {
   const blocks: EmailBlock[] = [
@@ -786,8 +796,25 @@ export function orderConfirmed(input: {
    * A list rather than a sentence. The catalog's entries are full sentences of
    * their own, and joining two with a comma produced copy that read as a typo.
    */
-  if (input.receives.length > 0) {
-    blocks.push({ kind: "list", title: "What you receive", items: input.receives });
+  /*
+   * A LINE STILL WAITING ON ITS PROTOCOL SAYS NOTHING HERE. Operator ruling of
+   * the overnight of 2026-10-08: the pending sentence promises the scope will
+   * be "published here", and in an email "here" is the email. The order page
+   * keeps the heading and the sentence; the email omits both.
+   */
+  const receives = input.receives.filter((r) => r !== SCOPE_PENDING);
+  if (receives.length > 0) {
+    blocks.push({ kind: "list", title: "What you receive", items: receives });
+  }
+
+  /*
+   * Its own line, never an item of the list above. Operator ruling of
+   * 2026-10-08: a limit of what the firm provides is not part of what the
+   * customer receives, and the windstorm lines' statement that the Department
+   * issues the certificate moved here word for word.
+   */
+  if (input.notes.length > 0) {
+    blocks.push({ kind: "list", title: "Notes", items: input.notes });
   }
 
   if (input.refundDisclosure) {
@@ -897,6 +924,52 @@ export function orderSealed(input: {
           text: "If it should go to a different address, reply to this message and say where.",
         },
       ],
+    },
+    { to: input.customerEmail },
+  );
+}
+
+/**
+ * THE GOOGLE REVIEW REQUEST. Operator ruling, 2026-10-10 (run item 25).
+ *
+ * Sent to every customer alike, a set number of days after delivery: it does
+ * not ask first whether they were happy and offers nothing for a review. It is
+ * marketing shaped, on MARKETING_TEMPLATES, so it carries an unsubscribe, and
+ * the send path refuses an address on the suppression list.
+ */
+export function reviewRequest(input: {
+  customerName: string;
+  customerEmail: string;
+  reference: string;
+  propertyAddress: string;
+  /** The firm's own /review, which redirects to the configured Business Profile URL. */
+  reviewUrl: string;
+  unsubscribeUrl: string;
+}): RenderedEmail {
+  return compose(
+    "marketing.review_request",
+    "human",
+    `A review of ${business.name}`,
+    {
+      preheader: `Order ${input.reference}, for ${input.propertyAddress}.`,
+      signed: true,
+      button: { label: "Write a review on Google", url: input.reviewUrl },
+      blocks: [
+        { kind: "p", text: `${input.customerName},` },
+        {
+          kind: "p",
+          text: `Order ${input.reference}, for ${input.propertyAddress}, is complete. If you are willing, a review on Google tells the next property owner what working with the firm was like.`,
+        },
+        {
+          kind: "p",
+          text: "Whatever you thought of it is welcome, and this is the only time the firm will ask about this order.",
+        },
+        {
+          kind: "p",
+          text: "The link at the bottom stops emails like this one. It does not affect your order or your documents.",
+        },
+      ],
+      unsubscribeUrl: input.unsubscribeUrl,
     },
     { to: input.customerEmail },
   );
@@ -1111,6 +1184,12 @@ export function orderDeclined(input: {
   explanation: string;
   refunded: string | null;
   retained: string | null;
+  /**
+   * Stripe answered the refund as pending (ruling 2026-10-13): the money row
+   * says issued rather than refunded, and the issued sentence follows the
+   * explanation. Nothing is sent when it later succeeds.
+   */
+  refundPending?: boolean;
   statusUrl: string;
 }): RenderedEmail {
   const blocks: EmailBlock[] = [
@@ -1121,6 +1200,7 @@ export function orderDeclined(input: {
     },
     { kind: "p", text: input.explanation },
   ];
+  if (input.refundPending && input.refunded !== null) blocks.push({ kind: "p", text: REFUND_ISSUED_SENTENCE });
 
   /*
    * Shown only when there is something to show. A refund that has not been
@@ -1131,7 +1211,7 @@ export function orderDeclined(input: {
     blocks.push({
       kind: "money",
       rows: [
-        { label: "Refunded to your card", value: input.refunded },
+        { label: refundRowLabel(Boolean(input.refundPending)), value: input.refunded },
         { label: "Retained for the inspection", value: input.retained },
       ],
     });
@@ -1244,8 +1324,9 @@ export function refundFailed(input: {
  * NOTHING HERE STATES A FIGURE THE DISPATCH RECORD DOES NOT HOLD.
  *
  * `rate` is null when eng_job_offers.offer_amount_cents is null, which happens
- * whenever no scheduled rate covers the work, and it renders as "not set"
- * rather than as a number. A technician who accepts on a rate this email
+ * whenever no scheduled rate covers the work, and it says the offer cannot be
+ * accepted until the office sets one (2026-10-09: acceptOffer refuses a null
+ * rate, and a bare "not set" is never printed). A technician who accepts on a rate this email
  * invented would be owed it, and the record would not agree. Same for the
  * window: no expiry on the offer means the email says the offer does not expire,
  * because inventing a deadline to create urgency is how a firm loses people.
@@ -1293,7 +1374,12 @@ export function techOffer(input: {
         },
         {
           kind: "money",
-          rows: [{ label: "Flat rate on submission", value: input.rate }],
+          rows: [
+            {
+              label: "Flat rate on submission",
+              value: input.rate ?? "None yet. This offer cannot be accepted until the office sets its rate.",
+            },
+          ],
         },
         {
           kind: "note",
@@ -1776,6 +1862,64 @@ export function queueAlert(input: QueueAlertInput): RenderedEmail {
   );
 }
 
+export type UnreleasedPaymentsAlertInput = {
+  /** The oldest first, already trimmed by the caller. */
+  payments: { reference: string; minutes: number; attempts: number; lastError: string | null }[];
+  total: number;
+  afterMinutes: number;
+  cooldownMinutes: number;
+  checkedAt: string;
+  dashboardUrl: string;
+  environment: string;
+};
+
+/**
+ * Paid, work not released. Operator ruling, 2026-10-12, on 0075.
+ *
+ * A payment's money is written in one transaction and the work it pays for is
+ * released after commit. When that release has not finished well after the
+ * payment, a customer has been charged and nothing has started: no file moved,
+ * no link, possibly no confirmation. Stripe's resends normally finish it; this
+ * is sent when they have not.
+ */
+export function unreleasedPaymentsAlert(input: UnreleasedPaymentsAlertInput): RenderedEmail {
+  return compose(
+    "ops.payments_unreleased",
+    "operator",
+    `Paid, work not released: ${input.total} order${input.total === 1 ? "" : "s"} on ${input.environment}`,
+    {
+      preheader: `${input.total} paid order${input.total === 1 ? " has" : "s have"} waited more than ${input.afterMinutes} minutes for the work to start. Checked at ${input.checkedAt}.`,
+      blocks: [
+        {
+          kind: "p",
+          text: `The payment is recorded and the work it pays for has not been released more than ${input.afterMinutes} minutes later. The customer has been charged. Until the release finishes, the file may not have moved, the customer may have no status link, and the confirmation may not have gone. Each delivery of the payment from Stripe tries the release again, so this usually clears; if it has not, the reason the last attempt gave is below.`,
+        },
+        {
+          kind: "details",
+          title: "Waiting, oldest first",
+          rows: rows(
+            input.payments.map(
+              (p) =>
+                [
+                  p.reference,
+                  `${p.minutes} minutes, ${p.attempts} release attempt${p.attempts === 1 ? "" : "s"}${p.lastError ? `. ${p.lastError}` : ""}`,
+                ] as [string, string],
+            ),
+          ),
+        },
+        {
+          kind: "p",
+          text: `The same list is on the admin dashboard as "Paid, work not released": ${input.dashboardUrl}`,
+        },
+        {
+          kind: "note",
+          text: `One email about this every ${input.cooldownMinutes} minutes at most. The dashboard shows the list whenever it is not empty.`,
+        },
+      ],
+    },
+  );
+}
+
 export function allTemplatesForAudit(): RenderedEmail[] {
 
   return [
@@ -1851,10 +1995,12 @@ export function allTemplatesForAudit(): RenderedEmail[] {
       total: "$925.00",
       refundDisclosure:
         "If the engineer cannot seal this and nobody has attended the property, the full amount is refunded.",
-      receives: [
-        "A sealed engineering opinion on the condition of the sample property",
-        "The photographic record the opinion rests on, keyed to where each photograph was taken",
-      ],
+      /*
+       * The windstorm entry as it stands, read from the catalogue rather than
+       * typed, so the sample cannot describe a deliverable the firm does not.
+       */
+      receives: catalogFor("windstorm-wpi-8", "completed")?.receives ?? [],
+      notes: catalogFor("windstorm-wpi-8", "completed")?.notes ?? [],
       statusUrl: "https://254engineering.com/order/254-O2026-ABCDEF?token=sample",
     }),
     orderSealed({
@@ -1899,6 +2045,14 @@ export function allTemplatesForAudit(): RenderedEmail[] {
       email: "sample@example.com",
       unsubscribeUrl: "https://254engineering.com/unsubscribe?e=sample%40example.com&t=sample",
       orderUrl: "https://254engineering.com/services",
+    }),
+    reviewRequest({
+      customerName: "Sample Customer",
+      customerEmail: "sample@example.com",
+      reference: "254-B2026-000000",
+      propertyAddress: "100 Sample Street, Corpus Christi",
+      reviewUrl: "https://254engineering.com/review",
+      unsubscribeUrl: "https://254engineering.com/unsubscribe?e=sample%40example.com&t=sample",
     }),
     orderDeclined({
       customerName: "Sample Customer",
@@ -1945,6 +2099,18 @@ export function allTemplatesForAudit(): RenderedEmail[] {
       checkedAt: "2026-09-06T21:00:00.000Z",
       cooldownMinutes: 60,
       statusUrl: "https://254engineering.com/portal/status",
+      environment: "production",
+    }),
+    unreleasedPaymentsAlert({
+      payments: [
+        { reference: "254-ORD-0042", minutes: 31, attempts: 2, lastError: "the order confirmation could not be queued" },
+        { reference: "254-ORD-0043", minutes: 18, attempts: 1, lastError: null },
+      ],
+      total: 2,
+      afterMinutes: 15,
+      cooldownMinutes: 60,
+      checkedAt: "2026-10-13T05:00:00.000Z",
+      dashboardUrl: "https://254engineering.com/portal",
       environment: "production",
     }),
     errorAlert({

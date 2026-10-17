@@ -3,7 +3,7 @@ import { RestrictedMode } from "@/components/portal/design";
 import { notFound } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
-import { listFiles, getFile, listClients, fileTimeline, fileRegion } from "@/lib/ops-crm";
+import { listFilesPage, FILE_LIST_CAP, getFile, listClients, fileTimeline, fileRegion } from "@/lib/ops-crm";
 import { availableTransitions, STATUS_LABEL, FILE_STATUSES } from "@/lib/ops-files";
 import { TEXAS_COUNTIES, twiaStatus } from "@/lib/ops-counties";
 import { outstandingFor, answeredFor } from "@/lib/ops-file-inputs";
@@ -17,6 +17,8 @@ import { partnerCostByFile } from "@/lib/ops-partner-comp";
 import { progressLabel } from "@/lib/ops-evidence";
 import { NewFileForm, TransitionControls, RequestInformation } from "./FileClient";
 import { DispatchPanel } from "./DispatchPanel";
+import { FileThreadButton } from "@/components/portal/FileThreadButton";
+import { formatInFirmZone } from "@/lib/firm-calendar";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +38,7 @@ export const dynamic = "force-dynamic";
 
 function when(value: string | null): string {
   if (!value) return "not set";
-  return new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  return (formatInFirmZone(value, { month: "short", day: "numeric", year: "numeric" }) ?? "");
 }
 
 export default async function FilesPage({
@@ -48,7 +50,7 @@ export default async function FilesPage({
   if (!can(actor, "files.list")) notFound();
   const params = await searchParams;
 
-  const files = await listFiles(actor, {
+  const { rows: files, more: moreFiles } = await listFilesPage(actor, {
     status: params.status,
     county: params.county,
     search: params.q,
@@ -170,6 +172,13 @@ export default async function FilesPage({
         ))}
       </div>
 
+      {/* Said when the list is the newest FILE_LIST_CAP and more exist (2026-10-10). */}
+      {moreFiles ? (
+        <p className="mb-3 text-[13px] leading-[1.6] text-[var(--secondary)]">
+          Showing the newest {FILE_LIST_CAP} files. More exist: use a status or the search to find an older one.
+        </p>
+      ) : null}
+
       {files.length === 0 ? (
         <EmptyState
           title={params.status || params.q ? "Nothing matches that" : "No files yet"}
@@ -214,7 +223,7 @@ export default async function FilesPage({
         Back to the list
       </Link>
 
-      <div className="rounded-[2px] border border-[var(--border)] bg-white">
+      <div className="border-t-2 border-[var(--ink)]">
         <div className="border-b border-[var(--border)] px-4 py-4 sm:px-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
@@ -263,6 +272,12 @@ export default async function FilesPage({
 
             {outstanding.now.length > 0 && can(actor, "messages.use") ? (
               <RequestInformation fileId={selected.id} />
+            ) : null}
+
+            {can(actor, "messages.use") ? (
+              <div className="mt-3">
+                <FileThreadButton fileId={selected.id} />
+              </div>
             ) : null}
 
             {outstanding.later.length > 0 ? (
@@ -365,8 +380,7 @@ export default async function FilesPage({
                   ))}
                 </dl>
                 <p className="mt-2 text-[13px] leading-[1.5] text-[var(--secondary)]">
-                  Invoicing arrives with Stripe in a later phase. The figures are here so margin is
-                  visible from the start rather than reconstructed later.
+                  These are the figures this file&apos;s margin is computed from.
                 </p>
               </>
             ) : null}
@@ -395,12 +409,12 @@ export default async function FilesPage({
                     </p>
                     {e.body ? <p className="mt-0.5 text-[14px] leading-[1.5] text-[var(--secondary)]">{e.body}</p> : null}
                     <p className="mt-0.5 text-[12px] text-[var(--secondary)]">
-                      {new Date(e.created_at as string).toLocaleString("en-US", {
+                      {(formatInFirmZone(e.created_at as string, {
                         month: "short",
                         day: "numeric",
                         hour: "numeric",
                         minute: "2-digit",
-                      })}
+                      }) ?? "")}
                     </p>
                   </li>
                 ))}
@@ -436,12 +450,12 @@ export default async function FilesPage({
               </>
             ) : null}
 
-            <div className="mt-7 rounded-[2px] border border-dashed border-[var(--border)] px-4 py-4">
+            <div className="mt-7 border-t border-[var(--row-rule)] pt-4">
               <p className="text-[14px] font-semibold text-[var(--ink)]">Documents, tasks, messages</p>
               <p className="mt-1.5 text-[13px] leading-[1.55] text-[var(--secondary)]">
-                Documents and sealing arrive with review, and tasks and messages after that. They are
-                empty because those phases have not shipped, not because this file is missing
-                anything.
+                {/* The old sentence said these "have not shipped"; all three have (product audit, 2026-10-10). */}
+                A file&apos;s filed and sealed documents are on Documents, and its tasks and threads are on
+                Tasks and Messages.
               </p>
             </div>
           </div>
@@ -469,7 +483,7 @@ export default async function FilesPage({
           can(actor, "files.create") ? (
             <Link
               href="/portal/intake"
-              className="inline-flex min-h-[var(--tap-target)] items-center rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[14px] font-bold text-white hover:bg-[var(--navy-hover)]"
+              className="inline-flex min-h-[var(--tap-target)] items-center rounded-[2px] bg-[var(--navy)] px-4 text-[14px] font-bold text-white hover:bg-[var(--navy-hover)]"
             >
               New job
             </Link>

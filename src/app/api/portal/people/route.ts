@@ -7,6 +7,8 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { queueEmail } from "@/lib/ops-jobs";
 import { portalInvite, portalPasswordReset } from "@/lib/email-templates";
 import { business } from "@/config/business";
+import { formatInFirmZone } from "@/lib/firm-calendar";
+import { withSaveOutcome } from "@/lib/save-outcome";
 
 /**
  * Account administration: create, resend an invite, suspend, restore, force a
@@ -61,10 +63,10 @@ function signInUrl(): string {
 }
 
 function expiryPhrase(at: Date): string {
-  return at.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+  return (formatInFirmZone(at, { month: "long", day: "numeric", year: "numeric" }) ?? "");
 }
 
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   const actor = await currentActor();
   if (!actor) return NextResponse.json({ ok: false, error: "Not signed in." }, { status: 401 });
 
@@ -315,3 +317,6 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({ ok: false, error: "Unknown action." }, { status: 400 });
 }
+
+/* A save abandoned by the 20 second bound says it may not have saved, and a failed session read is never "Not signed in": save-outcome.ts. */
+export const POST = withSaveOutcome(handlePOST);

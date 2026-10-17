@@ -37,25 +37,27 @@ export default async function PartnerSetPasswordPage({
     : ({ ok: false, reason: "invalid" } as const);
 
   return (
-    <main className="portal-surface grid min-h-dvh place-items-center px-4 py-6 sm:py-10">
+    <main className="portal-surface v10-phone-ground-centred grid min-h-dvh place-items-center px-4 py-6 sm:py-10">
       <div className="w-full max-w-[420px]">
         {/* The light lockup, because .portal-surface is the light canvas. */}
         <div className="mb-4 flex justify-center sm:mb-6">
           <Wordmark height={44} priority />
         </div>
 
-        <div className="rounded-[var(--radius-card)] border border-[var(--border)] bg-white p-5 sm:p-7">
+        <div className="v10-sections border-t-2 border-[var(--ink)] pt-5">
           {result.ok ? (
             <>
-              <h1 className="font-display text-[24px] leading-[1.2] font-bold text-[var(--navy)]">
-                Choose your password
-              </h1>
-              <p className="mt-2 text-[13.5px] leading-[1.6] text-[var(--secondary)]">
-                {result.displayName}, this signs you in for{" "}
-                <span className="font-semibold text-[var(--navy)]">{result.organisation}</span>. Your
-                sign in address is{" "}
-                <span className="font-semibold break-all text-[var(--navy)]">{result.email}</span>.
-              </p>
+              <div>
+                <h1 className="font-display text-[24px] leading-[1.2] font-bold text-[var(--navy)]">
+                  Choose your password
+                </h1>
+                <p className="mt-2 text-[14px] leading-[1.6] text-[var(--secondary)]">
+                  {result.displayName}, this signs you in for{" "}
+                  <span className="font-semibold text-[var(--ink)]">{result.organisation}</span>. Your
+                  sign in address is{" "}
+                  <span className="v10-email font-semibold text-[var(--ink)]">{result.email}</span>.
+                </p>
+              </div>
 
               <div className="mt-5">
                 <RestrictedMode
@@ -73,6 +75,7 @@ export default async function PartnerSetPasswordPage({
             </>
           ) : (
             <>
+              <div>
               <h1 className="font-display text-[24px] leading-[1.2] font-bold text-[var(--navy)]">
                 {result.reason === "expired"
                   ? "That link has expired"
@@ -80,16 +83,17 @@ export default async function PartnerSetPasswordPage({
                     ? "That link has already been used"
                     : "That link is not valid"}
               </h1>
-              <p className="mt-3 text-[13.5px] leading-[1.6] text-[var(--secondary)]">
+              <p className="mt-3 text-[14px] leading-[1.6] text-[var(--secondary)]">
                 {result.reason === "expired"
                   ? "Links last three days. The firm can send a new one."
                   : result.reason === "used"
                     ? "Your password is already set. Sign in with it, or ask the firm for a new link."
                     : "Check that the whole link was copied. If it still does not work, ask the firm for a new one."}
               </p>
+              </div>
               <Link
                 href="/partner/login"
-                className="mt-6 inline-flex min-h-[var(--tap-target)] w-full items-center justify-center rounded-[var(--radius-control)] border border-[var(--border-strong)] px-4 text-[15px] font-bold text-[var(--navy)] active:bg-[var(--canvas)]"
+                className="mt-6 inline-flex min-h-[var(--tap-target)] w-full items-center justify-center rounded-[2px] border border-[var(--border-strong)] px-4 text-[15px] font-bold text-[var(--ink)] active:bg-[var(--row-hover)]"
               >
                 Go to sign in
               </Link>

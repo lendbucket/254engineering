@@ -75,10 +75,12 @@ export default async function BulkOrderPage({
       </header>
 
       <main className="mx-auto w-full max-w-[900px] flex-1 px-4 py-12 sm:px-6 sm:py-16">
-        <p className="v10-label">{me.displayName}</p>
-        <h1 className="mt-2.5 text-[clamp(1.75rem,3vw,2.1rem)] leading-[1.15] font-semibold tracking-[-0.5px] text-[var(--color-ink)]">
-          Order for several properties
-        </h1>
+        <div>
+          <p className="v10-label">{me.displayName}</p>
+          <h1 className="mt-2.5 text-[clamp(1.75rem,3vw,2.1rem)] leading-[1.15] font-semibold tracking-[-0.5px] text-[var(--color-ink)]">
+            Order for several properties
+          </h1>
+        </div>
 
       {orderable.length === 0 ? (
         <div className="mt-8 border-t-2 border-[var(--color-ink)] pt-6">
@@ -115,6 +117,7 @@ export default async function BulkOrderPage({
         </div>
       ) : (
         <>
+          <div>
           <p className="mt-3 max-w-[68ch] text-[1.02rem] leading-[1.7] text-[var(--secondary)]">
             Paste the properties, answer the qualifying questions once, and change any property
             where the answer differs. You see which the firm can take, which it cannot and why, and
@@ -126,16 +129,17 @@ export default async function BulkOrderPage({
               <Link
                 key={o.service.slug}
                 href={`/account/order?service=${o.service.slug}`}
-                className={`inline-flex min-h-[44px] items-center rounded-[3px] border px-3.5 text-[14px] font-semibold ${
+                className={`inline-flex min-h-[44px] items-center rounded-[2px] border px-3.5 text-[14px] font-semibold active:opacity-70 ${
                   o.service.slug === chosen.service.slug
                     ? "border-[var(--navy)] bg-slate text-white"
-                    : "border-[var(--border)] bg-white text-[var(--navy)]"
+                    : "border-[var(--border-strong)] bg-white text-[var(--ink)]"
                 }`}
               >
                 {o.service.shortName}
               </Link>
             ))}
           </nav>
+          </div>
 
           <div className="mt-8">
             <BulkOrderClient

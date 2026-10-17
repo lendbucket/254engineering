@@ -45,7 +45,7 @@ export default async function PartnerAppLayout({ children }: { children: React.R
   if (!principal) redirect("/partner/login");
 
   return (
-    <div className="portal-surface h-dvh overflow-hidden lg:h-auto lg:min-h-dvh lg:overflow-visible">
+    <div className="portal-surface portal-app h-dvh overflow-hidden lg:h-auto lg:min-h-dvh lg:overflow-visible">
       <div className="flex h-full flex-col lg:block lg:h-auto">
         {/*
           Navy on a phone, white at lg, exactly as the portal's is and for the
@@ -104,7 +104,7 @@ export default async function PartnerAppLayout({ children }: { children: React.R
           className="portal-panel-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain lg:min-h-[auto] lg:flex-none lg:overflow-visible"
         >
           <ScrollMemory />
-          <main className="mx-auto flex w-full max-w-[1100px] flex-col gap-[var(--section-gap)] px-[var(--page-gutter)] py-6 lg:pb-10">
+          <main className="portal-main mx-auto flex w-full max-w-[1100px] flex-col gap-[var(--section-gap)] px-[var(--page-gutter)] py-6 lg:pb-10">
             {children}
 
             {/*

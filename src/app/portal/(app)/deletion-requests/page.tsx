@@ -81,15 +81,15 @@ export default async function DeletionRequestsPage() {
               {rows.map((row) => (
                 <li
                   key={row.id}
-                  className="rounded-[4px] border border-[var(--border)] bg-white p-3"
+                  className="border-b border-[var(--row-rule)] py-3"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-[13.5px] font-semibold break-words text-[var(--navy)]">
+                      <p className="text-[14px] font-semibold break-words text-[var(--ink)]">
                         {row.subjectEmail}
                       </p>
                       {row.subjectNote ? (
-                        <p className="mt-0.5 text-[12.5px] break-words text-[var(--secondary)]">
+                        <p className="mt-0.5 text-[13px] break-words text-[var(--secondary)]">
                           {row.subjectNote}
                         </p>
                       ) : null}
@@ -132,7 +132,7 @@ export default async function DeletionRequestsPage() {
                   </p>
 
                   {row.answered ? (
-                    <p className="mt-2 rounded-[4px] bg-[var(--paper)] p-2 text-[12.5px] break-words text-[var(--ink)]">
+                    <p className="mt-2 rounded-[2px] bg-[var(--paper)] p-2 text-[13px] break-words text-[var(--ink)]">
                       <span className="font-semibold">What the firm said: </span>
                       {row.answered.because}
                     </p>

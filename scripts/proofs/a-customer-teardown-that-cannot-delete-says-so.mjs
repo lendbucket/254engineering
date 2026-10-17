@@ -108,6 +108,17 @@ function fakeClient({ refuseDeleteOn = [] } = {}) {
         api._in = ids;
         return api;
       },
+      /*
+       * `.not(column, "like", "seed-%")` was missing and the teardown threw on
+       * it, 2026-10-09, when the sweeps learned to leave the audit seed alone.
+       * Added and APPLIED rather than accepted, so a row this fake holds under a
+       * seed address is excluded exactly as the database would exclude it: a
+       * fake that ignored it would be testing a different function.
+       */
+      not(column, op, pattern) {
+        if (op === "like" && pattern.endsWith("%")) api._notPrefix = { column, prefix: pattern.slice(0, -1) };
+        return api;
+      },
       maybeSingle() {
         calls.push({ table: name, op: "select" });
         return Promise.resolve({ data: (rows[name] ?? [])[0] ?? null, error: null });
@@ -128,9 +139,11 @@ function fakeClient({ refuseDeleteOn = [] } = {}) {
           rows[name] = (rows[name] ?? []).map((r) => ({ ...r, ...api._patch }));
           return Promise.resolve({ data: null, error: null });
         }
-        const all = rows[name] ?? [];
+        const kept = (rows[name] ?? []).filter(
+          (r) => !api._notPrefix || !String(r[api._notPrefix.column] ?? "").startsWith(api._notPrefix.prefix),
+        );
         return Promise.resolve({
-          data: api._in ? all.filter((r) => api._in.includes(r.id)) : all,
+          data: api._in ? kept.filter((r) => api._in.includes(r.id)) : kept,
           error: null,
         });
       },

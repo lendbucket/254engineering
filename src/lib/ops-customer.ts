@@ -3,8 +3,9 @@ import { supabaseAdmin } from "./supabase";
 import { business } from "@/config/business";
 import { catalogFor } from "@data/catalog";
 import { orderForCustomerToken } from "./ops-intake";
-import { CUSTOMER_STATUS, type OrderStatus } from "./ops-orders";
+import { CUSTOMER_STATUS, CUSTOMER_STATUS_REFUND_ISSUED, type OrderStatus } from "./ops-orders";
 import { money, type Cents } from "./ops-money";
+import { REFUND_ISSUED_SENTENCE } from "./refund-update";
 import { customerLetters, type CustomerLetter } from "./letter-delivery";
 
 /**
@@ -40,8 +41,15 @@ export type CustomerView = {
   timeline: { at: string; summary: string }[];
   /** What they receive at the end, from the catalog they bought from. */
   receives: string[];
+  /** What the firm does not provide, from the same entry. Limits only. */
+  notes: string[];
   /** Set when money has come back, so the page leads with it. */
   refunded: { amount: string; retained: string; because: string } | null;
+  /**
+   * A refund issued and still pending at Stripe (ruling 2026-10-13): said as
+   * issued, never as refunded, with the one issued sentence.
+   */
+  refundIssued: { amount: string; sentence: string } | null;
   /**
    * The sealed letters on this order's file that the customer may download:
    * sealed, visible to the client, with a live seal. Empty until the engineer
@@ -150,6 +158,14 @@ export async function customerView(token: string): Promise<CustomerView | null> 
     .reduce((n, p) => n + Number(p.amount_cents), 0);
   const refundCase = (payments ?? []).find((p) => p.kind === "refund")?.refund_case as string | undefined;
 
+  const { data: pendingRefunds } = await db
+    .from("eng_order_payments")
+    .select("amount_cents")
+    .eq("order_id", order.id)
+    .eq("kind", "refund")
+    .eq("status", "pending");
+  const issuedCents = (pendingRefunds ?? []).reduce((n, p) => n + Number(p.amount_cents), 0);
+
   const lines: CustomerView["lines"] = [
     { label: entry?.name ?? (order.service_slug as string), amount: money(cents(order.price_cents)) },
   ];
@@ -160,7 +176,11 @@ export async function customerView(token: string): Promise<CustomerView | null> 
   return {
     reference: order.reference as string,
     status: order.status as OrderStatus,
-    statusLine: CUSTOMER_STATUS[order.status as OrderStatus],
+    // "Refund issued." until every refund on the order has succeeded (ruling 2026-10-14).
+    statusLine:
+      order.status === "refunded" && issuedCents > 0
+        ? CUSTOMER_STATUS_REFUND_ISSUED
+        : CUSTOMER_STATUS[order.status as OrderStatus],
     serviceName: entry?.name ?? (order.service_slug as string),
     propertyAddress: order.property_address as string,
     city: (order.city as string | null) ?? null,
@@ -174,6 +194,7 @@ export async function customerView(token: string): Promise<CustomerView | null> 
       summary: e.summary as string,
     })),
     receives: entry?.receives ?? [],
+    notes: entry?.notes ?? [],
     refunded:
       refundedCents > 0
         ? {
@@ -182,6 +203,7 @@ export async function customerView(token: string): Promise<CustomerView | null> 
             because: refundCase ?? "The engineer could not seal this.",
           }
         : null,
+    refundIssued: issuedCents > 0 ? { amount: money(issuedCents), sentence: REFUND_ISSUED_SENTENCE } : null,
     letters: await customerLetters(subject.orderId),
   };
 }

@@ -187,6 +187,18 @@ export default async function OrderStatusPage({
           </div>
         ) : null}
 
+        {/* Issued and still pending at Stripe: said as issued, never as refunded (ruling 2026-10-13). */}
+        {view.refundIssued ? (
+          <div className="mt-7 border-l-2 border-[var(--color-slate)] pl-4">
+            <p className="text-[15px] font-semibold text-[var(--color-ink)]">
+              A refund of {view.refundIssued.amount} has been issued
+            </p>
+            <p className="mt-1.5 text-[15px] leading-[1.65] text-[var(--color-ink-quiet)]">
+              {view.refundIssued.sentence}
+            </p>
+          </div>
+        ) : null}
+
         <section className="mt-12">
           <h2 className={LABEL}>Where it is</h2>
           <p className="mt-3 text-[17px] leading-[1.55] font-semibold text-[var(--color-ink)]">
@@ -299,6 +311,23 @@ export default async function OrderStatusPage({
             <h2 className={LABEL}>What you receive</h2>
             <ul className="mt-4 flex flex-col gap-3">
               {view.receives.map((line) => (
+                <li key={line} className="text-[15px] leading-[1.65] text-[var(--color-ink-quiet)]">
+                  {line}
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
+
+        {/*
+          A limit of what the firm provides, on its own line and never inside
+          the list above. Operator ruling of 2026-10-08.
+        */}
+        {view.notes.length > 0 ? (
+          <section className="mt-12">
+            <h2 className={LABEL}>Notes</h2>
+            <ul className="mt-4 flex flex-col gap-3">
+              {view.notes.map((line) => (
                 <li key={line} className="text-[15px] leading-[1.65] text-[var(--color-ink-quiet)]">
                   {line}
                 </li>

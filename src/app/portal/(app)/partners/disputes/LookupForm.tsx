@@ -104,7 +104,7 @@ export function LookupForm({ reference, prefix }: { reference: string; prefix: s
             placeholder={`${prefix}-...`}
             aria-invalid={problem ? true : undefined}
             aria-describedby={problem ? "reference-problem" : undefined}
-            className="mt-1.5 min-h-[var(--tap-target)] w-full rounded-[var(--radius-control)] border border-[var(--border-strong)] bg-white px-3 font-mono text-[16px] text-[var(--ink)] outline-none focus:border-[var(--navy)]"
+            className="mt-1.5 min-h-[var(--tap-target)] w-full rounded-[var(--radius-control)] border border-[var(--border-strong)] bg-white px-3 text-[16px] text-[var(--ink)] outline-none focus:border-[var(--navy)]"
           />
         </div>
         <button

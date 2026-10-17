@@ -30,6 +30,7 @@
  * caller of readPendingSession anywhere in the tree.
  */
 
+import { randomUUID } from "node:crypto";
 import { readdirSync, statSync } from "node:fs";
 import { readSource } from "./lib/read-source.mjs";
 import { join } from "node:path";
@@ -67,6 +68,17 @@ const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
 /** Could not tell: the subject could not be built, so nothing was measured. */
 const cnt = (name, note) => out.push({ name, ok: null, note });
+
+/*
+ * HOW LONG THE ENROLMENT SCREEN TOOK, PRINTED ON EVERY RUN. Operator ruling,
+ * 2026-10-13: the 15 second wait below is a diagnostic, not a looser pass.
+ * The QR or the form's error is timed from the click, and anything over
+ * three seconds is printed as SLOW with the time, even when the check
+ * passes. SLOW on two boards in a row is a defect to investigate, never a
+ * reason to raise this number.
+ */
+const QR_SLOW_MS = 3000;
+let qrTiming = null;
 
 console.log("");
 console.log("========== THE SECOND FACTOR AT THE SESSION BOUNDARY ==========");
@@ -559,7 +571,8 @@ else process.env.OPS_SESSION_SECRET = HAD;
           }
           const email = `mfaprobe-${tag}-${stamp}@mobile-audit.invalid`;
           const password = `mfaprobe-${tag}-${stamp}-enrolment-screen`;
-          const made = await db.auth.admin.createUser({ email, password, email_confirm: true });
+          /* Id named so a network fault on the create is retriable (transient-retry.mjs). */
+          const made = await db.auth.admin.createUser({ id: randomUUID(), email, password, email_confirm: true });
           if (!made.data?.user) {
             return {
               cookie: null, redirect: null, id: null,
@@ -1089,6 +1102,43 @@ else process.env.OPS_SESSION_SECRET = HAD;
 
               if (secondCookie) {
                 /*
+                 * A PASSWORD ALONE CANNOT REPLACE THE FACTOR. Product audit,
+                 * 2026-10-10: from exactly this position, begin then confirm
+                 * with a code from a secret the caller had just begun made it
+                 * the account's active factor, and codes_saved opened the
+                 * portal. Both steps must now be refused, and the active
+                 * secret must be the one the account enrolled with.
+                 */
+                const { data: factorBefore } = await db
+                  .from("eng_mfa_enrolments").select("secret_cipher").eq("user_id", stale.id).maybeSingle();
+                const hijackBegin = await fetch(`${BASE}/api/portal/mfa`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json", cookie: `eng_ops=${secondCookie}` },
+                  body: JSON.stringify({ action: "begin" }),
+                });
+                const hijackBegun = await hijackBegin.json().catch(() => null);
+                const hijackBytes = hijackBegun?.secret ? base32Decode(hijackBegun.secret) : null;
+                const hijackConfirm = await fetch(`${BASE}/api/portal/mfa`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json", cookie: `eng_ops=${secondCookie}` },
+                  body: JSON.stringify({ action: "confirm", code: hijackBytes ? codeForStep(hijackBytes, stepAt(Date.now())) : "000000" }),
+                });
+                const { data: factorAfter } = await db
+                  .from("eng_mfa_enrolments").select("secret_cipher").eq("user_id", stale.id).maybeSingle();
+                rec(
+                  "a password alone cannot begin replacing an enrolled account's second factor",
+                  hijackBegin.status === 403 && !hijackBegun?.secret,
+                  hijackBegun?.secret ? "BEGIN HANDED A NEW SECRET TO A PASSWORD-ONLY SESSION" : `refused with ${hijackBegin.status}`,
+                );
+                rec(
+                  "nor confirm one, and the account's active factor is the one it enrolled with",
+                  hijackConfirm.status === 403 && Boolean(factorBefore?.secret_cipher) && factorAfter?.secret_cipher === factorBefore?.secret_cipher,
+                  factorAfter?.secret_cipher !== factorBefore?.secret_cipher
+                    ? "THE ACTIVE FACTOR WAS REPLACED FROM A PASSWORD-ONLY SESSION"
+                    : `confirm refused with ${hijackConfirm.status}`,
+                );
+
+                /*
                  * THE ATTACKER'S POSITION, EXACTLY: the password, a pending
                  * session, and no completion token, because only the confirm
                  * that produced the codes can mint one and that confirm
@@ -1228,15 +1278,38 @@ else process.env.OPS_SESSION_SECRET = HAD;
           rec("the enrolment screen offers to start", reachable, page.url());
 
           if (reachable) {
+            const clickedAt = Date.now();
             await started.click();
-            await page.waitForTimeout(3000);
+            /*
+             * Waits for an outcome rather than a fixed three seconds: the QR, or
+             * the form's own error. On 2026-10-13 a board on a loaded machine
+             * went red here once while three standalone runs of the same build
+             * passed, and the note could not say what the screen showed instead.
+             * The bound is generous; the property is unchanged, a QR must appear.
+             * The error is matched as the form's own <p role="alert">: Next's
+             * route announcer is also role alert, always present and empty, and
+             * the first version of this wait matched it and waited for nothing.
+             */
+            const appeared = await page
+              .locator("svg[role='img'], p[role='alert']")
+              .first()
+              .waitFor({ state: "visible", timeout: 15_000 })
+              .then(() => true, () => false);
+            const elapsedMs = Date.now() - clickedAt;
 
             const qr = page.locator("svg[role='img']").first();
             const drawn = (await page.locator("svg[role='img']").count()) > 0;
+            qrTiming = { ms: elapsedMs, appeared, what: drawn ? "the QR" : appeared ? "the form's error" : "nothing" };
+            const shown = drawn
+              ? ""
+              : (await page.locator("p[role='alert']").first().textContent({ timeout: 1000 }).catch(() => null)) ??
+                `no QR and no error after 15 seconds; the button reads "${(await started.textContent({ timeout: 1000 }).catch(() => "gone")) ?? ""}"`;
             rec(
               "and a QR is on the page once it does",
               drawn,
-              drawn ? "" : "the encoder can be perfect and the screen still show nothing, which is exactly what shipped",
+              drawn
+                ? `${(elapsedMs / 1000).toFixed(1)}s after the click`
+                : `the encoder can be perfect and the screen still show nothing, which is exactly what shipped (the screen showed: ${shown})`,
             );
 
             if (drawn) {
@@ -1337,6 +1410,22 @@ for (const r of out) console.log(`  ${verdictOf(r)}: ${r.name}${r.note ? ` (${r.
 const failed = out.filter((r) => r.ok === false);
 const unmeasured = out.filter((r) => r.ok === null);
 console.log("");
+
+if (qrTiming) {
+  const secs = (qrTiming.ms / 1000).toFixed(1);
+  const limit = `${QR_SLOW_MS / 1000} second limit`;
+  if (!qrTiming.appeared) {
+    console.log(`SLOW: the enrolment screen showed neither a QR nor an error within 15 seconds of the click (over the ${limit}).`);
+  } else if (qrTiming.ms > QR_SLOW_MS) {
+    console.log(`SLOW: ${qrTiming.what} appeared ${secs}s after the click, over the ${limit}. Two boards in a row is a defect to investigate.`);
+  } else {
+    console.log(`QR TIMING: ${qrTiming.what} appeared ${secs}s after the click (${limit}).`);
+  }
+  console.log("");
+} else {
+  console.log("QR TIMING: not measured on this run, because the enrolment screen was not reached.");
+  console.log("");
+}
 
 /*
  * SAID LOUDLY EVEN THOUGH IT DOES NOT FAIL THE RUN, because a green board over

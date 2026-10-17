@@ -4,6 +4,7 @@ import { can } from "@/lib/ops-authz";
 import { listSuppressions } from "@/lib/marketing-suppression";
 import { Chip, EmptyState, ErrorState, PageHead, Panel } from "@/components/portal/surfaces";
 import { AddSuppression, VoidSuppression } from "./SuppressionsClient";
+import { formatInFirmZone } from "@/lib/firm-calendar";
 
 export const dynamic = "force-dynamic";
 
@@ -95,21 +96,21 @@ export default async function SuppressionsPage() {
               {rows.map((row) => (
                 <li
                   key={row.email}
-                  className="flex flex-wrap items-start justify-between gap-3 rounded-[4px] border border-[var(--border)] bg-white p-3"
+                  className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--row-rule)] py-3"
                 >
                   <div className="min-w-0">
-                    <p className="text-[13.5px] font-semibold break-words text-[var(--navy)]">{row.email}</p>
-                    <p className="mt-0.5 text-[12.5px] text-[var(--secondary)]">{row.because}</p>
+                    <p className="text-[14px] font-semibold break-words text-[var(--ink)]">{row.email}</p>
+                    <p className="mt-0.5 text-[13px] text-[var(--secondary)]">{row.because}</p>
                     <p className="mt-1 flex flex-wrap items-center gap-2 text-[12px] text-[var(--secondary)]">
                       <Chip
                         label={row.enteredByOperator ? "Recorded by somebody here" : "They clicked the link"}
                         tone={row.enteredByOperator ? "warn" : "good"}
                       />
-                      {new Date(row.createdAt).toLocaleDateString("en-US", {
+                      {(formatInFirmZone(row.createdAt, {
                         month: "short",
                         day: "numeric",
                         year: "numeric",
-                      })}
+                      }) ?? "")}
                     </p>
                   </div>
 
@@ -134,7 +135,7 @@ export default async function SuppressionsPage() {
                      * instead for meant@example.com." The copy cannot require the
                      * operator to punctuate; it has to close the sentence itself.
                      */
-                    <p className="mt-2 w-full text-[12.5px] text-[var(--ink-soft)]">
+                    <p className="mt-2 w-full text-[13px] text-[var(--ink-soft)]">
                       Marked as a mistake: {sentence(row.voided.because)}{" "}
                       {row.voided.replacedBy
                         ? `Recorded instead for ${row.voided.replacedBy}.`

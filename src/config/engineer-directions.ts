@@ -35,8 +35,12 @@ export type EngineerDirection = {
   from: string;
   /** ISO date the direction was given. */
   on: string;
-  /** How it arrived, so nobody reads an email as a signed instrument. */
-  medium: "email" | "signed document" | "portal";
+  /**
+   * How it arrived, so nobody reads an email as a signed instrument. "email,
+   * attested by the operator" is weaker again than "email": the evidence is the
+   * operator's written statement of the engineer's words, not the email.
+   */
+  medium: "email" | "email, attested by the operator" | "signed document" | "portal";
   /** The artifact, digested. Never null: a direction with no evidence is not recorded. */
   evidence: { file: string; sha256: string; bytes: number };
   /** His words, verbatim, punctuation included. Never paraphrased. */
@@ -148,6 +152,60 @@ export const engineerDirections: EngineerDirection[] = [
       "No protocol work has been done or may be done on either line until condition three is answered.",
     ],
   },
+  {
+    key: "every-service-is-structural",
+    from: "Aman Dhakal, P.E., Engineer of Record",
+    on: "2026-10-14",
+    medium: "email, attested by the operator",
+    evidence: {
+      file: "docs/compliance/2026-10-14-operator-attestation-aman-required-discipline.txt",
+      sha256: "0df5d9af2545913a3971120699a5112874a162b2caad3781946272029ab4d08f",
+      bytes: 979,
+    },
+    quote:
+      "Everything we do will be under structural as we will be doing structural observations and " +
+      "structural calculations if required. We won’t be covering any architectural or MEP aspects in " +
+      "any of the services.",
+    establishes:
+      "The discipline every protocol on the signable list requires: structural, the value migration " +
+      "0077 writes to requires_discipline for the eight rows in DISCIPLINE_BY_PROTOCOL below. It " +
+      "answers the question sent to him on 2026-10-14 about MH, SL, PL, RS and DS v1.1 and FC-001 " +
+      "v1.0; his words say everything we do, so WP-001 v1.2 and WS-001 v1.1 are covered by the same " +
+      "sentence. And the firm's scope: no architectural and no mechanical, electrical or plumbing work " +
+      "in any service, rendered in the wording the operator ruled on 2026-10-14 on the terms page " +
+      "(Scope of the firm's work) and the design inquiry page (Structural design only).",
+    stillOwed: [
+      "The email itself. The evidence held is the operator's written attestation of its words, saved " +
+      "on his instruction of 2026-10-14; the email is not on disk.",
+      "His SIGNATURE on WP-001 v1.2, WS-001 v1.1 and FC-001 v1.0, and his APPROVAL of each protocol in " +
+      "the platform. Naming the discipline is neither.",
+    ],
+  },
+];
+
+/**
+ * THE DISCIPLINE EACH PROTOCOL REQUIRES, AND THE DIRECTION IT COMES FROM.
+ * One home: migration 0077 writes exactly these rows, each found by its
+ * document's SHA-256, and protocol-registry-audit reads the migration back
+ * against this list. WP-001 v1.1 is not here, by the operator's ruling of
+ * 2026-10-14: v1.2 supersedes it, and it will never be signed or approved.
+ * RC-001 is not here because 0056 already records its discipline.
+ */
+export const DISCIPLINE_BY_PROTOCOL: readonly {
+  documentNumber: string;
+  version: string;
+  documentSha256: string;
+  discipline: "structural";
+  direction: string;
+}[] = [
+  { documentNumber: "254-MH-001", version: "1.1", documentSha256: "5c88c73d9815cfae6825ef82d4368dd66a98dce746deed91b3c351cf2df09d4a", discipline: "structural", direction: "every-service-is-structural" },
+  { documentNumber: "254-SL-001", version: "1.1", documentSha256: "7bac29a7021086a7a40906021de5be9c2c2efaba747db33877410dd7b5c4e8f3", discipline: "structural", direction: "every-service-is-structural" },
+  { documentNumber: "254-PL-001", version: "1.1", documentSha256: "f1ff2e5883aac06ac1b468a74ea09535c074a468a31de4c04297bf4c74b11387", discipline: "structural", direction: "every-service-is-structural" },
+  { documentNumber: "254-RS-001", version: "1.1", documentSha256: "c7913d6637f2a08b1cd09a49c1767c682895db864143005a07bba99def8c2dd2", discipline: "structural", direction: "every-service-is-structural" },
+  { documentNumber: "254-DS-001", version: "1.1", documentSha256: "37dd6b2e44155108df1daa681277332ddb64450a0f58813979e538da469ee22b", discipline: "structural", direction: "every-service-is-structural" },
+  { documentNumber: "254-WS-001", version: "1.1", documentSha256: "f4cbe248957298bbae6d968350d3732ef3197b46684959c6ec083f494f3ed6b5", discipline: "structural", direction: "every-service-is-structural" },
+  { documentNumber: "254-WP-001", version: "1.2", documentSha256: "635168e3fb2aad1c5d44db72671606eabba92b8e00667968502fa987846257c4", discipline: "structural", direction: "every-service-is-structural" },
+  { documentNumber: "254-FC-001", version: "1.0", documentSha256: "264d3b5d7b6c8210ba6802d9769b36e40f867067870b90459747a96e4fefbf8d", discipline: "structural", direction: "every-service-is-structural" },
 ];
 
 /** Every direction that still carries something owed. The list for a sitting. */
