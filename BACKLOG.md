@@ -1859,6 +1859,23 @@ needs a ruling on which rule stands.
 - The SOC 2 pack's "Generated on" date, which is the last job's timestamp.
 - Three tables nothing reads.
 
+## THE MORNING OF 2026-10-15 IS IN `docs/MORNING-2026-10-15.md`
+
+Pointer entry, not a second copy. That document carries why almost nothing
+boarded that night, what was blocked and on what, and the numbered questions
+with a recommendation each. Added 2026-10-17, when `backlog-audit` on
+`docs/product-audit-2026-10` found the document carrying open work and named
+nowhere here. The document had been on that branch since c1a2082 and the branch
+had not been boarded since, so nothing had read it.
+
+**Its open items**, each explained there:
+
+- The live half of 0076, which waits on the operator's keyed Stripe run.
+- Five defects, each waiting on a ruling.
+- Search appearance on `fix/search-appearance`, not started.
+- Partner onboarding and the ledger fold, not started by order.
+- The engineer's signatures and approvals on the incoming protocols.
+
 ## `voice-audit` HAS NO LIST OF BRITISH WORDS, AND "RING" WAS FOUND BY A PERSON
 
 Operator ruling, 2026-09-23. **Proposed, not built.** The list below is a
