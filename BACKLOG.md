@@ -1876,6 +1876,20 @@ had not been boarded since, so nothing had read it.
 - Partner onboarding and the ledger fold, not started by order.
 - The engineer's signatures and approvals on the incoming protocols.
 
+## A REGION HAS NO SOURCES, SO A REGION PAGE CANNOT CARRY A SOURCED FACT
+
+Operator ruling, 2026-10-17. Not built. `Region` in `src/content/regions.ts`
+has no sources field, and the coverage region page renders none, so a sentence
+there that needs a primary source has nowhere to show it. The instance was a
+Frisco sentence for the DFW region on `content/blog-windstorm`: by the rule that
+a sourced claim is shown the way post sources are shown, it was not written.
+Frisco went in as the fifth DFW anchor only, after the four that render.
+
+The work: a `sources` field on `Region` using the same `cite()` shape the posts
+use, a rendered list on the region page the way post sources render, and the
+audits that read regions taught to check it. Until then a region carries no
+sentence that needs a source.
+
 ## `voice-audit` HAS NO LIST OF BRITISH WORDS, AND "RING" WAS FOUND BY A PERSON
 
 Operator ruling, 2026-09-23. **Proposed, not built.** The list below is a

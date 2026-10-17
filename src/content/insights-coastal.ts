@@ -1256,7 +1256,7 @@ export const coastalInsights: Insight[] = [
       },
       {
         kind: "p",
-        text: "For a re-roof, the department's process page says its own inspectors handle all non-structural work, including most repairs, alterations and re-roofs. The same page names an appointed engineer as the other kind of inspector, and which of the two a job calls for is the subject of [the Texas windstorm inspections page](/insights/texas-windstorm-inspections). The [windstorm certification page](/services/windstorm-wpi-8) separates the two cases 254 Engineering prices, ongoing construction and construction already complete, from the existing building case it quotes one property at a time.",
+        text: "For a re-roof, the department's process page says its own inspectors handle all non-structural work, including most repairs, alterations and re-roofs. The same page names an appointed engineer as the other kind of inspector, and which of the two a job calls for is the subject of [the Texas windstorm inspections page](/insights/texas-windstorm-inspections).",
       },
       { kind: "h2", text: "Fixing a certificate with the wrong address" },
       {
@@ -1271,10 +1271,6 @@ export const coastalInsights: Insight[] = [
       {
         kind: "p",
         text: "It does not describe the condition of the work today, it says nothing about work done after it issued, and it is not a flood document. Section 2210.251(g) makes it evidence of insurability of the structure by the association, which is a narrower statement than it looks. The difference between that record and an opinion about a roof's present condition is set out on [the roof certification comparison](/insights/roof-certification-vs-wpi-8), and how the certificate meets the association's own rules is on [the TWIA insurance page](/insights/twia-insurance-and-windstorm-certificates).",
-      },
-      {
-        kind: "p",
-        text: "For a builder or an owner planning coastal work, the practical sequence is short: file the WPI-1 before anything starts, know which verification form the start date puts the job under, and have the inspector see each stage while it is open. The [published WPI-8 prices and scope](/services/windstorm-wpi-8) are the place to start when the work in question needs an appointed engineer.",
       },
     ],
     sources: [
@@ -1294,16 +1290,8 @@ export const coastalInsights: Insight[] = [
         a: "It is the certificate of compliance the Texas Department of Insurance issues after every required windstorm inspection on an improvement inside the catastrophe area has been approved. Wind and hail coverage through the Texas Windstorm Insurance Association requires it for covered work.",
       },
       {
-        q: "What is the difference between a WPI-8, a WPI-8-E and a WPI-8-C?",
-        a: "The WPI-8 is the department's certificate for new and ongoing improvements. The WPI-8-E is the department's certificate for completed improvements, with applications accepted from June 1, 2020. The WPI-8-C was issued by TWIA for completed improvements on applications from January 1, 2017 to May 31, 2020, and copies come from TWIA rather than from the department's search.",
-      },
-      {
         q: "Does a re-roof need a WPI-8?",
         a: "TWIA's certification page lists replacing a roof, or repairing a significant portion of one, as work that needs a certificate inside the catastrophe area. The department's process page says its own inspectors handle most re-roofs.",
-      },
-      {
-        q: "How do I correct the address on a WPI-8?",
-        a: "Where a TDI inspector did the inspection, submit a written request to the department for a revised certificate. Where a Texas licensed engineer did it, the engineer resubmits corrected WPI-1 and WPI-2-BC forms.",
       },
     ],
   },
@@ -1325,10 +1313,6 @@ export const coastalInsights: Insight[] = [
       {
         kind: "p",
         text: "A Texas windstorm inspection is the check, made while construction is still open to view, that coastal work meets the wind provisions of the building code the Texas Department of Insurance has adopted. It applies inside the designated catastrophe area, it is made by a TDI inspector or a TDI appointed engineer, and when every required inspection is approved the department issues the WPI-8 that wind and hail coverage through the Texas Windstorm Insurance Association depends on.",
-      },
-      {
-        kind: "p",
-        text: "What follows is the inspection itself: where it reaches, what it measures against, who makes it, and what goes wrong. The scope and published prices for the windstorm work 254 Engineering describes are on [its windstorm certification page](/services/windstorm-wpi-8).",
       },
       { kind: "h2", text: "Where the requirement reaches, and where it came from" },
       {
@@ -1384,7 +1368,7 @@ export const coastalInsights: Insight[] = [
       },
       {
         kind: "p",
-        text: "If a TDI inspector disapproves the work, the department's page says the owner may hire an appointed engineer to finish the inspections. For new construction or a structural alteration, [the scope of the firm's windstorm work and its published prices](/services/windstorm-wpi-8) are set out for ongoing and completed construction.",
+        text: "If a TDI inspector disapproves the work, the department's page says the owner may hire an appointed engineer to finish the inspections.",
       },
       { kind: "h2", text: "What the inspector needs to see" },
       {
@@ -1441,16 +1425,8 @@ export const coastalInsights: Insight[] = [
     ],
     faqs: [
       {
-        q: "What is a TDI windstorm inspection?",
-        a: "It is an inspection of coastal construction, made while the work is open to view, against the windstorm building code the Texas Department of Insurance has adopted. When all required inspections are approved the department issues a WPI-8.",
-      },
-      {
         q: "Who can perform a windstorm inspection in Texas?",
         a: "Only a qualified inspector approved and appointed or employed by the department, under section 2210.254 of the Insurance Code. In practice that is a TDI inspector, who handles non-structural work including most re-roofs, or a Texas licensed engineer the department has appointed.",
-      },
-      {
-        q: "How quickly does TDI inspect?",
-        a: "The department says its inspectors aim to inspect within 48 hours of the requested date, excluding weekends and holidays, and that large storms cause delays.",
       },
       {
         q: "Does a windstorm inspection replace the city's building inspection?",
@@ -1903,20 +1879,8 @@ export const coastalInsights: Insight[] = [
     ],
     faqs: [
       {
-        q: "What damage can a hurricane cause to a house?",
-        a: "The National Hurricane Center describes damage to well-built framed homes rising from roof, shingle, siding and gutter damage at Category 1, to removal of roof decking and gable ends at Category 3, to loss of most of the roof structure and some exterior walls at Category 4. Surge, waves and flooding cause separate damage, and the center calls surge and waves the greatest threat to life and property on the coast.",
-      },
-      {
-        q: "Is missing shingles structural damage?",
-        a: "Not by itself. Shingles are a covering. The damage becomes structural when it reaches the roof deck, the roof framing or its connection to the walls, the walls or the foundation.",
-      },
-      {
         q: "Do hurricane repairs need a windstorm certificate?",
         a: "Temporary repairs after a storm do not, according to TWIA's certification page. Permanent repairs inside the catastrophe area are improvements under section 2210.2515 of the Insurance Code and require written notice to the department before the work begins.",
-      },
-      {
-        q: "At what category does a hurricane remove roof decking?",
-        a: "The National Hurricane Center's description for Category 3, 111 to 129 mph sustained winds, says well-built framed homes may incur major damage or removal of roof decking and gable ends.",
       },
     ],
   },
