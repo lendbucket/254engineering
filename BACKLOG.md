@@ -80,6 +80,18 @@ under ALL GREEN.** That tightens a check, so it is built after launch on its own
 branch. The line is printed at the `NOT MEASURED` log call in that file; the
 injection is a run with the engineer probe withheld, which must not end green.
 
+## NOTHING MEASURES SEALED AGAINST STAMP FOR NEAR-DUPLICATE PAGES
+
+Found 2026-10-17 while porting the siblings' registry audits. This repo's
+`scripts/registry-audit.mjs` scores titles, H1s, descriptions and heading
+structure for 254 against each sibling, and fails at 0.75. Neither sibling's
+audit scores anything, so the Sealed Engineering and StampMyPlans pair is
+measured by nothing, and the doorway prohibition in CLAUDE.md section 2 has no
+check on that pair. **Ruled 2026-10-17: add the same similarity check to the
+sibling audits, built after launch.** It is a new check on a pair that has never
+been measured, so its first run may find something; its injection is a sibling
+page given the other sibling's H1.
+
 ## THE REVIEW REQUEST WAITS ON A LINK AND A DELAY
 
 `feat/review-request`, run item 25 of 2026-10-10. Built and inert: nothing is
