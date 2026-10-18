@@ -1,6 +1,6 @@
 import type { Block, Insight } from "./insights";
 import { registrationStatement, windstormAppointmentStatement } from "@/lib/launch";
-import { priceFor, priceSentence } from "@/config/prices";
+import { money, priceFor, priceSentence } from "@/config/prices";
 import { coastalLine, lineOffer } from "@/lib/ordering";
 import { refundDisclosure } from "@/lib/ops-orders";
 import { CATALOG } from "@data/catalog";
@@ -10,12 +10,15 @@ import { CATALOG } from "@data/catalog";
  * THE ROOFS SECTION. Written 2026-10-18.
  * ===========================================================================
  *
- * Seven posts for homeowners, buyers and sellers, agents and roofing
+ * Eight posts for homeowners, buyers and sellers, agents and roofing
  * contractors. The plan, the cannibalization check, the topics written
  * narrowly and the claims dropped for want of a primary source are in
- * docs/blog/roofs-section-plan.md. Keyword figures for posts 1 and 2 are the
- * operator's, supplied with the brief; the other five primary keywords are
- * unmeasured, and no Ahrefs call was made in the writing session.
+ * docs/blog/roofs-section-plan.md. Keyword figures are the operator's, from an
+ * Ahrefs pull made in chat on 2026-10-18; no Ahrefs call was made in a
+ * session. Post 3 was retargeted from "roof certification for a home sale",
+ * which has no measurable volume, to "roof certification letter", because
+ * /services/roof-inspections owns "roof certification". Post 8 was added the
+ * same day on the operator's word.
  *
  * SOURCES, ALL READ 2026-10-18
  * ----------------------------
@@ -29,8 +32,10 @@ import { CATALOG } from "@data/catalog";
  *   Tex. Ins. Code 4101.001, 4101.002, 4101.051 (adjuster licensing)
  *   Tex. Ins. Code 2210.2515, as the coastal posts cite it
  *   TDI: roofing and insurance, know the law; hail damage, what to do next;
- *     insurance and your roof; replacement cost or actual cash value; how to
- *     get a CLUE about your claims history
+ *     insurance and your roof (updated April 1, 2026); replacement cost or
+ *     actual cash value; how to get a CLUE about your claims history; was your
+ *     home insurance canceled or not renewed (updated January 15, 2026); the
+ *     Consumer Bill of Rights, 28 TAC 5.9971(b) Figure 1 (items 14, 19, 25, 26)
  *   City of Arlington, Technical Bulletin: Re-Roof Permits, Inspections and
  *     Common Q and A, September 13, 2023
  *   GAF, Technical Bulletin TAB-R-129, Shingle Color Code Explained
@@ -130,6 +135,14 @@ const ROOF_SRC = {
     label: "Texas Department of Insurance, How to get a CLUE about your claims history",
     url: "https://tdi.texas.gov/tips/check-your-propertys-insurance-claim-history.html",
   },
+  tdiNonrenew: {
+    label: "Texas Department of Insurance, Was your home insurance canceled or not renewed? (updated January 15, 2026)",
+    url: "https://www.tdi.texas.gov/tips/home-insurance-canceled-or-not-renewed.html",
+  },
+  tdiBillOfRights: {
+    label: "Texas Department of Insurance, Consumer Bill of Rights: Homeowners, Dwelling, and Renters Insurance, 28 TAC § 5.9971(b), Figure 1",
+    url: "https://www.tdi.texas.gov/rules/2023/documents/59971fig1.pdf",
+  },
   arlingtonReroof: {
     label: "City of Arlington, Technical Bulletin: Re-Roof Permits, Inspections and Common Q&A (September 13, 2023)",
     url: "https://www.arlingtontx.gov/files/assets/city/v/2/planning-and-development-services/documents/permitting-amp-inspections/roofing-replacement-permits-inspections.pdf",
@@ -167,6 +180,10 @@ const ROOF_ENTRY = CATALOG.find((e) => e.serviceSlug === ROOF) ?? null;
 
 /** The refund lines the order form shows before payment, verbatim. */
 const ROOF_REFUND_TERMS: string[] = ROOF_ENTRY ? refundDisclosure(ROOF_ENTRY) : [];
+
+/** The inspection fee retained on a decline after a visit, from the catalogue, or null. */
+const ROOF_INSPECTION_FEE: string | null =
+  ROOF_ENTRY && typeof ROOF_ENTRY.inspectionFeeCents === "number" ? money(ROOF_ENTRY.inspectionFeeCents) : null;
 
 const ROOF_OFFER = lineOffer(ROOF);
 
@@ -213,7 +230,7 @@ export const roofInsights: Insight[] = [
       },
       {
         kind: "p",
-        text: [roofPriceSentence(), "What that letter covers, and what it does not, is set out on [the roof certification page](/services/roof-inspections)."].join(" "),
+        text: "What 254 Engineering's sealed roof letter covers, and what it does not, is set out on [the roof certification page](/services/roof-inspections). Its price is in the roof certification cost section below.",
       },
       { kind: "h2", text: "The home inspector's roof check is one line of a larger fee" },
       {
@@ -241,6 +258,21 @@ export const roofInsights: Insight[] = [
       {
         kind: "p",
         text: "That responsibility is what the fee pays for. On 254 Engineering's roof line a trained technician gathers the evidence to the engineer's written checklist, and the engineer reviews it and decides. The steps from payment to the sealed letter are in [the roof inspection process](/insights/roof-inspection-process).",
+      },
+      { kind: "h2", text: "Roof certification cost" },
+      {
+        kind: "p",
+        text: [
+          "A roof certification is the engineer's sealed letter on the roof's observed condition, so its cost is the engineer's fee rather than a line inside another inspection.",
+          roofPriceSentence(),
+          ROOF_INSPECTION_FEE
+            ? `If the engineer declines after a technician has attended, the ${ROOF_INSPECTION_FEE} inspection is kept and the rest is refunded. A decline before anybody attends is refunded in full.`
+            : "What is kept if the engineer declines after a technician has attended is stated on the order form before payment. A decline before anybody attends is refunded in full.",
+        ].join(" "),
+      },
+      {
+        kind: "p",
+        text: "The fee buys the review, not a result. A roof that needs work gets a written repair list instead of a letter, and the letter issues only after a return visit has verified every item. The repair itself is paid to whoever does it.",
       },
       { kind: "h2", text: "What moves the engineer's price" },
       {
@@ -279,6 +311,12 @@ export const roofInsights: Insight[] = [
         a: ROOF_PRICE
           ? `It depends on who makes it. A TREC inspector's roof check is part of the home inspection fee, a contractor's inspection leads to an estimate for the contractor's own work, and an engineer's sealed roof certification is its own fee. This firm's is ${ROOF_PRICE}.`
           : "It depends on who makes it. A TREC inspector's roof check is part of the home inspection fee, a contractor's inspection leads to an estimate for the contractor's own work, and an engineer's sealed roof certification is its own fee, published on this firm's price list.",
+      },
+      {
+        q: "How much does a roof certification cost?",
+        a: ROOF_PRICE
+          ? `On this firm's roof line it is ${ROOF_PRICE}. Repairs the engineer requires are done and paid for separately, and the refund on a decline is stated on the order form before payment.`
+          : "On this firm's roof line it is on the published price list. Repairs the engineer requires are done and paid for separately, and the refund on a decline is stated on the order form before payment.",
       },
       {
         q: "Does a home inspection check for hail damage?",
@@ -385,21 +423,21 @@ export const roofInsights: Insight[] = [
 
   // ------------------------------------------------------------ roofs, post 3
   {
-    slug: "roof-certification-for-home-sale",
-    title: "Roof Certification for a Texas Home Sale | 254 Engineering",
-    h1: "Roof certification for a home sale: what it is, and who in Texas can sign one",
+    slug: "roof-certification-letter",
+    title: "Roof Certification Letter: Who Can Sign It | 254 Engineering",
+    h1: "Roof certification letter: who in Texas can sign one, and what it states in a sale",
     description:
-      "A roof certification for a home sale is an opinion the contract does not require. See who in Texas can sign one, what a sealed letter says, and when to get it.",
+      "A roof certification letter is an opinion no Texas resale contract requires. See who can sign one, what a sealed letter states, and when to start it in a sale.",
     summary:
       "Buyers, sellers and agents ask for a roof certification as if it were a standard form. It is not one. The questions that matter are who signs it, what it states, and who it is addressed to.",
     eyebrow: "Buying and selling",
-    primaryKeyword: "roof certification for a home sale",
+    primaryKeyword: "roof certification letter",
     datePublished: ROOFS_SECTION_DATE,
     dateModified: ROOFS_SECTION_DATE,
     body: [
       {
         kind: "p",
-        text: "A roof certification for a home sale is a written opinion on the roof's condition that somebody in the transaction has asked for. The Texas resale contract does not name one. Paragraph 7A of TREC form 20-18 lets the buyer have the property inspected by inspectors the buyer selects who are licensed by TREC or otherwise permitted by law, and a roof certification is something a lender, a carrier or a buyer asks for on top of that.",
+        text: "A roof certification letter is a written opinion on the roof's condition, and in a home sale it is one that somebody in the transaction has asked for. The Texas resale contract does not name one. Paragraph 7A of TREC form 20-18 lets the buyer have the property inspected by inspectors the buyer selects who are licensed by TREC or otherwise permitted by law, and a roof certification is something a lender, a carrier or a buyer asks for on top of that.",
       },
       {
         kind: "p",
@@ -541,7 +579,7 @@ export const roofInsights: Insight[] = [
       {
         kind: "p",
         text: [
-          "How a lender or another agent will read the letter is in [the structural engineer report guide](/insights/structural-engineer-report), and what a roof certification can and cannot say in a sale is in [roof certification for a home sale](/insights/roof-certification-for-home-sale).",
+          "How a lender or another agent will read the letter is in [the structural engineer report guide](/insights/structural-engineer-report), and what a roof certification can and cannot say in a sale is in [the roof certification letter guide](/insights/roof-certification-letter).",
           registrationStatement(),
         ]
           .filter(Boolean)
@@ -845,6 +883,92 @@ export const roofInsights: Insight[] = [
       {
         q: "Where does the sealed letter arrive?",
         a: "On the order page, as a PDF, linked from an email to the address on the order. Replying to that email redirects it if it should go elsewhere.",
+      },
+    ],
+  },
+
+  // ------------------------------------------------------------ roofs, post 8
+  {
+    slug: "roof-inspection-for-insurance",
+    title: "Roof Inspection for Insurance in Texas | 254 Engineering",
+    h1: "Roof inspection for insurance: what the insurer's inspection can decide",
+    description:
+      "An insurer inspects your roof when you apply and may act on its condition at renewal. See what Texas rules allow, what notice is owed, and when to get a letter.",
+    summary:
+      "The roof inspection that matters most to a policy is usually the insurer's own. What it can lead to, what the company owes you when it acts on it, and where a sealed letter of your own fits.",
+    eyebrow: "Roofs",
+    primaryKeyword: "roof inspection for insurance",
+    datePublished: ROOFS_SECTION_DATE,
+    dateModified: ROOFS_SECTION_DATE,
+    body: [
+      {
+        kind: "p",
+        text: "The Texas Department of Insurance says plainly that your insurance company will inspect your roof when you apply, and that it may charge you more or refuse to insure you based on what it sees. That inspection is the company's underwriting. It is not a report written for you, and the decisions that follow from it are the company's.",
+      },
+      {
+        kind: "p",
+        text: "A roof certification is a different document for a different purpose, and on the coast it is a different document again from a windstorm certificate. That distinction is worked through in [roof certification versus WPI-8](/insights/roof-certification-vs-wpi-8). This post is about the insurer's side.",
+      },
+      { kind: "h2", text: "What the company can do with what it sees" },
+      {
+        kind: "p",
+        text: "TDI lists the ways a roof's condition can change a policy. Some policies pay less if the roof is older or showing wear. As roofs age, some companies switch roof coverage to actual cash value, and if the roof is in poor condition the company might not cover it at all. TDI also says the company should tell you when it changes your coverage, and advises checking for roof coverage changes at each renewal.",
+      },
+      {
+        kind: "p",
+        text: "Under an actual cash value policy, what is paid for roof damage depends on how old the roof is. And TDI adds that an insurer will not pay for a new roof just because it is old or worn out.",
+      },
+      { kind: "h2", text: "What the company may not do, and what it owes you" },
+      {
+        kind: "p",
+        text: "The Consumer Bill of Rights every Texas homeowners insurer must give with the policy draws the line. A company cannot refuse to renew based on the age of the property, but it can refuse based on its condition, and the roof is named. It cannot refuse to renew based on claims for damage from natural causes, including weather related damage.",
+      },
+      {
+        kind: "p",
+        text: "If it does not renew, the Bill of Rights says the company must tell you at least 60 days before the policy expires, or you can require it to renew. TDI says the company must give the reason if you ask, and that for a policy declined, canceled or not renewed after January 1, 2026, it must give a written statement of why. TDI also notes a company might give six months to make repairs before it will not renew.",
+      },
+      {
+        kind: "p",
+        text: "In a policy's first 60 days the rules are narrower. Among the few grounds for cancelling then, the Bill of Rights lists rejecting a required inspection report within 10 days after receiving it, where the report was made by a licensed or authorized inspector and is no more than 90 days old.",
+      },
+      { kind: "h2", text: "Where your own documentation fits" },
+      {
+        kind: "p",
+        text: "Which report a company requires, and from whom, is the company's decision. Ask it in writing what it needs before ordering anything, because a letter that answers a different question does not help. If the company has given time to make repairs, the repair is a contractor's work, and [the guide for roofing contractors](/insights/engineer-letter-for-roofers) covers what a contractor may and may not do on an insured job.",
+      },
+      {
+        kind: "p",
+        text: "Where the request is for an engineer's opinion on the roof as it stands, that is a sealed letter. On this firm's roof line the letter states observed condition only, makes no estimate of remaining service life, and makes no promise that the roof will not leak. A roof that needs work gets a written repair list first, and the letter issues after a return visit has verified each item. What it costs is in [roof inspection cost](/insights/roof-inspection-cost).",
+      },
+      {
+        kind: "p",
+        text: "One request it does not answer. The roof certification protocol this firm works to declines a roof with an open insurance claim where the letter would become a tool in that claim, and refers the owner to an independent firm. What an adjuster and an engineer each do after a storm is in [hail damage roof inspection](/insights/hail-damage-roof-inspection).",
+      },
+      { kind: "h2", text: "Before the next renewal" },
+      {
+        kind: "p",
+        text: "TDI suggests asking your agent whether the wind and hail deductible differs from the deductible for other damage, because a different one can mean paying more after a storm. If the company does not renew, TDI's advice is to start shopping and have a new policy in place before the current one expires, and it describes the FAIR Plan as the provider of last resort where at least two companies refuse to insure the home. A complaint about a nonrenewal or cancellation that seems unfair goes to TDI.",
+      },
+      roofCta("If the company has asked in writing for an engineer's opinion on the roof's condition, send that request with the order so the letter answers it."),
+    ],
+    sources: [
+      rcite("tdiRoof", "That the insurer inspects the roof on application and may charge more or refuse to insure; that some policies pay less for older or worn roofs, some companies switch to actual cash value, a roof in poor condition may not be covered, the company should tell you when coverage changes, and an insurer will not pay for a new roof just because it is old; the deductible question."),
+      rcite("tdiAcv", "That under an actual cash value policy the payment for roof damage depends on how old the roof is."),
+      rcite("tdiBillOfRights", "Item 25 on the age and condition of the property, the roof named; item 19 on natural cause and weather claims; item 26 on 60 days' notice of nonrenewal; item 14's cancellation grounds in a policy's first 60 days, including a rejected inspection report."),
+      rcite("tdiNonrenew", "The reason on request, the written statement for decisions after January 1, 2026, the six months to make repairs, shopping before expiry, the FAIR Plan, and complaints to TDI."),
+    ],
+    faqs: [
+      {
+        q: "Can my insurer drop me because my roof is old?",
+        a: "The Consumer Bill of Rights says a company cannot refuse to renew based on the age of the property, but it can refuse based on its condition, and it names the roof. Some companies switch an aging roof to actual cash value.",
+      },
+      {
+        q: "How much notice does an insurer give before not renewing?",
+        a: "The Bill of Rights says at least 60 days before the policy expires, or you can require it to renew. TDI says the company must give the reason if you ask, and in writing for decisions after January 1, 2026.",
+      },
+      {
+        q: "Will an engineer's roof letter make the insurer renew?",
+        a: "No letter decides that; the company does. Ask the company in writing what it needs first. This firm's letter states the roof's observed condition only, and it is not written for an open claim.",
       },
     ],
   },

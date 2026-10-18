@@ -18,6 +18,24 @@ Pages checked for competition: the 27 posts in `insights.ts` and `insights-coast
 | 6 | hail damage roof inspection (unmeasured) | inspection-vs-forensic-report (coastal documents); hurricane-damage-insurance-claim (policy and peril) | **Write.** Who looks at a roof after hail and what each decides: the adjuster under Ins. Code 4101.001 and 4101.051, the engineer as technical assistance under 4101.002(a)(3)(B), the roofer under the rules TDI states, the home inspector under 535.228(c). States that this firm's roof line does no cause of loss work and declines an open claim. Promises no claim outcome. | /services/roof-inspections, inspection-vs-forensic-report, hurricane-damage-insurance-claim, new 5 |
 | 7 | roof inspection process (unmeasured) | /process (the firm's five steps across all lines); /services/roof-inspections | **Write.** The roof line's real app flow, read from the code: the qualifying question, the address step, the engineer's questions and uploads, the hold for flagged answers, price and terms (the refund lines are `refundDisclosure()` itself), Stripe's hosted payment, the confirmation email, the technician's checklist and photographs, the five determinations, the electronic seal under rule 137.35, the PDF on the order page. No timeframe is printed; the one sentence about timing is the catalogue's own. | /services/roof-inspections, /process, roof-certification-vs-wpi-8, structural-engineer-report, new 1, new 3 |
 
+## Rulings before the board, 2026-10-18
+
+The operator pulled Ahrefs in chat on 2026-10-18 (US) and ruled five changes before the board. The table above is the plan as written; this section is what shipped.
+
+| Keyword | Volume, KD | What changed |
+| --- | --- | --- |
+| hail damage roof inspection | 1,700, KD 0 | Post 6 unchanged |
+| roof inspection for insurance | 600, KD 2 (top page traffic 2,000) | **New post 8**, cited to TDI: "Insurance and your roof", "Was your home insurance canceled or not renewed?" and the Consumer Bill of Rights, 28 TAC 5.9971(b) Figure 1. Sits beside roof-certification-vs-wpi-8 ("roof certification for insurance"), which is about the two coastal documents; post 8 is the insurer's own inspection |
+| roof certification | 500, KD 0 (traffic 1,400) | Already owned by /services/roof-inspections (registry topic "roof inspection and certification", mapping target 6), so post 3 was **not** retargeted to it |
+| roof certification cost | 200, KD 0 | A section of post 1, with a FAQ, not a post |
+| roof certification letter | 50 | **Post 3 retargeted** here: slug, title, H1, description and primary keyword. The service page's registry evidence also lists it as a supporting term |
+| roof inspection process | 50 | Post 7 unchanged |
+| texas option period | 20 | Noted on post 4's entry |
+| option period inspection, engineer letter for roofers, roof certification for home sale | none measurable | Posts 4 and 5 kept as written, as outreach pages for agents and roofers rather than search targets, noted in their registry entries |
+| structural engineer inspection cost | 700, KD 0 | No change. Served by /structural-engineer/cost, which renders the price book; the buyers section folded a post on it into that page, and the registry records the fold in the buyers block rather than as an entry of its own |
+
+The stance flag in the notes below is ruled: the posts describing online ordering fit reading A, ordering as a door on a capability page. "Would become a tool in that claim" stays, and the protocol's own word is not used.
+
 ## Topics folded
 
 None of the seven briefed topics is folded. Two are written narrowly because existing pages sit close:

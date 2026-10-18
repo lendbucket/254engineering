@@ -422,14 +422,18 @@ export const topics: Topic[] = [
    * One entry per primary keyword, written on content/blog-roofs. They were
    * "planned" until that branch merged, and were set "live" on the branch
    * before its board, 2026-10-18, so the board measured the merged state.
-   * Volumes for the first two are the operator's figures supplied with the
-   * brief; the other five are unmeasured. No briefed topic was folded.
-   * Plan: docs/blog/roofs-section-plan.md.
+   * Volumes are the operator's, from an Ahrefs pull made in chat on
+   * 2026-10-18 (US). On the same day, before the board, the operator ruled:
+   * post 3 retargeted to "roof certification letter", because
+   * /services/roof-inspections owns "roof certification"; "roof certification
+   * cost" made a section of the cost post; "roof inspection for insurance"
+   * added as an eighth post; and the agents and roofers posts kept as outreach
+   * pages rather than search targets. Plan: docs/blog/roofs-section-plan.md.
    */
   {
     topic: "roof inspection cost",
     cluster: "roofs",
-    evidence: "2026-10-18, operator's figure supplied with the brief: about 2,500/mo, very low difficulty. Supporting: 'roof certification cost' (docs/keyword-mapping.md target 7, ruled build).",
+    evidence: "2026-10-18, operator's figure supplied with the brief: about 2,500/mo, very low difficulty. Supporting: 'roof certification cost' 200/mo, KD 0 (operator's Ahrefs pull, 2026-10-18; docs/keyword-mapping.md target 7), written as a section of this post on the operator's ruling of 2026-10-18, not a post of its own.",
     angles: {
       "254": {
         angle: "Three people who inspect roofs and the document each fee buys: the TREC inspector under 22 TAC 535.227 and 535.228(c), a contractor's estimate and TDI's rules on deductibles and public adjusting, and the engineer's sealed opinion under Occ. Code 1001.003, 1001.301, 1001.401 and rule 137.33. The firm's price is rendered from the price book with its coastal line, never typed.",
@@ -459,13 +463,13 @@ export const topics: Topic[] = [
     },
   },
   {
-    topic: "roof certification for a home sale",
+    topic: "roof certification letter",
     cluster: "roofs",
-    evidence: "Unmeasured. No Ahrefs pull in the writing session.",
+    evidence: "Operator's Ahrefs pull, 2026-10-18: 'roof certification letter' 50/mo; 'roof certification for home sale' no measurable volume. Retargeted from the second to the first on the operator's ruling of 2026-10-18, because 'roof certification' (500/mo, KD 0) belongs to /services/roof-inspections (topic 'roof inspection and certification', and docs/keyword-mapping.md target 6). That topic's evidence also lists 'roof certification letter' as a supporting term, so the service page and this post share the term and the similarity check watches the pair.",
     angles: {
       "254": {
-        angle: "What the resale contract does and does not say about a roof certification (TREC 20-18 paragraph 7A, the termination option), who in Texas can sign one (TREC inspector limits, a contractor's letter, the seal), what the firm's sealed letter states and the five things it is not, timing, and the seller's notice. Distinct from /services/roof-inspections, which owns 'roof certification', and from roof-certification-vs-wpi-8.",
-        path: "/insights/roof-certification-for-home-sale",
+        angle: "Who in Texas can sign a roof certification letter (TREC inspector limits, a contractor's letter, the seal), what the firm's sealed letter states and the five things it is not, and how it fits a resale: TREC 20-18 paragraph 7A, the termination option, and the seller's notice. Distinct from /services/roof-inspections, which owns 'roof certification', and from roof-certification-vs-wpi-8.",
+        path: "/insights/roof-certification-letter",
         status: "live",
       },
       sealed: {
@@ -477,7 +481,8 @@ export const topics: Topic[] = [
   {
     topic: "option period inspection",
     cluster: "roofs",
-    evidence: "Unmeasured. No Ahrefs pull in the writing session.",
+    evidence: "Operator's Ahrefs pull, 2026-10-18: no measurable volume; 'texas option period' 20/mo.",
+    note: "An outreach page for agents, not a search target. Operator ruling, 2026-10-18: kept as written for agents to be sent to, not written or measured for ranking.",
     angles: {
       "254": {
         angle: "For agents: when to suggest a roof or structural engineer inside the TREC 20-18 option period and when not to, how the online roof order runs, naming the addressee at the start, and what the agent and client receive. Distinct from pre-purchase-home-inspection, which is the buyer's rule by rule reading.",
@@ -493,7 +498,8 @@ export const topics: Topic[] = [
   {
     topic: "engineer letter for roofers",
     cluster: "roofs",
-    evidence: "Unmeasured. No Ahrefs pull in the writing session.",
+    evidence: "Operator's Ahrefs pull, 2026-10-18: no measurable volume.",
+    note: "An outreach page for roofing contractors, not a search target. Operator ruling, 2026-10-18: kept as written for roofers to be sent to, not written or measured for ranking.",
     angles: {
       "254": {
         angle: "When a roofer needs an engineer's letter: insurer requests (TDI), a re-roof over an existing layer as Arlington applies the 2021 IRC, deck questions and where framing becomes a structural letter, how a roofer starts one, the price, where the sealed letter goes, the open claim exclusion, TDI's public adjusting and deductible rules. Links windstorm-inspection-for-roofers for the coastal paperwork rather than repeating it.",
@@ -509,7 +515,7 @@ export const topics: Topic[] = [
   {
     topic: "hail damage roof inspection",
     cluster: "roofs",
-    evidence: "Unmeasured. No Ahrefs pull in the writing session.",
+    evidence: "Operator's Ahrefs pull, 2026-10-18: 1,700/mo, KD 0.",
     angles: {
       "254": {
         angle: "Who looks at a roof after hail and what each decides: the adjuster under Ins. Code 4101.001 and 4101.051, the engineer as technical assistance under 4101.002(a)(3), the roofer under the rules TDI states, the TREC inspector under 535.228(c). States that the firm's roof line does no cause of loss work and declines an open claim. Promises no claim outcome.",
@@ -525,7 +531,7 @@ export const topics: Topic[] = [
   {
     topic: "roof inspection process",
     cluster: "roofs",
-    evidence: "Unmeasured. No Ahrefs pull in the writing session.",
+    evidence: "Operator's Ahrefs pull, 2026-10-18: 50/mo.",
     angles: {
       "254": {
         angle: "The roof line's online flow as the platform runs it: the qualifying question, address, the engineer's questions and uploads, the hold for flagged answers, price and the refund terms rendered from refundDisclosure(), Stripe's hosted payment, the technician's checklist and photographs, the five determinations, the electronic seal under rule 137.35, the PDF on the order page. No timeframe printed. Distinct from /process, which covers every line.",
@@ -534,6 +540,22 @@ export const topics: Topic[] = [
       },
       sealed: {
         angle: "Getting the roof letter for a file, and reading it, on /services/roof-certification-letters. Not this platform walk through.",
+        status: "none",
+      },
+    },
+  },
+  {
+    topic: "roof inspection for insurance",
+    cluster: "roofs",
+    evidence: "Operator's Ahrefs pull, 2026-10-18: 600/mo, KD 2, top page traffic 2,000. Added as the eighth roof post on the operator's word, 2026-10-18. Sits beside roof-certification-vs-wpi-8, whose primary keyword is 'roof certification for insurance'; that post separates the two coastal documents, this one is the insurer's own inspection and what the company owes the policyholder.",
+    angles: {
+      "254": {
+        angle: "The insurer's roof inspection as TDI describes it: inspection on application, premium, refusal, actual cash value and roof coverage changes at renewal; what the Consumer Bill of Rights (28 TAC 5.9971(b)) lets a company do on the roof's condition and forbids on the property's age and weather claims; notice and the written reason; the first 60 days and a rejected inspection report; where a sealed letter on observed condition fits, and the open claim exclusion.",
+        path: "/insights/roof-inspection-for-insurance",
+        status: "live",
+      },
+      sealed: {
+        angle: "None planned.",
         status: "none",
       },
     },
