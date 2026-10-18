@@ -1,5 +1,6 @@
 import type { Faq } from "./services";
 import { coastalInsights } from "./insights-coastal";
+import { roofInsights } from "./insights-roofs";
 import { topics } from "@data/keyword-registry";
 import { registrationStatement } from "@/lib/launch";
 import type { FigureId } from "@/components/insights/figures";
@@ -1908,6 +1909,12 @@ const buyerInsights: Insight[] = [
 
 insights.push(...buyerInsights);
 
+/*
+ * THE ROOFS SECTION, 2026-10-18. Seven posts in src/content/insights-roofs.ts,
+ * wired the way the coastal file is. Plan: docs/blog/roofs-section-plan.md.
+ */
+insights.push(...roofInsights);
+
 export function insightBySlug(slug: string): Insight | undefined {
   return insights.find((i) => i.slug === slug);
 }
@@ -1928,14 +1935,16 @@ export function insightsByDate(): Insight[] {
  */
 export const RELATED_READING_LIMIT = 6;
 
-export type InsightSection = "core" | "coastal" | "buyers";
+export type InsightSection = "core" | "coastal" | "buyers" | "roofs";
 
 const COASTAL_SLUGS = new Set(coastalInsights.map((i) => i.slug));
 const BUYER_SLUGS = new Set(buyerInsights.map((i) => i.slug));
+const ROOF_SLUGS = new Set(roofInsights.map((i) => i.slug));
 
 export function sectionOf(slug: string): InsightSection {
   if (COASTAL_SLUGS.has(slug)) return "coastal";
   if (BUYER_SLUGS.has(slug)) return "buyers";
+  if (ROOF_SLUGS.has(slug)) return "roofs";
   return "core";
 }
 

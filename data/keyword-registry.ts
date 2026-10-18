@@ -416,6 +416,127 @@ export const topics: Topic[] = [
       },
     },
   },
+  /*
+   * THE ROOFS SECTION ON THIS SITE, 2026-10-18.
+   *
+   * One entry per primary keyword, written on content/blog-roofs. Status is
+   * "planned" until that branch merges; whoever merges it sets these to "live".
+   * Volumes for the first two are the operator's figures supplied with the
+   * brief; the other five are unmeasured. No briefed topic was folded.
+   * Plan: docs/blog/roofs-section-plan.md.
+   */
+  {
+    topic: "roof inspection cost",
+    cluster: "roofs",
+    evidence: "2026-10-18, operator's figure supplied with the brief: about 2,500/mo, very low difficulty. Supporting: 'roof certification cost' (docs/keyword-mapping.md target 7, ruled build).",
+    angles: {
+      "254": {
+        angle: "Three people who inspect roofs and the document each fee buys: the TREC inspector under 22 TAC 535.227 and 535.228(c), a contractor's estimate and TDI's rules on deductibles and public adjusting, and the engineer's sealed opinion under Occ. Code 1001.003, 1001.301, 1001.401 and rule 137.33. The firm's price is rendered from the price book with its coastal line, never typed.",
+        path: "/insights/roof-inspection-cost",
+        status: "planned",
+      },
+      sealed: {
+        angle: "The price of the roof letter a homeowner is ordering this week and how to book it. Not this provider comparison.",
+        status: "none",
+      },
+    },
+  },
+  {
+    topic: "how old is my roof",
+    cluster: "roofs",
+    evidence: "2026-10-18, operator's figure supplied with the brief: about 450/mo, very low difficulty.",
+    angles: {
+      "254": {
+        angle: "Five dated records and what each proves: the contract or invoice, a city re-roof permit, a manufacturer's bundle date code, the CLUE claim history, the Property Code 5.008 notice; the coastal certificate as a sixth; what a TREC inspector is not required to determine; how the firm's engineer treats a reported age without certifying one.",
+        path: "/insights/how-old-is-my-roof",
+        status: "planned",
+      },
+      sealed: {
+        angle: "None planned.",
+        status: "none",
+      },
+    },
+  },
+  {
+    topic: "roof certification for a home sale",
+    cluster: "roofs",
+    evidence: "Unmeasured. No Ahrefs pull in the writing session.",
+    angles: {
+      "254": {
+        angle: "What the resale contract does and does not say about a roof certification (TREC 20-18 paragraph 7A, the termination option), who in Texas can sign one (TREC inspector limits, a contractor's letter, the seal), what the firm's sealed letter states and the five things it is not, timing, and the seller's notice. Distinct from /services/roof-inspections, which owns 'roof certification', and from roof-certification-vs-wpi-8.",
+        path: "/insights/roof-certification-for-home-sale",
+        status: "planned",
+      },
+      sealed: {
+        angle: "What a roof certification letter covers, read by the person who ordered it (/insights/what-a-roof-certification-letter-covers). Not this contract and signatory reading.",
+        status: "none",
+      },
+    },
+  },
+  {
+    topic: "option period inspection",
+    cluster: "roofs",
+    evidence: "Unmeasured. No Ahrefs pull in the writing session.",
+    angles: {
+      "254": {
+        angle: "For agents: when to suggest a roof or structural engineer inside the TREC 20-18 option period and when not to, how the online roof order runs, naming the addressee at the start, and what the agent and client receive. Distinct from pre-purchase-home-inspection, which is the buyer's rule by rule reading.",
+        path: "/insights/option-period-inspection",
+        status: "planned",
+      },
+      sealed: {
+        angle: "Sealed transaction letters for realtors (/industries/realtors-and-title-companies). Not this option period guide.",
+        status: "none",
+      },
+    },
+  },
+  {
+    topic: "engineer letter for roofers",
+    cluster: "roofs",
+    evidence: "Unmeasured. No Ahrefs pull in the writing session.",
+    angles: {
+      "254": {
+        angle: "When a roofer needs an engineer's letter: insurer requests (TDI), a re-roof over an existing layer as Arlington applies the 2021 IRC, deck questions and where framing becomes a structural letter, how a roofer starts one, the price, where the sealed letter goes, the open claim exclusion, TDI's public adjusting and deductible rules. Links windstorm-inspection-for-roofers for the coastal paperwork rather than repeating it.",
+        path: "/insights/engineer-letter-for-roofers",
+        status: "planned",
+      },
+      stamp: {
+        angle: "Roofing scope on a permitted set. Not this condition letter.",
+        status: "none",
+      },
+    },
+  },
+  {
+    topic: "hail damage roof inspection",
+    cluster: "roofs",
+    evidence: "Unmeasured. No Ahrefs pull in the writing session.",
+    angles: {
+      "254": {
+        angle: "Who looks at a roof after hail and what each decides: the adjuster under Ins. Code 4101.001 and 4101.051, the engineer as technical assistance under 4101.002(a)(3), the roofer under the rules TDI states, the TREC inspector under 535.228(c). States that the firm's roof line does no cause of loss work and declines an open claim. Promises no claim outcome.",
+        path: "/insights/hail-damage-roof-inspection",
+        status: "planned",
+      },
+      sealed: {
+        angle: "None planned.",
+        status: "none",
+      },
+    },
+  },
+  {
+    topic: "roof inspection process",
+    cluster: "roofs",
+    evidence: "Unmeasured. No Ahrefs pull in the writing session.",
+    angles: {
+      "254": {
+        angle: "The roof line's online flow as the platform runs it: the qualifying question, address, the engineer's questions and uploads, the hold for flagged answers, price and the refund terms rendered from refundDisclosure(), Stripe's hosted payment, the technician's checklist and photographs, the five determinations, the electronic seal under rule 137.35, the PDF on the order page. No timeframe printed. Distinct from /process, which covers every line.",
+        path: "/insights/roof-inspection-process",
+        status: "planned",
+      },
+      sealed: {
+        angle: "Getting the roof letter for a file, and reading it, on /services/roof-certification-letters. Not this platform walk through.",
+        status: "none",
+      },
+    },
+  },
   {
     topic: "Texas engineering firm registration",
     cluster: "institutional",
