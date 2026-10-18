@@ -66,6 +66,32 @@ gradient's stops, and fails on the worst stop under AA; it needs a server to
 run standalone, so it was not written in a run whose lock another project held.
 Its injection is this branch's two links put back.
 
+## MOBILE-AUDIT PRINTS ALL GREEN OVER SCREENS IT DID NOT MEASURE
+
+Found 2026-10-17 in the readers of `67dca66` on `content/blog-windstorm`.
+`scripts/mobile-audit.mjs` printed 20 lines of the form
+`portal: protocols @390: NOT MEASURED (no engineer session)`, five engineer
+screens (`profile/seal`, `protocols`, `protocols/rc-001`, `review`, `waiting`)
+at four widths each, and then printed `ALL GREEN` and exited 0. It did not
+recur on the board of `67dca66` or on the readers and board of `04d89e4`, so
+the missing engineer session is intermittent; its cause was not looked for.
+**Ruled 2026-10-17: a NOT MEASURED screen is reported as COULD NOT TELL, never
+under ALL GREEN.** That tightens a check, so it is built after launch on its own
+branch. The line is printed at the `NOT MEASURED` log call in that file; the
+injection is a run with the engineer probe withheld, which must not end green.
+
+## NOTHING MEASURES SEALED AGAINST STAMP FOR NEAR-DUPLICATE PAGES
+
+Found 2026-10-17 while porting the siblings' registry audits. This repo's
+`scripts/registry-audit.mjs` scores titles, H1s, descriptions and heading
+structure for 254 against each sibling, and fails at 0.75. Neither sibling's
+audit scores anything, so the Sealed Engineering and StampMyPlans pair is
+measured by nothing, and the doorway prohibition in CLAUDE.md section 2 has no
+check on that pair. **Ruled 2026-10-17: add the same similarity check to the
+sibling audits, built after launch.** It is a new check on a pair that has never
+been measured, so its first run may find something; its injection is a sibling
+page given the other sibling's H1.
+
 ## THE REVIEW REQUEST WAITS ON A LINK AND A DELAY
 
 `feat/review-request`, run item 25 of 2026-10-10. Built and inert: nothing is

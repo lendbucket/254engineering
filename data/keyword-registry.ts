@@ -93,6 +93,11 @@ export type BrandAngle = {
   angle: string;
   path?: string;
   status: TopicStatus;
+  /**
+   * For a pattern path such as /texas/{city}, every value its placeholder
+   * takes, so an audit can check each page by name rather than by a count.
+   */
+  slugs?: string[];
 };
 
 export type Topic = {
@@ -159,7 +164,7 @@ export const topics: Topic[] = [
         path: "/services/roof-inspections",
         status: "live",
       },
-      sealed: { angle: "Getting the letter for a file, and reading it.", status: "live" },
+      sealed: { angle: "Getting the letter for a file, and reading it.", path: "/services/roof-certification-letters", status: "live" },
       stamp: { angle: "Roofing scope on a permitted set.", status: "none" },
     },
   },
@@ -173,7 +178,7 @@ export const topics: Topic[] = [
         path: "/services/foundation-inspections",
         status: "live",
       },
-      sealed: { angle: "Ordering a report and understanding what it says about the house.", status: "live" },
+      sealed: { angle: "Ordering a report and understanding what it says about the house.", path: "/services/foundation-inspection-reports", status: "live" },
       stamp: { angle: "Foundation design on a submitted set.", status: "none" },
     },
   },
@@ -187,7 +192,7 @@ export const topics: Topic[] = [
         path: "/services/manufactured-home-foundation-certifications",
         status: "live",
       },
-      sealed: { angle: "A borrower or dealer who needs it to close.", status: "live" },
+      sealed: { angle: "A borrower or dealer who needs it to close.", path: "/services/manufactured-home-foundation-certification", status: "live" },
       stamp: { angle: "Dealer set preparation.", status: "none" },
     },
   },
@@ -200,7 +205,7 @@ export const topics: Topic[] = [
         path: "/services/solar-structural-letters",
         status: "live",
       },
-      sealed: { angle: "Installers and homeowners ordering the letter.", status: "live" },
+      sealed: { angle: "Installers and homeowners ordering the letter.", path: "/services/solar-structural-letters", status: "live" },
       stamp: { angle: "Solar plan sets and what reviewers reject.", status: "planned" },
     },
   },
@@ -214,7 +219,7 @@ export const topics: Topic[] = [
         path: "/services/structural-letters",
         status: "live",
       },
-      sealed: { angle: "A homeowner told to bring an engineer letter.", status: "live" },
+      sealed: { angle: "A homeowner told to bring an engineer letter.", path: "/services/structural-letters-for-permits", status: "live" },
       stamp: { angle: "What reviewers reject and how to fix it.", status: "planned" },
     },
   },
@@ -227,7 +232,7 @@ export const topics: Topic[] = [
         path: "/services/repair-specifications",
         status: "live",
       },
-      sealed: { angle: "A homeowner with a repair to commission.", status: "live" },
+      sealed: { angle: "A homeowner with a repair to commission.", path: "/services/repair-specification-letters", status: "live" },
       stamp: { angle: "Building to a specification without a rejection.", status: "none" },
     },
   },
@@ -240,8 +245,8 @@ export const topics: Topic[] = [
         path: "/services/residential-light-commercial-design",
         status: "live",
       },
-      sealed: { angle: "An owner commissioning a design.", status: "live" },
-      stamp: { angle: "Getting a design set stamped and submitted.", status: "live" },
+      sealed: { angle: "An owner commissioning a design.", path: "/services/carport-and-patio-cover-plans", status: "live" },
+      stamp: { angle: "Getting a design set stamped and submitted.", status: "planned" },
     },
   },
   {
@@ -253,7 +258,7 @@ export const topics: Topic[] = [
         path: "/insights/inspection-vs-forensic-report",
         status: "live",
       },
-      sealed: { angle: "An owner after a loss who needs an assessment.", status: "live" },
+      sealed: { angle: "An owner after a loss who needs an assessment.", status: "planned" },
       stamp: { angle: "None.", status: "none" },
     },
   },
@@ -263,6 +268,7 @@ export const topics: Topic[] = [
     angles: {
       stamp: {
         angle: "The whole subject: process, turnaround, pricing, volume, deferred submittals, rejection reasons. StampMyPlans' core.",
+        path: "/",
         status: "live",
       },
       "254": { angle: "How a firm reviews and seals at volume, for a buyer evaluating capacity.", status: "none" },
@@ -277,7 +283,7 @@ export const topics: Topic[] = [
         angle: "What a structural engineer does and when you need one, engineer versus inspector, what a report will and will not tell you, how to choose one. Answers the question behind the search. Converted by local entity signals rather than by the word Texas.",
         status: "planned",
       },
-      sealed: { angle: "The document pages and the city geo that serve an ordering buyer.", status: "live" },
+      sealed: { angle: "The document pages and the city geo that serve an ordering buyer.", path: "/", status: "live" },
     },
   },
   /*
@@ -285,8 +291,10 @@ export const topics: Topic[] = [
    *
    * One entry per primary keyword, each recording this brand's angle so that a
    * Sealed Engineering page on the same subject is written as a different
-   * document for its ordering buyer. Status is "planned" until the branch
-   * content/blog-buyers merges; whoever merges it sets these to "live".
+   * document for its ordering buyer. Status was "planned" until the branch
+   * content/blog-buyers merged; whoever merged it was to set these to "live".
+   * It merged as 237064a on 2026-10-17 and they stayed planned; they were set
+   * live on content/registry-sibling-paths the same day.
    * Placed here rather than at the end of the array so it does not collide
    * with the windstorm section's entries on content/blog-windstorm.
    *
@@ -304,7 +312,7 @@ export const topics: Topic[] = [
       "254": {
         angle: "What each of three providers sells under one name (TREC inspector under 22 TAC 535.227 and 535.228, a repair company's free visit, an engineer), the engineer's fee read through the ASCE Texas Section levels A, B and C, costs outside the fee (plumbing test, boring, repair documents, a city permit, post repair letter), who engages inspectors under TREC form 20-18, and the Fannie Mae B4-1.3-06 report standard. Types no price of its own; links /structural-engineer/cost, which owns 'structural engineer cost'.",
         path: "/insights/foundation-inspection-cost",
-        status: "planned",
+        status: "live",
       },
       sealed: {
         angle: "The price of the document a homeowner is ordering this week and how to book it. Not this provider comparison or its ASCE level structure.",
@@ -320,7 +328,7 @@ export const topics: Topic[] = [
       "254": {
         angle: "Who offers a free inspection and why it is free, what it can and cannot be used for (Occupations Code 1001.003, 1001.301, 1001.401; TREC form 20-18 paragraph 7A; Fannie Mae settlement standard), conflict of interest under TBPELS rule 137.57 and ASCE Texas section 2.2, how to use free proposals well, and city permits as a check. Names no company.",
         path: "/insights/free-foundation-inspection",
-        status: "planned",
+        status: "live",
       },
       sealed: {
         angle: "None planned. A free versus paid page on the ordering brand reads as a pitch against competitors.",
@@ -336,7 +344,7 @@ export const topics: Topic[] = [
       "254": {
         angle: "The Texas buyer's inspection read from the rules: TREC form 20-18 and the termination option, what 22 TAC 535.227 and 535.228 require and exclude, the REI 7-6 form, when the report points to an engineer, a full roof section (inspector's roof duties versus an engineer's structural roof assessment and when to commission one before closing), and the Property Code 5.008 disclosure. Distinct from /structural-engineer/inspection, which describes the engineer's visit itself.",
         path: "/insights/pre-purchase-home-inspection",
-        status: "planned",
+        status: "live",
       },
       sealed: {
         angle: "A buyer in an option period ordering a foundation or roof letter. Not this rule by rule reading.",
@@ -352,7 +360,7 @@ export const topics: Topic[] = [
       "254": {
         angle: "Written for agents, brokers and lenders: the seal under 1001.401 and rule 137.33, the five documents that share the name, reading scope, addressee, date and level, matching the conclusion to the Fannie Mae B4-1.3-06 wording, a report in hand and the 5.008 disclosure, and what to send the engineer. Separates the permit letter (/services/structural-letters) from transaction reports.",
         path: "/insights/structural-engineer-report",
-        status: "planned",
+        status: "live",
       },
       sealed: {
         angle: "A homeowner told to get an engineer's letter for a closing. Not the agent and lender reading guide.",
@@ -368,7 +376,7 @@ export const topics: Topic[] = [
       "254": {
         angle: "Reading any foundation crack for movement: patterns, the TREC indications of adverse performance, a self monitoring method, the untraceable width rule in a note, seasonal clay movement (USDA Houston Black, the IRC test via TDLR), when to call an engineer, and how a Level B evaluation reads the crack. Slab specifics are left to the slab post; /structural-engineer/when-you-need-one keeps the general triggers.",
         path: "/insights/crack-in-foundation",
-        status: "planned",
+        status: "live",
       },
       sealed: {
         angle: "An owner with a crack who wants it looked at this week. Not this reading guide or its monitoring method.",
@@ -384,7 +392,7 @@ export const topics: Topic[] = [
       "254": {
         angle: "Texas slab on grade on expansive clay: conventional and post tensioned slabs (PTI DC10.5), the IRC as adopted under Local Government Code 214.212, shrinkage cracking per NRMCA CIP 4, slab cracks that point to movement, cracks found under flooring, locating tendons before cutting, and what a Level B survey measures with the ASCE Texas cautions and repair expectations.",
         path: "/insights/crack-in-concrete-slab-foundation",
-        status: "planned",
+        status: "live",
       },
       sealed: {
         angle: "None planned beyond its foundation document page.",
@@ -400,7 +408,7 @@ export const topics: Topic[] = [
       "254": {
         angle: "Roles across a repair, stage by stage: evaluation, sealed remediation documents, city permit (Houston, Denton), construction, plumbing test, post repair elevations and the letter of substantial completion, from the ASCE Texas Section guidelines; competence under rule 137.59; geotechnical versus structural input; where roles merge under rule 137.57; the board's 2018 response; questions for each party. Distinct from /structural-engineer/how-to-choose, which covers verifying an engineer.",
         path: "/insights/foundation-engineer-vs-repair-company",
-        status: "planned",
+        status: "live",
       },
       sealed: {
         angle: "An owner commissioning an independent evaluation before a repair. Not this role by role account.",
@@ -472,8 +480,19 @@ export const topics: Topic[] = [
     cluster: "geo",
     evidence: "Measured ZERO across every Texas city crossed engineering keyword tested on a prior Sealed pull. City expansion permanently cancelled.",
     angles: {
-      sealed: { angle: "The 25 city pages that already exist. Not to be extended without new measurement.", status: "live" },
+      sealed: {
+        angle: "The 25 city pages that already exist. Not to be extended without new measurement.",
+        path: "/texas/{city}",
+        status: "live",
+        slugs: [
+          "houston", "san-antonio", "dallas", "fort-worth", "austin", "el-paso", "corpus-christi",
+          "laredo", "lubbock", "mcallen", "brownsville", "amarillo", "killeen", "waco", "tyler",
+          "college-station", "beaumont", "midland", "odessa", "round-rock", "victoria", "harlingen",
+          "san-angelo", "abilene", "alice",
+        ],
+      },
     },
+    note: "Pattern. {city} takes exactly the values in slugs, which are Sealed Engineering's pages and nobody else's. 254 Engineering builds no city pages. Slugs named 2026-10-17 from the superseded ownership entry, which listed the same 25.",
   },
   {
     topic: "careers and hiring",
@@ -491,8 +510,10 @@ export const topics: Topic[] = [
    *
    * One entry per primary keyword, each recording this brand's angle so that a
    * Sealed Engineering page on the same subject is written as a different
-   * document for its ordering buyer. Status is "planned" until the branch
-   * content/blog-windstorm merges; whoever merges it sets these to "live".
+   * document for its ordering buyer. Status was "planned" until the branch
+   * content/blog-windstorm merged; whoever merged it was to set these to "live".
+   * It merged as 5631e80 on 2026-10-17 and they stayed planned; they were set
+   * live on content/registry-sibling-paths the same day.
    * Post 12 ("wpi8 search") was folded into /insights/texas-windstorm-certificate-lookup
    * and has no entry of its own. Plan: docs/blog/windstorm-section-plan.md.
    */
@@ -504,7 +525,7 @@ export const topics: Topic[] = [
       "254": {
         angle: "The certificate family (WPI-8, WPI-8-E, WPI-8-C) and the forms that produce each, read from TDI's forms and process pages: the WPI-1, the WPI-2-BC series assigned by construction start date, the WPI-2E, what one certificate records, and address corrections. Not the statute walk-through, which is /insights/windstorm-certificate-of-compliance.",
         path: "/insights/wpi-8-certificate",
-        status: "planned",
+        status: "live",
       },
       sealed: {
         angle: "Whether this property needs one and how to get it, in plain language, on Sealed's own order path. Must not reuse this post's form-by-form structure or its headings.",
@@ -520,7 +541,7 @@ export const topics: Topic[] = [
       "254": {
         angle: "Where the requirement reaches and its 1987 origin, the adopted code editions and zones it measures against, who may inspect which work under Insurance Code 2210.254, the load path an inspector needs to see open, timing and deficiencies, and the city permit beside it. Distinct from the /windstorm hub, which explains the program's actors.",
         path: "/insights/texas-windstorm-inspections",
-        status: "planned",
+        status: "live",
       },
       sealed: {
         angle: "Booking and preparing for an inspection on a specific job. Not this post's code and load path treatment.",
@@ -536,7 +557,7 @@ export const topics: Topic[] = [
       "254": {
         angle: "What the association is and how a policy works, from TWIA's and TDI's published pages: declination, agent, insurable condition, wind and hail only, 2026 limits and deductibles, the V zone flood requirement, funding layers, claim deadlines under 2210.573. Certificates get one section and link to /insights/twia-eligibility-requirements, which owns 'twia insurance' and the statute reading.",
         path: "/insights/twia-insurance-and-windstorm-certificates",
-        status: "planned",
+        status: "live",
       },
       sealed: {
         angle: "A homeowner told TWIA needs a certificate, and what to do this week. Not an institutional explainer.",
@@ -552,7 +573,7 @@ export const topics: Topic[] = [
       "254": {
         angle: "A buyer's decision path when the certificate is missing: which reason applies (pre-1988, WPI-8-C held by TWIA, uncertified later work), the 2210.258 exceptions a buyer can and cannot use, the completed construction route and its timing, CBRA and the V zone flood rule. Lookup mechanics are linked to /insights/texas-windstorm-certificate-lookup, not repeated.",
         path: "/insights/windstorm-inspection-coastal-buyers",
-        status: "planned",
+        status: "live",
       },
       sealed: {
         angle: "The order path for a buyer or realtor who needs the certificate before closing.",
@@ -568,7 +589,7 @@ export const topics: Topic[] = [
       "254": {
         angle: "Damage modes by NHC category and a structural checklist along FEMA's load path, roof deck to foundation, with the windstorm certificate consequences of permanent repair. Structural scope only: no covering, leak or MEP advice.",
         path: "/insights/hurricane-damage-structural-checklist",
-        status: "planned",
+        status: "live",
       },
       sealed: {
         angle: "An owner after a loss who needs an assessment ordered. Not this checklist.",
@@ -584,11 +605,187 @@ export const topics: Topic[] = [
       "254": {
         angle: "Which policy answers which peril, quoted from TDI, OPIC, FEMA and the Insurance Code, deductibles, claim deadlines under 542.055, 542.056 and 2210.573, and where an engineer's report on cause fits. States that the firm is not an insurance adviser. Never claim advocacy.",
         path: "/insights/hurricane-damage-insurance-claim",
-        status: "planned",
+        status: "live",
       },
       sealed: {
         angle: "None. A claim page on the ordering brand reads as solicitation.",
         status: "none",
+      },
+    },
+  },
+  /*
+   * THE SIBLINGS' OWN PAGES, 2026-10-17.
+   *
+   * Every page on sealedengineering.com and stampmyplans.com that no topic above
+   * claims. Each topic is named by the keyword the superseded ownership map
+   * assigned to that path, so nothing here is a new targeting decision: it is
+   * the old record's claim carried into the new format. Each angle is the
+   * page's own H1 restated, written from its live title and H1 on 2026-10-17.
+   * The siblings' registry audits check every claimed path against their
+   * sitemaps, and Sealed's checks every page in its sitemap is claimed.
+   */
+  {
+    topic: "beam and header sizing letter",
+    cluster: "service",
+    angles: {
+      sealed: {
+        angle: "A beam or header sizing letter for a Texas permit, sealed by a PE.",
+        path: "/services/beam-and-header-sizing-letters",
+        status: "live",
+      },
+    },
+  },
+  {
+    topic: "foundation repair plans",
+    cluster: "service",
+    angles: {
+      sealed: {
+        angle: "Foundation repair plans sealed by an independent Texas PE, for an owner commissioning the repair.",
+        path: "/services/foundation-repair-plans",
+        status: "live",
+      },
+    },
+  },
+  {
+    topic: "structural letters for solar installers",
+    cluster: "industries",
+    angles: {
+      sealed: {
+        angle: "Structural letters for solar installers working in Texas.",
+        path: "/industries/solar-installers",
+        status: "live",
+      },
+    },
+  },
+  {
+    topic: "foundation certifications for lenders",
+    cluster: "industries",
+    angles: {
+      sealed: {
+        angle: "Foundation certifications for lenders and loan officers, built around a closing date.",
+        path: "/industries/lenders-and-loan-officers",
+        status: "live",
+      },
+    },
+  },
+  {
+    topic: "transaction letters for realtors",
+    cluster: "industries",
+    angles: {
+      sealed: {
+        angle: "Sealed transaction letters for realtors and title companies.",
+        path: "/industries/realtors-and-title-companies",
+        status: "live",
+      },
+    },
+  },
+  {
+    topic: "what is a sealed engineering letter",
+    cluster: "homeowner education",
+    angles: {
+      sealed: {
+        angle: "What a sealed engineering letter is, for a homeowner told to get one.",
+        path: "/insights/what-is-a-sealed-engineering-letter",
+        status: "live",
+      },
+    },
+  },
+  {
+    topic: "solar structural letter requirements",
+    cluster: "homeowner education",
+    angles: {
+      sealed: {
+        angle: "What a Texas jurisdiction requires in a solar structural letter, for the party ordering it.",
+        path: "/insights/solar-structural-letter-requirements-texas",
+        status: "live",
+      },
+    },
+  },
+  {
+    topic: "fha va manufactured home foundation certification",
+    cluster: "homeowner education",
+    angles: {
+      sealed: {
+        angle: "The FHA and VA manufactured home foundation certification, for a borrower who needs it to close.",
+        path: "/insights/fha-va-manufactured-home-foundation-certifications",
+        status: "live",
+      },
+    },
+  },
+  {
+    topic: "what a roof certification letter covers",
+    cluster: "homeowner education",
+    angles: {
+      sealed: {
+        angle: "What a roof certification letter covers, read by the person who ordered it.",
+        path: "/insights/what-a-roof-certification-letter-covers",
+        status: "live",
+      },
+    },
+  },
+  {
+    topic: "wpi-8 windstorm certificates explained",
+    cluster: "homeowner education",
+    angles: {
+      sealed: {
+        angle: "The WPI-8 windstorm certificate explained for a homeowner.",
+        path: "/insights/wpi-8-windstorm-certificates-explained",
+        status: "live",
+      },
+    },
+  },
+  {
+    topic: "texas windstorm wpi-8 certificate search",
+    cluster: "windstorm",
+    angles: {
+      sealed: {
+        angle: "How to look up a Texas windstorm certificate, answered honestly as a lookup.",
+        path: "/insights/how-to-look-up-a-texas-windstorm-certificate",
+        status: "live",
+      },
+    },
+  },
+  {
+    topic: "when a permit office requires an engineer letter",
+    cluster: "homeowner education",
+    angles: {
+      sealed: {
+        angle: "When a Texas permit office requires an engineer letter, for the homeowner it asked.",
+        path: "/insights/when-a-permit-office-requires-an-engineer-letter",
+        status: "live",
+      },
+    },
+  },
+  {
+    topic: "plan stamping pricing",
+    cluster: "plans",
+    angles: {
+      stamp: {
+        angle: "Flat plan stamping rates, quoted before the work starts.",
+        path: "/pricing",
+        status: "live",
+      },
+    },
+  },
+  {
+    topic: "volume plan stamping",
+    cluster: "plans",
+    angles: {
+      stamp: {
+        angle: "Volume plan stamping for dealers submitting five or more sets a month.",
+        path: "/volume",
+        status: "live",
+      },
+    },
+  },
+  {
+    topic: "plan review turnaround",
+    cluster: "plans",
+    angles: {
+      stamp: {
+        angle: "Straight answers about plan stamping, turnaround among them.",
+        path: "/faq",
+        status: "live",
       },
     },
   },
