@@ -80,6 +80,26 @@ under ALL GREEN.** That tightens a check, so it is built after launch on its own
 branch. The line is printed at the `NOT MEASURED` log call in that file; the
 injection is a run with the engineer probe withheld, which must not end green.
 
+## THE INSIGHTS INDEX IS 386PX UNDER ITS CEILING, BUILT BEFORE THE NEXT BLOG SECTION
+
+Found 2026-10-18 in the readers of `80b6216` on `content/blog-roofs`.
+mobile-overflow-audit measured `/insights` at **15,614px at 390**, the tallest
+route on the site, against the 16000px content ceiling. The hub
+(`src/app/(site)/insights/page.tsx`) renders every post in `insightsByDate`
+as one list: 35 posts after the roofs section, by `sectionOf()` core 4,
+coastal 16, buyers 7, roofs 8. The next section of any size puts it over.
+**Ruled 2026-10-18: build it before the next blog section merges**, as one of
+two shapes: the index grouped by section, a fixed number of posts per section
+and a link to the rest of that section, or the index paginated. **Never trim a
+post to fit the index.** Whichever shape is built, every post stays reachable
+from the hub and the sitemap, as the related reading cap already promises.
+Two checks: mobile-overflow-audit's existing ceiling, and a new one that every
+post in `insights` is linked from the hub or from a page the hub links. The
+height alone cannot prove the shape works, because 35 posts unlimited is under
+the ceiling today; its injection is a fixture section large enough to cross
+16000px unlimited, run with the limit removed. The reachability check's
+injection is a section's "rest of" link removed.
+
 ## NOTHING MEASURES SEALED AGAINST STAMP FOR NEAR-DUPLICATE PAGES
 
 Found 2026-10-17 while porting the siblings' registry audits. This repo's
