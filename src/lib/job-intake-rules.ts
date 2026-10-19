@@ -17,6 +17,7 @@
 
 import type { CatalogEntry } from "@data/catalog";
 import type { Cents } from "./ops-money";
+import { isOwnerAdmin } from "./owner-override";
 
 /** How a job reached the firm. Matches the check constraint in 0015. */
 export const INTAKE_CHANNELS = ["web", "phone", "email", "walk_in", "partner", "other"] as const;
@@ -226,6 +227,12 @@ export function noChargeRefusal(input: {
   reason: string | null;
   paymentIntent: PaymentIntent;
   code: string | null;
+  /**
+   * The owner override, operator ruling 2026-10-19 (src/lib/owner-override.ts):
+   * the owner's administrator id alone re-enters his password in place of the
+   * code. For every other id this field is ignored and the code is required.
+   */
+  password?: string | null;
 }): string | null {
   if (!input.actorId || input.actorRole !== "admin") {
     return "Only an administrator can open a job at no charge.";
@@ -235,6 +242,9 @@ export function noChargeRefusal(input: {
   }
   if (input.paymentIntent !== "released_unpaid") {
     return "A job at no charge is opened unpaid. There is nothing to send a link or an invoice for.";
+  }
+  if (isOwnerAdmin(input.actorId)) {
+    return input.password ? null : "A job at no charge needs your password, entered again here.";
   }
   if (!(input.code ?? "").replace(/\s+/g, "")) {
     return "A job at no charge needs a fresh code from your authenticator app.";

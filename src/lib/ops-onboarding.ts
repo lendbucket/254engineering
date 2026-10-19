@@ -13,6 +13,7 @@ import {
   CREDENTIAL_OF_ITEM,
   EXPIRING_KINDS,
   EXPIRY_WARNING_DAYS,
+  OWNER_OVERRIDE_KINDS,
   RECORDABLE_KIND_OPTIONS,
   activationReadiness,
   credentialBlockers,
@@ -524,9 +525,27 @@ export async function credentialBlockersFor(profileIds: string[]): Promise<Map<s
   }
   const out = new Map<string, string[]>();
   for (const id of profileIds) {
-    out.set(id, credentialBlockers(held.get(id) ?? [], new Date(), exemptKindsFor(emails.get(id))).map((b) => b.reason));
+    out.set(id, credentialBlockers(held.get(id) ?? [], new Date(), exemptKindsFor(emails.get(id), id)).map((b) => b.reason));
   }
   return out;
+}
+
+/**
+ * Which of the owner override's kinds this profile would be BLOCKED on without
+ * it, so a dispatch can tell an override it relied on from one it did not.
+ * Operator ruling, 2026-10-19 (src/lib/owner-override.ts). Null when a read
+ * failed, which the caller treats as a refusal: an override that cannot be
+ * checked cannot be recorded, and an unrecorded use is not allowed.
+ */
+export async function ownerOverrideKindsReliedOn(profileId: string): Promise<CredentialKind[] | null> {
+  const held = await credentialsRead([profileId]);
+  if (held === null) return null;
+  const db = supabaseAdmin();
+  if (!db) return null;
+  const { data, error } = await db.from("eng_profiles").select("email").eq("id", profileId).maybeSingle();
+  if (error) return null;
+  const withoutOverride = credentialBlockers(held.get(profileId) ?? [], new Date(), exemptKindsFor(data?.email as string | null));
+  return OWNER_OVERRIDE_KINDS.filter((k) => withoutOverride.some((b) => b.kind === k));
 }
 
 /**
@@ -552,7 +571,7 @@ export async function credentialBlockersRead(profileIds: string[]): Promise<Map<
   }
   const out = new Map<string, string[]>();
   for (const id of profileIds) {
-    out.set(id, credentialBlockers(held.get(id) ?? [], new Date(), exemptKindsFor(emails.get(id))).map((b) => b.reason));
+    out.set(id, credentialBlockers(held.get(id) ?? [], new Date(), exemptKindsFor(emails.get(id), id)).map((b) => b.reason));
   }
   return out;
 }

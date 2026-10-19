@@ -5,6 +5,7 @@ import { launchReadiness, launchMode } from "@/lib/launch";
 import { lineIsSellable } from "@/lib/line-gate";
 import { offeredServiceLines } from "@/config/launch-conditions";
 import { Chip, PageHead, Panel } from "@/components/portal/surfaces";
+import { OWNER_OVERRIDE, OWNER_OVERRIDE_ACTION, OWNER_OVERRIDES } from "@/lib/owner-override";
 
 export const dynamic = "force-dynamic";
 
@@ -155,6 +156,28 @@ export default async function LaunchReadinessPage() {
                   page refuses it, because launchMode() answers {mode}.
                 </p>
               ) : null}
+            </li>
+          ))}
+        </ul>
+      </Panel>
+
+      {/*
+        THE OWNER OVERRIDE, SHOWN SO IT IS NOT HIDDEN. Operator ruling,
+        2026-10-19 (src/lib/owner-override.ts). Rendered from the declaration
+        itself, so a third override cannot exist without appearing here.
+      */}
+      <Panel
+        title="Owner overrides in force"
+        description={`Two exemptions for the owner's own accounts, matched by user id and reachable by no other account, ruled ${OWNER_OVERRIDE.ruledOn}. Every use is recorded in the audit trail as ${OWNER_OVERRIDE_ACTION}, and an act whose record cannot be written is refused.`}
+      >
+        <ul className="flex flex-col gap-3">
+          {OWNER_OVERRIDES.map((o) => (
+            <li key={o.key} className="border-t border-[var(--border)] pt-3 first:border-t-0 first:pt-0">
+              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                <Chip label="Active" tone="warn" />
+                <p className="text-[15px] font-semibold text-[var(--navy)]">{o.label}</p>
+              </div>
+              <p className="mt-2 text-[13.5px] leading-[1.65] text-[var(--secondary)]">{o.holder}</p>
             </li>
           ))}
         </ul>

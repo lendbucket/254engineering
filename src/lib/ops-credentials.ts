@@ -36,6 +36,8 @@
  * nobody checked.
  */
 
+import { isOwnerFieldTech } from "./owner-override";
+
 export type CredentialKind =
   | "drivers_license"
   | "gl_insurance"
@@ -109,11 +111,27 @@ export const OWNER_EXEMPTIONS: { email: string; exempt: CredentialKind[]; ruledO
   { email: "robertreyna88@yahoo.com", exempt: ["w9", "ic_agreement"], ruledOn: "2026-10-06" },
 ];
 
-/** The credential kinds this profile is exempt from, by its email. Empty for everybody else. */
-export function exemptKindsFor(email: string | null | undefined): CredentialKind[] {
+/**
+ * THE DRIVER LICENCE AND VEHICLE INSURANCE, BY THE OWNER OVERRIDE. Operator
+ * ruling, 2026-10-19, which reverses the first bullet above for one profile:
+ * the owner's field technician profile, matched by USER ID through
+ * src/lib/owner-override.ts and never by email, is not held to these two at
+ * dispatch. The 2026-10-06 sentence that they are "facts about the person and
+ * the car whoever owns the firm" is kept above because it was the ruling, and
+ * this is the ruling that replaced it. A dispatch that relies on it writes an
+ * audit row in sendOffers.
+ */
+export const OWNER_OVERRIDE_KINDS: CredentialKind[] = ["drivers_license", "vehicle_insurance"];
+
+/**
+ * The credential kinds this profile is exempt from. Empty for everybody else.
+ * The W-9 and agreement are matched by email (2026-10-06); the licence and the
+ * vehicle insurance by the profile's id alone (2026-10-19).
+ */
+export function exemptKindsFor(email: string | null | undefined, profileId?: string | null): CredentialKind[] {
   const key = (email ?? "").trim().toLowerCase();
-  if (!key) return [];
-  return OWNER_EXEMPTIONS.find((o) => o.email.toLowerCase() === key)?.exempt ?? [];
+  const byEmail = key ? (OWNER_EXEMPTIONS.find((o) => o.email.toLowerCase() === key)?.exempt ?? []) : [];
+  return isOwnerFieldTech(profileId) ? [...byEmail, ...OWNER_OVERRIDE_KINDS] : byEmail;
 }
 
 /** Kinds that carry an expiry date, so the flow knows when to ask for one. */

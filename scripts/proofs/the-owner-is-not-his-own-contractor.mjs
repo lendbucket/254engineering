@@ -49,9 +49,21 @@ check(
 check("however the address is typed", JSON.stringify(exemptKindsFor(" RobertReyna88@Yahoo.com ")) === JSON.stringify(exemptKindsFor(OWNER)));
 check("and no address exempts nothing", exemptKindsFor(null).length === 0 && exemptKindsFor("").length === 0);
 
+/*
+ * 2026-10-19: the callers also pass the profile's id, for the owner override
+ * (scripts/proofs/the-owner-override-is-two-ids.mjs). The email alone still
+ * exempts exactly the two kinds above, which the next check holds: the
+ * owner's ADDRESS on any other id does not reach the licence or insurance.
+ */
+check(
+  "the owner's address on another id is still blocked on his licence and vehicle insurance",
+  kinds(credentialBlockers([], new Date(), exemptKindsFor(OWNER, "00000000-0000-4000-8000-000000000000"))) ===
+    "drivers_license, vehicle_insurance",
+);
+
 for (const [file, call] of [
-  ["src/lib/ops-onboarding.ts", "exemptKindsFor(emails.get(id))"],
-  ["src/app/portal/(app)/certification/page.tsx", "exemptKindsFor(actor!.email)"],
+  ["src/lib/ops-onboarding.ts", "exemptKindsFor(emails.get(id), id)"],
+  ["src/app/portal/(app)/certification/page.tsx", "exemptKindsFor(actor!.email, actor!.id)"],
 ]) {
   check(`${file} passes the exemption to the blockers`, readFileSync(file, "utf8").includes(call), call);
 }

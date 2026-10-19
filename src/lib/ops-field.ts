@@ -6,7 +6,9 @@ import { readEvery } from "./bounded-read";
 import { supabaseAdmin } from "./supabase";
 import type { Cents } from "./ops-money";
 import { recordTechnicianVisit } from "./ops-payments";
-import { credentialBlockersFor } from "./ops-onboarding";
+import { credentialBlockersFor, ownerOverrideKindsReliedOn } from "./ops-onboarding";
+import { CREDENTIAL_LABEL } from "./ops-credentials";
+import { isOwnerFieldTech, OWNER_OVERRIDE, OWNER_OVERRIDE_ACTION } from "./owner-override";
 import { raise } from "./ops-notify";
 import {
   canAttempt,
@@ -17,7 +19,7 @@ import {
   type CheckQuestion,
   type PublicQuestion,
 } from "./ops-certification";
-import { writeAudit, diffOf, safeDiff } from "./ops-audit";
+import { writeAudit, writeAuditOrRefuse, diffOf, safeDiff } from "./ops-audit";
 import { can, type Actor, holdsLicence, licenceRefusal } from "./ops-authz";
 import { transitionFile } from "./ops-crm";
 import {
@@ -808,6 +810,31 @@ export async function sendOffers(
         ? `${why.displayName} is no longer eligible: ${why.reason}`
         : "One of those technicians is no longer eligible for this job.",
     };
+  }
+
+  /*
+   * THE OWNER OVERRIDE AT DISPATCH, operator ruling 2026-10-19
+   * (src/lib/owner-override.ts). The owner's field technician profile is not
+   * held to the driver licence and vehicle insurance. When an offer to him is
+   * eligible ONLY because of that, the use is recorded here, BEFORE any offer is
+   * written, through writeAuditOrRefuse: an override that could not be recorded
+   * is a dispatch that does not happen. An offer he would have been eligible
+   * for anyway writes nothing, because the override was not used.
+   */
+  for (const id of techIds.filter((t) => isOwnerFieldTech(t))) {
+    const reliedOn = await ownerOverrideKindsReliedOn(id);
+    if (reliedOn === null) return { ok: false, error: "The owner override could not be checked, so no offer was sent." };
+    if (reliedOn.length === 0) continue;
+    const used = await writeAuditOrRefuse({
+      actor,
+      action: OWNER_OVERRIDE_ACTION,
+      entityType: "file",
+      entityId: fileId,
+      summary: `Owner override used: offered ${file.file_number} without ${reliedOn.map((k) => CREDENTIAL_LABEL[k]).join(" or ")} on file`,
+      diff: { override: "dispatch_credentials", act: "offers.send", tech_id: id, kinds: reliedOn, ruled_on: OWNER_OVERRIDE.ruledOn },
+      ...context,
+    });
+    if (!used.ok) return { ok: false, error: used.error };
   }
 
   const expiresAt = options.expiresInHours

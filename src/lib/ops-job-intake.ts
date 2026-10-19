@@ -2,6 +2,8 @@ import "server-only";
 import { supabaseAdmin } from "./supabase";
 import { writeAudit, writeAuditOrRefuse } from "./ops-audit";
 import { verifyFreshCode } from "./ops-mfa";
+import { verifyOwnPassword } from "./ops-auth";
+import { isOwnerAdmin, OWNER_OVERRIDE, OWNER_OVERRIDE_ACTION } from "./owner-override";
 import { createClient, createFile, transitionFile, type Author } from "./ops-crm";
 import { catalogFor, orderBlockedReason } from "@data/catalog";
 import { quoteFor } from "./ops-orders";
@@ -86,6 +88,8 @@ export type TakeJobInput = {
   priceOverrideReason?: string | null;
   /** A fresh authenticator code, required only for a client price of zero. */
   noChargeCode?: string | null;
+  /** The owner override alone (src/lib/owner-override.ts): his password in place of the code. */
+  noChargePassword?: string | null;
 
   paymentIntent: PaymentIntent;
   paymentNote?: string | null;
@@ -331,11 +335,38 @@ export async function takeJob(
       reason: decision.overridden ? decision.reason : (input.priceOverrideReason ?? null),
       paymentIntent: input.paymentIntent,
       code: input.noChargeCode ?? null,
+      password: input.noChargePassword ?? null,
     });
     if (refused) return { ok: false, error: refused, field: "priceCents" };
 
-    const fresh = await verifyFreshCode(actor.id as string, input.noChargeCode ?? "", "A job at no charge");
-    if (!fresh.ok) return { ok: false, error: fresh.error, field: "noChargeCode" };
+    /*
+     * THE OWNER OVERRIDE, operator ruling 2026-10-19 (src/lib/owner-override.ts).
+     * The owner's administrator id, and no other, re-enters his password in
+     * place of the authenticator code, and the use is recorded BEFORE the
+     * no-charge record, through writeAuditOrRefuse, so an override that could
+     * not be recorded is an act that did not happen. Every other id takes the
+     * fresh code exactly as before.
+     */
+    let factor: { kind: "authenticator"; verifiedAt: string } | { kind: "owner_password"; overrideEventId: string };
+    if (isOwnerAdmin(actor.id)) {
+      const pw = await verifyOwnPassword(actor.id as string, input.noChargePassword ?? "");
+      if (!pw.ok) return { ok: false, error: pw.error, field: "noChargePassword" };
+      const used = await writeAuditOrRefuse({
+        actor,
+        action: OWNER_OVERRIDE_ACTION,
+        entityType: "profile",
+        entityId: actor.id as string,
+        summary: "Owner override used: password re-entered in place of the authenticator code, for a job at no charge",
+        diff: { override: "no_charge_password", act: "job.no_charge", ruled_on: OWNER_OVERRIDE.ruledOn },
+        ...context,
+      });
+      if (!used.ok) return { ok: false, error: used.error, field: "noChargePassword" };
+      factor = { kind: "owner_password", overrideEventId: used.id };
+    } else {
+      const fresh = await verifyFreshCode(actor.id as string, input.noChargeCode ?? "", "A job at no charge");
+      if (!fresh.ok) return { ok: false, error: fresh.error, field: "noChargeCode" };
+      factor = { kind: "authenticator", verifiedAt: fresh.verifiedAt };
+    }
 
     const recorded = await writeAuditOrRefuse({
       actor,
@@ -347,7 +378,9 @@ export async function takeJob(
         reason: decision.overridden ? decision.reason : (input.priceOverrideReason ?? "").trim(),
         catalog_price_cents: catalogCents,
         client_price_cents: 0,
-        second_factor_verified_at: fresh.verifiedAt,
+        ...(factor.kind === "authenticator"
+          ? { second_factor_verified_at: factor.verifiedAt }
+          : { owner_override_event_id: factor.overrideEventId }),
         property_address: input.propertyAddress,
         service: input.serviceSlug,
         deliverable: input.tier,

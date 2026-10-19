@@ -74,7 +74,38 @@ check(
   `record refuses at ${recordReturn}, client at ${client}, file at ${file}`,
 );
 check("the rule is asked only for a price of zero, read from the price actually decided", /if \(isNoCharge\(clientCents\)\) \{/.test(body) && /const clientCents = decision\.overridden \? decision\.cents : catalogCents;/.test(body));
-check("the record carries the reason and when the code was checked", /action: "job\.no_charge"/.test(body) && /second_factor_verified_at: fresh\.verifiedAt/.test(body) && /reason: decision\.overridden/.test(body));
+check("the record carries the reason and when the code was checked", /action: "job\.no_charge"/.test(body) && /second_factor_verified_at: factor\.verifiedAt/.test(body) && /factor = \{ kind: "authenticator", verifiedAt: fresh\.verifiedAt \}/.test(body) && /reason: decision\.overridden/.test(body));
+
+/*
+ * THE OWNER OVERRIDE, operator ruling 2026-10-19. The code path above is the
+ * ELSE of one branch, taken by every id except the owner's administrator id.
+ * Asserted by position: the branch is decided by isOwnerAdmin on the actor's
+ * id, the override's own record refuses before the no-charge record is
+ * written, and the code path is unchanged inside the else. The id itself,
+ * and that no other id reaches the branch, is the-owner-override-is-two-ids.
+ */
+const branch = at("if (isOwnerAdmin(actor.id)) {");
+const overrideRecord = at("const used = await writeAuditOrRefuse({");
+const overrideReturn = at('if (!used.ok) return { ok: false, error: used.error, field: "noChargePassword" };');
+const elseAt = branch >= 0 ? body.indexOf("} else {", branch) : -1;
+check(
+  "the override branch is decided by the actor's id, after the rule and before the code",
+  branch > refusedReturn && branch < code && elseAt > branch && elseAt < code,
+  `branch ${branch}, else ${elseAt}, code ${code}`,
+);
+check(
+  "and its own record refuses before the no-charge record is written",
+  overrideRecord > branch && overrideReturn > overrideRecord && overrideReturn < elseAt && record > codeReturn,
+  `override record ${overrideRecord}, refuses ${overrideReturn}`,
+);
+check("the password is checked by the signed-in id, before the record", /const pw = await verifyOwnPassword\(actor\.id as string, input\.noChargePassword \?\? ""\);/.test(body) && at("const pw = await verifyOwnPassword(") < overrideRecord);
+
+const probe = "11111111-1111-4111-8111-111111111111";
+check(
+  "another administrator with a password and no code is refused",
+  ask({ actorId: probe, code: null, password: "a-password" }) !== null,
+  ask({ actorId: probe, code: null, password: "a-password" }) ?? "allowed",
+);
 
 /* The record that refuses, rather than logging and carrying on. */
 const audit = readSource("src/lib/ops-audit.ts");

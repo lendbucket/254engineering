@@ -5,6 +5,7 @@ import { TEXAS_COUNTIES } from "@/lib/ops-counties";
 import { services } from "@/content/services";
 import { CATALOG } from "@data/catalog";
 import { isOpen } from "@/lib/launch";
+import { isOwnerAdmin } from "@/lib/owner-override";
 import { PageHead } from "@/components/portal/surfaces";
 import { RestrictedMode } from "@/components/portal/design";
 import { IntakeClient } from "./IntakeClient";
@@ -83,6 +84,7 @@ export default async function IntakePage() {
         deliverables={deliverables}
         counties={[...TEXAS_COUNTIES]}
         prelaunch={!isOpen()}
+        ownerOverride={isOwnerAdmin(actor.id)}
       />
     </div>
   );
