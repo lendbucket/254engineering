@@ -133,9 +133,9 @@ export function buildMetadata(params: {
       description: desc,
       url: path,
       type: "website",
-      siteName: business.name,
+      siteName: business.shortName,
       locale: "en_US",
-      images: [{ url: "/og/default.png", width: 1200, height: 630, alt: business.name }],
+      images: [{ url: "/og/default.png", width: 1200, height: 630, alt: business.shortName }],
     },
     twitter: {
       card: "summary_large_image",
