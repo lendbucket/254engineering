@@ -3254,6 +3254,34 @@ night, if the lock is free and work is waiting, board it.
   brought up to main, its migration applied to development, boarded, pushed,
   and staged for the morning sitting.
 
+  **TWO LANES. Operator ruling, 2026-10-20.** It narrows the board-before-merge
+  rule above for one kind of branch and leaves it whole for every other.
+
+  **Fast lane.** A branch that changes only copy, content, docs or styling, and
+  touches no server code, API route, migration, auth, role, payment, dispatch,
+  sealing, protocol or override file, merges when its readers pass (every audit
+  that reads a changed file) and the range dash check finds no long dash in its
+  added lines. No full board. A registry string in `data/keyword-registry.ts`
+  is fast lane. A sentence inside a file a server path reads, such as a
+  `data/catalog.ts` field, is full lane.
+
+  **The nightly board.** One full board runs on main every night after the last
+  fast-lane merge of the day. Any miss on it stops ALL merges, in both lanes,
+  until Robert rules. That board is what still measures the combination the
+  fast lane did not.
+
+  **Full lane.** Everything else stays on the full board with a prediction
+  stated in advance, exactly as above.
+
+  **Doubt is full lane.** A session unsure which lane a branch is in does not
+  decide it in the branch's favour. Every merge message states the lane and
+  why.
+
+  **The range dash check** is the standing check for a committed branch: it
+  reads `git diff <base> <head>` and exits non-zero when it finds no added
+  lines, because a check of the working diff reads nothing once the work is
+  committed and would print zero over an empty set.
+
   **Never, under any word:** a force push, deleting or rewriting a remote branch,
   pushing a tag, or pushing main with a migration that is not applied to
   production. A migration branch merges only inside a sitting, after the apply
