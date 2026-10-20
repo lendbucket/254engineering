@@ -6,7 +6,10 @@ import { can } from "@/lib/ops-authz";
 import { listFilesPage, FILE_LIST_CAP, getFile, listClients, fileTimeline, fileRegion } from "@/lib/ops-crm";
 import { availableTransitions, STATUS_LABEL, FILE_STATUSES } from "@/lib/ops-files";
 import { TEXAS_COUNTIES, twiaStatus } from "@/lib/ops-counties";
-import { outstandingFor, answeredFor } from "@/lib/ops-file-inputs";
+import { outstandingFor, answeredFor, answersFor } from "@/lib/ops-file-inputs";
+import { FILE_DETAIL_FIELDS } from "@/lib/file-detail-fields";
+import { ContactLogPanel } from "@/components/portal/ContactLog";
+import { FileDetailsForm, ReleaseTechnician } from "./DeskFileClient";
 import { services } from "@/content/services";
 import { EmptyState, PageHead, Panel } from "@/components/portal/surfaces";
 import { FileSelection } from "./FileSelection";
@@ -57,6 +60,10 @@ export default async function FilesPage({
   });
   const selected = params.id ? await getFile(actor, params.id) : null;
   const timeline = selected ? await fileTimeline(selected.id) : [];
+
+  /* The contact, access and scheduling answers, for the details form (files.update_details, 2026-10-20). */
+  const answers = selected && can(actor, "files.update_details") ? await answersFor(selected.id) : {};
+  const detailValues = Object.fromEntries(FILE_DETAIL_FIELDS.map((f) => [f.id, answers[f.id] ?? ""]));
 
   /*
    * The margin, from the one function that knows what a margin is.
@@ -462,6 +469,22 @@ export default async function FilesPage({
             </div>
           </div>
         </div>
+
+        {can(actor, "files.update_details") ? (
+          <div className="mt-8 print:hidden">
+            <p className="portal-label">Contact, access and scheduling</p>
+            <FileDetailsForm fileId={selected.id} values={detailValues} />
+          </div>
+        ) : null}
+
+        {selected.status === "dispatched" && selected.assigned_tech_id && can(actor, "offers.dispatch") ? (
+          <div className="mt-8 print:hidden">
+            <p className="portal-label">Reassign</p>
+            <ReleaseTechnician fileId={selected.id} />
+          </div>
+        ) : null}
+
+        <ContactLogPanel actor={actor} subject="file" subjectId={selected.id} className="mt-8" />
       </div>
     </div>
   ) : (
@@ -495,7 +518,8 @@ export default async function FilesPage({
 
       <RestrictedMode also="Files can be created and prepared. The rule is in the state machine, not in these buttons." />
 
-      {can(actor, "files.create") ? (
+      {/* create_file also asks pricing.override_at_intake since 0079, so the form shows only where it works. */}
+      {can(actor, "files.create") && can(actor, "pricing.override_at_intake") ? (
         <div className="mb-6">
           <NewFileForm
             clients={clients.map((c) => ({ id: c.id, name: c.name }))}

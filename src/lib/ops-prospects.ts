@@ -424,7 +424,10 @@ export async function importProspects(
 export async function convertProspect(
   actor: (Actor & { email: string }) | null,
   id: string,
-): Promise<{ ok: true; accountId: string; clientId: string; link: { token: string; expiresIn: string } | null } | { ok: false; error: string }> {
+): Promise<
+  | { ok: true; accountId: string; clientId: string; link: { token: string; expiresIn: string } | null; email: string; displayName: string }
+  | { ok: false; error: string }
+> {
   if (!actor || !can(actor, "crm.use") || !can(actor, "clients.create")) return refuse("Your role cannot convert a prospect.");
   const current = await prospectById(actor, id);
   if (!current.ok) return current;
@@ -490,5 +493,12 @@ export async function convertProspect(
     summary: `Prospect ${p.company} converted into account ${String(account.id)}.`,
     diff: { account_id: account.id, client_id: account.client_id },
   });
-  return { ok: true, accountId: String(account.id), clientId: String(account.client_id), link: created.link };
+  return {
+    ok: true,
+    accountId: String(account.id),
+    clientId: String(account.client_id),
+    link: created.link,
+    email: p.email,
+    displayName: p.contactName || p.company,
+  };
 }

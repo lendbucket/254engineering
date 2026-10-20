@@ -79,7 +79,9 @@ export default async function ClientsPage() {
       head: "Client",
       cell: (c) => (
         <div>
-          <p className="font-semibold text-[var(--ink)]">{c.name}</p>
+          <p className="font-semibold">
+            <Link href={`/portal/clients/${c.id}`} className="text-[var(--navy)] underline">{c.name}</Link>
+          </p>
           <p className="text-[13px] text-[var(--secondary)]">
             {c.kind === "organization" ? "Organization" : "Individual"}
             {c.client_type ? `, ${c.client_type.replace(/_/g, " ")}` : ""}

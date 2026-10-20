@@ -40,15 +40,16 @@ import { NAV } from "@/components/portal/nav";
  * `/portal/review` calls `holdsLicence`, which does not. Asking `can()` alone
  * here would reproduce the bug in the fix.
  */
-const ACTION_FOR_HREF = new Map(NAV.map((item) => [item.href, item.action] as const));
+/* Every action that opens the destination: the item's own and its anyOf (nav.ts, 2026-10-20). */
+const ACTIONS_FOR_HREF = new Map(NAV.map((item) => [item.href, [item.action, ...(item.anyOf ?? [])]] as const));
 
 export function canOpen(actor: Actor | null, href: string): boolean {
   /* Query strings and fragments are the same destination. */
   const path = href.split(/[?#]/)[0];
-  const action = ACTION_FOR_HREF.get(path);
+  const actions = ACTIONS_FOR_HREF.get(path);
   /* Not a declared destination, so this function has nothing to say about it. */
-  if (!action) return true;
-  return isLicensed(action) ? holdsLicence(actor, action) : can(actor, action);
+  if (!actions) return true;
+  return actions.some((action) => (isLicensed(action) ? holdsLicence(actor, action) : can(actor, action)));
 }
 
 /**

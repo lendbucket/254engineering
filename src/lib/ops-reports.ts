@@ -195,7 +195,7 @@ export type ReportReader = Pick<Actor, "id" | "grants" | "status"> | null;
 export type ReportCoverage = "the firm" | "the reader's own work";
 
 export type Report = {
-  key: "revenue" | "production" | "pipeline" | "partner";
+  key: "revenue" | "production" | "pipeline" | "partner" | "turnaround" | "activity";
   title: string;
   /** The period the figures cover, as a label. */
   period: string;
@@ -392,6 +392,29 @@ export async function revenueReport(period = periodOf(), scope: FigureScope = "r
       rows,
     };
   });
+  /*
+   * ORDERS, COUNTED. Operator ruling, 2026-10-20: the operations manager's
+   * revenue report carries the order count, revenue and refunds by service and
+   * period. An order is counted once however many charges it carried, so the
+   * count is distinct references, and it is the orders that took money in the
+   * period rather than every order placed.
+   */
+  const paidOrders = (rows: Row[]): FigureRow[] =>
+    [...new Map(rows.map((r) => [r.eng_service_orders.reference, r])).values()].map((r) => ({
+      label: r.eng_service_orders.reference,
+      detail: `${r.eng_service_orders.service_slug}, ${day(r.created_at)}`,
+      value: 1,
+    }));
+  const ordersByLine: Figure[] = lines.map((slug) => {
+    const rows = paidOrders(charges.filter((r) => r.eng_service_orders.service_slug === slug));
+    return {
+      label: slug.replace(/-/g, " "),
+      value: rows.length,
+      kind: "count" as const,
+      note: "Orders on this service line that took money in the period. Each order is counted once.",
+      rows,
+    };
+  });
   if (byLine.length === 0) {
     byLine.push({
       label: "No line took money",
@@ -437,6 +460,13 @@ export async function revenueReport(period = periodOf(), scope: FigureScope = "r
         title: "The period",
         figures: [
           {
+            label: "Orders paid",
+            value: paidOrders(charges).length,
+            kind: "count",
+            note: "Orders that took money in the period, each counted once. Zero means none did.",
+            rows: paidOrders(charges),
+          },
+          {
             label: "Gross",
             value: sumRows(chargeRows),
             kind: "money",
@@ -471,6 +501,7 @@ export async function revenueReport(period = periodOf(), scope: FigureScope = "r
         ],
       },
       { title: "By service line", figures: byLine },
+      ...(ordersByLine.length ? [{ title: "Orders by service line", figures: ordersByLine }] : []),
       { title: "Refunds by case", figures: byCase },
     ],
   };
@@ -1201,7 +1232,159 @@ export const REPORTS: readonly ReportEntry[] = [
   { key: "production", title: "Production", action: "reports.production", build: productionReport },
   { key: "pipeline", title: "Pipeline", action: "reports.pipeline", build: pipelineReport },
   { key: "partner", title: "Partner", action: "reports.partner", build: partnerReport },
+  { key: "turnaround", title: "Turnaround", action: "reports.turnaround", build: turnaroundReport },
+  { key: "activity", title: "Rep activity", action: "reports.activity", build: activityReport },
 ];
+
+// --------------------------------------------------------------- turnaround
+
+/**
+ * HOW LONG EACH STAGE TOOK, MEASURED FROM THE TIMESTAMPS THE FILE CARRIES.
+ * Operator ruling, 2026-10-20: the operations manager reads turnaround.
+ *
+ * Every figure is a mean of hours between two columns that were both written,
+ * over the files that reached the later stage in the period. A file that has
+ * not reached a stage is in no figure for it, which is said, rather than
+ * counted as zero hours. This states what happened; it is not a promise, and
+ * nothing here prints a number the firm commits to.
+ */
+export async function turnaroundReport(period = periodOf(), scope: FigureScope = "real"): Promise<Report> {
+  const client = db();
+  const base = { key: "turnaround" as const, title: "Turnaround", period, scope, covers: "the firm" as const };
+  if (!client) return { ...base, sections: [], unavailable: ["The database is not configured, so no turnaround could be computed."] };
+
+  const { from, to } = boundsOf(period);
+  type F = {
+    file_number: string;
+    service_slug: string;
+    created_at: string;
+    dispatched_at: string | null;
+    evidence_submitted_at: string | null;
+    sealed_at: string | null;
+    delivered_at: string | null;
+  };
+  /* Any file with a stage that ended in the period. */
+  let q = client
+    .from("eng_files")
+    .select("file_number, service_slug, created_at, dispatched_at, evidence_submitted_at, sealed_at, delivered_at", { count: "exact" })
+    .or(
+      `and(dispatched_at.gte.${from},dispatched_at.lt.${to}),` +
+        `and(evidence_submitted_at.gte.${from},evidence_submitted_at.lt.${to}),` +
+        `and(sealed_at.gte.${from},sealed_at.lt.${to}),` +
+        `and(delivered_at.gte.${from},delivered_at.lt.${to})`,
+    );
+  if (scope !== "including_demonstrations") q = q.eq("is_demo", false);
+  const read = await readAll<F>(q as unknown as PromiseLike<{ data: F[] | null; count: number | null; error: { message: string } | null }>);
+  if ("error" in read) return { ...base, sections: [], unavailable: [`Files could not be read: ${read.error}`] };
+  if (read.truncated) return { ...base, sections: [], unavailable: [tooLarge("Files with a stage ending in this period", read.total)] };
+
+  const inPeriod = (v: string | null) => v !== null && v >= from && v < to;
+  const hours = (a: string, b: string) => Math.round(((Date.parse(b) - Date.parse(a)) / 3_600_000) * 10) / 10;
+  const stage = (label: string, start: keyof F, end: keyof F, note: string): Figure => {
+    const rows = read.rows
+      .filter((f) => f[start] && inPeriod(f[end] as string | null))
+      .map((f) => ({ label: f.file_number, detail: f.service_slug, value: hours(f[start] as string, f[end] as string) }));
+    const mean = rows.length ? Math.round((rows.reduce((n, r) => n + r.value, 0) / rows.length) * 10) / 10 : null;
+    return {
+      label,
+      value: mean,
+      kind: "duration",
+      note: rows.length ? `${note} Mean across ${rows.length} file${rows.length === 1 ? "" : "s"}.` : `${note} No file finished this stage in the period, so there is no figure.`,
+      rows,
+    };
+  };
+
+  return {
+    ...base,
+    unavailable: [],
+    sections: [
+      {
+        title: "Hours per stage, for files that finished the stage in the period",
+        figures: [
+          stage("Opened to dispatched", "created_at", "dispatched_at", "From the file opening to a technician accepting it."),
+          stage("Dispatched to evidence in", "dispatched_at", "evidence_submitted_at", "From acceptance to the technician submitting evidence."),
+          stage("Evidence in to sealed", "evidence_submitted_at", "sealed_at", "From evidence submitted to the engineer sealing."),
+          stage("Opened to delivered", "created_at", "delivered_at", "The whole job, from opening to delivery."),
+        ],
+      },
+    ],
+  };
+}
+
+// ----------------------------------------------------------------- activity
+
+/**
+ * EACH REP'S CALLS, CONVERSIONS AND ORDERS IN THE PERIOD. Operator ruling,
+ * 2026-10-20. Counted from the append only contact log, the prospects that
+ * person converted, and the jobs they took (eng_files.created_by). One row per
+ * person who did any of the three; a person who did none is not listed rather
+ * than listed at zero, and the note says so.
+ */
+export async function activityReport(period = periodOf(), scope: FigureScope = "real"): Promise<Report> {
+  const client = db();
+  const base = { key: "activity" as const, title: "Rep activity", period, scope, covers: "the firm" as const };
+  if (!client) return { ...base, sections: [], unavailable: ["The database is not configured, so no activity could be counted."] };
+  const { from, to } = boundsOf(period);
+
+  type L = { by_id: string; channel: string; created_at: string };
+  type C = { converted_by: string; company: string; converted_at: string };
+  type J = { created_by: string | null; file_number: string; created_at: string; intake_channel: string };
+  const result = <T,>(q: unknown) => q as PromiseLike<{ data: T[] | null; count: number | null; error: { message: string } | null }>;
+
+  const [log, conv] = await Promise.all([
+    readAll<L>(result<L>(client.from("eng_contact_log").select("by_id, channel, created_at", { count: "exact" }).gte("created_at", from).lt("created_at", to))),
+    readAll<C>(result<C>(client.from("eng_prospects").select("converted_by, company, converted_at", { count: "exact" }).gte("converted_at", from).lt("converted_at", to))),
+  ]);
+  let jq = client.from("eng_files").select("created_by, file_number, created_at, intake_channel", { count: "exact" }).gte("created_at", from).lt("created_at", to);
+  if (scope !== "including_demonstrations") jq = jq.eq("is_demo", false);
+  const jobs = await readAll<J>(result<J>(jq));
+
+  const unavailable: string[] = [];
+  for (const [what, r] of [["The contact log", log], ["Conversions", conv], ["Jobs taken", jobs]] as const) {
+    if ("error" in r) unavailable.push(`${what} could not be read: ${r.error}`);
+    else if (r.truncated) unavailable.push(tooLarge(`${what} in this period`, r.total));
+  }
+  if (unavailable.length) return { ...base, sections: [], unavailable };
+  const logRows = (log as { rows: L[] }).rows;
+  const convRows = (conv as { rows: C[] }).rows;
+  const jobRows = ((jobs as { rows: J[] }).rows).filter((j) => j.created_by);
+
+  const people = [...new Set([...logRows.map((r) => r.by_id), ...convRows.map((r) => r.converted_by), ...jobRows.map((r) => r.created_by as string)])];
+  const names = new Map<string, string>();
+  if (people.length) {
+    const { data, error } = await client.from("eng_profiles").select("id, display_name").in("id", people);
+    if (error) return { ...base, sections: [], unavailable: [`Names could not be read: ${error.message}`] };
+    for (const p of data ?? []) names.set(String(p.id), String(p.display_name ?? "No name"));
+  }
+
+  const sections: ReportSection[] = people
+    .map((id) => {
+      const name = names.get(id) ?? "A person no longer on the roster";
+      const calls = logRows.filter((r) => r.by_id === id && r.channel === "call");
+      const emails = logRows.filter((r) => r.by_id === id && r.channel === "email");
+      const converted = convRows.filter((r) => r.converted_by === id);
+      const taken = jobRows.filter((r) => r.created_by === id);
+      const count = (label: string, rows: FigureRow[], note: string): Figure => ({ label, value: rows.length, kind: "count", note, rows });
+      return {
+        title: name,
+        figures: [
+          count("Calls logged", calls.map((r) => ({ label: day(r.created_at), detail: "call", value: 1 })), "Calls this person logged, inbound and outbound."),
+          count("Emails logged", emails.map((r) => ({ label: day(r.created_at), detail: "email", value: 1 })), "Emails this person logged."),
+          count("Prospects converted", converted.map((r) => ({ label: r.company, detail: day(r.converted_at), value: 1 })), "Prospects this person turned into commercial accounts."),
+          count("Jobs taken", taken.map((r) => ({ label: r.file_number, detail: r.intake_channel, value: 1 })), "Files this person opened, by any channel."),
+        ],
+      };
+    })
+    .sort((a, b) => a.title.localeCompare(b.title));
+
+  return {
+    ...base,
+    unavailable: [],
+    sections: sections.length
+      ? sections
+      : [{ title: "Nobody", figures: [{ label: "Activity", value: 0, kind: "count", note: "Nobody logged a call or an email, converted a prospect or took a job in the period. That is a real zero.", rows: [] }] }],
+  };
+}
 
 export function formatFigure(f: Figure): string {
   if (f.value === null) return "not computed";

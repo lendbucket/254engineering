@@ -15,6 +15,7 @@ import { marginOf, type Cents, type PeriodTotals } from "./ops-money";
 import { isOwed, isPaid } from "./pay-figures";
 import { uncreditedReviewsRead } from "./ops-engineer";
 import { credentialBlockersRead } from "./ops-onboarding";
+import { deskDashboard, type DeskDashboard } from "./staff-desk";
 
 /**
  * The three dashboards.
@@ -185,10 +186,15 @@ export type Dashboard =
   | TechDashboard
   | DispatcherDashboard
   | SalesDashboard
-  | CustomerServiceDashboard;
+  | CustomerServiceDashboard
+  | DeskDashboard;
 
-/** The three that carry no firm money, named so a check can derive rather than list. */
-export const MONEYLESS_ROLES = ["dispatcher", "sales", "customer_service"] as const;
+/**
+ * The dashboards that carry no firm money, named so a check can derive rather
+ * than list. "desk" is the rep's and the operations manager's (staff-desk.ts,
+ * 2026-10-20), which carries no money field for the same reason.
+ */
+export const MONEYLESS_ROLES = ["dispatcher", "sales", "customer_service", "desk"] as const;
 
 /**
  * WHICH DASHBOARDS EXCLUDE DEMONSTRATIONS, AND WHY IT IS NOT ALL OF THEM.
@@ -219,7 +225,7 @@ export const MONEYLESS_ROLES = ["dispatcher", "sales", "customer_service"] as co
  * show anybody their own screen, which is worse and is the thing those records
  * are for.
  */
-export const FIRM_LEVEL_DASHBOARDS = ["admin", "dispatcher", "sales", "customer_service"] as const;
+export const FIRM_LEVEL_DASHBOARDS = ["admin", "dispatcher", "sales", "customer_service", "desk"] as const;
 
 const HOURS_48 = 48 * 60 * 60 * 1000;
 const TECH_OPEN_STATUSES = ["dispatched", "evidence_in_progress", "revisions_requested"];
@@ -1188,6 +1194,14 @@ async function buildDashboard(actor: Actor | null): Promise<Dashboard | null> {
    * evaluating the business has to see the money.
    */
   if (can(actor, "ledger.read_all") && can(actor, "billing.read")) return adminDashboard(actor);
+  /*
+   * The desk, for the rep and the operations manager (2026-10-20). Before the
+   * dispatcher's branch, because both levels hold offers.dispatch and would
+   * otherwise land on a screen built for somebody who only places work.
+   * crm.use is the grant only the desk roles and an administrator hold, and
+   * the administrator has already been answered above.
+   */
+  if (can(actor, "crm.use")) return deskDashboard(actor);
   if (can(actor, "offers.dispatch")) return dispatcherDashboard();
   if (can(actor, "suppressions.manage")) return customerServiceDashboard(actor);
   if (can(actor, "clients.create") && can(actor, "files.create")) return salesDashboard();

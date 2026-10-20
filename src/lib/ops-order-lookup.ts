@@ -132,6 +132,21 @@ export async function listOrders(
   };
 }
 
+/** A client's orders, newest first, for the client's own screen. */
+export async function ordersForClient(
+  actor: Actor | null,
+  clientId: string,
+): Promise<{ ok: true; rows: OrderRow[] } | { ok: false; error: string }> {
+  if (!canLookUpOrders(actor)) return { ok: false, error: "Your role cannot look orders up." };
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+  const read = await readEvery<Record<string, unknown>>((from, to) =>
+    db.from("eng_service_orders").select(COLUMNS).eq("client_id", clientId).order("created_at", { ascending: false }).range(from, to),
+  );
+  if (!read.ok) return { ok: false, error: `The client's orders could not be read: ${read.error}` };
+  return { ok: true, rows: read.rows.map(rowFrom) };
+}
+
 export type OrderEvent = { at: string; event: string; text: string | null };
 
 export async function orderDetail(

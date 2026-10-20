@@ -63,6 +63,38 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
         <EmptyState title="Nothing searched" body={result.reason} />
       ) : (
         <>
+          {result.prospects !== null && result.prospects.length > 0 ? (
+            <Panel title={`Prospects matching "${result.term}"`} description={`${result.prospects.length} found on the sales list.`}>
+              <ul className="divide-y divide-[var(--row-rule)]">
+                {result.prospects.map((p) => (
+                  <li key={p.id} className="py-3 first:pt-0 last:pb-0">
+                    <Link href={`/portal/prospects/${p.id}`} className="inline-flex min-h-[var(--tap-target)] items-center text-[14px] font-semibold text-[var(--ink)] underline underline-offset-4">
+                      {p.company}
+                    </Link>
+                    <p className="mt-1 text-[13px] leading-[1.6] text-[var(--secondary)]">
+                      {[p.contact_name, p.phone, p.email, p.city, p.status.replace(/_/g, " ")].filter(Boolean).join(", ")}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </Panel>
+          ) : null}
+
+          {result.clients !== null && result.clients.length > 0 ? (
+            <Panel title={`Customers matching "${result.term}"`} description={`${result.clients.length} found.`}>
+              <ul className="divide-y divide-[var(--row-rule)]">
+                {result.clients.map((c) => (
+                  <li key={c.id} className="py-3 first:pt-0 last:pb-0">
+                    <Link href={`/portal/clients/${c.id}`} className="inline-flex min-h-[var(--tap-target)] items-center text-[14px] font-semibold text-[var(--ink)] underline underline-offset-4">
+                      {c.name}
+                    </Link>
+                    <p className="mt-1 text-[13px] leading-[1.6] text-[var(--secondary)]">{[c.phone, c.email, c.city].filter(Boolean).join(", ")}</p>
+                  </li>
+                ))}
+              </ul>
+            </Panel>
+          ) : null}
+
           {result.orders !== null ? (
             <Panel
               title={`Orders matching "${result.term}"`}
