@@ -39,7 +39,10 @@ import { isPrelaunch } from "@/lib/launch";
  */
 
 export const metadata: Metadata = buildMetadata({
-  title: "Texas Engineering Services Statewide | 254 Engineering",
+  // The brand leads on the homepage alone. Operator ruling, 2026-10-19: Google
+  // showed "254engineering.com" as the site name, and the homepage title is one
+  // of the signals it reads for that. Every other page keeps the brand suffix.
+  title: "254 Engineering | Texas Engineering Services Statewide",
   description:
     "A veteran owned Texas engineering firm named for the 254 counties of Texas, built to serve every one of them. See the service lines and the coverage map.",
   path: "/",
