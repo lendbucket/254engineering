@@ -44,6 +44,9 @@ import { firmName, isOpen, tbpelsFirmNumber } from "./launch";
  * page copy does not claim it.
  */
 
+/** The parent named in every site's Organization node. Operator ruling, 2026-10-19. */
+const PARENT_ORGANIZATION = "Craftline Brands";
+
 const ORG_ID = `${business.url}/#organization`;
 const SITE_ID = `${business.url}/#website`;
 
@@ -54,9 +57,18 @@ export function organizationSchema() {
     "@context": "https://schema.org",
     "@type": "ProfessionalService",
     "@id": ORG_ID,
-    name: business.name,
+    /*
+     * The brand, then the registrant, then the parent. Operator ruling,
+     * 2026-10-19: name "254 Engineering", legalName the registrant, and
+     * parentOrganization Craftline Brands, on all three sites. There is no
+     * alternateName: the only other name this firm has is a DBA that stays off
+     * public copy. The type stays ProfessionalService, which schema.org defines
+     * as an Organization, so this IS the Organization node rather than a second
+     * entity beside it.
+     */
+    name: business.shortName,
     legalName: business.legalName,
-    alternateName: business.shortName,
+    parentOrganization: { "@type": "Organization", name: PARENT_ORGANIZATION },
     url: business.url,
     email: business.email,
     description:
@@ -127,9 +139,8 @@ export function websiteSchema() {
     "@id": SITE_ID,
     // The reason this node exists at all: without an explicit WebSite name,
     // Google derives the SERP site name from the domain, and "254engineering.com"
-    // is not the brand.
-    name: business.name,
-    alternateName: business.shortName,
+    // is not the brand. It read business.name, the DBA, until 2026-10-19.
+    name: business.shortName,
     url: business.url,
     publisher: { "@id": ORG_ID },
     inLanguage: "en-US",

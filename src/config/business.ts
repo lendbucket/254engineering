@@ -12,7 +12,14 @@
  */
 
 export const business = {
-  /** The public brand. Used in titles, og:site_name, and WebSite schema. */
+  /**
+   * The wordmark as it was first written. It is a DBA on the board's record
+   * and, by operator ruling, stays off public copy. Since 2026-10-19 it no
+   * longer names the site to a machine: og:site_name and the WebSite and
+   * Organization schema names read `shortName` below. The other readers of
+   * this field (header, footer, manifest, email identity, MFA issuer, the
+   * letter seal) are listed in the 2026-10-19 report for a ruling.
+   */
   name: "254 Engineering Services",
   /** The registered entity. Used in the footer, contracts language, schema. */
   /**
@@ -58,7 +65,13 @@ export const business = {
    * a red board naming both values rather than a state nobody can express.
    */
   legalName: "254 Engineering LLC",
-  /** Short form for tight spaces. Never used as the schema name. */
+  /**
+   * THE BRAND A MACHINE READS, AND IT WAS "Never used as the schema name"
+   * UNTIL 2026-10-19. Operator ruling that day: Google was showing
+   * "254engineering.com" as the site name, and the brand is "254 Engineering".
+   * og:site_name, the WebSite name and the Organization name read this field.
+   * seo-audit pins the literal on every route.
+   */
   shortName: "254 Engineering",
 
   url: "https://254engineering.com",
