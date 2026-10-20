@@ -532,7 +532,7 @@ export const roofInsights: Insight[] = [
     eyebrow: "For agents",
     primaryKeyword: "option period inspection",
     datePublished: ROOFS_SECTION_DATE,
-    dateModified: ROOFS_SECTION_DATE,
+    dateModified: "2026-10-20",
     body: [
       {
         kind: "p",
@@ -556,7 +556,7 @@ export const roofInsights: Insight[] = [
       { kind: "h2", text: "Starting a roof certification online" },
       {
         kind: "p",
-        text: "The online path asks what the engineer needs before anybody is paid or sent out. It opens with one question, whether the roof can be reached safely on the day, and a no ends the online path and routes the job to a person. Then the address, because the county decides who can be sent and whether the coastal surcharge applies.",
+        text: "The online path asks what the engineer needs before anybody is paid or sent out. It opens with three questions: whether the property is in Texas, whether you own it or have the owner's authority, and whether the roof can be reached safely on the day. An answer that rules the job out ends the online path there, and for the roof question the page asks you to tell the firm what is in the way. Then the address, because the county decides who can be sent and whether the coastal surcharge applies.",
       },
       {
         kind: "p",
@@ -597,7 +597,7 @@ export const roofInsights: Insight[] = [
     faqs: [
       {
         q: "Can an engineer's roof letter be finished inside a short option period?",
-        a: "No turnaround is promised. The visit is scheduled once a technician accepts the job, and the engineer's review begins when the evidence is complete, so the useful step is starting it the day the question arises.",
+        a: "No turnaround is promised. The engineer's review begins when the evidence is complete, so the useful step is starting it the day the question arises.",
       },
       {
         q: "Who should the roof letter be addressed to?",
@@ -801,16 +801,16 @@ export const roofInsights: Insight[] = [
     eyebrow: "Roofs",
     primaryKeyword: "roof inspection process",
     datePublished: ROOFS_SECTION_DATE,
-    dateModified: ROOFS_SECTION_DATE,
+    dateModified: "2026-10-20",
     body: [
       {
         kind: "p",
-        text: "This is the roof certification as the platform runs it, step by step. No step carries a promised time, because none is published; the visit is scheduled once a technician accepts the job, and the engineer's review begins when the evidence is complete. How the same method applies across every line is on [the process page](/process).",
+        text: "This is the roof certification as the platform runs it, step by step. No step carries a promised time, because none is published; the engineer's review begins when the evidence is complete. How the same method applies across every line is on [the process page](/process).",
       },
       { kind: "h2", text: "Before payment: whether the job can be taken" },
       {
         kind: "p",
-        text: "The first question is whether the roof can be reached safely on the day. A no ends the online path and passes the job to a person. The address comes next, because the county decides who can be sent and whether the coastal surcharge applies.",
+        text: "The first two questions ask whether the property is in Texas and whether you own it or are authorized by the owner. The third asks whether the roof can be reached safely on the day. An answer that rules the job out ends the online path, and a no on the roof question asks you to tell the firm what is in the way. The address comes next, because the county decides who can be sent and whether the coastal surcharge applies.",
       },
       {
         kind: "p",
@@ -874,7 +874,7 @@ export const roofInsights: Insight[] = [
     faqs: [
       {
         q: "How long does a roof certification take?",
-        a: "No turnaround is published. The visit is scheduled once a technician accepts the job, and the engineer's review begins when the evidence is complete.",
+        a: "No turnaround is published. The engineer's review begins when the evidence is complete.",
       },
       {
         q: "What happens if the roof cannot be walked?",

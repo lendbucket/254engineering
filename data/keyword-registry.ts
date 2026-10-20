@@ -160,7 +160,7 @@ export const topics: Topic[] = [
     evidence: "2026-08-30: 'roof certification' 500/mo, KD 0, traffic potential 1,400, CPC $7.00, parent topic 'roof inspection near me'. 'roof certification letter' 50/mo, KD 0.",
     angles: {
       "254": {
-        angle: "What a sealed opinion on remaining service life actually rests on, what lenders and carriers rely on it for, and how a firm produces it consistently across a state.",
+        angle: "What a sealed opinion on a roof's observed condition actually rests on, what lenders and carriers rely on it for, and how a firm produces it consistently across a state.",
         path: "/services/roof-inspections",
         status: "live",
       },

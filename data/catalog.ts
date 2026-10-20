@@ -358,8 +358,7 @@ const DECLARED: CatalogDeclaration[] = [
         required: true,
       },
     ],
-    turnaround:
-      "The visit is scheduled once a technician accepts. The engineer's review begins when the evidence is complete.",
+    turnaround: "The engineer's review begins when the evidence is complete.",
     /*
      * QUOTED FROM 254-RC-001 v1.1 SECTION 11, WORD FOR WORD. Operator rulings
      * of 2026-10-08. Until that morning this line promised a forecast of how
