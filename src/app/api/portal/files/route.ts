@@ -136,7 +136,16 @@ async function handlePOST(request: NextRequest) {
    * second should not automatically be able to do the first.
    */
   if (action === "send_payment_link" || action === "invoice_account") {
-    if (!can(actor, "payments.charge")) {
+    /*
+     * The link alone opens to payments.send_link (0079). Invoicing an account
+     * stays payments.charge: terms and credit are the administrator's. Neither
+     * branch can reach the proving charge, which asks payments.charge itself.
+     */
+    const permitted =
+      action === "send_payment_link"
+        ? can(actor, "payments.charge") || can(actor, "payments.send_link")
+        : can(actor, "payments.charge");
+    if (!permitted) {
       return NextResponse.json({ ok: false, error: "Not permitted." }, { status: 403 });
     }
     const fileId = String(body?.fileId ?? "");
@@ -199,7 +208,13 @@ async function handlePOST(request: NextRequest) {
   }
 
   if (action === "create_file") {
-    if (!can(actor, "files.create")) {
+    /*
+     * AND pricing.override_at_intake, since 0079. This door takes a price as
+     * typed, with no catalog check, so it is the override in another shape.
+     * Admin and sales hold both grants and lose nothing; the two staff levels
+     * open a job through take_job, at the catalog price (ruling 2026-10-20).
+     */
+    if (!can(actor, "files.create") || !can(actor, "pricing.override_at_intake")) {
       return NextResponse.json({ ok: false, error: "Not permitted." }, { status: 403 });
     }
     const result = await createFile(

@@ -303,6 +303,8 @@ export default async function FilesPage({
               ineligible={dispatch.plan.ineligible}
               alreadyOffered={dispatch.alreadyOffered}
               feeCents={dispatch.feeCents}
+              rateSet={dispatch.rateSet}
+              rateVisible={dispatch.rateVisible}
               proximityUnavailable={dispatch.proximityUnavailable}
               propertyLocated={dispatch.propertyLocated}
               protocolName={

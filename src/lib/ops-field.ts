@@ -560,7 +560,12 @@ export async function publishedProtocolFor(serviceSlug: string): Promise<Protoco
 export type DispatchContext = {
   plan: DispatchPlan;
   protocol: ProtocolWithItems | null;
+  /** Null when there is no rate OR when this actor is not shown it: read rateSet and rateVisible. */
   feeCents: number | null;
+  /** Whether the schedule holds a rate for this line, which an offer needs. */
+  rateSet: boolean;
+  /** pricing.read_tech_rate. Without it every figure in this context is null. */
+  rateVisible: boolean;
   /** True when no candidate has coordinates, so the ranking is load and name only. */
   proximityUnavailable: boolean;
   /** Whether the PROPERTY has coordinates, so the screen can say which side is missing. */
@@ -678,10 +683,22 @@ export async function dispatchContext(
     .select("tech_id, state")
     .eq("file_id", file.id);
 
+  /*
+   * THE RATE IS SHOWN TO pricing.read_tech_rate ALONE. Operator ruling,
+   * 2026-10-20: neither staff level sees technician pay. Redacted here, at the
+   * one place the panel and the intake read it from, rather than in the panel,
+   * so no response carries the figure to a screen that merely declines to draw
+   * it. rateSet still says whether one exists, because "no rate in the
+   * schedule" and "a rate you are not shown" are different facts and the
+   * first one stops the offer.
+   */
+  const rateVisible = can(actor, "pricing.read_tech_rate");
   return {
-    plan,
+    plan: rateVisible ? plan : { ...plan, offers: plan.offers.map((o) => ({ ...o, amountCents: null })) },
     protocol: await publishedProtocolFor(file.service_slug),
-    feeCents,
+    feeCents: rateVisible ? feeCents : null,
+    rateSet: offerRateRefusal(feeCents) === null,
+    rateVisible,
     proximityUnavailable: plan.offers.length > 0 && plan.offers.every((o) => o.distanceMiles === null),
     propertyLocated: num(file.latitude) !== null && num(file.longitude) !== null,
     alreadyOffered: (offers ?? []).map((o) => ({ techId: o.tech_id as string, state: o.state as OfferState })),
@@ -1096,6 +1113,100 @@ export async function acceptOffer(
   });
 
   return { ok: true, fileId: offer.file_id as string };
+}
+
+/**
+ * REASSIGNING A JOB: RELEASE THE TECHNICIAN, THEN OFFER IT AGAIN. Operator
+ * ruling, 2026-10-20: the rep dispatches by offer, reassign, and logging the
+ * visit-time call.
+ *
+ * Release only, and only before evidence has started. Once a technician has
+ * begun capturing, the evidence is theirs and the engineer reviews it as
+ * theirs, so handing the job to somebody else mid-capture would mix two
+ * people's records in one package. That is refused rather than allowed with a
+ * warning.
+ *
+ * After release the file is back at needs dispatch and the ordinary dispatch
+ * panel offers it again, through sendOffers, with every check that already
+ * carries: coverage, credentials, holds, the rate. A reassign that skipped any
+ * of those would be a second dispatch path with fewer rules.
+ */
+export async function releaseAssignment(
+  actor: Actor & { email: string },
+  fileId: string,
+  reason: string,
+  context: Context = {},
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!can(actor, "offers.dispatch")) return { ok: false, error: "Your role cannot reassign a job." };
+  const why = reason.trim();
+  if (why.length < 10) return { ok: false, error: "Say why in at least 10 characters. The technician is told the job was moved." };
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+
+  const { data: file, error: fileError } = await db
+    .from("eng_files")
+    .select("id, file_number, status, assigned_tech_id")
+    .eq("id", fileId)
+    .maybeSingle();
+  if (fileError) return { ok: false, error: `The job could not be read: ${fileError.message}` };
+  if (!file) return { ok: false, error: "That job does not exist." };
+  if (file.status !== "dispatched" || !file.assigned_tech_id) {
+    return {
+      ok: false,
+      error:
+        file.status === "evidence_in_progress"
+          ? `${file.file_number} is already being captured, so it stays with the technician who started it.`
+          : `${file.file_number} has nobody on it to release. Offer it from the dispatch panel.`,
+    };
+  }
+
+  const recorded = await writeAuditOrRefuse({
+    actor,
+    action: "offers.released",
+    entityType: "file",
+    entityId: fileId,
+    summary: `${file.file_number}: technician released for reassignment. ${why}`,
+    diff: { released_tech_id: file.assigned_tech_id },
+    ...context,
+  });
+  if (!recorded.ok) return recorded;
+
+  const released = file.assigned_tech_id as string;
+  const { data: cleared, error: clearError } = await db
+    .from("eng_files")
+    .update({ assigned_tech_id: null })
+    .eq("id", fileId)
+    .eq("assigned_tech_id", released)
+    .eq("status", "dispatched")
+    .select("id");
+  if (clearError) return { ok: false, error: `The technician could not be released: ${clearError.message}` };
+  if (!cleared?.length) return { ok: false, error: `${file.file_number} changed while this was being done. Open it again.` };
+
+  const { error: assignmentError } = await db
+    .from("eng_assignments")
+    .update({ state: "withdrawn", responded_at: DB_NOW })
+    .eq("file_id", fileId)
+    .eq("tech_id", released)
+    .eq("state", "accepted");
+  if (assignmentError) {
+    return { ok: false, error: `The technician was released and their assignment could not be closed: ${assignmentError.message}` };
+  }
+
+  const moved = await transitionFile(actor, fileId, "needs_dispatch", `Reassigning. ${why}`, context);
+  if (!moved.ok) return { ok: false, error: `The technician was released and the job could not be moved back to dispatch: ${moved.error}` };
+
+  await raise({
+    profileId: released,
+    role: "field_tech",
+    kind: "offer.lost",
+    title: "A job you accepted was taken off your schedule",
+    body: `${file.file_number} was taken off your schedule by the office. You do not need to attend.`,
+    href: "/portal/jobs",
+    entityType: "file",
+    entityId: fileId,
+  });
+
+  return { ok: true };
 }
 
 export async function declineOffer(

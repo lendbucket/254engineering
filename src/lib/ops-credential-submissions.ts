@@ -4,6 +4,7 @@ import { supabaseAdmin } from "./supabase";
 import { writeAudit } from "./ops-audit";
 import { can, type Actor } from "./ops-authz";
 import { todayInFirmCalendar } from "./firm-calendar";
+import { mayOnboardRole, mayOpenOnboarding, profileRole } from "./onboarding-scope";
 import {
   CREDENTIAL_LABEL,
   EXPIRING_KINDS,
@@ -155,7 +156,7 @@ async function decide(
 ): Promise<Result> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
-  if (!can(actor, "profiles.update")) return { ok: false, error: "Your role cannot verify credentials." };
+  if (!mayOpenOnboarding(actor, "profiles.update")) return { ok: false, error: "Your role cannot verify credentials." };
 
   const { data: row } = await db
     .from("eng_credentials")
@@ -163,6 +164,10 @@ async function decide(
     .eq("id", credentialId)
     .maybeSingle();
   if (!row) return { ok: false, error: "That submission does not exist." };
+  /* technicians.onboard reviews a field technician's credentials and nobody else's (2026-10-20). */
+  if (!mayOnboardRole(actor, await profileRole(row.profile_id as string), "profiles.update")) {
+    return { ok: false, error: "Your role cannot verify this person's credentials." };
+  }
   if (row.status !== "pending") return { ok: false, error: `That submission is already ${row.status}.` };
   if (to === "verified" && row.expires_on && (row.expires_on as string) < todayInFirmCalendar()) {
     return { ok: false, error: "It expired before it was verified. Reject it so the technician submits the current one." };

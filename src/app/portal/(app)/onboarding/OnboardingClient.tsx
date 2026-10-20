@@ -62,12 +62,23 @@ function Problem({ message, blockers }: { message: string | null; blockers?: str
  * the same link" feature would require storing the token, which is the thing the
  * whole design avoids. Issuing a fresh link is the supported route.
  */
-export function InviteButton({ applicationId, defaultRole }: { applicationId: string; defaultRole: string }) {
+export function InviteButton({
+  applicationId,
+  defaultRole,
+  technicianOnly = false,
+}: {
+  applicationId: string;
+  defaultRole: string;
+  /** technicians.onboard without profiles.create: the server refuses any other role, so the screen offers none. */
+  technicianOnly?: boolean;
+}) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null);
-  const [role, setRole] = useState(defaultRole.toLowerCase().includes("engineer") ? "engineer" : "field_tech");
+  const [role, setRole] = useState(
+    !technicianOnly && defaultRole.toLowerCase().includes("engineer") ? "engineer" : "field_tech",
+  );
 
   if (token) {
     const url = `${window.location.origin}/onboarding/${token}`;
@@ -100,7 +111,7 @@ export function InviteButton({ applicationId, defaultRole }: { applicationId: st
             className={`${field} mt-1.5`}
           >
             <option value="field_tech">Field technician</option>
-            <option value="engineer">Professional Engineer</option>
+            {technicianOnly ? null : <option value="engineer">Professional Engineer</option>}
           </select>
         </div>
         <button

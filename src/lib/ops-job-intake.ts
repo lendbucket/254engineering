@@ -5,6 +5,8 @@ import { verifyFreshCode } from "./ops-mfa";
 import { verifyOwnPassword } from "./ops-auth";
 import { isOwnerAdmin, OWNER_OVERRIDE, OWNER_OVERRIDE_ACTION } from "./owner-override";
 import { createClient, createFile, transitionFile, type Author } from "./ops-crm";
+import { can, type Actor } from "./ops-authz";
+import { sendPaymentLink } from "./ops-job-billing";
 import { catalogFor, orderBlockedReason } from "@data/catalog";
 import { quoteFor } from "./ops-orders";
 import { resolveCounty, twiaStatus, windstormAreaRefusal } from "./ops-counties";
@@ -126,6 +128,8 @@ export type TakeJobResult =
       landedAt: string;
       /** Present when the file could not be moved out of intake, with the reason. */
       landingWarning?: string;
+      /** Present when "Send a payment link" was chosen and the link did not go out, with the reason. */
+      paymentLinkWarning?: string;
     }
   | { ok: false; error: string; field?: string };
 
@@ -297,6 +301,39 @@ export async function takeJob(
   }
 
   /*
+   * THE CATALOG PRICE AS IT IS, FOR ANYBODY WITHOUT pricing.override_at_intake.
+   * Operator ruling, 2026-10-20: phone intake by the two staff levels uses the
+   * catalog price, no override. files.create used to carry the override on its
+   * own; it moved to its own grant in 0079, which admin and sales keep.
+   */
+  if (decision.overridden && !can(actor as unknown as Actor, "pricing.override_at_intake")) {
+    return {
+      ok: false,
+      error: "Your role takes the catalog price as it is. An administrator can change a price.",
+      field: "priceCents",
+    };
+  }
+
+  /*
+   * A PAYMENT LINK IS THE ONLY ROUTE FOR SOMEBODY WHO MAY SEND ONE AND NOT
+   * CHARGE. Operator ruling, 2026-10-20: the rep's phone intake sends a payment
+   * link, never a no-charge job. Opening a job unpaid and invoicing an account
+   * are commercial decisions payments.charge carries, so a holder of
+   * payments.send_link alone chooses the link or nothing. Under the gate the
+   * link is unavailable, and the screen says why rather than offering another
+   * route.
+   */
+  const linkOnly =
+    can(actor as unknown as Actor, "payments.send_link") && !can(actor as unknown as Actor, "payments.charge");
+  if (linkOnly && input.paymentIntent !== "link_sent") {
+    return {
+      ok: false,
+      error: "Your role takes a job by sending the customer a payment link. Choose Send a payment link.",
+      field: "paymentIntent",
+    };
+  }
+
+  /*
    * The money gate, checked here as well as rendered on the screen. The screen
    * decides which buttons to draw; this decides what may actually be recorded,
    * and a client that posted a paid intent during prelaunch is refused rather
@@ -431,7 +468,16 @@ export async function takeJob(
       priceOverrideReason: decision.overridden ? decision.reason : null,
       intakeChannel: input.channel,
       intakeTakenAt: input.takenAt ?? null,
-      paymentIntent: input.paymentIntent,
+      /*
+       * "Send a payment link" is recorded as link_sent ONLY BY sendPaymentLink,
+       * below, once a link has actually been raised and queued to the customer.
+       * Found 2026-10-20: this used to write link_sent straight from the
+       * choice, and nothing on this path sent anything, so a file said a link
+       * had gone out when none had. That is the customer_link.issued defect in
+       * a payment column. Latent until launch, because the gate makes the link
+       * unavailable before then.
+       */
+      paymentIntent: input.paymentIntent === "link_sent" ? "unset" : input.paymentIntent,
       paymentNote: input.paymentNote ?? null,
     },
     context,
@@ -537,6 +583,20 @@ export async function takeJob(
     ...context,
   });
 
+  /*
+   * THE LINK, SENT RATHER THAN RECORDED. sendPaymentLink raises the order,
+   * starts the checkout, queues the customer's email from its template, and
+   * only then writes link_sent onto the file. A failure leaves the file at
+   * unset and says why, so nobody believes a customer was asked to pay who
+   * was not. The job itself stands either way: somebody is on the telephone
+   * about it.
+   */
+  let paymentLinkWarning: string | undefined;
+  if (input.paymentIntent === "link_sent") {
+    const sent = await sendPaymentLink(actor, file.id);
+    if (!sent.ok) paymentLinkWarning = `The job was taken and the payment link was not sent: ${sent.error}`;
+  }
+
   return {
     ok: true,
     fileId: file.id,
@@ -544,6 +604,7 @@ export async function takeJob(
     clientId,
     landedAt: landingWarning ? "intake" : target,
     ...(landingWarning ? { landingWarning } : {}),
+    ...(paymentLinkWarning ? { paymentLinkWarning } : {}),
   };
 }
 

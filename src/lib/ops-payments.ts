@@ -13,7 +13,7 @@ import {
   recordReleaseFailure,
   type PaymentEventSource,
 } from "./payment-events";
-import { writeAudit } from "./ops-audit";
+import { writeAudit, writeAuditOrRefuse } from "./ops-audit";
 import { can, type Actor } from "./ops-authz";
 import { catalogFor } from "@data/catalog";
 import {
@@ -1493,6 +1493,77 @@ async function sendOrderConfirmation(
 }
 
 /**
+ * A STAFF RESEND OF THE STATUS LINK. Operator ruling, 2026-10-20, addition c,
+ * opened to the rep and the operations manager as well as the administrator.
+ *
+ * A fresh token through the existing path, issueCustomerLink, carried in the
+ * existing confirmation email, which is the template that has always carried
+ * the status link and is covered by every rule email-audit enforces. No new
+ * customer sentence is written here.
+ *
+ * ONLY FOR AN ORDER THAT HAS BEEN RELEASED. The status link arrives once the
+ * order is released (finding 1), and an order that was never released has no
+ * link to resend: this refuses it rather than sending one early.
+ *
+ * Audited before anything is sent, through writeAuditOrRefuse, so a resend
+ * nobody can find afterwards cannot happen.
+ */
+export async function resendStatusLink(
+  actor: { id: string; role: string; email: string; grants: ReadonlySet<string>; status: string } | null,
+  orderId: string,
+): Promise<{ ok: true; to: string } | { ok: false; error: string }> {
+  if (!actor || actor.status !== "active" || !actor.grants.has("orders.resend_link")) {
+    return { ok: false, error: "Your role cannot resend a status link." };
+  }
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The order system is not configured." };
+
+  const { data: order, error: orderError } = await db
+    .from("eng_service_orders")
+    .select("id, reference, customer_email")
+    .eq("id", orderId)
+    .maybeSingle();
+  if (orderError) return { ok: false, error: `The order could not be read: ${orderError.message}` };
+  if (!order) return { ok: false, error: "That order does not exist." };
+
+  const { data: released, error: releasedError } = await db
+    .from("eng_order_events")
+    .select("id")
+    .eq("order_id", orderId)
+    .eq("event", "customer_link.issued")
+    .limit(1);
+  if (releasedError) return { ok: false, error: `Whether this order was released could not be read: ${releasedError.message}` };
+  if ((released ?? []).length === 0) {
+    return { ok: false, error: `${order.reference} has not been released yet, so it has no status link. The link goes out when it is.` };
+  }
+
+  const recipient = await confirmationRecipient(orderId);
+  if (recipient.kind === "failed") return { ok: false, error: "Who the link goes to could not be read. Nothing was sent." };
+  if (recipient.kind === "none_on_account") {
+    return { ok: false, error: "The account this order belongs to has no active owner and no billing email. Add one in account management." };
+  }
+  const to = recipient.kind === "account" ? recipient.email : ((order.customer_email as string | null) ?? null);
+  if (!to) return { ok: false, error: "This order has no customer email, so there is nowhere to send the link." };
+
+  const recorded = await writeAuditOrRefuse({
+    actor: { id: actor.id, role: actor.role, email: actor.email },
+    action: "order.status_link_resent",
+    entityType: "service_order",
+    entityId: orderId,
+    summary: `${order.reference}: a fresh status link was sent to ${to} at staff request.`,
+  });
+  if (!recorded.ok) return recorded;
+
+  const link = await issueCustomerLink({ orderId });
+  if (!link) return { ok: false, error: "A fresh status link could not be issued. Nothing was sent." };
+  await event(orderId, "customer_link.issued", false, "A fresh status link was minted at staff request.");
+
+  const sent = await sendOrderConfirmation(orderId, link.token, recipient.kind === "account" ? recipient.email : null);
+  if (sent !== "queued") return { ok: false, error: "The link was issued and the email could not be queued. The order's history says so." };
+  return { ok: true, to };
+}
+
+/**
  * An order on an invoiced account, accepted without payment.
  *
  * The credit decision has already been made by the caller. This does not repeat
@@ -2010,10 +2081,76 @@ export async function refundsFailedAfterRefunded(): Promise<RefundFailedAfterRef
  * behind it, so the only record of why the money moved is the sentence the
  * person types. An empty reason is refused.
  */
+/**
+ * WHAT AN ORDER STILL HAS TO GIVE BACK, READ ONCE FOR EVERY CALLER.
+ *
+ * cancelAndRefund computed this inline, and the refund request screen (0079)
+ * needs the same number before anybody decides. Two copies of "paid less what
+ * is already going back" would be two answers to whether a request is inside
+ * the limit, so both read it here.
+ *
+ * And the charges read now refuses on failure, as the prior refunds read has
+ * since the ruling of 2026-10-15. It used to discard its error, so a failed
+ * read looked like "nothing was ever charged" and cancelAndRefund then closed a
+ * PAID order as abandoned, refunding nothing and saying nothing was taken.
+ */
+export async function refundableOn(orderId: string): Promise<
+  | { ok: true; paidCents: number; alreadyRefundedCents: number; owedCents: number; chargeRef: string | null }
+  | { ok: false; error: string }
+> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The order system is not configured." };
+
+  const { data: charges, error: chargeError } = await db
+    .from("eng_order_payments")
+    .select("provider, provider_ref, amount_cents")
+    .eq("order_id", orderId)
+    .eq("kind", "charge")
+    .eq("status", "succeeded");
+  if (chargeError) {
+    return {
+      ok: false,
+      error: `The charges on this order could not be read, so nothing was refunded: ${chargeError.message}`,
+    };
+  }
+
+  const { data: priorRefunds, error: priorError } = await db
+    .from("eng_order_payments")
+    .select("amount_cents")
+    .eq("order_id", orderId)
+    .eq("kind", "refund")
+    .in("status", ["pending", "succeeded"]);
+  if (priorError) {
+    return {
+      ok: false,
+      error: `The refunds already on file could not be read, so nothing was refunded: ${priorError.message}`,
+    };
+  }
+
+  const paidCents = (charges ?? []).reduce((n, c) => n + Number(c.amount_cents), 0);
+  const alreadyRefundedCents = (priorRefunds ?? []).reduce((n, r) => n + Number(r.amount_cents), 0);
+  const first = (charges ?? [])[0];
+  return {
+    ok: true,
+    paidCents,
+    alreadyRefundedCents,
+    owedCents: Math.max(0, paidCents - alreadyRefundedCents),
+    chargeRef: first ? ((first.provider_ref as string | null) ?? null) : null,
+  };
+}
+
 export async function cancelAndRefund(input: {
   orderId: string;
   reason: string;
   actor: { id: string | null; role: string; email: string };
+  /**
+   * The most this call may give back, for somebody approving under the
+   * operator's refund limit (0079). Checked against the amount computed HERE,
+   * immediately before the provider is asked, so a request approved on a
+   * stale figure still cannot move more than the limit. Absent for a holder of
+   * payments.refund, which has no limit.
+   */
+  maxRefundCents?: number;
 }): Promise<
   | { ok: true; refundedCents: number; providerRef: string; alreadyRefunded: boolean }
   | { ok: false; error: string }
@@ -2043,17 +2180,21 @@ export async function cancelAndRefund(input: {
     };
   }
 
-  const { data: charges } = await db
-    .from("eng_order_payments")
-    .select("provider, provider_ref, amount_cents")
-    .eq("order_id", input.orderId)
-    .eq("kind", "charge")
-    .eq("status", "succeeded");
+  /*
+   * Read once, in refundableOn, which refuses when either read fails.
+   *
+   * A pending refund counts as already given back. Operator ruling,
+   * 2026-10-14, the same fix 0075 made on the webhook path: counting succeeded
+   * refunds alone, a second cancellation while the first refund is still
+   * pending at Stripe would issue the whole amount again. And a failed read
+   * refuses the cancel. Operator ruling, 2026-10-15: read as no prior refund,
+   * a failure here would refund the whole amount again.
+   */
+  const refundable = await refundableOn(input.orderId);
+  if (!refundable.ok) return { ok: false, error: refundable.error };
+  const { paidCents, chargeRef } = refundable;
 
-  const paidCents = (charges ?? []).reduce((n, c) => n + Number(c.amount_cents), 0);
-  const charge = (charges ?? [])[0];
-
-  if (!charge || paidCents <= 0) {
+  if (!chargeRef || paidCents <= 0) {
     /*
      * Nothing was ever taken. Cancel it rather than pretending to refund, and
      * say which of the two happened, because "cancelled" and "refunded" are
@@ -2071,30 +2212,7 @@ export async function cancelAndRefund(input: {
     return { ok: true, refundedCents: 0, providerRef: "", alreadyRefunded: false };
   }
 
-  /*
-   * A pending refund counts as already given back. Operator ruling,
-   * 2026-10-14, the same fix 0075 made on the webhook path: counting succeeded
-   * refunds alone, a second cancellation while the first refund is still
-   * pending at Stripe would issue the whole amount again.
-   *
-   * And a failed read refuses the cancel. Operator ruling, 2026-10-15: read
-   * as no prior refund, a failure here would refund the whole amount again.
-   */
-  const { data: priorRefunds, error: priorError } = await db
-    .from("eng_order_payments")
-    .select("amount_cents")
-    .eq("order_id", input.orderId)
-    .eq("kind", "refund")
-    .in("status", ["pending", "succeeded"]);
-  if (priorError) {
-    return {
-      ok: false,
-      error: `The refunds already on file could not be read, so nothing was refunded: ${priorError.message}`,
-    };
-  }
-
-  const alreadyRefunded = (priorRefunds ?? []).reduce((n, r) => n + Number(r.amount_cents), 0);
-  const owed = paidCents - alreadyRefunded;
+  const owed = refundable.owedCents;
 
   if (owed <= 0) {
     return { ok: true, refundedCents: 0, providerRef: "", alreadyRefunded: true };
@@ -2105,9 +2223,18 @@ export async function cancelAndRefund(input: {
     return { ok: false, error: "The amount to refund could not be worked out. Nothing was done." };
   }
 
+  if (input.maxRefundCents !== undefined && decision.refundCents > input.maxRefundCents) {
+    return {
+      ok: false,
+      error:
+        `This refund is ${money(decision.refundCents)}, which is over the approval limit of ` +
+        `${money(input.maxRefundCents)}. Nothing was refunded. An administrator can approve it.`,
+    };
+  }
+
   const provider = paymentProvider();
   const result = await provider.refund({
-    chargeRef: charge.provider_ref as string,
+    chargeRef,
     amountCents: decision.refundCents,
     reason: FIRM_CANCELLATION_CASE,
   });

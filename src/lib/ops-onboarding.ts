@@ -4,6 +4,7 @@ import { supabaseAdmin } from "./supabase";
 import { writeAudit } from "./ops-audit";
 import { can, type Actor } from "./ops-authz";
 import { createAccount } from "./ops-auth";
+import { mayOnboardRole, mayOpenOnboarding, onboardingRole, profileRole } from "./onboarding-scope";
 import { raise } from "./ops-notify";
 import { canonicalCounty } from "./ops-counties";
 import { checklistFor } from "@/content/onboarding-checklists";
@@ -87,7 +88,7 @@ const APPLICATION_COLUMNS =
 
 export async function listApplications(actor: Actor | null): Promise<ApplicationRow[]> {
   const db = supabaseAdmin();
-  if (!db || !can(actor, "profiles.create")) return [];
+  if (!db || !mayOpenOnboarding(actor, "profiles.create")) return [];
   const { data } = await db
     .from("eng_applications")
     .select(APPLICATION_COLUMNS)
@@ -117,7 +118,9 @@ export async function inviteFromApplication(
 ): Promise<{ ok: true; onboardingId: string; token: string } | { ok: false; error: string }> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
-  if (!can(actor, "profiles.create")) return { ok: false, error: "Your role cannot invite people." };
+  if (!mayOnboardRole(actor, input.role, "profiles.create")) {
+    return { ok: false, error: can(actor, "technicians.onboard") ? "Your role can invite field technicians only." : "Your role cannot invite people." };
+  }
 
   const { data: application } = await db
     .from("eng_applications")
@@ -191,7 +194,9 @@ export async function setItemDates(
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
-  if (!can(actor, "profiles.update")) return { ok: false, error: "Your role cannot edit an onboarding." };
+  if (!mayOnboardRole(actor, await onboardingRole(onboardingId), "profiles.update")) {
+    return { ok: false, error: "Your role cannot edit this onboarding." };
+  }
 
   const iso = /^\d{4}-\d{2}-\d{2}$/;
   for (const value of [dates.issuedOn, dates.expiresOn]) {
@@ -235,7 +240,9 @@ export async function setOnboardingCoverage(
 ): Promise<{ ok: true; counties: string[] } | { ok: false; error: string }> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
-  if (!can(actor, "profiles.update")) return { ok: false, error: "Your role cannot edit an onboarding." };
+  if (!mayOnboardRole(actor, await onboardingRole(onboardingId), "profiles.update")) {
+    return { ok: false, error: "Your role cannot edit this onboarding." };
+  }
 
   const canonical: string[] = [];
   const rejected: string[] = [];
@@ -307,7 +314,7 @@ export type ActivationView = {
 
 export async function activationView(actor: Actor | null, onboardingId: string): Promise<ActivationView | null> {
   const db = supabaseAdmin();
-  if (!db || !can(actor, "profiles.create")) return null;
+  if (!db || !mayOnboardRole(actor, await onboardingRole(onboardingId), "profiles.create")) return null;
 
   const { data: onboarding } = await db
     .from("eng_onboardings")
@@ -369,7 +376,9 @@ export async function activateTechnician(
 > {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
-  if (!can(actor, "profiles.create")) return { ok: false, error: "Your role cannot activate accounts." };
+  if (!mayOnboardRole(actor, await onboardingRole(onboardingId), "profiles.create")) {
+    return { ok: false, error: "Your role cannot activate this account." };
+  }
 
   const view = await activationView(actor, onboardingId);
   if (!view) return { ok: false, error: "That onboarding does not exist." };
@@ -597,7 +606,9 @@ export async function setTechCoverage(
 ): Promise<{ ok: true; counties: string[] } | { ok: false; error: string }> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
-  if (!can(actor, "profiles.update")) return { ok: false, error: "Your role cannot set coverage." };
+  if (!mayOnboardRole(actor, await profileRole(profileId), "profiles.update")) {
+    return { ok: false, error: "Your role cannot set coverage for this person." };
+  }
 
   const canonical: string[] = [];
   const rejected: string[] = [];
@@ -737,7 +748,9 @@ export async function recordCredential(
 ): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
-  if (!can(actor, "profiles.update")) return { ok: false, error: "Your role cannot record credentials." };
+  if (!mayOnboardRole(actor, await profileRole(profileId), "profiles.update")) {
+    return { ok: false, error: "Your role cannot record credentials for this person." };
+  }
 
   const kind = input.kind as CredentialKind;
   if (!RECORDABLE_KIND_OPTIONS.some((o) => o.kind === kind)) {

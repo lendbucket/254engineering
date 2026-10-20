@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
+import { mayOpenOnboarding } from "@/lib/onboarding-scope";
 import { activationView, listApplications } from "@/lib/ops-onboarding";
 import { listOnboardings } from "@/lib/onboarding";
 import { TEXAS_COUNTIES } from "@/lib/ops-counties";
@@ -53,13 +54,24 @@ export default async function OnboardingPage({
   searchParams: Promise<{ id?: string }>;
 }) {
   const actor = await currentActor();
-  if (!can(actor, "profiles.create")) notFound();
+  if (!mayOpenOnboarding(actor, "profiles.create")) notFound();
   const params = await searchParams;
 
-  const [applications, onboardings] = await Promise.all([listApplications(actor), listOnboardings()]);
+  /*
+   * technicians.onboard without profiles.create sees field technicians only,
+   * 2026-10-20. The server refuses everything else for that grant; the screen
+   * does not offer what the server would refuse.
+   */
+  const technicianOnly = !can(actor, "profiles.create");
+
+  const [allApplications, allOnboardings] = await Promise.all([listApplications(actor), listOnboardings()]);
+  const applications = technicianOnly
+    ? allApplications.filter((a) => !(a.role ?? "").toLowerCase().includes("engineer"))
+    : allApplications;
+  const onboardings = technicianOnly ? allOnboardings.filter((o) => o.role === "field_tech") : allOnboardings;
   const selected = params.id ? await activationView(actor, params.id) : null;
 
-  const invited = new Set(onboardings.map((o) => o.email.toLowerCase()));
+  const invited = new Set(allOnboardings.map((o) => o.email.toLowerCase()));
   const open = applications.filter((a) => a.email && !invited.has(a.email.toLowerCase()));
 
   return (
@@ -96,7 +108,7 @@ export default async function OnboardingPage({
                           Says they cover: {a.counties}
                         </p>
                       ) : null}
-                      <InviteButton applicationId={a.id} defaultRole={a.role} />
+                      <InviteButton applicationId={a.id} defaultRole={a.role} technicianOnly={technicianOnly} />
                     </li>
                   ))}
                 </ul>

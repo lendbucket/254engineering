@@ -105,7 +105,8 @@ export async function markWindstormInquiryResponded(
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
-  if (!can(actor, "files.update")) return { ok: false, error: "Your role cannot answer an inquiry." };
+  /* Or inbox.answer, the one inbox's own grant (0079), so the two staff levels answer without files.update. */
+  if (!can(actor, "files.update") && !can(actor, "inbox.answer")) return { ok: false, error: "Your role cannot answer an inquiry." };
 
   const { data: row } = await db
     .from("eng_windstorm_inquiries")

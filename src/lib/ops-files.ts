@@ -321,7 +321,15 @@ export function canTransition(
     };
   }
 
-  if (!may(actor, actionFor(from, to))) {
+  /*
+   * RELEASING AN ASSIGNMENT IS A DISPATCH ACT. Operator ruling, 2026-10-20:
+   * the two staff levels reassign a job. Moving a dispatched file back to
+   * needs dispatch is what releasing the technician does, so offers.dispatch
+   * may make that one move as well as files.transition. Admin and dispatcher
+   * hold both and the engineer keeps files.transition, so nobody loses it.
+   */
+  const releasing = from === "dispatched" && to === "needs_dispatch" && can(actor, "offers.dispatch");
+  if (!releasing && !may(actor, actionFor(from, to))) {
     return { ok: false, reason: `Your role cannot move a file to ${STATUS_LABEL[to].toLowerCase()}.` };
   }
 
