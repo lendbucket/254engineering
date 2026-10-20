@@ -54,7 +54,7 @@ export const OWNER_OVERRIDES = [
   },
   {
     key: "dispatch_credentials",
-    label: "Dispatch: driver licence and vehicle insurance not required",
+    label: "Dispatch: driver license and vehicle insurance not required",
     holder: "The owner's field technician profile, by user id",
   },
 ] as const;
