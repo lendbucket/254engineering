@@ -64,8 +64,12 @@ export const BRANDS: Record<
     domain: "254engineering.com",
     audience:
       "Municipal, county, state, and federal procurement officers; commercial clients; lenders and carriers evaluating a provider; and engineering and field technician recruits.",
+    // The last sentence read "Never writes an ordering page." until 2026-10-18,
+    // while the site carried /order and order buttons and the 2026-10-06 ruling
+    // kept online ordering open. Operator ruling, 2026-10-18, reading A: ordering
+    // is a door on a capability page, never a page written to rank for ordering.
     stance:
-      "The flagship, written for a buyer EVALUATING A FIRM. What the requirement is in law or code, what a defensible deliverable rests on, how the work is produced at volume across a state, and what a firm must be able to demonstrate. Cites statute and rule by number. Never writes an ordering page.",
+      "The flagship, written for a buyer EVALUATING A FIRM. What the requirement is in law or code, what a defensible deliverable rests on, how the work is produced at volume across a state, and what a firm must be able to demonstrate. Cites statute and rule by number. Ordering is a door on a capability page, for the buyer who has already decided; no page is written or titled to rank for an ordering query.",
   },
   sealed: {
     name: "Sealed Engineering",
