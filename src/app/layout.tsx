@@ -131,7 +131,7 @@ export const metadata: Metadata = {
   // Pages set absolute titles. See the note in src/lib/seo.ts for why there is
   // no title template here.
   title: {
-    default: "Texas Engineering Services Statewide | 254 Engineering",
+    default: "254 Engineering | Texas Engineering Services Statewide",
     template: "%s",
   },
   description:
@@ -141,7 +141,7 @@ export const metadata: Metadata = {
   creator: business.legalName,
   publisher: business.legalName,
   openGraph: {
-    siteName: business.name,
+    siteName: business.shortName,
     locale: "en_US",
     type: "website",
   },

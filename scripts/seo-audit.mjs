@@ -289,8 +289,11 @@ for (const route of routes) {
     problems.push(`${route}: description has no call to action ("${description.slice(-48)}")`);
 
   if (!meta.canonical) problems.push(`${route}: no canonical link`);
-  if (meta.ogSiteName !== "254 Engineering Services")
-    problems.push(`${route}: og:site_name is "${meta.ogSiteName}", expected "254 Engineering Services"`);
+  // Ruled 2026-10-19: the site name is "254 Engineering". It was pinned as
+  // "254 Engineering Services", the DBA, until then. A literal, never the
+  // config value, so a drifted constant reads as drifted.
+  if (meta.ogSiteName !== "254 Engineering")
+    problems.push(`${route}: og:site_name is "${meta.ogSiteName}", expected "254 Engineering"`);
 
   if (meta.h1s.length !== 1)
     problems.push(`${route}: ${meta.h1s.length} h1 elements, expected exactly 1`);
@@ -331,6 +334,35 @@ for (const route of routes) {
   if (!types.includes("BreadcrumbList")) problems.push(`${route}: no BreadcrumbList schema`);
   if (!types.includes("ProfessionalService")) problems.push(`${route}: no Organization schema`);
   if (!types.includes("WebSite")) problems.push(`${route}: no WebSite schema`);
+
+  /*
+   * WHAT THE TWO NODES SAY, NOT ONLY THAT THEY EXIST. Operator ruling,
+   * 2026-10-19. Google showed "254engineering.com" as the site name while both
+   * nodes were present, because both said "254 Engineering Services". The
+   * presence checks above were green throughout. Pinned as literals.
+   */
+  const websiteNode = meta.jsonLd.find((d) => d && d["@type"] === "WebSite");
+  if (websiteNode) {
+    if (websiteNode.name !== "254 Engineering")
+      problems.push(`${route}: WebSite name is ${JSON.stringify(websiteNode.name)}, expected "254 Engineering"`);
+    if (websiteNode.url !== "https://254engineering.com")
+      problems.push(`${route}: WebSite url is ${JSON.stringify(websiteNode.url)}, expected "https://254engineering.com"`);
+    if ("alternateName" in websiteNode)
+      problems.push(`${route}: WebSite carries alternateName ${JSON.stringify(websiteNode.alternateName)}`);
+  }
+  const orgNode = meta.jsonLd.find((d) => d && d["@type"] === "ProfessionalService");
+  if (orgNode) {
+    if (orgNode.name !== "254 Engineering")
+      problems.push(`${route}: Organization name is ${JSON.stringify(orgNode.name)}, expected "254 Engineering"`);
+    if (orgNode.legalName !== "254 Engineering LLC")
+      problems.push(`${route}: Organization legalName is ${JSON.stringify(orgNode.legalName)}, expected "254 Engineering LLC"`);
+    if (orgNode.parentOrganization?.name !== "Craftline Brands")
+      problems.push(`${route}: Organization parentOrganization is ${JSON.stringify(orgNode.parentOrganization ?? null)}, expected Craftline Brands`);
+    if ("alternateName" in orgNode)
+      problems.push(`${route}: Organization carries alternateName ${JSON.stringify(orgNode.alternateName)}`);
+  }
+  if (route === "/" && !decode(meta.title).startsWith("254 Engineering"))
+    problems.push(`/: homepage title does not start with "254 Engineering" ("${decode(meta.title)}")`);
 
   /*
    * ========================================================================
