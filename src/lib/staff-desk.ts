@@ -6,7 +6,7 @@ import { callList, type ProspectRow } from "./ops-prospects";
 import { listRefundRequests } from "./ops-refund-requests";
 import { holdFor } from "./dispatch-hold";
 import { readEvery } from "./bounded-read";
-import type { Breakdown } from "./ops-dashboard";
+import type { Attention, Breakdown } from "./ops-dashboard";
 
 /**
  * THE DESK: THE HOME SCREEN OF THE REP AND THE OPERATIONS MANAGER.
@@ -35,7 +35,7 @@ export type DeskDashboard = {
   role: "desk";
   tiles: DeskTile[];
   breakdowns: Breakdown[];
-  attention: { label: string; detail: string; href?: string }[];
+  attention: Attention[];
   notComputable: string[];
   /** Today's call list: the actor's own prospects and unowned ones, oldest follow-up first. Null when unreadable. */
   callList: ProspectRow[] | null;

@@ -230,6 +230,36 @@ const allPortalFiles = PORTAL_DIRS.flatMap((d) => walk(d)).filter((f) => f !== T
  *   The report prints the remaining count, so progress is visible and so is
  *   stalling.
  */
+/*
+ * The two staff levels' screens and the components they share, 2026-10-20.
+ * One list, read by both PORTED and STAFF_V10, because the screens were built
+ * to both on the same day and two copies of the list would be two copies that
+ * drift. A function rather than a constant so it can sit above both.
+ */
+function STAFF_LEVEL_SCREENS() {
+  return [
+    "src/app/portal/(app)/prospects/page.tsx",
+    "src/app/portal/(app)/prospects/ProspectsClient.tsx",
+    "src/app/portal/(app)/prospects/[id]/page.tsx",
+    "src/app/portal/(app)/prospects/[id]/ProspectClient.tsx",
+    "src/app/portal/(app)/inbox/page.tsx",
+    "src/app/portal/(app)/refunds/page.tsx",
+    "src/app/portal/(app)/refunds/RefundClient.tsx",
+    "src/app/portal/(app)/order-lookup/page.tsx",
+    "src/app/portal/(app)/order-lookup/[id]/page.tsx",
+    "src/app/portal/(app)/credentials/page.tsx",
+    "src/app/portal/(app)/settings/page.tsx",
+    "src/app/portal/(app)/clients/[id]/page.tsx",
+    "src/app/portal/(app)/files/DeskFileClient.tsx",
+    "src/components/portal/CallList.tsx",
+    "src/components/portal/ContactLog.tsx",
+    "src/components/portal/ContactLogForm.tsx",
+    "src/components/portal/ListControls.tsx",
+    "src/components/portal/staff-kit.tsx",
+    "src/components/portal/LiveCounts.tsx",
+  ];
+}
+
 const PORTED = [
   // Brought in 2026-09-07 with the surface inventory. The partner surface had
   // never been held to the design system at all, and seven portal screens built
@@ -240,6 +270,8 @@ const PORTED = [
   "src/app/portal/(app)/reports/page.tsx",
   /* The record search, 2026-10-10, on the day it was built. */
   "src/app/portal/(app)/search/page.tsx",
+  /* The two staff levels' screens, 2026-10-20, on the day they were built. */
+  ...STAFF_LEVEL_SCREENS(),
   "src/app/portal/(app)/suppressions/page.tsx",
   "src/app/portal/(app)/suppressions/SuppressionsClient.tsx",
   "src/app/portal/(app)/applications/page.tsx",
@@ -633,6 +665,8 @@ const CUSTOMER_V10 = [
 const STAFF_V10 = [
   /* The record search, 2026-10-10, held to the staff rules from its first commit. */
   "src/app/portal/(app)/search/page.tsx",
+  /* The two staff levels' screens, 2026-10-20, held to the staff rules from their first commit. */
+  ...STAFF_LEVEL_SCREENS(),
   "src/app/portal/(app)/review/page.tsx",
   "src/app/portal/(app)/review/ReviewClient.tsx",
   "src/app/portal/(app)/review/LetterSealPanel.tsx",

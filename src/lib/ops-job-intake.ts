@@ -204,6 +204,45 @@ export async function takeJob(
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
 
+  /*
+   * THE CATALOG PRICE AS IT IS, FOR ANYBODY WITHOUT pricing.override_at_intake.
+   * Operator ruling, 2026-10-20: phone intake by the two staff levels uses the
+   * catalog price, no override. files.create used to carry the override on its
+   * own; it moved to its own grant in 0079, which admin and sales keep.
+   *
+   * FIRST, BEFORE ANY OTHER CHECK. A typed price of any kind is refused here,
+   * zero included, so a no-charge job is stopped at the first line for these
+   * roles rather than reached through every validation below. The screen sends
+   * no price for them at all, so a price arriving is not something they did by
+   * accident.
+   */
+  if (input.priceCents !== null && input.priceCents !== undefined && !can(actor as unknown as Actor, "pricing.override_at_intake")) {
+    return {
+      ok: false,
+      error: "Your role takes the catalog price as it is. An administrator can change a price.",
+      field: "priceCents",
+    };
+  }
+
+  /*
+   * A PAYMENT LINK IS THE ONLY ROUTE FOR SOMEBODY WHO MAY SEND ONE AND NOT
+   * CHARGE. Operator ruling, 2026-10-20: the rep's phone intake sends a payment
+   * link, never a no-charge job. Opening a job unpaid and invoicing an account
+   * are commercial decisions payments.charge carries, so a holder of
+   * payments.send_link alone chooses the link or nothing. Under the gate the
+   * link is unavailable, and the screen says why rather than offering another
+   * route.
+   */
+  const linkOnly =
+    can(actor as unknown as Actor, "payments.send_link") && !can(actor as unknown as Actor, "payments.charge");
+  if (linkOnly && input.paymentIntent !== "link_sent") {
+    return {
+      ok: false,
+      error: "Your role takes a job by sending the customer a payment link. Choose Send a payment link.",
+      field: "paymentIntent",
+    };
+  }
+
   const entry = catalogFor(input.serviceSlug, input.tier);
   if (!entry) {
     return { ok: false, error: "That deliverable is not in the catalog.", field: "tier" };
@@ -298,39 +337,6 @@ export async function takeJob(
    */
   if ("error" in decision) {
     return { ok: false, error: decision.error, field: "priceCents" };
-  }
-
-  /*
-   * THE CATALOG PRICE AS IT IS, FOR ANYBODY WITHOUT pricing.override_at_intake.
-   * Operator ruling, 2026-10-20: phone intake by the two staff levels uses the
-   * catalog price, no override. files.create used to carry the override on its
-   * own; it moved to its own grant in 0079, which admin and sales keep.
-   */
-  if (decision.overridden && !can(actor as unknown as Actor, "pricing.override_at_intake")) {
-    return {
-      ok: false,
-      error: "Your role takes the catalog price as it is. An administrator can change a price.",
-      field: "priceCents",
-    };
-  }
-
-  /*
-   * A PAYMENT LINK IS THE ONLY ROUTE FOR SOMEBODY WHO MAY SEND ONE AND NOT
-   * CHARGE. Operator ruling, 2026-10-20: the rep's phone intake sends a payment
-   * link, never a no-charge job. Opening a job unpaid and invoicing an account
-   * are commercial decisions payments.charge carries, so a holder of
-   * payments.send_link alone chooses the link or nothing. Under the gate the
-   * link is unavailable, and the screen says why rather than offering another
-   * route.
-   */
-  const linkOnly =
-    can(actor as unknown as Actor, "payments.send_link") && !can(actor as unknown as Actor, "payments.charge");
-  if (linkOnly && input.paymentIntent !== "link_sent") {
-    return {
-      ok: false,
-      error: "Your role takes a job by sending the customer a payment link. Choose Send a payment link.",
-      field: "paymentIntent",
-    };
   }
 
   /*

@@ -115,22 +115,35 @@ console.log("");
 // ------------------------------- and no dashboard shows a figure it cannot hold
 
 {
-  const source = readSource("src/lib/ops-dashboard.ts");
+  /*
+   * The desk (the rep's and the operations manager's, 2026-10-20) is declared
+   * in its own module, so both files are read. A type this check cannot FIND
+   * is a failure rather than a pass: it used to answer false for a missing
+   * block, which is "no money field" for a type it never looked at.
+   */
+  const source = readSource("src/lib/ops-dashboard.ts") + "\n" + readSource("src/lib/staff-desk.ts");
 
   /*
-   * The ruling as a shape check. A `money` field on any of the three would
+   * The ruling as a shape check. A `money` field on any of them would
    * compile, and the screen would render it, and nothing else would notice.
    */
+  const notFound = [];
   const withMoney = MONEYLESS_ROLES.filter((role) => {
     const name = role.replace(/(^|_)([a-z])/g, (_, __, c) => c.toUpperCase());
     const block = source.match(new RegExp(`export type ${name}Dashboard = \\{[^}]*\\}`, "s"));
+    if (!block) notFound.push(`${name}Dashboard`);
     return block ? /\bmoney\b/.test(block[0]) : false;
   });
 
   rec(
-    `the three moneyless dashboards are declared (${MONEYLESS_ROLES.join(", ")})`,
-    MONEYLESS_ROLES.length === 3,
-    "an empty list would make the check below vacuous",
+    `the four moneyless dashboards are declared (${MONEYLESS_ROLES.join(", ")})`,
+    MONEYLESS_ROLES.length === 4,
+    "an empty list would make the check below vacuous; the fourth is the desk, 2026-10-20",
+  );
+  rec(
+    "and the check found every one of their types to read",
+    notFound.length === 0,
+    notFound.length ? `not found: ${notFound.join(", ")}` : "",
   );
   rec(
     "and none of them has a money field to put a firm figure in",

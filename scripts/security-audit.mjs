@@ -128,6 +128,19 @@ const ADMIN_PAGES = [
   // firm, where, and for how much.
   "/portal/files/dispatch",
   "/portal/clients",
+  /*
+   * THE TWO STAFF LEVELS' SCREENS, 2026-10-20. The sales list names
+   * companies and the people the firm is calling; the inbox and order lookup
+   * name customers, their addresses and what they paid; refund requests and
+   * settings decide money; credential review shows technicians' documents.
+   * Each closed to a signed out caller, and each behind its own grant.
+   */
+  "/portal/prospects",
+  "/portal/inbox",
+  "/portal/order-lookup",
+  "/portal/refunds",
+  "/portal/credentials",
+  "/portal/settings",
   "/portal/techs",
   "/portal/protocols",
   "/portal/protocols/rc-001",
@@ -302,6 +315,16 @@ const ADMIN_APIS = [
   // Attaches a paid order to an account, which decides who can sign in and
   // see it, and finishes the payment's release (ruling 2026-10-13).
   "/api/portal/orders/attach-account",
+  // The two staff levels, 2026-10-20. Prospects and their import; the call
+  // log against any record; refund requests, decisions and the operator's
+  // limit, which decide money; the desk's small acts (a status link to a
+  // customer, releasing a technician, a job's access details) and its live
+  // counts; and a CSV of every order. Each closed to a signed out caller.
+  "/api/portal/prospects",
+  "/api/portal/contact-log",
+  "/api/portal/refunds",
+  "/api/portal/desk",
+  "/api/portal/order-lookup",
   // Customer ordering accounts: terms, credit limits, closing a period and
   // issuing a statement. It decides who may owe the firm money.
   "/api/portal/accounts",

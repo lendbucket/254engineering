@@ -276,6 +276,22 @@ export const RETENTION_POLICY: RetentionEntry[] = [
       ruledBy: "the schema, confirmed by the operator 2026-09-09",
     },
   },
+  /*
+   * 0079. Every call, email and note staff record against a prospect, client,
+   * order or file. The database refuses any change or removal, so retention
+   * could not touch it whatever this file said, and a record of a call that
+   * can be deleted is not a record of the call.
+   */
+  {
+    table: "eng_contact_log",
+    rule: {
+      kind: "kept_forever",
+      because:
+        REFUSES_DELETE("eng_forbid_mutation") +
+        " It is the record of who told a customer or a prospect what, and when.",
+      ruledBy: "0079, and the trigger",
+    },
+  },
   { table: "eng_contacts", rule: { kind: "kept_pending_counsel", because: COUNSEL } },
   { table: "eng_credentials", rule: { kind: "kept_pending_counsel", because: COUNSEL } },
   {
@@ -629,10 +645,43 @@ export const RETENTION_POLICY: RetentionEntry[] = [
       ruledBy: "the schema, confirmed by the operator 2026-09-09",
     },
   },
+  /* 0079. The sales list: companies the firm is calling and how to reach them. Personal contact details, so counsel decides. */
+  { table: "eng_prospects", rule: { kind: "kept_pending_counsel", because: COUNSEL } },
   { table: "eng_protocol_items", rule: { kind: "not_a_record", because: "Part of a protocol template. Configuration an engineer authors." } },
   { table: "eng_protocol_questions", rule: { kind: "not_a_record", because: "Part of a protocol template. Configuration an engineer authors." } },
   { table: "eng_protocol_templates", rule: { kind: "not_a_record", because: "What a service requires captured. Configuration an engineer authors, referenced by files with ON DELETE RESTRICT." } },
   { table: "eng_quote_requests", rule: { kind: "kept_pending_counsel", because: COUNSEL } },
+  /*
+   * 0079. The operator's refund approval limit, as dated rows, and refund
+   * requests and their decisions. All three refuse change and removal at the
+   * database: a limit that can be rewritten is a limit nobody can show was in
+   * force when a refund was approved under it, and a decision that can be
+   * deleted is money that moved with no record of who said so.
+   */
+  {
+    table: "eng_refund_approval_limits",
+    rule: {
+      kind: "kept_forever",
+      because: REFUSES_DELETE("eng_forbid_mutation") + " It is the record of what limit applied on any given day, and who set it.",
+      ruledBy: "0079, and the trigger",
+    },
+  },
+  {
+    table: "eng_refund_decisions",
+    rule: {
+      kind: "kept_forever",
+      because: REFUSES_DELETE("eng_forbid_mutation") + " It is the record of who decided a refund, under what limit, and what moved.",
+      ruledBy: "0079, and the trigger",
+    },
+  },
+  {
+    table: "eng_refund_requests",
+    rule: {
+      kind: "kept_forever",
+      because: REFUSES_DELETE("eng_forbid_mutation") + " It is the record of who asked for money to go back, and why.",
+      ruledBy: "0079, and the trigger",
+    },
+  },
   /*
    * 0053. What an engineer required before he would certify.
    *
