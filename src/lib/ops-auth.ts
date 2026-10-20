@@ -548,6 +548,36 @@ export async function consumeTokenAndSetPassword(
   return { ok: true, profile: { ...inspected.profile, status: "active" } };
 }
 
+/**
+ * A signed-in person's own password, checked again at the moment of an act.
+ *
+ * Read for the owner override alone (src/lib/owner-override.ts): on a job at
+ * no charge his re-entered password stands in place of the authenticator code.
+ * The address is read off the profile by id, never taken from the request, so
+ * the check is of the signed-in person's own password and nobody else's.
+ * Throwaway client, for the reason supabaseCredentialCheck gives.
+ */
+export async function verifyOwnPassword(
+  actorId: string,
+  password: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+  if (!password) return { ok: false, error: "Enter your password." };
+  const { data: profile, error: readError } = await db.from("eng_profiles").select("email").eq("id", actorId).maybeSingle();
+  if (readError) return { ok: false, error: `Your account could not be read: ${readError.message}` };
+  if (!profile?.email) return { ok: false, error: "That account no longer exists." };
+
+  const auth = supabaseCredentialCheck();
+  if (!auth) return { ok: false, error: "The database is not configured." };
+  const check = await auth.auth.signInWithPassword({ email: profile.email as string, password });
+  await auth.auth.signOut().catch(() => {});
+  if (check.error || check.data.user?.id !== actorId) return { ok: false, error: "That is not your password." };
+  // No time is returned: the time of record is the audit row's own, written by
+  // the database, rather than this process's clock.
+  return { ok: true };
+}
+
 /** A person changing their own password, already signed in. */
 export async function changeOwnPassword(
   actorId: string,

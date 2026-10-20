@@ -70,11 +70,18 @@ export function IntakeClient({
   deliverables,
   counties,
   prelaunch,
+  ownerOverride = false,
 }: {
   lines: { slug: string; name: string }[];
   deliverables: Deliverable[];
   counties: string[];
   prelaunch: boolean;
+  /**
+   * The owner override (src/lib/owner-override.ts), decided on the server from
+   * the signed-in id: a no-charge job asks for his password in place of the
+   * code. The server decides again on submit; this only chooses the field.
+   */
+  ownerOverride?: boolean;
 }) {
   const router = useRouter();
 
@@ -108,6 +115,7 @@ export function IntakeClient({
   const [overridePrice, setOverridePrice] = useState("");
   const [overrideReason, setOverrideReason] = useState("");
   const [noChargeCode, setNoChargeCode] = useState("");
+  const [noChargePassword, setNoChargePassword] = useState("");
 
   /*
    * DOCUMENTS ATTACHED WHILE TAKING THE JOB (0078). Uploaded straight to the
@@ -345,7 +353,7 @@ export function IntakeClient({
     missingToOrder.length === 0 &&
     !priceError &&
     !busy &&
-    (!noCharge || noChargeCode.replace(/\s+/g, "").length === 6);
+    (!noCharge || (ownerOverride ? noChargePassword.length > 0 : noChargeCode.replace(/\s+/g, "").length === 6));
 
   /** Upload one document for a file field. Resolves to an error sentence, or null when attached. */
   async function attachFile(fieldId: string, file: File): Promise<string | null> {
@@ -418,7 +426,8 @@ export function IntakeClient({
           priceCents: "overridden" in priceDecision && priceDecision.overridden ? priceDecision.cents : null,
           priceOverrideReason:
             "overridden" in priceDecision && priceDecision.overridden ? priceDecision.reason : null,
-          noChargeCode: noCharge ? noChargeCode : null,
+          noChargeCode: noCharge && !ownerOverride ? noChargeCode : null,
+          noChargePassword: noCharge && ownerOverride ? noChargePassword : null,
           draftId,
           uploads: Object.entries(uploads).map(([fieldId, u]) => ({
             fieldId,
@@ -883,7 +892,25 @@ export function IntakeClient({
           The catalog price stays on the file either way. A price that changed with no record of who
           changed it or why is a dispute the firm loses.
         </p>
-        {noCharge ? (
+        {noCharge && ownerOverride ? (
+          <div className="mt-4">
+            <label htmlFor="noChargePassword" className={label}>
+              Your password, entered again
+            </label>
+            <input
+              id="noChargePassword"
+              type="password"
+              autoComplete="current-password"
+              value={noChargePassword}
+              onChange={(e) => setNoChargePassword(e.target.value)}
+              className="mt-1.5 h-11 w-full max-w-[320px] rounded-[2px] border border-[var(--border)] bg-white px-3 text-[16px] text-[var(--ink)] focus:border-[var(--navy)] focus:outline-none focus:ring-2 focus:ring-[var(--navy)]/20"
+            />
+            <p className={hint}>
+              Owner override: your password stands in place of the authenticator code. The use is
+              recorded before the file exists, with your reason. It is opened unpaid.
+            </p>
+          </div>
+        ) : noCharge ? (
           <div className="mt-4">
             <label htmlFor="noChargeCode" className={label}>
               Code from your authenticator app

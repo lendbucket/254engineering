@@ -142,7 +142,7 @@ export default async function CertificationPage({
   };
 
   const held = (await credentialsFor([actor!.id])).get(actor!.id) ?? [];
-  const exempt = exemptKindsFor(actor!.email);
+  const exempt = exemptKindsFor(actor!.email, actor!.id);
   const paperwork = credentialBlockers(held, new Date(), exempt);
   const standing = credentialStanding(held, new Date(), exempt);
   const mine = await submissionsFor(actor!.id);
