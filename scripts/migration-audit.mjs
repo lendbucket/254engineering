@@ -227,8 +227,11 @@ const EXPECTED_COLUMNS = 1263;
 const EXPECTED_TABLES = 92;
 /* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts.
  * 0074 adds two: eng_partner_billing_touch and eng_partner_billing_events_immutable.
- * 0075 adds one: eng_payment_events_guarded. */
-const EXPECTED_TRIGGERS = 80;
+ * 0075 adds one: eng_payment_events_guarded.
+ * 0079 adds five, by owner ruling 2026-10-20 (the two staff roles): eng_prospects_touch and the
+ * immutable triggers on eng_contact_log, eng_refund_requests, eng_refund_decisions and
+ * eng_refund_approval_limits. Read back on development by the chat the same day, five rows. */
+const EXPECTED_TRIGGERS = 85;
 /**
  * 0014 added eng_freeze_attribution and 0019 added two more, the partner
  * entry freeze and its delete refusal, which are trigger functions like the
