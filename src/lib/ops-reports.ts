@@ -1276,6 +1276,11 @@ export async function turnaroundReport(period = periodOf(), scope: FigureScope =
   if (scope !== "including_demonstrations") q = q.eq("is_demo", false);
   const read = await readAll<F>(q as unknown as PromiseLike<{ data: F[] | null; count: number | null; error: { message: string } | null }>);
   if ("error" in read) return { ...base, sections: [], unavailable: [`Files could not be read: ${read.error}`] };
+  /*
+   * TRUNCATION IS AN ABSENCE, NOT A SMALLER NUMBER. Every stage is computed
+   * from this one read, so a read that could not see the whole set states no
+   * stage at all rather than a mean over part of it.
+   */
   if (read.truncated) return { ...base, sections: [], unavailable: [tooLarge("Files with a stage ending in this period", read.total)] };
 
   const inPeriod = (v: string | null) => v !== null && v >= from && v < to;
@@ -1339,6 +1344,11 @@ export async function activityReport(period = periodOf(), scope: FigureScope = "
   if (scope !== "including_demonstrations") jq = jq.eq("is_demo", false);
   const jobs = await readAll<J>(result<J>(jq));
 
+  /*
+   * TRUNCATION IS AN ABSENCE, NOT A SMALLER NUMBER. Any of the three reads
+   * coming back short refuses the whole report, because a person's row is
+   * assembled from all three and a short count reads as less work done.
+   */
   const unavailable: string[] = [];
   for (const [what, r] of [["The contact log", log], ["Conversions", conv], ["Jobs taken", jobs]] as const) {
     if ("error" in r) unavailable.push(`${what} could not be read: ${r.error}`);

@@ -124,11 +124,19 @@ export async function inbox(actor: Actor | null, opts: { includeAnswered: boolea
   return { ok: true, items, failed };
 }
 
-/** How many are waiting, for the home screen and the tab title. Null means it could not be counted. */
-export async function inboxWaitingCount(actor: Actor | null): Promise<number | null> {
+/**
+ * How many are waiting, for the tab title, and how many of those arrived after
+ * a moment, so a screen rendered at that moment knows whether it is missing a
+ * row. One read for both. Null means it could not be counted.
+ */
+export async function inboxCountsSince(
+  actor: Actor | null,
+  sinceMs: number,
+): Promise<{ waiting: number; since: number } | null> {
   const read = await inbox(actor, { includeAnswered: false });
   if (!read.ok || read.failed.length) return null;
-  return read.items.length;
+  const since = read.items.filter((i) => Date.parse(i.receivedAt) > sinceMs).length;
+  return { waiting: read.items.length, since };
 }
 
 /**

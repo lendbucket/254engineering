@@ -173,6 +173,22 @@ rec("the dynamic routes are found on disk, not listed by hand", dynamic.length >
 // ------------------------------------------------------------------ sessions
 const sessions = {};
 const db = auditClient("v10-layout-audit", { neverProduction: true });
+
+/*
+ * THE PROSPECT THIS AUDIT MAKES, AND ITS REMOVAL. /portal/prospects/[id] needs
+ * a record and development holds none, so the resolver inserts one under this
+ * company name, created by the administrator probe. It goes BEFORE the probes:
+ * created_by is on delete restrict, so a prospect left behind would stop the
+ * probe's profile being removed. Swept by name, so a crashed run's is removed
+ * too. eng_prospects is not append only; this is a run removing what it made.
+ */
+const PROBE_PROSPECT = "V10 layout probe prospect";
+async function removeProbeProspects() {
+  if (!db) return;
+  const { error } = await db.from("eng_prospects").delete().like("company", `${PROBE_PROSPECT}%`);
+  if (error) console.log(`  PROBE PROSPECT NOT REMOVED: ${error.message}`);
+}
+await removeProbeProspects();
 await orCouldNotTell(
   async () => {
     for (const role of ["admin", "engineer", "field_tech", "customer_service"]) {
@@ -183,6 +199,7 @@ await orCouldNotTell(
   },
   `the server at ${BASE}`,
   async () => {
+    await removeProbeProspects();
     await destroyProbes("v10-layout");
     await destroyPartnerProbes("v10-layout");
     await destroyCustomerProbes("v10-layout");
@@ -271,6 +288,38 @@ async function resolve(pattern) {
     const id = data?.[0]?.id ?? null;
     if (!id) return null;
     return pattern.includes("[fileId]") ? `/portal/documents/binder/${id}` : `/portal/jobs/${id}`;
+  }
+  /* The three detail screens of the staff roles, 2026-10-20, each opened by the administrator. */
+  if (pattern === "/portal/clients/[id]") {
+    const { data } = await db.from("eng_clients").select("id").order("created_at", { ascending: false }).limit(1);
+    return data?.[0]?.id ? `/portal/clients/${data[0].id}` : null;
+  }
+  if (pattern === "/portal/order-lookup/[id]") {
+    const { data } = await db
+      .from("eng_service_orders")
+      .select("id")
+      .eq("is_demo", true)
+      .order("created_at", { ascending: false })
+      .limit(1);
+    return data?.[0]?.id ? `/portal/order-lookup/${data[0].id}` : null;
+  }
+  if (pattern === "/portal/prospects/[id]") {
+    if (!sessions.admin?.id) return null;
+    const { data, error } = await db
+      .from("eng_prospects")
+      .insert({
+        company: `${PROBE_PROSPECT} ${Date.now()}`,
+        contact_name: "Probe Contact",
+        phone: "+13615550100",
+        email: "prospect@audit-probe.invalid",
+        city: "Corpus Christi",
+        prospect_type: "roofer",
+        created_by: sessions.admin.id,
+      })
+      .select("id")
+      .single();
+    if (error) console.log(`  PROBE PROSPECT NOT MADE: ${error.message}`);
+    return data?.id ? `/portal/prospects/${data.id}` : null;
   }
   return null;
 }
@@ -682,6 +731,7 @@ if (REPORT) {
   console.log("");
   console.log(`V10_FAILING_ROUTES ${JSON.stringify(failing.sort())}`);
   sayCouldNotTell(unmeasured, "these routes");
+  await removeProbeProspects();
   await destroyProbes("v10-layout");
   await destroyPartnerProbes("v10-layout");
   await destroyCustomerProbes("v10-layout");
@@ -707,6 +757,7 @@ if (!ONLY) {
 }
 sayCouldNotTell(unmeasured, "these routes");
 
+await removeProbeProspects();
 await destroyProbes("v10-layout");
 await destroyPartnerProbes("v10-layout");
 await destroyCustomerProbes("v10-layout");

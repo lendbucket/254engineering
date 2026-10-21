@@ -69,6 +69,13 @@ dollars.
 | `assigned_engineer_id` | `ops-engineer.ts:300`, one place | An engineer TAKES a file into review, setting it to themselves |
 | `assigned_tech_id` | `ops-field.ts:782`, one place | A technician ACCEPTS an offer |
 
+**Two clears since, and neither gives a file to anybody.** A site visit or
+repairs decision clears the technician inside `eng_record_review_decision`
+(0068). A reassignment clears it in `releaseAssignment` in `ops-field.ts`, when
+the desk releases an accepted technician before evidence starts so the job can
+be offered again, by the staff roles ruling of 2026-10-20. `bulk-audit` counts
+four writers, two of which set one.
+
 Both are consequences of somebody accepting work. Nothing in this platform gives
 a file to a person, and that is not an omission: an offer that can be declined
 is the whole shape of dispatch, and a review somebody chose to take is the whole

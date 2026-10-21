@@ -1612,7 +1612,9 @@ if (!db) {
       { act: "reconcile a payment", req: (r) => post(r, "/api/portal/orders/reconcile", { orderId: NOWHERE }), status: 403, says: /Not permitted/ },
       { act: "refund an order directly", req: (r) => post(r, "/api/portal/orders/refund", { orderId: NOWHERE, reason: "a reason long enough" }), status: 403, says: /Not permitted/ },
       { act: "read the production pay report", req: (r) => get(r, "/api/portal/exports?report=production"), status: 403, says: /cannot read the production report/i },
-      { act: "read the firm's billing", req: (r) => get(r, "/api/portal/exports?report=billing"), status: 403, says: /cannot read the firm's billing/i },
+      /* The billing exports are margin and period; "billing" is no report, and asking for it measured the unknown-report answer. */
+      { act: "read the firm's billing, margin", req: (r) => get(r, "/api/portal/exports?report=margin"), status: 403, says: /cannot read the firm's billing/i },
+      { act: "read the firm's billing, by period", req: (r) => get(r, "/api/portal/exports?report=period"), status: 403, says: /cannot read the firm's billing/i },
       { act: "approve technician pay", req: (r) => post(r, "/api/portal/field", { action: "set_ledger_status", ids: [NOWHERE], status: "approved" }), status: 400, says: /cannot approve payments/i },
       { act: "create a staff account", req: (r) => post(r, "/api/portal/people", { action: "create", role: "field_tech", displayName: "Probe", email: `staff-${STAMP}@audit-probe.invalid` }), status: 403, says: /Not permitted/ },
       { act: "change a role", req: (r) => post(r, "/api/portal/roles", { action: "set_user_role", profileId: NOWHERE, role: "admin" }), status: 403, says: /Not permitted/ },
@@ -1741,7 +1743,8 @@ if (!db) {
           ? await db
               .from("eng_files")
               .insert({
-                file_number: `PROBE-PAY-${STAMP}`,
+                /* -DEMO- because is_demo is set: eng_files_demo_number_agrees (0027) holds the two together. */
+                file_number: `PROBE-DEMO-PAY-${STAMP}`,
                 client_id: probeClient.id,
                 service_slug: line.service_slug,
                 property_address: "1 Probe Street",
@@ -1988,6 +1991,30 @@ if (!db) {
           reaches: false,
           because:
             "Partner compensation. Gated on partners.manage, which an engineer does not hold.",
+        },
+        {
+          route: "/portal/clients/[id]",
+          reaches: true,
+          because:
+            "The client a file belongs to, 2026-10-20. Gated on clients.list like the list it " +
+            "opens from, which an engineer holds. Its one money column is the order list, read " +
+            "only for orders.read or payments.reconcile, neither of which an engineer holds, so " +
+            "he sees the client and none of what the firm charged them.",
+        },
+        {
+          route: "/portal/order-lookup/[id]",
+          reaches: false,
+          because:
+            "One order and what the customer was charged, 2026-10-20. Gated on orders.read or " +
+            "payments.reconcile, and an engineer holds neither: an order total is what the firm " +
+            "makes.",
+        },
+        {
+          route: "/portal/prospects/[id]",
+          reaches: false,
+          because:
+            "A sales prospect, 2026-10-20. Gated on crm.use, which only the rep, the operations " +
+            "manager and the administrator hold. Selling is not an engineer's work.",
         },
         {
           route: "/portal/techs/[id]",

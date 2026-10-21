@@ -300,7 +300,7 @@ export default async function PortalLayout({ children }: { children: React.React
         >
           <ScrollMemory />
           {/* New orders and inquiries without a refresh, with a count in the tab title (office ready, 2026-10-20). */}
-          {can(actor, "inbox.read") || can(actor, "orders.read") ? <LiveCounts /> : null}
+          {can(actor, "inbox.read") || can(actor, "orders.read") ? <LiveCounts renderedAt={Date.now()} /> : null}
           <main className="portal-main mx-auto flex w-full max-w-[1280px] flex-col gap-[var(--section-gap)] px-[var(--page-gutter)] py-6 lg:pb-10">
             {children}
           </main>
