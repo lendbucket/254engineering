@@ -2667,6 +2667,23 @@ export const APPLIED = [
     fingerprint: "45ce47821d9c5567eb3b4b197549d881",
     behaviour: "8f0fe1b5eb8a6b5588e0ae9e3ae5017c",
     production: null,
+    development: {
+      at: "0079",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-20",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-20 in Central time, provider version 20261021005414, by the operator's " +
+        "chat counterpart through apply_migration from feat/staff-roles at 6e6c27a, name " +
+        "0079_two_staff_roles_and_the_work_they_do, from docs/production-sitting-0079-staff-roles.md. Section 0 " +
+        "read clean first: shape 4ccff0ee13040992a71d16d2b14163a3 across 1210, the five tables absent, rep and " +
+        "ops_manager absent. Read back, every answer as predicted: shape 45ce47821d9c5567eb3b4b197549d881 across " +
+        "1263; row level security on all five tables; the five triggers; the three constraints; both roles as " +
+        "declared; grants ops_manager 26, rep 20; payments.send_link on admin, ops_manager, rep and sales, " +
+        "pricing.override_at_intake, pricing.read_tech_rate and settings.refund_limit on admin alone, no dispatcher " +
+        "row; eng_refund_approval_limits empty.",
+    },
     proves: { table: "eng_refund_approval_limits" },
     note:
       "Both figures read off scripts/fingerprint-at.mjs at 0079 on 2026-10-20, with 0078 reproducing its " +
@@ -2677,9 +2694,10 @@ export const APPLIED = [
       "Sales' pricing.override_at_intake row came out: the shape did not move, the behaviour went from " +
       "fc8b9792ddfa6b1a3eebb45854814a2a across 1153 to this figure across 1152, the one grant fewer.",
     because:
-      "WRITTEN 2026-10-20 ON feat/staff-roles AND APPLIED NOWHERE, INCLUDING DEVELOPMENT. The operator applies " +
-      "it to development from docs/production-sitting-0079-staff-roles.md, then the branch is boarded on " +
-      "development and held for the chat's production sitting. Additive only: five tables, two roles and " +
+      "WRITTEN 2026-10-20 ON feat/staff-roles. APPLIED TO DEVELOPMENT 2026-10-20, version 20261021005414, and " +
+      "read back as this entry records; NOT APPLIED TO PRODUCTION. The branch is boarded on development and " +
+      "held for the chat's production sitting, docs/production-sitting-0079-staff-roles.md section 4. " +
+      "Additive only: five tables, two roles and " +
       "63 grant rows, no drop and no revoke, so the connector is expected to apply it. The branch merges only " +
       "after the production apply is read back, and a migration on main is never pending.",
   },
