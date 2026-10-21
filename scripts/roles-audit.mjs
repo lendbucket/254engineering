@@ -1239,11 +1239,22 @@ rec("a signed out actor may do nothing at all", ![...known].some((a) => can(null
 // ===========================================================================
 
 const STAMP = Date.now();
-const PROBE_DOMAIN = "roles-audit.invalid";
+/*
+ * @audit-probe.invalid, the one domain test accounts may use. Operator ruling,
+ * 2026-10-20: this audit signed its probes up under roles-audit.invalid until
+ * then. The domain is shared with every other audit's probes, so this one's
+ * addresses all begin "roles-" and its own sweep matches only those, never a
+ * probe another audit made. LEGACY_PROBE_DOMAIN is still swept, because rows
+ * left under it by an earlier run of this audit are this audit's to remove.
+ */
+const PROBE_DOMAIN = "audit-probe.invalid";
+const PROBE_PREFIX = "roles-";
+const LEGACY_PROBE_DOMAIN = "roles-audit.invalid";
+const probeEmail = (local) => `${PROBE_PREFIX}${local}@${PROBE_DOMAIN}`;
 const created = [];
 
 async function makeProbe(db, role) {
-  const email = `probe-${role}-${STAMP}@${PROBE_DOMAIN}`;
+  const email = probeEmail(`probe-${role}-${STAMP}`);
   const password = `probe-${STAMP}-${role}-Aa1!longenough`;
   /* The id is named so a network fault on the create is retriable after a read
    * confirms it did not land (transient-retry.mjs). This create met a connect
@@ -1405,7 +1416,7 @@ if (!db) {
           fetch(`${BASE}/api/portal/people`, {
             method: "POST",
             headers: { "Content-Type": "application/json", cookie: sessions.field_tech },
-            body: JSON.stringify({ action: "create", role: "admin", displayName: "Escalated", email: `esc-${STAMP}@${PROBE_DOMAIN}` }),
+            body: JSON.stringify({ action: "create", role: "admin", displayName: "Escalated", email: probeEmail(`esc-${STAMP}`) }),
           }),
         expect: 403,
       },
@@ -1416,7 +1427,7 @@ if (!db) {
           fetch(`${BASE}/api/portal/people`, {
             method: "POST",
             headers: { "Content-Type": "application/json", cookie: sessions.engineer },
-            body: JSON.stringify({ action: "create", role: "admin", displayName: "Escalated", email: `esc2-${STAMP}@${PROBE_DOMAIN}` }),
+            body: JSON.stringify({ action: "create", role: "admin", displayName: "Escalated", email: probeEmail(`esc2-${STAMP}`) }),
           }),
         expect: 403,
       },
@@ -1462,7 +1473,7 @@ if (!db) {
      * is verified rather than assumed.
      */
     {
-      const email = `dispatcher-${STAMP}@${PROBE_DOMAIN}`;
+      const email = probeEmail(`dispatcher-${STAMP}`);
       const res = await fetch(`${BASE}/api/portal/people`, {
         method: "POST",
         headers: { "Content-Type": "application/json", cookie: sessions.admin },
@@ -1506,7 +1517,7 @@ if (!db) {
           action: "create",
           role: "not_a_role_anybody_made",
           displayName: "Probe Nobody",
-          email: `nobody-${STAMP}@${PROBE_DOMAIN}`,
+          email: probeEmail(`nobody-${STAMP}`),
           deliverBy: "hand",
         }),
       });
@@ -2069,7 +2080,7 @@ if (!db) {
       /*
        * SHORT KEYS, AND THE REASON IS A REAL DEFECT SOMEWHERE ELSE.
        *
-       * makeProbe builds probe-<role>-<STAMP>@roles-audit.invalid, so a long
+       * makeProbe builds roles-probe-<role>-<STAMP>@audit-probe.invalid, so a long
        * role key makes a long email, and the email goes into the otpauth URI
        * that src/lib/qr.ts encodes at enrolment. That encoder refuses anything
        * over version 10, and the first version of this block used
@@ -2289,7 +2300,7 @@ if (!db) {
     const { data: survivors, error: survErr } = await db
       .from("eng_profiles")
       .select("id, email")
-      .like("email", `%@${PROBE_DOMAIN}`);
+      .or(`email.like.${PROBE_PREFIX}%@${PROBE_DOMAIN},email.like.%@${LEGACY_PROBE_DOMAIN}`);
     /*
      * And the sign in accounts, read separately: a verification that reads the
      * same table the delete read agrees by construction (destroyProbes, 2026-09-22).
