@@ -2662,6 +2662,24 @@ export const APPLIED = [
       "and the read backs. Additive only, so the connector is expected to apply it. The branch merges only " +
       "after the production apply is read back, and a migration on main is never pending.",
   },
+  {
+    file: "0079_two_staff_roles_and_the_work_they_do.sql", appliedBy: "apply_migration",
+    fingerprint: "45ce47821d9c5567eb3b4b197549d881",
+    behaviour: "fc8b9792ddfa6b1a3eebb45854814a2a",
+    production: null,
+    proves: { table: "eng_refund_approval_limits" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0079 on 2026-10-20, with 0078 reproducing its " +
+      "recorded pair first: shape 1210 to 1263 columns (five tables: eng_prospects 18, eng_contact_log 14, " +
+      "eng_refund_requests 6, eng_refund_decisions 10, eng_refund_approval_limits 5), behaviour 1020 to 1153 " +
+      "facts. Seeds two roles (rep, ops_manager) and 64 grant rows: rep 20, ops_manager 26, admin 16, sales 2.",
+    because:
+      "WRITTEN 2026-10-20 ON feat/staff-roles AND APPLIED NOWHERE, INCLUDING DEVELOPMENT. The operator applies " +
+      "it to development from docs/production-sitting-0079-staff-roles.md, then the branch is boarded on " +
+      "development and held for the chat's production sitting. Additive only: five tables, two roles and " +
+      "64 grant rows, no drop and no revoke, so the connector is expected to apply it. The branch merges only " +
+      "after the production apply is read back, and a migration on main is never pending.",
+  },
 ];
 
 /*

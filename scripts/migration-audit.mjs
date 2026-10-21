@@ -214,10 +214,17 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * 1,210 is eng_file_inputs' four (bucket, storage_key, content_type,
  * byte_size), named as eng_order_inputs names them; no new table; shape
  * 4ccff0ee13040992a71d16d2b14163a3, read off fingerprint-at.mjs.
+ *
+ * Moved 2026-10-20 by 0079, two staff roles and the work they do: 1,210 to
+ * 1,263 is five new tables, eng_prospects (18), eng_contact_log (14),
+ * eng_refund_requests (6), eng_refund_decisions (10) and
+ * eng_refund_approval_limits (5); 87 tables to 92, row level security on all
+ * five; shape 45ce47821d9c5567eb3b4b197549d881, read off fingerprint-at.mjs
+ * with 0078 reproducing its recorded pair first.
  */
-const EXPECTED_FINGERPRINT = "4ccff0ee13040992a71d16d2b14163a3";
-const EXPECTED_COLUMNS = 1210;
-const EXPECTED_TABLES = 87;
+const EXPECTED_FINGERPRINT = "45ce47821d9c5567eb3b4b197549d881";
+const EXPECTED_COLUMNS = 1263;
+const EXPECTED_TABLES = 92;
 /* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts.
  * 0074 adds two: eng_partner_billing_touch and eng_partner_billing_events_immutable.
  * 0075 adds one: eng_payment_events_guarded. */
