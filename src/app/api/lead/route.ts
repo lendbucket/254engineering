@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { contactSchema, fieldErrors, waitlistSchema } from "@/lib/forms";
 import { insertLead, intakeAnswer } from "@/lib/intake";
 import { queueEmail } from "@/lib/ops-jobs";
@@ -99,11 +99,14 @@ async function handlePOST(request: Request) {
    * of a submission that exists nowhere is the false success this route
    * refuses. Nothing typed into the free text fields is echoed back, so the
    * form cannot be used to send somebody else a message of a stranger's
-   * choosing. Its failure is logged and never changes the answer.
+   * choosing. Its failure is logged and never changes the answer, so it is
+   * queued after the answer, through after().
    */
   if (write.ok) {
-    const ack = await queueEmail(inquiryAcknowledged({ kind: form, email: data.email }));
-    if (!ack.ok) console.error(`[lead] acknowledgement not queued (${form}): ${ack.error}`);
+    after(async () => {
+      const ack = await queueEmail(inquiryAcknowledged({ kind: form, email: data.email }));
+      if (!ack.ok) console.error(`[lead] acknowledgement not queued (${form}): ${ack.error}`);
+    });
   }
 
   /*

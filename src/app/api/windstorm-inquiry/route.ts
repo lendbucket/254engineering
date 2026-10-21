@@ -1,9 +1,12 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { windstormInquirySchema, fieldErrors } from "@/lib/forms";
 import { insertWindstormInquiry } from "@/lib/intake";
 import { withSaveOutcome } from "@/lib/save-outcome";
 import { queueEmail } from "@/lib/ops-jobs";
-import { inquiryAcknowledged, inquiryNotification } from "@/lib/email-templates";
+import {
+  inquiryAcknowledged,
+  inquiryNotification,
+} from "@/lib/email-templates";
 import { business } from "@/config/business";
 
 /**
@@ -52,12 +55,18 @@ async function handlePOST(request: Request) {
   try {
     payload = await request.json();
   } catch {
-    return NextResponse.json({ ok: false, message: "Malformed request." }, { status: 400 });
+    return NextResponse.json(
+      { ok: false, message: "Malformed request." },
+      { status: 400 },
+    );
   }
 
   const parsed = windstormInquirySchema.safeParse(payload);
   if (!parsed.success) {
-    return NextResponse.json({ ok: false, errors: fieldErrors(parsed.error) }, { status: 422 });
+    return NextResponse.json(
+      { ok: false, errors: fieldErrors(parsed.error) },
+      { status: 422 },
+    );
   }
 
   const data = parsed.data;
@@ -73,7 +82,9 @@ async function handlePOST(request: Request) {
     propertyAddress: data.propertyAddress,
     county: data.county,
     yearBuilt: data.yearBuilt,
-    mostRecentWorkYear: data.workYearUnknown ? undefined : data.mostRecentWorkYear,
+    mostRecentWorkYear: data.workYearUnknown
+      ? undefined
+      : data.mostRecentWorkYear,
     workDone: data.workDone,
     whatIsCovered: data.whatIsCovered,
     openingsRated: data.openingsRated,
@@ -116,35 +127,56 @@ async function handlePOST(request: Request) {
    * neither failure changes the answer. The firm's copy carries the answers
    * and no scope verdict, for the reason above; the verdict stays on the
    * staff screen.
+   *
+   * QUEUED AFTER THE ANSWER, through after(). Awaited inline, the two
+   * enqueues held the response long enough that forms-audit read the screen
+   * before the acknowledgement rendered: the person waited on email the
+   * route had already decided could not change their answer.
    */
-  const show = (v: unknown) => (v === undefined || v === null ? undefined : String(v));
-  const firm = await queueEmail(
-    inquiryNotification({
-      kind: "windstorm",
-      name: data.name,
-      email: data.email,
-      rows: [
-        ["Phone", show(data.phone)],
-        ["Asking as", show(data.askingAs)],
-        ["Property address", show(data.propertyAddress)],
-        ["County", show(data.county)],
-        ["Year built", show(data.yearBuilt)],
-        ["Most recent work", data.workYearUnknown ? "Year not known" : show(data.mostRecentWorkYear)],
-        ["Work done", show(data.workDone)],
-        ["What is covered up", show(data.whatIsCovered)],
-        ["Openings rated", show(data.openingsRated)],
-        ["Will open up finishes", show(data.willOpenUp)],
-        ["Deadline", show(data.deadline)],
-        ["Open insurance claim", show(data.openInsuranceClaim)],
-        ["Active litigation", show(data.activeLitigation)],
-        ["Earlier adverse report", show(data.priorAdverseReport)],
-      ],
-      portalUrl: `${business.url}/portal/windstorm-inquiries`,
-    }),
-  );
-  if (!firm.ok) console.error(`[windstorm-inquiry] firm notification not queued: ${firm.error}`);
-  const ack = await queueEmail(inquiryAcknowledged({ kind: "windstorm", email: data.email }));
-  if (!ack.ok) console.error(`[windstorm-inquiry] acknowledgement not queued: ${ack.error}`);
+  const show = (v: unknown) =>
+    v === undefined || v === null ? undefined : String(v);
+  after(async () => {
+    const firm = await queueEmail(
+      inquiryNotification({
+        kind: "windstorm",
+        name: data.name,
+        email: data.email,
+        rows: [
+          ["Phone", show(data.phone)],
+          ["Asking as", show(data.askingAs)],
+          ["Property address", show(data.propertyAddress)],
+          ["County", show(data.county)],
+          ["Year built", show(data.yearBuilt)],
+          [
+            "Most recent work",
+            data.workYearUnknown
+              ? "Year not known"
+              : show(data.mostRecentWorkYear),
+          ],
+          ["Work done", show(data.workDone)],
+          ["What is covered up", show(data.whatIsCovered)],
+          ["Openings rated", show(data.openingsRated)],
+          ["Will open up finishes", show(data.willOpenUp)],
+          ["Deadline", show(data.deadline)],
+          ["Open insurance claim", show(data.openInsuranceClaim)],
+          ["Active litigation", show(data.activeLitigation)],
+          ["Earlier adverse report", show(data.priorAdverseReport)],
+        ],
+        portalUrl: `${business.url}/portal/windstorm-inquiries`,
+      }),
+    );
+    if (!firm.ok)
+      console.error(
+        `[windstorm-inquiry] firm notification not queued: ${firm.error}`,
+      );
+    const ack = await queueEmail(
+      inquiryAcknowledged({ kind: "windstorm", email: data.email }),
+    );
+    if (!ack.ok)
+      console.error(
+        `[windstorm-inquiry] acknowledgement not queued: ${ack.error}`,
+      );
+  });
 
   return NextResponse.json({ ok: true });
 }
