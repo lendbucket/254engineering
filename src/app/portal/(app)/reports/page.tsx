@@ -121,7 +121,25 @@ function FigureCell({
               The query ran and matched no record. This figure is that fact rather than a missing one.
             </p>
           ) : (
-            <div className="mt-2 overflow-x-auto">
+            <>
+            {/*
+              A LIST BELOW md AND THE TABLE FROM md UP, like DataTable: a phone
+              reads rows, not columns (native standard, point 4). Found
+              2026-10-21 when the turnaround report gave this screen its first
+              rows on development: a table inside a CLOSED details still has a
+              box in Chromium, so the table rendered here at 390 all along,
+              behind sets that happened to be empty.
+            */}
+            <ul className="mt-2 md:hidden">
+              {window.shown.map((row, i) => (
+                <li key={`${row.label}-${i}`} className="border-t border-[var(--border)] py-1 text-[12px]">
+                  <span className="font-semibold text-[var(--ink)]">{row.label}</span>
+                  {row.detail ? <span className="text-[var(--secondary)]">, {row.detail}</span> : null}
+                  <span className="float-right tabular-nums text-[var(--ink)]">{rowValue(figure, row.value)}</span>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-2 hidden overflow-x-auto md:block">
               <table className="w-full border-collapse text-[12px]">
                 <tbody>
                   {window.shown.map((row, i) => (
@@ -136,6 +154,7 @@ function FigureCell({
                 </tbody>
               </table>
             </div>
+            </>
           )}
 
           {/*

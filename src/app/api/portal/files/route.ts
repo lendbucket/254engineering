@@ -136,7 +136,16 @@ async function handlePOST(request: NextRequest) {
    * second should not automatically be able to do the first.
    */
   if (action === "send_payment_link" || action === "invoice_account") {
-    if (!can(actor, "payments.charge")) {
+    /*
+     * The link alone opens to payments.send_link (0079). Invoicing an account
+     * stays payments.charge: terms and credit are the administrator's. Neither
+     * branch can reach the proving charge, which asks payments.charge itself.
+     */
+    const permitted =
+      action === "send_payment_link"
+        ? can(actor, "payments.charge") || can(actor, "payments.send_link")
+        : can(actor, "payments.charge");
+    if (!permitted) {
       return NextResponse.json({ ok: false, error: "Not permitted." }, { status: 403 });
     }
     const fileId = String(body?.fileId ?? "");
@@ -199,7 +208,13 @@ async function handlePOST(request: NextRequest) {
   }
 
   if (action === "create_file") {
-    if (!can(actor, "files.create")) {
+    /*
+     * ADMIN ONLY: payments.charge, which the administrator alone holds. Owner
+     * ruling, 2026-10-20: opening a job without payment is admin only, and
+     * this door opens one with no payment step and a price as typed. Every
+     * other role takes a job through take_job, which ends in a payment link.
+     */
+    if (!can(actor, "files.create") || !can(actor, "payments.charge")) {
       return NextResponse.json({ ok: false, error: "Not permitted." }, { status: 403 });
     }
     const result = await createFile(
@@ -248,6 +263,19 @@ async function handlePOST(request: NextRequest) {
   if (action === "convert_lead") {
     if (!can(actor, "clients.create") || !can(actor, "files.create")) {
       return NextResponse.json({ ok: false, error: "Not permitted." }, { status: 403 });
+    }
+    /*
+     * ADMIN ONLY: a converted lead opens a job with no payment step. Owner
+     * ruling, 2026-10-20: opening a job without payment is admin only, Sales
+     * included, so this asks payments.charge, which the administrator alone
+     * holds. Everybody else takes the job through New job, which ends in a
+     * payment link.
+     */
+    if (!can(actor, "payments.charge")) {
+      return NextResponse.json(
+        { ok: false, error: "Your role takes a job through New job, which ends in a payment link. Mark the lead contacted from the inbox." },
+        { status: 403 },
+      );
     }
     const result = await convertLead(
       actor,

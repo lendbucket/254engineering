@@ -44,6 +44,8 @@ check("an administrator with a reason and a code passes the rule", ask({}) === n
 check("a Sales account is refused", ask({ actorRole: "sales" }) !== null, ask({ actorRole: "sales" }) ?? "allowed");
 check("a technician account is refused", ask({ actorRole: "field_tech" }) !== null, ask({ actorRole: "field_tech" }) ?? "allowed");
 check("a dispatcher and customer service are refused too", ask({ actorRole: "dispatcher" }) !== null && ask({ actorRole: "customer_service" }) !== null);
+/* The two staff levels, 2026-10-20: never a no-charge job. roles-audit also asks it of a live session for each. */
+check("the rep and the operations manager are refused too", ask({ actorRole: "rep" }) !== null && ask({ actorRole: "ops_manager" }) !== null);
 check("the platform acting with no person behind it is refused", ask({ actorId: null }) !== null);
 check("a missing code is refused", ask({ code: null }) !== null && ask({ code: "   " }) !== null, ask({ code: null }) ?? "allowed");
 check("a reason under ten characters is refused", ask({ reason: "free" }) !== null);

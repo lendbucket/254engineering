@@ -71,11 +71,17 @@ export function IntakeClient({
   counties,
   prelaunch,
   ownerOverride = false,
+  canOverridePrice = true,
+  linkOnly = false,
 }: {
   lines: { slug: string; name: string }[];
   deliverables: Deliverable[];
   counties: string[];
   prelaunch: boolean;
+  /** pricing.override_at_intake. Without it the catalog price is charged as it is (2026-10-20); the server refuses anything else. */
+  canOverridePrice?: boolean;
+  /** payments.send_link without payments.charge: the payment link is the only route, and the server refuses another. */
+  linkOnly?: boolean;
   /**
    * The owner override (src/lib/owner-override.ts), decided on the server from
    * the signed-in id: a no-charge job asks for his password in place of the
@@ -126,7 +132,7 @@ export function IntakeClient({
   const [uploads, setUploads] = useState<
     Record<string, { name: string; bucket: string; storageKey: string; contentType: string; byteSize: number }>
   >({});
-  const [paymentIntent, setPaymentIntent] = useState<PaymentIntent>("released_unpaid");
+  const [paymentIntent, setPaymentIntent] = useState<PaymentIntent>(linkOnly ? "link_sent" : "released_unpaid");
 
   /*
    * THE CATALOG'S OWN QUESTIONS, WHICH THIS SCREEN DID NOT ASK.
@@ -164,6 +170,7 @@ export function IntakeClient({
     fileNumber: string;
     landedAt: string;
     landingWarning?: string;
+    paymentLinkWarning?: string;
   } | null>(null);
 
   /*
@@ -476,6 +483,12 @@ export function IntakeClient({
           </p>
         ) : null}
 
+        {done.paymentLinkWarning ? (
+          <p className="mt-3 border-l-2 border-[var(--danger)] py-1 pl-3 text-[14px] leading-[1.55] text-[var(--ink)]">
+            {done.paymentLinkWarning} The customer has not been asked to pay, and the file says the link was not sent.
+          </p>
+        ) : null}
+
         {done.landedAt === "needs_dispatch" ? (
           <div className="mt-5 border-t border-[var(--border)] pt-5">
             {dispatch === undefined ? (
@@ -492,6 +505,8 @@ export function IntakeClient({
                 ineligible={dispatch.plan.ineligible}
                 alreadyOffered={dispatch.alreadyOffered}
                 feeCents={dispatch.feeCents}
+                rateSet={dispatch.rateSet}
+                rateVisible={dispatch.rateVisible}
                 proximityUnavailable={dispatch.proximityUnavailable}
                 propertyLocated={dispatch.propertyLocated}
                 protocolName={
@@ -865,6 +880,8 @@ export function IntakeClient({
           </dl>
         )}
 
+        {canOverridePrice ? (
+        <>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <div>
             <label htmlFor="overridePrice" className={label}>Charge a different price</label>
@@ -892,6 +909,10 @@ export function IntakeClient({
           The catalog price stays on the file either way. A price that changed with no record of who
           changed it or why is a dispute the firm loses.
         </p>
+        </>
+        ) : (
+          <p className={hint}>The catalog price is charged as it is. An administrator can change a price.</p>
+        )}
         {noCharge && ownerOverride ? (
           <div className="mt-4">
             <label htmlFor="noChargePassword" className={label}>
@@ -941,7 +962,7 @@ export function IntakeClient({
         note="Work released before payment is a decision the firm makes, not one it discovers."
       >
         <div className="flex flex-col border-t border-[var(--row-rule)]">
-          {options.map((o) => (
+          {(linkOnly ? options.filter((o) => o.intent === "link_sent") : options).map((o) => (
             <label
               key={o.intent}
               className={`flex min-h-[var(--tap-target)] cursor-pointer items-start gap-3 border-b border-[var(--row-rule)] py-2.5 ${

@@ -674,13 +674,26 @@ console.log("");
 
   if (item) {
     const reportActions = REPORTS.map((r) => r.action);
+    /*
+     * The item's own action OR any of its anyOf (nav.ts, 2026-10-20). The
+     * operations manager holds report grants without reports.production, which
+     * is the engineer's pay, so the link names every report action rather
+     * than asking for that one.
+     */
+    const opens = [item.action, ...(item.anyOf ?? [])];
     const stranded = DEFAULT_ROLES.filter((role) => {
       const holds = role.grants.filter((g) => reportActions.includes(g));
-      return holds.length > 0 && !role.grants.includes(item.action);
+      return holds.length > 0 && !opens.some((a) => role.grants.includes(a));
     }).map((r) => r.key);
+    const unlinked = reportActions.filter((a) => !opens.includes(a));
 
     rec(
-      `every role that may read a report can see the link (${item.action})`,
+      "the reports link opens for every report action there is",
+      unlinked.length === 0,
+      unlinked.length ? `${unlinked.join(", ")} would leave its holders reaching the screen by URL only` : opens.join(", "),
+    );
+    rec(
+      `every role that may read a report can see the link (${opens.join(" or ")})`,
       stranded.length === 0,
       stranded.length
         ? `${stranded.join(", ")} hold a report grant and not ${item.action}, so the page is reachable only by URL for them`

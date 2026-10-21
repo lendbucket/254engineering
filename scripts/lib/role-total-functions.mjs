@@ -214,4 +214,7 @@ export const DASHBOARD_FOR_ROLE = {
   sales: "sales",
   customer_service: "customer_service",
   read_only: "admin",
+  /* The two staff levels share the desk (staff-desk.ts, 2026-10-20). */
+  rep: "desk",
+  ops_manager: "desk",
 };

@@ -45,7 +45,14 @@ export type SearchResult =
       filesMore: boolean;
       orders: OrderHit[] | null;
       ordersMore: boolean;
+      /** Clients by name, email, phone or city, for clients.list. Null when not asked. */
+      clients: ClientHit[] | null;
+      /** Prospects on the sales list, for crm.use. Null when not asked. */
+      prospects: ProspectHit[] | null;
     };
+
+export type ClientHit = { id: string; name: string; email: string | null; phone: string | null; city: string | null };
+export type ProspectHit = { id: string; company: string; contact_name: string | null; phone: string | null; email: string | null; city: string | null; status: string };
 
 /** The term as a pattern can carry it: the characters PostgREST's or() treats as syntax removed. */
 function clean(raw: string): string {
@@ -96,11 +103,14 @@ export async function searchRecords(actor: Actor | null, raw: string): Promise<S
 
   let orders: OrderHit[] | null = null;
   let ordersMore = false;
-  if (can(actor, "payments.reconcile")) {
+  /* orders.read as well, since 0079: looking an order up reads nothing about money beyond what was charged. */
+  if (can(actor, "payments.reconcile") || can(actor, "orders.read")) {
     const orderOr = [
       `reference.ilike.${like}`,
       `customer_email.ilike.${like}`,
+      `customer_name.ilike.${like}`,
       `property_address.ilike.${like}`,
+      `city.ilike.${like}`,
       ...(digits.length >= 7 ? [`customer_phone.ilike.${phoneLike}`] : []),
     ].join(",");
     const { data } = await db
@@ -114,6 +124,31 @@ export async function searchRecords(actor: Actor | null, raw: string): Promise<S
     orders = rows.slice(0, SEARCH_LIMIT);
   }
 
+  /*
+   * ONE GLOBAL SEARCH. Office ready, 2026-10-20: orders, customers, prospects
+   * and addresses, by any field staff would type. Customers are clients; an
+   * address is found through the files and orders above, which carry it.
+   */
+  const contactOr = (name: string) =>
+    [`${name}.ilike.${like}`, `email.ilike.${like}`, `city.ilike.${like}`, ...(digits.length >= 7 ? [`phone.ilike.${phoneLike}`] : [])].join(",");
+
+  let clientHits: ClientHit[] | null = null;
+  if (can(actor, "clients.list")) {
+    const { data, error } = await db.from("eng_clients").select("id, name, email, phone, city").or(contactOr("name")).order("name").limit(SEARCH_LIMIT);
+    clientHits = error ? null : ((data ?? []) as ClientHit[]);
+  }
+
+  let prospectHits: ProspectHit[] | null = null;
+  if (can(actor, "crm.use")) {
+    const { data, error } = await db
+      .from("eng_prospects")
+      .select("id, company, contact_name, phone, email, city, status")
+      .or(`${contactOr("company")},contact_name.ilike.${like}`)
+      .order("company")
+      .limit(SEARCH_LIMIT);
+    prospectHits = error ? null : ((data ?? []) as ProspectHit[]);
+  }
+
   return {
     ok: true,
     term,
@@ -121,5 +156,7 @@ export async function searchRecords(actor: Actor | null, raw: string): Promise<S
     filesMore: files.length > SEARCH_LIMIT,
     orders,
     ordersMore,
+    clients: clientHits,
+    prospects: prospectHits,
   };
 }

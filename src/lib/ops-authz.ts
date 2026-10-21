@@ -312,10 +312,18 @@ export type Action =
    * payment link, or an invoice to an account with terms.
    *
    * In this family rather than beside files.create, and admin only for the same
-   * reason the two above are. Writing a job down and asking somebody to pay for
-   * it are different acts. Phase 10 Section 2 introduces a coordinator who
-   * should be able to do the first without the second, and putting this here
-   * now means that role arrives without needing this decision revisited.
+   * reason the two above are.
+   *
+   * OPENING A JOB WITHOUT PAYMENT IS ADMIN ONLY, BY OWNER RULING 2026-10-20.
+   * This sentence used to read "Writing a job down and asking somebody to pay
+   * for it are different acts. Phase 10 Section 2 introduces a coordinator who
+   * should be able to do the first without the second." The owner ruled the
+   * other way: every role but the administrator takes a job through New job,
+   * which always ends in a payment link (payments.send_link), and the three
+   * doors that open a job with no payment step, the direct new-file form,
+   * converting a lead, and "Open it unpaid", ask for THIS grant, which the
+   * administrator alone holds. The old reasoning is kept here so a reader of
+   * the git history does not mistake the change for an accident.
    */
   | "payments.charge"
   // Customer ordering accounts: terms, credit, statements. Admin only, because
@@ -387,7 +395,59 @@ export type Action =
    * produces a task, and the deletion is a run an administrator authorises.
    * Those are two different acts by two different people on purpose.
    */
-  | "retention.execute";
+  | "retention.execute"
+  /*
+   * THE TWO STAFF LEVELS, 2026-10-20. Operator ruling: a customer service and
+   * sales rep, and an operations manager who does everything the rep does plus
+   * refund approval up to a limit, technician onboarding and reports. 0079.
+   *
+   * Each is NARROWER than an existing action it might have borrowed, and the
+   * narrowness is the point: payments.charge also runs the proving charge,
+   * payments.reconcile also opens reconciliation, profiles.create invites an
+   * administrator as readily as a technician, and files.create also lets a
+   * price be typed over the catalog's. Neither level may do any of those.
+   */
+  // Change a job's contact, access and scheduling details and nothing else:
+  // the closed list in file-detail-fields.ts. Not files.update, which also
+  // files documents. Operator ruling, 2026-10-20.
+  | "files.update_details"
+  // Send a customer the card link for a job somebody took on the telephone.
+  // Not payments.charge: that one also runs the proving charge.
+  | "payments.send_link"
+  // Read orders and look them up. Changes nothing about money.
+  | "orders.read"
+  // Send the customer a fresh link to their order's status page.
+  | "orders.resend_link"
+  // The one inbox: contact and waitlist leads, design and windstorm inquiries.
+  | "inbox.read"
+  | "inbox.answer"
+  // Record a call, an email or a note against a prospect, client, order or file.
+  | "contact_log.write"
+  // The sales list: prospects, imports, the call list, converting one.
+  | "crm.use"
+  // Ask for an order's money to go back. Somebody else decides.
+  | "refunds.request"
+  /*
+   * Decide a refund request up to the limit the operator set, which starts at
+   * zero. Holding payments.refund means no limit; holding this means the
+   * newest eng_refund_approval_limits row, and the database refuses an
+   * approval above it.
+   */
+  | "refunds.approve_within_limit"
+  // Set that limit. The operator alone.
+  | "settings.refund_limit"
+  // Invite a field technician, activate one, and review their credentials.
+  // Never another role: profiles.create is the one that invites anybody.
+  | "technicians.onboard"
+  // Type a price at intake that differs from the catalog's. Split out of
+  // files.create. CHANGING A PRICE AT INTAKE IS ADMIN ONLY, by owner ruling
+  // 2026-10-20, the same as opening a job without payment.
+  | "pricing.override_at_intake"
+  // See a technician's flat rate on the dispatch panel. Split out of
+  // offers.dispatch and held by the administrator alone (ruling 2026-10-20).
+  | "pricing.read_tech_rate"
+  | "reports.turnaround"
+  | "reports.activity";
 
 /**
  * The matrix. Read it as: this role may perform these actions.
@@ -446,6 +506,13 @@ const MATRIX: Record<Role, Action[]> = {
     "suppressions.manage",
     /* And the one permission that deletes. Seeded by 0030, admin alone. */
     "retention.execute",
+    /* The staff level actions, 0079, so an administrator can do anything a rep
+     * or manager can, plus set the refund limit, which is the operator's alone. */
+    "payments.send_link", "orders.read", "orders.resend_link", "files.update_details",
+    "inbox.read", "inbox.answer", "contact_log.write", "crm.use",
+    "refunds.request", "refunds.approve_within_limit", "settings.refund_limit",
+    "technicians.onboard", "pricing.override_at_intake", "pricing.read_tech_rate",
+    "reports.turnaround", "reports.activity",
   ],
   engineer: [
     "profiles.read_self", "profiles.update_self",
@@ -548,6 +615,18 @@ export type DefaultRole = {
   grants: Action[];
 };
 
+/** The rep's grants, which the operations manager holds in full. 0079. */
+const REP_GRANTS: Action[] = [
+  "profiles.read_self", "profiles.update_self",
+  "clients.list", "clients.create", "clients.update",
+  "files.list", "files.create", "files.update_details",
+  "offers.dispatch",
+  "tasks.use", "messages.use", "time.log_own",
+  "payments.send_link", "orders.read", "orders.resend_link",
+  "inbox.read", "inbox.answer", "contact_log.write", "crm.use",
+  "refunds.request",
+];
+
 export const DEFAULT_ROLES: DefaultRole[] = [
   {
     key: "admin",
@@ -600,6 +679,11 @@ export const DEFAULT_ROLES: DefaultRole[] = [
       "offers.dispatch", "offers.list_own",
       "tasks.use", "messages.use",
       "time.log_own",
+      /* pricing.read_tech_rate is NOT here. This role saw the technician's
+       * flat rate on the dispatch panel through offers.dispatch until 0079,
+       * which contradicted "No money at all" above. Operator ruling,
+       * 2026-10-20: technician pay is off the dispatch panel for every role
+       * except admin, this one included. */
     ],
   },
   {
@@ -609,8 +693,13 @@ export const DEFAULT_ROLES: DefaultRole[] = [
      * between what the client pays and what the technician is paid is
      * negotiating against the firm's own costs.
      *
-     * No payments.charge either. Writing a job down and asking somebody to pay
-     * for it are different acts, decided in Section 1.
+     * No payments.charge either, and so no job without payment. OPENING A JOB
+     * WITHOUT PAYMENT IS ADMIN ONLY, BY OWNER RULING 2026-10-20. This read
+     * "Writing a job down and asking somebody to pay for it are different
+     * acts, decided in Section 1"; the owner ruled that Sales follows the same
+     * rule as the rep: New job always ends in a payment link, which is why
+     * this role now holds payments.send_link, and the direct new-file form,
+     * converting a lead and "Open it unpaid" are the administrator's.
      */
     key: "sales",
     name: "Sales",
@@ -623,6 +712,12 @@ export const DEFAULT_ROLES: DefaultRole[] = [
       "files.list", "files.create",
       "tasks.use", "messages.use",
       "time.log_own",
+      /* pricing.override_at_intake is NOT here. Typing a price over the
+       * catalog's was carried by files.create until 0079 split it out, and
+       * CHANGING A PRICE AT INTAKE IS ADMIN ONLY, by owner ruling 2026-10-20.
+       * Sales takes the catalog price as it is, like the rep. */
+      /* The payment link New job always ends in, owner ruling 2026-10-20. 0079. */
+      "payments.send_link",
     ],
   },
   {
@@ -671,6 +766,50 @@ export const DEFAULT_ROLES: DefaultRole[] = [
       "pricing.read", "billing.read", "ledger.read_all",
       "audit.read",
       "responsible_charge.read_all",
+    ],
+  },
+  {
+    /*
+     * LEVEL 1, 2026-10-20. Answers the telephone, takes jobs that are paid by a
+     * card link, dispatches them, works the one inbox and the sales list, and
+     * asks for refunds that somebody else decides.
+     *
+     * What it may never do is the ruling's list, and each is the ABSENCE of a
+     * grant rather than an if: no payments.charge, payments.refund or
+     * payments.reconcile; no pricing.* of any kind, so no price typed over the
+     * catalog's and no technician rate on the dispatch panel; no ledger.* or
+     * billing.read, so no pay; no profiles.create or roles.manage; no
+     * jobs.manage, which is the screen that says whether Stripe is configured.
+     * The five licensed acts are not grantable to anybody. A no-charge job is
+     * refused by role key, admin alone, and the owner override names two people.
+     */
+    key: "rep",
+    name: "Customer Service and Sales Rep",
+    landingPath: "/portal",
+    isSystem: false,
+    inviteFields: [],
+    grants: [...REP_GRANTS],
+  },
+  {
+    /*
+     * LEVEL 2, 2026-10-20. Everything the rep holds, spread rather than
+     * retyped so the two cannot drift, and then four things: deciding a refund
+     * request up to the operator's limit, onboarding a field technician and
+     * reviewing their credentials, and reading the reports that carry no pay.
+     *
+     * reports.production is deliberately absent. It is the report about what
+     * the engineer and the technicians are paid.
+     */
+    key: "ops_manager",
+    name: "Operations Manager",
+    landingPath: "/portal",
+    isSystem: false,
+    inviteFields: [],
+    grants: [
+      ...REP_GRANTS,
+      "refunds.approve_within_limit",
+      "technicians.onboard",
+      "reports.revenue", "reports.pipeline", "reports.turnaround", "reports.activity",
     ],
   },
 ];

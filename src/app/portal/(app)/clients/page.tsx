@@ -79,7 +79,9 @@ export default async function ClientsPage() {
       head: "Client",
       cell: (c) => (
         <div>
-          <p className="font-semibold text-[var(--ink)]">{c.name}</p>
+          <p className="font-semibold">
+            <Link href={`/portal/clients/${c.id}`} className="text-[var(--navy)] underline">{c.name}</Link>
+          </p>
           <p className="text-[13px] text-[var(--secondary)]">
             {c.kind === "organization" ? "Organization" : "Individual"}
             {c.client_type ? `, ${c.client_type.replace(/_/g, " ")}` : ""}
@@ -161,13 +163,20 @@ export default async function ClientsPage() {
                       <span className="text-[12px] text-[var(--secondary)]">{when(lead.created_at)}</span>
                     </div>
                   </div>
-                  <div className="mt-3">
-                    <ConvertLead
-                      lead={lead}
-                      services={services.map((s) => ({ slug: s.slug, name: s.name }))}
-                      counties={TEXAS_COUNTIES}
-                    />
-                  </div>
+                  {/* A converted lead opens a job with no payment step, which is admin only (owner ruling 2026-10-20). */}
+                  {!can(actor, "payments.charge") ? (
+                    <p className="mt-3 text-[14px] text-[var(--secondary)]">
+                      Take this as a job from New job, which sends the payment link.
+                    </p>
+                  ) : (
+                    <div className="mt-3">
+                      <ConvertLead
+                        lead={lead}
+                        services={services.map((s) => ({ slug: s.slug, name: s.name }))}
+                        counties={TEXAS_COUNTIES}
+                      />
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>

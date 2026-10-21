@@ -280,6 +280,27 @@ const EXPECTED = {
    * licence is not a reason to be able to delete, and neither is being the
    * person whose work the rows describe. */
   "retention.execute":            { admin: true,  engineer: false, field_tech: false },
+
+  /* THE TWO STAFF LEVELS, 0079, operator ruling 2026-10-20. The administrator
+   * can do anything a rep or an operations manager can, plus set the refund
+   * limit. Neither the engineer nor the technician holds any of these: the desk
+   * is not their work, and two of them are views of money. */
+  "payments.send_link":           { admin: true,  engineer: false, field_tech: false },
+  "orders.read":                  { admin: true,  engineer: false, field_tech: false },
+  "orders.resend_link":           { admin: true,  engineer: false, field_tech: false },
+  "files.update_details":         { admin: true,  engineer: false, field_tech: false },
+  "inbox.read":                   { admin: true,  engineer: false, field_tech: false },
+  "inbox.answer":                 { admin: true,  engineer: false, field_tech: false },
+  "contact_log.write":            { admin: true,  engineer: false, field_tech: false },
+  "crm.use":                      { admin: true,  engineer: false, field_tech: false },
+  "refunds.request":              { admin: true,  engineer: false, field_tech: false },
+  "refunds.approve_within_limit": { admin: true,  engineer: false, field_tech: false },
+  "settings.refund_limit":        { admin: true,  engineer: false, field_tech: false },
+  "technicians.onboard":          { admin: true,  engineer: false, field_tech: false },
+  "pricing.override_at_intake":   { admin: true,  engineer: false, field_tech: false },
+  "pricing.read_tech_rate":       { admin: true,  engineer: false, field_tech: false },
+  "reports.turnaround":           { admin: true,  engineer: false, field_tech: false },
+  "reports.activity":             { admin: true,  engineer: false, field_tech: false },
 };
 
 /*
@@ -336,9 +357,16 @@ rec(
 // The three original roles keep their hand written table above, because that
 // one was written independently and predates the grants it checks.
 // =====================================================================
+/* The two staff levels, by key, written out here rather than read from the module: 2026-10-20. */
+const STAFF_LEVELS = ["rep", "ops_manager"];
 {
   const ALL_ROLES = DEFAULT_ROLES.map((r) => r.key);
   const grantsOf = (key) => new Set(DEFAULT_ROLES.find((r) => r.key === key)?.grants ?? []);
+  rec(
+    "both staff levels are declared roles, so the rules below are about something",
+    STAFF_LEVELS.every((k) => ALL_ROLES.includes(k)),
+    STAFF_LEVELS.filter((k) => !ALL_ROLES.includes(k)).join(", ") || STAFF_LEVELS.join(", "),
+  );
 
   let pairs = 0;
   const broken = [];
@@ -350,10 +378,79 @@ rec(
    */
   const RULES = [
     {
+      /*
+       * payments.send_link is the one exception, and it is NAMED rather than
+       * matched. Operator ruling, 2026-10-20: the rep's phone intake sends the
+       * customer a card link. Sending a link asks the customer to pay; it
+       * charges, refunds and reconciles nothing, and it cannot reach the
+       * proving charge, which asks payments.charge itself. Held by the two
+       * staff levels and the administrator, and by nobody else.
+       */
       why: "only an administrator may move money",
       check: (role, action) =>
-        /^payments\./.test(action) && role !== "admin"
+        /^payments\./.test(action) &&
+        role !== "admin" &&
+        /* Sales too, owner ruling 2026-10-20: New job always ends in a payment link, for every role but admin. */
+        !(action === "payments.send_link" && [...STAFF_LEVELS, "sales"].includes(role))
           ? "a role other than the administrator may charge, refund or reconcile"
+          : null,
+    },
+    {
+      /*
+       * ===================================================================
+       * THE TWO STAFF LEVELS, AND WHAT NEITHER MAY EVER HOLD.
+       * Operator ruling, 2026-10-20, in his list.
+       * ===================================================================
+       *
+       * Neither may seal, sign or approve protocols, or upload seals: those
+       * are licensed acts and ungrantable, asserted below for every role.
+       * Neither may change prices (pricing.*), open a no-charge job (by role
+       * key, admin alone, asserted in its own proof), use the owner override
+       * (two named ids), see or change engineer or technician pay (pricing.*,
+       * ledger.*, billing.read, reports.production), create staff accounts or
+       * change roles (profiles.create, profiles.update, profiles.suspend,
+       * profiles.force_reset, roles.manage), or see Stripe keys or settings
+       * (jobs.manage opens the platform status screen, and nothing else
+       * shows a key). And by the four rulings that came with it: no
+       * files.update (contact, access and scheduling only, through
+       * files.update_details), and no accounts.manage (invoice billing, terms
+       * and limits are the administrator's).
+       *
+       * A LIST OF PREFIXES AND NAMES, SO A NEW GRANT IN ANY OF THESE FAMILIES
+       * ARRIVES RED. The narrow actions the levels do hold are not in it.
+       */
+      why: "the two staff levels touch no price, no pay, no staff account, no role and no Stripe setting",
+      check: (role, action) =>
+        STAFF_LEVELS.includes(role) &&
+        (/^(pricing\.|ledger\.|billing\.|settings\.)/.test(action) ||
+          (/^payments\./.test(action) && action !== "payments.send_link") ||
+          [
+            "accounts.manage", "roles.manage", "partners.manage", "jobs.manage", "retention.execute",
+            "profiles.list", "profiles.create", "profiles.update", "profiles.suspend", "profiles.force_reset",
+            "files.update", "files.cancel", "files.transition", "reports.production", "audit.read",
+            "suppressions.manage", "documents.deliver", "evidence.review", "ledger.approve",
+          ].includes(action))
+          ? `${role} holds ${action}, which the ruling of 2026-10-20 keeps from both staff levels`
+          : null,
+    },
+    {
+      why: "the rep asks for refunds and does not decide them, and onboards nobody",
+      check: (role, action) =>
+        role === "rep" && (action === "refunds.approve_within_limit" || action === "technicians.onboard" || /^reports\./.test(action))
+          ? `rep holds ${action}, which is the operations manager's or the administrator's`
+          : null,
+    },
+    {
+      why: "the operator alone sets the refund limit, and the narrow money splits stay where they were",
+      check: (role, action) =>
+        (action === "settings.refund_limit" && role !== "admin") ||
+        /* Admin alone, owner ruling 2026-10-20: changing a price at intake is admin only, Sales included. */
+        (action === "pricing.override_at_intake" && role !== "admin") ||
+        /* Admin alone, ruling 2026-10-20: technician pay is off the dispatch panel for every other role, the Dispatcher included. */
+        (action === "pricing.read_tech_rate" && role !== "admin") ||
+        (action === "refunds.approve_within_limit" && !["admin", "ops_manager"].includes(role)) ||
+        (action === "technicians.onboard" && !["admin", "ops_manager"].includes(role))
+          ? `${role} holds ${action}, which 0079 gave to a named set of roles only`
           : null,
     },
     {
@@ -1450,6 +1547,252 @@ if (!db) {
     }
 
     /*
+     * =================================================================
+     * THE TWO STAFF LEVELS, REFUSED AT THE SERVER, SIGNED IN AS EACH.
+     * Operator ruling, 2026-10-20.
+     * =================================================================
+     *
+     * For each act the ruling forbids, and for each narrow action's wider
+     * counterpart, a real request is made with a real session for the rep
+     * and for the operations manager, and the server must refuse it. Not a
+     * button that is missing: the route itself.
+     *
+     * A REFUSAL IS READ FOR ITS REASON, NOT ONLY ITS STATUS. Several of these
+     * routes answer 400 both for "your role cannot" and for "that record does
+     * not exist", and a check that took any 400 would pass on a request that
+     * was never asked the question. So every attempt names the status AND the
+     * words the refusal must carry, and a 400 for a different reason is a red
+     * line naming what came back.
+     */
+    const NOWHERE = "00000000-0000-4000-8000-000000000079";
+    const post = (role, path, body) =>
+      fetch(`${BASE}${path}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", cookie: sessions[role] ?? "" },
+        body: JSON.stringify(body),
+      });
+    const get = (role, path) => fetch(`${BASE}${path}`, { headers: { cookie: sessions[role] ?? "" }, redirect: "manual" });
+
+    /* The proving charge names its confirmation word in its own refusal; read it rather than type it. */
+    let provingWord = "";
+    {
+      const first = await post("admin", "/api/portal/proving-charge", {});
+      const said = String((await first.json().catch(() => ({})))?.error ?? "");
+      provingWord = (said.match(/"confirm":"([^"]+)"/) ?? [])[1] ?? "";
+    }
+
+    const STAFF_REFUSALS = [
+      { act: "seal a letter", req: (r) => post(r, "/api/portal/letters", { action: "seal" }), status: 403, says: /engineer of record/i },
+      { act: "sign a protocol", req: (r) => post(r, "/api/portal/protocols/sign", {}), status: 403, says: /engineer of record/i },
+      { act: "approve a protocol", req: (r) => post(r, "/api/portal/field", { action: "approve_protocol", id: NOWHERE }), status: 400, says: /Professional Engineer in responsible charge/i },
+      { act: "upload a seal", req: (r) => post(r, "/api/portal/seal", {}), status: 403, says: /licensed engineer of record/i },
+      { act: "change an account's price", req: (r) => post(r, "/api/portal/accounts/pricing", {}), status: 403, says: /Not permitted/ },
+      { act: "open a file at a typed price", req: (r) => post(r, "/api/portal/files", { action: "create_file", clientPriceCents: 100 }), status: 403, says: /Not permitted/ },
+      {
+        act: "take a job at a price other than the catalog's",
+        req: (r) => post(r, "/api/portal/files", { action: "take_job", serviceSlug: "roof-inspections", tier: "standard", priceCents: 12345, priceOverrideReason: "a reason long enough", paymentIntent: "link_sent", channel: "phone", propertyAddress: "1 Probe Street" }),
+        status: 400,
+        says: /takes the catalog price as it is/,
+      },
+      {
+        act: "open a no-charge job",
+        req: (r) => post(r, "/api/portal/files", { action: "take_job", serviceSlug: "roof-inspections", tier: "standard", priceCents: 0, priceOverrideReason: "a reason long enough", noChargeCode: "000000", paymentIntent: "released_unpaid", channel: "phone", propertyAddress: "1 Probe Street" }),
+        status: 400,
+        says: /takes the catalog price as it is/,
+      },
+      {
+        act: "use the owner override",
+        req: (r) => post(r, "/api/portal/files", { action: "take_job", serviceSlug: "roof-inspections", tier: "standard", priceCents: 0, priceOverrideReason: "a reason long enough", noChargePassword: "not-the-owner", paymentIntent: "released_unpaid", channel: "phone", propertyAddress: "1 Probe Street" }),
+        status: 400,
+        says: /takes the catalog price as it is/,
+      },
+      { act: "open a job unpaid", req: (r) => post(r, "/api/portal/files", { action: "take_job", serviceSlug: "roof-inspections", tier: "standard", paymentIntent: "released_unpaid", channel: "phone", propertyAddress: "1 Probe Street" }), status: 400, says: /by sending the customer a payment link/ },
+      { act: "invoice an account", req: (r) => post(r, "/api/portal/files", { action: "invoice_account", fileId: NOWHERE }), status: 403, says: /Not permitted/ },
+      { act: "take the proving charge", req: (r) => post(r, "/api/portal/proving-charge", { confirm: provingWord }), status: 409, says: /Only somebody holding payments\.charge/ },
+      { act: "reconcile a payment", req: (r) => post(r, "/api/portal/orders/reconcile", { orderId: NOWHERE }), status: 403, says: /Not permitted/ },
+      { act: "refund an order directly", req: (r) => post(r, "/api/portal/orders/refund", { orderId: NOWHERE, reason: "a reason long enough" }), status: 403, says: /Not permitted/ },
+      { act: "read the production pay report", req: (r) => get(r, "/api/portal/exports?report=production"), status: 403, says: /cannot read the production report/i },
+      /* The billing exports are margin and period; "billing" is no report, and asking for it measured the unknown-report answer. */
+      { act: "read the firm's billing, margin", req: (r) => get(r, "/api/portal/exports?report=margin"), status: 403, says: /cannot read the firm's billing/i },
+      { act: "read the firm's billing, by period", req: (r) => get(r, "/api/portal/exports?report=period"), status: 403, says: /cannot read the firm's billing/i },
+      { act: "approve technician pay", req: (r) => post(r, "/api/portal/field", { action: "set_ledger_status", ids: [NOWHERE], status: "approved" }), status: 400, says: /cannot approve payments/i },
+      { act: "create a staff account", req: (r) => post(r, "/api/portal/people", { action: "create", role: "field_tech", displayName: "Probe", email: `staff-${STAMP}@audit-probe.invalid` }), status: 403, says: /Not permitted/ },
+      { act: "change a role", req: (r) => post(r, "/api/portal/roles", { action: "set_user_role", profileId: NOWHERE, role: "admin" }), status: 403, says: /Not permitted/ },
+      { act: "open a commercial account with terms", req: (r) => post(r, "/api/portal/accounts/create", { email: `acct-${STAMP}@audit-probe.invalid`, name: "Probe" }), status: 403, says: /Not permitted/ },
+      { act: "change Stripe or platform settings", req: (r) => post(r, "/api/portal/status", { action: "resolve" }), status: 403, says: /Not permitted/ },
+      { act: "set the refund limit", req: (r) => post(r, "/api/portal/refunds", { action: "set_limit", dollars: 1 }), status: 403, says: /Not permitted/ },
+      { act: "invite an engineer", req: (r) => post(r, "/api/portal/onboarding", { action: "invite_from_application", applicationId: NOWHERE, role: "engineer" }), status: 400, says: /invite field technicians only|cannot invite people/ },
+      { act: "edit a price on a job", req: (r) => post(r, "/api/portal/desk", { action: "update_file_details", fileId: NOWHERE, values: { client_price_cents: "1" } }), status: 400, says: /Only contact, access and scheduling/ },
+    ];
+    /* The rep alone: the manager is allowed these, so asking the manager would prove nothing. */
+    const REP_ONLY_REFUSALS = [
+      { act: "decide a refund request", req: (r) => post(r, "/api/portal/refunds", { action: "decide", requestId: NOWHERE, decision: "approved" }), status: 403, says: /Not permitted/ },
+      { act: "activate a technician", req: (r) => post(r, "/api/portal/onboarding", { action: "activate", onboardingId: NOWHERE }), status: 400, says: /cannot activate/ },
+      { act: "read the revenue report", req: (r) => get(r, "/api/portal/exports?report=revenue"), status: 403, says: /cannot read the revenue report/i },
+    ];
+    const STAFF_PAGES_REFUSED = ["/portal/pay", "/portal/techs", "/portal/people", "/portal/roles", "/portal/status", "/portal/pricebook", "/portal/settings", "/portal/billing", "/portal/orders", "/portal/accounts"];
+
+    /*
+     * OPENING A JOB WITHOUT PAYMENT IS ADMIN ONLY. Owner ruling, 2026-10-20,
+     * Sales included. Each of the three doors that open a job with no payment
+     * step, asked by every role that may take a job at all and is not the
+     * administrator, through the real route.
+     */
+    const NO_UNPAID_ROLES = ["sales", ...STAFF_LEVELS];
+    const NO_UNPAID_REFUSALS = [
+      /* And changing a price at intake, admin only by the same ruling, Sales included (2026-10-20). */
+      {
+        act: "take a job at a price other than the catalog's",
+        req: (r) => post(r, "/api/portal/files", { action: "take_job", serviceSlug: "roof-inspections", tier: "standard", priceCents: 12345, priceOverrideReason: "a reason long enough", paymentIntent: "link_sent", channel: "phone", propertyAddress: "1 Probe Street" }),
+        status: 400,
+        says: /takes the catalog price as it is/,
+      },
+      {
+        act: 'take a job with "Open it unpaid"',
+        req: (r) => post(r, "/api/portal/files", { action: "take_job", serviceSlug: "roof-inspections", tier: "standard", paymentIntent: "released_unpaid", channel: "phone", propertyAddress: "1 Probe Street" }),
+        status: 400,
+        says: /by sending the customer a payment link/,
+      },
+      { act: "open a job through the direct new-file form", req: (r) => post(r, "/api/portal/files", { action: "create_file", clientId: NOWHERE, serviceSlug: "roof-inspections", propertyAddress: "1 Probe Street" }), status: 403, says: /Not permitted/ },
+      { act: "open a job by converting a lead", req: (r) => post(r, "/api/portal/files", { action: "convert_lead", leadId: NOWHERE }), status: 403, says: /takes a job through New job/ },
+    ];
+    rec("Sales holds a live session before anything is asked of it", Boolean(sessions.sales), sessions.sales ? "sales" : "no session");
+    for (const role of NO_UNPAID_ROLES) {
+      for (const a of NO_UNPAID_REFUSALS) {
+        const res = await a.req(role);
+        const said = String((await res.json().catch(() => ({})))?.error ?? "");
+        rec(
+          `${role} cannot ${a.act}, refused at the server`,
+          res.status === a.status && a.says.test(said),
+          `HTTP ${res.status} (expected ${a.status}): ${said.slice(0, 140) || "no reason given"}`,
+        );
+      }
+    }
+
+    rec(
+      "both staff levels hold a live session before anything is asked of them",
+      STAFF_LEVELS.every((r) => Boolean(sessions[r])),
+      STAFF_LEVELS.filter((r) => !sessions[r]).join(", ") || "rep, ops_manager",
+    );
+    rec("the proving charge's own refusal named its confirmation word", provingWord.length > 0, provingWord || "not found");
+
+    for (const role of STAFF_LEVELS) {
+      for (const a of [...STAFF_REFUSALS, ...(role === "rep" ? REP_ONLY_REFUSALS : [])]) {
+        const res = await a.req(role);
+        const text = await res.text();
+        let said = "";
+        try {
+          const parsed = JSON.parse(text);
+          said = String(parsed?.error ?? (Array.isArray(parsed?.blockers) ? parsed.blockers.join(" ") : ""));
+        } catch {
+          said = text.slice(0, 160);
+        }
+        rec(
+          `${role} cannot ${a.act}, refused at the server`,
+          res.status === a.status && a.says.test(said),
+          `HTTP ${res.status} (expected ${a.status}): ${said.slice(0, 140) || "no reason given"}`,
+        );
+      }
+      for (const path of STAFF_PAGES_REFUSED) {
+        const res = await get(role, path);
+        const where = res.headers.get("location") ?? "";
+        rec(
+          `${role} cannot open ${path}`,
+          res.status === 404 || (res.status >= 300 && res.status < 400 && !where.endsWith(path)),
+          `HTTP ${res.status}${where ? ` to ${where}` : ""}`,
+        );
+      }
+    }
+
+    /*
+     * =================================================================
+     * NO ROLE BUT THE ADMINISTRATOR READS TECHNICIAN PAY THROUGH DISPATCH.
+     * Operator ruling, 2026-10-20, the Dispatcher included.
+     * =================================================================
+     *
+     * BUILT, NOT FOUND. A file waiting for dispatch on a service line that HAS
+     * a technician rate is made here, because a check filtered from live data
+     * passes over nothing the day there is no such file. The line is chosen
+     * from the fee schedule as it stands, and nothing is written to the
+     * schedule: it is money configuration. If no line has a rate in force the
+     * subject cannot be built, and that is said as COULD NOT TELL rather than
+     * as a pass.
+     *
+     * THE ADMINISTRATOR IS THE CONTROL. He must SEE the rate on the same file,
+     * or a null for everybody else would prove only that the rate never
+     * arrived.
+     */
+    {
+      const today = new Date().toISOString().slice(0, 10);
+      const { data: rates } = await db
+        .from("eng_fee_schedule")
+        .select("service_slug, amount_cents, effective_from, effective_to")
+        .eq("kind", "tech_pay")
+        .lte("effective_from", today)
+        .gt("amount_cents", 0);
+      const line = (rates ?? []).find((r) => r.service_slug && (!r.effective_to || r.effective_to >= today));
+      if (!line) {
+        console.log("  COULD NOT TELL: no service line has a technician rate in force on this database, so the dispatch pay check has no subject.");
+      } else {
+        const { data: probeClient, error: clientError } = await db
+          .from("eng_clients")
+          .insert({ kind: "individual", name: `Dispatch pay probe ${STAMP}`, email: `dispatch-${STAMP}@audit-probe.invalid` })
+          .select("id")
+          .single();
+        const { data: probeFile, error: fileError } = probeClient
+          ? await db
+              .from("eng_files")
+              .insert({
+                /* -DEMO- because is_demo is set: eng_files_demo_number_agrees (0027) holds the two together. */
+                file_number: `PROBE-DEMO-PAY-${STAMP}`,
+                client_id: probeClient.id,
+                service_slug: line.service_slug,
+                property_address: "1 Probe Street",
+                county: "Nueces",
+                status: "needs_dispatch",
+                is_demo: true,
+              })
+              .select("id")
+              .single()
+          : { data: null, error: null };
+        rec(
+          "the dispatch pay subject was built: a file waiting for dispatch on a line with a rate",
+          Boolean(probeFile?.id),
+          clientError?.message ?? fileError?.message ?? `${line.service_slug}, rate in force`,
+        );
+        try {
+          if (probeFile?.id) {
+            const ask = async (role) => {
+              const res = await post(role, "/api/portal/files", { action: "dispatch_context", fileId: probeFile.id });
+              const body = await res.json().catch(() => null);
+              return { status: res.status, dispatch: body?.dispatch ?? null };
+            };
+            const admin = await ask("admin");
+            rec(
+              "the administrator sees the technician rate on that file, so the subject carries one",
+              admin.status === 200 && admin.dispatch?.feeCents === Number(line.amount_cents),
+              `HTTP ${admin.status}, feeCents ${admin.dispatch?.feeCents ?? "absent"}, expected ${line.amount_cents}`,
+            );
+            for (const role of DEFAULT_ROLES.map((r) => r.key).filter((k) => k !== "admin")) {
+              const r = await ask(role);
+              const figures = r.dispatch
+                ? [r.dispatch.feeCents, ...(r.dispatch.plan?.offers ?? []).map((o) => o.amountCents)].filter((v) => v !== null && v !== undefined)
+                : [];
+              rec(
+                `${role} reads no technician pay through the dispatch API`,
+                r.status === 403 || (r.status === 200 && r.dispatch && figures.length === 0 && r.dispatch.rateVisible === false),
+                r.status === 403 ? "refused, 403" : `HTTP ${r.status}, ${figures.length} pay figure${figures.length === 1 ? "" : "s"} in the response`,
+              );
+            }
+          }
+        } finally {
+          if (probeFile?.id) await removeRows("eng_files", "id", probeFile.id);
+          if (probeClient?.id) await removeRows("eng_clients", "id", probeClient.id);
+        }
+      }
+    }
+
+    /*
      * AND A ROLE THAT IS NOT ONE OF THE THREE CAN ACTUALLY BE HANDED OUT.
      *
      * Over HTTP, through the endpoint the form posts to, because the pure
@@ -1650,6 +1993,30 @@ if (!db) {
             "Partner compensation. Gated on partners.manage, which an engineer does not hold.",
         },
         {
+          route: "/portal/clients/[id]",
+          reaches: true,
+          because:
+            "The client a file belongs to, 2026-10-20. Gated on clients.list like the list it " +
+            "opens from, which an engineer holds. Its one money column is the order list, read " +
+            "only for orders.read or payments.reconcile, neither of which an engineer holds, so " +
+            "he sees the client and none of what the firm charged them.",
+        },
+        {
+          route: "/portal/order-lookup/[id]",
+          reaches: false,
+          because:
+            "One order and what the customer was charged, 2026-10-20. Gated on orders.read or " +
+            "payments.reconcile, and an engineer holds neither: an order total is what the firm " +
+            "makes.",
+        },
+        {
+          route: "/portal/prospects/[id]",
+          reaches: false,
+          because:
+            "A sales prospect, 2026-10-20. Gated on crm.use, which only the rep, the operations " +
+            "manager and the administrator hold. Selling is not an engineer's work.",
+        },
+        {
           route: "/portal/techs/[id]",
           reaches: false,
           because:
@@ -1799,6 +2166,18 @@ if (!db) {
          * this ruling agree rather than disagreeing on the first board.
          */
         "/portal/windstorm-inquiries",
+        /*
+         * The desk, 2026-10-20: the sales list, the one inbox, order lookup,
+         * refund requests, credential review and the operator's settings. All
+         * commercial or administrative, all on grants DEFAULT_ROLES gives him
+         * none of, so the guards and this ruling agree.
+         */
+        "/portal/prospects",
+        "/portal/inbox",
+        "/portal/order-lookup",
+        "/portal/refunds",
+        "/portal/credentials",
+        "/portal/settings",
         "/portal/files/dispatch",
         "/portal/partners/disputes",
         /*

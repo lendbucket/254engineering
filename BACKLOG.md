@@ -4,6 +4,13 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
+## THE SITTING FOR 0079, TWO STAFF ROLES AND THE WORK THEY DO, OPEN
+
+`docs/production-sitting-0079-staff-roles.md`. Written 2026-10-20 on
+`feat/staff-roles` and applied nowhere, development included. Robert applies it
+to development; the branch is then boarded there and held for the chat's
+production sitting. Additive only: five tables, two roles, 63 grant rows.
+
 ## THE SITTING FOR 0078, AN INTAKE ANSWER CAN BE A STORED FILE, OPEN
 
 `docs/production-sitting-0078-intake-photo.md`. Written 2026-10-16 on

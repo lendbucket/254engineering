@@ -31,6 +31,13 @@ export type NavItem = {
    * question the screen behind it asks.
    */
   action: Action | LicensedAction;
+  /**
+   * Further actions any one of which also shows the item, for a screen whose
+   * own guard is a disjunction. Reports is the case: the screen shows each
+   * report its reader can open, and the operations manager (2026-10-20) holds
+   * report grants without reports.production, which is the engineer's pay.
+   */
+  anyOf?: (Action | LicensedAction)[];
   /** Shown in the bottom tab bar on a phone. At most five, by design. */
   primary?: boolean;
   icon:
@@ -158,6 +165,11 @@ export const NAV: NavItem[] = [
   { href: "/portal/search", label: "Search", short: "Search", action: "files.list", icon: "files" },
   { href: "/portal/documents", label: "Documents", short: "Docs", action: "documents.read", icon: "documents" },
   { href: "/portal/orders", label: "Orders", short: "Orders", action: "payments.reconcile", icon: "orders" },
+  /* Looking an order up, which reads and changes nothing about money. 0079. */
+  { href: "/portal/order-lookup", label: "Order lookup", short: "Lookup", action: "orders.read", icon: "orders" },
+  { href: "/portal/refunds", label: "Refund requests", short: "Refunds", action: "refunds.request", icon: "orders" },
+  { href: "/portal/inbox", label: "Inbox", short: "Inbox", action: "inbox.read", icon: "messages" },
+  { href: "/portal/prospects", label: "Sales list", short: "Sales", action: "crm.use", icon: "clients" },
   { href: "/portal/accounts", label: "Accounts", short: "Accts", action: "accounts.manage", icon: "accounts" },
   { href: "/portal/partners", label: "Partners", short: "Partners", action: "partners.manage", icon: "partners" },
   { href: "/portal/billing", label: "Billing", short: "Money", action: "billing.read", icon: "billing" },
@@ -182,7 +194,14 @@ export const NAV: NavItem[] = [
    * reporting-audit fails if a role ever holds a report grant without holding
    * this one, so the intersection cannot silently stop being one.
    */
-  { href: "/portal/reports", label: "Reports", short: "Reports", action: "reports.production", icon: "billing" },
+  {
+    href: "/portal/reports",
+    label: "Reports",
+    short: "Reports",
+    action: "reports.production",
+    anyOf: ["reports.revenue", "reports.pipeline", "reports.partner", "reports.turnaround", "reports.activity"],
+    icon: "billing",
+  },
   /*
    * The marketing suppression list. Reachable for customer service, which is
    * the role the request actually arrives at, and for an administrator.
@@ -197,7 +216,10 @@ export const NAV: NavItem[] = [
   { href: "/portal/clients", label: "Clients", short: "Clients", action: "clients.list", icon: "clients" },
   { href: "/portal/protocols", label: "Protocols", short: "Specs", action: "protocols.author", icon: "protocols" },
   { href: "/portal/techs", label: "Technicians", short: "Techs", action: "profiles.list", icon: "techs" },
-  { href: "/portal/onboarding", label: "Onboarding", short: "Onboard", action: "profiles.create", icon: "onboarding" },
+  /* technicians.onboard since 0079; profiles.create, which only admin holds, still opens every role on the screen. */
+  { href: "/portal/onboarding", label: "Onboarding", short: "Onboard", action: "technicians.onboard", icon: "onboarding" },
+  { href: "/portal/credentials", label: "Credential review", short: "Creds", action: "technicians.onboard", icon: "certification" },
+  { href: "/portal/settings", label: "Settings", short: "Settings", action: "settings.refund_limit", icon: "status" },
   {
     /*
      * The hiring pipeline, moved here from /admin when that surface was deleted.
@@ -284,7 +306,7 @@ export const MOBILE_TAB_LIMIT = 5;
  * Removing it costs nothing and removes a reason to write one.
  */
 export function navFor(allowed: (action: Action | LicensedAction) => boolean): NavItem[] {
-  return NAV.filter((item) => allowed(item.action));
+  return NAV.filter((item) => allowed(item.action) || (item.anyOf ?? []).some(allowed));
 }
 
 export function mobileTabsFor(items: NavItem[]): NavItem[] {

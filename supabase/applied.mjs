@@ -2662,6 +2662,64 @@ export const APPLIED = [
       "and the read backs. Additive only, so the connector is expected to apply it. The branch merges only " +
       "after the production apply is read back, and a migration on main is never pending.",
   },
+  {
+    file: "0079_two_staff_roles_and_the_work_they_do.sql", appliedBy: "apply_migration",
+    fingerprint: "45ce47821d9c5567eb3b4b197549d881",
+    behaviour: "8f0fe1b5eb8a6b5588e0ae9e3ae5017c",
+    /*
+     * APPLIED TO PRODUCTION 2026-10-21, 13:46:28 UTC, provider version
+     * 20261021134628, name 0079_two_staff_roles_and_the_work_they_do, by the
+     * operator's chat counterpart through apply_migration, from
+     * feat/staff-roles at fe0edfd after its board matched, from
+     * docs/production-sitting-0079-staff-roles.md section 4. The file's blob,
+     * 2b0bf237, is the one applied to development. Section 0 read clean
+     * first: shape 4ccff0ee13040992a71d16d2b14163a3 across 1210, the five
+     * tables absent, rep and ops_manager absent.
+     *
+     * Read back, every answer as predicted: shape
+     * 45ce47821d9c5567eb3b4b197549d881 across 1263; row level security on all
+     * five tables; the five triggers; the three constraints; ops_manager and
+     * rep as declared, landing /portal, not system; grants ops_manager 26,
+     * rep 20; payments.send_link on admin, ops_manager, rep and sales,
+     * pricing.override_at_intake, pricing.read_tech_rate and
+     * settings.refund_limit on admin alone, no dispatcher row and no other
+     * sales row; eng_refund_approval_limits 0 rows.
+     */
+    production: "2026-10-21",
+    development: {
+      at: "0079",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-20",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-20 in Central time, provider version 20261021005414, by the operator's " +
+        "chat counterpart through apply_migration from feat/staff-roles at 6e6c27a, name " +
+        "0079_two_staff_roles_and_the_work_they_do, from docs/production-sitting-0079-staff-roles.md. Section 0 " +
+        "read clean first: shape 4ccff0ee13040992a71d16d2b14163a3 across 1210, the five tables absent, rep and " +
+        "ops_manager absent. Read back, every answer as predicted: shape 45ce47821d9c5567eb3b4b197549d881 across " +
+        "1263; row level security on all five tables; the five triggers; the three constraints; both roles as " +
+        "declared; grants ops_manager 26, rep 20; payments.send_link on admin, ops_manager, rep and sales, " +
+        "pricing.override_at_intake, pricing.read_tech_rate and settings.refund_limit on admin alone, no dispatcher " +
+        "row; eng_refund_approval_limits empty.",
+    },
+    proves: { table: "eng_refund_approval_limits" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0079 on 2026-10-20, with 0078 reproducing its " +
+      "recorded pair first: shape 1210 to 1263 columns (five tables: eng_prospects 18, eng_contact_log 14, " +
+      "eng_refund_requests 6, eng_refund_decisions 10, eng_refund_approval_limits 5), behaviour 1020 to 1152 " +
+      "facts. Seeds two roles (rep, ops_manager) and 63 grant rows: rep 20, ops_manager 26, admin 16, sales 1 " +
+      "(payments.send_link). Re-read the same day after the owner ruled a price change at intake admin only and " +
+      "Sales' pricing.override_at_intake row came out: the shape did not move, the behaviour went from " +
+      "fc8b9792ddfa6b1a3eebb45854814a2a across 1153 to this figure across 1152, the one grant fewer.",
+    because:
+      "APPLIED TO PRODUCTION 2026-10-21, provider version 20261021134628, and to development 2026-10-20, " +
+      "version 20261021005414, both read back as this entry records. This sentence replaced 'WRITTEN " +
+      "2026-10-20 ON feat/staff-roles ... NOT APPLIED TO PRODUCTION', which held the branch for the sitting, " +
+      "docs/production-sitting-0079-staff-roles.md section 4. Additive only: five tables, two roles and " +
+      "63 grant rows, no drop and no revoke, so the connector is expected to apply it. The branch merges only " +
+      "after the production apply is read back, and a migration on main is never pending.",
+  },
 ];
 
 /*

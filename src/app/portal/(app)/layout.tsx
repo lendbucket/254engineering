@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ScrollMemory } from "@/components/portal/ScrollMemory";
+import { LiveCounts } from "@/components/portal/LiveCounts";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 /* RELEASE came out with the build line on 2026-09-21. It lives on /portal/status. */
@@ -298,6 +299,8 @@ export default async function PortalLayout({ children }: { children: React.React
           className="portal-panel-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain lg:min-h-[auto] lg:flex-none lg:overflow-visible"
         >
           <ScrollMemory />
+          {/* New orders and inquiries without a refresh, with a count in the tab title (office ready, 2026-10-20). */}
+          {can(actor, "inbox.read") || can(actor, "orders.read") ? <LiveCounts renderedAt={Date.now()} /> : null}
           <main className="portal-main mx-auto flex w-full max-w-[1280px] flex-col gap-[var(--section-gap)] px-[var(--page-gutter)] py-6 lg:pb-10">
             {children}
           </main>

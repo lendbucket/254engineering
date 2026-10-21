@@ -38,6 +38,8 @@ export function DispatchPanel({
   ineligible,
   alreadyOffered,
   feeCents,
+  rateSet = feeCents !== null,
+  rateVisible = true,
   proximityUnavailable,
   propertyLocated,
   protocolName,
@@ -47,6 +49,10 @@ export function DispatchPanel({
   ineligible: { id: string; displayName: string; reason: string }[];
   alreadyOffered: { techId: string; state: string }[];
   feeCents: number | null;
+  /** Whether the schedule holds a rate. Defaults to feeCents being present, for a caller that sees the rate. */
+  rateSet?: boolean;
+  /** pricing.read_tech_rate. False draws no figure at all (2026-10-20). */
+  rateVisible?: boolean;
   proximityUnavailable: boolean;
   propertyLocated: boolean;
   protocolName: string | null;
@@ -93,11 +99,12 @@ export function DispatchPanel({
 
       {protocolName ? (
         <p className="mt-1.5 text-[14px] leading-[1.55] text-[var(--secondary)]">
-          Working to {protocolName}. Technician rate{" "}
-          {feeCents === null
-            ? "is not in the schedule for this service line, so the offer carries no figure"
-            : money(feeCents)}
-          .
+          Working to {protocolName}.{" "}
+          {!rateSet
+            ? "Technician rate is not in the schedule for this service line, so the offer carries no figure."
+            : rateVisible && feeCents !== null
+              ? `Technician rate ${money(feeCents)}.`
+              : "A technician rate is in the schedule for this service line."}
         </p>
       ) : (
         <p className="mt-1.5 max-w-[70ch] text-[14px] leading-[1.55] font-semibold text-[var(--ink)]">

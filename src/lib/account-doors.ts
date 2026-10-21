@@ -80,7 +80,14 @@ export const ACCOUNT_DOORS: AccountDoor[] = [
   },
   {
     origin: "operator_created",
-    what: "An operator takes a call from somebody who is not yet a customer and opens the account from the call, with no order attached. The person receives a set password link, never a password.",
+    /*
+     * TWO ROUTES REACH THIS DOOR SINCE 2026-10-20, AND BOTH ARE NAMED. The
+     * second is converting a prospect on the sales list (crm.use), which opens
+     * the same kind of account through the same function: card billing, no
+     * credit, a set password link. `route` holds the original; the sentence
+     * names the second so the declaration is not shorter than the code.
+     */
+    what: "An operator takes a call from somebody who is not yet a customer and opens the account from the call, with no order attached, or converts a prospect on the sales list through /api/portal/prospects. The person receives a set password link, never a password.",
     route: "/api/portal/accounts/create",
     screen: "/portal/accounts",
     openedBySelf: false,

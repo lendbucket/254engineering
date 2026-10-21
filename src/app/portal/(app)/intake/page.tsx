@@ -46,6 +46,8 @@ export default async function IntakePage() {
    * enforces.
    */
   if (!actor || !can(actor, "files.create")) notFound();
+  /* Without payments.charge the link is the only payment route: opening a job unpaid is admin only (owner ruling 2026-10-20). */
+  const linkOnly = !can(actor, "payments.charge");
 
   /*
    * The catalog, flattened to what the screen needs. Sent whole rather than
@@ -75,7 +77,11 @@ export default async function IntakePage() {
 
       {!isOpen() ? (
         <RestrictedMode
-          also="A job can be taken, priced and dispatched. It cannot be charged for: no payment link and no invoice until the firm opens for work. Open it unpaid and the file will say so."
+          also={
+            linkOnly
+              ? "Your role takes a job by sending a payment link, and no payment link can be sent until the firm opens for work. An administrator can open a job unpaid in the meantime."
+              : "A job can be taken, priced and dispatched. It cannot be charged for: no payment link and no invoice until the firm opens for work. Open it unpaid and the file will say so."
+          }
         />
       ) : null}
 
@@ -85,6 +91,8 @@ export default async function IntakePage() {
         counties={[...TEXAS_COUNTIES]}
         prelaunch={!isOpen()}
         ownerOverride={isOwnerAdmin(actor.id)}
+        canOverridePrice={can(actor, "pricing.override_at_intake")}
+        linkOnly={linkOnly}
       />
     </div>
   );

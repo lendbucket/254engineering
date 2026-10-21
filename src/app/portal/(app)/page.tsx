@@ -8,6 +8,7 @@ import type { PeriodTotals } from "@/lib/ops-money";
 import type { Column } from "@/components/portal/design";
 import { AttentionList, BreakdownList, CountTiles, MoneyTiles, NotComputable } from "@/components/portal/Dashboard";
 import { ButtonLink, EmptyState, PageHead, Panel } from "@/components/portal/surfaces";
+import { CallListPanel } from "@/components/portal/CallList";
 
 export const dynamic = "force-dynamic";
 
@@ -99,6 +100,7 @@ export default async function PortalHome() {
       "Where the work is coming from and how long it has been sitting. Flow and age only: what the firm makes on any of it is not on this screen.",
     customer_service:
       "What is in flight and who is waiting. Where the platform has never recorded the thing you were meant to see, it says so rather than showing something that looks like it.",
+    desk: "What is due now: inquiries waiting for an answer, today's calls, jobs nobody has, holds and refund requests. Nothing here is estimated.",
   };
   const lede = LEDE[dashboard.role];
 
@@ -131,6 +133,8 @@ export default async function PortalHome() {
       />
 
       <CountTiles tiles={dashboard.tiles} />
+
+      {dashboard.role === "desk" ? <CallListPanel rows={dashboard.callList} today={dashboard.today} /> : null}
 
       {/*
         Two sections on a phone, not one: "Needs you" and the money panel each

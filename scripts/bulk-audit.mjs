@@ -137,21 +137,26 @@ if (!db) {
     }
   }
   /*
-   * THREE, AND THE THIRD IS NOT AN ASSIGNMENT.
+   * FOUR, AND THE THIRD AND FOURTH ARE NOT ASSIGNMENTS.
    *
    * Two of them SET an assignment, both when somebody accepts work: an engineer
    * taking a file into review, and a technician accepting an offer. The third
    * CLEARS one, when a site visit or repairs decision sends the file back
    * through dispatch; since 0068 it is a statement in eng_record_review_decision.
+   * The fourth CLEARS one too: releaseAssignment in ops-field.ts, when the desk
+   * releases an accepted technician before evidence starts so the job can be
+   * offered again. Owner ruling 2026-10-20, the two staff roles: the rep's
+   * dispatch is "offer, reassign, log the visit-time call". Three became four
+   * that day, on purpose, and the setters stayed at two.
    *
-   * The number is stated rather than a ceiling, because "at most three" would
-   * pass just as happily on a fourth that gave a file to somebody, and this
+   * The number is stated rather than a ceiling, because "at most four" would
+   * pass just as happily on a fifth that gave a file to somebody, and this
    * check exists to notice exactly that.
    */
   const setters = writers.filter((w) => !/(:|=)\s*null\b/.test(w));
   rec(
     `only accepting work writes an assignment (${writers.length} writer(s), ${setters.length} of which set one)`,
-    writers.length === 3 && setters.length === 2,
+    writers.length === 4 && setters.length === 2,
     writers.join(" | ") ||
       "if this changes, docs/bulk-actions-reconciliation.md is describing a platform that has moved",
   );
