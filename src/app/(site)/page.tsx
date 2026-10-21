@@ -297,7 +297,7 @@ export default function HomePage() {
               </h2>
               <p className="mt-4 max-w-[50ch] text-[16.5px] leading-[1.7] text-slate-muted">
                 {prelaunch
-                  ? "The firm opens soon. Join the waitlist and you will hear directly when it is active, before any general announcement."
+                  ? "The firm opens soon. Join the waitlist and a person at the firm reads your request and replies to you."
                   : "Send the address, the scope, and the date it has to be in hand. You will get a straight answer on whether it is work this firm should take and what it involves."}
               </p>
               <div className="mt-7 flex gap-8">

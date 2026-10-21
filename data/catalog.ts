@@ -477,7 +477,8 @@ const DECLARED: CatalogDeclaration[] = [
       },
     ],
     turnaround:
-      "The visit is scheduled once a technician accepts. Construction that has been covered up takes longer, because what can still be evidenced has to be established first.",
+      /* The scheduling sentence came out as the roof entry's did (finding 4 of the ordering plan): nothing in the platform scheduled a visit when it was written. */
+      "Construction that has been covered up takes longer, because what can still be evidenced has to be established first.",
     /*
      * WS-001 section 3: "TDI issues the certificate. The firm does not issue it
      * and does not promise that TDI will." This read "The windstorm
@@ -573,7 +574,7 @@ const DECLARED: CatalogDeclaration[] = [
       },
     ],
     turnaround:
-      "The visit is scheduled once a technician accepts. The engineer's review begins when the evidence is complete.",
+      "The engineer's review begins when the evidence is complete.",
     receives: [SCOPE_PENDING],
   },
   {
@@ -629,7 +630,7 @@ const DECLARED: CatalogDeclaration[] = [
       },
     ],
     turnaround:
-      "The visit is scheduled once a technician accepts. Lenders commonly set their own deadline, so say if you have one.",
+      "Lenders commonly set their own deadline, so say if you have one.",
     receives: [SCOPE_PENDING],
   },
 
@@ -765,7 +766,8 @@ const DECLARED: CatalogDeclaration[] = [
      * desk until the operator rules what a site job costs (conflicts item 20).
      */
     turnaround:
-      "The engineer triages the order within one business day and records whether it is a site job or a desk job. A letter about existing construction rests on a technician's visit. Review begins when the record is complete.",
+      /* No triage interval: PL-001 states one and nothing in the app enforces it (owner rule, 2026-10-18). */
+      "The engineer triages the order and records whether it is a site job or a desk job. A letter about existing construction rests on a technician's visit. Review begins when the record is complete.",
     receives: [SCOPE_PENDING],
   },
   {
@@ -1171,7 +1173,8 @@ export function orderBlockedReason(
     return "The firm is not taking orders through the site yet. Call the office or send a message and somebody will take the details.";
   }
   if (!hasApprovedProtocol) {
-    return "No protocol for this service line has been approved by the engineer of record yet, so the firm has no agreed way to perform it. It is a waitlist rather than an order.";
+    /* "It is a waitlist rather than an order" sat beside a Contact button in open mode (ruling Q5, 2026-10-19). */
+    return "No protocol for this service line has been approved by the engineer of record yet, so the firm has no agreed way to perform it. It cannot be ordered online yet.";
   }
   if (entry.orderType === "quote") return null;
   if (entry.priceCents === null) {

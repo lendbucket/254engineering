@@ -214,7 +214,7 @@ export default function ProcessPage() {
             <SectionHeading
               eyebrow="What it costs"
               title="The price is published before you call"
-              lede="Fixed, before you pay. If something changes the scope we tell you before we do it, not after."
+              lede="Fixed, and shown with the terms before you pay."
             />
             <dl className="mt-11 divide-y divide-limestone-line border-t border-limestone-line">
               {services.map((service) => {
@@ -261,7 +261,7 @@ export default function ProcessPage() {
 
       <OfferCta
         headline="Tell us what the letter is for"
-        body="Five minutes on the phone, and you will know whether this is work this firm should take before you pay anything."
+        body="The order form shows the price, the terms and what happens if the engineer declines, all before you pay anything."
       />
     </>
   );

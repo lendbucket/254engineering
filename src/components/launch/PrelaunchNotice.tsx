@@ -38,7 +38,7 @@ export function PrelaunchNotice({ service }: { service?: string }) {
         >
           Join the waitlist
         </Link>{" "}
-        and you will hear directly when it is active.
+        and a person at the firm will reply to you.
       </p>
     </aside>
   );
