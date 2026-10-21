@@ -206,9 +206,11 @@ export async function takeJob(
 
   /*
    * THE CATALOG PRICE AS IT IS, FOR ANYBODY WITHOUT pricing.override_at_intake.
-   * Operator ruling, 2026-10-20: phone intake by the two staff levels uses the
-   * catalog price, no override. files.create used to carry the override on its
-   * own; it moved to its own grant in 0079, which admin and sales keep.
+   * Owner ruling, 2026-10-20: changing a price at intake is admin only, the
+   * same as opening a job without payment, so Sales, the rep and the
+   * operations manager take the catalog price as it is. files.create used to
+   * carry the override on its own; it moved to its own grant in 0079, which
+   * the administrator alone holds.
    *
    * FIRST, BEFORE ANY OTHER CHECK. A typed price of any kind is refused here,
    * zero included, so a no-charge job is stopped at the first line for these

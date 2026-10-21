@@ -36,14 +36,20 @@
  *                       field technician and nothing else.
  *   files.create        lets the holder type a price different from the
  *                       catalog's. That half moves to pricing.override_at_intake,
- *                       which admin and sales keep so neither loses anything.
+ *                       held by the administrator alone. CHANGING A PRICE AT
+ *                       INTAKE IS ADMIN ONLY, by owner ruling 2026-10-20, the
+ *                       same as opening a job without payment: Sales loses it.
  *
  * And the dispatch panel showed a technician's flat rate to whoever
  * dispatches. That moves to pricing.read_tech_rate, held by the administrator
  * alone. Operator ruling, 2026-10-20: technician pay comes off the dispatch
  * panel for every role except admin, the existing Dispatcher included, whose
- * declaration already said "No money at all". This is the one place 0079
- * takes something away from a role that had it, and it is the ruling.
+ * declaration already said "No money at all".
+ *
+ * So 0079 takes two things away from existing roles, and both are the owner's
+ * rulings: the Dispatcher's view of the technician rate, and Sales' price
+ * override at intake. Nobody on development or production held Sales on the
+ * day, read by this session (development) and by the chat (production).
  *
  * AND OPENING A JOB WITHOUT PAYMENT IS ADMIN ONLY, owner ruling 2026-10-20.
  * Sales follows the rep's rule: New job always ends in a payment link, so
@@ -141,7 +147,6 @@ insert into eng_role_grants (role_key, action) values
   ('admin', 'reports.turnaround'),
   ('admin', 'settings.refund_limit'),
   ('admin', 'technicians.onboard'),
-  ('sales', 'pricing.override_at_intake'),
   ('sales', 'payments.send_link')
 on conflict (role_key, action) do nothing;
 

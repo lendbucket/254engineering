@@ -14,10 +14,12 @@ records their work needs. 0079 adds:
 
 - two roles, `rep` and `ops_manager`, neither a system role, both landing on
   `/portal`;
-- 64 grant rows: rep 20, ops_manager 26, admin 16 (every new action, plus the
-  refund limit setting, which is the operator's alone), sales 2
-  (`pricing.override_at_intake`, which `files.create` carried before, and
-  `payments.send_link`, because New job now always ends in a payment link);
+- 63 grant rows: rep 20, ops_manager 26, admin 16 (every new action, plus the
+  refund limit setting, which is the operator's alone), sales 1
+  (`payments.send_link`, because New job now always ends in a payment link).
+  `pricing.override_at_intake` is the administrator's alone: changing a price
+  at intake is admin only, by owner ruling 2026-10-20, the same as opening a
+  job without payment. Nobody holds Sales on either database;
 - five tables, all with row level security on:
   - `eng_prospects` (18 columns), the sales list;
   - `eng_contact_log` (14), every call, email and note, append only;
@@ -39,7 +41,12 @@ From `scripts/fingerprint-at.mjs`, with 0078 reproducing its recorded pair first
 | | Shape | Columns | Behaviour | Facts |
 | --- | --- | --- | --- | --- |
 | at 0078 | `4ccff0ee13040992a71d16d2b14163a3` | 1210 | `92e4ca15c2ec0c69e075abf7f80d6fe9` | 1020 |
-| at 0079 | `45ce47821d9c5567eb3b4b197549d881` | 1263 | `fc8b9792ddfa6b1a3eebb45854814a2a` | 1153 |
+| at 0079 | `45ce47821d9c5567eb3b4b197549d881` | 1263 | `8f0fe1b5eb8a6b5588e0ae9e3ae5017c` | 1152 |
+
+Re-read 2026-10-20 after Sales' price override row came out of the migration:
+the shape did not move, and the behaviour went from
+`fc8b9792ddfa6b1a3eebb45854814a2a` across 1153 to the figure above, one grant
+fewer.
 
 A live read back is judged on the counts and the shape digest, never on the
 behaviour digest (CLAUDE.md section 6b).
@@ -111,10 +118,10 @@ select role_key, action from eng_role_grants
  order by action, role_key;
 -- Expect, in this order:
 --   admin payments.send_link, ops_manager payments.send_link, rep payments.send_link, sales payments.send_link,
---   admin pricing.override_at_intake, sales pricing.override_at_intake,
+--   admin pricing.override_at_intake,
 --   admin pricing.read_tech_rate,
 --   admin settings.refund_limit.
--- No dispatcher row anywhere in this answer.
+-- No dispatcher row anywhere in this answer, and no sales row except payments.send_link.
 
 select count(*) from eng_refund_approval_limits;
 -- Expect: 0. The limit is $0 until Robert sets it on /portal/settings.

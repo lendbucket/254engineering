@@ -440,7 +440,8 @@ export type Action =
   // Never another role: profiles.create is the one that invites anybody.
   | "technicians.onboard"
   // Type a price at intake that differs from the catalog's. Split out of
-  // files.create, so admin and sales keep it and neither new level has it.
+  // files.create. CHANGING A PRICE AT INTAKE IS ADMIN ONLY, by owner ruling
+  // 2026-10-20, the same as opening a job without payment.
   | "pricing.override_at_intake"
   // See a technician's flat rate on the dispatch panel. Split out of
   // offers.dispatch and held by the administrator alone (ruling 2026-10-20).
@@ -711,9 +712,10 @@ export const DEFAULT_ROLES: DefaultRole[] = [
       "files.list", "files.create",
       "tasks.use", "messages.use",
       "time.log_own",
-      /* Typing a price over the catalog's, which files.create carried until
-       * 0079 split it out. Kept so this role loses nothing. */
-      "pricing.override_at_intake",
+      /* pricing.override_at_intake is NOT here. Typing a price over the
+       * catalog's was carried by files.create until 0079 split it out, and
+       * CHANGING A PRICE AT INTAKE IS ADMIN ONLY, by owner ruling 2026-10-20.
+       * Sales takes the catalog price as it is, like the rep. */
       /* The payment link New job always ends in, owner ruling 2026-10-20. 0079. */
       "payments.send_link",
     ],

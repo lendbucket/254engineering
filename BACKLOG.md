@@ -9,7 +9,7 @@ reason and, where one exists, the concrete incident that produced it.
 `docs/production-sitting-0079-staff-roles.md`. Written 2026-10-20 on
 `feat/staff-roles` and applied nowhere, development included. Robert applies it
 to development; the branch is then boarded there and held for the chat's
-production sitting. Additive only: five tables, two roles, 64 grant rows.
+production sitting. Additive only: five tables, two roles, 63 grant rows.
 
 ## THE SITTING FOR 0078, AN INTAKE ANSWER CAN BE A STORED FILE, OPEN
 

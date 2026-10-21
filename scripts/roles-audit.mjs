@@ -444,7 +444,8 @@ const STAFF_LEVELS = ["rep", "ops_manager"];
       why: "the operator alone sets the refund limit, and the narrow money splits stay where they were",
       check: (role, action) =>
         (action === "settings.refund_limit" && role !== "admin") ||
-        (action === "pricing.override_at_intake" && !["admin", "sales"].includes(role)) ||
+        /* Admin alone, owner ruling 2026-10-20: changing a price at intake is admin only, Sales included. */
+        (action === "pricing.override_at_intake" && role !== "admin") ||
         /* Admin alone, ruling 2026-10-20: technician pay is off the dispatch panel for every other role, the Dispatcher included. */
         (action === "pricing.read_tech_rate" && role !== "admin") ||
         (action === "refunds.approve_within_limit" && !["admin", "ops_manager"].includes(role)) ||
@@ -1637,6 +1638,13 @@ if (!db) {
      */
     const NO_UNPAID_ROLES = ["sales", ...STAFF_LEVELS];
     const NO_UNPAID_REFUSALS = [
+      /* And changing a price at intake, admin only by the same ruling, Sales included (2026-10-20). */
+      {
+        act: "take a job at a price other than the catalog's",
+        req: (r) => post(r, "/api/portal/files", { action: "take_job", serviceSlug: "roof-inspections", tier: "standard", priceCents: 12345, priceOverrideReason: "a reason long enough", paymentIntent: "link_sent", channel: "phone", propertyAddress: "1 Probe Street" }),
+        status: 400,
+        says: /takes the catalog price as it is/,
+      },
       {
         act: 'take a job with "Open it unpaid"',
         req: (r) => post(r, "/api/portal/files", { action: "take_job", serviceSlug: "roof-inspections", tier: "standard", paymentIntent: "released_unpaid", channel: "phone", propertyAddress: "1 Probe Street" }),
