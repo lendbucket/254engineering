@@ -38,9 +38,12 @@
  *                       catalog's. That half moves to pricing.override_at_intake,
  *                       which admin and sales keep so neither loses anything.
  *
- * And the dispatch panel shows a technician's flat rate to whoever dispatches.
- * That moves to pricing.read_tech_rate, kept by admin and dispatcher, and held
- * by neither new role, because technician pay is on the forbidden list.
+ * And the dispatch panel showed a technician's flat rate to whoever
+ * dispatches. That moves to pricing.read_tech_rate, held by the administrator
+ * alone. Operator ruling, 2026-10-20: technician pay comes off the dispatch
+ * panel for every role except admin, the existing Dispatcher included, whose
+ * declaration already said "No money at all". This is the one place 0079
+ * takes something away from a role that had it, and it is the ruling.
  *
  * THE FOUR TABLES
  * ---------------
@@ -132,8 +135,7 @@ insert into eng_role_grants (role_key, action) values
   ('admin', 'reports.turnaround'),
   ('admin', 'settings.refund_limit'),
   ('admin', 'technicians.onboard'),
-  ('sales', 'pricing.override_at_intake'),
-  ('dispatcher', 'pricing.read_tech_rate')
+  ('sales', 'pricing.override_at_intake')
 on conflict (role_key, action) do nothing;
 
 -- ----------------------------------------------------------- the prospects

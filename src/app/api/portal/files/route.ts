@@ -264,6 +264,19 @@ async function handlePOST(request: NextRequest) {
     if (!can(actor, "clients.create") || !can(actor, "files.create")) {
       return NextResponse.json({ ok: false, error: "Not permitted." }, { status: 403 });
     }
+    /*
+     * A CONVERTED LEAD OPENS A JOB WITH NO PAYMENT STEP, so a role whose
+     * intake always ends in a payment link may not use it. Operator ruling,
+     * 2026-10-20: a rep can never open a job that skips payment, before or
+     * after launch. They take the job through New job instead. Sales and the
+     * administrator are not link-only and keep this exactly as it was.
+     */
+    if (can(actor, "payments.send_link") && !can(actor, "payments.charge")) {
+      return NextResponse.json(
+        { ok: false, error: "Your role takes a job through New job, which ends in a payment link. Mark the lead contacted from the inbox." },
+        { status: 403 },
+      );
+    }
     const result = await convertLead(
       actor,
       String(body?.leadId ?? ""),

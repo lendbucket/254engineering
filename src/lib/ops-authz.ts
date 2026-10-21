@@ -435,7 +435,7 @@ export type Action =
   // files.create, so admin and sales keep it and neither new level has it.
   | "pricing.override_at_intake"
   // See a technician's flat rate on the dispatch panel. Split out of
-  // offers.dispatch, so admin and dispatcher keep it and neither level has it.
+  // offers.dispatch and held by the administrator alone (ruling 2026-10-20).
   | "pricing.read_tech_rate"
   | "reports.turnaround"
   | "reports.activity";
@@ -670,10 +670,11 @@ export const DEFAULT_ROLES: DefaultRole[] = [
       "offers.dispatch", "offers.list_own",
       "tasks.use", "messages.use",
       "time.log_own",
-      /* The dispatch panel's flat rate, which this role saw through
-       * offers.dispatch before 0079 split it out. Kept so nothing changes
-       * here; whether a dispatcher should see it is open with the operator. */
-      "pricing.read_tech_rate",
+      /* pricing.read_tech_rate is NOT here. This role saw the technician's
+       * flat rate on the dispatch panel through offers.dispatch until 0079,
+       * which contradicted "No money at all" above. Operator ruling,
+       * 2026-10-20: technician pay is off the dispatch panel for every role
+       * except admin, this one included. */
     ],
   },
   {

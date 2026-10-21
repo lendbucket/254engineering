@@ -163,13 +163,20 @@ export default async function ClientsPage() {
                       <span className="text-[12px] text-[var(--secondary)]">{when(lead.created_at)}</span>
                     </div>
                   </div>
-                  <div className="mt-3">
-                    <ConvertLead
-                      lead={lead}
-                      services={services.map((s) => ({ slug: s.slug, name: s.name }))}
-                      counties={TEXAS_COUNTIES}
-                    />
-                  </div>
+                  {/* A converted lead opens a job with no payment step, so a link-only role takes it through New job (2026-10-20). */}
+                  {can(actor, "payments.send_link") && !can(actor, "payments.charge") ? (
+                    <p className="mt-3 text-[14px] text-[var(--secondary)]">
+                      Take this as a job from New job, which sends the payment link.
+                    </p>
+                  ) : (
+                    <div className="mt-3">
+                      <ConvertLead
+                        lead={lead}
+                        services={services.map((s) => ({ slug: s.slug, name: s.name }))}
+                        counties={TEXAS_COUNTIES}
+                      />
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>

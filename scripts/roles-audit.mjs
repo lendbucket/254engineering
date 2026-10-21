@@ -444,7 +444,8 @@ const STAFF_LEVELS = ["rep", "ops_manager"];
       check: (role, action) =>
         (action === "settings.refund_limit" && role !== "admin") ||
         (action === "pricing.override_at_intake" && !["admin", "sales"].includes(role)) ||
-        (action === "pricing.read_tech_rate" && !["admin", "dispatcher"].includes(role)) ||
+        /* Admin alone, ruling 2026-10-20: technician pay is off the dispatch panel for every other role, the Dispatcher included. */
+        (action === "pricing.read_tech_rate" && role !== "admin") ||
         (action === "refunds.approve_within_limit" && !["admin", "ops_manager"].includes(role)) ||
         (action === "technicians.onboard" && !["admin", "ops_manager"].includes(role))
           ? `${role} holds ${action}, which 0079 gave to a named set of roles only`
@@ -1659,6 +1660,93 @@ if (!db) {
           res.status === 404 || (res.status >= 300 && res.status < 400 && !where.endsWith(path)),
           `HTTP ${res.status}${where ? ` to ${where}` : ""}`,
         );
+      }
+    }
+
+    /*
+     * =================================================================
+     * NO ROLE BUT THE ADMINISTRATOR READS TECHNICIAN PAY THROUGH DISPATCH.
+     * Operator ruling, 2026-10-20, the Dispatcher included.
+     * =================================================================
+     *
+     * BUILT, NOT FOUND. A file waiting for dispatch on a service line that HAS
+     * a technician rate is made here, because a check filtered from live data
+     * passes over nothing the day there is no such file. The line is chosen
+     * from the fee schedule as it stands, and nothing is written to the
+     * schedule: it is money configuration. If no line has a rate in force the
+     * subject cannot be built, and that is said as COULD NOT TELL rather than
+     * as a pass.
+     *
+     * THE ADMINISTRATOR IS THE CONTROL. He must SEE the rate on the same file,
+     * or a null for everybody else would prove only that the rate never
+     * arrived.
+     */
+    {
+      const today = new Date().toISOString().slice(0, 10);
+      const { data: rates } = await db
+        .from("eng_fee_schedule")
+        .select("service_slug, amount_cents, effective_from, effective_to")
+        .eq("kind", "tech_pay")
+        .lte("effective_from", today)
+        .gt("amount_cents", 0);
+      const line = (rates ?? []).find((r) => r.service_slug && (!r.effective_to || r.effective_to >= today));
+      if (!line) {
+        console.log("  COULD NOT TELL: no service line has a technician rate in force on this database, so the dispatch pay check has no subject.");
+      } else {
+        const { data: probeClient, error: clientError } = await db
+          .from("eng_clients")
+          .insert({ kind: "individual", name: `Dispatch pay probe ${STAMP}`, email: `dispatch-${STAMP}@audit-probe.invalid` })
+          .select("id")
+          .single();
+        const { data: probeFile, error: fileError } = probeClient
+          ? await db
+              .from("eng_files")
+              .insert({
+                file_number: `PROBE-PAY-${STAMP}`,
+                client_id: probeClient.id,
+                service_slug: line.service_slug,
+                property_address: "1 Probe Street",
+                county: "Nueces",
+                status: "needs_dispatch",
+                is_demo: true,
+              })
+              .select("id")
+              .single()
+          : { data: null, error: null };
+        rec(
+          "the dispatch pay subject was built: a file waiting for dispatch on a line with a rate",
+          Boolean(probeFile?.id),
+          clientError?.message ?? fileError?.message ?? `${line.service_slug}, rate in force`,
+        );
+        try {
+          if (probeFile?.id) {
+            const ask = async (role) => {
+              const res = await post(role, "/api/portal/files", { action: "dispatch_context", fileId: probeFile.id });
+              const body = await res.json().catch(() => null);
+              return { status: res.status, dispatch: body?.dispatch ?? null };
+            };
+            const admin = await ask("admin");
+            rec(
+              "the administrator sees the technician rate on that file, so the subject carries one",
+              admin.status === 200 && admin.dispatch?.feeCents === Number(line.amount_cents),
+              `HTTP ${admin.status}, feeCents ${admin.dispatch?.feeCents ?? "absent"}, expected ${line.amount_cents}`,
+            );
+            for (const role of DEFAULT_ROLES.map((r) => r.key).filter((k) => k !== "admin")) {
+              const r = await ask(role);
+              const figures = r.dispatch
+                ? [r.dispatch.feeCents, ...(r.dispatch.plan?.offers ?? []).map((o) => o.amountCents)].filter((v) => v !== null && v !== undefined)
+                : [];
+              rec(
+                `${role} reads no technician pay through the dispatch API`,
+                r.status === 403 || (r.status === 200 && r.dispatch && figures.length === 0 && r.dispatch.rateVisible === false),
+                r.status === 403 ? "refused, 403" : `HTTP ${r.status}, ${figures.length} pay figure${figures.length === 1 ? "" : "s"} in the response`,
+              );
+            }
+          }
+        } finally {
+          if (probeFile?.id) await removeRows("eng_files", "id", probeFile.id);
+          if (probeClient?.id) await removeRows("eng_clients", "id", probeClient.id);
+        }
       }
     }
 
