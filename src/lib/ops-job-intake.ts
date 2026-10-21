@@ -225,16 +225,18 @@ export async function takeJob(
   }
 
   /*
-   * A PAYMENT LINK IS THE ONLY ROUTE FOR SOMEBODY WHO MAY SEND ONE AND NOT
-   * CHARGE. Operator ruling, 2026-10-20: the rep's phone intake sends a payment
-   * link, never a no-charge job. Opening a job unpaid and invoicing an account
-   * are commercial decisions payments.charge carries, so a holder of
-   * payments.send_link alone chooses the link or nothing. Under the gate the
-   * link is unavailable, and the screen says why rather than offering another
-   * route.
+   * EVERY ROLE BUT THE ADMINISTRATOR ENDS NEW JOB IN A PAYMENT LINK. Owner
+   * ruling, 2026-10-20: opening a job without payment is admin only. The
+   * administrator is the one role holding payments.charge, so anybody without
+   * it chooses the link or nothing: not "Open it unpaid", not an invoice.
+   * Under the gate the link is unavailable, and the screen says why rather
+   * than offering another route. A role that cannot send a link at all cannot
+   * take a job here.
    */
-  const linkOnly =
-    can(actor as unknown as Actor, "payments.send_link") && !can(actor as unknown as Actor, "payments.charge");
+  const linkOnly = !can(actor as unknown as Actor, "payments.charge");
+  if (linkOnly && !can(actor as unknown as Actor, "payments.send_link")) {
+    return { ok: false, error: "Your role cannot take a job: a job is taken by sending a payment link.", field: "paymentIntent" };
+  }
   if (linkOnly && input.paymentIntent !== "link_sent") {
     return {
       ok: false,

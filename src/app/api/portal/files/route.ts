@@ -209,12 +209,12 @@ async function handlePOST(request: NextRequest) {
 
   if (action === "create_file") {
     /*
-     * AND pricing.override_at_intake, since 0079. This door takes a price as
-     * typed, with no catalog check, so it is the override in another shape.
-     * Admin and sales hold both grants and lose nothing; the two staff levels
-     * open a job through take_job, at the catalog price (ruling 2026-10-20).
+     * ADMIN ONLY: payments.charge, which the administrator alone holds. Owner
+     * ruling, 2026-10-20: opening a job without payment is admin only, and
+     * this door opens one with no payment step and a price as typed. Every
+     * other role takes a job through take_job, which ends in a payment link.
      */
-    if (!can(actor, "files.create") || !can(actor, "pricing.override_at_intake")) {
+    if (!can(actor, "files.create") || !can(actor, "payments.charge")) {
       return NextResponse.json({ ok: false, error: "Not permitted." }, { status: 403 });
     }
     const result = await createFile(
@@ -265,13 +265,13 @@ async function handlePOST(request: NextRequest) {
       return NextResponse.json({ ok: false, error: "Not permitted." }, { status: 403 });
     }
     /*
-     * A CONVERTED LEAD OPENS A JOB WITH NO PAYMENT STEP, so a role whose
-     * intake always ends in a payment link may not use it. Operator ruling,
-     * 2026-10-20: a rep can never open a job that skips payment, before or
-     * after launch. They take the job through New job instead. Sales and the
-     * administrator are not link-only and keep this exactly as it was.
+     * ADMIN ONLY: a converted lead opens a job with no payment step. Owner
+     * ruling, 2026-10-20: opening a job without payment is admin only, Sales
+     * included, so this asks payments.charge, which the administrator alone
+     * holds. Everybody else takes the job through New job, which ends in a
+     * payment link.
      */
-    if (can(actor, "payments.send_link") && !can(actor, "payments.charge")) {
+    if (!can(actor, "payments.charge")) {
       return NextResponse.json(
         { ok: false, error: "Your role takes a job through New job, which ends in a payment link. Mark the lead contacted from the inbox." },
         { status: 403 },

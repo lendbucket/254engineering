@@ -46,8 +46,8 @@ export default async function IntakePage() {
    * enforces.
    */
   if (!actor || !can(actor, "files.create")) notFound();
-  /* payments.send_link without payments.charge: the link is the only payment route (2026-10-20). */
-  const linkOnly = can(actor, "payments.send_link") && !can(actor, "payments.charge");
+  /* Without payments.charge the link is the only payment route: opening a job unpaid is admin only (owner ruling 2026-10-20). */
+  const linkOnly = !can(actor, "payments.charge");
 
   /*
    * The catalog, flattened to what the screen needs. Sent whole rather than

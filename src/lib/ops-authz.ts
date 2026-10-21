@@ -312,10 +312,18 @@ export type Action =
    * payment link, or an invoice to an account with terms.
    *
    * In this family rather than beside files.create, and admin only for the same
-   * reason the two above are. Writing a job down and asking somebody to pay for
-   * it are different acts. Phase 10 Section 2 introduces a coordinator who
-   * should be able to do the first without the second, and putting this here
-   * now means that role arrives without needing this decision revisited.
+   * reason the two above are.
+   *
+   * OPENING A JOB WITHOUT PAYMENT IS ADMIN ONLY, BY OWNER RULING 2026-10-20.
+   * This sentence used to read "Writing a job down and asking somebody to pay
+   * for it are different acts. Phase 10 Section 2 introduces a coordinator who
+   * should be able to do the first without the second." The owner ruled the
+   * other way: every role but the administrator takes a job through New job,
+   * which always ends in a payment link (payments.send_link), and the three
+   * doors that open a job with no payment step, the direct new-file form,
+   * converting a lead, and "Open it unpaid", ask for THIS grant, which the
+   * administrator alone holds. The old reasoning is kept here so a reader of
+   * the git history does not mistake the change for an accident.
    */
   | "payments.charge"
   // Customer ordering accounts: terms, credit, statements. Admin only, because
@@ -684,8 +692,13 @@ export const DEFAULT_ROLES: DefaultRole[] = [
      * between what the client pays and what the technician is paid is
      * negotiating against the firm's own costs.
      *
-     * No payments.charge either. Writing a job down and asking somebody to pay
-     * for it are different acts, decided in Section 1.
+     * No payments.charge either, and so no job without payment. OPENING A JOB
+     * WITHOUT PAYMENT IS ADMIN ONLY, BY OWNER RULING 2026-10-20. This read
+     * "Writing a job down and asking somebody to pay for it are different
+     * acts, decided in Section 1"; the owner ruled that Sales follows the same
+     * rule as the rep: New job always ends in a payment link, which is why
+     * this role now holds payments.send_link, and the direct new-file form,
+     * converting a lead and "Open it unpaid" are the administrator's.
      */
     key: "sales",
     name: "Sales",
@@ -701,6 +714,8 @@ export const DEFAULT_ROLES: DefaultRole[] = [
       /* Typing a price over the catalog's, which files.create carried until
        * 0079 split it out. Kept so this role loses nothing. */
       "pricing.override_at_intake",
+      /* The payment link New job always ends in, owner ruling 2026-10-20. 0079. */
+      "payments.send_link",
     ],
   },
   {

@@ -163,8 +163,8 @@ export default async function ClientsPage() {
                       <span className="text-[12px] text-[var(--secondary)]">{when(lead.created_at)}</span>
                     </div>
                   </div>
-                  {/* A converted lead opens a job with no payment step, so a link-only role takes it through New job (2026-10-20). */}
-                  {can(actor, "payments.send_link") && !can(actor, "payments.charge") ? (
+                  {/* A converted lead opens a job with no payment step, which is admin only (owner ruling 2026-10-20). */}
+                  {!can(actor, "payments.charge") ? (
                     <p className="mt-3 text-[14px] text-[var(--secondary)]">
                       Take this as a job from New job, which sends the payment link.
                     </p>

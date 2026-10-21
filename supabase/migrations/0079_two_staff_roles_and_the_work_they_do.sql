@@ -45,6 +45,12 @@
  * declaration already said "No money at all". This is the one place 0079
  * takes something away from a role that had it, and it is the ruling.
  *
+ * AND OPENING A JOB WITHOUT PAYMENT IS ADMIN ONLY, owner ruling 2026-10-20.
+ * Sales follows the rep's rule: New job always ends in a payment link, so
+ * Sales gains payments.send_link here, and the three doors that open a job
+ * with no payment step ask payments.charge, which only the administrator
+ * holds. Nobody on development or production held Sales on the day.
+ *
  * THE FOUR TABLES
  * ---------------
  *   eng_prospects               the sales list: a company not yet a customer.
@@ -135,7 +141,8 @@ insert into eng_role_grants (role_key, action) values
   ('admin', 'reports.turnaround'),
   ('admin', 'settings.refund_limit'),
   ('admin', 'technicians.onboard'),
-  ('sales', 'pricing.override_at_intake')
+  ('sales', 'pricing.override_at_intake'),
+  ('sales', 'payments.send_link')
 on conflict (role_key, action) do nothing;
 
 -- ----------------------------------------------------------- the prospects

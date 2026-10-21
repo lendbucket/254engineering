@@ -390,7 +390,8 @@ const STAFF_LEVELS = ["rep", "ops_manager"];
       check: (role, action) =>
         /^payments\./.test(action) &&
         role !== "admin" &&
-        !(action === "payments.send_link" && STAFF_LEVELS.includes(role))
+        /* Sales too, owner ruling 2026-10-20: New job always ends in a payment link, for every role but admin. */
+        !(action === "payments.send_link" && [...STAFF_LEVELS, "sales"].includes(role))
           ? "a role other than the administrator may charge, refund or reconcile"
           : null,
     },
@@ -1627,6 +1628,36 @@ if (!db) {
       { act: "read the revenue report", req: (r) => get(r, "/api/portal/exports?report=revenue"), status: 403, says: /cannot read the revenue report/i },
     ];
     const STAFF_PAGES_REFUSED = ["/portal/pay", "/portal/techs", "/portal/people", "/portal/roles", "/portal/status", "/portal/pricebook", "/portal/settings", "/portal/billing", "/portal/orders", "/portal/accounts"];
+
+    /*
+     * OPENING A JOB WITHOUT PAYMENT IS ADMIN ONLY. Owner ruling, 2026-10-20,
+     * Sales included. Each of the three doors that open a job with no payment
+     * step, asked by every role that may take a job at all and is not the
+     * administrator, through the real route.
+     */
+    const NO_UNPAID_ROLES = ["sales", ...STAFF_LEVELS];
+    const NO_UNPAID_REFUSALS = [
+      {
+        act: 'take a job with "Open it unpaid"',
+        req: (r) => post(r, "/api/portal/files", { action: "take_job", serviceSlug: "roof-inspections", tier: "standard", paymentIntent: "released_unpaid", channel: "phone", propertyAddress: "1 Probe Street" }),
+        status: 400,
+        says: /by sending the customer a payment link/,
+      },
+      { act: "open a job through the direct new-file form", req: (r) => post(r, "/api/portal/files", { action: "create_file", clientId: NOWHERE, serviceSlug: "roof-inspections", propertyAddress: "1 Probe Street" }), status: 403, says: /Not permitted/ },
+      { act: "open a job by converting a lead", req: (r) => post(r, "/api/portal/files", { action: "convert_lead", leadId: NOWHERE }), status: 403, says: /takes a job through New job/ },
+    ];
+    rec("Sales holds a live session before anything is asked of it", Boolean(sessions.sales), sessions.sales ? "sales" : "no session");
+    for (const role of NO_UNPAID_ROLES) {
+      for (const a of NO_UNPAID_REFUSALS) {
+        const res = await a.req(role);
+        const said = String((await res.json().catch(() => ({})))?.error ?? "");
+        rec(
+          `${role} cannot ${a.act}, refused at the server`,
+          res.status === a.status && a.says.test(said),
+          `HTTP ${res.status} (expected ${a.status}): ${said.slice(0, 140) || "no reason given"}`,
+        );
+      }
+    }
 
     rec(
       "both staff levels hold a live session before anything is asked of them",

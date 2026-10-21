@@ -518,8 +518,8 @@ export default async function FilesPage({
 
       <RestrictedMode also="Files can be created and prepared. The rule is in the state machine, not in these buttons." />
 
-      {/* create_file also asks pricing.override_at_intake since 0079, so the form shows only where it works. */}
-      {can(actor, "files.create") && can(actor, "pricing.override_at_intake") ? (
+      {/* create_file is admin only (payments.charge), owner ruling 2026-10-20, so the form shows only where it works. */}
+      {can(actor, "files.create") && can(actor, "payments.charge") ? (
         <div className="mb-6">
           <NewFileForm
             clients={clients.map((c) => ({ id: c.id, name: c.name }))}
