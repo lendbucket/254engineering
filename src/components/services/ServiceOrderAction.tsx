@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { lineOffer } from "@/lib/ordering";
+import { PublishedPrice } from "./PublishedPrice";
 
 /**
  * The order, or the quote, at the TOP of a service page.
@@ -40,15 +41,14 @@ export function ServiceOrderAction({ slug }: { slug: string }) {
         {/*
           The price beside the button rather than inside it, for the reason the
           hero states: a figure on a button face competes with the verb and wraps
-          badly at 390. The coastal surcharge keeps its own clause, never folded
-          into the first number.
+          badly at 390. It is the shared component now (ruling 5, 2026-10-18), so
+          every line states its published price here as /process and /order do,
+          with the coastal clause, and a fixed price nobody can order online says
+          it is the price quoted.
         */}
-        {offer.price ? (
-          <p className="text-[15px] leading-[1.6] text-slate-fg-muted">
-            <span className="font-semibold text-slate-fg">{offer.price}</span>
-            {offer.coastal ? `, ${offer.coastal}` : ""}
-          </p>
-        ) : null}
+        <p className="text-[15px] leading-[1.6] text-slate-fg-muted">
+          <PublishedPrice slug={slug} />
+        </p>
       </div>
     </div>
   );

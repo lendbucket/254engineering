@@ -4,6 +4,7 @@ import { Container } from "@/components/ui/Container";
 import { buildMetadata } from "@/lib/seo";
 import { JsonLd, breadcrumbSchema } from "@/lib/schema";
 import { allLineOffers, orderableLineOffers } from "@/lib/ordering";
+import { PublishedPrice } from "@/components/services/PublishedPrice";
 import { displayPhone, telHref } from "@/config/contact";
 import { PhoneNumber } from "@/components/ui/PhoneNumber";
 
@@ -63,9 +64,10 @@ import { PhoneNumber } from "@/components/ui/PhoneNumber";
  * than padding.
  */
 export const metadata: Metadata = buildMetadata({
-  title: "Order engineering work online | 254 Engineering Services",
+  /* The brand is "254 Engineering" on public copy (standing rule); every row now shows its published price (ruling 5). */
+  title: "Order Engineering Work Online in Texas | 254 Engineering",
   description:
-    "Choose what you need. Lines open for online ordering show the price and take the order now. Every other line is quoted by the firm. Start here.",
+    "Choose what you need. Lines open online take the order now, and every other line starts with a quote at its published price. Start here and pick one.",
   path: "/order",
 });
 
@@ -162,29 +164,22 @@ export default function OrderChooserPage() {
                         {offer.name}
                       </Link>
                     </h2>
-                    {/*
-                      THE PRICE SITS WITH THE ACTION AND ONLY WHERE THERE IS ONE.
-                      A figure beside a line a reader cannot buy invites them to
-                      try, which is the operator's third instruction: never imply
-                      a line can be ordered when it cannot.
-                    */}
-                    {/*
-                      THE PRICE AND ITS QUALIFIER TRAVEL TOGETHER. The coastal
-                      surcharge used to ride on the subtitle line, which is where
-                      a reader was least likely to connect it to the figure. It
-                      is a price fact, so it sits under the price.
-                    */}
-                    {offer.price ? (
-                      <div className="text-right">
-                        <p className="text-[17px] font-semibold text-slate">{offer.price}</p>
-                        {offer.coastal ? (
-                          <p className="mt-0.5 text-[13px] leading-[1.5] text-slate-muted">
-                            {offer.coastal}
-                          </p>
-                        ) : null}
-                      </div>
-                    ) : null}
                   </div>
+
+                  {/*
+                    EVERY ROW STATES ITS PUBLISHED PRICE NOW, through the shared
+                    component (ruling 5 of 2026-10-18). This used to show a figure
+                    only beside an order button, on the operator's third
+                    instruction that nothing may imply a line can be ordered when
+                    it cannot, and /process meanwhile listed every figure. The
+                    component keeps the instruction by saying, on any fixed price
+                    a reader cannot order, that it is the price quoted until the
+                    line opens online. The coastal line still travels with the
+                    figure as its own clause.
+                  */}
+                  <p className="mt-2 text-[15px] leading-[1.6] text-slate-muted">
+                    <PublishedPrice slug={offer.slug} />
+                  </p>
 
                   {/*
                     ===================================================

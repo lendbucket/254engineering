@@ -52,7 +52,8 @@
 
 import { CATALOG, type CatalogEntry } from "@data/catalog";
 import { services } from "@/content/services";
-import { isOpen, serviceLineIsOffered } from "@/lib/launch";
+import { isOpen, isPrelaunch, serviceLineIsOffered } from "@/lib/launch";
+import { priceFor, priceSentence } from "@/config/prices";
 import { isKnown } from "@/lib/ops-money";
 /*
  * THE MARKETING FORMATTER, NOT THE ACCOUNTING ONE, AND THE CAPTURE CAUGHT IT.
@@ -70,12 +71,44 @@ import { isKnown } from "@/lib/ops-money";
  */
 import { money } from "@/config/prices";
 
+/**
+ * THE ONE PRIMARY ACTION A LINE HAS TODAY. Operator rulings of 2026-10-18 (3,
+ * 4 and the action rule) and 2026-10-19 (Q8).
+ *
+ * Five states and one action each, chosen from the line's real state and
+ * never typed on a page:
+ *
+ *   orderable   open, offered and signed: "Order a ...", to the order flow
+ *   quote-form  a line with a brief of its own: design and windstorm
+ *   quote       every other line: "Request a quote", to the contact form
+ *   waitlist    prelaunch, any line: "Join the waitlist"
+ *
+ * Prelaunch is checked FIRST, because before this rule the top action ignored
+ * it and a prelaunch page carried two different actions.
+ */
+export type LineState = "orderable" | "quote-form" | "quote" | "waitlist";
+
+/**
+ * THE TWO LINES WITH A BRIEF OF THEIR OWN. A declaration, because which form
+ * a line's quote starts on is a fact about the line and not something any
+ * other field implies. Ruling 3 sends design to /design-inquiry; ruling 4
+ * makes /windstorm-inquiry the windstorm page's quote form. A line listed
+ * here that becomes orderable takes the order flow instead, so this never
+ * holds an order back.
+ */
+export const QUOTE_FORMS: Readonly<Record<string, { href: string; label: string }>> = {
+  "residential-light-commercial-design": { href: "/design-inquiry", label: "Describe the project" },
+  "windstorm-wpi-8": { href: "/windstorm-inquiry", label: "Describe the property" },
+};
+
 export type LineOffer = {
   slug: string;
   /** The service name as the content file gives it. */
   name: string;
   /** Listed, approved, and the gate open. All three. */
   orderable: boolean;
+  /** Which of the four actions this line has, and so which "How ordering works" it shows. */
+  state: LineState;
   /** Where the primary button goes: the order flow, or the quote form. */
   href: string;
   /** What the primary button says on a card: short, and the same on every line. */
@@ -143,6 +176,40 @@ export function coastalLine(slug: string): string | null {
 }
 
 /**
+ * WHAT A LINE COSTS, ONE ANSWER FOR EVERY PAGE THAT STATES IT. Operator ruling
+ * 5 of 2026-10-18: one derived pricing component for /process, /order and the
+ * service pages.
+ *
+ * The audit of October found /process listing a figure for every line while
+ * /order and the service pages showed none, so a reader met "published before
+ * you call" on one page and "we will send you a price" on the next. Gap 8's
+ * ruling settled the words (the published price IS the quote); this settles
+ * the mechanism, so all three pages ask one function.
+ *
+ * `figure` is the price book's own sentence, a whole dollar figure for a fixed
+ * line and the rate and minimum for an hourly one. `coastal` rides beside a
+ * fixed figure and never inside it. `orderable` says whether the figure sits
+ * beside an order button or a request for a quote, which the component states.
+ */
+export type PublishedPrice = {
+  figure: string | null;
+  /** The price book's kind, so a page never sniffs the sentence to tell a fixed price from a rate. */
+  kind: "fixed" | "hourly" | null;
+  coastal: string | null;
+  orderable: boolean;
+};
+
+export function publishedPrice(slug: string): PublishedPrice {
+  const figure = priceSentence(slug);
+  return {
+    figure,
+    kind: figure ? (priceFor(slug)?.kind ?? null) : null,
+    coastal: figure ? coastalLine(slug) : null,
+    orderable: isOpen() && serviceLineIsOffered(slug),
+  };
+}
+
+/**
  * What this one line offers a reader today.
  *
  * TOTAL BY CONSTRUCTION. Every service line gets an answer, and a line that
@@ -155,18 +222,30 @@ export function lineOffer(slug: string): LineOffer {
   const name = service?.name ?? slug;
   const entry = headlineEntry(slug);
   const orderable = isOpen() && serviceLineIsOffered(slug);
+  const form = QUOTE_FORMS[slug];
+  const state: LineState = isPrelaunch() ? "waitlist" : orderable ? "orderable" : form ? "quote-form" : "quote";
+  const quoteLabel =
+    state === "waitlist" ? "Join the waitlist" : state === "quote-form" && form ? form.label : "Request a quote";
 
   return {
     slug,
     name,
     orderable,
-    href: orderable ? `/order/start/${slug}` : `/contact?service=${encodeURIComponent(slug)}`,
-    cta: orderable ? "Order online" : "Request a quote",
+    state,
+    href:
+      state === "orderable"
+        ? `/order/start/${slug}`
+        : state === "waitlist"
+          ? `/waitlist?service=${encodeURIComponent(slug)}`
+          : state === "quote-form" && form
+            ? form.href
+            : `/contact?service=${encodeURIComponent(slug)}`,
+    cta: orderable ? "Order online" : quoteLabel,
     orderLabel: orderable
       ? entry
         ? `Order a ${entry.name.toLowerCase()}`
         : `Order ${name.toLowerCase()}`
-      : "Request a quote",
+      : quoteLabel,
     /*
      * THE PRICE IS SHOWN ONLY WHERE IT CAN BE ACTED ON. A figure beside a line
      * a reader cannot buy is an invitation to try, and the operator's rule is
