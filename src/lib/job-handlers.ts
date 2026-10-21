@@ -22,7 +22,7 @@ import { RELEASE, ENVIRONMENT } from "./ops-observability";
 import { business } from "@/config/business";
 import { reviewRequestKey, runReviewRequest } from "./review-request";
 import { raise } from "./ops-notify";
-import { settleDecision } from "./ops-payments";
+import { notifyRepairsRequired, settleDecision } from "./ops-payments";
 import { orderForFile as liveOrderForFile } from "./order-for-file";
 import { REVIEW_AFTER_DECISION, reviewAfterDecisionKey } from "./review-jobs";
 import {
@@ -913,14 +913,20 @@ registerJob("review.request", {
 registerJob("review.after_decision", {
   reachesOutside: true,
   reaches:
-    "Stripe, on a refusal: a refund of what the order's refund rule returns, idempotent at Stripe on the charge and amount. And the people a decision concerns, through raise(): the technician on revisions or a site visit, the other administrators on a refusal.",
+    "Stripe, on a refusal: a refund of what the order's refund rule returns, idempotent at Stripe on the charge and amount. The buyer, by email, on a repairs decision. And the people a decision concerns, through raise(): the technician on revisions or a site visit, the other administrators on a refusal.",
   idempotency: (p) =>
     keyFieldsMissing(p, ["fileId", "decisionId"]) ?? reviewAfterDecisionKey(String(p.fileId), String(p.decisionId)),
   run: async (p, job): Promise<JobOutcome> => {
     const fileId = typeof p.fileId === "string" ? p.fileId : "";
     const action = p.action;
-    if (!fileId || (action !== "revisions" && action !== "site_visit" && action !== "refuse")) {
-      return { kind: "fatal", error: "A review.after_decision job needs a fileId and one of revisions, site_visit, refuse." };
+    if (
+      !fileId ||
+      (action !== "revisions" && action !== "site_visit" && action !== "repairs" && action !== "refuse")
+    ) {
+      return {
+        kind: "fatal",
+        error: "A review.after_decision job needs a fileId and one of revisions, site_visit, repairs, refuse.",
+      };
     }
     const fileNumber = String(p.fileNumber ?? fileId);
     const note = typeof p.note === "string" ? p.note : null;
@@ -964,6 +970,16 @@ registerJob("review.after_decision", {
           entityId: fileId,
         });
       }
+      return { kind: "done" };
+    }
+
+    /*
+     * Repairs: the buyer is told, carrying this job's own mode through to the
+     * email (ruling Q3, 2026-10-19). The notice records its own failure on the
+     * order, so a send problem is not retried into a second email.
+     */
+    if (action === "repairs") {
+      await notifyRepairsRequired(fileId, job.effectMode);
       return { kind: "done" };
     }
 

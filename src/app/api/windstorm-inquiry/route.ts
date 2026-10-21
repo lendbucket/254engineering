@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { windstormInquirySchema, fieldErrors } from "@/lib/forms";
 import { insertWindstormInquiry } from "@/lib/intake";
 import { withSaveOutcome } from "@/lib/save-outcome";
+import { queueEmail } from "@/lib/ops-jobs";
+import { inquiryAcknowledged, inquiryNotification } from "@/lib/email-templates";
+import { business } from "@/config/business";
 
 /**
  * The windstorm brief intake, for an existing building.
@@ -107,7 +110,42 @@ async function handlePOST(request: Request) {
    * place. The determination is shown to STAFF on /portal/windstorm-inquiries,
    * where somebody can act on it, and it reaches the enquirer in a reply
    * written by a person.
+   *
+   * THE FIRM IS EMAILED AND THE PERSON IS ACKNOWLEDGED (ruling Q6 of
+   * 2026-10-19, addition d of 2026-10-20), after the row is written, and
+   * neither failure changes the answer. The firm's copy carries the answers
+   * and no scope verdict, for the reason above; the verdict stays on the
+   * staff screen.
    */
+  const show = (v: unknown) => (v === undefined || v === null ? undefined : String(v));
+  const firm = await queueEmail(
+    inquiryNotification({
+      kind: "windstorm",
+      name: data.name,
+      email: data.email,
+      rows: [
+        ["Phone", show(data.phone)],
+        ["Asking as", show(data.askingAs)],
+        ["Property address", show(data.propertyAddress)],
+        ["County", show(data.county)],
+        ["Year built", show(data.yearBuilt)],
+        ["Most recent work", data.workYearUnknown ? "Year not known" : show(data.mostRecentWorkYear)],
+        ["Work done", show(data.workDone)],
+        ["What is covered up", show(data.whatIsCovered)],
+        ["Openings rated", show(data.openingsRated)],
+        ["Will open up finishes", show(data.willOpenUp)],
+        ["Deadline", show(data.deadline)],
+        ["Open insurance claim", show(data.openInsuranceClaim)],
+        ["Active litigation", show(data.activeLitigation)],
+        ["Earlier adverse report", show(data.priorAdverseReport)],
+      ],
+      portalUrl: `${business.url}/portal/windstorm-inquiries`,
+    }),
+  );
+  if (!firm.ok) console.error(`[windstorm-inquiry] firm notification not queued: ${firm.error}`);
+  const ack = await queueEmail(inquiryAcknowledged({ kind: "windstorm", email: data.email }));
+  if (!ack.ok) console.error(`[windstorm-inquiry] acknowledgement not queued: ${ack.error}`);
+
   return NextResponse.json({ ok: true });
 }
 

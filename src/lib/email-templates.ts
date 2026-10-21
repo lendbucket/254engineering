@@ -1187,7 +1187,8 @@ export function orderDeclined(input: {
   /**
    * Stripe answered the refund as pending (ruling 2026-10-13): the money row
    * says issued rather than refunded, and the issued sentence follows the
-   * explanation. Nothing is sent when it later succeeds.
+   * explanation. When it later succeeds, refundSucceeded says so (addition b,
+   * 2026-10-20).
    */
   refundPending?: boolean;
   statusUrl: string;
@@ -1229,6 +1230,308 @@ export function orderDeclined(input: {
       button: { label: "See the findings", url: input.statusUrl },
     },
     { to: input.customerEmail },
+  );
+}
+
+/**
+ * A TECHNICIAN HAS TAKEN THE JOB. Operator ruling Q1, 2026-10-19.
+ *
+ * The plan found the buyer heard nothing between payment and the visit. What
+ * this may say is limited to what the platform and the signed protocol do:
+ * acceptOffer records a certified technician taking the job, and RC-001
+ * section 7 says "The coordinator schedules an accepted job." So it says who
+ * schedules the visit and gives no date and no interval, because the two
+ * business days in that clause are not enforced anywhere in the app and the
+ * owner's rule is that an unenforced timeframe is not printed.
+ */
+export function orderTechnicianAccepted(input: {
+  customerName: string;
+  customerEmail: string;
+  reference: string;
+  propertyAddress: string;
+  statusUrl: string;
+}): RenderedEmail {
+  return compose(
+    "order.technician_accepted",
+    "human",
+    `A technician has your order: ${input.reference}`,
+    {
+      preheader: `A certified technician has accepted the site visit for ${input.propertyAddress}.`,
+      status: { reference: `Order ${input.reference}`, state: "Technician assigned" },
+      signed: true,
+      button: { label: "Follow the order", url: input.statusUrl },
+      blocks: [
+        { kind: "p", text: `${input.customerName},` },
+        {
+          kind: "p",
+          text: `A technician certified on this service has accepted the site visit for ${input.propertyAddress}.`,
+        },
+        {
+          kind: "p",
+          text: "The firm's coordinator schedules the visit next. If your telephone number or access arrangements have changed since you ordered, reply to this message with the new details.",
+        },
+      ],
+    },
+    { to: input.customerEmail },
+  );
+}
+
+/**
+ * THE RECEIPT FOR AN ORDER WAITING ON A PERSON. Operator ruling Q2, 2026-10-19.
+ *
+ * When the paying client matches an account a person has to choose,
+ * releaseForFulfilment sends no confirmation and no link until that is done
+ * (ruling 2026-10-13), so a buyer who had paid heard nothing. This says the
+ * payment arrived and that the link follows once the order is released. It
+ * carries NO link, because the link belongs to whichever account the person
+ * attaches, and no time, because nothing bounds how long that takes.
+ */
+export function orderReceived(input: {
+  customerName: string;
+  customerEmail: string;
+  reference: string;
+  serviceName: string;
+  propertyAddress: string;
+  total: string;
+}): RenderedEmail {
+  return compose(
+    "order.received",
+    "human",
+    `Payment received: ${input.reference}`,
+    {
+      preheader: `Your payment for ${input.propertyAddress} has been received.`,
+      status: { reference: `Order ${input.reference}`, state: "Payment received" },
+      signed: true,
+      blocks: [
+        { kind: "p", text: `${input.customerName},` },
+        {
+          kind: "p",
+          text: `Your payment for ${input.serviceName} at ${input.propertyAddress} has been received.`,
+        },
+        { kind: "money", rows: [{ label: "Paid", value: input.total }] },
+        {
+          kind: "p",
+          text: "The firm emails a link to follow this order once it is released for work. Nothing more is needed from you before then.",
+        },
+        {
+          kind: "note",
+          text: `Your reference is ${input.reference}. Quote it if you write to the firm about this order.`,
+        },
+      ],
+    },
+    { to: input.customerEmail },
+  );
+}
+
+/**
+ * REPAIRS ARE NEEDED BEFORE A CERTIFICATION. Operator ruling Q3, 2026-10-19.
+ *
+ * The engineer's "repairs" decision moved the file and told nobody outside the
+ * firm, and the order page went on reading "Underway". Sent from the review
+ * decision's own queued job, never from the sealing step: what it states is
+ * RC-001's rule that no certification issues while a repair item is open, and
+ * that the engineer's letter listing the repairs reaches the order page when
+ * it is sealed. Whether a return visit is charged has not been ruled, so it
+ * says nothing about one.
+ */
+export function orderRepairsRequired(input: {
+  customerName: string;
+  customerEmail: string;
+  reference: string;
+  propertyAddress: string;
+  statusUrl: string;
+}): RenderedEmail {
+  return compose(
+    "order.repairs_required",
+    "human",
+    `Repairs needed: ${input.reference}`,
+    {
+      preheader: `The engineer found repairs needed at ${input.propertyAddress} before a certification can be issued.`,
+      status: { reference: `Order ${input.reference}`, state: "Repairs needed" },
+      signed: true,
+      button: { label: "Open the order", url: input.statusUrl },
+      blocks: [
+        { kind: "p", text: `${input.customerName},` },
+        {
+          kind: "p",
+          text: `The engineer has reviewed the evidence from ${input.propertyAddress} and found repairs that are needed before a certification can be issued. No certification letter is issued with an open repair item.`,
+        },
+        {
+          kind: "p",
+          text: "The engineer's letter listing the repairs is posted to your order page when it is sealed. If you have questions about it, reply to this message.",
+        },
+      ],
+    },
+    { to: input.customerEmail },
+  );
+}
+
+/**
+ * THE FIRM CANCELED THE ORDER AND REFUNDED IT. Operator ruling, 2026-10-20,
+ * addition a.
+ *
+ * cancelAndRefund wrote a customer visible event and sent nothing, so the
+ * first a buyer learned of it was their card statement. The figure is the
+ * amount the provider accepted, and a refund still pending at Stripe is
+ * worded as issued rather than landed, the same rule as the decline notice
+ * (ruling 2026-10-13). The firm's internal reason is not quoted.
+ */
+export function orderCancelled(input: {
+  customerName: string;
+  customerEmail: string;
+  reference: string;
+  propertyAddress: string;
+  refunded: string;
+  refundPending: boolean;
+  statusUrl: string;
+}): RenderedEmail {
+  const blocks: EmailBlock[] = [
+    { kind: "p", text: `${input.customerName},` },
+    {
+      kind: "p",
+      text: `The firm has canceled order ${input.reference} for ${input.propertyAddress} and refunded the payment.`,
+    },
+    { kind: "money", rows: [{ label: refundRowLabel(input.refundPending), value: input.refunded }] },
+  ];
+  if (input.refundPending) blocks.push({ kind: "p", text: REFUND_ISSUED_SENTENCE });
+  blocks.push({ kind: "p", text: "If you did not expect this, reply to this message and the firm will explain." });
+
+  return compose(
+    "order.cancelled",
+    "human",
+    `Canceled and refunded: ${input.reference}`,
+    {
+      preheader: `Order ${input.reference} has been canceled and the payment refunded.`,
+      status: { reference: `Order ${input.reference}`, state: input.refundPending ? "Refund issued" : "Refunded" },
+      signed: true,
+      button: { label: "Open the order", url: input.statusUrl },
+      blocks,
+    },
+    { to: input.customerEmail },
+  );
+}
+
+/**
+ * A REFUND THAT WAS PENDING HAS NOW LANDED. Operator ruling, 2026-10-20,
+ * addition b.
+ *
+ * The decline and cancel notices say "issued" while Stripe holds a refund as
+ * pending. When charge.refund.updated reports it succeeded, this closes the
+ * loop. Sent only for a row that moved from pending to succeeded, so a refund
+ * that succeeded at once never produces a second message.
+ */
+export function refundSucceeded(input: {
+  customerName: string;
+  customerEmail: string;
+  reference: string;
+  amount: string;
+  statusUrl: string;
+}): RenderedEmail {
+  return compose(
+    "order.refund_succeeded",
+    "human",
+    `Refund complete: ${input.reference}`,
+    {
+      preheader: `The refund on order ${input.reference} has been completed.`,
+      status: { reference: `Order ${input.reference}`, state: "Refunded" },
+      signed: true,
+      button: { label: "Open the order", url: input.statusUrl },
+      blocks: [
+        { kind: "p", text: `${input.customerName},` },
+        {
+          kind: "p",
+          text: `The refund on order ${input.reference} has been completed by the card processor.`,
+        },
+        { kind: "money", rows: [{ label: refundRowLabel(false), value: input.amount }] },
+        {
+          kind: "p",
+          text: "When it appears on your statement is up to your card issuer. Nothing more is needed from you.",
+        },
+      ],
+    },
+    { to: input.customerEmail },
+  );
+}
+
+/** The four public forms that now acknowledge a submission. */
+export type InquiryKind = "contact" | "waitlist" | "design" | "windstorm";
+
+const INQUIRY_NOUN: Record<InquiryKind, string> = {
+  contact: "message",
+  waitlist: "waitlist request",
+  design: "design inquiry",
+  windstorm: "windstorm inquiry",
+};
+
+/**
+ * THE ACKNOWLEDGEMENT TO WHOEVER FILLED IN A PUBLIC FORM. Operator rulings Q5
+ * and Q6, 2026-10-19, and addition d, 2026-10-20.
+ *
+ * Nothing acknowledged a contact, waitlist, design or windstorm submission, and
+ * the forms promised a reply "within one business day" that nothing enforced.
+ * This makes exactly one promise, that a person reads it and replies to the
+ * address given, and states no time. The waitlist's old promise, that the
+ * firm writes when a service opens, had no sender behind it and is not
+ * repeated here.
+ */
+/*
+ * AND IT ECHOES NOTHING THE FORM COLLECTED, NOT EVEN THE NAME. The address is
+ * whatever was typed, so anything repeated back is text a stranger can have
+ * this firm send to somebody else. The noun is the firm's own.
+ */
+export function inquiryAcknowledged(input: { kind: InquiryKind; email: string }): RenderedEmail {
+  const noun = INQUIRY_NOUN[input.kind];
+
+  return compose(
+    "inquiry.acknowledged",
+    "human",
+    `We have your ${noun}`,
+    {
+      preheader: `Your ${noun} reached the firm and a person will read it.`,
+      signed: true,
+      blocks: [
+        { kind: "p", text: "Hello," },
+        { kind: "p", text: `Your ${noun} reached the firm.` },
+        {
+          kind: "p",
+          text: "A person reads each one and replies to this address. If you need to add anything, reply to this message.",
+        },
+      ],
+    },
+    { to: input.email },
+  );
+}
+
+/**
+ * THE FIRM'S COPY OF A DESIGN OR WINDSTORM INQUIRY. Operator ruling Q6,
+ * 2026-10-19.
+ *
+ * Both forms stored a row and told nobody, so "the firm reviews it and
+ * replies" depended on somebody opening /portal/inquiries. This is the same
+ * shape as the contact form's notification: the answers, and a reply-to of the
+ * person who asked, so replying is the whole workflow.
+ */
+export function inquiryNotification(input: {
+  kind: "design" | "windstorm";
+  name: string;
+  email: string;
+  rows: Line[];
+  portalUrl: string;
+}): RenderedEmail {
+  const title = input.kind === "design" ? "Design inquiry" : "Windstorm inquiry";
+  return compose(
+    input.kind === "design" ? "inquiry.design" : "inquiry.windstorm",
+    "operator",
+    `${title}: ${input.name}`,
+    {
+      preheader: `${title} from ${input.name}.`,
+      button: { label: "Open the inquiries", url: input.portalUrl },
+      blocks: [
+        { kind: "p", text: `${input.name} submitted the ${title.toLowerCase()} form.` },
+        { kind: "details", title, rows: rows([["Name", input.name], ["Email", input.email], ...input.rows]) },
+      ],
+    },
+    { replyTo: input.email },
   );
 }
 
@@ -2064,6 +2367,76 @@ export function allTemplatesForAudit(): RenderedEmail[] {
       refunded: "$925.00",
       retained: null,
       statusUrl: "https://254engineering.com/order/254-O2026-ABCDEF?token=sample",
+    }),
+    /*
+     * The ordering build's customer notices (rulings Q1 to Q3, additions a and
+     * b). Both money states of the cancellation render, because the pending one
+     * carries a sentence the settled one does not.
+     */
+    orderTechnicianAccepted({
+      customerName: "Sample Customer",
+      customerEmail: "sample@example.com",
+      reference: "254-O2026-ABCDEF",
+      propertyAddress: "100 Sample Street, Corpus Christi",
+      statusUrl: "https://254engineering.com/order/254-O2026-ABCDEF?token=sample",
+    }),
+    orderReceived({
+      customerName: "Sample Customer",
+      customerEmail: "sample@example.com",
+      reference: "254-O2026-ABCDEF",
+      serviceName: "Sample roof certification",
+      propertyAddress: "100 Sample Street, Corpus Christi",
+      total: "$549.00",
+    }),
+    orderRepairsRequired({
+      customerName: "Sample Customer",
+      customerEmail: "sample@example.com",
+      reference: "254-O2026-ABCDEF",
+      propertyAddress: "100 Sample Street, Corpus Christi",
+      statusUrl: "https://254engineering.com/order/254-O2026-ABCDEF?token=sample",
+    }),
+    orderCancelled({
+      customerName: "Sample Customer",
+      customerEmail: "sample@example.com",
+      reference: "254-O2026-ABCDEF",
+      propertyAddress: "100 Sample Street, Corpus Christi",
+      refunded: "$549.00",
+      refundPending: false,
+      statusUrl: "https://254engineering.com/order/254-O2026-ABCDEF?token=sample",
+    }),
+    orderCancelled({
+      customerName: "Sample Customer",
+      customerEmail: "sample@example.com",
+      reference: "254-O2026-ABCDEF",
+      propertyAddress: "100 Sample Street, Corpus Christi",
+      refunded: "$549.00",
+      refundPending: true,
+      statusUrl: "https://254engineering.com/order/254-O2026-ABCDEF?token=sample",
+    }),
+    refundSucceeded({
+      customerName: "Sample Customer",
+      customerEmail: "sample@example.com",
+      reference: "254-O2026-ABCDEF",
+      amount: "$549.00",
+      statusUrl: "https://254engineering.com/order/254-O2026-ABCDEF?token=sample",
+    }),
+    /* Every kind of acknowledgement, since each renders its own noun. */
+    ...(["contact", "waitlist", "design", "windstorm"] as const).map((kind) =>
+      inquiryAcknowledged({ kind, email: "sample@example.com" }),
+    ),
+    inquiryNotification({
+      kind: "design",
+      name: "Sample Person",
+      email: "sample@example.com",
+      rows: [["Deliverable", "Sample framing plan"], ["Address", "100 Sample Street, Corpus Christi"]],
+      portalUrl: "https://254engineering.com/portal/inquiries",
+    }),
+    inquiryNotification({
+      kind: "windstorm",
+      name: "Sample Person",
+      email: "sample@example.com",
+      rows: [["County", "Nueces"], ["Address", "100 Sample Street, Corpus Christi"]],
+      portalUrl: "https://254engineering.com/portal/inquiries",
     }),
     outstandingInformation({
       customerName: "Sample Customer",

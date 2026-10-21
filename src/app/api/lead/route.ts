@@ -4,7 +4,7 @@ import { insertLead, intakeAnswer } from "@/lib/intake";
 import { queueEmail } from "@/lib/ops-jobs";
 import { notify } from "@/lib/notify";
 import { business } from "@/config/business";
-import { leadNotification } from "@/lib/email-templates";
+import { inquiryAcknowledged, leadNotification } from "@/lib/email-templates";
 import { cookies } from "next/headers";
 import { partnerForVisitor, VISITOR_COOKIE } from "@/lib/ops-partners";
 import { withSaveOutcome } from "@/lib/save-outcome";
@@ -92,6 +92,19 @@ async function handlePOST(request: Request) {
 
   if (!write.ok) console.error(`[lead] write failed (${form}): ${write.error}`);
   if (!mail.ok) console.error(`[lead] notification not queued (${form}): ${mail.error}`);
+
+  /*
+   * THE PERSON IS TOLD IT ARRIVED (rulings Q5 and Q6 of 2026-10-19, addition
+   * d of 2026-10-20), only once the row is written, because an acknowledgement
+   * of a submission that exists nowhere is the false success this route
+   * refuses. Nothing typed into the free text fields is echoed back, so the
+   * form cannot be used to send somebody else a message of a stranger's
+   * choosing. Its failure is logged and never changes the answer.
+   */
+  if (write.ok) {
+    const ack = await queueEmail(inquiryAcknowledged({ kind: form, email: data.email }));
+    if (!ack.ok) console.error(`[lead] acknowledgement not queued (${form}): ${ack.error}`);
+  }
 
   /*
    * A SUBMISSION THAT REACHED NOTHING IS NOT ANSWERED WITH SUCCESS.
