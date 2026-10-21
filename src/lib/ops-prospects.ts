@@ -468,6 +468,7 @@ export async function convertProspect(
     .from("eng_customer_accounts")
     .select("id, client_id")
     .eq("id", created.accountId)
+    .is("superseded_at", null)
     .maybeSingle();
   if (accountError || !account) {
     return refuse(`The account was opened and could not be read back to link this prospect: ${accountError?.message ?? "no row"}.`);

@@ -59,7 +59,6 @@ export async function GET(request: NextRequest) {
   const body = csv({
     preamble: [
       ["Sales list", `${rows.length} prospects matching the filter`],
-      ["Exported", new Date().toISOString()],
     ],
     headers: ["Company", "Contact", "Phone", "Email", "City", "Type", "Status", "Follow up on", "Last contact", "Owner"],
     rows: rows.map((r) => [

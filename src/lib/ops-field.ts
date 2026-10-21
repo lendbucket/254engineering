@@ -1171,16 +1171,28 @@ export async function releaseAssignment(
   });
   if (!recorded.ok) return recorded;
 
+  /*
+   * THE STATUS MOVES FIRST, AND THROUGH transitionFile, because only ops-crm
+   * writes eng_files.status (files-audit). Its update is conditional on the
+   * status it read, so a capture that started since the read above is refused
+   * there rather than here, and nothing below runs.
+   */
   const released = file.assigned_tech_id as string;
+  const moved = await transitionFile(actor, fileId, "needs_dispatch", `Reassigning. ${why}`, context);
+  if (!moved.ok) return { ok: false, error: `The job could not be moved back to dispatch: ${moved.error}` };
+
   const { data: cleared, error: clearError } = await db
     .from("eng_files")
     .update({ assigned_tech_id: null })
     .eq("id", fileId)
     .eq("assigned_tech_id", released)
-    .eq("status", "dispatched")
     .select("id");
-  if (clearError) return { ok: false, error: `The technician could not be released: ${clearError.message}` };
-  if (!cleared?.length) return { ok: false, error: `${file.file_number} changed while this was being done. Open it again.` };
+  if (clearError) {
+    return { ok: false, error: `The job is back at dispatch and the technician could not be taken off it: ${clearError.message}` };
+  }
+  if (!cleared?.length) {
+    return { ok: false, error: `${file.file_number} is back at dispatch and its technician changed while this was being done. Open it again.` };
+  }
 
   const { error: assignmentError } = await db
     .from("eng_assignments")
@@ -1191,9 +1203,6 @@ export async function releaseAssignment(
   if (assignmentError) {
     return { ok: false, error: `The technician was released and their assignment could not be closed: ${assignmentError.message}` };
   }
-
-  const moved = await transitionFile(actor, fileId, "needs_dispatch", `Reassigning. ${why}`, context);
-  if (!moved.ok) return { ok: false, error: `The technician was released and the job could not be moved back to dispatch: ${moved.error}` };
 
   await raise({
     profileId: released,
