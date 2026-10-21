@@ -596,6 +596,36 @@ should not send. Only then style anything. The verdicts and the rulings are
 recorded, and the artifacts that were refused stay in `design-reference/` with
 their verdict beside them so nobody rebuilds them by accident.
 
+## 2d. Office ready: the acceptance standard for every staff-facing screen
+
+**Operator ruling, 2026-10-20.** Every screen a member of staff works in, for
+the administrator, the operations manager, the rep, the engineer and the
+technician at a desk, meets all of these before it is called done. A new staff
+screen is built to it from the start rather than brought up to it later.
+
+- **Lists.** Every list sorts, filters, searches and pages, and is usable at
+  1440px and wider.
+- **One global search** over orders, customers, prospects and addresses, by
+  any field staff would type.
+- **The telephone.** Every phone number is a `tel:` link. A call log entry is
+  one click from any record. The rep's home screen carries today's call list.
+- **A home screen per role** showing the work due now: new inquiries,
+  unassigned jobs, follow-ups due, refund requests and holds.
+- **No refresh.** New orders and inquiries appear without reloading the page,
+  with a count in the tab title.
+- **Plain words.** Every empty state says what to do next. Every error says
+  what failed. Nothing operational needs SQL, a script or code.
+- **Speed, measured.** Every staff page is interactive in under 2 seconds on a
+  normal office connection, measured rather than estimated.
+- **Paper and spreadsheets.** Order summaries and reports print cleanly and
+  export to CSV.
+
+**How it is enforced.** After the ordering build, an office-ready pass goes
+over every existing staff screen on its own full-lane branch, with an audit
+that checks each item above. A screen that cannot meet an item is reported by
+name with the reason, which is a finding for Robert to rule on, never a quiet
+exemption.
+
 ## 3. Style laws on every rendered string
 
 - **No em dashes and no en dashes.** Anywhere: copy, metadata, schema, alt text, rendered comments.
@@ -3253,6 +3283,34 @@ night, if the lock is free and work is waiting, board it.
   branch carrying a migration does not merge in an unattended run: it is
   brought up to main, its migration applied to development, boarded, pushed,
   and staged for the morning sitting.
+
+  **TWO LANES. Operator ruling, 2026-10-20.** It narrows the board-before-merge
+  rule above for one kind of branch and leaves it whole for every other.
+
+  **Fast lane.** A branch that changes only copy, content, docs or styling, and
+  touches no server code, API route, migration, auth, role, payment, dispatch,
+  sealing, protocol or override file, merges when its readers pass (every audit
+  that reads a changed file) and the range dash check finds no long dash in its
+  added lines. No full board. A registry string in `data/keyword-registry.ts`
+  is fast lane. A sentence inside a file a server path reads, such as a
+  `data/catalog.ts` field, is full lane.
+
+  **The nightly board.** One full board runs on main every night after the last
+  fast-lane merge of the day. Any miss on it stops ALL merges, in both lanes,
+  until Robert rules. That board is what still measures the combination the
+  fast lane did not.
+
+  **Full lane.** Everything else stays on the full board with a prediction
+  stated in advance, exactly as above.
+
+  **Doubt is full lane.** A session unsure which lane a branch is in does not
+  decide it in the branch's favour. Every merge message states the lane and
+  why.
+
+  **The range dash check** is the standing check for a committed branch: it
+  reads `git diff <base> <head>` and exits non-zero when it finds no added
+  lines, because a check of the working diff reads nothing once the work is
+  committed and would print zero over an empty set.
 
   **Never, under any word:** a force push, deleting or rewriting a remote branch,
   pushing a tag, or pushing main with a migration that is not applied to
