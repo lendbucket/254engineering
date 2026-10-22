@@ -11,10 +11,12 @@
  * this script proceeds only when no other in-progress run:
  *
  *   - is HOLDING: its WAIT_STEP succeeded and its writer job is not complete; or
- *   - is EARLIER IN LINE: its WAIT_STEP is still running and its run id is lower.
+ *   - is EARLIER IN LINE: its writer job has started and its run id is lower,
+ *     whatever its step statuses say (they are reported late; see below).
  *
- * Run ids only grow, so the line is first come first served, and two runs that
- * both see each other waiting resolve the same way from both ends. A cancelled
+ * and it must find that true twice, 45 seconds apart. Run ids only grow, so the
+ * line is first come first served, and two runs that both see each other
+ * resolve the same way from both ends. A cancelled
  * or crashed run's job is complete, so nothing is ever left holding a stale
  * lock to reap.
  *
@@ -30,6 +32,7 @@ const WRITER_JOB = "shard writers";
 const WAIT_STEP = "Wait for the development database";
 const POLL_MS = 120_000; // GITHUB_TOKEN allows 1000 calls an hour per repository; four waiters stay well under it.
 const GIVE_UP_MS = 5.5 * 60 * 60 * 1000;
+const SETTLE_MS = 45_000;
 
 const [repo, runIdArg] = process.argv.slice(2);
 const me = Number(runIdArg);
@@ -56,10 +59,16 @@ async function blockers() {
     const writer = jobs.find((j) => j.name === WRITER_JOB);
     if (!writer || writer.status !== "in_progress") continue;
     const wait = (writer.steps ?? []).find((s) => s.name === WAIT_STEP);
-    if (!wait) continue;
-    if (wait.status === "completed" && wait.conclusion === "success") {
+    if (wait && wait.status === "completed" && wait.conclusion === "success") {
       found.push(`run ${run.id} on ${run.head_branch} holds the database`);
-    } else if (wait.status === "in_progress" && run.id < me) {
+    } else if (run.id < me) {
+      /*
+       * AHEAD IN LINE WHATEVER ITS STEPS SAY. The first version counted a lower
+       * run only when its wait step read in_progress, and GitHub reports step
+       * status late: on 2026-10-22 two writer shards each read the other's
+       * wait step as not yet running and both went ahead, on one database.
+       * A lower run whose writer job has started is ahead, full stop.
+       */
       found.push(`run ${run.id} on ${run.head_branch} is ahead in line`);
     }
   }
@@ -76,8 +85,23 @@ for (;;) {
     waitingOn = [`could not read the other runs (${err.message}), so this waits rather than assuming the database is free`];
   }
   if (waitingOn.length === 0) {
-    console.log(`Run ${me} has the development database after ${Math.round((Date.now() - started) / 60000)} minute(s).`);
-    break;
+    /*
+     * CLEAR TWICE, 45 SECONDS APART, before taking the turn, so a run whose
+     * writer job started a moment ago and is not yet visible to the API is
+     * seen on the second look. The lag is what let two writers in at once.
+     */
+    await new Promise((r) => setTimeout(r, SETTLE_MS));
+    let again;
+    try {
+      again = await blockers();
+    } catch (err) {
+      again = [`could not read the other runs on the second look (${err.message})`];
+    }
+    if (again.length === 0) {
+      console.log(`Run ${me} has the development database after ${Math.round((Date.now() - started) / 60000)} minute(s), clear on two looks.`);
+      break;
+    }
+    waitingOn = again;
   }
   if (Date.now() - started > GIVE_UP_MS) {
     console.log(`Gave up after 5.5 hours waiting on: ${waitingOn.join("; ")}`);

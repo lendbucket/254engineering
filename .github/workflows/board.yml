@@ -103,12 +103,21 @@ jobs:
   shard:
     name: shard ${{ matrix.shard }}
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 360
+    defaults:
+      run:
+        shell: bash
     strategy:
       fail-fast: false
       matrix:
-        shard: [static, pages, gate, writers]
+        include:
+          - { shard: static, os: ubuntu-latest, app: true }
+          - { shard: pages, os: ubuntu-latest, app: true }
+          - { shard: gate, os: ubuntu-latest, app: true }
+          - { shard: writers, os: ubuntu-latest, app: true }
+          # The verbatim protocol check, where xpdf 4.00 is (scripts/ci/shards.mjs).
+          - { shard: documents, os: windows-latest, app: false }
     steps:
       - uses: actions/checkout@v5
       - name: A local main, which schema-ledger-audit reads
@@ -122,20 +131,31 @@ jobs:
       - name: Install
         run: npm ci --no-audit --no-fund
       - name: PDF, archive and port tools
-        # pdftotext for protocol-registry-audit and a proof, unzip for the .docx
-        # sources, lsof for the build guard's Linux branch.
+        # unzip for the .docx sources, lsof for the build guard's Linux branch,
+        # poppler's pdftotext for the one proof that reads back a letter it renders.
+        if: runner.os == 'Linux'
         run: sudo apt-get install -y -qq poppler-utils unzip lsof > /dev/null
+      - name: The PDF extractor this shard will use
+        if: runner.os == 'Windows'
+        run: |
+          which pdftotext unzip
+          pdftotext -v > "$RUNNER_TEMP/pdftotext-version.txt" 2>&1 || true
+          sed -n 1p "$RUNNER_TEMP/pdftotext-version.txt"
       - uses: actions/cache@v4
+        if: matrix.app
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
       - name: Browser
+        if: matrix.app
         run: npx playwright install --with-deps chromium > /dev/null
       - uses: actions/download-artifact@v4
+        if: matrix.app
         with:
           name: next-build
           path: ${{ runner.temp }}
       - name: Unlock the build
+        if: matrix.app
         env:
           BUILD_ARTIFACT_KEY: ${{ secrets.BUILD_ARTIFACT_KEY }}
         run: |
@@ -167,19 +187,32 @@ jobs:
         # As on a developer machine: CI and GITHUB_ACTIONS are removed for the
         # suite, so the machine lock and the build guard run as they do at home
         # (an uncontended lock in the runner's own home) rather than skipping.
+        # On Linux a sampler records memory every 20 seconds and the kernel log
+        # is kept afterwards, both into the sealed bundle, so a server that goes
+        # away can be told apart from one the kernel killed.
         run: |
           mkdir -p "$RUNNER_TEMP/board/server"
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            (while sleep 20; do echo "$(date -u +%T) $(free -m | awk '/Mem:/ {print $3 " MB used, " $7 " MB available"}')"; done) > "$RUNNER_TEMP/board/memory.txt" 2>&1 &
+            sampler=$!
+          fi
           set +e
           env -u CI -u GITHUB_ACTIONS AUDIT_SHARD="${{ matrix.shard }}" AUDIT_PREBUILT=1 AUDIT_LOG_DIR="$RUNNER_TEMP/board/server" \
             node scripts/audit.mjs > "$RUNNER_TEMP/board/suite.log" 2>&1
           echo $? > "$RUNNER_TEMP/board/exit"
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            kill "$sampler" 2>/dev/null
+            sudo dmesg -T 2>/dev/null | tail -200 > "$RUNNER_TEMP/board/kernel.txt"
+          fi
           echo "suite exit $(cat "$RUNNER_TEMP/board/exit")"
       - name: Verdicts
         run: node scripts/ci/verdicts.mjs "${{ matrix.shard }}" "$RUNNER_TEMP/board/suite.log" "$(cat "$RUNNER_TEMP/board/exit" 2>/dev/null || echo 1)" "$RUNNER_TEMP/verdict-${{ matrix.shard }}.json"
       - name: Seal the shard log
         if: always()
+        # Relative paths for tar: a Windows path's drive colon reads to GNU tar
+        # as a remote host.
         run: |
-          tar -czf "$RUNNER_TEMP/board-log.tgz" -C "$RUNNER_TEMP" board
+          (cd "$RUNNER_TEMP" && tar -czf board-log.tgz board)
           node scripts/ci/seal.mjs seal "$RUNNER_TEMP/board-log.tgz" "$RUNNER_TEMP/board-log-${{ matrix.shard }}.sealed"
       - uses: actions/upload-artifact@v4
         if: always()

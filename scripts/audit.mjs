@@ -798,13 +798,51 @@ const HEALTH_PATHS = ["/", "/portal/login"];
  * Found by injecting a health path that does not exist and watching the suite
  * run anyway. The check was the thing being tested and it was wrong.
  */
+/*
+ * WHAT THE LAST FAILED HEALTH CHECK GOT, so "the server stopped answering" can
+ * say which path and what came back: a status, a refused connection, a reset.
+ * Added 2026-10-22 after the first cloud run lost its server after seo-audit
+ * with a log that just ended, and the message could not say which of those
+ * three it was. It is the status-function rule in CLAUDE.md: the error should
+ * name the fault the check actually met.
+ */
+let lastHealthFault = "";
+
+/*
+ * A CLOSED SOCKET IS ASKED AGAIN ONCE, ON A NEW CONNECTION, AND SAID.
+ *
+ * The cloud run that recorded the fault above read UND_ERR_SOCKET on "/" with
+ * the server's process still running and nothing in its log: fetch had reused a
+ * kept-alive connection the server closed while seo-audit, a separate process,
+ * ran for minutes. That is a stale connection in this process, not an absent
+ * server. So a socket-level close (never a status, never a refusal) is retried
+ * once with `connection: close`, and every retry is recorded and printed in the
+ * summary, so a recovered fault is a line on the board rather than silence. A
+ * second failure is the server's, and stops the suite as before.
+ */
+const SOCKET_CLOSED = new Set(["UND_ERR_SOCKET", "ECONNRESET", "UND_ERR_CLOSED"]);
+const healthRetries = [];
+
 async function answers(url) {
-  try {
-    const res = await fetch(url, { redirect: "manual" });
-    return res.ok;
-  } catch {
-    return false;
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      const res = await fetch(url, { redirect: "manual", headers: attempt === 2 ? { connection: "close" } : {} });
+      if (!res.ok) lastHealthFault = `${url} answered ${res.status}`;
+      if (attempt === 2) healthRetries.push(`${url}: ${lastHealthFault}, then ${res.ok ? "answered" : `answered ${res.status}`} on a new connection`);
+      return res.ok;
+    } catch (err) {
+      const code = err?.cause?.code ?? err?.cause?.message ?? err?.message ?? "fetch failed";
+      const before = lastHealthFault;
+      lastHealthFault = `${url}: ${code}`;
+      if (attempt === 2) {
+        healthRetries.push(`${url}: ${before}, then ${code} on a new connection`);
+        return false;
+      }
+      if (!SOCKET_CLOSED.has(code)) return false;
+      await new Promise((r) => setTimeout(r, 500));
+    }
   }
+  return false;
 }
 
 async function healthy(base) {
@@ -1083,7 +1121,12 @@ let server = null;
 let setupError = null;
 
 try {
-  if (MANAGED) {
+  if (SHARD && SHARDS[SHARD].server === false) {
+    /* A shard of audits that read files and need no app (see shards.mjs). The
+     * invocation check still runs, because it is about how audits are started. */
+    assertInvocationsMatchDeclarations();
+    console.log(`SHARD ${SHARD} needs no server, so none is started.`);
+  } else if (MANAGED) {
     server = await bringUpServer();
   } else {
     console.log(`Using the server at ${BASE}, because BASE_URL is set.`);
@@ -1119,7 +1162,8 @@ try {
   for (const audit of RUN_ONE) {
     if (!(await healthy(BASE))) {
       throw new Error(
-        `The server stopped answering before ${audit.name}. Everything from here would have ` +
+        `The server stopped answering before ${audit.name} (${lastHealthFault || "no fault recorded"}; ` +
+          `its process: ${server?.state?.() ?? "not managed here"}). Everything from here would have ` +
           "measured nothing, so the suite stops rather than reporting absent pages as content " +
           "failures. The server's own log is where to look: it ends cleanly when something " +
           "killed the process, and carries the error when it fell over by itself.",
@@ -1283,6 +1327,9 @@ if (setupError) {
   console.log(
     `Transient retries: ${retried.length}${byAudit.size ? ` (${[...byAudit].map(([a, n]) => `${a} ${n}`).join(", ")})` : ""}.` +
       `${refused.length ? ` ${refused.length} fault(s) were not retried, by rule; each is in its audit's output under [transient-retry].` : ""}`,
+  );
+  console.log(
+    `Health checks asked again on a new connection: ${healthRetries.length}${healthRetries.length ? `: ${healthRetries.join("; ")}` : "."}`,
   );
   if (retried.length > 5) {
     console.log(

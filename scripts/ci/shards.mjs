@@ -41,8 +41,24 @@ export const SHARDS = {
       "turnaround-audit", "price-book-audit", "accounts-audit", "intake-audit", "partner-audit",
       "jobs-audit", "observability-audit", "token-audit", "portal-voice-audit", "files-audit",
       "dispatch-audit", "onboarding-audit", "review-audit", "comms-audit", "money-audit",
-      "stripe-webhook-audit", "protocol-registry-audit", "order-audit", "registry-audit", "email-audit",
+      "stripe-webhook-audit", "order-audit", "registry-audit", "email-audit",
     ],
+  },
+  /*
+   * ON WINDOWS, BECAUSE THE VERBATIM CHECK IS A CHECK AGAINST ONE EXTRACTOR.
+   * Found by the first cloud run, 2026-10-22: protocol-registry-audit passes
+   * here with pdftotext 4.00 (xpdf, as Git for Windows ships it) and fails 11 of
+   * 149 on Ubuntu's poppler, which emits checkbox glyphs and dash forms xpdf
+   * does not. xpdf 4.06, the only version still published, differs from 4.00
+   * on five of the nine protocol PDFs in how it orders table cells. So the
+   * transcriptions agree with xpdf 4.00 and with nothing else tried, and this
+   * shard runs where that binary is: a Windows runner's Git for Windows. It
+   * prints the version it found, and needs no server.
+   */
+  documents: {
+    writes: false,
+    server: false,
+    audits: ["protocol-registry-audit"],
   },
   /* Phase one against the shared server, public pages and source, no database. */
   pages: {
