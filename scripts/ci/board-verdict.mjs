@@ -9,8 +9,9 @@
  * shorter board: the arithmetic is against the declaration in shards.mjs, which
  * shard jobs have already checked against the runner itself.
  *
- * perf-audit is shown and does not gate until it is calibrated on these
- * runners (operator ruling, 2026-10-22).
+ * An audit in INFORMATIONAL (shards.mjs) is shown and does not gate. The set
+ * held perf-audit until its calibration on these runners, and is empty since
+ * the operator's ruling of 2026-10-22 that perf gates with its current ceilings.
  */
 import { existsSync, readdirSync, readFileSync, appendFileSync } from "node:fs";
 import { join } from "node:path";
@@ -55,7 +56,9 @@ const lines = [
   `## Cloud board: ${ok ? "PASS" : "NOT GREEN"}`,
   "",
   `${pass} pass + ${fail} fail or no verdict + ${cnt} could not tell = ${pass + fail + cnt}, against ${declared} declared audits.`,
-  `Informational, not gating until calibrated: ${[...INFORMATIONAL].join(", ")}.`,
+  INFORMATIONAL.size > 0
+    ? `Informational, not gating: ${[...INFORMATIONAL].join(", ")}.`
+    : "Every audit gates, perf-audit included (operator ruling, 2026-10-22).",
   "",
   "| shard | audit | verdict |",
   "| --- | --- | --- |",

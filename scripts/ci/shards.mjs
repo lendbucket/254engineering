@@ -87,11 +87,17 @@ export const SHARDS = {
 };
 
 /**
- * Audits whose cloud verdict is shown and does not gate. perf-audit's budgets
- * were set on the operator's PC; a 4-vCPU runner is a different instrument
- * until calibrated. Operator ruling, 2026-10-22.
+ * Audits whose cloud verdict is shown and does not gate. EMPTY SINCE THE
+ * CALIBRATION, operator ruling of 2026-10-22: perf-audit was informational
+ * here while its budgets, set on the operator's PC, were unproven on a 4-vCPU
+ * runner. Three clean main runs (39822941996, 39844926908, 39844942722) each
+ * passed 81 checks with no FAIL and no NOT STABLE, the tightest route at
+ * 223ms under its ceiling, so it gates with the current ceilings. A perf miss
+ * holds a branch only when the branch caused it or made it worse, as on the
+ * local board. The set is kept, empty, so a future audit can be put here by a
+ * ruling rather than by a new mechanism.
  */
-export const INFORMATIONAL = new Set(["perf-audit"]);
+export const INFORMATIONAL = new Set([]);
 
 /** Every way the declaration disagrees with the runner's own list. Empty when it agrees. */
 export function shardProblems(declaredNames) {

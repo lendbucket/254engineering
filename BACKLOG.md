@@ -14,7 +14,9 @@ split, and that changes the sweep in every probe helper, which is a fixture
 change for a ruling. **A run on the operator's PC is not in the line**
 (`scripts/ci/dev-db-turn.mjs` reads GitHub runs only), so a local perf run
 beside a cloud writer shard would sweep the same probes. perf-audit's cloud
-verdict is informational until its budgets are calibrated on the runners.
+verdict was informational until calibrated; three clean main runs passed with
+no FAIL and no NOT STABLE, and it gates since the operator's ruling of
+2026-10-22 (`INFORMATIONAL` in `scripts/ci/shards.mjs` is empty).
 
 ## THE SITTING FOR 0079, TWO STAFF ROLES AND THE WORK THEY DO, OPEN
 
