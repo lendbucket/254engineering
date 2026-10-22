@@ -20,6 +20,17 @@ in both RC-001 PDFs and his licence line in the letter templates, public since
 2026-09-16 and 2026-10-06. Removing them from the tree is ruled (2026-10-22);
 rewriting history is not, because it rehashes about 955 commits and force
 pushes 126 branches. Written up and held for his decision.
+## THE CLOUD BOARD'S WRITERS RUN ONE AT A TIME, AND A LOCAL RUN IS NOT IN LINE
+
+`.github/workflows/board.yml`, `scripts/ci/shards.mjs`, 2026-10-22. Two gaps,
+both stated in the files. **The writer shard is serial** across every run,
+because each probe helper sweeps the whole probe domain, so two writers at once
+would delete each other's fixtures; unique probe prefixes per job would let it
+split, and that changes the sweep in every probe helper, which is a fixture
+change for a ruling. **A run on the operator's PC is not in the line**
+(`scripts/ci/dev-db-turn.mjs` reads GitHub runs only), so a local perf run
+beside a cloud writer shard would sweep the same probes. perf-audit's cloud
+verdict is informational until its budgets are calibrated on the runners.
 
 ## THE SITTING FOR 0079, TWO STAFF ROLES AND THE WORK THEY DO, OPEN
 
