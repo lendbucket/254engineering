@@ -211,6 +211,78 @@ Section 0 against `fsaryeciduszuahgjbly`, then Section 1 against
 `supabase/applied.mjs` with the date, the provider version and the list of
 protocols that went in force, then merges with the exact main command.
 
+### What production holds, and so what 0081 does there
+
+Read on production by the chat on 2026-10-22: **Aman has already signed all
+eight protocols in the portal.** DS, MH, PL, RS and SL were signed on
+2026-10-10; FC, WP and WS on 2026-10-15. All eight signatures are live, and
+every `content_sha256` equals the transcription digest in the table above.
+Nobody asks him to sign anything again: 0081 puts those signatures in force.
+
+**Section 0 on production expects, in addition to Section 0 above:**
+
+```sql
+select protocol_document, protocol_version, voided_at is null as live,
+       content_sha256
+  from eng_seal_acts where kind = 'protocol'
+ order by protocol_document;
+-- Expect eight rows, every one live, each content_sha256 the digest in the table above:
+--   254-DS-001 1.1, 254-FC-001 1.0, 254-MH-001 1.1, 254-PL-001 1.1, 254-RS-001 1.1,
+--   254-SL-001 1.1, 254-WP-001 1.2, 254-WS-001 1.1.
+
+select distinct encode(sha256(convert_to(btrim(p.license_number), 'UTF8')), 'hex') as licence_sha256, p.role
+  from eng_seal_acts a join eng_profiles p on p.id = a.sealed_by
+ where a.kind = 'protocol';
+-- Expect exactly one row:
+--   afde1f7e59be3fe2efbcf559fcee846163e49545a7ed240b2ff41fb9ce94b60e | engineer
+-- That is the hash section 7 compares the signer's licence against. Any other
+-- value and 0081 would leave all seven out of force ("not an engineer on the
+-- register"): stop and send it back before the apply.
+
+select document_number, version_label, requires_discipline
+  from eng_protocol_templates
+ where document_number in ('254-DS-001','254-FC-001','254-MH-001','254-PL-001','254-RS-001','254-SL-001','254-WS-001')
+ order by document_number;
+-- Expect seven rows, each requires_discipline = structural (0077).
+```
+
+**Section 2 on production expects, in place of the development answers:**
+
+- `protocol.in_force_at_0081`: **seven rows, every one `in_force`**, reason "a live
+  signature whose digest is the transcription in code, by an engineer on the
+  register": DS, FC, MH, PL, RS, SL, WS. **No row for 254-WP-001.**
+- The seven templates: status `published`, `by_signature` true,
+  `licence_recorded` true, `published` true, `document_signed_at` the date of
+  each signature in the firm's calendar (2026-10-10 for DS, MH, PL, RS, SL;
+  2026-10-15 for FC, WS).
+- Items on each, as the generated section 7 states them:
+
+  | Protocol | Items |
+  | --- | --- |
+  | 254-DS-001 v1.1 | 13 |
+  | 254-FC-001 v1.0 | 37 |
+  | 254-MH-001 v1.1 | 35 |
+  | 254-PL-001 v1.1 | 15 |
+  | 254-RS-001 v1.1 | 24 |
+  | 254-SL-001 v1.1 | 22 |
+  | 254-WS-001 v1.1 | 35 |
+
+- 254-WP-001: v1.2 and v1.1 still `draft`; its signature live and untouched.
+- 254-RC-001: 1.1 published, `by_signature` false, licence recorded; 1.0 as
+  Section 0 read it. Untouched.
+- Published rows: eight, 254-RC-001 on roof-inspections and the seven above,
+  one per service line, no two on one line.
+
+**What going in force does not do: open a line for ordering.** Every money
+door asks first whether the line is offered (`src/lib/line-gate.ts`,
+`lineIsSellable`), and `offeredServiceLines` in
+`src/config/launch-conditions.ts` holds `roof-inspections` alone. None of the
+seven is offered, and they stay unoffered until the training change ruled on
+2026-10-22 is built and merged; offering them is its own change, after it. The
+site gate reads configuration only, so it does not move. What changes is that
+dispatch now has a protocol in force for each of the seven, which nothing can
+reach while the lines are not sold.
+
 ### The cutover: apply, then merge and deploy at once
 
 Once 0081 is on production, the code deployed there still calls 0062's
