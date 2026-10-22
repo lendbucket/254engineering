@@ -1277,53 +1277,6 @@ export function orderTechnicianAccepted(input: {
 }
 
 /**
- * THE RECEIPT FOR AN ORDER WAITING ON A PERSON. Operator ruling Q2, 2026-10-19.
- *
- * When the paying client matches an account a person has to choose,
- * releaseForFulfilment sends no confirmation and no link until that is done
- * (ruling 2026-10-13), so a buyer who had paid heard nothing. This says the
- * payment arrived and that the link follows once the order is released. It
- * carries NO link, because the link belongs to whichever account the person
- * attaches, and no time, because nothing bounds how long that takes.
- */
-export function orderReceived(input: {
-  customerName: string;
-  customerEmail: string;
-  reference: string;
-  serviceName: string;
-  propertyAddress: string;
-  total: string;
-}): RenderedEmail {
-  return compose(
-    "order.received",
-    "human",
-    `Payment received: ${input.reference}`,
-    {
-      preheader: `Your payment for ${input.propertyAddress} has been received.`,
-      status: { reference: `Order ${input.reference}`, state: "Payment received" },
-      signed: true,
-      blocks: [
-        { kind: "p", text: `${input.customerName},` },
-        {
-          kind: "p",
-          text: `Your payment for ${input.serviceName} at ${input.propertyAddress} has been received.`,
-        },
-        { kind: "money", rows: [{ label: "Paid", value: input.total }] },
-        {
-          kind: "p",
-          text: "The firm emails a link to follow this order once it is released for work. Nothing more is needed from you before then.",
-        },
-        {
-          kind: "note",
-          text: `Your reference is ${input.reference}. Quote it if you write to the firm about this order.`,
-        },
-      ],
-    },
-    { to: input.customerEmail },
-  );
-}
-
-/**
  * REPAIRS ARE NEEDED BEFORE A CERTIFICATION. Operator ruling Q3, 2026-10-19.
  *
  * The engineer's "repairs" decision moved the file and told nobody outside the
@@ -2379,14 +2332,6 @@ export function allTemplatesForAudit(): RenderedEmail[] {
       reference: "254-O2026-ABCDEF",
       propertyAddress: "100 Sample Street, Corpus Christi",
       statusUrl: "https://254engineering.com/order/254-O2026-ABCDEF?token=sample",
-    }),
-    orderReceived({
-      customerName: "Sample Customer",
-      customerEmail: "sample@example.com",
-      reference: "254-O2026-ABCDEF",
-      serviceName: "Sample roof certification",
-      propertyAddress: "100 Sample Street, Corpus Christi",
-      total: "$549.00",
     }),
     orderRepairsRequired({
       customerName: "Sample Customer",

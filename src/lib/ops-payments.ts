@@ -35,7 +35,6 @@ import {
   orderCancelled,
   orderConfirmed,
   orderDeclined,
-  orderReceived,
   orderRepairsRequired,
   orderSealed,
   orderTechnicianAccepted,
@@ -727,13 +726,21 @@ export async function releaseForFulfilment(
   if (settled === "failed") missing.push("the customer's account could not be opened");
   if (settled === "needs_person") {
     /*
-     * No link and no confirmation until a person has chosen the account. A
-     * receipt with no link goes to the order's own address, once (ruling Q2,
-     * 2026-10-19), so a buyer who has paid is not left hearing nothing. Its
-     * failure is recorded on the order and never holds the release, which is
-     * already waiting on a person.
+     * No link, no confirmation and no receipt until a person has chosen the
+     * account. Ruling Q2 of 2026-10-19 sent a receipt here to the order's own
+     * address; Robert's ruling of 2026-10-21 put it under the confirmation's
+     * recipient rule (2026-10-13), which writes to the account's address on
+     * file and never to an address that merely paid. Here no account is chosen
+     * yet, so the rule names nobody, and the receipt is withheld rather than
+     * sent to the paying address. The paying address is also not where the
+     * status link goes once a person attaches the account, so a receipt
+     * promising it the link would have been untrue there.
      */
-    await sendOrderReceived(orderId);
+    await eventOnce(
+      orderId,
+      RECEIPT_WAITS_FOR_ACCOUNT,
+      "No receipt was sent: the account this order belongs to needs a person to choose it, and the confirmation goes to that account's address once it is attached.",
+    );
     missing.push("the customer's account needs a person to attach it");
   } else if (settled !== "failed") {
     const { data: queuedConfirmation, error: queuedError } = prior.has("email.sent")
@@ -1020,6 +1027,8 @@ export const ACCOUNT_LINKED_BY_CLIENT = "account.linked_by_client";
 export const ACCOUNT_ATTACHED = "account.attached";
 /** A confirmation not sent because the order's account has no address on file. Written once per order. */
 export const CONFIRMATION_NO_ADDRESS = "email.no_account_address";
+/** A receipt withheld because a person has yet to choose the order's account. Written once per order. */
+export const RECEIPT_WAITS_FOR_ACCOUNT = "email.receipt_waits_for_account";
 
 /** Writes an order event unless the order already carries one of that name. False when it could not tell or write. */
 async function eventOnce(orderId: string, name: string, summary: string): Promise<boolean> {
@@ -2811,52 +2820,6 @@ async function noticeQueued(orderId: string, what: string, to: string, ok: boole
       ? `The ${what} is queued to ${to}. The next entry says when it is sent.`
       : `The ${what} could not be queued: ${error}. It has to go out by hand.`,
   );
-}
-
-/**
- * The receipt for a paid order whose account needs a person (ruling Q2).
- *
- * Once per order, by the same marker the confirmation uses: a receipt job
- * already on the queue for this order. It goes to the order's own address and
- * carries no link, so it says nothing about any account.
- */
-async function sendOrderReceived(orderId: string): Promise<void> {
-  const db = supabaseAdmin();
-  if (!db) return;
-
-  const { data: already, error: alreadyError } = await db
-    .from("eng_jobs")
-    .select("id")
-    .eq("kind", "email.send")
-    .eq("payload->>id", "order.received")
-    .eq("payload->>orderId", orderId)
-    .limit(1);
-  if (alreadyError || (already ?? []).length > 0) return;
-
-  const { data: order, error } = await db
-    .from("eng_service_orders")
-    .select("reference, customer_name, customer_email, service_slug, tier, property_address, total_cents")
-    .eq("id", orderId)
-    .maybeSingle();
-  if (error || !order) return;
-  if (!order.customer_email) {
-    await event(orderId, "email.not_sent", false, "The receipt could not be sent: no customer email on the order.");
-    return;
-  }
-
-  const entry = catalogFor(order.service_slug as string, (order.tier as string | null) ?? undefined);
-  const queued = await queueEmail(
-    orderReceived({
-      customerName: order.customer_name as string,
-      customerEmail: order.customer_email as string,
-      reference: order.reference as string,
-      serviceName: entry?.name ?? (order.service_slug as string),
-      propertyAddress: order.property_address as string,
-      total: money(order.total_cents === null ? null : Number(order.total_cents)),
-    }),
-    { orderId },
-  );
-  await noticeQueued(orderId, "receipt", order.customer_email as string, queued.ok, queued.ok ? undefined : queued.error);
 }
 
 /**
