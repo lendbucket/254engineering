@@ -297,6 +297,12 @@ export const NOT_CREDENTIALS = new Set([
    */
   "AUDIT_RETRY_LOG",
   /*
+   * AUDIT_SHARD and AUDIT_PREBUILT, 2026-10-22, the cloud board. A shard name
+   * from scripts/ci/shards.mjs, and a flag saying the build job's .next is
+   * already in place. Neither grants or opens anything.
+   */
+  "AUDIT_SHARD", "AUDIT_PREBUILT",
+  /*
    * break-glass-audit starts three servers one after another, because a
    * process environment is fixed when it boots and the audit needs three
    * different values of MFA_BREAK_GLASS. Three ports, three names.
