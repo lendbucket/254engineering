@@ -2725,6 +2725,20 @@ export const APPLIED = [
     fingerprint: "45ce47821d9c5567eb3b4b197549d881",
     behaviour: "8f0fe1b5eb8a6b5588e0ae9e3ae5017c",
     production: null,
+    development: {
+      at: "0080",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-22",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-22 by the operator's chat counterpart, provider version 20261022165346, " +
+        "the file as written (sha256 e6eac205bca7d70bb50715ce6da481e0cfe6661a48028c332725d1fdf45e8d9a). " +
+        "Before: shape 45ce47821d9c5567eb3b4b197549d881 across 1263, no eng-protocol-sources, 0 public buckets. " +
+        "After: shape unchanged, one row eng-protocol-sources | false | 26214400 | {application/pdf, " +
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document}, 0 public buckets, 0 objects. " +
+        "Every answer as predicted.",
+    },
     /*
      * NO `proves`, as 0008 and 0073 have none: production-schema-check probes a
      * table, a column or a row through PostgREST, and storage.buckets is not in
