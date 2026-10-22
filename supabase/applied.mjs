@@ -2783,6 +2783,27 @@ export const APPLIED = [
     fingerprint: "d73cdd49ae5da6268743584229cb3b88",
     behaviour: "dfbdf7fcca64c3b093e736b30daa7786",
     production: null,
+    development: {
+      at: "0081",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-22",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-22 by the operator's chat counterpart through apply_migration, provider " +
+        "version 20261022225514, name 0081_a_signature_puts_its_protocol_in_force, no confirmation prompt on the " +
+        "drop. The file was verified against ref 153196f before the apply, sha256 " +
+        "578cb977c6ca7fd62a796efdd5eefed3287d9876585a00d80a7df431b5bfc387; the statement stored in " +
+        "supabase_migrations reads back as sha256 1409a05e967148a4d2544f7597ce4f9f547c709c8e75842157b0f74ef14c562f, " +
+        "the file without its trailing newline, as 0080 is stored. Section 0 before: shape " +
+        "45ce47821d9c5567eb3b4b197549d881 across 1263; the status check with draft, awaiting_engineer, published, " +
+        "retired; the eight protocol rows draft (WP-001 at 1.1 and 1.2); no protocol signature on record; " +
+        "254-RC-001 1.1 published and 1.0 awaiting_engineer; one published row, 254-RC-001 1.1 roof-inspections. " +
+        "Section 2 after: shape d73cdd49ae5da6268743584229cb3b88 across 1265; seven protocol.in_force_at_0081 rows, " +
+        "DS, FC, MH, PL, RS, SL, WS, each not in force, no live signature on record, and none for WP-001; every " +
+        "0081 protocol still draft; 254-RC-001 untouched; the status check widened with voided after retired; five " +
+        "functions, the put-in-force door and both versions of the two signing doors. Every answer as predicted.",
+    },
     proves: { table: "eng_protocol_templates", column: "signed_by_seal_act_id" },
     note:
       "Both figures read off scripts/fingerprint-at.mjs at 0081 on 2026-10-22, with 0080 reproducing its " +
@@ -2792,7 +2813,7 @@ export const APPLIED = [
       "neither figure. One statement carries drop: the status check constraint, dropped and re-added widened " +
       "with voided in the same alter table.",
     because:
-      "WRITTEN 2026-10-22 ON feat/lines-order-ready AND APPLIED NOWHERE, INCLUDING DEVELOPMENT. Operator " +
+      "WRITTEN 2026-10-22 ON feat/lines-order-ready; ON DEVELOPMENT (version 20261022225514), NOT ON PRODUCTION. Operator " +
       "rulings of 2026-10-22: a portal signature puts its protocol in force in the signing transaction and " +
       "voiding closes it; signatures already on record go in force once, in section 7, with a read-back per " +
       "protocol; 254-WP-001 is held out of force; voided is a status; every sealed letter records the " +
