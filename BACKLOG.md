@@ -4,6 +4,18 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
+## THE CLOUD BOARD'S WRITERS RUN ONE AT A TIME, AND A LOCAL RUN IS NOT IN LINE
+
+`.github/workflows/board.yml`, `scripts/ci/shards.mjs`, 2026-10-22. Two gaps,
+both stated in the files. **The writer shard is serial** across every run,
+because each probe helper sweeps the whole probe domain, so two writers at once
+would delete each other's fixtures; unique probe prefixes per job would let it
+split, and that changes the sweep in every probe helper, which is a fixture
+change for a ruling. **A run on the operator's PC is not in the line**
+(`scripts/ci/dev-db-turn.mjs` reads GitHub runs only), so a local perf run
+beside a cloud writer shard would sweep the same probes. perf-audit's cloud
+verdict is informational until its budgets are calibrated on the runners.
+
 ## THE SITTING FOR 0079, TWO STAFF ROLES AND THE WORK THEY DO, OPEN
 
 `docs/production-sitting-0079-staff-roles.md`. Written 2026-10-20 on

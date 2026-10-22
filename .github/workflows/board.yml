@@ -1,0 +1,208 @@
+# THE CLOUD BOARD. Operator ruling, 2026-10-22: 254's boards move to free
+# GitHub-hosted runners, against DEVELOPMENT only, triggered per branch, results
+# posted back as a check on the commit, the full log kept as an ENCRYPTED
+# artifact because this repository is public.
+#
+# Shape: one build per commit, then four shards in parallel. Three touch no
+# database. The fourth, `writers`, holds every audit that writes to development
+# and waits its turn across all runs (scripts/ci/dev-db-turn.mjs), because probe
+# sweeps clear the whole probe domain and two writers at once would delete each
+# other's fixtures. The `board` job is the one answer.
+#
+# WHAT A PUBLIC LOG SHOWS: install and build progress, and the fixed verdict
+# vocabulary printed by scripts/ci/verdicts.mjs. Nothing an audit prints reaches
+# it: the suite's output goes to a file, the file is sealed with the operator's
+# public key, and only the operator's PC can open it.
+#
+# Secrets are development values and CI-minted session secrets; every job that
+# writes .env.local runs scripts/ci/refuse-live.mjs on it before anything else.
+name: board
+
+on:
+  push:
+    branches: ["**"]
+    tags-ignore: ["**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  # A newer push to the same branch replaces the board of the older commit. A
+  # dispatched run (calibration) is never cancelled by another.
+  group: board-${{ github.event_name == 'push' && github.ref || github.run_id }}
+  cancel-in-progress: true
+
+env:
+  NEXT_TELEMETRY_DISABLED: "1"
+
+jobs:
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install
+        run: npm ci --no-audit --no-fund
+      - name: Write the development environment
+        env:
+          SUPABASE_URL: ${{ secrets.DEV_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.DEV_SUPABASE_SERVICE_ROLE_KEY }}
+          OPS_SESSION_SECRET: ${{ secrets.CI_OPS_SESSION_SECRET }}
+          CUSTOMER_SESSION_SECRET: ${{ secrets.CI_CUSTOMER_SESSION_SECRET }}
+          PARTNER_SESSION_SECRET: ${{ secrets.CI_PARTNER_SESSION_SECRET }}
+          MFA_ENCRYPTION_KEY: ${{ secrets.DEV_MFA_ENCRYPTION_KEY }}
+          INTAKE_KEY_SEALED: ${{ secrets.DEV_INTAKE_KEY_SEALED }}
+          INTAKE_KEY_STAMP: ${{ secrets.DEV_INTAKE_KEY_STAMP }}
+          LAUNCH_MODE: ${{ vars.LAUNCH_MODE }}
+          NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL }}
+          FIRM_PHONE: ${{ vars.FIRM_PHONE }}
+        run: node scripts/ci/write-env.mjs
+      - name: Refuse anything live or production
+        run: node scripts/ci/refuse-live.mjs .env.local
+      - name: Build
+        run: |
+          mkdir -p "$RUNNER_TEMP/build"
+          set +e
+          npm run build > "$RUNNER_TEMP/build/build.log" 2>&1
+          code=$?
+          echo "build exit $code"
+          exit $code
+      - name: Lock the build
+        env:
+          BUILD_ARTIFACT_KEY: ${{ secrets.BUILD_ARTIFACT_KEY }}
+        run: |
+          tar --exclude=.next/cache -czf "$RUNNER_TEMP/next.tgz" .next
+          node scripts/ci/seal.mjs lock "$RUNNER_TEMP/next.tgz" "$RUNNER_TEMP/next.locked"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: next-build
+          path: ${{ runner.temp }}/next.locked
+          retention-days: 1
+      - name: Seal the build log
+        if: always()
+        run: |
+          tar -czf "$RUNNER_TEMP/build-log.tgz" -C "$RUNNER_TEMP" build
+          node scripts/ci/seal.mjs seal "$RUNNER_TEMP/build-log.tgz" "$RUNNER_TEMP/build-log.sealed"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: build-log
+          path: ${{ runner.temp }}/build-log.sealed
+          retention-days: 30
+
+  shard:
+    name: shard ${{ matrix.shard }}
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [static, pages, gate, writers]
+    steps:
+      - uses: actions/checkout@v5
+      - name: A local main, which schema-ledger-audit reads
+        run: |
+          git fetch --no-tags --depth=1 origin +refs/heads/main:refs/remotes/origin/main
+          git show-ref --verify --quiet refs/heads/main || git branch main origin/main
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install
+        run: npm ci --no-audit --no-fund
+      - name: PDF, archive and port tools
+        # pdftotext for protocol-registry-audit and a proof, unzip for the .docx
+        # sources, lsof for the build guard's Linux branch.
+        run: sudo apt-get install -y -qq poppler-utils unzip lsof > /dev/null
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      - name: Browser
+        run: npx playwright install --with-deps chromium > /dev/null
+      - uses: actions/download-artifact@v4
+        with:
+          name: next-build
+          path: ${{ runner.temp }}
+      - name: Unlock the build
+        env:
+          BUILD_ARTIFACT_KEY: ${{ secrets.BUILD_ARTIFACT_KEY }}
+        run: |
+          node scripts/ci/seal.mjs unlock "$RUNNER_TEMP/next.locked" "$RUNNER_TEMP/next.tgz"
+          tar -xzf "$RUNNER_TEMP/next.tgz"
+          echo "BUILD_ID $(cat .next/BUILD_ID)"
+      - name: Write the development environment
+        env:
+          SUPABASE_URL: ${{ secrets.DEV_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.DEV_SUPABASE_SERVICE_ROLE_KEY }}
+          OPS_SESSION_SECRET: ${{ secrets.CI_OPS_SESSION_SECRET }}
+          CUSTOMER_SESSION_SECRET: ${{ secrets.CI_CUSTOMER_SESSION_SECRET }}
+          PARTNER_SESSION_SECRET: ${{ secrets.CI_PARTNER_SESSION_SECRET }}
+          MFA_ENCRYPTION_KEY: ${{ secrets.DEV_MFA_ENCRYPTION_KEY }}
+          INTAKE_KEY_SEALED: ${{ secrets.DEV_INTAKE_KEY_SEALED }}
+          INTAKE_KEY_STAMP: ${{ secrets.DEV_INTAKE_KEY_STAMP }}
+          LAUNCH_MODE: ${{ vars.LAUNCH_MODE }}
+          NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL }}
+          FIRM_PHONE: ${{ vars.FIRM_PHONE }}
+        run: node scripts/ci/write-env.mjs
+      - name: Refuse anything live or production
+        run: node scripts/ci/refuse-live.mjs .env.local
+      - name: Wait for the development database
+        if: matrix.shard == 'writers'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/ci/dev-db-turn.mjs "${{ github.repository }}" "${{ github.run_id }}"
+      - name: Run the shard
+        # As on a developer machine: CI and GITHUB_ACTIONS are removed for the
+        # suite, so the machine lock and the build guard run as they do at home
+        # (an uncontended lock in the runner's own home) rather than skipping.
+        run: |
+          mkdir -p "$RUNNER_TEMP/board/server"
+          set +e
+          env -u CI -u GITHUB_ACTIONS AUDIT_SHARD="${{ matrix.shard }}" AUDIT_PREBUILT=1 AUDIT_LOG_DIR="$RUNNER_TEMP/board/server" \
+            node scripts/audit.mjs > "$RUNNER_TEMP/board/suite.log" 2>&1
+          echo $? > "$RUNNER_TEMP/board/exit"
+          echo "suite exit $(cat "$RUNNER_TEMP/board/exit")"
+      - name: Verdicts
+        run: node scripts/ci/verdicts.mjs "${{ matrix.shard }}" "$RUNNER_TEMP/board/suite.log" "$(cat "$RUNNER_TEMP/board/exit" 2>/dev/null || echo 1)" "$RUNNER_TEMP/verdict-${{ matrix.shard }}.json"
+      - name: Seal the shard log
+        if: always()
+        run: |
+          tar -czf "$RUNNER_TEMP/board-log.tgz" -C "$RUNNER_TEMP" board
+          node scripts/ci/seal.mjs seal "$RUNNER_TEMP/board-log.tgz" "$RUNNER_TEMP/board-log-${{ matrix.shard }}.sealed"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: board-log-${{ matrix.shard }}
+          path: ${{ runner.temp }}/board-log-${{ matrix.shard }}.sealed
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: verdict-${{ matrix.shard }}
+          path: ${{ runner.temp }}/verdict-${{ matrix.shard }}.json
+          retention-days: 30
+
+  board:
+    name: board
+    needs: [build, shard]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: verdict-*
+          path: ${{ runner.temp }}/verdicts
+          merge-multiple: true
+      - name: The board's answer
+        run: node scripts/ci/board-verdict.mjs "$RUNNER_TEMP/verdicts" "$GITHUB_STEP_SUMMARY"
