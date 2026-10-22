@@ -39,6 +39,7 @@ import {
 import { photoAnswerRefusal, photoAnswersFor, protocolItemRowsFor } from "./protocol-run";
 import { verifiedEngineers } from "@/config/credentials";
 import { licenceIsCurrent } from "./launch";
+import { signatureStatus } from "./protocol-sign";
 import { holdFor, holdRefusal } from "./dispatch-hold";
 
 /**
@@ -544,6 +545,27 @@ export async function publishedProtocolFor(serviceSlug: string): Promise<Protoco
     .limit(1)
     .maybeSingle();
   if (!data) return null;
+  /*
+   * A RECORD PUT IN FORCE BY A PORTAL SIGNATURE (0081) IS IN FORCE ONLY WHILE
+   * THAT SIGNATURE COVERS THE TEXT IN CODE. Voiding it moves the record to
+   * `voided` at the database; a transcription changed after signing cannot,
+   * because the database cannot read the code, so the signature is asked here,
+   * as every money door asks it (src/lib/line-gate.ts). Ruling 11's closing
+   * direction: no deploy needed to close. A failed read is not a signature.
+   */
+  const { data: signedBy, error: signedByError } = await db
+    .from("eng_protocol_templates")
+    .select("signed_by_seal_act_id, version_label")
+    .eq("id", (data as ProtocolTemplateRow).id)
+    .maybeSingle();
+  if (signedByError) return null;
+  if (signedBy?.signed_by_seal_act_id) {
+    const documentNumber = (data as ProtocolTemplateRow).document_number;
+    const status = documentNumber
+      ? await signatureStatus(documentNumber, signedBy.version_label as string)
+      : ({ state: "unknown" } as const);
+    if (status.state !== "signed") return null;
+  }
   const { data: items } = await db
     .from("eng_protocol_items")
     .select(ITEM_COLUMNS)

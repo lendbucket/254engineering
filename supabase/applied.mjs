@@ -2778,6 +2778,28 @@ export const APPLIED = [
       "the bucket exists and stays empty. Additive only. The branch merges only after the production apply " +
       "is read back, and a migration on main is never pending.",
   },
+  {
+    file: "0081_a_signature_puts_its_protocol_in_force.sql", appliedBy: "apply_migration",
+    fingerprint: "d73cdd49ae5da6268743584229cb3b88",
+    behaviour: "dfbdf7fcca64c3b093e736b30daa7786",
+    production: null,
+    proves: { table: "eng_protocol_templates", column: "signed_by_seal_act_id" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0081 on 2026-10-22, with 0080 reproducing its " +
+      "recorded pair first: shape 1263 to 1265 columns (eng_protocol_templates.signed_by_seal_act_id, " +
+      "eng_seal_acts.letterhead_sha256), behaviour 1152 to 1159 facts, after the operator's review moved the " +
+      "letterhead requirement from a NOT VALID check into the insert trigger. Section 7 is data only and moves " +
+      "neither figure. One statement carries drop: the status check constraint, dropped and re-added widened " +
+      "with voided in the same alter table.",
+    because:
+      "WRITTEN 2026-10-22 ON feat/lines-order-ready AND APPLIED NOWHERE, INCLUDING DEVELOPMENT. Operator " +
+      "rulings of 2026-10-22: a portal signature puts its protocol in force in the signing transaction and " +
+      "voiding closes it; signatures already on record go in force once, in section 7, with a read-back per " +
+      "protocol; 254-WP-001 is held out of force; voided is a status; every sealed letter records the " +
+      "checksum of the mark at its head. The chat applies it with apply_migration, development first, from " +
+      "docs/production-sitting-0081-signed-protocols.md, and Robert approves a confirmation on the drop. The " +
+      "branch merges only after the production apply is read back, and a migration on main is never pending.",
+  },
 ];
 
 /*

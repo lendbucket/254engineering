@@ -17,6 +17,7 @@ import { business } from "@/config/business";
 import { protocolByDocument } from "@/content/protocols";
 import { draftRoofLetter, letterDate, producesLetter, type LetterFacts, type LetterDraft } from "./letter-draft";
 import { renderLetterPdf } from "./letter-pdf";
+import { LETTERHEAD_MARK } from "@/content/letters/letterhead-mark";
 
 /**
  * ===========================================================================
@@ -246,8 +247,26 @@ export async function sealLetter(actor: SignedIn | null, input: SealInput): Prom
    * from whichever machine served the request.
    */
   const sealedOn = letterDate(fresh.verifiedAt);
+  /*
+   * THE LETTERHEAD MARK, FROM BYTES IN CODE AND CHECKED BEFORE IT IS USED.
+   * Operator ruling, 2026-10-22: embedded, never fetched, and its checksum
+   * recorded with the seal. The digest is recomputed here rather than trusted
+   * from the module, so a mark whose bytes and declared digest disagree seals
+   * nothing.
+   */
+  const markBytes = Buffer.from(LETTERHEAD_MARK.pngBase64, "base64");
+  const markSha256 = createHash("sha256").update(markBytes).digest("hex");
+  if (markSha256 !== LETTERHEAD_MARK.sha256) {
+    return { ok: false, error: "The letterhead mark does not match its recorded checksum, so nothing was sealed." };
+  }
   const rendered = await renderLetterPdf({
-    brand: business.name,
+    /*
+     * "254 Engineering", the brand of the 2026-10-10 ruling, restated for letters
+     * on 2026-10-22. This read business.name, "254 Engineering Services", which
+     * is a DBA on the board's record and stays off every letter.
+     */
+    brand: business.shortName,
+    logoPng: new Uint8Array(markBytes),
     registrationLine: registrationLine(),
     lines: draft.lines,
     sealBlock: {
@@ -289,6 +308,7 @@ export async function sealLetter(actor: SignedIn | null, input: SealInput): Prom
     p_seal_image_id: seal.id,
     p_signature_image_id: signature.id,
     p_mfa_verified_at: fresh.verifiedAt,
+    p_letterhead_sha256: markSha256,
   });
   if (recorded.error) {
     /* No unrecorded PDF is left in the bucket: an object with no seal act is a seal nothing vouches for. */

@@ -1879,6 +1879,84 @@ if (carriers.length === 1) {
       wrongFields.length === 0,
       wrongFields.length ? wrongFields.map(([l]) => l).join(", ") : `${fields.length} fields`,
     );
+
+    /*
+     * FC-001 v1.0 IS ALSO STRUCTURED, in src/content/protocols/fc-001.ts
+     * (2026-10-22): its questions, uploads, checklist, photo steps,
+     * determinations and capture fields, so it can be registered the day the
+     * engineer signs it. Proved here as section 8 proves the PDF ones: every
+     * structured string against THIS .docx read, never against the text array,
+     * and every count against a count taken from the .docx by its own markers
+     * alone, so a reader that dropped an item cannot pass by keeping only
+     * genuine ones. The document's bullet is an en dash and a space.
+     */
+    if (p.documentNumber === "254-FC-001") {
+      const { FC001, FC001_COUNTS, FC001_OTHER_RULES, FC001_BLANK_JOB_LIST_ITEMS } = await import(
+        "../src/content/protocols/fc-001.ts"
+      );
+      const d = FC001;
+      const strings = [
+        ...d.intakeQuestions.map((q) => [`Q${q.number}`, q.ask]),
+        ...d.intakeQuestions.map((q) => [`Q${q.number} group`, q.groupHeading]),
+        ...d.intakeUploads.map((u) => [u.key, u.what]),
+        ...d.sections.map((s) => [s.key, s.heading]),
+        ...d.checklist.map((i) => [i.key, i.label]),
+        ...d.photoProcedure.map((s) => [`step ${s.step}`, s.text]),
+        ...[...d.determinations, ...FC001_OTHER_RULES].flatMap((r) => [[r.key, r.heading], ...r.criteria.map((c, n) => [`${r.key} ${n + 1}`, c])]),
+        ...FC001_COUNTS.map((c) => [c.key, c.prompt]),
+      ];
+      const missing = strings.filter(([, s]) => !docSq.includes(sq(s)));
+      rec(
+        `${where}: every structured question, upload, heading, checklist line, step, criterion and capture field appears in the .docx`,
+        strings.length > 100 && missing.length === 0,
+        missing.length === 0 ? `${strings.length} strings compared` : `NOT IN THE .docx: ${missing.slice(0, 4).map(([k]) => k).join(", ")}`,
+      );
+      const header = [
+        ["documentNumber", d.documentNumber, p.documentNumber],
+        ["version", d.version, p.version],
+        ["title", d.title, p.title],
+        ["issueDateAsPrinted", d.issueDateAsPrinted, fieldAfter("Issue date")],
+        ["approvedBy", d.approvedBy, fieldAfter("Approval")],
+        ["sourceFile", d.sourceFile, p.sourceFile],
+        ["sourceSha256", d.sourceSha256, PINNED_SHA256[p.documentNumber]],
+        ["serviceSlug", d.serviceSlug, p.serviceSlug],
+      ].filter(([, ours, theirs]) => ours !== theirs);
+      rec(
+        `${where}: the structured declaration names the same document, version, file and digest`,
+        header.length === 0,
+        header.map(([k]) => k).join(", ") || "8 fields",
+      );
+
+      const BUL = `${String.fromCodePoint(0x2013)} `;
+      const between = (a, b) => {
+        const i = lines.findIndex((l) => a.test(l));
+        const j = lines.findIndex((l, k) => k > i && b.test(l));
+        return i < 0 || j < 0 ? [] : lines.slice(i + 1, j);
+      };
+      const part1 = between(/^PART 1 /, /^PART 2 /);
+      const part2 = between(/^PART 2 /, /^Appendix B\. /);
+      const appB = between(/^Appendix B\. /, /^Appendix C\. /);
+      const appC = between(/^Appendix C\. /, /^Appendix D\. /);
+      const photosAt = appB.indexOf("PHOTOS");
+      const boxes = appB.filter((l) => /^\[\s*\]/.test(l));
+      const counted = {
+        questions: [part1.filter((l) => /^\d+\. /.test(l)).length, d.intakeQuestions.length],
+        uploads: [part2.filter((l) => l.startsWith(BUL)).length, d.intakeUploads.length],
+        "photo steps": [appB.slice(photosAt + 1).findIndex((l) => !l.startsWith(BUL)), d.photoProcedure.length],
+        "checklist lines": [boxes.length, d.checklist.length + FC001_BLANK_JOB_LIST_ITEMS],
+        "photo items": [boxes.filter((l) => /\[PHOTO\]\s*$/.test(l)).length, d.checklist.filter((i) => i.photo).length],
+        criteria: [appC.filter((l) => l.startsWith(BUL)).length, d.determinations.reduce((n, r) => n + r.criteria.length, 0)],
+        determinations: [appC.filter((l) => /^(PASS|REVISE|REPAIRS REQUIRED|SITE REVISIT|DECLINE)\b/.test(l)).length, d.determinations.length],
+      };
+      const off = Object.entries(counted).filter(([, [docx, ours]]) => docx !== ours);
+      rec(
+        `${where}: the structure holds as many questions, uploads, steps, checklist lines and criteria as the .docx`,
+        photosAt >= 0 && off.length === 0,
+        off.length === 0
+          ? Object.entries(counted).map(([k, [n]]) => `${n} ${k}`).join(", ")
+          : off.map(([k, [docx, ours]]) => `${k}: .docx ${docx}, structured ${ours}`).join("; "),
+      );
+    }
   }
 }
 
