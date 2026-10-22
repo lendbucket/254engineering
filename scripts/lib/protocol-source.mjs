@@ -18,7 +18,161 @@
  * reports COULD NOT TELL rather than a comparison over nothing.
  */
 import { spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname } from "node:path";
+
+/**
+ * THE PRIVATE ORIGINALS, FETCHED INTO PLACE AND PROVED BEFORE ANYTHING READS
+ * THEM. Operator rulings 2026-10-22, migration 0080: the signed RC-001 copies
+ * and the letter templates left the public tree for the private bucket
+ * eng-protocol-sources on development, and src/content/protocols/
+ * private-sources.ts keeps each one's path, key, digest and size.
+ *
+ * For each source: a copy already at its path is hashed; otherwise it is
+ * downloaded and written there (the paths are gitignored). Either way it is
+ * accepted only when its SHA-256 AND its byte count equal the declaration's,
+ * and a mismatch is refused by name, never repaired: a stored file that has
+ * changed is a different document from the one the transcriptions were proved
+ * against. Returns one result per source, `{ path, ok, how, why }`, and
+ * `unreachable: true` when no development client could be made, so a caller
+ * can report COULD NOT TELL rather than a finding about a document it never saw.
+ *
+ * Development only, always: the client is `neverProduction`, because the
+ * originals were ruled onto development and nowhere else.
+ */
+export async function ensurePrivateSources(sources, bucket) {
+  const results = [];
+  let db;
+  const client = async () => {
+    if (db !== undefined) return db;
+    try {
+      const { auditClient } = await import("./db-target.mjs");
+      db = auditClient("the protocol source documents", { neverProduction: true });
+    } catch {
+      db = null;
+    }
+    return db;
+  };
+  for (const s of sources) {
+    const check = (buf) => {
+      const sha = createHash("sha256").update(buf).digest("hex");
+      if (buf.length !== s.bytes || sha !== s.sha256) {
+        return `${s.path}: ${buf.length} bytes, sha256 ${sha.slice(0, 12)}; declared ${s.bytes} bytes, ${s.sha256.slice(0, 12)}`;
+      }
+      return null;
+    };
+    if (existsSync(s.path)) {
+      const wrong = check(readFileSync(s.path));
+      results.push({ path: s.path, ok: !wrong, how: "already on disk", why: wrong });
+      continue;
+    }
+    const d = await client();
+    if (!d) {
+      results.push({ path: s.path, ok: false, unreachable: true, why: "no development database client, so it could not be fetched" });
+      continue;
+    }
+    const { data, error } = await d.storage.from(bucket).download(s.key);
+    if (error || !data) {
+      /* A network fault is unreachable; a missing object is a finding, because
+       * the document the transcriptions rest on is not where it was put. */
+      const message = String(error?.message ?? "no data");
+      results.push({
+        path: s.path,
+        ok: false,
+        unreachable: /fetch failed|network|ECONN|timed? ?out/i.test(message),
+        why: `${bucket}/${s.key} could not be downloaded (${message})`,
+      });
+      continue;
+    }
+    const buf = Buffer.from(await data.arrayBuffer());
+    const wrong = check(buf);
+    if (!wrong) {
+      mkdirSync(dirname(s.path), { recursive: true });
+      writeFileSync(s.path, buf);
+    }
+    results.push({ path: s.path, ok: !wrong, how: `fetched from ${bucket}/${s.key}`, why: wrong });
+  }
+  return results;
+}
+
+/*
+ * ===========================================================================
+ * A PROTOCOL PDF'S TEXT IS ITS REFERENCE, PINNED TO ITS DIGEST.
+ * Operator ruling (a), 2026-10-22.
+ * ===========================================================================
+ *
+ * The transcriptions were proved against pdftotext 4.00 (xpdf). Poppler and
+ * xpdf 4.06 read the same PDFs differently, so a comparison is only meaningful
+ * against 4.00's text. docs/protocols/reference-text/ holds that text for every
+ * protocol PDF in both modes the audit reads, and manifest.json pins each PDF's
+ * SHA-256 and each text's own SHA-256.
+ *
+ * `pdfText(file, mode)`:
+ *   - a PDF whose digest no manifest entry names is REFUSED: a changed PDF is a
+ *     different document, and its text is not served from anybody's memory;
+ *   - a reference whose bytes do not hash to the manifest is REFUSED;
+ *   - wherever the pdftotext on Node's PATH is 4.00, the PDF is re-read and must
+ *     equal the reference byte for byte, or it is REFUSED;
+ *   - otherwise the reference is served and `how` says whether 4.00 confirmed it.
+ * `refused: true` is a finding for the caller to FAIL on, never COULD NOT TELL.
+ */
+export const REFERENCE_DIR = "docs/protocols/reference-text";
+export const REFERENCE_MANIFEST = `${REFERENCE_DIR}/manifest.json`;
+export const REFERENCE_EXTRACTOR = "pdftotext version 4.00";
+
+let manifestCache;
+let extractorLine;
+export const referenceLog = [];
+
+function hereIs400() {
+  if (extractorLine === undefined) {
+    const v = spawnSync("pdftotext", ["-v"], { encoding: "utf8" });
+    extractorLine = `${v.stdout ?? ""}${v.stderr ?? ""}`.split(/\r?\n/).find((l) => /version/i.test(l))?.trim() ?? "absent";
+  }
+  return extractorLine.includes(REFERENCE_EXTRACTOR);
+}
+
+export function pdfText(file, mode) {
+  const sha = (b) => createHash("sha256").update(b).digest("hex");
+  if (!existsSync(file)) return { ok: false, refused: true, why: `${file} is not on disk` };
+  if (manifestCache === undefined) {
+    try {
+      manifestCache = JSON.parse(readFileSync(REFERENCE_MANIFEST, "utf8"));
+    } catch (err) {
+      manifestCache = null;
+      return { ok: false, refused: true, why: `${REFERENCE_MANIFEST} could not be read (${err.message})` };
+    }
+  }
+  if (!manifestCache) return { ok: false, refused: true, why: `${REFERENCE_MANIFEST} could not be read` };
+  const pdfSha256 = sha(readFileSync(file));
+  const entry = manifestCache.entries.find((e) => e.pdfSha256 === pdfSha256 && e.mode === mode);
+  if (!entry) {
+    const result = { ok: false, refused: true, why: `${file} (sha256 ${pdfSha256.slice(0, 12)}) has no ${mode} reference; a PDF that changed is refused` };
+    referenceLog.push({ file, mode, ...result });
+    return result;
+  }
+  const bytes = readFileSync(entry.file);
+  if (sha(bytes) !== entry.textSha256) {
+    const result = { ok: false, refused: true, why: `${entry.file} does not hash to its manifest entry` };
+    referenceLog.push({ file, mode, ...result });
+    return result;
+  }
+  const text = bytes.toString("utf8");
+  if (hereIs400()) {
+    const fresh = spawnSync("pdftotext", [`-${mode}`, file, "-"], { maxBuffer: 64 * 1024 * 1024 });
+    if (fresh.status !== 0 || !Buffer.from(fresh.stdout).equals(bytes)) {
+      const result = { ok: false, refused: true, why: `${entry.file} is not what ${extractorLine} reads from ${file} today` };
+      referenceLog.push({ file, mode, ...result });
+      return result;
+    }
+  }
+  const how = hereIs400()
+    ? `reference text, confirmed byte for byte by ${extractorLine}`
+    : `reference text (${extractorLine} here, so not re-derived)`;
+  referenceLog.push({ file, mode, ok: true, how });
+  return { ok: true, text, how };
+}
 
 /** Whitespace removed entirely, for comparison. Every other character is kept, in order. */
 export const squash = (s) => String(s).replace(/\s+/g, "");
@@ -52,11 +206,9 @@ export function documentText(file) {
   if (!existsSync(file)) return { ok: false, why: `${file} is not on disk` };
 
   if (/\.pdf$/i.test(file)) {
-    const run = spawnSync("pdftotext", ["-layout", file, "-"], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
-    if (run.error || run.status !== 0) {
-      return { ok: false, why: `pdftotext could not read ${file} (${run.error?.message ?? `exit ${run.status}`})` };
-    }
-    return { ok: true, text: run.stdout, how: "pdftotext -layout" };
+    /* Served from its pinned reference text (ruling (a), 2026-10-22); a refusal
+     * carries `refused: true` and is a finding, not an unreadable document. */
+    return pdfText(file, "layout");
   }
 
   if (/\.docx$/i.test(file)) {
