@@ -603,6 +603,29 @@ export const CREDENTIALS: Credential[] = [
     rotated: "2026-09-12 on development. NEVER on production.",
   },
   /*
+   * THE CLOUD BOARD'S TWO, 2026-10-22. Operator ruling: boards move to GitHub
+   * Actions with development secrets only. The development values it uses are
+   * the ones declared above under their own names, written into the runner's
+   * .env.local; the three session secrets there are values minted for CI, not
+   * copies of any deployment's. These two exist only because of the runner.
+   */
+  {
+    name: "BUILD_ARTIFACT_KEY",
+    kind: "secret",
+    livesIn: "GitHub Actions encrypted secrets on lendbucket/254engineering. Nowhere else; nothing on this machine holds it.",
+    grants:
+      "Opening the encrypted .next build the cloud board passes between its jobs. The repository is public, so its artifacts are downloadable by anybody; this key is what keeps a build of development data unreadable.",
+    rotated: "Never. Minted 2026-10-22.",
+  },
+  {
+    name: "GITHUB_TOKEN",
+    kind: "secret",
+    livesIn: "Issued by GitHub Actions for each run and expiring with it. This firm never sets or stores it.",
+    grants:
+      "Read access to this repository's workflow runs (permissions: actions read), which scripts/ci/dev-db-turn.mjs uses to wait its turn on the development database.",
+    rotated: "Every run, by GitHub.",
+  },
+  /*
    * FOUND BY THE STRING LOOKUP SCAN ON 2026-09-12, the check the operator
    * ruled for after the two intake keys hid. scripts/copy-project.mjs reads
    * all four through a required() helper that takes the NAME as a string, so
