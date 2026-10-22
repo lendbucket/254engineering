@@ -33,7 +33,7 @@
 // first failure hides how much else is broken, which turns one fix into five
 // round trips.
 import { spawnSync } from "node:child_process";
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { readSource } from "./lib/read-source.mjs";
@@ -45,6 +45,8 @@ import { startNextServer } from "./lib/dev-server.mjs";
 import { COULD_NOT_TELL } from "./lib/reachable.mjs";
 import { queueSnapshot, queueGrowth, queueTeardown } from "./lib/queue-ledger.mjs";
 import { PORTS } from "./lib/ports.mjs";
+import { SHARDS, shardProblems } from "./ci/shards.mjs";
+import { UND_ERR_SOCKET } from "./lib/transient-retry.mjs";
 
 /*
  * =============================================================================
@@ -703,6 +705,46 @@ const PHASE_TWO = [
   { name: "contrast-audit", why: "WCAG 2.1 A and AA including the form error states" },
 ];
 
+/*
+ * =============================================================================
+ * ONE SHARD OF THE CLOUD BOARD. Operator ruling, 2026-10-22.
+ * =============================================================================
+ *
+ * With AUDIT_SHARD set, this process runs only that shard's audits, in the same
+ * phases and with the same environment each would get on a full board. The
+ * shard list in scripts/ci/shards.mjs is checked against the three arrays above
+ * BEFORE anything runs, in every shard, so an audit that is in no shard stops
+ * the cloud board by name instead of going unmeasured. Unset, nothing changes:
+ * the three arrays are used whole, as before.
+ *
+ * The tally at the end compares against the SHARD's declared count, which is
+ * still a count with a different author from the results: the shard list says
+ * what this job is supposed to run, `results` says what reported.
+ */
+const SHARD = process.env.AUDIT_SHARD || null;
+if (SHARD) {
+  const problems = shardProblems([...PHASE_ZERO, ...PHASE_ONE, ...PHASE_TWO].map((a) => a.name));
+  if (!SHARDS[SHARD]) problems.push(`AUDIT_SHARD names "${SHARD}", which is not a shard`);
+  if (problems.length) {
+    console.log("\n  THE SHARD DECLARATION DOES NOT MATCH THE RUNNER\n");
+    for (const p of problems) console.log(`  ${p}`);
+    console.log("\n  Nothing was run. Fix scripts/ci/shards.mjs so every declared audit is in exactly one shard.\n");
+    process.exit(1);
+  }
+}
+const inShard = (audit) => !SHARD || SHARDS[SHARD].audits.includes(audit.name);
+const RUN_ZERO = PHASE_ZERO.filter(inShard);
+const RUN_ONE = PHASE_ONE.filter(inShard);
+const RUN_TWO = PHASE_TWO.filter(inShard);
+/* Only a shard that writes to the database may tear down queue rows. See shards.mjs. */
+const QUEUE_LEDGER = !SHARD || SHARDS[SHARD].writes;
+if (SHARD) {
+  console.log(
+    `SHARD ${SHARD}: ${RUN_ZERO.length + RUN_ONE.length + RUN_TWO.length} of ` +
+      `${PHASE_ZERO.length + PHASE_ONE.length + PHASE_TWO.length} declared audits. The shard list agrees with the runner.`,
+  );
+}
+
 const results = [];
 
 /**
@@ -757,13 +799,74 @@ const HEALTH_PATHS = ["/", "/portal/login"];
  * Found by injecting a health path that does not exist and watching the suite
  * run anyway. The check was the thing being tested and it was wrong.
  */
+/*
+ * WHAT THE LAST FAILED HEALTH CHECK GOT, so "the server stopped answering" can
+ * say which path and what came back: a status, a refused connection, a reset.
+ * Added 2026-10-22 after the first cloud run lost its server after seo-audit
+ * with a log that just ended, and the message could not say which of those
+ * three it was. It is the status-function rule in CLAUDE.md: the error should
+ * name the fault the check actually met.
+ */
+let lastHealthFault = "";
+
+/*
+ * A CLOSED SOCKET IS ASKED AGAIN ONCE, ON A NEW CONNECTION, AND SAID.
+ *
+ * The cloud run that recorded the fault above read UND_ERR_SOCKET on "/" with
+ * the server's process still running and nothing in its log: fetch had reused a
+ * kept-alive connection the server closed while seo-audit, a separate process,
+ * ran for minutes. That is a stale connection in this process, not an absent
+ * server. So a socket-level close (never a status, never a refusal) is retried
+ * once with `connection: close`, and every retry is recorded and printed in the
+ * summary, so a recovered fault is a line on the board rather than silence. A
+ * second failure is the server's, and stops the suite as before.
+ */
+/*
+ * AND THEN EPIPE, ON THE NEXT RUN: the same stale connection, a different code.
+ * Retrying on a list of codes cured the instance and not the class. The class
+ * is that a health check REUSED a pooled connection at all. So every health
+ * check now opens its own socket (node:http with agent: false, never the fetch
+ * pool) and closes it, and the one retry stays for any socket-level fault left.
+ */
+/* Named as constants, as transient-retry.mjs names its codes, so soc2-audit's
+ * string scan reads them as code rather than as environment names. */
+const UND_ERR_CLOSED = "UND_ERR_CLOSED";
+const SOCKET_CLOSED = new Set([UND_ERR_SOCKET, "ECONNRESET", UND_ERR_CLOSED, "EPIPE"]);
+const healthRetries = [];
+
+async function freshStatus(url) {
+  const mod = url.startsWith("https:") ? await import("node:https") : await import("node:http");
+  return new Promise((resolve, reject) => {
+    const req = mod.get(url, { agent: false, headers: { connection: "close" } }, (res) => {
+      res.resume();
+      resolve(res.statusCode ?? 0);
+    });
+    req.setTimeout(30_000, () => req.destroy(Object.assign(new Error("health check timed out"), { code: "ETIMEDOUT" })));
+    req.on("error", reject);
+  });
+}
+
 async function answers(url) {
-  try {
-    const res = await fetch(url, { redirect: "manual" });
-    return res.ok;
-  } catch {
-    return false;
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      const status = await freshStatus(url);
+      const res = { ok: status >= 200 && status < 300, status };
+      if (!res.ok) lastHealthFault = `${url} answered ${res.status}`;
+      if (attempt === 2) healthRetries.push(`${url}: ${lastHealthFault}, then ${res.ok ? "answered" : `answered ${res.status}`} on a new connection`);
+      return res.ok;
+    } catch (err) {
+      const code = err?.code ?? err?.cause?.code ?? err?.message ?? "request failed";
+      const before = lastHealthFault;
+      lastHealthFault = `${url}: ${code}`;
+      if (attempt === 2) {
+        healthRetries.push(`${url}: ${before}, then ${code} on a new connection`);
+        return false;
+      }
+      if (!SOCKET_CLOSED.has(code)) return false;
+      await new Promise((r) => setTimeout(r, 500));
+    }
   }
+  return false;
 }
 
 async function healthy(base) {
@@ -930,12 +1033,30 @@ async function bringUpServer() {
 
   assertClearToBuild({ kill: false, label: "the audit suite" });
 
-  console.log("\n  building ...");
-  const build = spawnSync("npm", ["run", "build"], {
-    stdio: "inherit",
-    env: process.env,
-    shell: process.platform === "win32",
-  });
+  /*
+   * AUDIT_PREBUILT=1: the cloud board builds once per commit in its own job and
+   * every shard serves that build (operator ruling, 2026-10-22). It refuses
+   * rather than building when the artefact is not there, because a shard that
+   * quietly built for itself would be measuring a build nobody else measured.
+   */
+  if (process.env.AUDIT_PREBUILT === "1") {
+    if (!existsSync(".next/BUILD_ID")) {
+      throw new Error(
+        "AUDIT_PREBUILT=1 says the build job's .next is here, and .next/BUILD_ID is not. " +
+          "Nothing was run rather than auditing a build of this shard's own making.",
+      );
+    }
+    console.log(`\n  using the build job's .next, BUILD_ID ${readFileSync(".next/BUILD_ID", "utf8").trim()}`);
+  }
+  const build =
+    process.env.AUDIT_PREBUILT === "1"
+      ? { status: 0 }
+      : (console.log("\n  building ..."),
+        spawnSync("npm", ["run", "build"], {
+          stdio: "inherit",
+          env: process.env,
+          shell: process.platform === "win32",
+        }));
   if (build.status !== 0) {
     throw new Error(
       "The build failed, so there is nothing to audit. The suite stops here rather than " +
@@ -999,6 +1120,7 @@ function run(audit, env) {
 
 /** Run an audit and record what it left in the queue, naming it. */
 async function runWatched(audit, env) {
+  if (!QUEUE_LEDGER) return run(audit, env);
   const db = await ledgerDb();
   const before = await queueSnapshot(db);
   run(audit, env);
@@ -1023,7 +1145,12 @@ let server = null;
 let setupError = null;
 
 try {
-  if (MANAGED) {
+  if (SHARD && SHARDS[SHARD].server === false) {
+    /* A shard of audits that read files and need no app (see shards.mjs). The
+     * invocation check still runs, because it is about how audits are started. */
+    assertInvocationsMatchDeclarations();
+    console.log(`SHARD ${SHARD} needs no server, so none is started.`);
+  } else if (MANAGED) {
     server = await bringUpServer();
   } else {
     console.log(`Using the server at ${BASE}, because BASE_URL is set.`);
@@ -1035,7 +1162,7 @@ try {
     }
   }
 
-  for (const audit of PHASE_ZERO) {
+  for (const audit of RUN_ZERO) {
     /* MACHINE_LOCK_HELD explicitly: AUDIT_ENV is frozen at import, before the
      * lock is taken, so a nested build would otherwise wait on its own parent. */
     await runWatched(audit, { ...AUDIT_ENV, MACHINE_LOCK_HELD: String(process.pid) });
@@ -1056,10 +1183,11 @@ try {
    * difference between a red suite that means "the app is broken" and one that
    * means "there was no app".
    */
-  for (const audit of PHASE_ONE) {
+  for (const audit of RUN_ONE) {
     if (!(await healthy(BASE))) {
       throw new Error(
-        `The server stopped answering before ${audit.name}. Everything from here would have ` +
+        `The server stopped answering before ${audit.name} (${lastHealthFault || "no fault recorded"}; ` +
+          `its process: ${server?.state?.() ?? "not managed here"}). Everything from here would have ` +
           "measured nothing, so the suite stops rather than reporting absent pages as content " +
           "failures. The server's own log is where to look: it ends cleanly when something " +
           "killed the process, and carries the error when it fell over by itself.",
@@ -1080,7 +1208,7 @@ try {
     server = null;
   }
 
-  for (const audit of PHASE_TWO) {
+  for (const audit of RUN_TWO) {
     // BASE_URL is deliberately removed. With it set these harnesses point at the
     // shared server instead of spawning their own, and the launch audit in
     // particular would then measure one mode twice while reporting on two.
@@ -1196,7 +1324,7 @@ if (setupError) {
    * That is the same shape as `read-every-row.mjs` reading the exact count first
    * and refusing to return a short list that looks complete.
    */
-  const declared = PHASE_ZERO.length + PHASE_ONE.length + PHASE_TWO.length;
+  const declared = RUN_ZERO.length + RUN_ONE.length + RUN_TWO.length;
   const passed = results.filter((r) => r.code === 0);
   const tallied = passed.length + failed.length + unmeasured.length;
   let arithmeticBroken = false;
@@ -1224,6 +1352,9 @@ if (setupError) {
     `Transient retries: ${retried.length}${byAudit.size ? ` (${[...byAudit].map(([a, n]) => `${a} ${n}`).join(", ")})` : ""}.` +
       `${refused.length ? ` ${refused.length} fault(s) were not retried, by rule; each is in its audit's output under [transient-retry].` : ""}`,
   );
+  console.log(
+    `Health checks asked again on a new connection: ${healthRetries.length}${healthRetries.length ? `: ${healthRetries.join("; ")}` : "."}`,
+  );
   if (retried.length > 5) {
     console.log(
       `  MORE THAN FIVE RETRIES ON ONE BOARD (${retried.length}). The network to the database was unwell during this run;`,
@@ -1242,7 +1373,12 @@ if (setupError) {
    * one caused.
    */
   console.log("");
-  if (queueGrew.length === 0) {
+  if (!QUEUE_LEDGER) {
+    console.log(
+      `The job queue was not watched: shard ${SHARD} touches no database, and a writer shard runs beside it, ` +
+        "so its before and after would include rows it did not create.",
+    );
+  } else if (queueGrew.length === 0) {
     console.log("The job queue is as this run found it. Nothing was left behind.");
   } else {
     const unreadable = queueGrew.filter((g) => g.unreadable);
@@ -1273,7 +1409,7 @@ if (setupError) {
      * trusted, not that something in the product is wrong.
      */
     const reported = new Set(results.map((r) => r.name));
-    const missing = [...PHASE_ZERO, ...PHASE_ONE, ...PHASE_TWO]
+    const missing = [...RUN_ZERO, ...RUN_ONE, ...RUN_TWO]
       .map((a) => a.name)
       .filter((n) => !reported.has(n));
     console.log("  THE BOARD'S ARITHMETIC DOES NOT CLOSE");
