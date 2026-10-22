@@ -134,7 +134,12 @@ jobs:
         # unzip for the .docx sources, lsof for the build guard's Linux branch,
         # poppler's pdftotext for the one proof that reads back a letter it renders.
         if: runner.os == 'Linux'
-        run: sudo apt-get install -y -qq poppler-utils unzip lsof > /dev/null
+        # The index is refreshed first: on 2026-10-22 the runner image's index named a poppler
+        # build the Ubuntu mirror no longer served (404), and every Linux shard stopped here
+        # before the suite ran. Installing from a stale index fails whenever Ubuntu moves on.
+        run: |
+          sudo apt-get update -qq > /dev/null
+          sudo apt-get install -y -qq poppler-utils unzip lsof > /dev/null
       - name: The PDF extractor this shard will use
         if: runner.os == 'Windows'
         run: |
