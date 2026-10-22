@@ -2724,7 +2724,26 @@ export const APPLIED = [
     file: "0080_protocol_sources_are_private.sql", appliedBy: "apply_migration",
     fingerprint: "45ce47821d9c5567eb3b4b197549d881",
     behaviour: "8f0fe1b5eb8a6b5588e0ae9e3ae5017c",
-    production: null,
+    /*
+     * APPLIED TO PRODUCTION 2026-10-22, 19:55:35 UTC, provider version
+     * 20261022195535, by the operator's chat counterpart through
+     * apply_migration, from fix/protocol-sources after its cloud board
+     * (39818783967) matched its prediction, from
+     * docs/production-sitting-0080-protocol-sources.md. The file applied is
+     * sha256 e6eac205bca7d70bb50715ce6da481e0cfe6661a48028c332725d1fdf45e8d9a,
+     * the one development received. Section 0 read clean first: shape
+     * 45ce47821d9c5567eb3b4b197549d881 across 1263, eng-protocol-sources
+     * absent, 0 public buckets.
+     *
+     * Read back, every answer as predicted: shape unchanged at
+     * 45ce47821d9c5567eb3b4b197549d881 across 1263; one row
+     * eng-protocol-sources | eng-protocol-sources | false | 26214400 |
+     * {application/pdf,
+     * application/vnd.openxmlformats-officedocument.wordprocessingml.document};
+     * 0 public buckets; 0 objects. The production bucket stays empty: the
+     * originals live on development only.
+     */
+    production: "2026-10-22",
     development: {
       at: "0080",
       behaviour: null,
@@ -2751,13 +2770,13 @@ export const APPLIED = [
       "storage bucket is a row in storage.buckets and neither fingerprint reads that table. One private " +
       "bucket, eng-protocol-sources, PDF and Word, 25 MB. Additive only.",
     because:
-      "WRITTEN 2026-10-22 ON fix/protocol-sources AND APPLIED NOWHERE, INCLUDING DEVELOPMENT. Operator rulings " +
-      "of 2026-10-22: the signed RC-001 copies and the letter templates leave the public tree for this bucket " +
-      "on development. The operator's counterpart applies it to development from " +
-      "docs/production-sitting-0080-protocol-sources.md part A; the three originals are then uploaded there, " +
-      "the branch is boarded on development and held for part B, production, where the bucket is created " +
-      "and stays empty. The branch merges only after the production apply is read back, and a migration on " +
-      "main is never pending.",
+      "APPLIED TO PRODUCTION 2026-10-22, provider version 20261022195535, and to development 2026-10-22, " +
+      "version 20261022165346, both read back as this entry records. This sentence replaced 'WRITTEN " +
+      "2026-10-22 ON fix/protocol-sources AND APPLIED NOWHERE', which held the branch for the sitting, " +
+      "docs/production-sitting-0080-protocol-sources.md. Operator rulings of 2026-10-22: the signed RC-001 " +
+      "copies and the letter templates leave the public tree for this bucket on development; on production " +
+      "the bucket exists and stays empty. Additive only. The branch merges only after the production apply " +
+      "is read back, and a migration on main is never pending.",
   },
 ];
 
