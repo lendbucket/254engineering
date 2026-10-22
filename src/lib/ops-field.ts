@@ -5,7 +5,7 @@ import { clockReading } from "./clock-skew";
 import { readEvery } from "./bounded-read";
 import { supabaseAdmin } from "./supabase";
 import type { Cents } from "./ops-money";
-import { recordTechnicianVisit } from "./ops-payments";
+import { notifyTechnicianAccepted, recordTechnicianVisit } from "./ops-payments";
 import { credentialBlockersFor, ownerOverrideKindsReliedOn } from "./ops-onboarding";
 import { CREDENTIAL_LABEL } from "./ops-credentials";
 import { isOwnerFieldTech, OWNER_OVERRIDE, OWNER_OVERRIDE_ACTION } from "./owner-override";
@@ -1110,6 +1110,11 @@ export async function acceptOffer(
     entityId: offer.file_id as string,
     summary: `${file.file_number}: offer accepted`,
     ...context,
+  });
+
+  /* The buyer is told a technician has the job (ruling Q1, 2026-10-19). Its failure is on the order and never undoes this. */
+  await notifyTechnicianAccepted(offer.file_id as string).catch((e: unknown) => {
+    console.error(`[field] ${file.file_number}: the technician notice could not be sent: ${e instanceof Error ? e.message : String(e)}`);
   });
 
   return { ok: true, fileId: offer.file_id as string };

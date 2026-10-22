@@ -3,7 +3,7 @@ import { supabaseAdmin } from "./supabase";
 import { business } from "@/config/business";
 import { catalogFor } from "@data/catalog";
 import { orderForCustomerToken } from "./ops-intake";
-import { CUSTOMER_STATUS, CUSTOMER_STATUS_REFUND_ISSUED, type OrderStatus } from "./ops-orders";
+import { CUSTOMER_STATUS, CUSTOMER_STATUS_REFUND_ISSUED, CUSTOMER_STATUS_REPAIRS, type OrderStatus } from "./ops-orders";
 import { money, type Cents } from "./ops-money";
 import { REFUND_ISSUED_SENTENCE } from "./refund-update";
 import { customerLetters, type CustomerLetter } from "./letter-delivery";
@@ -129,7 +129,7 @@ export async function customerView(token: string): Promise<CustomerView | null> 
   const { data: order } = await db
     .from("eng_service_orders")
     .select(
-      "id, reference, status, service_slug, tier, property_address, city, county, price_cents, coastal_surcharge_cents, total_cents, inspection_fee_cents, twia_county, placed_at, refund_disclosure",
+      "id, reference, status, file_id, service_slug, tier, property_address, city, county, price_cents, coastal_surcharge_cents, total_cents, inspection_fee_cents, twia_county, placed_at, refund_disclosure",
     )
     .eq("id", subject.orderId)
     .maybeSingle();
@@ -166,6 +166,21 @@ export async function customerView(token: string): Promise<CustomerView | null> 
     .eq("status", "pending");
   const issuedCents = (pendingRefunds ?? []).reduce((n, p) => n + Number(p.amount_cents), 0);
 
+  /*
+   * An order underway whose file waits on repairs says so (ruling Q3,
+   * 2026-10-19). A failed read falls back to the plain underway line, which
+   * is true of every order in fulfilment and claims nothing about repairs.
+   */
+  let awaitingRepairs = false;
+  if (order.status === "in_fulfilment" && order.file_id) {
+    const { data: file } = await db
+      .from("eng_files")
+      .select("status")
+      .eq("id", order.file_id as string)
+      .maybeSingle();
+    awaitingRepairs = file?.status === "repairs_required";
+  }
+
   const lines: CustomerView["lines"] = [
     { label: entry?.name ?? (order.service_slug as string), amount: money(cents(order.price_cents)) },
   ];
@@ -180,7 +195,9 @@ export async function customerView(token: string): Promise<CustomerView | null> 
     statusLine:
       order.status === "refunded" && issuedCents > 0
         ? CUSTOMER_STATUS_REFUND_ISSUED
-        : CUSTOMER_STATUS[order.status as OrderStatus],
+        : awaitingRepairs
+          ? CUSTOMER_STATUS_REPAIRS
+          : CUSTOMER_STATUS[order.status as OrderStatus],
     serviceName: entry?.name ?? (order.service_slug as string),
     propertyAddress: order.property_address as string,
     city: (order.city as string | null) ?? null,
