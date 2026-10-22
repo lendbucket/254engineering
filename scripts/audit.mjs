@@ -798,11 +798,23 @@ const HEALTH_PATHS = ["/", "/portal/login"];
  * Found by injecting a health path that does not exist and watching the suite
  * run anyway. The check was the thing being tested and it was wrong.
  */
+/*
+ * WHAT THE LAST FAILED HEALTH CHECK GOT, so "the server stopped answering" can
+ * say which path and what came back: a status, a refused connection, a reset.
+ * Added 2026-10-22 after the first cloud run lost its server after seo-audit
+ * with a log that just ended, and the message could not say which of those
+ * three it was. It is the status-function rule in CLAUDE.md: the error should
+ * name the fault the check actually met.
+ */
+let lastHealthFault = "";
+
 async function answers(url) {
   try {
     const res = await fetch(url, { redirect: "manual" });
+    if (!res.ok) lastHealthFault = `${url} answered ${res.status}`;
     return res.ok;
-  } catch {
+  } catch (err) {
+    lastHealthFault = `${url}: ${err?.cause?.code ?? err?.cause?.message ?? err?.message ?? "fetch failed"}`;
     return false;
   }
 }
@@ -1083,7 +1095,12 @@ let server = null;
 let setupError = null;
 
 try {
-  if (MANAGED) {
+  if (SHARD && SHARDS[SHARD].server === false) {
+    /* A shard of audits that read files and need no app (see shards.mjs). The
+     * invocation check still runs, because it is about how audits are started. */
+    assertInvocationsMatchDeclarations();
+    console.log(`SHARD ${SHARD} needs no server, so none is started.`);
+  } else if (MANAGED) {
     server = await bringUpServer();
   } else {
     console.log(`Using the server at ${BASE}, because BASE_URL is set.`);
@@ -1119,7 +1136,8 @@ try {
   for (const audit of RUN_ONE) {
     if (!(await healthy(BASE))) {
       throw new Error(
-        `The server stopped answering before ${audit.name}. Everything from here would have ` +
+        `The server stopped answering before ${audit.name} (${lastHealthFault || "no fault recorded"}; ` +
+          `its process: ${server?.state?.() ?? "not managed here"}). Everything from here would have ` +
           "measured nothing, so the suite stops rather than reporting absent pages as content " +
           "failures. The server's own log is where to look: it ends cleanly when something " +
           "killed the process, and carries the error when it fell over by itself.",

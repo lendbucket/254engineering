@@ -110,7 +110,11 @@ export async function startNextServer({ port, env = {}, timeoutMs = 120000, comm
     fs.closeSync(log);
   }
 
-  return { base, logPath, stop: () => stopTree(child) };
+  /* `state()` says whether the npx process is alive, exited, or killed by a signal,
+   * so a lost server can be reported as one of those rather than as silence. */
+  const state = () =>
+    child.signalCode ? `killed by ${child.signalCode}` : child.exitCode !== null ? `exited ${child.exitCode}` : "still running";
+  return { base, logPath, state, stop: () => stopTree(child) };
 }
 
 /** Last `lines` of a log file, for pasting into an error. Never throws. */
