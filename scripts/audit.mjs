@@ -821,21 +821,41 @@ let lastHealthFault = "";
  * summary, so a recovered fault is a line on the board rather than silence. A
  * second failure is the server's, and stops the suite as before.
  */
+/*
+ * AND THEN EPIPE, ON THE NEXT RUN: the same stale connection, a different code.
+ * Retrying on a list of codes cured the instance and not the class. The class
+ * is that a health check REUSED a pooled connection at all. So every health
+ * check now opens its own socket (node:http with agent: false, never the fetch
+ * pool) and closes it, and the one retry stays for any socket-level fault left.
+ */
 /* Named as constants, as transient-retry.mjs names its codes, so soc2-audit's
  * string scan reads them as code rather than as environment names. */
 const UND_ERR_CLOSED = "UND_ERR_CLOSED";
-const SOCKET_CLOSED = new Set([UND_ERR_SOCKET, "ECONNRESET", UND_ERR_CLOSED]);
+const SOCKET_CLOSED = new Set([UND_ERR_SOCKET, "ECONNRESET", UND_ERR_CLOSED, "EPIPE"]);
 const healthRetries = [];
+
+async function freshStatus(url) {
+  const mod = url.startsWith("https:") ? await import("node:https") : await import("node:http");
+  return new Promise((resolve, reject) => {
+    const req = mod.get(url, { agent: false, headers: { connection: "close" } }, (res) => {
+      res.resume();
+      resolve(res.statusCode ?? 0);
+    });
+    req.setTimeout(30_000, () => req.destroy(Object.assign(new Error("health check timed out"), { code: "ETIMEDOUT" })));
+    req.on("error", reject);
+  });
+}
 
 async function answers(url) {
   for (let attempt = 1; attempt <= 2; attempt++) {
     try {
-      const res = await fetch(url, { redirect: "manual", headers: attempt === 2 ? { connection: "close" } : {} });
+      const status = await freshStatus(url);
+      const res = { ok: status >= 200 && status < 300, status };
       if (!res.ok) lastHealthFault = `${url} answered ${res.status}`;
       if (attempt === 2) healthRetries.push(`${url}: ${lastHealthFault}, then ${res.ok ? "answered" : `answered ${res.status}`} on a new connection`);
       return res.ok;
     } catch (err) {
-      const code = err?.cause?.code ?? err?.cause?.message ?? err?.message ?? "fetch failed";
+      const code = err?.code ?? err?.cause?.code ?? err?.message ?? "request failed";
       const before = lastHealthFault;
       lastHealthFault = `${url}: ${code}`;
       if (attempt === 2) {
