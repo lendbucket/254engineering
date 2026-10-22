@@ -96,6 +96,84 @@ export async function ensurePrivateSources(sources, bucket) {
   return results;
 }
 
+/*
+ * ===========================================================================
+ * A PROTOCOL PDF'S TEXT IS ITS REFERENCE, PINNED TO ITS DIGEST.
+ * Operator ruling (a), 2026-10-22.
+ * ===========================================================================
+ *
+ * The transcriptions were proved against pdftotext 4.00 (xpdf). Poppler and
+ * xpdf 4.06 read the same PDFs differently, so a comparison is only meaningful
+ * against 4.00's text. docs/protocols/reference-text/ holds that text for every
+ * protocol PDF in both modes the audit reads, and manifest.json pins each PDF's
+ * SHA-256 and each text's own SHA-256.
+ *
+ * `pdfText(file, mode)`:
+ *   - a PDF whose digest no manifest entry names is REFUSED: a changed PDF is a
+ *     different document, and its text is not served from anybody's memory;
+ *   - a reference whose bytes do not hash to the manifest is REFUSED;
+ *   - wherever the pdftotext on Node's PATH is 4.00, the PDF is re-read and must
+ *     equal the reference byte for byte, or it is REFUSED;
+ *   - otherwise the reference is served and `how` says whether 4.00 confirmed it.
+ * `refused: true` is a finding for the caller to FAIL on, never COULD NOT TELL.
+ */
+export const REFERENCE_DIR = "docs/protocols/reference-text";
+export const REFERENCE_MANIFEST = `${REFERENCE_DIR}/manifest.json`;
+export const REFERENCE_EXTRACTOR = "pdftotext version 4.00";
+
+let manifestCache;
+let extractorLine;
+export const referenceLog = [];
+
+function hereIs400() {
+  if (extractorLine === undefined) {
+    const v = spawnSync("pdftotext", ["-v"], { encoding: "utf8" });
+    extractorLine = `${v.stdout ?? ""}${v.stderr ?? ""}`.split(/\r?\n/).find((l) => /version/i.test(l))?.trim() ?? "absent";
+  }
+  return extractorLine.includes(REFERENCE_EXTRACTOR);
+}
+
+export function pdfText(file, mode) {
+  const sha = (b) => createHash("sha256").update(b).digest("hex");
+  if (!existsSync(file)) return { ok: false, refused: true, why: `${file} is not on disk` };
+  if (manifestCache === undefined) {
+    try {
+      manifestCache = JSON.parse(readFileSync(REFERENCE_MANIFEST, "utf8"));
+    } catch (err) {
+      manifestCache = null;
+      return { ok: false, refused: true, why: `${REFERENCE_MANIFEST} could not be read (${err.message})` };
+    }
+  }
+  if (!manifestCache) return { ok: false, refused: true, why: `${REFERENCE_MANIFEST} could not be read` };
+  const pdfSha256 = sha(readFileSync(file));
+  const entry = manifestCache.entries.find((e) => e.pdfSha256 === pdfSha256 && e.mode === mode);
+  if (!entry) {
+    const result = { ok: false, refused: true, why: `${file} (sha256 ${pdfSha256.slice(0, 12)}) has no ${mode} reference; a PDF that changed is refused` };
+    referenceLog.push({ file, mode, ...result });
+    return result;
+  }
+  const bytes = readFileSync(entry.file);
+  if (sha(bytes) !== entry.textSha256) {
+    const result = { ok: false, refused: true, why: `${entry.file} does not hash to its manifest entry` };
+    referenceLog.push({ file, mode, ...result });
+    return result;
+  }
+  const text = bytes.toString("utf8");
+  if (hereIs400()) {
+    const fresh = spawnSync("pdftotext", [`-${mode}`, file, "-"], { maxBuffer: 64 * 1024 * 1024 });
+    if (fresh.status !== 0 || !Buffer.from(fresh.stdout).equals(bytes)) {
+      const result = { ok: false, refused: true, why: `${entry.file} is not what ${extractorLine} reads from ${file} today` };
+      referenceLog.push({ file, mode, ...result });
+      return result;
+    }
+  }
+  const how = hereIs400()
+    ? `reference text, confirmed byte for byte by ${extractorLine}`
+    : `reference text (${extractorLine} here, so not re-derived)`;
+  referenceLog.push({ file, mode, ok: true, how });
+  return { ok: true, text, how };
+}
+
 /** Whitespace removed entirely, for comparison. Every other character is kept, in order. */
 export const squash = (s) => String(s).replace(/\s+/g, "");
 
@@ -128,11 +206,9 @@ export function documentText(file) {
   if (!existsSync(file)) return { ok: false, why: `${file} is not on disk` };
 
   if (/\.pdf$/i.test(file)) {
-    const run = spawnSync("pdftotext", ["-layout", file, "-"], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
-    if (run.error || run.status !== 0) {
-      return { ok: false, why: `pdftotext could not read ${file} (${run.error?.message ?? `exit ${run.status}`})` };
-    }
-    return { ok: true, text: run.stdout, how: "pdftotext -layout" };
+    /* Served from its pinned reference text (ruling (a), 2026-10-22); a refusal
+     * carries `refused: true` and is a finding, not an unreadable document. */
+    return pdfText(file, "layout");
   }
 
   if (/\.docx$/i.test(file)) {

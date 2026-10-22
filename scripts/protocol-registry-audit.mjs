@@ -26,6 +26,7 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
+import { pdfText, referenceLog } from "./lib/protocol-source.mjs";
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
@@ -473,12 +474,19 @@ const pdf = RC001.sourceFile;
  * from private storage and proved by digest in section 0 (migration 0080). */
 rec("the signed document is on disk, fetched and proved", existsSync(pdf), pdf);
 
-const pdftotext = spawnSync("pdftotext", ["-layout", pdf, "-"], { encoding: "utf8" });
+/*
+ * The text is the PDF's pinned xpdf 4.00 reference (ruling (a), 2026-10-22),
+ * served only for the digest it was made from and re-derived wherever 4.00 is
+ * present; see pdfText in scripts/lib/protocol-source.mjs. Shaped as the
+ * pdftotext result this section always read, so nothing below it changes.
+ */
+const served = pdfText(pdf, "layout");
+const pdftotext = { error: null, status: served.ok ? 0 : 1, stdout: served.text ?? "" };
 if (pdftotext.error || pdftotext.status !== 0) {
   tell.push(
-    "The DOCUMENT half did not run: pdftotext is not available here, so nothing compared this " +
-      "declaration against the signed PDF. That is the half proving the portal neither invents nor " +
-      "drops anything. Install poppler-utils and re-run before trusting the mapping.",
+    `The DOCUMENT half did not run: ${served.why}. Nothing compared this declaration against the ` +
+      "signed PDF, which is the half proving the portal neither invents nor drops anything; the " +
+      "reference check at the end of this audit fails on it by name.",
   );
 } else {
   /*
@@ -890,8 +898,8 @@ if (pdftotext.error || pdftotext.status !== 0) {
   const signedText = (entry) => {
     const file = entry.declaration.sourceFile;
     if (!squashed.has(file)) {
-      const run = spawnSync("pdftotext", ["-layout", file, "-"], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
-      squashed.set(file, run.error || run.status !== 0 ? null : run.stdout.replace(/\s+/g, ""));
+      const run = pdfText(file, "layout");
+      squashed.set(file, run.ok ? run.text.replace(/\s+/g, "") : null);
     }
     return squashed.get(file);
   };
@@ -1642,9 +1650,10 @@ if (carriers.length === 1) {
           : `${sha.slice(0, 12)}, and the declaration names the same`,
     );
 
-    const run = spawnSync("pdftotext", ["-raw", d.sourceFile, "-"], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+    const served = pdfText(d.sourceFile, "raw");
+    const run = { error: null, status: served.ok ? 0 : 1, stdout: served.text ?? "" };
     if (run.error || run.status !== 0) {
-      tell.push(`${where}: the transcription was not compared with its PDF, because pdftotext could not read it.`);
+      tell.push(`${where}: the transcription was not compared with its PDF, because ${served.why}.`);
       continue;
     }
     const lines = run.stdout
@@ -2055,6 +2064,27 @@ if (carriers.length === 1) {
  * to avoid. Caught by counting the printed lines against the reported total
  * rather than by reading the code.
  */
+
+/*
+ * EVERY PDF TEXT THIS RUN READ WAS ITS PINNED REFERENCE. Ruling (a),
+ * 2026-10-22. Asked last, over every read, so a refused PDF is a FAIL
+ * wherever in the audit it was read, and the count says how many reads 4.00
+ * re-derived here (all of them on the operator's PC, none on a runner whose
+ * pdftotext is something else). A run that read no PDF at all fails too.
+ */
+{
+  const refused = referenceLog.filter((r) => !r.ok);
+  const confirmed = referenceLog.filter((r) => r.ok && /confirmed byte for byte/.test(r.how));
+  rec(
+    "every PDF text read was its pinned reference, for a PDF whose digest the manifest names",
+    referenceLog.length > 0 && refused.length === 0,
+    refused.length
+      ? refused.map((r) => r.why).join("; ")
+      : `${referenceLog.length} reads, ${confirmed.length} re-derived here by xpdf 4.00` +
+          (confirmed.length ? "" : `; ${referenceLog[0]?.how ?? "none read"}`),
+  );
+}
+
 console.log("");
 for (const r of out) console.log(`  ${r.ok ? "PASS" : "FAIL"}: ${r.name}${r.note ? ` (${r.note})` : ""}`);
 for (const t of tell) console.log(`  COULD NOT TELL: ${t}`);
