@@ -50,14 +50,36 @@ async function gh(path) {
   return r.json();
 }
 
+/*
+ * EVERY RUN ONCE SEEN IN THE WAY IS ASKED ABOUT BY ITS OWN ID UNTIL IT IS DONE.
+ *
+ * Second failure, 2026-10-22: this script read run 39805390325 as holding the
+ * database on every look for 43 minutes, and then on two looks 45 seconds apart
+ * GitHub's list of in_progress runs did not contain it, and a second writer
+ * shard went ahead beside it. A status filtered list is not a reliable account
+ * of what is running. So runs are DISCOVERED from the unfiltered list of recent
+ * runs, and a run that has once been a blocker is re-read directly
+ * (actions/runs/<id>) on every look until its writer job is complete, whatever
+ * any list says. A list can only add blockers, never remove one.
+ */
+const watched = new Set();
+
 async function blockers() {
-  const { workflow_runs: runs } = await gh("actions/runs?status=in_progress&per_page=100");
+  const { workflow_runs: recent } = await gh("actions/runs?per_page=100");
+  const ids = new Set(recent.filter((r) => r.status !== "completed").map((r) => r.id));
+  for (const id of watched) ids.add(id);
+  ids.delete(me);
   const found = [];
-  for (const run of runs) {
-    if (run.id === me) continue;
-    const { jobs } = await gh(`actions/runs/${run.id}/jobs?filter=latest&per_page=100`);
+  for (const id of ids) {
+    const run = recent.find((r) => r.id === id) ?? (await gh(`actions/runs/${id}`));
+    const { jobs } = await gh(`actions/runs/${id}/jobs?filter=latest&per_page=100`);
     const writer = jobs.find((j) => j.name === WRITER_JOB);
-    if (!writer || writer.status !== "in_progress") continue;
+    if (!writer || writer.status === "completed") {
+      watched.delete(id);
+      continue;
+    }
+    if (writer.status !== "in_progress") continue;
+    watched.add(id);
     const wait = (writer.steps ?? []).find((s) => s.name === WAIT_STEP);
     if (wait && wait.status === "completed" && wait.conclusion === "success") {
       found.push(`run ${run.id} on ${run.head_branch} holds the database`);
