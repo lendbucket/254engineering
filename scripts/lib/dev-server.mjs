@@ -94,6 +94,9 @@ export async function startNextServer({ port, env = {}, timeoutMs = 120000, comm
     env: { ...process.env, ...env },
     stdio: ["ignore", log, log],
     shell: process.platform === "win32",
+    /* Its own process group off Windows, so stopTree can stop npx AND the next
+     * server it spawned; see stopTree. Windows walks the tree with taskkill. */
+    detached: process.platform !== "win32",
   });
 
   try {
@@ -125,7 +128,8 @@ function tailOf(file, lines = 25) {
  * Kill a child and everything it spawned.
  *
  * On Windows `taskkill /T` is what walks the tree; killing the shell alone would
- * leave the server behind. Elsewhere the plain kill is enough.
+ * leave the server behind. Elsewhere the child leads its own process group, and
+ * the group is signalled.
  */
 function stopTree(child) {
   return new Promise((resolve) => {
@@ -142,7 +146,18 @@ function stopTree(child) {
     }
 
     child.once("exit", () => resolve());
-    child.kill();
+    /*
+     * The whole group, not the npx process alone. Until 2026-10-22 this said "the
+     * plain kill is enough", which had never been tried: every board ran on
+     * Windows. On a Linux runner a server that outlived its npx would hold its
+     * port and its .next into phase two, which is the collision the build guard
+     * exists for.
+     */
+    try {
+      process.kill(-child.pid, "SIGTERM");
+    } catch {
+      child.kill();
+    }
     // Do not hang the harness on a process that refuses to go.
     setTimeout(resolve, 5000).unref?.();
   });

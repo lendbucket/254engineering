@@ -33,7 +33,7 @@
 // first failure hides how much else is broken, which turns one fix into five
 // round trips.
 import { spawnSync } from "node:child_process";
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { readSource } from "./lib/read-source.mjs";
@@ -45,6 +45,7 @@ import { startNextServer } from "./lib/dev-server.mjs";
 import { COULD_NOT_TELL } from "./lib/reachable.mjs";
 import { queueSnapshot, queueGrowth, queueTeardown } from "./lib/queue-ledger.mjs";
 import { PORTS } from "./lib/ports.mjs";
+import { SHARDS, shardProblems } from "./ci/shards.mjs";
 
 /*
  * =============================================================================
@@ -703,6 +704,46 @@ const PHASE_TWO = [
   { name: "contrast-audit", why: "WCAG 2.1 A and AA including the form error states" },
 ];
 
+/*
+ * =============================================================================
+ * ONE SHARD OF THE CLOUD BOARD. Operator ruling, 2026-10-22.
+ * =============================================================================
+ *
+ * With AUDIT_SHARD set, this process runs only that shard's audits, in the same
+ * phases and with the same environment each would get on a full board. The
+ * shard list in scripts/ci/shards.mjs is checked against the three arrays above
+ * BEFORE anything runs, in every shard, so an audit that is in no shard stops
+ * the cloud board by name instead of going unmeasured. Unset, nothing changes:
+ * the three arrays are used whole, as before.
+ *
+ * The tally at the end compares against the SHARD's declared count, which is
+ * still a count with a different author from the results: the shard list says
+ * what this job is supposed to run, `results` says what reported.
+ */
+const SHARD = process.env.AUDIT_SHARD || null;
+if (SHARD) {
+  const problems = shardProblems([...PHASE_ZERO, ...PHASE_ONE, ...PHASE_TWO].map((a) => a.name));
+  if (!SHARDS[SHARD]) problems.push(`AUDIT_SHARD names "${SHARD}", which is not a shard`);
+  if (problems.length) {
+    console.log("\n  THE SHARD DECLARATION DOES NOT MATCH THE RUNNER\n");
+    for (const p of problems) console.log(`  ${p}`);
+    console.log("\n  Nothing was run. Fix scripts/ci/shards.mjs so every declared audit is in exactly one shard.\n");
+    process.exit(1);
+  }
+}
+const inShard = (audit) => !SHARD || SHARDS[SHARD].audits.includes(audit.name);
+const RUN_ZERO = PHASE_ZERO.filter(inShard);
+const RUN_ONE = PHASE_ONE.filter(inShard);
+const RUN_TWO = PHASE_TWO.filter(inShard);
+/* Only a shard that writes to the database may tear down queue rows. See shards.mjs. */
+const QUEUE_LEDGER = !SHARD || SHARDS[SHARD].writes;
+if (SHARD) {
+  console.log(
+    `SHARD ${SHARD}: ${RUN_ZERO.length + RUN_ONE.length + RUN_TWO.length} of ` +
+      `${PHASE_ZERO.length + PHASE_ONE.length + PHASE_TWO.length} declared audits. The shard list agrees with the runner.`,
+  );
+}
+
 const results = [];
 
 /**
@@ -930,12 +971,30 @@ async function bringUpServer() {
 
   assertClearToBuild({ kill: false, label: "the audit suite" });
 
-  console.log("\n  building ...");
-  const build = spawnSync("npm", ["run", "build"], {
-    stdio: "inherit",
-    env: process.env,
-    shell: process.platform === "win32",
-  });
+  /*
+   * AUDIT_PREBUILT=1: the cloud board builds once per commit in its own job and
+   * every shard serves that build (operator ruling, 2026-10-22). It refuses
+   * rather than building when the artefact is not there, because a shard that
+   * quietly built for itself would be measuring a build nobody else measured.
+   */
+  if (process.env.AUDIT_PREBUILT === "1") {
+    if (!existsSync(join(".next", "BUILD_ID"))) {
+      throw new Error(
+        "AUDIT_PREBUILT=1 says the build job's .next is here, and .next/BUILD_ID is not. " +
+          "Nothing was run rather than auditing a build of this shard's own making.",
+      );
+    }
+    console.log(`\n  using the build job's .next, BUILD_ID ${readFileSync(join(".next", "BUILD_ID"), "utf8").trim()}`);
+  }
+  const build =
+    process.env.AUDIT_PREBUILT === "1"
+      ? { status: 0 }
+      : (console.log("\n  building ..."),
+        spawnSync("npm", ["run", "build"], {
+          stdio: "inherit",
+          env: process.env,
+          shell: process.platform === "win32",
+        }));
   if (build.status !== 0) {
     throw new Error(
       "The build failed, so there is nothing to audit. The suite stops here rather than " +
@@ -999,6 +1058,7 @@ function run(audit, env) {
 
 /** Run an audit and record what it left in the queue, naming it. */
 async function runWatched(audit, env) {
+  if (!QUEUE_LEDGER) return run(audit, env);
   const db = await ledgerDb();
   const before = await queueSnapshot(db);
   run(audit, env);
@@ -1035,7 +1095,7 @@ try {
     }
   }
 
-  for (const audit of PHASE_ZERO) {
+  for (const audit of RUN_ZERO) {
     /* MACHINE_LOCK_HELD explicitly: AUDIT_ENV is frozen at import, before the
      * lock is taken, so a nested build would otherwise wait on its own parent. */
     await runWatched(audit, { ...AUDIT_ENV, MACHINE_LOCK_HELD: String(process.pid) });
@@ -1056,7 +1116,7 @@ try {
    * difference between a red suite that means "the app is broken" and one that
    * means "there was no app".
    */
-  for (const audit of PHASE_ONE) {
+  for (const audit of RUN_ONE) {
     if (!(await healthy(BASE))) {
       throw new Error(
         `The server stopped answering before ${audit.name}. Everything from here would have ` +
@@ -1080,7 +1140,7 @@ try {
     server = null;
   }
 
-  for (const audit of PHASE_TWO) {
+  for (const audit of RUN_TWO) {
     // BASE_URL is deliberately removed. With it set these harnesses point at the
     // shared server instead of spawning their own, and the launch audit in
     // particular would then measure one mode twice while reporting on two.
@@ -1196,7 +1256,7 @@ if (setupError) {
    * That is the same shape as `read-every-row.mjs` reading the exact count first
    * and refusing to return a short list that looks complete.
    */
-  const declared = PHASE_ZERO.length + PHASE_ONE.length + PHASE_TWO.length;
+  const declared = RUN_ZERO.length + RUN_ONE.length + RUN_TWO.length;
   const passed = results.filter((r) => r.code === 0);
   const tallied = passed.length + failed.length + unmeasured.length;
   let arithmeticBroken = false;
@@ -1242,7 +1302,12 @@ if (setupError) {
    * one caused.
    */
   console.log("");
-  if (queueGrew.length === 0) {
+  if (!QUEUE_LEDGER) {
+    console.log(
+      `The job queue was not watched: shard ${SHARD} touches no database, and a writer shard runs beside it, ` +
+        "so its before and after would include rows it did not create.",
+    );
+  } else if (queueGrew.length === 0) {
     console.log("The job queue is as this run found it. Nothing was left behind.");
   } else {
     const unreadable = queueGrew.filter((g) => g.unreadable);
@@ -1273,7 +1338,7 @@ if (setupError) {
      * trusted, not that something in the product is wrong.
      */
     const reported = new Set(results.map((r) => r.name));
-    const missing = [...PHASE_ZERO, ...PHASE_ONE, ...PHASE_TWO]
+    const missing = [...RUN_ZERO, ...RUN_ONE, ...RUN_TWO]
       .map((a) => a.name)
       .filter((n) => !reported.has(n));
     console.log("  THE BOARD'S ARITHMETIC DOES NOT CLOSE");
