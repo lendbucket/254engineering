@@ -227,18 +227,25 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * signed_by_seal_act_id and eng_seal_acts.letterhead_sha256; no new table;
  * shape d73cdd49ae5da6268743584229cb3b88, read off fingerprint-at.mjs with
  * 0080 reproducing its recorded pair first.
+ *
+ * Moved 2026-10-22 by 0082, a scope addendum is signed before design is paid,
+ * by operator rulings that day: 1,265 to 1,278 is eng_scope_addenda's twelve
+ * columns and eng_seal_acts.addendum_id; 92 tables to 93; shape
+ * a258e26388bae4c58539ea5325416d62, read off fingerprint-at.mjs with 0081
+ * reproducing its recorded pair first.
  */
-const EXPECTED_FINGERPRINT = "d73cdd49ae5da6268743584229cb3b88";
-const EXPECTED_COLUMNS = 1265;
-const EXPECTED_TABLES = 92;
+const EXPECTED_FINGERPRINT = "a258e26388bae4c58539ea5325416d62";
+const EXPECTED_COLUMNS = 1278;
+const EXPECTED_TABLES = 93;
 /* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts.
  * 0074 adds two: eng_partner_billing_touch and eng_partner_billing_events_immutable.
  * 0075 adds one: eng_payment_events_guarded.
  * 0079 adds five, by owner ruling 2026-10-20 (the two staff roles): eng_prospects_touch and the
  * immutable triggers on eng_contact_log, eng_refund_requests, eng_refund_decisions and
  * eng_refund_approval_limits. Read back on development by the chat the same day, five rows.
- * 0081 adds one, by operator ruling 2026-10-22: eng_seal_acts_void_closes_its_protocol. */
-const EXPECTED_TRIGGERS = 86;
+ * 0081 adds one, by operator ruling 2026-10-22: eng_seal_acts_void_closes_its_protocol.
+ * 0082 adds two, by operator ruling the same day: eng_scope_addenda_text and eng_scope_addenda_append_only. */
+const EXPECTED_TRIGGERS = 88;
 /**
  * 0014 added eng_freeze_attribution and 0019 added two more, the partner
  * entry freeze and its delete refusal, which are trigger functions like the
@@ -273,8 +280,13 @@ const EXPECTED_TRIGGERS = 86;
  * the trigger function eng_void_closes_its_protocol, and the new signatures of
  * eng_record_protocol_signature and eng_record_letter_seal, which sit beside
  * 0062's (now refusing) as overloads. The count is of pg_proc rows, so an
- * overload is one more. */
-const EXPECTED_FUNCTIONS = 51;
+ * overload is one more.
+ * 54 since 0082, by operator ruling 2026-10-22: eng_scope_addendum_text (the
+ * trigger that writes an addendum's text and hash), eng_record_addendum_signature
+ * (the one door an addendum signature comes in by) and eng_design_pay (what a
+ * design quote pays, from a live signed addendum). The three it replaces
+ * (check, guard, audit) are not new rows. */
+const EXPECTED_FUNCTIONS = 54;
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });

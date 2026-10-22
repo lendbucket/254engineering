@@ -745,6 +745,18 @@ export const RETENTION_POLICY: RetentionEntry[] = [
   },
   { table: "eng_roles", rule: { kind: "not_a_record", because: "The roles themselves. Configuration, seeded by 0018." } },
   {
+    table: "eng_scope_addenda",
+    rule: {
+      kind: "kept_forever",
+      because:
+        "EVERY SCOPE ADDENDUM TO THE ENGINEER'S AGREEMENT: the design job, the scope, the fee, his share and " +
+        "his pay, with the text he signed and its SHA-256. It is what a design job's pay is owed under, and " +
+        "what a dispute about that pay is settled against. Append only through eng_forbid_mutation (0082); a " +
+        "replacement is a new addendum, and its signature is a seal act voided like any other.",
+      ruledBy: "operator rulings of 2026-10-22 (custom design paid 35% under a signed scope addendum), and the trigger in 0082",
+    },
+  },
+  {
     table: "eng_seal_acts",
     rule: {
       kind: "kept_forever",
