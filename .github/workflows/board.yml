@@ -44,6 +44,9 @@ jobs:
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v5
+      - name: Refuse any workflow a fork could start with our secrets
+        # Before any secret is read. Push and workflow_dispatch only; see the script.
+        run: node scripts/ci/workflow-triggers.mjs
       - uses: actions/setup-node@v5
         with:
           node-version: 24
