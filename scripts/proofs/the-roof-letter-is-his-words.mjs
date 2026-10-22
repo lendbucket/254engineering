@@ -16,7 +16,7 @@
  * Exits non-zero on any failure, or prints COULD NOT TELL when the Word reader
  * cannot run, which is not a pass.
  */
-import { documentText, squash } from "../lib/protocol-source.mjs";
+import { documentText, ensurePrivateSources, squash } from "../lib/protocol-source.mjs";
 
 const {
   ROOF_LETTER_SOURCE,
@@ -24,12 +24,31 @@ const {
   ROOF_LETTER_DETERMINATION_SENTENCE,
   ROOF_LETTER_SLOTS,
 } = await import("../../src/content/letters/roof-certification.ts");
+const { PRIVATE_SOURCES, PROTOCOL_SOURCE_BUCKET } = await import("../../src/content/protocols/private-sources.ts");
 
 let wrong = 0;
 const check = (name, ok, note = "") => {
   if (!ok) wrong += 1;
   console.log(`  ${ok ? "PASS" : "FAIL"}: ${name}${note ? ` (${note})` : ""}`);
 };
+
+/*
+ * The Word file left the public tree on 2026-10-22 (migration 0080). It is
+ * fetched from the private bucket into its old path and proved by digest and
+ * size first; a fetch that could not reach development is COULD NOT TELL.
+ */
+const [fetched] = await ensurePrivateSources(
+  PRIVATE_SOURCES.filter((s) => s.path === ROOF_LETTER_SOURCE),
+  PROTOCOL_SOURCE_BUCKET,
+);
+if (!fetched) {
+  check("the letter templates are declared as a private source", false, `${ROOF_LETTER_SOURCE} is in no PRIVATE_SOURCES entry`);
+} else if (fetched.unreachable) {
+  console.log(`COULD NOT TELL: ${fetched.why}.`);
+  process.exit(3);
+} else {
+  check("the letter templates are the engineer's file, by SHA-256 and size", fetched.ok, fetched.why ?? fetched.how);
+}
 
 const read = documentText(ROOF_LETTER_SOURCE);
 if (!read.ok) {

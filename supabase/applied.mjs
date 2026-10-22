@@ -2720,6 +2720,31 @@ export const APPLIED = [
       "63 grant rows, no drop and no revoke, so the connector is expected to apply it. The branch merges only " +
       "after the production apply is read back, and a migration on main is never pending.",
   },
+  {
+    file: "0080_protocol_sources_are_private.sql", appliedBy: "apply_migration",
+    fingerprint: "45ce47821d9c5567eb3b4b197549d881",
+    behaviour: "8f0fe1b5eb8a6b5588e0ae9e3ae5017c",
+    production: null,
+    /*
+     * NO `proves`, as 0008 and 0073 have none: production-schema-check probes a
+     * table, a column or a row through PostgREST, and storage.buckets is not in
+     * the schema PostgREST exposes, so any probe here would read as missing on
+     * every run. The read-back is the sitting document's own query.
+     */
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0080 on 2026-10-22, with 0079 reproducing its " +
+      "recorded pair first: shape unchanged at 1263 columns and behaviour unchanged at 1152 facts, because a " +
+      "storage bucket is a row in storage.buckets and neither fingerprint reads that table. One private " +
+      "bucket, eng-protocol-sources, PDF and Word, 25 MB. Additive only.",
+    because:
+      "WRITTEN 2026-10-22 ON fix/protocol-sources AND APPLIED NOWHERE, INCLUDING DEVELOPMENT. Operator rulings " +
+      "of 2026-10-22: the signed RC-001 copies and the letter templates leave the public tree for this bucket " +
+      "on development. The operator's counterpart applies it to development from " +
+      "docs/production-sitting-0080-protocol-sources.md part A; the three originals are then uploaded there, " +
+      "the branch is boarded on development and held for part B, production, where the bucket is created " +
+      "and stays empty. The branch merges only after the production apply is read back, and a migration on " +
+      "main is never pending.",
+  },
 ];
 
 /*

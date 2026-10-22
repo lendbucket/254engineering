@@ -40,6 +40,38 @@ const { RC001, RC001_ENFORCED, RC001_AMBIGUITIES, RC001_SIGNATURE_EVIDENCE } = a
 );
 const { verifiedFirmRegistrations } = await import("../src/config/credentials.ts");
 
+/* --------------------------- 0. the private originals, fetched and proved */
+
+/*
+ * Operator rulings 2026-10-22, migration 0080. Both signed RC-001 copies left
+ * the public tree for the private bucket eng-protocol-sources on development.
+ * Each is fetched into its old (gitignored) path and accepted only when its
+ * SHA-256 and size equal the declaration's, so every comparison below still
+ * reads the exact bytes the transcriptions were proved against. Development
+ * out of reach is COULD NOT TELL for the whole audit rather than a run of
+ * failures about documents it never saw.
+ */
+{
+  const { ensurePrivateSources } = await import("./lib/protocol-source.mjs");
+  const { PRIVATE_SOURCES, PROTOCOL_SOURCE_BUCKET } = await import("../src/content/protocols/private-sources.ts");
+  const { RC001_VERSIONS } = await import("../src/content/protocols/rc-001.ts");
+  const mine = PRIVATE_SOURCES.filter((s) => s.path.startsWith("docs/254-RC-001-"));
+  rec(
+    "both signed RC-001 copies are declared as private sources, with the digests the versions pin",
+    mine.length === 2 && RC001_VERSIONS.every((v) => mine.some((s) => s.path === v.file && s.sha256 === v.sha256)),
+    mine.map((s) => s.key).join(", ") || "none declared",
+  );
+  const results = await ensurePrivateSources(mine, PROTOCOL_SOURCE_BUCKET);
+  const unreachable = results.filter((r) => r.unreachable);
+  if (unreachable.length) {
+    console.log(`COULD NOT TELL: ${unreachable.map((r) => r.why).join("; ")}.`);
+    process.exit(3);
+  }
+  for (const r of results) {
+    rec(`${r.path} is the engineer's signed file, by SHA-256 and size`, r.ok, r.why ?? r.how);
+  }
+}
+
 /* ------------------------------------------- 1. the declaration is coherent */
 
 const numbers = RC001.intakeQuestions.map((q) => q.number);
@@ -437,7 +469,9 @@ rec(
 /* ---------------------------- 3. both directions, against the document text */
 
 const pdf = RC001.sourceFile;
-rec("the signed document is in the repository", existsSync(pdf), pdf);
+/* Renamed 2026-10-22: it is no longer in the repository but fetched into place
+ * from private storage and proved by digest in section 0 (migration 0080). */
+rec("the signed document is on disk, fetched and proved", existsSync(pdf), pdf);
 
 const pdftotext = spawnSync("pdftotext", ["-layout", pdf, "-"], { encoding: "utf8" });
 if (pdftotext.error || pdftotext.status !== 0) {

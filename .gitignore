@@ -56,3 +56,12 @@ screenshots/
 design-reference/portal/Design form workflow.zip
 design-reference/portal/.thumbnail
 .tmp-*
+
+# The engineer's signed source documents, private since 2026-10-22 (migration
+# 0080). They live in the private bucket eng-protocol-sources on development and
+# are fetched into these paths, proved by digest, by scripts/lib/protocol-source.mjs.
+# Ignored so a fetched copy can never be committed. See
+# src/content/protocols/private-sources.ts.
+/docs/254-RC-001-roof-certification-protocol-v1.0.pdf
+/docs/254-RC-001-roof-certification-protocol-v1.1.pdf
+/docs/protocols/incoming/v1.1/254_Letter_Templates.docx

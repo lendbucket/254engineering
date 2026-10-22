@@ -4,6 +4,23 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
+## THE SITTING FOR 0080, THE SIGNED SOURCES GO PRIVATE, OPEN
+
+`docs/production-sitting-0080-protocol-sources.md`. Written 2026-10-22 on
+`fix/protocol-sources` and applied nowhere, development included. One private
+bucket, eng-protocol-sources; the two signed RC-001 copies and the letter
+templates move into it on development and leave the tree, with their digests
+kept. Development first, then the branch is boarded and held for production,
+where the bucket is created empty.
+
+## REMOVING THE SIGNED PROTOCOLS FROM HISTORY, HELD FOR ROBERT
+
+`docs/history-rewrite-proposal-2026-10-22.md`. Aman's handwritten signature is
+in both RC-001 PDFs and his licence line in the letter templates, public since
+2026-09-16 and 2026-10-06. Removing them from the tree is ruled (2026-10-22);
+rewriting history is not, because it rehashes about 955 commits and force
+pushes 126 branches. Written up and held for his decision.
+
 ## THE SITTING FOR 0079, TWO STAFF ROLES AND THE WORK THEY DO, OPEN
 
 `docs/production-sitting-0079-staff-roles.md`. Written 2026-10-20 on

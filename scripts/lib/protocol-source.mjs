@@ -18,7 +18,83 @@
  * reports COULD NOT TELL rather than a comparison over nothing.
  */
 import { spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname } from "node:path";
+
+/**
+ * THE PRIVATE ORIGINALS, FETCHED INTO PLACE AND PROVED BEFORE ANYTHING READS
+ * THEM. Operator rulings 2026-10-22, migration 0080: the signed RC-001 copies
+ * and the letter templates left the public tree for the private bucket
+ * eng-protocol-sources on development, and src/content/protocols/
+ * private-sources.ts keeps each one's path, key, digest and size.
+ *
+ * For each source: a copy already at its path is hashed; otherwise it is
+ * downloaded and written there (the paths are gitignored). Either way it is
+ * accepted only when its SHA-256 AND its byte count equal the declaration's,
+ * and a mismatch is refused by name, never repaired: a stored file that has
+ * changed is a different document from the one the transcriptions were proved
+ * against. Returns one result per source, `{ path, ok, how, why }`, and
+ * `unreachable: true` when no development client could be made, so a caller
+ * can report COULD NOT TELL rather than a finding about a document it never saw.
+ *
+ * Development only, always: the client is `neverProduction`, because the
+ * originals were ruled onto development and nowhere else.
+ */
+export async function ensurePrivateSources(sources, bucket) {
+  const results = [];
+  let db;
+  const client = async () => {
+    if (db !== undefined) return db;
+    try {
+      const { auditClient } = await import("./db-target.mjs");
+      db = auditClient("the protocol source documents", { neverProduction: true });
+    } catch {
+      db = null;
+    }
+    return db;
+  };
+  for (const s of sources) {
+    const check = (buf) => {
+      const sha = createHash("sha256").update(buf).digest("hex");
+      if (buf.length !== s.bytes || sha !== s.sha256) {
+        return `${s.path}: ${buf.length} bytes, sha256 ${sha.slice(0, 12)}; declared ${s.bytes} bytes, ${s.sha256.slice(0, 12)}`;
+      }
+      return null;
+    };
+    if (existsSync(s.path)) {
+      const wrong = check(readFileSync(s.path));
+      results.push({ path: s.path, ok: !wrong, how: "already on disk", why: wrong });
+      continue;
+    }
+    const d = await client();
+    if (!d) {
+      results.push({ path: s.path, ok: false, unreachable: true, why: "no development database client, so it could not be fetched" });
+      continue;
+    }
+    const { data, error } = await d.storage.from(bucket).download(s.key);
+    if (error || !data) {
+      /* A network fault is unreachable; a missing object is a finding, because
+       * the document the transcriptions rest on is not where it was put. */
+      const message = String(error?.message ?? "no data");
+      results.push({
+        path: s.path,
+        ok: false,
+        unreachable: /fetch failed|network|ECONN|timed? ?out/i.test(message),
+        why: `${bucket}/${s.key} could not be downloaded (${message})`,
+      });
+      continue;
+    }
+    const buf = Buffer.from(await data.arrayBuffer());
+    const wrong = check(buf);
+    if (!wrong) {
+      mkdirSync(dirname(s.path), { recursive: true });
+      writeFileSync(s.path, buf);
+    }
+    results.push({ path: s.path, ok: !wrong, how: `fetched from ${bucket}/${s.key}`, why: wrong });
+  }
+  return results;
+}
 
 /** Whitespace removed entirely, for comparison. Every other character is kept, in order. */
 export const squash = (s) => String(s).replace(/\s+/g, "");
