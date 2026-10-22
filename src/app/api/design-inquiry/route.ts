@@ -1,7 +1,13 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { designInquirySchema, fieldErrors } from "@/lib/forms";
 import { insertDesignInquiry } from "@/lib/intake";
 import { withSaveOutcome } from "@/lib/save-outcome";
+import { queueEmail } from "@/lib/ops-jobs";
+import {
+  inquiryAcknowledged,
+  inquiryNotification,
+} from "@/lib/email-templates";
+import { business } from "@/config/business";
 
 /**
  * The design inquiry intake.
@@ -29,12 +35,18 @@ async function handlePOST(request: Request) {
   try {
     payload = await request.json();
   } catch {
-    return NextResponse.json({ ok: false, message: "Malformed request." }, { status: 400 });
+    return NextResponse.json(
+      { ok: false, message: "Malformed request." },
+      { status: 400 },
+    );
   }
 
   const parsed = designInquirySchema.safeParse(payload);
   if (!parsed.success) {
-    return NextResponse.json({ ok: false, errors: fieldErrors(parsed.error) }, { status: 422 });
+    return NextResponse.json(
+      { ok: false, errors: fieldErrors(parsed.error) },
+      { status: 422 },
+    );
   }
 
   const data = parsed.data;
@@ -73,10 +85,65 @@ async function handlePOST(request: Request) {
    */
   if (!result.ok) {
     return NextResponse.json(
-      { ok: false, message: "That did not save. Call the office and somebody will take it down." },
+      {
+        ok: false,
+        message:
+          "That did not save. Call the office and somebody will take it down.",
+      },
       { status: 500 },
     );
   }
+
+  /*
+   * THE FIRM IS EMAILED AND THE PERSON IS ACKNOWLEDGED (ruling Q6 of
+   * 2026-10-19, addition d of 2026-10-20). Both leave on the queue after the
+   * row is written, and neither failure changes the answer: the brief is held
+   * and /portal/inquiries shows it either way. The firm's copy is an operator
+   * email, not a task, so the 2026-09-18 ruling above still holds.
+   *
+   * Queued after the answer, through after(), so the person is not held
+   * waiting on email that cannot change what they are told.
+   */
+  const show = (v: unknown) =>
+    v === undefined || v === null ? undefined : String(v);
+  after(async () => {
+    const firm = await queueEmail(
+      inquiryNotification({
+        kind: "design",
+        name: data.name,
+        email: data.email,
+        rows: [
+          ["Phone", show(data.phone)],
+          ["Asking as", show(data.askingAs)],
+          ["Kind of work", show(data.workKind)],
+          ["Deliverable", show(data.deliverable)],
+          ["Property address", show(data.propertyAddress)],
+          ["Jurisdiction", show(data.jurisdiction)],
+          ["Square feet", show(data.squareFeet)],
+          ["Storeys", show(data.storeys)],
+          ["Drawings", show(data.drawings)],
+          ["Soil report", show(data.soilReport)],
+          ["Permit status", show(data.permitStatus)],
+          ["Deadline", show(data.deadline)],
+          ["Open insurance claim", show(data.openInsuranceClaim)],
+          ["Active litigation", show(data.activeLitigation)],
+          ["Earlier adverse report", show(data.priorAdverseReport)],
+        ],
+        portalUrl: `${business.url}/portal/inquiries`,
+      }),
+    );
+    if (!firm.ok)
+      console.error(
+        `[design-inquiry] firm notification not queued: ${firm.error}`,
+      );
+    const ack = await queueEmail(
+      inquiryAcknowledged({ kind: "design", email: data.email }),
+    );
+    if (!ack.ok)
+      console.error(
+        `[design-inquiry] acknowledgement not queued: ${ack.error}`,
+      );
+  });
 
   return NextResponse.json({ ok: true });
 }

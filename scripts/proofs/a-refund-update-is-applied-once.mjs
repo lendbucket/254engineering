@@ -228,6 +228,33 @@ const orderStatus = async (k) => (await one(`select status from eng_service_orde
 const eventsOf = (k, event) => many(`select summary, customer_visible from eng_order_events where order_id = $1 and event = $2`, [orderId(k), event]);
 const jobsTo = (k, emailId) =>
   many(`select payload->>'text' as text from eng_jobs where kind = 'email.send' and payload->>'id' = $1 and payload->>'orderId' = $2`, [emailId, orderId(k)]);
+const refundSucceededTo = (k) =>
+  many(`select payload->>'to' as "to" from eng_jobs where kind = 'email.send' and payload->>'id' = 'order.refund_succeeded' and payload->>'orderId' = $1`, [orderId(k)]);
+/*
+ * The confirmation's recipient rule (ruling 2026-10-13), written out here
+ * rather than imported from the code under test: an order linked to an account
+ * by its client record or by a person writes to the account's active owner,
+ * then its billing email; any other order writes to its own address.
+ */
+async function confirmationAddress(k) {
+  const linked = await n(
+    `select count(*)::int as n from eng_order_events where order_id = $1 and event in ('account.linked_by_client', 'account.attached')`,
+    [orderId(k)],
+  );
+  if (linked === 0) return (await one(`select customer_email from eng_service_orders where id = $1`, [orderId(k)]))?.customer_email ?? null;
+  const owner = await one(
+    `select u.email from eng_customer_users u join eng_service_orders o on o.account_id = u.account_id
+      where o.id = $1 and u.account_role = 'owner' and u.status = 'active' order by u.created_at limit 1`,
+    [orderId(k)],
+  );
+  if (owner?.email) return owner.email;
+  return (
+    (await one(
+      `select a.billing_email from eng_customer_accounts a join eng_service_orders o on o.account_id = a.id where o.id = $1 and a.superseded_at is null`,
+      [orderId(k)],
+    ))?.billing_email ?? null
+  );
+}
 const customerJobs = (k) =>
   n(`select count(*)::int as n from eng_jobs where kind = 'email.send' and payload->>'orderId' = $1 and payload->>'id' not like 'ops.%'`, [orderId(k)]);
 
@@ -319,10 +346,35 @@ try {
       "pending to succeeded: one audit row",
       (await n(`select count(*)::int as n from eng_audit_events where action = 'order.refund_settled' and entity_id = $1`, [orderId("settlePending")])) === 1,
     );
-    check("pending to succeeded: nothing further is sent to the customer", (await customerJobs("settlePending")) === mailBefore, `${mailBefore} before, ${await customerJobs("settlePending")} after`);
+    /*
+     * ONE EMAIL, WHERE THIS USED TO ASSERT NONE. Addition b of the 2026-10-20
+     * customer report rulings, ruled into this proof on 2026-10-21: a pending
+     * refund that succeeds tells the customer. The old check read "nothing
+     * further is sent to the customer". Applied once still means emailed once:
+     * twice() asserts the repeat changes no table, eng_jobs included, and the
+     * count is asserted again after it below.
+     */
+    const succeededMail = await refundSucceededTo("settlePending");
+    check(
+      "pending to succeeded: exactly one refund succeeded email, and nothing else, is sent to the customer",
+      succeededMail.length === 1 && (await customerJobs("settlePending")) === mailBefore + 1,
+      `${mailBefore} before, ${await customerJobs("settlePending")} after, ${succeededMail.length} refund succeeded`,
+    );
+    const expected = await confirmationAddress("settlePending");
+    check(
+      "pending to succeeded: it goes where the confirmation rule sends it",
+      expected !== null && succeededMail[0]?.to === expected,
+      `sent to ${succeededMail[0]?.to ?? "nobody"}, the rule gives ${expected ?? "no address"}`,
+    );
     const view = link ? await customerView(link.token) : null;
     check("pending to succeeded: the status page now says refunded", view?.refunded?.amount === "$500.00" && view.refundIssued === null, JSON.stringify(view?.refunded));
   });
+
+  check(
+    "pending to succeeded, delivered again: still exactly one refund succeeded email",
+    (await refundSucceededTo("settlePending")).length === 1,
+    `${(await refundSucceededTo("settlePending")).length} queued`,
+  );
 
   /* ============================ C. pending to failed ============================ */
   const failMailBefore = await customerJobs("failAfter");
