@@ -139,7 +139,8 @@ jobs:
         if: runner.os == 'Windows'
         run: |
           which pdftotext unzip
-          pdftotext -v 2>&1 | head -1
+          pdftotext -v > "$RUNNER_TEMP/pdftotext-version.txt" 2>&1 || true
+          sed -n 1p "$RUNNER_TEMP/pdftotext-version.txt"
       - uses: actions/cache@v4
         if: matrix.app
         with:

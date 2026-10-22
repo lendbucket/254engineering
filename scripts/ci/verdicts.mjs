@@ -38,6 +38,8 @@ const facts = {
   tally: pick(/^Tally: .*$/m),
   arithmetic: summary.includes("THE BOARD'S ARITHMETIC DOES NOT CLOSE"),
   retries: pick(/^Transient retries: \d+/m),
+  /* localhost URLs and error codes only: no audit output. */
+  healthRetries: pick(/^Health checks asked again on a new connection: .*$/m),
   manyRetries: summary.includes("MORE THAN FIVE RETRIES"),
 };
 
@@ -52,6 +54,7 @@ for (const n of members) {
   console.log(`  ${v.padEnd(14)}  ${n}${INFORMATIONAL.has(n) ? "  (informational in the cloud)" : ""}`);
 }
 if (facts.retries) console.log(facts.retries);
+if (facts.healthRetries) console.log(facts.healthRetries);
 if (facts.manyRetries) console.log("MORE THAN FIVE RETRIES in this shard.");
 if (facts.tally) console.log(facts.tally);
 if (facts.arithmetic) console.log("THE SHARD'S ARITHMETIC DOES NOT CLOSE.");

@@ -808,15 +808,41 @@ const HEALTH_PATHS = ["/", "/portal/login"];
  */
 let lastHealthFault = "";
 
+/*
+ * A CLOSED SOCKET IS ASKED AGAIN ONCE, ON A NEW CONNECTION, AND SAID.
+ *
+ * The cloud run that recorded the fault above read UND_ERR_SOCKET on "/" with
+ * the server's process still running and nothing in its log: fetch had reused a
+ * kept-alive connection the server closed while seo-audit, a separate process,
+ * ran for minutes. That is a stale connection in this process, not an absent
+ * server. So a socket-level close (never a status, never a refusal) is retried
+ * once with `connection: close`, and every retry is recorded and printed in the
+ * summary, so a recovered fault is a line on the board rather than silence. A
+ * second failure is the server's, and stops the suite as before.
+ */
+const SOCKET_CLOSED = new Set(["UND_ERR_SOCKET", "ECONNRESET", "UND_ERR_CLOSED"]);
+const healthRetries = [];
+
 async function answers(url) {
-  try {
-    const res = await fetch(url, { redirect: "manual" });
-    if (!res.ok) lastHealthFault = `${url} answered ${res.status}`;
-    return res.ok;
-  } catch (err) {
-    lastHealthFault = `${url}: ${err?.cause?.code ?? err?.cause?.message ?? err?.message ?? "fetch failed"}`;
-    return false;
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      const res = await fetch(url, { redirect: "manual", headers: attempt === 2 ? { connection: "close" } : {} });
+      if (!res.ok) lastHealthFault = `${url} answered ${res.status}`;
+      if (attempt === 2) healthRetries.push(`${url}: ${lastHealthFault}, then ${res.ok ? "answered" : `answered ${res.status}`} on a new connection`);
+      return res.ok;
+    } catch (err) {
+      const code = err?.cause?.code ?? err?.cause?.message ?? err?.message ?? "fetch failed";
+      const before = lastHealthFault;
+      lastHealthFault = `${url}: ${code}`;
+      if (attempt === 2) {
+        healthRetries.push(`${url}: ${before}, then ${code} on a new connection`);
+        return false;
+      }
+      if (!SOCKET_CLOSED.has(code)) return false;
+      await new Promise((r) => setTimeout(r, 500));
+    }
   }
+  return false;
 }
 
 async function healthy(base) {
@@ -1301,6 +1327,9 @@ if (setupError) {
   console.log(
     `Transient retries: ${retried.length}${byAudit.size ? ` (${[...byAudit].map(([a, n]) => `${a} ${n}`).join(", ")})` : ""}.` +
       `${refused.length ? ` ${refused.length} fault(s) were not retried, by rule; each is in its audit's output under [transient-retry].` : ""}`,
+  );
+  console.log(
+    `Health checks asked again on a new connection: ${healthRetries.length}${healthRetries.length ? `: ${healthRetries.join("; ")}` : "."}`,
   );
   if (retried.length > 5) {
     console.log(
