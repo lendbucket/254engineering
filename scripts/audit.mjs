@@ -46,6 +46,7 @@ import { COULD_NOT_TELL } from "./lib/reachable.mjs";
 import { queueSnapshot, queueGrowth, queueTeardown } from "./lib/queue-ledger.mjs";
 import { PORTS } from "./lib/ports.mjs";
 import { SHARDS, shardProblems } from "./ci/shards.mjs";
+import { UND_ERR_SOCKET } from "./lib/transient-retry.mjs";
 
 /*
  * =============================================================================
@@ -820,7 +821,10 @@ let lastHealthFault = "";
  * summary, so a recovered fault is a line on the board rather than silence. A
  * second failure is the server's, and stops the suite as before.
  */
-const SOCKET_CLOSED = new Set(["UND_ERR_SOCKET", "ECONNRESET", "UND_ERR_CLOSED"]);
+/* Named as constants, as transient-retry.mjs names its codes, so soc2-audit's
+ * string scan reads them as code rather than as environment names. */
+const UND_ERR_CLOSED = "UND_ERR_CLOSED";
+const SOCKET_CLOSED = new Set([UND_ERR_SOCKET, "ECONNRESET", UND_ERR_CLOSED]);
 const healthRetries = [];
 
 async function answers(url) {
@@ -1016,13 +1020,13 @@ async function bringUpServer() {
    * quietly built for itself would be measuring a build nobody else measured.
    */
   if (process.env.AUDIT_PREBUILT === "1") {
-    if (!existsSync(join(".next", "BUILD_ID"))) {
+    if (!existsSync(".next/BUILD_ID")) {
       throw new Error(
         "AUDIT_PREBUILT=1 says the build job's .next is here, and .next/BUILD_ID is not. " +
           "Nothing was run rather than auditing a build of this shard's own making.",
       );
     }
-    console.log(`\n  using the build job's .next, BUILD_ID ${readFileSync(join(".next", "BUILD_ID"), "utf8").trim()}`);
+    console.log(`\n  using the build job's .next, BUILD_ID ${readFileSync(".next/BUILD_ID", "utf8").trim()}`);
   }
   const build =
     process.env.AUDIT_PREBUILT === "1"

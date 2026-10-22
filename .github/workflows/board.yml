@@ -138,9 +138,7 @@ jobs:
       - name: The PDF extractor this shard will use
         if: runner.os == 'Windows'
         run: |
-          which pdftotext unzip
-          pdftotext -v > "$RUNNER_TEMP/pdftotext-version.txt" 2>&1 || true
-          sed -n 1p "$RUNNER_TEMP/pdftotext-version.txt"
+          node scripts/ci/which-pdftotext.mjs
       - uses: actions/cache@v4
         if: matrix.app
         with:
