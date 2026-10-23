@@ -102,7 +102,7 @@ screens unmeasured, compliance's one acknowledgement.
 `merge/pl-determination-on-main-1` at `e6ee6f8` (feat/pl-determination
 a339992 on main 7994969): the same, migration-audit 139, proofs-audit 95.
 Static readers run on the PC first, every one green; no writer audit.
-| 3 | `feat/fc-pl-letters`: determination recording for FC-001 and PL-001 built; sealing both letters held for nine rulings; hold | board pushed, writers queued |
+| 3 | `feat/fc-pl-letters`: determination recording for FC-001 and PL-001 built; sealing both letters held for nine rulings; hold | **Board `39896119586` on `2c3e103`: 53 of 61, held.** Every predicted figure met (proofs-audit of 96 with fc-and-pl-reviews-record-a-determination PASS in the cloud, migration-audit 139, review-audit 91, protocol-run-audit 59, protocol-registry 156; static, pages, gate, documents clean). The eight misses are the probe-cause seven and bulk-audit's double count of 0083, both explained above. |
 
 **Item 3, what the templates file showed.** The 2026-10-06 file is the
 engineer's answered copy: his `[ENGINEER: ...]` notes are his words, and
