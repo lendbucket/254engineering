@@ -84,8 +84,9 @@ a mismatch the chat found, and is left for the morning.
 
 | Migration | Branch | Commit | SHA-256 | Sitting document | Status |
 | --- | --- | --- | --- | --- | --- |
-| `supabase/migrations/0084_a_line_opens_only_when_trained.sql` (REDESIGNED) | `feat/training-record` | `a49f17b` (file written in `deca251`; the skip-ci head changes nothing) | `54b438c236e53b61241dbd2d94f8a07b5b7f8b9d7bca747a195933408382f8c8` | `docs/production-sitting-0084-a-line-opens-only-when-trained.md` | **ready for chat**, at a moment no writers shard is running. Ruling 6: sweepable (rows cascade from their technician; actors are pointers). Section 0 now checks the eng_profiles status column and field_tech role. Predicted a4bbde8c / 1280 before, 79a8143e / 1299 after. |
-| (withdrawn) first 0084 | | `454318d` | `01b0170a3d26497f750b478de3c529b0e280bfb2d12fedca3e5e27b3f5013934` | | **WITHDRAWN**, never applied. |
+| `supabase/migrations/0084_a_line_opens_only_when_trained.sql` (REDESIGNED, WITH ITS DELETE GUARD) | `feat/training-record` | `badcf29` (file written in `943e111`; the skip-ci head changes nothing) | `57f5b8d4fd2af6ee21d1343ecc83e8587faf2bde6df63214e97c3a7b4c86c114` | `docs/production-sitting-0084-a-line-opens-only-when-trained.md` | **ready for chat**, at a moment no writers shard is running. Sweepable (rows cascade from their technician; actors are pointers), and eng_profiles_keep_trained refuses to delete a trained profile off audit-probe.invalid. Section 0 checks the eng_profiles status column and field_tech role; Section 2 reads the keys' delete actions and the trigger. Predicted a4bbde8c / 1280 before, 79a8143e / 1299 after. |
+| (withdrawn) second 0084 | | `a49f17b` | `54b438c236e53b61241dbd2d94f8a07b5b7f8b9d7bca747a195933408382f8c8` | | **WITHDRAWN**, never applied: no delete guard. |
+| (withdrawn) first 0084 | | `454318d` | `01b0170a3d26497f750b478de3c529b0e280bfb2d12fedca3e5e27b3f5013934` | | **WITHDRAWN**, never applied: pinned probes. |
 
 0084 needs 0083 on development, which it has (20261023024543). It is additive
 only: two new tables, a backfill into them, one new function. It alters no
