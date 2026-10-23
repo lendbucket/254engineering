@@ -148,6 +148,37 @@ export async function triageFor(fileId: string): Promise<{ ok: true; basis: "sit
   return { ok: true, basis: (data?.basis as "site" | "desk" | undefined) ?? null, at: (data?.created_at as string | undefined) ?? null };
 }
 
+/**
+ * PL-4: the permit letter files with no triage yet, open and not cancelled,
+ * oldest first, for his queue. His answer is due within one business day of
+ * the order, so this list is where he finds the work.
+ */
+export async function filesAwaitingTriage(): Promise<
+  { ok: true; files: { id: string; fileNumber: string; address: string; createdAt: string }[] } | Refused
+> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+  const { data: files, error } = await db
+    .from("eng_files")
+    .select("id, file_number, property_address, created_at, status")
+    .eq("service_slug", "structural-letters")
+    .not("status", "in", "(closed,cancelled,delivered,sealed)")
+    .order("created_at", { ascending: true })
+    .limit(200);
+  if (error) return { ok: false, error: `The permit letter files could not be read: ${error.message}` };
+  const ids = (files ?? []).map((f) => f.id as string);
+  if (ids.length === 0) return { ok: true, files: [] };
+  const { data: triaged, error: tError } = await db.from("eng_job_triage").select("file_id").in("file_id", ids);
+  if (tError) return { ok: false, error: `The triage could not be read: ${tError.message}` };
+  const done = new Set((triaged ?? []).map((t) => t.file_id as string));
+  return {
+    ok: true,
+    files: (files ?? [])
+      .filter((f) => !done.has(f.id as string))
+      .map((f) => ({ id: f.id as string, fileNumber: f.file_number as string, address: f.property_address as string, createdAt: f.created_at as string })),
+  };
+}
+
 /** PL-4: the engineer records site job or desk job for a file. */
 export async function recordTriage(
   actor: (Actor & { email: string }) | null,

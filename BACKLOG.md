@@ -4,6 +4,24 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
+## THE SITTING FOR 0085, A LETTER STATES ONLY RECORDED FACTS, OPEN
+
+`docs/production-sitting-0085-a-letter-states-only-recorded-facts.md`. Written
+2026-10-23 on `feat/fc-pl-records` under ruling 7: the facts the foundation and
+permit letters print, the engineer's triage and his added capture items.
+Queued for the chat's development sitting after 0084, then the board, then
+production.
+
+## THE ENGINEER'S ADDED CAPTURE ITEMS ARE SHOWN, NOT YET CAPTURED AGAINST, OPEN
+
+Ruling PL-5 (2026-10-23): the capture list starts as PL-001's items and he may
+add items at triage. The items are recorded (0085) and shown to the technician
+above the checklist, but evidence attaches to a protocol item, so a photograph
+cannot yet be filed against an added item, and the checklist's completeness
+does not count them. Making them capture items needs evidence to carry a file
+level item as well as a protocol one, a migration and a change to the capture
+screen and its gate, which is a change to dispatch for a ruling.
+
 ## THE SITTING FOR 0084, A LINE OPENS ONLY WHEN TRAINED, OPEN
 
 `docs/production-sitting-0084-a-line-opens-only-when-trained.md`. Written

@@ -9,7 +9,9 @@ import { STATUS_LABEL, type FileStatus } from "@/lib/ops-files";
 import { isPrelaunch } from "@/lib/launch";
 import { services } from "@/content/services";
 import { EmptyState, PageHead } from "@/components/portal/surfaces";
-import { outstandingFor } from "@/lib/ops-file-inputs";
+import { answersFor, outstandingFor } from "@/lib/ops-file-inputs";
+import { captureAdditionsFor, filesAwaitingTriage, letterFactsFor, triageFor } from "@/lib/letter-facts";
+import { ElementDescribedReview, FoundationTypeConfirm, TriagePanel } from "@/components/portal/LetterFactsPanels";
 import { DecisionPanel, OpenReviewButton } from "./ReviewClient";
 import { LetterSealPanel } from "./LetterSealPanel";
 import { FileThreadButton } from "@/components/portal/FileThreadButton";
@@ -67,7 +69,21 @@ export default async function ReviewPage({
   const awaiting = await lettersAwaitingSeal(actor);
   const held = await heldFiles();
   const trainingWaiting = await trainingAwaitingEngineer();
+  const awaitingTriage = await filesAwaitingTriage();
   const selectedAwaiting = selected ? awaiting.filter((l) => l.fileId === selected.file.id) : [];
+
+  /*
+   * RULING 7 OF 2026-10-23: WHAT THE FOUNDATION OR PERMIT LETTER WILL PRINT
+   * THAT HE CONFIRMS HERE. The foundation type (FC-3) and the element described
+   * (PL-3) from the order beside what he has recorded; the authority's details
+   * the office recorded (PL-2); and his triage and capture items (PL-4, PL-5).
+   * Read only for those two lines.
+   */
+  const letterLine = selected?.file.service_slug === "foundation-inspections" || selected?.file.service_slug === "structural-letters";
+  const letterAnswers = selected && letterLine ? await answersFor(selected.file.id) : {};
+  const letterFacts = selected && letterLine ? await letterFactsFor(selected.file.id) : null;
+  const letterTriage = selected?.file.service_slug === "structural-letters" ? await triageFor(selected.file.id) : null;
+  const letterAdditions = selected?.file.service_slug === "structural-letters" ? await captureAdditionsFor(selected.file.id) : null;
 
   /*
    * WHAT THE ENGINEER IS STILL MISSING, asked at the sealing stage.
@@ -191,6 +207,31 @@ export default async function ReviewPage({
                   Supervised training on v{t.protocolVersion}, {t.trainedOn}, supervised by {t.supervisedBy}.
                 </p>
                 <TrainingDecisionPanel recordId={t.id} technician={t.technician} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      {/* PL-4 and PL-5, ruling 7 of 2026-10-23: permit letter jobs waiting for his site or desk decision. */}
+      {!awaitingTriage.ok ? (
+        <p role="alert" className="mb-6 text-[14px] text-[var(--ink)]">
+          Permit letter jobs waiting for triage could not be read: {awaitingTriage.error}
+        </p>
+      ) : awaitingTriage.files.length > 0 ? (
+        <section className="mb-6 border-t-2 border-[var(--ink)] pt-4">
+          <h2 className="text-[16px] font-semibold text-[var(--ink)]">Permit letter jobs waiting for your triage</h2>
+          <p className="mt-1 text-[14px] text-[var(--secondary)]">
+            Record each as a site job or a desk job within a business day of the order, and add anything the technician
+            should capture beyond the protocol&apos;s items. The letter&apos;s basis sentence comes from this record.
+          </p>
+          <ul className="mt-2 border-t border-[var(--row-rule)]">
+            {awaitingTriage.files.map((f) => (
+              <li key={f.id} className="border-b border-[var(--row-rule)] py-3">
+                <p className="text-[14px] text-[var(--ink)]">
+                  <span className="font-semibold">{f.fileNumber}</span>, {f.address}
+                </p>
+                <TriagePanel fileId={f.id} basis={null} additions={[]} />
               </li>
             ))}
           </ul>
@@ -560,6 +601,50 @@ export default async function ReviewPage({
                     ))}
                   </ol>
                 )}
+
+                {letterLine ? (
+                  <div className="mt-7 border-t border-[var(--border)] pt-6">
+                    <p className="portal-label">What the letter will print, for you to confirm</p>
+                    {!letterFacts ? (
+                      <p className="mt-2 text-[14px] text-[var(--ink)]">The letter&apos;s recorded facts could not be read just now. Reload the page; nothing was changed.</p>
+                    ) : selected.file.service_slug === "foundation-inspections" ? (
+                      <FoundationTypeConfirm
+                        fileId={selected.file.id}
+                        fromIntake={letterAnswers.foundation_type ?? null}
+                        confirmed={letterFacts.foundation_type?.value ?? null}
+                      />
+                    ) : (
+                      <>
+                        <ElementDescribedReview
+                          fileId={selected.file.id}
+                          category={letterAnswers.element_category ?? null}
+                          fromIntake={letterAnswers.element_described ?? null}
+                          reviewed={letterFacts.element_described?.value ?? null}
+                        />
+                        <div className="mt-5">
+                          <p className={"text-[14px] font-semibold text-[var(--ink)]"}>The authority, as the office recorded it</p>
+                          <p className="mt-1 max-w-[70ch] text-[14px] leading-[1.55] text-[var(--ink)]">
+                            {letterAnswers.authority_name ?? "No authority on the order."}
+                            {letterAnswers.permit_number ? `, permit ${letterAnswers.permit_number}` : ""}
+                          </p>
+                          <p className="mt-1 max-w-[70ch] whitespace-pre-line text-[14px] leading-[1.55] text-[var(--secondary)]">
+                            {letterFacts.authority_address?.value ?? "The office has not recorded the authority's address."}
+                            {"\n"}
+                            {letterFacts.authority_salutation?.value ? `Salutation: ${letterFacts.authority_salutation.value}` : "No salutation recorded."}
+                          </p>
+                        </div>
+                        <div className="mt-5">
+                          <p className={"text-[14px] font-semibold text-[var(--ink)]"}>Site job or desk job</p>
+                          {letterTriage && letterTriage.ok && letterAdditions && letterAdditions.ok ? (
+                            <TriagePanel fileId={selected.file.id} basis={letterTriage.basis} additions={letterAdditions.items} />
+                          ) : (
+                            <p className="mt-2 text-[14px] text-[var(--ink)]">The triage could not be read just now. Reload the page; nothing was changed.</p>
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ) : null}
 
                 <div className="mt-7 border-t border-[var(--border)] pt-6">
                   {/*
