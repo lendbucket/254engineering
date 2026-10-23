@@ -1,5 +1,71 @@
 # Overnight queue, 2026-10-23
 
+## MORNING REPORT
+
+**Needed from Robert, three rulings, and the first blocks everything full lane.**
+
+1. **The walk's leftover probe accounts.** `bf376756-f8c4-4525-9eef-ca2492b6c6aa`
+   and `3b09b3a2-b6e6-43ad-ab7b-dcc4f041ebbe`, made by the design-addendum
+   walk on development, are held by records that refuse deletion (a scope
+   addendum, seal acts), so every probe sweep fails on them and every writers
+   shard tonight failed seven audits on that line alone. Recommendation: rule
+   such an account "kept by design", counted and named in the sweep's output,
+   as the 2026-10-03 ruling does for customer accounts; and the walk must not
+   make one again. The session caused this; it is set out in full below.
+2. **bulk-audit counts a replaced function twice.** 0083 restates
+   eng_record_review_decision, so the audit reads 5 assignment writers against
+   its pinned 4 on every branch carrying 0083. The live database has one
+   definition. Recommendation: count a function once, by its latest
+   definition, keeping the pinned 4.
+3. **The open copy and asset questions**, each in item 5 or item 3 below: the
+   `/order` title (recommended "Order engineering work online in Texas | 254
+   Engineering", 56); the derived white logo on `hold/logo-254-engineering`
+   (Vercel preview); the JobPosting fault; and the nine FC and PL letter points
+   in `docs/fc-pl-letters-open-points.md` on `feat/fc-pl-letters`.
+
+**Two faults of the session's own tonight**, both disclosed as they happened:
+`retention-audit` run from the PC at about 03:24 inside pricing's writers
+window (that board was voided and re-run), and the walk's probe accounts above.
+
+### Each item against its prediction
+
+| # | Item | Result |
+| --- | --- | --- |
+| 1 | Pricing (`97af17b`, board `39895075922`) | **Stopped, not merged.** 54 of 61; the seven misses are the probe set; everything pricing measures passed (trade-pricing 40, the credit proof, order 556, price-book 67, intake 116, perf 81). $709 is not live. |
+| 2a | 0082 on main (`db821b6`, board `39895256012`) | **Held.** 54 of 61, the probe set only; every predicted figure met. |
+| 2b | 0083 on main (`e6ee6f8`, board `39895258058`) | **Held.** 53 of 61: the probe set and the bulk-audit double count; every predicted figure met. |
+| 3 | FC and PL determination recording (`2c3e103`, board `39896119586`) | **Held.** 53 of 61, the same two causes; its new proof passed in the cloud. Letter sealing for both is not built: nine points for rulings. |
+| 4 | 0084 training record (`6145a69`, board `39902040395`) | **Held.** On development (detected 04:45; version not reported). 53 of 61 against a predicted 54: the bulk-audit miss was found after the prediction was written. Its own proof passed; a-certification-waits-for-the-engineer, the writer proof of it, is masked by the probe failure. |
+| 5a | "Services" out of every email and the ruled site strings | **Merged** as `b8fbf19`, fast lane, readers all green. |
+| 5b | Logo swap | **Held** on `hold/logo-254-engineering` (`bf391d6`) for Robert's look. |
+| 5c | JobPosting | **Stopped**: the fault is not visible from the code. |
+| Nightly | Board on main `b8fbf19` (`39929835070`) | Prediction: 54 of 61, exactly the probe set. Result below when it lands. |
+
+### The production sitting order, once rulings 1 and 2 are made and the boards pass
+
+Each migration is applied by the chat with `apply_migration` from its sitting
+document, read back, recorded in `supabase/applied.mjs`, and only then is its
+branch merged. Every branch is re-boarded on the main it lands on first.
+
+| Order | Migration | SHA-256 | Sitting document | Branch to merge after the read-back |
+| --- | --- | --- | --- | --- |
+| 0 | none: pricing | | | `fix/engineer-pay-schedule-2` (no migration; merges on its board) |
+| 1 | 0082 scope addendum | `03355c41011ee76966b0ee764497bfd444662005464f00be1514938d1ae08a6c` | `docs/production-sitting-0082-scope-addendum.md` | `feat/design-addendum`; then the chat writes the McAllen record on production |
+| 2 | 0083 permit letter option | `57673888998a4802a8adfb241e68ea80ae2bbdb0aef3930dad6a9c0253b94005` | `docs/production-sitting-0083-permit-letter-option.md` | `feat/pl-determination`, then `feat/fc-pl-letters` (no migration of its own) |
+| 3 | 0084 a line opens only when trained | `01b0170a3d26497f750b478de3c529b0e280bfb2d12fedca3e5e27b3f5013934` | `docs/production-sitting-0084-a-line-opens-only-when-trained.md` | `feat/training-record` |
+
+### What opens for ordering once each lands, line by line
+
+| Line | After tonight's work lands |
+| --- | --- |
+| Roof (RC-001) | Already open. Pricing makes it $709 (floor $702), $75 coastal on top. Its path through the money door is unchanged by 0084. |
+| Foundation (FC-001) | Stays closed. Determination recording is built; the letter needs four rulings; it is not offered. |
+| Permit letter (PL-001) | Stays closed. Determination and option recording built (0083); the letter needs five rulings; not offered. |
+| Repair specification (RS-001) | Stays closed: the letter waits on Aman's approval of the actual letter. |
+| Manufactured home, solar, WPI-8 | Quote request, as ruled, until their letters exist. WPI-8 ongoing unorderable until a scope addendum. |
+| Design | A quote. Pays the engineer 35% only under a signed scope addendum (0082). |
+| Any line once offered | From 0084, opens only when its protocol is signed AND an approved training record exists on that exact version. |
+
 Robert's overnight mode, until about 11:30 UTC. The Claude Code session writes
 this file on `ops/overnight` and pushes it with `[skip ci]` after every change.
 The operator's chat counterpart reads it every hour at :15 past, 04:15 to 11:15
