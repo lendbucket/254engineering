@@ -52,6 +52,23 @@ screens unmeasured, compliance's one acknowledgement.
 `merge/pl-determination-on-main-1` at `e6ee6f8` (feat/pl-determination
 a339992 on main 7994969): the same, migration-audit 139, proofs-audit 95.
 Static readers run on the PC first, every one green; no writer audit.
-| 3 | `feat/fc-pl-letters`: determination and sealing for FC-001 and PL-001; hold | queued |
+| 3 | `feat/fc-pl-letters`: determination recording for FC-001 and PL-001 built; sealing both letters held for nine rulings; hold | board pushed, writers queued |
+
+**Item 3, what the templates file showed.** The 2026-10-06 file is the
+engineer's answered copy: his `[ENGINEER: ...]` notes are his words, and
+template 4's options, method values and limitation sentences are his.
+Determination recording is built (`2c3e103`). Sealing either letter is NOT
+built, because both templates name facts the platform does not hold or a
+mapping nobody has ruled; nine points, written up in
+`docs/fc-pl-letters-open-points.md` on the branch. The sharpest: FC's option C
+is a sealed "declines to certify" letter, while FC-001's DECLINE is declining
+the job, which the standing decision says gets an email and a refund, never a
+sealed letter.
+
+**Item 3 prediction, stated before the push.** `feat/fc-pl-letters` at
+`2c3e103` (on `merge/pl-determination-on-main-1`): 61 of 61, no FAIL, retries
+at most 5; migration-audit 139, protocol-registry 156, order-audit 559,
+review-audit 91, protocol-run-audit 59, proofs-audit 96; perf passes with
+/coverage's NOT STABLE as the one undecided check; tonight's five standing notes.
 | 4 | Training record migration; hold | queued |
 | 5 | Fast lane: logo on site and email, "Services" out of staff email, JobPosting schema | queued |
