@@ -38,7 +38,7 @@ type Refused = { ok: false; error: string };
 type Context = { ip?: string | null; userAgent?: string | null };
 
 /** The newest value of each fact on a file, with who recorded it and when. Null on a failed read. */
-export async function letterFactsFor(
+export async function recordedFactsFor(
   fileId: string,
 ): Promise<Partial<Record<LetterFact, { value: string; recordedAt: string; recordedBy: string }>> | null> {
   const db = supabaseAdmin();

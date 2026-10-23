@@ -11,7 +11,7 @@ import { FILE_DETAIL_FIELDS } from "@/lib/file-detail-fields";
 import { ContactLogPanel } from "@/components/portal/ContactLog";
 import { FileDetailsForm, ReleaseTechnician } from "./DeskFileClient";
 import { AuthorityDetailsForm } from "@/components/portal/LetterFactsPanels";
-import { letterFactsFor } from "@/lib/letter-facts";
+import { recordedFactsFor } from "@/lib/letter-facts";
 import { services } from "@/content/services";
 import { EmptyState, PageHead, Panel } from "@/components/portal/surfaces";
 import { FileSelection } from "./FileSelection";
@@ -69,7 +69,7 @@ export default async function FilesPage({
   /* PL-2, ruling 7 of 2026-10-23: the office records the authority's address and salutation on a permit letter file. */
   const permitLetterFacts =
     selected && selected.service_slug === "structural-letters" && can(actor, "files.update_details")
-      ? await letterFactsFor(selected.id)
+      ? await recordedFactsFor(selected.id)
       : null;
 
   /*
