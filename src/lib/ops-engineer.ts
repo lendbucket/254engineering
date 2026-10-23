@@ -7,7 +7,7 @@ import { writeAudit } from "./ops-audit";
 import { can, type Actor, holdsLicence, licenceRefusal } from "./ops-authz";
 import { transitionFile } from "./ops-crm";
 import { jobView } from "./ops-field";
-import { protocolItemRowsFor } from "./protocol-run";
+import { governingDeclaration } from "./protocol-run";
 import type { Determination } from "@/content/protocols";
 import { isOpen } from "./launch";
 import { orderForFile as liveOrderForFile, orderForFileRead } from "./order-for-file";
@@ -267,6 +267,8 @@ export type PackageView = {
    * somebody typed.
    */
   protocolDocument: string | null;
+  /** The file's protocol row status: a protocol reviewed under its signature governs only while published. */
+  protocolStatus: string | null;
   items: EvidenceView[];
   complete: boolean;
   blockers: string[];
@@ -389,6 +391,7 @@ export async function packageFor(actor: Actor | null, fileId: string): Promise<P
     file: file as PackageView["file"],
     protocolName: view.protocol ? `${view.protocol.name} v${view.protocol.version}` : null,
     protocolDocument: view.protocol?.document_number ?? null,
+    protocolStatus: view.protocol?.status ?? null,
     items,
     ...(await completeness(fileId, view)),
     session: session
@@ -723,7 +726,12 @@ export async function decideReview(
    * read from the protocol's document number, so the first day a second
    * protocol is registered, its files are covered with no change here.
    */
-  const governing = protocolItemRowsFor(pkg.protocolDocument) === null ? null : pkg.protocolDocument;
+  /*
+   * 254-FC-001 and 254-PL-001 govern too, under their portal signature, while
+   * the file's protocol row is published (operator ruling of 2026-10-23;
+   * governingDeclaration in protocol-run.ts says why it is named, not derived).
+   */
+  const governing = governingDeclaration(pkg.protocolDocument, pkg.protocolStatus) ? pkg.protocolDocument : null;
 
   if (governing && !determination) {
     return {
