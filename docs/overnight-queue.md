@@ -39,7 +39,7 @@ window (that board was voided and re-run), and the walk's probe accounts above.
 | 5a | "Services" out of every email and the ruled site strings | **Merged** as `b8fbf19`, fast lane, readers all green. |
 | 5b | Logo swap | **Held** on `hold/logo-254-engineering` (`bf391d6`) for Robert's look. |
 | 5c | JobPosting | **Stopped**: the fault is not visible from the code. |
-| Nightly | Board on main `b8fbf19` (`39929835070`) | Prediction: 54 of 61, exactly the probe set. Result below when it lands. |
+| Nightly | Board on main `b8fbf19` (`39929835070`) | **54 of 61, exactly as predicted:** the probe seven and nothing else; perf 81, retries 4. Under the lane rule a nightly miss stops all merges, both lanes, until Robert rules; nothing has merged since `b8fbf19`. |
 
 ### The production sitting order, once rulings 1 and 2 are made and the boards pass
 
