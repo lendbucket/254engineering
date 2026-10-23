@@ -109,9 +109,10 @@ const DISPLAY = "Archivo,'Segoe UI',Helvetica,Arial,sans-serif";
  * what a navy band needs. The light variant would be navy on navy and invisible,
  * which is the same defect the site's hero shipped once.
  */
-const LOGO_URL = business.url + "/brand/logo-dark.png";
+/* HELD FOR ROBERT, 2026-10-23: the derived reverse of the corrected lockup (Wordmark.tsx says why). */
+const LOGO_URL = business.url + "/brand/254-engineering-logo-dark.png";
 const LOGO_W = 168;
-const LOGO_H = Math.round((LOGO_W * 1147) / 2262);
+const LOGO_H = Math.round((LOGO_W * 1157) / 2046);
 
 export type EmailButton = { label: string; url: string };
 

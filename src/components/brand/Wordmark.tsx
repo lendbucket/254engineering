@@ -37,7 +37,14 @@ import Image from "next/image";
  * with the LCP image for the same preload budget.
  */
 
-const RATIO = 2262 / 1147;
+/*
+ * HELD FOR ROBERT, 2026-10-23: the corrected lockup, public/brand/254-engineering-logo.png
+ * (2046 by 1157, uploaded to main as 37c9e02), and its reverse
+ * 254-engineering-logo-dark.png, DERIVED from it by the session (navy to white,
+ * alpha kept, gold untouched, sha256 92e7cd27...) because no reverse was
+ * delivered. A derived brand asset is his to approve before it ships.
+ */
+const RATIO = 2046 / 1157;
 
 export function Wordmark({
   onDark = false,
@@ -66,7 +73,7 @@ export function Wordmark({
   priority?: boolean;
   className?: string;
 }) {
-  const src = onDark ? "/brand/logo-dark.png" : "/brand/logo.png";
+  const src = onDark ? "/brand/254-engineering-logo-dark.png" : "/brand/254-engineering-logo.png";
   return (
     <Image
       src={src}
