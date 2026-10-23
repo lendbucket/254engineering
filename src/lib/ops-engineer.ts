@@ -14,6 +14,8 @@ import { orderForFile as liveOrderForFile, orderForFileRead } from "./order-for-
 import { catalogFor, deliverablesFor } from "@data/catalog";
 import { engineerPayCents, tierForDeliverable, type PayTier } from "@/config/engineer-pay";
 import { designPayFor } from "./scope-addendum";
+import { structuralLetterVerdict } from "./structural-letter-verdict";
+import type { StructuralLetterOption } from "@/content/letters/structural-letter";
 import { randomUUID } from "node:crypto";
 import { canTransition, STATUS_TIMESTAMP, type FileStatus } from "./ops-files";
 import { effectModeFor } from "./fixture-identity";
@@ -522,6 +524,21 @@ export function creditBasis(credit: { tier: PayTier | null; addendumId?: string 
 const DESIGN_SLUG = "residential-light-commercial-design";
 
 /**
+ * The option a 254-PL-001 determination records: the one the ruling's verdict
+ * accepted (C for repairs required, A or B as he chose on a pass), or null for
+ * a determination that produces no letter. Recording the verdict's option
+ * rather than the raw input keeps the row and the rule one answer.
+ */
+function letterOptionFor(determination: DeterminationInput): StructuralLetterOption | null {
+  const v = structuralLetterVerdict({
+    determination: determination.determination,
+    option: determination.letterOption ?? null,
+    conditions: determination.letterConditions ?? [],
+  });
+  return v.ok ? v.option : null;
+}
+
+/**
  * The credit for a decided review on this file. Exported for the proof that
  * reads it against real rows; decideReview writes exactly its figure.
  */
@@ -631,6 +648,14 @@ export type DeterminationInput = {
    * a list is the withholding with the reason left out.
    */
   repairRequirements: string[];
+  /**
+   * 254-PL-001 only, operator ruling of 2026-10-22 (0083): which of his three
+   * letter sentences, A pass with no conditions, B pass with the conditions
+   * listed, C repairs required, and the conditions for B in his words. Absent
+   * or null for every other protocol.
+   */
+  letterOption?: StructuralLetterOption | null;
+  letterConditions?: string[];
 };
 
 export async function decideReview(
@@ -748,6 +773,24 @@ export async function decideReview(
         ok: false,
         error: `A repair list belongs to a determination of repairs-required, and this one is ${determination.determination}.`,
       };
+    }
+
+    /*
+     * THE STRUCTURAL LETTER'S OPTION AND SCHEDULE, judged before anything is
+     * written (operator ruling of 2026-10-22, 0083). The database holds the
+     * same rule and refuses a B with an empty schedule; asking here first says
+     * why in a sentence rather than a constraint name. Every other protocol
+     * carries neither field.
+     */
+    if (governing === "254-PL-001") {
+      const letter = structuralLetterVerdict({
+        determination: determination.determination,
+        option: determination.letterOption ?? null,
+        conditions: determination.letterConditions ?? [],
+      });
+      if (!letter.ok && letter.letter) return { ok: false, error: letter.why };
+    } else if (determination.letterOption || (determination.letterConditions ?? []).length > 0) {
+      return { ok: false, error: `A letter option and schedule belong to 254-PL-001, and this file is under ${governing}.` };
     }
 
     const implied = actionForDetermination(determination.determination);
@@ -893,6 +936,12 @@ export async function decideReview(
               relied_on_item_keys: determination.reliedOnItemKeys,
               relied_on_evidence_ids: determination.reliedOnEvidenceIds,
               note: determination.note?.trim() || null,
+              /* 0083: carried for 254-PL-001 only; the database refuses them on any other protocol. */
+              letter_option: governing === "254-PL-001" ? letterOptionFor(determination) : null,
+              letter_conditions:
+                governing === "254-PL-001"
+                  ? (determination.letterConditions ?? []).map((c) => c.trim()).filter((c) => c.length > 0)
+                  : [],
             }
           : null,
       repairs: governing && determination ? requirements : [],
