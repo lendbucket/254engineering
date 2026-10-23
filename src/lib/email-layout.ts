@@ -627,7 +627,7 @@ export function renderEmailHtml(input: LayoutInput): string {
       '" height="' +
       LOGO_H +
       '" alt="' +
-      esc(business.name) +
+      esc(business.shortName) +
       '" style="display:block;width:' +
       LOGO_W +
       "px;height:" +
