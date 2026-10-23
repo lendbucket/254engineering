@@ -1,8 +1,9 @@
 # Sitting: 0082, a scope addendum is signed before design is paid
 
 Branch `feat/design-addendum`, built on `feat/lines-order-ready` (it needs
-0081). Written 2026-10-22. **Applied nowhere yet.** Development first, then the
-board, then production, where the first real addendum is the McAllen design
+0081). Written 2026-10-22. **On development since 2026-10-23, provider version
+20261023022247, every Section 0 and Section 2 answer as predicted; not on
+production.** Development first, then the board, then production, where the first real addendum is the McAllen design
 job, written by the chat from the operator's details. Those details are never
 written into this repository.
 

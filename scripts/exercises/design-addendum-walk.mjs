@@ -165,7 +165,8 @@ made.clients.push(client.id);
 const { data: file, error: fErr } = await db
   .from("eng_files")
   .insert({
-    file_number: `254-WALK-D-${STAMP}`, client_id: client.id, service_slug: "residential-light-commercial-design", deliverable: "custom-package",
+    /* is_demo and the -DEMO- segment agree, or eng_files_demo_number_agrees (0027) refuses the row. */
+    file_number: `254-DEMO-WALK-D-${STAMP}`, client_id: client.id, service_slug: "residential-light-commercial-design", deliverable: "custom-package",
     property_address: "200 Invented Avenue", county: "Fictional", status: "under_review", is_demo: true,
   })
   .select("id, service_slug, deliverable")
@@ -175,7 +176,7 @@ made.files.push(file.id);
 const { data: ord, error: oErr } = await db
   .from("eng_service_orders")
   .insert({
-    site: "254engineering", reference: `254-O-WALK-${STAMP}`, service_slug: "residential-light-commercial-design", tier: "custom-package",
+    site: "254engineering", reference: `254-O-DEMO-WALK-${STAMP}`, service_slug: "residential-light-commercial-design", tier: "custom-package",
     order_type: "quote", status: "in_fulfilment", customer_name: `${LABEL} contact, not a real person`,
     customer_email: `addendum-walk-contact-${STAMP}@audit-probe.invalid`, property_address: "200 Invented Avenue", county: "Fictional",
     twia_county: false, total_cents: 200000, file_id: file.id, is_demo: true,
