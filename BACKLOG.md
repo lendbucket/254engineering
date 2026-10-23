@@ -34,6 +34,16 @@ verdict was informational until calibrated; three clean main runs passed with
 no FAIL and no NOT STABLE, and it gates since the operator's ruling of
 2026-10-22 (`INFORMATIONAL` in `scripts/ci/shards.mjs` is empty).
 
+## A PUSH TO MAIN RE-BOARDS A COMMIT THAT ALREADY HAS A GREEN BOARD, OPEN
+
+`.github/workflows/board.yml`. Ruled 2026-10-22, not built that night. Moving
+main to `c063762` started run `39879066187` on the exact commit that run
+`39872774654` had just passed 61 of 61, and its writers shard would have held
+development past the 0082 sitting; it was cancelled before its shard ran. **The
+rule to build:** a push to main whose exact commit already has a green board of
+the same workflow is skipped by the board, and the skip names the earlier run
+id. Same commit only: a different tree on main is always boarded.
+
 ## THE SITTING FOR 0079, TWO STAFF ROLES AND THE WORK THEY DO, OPEN
 
 `docs/production-sitting-0079-staff-roles.md`. Written 2026-10-20 on
