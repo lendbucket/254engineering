@@ -90,7 +90,7 @@ never merges on it. A cancel of that run was refused by the session's
 permissions, so it runs to the end and is ignored. The clean board
 `39895075922` measures the same commit; its writers shard waits its turn
 behind the voided one.
-| 2 | Board 0082 and 0083 branches on current main; hold on a match | boards pushed, writers queued |
+| 2 | Board 0082 and 0083 branches on current main; hold on a match | **0082 (`39895256012`, `db821b6`): 54 of 61, held.** Every predicted figure met (migration-audit 138, protocol-registry 156, proofs-audit of 94; static, pages, gate, documents clean, retries 4). The seven misses are exactly the probe-cause set; the prediction, written at 03:30, predates finding it, so it is a miss with a known cause. 0083 board still running. |
 
 **Item 2 predictions, stated before the pushes.**
 `merge/design-addendum-on-main-1` at `db821b6` (feat/design-addendum 5025953
