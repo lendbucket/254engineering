@@ -83,6 +83,16 @@ async function handlePOST(request: NextRequest) {
         repairRequirements: Array.isArray(body?.repairRequirements)
           ? body.repairRequirements.map(String)
           : [],
+        /*
+         * 254-PL-001's letter option and schedule (0083). Passed through as
+         * typed; decideReview asks the ruling's verdict of them and refuses
+         * either on any other protocol, and the database holds the same rule.
+         */
+        letterOption:
+          body?.letterOption === "A" || body?.letterOption === "B" || body?.letterOption === "C"
+            ? body.letterOption
+            : null,
+        letterConditions: Array.isArray(body?.letterConditions) ? body.letterConditions.map(String) : [],
       };
     }
 

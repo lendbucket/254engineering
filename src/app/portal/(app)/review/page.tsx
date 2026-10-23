@@ -18,7 +18,7 @@ import { heldFiles } from "@/lib/dispatch-hold";
 import { PrereviewPanel } from "./PrereviewPanel";
 import { TrainingDecisionPanel } from "./TrainingDecisionPanel";
 import { trainingAwaitingEngineer } from "@/lib/certification-record";
-import { protocolByDocument } from "@/content/protocols";
+import { governingDeclaration } from "@/lib/protocol-run";
 import { formatInFirmZone } from "@/lib/firm-calendar";
 
 export const dynamic = "force-dynamic";
@@ -592,10 +592,13 @@ export default async function ReviewPage({
                      * it, which is the worst place for one.
                      *
                      * Empty when no signed protocol governs the file, and then
-                     * the panel does not ask for a determination at all.
+                     * the panel does not ask for a determination at all. Since
+                     * 2026-10-23, 254-FC-001 and 254-PL-001 read their Appendix C
+                     * from the structured declaration he signed in the portal
+                     * (governingDeclaration), the same text decideReview reads.
                      */
                     determinationRules={[
-                      ...(protocolByDocument(selected.protocolDocument)?.declaration.determinations ?? []),
+                      ...(governingDeclaration(selected.protocolDocument, selected.protocolStatus)?.determinations ?? []),
                     ]}
                     items={selected.items.map((i) => ({
                       itemKey: i.itemKey,

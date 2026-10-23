@@ -12,6 +12,16 @@ training and the engineer's decision on it, a backfill of the interim events
 of 2026-10-07 onward, and `eng_line_is_trained`, which the money door now asks
 of every line opened by a portal signature; roof's path is unchanged. Queued
 for the chat's development sitting after 0083, then the board, then production.
+## THE FOUNDATION AND PERMIT LETTERS, NINE POINTS FOR A RULING, OPEN
+
+`docs/fc-pl-letters-open-points.md`. Written 2026-10-23 on
+`feat/fc-pl-letters`. Determination recording for 254-FC-001 and 254-PL-001 is
+built; sealing either letter is not, because his templates name facts the
+platform does not hold or a mapping nobody has ruled: four for FC (which
+determination is option C, recipient and purpose at intake, foundation type,
+the method for a crawlspace) and five for PL (permit number and authority
+apart, the authority's address, the element described, the visit or desk
+triage record, and the documents schedule with his per job capture list).
 
 ## THE SITTING FOR 0080, THE SIGNED SOURCES GO PRIVATE, OPEN
 
