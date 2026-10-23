@@ -63,7 +63,7 @@ import { PhoneNumber } from "@/components/ui/PhoneNumber";
  * than padding.
  */
 export const metadata: Metadata = buildMetadata({
-  title: "Order engineering work online | 254 Engineering Services",
+  title: "Order engineering work online in Texas | 254 Engineering",
   description:
     "Choose what you need. Lines open for online ordering show the price and take the order now. Every other line is quoted by the firm. Start here.",
   path: "/order",
