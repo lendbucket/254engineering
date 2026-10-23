@@ -17,6 +17,7 @@
 
 import type { CatalogEntry } from "@data/catalog";
 import type { Cents } from "./ops-money";
+import { money } from "@/config/prices";
 import { isOwnerAdmin } from "./owner-override";
 
 /** How a job reached the firm. Matches the check constraint in 0015. */
@@ -137,6 +138,13 @@ export function decidePrice(input: {
   /** What the operator typed, or null if they did not touch it. */
   enteredCents: number | null;
   reason: string | null;
+  /**
+   * The deliverable's floor in cents, or null when it has none (design, which
+   * is quoted above its minimum engagement). Operator ruling, 2026-10-22: no
+   * sale, trade price, partner price or discount may go below a line's floor,
+   * so an override below it is refused whoever types it.
+   */
+  floorCents: number | null;
 }): PriceDecision {
   if (input.enteredCents === null || input.enteredCents === input.catalogCents) {
     return { overridden: false, cents: input.catalogCents };
@@ -144,6 +152,21 @@ export function decidePrice(input: {
 
   if (input.enteredCents < 0) {
     return { ok: false, error: "A price cannot be negative." };
+  }
+
+  /*
+   * ZERO IS NOT A PRICE BELOW THE FLOOR, IT IS A JOB AT NO CHARGE: a separate
+   * path ruled on 2026-10-16 and 2026-10-20, held to the administrator, a fresh
+   * code, a reason and a record written before the job exists
+   * (noChargeRefusal). The floor ruling of 2026-10-22 governs sales, so every
+   * price between zero and the floor is refused here and zero is left to its
+   * own controls, pending the operator's word on whether it survives.
+   */
+  if (input.floorCents !== null && input.enteredCents !== 0 && input.enteredCents < input.floorCents) {
+    return {
+      ok: false,
+      error: `That is below this service's floor of ${money(input.floorCents)}. No sale may go below a line's floor.`,
+    };
   }
 
   const reason = (input.reason ?? "").trim();

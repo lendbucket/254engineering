@@ -12,7 +12,7 @@ import {
   PROCESSING_READ_ON,
   PROCESSING_READ_FROM,
 } from "@/config/cost-inputs";
-import { ENGINEER_TIER_CENTS, ENGINEER_DESIGN_HOURLY_CENTS, defaultTierFor } from "@/config/engineer-pay";
+import { ENGINEER_TIER_CENTS, ENGINEER_DESIGN_FEE_SHARE_BP, defaultTierFor } from "@/config/engineer-pay";
 import { floorCentsFor } from "@/lib/trade-pricing";
 
 export const dynamic = "force-dynamic";
@@ -211,10 +211,11 @@ export default async function PriceBookPage() {
             <dt className="font-semibold text-[var(--ink)]">Engineer production pay</dt>
             <dd className="text-[var(--secondary)]">
               Tier 1 {money(ENGINEER_TIER_CENTS[1])}, tier 2 {money(ENGINEER_TIER_CENTS[2])}, tier 3{" "}
-              {money(ENGINEER_TIER_CENTS[3])}, from the executed employment agreement. Design is
-              hourly at {money(ENGINEER_DESIGN_HOURLY_CENTS)} and takes no tier. The tier a job
-              attracts is the engineer&apos;s work on that job, not a property of the line, so the
-              line&apos;s tier above is an estimating default only.
+              {money(ENGINEER_TIER_CENTS[3])}, from the executed employment agreement, with each
+              deliverable&apos;s tier set by its Schedule 2. Beam and header sizing is tier 2. A
+              custom design engagement pays {ENGINEER_DESIGN_FEE_SHARE_BP / 100}% of its fee under a
+              signed scope addendum. WPI-8 ongoing construction is not in Schedule 2 and pays
+              nothing until a signed scope addendum covers it.
             </dd>
           </div>
           <div>

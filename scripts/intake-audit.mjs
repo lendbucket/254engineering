@@ -31,6 +31,7 @@ import {
   PAYMENT_INTENTS,
   MIN_OVERRIDE_REASON,
 } from "../src/lib/job-intake-rules.ts";
+import { overrideFloor } from "../src/config/trade-floors.ts";
 
 function codeOnly(path) {
   const withoutBlocks = readSource(path).replace(/\/\*[\s\S]*?\*\//g, "");
@@ -247,6 +248,45 @@ console.log("");
     reason: "Quoted on the call against the published hourly rate.",
   });
   rec("pricing a deliverable the catalog does not price is recorded as an override", fromNull.overridden === true);
+
+  /*
+   * NO SALE BELOW A LINE'S FLOOR, THE ADMINISTRATOR'S OVERRIDE INCLUDED.
+   * Operator ruling, 2026-10-22. The cases above pass no floor, which is the
+   * shape they were written for; these hand one, and then ask the real roof
+   * deliverable for its floor so the refusal is tested against the ruled
+   * figure, $702, written here as a literal rather than read back.
+   */
+  const REASON = "Agreed with the installer on the call, volume commitment.";
+  rec(
+    "an override below the floor is refused, with a reason that would otherwise be good",
+    "error" in decidePrice({ catalogCents: 70900, enteredCents: 70100, reason: REASON, floorCents: 70200 }),
+  );
+  const atFloor = decidePrice({ catalogCents: 70900, enteredCents: 70200, reason: REASON, floorCents: 70200 });
+  rec("and one exactly at the floor is accepted", atFloor.overridden === true && atFloor.cents === 70200);
+  rec(
+    "and so is one cent above zero",
+    "error" in decidePrice({ catalogCents: 70900, enteredCents: 1, reason: REASON, floorCents: 70200 }),
+  );
+  const noCharge = decidePrice({ catalogCents: 70900, enteredCents: 0, reason: REASON, floorCents: 70200 });
+  rec(
+    "while zero is a job at no charge, left to the administrator's own controls rather than refused as a price",
+    noCharge.overridden === true && noCharge.cents === 0,
+    "noChargeRefusal still decides it",
+  );
+  const roof = overrideFloor("roof-inspections", "standard");
+  rec(
+    "the roof certification's override floor is the ruled $702",
+    roof.ok === true && roof.floorCents === 70_200,
+    roof.ok ? String(roof.floorCents) : roof.why,
+  );
+  const design = overrideFloor("residential-light-commercial-design", "custom-package");
+  rec(
+    "design is quoted above its minimum engagement and has no override floor",
+    design.ok === true && design.floorCents === null,
+    design.ok ? String(design.floorCents) : design.why,
+  );
+  const unknown = overrideFloor("roof-inspections", "no-such-deliverable");
+  rec("and a deliverable with no floor on record cannot be priced by hand at all", unknown.ok === false);
 }
 
 // ==================================================== what is still missing
