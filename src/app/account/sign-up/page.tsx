@@ -15,7 +15,7 @@ import { SignUpForm } from "./SignUpForm";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Open an account | 254 Engineering Services",
+  title: "Open an account | 254 Engineering",
   description:
     `Open an ordering account with ${firmName()}. Choose a password from the link sent to your address, and the account is ready to use.`,
   robots: { index: false, follow: false },
@@ -91,7 +91,7 @@ export default async function AccountSignUpPage() {
       */}
       <header className="border-b border-[var(--color-limestone-line)]">
         <div className="mx-auto flex w-full max-w-[1200px] items-center justify-between px-4 py-4 sm:px-6">
-          <Link href="/" prefetch={false} aria-label="254 Engineering Services, home">
+          <Link href="/" prefetch={false} aria-label="254 Engineering, home">
             {/* v5's header rule as CSS. See the note on /account/login: a fixed
                 number cannot satisfy a clamp, and 40 measured 44px short at
                 1280. */}
