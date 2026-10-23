@@ -28,7 +28,18 @@ None ready yet.
 
 | # | Item | Status |
 | --- | --- | --- |
-| 1 | Pricing board `39893229124`; merge on a match; confirm $709 roof live | running |
+| 1 | Pricing: board `39893229124` VOIDED; clean board `39895075922` on the same commit `97af17b` (branch `merge/pricing-on-main-2`); merge on a match; confirm $709 roof live | clean board running |
+
+**Item 1, the voided board, the session's own fault.** At about 03:24 to
+03:25 UTC the session ran `retention-audit` from the PC as part of a batch of
+static readers for item 2. retention-audit is a WRITER: it inserts and removes
+its own `eng_cron_runs` rows on development. Pricing's cloud writers shard had
+held development since 03:11:11, so the two overlapped, against the standing
+rule of 2026-10-22. That makes `39893229124`'s result arguable, and pricing
+never merges on it. A cancel of that run was refused by the session's
+permissions, so it runs to the end and is ignored. The clean board
+`39895075922` measures the same commit; its writers shard waits its turn
+behind the voided one.
 | 2 | Board 0082 and 0083 branches on current main; hold on a match | next |
 | 3 | `feat/fc-pl-letters`: determination and sealing for FC-001 and PL-001; hold | queued |
 | 4 | Training record migration; hold | queued |
