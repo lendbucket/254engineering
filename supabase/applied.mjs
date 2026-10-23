@@ -2940,6 +2940,28 @@ export const APPLIED = [
     fingerprint: "79a8143e24f29af96b2a26573efd8803",
     behaviour: "7eb110b9207115cf1d6bfba690da4dd5",
     production: null,
+    development: {
+      at: "0084",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-23",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-23 by the operator's chat counterpart through apply_migration, provider " +
+        "version 20261023132528, name 0084_a_line_opens_only_when_trained, with no writers shard in its run step " +
+        "or queued. The file was read in full at badcf29, sha256 " +
+        "57f5b8d4fd2af6ee21d1343ecc83e8587faf2bde6df63214e97c3a7b4c86c114, its diff against 54b438c2 adding only " +
+        "the eng_profiles_keep_trained guard; the statement stored in supabase_migrations reads back as sha256 " +
+        "6976e92ef513c151d74bb244cf6d0bd1bbfa4c95e37a7af786fde6ceade92260, the file without its trailing newline. " +
+        "Section 0: shape a4bbde8cac7f216a582875f8ff8d1e01 across 1280; both new tables absent; eng_profiles has " +
+        "role and status as text; eng_profiles_role_fields names field_tech; eng_forbid_mutation_allow_cascade " +
+        "exists; training events recorded 360, approved 179, refused 179, and none carried, since every one " +
+        "belongs to a probe already gone. Section 2: shape 79a8143e24f29af96b2a26573efd8803 across 1299; 0 " +
+        "records, equal to the 0 carried; 0 decisions; RLS on both tables; eng_line_is_trained(text,uuid) and " +
+        "eng_profile_keeps_its_training() present; records.profile_id cascades, records.template_id restricts, " +
+        "decisions.record_id cascades, and no key on recorded_by or decided_by; eng_profiles_keep_trained BEFORE " +
+        "DELETE on eng_profiles. Every answer as predicted.",
+    },
     proves: { table: "eng_training_records" },
     note:
       "Both figures read off scripts/fingerprint-at.mjs at 0084 on 2026-10-23, with 0083 reproducing its " +
@@ -2952,7 +2974,7 @@ export const APPLIED = [
       "No drop statement. Section 3 is a one-time backfill of the interim training events of " +
       "2026-10-07 onward, each row naming its event.",
     because:
-      "WRITTEN 2026-10-23 ON feat/training-record, QUEUED BEHIND 0083, AND APPLIED NOWHERE. Operator ruling of " +
+      "WRITTEN 2026-10-23 ON feat/training-record; ON DEVELOPMENT (version 20261023132528), NOT ON PRODUCTION. Operator ruling of " +
       "2026-10-23: a line opens only when its protocol is signed and somebody is trained on that version, " +
       "recorded in the portal; roof stays exactly as it is. The chat applies it with apply_migration, development " +
       "first, from docs/production-sitting-0084-a-line-opens-only-when-trained.md. The branch merges only after " +
