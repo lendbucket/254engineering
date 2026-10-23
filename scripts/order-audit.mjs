@@ -342,7 +342,35 @@ const answerAll = (entry, pick = () => 0) =>
    * itself is asserted separately and in both directions immediately below,
    * which is the thing the old checks could not see at all.
    */
-  const orderableEntries = CATALOG.filter((e) => e.orderType !== "quote");
+  /*
+   * A DELIVERABLE THE ENGINEER'S AGREEMENT DOES NOT COVER IS NEVER ORDERABLE.
+   * Operator ruling, 2026-10-22: WPI-8 ongoing construction is outside the
+   * signed Schedule 2 and is not taken on until a signed scope addendum covers
+   * it. Pinned here as a literal, never read from engineer-pay.ts, so the set
+   * cannot grow or shrink without two edits made on purpose.
+   */
+  const NEEDS_ADDENDUM = ["windstorm-wpi-8/ongoing"];
+  const needsAddendum = (e) => NEEDS_ADDENDUM.includes(`${e.serviceSlug}/${e.tier}`);
+  const addendumHeld = CATALOG.filter((e) => e.orderType !== "quote" && needsAddendum(e));
+  rec(
+    "exactly the deliverables the engineer's agreement does not cover are held for a scope addendum",
+    addendumHeld.map((e) => `${e.serviceSlug}/${e.tier}`).sort().join(",") === NEEDS_ADDENDUM.join(","),
+    addendumHeld.map((e) => `${e.serviceSlug}/${e.tier}`).join(", ") || "none found in the catalogue",
+  );
+  for (const entry of addendumHeld) {
+    rec(
+      `${entry.serviceSlug}/${entry.tier}: refused even with the gate open and its protocol approved`,
+      !orderable(entry, "open", PROTOCOL_APPROVED),
+      orderBlockedReason(entry, "open", PROTOCOL_APPROVED) ?? "ORDERABLE",
+    );
+    rec(
+      "and the customer reads that it is not available, never the internal reason",
+      /not available to order yet/.test(orderBlockedReason(entry, "open", PROTOCOL_APPROVED) ?? "") &&
+        !/addendum|schedule 2|engineer/i.test(orderBlockedReason(entry, "open", PROTOCOL_APPROVED) ?? ""),
+      orderBlockedReason(entry, "open", PROTOCOL_APPROVED) ?? "",
+    );
+  }
+  const orderableEntries = CATALOG.filter((e) => e.orderType !== "quote" && !needsAddendum(e));
   const quoteEntries = catalogByType("quote");
 
   {
@@ -492,7 +520,8 @@ const answerAll = (entry, pick = () => 0) =>
     /price has not been published/.test(orderBlockedReason(unpriced, "open", PROTOCOL_APPROVED) ?? ""),
   );
 
-  for (const entry of catalogByType("field")) {
+  /* Every field deliverable the firm takes on; the addendum-held one is refused above before any fee is asked. */
+  for (const entry of catalogByType("field").filter((e) => !needsAddendum(e))) {
     const noFee = { ...entry, inspectionFeeCents: null };
     rec(
       `${entry.serviceSlug}: a field order with no inspection fee cannot be taken`,
