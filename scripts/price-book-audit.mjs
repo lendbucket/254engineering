@@ -26,10 +26,16 @@ console.log("");
 const { servicePrices, priceFor, money, deliverablePriceCents, headlinePriceCents, priceSentence } = await import(
   "../src/config/prices.ts"
 );
-const { ENGINEER_TIER_CENTS, ENGINEER_DESIGN_HOURLY_CENTS, TIER_BY_DELIVERABLE } = await import(
-  "../src/config/engineer-pay.ts"
-);
-const { CATALOG } = await import("../data/catalog.ts");
+const {
+  ENGINEER_TIER_CENTS,
+  ENGINEER_DESIGN_FEE_SHARE_BP,
+  engineerDesignPayCents,
+  TIER_BY_DELIVERABLE,
+  SCOPE_ADDENDUM_REQUIRED,
+  SIGNED_SCOPE_ADDENDA,
+  scopeAddendumMissing,
+} = await import("../src/config/engineer-pay.ts");
+const { CATALOG, orderBlockedReason } = await import("../data/catalog.ts");
 const { readFileSync } = await import("node:fs");
 const { TECHNICIAN_CALL_CENTS, PROCESSING_RATES, PROCESSING_READ_ON, PROCESSING_READ_FROM } =
   await import("../src/config/cost-inputs.ts");
@@ -39,15 +45,20 @@ const { services } = await import("../src/content/services.ts");
 
 /* ------------------------------------------- 1. the ruled prices, as literals */
 
+/*
+ * THE PRICES OF 2026-10-22, operator ruling with the 150% markup floor. Before:
+ * roof $549, foundation $495, structural letter $549 (from $395 on 2026-10-07),
+ * solar $445, manufactured home $645, repair specification $395. WPI-8 is
+ * unchanged by his ruling.
+ */
 const RULED_PRICES = {
-  "roof-inspections": 54_900,
-  "foundation-inspections": 49_500,
-  /* $549 from 2026-10-07, operator ruling: PL-001 requires a technician visit. Was $395. */
-  "structural-letters": 54_900,
-  "solar-structural-letters": 44_500,
-  "manufactured-home-foundation-certifications": 64_500,
+  "roof-inspections": 70_900,
+  "foundation-inspections": 70_900,
+  "structural-letters": 70_900,
+  "solar-structural-letters": 70_900,
+  "manufactured-home-foundation-certifications": 70_900,
   "windstorm-wpi-8": 79_500,
-  "repair-specifications": 39_500,
+  "repair-specifications": 119_500,
 };
 const RULED_DESIGN_HOURLY = 22_500;
 const RULED_DESIGN_MINIMUM = 200_000;
@@ -152,12 +163,185 @@ rec("the field technician is ruled at $85 a call, flat", TECHNICIAN_CALL_CENTS =
 rec("engineer tier 1 is ruled at $175", ENGINEER_TIER_CENTS[1] === 17_500, money(ENGINEER_TIER_CENTS[1]));
 rec("engineer tier 2 is ruled at $350", ENGINEER_TIER_CENTS[2] === 35_000, money(ENGINEER_TIER_CENTS[2]));
 rec("engineer tier 3 is ruled at $525", ENGINEER_TIER_CENTS[3] === 52_500, money(ENGINEER_TIER_CENTS[3]));
+/*
+ * SCHEDULE 2 OF THE SIGNED AGREEMENT, PINNED AS LITERALS. Operator ruling,
+ * 2026-10-22: "Engineer pay must match the signed agreement's Schedule 2
+ * exactly; the agreement wins over engineer-pay.ts." The whole map is pinned,
+ * not a sample, so a row added, removed or moved is a deliberate second edit.
+ * It replaced "design pays the engineer $100 an hour and takes no tier", which
+ * was never the agreement's term.
+ */
+const SCHEDULE_2 = {
+  "roof-inspections/standard": 1,
+  "structural-letters/standard": 1,
+  "solar-structural-letters/standard": 1,
+  "foundation-inspections/standard": 1,
+  "manufactured-home-foundation-certifications/standard": 1,
+  "windstorm-wpi-8/completed": 2,
+  "repair-specifications/standard": 2,
+  "residential-light-commercial-design/beam-header-sizing": 2,
+};
+{
+  const keys = new Set([...Object.keys(SCHEDULE_2), ...Object.keys(TIER_BY_DELIVERABLE)]);
+  const differ = [...keys].filter((k) => SCHEDULE_2[k] !== TIER_BY_DELIVERABLE[k]);
+  rec(
+    "every deliverable's pay tier is Schedule 2's, and nothing else carries one",
+    differ.length === 0,
+    differ.map((k) => `${k}: code ${TIER_BY_DELIVERABLE[k] ?? "none"}, Schedule 2 ${SCHEDULE_2[k] ?? "none"}`).join("; ") ||
+      `${keys.size} deliverables`,
+  );
+}
+/*
+ * =========================================================================
+ * EVERY FLOOR IS A 150% MARKUP, WPI-8 APART. Operator ruling, 2026-10-22.
+ * =========================================================================
+ *
+ * floor = ceil(2.5 x (pay + visit + 0.30) / 0.9275), whole dollars, where pay
+ * is Schedule 2 and the visit is $85 when the line sends one. Computed HERE,
+ * from this file's own literals and in floating point, never imported from
+ * trade-floors.ts, whose integral version it is checked against. The ruled
+ * figures are pinned as literals too, so the formula, the code and the ruling
+ * each have to agree with the other two.
+ */
+{
+  const { TRADE_FLOORS, markupFloorCents, SOLAR_DOCUMENTS_ONLY_FLOOR_CENTS } = await import(
+    "../src/config/trade-floors.ts"
+  );
+  const { SOLAR_DOCUMENTS_ONLY_CENTS } = await import("../src/config/prices.ts");
+  const PAY = { 1: 17_500, 2: 35_000, 3: 52_500 };
+  const VISIT = 8_500;
+  const formula = (payCents, visitCents) => Math.ceil((2.5 * ((payCents + visitCents) / 100 + 0.3)) / 0.9275 - 1e-9) * 100;
+  const RULED_FLOORS = {
+    "roof-inspections/standard": 70_200,
+    "foundation-inspections/standard": 70_200,
+    "structural-letters/standard": 70_200,
+    "manufactured-home-foundation-certifications/standard": 70_200,
+    "solar-structural-letters/standard": 70_200,
+    "repair-specifications/standard": 117_400,
+  };
+  const EXEMPT = ["windstorm-wpi-8/completed", "windstorm-wpi-8/ongoing"];
+
+  const wrongFormula = Object.entries(RULED_FLOORS).filter(
+    ([k, cents]) => formula(PAY[SCHEDULE_2[k]], VISIT) !== cents,
+  );
+  rec(
+    "the ruled floors are what the 150% formula gives, from Schedule 2 pay and one $85 visit",
+    wrongFormula.length === 0,
+    wrongFormula.map(([k, c]) => `${k}: ruled ${money(c)}, formula ${money(formula(PAY[SCHEDULE_2[k]], VISIT))}`).join("; ") ||
+      "$702 at tier 1, $1,174 at tier 2",
+  );
+
+  const setFloors = Object.entries(TRADE_FLOORS).filter(([, f]) => f.state === "set");
+  const below = setFloors.filter(
+    ([k, f]) => !EXEMPT.includes(k) && (SCHEDULE_2[k] === undefined || f.floorCents < formula(PAY[SCHEDULE_2[k]], VISIT)),
+  );
+  rec(
+    "and no line's floor sits below it, WPI-8 apart",
+    below.length === 0,
+    below.map(([k, f]) => `${k} at ${money(f.floorCents)}`).join("; ") || `${setFloors.length - EXEMPT.length} floors checked`,
+  );
+  const drift = Object.entries(RULED_FLOORS).filter(([k, c]) => TRADE_FLOORS[k]?.floorCents !== c);
+  rec(
+    "and every floor in trade-floors.ts is the ruled figure",
+    drift.length === 0,
+    drift.map(([k]) => `${k} reads ${TRADE_FLOORS[k]?.floorCents ?? "nothing"}`).join("; ") || "six floors",
+  );
+  const exemptSeen = setFloors.filter(([k]) => k.startsWith("windstorm-wpi-8/")).map(([k]) => k);
+  rec(
+    "WPI-8 is the only exception, and both of its floors keep the 2026-09-20 values",
+    exemptSeen.length === 2 &&
+      TRADE_FLOORS["windstorm-wpi-8/completed"]?.floorCents === 65_000 &&
+      TRADE_FLOORS["windstorm-wpi-8/ongoing"]?.floorCents === 92_500,
+    exemptSeen.join(", "),
+  );
+  /*
+   * EVERY COST TO THE CENT, NOT SIX OF THEM. The first version compared the two
+   * formulas on the three tiers with and without a visit, and an injected
+   * off-by-one in the integral version passed it: none of those six costs
+   * lands on the boundary where the two roundings part. Sweeping every cost
+   * from $0 to $2,000 crosses every boundary in that range.
+   */
+  const disagree = [];
+  for (let pay = 0; pay <= 200_000 && disagree.length < 3; pay += 1) {
+    if (markupFloorCents(pay, 0) !== formula(pay, 0)) disagree.push(pay);
+  }
+  rec(
+    "the code's integral formula agrees with this one at every cost from $0 to $2,000, to the cent",
+    disagree.length === 0 && [1, 2, 3].every((t) => markupFloorCents(PAY[t], VISIT) === formula(PAY[t], VISIT)),
+    disagree.map((c) => `cost ${c} cents: code ${markupFloorCents(c, 0)}, formula ${formula(c, 0)}`).join("; ") ||
+      [1, 2, 3].map((t) => `tier ${t} ${money(markupFloorCents(PAY[t], VISIT))}`).join(", "),
+  );
+  rec(
+    "the solar letter from documents only is $479 with a $473 floor, which is tier 1 with no visit",
+    SOLAR_DOCUMENTS_ONLY_CENTS === 47_900 &&
+      SOLAR_DOCUMENTS_ONLY_FLOOR_CENTS === 47_300 &&
+      formula(PAY[1], 0) === 47_300,
+    `${money(SOLAR_DOCUMENTS_ONLY_CENTS)}, floor ${money(SOLAR_DOCUMENTS_ONLY_FLOOR_CENTS)}`,
+  );
+
+  /* Every list price is at or above its floor, and at the floor the profit is at least 1.5 times cost. */
+  const underList = CATALOG.filter((e) => e.priceCents !== null).filter((e) => {
+    const f = TRADE_FLOORS[`${e.serviceSlug}/${e.tier}`];
+    return f?.state === "set" && e.priceCents < f.floorCents;
+  });
+  rec(
+    "no list price sits below its own floor",
+    underList.length === 0,
+    underList.map((e) => `${e.serviceSlug}/${e.tier} lists ${money(e.priceCents)}`).join("; ") || "every priced deliverable",
+  );
+  const thin = Object.entries(RULED_FLOORS).filter(([k, floor]) => {
+    const cost = PAY[SCHEDULE_2[k]] + VISIT + floor * 0.029 + 30;
+    return (floor - cost) / cost < 1.5;
+  });
+  rec(
+    "and at each floor the profit is at least 1.5 times the cost, processing included",
+    thin.length === 0,
+    thin.map(([k]) => k).join("; ") || "all six",
+  );
+
+  console.log("Markup after the 2026-10-22 ruling (profit over cost, cost = Schedule 2 pay + visit + card processing):");
+  for (const e of CATALOG.filter((x) => x.priceCents !== null)) {
+    const key = `${e.serviceSlug}/${e.tier}`;
+    const tier = TIER_BY_DELIVERABLE[key];
+    if (!tier) {
+      console.log(`  ${key}: list ${money(e.priceCents)}, no Schedule 2 tier, so no markup is stated`);
+      continue;
+    }
+    const visits = e.orderType === "field" ? 1 : 0;
+    const at = (price) => {
+      const cost = PAY[tier] + visits * VISIT + Math.round(price * 0.029) + 30;
+      return `${Math.round(((price - cost) / cost) * 1000) / 10}%`;
+    };
+    const f = TRADE_FLOORS[key];
+    console.log(
+      `  ${key}: list ${money(e.priceCents)} = ${at(e.priceCents)}` +
+        (f?.state === "set" ? `, floor ${money(f.floorCents)} = ${at(f.floorCents)}` : ""),
+    );
+  }
+  console.log("");
+}
+
 rec(
-  "design pays the engineer $100 an hour and takes no tier",
-  ENGINEER_DESIGN_HOURLY_CENTS === 10_000 &&
-    Object.keys(TIER_BY_DELIVERABLE).every((k) => !k.startsWith("residential-light-commercial-design/")),
-  money(ENGINEER_DESIGN_HOURLY_CENTS),
+  "a custom design engagement pays the engineer 35% of its fee",
+  ENGINEER_DESIGN_FEE_SHARE_BP === 3_500 && engineerDesignPayCents(300_000) === 105_000,
+  `${ENGINEER_DESIGN_FEE_SHARE_BP / 100}%, ${money(engineerDesignPayCents(300_000))} on a $3,000 fee`,
 );
+rec(
+  "and no hourly engineer rate survives anywhere in the pay file",
+  !/ENGINEER_DESIGN_HOURLY_CENTS\s*=/.test(readFileSync("src/config/engineer-pay.ts", "utf8")),
+  "the 35% rule replaced it",
+);
+{
+  const payFile = readFileSync("src/config/engineer-pay.ts", "utf8");
+  const stale = ["THE MAPPING IS PROVISIONAL", "AND THEY ARE PROVISIONAL BY HIS OWN RULING"].filter((h) =>
+    payFile.includes(h),
+  );
+  rec(
+    "and the pay file no longer rules the mapping provisional or lets a reading override it",
+    stale.length === 0,
+    stale.join("; ") || "Schedule 2 is signed",
+  );
+}
 /*
  * AND THE TWO WPI-8 DELIVERABLES ARE PAID DIFFERENTLY, WHICH IS THE WHOLE
  * REASON THE MAP IS KEYED ON DELIVERABLES.
@@ -174,11 +358,39 @@ rec(
   TIER_BY_DELIVERABLE["windstorm-wpi-8/completed"] === 2,
   String(TIER_BY_DELIVERABLE["windstorm-wpi-8/completed"]),
 );
-rec(
-  "and ongoing construction is tier 3, which the line-keyed map could not say",
-  TIER_BY_DELIVERABLE["windstorm-wpi-8/ongoing"] === 3,
-  String(TIER_BY_DELIVERABLE["windstorm-wpi-8/ongoing"]),
-);
+/*
+ * ONGOING CONSTRUCTION WAS TIER 3 HERE FROM 2026-09-18. Schedule 2 does not
+ * list it, so since 2026-10-22 it carries no tier, needs a signed scope
+ * addendum before any job, and is refused at every order door until one is
+ * recorded (operator ruling). The refusal is asserted at the door itself, not
+ * at the declaration, because a declaration nothing reads is the
+ * `WPI8_ONGOING_TIER` failure this file already records.
+ */
+{
+  const ongoing = CATALOG.find((e) => e.serviceSlug === "windstorm-wpi-8" && e.tier === "ongoing");
+  rec(
+    "and ongoing construction carries no tier, because Schedule 2 does not list it",
+    !("windstorm-wpi-8/ongoing" in TIER_BY_DELIVERABLE) && "windstorm-wpi-8/ongoing" in SCOPE_ADDENDUM_REQUIRED,
+    String(TIER_BY_DELIVERABLE["windstorm-wpi-8/ongoing"] ?? "no tier, addendum required"),
+  );
+  rec(
+    "and no scope addendum is recorded, so it pays nothing",
+    SIGNED_SCOPE_ADDENDA.length === 0 && scopeAddendumMissing("windstorm-wpi-8", "ongoing") !== null,
+    `${SIGNED_SCOPE_ADDENDA.length} recorded`,
+  );
+  const blocked = orderBlockedReason(ongoing, "open", true);
+  rec(
+    "and the order door refuses it even with the gate open and a protocol approved",
+    Boolean(ongoing) && blocked !== null,
+    blocked ?? "IT COULD BE ORDERED",
+  );
+  const completed = CATALOG.find((e) => e.serviceSlug === "windstorm-wpi-8" && e.tier === "completed");
+  rec(
+    "while completed construction, which Schedule 2 lists, is not refused for it",
+    scopeAddendumMissing("windstorm-wpi-8", "completed") === null && orderBlockedReason(completed, "open", true) === null,
+    orderBlockedReason(completed, "open", true) ?? "orderable when the gate and its protocol allow",
+  );
+}
 /*
  * CARD PROCESSING HAS NO RATE AND THE BOOK SAYS SO. A number appearing here is
  * either a ruling the operator made, in which case this check asks whether it
@@ -237,7 +449,7 @@ const BASE = {
   chargedCents: 54_900,
   technicianVisits: 1,
   tier: 1,
-  designHours: null,
+  scopeAddendumSigned: null,
   paidBy: "card",
 };
 
@@ -336,27 +548,41 @@ const BASE = {
     chargedCents: 300_000,
     technicianVisits: 0,
     tier: null,
-    designHours: null,
+    scopeAddendumSigned: false,
     paidBy: "invoice",
   });
   rec(
-    "the design line refuses without recorded hours, rather than falling back to a tier",
-    design.ok === false && design.missing === "hours",
+    "a custom design job with no signed scope addendum refuses, rather than estimating the engineer's share",
+    design.ok === false && design.missing === "scope addendum",
     design.ok ? "it computed one" : design.because.slice(0, 80),
   );
 
-  const withHours = marginForJob({
+  const signed = marginForJob({
     serviceSlug: "residential-light-commercial-design",
     chargedCents: 300_000,
     technicianVisits: 0,
     tier: null,
-    designHours: 12,
+    scopeAddendumSigned: true,
     paidBy: "invoice",
   });
   rec(
-    "and computes from the hours the engineer actually recorded",
-    withHours.ok === true && withHours.engineerCents === 120_000,
-    withHours.ok ? `${money(withHours.engineerCents)} on 12 hours` : withHours.because,
+    "and under a signed addendum pays 35% of the fee charged",
+    signed.ok === true && signed.engineerCents === 105_000,
+    signed.ok ? `${money(signed.engineerCents)} on a $3,000 fee` : signed.because,
+  );
+
+  const sizing = marginForJob({
+    serviceSlug: "residential-light-commercial-design",
+    chargedCents: 200_000,
+    technicianVisits: 0,
+    tier: 2,
+    scopeAddendumSigned: null,
+    paidBy: "invoice",
+  });
+  rec(
+    "while beam and header sizing pays its Schedule 2 tier, $350, and needs no addendum",
+    sizing.ok === true && sizing.engineerCents === 35_000,
+    sizing.ok ? money(sizing.engineerCents) : sizing.because,
   );
 }
 
@@ -388,6 +614,31 @@ const BASE = {
     estimateForLine("residential-light-commercial-design").ok === false,
     "what it makes depends on the hours estimated for that job",
   );
+}
+
+/*
+ * EVERY PRICED LINE'S MARGIN AT LIST, PRINTED. Operator ruling, 2026-10-22:
+ * report any line whose margin goes negative once pay matches Schedule 2. It
+ * is a report rather than a check on purpose: a line losing money at list is a
+ * pricing decision for the operator, and a red board would hold every branch
+ * behind a ruling only he can make. Before processing, one visit, the
+ * Schedule 2 tier.
+ */
+{
+  console.log("Margin at list, Schedule 2 pay, one $85 visit, before processing:");
+  for (const slug of Object.keys(servicePrices)) {
+    const est = estimateForLine(slug);
+    if (!est.ok) {
+      console.log(`  ${slug}: not estimated (${est.because.slice(0, 70)})`);
+      continue;
+    }
+    const flag = est.netCents < 0 ? "   NEGATIVE" : "";
+    const net = est.netCents < 0 ? `-${money(-est.netCents)}` : money(est.netCents);
+    console.log(
+      `  ${slug}: ${money(est.revenueCents)} less ${money(est.costCents)} (tier ${est.assumedTier}) = ${net}, ${est.marginPct}%${flag}`,
+    );
+  }
+  console.log("");
 }
 
 /*
@@ -542,16 +793,39 @@ const BASE = {
   const report = costPerJob();
   rec("and the report carries it on its own line, not in any row", report.retainerCents === RULED_RETAINER_CENTS);
 
+  /*
+   * WP-001 ONGOING WAS PINNED HERE AT TIER 3, NET $100.84, until Schedule 2
+   * (operator ruling, 2026-10-22) left it out: it pays nothing until a signed
+   * scope addendum exists, so its row keeps its revenue and visits and states
+   * NO engineer fee and NO net, rather than a net computed without a cost.
+   */
   const ongoing = report.rows.find((r) => r.serviceSlug === "windstorm-wpi-8" && r.tier === "ongoing");
   rec(
-    "WP-001 ongoing: $995, four visits at $85, tier 3, card processing, net $100.84",
+    "WP-001 ongoing: $995, four visits at $85, no Schedule 2 tier, so no engineer fee and no net",
     ongoing?.revenueCents === 99_500 &&
       ongoing.visits === 4 &&
       ongoing.technicianCents === 34_000 &&
-      ongoing.engineerCents === 52_500 &&
-      ongoing.processingCents === 2_916 &&
-      ongoing.netCents === 10_084,
+      ongoing.engineerCents === null &&
+      ongoing.netCents === null,
     ongoing ? `${money(ongoing.revenueCents)}, ${ongoing.visits} visits, net ${ongoing.netCents === null ? "none" : money(ongoing.netCents)}` : "NO ROW",
+  );
+
+  /*
+   * THE LINE SCHEDULE 2 PUT UNDER WATER, AND ITS RE-RULED PRICE. At tier 2 the
+   * repair specification cost $435 against $395 and lost money at list; the
+   * operator re-ruled it to $1,195 the same day (2026-10-22). Worked by hand:
+   * 2.9% of $1,195 is $34.655, which rounds to $34.66 in cents, plus 30 cents
+   * is $34.96, so the net is $1,195 less $85, $350 and $34.96: $725.04.
+   */
+  const repair = report.rows.find((r) => r.serviceSlug === "repair-specifications");
+  rec(
+    "repair specification: $1,195, one $85 visit, tier 2 at $350, card processing, net $725.04",
+    repair?.revenueCents === 119_500 &&
+      repair.technicianCents === 8_500 &&
+      repair.engineerCents === 35_000 &&
+      repair.processingCents === 3_496 &&
+      repair.netCents === 72_504,
+    repair ? `net ${repair.netCents === null ? "none" : money(repair.netCents)}` : "NO ROW",
   );
 
   const extra = report.rows.find((r) => r.serviceSlug === "windstorm-wpi-8" && r.tier === null);

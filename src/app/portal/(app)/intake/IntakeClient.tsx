@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { quoteFor } from "@/lib/ops-orders";
+import { overrideFloor } from "@/config/trade-floors";
 import { resolveCounty, twiaStatus } from "@/lib/ops-counties";
 import { money, isKnown } from "@/lib/ops-money";
 import {
@@ -323,14 +324,17 @@ export function IntakeClient({
     [serviceSlug, tier, answers, missingToOrder],
   );
 
+  /* The same floor the server holds an override to (operator ruling, 2026-10-22), so the screen says so first. */
+  const floor = useMemo(() => (serviceSlug && tier ? overrideFloor(serviceSlug, tier) : null), [serviceSlug, tier]);
   const priceDecision = useMemo(
     () =>
       decidePrice({
         catalogCents,
         enteredCents: Number.isFinite(enteredCents) ? enteredCents : null,
         reason: overrideReason || null,
+        floorCents: floor && floor.ok ? floor.floorCents : null,
       }),
-    [catalogCents, enteredCents, overrideReason],
+    [catalogCents, enteredCents, overrideReason, floor],
   );
 
   const options = paymentOptions({

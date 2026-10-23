@@ -232,20 +232,60 @@ function noFixedPriceFloor(serviceSlug: string): string {
   );
 }
 
+/*
+ * =========================================================================
+ * EVERY FLOOR IS A 150% MARKUP. Operator ruling, 2026-10-22.
+ * =========================================================================
+ *
+ * In his words: profit is at least 1.5 times cost, where cost is the engineer's
+ * pay per the signed Schedule 2, plus the $85 technician visit when the line
+ * sends one, plus card processing at 2.9% plus 30 cents, so
+ *
+ *   floor = ceil(2.5 x (pay + visit + 0.30) / 0.9275), in whole dollars.
+ *
+ * No sale, trade price, partner price or discount may go below a line's floor.
+ * WPI-8 is the only exception, by his ruling: its two floors keep the values
+ * ruled on 2026-09-20.
+ *
+ * WHY THE ARITHMETIC IS INTEGRAL. 2.5 / 0.9275 is exactly 1000/371, so in cents
+ * the floor in dollars is ceil(10 x cost / 371). Written that way there is no
+ * floating point between a ruled number and the one computed, and a cost that
+ * lands exactly on a dollar cannot round up a dollar by accident.
+ *
+ * The figures in TRADE_FLOORS below are written out, because a floor is a
+ * ruling a person reads; price-book-audit computes this formula from its own
+ * pinned literals and fails any line, WPI-8 apart, whose floor sits below it.
+ */
+export function markupFloorCents(engineerPayCents: number, visitCents: number): number {
+  const costCents = engineerPayCents + visitCents + 30;
+  return Math.floor((10 * costCents + 370) / 371) * 100;
+}
+
+/**
+ * The floor of the solar letter from documents only: tier 1, no visit, $473.
+ * Recorded with its price (SOLAR_DOCUMENTS_ONLY_CENTS in prices.ts) and not in
+ * TRADE_FLOORS, which is keyed by what the catalogue sells, until the desk path
+ * that sells it exists.
+ */
+export const SOLAR_DOCUMENTS_ONLY_FLOOR_CENTS = 47_300;
+
+const ON_MARKUP = "2026-10-22";
+
 export const TRADE_FLOORS: Record<string, TradeFloor> = {
   /* ---------------------------------------------------------- field orders */
   "roof-inspections/standard": {
     state: "set",
-    floorCents: 42_500,
-    because: "Roof certification. Ruled with the trade floors of 2026-09-20.",
+    floorCents: 70_200,
+    because:
+      "Roof certification. The 150% markup floor of 2026-10-22: tier 1 $175, one $85 visit, card processing. Was $425, ruled 2026-09-20.",
     by: BY,
-    on: ON,
+    on: ON_MARKUP,
   },
   "windstorm-wpi-8/completed": {
     state: "set",
     floorCents: 65_000,
     because:
-      "WPI-8 completed construction, one visit to a finished structure. Ruled with the trade floors of 2026-09-20, and the reason there are two WPI-8 entries here rather than one.",
+      "WPI-8 completed construction, one visit to a finished structure. Ruled with the trade floors of 2026-09-20, and the reason there are two WPI-8 entries here rather than one. Exempt from the 150% markup floor by operator ruling, 2026-10-22, and so kept at this value.",
     by: BY,
     on: ON,
   },
@@ -253,24 +293,25 @@ export const TRADE_FLOORS: Record<string, TradeFloor> = {
     state: "set",
     floorCents: 92_500,
     because:
-      "WPI-8 ongoing construction, staged attendance while the work is open, which is tier 3 rather than tier 2. Ruled with the trade floors of 2026-09-20.",
+      "WPI-8 ongoing construction, staged attendance while the work is open. Ruled with the trade floors of 2026-09-20 when it was costed at tier 3. Since 2026-10-22 it is not in Schedule 2 of the engineer's signed agreement, so it is refused at every order door and pays nothing until a signed scope addendum covers it; this floor applies once one does. Exempt from the 150% markup floor by operator ruling, 2026-10-22, like completed construction.",
     by: BY,
     on: ON,
   },
   "foundation-inspections/standard": {
     state: "set",
-    floorCents: 42_500,
+    floorCents: 70_200,
     because:
-      "Foundation certification. Held briefly on 2026-09-20 while its tier mapping read tier 2, at which its cost left almost nothing at list, and ruled the same day when the mapping was corrected to tier 1. That mapping is provisional: no job has run, so it is revisited after ten real ones against recorded time, and this floor is revisited with it.",
+      "Foundation certification. The 150% markup floor of 2026-10-22: tier 1 $175 per Schedule 2, one $85 visit, card processing. Was $425, ruled 2026-09-20 after a day held on its tier.",
     by: BY,
-    on: ON,
+    on: ON_MARKUP,
   },
   "manufactured-home-foundation-certifications/standard": {
     state: "set",
-    floorCents: 59_500,
-    because: "Manufactured home foundation certification. Ruled with the trade floors of 2026-09-20.",
+    floorCents: 70_200,
+    because:
+      "Manufactured home foundation certification. The 150% markup floor of 2026-10-22: tier 1 $175 per Schedule 2, one $85 visit, card processing. Was $595, ruled 2026-09-20 when it was costed at tier 2.",
     by: BY,
-    on: ON,
+    on: ON_MARKUP,
   },
 
   /* ----------------------------------------------------------- desk orders */
@@ -282,25 +323,27 @@ export const TRADE_FLOORS: Record<string, TradeFloor> = {
    */
   "solar-structural-letters/standard": {
     state: "set",
-    floorCents: 41_000,
-    because: "Solar structural letter. Ruled at $325 with the trade floors of 2026-09-20 as desk work; raised by $85 to $410 on 2026-10-07 when the line became field work with a technician visit.",
+    floorCents: 70_200,
+    because:
+      "Solar structural letter with a site visit. The 150% markup floor of 2026-10-22: tier 1 $175, one $85 visit, card processing. Was $325 as desk work on 2026-09-20 and $410 from 2026-10-07. The documents-only letter has its own floor, $473, recorded beside its price until its desk path exists.",
     by: BY,
-    on: "2026-10-07",
+    on: ON_MARKUP,
   },
   "structural-letters/standard": {
     state: "set",
-    floorCents: 38_000,
-    because: "Structural letter for permit. Ruled at $295 with the trade floors of 2026-09-20 as desk work; raised by $85 to $380 on 2026-10-07 when the line became field work with a technician visit.",
+    floorCents: 70_200,
+    because:
+      "Structural letter for permit. The 150% markup floor of 2026-10-22: tier 1 $175, one $85 visit, card processing. Was $295 as desk work on 2026-09-20 and $380 from 2026-10-07.",
     by: BY,
-    on: "2026-10-07",
+    on: ON_MARKUP,
   },
   "repair-specifications/standard": {
     state: "set",
-    floorCents: 41_000,
+    floorCents: 117_400,
     because:
-      "Repair specification. Held briefly on 2026-09-20 while its tier mapping read tier 2, at which its cost exceeded its list price and it lost money before any discount, and ruled at $325 the same day when the mapping was corrected to tier 1. That mapping is provisional: no job has run, so it is revisited after ten real ones against recorded time, and this floor is revisited with it. Raised by $85 to $410 on 2026-10-07 when the line became field work with a technician visit.",
+      "Repair specification. The 150% markup floor of 2026-10-22: tier 2 $350 per Schedule 2, one $85 visit, card processing. Was $325 on 2026-09-20 when it was mapped to tier 1, and $410 from 2026-10-07; Schedule 2 put it at tier 2, where $410 was below cost.",
     by: BY,
-    on: "2026-10-07",
+    on: ON_MARKUP,
   },
 
   /* ------------------------------------ hourly with a minimum, so no floor */
@@ -341,4 +384,25 @@ export function floorKey(serviceSlug: string, tier: string): string {
  */
 export function floorFor(serviceSlug: string, tier: string): TradeFloor | null {
   return TRADE_FLOORS[floorKey(serviceSlug, tier)] ?? null;
+}
+
+/**
+ * THE FLOOR A PRICE TYPED AT INTAKE IS HELD TO. Operator ruling, 2026-10-22: no
+ * sale may go below a line's floor, the administrator's override included.
+ *
+ * A ruled floor is the number. A design deliverable is quoted above its
+ * minimum engagement and has none, so the answer is null. A deliverable whose
+ * floor is pending, or that this file has never heard of, cannot be priced by
+ * hand at all, for the reason `floorFor` gives: refusing is the only answer
+ * that cannot sell below a number nobody has ruled.
+ */
+export function overrideFloor(
+  serviceSlug: string,
+  tier: string,
+): { ok: true; floorCents: number | null } | { ok: false; why: string } {
+  const floor = floorFor(serviceSlug, tier);
+  if (!floor) return { ok: false, why: "This service has no floor on record, so its price cannot be changed by hand." };
+  if (floor.state === "set") return { ok: true, floorCents: floor.floorCents };
+  if (floor.state === "minimum-engagement") return { ok: true, floorCents: null };
+  return { ok: false, why: `This service's floor has not been ruled, so its price cannot be changed by hand. ${floor.because}` };
 }

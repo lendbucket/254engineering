@@ -12,6 +12,7 @@ import { quoteFor } from "./ops-orders";
 import { resolveCounty, twiaStatus, windstormAreaRefusal } from "./ops-counties";
 import { isOpen } from "./launch";
 import { isKnown } from "./ops-money";
+import { overrideFloor } from "@/config/trade-floors";
 import { fieldsFor, missingFor } from "@data/intake-fields";
 import { defaultAnswersFor } from "./ops-file-inputs";
 import {
@@ -329,10 +330,17 @@ export async function takeJob(
   const priced = priceForJob(input.serviceSlug, input.tier, resolved.county);
   const catalogCents = priced && isKnown(priced.totalCents) ? priced.totalCents : null;
 
+  /* No sale below a line's floor, the administrator's override included (operator ruling, 2026-10-22). */
+  const floor = overrideFloor(input.serviceSlug, input.tier ?? "");
+  const entered = input.priceCents ?? null;
+  if (entered !== null && entered !== catalogCents && !floor.ok) {
+    return { ok: false, error: floor.why, field: "priceCents" };
+  }
   const decision = decidePrice({
     catalogCents,
-    enteredCents: input.priceCents ?? null,
+    enteredCents: entered,
     reason: input.priceOverrideReason ?? null,
+    floorCents: floor.ok ? floor.floorCents : null,
   });
   /*
    * Narrowed on "error" rather than on "ok". The refusal variant is the only
