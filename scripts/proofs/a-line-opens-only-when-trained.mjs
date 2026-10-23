@@ -163,6 +163,32 @@ check("the administrator who recorded and the engineer who decided can be delete
 const stillDirect = await refused(`delete from eng_training_records where profile_id = $1`, [TECH2]);
 check("and a training record still cannot be deleted on its own", stillDirect.refused);
 
+/*
+ * ONLY A PROBE'S TRAINING MAY CASCADE AWAY (operator ruling of 2026-10-23 on
+ * the redesign). A technician off the probe domain with training on record is
+ * suspended, never deleted, by a refusal rather than a comment.
+ */
+const REAL = "00000000-0000-4000-8000-0000000000a5";
+const REAL_UNTRAINED = "00000000-0000-4000-8000-0000000000a6";
+await db.exec(`
+  insert into auth.users (id) values ('${REAL}'), ('${REAL_UNTRAINED}');
+  insert into eng_profiles (id, email, display_name, role, status) values
+    ('${REAL}', 'technician@254engineering.test', 'Proof technician off the probe domain, not a real person', 'field_tech', 'active'),
+    ('${REAL_UNTRAINED}', 'untrained@254engineering.test', 'Untrained proof technician off the probe domain', 'field_tech', 'active');
+`);
+await db.query(
+  `insert into eng_training_records (profile_id, service_slug, template_id, protocol_document, protocol_version_label, trained_on, supervised_by)
+   values ($1, $2, $3, '254-ZZ-901', '1.1', '2026-10-03', 'Proof supervisor')`,
+  [REAL, SLUG, T11],
+);
+const realDelete = await refused(`delete from eng_profiles where id = $1`, [REAL]);
+check("a technician off the probe domain with training on record cannot be deleted", realDelete.refused, realDelete.message.slice(0, 90));
+const realAuthDelete = await refused(`delete from auth.users where id = $1`, [REAL]);
+check("nor through the cascade from auth.users", realAuthDelete.refused, realAuthDelete.message.slice(0, 60));
+check("and their training is still there", (await countFor(REAL)) === 1);
+const untrainedDelete = await refused(`delete from eng_profiles where id = $1`, [REAL_UNTRAINED]);
+check("while a technician off the probe domain with no training can be: the guard is about training, nothing else", !untrainedDelete.refused, untrainedDelete.message.slice(0, 80));
+
 /* The source: the money door, roof, and the portal's order of writes. */
 const gate = readFileSync("src/lib/line-gate.ts", "utf8");
 check(

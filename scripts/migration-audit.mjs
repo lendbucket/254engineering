@@ -259,8 +259,9 @@ const EXPECTED_TABLES = 95;
  * 0082 adds two, by operator ruling the same day: eng_scope_addenda_text and eng_scope_addenda_append_only.
  * 0083 adds one, by operator ruling the same day: eng_determinations_conditions_are_written.
  * 0084 adds two, by operator ruling 2026-10-23: eng_training_records_append_only and
- * eng_training_decisions_append_only. */
-const EXPECTED_TRIGGERS = 91;
+ * eng_training_decisions_append_only; and, by ruling the same morning, eng_profiles_keep_trained,
+ * refusing to delete a trained profile off the probe domain. Three in all. */
+const EXPECTED_TRIGGERS = 92;
 /**
  * 0014 added eng_freeze_attribution and 0019 added two more, the partner
  * entry freeze and its delete refusal, which are trigger functions like the
@@ -306,8 +307,9 @@ const EXPECTED_TRIGGERS = 91;
  * replaces eng_record_review_decision with the same signature, which is not a
  * new row.
  * 56 since 0084, by operator ruling 2026-10-23: eng_line_is_trained, what the
- * money door asks of a line opened by a portal signature. */
-const EXPECTED_FUNCTIONS = 56;
+ * money door asks of a line opened by a portal signature.
+ * 57 since 0084's guard, by ruling the same morning: eng_profile_keeps_its_training. */
+const EXPECTED_FUNCTIONS = 57;
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });

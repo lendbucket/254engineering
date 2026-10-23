@@ -158,6 +158,35 @@ as $fn$
   );
 $fn$;
 
+/*
+ * 5. ONLY A PROBE'S TRAINING MAY CASCADE AWAY. Operator ruling of 2026-10-23,
+ * on the redesign: the cascade above lets a deleted profile take its training
+ * records and the engineer's approvals with it, and "a real technician is
+ * suspended, never deleted" was only a comment. This makes it a refusal: a
+ * profile that has any training record cannot be deleted unless its address
+ * is on audit-probe.invalid, the probe domain every sweep owns. It fires on a
+ * direct delete and on the cascade from auth.users alike.
+ */
+create or replace function eng_profile_keeps_its_training()
+returns trigger
+language plpgsql
+set search_path = ''
+as $fn$
+begin
+  if exists (select 1 from public.eng_training_records r where r.profile_id = old.id)
+     and lower(coalesce(old.email, '')) not like '%@audit-probe.invalid' then
+    raise exception
+      'eng: % has training on record, and a trained person''s profile is suspended, never deleted (0084).',
+      coalesce(old.email, old.id::text);
+  end if;
+  return old;
+end;
+$fn$;
+
+create trigger eng_profiles_keep_trained
+  before delete on eng_profiles
+  for each row execute function eng_profile_keeps_its_training();
+
 /* 0073's rule for every function added here, and asserted for the whole schema. */
 do $$
 declare
@@ -167,7 +196,7 @@ begin
   for f in
     select p.oid::regprocedure as sig
     from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-    where n.nspname = 'public' and p.proname in ('eng_line_is_trained')
+    where n.nspname = 'public' and p.proname in ('eng_line_is_trained', 'eng_profile_keeps_its_training')
   loop
     execute format('revoke execute on function %s from public, anon, authenticated', f.sig);
     execute format('grant execute on function %s to service_role', f.sig);

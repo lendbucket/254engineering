@@ -31,22 +31,25 @@ time and only for registry lines. The portal already records training (since
 | who recorded, who decided | `recorded_by`, `decided_by`: pointers, not references, as `eng_audit_events.actor_id` is, so no actor is pinned |
 | the guard | `eng_forbid_mutation_allow_cascade` (0001): never edited, never deleted directly, deleted only with the person it is about |
 | Section 3 backfill | every interim `certification.training_recorded` event whose template and technician exist, and every decision event against one, each row naming its event |
+| `eng_profiles_keep_trained` | a BEFORE DELETE trigger on `eng_profiles`: a profile with any training record cannot be deleted unless its address is on `audit-probe.invalid`; fires on a direct delete and on the cascade from `auth.users` (ruling of 2026-10-23 on the redesign) |
 | `eng_line_is_trained(slug, template)` | true only for an approved record on that template, for an active `field_tech` |
 | `src/lib/line-gate.ts` | a line opened by a portal signature also needs `eng_line_is_trained` on its in-force template; a failed read closes it; roof's path unchanged |
 | `src/lib/certification-record.ts` | records and decisions are rows; the events are still written as the trail |
 
 No drop statement. RLS on both tables with no policies. The function's EXECUTE
 is revoked from PUBLIC, anon and authenticated. A real technician is suspended,
-never deleted; the cascade is for probes.
+never deleted, and since the guard that is a refusal rather than a comment: only
+a probe's training can cascade away.
 
 ## Predicted figures
 
 | | Shape | Columns | Behaviour | Facts |
 | --- | --- | --- | --- | --- |
 | at 0083 | `a4bbde8cac7f216a582875f8ff8d1e01` | 1280 | `902a66ba81832a2a76d66fb47c713810` | 1181 |
-| at 0084 | `79a8143e24f29af96b2a26573efd8803` | 1299 | `b9f48cff10aba4dc6e4b9554d55ac329` | 1200 |
+| at 0084 | `79a8143e24f29af96b2a26573efd8803` | 1299 | `7eb110b9207115cf1d6bfba690da4dd5` | 1202 |
 
-File SHA-256: `54b438c236e53b61241dbd2d94f8a07b5b7f8b9d7bca747a195933408382f8c8`.
+File SHA-256: `57f5b8d4fd2af6ee21d1343ecc83e8587faf2bde6df63214e97c3a7b4c86c114`.
+Withdrawn unapplied: `01b0170a...` (pinned probes) and `54b438c2...` (no delete guard).
 
 ## Section 0: read first, each its own statement
 
@@ -120,6 +123,10 @@ select relname, relrowsecurity from pg_class
 select p.oid::regprocedure from pg_proc p join pg_namespace n on n.oid = p.pronamespace
  where n.nspname = 'public' and p.proname = 'eng_line_is_trained';
 -- Expect one row: eng_line_is_trained(text,uuid).
+
+select tgname, tgenabled from pg_trigger
+ where tgrelid = 'public.eng_profiles'::regclass and tgname = 'eng_profiles_keep_trained';
+-- Expect one row, enabled ('O').
 ```
 
 ## What this does not do
