@@ -1174,8 +1174,13 @@ export function orderBlockedReason(
     return "The firm is not taking orders through the site yet. Call the office or send a message and somebody will take the details.";
   }
   if (!hasApprovedProtocol) {
-    /* "It is a waitlist rather than an order" sat beside a Contact button in open mode (ruling Q5, 2026-10-19). */
-    return "No protocol for this service line has been approved by the engineer of record yet, so the firm has no agreed way to perform it. It cannot be ordered online yet.";
+    /*
+     * "It is a waitlist rather than an order" sat beside a Contact button in open
+     * mode (ruling Q5, 2026-10-19). Robert, 2026-10-23: no waitlist either, since
+     * the page offers a quote request for a line not open online; the sentence
+     * points to it, and the start page's button is that quote request.
+     */
+    return "No protocol for this service line has been approved by the engineer of record yet, so the firm has no agreed way to perform it. It cannot be ordered online yet, so it starts with a request for a quote.";
   }
   /*
    * A DELIVERABLE THE ENGINEER'S AGREEMENT DOES NOT COVER IS NOT TAKEN ON.
