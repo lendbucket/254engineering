@@ -2097,7 +2097,16 @@ const RULED_CONDITIONS = [
     /registration[^.;"`]{0,80}\bpending\b/i,
     /\bpending with (?:the )?(?:TBPELS|Texas Board)/i,
     /application pending with the Texas Board/i,
-    /registration (?:is )?not yet (?:issued|active)/i,
+    /*
+     * THE WORDS BETWEEN, 2026-10-23. This read `registration (is )?not yet
+     * (issued|active)`, adjacent, and the PE posting in data/positions.ts said
+     * "registration with the Texas Board of Professional Engineers and Land
+     * Surveyors is not yet issued", live on production, past a green check: the
+     * board's name sat between the two halves. Same 80 character window as the
+     * pending pattern above, and the application wording beside it.
+     */
+    /registration[^.;"`]{0,80}\bnot yet (?:issued|active)\b/i,
+    /\bregistration application\b/i,
     /(?:once|when|until) (?:its |the |firm )?registration (?:is )?(?:issued|issues|active)\b/i,
     /\bnot yet registered\b/i,
   ];
