@@ -3312,6 +3312,15 @@ night, if the lock is free and work is waiting, board it.
   lines, because a check of the working diff reads nothing once the work is
   committed and would print zero over an empty set.
 
+  **`[skip ci]` stops the GitHub board and does NOT stop a Vercel deploy.**
+  Recorded 2026-10-23 from the chat's read of Vercel: `a1c71cb` and `7994969`
+  both carried `[skip ci]` and both deployed to production and reached READY.
+  So the marker is a way to merge without a board, never a way to merge
+  without deploying. Every push to main ships, whatever its message says.
+  The corollary: a push that starts a board on main, as `064ad70` did, is
+  cancelled with `gh run cancel` when the lane needs no board, and the
+  cancelled run is checked to have reached no writers step.
+
   **Never, under any word:** a force push, deleting or rewriting a remote branch,
   pushing a tag, or pushing main with a migration that is not applied to
   production. A migration branch merges only inside a sitting, after the apply
