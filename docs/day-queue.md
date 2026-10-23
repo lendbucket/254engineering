@@ -31,7 +31,7 @@ Already on development: 0082 (20261023022247), 0083 (20261023024543).
 | 2 | 0084 on development; then fresh boards for 0082, 0083, 0084 on current main | waiting for the chat's apply |
 | 3 | Production: 0082, the McAllen record, 0083, 0084 | waiting for their boards |
 | 4 | Ruling 7 (0085, FC and PL intake, review and triage records) | **built** on `feat/fc-pl-records` (`04a9038`): 0085 (proof 21 PASS), the library and route, the intake fields, the office's authority form, the engineer's confirm, review and triage panels, the technician's added items (proof 16 PASS); every static reader green. 0085 queued for the chat after 0084; board after its apply. One gap in BACKLOG for a ruling: added capture items are shown, not yet captured against. |
-| 5 | FC and PL letter sealing | after 4; held for Robert's word on opening |
+| 5 | FC and PL letter sealing | **built, HELD**, on `feat/fc-pl-sealing` (`5ecf1ce`, on top of ruling 7): the foundation letter in his words (proof 16 PASS against his file), both pure drafts (permit full-order proof 12 PASS), sealing generalised with roof unchanged, FC-1's money rule (a foundation decline at review is not refunded; its sealed C letter delivers and settles as sealed work; a decline before dispatch still refunds; the foundation disclosure says so), proof 20 PASS. Board after 0085 is on development. Opens nothing. |
 | 6 | Ordering pieces 2, 3a, 3b; office-ready pass; mobile pass | after 5 |
 
 Held for Robert, not today: the white logo (`hold/logo-254-engineering`), opening any new line for ordering, white label.
