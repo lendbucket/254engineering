@@ -80,4 +80,21 @@ at most 5; migration-audit 139, protocol-registry 156, order-audit 559,
 review-audit 91, protocol-run-audit 59, proofs-audit 96; perf passes with
 /coverage's NOT STABLE as the one undecided check; tonight's five standing notes.
 | 4 | Training record migration 0084 (`feat/training-record`); hold | ready for chat on development; board after the apply |
-| 5 | Fast lane: logo on site and email, "Services" out of staff email, JobPosting schema | queued |
+| 5 | Fast lane: (a) "Services" out of every email and the ruled site strings, `fast/brand-254-engineering` at `6608fa6`, merges after pricing when its page readers pass; (b) logo swap HELD; (c) JobPosting STOPPED | (a) board `39897561918` for its page readers |
+
+**Item 5, what was held or stopped, and why.**
+(b) The new `254-engineering-logo.png` is navy artwork for light backgrounds.
+The email header band and three dark surfaces (portal sidebar, mobile menu,
+footer) use the white `logo-dark.png`; the email layout's own comment records
+that the light artwork on the navy band is invisible. Swapping light surfaces
+only would leave the old lockup in the footer and every email. A white version
+of the new artwork is needed first: the session can derive one mechanically,
+as the letter mark was, but a brand asset is Robert's to approve.
+(c) The morning log has "JobPosting hiringOrganization fix, full lane" (Robert,
+2026-10-21) and no description of the fault. The careers pages emit the
+Organization node the `@id` points at, so no defect is visible from the code,
+and the session does not guess at one. Question: what is the fault (for
+instance a Search Console or Rich Results message)?
+Also held from (a): the `/order` title, which without "Services" is 47
+characters, under the 50 the SEO law requires; recommended wording for a
+ruling: "Order engineering work online in Texas | 254 Engineering" (56).
