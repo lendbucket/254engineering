@@ -821,6 +821,28 @@ export const RETENTION_POLICY: RetentionEntry[] = [
       ruledBy: "operator, 2026-09-09, and 0032",
     },
   },
+  {
+    table: "eng_training_decisions",
+    rule: {
+      kind: "kept_forever",
+      because:
+        "THE ENGINEER OF RECORD'S APPROVAL OR REFUSAL OF EACH SUPERVISED TRAINING, from his own session, a " +
+        "refusal with his reason. Whether a line could take orders on a given day turns on it, so it is the " +
+        "record a question about a job is answered from. Append only through eng_forbid_mutation (0084).",
+      ruledBy: "operator ruling of 2026-10-23 (a line opens only when signed and trained, recorded in the portal), and the trigger in 0084",
+    },
+  },
+  {
+    table: "eng_training_records",
+    rule: {
+      kind: "kept_forever",
+      because:
+        "EVERY SUPERVISED TRAINING ON A PROTOCOL VERSION: the technician, the exact template, the date and who " +
+        "supervised. It is what a technician's competence on a line rests on and what the engineer approved. " +
+        "Append only through eng_forbid_mutation (0084).",
+      ruledBy: "operator ruling of 2026-10-23 (a line opens only when signed and trained, recorded in the portal), and the trigger in 0084",
+    },
+  },
   /*
    * 0054. Somebody asked whether an existing building could be certified.
    *

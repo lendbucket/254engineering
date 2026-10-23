@@ -37,6 +37,15 @@ import { licenceIsCurrentToday } from "./launch";
  * row only on approval, so dispatch, which reads that table, is unchanged and
  * refuses everything before it. The table's own trigger refuses edits and
  * deletes, so none of the three can be rewritten.
+ *
+ * SINCE 0084 THE RECORD IS ITS OWN TABLE, AND THE EVENTS ARE ITS TRAIL. Operator
+ * ruling of 2026-10-23: a line opens only when signed AND trained, recorded in
+ * the portal. eng_training_records holds each training on one exact template and
+ * eng_training_decisions the engineer's one decision on it, both append only;
+ * 0084 carried every interim event above into them, each naming its event. The
+ * three events are still written, beside the rows, as the audit trail. The
+ * money door asks eng_line_is_trained (src/lib/line-gate.ts) of the in-force
+ * template for every line opened by a portal signature.
  */
 
 export const TRAINING_RECORDED = "certification.training_recorded";
@@ -46,7 +55,8 @@ export const TRAINING_REFUSED = "certification.training_refused";
 type Context = { ip?: string | null; userAgent?: string | null };
 
 export type TrainingRecord = {
-  id: number;
+  /** The eng_training_records id (0084). */
+  id: string;
   recordedAt: string;
   recordedBy: string | null;
   profileId: string;
@@ -92,52 +102,57 @@ async function appendEvent(
   return { ok: true, id: Number(data.id) };
 }
 
-/** Every training record, with its decision folded in. Optionally for one technician. A failed read is null. */
+/**
+ * Every training record, newest first, with its decision folded in. Optionally
+ * for one technician. A failed read is null. Read from the 0084 tables; the
+ * decision is at most one row per record, held unique at the database.
+ */
 export async function trainingRecords(profileId?: string): Promise<TrainingRecord[] | null> {
   const db = supabaseAdmin();
   if (!db) return null;
   let q = db
-    .from("eng_audit_events")
-    .select("id, created_at, actor_id, action, entity_id, diff")
-    .eq("entity_type", "profile")
-    .in("action", [TRAINING_RECORDED, TRAINING_APPROVED, TRAINING_REFUSED])
-    .order("id", { ascending: true })
+    .from("eng_training_records")
+    .select("id, created_at, recorded_by, profile_id, service_slug, template_id, protocol_version_label, trained_on, supervised_by")
+    .order("created_at", { ascending: false })
     .limit(2000);
-  if (profileId) q = q.eq("entity_id", profileId);
-  const { data, error } = await q;
+  if (profileId) q = q.eq("profile_id", profileId);
+  const { data: rows, error } = await q;
   if (error) return null;
-
-  const records = new Map<number, TrainingRecord>();
-  for (const e of data ?? []) {
-    const d = (e.diff ?? {}) as Record<string, unknown>;
-    if (e.action === TRAINING_RECORDED) {
-      records.set(Number(e.id), {
-        id: Number(e.id),
-        recordedAt: e.created_at as string,
-        recordedBy: (e.actor_id as string | null) ?? null,
-        profileId: e.entity_id as string,
-        serviceSlug: String(d.service_slug ?? ""),
-        templateId: String(d.template_id ?? ""),
-        protocolVersion: String(d.protocol_version ?? ""),
-        trainedOn: String(d.trained_on ?? ""),
-        supervisedBy: String(d.supervised_by ?? ""),
-        status: "awaiting_engineer",
-        decidedAt: null,
-        decidedBy: null,
-        refusalReason: null,
+  const ids = (rows ?? []).map((r) => r.id as string);
+  const decisions = new Map<string, { decision: string; created_at: string; decided_by: string | null; reason: string | null }>();
+  if (ids.length) {
+    const { data: ds, error: dError } = await db
+      .from("eng_training_decisions")
+      .select("record_id, decision, created_at, decided_by, reason")
+      .in("record_id", ids);
+    if (dError) return null;
+    for (const d of ds ?? []) {
+      decisions.set(d.record_id as string, {
+        decision: d.decision as string,
+        created_at: d.created_at as string,
+        decided_by: (d.decided_by as string | null) ?? null,
+        reason: (d.reason as string | null) ?? null,
       });
-    } else {
-      const rec = records.get(Number(d.record_id));
-      // The first decision stands; decideTraining refuses a second, so a later one cannot exist by this path.
-      if (rec && rec.status === "awaiting_engineer") {
-        rec.status = e.action === TRAINING_APPROVED ? "approved" : "refused";
-        rec.decidedAt = e.created_at as string;
-        rec.decidedBy = (e.actor_id as string | null) ?? null;
-        rec.refusalReason = e.action === TRAINING_REFUSED ? String(d.reason ?? "") : null;
-      }
     }
   }
-  return [...records.values()].reverse();
+  return (rows ?? []).map((r) => {
+    const d = decisions.get(r.id as string);
+    return {
+      id: r.id as string,
+      recordedAt: r.created_at as string,
+      recordedBy: (r.recorded_by as string | null) ?? null,
+      profileId: r.profile_id as string,
+      serviceSlug: r.service_slug as string,
+      templateId: r.template_id as string,
+      protocolVersion: r.protocol_version_label as string,
+      trainedOn: String(r.trained_on),
+      supervisedBy: r.supervised_by as string,
+      status: d ? (d.decision === "approved" ? "approved" : "refused") : "awaiting_engineer",
+      decidedAt: d?.created_at ?? null,
+      decidedBy: d?.decided_by ?? null,
+      refusalReason: d?.decision === "refused" ? d.reason : null,
+    };
+  });
 }
 
 /** A technician's certifications as dispatch reads them: the eng_certifications rows. Null on a failed read. */
@@ -181,7 +196,7 @@ export async function recordTraining(
   profileId: string,
   input: { serviceSlug: string; trainedOn: string; supervisedBy: string },
   context: Context = {},
-): Promise<{ ok: true; id: number } | { ok: false; error: string }> {
+): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
   if (!actor || !can(actor, "profiles.update")) return { ok: false, error: "Your role cannot record a certification." };
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
@@ -210,12 +225,30 @@ export async function recordTraining(
     return { ok: false, error: "A training for that line is already awaiting the engineer." };
   }
 
-  return appendEvent(
+  /* The record is the row (0084); the event beside it is the trail. */
+  const { data: row, error: rowError } = await db
+    .from("eng_training_records")
+    .insert({
+      profile_id: profileId,
+      service_slug: input.serviceSlug,
+      template_id: line.templateId,
+      protocol_document: line.documentNumber,
+      protocol_version_label: line.version,
+      trained_on: input.trainedOn,
+      supervised_by: supervisedBy,
+      recorded_by: actor.id,
+    })
+    .select("id")
+    .single();
+  if (rowError || !row) return { ok: false, error: `The training was not recorded: ${rowError?.message ?? "no row came back"}` };
+
+  const event = await appendEvent(
     actor,
     TRAINING_RECORDED,
     profileId,
     `Recorded supervised training on ${line.documentNumber} v${line.version}, ${input.trainedOn}, supervised by ${supervisedBy}. Awaiting the engineer.`,
     {
+      record_id: row.id,
       service_slug: input.serviceSlug,
       template_id: line.templateId,
       protocol_document: line.documentNumber,
@@ -226,6 +259,8 @@ export async function recordTraining(
     },
     context,
   );
+  if (!event.ok) return { ok: false, error: `The training was recorded, and its audit entry was not written: ${event.error}` };
+  return { ok: true, id: row.id as string };
 }
 
 /** Training records awaiting the engineer, for his screen. */
@@ -268,7 +303,7 @@ export async function trainingAwaitingEngineer(): Promise<
  */
 export async function decideTraining(
   actor: (Actor & { email: string }) | null,
-  recordId: number,
+  recordId: string,
   decision: "approve" | "refuse",
   reason: string,
   context: Context = {},
@@ -301,6 +336,20 @@ export async function decideTraining(
   if (decision === "refuse" && written.length < 10) {
     return { ok: false, error: "A refusal needs your reason, in your words." };
   }
+
+  /*
+   * THE DECISION ROW FIRST (0084). It is unique on the record, so a second
+   * decision racing this one is refused by the database, and nothing below it
+   * runs: a certification is never written for a decision that did not land.
+   */
+  const { error: decisionError } = await db.from("eng_training_decisions").insert({
+    record_id: rec.id,
+    decision: decision === "approve" ? "approved" : "refused",
+    decided_by: actor.id,
+    decided_by_license: licence,
+    reason: decision === "refuse" ? written : null,
+  });
+  if (decisionError) return { ok: false, error: `The decision was not recorded: ${decisionError.message}` };
 
   if (decision === "approve") {
     const { error } = await db.from("eng_certifications").upsert(

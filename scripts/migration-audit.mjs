@@ -239,10 +239,16 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * eng_determinations.letter_option and letter_conditions; no new table; shape
  * a4bbde8cac7f216a582875f8ff8d1e01, read off fingerprint-at.mjs with 0082
  * reproducing its recorded pair first.
+ *
+ * Moved 2026-10-23 by 0084, a line opens only when trained, by operator ruling
+ * that day: 1,280 to 1,299 is eng_training_records' eleven columns and
+ * eng_training_decisions' eight; 93 tables to 95; shape
+ * 79a8143e24f29af96b2a26573efd8803, read off fingerprint-at.mjs with 0083
+ * reproducing its recorded pair first.
  */
-const EXPECTED_FINGERPRINT = "a4bbde8cac7f216a582875f8ff8d1e01";
-const EXPECTED_COLUMNS = 1280;
-const EXPECTED_TABLES = 93;
+const EXPECTED_FINGERPRINT = "79a8143e24f29af96b2a26573efd8803";
+const EXPECTED_COLUMNS = 1299;
+const EXPECTED_TABLES = 95;
 /* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts.
  * 0074 adds two: eng_partner_billing_touch and eng_partner_billing_events_immutable.
  * 0075 adds one: eng_payment_events_guarded.
@@ -251,8 +257,10 @@ const EXPECTED_TABLES = 93;
  * eng_refund_approval_limits. Read back on development by the chat the same day, five rows.
  * 0081 adds one, by operator ruling 2026-10-22: eng_seal_acts_void_closes_its_protocol.
  * 0082 adds two, by operator ruling the same day: eng_scope_addenda_text and eng_scope_addenda_append_only.
- * 0083 adds one, by operator ruling the same day: eng_determinations_conditions_are_written. */
-const EXPECTED_TRIGGERS = 89;
+ * 0083 adds one, by operator ruling the same day: eng_determinations_conditions_are_written.
+ * 0084 adds two, by operator ruling 2026-10-23: eng_training_records_append_only and
+ * eng_training_decisions_append_only. */
+const EXPECTED_TRIGGERS = 91;
 /**
  * 0014 added eng_freeze_attribution and 0019 added two more, the partner
  * entry freeze and its delete refusal, which are trigger functions like the
@@ -296,8 +304,10 @@ const EXPECTED_TRIGGERS = 89;
  * 55 since 0083, by operator ruling 2026-10-22: eng_determination_conditions_are_written,
  * the trigger refusing a blank condition in a permit letter's schedule. 0083
  * replaces eng_record_review_decision with the same signature, which is not a
- * new row. */
-const EXPECTED_FUNCTIONS = 55;
+ * new row.
+ * 56 since 0084, by operator ruling 2026-10-23: eng_line_is_trained, what the
+ * money door asks of a line opened by a portal signature. */
+const EXPECTED_FUNCTIONS = 56;
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });

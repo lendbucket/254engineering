@@ -2935,6 +2935,24 @@ export const APPLIED = [
       "The chat applies it with apply_migration after 0082, development first. The branch merges only after the " +
       "production apply is read back, and a migration on main is never pending.",
   },
+  {
+    file: "0084_a_line_opens_only_when_trained.sql", appliedBy: "apply_migration",
+    fingerprint: "79a8143e24f29af96b2a26573efd8803",
+    behaviour: "ea4f0f6cb0386571102f24271e45efa6",
+    production: null,
+    proves: { table: "eng_training_records" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0084 on 2026-10-23, with 0083 reproducing its " +
+      "recorded pair first: shape 1280 to 1299 columns (eng_training_records' eleven and " +
+      "eng_training_decisions' eight), behaviour 1181 to 1202 facts. No drop statement. Section 3 is a " +
+      "one-time backfill of the interim training events of 2026-10-07 onward, each row naming its event.",
+    because:
+      "WRITTEN 2026-10-23 ON feat/training-record, QUEUED BEHIND 0083, AND APPLIED NOWHERE. Operator ruling of " +
+      "2026-10-23: a line opens only when its protocol is signed and somebody is trained on that version, " +
+      "recorded in the portal; roof stays exactly as it is. The chat applies it with apply_migration, development " +
+      "first, from docs/production-sitting-0084-a-line-opens-only-when-trained.md. The branch merges only after " +
+      "the production apply is read back, and a migration on main is never pending.",
+  },
 ];
 
 /*

@@ -125,7 +125,7 @@ async function handlePOST(request: NextRequest) {
   if (action === "training_decision") {
     const decision = String(body?.decision ?? "");
     if (decision !== "approve" && decision !== "refuse") return bad("Approve or refuse.");
-    const result = await decideTraining(actor, Number(body?.recordId ?? 0), decision, String(body?.reason ?? ""), context);
+    const result = await decideTraining(actor, String(body?.recordId ?? ""), decision, String(body?.reason ?? ""), context);
     return result.ok ? NextResponse.json({ ok: true }) : bad(result.error);
   }
 

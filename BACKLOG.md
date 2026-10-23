@@ -4,6 +4,15 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
+## THE SITTING FOR 0084, A LINE OPENS ONLY WHEN TRAINED, OPEN
+
+`docs/production-sitting-0084-a-line-opens-only-when-trained.md`. Written
+2026-10-23 on `feat/training-record`. Two append-only tables for supervised
+training and the engineer's decision on it, a backfill of the interim events
+of 2026-10-07 onward, and `eng_line_is_trained`, which the money door now asks
+of every line opened by a portal signature; roof's path is unchanged. Queued
+for the chat's development sitting after 0083, then the board, then production.
+
 ## THE SITTING FOR 0080, THE SIGNED SOURCES GO PRIVATE, OPEN
 
 `docs/production-sitting-0080-protocol-sources.md`. Written 2026-10-22 on
