@@ -52,7 +52,7 @@ export default async function WaitlistPage({
 
       <PageHeader
         eyebrow={prelaunch ? "Opening soon" : "Now open"}
-        title={prelaunch ? "Join the 254 Engineering Services waitlist" : "The firm is now open"}
+        title={prelaunch ? "Join the 254 Engineering waitlist" : "The firm is now open"}
         lede={
           prelaunch
             ? [notYetAcceptingEngagements(), registrationStatement()].filter(Boolean).join(" ")

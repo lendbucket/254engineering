@@ -172,7 +172,8 @@ export function signatureLines(): string[] {
   return [
     emailIdentity.signer.name,
     emailIdentity.signer.title,
-    business.name,
+    /* The brand, "254 Engineering" (operator ruling 2026-10-10; email-audit pins it, 2026-10-23). */
+    business.shortName,
     business.url,
   ];
 }
