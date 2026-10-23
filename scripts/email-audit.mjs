@@ -268,6 +268,27 @@ if (templates.length === 0) {
     wrongReplyTo.length ? wrongReplyTo.join(", ") : "",
   );
 
+  /*
+   * AND NO CUSTOMER FACING EMAIL IS ON THAT LIST. Operator ruling,
+   * 2026-10-21: the exception for the two firm notices (inquiry.design and
+   * inquiry.windstorm) is approved and limited to them, and every email a
+   * customer reads keeps reply-to support. Every exception is an operator
+   * email, one addressed to the firm; a "human" template, which is what a
+   * customer or applicant receives, may never be exempt. The count is pinned
+   * so a seventh exception is a deliberate edit here as well as in the
+   * declaration.
+   */
+  const exemptHuman = templates
+    .filter((t) => t.id in REPLY_TO_EXCEPTIONS && t.purpose !== "operator")
+    .map((t) => `${t.id} (${t.purpose})`);
+  rec(
+    "and every reply-to exception is an email to the firm, never one a customer reads",
+    exemptHuman.length === 0 && Object.keys(REPLY_TO_EXCEPTIONS).length === 6,
+    exemptHuman.length
+      ? `exempt and not addressed to the firm: ${exemptHuman.join(", ")}`
+      : `${Object.keys(REPLY_TO_EXCEPTIONS).length} exception(s), pinned at 6`,
+  );
+
   /* An exception naming a template that no longer exists is an exemption
    * outliving the thing it exempted, which is how an allowlist rots. */
   const staleExceptions = Object.keys(REPLY_TO_EXCEPTIONS).filter((id) => !measured.has(id));

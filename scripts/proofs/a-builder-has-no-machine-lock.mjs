@@ -59,8 +59,15 @@ import { spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const REPO = "C:/Users/salon/projects/254engineering";
+/*
+ * The checkout this proof sits in, derived. It read a typed
+ * "C:/Users/salon/projects/254engineering" until 2026-10-22, so a board run from
+ * a worktree patched and restored MAIN's preflight and lock files rather than
+ * the branch's, and proved main's copy. Found moving the board to GitHub runners.
+ */
+const REPO = fileURLToPath(new URL("../..", import.meta.url));
 const PREFLIGHT = "scripts/preflight-build.mjs";
 
 /* A home that does not exist, which is the builder's condition. Built under a

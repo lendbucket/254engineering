@@ -111,6 +111,9 @@ export const REPLY_TO_EXCEPTIONS: Record<string, string> = {
     "replies to the applicant, so the operator can answer a candidate from the notification itself.",
   "onboarding.submitted":
     "replies to the person who submitted, so a question about their paperwork reaches them.",
+  /* Operator ruling Q6, 2026-10-19: the firm is emailed on each inquiry "as /contact already does". */
+  "inquiry.design": "replies to the enquirer, for the same reason as lead.contact.",
+  "inquiry.windstorm": "replies to the enquirer, for the same reason as lead.contact.",
   /*
    * The three machine alerts USED to be here, replying to info@. Operator
    * ruling, 2026-09-08: they collapse to the firm address like everything else.

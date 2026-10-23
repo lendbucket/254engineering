@@ -31,7 +31,17 @@ import { normaliseAddress } from "./email-address";
 import { accountWelcome } from "./email-templates";
 import { customerStatusUrl, customerView, customerWhen } from "./ops-customer";
 import { queueEmail } from "./ops-jobs";
-import { orderConfirmed, orderDeclined, orderSealed, refundFailed } from "./email-templates";
+import {
+  orderCancelled,
+  orderConfirmed,
+  orderDeclined,
+  orderRepairsRequired,
+  orderSealed,
+  orderTechnicianAccepted,
+  refundFailed,
+  refundSucceeded,
+} from "./email-templates";
+import type { EffectMode } from "./ops-jobs";
 import { transitionFile, SYSTEM_AUTHOR } from "./ops-crm";
 import { isKnown, money } from "./ops-money";
 import { LIVE_KEY_FIX, LIVE_KEY_HEADLINE, liveKeyOffProduction } from "./db-guard";
@@ -715,7 +725,22 @@ export async function releaseForFulfilment(
   const settled = await openAccountForOrder(orderId, { open: false });
   if (settled === "failed") missing.push("the customer's account could not be opened");
   if (settled === "needs_person") {
-    /* No link and no confirmation until a person has chosen the account. */
+    /*
+     * No link, no confirmation and no receipt until a person has chosen the
+     * account. Ruling Q2 of 2026-10-19 sent a receipt here to the order's own
+     * address; Robert's ruling of 2026-10-21 put it under the confirmation's
+     * recipient rule (2026-10-13), which writes to the account's address on
+     * file and never to an address that merely paid. Here no account is chosen
+     * yet, so the rule names nobody, and the receipt is withheld rather than
+     * sent to the paying address. The paying address is also not where the
+     * status link goes once a person attaches the account, so a receipt
+     * promising it the link would have been untrue there.
+     */
+    await eventOnce(
+      orderId,
+      RECEIPT_WAITS_FOR_ACCOUNT,
+      "No receipt was sent: the account this order belongs to needs a person to choose it, and the confirmation goes to that account's address once it is attached.",
+    );
     missing.push("the customer's account needs a person to attach it");
   } else if (settled !== "failed") {
     const { data: queuedConfirmation, error: queuedError } = prior.has("email.sent")
@@ -1002,6 +1027,8 @@ export const ACCOUNT_LINKED_BY_CLIENT = "account.linked_by_client";
 export const ACCOUNT_ATTACHED = "account.attached";
 /** A confirmation not sent because the order's account has no address on file. Written once per order. */
 export const CONFIRMATION_NO_ADDRESS = "email.no_account_address";
+/** A receipt withheld because a person has yet to choose the order's account. Written once per order. */
+export const RECEIPT_WAITS_FOR_ACCOUNT = "email.receipt_waits_for_account";
 
 /** Writes an order event unless the order already carries one of that name. False when it could not tell or write. */
 async function eventOnce(orderId: string, name: string, summary: string): Promise<boolean> {
@@ -1874,8 +1901,9 @@ export async function recordExternalRefund(input: {
  * only on the delivery that applied it: the firm-only alert for a refund that
  * failed or was canceled, and the staff task for one with no row on file.
  *
- * NOTHING HERE WRITES TO THE CUSTOMER, reinstates a reversed commission or
- * moves the order's status. A failed refund on an order already marked
+ * NOTHING HERE WRITES TO THE CUSTOMER EXCEPT ONE NOTICE: a pending refund that
+ * succeeded (addition b, 2026-10-20). Nothing reinstates a reversed commission
+ * or moves the order's status. A failed refund on an order already marked
  * refunded is named on the orders screen (refundsFailedAfterRefunded) and
  * waits for a person.
  */
@@ -1930,6 +1958,15 @@ export async function recordRefundUpdate(input: {
   });
   if (!applied.ok) return applied;
   if (applied.outcome === "done") return { ok: true, alreadyRecorded: true, to: null, staffTask: false };
+
+  /*
+   * A refund the customer was told is issued has landed (addition b,
+   * 2026-10-20). Only on the move from pending, so a refund that succeeded at
+   * once, and was worded as refunded then, is not announced twice.
+   */
+  if (decided.to === "succeeded" && rowStatus === "pending" && row?.order_id) {
+    await sendRefundSucceeded(row.order_id as string, amount);
+  }
 
   if (decided.alertFirm && row) {
     if (row.order_id) {
@@ -2305,6 +2342,9 @@ export async function cancelAndRefund(input: {
     entityId: input.orderId,
     summary: `${order.reference}: canceled by the firm and refunded ${money(result.amountCents)}. ${reason}`,
   });
+
+  /* The customer is told, with the status link and the amount (addition a). A failed send is on the order, never a failed cancel. */
+  await sendOrderCancelled(input.orderId, result.amountCents, result.status === "pending");
 
   return {
     ok: true,
@@ -2736,6 +2776,184 @@ async function sendOrderDeclined(
       ? `The decision is queued to ${order.customer_email}. The next entry says when it is sent.`
       : `The decision could not be queued: ${queued.error}. It has to go out by hand.`,
   );
+}
+
+/*
+ * WHERE A NOTICE CARRYING THE STATUS LINK GOES. The same answer the
+ * confirmation uses (ruling 2026-10-13): an order matched or attached to an
+ * account writes to the account's address on file, every other order to its
+ * own customer address. Null, with the reason on the order, when there is
+ * nobody to send to or the answer could not be read.
+ */
+async function noticeAddress(orderId: string, what: string): Promise<string | null> {
+  const db = supabaseAdmin();
+  if (!db) return null;
+  const recipient = await confirmationRecipient(orderId);
+  if (recipient.kind === "account") return recipient.email;
+  if (recipient.kind === "order") {
+    const { data: order, error } = await db
+      .from("eng_service_orders")
+      .select("customer_email")
+      .eq("id", orderId)
+      .maybeSingle();
+    const email = error ? null : ((order?.customer_email as string | null | undefined) ?? null);
+    if (email) return email;
+  }
+  await event(
+    orderId,
+    "email.not_sent",
+    false,
+    recipient.kind === "none_on_account"
+      ? `The ${what} could not be sent: the account has no address on file.`
+      : `The ${what} could not be sent: who it goes to could not be read.`,
+  );
+  return null;
+}
+
+/* The customer visible "queued" line and the internal failure line, as every order notice writes them. */
+async function noticeQueued(orderId: string, what: string, to: string, ok: boolean, error?: string): Promise<void> {
+  await event(
+    orderId,
+    ok ? "email.queued" : "email.not_sent",
+    ok,
+    ok
+      ? `The ${what} is queued to ${to}. The next entry says when it is sent.`
+      : `The ${what} could not be queued: ${error}. It has to go out by hand.`,
+  );
+}
+
+/**
+ * A technician has accepted the job on this file (ruling Q1, 2026-10-19).
+ *
+ * Called by acceptOffer after the acceptance is written. Only an order that has
+ * been paid for and released is written to: a job taken by telephone with no
+ * order, or one whose order is still unpaid, has nobody this platform has
+ * promised a notice to. A failure is recorded on the order and never undoes the
+ * acceptance.
+ */
+export async function notifyTechnicianAccepted(fileId: string): Promise<void> {
+  const order = await liveOrderForFile(fileId, "reference, customer_name, property_address");
+  if (!order || (order.status !== "paid" && order.status !== "in_fulfilment")) return;
+  const orderId = order.id;
+
+  const to = await noticeAddress(orderId, "technician notice");
+  if (!to) return;
+  const statusUrl = await statusUrlFor(orderId, order.reference as string);
+  if (!statusUrl) {
+    await event(orderId, "email.not_sent", false, "The technician notice could not be sent: a status link could not be issued.");
+    return;
+  }
+
+  const queued = await queueEmail(
+    orderTechnicianAccepted({
+      customerName: order.customer_name as string,
+      customerEmail: to,
+      reference: order.reference as string,
+      propertyAddress: order.property_address as string,
+      statusUrl,
+    }),
+    { orderId },
+  );
+  await noticeQueued(orderId, "technician notice", to, queued.ok, queued.ok ? undefined : queued.error);
+}
+
+/**
+ * The engineer has decided repairs are needed (ruling Q3, 2026-10-19).
+ *
+ * Run from the review decision's queued job, so it carries that job's mode: a
+ * probe decision enqueues nothing live. It never runs from the sealing step.
+ */
+export async function notifyRepairsRequired(fileId: string, effectMode: EffectMode): Promise<void> {
+  const order = await liveOrderForFile(fileId, "reference, customer_name, property_address");
+  if (!order || (order.status !== "paid" && order.status !== "in_fulfilment")) return;
+  const orderId = order.id;
+
+  const to = await noticeAddress(orderId, "repairs notice");
+  if (!to) return;
+  const statusUrl = await statusUrlFor(orderId, order.reference as string);
+  if (!statusUrl) {
+    await event(orderId, "email.not_sent", false, "The repairs notice could not be sent: a status link could not be issued.");
+    return;
+  }
+
+  const queued = await queueEmail(
+    orderRepairsRequired({
+      customerName: order.customer_name as string,
+      customerEmail: to,
+      reference: order.reference as string,
+      propertyAddress: order.property_address as string,
+      statusUrl,
+    }),
+    { orderId },
+    effectMode,
+  );
+  await noticeQueued(orderId, "repairs notice", to, queued.ok, queued.ok ? undefined : queued.error);
+}
+
+/** The firm canceled and refunded (addition a). After the refund is recorded, never before. */
+async function sendOrderCancelled(orderId: string, refundedCents: number, refundPending: boolean): Promise<void> {
+  const db = supabaseAdmin();
+  if (!db) return;
+  const { data: order, error } = await db
+    .from("eng_service_orders")
+    .select("reference, customer_name, property_address")
+    .eq("id", orderId)
+    .maybeSingle();
+  if (error || !order) return;
+
+  const to = await noticeAddress(orderId, "cancellation notice");
+  if (!to) return;
+  const statusUrl = await statusUrlFor(orderId, order.reference as string);
+  if (!statusUrl) {
+    await event(orderId, "email.not_sent", false, "The cancellation notice could not be sent: a status link could not be issued.");
+    return;
+  }
+
+  const queued = await queueEmail(
+    orderCancelled({
+      customerName: order.customer_name as string,
+      customerEmail: to,
+      reference: order.reference as string,
+      propertyAddress: order.property_address as string,
+      refunded: money(refundedCents),
+      refundPending,
+      statusUrl,
+    }),
+    { orderId },
+  );
+  await noticeQueued(orderId, "cancellation notice", to, queued.ok, queued.ok ? undefined : queued.error);
+}
+
+/** A refund that was pending has succeeded (addition b). */
+async function sendRefundSucceeded(orderId: string, amountCents: number): Promise<void> {
+  const db = supabaseAdmin();
+  if (!db) return;
+  const { data: order, error } = await db
+    .from("eng_service_orders")
+    .select("reference, customer_name")
+    .eq("id", orderId)
+    .maybeSingle();
+  if (error || !order) return;
+
+  const to = await noticeAddress(orderId, "refund notice");
+  if (!to) return;
+  const statusUrl = await statusUrlFor(orderId, order.reference as string);
+  if (!statusUrl) {
+    await event(orderId, "email.not_sent", false, "The refund notice could not be sent: a status link could not be issued.");
+    return;
+  }
+
+  const queued = await queueEmail(
+    refundSucceeded({
+      customerName: order.customer_name as string,
+      customerEmail: to,
+      reference: order.reference as string,
+      amount: money(amountCents),
+      statusUrl,
+    }),
+    { orderId },
+  );
+  await noticeQueued(orderId, "refund notice", to, queued.ok, queued.ok ? undefined : queued.error);
 }
 
 /** Mark that somebody actually attended. The refund rule turns on this alone. */
