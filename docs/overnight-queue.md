@@ -120,7 +120,7 @@ sealed letter.
 at most 5; migration-audit 139, protocol-registry 156, order-audit 559,
 review-audit 91, protocol-run-audit 59, proofs-audit 96; perf passes with
 /coverage's NOT STABLE as the one undecided check; tonight's five standing notes.
-| 4 | Training record migration 0084 (`feat/training-record`); hold | ready for chat on development; board after the apply |
+| 4 | Training record migration 0084 (`feat/training-record`); hold | **On development** (detected 04:45: both tables present; version to be reported by the chat). Board pushed at `6145a69`. Prediction: 54 of 61 with exactly the seven probe-cause misses (native, messaging, dashboard-speed, break-glass, mobile, contrast on the probe line; proofs-audit on the same six proofs, which MASK a-certification-waits-for-the-engineer, the writer proof of the training record); migration-audit 140, protocol-registry 156, order 559; everything else passes, retries at most 5. |
 | 5 | Fast lane: (a) "Services" out of every email and the ruled site strings; (b) logo swap HELD on `hold/logo-254-engineering` (`bf391d6`); (c) JobPosting STOPPED | (a) MERGED as `b8fbf19`, pushed 04:03:34 UTC, ls-remote confirmed; readers from board `39897561918`: static 28/28 incl. email-audit, pages 8/8, gate 2, documents 1, no retries. Vercel deploys it (skip ci does not stop a deploy). |
 
 **Item 5, what was held or stopped, and why.**
