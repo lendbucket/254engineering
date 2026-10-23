@@ -132,27 +132,26 @@ export const positions: Position[] = [
     shortTitle: "Professional Engineer",
     metaTitle: "Texas Professional Engineer Role | 254 Engineering",
     metaDescription:
-      "A Texas PE seat with a firm serving all 254 counties: review engineer and engineer of record work, remote, on a written standard. Read the role and apply.",
+      "A Texas PE review seat with a registered firm serving all 254 counties: remote review to a written protocol, under the firm's registration. Read it and apply.",
     teaser:
-      "Review engineer and engineer of record work for a statewide firm, performed remotely against a written review standard.",
+      "An additional review engineer for a registered statewide firm, working remotely to the written protocols its engineer of record has signed.",
 
     engagement: "Part time retainer, with scope to grow",
     location: "Remote, anywhere in Texas",
     compensation: "Retainer, agreed with the selected engineer",
 
     about: [
-      "This is the seat the firm is built around. A review engineer reads field records produced to a written protocol, forms the opinion, and takes responsible charge of the sealed deliverable. An engineer of record takes responsible charge of design work: foundations, framing, and the drawing sets that get a project permitted.",
+      "This is an additional review engineer seat. A review engineer reads field records produced to a written protocol, forms the opinion, and takes responsible charge of the sealed deliverable for the work they review.",
       "The honest description of the review model is that it is remote and it is volume oriented. You are not driving to properties. You are reading a standardized record, applying judgment, and putting your seal on a document that a lender, a carrier, or a building official will rely on. Engineers who find that unappealing should say so early. Engineers who have been looking for exactly that arrangement usually recognize it in the first paragraph.",
       "What does not change is responsible charge. If the record in front of you does not support an opinion, the answer is that it does not, and the job goes back to the field. Nobody in this firm is authorized to ask you to seal past that. A firm that would ask is one that eventually costs an engineer their licence rather than its own.",
-      "One thing to be plain about, because it affects your decision. The firm's registration with the Texas Board of Professional Engineers and Land Surveyors is not yet issued. A Texas firm registration requires an engineer in responsible charge to be named, so the selected engineer is named on that application. You would be joining at the point where the firm becomes able to practise, not after it.",
+      "The firm is registered with the Texas Board of Professional Engineers and Land Surveyors, and its engineer of record is in place. This seat works under that existing registration, alongside the engineer of record rather than in place of him.",
     ],
     responsibilities: [
       "Read field records produced to a written protocol, form the engineering opinion, and take responsible charge of the sealed deliverable.",
-      "Author and own the review protocols themselves, so the procedure that produces your evidence is one you set rather than one handed to you.",
+      "Work to the review protocols the engineer of record has written and signed, and say plainly where a protocol does not answer the record in front of you.",
       "Decide what the record does and does not support, and send work back to the field when it does not.",
       "Take responsible charge of design work where the service line calls for it: foundations, framing, and the drawing sets that get a project permitted.",
-      "Be named as the engineer in responsible charge on the firm's registration application with the Texas Board of Professional Engineers and Land Surveyors.",
-      "Set the standard that field certification is written against, so that a technician in Dalhart and a technician in Harlingen produce a record you can read the same way.",
+      "Read records that technicians in Dalhart and in Harlingen produce to the same standard, so the same record reads the same way wherever it was made.",
     ],
     requirements: [
       "An active Texas Professional Engineer licence in good standing.",
@@ -163,7 +162,6 @@ export const positions: Position[] = [
     pluses: [
       "A windstorm inspection appointment from the Texas Department of Insurance. Not required, and a considerable plus: it is what makes coastal WPI-8 work possible at all, and it takes real effort to obtain.",
       "Willingness to pursue a TDI appointment. The firm supports the application, covers the cost, and gives you the coastal volume that makes it worth holding.",
-      "Experience as an engineer of record on a firm registration, because the first months involve exactly that.",
       "Forensic or insurance engineering experience, particularly post storm assessment.",
     ],
     engagementDetail: [
@@ -179,8 +177,8 @@ export const positions: Position[] = [
       "Specific figures are settled in the offer conversation rather than published here. The review commitment they attach to is agreed at the same time, and a number published without it would describe nothing.",
     ],
     growth: [
-      "The intent is that this seat becomes the firm's engineering leadership rather than one of many review seats. The engineer named on the firm registration is the engineer who sets how review works here.",
-      "As volume supports it, the intent is to add review capacity under standards this seat authored, which makes the role progressively more about the standard and less about the queue.",
+      "The review standards here are set by the firm's engineer of record. This seat applies them, and what it learns from the queue goes back to him as proposed revisions rather than as changes made on its own.",
+      "As volume supports it, the intent is to add review capacity under the same signed standards, so that each review engineer's record reads the same as the next.",
       "None of that is a promise, and it is written here as intent for that reason. What is contractual is the retainer, the commitment it attaches to, and the refusal right. Everything beyond that is what the firm is trying to build and would rather state honestly than dress up.",
     ],
 
