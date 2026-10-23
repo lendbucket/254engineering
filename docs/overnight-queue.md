@@ -33,6 +33,47 @@ runs changes nothing those branches read. Predicted: shape
 | 0082 scope addendum | `feat/design-addendum` | 20261023022247 | every answer as predicted |
 | 0083 permit letter option | `feat/pl-determination` | 20261023024543 | every answer as predicted |
 
+## STOP: EVERY WRITERS SHARD TONIGHT WILL FAIL, AND THE SESSION CAUSED IT
+
+**Found 03:58 UTC, reading the voided pricing run's writers log.** The
+design-addendum walk (run on development 02:31 and 02:33 on Robert's
+instruction) created two test engineers on the probe domain,
+`bf376756-f8c4-4525-9eef-ca2492b6c6aa` and
+`3b09b3a2-b6e6-43ad-ab7b-dcc4f041ebbe`, and recorded a scope addendum and seal
+acts against them. Those records refuse deletion by design (0082, 0062), so
+the accounts can never be deleted, and every probe sweep now reports them:
+
+    FAIL: the probe accounts were removed (left behind on audit-probe.invalid:
+    2 profile(s), 2 auth user(s) with no profile, which can still sign in,
+    deleteUser refused: bf376756...: Database error deleting user; 3b09b3a2...)
+
+On the voided run that line failed native, messaging, dashboard-speed,
+break-glass, mobile and contrast; proofs-audit failed six writer proofs that
+create and remove probes, very probably the same cause but not confirmed from
+their output. **Everything else in that writers shard passed, including
+trade-pricing-audit and a-decided-review-credits-its-tier**, the two pricing
+development readers.
+
+The walk's own header said those records would stay; what it did not foresee
+is that the sweep treats an undeletable probe account as a failure. The sweep
+has a "kept by design" category (operator ruling 2026-10-03) for customer
+accounts and partners only. Extending it to a staff probe held by sealed
+records changes a check, which needs Robert's ruling; nothing has been
+loosened. Both accounts are suspended in eng_profiles; their auth users exist.
+
+**Consequence: every board tonight (pricing, the 0082, 0083, FC/PL and brand
+boards) fails its writers shard on that line, so no full-lane item can merge
+tonight, pricing included.** Each board is still read: a writers shard whose
+only FAIL lines are that one is reported as such, with everything else it
+measured.
+
+**For Robert, one ruling unblocks it:** treat a probe account held by records
+that refuse deletion (a seal act, a scope addendum) as kept by design, counted
+and named in the sweep's output, exactly as the 2026-10-03 ruling does for
+customer accounts; or rule another way. And the walk must not leave one again:
+its test engineer should be created and recorded only where a sweep accounts
+for it.
+
 ## Queue and status
 
 | # | Item | Status |
