@@ -59,3 +59,27 @@ run only in the cloud. Standing note: perf `/coverage` NOT STABLE.
 | 6 | Ordering pieces 2, 3a, 3b; office-ready pass; mobile pass | **piece 2 STOPPED on a reader miss, not pushed.** `feat/ordering-copy` (`80f3008`) brought up to main as `merge/ordering-copy-on-main-1` (`e2d06ef`, clean merge, tsc clean, no "254 Engineering Services" added; full lane, it changes `launch.ts` and `ops-files.ts`). Three static readers FAIL, and they fail identically on `80f3008` itself, so the merge did not cause them. Each pins a property the 2026-10-21 removal of the "no engineer in responsible charge" sentence took out: **(a)** `portal-voice-audit`: RestrictedMode no longer carries "Sealing and order intake are disabled until an..."; **(b)** `files-audit`: the seal refusal must name "Professional Engineer" and now reads "The firm cannot seal work yet. It is not yet accepting engagements. The file can be prepar..."; **(c)** `order-audit`: a line with no approved protocol must say "waitlist" and now reads "No protocol for this service line has been approved by the engineer of record yet, so the firm has no agreed way to perform it. It cannot be ordered online yet." Each is regulatory or customer copy, so for Robert. Recommendation: (a) and (b) the checks name the new sentences exactly, asserting what each now says and that none claims sealing or a registration status; (c) the refusal keeps the word waitlist, since the page offers the waitlist. 3a and 3b sit on piece 2 and wait with it. |
 
 Held for Robert, not today: the white logo (`hold/logo-254-engineering`), opening any new line for ordering, white label.
+
+## End of day, 2026-10-23, 22:55 UTC
+
+**Landed.**
+- Pricing live at $709 (`e8bb8b5`, verified by the chat).
+- Careers merged as `6c87099` (JobPosting faults, the PE posting rewritten to today's facts, the technician posting at the office address, the ruled /order title, the sharpened compliance check); `ls-remote` confirms. For the chat: the live careers page.
+- 0084 and 0085 on development (the chat, 13:25 and 13:26), recorded in the ledger.
+- Rulings 1 and 2 (the named probe list and the fixture engineer; bulk-audit counting a replaced function once) on main.
+
+**Running, each predicted 61 of 61 above:** boards for main, 0082, 0083, 0084, 0085 and sealing, in that writers order. Each migration becomes **ready for production** here when its board matches, with its cutover line:
+- 0082 and 0083: on development since 02:22 and 02:45, under two boards of code whose tree is the deployed one (`39944348031` on `da338c2`, `39946621796` on `38774fa`, both 61 of 61). No cutover gap expected.
+- 0084 and 0085: main's own board `40035266531` on `6c87099`, against development with both applied, is the evidence; read when it lands.
+- The McAllen quote and addendum SQL, placeholders only, every column checked against 0082, goes in here when 0082 is ready.
+
+**Held.**
+- FC and PL sealing (`74c6df6`): built, the foundation refund disclosure in Robert's approved words, boarded but not merged; opening foundation and permit ordering is Robert's call.
+- Ordering piece 2, and 3a and 3b on it: three reader misses above, for Robert.
+- The white logo, opening any new line, white label.
+
+**For a ruling.**
+- Piece 2's three checks (a), (b), (c), each with a recommendation.
+- From ruling 7: added capture items are shown but cannot yet be captured against (BACKLOG).
+
+**Next.** Score each board against its prediction; mark 0082 to 0085 ready for production in order; after each production apply the chat posts, write the production record, merge with the exact command and confirm with `ls-remote`; then piece 2 on Robert's ruling, the office-ready pass, and the mobile pass.
