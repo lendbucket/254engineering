@@ -71,6 +71,19 @@ export const SUPERSEDED_RECEIVED: readonly string[] = RECEIVED_PROTOCOLS.map((p)
   .filter((d) => !fromPdf.some((s) => s.documentNumber === d.documentNumber && s.version === d.version))
   .map((d) => `${d.documentNumber} v${d.version as string}`);
 
+/**
+ * SIGNABLE, AND HELD OUT OF FORCE. Operator ruling, 2026-10-22: 254-WP-001 is
+ * deferred entirely until a signed scope addendum covers it, and it shares the
+ * windstorm-wpi-8 line with 254-WS-001, whose record approving it would retire.
+ * His signature on it is recorded and stands; it puts nothing in force. Read by
+ * src/lib/protocol-sign.ts and scripts/emit-signed-protocols-backfill.mjs, so
+ * the signing door and 0081's backfill hold the same list.
+ */
+export const HELD_OUT_OF_FORCE: Readonly<Record<string, string>> = {
+  "254-WP-001":
+    "Deferred by operator ruling of 2026-10-22: it shares the windstorm line with 254-WS-001 and needs a signed scope addendum before any job.",
+};
+
 export function signableProtocol(documentNumber: string): SignableProtocol | undefined {
   return SIGNABLE_PROTOCOLS.find((p) => p.documentNumber === documentNumber);
 }
