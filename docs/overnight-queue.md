@@ -51,7 +51,7 @@ branch merged. Every branch is re-boarded on the main it lands on first.
 | Order | Migration | SHA-256 | Sitting document | Branch to merge after the read-back |
 | --- | --- | --- | --- | --- |
 | 0 | none: pricing | | | `fix/engineer-pay-schedule-2` (no migration; merges on its board) |
-| 1 | 0082 scope addendum | `03355c41011ee76966b0ee764497bfd444662005464f00be1514938d1ae08a6c` | `docs/production-sitting-0082-scope-addendum.md` | `feat/design-addendum`; then the chat writes the McAllen record on production |
+| 1 | 0082 scope addendum | `03355c41011ee76966b0ee764497bfd444662005464f00be1514938d1ae08a6c` | `docs/production-sitting-0082-scope-addendum.md` | `feat/design-addendum` (the job record that was to follow is withdrawn, Robert 2026-10-23) |
 | 2 | 0083 permit letter option | `57673888998a4802a8adfb241e68ea80ae2bbdb0aef3930dad6a9c0253b94005` | `docs/production-sitting-0083-permit-letter-option.md` | `feat/pl-determination`, then `feat/fc-pl-letters` (no migration of its own) |
 | 3 | 0084 a line opens only when trained | `01b0170a3d26497f750b478de3c529b0e280bfb2d12fedca3e5e27b3f5013934` | `docs/production-sitting-0084-a-line-opens-only-when-trained.md` | `feat/training-record` |
 
