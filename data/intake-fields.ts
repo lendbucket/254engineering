@@ -393,10 +393,22 @@ function fromCatalog(input: RequiredInput): IntakeField {
     id: input.id,
     label: input.label,
     help: input.help,
-    kind: input.kind === "file" ? "file" : input.kind === "date" ? "date" : "text",
+    /*
+     * A catalog "choice" is a select with its options, and "number" a number.
+     * Until 2026-10-23 every kind but file and date became text, so a choice
+     * would have reached the form as a free text box with its options dropped;
+     * no catalog input used one until ruling 7's foundation type.
+     */
+    kind:
+      input.kind === "file" ? "file"
+      : input.kind === "date" ? "date"
+      : input.kind === "choice" ? "select"
+      : input.kind === "number" ? "number"
+      : "text",
+    ...(input.kind === "choice" ? { options: input.options ?? [] } : {}),
     ...(input.kind === "file" && input.accepts === "A photograph" ? { photo: true } : {}),
     required: input.required,
-    stage: "order",
+    stage: input.stage ?? "order",
     audience: "customer",
     applies: "all",
     group: input.id === "access_notes" ? "access" : "document",

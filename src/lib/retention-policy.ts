@@ -470,6 +470,26 @@ export const RETENTION_POLICY: RetentionEntry[] = [
     },
   },
   {
+    table: "eng_job_capture_additions",
+    rule: {
+      kind: "kept_forever",
+      because:
+        "THE ENGINEER'S OWN CAPTURE ITEMS FOR ONE FILE, in his words. They are part of what the file's evidence was " +
+        "collected against. Append only, and gone only with the file (0085).",
+      ruledBy: "operator ruling 7 of 2026-10-23 (PL-5), and the trigger in 0085",
+    },
+  },
+  {
+    table: "eng_job_triage",
+    rule: {
+      kind: "kept_forever",
+      because:
+        "THE ENGINEER'S SITE JOB OR DESK JOB DECISION FOR A FILE. A sealed letter's basis sentence comes only from " +
+        "it, so it is what that sentence is checked against. Append only, and gone only with the file (0085).",
+      ruledBy: "operator ruling 7 of 2026-10-23 (PL-4), and the trigger in 0085",
+    },
+  },
+  {
     table: "eng_jobs",
     rule: {
       kind: "delete_after",
@@ -491,6 +511,17 @@ export const RETENTION_POLICY: RetentionEntry[] = [
     },
   },
   { table: "eng_leads", rule: { kind: "kept_pending_counsel", because: COUNSEL } },
+  {
+    table: "eng_letter_facts",
+    rule: {
+      kind: "kept_forever",
+      because:
+        "THE FACTS A SEALED LETTER PRINTS THAT THE OFFICE OR THE ENGINEER RECORDED: the authority's address and " +
+        "salutation, the confirmed foundation type, the reviewed element. A letter is checked against them. " +
+        "Append only, every correction kept, and gone only with the file (0085).",
+      ruledBy: "operator ruling 7 of 2026-10-23 (FC-3, PL-2, PL-3), and the trigger in 0085",
+    },
+  },
   {
     table: "eng_marketing_suppressions",
     rule: {

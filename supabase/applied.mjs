@@ -2958,6 +2958,24 @@ export const APPLIED = [
       "first, from docs/production-sitting-0084-a-line-opens-only-when-trained.md. The branch merges only after " +
       "the production apply is read back, and a migration on main is never pending.",
   },
+  {
+    file: "0085_a_letter_states_only_recorded_facts.sql", appliedBy: "apply_migration",
+    fingerprint: "cbf3b1702865427a65466b11c900b4e1",
+    behaviour: "b7d5fefb4da018255dc691c3da1df896",
+    production: null,
+    proves: { table: "eng_letter_facts" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0085 on 2026-10-23, with 0084 reproducing its " +
+      "recorded pair first: shape 1299 to 1317 columns (eng_letter_facts' seven, eng_job_triage's six, " +
+      "eng_job_capture_additions' five), behaviour 1202 to 1227 facts. No function, no drop statement.",
+    because:
+      "WRITTEN 2026-10-23 ON feat/fc-pl-records, QUEUED BEHIND 0084, AND APPLIED NOWHERE. Operator ruling 7 of " +
+      "2026-10-23 on the foundation and permit letters: the facts they print that the platform did not hold are " +
+      "recorded by the office or the engineer as ruled, the engineer's site or desk triage is a record, and his " +
+      "added capture items are his words. The chat applies it with apply_migration, development first, from " +
+      "docs/production-sitting-0085-a-letter-states-only-recorded-facts.md. The branch merges only after the " +
+      "production apply is read back, and a migration on main is never pending.",
+  },
 ];
 
 /*
