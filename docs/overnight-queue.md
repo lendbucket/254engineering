@@ -15,7 +15,16 @@ a mismatch the chat found, and is left for the morning.
 
 ## Migrations for development
 
-None ready yet.
+| Migration | Branch | Commit | SHA-256 | Sitting document | Status |
+| --- | --- | --- | --- | --- | --- |
+| `supabase/migrations/0084_a_line_opens_only_when_trained.sql` | `feat/training-record` | `454318d` (file unchanged since `e947a6e`) | `01b0170a3d26497f750b478de3c529b0e280bfb2d12fedca3e5e27b3f5013934` | `docs/production-sitting-0084-a-line-opens-only-when-trained.md` | **ready for chat** |
+
+0084 needs 0083 on development, which it has (20261023024543). It is additive
+only: two new tables, a backfill into them, one new function. It alters no
+existing table or function, so an apply while a branch board's writers shard
+runs changes nothing those branches read. Predicted: shape
+`a4bbde8cac7f216a582875f8ff8d1e01` / 1280 before,
+`79a8143e24f29af96b2a26573efd8803` / 1299 after.
 
 ## Already on development tonight
 
@@ -70,5 +79,5 @@ sealed letter.
 at most 5; migration-audit 139, protocol-registry 156, order-audit 559,
 review-audit 91, protocol-run-audit 59, proofs-audit 96; perf passes with
 /coverage's NOT STABLE as the one undecided check; tonight's five standing notes.
-| 4 | Training record migration; hold | queued |
+| 4 | Training record migration 0084 (`feat/training-record`); hold | ready for chat on development; board after the apply |
 | 5 | Fast lane: logo on site and email, "Services" out of staff email, JobPosting schema | queued |
