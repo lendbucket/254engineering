@@ -4,6 +4,24 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
+## EVERY CLOUD BOARD SHARES ONE SIGN IN RATE LIMIT BUCKET, OPEN, THIS WEEK
+
+`src/lib/ops-rate-limit.ts` and `.github/workflows/board.yml`, on its own
+branch `fix/ci-board-sign-in-key`. Ruled by Robert on 2026-10-23. Main's board
+`40035266531`: every probe sign in in the writers shard answered HTTP 429
+(roles, mobile-overflow, native, v10-layout FAIL; messaging, dashboard-speed,
+break-glass COULD NOT TELL). `takeLoginAttempt` counts in the shared
+development database keyed by `clientKey()`, which is `x-forwarded-for` or else
+`"unknown"`, and a runner calling localhost sends no forwarded header, so every
+board's sign ins land in one bucket; five boards' other shards were signing in
+while main's writers ran. **The limiter is not loosened.** The fix: each board
+run sends its own key, a header the board sets from its run id, which
+`clientKey()` honours only when the database is development
+(`ythzaiqeoijlrdibnieo`) and never otherwise. Proof owed: on a production target
+the header is ignored and the address key is unchanged, injection-verified by
+honouring it unconditionally. Until it lands, boards are never pushed in a
+burst.
+
 ## THE SITTING FOR 0080, THE SIGNED SOURCES GO PRIVATE, OPEN
 
 `docs/production-sitting-0080-protocol-sources.md`. Written 2026-10-22 on
