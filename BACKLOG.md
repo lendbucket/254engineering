@@ -4,6 +4,21 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
+## THE INSTRUMENTATION HOOK REACHES node:crypto IN THE EDGE BUNDLE, OPEN, THIS WEEK
+
+`src/instrumentation.ts`, on its own branch `fix/instrumentation-nodejs-runtime`.
+Ruled intermittent by Robert on 2026-10-23. Main's board `40035266531` on
+`6c87099`: launch-audit's live mode dev server on 4305 never came up, "Ecmascript
+file had an error" with the Edge Instrumentation import trace
+`instrumentation.ts` to `ops-observability.ts` to `ops-mfa.ts` to `totp.ts`'s
+`node:crypto`, then `GET / 500`, so the audit measured nothing and printed FAIL.
+The same tree passed on `38774fa` at 13:20, on five branch boards that night,
+and on attempt 2 of the same shard. The cause, read from source:
+`onRequestError` imports `@/lib/ops-observability` with no runtime guard, so it
+is bundled for the Edge runtime too. It must load only when
+`process.env.NEXT_RUNTIME === "nodejs"`. Proof owed: every server-only import in
+the hook sits behind that guard, injection-verified by removing the guard.
+
 ## THE SITTING FOR 0080, THE SIGNED SOURCES GO PRIVATE, OPEN
 
 `docs/production-sitting-0080-protocol-sources.md`. Written 2026-10-22 on
