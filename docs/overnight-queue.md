@@ -23,9 +23,10 @@
    (Vercel preview); the JobPosting fault; and the nine FC and PL letter points
    in `docs/fc-pl-letters-open-points.md` on `feat/fc-pl-letters`.
 
-**Two faults of the session's own tonight**, both disclosed as they happened:
-`retention-audit` run from the PC at about 03:24 inside pricing's writers
-window (that board was voided and re-run), and the walk's probe accounts above.
+**Three faults of the session's own tonight**: `retention-audit` run from the
+PC at about 03:24 inside pricing's writers window (that board was voided and
+re-run); the walk's probe accounts above; and, found by the chat in the
+morning, a false report that 0084 was on development (corrected in item 4).
 
 ### Each item against its prediction
 
@@ -35,7 +36,7 @@ window (that board was voided and re-run), and the walk's probe accounts above.
 | 2a | 0082 on main (`db821b6`, board `39895256012`) | **Held.** 54 of 61, the probe set only; every predicted figure met. |
 | 2b | 0083 on main (`e6ee6f8`, board `39895258058`) | **Held.** 53 of 61: the probe set and the bulk-audit double count; every predicted figure met. |
 | 3 | FC and PL determination recording (`2c3e103`, board `39896119586`) | **Held.** 53 of 61, the same two causes; its new proof passed in the cloud. Letter sealing for both is not built: nine points for rulings. |
-| 4 | 0084 training record (`6145a69`, board `39902040395`) | **Held.** On development (detected 04:45; version not reported). 53 of 61 against a predicted 54: the bulk-audit miss was found after the prediction was written. Its own proof passed; a-certification-waits-for-the-engineer, the writer proof of it, is masked by the probe failure. |
+| 4 | 0084 training record | **NOT on development; to be redesigned.** CORRECTED 2026-10-23 morning: the chat held 0084 at 04:15 (a writers shard was running, and as written it pins test technicians forever through on delete restrict). The session's 04:45 claim that it was applied was FALSE: its read printed "present" for tables that do not exist, because the client returned no error and a null count. Board `39902040395` ran without 0084 on development and does not count. The false ledger record is reverted (`ce12e69`). |
 | 5a | "Services" out of every email and the ruled site strings | **Merged** as `b8fbf19`, fast lane, readers all green. |
 | 5b | Logo swap | **Held** on `hold/logo-254-engineering` (`bf391d6`) for Robert's look. |
 | 5c | JobPosting | **Stopped**: the fault is not visible from the code. |
@@ -83,7 +84,7 @@ a mismatch the chat found, and is left for the morning.
 
 | Migration | Branch | Commit | SHA-256 | Sitting document | Status |
 | --- | --- | --- | --- | --- | --- |
-| `supabase/migrations/0084_a_line_opens_only_when_trained.sql` | `feat/training-record` | `454318d` (file unchanged since `e947a6e`) | `01b0170a3d26497f750b478de3c529b0e280bfb2d12fedca3e5e27b3f5013934` | `docs/production-sitting-0084-a-line-opens-only-when-trained.md` | **ready for chat** |
+| `supabase/migrations/0084_a_line_opens_only_when_trained.sql` | `feat/training-record` | `454318d` (file unchanged since `e947a6e`) | `01b0170a3d26497f750b478de3c529b0e280bfb2d12fedca3e5e27b3f5013934` | `docs/production-sitting-0084-a-line-opens-only-when-trained.md` | **WITHDRAWN.** Held by the chat at 04:15 for the probe pinning; to be redesigned (Robert's ruling 6) and re-queued with a new SHA-256. Not on development. |
 
 0084 needs 0083 on development, which it has (20261023024543). It is additive
 only: two new tables, a backfill into them, one new function. It alters no
@@ -186,7 +187,7 @@ sealed letter.
 at most 5; migration-audit 139, protocol-registry 156, order-audit 559,
 review-audit 91, protocol-run-audit 59, proofs-audit 96; perf passes with
 /coverage's NOT STABLE as the one undecided check; tonight's five standing notes.
-| 4 | Training record migration 0084 (`feat/training-record`); hold | **On development** (detected 04:45: both tables present; version to be reported by the chat). Board pushed at `6145a69`. Prediction: 54 of 61 with exactly the seven probe-cause misses (native, messaging, dashboard-speed, break-glass, mobile, contrast on the probe line; proofs-audit on the same six proofs, which MASK a-certification-waits-for-the-engineer, the writer proof of the training record); migration-audit 140, protocol-registry 156, order 559; everything else passes, retries at most 5. |
+| 4 | Training record migration 0084 (`feat/training-record`); hold | **NOT on development (corrected: see the morning report). The board below does not count.** Board pushed at `6145a69`. Prediction: 54 of 61 with exactly the seven probe-cause misses (native, messaging, dashboard-speed, break-glass, mobile, contrast on the probe line; proofs-audit on the same six proofs, which MASK a-certification-waits-for-the-engineer, the writer proof of the training record); migration-audit 140, protocol-registry 156, order 559; everything else passes, retries at most 5. |
 | 5 | Fast lane: (a) "Services" out of every email and the ruled site strings; (b) logo swap HELD on `hold/logo-254-engineering` (`bf391d6`); (c) JobPosting STOPPED | (a) MERGED as `b8fbf19`, pushed 04:03:34 UTC, ls-remote confirmed; readers from board `39897561918`: static 28/28 incl. email-audit, pages 8/8, gate 2, documents 1, no retries. Vercel deploys it (skip ci does not stop a deploy). |
 
 **Item 5, what was held or stopped, and why.**
