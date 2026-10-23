@@ -78,7 +78,7 @@ for it.
 
 | # | Item | Status |
 | --- | --- | --- |
-| 1 | Pricing: board `39893229124` VOIDED; clean board `39895075922` on the same commit `97af17b` (branch `merge/pricing-on-main-2`); merge on a match; confirm $709 roof live | clean board running |
+| 1 | Pricing: board `39893229124` VOIDED; clean board `39895075922` on `97af17b` | **STOPPED, not merged.** 54 of 61 against a predicted 61. The seven misses are exactly the leftover-probe ones (six audits on that line, proofs-audit on six writer proofs that passed on every board before the walk). Everything pricing is about passed: trade-pricing-audit 40 ("nothing sells beneath a floor"), a-decided-review-credits-its-tier, order 556, price-book 67, intake 116, perf 81; static, pages, gate and documents with no retries. Merges on Robert's word once the probe ruling lands and a board passes. $709 is not live. |
 
 **Item 1, the voided board, the session's own fault.** At about 03:24 to
 03:25 UTC the session ran `retention-audit` from the PC as part of a batch of
