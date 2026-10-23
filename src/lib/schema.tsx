@@ -224,9 +224,15 @@ export function jobPostingSchema(opening: {
   remote: boolean;
   anchor: string;
 }) {
+  /*
+   * THE FIRM'S OFFICE, NOT A REGION. Operator ruling of 2026-10-23: a field
+   * seat's jobLocation was addressRegion TX alone, which states no place. It is
+   * the office the Organization node carries, from the same deriver, so the
+   * address is never typed twice.
+   */
   const texas = {
     "@type": "Place",
-    address: {
+    address: postalAddressSchema() ?? {
       "@type": "PostalAddress",
       addressRegion: "TX",
       addressCountry: "US",
