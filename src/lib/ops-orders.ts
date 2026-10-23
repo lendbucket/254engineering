@@ -402,7 +402,20 @@ export function refundDisclosure(entry: CatalogEntry): string[] {
     "The engineer reviews what is gathered and decides. They may seal it, ask for revisions, ask for another visit, or decline to seal.",
   ];
 
-  if (entry.orderType === "field") {
+  /*
+   * FOUNDATION CERTIFICATION, operator ruling FC-1 of 2026-10-23. A decline
+   * after the evidence is reviewed is option C, a sealed letter with the
+   * engineer's reason, and "a C letter is delivered work: no refund". A decline
+   * before anyone attends is still a full refund. Stated before payment, as
+   * every refund term is.
+   */
+  if (entry.serviceSlug === "foundation-inspections") {
+    lines.push(
+      refundIfDeclinedEarly(entry),
+      "If the engineer declines to certify the foundation after reviewing the evidence, you receive his sealed letter saying so, with his reason. That letter is the work delivered, so it is not refunded.",
+      "You are never charged more than the price shown above, and a decline is never a reason for a further charge.",
+    );
+  } else if (entry.orderType === "field") {
     lines.push(
       refundIfDeclinedEarly(entry),
       isKnown(entry.inspectionFeeCents)
