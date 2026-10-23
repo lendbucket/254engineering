@@ -41,18 +41,32 @@
  * this file (0073). No drop statement.
  */
 
+/*
+ * SWEEPABLE, NOT PINNING. Operator ruling 6 of 2026-10-23: as first written,
+ * these rows referenced eng_profiles with on delete restrict, so every board
+ * that recorded training for a probe technician would have left an account no
+ * sweep could remove, the failure ruling 1 had just named. So a training
+ * record belongs to its technician (on delete cascade) and a decision to its
+ * record (on delete cascade), and who recorded or decided is a pointer, not a
+ * reference, exactly as eng_audit_events.actor_id is (0001 says why). Both
+ * tables keep the append only guard that still lets a cascade through
+ * (eng_forbid_mutation_allow_cascade, 0001): a row can never be edited, and
+ * can never be deleted except by deleting the person it is about. A real
+ * technician is suspended, never deleted; the probes are what this is for.
+ */
+
 /* 1. The training, as recorded. */
 create table if not exists eng_training_records (
   id                     uuid primary key default gen_random_uuid(),
   created_at             timestamptz not null default now(),
-  profile_id             uuid not null references eng_profiles (id) on delete restrict,
+  profile_id             uuid not null references eng_profiles (id) on delete cascade,
   service_slug           text not null,
   template_id            uuid not null references eng_protocol_templates (id) on delete restrict,
   protocol_document      text not null,
   protocol_version_label text not null,
   trained_on             date not null,
   supervised_by          text not null check (length(btrim(supervised_by)) >= 3),
-  recorded_by            uuid references eng_profiles (id) on delete restrict,
+  recorded_by            uuid,
   source_event_id        bigint unique
 );
 alter table eng_training_records enable row level security;
@@ -65,15 +79,15 @@ comment on column eng_training_records.source_event_id is
 
 create trigger eng_training_records_append_only
   before update or delete on eng_training_records
-  for each row execute function eng_forbid_mutation();
+  for each row execute function eng_forbid_mutation_allow_cascade();
 
 /* 2. The engineer's decision on it. */
 create table if not exists eng_training_decisions (
   id                  uuid primary key default gen_random_uuid(),
   created_at          timestamptz not null default now(),
-  record_id           uuid not null unique references eng_training_records (id) on delete restrict,
+  record_id           uuid not null unique references eng_training_records (id) on delete cascade,
   decision            text not null check (decision in ('approved', 'refused')),
-  decided_by          uuid references eng_profiles (id) on delete restrict,
+  decided_by          uuid,
   decided_by_license  text,
   reason              text,
   source_event_id     bigint unique,
@@ -89,7 +103,7 @@ comment on table eng_training_decisions is
 
 create trigger eng_training_decisions_append_only
   before update or delete on eng_training_decisions
-  for each row execute function eng_forbid_mutation();
+  for each row execute function eng_forbid_mutation_allow_cascade();
 
 /*
  * 3. The interim events, carried over once. A record event names its template

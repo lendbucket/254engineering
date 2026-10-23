@@ -143,6 +143,26 @@ const exec = (await db.query(
 )).rows[0];
 check("nobody signed out or signed in as a customer can call the function", !exec.anon && !exec.authed);
 
+/*
+ * RULING 6: SWEEPABLE, NOT PINNING. A probe technician's training goes with
+ * the technician, and the people who recorded or decided it pin nothing.
+ */
+const countFor = async (profile) =>
+  Number((await db.query(
+    `select (select count(*) from eng_training_records where profile_id = $1)
+          + (select count(*) from eng_training_decisions d join eng_training_records r on r.id = d.record_id where r.profile_id = $1) as n`,
+    [profile],
+  )).rows[0].n);
+const before = await countFor(TECH);
+const sweptTech = await refused(`delete from eng_profiles where id = $1`, [TECH]);
+check("a probe technician with training on record can be deleted", !sweptTech.refused, sweptTech.message.slice(0, 80) || `${before} rows before`);
+check("and their training rows and decisions go with them", before > 0 && (await countFor(TECH)) === 0, `${before} before, ${await countFor(TECH)} after`);
+check("while another technician's training stays", (await countFor(TECH2)) > 0);
+const sweptActors = await refused(`delete from eng_profiles where id in ($1, $2)`, [ADMIN, ENG]);
+check("the administrator who recorded and the engineer who decided can be deleted too: they are pointers, not references", !sweptActors.refused, sweptActors.message.slice(0, 80));
+const stillDirect = await refused(`delete from eng_training_records where profile_id = $1`, [TECH2]);
+check("and a training record still cannot be deleted on its own", stillDirect.refused);
+
 /* The source: the money door, roof, and the portal's order of writes. */
 const gate = readFileSync("src/lib/line-gate.ts", "utf8");
 check(
