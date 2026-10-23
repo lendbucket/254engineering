@@ -40,7 +40,18 @@ never merges on it. A cancel of that run was refused by the session's
 permissions, so it runs to the end and is ignored. The clean board
 `39895075922` measures the same commit; its writers shard waits its turn
 behind the voided one.
-| 2 | Board 0082 and 0083 branches on current main; hold on a match | next |
+| 2 | Board 0082 and 0083 branches on current main; hold on a match | boards pushed, writers queued |
+
+**Item 2 predictions, stated before the pushes.**
+`merge/design-addendum-on-main-1` at `db821b6` (feat/design-addendum 5025953
+on main 7994969): 61 of 61, no FAIL, retries at most 5; migration-audit 138,
+protocol-registry 156, order-audit 559, proofs-audit 94; perf passes with
+/coverage's NOT STABLE as the one undecided check; standing notes: stripe-webhook's
+two, dashboards' empty firm, retention's 5 naming eng_jobs, 68 signed-in
+screens unmeasured, compliance's one acknowledgement.
+`merge/pl-determination-on-main-1` at `e6ee6f8` (feat/pl-determination
+a339992 on main 7994969): the same, migration-audit 139, proofs-audit 95.
+Static readers run on the PC first, every one green; no writer audit.
 | 3 | `feat/fc-pl-letters`: determination and sealing for FC-001 and PL-001; hold | queued |
 | 4 | Training record migration; hold | queued |
 | 5 | Fast lane: logo on site and email, "Services" out of staff email, JobPosting schema | queued |
