@@ -30,6 +30,47 @@ import { signInFully } from "./probe-mfa.mjs";
 export const PROBE_DOMAIN = "audit-probe.invalid";
 
 /*
+ * ======================================================================
+ * KEPT BY DESIGN: A NAMED LIST, NOT A CATEGORY. Operator ruling, 2026-10-23.
+ * ======================================================================
+ *
+ * The design-addendum walk of 2026-10-23 made two test engineers on this
+ * domain and recorded a scope addendum and seal acts against them. Those
+ * records refuse deletion by design (0082, 0062), so the accounts can never be
+ * removed, and every sweep failed on them. The ruling: those two are kept by
+ * design, counted and named in the sweep's output, and ANY OTHER leftover
+ * still fails. It is a list rather than a rule ("anything held by a sealed
+ * record") because a rule would excuse the next one silently, which is exactly
+ * what a sweep exists to notice.
+ *
+ * And from now on every walk or audit that creates records which refuse
+ * deletion uses ONE permanent development fixture engineer, created once
+ * (fixtureEngineer below) and on this list, so the list never grows again.
+ * scripts/proofs/the-probe-sweep-keeps-only-the-named-accounts.mjs proves a
+ * third undeletable probe still turns the sweep red.
+ */
+export const FIXTURE_ENGINEER_EMAIL = `fixture-engineer@${PROBE_DOMAIN}`;
+export const KEPT_PROBES = [
+  {
+    id: "bf376756-f8c4-4525-9eef-ca2492b6c6aa",
+    why: "the design-addendum walk's engineer of 2026-10-23 02:31, held by a scope addendum and seal acts (0082)",
+  },
+  {
+    id: "3b09b3a2-b6e6-43ad-ab7b-dcc4f041ebbe",
+    why: "the design-addendum walk's engineer of 2026-10-23 02:33, held by a scope addendum and seal acts (0082)",
+  },
+  {
+    email: FIXTURE_ENGINEER_EMAIL,
+    why: "the one permanent development fixture engineer for records that refuse deletion (ruling of 2026-10-23)",
+  },
+];
+/** The list entry an account matches, by id or by its address, or null. */
+export function keptProbe(account) {
+  const email = (account?.email ?? "").toLowerCase();
+  return KEPT_PROBES.find((k) => (k.id && k.id === account?.id) || (k.email && k.email === email)) ?? null;
+}
+
+/*
  * ==========================================================================
  * A PROBE THAT COULD NOT BE BUILT CARRIES THE REASON IT COULD NOT BE BUILT.
  * Operator ruling, 2026-09-23.
@@ -158,6 +199,46 @@ let injectedForTests = null;
 export function __setProbeClientForTests(fake) {
   injectedForTests = fake;
   db = null;
+}
+
+/**
+ * THE ONE PERMANENT DEVELOPMENT FIXTURE ENGINEER. Operator ruling, 2026-10-23.
+ *
+ * Every walk or audit that creates records which refuse deletion (a seal act,
+ * a scope addendum) records them against this account and no other, so no
+ * probe is ever pinned again. Found by its fixed address, created only the
+ * first time it is asked for, and on KEPT_PROBES, so the sweep keeps it and
+ * names it. Development only: the client refuses production. Never deleted,
+ * never suspended by a run.
+ */
+export const FIXTURE_ENGINEER_LICENCE = "AUDIT-FIXTURE-PE";
+export async function fixtureEngineer(label = "fixture engineer") {
+  const d = client(label);
+  if (!d) return { ok: false, error: "no development client" };
+  const { data: found, error } = await d
+    .from("eng_profiles")
+    .select("id, email, role, status")
+    .eq("email", FIXTURE_ENGINEER_EMAIL)
+    .maybeSingle();
+  if (error) return { ok: false, error: `the fixture engineer could not be read: ${error.message}` };
+  if (found) return { ok: true, id: found.id, email: found.email, created: false };
+  const { data, error: cErr } = await d.auth.admin.createUser({
+    email: FIXTURE_ENGINEER_EMAIL,
+    password: `fixture-${randomBytes(24).toString("hex")}`,
+    email_confirm: true,
+  });
+  if (cErr || !data?.user) return { ok: false, error: `createUser: ${cErr?.message ?? "no user came back"}` };
+  const { error: pErr } = await d.from("eng_profiles").insert({
+    id: data.user.id,
+    email: FIXTURE_ENGINEER_EMAIL,
+    display_name: "Development fixture engineer, not a real person",
+    role: "engineer",
+    status: "active",
+    is_demo: true,
+    license_number: FIXTURE_ENGINEER_LICENCE,
+  });
+  if (pErr) return { ok: false, error: `profile: ${pErr.message}` };
+  return { ok: true, id: data.user.id, email: FIXTURE_ENGINEER_EMAIL, created: true };
 }
 
 function client(label) {
@@ -1131,7 +1212,7 @@ export async function destroyProbes(label = "audit") {
    */
   const { data: strays } = await d
     .from("eng_profiles")
-    .select("id")
+    .select("id, email")
     .like("email", `%@${PROBE_DOMAIN}`);
 
   /*
@@ -1161,6 +1242,24 @@ export async function destroyProbes(label = "audit") {
   ]);
 
   /*
+   * THE NAMED KEPT ACCOUNTS ARE NOT DELETED AND NOT COUNTED, and are NAMED.
+   * Every address known for an id is consulted, so the fixture is recognised
+   * whether the profile or only the auth user carries its address.
+   */
+  const addressOf = new Map();
+  for (const r of [...(strays ?? []), ...authIds, ...made]) {
+    if (r?.id && r.email) addressOf.set(r.id, r.email);
+  }
+  const kept = [];
+  for (const id of [...ids]) {
+    const entry = keptProbe({ id, email: addressOf.get(id) });
+    if (entry) {
+      ids.delete(id);
+      kept.push(`${id} (${entry.why})`);
+    }
+  }
+
+  /*
    * The deleteUser failure is no longer swallowed. `.catch(() => {})` is how
    * both stranded accounts got there: the call failed, nothing said so, and the
    * verification was looking at profiles where the failure does not show.
@@ -1178,20 +1277,22 @@ export async function destroyProbes(label = "audit") {
   made.length = 0;
 
   /* VERIFIED IN BOTH PLACES, because a sweep verified in one is a sweep of one. */
-  const { data } = await d.from("eng_profiles").select("email").like("email", `%@${PROBE_DOMAIN}`);
-  const profilesLeft = (data ?? []).length;
-  const usersLeft = (await probeAuthUsers(d)).length;
+  const { data } = await d.from("eng_profiles").select("id, email").like("email", `%@${PROBE_DOMAIN}`);
+  const profilesLeft = (data ?? []).filter((r) => !keptProbe(r)).length;
+  const usersLeft = (await probeAuthUsers(d)).filter((u) => !keptProbe(u)).length;
   const left = profilesLeft + usersLeft;
 
   const parts = [];
   if (profilesLeft) parts.push(`${profilesLeft} profile(s)`);
   if (usersLeft) parts.push(`${usersLeft} auth user(s) with no profile, which can still sign in`);
   if (refusals.length) parts.push(`deleteUser refused: ${refusals.join("; ")}`);
+  const keptNote = kept.length ? `kept by design (${kept.length}, named list of 2026-10-23): ${kept.join("; ")}` : "";
 
   return {
     ok: left === 0 && refusals.length === 0,
     left,
-    note: parts.length ? `left behind on ${PROBE_DOMAIN}: ${parts.join(", ")}` : "",
+    kept,
+    note: [parts.length ? `left behind on ${PROBE_DOMAIN}: ${parts.join(", ")}` : "", keptNote].filter(Boolean).join(". "),
   };
 }
 

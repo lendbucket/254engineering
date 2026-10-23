@@ -13,6 +13,21 @@
 import { randomUUID } from "node:crypto";
 import { deflateSync } from "node:zlib";
 
+/*
+ * REFUSES TO RUN UNTIL IT RECORDS AGAINST THE FIXTURE ENGINEER. Operator ruling
+ * 1 of 2026-10-23. This walk's two runs on 2026-10-23 each made a fresh probe
+ * engineer and recorded a scope addendum and seal acts against it, records
+ * that refuse deletion, so both accounts can never be swept (they are now on
+ * KEPT_PROBES by name). Every walk that makes such records must use the one
+ * permanent fixture engineer (fixtureEngineer in scripts/lib/portal-probe.mjs),
+ * and this one does not yet: its engineer enrols a fresh second factor and
+ * uploads seal images on each run, which a permanent account cannot repeat
+ * as written. Until it is moved onto the fixture, it does not run.
+ */
+throw new Error(
+  "design-addendum-walk refuses to run: it still makes a fresh probe engineer, and records that refuse deletion must be made against the fixture engineer (ruling 1 of 2026-10-23).",
+);
+
 const ROOT = new URL("../../", import.meta.url).href;
 const { auditClient } = await import(ROOT + "scripts/lib/db-target.mjs");
 const db = auditClient("design addendum walk", { neverProduction: true });
