@@ -2894,8 +2894,8 @@ export const APPLIED = [
     because:
       "WRITTEN 2026-10-22 ON feat/design-addendum; ON DEVELOPMENT (version 20261023022247), NOT ON PRODUCTION. Operator rulings " +
       "of 2026-10-22: custom design pays the engineer 35% of the fee under a scope addendum he signs in the " +
-      "portal, as a seal act exactly like a protocol signature, and nothing without it; the first is the " +
-      "McAllen design job, whose real record the chat writes on production; development holds invented data " +
+      "portal, as a seal act exactly like a protocol signature, and nothing without it. It goes to production " +
+      "as built with no job record written beside it (Robert, 2026-10-23); development holds invented data " +
       "only. The chat applies it with apply_migration, development first. The branch merges only after the " +
       "production apply is read back, and a migration on main is never pending.",
   },
