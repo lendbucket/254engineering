@@ -478,6 +478,17 @@ export const CUSTOMER_STATUS: Record<OrderStatus, string> = {
  */
 export const CUSTOMER_STATUS_REFUND_ISSUED = "Refund issued. What the engineer found is below.";
 
+/**
+ * The underway line while the file waits on repairs. Operator ruling Q3,
+ * 2026-10-19: the order page went on reading "Underway" after the engineer
+ * decided repairs were needed. The order's own status does not change, because
+ * the order is still being fulfilled; the line is read from the FILE, which
+ * carries repairs_required (0053). Its middle sentence is RC-001 section 10,
+ * word for word.
+ */
+export const CUSTOMER_STATUS_REPAIRS =
+  "Repairs needed. No certification letter is issued with an open repair item. The engineer's letter listing the repairs is below once it is sealed.";
+
 const ORDER_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   draft: ["awaiting_payment", "cancelled"],
   awaiting_payment: ["paid", "cancelled"],

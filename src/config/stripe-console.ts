@@ -137,6 +137,19 @@ export const stripeConsole: {
     /** Said plainly so nobody promotes this to evidence. */
     notice: string;
   } | null;
+  /**
+   * WHO TELLS THE PAYER THEIR PAYMENT ARRIVED, AND IT IS STRIPE, NOT THIS CODE.
+   * Operator ruling, 2026-10-21. An order whose account waits for a person
+   * sends no receipt from this platform, because the confirmation's recipient
+   * rule names nobody until the account is attached, and nothing here writes to
+   * an address that merely paid. The operator turns on Stripe's own
+   * successful-payment emails in the dashboard so the payer still hears.
+   *
+   * OPERATOR-STATED AND UNVERIFIED, in the same idiom as `verificationNotice`:
+   * nothing in this repository can read that setting, so this records what he
+   * said and when, and stays a statement until a live read confirms it.
+   */
+  customerReceipts: { statedBy: string; statedOn: string; setting: string; notice: string };
   /** Any verification requirement or restriction the console showed. */
   verificationNotice: string;
   /** What must change in the console, and what triggers it. */
@@ -305,6 +318,16 @@ export const stripeConsole: {
    * The date is in the park and not in this sentence, so there is one place to
    * change it.
    */
+  customerReceipts: {
+    statedBy: "Robert Reyna, operator",
+    statedOn: "2026-10-21",
+    setting: "Stripe's successful-payment emails to customers, turned on in the Stripe dashboard.",
+    notice:
+      "OPERATOR-STATED, UNVERIFIED. No capture backs this and no API read was made. It records that " +
+      "the operator said he is turning the setting on; whether it is on is unconfirmed until a live " +
+      "read of the dashboard or the account confirms it. Nothing in this platform's code sends to the " +
+      "paying address.",
+  },
   verificationNotice:
     "OPERATOR ATTESTATION, NOT EVIDENCE. Attested by Robert Reyna, operator, on 2026-09-22: he " +
     "read the Stripe Account status tab and reports the account status good. NO CAPTURE BACKS " +

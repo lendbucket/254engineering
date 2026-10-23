@@ -221,17 +221,24 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * eng_refund_approval_limits (5); 87 tables to 92, row level security on all
  * five; shape 45ce47821d9c5567eb3b4b197549d881, read off fingerprint-at.mjs
  * with 0078 reproducing its recorded pair first.
+ *
+ * Moved 2026-10-22 by 0081, a signed protocol is the protocol in force, by
+ * operator rulings that day: 1,263 to 1,265 is eng_protocol_templates.
+ * signed_by_seal_act_id and eng_seal_acts.letterhead_sha256; no new table;
+ * shape d73cdd49ae5da6268743584229cb3b88, read off fingerprint-at.mjs with
+ * 0080 reproducing its recorded pair first.
  */
-const EXPECTED_FINGERPRINT = "45ce47821d9c5567eb3b4b197549d881";
-const EXPECTED_COLUMNS = 1263;
+const EXPECTED_FINGERPRINT = "d73cdd49ae5da6268743584229cb3b88";
+const EXPECTED_COLUMNS = 1265;
 const EXPECTED_TABLES = 92;
 /* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts.
  * 0074 adds two: eng_partner_billing_touch and eng_partner_billing_events_immutable.
  * 0075 adds one: eng_payment_events_guarded.
  * 0079 adds five, by owner ruling 2026-10-20 (the two staff roles): eng_prospects_touch and the
  * immutable triggers on eng_contact_log, eng_refund_requests, eng_refund_decisions and
- * eng_refund_approval_limits. Read back on development by the chat the same day, five rows. */
-const EXPECTED_TRIGGERS = 85;
+ * eng_refund_approval_limits. Read back on development by the chat the same day, five rows.
+ * 0081 adds one, by operator ruling 2026-10-22: eng_seal_acts_void_closes_its_protocol. */
+const EXPECTED_TRIGGERS = 86;
 /**
  * 0014 added eng_freeze_attribution and 0019 added two more, the partner
  * entry freeze and its delete refusal, which are trigger functions like the
@@ -261,8 +268,13 @@ const EXPECTED_TRIGGERS = 85;
  * per webhook branch (order paid, batch paid, statement paid, checkout expired,
  * refund), each a single transaction.
  * 47 since 0076: eng_apply_refund_update, one Stripe refund update in one
- * transaction. 0076 adds no column, so the shape above does not move. */
-const EXPECTED_FUNCTIONS = 47;
+ * transaction. 0076 adds no column, so the shape above does not move.
+ * 51 since 0081, by operator ruling 2026-10-22: eng_put_signed_protocol_in_force,
+ * the trigger function eng_void_closes_its_protocol, and the new signatures of
+ * eng_record_protocol_signature and eng_record_letter_seal, which sit beside
+ * 0062's (now refusing) as overloads. The count is of pg_proc rows, so an
+ * overload is one more. */
+const EXPECTED_FUNCTIONS = 51;
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
@@ -1231,8 +1243,9 @@ if (failedAt === null) {
     const sealLetter = (act, doc, by, seal, sig) => `
       select eng_record_letter_seal(
         '${act}', '${doc}', ${SEALED_FILE}, null, 'Probe roof letter', 'probe/letter-${doc.slice(-4)}.pdf',
-        4096, ${HASH}, 'F-29811', ${DET}, ${by}, ${seal}, ${sig}, now()
+        4096, ${HASH}, 'F-29811', ${DET}, ${by}, ${seal}, ${sig}, now(), '${"a".repeat(64)}'
       );`;
+    /* The fifteenth argument since 0081, operator ruling 2026-10-22: the checksum of the mark at the letter's head. */
 
     /* Control 3: nobody but the engineer who recorded the determination. */
     rec(
@@ -1334,11 +1347,20 @@ if (failedAt === null) {
       (await attempt(sealLetter("00000000-0000-4000-8000-0000000006a3", "00000000-0000-4000-8000-0000000006c3", SEALER, SEAL_NOW, SIG))) === null,
     );
 
-    /* Control 11: a protocol is signed by the same act. */
+    /*
+     * Control 11: a protocol is signed by the same act. Since 0081 (operator
+     * ruling, 2026-10-22) the signing door takes the licence and the items and
+     * puts the protocol in force in the same transaction. Null items records the
+     * signature alone, and since the operator's review of 2026-10-22 only
+     * 254-WP-001, held out of force, may ask for that, so control 11 is
+     * exercised on WP-001. Putting in force, and the refusal of null items for
+     * every other protocol, is proved by
+     * scripts/proofs/a-signature-puts-its-protocol-in-force.mjs.
+     */
     const signedBefore = await auditCount("protocol.signed");
     const signed = await attempt(`
       select eng_record_protocol_signature(
-        '00000000-0000-4000-8000-0000000006a4', '254-WS-001', '1.1', ${HASH}, ${SEALER}, ${SEAL_NOW}, ${SIG}, now()
+        '00000000-0000-4000-8000-0000000006a4', '254-WP-001', '1.2', ${HASH}, ${SEALER}, ${SEAL_NOW}, ${SIG}, now(), 'PROBE', null
       );`);
     rec(
       "a protocol is signed by the same act, and audited (control 11)",
@@ -1349,7 +1371,7 @@ if (failedAt === null) {
       "and a second live signature on the same version is refused",
       await refused(`
         select eng_record_protocol_signature(
-          '00000000-0000-4000-8000-0000000006a5', '254-WS-001', '1.1', ${HASH}, ${SEALER}, ${SEAL_NOW}, ${SIG}, now()
+          '00000000-0000-4000-8000-0000000006a5', '254-WP-001', '1.2', ${HASH}, ${SEALER}, ${SEAL_NOW}, ${SIG}, now(), 'PROBE', null
         );`),
     );
     rec(
@@ -1357,9 +1379,9 @@ if (failedAt === null) {
       await refused(`
         update eng_profiles set role = 'admin' where id = ${OTHER};
         select eng_record_protocol_signature(
-          '00000000-0000-4000-8000-0000000006a6', '254-MH-001', '1.1', ${HASH}, ${OTHER}, ${OTHER_SEAL}, ${OTHER_SIG}, now()
+          '00000000-0000-4000-8000-0000000006a6', '254-WP-001', '1.1', ${HASH}, ${OTHER}, ${OTHER_SEAL}, ${OTHER_SIG}, now(), 'PROBE', null
         );`),
-      "an administrator's own images seal nothing",
+      "an administrator's own images seal nothing (WP-001 v1.1, which holds no live signature, so the refusal is the role's)",
     );
   }
 

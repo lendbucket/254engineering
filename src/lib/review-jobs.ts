@@ -27,7 +27,8 @@ export type ReviewAfterDecisionPayload = {
   fileId: string;
   fileNumber: string;
   decisionId: string;
-  action: "revisions" | "site_visit" | "refuse";
+  /* "repairs" joined 2026-10-21 for the buyer's notice, ruling Q3 of 2026-10-19. */
+  action: "revisions" | "site_visit" | "repairs" | "refuse";
   note: string | null;
   actorId: string;
   /** The technician named on the file BEFORE the decision released them, if any. */

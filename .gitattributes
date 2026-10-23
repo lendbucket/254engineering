@@ -62,3 +62,10 @@
 # This is the narrow exception to the line ending law recorded in BACKLOG, and it
 # is narrow on purpose: one directory, one extension.
 evidence/*.csv text eol=crlf
+
+# THE SECOND NARROW EXCEPTION, 2026-10-22: a protocol PDF's reference text is
+# kept as the exact bytes xpdf 4.00 emitted, CRLF included, because the audit
+# serves it in place of the extractor and its manifest pins each file's
+# SHA-256. Normalising its line endings would change those bytes and every pin
+# with them. One directory, one extension, never converted.
+docs/protocols/reference-text/*.txt -text

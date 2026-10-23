@@ -1,0 +1,558 @@
+254 ENGINEERING SERVICES
+
+Roof Certification Protocol
+
+Document         Value
+Title            Roof Certification Protocol for Existing Roofs
+Document number  254-RC-001
+Version          1.1
+Issue date       September 18, 2026
+Prepared by      Aman Dhakal, P.E., Engineer of Record, 254 Engineering Services
+Approval         Aman Dhakal, P.E., Engineer of Record
+Applies to       All roof certification engagements performed by 254 Engineering Services
+Supersedes       Version 1.0, issued September 14, 2026.
+
+1. Purpose
+
+This protocol establishes how 254 Engineering Services performs roof certifications of existing roofs
+so that the engineer can issue a sealed certification letter supported by an evidence package
+collected by a field technician under the engineer's supervision.
+
+The engineer signs and seals the certification letter personally and the recipient relies on that
+opinion. Every requirement in this protocol exists so that the engineer can reach a determination
+from the evidence package alone.
+
+2. Scope
+
+This protocol applies to condition assessment and certification of existing roofs on residential and
+light commercial structures where a client requires a professional opinion on the condition of the roof
+for insurance binding or renewal, a property sale, lending, or a comparable purpose recorded at
+intake.
+
+This protocol does not cover windstorm inspections of ongoing construction, which are covered by
+the firm's windstorm inspection protocol; structural design; plan review for permitting; or repair
+specification. Each of those is a separate service line under its own protocol and engagement terms.
+The firm does not perform forensic or cause-of-loss investigation.
+
+3. Governing requirements
+
+Authority                        Application
+                                 Practice of engineering, responsible charge, and sealing of the
+Texas Engineering Practice Act,  certification letter.
+Texas Occupations Code Chapter
+1001                             Responsible charge over work performed by others, sealing, and
+                                 professional conduct.
+TBPELS rules, 22 TAC Chapter
+137
+
+254 Engineering Services | 254-RC-001 Roof Certification Protocol v1.1 | Page 1
+Authority                           Application
+
+2024 International Residential      Reference standard for roof covering, underlayment, flashing,
+Code, Chapter 9                     fastening, and attic ventilation on residential structures.
+
+2024 International Building Code,   Reference standard for roof assemblies on light commercial structures.
+Chapter 15
+
+Manufacturer installation           Basis for exposure, fastening, and ventilation requirements for the
+
+instructions and published warranty covering as installed.
+
+terms
+
+TDI product evaluations             Where a covering or component wind rating is identified and relied on.
+
+Client criteria recorded at intake  Insurer, lender, or purchaser requirements that the letter must
+                                    address.
+
+No state program certifies the condition of an existing roof in Texas. The certification letter is the
+engineer's professional opinion of observed condition as of the inspection date. It is not a warranty, a
+guarantee of future performance, or a representation that the roof will not leak.
+
+4. Roles and responsibilities
+
+Role                       Responsibility                                                   Holder
+Engineer of Record                                                                          Aman Dhakal, P.E.
+(EOR)                      Approves this protocol and its appendices. Sets
+                           acceptance criteria and thresholds. Reviews every                Personnel qualified
+Field Technician           evidence package, records the determination, and signs           under Section 5
+                           and seals the certification letter. Does not attend the site.
+Coordinator                                                                                 Robert Reyna or
+                           Collects evidence on site in accordance with Appendix B          delegate
+                           under the engineer's supervision. Records observations
+                           and limitations. Makes no determination of condition and
+                           offers no opinion to the customer.
+
+                           Intake, job file, scheduling, dispatch, delivery of the letter,
+                           and written communication with the customer.
+
+Only the Engineer of Record determines the outcome of a job and the wording of the letter. The field
+technician and the coordinator relay the engineer's written determination without interpretation,
+addition, or estimate of when a letter will issue.
+
+5. Personnel qualifications
+
+Field Technician
+   · At least two years of documented residential or light commercial experience in roofing,
+       construction, or property inspection, or equivalent experience the engineer accepts in writing.
+   · Completion of the engineer's training on this protocol and Appendix B, with a supervised
+       inspection before independent work.
+   · Current ladder and roof-access safety training, and fall protection where site conditions require
+       it.
+   · Annual refresher training when the adopted code, this protocol, or Appendix B changes.
+
+           254 Engineering Services | 254-RC-001 Roof Certification Protocol v1.1 | Page 2
+Engineer of Record
+   · Active Texas P.E. license. A copy, with expiration date, is held in the firm's compliance file.
+
+6. Intake
+
+   · The coordinator opens a job file for each property. The file records the intake answers and
+       customer uploads required by Appendix A.
+
+   · The engineer records the purpose of the letter and the recipient exactly as given at intake. The
+       letter is addressed only to that recipient and issued only for that purpose.
+
+   · A yes to any flag question in Appendix A routes the job to the engineer before dispatch. The
+       engineer records accept, accept with conditions, or decline.
+
+   · A job is not dispatched until intake is complete and every upload required by Appendix A has
+       been received.
+
+   · The engineer records any condition of acceptance in the job file, including any item the
+       technician must capture beyond Appendix B.
+
+7. Scheduling and dispatch
+
+   · The coordinator schedules an accepted job within two business days. The engineer may set a
+       different interval for a job in the job file.
+
+   · The technician confirms access, occupancy, and attic availability before travel.
+   · Where site conditions prevent complete capture, including weather, access, safety, or roof
+
+       steepness, the technician records each item that could not be observed and the reason. No
+       item is estimated, assumed, or left blank.
+   · Where the roof cannot be safely walked, the technician does not walk it. The engineer decides
+       from the evidence collected whether a determination is possible or the job requires lift or
+       equipment pricing.
+
+8. Field inspection
+
+The technician completes every item of Appendix B for the property, in the order listed, and follows
+the photo procedure printed at the head of that checklist.
+
+   · Before starting, the technician makes a rough sketch of the roof, marks North, and
+       photographs the sketch.
+
+   · The technician ticks the item being photographed, photographs the checklist, then takes the
+       photographs for that item, and moves to the next item the same way.
+
+   · An item that does not apply to the property is marked with the reason it does not apply.
+   · The counts called for on the checklist are recorded as counts, not as descriptions.
+   · The seal-bond check is performed and the ambient temperature at the time of the check is
+
+       recorded, because the result is not meaningful without it.
+
+9. Evidence standard and engineer review
+
+Evidence package
+
+                             254 Engineering Services | 254-RC-001 Roof Certification Protocol v1.1 | Page 3
+Each job produces one evidence package in the firm's field application, consisting of the completed
+Appendix B checklist, the photographs, and the technician's notes.
+
+   · Every checklist item has at least one wide photograph placing the item on the structure and
+       one close photograph showing its condition.
+
+   · Where a dimension, exposure, or thickness governs, a ruler or tape is in frame.
+   · The worst condition on each roof plane is photographed. A representative sample selected for
+
+       appearance is not acceptable.
+   · Every patch, prior repair, penetration, and flashing location is photographed individually.
+   · Photographs carry location and three time values from the field application: the time reported
+
+       by the device, the server time at sync, and the difference between them. A device clock that
+       disagrees with the server is recorded as disagreeing rather than presented as certain.
+       Photographs from other devices are not accepted.
+   · An observation that cannot be made is recorded as not observed with the reason.
+   · A package that does not cover every checklist item, with the photographs each item calls for, is
+       rejected without review.
+
+Engineer review
+   · The engineer reviews each evidence package and records one of the five determinations in
+       Appendix C: pass, revise, repairs required, site revisit, or decline.
+   · The engineer's review record identifies the checklist items and photographs relied on for the
+       determination.
+   · A package that does not allow the engineer to verify a required item is returned for revision or
+       a site revisit. The customer is not charged for a re-inspection caused by an incomplete
+       package.
+
+10. Repairs and deficiencies
+
+   · On a repairs required determination, the engineer issues a written repair list identifying each
+       item, what governs it, and what is required to close it.
+
+   · Repairs are performed by others. 254 Engineering Services does not perform, supervise, or
+       recommend a contractor for the repair work.
+
+   · Corrections are verified on a site revisit to the same evidence standard, and the engineer
+       closes each item individually.
+
+   · No certification letter is issued with an open repair item. There is no conditional certification.
+
+11. Certification letter
+
+   · On a pass determination, the engineer issues a sealed letter addressed to the recipient
+       recorded at intake, for the purpose recorded at intake.
+
+   · The letter identifies the property, the date of inspection, the covering type, the method by
+       which the evidence was collected and reviewed, and the observed condition.
+
+   · The letter states observed condition only. It does not estimate remaining service life, forecast
+       future performance, or represent that the roof will not leak.
+
+                             254 Engineering Services | 254-RC-001 Roof Certification Protocol v1.1 | Page 4
+   · The letter states that the inspection was visual and non-destructive, that it reflects condition on
+       the date of inspection only, and that no representation is made about concealed conditions.
+
+   · The letter is not reassigned to another recipient, another purpose, or another date. A new
+       inspection is required.
+
+   · The engineer does not certify a roof that was not inspected under this protocol by this firm.
+
+12. Exclusions
+
+The following are declined at this service tier or routed to another service line under its own
+engagement terms. The coordinator records the routing in the job file and informs the customer in
+writing.
+
+   · An open insurance claim on the roof, where a certification would function as claim leverage.
+       Declined, with a referral to an independent firm.
+
+   · Active or threatened litigation involving the roof.
+   · A covering type outside the engineer's competency.
+   · Unsafe access that prevents minimum capture where the customer refuses lift or equipment
+
+       pricing.
+   · A customer request for a predetermined conclusion. This is an automatic decline and the
+
+       request is logged verbatim.
+
+13. Records and retention
+
+   · Each job file contains: the intake record and customer uploads, the engineer's acceptance
+       record, the dispatch record, the completed Appendix B checklist, all photographs, the
+       technician's notes, the engineer's review record and determination, any repair list and its
+       closure records, and the issued letter.
+
+   · Job files are retained for ten years from the date of the letter. For a job that produces no letter,
+       the ten years run from the date of the last engineer determination recorded in the file.
+
+   · Ten years is the firm's floor. The engineer reviews that floor against TBPELS rules and the
+       firm's professional liability policy and raises it where either requires longer.
+
+   · The compliance file holds the engineer's license records, technician qualification and training
+       records, and every issued version of this protocol.
+
+14. Protocol maintenance
+
+   · The engineer reviews this protocol annually, and within thirty days of any change to the
+       adopted code, to a governing manufacturer standard, or to the firm's field application.
+
+   · Revisions are issued as a new version number with the effective date and the engineer's
+       approval recorded in the document control table.
+
+   · This document follows the firm's standard protocol format and carries the portal's four parts as
+       Appendices A, B, and C.
+
+Appendix A. Intake questions and customer uploads
+
+                             254 Engineering Services | 254-RC-001 Roof Certification Protocol v1.1 | Page 5
+Asked and collected by the coordinator before the job is created. A job is not dispatched until every
+required item is present.
+
+PART 1 -- INTAKE QUESTIONS
+
+Purpose & recipient
+1. What is the letter for? (insurance binding/renewal / home sale / lender / permit / other -- record
+exactly)
+Answer: ____________________________________________________
+2. Who will the letter be addressed to? (insurer name, buyer, lender, city)
+Answer: ____________________________________________________
+3. What deadline is the customer working against, if any?
+Answer: ________________________________________
+
+Property basics
+4. Property address and county
+Answer: _______________________________________________________
+5. Property type (single family / duplex / townhome / small commercial) and number of stories
+Answer: ____________________________________________________
+6. Year built; roof age if known; year of last full replacement
+Answer: ____________________________________________________
+7. Covering type (shingle / metal / tile / flat-membrane / built-up / wood / other)
+Answer: ____________________________________________________
+
+Flags -- a YES on any of these routes to engineer review BEFORE dispatch
+8. Is there an OPEN insurance claim on this roof? (open claim = engineer pre-review; likely decline)
+Answer: ____________________________________________________
+9. Is there active or threatened litigation involving the roof? (route to engineer; likely decline)
+Answer: ____________________________________________________
+10. Any active leaks right now? (changes scope from certification to assessment conversation)
+Answer: ____________________________________________________
+11. Has another engineer or inspector already issued an adverse report? (must be disclosed and
+uploaded)
+Answer: ____________________________________________________
+12. Storm damage within the last 12 months? Date and type (hail/wind)
+Answer: ____________________________________________________
+
+Access & safety (decides dispatch feasibility)
+13. Is attic access available and accessible?
+Answer: ____________________________________________________
+14. Number of Stories and Roof Steepness?
+Answer: ____________________________________________________
+15. Occupied or vacant? Accessible if occupied?
+Answer: ____________________________________________________
+
+Prior paperwork prompt
+
+                             254 Engineering Services | 254-RC-001 Roof Certification Protocol v1.1 | Page 6
+16. Do you have: prior roof certs, roofing invoices/warranty, permits, insurance letters, photos of any
+problems?
+Answer: ____________________________________________________
+
+PART 2 -- CUSTOMER UPLOADS (collected at intake, before dispatch)
+Required
+­ Photo of the front of the property (confirms address/structure)
+
+Required if it exists
+­ Any adverse report, prior engineer letter, or insurer letter driving this request
+
+Collect when applicable
+­ Roofing contract/invoice/warranty for the most recent roof work (if work claimed)
+­ Permits for roof work; HOA approval if applicable
+­ Customer's own photos of problem areas (if a leak or damage prompted the call)
+­ Prior roof inspection report (if one exists)
+
+Appendix B. Technician on-site checklist
+
+Completed on site by the technician. The checklist cannot be submitted incomplete.
+
+PHOTOS
+­ Before starting, make a rough sketch of the roof and mark North. Take a photo of it.
+­ Tick the item you are about to photograph, take a photo of the checklist, then take the photos for
+that item.
+­ Move on to the next item the same way.
+
+JOB INFORMATION
+Job / Dispatch No.: ____________________________
+Property address (full, incl. county):
+__________________________________________________________
+Technician name: ______________________________________
+Date / arrival time / departure time: ________________________________________
+Weather during visit: ________________________________________
+Contact on site (name, role, phone): ________________________________________________
+[ ] Photo of address marker (house number, street sign, or mailbox) [PHOTO]
+
+CONTEXT (every job)
+[ ] All four elevations of the structure [PHOTO]
+[ ] Each roof plane overview from eave/ladder [PHOTO]
+Covering type / shape (hip-gable-flat-combo) / stories: __________________________________
+[ ] Tree contact or overhang over roof -- each occurrence [PHOTO]
+Technician notes / readings:
+________________________________________________________________________________
+________
+
+                             254 Engineering Services | 254-RC-001 Roof Certification Protocol v1.1 | Page 7
+________________________________________________________________________________
+________
+
+COVERING CONDITION
+[ ] Close-up with ruler of covering in GOOD area -- exposure/profile baseline [PHOTO]
+[ ] Close-up of WORST area on each plane [PHOTO]
+[ ] Shingle roofs -- granule loss: close-up of worst granule condition + gutter/downspout granule
+accumulation [PHOTO]
+[ ] Shingle roofs -- cracking, curling, cupping, blistering: worst example each, wide + close
+[PHOTO]
+[ ] Shingle roofs -- SEAL-BOND: gentle tab lift at 4 locations spread across different planes; photo
+any unsealed tab
+Ambient temperature during seal-bond check (°F): ____________________
+[ ] Metal roofs -- panel corrosion, seam condition, fastener back-out: worst examples with ruler
+[PHOTO]
+[ ] Metal roofs -- oil-canning or panel distortion wide shots [PHOTO]
+[ ] Tile roofs -- cracked/slipped/missing tiles: count per plane, worst close-ups [PHOTO]
+[ ] Flat/built-up -- ponding evidence (staining rings), blisters, alligatoring, seam condition, drainage
+path to scuppers/drains [PHOTO]
+[ ] ALL patches and prior repairs -- every one, wide + close [PHOTO]
+[ ] Biological growth: moss, algae, dark streaking -- worst area each plane affected [PHOTO]
+[ ] Debris accumulation in valleys, behind chimneys, at wall intersections [PHOTO]
+[ ] Exposed or backed-out fasteners -- worst examples [PHOTO]
+Counts -- patches ___ damaged shingles/tiles visible ___ unsealed tabs found ___: ________
+Technician notes / readings:
+________________________________________________________________________________
+________
+________________________________________________________________________________
+________
+________________________________________________________________________________
+________
+
+EDGES, FLASHINGS, PENETRATIONS
+[ ] Drip edge/eave condition each side; fastening with ruler at 2 spots [PHOTO]
+[ ] Fascia and eave boards: rot, deterioration, separation -- full run each side, close-up of worst
+[PHOTO]
+[ ] Ridge/hip caps condition [PHOTO]
+[ ] Every penetration: boots (cracked rubber = close-up), vents, flues [PHOTO]
+[ ] Skylights: glass cracks, condensation between panes (failed seal), curb flashing -- exterior +
+interior shot each [PHOTO]
+[ ] Sealant condition at every flashing and penetration: dried, cracked, or gapped caulking -- close-
+up each occurrence [PHOTO]
+[ ] Chimney: flashing + masonry condition (loose brick, mortar, cap) [PHOTO]
+[ ] Wall-roof intersections and kick-out flashing at gutter terminations [PHOTO]
+
+                             254 Engineering Services | 254-RC-001 Roof Certification Protocol v1.1 | Page 8
+[ ] Gutters: attachment, separation, standing debris level [PHOTO]
+Technician notes / readings:
+________________________________________________________________________________
+________
+________________________________________________________________________________
+________
+
+ATTIC VERIFICATION
+[ ] Deck material + thickness at hatch with ruler [PHOTO]
+Deck material / thickness: ______________________________
+[ ] Daylight check: lights off, photo toward each plane -- any daylight = close-up at source
+[PHOTO]
+[ ] Staining/leak evidence: every stain, wide + close, wet-test note (dry stain vs active moisture)
+[PHOTO]
+[ ] Deck sag or delamination between framing -- sight along planes, photo any deviation [PHOTO]
+[ ] Fastener shiners: length close-up at 2+ spots [PHOTO]
+[ ] Ventilation: intake (soffit) and exhaust (ridge/box/turbine) present -- one photo each type
+[PHOTO]
+[ ] Soffit vents unblocked: check insulation not covering intake at eaves -- photo 2+ eave bays
+[PHOTO]
+[ ] Insulation condition: damp, matted, or compacted areas anywhere (not just at leaks) [PHOTO]
+[ ] Pest evidence: nests, droppings, chewed framing/wiring [PHOTO]
+Technician notes / readings:
+________________________________________________________________________________
+________
+________________________________________________________________________________
+________
+________________________________________________________________________________
+________
+
+INTERIOR FINISH SCAN
+[ ] Top-floor ceilings each room: stains, peeling paint, bubbling drywall -- wide shot per room, close-
+up of any finding [PHOTO]
+[ ] Musty odor noted by room
+Technician notes / readings:
+________________________________________________________________________________
+________
+________________________________________________________________________________
+________
+
+COVERING AGE AND EXPOSURE
+[ ] Any covering product label/wrapper/stamp found on site or in attic [PHOTO]
+Owner-reported roof age / replacement year (verbatim): ________________________________
+[ ] South-facing plane close-up (fastest-aging plane) with ruler [PHOTO]
+[ ] Any solar panels, satellite mounts, or rooftop equipment: attachment condition [PHOTO]
+
+                             254 Engineering Services | 254-RC-001 Roof Certification Protocol v1.1 | Page 9
+Technician notes / readings:
+________________________________________________________________________________
+________
+________________________________________________________________________________
+________
+
+CLOSE-OUT
+[ ] Full perimeter walk -- anything unusual [PHOTO]
+[ ] Exception menu cleared for every non-applicable item
+Total photos: ______________
+Technician signature / date: ____________________________________________
+Technician notes / readings:
+________________________________________________________________________________
+________
+________________________________________________________________________________
+________
+
+Appendix C. Engineer decision rules
+
+Applied by the engineer to each evidence package. One determination is recorded per review.
+
+PASS
+­ Package complete: every checklist item present or properly excepted
+­ No active leak evidence (no daylight, no active moisture at stains)
+­ Covering condition consistent with reported age; worst-area photos show serviceable covering per
+the letter's stated criteria
+­ Seal-bond, fastening, flashings, and penetrations show no condition requiring repair before
+certification
+
+REVISE
+­ Any required photo missing, blurry, or missing its ruler/context pair
+­ Worst-area coverage doubtful (all photos look selectively good)
+­ Exception used where the condition plainly applied
+­ Counts inconsistent with photos
+
+REPAIRS REQUIRED (certification withheld, repair list issued)
+­ Active leak: daylight through deck or active moisture at any stain
+­ Deck delamination or sag confirmed by measurement
+­ Failed flashing, boots, or sealant at any penetration
+­ 2 or more unsealed tabs of the 4 locations tested
+­ 10 or more damaged shingles or tiles on any plane; for metal, standing-seam, or membrane
+coverings, any breach of the water barrier
+­ 8 or more hail hits in a 10 foot by 10 foot (100 square foot) test square, where a test square was
+taken on a site revisit
+­ Certification proceeds only after repairs are verified on revisit
+
+SITE REVISIT (technician returns with an engineer-specified capture list)
+
+                            254 Engineering Services | 254-RC-001 Roof Certification Protocol v1.1 | Page 10
+­ Attic coverage incomplete: hatch photo only, no plane-by-plane daylight and stain check
+­ Stain present without a moisture reading -- return with meter and wet-test each stain
+­ Sag or delamination suspected in sightline photos -- return for straightedge/string-line
+measurement and framing spacing
+­ Storm damage reported within 12 months -- return for test-square count on each plane (hail hits /
+creased tabs)
+­ Conflicting evidence (owner story vs photos vs uploads) -- return for the specific items that settle
+it: product label, permit sticker, invoice match to covering
+­ Prior adverse report exists -- return and photograph every condition the report cites at the same
+locations before contradicting it
+­ Repairs required -- return after repairs to verify each item on the repair list
+
+DECLINE
+­ Open insurance claim where the certification would function as claim leverage -- decline and refer
+to an independent firm
+­ Active or threatened litigation -- decline at this service tier
+­ Covering type outside engineer competency.
+­ Unsafe access that prevents minimum capture and customer refuses lift/equipment pricing
+­ Customer requests a predetermined conclusion -- automatic decline, log verbatim request
+
+Appendix D. References                            Location
+                                                  As adopted by the authority having jurisdiction
+ Item
+                                                  As adopted by the authority having jurisdiction
+ 2024 International Residential Code, Chapter 9,
+ Roof Assemblies                                  statutes.capitol.texas.gov
+
+ 2024 International Building Code, Chapter 15,    pels.texas.gov
+ Roof Assemblies and Rooftop Structures           tdi.texas.gov/wind/index.html
+                                                  Manufacturer publication for the identified product
+ Texas Engineering Practice Act, Texas
+ Occupations Code Chapter 1001
+
+ TBPELS rules, 22 TAC Chapter 137
+
+ TDI Product Evaluations
+
+ Manufacturer installation instructions and
+ warranty terms
+
+Approval
+
+Reviewed and approved by the Engineer of Record. This protocol is in force from the date below.
+
+Aman Dhakal, P.E.
+Engineer of Record, 254 Engineering Services
+
+Signature: ______________________________________ Date: ___0_9__/2_0_/_2_0_2_6______
+
+254 Engineering Services | 254-RC-001 Roof Certification Protocol v1.1 | Page 11
+

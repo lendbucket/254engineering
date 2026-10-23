@@ -102,10 +102,16 @@ const orders = [];
 
 const CASES = [
   { tag: "T1", slug: "roof-inspections", deliverable: null, order: null, tier: 1, how: "the line's only deliverable" },
-  { tag: "T2", slug: "manufactured-home-foundation-certifications", deliverable: "standard", order: null, tier: 2, how: "the file's own deliverable" },
-  { tag: "T3", slug: "windstorm-wpi-8", deliverable: "ongoing", order: null, tier: 3, how: "the file's own deliverable" },
+  /*
+   * Schedule 2, operator ruling 2026-10-22: the tier 2 case was the
+   * manufactured home certification until Schedule 2 put it at tier 1, and the
+   * tier 3 case was WPI-8 ongoing construction, which Schedule 2 does not list.
+   * Ongoing now credits nothing, for a reason that names the missing tier.
+   */
+  { tag: "T2", slug: "repair-specifications", deliverable: "standard", order: null, tier: 2, how: "the file's own deliverable" },
+  { tag: "TN", slug: "windstorm-wpi-8", deliverable: "ongoing", order: null, tier: null, why: /no pay tier is ruled/, how: "its deliverable is not in Schedule 2" },
   { tag: "TO", slug: "windstorm-wpi-8", deliverable: null, order: "completed", tier: 2, how: "the deliverable of the order it is worked under" },
-  { tag: "TX", slug: "windstorm-wpi-8", deliverable: null, order: null, tier: null, how: "nothing records which of two deliverables it is" },
+  { tag: "TX", slug: "windstorm-wpi-8", deliverable: null, order: null, tier: null, why: /deliverable/, how: "nothing records which of two deliverables it is" },
 ];
 
 try {
@@ -137,7 +143,7 @@ try {
     if (c.tier === null) {
       check(
         `a ${c.slug} file where ${c.how} credits nothing and says why, rather than a guessed tier`,
-        !credit.ok && /deliverable/.test(credit.reason ?? ""),
+        !credit.ok && c.why.test(credit.reason ?? ""),
         credit.ok ? `CREDITED ${credit.cents} at tier ${credit.tier}` : credit.reason,
       );
     } else {

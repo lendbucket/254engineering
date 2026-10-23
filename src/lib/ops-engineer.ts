@@ -812,8 +812,10 @@ export async function decideReview(
   /* The queued work, only for the actions that have any. */
   const decisionId = randomUUID();
   let job: { kind: string; payload: ReviewAfterDecisionPayload; idempotency_key: string; effect_mode: string } | null = null;
-  if (action === "revisions" || action === "site_visit" || action === "refuse") {
-    const order = action === "refuse" ? await liveOrderForFile(fileId, "customer_email") : null;
+  /* "repairs" has queued work since ruling Q3 of 2026-10-19: the buyer's notice. */
+  if (action === "revisions" || action === "site_visit" || action === "repairs" || action === "refuse") {
+    const order =
+      action === "refuse" || action === "repairs" ? await liveOrderForFile(fileId, "customer_email") : null;
     job = {
       kind: REVIEW_AFTER_DECISION,
       payload: {

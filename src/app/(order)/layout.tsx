@@ -38,7 +38,7 @@ export default function OrderLayout({ children }: { children: React.ReactNode })
       </a>
       <header className="border-b border-[var(--color-limestone-line)]">
         <div className="mx-auto flex w-full max-w-[1200px] items-center justify-between px-4 py-4 sm:px-6">
-          <Link href="/" prefetch={false} aria-label="254 Engineering Services, home">
+          <Link href="/" prefetch={false} aria-label="254 Engineering, home">
             <Wordmark height={84} cssHeight="clamp(58px, 9vw, 84px)" priority />
           </Link>
           {phone ? (

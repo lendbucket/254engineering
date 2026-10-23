@@ -59,6 +59,7 @@
 
 import type { Cents } from "@/lib/ops-money";
 import { deliverablePriceCents } from "@/config/prices";
+import { scopeAddendumMissing } from "@/config/engineer-pay";
 
 /**
  * The three shapes an order can take.
@@ -1175,6 +1176,15 @@ export function orderBlockedReason(
   if (!hasApprovedProtocol) {
     /* "It is a waitlist rather than an order" sat beside a Contact button in open mode (ruling Q5, 2026-10-19). */
     return "No protocol for this service line has been approved by the engineer of record yet, so the firm has no agreed way to perform it. It cannot be ordered online yet.";
+  }
+  /*
+   * A DELIVERABLE THE ENGINEER'S AGREEMENT DOES NOT COVER IS NOT TAKEN ON.
+   * Operator ruling, 2026-10-22: WPI-8 ongoing construction is not in
+   * Schedule 2 and needs a signed scope addendum before any job. The reason
+   * is internal, so the customer reads only that it is not available yet.
+   */
+  if (scopeAddendumMissing(entry.serviceSlug, entry.tier)) {
+    return "This service is not available to order yet. Call the office or send a message and somebody will take the details.";
   }
   if (entry.orderType === "quote") return null;
   if (entry.priceCents === null) {

@@ -2720,6 +2720,145 @@ export const APPLIED = [
       "63 grant rows, no drop and no revoke, so the connector is expected to apply it. The branch merges only " +
       "after the production apply is read back, and a migration on main is never pending.",
   },
+  {
+    file: "0080_protocol_sources_are_private.sql", appliedBy: "apply_migration",
+    fingerprint: "45ce47821d9c5567eb3b4b197549d881",
+    behaviour: "8f0fe1b5eb8a6b5588e0ae9e3ae5017c",
+    /*
+     * APPLIED TO PRODUCTION 2026-10-22, 19:55:35 UTC, provider version
+     * 20261022195535, by the operator's chat counterpart through
+     * apply_migration, from fix/protocol-sources after its cloud board
+     * (39818783967) matched its prediction, from
+     * docs/production-sitting-0080-protocol-sources.md. The file applied is
+     * sha256 e6eac205bca7d70bb50715ce6da481e0cfe6661a48028c332725d1fdf45e8d9a,
+     * the one development received. Section 0 read clean first: shape
+     * 45ce47821d9c5567eb3b4b197549d881 across 1263, eng-protocol-sources
+     * absent, 0 public buckets.
+     *
+     * Read back, every answer as predicted: shape unchanged at
+     * 45ce47821d9c5567eb3b4b197549d881 across 1263; one row
+     * eng-protocol-sources | eng-protocol-sources | false | 26214400 |
+     * {application/pdf,
+     * application/vnd.openxmlformats-officedocument.wordprocessingml.document};
+     * 0 public buckets; 0 objects. The production bucket stays empty: the
+     * originals live on development only.
+     */
+    production: "2026-10-22",
+    development: {
+      at: "0080",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-22",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-22 by the operator's chat counterpart, provider version 20261022165346, " +
+        "the file as written (sha256 e6eac205bca7d70bb50715ce6da481e0cfe6661a48028c332725d1fdf45e8d9a). " +
+        "Before: shape 45ce47821d9c5567eb3b4b197549d881 across 1263, no eng-protocol-sources, 0 public buckets. " +
+        "After: shape unchanged, one row eng-protocol-sources | false | 26214400 | {application/pdf, " +
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document}, 0 public buckets, 0 objects. " +
+        "Every answer as predicted.",
+    },
+    /*
+     * NO `proves`, as 0008 and 0073 have none: production-schema-check probes a
+     * table, a column or a row through PostgREST, and storage.buckets is not in
+     * the schema PostgREST exposes, so any probe here would read as missing on
+     * every run. The read-back is the sitting document's own query.
+     */
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0080 on 2026-10-22, with 0079 reproducing its " +
+      "recorded pair first: shape unchanged at 1263 columns and behaviour unchanged at 1152 facts, because a " +
+      "storage bucket is a row in storage.buckets and neither fingerprint reads that table. One private " +
+      "bucket, eng-protocol-sources, PDF and Word, 25 MB. Additive only.",
+    because:
+      "APPLIED TO PRODUCTION 2026-10-22, provider version 20261022195535, and to development 2026-10-22, " +
+      "version 20261022165346, both read back as this entry records. This sentence replaced 'WRITTEN " +
+      "2026-10-22 ON fix/protocol-sources AND APPLIED NOWHERE', which held the branch for the sitting, " +
+      "docs/production-sitting-0080-protocol-sources.md. Operator rulings of 2026-10-22: the signed RC-001 " +
+      "copies and the letter templates leave the public tree for this bucket on development; on production " +
+      "the bucket exists and stays empty. Additive only. The branch merges only after the production apply " +
+      "is read back, and a migration on main is never pending.",
+  },
+  {
+    file: "0081_a_signature_puts_its_protocol_in_force.sql", appliedBy: "apply_migration",
+    fingerprint: "d73cdd49ae5da6268743584229cb3b88",
+    behaviour: "dfbdf7fcca64c3b093e736b30daa7786",
+    /*
+     * APPLIED TO PRODUCTION 2026-10-23, 03:00:49 UTC, provider version
+     * 20261023030049, name 0081_a_signature_puts_its_protocol_in_force, by the
+     * operator's chat counterpart through apply_migration, from
+     * docs/production-sitting-0081-signed-protocols.md, after lines' cloud board
+     * (39872869328) matched its prediction on d5f5bed. The file applied is
+     * sha256 578cb977c6ca7fd62a796efdd5eefed3287d9876585a00d80a7df431b5bfc387;
+     * the stored statement reads back as sha256
+     * 1409a05e967148a4d2544f7597ce4f9f547c709c8e75842157b0f74ef14c562f,
+     * identical to development. Lines merged onto main as 064ad70 and pushed at
+     * 03:02:42 UTC with no new board, on Robert's word.
+     *
+     * Section 0 read clean first, every answer as predicted: shape
+     * 45ce47821d9c5567eb3b4b197549d881 across 1263; the status check 0049's four
+     * words; one published row, 254-RC-001 1.1 roof-inspections (no 1.0 row on
+     * production); the eight drafts draft, each structural, WP 1.1 with no
+     * discipline; eight protocol seal acts, all live, each content_sha256 the
+     * transcription digest; one signer licence hash afde1f7e...b60e, role
+     * engineer; no provider migration of ours since 0080.
+     *
+     * Read back: shape d73cdd49ae5da6268743584229cb3b88 across 1265; seven
+     * protocol.in_force_at_0081 rows, every one in_force, "a live signature
+     * whose digest is the transcription in code, by an engineer on the
+     * register": DS, FC, MH, PL, RS, SL, WS, and no row for WP; the seven
+     * templates published, by_signature, licence and published all true; items
+     * DS 13, FC 37, MH 35, PL 15, RS 24, SL 22, WS 35; WP 1.1 and 1.2 draft and
+     * untouched; 254-RC-001 1.1 published, by_signature false, licence true,
+     * signed 2026-09-20; eight published rows, one per line; the status check
+     * with voided; five functions as on development.
+     *
+     * ONE DIFFERENCE FROM THE DOCUMENT'S PREDICTION, AND THE DATA IS RIGHT:
+     * document_signed_at reads 2026-10-09 for DS, MH, PL, RS and SL, where the
+     * document predicted 2026-10-10. Those signatures were made 02:35 to 02:37
+     * UTC on 10-10, which is the evening of 10-09 in America/Chicago, and the
+     * migration takes the firm's calendar as written; the document had predicted
+     * the UTC date. FC and WS read 2026-10-15 as predicted. The document's
+     * prediction is corrected in the same commit as this record.
+     */
+    production: "2026-10-23",
+    development: {
+      at: "0081",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-22",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-22 by the operator's chat counterpart through apply_migration, provider " +
+        "version 20261022225514, name 0081_a_signature_puts_its_protocol_in_force, no confirmation prompt on the " +
+        "drop. The file was verified against ref 153196f before the apply, sha256 " +
+        "578cb977c6ca7fd62a796efdd5eefed3287d9876585a00d80a7df431b5bfc387; the statement stored in " +
+        "supabase_migrations reads back as sha256 1409a05e967148a4d2544f7597ce4f9f547c709c8e75842157b0f74ef14c562f, " +
+        "the file without its trailing newline, as 0080 is stored. Section 0 before: shape " +
+        "45ce47821d9c5567eb3b4b197549d881 across 1263; the status check with draft, awaiting_engineer, published, " +
+        "retired; the eight protocol rows draft (WP-001 at 1.1 and 1.2); no protocol signature on record; " +
+        "254-RC-001 1.1 published and 1.0 awaiting_engineer; one published row, 254-RC-001 1.1 roof-inspections. " +
+        "Section 2 after: shape d73cdd49ae5da6268743584229cb3b88 across 1265; seven protocol.in_force_at_0081 rows, " +
+        "DS, FC, MH, PL, RS, SL, WS, each not in force, no live signature on record, and none for WP-001; every " +
+        "0081 protocol still draft; 254-RC-001 untouched; the status check widened with voided after retired; five " +
+        "functions, the put-in-force door and both versions of the two signing doors. Every answer as predicted.",
+    },
+    proves: { table: "eng_protocol_templates", column: "signed_by_seal_act_id" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0081 on 2026-10-22, with 0080 reproducing its " +
+      "recorded pair first: shape 1263 to 1265 columns (eng_protocol_templates.signed_by_seal_act_id, " +
+      "eng_seal_acts.letterhead_sha256), behaviour 1152 to 1159 facts, after the operator's review moved the " +
+      "letterhead requirement from a NOT VALID check into the insert trigger. Section 7 is data only and moves " +
+      "neither figure. One statement carries drop: the status check constraint, dropped and re-added widened " +
+      "with voided in the same alter table.",
+    because:
+      "WRITTEN 2026-10-22 ON feat/lines-order-ready; ON DEVELOPMENT (version 20261022225514) AND ON PRODUCTION (version 20261023030049). Operator " +
+      "rulings of 2026-10-22: a portal signature puts its protocol in force in the signing transaction and " +
+      "voiding closes it; signatures already on record go in force once, in section 7, with a read-back per " +
+      "protocol; 254-WP-001 is held out of force; voided is a status; every sealed letter records the " +
+      "checksum of the mark at its head. The chat applies it with apply_migration, development first, from " +
+      "docs/production-sitting-0081-signed-protocols.md, and Robert approves a confirmation on the drop. The " +
+      "branch merges only after the production apply is read back, and a migration on main is never pending.",
+  },
 ];
 
 /*

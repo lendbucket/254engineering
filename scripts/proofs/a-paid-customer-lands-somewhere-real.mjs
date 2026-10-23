@@ -29,8 +29,15 @@
  */
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const REPO = "C:/Users/salon/projects/254engineering";
+/*
+ * The checkout this proof sits in, derived. It read a typed
+ * "C:/Users/salon/projects/254engineering" until 2026-10-22, so a board run from
+ * a worktree proved MAIN's files rather than the branch's, and on any other
+ * machine it could not run at all. Found moving the board to GitHub runners.
+ */
+const REPO = fileURLToPath(new URL("../..", import.meta.url));
 const SOURCES = ["src/lib/ops-payments.ts", "src/lib/ops-statements.ts"];
 
 let wrong = 0;

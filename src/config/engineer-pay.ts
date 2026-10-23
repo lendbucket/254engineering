@@ -29,18 +29,21 @@ import { priceFor } from "@/config/prices";
  * operator's ruling for any missing input and is the absent-versus-zero rule
  * applied to the one number the whole screen exists to answer.
  *
- * THE DEFAULTS ARE THE OPERATOR'S AND SO IS THEIR REASONING, recorded because
- * it is the part that generalises to a service line nobody has priced yet:
+ * THE TIERS ARE THE SIGNED AGREEMENT'S, SCHEDULE 2. Operator ruling,
+ * 2026-10-22: "Engineer pay must match the signed agreement's Schedule 2
+ * exactly; the agreement wins over engineer-pay.ts."
  *
  *   Tier 1  a condition determination from an evidence package
  *   Tier 2  a determination requiring the engineer to compute or specify
  *   Tier 3  staged work across multiple visits
  *
- * AND THEY ARE PROVISIONAL BY HIS OWN RULING: "If Aman reads these and
- * disagrees, his reading wins and the defaults change." The engineer of record
- * has not seen them. That is recorded here rather than left as an assumption,
- * because a default nobody has challenged reads exactly like one somebody
- * approved.
+ * WHAT THIS REPLACED, kept for its reasoning. The tier for each deliverable
+ * was recorded here as PROVISIONAL, by the operator's ruling of 2026-09-18
+ * ("If Aman reads these and disagrees, his reading wins and the defaults
+ * change") and of 2026-09-20 (revisited after ten real jobs against recorded
+ * time). Schedule 2 is signed, so neither condition is live: a deliverable's
+ * tier is what the schedule says, and changing it is a change to the
+ * agreement first and to this file second.
  */
 
 export type PayTier = 1 | 2 | 3;
@@ -53,14 +56,24 @@ export const ENGINEER_TIER_CENTS: Record<PayTier, number> = {
 };
 
 /**
- * The engineer's hourly production pay for design work, in cents.
+ * THE ENGINEER'S SHARE OF A CUSTOM DESIGN ENGAGEMENT: 35% OF THE ENGINEERING
+ * FEE, UNDER A SIGNED SCOPE ADDENDUM. Operator ruling, 2026-10-22.
  *
- * Design takes no tier, because it is not a determination against an evidence
- * package: it is hours. The firm markets design at $225 an hour, so this is the
- * cost side of that line and the two live in different files on purpose, one
- * being what a customer pays and the other what the engineer is paid.
+ * It replaced `ENGINEER_DESIGN_HOURLY_CENTS`, $100 an hour, which was never
+ * the agreement's term. A custom design engagement is paid as a share of the
+ * fee the firm charges for it, and only once a scope addendum for that
+ * engagement is signed: with none, nothing is owed and the price book says so
+ * rather than estimating. In basis points so the arithmetic stays integral.
+ *
+ * Beam and header sizing is NOT this rule. Schedule 2 lists it at tier 2, so it
+ * is a row in `TIER_BY_DELIVERABLE` like any other determination.
  */
-export const ENGINEER_DESIGN_HOURLY_CENTS = 10_000;
+export const ENGINEER_DESIGN_FEE_SHARE_BP = 3_500;
+
+/** What the engineer is paid on a custom design engagement's fee, in cents. */
+export function engineerDesignPayCents(engineeringFeeCents: number): number {
+  return Math.round((engineeringFeeCents * ENGINEER_DESIGN_FEE_SHARE_BP) / 10_000);
+}
 
 /**
  * The tier a service line is ESTIMATED at, keyed by the slug in
@@ -69,7 +82,8 @@ export const ENGINEER_DESIGN_HOURLY_CENTS = 10_000;
  * A line absent from this map has no default, which is a real state rather than
  * a gap: forensic and insurance engineering is scoped per matter and the
  * operator has ruled no price for it, so estimating it would be inventing both
- * halves. Design is absent because it is hourly.
+ * halves. Design is absent as a line because it is quoted; its one tiered
+ * deliverable, beam and header sizing, has its own row.
  */
 /*
  * =========================================================================
@@ -94,51 +108,66 @@ export const ENGINEER_DESIGN_HOURLY_CENTS = 10_000;
  */
 /*
  * =========================================================================
- * THE MAPPING IS PROVISIONAL AND THE PAY AMOUNTS ARE NOT. Operator ruling,
- * 2026-09-20, and the distinction is the whole entry.
+ * THE MAPPING IS SCHEDULE 2 OF THE SIGNED AGREEMENT. Operator ruling,
+ * 2026-10-22, and it supersedes the 2026-09-20 ruling that called it
+ * provisional.
  * =========================================================================
  *
- * `ENGINEER_TIER_CENTS` above is what the engineer of record is paid at each
- * tier. Those figures are in the EXECUTED AGREEMENT and are not a session's to
- * touch, not the operator's to drift, and not provisional in any sense.
+ * `ENGINEER_TIER_CENTS` above is what each tier pays, and this map is which
+ * tier each deliverable attracts. Both come from the signed agreement now, so
+ * neither is a session's to touch or the operator's to estimate.
  *
- * **WHICH TIER A DELIVERABLE ATTRACTS IS A DIFFERENT KIND OF FACT.** It is the
- * operator's estimate of how much engineering a determination takes, and the
- * operator has recorded it as PROVISIONAL for a reason that should be read
- * before anybody changes it:
+ * WHAT THE 2026-09-20 RULING SAID, kept for its reasoning: the mapping was the
+ * operator's estimate of how much engineering each determination takes, to be
+ * revisited after ten real jobs against recorded time, and on that basis
+ * `foundation-inspections` and `repair-specifications` were moved from tier 2
+ * to tier 1 because at tier 2 one left $60 and the other lost money.
  *
- *   **NOBODY KNOWS HOW LONG THESE DETERMINATIONS TAKE, BECAUSE NONE HAS BEEN
- *   DONE.** Not one job has run through this platform. Every number here is an
- *   estimate of work nobody has performed yet, and an estimate that has never
- *   met a real job is a guess with a table around it.
+ * THE AGREEMENT DECIDES, AND ON ONE OF THOSE TWO IT DECIDED THE OTHER WAY.
+ * Schedule 2 puts the repair specification at tier 2, so it costs $350 plus the
+ * $85 visit, $435, which was more than its $395 list price; the operator
+ * re-ruled the price the same day (src/config/prices.ts). The manufactured
+ * home certification is tier 1 under Schedule 2, where this map had tier 2.
  *
- * **IT IS REVISITED AFTER TEN REAL JOBS, AGAINST RECORDED TIME.** Not against
- * anybody's estimate, including the engineer's and including the one written
- * here. That is the condition, and it is written down so the revisit happens
- * because the condition was met rather than because somebody remembered.
- *
- * **AND THE ENGINEER WAS NOT ASKED, WHICH WAS DELIBERATE.** The operator's
- * ruling: asking him to grade his own work before any job has run is the wrong
- * way round. His pay per tier is agreed; how many tiers of work a repair
- * specification is, is the firm's judgement about its own product, and it is
- * answered by timing ten of them.
- *
- * On 2026-09-20 `foundation-inspections` and `repair-specifications` moved from
- * tier 2 to tier 1. At tier 2 they cost $435 against list prices of $495 and
- * $395, so one left $60 and the other lost money before any discount, and both
- * trade floors were held because of it. At tier 1 they cost $260 and their
- * floors are $425 and $325.
+ * WPI-8 ONGOING CONSTRUCTION IS NOT IN SCHEDULE 2, so it has no row here and
+ * pays nothing until a signed scope addendum covers it. See
+ * `SCOPE_ADDENDUM_REQUIRED` below.
  */
 export const TIER_BY_DELIVERABLE: Record<string, PayTier> = {
   "roof-inspections/standard": 1,
   "structural-letters/standard": 1,
   "solar-structural-letters/standard": 1,
   "foundation-inspections/standard": 1,
-  "manufactured-home-foundation-certifications/standard": 2,
+  "manufactured-home-foundation-certifications/standard": 1,
   "windstorm-wpi-8/completed": 2,
-  "windstorm-wpi-8/ongoing": 3,
-  "repair-specifications/standard": 1,
+  "repair-specifications/standard": 2,
+  "residential-light-commercial-design/beam-header-sizing": 2,
 };
+
+/**
+ * DELIVERABLES THE AGREEMENT DOES NOT COVER, WHICH NEED A SIGNED SCOPE
+ * ADDENDUM BEFORE ANY JOB. Operator ruling, 2026-10-22.
+ *
+ * A deliverable here pays nothing and is refused at every order door until an
+ * addendum naming it is recorded in `SIGNED_SCOPE_ADDENDA`. The custom design
+ * engagement is not listed: its rule, 35% of the fee, is agreed, and each
+ * engagement's own addendum is what the price book asks for per job.
+ */
+export const SCOPE_ADDENDUM_REQUIRED: Record<string, string> = {
+  "windstorm-wpi-8/ongoing":
+    "WPI-8 ongoing construction is not in Schedule 2 of the engineer's signed agreement, so it needs a signed scope addendum before any job and pays nothing until one exists.",
+};
+
+/** Scope addenda the operator has recorded as signed, by deliverable key. Empty is honest. */
+export const SIGNED_SCOPE_ADDENDA: Array<{ deliverable: string; signedOn: string; recordedBy: string }> = [];
+
+/** Why a deliverable may not be taken on yet, or null when nothing in the agreement stops it. */
+export function scopeAddendumMissing(serviceSlug: string, tier: string): string | null {
+  const key = `${serviceSlug}/${tier}`;
+  const why = SCOPE_ADDENDUM_REQUIRED[key];
+  if (!why) return null;
+  return SIGNED_SCOPE_ADDENDA.some((a) => a.deliverable === key) ? null : why;
+}
 
 /**
  * THE ENGINEER'S MONTHLY RETAINER, $1,500. Operator ruling, 2026-10-06,

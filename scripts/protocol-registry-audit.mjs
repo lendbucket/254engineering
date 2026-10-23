@@ -26,6 +26,7 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
+import { pdfText, referenceLog } from "./lib/protocol-source.mjs";
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
@@ -39,6 +40,38 @@ const { RC001, RC001_ENFORCED, RC001_AMBIGUITIES, RC001_SIGNATURE_EVIDENCE } = a
   "../src/content/protocols/rc-001.ts"
 );
 const { verifiedFirmRegistrations } = await import("../src/config/credentials.ts");
+
+/* --------------------------- 0. the private originals, fetched and proved */
+
+/*
+ * Operator rulings 2026-10-22, migration 0080. Both signed RC-001 copies left
+ * the public tree for the private bucket eng-protocol-sources on development.
+ * Each is fetched into its old (gitignored) path and accepted only when its
+ * SHA-256 and size equal the declaration's, so every comparison below still
+ * reads the exact bytes the transcriptions were proved against. Development
+ * out of reach is COULD NOT TELL for the whole audit rather than a run of
+ * failures about documents it never saw.
+ */
+{
+  const { ensurePrivateSources } = await import("./lib/protocol-source.mjs");
+  const { PRIVATE_SOURCES, PROTOCOL_SOURCE_BUCKET } = await import("../src/content/protocols/private-sources.ts");
+  const { RC001_VERSIONS } = await import("../src/content/protocols/rc-001.ts");
+  const mine = PRIVATE_SOURCES.filter((s) => s.path.startsWith("docs/254-RC-001-"));
+  rec(
+    "both signed RC-001 copies are declared as private sources, with the digests the versions pin",
+    mine.length === 2 && RC001_VERSIONS.every((v) => mine.some((s) => s.path === v.file && s.sha256 === v.sha256)),
+    mine.map((s) => s.key).join(", ") || "none declared",
+  );
+  const results = await ensurePrivateSources(mine, PROTOCOL_SOURCE_BUCKET);
+  const unreachable = results.filter((r) => r.unreachable);
+  if (unreachable.length) {
+    console.log(`COULD NOT TELL: ${unreachable.map((r) => r.why).join("; ")}.`);
+    process.exit(3);
+  }
+  for (const r of results) {
+    rec(`${r.path} is the engineer's signed file, by SHA-256 and size`, r.ok, r.why ?? r.how);
+  }
+}
 
 /* ------------------------------------------- 1. the declaration is coherent */
 
@@ -437,14 +470,23 @@ rec(
 /* ---------------------------- 3. both directions, against the document text */
 
 const pdf = RC001.sourceFile;
-rec("the signed document is in the repository", existsSync(pdf), pdf);
+/* Renamed 2026-10-22: it is no longer in the repository but fetched into place
+ * from private storage and proved by digest in section 0 (migration 0080). */
+rec("the signed document is on disk, fetched and proved", existsSync(pdf), pdf);
 
-const pdftotext = spawnSync("pdftotext", ["-layout", pdf, "-"], { encoding: "utf8" });
+/*
+ * The text is the PDF's pinned xpdf 4.00 reference (ruling (a), 2026-10-22),
+ * served only for the digest it was made from and re-derived wherever 4.00 is
+ * present; see pdfText in scripts/lib/protocol-source.mjs. Shaped as the
+ * pdftotext result this section always read, so nothing below it changes.
+ */
+const served = pdfText(pdf, "layout");
+const pdftotext = { error: null, status: served.ok ? 0 : 1, stdout: served.text ?? "" };
 if (pdftotext.error || pdftotext.status !== 0) {
   tell.push(
-    "The DOCUMENT half did not run: pdftotext is not available here, so nothing compared this " +
-      "declaration against the signed PDF. That is the half proving the portal neither invents nor " +
-      "drops anything. Install poppler-utils and re-run before trusting the mapping.",
+    `The DOCUMENT half did not run: ${served.why}. Nothing compared this declaration against the ` +
+      "signed PDF, which is the half proving the portal neither invents nor drops anything; the " +
+      "reference check at the end of this audit fails on it by name.",
   );
 } else {
   /*
@@ -856,8 +898,8 @@ if (pdftotext.error || pdftotext.status !== 0) {
   const signedText = (entry) => {
     const file = entry.declaration.sourceFile;
     if (!squashed.has(file)) {
-      const run = spawnSync("pdftotext", ["-layout", file, "-"], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
-      squashed.set(file, run.error || run.status !== 0 ? null : run.stdout.replace(/\s+/g, ""));
+      const run = pdfText(file, "layout");
+      squashed.set(file, run.ok ? run.text.replace(/\s+/g, "") : null);
     }
     return squashed.get(file);
   };
@@ -1608,9 +1650,10 @@ if (carriers.length === 1) {
           : `${sha.slice(0, 12)}, and the declaration names the same`,
     );
 
-    const run = spawnSync("pdftotext", ["-raw", d.sourceFile, "-"], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+    const served = pdfText(d.sourceFile, "raw");
+    const run = { error: null, status: served.ok ? 0 : 1, stdout: served.text ?? "" };
     if (run.error || run.status !== 0) {
-      tell.push(`${where}: the transcription was not compared with its PDF, because pdftotext could not read it.`);
+      tell.push(`${where}: the transcription was not compared with its PDF, because ${served.why}.`);
       continue;
     }
     const lines = run.stdout
@@ -1836,6 +1879,84 @@ if (carriers.length === 1) {
       wrongFields.length === 0,
       wrongFields.length ? wrongFields.map(([l]) => l).join(", ") : `${fields.length} fields`,
     );
+
+    /*
+     * FC-001 v1.0 IS ALSO STRUCTURED, in src/content/protocols/fc-001.ts
+     * (2026-10-22): its questions, uploads, checklist, photo steps,
+     * determinations and capture fields, so it can be registered the day the
+     * engineer signs it. Proved here as section 8 proves the PDF ones: every
+     * structured string against THIS .docx read, never against the text array,
+     * and every count against a count taken from the .docx by its own markers
+     * alone, so a reader that dropped an item cannot pass by keeping only
+     * genuine ones. The document's bullet is an en dash and a space.
+     */
+    if (p.documentNumber === "254-FC-001") {
+      const { FC001, FC001_COUNTS, FC001_OTHER_RULES, FC001_BLANK_JOB_LIST_ITEMS } = await import(
+        "../src/content/protocols/fc-001.ts"
+      );
+      const d = FC001;
+      const strings = [
+        ...d.intakeQuestions.map((q) => [`Q${q.number}`, q.ask]),
+        ...d.intakeQuestions.map((q) => [`Q${q.number} group`, q.groupHeading]),
+        ...d.intakeUploads.map((u) => [u.key, u.what]),
+        ...d.sections.map((s) => [s.key, s.heading]),
+        ...d.checklist.map((i) => [i.key, i.label]),
+        ...d.photoProcedure.map((s) => [`step ${s.step}`, s.text]),
+        ...[...d.determinations, ...FC001_OTHER_RULES].flatMap((r) => [[r.key, r.heading], ...r.criteria.map((c, n) => [`${r.key} ${n + 1}`, c])]),
+        ...FC001_COUNTS.map((c) => [c.key, c.prompt]),
+      ];
+      const missing = strings.filter(([, s]) => !docSq.includes(sq(s)));
+      rec(
+        `${where}: every structured question, upload, heading, checklist line, step, criterion and capture field appears in the .docx`,
+        strings.length > 100 && missing.length === 0,
+        missing.length === 0 ? `${strings.length} strings compared` : `NOT IN THE .docx: ${missing.slice(0, 4).map(([k]) => k).join(", ")}`,
+      );
+      const header = [
+        ["documentNumber", d.documentNumber, p.documentNumber],
+        ["version", d.version, p.version],
+        ["title", d.title, p.title],
+        ["issueDateAsPrinted", d.issueDateAsPrinted, fieldAfter("Issue date")],
+        ["approvedBy", d.approvedBy, fieldAfter("Approval")],
+        ["sourceFile", d.sourceFile, p.sourceFile],
+        ["sourceSha256", d.sourceSha256, PINNED_SHA256[p.documentNumber]],
+        ["serviceSlug", d.serviceSlug, p.serviceSlug],
+      ].filter(([, ours, theirs]) => ours !== theirs);
+      rec(
+        `${where}: the structured declaration names the same document, version, file and digest`,
+        header.length === 0,
+        header.map(([k]) => k).join(", ") || "8 fields",
+      );
+
+      const BUL = `${String.fromCodePoint(0x2013)} `;
+      const between = (a, b) => {
+        const i = lines.findIndex((l) => a.test(l));
+        const j = lines.findIndex((l, k) => k > i && b.test(l));
+        return i < 0 || j < 0 ? [] : lines.slice(i + 1, j);
+      };
+      const part1 = between(/^PART 1 /, /^PART 2 /);
+      const part2 = between(/^PART 2 /, /^Appendix B\. /);
+      const appB = between(/^Appendix B\. /, /^Appendix C\. /);
+      const appC = between(/^Appendix C\. /, /^Appendix D\. /);
+      const photosAt = appB.indexOf("PHOTOS");
+      const boxes = appB.filter((l) => /^\[\s*\]/.test(l));
+      const counted = {
+        questions: [part1.filter((l) => /^\d+\. /.test(l)).length, d.intakeQuestions.length],
+        uploads: [part2.filter((l) => l.startsWith(BUL)).length, d.intakeUploads.length],
+        "photo steps": [appB.slice(photosAt + 1).findIndex((l) => !l.startsWith(BUL)), d.photoProcedure.length],
+        "checklist lines": [boxes.length, d.checklist.length + FC001_BLANK_JOB_LIST_ITEMS],
+        "photo items": [boxes.filter((l) => /\[PHOTO\]\s*$/.test(l)).length, d.checklist.filter((i) => i.photo).length],
+        criteria: [appC.filter((l) => l.startsWith(BUL)).length, d.determinations.reduce((n, r) => n + r.criteria.length, 0)],
+        determinations: [appC.filter((l) => /^(PASS|REVISE|REPAIRS REQUIRED|SITE REVISIT|DECLINE)\b/.test(l)).length, d.determinations.length],
+      };
+      const off = Object.entries(counted).filter(([, [docx, ours]]) => docx !== ours);
+      rec(
+        `${where}: the structure holds as many questions, uploads, steps, checklist lines and criteria as the .docx`,
+        photosAt >= 0 && off.length === 0,
+        off.length === 0
+          ? Object.entries(counted).map(([k, [n]]) => `${n} ${k}`).join(", ")
+          : off.map(([k, [docx, ours]]) => `${k}: .docx ${docx}, structured ${ours}`).join("; "),
+      );
+    }
   }
 }
 
@@ -2021,6 +2142,27 @@ if (carriers.length === 1) {
  * to avoid. Caught by counting the printed lines against the reported total
  * rather than by reading the code.
  */
+
+/*
+ * EVERY PDF TEXT THIS RUN READ WAS ITS PINNED REFERENCE. Ruling (a),
+ * 2026-10-22. Asked last, over every read, so a refused PDF is a FAIL
+ * wherever in the audit it was read, and the count says how many reads 4.00
+ * re-derived here (all of them on the operator's PC, none on a runner whose
+ * pdftotext is something else). A run that read no PDF at all fails too.
+ */
+{
+  const refused = referenceLog.filter((r) => !r.ok);
+  const confirmed = referenceLog.filter((r) => r.ok && /confirmed byte for byte/.test(r.how));
+  rec(
+    "every PDF text read was its pinned reference, for a PDF whose digest the manifest names",
+    referenceLog.length > 0 && refused.length === 0,
+    refused.length
+      ? refused.map((r) => r.why).join("; ")
+      : `${referenceLog.length} reads, ${confirmed.length} re-derived here by xpdf 4.00` +
+          (confirmed.length ? "" : `; ${referenceLog[0]?.how ?? "none read"}`),
+  );
+}
+
 console.log("");
 for (const r of out) console.log(`  ${r.ok ? "PASS" : "FAIL"}: ${r.name}${r.note ? ` (${r.note})` : ""}`);
 for (const t of tell) console.log(`  COULD NOT TELL: ${t}`);

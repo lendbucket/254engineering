@@ -4,6 +4,46 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
+## THE SITTING FOR 0080, THE SIGNED SOURCES GO PRIVATE, OPEN
+
+`docs/production-sitting-0080-protocol-sources.md`. Written 2026-10-22 on
+`fix/protocol-sources` and applied nowhere, development included. One private
+bucket, eng-protocol-sources; the two signed RC-001 copies and the letter
+templates move into it on development and leave the tree, with their digests
+kept. Development first, then the branch is boarded and held for production,
+where the bucket is created empty.
+
+## REMOVING THE SIGNED PROTOCOLS FROM HISTORY, HELD FOR ROBERT
+
+`docs/history-rewrite-proposal-2026-10-22.md`. Aman's handwritten signature is
+in both RC-001 PDFs and his licence line in the letter templates, public since
+2026-09-16 and 2026-10-06. Removing them from the tree is ruled (2026-10-22);
+rewriting history is not, because it rehashes about 955 commits and force
+pushes 126 branches. Written up and held for his decision.
+## THE CLOUD BOARD'S WRITERS RUN ONE AT A TIME, AND A LOCAL RUN IS NOT IN LINE
+
+`.github/workflows/board.yml`, `scripts/ci/shards.mjs`, 2026-10-22. Two gaps,
+both stated in the files. **The writer shard is serial** across every run,
+because each probe helper sweeps the whole probe domain, so two writers at once
+would delete each other's fixtures; unique probe prefixes per job would let it
+split, and that changes the sweep in every probe helper, which is a fixture
+change for a ruling. **A run on the operator's PC is not in the line**
+(`scripts/ci/dev-db-turn.mjs` reads GitHub runs only), so a local perf run
+beside a cloud writer shard would sweep the same probes. perf-audit's cloud
+verdict was informational until calibrated; three clean main runs passed with
+no FAIL and no NOT STABLE, and it gates since the operator's ruling of
+2026-10-22 (`INFORMATIONAL` in `scripts/ci/shards.mjs` is empty).
+
+## A PUSH TO MAIN RE-BOARDS A COMMIT THAT ALREADY HAS A GREEN BOARD, OPEN
+
+`.github/workflows/board.yml`. Ruled 2026-10-22, not built that night. Moving
+main to `c063762` started run `39879066187` on the exact commit that run
+`39872774654` had just passed 61 of 61, and its writers shard would have held
+development past the 0082 sitting; it was cancelled before its shard ran. **The
+rule to build:** a push to main whose exact commit already has a green board of
+the same workflow is skipped by the board, and the skip names the earlier run
+id. Same commit only: a different tree on main is always boarded.
+
 ## THE SITTING FOR 0079, TWO STAFF ROLES AND THE WORK THEY DO, OPEN
 
 `docs/production-sitting-0079-staff-roles.md`. Written 2026-10-20 on
@@ -820,6 +860,7 @@ a commit is one the next session has to go looking for.
 | 2026-10-06 | **Technician training academy, queued after roof certification works end to end** | **QUEUED, NOT STARTED, by operator instruction.** Two courses a technician must graduate before the `field_tech` role is enrolled: (1) duties, responsibilities and each signed protocol, with content and quiz questions approved by Aman and versioned to the protocol version it teaches; (2) a firm safety course on ladder use and fall protection on roofs, written by Robert. Video lessons may be AI generated, never presenting a generated person as staff, with narration matching the protocol text. Graduation is the entry requirement only: certification still requires Aman's sign off after a supervised inspection. |
 | 2026-10-06 | **0055 carries `requires_discipline = null`, and it is known** | **KNOWN, NOT A DEFECT ON PRODUCTION.** Production's RC-001 row carries `structural`, read by the operator's chat counterpart on 2026-10-06, so 0056 corrected it there. The `null` in 0055 is a seed artifact. 0055 is applied and on main and is not changed. The generator no longer reproduces 0055 because of it, which is recorded on `feat/protocol-registry`. |
 | 2026-10-06 | **Dispatch readiness on production: a sitting script, and a role that blocks it** | **OPEN, SCRIPT WRITTEN, NOT RUN.** `docs/production-sitting-dispatch-readiness.md` writes Robert's roof certification, all 254 counties and two credentials. Dispatch only considers role `field_tech` and his profile is `admin`, so the role has to be ruled first (the document recommends a second technician profile). The W-9 and contractor agreement block is held for a ruling on whether an owner needs them. |
+| 2026-10-22 | **The engineer of record's three answers, from his email of 2026-10-22** | **RULED, recorded in `docs/rulings-2026-10-22.md`.** PL-001 option A pass, B pass with a condition in the schedule (refused when empty), C repairs required; the RS-001 completion letter is drafted and goes to him as a SAMPLE PDF, and its sealing stays closed until Robert says he approved the letter itself; FC-001 v1.0 is signed as it stands with his two sentences in the letter template. **OPEN, HIS, NOT THE FIRM'S:** Aman adds "This letter is not a warranty or a guarantee of any kind." and the items-not-observed sentence to FC-001 section 11 at his next revision. **OPEN, THE FIRM'S:** recording the option and the schedule with a PL determination, which sealing needs before it can ask the rule (a migration, put to Robert). |
 | 2026-10-06 | **Four rulings, and two facts with two homes that disagree** | **RULED, recorded in `docs/rulings-2026-10-06.md`.** Ordering stays live; the platform drafts the letter and the engineer seals it in the portal (the law is in `CLAUDE.md` section 1); Robert's RC-001 v1.1 training is accepted on his statement; his coverage is all 254 counties. **OPEN:** ~~the training register says trained while `eng_certifications` on production holds no row~~ **CORRECTED 2026-10-09: that half was wrong.** The counterpart read production in the sitting of 2026-10-09: one roof certification row, status certified, certified_at 2026-09-23T05:00:00Z, against 254-RC-001 v1.1 (published), the operator's own, taken against the current version. The session predicted no row from this entry and the read disproved it; the entry was a claim nobody had read against production. The TDI appointment register says not held while `eng_profiles` says appointed; that half stands, and the appointment waits on Aman's number and date. |
 | 2026-10-06 | **Three findings from the one-protocol-to-many groundwork, none fixed** | **OPEN, REPORTED.** (1) Since 0056 declared the discipline on 2026-09-21, `scripts/seed-protocol.mjs --document 254-RC-001 --emit-sql` no longer reproduces 0055: it would write `structural` where the applied file says `null`, so running it rewrites a migration that has run on production. Proven by re-emitting and diffing, then restored by copy. The generator should refuse to overwrite an existing migration. (2) The RC-001 portal screen still says the protocol "has not been approved in the platform"; it was approved on 2026-09-22. Carried unchanged because the ruling was that RC-001 behaves exactly as before, and replaced by the signed record when portal signing is built. (3) `protocol-register-check` against development reports the RC-001 row approved 2026-09-28 while the register says 2026-09-22; the check is written for production, where the dates agree, and development's row was approved on a later day. |
 | 2026-10-01 | HR pay rates | **RULED.** No defaults anywhere. Rates are entered per person in admin by the owner, with effective dates. A person with no rate set cannot be assigned paid work or appear in a pay export, and the screen says why in plain words. |

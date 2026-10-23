@@ -224,9 +224,15 @@ export function jobPostingSchema(opening: {
   remote: boolean;
   anchor: string;
 }) {
+  /*
+   * THE FIRM'S OFFICE, NOT A REGION. Operator ruling of 2026-10-23: a field
+   * seat's jobLocation was addressRegion TX alone, which states no place. It is
+   * the office the Organization node carries, from the same deriver, so the
+   * address is never typed twice.
+   */
   const texas = {
     "@type": "Place",
-    address: {
+    address: postalAddressSchema() ?? {
       "@type": "PostalAddress",
       addressRegion: "TX",
       addressCountry: "US",
@@ -241,7 +247,20 @@ export function jobPostingSchema(opening: {
     employmentType: opening.employmentType,
     datePosted: opening.datePosted,
     validThrough: opening.validThrough,
-    hiringOrganization: { "@id": ORG_ID },
+    /*
+     * INLINE, NOT ONLY A REFERENCE. Operator ruling of 2026-10-23: a reader that
+     * takes the JobPosting alone gets the hiring organisation's name, sameAs and
+     * logo without resolving the @id. The same three values the Organization
+     * node carries, read from the same places, and the @id kept so the two
+     * nodes still join.
+     */
+    hiringOrganization: {
+      "@type": "Organization",
+      "@id": ORG_ID,
+      name: business.shortName,
+      sameAs: business.brands.map((b) => b.url),
+      logo: `${business.url}/brand/logo.png`,
+    },
     url: `${business.url}/careers#${opening.anchor}`,
     directApply: true,
     ...(opening.remote

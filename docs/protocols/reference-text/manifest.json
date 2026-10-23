@@ -1,0 +1,150 @@
+{
+  "extractor": "pdftotext version 4.00",
+  "written": "2026-10-22",
+  "entries": [
+    {
+      "pdf": "docs/254-RC-001-roof-certification-protocol-v1.0.pdf",
+      "pdfSha256": "f6d3ca925ddcb305292895c47249199ce86977644d3323d8a0d8ccc017803ba9",
+      "mode": "layout",
+      "file": "docs/protocols/reference-text/254-RC-001-roof-certification-protocol-v1.0.layout.txt",
+      "textSha256": "49f6be900d23c12d74b2a19e2654bb5b6d2b32990e2439956805880df4175b7e",
+      "bytes": 28044
+    },
+    {
+      "pdf": "docs/254-RC-001-roof-certification-protocol-v1.0.pdf",
+      "pdfSha256": "f6d3ca925ddcb305292895c47249199ce86977644d3323d8a0d8ccc017803ba9",
+      "mode": "raw",
+      "file": "docs/protocols/reference-text/254-RC-001-roof-certification-protocol-v1.0.raw.txt",
+      "textSha256": "7a5dbd16c8362ba12c530911c36f5f94e45319b812af5908503b368559cc8132",
+      "bytes": 25970
+    },
+    {
+      "pdf": "docs/254-RC-001-roof-certification-protocol-v1.1.pdf",
+      "pdfSha256": "d050a21a2b2d43114de47989ca731f41e26951f195c90187e99c11705011e4ef",
+      "mode": "layout",
+      "file": "docs/protocols/reference-text/254-RC-001-roof-certification-protocol-v1.1.layout.txt",
+      "textSha256": "d94f670249d4bfa59a0247a1f455d5291d764cb7e11b42840c88a14e28599e94",
+      "bytes": 28426
+    },
+    {
+      "pdf": "docs/254-RC-001-roof-certification-protocol-v1.1.pdf",
+      "pdfSha256": "d050a21a2b2d43114de47989ca731f41e26951f195c90187e99c11705011e4ef",
+      "mode": "raw",
+      "file": "docs/protocols/reference-text/254-RC-001-roof-certification-protocol-v1.1.raw.txt",
+      "textSha256": "675d07d707e96b995c914030647147a8ba6c0284912b1d3e1039fc4f8753cacf",
+      "bytes": 26452
+    },
+    {
+      "pdf": "docs/protocols/incoming/v1.1/254-WP-001_Windstorm_Inspection_Protocol_v1_1.pdf",
+      "pdfSha256": "e7515b42a3d319483c40dc2ded4d07527f8ada932410d64ad69ec9c45ccb3040",
+      "mode": "layout",
+      "file": "docs/protocols/reference-text/254-WP-001_Windstorm_Inspection_Protocol_v1_1.layout.txt",
+      "textSha256": "cc1092067c5b91014a840d5b1835fbf6dab29cb7d135a6a149afa3b056c18535",
+      "bytes": 39397
+    },
+    {
+      "pdf": "docs/protocols/incoming/v1.1/254-WP-001_Windstorm_Inspection_Protocol_v1_1.pdf",
+      "pdfSha256": "e7515b42a3d319483c40dc2ded4d07527f8ada932410d64ad69ec9c45ccb3040",
+      "mode": "raw",
+      "file": "docs/protocols/reference-text/254-WP-001_Windstorm_Inspection_Protocol_v1_1.raw.txt",
+      "textSha256": "dcc58837061852295da3219da96f4580ac6a59e11a1fe884369a124730d9d6e4",
+      "bytes": 31110
+    },
+    {
+      "pdf": "docs/protocols/incoming/v1.1/254-WS-001_Windstorm_Certification_Protocol_v1_1.pdf",
+      "pdfSha256": "f4cbe248957298bbae6d968350d3732ef3197b46684959c6ec083f494f3ed6b5",
+      "mode": "layout",
+      "file": "docs/protocols/reference-text/254-WS-001_Windstorm_Certification_Protocol_v1_1.layout.txt",
+      "textSha256": "5a6b2d361b55c83f411957521db513ae1c5f38575e86209b22637f920b52380f",
+      "bytes": 31296
+    },
+    {
+      "pdf": "docs/protocols/incoming/v1.1/254-WS-001_Windstorm_Certification_Protocol_v1_1.pdf",
+      "pdfSha256": "f4cbe248957298bbae6d968350d3732ef3197b46684959c6ec083f494f3ed6b5",
+      "mode": "raw",
+      "file": "docs/protocols/reference-text/254-WS-001_Windstorm_Certification_Protocol_v1_1.raw.txt",
+      "textSha256": "c5eda09594653455941a1d02656ce4051c8b105b9cd913bfb163e5b6eee821c4",
+      "bytes": 29624
+    },
+    {
+      "pdf": "docs/protocols/incoming/v1.1/254-MH-001_Manufactured_Home_Foundation_Certification_Protocol_v1_1.pdf",
+      "pdfSha256": "5c88c73d9815cfae6825ef82d4368dd66a98dce746deed91b3c351cf2df09d4a",
+      "mode": "layout",
+      "file": "docs/protocols/reference-text/254-MH-001_Manufactured_Home_Foundation_Certification_Protocol_v1_1.layout.txt",
+      "textSha256": "69e6faa9196fd444a98dad4c49f0de205111e08bdafea1b34df8db20638f5bca",
+      "bytes": 30098
+    },
+    {
+      "pdf": "docs/protocols/incoming/v1.1/254-MH-001_Manufactured_Home_Foundation_Certification_Protocol_v1_1.pdf",
+      "pdfSha256": "5c88c73d9815cfae6825ef82d4368dd66a98dce746deed91b3c351cf2df09d4a",
+      "mode": "raw",
+      "file": "docs/protocols/reference-text/254-MH-001_Manufactured_Home_Foundation_Certification_Protocol_v1_1.raw.txt",
+      "textSha256": "405c753e506aafc2aad0d49ddbc2f1a3c7335c1bf0048400f6b721d36d2008e7",
+      "bytes": 28915
+    },
+    {
+      "pdf": "docs/protocols/incoming/v1.1/254-SL-001_Solar_Structural_Letter_Protocol_v1_1.pdf",
+      "pdfSha256": "7bac29a7021086a7a40906021de5be9c2c2efaba747db33877410dd7b5c4e8f3",
+      "mode": "layout",
+      "file": "docs/protocols/reference-text/254-SL-001_Solar_Structural_Letter_Protocol_v1_1.layout.txt",
+      "textSha256": "f5bf0a5931f8efd09815be62341eaf57a00785e33985ef6a5a74f775f97bf50a",
+      "bytes": 26954
+    },
+    {
+      "pdf": "docs/protocols/incoming/v1.1/254-SL-001_Solar_Structural_Letter_Protocol_v1_1.pdf",
+      "pdfSha256": "7bac29a7021086a7a40906021de5be9c2c2efaba747db33877410dd7b5c4e8f3",
+      "mode": "raw",
+      "file": "docs/protocols/reference-text/254-SL-001_Solar_Structural_Letter_Protocol_v1_1.raw.txt",
+      "textSha256": "53466d2687a88e1810b40fb7fa7272873efed56f17a277e80157639f82e7a56e",
+      "bytes": 25636
+    },
+    {
+      "pdf": "docs/protocols/incoming/v1.1/254-PL-001_Structural_Letter_Protocol_v1_1.pdf",
+      "pdfSha256": "f1ff2e5883aac06ac1b468a74ea09535c074a468a31de4c04297bf4c74b11387",
+      "mode": "layout",
+      "file": "docs/protocols/reference-text/254-PL-001_Structural_Letter_Protocol_v1_1.layout.txt",
+      "textSha256": "c30bc9490cbf6d09b4db51f934fe3c2a921b21bbfe13244b14bcd60579beca2f",
+      "bytes": 23787
+    },
+    {
+      "pdf": "docs/protocols/incoming/v1.1/254-PL-001_Structural_Letter_Protocol_v1_1.pdf",
+      "pdfSha256": "f1ff2e5883aac06ac1b468a74ea09535c074a468a31de4c04297bf4c74b11387",
+      "mode": "raw",
+      "file": "docs/protocols/reference-text/254-PL-001_Structural_Letter_Protocol_v1_1.raw.txt",
+      "textSha256": "7c4428f0e653ae04ec65e1a614b330de289947033fbb371fed2d56c3c99bf44d",
+      "bytes": 22574
+    },
+    {
+      "pdf": "docs/protocols/incoming/v1.1/254-RS-001_Repair_Specification_Protocol_v1_1.pdf",
+      "pdfSha256": "c7913d6637f2a08b1cd09a49c1767c682895db864143005a07bba99def8c2dd2",
+      "mode": "layout",
+      "file": "docs/protocols/reference-text/254-RS-001_Repair_Specification_Protocol_v1_1.layout.txt",
+      "textSha256": "44840ed7f426092ac7adada1f76fd59d219d27867fc78ca5095951ae15396b0f",
+      "bytes": 25964
+    },
+    {
+      "pdf": "docs/protocols/incoming/v1.1/254-RS-001_Repair_Specification_Protocol_v1_1.pdf",
+      "pdfSha256": "c7913d6637f2a08b1cd09a49c1767c682895db864143005a07bba99def8c2dd2",
+      "mode": "raw",
+      "file": "docs/protocols/reference-text/254-RS-001_Repair_Specification_Protocol_v1_1.raw.txt",
+      "textSha256": "54cec3e67af91bc33ab9b762b5d7615ac038998a1a22fe84adfb4b1708af46c1",
+      "bytes": 24746
+    },
+    {
+      "pdf": "docs/protocols/incoming/v1.1/254-DS-001_Structural_Design_Protocol_v1_1.pdf",
+      "pdfSha256": "37dd6b2e44155108df1daa681277332ddb64450a0f58813979e538da469ee22b",
+      "mode": "layout",
+      "file": "docs/protocols/reference-text/254-DS-001_Structural_Design_Protocol_v1_1.layout.txt",
+      "textSha256": "c30f31168d842e8ae3c0854fd7afd49261f39c7779ed3bbd07e65ac6f11868e2",
+      "bytes": 22900
+    },
+    {
+      "pdf": "docs/protocols/incoming/v1.1/254-DS-001_Structural_Design_Protocol_v1_1.pdf",
+      "pdfSha256": "37dd6b2e44155108df1daa681277332ddb64450a0f58813979e538da469ee22b",
+      "mode": "raw",
+      "file": "docs/protocols/reference-text/254-DS-001_Structural_Design_Protocol_v1_1.raw.txt",
+      "textSha256": "a0d4e435009d8f5399214ac4f3262561a5f07084c7cfe7d8d21f7da9af906cde",
+      "bytes": 21661
+    }
+  ]
+}

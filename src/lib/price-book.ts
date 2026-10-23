@@ -1,6 +1,6 @@
 import { priceFor, money, headlinePriceCents } from "@/config/prices";
 import {
-  ENGINEER_DESIGN_HOURLY_CENTS,
+  engineerDesignPayCents,
   defaultTierFor,
   engineerPayCents,
   type PayTier,
@@ -47,8 +47,12 @@ export type MarginInput = {
    * Null until he has made one, which is most jobs for most of their life.
    */
   tier: PayTier | null;
-  /** Hours recorded against the job. The design line is paid on these. */
-  designHours: number | null;
+  /**
+   * Whether a scope addendum is signed for this design engagement. A custom
+   * design job pays the engineer 35% of its fee under one, and nothing without
+   * one (operator ruling, 2026-10-22). Null on a job that is not design.
+   */
+  scopeAddendumSigned: boolean | null;
   /**
    * HOW THE JOB WAS ACTUALLY PAID. Operator ruling, 2026-09-20.
    *
@@ -113,16 +117,21 @@ export function marginForJob(input: MarginInput): MarginVerdict {
   const technicianCents = input.technicianVisits * TECHNICIAN_CALL_CENTS;
 
   let engineerCents: number;
-  if (isHourly(input.serviceSlug)) {
-    if (input.designHours === null) {
+  if (isHourly(input.serviceSlug) && input.tier === null) {
+    /*
+     * A CUSTOM DESIGN ENGAGEMENT, paid 35% of its fee under a signed scope
+     * addendum (operator ruling, 2026-10-22). Beam and header sizing is not
+     * this path: Schedule 2 gives it tier 2, so it arrives with a tier.
+     */
+    if (input.scopeAddendumSigned !== true) {
       return {
         ok: false,
-        missing: "hours",
+        missing: "scope addendum",
         because:
-          "This line is paid by the hour and no hours are recorded against the job. The design line's margin is computed from the hours the engineer actually recorded, so until he records them there is no cost to subtract.",
+          "A custom design engagement pays the engineer 35% of its fee under a signed scope addendum, and none is recorded for this job, so nothing is owed yet and no margin can be stated.",
       };
     }
-    engineerCents = Math.round(input.designHours * ENGINEER_DESIGN_HOURLY_CENTS);
+    engineerCents = engineerDesignPayCents(input.chargedCents);
   } else {
     if (input.tier === null) {
       /*

@@ -1,4 +1,5 @@
 import { protocolByDocument, type ProtocolEntry, type ProtocolChecklistItem } from "@/content/protocols";
+import { structuredDeclaration } from "@/content/protocols/structured";
 
 /*
  * ONE PROTOCOL TO MANY, 2026-10-06. Every function here takes the protocol it
@@ -181,7 +182,23 @@ function kindFor(item: ChecklistItem): ProtocolItemRow["kind"] {
  * optional tier to let a job finish honestly.
  */
 export function protocolItemRows(protocol: ProtocolEntry): ProtocolItemRow[] {
-  return protocol.declaration.checklist.map((item, index) => ({
+  return checklistItemRows(protocol.declaration.checklist);
+}
+
+/**
+ * THE ITEMS A PORTAL SIGNATURE PUTS IN FORCE, from the structured declaration
+ * he signed rather than from the registry (src/content/protocols/structured.ts
+ * says why). Operator rulings of 2026-10-22, migration 0081. Null when no
+ * structured declaration carries that document at that version, which refuses
+ * putting it in force rather than seeding anything plausible.
+ */
+export function signedProtocolItemRows(documentNumber: string, version: string): ProtocolItemRow[] | null {
+  const declaration = structuredDeclaration(documentNumber, version);
+  return declaration ? checklistItemRows(declaration.checklist as readonly ChecklistItem[]) : null;
+}
+
+function checklistItemRows(checklist: readonly ChecklistItem[]): ProtocolItemRow[] {
+  return checklist.map((item, index) => ({
     sort_order: index,
     item_key: item.key,
     kind: kindFor(item),

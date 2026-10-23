@@ -104,11 +104,23 @@ const count = async (sql) => Number((await db.query(sql)).rows[0].n);
 
 /* ------------------------------------------- 1. one per tier, rolled back */
 
+/*
+ * SCHEDULE 2, OPERATOR RULING 2026-10-22. The tier 2 case was the
+ * manufactured home certification until Schedule 2 put that at tier 1; the
+ * repair specification is tier 2 under it. The tier 3 case was WPI-8 ongoing
+ * construction, which Schedule 2 does not list: it now carries no tier, so the
+ * decision must write NO credit, and no deliverable in the schedule is tier 3.
+ */
 const CASES = [
   [await file("roof-inspections", "standard"), 1],
-  [await file("manufactured-home-foundation-certifications", "standard"), 2],
-  [await file("windstorm-wpi-8", "ongoing"), 3],
+  [await file("repair-specifications", "standard"), 2],
+  [await file("windstorm-wpi-8", "ongoing"), null],
 ];
+check(
+  "the tier 2 and no-tier cases are what Schedule 2 says, so a moved row cannot pass by moving the case with it",
+  tierForDeliverable("repair-specifications", "standard") === 2 && tierForDeliverable("windstorm-wpi-8", "ongoing") === null,
+  `repair ${tierForDeliverable("repair-specifications", "standard")}, ongoing ${tierForDeliverable("windstorm-wpi-8", "ongoing")}`,
+);
 for (const [f, tier] of CASES) {
   const p = params(f, "revisions");
   await db.exec("begin");
@@ -120,12 +132,20 @@ for (const [f, tier] of CASES) {
     );
     const status = (await db.query(`select status from eng_files where id = $1`, [f.id])).rows[0].status;
     const log = await count(`select count(*) as n from eng_responsible_charge_log where file_id = '${f.id}'`);
-    check(
-      `tier ${tier}: inside the transaction the decision wrote its credit of $${(AGREED[tier] / 100).toFixed(2)}, its charge log row and its status move`,
-      rows.length === 1 && Number(rows[0].amount_cents) === AGREED[tier] && rows[0].note.endsWith(`tier ${tier}`) &&
-        rows[0].review_session_id === f.session && log === 1 && status === "revisions_requested",
-      `${rows.length} ledger row(s), ${rows[0]?.amount_cents} cents, "${rows[0]?.note}", ${log} log row(s), status ${status}`,
-    );
+    if (tier === null) {
+      check(
+        "no tier (WPI-8 ongoing, not in Schedule 2): the decision and its charge log are written and NO credit is",
+        rows.length === 0 && log === 1 && status === "revisions_requested",
+        `${rows.length} ledger row(s), ${log} log row(s), status ${status}`,
+      );
+    } else {
+      check(
+        `tier ${tier}: inside the transaction the decision wrote its credit of $${(AGREED[tier] / 100).toFixed(2)}, its charge log row and its status move`,
+        rows.length === 1 && Number(rows[0].amount_cents) === AGREED[tier] && rows[0].note.endsWith(`tier ${tier}`) &&
+          rows[0].review_session_id === f.session && log === 1 && status === "revisions_requested",
+        `${rows.length} ledger row(s), ${rows[0]?.amount_cents} cents, "${rows[0]?.note}", ${log} log row(s), status ${status}`,
+      );
+    }
   } finally {
     await db.exec("rollback");
   }
@@ -134,7 +154,7 @@ for (const [f, tier] of CASES) {
     (await count(`select count(*) as n from eng_responsible_charge_log where file_id = '${f.id}'`)) +
     (await count(`select count(*) as n from eng_file_events where file_id = '${f.id}'`));
   const status = (await db.query(`select status from eng_files where id = $1`, [f.id])).rows[0].status;
-  check(`tier ${tier}: after the rollback nothing remains and the file is where it was`, left === 0 && status === "under_review", `${left} row(s), status ${status}`);
+  check(`${tier === null ? "no tier" : `tier ${tier}`}: after the rollback nothing remains and the file is where it was`, left === 0 && status === "under_review", `${left} row(s), status ${status}`);
 }
 
 /* ---------------- 2. a refusal enqueues its outside work, and a rollback leaves none */

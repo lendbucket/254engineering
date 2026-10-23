@@ -5,7 +5,7 @@ import { clockReading } from "./clock-skew";
 import { readEvery } from "./bounded-read";
 import { supabaseAdmin } from "./supabase";
 import type { Cents } from "./ops-money";
-import { recordTechnicianVisit } from "./ops-payments";
+import { notifyTechnicianAccepted, recordTechnicianVisit } from "./ops-payments";
 import { credentialBlockersFor, ownerOverrideKindsReliedOn } from "./ops-onboarding";
 import { CREDENTIAL_LABEL } from "./ops-credentials";
 import { isOwnerFieldTech, OWNER_OVERRIDE, OWNER_OVERRIDE_ACTION } from "./owner-override";
@@ -39,6 +39,7 @@ import {
 import { photoAnswerRefusal, photoAnswersFor, protocolItemRowsFor } from "./protocol-run";
 import { verifiedEngineers } from "@/config/credentials";
 import { licenceIsCurrent } from "./launch";
+import { signatureStatus } from "./protocol-sign";
 import { holdFor, holdRefusal } from "./dispatch-hold";
 
 /**
@@ -544,6 +545,27 @@ export async function publishedProtocolFor(serviceSlug: string): Promise<Protoco
     .limit(1)
     .maybeSingle();
   if (!data) return null;
+  /*
+   * A RECORD PUT IN FORCE BY A PORTAL SIGNATURE (0081) IS IN FORCE ONLY WHILE
+   * THAT SIGNATURE COVERS THE TEXT IN CODE. Voiding it moves the record to
+   * `voided` at the database; a transcription changed after signing cannot,
+   * because the database cannot read the code, so the signature is asked here,
+   * as every money door asks it (src/lib/line-gate.ts). Ruling 11's closing
+   * direction: no deploy needed to close. A failed read is not a signature.
+   */
+  const { data: signedBy, error: signedByError } = await db
+    .from("eng_protocol_templates")
+    .select("signed_by_seal_act_id, version_label")
+    .eq("id", (data as ProtocolTemplateRow).id)
+    .maybeSingle();
+  if (signedByError) return null;
+  if (signedBy?.signed_by_seal_act_id) {
+    const documentNumber = (data as ProtocolTemplateRow).document_number;
+    const status = documentNumber
+      ? await signatureStatus(documentNumber, signedBy.version_label as string)
+      : ({ state: "unknown" } as const);
+    if (status.state !== "signed") return null;
+  }
   const { data: items } = await db
     .from("eng_protocol_items")
     .select(ITEM_COLUMNS)
@@ -1110,6 +1132,11 @@ export async function acceptOffer(
     entityId: offer.file_id as string,
     summary: `${file.file_number}: offer accepted`,
     ...context,
+  });
+
+  /* The buyer is told a technician has the job (ruling Q1, 2026-10-19). Its failure is on the order and never undoes this. */
+  await notifyTechnicianAccepted(offer.file_id as string).catch((e: unknown) => {
+    console.error(`[field] ${file.file_number}: the technician notice could not be sent: ${e instanceof Error ? e.message : String(e)}`);
   });
 
   return { ok: true, fileId: offer.file_id as string };

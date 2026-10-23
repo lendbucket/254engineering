@@ -28,7 +28,7 @@ async function handlePOST(request: NextRequest) {
     documentNumber: typeof body.documentNumber === "string" ? body.documentNumber : "",
     code: typeof body.code === "string" ? body.code : "",
   });
-  return signed.ok ? NextResponse.json({ ok: true, sha256: signed.sha256 }) : bad(signed.error);
+  return signed.ok ? NextResponse.json({ ok: true, sha256: signed.sha256, inForce: signed.inForce }) : bad(signed.error);
 }
 
 /* A save abandoned by the 20 second bound says it may not have saved, and a failed session read is never "Not signed in": save-outcome.ts. */
