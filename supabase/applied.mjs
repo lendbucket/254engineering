@@ -2782,7 +2782,45 @@ export const APPLIED = [
     file: "0081_a_signature_puts_its_protocol_in_force.sql", appliedBy: "apply_migration",
     fingerprint: "d73cdd49ae5da6268743584229cb3b88",
     behaviour: "dfbdf7fcca64c3b093e736b30daa7786",
-    production: null,
+    /*
+     * APPLIED TO PRODUCTION 2026-10-23, 03:00:49 UTC, provider version
+     * 20261023030049, name 0081_a_signature_puts_its_protocol_in_force, by the
+     * operator's chat counterpart through apply_migration, from
+     * docs/production-sitting-0081-signed-protocols.md, after lines' cloud board
+     * (39872869328) matched its prediction on d5f5bed. The file applied is
+     * sha256 578cb977c6ca7fd62a796efdd5eefed3287d9876585a00d80a7df431b5bfc387;
+     * the stored statement reads back as sha256
+     * 1409a05e967148a4d2544f7597ce4f9f547c709c8e75842157b0f74ef14c562f,
+     * identical to development. Lines merged onto main as 064ad70 and pushed at
+     * 03:02:42 UTC with no new board, on Robert's word.
+     *
+     * Section 0 read clean first, every answer as predicted: shape
+     * 45ce47821d9c5567eb3b4b197549d881 across 1263; the status check 0049's four
+     * words; one published row, 254-RC-001 1.1 roof-inspections (no 1.0 row on
+     * production); the eight drafts draft, each structural, WP 1.1 with no
+     * discipline; eight protocol seal acts, all live, each content_sha256 the
+     * transcription digest; one signer licence hash afde1f7e...b60e, role
+     * engineer; no provider migration of ours since 0080.
+     *
+     * Read back: shape d73cdd49ae5da6268743584229cb3b88 across 1265; seven
+     * protocol.in_force_at_0081 rows, every one in_force, "a live signature
+     * whose digest is the transcription in code, by an engineer on the
+     * register": DS, FC, MH, PL, RS, SL, WS, and no row for WP; the seven
+     * templates published, by_signature, licence and published all true; items
+     * DS 13, FC 37, MH 35, PL 15, RS 24, SL 22, WS 35; WP 1.1 and 1.2 draft and
+     * untouched; 254-RC-001 1.1 published, by_signature false, licence true,
+     * signed 2026-09-20; eight published rows, one per line; the status check
+     * with voided; five functions as on development.
+     *
+     * ONE DIFFERENCE FROM THE DOCUMENT'S PREDICTION, AND THE DATA IS RIGHT:
+     * document_signed_at reads 2026-10-09 for DS, MH, PL, RS and SL, where the
+     * document predicted 2026-10-10. Those signatures were made 02:35 to 02:37
+     * UTC on 10-10, which is the evening of 10-09 in America/Chicago, and the
+     * migration takes the firm's calendar as written; the document had predicted
+     * the UTC date. FC and WS read 2026-10-15 as predicted. The document's
+     * prediction is corrected in the same commit as this record.
+     */
+    production: "2026-10-23",
     development: {
       at: "0081",
       behaviour: null,
@@ -2813,7 +2851,7 @@ export const APPLIED = [
       "neither figure. One statement carries drop: the status check constraint, dropped and re-added widened " +
       "with voided in the same alter table.",
     because:
-      "WRITTEN 2026-10-22 ON feat/lines-order-ready; ON DEVELOPMENT (version 20261022225514), NOT ON PRODUCTION. Operator " +
+      "WRITTEN 2026-10-22 ON feat/lines-order-ready; ON DEVELOPMENT (version 20261022225514) AND ON PRODUCTION (version 20261023030049). Operator " +
       "rulings of 2026-10-22: a portal signature puts its protocol in force in the signing transaction and " +
       "voiding closes it; signatures already on record go in force once, in section 7, with a read-back per " +
       "protocol; 254-WP-001 is held out of force; voided is a status; every sealed letter records the " +

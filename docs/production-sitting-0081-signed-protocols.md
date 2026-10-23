@@ -253,8 +253,12 @@ select document_number, version_label, requires_discipline
   register": DS, FC, MH, PL, RS, SL, WS. **No row for 254-WP-001.**
 - The seven templates: status `published`, `by_signature` true,
   `licence_recorded` true, `published` true, `document_signed_at` the date of
-  each signature in the firm's calendar (2026-10-10 for DS, MH, PL, RS, SL;
-  2026-10-15 for FC, WS).
+  each signature in the firm's calendar (2026-10-09 for DS, MH, PL, RS, SL;
+  2026-10-15 for FC, WS). **Corrected 2026-10-23 after the sitting:** this
+  line first predicted 2026-10-10, the UTC date. Those five were signed 02:35
+  to 02:37 UTC on 10-10, the evening of 10-09 in America/Chicago, and the
+  migration takes the firm's calendar as written, so production read 10-09
+  and the data is right. FC and WS read 10-15 as predicted.
 - Items on each, as the generated section 7 states them:
 
   | Protocol | Items |
