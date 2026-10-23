@@ -257,6 +257,23 @@ if (templates.length === 0) {
     footerRefused.length ? footerRefused.join(", ") : "no template offers an address a reply does not reach",
   );
 
+  /*
+   * THE BRAND IS "254 Engineering", NEVER "254 Engineering Services". Operator
+   * ruling of 2026-10-10, made a check on 2026-10-23. Pinned as a literal here,
+   * never read from business.ts, so the brand cannot drift back through the
+   * constant it was taken out of. Asked of every part a reader or a client can
+   * see: from, subject, text, html, and the logo's alt.
+   */
+  const SERVICES_REFUSED = "254 Engineering Services";
+  const namingServices = templates
+    .filter((t) => `${t.from}\n${t.subject}\n${t.text}\n${t.html ?? ""}`.includes(SERVICES_REFUSED))
+    .map((t) => t.id);
+  rec(
+    `no template renders "${SERVICES_REFUSED}" (${templates.length} checked, from, subject, text and html)`,
+    templates.length > 0 && namingServices.length === 0,
+    namingServices.length ? namingServices.join(", ") : "",
+  );
+
   const wrongReplyTo = templates
     .filter((t) => !(t.id in REPLY_TO_EXCEPTIONS))
     .filter((t) => t.replyTo !== EXPECTED_REPLY_TO)

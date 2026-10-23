@@ -28,6 +28,7 @@
 
 import { auditClient } from "./lib/db-target.mjs";
 import { readSource } from "./lib/read-source.mjs";
+import { migrationAssignmentWriters } from "./lib/assignment-writers.mjs";
 import { readdirSync, existsSync } from "node:fs";
 import { BULK_PATHS, REFUSALS, refusalKeys } from "./lib/bulk-paths.mjs";
 import { exportFiles, EXPORT_LIMIT } from "../src/lib/ops-bulk-files.ts";
@@ -125,17 +126,20 @@ if (!db) {
    * STATEMENT, split on the semicolon, because SQL puts the set clause on
    * whichever line it likes and a line match would miss the next one.
    */
-  for (const entry of readdirSync("supabase/migrations").sort()) {
-    if (!/\.sql$/.test(entry)) continue;
-    const full = `supabase/migrations/${entry}`;
-    for (const statement of readSource(full).split(";")) {
-      const flat = statement.replace(/\s+/g, " ").trim();
-      if (/\bupdate (public\.)?eng_files set\b.*\bassigned_(engineer|tech)_id =/i.test(flat)) {
-        const at = flat.search(/\bupdate (public\.)?eng_files/i);
-        writers.push(`${full}: ${flat.slice(at, at + 70)}`);
-      }
-    }
-  }
+  /*
+   * ONCE PER LIVE DEFINITION. Operator ruling of 2026-10-23: a function a later
+   * migration restates (0083 restates 0068's eng_record_review_decision) is
+   * one writer, by its latest definition, not two. The counting lives in
+   * scripts/lib/assignment-writers.mjs so a static proof can exercise it.
+   */
+  writers.push(
+    ...migrationAssignmentWriters(
+      readdirSync("supabase/migrations")
+        .filter((entry) => /\.sql$/.test(entry))
+        .sort()
+        .map((entry) => ({ name: `supabase/migrations/${entry}`, text: readSource(`supabase/migrations/${entry}`) })),
+    ),
+  );
   /*
    * FOUR, AND THE THIRD AND FOURTH ARE NOT ASSIGNMENTS.
    *

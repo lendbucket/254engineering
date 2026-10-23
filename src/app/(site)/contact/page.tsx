@@ -55,7 +55,7 @@ export default async function ContactPage({
 
       <PageHeader
         eyebrow="Contact"
-        title="Contact 254 Engineering Services"
+        title="Contact 254 Engineering"
         lede="Send what you are working on and you will get a direct answer, including when the answer is that this is not work the firm should take."
         crumbs={crumbs}
       >

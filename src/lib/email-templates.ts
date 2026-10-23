@@ -195,7 +195,7 @@ export type LeadEmailInput = {
 };
 
 const BRAND_NAME: Record<string, string> = {
-  "254": "254 Engineering Services",
+  "254": "254 Engineering",
   sealed: "Sealed Engineering",
   stamp: "StampMyPlans",
 };
@@ -489,7 +489,7 @@ export function onboardingInvite(input: {
     "onboarding.invite",
     // A person outside the firm reads this one, so it is named and signed.
     "human",
-    `Your onboarding for ${business.name}`,
+    `Your onboarding for ${business.shortName}`,
     {
       preheader: `Your onboarding link for the ${roleLabel} role, and what to have ready.`,
       signed: true,
@@ -497,7 +497,7 @@ export function onboardingInvite(input: {
         { kind: "p", text: `${input.personName},` },
         {
           kind: "p",
-          text: `Welcome to ${business.name}. Before your first assignment there are a few documents to collect for the ${roleLabel} role.`,
+          text: `Welcome to ${business.shortName}. Before your first assignment there are a few documents to collect for the ${roleLabel} role.`,
         },
         {
           kind: "p",
@@ -582,7 +582,7 @@ export function portalInvite(input: {
         { kind: "p", text: `${input.personName},` },
         {
           kind: "p",
-          text: `An account has been created for you on the ${business.name} portal with the ${roleLabel} role. ${input.invitedBy} set it up.`,
+          text: `An account has been created for you on the ${business.shortName} portal with the ${roleLabel} role. ${input.invitedBy} set it up.`,
         },
         {
           kind: "p",
@@ -949,7 +949,7 @@ export function reviewRequest(input: {
   return compose(
     "marketing.review_request",
     "human",
-    `A review of ${business.name}`,
+    `A review of ${business.shortName}`,
     {
       preheader: `Order ${input.reference}, for ${input.propertyAddress}.`,
       signed: true,
