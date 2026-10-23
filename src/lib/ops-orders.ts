@@ -407,12 +407,13 @@ export function refundDisclosure(entry: CatalogEntry): string[] {
    * after the evidence is reviewed is option C, a sealed letter with the
    * engineer's reason, and "a C letter is delivered work: no refund". A decline
    * before anyone attends is still a full refund. Stated before payment, as
-   * every refund term is.
+   * every refund term is. The sentence is Robert's approved wording of
+   * 2026-10-23, verbatim.
    */
   if (entry.serviceSlug === "foundation-inspections") {
     lines.push(
       refundIfDeclinedEarly(entry),
-      "If the engineer declines to certify the foundation after reviewing the evidence, you receive his sealed letter saying so, with his reason. That letter is the work delivered, so it is not refunded.",
+      "If the engineer declines to certify the foundation after reviewing the evidence, you receive his sealed letter stating so and his reason. That letter is the work delivered, so it is not refunded.",
       "You are never charged more than the price shown above, and a decline is never a reason for a further charge.",
     );
   } else if (entry.orderType === "field") {

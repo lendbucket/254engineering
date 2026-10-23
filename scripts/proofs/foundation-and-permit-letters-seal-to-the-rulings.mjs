@@ -67,7 +67,10 @@ check("and a decline before dispatch still refunds", /settleDecision\(\{ orderId
 const fc = CATALOG.find((e) => e.serviceSlug === "foundation-inspections");
 const said = refundDisclosure(fc).join(" ");
 check("the foundation disclosure says a decline before anyone attends is a full refund", /before anyone attends the property, you are refunded in full/.test(said));
-check("and that a declining letter after review is the work delivered and not refunded", /declines to certify the foundation after reviewing the evidence[\s\S]*not refunded/.test(said));
+/* Robert's approved wording of 2026-10-23, pinned as a literal so a reworded sentence goes red. */
+const APPROVED =
+  "If the engineer declines to certify the foundation after reviewing the evidence, you receive his sealed letter stating so and his reason. That letter is the work delivered, so it is not refunded.";
+check("and that a declining letter after review is the work delivered and not refunded, in Robert's approved words", refundDisclosure(fc).includes(APPROVED));
 const roofSaid = refundDisclosure(CATALOG.find((e) => e.serviceSlug === "roof-inspections")).join(" ");
 check("the roof disclosure is unchanged: a decline after attendance retains only the inspection fee", /refunded everything except the \$175\.00 inspection/.test(roofSaid));
 
