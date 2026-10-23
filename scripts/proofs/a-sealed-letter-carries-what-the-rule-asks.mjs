@@ -29,6 +29,9 @@ const { renderLetterPdf } = await import("../../src/lib/letter-pdf.ts");
 const { verifiedEngineers } = await import("../../src/config/credentials.ts");
 const { registrationLine } = await import("../../src/lib/launch.ts");
 const { ROOF_LETTER_DETERMINATION_SENTENCE } = await import("../../src/content/letters/roof-certification.ts");
+const { business } = await import("../../src/config/business.ts");
+const { LETTERHEAD_MARK } = await import("../../src/content/letters/letterhead-mark.ts");
+const { createHash } = await import("node:crypto");
 
 let wrong = 0;
 const check = (name, ok, note = "") => {
@@ -102,7 +105,15 @@ const FACTS = {
   check("a pass determination with every fact drafts", draft.ok, draft.ok ? `${draft.lines.length} lines` : draft.why);
   const engineer = verifiedEngineers[0];
   const rendered = await renderLetterPdf({
-    brand: "254 Engineering Services",
+    /*
+     * The brand and the mark from where the sealing step reads them, so this
+     * renders the letter a client would receive. Operator ruling, 2026-10-22:
+     * "254 Engineering" with the firm line beneath, never "254 Engineering
+     * Services", and the mark embedded. This handed in "254 Engineering
+     * Services" and checked for it upper-cased until that ruling.
+     */
+    brand: business.shortName,
+    logoPng: new Uint8Array(Buffer.from(LETTERHEAD_MARK.pngBase64, "base64")),
     registrationLine: registrationLine(),
     lines: draft.lines,
     sealBlock: { name: engineer.name, licenseNumber: engineer.licenseNumber, role: "Engineer of Record, the registrant", date: "October 7, 2026" },
@@ -111,6 +122,30 @@ const FACTS = {
     title: "Probe roof letter",
   });
   check("the letter renders", rendered.ok, rendered.ok ? `${rendered.bytes.byteLength} bytes` : rendered.why);
+
+  /*
+   * THE MARK IS IN THE FILE, NOT A REFERENCE TO ONE. Read back out of the PDF's
+   * own objects: an image stream of the mark's exact dimensions. A letter that
+   * fetched its logo at view time would carry no such stream.
+   */
+  if (rendered.ok) {
+    const { PDFDocument, PDFName, PDFNumber } = await import("pdf-lib");
+    const loaded = await PDFDocument.load(rendered.bytes);
+    const images = loaded.context
+      .enumerateIndirectObjects()
+      .map(([, obj]) => obj)
+      .filter((obj) => obj?.dict?.get?.(PDFName.of("Subtype")) === PDFName.of("Image"));
+    const dims = images.map((obj) => {
+      const w = obj.dict.get(PDFName.of("Width"));
+      const h = obj.dict.get(PDFName.of("Height"));
+      return `${w instanceof PDFNumber ? w.asNumber() : "?"}x${h instanceof PDFNumber ? h.asNumber() : "?"}`;
+    });
+    check(
+      "the letterhead mark is embedded in the PDF as an image of its own dimensions",
+      dims.includes(`${LETTERHEAD_MARK.widthPx}x${LETTERHEAD_MARK.heightPx}`),
+      dims.join(", ") || "no image streams",
+    );
+  }
 
   if (rendered.ok) {
     const dir = mkdtempSync(join(tmpdir(), "sealed-letter-"));
@@ -125,7 +160,12 @@ const FACTS = {
       const text = run.stdout.replace(/\s+/g, " ");
       const has = (s) => text.includes(s.replace(/\s+/g, " "));
       check("it carries the firm's registrant line, 137.33(n)", has(registrationLine()), registrationLine());
-      check("and the brand above it", has("254 ENGINEERING SERVICES"));
+      check("and the brand above it, 254 Engineering", has("254 Engineering"));
+      check(
+        "and nowhere on the page the name 254 Engineering Services, in any case",
+        !/254\s+engineering\s+services/i.test(text),
+        /254\s+engineering\s+services/i.test(text) ? "IT IS ON THE PAGE" : "absent",
+      );
       check("and his own sentence for a pass, word for word", has(ROOF_LETTER_DETERMINATION_SENTENCE.pass));
       check("and the engineer's printed name with P.E., 137.33(f)(3)", has(`${engineer.name}, P.E.`));
       check("and his licence number from the register", has(`Texas P.E. No. ${engineer.licenseNumber}`));
@@ -162,6 +202,37 @@ const FACTS = {
   check(
     "and the sealing step reads the images only through readImageForSealing, never a link",
     sealing.includes("readImageForSealing(") && !sealing.includes("createSignedUrl") && !sealing.includes("getPublicUrl"),
+  );
+}
+
+/*
+ * 4. THE LETTERHEAD, operator rulings of 2026-10-22: "254 Engineering" with the
+ * firm line, never "254 Engineering Services"; the mark embedded, never loaded
+ * from a URL; its checksum recorded with the sealed document.
+ */
+{
+  const sealing = readFileSync("src/lib/letter-seal.ts", "utf8");
+  const pdf = readFileSync("src/lib/letter-pdf.ts", "utf8");
+  check(
+    "the sealing step hands the letter business.shortName and never business.name",
+    /brand:\s*business\.shortName/.test(sealing) && !/brand:\s*business\.name\b/.test(sealing),
+  );
+  check("and business.shortName is 254 Engineering", business.shortName === "254 Engineering", business.shortName);
+  const committed = readFileSync("brand-assets/letter-mark.png");
+  const inModule = Buffer.from(LETTERHEAD_MARK.pngBase64, "base64");
+  const digest = (b) => createHash("sha256").update(b).digest("hex");
+  check(
+    "the mark's bytes, its declared checksum and the committed PNG are one image",
+    digest(inModule) === LETTERHEAD_MARK.sha256 && digest(committed) === LETTERHEAD_MARK.sha256,
+    LETTERHEAD_MARK.sha256.slice(0, 16),
+  );
+  check(
+    "and the sealing step records that checksum with the seal act",
+    /p_letterhead_sha256:\s*markSha256/.test(sealing) && /markSha256 !== LETTERHEAD_MARK\.sha256/.test(sealing),
+  );
+  check(
+    "and neither the PDF nor the sealing step fetches anything for the letterhead",
+    !/\bfetch\(|https?:\/\//.test(pdf) && !/fetch\([^)]*logo|logo[^\n]*https?:\/\//i.test(sealing),
   );
 }
 

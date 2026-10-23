@@ -5,7 +5,9 @@ import { holdsLicence, type Actor } from "./ops-authz";
 import type { ProfileRow } from "./ops-auth";
 import { verifyFreshCode } from "./ops-mfa";
 import { verifiedEngineers } from "@/config/credentials";
-import { SIGNABLE_PROTOCOLS, signableProtocol } from "@/content/protocols/signable";
+import { HELD_OUT_OF_FORCE, SIGNABLE_PROTOCOLS, signableProtocol } from "@/content/protocols/signable";
+import { signedProtocolItemRows, type ProtocolItemRow } from "./protocol-run";
+import { licenceIsCurrentToday } from "./launch";
 
 /**
  * ===========================================================================
@@ -83,7 +85,7 @@ export async function signatureStatus(documentNumber: string, version: string): 
 export async function signProtocol(
   actor: SignedIn | null,
   input: { documentNumber: string; code: string },
-): Promise<{ ok: true; sha256: string } | { ok: false; error: string }> {
+): Promise<{ ok: true; sha256: string; inForce: boolean } | { ok: false; error: string }> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
   if (!holdsLicence(actor, "protocols.author")) {
@@ -110,6 +112,10 @@ export async function signProtocol(
 
   const sha256 = transcriptionSha256(input.documentNumber, version)!;
 
+  /* Everything that could refuse putting it in force, before the code is spent. */
+  const inForce = await whatSigningPutsInForce(input.documentNumber, version, engineer);
+  if (!inForce.ok) return { ok: false, error: inForce.error };
+
   const fresh = await verifyFreshCode(actor!.id, input.code);
   if (!fresh.ok) return { ok: false, error: fresh.error };
 
@@ -134,7 +140,53 @@ export async function signProtocol(
     p_seal_image_id: sealId,
     p_signature_image_id: signatureId,
     p_mfa_verified_at: fresh.verifiedAt,
+    p_license: engineer.licenseNumber,
+    p_items: inForce.items,
   });
   if (recorded.error) return { ok: false, error: `The signature could not be recorded: ${recorded.error.message}` };
-  return { ok: true, sha256 };
+  return { ok: true, sha256, inForce: recorded.data === "in_force" || recorded.data === "already" };
+}
+
+/**
+ * WHAT A SIGNATURE PUTS IN FORCE, decided before the code is spent. Operator
+ * ruling, 2026-10-22: signing puts the protocol in force within the signing
+ * transaction, so everything that could refuse it is asked first and a refusal
+ * spends nothing. The checks are approveProtocol's (src/lib/ops-field.ts),
+ * because the register lives in code: a current licence, and a discipline the
+ * register says he seals. Items null means the signature is recorded and
+ * nothing goes in force, which only HELD_OUT_OF_FORCE asks for.
+ */
+async function whatSigningPutsInForce(
+  documentNumber: string,
+  version: string,
+  engineer: (typeof verifiedEngineers)[number],
+): Promise<{ ok: true; items: ProtocolItemRow[] | null } | { ok: false; error: string }> {
+  if (HELD_OUT_OF_FORCE[documentNumber]) return { ok: true, items: null };
+  if (!licenceIsCurrentToday(engineer.expires)) {
+    return { ok: false, error: "The register has no current expiry for your license, so a signature cannot put a protocol in force." };
+  }
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+  const { data: template, error } = await db
+    .from("eng_protocol_templates")
+    .select("requires_discipline, status")
+    .eq("document_number", documentNumber)
+    .eq("version_label", version)
+    .maybeSingle();
+  if (error) return { ok: false, error: `The protocol record could not be read: ${error.message}` };
+  if (!template) return { ok: false, error: `${documentNumber} v${version} has no protocol record to put in force.` };
+  const required = template.requires_discipline as string | null;
+  if (!required || !engineer.sealsOnly.includes(required)) {
+    return {
+      ok: false,
+      error: required
+        ? `This protocol requires competence in ${required}, and the register records that you seal ${engineer.sealsOnly.join(", ") || "nothing"}.`
+        : "This protocol has not declared the discipline it requires, so nothing can check that you cover it.",
+    };
+  }
+  const items = signedProtocolItemRows(documentNumber, version);
+  if (!items || items.length === 0) {
+    return { ok: false, error: `${documentNumber} v${version} has no structured checklist on this platform, so it cannot be put in force. Nothing was signed.` };
+  }
+  return { ok: true, items };
 }

@@ -41,6 +41,8 @@ export type LetterPdfInput = {
   sealBlock: SealBlock;
   sealPng: Uint8Array;
   signaturePng: Uint8Array;
+  /** The letterhead mark, embedded rather than fetched (src/content/letters/letterhead-mark.ts). */
+  logoPng: Uint8Array;
   /** The document's own title, written into the PDF's metadata. */
   title: string;
 };
@@ -81,11 +83,17 @@ export async function renderLetterPdf(input: LetterPdfInput): Promise<LetterPdfR
 
   let seal;
   let signature;
+  let mark;
   try {
     seal = await doc.embedPng(input.sealPng);
     signature = await doc.embedPng(input.signaturePng);
   } catch {
     return { ok: false, why: "The stored seal or signature image could not be read as a PNG." };
+  }
+  try {
+    mark = await doc.embedPng(input.logoPng);
+  } catch {
+    return { ok: false, why: "The letterhead mark could not be read as a PNG." };
   }
 
   let page: PDFPage = doc.addPage([PAGE_W, PAGE_H]);
@@ -104,8 +112,19 @@ export async function renderLetterPdf(input: LetterPdfInput): Promise<LetterPdfR
   };
 
   try {
-    /* Letterhead: the brand on its own line above the registrant, the 2026-09-11 ruling. */
-    draw(input.brand.toUpperCase(), bold, 13);
+    /*
+     * Letterhead: the mark, then the brand on its own line above the registrant.
+     * Operator rulings: the brand line of 2026-09-11, and of 2026-10-22 the mark
+     * at the top, EMBEDDED from the bytes handed in rather than loaded from a
+     * URL, so the sealed page is the same every time it is opened. The brand
+     * prints as given, "254 Engineering", not upper-cased into a different
+     * string from the one the ruling names.
+     */
+    const markHeight = 36;
+    const markWidth = (mark.width / mark.height) * markHeight;
+    page.drawImage(mark, { x: MARGIN, y: y - markHeight, width: markWidth, height: markHeight });
+    y -= markHeight + 14;
+    draw(input.brand, bold, 13);
     draw(input.registrationLine, regular, 9.5);
     y -= LEADING;
 
