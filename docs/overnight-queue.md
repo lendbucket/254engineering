@@ -32,7 +32,7 @@ morning, a false report that 0084 was on development (corrected in item 4).
 
 | # | Item | Result |
 | --- | --- | --- |
-| 1 | Pricing (`97af17b`, board `39895075922`) | **Stopped, not merged.** 54 of 61; the seven misses are the probe set; everything pricing measures passed (trade-pricing 40, the credit proof, order 556, price-book 67, intake 116, perf 81). $709 is not live. |
+| 1 | Pricing | **MERGED 2026-10-23 12:05:16 UTC as `e8bb8b5`** (board `39944348031` on `da338c2`, 61 of 61, every line of its prediction met, with rulings 1 and 2 in the same tree). Production deploy successful 12:08; **$709 live**: /order reads "Roof Inspections and Certifications $709 plus $75 in first tier coastal counties". Earlier: (`97af17b`, board `39895075922`) **stopped, not merged.** 54 of 61; the seven misses are the probe set; everything pricing measures passed (trade-pricing 40, the credit proof, order 556, price-book 67, intake 116, perf 81). $709 is not live. |
 | 2a | 0082 on main (`db821b6`, board `39895256012`) | **Held.** 54 of 61, the probe set only; every predicted figure met. |
 | 2b | 0083 on main (`e6ee6f8`, board `39895258058`) | **Held.** 53 of 61: the probe set and the bulk-audit double count; every predicted figure met. |
 | 3 | FC and PL determination recording (`2c3e103`, board `39896119586`) | **Held.** 53 of 61, the same two causes; its new proof passed in the cloud. Letter sealing for both is not built: nine points for rulings. |
