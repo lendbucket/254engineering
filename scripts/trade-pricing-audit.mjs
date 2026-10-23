@@ -691,25 +691,34 @@ answer(out);
 }
 
 /*
- * THE FLOORS RULED ON 2026-10-07, PINNED AS LITERALS. Operator ruling: the
- * three lines made field work that day each rise by the $85 technician visit,
- * structural letter $295 to $380, solar and repair specification $325 to $410.
- * Until then no floor was pinned anywhere, so one could move with the board
- * green; these three are pinned now, and the older floors are named as not yet
- * pinned rather than assumed to be.
+ * EVERY SET FLOOR, PINNED AS LITERALS. Operator ruling, 2026-10-22: every
+ * line's floor is a 150% markup on its Schedule 2 cost, WPI-8 apart, which
+ * keeps its 2026-09-20 floors. This replaced the three floors pinned on
+ * 2026-10-07 (structural letter $380, solar and repair specification $410)
+ * and, because the ruling covers every line, it pins all eight rather than
+ * naming older floors as not yet pinned. price-book-audit checks the same
+ * figures against the formula itself.
  */
 {
   const RULED = {
-    "structural-letters/standard": 38_000,
-    "solar-structural-letters/standard": 41_000,
-    "repair-specifications/standard": 41_000,
+    "roof-inspections/standard": 70_200,
+    "foundation-inspections/standard": 70_200,
+    "structural-letters/standard": 70_200,
+    "solar-structural-letters/standard": 70_200,
+    "manufactured-home-foundation-certifications/standard": 70_200,
+    "repair-specifications/standard": 117_400,
+    "windstorm-wpi-8/completed": 65_000,
+    "windstorm-wpi-8/ongoing": 92_500,
   };
   const wrong = Object.entries(RULED).filter(([key, cents]) => TRADE_FLOORS[key]?.state !== "set" || TRADE_FLOORS[key].floorCents !== cents);
+  const unpinned = Object.entries(TRADE_FLOORS).filter(([key, f]) => f.state === "set" && !(key in RULED)).map(([key]) => key);
   rec(
-    "the three floors ruled on 2026-10-07 are what was ruled: $380, $410 and $410",
-    wrong.length === 0,
-    wrong.map(([key, cents]) => `${key}: ruled ${cents}, declared ${TRADE_FLOORS[key]?.floorCents ?? TRADE_FLOORS[key]?.state}`).join("; ") ||
-      `${Object.keys(RULED).length} pinned; ${Object.values(TRADE_FLOORS).filter((f) => f.state === "set").length - Object.keys(RULED).length} older set floor(s) not yet pinned`,
+    "every set floor is what was ruled on 2026-10-22: $702 for five lines, $1,174 for the repair specification, WPI-8's two unchanged",
+    wrong.length === 0 && unpinned.length === 0,
+    [
+      ...wrong.map(([key, cents]) => `${key}: ruled ${cents}, declared ${TRADE_FLOORS[key]?.floorCents ?? TRADE_FLOORS[key]?.state}`),
+      ...unpinned.map((key) => `${key} is set and not pinned`),
+    ].join("; ") || `${Object.keys(RULED).length} pinned, none unpinned`,
   );
 }
 

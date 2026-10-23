@@ -40,7 +40,7 @@ export type CostRow = {
 };
 
 const ENGINEER_SOURCE =
-  "src/config/engineer-pay.ts, the executed employment agreement's tiered production pay as supplied by the operator, 2026-09-18";
+  "src/config/engineer-pay.ts, the executed employment agreement's tiered production pay as supplied by the operator, 2026-09-18, with each deliverable's tier per its signed Schedule 2, 2026-10-22";
 const PROCESSING_SOURCE = `Stripe card rate, src/config/cost-inputs.ts, read ${PROCESSING_READ_ON} from ${PROCESSING_READ_FROM}`;
 
 /*

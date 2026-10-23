@@ -125,17 +125,44 @@ export const WPI8_EXTRA_VISIT_CENTS = 15_000;
 /** The design minimum engagement, read by its own entry's prose rather than retyped. */
 const DESIGN_MINIMUM_CENTS = 200_000;
 
+/*
+ * =========================================================================
+ * THE PRICES OF 2026-10-22. Operator ruling, the same day as Schedule 2.
+ * =========================================================================
+ *
+ * Every line's floor is a 150% markup: profit at least 1.5 times cost, where
+ * cost is the engineer's Schedule 2 pay, the $85 technician visit when the line
+ * sends one, and card processing at 2.9% plus 30 cents. The floors live in
+ * src/config/trade-floors.ts beside the formula; these are the list prices
+ * ruled with them. WPI-8 is the one exception and keeps its prices. The $75
+ * coastal surcharge stays on top of list. Orders already paid keep what they
+ * paid: an order stores its own total and nothing recomputes it from here.
+ *
+ * Before: roof $549, foundation $495, structural letter $549, solar $445,
+ * manufactured home $645, repair specification $395.
+ */
+
+/*
+ * THE SOLAR LETTER FROM DOCUMENTS ONLY, $479. Operator ruling, 2026-10-22: when
+ * the engineer decides under SL-001 that no visit is needed, the letter is $479
+ * rather than $709, floor $473. RECORDED HERE AND SOLD NOWHERE YET: the desk
+ * path that lets him make that decision is built with the order-ready work,
+ * and until it exists every solar letter is the visit one. It is not in
+ * `byTier` below because `byTier` is what the catalogue sells.
+ */
+export const SOLAR_DOCUMENTS_ONLY_CENTS = 47_900;
+
 export const servicePrices: Record<string, ServicePrice> = {
   "roof-inspections": {
     kind: "fixed",
-    byTier: { standard: 54_900 },
+    byTier: { standard: 70_900 },
     headlineTier: "standard",
     whatChangesIt:
       "A roof that cannot be safely walked and needs lift or drone access, a property outside the standard service area, or a return visit after repairs.",
   },
   "foundation-inspections": {
     kind: "fixed",
-    byTier: { standard: 49_500 },
+    byTier: { standard: 70_900 },
     headlineTier: "standard",
     whatChangesIt:
       "A structure over a certain size, a property outside the standard service area, or a second visit after remediation.",
@@ -148,21 +175,21 @@ export const servicePrices: Record<string, ServicePrice> = {
    */
   "structural-letters": {
     kind: "fixed",
-    byTier: { standard: 54_900 },
+    byTier: { standard: 70_900 },
     headlineTier: "standard",
     whatChangesIt:
       "The price includes a technician's visit to the property, which most letters about existing construction rest on. A question that needs design or a repair method rather than a letter is its own engagement.",
   },
   "solar-structural-letters": {
     kind: "fixed",
-    byTier: { standard: 44_500 },
+    byTier: { standard: 70_900 },
     headlineTier: "standard",
     whatChangesIt:
       "An array on more than one structure, or a roof whose framing cannot be established from what is supplied.",
   },
   "manufactured-home-foundation-certifications": {
     kind: "fixed",
-    byTier: { standard: 64_500 },
+    byTier: { standard: 70_900 },
     headlineTier: "standard",
     whatChangesIt:
       "A multi section home, a property outside the standard service area, or a return visit after the anchoring is corrected.",
@@ -187,7 +214,7 @@ export const servicePrices: Record<string, ServicePrice> = {
   },
   "repair-specifications": {
     kind: "fixed",
-    byTier: { standard: 39_500 },
+    byTier: { standard: 119_500 },
     headlineTier: "standard",
     whatChangesIt:
       "A specification covering more than one structural element, or one that has to be coordinated with a third party engineer's design.",
