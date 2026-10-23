@@ -1,8 +1,9 @@
 # Sitting: 0083, a permit letter records its option and schedule
 
 Branch `feat/pl-determination`, built on `feat/design-addendum`, so it applies
-after 0082. Written 2026-10-22. **Applied nowhere yet.** Development first,
-then the board, then production in the same sitting as 0082 or after it.
+after 0082. Written 2026-10-22. **On development since 2026-10-23, provider
+version 20261023024543, every answer as predicted; not on production.**
+Development first, then the board, then production in the same sitting as 0082 or after it.
 
 ## Why
 
