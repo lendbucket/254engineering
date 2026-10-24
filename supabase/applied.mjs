@@ -3053,7 +3053,26 @@ export const APPLIED = [
     file: "0085_a_letter_states_only_recorded_facts.sql", appliedBy: "apply_migration",
     fingerprint: "cbf3b1702865427a65466b11c900b4e1",
     behaviour: "b7d5fefb4da018255dc691c3da1df896",
-    production: null,
+    /*
+     * APPLIED TO PRODUCTION 2026-10-24, 04:00:57 UTC, provider version
+     * 20261024040057, name 0085_a_letter_states_only_recorded_facts, by the
+     * operator's chat counterpart through apply_migration, from
+     * docs/production-sitting-0085-a-letter-states-only-recorded-facts.md, after
+     * the branch's cloud board (40036087985) matched its prediction, 61 of 61, on
+     * 94a1e21. The file applied is sha256
+     * 39aa46c4cd5b885a52bdba063f8d2531bbb83e1b30ecdc52aa3b8ea4f068805a, the one
+     * development holds; the stored statement reads back as sha256
+     * 70942292297d74fda2a4b8065d3473638f190b8e9cf29002a124f30f974e6126, identical
+     * to development.
+     *
+     * Section 0: shape 79a8143e24f29af96b2a26573efd8803 across 1299; all three
+     * new tables absent. Section 2: shape cbf3b1702865427a65466b11c900b4e1 across
+     * 1317; RLS on all three tables; three append-only triggers;
+     * eng_letter_facts_capacity_ck and eng_letter_facts_foundation_type_ck
+     * present. Every answer as predicted. The record rides in the merge, so 0085
+     * is never pending on main.
+     */
+    production: "2026-10-24",
     development: {
       at: "0085",
       behaviour: null,
@@ -3078,7 +3097,7 @@ export const APPLIED = [
       "recorded pair first: shape 1299 to 1317 columns (eng_letter_facts' seven, eng_job_triage's six, " +
       "eng_job_capture_additions' five), behaviour 1202 to 1227 facts. No function, no drop statement.",
     because:
-      "WRITTEN 2026-10-23 ON feat/fc-pl-records; ON DEVELOPMENT (version 20261023132612), NOT ON PRODUCTION. Operator ruling 7 of " +
+      "WRITTEN 2026-10-23 ON feat/fc-pl-records; ON DEVELOPMENT (version 20261023132612) AND ON PRODUCTION (version 20261024040057). Operator ruling 7 of " +
       "2026-10-23 on the foundation and permit letters: the facts they print that the platform did not hold are " +
       "recorded by the office or the engineer as ruled, the engineer's site or desk triage is a record, and his " +
       "added capture items are his words. The chat applies it with apply_migration, development first, from " +
