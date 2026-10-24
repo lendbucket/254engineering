@@ -326,6 +326,8 @@ const ADMIN_APIS = [
   "/api/portal/prospects",
   "/api/portal/contact-log",
   "/api/portal/refunds",
+  // The refund requests as a CSV, a read beside the POST only route (office ready, 2026-10-24).
+  "/api/portal/refunds/export",
   "/api/portal/desk",
   "/api/portal/order-lookup",
   // Customer ordering accounts: terms, credit limits, closing a period and
