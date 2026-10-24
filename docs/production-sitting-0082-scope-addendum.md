@@ -3,9 +3,9 @@
 Branch `feat/design-addendum`, built on `feat/lines-order-ready` (it needs
 0081). Written 2026-10-22. **On development since 2026-10-23, provider version
 20261023022247, every Section 0 and Section 2 answer as predicted; not on
-production.** Development first, then the board, then production, where the first real addendum is the McAllen design
-job, written by the chat from the operator's details. Those details are never
-written into this repository.
+production.** Development first, then the board, then production. The
+migration goes to production as built and the addendum feature stays; no job
+record is written with it (Robert, 2026-10-23).
 
 ## Why
 
@@ -16,7 +16,6 @@ Operator rulings of 2026-10-22:
 - He signs it **in the portal, under his own account, with a fresh second
   factor, recorded as a seal act exactly like a protocol signature.** No PDF
   signing, no email signing.
-- The McAllen job is quoted at $2,000 flat, the design minimum, so $700 to him.
 
 ## What changes
 
@@ -91,17 +90,14 @@ branch is boarded.
 
 ## Section 4: production, only in the sitting
 
-Sections 0, 1 and 2 against `fsaryeciduszuahgjbly`. Then the chat writes the
-McAllen design quote and its addendum on production from the operator's
-details, which the session sends in chat and never commits. The addendum names
-Aman, the scope (framing check, attachment and uplift calculation, sealed
-letter), $2,000 and 35%, so $700; the database writes its text and hash. He
-reads and signs it on `/portal/protocols`. Until he does, `eng_design_pay`
-returns no row and nothing is credited.
+Sections 0, 1 and 2 against `fsaryeciduszuahgjbly`, and nothing more: no quote
+and no addendum is written in the sitting. `eng_scope_addenda` reads 0 after
+it, and until an addendum exists and the engineer signs it on
+`/portal/protocols`, `eng_design_pay` returns no row and nothing is credited.
 
 ## What this does not do
 
 It sends nothing to anybody. It does not take payment, convert a quote into an
-order, or dispatch: work on the McAllen job starts only after the operator has
-the customer's documents and authorization, the payment, and Aman's signed
-addendum.
+order, or dispatch: design work on any quote starts only after the operator has
+the customer's documents and authorization, the payment, and the engineer's
+signed addendum.

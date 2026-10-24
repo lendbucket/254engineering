@@ -3,7 +3,7 @@
 //
 //   node node_modules/tsx/dist/cli.mjs --conditions=react-server scripts/exercises/design-addendum-walk.mjs
 //
-// Proves the app path the McAllen design job will take, with INVENTED DATA ONLY (operator ruling): a fictional
+// Proves the app path a design job's addendum takes, with INVENTED DATA ONLY (operator ruling): a fictional
 // address, @audit-probe.invalid contacts, and a test engineer who exists ONLY in this process, appended to the
 // register in memory as order-path-walk-child.mjs does. The engineer signs through src/lib/scope-addendum.ts with a
 // real code from his own authenticator, exactly as Aman will in the portal. Needs 0082 on development.
