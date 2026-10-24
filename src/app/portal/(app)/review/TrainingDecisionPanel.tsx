@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
  * dispatch; a refusal needs his reason and certifies nothing. decideTraining on
  * the server checks that the session is the engineer of record's.
  */
-export function TrainingDecisionPanel({ recordId, technician }: { recordId: number; technician: string }) {
+export function TrainingDecisionPanel({ recordId, technician }: { recordId: string; technician: string }) {
   const router = useRouter();
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);

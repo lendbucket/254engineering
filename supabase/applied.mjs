@@ -2977,6 +2977,78 @@ export const APPLIED = [
       "The chat applies it with apply_migration after 0082, development first. The branch merges only after the " +
       "production apply is read back, and a migration on main is never pending.",
   },
+  {
+    file: "0084_a_line_opens_only_when_trained.sql", appliedBy: "apply_migration",
+    fingerprint: "79a8143e24f29af96b2a26573efd8803",
+    behaviour: "7eb110b9207115cf1d6bfba690da4dd5",
+    /*
+     * APPLIED TO PRODUCTION 2026-10-24, 02:53:49 UTC, provider version
+     * 20261024025349, name 0084_a_line_opens_only_when_trained, by the
+     * operator's chat counterpart through apply_migration, from
+     * docs/production-sitting-0084-a-line-opens-only-when-trained.md, after the
+     * branch's cloud board (40036084856) matched its prediction, 61 of 61, on
+     * 97ad30d. The file applied is sha256
+     * 57f5b8d4fd2af6ee21d1343ecc83e8587faf2bde6df63214e97c3a7b4c86c114, the one
+     * development holds; the stored statement reads back as sha256
+     * 6976e92ef513c151d74bb244cf6d0bd1bbfa4c95e37a7af786fde6ceade92260, identical
+     * to development.
+     *
+     * Section 0: shape a4bbde8cac7f216a582875f8ff8d1e01 across 1280; both new
+     * tables absent; eng_profiles has role and status as text;
+     * eng_profiles_role_fields names field_tech; eng_forbid_mutation_allow_cascade
+     * present; and NO TRAINING EVENTS AT ALL on production, no
+     * certification.training_* row. So Section 3's backfill carried nothing, and
+     * the delete guard protects nobody yet. The queue entry had said it would
+     * carry real interim events; that was the session's assumption, never read,
+     * and the chat corrected it from production. Section 2: shape
+     * 79a8143e24f29af96b2a26573efd8803 across 1299; 0 records, equal to the 0
+     * carried; 0 decisions; RLS on both tables; eng_line_is_trained(text,uuid) and
+     * eng_profile_keeps_its_training() present; records.profile_id cascades,
+     * records.template_id restricts, decisions.record_id cascades;
+     * eng_profiles_keep_trained present. Every answer as predicted. The record
+     * rides in the merge, so 0084 is never pending on main.
+     */
+    production: "2026-10-24",
+    development: {
+      at: "0084",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-23",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-23 by the operator's chat counterpart through apply_migration, provider " +
+        "version 20261023132528, name 0084_a_line_opens_only_when_trained, with no writers shard in its run step " +
+        "or queued. The file was read in full at badcf29, sha256 " +
+        "57f5b8d4fd2af6ee21d1343ecc83e8587faf2bde6df63214e97c3a7b4c86c114, its diff against 54b438c2 adding only " +
+        "the eng_profiles_keep_trained guard; the statement stored in supabase_migrations reads back as sha256 " +
+        "6976e92ef513c151d74bb244cf6d0bd1bbfa4c95e37a7af786fde6ceade92260, the file without its trailing newline. " +
+        "Section 0: shape a4bbde8cac7f216a582875f8ff8d1e01 across 1280; both new tables absent; eng_profiles has " +
+        "role and status as text; eng_profiles_role_fields names field_tech; eng_forbid_mutation_allow_cascade " +
+        "exists; training events recorded 360, approved 179, refused 179, and none carried, since every one " +
+        "belongs to a probe already gone. Section 2: shape 79a8143e24f29af96b2a26573efd8803 across 1299; 0 " +
+        "records, equal to the 0 carried; 0 decisions; RLS on both tables; eng_line_is_trained(text,uuid) and " +
+        "eng_profile_keeps_its_training() present; records.profile_id cascades, records.template_id restricts, " +
+        "decisions.record_id cascades, and no key on recorded_by or decided_by; eng_profiles_keep_trained BEFORE " +
+        "DELETE on eng_profiles. Every answer as predicted.",
+    },
+    proves: { table: "eng_training_records" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0084 on 2026-10-23, with 0083 reproducing its " +
+      "recorded pair first: shape 1280 to 1299 columns (eng_training_records' eleven and " +
+      "eng_training_decisions' eight), behaviour 1181 to 1202 facts. Redesigned the same day under ruling 6: " +
+      "the rows cascade from their technician and their record, and recorded_by and decided_by are pointers, so " +
+      "no probe is pinned; and, by ruling the same morning, eng_profiles_keep_trained refuses to delete a " +
+      "trained profile off audit-probe.invalid, so only a probe's training can cascade away. Earlier versions, " +
+      "withdrawn unapplied: sha256 01b0170a... (ea4f0f6c... / 1202) and 54b438c2... (b9f48cff... / 1200). " +
+      "No drop statement. Section 3 is a one-time backfill of the interim training events of " +
+      "2026-10-07 onward, each row naming its event.",
+    because:
+      "WRITTEN 2026-10-23 ON feat/training-record; ON DEVELOPMENT (version 20261023132528) AND ON PRODUCTION (version 20261024025349). Operator ruling of " +
+      "2026-10-23: a line opens only when its protocol is signed and somebody is trained on that version, " +
+      "recorded in the portal; roof stays exactly as it is. The chat applies it with apply_migration, development " +
+      "first, from docs/production-sitting-0084-a-line-opens-only-when-trained.md. The branch merges only after " +
+      "the production apply is read back, and a migration on main is never pending.",
+  },
 ];
 
 /*
