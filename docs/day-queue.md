@@ -1,5 +1,27 @@
 # Day queue, 2026-10-23
 
+## MORNING REPORT, 2026-10-24 (kept current through the night; last written 05:45 UTC)
+
+**Merged to main overnight, each with `[skip ci]`, the exact push command and `ls-remote`:**
+- `dfa0a0e` 0082 (scope addendum), then `1932ef2` its production record and the job record's removal (fast lane)
+- `6758a1f` 0083 (permit letter option), with its production record
+- `b788949` 0084 (a line opens only when trained), with its production record
+- `12abb7e` 0085 (a letter states only recorded facts), with its production record
+- `1608c8b` foundation and permit letter sealing (opens nothing)
+
+**On production:** 0082, 0083, 0084, 0085 (the chat, 00:47 to 04:00 UTC), and main `12abb7e` READY (the chat); `1608c8b` is the newest main. Main's board after its two re-runs: **61 of 61, main passed.**
+
+**Held, and the one thing each needs from Robert:**
+| Held | Needs |
+| --- | --- |
+| Offering foundation and permit at $709 (`feat/offer-fc-pl`, `9e88e16`) | A ruling that the launch gate's `protocols` condition counts a protocol signed in the portal. As built, the offering shuts the whole gate and stops roof selling. |
+| Ordering piece 2 (board `40065536871`), and 3a and 3b on it | What prelaunch pages state in place of "no engineer of record is yet in responsible charge", which launch-audit still requires and the 2026-10-21 ruling removed. |
+| 0086, the phone approval (`feat/relayed-approval`) | Nothing: the chat applies it on development from the queue, then it boards. Section 3 carries your facts. |
+| 0087, the three lines' facts (`feat/letter-records`, `16fb62f`) | Who records each fact is the engineer's call; the default is in the drafts document you have. |
+| 0088, template adoption (`feat/letter-adoption`, `ff8e7cd`) | When to apply on production: once applied, no letter seals, roof included, until the new code deploys and the engineer signs the roof template. |
+| Manufactured home, solar, WPI-8E letters | The engineer's adoption of the drafts document you were sent. |
+| The two fixes (`fix/instrumentation-nodejs-runtime` `82e8f43`, `fix/ci-board-sign-in-key` `1c23dc8`) | Nothing: each boards alone after piece 2's board, and merges on a match. |
+
 Robert's day mode. The Claude Code session writes this file on `ops/day` and
 pushes it with `[skip ci]` after every change. The operator's chat counterpart
 reads it hourly at :20 past, 13:20 to 23:20 UTC, and posts every answer as a
