@@ -178,7 +178,7 @@ export function MobileTabs({ items }: { items: NavItem[] }) {
     <nav
       aria-label="Portal"
       data-portal-tabs
-      className="z-40 shrink-0 border-t border-white/12 bg-[var(--navy)] pb-[env(safe-area-inset-bottom)] lg:hidden"
+      className="z-40 shrink-0 border-t border-white/12 bg-[var(--navy)] pb-[env(safe-area-inset-bottom)] lg:hidden print:!hidden"
     >
       <ul className="flex">
         {items.map((item) => {
