@@ -69,7 +69,24 @@ export type TrainingRecord = {
   decidedAt: string | null;
   decidedBy: string | null;
   refusalReason: string | null;
+  /*
+   * HOW THE DECISION REACHED THE RECORD (0086). "portal": he decided it from his
+   * own session (decidedBy is his account). "phone_relayed": he approved it by
+   * phone and the owner relayed it (relayedBy, approvedAt); there is no
+   * decidedBy, because he made no decision in the portal. Null while awaiting.
+   */
+  channel: "portal" | "phone_relayed" | null;
+  decisionId: string | null;
+  relayedBy: string | null;
+  approvedAt: string | null;
+  /** For a relayed approval: his written confirmation, or null while it is pending. */
+  confirmation: { kind: "text" | "email"; receivedAt: string; attachedAt: string } | null;
 };
+
+/** The relayed kind, worded as ruled on 2026-10-23. */
+export const RELAYED_APPROVAL = "Approved by the engineer of record by phone, relayed by the owner";
+export const CONFIRMATION_PENDING = "Written confirmation pending";
+export const CONFIRMATION_ATTACHED = "certification.relayed_approval_confirmed";
 
 /** The event, written directly so its id comes back: a state record must not fail silently. */
 async function appendEvent(
@@ -119,20 +136,53 @@ export async function trainingRecords(profileId?: string): Promise<TrainingRecor
   const { data: rows, error } = await q;
   if (error) return null;
   const ids = (rows ?? []).map((r) => r.id as string);
-  const decisions = new Map<string, { decision: string; created_at: string; decided_by: string | null; reason: string | null }>();
+  const decisions = new Map<
+    string,
+    {
+      id: string;
+      decision: string;
+      created_at: string;
+      decided_by: string | null;
+      reason: string | null;
+      channel: "portal" | "phone_relayed";
+      relayed_by: string | null;
+      approved_at: string | null;
+    }
+  >();
+  const confirmations = new Map<string, { kind: "text" | "email"; receivedAt: string; attachedAt: string }>();
   if (ids.length) {
     const { data: ds, error: dError } = await db
       .from("eng_training_decisions")
-      .select("record_id, decision, created_at, decided_by, reason")
+      .select("id, record_id, decision, created_at, decided_by, reason, channel, relayed_by, approved_at")
       .in("record_id", ids);
     if (dError) return null;
     for (const d of ds ?? []) {
       decisions.set(d.record_id as string, {
+        id: d.id as string,
         decision: d.decision as string,
         created_at: d.created_at as string,
         decided_by: (d.decided_by as string | null) ?? null,
         reason: (d.reason as string | null) ?? null,
+        channel: d.channel === "phone_relayed" ? "phone_relayed" : "portal",
+        relayed_by: (d.relayed_by as string | null) ?? null,
+        approved_at: (d.approved_at as string | null) ?? null,
       });
+    }
+    /* A failed read is not "pending": pending is a fact about a row's absence, so an unread table is null. */
+    const relayedIds = [...decisions.values()].filter((d) => d.channel === "phone_relayed").map((d) => d.id);
+    if (relayedIds.length) {
+      const { data: cs, error: cError } = await db
+        .from("eng_training_confirmations")
+        .select("decision_id, kind, received_at, created_at")
+        .in("decision_id", relayedIds);
+      if (cError) return null;
+      for (const c of cs ?? []) {
+        confirmations.set(c.decision_id as string, {
+          kind: c.kind === "email" ? "email" : "text",
+          receivedAt: c.received_at as string,
+          attachedAt: c.created_at as string,
+        });
+      }
     }
   }
   return (rows ?? []).map((r) => {
@@ -151,8 +201,63 @@ export async function trainingRecords(profileId?: string): Promise<TrainingRecor
       decidedAt: d?.created_at ?? null,
       decidedBy: d?.decided_by ?? null,
       refusalReason: d?.decision === "refused" ? d.reason : null,
+      channel: d ? d.channel : null,
+      decisionId: d?.id ?? null,
+      relayedBy: d?.relayed_by ?? null,
+      approvedAt: d?.approved_at ?? null,
+      confirmation: d ? confirmations.get(d.id) ?? null : null,
     };
   });
+}
+
+/**
+ * THE OWNER ATTACHES HIS WRITTEN CONFIRMATION of an approval he gave by phone:
+ * a text or an email, as received. Only to a relayed approval, once (the
+ * database refuses a second and any portal decision, 0086). An administrator
+ * only, and audited.
+ */
+export async function attachRelayedConfirmation(
+  actor: (Actor & { email: string }) | null,
+  decisionId: string,
+  input: { kind: "text" | "email"; receivedAt: string; body: string },
+  context: Context = {},
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!actor || actor.role !== "admin") return { ok: false, error: "Only an administrator attaches the engineer's written confirmation." };
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+  const body = input.body.trim();
+  if (body.length < 10) return { ok: false, error: "Paste the text or email as he sent it." };
+  if (input.kind !== "text" && input.kind !== "email") return { ok: false, error: "Say whether it is a text or an email." };
+  const received = new Date(input.receivedAt);
+  if (Number.isNaN(received.getTime()) || received.getTime() > Date.now()) {
+    return { ok: false, error: "When it was received must be a real moment, not in the future." };
+  }
+  const { data: d, error: dError } = await db
+    .from("eng_training_decisions")
+    .select("id, record_id, channel")
+    .eq("id", decisionId)
+    .maybeSingle();
+  if (dError) return { ok: false, error: `The approval could not be read: ${dError.message}` };
+  if (!d || d.channel !== "phone_relayed") return { ok: false, error: "A written confirmation attaches only to an approval relayed by phone." };
+  const { data: rec } = await db.from("eng_training_records").select("profile_id").eq("id", d.record_id as string).maybeSingle();
+  const { error } = await db.from("eng_training_confirmations").insert({
+    decision_id: decisionId,
+    kind: input.kind,
+    received_at: received.toISOString(),
+    body,
+    attached_by: actor.id,
+  });
+  if (error) return { ok: false, error: `The confirmation was not attached: ${error.message}` };
+  const event = await appendEvent(
+    actor,
+    CONFIRMATION_ATTACHED,
+    (rec?.profile_id as string | undefined) ?? "",
+    `Attached the engineer of record's written confirmation (${input.kind}) of an approval relayed by phone.`,
+    { decision_id: decisionId, kind: input.kind, received_at: received.toISOString() },
+    context,
+  );
+  if (!event.ok) return { ok: false, error: `Attached, and its audit entry was not written: ${event.error}` };
+  return { ok: true };
 }
 
 /** A technician's certifications as dispatch reads them: the eng_certifications rows. Null on a failed read. */
