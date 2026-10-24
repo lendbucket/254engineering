@@ -13,6 +13,15 @@ production**: the same against production, after reading the board run that
 passed and the cutover line. An entry marked **needs Robert** is not applied.
 The session never applies a migration.
 
+## Overnight, 2026-10-24 (Robert's list, worked in order)
+
+| # | Item | State |
+| --- | --- | --- |
+| 1 | Main's writers re-run | attempt 3 of `40035266531`, alone, running since about 04:23 UTC; scored when it lands |
+| 2 | Sealing | **MERGED** as `1608c8b` `[skip ci]` (parents `12abb7e`, `74c6df6`; against the boarded tree only main's ledger and document commits); `ls-remote` `1608c8b`. Opens nothing. |
+| 3 | 0086 | ready for chat (development); Section 3's facts in Robert's words are in its entry below; board after the development apply |
+| 4 | Offering change, foundation and permit at $709 | **STOPPED, a miss for Robert.** Built on `feat/offer-fc-pl` (`9e88e16`, not pushed): the one edit is adding both slugs to `offeredServiceLines`; both prices are already $709. **As built it shuts the whole gate:** the launch gate's `protocols` condition asks `registeredProtocolFor(slug)`, which reads `PROTOCOL_ENTRIES`, and that holds only 254-RC-001. FC-001 and PL-001 are portal-signed structured declarations, so both read "no protocol in force", the mode falls to prelaunch, and **roof would stop selling**. Found by compliance-audit's gate fixture refusing to run. **Needs from Robert:** a ruling that the protocols condition also counts a line whose protocol is a structured declaration signed in the portal (the money door already reads that signature from the database, ruling 11, and refuses the line if it is void). Recommendation: yes, a full lane change to `registeredProtocolFor`, with a proof that a line whose structured protocol is unsigned still holds the gate shut. Also one proof (`fc-and-pl-reviews-record-a-determination`) asserts "neither line is offered", which the ruling changes on purpose. |
+
 ## Migrations
 
 | Migration | Branch | Commit | SHA-256 | Sitting document | Board | Status |
