@@ -4,6 +4,7 @@ import { can } from "@/lib/ops-authz";
 import { windstormInquiries, overdueBy } from "@/lib/ops-windstorm-inquiries";
 import { WINDSTORM_WORK_IN_SCOPE_YEAR, windstormScopeVerdict } from "@/lib/windstorm-inquiry";
 import { Chip, EmptyState, PageHead } from "@/components/portal/surfaces";
+import { PhoneLink } from "@/components/portal/PhoneLink";
 import { MarkAnswered } from "./WindstormInquiriesClient";
 import { formatInFirmZone } from "@/lib/firm-calendar";
 
@@ -149,7 +150,7 @@ export default async function WindstormInquiriesPage() {
                       </p>
                       <p className="mt-0.5 text-[13.5px] text-[var(--secondary)]">
                         {r.email}
-                        {r.phone ? `, ${r.phone}` : ""}
+                        {r.phone ? <>, <PhoneLink phone={r.phone} /></> : ""}
                       </p>
                       <p className="mt-1.5 text-[13.5px] text-[var(--navy)]">{r.property_address}</p>
                       <p className="mt-0.5 text-[13.5px] text-[var(--secondary)]">

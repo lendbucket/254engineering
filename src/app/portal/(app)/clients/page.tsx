@@ -16,6 +16,7 @@ import {
 } from "@/components/portal/surfaces";
 import { NewClientForm, ConvertLead } from "./ClientsClient";
 import { formatInFirmZone } from "@/lib/firm-calendar";
+import { PhoneLink } from "@/components/portal/PhoneLink";
 
 export const dynamic = "force-dynamic";
 
@@ -95,7 +96,7 @@ export default async function ClientsPage() {
       cell: (c) => (
         <div className="text-[14px] text-[var(--secondary)]">
           {c.email ? <p className="break-all">{c.email}</p> : null}
-          {c.phone ? <p>{c.phone}</p> : null}
+          {c.phone ? <p><PhoneLink phone={c.phone} /></p> : null}
           {!c.email && !c.phone ? "none recorded" : null}
         </div>
       ),
@@ -150,7 +151,9 @@ export default async function ClientsPage() {
                         {lead.company || lead.name || "Unnamed enquirer"}
                       </p>
                       <p className="mt-0.5 text-[14px] break-all text-[var(--secondary)]">
-                        {[lead.email, lead.phone, lead.city].filter(Boolean).join("  ")}
+                        {lead.email ? `${lead.email}  ` : ""}
+                        <PhoneLink phone={lead.phone} />
+                        {lead.city ? <>{lead.phone ? "  " : ""}{lead.city}</> : ""}
                       </p>
                       {lead.message ? (
                         <p className="mt-2 max-w-[70ch] text-[14px] leading-[1.55] text-[var(--secondary)]">

@@ -1536,10 +1536,12 @@ const RULED_CONDITIONS = [
    * open. The fourth asserts the gate actually reads the list, because the whole
    * ruling is inert if the condition still sweeps every service that exists.
    */
-  const OFFERED_AT_LAUNCH = ["roof-inspections"];
+  /* Robert's ruling 2 of 2026-10-24: foundation certification and the permit letter join roof, $709 each. */
+  const OFFERED_AT_LAUNCH = ["roof-inspections", "foundation-inspections", "structural-letters"];
 
   const { offeredServiceLines } = await import("../src/config/launch-conditions.ts");
   const { PROTOCOL_ENTRIES } = await import("../src/content/protocols/index.ts");
+  const { SIGNABLE_PROTOCOLS } = await import("../src/content/protocols/signable.ts");
   const { services } = await import("../src/content/services.ts");
 
   const offered = [...offeredServiceLines].sort();
@@ -1560,12 +1562,18 @@ const RULED_CONDITIONS = [
    * nobody offered.
    */
   const inForceFor = new Set(PROTOCOL_ENTRIES.map((p) => p.declaration.serviceSlug));
-  const offeredWithout = offeredServiceLines.filter((s) => !inForceFor.has(s));
+  /*
+   * RULING 1 OF 2026-10-24: a protocol the engineer signs in the portal counts,
+   * beside 254-RC-001. Read from the two declarations rather than from the
+   * gate's own function, so this can disagree with it.
+   */
+  const signableFor = new Set(SIGNABLE_PROTOCOLS.map((p) => p.serviceSlug));
+  const offeredWithout = offeredServiceLines.filter((s) => !inForceFor.has(s) && !signableFor.has(s));
   rec(
-    "and every offered line has a protocol in force",
+    "and every offered line has a protocol in force, 254-RC-001 or one he signs in the portal",
     offeredWithout.length === 0,
     offeredWithout.length === 0
-      ? `${offeredServiceLines.length} offered, each with a protocol in force; its signature is read at the money doors`
+      ? `${offeredServiceLines.length} offered, each with a protocol in force; its signature and training are read at the money doors`
       : `offered with no protocol in force: ${offeredWithout.join(", ")}`,
   );
 

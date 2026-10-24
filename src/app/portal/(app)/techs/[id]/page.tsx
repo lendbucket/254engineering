@@ -13,7 +13,14 @@ import {
 import { RecordCredentialForm } from "./RecordCredentialForm";
 import { CoverageForm } from "./CoverageForm";
 import { RecordTrainingForm } from "./RecordTrainingForm";
-import { certificationsFor, trainableLines, trainingRecords } from "@/lib/certification-record";
+import {
+  CONFIRMATION_PENDING,
+  RELAYED_APPROVAL,
+  certificationsFor,
+  trainableLines,
+  trainingRecords,
+} from "@/lib/certification-record";
+import { AttachConfirmationForm } from "./AttachConfirmationForm";
 import { services } from "@/content/services";
 import { TEXAS_COUNTIES } from "@/lib/ops-counties";
 import { formatCalendarDate } from "@/lib/firm-calendar";
@@ -145,13 +152,25 @@ export default async function TechnicianPage({ params }: { params: Promise<{ id:
                   {t.status === "awaiting_engineer"
                     ? "Awaiting the engineer's approval. Dispatch refuses until he gives it."
                     : t.status === "approved"
-                      ? `Approved by the engineer ${longDate(t.decidedAt)}.`
+                      ? t.channel === "phone_relayed"
+                        ? `${RELAYED_APPROVAL}, ${longDate(t.approvedAt)}. Recorded by the owner.`
+                        : `Approved by the engineer ${longDate(t.decidedAt)}.`
                       : `Refused by the engineer ${longDate(t.decidedAt)}: ${t.refusalReason}`}
                 </p>
+                {t.channel === "phone_relayed" ? (
+                  <p className={t.confirmation ? "text-[13px] text-[var(--secondary)]" : "text-[13px] font-semibold text-[var(--ink)]"}>
+                    {t.confirmation
+                      ? `His written confirmation (${t.confirmation.kind}) attached ${longDate(t.confirmation.attachedAt)}.`
+                      : `${CONFIRMATION_PENDING}.`}
+                  </p>
+                ) : null}
                 <p className="text-[13px] text-[var(--secondary)]">
                   Supervised training on v{t.protocolVersion}, {longDate(t.trainedOn)}, supervised by {t.supervisedBy}.
                   Recorded {longDate(t.recordedAt)}.
                 </p>
+                {t.channel === "phone_relayed" && !t.confirmation && t.decisionId && actor?.role === "admin" ? (
+                  <AttachConfirmationForm decisionId={t.decisionId} />
+                ) : null}
               </li>
             ))}
             {certifications.every((c) => c.status !== "certified") && training.length === 0 ? (

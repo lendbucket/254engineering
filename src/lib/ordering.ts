@@ -217,11 +217,17 @@ export function publishedPrice(slug: string): PublishedPrice {
  * no action on it is a card a reader cannot act on and the operator's third
  * instruction is that no card may imply a line can be ordered when it cannot.
  */
-export function lineOffer(slug: string): LineOffer {
+export function lineOffer(slug: string, sellable = true): LineOffer {
   const service = services.find((s) => s.slug === slug);
   const name = service?.name ?? slug;
   const entry = headlineEntry(slug);
-  const orderable = isOpen() && serviceLineIsOffered(slug);
+  /*
+   * `sellable` is the money door's answer, passed by sellableLineOffers() in
+   * src/lib/line-gate.ts (Robert's ruling of 2026-10-24: an unsigned or
+   * untrained line is not offered on /order). Configuration alone is still
+   * what statically rendered surfaces read, and they default it to true.
+   */
+  const orderable = isOpen() && serviceLineIsOffered(slug) && sellable;
   const form = QUOTE_FORMS[slug];
   const state: LineState = isPrelaunch() ? "waitlist" : orderable ? "orderable" : form ? "quote-form" : "quote";
   const quoteLabel =

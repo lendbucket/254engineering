@@ -9,6 +9,7 @@ import { DataTable, type Column } from "@/components/portal/design";
 import { EmptyState, ErrorState, PageHead, Panel } from "@/components/portal/surfaces";
 import { ListControls, Pager, listHref } from "@/components/portal/ListControls";
 import { ActionButton } from "@/components/portal/staff-kit";
+import { inboxListRows } from "@/lib/inbox-list";
 
 export const dynamic = "force-dynamic";
 
@@ -35,18 +36,15 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
 
   const kind = (params.kind ?? "all") as InboxKind | "all";
   const needle = (params.q ?? "").trim().toLowerCase();
-  const filtered = read.ok
-    ? read.items.filter(
-        (i) =>
-          (kind === "all" || i.kind === kind) &&
-          (!needle || [i.name, i.email, i.phone, i.summary].some((v) => (v ?? "").toLowerCase().includes(needle))),
-      )
-    : [];
+  /* The filter, search and sort live in inboxListRows, which the CSV export reads too. */
+  const filtered = read.ok ? inboxListRows(read.items, { kind: params.kind, q: params.q, sort: params.sort, dir: params.dir }) : [];
   const sort = params.sort ?? "due";
   const dir = params.dir === "desc" ? -1 : 1;
-  if (sort === "received") filtered.sort((a, b) => (a.receivedAt < b.receivedAt ? -dir : dir));
-  else if (sort === "name") filtered.sort((a, b) => a.name.localeCompare(b.name) * dir);
-  else if (dir === -1) filtered.reverse();
+  const csvQuery = new URLSearchParams(
+    Object.entries({ answered: params.answered, kind: params.kind, q: params.q, sort: params.sort, dir: params.dir }).filter(
+      (e): e is [string, string] => Boolean(e[1]),
+    ),
+  ).toString();
   const page = Math.max(1, Number(params.page) || 1);
   const shown = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const canAnswer = can(actor, "inbox.answer");
@@ -104,6 +102,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
         sorts={[{ value: "due", label: "Answer by" }, { value: "received", label: "Received" }, { value: "name", label: "Name" }]}
         sort={sort}
         direction={dir === -1 ? "desc" : "asc"}
+        csvHref={`/api/portal/inbox/export${csvQuery ? `?${csvQuery}` : ""}`}
       />
       {!read.ok ? (
         <ErrorState title="The inbox could not be read" body={`${read.error} Nothing here means nobody is waiting.`} />

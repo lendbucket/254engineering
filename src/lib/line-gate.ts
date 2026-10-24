@@ -6,6 +6,7 @@ import { protocolForLine } from "@/content/protocols";
 import { SIGNABLE_PROTOCOLS } from "@/content/protocols/signable";
 import { signatureStatus } from "./protocol-sign";
 import { orderBlockedReason, type CatalogEntry, type OrderGateMode } from "@data/catalog";
+import { allLineOffers, lineOffer, type LineOffer } from "./ordering";
 
 /**
  * ===========================================================================
@@ -155,4 +156,23 @@ export function sellableRefusal(sellable: Sellable, catalogueReason: string | nu
     return "Online ordering for this service is paused because the platform could not confirm the engineer's approval just now. Nothing has been charged. Try again in a few minutes, or call the office.";
   }
   return catalogueReason ?? "This service cannot be ordered online yet.";
+}
+
+/**
+ * EVERY LINE AS /order OFFERS IT, ASKED AT THE MONEY DOOR. Robert's ruling of
+ * 2026-10-24: an unsigned template shuts its own line, never the gate, and an
+ * unsigned line is not offered on /order or any order route. Configuration says
+ * which lines may be orderable; for each of those this asks lineIsSellable, and
+ * a line its door refuses, or cannot answer for, is offered as a quote instead,
+ * with no price and no link to a checkout. A line configuration already shuts
+ * costs no read. Roof is asked the same way and sells when its record stands.
+ */
+export async function sellableLineOffers(): Promise<LineOffer[]> {
+  return Promise.all(
+    allLineOffers().map(async (offer) => {
+      if (!offer.orderable) return offer;
+      const sellable = await lineIsSellable(offer.slug);
+      return sellable.ok ? offer : lineOffer(offer.slug, false);
+    }),
+  );
 }

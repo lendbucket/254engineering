@@ -14,16 +14,22 @@ import { publishedPrice } from "@/lib/ordering";
  * A fixed price on a line that cannot be ordered online says it is the price
  * the firm quotes, which is gap 8's ruling of 2026-10-10 in the one place it
  * can be enforced, so no page can show the figure without it.
+ *
+ * `orderable` is the money door's answer where the page has one. /order asks
+ * every line's door (Robert's ruling of 2026-10-24), so an unsigned or
+ * untrained line there is a quote row whose price must say it is quoted;
+ * configuration alone would call it orderable. It can only shut, never open.
  */
-export function PublishedPrice({ slug, className }: { slug: string; className?: string }) {
+export function PublishedPrice({ slug, className, orderable }: { slug: string; className?: string; orderable?: boolean }) {
   const price = publishedPrice(slug);
   if (!price.figure) return <span className={className}>Quoted per matter.</span>;
+  const canOrder = price.orderable && orderable !== false;
 
   return (
     <span className={className}>
       {price.figure}
       {price.coastal ? `, ${price.coastal}` : ""}
-      {price.kind === "fixed" && !price.orderable ? ". Quoted at this price until it can be ordered online." : ""}
+      {price.kind === "fixed" && !canOrder ? ". Quoted at this price until it can be ordered online." : ""}
     </span>
   );
 }
