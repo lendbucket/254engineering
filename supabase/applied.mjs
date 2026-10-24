@@ -2859,6 +2859,46 @@ export const APPLIED = [
       "docs/production-sitting-0081-signed-protocols.md, and Robert approves a confirmation on the drop. The " +
       "branch merges only after the production apply is read back, and a migration on main is never pending.",
   },
+  {
+    file: "0082_a_scope_addendum_is_signed_before_design_is_paid.sql", appliedBy: "apply_migration",
+    fingerprint: "a258e26388bae4c58539ea5325416d62",
+    behaviour: "6600b007ede30ef5f65e22ab5c017988",
+    production: null,
+    development: {
+      at: "0082",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-23",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-23 by the operator's chat counterpart through apply_migration, provider " +
+        "version 20261023022247, name 0082_a_scope_addendum_is_signed_before_design_is_paid, no confirmation " +
+        "prompt on the drop, with no board run in progress or queued. The file was read in full at 50a0d60 before " +
+        "the apply, sha256 03355c41011ee76966b0ee764497bfd444662005464f00be1514938d1ae08a6c; the statement stored " +
+        "in supabase_migrations reads back as sha256 c6a82aaa41ca784541df19625f94e868c6bd94aeebbd47b8081cf1e25c7d1cd7, " +
+        "the file without its trailing newline. Checked before the apply: the letter and protocol shape checks do " +
+        "not collide with the addendum kind; every column the text trigger reads exists on eng_quote_requests; the " +
+        "replaced eng_seal_act_audit is the live function plus the addendum branches only. Section 0 at 02:21 UTC: " +
+        "shape d73cdd49ae5da6268743584229cb3b88 across 1265; the kind check letter and protocol, one row; " +
+        "eng_scope_addenda absent. Section 2: shape a258e26388bae4c58539ea5325416d62 across 1278; the kind check " +
+        "letter, protocol and addendum, one row; eng_scope_addenda 0 rows; eng_design_pay(uuid), " +
+        "eng_record_addendum_signature(uuid,uuid,text,uuid,uuid,uuid,timestamp with time zone) and " +
+        "eng_scope_addendum_text() present. Every answer as predicted.",
+    },
+    proves: { table: "eng_scope_addenda" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0082 on 2026-10-22, with 0081 reproducing its " +
+      "recorded pair first: shape 1265 to 1278 columns (eng_scope_addenda's twelve and " +
+      "eng_seal_acts.addendum_id), behaviour 1159 to 1177 facts. One statement carries drop: the seal act " +
+      "kind check, dropped and re-added widened with addendum in the same alter table.",
+    because:
+      "WRITTEN 2026-10-22 ON feat/design-addendum; ON DEVELOPMENT (version 20261023022247), NOT ON PRODUCTION. Operator rulings " +
+      "of 2026-10-22: custom design pays the engineer 35% of the fee under a scope addendum he signs in the " +
+      "portal, as a seal act exactly like a protocol signature, and nothing without it; the first is the " +
+      "McAllen design job, whose real record the chat writes on production; development holds invented data " +
+      "only. The chat applies it with apply_migration, development first. The branch merges only after the " +
+      "production apply is read back, and a migration on main is never pending.",
+  },
 ];
 
 /*

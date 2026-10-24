@@ -13,6 +13,7 @@ import { isOpen } from "./launch";
 import { orderForFile as liveOrderForFile, orderForFileRead } from "./order-for-file";
 import { catalogFor, deliverablesFor } from "@data/catalog";
 import { engineerPayCents, tierForDeliverable, type PayTier } from "@/config/engineer-pay";
+import { designPayFor } from "./scope-addendum";
 import { randomUUID } from "node:crypto";
 import { canTransition, STATUS_TIMESTAMP, type FileStatus } from "./ops-files";
 import { effectModeFor } from "./fixture-identity";
@@ -508,8 +509,17 @@ export async function openReview(
  * `eng_fee_schedule` keeps `tech_pay`, which is a different fact.
  */
 export type ProductionCredit =
-  | { ok: true; deliverable: string; tier: PayTier; cents: number }
+  | { ok: true; deliverable: string; tier: PayTier; cents: number; addendumId?: undefined }
+  /* A custom design job: no tier, his signed scope addendum's figure (0082, operator ruling 2026-10-22). */
+  | { ok: true; deliverable: string; tier: null; cents: number; addendumId: string }
   | { ok: false; reason: string };
+
+/** How a credit's figure was reached, for the ledger note: a tier, or the addendum that set it. */
+export function creditBasis(credit: { tier: PayTier | null; addendumId?: string }): string {
+  return credit.tier === null ? `scope addendum ${credit.addendumId}` : `tier ${credit.tier}`;
+}
+
+const DESIGN_SLUG = "residential-light-commercial-design";
 
 /**
  * The credit for a decided review on this file. Exported for the proof that
@@ -546,6 +556,31 @@ export async function productionCreditFor(file: {
     };
   }
   const tier = tierForDeliverable(slug, deliverable);
+  if (tier === null && slug === DESIGN_SLUG) {
+    /*
+     * A CUSTOM DESIGN JOB IS PAID UNDER ITS SIGNED SCOPE ADDENDUM AND NOTHING
+     * ELSE. Operator rulings of 2026-10-22, migration 0082: 35% of the fee,
+     * and no figure without the engineer's signature. The addendum is on the
+     * design quote the job's order was converted from; a job with no quote, or
+     * no signed addendum on it, credits nothing and says why.
+     */
+    const read = await orderForFileRead(file.id, "id");
+    if (!read.ok) return { ok: false, reason: "the orders on this file could not be read, so its scope addendum cannot be found" };
+    const orderId = (read.order?.id as string | undefined) ?? null;
+    if (!orderId) return { ok: false, reason: "this design file has no order, so no quote and no scope addendum pays it" };
+    const db = supabaseAdmin();
+    if (!db) return { ok: false, reason: "the database is not configured, so the scope addendum could not be read" };
+    const { data: quote, error } = await db
+      .from("eng_quote_requests")
+      .select("id")
+      .eq("converted_order_id", orderId)
+      .maybeSingle();
+    if (error) return { ok: false, reason: `the design quote could not be read: ${error.message}` };
+    if (!quote) return { ok: false, reason: "this design job's order came from no quote, so no scope addendum pays it" };
+    const pay = await designPayFor(quote.id as string);
+    if (!pay.ok) return { ok: false, reason: pay.reason };
+    return { ok: true, deliverable, tier: null, cents: pay.cents, addendumId: pay.addendumId };
+  }
   if (tier === null) {
     return { ok: false, reason: `no pay tier is ruled for ${slug} (${deliverable})` };
   }
@@ -868,7 +903,7 @@ export async function decideReview(
           ? {
               amount_cents: credit.cents,
               period: periodOf(now),
-              note: `${pkg.file.file_number}, ${action === "refuse" ? "declined to seal" : action}, tier ${credit.tier}`,
+              note: `${pkg.file.file_number}, ${action === "refuse" ? "declined to seal" : action}, ${creditBasis(credit)}`,
             }
           : null,
       job,
@@ -1034,7 +1069,7 @@ export async function creditUncreditedReviews(
       amount_cents: credit.cents,
       period: periodOf(new Date(s.ended_at as string)),
       status: "pending",
-      note: `${file.file_number}, ${s.decision === "refuse" ? "declined to seal" : s.decision}, tier ${credit.tier}, credited after the record was fixed`,
+      note: `${file.file_number}, ${s.decision === "refuse" ? "declined to seal" : s.decision}, ${creditBasis(credit)}, credited after the record was fixed`,
     });
     if (error && !/duplicate key/i.test(error.message)) return { ok: false, error: `A credit did not write: ${error.message}` };
     if (!error) credited += 1;
@@ -1044,7 +1079,7 @@ export async function creditUncreditedReviews(
     action: "ledger.credited_late",
     entityType: "file",
     entityId: fileId,
-    summary: `${file.file_number}: ${credited} review(s) credited at tier ${credit.tier}, ${credit.cents} cents each`,
+    summary: `${file.file_number}: ${credited} review(s) credited at ${creditBasis(credit)}, ${credit.cents} cents each`,
   });
   return { ok: true, credited };
 }
