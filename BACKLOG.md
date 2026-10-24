@@ -4,22 +4,37 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
-## THE SITTING FOR 0088, A LETTER SEALS ONLY FROM A TEMPLATE HE SIGNED, OPEN, NEEDS ROBERT
+## THE SITTING FOR 0088, A LETTER SEALS ONLY FROM A TEMPLATE HE SIGNED, OPEN
 
 `docs/production-sitting-0088-a-letter-seals-only-from-a-template-he-signed.md`.
-Written 2026-10-24 on `feat/letter-adoption`. Development first, then the board.
-Production needs Robert: once applied, the code deployed before it seals no
-letter, roof included, until the new code deploys and the engineer signs the
-roof template on `/portal/protocols`.
+Written 2026-10-24 on `feat/letter-adoption`, narrowed by Robert's ruling 4 of
+that day to the manufactured home, solar and WPI-8E lines. Development sat at
+18:21 UTC (version `20261024182158`), then the board, then the chat's
+production sitting. 0081's fifteen-argument seal door is not replaced, so roof,
+foundation and permit letters seal throughout; Section 2 asserts every line
+open before is open after.
 
-## THE SITTING FOR 0086, AN APPROVAL BY PHONE IS ITS OWN KIND, OPEN
+## FIXED: THE INSTRUMENTATION HOOK REACHED node:crypto IN THE EDGE BUNDLE
 
-`docs/production-sitting-0086-an-approval-by-phone-is-its-own-kind.md`.
-Written 2026-10-24 on `feat/relayed-approval`. Development first, then the board,
-then production; Section 3 records Robert's training on each in force template
-with the facts he gave in his own words, written confirmation pending until he
-attaches the engineer's text. 0087 (the three letters' facts) rides on the same
-chain and has no Section 3.
+Fixed 2026-10-24 on this branch: `onRequestError` loads `ops-observability`
+only inside `if (process.env.NEXT_RUNTIME === "nodejs")`. Proof
+`scripts/proofs/the-instrumentation-loads-node-code-only-in-node.mjs` follows
+every import loaded in every runtime through its static imports and refuses a
+node built-in or a server-only module; removing the guard turns three checks
+red. The entry as it was written follows.
+
+`src/instrumentation.ts`, on its own branch `fix/instrumentation-nodejs-runtime`.
+Ruled intermittent by Robert on 2026-10-23. Main's board `40035266531` on
+`6c87099`: launch-audit's live mode dev server on 4305 never came up, "Ecmascript
+file had an error" with the Edge Instrumentation import trace
+`instrumentation.ts` to `ops-observability.ts` to `ops-mfa.ts` to `totp.ts`'s
+`node:crypto`, then `GET / 500`, so the audit measured nothing and printed FAIL.
+The same tree passed on `38774fa` at 13:20, on five branch boards that night,
+and on attempt 2 of the same shard. The cause, read from source:
+`onRequestError` imports `@/lib/ops-observability` with no runtime guard, so it
+is bundled for the Edge runtime too. It must load only when
+`process.env.NEXT_RUNTIME === "nodejs"`. Proof owed: every server-only import in
+the hook sits behind that guard, injection-verified by removing the guard.
 
 ## THE SITTING FOR 0085, A LETTER STATES ONLY RECORDED FACTS, OPEN
 
