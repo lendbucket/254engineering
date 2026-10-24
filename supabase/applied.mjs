@@ -3125,6 +3125,24 @@ export const APPLIED = [
       "docs/production-sitting-0086-an-approval-by-phone-is-its-own-kind.md. The branch merges only after the " +
       "production apply is read back, and a migration on main is never pending.",
   },
+  {
+    file: "0087_the_three_letters_facts_are_records.sql", appliedBy: "apply_migration",
+    fingerprint: "6a355ef867ca1021391067a84f44f34b",
+    behaviour: "5741f43639f3d62e58e82f7c3af38675",
+    production: null,
+    proves: { table: "eng_letter_facts" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0087 on 2026-10-24, with 0086 reproducing its " +
+      "recorded pair first: shape unchanged at 1328 columns, behaviour 1242 to 1243 facts (the new values " +
+      "check; the fact and capacity checks are dropped and re-added widened, the 0082 pattern). No table, " +
+      "column, function or trigger.",
+    because:
+      "WRITTEN 2026-10-24 ON feat/letter-records, AND APPLIED NOWHERE. Robert's instruction of 2026-10-24: the " +
+      "records for every fact the manufactured home, solar and WPI-8E documents print, the 0085 pattern, no " +
+      "letters. Who records each is the engineer's call; the capacities are a stated default until he rules. " +
+      "The chat applies it with apply_migration, development first. The branch merges only after the " +
+      "production apply is read back, and a migration on main is never pending.",
+  },
 ];
 
 /*
