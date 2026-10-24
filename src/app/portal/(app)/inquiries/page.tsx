@@ -3,6 +3,7 @@ import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
 import { designInquiries, overdueBy } from "@/lib/ops-inquiries";
 import { Chip, EmptyState, PageHead } from "@/components/portal/surfaces";
+import { PhoneLink } from "@/components/portal/PhoneLink";
 import { MarkAnswered } from "./InquiriesClient";
 import { formatInFirmZone } from "@/lib/firm-calendar";
 import { LIST_NOT_LOADED } from "@/lib/outcome-copy";
@@ -132,7 +133,7 @@ export default async function InquiriesPage() {
                       </p>
                       <p className="mt-0.5 text-[13.5px] text-[var(--secondary)]">
                         {r.email}
-                        {r.phone ? `, ${r.phone}` : ""}
+                        {r.phone ? <>, <PhoneLink phone={r.phone} /></> : ""}
                       </p>
                       <p className="mt-1.5 text-[13.5px] text-[var(--navy)]">
                         {WORK_KIND[r.work_kind] ?? r.work_kind}, {DELIVERABLE[r.deliverable] ?? r.deliverable}

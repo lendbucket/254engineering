@@ -3108,7 +3108,56 @@ export const APPLIED = [
     file: "0086_an_approval_by_phone_is_its_own_kind.sql", appliedBy: "apply_migration",
     fingerprint: "6a355ef867ca1021391067a84f44f34b",
     behaviour: "faa068eaef15179f26a3054685a888ba",
-    production: null,
+    /*
+     * APPLIED TO PRODUCTION 2026-10-24, 08:31:41 UTC, provider version
+     * 20261024083141, name 0086_an_approval_by_phone_is_its_own_kind, by the
+     * operator's chat counterpart through apply_migration, from
+     * docs/production-sitting-0086-an-approval-by-phone-is-its-own-kind.md,
+     * Sections 0 to 3, after the branch's cloud board (40072143951) matched its
+     * prediction, 61 of 61, on e40090b. The file applied is sha256
+     * 5d8a72e8ca51a62c4cd8952a279097963ad715ed339ba1d8ccfe197d97f050fe, the one
+     * development holds; the stored statement reads back as sha256
+     * 2333c1f468fa2e0ccf6cc125b73668db54b6c9c67961dcb8b237c463f297a91c, identical
+     * to development.
+     *
+     * Section 0: shape cbf3b1702865427a65466b11c900b4e1 across 1317;
+     * eng_training_confirmations absent; no channel column; 0 decisions. Section
+     * 2: shape 6a355ef867ca1021391067a84f44f34b across 1328; both channel checks;
+     * RLS on the confirmations table; the three functions. Section 3, with
+     * Robert's facts in his words ("Aman supervised and it was on October 15
+     * 2026."): eight templates in force (RC, FC, PL, RS, MH, SL, WS, DS); the
+     * technician profile c9d46cd2 field_tech and active; one active engineer;
+     * Robert's admin profile chosen by name; eight calls to the door, eight
+     * decisions, each phone_relayed with no portal signer, trained_on 2026-10-15,
+     * supervised_by "Aman Dhakal, PE (engineer of record)", approved_at
+     * 2026-10-24 02:56 UTC, written confirmation pending; eng_line_is_trained
+     * true on all eight. The roof certification kept its 2026-09-23 date; the
+     * other seven are certified on the day of the sitting. Every answer as
+     * predicted. The record rides in the merge, so 0086 is never pending on main.
+     */
+    production: "2026-10-24",
+    development: {
+      at: "0086",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-24",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-24 by the operator's chat counterpart through apply_migration, provider " +
+        "version 20261024061654, name 0086_an_approval_by_phone_is_its_own_kind, with no writers shard running. " +
+        "The file was read in full at 104be59, sha256 " +
+        "5d8a72e8ca51a62c4cd8952a279097963ad715ed339ba1d8ccfe197d97f050fe; the statement stored in " +
+        "supabase_migrations reads back as sha256 " +
+        "2333c1f468fa2e0ccf6cc125b73668db54b6c9c67961dcb8b237c463f297a91c, the file without its trailing newline. " +
+        "Checked first: eng_certifications has template_id, status, certified_at and revoked_at, a unique " +
+        "(profile_id, service_slug) for the door's on conflict, and a status check admitting certified. Section 0: " +
+        "shape cbf3b1702865427a65466b11c900b4e1 across 1317; eng_training_confirmations absent; no channel column; " +
+        "0 decisions. Section 2: shape 6a355ef867ca1021391067a84f44f34b across 1328; no channel rows, there being " +
+        "no decisions; eng_training_decisions_channel_ck and eng_training_decisions_channel_shape_ck present; RLS " +
+        "on eng_training_confirmations; eng_confirmation_check(), " +
+        "eng_record_relayed_training_approval(uuid,uuid,date,text,uuid,uuid,timestamp with time zone) and " +
+        "eng_relayed_decision_check() present. Every answer as predicted.",
+    },
     proves: { table: "eng_training_confirmations" },
     note:
       "Both figures read off scripts/fingerprint-at.mjs at 0086 on 2026-10-24, with 0085 reproducing its " +
@@ -3117,7 +3166,7 @@ export const APPLIED = [
       "1242 facts. No drop statement. Additive: the channel defaults to portal, so every existing decision and " +
       "every one the deployed code writes stays a portal decision.",
     because:
-      "WRITTEN 2026-10-24 ON feat/relayed-approval, AND APPLIED NOWHERE. Operator ruling of 2026-10-23 21:56 CT: " +
+      "WRITTEN 2026-10-24 ON feat/relayed-approval; ON DEVELOPMENT (version 20261024061654) AND ON PRODUCTION (version 20261024083141). Operator ruling of 2026-10-23 21:56 CT: " +
       "the engineer of record approved the owner as field technician on every line whose protocol he has signed, " +
       "by phone, relayed by the owner; recorded as its own kind, never as an approval from his session, with a " +
       "place for his written confirmation, and counted as approved by eng_line_is_trained. The chat applies it " +

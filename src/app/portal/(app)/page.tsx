@@ -132,6 +132,14 @@ export default async function PortalHome() {
         }
       />
 
+      {/* Office ready, 2026-10-20: the work due now leads the administrator's home, as it leads the desk's. */}
+      {dashboard.role === "admin" && dashboard.due.length > 0 ? (
+        <section aria-label="Work due now">
+          <h2 className="mb-3 text-[15px] font-semibold text-[var(--ink)]">Work due now</h2>
+          <CountTiles tiles={dashboard.due} />
+        </section>
+      ) : null}
+
       <CountTiles tiles={dashboard.tiles} />
 
       {dashboard.role === "desk" ? <CallListPanel rows={dashboard.callList} today={dashboard.today} /> : null}
