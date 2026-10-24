@@ -31,14 +31,25 @@ export function LetterSealPanel({
   determinationId,
   determination,
   fileNumber,
+  protocol = "254-RC-001",
 }: {
   determinationId: string;
   determination: string;
   fileNumber: string;
+  /*
+   * Which letter (ruling 7 of 2026-10-23). The roof and foundation letters
+   * take the recipient's address and salutation here; the permit letter's
+   * come from what the office recorded. The foundation letter also takes his
+   * observed condition, which the platform does not write.
+   */
+  protocol?: string;
 }) {
   const router = useRouter();
   const [address, setAddress] = useState("");
   const [salutation, setSalutation] = useState("");
+  const [observed, setObserved] = useState("");
+  const asksRecipient = protocol !== "254-PL-001";
+  const asksObserved = protocol === "254-FC-001";
   const [lines, setLines] = useState<Line[] | null>(null);
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
@@ -57,6 +68,7 @@ export function LetterSealPanel({
           determinationId,
           recipientAddress: address,
           recipientSalutation: salutation,
+          observedCondition: observed,
           code,
         }),
       });
@@ -99,31 +111,56 @@ export function LetterSealPanel({
         changed; a correction is a new letter.
       </p>
 
-      <label htmlFor={`addr-${determinationId}`} className="mt-4 block text-[14px] font-semibold text-[var(--ink)]">
-        Recipient&apos;s address
-      </label>
-      <textarea
-        id={`addr-${determinationId}`}
-        rows={2}
-        value={address}
-        onChange={(e) => {
-          setAddress(e.target.value);
-          setLines(null);
-        }}
-        className={FIELD}
-      />
-      <label htmlFor={`sal-${determinationId}`} className="mt-3 block text-[14px] font-semibold text-[var(--ink)]">
-        Salutation, as it should print
-      </label>
-      <input
-        id={`sal-${determinationId}`}
-        value={salutation}
-        onChange={(e) => {
-          setSalutation(e.target.value);
-          setLines(null);
-        }}
-        className={FIELD}
-      />
+      {asksRecipient ? (
+        <>
+          <label htmlFor={`addr-${determinationId}`} className="mt-4 block text-[14px] font-semibold text-[var(--ink)]">
+            Recipient&apos;s address
+          </label>
+          <textarea
+            id={`addr-${determinationId}`}
+            rows={2}
+            value={address}
+            onChange={(e) => {
+              setAddress(e.target.value);
+              setLines(null);
+            }}
+            className={FIELD}
+          />
+          <label htmlFor={`sal-${determinationId}`} className="mt-3 block text-[14px] font-semibold text-[var(--ink)]">
+            Salutation, as it should print
+          </label>
+          <input
+            id={`sal-${determinationId}`}
+            value={salutation}
+            onChange={(e) => {
+              setSalutation(e.target.value);
+              setLines(null);
+            }}
+            className={FIELD}
+          />
+        </>
+      ) : (
+        <p className="mt-4 text-[14px] leading-[1.6] text-[var(--secondary)]">
+          The authority&apos;s address and salutation are the ones the office recorded on the file.
+        </p>
+      )}
+      {asksObserved ? (
+        <>
+          <label htmlFor={`obs-${determinationId}`} className="mt-3 block text-[14px] font-semibold text-[var(--ink)]">
+            Observed condition, in your words
+          </label>
+          <textarea
+            id={`obs-${determinationId}`}
+            rows={4}
+            value={observed}
+            onChange={(e) => {
+              setObserved(e.target.value);
+              setLines(null);
+            }}
+            className={FIELD}
+          />
+        </>
+      ) : null}
 
       <div className="mt-4">
         <button type="button" disabled={busy} onClick={() => call("draft")} className={BUTTON}>

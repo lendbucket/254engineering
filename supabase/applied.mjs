@@ -2859,6 +2859,251 @@ export const APPLIED = [
       "docs/production-sitting-0081-signed-protocols.md, and Robert approves a confirmation on the drop. The " +
       "branch merges only after the production apply is read back, and a migration on main is never pending.",
   },
+  {
+    file: "0082_a_scope_addendum_is_signed_before_design_is_paid.sql", appliedBy: "apply_migration",
+    fingerprint: "a258e26388bae4c58539ea5325416d62",
+    behaviour: "6600b007ede30ef5f65e22ab5c017988",
+    /*
+     * APPLIED TO PRODUCTION 2026-10-24, 00:47:47 UTC, provider version
+     * 20261024004747, name 0082_a_scope_addendum_is_signed_before_design_is_paid,
+     * by the operator's chat counterpart through apply_migration, from
+     * docs/production-sitting-0082-scope-addendum.md, Sections 0 to 2 only, after
+     * the branch's cloud board (40036078087) matched its prediction, 61 of 61, on
+     * 469dbf9. The file applied is sha256
+     * 03355c41011ee76966b0ee764497bfd444662005464f00be1514938d1ae08a6c, the one
+     * development holds; the stored statement reads back as sha256
+     * c6a82aaa41ca784541df19625f94e868c6bd94aeebbd47b8081cf1e25c7d1cd7, identical
+     * to development. No job record was written, on Robert's ruling.
+     *
+     * Section 0: shape d73cdd49ae5da6268743584229cb3b88 across 1265; the kind
+     * check letter and protocol; eng_scope_addenda absent; eng_seal_act_audit's
+     * body the one 0082 was written against (md5 04fd88a1...). Section 2: shape
+     * a258e26388bae4c58539ea5325416d62 across 1278; the kind check now with
+     * addendum; eng_scope_addenda 0 rows; eng_design_pay(uuid),
+     * eng_record_addendum_signature(uuid,uuid,text,uuid,uuid,uuid,timestamp with
+     * time zone) and eng_scope_addendum_text() present; eng_seal_acts still 8
+     * rows. Every answer as predicted. Merged onto main as dfa0a0e.
+     */
+    production: "2026-10-24",
+    development: {
+      at: "0082",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-23",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-23 by the operator's chat counterpart through apply_migration, provider " +
+        "version 20261023022247, name 0082_a_scope_addendum_is_signed_before_design_is_paid, no confirmation " +
+        "prompt on the drop, with no board run in progress or queued. The file was read in full at 50a0d60 before " +
+        "the apply, sha256 03355c41011ee76966b0ee764497bfd444662005464f00be1514938d1ae08a6c; the statement stored " +
+        "in supabase_migrations reads back as sha256 c6a82aaa41ca784541df19625f94e868c6bd94aeebbd47b8081cf1e25c7d1cd7, " +
+        "the file without its trailing newline. Checked before the apply: the letter and protocol shape checks do " +
+        "not collide with the addendum kind; every column the text trigger reads exists on eng_quote_requests; the " +
+        "replaced eng_seal_act_audit is the live function plus the addendum branches only. Section 0 at 02:21 UTC: " +
+        "shape d73cdd49ae5da6268743584229cb3b88 across 1265; the kind check letter and protocol, one row; " +
+        "eng_scope_addenda absent. Section 2: shape a258e26388bae4c58539ea5325416d62 across 1278; the kind check " +
+        "letter, protocol and addendum, one row; eng_scope_addenda 0 rows; eng_design_pay(uuid), " +
+        "eng_record_addendum_signature(uuid,uuid,text,uuid,uuid,uuid,timestamp with time zone) and " +
+        "eng_scope_addendum_text() present. Every answer as predicted.",
+    },
+    proves: { table: "eng_scope_addenda" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0082 on 2026-10-22, with 0081 reproducing its " +
+      "recorded pair first: shape 1265 to 1278 columns (eng_scope_addenda's twelve and " +
+      "eng_seal_acts.addendum_id), behaviour 1159 to 1177 facts. One statement carries drop: the seal act " +
+      "kind check, dropped and re-added widened with addendum in the same alter table.",
+    because:
+      "WRITTEN 2026-10-22 ON feat/design-addendum; ON DEVELOPMENT (version 20261023022247) AND ON PRODUCTION (version 20261024004747). Operator rulings " +
+      "of 2026-10-22: custom design pays the engineer 35% of the fee under a scope addendum he signs in the " +
+      "portal, as a seal act exactly like a protocol signature, and nothing without it. It goes to production " +
+      "as built with no job record written beside it (Robert, 2026-10-23); development holds invented data " +
+      "only. The chat applies it with apply_migration, development first. The branch merges only after the " +
+      "production apply is read back, and a migration on main is never pending.",
+  },
+  {
+    file: "0083_a_permit_letter_records_its_option_and_schedule.sql", appliedBy: "apply_migration",
+    fingerprint: "a4bbde8cac7f216a582875f8ff8d1e01",
+    behaviour: "902a66ba81832a2a76d66fb47c713810",
+    /*
+     * APPLIED TO PRODUCTION 2026-10-24, 02:31:39 UTC, provider version
+     * 20261024023139, name 0083_a_permit_letter_records_its_option_and_schedule,
+     * by the operator's chat counterpart through apply_migration, from
+     * docs/production-sitting-0083-permit-letter-option.md, after the branch's
+     * cloud board (40036080565, attempt 2; attempt 1's writers lost its runner
+     * and measured nothing) matched its prediction, 61 of 61, on 7497bbb. The
+     * file applied is sha256
+     * 57673888998a4802a8adfb241e68ea80ae2bbdb0aef3930dad6a9c0253b94005, the one
+     * development holds; the stored statement reads back as sha256
+     * c9077ca67cf481e4d2507de399842e91ef4cbefa08848317d1c234174077e01e, identical
+     * to development.
+     *
+     * Section 0: shape a258e26388bae4c58539ea5325416d62 across 1278; 0
+     * determinations, 0 outside roof; eng_record_review_decision's live body the
+     * one 0083 was generated from (md5 e6136371..., the body development held).
+     * Section 2: shape a4bbde8cac7f216a582875f8ff8d1e01 across 1280; 0 rows
+     * carrying an option or a condition; eng_determinations_permit_letter_option_ck
+     * present. Every answer as predicted. The record rides in the merge, so 0083
+     * is never pending on main.
+     */
+    production: "2026-10-24",
+    development: {
+      at: "0083",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-23",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-23 by the operator's chat counterpart through apply_migration, provider " +
+        "version 20261023024543, name 0083_a_permit_letter_records_its_option_and_schedule. The file was read at " +
+        "e069fe9, sha256 57673888998a4802a8adfb241e68ea80ae2bbdb0aef3930dad6a9c0253b94005; the statement stored in " +
+        "supabase_migrations reads back as sha256 c9077ca67cf481e4d2507de399842e91ef4cbefa08848317d1c234174077e01e, " +
+        "the file without its trailing newline. Checked before the apply: 0083's eng_record_review_decision equals " +
+        "the live function on development exactly, comments aside, except for the two fields added to the " +
+        "determination insert. Section 0: shape a258e26388bae4c58539ea5325416d62 across 1278; 7 determinations, " +
+        "none outside 254-RC-001. Section 2: shape a4bbde8cac7f216a582875f8ff8d1e01 across 1280; no determination " +
+        "carrying an option or a condition; eng_determinations_permit_letter_option_ck present. Every answer as " +
+        "predicted.",
+    },
+    proves: { table: "eng_determinations", column: "letter_option" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0083 on 2026-10-22, with 0082 reproducing its " +
+      "recorded pair first: shape 1278 to 1280 columns (eng_determinations.letter_option and " +
+      "letter_conditions), behaviour 1177 to 1181 facts. No drop statement. Generated by " +
+      "scripts/emit-pl-determination-migration.mjs from 0068's own text.",
+    because:
+      "WRITTEN 2026-10-22 ON feat/pl-determination; ON DEVELOPMENT (version 20261023024543) AND ON PRODUCTION (version 20261024023139). Operator ruling of " +
+      "2026-10-22 from the engineer's email: a 254-PL-001 determination records A (a pass with no conditions), " +
+      "B (a pass with the condition in the schedule; sealing refused if it is empty) or C (repairs required). " +
+      "The chat applies it with apply_migration after 0082, development first. The branch merges only after the " +
+      "production apply is read back, and a migration on main is never pending.",
+  },
+  {
+    file: "0084_a_line_opens_only_when_trained.sql", appliedBy: "apply_migration",
+    fingerprint: "79a8143e24f29af96b2a26573efd8803",
+    behaviour: "7eb110b9207115cf1d6bfba690da4dd5",
+    /*
+     * APPLIED TO PRODUCTION 2026-10-24, 02:53:49 UTC, provider version
+     * 20261024025349, name 0084_a_line_opens_only_when_trained, by the
+     * operator's chat counterpart through apply_migration, from
+     * docs/production-sitting-0084-a-line-opens-only-when-trained.md, after the
+     * branch's cloud board (40036084856) matched its prediction, 61 of 61, on
+     * 97ad30d. The file applied is sha256
+     * 57f5b8d4fd2af6ee21d1343ecc83e8587faf2bde6df63214e97c3a7b4c86c114, the one
+     * development holds; the stored statement reads back as sha256
+     * 6976e92ef513c151d74bb244cf6d0bd1bbfa4c95e37a7af786fde6ceade92260, identical
+     * to development.
+     *
+     * Section 0: shape a4bbde8cac7f216a582875f8ff8d1e01 across 1280; both new
+     * tables absent; eng_profiles has role and status as text;
+     * eng_profiles_role_fields names field_tech; eng_forbid_mutation_allow_cascade
+     * present; and NO TRAINING EVENTS AT ALL on production, no
+     * certification.training_* row. So Section 3's backfill carried nothing, and
+     * the delete guard protects nobody yet. The queue entry had said it would
+     * carry real interim events; that was the session's assumption, never read,
+     * and the chat corrected it from production. Section 2: shape
+     * 79a8143e24f29af96b2a26573efd8803 across 1299; 0 records, equal to the 0
+     * carried; 0 decisions; RLS on both tables; eng_line_is_trained(text,uuid) and
+     * eng_profile_keeps_its_training() present; records.profile_id cascades,
+     * records.template_id restricts, decisions.record_id cascades;
+     * eng_profiles_keep_trained present. Every answer as predicted. The record
+     * rides in the merge, so 0084 is never pending on main.
+     */
+    production: "2026-10-24",
+    development: {
+      at: "0084",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-23",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-23 by the operator's chat counterpart through apply_migration, provider " +
+        "version 20261023132528, name 0084_a_line_opens_only_when_trained, with no writers shard in its run step " +
+        "or queued. The file was read in full at badcf29, sha256 " +
+        "57f5b8d4fd2af6ee21d1343ecc83e8587faf2bde6df63214e97c3a7b4c86c114, its diff against 54b438c2 adding only " +
+        "the eng_profiles_keep_trained guard; the statement stored in supabase_migrations reads back as sha256 " +
+        "6976e92ef513c151d74bb244cf6d0bd1bbfa4c95e37a7af786fde6ceade92260, the file without its trailing newline. " +
+        "Section 0: shape a4bbde8cac7f216a582875f8ff8d1e01 across 1280; both new tables absent; eng_profiles has " +
+        "role and status as text; eng_profiles_role_fields names field_tech; eng_forbid_mutation_allow_cascade " +
+        "exists; training events recorded 360, approved 179, refused 179, and none carried, since every one " +
+        "belongs to a probe already gone. Section 2: shape 79a8143e24f29af96b2a26573efd8803 across 1299; 0 " +
+        "records, equal to the 0 carried; 0 decisions; RLS on both tables; eng_line_is_trained(text,uuid) and " +
+        "eng_profile_keeps_its_training() present; records.profile_id cascades, records.template_id restricts, " +
+        "decisions.record_id cascades, and no key on recorded_by or decided_by; eng_profiles_keep_trained BEFORE " +
+        "DELETE on eng_profiles. Every answer as predicted.",
+    },
+    proves: { table: "eng_training_records" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0084 on 2026-10-23, with 0083 reproducing its " +
+      "recorded pair first: shape 1280 to 1299 columns (eng_training_records' eleven and " +
+      "eng_training_decisions' eight), behaviour 1181 to 1202 facts. Redesigned the same day under ruling 6: " +
+      "the rows cascade from their technician and their record, and recorded_by and decided_by are pointers, so " +
+      "no probe is pinned; and, by ruling the same morning, eng_profiles_keep_trained refuses to delete a " +
+      "trained profile off audit-probe.invalid, so only a probe's training can cascade away. Earlier versions, " +
+      "withdrawn unapplied: sha256 01b0170a... (ea4f0f6c... / 1202) and 54b438c2... (b9f48cff... / 1200). " +
+      "No drop statement. Section 3 is a one-time backfill of the interim training events of " +
+      "2026-10-07 onward, each row naming its event.",
+    because:
+      "WRITTEN 2026-10-23 ON feat/training-record; ON DEVELOPMENT (version 20261023132528) AND ON PRODUCTION (version 20261024025349). Operator ruling of " +
+      "2026-10-23: a line opens only when its protocol is signed and somebody is trained on that version, " +
+      "recorded in the portal; roof stays exactly as it is. The chat applies it with apply_migration, development " +
+      "first, from docs/production-sitting-0084-a-line-opens-only-when-trained.md. The branch merges only after " +
+      "the production apply is read back, and a migration on main is never pending.",
+  },
+  {
+    file: "0085_a_letter_states_only_recorded_facts.sql", appliedBy: "apply_migration",
+    fingerprint: "cbf3b1702865427a65466b11c900b4e1",
+    behaviour: "b7d5fefb4da018255dc691c3da1df896",
+    /*
+     * APPLIED TO PRODUCTION 2026-10-24, 04:00:57 UTC, provider version
+     * 20261024040057, name 0085_a_letter_states_only_recorded_facts, by the
+     * operator's chat counterpart through apply_migration, from
+     * docs/production-sitting-0085-a-letter-states-only-recorded-facts.md, after
+     * the branch's cloud board (40036087985) matched its prediction, 61 of 61, on
+     * 94a1e21. The file applied is sha256
+     * 39aa46c4cd5b885a52bdba063f8d2531bbb83e1b30ecdc52aa3b8ea4f068805a, the one
+     * development holds; the stored statement reads back as sha256
+     * 70942292297d74fda2a4b8065d3473638f190b8e9cf29002a124f30f974e6126, identical
+     * to development.
+     *
+     * Section 0: shape 79a8143e24f29af96b2a26573efd8803 across 1299; all three
+     * new tables absent. Section 2: shape cbf3b1702865427a65466b11c900b4e1 across
+     * 1317; RLS on all three tables; three append-only triggers;
+     * eng_letter_facts_capacity_ck and eng_letter_facts_foundation_type_ck
+     * present. Every answer as predicted. The record rides in the merge, so 0085
+     * is never pending on main.
+     */
+    production: "2026-10-24",
+    development: {
+      at: "0085",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-23",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-23 by the operator's chat counterpart through apply_migration, provider " +
+        "version 20261023132612, name 0085_a_letter_states_only_recorded_facts, after 0084 and with no writers " +
+        "shard in its run step or queued. The file was read in full at 9161ec4, sha256 " +
+        "39aa46c4cd5b885a52bdba063f8d2531bbb83e1b30ecdc52aa3b8ea4f068805a; the statement stored in " +
+        "supabase_migrations reads back as sha256 " +
+        "70942292297d74fda2a4b8065d3473638f190b8e9cf29002a124f30f974e6126, the file without its trailing newline. " +
+        "Section 0: shape 79a8143e24f29af96b2a26573efd8803 across 1299; all three new tables absent. Section 2: " +
+        "shape cbf3b1702865427a65466b11c900b4e1 across 1317; RLS on all three tables; three append-only " +
+        "triggers; eng_letter_facts_capacity_ck and eng_letter_facts_foundation_type_ck present. Every answer as " +
+        "predicted.",
+    },
+    proves: { table: "eng_letter_facts" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0085 on 2026-10-23, with 0084 reproducing its " +
+      "recorded pair first: shape 1299 to 1317 columns (eng_letter_facts' seven, eng_job_triage's six, " +
+      "eng_job_capture_additions' five), behaviour 1202 to 1227 facts. No function, no drop statement.",
+    because:
+      "WRITTEN 2026-10-23 ON feat/fc-pl-records; ON DEVELOPMENT (version 20261023132612) AND ON PRODUCTION (version 20261024040057). Operator ruling 7 of " +
+      "2026-10-23 on the foundation and permit letters: the facts they print that the platform did not hold are " +
+      "recorded by the office or the engineer as ruled, the engineer's site or desk triage is a record, and his " +
+      "added capture items are his words. The chat applies it with apply_migration, development first, from " +
+      "docs/production-sitting-0085-a-letter-states-only-recorded-facts.md. The branch merges only after the " +
+      "production apply is read back, and a migration on main is never pending.",
+  },
 ];
 
 /*

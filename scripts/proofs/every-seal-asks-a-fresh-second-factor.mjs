@@ -38,7 +38,35 @@ const DOORS = [
   { file: "src/lib/letter-seal.ts", rpc: "eng_record_letter_seal" },
   { file: "src/lib/protocol-sign.ts", rpc: "eng_record_protocol_signature" },
   { file: "src/lib/seal-store.ts", rpc: "eng_record_seal_image" },
+  /* A scope addendum, signed as a protocol is (0082, operator ruling 2026-10-22). */
+  { file: "src/lib/scope-addendum.ts", rpc: "eng_record_addendum_signature" },
 ];
+
+/*
+ * EVERY DOOR THE MIGRATIONS OPEN IS ONE THIS LIST NAMES. Check 4 below asks
+ * whether anything ELSE calls the listed functions; it could not see a new
+ * function, and 0082's addendum door was exactly that until this was added.
+ * So the doors are derived from the chain itself: every function whose body
+ * inserts into eng_seal_acts or eng_seal_images must be listed above.
+ */
+{
+  const sql = readdirSync("supabase/migrations")
+    .filter((f) => f.endsWith(".sql"))
+    .sort()
+    .map((f) => readFileSync(join("supabase/migrations", f), "utf8"))
+    .join("\n");
+  const writers = new Set();
+  for (const m of sql.matchAll(/create or replace function (eng_\w+)\s*\(([\s\S]*?)\n(\$fn\$|\$\$);/g)) {
+    if (/insert into (public\.)?eng_seal_(acts|images)\b/.test(m[2])) writers.add(m[1]);
+  }
+  const listed = new Set(DOORS.map((d) => d.rpc));
+  const unlisted = [...writers].filter((w) => !listed.has(w));
+  check(
+    "every function the migrations open that writes a seal act or a seal image is a door this proof checks",
+    writers.size >= DOORS.length && unlisted.length === 0,
+    unlisted.join(", ") || [...writers].sort().join(", "),
+  );
+}
 
 for (const door of DOORS) {
   const src = readFileSync(door.file, "utf8");
