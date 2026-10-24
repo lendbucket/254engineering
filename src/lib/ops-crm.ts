@@ -2,6 +2,7 @@ import "server-only";
 import { DB_NOW } from "./db-now";
 import { supabaseAdmin } from "./supabase";
 import { clientSearchOr, type ClientListQuery } from "./client-list";
+import { cleanSearchTerm } from "./search-rules";
 import { writeAudit, diffOf, safeDiff } from "./ops-audit";
 import { canSeeFile, redactFile, visibleFiles, type Actor, actionsFor } from "./ops-authz";
 import {
@@ -441,27 +442,43 @@ export async function listFiles(
  * screen can say the list is the newest 300 without a second, separately
  * scoped count.
  */
+/*
+ * OFFICE READY, 2026-10-24. Paged: `page` reads the next FILE_LIST_CAP, so an
+ * older file is reached by paging rather than only by narrowing; `oldest`
+ * reverses the order. The term is cleaned by the one shared rule (it had its own
+ * copy, which let `*` and a backslash through). And a read that failed is said:
+ * `error` is set rather than an empty page standing in for "no files".
+ */
 export async function listFilesPage(
   actor: Actor | null,
-  filters: { status?: string; county?: string; search?: string } = {},
-): Promise<{ rows: FileRow[]; more: boolean }> {
-  if (!actor) return { rows: [], more: false };
+  filters: { status?: string; county?: string; search?: string; page?: number; oldest?: boolean } = {},
+): Promise<{ rows: FileRow[]; more: boolean; error: string | null }> {
+  if (!actor) return { rows: [], more: false, error: null };
   const scoped = await scopedFileQuery(actor);
-  if (!scoped) return { rows: [], more: false };
+  if (!scoped) return { rows: [], more: false, error: null };
   let query = scoped.query;
 
   if (filters.status) query = query.eq("status", filters.status);
   if (filters.county) query = query.eq("county", filters.county);
-  if (filters.search) {
-    const term = filters.search.replace(/[%,()]/g, "");
-    query = query.or(`file_number.ilike.%${term}%,property_address.ilike.%${term}%`);
-  }
+  const term = cleanSearchTerm(filters.search ?? "");
+  if (term) query = query.or(`file_number.ilike.%${term}%,property_address.ilike.%${term}%`);
 
-  const { data } = await query.order("created_at", { ascending: false }).limit(FILE_LIST_CAP + 1);
+  const page = Math.max(1, Math.floor(filters.page ?? 1));
+  const from = (page - 1) * FILE_LIST_CAP;
+  const { data, error } = await query
+    .order("created_at", { ascending: filters.oldest === true })
+    /* A tie broken by id, so a page boundary never shows a file twice or skips one. */
+    .order("id", { ascending: true })
+    .range(from, from + FILE_LIST_CAP);
+  if (error) {
+    console.error(`[files] the file list could not be read: ${error.message}`);
+    return { rows: [], more: false, error: error.message };
+  }
   const all = (data ?? []) as FileRow[];
   return {
     rows: all.slice(0, FILE_LIST_CAP).map((f) => redactFile(actor, f)),
     more: all.length > FILE_LIST_CAP,
+    error: null,
   };
 }
 
