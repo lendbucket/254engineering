@@ -26,6 +26,7 @@ import {
   type IntakeField,
 } from "@data/intake-fields";
 import { DispatchPanel } from "../files/DispatchPanel";
+import { JoinedWithPhone } from "@/components/portal/PhoneLink";
 /*
  * A type only import, which is erased at compile time. ops-field carries
  * "server-only", and that guard is about VALUES reaching the browser: nothing
@@ -566,7 +567,11 @@ export function IntakeClient({
             <div>
               <p className="text-[15px] font-semibold text-[var(--ink)]">{chosen.name}</p>
               <p className="text-[13px] text-[var(--secondary)]">
-                {[chosen.email, chosen.phone, chosen.city].filter(Boolean).join(" · ") || "no contact recorded"}
+                {chosen.email || chosen.phone || chosen.city ? (
+                  <JoinedWithPhone parts={[chosen.email, { phone: chosen.phone }, chosen.city]} sep=" · " />
+                ) : (
+                  "no contact recorded"
+                )}
               </p>
             </div>
             <button

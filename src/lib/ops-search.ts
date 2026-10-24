@@ -20,7 +20,9 @@ import { listFiles, type FileRow } from "./ops-crm";
  * BOUNDED AND SAYS SO: up to LIMIT of each, newest first, and the screen says
  * when there are more rather than presenting a page as the whole.
  */
-export const SEARCH_MIN_LENGTH = 3;
+/* The minimum lives in search-rules.ts, so the header's search box reads the same number. */
+import { SEARCH_MIN_LENGTH } from "./search-rules";
+export { SEARCH_MIN_LENGTH };
 export const SEARCH_LIMIT = 50;
 
 export type OrderHit = {
