@@ -1,43 +1,49 @@
 /*
  * ===========================================================================
- * 0088  A LETTER SEALS ONLY FROM A TEMPLATE THE ENGINEER HAS SIGNED.
+ * 0088  A MANUFACTURED HOME, SOLAR OR WPI-8E LETTER SEALS ONLY FROM A
+ *       TEMPLATE THE ENGINEER HAS SIGNED.
  * ===========================================================================
  *
  * Robert's instruction of 2026-10-24: letter-template adoption. The engineer
- * signs each letter template in his portal like a protocol, and a line's letter
- * can seal only from a template he has signed. Nothing seals without it.
+ * signs a letter template in his portal like a protocol, and the letter seals
+ * only from a template he has signed.
  *
- * WHAT IS SIGNED is the template's fixed text as the platform holds it, every
- * line in his order with its slots, hashed exactly as a protocol transcription
- * is (src/lib/letter-template-sign.ts). A template is keyed by the protocol its
- * letter states (254-RC-001, 254-FC-001, 254-PL-001, ...) and a version.
+ * NARROWED, Robert's ruling 3 of 2026-10-24 ("1-5 yes", 11:24 Central): this
+ * touches only the three drafted lines, 254-MH-001 (manufactured home),
+ * 254-SL-001 (solar) and 254-WS-001 (WPI-8E, completed). Roof, foundation,
+ * permit and every other line in force are untouched: their letters seal
+ * exactly as before, through 0081's fifteen-argument door, which this does not
+ * replace, and they can name no template. The three lines stay closed until the
+ * engineer adopts the drafted wording and signs its template. That is expected.
+ *
+ * WHAT IS SIGNED is the template's fixed text as the platform holds it, hashed
+ * exactly as a protocol transcription is (src/lib/letter-template-sign.ts). A
+ * template is keyed by the protocol its letter states, and a version.
  *
  * WHAT THIS DOES
  *   1. eng_seal_acts gains the kind 'letter_template' (template_key,
- *      template_version) and, on a letter, letter_template_act_id: the
- *      template signature the letter was sealed from. Shape checks hold each
- *      column to its kind; one live signature per template version.
- *   2. eng_seal_act_check (0082's, one clause wider each way): a template is
- *      signed by an engineer like everything else; a letter sealed from 0088 on
- *      names a live template signature, for the protocol the letter's
- *      determination states. The 254-RC-001 letters sealed before 0088 carry
- *      none and are untouched: the check runs on insert only.
+ *      template_version) and, on a letter, letter_template_act_id. Shape checks
+ *      hold each column to its kind, a template key to one of the three
+ *      protocols, and one live signature per template version.
+ *   2. eng_seal_act_check (0082's): a letter whose determination states one of
+ *      the three protocols names a live template signature for that protocol;
+ *      any other letter names none. Every other clause is 0082's, word for word.
  *   3. eng_seal_act_guard (0082's): the template columns can never change.
  *   4. eng_seal_act_audit (0082's): a template signature is named as one.
  *   5. eng_record_letter_template_signature: the one door a template signature
  *      comes in by.
- *   6. eng_record_letter_seal gains a sixteenth argument, the template
- *      signature; 0081's fifteen-argument version refuses. A CUTOVER GAP: the
- *      code deployed before 0088 seals nothing once it is applied.
+ *   6. eng_record_letter_seal gains a SIXTEEN-argument overload for a letter
+ *      sealed from a template. The fifteen-argument version is left exactly as
+ *      0081 wrote it, so the code deployed before 0088 goes on sealing roof,
+ *      foundation and permit letters. No cutover gap.
  *
  * Whether the hash still matches the template in code is answered where the
- * code is, in the TypeScript, exactly as for a protocol: the database cannot
- * read the code, and a template changed after signing reads as void there.
+ * code is, in the TypeScript, exactly as for a protocol.
  *
  * Additive. No drop statement except the kind check, dropped and re-added
  * widened in one statement, the 0082 pattern. RLS unchanged. SECURITY
  * INVOKER, search_path pinned, EXECUTE revoked from PUBLIC, anon and
- * authenticated (0073).
+ * authenticated on every function added or replaced (0073).
  */
 
 /* 1. The kind, its columns, and their shapes. */
@@ -54,6 +60,7 @@ alter table eng_seal_acts
   add constraint eng_seal_acts_template_shape_ck check (
     (kind = 'letter_template') = (template_key is not null)
     and (kind = 'letter_template') = (template_version is not null)
+    and (template_key is null or template_key in ('254-MH-001', '254-SL-001', '254-WS-001'))
     and (kind <> 'letter_template'
          or (document_id is null and determination_id is null and addendum_id is null
              and protocol_document is null and protocol_version is null and letter_template_act_id is null))
@@ -65,9 +72,9 @@ create unique index if not exists eng_seal_acts_one_live_template
   where kind = 'letter_template' and voided_at is null;
 
 comment on column eng_seal_acts.letter_template_act_id is
-  'For a letter sealed from 0088 on: the engineer''s live signature on the letter template it was sealed from (kind letter_template). Null on the roof letters sealed before 0088. 0088, Robert''s instruction of 2026-10-24.';
+  'For a manufactured home, solar or WPI-8E letter: the engineer''s live signature on the letter template it was sealed from (kind letter_template). Null on every other letter. 0088, narrowed by Robert''s ruling 3 of 2026-10-24.';
 
-/* 2. 0082's check, with the template clauses. */
+/* 2. 0082's check, with the template clause for the three lines only. */
 create or replace function eng_seal_act_check()
 returns trigger
 language plpgsql
@@ -75,6 +82,7 @@ set search_path = ''
 as $fn$
 declare
   v_ok boolean;
+  v_protocol text;
 begin
   select count(*) = 2 into v_ok
     from public.eng_seal_images i
@@ -107,18 +115,25 @@ begin
       'A letter is sealed with the SHA-256 of the mark at its head (0081).';
   end if;
 
-  /* 0088: a letter seals only from a live template signature for its own protocol. */
-  if new.kind = 'letter' and not exists (
-    select 1
-      from public.eng_seal_acts t
-      join public.eng_determinations d on d.id = new.determination_id
-     where t.id = new.letter_template_act_id
-       and t.kind = 'letter_template'
-       and t.voided_at is null
-       and t.template_key = d.protocol_document
-  ) then
-    raise exception
-      'A letter seals only from a letter template the engineer has signed, for the protocol its determination states (0088).';
+  /* 0088, narrowed: the three drafted lines seal only from a live template signature for their own protocol. */
+  if new.kind = 'letter' then
+    select d.protocol_document into v_protocol
+      from public.eng_determinations d where d.id = new.determination_id;
+    if coalesce(v_protocol = any (array['254-MH-001', '254-SL-001', '254-WS-001']), false) then
+      if not exists (
+        select 1 from public.eng_seal_acts t
+         where t.id = new.letter_template_act_id
+           and t.kind = 'letter_template'
+           and t.voided_at is null
+           and t.template_key = v_protocol
+      ) then
+        raise exception
+          'A manufactured home, solar or WPI-8E letter seals only from a letter template the engineer has signed, for the protocol its determination states (0088).';
+      end if;
+    elsif new.letter_template_act_id is not null then
+      raise exception
+        'Only a manufactured home, solar or WPI-8E letter names a letter template; every other letter seals as it did before 0088.';
+    end if;
   end if;
 
   if new.kind = 'addendum' and not exists (
@@ -247,40 +262,12 @@ end;
 $fn$;
 
 /*
- * 6. A LETTER IS SEALED NAMING THE TEMPLATE SIGNATURE IT WAS SEALED FROM.
- * 0081's fifteen-argument version refuses rather than being dropped, as 0081
- * did to 0062's; the sixteenth argument is the template signature. THIS IS A
- * CUTOVER GAP, stated where it is made: from the moment 0088 is applied, the
- * code deployed before it calls the fifteen-argument version and every letter
- * seal is refused until the new code deploys and the engineer has signed the
- * template for that letter.
+ * 6. A THREE-LINES LETTER IS SEALED NAMING THE TEMPLATE SIGNATURE IT WAS
+ * SEALED FROM, through its own sixteen-argument overload. 0081's
+ * fifteen-argument version is not replaced, so every other letter seals
+ * through it exactly as before; eng_seal_act_check refuses a three-lines
+ * letter that arrives without a template.
  */
-create or replace function eng_record_letter_seal(
-  p_seal_act_id         uuid,
-  p_document_id         uuid,
-  p_file_id             uuid,
-  p_client_id           uuid,
-  p_title               text,
-  p_storage_key         text,
-  p_byte_size           bigint,
-  p_sha256              text,
-  p_firm_registration   text,
-  p_determination_id    uuid,
-  p_sealed_by           uuid,
-  p_seal_image_id       uuid,
-  p_signature_image_id  uuid,
-  p_mfa_verified_at     timestamptz,
-  p_letterhead_sha256   text
-)
-returns void
-language plpgsql
-set search_path = ''
-as $fn$
-begin
-  raise exception 'eng: since 0088 a letter is sealed naming the letter template signature it was sealed from.';
-end;
-$fn$;
-
 create or replace function eng_record_letter_seal(
   p_seal_act_id             uuid,
   p_document_id             uuid,
@@ -320,7 +307,7 @@ begin
 end;
 $fn$;
 
-/* 0073's rule for every function added or replaced here, and asserted for the whole schema. */
+/* 0073's rule for every function added or replaced here (not 0081's fifteen-argument door), and asserted for the whole schema. */
 do $$
 declare
   f record;
@@ -330,8 +317,8 @@ begin
     select p.oid::regprocedure as sig
     from pg_proc p join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'public'
-      and p.proname in ('eng_seal_act_check', 'eng_seal_act_guard', 'eng_seal_act_audit', 'eng_record_letter_template_signature',
-                        'eng_record_letter_seal')
+      and (p.proname in ('eng_seal_act_check', 'eng_seal_act_guard', 'eng_seal_act_audit', 'eng_record_letter_template_signature')
+           or (p.proname = 'eng_record_letter_seal' and p.pronargs = 16))
   loop
     execute format('revoke execute on function %s from public, anon, authenticated', f.sig);
     execute format('grant execute on function %s to service_role', f.sig);

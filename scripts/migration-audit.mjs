@@ -341,7 +341,8 @@ const EXPECTED_TRIGGERS = 98;
  * (the one door a phone approval comes in by).
  * 62 since 0088, by Robert's instruction of 2026-10-24: eng_record_letter_template_signature
  * (the one door a letter template signature comes in by) and the sixteen-argument
- * eng_record_letter_seal, beside 0081's (now refusing) as an overload. */
+ * eng_record_letter_seal, beside 0081's as an overload (0081's is unchanged since
+ * the narrowing of Robert's ruling 3 of 2026-10-24). */
 const EXPECTED_FUNCTIONS = 62;
 
 const out = [];
@@ -1308,36 +1309,32 @@ if (failedAt === null) {
              (${OTHER_SIG}, ${OTHER}, 'signature', 'probe/other-sig.png', '${"9".repeat(64)}', 900, 800, 300, now());
     `);
 
-    /*
-     * 0088, Robert's instruction of 2026-10-24: a letter seals only from a
-     * letter template the engineer has signed. The walk signs the roof
-     * template first, through its one door, and seals from it.
-     */
-    const TEMPLATE_ACT = "00000000-0000-4000-8000-0000000006f1";
-    await db.query(
-      `select eng_record_letter_template_signature('${TEMPLATE_ACT}', '254-RC-001', '1.1', '${"7".repeat(64)}', ${SEALER}, ${SEAL_NOW}, ${SIG}, now())`,
-    );
-    const sealLetter = (act, doc, by, seal, sig, template = TEMPLATE_ACT) => `
+    const sealLetter = (act, doc, by, seal, sig) => `
       select eng_record_letter_seal(
         '${act}', '${doc}', ${SEALED_FILE}, null, 'Probe roof letter', 'probe/letter-${doc.slice(-4)}.pdf',
-        4096, ${HASH}, 'F-29811', ${DET}, ${by}, ${seal}, ${sig}, now(), '${"a".repeat(64)}', ${template ? `'${template}'` : "null"}
+        4096, ${HASH}, 'F-29811', ${DET}, ${by}, ${seal}, ${sig}, now(), '${"a".repeat(64)}'
       );`;
-    /* The fifteenth argument since 0081, operator ruling 2026-10-22: the checksum of the mark at the letter's head. The sixteenth since 0088: the template signature. */
+    /* The fifteenth argument since 0081, operator ruling 2026-10-22: the checksum of the mark at the letter's head. */
+    /*
+     * 0088, narrowed by Robert's ruling 3 of 2026-10-24: a roof letter is
+     * untouched. It seals through 0081's fifteen-argument door below, as it
+     * did; no roof template can be signed; and a roof letter naming a template
+     * through the sixteen-argument door is refused. The three lines it does
+     * reach are walked in a-letter-seals-only-from-a-template-he-signed.
+     */
     rec(
-      "a letter with no template signature is refused (0088)",
-      await refused(sealLetter("00000000-0000-4000-8000-0000000006a6", "00000000-0000-4000-8000-0000000006c6", SEALER, SEAL_NOW, SIG, null)),
+      "a roof letter template cannot be signed (0088 reaches only manufactured home, solar and WPI-8E)",
+      await refused(
+        `select eng_record_letter_template_signature('00000000-0000-4000-8000-0000000006f1', '254-RC-001', '1.1', '${"7".repeat(64)}', ${SEALER}, ${SEAL_NOW}, ${SIG}, now())`,
+      ),
     );
-    rec(
-      "and 0081's fifteen-argument door refuses outright (0088)",
-      await refused(`select eng_record_letter_seal('00000000-0000-4000-8000-0000000006a5', '00000000-0000-4000-8000-0000000006c5', ${SEALED_FILE}, null, 'Probe', 'probe/x.pdf', 4096, ${HASH}, 'F-29811', ${DET}, ${SEALER}, ${SEAL_NOW}, ${SIG}, now(), '${"a".repeat(64)}')`),
-    );
-    const WRONG_TEMPLATE = "00000000-0000-4000-8000-0000000006f2";
+    const MH_TEMPLATE = "00000000-0000-4000-8000-0000000006f2";
     await db.query(
-      `select eng_record_letter_template_signature('${WRONG_TEMPLATE}', '254-FC-001', '1.0', '${"8".repeat(64)}', ${SEALER}, ${SEAL_NOW}, ${SIG}, now())`,
+      `select eng_record_letter_template_signature('${MH_TEMPLATE}', '254-MH-001', '2026-10-24', '${"8".repeat(64)}', ${SEALER}, ${SEAL_NOW}, ${SIG}, now())`,
     );
     rec(
-      "and a letter cannot seal from another protocol's template (0088)",
-      await refused(sealLetter("00000000-0000-4000-8000-0000000006a4", "00000000-0000-4000-8000-0000000006c4", SEALER, SEAL_NOW, SIG, WRONG_TEMPLATE)),
+      "and a roof letter naming a template is refused (0088)",
+      await refused(`select eng_record_letter_seal('00000000-0000-4000-8000-0000000006a5', '00000000-0000-4000-8000-0000000006c5', ${SEALED_FILE}, null, 'Probe', 'probe/x.pdf', 4096, ${HASH}, 'F-29811', ${DET}, ${SEALER}, ${SEAL_NOW}, ${SIG}, now(), '${"a".repeat(64)}', '${MH_TEMPLATE}')`),
     );
 
     /* Control 3: nobody but the engineer who recorded the determination. */

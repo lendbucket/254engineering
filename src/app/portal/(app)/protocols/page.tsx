@@ -215,9 +215,16 @@ export default async function ProtocolsPage({
       <section className="mb-8 border-t-2 border-[var(--ink)] pt-4">
         <h2 className="text-[16px] font-semibold text-[var(--ink)]">Letter templates for your signature</h2>
         <p className="mt-1.5 max-w-[75ch] text-[14px] leading-[1.6] text-[var(--secondary)]">
-          A letter seals only from a template you have signed. Read each one, then sign it with a fresh code. A template
-          changed after you sign needs your signature again.
+          A manufactured home, solar or WPI-8E letter seals only from a template you have signed. Read each one, then sign
+          it with a fresh code. A template changed after you sign needs your signature again. Roof, foundation and permit
+          letters seal as they always have.
         </p>
+        {templateSignatures.length === 0 ? (
+          <EmptyState
+            title="No template is waiting for your signature"
+            body="The manufactured home, solar and WPI-8E letters each get a template here once their drafted wording is adopted. Until then those letters cannot be sealed."
+          />
+        ) : null}
         <ul className="mt-3">
           {templateSignatures.map(({ template, status }) => (
             <li key={template.key} className="border-b border-[var(--row-rule)] py-3">
