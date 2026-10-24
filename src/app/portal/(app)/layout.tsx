@@ -153,7 +153,8 @@ export default async function PortalLayout({ children }: { children: React.React
         which spans the full width, and the rail is white beneath it, starting
         under the bar and its gold rule.
       */}
-      <aside className="fixed bottom-0 left-0 top-[calc(var(--header-height)+3px)] z-20 hidden w-[var(--sidebar-width)] flex-col border-r border-[var(--border)] bg-white lg:flex">
+      {/* Office ready, 2026-10-20: a printout carries the page, never the menu or the header. */}
+      <aside className="fixed bottom-0 left-0 top-[calc(var(--header-height)+3px)] z-20 hidden w-[var(--sidebar-width)] flex-col border-r border-[var(--border)] bg-white lg:flex print:!hidden">
         {/*
           min-h-0 is load bearing. A flex child defaults to min-height:auto,
           which refuses to shrink below its content, so flex-1 alone lets the
@@ -231,7 +232,7 @@ export default async function PortalLayout({ children }: { children: React.React
         </div>
       </aside>
 
-      <div className="flex h-full flex-col lg:block lg:h-auto lg:pl-[var(--sidebar-width)] lg:pt-[calc(var(--header-height)+3px)]">
+      <div className="flex h-full flex-col lg:block lg:h-auto lg:pl-[var(--sidebar-width)] lg:pt-[calc(var(--header-height)+3px)] print:block print:pl-0 print:pt-0">
         {/*
           WHITE ON DESKTOP, NAVY ON A PHONE, AND THAT IS THE DESIGN.
 
@@ -245,7 +246,7 @@ export default async function PortalLayout({ children }: { children: React.React
           it (rules 6 and 7). On a desktop it spans the full width above the
           white rail, so it is fixed there and the column is padded beneath it.
         */}
-        <header className="z-30 shrink-0 border-b-[3px] border-[var(--gold)] bg-[var(--navy)] pt-[env(safe-area-inset-top)] lg:fixed lg:inset-x-0 lg:top-0">
+        <header className="z-30 shrink-0 border-b-[3px] border-[var(--gold)] bg-[var(--navy)] pt-[env(safe-area-inset-top)] lg:fixed lg:inset-x-0 lg:top-0 print:hidden">
           <div className="flex min-h-[var(--header-height)] items-center gap-2 px-3 sm:px-5">
             <Link href="/portal" aria-label="254 Engineering portal" className="block py-2">
               <Wordmark onDark height={26} />

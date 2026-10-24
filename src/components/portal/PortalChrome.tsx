@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import type { NavItem } from "./nav";
 import { Sheet } from "./design/Sheet";
+import { SEARCH_MIN_LENGTH } from "@/lib/search-rules";
 
 /**
  * The interactive parts of the shell: the mobile drawer, the profile menu, the
@@ -178,7 +179,7 @@ export function MobileTabs({ items }: { items: NavItem[] }) {
     <nav
       aria-label="Portal"
       data-portal-tabs
-      className="z-40 shrink-0 border-t border-white/12 bg-[var(--navy)] pb-[env(safe-area-inset-bottom)] lg:hidden"
+      className="z-40 shrink-0 border-t border-white/12 bg-[var(--navy)] pb-[env(safe-area-inset-bottom)] lg:hidden print:!hidden"
     >
       <ul className="flex">
         {items.map((item) => {
@@ -457,6 +458,15 @@ export function CommandPalette({ items }: { items: NavItem[] }) {
   }, [open]);
 
   const matches = items.filter((i) => i.label.toLowerCase().includes(query.trim().toLowerCase()));
+  /*
+   * RECORD SEARCH FROM THE HEADER. Office ready, 2026-10-20: "One global search
+   * over orders, customers, prospects and addresses." /portal/search does it;
+   * this box offers it for whoever's menu carries Search, so it widens nothing
+   * anyone may see. Enter searches once the term is long enough to search.
+   */
+  const term = query.trim();
+  const canSearch = items.some((i) => i.href === "/portal/search");
+  const searchHref = canSearch && term.length >= SEARCH_MIN_LENGTH ? `/portal/search?q=${encodeURIComponent(term)}` : null;
 
   return (
     <>
@@ -492,11 +502,35 @@ export function CommandPalette({ items }: { items: NavItem[] }) {
               ref={inputRef}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Go to..."
-              aria-label="Go to"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && searchHref) {
+                  e.preventDefault();
+                  setOpen(false);
+                  router.push(searchHref);
+                }
+              }}
+              placeholder={canSearch ? "Search records, or go to a screen" : "Go to..."}
+              aria-label={canSearch ? "Search records or go to a screen" : "Go to"}
               className="w-full border-b border-[var(--border)] px-4 py-4 text-[16px] text-[var(--navy)] outline-none"
             />
             <ul className="portal-panel-scroll max-h-[50vh] overflow-y-auto py-1">
+              {searchHref ? (
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOpen(false);
+                      router.push(searchHref);
+                    }}
+                    className="flex min-h-[44px] w-full items-center gap-3 px-4 text-left text-[14px] font-semibold text-[var(--navy)] hover:bg-[var(--canvas)]"
+                  >
+                    <span className="text-[var(--secondary)]">
+                      <Icon name="search" />
+                    </span>
+                    Search records for &ldquo;{term}&rdquo;
+                  </button>
+                </li>
+              ) : null}
               {matches.map((item) => (
                 <li key={item.href}>
                   <button
@@ -514,13 +548,14 @@ export function CommandPalette({ items }: { items: NavItem[] }) {
                   </button>
                 </li>
               ))}
-              {matches.length === 0 ? (
+              {matches.length === 0 && !searchHref ? (
                 <li className="px-4 py-4 text-[14px] text-[var(--secondary)]">Nothing here matches that.</li>
               ) : null}
             </ul>
             <p className="border-t border-[var(--border)] bg-[var(--canvas)] px-4 py-3 text-[12px] leading-[1.5] text-[var(--secondary)]">
-              Navigation only for now. Searching clients and files starts when there are clients and
-              files, in the next phase.
+              {canSearch
+                ? `Type at least ${SEARCH_MIN_LENGTH} characters of a reference, email, phone or address and press Enter to search orders, files, customers and prospects.`
+                : "Type the name of a screen to go to it."}
             </p>
           </div>
         </div>

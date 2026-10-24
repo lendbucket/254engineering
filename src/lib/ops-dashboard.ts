@@ -80,6 +80,14 @@ export type AdminDashboard = {
   /** Every period, so a trend is visible without an export. */
   periods: PeriodTotals[];
   attention: Attention[];
+  /*
+   * WORK DUE NOW. Office ready, 2026-10-20: a home screen per role shows the
+   * work due now, new inquiries, unassigned jobs, follow-ups due, refund
+   * requests and holds. The desk's own tiles, from deskDashboard, so the two
+   * homes count the same way; only for an administrator who works the desk
+   * (crm.use), so a read only viewer is not shown five uncountable tiles.
+   */
+  due: Tile[];
   /** What could not be read on this render. Rendered as "What could not be counted" when not empty. */
   notComputable: string[];
 };
@@ -282,7 +290,7 @@ const sumCents = (rows: { amount_cents?: unknown }[] | null): Cents =>
 async function adminDashboard(actor: Actor): Promise<AdminDashboard> {
   const db = supabaseAdmin();
   if (!db) {
-    return { role: "admin", tiles: [], money: [], period: null, periods: [], attention: [], notComputable: [NO_DATABASE] };
+    return { role: "admin", tiles: [], money: [], period: null, periods: [], attention: [], due: [], notComputable: [NO_DATABASE] };
   }
 
   const now = new Date().toISOString();
@@ -596,7 +604,14 @@ async function adminDashboard(actor: Actor): Promise<AdminDashboard> {
     });
   }
 
-  return { role: "admin", tiles, money, period: thisPeriod, periods, attention, notComputable };
+  let due: Tile[] = [];
+  if (can(actor, "crm.use")) {
+    const desk = await deskDashboard(actor);
+    due = desk.tiles;
+    notComputable.push(...desk.notComputable);
+  }
+
+  return { role: "admin", tiles, money, period: thisPeriod, periods, attention, due, notComputable };
 }
 
 /** Null when the credentials could not be read, which is not "none expiring" (2026-10-12). */
@@ -1101,6 +1116,7 @@ function pruneUnreachableLinks<T extends Dashboard>(actor: Actor | null, dashboa
 
   const next = { ...dashboard } as Dashboard;
   if ("tiles" in next) next.tiles = next.tiles.map(prune);
+  if ("due" in next) next.due = next.due.map(prune);
   if ("attention" in next) next.attention = next.attention.map(prune);
   if ("breakdowns" in next) next.breakdowns = next.breakdowns.map(prune);
   return next as T;
