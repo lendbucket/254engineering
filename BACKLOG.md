@@ -4,6 +4,23 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
+## THE SITTING FOR 0088, A LETTER SEALS ONLY FROM A TEMPLATE HE SIGNED, OPEN, NEEDS ROBERT
+
+`docs/production-sitting-0088-a-letter-seals-only-from-a-template-he-signed.md`.
+Written 2026-10-24 on `feat/letter-adoption`. Development first, then the board.
+Production needs Robert: once applied, the code deployed before it seals no
+letter, roof included, until the new code deploys and the engineer signs the
+roof template on `/portal/protocols`.
+
+## THE SITTING FOR 0086, AN APPROVAL BY PHONE IS ITS OWN KIND, OPEN
+
+`docs/production-sitting-0086-an-approval-by-phone-is-its-own-kind.md`.
+Written 2026-10-24 on `feat/relayed-approval`. Development first, then the board,
+then production; Section 3 records Robert's training on each in force template
+with the facts he gave in his own words, written confirmation pending until he
+attaches the engineer's text. 0087 (the three letters' facts) rides on the same
+chain and has no Section 3.
+
 ## THE SITTING FOR 0085, A LETTER STATES ONLY RECORDED FACTS, OPEN
 
 `docs/production-sitting-0085-a-letter-states-only-recorded-facts.md`. Written

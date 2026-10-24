@@ -3143,6 +3143,28 @@ export const APPLIED = [
       "The chat applies it with apply_migration, development first. The branch merges only after the " +
       "production apply is read back, and a migration on main is never pending.",
   },
+  {
+    file: "0088_a_letter_seals_only_from_a_template_he_signed.sql", appliedBy: "apply_migration",
+    fingerprint: "2fa02bab9a86d346d328a22bbb8ba975",
+    behaviour: "a5b44f6ec14f145f4ddf9dafa8779c6d",
+    production: null,
+    proves: { table: "eng_seal_acts", column: "letter_template_act_id" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0088 on 2026-10-24, with 0087 reproducing its " +
+      "recorded pair first: shape 1328 to 1331 columns (eng_seal_acts' template_key, template_version and " +
+      "letter_template_act_id), behaviour 1243 to 1248 facts. One statement carries drop: the seal act kind " +
+      "check, dropped and re-added widened with letter_template, the 0082 pattern. eng_seal_act_check, " +
+      "eng_seal_act_guard and eng_seal_act_audit are 0082's with the template clauses; " +
+      "eng_record_letter_seal's fifteen-argument version refuses and a sixteenth argument carries the template " +
+      "signature. A CUTOVER GAP: once applied, the code deployed before it seals no letter.",
+    because:
+      "WRITTEN 2026-10-24 ON feat/letter-adoption, AND APPLIED NOWHERE. Robert's instruction of 2026-10-24: the " +
+      "engineer signs each letter template in his portal like a protocol, and a line's letter can seal only from " +
+      "a template he has signed; nothing seals without it. The chat applies it with apply_migration, development " +
+      "first, from docs/production-sitting-0088-a-letter-seals-only-from-a-template-he-signed.md. Its production " +
+      "apply needs Robert: it stops roof letter sealing until the new code deploys and the engineer signs the " +
+      "roof template. A migration on main is never pending.",
+  },
 ];
 
 /*
