@@ -4,7 +4,14 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
-## THE INSTRUMENTATION HOOK REACHES node:crypto IN THE EDGE BUNDLE, OPEN, THIS WEEK
+## FIXED: THE INSTRUMENTATION HOOK REACHED node:crypto IN THE EDGE BUNDLE
+
+Fixed 2026-10-24 on this branch: `onRequestError` loads `ops-observability`
+only inside `if (process.env.NEXT_RUNTIME === "nodejs")`. Proof
+`scripts/proofs/the-instrumentation-loads-node-code-only-in-node.mjs` follows
+every import loaded in every runtime through its static imports and refuses a
+node built-in or a server-only module; removing the guard turns three checks
+red. The entry as it was written follows.
 
 `src/instrumentation.ts`, on its own branch `fix/instrumentation-nodejs-runtime`.
 Ruled intermittent by Robert on 2026-10-23. Main's board `40035266531` on
