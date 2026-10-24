@@ -1,5 +1,17 @@
 # Day queue, 2026-10-23
 
+## Robert's rulings of 2026-10-24, 11:24 Central ("1-5 yes"), worked in order
+
+`35ba295` is READY on production as `dpl_2pweYKT4eEgUXwNbdxyTuimbPKQn` (the chat's Vercel read).
+
+| # | Item | State |
+| --- | --- | --- |
+| 1 | Instrumentation fix (`fix/instrumentation-nodejs-runtime`, `48c6774` on main `35ba295` as **`d9aa627`**) | **Prediction, stated before pushing: 61 of 61, zero FAIL, no COULD NOT TELL.** Readers on `d9aa627`: every static shard audit green (map-markup and registry crash here, as on main), compliance and soc2 green (the NEXT_RUNTIME miss is closed), the instrumentation proof green; tsc clean. Boards alone; merges on a match. |
+| 2 | Gate counts portal-signed protocols, then foundation and permit at $709 | Next, after 1. |
+| 3 | Piece 2 wording, then piece 2 with 3a and 3b | After 2. |
+| 4 | 0088 narrowed to the three drafted lines | After 3. Commit, SHA-256 on issue #1, stop. |
+| 5 | Board sign-in key by environment variable | Last, alone. |
+
 ## MORNING REPORT, 2026-10-24 (final, written 11:40 UTC, 06:40 Central)
 
 **Merged to main overnight, each with `[skip ci]`, the exact push command and `ls-remote`:**
