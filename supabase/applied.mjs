@@ -3104,6 +3104,27 @@ export const APPLIED = [
       "docs/production-sitting-0085-a-letter-states-only-recorded-facts.md. The branch merges only after the " +
       "production apply is read back, and a migration on main is never pending.",
   },
+  {
+    file: "0086_an_approval_by_phone_is_its_own_kind.sql", appliedBy: "apply_migration",
+    fingerprint: "6a355ef867ca1021391067a84f44f34b",
+    behaviour: "faa068eaef15179f26a3054685a888ba",
+    production: null,
+    proves: { table: "eng_training_confirmations" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0086 on 2026-10-24, with 0085 reproducing its " +
+      "recorded pair first: shape 1317 to 1328 columns (eng_training_decisions' channel, " +
+      "approved_by_engineer, relayed_by and approved_at; eng_training_confirmations' seven), behaviour 1227 to " +
+      "1242 facts. No drop statement. Additive: the channel defaults to portal, so every existing decision and " +
+      "every one the deployed code writes stays a portal decision.",
+    because:
+      "WRITTEN 2026-10-24 ON feat/relayed-approval, AND APPLIED NOWHERE. Operator ruling of 2026-10-23 21:56 CT: " +
+      "the engineer of record approved the owner as field technician on every line whose protocol he has signed, " +
+      "by phone, relayed by the owner; recorded as its own kind, never as an approval from his session, with a " +
+      "place for his written confirmation, and counted as approved by eng_line_is_trained. The chat applies it " +
+      "with apply_migration, development first, from " +
+      "docs/production-sitting-0086-an-approval-by-phone-is-its-own-kind.md. The branch merges only after the " +
+      "production apply is read back, and a migration on main is never pending.",
+  },
 ];
 
 /*
