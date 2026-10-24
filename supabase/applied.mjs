@@ -3130,6 +3130,23 @@ export const APPLIED = [
     fingerprint: "6a355ef867ca1021391067a84f44f34b",
     behaviour: "5741f43639f3d62e58e82f7c3af38675",
     production: null,
+    development: {
+      at: "0087",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-24",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-24 by the operator's chat counterpart through apply_migration, provider " +
+        "version 20261024074647, name 0087_the_three_letters_facts_are_records, with no writers shard running. The " +
+        "file was read in full at 66323ee, sha256 25e40a819d4eb7eb88516d9331d4a0324554aa6c10fe23f36303708948a4bd21; " +
+        "the statement stored in supabase_migrations reads back as sha256 " +
+        "debe61e24df8a96531ec4423806f095f4006d905249203bf8f615e4f21c75726, the file without its trailing newline. " +
+        "Before: shape 6a355ef867ca1021391067a84f44f34b across 1328; eng_letter_facts 0 rows; the fact check held " +
+        "0085's four. After: shape unchanged, as predicted; eng_letter_facts_fact_check names 41 facts, " +
+        "eng_letter_facts_capacity_ck covers the same 41, eng_letter_facts_values_ck present. Every answer as " +
+        "predicted.",
+    },
     proves: { table: "eng_letter_facts" },
     note:
       "Both figures read off scripts/fingerprint-at.mjs at 0087 on 2026-10-24, with 0086 reproducing its " +
