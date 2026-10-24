@@ -1,5 +1,15 @@
 # Day queue, 2026-10-23
 
+## Evening, 2026-10-24 (the chat's order of 17:59 Central), one board at a time
+
+| Step | State |
+| --- | --- |
+| Ruling 2 with item 1 | **MERGED.** Board `40121946113` on `a6bf61d`: 61 of 61, zero FAIL, as predicted; `a-stalled-database-is-said-not-hidden` passed. Main `1a30178` (parents `35ba295`, `a6bf61d`, tree identical to the boarded commit), `[skip ci]`, exact push, ls-remote confirmed. The merge message names the four proof checks for the three conditions. Posted on issue #1 for the chat to verify /order live. |
+| Sign-in key (`fix/ci-board-sign-in-key` at **`0896a28`**, main `1a30178` merged) | **Prediction, stated before pushing: 61 of 61, zero FAIL, no COULD NOT TELL.** BACKLOG.md conflicted: both entries kept, and the sign-in entry's lead now states the BOARD_RUN_ID design. Readers on `0896a28`: soc2 63, backlog 12, the sign-in bucket proof, the instrumentation proof, all green; range dash check 0 long dashes in 184 added lines. The browser sign-in half is mobile-overflow-audit, a writer, measured only in the cloud. |
+| 0088 branch | waits for the sign-in key |
+| Piece 2 with 3a, 3b | waits |
+| List branch | waits |
+
 ## Robert's rulings of 2026-10-24, 11:24 Central ("1-5 yes"), worked in order
 
 `35ba295` is READY on production as `dpl_2pweYKT4eEgUXwNbdxyTuimbPKQn` (the chat's Vercel read).
