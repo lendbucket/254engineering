@@ -1427,9 +1427,11 @@ export function registrationLine(): string {
   // no engineer was active, "No engineer of record is yet in responsible
   // charge", came out on the operator's ruling of 2026-10-21 (the 2026-09-17
   // rule); a registration alone still does not let a firm seal anything, so
-  // that half stays.
+  // that half stays. Robert's ruling 3 of 2026-10-24 puts "The firm is not yet
+  // accepting engagements." in the old sentence's place, read from the one
+  // function that says it, so every prelaunch page carries it.
   if (registration && !pe) {
-    return `${registration.issuedTo}, TBPELS Firm ${registration.number}. No work is being sealed.`;
+    return `${registration.issuedTo}, TBPELS Firm ${registration.number}. ${notYetAcceptingEngagements()} No work is being sealed.`;
   }
   return "Firm registration pending with the Texas Board of Professional Engineers and Land Surveyors.";
 }
