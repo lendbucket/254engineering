@@ -261,8 +261,15 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * 6a355ef867ca1021391067a84f44f34b, read off fingerprint-at.mjs with 0085
  * reproducing its recorded pair first.
  */
-const EXPECTED_FINGERPRINT = "6a355ef867ca1021391067a84f44f34b";
-const EXPECTED_COLUMNS = 1328;
+/*
+ * Moved 2026-10-24 by 0088, a letter seals only from a template he signed, by
+ * Robert's instruction that day: 1,328 to 1,331 is eng_seal_acts' template_key,
+ * template_version and letter_template_act_id; no table; shape
+ * 2fa02bab9a86d346d328a22bbb8ba975, read off fingerprint-at.mjs with 0087
+ * reproducing its recorded pair first (0087 moves no column).
+ */
+const EXPECTED_FINGERPRINT = "2fa02bab9a86d346d328a22bbb8ba975";
+const EXPECTED_COLUMNS = 1331;
 const EXPECTED_TABLES = 99;
 /* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts.
  * 0074 adds two: eng_partner_billing_touch and eng_partner_billing_events_immutable.
@@ -331,8 +338,11 @@ const EXPECTED_TRIGGERS = 98;
  * 60 since 0086, by operator ruling of 2026-10-23: eng_relayed_decision_check and
  * eng_confirmation_check (the triggers holding a relayed approval and its written
  * confirmation to who may stand in each place) and eng_record_relayed_training_approval
- * (the one door a phone approval comes in by). */
-const EXPECTED_FUNCTIONS = 60;
+ * (the one door a phone approval comes in by).
+ * 62 since 0088, by Robert's instruction of 2026-10-24: eng_record_letter_template_signature
+ * (the one door a letter template signature comes in by) and the sixteen-argument
+ * eng_record_letter_seal, beside 0081's (now refusing) as an overload. */
+const EXPECTED_FUNCTIONS = 62;
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
@@ -1298,12 +1308,37 @@ if (failedAt === null) {
              (${OTHER_SIG}, ${OTHER}, 'signature', 'probe/other-sig.png', '${"9".repeat(64)}', 900, 800, 300, now());
     `);
 
-    const sealLetter = (act, doc, by, seal, sig) => `
+    /*
+     * 0088, Robert's instruction of 2026-10-24: a letter seals only from a
+     * letter template the engineer has signed. The walk signs the roof
+     * template first, through its one door, and seals from it.
+     */
+    const TEMPLATE_ACT = "00000000-0000-4000-8000-0000000006f1";
+    await db.query(
+      `select eng_record_letter_template_signature('${TEMPLATE_ACT}', '254-RC-001', '1.1', '${"7".repeat(64)}', ${SEALER}, ${SEAL_NOW}, ${SIG}, now())`,
+    );
+    const sealLetter = (act, doc, by, seal, sig, template = TEMPLATE_ACT) => `
       select eng_record_letter_seal(
         '${act}', '${doc}', ${SEALED_FILE}, null, 'Probe roof letter', 'probe/letter-${doc.slice(-4)}.pdf',
-        4096, ${HASH}, 'F-29811', ${DET}, ${by}, ${seal}, ${sig}, now(), '${"a".repeat(64)}'
+        4096, ${HASH}, 'F-29811', ${DET}, ${by}, ${seal}, ${sig}, now(), '${"a".repeat(64)}', ${template ? `'${template}'` : "null"}
       );`;
-    /* The fifteenth argument since 0081, operator ruling 2026-10-22: the checksum of the mark at the letter's head. */
+    /* The fifteenth argument since 0081, operator ruling 2026-10-22: the checksum of the mark at the letter's head. The sixteenth since 0088: the template signature. */
+    rec(
+      "a letter with no template signature is refused (0088)",
+      await refused(sealLetter("00000000-0000-4000-8000-0000000006a6", "00000000-0000-4000-8000-0000000006c6", SEALER, SEAL_NOW, SIG, null)),
+    );
+    rec(
+      "and 0081's fifteen-argument door refuses outright (0088)",
+      await refused(`select eng_record_letter_seal('00000000-0000-4000-8000-0000000006a5', '00000000-0000-4000-8000-0000000006c5', ${SEALED_FILE}, null, 'Probe', 'probe/x.pdf', 4096, ${HASH}, 'F-29811', ${DET}, ${SEALER}, ${SEAL_NOW}, ${SIG}, now(), '${"a".repeat(64)}')`),
+    );
+    const WRONG_TEMPLATE = "00000000-0000-4000-8000-0000000006f2";
+    await db.query(
+      `select eng_record_letter_template_signature('${WRONG_TEMPLATE}', '254-FC-001', '1.0', '${"8".repeat(64)}', ${SEALER}, ${SEAL_NOW}, ${SIG}, now())`,
+    );
+    rec(
+      "and a letter cannot seal from another protocol's template (0088)",
+      await refused(sealLetter("00000000-0000-4000-8000-0000000006a4", "00000000-0000-4000-8000-0000000006c4", SEALER, SEAL_NOW, SIG, WRONG_TEMPLATE)),
+    );
 
     /* Control 3: nobody but the engineer who recorded the determination. */
     rec(
