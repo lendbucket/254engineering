@@ -2863,7 +2863,28 @@ export const APPLIED = [
     file: "0082_a_scope_addendum_is_signed_before_design_is_paid.sql", appliedBy: "apply_migration",
     fingerprint: "a258e26388bae4c58539ea5325416d62",
     behaviour: "6600b007ede30ef5f65e22ab5c017988",
-    production: null,
+    /*
+     * APPLIED TO PRODUCTION 2026-10-24, 00:47:47 UTC, provider version
+     * 20261024004747, name 0082_a_scope_addendum_is_signed_before_design_is_paid,
+     * by the operator's chat counterpart through apply_migration, from
+     * docs/production-sitting-0082-scope-addendum.md, Sections 0 to 2 only, after
+     * the branch's cloud board (40036078087) matched its prediction, 61 of 61, on
+     * 469dbf9. The file applied is sha256
+     * 03355c41011ee76966b0ee764497bfd444662005464f00be1514938d1ae08a6c, the one
+     * development holds; the stored statement reads back as sha256
+     * c6a82aaa41ca784541df19625f94e868c6bd94aeebbd47b8081cf1e25c7d1cd7, identical
+     * to development. No job record was written, on Robert's ruling.
+     *
+     * Section 0: shape d73cdd49ae5da6268743584229cb3b88 across 1265; the kind
+     * check letter and protocol; eng_scope_addenda absent; eng_seal_act_audit's
+     * body the one 0082 was written against (md5 04fd88a1...). Section 2: shape
+     * a258e26388bae4c58539ea5325416d62 across 1278; the kind check now with
+     * addendum; eng_scope_addenda 0 rows; eng_design_pay(uuid),
+     * eng_record_addendum_signature(uuid,uuid,text,uuid,uuid,uuid,timestamp with
+     * time zone) and eng_scope_addendum_text() present; eng_seal_acts still 8
+     * rows. Every answer as predicted. Merged onto main as dfa0a0e.
+     */
+    production: "2026-10-24",
     development: {
       at: "0082",
       behaviour: null,
@@ -2892,7 +2913,7 @@ export const APPLIED = [
       "eng_seal_acts.addendum_id), behaviour 1159 to 1177 facts. One statement carries drop: the seal act " +
       "kind check, dropped and re-added widened with addendum in the same alter table.",
     because:
-      "WRITTEN 2026-10-22 ON feat/design-addendum; ON DEVELOPMENT (version 20261023022247), NOT ON PRODUCTION. Operator rulings " +
+      "WRITTEN 2026-10-22 ON feat/design-addendum; ON DEVELOPMENT (version 20261023022247) AND ON PRODUCTION (version 20261024004747). Operator rulings " +
       "of 2026-10-22: custom design pays the engineer 35% of the fee under a scope addendum he signs in the " +
       "portal, as a seal act exactly like a protocol signature, and nothing without it. It goes to production " +
       "as built with no job record written beside it (Robert, 2026-10-23); development holds invented data " +
