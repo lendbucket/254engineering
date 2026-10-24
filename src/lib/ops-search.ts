@@ -21,7 +21,7 @@ import { listFiles, type FileRow } from "./ops-crm";
  * when there are more rather than presenting a page as the whole.
  */
 /* The minimum lives in search-rules.ts, so the header's search box reads the same number. */
-import { SEARCH_MIN_LENGTH } from "./search-rules";
+import { SEARCH_MIN_LENGTH, cleanSearchTerm } from "./search-rules";
 export { SEARCH_MIN_LENGTH };
 export const SEARCH_LIMIT = 50;
 
@@ -56,15 +56,10 @@ export type SearchResult =
 export type ClientHit = { id: string; name: string; email: string | null; phone: string | null; city: string | null };
 export type ProspectHit = { id: string; company: string; contact_name: string | null; phone: string | null; email: string | null; city: string | null; status: string };
 
-/** The term as a pattern can carry it: the characters PostgREST's or() treats as syntax removed. */
-function clean(raw: string): string {
-  return raw.replace(/[%,()*\\]/g, " ").replace(/\s+/g, " ").trim();
-}
-
 export async function searchRecords(actor: Actor | null, raw: string): Promise<SearchResult> {
   /* files.list, the permission the Files screen itself checks. */
   if (!can(actor, "files.list")) return { ok: false, reason: "Searching records needs access to files." };
-  const term = clean(raw ?? "");
+  const term = cleanSearchTerm(raw ?? "");
   if (term.length < SEARCH_MIN_LENGTH) {
     return { ok: false, reason: `Type at least ${SEARCH_MIN_LENGTH} characters of a reference, email, phone or address.` };
   }

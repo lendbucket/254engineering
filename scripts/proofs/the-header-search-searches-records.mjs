@@ -23,8 +23,10 @@ check("only for whoever's menu carries Search, so it widens nothing", /const can
 check("Enter runs the search", /e\.key === "Enter" && searchHref/.test(chrome));
 check(
   "the box and the server read one minimum, from the client safe rule",
-  /import \{ SEARCH_MIN_LENGTH \} from "@\/lib\/search-rules";/.test(chrome) && /import \{ SEARCH_MIN_LENGTH \} from "\.\/search-rules";/.test(search) && !/export const SEARCH_MIN_LENGTH/.test(search),
+  /import \{ SEARCH_MIN_LENGTH \} from "@\/lib\/search-rules";/.test(chrome) && /import \{ SEARCH_MIN_LENGTH, cleanSearchTerm \} from "\.\/search-rules";/.test(search) && !/export const SEARCH_MIN_LENGTH/.test(search),
 );
+/* 2026-10-24: the term's cleaning moved to search-rules too, so every list's search box cleans it the same way. */
+check("and the server cleans a term with the shared rule, keeping no copy of its own", /cleanSearchTerm\(raw \?\? ""\)/.test(search) && !/function clean\(/.test(search));
 check("and the box no longer says record search has not arrived", !/Navigation only for now/.test(chrome));
 
 console.log("");

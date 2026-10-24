@@ -1,6 +1,7 @@
 import "server-only";
 import { DB_NOW } from "./db-now";
 import { supabaseAdmin } from "./supabase";
+import { clientSearchOr, type ClientListQuery } from "./client-list";
 import { writeAudit, diffOf, safeDiff } from "./ops-audit";
 import { canSeeFile, redactFile, visibleFiles, type Actor, actionsFor } from "./ops-authz";
 import {
@@ -174,18 +175,33 @@ export const CLIENT_PAGE_SIZE = 100;
  */
 export async function listClients(
   actor: Actor | null,
-  options: { limit?: number } = {},
+  options: { limit?: number; offset?: number; query?: ClientListQuery } = {},
 ): Promise<ClientRow[]> {
   const db = supabaseAdmin();
   if (!db || !actor) return [];
-  const { data } = await db
+  /*
+   * Office ready, 2026-10-24: the list screen passes a query, searched, filtered
+   * and sorted in the database, and paged by offset. The picker passes none and
+   * reads exactly what it always read.
+   */
+  const q = options.query;
+  const limit = options.limit ?? 500;
+  const offset = options.offset ?? 0;
+  let read = db
     .from("eng_clients")
     .select(
       "id, kind, name, client_type, status, email, phone, city, county, source_site, utm_source, converted_from_lead_id, created_at, notes",
     )
-    .or("is_demo.is.null,is_demo.eq.false")
-    .order("created_at", { ascending: false })
-    .limit(options.limit ?? 500);
+    /* Null or false, as is_demo.is.null,is_demo.eq.false said, written so the search can be the one or(). */
+    .not("is_demo", "is", true);
+  const search = q ? clientSearchOr(q.term) : null;
+  if (search) read = read.or(search);
+  if (q && q.kind !== "all") read = read.eq("kind", q.kind);
+  const { data } = await read
+    .order(q?.sort === "name" ? "name" : "created_at", { ascending: q ? q.ascending : false })
+    /* A tie broken by id, so a page boundary never shows a client twice or not at all. */
+    .order("id", { ascending: true })
+    .range(offset, offset + limit - 1);
   return (data ?? []) as ClientRow[];
 }
 
@@ -205,13 +221,18 @@ export async function listClients(
  * saying "showing 100 of 260" that can never reach 260, and the reader
  * concludes the screen is broken.
  */
-export async function countClients(actor: Actor | null): Promise<number | null> {
+export async function countClients(actor: Actor | null, query?: ClientListQuery): Promise<number | null> {
   const db = supabaseAdmin();
   if (!db || !actor) return null;
-  const { count, error } = await db
+  /* The same filter and the same search as the list, so "12 of 40 matching" can reach 40. */
+  let read = db
     .from("eng_clients")
     .select("id", { count: "exact", head: true })
-    .or("is_demo.is.null,is_demo.eq.false");
+    .not("is_demo", "is", true);
+  const search = query ? clientSearchOr(query.term) : null;
+  if (search) read = read.or(search);
+  if (query && query.kind !== "all") read = read.eq("kind", query.kind);
+  const { count, error } = await read;
   /*
    * NULL ON ERROR, NEVER ZERO. Absent and none are different facts, and the
    * screen renders them differently: a count it could not read says so, and a
