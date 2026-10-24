@@ -143,6 +143,96 @@ check("a line with no protocol at all is not counted", lineHasProtocolInForce("c
 check("the gate's training condition still reads only roof's register, unchanged", JSON.stringify(linesWithNobodyTrained()) === "[]" && /const protocol = registeredProtocolFor\(slug\);/.test(readFileSync("src/lib/launch.ts", "utf8")));
 check("every request the doors made was one this proof answers", unknown.length === 0, unknown.join(" "));
 
+/*
+ * ROBERT'S THREE CONDITIONS OF 2026-10-24, WITH THE GATE GENUINELY OPEN. For an
+ * unsigned line: it is not offered on /order; its money door refuses before any
+ * order or payment is created; roof stays orderable at $709 throughout. Run in a
+ * child process with every gate condition met (the gate fixture), against the
+ * same played database, recording every write and every Stripe request.
+ */
+const { inOpenGateProcess } = await import("../lib/gate-fixture.mjs");
+const child = await inOpenGateProcess(`
+  process.env.SUPABASE_URL = "http://gate-proof.supabase.invalid";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "gate-proof-not-a-key";
+  delete process.env.VERCEL_ENV;
+  const state = { signed: {}, trained: {} };
+  const writes = [];
+  const stripe = [];
+  const { transcriptionSha256 } = await import("./src/lib/protocol-sign.ts");
+  const { protocolForLine } = await import("./src/content/protocols/index.ts");
+  const { verifiedEngineers } = await import("./src/config/credentials.ts");
+  const rc = protocolForLine("roof-inspections");
+  const rcRow = {
+    version_label: rc.declaration.version, status: "published", approved_by: "engineer",
+    approved_by_license: verifiedEngineers[0] ? verifiedEngineers[0].licenseNumber : null,
+    document_sha256: rc.versions.find((v) => v.supersededOn === null).sha256,
+  };
+  const json = (b, status = 200) => new Response(JSON.stringify(b), { status, headers: { "content-type": "application/json" } });
+  const param = (url, key) => (url.searchParams.get(key) || "").replace("eq.", "");
+  globalThis.fetch = async (input, init = {}) => {
+    const url = new URL(typeof input === "string" ? input : input.url);
+    const method = (init.method || "GET").toUpperCase();
+    if (url.hostname.includes("stripe")) { stripe.push(method + " " + url.pathname); return json({}, 500); }
+    const table = url.pathname.replace("/rest/v1/", "");
+    if (table === "rpc/eng_line_is_trained") return json(state.trained[JSON.parse(init.body || "{}").p_service_slug] === true);
+    if (method !== "GET" && method !== "HEAD") { writes.push(method + " " + table); return json([], 201); }
+    if (table === "eng_seal_acts") {
+      const sha = state.signed[param(url, "protocol_document") + " " + param(url, "protocol_version")];
+      return json(sha ? [{ created_at: "2026-10-20T15:00:00Z", content_sha256: sha }] : []);
+    }
+    if (table === "eng_protocol_templates") {
+      const doc = param(url, "document_number");
+      return json(doc === "254-RC-001" ? [rcRow] : [{ id: "template-" + doc }]);
+    }
+    return json([]);
+  };
+  const { isOpen } = await import("./src/lib/launch.ts");
+  const { sellableLineOffers } = await import("./src/lib/line-gate.ts");
+  const { placeOrder } = await import("./src/lib/ops-intake.ts");
+  const pick = (offers) => offers.filter((o) => ["roof-inspections", "foundation-inspections", "structural-letters"].includes(o.slug))
+    .map((o) => ({ slug: o.slug, orderable: o.orderable, href: o.href, price: o.price }));
+  const unsigned = pick(await sellableLineOffers());
+  const refused = await placeOrder({
+    site: "254engineering", clientRequestId: "gate-proof-unsigned-1", serviceSlug: "foundation-inspections",
+    customer: { name: "Gate proof, not a real person", email: "gate-proof@audit-probe.invalid", phone: "3615550100" },
+    property: { address: "1 Proof Way", city: "Corpus Christi", county: "Nueces" }, answers: [],
+  });
+  const writesAfterRefusal = [...writes];
+  state.signed = {
+    "254-FC-001 1.0": transcriptionSha256("254-FC-001", "1.0"),
+    "254-PL-001 1.1": transcriptionSha256("254-PL-001", "1.1"),
+  };
+  state.trained = { "foundation-inspections": true, "structural-letters": true };
+  const signed = pick(await sellableLineOffers());
+  answer({ open: isOpen(), unsigned, signed, refused, writesAfterRefusal, stripe });
+`);
+const by = (rows, slug) => rows.find((o) => o.slug === slug) ?? {};
+check("the open-gate child really has the gate open, so the rows below are not the shut gate's quote rows", child.open === true);
+check(
+  "/order: an unsigned foundation line is not offered, a quote with no price and no checkout link",
+  by(child.unsigned, FC).orderable === false && by(child.unsigned, FC).price === null && !String(by(child.unsigned, FC).href).startsWith("/order/start/"),
+  JSON.stringify(by(child.unsigned, FC)),
+);
+check("/order: nor is an unsigned permit line", by(child.unsigned, PL).orderable === false && by(child.unsigned, PL).price === null, JSON.stringify(by(child.unsigned, PL)));
+check(
+  "/order: roof is offered at $709 while they are unsigned",
+  by(child.unsigned, ROOF).orderable === true && by(child.unsigned, ROOF).price === "$709" && by(child.unsigned, ROOF).href === "/order/start/roof-inspections",
+  JSON.stringify(by(child.unsigned, ROOF)),
+);
+check(
+  "an order for the unsigned line is refused at its money door",
+  child.refused?.ok === false && child.refused?.field === "serviceSlug",
+  JSON.stringify(child.refused),
+);
+check("and before it, nothing was written and no payment was asked of Stripe", child.writesAfterRefusal.length === 0 && child.stripe.length === 0, `${child.writesAfterRefusal.join(", ")} | ${child.stripe.join(", ")}`);
+check(
+  "once signed and trained, both are offered at $709, and roof still is",
+  [FC, PL, ROOF].every((s) => by(child.signed, s).orderable === true && by(child.signed, s).price === "$709"),
+  JSON.stringify(child.signed),
+);
+const orderPage = readFileSync("src/app/(site)/order/page.tsx", "utf8");
+check("/order reads its rows from sellableLineOffers and renders per request", /const offers = await sellableLineOffers\(\);/.test(orderPage) && /export const dynamic = "force-dynamic";/.test(orderPage));
+
 console.log("");
 if (wrong === 0) {
   console.log("PASS: the gate counts a portal-signed protocol, each line sells only on its own signature and training, and roof sells throughout.");
