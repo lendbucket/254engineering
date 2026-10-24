@@ -71,6 +71,10 @@ export default async function ReviewPage({
   const trainingWaiting = await trainingAwaitingEngineer();
   const awaitingTriage = await filesAwaitingTriage();
   const selectedAwaiting = selected ? awaiting.filter((l) => l.fileId === selected.file.id) : [];
+  const sealable =
+    selectedAwaiting.find((l) => l.protocolDocument !== "254-RC-001") ??
+    selectedAwaiting.find((l) => l.protocolDocument === "254-RC-001" && l.determination === "pass") ??
+    null;
 
   /*
    * RULING 7 OF 2026-10-23: WHAT THE FOUNDATION OR PERMIT LETTER WILL PRINT
@@ -655,11 +659,18 @@ export default async function ReviewPage({
                     second determination on a file that already has one, and
                     decideReview refuses that anyway.
                   */}
-                  {selectedAwaiting.find((l) => l.determination === "pass") ? (
+                  {/*
+                    THE ROOF SHOWS ITS PASS ONLY, AS IT ALWAYS HAS. A foundation
+                    or permit file shows whichever of its determinations produces
+                    a letter (ruling 7 of 2026-10-23): his foundation decline is a
+                    sealed option C letter, and his permit repairs letter option C.
+                  */}
+                  {sealable ? (
                     <LetterSealPanel
-                      determinationId={selectedAwaiting.find((l) => l.determination === "pass")!.determinationId}
-                      determination="pass"
+                      determinationId={sealable.determinationId}
+                      determination={sealable.determination}
                       fileNumber={selected.file.file_number}
+                      protocol={sealable.protocolDocument}
                     />
                   ) : (
                   <DecisionPanel

@@ -15,7 +15,11 @@ import { isPrelaunch, registrationLine, firmName, activeFirmRegistration } from 
 import { verifiedEngineers } from "@/config/credentials";
 import { business } from "@/config/business";
 import { protocolByDocument } from "@/content/protocols";
-import { draftRoofLetter, letterDate, producesLetter, type LetterFacts, type LetterDraft } from "./letter-draft";
+import { draftRoofLetter, letterDate, producesLetter, type DraftLine, type LetterFacts, type LetterDraft } from "./letter-draft";
+import { draftFoundationLetter, draftPermitLetter, producesFoundationLetter } from "./letter-draft-fc-pl";
+import { methodFor } from "@/content/letters/foundation-certification";
+import { STRUCTURED_DECLARATIONS } from "@/content/protocols/structured";
+import { recordedFactsFor, triageFor } from "./letter-facts";
 import { renderLetterPdf } from "./letter-pdf";
 import { LETTERHEAD_MARK } from "@/content/letters/letterhead-mark";
 
@@ -59,6 +63,8 @@ export type SealInput = {
   code: string;
   recipientAddress: string;
   recipientSalutation: string;
+  /* The foundation letter's "Observed condition:", in his words, typed at sealing (template 4). */
+  observedCondition?: string;
   context?: { ip?: string | null; userAgent?: string | null };
 };
 
@@ -73,6 +79,11 @@ type DeterminationRow = {
   determination: string;
   engineer_id: string;
   decided_at: string;
+  /* 0083: a permit letter's option and schedule. */
+  letter_option: "A" | "B" | "C" | null;
+  letter_conditions: string[] | null;
+  /* 0051: the evidence he relied on, which is a desk job's documents schedule (PL-5). */
+  relied_on_evidence_ids: string[] | null;
 };
 
 async function determination(id: string): Promise<DeterminationRow | null> {
@@ -80,11 +91,14 @@ async function determination(id: string): Promise<DeterminationRow | null> {
   if (!db) return null;
   const { data } = await db
     .from("eng_determinations")
-    .select("id, file_id, protocol_document, determination, engineer_id, decided_at")
+    .select("id, file_id, protocol_document, determination, engineer_id, decided_at, letter_option, letter_conditions, relied_on_evidence_ids")
     .eq("id", id)
     .maybeSingle();
   return (data as DeterminationRow | null) ?? null;
 }
+
+/** The three protocols whose letters are built: roof, and since ruling 7 of 2026-10-23, foundation and permit. */
+export const SEALABLE_PROTOCOLS = ["254-RC-001", "254-FC-001", "254-PL-001"] as const;
 
 /**
  * Every fact the letter reads from the file, by the sources template 1 section
@@ -158,11 +172,156 @@ export async function letterFactsFor(
   return { ok: true, facts, title: `Roof certification, ${file.property_address}, file ${file.file_number}` };
 }
 
+/**
+ * THE FILE'S COMMON FACTS FOR THE FOUNDATION AND PERMIT LETTERS: the file, the
+ * client's name (the requestor), the captures and the items not observed,
+ * labelled from the structured declaration he signed.
+ */
+async function fileFactsFor(det: DeterminationRow) {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false as const, error: "The database is not configured." };
+  const declaration = STRUCTURED_DECLARATIONS.find((d) => d.documentNumber === det.protocol_document);
+  if (!declaration) return { ok: false as const, error: `${det.protocol_document} has no signed declaration in this platform.` };
+  const { data: file, error: fileError } = await db
+    .from("eng_files")
+    .select("id, file_number, property_address, county, client_id")
+    .eq("id", det.file_id)
+    .maybeSingle();
+  if (fileError || !file) return { ok: false as const, error: "The file this determination belongs to could not be read." };
+  const { data: client } = await db.from("eng_clients").select("name").eq("id", file.client_id as string).maybeSingle();
+  const { data: evidence, error: evidenceError } = await db
+    .from("eng_evidence_items")
+    .select("id, item_key, captured_at")
+    .eq("file_id", det.file_id);
+  if (evidenceError) return { ok: false as const, error: `The evidence could not be read: ${evidenceError.message}` };
+  const captured = (evidence ?? []).map((e) => e.captured_at as string | null).filter((t): t is string => Boolean(t)).sort();
+  const { data: exceptions, error: exceptionError } = await db
+    .from("eng_checklist_exceptions")
+    .select("item_key, reason")
+    .eq("file_id", det.file_id)
+    .eq("kind", "not_observed");
+  if (exceptionError) return { ok: false as const, error: `The items not observed could not be read: ${exceptionError.message}` };
+  const checklist = declaration.checklist as readonly { key: string; label: string }[];
+  const labelFor = (key: string) => checklist.find((i) => i.key === key)?.label ?? key;
+  return {
+    ok: true as const,
+    declaration,
+    file,
+    requestor: (client?.name as string | undefined) ?? null,
+    evidence: evidence ?? [],
+    visitDate: captured.length ? letterDate(captured[0]) : null,
+    notObserved: (exceptions ?? []).map((x) => `${labelFor(x.item_key as string)} (${(x.reason as string).trim()})`),
+    labelFor,
+  };
+}
+
+/** Template 4, ruling FC-1 to FC-4: the facts from the file, the type as he confirmed it, his observation as typed. */
+async function foundationDraft(
+  det: DeterminationRow,
+  entered: { recipientAddress: string; recipientSalutation: string; observedCondition: string },
+): Promise<{ ok: true; lines: DraftLine[]; title: string } | { ok: false; error: string }> {
+  const base = await fileFactsFor(det);
+  if (!base.ok) return base;
+  const answers = await answersFor(det.file_id);
+  const recorded = await recordedFactsFor(det.file_id);
+  if (!recorded) return { ok: false, error: "The letter's recorded facts could not be read, so nothing was drafted." };
+  /* FC-3: the type that prints is the one he confirmed at review, never the customer's answer alone. */
+  const confirmed = recorded.foundation_type?.value ?? null;
+  const draft = draftFoundationLetter(
+    det.determination,
+    {
+      determination_date: letterDate(det.decided_at),
+      recipient_name: answers.addressed_to ?? null,
+      recipient_address: entered.recipientAddress,
+      recipient_salutation: entered.recipientSalutation,
+      property_address: base.file.property_address as string,
+      county: base.file.county as string,
+      file_number: base.file.file_number as string,
+      purpose_verbatim: answers.reason ?? null,
+      requestor_name: base.requestor,
+      inspection_date: base.visitDate,
+      foundation_type: confirmed,
+      method: confirmed ? methodFor(confirmed) : null,
+      protocol_number: base.declaration.documentNumber,
+      protocol_version: base.declaration.version,
+      evidence_count: String(base.evidence.length),
+      items_not_observed: base.notObserved.length ? base.notObserved.join("; ") : "none",
+    },
+    entered.observedCondition,
+  );
+  if (!draft.ok) return { ok: false, error: draft.why };
+  return { ok: true, lines: draft.lines, title: `Foundation certification, ${base.file.property_address}, file ${base.file.file_number}` };
+}
+
+/** Template 7, rulings of 2026-10-22 and ruling 7: every fact recorded, the basis from his triage only. */
+async function permitDraft(det: DeterminationRow): Promise<{ ok: true; lines: DraftLine[]; title: string } | { ok: false; error: string }> {
+  const base = await fileFactsFor(det);
+  if (!base.ok) return base;
+  const answers = await answersFor(det.file_id);
+  const recorded = await recordedFactsFor(det.file_id);
+  if (!recorded) return { ok: false, error: "The letter's recorded facts could not be read, so nothing was drafted." };
+  const triage = await triageFor(det.file_id);
+  if (!triage.ok) return { ok: false, error: triage.error };
+  /* PL-5: a desk job's documents schedule is the evidence he marked relied on in this determination. */
+  const relied = new Set(det.relied_on_evidence_ids ?? []);
+  const documents = base.evidence
+    .filter((e) => relied.has(e.id as string))
+    .map((e) => `${base.labelFor(e.item_key as string)}${e.captured_at ? `, ${letterDate(e.captured_at as string)}` : ""}`);
+  const draft = draftPermitLetter({
+    determination: det.determination,
+    option: det.letter_option,
+    conditions: det.letter_conditions ?? [],
+    basis: triage.basis,
+    documents,
+    facts: {
+      determination_date: letterDate(det.decided_at),
+      authority_name: answers.authority_name ?? null,
+      authority_address: recorded.authority_address?.value ?? null,
+      authority_salutation: recorded.authority_salutation?.value ?? null,
+      /* PL-3: the element as he reviewed it. */
+      element_described: recorded.element_described?.value ?? null,
+      property_address: base.file.property_address as string,
+      county: base.file.county as string,
+      permit_number: answers.permit_number ?? null,
+      file_number: base.file.file_number as string,
+      requestor_name: base.requestor,
+      authority_requirement_verbatim: answers.question_text ?? null,
+      visit_date: base.visitDate,
+      evidence_count: String(base.evidence.length),
+    },
+  });
+  if (!draft.ok) return { ok: false, error: draft.why };
+  return { ok: true, lines: draft.lines, title: `Structural letter for permit, ${base.file.property_address}, file ${base.file.file_number}` };
+}
+
+type Entered = { recipientAddress: string; recipientSalutation: string; observedCondition?: string };
+
+/** The draft for any built letter, by its protocol. Roof's path is exactly what it was. */
+async function draftFor(det: DeterminationRow, entered: Entered): Promise<{ ok: true; lines: DraftLine[]; title: string } | { ok: false; error: string }> {
+  if (det.protocol_document === "254-FC-001") {
+    return foundationDraft(det, { ...entered, observedCondition: entered.observedCondition ?? "" });
+  }
+  if (det.protocol_document === "254-PL-001") return permitDraft(det);
+  const facts = await letterFactsFor(det, entered);
+  if (!facts.ok) return { ok: false, error: facts.error };
+  if (!producesLetter(det.determination)) return { ok: false, error: `A ${det.determination} determination produces no letter.` };
+  const draft = draftRoofLetter(det.determination, facts.facts);
+  if (!draft.ok) return { ok: false, error: draft.why };
+  return { ok: true, lines: draft.lines, title: facts.title };
+}
+
+/** Whether a determination of this protocol produces a letter: FC-1 for foundation, 2026-10-22 for permit. */
+function determinationProducesLetter(protocol: string, determination: string): boolean {
+  if (protocol === "254-FC-001") return producesFoundationLetter(determination);
+  if (protocol === "254-PL-001") return determination === "pass" || determination === "repairs-required";
+  return producesLetter(determination);
+}
+
 /** The draft, for the engineer to read before he seals. Reads no image. */
 export async function draftForDetermination(
   actor: SignedIn | null,
   determinationId: string,
-  entered: { recipientAddress: string; recipientSalutation: string },
+  entered: Entered,
 ): Promise<LetterDraft | { ok: false; why: string; missing: [] }> {
   if (!holdsLicence(actor, "documents.seal")) return { ok: false, why: "Only the engineer of record drafts and seals a letter.", missing: [] };
   const det = await determination(determinationId);
@@ -170,9 +329,9 @@ export async function draftForDetermination(
   if (det.engineer_id !== actor!.id) {
     return { ok: false, why: "Only the engineer who recorded this determination can draft its letter.", missing: [] };
   }
-  const facts = await letterFactsFor(det, entered);
-  if (!facts.ok) return { ok: false, why: facts.error, missing: [] };
-  return draftRoofLetter(det.determination, facts.facts);
+  const built = await draftFor(det, entered);
+  if (!built.ok) return { ok: false, why: built.error, missing: [] };
+  return { ok: true, lines: built.lines, determination: det.determination as LetterDraft extends { determination: infer D } ? D : never };
 }
 
 export async function sealLetter(actor: SignedIn | null, input: SealInput): Promise<SealResult> {
@@ -207,7 +366,10 @@ export async function sealLetter(actor: SignedIn | null, input: SealInput): Prom
   if (!registration) return { ok: false, error: "The firm has no active registration on record, so nothing is sealed." };
 
   // 3. What.
-  if (!producesLetter(det.determination)) {
+  if (!(SEALABLE_PROTOCOLS as readonly string[]).includes(det.protocol_document)) {
+    return { ok: false, error: `${det.protocol_document} has no letter built, so nothing is sealed.` };
+  }
+  if (!determinationProducesLetter(det.protocol_document, det.determination)) {
     return { ok: false, error: `A ${det.determination} determination produces no letter.` };
   }
   const { data: live, error: liveError } = await db
@@ -220,13 +382,13 @@ export async function sealLetter(actor: SignedIn | null, input: SealInput): Prom
   if (live) return { ok: false, error: "This determination's letter is already sealed." };
 
   // 4. The draft.
-  const facts = await letterFactsFor(det, {
+  const draft = await draftFor(det, {
     recipientAddress: input.recipientAddress,
     recipientSalutation: input.recipientSalutation,
+    observedCondition: input.observedCondition,
   });
-  if (!facts.ok) return { ok: false, error: facts.error };
-  const draft = draftRoofLetter(det.determination, facts.facts);
-  if (!draft.ok) return { ok: false, error: draft.why };
+  if (!draft.ok) return { ok: false, error: draft.error };
+  const facts = { title: draft.title };
 
   // 5. A fresh second factor, for this act.
   const fresh = await verifyFreshCode(actor!.id, input.code);
@@ -325,8 +487,17 @@ export async function sealLetter(actor: SignedIn | null, input: SealInput): Prom
     ...(input.context ?? {}),
   });
 
-  // 9. On a pass: the file is sealed and delivered, and the order settles and completes.
-  if (det.determination !== "pass") {
+  /*
+   * 9. On a pass: the file is sealed and delivered, and the order settles and
+   * completes. AND ON A FOUNDATION DECLINE (ruling FC-1, 2026-10-23): option C
+   * is a sealed letter and "a C letter is delivered work: no refund", so it is
+   * delivered and the order settles as sealed work exactly as a pass does. The
+   * decision did not refund it (review.after_decision leaves a foundation
+   * decline at review to this letter). Every other letter waits for the work
+   * it names, as the roof repairs letter always has.
+   */
+  const delivers = det.determination === "pass" || (det.protocol_document === "254-FC-001" && det.determination === "decline");
+  if (!delivers) {
     return { ok: true, documentId, sha256, delivered: false, warning: null };
   }
   const problems: string[] = [];
@@ -370,6 +541,8 @@ export type AwaitingLetter = {
   propertyAddress: string;
   determination: string;
   decidedAt: string;
+  /* Which letter: 254-RC-001, 254-FC-001 or 254-PL-001. */
+  protocolDocument: string;
 };
 
 /**
@@ -384,13 +557,16 @@ export async function lettersAwaitingSeal(actor: SignedIn | null, fileId?: strin
     .from("eng_determinations")
     .select("id, file_id, determination, decided_at, protocol_document")
     .eq("engineer_id", actor!.id)
-    .eq("protocol_document", "254-RC-001")
+    .in("protocol_document", [...SEALABLE_PROTOCOLS])
     .in("determination", ["pass", "repairs-required", "decline"])
     .order("decided_at", { ascending: true })
     .limit(200);
   if (fileId) query = query.eq("file_id", fileId);
-  const { data: dets, error } = await query;
-  if (error || !dets?.length) return [];
+  const { data: read, error } = await query;
+  if (error || !read?.length) return [];
+  /* A permit letter decline produces no letter (2026-10-22); every other row here does. */
+  const dets = read.filter((d) => determinationProducesLetter(d.protocol_document as string, d.determination as string));
+  if (!dets.length) return [];
 
   const ids = dets.map((d) => d.id as string);
   const { data: acts, error: actsError } = await db
@@ -423,6 +599,7 @@ export async function lettersAwaitingSeal(actor: SignedIn | null, fileId?: strin
     propertyAddress: (fileOf.get(d.file_id as string)?.property_address as string) ?? "",
     determination: d.determination as string,
     decidedAt: d.decided_at as string,
+    protocolDocument: d.protocol_document as string,
   }));
 }
 
