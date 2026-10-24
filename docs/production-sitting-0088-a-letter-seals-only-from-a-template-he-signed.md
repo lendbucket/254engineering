@@ -99,7 +99,9 @@ select count(*) from eng_seal_acts where kind = 'letter_template';
 
 select p.oid::regprocedure from pg_proc p
  where p.proname in ('eng_record_letter_template_signature', 'eng_record_letter_seal') order by 1;
--- Expect three rows: the template door and two eng_record_letter_seal overloads (fifteen and sixteen arguments).
+-- Expect four rows: the template door and three eng_record_letter_seal overloads: 0062's fourteen
+-- arguments (left in place by 0081, refusing), 0081's fifteen, and 0088's sixteen. Corrected
+-- 2026-10-24 after the chat's development sitting read four; this said three and was wrong.
 ```
 
 **THE ASSERTION: EVERY LINE OPEN BEFORE 0088 IS STILL OPEN AFTER IT.** Run
