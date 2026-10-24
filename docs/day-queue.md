@@ -21,6 +21,9 @@
 | 0088, template adoption (`feat/letter-adoption`, `ff8e7cd`) | When to apply on production: once applied, no letter seals, roof included, until the new code deploys and the engineer signs the roof template. |
 | Manufactured home, solar, WPI-8E letters | The engineer's adoption of the drafts document you were sent. |
 | The two fixes (`fix/instrumentation-nodejs-runtime` `82e8f43`, `fix/ci-board-sign-in-key` `1c23dc8`) | Nothing: each boards alone after piece 2's board, and merges on a match. |
+| Office ready, first part (`fast/portal-tel-links`, `aba8583`): every staff phone number a `tel:` link (seven screens, proof with injection), and print styling (menu, header and tabs hidden in print) | Nothing: full lane (server-rendered pages), boards alone after the two fixes. The survey of all 53 staff screens is below for the rest. |
+
+**Office-ready survey, 2026-10-24 (read-only, all 53 staff screens).** Full list controls on 4 screens (inbox, order lookup, prospects, refunds), none on about 25; a record search at `/portal/search`, but the Ctrl K header search jumps between screens only; the rep and ops manager home meets item 4, the admin home lacks inquiries, refund requests and holds, the engineer and technician homes carry none of the five; live counts every 30 seconds with the count in the tab title, staff with inbox or orders only; no print styling anywhere (now built); CSV on six screens only; plain-text phone numbers on seven (now built). Needs server code next: list controls, CSV routes for orders, clients, inbox, refunds and files, paged reads in place of whole-table reads, the admin home tiles, live counts for engineers and technicians.
 
 Robert's day mode. The Claude Code session writes this file on `ops/day` and
 pushes it with `[skip ci]` after every change. The operator's chat counterpart
