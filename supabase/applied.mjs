@@ -3175,7 +3175,15 @@ export const APPLIED = [
       "reach only 254-MH-001, 254-SL-001 and 254-WS-001; eng_record_letter_seal gains a sixteen-argument " +
       "overload, and 0081's fifteen-argument version is not replaced. No cutover gap.",
     because:
-      "WRITTEN 2026-10-24 ON feat/letter-adoption, AND APPLIED NOWHERE. Robert's instruction of 2026-10-24, " +
+      "APPLIED TO DEVELOPMENT 2026-10-24 18:21 UTC by the operator's chat counterpart through apply_migration, " +
+      "provider version 20261024182158, name 0088_a_letter_seals_only_from_a_template_he_signed, from the file at " +
+      "6e0cc07 (sha256 cd9ef87c89c86583b89e043968fafb6a6e751759947e598a4e49732d6bd1a3bc; the stored statement " +
+      "ebd40637cabeb6747fcd5a8615498c549800ff349ebd05599f15b120ac89934c, the file without its trailing newline). " +
+      "Section 0 shape 6a355ef867ca1021391067a84f44f34b across 1328; Section 2 2fa02bab9a86d346d328a22bbb8ba975 " +
+      "across 1331, as predicted; Section 0's records A, B and C read back identical. The sitting document " +
+      "expected three function rows and there are four: 0062's fourteen-argument eng_record_letter_seal, left " +
+      "by 0081 as a refusing stub, is the third overload (corrected in the document). Production not yet. " +
+      "WRITTEN 2026-10-24 ON feat/letter-adoption. Robert's instruction of 2026-10-24, " +
       "narrowed by his ruling 3 the same day: a manufactured home, solar or WPI-8E letter seals only from a " +
       "template the engineer has signed in his portal; roof, foundation, permit and every other line in force are " +
       "untouched. The three lines stay closed until he adopts the drafted wording, which is expected. The chat " +
