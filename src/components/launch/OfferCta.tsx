@@ -1,21 +1,10 @@
 import { ButtonLink, Eyebrow } from "@/components/ui/primitives";
 import { Container } from "@/components/ui/Container";
-import { isOpen, isPrelaunch, notYetAcceptingEngagements, registrationStatement, serviceLineIsOffered } from "@/lib/launch";
+import { isPrelaunch, notYetAcceptingEngagements, registrationStatement } from "@/lib/launch";
 import { displayPhone, telHref } from "@/config/contact";
 import { lineOffer, orderableLineOffers } from "@/lib/ordering";
 import { PhoneNumber } from "@/components/ui/PhoneNumber";
-
-/** The price line for a named, orderable service line. */
-function OfferPrice({ slug }: { slug: string }) {
-  const offer = lineOffer(slug);
-  if (!offer.price) return null;
-  return (
-    <p className="mt-4 text-[15px] leading-[1.7] text-slate-fg-muted">
-      <span className="font-semibold text-slate-fg">{offer.price}</span>
-      {offer.coastal ? `, ${offer.coastal}` : ""}.
-    </p>
-  );
-}
+import { PublishedPrice } from "@/components/services/PublishedPrice";
 
 /**
  * The call to action, in all three launch modes.
@@ -85,7 +74,17 @@ export function OfferCta({
   const prelaunch = isPrelaunch();
   const phone = displayPhone();
   const tel = telHref();
-  const lineIsOrderable = Boolean(serviceSlug && isOpen() && serviceLineIsOffered(serviceSlug));
+  /*
+   * ON A SERVICE PAGE THE BAND ASKS lineOffer, LIKE EVERY OTHER SURFACE. The
+   * action rule of 2026-10-18: one primary action per page, chosen from the
+   * line's real state. This band used to decide for itself, offering "Start a
+   * job" to the chooser on any line it could not order, so the design page's
+   * top said one thing and its bottom another. Now both say what the line's
+   * state says: order, its own brief form, a request for a quote, or the
+   * waitlist before the firm opens.
+   */
+  const lineOffered = serviceSlug ? lineOffer(serviceSlug) : null;
+  const lineIsOrderable = Boolean(lineOffered?.orderable);
 
   /*
    * ==========================================================================
@@ -129,8 +128,6 @@ export function OfferCta({
    * honesty, it is a dead end with an explanation attached. The enquiry is a
    * real path, so it is the one offered.
    */
-  const orderHref = serviceSlug ? `/order/start/${serviceSlug}` : enquiryHref;
-
   return (
     <section className="bg-slate text-slate-fg">
       <Container>
@@ -140,14 +137,16 @@ export function OfferCta({
             <h2 className="mt-3 text-[1.8rem] leading-[1.2] font-semibold text-slate-fg sm:text-[2.2rem]">
               {headline ??
                 (prelaunch
-                  ? "Tell us what you need and we will contact you when the firm opens"
+                  ? /* Q5, 2026-10-19: nothing contacts anybody when the firm opens; a person replies. */
+                    "Tell us what you need and a person at the firm will reply"
                   : "Tell us what the letter is for and we will tell you yes or no")}
             </h2>
             <p className="mt-5 text-[1.02rem] leading-[1.7] text-slate-fg-muted">
               {body ??
                 (prelaunch
                   ? [notYetAcceptingEngagements(), registrationStatement()].filter(Boolean).join(" ")
-                  : "Send the address, what the document is for, and the date it has to be in hand. Some jobs this firm cannot take, and you will hear that in the first conversation rather than after you have paid and waited.")}
+                  : /* Q4, 2026-10-19: a flagged job is decided after payment and before anybody is sent. */
+                    "Send the address, what the document is for, and the date it has to be in hand. Some jobs this firm cannot take, and you will hear that before anybody is sent to the property.")}
             </p>
             {/*
               MOBILE FIRST, AND THAT IS NOT A LAYOUT PREFERENCE HERE. Stacked
@@ -159,16 +158,18 @@ export function OfferCta({
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <ButtonLink
                 href={
-                  lineIsOrderable
-                    ? orderHref
+                  lineOffered
+                    ? lineOffered.href
                     : genericOrder && soleOffer
                       ? soleOffer.href
                       : enquiryHref
                 }
                 tone="onDark"
               >
-                {lineIsOrderable
-                  ? "Order this"
+                {lineOffered
+                  ? lineIsOrderable
+                    ? "Order this"
+                    : lineOffered.orderLabel
                   : genericOrder && soleOffer
                     ? soleOffer.orderLabel
                     : "Start a job"}
@@ -184,11 +185,9 @@ export function OfferCta({
               service pages use, so a reader meets the figure in one shape
               wherever the firm offers them something.
             */}
-            {lineIsOrderable && serviceSlug ? <OfferPrice slug={serviceSlug} /> : null}
-            {genericOrder && soleOffer?.price ? (
+            {serviceSlug || (genericOrder && soleOffer) ? (
               <p className="mt-4 text-[15px] leading-[1.7] text-slate-fg-muted">
-                <span className="font-semibold text-slate-fg">{soleOffer.price}</span>
-                {soleOffer.coastal ? `, ${soleOffer.coastal}` : ""}.
+                <PublishedPrice slug={serviceSlug ?? soleOffer!.slug} />
               </p>
             ) : null}
           </div>

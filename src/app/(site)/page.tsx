@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Container } from "@/components/ui/Container";
 import { HomeHero } from "@/components/home/HomeHero";
+import { HomeOrderingSteps } from "@/components/home/HomeOrderingSteps";
 import {
   ClipboardCheckIcon,
   ClockIcon,
@@ -65,6 +66,9 @@ export default function HomePage() {
       <JsonLd data={breadcrumbSchema([{ name: "Home", path: "/" }])} />
 
       <HomeHero />
+
+      {/* How ordering works, the short form (ruling 7 of 2026-10-18, Q8 of 2026-10-19). */}
+      <HomeOrderingSteps />
 
       <CredibilityStrip />
 
