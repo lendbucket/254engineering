@@ -41,6 +41,7 @@ import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 /* The protocol registry is code, never patched by this fixture, so importing it once is safe. */
 const { protocolForLine } = await import("../../src/content/protocols/index.ts");
+const { SIGNABLE_PROTOCOLS } = await import("../../src/content/protocols/signable.ts");
 
 const CONFIG = "src/config/credentials.ts";
 const READINESS = "src/config/launch-readiness.ts";
@@ -580,20 +581,31 @@ function fixtureProtocols() {
    * a fixture shape, which is the fourth time this file has needed the lesson
    * above. An offered line with no protocol in force throws: the gate cannot
    * open over it, and saying so here is louder than a downgraded audit.
+   *
+   * RULING 1 OF 2026-10-24: A PORTAL-SIGNED LINE COUNTS, AND ITS TRAINING IS
+   * ASKED AT THE DOOR. lineHasProtocolInForce() in src/lib/launch.ts counts a
+   * line whose transcription is in SIGNABLE_PROTOCOLS, and the gate's training
+   * condition reads only lines in PROTOCOL_ENTRIES. So such a line needs no
+   * entry in the training register for the gate to open, and writing one would
+   * state a fact the gate never reads. It is skipped; a line with neither kind
+   * of protocol still throws.
    */
-  return slugs.map((serviceSlug) => {
+  return slugs.flatMap((serviceSlug) => {
     const protocol = protocolForLine(serviceSlug);
     if (!protocol) {
+      if (SIGNABLE_PROTOCOLS.some((p) => p.serviceSlug === serviceSlug)) return [];
       throw new Error(
-        `The gate fixture found ${serviceSlug} offered with no protocol in force in PROTOCOL_ENTRIES, ` +
-          "so the protocols condition cannot be met and no fixture should pretend otherwise.",
+        `The gate fixture found ${serviceSlug} offered with no protocol in force in PROTOCOL_ENTRIES ` +
+          "and none the engineer signs in the portal, so the protocols condition cannot be met and no fixture should pretend otherwise.",
       );
     }
-    return {
-      serviceSlug,
-      documentNumber: protocol.declaration.documentNumber,
-      versionLabel: protocol.declaration.version,
-    };
+    return [
+      {
+        serviceSlug,
+        documentNumber: protocol.declaration.documentNumber,
+        versionLabel: protocol.declaration.version,
+      },
+    ];
   });
 }
 
