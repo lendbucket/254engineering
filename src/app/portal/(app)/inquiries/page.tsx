@@ -8,6 +8,8 @@ import { MarkAnswered } from "./InquiriesClient";
 import { formatInFirmZone } from "@/lib/firm-calendar";
 import { LIST_NOT_LOADED } from "@/lib/outcome-copy";
 import { RetryButton } from "@/components/portal/Unreachable";
+import { ListControls, Pager, listHref } from "@/components/portal/ListControls";
+import { INQUIRY_PAGE_SIZE, inquiryListQuery } from "@/lib/inquiry-list";
 
 export const dynamic = "force-dynamic";
 
@@ -50,7 +52,7 @@ const DELIVERABLE: Record<string, string> = {
 const when = (value: string) =>
   (formatInFirmZone(value, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) ?? "");
 
-export default async function InquiriesPage() {
+export default async function InquiriesPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const actor = await currentActor();
   /*
    * files.create RATHER THAN files.list, AND THE BOARD IS WHY.
@@ -72,9 +74,12 @@ export default async function InquiriesPage() {
    */
   if (!can(actor, "files.create")) notFound();
 
-  const read = await designInquiries(actor);
+  const params = await searchParams;
+  const query = inquiryListQuery(params);
+  const read = await designInquiries(actor, query);
   const rows = read.ok ? read.rows : [];
-  const open = rows.filter((r) => r.responded_at === null);
+  /* Nothing at all is "no briefs yet"; nothing under a search or a filter is "nothing matches". */
+  const nothingAtAll = read.ok && read.open + read.answered === 0 && query.term === "";
 
   return (
     <>
@@ -82,6 +87,26 @@ export default async function InquiriesPage() {
         eyebrow="Design"
         title="Design briefs"
         lede="What somebody asked the firm to design, with the reply they were promised. Unanswered first, and the oldest promise at the top."
+      />
+      <ListControls
+        action="/portal/inquiries"
+        search={params.q ?? ""}
+        searchLabel="Search name, email, phone or address"
+        filters={[
+          {
+            name: "show",
+            label: "Show",
+            value: query.show,
+            options: [
+              { value: "all", label: "Everything" },
+              { value: "open", label: "Awaiting a reply" },
+              { value: "answered", label: "Answered" },
+            ],
+          },
+        ]}
+        sorts={[{ value: "due", label: "Reply by" }, { value: "received", label: "Received" }, { value: "name", label: "Name" }]}
+        sort={query.sort}
+        direction={query.ascending ? "asc" : "desc"}
       />
 
       {/* A failed read never renders as "No briefs yet". Operator ruling, 2026-10-12, his wording. */}
@@ -92,15 +117,20 @@ export default async function InquiriesPage() {
             <RetryButton />
           </div>
         </div>
-      ) : rows.length === 0 ? (
+      ) : nothingAtAll ? (
         <EmptyState
           title="No briefs yet"
           body="A row arrives here when somebody sends the design brief from the site. Each one carries a deadline to reply, and the deadline is recorded rather than remembered."
         />
+      ) : rows.length === 0 ? (
+        <EmptyState
+          title="Nothing matches that search"
+          body={`${read.open} awaiting a reply and ${read.answered} answered${query.term ? " match the search" : ""}. Change the search or show everything.`}
+        />
       ) : (
         <>
           <p className="mb-4 text-[13.5px] text-[var(--secondary)]">
-            {open.length} awaiting a reply, {rows.length - open.length} answered.
+            {read.open} awaiting a reply, {read.answered} answered{query.term ? ", matching the search" : ""}.
           </p>
           <ul className="flex flex-col gap-3">
             {rows.map((r) => {
@@ -174,6 +204,7 @@ export default async function InquiriesPage() {
               );
             })}
           </ul>
+          <Pager page={query.page} pageSize={INQUIRY_PAGE_SIZE} total={read.total} hrefFor={(n) => listHref("/portal/inquiries", params, { page: String(n) })} />
         </>
       )}
     </>
