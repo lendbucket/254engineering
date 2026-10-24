@@ -253,9 +253,17 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * shape cbf3b1702865427a65466b11c900b4e1, read off fingerprint-at.mjs with
  * 0084 reproducing its recorded pair first.
  */
-const EXPECTED_FINGERPRINT = "cbf3b1702865427a65466b11c900b4e1";
-const EXPECTED_COLUMNS = 1317;
-const EXPECTED_TABLES = 98;
+/*
+ * Moved 2026-10-23 by 0086, an approval by phone is its own kind, by operator
+ * ruling that night: 1,317 to 1,328 is eng_training_decisions' four new
+ * columns (channel, approved_by_engineer, relayed_by, approved_at) and
+ * eng_training_confirmations' seven; 98 tables to 99; shape
+ * 6a355ef867ca1021391067a84f44f34b, read off fingerprint-at.mjs with 0085
+ * reproducing its recorded pair first.
+ */
+const EXPECTED_FINGERPRINT = "6a355ef867ca1021391067a84f44f34b";
+const EXPECTED_COLUMNS = 1328;
+const EXPECTED_TABLES = 99;
 /* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts.
  * 0074 adds two: eng_partner_billing_touch and eng_partner_billing_events_immutable.
  * 0075 adds one: eng_payment_events_guarded.
@@ -269,8 +277,10 @@ const EXPECTED_TABLES = 98;
  * eng_training_decisions_append_only; and, by ruling the same morning, eng_profiles_keep_trained,
  * refusing to delete a trained profile off the probe domain. Three in all.
  * 0085 adds three, by operator ruling 7 of 2026-10-23: the append only guards on
- * eng_letter_facts, eng_job_triage and eng_job_capture_additions. */
-const EXPECTED_TRIGGERS = 95;
+ * eng_letter_facts, eng_job_triage and eng_job_capture_additions.
+ * 0086 adds three, by operator ruling of 2026-10-23: eng_training_decisions_relayed_check,
+ * eng_training_confirmations_check and eng_training_confirmations_append_only. */
+const EXPECTED_TRIGGERS = 98;
 /**
  * 0014 added eng_freeze_attribution and 0019 added two more, the partner
  * entry freeze and its delete refusal, which are trigger functions like the
@@ -317,8 +327,12 @@ const EXPECTED_TRIGGERS = 95;
  * new row.
  * 56 since 0084, by operator ruling 2026-10-23: eng_line_is_trained, what the
  * money door asks of a line opened by a portal signature.
- * 57 since 0084's guard, by ruling the same morning: eng_profile_keeps_its_training. */
-const EXPECTED_FUNCTIONS = 57;
+ * 57 since 0084's guard, by ruling the same morning: eng_profile_keeps_its_training.
+ * 60 since 0086, by operator ruling of 2026-10-23: eng_relayed_decision_check and
+ * eng_confirmation_check (the triggers holding a relayed approval and its written
+ * confirmation to who may stand in each place) and eng_record_relayed_training_approval
+ * (the one door a phone approval comes in by). */
+const EXPECTED_FUNCTIONS = 60;
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });

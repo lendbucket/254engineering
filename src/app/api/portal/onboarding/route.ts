@@ -8,7 +8,7 @@ import {
   setOnboardingCoverage,
   setTechCoverage,
 } from "@/lib/ops-onboarding";
-import { recordTraining } from "@/lib/certification-record";
+import { attachRelayedConfirmation, recordTraining } from "@/lib/certification-record";
 import { rejectCredential, submitCredential, verifyCredential } from "@/lib/ops-credential-submissions";
 import { withSaveOutcome } from "@/lib/save-outcome";
 import {
@@ -178,6 +178,22 @@ async function handlePOST(request: NextRequest) {
       context,
     );
     return result.ok ? NextResponse.json({ ok: true, id: result.id }) : bad(result.error);
+  }
+
+  /*
+   * The engineer of record's written confirmation of an approval he gave by
+   * phone, attached by an administrator (0086, operator ruling of 2026-10-23).
+   */
+  if (action === "attach_relayed_confirmation") {
+    const kind = body?.kind === "email" ? "email" : body?.kind === "text" ? "text" : null;
+    if (!kind) return bad("Say whether it is a text or an email.");
+    const result = await attachRelayedConfirmation(
+      actor,
+      String(body?.decisionId ?? ""),
+      { kind, receivedAt: String(body?.receivedAt ?? ""), body: String(body?.body ?? "") },
+      context,
+    );
+    return result.ok ? NextResponse.json({ ok: true }) : bad(result.error);
   }
 
   /* A working technician's coverage counties, from the same page. setTechCoverage refuses unknown names. */
