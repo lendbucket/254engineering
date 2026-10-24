@@ -304,15 +304,20 @@ export function takeResetAttempt(
  * of 2026-10-23: CI runners call localhost and send no x-forwarded-for, so
  * every board's sign ins counted in one "unknown" bucket, and five boards at
  * once 429'd a sixth (main board 40035266531). The limiter is not loosened.
- * The board sets this header from its run id (scripts/ci/board-run-header.mjs);
- * it is honoured only when the database this counts in is development, and
- * only as digits, so on production, or with any other value, the key is
- * exactly what it was.
+ *
+ * Robert's ruling 5 of 2026-10-24: the key is the SERVER'S OWN environment,
+ * BOARD_RUN_ID, which the board sets from its run id on the shard every server
+ * inherits. No request header or body can choose a key, so a browser sign in
+ * and a script's count alike. It is read only when the database this counts in
+ * is development, and only as digits, so on production, or with any other
+ * value, the key is exactly what it was. (The header and preload of the first
+ * version are gone: board 40082071975 missed with them.)
  */
-export const BOARD_RUN_HEADER = "x-254-board-run";
-
-export function clientKey(headers: Headers, env: { SUPABASE_URL?: string } = { SUPABASE_URL: process.env.SUPABASE_URL }): string {
-  const boardRun = headers.get(BOARD_RUN_HEADER);
+export function clientKey(
+  headers: Headers,
+  env: { SUPABASE_URL?: string; BOARD_RUN_ID?: string } = { SUPABASE_URL: process.env.SUPABASE_URL, BOARD_RUN_ID: process.env.BOARD_RUN_ID },
+): string {
+  const boardRun = env.BOARD_RUN_ID;
   if (boardRun && /^\d{6,20}$/.test(boardRun) && refOf(env.SUPABASE_URL) === DEVELOPMENT_REF) return `board:${boardRun}`;
   const forwarded = headers.get("x-forwarded-for");
   if (forwarded) return forwarded.split(",")[0]!.trim();

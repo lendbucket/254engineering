@@ -1,25 +1,21 @@
 /**
- * EACH CLOUD BOARD RUN HAS ITS OWN SIGN IN BUCKET ON DEVELOPMENT, AND
- * PRODUCTION IGNORES THE HEADER THAT GIVES IT ONE.
+ * EACH CLOUD BOARD RUN HAS ITS OWN SIGN IN BUCKET ON DEVELOPMENT, NO REQUEST
+ * CAN CHOOSE A KEY, AND PRODUCTION IGNORES THE VARIABLE.
  *
  *   node node_modules/tsx/dist/cli.mjs --conditions=react-server scripts/proofs/each-board-run-has-its-own-sign-in-bucket.mjs
  *
- * Robert's ruling of 2026-10-23: CI runners share one "unknown" bucket because
- * they send no x-forwarded-for; do not loosen the limiter; give each board run
- * its own key, a header the board sets from its run id that the limiter honours
- * only on development; prove that production ignores it.
- *
- * The real clientKey is called with each database. The real preload is run in
- * a child process against a local server that records the headers it receives.
- * board.yml is read for the wiring.
+ * Robert's rulings of 2026-10-23 and 2026-10-24 (ruling 5): CI runners share
+ * one "unknown" bucket because they send no x-forwarded-for; do not loosen the
+ * limiter; the board passes its run id to its own server as BOARD_RUN_ID, read
+ * only on development; no request header or body chooses a key; prove that
+ * production ignores it. The real clientKey is called with each database and
+ * each variable, with requests that try to choose a key. board.yml is read for
+ * the wiring. The browser half runs under the board, in mobile-overflow-audit,
+ * against the board's own server: a real sign in through the form, read back.
  */
-import { createServer } from "node:http";
-import { spawn } from "node:child_process";
-import { readFileSync, writeFileSync, mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { existsSync, readFileSync } from "node:fs";
 
-const { clientKey, BOARD_RUN_HEADER } = await import("../../src/lib/ops-rate-limit.ts");
+const { clientKey } = await import("../../src/lib/ops-rate-limit.ts");
 const { PRODUCTION_REF, DEVELOPMENT_REF } = await import("../../src/lib/db-guard.ts");
 
 let wrong = 0;
@@ -28,61 +24,44 @@ const check = (name, ok, note = "") => {
   console.log(`  ${ok ? "PASS" : "FAIL"}: ${name}${note ? ` (${note})` : ""}`);
 };
 
-const PROD = { SUPABASE_URL: `https://${PRODUCTION_REF}.supabase.co` };
-const DEV = { SUPABASE_URL: `https://${DEVELOPMENT_REF}.supabase.co` };
-const h = (o) => new Headers(o);
+const PROD = `https://${PRODUCTION_REF}.supabase.co`;
+const DEV = `https://${DEVELOPMENT_REF}.supabase.co`;
+const RUN = "40065536871";
+const h = (o = {}) => new Headers(o);
+/* Every way a request might try to choose a key. */
+const CHOOSING = { "x-254-board-run": "1234567", "x-board-run-id": "1234567", "board-run-id": "1234567", cookie: "BOARD_RUN_ID=1234567" };
 
-check("on development, a board run's header is its own bucket", clientKey(h({ [BOARD_RUN_HEADER]: "40065536871" }), DEV) === "board:40065536871");
-check("on production, the same header is ignored and the key is what it always was", clientKey(h({ [BOARD_RUN_HEADER]: "40065536871" }), PROD) === "unknown");
+check("on development, the server's run id is its own bucket", clientKey(h(), { SUPABASE_URL: DEV, BOARD_RUN_ID: RUN }) === `board:${RUN}`);
+check("and a request cannot choose another one", clientKey(h(CHOOSING), { SUPABASE_URL: DEV, BOARD_RUN_ID: RUN }) === `board:${RUN}`);
+check("with no run id on development, no request can create one", clientKey(h(CHOOSING), { SUPABASE_URL: DEV }) === "unknown");
+check("on production, the variable is ignored and the key is what it always was", clientKey(h(), { SUPABASE_URL: PROD, BOARD_RUN_ID: RUN }) === "unknown");
 check(
   "on production, with a forwarded address, the address is still the key",
-  clientKey(h({ [BOARD_RUN_HEADER]: "40065536871", "x-forwarded-for": "203.0.113.9, 10.0.0.1" }), PROD) === "203.0.113.9",
+  clientKey(h({ "x-forwarded-for": "203.0.113.9, 10.0.0.1" }), { SUPABASE_URL: PROD, BOARD_RUN_ID: RUN }) === "203.0.113.9",
 );
-check("with no database named, the header is ignored", clientKey(h({ [BOARD_RUN_HEADER]: "40065536871" }), {}) === "unknown");
-check("on development, a value that is not a run id is ignored", clientKey(h({ [BOARD_RUN_HEADER]: "everyone-shares-this" }), DEV) === "unknown");
-check("and with no header, development keys exactly as before", clientKey(h({ "x-forwarded-for": "198.51.100.4" }), DEV) === "198.51.100.4");
+check("with no database named, the variable is ignored", clientKey(h(), { BOARD_RUN_ID: RUN }) === "unknown");
+check("on development, a value that is not a run id is ignored", clientKey(h(), { SUPABASE_URL: DEV, BOARD_RUN_ID: "everyone-shares-this" }) === "unknown");
+check("and with no run id, development keys exactly as before", clientKey(h({ "x-forwarded-for": "198.51.100.4" }), { SUPABASE_URL: DEV }) === "198.51.100.4");
 
-/* The preload, in a child process, against a local server. */
-const seen = [];
-const server = createServer((req, res) => {
-  seen.push(req.headers[BOARD_RUN_HEADER] ?? null);
-  res.end("ok");
-});
-await new Promise((r) => server.listen(0, "127.0.0.1", r));
-const port = server.address().port;
-const dir = mkdtempSync(join(tmpdir(), "board-run-"));
-const child = join(dir, "child.mjs");
-writeFileSync(child, `await fetch("http://127.0.0.1:${port}/a"); await fetch("http://localhost:${port}/b", { headers: { "x-other": "1" } }); console.log("done");`);
-const preload = new URL("../ci/board-run-header.mjs", import.meta.url).href;
-/* Asynchronous, so this process's server can answer the child while it waits. */
-const run = (env) =>
-  new Promise((resolve) => {
-    const p = spawn(process.execPath, ["--import", preload, child], { env: { ...process.env, ...env }, stdio: "ignore" });
-    const timer = setTimeout(() => p.kill(), 30_000);
-    p.on("exit", (status) => {
-      clearTimeout(timer);
-      resolve({ status });
-    });
-  });
-const withRun = await run({ BOARD_RUN_ID: "40065536871" });
-check("the preload sends the run id on every request to this machine", withRun.status === 0 && seen.length === 2 && seen.every((v) => v === "40065536871"), JSON.stringify(seen));
-seen.length = 0;
-await run({ BOARD_RUN_ID: "" });
-check("and sends nothing when no run id is set", seen.length === 2 && seen.every((v) => v === null), JSON.stringify(seen));
-server.close();
-const pre = readFileSync("scripts/ci/board-run-header.mjs", "utf8");
-check("it touches only requests to this machine", /hostname === "localhost" \|\| hostname === "127\.0\.0\.1"/.test(pre) && /if \(!url \|\| !local\(url\)\) return original\(input, init\);/.test(pre));
+/* The source: the key is read from the environment, never from the request. */
+const limiter = readFileSync("src/lib/ops-rate-limit.ts", "utf8");
+const body = limiter.slice(limiter.indexOf("export function clientKey("), limiter.indexOf("export const RATE_LIMITS"));
+check("clientKey reads the run id from the environment", /const boardRun = env\.BOARD_RUN_ID;/.test(body) && /BOARD_RUN_ID: process\.env\.BOARD_RUN_ID/.test(body));
+check("and reads nothing else from the request but the forwarded address", (body.match(/headers\.get\(/g) ?? []).length === 2 && /headers\.get\("x-forwarded-for"\)/.test(body) && /headers\.get\("x-real-ip"\)/.test(body));
 
 /* The wiring. */
 const yml = readFileSync(".github/workflows/board.yml", "utf8");
+check("the board sets the run id on the shard every server inherits", /BOARD_RUN_ID="\$\{\{ github\.run_id \}\}" \\\s*\n\s*node scripts\/audit\.mjs/.test(yml));
+check("and loads no preload into the shard's processes", !/NODE_OPTIONS/.test(yml) && !existsSync("scripts/ci/board-run-header.mjs"));
+const overflow = readFileSync("scripts/mobile-overflow-audit.mjs", "utf8");
 check(
-  "the board sets the run id and loads the preload into every process of the shard",
-  /BOARD_RUN_ID="\$\{\{ github\.run_id \}\}" NODE_OPTIONS="--import \$\{\{ github\.workspace \}\}\/scripts\/ci\/board-run-header\.mjs"/.test(yml),
+  "under the board, a real browser sign in is read back for its key",
+  /page\.fill\('input\[name="email"\]', techProbe\.email\)/.test(overflow) && /\.from\("eng_sign_in_attempts"\)/.test(overflow) && /address === expected/.test(overflow),
 );
 
 console.log("");
 if (wrong === 0) {
-  console.log("PASS: each board run has its own sign in bucket on development, and production ignores the header.");
+  console.log("PASS: each board run has its own sign in bucket on development, no request chooses a key, and production ignores the variable.");
   process.exitCode = 0;
 } else {
   console.log(`FAIL: ${wrong} check(s).`);
