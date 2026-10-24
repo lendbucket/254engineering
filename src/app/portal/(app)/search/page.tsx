@@ -6,6 +6,7 @@ import { searchRecords, SEARCH_LIMIT, SEARCH_MIN_LENGTH } from "@/lib/ops-search
 import { STATUS_LABEL, type FileStatus } from "@/lib/ops-files";
 import { Chip, EmptyState, PageHead, Panel } from "@/components/portal/surfaces";
 import { formatInFirmZone } from "@/lib/firm-calendar";
+import { JoinedWithPhone } from "@/components/portal/PhoneLink";
 
 export const dynamic = "force-dynamic";
 
@@ -72,7 +73,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
                       {p.company}
                     </Link>
                     <p className="mt-1 text-[13px] leading-[1.6] text-[var(--secondary)]">
-                      {[p.contact_name, p.phone, p.email, p.city, p.status.replace(/_/g, " ")].filter(Boolean).join(", ")}
+                      <JoinedWithPhone parts={[p.contact_name, { phone: p.phone }, p.email, p.city, p.status.replace(/_/g, " ")]} sep=", " />
                     </p>
                   </li>
                 ))}
@@ -88,7 +89,9 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
                     <Link href={`/portal/clients/${c.id}`} className="inline-flex min-h-[var(--tap-target)] items-center text-[14px] font-semibold text-[var(--ink)] underline underline-offset-4">
                       {c.name}
                     </Link>
-                    <p className="mt-1 text-[13px] leading-[1.6] text-[var(--secondary)]">{[c.phone, c.email, c.city].filter(Boolean).join(", ")}</p>
+                    <p className="mt-1 text-[13px] leading-[1.6] text-[var(--secondary)]">
+                      <JoinedWithPhone parts={[{ phone: c.phone }, c.email, c.city]} sep=", " />
+                    </p>
                   </li>
                 ))}
               </ul>
@@ -127,7 +130,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
                         </span>
                       </div>
                       <p className="mt-1 text-[13px] leading-[1.6] text-[var(--secondary)]">
-                        {[o.customer_name, o.customer_email, o.customer_phone, o.property_address].filter(Boolean).join(" · ")}
+                        <JoinedWithPhone parts={[o.customer_name, o.customer_email, { phone: o.customer_phone }, o.property_address]} sep=" · " />
                         {` · ${when(o.created_at)}`}
                       </p>
                     </li>

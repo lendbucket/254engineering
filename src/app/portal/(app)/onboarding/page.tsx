@@ -8,6 +8,7 @@ import { listOnboardings } from "@/lib/onboarding";
 import { TEXAS_COUNTIES } from "@/lib/ops-counties";
 import { CREDENTIAL_LABEL, expiryState } from "@/lib/ops-credentials";
 import { Chip, EmptyState, PageHead } from "@/components/portal/surfaces";
+import { PhoneLink } from "@/components/portal/PhoneLink";
 import { ActivatePanel, CoverageForm, InviteButton, ItemDates } from "./OnboardingClient";
 import { formatInFirmZone } from "@/lib/firm-calendar";
 
@@ -167,7 +168,7 @@ export default async function OnboardingPage({
                     </h2>
                     <p className="mt-1 text-[14px] text-[var(--secondary)]">
                       {selected.onboarding.email}
-                      {selected.onboarding.phone ? `, ${selected.onboarding.phone}` : ""}
+                      {selected.onboarding.phone ? <>, <PhoneLink phone={selected.onboarding.phone} /></> : ""}
                     </p>
                   </div>
                   <Chip

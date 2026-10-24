@@ -9,6 +9,7 @@ import { DataTable, type Column } from "@/components/portal/design";
 import { EmptyState, ErrorState, PageHead, Panel } from "@/components/portal/surfaces";
 import { ListControls, Pager, listHref } from "@/components/portal/ListControls";
 import { DecideRefund } from "./RefundClient";
+import { refundListRows } from "@/lib/refund-list";
 
 export const dynamic = "force-dynamic";
 
@@ -29,16 +30,13 @@ export default async function RefundsPage({ searchParams }: { searchParams: Prom
   const approves = unlimited || can(actor, "refunds.approve_within_limit");
   const limit = approves && !unlimited ? await currentRefundLimit() : null;
 
-  const needle = (params.q ?? "").trim().toLowerCase();
-  const rows = read.ok
-    ? read.rows.filter((r) => !needle || [r.orderReference, r.requestedByName, r.reason].some((v) => (v ?? "").toLowerCase().includes(needle)))
-    : [];
-  const dir = params.dir === "desc" ? -1 : 1;
+  /* The search and the sort live in refundListRows, which the CSV export reads too. */
+  const rows = read.ok ? refundListRows(read.rows, { q: params.q, sort: params.sort, dir: params.dir }) : [];
   const sort = params.sort ?? "asked";
-  rows.sort((a, b) => {
-    const k = (r: RefundRequestRow) => (sort === "amount" ? String(r.owedCentsAtRequest).padStart(12, "0") : sort === "order" ? r.orderReference ?? "" : r.createdAt);
-    return k(a) < k(b) ? -dir : k(a) > k(b) ? dir : 0;
-  });
+  const dir = params.dir === "desc" ? -1 : 1;
+  const csvQuery = new URLSearchParams(
+    Object.entries({ state, q: params.q, sort: params.sort, dir: params.dir }).filter((e): e is [string, string] => Boolean(e[1])),
+  ).toString();
   const page = Math.max(1, Number(params.page) || 1);
   const shown = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
@@ -86,6 +84,7 @@ export default async function RefundsPage({ searchParams }: { searchParams: Prom
         sorts={[{ value: "asked", label: "Date asked" }, { value: "amount", label: "Amount" }, { value: "order", label: "Order" }]}
         sort={sort}
         direction={dir === -1 ? "desc" : "asc"}
+        csvHref={`/api/portal/refunds/export?${csvQuery}`}
       />
       {!read.ok ? (
         <ErrorState title="Refund requests could not be read" body={`${read.error} Nothing here means nothing is waiting.`} />

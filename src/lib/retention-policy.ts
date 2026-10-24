@@ -853,13 +853,25 @@ export const RETENTION_POLICY: RetentionEntry[] = [
     },
   },
   {
+    table: "eng_training_confirmations",
+    rule: {
+      kind: "kept_forever",
+      because:
+        "THE ENGINEER OF RECORD'S WRITTEN CONFIRMATION of an approval he gave by phone, the text or email as " +
+        "received. It is the written evidence behind a relayed approval that opened a line, so it is kept as " +
+        "long as the approval it confirms. Append only, gone only with its decision (0086).",
+      ruledBy: "operator ruling of 2026-10-23 21:56 CT (an approval by phone is its own kind), and the trigger in 0086",
+    },
+  },
+  {
     table: "eng_training_decisions",
     rule: {
       kind: "kept_forever",
       because:
         "THE ENGINEER OF RECORD'S APPROVAL OR REFUSAL OF EACH SUPERVISED TRAINING, from his own session, a " +
-        "refusal with his reason. Whether a line could take orders on a given day turns on it, so it is the " +
-        "record a question about a job is answered from. Append only through eng_forbid_mutation (0084).",
+        "refusal with his reason, or since 0086 an approval he gave by phone and the owner relayed, marked as " +
+        "that kind. Whether a line could take orders on a given day turns on it, so it is the record a " +
+        "question about a job is answered from. Append only through eng_forbid_mutation (0084).",
       ruledBy: "operator ruling of 2026-10-23 (a line opens only when signed and trained, recorded in the portal), and the trigger in 0084",
     },
   },
