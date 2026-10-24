@@ -2981,7 +2981,34 @@ export const APPLIED = [
     file: "0084_a_line_opens_only_when_trained.sql", appliedBy: "apply_migration",
     fingerprint: "79a8143e24f29af96b2a26573efd8803",
     behaviour: "7eb110b9207115cf1d6bfba690da4dd5",
-    production: null,
+    /*
+     * APPLIED TO PRODUCTION 2026-10-24, 02:53:49 UTC, provider version
+     * 20261024025349, name 0084_a_line_opens_only_when_trained, by the
+     * operator's chat counterpart through apply_migration, from
+     * docs/production-sitting-0084-a-line-opens-only-when-trained.md, after the
+     * branch's cloud board (40036084856) matched its prediction, 61 of 61, on
+     * 97ad30d. The file applied is sha256
+     * 57f5b8d4fd2af6ee21d1343ecc83e8587faf2bde6df63214e97c3a7b4c86c114, the one
+     * development holds; the stored statement reads back as sha256
+     * 6976e92ef513c151d74bb244cf6d0bd1bbfa4c95e37a7af786fde6ceade92260, identical
+     * to development.
+     *
+     * Section 0: shape a4bbde8cac7f216a582875f8ff8d1e01 across 1280; both new
+     * tables absent; eng_profiles has role and status as text;
+     * eng_profiles_role_fields names field_tech; eng_forbid_mutation_allow_cascade
+     * present; and NO TRAINING EVENTS AT ALL on production, no
+     * certification.training_* row. So Section 3's backfill carried nothing, and
+     * the delete guard protects nobody yet. The queue entry had said it would
+     * carry real interim events; that was the session's assumption, never read,
+     * and the chat corrected it from production. Section 2: shape
+     * 79a8143e24f29af96b2a26573efd8803 across 1299; 0 records, equal to the 0
+     * carried; 0 decisions; RLS on both tables; eng_line_is_trained(text,uuid) and
+     * eng_profile_keeps_its_training() present; records.profile_id cascades,
+     * records.template_id restricts, decisions.record_id cascades;
+     * eng_profiles_keep_trained present. Every answer as predicted. The record
+     * rides in the merge, so 0084 is never pending on main.
+     */
+    production: "2026-10-24",
     development: {
       at: "0084",
       behaviour: null,
@@ -3016,7 +3043,7 @@ export const APPLIED = [
       "No drop statement. Section 3 is a one-time backfill of the interim training events of " +
       "2026-10-07 onward, each row naming its event.",
     because:
-      "WRITTEN 2026-10-23 ON feat/training-record; ON DEVELOPMENT (version 20261023132528), NOT ON PRODUCTION. Operator ruling of " +
+      "WRITTEN 2026-10-23 ON feat/training-record; ON DEVELOPMENT (version 20261023132528) AND ON PRODUCTION (version 20261024025349). Operator ruling of " +
       "2026-10-23: a line opens only when its protocol is signed and somebody is trained on that version, " +
       "recorded in the portal; roof stays exactly as it is. The chat applies it with apply_migration, development " +
       "first, from docs/production-sitting-0084-a-line-opens-only-when-trained.md. The branch merges only after " +
