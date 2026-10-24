@@ -32,7 +32,7 @@ await db.exec(SUPABASE_REPLAY_STUBS);
 const DIR = "supabase/migrations";
 const files = readdirSync(DIR).filter((f) => f.endsWith(".sql")).sort();
 for (const f of files) await db.exec(readSource(join(DIR, f)));
-check("every migration replays, 0082 included", files.at(-1).startsWith("0082_"), files.at(-1));
+check("every migration replays, 0082 included", files.some((f) => f.startsWith("0082_")), `${files.length} files, last ${files.at(-1)}`);
 
 const ENG = "00000000-0000-4000-8000-0000000000e1";
 const OTHER = "00000000-0000-4000-8000-0000000000e4";

@@ -233,9 +233,15 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * columns and eng_seal_acts.addendum_id; 92 tables to 93; shape
  * a258e26388bae4c58539ea5325416d62, read off fingerprint-at.mjs with 0081
  * reproducing its recorded pair first.
+ *
+ * Moved 2026-10-22 by 0083, a permit letter records its option and schedule,
+ * by operator ruling that day from the engineer's email: 1,278 to 1,280 is
+ * eng_determinations.letter_option and letter_conditions; no new table; shape
+ * a4bbde8cac7f216a582875f8ff8d1e01, read off fingerprint-at.mjs with 0082
+ * reproducing its recorded pair first.
  */
-const EXPECTED_FINGERPRINT = "a258e26388bae4c58539ea5325416d62";
-const EXPECTED_COLUMNS = 1278;
+const EXPECTED_FINGERPRINT = "a4bbde8cac7f216a582875f8ff8d1e01";
+const EXPECTED_COLUMNS = 1280;
 const EXPECTED_TABLES = 93;
 /* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts.
  * 0074 adds two: eng_partner_billing_touch and eng_partner_billing_events_immutable.
@@ -244,8 +250,9 @@ const EXPECTED_TABLES = 93;
  * immutable triggers on eng_contact_log, eng_refund_requests, eng_refund_decisions and
  * eng_refund_approval_limits. Read back on development by the chat the same day, five rows.
  * 0081 adds one, by operator ruling 2026-10-22: eng_seal_acts_void_closes_its_protocol.
- * 0082 adds two, by operator ruling the same day: eng_scope_addenda_text and eng_scope_addenda_append_only. */
-const EXPECTED_TRIGGERS = 88;
+ * 0082 adds two, by operator ruling the same day: eng_scope_addenda_text and eng_scope_addenda_append_only.
+ * 0083 adds one, by operator ruling the same day: eng_determinations_conditions_are_written. */
+const EXPECTED_TRIGGERS = 89;
 /**
  * 0014 added eng_freeze_attribution and 0019 added two more, the partner
  * entry freeze and its delete refusal, which are trigger functions like the
@@ -285,8 +292,12 @@ const EXPECTED_TRIGGERS = 88;
  * trigger that writes an addendum's text and hash), eng_record_addendum_signature
  * (the one door an addendum signature comes in by) and eng_design_pay (what a
  * design quote pays, from a live signed addendum). The three it replaces
- * (check, guard, audit) are not new rows. */
-const EXPECTED_FUNCTIONS = 54;
+ * (check, guard, audit) are not new rows.
+ * 55 since 0083, by operator ruling 2026-10-22: eng_determination_conditions_are_written,
+ * the trigger refusing a blank condition in a permit letter's schedule. 0083
+ * replaces eng_record_review_decision with the same signature, which is not a
+ * new row. */
+const EXPECTED_FUNCTIONS = 55;
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
