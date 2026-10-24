@@ -3109,6 +3109,28 @@ export const APPLIED = [
     fingerprint: "6a355ef867ca1021391067a84f44f34b",
     behaviour: "faa068eaef15179f26a3054685a888ba",
     production: null,
+    development: {
+      at: "0086",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-24",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-24 by the operator's chat counterpart through apply_migration, provider " +
+        "version 20261024061654, name 0086_an_approval_by_phone_is_its_own_kind, with no writers shard running. " +
+        "The file was read in full at 104be59, sha256 " +
+        "5d8a72e8ca51a62c4cd8952a279097963ad715ed339ba1d8ccfe197d97f050fe; the statement stored in " +
+        "supabase_migrations reads back as sha256 " +
+        "2333c1f468fa2e0ccf6cc125b73668db54b6c9c67961dcb8b237c463f297a91c, the file without its trailing newline. " +
+        "Checked first: eng_certifications has template_id, status, certified_at and revoked_at, a unique " +
+        "(profile_id, service_slug) for the door's on conflict, and a status check admitting certified. Section 0: " +
+        "shape cbf3b1702865427a65466b11c900b4e1 across 1317; eng_training_confirmations absent; no channel column; " +
+        "0 decisions. Section 2: shape 6a355ef867ca1021391067a84f44f34b across 1328; no channel rows, there being " +
+        "no decisions; eng_training_decisions_channel_ck and eng_training_decisions_channel_shape_ck present; RLS " +
+        "on eng_training_confirmations; eng_confirmation_check(), " +
+        "eng_record_relayed_training_approval(uuid,uuid,date,text,uuid,uuid,timestamp with time zone) and " +
+        "eng_relayed_decision_check() present. Every answer as predicted.",
+    },
     proves: { table: "eng_training_confirmations" },
     note:
       "Both figures read off scripts/fingerprint-at.mjs at 0086 on 2026-10-24, with 0085 reproducing its " +
@@ -3117,7 +3139,7 @@ export const APPLIED = [
       "1242 facts. No drop statement. Additive: the channel defaults to portal, so every existing decision and " +
       "every one the deployed code writes stays a portal decision.",
     because:
-      "WRITTEN 2026-10-24 ON feat/relayed-approval, AND APPLIED NOWHERE. Operator ruling of 2026-10-23 21:56 CT: " +
+      "WRITTEN 2026-10-24 ON feat/relayed-approval; ON DEVELOPMENT (version 20261024061654), NOT ON PRODUCTION. Operator ruling of 2026-10-23 21:56 CT: " +
       "the engineer of record approved the owner as field technician on every line whose protocol he has signed, " +
       "by phone, relayed by the owner; recorded as its own kind, never as an approval from his session, with a " +
       "place for his written confirmation, and counted as approved by eng_line_is_trained. The chat applies it " +
