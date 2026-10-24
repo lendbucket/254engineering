@@ -200,7 +200,10 @@ jobs:
             sampler=$!
           fi
           set +e
+          # Each board run its own sign in bucket on development (Robert, 2026-10-23):
+          # every Node process of the shard sends the run id to its own server.
           env -u CI -u GITHUB_ACTIONS AUDIT_SHARD="${{ matrix.shard }}" AUDIT_PREBUILT=1 AUDIT_LOG_DIR="$RUNNER_TEMP/board/server" \
+            BOARD_RUN_ID="${{ github.run_id }}" NODE_OPTIONS="--import ${{ github.workspace }}/scripts/ci/board-run-header.mjs" \
             node scripts/audit.mjs > "$RUNNER_TEMP/board/suite.log" 2>&1
           echo $? > "$RUNNER_TEMP/board/exit"
           if [ "$RUNNER_OS" = "Linux" ]; then

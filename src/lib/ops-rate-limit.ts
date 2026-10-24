@@ -1,4 +1,5 @@
 import "server-only";
+import { DEVELOPMENT_REF, refOf } from "./db-guard";
 
 /**
  * Sign in rate limiting.
@@ -298,7 +299,21 @@ export function takeResetAttempt(
   return byConnection.count <= RESET_ATTEMPTS_PER_HOUR;
 }
 
-export function clientKey(headers: Headers): string {
+/*
+ * EACH CLOUD BOARD RUN HAS ITS OWN BUCKET, ON DEVELOPMENT ONLY. Robert's ruling
+ * of 2026-10-23: CI runners call localhost and send no x-forwarded-for, so
+ * every board's sign ins counted in one "unknown" bucket, and five boards at
+ * once 429'd a sixth (main board 40035266531). The limiter is not loosened.
+ * The board sets this header from its run id (scripts/ci/board-run-header.mjs);
+ * it is honoured only when the database this counts in is development, and
+ * only as digits, so on production, or with any other value, the key is
+ * exactly what it was.
+ */
+export const BOARD_RUN_HEADER = "x-254-board-run";
+
+export function clientKey(headers: Headers, env: { SUPABASE_URL?: string } = { SUPABASE_URL: process.env.SUPABASE_URL }): string {
+  const boardRun = headers.get(BOARD_RUN_HEADER);
+  if (boardRun && /^\d{6,20}$/.test(boardRun) && refOf(env.SUPABASE_URL) === DEVELOPMENT_REF) return `board:${boardRun}`;
   const forwarded = headers.get("x-forwarded-for");
   if (forwarded) return forwarded.split(",")[0]!.trim();
   return headers.get("x-real-ip") ?? "unknown";
