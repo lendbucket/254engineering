@@ -14,7 +14,8 @@
 
 | Phase | State |
 | --- | --- |
-| 1, inventory | **Running**, read only, against main `1a30178`: routes and roles; money, Stripe, sealing and letter doors; email, SMS and jobs; API routes and server actions with their caller checks. Written to `docs/audit-2026-10-24.md` and committed here before Phase 2. |
+| 1, inventory | **Done.** `docs/audit-2026-10-24.md`, from main `1a30178`: 114 pages with the role each lets in; 19 money doors, every Stripe call and the one webhook, 8 sealing and letter doors; 31 email templates, no SMS path, 12 notification kinds, 3 crons and 13 job kinds; 77 API routes. **No server actions exist**, so the routes are the whole perimeter. 46 flags raised by the inventory passes, each a claim until Phase 3 confirms it. |
+| 3, first results (unconfirmed) | The latent sweeps have reported; confirmation against the source comes next, before anything is counted. The heaviest claims: **a bulk-paid order cannot be refunded** (the batch's charge row has no order, so a refusal tells the customer nothing was charged); **agreed-price bulk orders are charged at the agreed price but invoiced and shown at the published one**; a partner billing event can be lost on retry; commission months, licence and insurance expiry, and credential expiry are judged on the UTC day. Anything that changes what a letter says (protocol version, visit date, attachments, preview against sealed text) goes to Robert, not fixed. |
 | 2, drive it | Waits for Phase 1. **How it runs, under the standing rules:** it signs probes in and writes on development, so it runs only when no cloud board is in its writers shard (the shared sign in bucket and the development rows those proofs count), with the machine lock and 12 GB free for the local server, paced, one role at a time. |
 | 3, latent sweep | Read only; may run beside boards. |
 | 4, production read only | Page fetches through Playwright (curl meets the bot checkpoint), paced. |
