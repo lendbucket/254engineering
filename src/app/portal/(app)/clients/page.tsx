@@ -231,6 +231,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
         sorts={[{ value: "added", label: "Added" }, { value: "name", label: "Name" }]}
         sort={query.sort}
         direction={query.ascending ? "asc" : "desc"}
+        csvHref={listHref("/api/portal/clients/export", { q: params.q, kind: params.kind, sort: params.sort, dir: params.dir }, {})}
       />
       <Panel
         title={

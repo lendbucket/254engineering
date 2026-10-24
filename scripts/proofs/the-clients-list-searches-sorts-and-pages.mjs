@@ -48,6 +48,14 @@ check("the screen reads one query and hands it to the list and the count", /cons
 check("it offers search, a filter and a sort, and pages over the matching count", /<ListControls/.test(page) && /<Pager page=\{query\.page\} pageSize=\{CLIENT_PAGE_SIZE\} total=\{total\}/.test(page));
 check("and no longer says search and paging are not built", !/Search and paging for the rest are/.test(page));
 
+/* The CSV: every matching client or no file. */
+const exp = readFileSync("src/app/api/portal/clients/export/route.ts", "utf8");
+check("the export reads the screen's own query and asks the screen's grant", /clientListQuery\(\{ q: params\.q, kind: params\.kind, sort: params\.sort, dir: params\.dir \}\)/.test(exp) && /can\(actor, "clients\.list"\)/.test(exp));
+check("it reads every page and refuses unless the rows equal the exact count", /for \(let offset = 0; offset < total; offset \+= PAGE\)/.test(exp) && /if \(rows\.length !== total\) \{\s*return bad\(/.test(exp));
+check("an uncounted total makes no file rather than an empty one", /if \(total === null\) return bad\(/.test(exp));
+check("the screen offers it with its own search, kind and sort", /csvHref=\{listHref\("\/api\/portal\/clients\/export", \{ q: params\.q, kind: params\.kind, sort: params\.sort, dir: params\.dir \}, \{\}\)\}/.test(page));
+check("and security-audit declares the route", /"\/api\/portal\/clients\/export",/.test(readFileSync("scripts/security-audit.mjs", "utf8")));
+
 console.log("");
 if (wrong === 0) {
   console.log("PASS: the clients list searches, filters, sorts and pages, and its count is of the clients that match.");
