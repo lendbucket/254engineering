@@ -7,6 +7,7 @@ import { payLedger, techRoster } from "@/lib/ops-field";
 import { canonicalCounty } from "@/lib/ops-counties";
 import { services } from "@/content/services";
 import { Chip, EmptyState, PageHead, Panel } from "@/components/portal/surfaces";
+import { PhoneLink } from "@/components/portal/PhoneLink";
 import { CoverageMap } from "@/components/portal/CoverageMap";
 import { BaseForm, LedgerActions } from "./TechsClient";
 import { VerificationQueue } from "./VerificationQueue";
@@ -144,7 +145,7 @@ export default async function TechsPage() {
                         </p>
                         <p className="mt-0.5 text-[14px] text-[var(--secondary)]">
                           {tech.email}
-                          {tech.phone ? `, ${tech.phone}` : ""}
+                          {tech.phone ? <>, <PhoneLink phone={tech.phone} /></> : ""}
                         </p>
                       </div>
                       <Chip
