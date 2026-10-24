@@ -42,7 +42,14 @@
  * line has a protocol" vacuously and open the gate over nothing, and a mistyped
  * slug would offer a line that does not exist while reading as covered.
  */
-export const offeredServiceLines: string[] = ["roof-inspections"];
+/*
+ * Foundation certification and the structural letter for permit join roof on
+ * Robert's ruling of 2026-10-23, both at $709 (src/config/prices.ts). Offering
+ * is one act of two: each still sells only when its protocol is signed in force
+ * and somebody is trained on that version (line-gate.ts, 0084, 0086), and
+ * their letters seal from his own session.
+ */
+export const offeredServiceLines: string[] = ["roof-inspections", "foundation-inspections", "structural-letters"];
 
 /**
  * ===========================================================================

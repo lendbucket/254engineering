@@ -27,9 +27,18 @@ import type { Instrumentation } from "next";
  */
 export const onRequestError: Instrumentation.onRequestError = async (err, request, context) => {
   try {
-    const { captureError } = await import("@/lib/ops-observability");
+    /*
+     * ONLY IN THE NODE RUNTIME. ops-observability reaches node:crypto through
+     * ops-mfa and totp.ts, and an import here with no runtime test is bundled
+     * for the Edge runtime too, where it does not compile: on 2026-10-23 that
+     * stopped a live-mode dev server from starting (main board 40035266531,
+     * ruled intermittent). The literal comparison lets the bundler drop the
+     * import from the Edge build. An Edge failure is still sent to Sentry below.
+     */
+    if (process.env.NEXT_RUNTIME === "nodejs") {
+      const { captureError } = await import("@/lib/ops-observability");
 
-    await captureError(err, {
+      await captureError(err, {
       /*
        * routePath, not the request path. "/portal/files/[id]" is one fault
        * whatever id it happened on; the concrete path would fingerprint every
@@ -53,7 +62,8 @@ export const onRequestError: Instrumentation.onRequestError = async (err, reques
             ? String((err as { digest: unknown }).digest)
             : undefined,
       },
-    });
+      });
+    }
 
     const { sentryConfigured } = await import("@/lib/sentry-config");
     if (sentryConfigured()) {
