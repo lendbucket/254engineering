@@ -6,9 +6,18 @@
 | --- | --- |
 | Ruling 2 with item 1 | **MERGED.** Board `40121946113` on `a6bf61d`: 61 of 61, zero FAIL, as predicted; `a-stalled-database-is-said-not-hidden` passed. Main `1a30178` (parents `35ba295`, `a6bf61d`, tree identical to the boarded commit), `[skip ci]`, exact push, ls-remote confirmed. The merge message names the four proof checks for the three conditions. Posted on issue #1 for the chat to verify /order live. |
 | Sign-in key (`fix/ci-board-sign-in-key` at **`0896a28`**, main `1a30178` merged) | **Prediction, stated before pushing: 61 of 61, zero FAIL, no COULD NOT TELL.** BACKLOG.md conflicted: both entries kept, and the sign-in entry's lead now states the BOARD_RUN_ID design. Readers on `0896a28`: soc2 63, backlog 12, the sign-in bucket proof, the instrumentation proof, all green; range dash check 0 long dashes in 184 added lines. The browser sign-in half is mobile-overflow-audit, a writer, measured only in the cloud. |
-| 0088 branch | waits for the sign-in key |
-| Piece 2 with 3a, 3b | waits |
-| List branch | waits |
+| 0088 branch (`feat/letter-adoption` at **`b3da264`**, main `1a30178` merged) | Ready, boards after the sign-in key. BACKLOG: the 0088 entry corrected to the narrowed migration; the 0086 open entry dropped (on production, ledger `21f5186`). Readers: migration 144, schema-ledger 32, backlog, compliance 118, soc2 63, the 0088, fresh-second-factor and three-letters proofs, every static shard audit (map-markup and registry crash here, as on main; security-audit's live half needs a server). 0 long dashes in 1460 added lines. |
+| Piece 2 with 3a, 3b (`merge/ordering-copy-on-main-1` at **`946bf9b`**) | Ready, boards after 0088. **Found integrating:** 3a prints every /order row's published price through `PublishedPrice`, which read orderable from configuration alone, so an unsigned FC or PL row would show a quote button beside a price that did not say it was quoted. Fixed in the merge: the component takes the door's answer (shut only) and /order passes each row's. Gate proof 35 PASS; injections read for which check went red (page: the source check only; component: the rendered sentence only). Title conflict was capitalisation only; main's sentence case kept. Readers: static set, compliance, soc2, FC/PL review and instrumentation proofs; tsc clean; 0 long dashes in 895 lines. |
+| List branch (`feat/office-ready-lists`, main `1a30178` merged clean) | Ready, boards last. Readers: static set, compliance, soc2, security (static half), all eight list proofs; tsc clean; 0 long dashes in 1331 lines. |
+
+## Robert's brute force audit, 18:24 Central (runs beside the queue; the queue's boards go first)
+
+| Phase | State |
+| --- | --- |
+| 1, inventory | **Running**, read only, against main `1a30178`: routes and roles; money, Stripe, sealing and letter doors; email, SMS and jobs; API routes and server actions with their caller checks. Written to `docs/audit-2026-10-24.md` and committed here before Phase 2. |
+| 2, drive it | Waits for Phase 1. **How it runs, under the standing rules:** it signs probes in and writes on development, so it runs only when no cloud board is in its writers shard (the shared sign in bucket and the development rows those proofs count), with the machine lock and 12 GB free for the local server, paced, one role at a time. |
+| 3, latent sweep | Read only; may run beside boards. |
+| 4, production read only | Page fetches through Playwright (curl meets the bot checkpoint), paced. |
 
 ## Robert's rulings of 2026-10-24, 11:24 Central ("1-5 yes"), worked in order
 
