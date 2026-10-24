@@ -4,6 +4,24 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
+## THE SITTING FOR 0085, A LETTER STATES ONLY RECORDED FACTS, OPEN
+
+`docs/production-sitting-0085-a-letter-states-only-recorded-facts.md`. Written
+2026-10-23 on `feat/fc-pl-records` under ruling 7: the facts the foundation and
+permit letters print, the engineer's triage and his added capture items.
+Queued for the chat's development sitting after 0084, then the board, then
+production.
+
+## THE ENGINEER'S ADDED CAPTURE ITEMS ARE SHOWN, NOT YET CAPTURED AGAINST, OPEN
+
+Ruling PL-5 (2026-10-23): the capture list starts as PL-001's items and he may
+add items at triage. The items are recorded (0085) and shown to the technician
+above the checklist, but evidence attaches to a protocol item, so a photograph
+cannot yet be filed against an added item, and the checklist's completeness
+does not count them. Making them capture items needs evidence to carry a file
+level item as well as a protocol one, a migration and a change to the capture
+screen and its gate, which is a change to dispatch for a ruling.
+
 ## THE SITTING FOR 0084, A LINE OPENS ONLY WHEN TRAINED, OPEN
 
 `docs/production-sitting-0084-a-line-opens-only-when-trained.md`. Written
@@ -12,6 +30,16 @@ training and the engineer's decision on it, a backfill of the interim events
 of 2026-10-07 onward, and `eng_line_is_trained`, which the money door now asks
 of every line opened by a portal signature; roof's path is unchanged. Queued
 for the chat's development sitting after 0083, then the board, then production.
+## THE FOUNDATION AND PERMIT LETTERS, NINE POINTS FOR A RULING, OPEN
+
+`docs/fc-pl-letters-open-points.md`. Written 2026-10-23 on
+`feat/fc-pl-letters`. Determination recording for 254-FC-001 and 254-PL-001 is
+built; sealing either letter is not, because his templates name facts the
+platform does not hold or a mapping nobody has ruled: four for FC (which
+determination is option C, recipient and purpose at intake, foundation type,
+the method for a crawlspace) and five for PL (permit number and authority
+apart, the authority's address, the element described, the visit or desk
+triage record, and the documents schedule with his per job capture list).
 
 ## THE SITTING FOR 0080, THE SIGNED SOURCES GO PRIVATE, OPEN
 

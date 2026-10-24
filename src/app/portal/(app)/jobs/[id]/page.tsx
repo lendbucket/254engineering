@@ -10,6 +10,7 @@ import { STATUS_LABEL, type FileStatus } from "@/lib/ops-files";
 import { PageHead } from "@/components/portal/surfaces";
 import { Checklist, RepairList } from "./CaptureClient";
 import { FileThreadButton } from "@/components/portal/FileThreadButton";
+import { captureAdditionsFor } from "@/lib/letter-facts";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +36,9 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
       .filter(Boolean)
       .join(", "),
   );
+
+  /* PL-5: the engineer's added capture items, on a permit letter job. */
+  const additions = view.file.service_slug === "structural-letters" ? await captureAdditionsFor(view.file.id) : null;
 
   /* The photograph items that also take a written answer, from the signed document. */
   const photoAnswers = photoAnswersFor(view.protocol?.document_number ?? null);
@@ -119,6 +123,27 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
         }))}
         captures={view.captures.map((c) => ({ id: c.id, itemKey: c.item_key }))}
       />
+
+      {/*
+        * THE ENGINEER'S OWN ITEMS FOR THIS JOB, in his words. PL-5, operator
+        * ruling 7 of 2026-10-23: the capture list starts as the protocol's items
+        * and he may add to it at triage. Shown above the checklist for the same
+        * reason the repair list is: it is why this job differs from the last.
+        */}
+      {additions && additions.ok && additions.items.length > 0 ? (
+        <div className="mb-6 border-t-2 border-[var(--ink)] pt-3">
+          <p className="portal-label">The engineer also asks for</p>
+          <ul className="mt-1.5 flex max-w-[70ch] list-disc flex-col gap-1 pl-5 text-[14px] leading-[1.55] text-[var(--ink)]">
+            {additions.items.map((a) => (
+              <li key={a.id}>{a.label}</li>
+            ))}
+          </ul>
+        </div>
+      ) : additions && !additions.ok ? (
+        <p role="alert" className="mb-6 text-[14px] text-[var(--ink)]">
+          The engineer&apos;s added items for this job could not be read: {additions.error}. Reload before you start.
+        </p>
+      ) : null}
 
       {view.protocol ? (
         <Checklist

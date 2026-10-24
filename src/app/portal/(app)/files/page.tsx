@@ -10,6 +10,8 @@ import { outstandingFor, answeredFor, answersFor } from "@/lib/ops-file-inputs";
 import { FILE_DETAIL_FIELDS } from "@/lib/file-detail-fields";
 import { ContactLogPanel } from "@/components/portal/ContactLog";
 import { FileDetailsForm, ReleaseTechnician } from "./DeskFileClient";
+import { AuthorityDetailsForm } from "@/components/portal/LetterFactsPanels";
+import { recordedFactsFor } from "@/lib/letter-facts";
 import { services } from "@/content/services";
 import { EmptyState, PageHead, Panel } from "@/components/portal/surfaces";
 import { FileSelection } from "./FileSelection";
@@ -64,6 +66,11 @@ export default async function FilesPage({
   /* The contact, access and scheduling answers, for the details form (files.update_details, 2026-10-20). */
   const answers = selected && can(actor, "files.update_details") ? await answersFor(selected.id) : {};
   const detailValues = Object.fromEntries(FILE_DETAIL_FIELDS.map((f) => [f.id, answers[f.id] ?? ""]));
+  /* PL-2, ruling 7 of 2026-10-23: the office records the authority's address and salutation on a permit letter file. */
+  const permitLetterFacts =
+    selected && selected.service_slug === "structural-letters" && can(actor, "files.update_details")
+      ? await recordedFactsFor(selected.id)
+      : null;
 
   /*
    * The margin, from the one function that knows what a margin is.
@@ -474,6 +481,22 @@ export default async function FilesPage({
           <div className="mt-8 print:hidden">
             <p className="portal-label">Contact, access and scheduling</p>
             <FileDetailsForm fileId={selected.id} values={detailValues} />
+          </div>
+        ) : null}
+
+        {selected.service_slug === "structural-letters" && can(actor, "files.update_details") ? (
+          <div className="mt-8 print:hidden">
+            <p className="portal-label">The permitting authority, for the letter</p>
+            {permitLetterFacts ? (
+              <AuthorityDetailsForm
+                fileId={selected.id}
+                authorityName={answers.authority_name ?? null}
+                address={permitLetterFacts.authority_address?.value ?? null}
+                salutation={permitLetterFacts.authority_salutation?.value ?? null}
+              />
+            ) : (
+              <p className="mt-2 text-[14px] text-[var(--ink)]">The authority&apos;s details could not be read just now. Reload the page; nothing was changed.</p>
+            )}
           </div>
         ) : null}
 

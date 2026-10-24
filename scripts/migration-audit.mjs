@@ -246,9 +246,16 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * 79a8143e24f29af96b2a26573efd8803, read off fingerprint-at.mjs with 0083
  * reproducing its recorded pair first.
  */
-const EXPECTED_FINGERPRINT = "79a8143e24f29af96b2a26573efd8803";
-const EXPECTED_COLUMNS = 1299;
-const EXPECTED_TABLES = 95;
+/*
+ * Moved 2026-10-23 by 0085, a letter states only recorded facts, by operator
+ * ruling 7 that day: 1,299 to 1,317 is eng_letter_facts' seven columns,
+ * eng_job_triage's six and eng_job_capture_additions' five; 95 tables to 98;
+ * shape cbf3b1702865427a65466b11c900b4e1, read off fingerprint-at.mjs with
+ * 0084 reproducing its recorded pair first.
+ */
+const EXPECTED_FINGERPRINT = "cbf3b1702865427a65466b11c900b4e1";
+const EXPECTED_COLUMNS = 1317;
+const EXPECTED_TABLES = 98;
 /* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts.
  * 0074 adds two: eng_partner_billing_touch and eng_partner_billing_events_immutable.
  * 0075 adds one: eng_payment_events_guarded.
@@ -260,8 +267,10 @@ const EXPECTED_TABLES = 95;
  * 0083 adds one, by operator ruling the same day: eng_determinations_conditions_are_written.
  * 0084 adds two, by operator ruling 2026-10-23: eng_training_records_append_only and
  * eng_training_decisions_append_only; and, by ruling the same morning, eng_profiles_keep_trained,
- * refusing to delete a trained profile off the probe domain. Three in all. */
-const EXPECTED_TRIGGERS = 92;
+ * refusing to delete a trained profile off the probe domain. Three in all.
+ * 0085 adds three, by operator ruling 7 of 2026-10-23: the append only guards on
+ * eng_letter_facts, eng_job_triage and eng_job_capture_additions. */
+const EXPECTED_TRIGGERS = 95;
 /**
  * 0014 added eng_freeze_attribution and 0019 added two more, the partner
  * entry freeze and its delete refusal, which are trigger functions like the

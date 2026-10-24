@@ -1,5 +1,5 @@
-import { protocolByDocument, type ProtocolEntry, type ProtocolChecklistItem } from "@/content/protocols";
-import { structuredDeclaration } from "@/content/protocols/structured";
+import { protocolByDocument, type ProtocolEntry, type ProtocolChecklistItem, type DeterminationRule } from "@/content/protocols";
+import { STRUCTURED_DECLARATIONS, structuredDeclaration } from "@/content/protocols/structured";
 
 /*
  * ONE PROTOCOL TO MANY, 2026-10-06. Every function here takes the protocol it
@@ -244,6 +244,49 @@ function checklistItemRows(checklist: readonly ChecklistItem[]): ProtocolItemRow
 export function protocolItemRowsFor(documentNumber: string | null): ProtocolItemRow[] | null {
   const protocol = protocolByDocument(documentNumber);
   return protocol ? protocolItemRows(protocol) : null;
+}
+
+/**
+ * THE PROTOCOLS REVIEWED UNDER THEIR PORTAL SIGNATURE, NOT THE REGISTRY.
+ * Operator ruling of 2026-10-23: determination recording for 254-FC-001 and
+ * 254-PL-001, so a review of a file worked to either records one of the five
+ * Appendix C determinations with what it rested on, exactly as 254-RC-001 does.
+ * Named here rather than derived from STRUCTURED_DECLARATIONS, because each
+ * line enters review by a ruling: the other five signed protocols stay out
+ * until somebody rules them in.
+ */
+export const REVIEWED_UNDER_SIGNATURE = ["254-FC-001", "254-PL-001"] as const;
+
+/** Appendix C as a review reads it: the five determinations, verbatim from the declaration. */
+export type GoverningDeclaration = {
+  documentNumber: string;
+  determinations: readonly DeterminationRule[];
+};
+
+/**
+ * WHICH SIGNED PROTOCOL GOVERNS A REVIEW, AND ITS APPENDIX C, or null.
+ *
+ * 254-RC-001 governs from the registry, as it always has. A protocol in
+ * REVIEWED_UNDER_SIGNATURE governs only while the file's protocol row is
+ * PUBLISHED, which since 0081 means a live signature put it in force: a draft
+ * or voided row has no Appendix C anybody signed, and a review of it is not
+ * forced through one. The structured declaration must be the only one carrying
+ * that document, so a second version arriving cannot silently pick the wrong
+ * text; until one is ruled on, the answer is null.
+ */
+export function governingDeclaration(documentNumber: string | null, protocolStatus: string | null): GoverningDeclaration | null {
+  if (!documentNumber) return null;
+  const registered = protocolByDocument(documentNumber);
+  if (registered) return { documentNumber, determinations: registered.declaration.determinations };
+  if (!(REVIEWED_UNDER_SIGNATURE as readonly string[]).includes(documentNumber)) return null;
+  if (protocolStatus !== "published") return null;
+  const carrying = STRUCTURED_DECLARATIONS.filter((d) => d.documentNumber === documentNumber);
+  if (carrying.length !== 1) return null;
+  /*
+   * The same five keys and the same shape as RC-001's: the transcription
+   * keeps Appendix C's words exactly, and protocol-registry-audit proves them.
+   */
+  return { documentNumber, determinations: carrying[0].determinations as unknown as readonly DeterminationRule[] };
 }
 
 /**
