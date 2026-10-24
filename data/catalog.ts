@@ -95,12 +95,19 @@ export type RequiredInput = {
   id: string;
   label: string;
   help: string;
-  kind: "file" | "text" | "date" | "choice";
+  kind: "file" | "text" | "date" | "choice" | "number";
   required: boolean;
   /** For kind "choice". */
   options?: string[];
   /** For kind "file". Stated to the customer rather than enforced silently. */
   accepts?: string;
+  /**
+   * When the field must be answered: to take the job ("order", the default)
+   * or only before sealing ("seal"). A catalog field that rewords a universal
+   * one keeps that one's stage, so a ruling about wording never moves a fact
+   * from "ask later" to "refuse the order without it".
+   */
+  stage?: "order" | "seal";
 };
 
 export type CatalogEntry = {
@@ -572,6 +579,57 @@ const DECLARED: CatalogDeclaration[] = [
         kind: "text",
         required: false,
       },
+      /*
+       * FC-2, operator ruling 7 of 2026-10-23: the letter's purpose and
+       * recipient, worded as RC-001's intake words them (the customer facing
+       * labels in data/protocol-phrasing.ts for rc001_q1 and rc001_q2). Firm
+       * intake, not his protocol. The ids override the universal `reason` and
+       * `addressed_to` for this line, which is how a catalog field wins.
+       */
+      {
+        id: "reason",
+        label: "What is the letter for? Tell us in your own words, for example insurance, a home sale, a lender or a permit.",
+        help: "The letter is written for this purpose and no other.",
+        kind: "text",
+        required: true,
+      },
+      {
+        id: "addressed_to",
+        label: "Who should the letter be addressed to?",
+        help: "The insurer, buyer, lender or city, exactly as it should appear on the letter.",
+        kind: "text",
+        required: true,
+        /* The universal addressee's stage, kept: FC-2 rules the wording, and the staging ruling stands. */
+        stage: "seal",
+      },
+      /*
+       * FC-3: FC-001's one combined question ("Year built; foundation type;
+       * year of any prior foundation repair") asked as three structured
+       * fields. The engineer confirms or corrects the foundation type at
+       * review, and the confirmed value is what prints (0085).
+       */
+      {
+        id: "foundation_type",
+        label: "What kind of foundation does the house have?",
+        help: "The engineer confirms it from the evidence, so your best answer is enough.",
+        kind: "choice",
+        options: ["slab-on-grade", "pier-and-beam", "crawlspace"],
+        required: true,
+      },
+      {
+        id: "year_built",
+        label: "What year was the house built?",
+        help: "If you know it. It changes which crack widths the engineer treats as normal.",
+        kind: "number",
+        required: false,
+      },
+      {
+        id: "prior_repair_year",
+        label: "If the foundation has been repaired before, what year?",
+        help: "Leave it empty if it has never been repaired.",
+        kind: "number",
+        required: false,
+      },
     ],
     turnaround:
       "The visit is scheduled once a technician accepts. The engineer's review begins when the evidence is complete.",
@@ -738,7 +796,45 @@ const DECLARED: CatalogDeclaration[] = [
       {
         id: "question_text",
         label: "What the permitting authority asked for",
-        help: "The building department's request in its own words, and the permit number if there is one.",
+        help: "The building department's request in its own words.",
+        kind: "text",
+        required: true,
+      },
+      /*
+       * PL-1, operator ruling 7 of 2026-10-23: the authority and the permit
+       * number as separate fields, because the letter prints them apart.
+       */
+      {
+        id: "authority_name",
+        label: "Which city or county is the permit with?",
+        help: "The authority the letter is addressed to, as it names itself.",
+        kind: "text",
+        required: true,
+      },
+      {
+        id: "permit_number",
+        label: "What is the permit or application number?",
+        help: "Exactly as it appears on the permit or the application. Leave it empty if none has been issued.",
+        kind: "text",
+        required: false,
+      },
+      /*
+       * PL-3: the category from PL-001's own list, and beside it the element
+       * described in the customer's words. The engineer may correct the
+       * description at review, and the reviewed text is what prints (0085).
+       */
+      {
+        id: "element_category",
+        label: "What is the letter about?",
+        help: "The part of the building the authority is asking about.",
+        kind: "choice",
+        options: ["Beam", "Wall removal", "Deck", "Patio cover", "Framing", "Foundation", "Other"],
+        required: true,
+      },
+      {
+        id: "element_described",
+        label: "Describe the element the letter is about",
+        help: "For example: the new beam over the kitchen opening, or the deck on the back of the house.",
         kind: "text",
         required: true,
       },

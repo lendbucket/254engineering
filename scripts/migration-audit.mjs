@@ -227,18 +227,50 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * signed_by_seal_act_id and eng_seal_acts.letterhead_sha256; no new table;
  * shape d73cdd49ae5da6268743584229cb3b88, read off fingerprint-at.mjs with
  * 0080 reproducing its recorded pair first.
+ *
+ * Moved 2026-10-22 by 0082, a scope addendum is signed before design is paid,
+ * by operator rulings that day: 1,265 to 1,278 is eng_scope_addenda's twelve
+ * columns and eng_seal_acts.addendum_id; 92 tables to 93; shape
+ * a258e26388bae4c58539ea5325416d62, read off fingerprint-at.mjs with 0081
+ * reproducing its recorded pair first.
+ *
+ * Moved 2026-10-22 by 0083, a permit letter records its option and schedule,
+ * by operator ruling that day from the engineer's email: 1,278 to 1,280 is
+ * eng_determinations.letter_option and letter_conditions; no new table; shape
+ * a4bbde8cac7f216a582875f8ff8d1e01, read off fingerprint-at.mjs with 0082
+ * reproducing its recorded pair first.
+ *
+ * Moved 2026-10-23 by 0084, a line opens only when trained, by operator ruling
+ * that day: 1,280 to 1,299 is eng_training_records' eleven columns and
+ * eng_training_decisions' eight; 93 tables to 95; shape
+ * 79a8143e24f29af96b2a26573efd8803, read off fingerprint-at.mjs with 0083
+ * reproducing its recorded pair first.
  */
-const EXPECTED_FINGERPRINT = "d73cdd49ae5da6268743584229cb3b88";
-const EXPECTED_COLUMNS = 1265;
-const EXPECTED_TABLES = 92;
+/*
+ * Moved 2026-10-23 by 0085, a letter states only recorded facts, by operator
+ * ruling 7 that day: 1,299 to 1,317 is eng_letter_facts' seven columns,
+ * eng_job_triage's six and eng_job_capture_additions' five; 95 tables to 98;
+ * shape cbf3b1702865427a65466b11c900b4e1, read off fingerprint-at.mjs with
+ * 0084 reproducing its recorded pair first.
+ */
+const EXPECTED_FINGERPRINT = "cbf3b1702865427a65466b11c900b4e1";
+const EXPECTED_COLUMNS = 1317;
+const EXPECTED_TABLES = 98;
 /* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts.
  * 0074 adds two: eng_partner_billing_touch and eng_partner_billing_events_immutable.
  * 0075 adds one: eng_payment_events_guarded.
  * 0079 adds five, by owner ruling 2026-10-20 (the two staff roles): eng_prospects_touch and the
  * immutable triggers on eng_contact_log, eng_refund_requests, eng_refund_decisions and
  * eng_refund_approval_limits. Read back on development by the chat the same day, five rows.
- * 0081 adds one, by operator ruling 2026-10-22: eng_seal_acts_void_closes_its_protocol. */
-const EXPECTED_TRIGGERS = 86;
+ * 0081 adds one, by operator ruling 2026-10-22: eng_seal_acts_void_closes_its_protocol.
+ * 0082 adds two, by operator ruling the same day: eng_scope_addenda_text and eng_scope_addenda_append_only.
+ * 0083 adds one, by operator ruling the same day: eng_determinations_conditions_are_written.
+ * 0084 adds two, by operator ruling 2026-10-23: eng_training_records_append_only and
+ * eng_training_decisions_append_only; and, by ruling the same morning, eng_profiles_keep_trained,
+ * refusing to delete a trained profile off the probe domain. Three in all.
+ * 0085 adds three, by operator ruling 7 of 2026-10-23: the append only guards on
+ * eng_letter_facts, eng_job_triage and eng_job_capture_additions. */
+const EXPECTED_TRIGGERS = 95;
 /**
  * 0014 added eng_freeze_attribution and 0019 added two more, the partner
  * entry freeze and its delete refusal, which are trigger functions like the
@@ -273,8 +305,20 @@ const EXPECTED_TRIGGERS = 86;
  * the trigger function eng_void_closes_its_protocol, and the new signatures of
  * eng_record_protocol_signature and eng_record_letter_seal, which sit beside
  * 0062's (now refusing) as overloads. The count is of pg_proc rows, so an
- * overload is one more. */
-const EXPECTED_FUNCTIONS = 51;
+ * overload is one more.
+ * 54 since 0082, by operator ruling 2026-10-22: eng_scope_addendum_text (the
+ * trigger that writes an addendum's text and hash), eng_record_addendum_signature
+ * (the one door an addendum signature comes in by) and eng_design_pay (what a
+ * design quote pays, from a live signed addendum). The three it replaces
+ * (check, guard, audit) are not new rows.
+ * 55 since 0083, by operator ruling 2026-10-22: eng_determination_conditions_are_written,
+ * the trigger refusing a blank condition in a permit letter's schedule. 0083
+ * replaces eng_record_review_decision with the same signature, which is not a
+ * new row.
+ * 56 since 0084, by operator ruling 2026-10-23: eng_line_is_trained, what the
+ * money door asks of a line opened by a portal signature.
+ * 57 since 0084's guard, by ruling the same morning: eng_profile_keeps_its_training. */
+const EXPECTED_FUNCTIONS = 57;
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });

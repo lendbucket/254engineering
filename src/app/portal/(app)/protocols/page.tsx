@@ -10,6 +10,8 @@ import { protocolItemRowsFor } from "@/lib/protocol-run";
 import { SIGNABLE_PROTOCOLS } from "@/content/protocols/signable";
 import { signatureStatus } from "@/lib/protocol-sign";
 import { SignProtocolPanel } from "./SignProtocolPanel";
+import { SignAddendumPanel } from "./SignAddendumPanel";
+import { addendaFor } from "@/lib/scope-addendum";
 
 export const dynamic = "force-dynamic";
 
@@ -65,6 +67,8 @@ export default async function ProtocolsPage({
       status: await signatureStatus(protocol.documentNumber, protocol.version),
     })),
   );
+
+  const addenda = await addendaFor(actor!.id);
 
   const published = new Set(templates.filter((t) => t.status === "published").map((t) => t.service_slug));
   const uncovered = services.filter((s) => !published.has(s.slug));
@@ -139,6 +143,59 @@ export default async function ProtocolsPage({
             </li>
           ))}
         </ul>
+      </section>
+
+      {/*
+        THE SCOPE ADDENDA WAITING FOR HIS SIGNATURE. Operator ruling of
+        2026-10-22, migration 0082: a custom design job pays him 35% of its fee
+        only under an addendum he signs here, exactly as he signs a protocol.
+        The text is the database's own, written from the addendum's figures, so
+        what he reads is what is hashed and what pays.
+      */}
+      <section className="mb-8 border-t-2 border-[var(--ink)] pt-4">
+        <h2 className="text-[16px] font-semibold text-[var(--ink)]">Scope addenda for your signature</h2>
+        <p className="mt-1.5 max-w-[75ch] text-[14px] leading-[1.6] text-[var(--secondary)]">
+          A design job pays your share only under an addendum you have signed. Read it, then sign it with a fresh code.
+          Nothing is paid on a job whose addendum is unsigned.
+        </p>
+        {!addenda.ok ? (
+          <p role="alert" className="mt-3 text-[14px] leading-[1.6] text-[var(--ink)]">
+            {addenda.why}
+          </p>
+        ) : addenda.addenda.length === 0 ? (
+          <EmptyState title="No scope addenda" body="When a design job is quoted, its addendum appears here for you to read and sign." />
+        ) : (
+          <ul className="mt-3">
+            {addenda.addenda.map((a) => (
+              <li key={a.id} className="border-b border-[var(--row-rule)] py-3">
+                <p className="text-[14px] font-semibold text-[var(--ink)]">
+                  {a.addendum_text.split("\n").find((l) => l.startsWith("Job: "))?.slice(5) ?? a.quote_id}
+                </p>
+                <p className="mt-1 text-[14px] leading-[1.6] text-[var(--secondary)]">
+                  {a.signature.state === "signed" ? `Signed ${a.signature.signedAt.slice(0, 10)}.` : "Not signed."}
+                </p>
+                <div
+                  tabIndex={0}
+                  role="region"
+                  aria-label="The scope addendum's text"
+                  className="mt-2 border-y border-[var(--border)] bg-white py-3"
+                >
+                  {a.addendum_text.split("\n").map((line, i) => (
+                    <p key={i} className="text-[14px] leading-[1.55] text-[var(--ink)] [overflow-wrap:anywhere]">
+                      {line}
+                    </p>
+                  ))}
+                </div>
+                {a.signature.state === "unsigned" ? (
+                  <SignAddendumPanel
+                    addendumId={a.id}
+                    label={a.addendum_text.split("\n").find((l) => l.startsWith("Job: "))?.slice(5) ?? "this job"}
+                  />
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       {uncovered.length > 0 ? (

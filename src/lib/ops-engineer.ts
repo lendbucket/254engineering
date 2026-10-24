@@ -7,12 +7,15 @@ import { writeAudit } from "./ops-audit";
 import { can, type Actor, holdsLicence, licenceRefusal } from "./ops-authz";
 import { transitionFile } from "./ops-crm";
 import { jobView } from "./ops-field";
-import { protocolItemRowsFor } from "./protocol-run";
+import { governingDeclaration } from "./protocol-run";
 import type { Determination } from "@/content/protocols";
 import { isOpen } from "./launch";
 import { orderForFile as liveOrderForFile, orderForFileRead } from "./order-for-file";
 import { catalogFor, deliverablesFor } from "@data/catalog";
 import { engineerPayCents, tierForDeliverable, type PayTier } from "@/config/engineer-pay";
+import { designPayFor } from "./scope-addendum";
+import { structuralLetterVerdict } from "./structural-letter-verdict";
+import type { StructuralLetterOption } from "@/content/letters/structural-letter";
 import { randomUUID } from "node:crypto";
 import { canTransition, STATUS_TIMESTAMP, type FileStatus } from "./ops-files";
 import { effectModeFor } from "./fixture-identity";
@@ -264,6 +267,8 @@ export type PackageView = {
    * somebody typed.
    */
   protocolDocument: string | null;
+  /** The file's protocol row status: a protocol reviewed under its signature governs only while published. */
+  protocolStatus: string | null;
   items: EvidenceView[];
   complete: boolean;
   blockers: string[];
@@ -386,6 +391,7 @@ export async function packageFor(actor: Actor | null, fileId: string): Promise<P
     file: file as PackageView["file"],
     protocolName: view.protocol ? `${view.protocol.name} v${view.protocol.version}` : null,
     protocolDocument: view.protocol?.document_number ?? null,
+    protocolStatus: view.protocol?.status ?? null,
     items,
     ...(await completeness(fileId, view)),
     session: session
@@ -508,8 +514,32 @@ export async function openReview(
  * `eng_fee_schedule` keeps `tech_pay`, which is a different fact.
  */
 export type ProductionCredit =
-  | { ok: true; deliverable: string; tier: PayTier; cents: number }
+  | { ok: true; deliverable: string; tier: PayTier; cents: number; addendumId?: undefined }
+  /* A custom design job: no tier, his signed scope addendum's figure (0082, operator ruling 2026-10-22). */
+  | { ok: true; deliverable: string; tier: null; cents: number; addendumId: string }
   | { ok: false; reason: string };
+
+/** How a credit's figure was reached, for the ledger note: a tier, or the addendum that set it. */
+export function creditBasis(credit: { tier: PayTier | null; addendumId?: string }): string {
+  return credit.tier === null ? `scope addendum ${credit.addendumId}` : `tier ${credit.tier}`;
+}
+
+const DESIGN_SLUG = "residential-light-commercial-design";
+
+/**
+ * The option a 254-PL-001 determination records: the one the ruling's verdict
+ * accepted (C for repairs required, A or B as he chose on a pass), or null for
+ * a determination that produces no letter. Recording the verdict's option
+ * rather than the raw input keeps the row and the rule one answer.
+ */
+function letterOptionFor(determination: DeterminationInput): StructuralLetterOption | null {
+  const v = structuralLetterVerdict({
+    determination: determination.determination,
+    option: determination.letterOption ?? null,
+    conditions: determination.letterConditions ?? [],
+  });
+  return v.ok ? v.option : null;
+}
 
 /**
  * The credit for a decided review on this file. Exported for the proof that
@@ -546,6 +576,31 @@ export async function productionCreditFor(file: {
     };
   }
   const tier = tierForDeliverable(slug, deliverable);
+  if (tier === null && slug === DESIGN_SLUG) {
+    /*
+     * A CUSTOM DESIGN JOB IS PAID UNDER ITS SIGNED SCOPE ADDENDUM AND NOTHING
+     * ELSE. Operator rulings of 2026-10-22, migration 0082: 35% of the fee,
+     * and no figure without the engineer's signature. The addendum is on the
+     * design quote the job's order was converted from; a job with no quote, or
+     * no signed addendum on it, credits nothing and says why.
+     */
+    const read = await orderForFileRead(file.id, "id");
+    if (!read.ok) return { ok: false, reason: "the orders on this file could not be read, so its scope addendum cannot be found" };
+    const orderId = (read.order?.id as string | undefined) ?? null;
+    if (!orderId) return { ok: false, reason: "this design file has no order, so no quote and no scope addendum pays it" };
+    const db = supabaseAdmin();
+    if (!db) return { ok: false, reason: "the database is not configured, so the scope addendum could not be read" };
+    const { data: quote, error } = await db
+      .from("eng_quote_requests")
+      .select("id")
+      .eq("converted_order_id", orderId)
+      .maybeSingle();
+    if (error) return { ok: false, reason: `the design quote could not be read: ${error.message}` };
+    if (!quote) return { ok: false, reason: "this design job's order came from no quote, so no scope addendum pays it" };
+    const pay = await designPayFor(quote.id as string);
+    if (!pay.ok) return { ok: false, reason: pay.reason };
+    return { ok: true, deliverable, tier: null, cents: pay.cents, addendumId: pay.addendumId };
+  }
   if (tier === null) {
     return { ok: false, reason: `no pay tier is ruled for ${slug} (${deliverable})` };
   }
@@ -596,6 +651,14 @@ export type DeterminationInput = {
    * a list is the withholding with the reason left out.
    */
   repairRequirements: string[];
+  /**
+   * 254-PL-001 only, operator ruling of 2026-10-22 (0083): which of his three
+   * letter sentences, A pass with no conditions, B pass with the conditions
+   * listed, C repairs required, and the conditions for B in his words. Absent
+   * or null for every other protocol.
+   */
+  letterOption?: StructuralLetterOption | null;
+  letterConditions?: string[];
 };
 
 export async function decideReview(
@@ -663,7 +726,12 @@ export async function decideReview(
    * read from the protocol's document number, so the first day a second
    * protocol is registered, its files are covered with no change here.
    */
-  const governing = protocolItemRowsFor(pkg.protocolDocument) === null ? null : pkg.protocolDocument;
+  /*
+   * 254-FC-001 and 254-PL-001 govern too, under their portal signature, while
+   * the file's protocol row is published (operator ruling of 2026-10-23;
+   * governingDeclaration in protocol-run.ts says why it is named, not derived).
+   */
+  const governing = governingDeclaration(pkg.protocolDocument, pkg.protocolStatus) ? pkg.protocolDocument : null;
 
   if (governing && !determination) {
     return {
@@ -713,6 +781,24 @@ export async function decideReview(
         ok: false,
         error: `A repair list belongs to a determination of repairs-required, and this one is ${determination.determination}.`,
       };
+    }
+
+    /*
+     * THE STRUCTURAL LETTER'S OPTION AND SCHEDULE, judged before anything is
+     * written (operator ruling of 2026-10-22, 0083). The database holds the
+     * same rule and refuses a B with an empty schedule; asking here first says
+     * why in a sentence rather than a constraint name. Every other protocol
+     * carries neither field.
+     */
+    if (governing === "254-PL-001") {
+      const letter = structuralLetterVerdict({
+        determination: determination.determination,
+        option: determination.letterOption ?? null,
+        conditions: determination.letterConditions ?? [],
+      });
+      if (!letter.ok && letter.letter) return { ok: false, error: letter.why };
+    } else if (determination.letterOption || (determination.letterConditions ?? []).length > 0) {
+      return { ok: false, error: `A letter option and schedule belong to 254-PL-001, and this file is under ${governing}.` };
     }
 
     const implied = actionForDetermination(determination.determination);
@@ -858,6 +944,12 @@ export async function decideReview(
               relied_on_item_keys: determination.reliedOnItemKeys,
               relied_on_evidence_ids: determination.reliedOnEvidenceIds,
               note: determination.note?.trim() || null,
+              /* 0083: carried for 254-PL-001 only; the database refuses them on any other protocol. */
+              letter_option: governing === "254-PL-001" ? letterOptionFor(determination) : null,
+              letter_conditions:
+                governing === "254-PL-001"
+                  ? (determination.letterConditions ?? []).map((c) => c.trim()).filter((c) => c.length > 0)
+                  : [],
             }
           : null,
       repairs: governing && determination ? requirements : [],
@@ -868,7 +960,7 @@ export async function decideReview(
           ? {
               amount_cents: credit.cents,
               period: periodOf(now),
-              note: `${pkg.file.file_number}, ${action === "refuse" ? "declined to seal" : action}, tier ${credit.tier}`,
+              note: `${pkg.file.file_number}, ${action === "refuse" ? "declined to seal" : action}, ${creditBasis(credit)}`,
             }
           : null,
       job,
@@ -1034,7 +1126,7 @@ export async function creditUncreditedReviews(
       amount_cents: credit.cents,
       period: periodOf(new Date(s.ended_at as string)),
       status: "pending",
-      note: `${file.file_number}, ${s.decision === "refuse" ? "declined to seal" : s.decision}, tier ${credit.tier}, credited after the record was fixed`,
+      note: `${file.file_number}, ${s.decision === "refuse" ? "declined to seal" : s.decision}, ${creditBasis(credit)}, credited after the record was fixed`,
     });
     if (error && !/duplicate key/i.test(error.message)) return { ok: false, error: `A credit did not write: ${error.message}` };
     if (!error) credited += 1;
@@ -1044,7 +1136,7 @@ export async function creditUncreditedReviews(
     action: "ledger.credited_late",
     entityType: "file",
     entityId: fileId,
-    summary: `${file.file_number}: ${credited} review(s) credited at tier ${credit.tier}, ${credit.cents} cents each`,
+    summary: `${file.file_number}: ${credited} review(s) credited at ${creditBasis(credit)}, ${credit.cents} cents each`,
   });
   return { ok: true, credited };
 }

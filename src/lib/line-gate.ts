@@ -83,10 +83,40 @@ async function signedInDatabase(serviceSlug: string, tier: string | null | undef
   if (!received) return closed("This service line has no protocol, so it cannot be ordered.");
 
   const status = await signatureStatus(received.documentNumber, received.version);
-  if (status.state === "signed") return { ok: true };
   if (status.state === "unknown") return closed("The order system cannot confirm the engineer's signature right now.", true);
   if (status.state === "void") return closed(`${received.documentNumber}'s signature no longer covers its text.`);
-  return closed(`${received.documentNumber} has not been signed by the engineer of record.`);
+  if (status.state !== "signed") return closed(`${received.documentNumber} has not been signed by the engineer of record.`);
+  return trainedInDatabase(serviceSlug, received.documentNumber, received.version);
+}
+
+/**
+ * SIGNED IS NOT ENOUGH: SOMEBODY MUST BE TRAINED ON THAT VERSION. Operator
+ * ruling of 2026-10-23, migration 0084. Asked of the template in force for the
+ * document and version the engineer signed, so training on another version
+ * opens nothing, and through eng_line_is_trained, which counts only an approved
+ * record for an active technician. 254-RC-001 never reaches here: roof keeps
+ * its own path, exactly as it is. A failed read closes the line, as every read
+ * at a money door does.
+ */
+async function trainedInDatabase(serviceSlug: string, documentNumber: string, version: string): Promise<Sellable> {
+  const db = supabaseAdmin();
+  if (!db) return closed("The order system cannot confirm the training record right now.", true);
+  const { data: template, error: tError } = await db
+    .from("eng_protocol_templates")
+    .select("id")
+    .eq("document_number", documentNumber)
+    .eq("version_label", version)
+    .eq("status", "published")
+    .maybeSingle();
+  if (tError) return closed("The order system cannot confirm the training record right now.", true);
+  if (!template) return closed(`${documentNumber} v${version} is not in force in the platform.`);
+  const { data: trained, error } = await db.rpc("eng_line_is_trained", {
+    p_service_slug: serviceSlug,
+    p_template_id: template.id,
+  });
+  if (error) return closed("The order system cannot confirm the training record right now.", true);
+  if (trained !== true) return closed(`Nobody is yet trained on ${documentNumber} v${version}, so this service cannot be ordered.`);
+  return { ok: true };
 }
 
 export async function lineIsSellable(serviceSlug: string, tier?: string | null): Promise<Sellable> {

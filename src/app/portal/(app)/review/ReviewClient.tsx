@@ -235,6 +235,9 @@ export function DecisionPanel({
   const [reliedOn, setReliedOn] = useState<string[]>([]);
   const [determinationNote, setDeterminationNote] = useState("");
   const [repairList, setRepairList] = useState("");
+  /* 254-PL-001 only (0083): his letter option on a pass, and the schedule for option B. */
+  const [letterOption, setLetterOption] = useState<"A" | "B" | null>(null);
+  const [conditionsText, setConditionsText] = useState("");
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -296,12 +299,30 @@ export function DecisionPanel({
     .map((line) => line.trim())
     .filter((line) => line.length >= 3);
 
+  /*
+   * THE PERMIT LETTER'S OPTION AND SCHEDULE, operator ruling of 2026-10-22 from
+   * the engineer's email (0083): a pass is option A with no conditions or
+   * option B with at least one; repairs required is option C. Split on lines
+   * here for the same reason as the repair list.
+   */
+  const permitLetter = protocolDocument === "254-PL-001";
+  const letterConditions = conditionsText
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+  const letterReady =
+    !permitLetter ||
+    determination !== "pass" ||
+    letterOption === "A" ||
+    (letterOption === "B" && letterConditions.length > 0);
+
   const determinationReady =
     !governed ||
     (determination !== null &&
       reliedOn.length > 0 &&
       reliedEvidenceIds.length > 0 &&
-      (determination !== "repairs-required" || repairRequirements.length > 0));
+      (determination !== "repairs-required" || repairRequirements.length > 0) &&
+      letterReady);
 
   return (
     <div>
@@ -441,6 +462,65 @@ export function DecisionPanel({
                       : `${repairRequirements.length} item${repairRequirements.length === 1 ? "" : "s"}, each closed on its own at the revisit.`}
                   </p>
                 </div>
+              ) : null}
+
+              {permitLetter && determination === "repairs-required" ? (
+                <p className="mt-4 max-w-[70ch] border-t border-[var(--border)] pt-4 text-[14px] leading-[1.55] text-[var(--secondary)]">
+                  Repairs required records option C of your template 7: the element does not satisfy
+                  the requirement stated by the authority.
+                </p>
+              ) : null}
+
+              {permitLetter && determination === "pass" ? (
+                <fieldset className="mt-4 border-t border-[var(--border)] pt-4">
+                  <legend className="text-[14px] font-semibold text-[var(--ink)]">
+                    Which letter option, from your template 7
+                  </legend>
+                  <div className="mt-2 flex flex-col gap-1.5">
+                    {(
+                      [
+                        ["A", "Option A: the element satisfies the requirement, with no conditions"],
+                        ["B", "Option B: it satisfies the requirement subject to the conditions in the attached schedule"],
+                      ] as const
+                    ).map(([value, label]) => (
+                      <label
+                        key={value}
+                        className="flex min-h-[44px] items-center gap-2.5 text-[14px] leading-[1.45] text-[var(--ink)]"
+                      >
+                        <input
+                          type="radio"
+                          name="letter-option"
+                          checked={letterOption === value}
+                          onChange={() => setLetterOption(value)}
+                          className="h-5 w-5 shrink-0"
+                        />
+                        <span>{label}</span>
+                      </label>
+                    ))}
+                  </div>
+                  {letterOption === "B" ? (
+                    <div className="mt-3">
+                      <label
+                        htmlFor="letter-conditions"
+                        className="block text-[14px] font-semibold text-[var(--ink)]"
+                      >
+                        The schedule of conditions, one per line
+                      </label>
+                      <textarea
+                        id="letter-conditions"
+                        value={conditionsText}
+                        onChange={(e) => setConditionsText(e.target.value)}
+                        rows={4}
+                        className="mt-1.5 w-full rounded-[2px] border border-[var(--border)] bg-white px-3 py-2.5 text-[16px] leading-[1.5] text-[var(--ink)] outline-none focus:border-slate"
+                      />
+                      <p className="mt-1.5 text-[14px] leading-[1.5] text-[var(--secondary)]">
+                        {letterConditions.length === 0
+                          ? "Nothing yet. Option B lists at least one condition, so this cannot be empty."
+                          : `${letterConditions.length} condition${letterConditions.length === 1 ? "" : "s"} in the schedule.`}
+                      </p>
+                    </div>
+                  ) : null}
+                </fieldset>
               ) : null}
             </div>
           ) : null}
@@ -585,6 +665,8 @@ export function DecisionPanel({
                       reliedOnEvidenceIds: reliedEvidenceIds,
                       determinationNote: determinationNote.trim() || null,
                       repairRequirements,
+                      letterOption: permitLetter && determination === "pass" ? letterOption : null,
+                      letterConditions: permitLetter && letterOption === "B" ? letterConditions : [],
                     }),
                   });
                   const body = (await res.json().catch(() => null)) as {
