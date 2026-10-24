@@ -38,6 +38,17 @@ export const STRUCTURAL_LETTER_OPTION_SENTENCE = {
 
 export type StructuralLetterOption = keyof typeof STRUCTURAL_LETTER_OPTION_SENTENCE;
 
+/* The head of the letter, his lines with the slots as he printed them (section 8.4). */
+export const STRUCTURAL_LETTER_HEAD = [
+  "Date: {{determination_date}}",
+  "{{authority_name}} {{authority_address}}",
+  "Re: {{element_described}}, {{property_address}}, {{county}} County, Texas Permit {{permit_number}} | File {{file_number}}",
+  "To {{authority_salutation}},",
+] as const;
+
+/* The quoted requirement, his slot on its own line after the opening. */
+export const STRUCTURAL_LETTER_REQUIREMENT = "{{authority_requirement_verbatim}}";
+
 export const STRUCTURAL_LETTER_OPENING = [
   "This letter is issued at the request of {{requestor_name}} in connection with permit {{permit_number}}.",
   "The requirement this letter addresses, as stated by the authority:",

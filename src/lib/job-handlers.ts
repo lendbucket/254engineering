@@ -942,7 +942,19 @@ registerJob("review.after_decision", {
     if (!db) return { kind: "retry", error: "The database is not configured." };
 
     if (action === "refuse") {
-      const order = await liveOrderForFile(fileId, "id");
+      /*
+       * A FOUNDATION DECLINE AT REVIEW IS NOT REFUNDED HERE. Operator ruling
+       * FC-1 of 2026-10-23: a decline recorded at review, after the inspection
+       * evidence is in, gives option C, a sealed letter with his reason, and "a
+       * C letter is delivered work: no refund". The order settles as sealed
+       * work when he seals that letter (letter-seal.ts step 9). A decline
+       * before dispatch is not this job and stays a refund (dispatch-hold.ts).
+       * Read failing is a retry, never a refund decided on a guess.
+       */
+      const { data: refusedFile, error: fileError } = await db.from("eng_files").select("service_slug").eq("id", fileId).maybeSingle();
+      if (fileError) return { kind: "retry", error: `The file's service could not be read: ${fileError.message}` };
+      const lettersInstead = refusedFile?.service_slug === "foundation-inspections";
+      const order = lettersInstead ? null : await liveOrderForFile(fileId, "id");
       if (order) {
         const { count, error } = await db
           .from("eng_order_payments")

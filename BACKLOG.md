@@ -4,6 +4,43 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
+## THE SITTING FOR 0085, A LETTER STATES ONLY RECORDED FACTS, OPEN
+
+`docs/production-sitting-0085-a-letter-states-only-recorded-facts.md`. Written
+2026-10-23 on `feat/fc-pl-records` under ruling 7: the facts the foundation and
+permit letters print, the engineer's triage and his added capture items.
+Queued for the chat's development sitting after 0084, then the board, then
+production.
+
+## THE ENGINEER'S ADDED CAPTURE ITEMS ARE SHOWN, NOT YET CAPTURED AGAINST, OPEN
+
+Ruling PL-5 (2026-10-23): the capture list starts as PL-001's items and he may
+add items at triage. The items are recorded (0085) and shown to the technician
+above the checklist, but evidence attaches to a protocol item, so a photograph
+cannot yet be filed against an added item, and the checklist's completeness
+does not count them. Making them capture items needs evidence to carry a file
+level item as well as a protocol one, a migration and a change to the capture
+screen and its gate, which is a change to dispatch for a ruling.
+
+## THE SITTING FOR 0084, A LINE OPENS ONLY WHEN TRAINED, OPEN
+
+`docs/production-sitting-0084-a-line-opens-only-when-trained.md`. Written
+2026-10-23 on `feat/training-record`. Two append-only tables for supervised
+training and the engineer's decision on it, a backfill of the interim events
+of 2026-10-07 onward, and `eng_line_is_trained`, which the money door now asks
+of every line opened by a portal signature; roof's path is unchanged. Queued
+for the chat's development sitting after 0083, then the board, then production.
+## THE FOUNDATION AND PERMIT LETTERS, NINE POINTS FOR A RULING, OPEN
+
+`docs/fc-pl-letters-open-points.md`. Written 2026-10-23 on
+`feat/fc-pl-letters`. Determination recording for 254-FC-001 and 254-PL-001 is
+built; sealing either letter is not, because his templates name facts the
+platform does not hold or a mapping nobody has ruled: four for FC (which
+determination is option C, recipient and purpose at intake, foundation type,
+the method for a crawlspace) and five for PL (permit number and authority
+apart, the authority's address, the element described, the visit or desk
+triage record, and the documents schedule with his per job capture list).
+
 ## THE SITTING FOR 0080, THE SIGNED SOURCES GO PRIVATE, OPEN
 
 `docs/production-sitting-0080-protocol-sources.md`. Written 2026-10-22 on
@@ -860,7 +897,7 @@ a commit is one the next session has to go looking for.
 | 2026-10-06 | **Technician training academy, queued after roof certification works end to end** | **QUEUED, NOT STARTED, by operator instruction.** Two courses a technician must graduate before the `field_tech` role is enrolled: (1) duties, responsibilities and each signed protocol, with content and quiz questions approved by Aman and versioned to the protocol version it teaches; (2) a firm safety course on ladder use and fall protection on roofs, written by Robert. Video lessons may be AI generated, never presenting a generated person as staff, with narration matching the protocol text. Graduation is the entry requirement only: certification still requires Aman's sign off after a supervised inspection. |
 | 2026-10-06 | **0055 carries `requires_discipline = null`, and it is known** | **KNOWN, NOT A DEFECT ON PRODUCTION.** Production's RC-001 row carries `structural`, read by the operator's chat counterpart on 2026-10-06, so 0056 corrected it there. The `null` in 0055 is a seed artifact. 0055 is applied and on main and is not changed. The generator no longer reproduces 0055 because of it, which is recorded on `feat/protocol-registry`. |
 | 2026-10-06 | **Dispatch readiness on production: a sitting script, and a role that blocks it** | **OPEN, SCRIPT WRITTEN, NOT RUN.** `docs/production-sitting-dispatch-readiness.md` writes Robert's roof certification, all 254 counties and two credentials. Dispatch only considers role `field_tech` and his profile is `admin`, so the role has to be ruled first (the document recommends a second technician profile). The W-9 and contractor agreement block is held for a ruling on whether an owner needs them. |
-| 2026-10-22 | **The engineer of record's three answers, from his email of 2026-10-22** | **RULED, recorded in `docs/rulings-2026-10-22.md`.** PL-001 option A pass, B pass with a condition in the schedule (refused when empty), C repairs required; the RS-001 completion letter is drafted and goes to him as a SAMPLE PDF, and its sealing stays closed until Robert says he approved the letter itself; FC-001 v1.0 is signed as it stands with his two sentences in the letter template. **OPEN, HIS, NOT THE FIRM'S:** Aman adds "This letter is not a warranty or a guarantee of any kind." and the items-not-observed sentence to FC-001 section 11 at his next revision. **OPEN, THE FIRM'S:** recording the option and the schedule with a PL determination, which sealing needs before it can ask the rule (a migration, put to Robert). |
+| 2026-10-22 | **The engineer of record's three answers, from his email of 2026-10-22** | **RULED, recorded in `docs/rulings-2026-10-22.md`.** PL-001 option A pass, B pass with a condition in the schedule (refused when empty), C repairs required; the RS-001 completion letter is drafted and goes to him as a SAMPLE PDF, and its sealing stays closed until Robert says he approved the letter itself; FC-001 v1.0 is signed as it stands with his two sentences in the letter template. **OPEN, HIS, NOT THE FIRM'S:** Aman adds "This letter is not a warranty or a guarantee of any kind." and the items-not-observed sentence to FC-001 section 11 at his next revision. **BUILT, PENDING ITS SITTING:** the option and the schedule are recorded with a PL determination by migration 0083 (`docs/production-sitting-0083-permit-letter-option.md`), so a B with an empty schedule cannot be recorded and no sealing step can be handed one; queued behind 0082. |
 | 2026-10-06 | **Four rulings, and two facts with two homes that disagree** | **RULED, recorded in `docs/rulings-2026-10-06.md`.** Ordering stays live; the platform drafts the letter and the engineer seals it in the portal (the law is in `CLAUDE.md` section 1); Robert's RC-001 v1.1 training is accepted on his statement; his coverage is all 254 counties. **OPEN:** ~~the training register says trained while `eng_certifications` on production holds no row~~ **CORRECTED 2026-10-09: that half was wrong.** The counterpart read production in the sitting of 2026-10-09: one roof certification row, status certified, certified_at 2026-09-23T05:00:00Z, against 254-RC-001 v1.1 (published), the operator's own, taken against the current version. The session predicted no row from this entry and the read disproved it; the entry was a claim nobody had read against production. The TDI appointment register says not held while `eng_profiles` says appointed; that half stands, and the appointment waits on Aman's number and date. |
 | 2026-10-06 | **Three findings from the one-protocol-to-many groundwork, none fixed** | **OPEN, REPORTED.** (1) Since 0056 declared the discipline on 2026-09-21, `scripts/seed-protocol.mjs --document 254-RC-001 --emit-sql` no longer reproduces 0055: it would write `structural` where the applied file says `null`, so running it rewrites a migration that has run on production. Proven by re-emitting and diffing, then restored by copy. The generator should refuse to overwrite an existing migration. (2) The RC-001 portal screen still says the protocol "has not been approved in the platform"; it was approved on 2026-09-22. Carried unchanged because the ruling was that RC-001 behaves exactly as before, and replaced by the signed record when portal signing is built. (3) `protocol-register-check` against development reports the RC-001 row approved 2026-09-28 while the register says 2026-09-22; the check is written for production, where the dates agree, and development's row was approved on a later day. |
 | 2026-10-01 | HR pay rates | **RULED.** No defaults anywhere. Rates are entered per person in admin by the owner, with effective dates. A person with no rate set cannot be assigned paid work or appear in a pay export, and the screen says why in plain words. |
