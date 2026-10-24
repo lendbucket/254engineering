@@ -37,6 +37,8 @@ async function handlePOST(request: NextRequest) {
   const entered = {
     recipientAddress: typeof body.recipientAddress === "string" ? body.recipientAddress : "",
     recipientSalutation: typeof body.recipientSalutation === "string" ? body.recipientSalutation : "",
+    /* The foundation letter's observed condition, his words (ruling 7, 2026-10-23). */
+    observedCondition: typeof body.observedCondition === "string" ? body.observedCondition : "",
   };
 
   if (body.action === "draft") {
