@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Container } from "@/components/ui/Container";
 import { buildMetadata } from "@/lib/seo";
 import { JsonLd, breadcrumbSchema } from "@/lib/schema";
-import { allLineOffers, orderableLineOffers } from "@/lib/ordering";
+import { sellableLineOffers } from "@/lib/line-gate";
 import { displayPhone, telHref } from "@/config/contact";
 import { PhoneNumber } from "@/components/ui/PhoneNumber";
 
@@ -73,9 +73,19 @@ export const metadata: Metadata = buildMetadata({
 const PUBLISHED_IS_THE_QUOTE =
   "Where a line has a published price, that is the price you are quoted, with the coastal line where it applies.";
 
-export default function OrderChooserPage() {
-  const offers = allLineOffers();
-  const open = orderableLineOffers();
+/*
+ * DYNAMIC, AND EACH ORDERABLE ROW ASKED AT ITS MONEY DOOR. Robert's ruling of
+ * 2026-10-24: an unsigned line is not offered here. Configuration alone would
+ * show an unsigned or untrained line with a price and an Order button whose
+ * next page refuses, so the rows come from sellableLineOffers, which turns any
+ * line its door refuses into the quote row. That is a database read, so the page
+ * is rendered per request rather than once at build.
+ */
+export const dynamic = "force-dynamic";
+
+export default async function OrderChooserPage() {
+  const offers = await sellableLineOffers();
+  const open = offers.filter((o) => o.orderable);
   const phone = displayPhone();
   const tel = telHref();
 

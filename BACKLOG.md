@@ -6,12 +6,14 @@ reason and, where one exists, the concrete incident that produced it.
 
 ## FIXED: EVERY CLOUD BOARD SHARED ONE SIGN IN RATE LIMIT BUCKET
 
-Fixed 2026-10-24 on this branch: `clientKey` honours `x-254-board-run` only on
-the development project, and the board sends it from its run id through a
-preload in every process of the shard. Proof
-`scripts/proofs/each-board-run-has-its-own-sign-in-bucket.mjs`; honouring the
-header unconditionally turns the three production-side checks red. The entry as
-it was written follows.
+Fixed 2026-10-24 on this branch, to Robert's ruling 5 of that day: the board
+sets `BOARD_RUN_ID` from its run id in the shard's environment, and `clientKey`
+reads it only when the database is development; no request header can choose a
+key, and there is no preload. Proof
+`scripts/proofs/each-board-run-has-its-own-sign-in-bucket.mjs`; dropping the
+development check turns three checks red. mobile-overflow-audit signs a probe
+in through a real browser and reads the bucket it landed in. The entry as it
+was written follows, and its header design is superseded.
 
 `src/lib/ops-rate-limit.ts` and `.github/workflows/board.yml`, on its own
 branch `fix/ci-board-sign-in-key`. Ruled by Robert on 2026-10-23. Main's board
@@ -28,6 +30,29 @@ run sends its own key, a header the board sets from its run id, which
 the header is ignored and the address key is unchanged, injection-verified by
 honouring it unconditionally. Until it lands, boards are never pushed in a
 burst.
+
+## FIXED: THE INSTRUMENTATION HOOK REACHED node:crypto IN THE EDGE BUNDLE
+
+Fixed 2026-10-24 on this branch: `onRequestError` loads `ops-observability`
+only inside `if (process.env.NEXT_RUNTIME === "nodejs")`. Proof
+`scripts/proofs/the-instrumentation-loads-node-code-only-in-node.mjs` follows
+every import loaded in every runtime through its static imports and refuses a
+node built-in or a server-only module; removing the guard turns three checks
+red. The entry as it was written follows.
+
+`src/instrumentation.ts`, on its own branch `fix/instrumentation-nodejs-runtime`.
+Ruled intermittent by Robert on 2026-10-23. Main's board `40035266531` on
+`6c87099`: launch-audit's live mode dev server on 4305 never came up, "Ecmascript
+file had an error" with the Edge Instrumentation import trace
+`instrumentation.ts` to `ops-observability.ts` to `ops-mfa.ts` to `totp.ts`'s
+`node:crypto`, then `GET / 500`, so the audit measured nothing and printed FAIL.
+The same tree passed on `38774fa` at 13:20, on five branch boards that night,
+and on attempt 2 of the same shard. The cause, read from source:
+`onRequestError` imports `@/lib/ops-observability` with no runtime guard, so it
+is bundled for the Edge runtime too. It must load only when
+`process.env.NEXT_RUNTIME === "nodejs"`. Proof owed: every server-only import in
+the hook sits behind that guard, injection-verified by removing the guard.
+
 ## THE SITTING FOR 0085, A LETTER STATES ONLY RECORDED FACTS, OPEN
 
 `docs/production-sitting-0085-a-letter-states-only-recorded-facts.md`. Written

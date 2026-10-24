@@ -337,6 +337,8 @@ export const NOT_CREDENTIALS = new Set([
   "NX_DAEMON", "TURBO_CACHE", "TURBO_DOWNLOAD_LOCAL_ENABLED", "TURBO_REMOTE_ONLY", "TURBO_RUN_SUMMARY",
   /* Provided by the runtime or the platform, never by this firm. */
   "CI", "GITHUB_ACTIONS", "NODE_ENV", "VERCEL", "VERCEL_ENV", "VERCEL_DEPLOYMENT_ID",
+  /* NEXT_RUNTIME, 2026-10-24: Next.js sets it to "nodejs" or "edge"; instrumentation.ts reads it to keep node-only code out of the Edge bundle. */
+  "NEXT_RUNTIME",
   "VERCEL_GIT_COMMIT_SHA", "NEXT_PUBLIC_VERCEL_ENV", "NEXT_PUBLIC_SENTRY_RELEASE", "SENTRY_RELEASE",
   /* Fragments produced by the env scanner reading a dynamic lookup. */
   "NEXT_PUBLIC_", "NEXT_PUBLIC_X",

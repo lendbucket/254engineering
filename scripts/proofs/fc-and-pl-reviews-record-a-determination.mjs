@@ -11,8 +11,8 @@
  * its answer for every signed protocol and every state a protocol row can be
  * in, and that the review path, the screen and the route all ask it.
  *
- * WHAT THIS DOES NOT DO: open ordering (both lines stay unoffered) or seal any
- * letter (sealing is roof only; FC and PL letters wait on rulings).
+ * WHAT THIS DOES NOT DO: seal any letter. Ordering: both lines are offered
+ * since ruling 2 of 2026-10-24, each sold only past its own door.
  */
 import { readFileSync } from "node:fs";
 
@@ -81,8 +81,23 @@ check(
   /letterOption === "A" \|\|\s*\(letterOption === "B" && letterConditions\.length > 0\)/.test(client),
 );
 
-/* And nothing opens: both lines stay unoffered, and sealing stays roof only. */
-check("neither line is offered for ordering", !offeredServiceLines.includes("foundation-inspections") && !offeredServiceLines.includes("structural-letters"), offeredServiceLines.join(", "));
+/*
+ * OFFERED SINCE ROBERT'S RULING 2 OF 2026-10-24, AND STILL SOLD ONLY AT EACH
+ * LINE'S OWN DOOR. This asserted that neither line was offered, the state that
+ * ruling ended on purpose. What must stay true is that offering opens nothing
+ * by itself: each line sells only when its signature stands and somebody is
+ * trained on that version (the-gate-counts-a-protocol-signed-in-the-portal
+ * proves the doors on a played database).
+ */
+const gate = readFileSync("src/lib/line-gate.ts", "utf8");
+check(
+  "both lines are offered under ruling 2, and each sells only past its own signature and training",
+  offeredServiceLines.includes("foundation-inspections") &&
+    offeredServiceLines.includes("structural-letters") &&
+    /const status = await signatureStatus\(received\.documentNumber, received\.version\);/.test(gate) &&
+    /return trainedInDatabase\(serviceSlug, received\.documentNumber, received\.version\);/.test(gate),
+  offeredServiceLines.join(", "),
+);
 const seal = readFileSync("src/lib/letter-seal.ts", "utf8");
 check("letter sealing still refuses every protocol but 254-RC-001", /if \(det\.protocol_document !== "254-RC-001"\)/.test(seal));
 
