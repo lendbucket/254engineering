@@ -38,6 +38,7 @@ import { contact } from "@/config/contact";
 import { services } from "@/content/services";
 import { offeredServiceLines, selfServiceSignUp } from "@/config/launch-conditions";
 import { protocolForLine } from "@/content/protocols";
+import { SIGNABLE_PROTOCOLS } from "@/content/protocols/signable";
 
 /**
  * The compliance gate.
@@ -352,7 +353,7 @@ export const LAUNCH_CONDITIONS: LaunchCondition[] = [
        * signature on it stands is read by every money door from the database,
        * which is the one place it lives.
        */
-      const waiting = offeredServiceLines.filter((slug) => !registeredProtocolFor(slug));
+      const waiting = offeredServiceLines.filter((slug) => !lineHasProtocolInForce(slug));
       if (waiting.length === 0) return null;
       return `${waiting.length} of ${offeredServiceLines.length} OFFERED service line(s) have no protocol in force: ${waiting.join(", ")}. A line is offered when it is listed and its protocol is signed by the engineer of record, and both are needed.`;
     },
@@ -595,6 +596,29 @@ export function registeredProtocolFor(serviceSlug: string) {
 }
 
 /**
+ * DOES THE PLATFORM HOLD A PROTOCOL FOR THIS LINE THAT THE ENGINEER CAN SIGN?
+ * Operator ruling 1 of 2026-10-24: the gate's protocols condition counts a
+ * line whose protocol is signed in the portal, not only 254-RC-001.
+ *
+ * Two kinds, as the money door already reads them (src/lib/line-gate.ts):
+ * 254-RC-001 in PROTOCOL_ENTRIES, whose path is unchanged, and a v1.1
+ * transcription in SIGNABLE_PROTOCOLS, the list the engineer signs from in his
+ * own session. Whether that signature stands, whether its template is
+ * published, and whether somebody is trained on that version are database
+ * facts, so they are read at every money door for the line (signedInDatabase,
+ * then eng_line_is_trained), never here: the gate is read by statically
+ * rendered pages. So an unsigned or untrained line counts toward the gate and
+ * still sells nothing, and the line beside it, roof, keeps selling.
+ *
+ * Training stays out of the gate for these lines on the same ruling: it is
+ * asked per line at the door. linesWithNobodyTrained() still reads
+ * registeredProtocolFor(), so roof's training condition is exactly as it was.
+ */
+export function lineHasProtocolInForce(serviceSlug: string): boolean {
+  return registeredProtocolFor(serviceSlug) !== null || SIGNABLE_PROTOCOLS.some((p) => p.serviceSlug === serviceSlug);
+}
+
+/**
  * IS THIS FIRM SEALING ANYTHING YET?
  *
  * ADDED 2026-09-17 BECAUSE THE BOARD CAUGHT WHAT MY ENUMERATION DID NOT, and
@@ -725,7 +749,8 @@ export function sealingIsAvailableFor(serviceSlug: string): boolean {
  * day the two facts diverge.
  */
 export function serviceLineIsOffered(serviceSlug: string): boolean {
-  return offeredServiceLines.includes(serviceSlug) && registeredProtocolFor(serviceSlug) !== null;
+  /* Ruling 1 of 2026-10-24: a portal-signable protocol counts; the signature is read at the door. */
+  return offeredServiceLines.includes(serviceSlug) && lineHasProtocolInForce(serviceSlug);
 }
 
 /**
