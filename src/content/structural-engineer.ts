@@ -379,7 +379,7 @@ export const proximityPages: ProximityPage[] = [
       },
       {
         eyebrow: "This firm",
-        title: "Where 254 Engineering Services currently stands",
+        title: "Where 254 Engineering currently stands",
         lede: "A page about verifying credentials should be checkable about its own.",
         body: [
           /*
