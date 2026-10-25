@@ -192,6 +192,10 @@ const child = await inOpenGateProcess(`
   const pick = (offers) => offers.filter((o) => ["roof-inspections", "foundation-inspections", "structural-letters"].includes(o.slug))
     .map((o) => ({ slug: o.slug, orderable: o.orderable, href: o.href, price: o.price }));
   const unsigned = pick(await sellableLineOffers());
+  /* The price sentence each row prints, rendered as /order renders it, with that row's own answer. */
+  const { PublishedPrice } = await import("./src/components/services/PublishedPrice.tsx");
+  const priceText = (row) => [].concat(PublishedPrice({ slug: row.slug, orderable: row.orderable }).props.children).join("");
+  const unsignedPriceText = Object.fromEntries(unsigned.map((row) => [row.slug, priceText(row)]));
   const refused = await placeOrder({
     site: "254engineering", clientRequestId: "gate-proof-unsigned-1", serviceSlug: "foundation-inspections",
     customer: { name: "Gate proof, not a real person", email: "gate-proof@audit-probe.invalid", phone: "3615550100" },
@@ -204,7 +208,7 @@ const child = await inOpenGateProcess(`
   };
   state.trained = { "foundation-inspections": true, "structural-letters": true };
   const signed = pick(await sellableLineOffers());
-  answer({ open: isOpen(), unsigned, signed, refused, writesAfterRefusal, stripe });
+  answer({ open: isOpen(), unsigned, unsignedPriceText, signed, refused, writesAfterRefusal, stripe });
 `);
 const by = (rows, slug) => rows.find((o) => o.slug === slug) ?? {};
 check("the open-gate child really has the gate open, so the rows below are not the shut gate's quote rows", child.open === true);
@@ -219,6 +223,18 @@ check(
   by(child.unsigned, ROOF).orderable === true && by(child.unsigned, ROOF).price === "$709" && by(child.unsigned, ROOF).href === "/order/start/roof-inspections",
   JSON.stringify(by(child.unsigned, ROOF)),
 );
+/*
+ * EVERY ROW ON /order PRINTS ITS PUBLISHED PRICE (ruling 5 of 2026-10-18), so the
+ * price sentence must also say the unsigned line is a quote. Configuration alone
+ * calls it orderable; /order passes the door's answer to the component.
+ */
+const QUOTED = "Quoted at this price until it can be ordered online.";
+check(
+  "/order: the unsigned lines' prices say they are quoted, and roof's does not",
+  [FC, PL].every((s) => String(child.unsignedPriceText?.[s]).includes(QUOTED)) && !String(child.unsignedPriceText?.[ROOF]).includes(QUOTED),
+  JSON.stringify(child.unsignedPriceText),
+);
+check("and /order hands each row's own answer to the price", /<PublishedPrice slug=\{offer\.slug\} orderable=\{offer\.orderable\} \/>/.test(readFileSync("src/app/(site)/order/page.tsx", "utf8")));
 check(
   "an order for the unsigned line is refused at its money door",
   child.refused?.ok === false && child.refused?.field === "serviceSlug",

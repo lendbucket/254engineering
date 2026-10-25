@@ -83,10 +83,47 @@ export default async function OrderStatusPage({
           <h1 className="text-[32px] leading-[1.12] font-semibold tracking-[-0.5px] text-[var(--color-ink)]">
             Payment received
           </h1>
+          {/*
+            "WITHIN THE HOUR" CAME OUT, operator ruling of 2026-10-20 (finding 1):
+            nothing bounds when an order is released, and an order whose account
+            needs a person waits on that person. The link still arrives by email
+            once the order is released, with no time stated.
+          */}
           <p className="mt-4 text-[16px] leading-[1.7] text-[var(--color-ink-quiet)]">
             Thank you. The firm emails a link to this order once it is released for work, and that
-            link is the one that opens it. If nothing arrives within the hour, reply to any email
-            from the firm quoting <span className="font-semibold">{reference}</span>.
+            link is the one that opens it. If you need to write to the firm about it before then,
+            quote <span className="font-semibold">{reference}</span>.
+          </p>
+        </div>
+      </Container>
+    );
+  }
+
+  /*
+   * THE BUYER WHO LEFT THE PAYMENT PAGE. Operator ruling of 2026-10-20,
+   * finding 1: Stripe's cancel_url carried `cancelled=1` and no token, so this
+   * page answered with the refusal written for a bad link, and the banner below
+   * that would have explained it could never render, because it needs a token
+   * and none exists before the order is released. It also told them to pay
+   * "from the link the firm sent you", and no link is sent for an unpaid order.
+   *
+   * Like the paid state above it opens nothing and confirms nothing about the
+   * reference. It says what happened and where to start again.
+   */
+  if (!view && cancelled) {
+    return (
+      <Container>
+        <div className="mx-auto max-w-[62ch] py-20">
+          <h1 className="text-[32px] leading-[1.12] font-semibold tracking-[-0.5px] text-[var(--color-ink)]">
+            Nothing was charged
+          </h1>
+          <p className="mt-4 text-[16px] leading-[1.7] text-[var(--color-ink-quiet)]">
+            You left the payment page before it completed, so nothing was charged and the order was
+            not placed. To order, start again from the{" "}
+            <a href="/order" className="font-semibold text-[var(--color-ink)] underline underline-offset-2">
+              services you can order online
+            </a>
+            .
           </p>
         </div>
       </Container>
@@ -163,15 +200,13 @@ export default async function OrderStatusPage({
           </div>
         ) : null}
 
-        {cancelled ? (
-          <div className="mt-7 border-l-2 border-[var(--color-brass)] pl-4">
-            <p className="text-[15px] font-semibold text-[var(--color-ink)]">Nothing was charged</p>
-            <p className="mt-1 text-[15px] leading-[1.65] text-[var(--color-ink-quiet)]">
-              You left the payment page before it completed. The order is still here and can be paid
-              from the link the firm sent you.
-            </p>
-          </div>
-        ) : null}
+        {/*
+          The "Nothing was charged" banner that stood here is gone (finding 1,
+          2026-10-20). It rendered only beside a token, and a token exists only
+          for an order released for work, which has been paid, so the one
+          reader who could see it would have been told something false. The
+          buyer who leaves checkout is answered above, before any token is read.
+        */}
 
         {/* The money that came back leads, because it is the thing they most want to know. */}
         {view.refunded ? (

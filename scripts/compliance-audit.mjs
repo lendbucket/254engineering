@@ -913,12 +913,19 @@ const {
    */
   const { peInResponsibleCharge } = await import("../src/lib/launch.ts");
   const chargeSentence = responsibleChargeStatement();
+  /*
+   * THE NEGATIVE BRANCH IS NOW SILENT, on the operator's ruling of 2026-10-21
+   * under the 2026-09-17 rule that every sentence saying no engineer is in
+   * responsible charge is removed. It expected that sentence here until then;
+   * it now expects nothing, which is still a branch on the register and still
+   * fails a deriver that returns the positive sentence unconditionally.
+   */
   rec(
     "and the responsible charge sentence follows the register rather than a constant",
     peInResponsibleCharge()
       ? chargeSentence === "A Texas licensed Professional Engineer is in responsible charge."
-      : chargeSentence === "No Professional Engineer is yet in responsible charge.",
-    `peInResponsibleCharge() is ${peInResponsibleCharge()}; rendered: ${chargeSentence}`,
+      : chargeSentence === "",
+    `peInResponsibleCharge() is ${peInResponsibleCharge()}; rendered: ${chargeSentence || "(nothing)"}`,
   );
 
   /*

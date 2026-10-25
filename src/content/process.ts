@@ -44,25 +44,33 @@ export const processSteps: ProcessStep[] = [
     title: "You tell us what the letter is for",
     lede: "Not what you think we need to hear. The actual purpose, and who it is going to, because that decides what the letter must say.",
     youDo:
-      "Tell us the address, what the document is for, and who is going to read it. A carrier, a lender, a title company and a building official all want different things, and a letter written for the wrong one of them is a letter you pay for twice. If there is a prior engineer's report, an insurer's letter, or a plan reviewer's rejection behind the request, send it. Five minutes, on the phone or online.",
+      "Tell us the address, what the document is for, and who is going to read it. A carrier, a lender, a title company and a building official all want different things, and a letter written for the wrong one of them is a letter you pay for twice. If there is a prior engineer's report, an insurer's letter, or a plan reviewer's rejection behind the request, send it. The order form asks for all of it.",
     weDo:
       "We ask the set of questions the engineer of record wrote for that service line, and collect what he requires before anybody drives anywhere. Those questions are not a form somebody in marketing designed. They are part of the protocol he signed, and they are the same every time.",
   },
   {
     n: "2",
-    title: "We tell you yes or no, before you pay",
-    lede: "Some jobs this firm cannot take, and you find that out in the first conversation rather than after you have paid and waited.",
+    /*
+     * REWRITTEN ON RULING Q4, 2026-10-19. It said "yes or no, before you pay"
+     * and promised "a fixed price and a date before anything is scheduled".
+     * The engineer's accept or decline on a flagged job comes AFTER payment,
+     * with a full refund on a decline before anybody attends (ruling of
+     * 2026-10-07), and nothing in the platform gives a date. The price is fixed
+     * and shown before payment, which is the part that was true.
+     */
+    title: "We tell you yes or no, before anybody is sent",
+    lede: "Some jobs this firm cannot take, and you find that out before a technician goes to the property rather than after a visit.",
     youDo:
       "Answer three questions honestly: whether there is an open insurance claim, whether there is active litigation, and whether another engineer has already looked and reached a conclusion you did not want. None of them is disqualifying on its own. All of them change what the work is, and hiding one wastes your time rather than ours.",
     weDo:
-      "We decline the work we should not take, and we say why. An open claim turns a certification into leverage in somebody else's dispute, which is a different service with different rules. A covering type outside the engineer's competence is a no whatever the fee is. If we take it, you get a fixed price and a date before anything is scheduled.",
+      "We decline the work we should not take, and we say why. An open claim turns a certification into evidence in somebody else's dispute, which is a different service with different rules. A covering type outside the engineer's competence is a no whatever the fee is. The price is fixed and shown before you pay, and if the engineer declines the job before anybody has attended, the full amount is refunded.",
   },
   {
     n: "3",
     title: "A certified technician works the engineer's checklist",
     lede: "Not a general inspection. A specific list of items, each one photographed, with a ruler in frame where a measurement governs.",
     youDo:
-      "Give us access, and tell us anything that will make the visit shorter: where the attic hatch is, which slope is the one you are worried about, whether a dog lives there. If somebody needs to be present, say so when we schedule rather than on the day.",
+      "Give us access, and tell us anything that will make the visit shorter: where the attic hatch is, which slope is the one you are worried about, whether a dog lives there. If somebody needs to be present, tell the coordinator when the visit is being scheduled rather than on the day.",
     weDo:
       "The technician is certified on that protocol before a first assignment on that line, and works the engineer's checklist rather than his own judgement. The app will not let him submit the job incomplete: an item he could not observe is recorded as not observed, with the reason, rather than left blank. Photographs carry their own timestamp and location.",
   },
@@ -80,7 +88,12 @@ export const processSteps: ProcessStep[] = [
     title: "You get the sealed document",
     lede: "Signed and sealed by the engineer in responsible charge, addressed to the recipient you named, for the purpose you named.",
     youDo:
-      "Send it on. If repairs were required, have your contractor do them and tell us when they are finished. We come back, verify each item individually, and issue the letter. You pay for the return visit rather than for a second full inspection.",
+      /*
+       * The return visit and its charge came out (Q3 and Q4, 2026-10-19):
+       * nothing takes word that repairs are done, and no charge for a return
+       * visit is ruled or built. What is true is the protocol's rule.
+       */
+      "Send it on to whoever asked for it. If repairs were required, the engineer's letter lists them, and no certification letter is issued with an open repair item.",
     weDo:
     /*
      * "We issue the document" was caught by voice-audit as a first person
