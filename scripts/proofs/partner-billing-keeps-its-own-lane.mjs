@@ -92,7 +92,8 @@ check("and so does one carrying it under subscription_details, the older shape",
 
 const order = deliver(evt("evt_pb_4", "checkout.session.completed", {
   id: "cs_test_order", object: "checkout.session", mode: "payment", payment_intent: "pi_test_order",
-  amount_total: 54900, metadata: { order_id: "00000000-0000-4000-8000-0000000000c1", reference: "254-TEST" },
+  /* payment_status as Stripe sends it on a paid card session; readEvent records only a paid one (audit finding F11). */
+  amount_total: 54900, payment_status: "paid", metadata: { order_id: "00000000-0000-4000-8000-0000000000c1", reference: "254-TEST" },
 }));
 check("an order's checkout still takes the order path", order?.kind === "checkout.completed" && order.orderId === "00000000-0000-4000-8000-0000000000c1", JSON.stringify(order));
 

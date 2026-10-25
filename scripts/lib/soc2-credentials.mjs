@@ -130,6 +130,8 @@ export const NOT_CREDENTIALS = new Set([
   "AUDIT_KILL_STALE", "AUDIT_LOG_DIR", "AUDIT_PORT", "BASE_URL", "CONTRAST_PORT",
   "LAUNCH_AUDIT_LIVE_PORT", "LAUNCH_AUDIT_PORT", "MOBILE_PORT", "OVERFLOW_SHOW_ALL",
   "PERF_RUNS", "PERF_SAMPLES", "ROUND3_PORT", "SHOTS_PORT", "KEEP_EXISTING", "LOAD_JOBS",
+  /* BOARD_RUN_ID, 2026-10-24: the cloud board's github.run_id, set on the shard its servers inherit; the sign in bucket key on development only (ruling 5). Public, not a secret. */
+  "BOARD_RUN_ID",
   /*
    * SHOTS_OUT, 2026-09-29. Where scripts/design-shots.mjs writes screenshots,
    * defaulting to a scratchpad path. A directory to save PNGs into, holding

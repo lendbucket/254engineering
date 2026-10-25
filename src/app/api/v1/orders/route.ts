@@ -79,6 +79,14 @@ export async function POST(request: NextRequest) {
   }
 
   const limit = await withinRateLimit(key);
+  /* A count that could not be read refuses, and says that rather than "rate limit reached" (audit of 2026-10-24). */
+  if (limit.unreadable) {
+    await recordApiRequest({ key, route: ROUTE, status: 503 });
+    return NextResponse.json(
+      { ok: false, error: "This key's request rate could not be checked just now, so nothing was placed. Try again shortly." },
+      { status: 503, headers: { "Retry-After": "30" } },
+    );
+  }
   if (!limit.ok) {
     await recordApiRequest({ key, route: ROUTE, status: 429 });
     return NextResponse.json(

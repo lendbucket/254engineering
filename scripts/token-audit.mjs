@@ -1396,10 +1396,37 @@ for (const [standard, site] of TWINS) {
       /:where\(td, th\)[^{]*\{\s*font-variant-numeric: tabular-nums;/.test(portalCss),
   );
 
+  /*
+   * The faces are files in the repository since Robert's ruling of 2026-10-25
+   * (next/font/local; board 40173467851's server never started on a Google
+   * font fetch). The italic check names the new shape, and each declared file
+   * must exist, so a path that resolves to nothing is a red rather than a
+   * build that falls back to a synthesised oblique.
+   */
+  const layout = readSource("src/app/layout.tsx");
+  const italicPath = layout.match(/\{ path: "(\.\.\/fonts\/[^"]+\.woff2)", weight: "400 700", style: "italic" \}/)?.[1] ?? null;
   rec(
     "the italic face is loaded for the absent data chip",
-    /style: \["normal", "italic"\]/.test(readSource("src/app/layout.tsx")),
-    "a synthesised oblique on a 12px chip is the mush this system exists to avoid",
+    italicPath !== null && existsSync(join("src/app", italicPath)),
+    italicPath ? `a synthesised oblique on a 12px chip is the mush this system exists to avoid (${italicPath})` : "no italic file declared in the layout's localFont src",
+  );
+  const declared = [...layout.matchAll(/\{ path: "(\.\.\/fonts\/[^"]+\.woff2)"/g)].map((m) => m[1]);
+  rec(
+    "the upright and italic files are both declared and both on disk",
+    declared.length === 2 && declared.every((p) => existsSync(join("src/app", p))),
+    declared.join(", ") || "none declared",
+  );
+  const walk = (dir) =>
+    readdirSync(dir).flatMap((name) => {
+      const p = join(dir, name).replace(/\\/g, "/");
+      return statSync(p).isDirectory() ? walk(p) : /\.(tsx?|css)$/.test(name) ? [p] : [];
+    });
+  const sourceFiles = walk("src");
+  const googleFont = sourceFiles.filter((f) => /from "next\/font\/google"/.test(readSource(f)));
+  rec(
+    "no source file loads a font from Google's servers",
+    googleFont.length === 0 && /from "next\/font\/local"/.test(layout),
+    googleFont.length ? googleFont.join(", ") : "the layout loads next/font/local",
   );
 }
 

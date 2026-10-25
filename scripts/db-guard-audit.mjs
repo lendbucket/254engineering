@@ -807,9 +807,12 @@ console.log(`configured target: ${current ? describeTarget(current) : "unset"}\n
     "src/lib/offline-queue.ts":
       "the DEVICE's clock at the moment a queued capture is sent, so the server measures the phone's clock " +
       "against its own rather than how long the capture waited for signal. In the browser, never a column.",
-    "src/lib/launch.ts":
-      "today, to ask whether the firm registration has expired. A comparison, not a stored value: nothing in " +
-      "the compliance gate writes a row, and an expiry read a second late is still the same date.",
+    /*
+     * src/lib/launch.ts came off this list on 2026-10-24 (audit finding F6): its
+     * expiry comparisons read today through todayInFirmCalendar() in
+     * firm-calendar.ts, the firm's calendar its own header rules, and no longer
+     * call the machine clock themselves.
+     */
     "src/lib/ops-dashboard.ts": "three comparisons against ages, reading rather than writing",
     "src/lib/ops-docs.ts":
       "generatedAt on an in memory binder manifest, and two date cells in a CSV a person reads",
