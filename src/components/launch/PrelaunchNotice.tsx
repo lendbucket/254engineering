@@ -29,16 +29,16 @@ export function PrelaunchNotice({ service }: { service?: string }) {
         Opening soon
       </p>
       <p className="mt-2 text-[15px] leading-[1.65] text-slate-fg-muted">
-        {[notYetAcceptingEngagements(), registrationStatement()].filter(Boolean).join(" ")} No engineer
-        of record is yet in responsible charge, and this page describes a service the firm is being
-        built to deliver.{" "}
+        {/* The sentence denying an engineer of record came out: operator ruling 2026-10-21, under the 2026-09-17 rule. */}
+        {[notYetAcceptingEngagements(), registrationStatement()].filter(Boolean).join(" ")} This page
+        describes a service the firm is being built to deliver.{" "}
         <Link
           href={waitlistHref}
           className="font-medium text-slate-fg underline decoration-brass underline-offset-4 transition-colors hover:text-brass-light"
         >
           Join the waitlist
         </Link>{" "}
-        and you will hear directly when it is active.
+        and a person at the firm will reply to you.
       </p>
     </aside>
   );

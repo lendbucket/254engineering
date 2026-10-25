@@ -315,9 +315,9 @@ export function canTransition(
     return {
       ok: false,
       reason:
+        /* "and no Professional Engineer is in responsible charge" came out: operator ruling 2026-10-21. */
         `The firm cannot ${to === "sealed" ? "seal" : "deliver"} work yet. It is not yet accepting ` +
-        "engagements and no Professional Engineer is in responsible charge. The file can be prepared " +
-        "to this point and no further.",
+        "engagements. The file can be prepared to this point and no further.",
     };
   }
 

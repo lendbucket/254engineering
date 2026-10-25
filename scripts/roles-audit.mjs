@@ -2376,13 +2376,23 @@ if (!db) {
        * on 2026-09-10; the true reason is launch mode, so that is what it must say,
        * and a registration status is what it must not claim.
        */
+      /*
+       * Robert's ruling of 2026-10-24 (question 1, answer a): the refusal's own
+       * sentence, exactly, in place of the responsible charge clause the
+       * 2026-10-21 ruling removed. files-audit pins the same words; this pins
+       * them as a literal too. It still refuses any registration claim, any
+       * present tense sealing claim, and the removed sentence if it returns.
+       */
+      const SEAL_REFUSAL = "The firm cannot seal work yet. It is not yet accepting engagements.";
+      const refusal = sealed.reason ?? "";
       rec(
-        "and the refusal gives launch mode and responsible charge rather than his role, and claims no registration status",
+        `and the refusal says "${SEAL_REFUSAL}" rather than his role, and claims no registration or sealing`,
         sealed.ok === false &&
-          /not yet accepting engagements/i.test(sealed.reason ?? "") &&
-          /Professional Engineer/.test(sealed.reason ?? "") &&
-          !/registration/i.test(sealed.reason ?? ""),
-        sealed.reason ?? "",
+          refusal.includes(SEAL_REFUSAL) &&
+          !/registration/i.test(refusal) &&
+          !/\b(?:is|are|being) (?:reviewed and )?sealed\b|\bwe seal\b|\bseals? (?:every|each|all)\b/i.test(refusal) &&
+          !/engineer of record is (?:yet )?in responsible charge|no engineer of record/i.test(refusal),
+        refusal,
       );
       rec(
         "but he can take a complete package and decline it",
