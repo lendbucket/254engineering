@@ -1,7 +1,7 @@
 import "server-only";
 import { chargesBlockedReason } from "./launch";
 import { DB_NOW } from "./db-now";
-import { readEvery } from "./bounded-read";
+import { readEvery, readEveryIn } from "./bounded-read";
 import { orderForFile as liveOrderForFile } from "./order-for-file";
 import { supabaseAdmin } from "./supabase";
 import { business } from "@/config/business";
@@ -1204,28 +1204,37 @@ export async function ordersAwaitingAccount(): Promise<OrderAwaitingAccount[] | 
   const db = supabaseAdmin();
   if (!db) return null;
 
-  const { data: said, error } = await db
-    .from("eng_order_events")
-    .select("order_id, event, summary")
-    .in("event", [ACCOUNT_MATCH_NEEDED, CONFIRMATION_NO_ADDRESS])
-    .order("created_at", { ascending: true })
-    .limit(500);
-  if (error) return null;
-  const ids = [...new Set((said ?? []).map((e) => e.order_id as string))];
+  /*
+   * EVERY SUCH EVENT, NOT THE OLDEST 500. Robert's audit of 2026-10-24, finding
+   * F21: this read the oldest 500, resolved ones included, and decided which
+   * were resolved afterwards, so once 500 had accumulated a new order needing
+   * an account was never listed and "Orders needing attention" read clear.
+   * readEvery for the events, readEveryIn for the two reads keyed on them.
+   */
+  const saidRead = await readEvery<{ order_id: string; event: string; summary: string | null }>((from, to) =>
+    db
+      .from("eng_order_events")
+      .select("order_id, event, summary")
+      .in("event", [ACCOUNT_MATCH_NEEDED, CONFIRMATION_NO_ADDRESS])
+      .order("created_at", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  if (!saidRead.ok) return null;
+  const said = saidRead.rows;
+  const ids = [...new Set(said.map((e) => e.order_id))];
   if (ids.length === 0) return [];
 
-  const { data: orders, error: ordersError } = await db
-    .from("eng_service_orders")
-    .select("id, reference, account_id")
-    .in("id", ids);
-  if (ordersError) return null;
-  const { data: sent, error: sentError } = await db
-    .from("eng_order_events")
-    .select("order_id")
-    .in("order_id", ids)
-    .eq("event", "email.sent");
-  if (sentError) return null;
-  const confirmed = new Set((sent ?? []).map((e) => e.order_id as string));
+  const ordersRead = await readEveryIn<{ id: string; reference: string; account_id: string | null }>(ids, (chunk, from, to) =>
+    db.from("eng_service_orders").select("id, reference, account_id").in("id", [...chunk]).order("id").range(from, to),
+  );
+  if (!ordersRead.ok) return null;
+  const orders = ordersRead.rows;
+  const sentRead = await readEveryIn<{ order_id: string }>(ids, (chunk, from, to) =>
+    db.from("eng_order_events").select("order_id").in("order_id", [...chunk]).eq("event", "email.sent").order("id").range(from, to),
+  );
+  if (!sentRead.ok) return null;
+  const confirmed = new Set(sentRead.rows.map((e) => e.order_id));
 
   const out: OrderAwaitingAccount[] = [];
   for (const o of orders ?? []) {

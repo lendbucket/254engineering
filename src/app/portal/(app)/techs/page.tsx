@@ -57,7 +57,9 @@ export default async function TechsPage({ searchParams }: { searchParams: Promis
   const roster = rosterRead.ok ? rosterRead.rows : [];
   const query = techListQuery(params);
   const shown = techListRows(roster, query);
-  const ledger = await payLedger(actor);
+  /* A failed ledger read is said in the pay panel, never an empty ledger (F24). */
+  const ledgerRead = await payLedger(actor);
+  const ledger = ledgerRead.ok ? ledgerRead.rows : [];
   const serviceName = (slug: string) => services.find((s) => s.slug === slug)?.name ?? slug;
 
   /*
@@ -292,7 +294,11 @@ export default async function TechsPage({ searchParams }: { searchParams: Promis
             title="Pay ledger"
             description="An entry is written when a technician submits a package, not when the file is sealed. What they were paid for is the visit, and the visit is done."
           >
-            {ledger.length === 0 ? (
+            {!ledgerRead.ok ? (
+              <p role="alert" className="text-[14px] leading-[1.55] text-[var(--ink)]">
+                {ledgerRead.error} So no figure is shown here: this is a failed read, not an empty ledger.
+              </p>
+            ) : ledger.length === 0 ? (
               <p className="text-[14px] leading-[1.55] text-[var(--secondary)]">
                 Nothing yet. The first entry appears when a technician submits an evidence package.
               </p>
