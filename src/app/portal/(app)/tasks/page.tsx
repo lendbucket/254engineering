@@ -1,7 +1,9 @@
 import { notFound } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
-import { listTasks } from "@/lib/ops-tasks";
+import { listTasksPage } from "@/lib/ops-tasks";
+import { LIST_NOT_LOADED } from "@/lib/outcome-copy";
+import { RetryButton } from "@/components/portal/Unreachable";
 import { isOverdue, RECURRENCE_LABEL, type Recurrence } from "@/lib/ops-comms";
 import { supabaseAdmin } from "@/lib/supabase";
 import { Chip, EmptyState, PageHead, Panel } from "@/components/portal/surfaces";
@@ -42,13 +44,21 @@ const when = (value: string | null) =>
 export default async function TasksPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; q?: string; page?: string }>;
 }) {
   const actor = await currentActor();
   if (!can(actor, "tasks.use")) notFound();
   const params = await searchParams;
+  const page = Math.max(1, Math.floor(Number(params.page)) || 1);
 
-  const tasks = await listTasks(actor, { status: params.status });
+  /* A failed read is said, never "Nothing on the list" (the 2026-10-12 ruling; listTasks folded it to []). */
+  const read = await listTasksPage(actor, { status: params.status, q: params.q, page });
+  const tasks = read?.rows ?? [];
+  const pageHref = (n: number) => {
+    const next = new URLSearchParams();
+    for (const [k, v] of Object.entries({ status: params.status, q: params.q, page: n > 1 ? String(n) : undefined })) if (v) next.set(k, v);
+    return `/portal/tasks${next.toString() ? `?${next}` : ""}`;
+  };
 
   const db = supabaseAdmin();
   const people = can(actor, "profiles.list") && db
@@ -75,7 +85,8 @@ export default async function TasksPage({
         selfId={actor!.id}
       />
 
-      {can(actor, "profiles.list") && seeded.length === 0 ? (
+      {/* Only on the unfiltered first page: a search or a later page can hide the seeded tasks without their being absent. */}
+      {can(actor, "profiles.list") && read && !params.q && page === 1 && seeded.length === 0 ? (
         <Panel
           title="The compliance obligations are not seeded yet"
           /*
@@ -103,7 +114,7 @@ export default async function TasksPage({
         ].map(([value, label]) => (
           <a
             key={label}
-            href={`/portal/tasks${value ? `?status=${value}` : ""}`}
+            href={`/portal/tasks${value || params.q ? `?${new URLSearchParams(Object.entries({ status: value, q: params.q ?? "" }).filter((e) => e[1]))}` : ""}`}
             aria-current={(params.status ?? "") === value ? "page" : undefined}
             className={`inline-flex min-h-[40px] items-center rounded-[var(--radius-control)] border px-3 text-[14px] font-semibold active:opacity-70 ${
               (params.status ?? "") === value
@@ -115,14 +126,35 @@ export default async function TasksPage({
           </a>
         ))}
         {overdue.length > 0 ? (
-          <span className="ml-2 text-[14px] font-semibold text-[var(--ink)]">{overdue.length} overdue</span>
+          <span className="ml-2 text-[14px] font-semibold text-[var(--ink)]">
+            {overdue.length} overdue{read?.more || page > 1 ? " on this page" : ""}
+          </span>
         ) : null}
       </div>
 
-      {tasks.length === 0 ? (
+      <form method="get" action="/portal/tasks" role="search" className="mb-4 flex flex-wrap items-end gap-3 print:hidden">
+        {params.status ? <input type="hidden" name="status" value={params.status} /> : null}
+        <label className="min-w-[220px] flex-1">
+          <span className="block text-[14px] font-semibold text-[var(--ink)]">Search task titles</span>
+          <input name="q" defaultValue={params.q ?? ""} className="mt-1 min-h-[44px] w-full rounded-[var(--radius-control)] border border-[var(--border-strong)] px-3 text-[15px]" />
+        </label>
+        <button type="submit" className="min-h-[44px] rounded-[var(--radius-control)] border border-[var(--navy)] bg-[var(--navy)] px-4 text-[14px] font-semibold text-[var(--on-navy)]">
+          Search
+        </button>
+      </form>
+
+      {!read ? (
+        <div role="alert" data-list-not-loaded className="py-6">
+          <p className="text-[15px] font-semibold text-[var(--ink)]">{LIST_NOT_LOADED}</p>
+          <p className="mt-1 text-[14px] text-[var(--secondary)]">The tasks could not be read, so this is not an empty list.</p>
+          <div className="mt-4 flex">
+            <RetryButton />
+          </div>
+        </div>
+      ) : tasks.length === 0 ? (
         <EmptyState
-          title={params.status === "done" ? "Nothing finished yet" : "Nothing on the list"}
-          body="Add a title above. Due date, assignee and repeat are optional."
+          title={params.q ? "No task matches that search" : params.status === "done" ? "Nothing finished yet" : "Nothing on the list"}
+          body={params.q ? "Clear the search to see the whole list." : "Add a title above. Due date, assignee and repeat are optional."}
         />
       ) : (
         /* V10 rule 4: rows separated by a 1px line-2 rule, not bordered cards. */
@@ -186,6 +218,20 @@ export default async function TasksPage({
           })}
         </ul>
       )}
+      {read && (page > 1 || read.more) ? (
+        <nav aria-label="Pages of tasks" className="mt-4 flex gap-3 print:hidden">
+          {page > 1 ? (
+            <a href={pageHref(page - 1)} className="inline-flex min-h-[44px] items-center text-[14px] font-semibold text-[var(--navy)] underline">
+              Previous page
+            </a>
+          ) : null}
+          {read.more ? (
+            <a href={pageHref(page + 1)} className="inline-flex min-h-[44px] items-center text-[14px] font-semibold text-[var(--navy)] underline">
+              Next page
+            </a>
+          ) : null}
+        </nav>
+      ) : null}
       </section>
 
       {derived.length > 0 ? (

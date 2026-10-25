@@ -316,7 +316,8 @@ export const insights: Insight[] = [
         kind: "p",
         text: [
           registrationStatement(),
-          "No engineer of record has been appointed, and under section 1001.405(e) a registration alone is not the whole of what the statute asks: it reserves the representation for an entity actively engaged in the practice, with a full time licensed engineer supervising it.",
+          /* "No engineer of record has been appointed" came out: false since the engineer was recorded, and removed on the operator's ruling of 2026-10-21. */
+          "Under section 1001.405(e) a registration alone is not the whole of what the statute asks: it reserves the representation for an entity actively engaged in the practice, with a full time licensed engineer supervising it.",
         ]
           .filter(Boolean)
           .join(" "),

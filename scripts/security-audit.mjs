@@ -331,6 +331,8 @@ const ADMIN_APIS = [
   "/api/portal/refunds/export",
   // The inbox as a CSV, a read (office ready, 2026-10-24).
   "/api/portal/inbox/export",
+  // The clients list as a CSV, a read, every matching row or no file (office ready, 2026-10-24).
+  "/api/portal/clients/export",
   "/api/portal/desk",
   "/api/portal/order-lookup",
   // Customer ordering accounts: terms, credit limits, closing a period and

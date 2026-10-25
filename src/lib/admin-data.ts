@@ -2,6 +2,7 @@ import "server-only";
 import { supabaseAdmin } from "./supabase";
 import { currentActor } from "./ops-auth";
 import { can } from "./ops-authz";
+import { cleanSearchTerm } from "./search-rules";
 
 /**
  * Applications, read by the portal.
@@ -64,16 +65,38 @@ export type ApplicationRow = {
   payload: Record<string, unknown> | null;
 };
 
-export async function listApplications(limit = 200): Promise<ApplicationRow[]> {
+/** One page of applications. */
+export const APPLICATION_PAGE_SIZE = 100;
+
+/*
+ * OFFICE READY, 2026-10-24, AND A FAILED READ IS SAID. This was
+ * listApplications(limit = 200), which returned `data ?? []`, so a read that
+ * failed showed "No applications" and the 201st applicant was never shown. Now
+ * one page, searched by name, email or city and filtered by position in the
+ * database, with whether more follow, and an error is returned as one.
+ */
+export async function listApplicationsPage(
+  options: { q?: string; role?: string; page?: number } = {},
+): Promise<{ ok: true; rows: ApplicationRow[]; more: boolean } | { ok: false; error: string }> {
   await requireAdmin();
   const db = supabaseAdmin();
-  if (!db) return [];
-  const { data } = await db
-    .from("eng_applications")
-    .select("id, created_at, site, role, name, email, phone, city, payload")
+  if (!db) return { ok: false, error: "The database is not configured." };
+  let read = db.from("eng_applications").select("id, created_at, site, role, name, email, phone, city, payload");
+  const term = cleanSearchTerm(options.q ?? "");
+  if (term) read = read.or(`name.ilike.%${term}%,email.ilike.%${term}%,city.ilike.%${term}%`);
+  if (options.role === "professional_engineer" || options.role === "field_technician") read = read.eq("role", options.role);
+  const page = Math.max(1, Math.floor(options.page ?? 1));
+  const from = (page - 1) * APPLICATION_PAGE_SIZE;
+  const { data, error } = await read
     .order("created_at", { ascending: false })
-    .limit(limit);
-  return (data ?? []) as ApplicationRow[];
+    .order("id", { ascending: true })
+    .range(from, from + APPLICATION_PAGE_SIZE);
+  if (error) {
+    console.error(`[applications] the applications could not be read: ${error.message}`);
+    return { ok: false, error: error.message };
+  }
+  const all = (data ?? []) as ApplicationRow[];
+  return { ok: true, rows: all.slice(0, APPLICATION_PAGE_SIZE), more: all.length > APPLICATION_PAGE_SIZE };
 }
 
 export async function getApplication(id: string): Promise<ApplicationRow | null> {

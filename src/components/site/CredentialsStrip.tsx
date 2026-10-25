@@ -25,15 +25,16 @@ export function CredentialsStrip() {
         ? `TBPELS Firm No. ${firmNumber}`
         : (registrationStatement() ?? "No firm registration is on record"),
     },
-    {
-      // The second gate, stated on its own line rather than folded into the
-      // registration one. A firm can hold a registration and still have nobody
-      // able to seal, and a reader checking credentials needs both facts.
-      label: "Engineer of record",
-      value: pe
-        ? "A licensed Texas Professional Engineer is in responsible charge"
-        : "No engineer of record is yet in responsible charge. No work is being sealed",
-    },
+    /*
+     * The second gate, on its own line, and ONLY when it is met. Its other
+     * branch denied that an engineer of record was in place and came out on
+     * the operator's ruling of 2026-10-21 under the 2026-09-17 rule: no
+     * sentence says no engineer is in responsible charge. A lapsed register
+     * now drops the line rather than printing that.
+     */
+    ...(pe
+      ? [{ label: "Engineer of record", value: "A licensed Texas Professional Engineer is in responsible charge" }]
+      : []),
     /*
      * THREE OF THE FIVE CAME OUT ON 2026-09-17, AND THE REASONS DIFFER.
      *

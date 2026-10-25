@@ -130,7 +130,7 @@ export function WindstormInquiryForm() {
           Thank you. Your brief is with us.
         </h2>
         <p className="mt-4 text-[0.98rem] leading-[1.7] text-slate-muted">
-          Somebody will read it and come back to you within one business day. An existing building
+          Somebody will read it and reply to the address you gave. An existing building
           is scoped one property at a time, so the reply will be a conversation about what can be
           established and what would have to be opened up, rather than a figure from a calculator.
           If what you have described cannot be certified, we will say so plainly and tell you why.

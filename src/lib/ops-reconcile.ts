@@ -86,7 +86,7 @@ async function sessionRefFor(orderId: string): Promise<string | null> {
   return typeof ref === "string" && ref.length > 0 ? ref : null;
 }
 
-/** Orders the platform is still waiting on. The only ones worth asking about. */
+/** Orders the platform is still waiting on. The only ones worth asking about. Throws when they cannot be read. */
 export async function unreconciledOrders(): Promise<
   { id: string; reference: string; status: string; totalCents: number | null; createdAt: string }[]
 > {
@@ -109,7 +109,14 @@ export async function unreconciledOrders(): Promise<
       .order("created_at", { ascending: true })
       .range(from, to),
   );
-  const data = read.ok ? read.rows : [];
+  /*
+   * A FAILED READ IS NOT "NOTHING WAITING ON PAYMENT" (audit of 2026-10-24).
+   * Read as an empty set, the sweep reported nothing to reconcile on exactly the
+   * day the database was in trouble. It throws, so the reconcile job fails and
+   * says so, and is retried.
+   */
+  if (!read.ok) throw new Error(`The orders awaiting payment could not be read, so nothing was reconciled: ${read.error}`);
+  const data = read.rows;
 
   return data.map((o) => ({
     id: o.id as string,
