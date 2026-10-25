@@ -1,7 +1,10 @@
 import { notFound, redirect } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
-import { listApplications } from "@/lib/admin-data";
+import { listApplicationsPage } from "@/lib/admin-data";
+import { ListControls, listHref } from "@/components/portal/ListControls";
+import { LIST_NOT_LOADED } from "@/lib/outcome-copy";
+import { RetryButton } from "@/components/portal/Unreachable";
 import { signedDownloadUrl } from "@/lib/uploads";
 import {
   DataTable,
@@ -62,12 +65,16 @@ const ROLE_LABEL: Record<string, string> = {
   field_technician: "Field Technician",
 };
 
-export default async function PortalApplicationsPage() {
+export default async function PortalApplicationsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const actor = await currentActor();
   if (!actor) redirect("/portal/login");
   if (!can(actor, "profiles.create")) notFound();
+  const params = await searchParams;
+  const page = Math.max(1, Math.floor(Number(params.page)) || 1);
 
-  const raw = await listApplications();
+  const read = await listApplicationsPage({ q: params.q, role: params.role, page });
+  const raw = read.ok ? read.rows : [];
+  const searching = Boolean(params.q || params.role);
 
   const rows: Row[] = await Promise.all(
     raw.map(async (r) => {
@@ -160,20 +167,68 @@ export default async function PortalApplicationsPage() {
         lede="Both open positions. Document links last about ten minutes and are minted when this page renders, so they cannot be forwarded usefully."
       />
 
-      <Panel>
-        <DataTable
-          caption="Applications for the two open positions"
-          columns={columns}
-          rows={rows}
-          total={rows.length}
-          empty={
-            <EmptyState
-              title="No applications"
-              body="One appears here when somebody completes the flow on the careers pages. Nothing is filtered out, including applications that did not finish uploading."
-            />
-          }
-        />
-      </Panel>
+      <ListControls
+        action="/portal/applications"
+        search={params.q ?? ""}
+        searchLabel="Search name, email or city"
+        filters={[
+          {
+            name: "role",
+            label: "Position",
+            value: params.role ?? "",
+            options: [
+              { value: "", label: "Both" },
+              { value: "professional_engineer", label: ROLE_LABEL.professional_engineer },
+              { value: "field_technician", label: ROLE_LABEL.field_technician },
+            ],
+          },
+        ]}
+        sorts={[{ value: "applied", label: "Applied" }]}
+        sort="applied"
+        direction="desc"
+      />
+      {!read.ok ? (
+        <div role="alert" data-list-not-loaded className="py-6">
+          <p className="text-[15px] font-semibold text-[var(--ink)]">{LIST_NOT_LOADED}</p>
+          <p className="mt-1 text-[13.5px] text-[var(--secondary)]">The applications could not be read, so this is not an empty list.</p>
+          <div className="mt-4 flex">
+            <RetryButton />
+          </div>
+        </div>
+      ) : (
+        <Panel>
+          <DataTable
+            caption="Applications for the two open positions"
+            columns={columns}
+            rows={rows}
+            total={rows.length}
+            empty={
+              searching ? (
+                <EmptyState title="No application matches that search" body="Clear the search or show both positions." />
+              ) : (
+                <EmptyState
+                  title="No applications"
+                  body="One appears here when somebody completes the flow on the careers pages. Nothing is filtered out, including applications that did not finish uploading."
+                />
+              )
+            }
+          />
+          {page > 1 || read.more ? (
+            <nav aria-label="Pages of applications" className="mt-4 flex gap-3 print:hidden">
+              {page > 1 ? (
+                <a href={listHref("/portal/applications", params, { page: page - 1 > 1 ? String(page - 1) : "" })} className="inline-flex min-h-[44px] items-center text-[13.5px] font-semibold text-[var(--navy)] underline">
+                  Previous page
+                </a>
+              ) : null}
+              {read.more ? (
+                <a href={listHref("/portal/applications", params, { page: String(page + 1) })} className="inline-flex min-h-[44px] items-center text-[13.5px] font-semibold text-[var(--navy)] underline">
+                  Next page
+                </a>
+              ) : null}
+            </nav>
+          ) : null}
+        </Panel>
+      )}
     </>
   );
 }

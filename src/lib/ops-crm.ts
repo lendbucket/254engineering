@@ -1,6 +1,8 @@
 import "server-only";
 import { DB_NOW } from "./db-now";
 import { supabaseAdmin } from "./supabase";
+import { clientSearchOr, type ClientListQuery } from "./client-list";
+import { cleanSearchTerm } from "./search-rules";
 import { writeAudit, diffOf, safeDiff } from "./ops-audit";
 import { canSeeFile, redactFile, visibleFiles, type Actor, actionsFor } from "./ops-authz";
 import {
@@ -174,18 +176,33 @@ export const CLIENT_PAGE_SIZE = 100;
  */
 export async function listClients(
   actor: Actor | null,
-  options: { limit?: number } = {},
+  options: { limit?: number; offset?: number; query?: ClientListQuery } = {},
 ): Promise<ClientRow[]> {
   const db = supabaseAdmin();
   if (!db || !actor) return [];
-  const { data } = await db
+  /*
+   * Office ready, 2026-10-24: the list screen passes a query, searched, filtered
+   * and sorted in the database, and paged by offset. The picker passes none and
+   * reads exactly what it always read.
+   */
+  const q = options.query;
+  const limit = options.limit ?? 500;
+  const offset = options.offset ?? 0;
+  let read = db
     .from("eng_clients")
     .select(
       "id, kind, name, client_type, status, email, phone, city, county, source_site, utm_source, converted_from_lead_id, created_at, notes",
     )
-    .or("is_demo.is.null,is_demo.eq.false")
-    .order("created_at", { ascending: false })
-    .limit(options.limit ?? 500);
+    /* Null or false, as is_demo.is.null,is_demo.eq.false said, written so the search can be the one or(). */
+    .not("is_demo", "is", true);
+  const search = q ? clientSearchOr(q.term) : null;
+  if (search) read = read.or(search);
+  if (q && q.kind !== "all") read = read.eq("kind", q.kind);
+  const { data } = await read
+    .order(q?.sort === "name" ? "name" : "created_at", { ascending: q ? q.ascending : false })
+    /* A tie broken by id, so a page boundary never shows a client twice or not at all. */
+    .order("id", { ascending: true })
+    .range(offset, offset + limit - 1);
   return (data ?? []) as ClientRow[];
 }
 
@@ -205,13 +222,18 @@ export async function listClients(
  * saying "showing 100 of 260" that can never reach 260, and the reader
  * concludes the screen is broken.
  */
-export async function countClients(actor: Actor | null): Promise<number | null> {
+export async function countClients(actor: Actor | null, query?: ClientListQuery): Promise<number | null> {
   const db = supabaseAdmin();
   if (!db || !actor) return null;
-  const { count, error } = await db
+  /* The same filter and the same search as the list, so "12 of 40 matching" can reach 40. */
+  let read = db
     .from("eng_clients")
     .select("id", { count: "exact", head: true })
-    .or("is_demo.is.null,is_demo.eq.false");
+    .not("is_demo", "is", true);
+  const search = query ? clientSearchOr(query.term) : null;
+  if (search) read = read.or(search);
+  if (query && query.kind !== "all") read = read.eq("kind", query.kind);
+  const { count, error } = await read;
   /*
    * NULL ON ERROR, NEVER ZERO. Absent and none are different facts, and the
    * screen renders them differently: a count it could not read says so, and a
@@ -420,27 +442,43 @@ export async function listFiles(
  * screen can say the list is the newest 300 without a second, separately
  * scoped count.
  */
+/*
+ * OFFICE READY, 2026-10-24. Paged: `page` reads the next FILE_LIST_CAP, so an
+ * older file is reached by paging rather than only by narrowing; `oldest`
+ * reverses the order. The term is cleaned by the one shared rule (it had its own
+ * copy, which let `*` and a backslash through). And a read that failed is said:
+ * `error` is set rather than an empty page standing in for "no files".
+ */
 export async function listFilesPage(
   actor: Actor | null,
-  filters: { status?: string; county?: string; search?: string } = {},
-): Promise<{ rows: FileRow[]; more: boolean }> {
-  if (!actor) return { rows: [], more: false };
+  filters: { status?: string; county?: string; search?: string; page?: number; oldest?: boolean } = {},
+): Promise<{ rows: FileRow[]; more: boolean; error: string | null }> {
+  if (!actor) return { rows: [], more: false, error: null };
   const scoped = await scopedFileQuery(actor);
-  if (!scoped) return { rows: [], more: false };
+  if (!scoped) return { rows: [], more: false, error: null };
   let query = scoped.query;
 
   if (filters.status) query = query.eq("status", filters.status);
   if (filters.county) query = query.eq("county", filters.county);
-  if (filters.search) {
-    const term = filters.search.replace(/[%,()]/g, "");
-    query = query.or(`file_number.ilike.%${term}%,property_address.ilike.%${term}%`);
-  }
+  const term = cleanSearchTerm(filters.search ?? "");
+  if (term) query = query.or(`file_number.ilike.%${term}%,property_address.ilike.%${term}%`);
 
-  const { data } = await query.order("created_at", { ascending: false }).limit(FILE_LIST_CAP + 1);
+  const page = Math.max(1, Math.floor(filters.page ?? 1));
+  const from = (page - 1) * FILE_LIST_CAP;
+  const { data, error } = await query
+    .order("created_at", { ascending: filters.oldest === true })
+    /* A tie broken by id, so a page boundary never shows a file twice or skips one. */
+    .order("id", { ascending: true })
+    .range(from, from + FILE_LIST_CAP);
+  if (error) {
+    console.error(`[files] the file list could not be read: ${error.message}`);
+    return { rows: [], more: false, error: error.message };
+  }
   const all = (data ?? []) as FileRow[];
   return {
     rows: all.slice(0, FILE_LIST_CAP).map((f) => redactFile(actor, f)),
     more: all.length > FILE_LIST_CAP,
+    error: null,
   };
 }
 
