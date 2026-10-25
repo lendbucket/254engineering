@@ -183,8 +183,15 @@ export default async function TechsPage({ searchParams }: { searchParams: Promis
                             inline link's bounding box has a gap between its line
                             fragments, and a press at its centre lands on the
                             paragraph instead, which native-audit caught.
+
+                            AND AT LEAST THE HOUSE TAP HEIGHT, 44px. The list controls
+                            this roster gained (2026-10-24) sit directly above the first
+                            row, so a 21px name no longer had the clear space round it
+                            that WCAG 2.5.8 lets an undersized target pass on, and
+                            mobile-audit refused it at 320px on board 40156724917.
+                            inline-flex is still one box, so the wrap rule above holds.
                           */}
-                          <Link href={`/portal/techs/${tech.id}`} className="inline-block hover:underline active:opacity-70">
+                          <Link href={`/portal/techs/${tech.id}`} className="inline-flex min-h-[44px] items-center hover:underline active:opacity-70">
                             {tech.display_name}
                           </Link>
                         </p>
