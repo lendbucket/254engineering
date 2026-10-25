@@ -6,7 +6,7 @@ import { orderForCustomerToken } from "./ops-intake";
 import { CUSTOMER_STATUS, CUSTOMER_STATUS_REFUND_ISSUED, CUSTOMER_STATUS_REPAIRS, type OrderStatus } from "./ops-orders";
 import { money, type Cents } from "./ops-money";
 import { REFUND_ISSUED_SENTENCE } from "./refund-update";
-import { customerLetters, type CustomerLetter } from "./letter-delivery";
+import { customerLettersRead, type CustomerLetter } from "./letter-delivery";
 
 /**
  * What a customer sees about their own order.
@@ -57,6 +57,14 @@ export type CustomerView = {
    * has been waiting for since it was written.
    */
   letters: CustomerLetter[];
+  /**
+   * The parts of this page that could not be read just now, in the customer's
+   * words. Robert's audit of 2026-10-24, finding F29: the timeline, payment,
+   * refund and letter reads ignored their errors, so a failed read showed no
+   * refund and no sealed letter with nothing saying anything was missing. Empty
+   * when everything was read.
+   */
+  unread: string[];
 };
 
 const cents = (v: unknown): Cents => (v === null || v === undefined ? null : Number(v));
@@ -137,18 +145,23 @@ export async function customerView(token: string): Promise<CustomerView | null> 
 
   const entry = catalogFor(order.service_slug as string, (order.tier as string | null) ?? undefined);
 
-  const { data: events } = await db
+  /* What could not be read is collected and said on the page (F29), never shown as nothing. */
+  const unread: string[] = [];
+
+  const { data: events, error: eventsError } = await db
     .from("eng_order_events")
     .select("created_at, summary")
     .eq("order_id", order.id)
     .eq("customer_visible", true)
     .order("created_at", { ascending: true });
+  if (eventsError) unread.push("the progress of your order");
 
-  const { data: payments } = await db
+  const { data: payments, error: paymentsError } = await db
     .from("eng_order_payments")
     .select("kind, amount_cents, status, refund_case")
     .eq("order_id", order.id)
     .eq("status", "succeeded");
+  if (paymentsError) unread.push("what has been paid and refunded");
 
   const charged = (payments ?? [])
     .filter((p) => p.kind === "charge")
@@ -158,12 +171,13 @@ export async function customerView(token: string): Promise<CustomerView | null> 
     .reduce((n, p) => n + Number(p.amount_cents), 0);
   const refundCase = (payments ?? []).find((p) => p.kind === "refund")?.refund_case as string | undefined;
 
-  const { data: pendingRefunds } = await db
+  const { data: pendingRefunds, error: pendingError } = await db
     .from("eng_order_payments")
     .select("amount_cents")
     .eq("order_id", order.id)
     .eq("kind", "refund")
     .eq("status", "pending");
+  if (pendingError && !paymentsError) unread.push("what has been paid and refunded");
   const issuedCents = (pendingRefunds ?? []).reduce((n, p) => n + Number(p.amount_cents), 0);
 
   /*
@@ -187,6 +201,9 @@ export async function customerView(token: string): Promise<CustomerView | null> 
   if (order.twia_county && order.coastal_surcharge_cents !== null) {
     lines.push({ label: "Coastal county", amount: money(cents(order.coastal_surcharge_cents)) });
   }
+
+  const lettersRead = await customerLettersRead(subject.orderId);
+  if (!lettersRead.ok) unread.push("your sealed documents");
 
   return {
     reference: order.reference as string,
@@ -221,6 +238,7 @@ export async function customerView(token: string): Promise<CustomerView | null> 
           }
         : null,
     refundIssued: issuedCents > 0 ? { amount: money(issuedCents), sentence: REFUND_ISSUED_SENTENCE } : null,
-    letters: await customerLetters(subject.orderId),
+    letters: lettersRead.ok ? lettersRead.letters : [],
+    unread,
   };
 }
