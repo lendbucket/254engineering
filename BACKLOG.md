@@ -4,6 +4,39 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
+## FIXED: EVERY CLOUD BOARD SHARED ONE SIGN IN RATE LIMIT BUCKET
+
+Fixed 2026-10-24 on this branch, to Robert's ruling 5 of that day: the board
+sets `BOARD_RUN_ID` from its run id in the shard's environment, and `clientKey`
+reads it only when the database is development; no request header can choose a
+key, and there is no preload. Proof
+`scripts/proofs/each-board-run-has-its-own-sign-in-bucket.mjs`; dropping the
+development check turns three checks red. mobile-overflow-audit signs a probe
+in through a real browser and reads the bucket it landed in. The entry as it
+was written follows, and its header design is superseded.
+
+**And the key keeps main's buckets, Robert's answer to question 2 of
+2026-10-25.** Board 40141490603 put every sign in of a run into one bucket and
+missed on 429s, because forms-audit's wrong-credential checks spent its twenty.
+The key is now `board:<run>:<the address main uses>`, so a run has as many
+buckets as main and shares none with another run.
+
+`src/lib/ops-rate-limit.ts` and `.github/workflows/board.yml`, on its own
+branch `fix/ci-board-sign-in-key`. Ruled by Robert on 2026-10-23. Main's board
+`40035266531`: every probe sign in in the writers shard answered HTTP 429
+(roles, mobile-overflow, native, v10-layout FAIL; messaging, dashboard-speed,
+break-glass COULD NOT TELL). `takeLoginAttempt` counts in the shared
+development database keyed by `clientKey()`, which is `x-forwarded-for` or else
+`"unknown"`, and a runner calling localhost sends no forwarded header, so every
+board's sign ins land in one bucket; five boards' other shards were signing in
+while main's writers ran. **The limiter is not loosened.** The fix: each board
+run sends its own key, a header the board sets from its run id, which
+`clientKey()` honours only when the database is development
+(`ythzaiqeoijlrdibnieo`) and never otherwise. Proof owed: on a production target
+the header is ignored and the address key is unchanged, injection-verified by
+honouring it unconditionally. Until it lands, boards are never pushed in a
+burst.
+
 ## THE SITTING FOR 0088, A LETTER SEALS ONLY FROM A TEMPLATE HE SIGNED, OPEN
 
 `docs/production-sitting-0088-a-letter-seals-only-from-a-template-he-signed.md`.

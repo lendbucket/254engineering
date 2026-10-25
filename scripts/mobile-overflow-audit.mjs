@@ -174,7 +174,7 @@ async function createProbe(role = "admin") {
       "[mobile-overflow-audit] probe " + role + " has no session: " + (signedIn.error ?? "no cookie"),
     );
   }
-  return { db, id: data.user.id, email, cookie: signedIn.cookie };
+  return { db, id: data.user.id, email, password, cookie: signedIn.cookie };
 }
 
 async function destroyProbe() {
@@ -453,6 +453,66 @@ async function run() {
    * answers 200 and would be measured as the page it is not.
    */
   const COOKIE_NAME = { staff: "eng_ops", partner: "eng_partner", customer: "eng_customer" };
+
+  /*
+   * EACH BOARD RUN HAS ITS OWN SIGN IN BUCKET, PROVED WITH A REAL BROWSER.
+   * Robert's ruling 5 of 2026-10-24. The server reads BOARD_RUN_ID from its own
+   * environment, on development only, and no request can choose the key. So a
+   * fresh browser signs the technician probe in through the real form, and the
+   * attempt it made is read back: under the board, its address is this run's
+   * key; with no run id, or off development, it is not a board key at all. The
+   * count before and after picks out the browser's own row, so no clock is
+   * compared.
+   */
+  {
+    const { DEVELOPMENT_REF, refOf } = await import("./lib/db-target.mjs");
+    const runId = process.env.BOARD_RUN_ID ?? "";
+    /* The run id prefixes the address main uses (question 2, 2026-10-25), so the browser's key starts with this run's prefix. */
+    const expected = /^\d{6,20}$/.test(runId) && refOf(process.env.SUPABASE_URL) === DEVELOPMENT_REF ? `board:${runId}:` : null;
+    let ok = false;
+    let detail = "";
+    if (!techProbe?.password) {
+      detail = "the technician probe could not be made, so no browser sign in was tried";
+    } else {
+      const attempts = async () =>
+        techProbe.db
+          .from("eng_sign_in_attempts")
+          .select("address", { count: "exact" })
+          .eq("identity", techProbe.email)
+          .eq("kind", "attempt")
+          .order("id", { ascending: false })
+          .limit(1);
+      const before = await attempts();
+      const ctx = await browser.newContext();
+      const page = await ctx.newPage();
+      let status = null;
+      try {
+        await page.goto(`${BASE}/portal/login`, { waitUntil: "domcontentloaded" });
+        await page.fill('input[name="email"]', techProbe.email);
+        await page.fill('input[name="password"]', techProbe.password);
+        const answered = page.waitForResponse(
+          (r) => r.url().includes("/api/portal/session") && r.request().method() === "POST",
+          { timeout: 30_000 },
+        );
+        await page.locator('form button[type="submit"]').first().click();
+        status = (await answered).status();
+      } catch (e) {
+        detail = `the browser sign in did not complete: ${String(e?.message ?? e).slice(0, 160)}`;
+      }
+      await ctx.close();
+      const after = await attempts();
+      const address = after.data?.[0]?.address ?? null;
+      if (!detail) {
+        if (before.error || after.error) detail = `the attempts could not be read: ${(before.error ?? after.error).message}`;
+        else if ((after.count ?? 0) !== (before.count ?? 0) + 1) detail = `expected one new attempt from the browser, found ${(after.count ?? 0) - (before.count ?? 0)}`;
+        else {
+          ok = status === 200 && (expected ? String(address).startsWith(expected) : !String(address).startsWith("board:"));
+          detail = `browser sign in answered ${status}; its attempt counted under "${address}"${expected ? `, inside this run's prefix ${expected}` : ", and no board run id is set here"}`;
+        }
+      }
+    }
+    checks.push({ name: "a real browser sign in counts in this board run's own bucket, and in no board's bucket without one", ok, detail });
+  }
 
   const contextFor = async (width, cookie, kind = "staff") => {
     const ctx = await browser.newContext({
