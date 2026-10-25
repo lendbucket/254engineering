@@ -237,7 +237,7 @@ export default async function ReviewPage({
                 <p className="text-[14px] text-[var(--ink)]">
                   <span className="font-semibold">{f.fileNumber}</span>, {f.address}
                 </p>
-                <TriagePanel fileId={f.id} basis={null} additions={[]} />
+                <TriagePanel fileId={f.id} basis={null} additions={f.additions} />
               </li>
             ))}
           </ul>
