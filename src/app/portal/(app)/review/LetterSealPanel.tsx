@@ -25,6 +25,8 @@ type Line = { kind: string; text: string };
 type Frame = {
   letterhead: { brand: string; registrationLine: string };
   sealBlock: { name: string; licenseNumber: string; role: string };
+  /* The page a roof B or C letter calls attached, sealed in the same PDF (F14, L2f). */
+  attachment: { heading: string; lines: string[] } | null;
   draftSha256: string;
 };
 
@@ -88,7 +90,7 @@ export function LetterSealPanel({
       }
       if (action === "draft") {
         setLines(body.lines as Line[]);
-        setFrame({ letterhead: body.letterhead, sealBlock: body.sealBlock, draftSha256: body.draftSha256 } as Frame);
+        setFrame({ letterhead: body.letterhead, sealBlock: body.sealBlock, attachment: body.attachment ?? null, draftSha256: body.draftSha256 } as Frame);
       } else {
         setDone(
           body.warning
@@ -205,6 +207,18 @@ export function LetterSealPanel({
               <p className="text-[14px] leading-[1.5] text-[var(--ink)]">Texas P.E. No. {frame.sealBlock.licenseNumber}</p>
               <p className="text-[14px] leading-[1.5] text-[var(--ink)]">{frame.sealBlock.role}</p>
               <p className="text-[14px] leading-[1.5] text-[var(--ink)]">Date: the day you seal</p>
+            </div>
+          ) : null}
+          {/* The attached page, as it prints after the seal block in the same sealed PDF (F14, L2f). */}
+          {frame?.attachment ? (
+            <div className="mt-4 border-t border-[var(--border)] pt-2">
+              <p className="text-[13px] leading-[1.5] text-[var(--secondary)]">A second page of the same sealed document:</p>
+              <p className="mt-1 text-[14px] font-semibold text-[var(--ink)]">{frame.attachment.heading}</p>
+              {frame.attachment.lines.map((text, i) => (
+                <p key={i} className="mt-1.5 text-[14px] leading-[1.6] text-[var(--ink)]">
+                  {text}
+                </p>
+              ))}
             </div>
           ) : null}
         </div>

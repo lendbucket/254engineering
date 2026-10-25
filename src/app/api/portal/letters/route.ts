@@ -52,6 +52,8 @@ async function handlePOST(request: NextRequest) {
           title: draft.title,
           letterhead: draft.letterhead,
           sealBlock: draft.sealBlock,
+          /* The page a roof B or C letter calls attached (F14, L2f). */
+          attachment: draft.attachment,
           draftSha256: draft.draftSha256,
         })
       : NextResponse.json({ ok: false, error: draft.why, missing: draft.missing }, { status: 400 });

@@ -45,6 +45,12 @@ export type LetterPdfInput = {
   logoPng: Uint8Array;
   /** The document's own title, written into the PDF's metadata. */
   title: string;
+  /**
+   * The schedule or record a letter's sentence calls "attached", printed as a
+   * page of the same sealed PDF so the word is true. Robert's answer on F14
+   * and L2f, 2026-10-25. Every line comes from what the engineer recorded.
+   */
+  attachment?: { heading: string; lines: string[] };
 };
 
 export type LetterPdfResult = { ok: true; bytes: Uint8Array } | { ok: false; why: string };
@@ -175,6 +181,26 @@ export async function renderLetterPdf(input: LetterPdfInput): Promise<LetterPdfR
       width: seal.width * sealScale,
       height: seal.height * sealScale,
     });
+
+    /*
+     * THE ATTACHED PAGE (F14, L2f). Its own page, after the seal block, inside
+     * the one PDF whose bytes the seal act hashes, so the schedule or record the
+     * letter calls attached is sealed with it. The letterhead's two text lines
+     * head it so a page read alone still says whose it is.
+     */
+    if (input.attachment) {
+      page = doc.addPage([PAGE_W, PAGE_H]);
+      y = PAGE_H - MARGIN;
+      draw(input.brand, bold, 13);
+      draw(input.registrationLine, regular, 9.5);
+      y -= LEADING;
+      draw(input.attachment.heading, bold, BODY_SIZE);
+      y -= 6;
+      for (const text of input.attachment.lines) {
+        draw(text, regular, BODY_SIZE);
+        y -= 4;
+      }
+    }
   } catch (err) {
     const message = String((err as Error).message ?? err);
     return {

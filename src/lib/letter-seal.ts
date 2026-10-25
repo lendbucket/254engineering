@@ -90,10 +90,15 @@ type LetterFrame = {
  * reading and sealing printed in a letter he never read. The digest covers
  * every word the letter prints except the date, which is the sealing moment.
  */
-export function draftDigest(draft: { title: string; lines: { kind: string; text: string }[] }, frame: LetterFrame): string {
+export function draftDigest(
+  draft: { title: string; lines: { kind: string; text: string }[]; attachment?: { heading: string; lines: string[] } },
+  frame: LetterFrame,
+): string {
   const canonical = JSON.stringify({
     title: draft.title,
     lines: draft.lines.map((l) => [l.kind, l.text]),
+    /* The attached page is part of what he reads and what is sealed (F14). */
+    attachment: draft.attachment ? [draft.attachment.heading, ...draft.attachment.lines] : null,
     letterhead: [frame.letterhead.brand, frame.letterhead.registrationLine],
     sealBlock: [frame.sealBlock.name, frame.sealBlock.licenseNumber, frame.sealBlock.role],
   });
@@ -140,6 +145,9 @@ type DeterminationRow = {
   letter_conditions: string[] | null;
   /* 0051: the evidence he relied on, which is a desk job's documents schedule (PL-5). */
   relied_on_evidence_ids: string[] | null;
+  /* 0051: the items he relied on, and his own words, which a roof decline's attached record carries (F14). */
+  relied_on_item_keys?: string[] | null;
+  note?: string | null;
 };
 
 async function determination(id: string): Promise<DeterminationRow | null> {
@@ -147,7 +155,7 @@ async function determination(id: string): Promise<DeterminationRow | null> {
   if (!db) return null;
   const { data } = await db
     .from("eng_determinations")
-    .select("id, file_id, protocol_document, determination, engineer_id, decided_at, letter_option, letter_conditions, relied_on_evidence_ids")
+    .select("id, file_id, protocol_document, determination, engineer_id, decided_at, letter_option, letter_conditions, relied_on_evidence_ids, relied_on_item_keys, note")
     .eq("id", id)
     .maybeSingle();
   return (data as DeterminationRow | null) ?? null;
@@ -439,8 +447,66 @@ async function permitDraft(det: DeterminationRow): Promise<{ ok: true; lines: Dr
 
 type Entered = { recipientAddress: string; recipientSalutation: string; observedCondition?: string };
 
-/** The draft for any built letter, by its protocol. Roof's path is exactly what it was. */
-async function draftFor(det: DeterminationRow, entered: Entered): Promise<{ ok: true; lines: DraftLine[]; title: string } | { ok: false; error: string }> {
+/** A page of the same sealed PDF that a letter's sentence calls attached (F14, L2f). */
+export type Attachment = { heading: string; lines: string[] };
+
+type Drafted = { ok: true; lines: DraftLine[]; title: string; attachment?: Attachment } | { ok: false; error: string };
+
+/**
+ * WHAT THE ROOF LETTER CALLS ATTACHED, FROM WHAT HE RECORDED. Robert's answer
+ * on F14 and L2f, 2026-10-25: option B's sentence names "the repairs listed in
+ * the attached schedule" and option C's "the attached record", and nothing was
+ * attached. Option B's page is his repair list for this determination
+ * (eng_repair_items, 0053), in his words, each with the Appendix B item it
+ * arises from; option C's is the reason he recorded and the items he relied
+ * on. Nothing on either page is written by the platform but its heading and
+ * the numbering, and a record with nothing to attach refuses the draft.
+ */
+export async function roofAttachment(det: DeterminationRow, fileNumber: string): Promise<{ ok: true; attachment: Attachment | undefined } | { ok: false; error: string }> {
+  if (det.determination === "pass") return { ok: true, attachment: undefined };
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+  const checklist = protocolByDocument(det.protocol_document)?.declaration.checklist ?? [];
+  if (det.determination === "repairs-required") {
+    const { data: items, error } = await db
+      .from("eng_repair_items")
+      .select("requirement, item_key, sort_order")
+      .eq("determination_id", det.id)
+      .order("sort_order", { ascending: true });
+    if (error) return { ok: false, error: `The repair list could not be read: ${error.message}. Nothing was drafted.` };
+    const rows = (items ?? []).filter((r) => typeof r.requirement === "string" && r.requirement.trim());
+    if (rows.length === 0) return { ok: false, error: "This determination has no repair list recorded, so the attached schedule would be empty. Nothing was drafted." };
+    const missing = unlabelled(rows.map((r) => r.item_key as string | null).filter((k): k is string => Boolean(k)), checklist);
+    if (missing) return { ok: false, error: missing };
+    const labelFor = (key: string) => checklist.find((i) => i.key === key)!.label;
+    return {
+      ok: true,
+      attachment: {
+        heading: `Attached schedule of repairs, file ${fileNumber}`,
+        lines: rows.map((r, i) => `${i + 1}. ${(r.requirement as string).trim()}${r.item_key ? ` (${labelFor(r.item_key as string)})` : ""}`),
+      },
+    };
+  }
+  if (det.determination === "decline") {
+    const reason = (det.note ?? "").trim();
+    if (!reason) return { ok: false, error: "This decline has no reason recorded, so the attached record would be empty. Nothing was drafted." };
+    const keys = det.relied_on_item_keys ?? [];
+    const missing = unlabelled(keys, checklist);
+    if (missing) return { ok: false, error: missing };
+    const relied = keys.map((k) => checklist.find((i) => i.key === k)!.label);
+    return {
+      ok: true,
+      attachment: {
+        heading: `Attached record, file ${fileNumber}`,
+        lines: [reason, ...(relied.length ? [`Items relied on: ${relied.join("; ")}.`] : [])],
+      },
+    };
+  }
+  return { ok: true, attachment: undefined };
+}
+
+/** The draft for any built letter, by its protocol. Roof's path is exactly what it was, with its attached page (F14). */
+async function draftFor(det: DeterminationRow, entered: Entered): Promise<Drafted> {
   if (det.protocol_document === "254-FC-001") {
     return foundationDraft(det, { ...entered, observedCondition: entered.observedCondition ?? "" });
   }
@@ -450,7 +516,9 @@ async function draftFor(det: DeterminationRow, entered: Entered): Promise<{ ok: 
   if (!producesLetter(det.determination)) return { ok: false, error: `A ${det.determination} determination produces no letter.` };
   const draft = draftRoofLetter(det.determination, facts.facts);
   if (!draft.ok) return { ok: false, error: draft.why };
-  return { ok: true, lines: draft.lines, title: facts.title };
+  const attached = await roofAttachment(det, facts.facts.file_number as string);
+  if (!attached.ok) return attached;
+  return { ok: true, lines: draft.lines, title: facts.title, attachment: attached.attachment };
 }
 
 /** Whether a determination of this protocol produces a letter: FC-1 for foundation, 2026-10-22 for permit. */
@@ -462,7 +530,7 @@ function determinationProducesLetter(protocol: string, determination: string): b
 
 /** The draft, for the engineer to read before he seals. Reads no image. */
 export type DraftPreview =
-  | (Extract<LetterDraft, { ok: true }> & LetterFrame & { title: string; draftSha256: string })
+  | (Extract<LetterDraft, { ok: true }> & LetterFrame & { title: string; draftSha256: string; attachment: Attachment | null })
   | { ok: false; why: string; missing: [] };
 
 /**
@@ -494,6 +562,7 @@ export async function draftForDetermination(
     determination: det.determination as LetterDraft extends { determination: infer D } ? D : never,
     title: built.title,
     ...frame,
+    attachment: built.attachment ?? null,
     draftSha256: draftDigest(built, frame),
   };
 }
@@ -645,6 +714,8 @@ export async function sealLetter(actor: SignedIn | null, input: SealInput): Prom
     sealPng: seal.bytes,
     signaturePng: signature.bytes,
     title: facts.title,
+    /* The page a roof B or C letter calls attached, inside the same sealed bytes (F14, L2f). */
+    attachment: draft.attachment,
   });
   if (!rendered.ok) return { ok: false, error: rendered.why };
 
