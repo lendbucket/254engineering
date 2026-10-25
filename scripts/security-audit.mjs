@@ -1290,9 +1290,16 @@ async function run() {
       /site: SITE_KEY/.test(source),
       "a browser must not be able to say which brand it is",
     );
+    /*
+     * THE GATE THE ROUTE CALLS, AND THAT IT IS THERE AT ALL. Robert's audit of
+     * 2026-10-24, finding F8. This compared indexOf("isPrelaunch()") with
+     * indexOf("placeOrder("), and the route gates on isOpen() now, so the left
+     * side was -1 and the check passed wherever the gate sat, or with no gate.
+     */
+    const gateAt = source.indexOf("isOpen()");
     rec(
       "and checks the compliance gate before anything else",
-      source.indexOf("isPrelaunch()") < source.indexOf("placeOrder("),
+      gateAt > -1 && source.indexOf("placeOrder(") > -1 && gateAt < source.indexOf("placeOrder("),
       "an order must not be created and then refused",
     );
 

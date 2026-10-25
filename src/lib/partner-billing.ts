@@ -54,9 +54,17 @@ export async function partnerMayOrder(partnerId: string): Promise<{ allowed: boo
 }
 
 /**
- * Apply one verified partner billing event. The event row is written FIRST,
- * keyed by Stripe's event id, so a redelivery stops at the duplicate key and
- * changes nothing. Then the state row moves, if the event moves it.
+ * Apply one verified partner billing event, keyed by Stripe's event id.
+ *
+ * ASKED, THEN APPLIED, THEN RECORDED. Robert's audit of 2026-10-24, finding F7.
+ * The event row used to be written first and the state second, as two writes,
+ * so a state write that failed answered 500, Stripe redelivered, the
+ * redelivery stopped at the duplicate key, and the change was lost for good;
+ * that state decides whether a partner may order. Now a redelivery is still
+ * stopped before anything moves (the event is looked up first, so an old event
+ * delivered again cannot overwrite newer state), the state moves second, and
+ * the event is recorded last, so a failed state write leaves nothing marking
+ * the event done and the redelivery applies it.
  */
 export async function applyPartnerBillingEvent(
   event: PartnerBillingEvent,
@@ -75,6 +83,21 @@ export async function applyPartnerBillingEvent(
   }
   const next = nextBillingRow(current, event, nowIso);
 
+  const { data: seen, error: seenError } = await db
+    .from("eng_partner_billing_events")
+    .select("stripe_event_id")
+    .eq("stripe_event_id", event.eventId)
+    .limit(1);
+  if (seenError) return { ok: false, error: `Whether this billing event was already applied could not be read: ${seenError.message}` };
+  if ((seen ?? []).length > 0) return { ok: true, duplicate: true, status: current?.status ?? null };
+
+  if (next) {
+    const { error } = await db
+      .from("eng_partner_billing")
+      .upsert({ partner_id: event.partnerId, ...next }, { onConflict: "partner_id" });
+    if (error) return { ok: false, error: `The partner's billing could not be updated: ${error.message}` };
+  }
+
   const { error: eventError } = await db.from("eng_partner_billing_events").insert({
     stripe_event_id: event.eventId,
     partner_id: event.partnerId,
@@ -82,16 +105,11 @@ export async function applyPartnerBillingEvent(
     status_after: next?.status ?? null,
   });
   if (eventError) {
-    if (eventError.code === "23505") return { ok: true, duplicate: true, status: current?.status ?? null };
+    /* Two deliveries at once: the other recorded it, and the state row is the same computed row. */
+    if (eventError.code === "23505") return { ok: true, duplicate: true, status: next?.status ?? current?.status ?? null };
     return { ok: false, error: `The billing event could not be recorded: ${eventError.message}` };
   }
-  if (!next) return { ok: true, duplicate: false, status: current?.status ?? null };
-
-  const { error } = await db
-    .from("eng_partner_billing")
-    .upsert({ partner_id: event.partnerId, ...next }, { onConflict: "partner_id" });
-  if (error) return { ok: false, error: `The partner's billing could not be updated: ${error.message}` };
-  return { ok: true, duplicate: false, status: next.status };
+  return { ok: true, duplicate: false, status: next?.status ?? current?.status ?? null };
 }
 
 /**
