@@ -167,6 +167,15 @@ const PHONE_RUN = /\+?1?\d{10}(?!\d)/g;
 // matter; the neighbours are included because they are visually identical at
 // body size and a paste from a word processor produces them just as easily.
 const LONG_DASH = /[‒–—―]/g;
+/*
+ * THE BRAND IS "254 Engineering", NEVER WITH "Services" AFTER IT. Robert's
+ * standing rule, made a check on 2026-10-25 after the audit's production read
+ * found the old wordmark as the brand line on all 82 public pages. A literal,
+ * never read from business.ts, so the brand cannot drift back through the
+ * constant it was taken out of. "Engineering Services" alone, as in a page's
+ * own words, is not the brand and is not matched.
+ */
+const BRAND_WITH_SERVICES = /254\s+Engineering\s+Services/gi;
 const EMOJI =
   /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}\u{1F1E6}-\u{1F1FF}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}]/gu;
 
@@ -199,6 +208,9 @@ function scanText(route, where, text) {
     record(route, "em or en dash", dashContext(text, m.index ?? 0), where);
   }
   for (const m of text.matchAll(EMOJI)) record(route, "emoji", m[0], where);
+  for (const m of text.matchAll(BRAND_WITH_SERVICES)) {
+    record(route, "the brand with \"Services\" after it (the brand is \"254 Engineering\")", dashContext(text, m.index ?? 0), where);
+  }
 
   for (const m of text.matchAll(EMAIL)) {
     const domain = m[0].split("@")[1]?.toLowerCase();
@@ -264,7 +276,8 @@ const routes =
 // The waitlist is not in the sitemap by design, and it is the single most
 // compliance sensitive page on the site. Crawled explicitly so that the one page
 // most likely to carry a slip is not the one page nobody checks.
-const EXTRA_ROUTES = ["/waitlist", "/llms.txt", "/llms-full.txt"];
+/* The web manifest names the site to a phone's home screen, so it is read too (2026-10-25). */
+const EXTRA_ROUTES = ["/waitlist", "/llms.txt", "/llms-full.txt", "/manifest.webmanifest"];
 
 if (sm.status !== 200) {
   bail(`cannot read sitemap at ${BASE}/sitemap.xml (status ${sm.status})`);
@@ -281,7 +294,7 @@ for (const route of allRoutes) {
     continue;
   }
   // The plain text endpoints have no markup to strip, so they are scanned whole.
-  if (route.endsWith(".txt")) {
+  if (route.endsWith(".txt") || route.endsWith(".webmanifest")) {
     scanText(route, "plain text body", html);
     continue;
   }

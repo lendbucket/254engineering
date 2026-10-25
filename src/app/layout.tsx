@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { business } from "@/config/business";
 import { firmName } from "@/lib/launch";
@@ -74,24 +74,34 @@ import { firmName } from "@/lib/launch";
  * absent data chip. `token-audit` asserts this literal, and the reason is in the
  * note it prints, that a synthesised oblique on a 12px chip is the mush this
  * system exists to avoid. The face changed; the requirement did not.
+ *
+ * THE FILES ARE IN THE REPOSITORY. Robert's ruling of 2026-10-25, after board
+ * 40173467851: next/font/google fetched Inter from Google at build and at dev
+ * server start, the fetch failed on the runner, and mobile-audit's server never
+ * came up, so the audit measured nothing. No board may depend on Google's
+ * servers. The two files in src/fonts are the latin files next/font/google
+ * self-hosted from this exact declaration (Inter is a variable font there, one
+ * file per style serving 400 to 700), so what a visitor downloads is unchanged.
+ * Inter is under the SIL Open Font License 1.1; see src/fonts/README.md.
  */
-const inter = Inter({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  /*
-   * Italic is loaded, and it is loaded for exactly one thing.
-   *
-   * The portal standards specify an italic 400 face and use it in a single
-   * component: the absent data chip, the dashed outline that says "not
-   * recorded" where a figure would be. Without a real italic the browser slants
-   * the upright face, and a synthesised oblique on a 12px chip is the kind of
-   * mush that makes a careful interface look careless.
-   *
-   * One extra file for one component is a real cost. It is worth it because
-   * that component is the visual form of the rule that an absent figure is
-   * never a zero, which is a rule this platform enforces in three places.
-   */
-  style: ["normal", "italic"],
+const inter = localFont({
+  src: [
+    { path: "../fonts/inter-latin.woff2", weight: "400 700", style: "normal" },
+    /*
+     * Italic is loaded, and it is loaded for exactly one thing.
+     *
+     * The portal standards specify an italic 400 face and use it in a single
+     * component: the absent data chip, the dashed outline that says "not
+     * recorded" where a figure would be. Without a real italic the browser slants
+     * the upright face, and a synthesised oblique on a 12px chip is the kind of
+     * mush that makes a careful interface look careless.
+     *
+     * One extra file for one component is a real cost. It is worth it because
+     * that component is the visual form of the rule that an absent figure is
+     * never a zero, which is a rule this platform enforces in three places.
+     */
+    { path: "../fonts/inter-latin-italic.woff2", weight: "400 700", style: "italic" },
+  ],
   variable: "--font-inter",
   display: "swap",
 });
@@ -131,7 +141,7 @@ export const metadata: Metadata = {
   // Pages set absolute titles. See the note in src/lib/seo.ts for why there is
   // no title template here.
   title: {
-    default: "254 Engineering | Texas Engineering Services Statewide",
+    default: "Texas Engineering Services Statewide | 254 Engineering",
     template: "%s",
   },
   description:

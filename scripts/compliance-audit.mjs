@@ -290,6 +290,44 @@ const {
   }
 
   /*
+   * THE BRAND IS "254 Engineering", NEVER WITH "Services" AFTER IT, IN ANY
+   * SOURCE LINE THAT IS NOT A COMMENT. Robert's standing rule, made a check on
+   * 2026-10-25 when the old wordmark was found as the brand line on every
+   * public page. The rendered half is placeholder-audit's; this half catches a
+   * string a page would render before any page does, including the MFA issuer
+   * and the manifest. Two files are exempt, by name and counted: the register,
+   * which records the board's assumed names as facts, and the protocol
+   * transcriptions, which carry Aman's signed text verbatim (CLAUDE.md section
+   * 3) and are never copy.
+   */
+  {
+    const { readdirSync, readFileSync: readSrc, statSync } = await import("node:fs");
+    const BRAND_EXEMPT = ["src/config/credentials.ts", "src/content/protocols/"];
+    const walk = (dir) =>
+      readdirSync(dir).flatMap((name) => {
+        const p = `${dir}/${name}`;
+        return statSync(p).isDirectory() ? walk(p) : /\.(tsx?|mjs|json|md|txt)$/.test(name) ? [p] : [];
+      });
+    const files = walk("src");
+    const exempt = files.filter((f) => BRAND_EXEMPT.some((e) => f === e || f.startsWith(e)));
+    const isComment = (line) => /^\s*(\*|\/\/|\/\*|\{\/\*)/.test(line);
+    const offenders = files
+      .filter((f) => !exempt.includes(f))
+      .flatMap((f) =>
+        readSrc(f, "utf8")
+          .split("\n")
+          .map((line, i) => ({ line, at: `${f}:${i + 1}` }))
+          .filter((x) => !isComment(x.line) && /254\s+Engineering\s+Services/i.test(x.line))
+          .map((x) => x.at),
+      );
+    rec(
+      `no source line outside the register and the protocol transcriptions writes "254 Engineering Services" (${files.length} files read, ${exempt.length} exempt by name)`,
+      files.length > 100 && offenders.length === 0,
+      offenders.join(", "),
+    );
+  }
+
+  /*
    * AN UNRECORDED EXPIRY IS NAMED, NOT ABSORBED. null means nobody has written
    * the date down, which is a different state from current. This check does not
    * fail on it: recording the number before the date is a legitimate state the
