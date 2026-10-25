@@ -3290,6 +3290,27 @@ export const APPLIED = [
     fingerprint: "05bb694a74ad7aeb15a3c37c8474d2da",
     behaviour: "83c9992d0ebc4ef3a1ee2f82a262af28",
     production: null,
+    development: {
+      at: "0089",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-25",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-25 19:41 UTC by the operator's chat counterpart through apply_migration, " +
+        "provider version 20261025194122, name 0089_a_seal_act_records_who_it_prints. The file was read in full at " +
+        "415550d, sha256 41deb983648cadf5716847e1d01cae842cb6113090b95a1925971bfa45160d3c; the statement stored in " +
+        "supabase_migrations reads back as sha256 43de6c9c4fcfa56be7ad826031a226960b5675024d89aee18a76f8681430f72f, " +
+        "the file without its trailing newline. Production and development held the same fifteen- and " +
+        "sixteen-argument doors and the same guard body before 0089. Section 0: shape " +
+        "2fa02bab9a86d346d328a22bbb8ba975 across 1331; no printed columns; seal acts addendum 1, letter 6; RECORD A " +
+        "15 00da32c49a79b61fab89d8e1edeb1fbf and 16 1c15fac1d1af7b0607c258532339b071; RECORD B, all six engineers " +
+        "who sealed letters have a licence number. Section 2: shape 05bb694a74ad7aeb15a3c37c8474d2da across 1333, " +
+        "as predicted; 0 printed rows; overloads 14, 15, 16, 17 and 18; 17 and 18 not executable by anon or " +
+        "authenticated; RECORD A again identical. Production was held for one defect, fixed on this branch: every " +
+        "probe licence on development carried letters, which the printed check refuses; the probes now carry digit " +
+        "licences in the 900 range.",
+    },
     proves: { table: "eng_seal_acts", column: "printed_license" },
     note:
       "Both figures read off scripts/fingerprint-at.mjs at 0089 on 2026-10-25, with 0088 reproducing its " +
@@ -3299,7 +3320,7 @@ export const APPLIED = [
       "0081's fifteen- and 0088's sixteen-argument doors are not replaced, so the code deployed before this " +
       "branch merges seals throughout. No cutover gap.",
     because:
-      "WRITTEN 2026-10-25 ON migration/0089-a-seal-act-records-who-it-prints, AND APPLIED NOWHERE. Robert's " +
+      "WRITTEN 2026-10-25 ON migration/0089-a-seal-act-records-who-it-prints; ON DEVELOPMENT (version 20261025194122), NOT YET ON PRODUCTION. Robert's " +
       "answers of 2026-10-25 on his audit's letter claims: L2e, the seal act records the printed name and licence " +
       "number (records only, never a public page), and L2j, the printed date is the sealing moment in " +
       "America/Chicago, so the document's sealed_at is the act's mfa_verified_at rather than a later now(). The " +
