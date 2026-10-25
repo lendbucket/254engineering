@@ -385,7 +385,7 @@ export const windstormPages: WindstormPage[] = [
       },
       {
         eyebrow: "This firm",
-        title: "Where 254 Engineering Services stands",
+        title: "Where 254 Engineering stands",
         lede: "Stated plainly, because a page about credentials that is vague about its own is not worth reading.",
         body: [
           /*

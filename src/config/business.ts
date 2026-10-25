@@ -19,8 +19,16 @@ export const business = {
    * Organization schema names read `shortName` below. The other readers of
    * this field (header, footer, manifest, email identity, MFA issuer, the
    * letter seal) are listed in the 2026-10-19 report for a ruling.
+   *
+   * RULED 2026-10-25: THE BRAND IS "254 Engineering", EVERYWHERE. Robert's
+   * standing rule, restated after the audit's production read found the old
+   * wordmark ("254 Engineering Services") as the brand line on all 82 public
+   * pages. The DBA stays a fact on the board's record (the register's
+   * assumed names) and appears in no copy. placeholder-audit refuses it on
+   * every rendered page and compliance-audit in any source line outside the
+   * register and Aman's verbatim protocol transcriptions.
    */
-  name: "254 Engineering Services",
+  name: "254 Engineering",
   /** The registered entity. Used in the footer, contracts language, schema. */
   /**
    * THE ENTITY, AND IT WAS WRONG UNTIL 2026-09-13.

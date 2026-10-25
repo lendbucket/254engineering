@@ -40,10 +40,12 @@ import { isPrelaunch } from "@/lib/launch";
  */
 
 export const metadata: Metadata = buildMetadata({
-  // The brand leads on the homepage alone. Operator ruling, 2026-10-19: Google
-  // showed "254engineering.com" as the site name, and the homepage title is one
-  // of the signals it reads for that. Every other page keeps the brand suffix.
-  title: "254 Engineering | Texas Engineering Services Statewide",
+  // The keyword leads and the brand follows, as on every page: Robert's title
+  // rule, restated for the homepage on 2026-10-25. It superseded the brand-led
+  // homepage title of 2026-10-19 (Google showed "254engineering.com" as the
+  // site name); the WebSite and Organization schema names still say
+  // "254 Engineering", which is the signal that ruling was after.
+  title: "Texas Engineering Services Statewide | 254 Engineering",
   description:
     "A veteran owned Texas engineering firm named for the 254 counties of Texas, built to serve every one of them. See the service lines and the coverage map.",
   path: "/",
