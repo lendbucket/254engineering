@@ -22,6 +22,7 @@ import { STRUCTURED_DECLARATIONS } from "@/content/protocols/structured";
 import { recordedFactsFor, triageFor } from "./letter-facts";
 import { renderLetterPdf } from "./letter-pdf";
 import { LETTERHEAD_MARK } from "@/content/letters/letterhead-mark";
+import { readEvery, readEveryIn } from "./bounded-read";
 
 /**
  * ===========================================================================
@@ -549,50 +550,63 @@ export type AwaitingLetter = {
  * The letters this engineer has decided and not yet sealed: his determinations
  * that produce a letter and carry no live seal act. Only his own, because only
  * he can seal them (control 3).
+ *
+ * EVERY DETERMINATION, AND A FAILED READ SAYS SO. Robert's audit of 2026-10-24.
+ * This read his OLDEST 200 determinations, sealed ones included, and filtered
+ * the sealed ones out afterwards, so once 200 of his letters were sealed the
+ * window held nothing else and every new letter was invisible; the review page
+ * offers the seal panel from this same list, so past that point a letter could
+ * not be sealed from the screen at all. And a failed read was an empty list,
+ * "nothing waiting for your seal". It now reads every determination and every
+ * live seal act in pages (bounded-read.ts), and a failure is an answer of its
+ * own that the screen states.
  */
-export async function lettersAwaitingSeal(actor: SignedIn | null, fileId?: string): Promise<AwaitingLetter[]> {
-  const db = supabaseAdmin();
-  if (!db || !holdsLicence(actor, "documents.seal")) return [];
-  let query = db
-    .from("eng_determinations")
-    .select("id, file_id, determination, decided_at, protocol_document")
-    .eq("engineer_id", actor!.id)
-    .in("protocol_document", [...SEALABLE_PROTOCOLS])
-    .in("determination", ["pass", "repairs-required", "decline"])
-    .order("decided_at", { ascending: true })
-    .limit(200);
-  if (fileId) query = query.eq("file_id", fileId);
-  const { data: read, error } = await query;
-  if (error || !read?.length) return [];
-  /* A permit letter decline produces no letter (2026-10-22); every other row here does. */
-  const dets = read.filter((d) => determinationProducesLetter(d.protocol_document as string, d.determination as string));
-  if (!dets.length) return [];
+export type AwaitingLetters = { ok: true; letters: AwaitingLetter[] } | { ok: false; error: string };
 
-  const ids = dets.map((d) => d.id as string);
-  const { data: acts, error: actsError } = await db
-    .from("eng_seal_acts")
-    .select("determination_id")
-    .in("determination_id", ids)
-    .is("voided_at", null);
+export async function lettersAwaitingSeal(actor: SignedIn | null, fileId?: string): Promise<AwaitingLetters> {
+  const db = supabaseAdmin();
+  if (!holdsLicence(actor, "documents.seal")) return { ok: true, letters: [] };
+  if (!db) return { ok: false, error: "The database is not configured." };
+  const read = await readEvery<{ id: string; file_id: string; determination: string; decided_at: string; protocol_document: string }>((from, to) => {
+    let query = db
+      .from("eng_determinations")
+      .select("id, file_id, determination, decided_at, protocol_document")
+      .eq("engineer_id", actor!.id)
+      .in("protocol_document", [...SEALABLE_PROTOCOLS])
+      .in("determination", ["pass", "repairs-required", "decline"]);
+    if (fileId) query = query.eq("file_id", fileId);
+    return query.order("decided_at", { ascending: true }).order("id", { ascending: true }).range(from, to);
+  });
+  if (!read.ok) return { ok: false, error: `Your decided letters could not be read: ${read.error}` };
+  /* A permit letter decline produces no letter (2026-10-22); every other row here does. */
+  const dets = read.rows.filter((d) => determinationProducesLetter(d.protocol_document, d.determination));
+  if (!dets.length) return { ok: true, letters: [] };
+
   /*
    * A read that failed is not "nothing sealed". Read as an empty set it would
    * list every letter he ever sealed as waiting for his seal again, so it is
-   * logged and the list is empty instead.
+   * an answer of its own.
    */
-  if (actsError) {
-    console.error(`[letters] the seal acts could not be read: ${actsError.message}`);
-    return [];
+  const acts = await readEveryIn<{ determination_id: string }>(
+    dets.map((d) => d.id),
+    (chunk, from, to) =>
+      db.from("eng_seal_acts").select("determination_id").in("determination_id", [...chunk]).is("voided_at", null).order("determination_id").range(from, to),
+  );
+  if (!acts.ok) {
+    console.error(`[letters] the seal acts could not be read: ${acts.error}`);
+    return { ok: false, error: `Which of your letters are already sealed could not be read: ${acts.error}` };
   }
-  const sealed = new Set((acts ?? []).map((a) => a.determination_id as string));
-  const open = dets.filter((d) => !sealed.has(d.id as string));
-  if (!open.length) return [];
+  const sealed = new Set(acts.rows.map((a) => a.determination_id));
+  const open = dets.filter((d) => !sealed.has(d.id));
+  if (!open.length) return { ok: true, letters: [] };
 
-  const { data: files } = await db
-    .from("eng_files")
-    .select("id, file_number, property_address")
-    .in("id", [...new Set(open.map((d) => d.file_id as string))]);
-  const fileOf = new Map((files ?? []).map((f) => [f.id as string, f]));
-  return open.map((d) => ({
+  const files = await readEveryIn<{ id: string; file_number: string; property_address: string }>(
+    [...new Set(open.map((d) => d.file_id))],
+    (chunk, from, to) => db.from("eng_files").select("id, file_number, property_address").in("id", [...chunk]).order("id").range(from, to),
+  );
+  if (!files.ok) return { ok: false, error: `The files of your decided letters could not be read: ${files.error}` };
+  const fileOf = new Map(files.rows.map((f) => [f.id, f]));
+  return { ok: true, letters: open.map((d) => ({
     determinationId: d.id as string,
     fileId: d.file_id as string,
     fileNumber: (fileOf.get(d.file_id as string)?.file_number as string) ?? "",
@@ -600,7 +614,7 @@ export async function lettersAwaitingSeal(actor: SignedIn | null, fileId?: strin
     determination: d.determination as string,
     decidedAt: d.decided_at as string,
     protocolDocument: d.protocol_document as string,
-  }));
+  })) };
 }
 
 /** review.sealed, now raised when something has in fact been sealed. */
