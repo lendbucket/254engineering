@@ -277,12 +277,35 @@ export function stripeProvider(): PaymentProvider {
           );
           return null;
         }
+        /*
+         * COMPLETE IS NOT PAID, here as in retrieveCheckout above. Robert's
+         * audit of 2026-10-24, finding F11. This mapped every completed session
+         * to a charge, so a delayed payment method (a bank debit) would release
+         * work and record money that had not moved, and a failed debit would
+         * never be undone. Card payments are paid at completion, so today this
+         * changes nothing; it decides what happens the day another method is on.
+         * An unpaid session records nothing; the reconcile sweep a person runs
+         * from /portal/orders asks Stripe again with retrieveCheckout, which
+         * reads payment_status. Handling Stripe's async payment events needs the
+         * endpoint subscribed to them in Stripe's console, which is Robert's.
+         * And a session with no total records no charge rather than $0.00.
+         */
+        if (session.payment_status !== "paid") {
+          console.error(
+            `[stripe] ${event.type} for ${session.id} is ${session.payment_status}, not paid, so no charge is recorded; the reconcile sweep reads it again.`,
+          );
+          return null;
+        }
+        if (typeof session.amount_total !== "number") {
+          console.error(`[stripe] ${event.type} for ${session.id} carried no amount_total, so no charge is recorded.`);
+          return null;
+        }
         return {
           kind: "checkout.completed",
           eventId: event.id,
           sessionRef: session.id,
           chargeRef: intent,
-          amountCents: session.amount_total ?? 0,
+          amountCents: session.amount_total,
           orderId: session.metadata?.order_id ?? null,
           batchId: session.metadata?.batch_id ?? null,
           statementId: session.metadata?.statement_id ?? null,

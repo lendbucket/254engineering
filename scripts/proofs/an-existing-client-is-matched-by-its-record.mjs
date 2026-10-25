@@ -175,7 +175,8 @@ function completed(eventId, k) {
     id: eventId, object: "event", api_version: "2024-06-20", type: "checkout.session.completed", livemode: false, created,
     data: {
       object: {
-        id: `cs_${eventId}`, object: "checkout.session", payment_intent: `pi_ec_${k}`, amount_total: 50000,
+        /* payment_status as Stripe sends it on a paid card session; readEvent records only a paid one (audit finding F11). */
+        id: `cs_${eventId}`, object: "checkout.session", payment_intent: `pi_ec_${k}`, amount_total: 50000, payment_status: "paid",
         metadata: { order_id: orderId(k) },
       },
     },
