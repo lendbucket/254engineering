@@ -18,6 +18,7 @@ import {
   type TaskStatus,
 } from "./ops-comms";
 import { formatInFirmZone } from "@/lib/firm-calendar";
+import { cleanSearchTerm } from "./search-rules";
 
 /**
  * Tasks, including the ones nobody types.
@@ -76,9 +77,27 @@ export async function listTasksRead(
   actor: Actor | null,
   filters: { status?: string; mine?: boolean } = {},
 ): Promise<TaskRow[] | null> {
+  const page = await listTasksPage(actor, filters);
+  return page ? page.rows : null;
+}
+
+/** One page of tasks. */
+export const TASK_PAGE_SIZE = 300;
+
+/*
+ * OFFICE READY, 2026-10-24. One page, a search over the title, and whether more
+ * follow. AND "EVERYTHING" MEANS EVERYTHING: the screen's Everything chip sends
+ * status=all, which fell into the branch that leaves out done and cancelled
+ * tasks, so it showed exactly what Open showed. No status is open; "all" is no
+ * status filter at all; any other value is that status.
+ */
+export async function listTasksPage(
+  actor: Actor | null,
+  filters: { status?: string; mine?: boolean; q?: string; page?: number } = {},
+): Promise<{ rows: TaskRow[]; more: boolean } | null> {
   const db = supabaseAdmin();
   if (!db) return null;
-  if (!actor || actor.status !== "active") return [];
+  if (!actor || actor.status !== "active") return { rows: [], more: false };
 
   let query = db.from("eng_tasks").select(TASK_COLUMNS);
 
@@ -88,21 +107,33 @@ export async function listTasksRead(
     query = query.eq("assignee_id", actor.id);
   }
 
-  if (filters.status && filters.status !== "all") query = query.eq("status", filters.status);
+  if (filters.status === "all") {
+    /* no status filter */
+  } else if (filters.status) query = query.eq("status", filters.status);
   else query = query.not("status", "in", "(done,cancelled)");
 
+  const term = cleanSearchTerm(filters.q ?? "");
+  if (term) query = query.ilike("title", `%${term}%`);
+
+  const page = Math.max(1, Math.floor(filters.page ?? 1));
+  const from = (page - 1) * TASK_PAGE_SIZE;
   const { data, error } = await query
     .order("due_at", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: false })
-    .limit(300);
+    .order("id", { ascending: true })
+    .range(from, from + TASK_PAGE_SIZE);
   if (error) {
     console.error(`[tasks] the tasks could not be read: ${error.message}`);
     return null;
   }
 
-  return ((data ?? []) as TaskRow[]).filter((t) =>
-    canSeeTask(actor, { assigneeId: t.assignee_id, createdBy: t.created_by, fileId: t.file_id }),
-  );
+  const all = (data ?? []) as TaskRow[];
+  return {
+    rows: all
+      .slice(0, TASK_PAGE_SIZE)
+      .filter((t) => canSeeTask(actor, { assigneeId: t.assignee_id, createdBy: t.created_by, fileId: t.file_id })),
+    more: all.length > TASK_PAGE_SIZE,
+  };
 }
 
 export type CreateTaskInput = {

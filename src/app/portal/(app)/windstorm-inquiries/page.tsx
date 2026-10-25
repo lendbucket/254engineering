@@ -7,6 +7,10 @@ import { Chip, EmptyState, PageHead } from "@/components/portal/surfaces";
 import { PhoneLink } from "@/components/portal/PhoneLink";
 import { MarkAnswered } from "./WindstormInquiriesClient";
 import { formatInFirmZone } from "@/lib/firm-calendar";
+import { LIST_NOT_LOADED } from "@/lib/outcome-copy";
+import { RetryButton } from "@/components/portal/Unreachable";
+import { ListControls, Pager, listHref } from "@/components/portal/ListControls";
+import { INQUIRY_PAGE_SIZE, inquiryListQuery } from "@/lib/inquiry-list";
 
 export const dynamic = "force-dynamic";
 
@@ -54,7 +58,7 @@ const WILL_OPEN_UP: Record<string, string> = {
 const when = (value: string) =>
   (formatInFirmZone(value, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) ?? "");
 
-export default async function WindstormInquiriesPage() {
+export default async function WindstormInquiriesPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   /*
    * files.create, THE INTAKE GRANT, AND NOT files.list.
    *
@@ -68,8 +72,11 @@ export default async function WindstormInquiriesPage() {
   const actor = await currentActor();
   if (!can(actor, "files.create")) notFound();
 
-  const rows = await windstormInquiries(actor);
-  const open = rows.filter((r) => r.responded_at === null);
+  const params = await searchParams;
+  const query = inquiryListQuery(params);
+  const read = await windstormInquiries(actor, query);
+  const rows = read.ok ? read.rows : [];
+  const nothingAtAll = read.ok && read.open + read.answered === 0 && query.term === "";
 
   return (
     <>
@@ -78,16 +85,49 @@ export default async function WindstormInquiriesPage() {
         title="Windstorm briefs"
         lede="Existing buildings somebody has asked about, with the reply they were promised. Unanswered first, and the oldest promise at the top."
       />
+      <ListControls
+        action="/portal/windstorm-inquiries"
+        search={params.q ?? ""}
+        searchLabel="Search name, email, phone or address"
+        filters={[
+          {
+            name: "show",
+            label: "Show",
+            value: query.show,
+            options: [
+              { value: "all", label: "Everything" },
+              { value: "open", label: "Awaiting a reply" },
+              { value: "answered", label: "Answered" },
+            ],
+          },
+        ]}
+        sorts={[{ value: "due", label: "Reply by" }, { value: "received", label: "Received" }, { value: "name", label: "Name" }]}
+        sort={query.sort}
+        direction={query.ascending ? "asc" : "desc"}
+      />
 
-      {rows.length === 0 ? (
+      {/* A failed read never renders as "No briefs yet": the operator's ruling of 2026-10-12, as on the design briefs. */}
+      {!read.ok ? (
+        <div role="alert" data-list-not-loaded className="py-6">
+          <p className="text-[15px] font-semibold text-[var(--ink)]">{LIST_NOT_LOADED}</p>
+          <div className="mt-4 flex">
+            <RetryButton />
+          </div>
+        </div>
+      ) : nothingAtAll ? (
         <EmptyState
           title="No briefs yet"
           body="A row arrives here when somebody sends the windstorm brief from the site. Each one carries a deadline to reply, and the deadline is recorded rather than remembered."
         />
+      ) : rows.length === 0 ? (
+        <EmptyState
+          title="Nothing matches that search"
+          body={`${read.open} awaiting a reply and ${read.answered} answered${query.term ? " match the search" : ""}. Change the search or show everything.`}
+        />
       ) : (
         <>
           <p className="mb-4 text-[13.5px] text-[var(--secondary)]">
-            {open.length} awaiting a reply, {rows.length - open.length} answered.
+            {read.open} awaiting a reply, {read.answered} answered{query.term ? ", matching the search" : ""}.
           </p>
           <ul className="flex flex-col gap-3">
             {rows.map((r) => {
@@ -195,6 +235,7 @@ export default async function WindstormInquiriesPage() {
               );
             })}
           </ul>
+          <Pager page={query.page} pageSize={INQUIRY_PAGE_SIZE} total={read.total} hrefFor={(n) => listHref("/portal/windstorm-inquiries", params, { page: String(n) })} />
         </>
       )}
     </>

@@ -3,6 +3,7 @@ import { DB_NOW } from "./db-now";
 import { supabaseAdmin } from "./supabase";
 import { writeAudit } from "./ops-audit";
 import { can, type Actor } from "./ops-authz";
+import { INQUIRY_PAGE_SIZE, inquiryListQuery, inquirySearchOr, type InquiryListQuery } from "./inquiry-list";
 
 /**
  * ===========================================================================
@@ -68,25 +69,55 @@ const COLUMNS =
  * screen to exactly such a stall. It now says the read failed, and the screen
  * says the list could not be loaded.
  */
-export async function designInquiries(
-  actor: Actor | null,
-): Promise<{ ok: true; rows: InquiryRow[] } | { ok: false; error: string }> {
+/*
+ * OFFICE READY, 2026-10-24: ONE PAGE OF WHAT MATCHES, WITH EXACT COUNTS. The
+ * read used to stop at 200 rows and the screen printed "N awaiting a reply, M
+ * answered" from them, a bounded read's length stated as the totals. Now the
+ * search, the open or answered filter, the sort and the page are applied in the
+ * database, the page carries an exact count of what matches, and the open and
+ * answered figures are exact counts of their own. Any of the three failing is a
+ * failed read, never a smaller number.
+ */
+export type InquiryListRead =
+  | { ok: true; rows: InquiryRow[]; total: number; open: number; answered: number }
+  | { ok: false; error: string };
+
+export async function designInquiries(actor: Actor | null, query: InquiryListQuery = inquiryListQuery({})): Promise<InquiryListRead> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
   /* files.create, the intake grant. See the note on the page: an engineer
    * holds files.list, and the ruling is that design briefs are intake. */
-  if (!can(actor, "files.create")) return { ok: true, rows: [] };
-  const { data, error } = await db
-    .from("eng_design_inquiries")
-    .select(COLUMNS)
-    .order("responded_at", { ascending: true, nullsFirst: true })
-    .order("respond_by", { ascending: true })
-    .limit(200);
-  if (error) {
-    console.error(`[inquiries] the design briefs could not be read: ${error.message}`);
-    return { ok: false, error: error.message };
+  if (!can(actor, "files.create")) return { ok: true, rows: [], total: 0, open: 0, answered: 0 };
+  const search = inquirySearchOr(query.term);
+
+  let read = db.from("eng_design_inquiries").select(COLUMNS, { count: "exact" });
+  if (search) read = read.or(search);
+  if (query.show === "open") read = read.is("responded_at", null);
+  if (query.show === "answered") read = read.not("responded_at", "is", null);
+  if (query.sort === "due") {
+    read = read.order("responded_at", { ascending: true, nullsFirst: true }).order("respond_by", { ascending: query.ascending });
+  } else {
+    read = read.order(query.sort === "name" ? "name" : "created_at", { ascending: query.ascending });
   }
-  return { ok: true, rows: (data ?? []) as InquiryRow[] };
+  const from = (query.page - 1) * INQUIRY_PAGE_SIZE;
+  const { data, error, count } = await read.order("id", { ascending: true }).range(from, from + INQUIRY_PAGE_SIZE - 1);
+
+  /* The two figures above the list: exact, over the same search, never derived from one page. */
+  const figure = async (answered: boolean) => {
+    let c = db.from("eng_design_inquiries").select("id", { count: "exact", head: true });
+    if (search) c = c.or(search);
+    c = answered ? c.not("responded_at", "is", null) : c.is("responded_at", null);
+    return c;
+  };
+  const [open, answered] = await Promise.all([figure(false), figure(true)]);
+
+  const failed = error ?? open.error ?? answered.error;
+  if (failed || count === null || open.count === null || answered.count === null) {
+    const message = failed?.message ?? "a count did not come back";
+    console.error(`[inquiries] the design briefs could not be read: ${message}`);
+    return { ok: false, error: message };
+  }
+  return { ok: true, rows: (data ?? []) as InquiryRow[], total: count, open: open.count, answered: answered.count };
 }
 
 /**
