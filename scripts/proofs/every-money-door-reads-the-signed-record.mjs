@@ -33,7 +33,8 @@ const DOORS = {
   "src/app/(order)/order/start/[slug]/page.tsx": 1,
   "src/app/account/order/page.tsx": 1,
   "src/lib/ops-bulk.ts": 1,
-  "src/lib/ops-intake.ts": 2,
+  /* placeOrder, requestQuote, and duplicateStillSellable for a retried web order (audit finding F10, 2026-10-24). */
+  "src/lib/ops-intake.ts": 3,
   "src/lib/ops-job-billing.ts": 1,
 };
 

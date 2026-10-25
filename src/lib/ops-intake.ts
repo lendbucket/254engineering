@@ -629,6 +629,32 @@ export type RequestQuoteResult =
   | { ok: false; error: string; field?: string };
 
 /**
+ * IS THE LINE A RETRIED ORDER WAS PLACED ON STILL SELLABLE? Robert's audit of
+ * 2026-10-24, finding F10. placeOrder returns an existing order by its
+ * idempotency key before it asks the money door, which is right for a retry
+ * after a timeout, and /api/order-flow then opened checkout on it. A line whose
+ * signature was voided in between would have taken a card, against ruling 11:
+ * a voided signature closes the line at once.
+ *
+ * Asked of the ORDER's own line, read from the row, never of the retry's body,
+ * so a retry cannot name another line to get past it. A failed read is the
+ * shut answer. Null means the line is sellable now.
+ */
+export async function duplicateStillSellable(orderId: string): Promise<string | null> {
+  const db = supabaseAdmin();
+  if (!db) return "The order system is not configured, so checkout was not opened.";
+  const { data: order, error } = await db
+    .from("eng_service_orders")
+    .select("service_slug, tier")
+    .eq("id", orderId)
+    .maybeSingle();
+  if (error || !order) {
+    return "The order could not be checked against its service just now, so checkout was not opened. Nothing has been charged.";
+  }
+  return orderBlockedNow(catalogFor(order.service_slug as string, (order.tier as string | null) ?? undefined), launchMode());
+}
+
+/**
  * A quote request. Nothing is owed and nothing is charged.
  *
  * The compliance gate still applies. A quote request is the firm taking work,

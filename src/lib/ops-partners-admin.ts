@@ -41,27 +41,48 @@ export type PartnerRow = {
   status: "active" | "suspended" | "ended";
   createdAt: string;
   agreementVersion: string | null;
-  /** Live figures, so a roster is worth opening. */
-  referrals: number;
-  payableCents: number;
-  blocked: number;
-  people: number;
+  /** Live figures, so a roster is worth opening. Null when its read failed: missing, never zero. */
+  referrals: number | null;
+  payableCents: Cents;
+  blocked: number | null;
+  people: number | null;
 };
 
-export async function partnerRoster(actor: Actor): Promise<PartnerRow[]> {
+/*
+ * A FAILED READ IS SAID, NOT ROUNDED TO ZERO. Office ready, 2026-10-24, the
+ * defect ops-partner-comp.ts records and fixed for a partner's own balance,
+ * which this roster kept: when the entries read failed every partner's rows
+ * were [], so the administrator saw nothing payable to anybody; a failed roster
+ * read was nobody; a failed referrals or people read was 0. Now a failed roster
+ * is a failed read, each figure whose read failed is null, and every failed
+ * source is named in `failed`. The roster is read whole by paging rather than
+ * stopping at 200 partners.
+ */
+export type PartnerRosterRead = { ok: true; rows: PartnerRow[]; failed: string[] } | { ok: false; error: string };
+
+export async function partnerRoster(actor: Actor): Promise<PartnerRosterRead> {
   const db = supabaseAdmin();
-  if (!db || !can(actor, "partners.manage")) return [];
+  if (!db) return { ok: false, error: "The database is not configured." };
+  if (!can(actor, "partners.manage")) return { ok: true, rows: [], failed: [] };
 
-  const { data: partners } = await db
-    .from("eng_partners")
-    .select("id, organisation, contact_name, contact_email, code, status, created_at, agreement_version")
-    .order("organisation", { ascending: true })
-    .limit(200);
+  const partnerRead = await readEvery<Record<string, unknown>>((from, to) =>
+    db
+      .from("eng_partners")
+      .select("id, organisation, contact_name, contact_email, code, status, created_at, agreement_version")
+      .order("organisation", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  if (!partnerRead.ok) {
+    console.error(`[partners] the roster could not be read: ${partnerRead.error}`);
+    return { ok: false, error: String(partnerRead.error) };
+  }
+  const partners = partnerRead.rows;
 
-  const ids = (partners ?? []).map((p) => p.id as string);
-  if (ids.length === 0) return [];
+  const ids = partners.map((p) => p.id as string);
+  if (ids.length === 0) return { ok: true, rows: [], failed: [] };
 
-  const { data: orders } = await db
+  const { data: orders, error: ordersError } = await db
     .from("eng_service_orders")
     .select("partner_id")
     .in("partner_id", ids);
@@ -87,25 +108,35 @@ export async function partnerRoster(actor: Actor): Promise<PartnerRow[]> {
   );
   const entries = entryRead.ok ? entryRead.rows : null;
 
-  const { data: users } = await db
+  const { data: users, error: usersError } = await db
     .from("eng_partner_users")
     .select("partner_id, status")
     .in("partner_id", ids);
 
+  const failed = [
+    ...(entries === null ? ["The partner ledger could not be read, so no payable figure is shown: none of them is zero."] : []),
+    ...(ordersError ? [`Referrals could not be counted, so they are missing, not zero: ${ordersError.message}`] : []),
+    ...(usersError ? [`Partner people could not be counted: ${usersError.message}`] : []),
+  ];
+  for (const f of failed) console.error(`[partners] ${f}`);
+
   const now = Date.now();
 
-  return (partners ?? []).map((p) => {
+  const rows = partners.map((p) => {
     const id = p.id as string;
     const mine = (entries ?? []).filter((e) => e.partner_id === id);
-    const payable = mine
-      .filter(
-        (e) =>
-          e.status === "accrued" &&
-          e.amount_cents !== null &&
-          !e.statement_id &&
-          new Date(e.payable_at as string).getTime() <= now,
-      )
-      .reduce((n, e) => n + Number(e.amount_cents), 0);
+    const payable =
+      entries === null
+        ? null
+        : mine
+            .filter(
+              (e) =>
+                e.status === "accrued" &&
+                e.amount_cents !== null &&
+                !e.statement_id &&
+                new Date(e.payable_at as string).getTime() <= now,
+            )
+            .reduce((n, e) => n + Number(e.amount_cents), 0);
 
     return {
       id,
@@ -116,12 +147,13 @@ export async function partnerRoster(actor: Actor): Promise<PartnerRow[]> {
       status: p.status as PartnerRow["status"],
       createdAt: p.created_at as string,
       agreementVersion: (p.agreement_version as string | null) ?? null,
-      referrals: (orders ?? []).filter((o) => o.partner_id === id).length,
+      referrals: ordersError ? null : (orders ?? []).filter((o) => o.partner_id === id).length,
       payableCents: payable,
-      blocked: mine.filter((e) => e.status === "blocked").length,
-      people: (users ?? []).filter((u) => u.partner_id === id && u.status !== "suspended").length,
+      blocked: entries === null ? null : mine.filter((e) => e.status === "blocked").length,
+      people: usersError ? null : (users ?? []).filter((u) => u.partner_id === id && u.status !== "suspended").length,
     };
   });
+  return { ok: true, rows, failed };
 }
 
 export type PartnerDetail = {
