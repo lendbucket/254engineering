@@ -2132,11 +2132,32 @@ export async function refundsFailedAfterRefunded(): Promise<RefundFailedAfterRef
  * PAID order as abandoned, refunding nothing and saying nothing was taken.
  */
 export async function refundableOn(orderId: string): Promise<
-  | { ok: true; paidCents: number; alreadyRefundedCents: number; owedCents: number; chargeRef: string | null }
+  | { ok: true; paidCents: number; alreadyRefundedCents: number; owedCents: number; chargeRef: string | null; batchId: string | null }
   | { ok: false; error: string }
 > {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The order system is not configured." };
+
+  /*
+   * A BULK MEMBER IS REFUNDED ITS OWN SHARE AGAINST ITS SUBMISSION'S CHARGE.
+   * Robert's answer on findings F1 and F2, 2026-10-25. A paid submission's card
+   * charge is one row on the batch (0075) and names no order, so this read found
+   * nothing on a member and every caller had to refuse. Now: what the member
+   * paid is its batch_share_cents; what it has had back is the refunds that name
+   * it; and it can never be given more than the batch charge less every refund
+   * already against that batch, whichever member or whoever in Stripe's
+   * dashboard took it. The refund row names both the order and the batch (0009
+   * allows both, for exactly this row).
+   */
+  const { data: member, error: memberError } = await db
+    .from("eng_service_orders")
+    .select("batch_id, batch_share_cents")
+    .eq("id", orderId)
+    .maybeSingle();
+  if (memberError) {
+    return { ok: false, error: `The order could not be read, so nothing was refunded: ${memberError.message}` };
+  }
+  if (member?.batch_id) return refundableOnBatchMember(db, orderId, member.batch_id as string, member.batch_share_cents);
 
   const { data: charges, error: chargeError } = await db
     .from("eng_order_payments")
@@ -2173,6 +2194,71 @@ export async function refundableOn(orderId: string): Promise<
     alreadyRefundedCents,
     owedCents: Math.max(0, paidCents - alreadyRefundedCents),
     chargeRef: first ? ((first.provider_ref as string | null) ?? null) : null,
+    batchId: null,
+  };
+}
+
+/** refundableOn for a member of a bulk submission; see the comment there. */
+async function refundableOnBatchMember(
+  db: NonNullable<ReturnType<typeof supabaseAdmin>>,
+  orderId: string,
+  batchId: string,
+  shareCents: unknown,
+): Promise<
+  | { ok: true; paidCents: number; alreadyRefundedCents: number; owedCents: number; chargeRef: string | null; batchId: string }
+  | { ok: false; error: string }
+> {
+  const { data: charges, error: chargeError } = await db
+    .from("eng_order_payments")
+    .select("provider_ref, amount_cents")
+    .eq("batch_id", batchId)
+    .is("order_id", null)
+    .eq("kind", "charge")
+    .eq("status", "succeeded")
+    .order("created_at", { ascending: true });
+  if (chargeError) {
+    return { ok: false, error: `The submission's charge could not be read, so nothing was refunded: ${chargeError.message}` };
+  }
+  /* No charge on the submission: nothing was taken by card (an invoiced submission, or one not paid). Each caller says so. */
+  if (!charges || charges.length === 0) {
+    return { ok: true, paidCents: 0, alreadyRefundedCents: 0, owedCents: 0, chargeRef: null, batchId };
+  }
+  if (shareCents === null || shareCents === undefined || !Number.isFinite(Number(shareCents))) {
+    return { ok: false, error: "This order's share of its submission is not recorded, so its refund cannot be worked out. Nothing was refunded." };
+  }
+
+  const { data: refunds, error: refundError } = await db
+    .from("eng_order_payments")
+    .select("order_id, amount_cents")
+    .eq("batch_id", batchId)
+    .eq("kind", "refund")
+    .in("status", ["pending", "succeeded"]);
+  if (refundError) {
+    return { ok: false, error: `The refunds already against this submission could not be read, so nothing was refunded: ${refundError.message}` };
+  }
+  /* A refund that names this order but not its batch still counts against it. */
+  const { data: ownRefunds, error: ownError } = await db
+    .from("eng_order_payments")
+    .select("provider_ref, amount_cents, batch_id")
+    .eq("order_id", orderId)
+    .eq("kind", "refund")
+    .in("status", ["pending", "succeeded"]);
+  if (ownError) {
+    return { ok: false, error: `The refunds already on this order could not be read, so nothing was refunded: ${ownError.message}` };
+  }
+
+  const paidCents = Number(shareCents);
+  const batchPaid = charges.reduce((n, c) => n + Number(c.amount_cents), 0);
+  const batchRefunded = (refunds ?? []).reduce((n, r) => n + Number(r.amount_cents), 0);
+  const alreadyRefundedCents = (ownRefunds ?? []).reduce((n, r) => n + Number(r.amount_cents), 0);
+  const ownOutsideBatch = (ownRefunds ?? []).filter((r) => r.batch_id !== batchId).reduce((n, r) => n + Number(r.amount_cents), 0);
+  return {
+    ok: true,
+    paidCents,
+    alreadyRefundedCents,
+    owedCents: Math.max(0, Math.min(paidCents - alreadyRefundedCents, batchPaid - batchRefunded - ownOutsideBatch)),
+    chargeRef: (charges[0].provider_ref as string | null) ?? null,
+    batchId,
   };
 }
 
@@ -2234,17 +2320,31 @@ export async function cancelAndRefund(input: {
 
   /*
    * A BULK ORDER'S MONEY IS ON ITS SUBMISSION, NOT ON THE ORDER. Robert's audit
-   * of 2026-10-24, finding F1. A batch's card charge is recorded against the
-   * batch (0075), so refundableOn finds no charge on a member order, and this
-   * used to cancel it "with nothing charged": markAbandoned refused the
-   * transition from in_fulfilment, the order stayed live, nothing was refunded,
-   * and staff were told it succeeded. It is refused, saying why. How a member of
-   * a paid submission is refunded is Robert's to rule.
+   * of 2026-10-24, finding F1, and his answer of 2026-10-25: a member is
+   * refunded its own share against the submission's charge, which refundableOn
+   * now reads. What is left here is a member whose submission has no card
+   * charge (an invoiced submission, or one never paid): its money is on a
+   * statement or nowhere, and closing it "with nothing charged" would be the
+   * F1 answer again, so it is refused, saying why.
    */
   if (order.batch_id && (!chargeRef || paidCents <= 0)) {
     return {
       ok: false,
-      error: `${order.reference} was paid as part of a bulk submission, so its money was taken on the submission rather than on this order. It cannot be refunded or canceled from here yet; nothing was changed.`,
+      error: `${order.reference} is part of a bulk submission with no card charge on it, so there is nothing here to refund it against. If it was billed on a statement, settle it there; nothing was changed.`,
+    };
+  }
+
+  /*
+   * NEVER MORE THAN IS LEFT ON THE SUBMISSION'S CHARGE, and never quietly less
+   * than the member is owed either (F1 and F2, 2026-10-25). When earlier
+   * refunds against the submission leave less than this member's own
+   * remainder, the cancellation is refused and said, exactly as the engineer's
+   * decision is, for a person to settle.
+   */
+  if (refundable.batchId && refundable.owedCents < Math.max(0, paidCents - refundable.alreadyRefundedCents)) {
+    return {
+      ok: false,
+      error: `${order.reference}'s share has ${money(paidCents - refundable.alreadyRefundedCents)} to give back, and only ${money(refundable.owedCents)} is left on its submission's charge after earlier refunds, so nothing was refunded. A person settles it.`,
     };
   }
 
@@ -2295,6 +2395,8 @@ export async function cancelAndRefund(input: {
     chargeRef,
     amountCents: decision.refundCents,
     reason: FIRM_CANCELLATION_CASE,
+    /* One charge pays for a whole submission, so the member joins the refund's key (F1, F2). */
+    ...(refundable.batchId ? { orderId: input.orderId } : {}),
   });
 
   /*
@@ -2307,6 +2409,8 @@ export async function cancelAndRefund(input: {
     .from("eng_order_payments")
     .insert({
       order_id: input.orderId,
+      /* A member's refund names its submission too: that row is what says which property the money went back for (0009). */
+      batch_id: refundable.batchId,
       kind: "refund",
       amount_cents: result.amountCents,
       currency: (order.currency as string) ?? "usd",
@@ -2419,12 +2523,29 @@ export async function settleDecision(input: {
   if (orderError) return { ok: false, error: `The order could not be read, so nothing was settled: ${orderError.message}` };
   if (!order) return { ok: false, error: "That order does not exist." };
 
-  const { data: charges, error: chargesError } = await db
-    .from("eng_order_payments")
-    .select("provider, provider_ref, amount_cents")
-    .eq("order_id", input.orderId)
-    .eq("kind", "charge")
-    .eq("status", "succeeded");
+  /*
+   * A BULK MEMBER'S MONEY IS READ FROM ITS SUBMISSION. Robert's answer on F1
+   * and F2, 2026-10-25: its own share, against the submission's charge, under
+   * the same refund rules as a single order. refundableOn is the one reading of
+   * it, with the cap at what is left on the submission's charge. A single order
+   * reads its own charges, exactly as before.
+   */
+  const member = order.batch_id ? await refundableOn(input.orderId) : null;
+  const ownCharges = member
+    ? { data: [] as { provider: string; provider_ref: string | null; amount_cents: number }[], error: null }
+    : await db
+        .from("eng_order_payments")
+        .select("provider, provider_ref, amount_cents")
+        .eq("order_id", input.orderId)
+        .eq("kind", "charge")
+        .eq("status", "succeeded");
+  const chargesError = member && !member.ok ? { message: member.error } : ownCharges.error;
+  const charges =
+    member && member.ok
+      ? member.chargeRef
+        ? [{ provider_ref: member.chargeRef, amount_cents: member.paidCents }]
+        : []
+      : ownCharges.data;
 
   const paidCents = (charges ?? []).reduce((n, c) => n + Number(c.amount_cents), 0);
   const charge = (charges ?? [])[0];
@@ -2456,13 +2577,13 @@ export async function settleDecision(input: {
   }
 
   /*
-   * A BULK MEMBER'S MONEY IS ON ITS SUBMISSION (0075), so there is no charge on
-   * the order to refund against. Said as that, for the person who must act,
-   * rather than as a refund that "could not be worked out" (audit finding F2).
-   * How it is refunded is Robert's to rule.
+   * A member whose submission carries no card charge (invoiced, or never paid)
+   * has nothing here to refund against. Said as that, for the person who must
+   * act, rather than as "Nothing had been charged", which an invoiced customer
+   * may not be able to say (audit finding F2).
    */
   if (order.batch_id && !(charges && charges.length)) {
-    const why = `${order.reference} was paid as part of a bulk submission, so its money is on the submission rather than on this order, and no refund was issued automatically. A person refunds it.`;
+    const why = `${order.reference} is part of a bulk submission with no card charge on it, so no refund was issued automatically. If it was billed on a statement, a person settles it there.`;
     await event(input.orderId, "refund.blocked", false, why);
     return { ok: false, error: why };
   }
@@ -2515,17 +2636,33 @@ export async function settleDecision(input: {
     return { ok: true, refundedCents: 0, retainedCents: 0, caseName: decision.caseName };
   }
 
+  /*
+   * NEVER MORE THAN IS LEFT ON THE SUBMISSION'S CHARGE (F1 and F2, 2026-10-25).
+   * A member whose share, or whose submission's charge, has already had money
+   * back cannot be given the rule's full figure again. The rule is not bent to
+   * fit: the refund is refused and said, for a person to settle.
+   */
+  if (member && member.ok && decision.refundCents > member.owedCents) {
+    const why = `${order.reference}'s refund under this decision is ${money(decision.refundCents)}, and only ${money(member.owedCents)} is left to give back on its share of its submission's charge, so no refund was issued automatically. A person settles it.`;
+    await event(input.orderId, "refund.blocked", false, why);
+    return { ok: false, error: why };
+  }
+
   const provider = paymentProvider();
   const result = await provider.refund({
     chargeRef: charge.provider_ref as string,
     amountCents: decision.refundCents,
     reason: decision.caseName,
+    /* One charge pays for a whole submission, so the member joins the refund's key (F1, F2). */
+    ...(member ? { orderId: input.orderId } : {}),
   });
 
   const { data: decisionRefundRow, error: rowError } = await db
     .from("eng_order_payments")
     .insert({
       order_id: input.orderId,
+      /* A member's refund names its submission too (0009). */
+      batch_id: member && member.ok ? member.batchId : null,
       kind: "refund",
       amount_cents: result.amountCents,
       provider: provider.name,
