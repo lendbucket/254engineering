@@ -361,8 +361,14 @@ for (const route of routes) {
     if ("alternateName" in orgNode)
       problems.push(`${route}: Organization carries alternateName ${JSON.stringify(orgNode.alternateName)}`);
   }
-  if (route === "/" && !decode(meta.title).startsWith("254 Engineering"))
-    problems.push(`/: homepage title does not start with "254 Engineering" ("${decode(meta.title)}")`);
+  /*
+   * The homepage title: the keyword leads and the brand follows, Robert's title
+   * rule restated 2026-10-25, which superseded the brand-led title of
+   * 2026-10-19. Pinned as the literal, so the order is moved on purpose or not
+   * at all.
+   */
+  if (route === "/" && decode(meta.title) !== "Texas Engineering Services Statewide | 254 Engineering")
+    problems.push(`/: homepage title is "${decode(meta.title)}", expected "Texas Engineering Services Statewide | 254 Engineering"`);
 
   /*
    * ========================================================================
