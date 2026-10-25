@@ -203,18 +203,20 @@ export async function verifyApiKey(presented: string | null): Promise<VerifiedKe
  * Counted BEFORE the request is recorded, so a limit of sixty allows sixty and
  * refuses the sixty first rather than the sixtieth.
  */
-export async function withinRateLimit(key: VerifiedKey): Promise<{ ok: boolean; used: number }> {
+export async function withinRateLimit(key: VerifiedKey): Promise<{ ok: boolean; used: number; unreadable?: true }> {
   const db = supabaseAdmin();
-  if (!db) return { ok: false, used: 0 };
+  if (!db) return { ok: false, used: 0, unreadable: true };
 
   const since = new Date(Date.now() - 60_000).toISOString();
-  const { count } = await db
+  const { count, error } = await db
     .from("eng_account_api_requests")
     .select("id", { count: "exact", head: true })
     .eq("key_id", key.keyId)
     .gte("created_at", since);
 
-  const used = count ?? 0;
+  /* A count that could not be read is not zero: read as one, the limit opened (audit of 2026-10-24). */
+  if (error || typeof count !== "number") return { ok: false, used: 0, unreadable: true };
+  const used = count;
   return { ok: used < key.rateLimitPerMinute, used };
 }
 
