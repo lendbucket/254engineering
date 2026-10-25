@@ -2119,8 +2119,9 @@ export type RosterRow = {
   base_lat: number | null;
   base_lng: number | null;
   certifications: { service_slug: string; status: string }[];
-  openJobs: number;
-  completedJobs: number;
+  /** Null when the assigned jobs could not be read: missing, never zero. */
+  openJobs: number | null;
+  completedJobs: number | null;
   /** Null when a ledger entry has no figure; never a silent zero. */
   pendingCents: Cents;
   paidCents: Cents;
@@ -2141,16 +2142,34 @@ const sumKnownPay = (rows: { amount_cents: unknown }[]): Cents =>
     ? null
     : rows.reduce((sum, r) => sum + Number(r.amount_cents), 0);
 
-export async function techRoster(actor: Actor | null): Promise<RosterRow[]> {
-  const db = supabaseAdmin();
-  if (!db || !can(actor, "profiles.list")) return [];
+/*
+ * A FAILED READ IS SAID, NOT ROUNDED TO ZERO. Office ready, 2026-10-24. This
+ * returned [] when the roster could not be read, so the screen said nobody was
+ * on it; and when the pay ledger read failed, every technician's pay rows were
+ * [], so the screen said $0.00 outstanding, which is the understatement of what
+ * the firm owes a person the comment below names as the defect to avoid. Now a
+ * failed roster is a failed read, a failed pay read makes each pay figure
+ * unknown (null), and every source that could not be read is named in `failed`,
+ * as the inbox does, so a count of open jobs is never a zero standing in for an
+ * error.
+ */
+export type RosterRead = { ok: true; rows: RosterRow[]; failed: string[] } | { ok: false; error: string };
 
-  const { data: profiles } = await db
+export async function techRoster(actor: Actor | null): Promise<RosterRead> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+  if (!can(actor, "profiles.list")) return { ok: true, rows: [], failed: [] };
+
+  const { data: profiles, error: profilesError } = await db
     .from("eng_profiles")
     .select("id, display_name, email, phone, status, coverage_counties, base_city, base_county, base_lat, base_lng")
     .eq("role", "field_tech")
     .order("display_name");
-  if (!profiles?.length) return [];
+  if (profilesError) {
+    console.error(`[techs] the roster could not be read: ${profilesError.message}`);
+    return { ok: false, error: profilesError.message };
+  }
+  if (!profiles?.length) return { ok: true, rows: [], failed: [] };
 
   const ids = profiles.map((p) => p.id as string);
   const soon = new Date(Date.now() + 45 * 86_400_000).toISOString().slice(0, 10);
@@ -2178,7 +2197,7 @@ export async function techRoster(actor: Actor | null): Promise<RosterRow[]> {
       .range(from, to),
   );
 
-  const [{ data: certs }, { data: files }, { data: creds }] = await Promise.all([
+  const [{ data: certs, error: certsError }, { data: files, error: filesError }, { data: creds, error: credsError }] = await Promise.all([
     db.from("eng_certifications").select("profile_id, service_slug, status").in("profile_id", ids),
     db.from("eng_files").select("assigned_tech_id, status").in("assigned_tech_id", ids),
     db
@@ -2190,11 +2209,18 @@ export async function techRoster(actor: Actor | null): Promise<RosterRow[]> {
   ]);
 
   const ledger = payRead.ok ? payRead.rows : null;
+  const failed = [
+    ...(ledger === null ? ["Pay could not be read, so no pay figure is shown: none of them is zero."] : []),
+    ...(certsError ? [`Certifications could not be read: ${certsError.message}`] : []),
+    ...(filesError ? [`Assigned jobs could not be read, so the job counts are missing, not zero: ${filesError.message}`] : []),
+    ...(credsError ? [`Expiring credentials could not be read: ${credsError.message}`] : []),
+  ];
+  for (const f of failed) console.error(`[techs] ${f}`);
 
   const OPEN = ["dispatched", "evidence_in_progress", "revisions_requested"];
   const DONE = ["evidence_submitted", "under_review", "sealed", "delivered", "closed"];
 
-  return profiles.map((p) => {
+  const rows = profiles.map((p) => {
     const id = p.id as string;
     const mine = (files ?? []).filter((f) => f.assigned_tech_id === id);
     const pay = (ledger ?? []).filter((l) => l.tech_id === id);
@@ -2212,21 +2238,23 @@ export async function techRoster(actor: Actor | null): Promise<RosterRow[]> {
       certifications: (certs ?? [])
         .filter((c) => c.profile_id === id)
         .map((c) => ({ service_slug: c.service_slug as string, status: c.status as string })),
-      openJobs: mine.filter((f) => OPEN.includes(f.status as string)).length,
-      completedJobs: mine.filter((f) => DONE.includes(f.status as string)).length,
+      openJobs: filesError ? null : mine.filter((f) => OPEN.includes(f.status as string)).length,
+      completedJobs: filesError ? null : mine.filter((f) => DONE.includes(f.status as string)).length,
       /*
        * A ledger entry with no figure is excluded rather than counted as zero,
        * and if any is excluded the total says it is not known. Same rule
        * /portal/pay applies to the same table; this screen was reading it as if
-       * an unpriced entry were worth nothing.
+       * an unpriced entry were worth nothing. A ledger that could not be read at
+       * all is unknown too, never the sum of no rows.
        */
-      pendingCents: sumKnownPay(pay.filter((l) => l.status === "pending" || l.status === "approved")),
-      paidCents: sumKnownPay(pay.filter((l) => l.status === "paid")),
+      pendingCents: ledger === null ? null : sumKnownPay(pay.filter((l) => l.status === "pending" || l.status === "approved")),
+      paidCents: ledger === null ? null : sumKnownPay(pay.filter((l) => l.status === "paid")),
       expiringCredentials: (creds ?? [])
         .filter((c) => c.profile_id === id)
         .map((c) => ({ kind: c.kind as string, expires_on: c.expires_on as string })),
     };
   });
+  return { ok: true, rows, failed };
 }
 
 export type LedgerRow = {

@@ -17,6 +17,9 @@ import { PageHead } from "@/components/portal/surfaces";
 import { NewPartner } from "./NewPartner";
 import type { PartnerRow } from "@/lib/ops-partners-admin";
 import { formatInFirmZone } from "@/lib/firm-calendar";
+import { ListControls } from "@/components/portal/ListControls";
+import { LIST_NOT_LOADED } from "@/lib/outcome-copy";
+import { RetryButton } from "@/components/portal/Unreachable";
 
 export const dynamic = "force-dynamic";
 
@@ -33,13 +36,24 @@ export const dynamic = "force-dynamic";
  * firm owes and cannot yet compute, and rolling them into a total as nothing
  * would understate what the firm owes in the direction nobody questions.
  */
-export default async function PartnersPage() {
+export default async function PartnersPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const actor = await currentActor();
   if (!actor) redirect("/portal/login");
   if (!can(actor, "partners.manage")) notFound();
+  const params = await searchParams;
 
-  const rows = await partnerRoster(actor);
+  /* A failed read is said, and a figure whose read failed is missing, never zero (office ready, 2026-10-24). */
+  const read = await partnerRoster(actor);
+  const all = read.ok ? read.rows : [];
+  const needle = (params.q ?? "").trim().toLowerCase();
+  const state = params.state === "active" || params.state === "suspended" ? params.state : "all";
+  const rows = all.filter(
+    (p) =>
+      (state === "all" || p.status === state || p.status === "ended") &&
+      (!needle || [p.organisation, p.contactName, p.contactEmail, p.code].some((v) => (v ?? "").toLowerCase().includes(needle))),
+  );
   const queue = await submissionsAwaitingDecision();
+  const unread = "could not be read";
 
   const columns: Column<PartnerRow>[] = [
     {
@@ -57,23 +71,23 @@ export default async function PartnersPage() {
         </StatusPill>
       ),
     },
-    { key: "referrals", header: "Referrals", numeric: true, cell: (p) => String(p.referrals) },
+    { key: "referrals", header: "Referrals", numeric: true, cell: (p) => (p.referrals === null ? unread : String(p.referrals)) },
     {
       key: "payable",
       header: "Payable now",
       numeric: true,
-      cell: (p) => <span className="font-semibold">{money(p.payableCents)}</span>,
+      cell: (p) => (p.payableCents === null ? unread : <span className="font-semibold">{money(p.payableCents)}</span>),
     },
     {
       key: "blocked",
       header: "Waiting for a figure",
       numeric: true,
-      cell: (p) => (p.blocked === 0 ? "none" : <span className="font-semibold">{p.blocked}</span>),
+      cell: (p) => (p.blocked === null ? unread : p.blocked === 0 ? "none" : <span className="font-semibold">{p.blocked}</span>),
     },
-    { key: "people", header: "People", numeric: true, cell: (p) => String(p.people) },
+    { key: "people", header: "People", numeric: true, cell: (p) => (p.people === null ? unread : String(p.people)) },
   ];
 
-  const anythingBlocked = rows.reduce((n, r) => n + r.blocked, 0);
+  const anythingBlocked = rows.reduce((n, r) => n + (r.blocked ?? 0), 0);
 
   /*
    * ENDED PARTNERS ARE BEHIND A DISCLOSURE, NOT HIDDEN.
@@ -150,24 +164,65 @@ export default async function PartnersPage() {
         </Panel>
       ) : null}
 
-      <Panel
-        title="The roster"
-        description="Created by the firm, never by signup. A partner using the firm's name is a decision the firm makes."
-      >
-        <DataTable
-          caption="Referral partners"
-          columns={columns}
-          rows={live}
-          total={live.length}
-          onRowHref={(p) => `/portal/partners/${p.id}`}
-          empty={
-            <EmptyState
-              title="No partners yet"
-              body="Nothing is attributed and nothing is owed until one exists. Every ?ref= on the live site is currently a 204 that writes nothing."
-            />
-          }
-        />
-      </Panel>
+      <ListControls
+        action="/portal/partners"
+        search={params.q ?? ""}
+        searchLabel="Search partner, contact, email or code"
+        filters={[
+          {
+            name: "state",
+            label: "State",
+            value: state,
+            options: [
+              { value: "all", label: "Active and suspended" },
+              { value: "active", label: "Active" },
+              { value: "suspended", label: "Suspended" },
+            ],
+          },
+        ]}
+        sorts={[{ value: "name", label: "Partner" }]}
+        sort="name"
+        direction="asc"
+      />
+
+      {read.ok && read.failed.length ? (
+        <Panel title="Part of the roster could not be read" description="What is listed below is real; what failed is missing from it, not zero.">
+          <ul className="text-[13.5px] leading-[1.55] text-[var(--ink)]">{read.failed.map((f) => <li key={f}>{f}</li>)}</ul>
+        </Panel>
+      ) : null}
+
+      {!read.ok ? (
+        <div role="alert" data-list-not-loaded className="py-6">
+          <p className="text-[15px] font-semibold text-[var(--ink)]">{LIST_NOT_LOADED}</p>
+          <p className="mt-1 text-[13.5px] text-[var(--secondary)]">The roster could not be read, so this is not an empty roster and nothing here says what is owed.</p>
+          <div className="mt-4 flex">
+            <RetryButton />
+          </div>
+        </div>
+      ) : (
+        <Panel
+          title="The roster"
+          description="Created by the firm, never by signup. A partner using the firm's name is a decision the firm makes."
+        >
+          <DataTable
+            caption="Referral partners"
+            columns={columns}
+            rows={live}
+            total={live.length}
+            onRowHref={(p) => `/portal/partners/${p.id}`}
+            empty={
+              needle || state !== "all" ? (
+                <EmptyState title="No partner matches that search" body="Clear the search or the filter to see the whole roster." />
+              ) : (
+                <EmptyState
+                  title="No partners yet"
+                  body="Nothing is attributed and nothing is owed until one exists. Every ?ref= on the live site is currently a 204 that writes nothing."
+                />
+              )
+            }
+          />
+        </Panel>
+      )}
 
       {ended.length > 0 ? (
         <Panel>
