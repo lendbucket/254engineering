@@ -67,8 +67,62 @@ export type SealInput = {
   recipientSalutation: string;
   /* The foundation letter's "Observed condition:", in his words, typed at sealing (template 4). */
   observedCondition?: string;
+  /*
+   * L2d, Robert's answer of 2026-10-25: the digest of the draft he read, and
+   * the lines he was shown, so sealing seals only that draft and can say what
+   * changed if the rebuilt one differs.
+   */
+  previewSha256?: string;
+  previewLines?: { kind: string; text: string }[];
   context?: { ip?: string | null; userAgent?: string | null };
 };
+
+/** The letterhead and seal block text a letter carries, the same for the preview and the sealed PDF. */
+type LetterFrame = {
+  letterhead: { brand: string; registrationLine: string };
+  sealBlock: { name: string; licenseNumber: string; role: string };
+};
+
+/**
+ * THE DRAFT HE READ IS THE DRAFT THAT IS SEALED. Robert's answer on L2d,
+ * 2026-10-25. The draft was rebuilt at sealing with nothing tying it to the
+ * preview, and the office facts are newest-wins, so a fact recorded between
+ * reading and sealing printed in a letter he never read. The digest covers
+ * every word the letter prints except the date, which is the sealing moment.
+ */
+export function draftDigest(draft: { title: string; lines: { kind: string; text: string }[] }, frame: LetterFrame): string {
+  const canonical = JSON.stringify({
+    title: draft.title,
+    lines: draft.lines.map((l) => [l.kind, l.text]),
+    letterhead: [frame.letterhead.brand, frame.letterhead.registrationLine],
+    sealBlock: [frame.sealBlock.name, frame.sealBlock.licenseNumber, frame.sealBlock.role],
+  });
+  return createHash("sha256").update(canonical).digest("hex");
+}
+
+function frameFor(engineer: { name: string; licenseNumber: string }): LetterFrame {
+  return {
+    /* "254 Engineering", the brand of the 2026-10-10 ruling, restated for letters on 2026-10-22. */
+    letterhead: { brand: business.shortName, registrationLine: registrationLine() },
+    sealBlock: { name: engineer.name, licenseNumber: engineer.licenseNumber, role: `Engineer of Record, ${firmName()}` },
+  };
+}
+
+/** What changed between the lines he read and the rebuilt draft, in his own words, for the refusal. */
+function changedLines(read: { kind: string; text: string }[] | undefined, now: { kind: string; text: string }[]): string {
+  if (!read) return "The letter changed since you read it.";
+  const changes: string[] = [];
+  const n = Math.max(read.length, now.length);
+  for (let i = 0; i < n && changes.length < 5; i += 1) {
+    const was = read[i]?.text;
+    const is = now[i]?.text;
+    if (was === is) continue;
+    if (was === undefined) changes.push(`a line was added: "${is}"`);
+    else if (is === undefined) changes.push(`a line was removed: "${was}"`);
+    else changes.push(`"${was}" now reads "${is}"`);
+  }
+  return changes.length ? `Since you read it, ${changes.join("; ")}.` : "The letter's heading or signature block changed since you read it.";
+}
 
 export type SealResult =
   | { ok: true; documentId: string; sha256: string; delivered: boolean; warning: string | null }
@@ -407,20 +461,41 @@ function determinationProducesLetter(protocol: string, determination: string): b
 }
 
 /** The draft, for the engineer to read before he seals. Reads no image. */
+export type DraftPreview =
+  | (Extract<LetterDraft, { ok: true }> & LetterFrame & { title: string; draftSha256: string })
+  | { ok: false; why: string; missing: [] };
+
+/**
+ * The draft, for the engineer to read before he seals, with the letterhead and
+ * seal block it will carry (L2d) as TEXT: no seal or signature image reaches a
+ * browser (control 2). The date is the sealing moment, so it is not here.
+ */
 export async function draftForDetermination(
   actor: SignedIn | null,
   determinationId: string,
   entered: Entered,
-): Promise<LetterDraft | { ok: false; why: string; missing: [] }> {
+): Promise<DraftPreview> {
   if (!holdsLicence(actor, "documents.seal")) return { ok: false, why: "Only the engineer of record drafts and seals a letter.", missing: [] };
   const det = await determination(determinationId);
   if (!det) return { ok: false, why: "That determination does not exist.", missing: [] };
   if (det.engineer_id !== actor!.id) {
     return { ok: false, why: "Only the engineer who recorded this determination can draft its letter.", missing: [] };
   }
+  const engineer = verifiedEngineers.find((e) => e.licenseNumber === actor!.license_number);
+  if (!engineer) {
+    return { ok: false, why: "Your license number on this account does not match the engineer on the firm's register.", missing: [] };
+  }
   const built = await draftFor(det, entered);
   if (!built.ok) return { ok: false, why: built.error, missing: [] };
-  return { ok: true, lines: built.lines, determination: det.determination as LetterDraft extends { determination: infer D } ? D : never };
+  const frame = frameFor(engineer);
+  return {
+    ok: true,
+    lines: built.lines,
+    determination: det.determination as LetterDraft extends { determination: infer D } ? D : never,
+    title: built.title,
+    ...frame,
+    draftSha256: draftDigest(built, frame),
+  };
 }
 
 export async function sealLetter(actor: SignedIn | null, input: SealInput): Promise<SealResult> {
@@ -495,6 +570,22 @@ export async function sealLetter(actor: SignedIn | null, input: SealInput): Prom
   const facts = { title: draft.title };
 
   /*
+   * 4a. The draft he read (L2d, Robert's answer of 2026-10-25). Sealing refuses
+   * unless the rebuilt draft, letterhead and seal block hash to the digest of
+   * the one he was shown, and says what changed, before any code is spent.
+   */
+  const frame = frameFor(engineer);
+  if (!input.previewSha256) {
+    return { ok: false, error: "Read the draft before sealing: a letter is sealed only as you read it. Nothing was sealed." };
+  }
+  if (draftDigest(draft, frame) !== input.previewSha256) {
+    return {
+      ok: false,
+      error: `${changedLines(input.previewLines, draft.lines)} Read the draft again before sealing. Nothing was sealed.`,
+    };
+  }
+
+  /*
    * 4b. The template he signed, before the code is spent (0088, Robert's
    * instruction of 2026-10-24, narrowed by his ruling 3): a manufactured home,
    * solar or WPI-8E letter seals only from a letter template the engineer has
@@ -540,16 +631,15 @@ export async function sealLetter(actor: SignedIn | null, input: SealInput): Prom
     /*
      * "254 Engineering", the brand of the 2026-10-10 ruling, restated for letters
      * on 2026-10-22. This read business.name, "254 Engineering Services", which
-     * is a DBA on the board's record and stays off every letter.
+     * is a DBA on the board's record and stays off every letter. The letterhead
+     * and seal block are the frame the preview showed and the digest covered.
      */
-    brand: business.shortName,
+    brand: frame.letterhead.brand,
     logoPng: new Uint8Array(markBytes),
-    registrationLine: registrationLine(),
+    registrationLine: frame.letterhead.registrationLine,
     lines: draft.lines,
     sealBlock: {
-      name: engineer.name,
-      licenseNumber: engineer.licenseNumber,
-      role: `Engineer of Record, ${firmName()}`,
+      ...frame.sealBlock,
       date: sealedOn,
     },
     sealPng: seal.bytes,
