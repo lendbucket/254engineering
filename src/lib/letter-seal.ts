@@ -20,6 +20,8 @@ import { draftFoundationLetter, draftPermitLetter, producesFoundationLetter } fr
 import { methodFor } from "@/content/letters/foundation-certification";
 import { STRUCTURED_DECLARATIONS } from "@/content/protocols/structured";
 import { recordedFactsFor, triageFor } from "./letter-facts";
+import { templateToSealFrom } from "./letter-template-sign";
+import { letterNeedsTemplate } from "@/content/letters/templates";
 import { renderLetterPdf } from "./letter-pdf";
 import { LETTERHEAD_MARK } from "@/content/letters/letterhead-mark";
 import { readEvery, readEveryIn } from "./bounded-read";
@@ -391,6 +393,17 @@ export async function sealLetter(actor: SignedIn | null, input: SealInput): Prom
   if (!draft.ok) return { ok: false, error: draft.error };
   const facts = { title: draft.title };
 
+  /*
+   * 4b. The template he signed, before the code is spent (0088, Robert's
+   * instruction of 2026-10-24, narrowed by his ruling 3): a manufactured home,
+   * solar or WPI-8E letter seals only from a letter template the engineer has
+   * signed, whose words still match the template in code. Every other letter
+   * seals exactly as before 0088, through the fifteen-argument door.
+   */
+  const needsTemplate = letterNeedsTemplate(det.protocol_document);
+  const template = needsTemplate ? await templateToSealFrom(det.protocol_document) : null;
+  if (template && !template.ok) return { ok: false, error: template.error };
+
   // 5. A fresh second factor, for this act.
   const fresh = await verifyFreshCode(actor!.id, input.code);
   if (!fresh.ok) return { ok: false, error: fresh.error };
@@ -472,6 +485,8 @@ export async function sealLetter(actor: SignedIn | null, input: SealInput): Prom
     p_signature_image_id: signature.id,
     p_mfa_verified_at: fresh.verifiedAt,
     p_letterhead_sha256: markSha256,
+    /* Only a three-lines letter names its template (0088's sixteen-argument door); every other letter calls 0081's fifteen. */
+    ...(template?.ok ? { p_letter_template_act_id: template.actId } : {}),
   });
   if (recorded.error) {
     /* No unrecorded PDF is left in the bucket: an object with no seal act is a seal nothing vouches for. */
