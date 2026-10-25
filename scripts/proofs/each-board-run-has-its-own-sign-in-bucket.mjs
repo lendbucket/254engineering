@@ -31,8 +31,26 @@ const h = (o = {}) => new Headers(o);
 /* Every way a request might try to choose a key. */
 const CHOOSING = { "x-254-board-run": "1234567", "x-board-run-id": "1234567", "board-run-id": "1234567", cookie: "BOARD_RUN_ID=1234567" };
 
-check("on development, the server's run id is its own bucket", clientKey(h(), { SUPABASE_URL: DEV, BOARD_RUN_ID: RUN }) === `board:${RUN}`);
-check("and a request cannot choose another one", clientKey(h(CHOOSING), { SUPABASE_URL: DEV, BOARD_RUN_ID: RUN }) === `board:${RUN}`);
+check("on development, the server's run id prefixes the address main uses", clientKey(h(), { SUPABASE_URL: DEV, BOARD_RUN_ID: RUN }) === `board:${RUN}:unknown`);
+check("and a request cannot choose another run", clientKey(h(CHOOSING), { SUPABASE_URL: DEV, BOARD_RUN_ID: RUN }) === `board:${RUN}:unknown`);
+
+/*
+ * Question 2, 2026-10-25: a run keeps as many buckets as main has. Board
+ * 40141490603 put every sign in of a run into one bucket and missed on 429s.
+ * The addresses here are the loopback forms Next forwards on the board's own
+ * server, which main counts as two separate buckets.
+ */
+const LOOPBACKS = ["::1", "127.0.0.1", "::ffff:127.0.0.1"];
+const onMain = new Set(LOOPBACKS.map((a) => clientKey(h({ "x-forwarded-for": a }), { SUPABASE_URL: DEV })));
+const inRun = new Set(LOOPBACKS.map((a) => clientKey(h({ "x-forwarded-for": a }), { SUPABASE_URL: DEV, BOARD_RUN_ID: RUN })));
+check("a run has exactly as many buckets as main has for the same addresses", inRun.size === onMain.size && onMain.size === LOOPBACKS.length, `main ${onMain.size}, run ${inRun.size}`);
+check("and every one of them is inside this run", [...inRun].every((k) => k.startsWith(`board:${RUN}:`)));
+const other = new Set(LOOPBACKS.map((a) => clientKey(h({ "x-forwarded-for": a }), { SUPABASE_URL: DEV, BOARD_RUN_ID: "40141490603" })));
+check("and no bucket is shared with another run", [...inRun].every((k) => !other.has(k)));
+check(
+  "a forwarded address cannot climb out of its run",
+  clientKey(h({ "x-forwarded-for": "board:40141490603:::1" }), { SUPABASE_URL: DEV, BOARD_RUN_ID: RUN }).startsWith(`board:${RUN}:`),
+);
 check("with no run id on development, no request can create one", clientKey(h(CHOOSING), { SUPABASE_URL: DEV }) === "unknown");
 check("on production, the variable is ignored and the key is what it always was", clientKey(h(), { SUPABASE_URL: PROD, BOARD_RUN_ID: RUN }) === "unknown");
 check(
@@ -56,7 +74,7 @@ check("and loads no preload into the shard's processes", !/NODE_OPTIONS/.test(ym
 const overflow = readFileSync("scripts/mobile-overflow-audit.mjs", "utf8");
 check(
   "under the board, a real browser sign in is read back for its key",
-  /page\.fill\('input\[name="email"\]', techProbe\.email\)/.test(overflow) && /\.from\("eng_sign_in_attempts"\)/.test(overflow) && /address === expected/.test(overflow),
+  /page\.fill\('input\[name="email"\]', techProbe\.email\)/.test(overflow) && /\.from\("eng_sign_in_attempts"\)/.test(overflow) && /String\(address\)\.startsWith\(expected\)/.test(overflow) && /`board:\$\{runId\}:`/.test(overflow),
 );
 
 console.log("");

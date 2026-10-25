@@ -467,7 +467,8 @@ async function run() {
   {
     const { DEVELOPMENT_REF, refOf } = await import("./lib/db-target.mjs");
     const runId = process.env.BOARD_RUN_ID ?? "";
-    const expected = /^\d{6,20}$/.test(runId) && refOf(process.env.SUPABASE_URL) === DEVELOPMENT_REF ? `board:${runId}` : null;
+    /* The run id prefixes the address main uses (question 2, 2026-10-25), so the browser's key starts with this run's prefix. */
+    const expected = /^\d{6,20}$/.test(runId) && refOf(process.env.SUPABASE_URL) === DEVELOPMENT_REF ? `board:${runId}:` : null;
     let ok = false;
     let detail = "";
     if (!techProbe?.password) {
@@ -505,8 +506,8 @@ async function run() {
         if (before.error || after.error) detail = `the attempts could not be read: ${(before.error ?? after.error).message}`;
         else if ((after.count ?? 0) !== (before.count ?? 0) + 1) detail = `expected one new attempt from the browser, found ${(after.count ?? 0) - (before.count ?? 0)}`;
         else {
-          ok = status === 200 && (expected ? address === expected : !String(address).startsWith("board:"));
-          detail = `browser sign in answered ${status}; its attempt counted under "${address}"${expected ? `, this run's key ${expected}` : ", and no board run id is set here"}`;
+          ok = status === 200 && (expected ? String(address).startsWith(expected) : !String(address).startsWith("board:"));
+          detail = `browser sign in answered ${status}; its attempt counted under "${address}"${expected ? `, inside this run's prefix ${expected}` : ", and no board run id is set here"}`;
         }
       }
     }

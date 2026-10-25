@@ -312,16 +312,26 @@ export function takeResetAttempt(
  * is development, and only as digits, so on production, or with any other
  * value, the key is exactly what it was. (The header and preload of the first
  * version are gone: board 40082071975 missed with them.)
+ *
+ * Robert's answer to question 2, 2026-10-25: the run id PREFIXES the address
+ * main already uses rather than replacing it. Board 40141490603 put every sign
+ * in of a run into one bucket, and forms-audit's wrong-credential checks spent
+ * its twenty before any probe signed in. Main's address key gives a run the same
+ * buckets it always had (the loopback forms Next forwards are separate ones),
+ * and the prefix keeps every run's buckets apart from every other run's. The
+ * address still comes only from the forwarded headers, exactly as on main, so a
+ * request can pick which of its own run's buckets it lands in and never leave
+ * its run.
  */
 export function clientKey(
   headers: Headers,
   env: { SUPABASE_URL?: string; BOARD_RUN_ID?: string } = { SUPABASE_URL: process.env.SUPABASE_URL, BOARD_RUN_ID: process.env.BOARD_RUN_ID },
 ): string {
-  const boardRun = env.BOARD_RUN_ID;
-  if (boardRun && /^\d{6,20}$/.test(boardRun) && refOf(env.SUPABASE_URL) === DEVELOPMENT_REF) return `board:${boardRun}`;
   const forwarded = headers.get("x-forwarded-for");
-  if (forwarded) return forwarded.split(",")[0]!.trim();
-  return headers.get("x-real-ip") ?? "unknown";
+  const address = forwarded ? forwarded.split(",")[0]!.trim() : (headers.get("x-real-ip") ?? "unknown");
+  const boardRun = env.BOARD_RUN_ID;
+  if (boardRun && /^\d{6,20}$/.test(boardRun) && refOf(env.SUPABASE_URL) === DEVELOPMENT_REF) return `board:${boardRun}:${address}`;
+  return address;
 }
 
 export const RATE_LIMITS = { WINDOW_MS, MAX_PER_IDENTITY, MAX_PER_ADDRESS };
