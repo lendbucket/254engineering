@@ -1,5 +1,22 @@
 # Day queue, 2026-10-23
 
+## Robert's answers, 14:39 Central 2026-10-25, and what was done with them
+
+| Answer | Done |
+| --- | --- |
+| F29 wording approved as written | `fix/audit-customer-view` (`a306fff`) needs nothing more; boards in its turn. |
+| F14 headings approved as written | On the letters branch; boards in its turn. |
+| L2b: the reading is right, with a guard | `57eedb7` on `fix/audit-letter-facts`. Drafting refuses when the visit capture's device time is later than the server's receipt, or more than 3 days earlier, and says why. Two injections, each turning exactly its check red. |
+| Brand: "254 Engineering", never "Services", with a check | `fix/brand-is-254-engineering` (`d0703c8`). `business.name` is "254 Engineering". Two public headings that typed the old brand are fixed. placeholder-audit refuses it on every rendered page and the manifest; compliance-audit refuses it in source outside the register and Aman's transcriptions, and its first run was red on those two headings. |
+| Home title: the keyword leads | Same branch: "Texas Engineering Services Statewide \| 254 Engineering", pinned in seo-audit. |
+| WPI-8 $995 | Left as is, waiting on Robert. |
+| 0089: probe licences to digits before the letters board | `772c61d`: the walk 900000001, the addendum walk 900000002, the fixture 900000003 (its row corrected where found), and the demo approvals 900000004. compliance-audit now refuses the 900 range in the shipped register, with an injection. Reported on issue #1. The 0089 branch now carries the letters branch, main and the development ledger record (`4a9ede5`); all 16 letter and migration readers are green on it. |
+| L2a production read clean | The letters branch merges on its board, combined with 0089's, once production 0089 is sat after that board. |
+| Phase 2 locally, above the 12 GB floor, no bypass | Waiting for memory. |
+| Never `vercel dev` or `vercel env pull` | Saved to memory. |
+
+**Board order from here:** Q3's second half (boarding), then the font branch, the brand branch, bulk refunds, the letters with 0089, agreed price, card only, partner reads, ledger reads, credential dates, customer view, and triage. One board at a time, each brought up to main, with its prediction written here before its push.
+
 ## Audit report, 2026-10-25 afternoon (after Phase 4 and the second confirmation pass)
 
 **35 findings: severity 1, 24; severity 2, 7; severity 3, 4.** That is F1 to F32 in `docs/audit-2026-10-24.md` section 5, plus P4-1 to P4-3 from the production read (section 7).
