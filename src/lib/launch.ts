@@ -1246,10 +1246,17 @@ export function windstormAppointmentStatement(): string {
  * name or licence number. What a reader needs is whether somebody licensed is
  * answerable, not who.
  */
+/*
+ * THE NEGATIVE BRANCH SAYS NOTHING. Operator ruling, 2026-10-21, under the
+ * 2026-09-17 ruling that every sentence saying no engineer is in responsible
+ * charge is removed. It returned "No Professional Engineer is yet in
+ * responsible charge." when no engineer was active, which is false today and
+ * is the kind of sentence that ruling takes off the site. Every caller drops
+ * an empty string, so a lapsed register now removes the claim rather than
+ * printing its opposite.
+ */
 export function responsibleChargeStatement(): string {
-  return peInResponsibleCharge()
-    ? "A Texas licensed Professional Engineer is in responsible charge."
-    : "No Professional Engineer is yet in responsible charge.";
+  return peInResponsibleCharge() ? "A Texas licensed Professional Engineer is in responsible charge." : "";
 }
 
 /**
@@ -1443,14 +1450,15 @@ export function registrationLine(): string {
     return `${registration.issuedTo}, TBPELS Firm ${registration.number}`;
   }
 
-  // Both pendings are stated, and separately, because they are separate facts
-  // and a reader who is checking one will want to know about the other. A
-  // registration alone does not let a firm seal anything.
+  // The registration is stated either way. The sentence that followed it when
+  // no engineer was active, "No engineer of record is yet in responsible
+  // charge", came out on the operator's ruling of 2026-10-21 (the 2026-09-17
+  // rule); a registration alone still does not let a firm seal anything, so
+  // that half stays. Robert's ruling 3 of 2026-10-24 puts "The firm is not yet
+  // accepting engagements." in the old sentence's place, read from the one
+  // function that says it, so every prelaunch page carries it.
   if (registration && !pe) {
-    return `${registration.issuedTo}, TBPELS Firm ${registration.number}. No engineer of record is yet in responsible charge, and no work is being sealed.`;
+    return `${registration.issuedTo}, TBPELS Firm ${registration.number}. ${notYetAcceptingEngagements()} No work is being sealed.`;
   }
-  if (!registration && pe) {
-    return "Firm registration pending with the Texas Board of Professional Engineers and Land Surveyors.";
-  }
-  return "Firm registration pending with the Texas Board of Professional Engineers and Land Surveyors. No engineer of record is yet in responsible charge.";
+  return "Firm registration pending with the Texas Board of Professional Engineers and Land Surveyors.";
 }

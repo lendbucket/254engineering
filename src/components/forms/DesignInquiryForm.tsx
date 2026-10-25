@@ -79,7 +79,7 @@ export function DesignInquiryForm() {
           Thank you. Your brief is with us.
         </h2>
         <p className="mt-4 text-[0.98rem] leading-[1.7] text-slate-muted">
-          Somebody will read it and come back to you within one business day. Design work is quoted
+          Somebody will read it and reply to the address you gave. Design work is quoted
           from the engineer&rsquo;s own estimate of the hours, so the reply will be a conversation
           about scope rather than a figure from a calculator. If anything you have described puts
           the work outside what the firm will take on, we will say so plainly and tell you who to

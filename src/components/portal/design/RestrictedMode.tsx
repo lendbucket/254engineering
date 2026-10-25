@@ -50,8 +50,9 @@ export function RestrictedMode({ also }: { also?: ReactNode } = {}) {
 
   return (
     <SystemAlert condition="Restricted mode.">
-      {registrationStatement()} Sealing and order intake are disabled until an engineer of record is
-      in responsible charge.
+      {/* "until an engineer of record is in responsible charge" came out: operator ruling 2026-10-21. */}
+      {registrationStatement()} Sealing and order intake are disabled until the firm is accepting
+      engagements.
       {also ? <span className="mt-1.5 block">{also}</span> : null}
     </SystemAlert>
   );

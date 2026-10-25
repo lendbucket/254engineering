@@ -204,7 +204,21 @@ for (const route of allRoutes) {
  * the weaker of the two and it is the one that should never go red.
  */
 {
-  const ORDER_OR_QUOTE = /href="(\/order(?:\/start\/[a-z0-9-]+)?|\/contact(?:\?[^"]*)?)"/gi;
+  /*
+   * THE TWO LINES WITH A QUOTE FORM OF THEIR OWN, rulings 3 and Q8 of 2026-10-23
+   * (piece 3a). Design and windstorm WPI-8 send a reader to /design-inquiry and
+   * /windstorm-inquiry instead of /contact, and this pattern knew only /order
+   * and /contact, so their service pages read as having no path at all. Named
+   * here as literals, never read from QUOTE_FORMS, and each must itself answer
+   * and carry a form (the check below), so a quote link that leads nowhere
+   * cannot satisfy this.
+   */
+  const QUOTE_FORM_ROUTES = ["/design-inquiry", "/windstorm-inquiry"];
+  const ORDER_OR_QUOTE = /href="(\/order(?:\/start\/[a-z0-9-]+)?|\/contact(?:\?[^"]*)?|\/design-inquiry|\/windstorm-inquiry)"/gi;
+  for (const route of QUOTE_FORM_ROUTES) {
+    const { status, html } = await get(route);
+    rec(`${route}, a quote destination a service page links to, answers and carries its form`, status === 200 && FORM.test(pageBody(html)), `HTTP ${status}`);
+  }
 
   const chooser = await get("/order");
   rec(

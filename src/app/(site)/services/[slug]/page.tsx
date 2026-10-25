@@ -16,6 +16,7 @@ import { regions } from "@/content/regions";
 import { turnaroundCopy } from "@/content/model-copy";
 import { servicePhotos } from "@/content/photos";
 import { ServiceOrderAction } from "@/components/services/ServiceOrderAction";
+import { HowOrderingWorks } from "@/components/services/HowOrderingWorks";
 
 /**
  * Every service page is generated at build time and there is no dynamic
@@ -214,6 +215,13 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
           <WhatAnOrderAsks serviceSlug={service.slug} />
         </Container>
       </Section>
+
+      {/*
+        How ordering works (ruling 7 of 2026-10-18, Q8 of 2026-10-19): the walk
+        through for an orderable line, the quote path for one that is not, the
+        waitlist before launch, chosen by the state that picks this page's action.
+      */}
+      <HowOrderingWorks slug={service.slug} />
 
       {relevantRegions.length > 0 ? (
         <section className="border-b border-limestone-line">

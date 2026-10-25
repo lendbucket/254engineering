@@ -10,8 +10,7 @@ import { buildMetadata } from "@/lib/seo";
 import { JsonLd, breadcrumbSchema } from "@/lib/schema";
 import { processSteps, whatTheLetterSays, whyItMatters } from "@/content/process";
 import { services } from "@/content/services";
-import { priceSentence } from "@/config/prices";
-import { coastalLine } from "@/lib/ordering";
+import { PublishedPrice } from "@/components/services/PublishedPrice";
 import { turnaroundCopy } from "@/content/model-copy";
 
 /**
@@ -214,11 +213,10 @@ export default function ProcessPage() {
             <SectionHeading
               eyebrow="What it costs"
               title="The price is published before you call"
-              lede="Fixed, before you pay. If something changes the scope we tell you before we do it, not after."
+              lede="Fixed, and shown with the terms before you pay."
             />
             <dl className="mt-11 divide-y divide-limestone-line border-t border-limestone-line">
               {services.map((service) => {
-                const price = priceSentence(service.slug);
                 return (
                   <div key={service.slug} className="grid gap-2 py-5 sm:grid-cols-12 sm:gap-6">
                     <dt className="text-[0.97rem] leading-[1.5] font-semibold text-slate sm:col-span-6">
@@ -230,14 +228,12 @@ export default function ProcessPage() {
                       </Link>
                     </dt>
                     {/*
-                      A line with no ruled price says so rather than showing a
-                      blank cell or a number somebody guessed. Forensic and
-                      insurance engineering is the one today.
+                      The shared price component (ruling 5, 2026-10-18), which
+                      carries the coastal line and says "Quoted per matter." for a
+                      line with no ruled price, as this cell did by hand.
                     */}
                     <dd className="text-[0.97rem] leading-[1.6] text-slate-muted sm:col-span-6">
-                      {price ?? "Quoted per matter."}
-                      {/* The coastal line wherever a price appears, operator ruling 2026-10-10. */}
-                      {price && coastalLine(service.slug) ? `, ${coastalLine(service.slug)}` : null}
+                      <PublishedPrice slug={service.slug} />
                     </dd>
                   </div>
                 );
@@ -261,7 +257,7 @@ export default function ProcessPage() {
 
       <OfferCta
         headline="Tell us what the letter is for"
-        body="Five minutes on the phone, and you will know whether this is work this firm should take before you pay anything."
+        body="The order form shows the price, the terms and what happens if the engineer declines, all before you pay anything."
       />
     </>
   );
