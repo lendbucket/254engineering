@@ -6,7 +6,7 @@ import { can } from "@/lib/ops-authz";
 import { listFilesPage, FILE_LIST_CAP, getFile, listClients, fileTimeline, fileRegion } from "@/lib/ops-crm";
 import { availableTransitions, STATUS_LABEL, FILE_STATUSES } from "@/lib/ops-files";
 import { TEXAS_COUNTIES, twiaStatus } from "@/lib/ops-counties";
-import { outstandingFor, answeredFor, answersFor } from "@/lib/ops-file-inputs";
+import { outstandingFor, answeredFor, readAnswers } from "@/lib/ops-file-inputs";
 import { FILE_DETAIL_FIELDS } from "@/lib/file-detail-fields";
 import { ContactLogPanel } from "@/components/portal/ContactLog";
 import { FileDetailsForm, ReleaseTechnician } from "./DeskFileClient";
@@ -71,7 +71,10 @@ export default async function FilesPage({
   const timeline = selected ? await fileTimeline(selected.id) : [];
 
   /* The contact, access and scheduling answers, for the details form (files.update_details, 2026-10-20). */
-  const answers = selected && can(actor, "files.update_details") ? await answersFor(selected.id) : {};
+  const answersRead = selected && can(actor, "files.update_details") ? await readAnswers(selected.id) : null;
+  /* A failed read is said, never shown as blank boxes to fill in again (finding F12 of the 2026-10-24 audit). */
+  const answersUnread = answersRead && !answersRead.ok ? answersRead.error : null;
+  const answers = answersRead && answersRead.ok ? answersRead.answers : {};
   const detailValues = Object.fromEntries(FILE_DETAIL_FIELDS.map((f) => [f.id, answers[f.id] ?? ""]));
   /* PL-2, ruling 7 of 2026-10-23: the office records the authority's address and salutation on a permit letter file. */
   const permitLetterFacts =
@@ -527,14 +530,18 @@ export default async function FilesPage({
         {can(actor, "files.update_details") ? (
           <div className="mt-8 print:hidden">
             <p className="portal-label">Contact, access and scheduling</p>
-            <FileDetailsForm fileId={selected.id} values={detailValues} />
+            {answersUnread ? (
+              <p className="mt-2 text-[14px] text-[var(--ink)]">{answersUnread} Reload the page; nothing was changed.</p>
+            ) : (
+              <FileDetailsForm fileId={selected.id} values={detailValues} />
+            )}
           </div>
         ) : null}
 
         {selected.service_slug === "structural-letters" && can(actor, "files.update_details") ? (
           <div className="mt-8 print:hidden">
             <p className="portal-label">The permitting authority, for the letter</p>
-            {permitLetterFacts ? (
+            {permitLetterFacts && !answersUnread ? (
               <AuthorityDetailsForm
                 fileId={selected.id}
                 authorityName={answers.authority_name ?? null}

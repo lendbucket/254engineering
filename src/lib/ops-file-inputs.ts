@@ -20,24 +20,46 @@ import type { Author } from "./ops-crm";
 
 export type FileAnswers = Record<string, string>;
 
-/** Everything recorded against a file, keyed by field id. */
+/**
+ * A FAILED READ OF A FILE'S ANSWERS REFUSES; IT IS NEVER AN EMPTY FILE.
+ * Robert's audit of 2026-10-24, finding F12. This said so in a comment and then
+ * returned {} on the next line, and holdFor read that as "nobody answered yes",
+ * so a job that should wait for the engineer could be dispatched. Every caller
+ * now gets this error instead: holdFor turns it into "could not be checked",
+ * which dispatch refuses on, and a screen or a letter says the read failed
+ * rather than showing blanks or asking a customer again for what they gave.
+ */
+export class AnswersUnreadable extends Error {
+  constructor(fileId: string, what: string) {
+    super(`The answers recorded for this file could not be read (${what}), so nothing is shown in their place.`);
+    this.name = "AnswersUnreadable";
+    void fileId;
+  }
+}
+
+/** For a screen: the answers, or the sentence saying they could not be read. Never an empty record on failure. */
+export async function readAnswers(fileId: string): Promise<{ ok: true; answers: FileAnswers } | { ok: false; error: string }> {
+  try {
+    return { ok: true, answers: await answersFor(fileId) };
+  } catch (err) {
+    if (err instanceof AnswersUnreadable) return { ok: false, error: err.message };
+    throw err;
+  }
+}
+
+/** Everything recorded against a file, keyed by field id. Throws AnswersUnreadable when any read fails. */
 export async function answersFor(fileId: string): Promise<FileAnswers> {
   const db = supabaseAdmin();
-  if (!db) return {};
+  if (!db) throw new AnswersUnreadable(fileId, "the database is not configured");
 
   const { data, error } = await db
     .from("eng_file_inputs")
     .select("field_id, value_text")
     .eq("file_id", fileId);
 
-  /*
-   * An error is not an empty file. Returning {} on a failed read would make a
-   * complete job look like one nobody had answered anything for, and the
-   * screens would start demanding information the customer already gave.
-   */
   if (error) {
     console.error(`[file-inputs] could not read ${fileId}: ${error.message}`);
-    return {};
+    throw new AnswersUnreadable(fileId, error.message);
   }
 
   /*
@@ -49,12 +71,16 @@ export async function answersFor(fileId: string): Promise<FileAnswers> {
    * web order, and the letter could never be drafted. 0016 keeps the two tables
    * apart on purpose; this reads both, with the file's working record winning,
    * because that is where a late answer or a correction lands. A failed read of
-   * the order's answers is not "nothing was answered": it returns what the file
-   * holds and says so in the log, the same as the read above.
+   * the order's answers is not "nothing was answered" either: the customer's
+   * yes to an engineer hold question lives there, so it refuses like the read
+   * above.
    */
   const answers: FileAnswers = {};
   const { data: orders, error: orderError } = await db.from("eng_service_orders").select("id").eq("file_id", fileId);
-  if (orderError) console.error(`[file-inputs] could not read the orders for ${fileId}: ${orderError.message}`);
+  if (orderError) {
+    console.error(`[file-inputs] could not read the orders for ${fileId}: ${orderError.message}`);
+    throw new AnswersUnreadable(fileId, orderError.message);
+  }
   const orderIds = (orders ?? []).map((o) => o.id as string);
   if (orderIds.length) {
     const { data: given, error: givenError } = await db
@@ -62,7 +88,10 @@ export async function answersFor(fileId: string): Promise<FileAnswers> {
       .select("key, value_text")
       .in("order_id", orderIds)
       .eq("kind", "input");
-    if (givenError) console.error(`[file-inputs] could not read the order answers for ${fileId}: ${givenError.message}`);
+    if (givenError) {
+      console.error(`[file-inputs] could not read the order answers for ${fileId}: ${givenError.message}`);
+      throw new AnswersUnreadable(fileId, givenError.message);
+    }
     for (const row of given ?? []) {
       if (typeof row.value_text === "string") answers[row.key as string] = row.value_text;
     }

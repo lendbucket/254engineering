@@ -2203,11 +2203,12 @@ export async function cancelAndRefund(input: {
     };
   }
 
-  const { data: order } = await db
+  const { data: order, error: orderError } = await db
     .from("eng_service_orders")
-    .select("id, reference, status, currency")
+    .select("id, reference, status, currency, batch_id")
     .eq("id", input.orderId)
     .maybeSingle();
+  if (orderError) return { ok: false, error: `The order could not be read, so nothing was changed: ${orderError.message}` };
   if (!order) return { ok: false, error: "That order does not exist." };
 
   if (!canTransitionOrder(order.status as never, "refunded")) {
@@ -2231,6 +2232,22 @@ export async function cancelAndRefund(input: {
   if (!refundable.ok) return { ok: false, error: refundable.error };
   const { paidCents, chargeRef } = refundable;
 
+  /*
+   * A BULK ORDER'S MONEY IS ON ITS SUBMISSION, NOT ON THE ORDER. Robert's audit
+   * of 2026-10-24, finding F1. A batch's card charge is recorded against the
+   * batch (0075), so refundableOn finds no charge on a member order, and this
+   * used to cancel it "with nothing charged": markAbandoned refused the
+   * transition from in_fulfilment, the order stayed live, nothing was refunded,
+   * and staff were told it succeeded. It is refused, saying why. How a member of
+   * a paid submission is refunded is Robert's to rule.
+   */
+  if (order.batch_id && (!chargeRef || paidCents <= 0)) {
+    return {
+      ok: false,
+      error: `${order.reference} was paid as part of a bulk submission, so its money was taken on the submission rather than on this order. It cannot be refunded or canceled from here yet; nothing was changed.`,
+    };
+  }
+
   if (!chargeRef || paidCents <= 0) {
     /*
      * Nothing was ever taken. Cancel it rather than pretending to refund, and
@@ -2239,6 +2256,10 @@ export async function cancelAndRefund(input: {
      */
     const closed = await markAbandoned(input.orderId, `The firm canceled this order. ${reason}`);
     if (!closed.ok) return { ok: false, error: closed.error };
+    /* markAbandoned answers ok with nothing changed when the order may not close; that is not a cancellation (F1). */
+    if (!closed.changed) {
+      return { ok: false, error: `${order.reference} could not be canceled from its current state, so nothing was changed.` };
+    }
     await writeAudit({
       actor: input.actor as never,
       action: "order.cancelled_by_firm",
@@ -2390,14 +2411,15 @@ export async function settleDecision(input: {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The order system is not configured." };
 
-  const { data: order } = await db
+  const { data: order, error: orderError } = await db
     .from("eng_service_orders")
-    .select("id, reference, status, inspection_fee_cents, technician_visited, currency")
+    .select("id, reference, status, inspection_fee_cents, technician_visited, currency, batch_id")
     .eq("id", input.orderId)
     .maybeSingle();
+  if (orderError) return { ok: false, error: `The order could not be read, so nothing was settled: ${orderError.message}` };
   if (!order) return { ok: false, error: "That order does not exist." };
 
-  const { data: charges } = await db
+  const { data: charges, error: chargesError } = await db
     .from("eng_order_payments")
     .select("provider, provider_ref, amount_cents")
     .eq("order_id", input.orderId)
@@ -2406,6 +2428,44 @@ export async function settleDecision(input: {
 
   const paidCents = (charges ?? []).reduce((n, c) => n + Number(c.amount_cents), 0);
   const charge = (charges ?? [])[0];
+
+  /*
+   * A SEAL REFUNDS NOTHING, WHATEVER WAS PAID AND WHEREVER IT WAS RECORDED.
+   * Robert's audit of 2026-10-24. A member of a paid bulk submission, or an
+   * order on account, has no charge on the order itself, so the seal used to
+   * reach refundFor with nothing paid, come back "could not be worked out",
+   * record refund.blocked, and never tell the customer the document was sealed.
+   * The seal's own answer needs no charge; the customer is told.
+   */
+  if (input.outcome === "seal") {
+    const sealed = refundFor({ paidCents: 0, inspectionFeeCents: null, outcome: "seal", technicianVisited: Boolean(order.technician_visited) });
+    await event(input.orderId, "refund.none", true, sealed.explanation);
+    await sendOrderSealed(input.orderId);
+    return {
+      ok: true,
+      refundedCents: 0,
+      retainedCents: !chargesError && charges && charges.length ? paidCents : 0,
+      caseName: sealed.caseName,
+    };
+  }
+
+  /* A failed read of the charges is said as one, never worked out as nothing paid (audit finding F2). */
+  if (chargesError) {
+    await event(input.orderId, "refund.blocked", false, `The charges on this order could not be read, so no refund was worked out: ${chargesError.message}`);
+    return { ok: false, error: `The charges on this order could not be read: ${chargesError.message}` };
+  }
+
+  /*
+   * A BULK MEMBER'S MONEY IS ON ITS SUBMISSION (0075), so there is no charge on
+   * the order to refund against. Said as that, for the person who must act,
+   * rather than as a refund that "could not be worked out" (audit finding F2).
+   * How it is refunded is Robert's to rule.
+   */
+  if (order.batch_id && !(charges && charges.length)) {
+    const why = `${order.reference} was paid as part of a bulk submission, so its money is on the submission rather than on this order, and no refund was issued automatically. A person refunds it.`;
+    await event(input.orderId, "refund.blocked", false, why);
+    return { ok: false, error: why };
+  }
 
   const decision = refundFor({
     paidCents: charges && charges.length ? paidCents : null,
@@ -2429,19 +2489,14 @@ export async function settleDecision(input: {
     await event(input.orderId, "refund.none", true, decision.explanation);
 
     /*
-     * THE SEAL IS TOLD TO THE CUSTOMER HERE, AND ONLY FOR A SEAL.
-     *
-     * This branch is reached by two different decisions: a seal, where there was
-     * never anything to refund, and a decline after a visit where the disclosed
-     * fee happened to equal what was paid. They are the same arithmetic and
-     * opposite news, so the outcome is checked rather than the figure.
-     *
-     * It lives inside settleDecision for the reason that function exists: one
-     * place knows what a decision does to a customer, and a caller that had to
-     * remember to send this is a caller that will one day forget.
+     * A SEAL NEVER REACHES THIS BRANCH NOW: it is settled, and told to the
+     * customer, at the top of this function, before any charge is read (audit
+     * of 2026-10-24). What arrives here is a decline after a visit whose
+     * disclosed fee equalled what was paid: the same arithmetic as a seal and
+     * the opposite news, so it sends nothing about a seal. The seal notice
+     * stays inside settleDecision, for the reason the function exists: one
+     * place knows what a decision does to a customer.
      */
-    if (input.outcome === "seal") await sendOrderSealed(input.orderId);
-
     return {
       ok: true,
       refundedCents: 0,
