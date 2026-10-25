@@ -380,10 +380,24 @@ const answerAll = (entry, pick = () => 0) =>
       !orderable(entry, "open", false),
       orderBlockedReason(entry, "open", false) ?? "IT WAS ORDERABLE, which would sell work the firm cannot dispatch",
     );
+    /*
+     * NOT A WAITLIST: Robert's ruling of 2026-10-23. The page offers a quote
+     * request for a line not open online, so the refusal is pinned word for word
+     * pointing to it, and the start page is read for the button that is that
+     * quote request, to the address lineOffer() gives the line.
+     */
+    const NO_PROTOCOL_REFUSAL =
+      "No protocol for this service line has been approved by the engineer of record yet, so the firm has no agreed way to perform it. It cannot be ordered online yet, so it starts with a request for a quote.";
     rec(
-      "and the refusal says it is a waitlist rather than failing vaguely",
-      /waitlist/i.test(orderBlockedReason(entry, "open", false) ?? ""),
+      "and the refusal points to the quote request the page shows, word for word",
+      orderBlockedReason(entry, "open", false) === NO_PROTOCOL_REFUSAL,
       orderBlockedReason(entry, "open", false) ?? "",
+    );
+    const startPage = readFileSync("src/app/(order)/order/start/[slug]/page.tsx", "utf8");
+    rec(
+      "and in open mode the start page's button beside it is that quote request",
+      /mode === "open"\s*\?\s*`\/contact\?service=\$\{encodeURIComponent\(slug\)\}`/.test(startPage) &&
+        /mode === "open" \? "Request a quote"/.test(startPage),
     );
     /*
      * AND THE SAME LINE IS ORDERABLE WITH ONE, which is the half that would

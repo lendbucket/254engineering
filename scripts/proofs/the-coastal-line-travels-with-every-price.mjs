@@ -37,11 +37,21 @@ check(
   String(coastalLine("residential-light-commercial-design")),
 );
 
-const PRICE_PAGES = ["src/app/(site)/process/page.tsx", "src/app/(site)/structural-engineer/cost/page.tsx"];
-for (const page of PRICE_PAGES) {
-  const src = readFileSync(page, "utf8");
-  check(`${page}: prints each line's price and asks coastalLine beside it`, src.includes("priceSentence(") && src.includes("coastalLine("));
-}
+/*
+ * TWO SHAPES OF ONE RULE, EACH NAMED. The cost page asks priceSentence and
+ * coastalLine itself. /process prints every price through PublishedPrice since
+ * ruling 5 of 2026-10-18 (piece 3a), and this check matched the old text, so it
+ * went red on a page that still carries the coastal line. The component is
+ * asked what it renders for a line with the surcharge, which a check on
+ * wording could never see, and /process is asserted to render it per line.
+ */
+const cost = readFileSync("src/app/(site)/structural-engineer/cost/page.tsx", "utf8");
+check("the cost page prints each line's price and asks coastalLine beside it", cost.includes("priceSentence(") && cost.includes("coastalLine("));
+const processPage = readFileSync("src/app/(site)/process/page.tsx", "utf8");
+check("/process prints each line's price through PublishedPrice", /<PublishedPrice slug=\{service\.slug\} \/>/.test(processPage));
+const { PublishedPrice } = await import("../../src/components/services/PublishedPrice.tsx");
+const rendered = [].concat(PublishedPrice({ slug: "roof-inspections" }).props.children).join("");
+check("and PublishedPrice carries the coastal line beside the figure", rendered.includes("plus $75 in first tier coastal counties"), rendered);
 const ordering = readFileSync("src/lib/ordering.ts", "utf8");
 check(
   "the order offers read the same function, and nothing else types the phrase",

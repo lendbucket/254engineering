@@ -52,7 +52,7 @@ export function workingModel(): { heading: string; body: string }[] {
       heading: "A licensed engineer sits at the center",
       body: peInResponsibleCharge()
         ? "Field work gathers evidence and does not reach conclusions. A Texas licensed Professional Engineer reads the record, forms the opinion, and takes responsible charge of the sealed document. Responsible charge is never asked to bend: if a record does not support an opinion, the answer is that it does not, and the job goes back to the field."
-        : "Field work gathers evidence and does not reach conclusions. A Texas licensed Professional Engineer will read the record, form the opinion, and take responsible charge of the sealed document. Responsible charge will never be asked to bend: if a record does not support an opinion, the answer is that it does not, and the job goes back to the field. No engineer of record is in place yet, which is why the engineering seat is open.",
+        : "Field work gathers evidence and does not reach conclusions. A Texas licensed Professional Engineer will read the record, form the opinion, and take responsible charge of the sealed document. Responsible charge will never be asked to bend: if a record does not support an opinion, the answer is that it does not, and the job goes back to the field.",
     },
     {
       heading: "Technology in the boring places",
@@ -230,7 +230,8 @@ export function careersFaqs(): { q: string; a: string }[] {
         : [
             "Not practising yet, and this is stated plainly because it affects your decision.",
             registrationStatement(),
-            "No engineer is yet in responsible charge and no work is being sealed today, so you would be joining at the point the firm becomes able to practice rather than after it.",
+            /* "No engineer is yet in responsible charge" came out: operator ruling 2026-10-21. */
+            "No work is being sealed today, so you would be joining at the point the firm becomes able to practice rather than after it.",
           ]
             .filter(Boolean)
             .join(" "),

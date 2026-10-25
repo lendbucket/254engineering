@@ -63,8 +63,8 @@ export const services: Service[] = [
     summary:
       "A sealed engineering opinion on the condition of a roof as it stood on the date it was inspected, issued after a documented field inspection to a written protocol.",
     what: [
-      "A roof certification is a written opinion, signed and sealed by a licensed Texas Professional Engineer, on the present condition of a roof covering and the structure beneath it. It follows a field inspection carried out to a written protocol, and it states what was observed, what those observations mean, and the limitations the opinion carries. It does not estimate how many years the roof has left, and the reason is in the protocol the engineer signed: a remaining life figure is a forecast rather than an observation.",
-      "The inspection is non destructive. A technician documents the covering type and how it was installed, flashing and penetrations, drainage and ponding, the condition of the decking where it can be observed, and any evidence of prior repair or storm damage. Photographs are keyed to locations, so the reviewing engineer can see what the technician saw rather than take a conclusion on trust.",
+      "A roof certification is a written opinion, signed and sealed by a licensed Texas Professional Engineer, on the present condition of a roof covering, with the decking and attic beneath it where they can be observed. It follows a field inspection carried out to a written protocol, and it states what was observed, what those observations mean, and the limitations the opinion carries. It does not estimate how many years the roof has left, and the reason is in the protocol the engineer signed: a remaining life figure is a forecast rather than an observation.",
+      "The inspection is non destructive. A technician documents the covering type and how it was installed, flashing and penetrations, drainage and ponding, the condition of the decking where it can be observed, and any evidence of prior repair or storm damage. Photographs carry their location and time from the firm's field application, so the reviewing engineer can see what the technician saw rather than take a conclusion on trust.",
       "The engineer is the author of the opinion. Field work gathers evidence. The licensed engineer in responsible charge reviews that evidence, forms the opinion, and applies the seal. Keeping those two roles distinct is what allows one consistent standard to hold across a state with 254 counties in it.",
     ],
     whoOrders: [
@@ -98,7 +98,7 @@ export const services: Service[] = [
       },
       {
         q: "How long is a roof certification good for?",
-        a: "It states a condition observed on a particular date, so it does not expire on its own. Most lenders and carriers treat one as current for six to twelve months. A significant storm between the inspection and the closing will normally prompt a fresh look regardless of the date on the letter.",
+        a: "It states a condition observed on a particular date, so it does not expire on its own. How long it is treated as current is for the lender or carrier receiving it to decide. A significant storm between the inspection and the closing will normally prompt a fresh look regardless of the date on the letter.",
       },
       {
         q: "Will the letter say how many years the roof has left?",
@@ -110,7 +110,14 @@ export const services: Service[] = [
       },
       {
         q: "Is the roof walked?",
-        a: "Where slope, covering type, and conditions allow it to be walked safely. Where they do not, the inspection is made from ladder level and with aerial imagery, and the letter states the method used. Walking a brittle tile roof to satisfy a convention damages the thing being inspected.",
+        /*
+         * RULING Q7, 2026-10-19: cut to RC-001. The protocol has each plane
+         * photographed from the eave or a ladder (Appendix B) and the letter
+         * state that the inspection was visual and non destructive (section
+         * 11). It has no walking rule and no aerial imagery, and the answer
+         * that stood here described both.
+         */
+        a: "The protocol does not call for it. Each roof plane is photographed from the eave or a ladder, and the letter states that the inspection was visual and non destructive.",
       },
     ],
   },

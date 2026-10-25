@@ -479,14 +479,27 @@ async function run() {
       turnaroundPromise.join(", "),
     );
 
-    const PE_DISCLOSURE = /no engineer of record is yet in responsible charge/i;
-    const missingPeDisclosure = [...pre.entries()]
-      .filter(([route, p]) => !route.endsWith(".txt") && !PE_DISCLOSURE.test(p.text))
+    /*
+     * Robert's ruling 3 of 2026-10-24: exactly "The firm is not yet accepting
+     * engagements." in place of the engineer-of-record sentence the 2026-10-21
+     * ruling removed. Pinned as a literal, not read from notYetAcceptingEngagements(),
+     * so a changed sentence turns this red. The sealing checks above and the
+     * registration checks below still apply, and the old sentence may not return.
+     */
+    const NOT_YET = "The firm is not yet accepting engagements.";
+    const missingNotYet = [...pre.entries()]
+      .filter(([route, p]) => !route.endsWith(".txt") && !p.text.includes(NOT_YET))
       .map(([route]) => route);
     rec(
-      "prelaunch: every page states plainly that no engineer of record is in place",
-      missingPeDisclosure.length === 0,
-      missingPeDisclosure.join(", "),
+      `prelaunch: every page states exactly "${NOT_YET}"`,
+      missingNotYet.length === 0,
+      missingNotYet.join(", "),
+    );
+    const oldPeSentence = routesMatching(pre, /no engineer of record is yet in responsible charge/i);
+    rec(
+      "prelaunch: the removed engineer of record sentence appears on no page",
+      oldPeSentence.length === 0,
+      oldPeSentence.join(", "),
     );
 
     rec(

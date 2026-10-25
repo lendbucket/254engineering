@@ -64,7 +64,7 @@ export default async function PartnerSetPasswordPage({
                   also={
                     <>
                       You can be credited for referrals now. Nothing can be sealed
-                      until an engineer of record is in responsible charge, so what you refer today
+                      until the firm is accepting engagements, so what you refer today
                       may take longer to become payable than it will later.
                     </>
                   }

@@ -125,14 +125,24 @@ const GATED = { prelaunch: true };
    * giving "registration pending" as the reason, which was false. The true
    * reasons are launch mode and nobody in responsible charge, so those are what
    * it must name, and a registration status is what it must not claim.
+   *
+   * AND THE RESPONSIBLE CHARGE CLAUSE CAME OUT on Robert's ruling of 2026-10-21,
+   * so since 2026-10-23 (his ruling on piece 2's checks) the check names the
+   * sentence exactly, and still fails on any claim of sealing or registration
+   * status, so a reworded refusal cannot slip one back in.
    */
+  const SEAL_REFUSAL =
+    "The firm cannot seal work yet. It is not yet accepting engagements. The file can be prepared to this point and no further.";
   rec(
-    "the gate's refusal gives its real reasons, launch mode and responsible charge, rather than saying no",
+    "the gate's refusal is the ruled sentence, word for word",
+    !refusal.ok && refusal.reason === SEAL_REFUSAL,
+    refusal.ok ? "it allowed it" : refusal.reason,
+  );
+  rec(
+    "and it claims no sealing and no registration status",
     !refusal.ok &&
-      /not yet accepting engagements/i.test(refusal.reason) &&
-      /Professional Engineer/i.test(refusal.reason) &&
-      !/registration/i.test(refusal.reason),
-    refusal.ok ? "it allowed it" : refusal.reason.slice(0, 90),
+      !/\b(?:is|are|was|will be|has been) sealed\b|\bwe seal\b|\bseals\b|\bregist(?:ered|ration)\b|\blicen[cs]e/i.test(refusal.reason),
+    refusal.ok ? "it allowed it" : refusal.reason,
   );
 
   // The same move must work once the firm is registered, or the gate is just a wall.

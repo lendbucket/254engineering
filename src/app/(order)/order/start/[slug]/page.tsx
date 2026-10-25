@@ -131,12 +131,24 @@ export default async function OrderStartPage({ params }: { params: Promise<{ slu
               * record and can discuss the job today: sending that visitor to a
               * waitlist understates what the firm can do, which is the same
               * error as the sentence above in the opposite direction.
+              *
+              * AND OPEN IS A QUOTE REQUEST. Robert, 2026-10-23: a line not open
+              * online starts with a request for a quote, as /order offers it, so
+              * the refusal points to it and this button is it, to the same
+              * address lineOffer() gives the line. Trading keeps the contact
+              * button, because its sentence says call or send a message.
               */}
             <Link
-              href={mode === "prelaunch" ? `/waitlist?service=${encodeURIComponent(service.name)}` : "/contact"}
+              href={
+                mode === "prelaunch"
+                  ? `/waitlist?service=${encodeURIComponent(service.name)}`
+                  : mode === "open"
+                    ? `/contact?service=${encodeURIComponent(slug)}`
+                    : "/contact"
+              }
               className="mt-7 inline-flex min-h-[var(--tap-target)] items-center rounded-[2px] bg-[var(--color-slate)] px-6 text-[15px] font-semibold text-white"
             >
-              {mode === "prelaunch" ? "Join the waitlist" : "Contact the firm"}
+              {mode === "prelaunch" ? "Join the waitlist" : mode === "open" ? "Request a quote" : "Contact the firm"}
             </Link>
           </div>
         ) : (

@@ -207,7 +207,7 @@ export default function StructuralEngineerCostPage() {
 
       <OfferCta
         headline="Tell us what the letter is for"
-        body="You get the price and a straight answer on whether this is work the firm should take, before you pay anything."
+        body="You see the price, the terms and what happens if the engineer declines, all before you pay anything."
       />
     </>
   );
