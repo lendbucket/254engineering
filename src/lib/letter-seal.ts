@@ -206,15 +206,46 @@ async function versionRunUnder(
  * America/Chicago, excluding revision-requested evidence; the evidence count
  * counts only accepted evidence. The visit is the earliest capture among the
  * evidence that was not sent back, printed by letterDate in the firm's zone.
+ *
+ * AND THAT CAPTURE'S DEVICE TIME HAS TO BE BELIEVABLE. Robert's guard on L2b,
+ * 2026-10-25: drafting refuses when the visit capture's device time
+ * (captured_at) is later than the server's receipt of it (created_at), or more
+ * than 3 days earlier, and says why, so the office corrects it before the
+ * engineer seals. A phone's clock prints on a sealed letter only when the
+ * server's own record of receiving the photograph agrees it could be true.
  */
-function visitAndCount(evidence: { status?: unknown; captured_at?: unknown }[]): { visitDate: string | null; count: number } {
-  const standing = evidence.filter((e) => e.status !== "revision_requested");
-  const captured = standing
-    .map((e) => e.captured_at as string | null)
-    .filter((t): t is string => Boolean(t))
-    .sort();
+export const VISIT_RECEIPT_WINDOW_MS = 3 * 86_400_000;
+function visitAndCount(
+  evidence: { status?: unknown; captured_at?: unknown; created_at?: unknown }[],
+): { ok: true; visitDate: string | null; count: number } | { ok: false; error: string } {
+  const standing = evidence
+    .filter((e) => e.status !== "revision_requested")
+    .filter((e) => typeof e.captured_at === "string" && e.captured_at)
+    .sort((a, b) => Date.parse(a.captured_at as string) - Date.parse(b.captured_at as string));
+  const visit = standing[0];
+  if (visit) {
+    const device = Date.parse(visit.captured_at as string);
+    const received = typeof visit.created_at === "string" ? Date.parse(visit.created_at) : Number.NaN;
+    const stamp = (ms: number) => new Date(ms).toISOString().replace("T", " ").slice(0, 16) + " UTC";
+    if (!Number.isFinite(device) || !Number.isFinite(received)) {
+      return { ok: false, error: "The capture that sets the visit date has no readable device time or server receipt, so the visit date cannot be stated. The office corrects the evidence before this letter is sealed." };
+    }
+    if (device > received) {
+      return {
+        ok: false,
+        error: `The capture that sets the visit date says the device took it at ${stamp(device)}, later than the server received it at ${stamp(received)}, so the device clock cannot be right. The office corrects the evidence before this letter is sealed.`,
+      };
+    }
+    if (received - device > VISIT_RECEIPT_WINDOW_MS) {
+      return {
+        ok: false,
+        error: `The capture that sets the visit date says the device took it at ${stamp(device)}, more than 3 days before the server received it at ${stamp(received)}, so the visit date cannot be taken from it. The office corrects the evidence before this letter is sealed.`,
+      };
+    }
+  }
   return {
-    visitDate: captured.length ? letterDate(captured[0]) : null,
+    ok: true,
+    visitDate: visit ? letterDate(visit.captured_at as string) : null,
     count: evidence.filter((e) => e.status === "accepted").length,
   };
 }
@@ -259,10 +290,11 @@ export async function letterFactsFor(
 
   const { data: evidence, error: evidenceError } = await db
     .from("eng_evidence_items")
-    .select("captured_at, status")
+    .select("captured_at, created_at, status")
     .eq("file_id", det.file_id);
   if (evidenceError) return { ok: false, error: `The evidence could not be counted: ${evidenceError.message}` };
   const visit = visitAndCount(evidence ?? []);
+  if (!visit.ok) return visit;
 
   const { data: exceptions, error: exceptionError } = await db
     .from("eng_checklist_exceptions")
@@ -328,10 +360,11 @@ async function fileFactsFor(det: DeterminationRow, options: { printsProtocolVers
   const { data: client } = await db.from("eng_clients").select("name").eq("id", file.client_id as string).maybeSingle();
   const { data: evidence, error: evidenceError } = await db
     .from("eng_evidence_items")
-    .select("id, item_key, captured_at, status")
+    .select("id, item_key, captured_at, created_at, status")
     .eq("file_id", det.file_id);
   if (evidenceError) return { ok: false as const, error: `The evidence could not be read: ${evidenceError.message}` };
   const visit = visitAndCount(evidence ?? []);
+  if (!visit.ok) return { ok: false as const, error: visit.error };
   const { data: exceptions, error: exceptionError } = await db
     .from("eng_checklist_exceptions")
     .select("item_key, reason")

@@ -567,7 +567,13 @@ const DEMO_PROTOCOL_SUMMARY =
   "DEMONSTRATION DATA. What a technician captures on a windstorm inspection in the designated area. " +
   "Approved by a demonstration engineer so the dispatch flow can be walked; no Professional Engineer " +
   "has approved a windstorm protocol, and 254-WP-001 is listed as a Draft in Appendix D of 254-RC-001.";
-const DEMO_LICENSE = "DEMONSTRATION-NOT-A-REAL-LICENCE";
+/*
+ * Digits in the probe range no Texas licence can hold (nine digits from 900; a
+ * Texas PE number is six), so it cannot be mistaken for one and 0089's
+ * digits-only seal doors take it. It was "DEMONSTRATION-NOT-A-REAL-LICENCE"
+ * until Robert's instruction of 2026-10-25.
+ */
+const DEMO_LICENSE = "900000004";
 
 const { data: engineerRows, error: engineerLookupErr } = await db
   .from("eng_profiles").select("id").eq("email", "demo.engineer@example.com")

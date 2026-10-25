@@ -51,13 +51,14 @@ const state = {
   exceptions: [{ item_key: LABELLED.key, kind: "not_observed", reason: "Snow on the north slope" }],
   failTemplate: false,
 };
+/* created_at is the server's receipt (0057); each is shortly after its capture unless a case below moves it. */
 const EVIDENCE = [
   /* Sent back: its earlier capture is not the visit, and it is not counted. */
-  { captured_at: "2026-10-18T15:00:00Z", status: "revision_requested" },
-  { captured_at: "2026-10-20T15:00:00Z", status: "accepted" },
+  { captured_at: "2026-10-18T15:00:00Z", created_at: "2026-10-18T15:05:00Z", status: "revision_requested" },
+  { captured_at: "2026-10-20T15:00:00Z", created_at: "2026-10-20T15:05:00Z", status: "accepted" },
   /* 02:00 UTC on the 21st is 21:00 Central on the 20th; submitted, so not counted. */
-  { captured_at: "2026-10-21T02:00:00Z", status: "submitted" },
-  { captured_at: "2026-10-21T16:00:00Z", status: "accepted" },
+  { captured_at: "2026-10-21T02:00:00Z", created_at: "2026-10-21T02:05:00Z", status: "submitted" },
+  { captured_at: "2026-10-21T16:00:00Z", created_at: "2026-10-21T16:05:00Z", status: "accepted" },
 ];
 const json = (b, status = 200) => new Response(JSON.stringify(b), { status, headers: { "content-type": "application/json" } });
 globalThis.fetch = async (input) => {
@@ -103,6 +104,28 @@ state.failTemplate = false;
 state.exceptions = [{ item_key: "an_item_the_declaration_never_named", kind: "not_observed", reason: "proof" }];
 const raw = await letterFactsFor(det, entered);
 check("an item with no label in the signed declaration refuses the draft", raw.ok === false && /has no label/.test(raw.error), JSON.stringify(raw));
+state.exceptions = [{ item_key: LABELLED.key, kind: "not_observed", reason: "Snow on the north slope" }];
+
+/*
+ * Robert's guard on L2b, 2026-10-25: the visit capture's device time must not
+ * be later than the server's receipt of it, nor more than 3 days earlier.
+ */
+const visitRow = EVIDENCE[1];
+const keep = { ...visitRow };
+visitRow.created_at = "2026-10-20T14:59:00Z";
+const ahead = await letterFactsFor(det, entered);
+check("a visit capture whose device time is later than the server received it refuses, saying so", ahead.ok === false && /later than the server received it/.test(ahead.error) && /office corrects/.test(ahead.error), JSON.stringify(ahead));
+visitRow.created_at = "2026-10-23T15:00:01Z";
+const stale = await letterFactsFor(det, entered);
+check("and one taken more than 3 days before the server received it refuses, saying so", stale.ok === false && /more than 3 days before/.test(stale.error), JSON.stringify(stale));
+visitRow.created_at = "2026-10-23T14:59:59Z";
+const edge = await letterFactsFor(det, entered);
+check("and one received just inside 3 days is the visit", edge.ok === true && edge.facts.visit_date === "October 20, 2026", JSON.stringify(edge.ok ? edge.facts.visit_date : edge));
+Object.assign(visitRow, keep);
+EVIDENCE[0].created_at = "2026-10-10T00:00:00Z";
+const sentBack = await letterFactsFor(det, entered);
+check("a sent-back capture with a bad clock does not refuse: it is not the visit", sentBack.ok === true, JSON.stringify(sentBack.ok ? "ok" : sentBack));
+EVIDENCE[0].created_at = "2026-10-18T15:05:00Z";
 
 const seal = readFileSync("src/lib/letter-seal.ts", "utf8");
 check(
