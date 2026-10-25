@@ -682,11 +682,18 @@ export async function decideReview(
    * one able to become a letter, so it is refused, naming what is waiting.
    */
   {
-    const { data: passes } = await db
+    const { data: passes, error: passesError } = await db
       .from("eng_determinations")
       .select("id")
       .eq("file_id", fileId)
       .eq("determination", "pass");
+    /* A failed read is not "no earlier pass": read as one it skipped this guard entirely (audit of 2026-10-24). */
+    if (passesError) {
+      return {
+        ok: false,
+        error: `Whether this file already has a passing determination could not be read (${passesError.message}), so no second decision is recorded.`,
+      };
+    }
     const passIds = (passes ?? []).map((p) => p.id as string);
     if (passIds.length > 0) {
       const { data: acts, error: actsError } = await db

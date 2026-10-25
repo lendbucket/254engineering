@@ -194,13 +194,17 @@ export async function acceptSisterLead(
   if (!db) return { ok: false, status: 503, error: "The intake database is not reachable." };
 
   const minuteAgo = new Date(Date.now() - 60_000).toISOString();
-  const { count } = await db
+  const { count, error: countError } = await db
     .from("eng_leads")
     .select("id", { count: "exact", head: true })
     .eq("site", site)
     .gte("created_at", minuteAgo);
 
-  if ((count ?? 0) >= SISTER_RATE_PER_MINUTE) {
+  /* A count that could not be read is not zero: read as one, the limit opened (audit of 2026-10-24). */
+  if (countError || typeof count !== "number") {
+    return { ok: false, status: 503, error: "The intake could not check its own rate just now. Nothing was saved; send it again." };
+  }
+  if (count >= SISTER_RATE_PER_MINUTE) {
     return {
       ok: false,
       status: 429,

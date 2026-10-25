@@ -200,7 +200,11 @@ jobs:
             sampler=$!
           fi
           set +e
+          # Each board run its own sign in bucket on development (Robert's rulings of
+          # 2026-10-23 and 2026-10-24): the run id is an environment variable of the
+          # shard, which every server the suite starts inherits. No request carries it.
           env -u CI -u GITHUB_ACTIONS AUDIT_SHARD="${{ matrix.shard }}" AUDIT_PREBUILT=1 AUDIT_LOG_DIR="$RUNNER_TEMP/board/server" \
+            BOARD_RUN_ID="${{ github.run_id }}" \
             node scripts/audit.mjs > "$RUNNER_TEMP/board/suite.log" 2>&1
           echo $? > "$RUNNER_TEMP/board/exit"
           if [ "$RUNNER_OS" = "Linux" ]; then
