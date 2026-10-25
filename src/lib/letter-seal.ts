@@ -747,8 +747,15 @@ export async function sealLetter(actor: SignedIn | null, input: SealInput): Prom
     p_signature_image_id: signature.id,
     p_mfa_verified_at: fresh.verifiedAt,
     p_letterhead_sha256: markSha256,
-    /* Only a three-lines letter names its template (0088's sixteen-argument door); every other letter calls 0081's fifteen. */
+    /* Only a three-lines letter names its template (0089's eighteen-argument door); every other letter calls the seventeen. */
     ...(template?.ok ? { p_letter_template_act_id: template.actId } : {}),
+    /*
+     * L2e, Robert's answer of 2026-10-25: the act records the name and licence
+     * number the letter prints, from the same frame the PDF and the digest used
+     * (0089). The door refuses a licence that is not his own.
+     */
+    p_printed_name: frame.sealBlock.name,
+    p_printed_license: frame.sealBlock.licenseNumber,
   });
   if (recorded.error) {
     /* No unrecorded PDF is left in the bucket: an object with no seal act is a seal nothing vouches for. */

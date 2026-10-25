@@ -4,6 +4,16 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
+## THE SITTING FOR 0089, A SEAL ACT RECORDS WHO IT PRINTS, OPEN
+
+`docs/production-sitting-0089-a-seal-act-records-who-it-prints.md`. Written
+2026-10-25 on `migration/0089-a-seal-act-records-who-it-prints`, to Robert's
+answers that day on L2e (the seal act records the printed name and licence
+number) and L2j (a letter is dated by the one moment it was sealed). Applied
+nowhere yet; posted on issue #1. 0081's fifteen- and 0088's sixteen-argument
+doors are not replaced, so the deployed code seals throughout; retiring them,
+after the deploy, is its own later migration.
+
 ## THE SITTING FOR 0088, A LETTER SEALS ONLY FROM A TEMPLATE HE SIGNED, OPEN
 
 `docs/production-sitting-0088-a-letter-seals-only-from-a-template-he-signed.md`.

@@ -3285,6 +3285,27 @@ export const APPLIED = [
       "docs/production-sitting-0088-a-letter-seals-only-from-a-template-he-signed.md. A migration on main is " +
       "never pending.",
   },
+  {
+    file: "0089_a_seal_act_records_who_it_prints.sql", appliedBy: "apply_migration",
+    fingerprint: "05bb694a74ad7aeb15a3c37c8474d2da",
+    behaviour: "83c9992d0ebc4ef3a1ee2f82a262af28",
+    production: null,
+    proves: { table: "eng_seal_acts", column: "printed_license" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0089 on 2026-10-25, with 0088 reproducing its " +
+      "recorded pair first: shape 1331 to 1333 columns (eng_seal_acts' printed_name and printed_license), " +
+      "behaviour 1248 to 1251 facts (eng_seal_acts_printed_ck and the seventeen- and eighteen-argument " +
+      "eng_record_letter_seal). No drop statement. eng_seal_act_guard is 0088's with the two columns added; " +
+      "0081's fifteen- and 0088's sixteen-argument doors are not replaced, so the code deployed before this " +
+      "branch merges seals throughout. No cutover gap.",
+    because:
+      "WRITTEN 2026-10-25 ON migration/0089-a-seal-act-records-who-it-prints, AND APPLIED NOWHERE. Robert's " +
+      "answers of 2026-10-25 on his audit's letter claims: L2e, the seal act records the printed name and licence " +
+      "number (records only, never a public page), and L2j, the printed date is the sealing moment in " +
+      "America/Chicago, so the document's sealed_at is the act's mfa_verified_at rather than a later now(). The " +
+      "chat applies it with apply_migration, development first, then production. The branch merges only after " +
+      "the production apply is read back, and a migration on main is never pending.",
+  },
 ];
 
 /*
