@@ -1029,8 +1029,20 @@ export async function convertLead(
    *
    * Silent for every model except flat_per_qualified_lead, and idempotent by a
    * unique index on the lead, so converting twice cannot pay twice.
+   *
+   * A failure is written on the new file's timeline, as a delivery's is,
+   * rather than discarded (audit finding F26, 2026-10-24): the conversion
+   * stands, and somebody meets the commission that was not written down.
    */
-  await accrueForQualifiedLead(leadId);
+  const leadAccrual = await accrueForQualifiedLead(leadId);
+  if (!leadAccrual.ok) {
+    await db.from("eng_file_events").insert({
+      file_id: file.id,
+      actor_id: null,
+      kind: "note",
+      body: `The partner commission on this converted lead could not be recorded: ${leadAccrual.error}`,
+    });
+  }
 
   await writeAudit({
     actor,
