@@ -175,7 +175,8 @@ function envelope(eventId, type, object) {
 }
 const completed = (eventId, { order = null, batch = null, statement = null, intent, amount }) =>
   envelope(eventId, "checkout.session.completed", {
-    id: `cs_${eventId}`, object: "checkout.session", payment_intent: intent, amount_total: amount,
+    /* payment_status as Stripe sends it on a paid card session; readEvent records only a paid one (audit finding F11). */
+    id: `cs_${eventId}`, object: "checkout.session", payment_intent: intent, amount_total: amount, payment_status: "paid",
     metadata: { ...(order ? { order_id: order } : {}), ...(batch ? { batch_id: batch } : {}), ...(statement ? { statement_id: statement } : {}) },
   });
 const expired = (eventId, { order = null, batch = null }) =>
