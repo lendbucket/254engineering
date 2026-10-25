@@ -11,7 +11,7 @@ import { orderForFile, settleDecision } from "./ops-payments";
 import { writeAudit } from "./ops-audit";
 import { DB_NOW } from "./db-now";
 import { raise } from "./ops-notify";
-import { isPrelaunch, registrationLine, firmName, activeFirmRegistration } from "./launch";
+import { isPrelaunch, registrationLine, firmName, activeFirmRegistration, licenceIsCurrentToday } from "./launch";
 import { verifiedEngineers } from "@/config/credentials";
 import { business } from "@/config/business";
 import { protocolByDocument } from "@/content/protocols";
@@ -103,6 +103,69 @@ async function determination(id: string): Promise<DeterminationRow | null> {
 export const SEALABLE_PROTOCOLS = ["254-RC-001", "254-FC-001", "254-PL-001"] as const;
 
 /**
+ * THE VERSION A LETTER PRINTS IS THE ONE THE FILE RAN UNDER. Robert's answer
+ * on L2a, 2026-10-25: printed from the file's own protocol_template_id, never
+ * the code's current declaration. A file that names no template, names
+ * another protocol, or ran under a version other than the transcription this
+ * platform carries is refused: its checklist labels would be another
+ * version's words, and the letter would state items the job was not run to.
+ */
+async function versionRunUnder(
+  db: NonNullable<ReturnType<typeof supabaseAdmin>>,
+  templateId: string | null,
+  document: string,
+  carried: string,
+): Promise<{ ok: true; version: string } | { ok: false; error: string }> {
+  if (!templateId) return { ok: false, error: "This file records no protocol it was run under, so the letter cannot state one. Nothing was drafted." };
+  const { data, error } = await db
+    .from("eng_protocol_templates")
+    .select("document_number, version_label")
+    .eq("id", templateId)
+    .maybeSingle();
+  if (error) return { ok: false, error: `The protocol this file ran under could not be read: ${error.message}. Nothing was drafted.` };
+  if (!data) return { ok: false, error: "The protocol this file names does not exist, so the letter cannot state one. Nothing was drafted." };
+  if (data.document_number !== document) {
+    return { ok: false, error: `This file ran under ${data.document_number ?? "an unnumbered protocol"}, not ${document}, so this letter is not drafted.` };
+  }
+  const version = (data.version_label as string | null) ?? null;
+  if (!version) return { ok: false, error: `The protocol this file ran under records no version, so the letter cannot state one. Nothing was drafted.` };
+  if (version !== carried) {
+    return {
+      ok: false,
+      error: `This file ran under ${document} version ${version}, and this platform carries version ${carried}, so the letter would state another version's items. Nothing was drafted.`,
+    };
+  }
+  return { ok: true, version };
+}
+
+/**
+ * THE VISIT AND THE COUNT, FROM THE EVIDENCE THAT STANDS. Robert's answer on
+ * L2b, 2026-10-25: the visit date is the technician's recorded visit, in
+ * America/Chicago, excluding revision-requested evidence; the evidence count
+ * counts only accepted evidence. The visit is the earliest capture among the
+ * evidence that was not sent back, printed by letterDate in the firm's zone.
+ */
+function visitAndCount(evidence: { status?: unknown; captured_at?: unknown }[]): { visitDate: string | null; count: number } {
+  const standing = evidence.filter((e) => e.status !== "revision_requested");
+  const captured = standing
+    .map((e) => e.captured_at as string | null)
+    .filter((t): t is string => Boolean(t))
+    .sort();
+  return {
+    visitDate: captured.length ? letterDate(captured[0]) : null,
+    count: evidence.filter((e) => e.status === "accepted").length,
+  };
+}
+
+/** A checklist key with no label in the signed declaration refuses the draft (L2a): a raw key is not his words. */
+function unlabelled(keys: string[], checklist: readonly { key: string; label: string }[]): string | null {
+  const missing = [...new Set(keys.filter((k) => !checklist.some((i) => i.key === k && i.label)))];
+  return missing.length
+    ? `The checklist item${missing.length === 1 ? "" : "s"} ${missing.join(", ")} ha${missing.length === 1 ? "s" : "ve"} no label in the signed declaration, so the letter is not drafted.`
+    : null;
+}
+
+/**
  * Every fact the letter reads from the file, by the sources template 1 section
  * 2.2 names. The two recipient facts the file does not hold are passed in.
  */
@@ -124,20 +187,20 @@ export async function letterFactsFor(
 
   const { data: file, error: fileError } = await db
     .from("eng_files")
-    .select("id, file_number, property_address, county, client_id")
+    .select("id, file_number, property_address, county, client_id, protocol_template_id")
     .eq("id", det.file_id)
     .maybeSingle();
   if (fileError || !file) return { ok: false, error: "The file this determination belongs to could not be read." };
 
+  const ranUnder = await versionRunUnder(db, (file.protocol_template_id as string | null) ?? null, det.protocol_document, protocol.declaration.version);
+  if (!ranUnder.ok) return ranUnder;
+
   const { data: evidence, error: evidenceError } = await db
     .from("eng_evidence_items")
-    .select("captured_at")
+    .select("captured_at, status")
     .eq("file_id", det.file_id);
   if (evidenceError) return { ok: false, error: `The evidence could not be counted: ${evidenceError.message}` };
-  const captured = (evidence ?? [])
-    .map((e) => e.captured_at as string | null)
-    .filter((t): t is string => Boolean(t))
-    .sort();
+  const visit = visitAndCount(evidence ?? []);
 
   const { data: exceptions, error: exceptionError } = await db
     .from("eng_checklist_exceptions")
@@ -145,7 +208,9 @@ export async function letterFactsFor(
     .eq("file_id", det.file_id)
     .eq("kind", "not_observed");
   if (exceptionError) return { ok: false, error: `The items not observed could not be read: ${exceptionError.message}` };
-  const labelFor = (key: string) => protocol.declaration.checklist.find((i) => i.key === key)?.label ?? key;
+  const missingLabel = unlabelled((exceptions ?? []).map((x) => x.item_key as string), protocol.declaration.checklist);
+  if (missingLabel) return { ok: false, error: missingLabel };
+  const labelFor = (key: string) => protocol.declaration.checklist.find((i) => i.key === key)!.label;
   const notObserved = (exceptions ?? []).map((x) => `${labelFor(x.item_key as string)} (${(x.reason as string).trim()})`);
 
   const answers = await answersFor(det.file_id);
@@ -159,10 +224,11 @@ export async function letterFactsFor(
     property_address: file.property_address as string,
     county: file.county as string,
     file_number: file.file_number as string,
-    visit_date: captured.length ? letterDate(captured[0]) : null,
+    visit_date: visit.visitDate,
     protocol_number: protocol.declaration.documentNumber,
-    protocol_version: protocol.declaration.version,
-    evidence_count: String((evidence ?? []).length),
+    /* The version the file ran under (L2a), which versionRunUnder has matched to the transcription. */
+    protocol_version: ranUnder.version,
+    evidence_count: String(visit.count),
     /*
      * "none" when every item was observed. His line reads "Items the protocol
      * required that were not observed, and the reason recorded for each:" and
@@ -179,24 +245,31 @@ export async function letterFactsFor(
  * client's name (the requestor), the captures and the items not observed,
  * labelled from the structured declaration he signed.
  */
-async function fileFactsFor(det: DeterminationRow) {
+async function fileFactsFor(det: DeterminationRow, options: { printsProtocolVersion: boolean }) {
   const db = supabaseAdmin();
   if (!db) return { ok: false as const, error: "The database is not configured." };
   const declaration = STRUCTURED_DECLARATIONS.find((d) => d.documentNumber === det.protocol_document);
   if (!declaration) return { ok: false as const, error: `${det.protocol_document} has no signed declaration in this platform.` };
   const { data: file, error: fileError } = await db
     .from("eng_files")
-    .select("id, file_number, property_address, county, client_id")
+    .select("id, file_number, property_address, county, client_id, protocol_template_id")
     .eq("id", det.file_id)
     .maybeSingle();
   if (fileError || !file) return { ok: false as const, error: "The file this determination belongs to could not be read." };
+  /* L2a: only a letter that prints the protocol's version needs to know which one the file ran under. */
+  let protocolVersion: string | null = null;
+  if (options.printsProtocolVersion) {
+    const ranUnder = await versionRunUnder(db, (file.protocol_template_id as string | null) ?? null, det.protocol_document, declaration.version);
+    if (!ranUnder.ok) return ranUnder;
+    protocolVersion = ranUnder.version;
+  }
   const { data: client } = await db.from("eng_clients").select("name").eq("id", file.client_id as string).maybeSingle();
   const { data: evidence, error: evidenceError } = await db
     .from("eng_evidence_items")
-    .select("id, item_key, captured_at")
+    .select("id, item_key, captured_at, status")
     .eq("file_id", det.file_id);
   if (evidenceError) return { ok: false as const, error: `The evidence could not be read: ${evidenceError.message}` };
-  const captured = (evidence ?? []).map((e) => e.captured_at as string | null).filter((t): t is string => Boolean(t)).sort();
+  const visit = visitAndCount(evidence ?? []);
   const { data: exceptions, error: exceptionError } = await db
     .from("eng_checklist_exceptions")
     .select("item_key, reason")
@@ -204,16 +277,25 @@ async function fileFactsFor(det: DeterminationRow) {
     .eq("kind", "not_observed");
   if (exceptionError) return { ok: false as const, error: `The items not observed could not be read: ${exceptionError.message}` };
   const checklist = declaration.checklist as readonly { key: string; label: string }[];
-  const labelFor = (key: string) => checklist.find((i) => i.key === key)?.label ?? key;
+  /* Every not-observed item the letter prints has his label, or nothing is drafted (L2a). */
+  const missingLabel = unlabelled((exceptions ?? []).map((x) => x.item_key as string), checklist);
+  if (missingLabel) return { ok: false as const, error: missingLabel };
+  /* Null for a key with no label; a caller printing one checks with unlabelled first. */
+  const labelFor = (key: string) => checklist.find((i) => i.key === key)?.label ?? null;
+  const unlabelledOf = (keys: string[]) => unlabelled(keys, checklist);
   return {
     ok: true as const,
     declaration,
     file,
+    protocolVersion,
     requestor: (client?.name as string | undefined) ?? null,
     evidence: evidence ?? [],
-    visitDate: captured.length ? letterDate(captured[0]) : null,
+    /* Accepted evidence only (L2b). */
+    evidenceCount: visit.count,
+    visitDate: visit.visitDate,
     notObserved: (exceptions ?? []).map((x) => `${labelFor(x.item_key as string)} (${(x.reason as string).trim()})`),
     labelFor,
+    unlabelledOf,
   };
 }
 
@@ -222,7 +304,8 @@ async function foundationDraft(
   det: DeterminationRow,
   entered: { recipientAddress: string; recipientSalutation: string; observedCondition: string },
 ): Promise<{ ok: true; lines: DraftLine[]; title: string } | { ok: false; error: string }> {
-  const base = await fileFactsFor(det);
+  /* Template 4 prints the protocol's version, so it is the one the file ran under (L2a). */
+  const base = await fileFactsFor(det, { printsProtocolVersion: true });
   if (!base.ok) return base;
   const answers = await answersFor(det.file_id);
   const recorded = await recordedFactsFor(det.file_id);
@@ -245,8 +328,8 @@ async function foundationDraft(
       foundation_type: confirmed,
       method: confirmed ? methodFor(confirmed) : null,
       protocol_number: base.declaration.documentNumber,
-      protocol_version: base.declaration.version,
-      evidence_count: String(base.evidence.length),
+      protocol_version: base.protocolVersion,
+      evidence_count: String(base.evidenceCount),
       items_not_observed: base.notObserved.length ? base.notObserved.join("; ") : "none",
     },
     entered.observedCondition,
@@ -257,7 +340,8 @@ async function foundationDraft(
 
 /** Template 7, rulings of 2026-10-22 and ruling 7: every fact recorded, the basis from his triage only. */
 async function permitDraft(det: DeterminationRow): Promise<{ ok: true; lines: DraftLine[]; title: string } | { ok: false; error: string }> {
-  const base = await fileFactsFor(det);
+  /* Template 7 prints no protocol version; a desk job may never have been dispatched under a template. */
+  const base = await fileFactsFor(det, { printsProtocolVersion: false });
   if (!base.ok) return base;
   const answers = await answersFor(det.file_id);
   const recorded = await recordedFactsFor(det.file_id);
@@ -266,9 +350,11 @@ async function permitDraft(det: DeterminationRow): Promise<{ ok: true; lines: Dr
   if (!triage.ok) return { ok: false, error: triage.error };
   /* PL-5: a desk job's documents schedule is the evidence he marked relied on in this determination. */
   const relied = new Set(det.relied_on_evidence_ids ?? []);
-  const documents = base.evidence
-    .filter((e) => relied.has(e.id as string))
-    .map((e) => `${base.labelFor(e.item_key as string)}${e.captured_at ? `, ${letterDate(e.captured_at as string)}` : ""}`);
+  const reliedOn = base.evidence.filter((e) => relied.has(e.id as string));
+  /* Each document the schedule names has his label, or nothing is drafted (L2a). */
+  const missingLabel = base.unlabelledOf(reliedOn.map((e) => e.item_key as string));
+  if (missingLabel) return { ok: false, error: missingLabel };
+  const documents = reliedOn.map((e) => `${base.labelFor(e.item_key as string)}${e.captured_at ? `, ${letterDate(e.captured_at as string)}` : ""}`);
   const draft = draftPermitLetter({
     determination: det.determination,
     option: det.letter_option,
@@ -289,7 +375,8 @@ async function permitDraft(det: DeterminationRow): Promise<{ ok: true; lines: Dr
       requestor_name: base.requestor,
       authority_requirement_verbatim: answers.question_text ?? null,
       visit_date: base.visitDate,
-      evidence_count: String(base.evidence.length),
+      /* Accepted evidence only (L2b). */
+      evidence_count: String(base.evidenceCount),
     },
   });
   if (!draft.ok) return { ok: false, error: draft.why };
@@ -362,6 +449,21 @@ export async function sealLetter(actor: SignedIn | null, input: SealInput): Prom
     return {
       ok: false,
       error: "Your license number on this account does not match the engineer on the firm's register, so nothing is sealed under it.",
+    };
+  }
+  /*
+   * AND THE LICENCE IS CURRENT TODAY. Robert's answer on L2e, 2026-10-25:
+   * sealing checks the expiry, not only that the number is on the register. An
+   * unrecorded expiry is not a current licence (licenceIsCurrent). Read
+   * through licenceIsCurrentToday, the one declared reader of "today" for a
+   * licence, which judges it on the firm's calendar (finding F6).
+   */
+  if (!licenceIsCurrentToday(engineer.expires)) {
+    return {
+      ok: false,
+      error: engineer.expires
+        ? `The license on the firm's register expired on ${engineer.expires}, so nothing is sealed under it.`
+        : "The license on the firm's register has no expiry recorded, and an unrecorded expiry is not a current license, so nothing is sealed under it.",
     };
   }
   const registration = activeFirmRegistration();
