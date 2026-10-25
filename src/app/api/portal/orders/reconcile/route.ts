@@ -58,7 +58,9 @@ async function handleGET() {
   const g = await guard();
   if (g.error) return g.error;
 
-  const report = await reconcileAll({ apply: false });
+  const report = await reconcileAll({ apply: false }).catch((err: unknown) => (err instanceof Error ? err : new Error(String(err))));
+  /* A sweep that could not read its orders says so, never "nothing to reconcile" (audit of 2026-10-24). */
+  if (report instanceof Error) return NextResponse.json({ ok: false, error: report.message }, { status: 503 });
   return NextResponse.json({ ok: true, ...report });
 }
 
@@ -120,7 +122,8 @@ async function handlePOST(request: NextRequest) {
     return NextResponse.json({ ok: true, queued: true, duplicate: queued.duplicate });
   }
 
-  const report = await reconcileAll({ apply: false, references });
+  const report = await reconcileAll({ apply: false, references }).catch((err: unknown) => (err instanceof Error ? err : new Error(String(err))));
+  if (report instanceof Error) return NextResponse.json({ ok: false, error: report.message }, { status: 503 });
 
   /*
    * Audited whether or not anything changed, because "an admin asked the
