@@ -73,7 +73,14 @@ export async function holdFor(fileId: string): Promise<HoldState> {
   if (error || !file) return { held: null, error: error?.message ?? "That file does not exist." };
   if (!protocolForLine(file.service_slug as string)) return { held: false, reason: "no protocol" };
 
-  const questions = holdQuestions(file.service_slug as string, await answersFor(fileId));
+  /* A failed answers read refuses (finding F12), and here that is "could not be checked", never "no yes". */
+  let answers: Awaited<ReturnType<typeof answersFor>>;
+  try {
+    answers = await answersFor(fileId);
+  } catch (err) {
+    return { held: null, error: err instanceof Error ? err.message : "The answers could not be read." };
+  }
+  const questions = holdQuestions(file.service_slug as string, answers);
   if (questions.length === 0) return { held: false, reason: "no yes" };
 
   const { data: decided, error: decidedError } = await db

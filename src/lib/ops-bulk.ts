@@ -113,17 +113,38 @@ export async function placeBatch(input: {
    * Idempotency first, exactly as placeOrder does it. A retry after a timeout
    * must find the batch that exists rather than creating ten more orders.
    */
-  const { data: existing } = await db
+  const { data: existing, error: existingError } = await db
     .from("eng_order_batches")
-    .select("id, reference, total_cents, status")
+    .select("id, reference, total_cents, status, account_id")
     .eq("client_request_id", input.clientRequestId)
     .maybeSingle();
+  if (existingError) {
+    return { ok: false, error: `Whether this submission was already received could not be read, so nothing was placed: ${existingError.message}` };
+  }
 
   if (existing) {
-    const { data: orders } = await db
+    /*
+     * THE KEY IS MATCHED ACROSS EVERY ACCOUNT, SO THE ANSWER IS ONLY EVER THIS
+     * ACCOUNT'S OWN BATCH. Robert's audit of 2026-10-24, finding F5. The unique
+     * index on client_request_id is global (0009), and a second account or API
+     * client sending a key another account had used got that account's batch
+     * back, references, shares and total, and the routes then opened checkout
+     * on it with the first account's addresses on the Stripe page. Refused
+     * here, naming nothing about the other batch.
+     */
+    if (existing.account_id !== input.accountId) {
+      return {
+        ok: false,
+        error: "That submission key has already been used. Send this submission with a new key; nothing was placed.",
+      };
+    }
+    const { data: orders, error: ordersError } = await db
       .from("eng_service_orders")
-      .select("id, reference, batch_share_cents")
+      .select("id, reference, batch_share_cents, billing_mode")
       .eq("batch_id", existing.id);
+    if (ordersError) {
+      return { ok: false, error: `This submission was already received, and its orders could not be read just now: ${ordersError.message}` };
+    }
     return {
       ok: true,
       batchId: existing.id as string,
@@ -136,7 +157,8 @@ export async function placeBatch(input: {
       })),
       rejected: [],
       totalCents: existing.total_cents === null ? null : Number(existing.total_cents),
-      billingMode: "card",
+      /* The batch's own mode, read off its orders, not assumed to be card. */
+      billingMode: (orders ?? []).some((o) => o.billing_mode === "invoice") ? "invoice" : "card",
       duplicate: true,
     };
   }
@@ -273,7 +295,14 @@ export async function placeBatch(input: {
       continue;
     }
 
-    await db
+    /*
+     * THE LINK IS CHECKED (audit finding F4, 2026-10-24). Its result was
+     * discarded, so an order whose link failed was still counted as accepted
+     * and charged in the batch, carrying no batch, no account, no share and the
+     * default billing mode. A failed link is a failure for this property, the
+     * same as a refused placeOrder.
+     */
+    const { data: linked, error: linkError } = await db
       .from("eng_service_orders")
       .update({
         batch_id: batch.id,
@@ -281,7 +310,15 @@ export async function placeBatch(input: {
         batch_share_cents: item.priceCents,
         billing_mode: billingMode,
       })
-      .eq("id", result.orderId);
+      .eq("id", result.orderId)
+      .select("id");
+    if (linkError || !linked || linked.length !== 1) {
+      failures.push({
+        ref: item.ref,
+        reason: `The order was created and could not be joined to this submission: ${linkError?.message ?? "no row was updated"}`,
+      });
+      continue;
+    }
 
     await event(
       result.orderId,

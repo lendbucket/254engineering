@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
-import { ordersNeedingAttention } from "@/lib/ops-reconcile";
+import { ordersNeedingAttentionRead } from "@/lib/ops-reconcile";
 import { CHECKOUT_SESSION_HOURS, toneFor } from "@/lib/order-attention";
 import { money } from "@/lib/ops-money";
 import { Chip, EmptyState, PageHead, Panel } from "@/components/portal/surfaces";
@@ -44,7 +44,9 @@ export default async function OrdersPage() {
   if (!actor) redirect("/portal/login");
   if (!can(actor, "payments.reconcile")) redirect("/portal");
 
-  const orders = await ordersNeedingAttention();
+  /* The result-typed read, so a failure is said rather than shown as "Nothing is stuck" (audit of 2026-10-24). */
+  const ordersRead = await ordersNeedingAttentionRead();
+  const orders = ordersRead ?? [];
   const needsAction = orders.filter((o) => o.attention.level === "act");
   const watching = orders.filter((o) => o.attention.level === "watch");
   /* Paid, and waiting for a person to choose its account (ruling 2026-10-13). */
@@ -109,7 +111,16 @@ export default async function OrdersPage() {
         </div>
       ) : null}
 
-      {orders.length === 0 ? (
+      {ordersRead === null ? (
+        <div className="mb-4">
+          <Panel
+            title="Orders waiting on payment"
+            description="The orders waiting on payment could not be read, so this screen cannot say whether anything is stuck. This is not a zero."
+          >
+            <p className="text-[13.5px] text-[var(--secondary)]">Try again in a minute. If it persists, tell an administrator.</p>
+          </Panel>
+        </div>
+      ) : orders.length === 0 ? (
         <EmptyState
           title="Nothing is stuck"
           body={`Every order is either moving or was paid for. An order appears here once it has been waiting on payment for more than ${CHECKOUT_SESSION_HOURS} hours, which is longer than a checkout session lives.`}

@@ -13,6 +13,10 @@ import { BaseForm, LedgerActions } from "./TechsClient";
 import { VerificationQueue } from "./VerificationQueue";
 import { awaitingVerification } from "@/lib/ops-credential-submissions";
 import { calendarDateLabel, firmDateLabel } from "@/lib/firm-calendar";
+import { ListControls } from "@/components/portal/ListControls";
+import { LIST_NOT_LOADED } from "@/lib/outcome-copy";
+import { RetryButton } from "@/components/portal/Unreachable";
+import { techListQuery, techListRows } from "@/lib/tech-list";
 
 export const dynamic = "force-dynamic";
 
@@ -43,11 +47,16 @@ const sumKnown = (rows: { amount_cents: number | null }[]): Cents =>
     ? null
     : rows.reduce((s, r) => s + (r.amount_cents as number), 0);
 
-export default async function TechsPage() {
+export default async function TechsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const actor = await currentActor();
   if (!can(actor, "profiles.list")) notFound();
+  const params = await searchParams;
 
-  const roster = await techRoster(actor);
+  const rosterRead = await techRoster(actor);
+  /* Coverage counts every active technician, whatever the list below is filtered to. */
+  const roster = rosterRead.ok ? rosterRead.rows : [];
+  const query = techListQuery(params);
+  const shown = techListRows(roster, query);
   const ledger = await payLedger(actor);
   const serviceName = (slug: string) => services.find((s) => s.slug === slug)?.name ?? slug;
 
@@ -114,16 +123,52 @@ export default async function TechsPage() {
         </Panel>
       ) : null}
 
+      <ListControls
+        action="/portal/techs"
+        search={params.q ?? ""}
+        searchLabel="Search name, email, phone, city or county"
+        filters={[
+          {
+            name: "status",
+            label: "Status",
+            value: query.status,
+            options: [
+              { value: "all", label: "Everyone" },
+              { value: "active", label: "Active" },
+              { value: "inactive", label: "Not active" },
+            ],
+          },
+        ]}
+        sorts={[{ value: "name", label: "Name" }, { value: "open", label: "Open jobs" }, { value: "owed", label: "Owed" }]}
+        sort={query.sort}
+        direction={query.ascending ? "asc" : "desc"}
+      />
+      {rosterRead.ok && rosterRead.failed.length ? (
+        <Panel className="mb-6" title="Part of the roster could not be read" description="What is listed below is real; what failed is missing from it, not zero.">
+          <ul className="text-[14px] leading-[1.55] text-[var(--ink)]">{rosterRead.failed.map((f) => <li key={f}>{f}</li>)}</ul>
+        </Panel>
+      ) : null}
+
       <div className="grid gap-6 lg:grid-cols-[1fr_minmax(320px,420px)]">
         <div>
-          {roster.length === 0 ? (
+          {!rosterRead.ok ? (
+            <div role="alert" data-list-not-loaded className="py-6">
+              <p className="text-[15px] font-semibold text-[var(--ink)]">{LIST_NOT_LOADED}</p>
+              <p className="mt-1 text-[14px] text-[var(--secondary)]">The roster could not be read, so this is not an empty bench.</p>
+              <div className="mt-4 flex">
+                <RetryButton />
+              </div>
+            </div>
+          ) : roster.length === 0 ? (
             <EmptyState
               title="No technicians yet"
               body="Add a field technician from the people screen. They appear here once the account exists, with their coverage counties and certifications."
             />
+          ) : shown.length === 0 ? (
+            <EmptyState title="Nobody matches that search" body="Clear the search or the filter to see the whole roster." />
           ) : (
             <ul className="flex flex-col gap-3">
-              {roster.map((tech) => {
+              {shown.map((tech) => {
                 const certified = tech.certifications.filter((c) => c.status === "certified");
                 return (
                   <li
@@ -138,8 +183,15 @@ export default async function TechsPage() {
                             inline link's bounding box has a gap between its line
                             fragments, and a press at its centre lands on the
                             paragraph instead, which native-audit caught.
+
+                            AND AT LEAST THE HOUSE TAP HEIGHT, 44px. The list controls
+                            this roster gained (2026-10-24) sit directly above the first
+                            row, so a 21px name no longer had the clear space round it
+                            that WCAG 2.5.8 lets an undersized target pass on, and
+                            mobile-audit refused it at 320px on board 40156724917.
+                            inline-flex is still one box, so the wrap rule above holds.
                           */}
-                          <Link href={`/portal/techs/${tech.id}`} className="inline-block hover:underline active:opacity-70">
+                          <Link href={`/portal/techs/${tech.id}`} className="inline-flex min-h-[44px] items-center hover:underline active:opacity-70">
                             {tech.display_name}
                           </Link>
                         </p>
@@ -186,7 +238,9 @@ export default async function TechsPage() {
                           Workload
                         </dt>
                         <dd className="mt-1 text-[14px] text-[var(--secondary)]">
-                          {tech.openJobs} open, {tech.completedJobs} finished
+                          {tech.openJobs === null || tech.completedJobs === null
+                            ? "Could not be read"
+                            : `${tech.openJobs} open, ${tech.completedJobs} finished`}
                         </dd>
                       </div>
 
@@ -195,7 +249,9 @@ export default async function TechsPage() {
                           Owed
                         </dt>
                         <dd className="mt-1 text-[14px] text-[var(--secondary)]">
-                          {money(tech.pendingCents)} outstanding, {money(tech.paidCents)} paid to date
+                          {rosterRead.ok && rosterRead.failed.some((f) => f.startsWith("Pay could not be read"))
+                            ? "Could not be read, so not shown; it is not zero"
+                            : `${money(tech.pendingCents)} outstanding, ${money(tech.paidCents)} paid to date`}
                         </dd>
                       </div>
                     </dl>

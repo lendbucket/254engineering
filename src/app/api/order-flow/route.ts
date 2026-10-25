@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { placeOrder, requestQuote } from "@/lib/ops-intake";
+import { duplicateStillSellable, placeOrder, requestQuote } from "@/lib/ops-intake";
 import { startCheckout } from "@/lib/ops-payments";
 import { signOrderUpload } from "@/lib/order-uploads";
 import { SITE_KEY } from "@/lib/supabase";
@@ -171,6 +171,17 @@ async function handlePOST(request: NextRequest) {
   });
 
   if (!result.ok) return bad(result.error, 422);
+
+  /*
+   * A RETRY IS ASKED THE MONEY DOOR AGAIN BEFORE CHECKOUT OPENS (audit finding
+   * F10, 2026-10-24). placeOrder found this order by its draft id before its
+   * own gate ran, so the order's line is asked here, from the row: a line
+   * closed since the first attempt opens no checkout.
+   */
+  if (result.duplicate) {
+    const refused = await duplicateStillSellable(result.orderId);
+    if (refused) return bad(refused, 422);
+  }
 
   /*
    * ATTRIBUTION, BEFORE CHECKOUT AND NEVER AFTER IT.

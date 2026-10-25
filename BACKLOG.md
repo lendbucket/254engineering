@@ -15,6 +15,12 @@ development check turns three checks red. mobile-overflow-audit signs a probe
 in through a real browser and reads the bucket it landed in. The entry as it
 was written follows, and its header design is superseded.
 
+**And the key keeps main's buckets, Robert's answer to question 2 of
+2026-10-25.** Board 40141490603 put every sign in of a run into one bucket and
+missed on 429s, because forms-audit's wrong-credential checks spent its twenty.
+The key is now `board:<run>:<the address main uses>`, so a run has as many
+buckets as main and shares none with another run.
+
 `src/lib/ops-rate-limit.ts` and `.github/workflows/board.yml`, on its own
 branch `fix/ci-board-sign-in-key`. Ruled by Robert on 2026-10-23. Main's board
 `40035266531`: every probe sign in in the writers shard answered HTTP 429
@@ -30,6 +36,16 @@ run sends its own key, a header the board sets from its run id, which
 the header is ignored and the address key is unchanged, injection-verified by
 honouring it unconditionally. Until it lands, boards are never pushed in a
 burst.
+
+## THE SITTING FOR 0088, A LETTER SEALS ONLY FROM A TEMPLATE HE SIGNED, OPEN
+
+`docs/production-sitting-0088-a-letter-seals-only-from-a-template-he-signed.md`.
+Written 2026-10-24 on `feat/letter-adoption`, narrowed by Robert's ruling 4 of
+that day to the manufactured home, solar and WPI-8E lines. Development sat at
+18:21 UTC (version `20261024182158`), then the board, then the chat's
+production sitting. 0081's fifteen-argument seal door is not replaced, so roof,
+foundation and permit letters seal throughout; Section 2 asserts every line
+open before is open after.
 
 ## FIXED: THE INSTRUMENTATION HOOK REACHED node:crypto IN THE EDGE BUNDLE
 

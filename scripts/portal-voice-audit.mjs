@@ -506,9 +506,31 @@ report("sentence case, not Title Case", titleCase, "including buttons and column
       /if \(!isPrelaunch\(\)\) return null;/.test(source),
       "a prop can be forgotten, and the screen that forgets it says sealing is available",
     );
+    /*
+     * THE SHARED SENTENCE, NAMED EXACTLY. Robert's ruling of 2026-10-23 on
+     * piece 2: "until an engineer of record is in responsible charge" came out
+     * on 2026-10-21, so the check names the new sentence word for word, and
+     * still fails if the notice's own words claim sealing or any registration
+     * status. The registration fact itself reaches the notice only through
+     * registrationStatement(), the register's deriver, never as typed words.
+     */
+    const RESTRICTED_SENTENCE = "Sealing and order intake are disabled until the firm is accepting engagements.";
+    const body = (source.match(/<SystemAlert condition="Restricted mode\.">([\s\S]*?)\{also \?/) ?? [])[1] ?? "";
+    const typed = body
+      .replace(/\{\/\*[\s\S]*?\*\/\}/g, " ")
+      .replace(/\{registrationStatement\(\)\}/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    rec("and it carries the shared sentence, word for word", typed === RESTRICTED_SENTENCE, typed || "the notice body was not found");
     rec(
-      "and it carries the shared sentence",
-      /Sealing and order intake are disabled until an/.test(source),
+      "and the registration reaches it only through the register's deriver",
+      /\{registrationStatement\(\)\}/.test(body),
+    );
+    rec(
+      "and its own words claim no sealing and no registration status",
+      typed.length > 0 &&
+        !/\b(?:is|are|was|will be|has been) sealed\b|\bwe seal\b|\bseals\b|\bregist(?:ered|ration)\b|\blicen[cs]e|\bF-\d/i.test(typed),
+      typed,
     );
     rec(
       "and it lets a screen add without restating",

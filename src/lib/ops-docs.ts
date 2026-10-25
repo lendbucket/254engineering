@@ -353,14 +353,26 @@ export async function fileMargins(actor: Actor | null): Promise<FileMargin[] | n
    * by period table, the billing screen and two of the three CSV exports, so
    * the exclusion belongs here rather than at any of the four.
    */
-  const { data, error } = await db
-    .from("eng_files")
-    .select(
-      "id, file_number, property_address, county, status, service_slug, client_price_cents, tech_cost_cents, engineer_cost_cents, partner_id, delivered_at, created_at",
-    )
-    .eq("is_demo", false)
-    .order("created_at", { ascending: false })
-    .limit(500);
+  /*
+   * EVERY FILE, NOT THE NEWEST 500. Robert's audit of 2026-10-24. This read
+   * stopped at 500 files with no count, so once the firm had more than 500 the
+   * older periods' revenue and margin shrank silently on the dashboard, the
+   * billing screen and both exports, each a plausible smaller number. Paged
+   * through bounded-read, which refuses a partial set.
+   */
+  const read = await readEvery<Record<string, unknown>>((from, to) =>
+    db
+      .from("eng_files")
+      .select(
+        "id, file_number, property_address, county, status, service_slug, client_price_cents, tech_cost_cents, engineer_cost_cents, partner_id, delivered_at, created_at",
+      )
+      .eq("is_demo", false)
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  const data = read.ok ? read.rows : null;
+  const error = read.ok ? null : { message: read.error };
 
   /*
    * A FAILED READ AND A FIRM WITH NO FILES ARE DIFFERENT FACTS.
