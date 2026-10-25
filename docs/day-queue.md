@@ -1,5 +1,13 @@
 # Day queue, 2026-10-23
 
+## Robert's answers, 10:25 Central 2026-10-25 (every recommendation agreed), one board at a time
+
+Order: 0088's branch, Q4, Q2, the Q3 bisect, then the money and letter branches by severity. Phase 4 posts on issue #1; Phase 2 runs against a Vercel preview of main only after its environment is confirmed on development.
+
+| Step | State |
+| --- | --- |
+| 0088 (`feat/letter-adoption`) | The chat sat 0087 and 0088 on production at 15:28 UTC, every figure matched (issue #1); neither was on production before. Both ledger records written (`b8fef2b`). **Main moved from `1a30178` to `0e5ccef` since its board**, so the merged tree has not been measured; main merged in clean as **`4645080`** and it boards before it merges, under the rule that nothing merges from a tree no board measured with the main it lands on. **Prediction, stated before pushing: 60 of 61, one FAIL, `schema-ledger-audit`, exactly one check: "nothing is applied to production that is not on main", naming 0087 and 0088, and nothing else.** That red is what a record of a sitting looks like before its merge (read here: 31 of 32), and the merge clears it. Every other audit, any other FAIL or any COULD NOT TELL is a miss. |
+
 ## Evening, 2026-10-24 (the chat's order of 17:59 Central), one board at a time
 
 | Step | State |
