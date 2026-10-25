@@ -3174,6 +3174,117 @@ export const APPLIED = [
       "docs/production-sitting-0086-an-approval-by-phone-is-its-own-kind.md. The branch merges only after the " +
       "production apply is read back, and a migration on main is never pending.",
   },
+  {
+    file: "0087_the_three_letters_facts_are_records.sql", appliedBy: "apply_migration",
+    fingerprint: "6a355ef867ca1021391067a84f44f34b",
+    behaviour: "5741f43639f3d62e58e82f7c3af38675",
+    /*
+     * APPLIED TO PRODUCTION 2026-10-25, provider version 20261025152708, name
+     * 0087_the_three_letters_facts_are_records, by the operator's chat
+     * counterpart through apply_migration, before 0088 because 0088 sits on it,
+     * after the 0088 branch's cloud board (40144445451) matched its prediction,
+     * 61 of 61, on b3da264. The file applied is sha256
+     * 25e40a819d4eb7eb88516d9331d4a0324554aa6c10fe23f36303708948a4bd21, read in
+     * full at b3da264; the stored statement reads back as sha256
+     * debe61e24df8a96531ec4423806f095f4006d905249203bf8f615e4f21c75726, identical
+     * to development. Section 0: the fact check held 0085's four, and production
+     * held no eng_letter_facts rows, so none could fail the wider checks. Read
+     * back: the fact check names 41 facts, the values check is present, and
+     * 0085's four keep their capacities. Neither 0087 nor 0088 was on production
+     * before this sitting. The record rides in the merge, so 0087 is never
+     * pending on main.
+     */
+    production: "2026-10-25",
+    development: {
+      at: "0087",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-24",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-24 by the operator's chat counterpart through apply_migration, provider " +
+        "version 20261024074647, name 0087_the_three_letters_facts_are_records, with no writers shard running. The " +
+        "file was read in full at 66323ee, sha256 25e40a819d4eb7eb88516d9331d4a0324554aa6c10fe23f36303708948a4bd21; " +
+        "the statement stored in supabase_migrations reads back as sha256 " +
+        "debe61e24df8a96531ec4423806f095f4006d905249203bf8f615e4f21c75726, the file without its trailing newline. " +
+        "Before: shape 6a355ef867ca1021391067a84f44f34b across 1328; eng_letter_facts 0 rows; the fact check held " +
+        "0085's four. After: shape unchanged, as predicted; eng_letter_facts_fact_check names 41 facts, " +
+        "eng_letter_facts_capacity_ck covers the same 41, eng_letter_facts_values_ck present. Every answer as " +
+        "predicted.",
+    },
+    proves: { table: "eng_letter_facts" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0087 on 2026-10-24, with 0086 reproducing its " +
+      "recorded pair first: shape unchanged at 1328 columns, behaviour 1242 to 1243 facts (the new values " +
+      "check; the fact and capacity checks are dropped and re-added widened, the 0082 pattern). No table, " +
+      "column, function or trigger.",
+    because:
+      "WRITTEN 2026-10-24 ON feat/letter-records; ON DEVELOPMENT (version 20261024074647) AND ON PRODUCTION (version 20261025152708). Robert's instruction of 2026-10-24: the " +
+      "records for every fact the manufactured home, solar and WPI-8E documents print, the 0085 pattern, no " +
+      "letters. Who records each is the engineer's call; the capacities are a stated default until he rules. " +
+      "The chat applies it with apply_migration, development first. The branch merges only after the " +
+      "production apply is read back, and a migration on main is never pending.",
+  },
+  {
+    file: "0088_a_letter_seals_only_from_a_template_he_signed.sql", appliedBy: "apply_migration",
+    fingerprint: "2fa02bab9a86d346d328a22bbb8ba975",
+    behaviour: "7836ca5442b675f9fcc5eee731de7f21",
+    /*
+     * APPLIED TO PRODUCTION 2026-10-25, provider version 20261025152806, name
+     * 0088_a_letter_seals_only_from_a_template_he_signed, by the operator's chat
+     * counterpart through apply_migration, from
+     * docs/production-sitting-0088-a-letter-seals-only-from-a-template-he-signed.md,
+     * after board 40144445451 matched its prediction, 61 of 61, on b3da264. The
+     * file applied is sha256
+     * cd9ef87c89c86583b89e043968fafb6a6e751759947e598a4e49732d6bd1a3bc,
+     * byte-identical to the file development sat; the stored statement reads
+     * back as sha256
+     * ebd40637cabeb6747fcd5a8615498c549800ff349ebd05599f15b120ac89934c, identical
+     * to development.
+     *
+     * Section 0: shape 6a355ef867ca1021391067a84f44f34b across 1328; the kind
+     * check letter, protocol, addendum; 8 protocol seal acts; the check, guard
+     * and audit bodies with development's md5 before its sitting. A: all eight
+     * published lines trained (DS, FC, MH, RS, RC, SL, PL, WS). B: eight live
+     * protocol signatures (DS, FC, MH, PL, RS, SL, WP, WS). C:
+     * 00da32c49a79b61fab89d8e1edeb1fbf. Production holds 0062's fourteen-argument
+     * overload, so the function query returns four rows, as on development.
+     * Section 2: shape 2fa02bab9a86d346d328a22bbb8ba975 across 1331; the kind
+     * check gained letter_template; 0 letter templates; eng_record_letter_seal
+     * overloads 14, 15 and 16 plus the template door. A, B and C each read back
+     * exactly as in Section 0, so roof, foundation and permit seal through the
+     * unchanged door. Manufactured home, solar and WPI-8E stay closed until the
+     * engineer adopts the drafts and signs their templates. The record rides in
+     * the merge, so 0088 is never pending on main.
+     */
+    production: "2026-10-25",
+    proves: { table: "eng_seal_acts", column: "letter_template_act_id" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0088 on 2026-10-24, after the narrowing, with 0087 " +
+      "reproducing its recorded pair first: shape 1328 to 1331 columns (eng_seal_acts' template_key, " +
+      "template_version and letter_template_act_id), behaviour 1243 to 1248 facts. One statement carries drop: " +
+      "the seal act kind check, dropped and re-added widened with letter_template, the 0082 pattern. " +
+      "eng_seal_act_check, eng_seal_act_guard and eng_seal_act_audit are 0082's with the template clauses, which " +
+      "reach only 254-MH-001, 254-SL-001 and 254-WS-001; eng_record_letter_seal gains a sixteen-argument " +
+      "overload, and 0081's fifteen-argument version is not replaced. No cutover gap.",
+    because:
+      "APPLIED TO DEVELOPMENT 2026-10-24 18:21 UTC by the operator's chat counterpart through apply_migration, " +
+      "provider version 20261024182158, name 0088_a_letter_seals_only_from_a_template_he_signed, from the file at " +
+      "6e0cc07 (sha256 cd9ef87c89c86583b89e043968fafb6a6e751759947e598a4e49732d6bd1a3bc; the stored statement " +
+      "ebd40637cabeb6747fcd5a8615498c549800ff349ebd05599f15b120ac89934c, the file without its trailing newline). " +
+      "Section 0 shape 6a355ef867ca1021391067a84f44f34b across 1328; Section 2 2fa02bab9a86d346d328a22bbb8ba975 " +
+      "across 1331, as predicted; Section 0's records A, B and C read back identical. The sitting document " +
+      "expected three function rows and there are four: 0062's fourteen-argument eng_record_letter_seal, left " +
+      "by 0081 as a refusing stub, is the third overload (corrected in the document). APPLIED TO PRODUCTION " +
+      "2026-10-25, provider version 20261025152806, every figure matching development. " +
+      "WRITTEN 2026-10-24 ON feat/letter-adoption. Robert's instruction of 2026-10-24, " +
+      "narrowed by his ruling 3 the same day: a manufactured home, solar or WPI-8E letter seals only from a " +
+      "template the engineer has signed in his portal; roof, foundation, permit and every other line in force are " +
+      "untouched. The three lines stay closed until he adopts the drafted wording, which is expected. The chat " +
+      "applies it with apply_migration, development first, then production, from " +
+      "docs/production-sitting-0088-a-letter-seals-only-from-a-template-he-signed.md. A migration on main is " +
+      "never pending.",
+  },
 ];
 
 /*
