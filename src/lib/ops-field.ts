@@ -38,7 +38,7 @@ import {
 } from "./ops-evidence";
 import { photoAnswerRefusal, photoAnswersFor, protocolItemRowsFor } from "./protocol-run";
 import { verifiedEngineers } from "@/config/credentials";
-import { licenceIsCurrent } from "./launch";
+import { licenceIsCurrentToday } from "./launch";
 import { signatureStatus } from "./protocol-sign";
 import { holdFor, holdRefusal } from "./dispatch-hold";
 
@@ -451,7 +451,8 @@ export async function approveProtocol(
         "is answerable for by name.",
     };
   }
-  if (!licenceIsCurrent(onRegister.expires, new Date().toISOString().slice(0, 10))) {
+  /* Today on the firm's calendar, through launch.ts, the one file declared to read it (audit finding F6, 2026-10-24). */
+  if (!licenceIsCurrentToday(onRegister.expires)) {
     return {
       ok: false,
       error: `The register has no current expiry for license ${licence}, and an unrecorded expiry is not a current license.`,

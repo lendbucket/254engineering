@@ -66,7 +66,9 @@ export default async function ReviewPage({
    * one of his, for the list at the top, and the selected file's, which takes
    * the place of the decision buttons.
    */
-  const awaiting = await lettersAwaitingSeal(actor);
+  /* A failed read is said above the list, never "no letters waiting" (audit of 2026-10-24). */
+  const awaitingRead = await lettersAwaitingSeal(actor);
+  const awaiting = awaitingRead.ok ? awaitingRead.letters : [];
   const held = await heldFiles();
   const trainingWaiting = await trainingAwaitingEngineer();
   const awaitingTriage = await filesAwaitingTriage();
@@ -247,7 +249,11 @@ export default async function ReviewPage({
         </section>
       ) : null}
 
-      {awaiting.length > 0 ? (
+      {!awaitingRead.ok ? (
+        <p role="alert" className="mb-6 text-[14px] text-[var(--ink)]">
+          Letters waiting for your seal could not be read, so none is offered for sealing just now: {awaitingRead.error}
+        </p>
+      ) : awaiting.length > 0 ? (
         <section className="mb-6 border-t-2 border-[var(--ink)] pt-4">
           <h2 className="text-[16px] font-semibold text-[var(--ink)]">Letters waiting for your seal</h2>
           <ul className="mt-2 border-t border-[var(--row-rule)]">
