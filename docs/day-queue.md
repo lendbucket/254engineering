@@ -1,5 +1,30 @@
 # Day queue, 2026-10-23
 
+## Audit report, 2026-10-25 afternoon (after Phase 4 and the second confirmation pass)
+
+**35 findings: severity 1, 24; severity 2, 7; severity 3, 4.** That is F1 to F32 in `docs/audit-2026-10-24.md` section 5, plus P4-1 to P4-3 from the production read (section 7).
+
+- **On main (9):** F1 and F2's refusals, F4, F5, F10, F12, F15, F19, F20.
+- **Built, each with a proof and an injection, waiting for its board (one at a time):**
+  - `fix/audit-sealing-and-limits`: F16, F17, F18. **Boarding now (Q4).**
+  - `fix/audit-dates-and-stripe`: F6, F7, F8, F11's paid check. Q3 bisect, after Q2.
+  - `fix/audit-bulk-refunds` (`3f00f07`): F1 and F2, Robert's refund ruling.
+  - `fix/audit-agreed-price` (`b5ea55e`): F3.
+  - `fix/audit-stripe-card-only` (`a489a1e`): F11, cards only.
+  - `fix/audit-partner-reads` (`424da07`): F22, F25, F26, F31.
+  - `fix/audit-ledger-reads` (`2fb0915`): F21, F23, F24.
+  - `fix/audit-credential-dates` (`b684bd4`): F28, F30, F32.
+  - `fix/audit-triage-list` (`e9bbe70`): F13.
+  - Not a finding: `fix/font-local` (`e928561`, Inter from files in the repository, Robert's Q4 answer) and `fix/ci-board-sign-in-key` (`d1e1383`, Q2).
+- **Ruled, not built yet:** the letter answers (F14 and L2f, L2a, L2b, L2d, L2e, L2j). They are the next build; each changes only the filled facts, never Aman's wording.
+- **Open:** F29 (the customer's order page reads ignore their errors, so a sealed letter can vanish silently), and P4-2 and P4-3 (severity 3).
+- **Needs Robert:**
+  - F27: commission months are on UTC, so it changes what a partner is paid at a month's edge.
+  - P4-1: "254 Engineering Services" is the brand line on all 82 public pages, and that is copy every visitor sees.
+- **Robert ruled to leave as is:** F9.
+- **Phase 2** waits for the chat's read of Vercel's Preview environment (issue #1).
+- **Board order after Q4:** Q2, the Q3 bisect, the font branch (so no later board can fail on Google's servers), then by severity: bulk refunds, agreed price, card only, partner reads, ledger reads, credential dates, triage.
+
 ## Robert's answers, 10:25 Central 2026-10-25 (every recommendation agreed), one board at a time
 
 Order: 0088's branch, Q4, Q2, the Q3 bisect, then the money and letter branches by severity. Phase 4 posts on issue #1; Phase 2 runs against a Vercel preview of main only after its environment is confirmed on development.
