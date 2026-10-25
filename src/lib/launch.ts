@@ -878,7 +878,8 @@ export function insuranceStandsOn(today: string = todayInFirmCalendar()): Insura
 }
 
 export function activeInsurance(): VerifiedInsurance | null {
-  const today = new Date().toISOString().slice(0, 10);
+  /* The firm's calendar, as the header rules; this one read the UTC date until the audit of 2026-10-24 (finding F6). */
+  const today = todayInFirmCalendar();
   return (
     verifiedInsurance.find(
       (p) => p.kind === "professional-liability" && p.status === "active" && p.expires >= today,
@@ -1067,7 +1068,8 @@ export function licenceIsCurrent(expires: string | null, todayISO: string): bool
  * in another file.
  */
 export function licenceIsCurrentToday(expires: string | null): boolean {
-  return licenceIsCurrent(expires, new Date().toISOString().slice(0, 10));
+  /* The firm's calendar, as the header rules; this read the UTC date until the audit of 2026-10-24 (finding F6). */
+  return licenceIsCurrent(expires, todayInFirmCalendar());
 }
 
 /**
