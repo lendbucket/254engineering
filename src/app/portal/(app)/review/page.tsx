@@ -9,7 +9,7 @@ import { STATUS_LABEL, type FileStatus } from "@/lib/ops-files";
 import { isPrelaunch } from "@/lib/launch";
 import { services } from "@/content/services";
 import { EmptyState, PageHead } from "@/components/portal/surfaces";
-import { answersFor, outstandingFor } from "@/lib/ops-file-inputs";
+import { readAnswers, outstandingFor } from "@/lib/ops-file-inputs";
 import { captureAdditionsFor, filesAwaitingTriage, recordedFactsFor, triageFor } from "@/lib/letter-facts";
 import { ElementDescribedReview, FoundationTypeConfirm, TriagePanel } from "@/components/portal/LetterFactsPanels";
 import { DecisionPanel, OpenReviewButton } from "./ReviewClient";
@@ -84,8 +84,10 @@ export default async function ReviewPage({
    * Read only for those two lines.
    */
   const letterLine = selected?.file.service_slug === "foundation-inspections" || selected?.file.service_slug === "structural-letters";
-  const letterAnswers = selected && letterLine ? await answersFor(selected.file.id) : {};
-  const letterFacts = selected && letterLine ? await recordedFactsFor(selected.file.id) : null;
+  const letterAnswersRead = selected && letterLine ? await readAnswers(selected.file.id) : null;
+  const letterAnswers = letterAnswersRead?.ok ? letterAnswersRead.answers : {};
+  /* A failed answers read shows the panel's own "could not be read" sentence, never "No authority on the order" (finding F12). */
+  const letterFacts = selected && letterLine && letterAnswersRead?.ok ? await recordedFactsFor(selected.file.id) : null;
   const letterTriage = selected?.file.service_slug === "structural-letters" ? await triageFor(selected.file.id) : null;
   const letterAdditions = selected?.file.service_slug === "structural-letters" ? await captureAdditionsFor(selected.file.id) : null;
 

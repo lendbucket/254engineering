@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Container } from "@/components/ui/Container";
 import { HomeHero } from "@/components/home/HomeHero";
+import { HomeOrderingSteps } from "@/components/home/HomeOrderingSteps";
 import {
   ClipboardCheckIcon,
   ClockIcon,
@@ -65,6 +66,9 @@ export default function HomePage() {
       <JsonLd data={breadcrumbSchema([{ name: "Home", path: "/" }])} />
 
       <HomeHero />
+
+      {/* How ordering works, the short form (ruling 7 of 2026-10-18, Q8 of 2026-10-19). */}
+      <HomeOrderingSteps />
 
       <CredibilityStrip />
 
@@ -297,7 +301,7 @@ export default function HomePage() {
               </h2>
               <p className="mt-4 max-w-[50ch] text-[16.5px] leading-[1.7] text-slate-muted">
                 {prelaunch
-                  ? "The firm opens soon. Join the waitlist and you will hear directly when it is active, before any general announcement."
+                  ? "The firm opens soon. Join the waitlist and a person at the firm reads your request and replies to you."
                   : "Send the address, the scope, and the date it has to be in hand. You will get a straight answer on whether it is work this firm should take and what it involves."}
               </p>
               <div className="mt-7 flex gap-8">

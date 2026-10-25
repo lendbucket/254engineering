@@ -4,6 +4,16 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
+## THE SITTING FOR 0088, A LETTER SEALS ONLY FROM A TEMPLATE HE SIGNED, OPEN
+
+`docs/production-sitting-0088-a-letter-seals-only-from-a-template-he-signed.md`.
+Written 2026-10-24 on `feat/letter-adoption`, narrowed by Robert's ruling 4 of
+that day to the manufactured home, solar and WPI-8E lines. Development sat at
+18:21 UTC (version `20261024182158`), then the board, then the chat's
+production sitting. 0081's fifteen-argument seal door is not replaced, so roof,
+foundation and permit letters seal throughout; Section 2 asserts every line
+open before is open after.
+
 ## FIXED: THE INSTRUMENTATION HOOK REACHED node:crypto IN THE EDGE BUNDLE
 
 Fixed 2026-10-24 on this branch: `onRequestError` loads `ops-observability`
@@ -25,6 +35,7 @@ and on attempt 2 of the same shard. The cause, read from source:
 is bundled for the Edge runtime too. It must load only when
 `process.env.NEXT_RUNTIME === "nodejs"`. Proof owed: every server-only import in
 the hook sits behind that guard, injection-verified by removing the guard.
+
 ## THE SITTING FOR 0085, A LETTER STATES ONLY RECORDED FACTS, OPEN
 
 `docs/production-sitting-0085-a-letter-states-only-recorded-facts.md`. Written

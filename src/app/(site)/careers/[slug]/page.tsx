@@ -103,9 +103,9 @@ export default async function PositionPage({ params }: { params: Promise<{ slug:
               Building the bench
             </p>
             <p className="mt-2.5 text-[0.96rem] leading-[1.65] text-slate-fg-muted">
-              Firm registration with the Texas Board of Professional Engineers and Land Surveyors is
-              pending and no engineer of record is yet in responsible charge, so no assignments are
-              being dispatched. Applications are open and are being read now, which is the point:
+              {/* Ruling 2026-10-21: no "no engineer of record" sentence; the registration issued on 2026-09-10, so "pending" went too. */}
+              The firm is not yet accepting engagements, so no assignments are being dispatched.
+              Applications are open and are being read now, which is the point:
               the bench has to exist before the first job does.
             </p>
           </aside>

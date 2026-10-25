@@ -6,7 +6,7 @@ import { can } from "@/lib/ops-authz";
 import { listFilesPage, FILE_LIST_CAP, getFile, listClients, fileTimeline, fileRegion } from "@/lib/ops-crm";
 import { availableTransitions, STATUS_LABEL, FILE_STATUSES } from "@/lib/ops-files";
 import { TEXAS_COUNTIES, twiaStatus } from "@/lib/ops-counties";
-import { outstandingFor, answeredFor, answersFor } from "@/lib/ops-file-inputs";
+import { outstandingFor, answeredFor, readAnswers } from "@/lib/ops-file-inputs";
 import { FILE_DETAIL_FIELDS } from "@/lib/file-detail-fields";
 import { ContactLogPanel } from "@/components/portal/ContactLog";
 import { FileDetailsForm, ReleaseTechnician } from "./DeskFileClient";
@@ -24,6 +24,9 @@ import { NewFileForm, TransitionControls, RequestInformation } from "./FileClien
 import { DispatchPanel } from "./DispatchPanel";
 import { FileThreadButton } from "@/components/portal/FileThreadButton";
 import { formatInFirmZone } from "@/lib/firm-calendar";
+import { ListControls } from "@/components/portal/ListControls";
+import { LIST_NOT_LOADED } from "@/lib/outcome-copy";
+import { RetryButton } from "@/components/portal/Unreachable";
 
 export const dynamic = "force-dynamic";
 
@@ -49,22 +52,29 @@ function when(value: string | null): string {
 export default async function FilesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ id?: string; status?: string; county?: string; q?: string }>;
+  searchParams: Promise<{ id?: string; status?: string; county?: string; q?: string; page?: string; dir?: string; sort?: string }>;
 }) {
   const actor = await currentActor();
   if (!can(actor, "files.list")) notFound();
   const params = await searchParams;
+  const page = Math.max(1, Math.floor(Number(params.page)) || 1);
+  const oldest = params.dir === "asc";
 
-  const { rows: files, more: moreFiles } = await listFilesPage(actor, {
+  const { rows: files, more: moreFiles, error: filesError } = await listFilesPage(actor, {
     status: params.status,
     county: params.county,
     search: params.q,
+    page,
+    oldest,
   });
   const selected = params.id ? await getFile(actor, params.id) : null;
   const timeline = selected ? await fileTimeline(selected.id) : [];
 
   /* The contact, access and scheduling answers, for the details form (files.update_details, 2026-10-20). */
-  const answers = selected && can(actor, "files.update_details") ? await answersFor(selected.id) : {};
+  const answersRead = selected && can(actor, "files.update_details") ? await readAnswers(selected.id) : null;
+  /* A failed read is said, never shown as blank boxes to fill in again (finding F12 of the 2026-10-24 audit). */
+  const answersUnread = answersRead && !answersRead.ok ? answersRead.error : null;
+  const answers = answersRead && answersRead.ok ? answersRead.answers : {};
   const detailValues = Object.fromEntries(FILE_DETAIL_FIELDS.map((f) => [f.id, answers[f.id] ?? ""]));
   /* PL-2, ruling 7 of 2026-10-23: the office records the authority's address and salutation on a permit letter file. */
   const permitLetterFacts =
@@ -166,7 +176,7 @@ export default async function FilesPage({
         className="scroll-x portal-panel-scroll mb-4 flex min-w-0 gap-2 pb-2 sm:flex-wrap sm:overflow-visible sm:pb-0"
       >
         <Link
-          href={filterHref({ status: undefined })}
+          href={filterHref({ status: undefined, page: undefined })}
           className={`inline-flex min-h-[40px] shrink-0 items-center whitespace-nowrap rounded-[2px] border px-3 text-[14px] font-semibold ${
             !params.status ? "border-slate bg-slate text-[var(--on-navy)]" : "border-[var(--border)] text-[var(--secondary)]"
           }`}
@@ -176,7 +186,7 @@ export default async function FilesPage({
         {FILE_STATUSES.filter((s) => s !== "cancelled").map((s) => (
           <Link
             key={s}
-            href={filterHref({ status: s })}
+            href={filterHref({ status: s, page: undefined })}
             className={`inline-flex min-h-[40px] shrink-0 items-center whitespace-nowrap rounded-[2px] border px-3 text-[14px] font-semibold ${
               params.status === s ? "border-slate bg-slate text-[var(--on-navy)]" : "border-[var(--border)] text-[var(--secondary)]"
             }`}
@@ -186,14 +196,40 @@ export default async function FilesPage({
         ))}
       </div>
 
-      {/* Said when the list is the newest FILE_LIST_CAP and more exist (2026-10-10). */}
-      {moreFiles ? (
+      <ListControls
+        action="/portal/files"
+        search={params.q ?? ""}
+        searchLabel="Search file number or address"
+        filters={[
+          {
+            name: "status",
+            label: "Status",
+            value: params.status ?? "",
+            options: [{ value: "", label: "All" }, ...FILE_STATUSES.filter((s) => s !== "cancelled").map((s) => ({ value: s, label: STATUS_LABEL[s] }))],
+          },
+        ]}
+        sorts={[{ value: "opened", label: "Opened" }]}
+        sort="opened"
+        direction={oldest ? "asc" : "desc"}
+      />
+
+      {/* Which part of the list this is, and the way to the rest (2026-10-10; paged since 2026-10-24). */}
+      {page > 1 || moreFiles ? (
         <p className="mb-3 text-[13px] leading-[1.6] text-[var(--secondary)]">
-          Showing the newest {FILE_LIST_CAP} files. More exist: use a status or the search to find an older one.
+          Files {(page - 1) * FILE_LIST_CAP + 1} to {(page - 1) * FILE_LIST_CAP + files.length}, {oldest ? "oldest" : "newest"} first.
+          {moreFiles ? " More follow on the next page." : " This is the last page."}
         </p>
       ) : null}
 
-      {files.length === 0 ? (
+      {filesError ? (
+        <div role="alert" data-list-not-loaded className="py-6">
+          <p className="text-[15px] font-semibold text-[var(--ink)]">{LIST_NOT_LOADED}</p>
+          <p className="mt-1 text-[14px] text-[var(--secondary)]">The files could not be read, so this is not an empty list.</p>
+          <div className="mt-4 flex">
+            <RetryButton />
+          </div>
+        </div>
+      ) : files.length === 0 ? (
         <EmptyState
           title={params.status || params.q ? "Nothing matches that" : "No files yet"}
           body={
@@ -225,6 +261,20 @@ export default async function FilesPage({
           }))}
         />
       )}
+      {!filesError && (page > 1 || moreFiles) ? (
+        <nav aria-label="Pages of files" className="mt-4 flex gap-3 print:hidden">
+          {page > 1 ? (
+            <Link href={filterHref({ page: page - 1 > 1 ? String(page - 1) : undefined })} className="inline-flex min-h-[44px] items-center text-[14px] font-semibold text-[var(--navy)] underline">
+              Previous page
+            </Link>
+          ) : null}
+          {moreFiles ? (
+            <Link href={filterHref({ page: String(page + 1) })} className="inline-flex min-h-[44px] items-center text-[14px] font-semibold text-[var(--navy)] underline">
+              Next page
+            </Link>
+          ) : null}
+        </nav>
+      ) : null}
     </div>
   );
 
@@ -480,14 +530,18 @@ export default async function FilesPage({
         {can(actor, "files.update_details") ? (
           <div className="mt-8 print:hidden">
             <p className="portal-label">Contact, access and scheduling</p>
-            <FileDetailsForm fileId={selected.id} values={detailValues} />
+            {answersUnread ? (
+              <p className="mt-2 text-[14px] text-[var(--ink)]">{answersUnread} Reload the page; nothing was changed.</p>
+            ) : (
+              <FileDetailsForm fileId={selected.id} values={detailValues} />
+            )}
           </div>
         ) : null}
 
         {selected.service_slug === "structural-letters" && can(actor, "files.update_details") ? (
           <div className="mt-8 print:hidden">
             <p className="portal-label">The permitting authority, for the letter</p>
-            {permitLetterFacts ? (
+            {permitLetterFacts && !answersUnread ? (
               <AuthorityDetailsForm
                 fileId={selected.id}
                 authorityName={answers.authority_name ?? null}

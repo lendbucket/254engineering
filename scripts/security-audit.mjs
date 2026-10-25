@@ -272,6 +272,7 @@ const ADMIN_APIS = [
   "/api/portal/addenda/sign",
   // The facts a foundation or permit letter prints, the triage and the capture items (ruling 7, 2026-10-23).
   "/api/portal/letter-facts",
+  "/api/portal/letter-templates/sign",
   // Never listed since Phase 1 shipped it. Found by the coverage check below on
   // its first run, which is the argument for the coverage check.
   "/api/portal/files",
@@ -330,6 +331,8 @@ const ADMIN_APIS = [
   "/api/portal/refunds/export",
   // The inbox as a CSV, a read (office ready, 2026-10-24).
   "/api/portal/inbox/export",
+  // The clients list as a CSV, a read, every matching row or no file (office ready, 2026-10-24).
+  "/api/portal/clients/export",
   "/api/portal/desk",
   "/api/portal/order-lookup",
   // Customer ordering accounts: terms, credit limits, closing a period and

@@ -4,6 +4,7 @@ import { supabaseAdmin } from "./supabase";
 import { writeAudit } from "./ops-audit";
 import { can, type Actor } from "./ops-authz";
 import { overdueBy } from "./ops-inquiries";
+import { INQUIRY_PAGE_SIZE, inquiryListQuery, inquirySearchOr, type InquiryListQuery } from "./inquiry-list";
 
 /**
  * ===========================================================================
@@ -73,16 +74,52 @@ const COLUMNS =
  * first is one where the awkward item somebody keeps skipping sinks out of
  * sight, and here the one sinking would be the person waiting longest.
  */
-export async function windstormInquiries(actor: Actor | null): Promise<WindstormInquiryRow[]> {
+/*
+ * OFFICE READY, 2026-10-24, AND A FAILED READ IS NOT AN EMPTY LIST. This
+ * returned `data ?? []`, so a read that failed or stalled rendered "No briefs
+ * yet", the defect the operator's ruling of 2026-10-12 removed from the design
+ * briefs and this sibling kept. It also stopped at 200 rows and the screen
+ * counted those. Now, as the design briefs: the search, filter, sort and page in
+ * the database, an exact count of what matches, exact open and answered counts,
+ * and any of the three failing is a failed read.
+ */
+export type WindstormListRead =
+  | { ok: true; rows: WindstormInquiryRow[]; total: number; open: number; answered: number }
+  | { ok: false; error: string };
+
+export async function windstormInquiries(actor: Actor | null, query: InquiryListQuery = inquiryListQuery({})): Promise<WindstormListRead> {
   const db = supabaseAdmin();
-  if (!db || !can(actor, "files.create")) return [];
-  const { data } = await db
-    .from("eng_windstorm_inquiries")
-    .select(COLUMNS)
-    .order("responded_at", { ascending: true, nullsFirst: true })
-    .order("respond_by", { ascending: true })
-    .limit(200);
-  return (data ?? []) as WindstormInquiryRow[];
+  if (!db) return { ok: false, error: "The database is not configured." };
+  if (!can(actor, "files.create")) return { ok: true, rows: [], total: 0, open: 0, answered: 0 };
+  const search = inquirySearchOr(query.term);
+
+  let read = db.from("eng_windstorm_inquiries").select(COLUMNS, { count: "exact" });
+  if (search) read = read.or(search);
+  if (query.show === "open") read = read.is("responded_at", null);
+  if (query.show === "answered") read = read.not("responded_at", "is", null);
+  if (query.sort === "due") {
+    read = read.order("responded_at", { ascending: true, nullsFirst: true }).order("respond_by", { ascending: query.ascending });
+  } else {
+    read = read.order(query.sort === "name" ? "name" : "created_at", { ascending: query.ascending });
+  }
+  const from = (query.page - 1) * INQUIRY_PAGE_SIZE;
+  const { data, error, count } = await read.order("id", { ascending: true }).range(from, from + INQUIRY_PAGE_SIZE - 1);
+
+  const figure = async (answered: boolean) => {
+    let c = db.from("eng_windstorm_inquiries").select("id", { count: "exact", head: true });
+    if (search) c = c.or(search);
+    c = answered ? c.not("responded_at", "is", null) : c.is("responded_at", null);
+    return c;
+  };
+  const [open, answered] = await Promise.all([figure(false), figure(true)]);
+
+  const failed = error ?? open.error ?? answered.error;
+  if (failed || count === null || open.count === null || answered.count === null) {
+    const message = failed?.message ?? "a count did not come back";
+    console.error(`[windstorm-inquiries] the windstorm briefs could not be read: ${message}`);
+    return { ok: false, error: message };
+  }
+  return { ok: true, rows: (data ?? []) as WindstormInquiryRow[], total: count, open: open.count, answered: answered.count };
 }
 
 /**

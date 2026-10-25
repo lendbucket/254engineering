@@ -40,6 +40,8 @@ const DOORS = [
   { file: "src/lib/seal-store.ts", rpc: "eng_record_seal_image" },
   /* A scope addendum, signed as a protocol is (0082, operator ruling 2026-10-22). */
   { file: "src/lib/scope-addendum.ts", rpc: "eng_record_addendum_signature" },
+  /* 0088, Robert's instruction of 2026-10-24: a letter template signature, signed as a protocol is. */
+  { file: "src/lib/letter-template-sign.ts", rpc: "eng_record_letter_template_signature" },
 ];
 
 /*

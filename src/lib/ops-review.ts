@@ -200,9 +200,9 @@ export function canReview(
     return {
       ok: false,
       reason:
-        "The firm cannot seal work yet. It is not yet accepting engagements and no Professional " +
-        "Engineer is in responsible charge. Declining to seal is open to an engineer in responsible charge and is not " +
-        "blocked by the gate, which is deliberate.",
+        /* "and no Professional Engineer is in responsible charge" came out: operator ruling 2026-10-21, a sibling the first sweep missed. */
+        "The firm cannot seal work yet. It is not yet accepting engagements. Declining to seal is open to an " +
+        "engineer in responsible charge and is not blocked by the gate, which is deliberate.",
     };
   }
 

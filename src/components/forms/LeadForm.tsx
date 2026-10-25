@@ -100,7 +100,8 @@ export function LeadForm({
         </h2>
         <p className="mt-4 text-[0.98rem] leading-[1.7] text-slate-muted">
           {isWaitlist
-            ? "You will hear from us directly when the firm opens for work and the service you asked about is open, before any general announcement. Nothing else will be sent to you in the meantime."
+            ? /* Q5, 2026-10-19: the launch message this promised has no sender, so it says what is true. */
+              "The firm has your request. A confirmation is on its way to the address you gave, and a person at the firm will reply to it."
             : "Someone will read it and reply to the address you gave. If it is about work the firm cannot take yet, we will say so plainly rather than leave you waiting."}
         </p>
       </div>

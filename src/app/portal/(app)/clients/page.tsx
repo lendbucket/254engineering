@@ -17,6 +17,8 @@ import {
 import { NewClientForm, ConvertLead } from "./ClientsClient";
 import { formatInFirmZone } from "@/lib/firm-calendar";
 import { PhoneLink } from "@/components/portal/PhoneLink";
+import { ListControls, Pager, listHref } from "@/components/portal/ListControls";
+import { clientListQuery } from "@/lib/client-list";
 
 export const dynamic = "force-dynamic";
 
@@ -40,9 +42,10 @@ function when(value: string): string {
   return (formatInFirmZone(value, { month: "short", day: "numeric", year: "numeric" }) ?? "");
 }
 
-export default async function ClientsPage() {
+export default async function ClientsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const actor = await currentActor();
   if (!can(actor, "clients.list")) notFound();
+  const params = await searchParams;
 
   /*
    * ONE BOUNDED PAGE, AND AN EXACT COUNT BESIDE IT.
@@ -51,10 +54,15 @@ export default async function ClientsPage() {
    * the length of a bounded read is the bound and reporting it as the total is
    * the defect CLAUDE.md records at PostgREST's 1000 row ceiling and at a
    * queue of 668 reported as 20.
+   *
+   * Office ready, 2026-10-24: searched, filtered, sorted and paged in the
+   * database by one query, which the count reads too, so the total is of the
+   * clients that match and every one of them is reachable by paging.
    */
-  const clients = await listClients(actor, { limit: CLIENT_PAGE_SIZE });
-  const total = await countClients(actor);
-  const truncated = total !== null && total > clients.length;
+  const query = clientListQuery(params);
+  const clients = await listClients(actor, { limit: CLIENT_PAGE_SIZE, offset: (query.page - 1) * CLIENT_PAGE_SIZE, query });
+  const total = await countClients(actor, query);
+  const filtered = query.term !== "" || query.kind !== "all";
 
   /*
    * Unconverted leads, from the table the three public sites already write to.
@@ -198,35 +206,52 @@ export default async function ClientsPage() {
         A BOUND WITHOUT A DISCLOSURE WOULD HAVE BEEN THE WORSE FIX. "100
         clients" on a firm with 260 is a false statement about the business, and
         a coordinator who scrolls to the bottom and does not find somebody
-        concludes the client is not there. So the screen says both figures, and
-        says plainly that the rest are not shown yet.
+        concludes the client is not there. So the screen says both figures.
+        Since 2026-10-24 the rest are reached by search and paging below.
 
         `total` is null when the count could not be read, which is a different
         thing from zero, so the title falls back to what it can honestly say.
       */}
+      <ListControls
+        action="/portal/clients"
+        search={params.q ?? ""}
+        searchLabel="Search name, email, phone or city"
+        filters={[
+          {
+            name: "kind",
+            label: "Kind",
+            value: query.kind,
+            options: [
+              { value: "all", label: "Everyone" },
+              { value: "organization", label: "Organizations" },
+              { value: "individual", label: "Individuals" },
+            ],
+          },
+        ]}
+        sorts={[{ value: "added", label: "Added" }, { value: "name", label: "Name" }]}
+        sort={query.sort}
+        direction={query.ascending ? "asc" : "desc"}
+        csvHref={listHref("/api/portal/clients/export", { q: params.q, kind: params.kind, sort: params.sort, dir: params.dir }, {})}
+      />
       <Panel
         title={
           total === null
-            ? `${clients.length} client${clients.length === 1 ? "" : "s"} shown`
-            : truncated
-              ? `${clients.length} of ${total} clients`
-              : `${total} client${total === 1 ? "" : "s"}`
+            ? `${clients.length} client${clients.length === 1 ? "" : "s"} shown; the total could not be read`
+            : `${total} ${filtered ? "matching " : ""}client${total === 1 ? "" : "s"}`
         }
       >
-        {truncated ? (
-          <p className="mb-4 text-[14px] leading-[1.6] text-[var(--secondary)]">
-            The {clients.length} most recently added are shown. Search and paging for the rest are
-            not built yet, so an older client is reached through the file it belongs to.
-          </p>
-        ) : null}
         <RecordTable
           rows={clients}
           columns={columns}
           empty={
-            <EmptyState
-              title="No clients yet"
-              body="Add one above, or convert a lead. A file belongs to a client, so this comes first."
-            />
+            filtered ? (
+              <EmptyState title="No client matches that search" body="Clear the search or the filter to see everyone." />
+            ) : (
+              <EmptyState
+                title="No clients yet"
+                body="Add one above, or convert a lead. A file belongs to a client, so this comes first."
+              />
+            )
           }
           card={(c) => (
             <div>
@@ -246,6 +271,9 @@ export default async function ClientsPage() {
             </div>
           )}
         />
+        {total !== null ? (
+          <Pager page={query.page} pageSize={CLIENT_PAGE_SIZE} total={total} hrefFor={(n) => listHref("/portal/clients", params, { page: String(n) })} />
+        ) : null}
       </Panel>
 
       <p className="mt-6 text-[14px] leading-[1.6] text-[var(--secondary)]">
