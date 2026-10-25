@@ -15,12 +15,16 @@
   - `fix/audit-ledger-reads` (`2fb0915`): F21, F23, F24.
   - `fix/audit-credential-dates` (`b684bd4`): F28, F30, F32.
   - `fix/audit-triage-list` (`e9bbe70`): F13.
+  - `fix/audit-customer-view` (`a306fff`): F29. Its new customer sentence needs Robert's word before it merges (below).
+  - `fix/audit-letter-facts` (`d3f186c`, three commits): L2a, L2b, L2e's licence check, L2d, and F14 with L2f. Aman's sentences are untouched; only filled facts and the attached page change. Two things before it merges: the attached page's headings need Robert's word (below), and the chat's production read of the files' template versions (issue #1), so that no live roof or foundation job is refused by L2a.
   - Not a finding: `fix/font-local` (`e928561`, Inter from files in the repository, Robert's Q4 answer) and `fix/ci-board-sign-in-key` (`d1e1383`, Q2).
-- **Ruled, not built yet:** the letter answers (F14 and L2f, L2a, L2b, L2d, L2e, L2j). They are the next build; each changes only the filled facts, never Aman's wording.
-- **Open:** F29 (the customer's order page reads ignore their errors, so a sealed letter can vanish silently), and P4-2 and P4-3 (severity 3).
+- **Needs a migration (0089, being written, posted on issue #1, then stops):** L2e's second half, where the seal act records the printed name and licence number, and L2j. The letter already prints the seal act's own `mfa_verified_at` in America/Chicago. The document's `sealed_at` is the database's `now()` a few seconds later, so the two can fall either side of midnight; one instant needs the seal door to take it.
+- **My reading, stated so it can be corrected (L2b):** a visit is recorded only as a flag and an order event, so "the technician's recorded visit" is read as his earliest capture that was not sent back, in America/Chicago.
 - **Needs Robert:**
   - F27: commission months are on UTC, so it changes what a partner is paid at a month's edge.
   - P4-1: "254 Engineering Services" is the brand line on all 82 public pages, and that is copy every visitor sees.
+  - **Wording, F29 (customer order page):** "Part of this page could not be loaded. We could not load [the progress of your order / what has been paid and refunded / your sealed documents] just now, so that part is not shown. Nothing about your order has changed. Please reload this page in a few minutes." Recommended: approve as written.
+  - **Wording, F14 (the attached page of a roof B or C letter):** headed "Attached schedule of repairs, file [number]" (his numbered repair list, each with its Appendix B item) or "Attached record, file [number]" (his recorded reason, then "Items relied on: ..."). Recommended: approve as written.
 - **Robert ruled to leave as is:** F9.
 - **Phase 2** waits for the chat's read of Vercel's Preview environment (issue #1).
 - **Board order after Q4:** Q2, the Q3 bisect, the font branch (so no later board can fail on Google's servers), then by severity: bulk refunds, agreed price, card only, partner reads, ledger reads, credential dates, triage.
