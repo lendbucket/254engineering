@@ -10,7 +10,8 @@ import { isPrelaunch, notYetAcceptingEngagements, registrationStatement } from "
 export const metadata: Metadata = buildMetadata({
   title: "Structural Design Brief for Texas Projects | 254 Engineering",
   description:
-    "Tell us what is being built, what has to be produced, and the date it is needed. Send the brief and an engineer reads it within one business day.",
+    /* No reply time: nothing enforces one (operator rule, 2026-10-18; plan finding 6). */
+    "Tell us what is being built, what has to be produced, and the date it is needed. Send the brief and the firm reads it and replies to the address you give.",
   path: "/design-inquiry",
 });
 
@@ -63,7 +64,7 @@ export default function DesignInquiryPage() {
               ]
                 .filter(Boolean)
                 .join(" ")
-            : "Send the brief and an engineer will read it and come back to you within one business day."
+            : "Send the brief and an engineer will read it and come back to you."
         }
         crumbs={crumbs}
       />
