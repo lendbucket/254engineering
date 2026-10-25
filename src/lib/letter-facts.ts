@@ -4,6 +4,7 @@ import { can, holdsLicence, licenceRefusal, type Actor } from "./ops-authz";
 import { writeAudit } from "./ops-audit";
 import { verifiedEngineers } from "@/config/credentials";
 import { licenceIsCurrentToday } from "./launch";
+import { LETTER_FACT_CATALOGUE, catalogueFact } from "@/content/letters/letter-fact-catalogue";
 
 /**
  * ===========================================================================
@@ -27,9 +28,23 @@ import { licenceIsCurrentToday } from "./launch";
  * newest is the value, so what a letter printed can always be traced.
  */
 
-export type OfficeFact = "authority_address" | "authority_salutation";
-export type EngineerFact = "foundation_type" | "element_described";
+/*
+ * 0087 adds the manufactured home, solar and WPI-8E facts, declared with who
+ * records each in letter-fact-catalogue.ts; the 0085 four keep their rulings.
+ */
+export type OfficeFact = "authority_address" | "authority_salutation" | string;
+export type EngineerFact = "foundation_type" | "element_described" | string;
 export type LetterFact = OfficeFact | EngineerFact;
+const OFFICE_FACTS: readonly string[] = [
+  "authority_address",
+  "authority_salutation",
+  ...LETTER_FACT_CATALOGUE.filter((f) => f.capacity === "office").map((f) => f.key),
+];
+const ENGINEER_FACTS: readonly string[] = [
+  "foundation_type",
+  "element_described",
+  ...LETTER_FACT_CATALOGUE.filter((f) => f.capacity === "engineer").map((f) => f.key),
+];
 export const FOUNDATION_TYPES = ["slab-on-grade", "pier-and-beam", "crawlspace"] as const;
 export type FoundationType = (typeof FOUNDATION_TYPES)[number];
 
@@ -87,9 +102,13 @@ export async function recordOfficeFact(
   context: Context = {},
 ): Promise<Ok<Record<never, never>> | Refused> {
   if (!actor || !can(actor, "files.update_details")) return { ok: false, error: "Your role cannot record the authority's details on a file." };
-  if (fact !== "authority_address" && fact !== "authority_salutation") return { ok: false, error: "That is not a fact the office records." };
+  if (!OFFICE_FACTS.includes(fact)) return { ok: false, error: "That is not a fact the office records." };
   const written = value.trim();
   if (!written) return { ok: false, error: "Write it as it should print on the letter." };
+  const declared = catalogueFact(fact);
+  if (declared?.values && !declared.values.includes(written)) {
+    return { ok: false, error: `${declared.label} is one of: ${declared.values.join(", ")}.` };
+  }
   const missing = await fileExists(fileId);
   if (missing) return missing;
   const db = supabaseAdmin()!;
@@ -97,7 +116,9 @@ export async function recordOfficeFact(
   if (error) return { ok: false, error: `It was not recorded: ${error.message}` };
   await writeAudit({
     actor, action: "letter.fact_recorded", entityType: "file", entityId: fileId,
-    summary: `Recorded the ${fact === "authority_address" ? "authority's address" : "authority's salutation"} for the letter.`,
+    summary: `Recorded the ${
+      fact === "authority_address" ? "authority's address" : fact === "authority_salutation" ? "authority's salutation" : (declared?.label ?? fact)
+    } for the letter.`,
     diff: { fact, value: written, capacity: "office" }, ip: context.ip, userAgent: context.userAgent,
   });
   return { ok: true };
@@ -112,7 +133,7 @@ export async function recordEngineerFact(
   context: Context = {},
 ): Promise<Ok<Record<never, never>> | Refused> {
   if (!actor || !holdsLicence(actor, "review.decide")) return { ok: false, error: licenceRefusal("Confirming a fact on a letter") };
-  if (fact !== "foundation_type" && fact !== "element_described") return { ok: false, error: "That is not a fact the engineer records." };
+  if (!ENGINEER_FACTS.includes(fact)) return { ok: false, error: "That is not a fact the engineer records." };
   const written = value.trim();
   if (fact === "foundation_type" && !(FOUNDATION_TYPES as readonly string[]).includes(written)) {
     return { ok: false, error: "The foundation type is slab-on-grade, pier-and-beam or crawlspace." };
@@ -120,6 +141,11 @@ export async function recordEngineerFact(
   if (fact === "element_described" && written.length < 3) return { ok: false, error: "Describe the element as the letter should name it." };
   const reg = await engineerOnRegister(actor);
   if (!reg.ok) return reg;
+  const declared = catalogueFact(fact);
+  if (declared && !written) return { ok: false, error: `Record the ${declared.label.toLowerCase()} as the document should print it.` };
+  if (declared?.values && !declared.values.includes(written)) {
+    return { ok: false, error: `${declared.label} is one of: ${declared.values.join(", ")}.` };
+  }
   const missing = await fileExists(fileId);
   if (missing) return missing;
   const db = supabaseAdmin()!;
@@ -127,7 +153,12 @@ export async function recordEngineerFact(
   if (error) return { ok: false, error: `It was not recorded: ${error.message}` };
   await writeAudit({
     actor, action: "letter.fact_confirmed", entityType: "file", entityId: fileId,
-    summary: fact === "foundation_type" ? `Confirmed the foundation type: ${written}.` : "Reviewed the element the letter names.",
+    summary:
+      fact === "foundation_type"
+        ? `Confirmed the foundation type: ${written}.`
+        : fact === "element_described"
+          ? "Reviewed the element the letter names."
+          : `Recorded ${(declared?.label ?? fact).toLowerCase()} at review.`,
     diff: { fact, value: written, capacity: "engineer" }, ip: context.ip, userAgent: context.userAgent,
   });
   return { ok: true };
