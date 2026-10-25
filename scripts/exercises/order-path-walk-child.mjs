@@ -33,7 +33,13 @@ const STAMP = Date.now().toString(36);
 const LABEL = "Audit Walk";
 const TEST_ENGINEER = {
   name: "Audit Walk Engineer, not a real person",
-  licenseNumber: "AUDIT-WALK-PE",
+  /*
+   * Digits, in the probe range no Texas licence can hold (nine digits from 900;
+   * a Texas PE number is six), because 0089's seal doors take a licence that is
+   * digits only. Robert's instruction of 2026-10-25, after the chat's 0089
+   * development sitting found every probe licence carried letters.
+   */
+  licenseNumber: "900000001",
   disciplines: ["Civil"],
   sealsOnly: ["structural"],
   granted: "2020-01-01",
