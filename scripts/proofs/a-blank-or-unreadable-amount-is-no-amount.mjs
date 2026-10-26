@@ -46,6 +46,19 @@ check(
 );
 check("and a price error stops the job being taken", /!priceError &&/.test(intake));
 
+/* E3e, on the same screen: a failed client search is said, never "Nobody matches that". */
+check(
+  "a refused or unreachable client search is recorded as failed, not as no matches",
+  /setSearchFailed\(body\?\.error \? String\(body\.error\) : `the server answered \$\{res\.status\}`\)/.test(intake) &&
+    /\} catch \{\s*if \(live\) \{\s*setMatches\(\[\]\);\s*setSearchFailed\("the request did not reach the server"\);/.test(intake),
+);
+check(
+  "and the screen says the search failed before it would ever say nobody matches",
+  /* The rendered sentence, not the comment that quotes it. */
+  intake.indexOf("!searching && searchFailed ?") > 0 &&
+    intake.indexOf("!searching && searchFailed ?") < intake.indexOf("<p className={hint}>Nobody matches that."),
+);
+
 console.log("");
 if (wrong === 0) {
   console.log("PASS: a blank or unreadable amount is no amount, never zero and never the catalogue price.");
