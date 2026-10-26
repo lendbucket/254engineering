@@ -325,11 +325,30 @@ export async function activationView(actor: Actor | null, onboardingId: string):
     .maybeSingle();
   if (!onboarding) return null;
 
-  const { data: rows } = await db
+  const { data: rows, error: itemsError } = await db
     .from("eng_onboarding_items")
     .select("item_key, label, status, actor, issued_on, expires_on, sort_order")
     .eq("onboarding_id", onboardingId)
     .order("sort_order");
+
+  /*
+   * A FAILED READ OF THE CHECKLIST IS NOT AN EMPTY CHECKLIST. Section 6 of
+   * Robert's audit of 2026-10-24, A15. Read as [], every required credential
+   * was "not on this person's checklist at all", readiness found no blocker,
+   * and activateTechnician created the account and its invite on a read that
+   * had failed. It is now a blocker that says so, and nothing is activated.
+   */
+  if (itemsError) {
+    return {
+      onboarding: onboarding as ActivationView["onboarding"],
+      items: [],
+      readiness: {
+        ready: false,
+        blockers: [`The checklist could not be read just now (${itemsError.message}), so whether this person is ready is not known. Nothing was activated. Reload and try again.`],
+        missingExpiry: [],
+      },
+    };
+  }
 
   const items = (rows ?? []).map((r) => ({
     itemKey: r.item_key as string,

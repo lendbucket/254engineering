@@ -39,8 +39,9 @@ const ACTOR = {
   role: "admin",
   status: "active",
   email: "failed-read-proof@audit-probe.invalid",
-  grants: new Set(["files.list", "evidence.review", "evidence.capture"]),
+  grants: new Set(["files.list", "evidence.review", "evidence.capture", "profiles.create"]),
 };
+const ONBOARDING = "00000000-0000-4000-8000-0000000000f4";
 
 const state = { fail: new Set(), updates: [], audits: [] };
 const json = (b, status = 200) => new Response(JSON.stringify(b), { status, headers: { "content-type": "application/json" } });
@@ -71,6 +72,12 @@ const ROWS = {
   eng_partner_touches: [{ partner_id: "p1", code: "PROOFCODE", kind: "code", occurred_at: "2026-10-20T15:00:00Z" }],
   eng_service_orders: [],
   eng_order_events: [{ detail: { session_ref: "cs_test_proof" }, created_at: "2026-10-20T15:00:00Z" }],
+  eng_onboardings: [{
+    id: ONBOARDING, person_name: "Failed read proof technician, not a real person", email: "fr-tech@audit-probe.invalid", phone: null,
+    role: "field_tech", status: "submitted", coverage_counties: ["Nueces"], base_city: "Corpus Christi", base_county: "Nueces",
+    activated_at: null, profile_id: null,
+  }],
+  eng_onboarding_items: [],
 };
 
 globalThis.fetch = async (input, init) => {
@@ -163,9 +170,33 @@ check(
   `${finding.verdict}: ${String(finding.detail ?? "").slice(0, 120)}`,
 );
 
+/* A15: activation. A failed read of the checklist is a blocker that says so, and nothing is activated. */
+const onboarding = await import("../../src/lib/ops-onboarding.ts");
+state.fail = new Set();
+const cleanView = await onboarding.activationView(ACTOR, ONBOARDING);
+check(
+  "the onboarding reads clean, and no blocker names a failed read",
+  Boolean(cleanView) && !cleanView.readiness.blockers.some((b) => /could not be read/.test(b)),
+  JSON.stringify(cleanView?.readiness.blockers ?? null),
+);
+state.fail = new Set(["eng_onboarding_items"]);
+const failedView = await onboarding.activationView(ACTOR, ONBOARDING);
+check(
+  "A15: a failed checklist read is not ready, and the blocker says the checklist could not be read",
+  Boolean(failedView) && failedView.readiness.ready === false && failedView.readiness.blockers.some((b) => /The checklist could not be read just now/.test(b)),
+  JSON.stringify(failedView?.readiness ?? null),
+);
+const activated = await onboarding.activateTechnician(ACTOR, ONBOARDING);
+check(
+  "and activation refuses on it before any account is made",
+  activated.ok === false && (activated.blockers ?? []).some((b) => /checklist could not be read/.test(b)),
+  JSON.stringify(activated),
+);
+state.fail = new Set();
+
 console.log("");
 if (wrong === 0) {
-  console.log("PASS: a failed read in a job, a binder, an attribution or a reconcile decides nothing and says what failed.");
+  console.log("PASS: a failed read in a job, a binder, an attribution, a reconcile or an activation decides nothing and says what failed.");
   process.exitCode = 0;
 } else {
   console.log(`FAIL: ${wrong} check(s).`);
