@@ -131,11 +131,11 @@ const SRC = {
   },
   twiaOverview: {
     label: "Texas Windstorm Insurance Association, Overview",
-    url: "https://www.twia.org/about-us/overview",
+    url: "https://www.twia.org/about-us/overview/",
   },
   twiaCert: {
     label: "Texas Windstorm Insurance Association, Windstorm Certification",
-    url: "https://www.twia.org/windstorm-certification",
+    url: "https://www.twia.org/windstorm-certification/",
   },
   ins2210_573: {
     label: "Tex. Ins. Code § 2210.573, Filing of Claim; Claim Processing",
@@ -159,11 +159,10 @@ const SRC = {
   },
   femaP804: {
     label: "FEMA P-804, Wind Retrofit Guide for Residential Buildings, Second Edition, April 2023",
-    url: "https://www.fema.gov/sites/default/files/documents/fema_p-804-wind-retrofit-guide-042023.pdf",
-  },
-  femaLoadPath: {
-    label: "FEMA 499, Home Builder's Guide to Coastal Construction, Technical Fact Sheet No. 10, Load Paths (2005), as hosted by the Louisiana Department of Energy and Natural Resources",
-    url: "https://www.dnr.louisiana.gov/assets/docs/energy/programs/residential/coastal/hgcc_fact10.pdf",
+    /* FEMA's Building Science library address for the same Second Edition,
+     * Second Issuance, April 2023, loaded and read 2026-10-26. The old address
+     * now lands on the fema.gov homepage. */
+    url: "https://www.fema.gov/sites/default/files/documents/fema_rsl_fema-p-804-wind-retrofit-guide_042025.pdf",
   },
   nhcScale: {
     label: "National Hurricane Center, Saffir-Simpson Hurricane Wind Scale",
@@ -199,7 +198,7 @@ export const coastalInsights: Insight[] = [
     eyebrow: "Windstorm law",
     primaryKeyword: "twia insurance",
     datePublished: DATE,
-    dateModified: DATE,
+    dateModified: "2026-10-25",
     body: [
       {
         kind: "p",
@@ -216,7 +215,7 @@ export const coastalInsights: Insight[] = [
       },
       {
         kind: "p",
-        text: "The trigger is the certificate itself. A booked inspection does not meet it, and neither does work that looks finished.",
+        text: "The trigger is [the certificate itself](/windstorm/twia-coverage). A booked inspection does not meet it, and neither does work that looks finished.",
       },
       { kind: "h2", text: "Which property the rule reaches" },
       {
@@ -315,7 +314,7 @@ export const coastalInsights: Insight[] = [
     eyebrow: "Windstorm law",
     primaryKeyword: "twia coverage homes built before 1988",
     datePublished: DATE,
-    dateModified: DATE,
+    dateModified: "2026-10-25",
     body: [
       {
         kind: "p",
@@ -359,7 +358,7 @@ export const coastalInsights: Insight[] = [
       { kind: "h2", text: "Why a later repair does not inherit the house's date" },
       {
         kind: "p",
-        text: "The pre-1988 treatment belongs to the pre-1988 work. A roof replaced last year on a house built in 1975 is work done on or after January 1, 1988, and subsection (a) reaches it. Inside the catastrophe area, section 2210.258 goes further for work begun after its 2009 legislation took effect: the association may not insure the structure until a certificate of compliance has issued for that work, subject to that section's own exceptions, which are set out on [the TWIA eligibility requirements page](/insights/twia-eligibility-requirements).",
+        text: "The pre-1988 treatment belongs to the pre-1988 work. A roof replaced last year on a house built in 1975 is work done on or after January 1, 1988, and subsection (a) reaches it. Inside the catastrophe area, section 2210.258 goes further for work begun after its 2009 legislation took effect: the association may not insure the structure [until a certificate of compliance has issued](/windstorm/twia-coverage) for that work, subject to that section's own exceptions, which are set out on [the TWIA eligibility requirements page](/insights/twia-eligibility-requirements).",
       },
       {
         kind: "p",
@@ -945,7 +944,7 @@ export const coastalInsights: Insight[] = [
     eyebrow: "Windstorm law",
     primaryKeyword: "roof certification for insurance",
     datePublished: DATE,
-    dateModified: DATE,
+    dateModified: "2026-10-08",
     body: [
       {
         kind: "p",
@@ -1025,7 +1024,7 @@ export const coastalInsights: Insight[] = [
     eyebrow: "Windstorm law",
     primaryKeyword: "inspection vs forensic report",
     datePublished: DATE,
-    dateModified: DATE,
+    dateModified: "2026-10-17",
     body: [
       {
         kind: "p",
@@ -1135,8 +1134,9 @@ export const coastalInsights: Insight[] = [
    *   TWIA, Overview and Windstorm Certification pages
    *   Tex. Ins. Code 2210.573, 542.055 and 542.056
    *   OPIC, Decoding Residential Property Deductibles
-   *   FEMA flood waiting period notice; FEMA P-804 (2023); FEMA 499 fact sheet
-   *        on load paths (2005 edition, hosted by the Louisiana DNR)
+   *   FEMA flood waiting period notice; FEMA P-804 (2023). (The FEMA 499 fact
+   *        sheet on load paths, hosted by the Louisiana DNR, was removed on
+   *        2026-10-26: its address now lands on a homepage.)
    *   NHC, Saffir-Simpson Hurricane Wind Scale and Hurricane Hazards
    *   ASCE, announcement of ASCE/SEI 7-22
    *
@@ -1163,7 +1163,7 @@ export const coastalInsights: Insight[] = [
     eyebrow: "Windstorm law",
     primaryKeyword: "wpi8",
     datePublished: WINDSTORM_SECTION_DATE,
-    dateModified: WINDSTORM_SECTION_DATE,
+    dateModified: "2026-10-17",
     body: [
       {
         kind: "p",
@@ -1308,7 +1308,7 @@ export const coastalInsights: Insight[] = [
     eyebrow: "Windstorm law",
     primaryKeyword: "texas windstorm",
     datePublished: WINDSTORM_SECTION_DATE,
-    dateModified: WINDSTORM_SECTION_DATE,
+    dateModified: "2026-10-25",
     body: [
       {
         kind: "p",
@@ -1373,7 +1373,7 @@ export const coastalInsights: Insight[] = [
       { kind: "h2", text: "What the inspector needs to see" },
       {
         kind: "p",
-        text: "Wind does not damage a house one component at a time. It pushes and lifts on the roof and walls, and that force has to travel through a chain of connections to the ground. FEMA's coastal construction fact sheet on load paths describes the chain as roof covering to sheathing, sheathing to roof framing, roof framing to the bearing walls, upper walls to lower walls and to the floor, and the floor to the foundation. FEMA's wind retrofit guide defines load paths as chains of connections that transfer loads from where they are applied to the foundation.",
+        text: "Wind does not damage a house one component at a time. It pushes and lifts on the roof and walls, and that force has to travel through a chain of connections to the ground. FEMA's wind retrofit guide defines load paths as chains of connections that transfer loads from where they are applied to the foundation.",
       },
       {
         kind: "p",
@@ -1418,7 +1418,6 @@ export const coastalInsights: Insight[] = [
       cite("asce7", "That U.S. building codes have relied on ASCE 7 as the authoritative source for loads, and that the 2022 edition brought new wind speeds along the hurricane coastline."),
       cite("ins2210_254", "That a windstorm inspection may be made only by a qualified inspector approved and appointed or employed by the department."),
       cite("tdiProcess", "That TDI inspectors handle non-structural work, the published engineer list, inspection during and not before or after the work, the 48 hour target, posted notices and reinspection, and hiring an appointed engineer after a TDI disapproval."),
-      cite("femaLoadPath", "The chain of connections from roof covering to foundation."),
       cite("femaP804", "The definition of load paths, and that a broken window or glass door can let wind pressure build inside a house."),
       cite("tdiSystem", "The order of steps for an engineer inspection, processing within 48 hours, and that a new structure is not certified separately by foundation, framing and roof."),
       cite("ins2210_2515", "The six month limit after final inspection for an ongoing improvement."),
@@ -1447,7 +1446,7 @@ export const coastalInsights: Insight[] = [
     eyebrow: "Windstorm law",
     primaryKeyword: "twia",
     datePublished: WINDSTORM_SECTION_DATE,
-    dateModified: WINDSTORM_SECTION_DATE,
+    dateModified: "2026-10-25",
     body: [
       {
         kind: "p",
@@ -1460,7 +1459,7 @@ export const coastalInsights: Insight[] = [
       { kind: "h2", text: "What the association is" },
       {
         kind: "p",
-        text: "The association's overview says it is not a state agency and receives no general revenue. It describes itself as a residual insurer of last resort rather than a competitor to private insurers. The department's own overview of the association, dated June 8, 2026, gives the purpose in a sentence: to provide windstorm and hail coverage to those who are unable to obtain insurance from the voluntary insurance market.",
+        text: "The association's overview says it is not a state agency and receives no general revenue. It describes itself as a [residual insurer of last resort](/windstorm/twia-coverage) rather than a competitor to private insurers. The department's own overview of the association, dated June 8, 2026, gives the purpose in a sentence: to provide windstorm and hail coverage to those who are unable to obtain insurance from the voluntary insurance market.",
       },
       {
         kind: "p",
@@ -1745,7 +1744,7 @@ export const coastalInsights: Insight[] = [
     eyebrow: "Storm damage",
     primaryKeyword: "hurricane damage",
     datePublished: WINDSTORM_SECTION_DATE,
-    dateModified: WINDSTORM_SECTION_DATE,
+    dateModified: "2026-10-25",
     body: [
       {
         kind: "p",
@@ -1781,12 +1780,12 @@ export const coastalInsights: Insight[] = [
       { kind: "h2", text: "Why the damage follows a path" },
       {
         kind: "p",
-        text: "FEMA's wind retrofit guide defines load paths as chains of connections that transfer loads from where they are applied to the foundation. Its coastal construction fact sheet on load paths lists the links: roof covering to sheathing, sheathing to roof framing, roof framing to the bearing walls, upper walls to lower walls and the floor, and the floor to the foundation.",
+        text: "FEMA's wind retrofit guide defines load paths as chains of connections that transfer loads from where they are applied to the foundation.",
       },
-      {
-        kind: "p",
-        text: "The same fact sheet explains why damage spreads. If a connection fails, an alternative load path forms and the adjacent framing receives more load, and if that new path is too weak, progressive failure can occur. A storm that pulled one truss off a wall has put more load on the trusses beside it, whether or not they show it.",
-      },
+      /* Two sentences on the links of the chain, and a paragraph on alternative
+       * load paths and progressive failure, rested only on FEMA 499 Technical
+       * Fact Sheet No. 10 as hosted by Louisiana, whose address now lands on a
+       * homepage; removed 2026-10-26 (Robert, 2026-10-25). */
       {
         kind: "p",
         text: "FEMA's guide records what that looks like after real storms. It reports light-framed wood trusses lifted off exterior walls, which enabled gable end walls to collapse, and it notes that a broken window or glass door can let wind pressure build inside a house, which may cause structural damage. Older buildings that performed poorly, it says, often lacked a continuous load path for gravity, uplift and lateral loads.",
@@ -1871,7 +1870,6 @@ export const coastalInsights: Insight[] = [
       cite("nhcScale", "That the scale rates hurricanes by maximum sustained wind only and excludes surge, rainfall flooding and tornadoes, and the wind ranges and damage descriptions for framed homes by category."),
       cite("nhcHazards", "That storm surge and large waves pose the greatest threat to life and property on the coast, that surge destroys buildings and erodes beaches and dunes, that flooding is the major inland threat, and that debris becomes flying missiles."),
       cite("femaP804", "The definition of load paths, trusses lifted off walls enabling gable end collapse, internal pressure after a broken window or glass door, the features of poorly performing older buildings, and the Basic, Intermediate and Advanced retrofit packages."),
-      cite("femaLoadPath", "The chain of connections from roof covering to foundation, alternative load paths, and progressive failure."),
       cite("tdiCoast", "Taking photos and video of damage, temporary repairs such as boarding up windows and doors, and saving receipts."),
       cite("twiaCert", "That temporary repairs after a storm need no windstorm certificate."),
       cite("ins2210_2515", "That an improvement includes repair and requires written notice to the department before work begins."),

@@ -8,7 +8,7 @@ import { Container } from "@/components/ui/Container";
 import { Section, SectionHead } from "@/components/ui/section";
 import { FaqBlock } from "@/components/site/FaqBlock";
 import { buildMetadata } from "@/lib/seo";
-import { JsonLd, breadcrumbSchema, faqSchema } from "@/lib/schema";
+import { ArticleJsonLd, JsonLd, breadcrumbSchema, faqSchema } from "@/lib/schema";
 
 /**
  * TARGET 5 OF THE SEO REVISION: "what is a structural engineer" and "what does
@@ -74,6 +74,7 @@ export default function WhatIsAStructuralEngineerPage() {
     <>
       <JsonLd data={breadcrumbSchema(crumbs)} />
       <JsonLd data={faqSchema(faqs)} />
+      <ArticleJsonLd path="/what-is-a-structural-engineer" headline="What Is a Structural Engineer?" description={String(metadata.description)} />
 
       <PageHeader
         image={sectionPhotos.government}
