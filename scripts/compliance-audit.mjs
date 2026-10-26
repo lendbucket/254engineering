@@ -1585,7 +1585,16 @@ const RULED_CONDITIONS = [
    * ruling is inert if the condition still sweeps every service that exists.
    */
   /* Robert's ruling 2 of 2026-10-24: foundation certification and the permit letter join roof, $709 each. */
-  const OFFERED_AT_LAUNCH = ["roof-inspections", "foundation-inspections", "structural-letters"];
+  /* And his ruling of 2026-10-25, 23:50 Central: every line with a published price is for sale. */
+  const OFFERED_AT_LAUNCH = [
+    "roof-inspections",
+    "foundation-inspections",
+    "structural-letters",
+    "manufactured-home-foundation-certifications",
+    "solar-structural-letters",
+    "windstorm-wpi-8",
+    "repair-specifications",
+  ];
 
   const { offeredServiceLines } = await import("../src/config/launch-conditions.ts");
   const { PROTOCOL_ENTRIES } = await import("../src/content/protocols/index.ts");

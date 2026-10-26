@@ -473,6 +473,14 @@ const PHASE_ZERO = [
   },
   { name: "registry-audit", why: "keyword ownership is self consistent and every live claim resolves" },
   { name: "email-audit", why: "every outbound template: voice, absolute links, plaintext part" },
+  /*
+   * Robert, 2026-10-25, from the Ahrefs crawl. Phase zero: neither needs a
+   * server or a database. citation-audit loads other sites, paced, and reports
+   * a bot wall as COULD NOT TELL rather than as a dead page; guide-dates-audit
+   * needs the whole git history, which the board's shard checkout fetches.
+   */
+  { name: "citation-audit", why: "every citation in the content answers on its own page, and none is dead or redirected" },
+  { name: "guide-dates-audit", why: "the guide pages' Article dates are their git history, never typed" },
 ];
 
 const PHASE_ONE = [
