@@ -237,6 +237,16 @@ check(
 );
 state.failQuestionRead = 0;
 
+/* Class A, severity 2: a person's notification settings. A failed read shows no form, so the defaults cannot be saved over them. */
+const notify = await import("../../src/lib/ops-notify.ts");
+state.fail = new Set();
+check("notification settings read clean as a list", Array.isArray(await notify.preferencesFor(ACTOR.id, "admin")));
+state.fail = new Set(["eng_notification_prefs"]);
+check("and a failed read of them is null, never the defaults", (await notify.preferencesFor(ACTOR.id, "admin")) === null);
+state.fail = new Set();
+const profilePage = (await import("node:fs")).readFileSync("src/app/portal/(app)/profile/page.tsx", "utf8");
+check("and the profile page offers no form over settings it could not read", profilePage.indexOf("{stored === null ? (") > 0 && profilePage.indexOf("{stored === null ? (") < profilePage.indexOf("<PreferencesForm"));
+
 /* Class A, severity 2: the queue's dead letters. A failed read is null, which the queue page says. */
 const jobs = await import("../../src/lib/ops-jobs.ts");
 check("the dead letters read clean as a list", Array.isArray(await jobs.deadLetters()));
