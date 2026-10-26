@@ -287,7 +287,7 @@ export default async function PriceBookPage() {
       */}
       {addenda ? (
         <Panel title="Scope addenda for the engineer">
-          <p className="max-w-[75ch] text-[14px] leading-[1.6] text-[var(--secondary)]">
+          <p className="max-w-[75ch] text-[13.5px] leading-[1.6] text-[var(--secondary)]">
             A deliverable the engineer&apos;s agreement does not cover pays nothing and cannot be ordered until he signs an
             addendum for it in the portal, from his own account with a fresh code. You draft it here; it then waits on his
             portal for his signature.
@@ -296,7 +296,7 @@ export default async function PriceBookPage() {
             {addenda.map((a) => (
               <li key={a.deliverable} className="border-b border-[var(--row-rule)] py-4">
                 <p className="text-[15px] font-semibold text-[var(--ink)]">{a.label}</p>
-                <p className="mt-1 text-[14px] leading-[1.6] text-[var(--ink)]">
+                <p className="mt-1 text-[13.5px] leading-[1.6] text-[var(--ink)]">
                   {!a.state.ok
                     ? a.state.why
                     : !a.state.newest

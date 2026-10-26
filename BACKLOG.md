@@ -4,7 +4,20 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
-## 0095 AND 0096, WPI-8 ONGOING THROUGH A SCOPE ADDENDUM: MIGRATIONS AND THE DOOR BUILT, THE SCREENS NOT YET
+## 0095 AND 0096, WPI-8 ONGOING THROUGH A SCOPE ADDENDUM: BUILT, THREE THINGS LEFT
+
+**Built since** (same branch): the owner's panel on `/portal/pricebook` and
+`/api/portal/addenda/draft`, the card on the engineer's review home, his WP-001
+signature put in force when he signs, dispatch choosing the protocol by the
+order's tier, and his $175 credited through `productionCreditFor`. **Left:**
+(1) the certification check takes the line's headline tier, so a check on
+254-WP-001 itself needs a tier passed to `/portal/certification`; (2)
+`cost-per-job.ts`, the price book's estimate, still shows no engineer cost for
+ongoing, because it reads configuration and the figure now lives in the signed
+record; (3) the CLAUDE.md amendment beside ruling 11 waits for Robert's answer
+to question 10.
+
+### As first written
 
 Robert's rulings of 2026-10-26, 07:10 and 08:19 Central, on
 `feat/wpi8-ongoing-addendum`, with
