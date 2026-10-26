@@ -3,7 +3,7 @@ import { supabaseAdmin } from "./supabase";
 import { business } from "@/config/business";
 import { catalogFor } from "@data/catalog";
 import { orderForCustomerToken } from "./ops-intake";
-import { CUSTOMER_STATUS, CUSTOMER_STATUS_REFUND_ISSUED, CUSTOMER_STATUS_REPAIRS, type OrderStatus } from "./ops-orders";
+import { CUSTOMER_STATUS, CUSTOMER_STATUS_REFUND_ISSUED, CUSTOMER_STATUS_REPAIR_SPEC, CUSTOMER_STATUS_REPAIRS, type OrderStatus } from "./ops-orders";
 import { money, type Cents } from "./ops-money";
 import { REFUND_ISSUED_SENTENCE } from "./refund-update";
 import { customerLettersRead, type CustomerLetter } from "./letter-delivery";
@@ -214,7 +214,9 @@ export async function customerView(token: string): Promise<CustomerView | null> 
         ? CUSTOMER_STATUS_REFUND_ISSUED
         : awaitingRepairs
           ? CUSTOMER_STATUS_REPAIRS
-          : CUSTOMER_STATUS[order.status as OrderStatus],
+          : order.status === "in_fulfilment" && order.service_slug === "repair-specifications"
+            ? CUSTOMER_STATUS_REPAIR_SPEC
+            : CUSTOMER_STATUS[order.status as OrderStatus],
     serviceName: entry?.name ?? (order.service_slug as string),
     propertyAddress: order.property_address as string,
     city: (order.city as string | null) ?? null,

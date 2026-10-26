@@ -155,7 +155,7 @@ export type LineOffer = {
 };
 
 /** The catalogue entry a price is quoted from: the cheapest orderable one. */
-function headlineEntry(slug: string): CatalogEntry | null {
+export function headlineEntry(slug: string): CatalogEntry | null {
   const forLine = CATALOG.filter((e) => e.serviceSlug === slug && isKnown(e.priceCents));
   if (forLine.length === 0) return null;
   return forLine.reduce((lowest, e) => (e.priceCents! < lowest.priceCents! ? e : lowest));

@@ -13,6 +13,9 @@ export const metadata: Metadata = buildMetadata({
     /* No reply time: nothing enforces one (operator rule, 2026-10-18; plan finding 6). */
     "Tell us what is being built, what has to be produced, and the date it is needed. Send the brief and the firm reads it and replies to the address you give.",
   path: "/design-inquiry",
+  /* A quote form, so out of the index with its links followed, as on
+   * /order/start/* and /windstorm-inquiry (Robert, 2026-10-25). */
+  noIndex: true,
 });
 
 const crumbs = [

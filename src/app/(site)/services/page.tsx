@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { PageHeader } from "@/components/site/PageHeader";
 import { sectionPhotos } from "@/content/photos";
 import { PrelaunchNotice } from "@/components/launch/PrelaunchNotice";
@@ -146,6 +147,15 @@ export default function ServicesPage() {
                 />
               ))}
             </CardGrid>
+            {/* Robert, 2026-10-25, from the Ahrefs crawl: the explainer had no
+                internal link at all, and this page is one of the two he named. */}
+            <p className="mt-10 max-w-[68ch] text-[15px] leading-[1.7] text-slate-muted">
+              Not sure the problem needs an engineer at all? Start with{" "}
+              <Link href="/what-is-a-structural-engineer" className="underline underline-offset-4">
+                what a structural engineer does, and what one is not
+              </Link>
+              .
+            </p>
         </div>
       </Section>
 
