@@ -4,6 +4,21 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
+## 0093, THE SECOND FACTOR FOR THE ADMINISTRATOR, THE OFFICE AND THE REP: BUILT, HELD BEFORE ANY SITTING
+
+Robert's addendum of 2026-10-25, item 5, on `migration/0093-second-factor-for-staff`
+with `docs/production-sitting-0093-second-factor-for-staff.md`. **Not posted for
+a sitting yet, and the reason is the shared development database.**
+`mfa-audit` uses `admin` as its example of an OPTIONAL role ("an optional role
+with no factor is offered enrolment and can decline into the portal"), and the
+same probe's cookie walks the enrolment screen in a browser later in the audit.
+The moment 0093 is on development, that check reads the requirement as a
+defect on every branch's board. The example moves to a role that stays
+optional, in the same branch, measured by its board, and only then is 0093 sat
+on development. The probes for every other audit enrol whenever they are sent
+to enrolment, required or not (`scripts/lib/probe-mfa.mjs`), so they need
+nothing.
+
 ## THE SITTINGS FOR 0091 AND 0092, AND THE REPAIR SPECIFICATION WAITS ON THEM
 
 `docs/production-sitting-0091-three-letters-seal-without-a-template.md` and

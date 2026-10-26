@@ -503,7 +503,9 @@ export const GAPS = [
       "2026-10-10, operator rulings (product audit gap 3, and a later ruling the same day replacing gap 4's): the second factor is REQUIRED for the ENGINEER role, the role that seals. " +
       "Migration 0070 sets it. THE ENGINEER HALF IS CLOSED: production has had 0070 since 2026-10-10 15:06 CT, read back as engineer required. " +
       "THE ADMINISTRATOR HALF STAYS OPEN, reason: operator's choice. The administrator role stays optional by the operator's ruling of 2026-10-10, which replaced gap 4's ruling before 0070 was applied anywhere. " +
-      "The residual risk is the one stated above, an administrator account protected by a password alone, and it is the operator's to carry.",
+      "The residual risk is the one stated above, an administrator account protected by a password alone, and it is the operator's to carry. " +
+      "2026-10-25, Robert's addendum, item 5: the second factor is required for the administrator, the operations manager and the rep. " +
+      "Migration 0093 sets it and is applied nowhere yet; the administrator half closes when production has 0093, read back as admin required.",
   },
   {
     id: "no-board-history",

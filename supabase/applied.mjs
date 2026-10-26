@@ -3412,6 +3412,24 @@ export const APPLIED = [
       "production. The branch merges only after the production apply is read back, and a migration on main is " +
       "never pending.",
   },
+  {
+    file: "0093_the_second_factor_is_required_for_the_administrator_the_office_and_the_rep.sql", appliedBy: "apply_migration",
+    fingerprint: "8daaba436e02fb92c9a6b227fcb98caf",
+    behaviour: "d76bf14347aef9223a5c933065013bd1",
+    production: null,
+    proves: { row: { table: "eng_roles", where: "key = 'rep' and mfa_requirement = 'required'" } },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0093 on 2026-10-26, with 0092 reproducing its recorded " +
+      "pair first. The shape repeats 0092's and the fact count stays 1281: it updates three seeded rows and has " +
+      "no DDL. The behaviour digest moves, 92e2d140 to d76bf143, because eng_roles is a seeded table the digest " +
+      "hashes, as it did for 0070.",
+    because:
+      "WRITTEN 2026-10-26 ON migration/0093-second-factor-for-staff, ON TOP OF 0092, AND APPLIED NOWHERE. Robert's " +
+      "addendum of 2026-10-25, item 5: the second factor is required for the administrator, the operations " +
+      "manager and the rep. Posted on issue #1 for the chat to sit after 0090 to 0092, development first, then " +
+      "production, with the dry run of who is not enrolled read first. The branch merges only after the " +
+      "production apply is read back, and a migration on main is never pending.",
+  },
 ];
 
 /*
