@@ -25,6 +25,24 @@
 | 15-2 | Then insurance up to the new main, board it, 63 of 63; on a pass, post 0090 | After 15-1 merges |
 | 15-3 | Then the queue in order: 0091, the letters, the repair specification, 0093 (`38b2ffc`), 0094, WPI-8 ongoing with 0095 and 0096; `fix/mobile-audit-unmeasured` after those | Order kept |
 
+### Robert's instruction, 15:57 Central 2026-10-26: site pieces for link building (queued after the migration boards)
+
+| # | Piece | Read against the code | Bundle, lane |
+| --- | --- | --- | --- |
+| 1 | `/press` | The phone, support email, address and registration line all have derivers already (`e164Phone`/`displayPhone`, `contact.ts`, `registrationLine()`); the page renders them and types none. Counties come from the coverage data (254). The copy follows the gate: what the firm is built to do, not present tense service claims. Logos: the current `public/brand/logo.png` and `logo-dark.png` are 2262 by 1147, but `hold/logo-254-engineering` (`bf391d6`) holds a corrected logo (question 18). | Bundle 1 |
+| 2 | Windstorm certificate tool | `FIRST_TIER_COASTAL` in `src/content/windstorm.ts` (14 counties, checked at build against the region prose) and the Harris line east of State Highway 146 in `windstorm-program.ts`. **An address cannot be placed east or west of 146 without a geocoder**, which this site does not have (question 16). **No date is recorded for when the list was checked against TDI** (question 17). | Bundle 1 |
+| 3 | Partner badge | **It meets the 2026-10-15 ruling that partners never operate under a 254 mark**, and "Engineering by" is a present tense claim while the gate is shut (question 19). | Bundle 2, full lane (partner portal) |
+| 4 | One name, address and phone everywhere | `schema.tsx` already sets `name` "254 Engineering" and `legalName` the registrant; the footer prints `legalName` in its copyright line. The check compares the three exact strings on every public route's footer and in the Organization node, against literals pinned in the audit, not imported. | Bundle 1 |
+
+Bundle 1 (pieces 1, 2, 4) is new public pages plus a new check, so it goes on the full board (doubt is full lane). One board per bundle, after WPI-8 and `fix/mobile-audit-unmeasured`.
+
+**Questions 16 to 19:**
+
+16. **The tool takes a county, not an address.** Recommendation: county only. For Harris, it says part of the county is designated (east of State Highway 146), that the county alone cannot settle it, and where to check. An address lookup needs a geocoding service, which means a cost, a key and sending visitors' addresses to a third party.
+17. **The "checked on" date.** Recommendation: I read TDI's published list when building, compare it with the 14 counties and the Harris line, and the page carries that date and the URL, with the comparison in the commit. If they differ, I stop and report rather than change the list.
+18. **Which logo /press offers.** Recommendation: the files the site draws now, linked by path, so the press kit changes when the held corrected logo merges, with nothing to edit.
+19. **The partner badge.** Recommendation: the badge carries the disclosure the 2026-10-15 ruling already allows, "Engineering by 254 Engineering LLC, TBPELS Firm F-29811" (derived from the register), as text with a link and no 254 logo. Its wording follows the gate, the same as the partner disclosure does today. The alternative is the logo badge as written, which needs your word that it sits outside that ruling.
+
 ### Robert's answers, 09:12 Central 2026-10-26
 
 | | Answer | Done |
