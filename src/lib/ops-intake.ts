@@ -209,6 +209,20 @@ export type PlaceOrderInput = {
    * path to one surface's session. The caller that HAS a session passes it.
    */
   accountId?: string | null;
+  /**
+   * The price this account agreed for this deliverable, already looked up by a
+   * caller that knows the account (tradePriceInForce), or absent for the
+   * published price.
+   *
+   * Robert's answer on finding F3, 2026-10-25: the agreed price IS the order's
+   * price. It is written on the order at placement, as price_cents and in
+   * total_cents, so the statement, the receipt, the status page and the email
+   * all read the one figure. Before this, a bulk order was charged its agreed
+   * share and recorded at the published price, so an invoiced account was
+   * billed the published price. Set only by server code (placeBatch); neither
+   * order route passes it.
+   */
+  agreedPriceCents?: number | null;
 };
 
 /**
@@ -336,7 +350,8 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
   if (outsideArea) return { ok: false, error: outsideArea, field: "property.county" };
   const twia = twiaStatus(county) === "designated";
 
-  const priced = quoteFor(entry, twia, county);
+  const agreed = typeof input.agreedPriceCents === "number" && input.agreedPriceCents > 0 ? input.agreedPriceCents : null;
+  const priced = quoteFor(entry, twia, county, agreed);
   if (priced.unavailable || !isKnown(priced.totalCents)) {
     return { ok: false, error: priced.unavailable ?? "That order cannot be priced." };
   }
@@ -380,7 +395,8 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
       county,
       postal_code: trimmed(input.property.postalCode) || null,
       twia_county: twia,
-      price_cents: entry.priceCents,
+      /* The agreed price when there is one (F3); the published one stays in catalog_snapshot. */
+      price_cents: agreed ?? entry.priceCents,
       coastal_surcharge_cents: twia ? entry.coastalSurchargeCents : null,
       inspection_fee_cents: entry.inspectionFeeCents,
       total_cents: priced.totalCents,
@@ -430,6 +446,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
   await event(orderId, "order.placed", true, `Order ${reference} placed.`, {
     total_cents: priced.totalCents,
     order_type: entry.orderType,
+    ...(agreed !== null ? { agreed_price_cents: agreed, published_price_cents: entry.priceCents } : {}),
   });
 
   /*
