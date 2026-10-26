@@ -650,8 +650,9 @@ if (schemaEmailsSeen === 0) {
  * all, /windstorm/twia-coverage with one. Nothing here measured either.
  *
  * The pages read are the sitemap plus the public pages kept out of it on
- * purpose: the waitlist, the two quote forms, and every /order/start page the
- * order chooser links to (derived from its links, never listed). A noindex page
+ * purpose: the waitlist, the two quote forms, and the /order/start page of
+ * every service line the catalogue declares (read from data/catalog.ts, never
+ * listed here). A noindex page
  * is still followed, so it counts as a source of links like any other.
  *
  * An inbound link is an <a href> on ANOTHER page naming the route, after the
@@ -672,9 +673,18 @@ if (schemaEmailsSeen === 0) {
   const anchors = (html) => [...html.matchAll(/<a\b([^>]*)>/gi)].map((m) => m[1]);
   const attr = (tag, name) => tag.match(new RegExp(`\\b${name}="([^"]*)"`, "i"))?.[1] ?? null;
 
-  const orderLinks = pageHtml.get("/order")
-    ? [...new Set(anchors(pageHtml.get("/order").html).map((a) => normalise(attr(a, "href") ?? "")).filter((h) => h && h.startsWith("/order/start/")))]
-    : [];
+  /*
+   * THE START PAGES COME FROM THE CATALOGUE'S DECLARATION, NOT FROM /order's
+   * LINKS. The first board of this check (40260283202) read them off the order
+   * chooser and went red on its own floor: with the gate shut, /order lists
+   * every line as a quote and links no start page at all, while production,
+   * with a different gate, linked three. Every line the catalogue declares has
+   * a start page that renders in every mode ("the gate is rendered, not linked
+   * around"), so the subject is the declaration and does not depend on the
+   * environment the audit happens to run in.
+   */
+  const catalogSlugs = [...new Set([...readFileSync("data/catalog.ts", "utf8").matchAll(/serviceSlug: "([a-z0-9-]+)"/g)].map((m) => m[1]))];
+  const orderLinks = catalogSlugs.map((s) => `/order/start/${s}`);
   const OFF_SITEMAP = ["/waitlist", "/design-inquiry", "/windstorm-inquiry", ...orderLinks];
   for (const route of OFF_SITEMAP) {
     if (pageHtml.has(route)) continue;
@@ -685,8 +695,8 @@ if (schemaEmailsSeen === 0) {
     }
     pageHtml.set(route, { html: await res.text(), robotsHeader: res.headers.get("x-robots-tag") ?? "" });
   }
-  if (orderLinks.length === 0)
-    problems.push("the order chooser linked to no /order/start page, so the nofollow check could not reach them");
+  if (orderLinks.length < 8)
+    problems.push(`the catalogue declared ${orderLinks.length} service line(s), below the 8 of 2026-10-25, so the start pages were not all read`);
 
   const problemsBefore = problems.length;
   let nofollowRead = 0;
