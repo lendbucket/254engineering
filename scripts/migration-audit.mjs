@@ -282,8 +282,15 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * 8daaba436e02fb92c9a6b227fcb98caf, read off fingerprint-at.mjs with 0089
  * reproducing its recorded pair first.
  */
-const EXPECTED_FINGERPRINT = "8daaba436e02fb92c9a6b227fcb98caf";
-const EXPECTED_COLUMNS = 1353;
+/*
+ * Moved 2026-10-26 by 0095 and 0096, WPI-8 ongoing through a scope addendum,
+ * by Robert's rulings of 07:10 and 08:19 Central: 1,353 to 1,355 is
+ * eng_scope_addenda's basis (0095) and eng_protocol_templates' service_tier
+ * (0096); no table; shape 6adde27e5bd8a1a52cf5a2d0500af466, read off
+ * fingerprint-at.mjs with 0094 reproducing its recorded pair first.
+ */
+const EXPECTED_FINGERPRINT = "6adde27e5bd8a1a52cf5a2d0500af466";
+const EXPECTED_COLUMNS = 1355;
 const EXPECTED_TABLES = 101;
 /* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts.
  * 0074 adds two: eng_partner_billing_touch and eng_partner_billing_events_immutable.
@@ -365,8 +372,11 @@ const EXPECTED_TRIGGERS = 101;
  * and 0088's sixteen, which are unchanged. eng_seal_act_guard is replaced with
  * the same signature, which is not a new row.
  * 67 since 0090, by Robert's addendum of 2026-10-25: the trigger functions
- * eng_insurance_policy_guard, eng_insurance_policy_audit and eng_insurance_alert_guard. */
-const EXPECTED_FUNCTIONS = 67;
+ * eng_insurance_policy_guard, eng_insurance_policy_audit and eng_insurance_alert_guard.
+ * 68 since 0095, by Robert's ruling of 2026-10-26: eng_line_pay. eng_scope_addendum_text
+ * (0095), eng_approve_protocol and eng_put_signed_protocol_in_force (0096) are replaced
+ * with the same signatures, which are not new rows. */
+const EXPECTED_FUNCTIONS = 68;
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
