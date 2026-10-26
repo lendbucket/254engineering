@@ -688,6 +688,7 @@ if (schemaEmailsSeen === 0) {
   if (orderLinks.length === 0)
     problems.push("the order chooser linked to no /order/start page, so the nofollow check could not reach them");
 
+  const problemsBefore = problems.length;
   let nofollowRead = 0;
   for (const [route, { html, robotsHeader }] of pageHtml) {
     nofollowRead += 1;
@@ -722,8 +723,10 @@ if (schemaEmailsSeen === 0) {
   }
   if (linksSeen === 0 || nofollowRead < routes.length) {
     problems.push(`the link checks read ${nofollowRead} page(s) and ${linksSeen} internal link(s): a check over nothing`);
+  } else if (problems.length === problemsBefore) {
+    console.log(`PASS: no nofollow on ${nofollowRead} public pages, and all ${routes.length} sitemap pages are linked from two or more (${linksSeen} internal links counted).`);
   } else {
-    console.log(`PASS (when no line above names one): ${nofollowRead} public pages read for nofollow, ${linksSeen} internal links counted, ${routes.length - thin.length} of ${routes.length} sitemap pages linked from two or more.`);
+    console.log(`the link checks read ${nofollowRead} public pages and ${linksSeen} internal links, and name ${problems.length - problemsBefore} problem(s) in the result below.`);
   }
 }
 
