@@ -323,6 +323,14 @@ const holdSrc = (await import("node:fs")).readFileSync("src/lib/dispatch-hold.ts
 const heldBody = holdSrc.slice(holdSrc.indexOf("export async function heldFiles("), holdSrc.indexOf("export async function recordPrereview("));
 check("the files held for pre-review are read in every page, and a failed read refuses", /readEvery</.test(heldBody) && !/\.limit\(/.test(heldBody) && /if \(!read\.ok\) return \{ ok: false, error: read\.error \};/.test(heldBody));
 
+/* Class B, severity 2: the training register is read past PostgREST's silent 1000, and its decisions in chunks. */
+const recordSrc = (await import("node:fs")).readFileSync("src/lib/certification-record.ts", "utf8");
+const recordsBody = recordSrc.slice(recordSrc.indexOf("export async function trainingRecords("), recordSrc.indexOf("\n}\n", recordSrc.indexOf("export async function trainingRecords(")));
+check(
+  "the training register reads every record, and its decisions and confirmations in chunks",
+  /readEvery<Record<string, unknown>>\(\(from, to\) =>/.test(recordsBody) && (recordsBody.match(/readEveryIn</g) ?? []).length === 2 && !/\.limit\(/.test(recordsBody),
+);
+
 /* Class A, severity 2: the queue's dead letters. A failed read is null, which the queue page says. */
 const jobs = await import("../../src/lib/ops-jobs.ts");
 check("the dead letters read clean as a list", Array.isArray(await jobs.deadLetters()));
