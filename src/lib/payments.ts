@@ -64,6 +64,14 @@ export type RefundRequest = {
   amountCents: number;
   /** Which of the three cases, for the provider's own record. */
   reason: string;
+  /**
+   * The order a refund is for, when one charge pays for many orders (a bulk
+   * submission). It joins the idempotency key, so two members with equal
+   * shares refunded against one batch charge are two refunds, and a retry for
+   * the same member is still the same one. Robert's answer on findings F1 and
+   * F2, 2026-10-25: key refunds per order so none repeats.
+   */
+  orderId?: string;
 };
 
 export type RefundResult = {
