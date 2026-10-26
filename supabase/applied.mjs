@@ -3394,6 +3394,24 @@ export const APPLIED = [
       "after 0090, development first, then production. The branch merges only after the production apply is " +
       "read back, and a migration on main is never pending.",
   },
+  {
+    file: "0092_the_engineers_own_document_has_its_own_drafts_bucket.sql", appliedBy: "apply_migration",
+    fingerprint: "8daaba436e02fb92c9a6b227fcb98caf",
+    behaviour: "92e2d140a1aefe8192833d9809b7d428",
+    production: null,
+    proves: { bucket: "eng-engineer-drafts" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0092 on 2026-10-26, with 0091 reproducing its " +
+      "recorded pair first: both unchanged, because a bucket is a row in storage.buckets and neither digest " +
+      "reads it. One private bucket, PDF only, 25 MB. No table, column, function or grant.",
+    because:
+      "WRITTEN 2026-10-26 ON feat/repair-spec-own-document, ON TOP OF 0091, AND APPLIED NOWHERE. Robert's ruling " +
+      "of 2026-10-25, 23:51 Central, item C: the repair specification is the engineer's own document, uploaded, " +
+      "previewed and sealed from his session. The unsealed upload needs a private home that is not the sealed " +
+      "deliverable store. Posted on issue #1 for the chat to sit after 0090 and 0091, development first, then " +
+      "production. The branch merges only after the production apply is read back, and a migration on main is " +
+      "never pending.",
+  },
 ];
 
 /*

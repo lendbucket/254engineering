@@ -4,6 +4,46 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
+## THE SITTINGS FOR 0091 AND 0092, AND THE REPAIR SPECIFICATION WAITS ON THEM
+
+`docs/production-sitting-0091-three-letters-seal-without-a-template.md` and
+`docs/production-sitting-0092-the-engineers-own-document-has-its-own-drafts-bucket.md`,
+both written 2026-10-26 and applied nowhere yet, in order after 0090. 0091 is
+item A of Robert's ruling of 2026-10-25, 23:51 Central; 0092 is the bucket
+item C needs. Until 0092 is on production and `feat/repair-spec-own-document`
+merges, repair specification orders are taken and paid and wait at sealing,
+and the customer's page says the specification is being prepared, with no
+date, which is the same ruling's own instruction.
+
+**Owed a look from Robert: where the seal goes on his document.** The
+platform adds a final page carrying the letterhead, the registrant with
+F-29811, the document's title and the seal block, and draws nothing on his
+pages, so no stamp can cover a line he wrote (control 16). The alternative,
+stamping his last page or every page, risks covering his content on a layout
+the platform cannot see. No new sentence is printed on the added page.
+
+## THE THREE DRAFTED LETTERS HAVE NO WORDING ON FILE
+
+Item B of the same ruling builds the manufactured home, solar and WPI-8E
+letters "only from recorded facts (0087) and the drafted wording on file".
+The wording on file is the engineer's answered templates (254_Letter_Templates.docx,
+templates 2, 5 and 6), and the session that read them on 2026-10-24 listed
+what they do not cover (issue #1, comment 6379046743): the home's
+identification and the below grade sentence for 254-MH-001, the framing,
+code and array identification for 254-SL-001, and the whole postconstruction
+report for 254-WS-001. The drafts document sent for his adoption that day is
+not in the repository. No letter line for the three is written until the
+wording exists; 0091 is ready for when it does.
+
+## COPY-PROJECT'S BUCKET LIST IS SIX BUCKETS BEHIND THE CHAIN
+
+`scripts/copy-project.mjs` copies five buckets. The chain creates twelve:
+eng-documents, eng-seals, eng-partner-branding, eng-protocol-sources,
+eng-insurance and eng-engineer-drafts are not in its list, and nothing
+compares the two. It matters only on the cutover, which is deferred
+(`docs/production-cutover-plan.md`). The fix is to derive the list from the
+migrations, as migration-audit already derives the buckets the code names.
+
 ## THE SITTING FOR 0090, INSURANCE IS A REGISTER, OPEN
 
 `docs/production-sitting-0090-insurance-is-a-register.md`. Written 2026-10-25 on

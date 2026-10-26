@@ -14,8 +14,9 @@ import { captureAdditionsFor, filesAwaitingTriage, recordedFactsFor, triageFor }
 import { ElementDescribedReview, FoundationTypeConfirm, TriagePanel } from "@/components/portal/LetterFactsPanels";
 import { DecisionPanel, OpenReviewButton } from "./ReviewClient";
 import { LetterSealPanel } from "./LetterSealPanel";
+import { OwnDocumentSealPanel } from "./OwnDocumentSealPanel";
 import { FileThreadButton } from "@/components/portal/FileThreadButton";
-import { lettersAwaitingSeal } from "@/lib/letter-seal";
+import { OWN_DOCUMENT_PROTOCOLS, lettersAwaitingSeal } from "@/lib/letter-seal";
 import { heldFiles } from "@/lib/dispatch-hold";
 import { PrereviewPanel } from "./PrereviewPanel";
 import { TrainingDecisionPanel } from "./TrainingDecisionPanel";
@@ -676,7 +677,10 @@ export default async function ReviewPage({
                     a letter (ruling 7 of 2026-10-23): his foundation decline is a
                     sealed option C letter, and his permit repairs letter option C.
                   */}
-                  {sealable ? (
+                  {/* A repair specification is his own document: he uploads it rather than reading a draft (item C, 2026-10-25). */}
+                  {sealable && (OWN_DOCUMENT_PROTOCOLS as readonly string[]).includes(sealable.protocolDocument) ? (
+                    <OwnDocumentSealPanel determinationId={sealable.determinationId} fileNumber={selected.file.file_number} />
+                  ) : sealable ? (
                     <LetterSealPanel
                       determinationId={sealable.determinationId}
                       determination={sealable.determination}

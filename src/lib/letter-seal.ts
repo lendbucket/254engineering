@@ -56,10 +56,10 @@ import { readEvery, readEveryIn } from "./bounded-read";
  * and the failure is reported so the operator can see it.
  */
 
-const DOCUMENT_BUCKET = "eng-documents";
+export const DOCUMENT_BUCKET = "eng-documents";
 
 /** The signed-in person as currentActor() returns them: the grants and the profile row. */
-type SignedIn = Actor & ProfileRow;
+export type SignedIn = Actor & ProfileRow;
 
 export type SealInput = {
   determinationId: string;
@@ -79,7 +79,7 @@ export type SealInput = {
 };
 
 /** The letterhead and seal block text a letter carries, the same for the preview and the sealed PDF. */
-type LetterFrame = {
+export type LetterFrame = {
   letterhead: { brand: string; registrationLine: string };
   sealBlock: { name: string; licenseNumber: string; role: string };
 };
@@ -106,7 +106,7 @@ export function draftDigest(
   return createHash("sha256").update(canonical).digest("hex");
 }
 
-function frameFor(engineer: { name: string; licenseNumber: string }): LetterFrame {
+export function frameFor(engineer: { name: string; licenseNumber: string }): LetterFrame {
   return {
     /* "254 Engineering", the brand of the 2026-10-10 ruling, restated for letters on 2026-10-22. */
     letterhead: { brand: business.shortName, registrationLine: registrationLine() },
@@ -151,7 +151,7 @@ type DeterminationRow = {
   note?: string | null;
 };
 
-async function determination(id: string): Promise<DeterminationRow | null> {
+export async function determination(id: string): Promise<DeterminationRow | null> {
   const db = supabaseAdmin();
   if (!db) return null;
   const { data } = await db
@@ -164,6 +164,14 @@ async function determination(id: string): Promise<DeterminationRow | null> {
 
 /** The three protocols whose letters are built: roof, and since ruling 7 of 2026-10-23, foundation and permit. */
 export const SEALABLE_PROTOCOLS = ["254-RC-001", "254-FC-001", "254-PL-001"] as const;
+
+/**
+ * The protocols whose deliverable is the engineer's own document: he uploads
+ * it, and the platform drafts nothing (Robert's ruling of 2026-10-25, 23:51
+ * Central, item C; src/lib/own-document-seal.ts). 254-RS-001 section 11: "On
+ * a pass determination, the engineer issues a sealed repair specification."
+ */
+export const OWN_DOCUMENT_PROTOCOLS = ["254-RS-001"] as const;
 
 /**
  * THE VERSION A LETTER PRINTS IS THE ONE THE FILE RAN UNDER. Robert's answer
@@ -557,6 +565,7 @@ async function draftFor(det: DeterminationRow, entered: Entered): Promise<Drafte
 
 /** Whether a determination of this protocol produces a letter: FC-1 for foundation, 2026-10-22 for permit. */
 function determinationProducesLetter(protocol: string, determination: string): boolean {
+  if ((OWN_DOCUMENT_PROTOCOLS as readonly string[]).includes(protocol)) return determination === "pass";
   if (protocol === "254-FC-001") return producesFoundationLetter(determination);
   if (protocol === "254-PL-001") return determination === "pass" || determination === "repairs-required";
   return producesLetter(determination);
@@ -619,33 +628,9 @@ export async function sealLetter(actor: SignedIn | null, input: SealInput): Prom
   }
   const det = await determination(input.determinationId);
   if (!det) return { ok: false, error: "That determination does not exist." };
-  if (det.engineer_id !== actor!.id) {
-    return { ok: false, error: "Only the engineer who recorded this determination can seal its letter." };
-  }
-  const engineer = verifiedEngineers.find((e) => e.licenseNumber === actor!.license_number);
-  if (!engineer) {
-    return {
-      ok: false,
-      error: "Your license number on this account does not match the engineer on the firm's register, so nothing is sealed under it.",
-    };
-  }
-  /*
-   * AND THE LICENCE IS CURRENT TODAY. Robert's answer on L2e, 2026-10-25:
-   * sealing checks the expiry, not only that the number is on the register. An
-   * unrecorded expiry is not a current licence (licenceIsCurrent). Read
-   * through licenceIsCurrentToday, the one declared reader of "today" for a
-   * licence, which judges it on the firm's calendar (finding F6).
-   */
-  if (!licenceIsCurrentToday(engineer.expires)) {
-    return {
-      ok: false,
-      error: engineer.expires
-        ? `The license on the firm's register expired on ${engineer.expires}, so nothing is sealed under it.`
-        : "The license on the firm's register has no expiry recorded, and an unrecorded expiry is not a current license, so nothing is sealed under it.",
-    };
-  }
-  const registration = activeFirmRegistration();
-  if (!registration) return { ok: false, error: "The firm has no active registration on record, so nothing is sealed." };
+  const sealer = sealerFor(actor!, det);
+  if (!sealer.ok) return sealer;
+  const { engineer, registration } = sealer;
 
   // 3. What.
   if (!(SEALABLE_PROTOCOLS as readonly string[]).includes(det.protocol_document)) {
@@ -819,17 +804,85 @@ export async function sealLetter(actor: SignedIn | null, input: SealInput): Prom
   if (!delivers) {
     return { ok: true, documentId, sha256, delivered: false, warning: null };
   }
+  const problems = await deliverSealedFile(actor!, det, input.context ?? {});
+
+  return {
+    ok: true,
+    documentId,
+    sha256,
+    delivered: problems.length === 0,
+    warning: problems.length ? `The letter is sealed. Then ${problems.join("; ")}.` : null,
+  };
+}
+
+/**
+ * WHO MAY SEAL FOR THIS DETERMINATION, AND UNDER WHICH REGISTER ENTRIES.
+ * Controls 3 and 12: the engineer who recorded it, on the firm's register, with
+ * a current licence, under an active firm registration. One reading for a
+ * letter and for the engineer's own document, so the two cannot disagree.
+ */
+export function sealerFor(
+  actor: SignedIn,
+  det: { engineer_id: string },
+):
+  | { ok: true; engineer: (typeof verifiedEngineers)[number]; registration: NonNullable<ReturnType<typeof activeFirmRegistration>> }
+  | { ok: false; error: string } {
+  if (det.engineer_id !== actor.id) {
+    return { ok: false, error: "Only the engineer who recorded this determination can seal its letter." };
+  }
+  const engineer = verifiedEngineers.find((e) => e.licenseNumber === actor.license_number);
+  if (!engineer) {
+    return {
+      ok: false,
+      error: "Your license number on this account does not match the engineer on the firm's register, so nothing is sealed under it.",
+    };
+  }
+  /*
+   * AND THE LICENCE IS CURRENT TODAY. Robert's answer on L2e, 2026-10-25:
+   * sealing checks the expiry, not only that the number is on the register. An
+   * unrecorded expiry is not a current licence (licenceIsCurrent). Read
+   * through licenceIsCurrentToday, the one declared reader of "today" for a
+   * licence, which judges it on the firm's calendar (finding F6).
+   */
+  if (!licenceIsCurrentToday(engineer.expires)) {
+    return {
+      ok: false,
+      error: engineer.expires
+        ? `The license on the firm's register expired on ${engineer.expires}, so nothing is sealed under it.`
+        : "The license on the firm's register has no expiry recorded, and an unrecorded expiry is not a current license, so nothing is sealed under it.",
+    };
+  }
+  const registration = activeFirmRegistration();
+  if (!registration) return { ok: false, error: "The firm has no active registration on record, so nothing is sealed." };
+  return { ok: true, engineer, registration };
+}
+
+/**
+ * A SEALED DOCUMENT THAT DELIVERS: the file to sealed and delivered, the order
+ * settled and completed, and review.sealed raised. One step for a letter and
+ * for the engineer's own document (control 17). Returns what did not happen,
+ * in sentences; empty when everything did.
+ */
+export async function deliverSealedFile(
+  actor: SignedIn,
+  det: { file_id: string },
+  context: { ip?: string | null; userAgent?: string | null },
+  noun: "letter" | "specification" = "letter",
+): Promise<string[]> {
+  const db = supabaseAdmin();
+  if (!db) return ["the database is not configured, so the file was not delivered"];
   const problems: string[] = [];
-  const toSealed = await transitionFile(actor!, det.file_id, "sealed", "Letter sealed in the portal.", input.context ?? {});
+  const Noun = noun === "letter" ? "Letter" : "Specification";
+  const toSealed = await transitionFile(actor, det.file_id, "sealed", `${Noun} sealed in the portal.`, context);
   if (!toSealed.ok) problems.push(`the file did not move to sealed: ${toSealed.error}`);
   const toDelivered = toSealed.ok
-    ? await transitionFile(actor!, det.file_id, "delivered", "Sealed letter available to the customer.", input.context ?? {})
+    ? await transitionFile(actor, det.file_id, "delivered", `Sealed ${noun} available to the customer.`, context)
     : { ok: false as const, error: "not attempted" };
   if (toSealed.ok && !toDelivered.ok) problems.push(`the file did not move to delivered: ${toDelivered.error}`);
 
   const order = await orderForFile(det.file_id);
   if (order) {
-    const settled = await settleDecision({ orderId: order.id as string, outcome: "seal", actorId: actor!.id });
+    const settled = await settleDecision({ orderId: order.id as string, outcome: "seal", actorId: actor.id });
     if (!settled.ok) problems.push(`the order did not settle: ${settled.error}`);
     const completed = await db
       .from("eng_service_orders")
@@ -844,13 +897,7 @@ export async function sealLetter(actor: SignedIn | null, input: SealInput): Prom
 
   await raiseSealed(det.file_id).catch(() => {});
 
-  return {
-    ok: true,
-    documentId,
-    sha256,
-    delivered: problems.length === 0,
-    warning: problems.length ? `The letter is sealed. Then ${problems.join("; ")}.` : null,
-  };
+  return problems;
 }
 
 export type AwaitingLetter = {
@@ -860,7 +907,7 @@ export type AwaitingLetter = {
   propertyAddress: string;
   determination: string;
   decidedAt: string;
-  /* Which letter: 254-RC-001, 254-FC-001 or 254-PL-001. */
+  /* Which letter: 254-RC-001, 254-FC-001 or 254-PL-001; or 254-RS-001, the engineer's own specification. */
   protocolDocument: string;
 };
 
@@ -890,7 +937,7 @@ export async function lettersAwaitingSeal(actor: SignedIn | null, fileId?: strin
       .from("eng_determinations")
       .select("id, file_id, determination, decided_at, protocol_document")
       .eq("engineer_id", actor!.id)
-      .in("protocol_document", [...SEALABLE_PROTOCOLS])
+      .in("protocol_document", [...SEALABLE_PROTOCOLS, ...OWN_DOCUMENT_PROTOCOLS])
       .in("determination", ["pass", "repairs-required", "decline"]);
     if (fileId) query = query.eq("file_id", fileId);
     return query.order("decided_at", { ascending: true }).order("id", { ascending: true }).range(from, to);
