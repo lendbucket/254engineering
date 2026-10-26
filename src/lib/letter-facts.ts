@@ -4,6 +4,7 @@ import { can, holdsLicence, licenceRefusal, type Actor } from "./ops-authz";
 import { writeAudit } from "./ops-audit";
 import { verifiedEngineers } from "@/config/credentials";
 import { licenceIsCurrentToday } from "./launch";
+import { readEvery, readEveryIn } from "./bounded-read";
 import { LETTER_FACT_CATALOGUE, catalogueFact } from "@/content/letters/letter-fact-catalogue";
 
 /**
@@ -189,22 +190,34 @@ export async function filesAwaitingTriage(): Promise<
 > {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
-  const { data: files, error } = await db
-    .from("eng_files")
-    .select("id, file_number, property_address, created_at, status")
-    .eq("service_slug", "structural-letters")
-    .not("status", "in", "(closed,cancelled,delivered,sealed)")
-    .order("created_at", { ascending: true })
-    .limit(200);
-  if (error) return { ok: false, error: `The permit letter files could not be read: ${error.message}` };
-  const ids = (files ?? []).map((f) => f.id as string);
+  /*
+   * EVERY OPEN PERMIT LETTER FILE, NOT THE OLDEST 200. Section 6 of Robert's
+   * audit of 2026-10-24 (class B, severity 2, the B2 shape): the triaged files
+   * were dropped AFTER a window of the oldest 200 open ones, so once 200
+   * triaged files were still open, a new file never reached this list.
+   */
+  const filesRead = await readEvery<{ id: string; file_number: string; property_address: string; created_at: string; status: string }>((from, to) =>
+    db
+      .from("eng_files")
+      .select("id, file_number, property_address, created_at, status")
+      .eq("service_slug", "structural-letters")
+      .not("status", "in", "(closed,cancelled,delivered,sealed)")
+      .order("created_at", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  if (!filesRead.ok) return { ok: false, error: `The permit letter files could not be read: ${filesRead.error}` };
+  const files = filesRead.rows;
+  const ids = files.map((f) => f.id);
   if (ids.length === 0) return { ok: true, files: [] };
-  const { data: triaged, error: tError } = await db.from("eng_job_triage").select("file_id").in("file_id", ids);
-  if (tError) return { ok: false, error: `The triage could not be read: ${tError.message}` };
-  const done = new Set((triaged ?? []).map((t) => t.file_id as string));
+  const triagedRead = await readEveryIn<{ file_id: string }>(ids, (chunk, from, to) =>
+    db.from("eng_job_triage").select("file_id").in("file_id", [...chunk]).order("file_id", { ascending: true }).range(from, to),
+  );
+  if (!triagedRead.ok) return { ok: false, error: `The triage could not be read: ${triagedRead.error}` };
+  const done = new Set(triagedRead.rows.map((t) => t.file_id));
   return {
     ok: true,
-    files: (files ?? [])
+    files: files
       .filter((f) => !done.has(f.id as string))
       .map((f) => ({ id: f.id as string, fileNumber: f.file_number as string, address: f.property_address as string, createdAt: f.created_at as string })),
   };

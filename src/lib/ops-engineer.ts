@@ -20,7 +20,7 @@ import { randomUUID } from "node:crypto";
 import { canTransition, STATUS_TIMESTAMP, type FileStatus } from "./ops-files";
 import { effectModeFor } from "./fixture-identity";
 import { REVIEW_AFTER_DECISION, reviewAfterDecisionKey, type ReviewAfterDecisionPayload } from "./review-jobs";
-import { readEvery } from "./bounded-read";
+import { readEvery, readEveryIn } from "./bounded-read";
 import {
   ACTION_LABEL,
   ACTION_TARGET,
@@ -1051,39 +1051,54 @@ export async function uncreditedReviews(): Promise<UncreditedReview[]> {
 export async function uncreditedReviewsRead(): Promise<UncreditedReview[] | null> {
   const db = supabaseAdmin();
   if (!db) return null;
-  const { data: sessions, error: sessionsError } = await db
-    .from("eng_review_sessions")
-    .select("id, file_id, decision, ended_at")
-    .not("ended_at", "is", null)
-    .not("decision", "is", null)
-    .order("ended_at", { ascending: false })
-    .limit(500);
-  if (sessionsError) {
-    console.error(`[engineer] the review sessions could not be read: ${sessionsError.message}`);
+  /*
+   * EVERY DECIDED REVIEW, NOT THE NEWEST 500. Section 6 of Robert's audit of
+   * 2026-10-24 (class B, severity 2): past 500 decided reviews an older one
+   * that was never credited dropped off this list, so nobody was asked to pay
+   * it. Every read pages, the in() reads are chunked, and any failure is null.
+   */
+  const sessionsRead = await readEvery<{ id: string; file_id: string; decision: string; ended_at: string }>((from, to) =>
+    db
+      .from("eng_review_sessions")
+      .select("id, file_id, decision, ended_at")
+      .not("ended_at", "is", null)
+      .not("decision", "is", null)
+      .order("ended_at", { ascending: false })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  if (!sessionsRead.ok) {
+    console.error(`[engineer] the review sessions could not be read: ${sessionsRead.error}`);
     return null;
   }
-  const ids = (sessions ?? []).map((s) => s.id as string);
+  const sessions = sessionsRead.rows;
+  const ids = sessions.map((s) => s.id);
   if (ids.length === 0) return [];
-  const { data: credited, error: creditedError } = await db
-    .from("eng_production_ledger")
-    .select("review_session_id")
-    .in("review_session_id", ids);
-  if (creditedError) {
-    console.error(`[engineer] the production ledger could not be read: ${creditedError.message}`);
+  const creditedRead = await readEveryIn<{ review_session_id: string }>(ids, (chunk, from, to) =>
+    db
+      .from("eng_production_ledger")
+      .select("review_session_id")
+      .in("review_session_id", [...chunk])
+      .order("review_session_id", { ascending: true })
+      .range(from, to),
+  );
+  if (!creditedRead.ok) {
+    console.error(`[engineer] the production ledger could not be read: ${creditedRead.error}`);
     return null;
   }
-  const done = new Set((credited ?? []).map((r) => r.review_session_id as string));
-  const open = (sessions ?? []).filter((s) => !done.has(s.id as string));
+  const done = new Set(creditedRead.rows.map((r) => r.review_session_id));
+  const open = sessions.filter((s) => !done.has(s.id));
   if (open.length === 0) return [];
-  const { data: files, error: filesError } = await db
-    .from("eng_files")
-    .select("id, file_number, service_slug, deliverable, is_demo")
-    .in("id", [...new Set(open.map((s) => s.file_id as string))]);
-  if (filesError) {
-    console.error(`[engineer] the files under review could not be read: ${filesError.message}`);
+  const filesRead = await readEveryIn<{ id: string; file_number: string; service_slug: string; deliverable: string | null; is_demo: boolean | null }>(
+    [...new Set(open.map((s) => s.file_id))],
+    (chunk, from, to) =>
+      db.from("eng_files").select("id, file_number, service_slug, deliverable, is_demo").in("id", [...chunk]).order("id", { ascending: true }).range(from, to),
+  );
+  if (!filesRead.ok) {
+    console.error(`[engineer] the files under review could not be read: ${filesRead.error}`);
     return null;
   }
-  const byId = new Map((files ?? []).map((f) => [f.id as string, f]));
+  const byId = new Map(filesRead.rows.map((f) => [f.id, f]));
   const out: UncreditedReview[] = [];
   for (const s of open) {
     const f = byId.get(s.file_id as string);
