@@ -100,13 +100,19 @@ export default async function ProfilePage() {
             title="Notifications"
             description="Everything reaches you in the portal. This is what also reaches you by email."
           >
-            <PreferencesForm
-              preferences={kindsForRole(actor!.role).map((spec) => ({
-                kind: spec.kind,
-                label: spec.label,
-                email: stored.find((p) => p.kind === spec.kind)?.email ?? spec.emailByDefault,
-              }))}
-            />
+            {stored === null ? (
+              <p role="alert" className="text-[14px] leading-[1.6] text-[var(--ink)]">
+                Your notification settings could not be read just now, so they are not shown and cannot be changed here. Reload the page; nothing was changed.
+              </p>
+            ) : (
+              <PreferencesForm
+                preferences={kindsForRole(actor!.role).map((spec) => ({
+                  kind: spec.kind,
+                  label: spec.label,
+                  email: stored.find((p) => p.kind === spec.kind)?.email ?? spec.emailByDefault,
+                }))}
+              />
+            )}
           </Panel>
 
           <Panel

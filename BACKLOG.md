@@ -63,6 +63,16 @@ and the same policy in `verifiedInsurance` in one deploy, which the gate already
 counts, and the register goes on driving the warnings. Until he answers,
 recording a policy here opens nothing and closes nothing.
 
+## THE LETTERHEAD PRINTS "254 ENGINEERING LLC" UNTIL THE BOARD CONFIRMS "254 ENGINEERING"
+
+Robert's addendum of 2026-10-25, item 7. A sealed letter's head prints the
+registrant until Robert confirms "254 Engineering" is on F-29811's board
+record as an assumed name. `letterheadBrand()` in `src/lib/letter-seal.ts`
+switches back by itself: record the confirmed name in the registration's
+`dbas` in `src/config/credentials.ts`, as the board's record states it, and
+the next letter carries the brand. The register's assumed names on 2026-10-25
+are Sealed Engineering, Stamp My Plans and 254 Engineering Services.
+
 ## INDEXNOW SUBMITS FROM THE PRODUCTION BUILD: WATCH ITS FIRST LOG LINE
 
 Ruled by Robert on 2026-10-25, option (a): `scripts/indexnow-after-build.mjs`

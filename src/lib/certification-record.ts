@@ -4,6 +4,7 @@ import { can, holdsLicence, licenceRefusal, type Actor } from "./ops-authz";
 import { DB_NOW } from "./db-now";
 import { verifiedEngineers } from "@/config/credentials";
 import { licenceIsCurrentToday } from "./launch";
+import { readEvery, readEveryIn } from "./bounded-read";
 
 /**
  * ===========================================================================
@@ -127,15 +128,26 @@ async function appendEvent(
 export async function trainingRecords(profileId?: string): Promise<TrainingRecord[] | null> {
   const db = supabaseAdmin();
   if (!db) return null;
-  let q = db
-    .from("eng_training_records")
-    .select("id, created_at, recorded_by, profile_id, service_slug, template_id, protocol_version_label, trained_on, supervised_by")
-    .order("created_at", { ascending: false })
-    .limit(2000);
-  if (profileId) q = q.eq("profile_id", profileId);
-  const { data: rows, error } = await q;
-  if (error) return null;
-  const ids = (rows ?? []).map((r) => r.id as string);
+  /*
+   * EVERY RECORD, NOT THE NEWEST 1000. Section 6 of Robert's audit of
+   * 2026-10-24 (class B, severity 2): this asked for 2000 rows, and PostgREST
+   * answers at most 1000 without saying so, so past 1000 the oldest records
+   * vanished from the register. readEvery counts first and refuses a short
+   * list; the decisions and confirmations are read in chunks for the same
+   * reason, since one in() over every id grows with the register.
+   */
+  const recordsRead = await readEvery<Record<string, unknown>>((from, to) => {
+    let q = db
+      .from("eng_training_records")
+      .select("id, created_at, recorded_by, profile_id, service_slug, template_id, protocol_version_label, trained_on, supervised_by")
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: true });
+    if (profileId) q = q.eq("profile_id", profileId);
+    return q.range(from, to);
+  });
+  if (!recordsRead.ok) return null;
+  const rows = recordsRead.rows;
+  const ids = rows.map((r) => r.id as string);
   const decisions = new Map<
     string,
     {
@@ -151,12 +163,16 @@ export async function trainingRecords(profileId?: string): Promise<TrainingRecor
   >();
   const confirmations = new Map<string, { kind: "text" | "email"; receivedAt: string; attachedAt: string }>();
   if (ids.length) {
-    const { data: ds, error: dError } = await db
-      .from("eng_training_decisions")
-      .select("id, record_id, decision, created_at, decided_by, reason, channel, relayed_by, approved_at")
-      .in("record_id", ids);
-    if (dError) return null;
-    for (const d of ds ?? []) {
+    const dsRead = await readEveryIn<Record<string, unknown>>(ids, (chunk, from, to) =>
+      db
+        .from("eng_training_decisions")
+        .select("id, record_id, decision, created_at, decided_by, reason, channel, relayed_by, approved_at")
+        .in("record_id", [...chunk])
+        .order("id", { ascending: true })
+        .range(from, to),
+    );
+    if (!dsRead.ok) return null;
+    for (const d of dsRead.rows) {
       decisions.set(d.record_id as string, {
         id: d.id as string,
         decision: d.decision as string,
@@ -171,12 +187,16 @@ export async function trainingRecords(profileId?: string): Promise<TrainingRecor
     /* A failed read is not "pending": pending is a fact about a row's absence, so an unread table is null. */
     const relayedIds = [...decisions.values()].filter((d) => d.channel === "phone_relayed").map((d) => d.id);
     if (relayedIds.length) {
-      const { data: cs, error: cError } = await db
-        .from("eng_training_confirmations")
-        .select("decision_id, kind, received_at, created_at")
-        .in("decision_id", relayedIds);
-      if (cError) return null;
-      for (const c of cs ?? []) {
+      const csRead = await readEveryIn<Record<string, unknown>>(relayedIds, (chunk, from, to) =>
+        db
+          .from("eng_training_confirmations")
+          .select("decision_id, kind, received_at, created_at")
+          .in("decision_id", [...chunk])
+          .order("decision_id", { ascending: true })
+          .range(from, to),
+      );
+      if (!csRead.ok) return null;
+      for (const c of csRead.rows) {
         confirmations.set(c.decision_id as string, {
           kind: c.kind === "email" ? "email" : "text",
           receivedAt: c.received_at as string,

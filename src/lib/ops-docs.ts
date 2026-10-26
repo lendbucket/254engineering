@@ -129,9 +129,13 @@ export async function binderFor(actor: Actor | null, fileId: string): Promise<Bi
     .maybeSingle();
   if (!file) return null;
 
-  const { data: technician } = file.assigned_tech_id
+  /* Sweep A4: every read below that fails is named here, and a binder with any of them is not complete. */
+  const unreadable: string[] = view.unreadable ? [view.unreadable] : [];
+
+  const { data: technician, error: technicianError } = file.assigned_tech_id
     ? await db.from("eng_profiles").select("display_name").eq("id", file.assigned_tech_id).maybeSingle()
-    : { data: null };
+    : { data: null, error: null };
+  if (technicianError) unreadable.push(`the technician's name (${technicianError.message})`);
 
   /*
    * ATTACHMENTS FROM THE FILE'S CONVERSATION.
@@ -146,20 +150,22 @@ export async function binderFor(actor: Actor | null, fileId: string): Promise<Bi
    * their conversation, not the file's record, and canReadThread already says
    * an administrator cannot read one.
    */
-  const { data: convoThread } = await db
+  const { data: convoThread, error: threadError } = await db
     .from("eng_threads")
     .select("id")
     .eq("kind", "file")
     .eq("file_id", fileId)
     .maybeSingle();
+  if (threadError) unreadable.push(`the file's conversation (${threadError.message})`);
 
-  const { data: convoMessages } = convoThread
+  const { data: convoMessages, error: messagesError } = convoThread
     ? await db
         .from("eng_messages")
         .select("created_at, body, attachments, eng_profiles(display_name)")
         .eq("thread_id", convoThread.id)
         .order("created_at", { ascending: true })
-    : { data: [] };
+    : { data: [], error: null };
+  if (messagesError) unreadable.push(`the conversation's messages and attachments (${messagesError.message})`);
 
   const conversationAttachments = ((convoMessages ?? []) as unknown as {
     created_at: string;
@@ -178,17 +184,19 @@ export async function binderFor(actor: Actor | null, fileId: string): Promise<Bi
     })),
   );
 
-  const { data: sessions } = await db
+  const { data: sessions, error: sessionsError } = await db
     .from("eng_review_sessions")
     .select("id, decision, ended_at, minutes, engineer_id")
     .eq("file_id", fileId)
     .not("decision", "is", null)
     .order("ended_at", { ascending: true });
+  if (sessionsError) unreadable.push(`the engineers' decisions (${sessionsError.message})`);
 
   const engineerIds = [...new Set((sessions ?? []).map((s) => s.engineer_id as string))];
-  const { data: engineers } = engineerIds.length
+  const { data: engineers, error: engineersError } = engineerIds.length
     ? await db.from("eng_profiles").select("id, display_name, license_number").in("id", engineerIds)
-    : { data: [] };
+    : { data: [], error: null };
+  if (engineersError) unreadable.push(`the deciding engineers' names and licences (${engineersError.message})`);
   const engineerById = new Map((engineers ?? []).map((e) => [e.id as string, e]));
 
   /*
@@ -213,6 +221,7 @@ export async function binderFor(actor: Actor | null, fileId: string): Promise<Bi
         .range(from, to),
   );
   const chargeRows = chargeRead.ok ? chargeRead.rows : null;
+  if (!chargeRead.ok) unreadable.push(`the reasons recorded on the charge log (${chargeRead.error})`);
   const reasonBySession = new Map(
     (chargeRows ?? [])
       .filter((r) => r.review_session_id)
@@ -270,10 +279,11 @@ export async function binderFor(actor: Actor | null, fileId: string): Promise<Bi
         reason: reasonBySession.get(s.id as string) ?? null,
       };
     }),
-    complete: missingCount === 0,
+    complete: missingCount === 0 && unreadable.length === 0,
     missingCount,
+    unreadable,
     generatedAt: new Date().toISOString(),
-    limitations: limitationsFor({ complete: missingCount === 0, missingCount, sealed, photographCount }),
+    limitations: limitationsFor({ complete: missingCount === 0 && unreadable.length === 0, missingCount, sealed, photographCount, unreadable }),
   };
 }
 

@@ -97,6 +97,7 @@ export function IntakeClient({
   const [query, setQuery] = useState("");
   const [matches, setMatches] = useState<ClientMatch[]>([]);
   const [searching, setSearching] = useState(false);
+  const [searchFailed, setSearchFailed] = useState<string | null>(null);
   const [chosen, setChosen] = useState<ClientMatch | null>(null);
   const [creating, setCreating] = useState(false);
   const [newClient, setNewClient] = useState({
@@ -201,7 +202,28 @@ export function IntakeClient({
           body: JSON.stringify({ action: "search_clients", query }),
         });
         const body = await res.json().catch(() => null);
-        if (live) setMatches(body?.ok ? (body.matches as ClientMatch[]) : []);
+        /*
+         * A SEARCH THAT FAILED IS NOT "NOBODY MATCHES". Section 6 of Robert's
+         * audit of 2026-10-24, E3e: a refused or unreadable answer was an empty
+         * list, and the screen said "Nobody matches that. Create them below.",
+         * which invites a second record for a client who exists. A network
+         * failure left the last matches standing. Both now say the search
+         * failed, and offer no list.
+         */
+        if (live) {
+          if (body?.ok) {
+            setMatches(body.matches as ClientMatch[]);
+            setSearchFailed(null);
+          } else {
+            setMatches([]);
+            setSearchFailed(body?.error ? String(body.error) : `the server answered ${res.status}`);
+          }
+        }
+      } catch {
+        if (live) {
+          setMatches([]);
+          setSearchFailed("the request did not reach the server");
+        }
       } finally {
         if (live) setSearching(false);
       }
@@ -359,7 +381,19 @@ export function IntakeClient({
     channel: (channel || null) as IntakeChannel | null,
   });
 
-  const priceError = "error" in priceDecision ? priceDecision.error : null;
+  /*
+   * A PRICE TYPED AND NOT READ IS NOT THE CATALOGUE PRICE. Section 6 of
+   * Robert's audit of 2026-10-24, M-intake-override: "$1,200" read as NaN, was
+   * sent as no override, and the catalogue price was charged with no word. A
+   * typed price that is not a plain number is now refused here, so nothing is
+   * charged that the operator did not see.
+   */
+  const unreadablePrice = overridePrice.trim() !== "" && !Number.isFinite(enteredCents);
+  const priceError = unreadablePrice
+    ? "Type the price as a plain number of dollars, such as 1200 or 1200.50, with no dollar sign or commas."
+    : "error" in priceDecision
+      ? priceDecision.error
+      : null;
   const canSubmit =
     missing.length === 0 &&
     missingToOrder.length === 0 &&
@@ -621,7 +655,11 @@ export function IntakeClient({
               </ul>
             ) : null}
 
-            {query.trim().length >= 2 && !searching && visibleMatches.length === 0 ? (
+            {query.trim().length >= 2 && !searching && searchFailed ? (
+              <p role="alert" className="mt-2 text-[14px] font-semibold leading-[1.5] text-[var(--danger)]">
+                The client search did not work ({searchFailed}), so whether this client already exists is not known. Try the search again before creating them.
+              </p>
+            ) : query.trim().length >= 2 && !searching && visibleMatches.length === 0 ? (
               <p className={hint}>Nobody matches that. Create them below.</p>
             ) : null}
 
