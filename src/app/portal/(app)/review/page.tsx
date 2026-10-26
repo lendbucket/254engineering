@@ -258,7 +258,7 @@ export default async function ReviewPage({
                 <p className="text-[14px] text-[var(--ink)]">
                   <span className="font-semibold">{f.fileNumber}</span>, {f.address}
                 </p>
-                <TriagePanel fileId={f.id} basis={null} additions={[]} />
+                <TriagePanel fileId={f.id} basis={null} additions={f.additions} />
               </li>
             ))}
           </ul>
@@ -292,7 +292,11 @@ export default async function ReviewPage({
 
       <div className="grid gap-6 lg:grid-cols-[minmax(280px,360px)_1fr]">
         <div className={selected ? "hidden lg:block" : "block"}>
-          {queue.length === 0 ? (
+          {queue === null ? (
+            <p role="alert" className="text-[14px] leading-[1.6] text-[var(--ink)]">
+              The review queue could not be read just now, so whether anything is waiting is not known. Reload the page; nothing was changed.
+            </p>
+          ) : queue.length === 0 ? (
             <EmptyState
               title="Nothing waiting"
               body="A file arrives here when a technician submits a complete evidence package. It stays until an engineer decides it."

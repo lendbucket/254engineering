@@ -543,8 +543,20 @@ else process.env.OPS_SESSION_SECRET = HAD;
         const db = auditClient("mfa-audit", { neverProduction: true });
         const stamp = Date.now();
         const REQUIRED_ROLE = `mfa_probe_required_${stamp}`;
+        /*
+         * THE OPTIONAL EXAMPLE IS ITS OWN THROWAWAY ROLE, AS THE REQUIRED ONE
+         * IS. Until 2026-10-26 it was `admin`, which 0025 left optional. Robert's
+         * addendum of 2026-10-25, item 5 (0093), requires the second factor for
+         * the administrator, so the day development has 0093, "an optional role
+         * can decline into the portal" would read the requirement as a defect.
+         * A role this audit makes, optional by construction, keeps the check
+         * about the rule rather than about which real role happens to be
+         * optional this month.
+         */
+        const OPTIONAL_ROLE = `mfa_probe_optional_${stamp}`;
         const probeIds = [];
         let roleMade = false;
+        let optionalRoleMade = false;
 
         /* Sign a fresh account in and report what came back, without enrolling it. */
         /*
@@ -652,9 +664,33 @@ else process.env.OPS_SESSION_SECRET = HAD;
               granted.error?.message ?? "",
             );
           }
+
+          /* The optional example, made the same way, with the same grant, so its decline is about the factor too. */
+          const optionalInserted = await db.from("eng_roles").insert({
+            key: OPTIONAL_ROLE,
+            name: "MFA probe, optional",
+            landing_path: "/portal",
+            is_system: false,
+            mfa_requirement: "optional",
+          });
+          optionalRoleMade = !optionalInserted.error;
+          rec(
+            "a role offering a second factor could be created to test against",
+            optionalRoleMade,
+            optionalRoleMade ? OPTIONAL_ROLE : (optionalInserted.error?.message ?? "insert failed"),
+          );
+          if (optionalRoleMade) {
+            const optionalGranted = await db.from("eng_role_grants").insert({ role_key: OPTIONAL_ROLE, action: "files.list" });
+            rec("and it can open the portal at all, so a decline means the factor", !optionalGranted.error, optionalGranted.error?.message ?? "");
+          }
         }
 
-        const optional = await makeProbe("admin", "optional");
+        const optional = optionalRoleMade
+          ? await makeProbe(OPTIONAL_ROLE, "optional")
+          : {
+              cookie: null, redirect: null,
+              why: "the probe role offering a second factor could not be created, so no account could hold it",
+            };
         const required = roleMade
           ? await makeProbe(REQUIRED_ROLE, "required")
           : {
@@ -1383,6 +1419,15 @@ else process.env.OPS_SESSION_SECRET = HAD;
                 removed.error
                   ? `${REQUIRED_ROLE} is still on development: ${removed.error.message}`
                   : "",
+              );
+            }
+            if (optionalRoleMade) {
+              await db.from("eng_role_grants").delete().eq("role_key", OPTIONAL_ROLE);
+              const removedOptional = await db.from("eng_roles").delete().eq("key", OPTIONAL_ROLE);
+              rec(
+                "the throwaway optional role was cleaned up",
+                !removedOptional.error,
+                removedOptional.error ? `${OPTIONAL_ROLE} is still on development: ${removedOptional.error.message}` : "",
               );
             }
           }

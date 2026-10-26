@@ -106,10 +106,24 @@ export function draftDigest(
   return createHash("sha256").update(canonical).digest("hex");
 }
 
+/**
+ * THE NAME AT THE HEAD OF A SEALED LETTER. Robert's addendum of 2026-10-25,
+ * item 7: the letterhead prints the registrant's name, "254 Engineering LLC",
+ * until "254 Engineering" is confirmed on F-29811's board record. The brand of
+ * the 2026-10-10 and 2026-10-22 rulings is used only once the registration's
+ * own assumed names hold it, the rule partner-copy.ts already applies, so the
+ * letterhead switches back by itself the day that read-back is recorded in
+ * src/config/credentials.ts. Aman's wording is untouched: this is the frame.
+ */
+export function letterheadBrand(registration = activeFirmRegistration()): string {
+  if (registration?.dbas.includes(business.shortName)) return business.shortName;
+  return registration?.issuedTo ?? firmName();
+}
+
 export function frameFor(engineer: { name: string; licenseNumber: string }): LetterFrame {
   return {
-    /* "254 Engineering", the brand of the 2026-10-10 ruling, restated for letters on 2026-10-22. */
-    letterhead: { brand: business.shortName, registrationLine: registrationLine() },
+    /* The registrant until the board holds "254 Engineering" as an assumed name (addendum item 7). */
+    letterhead: { brand: letterheadBrand(), registrationLine: registrationLine() },
     sealBlock: { name: engineer.name, licenseNumber: engineer.licenseNumber, role: `Engineer of Record, ${firmName()}` },
   };
 }

@@ -53,12 +53,15 @@ export default async function ChargeLogPage({
   const periods = await chargeLogPeriods(actor);
   const period = params.period && /^\d{4}-\d{2}$/.test(params.period) ? params.period : (periods[0] ?? periodOf(new Date()));
 
-  const [rows, production, time] = await Promise.all([
+  const [logRead, productionRead, time] = await Promise.all([
     chargeLog(actor, { period }),
     productionLedger(actor),
     timeLog(actor),
   ]);
 
+  /* A failed read is said where its figures would be, never "Nothing recorded" or "Nothing for" (F23). */
+  const rows = logRead.ok ? logRead.rows : [];
+  const production = productionRead.ok ? productionRead.rows : [];
   const refusals = rows.filter((r) => r.refused);
   const sealed = rows.filter((r) => r.decision === "seal");
   const forPeriod = production.filter((p) => p.period === period);
@@ -90,7 +93,11 @@ export default async function ChargeLogPage({
             )}
           </div>
 
-          {rows.length === 0 ? (
+          {!logRead.ok ? (
+            <p role="alert" className="text-[14px] leading-[1.55] text-[var(--ink)]">
+              {logRead.error} Nothing in it has changed; this is a failed read, not an empty log. Reload the page in a moment.
+            </p>
+          ) : rows.length === 0 ? (
             <EmptyState
               title={`Nothing recorded for ${period}`}
               body="A row appears here every time you decide a file: sealed, sent back, sent for a site visit, or declined. Nothing is written by hand, and nothing can be edited afterwards."
@@ -166,7 +173,11 @@ export default async function ChargeLogPage({
             title="Production"
             description="Paid on the completed review, not on the seal. A file you decline pays the same as one you seal, because paying for one conclusion and not the other is paying for the conclusion."
           >
-            {forPeriod.length === 0 ? (
+            {!productionRead.ok ? (
+              <p role="alert" className="text-[14px] leading-[1.55] text-[var(--ink)]">
+                {productionRead.error} So no figure is shown for {period}: this is a failed read, not a month with nothing in it.
+              </p>
+            ) : forPeriod.length === 0 ? (
               <p className="text-[14px] leading-[1.55] text-[var(--secondary)]">
                 Nothing for {period}. An entry is written when you decide a file, if a production
                 rate exists for that service line.

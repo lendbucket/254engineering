@@ -95,9 +95,16 @@ export type Binder = {
   decisions: BinderDecision[];
   /** Sent in the file's conversation. Not evidence, and the binder says so. */
   conversationAttachments: BinderAttachment[];
-  /** Every required item captured. */
+  /** Every required item captured, and every part of the record read. */
   complete: boolean;
   missingCount: number;
+  /**
+   * The parts of the record that could not be read, or empty. Audit sweep A4,
+   * 2026-10-25: the conversation, the review sessions, the engineers and the
+   * charge log were read with their errors ignored, so a failed read printed a
+   * binder missing those parts and still labelled complete.
+   */
+  unreadable: string[];
   generatedAt: string;
   /** What this document does not contain, printed on it. */
   limitations: string[];
@@ -126,6 +133,7 @@ export function limitationsFor(input: {
   missingCount: number;
   sealed: boolean;
   photographCount: number;
+  unreadable?: string[];
 }): string[] {
   const limits: string[] = [];
 
@@ -133,7 +141,13 @@ export function limitationsFor(input: {
     "This binder is the evidence record held by the platform. It is not an engineering opinion and it is not sealed.",
   );
 
-  if (!input.complete) {
+  if (input.unreadable?.length) {
+    limits.push(
+      `Part of the record could not be read when this binder was assembled, so it is incomplete and must not be relied on as the file's record: ${input.unreadable.join("; ")}. Assemble it again.`,
+    );
+  }
+
+  if (input.missingCount > 0) {
     limits.push(
       `${input.missingCount} item${input.missingCount === 1 ? "" : "s"} the protocol required ${
         input.missingCount === 1 ? "is" : "are"

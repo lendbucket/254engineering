@@ -3,7 +3,7 @@ import { DB_NOW } from "./db-now";
 import { todayInFirmCalendar } from "./firm-calendar";
 import { readEvery } from "./bounded-read";
 import { supabaseAdmin } from "./supabase";
-import { orderForFile as liveOrderForFile } from "./order-for-file";
+import { orderForFileRead } from "./order-for-file";
 import { writeAudit } from "./ops-audit";
 import { isKnown, money, type Cents } from "./ops-money";
 import { can, type Actor } from "./ops-authz";
@@ -52,12 +52,24 @@ export type PartnerEntryKind = "accrual" | "reversal" | "adjustment";
 export type TermsInForce = Terms & { termsId: string };
 
 /**
+ * A partner's money read that failed, thrown rather than answered as "none".
+ * Robert's audit of 2026-10-24, findings F25 and F26: termsInForce read a
+ * failure as "no terms in force", so a transient error wrote a PERMANENT
+ * blocked accrual (the one-accrual-per-file index then refused the real one),
+ * and accrualsInPeriod read a failed count as zero, so a commission was written
+ * at the first tier's rate. A caller that cannot tell the two apart is a caller
+ * that writes the wrong figure; this is the difference, made a type.
+ */
+export class PartnerReadFailed extends Error {}
+
+/**
  * The terms in force for a partner at a moment.
  *
  * Effective dated, and the LATEST one that had started and had not ended.
  * A partner with no terms earns nothing and that is not an error: it is a
  * partner somebody has not finished setting up, and the accrual paths say so
- * out loud rather than inventing a rate.
+ * out loud rather than inventing a rate. A failed read is not that, and
+ * throws PartnerReadFailed.
  */
 export async function termsInForce(
   partnerId: string,
@@ -89,13 +101,14 @@ export async function termsInForce(
    * without moving the machine clock.
    */
   const day = todayInFirmCalendar(at);
-  const { data } = await db
+  const { data, error } = await db
     .from("eng_partner_terms")
     .select("id, model, percent_bps, flat_cents, tiers, holdback_days, effective_from, effective_to")
     .eq("partner_id", partnerId)
     .lte("effective_from", day)
     .order("effective_from", { ascending: false })
     .limit(10);
+  if (error) throw new PartnerReadFailed(`The partner's compensation terms could not be read: ${error.message}`);
 
   const live = (data ?? []).find(
     (t) => t.effective_to === null || String(t.effective_to) >= day,
@@ -157,11 +170,34 @@ export async function accrueForDelivery(fileId: string): Promise<AccrualResult> 
    * site the difference is money: a commission is owed against the engagement
    * that took payment, so choosing the most recent row would attach a partner's
    * earnings to a cancelled quote that never paid anybody anything.
+   *
+   * Read so that a failure is a failure (audit, 2026-10-25, beside F26):
+   * orderForFile answers a failed read as "no order", which wrote the
+   * commission blocked with no figure, permanently, under the one-accrual-per-
+   * file index.
    */
-  const order = await liveOrderForFile(fileId, "reference, total_cents");
+  const orderRead = await orderForFileRead(fileId, "reference, total_cents");
+  if (!orderRead.ok) {
+    return { ok: false, error: "The order on this file could not be read, so the commission could not be worked out. Nothing was written to the partner's ledger." };
+  }
+  const order = orderRead.order;
 
   const occurredAt = new Date((file.delivered_at as string | null) ?? Date.now());
-  const terms = await termsInForce(partnerId, occurredAt);
+  /*
+   * A failed read writes NOTHING and says so (F25, F26). The caller records the
+   * sentence on the file's timeline. A blocked or a first-tier entry written on
+   * a read that failed would be permanent, because one accrual per file is a
+   * unique index.
+   */
+  let terms: TermsInForce | null;
+  let priorQualifyingCount: number;
+  try {
+    terms = await termsInForce(partnerId, occurredAt);
+    priorQualifyingCount = terms ? await accrualsInPeriod(db, partnerId, occurredAt) : 0;
+  } catch (err) {
+    if (err instanceof PartnerReadFailed) return { ok: false, error: `${err.message}. Nothing was written to the partner's ledger.` };
+    throw err;
+  }
 
   if (!terms) {
     /*
@@ -190,8 +226,8 @@ export async function accrueForDelivery(fileId: string): Promise<AccrualResult> 
    * Counted from the LEDGER rather than from the files table, because the
    * ledger is what the tier is about: an accrual that was written is a delivery
    * that counted. A file delivered and blocked has not earned a tier step.
+   * Read above, beside the terms, so a failed count writes nothing (F25).
    */
-  const priorQualifyingCount = await accrualsInPeriod(db, partnerId, occurredAt);
 
   const commission = commissionForDelivery({
     terms,
@@ -285,7 +321,14 @@ export async function accrueForQualifiedLead(leadId: string): Promise<AccrualRes
 
   const partnerId = lead.partner_id as string;
   const occurredAt = new Date();
-  const terms = await termsInForce(partnerId, occurredAt);
+  let terms: TermsInForce | null;
+  try {
+    terms = await termsInForce(partnerId, occurredAt);
+  } catch (err) {
+    /* A failed read is said, never "no terms, accrues nothing" (F26). */
+    if (err instanceof PartnerReadFailed) return { ok: false, error: `${err.message}. Nothing was written to the partner's ledger.` };
+    throw err;
+  }
 
   if (!terms) {
     return {
@@ -828,19 +871,33 @@ export async function closePartnerPeriod(
       .order("id", { ascending: true })
       .range(from, to),
   );
-  const attached = attachedRead.ok ? attachedRead.rows : null;
+  /*
+   * A failed recompute leaves the header alone and says so (audit finding F31,
+   * 2026-10-24). It used to compute the net of nothing, write a total of $0.00
+   * over a statement holding real entries, and audit it as closed.
+   */
+  if (!attachedRead.ok) {
+    return {
+      ok: false,
+      error: `The entries were attached to ${reference}, and its total could not be recomputed from them, so the total was not written: ${attachedRead.error} Close the period again to finish it.`,
+    };
+  }
+  const attached = attachedRead.rows;
 
   const headerNet = netOf(
-    (attached ?? []).map((e) => ({
+    attached.map((e) => ({
       amountCents: e.amount_cents === null ? null : Number(e.amount_cents),
       status: e.status as "accrued" | "blocked",
     })),
   );
 
-  await db
+  const { error: headerError } = await db
     .from("eng_partner_statements")
     .update({ total_cents: headerNet.netCents })
     .eq("id", statementId);
+  if (headerError) {
+    return { ok: false, error: `The entries were attached to ${reference}, and its total could not be written: ${headerError.message} Close the period again to finish it.` };
+  }
 
   await writeAudit({
     actor: { id: null, role: "admin", email: options.actorEmail ?? "partner-engine@254engineering.com" },
@@ -891,10 +948,15 @@ export async function issuePartnerStatement(
     return { ok: false, error: "That statement has nothing on it, so there is nothing to issue." };
   }
 
-  await db
+  /* The audit says "issued" only once the row says so (F31): the update is checked, and it moves only an open statement. */
+  const { data: issued, error: issueError } = await db
     .from("eng_partner_statements")
     .update({ status: "issued", issued_at: DB_NOW })
-    .eq("id", statementId);
+    .eq("id", statementId)
+    .eq("status", "open")
+    .select("id");
+  if (issueError) return { ok: false, error: `The statement could not be issued: ${issueError.message}` };
+  if (!issued || issued.length !== 1) return { ok: false, error: "The statement was not issued: it is no longer open." };
 
   await writeAudit({
     actor: { id: null, role: "admin", email: actorEmail ?? "partner-engine@254engineering.com" },
@@ -944,7 +1006,8 @@ export async function recordPartnerPayout(input: {
     return { ok: false, error: "A statement is issued to the partner before it is paid." };
   }
 
-  await db
+  /* The audit says "paid" only once the row says so (F31): the update is checked, and it moves only an issued statement. */
+  const { data: paid, error: paidError } = await db
     .from("eng_partner_statements")
     .update({
       status: "paid",
@@ -953,7 +1016,11 @@ export async function recordPartnerPayout(input: {
       paid_by: input.actorId ?? null,
       paid_note: input.note?.trim() || null,
     })
-    .eq("id", input.statementId);
+    .eq("id", input.statementId)
+    .eq("status", "issued")
+    .select("id");
+  if (paidError) return { ok: false, error: `The payout could not be recorded: ${paidError.message}` };
+  if (!paid || paid.length !== 1) return { ok: false, error: "The payout was not recorded: the statement is no longer issued." };
 
   await writeAudit({
     actor: { id: input.actorId ?? null, role: "admin", email: input.actorEmail },
@@ -1226,7 +1293,7 @@ async function accrualsInPeriod(
   const start = `${period}-01T00:00:00.000Z`;
   const end = endOfPeriod(period)?.toISOString() ?? at.toISOString();
 
-  const { count } = await db
+  const { count, error } = await db
     .from("eng_partner_entries")
     .select("id", { count: "exact", head: true })
     .eq("partner_id", partnerId)
@@ -1235,7 +1302,11 @@ async function accrualsInPeriod(
     .gte("occurred_at", start)
     .lte("occurred_at", end);
 
-  return count ?? 0;
+  /* A count that could not be read is not zero: zero is the first tier's rate (F25). */
+  if (error || count === null || !Number.isFinite(count)) {
+    throw new PartnerReadFailed(`This partner's deliveries in the period could not be counted, so the tier is unknown: ${error?.message ?? "no count was returned"}`);
+  }
+  return count;
 }
 
 /** The last instant of a YYYY-MM period, or null if that is not one. */
