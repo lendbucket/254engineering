@@ -20,7 +20,7 @@ Each merge is a merge commit whose tree is identical to the boarded commit. Each
 | Order | Branch | State |
 | --- | --- | --- |
 | Now | **Bundle B**, reads and screens (F13, F21 to F26, F28 to F32), `2c8c9db` | Board **40290555850**, pushed 08:11 UTC. Prediction: 63 of 63, zero FAIL, no COULD NOT TELL. |
-| Next | **Bundle C**, `fix/bundle-c-sweep-letterhead-mfa` at `0a6692d`: the sweep branch (severity 1 and 2 fixes above), the letterhead and registrationLine branch, and the mfa-audit optional-role branch, on main `a1d8100` | Built and merged clean. Non-writer readers 82 of 83, plus Bundle A's readers on the combined tree 23 of 24; the one red each time is security-audit wanting a server. 1,197 added lines, no long dash. **Prediction, stated before pushing: 63 of 63, zero FAIL, no COULD NOT TELL.** Named risks: mfa-audit's new optional-role example, which only the writers shard runs; queue-audit and dashboards-audit on the dispatch and review screens that now say when a read failed. |
+| Next | **Bundle C**, `fix/bundle-c-sweep-letterhead-mfa` at **`412a7b4`**: the sweep branch (severity 1 and 2 fixes above), the letterhead and registrationLine branch, the mfa-audit optional-role branch, and `412a7b4` (the triage list and the uncredited reviews, each starved by a window), on main `a1d8100` | Built and merged clean. Non-writer readers 82 of 83 at `0a6692d`, Bundle A's readers on the combined tree 23 of 24, and the readers of `412a7b4`'s two files 9 of 10; the one red each time is security-audit wanting a server. 1,360 added lines, no long dash. **Prediction, stated before pushing: 63 of 63, zero FAIL, no COULD NOT TELL.** Named risks: mfa-audit's new optional-role example, which only the writers shard runs; queue-audit and dashboards-audit on the dispatch and review screens that now say when a read failed. |
 | Then | `feat/insurance-register` (0090 on development) | Brought up to main and boarded after Bundle C. |
 | After the sittings | 0091, then B and C with 0092, then 0093 and 0094 | Each needs its development sitting from the chat first. |
 
@@ -86,7 +86,9 @@ Each merge is a merge commit whose tree is identical to the boarded commit. Each
   - the engineer's review queue and the files waiting on owners, which showed nothing on a failed read and stopped at the oldest 200 (the B2 shape);
   - the files held for pre-review, which stopped at the oldest 200;
   - the cron status page, where a daily cron fell out of a shared 500-run window and read as never run (proved against the real filters on the replayed chain);
-  - the training register, read past PostgREST's silent 1,000.
+  - the training register, read past PostgREST's silent 1,000;
+  - the engineer's triage list, where a new permit letter file never appeared once 200 triaged files were still open (the B2 shape);
+  - the uncredited reviews, where an older review never credited dropped off the administrators' list past the newest 500. (Observed, not confirmed against production: the old single in() over 500 ids was refused by the replay server for its length. Whether production's gateway refuses it too is unknown.)
 - **Confirmed and not built:**
   - E3a, the missing root error pages (question 8);
   - the credentials read past 1,000, which fails closed, blocking dispatch rather than opening it;
