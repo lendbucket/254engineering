@@ -299,6 +299,8 @@ const EXPECTED = {
   "technicians.onboard":          { admin: true,  engineer: false, field_tech: false },
   /* The insurance register, Robert's addendum of 2026-10-25 (0090): the owner and the office. */
   "insurance.manage":             { admin: true,  engineer: false, field_tech: false },
+  /* A scope addendum for the engineer to sign, Robert's ruling of 2026-10-26 (0095): the owner alone. */
+  "addenda.draft":                { admin: true,  engineer: false, field_tech: false },
   "pricing.override_at_intake":   { admin: true,  engineer: false, field_tech: false },
   "pricing.read_tech_rate":       { admin: true,  engineer: false, field_tech: false },
   "reports.turnaround":           { admin: true,  engineer: false, field_tech: false },
@@ -460,6 +462,13 @@ const STAFF_LEVELS = ["rep", "ops_manager"];
       check: (role, action) =>
         action === "insurance.manage" && !["admin", "ops_manager"].includes(role)
           ? `${role} holds insurance.manage, which Robert's addendum of 2026-10-25 gave to the administrator and the operations manager only`
+          : null,
+    },
+    {
+      why: "only the owner drafts what the engineer is paid under a scope addendum",
+      check: (role, action) =>
+        action === "addenda.draft" && role !== "admin"
+          ? `${role} holds addenda.draft, which Robert's ruling of 2026-10-26 gave to the administrator alone`
           : null,
     },
     {

@@ -19,6 +19,7 @@ import type { StructuralLetterOption } from "@/content/letters/structural-letter
 import { randomUUID } from "node:crypto";
 import { canTransition, STATUS_TIMESTAMP, type FileStatus } from "./ops-files";
 import { effectModeFor } from "./fixture-identity";
+import { addendumRequired, deliverableKey, linePayFor } from "./line-addendum";
 import { REVIEW_AFTER_DECISION, reviewAfterDecisionKey, type ReviewAfterDecisionPayload } from "./review-jobs";
 import {
   ACTION_LABEL,
@@ -600,6 +601,21 @@ export async function productionCreditFor(file: {
     const pay = await designPayFor(quote.id as string);
     if (!pay.ok) return { ok: false, reason: pay.reason };
     return { ok: true, deliverable, tier: null, cents: pay.cents, addendumId: pay.addendumId };
+  }
+  if (tier === null && addendumRequired(slug, deliverable)) {
+    /*
+     * A DELIVERABLE HIS AGREEMENT LEAVES OUT IS PAID UNDER HIS SIGNED PER JOB
+     * ADDENDUM AND NOTHING ELSE. Robert's ruling of 2026-10-26, 07:10 Central
+     * (0095): WPI-8 ongoing construction pays one flat amount per job, $175 as
+     * drafted, through eng_line_pay. No signed addendum, no figure, and a
+     * failed read is said as one, never a zero.
+     */
+    const pay = await linePayFor(deliverableKey(slug, deliverable));
+    if (pay.state === "unknown") return { ok: false, reason: pay.why };
+    if (pay.state === "unsigned") {
+      return { ok: false, reason: `no scope addendum signed by the engineer covers ${slug} (${deliverable}), so no pay is owed until he signs one` };
+    }
+    return { ok: true, deliverable, tier: null, cents: pay.payCents, addendumId: pay.addendumId };
   }
   if (tier === null) {
     return { ok: false, reason: `no pay tier is ruled for ${slug} (${deliverable})` };

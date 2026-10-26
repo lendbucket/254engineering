@@ -5,7 +5,8 @@ import { holdsLicence, type Actor } from "./ops-authz";
 import type { ProfileRow } from "./ops-auth";
 import { verifyFreshCode } from "./ops-mfa";
 import { verifiedEngineers } from "@/config/credentials";
-import { HELD_OUT_OF_FORCE, SIGNABLE_PROTOCOLS, signableProtocol } from "@/content/protocols/signable";
+import { HELD_OUT_OF_FORCE, HELD_UNTIL_ADDENDUM, SIGNABLE_PROTOCOLS, signableProtocol } from "@/content/protocols/signable";
+import { linePayFor } from "./line-addendum";
 import { signedProtocolItemRows, type ProtocolItemRow } from "./protocol-run";
 import { licenceIsCurrentToday } from "./launch";
 
@@ -148,6 +149,57 @@ export async function signProtocol(
 }
 
 /**
+ * HIS EXISTING SIGNATURE ON A HELD PROTOCOL, PUT IN FORCE ONCE HIS ADDENDUM
+ * COVERS IT. Robert's ruling of 2026-10-26, 08:19 Central, answer 12: the
+ * engineer's 254-WP-001 v1.2 signature is already live, and goes in force for
+ * the ongoing tier when he signs the addendum. Asked from his own signing
+ * session, after the addendum is recorded, through 0096's
+ * eng_put_signed_protocol_in_force, which asks eng_line_pay itself. Nothing is
+ * signed here and no code is spent: the signature is the one he already gave,
+ * and it must still cover the text in code.
+ */
+export async function putHeldProtocolInForce(
+  actor: SignedIn | null,
+  documentNumber: string,
+): Promise<{ ok: true; inForce: boolean } | { ok: false; error: string }> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+  if (!holdsLicence(actor, "protocols.author")) {
+    return { ok: false, error: "Only the engineer of record puts a protocol in force. No other role can stand in for him." };
+  }
+  const engineer = verifiedEngineers.find((e) => e.licenseNumber === actor!.license_number);
+  if (!engineer) return { ok: false, error: "Your license number on this account does not match the engineer on the firm's register." };
+  const protocol = signableProtocol(documentNumber);
+  if (!protocol || !HELD_UNTIL_ADDENDUM[documentNumber]) return { ok: false, error: `${documentNumber} is not held until an addendum.` };
+
+  const status = await signatureStatus(documentNumber, protocol.version);
+  if (status.state === "unknown") return { ok: false, error: status.why };
+  if (status.state !== "signed") return { ok: true, inForce: false };
+
+  const inForce = await whatSigningPutsInForce(documentNumber, protocol.version, engineer);
+  if (!inForce.ok) return { ok: false, error: inForce.error };
+  if (!inForce.items) return { ok: true, inForce: false };
+
+  const { data: act, error: actError } = await db
+    .from("eng_seal_acts")
+    .select("id")
+    .eq("kind", "protocol")
+    .eq("protocol_document", documentNumber)
+    .eq("protocol_version", protocol.version)
+    .is("voided_at", null)
+    .maybeSingle();
+  if (actError) return { ok: false, error: `The signature record could not be read: ${actError.message}` };
+  if (!act) return { ok: true, inForce: false };
+  const put = await db.rpc("eng_put_signed_protocol_in_force", {
+    p_seal_act_id: act.id,
+    p_license: engineer.licenseNumber,
+    p_items: inForce.items,
+  });
+  if (put.error) return { ok: false, error: `${documentNumber} could not be put in force: ${put.error.message}` };
+  return { ok: true, inForce: put.data === "in_force" || put.data === "already" };
+}
+
+/**
  * WHAT A SIGNATURE PUTS IN FORCE, decided before the code is spent. Operator
  * ruling, 2026-10-22: signing puts the protocol in force within the signing
  * transaction, so everything that could refuse it is asked first and a refusal
@@ -155,13 +207,26 @@ export async function signProtocol(
  * because the register lives in code: a current licence, and a discipline the
  * register says he seals. Items null means the signature is recorded and
  * nothing goes in force, which only HELD_OUT_OF_FORCE asks for.
+ *
+ * A protocol held until an addendum (HELD_UNTIL_ADDENDUM, 0096) goes in force
+ * like any other once his signed addendum covers its deliverable, and stays
+ * held before that. A failed read of the addendum refuses, rather than
+ * guessing which of the two it is.
  */
 async function whatSigningPutsInForce(
   documentNumber: string,
   version: string,
   engineer: (typeof verifiedEngineers)[number],
 ): Promise<{ ok: true; items: ProtocolItemRow[] | null } | { ok: false; error: string }> {
-  if (HELD_OUT_OF_FORCE[documentNumber]) return { ok: true, items: null };
+  if (HELD_OUT_OF_FORCE[documentNumber]) {
+    const until = HELD_UNTIL_ADDENDUM[documentNumber];
+    if (!until) return { ok: true, items: null };
+    const pay = await linePayFor(until);
+    if (pay.state === "unknown") {
+      return { ok: false, error: `Whether a signed scope addendum covers ${until} could not be read, so nothing was signed. ${pay.why}.` };
+    }
+    if (pay.state !== "signed") return { ok: true, items: null };
+  }
   if (!licenceIsCurrentToday(engineer.expires)) {
     return { ok: false, error: "The register has no current expiry for your license, so a signature cannot put a protocol in force." };
   }

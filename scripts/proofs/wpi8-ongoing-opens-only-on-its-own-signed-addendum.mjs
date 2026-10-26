@@ -111,7 +111,7 @@ for (const [template, doc, version] of [[WS, "254-WS-001", "1.1"], [WP, "254-WP-
 }
 const statusOf = async (id) => (await db.query(`select status from eng_protocol_templates where id = $1`, [id])).rows[0].status;
 
-const rest = await startReplayRest(db, PORTS.replayRest);
+let rest = await startReplayRest(db, PORTS.replayRest);
 process.env.SUPABASE_URL = rest.url;
 process.env.SUPABASE_SERVICE_ROLE_KEY = "replay-stand-in";
 delete process.env.VERCEL_ENV;
@@ -125,6 +125,12 @@ try {
   const door = (entry) => gate.orderBlockedNow(entry, "open");
   const NOT_YET = /not available to order yet/;
 
+  const field = await import("../../src/lib/ops-field.ts");
+  const engineer = await import("../../src/lib/ops-engineer.ts");
+  const protocolOf = async (tier) => (await field.publishedProtocolFor("windstorm-wpi-8", tier))?.document_number ?? null;
+  const creditFor = (deliverable) =>
+    engineer.productionCreditFor({ id: "00000000-0000-4000-8000-0000000009d1", service_slug: "windstorm-wpi-8", deliverable });
+
   /* 1. Production today. */
   check("step 1, at 0094: completed construction is orderable", (await door(completed)) === null, String(await door(completed)));
   const s1 = await door(ongoing);
@@ -133,6 +139,14 @@ try {
   /* 2. The two migrations. */
   await db.exec(readSource(join(DIR, files[at95])));
   await db.exec(readSource(join(DIR, files[at96])));
+  /*
+   * The stand-in keeps each table's columns from the first time it reads the
+   * table, which was at 0094, before service_tier existed. Restarted on the
+   * same port (the client keeps its URL) so it reads the schema as it now is,
+   * as a fresh production deploy would after the sitting.
+   */
+  await rest.close();
+  rest = await startReplayRest(db, PORTS.replayRest);
   check("0095 and 0096 apply over production's state", true);
   const tiers = (await db.query(
     `select document_number, version_label, service_tier, status from eng_protocol_templates
@@ -148,6 +162,11 @@ try {
     JSON.stringify(tiers),
   );
   check("step 2: completed construction is orderable", (await door(completed)) === null, String(await door(completed)));
+  check(
+    "and with one protocol in force, dispatch runs a WPI-8 job under WS-001 as today, with or without a tier",
+    (await protocolOf(null)) === "254-WS-001" && (await protocolOf("completed")) === "254-WS-001",
+    `${await protocolOf(null)} ${await protocolOf("completed")}`,
+  );
   const s2 = await door(ongoing);
   check("and ongoing is refused, the customer told only that it is not available yet", NOT_YET.test(String(s2)), String(s2));
   const held = await refused(`select eng_put_signed_protocol_in_force($1, $2, $3::jsonb)`, [WP_ACT, LIC, ITEMS]);
@@ -182,6 +201,8 @@ try {
   check("step 4: unsigned, it pays nothing", (await db.query(`select * from eng_line_pay('windstorm-wpi-8/ongoing')`)).rows.length === 0);
   const s4 = await door(ongoing);
   check("and the door refuses ongoing", typeof s4 === "string", String(s4));
+  const unsignedCredit = await creditFor("ongoing");
+  check("and an ongoing review credits him nothing, saying why", unsignedCredit.ok === false && /no scope addendum signed/.test(unsignedCredit.reason), JSON.stringify(unsignedCredit));
   const notYet = await refused(`select eng_put_signed_protocol_in_force($1, $2, $3::jsonb)`, [WP_ACT, LIC, ITEMS]);
   check("and WP-001 is still held", notYet.refused);
 
@@ -194,6 +215,15 @@ try {
   check("WS-001 is still in force: approving WP-001 retired nothing on completed", (await statusOf(WS)) === "published" && (await statusOf(WP)) === "published");
   check("completed construction is orderable", (await door(completed)) === null, String(await door(completed)));
   check("and ongoing construction now opens at its door", (await door(ongoing)) === null, String(await door(ongoing)));
+  check(
+    "dispatch now runs completed under WS-001 and ongoing under WP-001, and refuses a job with no tier rather than guess",
+    (await protocolOf("completed")) === "254-WS-001" && (await protocolOf("ongoing")) === "254-WP-001" && (await protocolOf(null)) === null,
+    `${await protocolOf("completed")} ${await protocolOf("ongoing")} ${await protocolOf(null)}`,
+  );
+  const signedCredit = await creditFor("ongoing");
+  check("an ongoing review credits him $175.00 under the addendum", signedCredit.ok === true && signedCredit.cents === 17500 && signedCredit.tier === null, JSON.stringify(signedCredit));
+  const completedCredit = await creditFor("completed");
+  check("and a completed review still credits its tier 2 pay", completedCredit.ok === true && completedCredit.tier === 2, JSON.stringify(completedCredit));
 
   /* 6. A replacement, drafted and not signed, closes it again: the newest decides. */
   await insertPerJob("windstorm-wpi-8/ongoing", 20000);

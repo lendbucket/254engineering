@@ -12,7 +12,10 @@ import {
   PROCESSING_READ_ON,
   PROCESSING_READ_FROM,
 } from "@/config/cost-inputs";
-import { ENGINEER_TIER_CENTS, ENGINEER_DESIGN_FEE_SHARE_BP, defaultTierFor } from "@/config/engineer-pay";
+import { ENGINEER_TIER_CENTS, ENGINEER_DESIGN_FEE_SHARE_BP, SCOPE_ADDENDUM_REQUIRED, defaultTierFor } from "@/config/engineer-pay";
+import { lineAddendumState } from "@/lib/scope-addendum";
+import { formatInFirmZone } from "@/lib/firm-calendar";
+import { AddendumDraftForm } from "./AddendumDraftForm";
 import { floorCentsFor } from "@/lib/trade-pricing";
 
 export const dynamic = "force-dynamic";
@@ -48,6 +51,22 @@ export const dynamic = "force-dynamic";
  * both are rendered, because a figure that could be either a plan or a record
  * is a figure nobody can act on.
  */
+/*
+ * WHAT THE OWNER'S FORM STARTS FROM, in Robert's words of 2026-10-26, 07:10
+ * Central: "$175 per WPI-8 ongoing construction job, one flat amount covering
+ * every stage review and the issued certificate for that job, extra stage visits
+ * included. Paid on the same schedule as his other per-document pay ... nothing
+ * else changes in his agreement." He can change either before drafting.
+ */
+const ADDENDUM_DRAFTS: Record<string, { label: string; pay: string; scope: string }> = {
+  "windstorm-wpi-8/ongoing": {
+    label: "WPI-8 ongoing construction",
+    pay: "175",
+    scope:
+      "One flat amount per WPI-8 ongoing construction job, covering every stage review and the issued certificate for that job, extra stage visits included. Paid on the same schedule as the engineer's other per-document pay. Nothing else in the engineer's agreement changes.",
+  },
+};
+
 export default async function PriceBookPage() {
   const actor = await currentActor();
   /*
@@ -67,6 +86,19 @@ export default async function PriceBookPage() {
   }));
 
   const costs = costPerJob();
+
+  /* The deliverables his agreement leaves out, each with where its addendum stands (0095). */
+  const addenda = can(actor, "addenda.draft")
+    ? await Promise.all(
+        Object.keys(SCOPE_ADDENDUM_REQUIRED).map(async (deliverable) => ({
+          deliverable,
+          label: ADDENDUM_DRAFTS[deliverable]?.label ?? deliverable,
+          defaultPay: ADDENDUM_DRAFTS[deliverable]?.pay ?? "",
+          defaultScope: ADDENDUM_DRAFTS[deliverable]?.scope ?? "",
+          state: await lineAddendumState(deliverable),
+        })),
+      )
+    : null;
 
   return (
     <>
@@ -245,6 +277,42 @@ export default async function PriceBookPage() {
           </div>
         </dl>
       </Panel>
+
+      {/*
+        SCOPE ADDENDA FOR THE ENGINEER TO SIGN. Robert's ruling of 2026-10-26,
+        07:10 Central (0095). One row per deliverable his agreement leaves out:
+        where its addendum stands, and the form that drafts one. The newest
+        addendum decides, so drafting a new one replaces the last, and it opens
+        nothing until he signs it.
+      */}
+      {addenda ? (
+        <Panel title="Scope addenda for the engineer">
+          <p className="max-w-[75ch] text-[14px] leading-[1.6] text-[var(--secondary)]">
+            A deliverable the engineer&apos;s agreement does not cover pays nothing and cannot be ordered until he signs an
+            addendum for it in the portal, from his own account with a fresh code. You draft it here; it then waits on his
+            portal for his signature.
+          </p>
+          <ul className="mt-3">
+            {addenda.map((a) => (
+              <li key={a.deliverable} className="border-b border-[var(--row-rule)] py-4">
+                <p className="text-[15px] font-semibold text-[var(--ink)]">{a.label}</p>
+                <p className="mt-1 text-[14px] leading-[1.6] text-[var(--ink)]">
+                  {!a.state.ok
+                    ? a.state.why
+                    : !a.state.newest
+                      ? "No addendum drafted yet."
+                      : a.state.signed
+                        ? `Signed by the engineer: ${money(a.state.newest.payCents)} per job, drafted ${formatInFirmZone(a.state.newest.createdAt, { month: "short", day: "numeric", year: "numeric" }) ?? ""}.`
+                        : `Drafted ${formatInFirmZone(a.state.newest.createdAt, { month: "short", day: "numeric", year: "numeric" }) ?? ""} at ${money(a.state.newest.payCents)} per job, waiting for the engineer's signature.`}
+                </p>
+                {a.state.ok && !a.state.signed ? (
+                  <AddendumDraftForm deliverable={a.deliverable} label={a.label} defaultPay={a.defaultPay} defaultScope={a.defaultScope} />
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </Panel>
+      ) : null}
     </>
   );
 }

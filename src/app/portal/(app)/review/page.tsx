@@ -23,6 +23,7 @@ import { TrainingDecisionPanel } from "./TrainingDecisionPanel";
 import { trainingAwaitingEngineer } from "@/lib/certification-record";
 import { governingDeclaration } from "@/lib/protocol-run";
 import { formatInFirmZone } from "@/lib/firm-calendar";
+import { addendaFor, addendumHeading } from "@/lib/scope-addendum";
 
 export const dynamic = "force-dynamic";
 
@@ -72,6 +73,8 @@ export default async function ReviewPage({
   const awaiting = awaitingRead.ok ? awaitingRead.letters : [];
   const held = await heldFiles();
   const trainingWaiting = await trainingAwaitingEngineer();
+  const addenda = await addendaFor(actor!.id);
+  const unsignedAddenda = addenda.ok ? addenda.addenda.filter((a) => a.signature.state === "unsigned") : [];
   const awaitingTriage = await filesAwaitingTriage();
   const selectedAwaiting = selected ? awaiting.filter((l) => l.fileId === selected.file.id) : [];
   /*
@@ -155,6 +158,36 @@ export default async function ReviewPage({
       />
 
       <RestrictedMode also="Packages can still be reviewed, sent back and declined. Declining stays available on purpose: a gate that stopped an engineer saying no, while leaving yes open, would be the wrong way round." />
+
+      {/*
+        SCOPE ADDENDA WAITING FOR HIS SIGNATURE, on his home. Robert's ruling of
+        2026-10-26, 07:10 Central (0095): "it appears on the engineer's portal
+        home as waiting for his signature". He reads and signs it on
+        /portal/protocols, where the text is. A failed read says so.
+      */}
+      {!addenda.ok ? (
+        <p role="alert" className="mb-6 text-[14px] text-[var(--ink)]">
+          Scope addenda waiting for your signature could not be read: {addenda.why}
+        </p>
+      ) : unsignedAddenda.length > 0 ? (
+        <section className="mb-6 border-t-2 border-[var(--ink)] pt-4">
+          <h2 className="text-[16px] font-semibold text-[var(--ink)]">Scope addenda waiting for your signature</h2>
+          <p className="mt-1 text-[14px] text-[var(--secondary)]">
+            Each one pays nothing, and opens nothing, until you sign it.
+          </p>
+          <ul className="mt-2 border-t border-[var(--row-rule)]">
+            {unsignedAddenda.map((a) => (
+              <li key={a.id} className="border-b border-[var(--row-rule)] py-3 text-[14px] text-[var(--ink)]">
+                <span className="font-semibold">{addendumHeading(a.addendum_text)}</span>
+                {", "}
+                <Link href="/portal/protocols" className="inline-flex min-h-[44px] items-center font-semibold text-[var(--navy)] underline underline-offset-4">
+                  read and sign it
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       {/*
         HELD BEFORE DISPATCH, operator ruling 1 of 2026-10-07. A yes to RC-001's

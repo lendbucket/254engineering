@@ -30,7 +30,8 @@ async function handlePOST(request: NextRequest) {
     addendumId: typeof body.addendumId === "string" ? body.addendumId : "",
     code: typeof body.code === "string" ? body.code : "",
   });
-  return signed.ok ? NextResponse.json({ ok: true, sha256: signed.sha256 }) : bad(signed.error);
+  /* `note` says when the addendum is signed but a protocol it releases could not be put in force (0096). */
+  return signed.ok ? NextResponse.json({ ok: true, sha256: signed.sha256, note: signed.note ?? null }) : bad(signed.error);
 }
 
 /* A save abandoned by the 20 second bound says it may not have saved, and a failed session read is never "Not signed in": save-outcome.ts. */
