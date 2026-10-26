@@ -3430,6 +3430,27 @@ export const APPLIED = [
       "production, with the dry run of who is not enrolled read first. The branch merges only after the " +
       "production apply is read back, and a migration on main is never pending.",
   },
+  {
+    file: "0094_the_old_seal_doors_refuse.sql", appliedBy: "apply_migration",
+    fingerprint: "8daaba436e02fb92c9a6b227fcb98caf",
+    behaviour: "9996160feeebb47be1426e84e760524e",
+    production: null,
+    proves: null,
+    provesNote:
+      "Nothing in it is visible through PostgREST: it replaces two function bodies and creates no table, column, " +
+      "row, bucket or grant. The sitting document reads the bodies from pg_proc, and " +
+      "scripts/proofs/the-old-seal-doors-refuse.mjs walks every door against the whole replayed chain.",
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0094 on 2026-10-26, with 0093 reproducing its recorded " +
+      "pair first: shape unchanged at 8daaba43 across 1353 columns, behaviour d76bf143 to 9996160f at 1281 facts, " +
+      "the two replaced bodies. No drop statement.",
+    because:
+      "WRITTEN 2026-10-26 ON migration/0094-retire-the-old-seal-doors, ON TOP OF 0093, AND APPLIED NOWHERE. Robert's " +
+      "addendum of 2026-10-25, item 9: the fifteen- and sixteen-argument eng_record_letter_seal doors refuse, the " +
+      "0081 pattern, now that 0089's merge is deployed and main calls only the seventeen and eighteen. Behind 0093 " +
+      "in the chain, which is held, so this waits with it. The branch merges only after the production apply is " +
+      "read back, and a migration on main is never pending.",
+  },
 ];
 
 /*
