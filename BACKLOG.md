@@ -4,6 +4,27 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
+## INDEXNOW IS BUILT AND NOTHING CALLS IT: WHERE IT RUNS IS ROBERT'S
+
+From the Ahrefs crawl of 2026-10-26, item 8. The key file
+(`public/8e5df2ec478b0645910ddf17d8fdf8d9.txt`) and `scripts/indexnow.mjs`,
+which sends only the sitemap URLs that are new or whose lastmod moved, are on
+`fix/ahrefs-crawl-2026-10-26` with a proof. Robert asked for submission "after
+each production deploy, from the deploy step". This firm has no deploy step of
+its own: Vercel deploys main from its Git integration. A `deployment_status`
+workflow is outside the trigger allowlist of 2026-10-22
+(`scripts/ci/workflow-triggers.mjs`), a push to main carries `[skip ci]`, and
+Vercel's build runs before the deployment is live. Asked of Robert on
+2026-10-25 with those three options; nothing submits until he rules.
+
+## THE KEYWORD REGISTRY STILL NAMES FORM 20-18, IN ALL THREE REPOSITORIES
+
+`data/keyword-registry.ts` describes two angles in terms of "TREC form 20-18"
+(the buyer's inspection post and the agents' roof post). The rendered posts
+moved to form 20-19 on 2026-10-26 by Robert's ruling. The registry is not
+rendered, and it is synchronized verbatim across the three repositories, so
+it is corrected in all three at once rather than here alone.
+
 ## FIXED: EVERY CLOUD BOARD SHARED ONE SIGN IN RATE LIMIT BUCKET
 
 Fixed 2026-10-24 on this branch, to Robert's ruling 5 of that day: the board
