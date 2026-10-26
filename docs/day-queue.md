@@ -1,5 +1,121 @@
 # Day queue, 2026-10-23
 
+## MORNING REPORT, 2026-10-26, for Robert's instructions of 22:20, 22:46, 23:49, 23:50 and 23:51 Central
+
+**Needed from Robert:** questions 1 to 8 at the end of this report, each with a recommendation. **Phase 2 did not run** (see Phase 2 below). REPORT_STATUS_LINE
+
+### Merged to main, each on a board that matched its stated prediction
+
+| Branch | Board | Main after |
+| --- | --- | --- |
+| The insurance override to 2026-12-31 (23:49) | 40271697233, 61 of 61 | `b6e5f06` |
+| Every line with a price for sale (23:50), carrying the Ahrefs crawl and the 22:18 answers | 40277543484, 63 of 63 | `98d8e83` |
+| Bundle A, money: F3 (an agreed price is the order's price) and F11 (cards only) | 40284177303, 63 of 63 | `a1d8100` |
+REPORT_MERGES
+
+Each merge is a merge commit whose tree is identical to the boarded commit. Each was pushed `[skip ci]` with the exact command, and confirmed with ls-remote. **Production follows when Vercel deploys main; confirming it is Robert's counterpart's.**
+
+### Boarding, and next in line
+
+REPORT_BOARDING
+
+### Built and waiting for a sitting (posted on issue #1 unless held)
+
+| Migration | Branch | State |
+| --- | --- | --- |
+| 0090, insurance is a register | `feat/insurance-register` | Applied to development by the chat at 04:48 UTC, every figure matching. Boards in its turn, then the production sitting. |
+| 0091, the three letters seal without a template (23:51 A) | `migration/0091-three-letters-seal-without-a-template` | Posted, comment 6408847729. Waits for 0090. |
+| 0092, the engineer's own document has its own drafts bucket (23:51 C) | `feat/repair-spec-own-document` | Posted, comment 6409220696. Waits for 0091. |
+| 0093, the second factor for the administrator, the office and the rep (addendum 5) | `migration/0093-second-factor-for-staff` | **Built and held, not posted.** It waits for `fix/mfa-audit-optional-example` to merge (question 7). |
+| 0094, the old seal doors refuse (addendum 9) | `migration/0094-retire-the-old-seal-doors` | Built behind 0093, and waits with it. |
+
+### Robert's rulings of tonight
+
+| Ruling | State |
+| --- | --- |
+| 23:49, the override and the register | Merged (`b6e5f06`). The 14 day reminder to the owner is built on the insurance branch: once per expiry, recorded in `eng_alert_state`. How the gate counts a register policy is question 1. |
+| 23:50, every line for sale | Merged (`98d8e83`). Manufactured home, solar, WPI-8 and the repair specification are offered, each only through its own door. **WPI-8 ongoing stays refused** by the 2026-10-22 scope addendum rule (question 2). Design is a quote. |
+| 23:51 A, 0091 | Posted. |
+| 23:51 B, the three letters | Built on `feat/three-letters-from-the-drafts`:<br>• manufactured home and solar are drafted from the wording on file (`docs/letter-drafts/letter-drafts-for-adoption-2026-10-24.md`, which was found in this session's scratchpad and is now committed) and the 0087 facts;<br>• the template section and the template step are gone;<br>• the office's file view leads with why a file was declined or sent back.<br>**The WPI-8E report is not built** (question 5). Five wording choices were made toward refusing (question 4). Boards after 0091 is on development. |
+| 23:51 C, the repair specification | Built with 0092. The engineer uploads his PDF; the preview is his pages plus one added seal page; he seals it with a fresh code, and it is delivered as a letter is. The controls are rows 12 to 17 of `docs/sealing-controls.md`. Until it merges, a repair specification underway reads "Underway. Your repair specification is being prepared." (on main since `98d8e83`). |
+
+### The addendum's eleven items
+
+| # | Item | State |
+| --- | --- | --- |
+| 1 | Insurance register | Built; 0090 on development; boards in its turn. |
+| 2 | Void and reissue | **Not built.** Only the title reached this session, after a context summary, so building it would mean inventing its scope (question 6). |
+| 3 | Quotes | Not built, for the same reason. |
+| 4 | Customer uploads | Not built, for the same reason. |
+| 5 | Two-factor for admin, ops_manager and rep | 0093 built and held, with its mfa-audit change on its own branch. |
+| 6 | Turnaround targets | Not built, for the same reason as item 2. |
+| 7 | Letterhead name | Built on `fix/addendum-letterhead-and-registration-line`; boards in its turn. |
+| 8 | registrationLine never "pending"; alert recipients become a list | The first half is built on the same branch. The second half is not built, for the same reason as item 2. |
+| 9 | Retire the old seal doors | 0094, built behind 0093. |
+| 10 | Sealed Engineering orders spec | Not built, for the same reason as item 2. |
+| 11 | Backups | Not built, for the same reason as item 2. |
+
+### Findings by severity
+
+**The audit's 35 confirmed findings** (`docs/audit-2026-10-24.md` section 5 and P4-1 to P4-3):
+- **On main:** F1, F2, F4 to F8, F10, F11 (the paid check), F12, F14 to F20, and the letter findings L2a, L2b, L2d, L2e, L2f and L2j.
+- **Boarding:** F3 and F11's cards only (Bundle A).
+- **Built:** F13, F21 to F26 and F28 to F32 (Bundle B).
+- **Still with Robert:** F27, commission months on UTC.
+- **Ruled to leave:** F9.
+
+**Section 6 sweep, severity 1:**
+- **Confirmed and fixed on `fix/sweep-sev1-failed-reads`:** A4, A5, A12, A13, and A15 (a failed checklist read activated a technician).
+- **Covered elsewhere:** A6, A10 and A11 (Bundle B), A7, B2, A1, A2, A3, A17, A18 and B1 (main), and B3 to B5 (Bundle B).
+
+**Section 6 sweep, severity 2:**
+- **Fixed on the same branch**, each with an injection that turned exactly its check red:
+  - the answer key at scoring, flagged arguably severity 1: a failed read recorded a FAILED certification, 0 of 0;
+  - a blank partner fee or rate stored as $0.00 or 0%;
+  - "$1,200" on intake silently charging the catalogue price;
+  - a failed client search reading "Nobody matches that";
+  - the file timeline;
+  - the queue's dead letters;
+  - notification settings, where saving after a failed read wrote the defaults over the person's choices;
+  - the recovery code count reading 0;
+  - dispatch, where a failed open-jobs read made every technician look free, so a busy one ranked first;
+  - the engineer's review queue and the files waiting on owners, which showed nothing on a failed read and stopped at the oldest 200 (the B2 shape);
+  - the files held for pre-review, which stopped at the oldest 200;
+  - the cron status page, where a daily cron fell out of a shared 500-run window and read as never run (proved against the real filters on the replayed chain);
+  - the training register, read past PostgREST's silent 1,000.
+- **Confirmed and not built:**
+  - E3a, the missing root error pages (question 8);
+  - the credentials read past 1,000, which fails closed, blocking dispatch rather than opening it.
+- **Not yet examined:** the rest of section 6's severity 2 and 3 list.
+
+### Phase 2
+
+**It did not run.** It needs free memory above 12 GB and no board in writers. Free memory read 7.4 GB at 06:55 UTC, a board was in writers for most of the night, and the floor was not lowered.
+
+### Questions for Robert, each with a recommendation
+
+1. **How the gate counts an insurance register policy.** The gate is read at build time and at each money door, and the only database read it may make is a signed protocol's, in the closing direction. **Recommendation:** nothing needs it until 2026-12-31, because the override keeps the condition met. Before then, the office records the policy in the register and the same policy in `verifiedInsurance` in one deploy, which the gate already counts. The register keeps driving the warnings.
+2. **WPI-8 ongoing.** It has been on the offered list since 23:50, but the scope addendum rule of 2026-10-22 still refuses it at its door ("not available to order yet"): the engineer's Schedule 2 does not cover it without a signed addendum, and your 23:50 ruling loosens nothing in the gate. **Recommendation:** leave it refused until a scope addendum for `windstorm-wpi-8/ongoing` is signed in the portal.
+3. **Where the seal goes on the engineer's own document (item C).** The platform adds a final page with the letterhead, F-29811, the title and the seal block. It prints no new sentence and draws nothing on his pages. **Recommendation:** approve as built, because stamping his pages risks covering his content.
+4. **The manufactured home and solar letters (item B): five choices, each made toward refusing.**
+   - (a) The four template sentences with no confirmation mark are not printed.
+   - (b) "The HUD Permanent Foundations Guide for Manufactured Housing, HUD-7584" prints as he wrote it, with a capital T mid-sentence.
+   - (c) A requirement other than HUD-7584 is refused.
+   - (d) A solar file with an installer's survey date is refused.
+   - (e) The attached pages are headed "Attached repair list, file N" and "Attached list, file N".
+
+   **Recommendation:** (a), (c) and (d) stand until the engineer words them; (b) as written; approve (e).
+5. **The WPI-8E postconstruction report** is not built. Its open points:
+   - 28 TAC 5.4626 is cited and not held;
+   - the windstorm code under the plan of operation is set per job;
+   - how "evidence relied on" prints;
+   - the non-compliance report belongs to a later stage.
+
+   **Recommendation:** send these to the engineer with sections 3 and 4 of the drafts.
+6. **The addendum's items 2, 3, 4, 6, 8b, 10 and 11** (void and reissue, quotes, customer uploads, turnaround targets, the alert recipients list, the Sealed Engineering orders spec, backups) reached this session only as titles, after a context summary. **Recommendation:** paste the 22:46 message again, or each item's detail, and they will be built in that order.
+7. **0093 needs mfa-audit's optional-role example moved** off `admin`. This is built on `fix/mfa-audit-optional-example` as a throwaway optional role, the way its required example already works. **Recommendation:** board it, merge it, then post 0093 for its sittings.
+8. **E3a: there is no root error page.** Errors on the site, order, account and partner pages show Next's default "Application error". **Recommendation:** a plain page reading "Something went wrong on our side, and nothing was changed. Reload the page, or call the office." Your word on the sentence first.
+
 ## Robert's answers, 14:39 Central 2026-10-25, and what was done with them
 
 | Answer | Done |
@@ -89,7 +205,8 @@ Order: 0088's branch, Q4, Q2, the Q3 bisect, then the money and letter branches 
 | The insurance register, Robert's 23:49 follow-ups (`feat/insurance-register` at `0dbeadf`, head `b047170`) | The owner is reminded 14 days before the override expires, once, recorded in `eng_alert_state` under the expiry; proof gains seven checks, one injection. The sentences that said the override is not extended, and the gate question unasked, are corrected. **0090's file is unchanged** (`debafc18…`), so the posting stands. How the gate counts a register policy goes back to Robert (Needs Robert). |
 | **Every line for sale MERGED, with the crawl branch: main is `98d8e83`** | Board **40277543484** on `98a327c`: **63 of 63, zero FAIL, no COULD NOT TELL, exactly as predicted**; the gate shard's launch-audit read all seven offered pages in both modes. Merged with a merge commit (parents `b6e5f06` and `98a327c`, tree identical to the boarded commit), `[skip ci]`, exact push, ls-remote `98d8e831968c5164a50ea80786524934aa2d641c`. **Production orders every line with a price once Vercel deploys main, each still through its own door; confirming that on Vercel is Robert's counterpart's.** |
 | Bundle A, money (`fix/bundle-a-money`: F3 agreed price `b5ea55e` and F11 cards only `a489a1e`; main `98d8e83` merged clean as **`f15aa45`**) | Readers, every non-writer that reads a changed file (ops-bulk, ops-customer, ops-intake, partner-billing-rules, payments-stripe): 18 of 19 green on the merged tree; security-audit failed here only for want of a server (`fetch failed` on its liveness probe) and runs in the pages shard with one; a-refund-update-is-applied-once answers COULD NOT TELL here for want of a build. bulk-audit, v10-layout-audit and a-decided-review-credits-its-tier write to development and run only on the board. tsc clean. **Prediction, stated before pushing: 63 of 63, zero FAIL, no COULD NOT TELL.** Named risks: bulk-audit now prices an agreed-price member at its agreed share on the order itself, and the writers' order walk opens checkout with card as the only method. |
-| Bundle A, boarding | Board **40284177303** on `f15aa45`. Prediction above: 63 of 63. |
+| **Bundle A MERGED: main is `a1d8100`** | Board **40284177303** on `f15aa45`: **63 of 63, zero FAIL, no COULD NOT TELL, exactly as predicted.** Merged with a merge commit (parents `98d8e83` and `f15aa45`, tree identical to the boarded commit), `[skip ci]`, exact push, ls-remote `a1d810028dfdd4a8355c3ec241db6afd8ccecf21`. F3 (an agreed price is the order's price) and F11 (cards only) are on main. |
+| Bundle B, reads and screens (`fix/bundle-b-reads-and-screens`: F13, F21 to F26, F28 to F32; main `a1d8100` merged clean as **`2c8c9db`**, after a trial merge of Bundle A into it came back clean) | Readers on the tree before A merged: 101 of 102 green, the one red security-audit wanting a server (`fetch failed` on its liveness probe), which runs in the pages shard with one; asset-audit COULD NOT TELL here for the same reason. Those readers ran on the tree before Bundle A merged; A changed only its own five files, its readers were 18 of 19 green on A's tree (the same server-only red), and the combination is this board's to measure. Writers that read these files (break-glass, bulk, contrast, dashboard-speed, dashboards, demo, doors, forms, messaging, mfa, mobile, mobile-overflow, native, perf, reporting, retention, roles, v10-layout) and thirteen proofs that write to development run only on the board. **Prediction, stated before pushing: 63 of 63, zero FAIL, no COULD NOT TELL.** Named risks: native-audit and the bounded-list rule now measuring partner and ledger screens that read every row; dashboard-speed on the staff money lists that now page; the partner portal's net now over every entry. |
 | Built while it boards, each pushed behind a `[skip ci]` tip so no second board starts | **B**, `feat/three-letters-from-the-drafts` (`17c931b`, on 0091): manufactured home and solar letters from the drafted wording on file and the 0087 facts; boards after 0091 is on development. **0093** and **0094** (item 9, the old seal doors refuse, the 0081 pattern), both held behind 0093's mfa-audit change. **`fix/mfa-audit-optional-example`** (`80920df`, on main): mfa-audit's optional example becomes its own throwaway role, so 0093 can reach development; boards in its turn. **The sweep branch** gains A15 (a failed onboarding checklist read activated a technician; now a blocker), M-partner-blank and M-intake-override (a blank or unreadable amount is no amount), E3e (a failed client search said "Nobody matches that"), the file timeline and the queue's dead letters (a failed read said nothing was there), and the answer key at scoring (a failed read recorded a FAILED certification, 0 of 0); each with an injection that turned exactly its check red. A6, A10 and A11 are covered by Bundle B, A7 was already fixed on main. **C's readers, chosen by pattern, missed two proofs** that a widened search found: the seal-callers list and the licence check's position; both name the new shape now, each with an injection. |
 | **Tonight's order, Robert 22:20 and the addendum of 22:46** | The crawl board, then Bundle A (money: agreed price and cards only, built at `37b5689` on main `3935c91`, readers 20 green), then Bundle B (reads and screens: partner reads, ledger reads, credential dates, triage, customer view, built at `bac80ec`, one import conflict in letter-facts.ts resolved by keeping both, readers 74 green). On a miss, a bundle is split in halves. Then the section 6 severity 1 sweep (B2, A1, A18, the rest of A and B, then severity 2), then the addendum's eleven items in order, the insurance register first because the override expires 2026-10-28. Phase 2 runs locally when free memory clears 12 GB and no board is in writers. The office and mobile passes are interleaved. Migrations are posted on issue #1 and the session stops on each. |
 | Left as is, by Robert's instruction, one line each | noindex on /order/start/* (correct); the content-changed notices (today's brand fix); the http and www redirects (Vercel standard); the _next/image parameter URLs; the external time-out and 429; the SERP title mismatch. |
