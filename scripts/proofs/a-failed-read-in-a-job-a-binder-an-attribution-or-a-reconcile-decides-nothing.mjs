@@ -43,7 +43,7 @@ const ACTOR = {
 };
 const ONBOARDING = "00000000-0000-4000-8000-0000000000f4";
 
-const state = { fail: new Set(), updates: [], audits: [] };
+const state = { fail: new Set(), updates: [], audits: [], questionReads: 0, failQuestionRead: 0, certWrites: [] };
 const json = (b, status = 200) => new Response(JSON.stringify(b), { status, headers: { "content-type": "application/json" } });
 const failure = (table) => json({ message: `proof: ${table} could not be read`, code: "XX000" }, 500);
 const one = (req, rows) => {
@@ -78,6 +78,8 @@ const ROWS = {
     activated_at: null, profile_id: null,
   }],
   eng_onboarding_items: [],
+  eng_certifications: [],
+  eng_protocol_questions: [{ id: "q1", template_id: TEMPLATE, sort_order: 1, prompt: "Proof question", options: ["right", "wrong"], correct_index: 0, rationale: null }],
 };
 
 globalThis.fetch = async (input, init) => {
@@ -91,6 +93,15 @@ globalThis.fetch = async (input, init) => {
   if (req.method === "POST" && table === "eng_audit_events") {
     state.audits.push(JSON.parse(await req.text()));
     return json([], 201);
+  }
+  /* The certification check: its two writes are recorded, and the Nth read of the questions can be made to fail. */
+  if (req.method === "POST" && (table === "eng_certification_attempts" || table === "eng_certifications")) {
+    state.certWrites.push(table);
+    return json([], 201);
+  }
+  if (table === "eng_protocol_questions" && req.method === "GET") {
+    state.questionReads += 1;
+    if (state.failQuestionRead && state.questionReads === state.failQuestionRead) return failure(table);
   }
   if (state.fail.has(table)) return failure(table);
   return one(req, ROWS[table] ?? []);
@@ -202,6 +213,30 @@ state.fail = new Set(["eng_file_events"]);
 check("and a failed read of it is null, not an empty history", (await crm.fileTimeline(FILE)) === null);
 state.fail = new Set();
 const filesPage = (await import("node:fs")).readFileSync("src/app/portal/(app)/files/page.tsx", "utf8");
+/*
+ * The answer key at scoring, arguably severity 1: the screen reads the
+ * questions once, scoring reads the key again. A failure of the second read
+ * graded against no questions and recorded a FAILED certification.
+ */
+const right = [{ questionId: "q1", optionIndex: 0 }];
+state.fail = new Set();
+state.questionReads = 0;
+state.failQuestionRead = 0;
+state.certWrites = [];
+const passed = await field.submitAttempt(ACTOR, "roof-inspections", right);
+check("a right answer, with the key read, is scored and recorded", passed.ok === true && passed.result?.passed === true && state.certWrites.length > 0, JSON.stringify(passed).slice(0, 160));
+const readsPerAttempt = state.questionReads;
+state.questionReads = 0;
+state.failQuestionRead = readsPerAttempt;
+state.certWrites = [];
+const unscored = await field.submitAttempt(ACTOR, "roof-inspections", right);
+check(
+  "when the key read at scoring fails, the attempt is not scored and nothing is recorded",
+  unscored.ok === false && /answer key could not be read/.test(unscored.error) && state.certWrites.length === 0,
+  `${JSON.stringify(unscored).slice(0, 160)}; writes ${JSON.stringify(state.certWrites)}`,
+);
+state.failQuestionRead = 0;
+
 /* Class A, severity 2: the queue's dead letters. A failed read is null, which the queue page says. */
 const jobs = await import("../../src/lib/ops-jobs.ts");
 check("the dead letters read clean as a list", Array.isArray(await jobs.deadLetters()));

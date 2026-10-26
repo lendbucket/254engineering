@@ -2475,13 +2475,26 @@ const toQuestion = (r: QuestionRow): CheckQuestion => ({
  * formality that writes a certification record.
  */
 async function questionsWithKey(templateId: string): Promise<CheckQuestion[]> {
+  return (await questionsWithKeyRead(templateId)) ?? [];
+}
+
+/*
+ * THE KEY, OR NULL WHEN IT COULD NOT BE READ. Section 6 of Robert's audit of
+ * 2026-10-24: scoring read the key a second time with its error ignored, so a
+ * failed read graded the attempt against no questions and RECORDED A FAILED
+ * CERTIFICATION for a technician who may have answered every question right.
+ * Scoring reads this and refuses on null; the screens that only list the
+ * questions keep reading an empty list.
+ */
+async function questionsWithKeyRead(templateId: string): Promise<CheckQuestion[] | null> {
   const db = supabaseAdmin();
-  if (!db) return [];
-  const { data } = await db
+  if (!db) return null;
+  const { data, error } = await db
     .from("eng_protocol_questions")
     .select("id, template_id, sort_order, prompt, options, correct_index, rationale")
     .eq("template_id", templateId)
     .order("sort_order");
+  if (error) return null;
   return ((data ?? []) as QuestionRow[]).map(toQuestion);
 }
 
@@ -2686,7 +2699,14 @@ export async function submitAttempt(
     };
   }
 
-  const questions = await questionsWithKey(view.templateId);
+  const questions = await questionsWithKeyRead(view.templateId);
+  if (questions === null || questions.length !== view.questions.length) {
+    return {
+      ok: false,
+      error:
+        "The answer key could not be read just now, so this attempt was not scored and nothing was recorded. Submit it again in a moment.",
+    };
+  }
   const grade = gradeAttempt(questions, answers);
 
   await db.from("eng_certification_attempts").insert({
