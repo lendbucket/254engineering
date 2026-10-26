@@ -4,7 +4,7 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
-## 0095 AND 0096, WPI-8 ONGOING THROUGH A SCOPE ADDENDUM: BUILT, THREE THINGS LEFT
+## 0095 AND 0096, WPI-8 ONGOING THROUGH A SCOPE ADDENDUM: BUILT, TWO THINGS LEFT
 
 **Built since** (same branch): the owner's panel on `/portal/pricebook` and
 `/api/portal/addenda/draft`, the card on the engineer's review home, his WP-001
