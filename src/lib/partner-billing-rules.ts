@@ -236,6 +236,8 @@ export function partnerCheckoutParams(input: {
   return {
     params: {
       mode: "subscription" as const,
+      /* Cards only, as the order checkout (finding F11, Robert's answer of 2026-10-25). */
+      payment_method_types: ["card" as const],
       customer_email: input.email,
       client_reference_id: input.partnerId,
       metadata,

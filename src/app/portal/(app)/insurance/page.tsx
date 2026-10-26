@@ -13,8 +13,9 @@ export const dynamic = "force-dynamic";
  * THE FIRM'S INSURANCE. Robert's addendum of 2026-10-25, item 1: the office and
  * the owner record each policy from its certificate, open the certificate, and
  * withdraw a policy recorded in error or replaced. Nothing here is edited or
- * deleted. Whether the launch gate reads this register is a ruling still to
- * come, so the screen says so rather than implying it does.
+ * deleted. Robert ruled on 2026-10-25, 23:49 Central that the gate counts a
+ * policy recorded here; how it counts it is put back to him, so until then the
+ * screen says the gate reads the code, rather than implying it reads this.
  */
 export default async function InsurancePage() {
   const actor = await currentActor();
@@ -31,7 +32,7 @@ export default async function InsurancePage() {
       />
       <Panel
         title="On the register"
-        description="Recording a policy here does not yet change whether the firm may take orders; that still reads the policy recorded in the code, until the owner rules otherwise."
+        description="Recording a policy here does not yet change whether the firm may take orders; that still reads the policy recorded in the code, until how the order gate counts this register is settled."
       >
         {!read.ok ? (
           <ErrorState title="The register could not be read" body={`${read.error} Reload the page to try again.`} />

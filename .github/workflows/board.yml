@@ -119,10 +119,16 @@ jobs:
           # The verbatim protocol check, where xpdf 4.00 is (scripts/ci/shards.mjs).
           - { shard: documents, os: windows-latest, app: false }
     steps:
+      # The whole history, because guide-dates-audit derives the guide pages'
+      # Article dates from git (Robert, 2026-10-25) and refuses a shallow clone.
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
       - name: A local main, which schema-ledger-audit reads
+        # No depth here: a --depth=1 fetch into the full clone would make it
+        # shallow again.
         run: |
-          git fetch --no-tags --depth=1 origin +refs/heads/main:refs/remotes/origin/main
+          git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
           git show-ref --verify --quiet refs/heads/main || git branch main origin/main
       - uses: actions/setup-node@v5
         with:

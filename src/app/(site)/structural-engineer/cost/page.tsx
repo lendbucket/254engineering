@@ -8,7 +8,7 @@ import { Rule, SectionHeading } from "@/components/ui/primitives";
 import { Section, SectionHead } from "@/components/ui/section";
 import { FaqBlock } from "@/components/site/FaqBlock";
 import { buildMetadata } from "@/lib/seo";
-import { JsonLd, breadcrumbSchema, faqSchema } from "@/lib/schema";
+import { ArticleJsonLd, JsonLd, breadcrumbSchema, faqSchema } from "@/lib/schema";
 import { services } from "@/content/services";
 import { priceFor, priceSentence } from "@/config/prices";
 import { coastalLine } from "@/lib/ordering";
@@ -90,6 +90,7 @@ export default function StructuralEngineerCostPage() {
     <>
       <JsonLd data={breadcrumbSchema(crumbs)} />
       <JsonLd data={faqSchema(faqs)} />
+      <ArticleJsonLd path="/structural-engineer/cost" headline="What a Structural Engineer Costs in Texas" description={String(metadata.description)} />
 
       <PageHeader
         image={sectionPhotos.government}

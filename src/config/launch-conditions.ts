@@ -48,8 +48,25 @@
  * is one act of two: each still sells only when its protocol is signed in force
  * and somebody is trained on that version (line-gate.ts, 0084, 0086), and
  * their letters seal from his own session.
+ *
+ * EVERY LINE WITH A PUBLISHED PRICE IS FOR SALE: Robert's ruling of
+ * 2026-10-25, 23:50 Central. Manufactured home foundation certification, the
+ * solar structural letter, WPI-8 completed and ongoing (four stage visits, a
+ * further visit priced in prices.ts), and the repair specification join, at
+ * the prices in src/config/prices.ts. Nothing in the gate is loosened: each
+ * still sells only through line-gate.ts's live read, a portal-signed protocol
+ * and a technician trained on its version. Design, priced by the hour with a
+ * minimum, sells through the quote path.
  */
-export const offeredServiceLines: string[] = ["roof-inspections", "foundation-inspections", "structural-letters"];
+export const offeredServiceLines: string[] = [
+  "roof-inspections",
+  "foundation-inspections",
+  "structural-letters",
+  "manufactured-home-foundation-certifications",
+  "solar-structural-letters",
+  "windstorm-wpi-8",
+  "repair-specifications",
+];
 
 /**
  * ===========================================================================

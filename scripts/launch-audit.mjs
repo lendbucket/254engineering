@@ -67,6 +67,14 @@ const ROUTES = [
   "/services",
   "/services/roof-inspections",
   "/services/windstorm-wpi-8",
+  /* The other offered lines, 2026-10-25, so every pinned offered line is read in both modes. */
+  "/services/foundation-inspections",
+  "/services/structural-letters",
+  "/services/manufactured-home-foundation-certifications",
+  "/services/solar-structural-letters",
+  "/services/repair-specifications",
+  /* The one line still quoted rather than ordered since 2026-10-25 (design, by the hour), so the unoffered check reads it. */
+  "/services/residential-light-commercial-design",
   "/coverage",
   "/coverage/coastal-bend",
   "/government",
@@ -633,7 +641,16 @@ async function run() {
      * there, an edit in compliance-audit, and an edit here: three deliberate
      * acts, and the board says so in between.
      */
-    const OFFERED_AT_LAUNCH = ["roof-inspections"];
+    /* Every line with a published price, Robert's ruling of 2026-10-25, 23:50 Central; design alone is quoted. */
+    const OFFERED_AT_LAUNCH = [
+      "roof-inspections",
+      "foundation-inspections",
+      "structural-letters",
+      "manufactured-home-foundation-certifications",
+      "solar-structural-letters",
+      "windstorm-wpi-8",
+      "repair-specifications",
+    ];
     const offeredPages = servicePages.filter((r) =>
       OFFERED_AT_LAUNCH.some((slug) => r === `/services/${slug}`),
     );
