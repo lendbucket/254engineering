@@ -57,7 +57,23 @@ export const OWNER_OVERRIDES = [
     label: "Dispatch: driver license and vehicle insurance not required",
     holder: "The owner's field technician profile, by user id",
   },
+  {
+    key: "sign_in_second_factor",
+    label: "Sign in: the second factor the administrator role requires is not asked",
+    holder: "The owner's administrator account, by user id",
+  },
 ] as const;
+
+/**
+ * THE THIRD OVERRIDE, Robert's answer 3 of 2026-10-26, 09:49 Central, made with
+ * 0093, which requires the second factor for every administrator, operations
+ * manager and rep. His administrator account, the same id as above, signs in
+ * without enrolling; every such sign in writes an audit row through
+ * writeAuditOrRefuse (src/app/api/portal/session/route.ts), and the decision is
+ * src/lib/sign-in-factor.ts. If he enrols anyway, he is challenged like anybody
+ * enrolled. It reaches no other account and no sealing act.
+ */
+export const OWNER_SIGN_IN_RULED_ON = "2026-10-26";
 
 export type OwnerOverrideKey = (typeof OWNER_OVERRIDES)[number]["key"];
 
