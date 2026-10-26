@@ -318,6 +318,11 @@ state.fail = new Set();
 const waitingPage = (await import("node:fs")).readFileSync("src/app/portal/(app)/waiting/page.tsx", "utf8");
 check("and the waiting page says it could not be read before it would say nobody is waiting", waitingPage.indexOf("{rows === null ? (") > 0 && waitingPage.indexOf("{rows === null ? (") < waitingPage.indexOf('title="Nobody is waiting"'));
 
+/* Class B, severity 2: the files held for his pre-review are read in full, not the oldest 200. */
+const holdSrc = (await import("node:fs")).readFileSync("src/lib/dispatch-hold.ts", "utf8");
+const heldBody = holdSrc.slice(holdSrc.indexOf("export async function heldFiles("), holdSrc.indexOf("export async function recordPrereview("));
+check("the files held for pre-review are read in every page, and a failed read refuses", /readEvery</.test(heldBody) && !/\.limit\(/.test(heldBody) && /if \(!read\.ok\) return \{ ok: false, error: read\.error \};/.test(heldBody));
+
 /* Class A, severity 2: the queue's dead letters. A failed read is null, which the queue page says. */
 const jobs = await import("../../src/lib/ops-jobs.ts");
 check("the dead letters read clean as a list", Array.isArray(await jobs.deadLetters()));
