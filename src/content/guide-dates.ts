@@ -8,9 +8,9 @@
  * difference, so a guide edited without re-running the emitter is named.
  */
 export const GUIDE_DATES: Record<string, { datePublished: string; dateModified: string }> = {
-  "/what-is-a-structural-engineer": { datePublished: "2026-09-18T14:39:28-05:00", dateModified: "2026-09-22T09:10:05-05:00" },
-  "/structural-engineer": { datePublished: "2026-08-31T11:07:45-05:00", dateModified: "2026-09-22T09:10:05-05:00" },
-  "/structural-engineer/cost": { datePublished: "2026-09-18T13:25:00-05:00", dateModified: "2026-10-21T16:29:54-05:00" },
+  "/what-is-a-structural-engineer": { datePublished: "2026-09-18T14:39:28-05:00", dateModified: "2026-10-25T21:01:08-05:00" },
+  "/structural-engineer": { datePublished: "2026-08-31T11:07:45-05:00", dateModified: "2026-10-25T21:01:08-05:00" },
+  "/structural-engineer/cost": { datePublished: "2026-09-18T13:25:00-05:00", dateModified: "2026-10-25T21:01:08-05:00" },
   "/structural-engineer/when-you-need-one": { datePublished: "2026-08-31T11:07:45-05:00", dateModified: "2026-10-07T09:08:43-05:00" },
   "/structural-engineer/inspection": { datePublished: "2026-09-18T13:25:00-05:00", dateModified: "2026-10-07T09:14:00-05:00" },
   "/structural-engineer/how-to-choose": { datePublished: "2026-08-31T11:07:45-05:00", dateModified: "2026-10-25T15:30:56-05:00" },
