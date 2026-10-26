@@ -191,16 +191,17 @@ check(
   JSON.stringify(cleanView?.readiness.blockers ?? null),
 );
 state.fail = new Set(["eng_onboarding_items"]);
+/* The sentence is F30's, which Bundle B shipped for the same defect (main 89a9798); A15 found it independently. */
 const failedView = await onboarding.activationView(ACTOR, ONBOARDING);
 check(
   "A15: a failed checklist read is not ready, and the blocker says the checklist could not be read",
-  Boolean(failedView) && failedView.readiness.ready === false && failedView.readiness.blockers.some((b) => /The checklist could not be read just now/.test(b)),
+  Boolean(failedView) && failedView.readiness.ready === false && failedView.readiness.blockers.some((b) => /^The onboarding items could not be read, so whether this person is ready cannot be told/.test(b)),
   JSON.stringify(failedView?.readiness ?? null),
 );
 const activated = await onboarding.activateTechnician(ACTOR, ONBOARDING);
 check(
   "and activation refuses on it before any account is made",
-  activated.ok === false && (activated.blockers ?? []).some((b) => /checklist could not be read/.test(b)),
+  activated.ok === false && (activated.blockers ?? []).some((b) => /^The onboarding items could not be read/.test(b)),
   JSON.stringify(activated),
 );
 state.fail = new Set();

@@ -332,21 +332,19 @@ export async function activationView(actor: Actor | null, onboardingId: string):
     .order("sort_order");
 
   /*
-   * A FAILED READ OF THE CHECKLIST IS NOT AN EMPTY CHECKLIST. Section 6 of
-   * Robert's audit of 2026-10-24, A15. Read as [], every required credential
-   * was "not on this person's checklist at all", readiness found no blocker,
-   * and activateTechnician created the account and its invite on a read that
-   * had failed. It is now a blocker that says so, and nothing is activated.
+   * A FAILED READ IS NEVER READY. Robert's audit of 2026-10-24, finding F30:
+   * with the error ignored the items were an empty list, activationReadiness
+   * skipped every credential it had nothing to check, and the person read as
+   * ready to activate. The view says why it cannot tell, and activation, which
+   * reads this same view, refuses on it.
    */
   if (itemsError) {
+    const why = `The onboarding items could not be read, so whether this person is ready cannot be told: ${itemsError.message}`;
+    const shut = activationReadiness([], []);
     return {
       onboarding: onboarding as ActivationView["onboarding"],
       items: [],
-      readiness: {
-        ready: false,
-        blockers: [`The checklist could not be read just now (${itemsError.message}), so whether this person is ready is not known. Nothing was activated. Reload and try again.`],
-        missingExpiry: [],
-      },
+      readiness: { ...shut, ready: false, blockers: [why, ...shut.blockers] },
     };
   }
 

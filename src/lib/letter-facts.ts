@@ -4,8 +4,8 @@ import { can, holdsLicence, licenceRefusal, type Actor } from "./ops-authz";
 import { writeAudit } from "./ops-audit";
 import { verifiedEngineers } from "@/config/credentials";
 import { licenceIsCurrentToday } from "./launch";
-import { readEvery, readEveryIn } from "./bounded-read";
 import { LETTER_FACT_CATALOGUE, catalogueFact } from "@/content/letters/letter-fact-catalogue";
+import { readEvery, readEveryIn } from "./bounded-read";
 
 /**
  * ===========================================================================
@@ -184,42 +184,62 @@ export async function triageFor(fileId: string): Promise<{ ok: true; basis: "sit
  * PL-4: the permit letter files with no triage yet, open and not cancelled,
  * oldest first, for his queue. His answer is due within one business day of
  * the order, so this list is where he finds the work.
+ *
+ * Audit 2026-10-24, F13 and the triage starvation claim: this read the oldest
+ * 200 open files and dropped the triaged ones afterwards, so once 200 open
+ * permit files were triaged a new one never reached the list; and the screen
+ * passed every file an empty capture list, so an item he added read back as
+ * "None added". It reads every open file, and each file carries its own items.
  */
 export async function filesAwaitingTriage(): Promise<
-  { ok: true; files: { id: string; fileNumber: string; address: string; createdAt: string }[] } | Refused
+  | { ok: true; files: { id: string; fileNumber: string; address: string; createdAt: string; additions: { id: string; label: string }[] }[] }
+  | Refused
 > {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
-  /*
-   * EVERY OPEN PERMIT LETTER FILE, NOT THE OLDEST 200. Section 6 of Robert's
-   * audit of 2026-10-24 (class B, severity 2, the B2 shape): the triaged files
-   * were dropped AFTER a window of the oldest 200 open ones, so once 200
-   * triaged files were still open, a new file never reached this list.
-   */
-  const filesRead = await readEvery<{ id: string; file_number: string; property_address: string; created_at: string; status: string }>((from, to) =>
+  // readEvery: the list is his queue, so a file past any bound is a job he never sees.
+  const files = await readEvery<{ id: string; file_number: string; property_address: string; created_at: string }>((from, to) =>
     db
       .from("eng_files")
-      .select("id, file_number, property_address, created_at, status")
+      .select("id, file_number, property_address, created_at")
       .eq("service_slug", "structural-letters")
       .not("status", "in", "(closed,cancelled,delivered,sealed)")
       .order("created_at", { ascending: true })
       .order("id", { ascending: true })
       .range(from, to),
   );
-  if (!filesRead.ok) return { ok: false, error: `The permit letter files could not be read: ${filesRead.error}` };
-  const files = filesRead.rows;
-  const ids = files.map((f) => f.id);
+  if (!files.ok) return { ok: false, error: `The permit letter files could not be read: ${files.error}` };
+  const ids = files.rows.map((f) => f.id);
   if (ids.length === 0) return { ok: true, files: [] };
-  const triagedRead = await readEveryIn<{ file_id: string }>(ids, (chunk, from, to) =>
-    db.from("eng_job_triage").select("file_id").in("file_id", [...chunk]).order("file_id", { ascending: true }).range(from, to),
+  // readEveryIn: a triage missed by a capped read would list a decided job as waiting.
+  const triaged = await readEveryIn<{ file_id: string }>(ids, (chunk, from, to) =>
+    db.from("eng_job_triage").select("file_id").in("file_id", [...chunk]).order("file_id").range(from, to),
   );
-  if (!triagedRead.ok) return { ok: false, error: `The triage could not be read: ${triagedRead.error}` };
-  const done = new Set(triagedRead.rows.map((t) => t.file_id));
+  if (!triaged.ok) return { ok: false, error: `The triage could not be read: ${triaged.error}` };
+  const done = new Set(triaged.rows.map((t) => t.file_id));
+  const waiting = files.rows.filter((f) => !done.has(f.id));
+  // readEveryIn: an item missed here reads as "None added" beside a list he wrote.
+  const added = await readEveryIn<{ id: string; file_id: string; label: string }>(waiting.map((f) => f.id), (chunk, from, to) =>
+    db
+      .from("eng_job_capture_additions")
+      .select("id, file_id, label")
+      .in("file_id", [...chunk])
+      .order("created_at", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  if (!added.ok) return { ok: false, error: `The capture items could not be read: ${added.error}` };
+  const itemsOf = new Map<string, { id: string; label: string }[]>();
+  for (const a of added.rows) itemsOf.set(a.file_id, [...(itemsOf.get(a.file_id) ?? []), { id: a.id, label: a.label }]);
   return {
     ok: true,
-    files: files
-      .filter((f) => !done.has(f.id as string))
-      .map((f) => ({ id: f.id as string, fileNumber: f.file_number as string, address: f.property_address as string, createdAt: f.created_at as string })),
+    files: waiting.map((f) => ({
+      id: f.id,
+      fileNumber: f.file_number,
+      address: f.property_address,
+      createdAt: f.created_at,
+      additions: itemsOf.get(f.id) ?? [],
+    })),
   };
 }
 

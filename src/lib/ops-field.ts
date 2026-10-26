@@ -2333,12 +2333,21 @@ export type LedgerRow = {
  * There is no view in between, because "an engineer can see what techs are paid"
  * is a decision nobody has made and defaulting to yes would be making it.
  */
-export async function payLedger(actor: Actor | null, techId?: string): Promise<LedgerRow[]> {
+/*
+ * A failed read is said, never an empty ledger. Robert's audit of 2026-10-24,
+ * finding F24: it returned [] and the Pay screen showed "Owed to you $0.00"
+ * and "Paid to date $0.00", which the screen's own comment rightly calls a
+ * KNOWN zero. A read that failed is not one.
+ */
+export async function payLedger(
+  actor: Actor | null,
+  techId?: string,
+): Promise<{ ok: true; rows: LedgerRow[] } | { ok: false; error: string }> {
   const db = supabaseAdmin();
-  if (!db || !actor) return [];
+  if (!db || !actor) return { ok: false, error: "The pay ledger could not be read." };
 
   const all = can(actor, "ledger.read_all");
-  if (!all && !can(actor, "ledger.read_own")) return [];
+  if (!all && !can(actor, "ledger.read_own")) return { ok: true, rows: [] };
 
   /*
    * EVERY ROW, NOT THE NEWEST 300. Product audit, 2026-10-10: this read stopped
@@ -2356,14 +2365,17 @@ export async function payLedger(actor: Actor | null, techId?: string): Promise<L
     if (scope) q = q.eq("tech_id", scope);
     return q;
   });
-  if (!read.ok) return [];
-  return read.rows.map((r) => {
-    const files = r.eng_files as { is_demo?: boolean } | { is_demo?: boolean }[] | null;
-    const isDemo = Array.isArray(files) ? files.some((f) => f?.is_demo === true) : files?.is_demo === true;
-    const { eng_files: _files, ...rest } = r;
-    void _files;
-    return { ...(rest as Omit<LedgerRow, "amount_cents" | "is_demo">), amount_cents: Number(r.amount_cents), is_demo: isDemo };
-  });
+  if (!read.ok) return { ok: false, error: `The pay ledger could not be read: ${read.error}` };
+  return {
+    ok: true,
+    rows: read.rows.map((r) => {
+      const files = r.eng_files as { is_demo?: boolean } | { is_demo?: boolean }[] | null;
+      const isDemo = Array.isArray(files) ? files.some((f) => f?.is_demo === true) : files?.is_demo === true;
+      const { eng_files: _files, ...rest } = r;
+      void _files;
+      return { ...(rest as Omit<LedgerRow, "amount_cents" | "is_demo">), amount_cents: Number(r.amount_cents), is_demo: isDemo };
+    }),
+  };
 }
 
 export async function setLedgerStatus(
