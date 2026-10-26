@@ -292,6 +292,21 @@ check("and sending offers refuses on it", /if \(ctx\.unreadable\) return \{ ok: 
 const bulkSrc = (await import("node:fs")).readFileSync("src/lib/ops-bulk-dispatch.ts", "utf8");
 check("and bulk dispatch says it, never \"no technician covers\"", bulkSrc.indexOf("context.unreadable") > 0 && bulkSrc.indexOf("context.unreadable") < bulkSrc.indexOf("No technician covers"));
 
+/* Class A and B, severity 2: the engineer's review queue. A failed read is null, never "Nothing waiting", and it is not capped. */
+const engineerMod = await import("../../src/lib/ops-engineer.ts");
+const ENGINEER_ACTOR = { id: "e1", role: "engineer", status: "active", email: "fr-eng@audit-probe.invalid", grants: new Set() };
+state.fail = new Set();
+const queueClean = await engineerMod.reviewQueue(ENGINEER_ACTOR);
+check("the review queue reads clean as a list", Array.isArray(queueClean) && queueClean.length >= 1, JSON.stringify(queueClean?.length));
+state.fail = new Set(["eng_files"]);
+check("and a failed read of it is null, never an empty queue", (await engineerMod.reviewQueue(ENGINEER_ACTOR)) === null);
+state.fail = new Set();
+const engineerSrc = (await import("node:fs")).readFileSync("src/lib/ops-engineer.ts", "utf8");
+const queueBody = engineerSrc.slice(engineerSrc.indexOf("export async function reviewQueue("), engineerSrc.indexOf("}\n", engineerSrc.indexOf("export async function reviewQueue(")));
+check("and it reads every page rather than the oldest 200", /readEvery<QueueRow>/.test(queueBody) && !/\.limit\(/.test(queueBody));
+const reviewPage = (await import("node:fs")).readFileSync("src/app/portal/(app)/review/page.tsx", "utf8");
+check("and the review page says it could not be read before it would say nothing is waiting", reviewPage.indexOf("{queue === null ? (") > 0 && reviewPage.indexOf("{queue === null ? (") < reviewPage.indexOf('title="Nothing waiting"'));
+
 /* Class A, severity 2: the queue's dead letters. A failed read is null, which the queue page says. */
 const jobs = await import("../../src/lib/ops-jobs.ts");
 check("the dead letters read clean as a list", Array.isArray(await jobs.deadLetters()));

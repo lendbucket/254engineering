@@ -20,6 +20,7 @@ import { randomUUID } from "node:crypto";
 import { canTransition, STATUS_TIMESTAMP, type FileStatus } from "./ops-files";
 import { effectModeFor } from "./fixture-identity";
 import { REVIEW_AFTER_DECISION, reviewAfterDecisionKey, type ReviewAfterDecisionPayload } from "./review-jobs";
+import { readEvery } from "./bounded-read";
 import {
   ACTION_LABEL,
   ACTION_TARGET,
@@ -89,16 +90,27 @@ const QUEUE_COLUMNS =
  * sorted newest first is one where the file somebody keeps skipping sinks out
  * of sight.
  */
-export async function reviewQueue(actor: Actor | null): Promise<QueueRow[]> {
+/*
+ * EVERY FILE IN REVIEW, OR NULL WHEN THEY COULD NOT BE READ. Section 6 of
+ * Robert's audit of 2026-10-24 (class A and class B, severity 2): a failed
+ * read was [] and the engineer's queue said nothing was waiting; and the read
+ * stopped at the oldest 200, so past 200 files the newest submissions never
+ * appeared, the starvation shape of B2. It reads every page now.
+ */
+export async function reviewQueue(actor: Actor | null): Promise<QueueRow[] | null> {
   const db = supabaseAdmin();
-  if (!db || !holdsLicence(actor, "review.queue")) return [];
-  const { data } = await db
-    .from("eng_files")
-    .select(QUEUE_COLUMNS)
-    .in("status", ["evidence_submitted", "under_review", "revisions_requested"])
-    .order("evidence_submitted_at", { ascending: true, nullsFirst: false })
-    .limit(200);
-  return (data ?? []) as QueueRow[];
+  if (!holdsLicence(actor, "review.queue")) return [];
+  if (!db) return null;
+  const read = await readEvery<QueueRow>((from, to) =>
+    db
+      .from("eng_files")
+      .select(QUEUE_COLUMNS)
+      .in("status", ["evidence_submitted", "under_review", "revisions_requested"])
+      .order("evidence_submitted_at", { ascending: true, nullsFirst: false })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  return read.ok ? (read.rows as QueueRow[]) : null;
 }
 
 // ------------------------------------------------- waiting on the owners
