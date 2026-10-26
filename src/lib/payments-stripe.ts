@@ -106,6 +106,14 @@ export function stripeProvider(): PaymentProvider {
       const session = await stripe().checkout.sessions.create(
         {
           mode: "payment",
+          /*
+           * Cards only. Robert's answer on finding F11, 2026-10-25: a card is
+           * paid when the session completes, so the completed event is the
+           * money. A delayed method (a bank debit) completes unpaid and settles
+           * or fails days later, which this platform does not handle, so it is
+           * refused in code rather than left to the account's settings.
+           */
+          payment_method_types: ["card"],
           customer_email: request.customerEmail,
           client_reference_id: request.reference,
           /*
