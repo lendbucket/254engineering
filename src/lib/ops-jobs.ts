@@ -579,15 +579,21 @@ export async function queueHealth(): Promise<QueueHealth | null> {
 }
 
 /** The dead letter contents, for the screen that makes a failure visible. */
+/*
+ * The newest dead jobs, or null when they could not be read. Section 6 of
+ * Robert's audit of 2026-10-24 (class A, severity 2): a failed read was [] and
+ * the queue said "Nothing has given up" over jobs that need a person.
+ */
 export async function deadLetters(limit = 50) {
   const db = supabaseAdmin();
-  if (!db) return [];
-  const { data } = await db
+  if (!db) return null;
+  const { data, error } = await db
     .from("eng_jobs")
     .select("id, kind, payload, attempts, max_attempts, last_error, created_at, finished_at")
     .eq("status", "dead")
     .order("finished_at", { ascending: false })
     .limit(limit);
+  if (error) return null;
   return data ?? [];
 }
 
