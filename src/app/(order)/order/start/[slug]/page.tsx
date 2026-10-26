@@ -7,7 +7,7 @@ import { deliverablesFor, orderBlockedReason } from "@data/catalog";
 import { serviceBySlug } from "@/content/services";
 import { isTrading, launchMode, peInResponsibleCharge, registrationLine } from "@/lib/launch";
 import { displayPhone, postalAddressLine } from "@/config/contact";
-import { orderBlockedNow } from "@/lib/line-gate";
+import { orderBlockedForDisplay } from "@/lib/line-gate";
 import { coverVerbFor, orderHeading, serviceNameInSentence } from "@/lib/order-copy";
 import { currentCustomer } from "@/lib/customer-auth";
 
@@ -79,11 +79,14 @@ export default async function OrderStartPage({ params }: { params: Promise<{ slu
    * available when a price has not been published. So the page asks about each.
    */
   /*
-   * A MONEY DOOR, ruling 11 of 2026-10-06. Each deliverable is asked through
-   * orderBlockedNow, which reads the engineer's signed record when the gate is
-   * open, so a voided or unreadable signature closes the line here at once.
+   * WHAT THIS PAGE SHOWS, NOT WHAT TAKES THE MONEY. Robert, 2026-10-25: this
+   * page DISPLAYS whether each deliverable can be ordered, from an answer kept
+   * for at most 60 seconds (orderBlockedForDisplay). The money door is
+   * placeOrder, behind the form, which asks orderBlockedNow live every time,
+   * ruling 11, so a signature voided inside the minute is refused at checkout
+   * even while this page still shows the line.
    */
-  const blockedEach = await Promise.all(deliverables.map((d) => orderBlockedNow(d, mode)));
+  const blockedEach = await Promise.all(deliverables.map((d) => orderBlockedForDisplay(d, mode)));
   const available = deliverables.filter((_, i) => blockedEach[i] === null);
   const blockedReason = deliverables[0] ? blockedEach[0] : orderBlockedReason(undefined, mode, false);
 

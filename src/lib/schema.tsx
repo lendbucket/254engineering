@@ -9,6 +9,7 @@ import {
   postalAddressSchema,
 } from "@/config/contact";
 import { firmName, isOpen, tbpelsFirmNumber } from "./launch";
+import { GUIDE_DATES } from "@/content/guide-dates";
 
 /**
  * Structured data for the whole brand family.
@@ -55,16 +56,21 @@ export function organizationSchema() {
 
   return {
     "@context": "https://schema.org",
-    "@type": "ProfessionalService",
+    /*
+     * BOTH TYPES ON THE ONE NODE, Robert, 2026-10-25, from the Ahrefs crawl:
+     * Organization and ProfessionalService, the same properties, one entity.
+     * seo-audit pins the pair.
+     */
+    "@type": ["Organization", "ProfessionalService"],
     "@id": ORG_ID,
     /*
      * The brand, then the registrant, then the parent. Operator ruling,
      * 2026-10-19: name "254 Engineering", legalName the registrant, and
      * parentOrganization Craftline Brands, on all three sites. There is no
      * alternateName: the only other name this firm has is a DBA that stays off
-     * public copy. The type stays ProfessionalService, which schema.org defines
-     * as an Organization, so this IS the Organization node rather than a second
-     * entity beside it.
+     * public copy. ProfessionalService is an Organization in schema.org, and
+     * naming both (2026-10-25) keeps this the Organization node rather than a
+     * second entity beside it.
      */
     name: business.shortName,
     legalName: business.legalName,
@@ -347,5 +353,42 @@ export function blogPostingSchema(post: {
       name: s.label,
       url: s.url,
     })),
+  };
+}
+
+/**
+ * ARTICLE, FOR THE GUIDE PAGES ONLY. Robert, 2026-10-25, from the Ahrefs crawl.
+ *
+ * The fourteen guide pages he named carry it; coverage, process and index
+ * pages do not. The author and the publisher are the organisation node, never a
+ * person, for the reason blogPostingSchema gives. The dates are the page's own
+ * git history (src/content/guide-dates.ts, generated, and re-derived by
+ * guide-dates-audit), never typed and never a build time. A path with no
+ * recorded dates renders no Article at all, rather than one with a guessed date.
+ */
+/** The Article node as a script tag, or nothing when the path has no recorded dates. */
+export function ArticleJsonLd(page: { path: string; headline: string; description: string }) {
+  const data = articleSchema(page);
+  return data ? <JsonLd data={data} /> : null;
+}
+
+export function articleSchema(page: { path: string; headline: string; description: string }) {
+  const dates = GUIDE_DATES[page.path];
+  if (!dates) return null;
+  const url = `${business.url}${page.path}`;
+  return {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "@id": `${url}#article`,
+    headline: page.headline,
+    description: page.description,
+    url,
+    mainEntityOfPage: { "@type": "WebPage", "@id": url },
+    datePublished: dates.datePublished,
+    dateModified: dates.dateModified,
+    author: { "@id": ORG_ID },
+    publisher: { "@id": ORG_ID },
+    isPartOf: { "@id": SITE_ID },
+    inLanguage: "en-US",
   };
 }

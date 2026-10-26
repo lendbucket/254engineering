@@ -42,6 +42,8 @@ export const SHARDS = {
       "jobs-audit", "observability-audit", "token-audit", "portal-voice-audit", "files-audit",
       "dispatch-audit", "onboarding-audit", "review-audit", "comms-audit", "money-audit",
       "stripe-webhook-audit", "order-audit", "registry-audit", "email-audit",
+      /* Robert, 2026-10-25: no database, no server; guide-dates-audit needs the full history the checkout fetches. */
+      "citation-audit", "guide-dates-audit",
     ],
   },
   /*

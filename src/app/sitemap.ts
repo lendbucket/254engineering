@@ -89,10 +89,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...openPositions().map((p) => entry(`/careers/${p.slug}`, 0.7, "monthly")),
     entry("/insights", 0.8, "monthly"),
     ...insights.map((i) => entry(`/insights/${i.slug}`, 0.7, "monthly", i.dateModified)),
-    /* The design brief. Indexed: it is how somebody with a project finds the
-     * firm, and unlike the waitlist it does not become a redirect when the
-     * gate opens. */
-    entry("/design-inquiry", 0.8, "monthly"),
+    /* The design brief is not listed. It is a quote form, noindex, follow
+     * since 2026-10-25 (Robert, from the Ahrefs crawl), and a sitemap lists
+     * only pages meant for the index. The audits that crawl the sitemap read
+     * it by name. */
     entry("/contact", 0.7, "yearly"),
     entry("/privacy", 0.3, "yearly"),
     entry("/terms", 0.3, "yearly"),
