@@ -120,7 +120,7 @@ export const proximityHub: {
       title: "Structural engineering is about load paths",
       lede: "The question is always the same one: what is holding this up, and is it enough.",
       body: [
-        "A structural engineer is concerned with how a building carries load to the ground. Every roof, floor, wall, beam, and footing is part of a path, and the path either has the capacity for what is being asked of it or it does not. That is the whole discipline, applied to problems that range from a cracked slab to a bridge.",
+        "A structural engineer is concerned with how a building carries load to the ground. Every roof, floor, wall, beam, and footing is part of a path, and the path either has the capacity for what is being asked of it or it does not. That is [the whole discipline](/what-is-a-structural-engineer), applied to problems that range from a cracked slab to a bridge.",
         "In residential and light commercial work this usually arrives as one of a small number of situations. Something has moved or cracked and nobody knows whether it matters. Something is about to be changed, such as a wall removed or a load added, and somebody needs to know what that does. Or a third party, usually a lender, an insurer, or a building department, has asked for a professional opinion in writing before they will proceed.",
         "The engineer's product is almost never the repair. It is the analysis, and the document that records it.",
       ],

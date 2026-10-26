@@ -28,9 +28,17 @@ const check = (name, ok, note = "") => {
   console.log(`  ${ok ? "PASS" : "FAIL"}: ${name}${note ? ` (${note})` : ""}`);
 };
 
-/* The doors, declared: the file and how many calls it makes. */
+/*
+ * The doors, declared: the file and how many calls it makes.
+ *
+ * /order/start/[slug] LEFT THIS LIST ON 2026-10-25, by Robert's instruction
+ * from the Ahrefs crawl (1.1 seconds to first byte). It only DISPLAYS whether a
+ * deliverable can be ordered, from an answer kept for at most 60 seconds; the
+ * money behind it is taken by placeOrder in ops-intake.ts, which is still here
+ * and still reads live. It is declared below as a display page instead, and
+ * the check after that one refuses any money door that reads the cached answer.
+ */
 const DOORS = {
-  "src/app/(order)/order/start/[slug]/page.tsx": 1,
   "src/app/account/order/page.tsx": 1,
   "src/lib/ops-bulk.ts": 1,
   /* placeOrder, requestQuote, and duplicateStillSellable for a retried web order (audit finding F10, 2026-10-24). */
@@ -43,6 +51,29 @@ for (const [file, want] of Object.entries(DOORS)) {
   check(`${file} reads the signed record (${want} call${want === 1 ? "" : "s"})`, got === want, `${got} found`);
 }
 
+/*
+ * THE DISPLAY PAGES, declared (2026-10-25): they read the cached answer and
+ * take no money. Each must call the display function exactly as declared, and
+ * no other file may call it at all, so a money door cannot quietly start
+ * reading a minute old answer. line-gate.ts itself is where /order's
+ * sellableLineOffers asks it.
+ */
+const DISPLAY = {
+  "src/app/(order)/order/start/[slug]/page.tsx": { orderBlockedForDisplay: 1 },
+  "src/lib/line-gate.ts": { lineIsSellableForDisplay: 2 },
+};
+for (const [file, calls] of Object.entries(DISPLAY)) {
+  for (const [fn, want] of Object.entries(calls)) {
+    const src = readFileSync(file, "utf8").replace(new RegExp(`function ${fn}\\(`, "g"), "");
+    const got = src.split(`${fn}(`).length - 1;
+    check(`${file} displays through ${fn} (${want} call${want === 1 ? "" : "s"})`, got === want, `${got} found`);
+  }
+}
+for (const file of Object.keys(DOORS)) {
+  const src = readFileSync(file, "utf8");
+  check(`${file}, a money door, never reads the cached display answer`, !/ForDisplay\(/.test(src));
+}
+
 const files = [];
 const walk = (d) => {
   for (const name of readdirSync(d)) {
@@ -53,6 +84,13 @@ const walk = (d) => {
 };
 walk("src");
 check("the source tree was read", files.length > 200, `${files.length} files`);
+
+const displayReaders = files.filter((f) => !(f in DISPLAY) && /(lineIsSellableForDisplay|orderBlockedForDisplay)\(/.test(readFileSync(f, "utf8")));
+check(
+  "nothing but the declared display pages reads the cached display answer",
+  displayReaders.length === 0,
+  displayReaders.join(", ") || "the start page and /order's offers only",
+);
 
 const askedByConfig = [];
 for (const f of files) {

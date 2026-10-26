@@ -21,6 +21,25 @@ deploy), and a lapsed or withdrawn register record closes the money doors at
 once. Until he rules, recording a policy here changes nothing about whether
 the firm may take orders, and the screen says so.
 
+## INDEXNOW SUBMITS FROM THE PRODUCTION BUILD: WATCH ITS FIRST LOG LINE
+
+Ruled by Robert on 2026-10-25, option (a): `scripts/indexnow-after-build.mjs`
+is npm's postbuild and submits only when `VERCEL_ENV` is production. What
+"changed" is measured against is production's live sitemap, read during the
+build. Vercel's bot checkpoint answers a script with 403 elsewhere on this
+site, so the first production build after the merge may log "nothing sent:
+production's sitemap answered 403". That line is owed a look in the first
+deploy's build log, by Robert's counterpart on Vercel. If it says so, the
+previous sitemap needs another source, which is a ruling.
+
+## THE KEYWORD REGISTRY STILL NAMES FORM 20-18, IN ALL THREE REPOSITORIES
+
+`data/keyword-registry.ts` describes two angles in terms of "TREC form 20-18"
+(the buyer's inspection post and the agents' roof post). The rendered posts
+moved to form 20-19 on 2026-10-26 by Robert's ruling. The registry is not
+rendered, and it is synchronized verbatim across the three repositories, so
+it is corrected in all three at once rather than here alone.
+
 ## AFTER 0089: RETIRE THE FIFTEEN- AND SIXTEEN-ARGUMENT SEAL DOORS
 
 0089 (a seal act records who it prints) is sat on both projects: development

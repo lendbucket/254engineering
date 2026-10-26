@@ -277,7 +277,8 @@ const routes =
 // compliance sensitive page on the site. Crawled explicitly so that the one page
 // most likely to carry a slip is not the one page nobody checks.
 /* The web manifest names the site to a phone's home screen, so it is read too (2026-10-25). */
-const EXTRA_ROUTES = ["/waitlist", "/llms.txt", "/llms-full.txt", "/manifest.webmanifest"];
+/* The design brief left the sitemap on 2026-10-25 (a noindex quote form), so it is read by name. */
+const EXTRA_ROUTES = ["/waitlist", "/design-inquiry", "/llms.txt", "/llms-full.txt", "/manifest.webmanifest"];
 
 if (sm.status !== 200) {
   bail(`cannot read sitemap at ${BASE}/sitemap.xml (status ${sm.status})`);
