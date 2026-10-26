@@ -11,6 +11,7 @@
 | The insurance override to 2026-12-31 (23:49) | 40271697233, 61 of 61 | `b6e5f06` |
 | Every line with a price for sale (23:50), carrying the Ahrefs crawl and the 22:18 answers | 40277543484, 63 of 63 | `98d8e83` |
 | Bundle A, money: F3 (an agreed price is the order's price) and F11 (cards only) | 40284177303, 63 of 63 | `a1d8100` |
+| Bundle B, reads and screens: F13 and F21 to F26, F28 to F32 (partner reads, ledger reads, credential dates, triage, the customer page) | 40290555850, 63 of 63 | `89a9798` |
 REPORT_MERGES
 
 Each merge is a merge commit whose tree is identical to the boarded commit. Each was pushed `[skip ci]` with the exact command, and confirmed with ls-remote. **Production follows when Vercel deploys main; confirming it is Robert's counterpart's.**
@@ -19,8 +20,8 @@ Each merge is a merge commit whose tree is identical to the boarded commit. Each
 
 | Order | Branch | State |
 | --- | --- | --- |
-| Now | **Bundle B**, reads and screens (F13, F21 to F26, F28 to F32), `2c8c9db` | Board **40290555850**, pushed 08:11 UTC. Prediction: 63 of 63, zero FAIL, no COULD NOT TELL. |
-| Next | **Bundle C**, `fix/bundle-c-sweep-letterhead-mfa` at **`412a7b4`**: the sweep branch (severity 1 and 2 fixes above), the letterhead and registrationLine branch, the mfa-audit optional-role branch, and `412a7b4` (the triage list and the uncredited reviews, each starved by a window), on main `a1d8100` | Built and merged clean. Non-writer readers 82 of 83 at `0a6692d`, Bundle A's readers on the combined tree 23 of 24, and the readers of `412a7b4`'s two files 9 of 10; the one red each time is security-audit wanting a server. 1,360 added lines, no long dash. **Prediction, stated before pushing: 63 of 63, zero FAIL, no COULD NOT TELL.** Named risks: mfa-audit's new optional-role example, which only the writers shard runs; queue-audit and dashboards-audit on the dispatch and review screens that now say when a read failed. |
+| Merged | **Bundle B** at `2c8c9db` | Board 40290555850: **63 of 63, zero FAIL, as predicted.** Merged as `89a9798` (parents `a1d8100` and `2c8c9db`, tree identical), `[skip ci]`, exact push, ls-remote `89a9798c55c9279e19f1dd8f2b1905fdda7f9715`. |
+| Next | **Bundle C**, `fix/bundle-c-sweep-letterhead-mfa` at **`e6cbc3f`**: the sweep branch (severity 1 and 2 fixes above), the letterhead and registrationLine branch, the mfa-audit optional-role branch, and `412a7b4` (the triage list and the uncredited reviews), with main `89a9798` merged in | Bringing it up to main conflicted in two places, each the same defect fixed twice: Bundle B's F13 and F30 against the sweep's B2-shape triage fix and A15. Main's versions are kept, since they do everything the sweep's did and F13 also reads the capture additions. The A15 checks now match F30's sentence, and the unfixed read still turns exactly those two red. Earlier readers: 82 of 83 at `0a6692d`, Bundle A's readers 23 of 24, and `412a7b4`'s 9 of 10; the one red each time is security-audit wanting a server. Every reader re-run on `e6cbc3f`: **97 of 98**, the one red security-audit wanting a server; 1,315 added lines, no long dash. **Prediction, stated before pushing: 63 of 63, zero FAIL, no COULD NOT TELL.** Named risks: mfa-audit's new optional-role example, which only the writers shard runs; queue-audit and dashboards-audit on the dispatch and review screens that now say when a read failed. |
 | Then | `feat/insurance-register` (0090 on development) | Brought up to main and boarded after Bundle C. |
 | After that | 0091's branch at `edf0364` (on the insurance branch, which carries main), then the three letters (B) at `21705b1`, then the repair specification with 0092 (C) at `8dbe6fc` | Development holds all three migrations since 07:05 UTC. Readers: 0091 21 of 21; the three letters 32 of 32; the repair specification, which now carries the letters branch, 51 of 52 and then 52 of 52 after one proof repair (a check pinned SL-001 at the end of the reviewed list, and RS-001 now follows it; the exact set stays pinned as a literal elsewhere, and removing SL-001 turns both red). The merge's conflicts were the reviewed list and its proof (resolved as the union of both rulings: FC, PL, MH, SL, RS) and BACKLOG. Each production sitting follows its board. |
 | Held | 0093 and 0094 | Posted for their development sittings once the mfa-audit branch (in Bundle C) is on main. |
@@ -64,8 +65,7 @@ Each merge is a merge commit whose tree is identical to the boarded commit. Each
 ### Findings by severity
 
 **The audit's 35 confirmed findings** (`docs/audit-2026-10-24.md` section 5 and P4-1 to P4-3):
-- **On main:** F1 to F8, F10, F11 (the paid check and cards only), F12, F14 to F20, and the letter findings L2a, L2b, L2d, L2e, L2f and L2j.
-- **Boarding:** F13, F21 to F26 and F28 to F32 (Bundle B).
+- **On main:** F1 to F8, F10, F11 (the paid check and cards only), F12, F13 to F26, F28 to F32, and the letter findings L2a, L2b, L2d, L2e, L2f and L2j.
 - **Still with Robert:** F27, commission months on UTC.
 - **Ruled to leave:** F9.
 
