@@ -10,16 +10,25 @@ reason and, where one exists, the concrete incident that produced it.
 `feat/insurance-register`, to Robert's addendum of that night, item 1: the
 register, the private certificate bucket, the warnings at 45, 14 and 1 days to
 the office and the owner, and the insurance.manage grant. Applied nowhere yet;
-posted on issue #1. The owner's override in `src/config/credentials.ts` expires
-2026-10-28 and is not extended.
+posted on issue #1.
 
-**Owed a ruling before the gate reads the register.** CLAUDE.md lets the launch
-gate read the database for one thing only, a signed protocol, and only in the
-closing direction. Asked of Robert on 2026-10-25, with a recommendation: the
-protocols pattern. Opening needs the policy recorded in code as well (a
-deploy), and a lapsed or withdrawn register record closes the money doors at
-once. Until he rules, recording a policy here changes nothing about whether
-the firm may take orders, and the screen says so.
+**Robert ruled on 2026-10-25, 23:49 Central: ordering stays live and insurance
+does not close it.** The owner's override runs to 2026-12-31 (its own branch,
+`fix/insurance-override-to-2026-12-31`), and its expiry is the only hard close.
+The register is still built: when a policy is recorded there, the gate counts it
+and the warnings run, and the register never closes the gate while the override
+stands. The owner is reminded 14 days before the override expires, by the
+register's daily sweep, once (built on this branch).
+
+**Owed back to Robert: how the gate counts a register policy.** The gate is
+read when pages are built and at each money door, and CLAUDE.md lets it read the
+database for one thing only, a signed protocol, in the closing direction. A
+register policy would be a second database read and in the opening direction.
+Recommendation: until 2026-12-31 nothing needs it, because the override holds
+the condition met; before then, the office records the policy in the register
+and the same policy in `verifiedInsurance` in one deploy, which the gate already
+counts, and the register goes on driving the warnings. Until he answers,
+recording a policy here opens nothing and closes nothing.
 
 ## AFTER 0089: RETIRE THE FIFTEEN- AND SIXTEEN-ARGUMENT SEAL DOORS
 

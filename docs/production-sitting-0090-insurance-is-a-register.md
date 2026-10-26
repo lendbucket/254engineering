@@ -4,7 +4,7 @@ Written 2026-10-25 on `feat/insurance-register`. The chat applies it with `apply
 
 ## Why
 
-Robert's addendum of 2026-10-25, item 1, from the readiness audit. The firm's professional liability cover was a list typed into `src/config/credentials.ts` (`verifiedInsurance`), empty, with the owner's override expiring on 2026-10-28. Robert is binding the policy and will supply the certificate. The override is not extended.
+Robert's addendum of 2026-10-25, item 1, from the readiness audit. The firm's professional liability cover was a list typed into `src/config/credentials.ts` (`verifiedInsurance`), empty, with the owner's override expiring on 2026-10-28. Robert is binding the policy and will supply the certificate. By his ruling of 23:49 Central the same night, the override is extended to 2026-12-31 on its own branch, and its expiry is the only hard close.
 
 ## What changes
 
@@ -18,7 +18,7 @@ Robert's addendum of 2026-10-25, item 1, from the readiness audit. The firm's pr
 
 RLS is on for both tables, with no policies. EXECUTE on the three trigger functions is revoked from public, anon and authenticated.
 
-**It does not change the launch gate.** Whether `insuranceStandsOn` reads this register is a ruling asked of Robert. Until he gives it, the gate reads the code list exactly as before.
+**It does not change the launch gate.** Robert ruled that the gate counts a register policy and the register never closes it while the override stands. How the gate counts it is put back to him (`BACKLOG.md`), because the one database read the gate may make is a signed protocol's. Until he answers, the gate reads the code list exactly as before.
 
 No drop statement.
 

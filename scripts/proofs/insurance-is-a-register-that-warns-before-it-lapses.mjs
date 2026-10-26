@@ -80,7 +80,7 @@ process.env.SUPABASE_URL = "http://insurance-proof.supabase.invalid";
 process.env.SUPABASE_SERVICE_ROLE_KEY = "insurance-proof-not-a-key";
 delete process.env.VERCEL_ENV;
 
-const state = { inserted: [], alerts: [], raised: [], uploads: [], people: [] };
+const state = { inserted: [], alerts: [], raised: [], uploads: [], people: [], stamps: [] };
 const json = (b, status = 200) => new Response(JSON.stringify(b), { status, headers: { "content-type": "application/json" } });
 const ROW = {
   id: "pol-1", created_at: "2026-10-25T00:00:00Z", kind: "professional_liability", carrier: "Proof Carrier",
@@ -102,6 +102,12 @@ globalThis.fetch = async (input, init) => {
     const key = `${row.policy_id}:${row.days_before}`;
     if (state.alerts.includes(key)) return json({ message: "duplicate key", code: "23505" }, 409);
     state.alerts.push(key);
+    return json([], 201);
+  }
+  if (req.method === "POST" && table === "eng_alert_state") {
+    const row = JSON.parse(await req.text());
+    if (state.stamps.includes(row.key)) return json({ message: "duplicate key", code: "23505" }, 409);
+    state.stamps.push(row.key);
     return json([], 201);
   }
   if (req.method === "POST" && table === "eng_insurance_policies") {
@@ -164,13 +170,49 @@ state.people = [
   { id: "p-real", role: "admin", email: "a-real-person@example.com" },
   { id: "p-probe", role: "ops_manager", email: "office-probe@audit-probe.invalid" },
 ];
+/* The policy warnings, counted by name: the same sweep also carries the override's reminder, checked below. */
+const policyRaised = () => state.raised.filter((r) => r.entity_type === "insurance_policy");
 const first = await ins.sendInsuranceExpiryAlerts("2026-10-25");
-const raisedFor = state.raised.map((r) => r.profile_id);
-check("the sweep raises the due warning (14 days, 2026-11-08)", first.ok === true && first.sent === 1 && state.alerts.includes("pol-1:14"), JSON.stringify(first));
+const raisedFor = policyRaised().map((r) => r.profile_id);
+check("the sweep raises the due warning (14 days, 2026-11-08)", first.ok === true && state.alerts.length === 1 && state.alerts.includes("pol-1:14") && policyRaised().length >= 1, JSON.stringify(first));
 check("off production it warns the probe and never the real address", raisedFor.includes("p-probe") && !raisedFor.includes("p-real"), JSON.stringify(raisedFor));
 const before = state.raised.length;
 const second = await ins.sendInsuranceExpiryAlerts("2026-10-25");
 check("run again the same day, it raises nothing more", second.ok === true && second.sent === 0 && state.raised.length === before, JSON.stringify(second));
+
+/*
+ * THE OVERRIDE'S REMINDER, Robert's ruling of 2026-10-25, 23:49 Central: the
+ * owner, 14 days before it expires, once. The days are counted back from the
+ * override as configured, so this holds whatever date the owner sets.
+ */
+const { insuranceOverride } = await import("../../src/config/credentials.ts");
+const back = (iso, days) => new Date(Date.UTC(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10) - days)).toISOString().slice(0, 10);
+check("the reminder is 14 days, the ruling's figure", ins.OVERRIDE_REMINDER_DAYS === 14);
+if (!insuranceOverride) {
+  check("an override is configured, so its reminder has something to remind of", false, "insuranceOverride is null");
+} else {
+  const exp = insuranceOverride.expires;
+  state.raised = [];
+  state.stamps = [];
+  state.people = [
+    { id: "p-owner-probe", role: "admin", email: "owner-probe@audit-probe.invalid" },
+    { id: "p-office-probe", role: "ops_manager", email: "office-probe@audit-probe.invalid" },
+    { id: "p-real-owner", role: "admin", email: "a-real-owner@example.com" },
+  ];
+  const overrideRaised = () => state.raised.filter((r) => r.entity_type === "insurance_override");
+  await ins.sendInsuranceExpiryAlerts(back(exp, 15));
+  check("15 days before it expires, no reminder", overrideRaised().length === 0 && state.stamps.length === 0, JSON.stringify(state.stamps));
+  await ins.sendInsuranceExpiryAlerts(back(exp, 14));
+  const to = overrideRaised().map((r) => r.profile_id);
+  check("14 days before, the owner is reminded, recorded under its expiry", to.length === 1 && state.stamps.includes(ins.overrideReminderKey(exp)), JSON.stringify(to));
+  check("the owner only: the office is not, and off production no real address is", to[0] === "p-owner-probe", JSON.stringify(to));
+  check("and it names the date", overrideRaised()[0]?.title === `The insurance override expires ${exp}`, overrideRaised()[0]?.title);
+  await ins.sendInsuranceExpiryAlerts(back(exp, 13));
+  check("the next day it is not sent again", overrideRaised().length === 1);
+  check("a new expiry is a new key, so a changed date is reminded afresh", ins.overrideReminderKey("2027-01-31") !== ins.overrideReminderKey(exp));
+  await ins.sendInsuranceExpiryAlerts(back(exp, -1));
+  check("after it has expired, no reminder", overrideRaised().length === 1);
+}
 
 /* The line it does not cross, and the doors. */
 const launch = readFileSync("src/lib/launch.ts", "utf8");

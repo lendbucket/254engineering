@@ -6,6 +6,7 @@ import { readEvery } from "./bounded-read";
 import { raise } from "./ops-notify";
 import { todayInFirmCalendar } from "./firm-calendar";
 import { DB_NOW } from "./db-now";
+import { insuranceOverride } from "@/config/credentials";
 
 /**
  * ===========================================================================
@@ -23,10 +24,16 @@ import { DB_NOW } from "./db-now";
  * told at 45, 14 and 1 days before a policy in force expires, by the daily
  * sweep below.
  *
- * WHAT IT DOES NOT DECIDE. Whether the launch gate reads this register is a
- * ruling asked of Robert on 2026-10-25. Until he gives it, the gate reads
- * verifiedInsurance in src/config/credentials.ts exactly as before, so a
- * policy recorded here opens nothing and closes nothing.
+ * WHAT IT DOES NOT DECIDE YET. Robert ruled on 2026-10-25, 23:49 Central:
+ * ordering stays live, the owner's override runs to 2026-12-31 and its expiry
+ * is the only hard close, and when a policy is recorded here the gate counts
+ * it while the register never closes the gate. How the gate counts it is put
+ * back to him (BACKLOG.md), because the gate is read at build and the one
+ * database read it may make is a signed protocol's. Until then a policy
+ * recorded here drives the warnings and opens nothing and closes nothing.
+ *
+ * AND THE OWNER IS REMINDED 14 DAYS BEFORE THE OVERRIDE EXPIRES, by the same
+ * sweep, once (the same ruling).
  */
 
 export const INSURANCE_BUCKET = "eng-insurance";
@@ -340,5 +347,48 @@ export async function sendInsuranceExpiryAlerts(
     }
     sent += 1;
   }
+
+  /*
+   * THE OVERRIDE'S REMINDER, TO THE OWNER, ONCE. Robert's ruling of
+   * 2026-10-25, 23:49 Central: the owner gets a reminder email 14 days before
+   * the override expires. The override is not a policy row, so its once is
+   * recorded in eng_alert_state under a key naming the expiry, inserted before
+   * anything is raised: a second sweep finds the key and sends nothing, and a
+   * new expiry is a new key.
+   */
+  if (insuranceOverride) {
+    const left = daysToExpiry(insuranceOverride.expires, today);
+    if (left >= 0 && left <= OVERRIDE_REMINDER_DAYS) {
+      const { error: stampError } = await db.from("eng_alert_state").insert({
+        key: overrideReminderKey(insuranceOverride.expires),
+        last_alerted_at: DB_NOW,
+        detail: `the insurance override expiring ${insuranceOverride.expires}, ${left} day(s) left`,
+        updated_at: DB_NOW,
+      });
+      if (!stampError) {
+        for (const person of recipients.filter((p) => p.role === "admin")) {
+          await raise({
+            profileId: person.id,
+            role: person.role,
+            kind: "insurance.expiring",
+            title: `The insurance override expires ${insuranceOverride.expires}`,
+            body:
+              `${left === 0 ? "Today is its last day" : `${left} day${left === 1 ? "" : "s"} left`}. ` +
+              "When it expires the firm stops taking orders unless a policy is in force on the record.",
+            href: "/portal/insurance",
+            entityType: "insurance_override",
+            entityId: insuranceOverride.expires,
+          });
+        }
+        sent += 1;
+      }
+    }
+  }
   return { ok: true, sent };
 }
+
+/** 14 days, Robert's ruling of 2026-10-25, 23:49 Central. */
+export const OVERRIDE_REMINDER_DAYS = 14;
+
+/** One key per expiry, so the reminder for one override date is sent once and a new date is reminded afresh. */
+export const overrideReminderKey = (expires: string) => `insurance.override.reminder:${expires}`;
