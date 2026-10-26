@@ -133,9 +133,11 @@ export default async function BinderPage({ params }: { params: Promise<{ fileId:
             What the protocol asked for
           </h2>
           <p className="mt-1 text-[12.5px] leading-[1.55] text-[var(--secondary)]">
-            {binder.complete
-              ? "Every required item was captured."
-              : `${binder.missingCount} required ${binder.missingCount === 1 ? "item is" : "items are"} missing. They are listed below rather than omitted.`}
+            {binder.unreadable.length
+              ? `Part of the record could not be read, so this binder is incomplete: ${binder.unreadable.join("; ")}. Open it again before relying on it.`
+              : binder.complete
+                ? "Every required item was captured."
+                : `${binder.missingCount} required ${binder.missingCount === 1 ? "item is" : "items are"} missing. They are listed below rather than omitted.`}
           </p>
 
           <ul className="mt-4 divide-y divide-[var(--row-rule)]">

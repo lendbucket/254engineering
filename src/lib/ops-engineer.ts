@@ -2,7 +2,6 @@ import "server-only";
 import { DB_NOW } from "./db-now";
 import { clockSentence } from "./clock-skew";
 import { supabaseAdmin } from "./supabase";
-import { readEvery } from "./bounded-read";
 import { deskPackageComplete } from "./ops-payments";
 import { writeAudit } from "./ops-audit";
 import { can, type Actor, holdsLicence, licenceRefusal } from "./ops-authz";
@@ -21,6 +20,7 @@ import { randomUUID } from "node:crypto";
 import { canTransition, STATUS_TIMESTAMP, type FileStatus } from "./ops-files";
 import { effectModeFor } from "./fixture-identity";
 import { REVIEW_AFTER_DECISION, reviewAfterDecisionKey, type ReviewAfterDecisionPayload } from "./review-jobs";
+import { readEvery, readEveryIn } from "./bounded-read";
 import {
   ACTION_LABEL,
   ACTION_TARGET,
@@ -90,16 +90,27 @@ const QUEUE_COLUMNS =
  * sorted newest first is one where the file somebody keeps skipping sinks out
  * of sight.
  */
-export async function reviewQueue(actor: Actor | null): Promise<QueueRow[]> {
+/*
+ * EVERY FILE IN REVIEW, OR NULL WHEN THEY COULD NOT BE READ. Section 6 of
+ * Robert's audit of 2026-10-24 (class A and class B, severity 2): a failed
+ * read was [] and the engineer's queue said nothing was waiting; and the read
+ * stopped at the oldest 200, so past 200 files the newest submissions never
+ * appeared, the starvation shape of B2. It reads every page now.
+ */
+export async function reviewQueue(actor: Actor | null): Promise<QueueRow[] | null> {
   const db = supabaseAdmin();
-  if (!db || !holdsLicence(actor, "review.queue")) return [];
-  const { data } = await db
-    .from("eng_files")
-    .select(QUEUE_COLUMNS)
-    .in("status", ["evidence_submitted", "under_review", "revisions_requested"])
-    .order("evidence_submitted_at", { ascending: true, nullsFirst: false })
-    .limit(200);
-  return (data ?? []) as QueueRow[];
+  if (!holdsLicence(actor, "review.queue")) return [];
+  if (!db) return null;
+  const read = await readEvery<QueueRow>((from, to) =>
+    db
+      .from("eng_files")
+      .select(QUEUE_COLUMNS)
+      .in("status", ["evidence_submitted", "under_review", "revisions_requested"])
+      .order("evidence_submitted_at", { ascending: true, nullsFirst: false })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  return read.ok ? (read.rows as QueueRow[]) : null;
 }
 
 // ------------------------------------------------- waiting on the owners
@@ -146,19 +157,31 @@ export type WaitingRow = {
   totalItems: number;
 };
 
-export async function waitingOnOwners(actor: Actor | null): Promise<WaitingRow[]> {
+/*
+ * Every file waiting on its owner's repairs, or null when they could not be
+ * read. Section 6 of Robert's audit of 2026-10-24 (class A and B, severity 2):
+ * the same two defects as the review queue, a failed read shown as none
+ * waiting and a read that stopped at the oldest 200. The repair items read
+ * says so too, rather than counting every file as having none.
+ */
+export async function waitingOnOwners(actor: Actor | null): Promise<WaitingRow[] | null> {
   const db = supabaseAdmin();
-  if (!db || !holdsLicence(actor, "review.queue")) return [];
+  if (!holdsLicence(actor, "review.queue")) return [];
+  if (!db) return null;
 
-  const { data: files } = await db
-    .from("eng_files")
-    .select("id, file_number, property_address, city, county, service_slug, repairs_required_at")
-    .eq("status", "repairs_required")
-    .eq("is_demo", false)
-    .order("repairs_required_at", { ascending: true, nullsFirst: true })
-    .limit(200);
+  const read = await readEvery<Omit<WaitingRow, "openItems" | "totalItems">>((from, to) =>
+    db
+      .from("eng_files")
+      .select("id, file_number, property_address, city, county, service_slug, repairs_required_at")
+      .eq("status", "repairs_required")
+      .eq("is_demo", false)
+      .order("repairs_required_at", { ascending: true, nullsFirst: true })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  if (!read.ok) return null;
 
-  const rows = (files ?? []) as Omit<WaitingRow, "openItems" | "totalItems">[];
+  const rows = read.rows as Omit<WaitingRow, "openItems" | "totalItems">[];
   if (rows.length === 0) return [];
 
   /*
@@ -166,13 +189,14 @@ export async function waitingOnOwners(actor: Actor | null): Promise<WaitingRow[]
    * query per row. A list screen that issues one query per row is the shape
    * that makes /portal/accounts take fifty seconds.
    */
-  const { data: items } = await db
+  const { data: items, error: itemsError } = await db
     .from("eng_repair_items")
     .select("file_id, closed_at")
     .in(
       "file_id",
       rows.map((r) => r.id),
     );
+  if (itemsError) return null;
 
   const byFile = new Map<string, { open: number; total: number }>();
   for (const item of (items ?? []) as { file_id: string; closed_at: string | null }[]) {
@@ -424,8 +448,10 @@ export async function packageFor(actor: Actor | null, fileId: string): Promise<P
  */
 async function completeness(
   fileId: string,
-  view: { state: { canSubmit: boolean; blockers: string[] } },
+  view: { state: { canSubmit: boolean; blockers: string[] }; unreadable?: string | null },
 ): Promise<{ complete: boolean; blockers: string[] }> {
+  /* Sweep A5: a job that did not read is never complete, by either route below. */
+  if (view.unreadable) return { complete: false, blockers: [view.unreadable] };
   if (view.state.canSubmit) return { complete: true, blockers: [] };
 
   const desk = await deskPackageComplete(fileId);
@@ -1025,39 +1051,54 @@ export async function uncreditedReviews(): Promise<UncreditedReview[]> {
 export async function uncreditedReviewsRead(): Promise<UncreditedReview[] | null> {
   const db = supabaseAdmin();
   if (!db) return null;
-  const { data: sessions, error: sessionsError } = await db
-    .from("eng_review_sessions")
-    .select("id, file_id, decision, ended_at")
-    .not("ended_at", "is", null)
-    .not("decision", "is", null)
-    .order("ended_at", { ascending: false })
-    .limit(500);
-  if (sessionsError) {
-    console.error(`[engineer] the review sessions could not be read: ${sessionsError.message}`);
+  /*
+   * EVERY DECIDED REVIEW, NOT THE NEWEST 500. Section 6 of Robert's audit of
+   * 2026-10-24 (class B, severity 2): past 500 decided reviews an older one
+   * that was never credited dropped off this list, so nobody was asked to pay
+   * it. Every read pages, the in() reads are chunked, and any failure is null.
+   */
+  const sessionsRead = await readEvery<{ id: string; file_id: string; decision: string; ended_at: string }>((from, to) =>
+    db
+      .from("eng_review_sessions")
+      .select("id, file_id, decision, ended_at")
+      .not("ended_at", "is", null)
+      .not("decision", "is", null)
+      .order("ended_at", { ascending: false })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  if (!sessionsRead.ok) {
+    console.error(`[engineer] the review sessions could not be read: ${sessionsRead.error}`);
     return null;
   }
-  const ids = (sessions ?? []).map((s) => s.id as string);
+  const sessions = sessionsRead.rows;
+  const ids = sessions.map((s) => s.id);
   if (ids.length === 0) return [];
-  const { data: credited, error: creditedError } = await db
-    .from("eng_production_ledger")
-    .select("review_session_id")
-    .in("review_session_id", ids);
-  if (creditedError) {
-    console.error(`[engineer] the production ledger could not be read: ${creditedError.message}`);
+  const creditedRead = await readEveryIn<{ review_session_id: string }>(ids, (chunk, from, to) =>
+    db
+      .from("eng_production_ledger")
+      .select("review_session_id")
+      .in("review_session_id", [...chunk])
+      .order("review_session_id", { ascending: true })
+      .range(from, to),
+  );
+  if (!creditedRead.ok) {
+    console.error(`[engineer] the production ledger could not be read: ${creditedRead.error}`);
     return null;
   }
-  const done = new Set((credited ?? []).map((r) => r.review_session_id as string));
-  const open = (sessions ?? []).filter((s) => !done.has(s.id as string));
+  const done = new Set(creditedRead.rows.map((r) => r.review_session_id));
+  const open = sessions.filter((s) => !done.has(s.id));
   if (open.length === 0) return [];
-  const { data: files, error: filesError } = await db
-    .from("eng_files")
-    .select("id, file_number, service_slug, deliverable, is_demo")
-    .in("id", [...new Set(open.map((s) => s.file_id as string))]);
-  if (filesError) {
-    console.error(`[engineer] the files under review could not be read: ${filesError.message}`);
+  const filesRead = await readEveryIn<{ id: string; file_number: string; service_slug: string; deliverable: string | null; is_demo: boolean | null }>(
+    [...new Set(open.map((s) => s.file_id))],
+    (chunk, from, to) =>
+      db.from("eng_files").select("id, file_number, service_slug, deliverable, is_demo").in("id", [...chunk]).order("id", { ascending: true }).range(from, to),
+  );
+  if (!filesRead.ok) {
+    console.error(`[engineer] the files under review could not be read: ${filesRead.error}`);
     return null;
   }
-  const byId = new Map((files ?? []).map((f) => [f.id as string, f]));
+  const byId = new Map(filesRead.rows.map((f) => [f.id, f]));
   const out: UncreditedReview[] = [];
   for (const s of open) {
     const f = byId.get(s.file_id as string);

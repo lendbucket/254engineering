@@ -68,7 +68,10 @@ export default async function FilesPage({
     oldest,
   });
   const selected = params.id ? await getFile(actor, params.id) : null;
-  const timeline = selected ? await fileTimeline(selected.id) : [];
+  const timelineRead = selected ? await fileTimeline(selected.id) : [];
+  /* A failed read is said where the timeline would be, never "Nothing recorded yet." (section 6, class A). */
+  const timelineFailed = timelineRead === null;
+  const timeline = timelineRead ?? [];
 
   /* The contact, access and scheduling answers, for the details form (files.update_details, 2026-10-20). */
   const answersRead = selected && can(actor, "files.update_details") ? await readAnswers(selected.id) : null;
@@ -361,6 +364,10 @@ export default async function FilesPage({
 
         {dispatch ? (
           <div className="border-b border-[var(--border)] px-4 py-4 sm:px-5">
+            {/* A plan over facts that could not be read is not offered: the sentence instead (section 6, class A). */}
+            {dispatch.unreadable ? (
+              <p role="alert" className="text-[14px] leading-[1.6] text-[var(--ink)]">{dispatch.unreadable}</p>
+            ) : null}
             <DispatchPanel
               fileId={selected.id}
               offers={dispatch.plan.offers}
@@ -462,7 +469,9 @@ export default async function FilesPage({
             />
 
             <p className="mt-7 portal-label">Timeline</p>
-            {timeline.length === 0 ? (
+            {timelineFailed ? (
+              <p role="alert" className="mt-2 text-[14px] text-[var(--ink)]">The timeline could not be read just now. Reload the page; nothing was changed.</p>
+            ) : timeline.length === 0 ? (
               <p className="mt-2 text-[14px] text-[var(--secondary)]">Nothing recorded yet.</p>
             ) : (
               <ol className="mt-3 space-y-3">

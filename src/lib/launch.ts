@@ -1460,5 +1460,19 @@ export function registrationLine(): string {
   if (registration && !pe) {
     return `${registration.issuedTo}, TBPELS Firm ${registration.number}. ${notYetAcceptingEngagements()} No work is being sealed.`;
   }
+  return unregisteredLine(verifiedFirmRegistrations);
+}
+
+/**
+ * WHAT THE LINE SAYS WITH NO ACTIVE REGISTRATION. Robert's addendum of
+ * 2026-10-25, item 8: once a registration has existed, the line never says
+ * "pending" again, because that would tell a reader the firm has applied and
+ * is waiting, when the truth is that a registration it held has lapsed. After
+ * an expiry it says nothing at all; the gate is already shut by then, since an
+ * active registration is one of its conditions. "Pending" is only ever said
+ * before the first registration is recorded.
+ */
+export function unregisteredLine(registrations: readonly unknown[]): string {
+  if (registrations.length > 0) return "";
   return "Firm registration pending with the Texas Board of Professional Engineers and Land Surveyors.";
 }
