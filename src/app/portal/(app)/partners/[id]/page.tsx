@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
-import { partnerDetail } from "@/lib/ops-partners-admin";
+import { PartnerDetailUnreadable, partnerDetail } from "@/lib/ops-partners-admin";
 import { supabaseAdmin } from "@/lib/supabase";
 import { money } from "@/lib/ops-money";
 import { AbsentChip, EmptyState, Panel, RestrictedMode, StatusPill } from "@/components/portal/design";
@@ -42,7 +42,21 @@ export default async function PartnerPage({ params }: { params: Promise<{ id: st
   if (!can(actor, "partners.manage")) notFound();
 
   const { id } = await params;
-  const detail = await partnerDetail(actor, id);
+  /* A record that could not be read is said, never shown as $0.00, "No terms are set" or a missing partner (F22). */
+  let detail: Awaited<ReturnType<typeof partnerDetail>>;
+  try {
+    detail = await partnerDetail(actor, id);
+  } catch (err) {
+    if (!(err instanceof PartnerDetailUnreadable)) throw err;
+    return (
+      <>
+        <PageHead eyebrow="Partners" title="This partner could not be read" />
+        <p role="alert" className="text-[14px] leading-[1.55] text-[var(--ink)]">
+          {err.message} Nothing on the record has changed. Reload the page in a moment.
+        </p>
+      </>
+    );
+  }
   if (!detail) notFound();
 
   const { partner, terms, people, statements, ledger, netCents, blocked } = detail;

@@ -710,13 +710,21 @@ const base = {
   rec("and scrubs the message before storing it", /scrubString\(raw\)/.test(capture));
   rec("and scrubs anything extra too", /scrubValue\(context\.extra\)/.test(capture));
 
+  /*
+   * Since 2026-10-26 each watched cron reads its own latest run and latest
+   * success (section 6 of Robert's audit of 2026-10-24: the shared newest-500
+   * window let a daily cron fall out as never run). The two properties are the
+   * same and are read in the new shape: any failed read is null, and the
+   * success is its own read, filtered to ok and finished.
+   */
   const crons = functionBody(obs, "export async function cronStates(");
-  rec("cronStates returns null on a failed read", /if \(error\) return null;/.test(crons));
+  rec("cronStates returns null on a failed read", /if \(reads\.some\(\(r\) => r\.lastRead\.error \|\| r\.successRead\.error\)\) return null;/.test(crons));
   rec(
     "and distinguishes the last run from the last SUCCESSFUL run",
-    /ok === true/.test(crons),
+    /\.eq\("ok", true\)/.test(crons) && /\.not\("finished_at", "is", null\)/.test(crons) && /\.eq\("name", name\)/.test(crons),
     "a cron failing every minute has a recent run and no recent success",
   );
+  rec("and reads each cron's own runs, never one window shared by every cron", !/\.limit\(500\)/.test(crons) && /WATCHED_CRONS\.map\(async/.test(crons));
 
   const recent = functionBody(obs, "export async function recentErrors(");
   rec("recentErrors returns null on a failed read", /if \(error\) return null;/.test(recent));

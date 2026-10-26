@@ -241,8 +241,13 @@ export type MfaState = {
   /** An enrolment that has been started and not confirmed. */
   pendingEnrolment: boolean;
   lastUsedAt: string | null;
-  /** How many recovery codes remain unspent. */
-  recoveryRemaining: number;
+  /**
+   * How many recovery codes remain unspent, or null when they could not be
+   * counted (section 6 of Robert's audit of 2026-10-24): a failed count read as
+   * zero, "no codes left", which invites a regeneration that voids the codes
+   * the person actually holds.
+   */
+  recoveryRemaining: number | null;
 
   /**
    * When this account was last handed a set of recovery codes, and when
@@ -286,7 +291,7 @@ export async function mfaStateFor(userId: string): Promise<MfaState> {
   if (error) throw new Error(`the second factor state could not be read: ${error.message}`);
   if (!data) return empty;
 
-  const { count } = await db
+  const { count, error: countError } = await db
     .from("eng_mfa_recovery_codes")
     .select("id", { count: "exact", head: true })
     .eq("user_id", userId)
@@ -296,7 +301,7 @@ export async function mfaStateFor(userId: string): Promise<MfaState> {
     enrolled: Boolean(data.secret_cipher && data.verified_at),
     pendingEnrolment: Boolean(data.pending_cipher),
     lastUsedAt: (data.last_used_at as string | null) ?? null,
-    recoveryRemaining: count ?? 0,
+    recoveryRemaining: countError ? null : (count ?? 0),
     recoveryCodesIssuedAt: (data.recovery_codes_issued_at as string | null) ?? null,
     recoveryCodesAcknowledgedAt: (data.recovery_codes_acknowledged_at as string | null) ?? null,
   };

@@ -194,20 +194,29 @@ export type PartnerDetail = {
   blocked: number;
 };
 
+/**
+ * A partner record that could not be read, thrown rather than shown as $0.00,
+ * "No terms are set" or a missing partner. Robert's audit of 2026-10-24,
+ * finding F22: every read here discarded its error, and the ledger read
+ * stopped at 100 entries and was summed as "Net on the ledger".
+ */
+export class PartnerDetailUnreadable extends Error {}
+
 export async function partnerDetail(actor: Actor, partnerId: string): Promise<PartnerDetail | null> {
   const db = supabaseAdmin();
   if (!db || !can(actor, "partners.manage")) return null;
 
-  const { data: p } = await db
+  const { data: p, error: partnerError } = await db
     .from("eng_partners")
     .select(
       "id, organisation, contact_name, contact_email, code, status, created_at, agreement_version, payout_method, payout_reference, notes",
     )
     .eq("id", partnerId)
     .maybeSingle();
+  if (partnerError) throw new PartnerDetailUnreadable(`The partner could not be read: ${partnerError.message}`);
   if (!p) return null;
 
-  const [{ data: terms }, { data: people }, { data: statements }, { data: ledger }, { count: referrals }] =
+  const [termsRead, peopleRead, statementsRead, ledgerRead, referralsRead] =
     await Promise.all([
       db
         .from("eng_partner_terms")
@@ -225,17 +234,38 @@ export async function partnerDetail(actor: Actor, partnerId: string): Promise<Pa
         .eq("partner_id", partnerId)
         .order("period", { ascending: false })
         .limit(24),
-      db
-        .from("eng_partner_entries")
-        .select("id, kind, amount_cents, status, explanation, occurred_at, payable_at, statement_id, order_id")
-        .eq("partner_id", partnerId)
-        .order("occurred_at", { ascending: false })
-        .limit(100),
+      // readEvery: the net is a sum a person pays against, so it is over every entry, never the newest 100.
+      readEvery<{
+        id: string; kind: string; amount_cents: number | null; status: string; explanation: string;
+        occurred_at: string; payable_at: string; statement_id: string | null; order_id: string | null;
+      }>((from, to) =>
+        db
+          .from("eng_partner_entries")
+          .select("id, kind, amount_cents, status, explanation, occurred_at, payable_at, statement_id, order_id")
+          .eq("partner_id", partnerId)
+          .order("occurred_at", { ascending: false })
+          .order("id", { ascending: true })
+          .range(from, to),
+      ),
       db
         .from("eng_service_orders")
         .select("id", { count: "exact", head: true })
         .eq("partner_id", partnerId),
     ]);
+
+  const failed = [
+    termsRead.error ? `the terms (${termsRead.error.message})` : null,
+    peopleRead.error ? `the people (${peopleRead.error.message})` : null,
+    statementsRead.error ? `the statements (${statementsRead.error.message})` : null,
+    !ledgerRead.ok ? `the ledger (${ledgerRead.error})` : null,
+    referralsRead.error || referralsRead.count === null ? `the referral count (${referralsRead.error?.message ?? "no count was returned"})` : null,
+  ].filter(Boolean);
+  if (failed.length) throw new PartnerDetailUnreadable(`This partner's record could not be read in full: ${failed.join("; ")}.`);
+  const terms = termsRead.data;
+  const people = peopleRead.data;
+  const statements = statementsRead.data;
+  const ledger = ledgerRead.ok ? ledgerRead.rows : [];
+  const referrals = referralsRead.count;
 
   const rows = (ledger ?? []).map((e) => ({
     id: e.id as string,
@@ -263,7 +293,7 @@ export async function partnerDetail(actor: Actor, partnerId: string): Promise<Pa
       status: p.status as PartnerRow["status"],
       createdAt: p.created_at as string,
       agreementVersion: (p.agreement_version as string | null) ?? null,
-      referrals: referrals ?? 0,
+      referrals,
       payableCents: 0,
       blocked: net.blocked,
       people: (people ?? []).length,
@@ -298,6 +328,7 @@ export async function partnerDetail(actor: Actor, partnerId: string): Promise<Pa
       issuedAt: (st.issued_at as string | null) ?? null,
       paidAt: (st.paid_at as string | null) ?? null,
     })),
+    /* In full, as the screen promises ("THE LEDGER IS ON THIS SCREEN IN FULL"), and the net is over the same rows. */
     ledger: rows,
     netCents: net.netCents,
     blocked: net.blocked,
