@@ -254,8 +254,12 @@ export function protocolItemRowsFor(documentNumber: string | null): ProtocolItem
  * Named here rather than derived from STRUCTURED_DECLARATIONS, because each
  * line enters review by a ruling: the other five signed protocols stay out
  * until somebody rules them in.
+ *
+ * 254-MH-001 and 254-SL-001 entered by Robert's ruling of 2026-10-25, 23:51
+ * Central, item B: their letters are built and sealed, and a letter seals only
+ * against the determination its engineer recorded (0062's check).
  */
-export const REVIEWED_UNDER_SIGNATURE = ["254-FC-001", "254-PL-001"] as const;
+export const REVIEWED_UNDER_SIGNATURE = ["254-FC-001", "254-PL-001", "254-MH-001", "254-SL-001"] as const;
 
 /** Appendix C as a review reads it: the five determinations, verbatim from the declaration. */
 export type GoverningDeclaration = {

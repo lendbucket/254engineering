@@ -42,7 +42,11 @@ check("nor without a confirmed foundation type and its method", !noType.ok && no
 
 /* The sealing step, by source. */
 const seal = readFileSync("src/lib/letter-seal.ts", "utf8");
-check("exactly roof, foundation and permit letters are sealable", /export const SEALABLE_PROTOCOLS = \["254-RC-001", "254-FC-001", "254-PL-001"\] as const;/.test(seal));
+/* Manufactured home and solar joined by item B of Robert's ruling of 2026-10-25, 23:51 Central. */
+check(
+  "exactly roof, foundation, permit, manufactured home and solar letters are sealable",
+  /export const SEALABLE_PROTOCOLS = \["254-RC-001", "254-FC-001", "254-PL-001", "254-MH-001", "254-SL-001"\] as const;/.test(seal),
+);
 check("FC-3: the foundation type that prints is the one he confirmed, never the intake answer alone", /const confirmed = recorded\.foundation_type\?\.value \?\? null;/.test(seal) && /foundation_type: confirmed,/.test(seal) && !/foundation_type: answers\.foundation_type/.test(seal));
 check("PL-3: the element that prints is the one he reviewed", /element_described: recorded\.element_described\?\.value \?\? null,/.test(seal));
 check("PL-2: the authority's address and salutation are the office's record", /authority_address: recorded\.authority_address\?\.value/.test(seal) && /authority_salutation: recorded\.authority_salutation\?\.value/.test(seal));
