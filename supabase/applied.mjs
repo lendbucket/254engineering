@@ -3370,6 +3370,30 @@ export const APPLIED = [
       "production. The branch merges only after the production apply is read back, and a migration on main is " +
       "never pending.",
   },
+  {
+    file: "0091_three_letters_seal_without_a_template.sql", appliedBy: "apply_migration",
+    fingerprint: "8daaba436e02fb92c9a6b227fcb98caf",
+    behaviour: "92e2d140a1aefe8192833d9809b7d428",
+    production: null,
+    proves: null,
+    provesNote:
+      "Nothing in it is visible through PostgREST: it replaces one function body and creates no table, column, " +
+      "row, bucket or grant. The sitting document's dry run and verification read the function's source from " +
+      "pg_proc directly, and scripts/proofs/the-three-letters-seal-without-a-template.mjs walks the behaviour " +
+      "against the whole replayed chain.",
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0091 on 2026-10-26, with 0090 reproducing its " +
+      "recorded pair first: shape unchanged at 8daaba43 across 1353 columns, behaviour 25076aa5 to 92e2d140 at " +
+      "1281 facts, the one replaced body of eng_seal_act_check. Tables, triggers and functions unchanged at 101, " +
+      "101 and 67. No drop statement.",
+    because:
+      "WRITTEN 2026-10-26 ON migration/0091-three-letters-seal-without-a-template, ON TOP OF 0090, AND APPLIED " +
+      "NOWHERE. Robert's ruling of 2026-10-25, 23:51 Central, item A: the engineer signs no templates, and his " +
+      "seal on each letter after reading its full preview is his adoption of it, so eng_seal_act_check stops " +
+      "requiring a template for 254-MH-001, 254-SL-001 and 254-WS-001. Posted on issue #1 for the chat to sit " +
+      "after 0090, development first, then production. The branch merges only after the production apply is " +
+      "read back, and a migration on main is never pending.",
+  },
 ];
 
 /*
