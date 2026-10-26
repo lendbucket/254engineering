@@ -20,9 +20,12 @@
  * And the seal: the same missing charge made a SEAL record refund.blocked, so
  *     the customer was never told their document was sealed.
  *
- * How a member of a paid submission is refunded is Robert's to rule; this
- * proves only that nothing claims to have done it. Driven in process against a
- * fake PostgREST that records every write. Nothing reaches a database or Stripe.
+ * Robert ruled on 2026-10-25 how a member of a paid submission is refunded (its
+ * own share against the submission's charge), and that is proved by
+ * a-bulk-member-is-refunded-its-own-share. What stays here is the member whose
+ * submission carries NO card charge (invoiced, or never paid): nothing claims
+ * to have refunded or canceled it. Driven in process against a fake PostgREST
+ * that records every write. Nothing reaches a database or Stripe.
  */
 process.env.SUPABASE_URL = "http://bulk-refund-proof.supabase.invalid";
 process.env.SUPABASE_SERVICE_ROLE_KEY = "bulk-refund-proof-not-a-key";
@@ -71,7 +74,7 @@ const events = () => writes.filter((w) => w.table === "eng_order_events").map((w
 /* F1 */
 writes = [];
 const cancelled = await cancelAndRefund({ orderId: ORDER, reason: "The proof cancels a bulk member.", actor });
-check("canceling a paid bulk member is refused, saying its money is on the submission", cancelled.ok === false && /bulk submission/.test(cancelled.error), JSON.stringify(cancelled));
+check("canceling a bulk member whose submission has no card charge is refused, saying so", cancelled.ok === false && /bulk submission with no card charge/.test(cancelled.error), JSON.stringify(cancelled));
 check("and nothing was written: no cancellation, no audit claiming nothing was charged", writes.length === 0, JSON.stringify(writes.map((w) => `${w.method} ${w.table}`)));
 
 state.batch = null;
@@ -87,7 +90,7 @@ state.batch = "00000000-0000-4000-8000-0000000000b9";
 /* F2 */
 writes = [];
 const refused = await settleDecision({ orderId: ORDER, outcome: "refuse" });
-check("a refusal on a bulk member records a blocked refund naming the submission", refused.ok === false && /bulk submission/.test(refused.error) && events().includes("refund.blocked"), JSON.stringify(refused));
+check("a refusal on a bulk member with no card charge records a blocked refund naming the submission", refused.ok === false && /bulk submission with no card charge/.test(refused.error) && events().includes("refund.blocked"), JSON.stringify(refused));
 check("and does not say nothing had been charged", !events().includes("refund.not_needed"), events().join(", "));
 
 state.failCharges = true;

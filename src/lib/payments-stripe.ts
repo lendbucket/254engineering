@@ -153,9 +153,15 @@ export function stripeProvider(): PaymentProvider {
           /*
            * Idempotent on the charge and the amount. A webhook retry or a
            * double click on "decline" must not refund twice, and this is the
-           * only place that can prevent it before the money moves.
+           * only place that can prevent it before the money moves. On a batch
+           * charge the member order joins the key (F1 and F2, 2026-10-25), so
+           * equal shares of one charge are separate refunds.
            */
-          { idempotencyKey: `refund:${request.chargeRef}:${request.amountCents}` },
+          {
+            idempotencyKey: request.orderId
+              ? `refund:${request.chargeRef}:order:${request.orderId}:${request.amountCents}`
+              : `refund:${request.chargeRef}:${request.amountCents}`,
+          },
         );
 
         return {
