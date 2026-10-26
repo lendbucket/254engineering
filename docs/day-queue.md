@@ -2,7 +2,7 @@
 
 ## MORNING REPORT, 2026-10-26, for Robert's instructions of 22:20, 22:46, 23:49, 23:50 and 23:51 Central
 
-**Needed from Robert:** questions 1 to 8 at the end of this report, each with a recommendation. **Phase 2 did not run** (see Phase 2 below). REPORT_STATUS_LINE
+**Needed from Robert:** questions 1 to 8 at the end of this report, each with a recommendation. **Phase 2 did not run** (see Phase 2 below). **At 11:40 UTC:** five merges overnight and this morning, each on a board that matched its prediction (Bundle C last, main `4764c1d`). No miss. The insurance register (0090) is on board 40308999656. 0090, 0091 and 0092 are on development, and 0093 and 0094 are posted for their development sitting. 0091's branch, the three letters and the repair specification are brought up to main and wait their turn, one board at a time. Nothing has been written to production by this session.
 
 ### Merged to main, each on a board that matched its stated prediction
 
@@ -13,7 +13,6 @@
 | Bundle A, money: F3 (an agreed price is the order's price) and F11 (cards only) | 40284177303, 63 of 63 | `a1d8100` |
 | Bundle B, reads and screens: F13 and F21 to F26, F28 to F32 (partner reads, ledger reads, credential dates, triage, the customer page) | 40290555850, 63 of 63 | `89a9798` |
 | Bundle C: the severity 1 and 2 sweep fixes, the letterhead and registrationLine, mfa-audit's optional-role example | 40299402048, 63 of 63 | `4764c1d` |
-REPORT_MERGES
 
 Each merge is a merge commit whose tree is identical to the boarded commit. Each was pushed `[skip ci]` with the exact command, and confirmed with ls-remote. **Production follows when Vercel deploys main; confirming it is Robert's counterpart's.**
 
