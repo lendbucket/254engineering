@@ -683,10 +683,18 @@ export type InsuranceOverride = {
   reason: string;
 };
 
+/*
+ * EXTENDED BY THE OWNER, 2026-10-25, 23:49 Central: "ordering stays live;
+ * insurance does not close it." It read acknowledgedOn 2026-09-28 and expires
+ * 2026-10-28, and would have shut the gate on 2026-10-29. The insurance
+ * register (0090) is built as planned; a policy recorded there will count, and
+ * the register does not close the gate while this stands. This expiry stays
+ * the only hard close, and the owner is reminded by email 14 days before it.
+ */
 export const insuranceOverride: InsuranceOverride | null = {
   acknowledgedBy: "Robert Reyna, owner",
-  acknowledgedOn: "2026-09-28",
-  expires: "2026-10-28",
+  acknowledgedOn: "2026-10-25",
+  expires: "2026-12-31",
   reason: "no policy yet; not required by TBPELS; owner accepts the commercial risk",
 };
 
