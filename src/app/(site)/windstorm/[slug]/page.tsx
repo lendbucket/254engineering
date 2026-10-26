@@ -8,7 +8,7 @@ import { PrelaunchNotice } from "@/components/launch/PrelaunchNotice";
 import { OfferCta } from "@/components/launch/OfferCta";
 import { FaqBlock } from "@/components/site/FaqBlock";
 import { buildMetadata } from "@/lib/seo";
-import { JsonLd, breadcrumbSchema, faqSchema } from "@/lib/schema";
+import { ArticleJsonLd, JsonLd, breadcrumbSchema, faqSchema } from "@/lib/schema";
 import { windstormBySlug, windstormPages } from "@/content/windstorm-program";
 
 export const dynamicParams = false;
@@ -68,6 +68,7 @@ export default async function WindstormClusterPage({
           section 4. Every question below was written because somebody actually
           asks it, not to earn a rich result. */}
       {page.faqs ? <JsonLd data={faqSchema(page.faqs)} /> : null}
+      <ArticleJsonLd path={`/windstorm/${page.slug}`} headline={page.h1} description={page.description} />
 
       <PageHeader
         eyebrow="Windstorm program"
