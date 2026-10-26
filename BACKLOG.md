@@ -23,6 +23,17 @@ moved to form 20-19 on 2026-10-26 by Robert's ruling. The registry is not
 rendered, and it is synchronized verbatim across the three repositories, so
 it is corrected in all three at once rather than here alone.
 
+## AFTER 0089: RETIRE THE FIFTEEN- AND SIXTEEN-ARGUMENT SEAL DOORS
+
+0089 (a seal act records who it prints) is sat on both projects: development
+2026-10-25 19:41 UTC (20261025194122) and production 2026-10-26 03:17 UTC
+(20261026031701), every figure matching, recorded in `supabase/applied.mjs`.
+0081's fifteen- and 0088's sixteen-argument `eng_record_letter_seal` doors were
+deliberately not replaced, so the code deployed before the merge sealed
+throughout. Once the merge is deployed and nothing calls them, retiring them is
+its own later migration, a destructive one, so the operator runs it in the SQL
+editor (`docs/production-sitting-destructive.md`).
+
 ## FIXED: EVERY CLOUD BOARD SHARED ONE SIGN IN RATE LIMIT BUCKET
 
 Fixed 2026-10-24 on this branch, to Robert's ruling 5 of that day: the board

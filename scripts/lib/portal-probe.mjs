@@ -211,16 +211,27 @@ export function __setProbeClientForTests(fake) {
  * names it. Development only: the client refuses production. Never deleted,
  * never suspended by a run.
  */
-export const FIXTURE_ENGINEER_LICENCE = "AUDIT-FIXTURE-PE";
+/*
+ * Digits in the probe range no Texas licence can hold (nine digits from 900; a
+ * Texas PE number is six), because 0089's seal doors take a licence that is
+ * digits only. Robert's instruction of 2026-10-25. It was "AUDIT-FIXTURE-PE",
+ * and the account is permanent, so the row found is brought to this value
+ * rather than waiting for a creation that never comes again.
+ */
+export const FIXTURE_ENGINEER_LICENCE = "900000003";
 export async function fixtureEngineer(label = "fixture engineer") {
   const d = client(label);
   if (!d) return { ok: false, error: "no development client" };
   const { data: found, error } = await d
     .from("eng_profiles")
-    .select("id, email, role, status")
+    .select("id, email, role, status, license_number")
     .eq("email", FIXTURE_ENGINEER_EMAIL)
     .maybeSingle();
   if (error) return { ok: false, error: `the fixture engineer could not be read: ${error.message}` };
+  if (found && found.license_number !== FIXTURE_ENGINEER_LICENCE) {
+    const { error: lErr } = await d.from("eng_profiles").update({ license_number: FIXTURE_ENGINEER_LICENCE }).eq("id", found.id);
+    if (lErr) return { ok: false, error: `the fixture engineer's licence could not be brought to ${FIXTURE_ENGINEER_LICENCE}: ${lErr.message}` };
+  }
   if (found) return { ok: true, id: found.id, email: found.email, created: false };
   const { data, error: cErr } = await d.auth.admin.createUser({
     email: FIXTURE_ENGINEER_EMAIL,

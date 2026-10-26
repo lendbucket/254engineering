@@ -21,6 +21,14 @@ import { useRouter } from "next/navigation";
  */
 
 type Line = { kind: string; text: string };
+/* L2d: what the letter carries around its lines, as text, and the digest sealing checks. */
+type Frame = {
+  letterhead: { brand: string; registrationLine: string };
+  sealBlock: { name: string; licenseNumber: string; role: string };
+  /* The page a roof B or C letter calls attached, sealed in the same PDF (F14, L2f). */
+  attachment: { heading: string; lines: string[] } | null;
+  draftSha256: string;
+};
 
 const FIELD =
   "mt-1.5 w-full rounded-[2px] border border-[var(--border)] bg-white px-3 py-2.5 text-[16px] leading-[1.5] text-[var(--ink)] outline-none focus:border-slate";
@@ -51,6 +59,7 @@ export function LetterSealPanel({
   const asksRecipient = protocol !== "254-PL-001";
   const asksObserved = protocol === "254-FC-001";
   const [lines, setLines] = useState<Line[] | null>(null);
+  const [frame, setFrame] = useState<Frame | null>(null);
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -70,6 +79,8 @@ export function LetterSealPanel({
           recipientSalutation: salutation,
           observedCondition: observed,
           code,
+          /* Sealing seals only the draft read here (L2d): its digest, and the lines shown, so a change can be named. */
+          ...(action === "seal" && frame && lines ? { previewSha256: frame.draftSha256, previewLines: lines } : {}),
         }),
       });
       const body = await res.json().catch(() => ({ ok: false, error: "The server did not answer in a way this screen can read." }));
@@ -77,8 +88,10 @@ export function LetterSealPanel({
         setError(body.error ?? "That did not work, and the server did not say why.");
         return;
       }
-      if (action === "draft") setLines(body.lines as Line[]);
-      else {
+      if (action === "draft") {
+        setLines(body.lines as Line[]);
+        setFrame({ letterhead: body.letterhead, sealBlock: body.sealBlock, attachment: body.attachment ?? null, draftSha256: body.draftSha256 } as Frame);
+      } else {
         setDone(
           body.warning
             ? `Sealed. ${body.warning}`
@@ -170,6 +183,13 @@ export function LetterSealPanel({
 
       {lines ? (
         <div className="mt-4 border-y border-[var(--border)] py-3">
+          {/* The letterhead it will carry (L2d), as text: the mark prints on the sealed PDF from the bytes in code. */}
+          {frame ? (
+            <div className="border-b border-[var(--border)] pb-2">
+              <p className="text-[15px] font-semibold text-[var(--ink)]">{frame.letterhead.brand}</p>
+              <p className="text-[13px] leading-[1.5] text-[var(--secondary)]">{frame.letterhead.registrationLine}</p>
+            </div>
+          ) : null}
           {lines.map((line, i) => (
             <p
               key={i}
@@ -178,6 +198,29 @@ export function LetterSealPanel({
               {line.text}
             </p>
           ))}
+          {/* The seal block it will carry (L2d). No seal or signature image is sent here (control 2); the date is the moment you seal. */}
+          {frame ? (
+            <div className="mt-4 border-t border-[var(--border)] pt-2">
+              <p className="text-[13px] leading-[1.5] text-[var(--secondary)]">Your seal and signature are applied here when you seal.</p>
+              {/* Worded as letter-pdf.ts prints them. */}
+              <p className="mt-1 text-[14px] font-semibold text-[var(--ink)]">{frame.sealBlock.name}, P.E.</p>
+              <p className="text-[14px] leading-[1.5] text-[var(--ink)]">Texas P.E. No. {frame.sealBlock.licenseNumber}</p>
+              <p className="text-[14px] leading-[1.5] text-[var(--ink)]">{frame.sealBlock.role}</p>
+              <p className="text-[14px] leading-[1.5] text-[var(--ink)]">Date: the day you seal</p>
+            </div>
+          ) : null}
+          {/* The attached page, as it prints after the seal block in the same sealed PDF (F14, L2f). */}
+          {frame?.attachment ? (
+            <div className="mt-4 border-t border-[var(--border)] pt-2">
+              <p className="text-[13px] leading-[1.5] text-[var(--secondary)]">A second page of the same sealed document:</p>
+              <p className="mt-1 text-[14px] font-semibold text-[var(--ink)]">{frame.attachment.heading}</p>
+              {frame.attachment.lines.map((text, i) => (
+                <p key={i} className="mt-1.5 text-[14px] leading-[1.6] text-[var(--ink)]">
+                  {text}
+                </p>
+              ))}
+            </div>
+          ) : null}
         </div>
       ) : null}
 
