@@ -4,6 +4,19 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
+## 0095 AND 0096, WPI-8 ONGOING THROUGH A SCOPE ADDENDUM: MIGRATIONS AND THE DOOR BUILT, THE SCREENS NOT YET
+
+Robert's rulings of 2026-10-26, 07:10 and 08:19 Central, on
+`feat/wpi8-ongoing-addendum`, with
+`docs/production-sitting-0095-and-0096-wpi8-ongoing.md`. 0095 lets a scope
+addendum pay a flat amount per job; 0096 puts a protocol in force for its tier,
+so 254-WP-001 can go in force for ongoing construction without retiring
+254-WS-001. The money door reads the signed addendum first. **Not built yet:**
+the screen where the owner drafts an addendum, the engineer's home card, putting
+his existing WP-001 signature in force when he signs, dispatch choosing the
+protocol by the order's tier, and the pay figures. Boards after 0094, in
+migration order.
+
 ## 0093, THE SECOND FACTOR FOR THE ADMINISTRATOR, THE OFFICE AND THE REP: BUILT, HELD BEFORE ANY SITTING
 
 Robert's addendum of 2026-10-25, item 5, on `migration/0093-second-factor-for-staff`
