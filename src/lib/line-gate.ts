@@ -6,7 +6,7 @@ import { protocolForLine } from "@/content/protocols";
 import { SIGNABLE_PROTOCOLS } from "@/content/protocols/signable";
 import { signatureStatus } from "./protocol-sign";
 import { orderBlockedReason, type CatalogEntry, type OrderGateMode } from "@data/catalog";
-import { allLineOffers, lineOffer, type LineOffer } from "./ordering";
+import { allLineOffers, headlineEntry, lineOffer, type LineOffer } from "./ordering";
 
 /**
  * ===========================================================================
@@ -171,7 +171,14 @@ export async function sellableLineOffers(): Promise<LineOffer[]> {
   return Promise.all(
     allLineOffers().map(async (offer) => {
       if (!offer.orderable) return offer;
-      const sellable = await lineIsSellableForDisplay(offer.slug);
+      /*
+       * ASKED FOR THE TIER THE ROW IS PRICED FROM. Robert's ruling of
+       * 2026-10-25, 23:50 Central, put WPI-8 on sale, whose two tiers run
+       * under two protocols (254-WS-001 completed, 254-WP-001 ongoing). Asked
+       * with no tier, the door found no protocol for the line and the row was
+       * a quote; it is now asked for the tier the row's price is read from.
+       */
+      const sellable = await lineIsSellableForDisplay(offer.slug, headlineEntry(offer.slug)?.tier ?? null);
       return sellable.ok ? offer : lineOffer(offer.slug, false);
     }),
   );
