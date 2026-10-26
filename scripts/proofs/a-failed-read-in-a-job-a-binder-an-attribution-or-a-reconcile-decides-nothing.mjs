@@ -202,6 +202,14 @@ state.fail = new Set(["eng_file_events"]);
 check("and a failed read of it is null, not an empty history", (await crm.fileTimeline(FILE)) === null);
 state.fail = new Set();
 const filesPage = (await import("node:fs")).readFileSync("src/app/portal/(app)/files/page.tsx", "utf8");
+/* Class A, severity 2: the queue's dead letters. A failed read is null, which the queue page says. */
+const jobs = await import("../../src/lib/ops-jobs.ts");
+check("the dead letters read clean as a list", Array.isArray(await jobs.deadLetters()));
+state.fail = new Set(["eng_jobs"]);
+check("and a failed read of them is null, never \"nothing has given up\"", (await jobs.deadLetters()) === null);
+state.fail = new Set();
+const queuePage = (await import("node:fs")).readFileSync("src/app/portal/(app)/queue/page.tsx", "utf8");
+check("and the queue page says they could not be read before it would say nothing has given up", queuePage.indexOf("{dead === null ? (") > 0 && queuePage.indexOf("{dead === null ? (") < queuePage.indexOf('title="Nothing has given up"'));
 check(
   "and the files page says the timeline could not be read, before it would say nothing is recorded",
   filesPage.indexOf("{timelineFailed ? (") > 0 && filesPage.indexOf("{timelineFailed ? (") < filesPage.indexOf("Nothing recorded yet.</p>"),
