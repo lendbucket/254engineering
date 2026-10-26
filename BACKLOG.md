@@ -14,8 +14,8 @@ order's tier, and his $175 credited through `productionCreditFor`. **Left:**
 254-WP-001 itself needs a tier passed to `/portal/certification`; (2)
 `cost-per-job.ts`, the price book's estimate, still shows no engineer cost for
 ongoing, because it reads configuration and the figure now lives in the signed
-record; (3) the CLAUDE.md amendment beside ruling 11 waits for Robert's answer
-to question 10.
+record. (The CLAUDE.md amendment beside ruling 11 is written, on Robert's answer
+10 of 2026-10-26.)
 
 ### As first written
 
