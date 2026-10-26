@@ -268,21 +268,39 @@ export async function cronStates(): Promise<CronState[] | null> {
   const db = supabaseAdmin();
   if (!db) return null;
 
-  const { data, error } = await db
-    .from("eng_cron_runs")
-    .select("name, started_at, finished_at, ok")
-    .order("started_at", { ascending: false })
-    .limit(500);
+  /*
+   * EACH CRON'S OWN LATEST RUN AND LATEST SUCCESS. Section 6 of Robert's audit
+   * of 2026-10-24 (class B, severity 2): this read the newest 500 runs across
+   * every cron, and a cron that runs every minute writes 1,440 a day, so a
+   * daily cron's runs fell out of the window and it read as never run. Two
+   * single-row reads per watched cron, a short fixed list, and any failure is
+   * the page's failure.
+   */
+  const reads = await Promise.all(
+    WATCHED_CRONS.map(async ({ name }) => {
+      const [lastRead, successRead] = await Promise.all([
+        db.from("eng_cron_runs").select("name, started_at, finished_at, ok").eq("name", name).order("started_at", { ascending: false }).limit(1),
+        db
+          .from("eng_cron_runs")
+          .select("name, started_at, finished_at, ok")
+          .eq("name", name)
+          .eq("ok", true)
+          .not("finished_at", "is", null)
+          .order("started_at", { ascending: false })
+          .limit(1),
+      ]);
+      return { name, lastRead, successRead };
+    }),
+  );
+  if (reads.some((r) => r.lastRead.error || r.successRead.error)) return null;
 
-  if (error) return null;
-
-  const rows = data ?? [];
   const now = Date.now();
 
   return WATCHED_CRONS.map(({ name, label, everyMinutes }) => {
-    const mine = rows.filter((r) => r.name === name);
-    const last = mine[0] ?? null;
-    const lastSuccess = mine.find((r) => r.ok === true && r.finished_at) ?? null;
+    const read = reads.find((r) => r.name === name)!;
+    const last = read.lastRead.data?.[0] ?? null;
+    const lastSuccess = read.successRead.data?.[0] ?? null;
+    const mine = last ? [last] : [];
 
     const lastSuccessAt = (lastSuccess?.finished_at as string) ?? null;
     const minutesSinceSuccess = lastSuccessAt
