@@ -171,8 +171,53 @@ export async function sellableLineOffers(): Promise<LineOffer[]> {
   return Promise.all(
     allLineOffers().map(async (offer) => {
       if (!offer.orderable) return offer;
-      const sellable = await lineIsSellable(offer.slug);
+      const sellable = await lineIsSellableForDisplay(offer.slug);
       return sellable.ok ? offer : lineOffer(offer.slug, false);
     }),
   );
+}
+
+/*
+ * ===========================================================================
+ * WHAT A PAGE SHOWS MAY BE A MINUTE OLD. WHAT TAKES MONEY NEVER IS.
+ * ===========================================================================
+ *
+ * Robert, 2026-10-25, from the Ahrefs crawl: /order took 1.4 seconds and
+ * /order/start/* 1.1 seconds to first byte, every one of them reading the
+ * signed record for every line. The answer a page DISPLAYS is now kept for at
+ * most 60 seconds, per server instance. The answer that TAKES MONEY is not:
+ * orderBlockedNow, which placeOrder, the v1 API, bulk ordering, job billing,
+ * phone intake and /account/order call, reads lineIsSellable live every time,
+ * as ruling 11 requires.
+ *
+ * So for up to a minute after a signature is voided, /order can still show the
+ * line as orderable, and its checkout refuses. That is the same shape as the
+ * display surfaces ruled on 2026-10-06 (a voided line may show an Order button
+ * whose door then refuses), bounded now to a minute.
+ *
+ * Only a definite answer is kept. An answer the database could not give
+ * (unreadable) is never cached, so a failed read is asked again on the next
+ * request instead of shutting the line for a minute on one bad moment.
+ *
+ * scripts/proofs/a-voided-signature-is-refused-at-checkout-inside-the-cache.mjs
+ * proves the money door stays live while the display is cached.
+ */
+export const DISPLAY_ANSWER_MS = 60_000;
+const displayAnswers = new Map<string, { at: number; answer: Sellable }>();
+
+export async function lineIsSellableForDisplay(serviceSlug: string, tier?: string | null): Promise<Sellable> {
+  const key = `${serviceSlug}\u0000${tier ?? ""}`;
+  const hit = displayAnswers.get(key);
+  if (hit && Date.now() - hit.at < DISPLAY_ANSWER_MS) return hit.answer;
+  const answer = await lineIsSellable(serviceSlug, tier);
+  if (answer.ok || !answer.unreadable) displayAnswers.set(key, { at: Date.now(), answer });
+  else displayAnswers.delete(key);
+  return answer;
+}
+
+/** orderBlockedNow for a page that only DISPLAYS whether a line can be ordered. Never for a door that takes money. */
+export async function orderBlockedForDisplay(entry: CatalogEntry | undefined, mode: OrderGateMode): Promise<string | null> {
+  if (!entry || mode !== "open") return orderBlockedReason(entry, mode, false);
+  const sellable = await lineIsSellableForDisplay(entry.serviceSlug, entry.tier);
+  return sellable.ok ? orderBlockedReason(entry, mode, true) : sellableRefusal(sellable, orderBlockedReason(entry, mode, false));
 }

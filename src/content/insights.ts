@@ -703,10 +703,14 @@ insights.push(...coastalInsights);
  * SOURCES, ALL READ 2026-10-16
  * ----------------------------
  *   22 Tex. Admin. Code 535.227 and 535.228, the TREC standards of practice
- *   TREC, rule notice for 535.228 adopted August 10, 2026 (walk the roof)
+ *   (TREC's rule notice for a 535.228 amendment, node/3065, answered 404 on
+ *   2026-10-26 and nothing on TREC's site or in the rule's history confirms an
+ *   adoption, so the sentences resting on it were removed, Robert's rule of
+ *   2026-10-25. Only the May 2026 proposal is published.)
  *   TREC, guidance on rendering an opinion of foundation performance
  *   TREC, Property Inspection Report form REI 7-6
- *   TREC form 20-18 and 22 Tex. Admin. Code 537.28 (the resale contract)
+ *   TREC form 20-19, the resale contract (20-18 and 22 Tex. Admin. Code 537.28
+ *     until 2026-10-26; see the note at trec2019 below)
  *   Tex. Prop. Code 5.008, the seller's disclosure notice
  *   Fannie Mae Selling Guide B4-1.3-06 (settlement and a professional report)
  *   ASCE Texas Section, Guidelines for the Evaluation and Repair of
@@ -715,8 +719,9 @@ insights.push(...coastalInsights);
  *     137.57, 137.59; TBPELS response on foundation repair methods, 2018
  *   USDA soil fact sheet on Houston Black (hosted by TWDB); TDLR technical
  *     bulletin IHB TB 10-01 on IRC R403.1.8; Tex. Loc. Gov't Code 214.212
- *   NRMCA CIP 4; ACI 224.1R-07; PTI position statement on DC10.5;
- *     STRUCTURE magazine, Post-Tensioned Slabs on Ground, Part 4 (2010)
+ *   NRMCA CIP 4; ACI 224.1R-07; PTI position statement on DC10.5. (STRUCTURE
+ *     magazine, Post-Tensioned Slabs on Ground, Part 4 (2010) answered 404 on
+ *     2026-10-26 and was removed with the section that rested on it.)
  *   City of Houston and City of Denton foundation repair permit pages
  *   House Committee analysis of C.S.H.B. 613, 83rd Legislature (2013)
  *
@@ -740,10 +745,6 @@ const BUYER_SRC = {
     label: "22 Tex. Admin. Code § 535.228, Standards of Practice: Minimum Inspection Requirements for Structural Systems",
     url: "https://regulations.justia.com/states/texas/title-22/part-23/chapter-535/subchapter-r/section-535-228/",
   },
-  trec228Notice: {
-    label: "TREC, rule notice for 22 TAC § 535.228, adopted August 10, 2026",
-    url: "https://www.trec.texas.gov/node/3065",
-  },
   trecFoundationGuide: {
     label: "TREC, guidance on rendering an opinion of foundation performance",
     url: "https://www.trec.texas.gov/node/807",
@@ -752,17 +753,22 @@ const BUYER_SRC = {
     label: "TREC, Property Inspection Report form REI 7-6",
     url: "https://www.trec.texas.gov/sites/default/files/pdf-forms/REI%207-6_fillable.pdf",
   },
-  trec2018: {
-    label: "TREC, One to Four Family Residential Contract (Resale), form 20-18",
-    url: "https://trec.texas.gov/node/2755",
+  /*
+   * FORM 20-19, EFFECTIVE JULY 1, 2026, FROM TREC'S OWN SITE (Robert,
+   * 2026-10-25). The 20-18 page (node/2755) answered 404 on 2026-10-26 and
+   * TREC's form page names 20-19. Every paragraph these posts describe was read
+   * against the 20-19 PDF that day: 5B (the termination option and the option
+   * fee) and 7A (inspectors and utilities) say what the posts say. Rule 537.28
+   * is no longer cited: the copy that loads still adopts 20-18 and TREC's own
+   * page for the rule answers 404, so nothing from TREC confirms what it names.
+   */
+  trec2019: {
+    label: "TREC, One to Four Family Residential Contract (Resale), form 20-19, effective July 1, 2026",
+    url: "https://www.trec.texas.gov/forms/one-four-family-residential-contract-resale",
   },
-  trec2018Text: {
-    label: "One to Four Family Residential Contract (Resale), published text (Justia Forms)",
-    url: "https://forms.justia.com/texas/statewide/texas-real-estate-commission/contracts/one-to-four-family-residential-contract-resale-43316.html",
-  },
-  tac537_28: {
-    label: "22 Tex. Admin. Code § 537.28, Standard Contract Form TREC No. 20-18",
-    url: "https://law.cornell.edu/regulations/texas/22-Tex-Admin-Code-SS-537-28",
+  trec2019Text: {
+    label: "TREC form 20-19, One to Four Family Residential Contract (Resale), the form as TREC publishes it",
+    url: "https://www.trec.texas.gov/sites/default/files/pdf-forms/20-19_4.pdf",
   },
   prop5008: {
     label: "Tex. Prop. Code § 5.008, Seller's Disclosure of Property Condition",
@@ -782,7 +788,7 @@ const BUYER_SRC = {
   },
   asceTxPage: {
     label: "ASCE Texas Section, Residential Foundations Guidelines page",
-    url: "https://www.texasce.org/?p=147",
+    url: "https://www.texasce.org/resources/publications/residential-foundations/",
   },
   occ1001_003: {
     label: "Tex. Occ. Code § 1001.003, Practice of Engineering",
@@ -810,7 +816,7 @@ const BUYER_SRC = {
   },
   tbpelsRepairResponse: {
     label: "TBPELS, response to a policy advisory request on residential foundation repair methods, January 23, 2018",
-    url: "https://www.pels.texas.gov/nm/EAOR_Response44.pdf",
+    url: "https://pels.texas.gov/nm/EAOR_Response44.pdf",
   },
   houstonBlack: {
     label: "USDA soil fact sheet, Houston Black: the Texas state soil (hosted by the Texas Water Development Board)",
@@ -818,7 +824,7 @@ const BUYER_SRC = {
   },
   tdlrExpansive: {
     label: "TDLR, IHB Technical Bulletin TB 10-01, Foundations on Expansive Soils, Residential (rev. 2018)",
-    url: "https://tdlr.texas.gov/ihb/pdf/TB1001.pdf",
+    url: "https://www.tdlr.texas.gov/ihb/pdf/TB1001.pdf",
   },
   lgc214_212: {
     label: "Tex. Loc. Gov't Code § 214.212, International Residential Code",
@@ -826,7 +832,11 @@ const BUYER_SRC = {
   },
   nrmcaCip4: {
     label: "NRMCA, Concrete in Practice CIP 4, Cracking Concrete Surfaces (2014)",
-    url: "https://assets.noviams.com/novi-file-uploads/tca/static-content/04pr.pdf",
+    /* The publisher's own copy, loaded and read 2026-10-26: it says all concrete
+     * tends to crack, crack free concrete is not possible, early random cracks
+     * rarely affect structural integrity, and gives joint spacing and plastic
+     * shrinkage. The noviams copy answered 404. */
+    url: "https://www.nrmca.org/wp-content/uploads/2021/01/04pr.pdf",
   },
   aci224: {
     label: "ACI Committee 224, ACI 224.1R-07, Causes, Evaluation, and Repair of Cracks in Concrete Structures",
@@ -835,10 +845,6 @@ const BUYER_SRC = {
   ptiDc105: {
     label: "Post-Tensioning Institute, position statement on PTI DC10.5 slab on ground foundations (2020)",
     url: "https://www.post-tensioning.org/Portals/13/Files/PDFs/Education/positionstatement.pdf",
-  },
-  structurePt: {
-    label: "STRUCTURE magazine, Post-Tensioned Slabs on Ground, Part 4: Existing Foundations (December 2010)",
-    url: "https://www.structuremag.org/wp-content/uploads/2014/08/C-StrucDesign-Allred-Dec101.pdf",
   },
   houstonPermit: {
     label: "City of Houston, Houston Permitting Center, Foundation repair",
@@ -937,14 +943,14 @@ const buyerInsights: Insight[] = [
           "A plumbing test. The guidelines list leaking plumbing among the factors that contribute to foundation movement, and section 7.6 says water and sanitary lines should be tested for leaks where a repair includes jacking or lifting.",
           "A site specific soil boring. Section 7.4.2 says geotechnical information for a major or comprehensive repair should come from a site specific boring and testing program.",
           "Repair documents. Section 7.4.1 lists what remediation documents contain, from a plan view and details to the required post repair elevation survey. That is a separate engagement from the evaluation, described on [the repair specification page](/services/repair-specifications).",
-          "A city permit. Some Texas cities require one for foundation repair. The City of Denton states that all foundation repairs require a permit, asks for a repair letter and plan signed and sealed by a Texas registered engineer, and lists a fee of $100.",
+          "A city permit. Some Texas cities require one for foundation repair. The City of Denton states that all foundation repairs require a permit, asks for a repair letter and plan signed and sealed by a Texas registered engineer, and refers to its fee schedule for the fee.",
           "Post repair verification. Section 7.7 says floor elevations should be measured by the engineer or the engineer's representative after the repair, and section 7.8 says the engineer should provide a letter of substantial completion.",
         ],
       },
       { kind: "h2", text: "Who pays in a Texas sale" },
       {
         kind: "p",
-        text: "Rule 537.28 makes TREC form 20-18 the contract for a resale of residential property. Its paragraph 7A lets the buyer have the property inspected by inspectors the buyer selects who are licensed by TREC or otherwise permitted by law to make inspections, and it requires the seller to turn on existing utilities at the seller's expense.",
+        text: "TREC form 20-19, effective July 1, 2026, is the contract the commission promulgates for a resale of residential property. Its paragraph 7A lets the buyer have the property inspected by inspectors the buyer selects who are licensed by TREC or otherwise permitted by law to make inspections, and it requires the seller to turn on existing utilities at the seller's expense.",
       },
       {
         kind: "p",
@@ -981,9 +987,11 @@ const buyerInsights: Insight[] = [
       bcite("trec227", "That a TREC inspection is a limited visual survey, that elevation tools and elevation measurement are not required, and that the inspector is not required to recommend or provide engineering services."),
       bcite("asceTx", "The three levels of investigation, the first impressions label, the engineer's site visit, plumbing testing, site specific borings, remediation documents, post repair elevations and the letter of substantial completion."),
       bcite("asceTxPage", "That Version 3 is the current edition of the guidelines."),
-      bcite("dentonPermit", "That Denton requires a permit for all foundation repairs, a sealed repair letter and plan, and a fee of $100."),
-      bcite("tac537_28", "That form 20-18 is the mandatory contract for residential resale."),
-      bcite("trec2018Text", "The paragraph 7A text on inspectors and utilities, and the termination option and its non refundable fee."),
+      /* The page read 2026-10-26 no longer states a fee ("Refer to Fee
+       * Schedule"), so the $100 the sentence carried was taken out. */
+      bcite("dentonPermit", "That Denton requires a permit for all foundation repairs and a sealed repair letter and plan, and refers to its fee schedule."),
+      bcite("trec2019", "That form 20-19, effective July 1, 2026, is the current resale contract."),
+      bcite("trec2019Text", "That TREC promulgates the form, the paragraph 7A text on inspectors and utilities, and the paragraph 5B termination option and its non refundable fee."),
       bcite("fannie", "The two routes a lender has when an appraisal notes settlement, and the professionally prepared report standard."),
     ],
     faqs: [
@@ -1001,7 +1009,7 @@ const buyerInsights: Insight[] = [
       },
       {
         q: "Who pays for the foundation inspection when buying a house?",
-        a: "Under paragraph 7A of TREC form 20-18 the buyer selects the inspectors, and the seller turns on utilities at the seller's expense. Any other arrangement about inspection costs is for the parties to agree in writing.",
+        a: "Under paragraph 7A of TREC form 20-19 the buyer selects the inspectors, and the seller turns on utilities at the seller's expense. Any other arrangement about inspection costs is for the parties to agree in writing.",
       },
     ],
   },
@@ -1061,7 +1069,7 @@ const buyerInsights: Insight[] = [
       {
         kind: "ul",
         items: [
-          "It is not the inspection the resale contract contemplates unless the visitor is a TREC licensed inspector or otherwise permitted by law to make inspections, which is the wording of paragraph 7A of TREC form 20-18.",
+          "It is not the inspection the resale contract contemplates unless the visitor is a TREC licensed inspector or otherwise permitted by law to make inspections, which is the wording of paragraph 7A of TREC form 20-19.",
           "It is not a sealed opinion, and it is not written to answer the question Fannie Mae's Selling Guide puts where an appraisal notes settlement: whether the condition poses any threat of structural damage to the improvements.",
           "It does not define the repair the way remediation documents do. Section 7.4.1 of the ASCE Texas Section guidelines lists what those documents contain, including construction details, specifications, observation requirements and a required post repair elevation survey.",
           "It cannot be independent of the repair, because the repair is how it is paid for.",
@@ -1114,7 +1122,7 @@ const buyerInsights: Insight[] = [
       bcite("occ1001_003", "That consultation, investigation, evaluation and analysis are part of the practice of engineering."),
       bcite("occ1001_301", "That the practice of engineering and the title engineer are restricted to license holders."),
       bcite("occ1001_401", "That a report issued by a license holder for a Texas project carries the seal."),
-      bcite("trec2018Text", "The paragraph 7A wording on inspectors licensed by TREC or otherwise permitted by law."),
+      bcite("trec2019Text", "The paragraph 7A wording on inspectors licensed by TREC or otherwise permitted by law."),
       bcite("fannie", "The settlement paragraph and the professionally prepared report standard."),
       bcite("asceTx", "That the evaluation and repair design shall be performed by a Texas licensed engineer, the conflict of interest sentence in section 2.2, and the contents of remediation documents."),
       bcite("rule137_57", "When a potential conflict of interest exists and the written disclosure and confirmation it requires."),
@@ -1166,7 +1174,7 @@ const buyerInsights: Insight[] = [
       { kind: "h2", text: "The contract sets the clock" },
       {
         kind: "p",
-        text: "Rule 537.28 makes TREC form 20-18 the contract for residential resale. Paragraph 7A lets the buyer have the property inspected by inspectors the buyer selects, licensed by TREC or otherwise permitted by law to make inspections, and requires the seller to turn on existing utilities at the seller's expense. The paragraph says the buyer may have inspections made, which means the form allows them rather than requiring them.",
+        text: "TREC form 20-19, effective July 1, 2026, is the contract the commission promulgates for residential resale. Paragraph 7A lets the buyer have the property inspected by inspectors the buyer selects, licensed by TREC or otherwise permitted by law to make inspections, and requires the seller to turn on existing utilities at the seller's expense. The paragraph says the buyer may have inspections made, which means the form allows them rather than requiring them.",
       },
       {
         kind: "p",
@@ -1237,7 +1245,7 @@ const buyerInsights: Insight[] = [
       { kind: "h3", text: "What the home inspector checks" },
       {
         kind: "p",
-        text: "Rule 535.228(c) requires the inspector to inspect the roof covering from the roof surface and to report the covering type, the vantage point, evidence of water penetration and evidence of previous repairs. TREC's rule notice for an amendment adopted on August 10, 2026 describes the requirement as walking the surface where that is safe and will not damage the covering. The rule does not require the inspector to determine remaining life or the number of layers, or to identify latent hail damage.",
+        text: "Rule 535.228(c) requires the inspector to inspect the roof covering from the roof surface and to report the covering type, the vantage point, evidence of water penetration and evidence of previous repairs. The inspector is not required to inspect from the roof level where, in the inspector's reasonable judgment, the roof cannot be safely reached or stayed on, or walking it may significantly damage the covering. The rule does not require the inspector to determine remaining life or the number of layers, or to identify latent hail damage.",
       },
       {
         kind: "p",
@@ -1288,12 +1296,10 @@ const buyerInsights: Insight[] = [
       },
     ],
     sources: [
-      bcite("tac537_28", "That form 20-18 is the mandatory contract for residential resale."),
-      bcite("trec2018", "The current edition of form 20-18 and its effective date of January 3, 2025."),
-      bcite("trec2018Text", "The paragraph 7A text on inspections and utilities, and the termination option and its non refundable fee."),
+      bcite("trec2019", "The current edition, form 20-19, and its effective date of July 1, 2026."),
+      bcite("trec2019Text", "That TREC promulgates the form, the paragraph 7A text on inspections and utilities, and the paragraph 5B termination option and its non refundable fee."),
       bcite("trec227", "The scope of a TREC inspection, the equipment and procedures not required, and the general limitations including causes, code compliance, insurability, concealed conditions and engineering services."),
-      bcite("trec228", "The foundation, roof covering, roof structure and attic requirements, and the crawl space and attic access limits."),
-      bcite("trec228Notice", "The August 10, 2026 amendment on walking the roof surface where safe."),
+      bcite("trec228", "The foundation, roof covering, roof structure and attic requirements, the roof level departure in (c)(2), and the crawl space and attic access limits."),
       bcite("trecFoundationGuide", "That the foundation opinion rests on visual inspection only."),
       bcite("rei76", "The structural items on the report form and the client's responsibility to obtain further evaluations."),
       bcite("fannie", "The settlement paragraph and the professionally prepared report standard."),
@@ -1303,7 +1309,7 @@ const buyerInsights: Insight[] = [
     faqs: [
       {
         q: "Is a pre purchase home inspection required in Texas?",
-        a: "The resale contract does not require one. Paragraph 7A of TREC form 20-18 says the buyer may have the property inspected by inspectors the buyer selects, and the termination option is what lets the buyer act on the result.",
+        a: "The resale contract does not require one. Paragraph 7A of TREC form 20-19 says the buyer may have the property inspected by inspectors the buyer selects, and the termination option is what lets the buyer act on the result.",
       },
       {
         q: "Does the home inspector check the foundation?",
@@ -1311,7 +1317,7 @@ const buyerInsights: Insight[] = [
       },
       {
         q: "Will the inspector walk the roof?",
-        a: "Rule 535.228(c) requires inspection from the roof surface, and TREC's notice for the amendment adopted August 10, 2026 describes walking it where that is safe and will not damage the covering. Where it cannot be done safely the inspector is not required to.",
+        a: "Rule 535.228(c) requires inspection from the roof surface. Where the inspector judges that the roof cannot be safely reached or stayed on, or that walking it may significantly damage the covering, the inspector is not required to.",
       },
       {
         q: "Can a home inspector tell me whether a crack is structural?",
@@ -1703,15 +1709,9 @@ const buyerInsights: Insight[] = [
         kind: "p",
         text: "Flooring also affects measurement. The ASCE Texas guidelines say floor elevation surveys should be adjusted for the thickness of floor coverings, because a change from tile to carpet can read as movement on a survey that ignores it.",
       },
-      { kind: "h2", text: "Post tensioned slabs: locate the tendons before anyone cuts" },
-      {
-        kind: "p",
-        text: "A post tensioned slab is not a slab to saw, core or drill on a guess. An article on existing post tensioned foundations in STRUCTURE magazine advises that tendons be located in the areas next to any planned core, warns that removing concrete that is actively resisting a loaded anchor can cause cracking or blowouts, and says an opening near live anchors will typically require engineering analysis. It describes the anchor zone as roughly 24 to 36 inches from the anchor face.",
-      },
-      {
-        kind: "p",
-        text: "That matters most when a plumber needs to reach a line under the slab, or a remodel adds a floor drain or moves a wall. The time to answer the question is before the saw arrives. Where a repair or alteration needs defined work, [a repair specification](/services/repair-specifications) sets it out so the contractor builds to a plan.",
-      },
+      /* The section on post tensioned slabs rested only on a STRUCTURE magazine
+       * article that answered 404 on 2026-10-26, and no primary source found
+       * that day says the same things, so it was removed (Robert, 2026-10-25). */
       { kind: "h2", text: "What an engineer measures on a slab" },
       {
         kind: "p",
@@ -1737,7 +1737,6 @@ const buyerInsights: Insight[] = [
       bcite("houstonBlack", "That Houston Black soils shrink and swell markedly, take water rapidly when dry and cracked, and limit building site development."),
       bcite("nrmcaCip4", "That all concrete tends to crack, contraction joint spacing, plastic shrinkage cracking, and that early random cracks rarely affect structural integrity."),
       bcite("asceTx", "Leaking plumbing as a contributing factor, leak testing during repair, floor covering adjustment, Level B elevations, the deflection ratio, the L/360 analogy, the 20 foot caution, survey comparison, and the repair expectations in 7.4.3."),
-      bcite("structurePt", "Locating tendons before coring, the risk of removing concrete near a loaded anchor, the anchor zone, and the need for engineering analysis near live anchors."),
     ],
     faqs: [
       {
@@ -1746,7 +1745,7 @@ const buyerInsights: Insight[] = [
       },
       {
         q: "How can I tell whether my slab is post tensioned?",
-        a: "The builder's foundation plan says so. The STRUCTURE magazine article on existing post tensioned slabs notes that strand locations can be estimated from rust marks left by anchor nails along the foundation edge, but locating tendons for any cut is work for someone qualified to do it.",
+        a: "The builder's foundation plan says so, and locating tendons for any cut is work for someone qualified to do it.",
       },
       {
         q: "Will a foundation repair make my floor level?",

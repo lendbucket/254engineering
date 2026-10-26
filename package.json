@@ -82,6 +82,8 @@
     "prevoice-audit": "node scripts/preflight-audit.mjs",
     "voice-audit": "tsx scripts/voice-audit.mjs",
     "email-audit": "tsx scripts/email-audit.mjs",
+    "citation-audit": "node scripts/citation-audit.mjs",
+    "guide-dates-audit": "node scripts/guide-dates-audit.mjs",
     "precta-audit": "node scripts/preflight-audit.mjs",
     "cta-audit": "tsx scripts/cta-audit.mjs",
     "prelink-map": "node scripts/preflight-audit.mjs",

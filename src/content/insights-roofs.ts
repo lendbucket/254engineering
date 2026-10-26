@@ -23,9 +23,11 @@ import { CATALOG } from "@data/catalog";
  * SOURCES, ALL READ 2026-10-18
  * ----------------------------
  *   22 Tex. Admin. Code 535.227 and 535.228 (Justia copy, current through
- *     June 27, 2025) and TREC's notice of the August 10, 2026 amendment
- *   TREC form 20-18 page; the resale contract text on Justia Forms (7A and the
- *     termination option only, the paragraphs the buyers posts already cite)
+ *     June 27, 2025). TREC's notice of an amendment (node/3065) was declared
+ *     here and never cited; it answered 404 on 2026-10-26 and was removed.
+ *   TREC form 20-19 page and the 20-19 form itself, both on TREC's site (7A and
+ *     the termination option only, the paragraphs the buyers posts already
+ *     cite). They were 20-18 until 2026-10-26, when TREC's page named 20-19.
  *   Tex. Prop. Code 5.008 (Justia, 2025), notice form item 1 and item 4
  *   Tex. Occ. Code 1001.003, 1001.301, 1001.401; 22 Tex. Admin. Code 137.33
  *     and 137.35 (electronic seals)
@@ -71,21 +73,18 @@ const ROOF_SRC = {
     label: "22 Tex. Admin. Code § 535.228, Standards of Practice: Minimum Inspection Requirements for Structural Systems",
     url: "https://regulations.justia.com/states/texas/title-22/part-23/chapter-535/subchapter-r/section-535-228/",
   },
-  trec228Notice: {
-    label: "TREC, rule notice for 22 TAC § 535.228, adopted August 10, 2026",
-    url: "https://www.trec.texas.gov/node/3065",
+  /* Form 20-19 from TREC's own site, read 2026-10-26; see the note in insights.ts. */
+  trec2019: {
+    label: "TREC, One to Four Family Residential Contract (Resale), form 20-19, effective July 1, 2026",
+    url: "https://www.trec.texas.gov/forms/one-four-family-residential-contract-resale",
   },
-  trec2018: {
-    label: "TREC, One to Four Family Residential Contract (Resale), form 20-18",
-    url: "https://trec.texas.gov/node/2755",
-  },
-  trec2018Text: {
-    label: "One to Four Family Residential Contract (Resale), published text (Justia Forms)",
-    url: "https://forms.justia.com/texas/statewide/texas-real-estate-commission/contracts/one-to-four-family-residential-contract-resale-43316.html",
+  trec2019Text: {
+    label: "TREC form 20-19, One to Four Family Residential Contract (Resale), the form as TREC publishes it",
+    url: "https://www.trec.texas.gov/sites/default/files/pdf-forms/20-19_4.pdf",
   },
   prop5008: {
     label: "Tex. Prop. Code § 5.008, Seller's Disclosure of Property Condition (2025 text)",
-    url: "https://law.justia.com/codes/texas/property-code/title-2/chapter-5/subchapter-a/section-5-008",
+    url: "https://law.justia.com/codes/texas/property-code/title-2/chapter-5/subchapter-a/section-5-008/",
   },
   occ1001_003: {
     label: "Tex. Occ. Code § 1001.003, Practice of Engineering",
@@ -105,7 +104,7 @@ const ROOF_SRC = {
   },
   rule137_35: {
     label: "22 Tex. Admin. Code § 137.35, Electronic Seals and Electronic Signatures",
-    url: "https://regulations.justia.com/states/texas/title-22/part-6/chapter-137/subchapter-b/section-137-35",
+    url: "https://regulations.justia.com/states/texas/title-22/part-6/chapter-137/subchapter-b/section-137-35/",
   },
   ins4101: {
     label: "Tex. Ins. Code ch. 4101, Insurance Adjusters, official text including §§ 4101.001, 4101.002 and 4101.051",
@@ -437,7 +436,7 @@ export const roofInsights: Insight[] = [
     body: [
       {
         kind: "p",
-        text: "A roof certification letter is a written opinion on the roof's condition, and in a home sale it is one that somebody in the transaction has asked for. The Texas resale contract does not name one. Paragraph 7A of TREC form 20-18 lets the buyer have the property inspected by inspectors the buyer selects who are licensed by TREC or otherwise permitted by law, and a roof certification is something a lender, a carrier or a buyer asks for on top of that.",
+        text: "A roof certification letter is a written opinion on the roof's condition, and in a home sale it is one that somebody in the transaction has asked for. The Texas resale contract does not name one. Paragraph 7A of TREC form 20-19 lets the buyer have the property inspected by inspectors the buyer selects who are licensed by TREC or otherwise permitted by law, and a roof certification is something a lender, a carrier or a buyer asks for on top of that.",
       },
       {
         kind: "p",
@@ -494,8 +493,8 @@ export const roofInsights: Insight[] = [
       roofCta("Name every party the letter must be addressed to at the start, because that cannot be changed afterwards."),
     ],
     sources: [
-      rcite("trec2018", "The current edition of form 20-18 and its effective date of January 3, 2025."),
-      rcite("trec2018Text", "The paragraph 7A text on inspectors, and the termination option and its non refundable fee."),
+      rcite("trec2019", "The current edition, form 20-19, and its effective date of July 1, 2026."),
+      rcite("trec2019Text", "The paragraph 7A text on inspectors, and the paragraph 5B termination option and its non refundable fee."),
       rcite("trec228", "That a TREC inspector is not required to determine remaining life or the number of layers or to identify latent hail damage."),
       rcite("trec227", "That a TREC inspector is not required to determine insurability or to recommend or provide engineering services."),
       rcite("occ1001_003", "That evaluation is part of the practice of engineering."),
@@ -507,7 +506,7 @@ export const roofInsights: Insight[] = [
     faqs: [
       {
         q: "Is a roof certification required to sell a house in Texas?",
-        a: "The resale contract does not require one. Paragraph 7A of TREC form 20-18 lets the buyer have the property inspected; a lender, an insurer or a buyer may ask for a roof certification on top of that.",
+        a: "The resale contract does not require one. Paragraph 7A of TREC form 20-19 lets the buyer have the property inspected; a lender, an insurer or a buyer may ask for a roof certification on top of that.",
       },
       {
         q: "Can a home inspector certify a roof?",
@@ -536,7 +535,7 @@ export const roofInsights: Insight[] = [
     body: [
       {
         kind: "p",
-        text: "The option period is the clock every inspection in a Texas resale runs against. The termination option in TREC form 20-18 gives the buyer an unrestricted right to terminate by notice within the time the contract sets, and the option fee is not refunded. Paragraph 7A lets the buyer choose inspectors licensed by TREC or otherwise permitted by law, so an engineer can be one of them, provided the opinion lands inside the window.",
+        text: "The option period is the clock every inspection in a Texas resale runs against. The termination option in TREC form 20-19 gives the buyer an unrestricted right to terminate by notice within the time the contract sets, and the option fee is not refunded. Paragraph 7A lets the buyer choose inspectors licensed by TREC or otherwise permitted by law, so an engineer can be one of them, provided the opinion lands inside the window.",
       },
       { kind: "h2", text: "When to suggest an engineer" },
       {
@@ -588,8 +587,8 @@ export const roofInsights: Insight[] = [
       roofCta("With the addressee and the closing date in hand, the roof letter can be started in a few minutes."),
     ],
     sources: [
-      rcite("trec2018", "The current edition of form 20-18 and its effective date of January 3, 2025."),
-      rcite("trec2018Text", "The termination option and its non refundable fee, and the paragraph 7A text on inspectors."),
+      rcite("trec2019", "The current edition, form 20-19, and its effective date of July 1, 2026."),
+      rcite("trec2019Text", "The paragraph 5B termination option and its non refundable fee, and the paragraph 7A text on inspectors."),
       rcite("trec228", "That a TREC inspector reports as deficient roof surface deflections related to the framing and decking, and reports the attic vantage point."),
       rcite("tdiRoof", "That an insurer inspects the roof on application and may charge more or refuse to insure based on what it sees."),
       rcite("prop5008", "The notice form's item on previous structural or roof repair."),

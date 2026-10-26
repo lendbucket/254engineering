@@ -51,8 +51,13 @@ export const metadata: Metadata = {
    * NOINDEX UNTIL IT CAN ACCEPT A BRIEF. A page that ranks and then refuses
    * every submission spends the firm's credibility to collect nothing, and the
    * person who found it has no way to know the form was never going to work.
+   *
+   * FOLLOWED, NEVER NOFOLLOW (Robert, 2026-10-25, from the Ahrefs crawl of
+   * 2026-10-26). Out of the index, with its links followed like every other
+   * page's, as on /order/start/*. The nofollow here was the sole cause of four
+   * crawl warnings across the 22 pages that link to it.
    */
-  robots: { index: false, follow: false },
+  robots: { index: false, follow: true },
 };
 
 const crumbs = [

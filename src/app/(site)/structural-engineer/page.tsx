@@ -7,7 +7,7 @@ import { PrelaunchNotice } from "@/components/launch/PrelaunchNotice";
 import { OfferCta } from "@/components/launch/OfferCta";
 import { FaqBlock } from "@/components/site/FaqBlock";
 import { buildMetadata } from "@/lib/seo";
-import { JsonLd, breadcrumbSchema, faqSchema } from "@/lib/schema";
+import { ArticleJsonLd, JsonLd, breadcrumbSchema, faqSchema } from "@/lib/schema";
 import { proximityHub, proximityPages } from "@/content/structural-engineer";
 
 /**
@@ -44,6 +44,7 @@ export default function StructuralEngineerPage() {
     <>
       <JsonLd data={breadcrumbSchema(crumbs)} />
       <JsonLd data={faqSchema(proximityHub.faqs)} />
+      <ArticleJsonLd path="/structural-engineer" headline={proximityHub.h1} description={proximityHub.description} />
 
       <PageHeader
         eyebrow="Working with engineers"
