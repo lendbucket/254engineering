@@ -940,15 +940,21 @@ export async function transitionFile(
   return { ok: true };
 }
 
+/*
+ * The newest hundred events, or null when they could not be read. Section 6
+ * of Robert's audit of 2026-10-24 (class A, severity 2): a failed read was []
+ * and the timeline said "Nothing recorded yet." over a file with a history.
+ */
 export async function fileTimeline(id: string) {
   const db = supabaseAdmin();
-  if (!db) return [];
-  const { data } = await db
+  if (!db) return null;
+  const { data, error } = await db
     .from("eng_file_events")
     .select("id, created_at, kind, from_status, to_status, body, actor_id")
     .eq("file_id", id)
     .order("created_at", { ascending: false })
     .limit(100);
+  if (error) return null;
   return data ?? [];
 }
 

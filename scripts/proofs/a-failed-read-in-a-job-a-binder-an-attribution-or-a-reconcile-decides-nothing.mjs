@@ -194,6 +194,19 @@ check(
 );
 state.fail = new Set();
 
+/* Class A, severity 2: a file's timeline. A failed read is null, which the files page says, never []. */
+const crm = await import("../../src/lib/ops-crm.ts");
+const cleanTimeline = await crm.fileTimeline(FILE);
+check("a file's timeline reads clean as a list", Array.isArray(cleanTimeline), JSON.stringify(cleanTimeline));
+state.fail = new Set(["eng_file_events"]);
+check("and a failed read of it is null, not an empty history", (await crm.fileTimeline(FILE)) === null);
+state.fail = new Set();
+const filesPage = (await import("node:fs")).readFileSync("src/app/portal/(app)/files/page.tsx", "utf8");
+check(
+  "and the files page says the timeline could not be read, before it would say nothing is recorded",
+  filesPage.indexOf("{timelineFailed ? (") > 0 && filesPage.indexOf("{timelineFailed ? (") < filesPage.indexOf("Nothing recorded yet.</p>"),
+);
+
 console.log("");
 if (wrong === 0) {
   console.log("PASS: a failed read in a job, a binder, an attribution, a reconcile or an activation decides nothing and says what failed.");
