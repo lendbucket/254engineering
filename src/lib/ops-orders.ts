@@ -503,6 +503,15 @@ export const CUSTOMER_STATUS_REFUND_ISSUED = "Refund issued. What the engineer f
 export const CUSTOMER_STATUS_REPAIRS =
   "Repairs needed. No certification letter is issued with an open repair item. The engineer's letter listing the repairs is below once it is sealed.";
 
+/**
+ * The underway line for a repair specification. Robert's ruling of
+ * 2026-10-25, 23:51 Central: the specification is the engineer's own
+ * document, and until its sealing lands its orders are taken and paid and
+ * wait at sealing, with the status page saying the specification is being
+ * prepared and no date.
+ */
+export const CUSTOMER_STATUS_REPAIR_SPEC = "Underway. Your repair specification is being prepared.";
+
 const ORDER_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   draft: ["awaiting_payment", "cancelled"],
   awaiting_payment: ["paid", "cancelled"],

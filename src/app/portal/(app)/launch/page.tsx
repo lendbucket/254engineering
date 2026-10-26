@@ -4,6 +4,7 @@ import { can } from "@/lib/ops-authz";
 import { launchReadiness, launchMode } from "@/lib/launch";
 import { lineIsSellable } from "@/lib/line-gate";
 import { offeredServiceLines } from "@/config/launch-conditions";
+import { deliverablesFor } from "@data/catalog";
 import { Chip, PageHead, Panel } from "@/components/portal/surfaces";
 import { OWNER_OVERRIDE, OWNER_OVERRIDE_ACTION, OWNER_OVERRIDES } from "@/lib/owner-override";
 
@@ -55,8 +56,22 @@ export default async function LaunchReadinessPage() {
   const rows = launchReadiness();
   const outstanding = rows.filter((r) => r.blocker !== null);
   const mode = launchMode();
+  /*
+   * ONE ROW PER DELIVERABLE WHERE A LINE SELLS MORE THAN ONE. WPI-8's two
+   * tiers run under two protocols (254-WS-001 completed, 254-WP-001 ongoing),
+   * and asked with no tier the door finds no protocol for the line, so the row
+   * read Closed for a line whose every tier could be sellable. Since Robert's
+   * ruling of 2026-10-25, 23:50 Central put it on sale, each tier is asked as
+   * the order page asks it.
+   */
   const sellability = await Promise.all(
-    offeredServiceLines.map(async (slug) => ({ slug, sellable: await lineIsSellable(slug) })),
+    offeredServiceLines.flatMap((slug) => {
+      const tiers = deliverablesFor(slug).map((d) => d.tier);
+      return (tiers.length > 1 ? tiers : [null]).map(async (tier) => ({
+        slug: tier ? `${slug}, ${tier}` : slug,
+        sellable: await lineIsSellable(slug, tier),
+      }));
+    }),
   );
 
   return (

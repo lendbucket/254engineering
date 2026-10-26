@@ -114,7 +114,8 @@ if (sm.status !== 200) {
 const routes = [...sm.html.matchAll(/<loc>([^<]+)<\/loc>/g)].map(
   (m) => m[1].replace(/^https?:\/\/[^/]+/, "") || "/",
 );
-const allRoutes = [...routes, "/waitlist"];
+/* The design brief left the sitemap on 2026-10-25 (a noindex quote form), so it is read by name. */
+const allRoutes = [...routes, "/waitlist", "/design-inquiry"];
 
 if (allRoutes.length <= 1) {
   console.error("cta-audit: sitemap contained no URLs; refusing to report a pass on zero routes");

@@ -8,7 +8,7 @@ import { PrelaunchNotice } from "@/components/launch/PrelaunchNotice";
 import { OfferCta } from "@/components/launch/OfferCta";
 import { FaqBlock } from "@/components/site/FaqBlock";
 import { buildMetadata } from "@/lib/seo";
-import { JsonLd, breadcrumbSchema, faqSchema } from "@/lib/schema";
+import { ArticleJsonLd, JsonLd, breadcrumbSchema, faqSchema } from "@/lib/schema";
 import { proximityBySlug, proximityPages } from "@/content/structural-engineer";
 
 export const dynamicParams = false;
@@ -57,6 +57,7 @@ export default async function ProximityClusterPage({
         { name: page.name, path: `/structural-engineer/${page.slug}` },
       ])} />
       {page.faqs ? <JsonLd data={faqSchema(page.faqs)} /> : null}
+      <ArticleJsonLd path={`/structural-engineer/${page.slug}`} headline={page.h1} description={page.description} />
 
       <PageHeader
         eyebrow="Working with engineers"

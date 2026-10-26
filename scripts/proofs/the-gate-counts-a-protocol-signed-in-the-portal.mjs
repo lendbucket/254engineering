@@ -207,8 +207,19 @@ const child = await inOpenGateProcess(`
     "254-PL-001 1.1": transcriptionSha256("254-PL-001", "1.1"),
   };
   state.trained = { "foundation-inspections": true, "structural-letters": true };
+  /*
+   * /order DISPLAYS an answer kept for at most 60 seconds (Robert, 2026-10-25),
+   * so inside the minute it still shows the unsigned rows, and past it, the
+   * signed ones. The money door (placeOrder) never reads the kept answer; that
+   * is a-voided-signature-is-refused-at-checkout-inside-the-cache.mjs.
+   */
+  const { DISPLAY_ANSWER_MS } = await import("./src/lib/line-gate.ts");
+  const insideTheMinute = pick(await sellableLineOffers());
+  const realNow = Date.now;
+  Date.now = () => realNow() + DISPLAY_ANSWER_MS + 1;
   const signed = pick(await sellableLineOffers());
-  answer({ open: isOpen(), unsigned, unsignedPriceText, signed, refused, writesAfterRefusal, stripe });
+  Date.now = realNow;
+  answer({ open: isOpen(), unsigned, unsignedPriceText, insideTheMinute, signed, refused, writesAfterRefusal, stripe });
 `);
 const by = (rows, slug) => rows.find((o) => o.slug === slug) ?? {};
 check("the open-gate child really has the gate open, so the rows below are not the shut gate's quote rows", child.open === true);
@@ -242,7 +253,12 @@ check(
 );
 check("and before it, nothing was written and no payment was asked of Stripe", child.writesAfterRefusal.length === 0 && child.stripe.length === 0, `${child.writesAfterRefusal.join(", ")} | ${child.stripe.join(", ")}`);
 check(
-  "once signed and trained, both are offered at $709, and roof still is",
+  "inside the minute after signing, /order still shows the kept unsigned answer for the foundation line",
+  by(child.insideTheMinute, FC).orderable === false,
+  JSON.stringify(by(child.insideTheMinute, FC)),
+);
+check(
+  "once signed and trained, and past the 60 second display window, both are offered at $709, and roof still is",
   [FC, PL, ROOF].every((s) => by(child.signed, s).orderable === true && by(child.signed, s).price === "$709"),
   JSON.stringify(child.signed),
 );

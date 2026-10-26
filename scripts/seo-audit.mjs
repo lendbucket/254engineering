@@ -118,6 +118,29 @@ const BASE = process.env.BASE_URL || AUDIT_BASE_URL;
 const PUBLIC_EMAIL = "support@254engineering.com";
 
 /*
+ * THE GUIDE PAGES THAT CARRY ARTICLE SCHEMA, as Robert named them on
+ * 2026-10-25 (his message said fifteen and listed fourteen; these are the
+ * fourteen listed). A literal, never read from the code that renders them.
+ */
+const ARTICLE_PAGES = new Set([
+  "/what-is-a-structural-engineer",
+  "/structural-engineer",
+  "/structural-engineer/cost",
+  "/structural-engineer/when-you-need-one",
+  "/structural-engineer/inspection",
+  "/structural-engineer/how-to-choose",
+  "/windstorm/before-work-begins",
+  "/windstorm/catastrophe-area",
+  "/windstorm/completed-construction",
+  "/windstorm/re-roofs-and-repairs",
+  "/windstorm/appointed-engineers",
+  "/windstorm/buying-and-selling",
+  "/windstorm/opening-protection",
+  "/windstorm/twia-coverage",
+]);
+let articlePagesSeen = 0;
+
+/*
  * HOW MANY RENDERED PAGES ACTUALLY CARRIED AN email PROPERTY TO CHECK.
  *
  * The rendered assertion further down loops over each page's JSON-LD and
@@ -253,6 +276,9 @@ const rows = [];
 const titles = new Map();
 const descriptions = new Map();
 
+/* Every page's HTML as the crawl read it, for the link checks after the metadata pass. */
+const pageHtml = new Map();
+
 const routes = await sitemapRoutes();
 if (routes.length === 0) {
   console.error("seo-audit: sitemap returned no routes; refusing to report a pass on zero pages.");
@@ -266,6 +292,7 @@ for (const route of routes) {
     continue;
   }
   const html = await res.text();
+  pageHtml.set(route, { html, robotsHeader: res.headers.get("x-robots-tag") ?? "" });
   const meta = extract(html);
   const title = decode(meta.title);
   const description = decode(meta.description);
@@ -330,7 +357,8 @@ for (const route of routes) {
 
   // BreadcrumbList on every page. It is the one schema type that is easy to add
   // to a template and easy to lose on the page that does not use the template.
-  const types = meta.jsonLd.filter(Boolean).map((d) => d["@type"]);
+  /* A node's @type can be an array since 2026-10-25, so every type a node names is counted. */
+  const types = meta.jsonLd.filter(Boolean).flatMap((d) => [].concat(d["@type"] ?? []));
   if (!types.includes("BreadcrumbList")) problems.push(`${route}: no BreadcrumbList schema`);
   if (!types.includes("ProfessionalService")) problems.push(`${route}: no Organization schema`);
   if (!types.includes("WebSite")) problems.push(`${route}: no WebSite schema`);
@@ -350,7 +378,43 @@ for (const route of routes) {
     if ("alternateName" in websiteNode)
       problems.push(`${route}: WebSite carries alternateName ${JSON.stringify(websiteNode.alternateName)}`);
   }
-  const orgNode = meta.jsonLd.find((d) => d && d["@type"] === "ProfessionalService");
+  /*
+   * The organisation node is found by any type it names, and its types are then
+   * pinned as the literal pair (Robert, 2026-10-25), so a node that drops either
+   * one, or becomes a second entity, is named. A find on one string would have
+   * matched nothing once the type became an array, and passed.
+   */
+  const orgNode = meta.jsonLd.find((d) => d && [].concat(d["@type"] ?? []).includes("ProfessionalService"));
+  if (!orgNode) problems.push(`${route}: no node carries ProfessionalService`);
+  else if (JSON.stringify(orgNode["@type"]) !== JSON.stringify(["Organization", "ProfessionalService"]))
+    problems.push(`${route}: the organisation node's @type is ${JSON.stringify(orgNode["@type"])}, expected ["Organization","ProfessionalService"]`);
+  const orgNodes = meta.jsonLd.filter((d) => d && [].concat(d["@type"] ?? []).some((t) => t === "Organization" || t === "ProfessionalService") && d["@id"]);
+  if (orgNodes.length > 1) problems.push(`${route}: ${orgNodes.length} organisation nodes with an @id, expected one entity`);
+
+  /*
+   * ARTICLE ON THE GUIDE PAGES AND NOWHERE ELSE, BY THE ORGANISATION, DATED
+   * FROM GIT (Robert, 2026-10-25). The dates' agreement with git is
+   * guide-dates-audit's; this asserts what the page publishes.
+   */
+  const articles = meta.jsonLd.filter((d) => d && [].concat(d["@type"] ?? []).includes("Article"));
+  if (ARTICLE_PAGES.has(route)) {
+    articlePagesSeen += 1;
+    if (articles.length !== 1) problems.push(`${route}: ${articles.length} Article nodes, expected exactly one on a guide page`);
+    for (const a of articles) {
+      const org = "https://254engineering.com/#organization";
+      if (a.author?.["@id"] !== org || a.publisher?.["@id"] !== org)
+        problems.push(`${route}: Article author and publisher must both be the organisation (${org}), got ${JSON.stringify({ author: a.author, publisher: a.publisher })}`);
+      if (JSON.stringify(a).includes('"Person"')) problems.push(`${route}: Article names a Person`);
+      for (const k of ["datePublished", "dateModified"]) {
+        if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$/.test(a[k] ?? "")) problems.push(`${route}: Article ${k} is ${JSON.stringify(a[k])}, not a commit date`);
+      }
+      if (a.datePublished && a.dateModified && Date.parse(a.datePublished) > Date.parse(a.dateModified))
+        problems.push(`${route}: Article was modified before it was published`);
+      if (!a.headline || a.headline !== decode(meta.h1s[0] ?? "")) problems.push(`${route}: Article headline ${JSON.stringify(a.headline)} is not the page's h1 ${JSON.stringify(decode(meta.h1s[0] ?? ""))}`);
+    }
+  } else if (articles.length) {
+    problems.push(`${route}: carries Article schema, which is for the fourteen guide pages only`);
+  }
   if (orgNode) {
     if (orgNode.name !== "254 Engineering")
       problems.push(`${route}: Organization name is ${JSON.stringify(orgNode.name)}, expected "254 Engineering"`);
@@ -557,6 +621,12 @@ for (const route of routes) {
  * line about an empty set, which is worse than no check, because the line
  * scrolls past in a green run and everybody trusts the green.
  */
+if (articlePagesSeen !== ARTICLE_PAGES.size) {
+  problems.push(`the Article check reached ${articlePagesSeen} of the ${ARTICLE_PAGES.size} guide pages: the rest are missing from the sitemap`);
+} else {
+  console.log(`PASS: Article schema checked on all ${ARTICLE_PAGES.size} guide pages, and refused everywhere else.`);
+}
+
 if (schemaEmailsSeen === 0) {
   problems.push(
     "the rendered schema email check inspected nothing: no page's JSON-LD carried an email " +
@@ -566,6 +636,108 @@ if (schemaEmailsSeen === 0) {
   );
 } else {
   console.log(`PASS: the rendered schema email was checked on ${schemaEmailsSeen} JSON-LD node(s).`);
+}
+
+/*
+ * ==========================================================================
+ * NO PUBLIC PAGE CARRIES NOFOLLOW, AND EVERY SITEMAP PAGE HAS TWO INBOUND
+ * LINKS. Robert, 2026-10-25, from the Ahrefs crawl of 2026-10-26 00:18 UTC.
+ * ==========================================================================
+ *
+ * The crawl found /windstorm-inquiry marked "noindex, nofollow", the sole cause
+ * of four warnings across the 22 pages linking to it, and two pages nothing
+ * linked to enough: /what-is-a-structural-engineer with no internal link at
+ * all, /windstorm/twia-coverage with one. Nothing here measured either.
+ *
+ * The pages read are the sitemap plus the public pages kept out of it on
+ * purpose: the waitlist, the two quote forms, and the /order/start page of
+ * every service line the catalogue declares (read from data/catalog.ts, never
+ * listed here). A noindex page
+ * is still followed, so it counts as a source of links like any other.
+ *
+ * An inbound link is an <a href> on ANOTHER page naming the route, after the
+ * origin, the query, the fragment and a trailing slash are taken off. Two
+ * distinct source pages is the floor. Template links count, as they do for a
+ * crawler.
+ */
+{
+  const ORIGINS = [BASE, "https://254engineering.com", "https://www.254engineering.com"];
+  const normalise = (href) => {
+    let h = href.replace(/&amp;/g, "&");
+    for (const o of ORIGINS) if (h.startsWith(o)) h = h.slice(o.length) || "/";
+    if (!h.startsWith("/") || h.startsWith("//")) return null;
+    h = h.split("#")[0].split("?")[0];
+    if (h.length > 1) h = h.replace(/\/+$/, "");
+    return h || "/";
+  };
+  const anchors = (html) => [...html.matchAll(/<a\b([^>]*)>/gi)].map((m) => m[1]);
+  const attr = (tag, name) => tag.match(new RegExp(`\\b${name}="([^"]*)"`, "i"))?.[1] ?? null;
+
+  /*
+   * THE START PAGES COME FROM THE CATALOGUE'S DECLARATION, NOT FROM /order's
+   * LINKS. The first board of this check (40260283202) read them off the order
+   * chooser and went red on its own floor: with the gate shut, /order lists
+   * every line as a quote and links no start page at all, while production,
+   * with a different gate, linked three. Every line the catalogue declares has
+   * a start page that renders in every mode ("the gate is rendered, not linked
+   * around"), so the subject is the declaration and does not depend on the
+   * environment the audit happens to run in.
+   */
+  const catalogSlugs = [...new Set([...readFileSync("data/catalog.ts", "utf8").matchAll(/serviceSlug: "([a-z0-9-]+)"/g)].map((m) => m[1]))];
+  const orderLinks = catalogSlugs.map((s) => `/order/start/${s}`);
+  const OFF_SITEMAP = ["/waitlist", "/design-inquiry", "/windstorm-inquiry", ...orderLinks];
+  for (const route of OFF_SITEMAP) {
+    if (pageHtml.has(route)) continue;
+    const res = await fetch(`${BASE}${route}`);
+    if (res.status !== 200) {
+      problems.push(`${route}: HTTP ${res.status} (a public page kept out of the sitemap)`);
+      continue;
+    }
+    pageHtml.set(route, { html: await res.text(), robotsHeader: res.headers.get("x-robots-tag") ?? "" });
+  }
+  if (orderLinks.length < 8)
+    problems.push(`the catalogue declared ${orderLinks.length} service line(s), below the 8 of 2026-10-25, so the start pages were not all read`);
+
+  const problemsBefore = problems.length;
+  let nofollowRead = 0;
+  for (const [route, { html, robotsHeader }] of pageHtml) {
+    nofollowRead += 1;
+    const robotsMeta = [...html.matchAll(/<meta\b[^>]*>/gi)]
+      .map((m) => m[0])
+      .filter((t) => /name="(robots|googlebot)"/i.test(t))
+      .map((t) => attr(t, "content") ?? "");
+    for (const content of robotsMeta) {
+      if (/nofollow|\bnone\b/i.test(content)) problems.push(`${route}: meta robots is "${content}", which tells a crawler not to follow its links`);
+    }
+    if (/nofollow|\bnone\b/i.test(robotsHeader)) problems.push(`${route}: X-Robots-Tag is "${robotsHeader}"`);
+    for (const a of anchors(html)) {
+      const href = normalise(attr(a, "href") ?? "");
+      const rel = attr(a, "rel") ?? "";
+      if (href && /nofollow/i.test(rel)) problems.push(`${route}: an internal link to ${href} carries rel="${rel}"`);
+    }
+  }
+
+  const inbound = new Map(routes.map((r) => [r, new Set()]));
+  let linksSeen = 0;
+  for (const [source, { html }] of pageHtml) {
+    for (const a of anchors(html)) {
+      const href = normalise(attr(a, "href") ?? "");
+      if (!href || href === source) continue;
+      linksSeen += 1;
+      inbound.get(href)?.add(source);
+    }
+  }
+  const thin = [...inbound].filter(([, from]) => from.size < 2);
+  for (const [route, from] of thin) {
+    problems.push(`${route}: ${from.size} page(s) link to it${from.size ? ` (${[...from].join(", ")})` : ""}; every sitemap page needs at least two`);
+  }
+  if (linksSeen === 0 || nofollowRead < routes.length) {
+    problems.push(`the link checks read ${nofollowRead} page(s) and ${linksSeen} internal link(s): a check over nothing`);
+  } else if (problems.length === problemsBefore) {
+    console.log(`PASS: no nofollow on ${nofollowRead} public pages, and all ${routes.length} sitemap pages are linked from two or more (${linksSeen} internal links counted).`);
+  } else {
+    console.log(`the link checks read ${nofollowRead} public pages and ${linksSeen} internal links, and name ${problems.length - problemsBefore} problem(s) in the result below.`);
+  }
 }
 
 for (const [title, where] of titles) {
