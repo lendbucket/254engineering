@@ -61,18 +61,24 @@ const NOT_AVAILABLE_YET =
  * SIGNED, TRAINED, AND COVERED BY HIS AGREEMENT. Robert's ruling of 2026-10-26,
  * 07:10 Central (0095): a deliverable listed in SCOPE_ADDENDUM_REQUIRED opens
  * only on a live signed per_job addendum for that deliverable, read here at
- * every money door after the protocol and the training. A deliverable that
+ * every money door BEFORE the protocol and the training. A deliverable that
  * needs none costs no read.
+ *
+ * FIRST, NOT LAST, and the proof found why. Its protocol (254-WP-001) cannot
+ * be in force without the addendum (0096), so asked last the door refused with
+ * the protocol sentence, "No protocol for this service line has been approved",
+ * which is untrue of a line whose completed construction protocol is approved.
+ * Asked first, the customer reads the catalogue's own "not available yet".
  */
 async function signedAndCovered(serviceSlug: string, tier: string | null | undefined): Promise<Sellable> {
-  const signed = await signedInDatabase(serviceSlug, tier);
-  if (!signed.ok || !addendumRequired(serviceSlug, tier)) return signed;
-  const pay = await linePayFor(deliverableKey(serviceSlug, tier));
-  if (pay.state === "unknown") return closed("The order system cannot confirm the engineer's scope addendum right now.", true);
-  if (pay.state === "unsigned") {
-    return closed(`No signed scope addendum covers ${deliverableKey(serviceSlug, tier)}.`, false, NOT_AVAILABLE_YET);
+  if (addendumRequired(serviceSlug, tier)) {
+    const pay = await linePayFor(deliverableKey(serviceSlug, tier));
+    if (pay.state === "unknown") return closed("The order system cannot confirm the engineer's scope addendum right now.", true);
+    if (pay.state === "unsigned") {
+      return closed(`No signed scope addendum covers ${deliverableKey(serviceSlug, tier)}.`, false, NOT_AVAILABLE_YET);
+    }
   }
-  return { ok: true };
+  return signedInDatabase(serviceSlug, tier);
 }
 
 async function rc001Signed(documentNumber: string): Promise<Sellable> {

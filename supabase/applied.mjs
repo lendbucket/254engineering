@@ -3451,6 +3451,39 @@ export const APPLIED = [
       "in the chain, which is held, so this waits with it. The branch merges only after the production apply is " +
       "read back, and a migration on main is never pending.",
   },
+  {
+    file: "0095_a_scope_addendum_can_pay_a_flat_amount_per_job.sql", appliedBy: "apply_migration",
+    fingerprint: "7cd992a839ac7f3997910a36208f3cd1",
+    behaviour: "3dcf0b3e3917ef44c1127d399afce71e",
+    production: null,
+    proves: { table: "eng_scope_addenda", column: "basis" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0095 on 2026-10-26, with 0094 reproducing its recorded " +
+      "pair first (8daaba43 / 1353, 9996160f / 1281): one column, 1354, and 1285 facts (the basis and shape checks, " +
+      "eng_line_pay, the replaced text function, the addenda.draft grant). Three `drop not null` statements, each " +
+      "on a column the shape check in the same file still requires on every design_share row.",
+    because:
+      "WRITTEN 2026-10-26 ON feat/wpi8-ongoing-addendum, ON TOP OF 0094, AND APPLIED NOWHERE. Robert's ruling of " +
+      "2026-10-26, 07:10 Central: WPI-8 ongoing opens through a per_job scope addendum, $175 per job, signed by the " +
+      "engineer in the portal. Boards after 0094 in migration order (his 08:19 answer 11). The branch merges only " +
+      "after the production apply is read back, and a migration on main is never pending.",
+  },
+  {
+    file: "0096_a_protocol_is_in_force_for_its_tier.sql", appliedBy: "apply_migration",
+    fingerprint: "6adde27e5bd8a1a52cf5a2d0500af466",
+    behaviour: "deb92bee42354ce8ef9b74a4955a90c7",
+    production: null,
+    proves: { table: "eng_protocol_templates", column: "service_tier" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0096 on 2026-10-26: one column, 1355, and 1286 facts " +
+      "(the tier column and its check, eng_approve_protocol retiring by line and tier, the hold on 254-WP-001 " +
+      "made conditional on eng_line_pay). Sets service_tier on the two windstorm protocols' records only.",
+    because:
+      "WRITTEN 2026-10-26 ON feat/wpi8-ongoing-addendum, ON TOP OF 0095, AND APPLIED NOWHERE. Robert's answer 12 " +
+      "of 08:19 Central: 254-WP-001 in force for the ongoing tier only, 254-WS-001 and completed construction " +
+      "untouched. Without it, 0052's approval would have retired WS-001 the moment WP-001 went in force. The branch " +
+      "merges only after the production apply is read back, and a migration on main is never pending.",
+  },
 ];
 
 /*
