@@ -7,6 +7,7 @@ import { SIGNABLE_PROTOCOLS } from "@/content/protocols/signable";
 import { signatureStatus } from "./protocol-sign";
 import { orderBlockedReason, type CatalogEntry, type OrderGateMode } from "@data/catalog";
 import { allLineOffers, headlineEntry, lineOffer, type LineOffer } from "./ordering";
+import { addendumRequired, deliverableKey, linePayFor } from "./line-addendum";
 
 /**
  * ===========================================================================
@@ -41,11 +42,38 @@ import { allLineOffers, headlineEntry, lineOffer, type LineOffer } from "./order
  * direction and is never looser than either alone.
  */
 
-export type Sellable = { ok: true } | { ok: false; why: string; unreadable: boolean };
+/*
+ * `says` is the customer's sentence when it is not the catalogue's protocol
+ * sentence: a line shut for want of a scope addendum reads as not available
+ * yet, because the reason is the engineer's agreement and is internal.
+ */
+export type Sellable = { ok: true } | { ok: false; why: string; unreadable: boolean; says?: string };
 
 const READ_LIMIT_MS = 4000;
 
-const closed = (why: string, unreadable = false): Sellable => ({ ok: false, why, unreadable });
+const closed = (why: string, unreadable = false, says?: string): Sellable => ({ ok: false, why, unreadable, says });
+
+/** The catalogue's own words for a deliverable the agreement does not cover yet (data/catalog.ts). */
+const NOT_AVAILABLE_YET =
+  "This service is not available to order yet. Call the office or send a message and somebody will take the details.";
+
+/**
+ * SIGNED, TRAINED, AND COVERED BY HIS AGREEMENT. Robert's ruling of 2026-10-26,
+ * 07:10 Central (0095): a deliverable listed in SCOPE_ADDENDUM_REQUIRED opens
+ * only on a live signed per_job addendum for that deliverable, read here at
+ * every money door after the protocol and the training. A deliverable that
+ * needs none costs no read.
+ */
+async function signedAndCovered(serviceSlug: string, tier: string | null | undefined): Promise<Sellable> {
+  const signed = await signedInDatabase(serviceSlug, tier);
+  if (!signed.ok || !addendumRequired(serviceSlug, tier)) return signed;
+  const pay = await linePayFor(deliverableKey(serviceSlug, tier));
+  if (pay.state === "unknown") return closed("The order system cannot confirm the engineer's scope addendum right now.", true);
+  if (pay.state === "unsigned") {
+    return closed(`No signed scope addendum covers ${deliverableKey(serviceSlug, tier)}.`, false, NOT_AVAILABLE_YET);
+  }
+  return { ok: true };
+}
 
 async function rc001Signed(documentNumber: string): Promise<Sellable> {
   const entry = protocolForLine("roof-inspections");
@@ -128,7 +156,7 @@ export async function lineIsSellable(serviceSlug: string, tier?: string | null):
     setTimeout(() => resolve(closed("The order system could not confirm the engineer's approval in time.", true)), READ_LIMIT_MS),
   );
   try {
-    return await Promise.race([signedInDatabase(serviceSlug, tier), timeout]);
+    return await Promise.race([signedAndCovered(serviceSlug, tier), timeout]);
   } catch {
     return closed("The order system cannot confirm the engineer's approval right now.", true);
   }
@@ -142,7 +170,8 @@ export async function lineIsSellable(serviceSlug: string, tier?: string | null):
 export async function orderBlockedNow(entry: CatalogEntry | undefined, mode: OrderGateMode): Promise<string | null> {
   if (!entry || mode !== "open") return orderBlockedReason(entry, mode, false);
   const sellable = await lineIsSellable(entry.serviceSlug, entry.tier);
-  return sellable.ok ? orderBlockedReason(entry, mode, true) : sellableRefusal(sellable, orderBlockedReason(entry, mode, false));
+  /* ok here means the protocol, the training and, where one is required, the scope addendum (0095). */
+  return sellable.ok ? orderBlockedReason(entry, mode, true, true) : sellableRefusal(sellable, orderBlockedReason(entry, mode, false));
 }
 
 /**
@@ -152,6 +181,7 @@ export async function orderBlockedNow(entry: CatalogEntry | undefined, mode: Ord
  */
 export function sellableRefusal(sellable: Sellable, catalogueReason: string | null): string | null {
   if (sellable.ok) return catalogueReason;
+  if (sellable.says) return sellable.says;
   if (sellable.unreadable) {
     return "Online ordering for this service is paused because the platform could not confirm the engineer's approval just now. Nothing has been charged. Try again in a few minutes, or call the office.";
   }
@@ -226,5 +256,5 @@ export async function lineIsSellableForDisplay(serviceSlug: string, tier?: strin
 export async function orderBlockedForDisplay(entry: CatalogEntry | undefined, mode: OrderGateMode): Promise<string | null> {
   if (!entry || mode !== "open") return orderBlockedReason(entry, mode, false);
   const sellable = await lineIsSellableForDisplay(entry.serviceSlug, entry.tier);
-  return sellable.ok ? orderBlockedReason(entry, mode, true) : sellableRefusal(sellable, orderBlockedReason(entry, mode, false));
+  return sellable.ok ? orderBlockedReason(entry, mode, true, true) : sellableRefusal(sellable, orderBlockedReason(entry, mode, false));
 }

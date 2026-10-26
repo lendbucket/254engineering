@@ -148,25 +148,29 @@ export const TIER_BY_DELIVERABLE: Record<string, PayTier> = {
  * DELIVERABLES THE AGREEMENT DOES NOT COVER, WHICH NEED A SIGNED SCOPE
  * ADDENDUM BEFORE ANY JOB. Operator ruling, 2026-10-22.
  *
- * A deliverable here pays nothing and is refused at every order door until an
- * addendum naming it is recorded in `SIGNED_SCOPE_ADDENDA`. The custom design
- * engagement is not listed: its rule, 35% of the fee, is agreed, and each
- * engagement's own addendum is what the price book asks for per job.
+ * A deliverable here pays nothing and is refused at every order door until the
+ * engineer has signed a per_job scope addendum for it in the portal (0095,
+ * Robert's ruling of 2026-10-26, 07:10 Central). The custom design engagement
+ * is not listed: its rule, 35% of the fee, is agreed, and each engagement's
+ * own addendum is what the price book asks for per job.
+ *
+ * `SIGNED_SCOPE_ADDENDA`, a typed list of signed addenda that a deploy would
+ * have kept in step with the database, is removed: the signed record is the one
+ * home, read by src/lib/line-addendum.ts at the money door.
  */
 export const SCOPE_ADDENDUM_REQUIRED: Record<string, string> = {
   "windstorm-wpi-8/ongoing":
     "WPI-8 ongoing construction is not in Schedule 2 of the engineer's signed agreement, so it needs a signed scope addendum before any job and pays nothing until one exists.",
 };
 
-/** Scope addenda the operator has recorded as signed, by deliverable key. Empty is honest. */
-export const SIGNED_SCOPE_ADDENDA: Array<{ deliverable: string; signedOn: string; recordedBy: string }> = [];
-
-/** Why a deliverable may not be taken on yet, or null when nothing in the agreement stops it. */
+/**
+ * Why a deliverable needs a signed scope addendum, or null when the agreement
+ * already covers it. Configuration alone cannot tell whether one is signed, so
+ * this never says "covered" for a listed deliverable; only the money door,
+ * reading the signed record, can open it.
+ */
 export function scopeAddendumMissing(serviceSlug: string, tier: string): string | null {
-  const key = `${serviceSlug}/${tier}`;
-  const why = SCOPE_ADDENDUM_REQUIRED[key];
-  if (!why) return null;
-  return SIGNED_SCOPE_ADDENDA.some((a) => a.deliverable === key) ? null : why;
+  return SCOPE_ADDENDUM_REQUIRED[`${serviceSlug}/${tier}`] ?? null;
 }
 
 /**
