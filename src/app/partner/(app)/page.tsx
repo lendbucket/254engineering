@@ -60,8 +60,12 @@ export default async function PartnerHome() {
   if (!principal) return null;
 
   const overview = await partnerOverview(principal);
-  /* Scoped by the session's own partner id, never by anything in the request. */
-  const terms = await termsInForce(principal.partner.id);
+  /* Scoped by the session's own partner id, never by anything in the request. A failed read is said, never "not set yet" (F26). */
+  const termsRead = await termsInForce(principal.partner.id).then(
+    (terms) => ({ ok: true as const, terms }),
+    (err: unknown) => ({ ok: false as const, error: err instanceof Error ? err.message : String(err) }),
+  );
+  const terms = termsRead.ok ? termsRead.terms : null;
   /* Their own logo, in any state, so they can see what they sent and where it stands. */
   const logo = await partnerLogo(principal.partnerId, { approvedOnly: false });
   const agreement = await currentAgreement();
@@ -143,6 +147,11 @@ export default async function PartnerHome() {
               reverses it before it is paid.
             </p>
           </div>
+        ) : !termsRead.ok ? (
+          <p role="alert" className="text-[13.5px] leading-[1.6] text-[var(--ink)]">
+            Your terms could not be read just now, so they are not shown. Nothing about them has changed. Try again in a
+            moment.
+          </p>
         ) : (
           <EmptyState
             title="Your terms are not set yet"
