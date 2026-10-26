@@ -4,18 +4,16 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
-## INDEXNOW IS BUILT AND NOTHING CALLS IT: WHERE IT RUNS IS ROBERT'S
+## INDEXNOW SUBMITS FROM THE PRODUCTION BUILD: WATCH ITS FIRST LOG LINE
 
-From the Ahrefs crawl of 2026-10-26, item 8. The key file
-(`public/8e5df2ec478b0645910ddf17d8fdf8d9.txt`) and `scripts/indexnow.mjs`,
-which sends only the sitemap URLs that are new or whose lastmod moved, are on
-`fix/ahrefs-crawl-2026-10-26` with a proof. Robert asked for submission "after
-each production deploy, from the deploy step". This firm has no deploy step of
-its own: Vercel deploys main from its Git integration. A `deployment_status`
-workflow is outside the trigger allowlist of 2026-10-22
-(`scripts/ci/workflow-triggers.mjs`), a push to main carries `[skip ci]`, and
-Vercel's build runs before the deployment is live. Asked of Robert on
-2026-10-25 with those three options; nothing submits until he rules.
+Ruled by Robert on 2026-10-25, option (a): `scripts/indexnow-after-build.mjs`
+is npm's postbuild and submits only when `VERCEL_ENV` is production. What
+"changed" is measured against is production's live sitemap, read during the
+build. Vercel's bot checkpoint answers a script with 403 elsewhere on this
+site, so the first production build after the merge may log "nothing sent:
+production's sitemap answered 403". That line is owed a look in the first
+deploy's build log, by Robert's counterpart on Vercel. If it says so, the
+previous sitemap needs another source, which is a ruling.
 
 ## THE KEYWORD REGISTRY STILL NAMES FORM 20-18, IN ALL THREE REPOSITORIES
 

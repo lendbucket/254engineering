@@ -14,7 +14,7 @@
  * the fourteen paths as a literal so the declaration cannot shrink.
  */
 import { readFileSync } from "node:fs";
-import { GUIDES, deriveGuideDates, lineRange } from "./lib/guide-dates.mjs";
+import { GUIDES, deriveGuideDates, derivePostDates, lineRange, postBlocks, typedPostDates } from "./lib/guide-dates.mjs";
 
 let wrong = 0;
 const check = (name, ok, note = "") => {
@@ -58,10 +58,16 @@ for (const g of GUIDES) {
 }
 
 const text = readFileSync("src/content/guide-dates.ts", "utf8");
-const recorded = {};
-for (const m of text.matchAll(/^\s*"([^"]+)": \{ datePublished: "([^"]+)", dateModified: "([^"]+)" \},$/gm)) {
-  recorded[m[1]] = { datePublished: m[2], dateModified: m[3] };
-}
+const [guideText, postText = ""] = text.split("export const POST_DATES");
+const rowsOf = (t) => {
+  const out = {};
+  for (const m of t.matchAll(/^\s*"([^"]+)": \{ datePublished: "([^"]+)", dateModified: "([^"]+)" \},$/gm)) {
+    out[m[1]] = { datePublished: m[2], dateModified: m[3] };
+  }
+  return out;
+};
+const recorded = rowsOf(guideText);
+const recordedPosts = rowsOf(postText);
 check("the generated file records every guide page", PINNED.every((p) => p in recorded), `${Object.keys(recorded).length} recorded`);
 
 let derived = null;
@@ -84,6 +90,44 @@ if (derived) {
         : "missing",
     );
   }
+}
+
+/*
+ * THE INSIGHT POSTS (Robert, 2026-10-25): the generated dates are each post's
+ * git history, as Chicago days with date-only commits skipped, and a typed
+ * date in a post that disagrees with git fails.
+ */
+const posts = postBlocks();
+check("every insight post is found by its slug (the floor is the 35 of 2026-10-25)", posts.length >= 35, `${posts.length} posts`);
+let postGit = null;
+try {
+  postGit = derivePostDates();
+} catch (e) {
+  check("the posts' git history could be read", false, e.message);
+}
+if (postGit) {
+  const stale = [];
+  const typedWrong = [];
+  for (const p of posts) {
+    const g = postGit[p.slug];
+    const r = recordedPosts[p.slug];
+    if (!r || r.datePublished !== g.datePublished || r.dateModified !== g.dateModified)
+      stale.push(`${p.slug}: file ${r ? `${r.datePublished} to ${r.dateModified}` : "missing"}, git ${g.datePublished} to ${g.dateModified}`);
+    const t = typedPostDates(p);
+    if (t.datePublished !== g.datePublished || t.dateModified !== g.dateModified)
+      typedWrong.push(`${p.slug} (${p.file}): typed ${t.datePublished} to ${t.dateModified}, git ${g.datePublished} to ${g.dateModified}`);
+  }
+  check(
+    `every post's generated dates are its git history (${posts.length} posts)`,
+    stale.length === 0,
+    stale.length ? `${stale.join("; ")}; run node scripts/emit-guide-dates.mjs and commit it` : "",
+  );
+  check(
+    "and no typed post date disagrees with git",
+    typedWrong.length === 0,
+    typedWrong.length ? `${typedWrong.join("; ")}; write the git date into the typed field` : "",
+  );
+  check("and the generated file lists no post that does not exist", Object.keys(recordedPosts).every((s) => s in postGit), Object.keys(recordedPosts).filter((s) => !(s in postGit)).join(", "));
 }
 
 console.log("");

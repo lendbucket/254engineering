@@ -18,12 +18,12 @@
  * THE KEY IS PUBLIC BY DESIGN: IndexNow verifies a submission by fetching
  * public/<key>.txt from the host. It is not a secret and no secret is read here.
  *
- * WHERE IT RUNS IS NOT SETTLED, and that is on purpose. Vercel deploys this
- * site from its Git integration, so there is no deploy step of ours to run it
- * in: a deployment_status workflow is outside the trigger allowlist
- * (scripts/ci/workflow-triggers.mjs, ruling of 2026-10-22), a push to main
- * carries [skip ci], and Vercel's build runs before the deployment is live.
- * Robert is asked which; until then nothing calls this with --submit.
+ * WHERE IT RUNS: THE PRODUCTION BUILD, Robert's answer (a) of 2026-10-25.
+ * scripts/indexnow-after-build.mjs is npm's postbuild; it submits only when
+ * VERCEL_ENV is production, and a failed or slow submission never fails the
+ * build. Vercel deploys from its Git integration, so there is no deploy step of
+ * ours; the other two options (a deployment_status workflow, or dropping
+ * [skip ci] from merges) were not chosen.
  */
 import { readFileSync } from "node:fs";
 

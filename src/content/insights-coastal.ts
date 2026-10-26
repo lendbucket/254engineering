@@ -198,7 +198,7 @@ export const coastalInsights: Insight[] = [
     eyebrow: "Windstorm law",
     primaryKeyword: "twia insurance",
     datePublished: DATE,
-    dateModified: DATE,
+    dateModified: "2026-10-25",
     body: [
       {
         kind: "p",
@@ -314,7 +314,7 @@ export const coastalInsights: Insight[] = [
     eyebrow: "Windstorm law",
     primaryKeyword: "twia coverage homes built before 1988",
     datePublished: DATE,
-    dateModified: DATE,
+    dateModified: "2026-10-25",
     body: [
       {
         kind: "p",
@@ -944,7 +944,7 @@ export const coastalInsights: Insight[] = [
     eyebrow: "Windstorm law",
     primaryKeyword: "roof certification for insurance",
     datePublished: DATE,
-    dateModified: DATE,
+    dateModified: "2026-10-08",
     body: [
       {
         kind: "p",
@@ -1024,7 +1024,7 @@ export const coastalInsights: Insight[] = [
     eyebrow: "Windstorm law",
     primaryKeyword: "inspection vs forensic report",
     datePublished: DATE,
-    dateModified: DATE,
+    dateModified: "2026-10-17",
     body: [
       {
         kind: "p",
@@ -1163,7 +1163,7 @@ export const coastalInsights: Insight[] = [
     eyebrow: "Windstorm law",
     primaryKeyword: "wpi8",
     datePublished: WINDSTORM_SECTION_DATE,
-    dateModified: WINDSTORM_SECTION_DATE,
+    dateModified: "2026-10-17",
     body: [
       {
         kind: "p",
@@ -1308,7 +1308,7 @@ export const coastalInsights: Insight[] = [
     eyebrow: "Windstorm law",
     primaryKeyword: "texas windstorm",
     datePublished: WINDSTORM_SECTION_DATE,
-    dateModified: WINDSTORM_SECTION_DATE,
+    dateModified: "2026-10-25",
     body: [
       {
         kind: "p",
@@ -1446,7 +1446,7 @@ export const coastalInsights: Insight[] = [
     eyebrow: "Windstorm law",
     primaryKeyword: "twia",
     datePublished: WINDSTORM_SECTION_DATE,
-    dateModified: WINDSTORM_SECTION_DATE,
+    dateModified: "2026-10-25",
     body: [
       {
         kind: "p",
@@ -1744,7 +1744,7 @@ export const coastalInsights: Insight[] = [
     eyebrow: "Storm damage",
     primaryKeyword: "hurricane damage",
     datePublished: WINDSTORM_SECTION_DATE,
-    dateModified: WINDSTORM_SECTION_DATE,
+    dateModified: "2026-10-25",
     body: [
       {
         kind: "p",

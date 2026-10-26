@@ -1,6 +1,7 @@
 import type { Faq } from "./services";
 import { coastalInsights } from "./insights-coastal";
 import { roofInsights } from "./insights-roofs";
+import { POST_DATES } from "./guide-dates";
 import { topics } from "@data/keyword-registry";
 import { registrationStatement } from "@/lib/launch";
 import type { FigureId } from "@/components/insights/figures";
@@ -108,7 +109,7 @@ export const insights: Insight[] = [
     eyebrow: "Government procurement",
     primaryKeyword: "texas professional services procurement act",
     datePublished: "2026-08-23",
-    dateModified: "2026-08-23",
+    dateModified: "2026-08-24",
     body: [
       {
         kind: "p",
@@ -264,7 +265,7 @@ export const insights: Insight[] = [
     eyebrow: "Licensure",
     primaryKeyword: "texas engineering firm registration",
     datePublished: "2026-08-23",
-    dateModified: "2026-08-23",
+    dateModified: "2026-10-21",
     body: [
       {
         kind: "p",
@@ -418,7 +419,7 @@ export const insights: Insight[] = [
     eyebrow: "Licensure",
     primaryKeyword: "engineer of record texas",
     datePublished: "2026-08-23",
-    dateModified: "2026-08-23",
+    dateModified: "2026-09-21",
     body: [
       {
         kind: "p",
@@ -553,7 +554,7 @@ export const insights: Insight[] = [
     eyebrow: "Licensure",
     primaryKeyword: "texas pe license lookup",
     datePublished: "2026-08-23",
-    dateModified: "2026-08-23",
+    dateModified: "2026-09-21",
     body: [
       {
         kind: "p",
@@ -875,7 +876,7 @@ const buyerInsights: Insight[] = [
     eyebrow: "Buying and lending",
     primaryKeyword: "foundation inspection cost",
     datePublished: BUYERS_SECTION_DATE,
-    dateModified: BUYERS_SECTION_DATE,
+    dateModified: "2026-10-25",
     body: [
       {
         kind: "p",
@@ -1026,7 +1027,7 @@ const buyerInsights: Insight[] = [
     eyebrow: "Foundations",
     primaryKeyword: "free foundation inspection",
     datePublished: BUYERS_SECTION_DATE,
-    dateModified: BUYERS_SECTION_DATE,
+    dateModified: "2026-10-25",
     body: [
       {
         kind: "p",
@@ -1161,7 +1162,7 @@ const buyerInsights: Insight[] = [
     eyebrow: "Buying and lending",
     primaryKeyword: "pre purchase home inspection",
     datePublished: BUYERS_SECTION_DATE,
-    dateModified: BUYERS_SECTION_DATE,
+    dateModified: "2026-10-25",
     body: [
       {
         kind: "p",
@@ -1636,7 +1637,7 @@ const buyerInsights: Insight[] = [
     eyebrow: "Foundations",
     primaryKeyword: "crack in concrete slab foundation",
     datePublished: BUYERS_SECTION_DATE,
-    dateModified: BUYERS_SECTION_DATE,
+    dateModified: "2026-10-25",
     body: [
       {
         kind: "p",
@@ -1915,11 +1916,27 @@ insights.push(...buyerInsights);
  */
 insights.push(...roofInsights);
 
+/*
+ * EVERY POST'S DATES ARE ITS GIT HISTORY. Robert, 2026-10-25: a post whose
+ * wording changed takes that day as its dateModified, from the same generated
+ * file the guide pages use (src/content/guide-dates.ts), and a typed date that
+ * disagrees with git fails guide-dates-audit. The typed fields stay, kept equal
+ * to git by that audit; what the page, the sitemap and the schema read is the
+ * generated file.
+ */
+for (const post of insights) {
+  const dates = POST_DATES[post.slug];
+  if (dates) {
+    post.datePublished = dates.datePublished;
+    post.dateModified = dates.dateModified;
+  }
+}
+
 export function insightBySlug(slug: string): Insight | undefined {
   return insights.find((i) => i.slug === slug);
 }
 
-/** Newest first, for the hub. Dates are real and set by hand in this file. */
+/** Newest first, for the hub. Dates are each post's git history (above). */
 export function insightsByDate(): Insight[] {
   return [...insights].sort((a, b) => b.datePublished.localeCompare(a.datePublished));
 }

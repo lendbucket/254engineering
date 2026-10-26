@@ -432,7 +432,7 @@ export const roofInsights: Insight[] = [
     eyebrow: "Buying and selling",
     primaryKeyword: "roof certification letter",
     datePublished: ROOFS_SECTION_DATE,
-    dateModified: ROOFS_SECTION_DATE,
+    dateModified: "2026-10-25",
     body: [
       {
         kind: "p",
@@ -531,7 +531,7 @@ export const roofInsights: Insight[] = [
     eyebrow: "For agents",
     primaryKeyword: "option period inspection",
     datePublished: ROOFS_SECTION_DATE,
-    dateModified: "2026-10-20",
+    dateModified: "2026-10-25",
     body: [
       {
         kind: "p",

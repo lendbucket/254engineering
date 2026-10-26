@@ -85,6 +85,83 @@ function datesOf(source) {
   return out.split("\n").map((l) => l.trim()).filter((l) => /^\d{4}-\d{2}-\d{2}T/.test(l));
 }
 
+/*
+ * ===========================================================================
+ * THE INSIGHT POSTS, Robert's answer of 2026-10-25: a post whose wording
+ * changed takes that day as its dateModified, from this same git history, and
+ * a typed dateModified that disagrees with git fails guide-dates-audit.
+ * ===========================================================================
+ *
+ * Every post in the three insight files is found by its own slug, the same way
+ * a guide block is. Its dates are Chicago calendar days, because a post shows a
+ * day, never a time.
+ *
+ * A COMMIT THAT CHANGES ONLY A DATE LINE IS NOT A CHANGE TO THE POST. Writing a
+ * post's git date into its typed field is itself an edit to the block, and
+ * without this the date would chase itself forward every time it was written
+ * down. So a commit whose every added and removed line inside the block is a
+ * datePublished or dateModified line is skipped.
+ */
+export const POST_FILES = ["src/content/insights.ts", "src/content/insights-roofs.ts", "src/content/insights-coastal.ts"];
+const DATE_LINE = /^\s*date(Published|Modified):/;
+export const chicagoDay = (iso) => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago" }).format(new Date(iso));
+
+/** Every post block: { slug, file, from, to } with 1-based lines, in file order. */
+export function postBlocks() {
+  return POST_FILES.flatMap((file) => {
+    const lines = readFileSync(file, "utf8").split("\n");
+    return lines.flatMap((l, i) => {
+      const m = l.match(/^ {4}slug: "([^"]+)",$/);
+      if (!m) return [];
+      const [from, to] = lineRange({ file, slug: m[1] });
+      return [{ slug: m[1], file, from, to, text: lines.slice(from - 1, to).join("\n") }];
+    });
+  });
+}
+
+/** Author dates of the commits that changed a block's words, newest first: date-only commits skipped. */
+function wordDatesOf(file, from, to) {
+  const out = execFileSync("git", ["log", `-L${from},${to}:${file}`, "--format=__COMMIT__%aI"], { encoding: "utf8", maxBuffer: 256 * 1024 * 1024 });
+  return out
+    .split("__COMMIT__")
+    .filter(Boolean)
+    .flatMap((chunk) => {
+      const [date, ...rest] = chunk.split("\n");
+      const changed = rest.filter((l) => /^[+-]/.test(l) && !/^(\+\+\+|---) /.test(l)).map((l) => l.slice(1));
+      if (changed.length > 0 && changed.every((l) => DATE_LINE.test(l))) return [];
+      return /^\d{4}-\d{2}-\d{2}T/.test(date.trim()) ? [date.trim()] : [];
+    });
+}
+
+/** { slug: { datePublished, dateModified } } for every post, as Chicago days, from git. */
+export function derivePostDates() {
+  const shallow = execFileSync("git", ["rev-parse", "--is-shallow-repository"], { encoding: "utf8" }).trim();
+  if (shallow === "true") throw new Error("this clone is shallow, so its history is not the post's history; fetch with depth 0");
+  const out = {};
+  for (const p of postBlocks()) {
+    const dates = wordDatesOf(p.file, p.from, p.to).sort((x, y) => Date.parse(x) - Date.parse(y));
+    if (dates.length === 0) throw new Error(`${p.slug}: git has no history for its block`);
+    out[p.slug] = { datePublished: chicagoDay(dates[0]), dateModified: chicagoDay(dates[dates.length - 1]) };
+  }
+  return out;
+}
+
+/** A post's typed dates, with a section constant resolved from its own file. */
+export function typedPostDates(p) {
+  const fileText = readFileSync(p.file, "utf8");
+  const resolve = (raw) => {
+    if (!raw) return null;
+    const lit = raw.match(/^"(\d{4}-\d{2}-\d{2})"$/);
+    if (lit) return lit[1];
+    const c = fileText.match(new RegExp(`^const ${raw} = "(\\d{4}-\\d{2}-\\d{2})";$`, "m"));
+    return c ? c[1] : `unresolved ${raw}`;
+  };
+  return {
+    datePublished: resolve(p.text.match(/^\s*datePublished: ([^,\n]+),$/m)?.[1]?.trim()),
+    dateModified: resolve(p.text.match(/^\s*dateModified: ([^,\n]+),$/m)?.[1]?.trim()),
+  };
+}
+
 /** { path: { datePublished, dateModified } } for every guide, from git. Throws on a shallow clone. */
 export function deriveGuideDates() {
   const shallow = execFileSync("git", ["rev-parse", "--is-shallow-repository"], { encoding: "utf8" }).trim();

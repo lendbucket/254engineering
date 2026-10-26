@@ -59,6 +59,68 @@ check(
   readdirSync("public").filter((f) => /^[0-9a-f]{32}\.txt$/.test(f)).length === 1,
 );
 
+/*
+ * FROM THE PRODUCTION BUILD ONLY, AND NEVER FAILING IT (Robert's answer (a),
+ * 2026-10-25). The real post-build step is run in a child, in a scratch
+ * directory holding a built sitemap, with fetch replaced by a preload that
+ * serves production's previous sitemap and records what reaches IndexNow.
+ */
+{
+  const { mkdtempSync, mkdirSync, writeFileSync, rmSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join, resolve } = await import("node:path");
+  const { spawnSync } = await import("node:child_process");
+  const { pathToFileURL } = await import("node:url");
+  const pkg = JSON.parse(readFileSync("package.json", "utf8"));
+  check("npm runs the step after every build", pkg.scripts?.postbuild === "node scripts/indexnow-after-build.mjs", String(pkg.scripts?.postbuild));
+  const step = resolve("scripts/indexnow-after-build.mjs");
+  const run = (env, { endpoint = "accept", sitemap = "serve" } = {}) => {
+    const dir = mkdtempSync(join(tmpdir(), "indexnow-proof-"));
+    mkdirSync(join(dir, ".next/server/app"), { recursive: true });
+    writeFileSync(join(dir, ".next/server/app/sitemap.xml.body"), after);
+    const sent = join(dir, "sent.json");
+    const preload = join(dir, "fake-fetch.mjs");
+    writeFileSync(
+      preload,
+      [
+        `import { appendFileSync } from "node:fs";`,
+        `const before = ${JSON.stringify(before)};`,
+        `globalThis.fetch = async (url, init) => {`,
+        `  if (String(url).endsWith("/sitemap.xml")) {`,
+        `    if (${JSON.stringify(sitemap)} === "blocked") return new Response("challenge", { status: 403 });`,
+        `    return new Response(before, { status: 200 });`,
+        `  }`,
+        `  if (${JSON.stringify(endpoint)} === "throws") throw new Error("proof: IndexNow is down");`,
+        `  appendFileSync(${JSON.stringify(sent)}, init.body + "\\n");`,
+        `  return new Response(null, { status: 202 });`,
+        `};`,
+      ].join("\n"),
+    );
+    const r = spawnSync(process.execPath, ["--import", pathToFileURL(preload).href, step], {
+      cwd: dir,
+      env: { ...process.env, VERCEL_ENV: env ?? "" },
+      encoding: "utf8",
+    });
+    const posted = existsSync(sent) ? readFileSync(sent, "utf8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l)) : [];
+    rmSync(dir, { recursive: true, force: true });
+    return { code: r.status, out: `${r.stdout}${r.stderr}`, posted };
+  };
+  const local = run(undefined);
+  check("a local build submits nothing and exits 0", local.code === 0 && local.posted.length === 0 && /skipped/.test(local.out), local.out.trim());
+  const preview = run("preview");
+  check("a preview build submits nothing and exits 0", preview.code === 0 && preview.posted.length === 0 && /skipped/.test(preview.out), preview.out.trim());
+  const prod = run("production");
+  check(
+    "a production build sends exactly the changed URLs, as built",
+    prod.code === 0 && prod.posted.length === 1 && JSON.stringify(prod.posted[0].urlList) === JSON.stringify(urls),
+    prod.posted.length ? JSON.stringify(prod.posted[0].urlList) : prod.out.trim(),
+  );
+  const down = run("production", { endpoint: "throws" });
+  check("a failed submission logs and the build still exits 0", down.code === 0 && /submission failed and the build carries on/.test(down.out), down.out.trim());
+  const blocked = run("production", { sitemap: "blocked" });
+  check("an unreadable live sitemap sends nothing, says so, and exits 0", blocked.code === 0 && blocked.posted.length === 0 && /answered 403/.test(blocked.out), blocked.out.trim());
+}
+
 /* Never from a page request: nothing under src submits. */
 const walk = (d) => readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(`${d}/${e.name}`) : [`${d}/${e.name}`]));
 const callers = walk("src").filter((f) => /\.(ts|tsx)$/.test(f) && /indexnow/i.test(readFileSync(f, "utf8")));
