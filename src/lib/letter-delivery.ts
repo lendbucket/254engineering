@@ -17,18 +17,20 @@ import { writeAudit } from "./ops-audit";
 
 export type CustomerLetter = { id: string; title: string; sealedAt: string };
 
-async function fileForOrder(orderId: string): Promise<string | null> {
+/**
+ * The sealed letters on an order's file that the customer may download, or a
+ * failed read said as one. Robert's audit of 2026-10-24, finding F29: every
+ * read here answered a failure with an empty list, so a sealed letter
+ * vanished from the customer's page with nothing saying anything was missing.
+ */
+export async function customerLettersRead(orderId: string): Promise<{ ok: true; letters: CustomerLetter[] } | { ok: false }> {
   const db = supabaseAdmin();
-  if (!db) return null;
-  const { data } = await db.from("eng_service_orders").select("file_id").eq("id", orderId).maybeSingle();
-  return (data?.file_id as string | null) ?? null;
-}
-
-/** The sealed letters on an order's file that the customer may download. */
-export async function customerLetters(orderId: string): Promise<CustomerLetter[]> {
-  const db = supabaseAdmin();
-  const fileId = await fileForOrder(orderId);
-  if (!db || !fileId) return [];
+  if (!db) return { ok: false };
+  const { data: order, error: orderError } = await db.from("eng_service_orders").select("file_id").eq("id", orderId).maybeSingle();
+  if (orderError) return { ok: false };
+  const fileId = (order?.file_id as string | null) ?? null;
+  /* No file yet is a real empty: nothing can have been sealed. */
+  if (!fileId) return { ok: true, letters: [] };
   const { data: docs, error } = await db
     .from("eng_documents")
     .select("id, title, sealed_at")
@@ -36,17 +38,27 @@ export async function customerLetters(orderId: string): Promise<CustomerLetter[]
     .eq("visibility", "client")
     .not("sealed_at", "is", null)
     .order("sealed_at", { ascending: false });
-  if (error || !docs?.length) return [];
+  if (error) return { ok: false };
+  if (!docs?.length) return { ok: true, letters: [] };
   const { data: acts, error: actsError } = await db
     .from("eng_seal_acts")
     .select("document_id")
     .in("document_id", docs.map((d) => d.id as string))
     .is("voided_at", null);
-  if (actsError) return [];
+  if (actsError) return { ok: false };
   const live = new Set((acts ?? []).map((a) => a.document_id as string));
-  return docs
-    .filter((d) => live.has(d.id as string))
-    .map((d) => ({ id: d.id as string, title: d.title as string, sealedAt: d.sealed_at as string }));
+  return {
+    ok: true,
+    letters: docs
+      .filter((d) => live.has(d.id as string))
+      .map((d) => ({ id: d.id as string, title: d.title as string, sealedAt: d.sealed_at as string })),
+  };
+}
+
+/** The same list, for the download check, where a failed read is a refusal and an empty list says exactly that. */
+export async function customerLetters(orderId: string): Promise<CustomerLetter[]> {
+  const read = await customerLettersRead(orderId);
+  return read.ok ? read.letters : [];
 }
 
 /** One letter's bytes for an order's customer, or a refusal that names nothing. */

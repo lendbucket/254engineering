@@ -2,6 +2,7 @@ import "server-only";
 import { DB_NOW } from "./db-now";
 import { clockSentence } from "./clock-skew";
 import { supabaseAdmin } from "./supabase";
+import { readEvery } from "./bounded-read";
 import { deskPackageComplete } from "./ops-payments";
 import { writeAudit } from "./ops-audit";
 import { can, type Actor, holdsLicence, licenceRefusal } from "./ops-authz";
@@ -1210,11 +1211,18 @@ async function readChargeLog(
   return { rows, total: count ?? rows.length };
 }
 
+/**
+ * The log for the screen, or why it could not be read. Robert's audit of
+ * 2026-10-24, finding F23: a failed read was an empty list, and the screen
+ * said "Nothing recorded" over the record the engineer's licence stands on.
+ */
 export async function chargeLog(
   actor: Actor | null,
   options: { engineerId?: string; period?: string } = {},
-): Promise<ChargeLogEntry[]> {
-  return (await readChargeLog(actor, options))?.rows ?? [];
+): Promise<{ ok: true; rows: ChargeLogEntry[]; total: number } | { ok: false; error: string }> {
+  const read = await readChargeLog(actor, options);
+  if (!read) return { ok: false, error: "The responsible charge log could not be read." };
+  return { ok: true, rows: read.rows, total: read.total };
 }
 
 /**
@@ -1348,24 +1356,34 @@ export type ProductionRow = {
   note: string | null;
 };
 
+/**
+ * Every production row in scope, or why it could not be read. Robert's audit
+ * of 2026-10-24, finding F23: this read the newest 300 rows with its error
+ * ignored, and the charge log summed "This month" and "Unpaid" from them, so
+ * older months shrank past 300 and a failed read was "Nothing for" the period.
+ */
 export async function productionLedger(
   actor: Actor | null,
   engineerId?: string,
-): Promise<ProductionRow[]> {
+): Promise<{ ok: true; rows: ProductionRow[] } | { ok: false; error: string }> {
   const db = supabaseAdmin();
-  if (!db || !actor) return [];
+  if (!db || !actor) return { ok: false, error: "The production ledger could not be read." };
   const all = can(actor, "ledger.read_all");
-  if (!all && !can(actor, "ledger.read_own")) return [];
+  if (!all && !can(actor, "ledger.read_own")) return { ok: true, rows: [] };
 
-  let query = db
-    .from("eng_production_ledger")
-    .select("id, created_at, engineer_id, file_id, amount_cents, decision, period, status, note")
-    .order("created_at", { ascending: false })
-    .limit(300);
-  query = all && engineerId ? query.eq("engineer_id", engineerId) : all ? query : query.eq("engineer_id", actor.id);
-
-  const { data } = await query;
-  return ((data ?? []) as ProductionRow[]).map((r) => ({ ...r, amount_cents: Number(r.amount_cents) }));
+  // readEvery: "This month" and "Unpaid" are sums a person is paid against.
+  const read = await readEvery<ProductionRow>((from, to) => {
+    let query = db
+      .from("eng_production_ledger")
+      .select("id, created_at, engineer_id, file_id, amount_cents, decision, period, status, note")
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: true })
+      .range(from, to);
+    query = all && engineerId ? query.eq("engineer_id", engineerId) : all ? query : query.eq("engineer_id", actor.id);
+    return query;
+  });
+  if (!read.ok) return { ok: false, error: `The production ledger could not be read: ${read.error}` };
+  return { ok: true, rows: read.rows.map((r) => ({ ...r, amount_cents: Number(r.amount_cents) })) };
 }
 
 export type TimeRow = {
