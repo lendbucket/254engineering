@@ -268,8 +268,15 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * 2fa02bab9a86d346d328a22bbb8ba975, read off fingerprint-at.mjs with 0087
  * reproducing its recorded pair first (0087 moves no column).
  */
-const EXPECTED_FINGERPRINT = "2fa02bab9a86d346d328a22bbb8ba975";
-const EXPECTED_COLUMNS = 1331;
+/*
+ * Moved 2026-10-25 by 0089, a seal act records who it prints, by Robert's
+ * answers that day on L2e and L2j: 1,331 to 1,333 is eng_seal_acts'
+ * printed_name and printed_license; no table; shape
+ * 05bb694a74ad7aeb15a3c37c8474d2da, read off fingerprint-at.mjs with 0088
+ * reproducing its recorded pair first.
+ */
+const EXPECTED_FINGERPRINT = "05bb694a74ad7aeb15a3c37c8474d2da";
+const EXPECTED_COLUMNS = 1333;
 const EXPECTED_TABLES = 99;
 /* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts.
  * 0074 adds two: eng_partner_billing_touch and eng_partner_billing_events_immutable.
@@ -342,8 +349,13 @@ const EXPECTED_TRIGGERS = 98;
  * 62 since 0088, by Robert's instruction of 2026-10-24: eng_record_letter_template_signature
  * (the one door a letter template signature comes in by) and the sixteen-argument
  * eng_record_letter_seal, beside 0081's as an overload (0081's is unchanged since
- * the narrowing of Robert's ruling 3 of 2026-10-24). */
-const EXPECTED_FUNCTIONS = 62;
+ * the narrowing of Robert's ruling 3 of 2026-10-24).
+ * 64 since 0089, by Robert's answers of 2026-10-25 on L2e and L2j: the seventeen-
+ * and eighteen-argument eng_record_letter_seal, which record the printed name and
+ * licence and date the document by the act's own moment, beside 0081's fifteen
+ * and 0088's sixteen, which are unchanged. eng_seal_act_guard is replaced with
+ * the same signature, which is not a new row. */
+const EXPECTED_FUNCTIONS = 64;
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
@@ -1435,6 +1447,56 @@ if (failedAt === null) {
     rec(
       "after which the determination can be sealed again, as a new document",
       (await attempt(sealLetter("00000000-0000-4000-8000-0000000006a3", "00000000-0000-4000-8000-0000000006c3", SEALER, SEAL_NOW, SIG))) === null,
+    );
+
+    /*
+     * 0089, Robert's answers of 2026-10-25 on L2e and L2j: the seventeen- and
+     * eighteen-argument doors record the name and licence number the letter
+     * prints, refuse a blank one or a licence that is not the sealer's own, and
+     * date the document by the act's own moment, the instant his code was spent.
+     */
+    const DET_0089 = "'00000000-0000-4000-8000-0000000006d9'";
+    const SEALED_AT_0089 = "2026-10-25T04:59:59+00:00";
+    await db.exec(`
+      update eng_profiles set license_number = '000001' where id = ${SEALER};
+      insert into eng_determinations (id, file_id, protocol_document, determination, relied_on_item_keys, relied_on_evidence_ids, engineer_id)
+      values (${DET_0089}, ${SEALED_FILE}, '254-RC-001', 'pass', array['probe'], array['00000000-0000-4000-8000-0000000000e1'::uuid], ${SEALER});
+    `);
+    const seal0089 = (act, doc, name, licence) => `
+      select eng_record_letter_seal(
+        '${act}', '${doc}', ${SEALED_FILE}, null, 'Probe roof letter 0089', 'probe/letter-${doc.slice(-4)}.pdf',
+        4096, ${HASH}, 'F-29811', ${DET_0089}, ${SEALER}, ${SEAL_NOW}, ${SIG}, '${SEALED_AT_0089}', '${"a".repeat(64)}',
+        '${name}', '${licence}'
+      );`;
+    rec(
+      "a letter sealed with no printed name is refused (0089)",
+      await refused(seal0089("00000000-0000-4000-8000-0000000006da", "00000000-0000-4000-8000-0000000006ea", " ", "000001")),
+    );
+    rec(
+      "and one printing a licence that is not the sealer's own is refused (0089)",
+      await refused(seal0089("00000000-0000-4000-8000-0000000006db", "00000000-0000-4000-8000-0000000006eb", "Probe Sealer", "999999")),
+    );
+    const printed = await attempt(seal0089("00000000-0000-4000-8000-0000000006dc", "00000000-0000-4000-8000-0000000006ec", "Probe Sealer", "000001"));
+    const act0089 = (
+      await db.query(
+        `select a.printed_name, a.printed_license, d.sealed_at = a.mfa_verified_at as one_moment, a.mfa_verified_at = '${SEALED_AT_0089}'::timestamptz as given_moment
+           from eng_seal_acts a join eng_documents d on d.id = a.document_id
+          where a.id = '00000000-0000-4000-8000-0000000006dc'`,
+      )
+    ).rows[0];
+    rec(
+      "the act records the name and licence the letter prints (0089, L2e)",
+      printed === null && act0089?.printed_name === "Probe Sealer" && act0089?.printed_license === "000001",
+      printed ?? JSON.stringify(act0089),
+    );
+    rec(
+      "and the document is dated by the act's own moment, not the database's later now() (0089, L2j)",
+      act0089?.one_moment === true && act0089?.given_moment === true,
+      JSON.stringify(act0089),
+    );
+    rec(
+      "and neither printed record can be rewritten afterwards (0089)",
+      await refused("update eng_seal_acts set printed_name = 'Somebody else' where id = '00000000-0000-4000-8000-0000000006dc'"),
     );
 
     /*

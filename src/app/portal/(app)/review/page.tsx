@@ -73,10 +73,13 @@ export default async function ReviewPage({
   const trainingWaiting = await trainingAwaitingEngineer();
   const awaitingTriage = await filesAwaitingTriage();
   const selectedAwaiting = selected ? awaiting.filter((l) => l.fileId === selected.file.id) : [];
-  const sealable =
-    selectedAwaiting.find((l) => l.protocolDocument !== "254-RC-001") ??
-    selectedAwaiting.find((l) => l.protocolDocument === "254-RC-001" && l.determination === "pass") ??
-    null;
+  /*
+   * Every letter waiting for his seal can be sealed here (F14, Robert's answer
+   * of 2026-10-25): roof repairs-required and decline letters were listed as
+   * waiting with no screen that could seal them. Their attached schedule or
+   * record now prints as a page of the same PDF.
+   */
+  const sealable = selectedAwaiting[0] ?? null;
 
   /*
    * RULING 7 OF 2026-10-23: WHAT THE FOUNDATION OR PERMIT LETTER WILL PRINT

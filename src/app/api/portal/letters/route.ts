@@ -43,16 +43,35 @@ async function handlePOST(request: NextRequest) {
 
   if (body.action === "draft") {
     const draft = await draftForDetermination(actor, determinationId, entered);
+    /* The letterhead, the seal block as text and the draft's digest travel with the lines (L2d); no image does. */
     return draft.ok
-      ? NextResponse.json({ ok: true, lines: draft.lines, determination: draft.determination })
+      ? NextResponse.json({
+          ok: true,
+          lines: draft.lines,
+          determination: draft.determination,
+          title: draft.title,
+          letterhead: draft.letterhead,
+          sealBlock: draft.sealBlock,
+          /* The page a roof B or C letter calls attached (F14, L2f). */
+          attachment: draft.attachment,
+          draftSha256: draft.draftSha256,
+        })
       : NextResponse.json({ ok: false, error: draft.why, missing: draft.missing }, { status: 400 });
   }
 
   if (body.action === "seal") {
+    /* The digest and the lines he read, so sealing seals only that draft (L2d). */
+    const previewLines = Array.isArray(body.previewLines)
+      ? (body.previewLines as unknown[])
+          .filter((l): l is { kind: string; text: string } => typeof (l as { text?: unknown })?.text === "string" && typeof (l as { kind?: unknown })?.kind === "string")
+          .map((l) => ({ kind: l.kind, text: l.text }))
+      : undefined;
     const sealed = await sealLetter(actor, {
       determinationId,
       code: typeof body.code === "string" ? body.code : "",
       ...entered,
+      previewSha256: typeof body.previewSha256 === "string" ? body.previewSha256 : undefined,
+      previewLines,
       context: {
         ip: request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
         userAgent: request.headers.get("user-agent"),

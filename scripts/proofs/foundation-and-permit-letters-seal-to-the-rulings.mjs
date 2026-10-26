@@ -76,9 +76,16 @@ check("the roof disclosure is unchanged: a decline after attendance retains only
 
 /* The review screen. */
 const review = readFileSync("src/app/portal/(app)/review/page.tsx", "utf8");
+/*
+ * Roof was pass only until Robert's answer on F14, 2026-10-25: its repairs
+ * required and decline letters were listed as waiting with no screen to seal
+ * them. Every letter waiting is now offered, and what "waiting" may hold is
+ * still only the three determinations that produce a letter.
+ */
+const sealSource = readFileSync("src/lib/letter-seal.ts", "utf8");
 check(
-  "the review screen offers the seal for a foundation or permit letter of any producing determination, and for roof its pass only",
-  /selectedAwaiting\.find\(\(l\) => l\.protocolDocument !== "254-RC-001"\)/.test(review) && /l\.protocolDocument === "254-RC-001" && l\.determination === "pass"/.test(review),
+  "the review screen offers the seal for every letter waiting, and only a producing determination is ever waiting",
+  /const sealable = selectedAwaiting\[0\] \?\? null;/.test(review) && /\.in\("determination", \["pass", "repairs-required", "decline"\]\)/.test(sealSource),
 );
 
 console.log("");

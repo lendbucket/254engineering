@@ -44,7 +44,8 @@ const STAMP = Date.now().toString(36);
 const LABEL = "Addendum Walk";
 const TEST_ENGINEER = {
   name: "Addendum Walk Engineer, not a real person",
-  licenseNumber: "AUDIT-ADDENDUM-PE",
+  /* Digits in the probe range no Texas licence can hold (nine digits from 900), for 0089's digits-only doors (2026-10-25). */
+  licenseNumber: "900000002",
   disciplines: ["Civil"],
   sealsOnly: ["structural"],
   granted: "2020-01-01",

@@ -263,16 +263,26 @@ const {
    *   2. the walk's own identity strings, pinned here as literals rather than
    *      imported from the walk, appear nowhere under src/config.
    */
+  /*
+   * Since 2026-10-25 the probes' licences are digits too (nine digits from
+   * 900, which no Texas licence can be; 0089's seal doors take digits only),
+   * so "digits only" alone would no longer tell a probe from a person. The
+   * probe range is refused by name.
+   */
   const FIXTURE_NAME = /not a real person|audit|probe|fixture|\btest\b/i;
-  const notReal = verifiedEngineers.filter((e) => !/^\d+$/.test(e.licenseNumber) || FIXTURE_NAME.test(e.name));
+  const PROBE_LICENCE = /^900\d{6}$/;
+  const notReal = verifiedEngineers.filter(
+    (e) => !/^\d+$/.test(e.licenseNumber) || PROBE_LICENCE.test(e.licenseNumber) || FIXTURE_NAME.test(e.name),
+  );
   rec(
-    "no test engineer is in the shipped register (every licence is digits only, every name a person's)",
+    "no test engineer is in the shipped register (every licence is digits outside the probe range, every name a person's)",
     notReal.length === 0,
     notReal.map((e) => `${e.name} ${e.licenseNumber}`).join("; ") || `${verifiedEngineers.length} engineer(s) checked`,
   );
   {
     const { readdirSync, readFileSync: readCfg } = await import("node:fs");
-    const WALK_IDENTITY = ["AUDIT-WALK-PE", "Audit Walk Engineer"];
+    /* The probes' licences, as literals rather than imported from the walks (2026-10-25). */
+    const WALK_IDENTITY = ["900000001", "900000002", "900000003", "900000004", "Audit Walk Engineer"];
     const leaks = readdirSync("src/config")
       .filter((f) => f.endsWith(".ts"))
       .flatMap((f) => WALK_IDENTITY.filter((s) => readCfg(`src/config/${f}`, "utf8").includes(s)).map((s) => `${f}: ${s}`));
