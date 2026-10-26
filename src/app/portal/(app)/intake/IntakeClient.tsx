@@ -359,7 +359,19 @@ export function IntakeClient({
     channel: (channel || null) as IntakeChannel | null,
   });
 
-  const priceError = "error" in priceDecision ? priceDecision.error : null;
+  /*
+   * A PRICE TYPED AND NOT READ IS NOT THE CATALOGUE PRICE. Section 6 of
+   * Robert's audit of 2026-10-24, M-intake-override: "$1,200" read as NaN, was
+   * sent as no override, and the catalogue price was charged with no word. A
+   * typed price that is not a plain number is now refused here, so nothing is
+   * charged that the operator did not see.
+   */
+  const unreadablePrice = overridePrice.trim() !== "" && !Number.isFinite(enteredCents);
+  const priceError = unreadablePrice
+    ? "Type the price as a plain number of dollars, such as 1200 or 1200.50, with no dollar sign or commas."
+    : "error" in priceDecision
+      ? priceDecision.error
+      : null;
   const canSubmit =
     missing.length === 0 &&
     missingToOrder.length === 0 &&
