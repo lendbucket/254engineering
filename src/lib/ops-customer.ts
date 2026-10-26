@@ -137,7 +137,7 @@ export async function customerView(token: string): Promise<CustomerView | null> 
   const { data: order } = await db
     .from("eng_service_orders")
     .select(
-      "id, reference, status, file_id, service_slug, tier, property_address, city, county, price_cents, coastal_surcharge_cents, total_cents, inspection_fee_cents, twia_county, placed_at, refund_disclosure",
+      "id, reference, status, file_id, service_slug, tier, property_address, city, county, price_cents, coastal_surcharge_cents, total_cents, inspection_fee_cents, twia_county, placed_at, refund_disclosure, catalog_snapshot",
     )
     .eq("id", subject.orderId)
     .maybeSingle();
@@ -195,8 +195,20 @@ export async function customerView(token: string): Promise<CustomerView | null> 
     awaitingRepairs = file?.status === "repairs_required";
   }
 
+  /*
+   * An agreed price is labelled as one (finding F3, 2026-10-25). The order's
+   * price is the account's agreed price, and a figure that differs from the
+   * published one with nothing saying why reads as an error. Compared with the
+   * published price AT PLACEMENT (the catalogue snapshot), so a later change to
+   * the published price never relabels an old order.
+   */
+  const snapshotPrice = (order.catalog_snapshot as { priceCents?: number | null } | null)?.priceCents ?? null;
+  const isAgreed = order.price_cents !== null && typeof snapshotPrice === "number" && Number(order.price_cents) !== snapshotPrice;
   const lines: CustomerView["lines"] = [
-    { label: entry?.name ?? (order.service_slug as string), amount: money(cents(order.price_cents)) },
+    {
+      label: `${entry?.name ?? (order.service_slug as string)}${isAgreed ? " (agreed price)" : ""}`,
+      amount: money(cents(order.price_cents)),
+    },
   ];
   if (order.twia_county && order.coastal_surcharge_cents !== null) {
     lines.push({ label: "Coastal county", amount: money(cents(order.coastal_surcharge_cents)) });
