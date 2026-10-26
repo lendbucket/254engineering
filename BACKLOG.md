@@ -4,17 +4,16 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
-## THE SITTING FOR 0089, A SEAL ACT RECORDS WHO IT PRINTS, OPEN
+## AFTER 0089: RETIRE THE FIFTEEN- AND SIXTEEN-ARGUMENT SEAL DOORS
 
-`docs/production-sitting-0089-a-seal-act-records-who-it-prints.md`. Written
-2026-10-25 on `migration/0089-a-seal-act-records-who-it-prints`, to Robert's
-answers that day on L2e (the seal act records the printed name and licence
-number) and L2j (a letter is dated by the one moment it was sealed). Sat on
-development by the chat at 19:41 UTC (provider version 20261025194122), every
-figure matching; production is sat after the letters branch's board passes
-with it. 0081's fifteen- and 0088's sixteen-argument doors are not replaced,
-so the deployed code seals throughout; retiring them, after the deploy, is its
-own later migration.
+0089 (a seal act records who it prints) is sat on both projects: development
+2026-10-25 19:41 UTC (20261025194122) and production 2026-10-26 03:17 UTC
+(20261026031701), every figure matching, recorded in `supabase/applied.mjs`.
+0081's fifteen- and 0088's sixteen-argument `eng_record_letter_seal` doors were
+deliberately not replaced, so the code deployed before the merge sealed
+throughout. Once the merge is deployed and nothing calls them, retiring them is
+its own later migration, a destructive one, so the operator runs it in the SQL
+editor (`docs/production-sitting-destructive.md`).
 
 ## FIXED: EVERY CLOUD BOARD SHARED ONE SIGN IN RATE LIMIT BUCKET
 
