@@ -157,19 +157,31 @@ export type WaitingRow = {
   totalItems: number;
 };
 
-export async function waitingOnOwners(actor: Actor | null): Promise<WaitingRow[]> {
+/*
+ * Every file waiting on its owner's repairs, or null when they could not be
+ * read. Section 6 of Robert's audit of 2026-10-24 (class A and B, severity 2):
+ * the same two defects as the review queue, a failed read shown as none
+ * waiting and a read that stopped at the oldest 200. The repair items read
+ * says so too, rather than counting every file as having none.
+ */
+export async function waitingOnOwners(actor: Actor | null): Promise<WaitingRow[] | null> {
   const db = supabaseAdmin();
-  if (!db || !holdsLicence(actor, "review.queue")) return [];
+  if (!holdsLicence(actor, "review.queue")) return [];
+  if (!db) return null;
 
-  const { data: files } = await db
-    .from("eng_files")
-    .select("id, file_number, property_address, city, county, service_slug, repairs_required_at")
-    .eq("status", "repairs_required")
-    .eq("is_demo", false)
-    .order("repairs_required_at", { ascending: true, nullsFirst: true })
-    .limit(200);
+  const read = await readEvery<Omit<WaitingRow, "openItems" | "totalItems">>((from, to) =>
+    db
+      .from("eng_files")
+      .select("id, file_number, property_address, city, county, service_slug, repairs_required_at")
+      .eq("status", "repairs_required")
+      .eq("is_demo", false)
+      .order("repairs_required_at", { ascending: true, nullsFirst: true })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  if (!read.ok) return null;
 
-  const rows = (files ?? []) as Omit<WaitingRow, "openItems" | "totalItems">[];
+  const rows = read.rows as Omit<WaitingRow, "openItems" | "totalItems">[];
   if (rows.length === 0) return [];
 
   /*
@@ -177,13 +189,14 @@ export async function waitingOnOwners(actor: Actor | null): Promise<WaitingRow[]
    * query per row. A list screen that issues one query per row is the shape
    * that makes /portal/accounts take fifty seconds.
    */
-  const { data: items } = await db
+  const { data: items, error: itemsError } = await db
     .from("eng_repair_items")
     .select("file_id, closed_at")
     .in(
       "file_id",
       rows.map((r) => r.id),
     );
+  if (itemsError) return null;
 
   const byFile = new Map<string, { open: number; total: number }>();
   for (const item of (items ?? []) as { file_id: string; closed_at: string | null }[]) {

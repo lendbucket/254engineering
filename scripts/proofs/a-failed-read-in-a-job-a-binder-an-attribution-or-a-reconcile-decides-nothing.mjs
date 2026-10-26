@@ -307,6 +307,17 @@ check("and it reads every page rather than the oldest 200", /readEvery<QueueRow>
 const reviewPage = (await import("node:fs")).readFileSync("src/app/portal/(app)/review/page.tsx", "utf8");
 check("and the review page says it could not be read before it would say nothing is waiting", reviewPage.indexOf("{queue === null ? (") > 0 && reviewPage.indexOf("{queue === null ? (") < reviewPage.indexOf('title="Nothing waiting"'));
 
+/* The same for the files waiting on their owners' repairs: the files read and the repair items read. */
+state.fail = new Set();
+check("the files waiting on owners read clean as a list", Array.isArray(await engineerMod.waitingOnOwners(ENGINEER_ACTOR)));
+for (const table of ["eng_files", "eng_repair_items"]) {
+  state.fail = new Set([table]);
+  check(`and a failed ${table} read there is null, never "nobody is waiting" or no items`, (await engineerMod.waitingOnOwners(ENGINEER_ACTOR)) === null);
+}
+state.fail = new Set();
+const waitingPage = (await import("node:fs")).readFileSync("src/app/portal/(app)/waiting/page.tsx", "utf8");
+check("and the waiting page says it could not be read before it would say nobody is waiting", waitingPage.indexOf("{rows === null ? (") > 0 && waitingPage.indexOf("{rows === null ? (") < waitingPage.indexOf('title="Nobody is waiting"'));
+
 /* Class A, severity 2: the queue's dead letters. A failed read is null, which the queue page says. */
 const jobs = await import("../../src/lib/ops-jobs.ts");
 check("the dead letters read clean as a list", Array.isArray(await jobs.deadLetters()));

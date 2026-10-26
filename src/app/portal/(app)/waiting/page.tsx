@@ -47,7 +47,11 @@ export default async function WaitingPage() {
         lede="Files where certification is withheld until repairs are done. They do not expire and nothing closes them, so this is the list that makes sure nobody is forgotten. Longest waiting first."
       />
 
-      {rows.length === 0 ? (
+      {rows === null ? (
+        <p role="alert" className="text-[14px] leading-[1.6] text-[var(--ink)]">
+          The files waiting on owners could not be read just now, so whether anybody is waiting is not known. Reload the page; nothing was changed.
+        </p>
+      ) : rows.length === 0 ? (
         <EmptyState
           title="Nobody is waiting"
           body="A file arrives here when an engineer withholds certification and issues a repair list. It leaves when the owner says the work is done and the revisit is dispatched."
