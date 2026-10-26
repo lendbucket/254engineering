@@ -2252,7 +2252,9 @@ const RULED_CONDITIONS = [
     if (file !== "src/lib/launch.ts") return text;
     return text
       .replace(/export function registrationLine\(\)[\s\S]*?\n}\n/, "")
-      .replace(/export function registrationStatement\(\)[\s\S]*?\n}\n/, "");
+      .replace(/export function registrationStatement\(\)[\s\S]*?\n}\n/, "")
+      /* The pending sentence's own home since 2026-10-25 (addendum item 8), said only before any registration exists. */
+      .replace(/export function unregisteredLine\([\s\S]*?\n}\n/, "");
   };
 
   const hits = [];

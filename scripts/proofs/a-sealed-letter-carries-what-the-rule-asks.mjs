@@ -30,6 +30,10 @@ const { verifiedEngineers } = await import("../../src/config/credentials.ts");
 const { registrationLine } = await import("../../src/lib/launch.ts");
 const { ROOF_LETTER_DETERMINATION_SENTENCE } = await import("../../src/content/letters/roof-certification.ts");
 const { business } = await import("../../src/config/business.ts");
+const { activeFirmRegistration, firmName } = await import("../../src/lib/launch.ts");
+/* The head of the letter as the sealing step derives it (letterheadBrand in letter-seal.ts, addendum item 7). */
+const registrationNow = activeFirmRegistration();
+const HEAD_NAME = registrationNow?.dbas.includes(business.shortName) ? business.shortName : (registrationNow?.issuedTo ?? firmName());
 const { LETTERHEAD_MARK } = await import("../../src/content/letters/letterhead-mark.ts");
 const { createHash } = await import("node:crypto");
 
@@ -110,9 +114,11 @@ const FACTS = {
      * renders the letter a client would receive. Operator ruling, 2026-10-22:
      * "254 Engineering" with the firm line beneath, never "254 Engineering
      * Services", and the mark embedded. This handed in "254 Engineering
-     * Services" and checked for it upper-cased until that ruling.
+     * Services" and checked for it upper-cased until that ruling. Since
+     * Robert's addendum of 2026-10-25, item 7, the head prints the registrant
+     * until the board holds "254 Engineering" as an assumed name.
      */
-    brand: business.shortName,
+    brand: HEAD_NAME,
     logoPng: new Uint8Array(Buffer.from(LETTERHEAD_MARK.pngBase64, "base64")),
     registrationLine: registrationLine(),
     lines: draft.lines,
@@ -213,9 +219,23 @@ const FACTS = {
 {
   const sealing = readFileSync("src/lib/letter-seal.ts", "utf8");
   const pdf = readFileSync("src/lib/letter-pdf.ts", "utf8");
+  /*
+   * Robert's addendum of 2026-10-25, item 7: the head prints "254 Engineering
+   * LLC", the registrant, until "254 Engineering" is on F-29811's board record,
+   * and switches back by itself when the register's assumed names hold it.
+   */
   check(
-    "the sealing step hands the letter business.shortName and never business.name",
-    /brand:\s*business\.shortName/.test(sealing) && !/brand:\s*business\.name\b/.test(sealing),
+    "the sealing step hands the letter letterheadBrand() and never business.name",
+    /brand:\s*letterheadBrand\(\)/.test(sealing) && !/brand:\s*business\.name\b/.test(sealing),
+  );
+  check(
+    "which uses the brand only when the register's assumed names hold it, and the registrant otherwise",
+    /if \(registration\?\.dbas\.includes\(business\.shortName\)\) return business\.shortName;\s*return registration\?\.issuedTo \?\? firmName\(\);/.test(sealing),
+  );
+  check(
+    "and today, with 254 Engineering not on the board's record, it is the registrant",
+    HEAD_NAME === "254 Engineering LLC",
+    HEAD_NAME,
   );
   check("and business.shortName is 254 Engineering", business.shortName === "254 Engineering", business.shortName);
   const committed = readFileSync("brand-assets/letter-mark.png");
