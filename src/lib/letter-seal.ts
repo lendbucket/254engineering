@@ -17,11 +17,11 @@ import { business } from "@/config/business";
 import { protocolByDocument } from "@/content/protocols";
 import { draftRoofLetter, letterDate, producesLetter, type DraftLine, type LetterFacts, type LetterDraft } from "./letter-draft";
 import { draftFoundationLetter, draftPermitLetter, producesFoundationLetter } from "./letter-draft-fc-pl";
+import { draftManufacturedHomeLetter, draftSolarLetter, producesManufacturedHomeLetter, producesSolarLetter } from "./letter-draft-mh-sl";
+import { MANUFACTURED_HOME_NAMED_REQUIREMENT } from "@/content/letters/manufactured-home-certification";
 import { methodFor } from "@/content/letters/foundation-certification";
 import { STRUCTURED_DECLARATIONS } from "@/content/protocols/structured";
 import { recordedFactsFor, triageFor } from "./letter-facts";
-import { templateToSealFrom } from "./letter-template-sign";
-import { letterNeedsTemplate } from "@/content/letters/templates";
 import { renderLetterPdf } from "./letter-pdf";
 import { LETTERHEAD_MARK } from "@/content/letters/letterhead-mark";
 import { readEvery, readEveryIn } from "./bounded-read";
@@ -163,7 +163,13 @@ export async function determination(id: string): Promise<DeterminationRow | null
 }
 
 /** The three protocols whose letters are built: roof, and since ruling 7 of 2026-10-23, foundation and permit. */
-export const SEALABLE_PROTOCOLS = ["254-RC-001", "254-FC-001", "254-PL-001"] as const;
+/*
+ * 254-MH-001 and 254-SL-001 joined by item B of Robert's ruling of 2026-10-25,
+ * 23:51 Central: built from the drafted wording on file and the facts 0087
+ * records, and sealed with no template (0091), his seal on the full preview
+ * being his adoption. 254-WS-001's report waits on the points in BACKLOG.md.
+ */
+export const SEALABLE_PROTOCOLS = ["254-RC-001", "254-FC-001", "254-PL-001", "254-MH-001", "254-SL-001"] as const;
 
 /**
  * The protocols whose deliverable is the engineer's own document: he uploads
@@ -547,12 +553,147 @@ export async function roofAttachment(det: DeterminationRow, fileNumber: string):
   return { ok: true, attachment: undefined };
 }
 
+/**
+ * THE MANUFACTURED HOME AND SOLAR LETTERS, FROM THE WORDING ON FILE AND THE
+ * FACTS RECORDED. Item B of Robert's ruling of 2026-10-25, 23:51 Central. The
+ * facts the file holds (date, recipient, address, county, visit, protocol and
+ * the evidence count) come from it as they do for the foundation letter; the
+ * facts 0087 records come from eng_letter_facts, each from the capacity its
+ * catalogue entry names. The requirement a manufactured home letter names is
+ * HUD-7584 in his words; one recorded instead is refused, because his answer
+ * is that another needs his approval before dispatch and no record holds it.
+ */
+async function manufacturedHomeOrSolarDraft(det: DeterminationRow, entered: Entered): Promise<Drafted> {
+  /* Both print the protocol's version, so it is the one the file ran under (L2a). */
+  const base = await fileFactsFor(det, { printsProtocolVersion: true });
+  if (!base.ok) return base;
+  const answers = await answersFor(det.file_id);
+  const recorded = await recordedFactsFor(det.file_id);
+  if (!recorded) return { ok: false, error: "The letter's recorded facts could not be read, so nothing was drafted." };
+  const fact = (key: string) => recorded[key]?.value ?? null;
+  const common = {
+    determination_date: letterDate(det.decided_at),
+    recipient_name: answers.addressed_to ?? null,
+    recipient_address: entered.recipientAddress,
+    recipient_salutation: entered.recipientSalutation,
+    property_address: base.file.property_address as string,
+    county: base.file.county as string,
+    file_number: base.file.file_number as string,
+    visit_date: base.visitDate,
+    evidence_count: String(base.evidenceCount),
+  };
+  const checklist = base.declaration.checklist as readonly { key: string; label: string }[];
+
+  if (det.protocol_document === "254-MH-001") {
+    if (fact("named_requirement")) {
+      return {
+        ok: false,
+        error:
+          "Another requirement is recorded for this home. The engineer's answer is that a requirement other than HUD-7584 is used only where he approves it before dispatch, and no record holds that approval, so nothing was drafted.",
+      };
+    }
+    const draft = draftManufacturedHomeLetter(det.determination, {
+      ...common,
+      manufacturer: fact("manufacturer"),
+      serial_number: fact("serial_number"),
+      hud_label_numbers: fact("hud_label_numbers"),
+      date_of_manufacture: fact("date_of_manufacture"),
+      section_count: fact("section_count"),
+      protocol_number: base.declaration.documentNumber,
+      protocol_version: base.protocolVersion,
+      foundation_as_observed: fact("foundation_as_observed"),
+      anchorage_as_observed: fact("anchorage_as_observed"),
+      additions_as_observed: fact("additions_as_observed"),
+      named_requirement: MANUFACTURED_HOME_NAMED_REQUIREMENT,
+    });
+    if (!draft.ok) return { ok: false, error: draft.why };
+    const attached = await repairListAttachment(det, common.file_number, checklist, `Attached repair list, file ${common.file_number}`);
+    if (!attached.ok) return attached;
+    return {
+      ok: true,
+      lines: draft.lines,
+      title: `Manufactured home foundation certification, ${common.property_address}, file ${common.file_number}`,
+      attachment: attached.attachment,
+    };
+  }
+
+  const draft = draftSolarLetter(
+    det.determination,
+    {
+      ...common,
+      purpose_verbatim: fact("purpose_verbatim"),
+      framing_type: fact("framing_type"),
+      member_size: fact("member_size"),
+      member_spacing: fact("member_spacing"),
+      member_span: fact("member_span"),
+      adopted_code: fact("adopted_code"),
+      loads_used: fact("loads_used"),
+      array_description: fact("array_description"),
+      array_design_date: fact("array_design_date"),
+      array_design_revision: fact("array_design_revision"),
+      module_make_model: fact("module_make_model"),
+      module_count: fact("module_count"),
+      racking: fact("racking"),
+      attachment_type: fact("attachment_type"),
+      attachment_spacing: fact("attachment_spacing"),
+      array_layout: fact("array_layout"),
+    },
+    fact("survey_date"),
+  );
+  if (!draft.ok) return { ok: false, error: draft.why };
+  const attached = await repairListAttachment(det, common.file_number, checklist, `Attached list, file ${common.file_number}`);
+  if (!attached.ok) return attached;
+  return {
+    ok: true,
+    lines: draft.lines,
+    title: `Structural review for proposed solar array, ${common.property_address}, file ${common.file_number}`,
+    attachment: attached.attachment,
+  };
+}
+
+/**
+ * THE LIST A REPAIRS LETTER CALLS ATTACHED, from his repair list for this
+ * determination (eng_repair_items, 0053), in his words, each with the item of
+ * his checklist it arises from, exactly as the roof letter's schedule (F14).
+ * Nothing on the page is written by the platform but its heading and the
+ * numbering, and an empty list refuses the draft. A pass attaches nothing.
+ */
+async function repairListAttachment(
+  det: DeterminationRow,
+  fileNumber: string,
+  checklist: readonly { key: string; label: string }[],
+  heading: string,
+): Promise<{ ok: true; attachment: Attachment | undefined } | { ok: false; error: string }> {
+  if (det.determination !== "repairs-required") return { ok: true, attachment: undefined };
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+  const { data: items, error } = await db
+    .from("eng_repair_items")
+    .select("requirement, item_key, sort_order")
+    .eq("determination_id", det.id)
+    .order("sort_order", { ascending: true });
+  if (error) return { ok: false, error: `The repair list could not be read: ${error.message}. Nothing was drafted.` };
+  const rows = (items ?? []).filter((r) => typeof r.requirement === "string" && r.requirement.trim());
+  if (rows.length === 0) return { ok: false, error: `This determination has no repair list recorded, so the attached list for file ${fileNumber} would be empty. Nothing was drafted.` };
+  const missing = unlabelled(rows.map((r) => r.item_key as string | null).filter((k): k is string => Boolean(k)), checklist);
+  if (missing) return { ok: false, error: missing };
+  const labelFor = (key: string) => checklist.find((i) => i.key === key)!.label;
+  return {
+    ok: true,
+    attachment: {
+      heading,
+      lines: rows.map((r, i) => `${i + 1}. ${(r.requirement as string).trim()}${r.item_key ? ` (${labelFor(r.item_key as string)})` : ""}`),
+    },
+  };
+}
+
 /** The draft for any built letter, by its protocol. Roof's path is exactly what it was, with its attached page (F14). */
 async function draftFor(det: DeterminationRow, entered: Entered): Promise<Drafted> {
   if (det.protocol_document === "254-FC-001") {
     return foundationDraft(det, { ...entered, observedCondition: entered.observedCondition ?? "" });
   }
   if (det.protocol_document === "254-PL-001") return permitDraft(det);
+  if (det.protocol_document === "254-MH-001" || det.protocol_document === "254-SL-001") return manufacturedHomeOrSolarDraft(det, entered);
   const facts = await letterFactsFor(det, entered);
   if (!facts.ok) return { ok: false, error: facts.error };
   if (!producesLetter(det.determination)) return { ok: false, error: `A ${det.determination} determination produces no letter.` };
@@ -568,6 +709,8 @@ function determinationProducesLetter(protocol: string, determination: string): b
   if ((OWN_DOCUMENT_PROTOCOLS as readonly string[]).includes(protocol)) return determination === "pass";
   if (protocol === "254-FC-001") return producesFoundationLetter(determination);
   if (protocol === "254-PL-001") return determination === "pass" || determination === "repairs-required";
+  if (protocol === "254-MH-001") return producesManufacturedHomeLetter(determination);
+  if (protocol === "254-SL-001") return producesSolarLetter(determination);
   return producesLetter(determination);
 }
 
@@ -674,15 +817,13 @@ export async function sealLetter(actor: SignedIn | null, input: SealInput): Prom
   }
 
   /*
-   * 4b. The template he signed, before the code is spent (0088, Robert's
-   * instruction of 2026-10-24, narrowed by his ruling 3): a manufactured home,
-   * solar or WPI-8E letter seals only from a letter template the engineer has
-   * signed, whose words still match the template in code. Every other letter
-   * seals exactly as before 0088, through the fifteen-argument door.
+   * 4b, REMOVED. Until 2026-10-26 a manufactured home, solar or WPI-8E letter
+   * sealed only from a letter template the engineer had signed (0088). Robert's
+   * ruling of 2026-10-25, 23:51 Central: he signs no templates, and his seal on
+   * the letter after reading its full preview (4a) is his adoption. 0091 stops
+   * the database requiring one, so every letter seals through the seventeen
+   * argument door and none names a template.
    */
-  const needsTemplate = letterNeedsTemplate(det.protocol_document);
-  const template = needsTemplate ? await templateToSealFrom(det.protocol_document) : null;
-  if (template && !template.ok) return { ok: false, error: template.error };
 
   // 5. A fresh second factor, for this act.
   const fresh = await verifyFreshCode(actor!.id, input.code);
@@ -767,7 +908,6 @@ export async function sealLetter(actor: SignedIn | null, input: SealInput): Prom
     p_mfa_verified_at: fresh.verifiedAt,
     p_letterhead_sha256: markSha256,
     /* Only a three-lines letter names its template (0089's eighteen-argument door); every other letter calls the seventeen. */
-    ...(template?.ok ? { p_letter_template_act_id: template.actId } : {}),
     /*
      * L2e, Robert's answer of 2026-10-25: the act records the name and licence
      * number the letter prints, from the same frame the PDF and the digest used

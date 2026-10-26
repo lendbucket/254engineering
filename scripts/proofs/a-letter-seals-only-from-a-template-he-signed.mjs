@@ -148,11 +148,19 @@ check("roof, foundation and permit have no template and need none", ["254-RC-001
 check("the three need one", THREE.every((k) => letterNeedsTemplate(k)));
 check("0088 does not replace the fifteen-argument door", !/p_letterhead_sha256\s+text\s*\)\s*returns void/.test(sql));
 
+/*
+ * THE CODE'S HALF OF 0088 ENDED WITH 0091. Robert's ruling of 2026-10-25,
+ * 23:51 Central: the engineer signs no templates, and his seal on each letter
+ * after reading its full preview is his adoption. The database above is
+ * replayed to 0088 only and still proves what 0088 did; the code is what it is
+ * since item A, and these two checks say so rather than keep asserting the
+ * step that was removed (scripts/proofs/the-three-letters-seal-without-a-template.mjs
+ * proves the database side of 0091).
+ */
 const seal = readFileSync("src/lib/letter-seal.ts", "utf8");
-const at4b = seal.indexOf("letterNeedsTemplate(det.protocol_document)");
-const at5 = seal.indexOf("verifyFreshCode(actor!.id, input.code)");
-check("sealing asks whether the letter needs a template, and for it, before it spends the code", at4b > 0 && at5 > at4b && /needsTemplate \? await templateToSealFrom\(det\.protocol_document\) : null/.test(seal));
-check("and hands the database a template only when it sealed from one", /\.\.\.\(template\?\.ok \? \{ p_letter_template_act_id: template\.actId \} : \{\}\)/.test(seal));
+const sealBody = seal.slice(seal.indexOf("export async function sealLetter("), seal.indexOf("export function sealerFor(") > 0 ? seal.indexOf("export function sealerFor(") : seal.indexOf("export type AwaitingLetter"));
+check("since 0091 sealing asks for no template before it spends the code", !/letterNeedsTemplate|templateToSealFrom/.test(sealBody) && /verifyFreshCode\(actor!\.id, input\.code\)/.test(sealBody));
+check("and hands the database none", !/p_letter_template_act_id/.test(sealBody));
 const sign = readFileSync("src/lib/letter-template-sign.ts", "utf8");
 check(
   "a template is signed only from his own licensed session, with a fresh second factor and his own images",
@@ -162,7 +170,7 @@ check("and a signature on changed words reads void, so nothing seals from it", /
 
 console.log("");
 if (wrong === 0) {
-  console.log("PASS: a manufactured home, solar or WPI-8E letter seals only from a signed template, and every other letter seals as before.");
+  console.log("PASS: 0088 sealed a manufactured home, solar or WPI-8E letter only from a signed template and every other letter as before, and since 0091 the code asks for no template.");
   process.exitCode = 0;
 } else {
   console.log(`FAIL: ${wrong} check(s).`);

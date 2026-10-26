@@ -25,6 +25,8 @@ const check = (name, ok, note = "") => {
 const { governingDeclaration, REVIEWED_UNDER_SIGNATURE } = await import("../../src/lib/protocol-run.ts");
 const { FC001 } = await import("../../src/content/protocols/fc-001.ts");
 const { PL001 } = await import("../../src/content/protocols/pl-001.ts");
+const { MH001 } = await import("../../src/content/protocols/mh-001.ts");
+const { SL001 } = await import("../../src/content/protocols/sl-001.ts");
 const { RS001 } = await import("../../src/content/protocols/rs-001.ts");
 const { offeredServiceLines } = await import("../../src/config/launch-conditions.ts");
 
@@ -33,19 +35,21 @@ const keys = (g) => (g ? g.determinations.map((d) => d.key).join(",") : "none");
 
 /*
  * The set is the ruling, pinned as a literal here rather than read back.
- * 254-RS-001 joined by Robert's ruling of 2026-10-25, 23:51 Central, item C:
- * the engineer's own repair specification seals against his determination.
+ * 254-MH-001 and 254-SL-001 joined by item B of Robert's ruling of 2026-10-25,
+ * 23:51 Central: their letters seal against his determination. 254-RS-001
+ * joined by item C of the same ruling: the engineer's own repair
+ * specification seals against his determination.
  */
 check(
-  "exactly 254-FC-001, 254-PL-001 and 254-RS-001 are reviewed under their signature",
-  [...REVIEWED_UNDER_SIGNATURE].sort().join(",") === "254-FC-001,254-PL-001,254-RS-001",
+  "exactly 254-FC-001, 254-PL-001, 254-MH-001, 254-SL-001 and 254-RS-001 are reviewed under their signature",
+  [...REVIEWED_UNDER_SIGNATURE].sort().join(",") === "254-FC-001,254-MH-001,254-PL-001,254-RS-001,254-SL-001",
   [...REVIEWED_UNDER_SIGNATURE].join(", "),
 );
 
 const rc = governingDeclaration("254-RC-001", "published");
 check("254-RC-001 still governs from the registry, its five determinations", keys(rc) === FIVE.join(","), keys(rc));
 
-for (const [doc, decl] of [["254-FC-001", FC001], ["254-PL-001", PL001], ["254-RS-001", RS001]]) {
+for (const [doc, decl] of [["254-FC-001", FC001], ["254-PL-001", PL001], ["254-MH-001", MH001], ["254-SL-001", SL001], ["254-RS-001", RS001]]) {
   const g = governingDeclaration(doc, "published");
   check(`${doc} published governs, with Appendix C's five determinations`, keys(g) === FIVE.join(","), keys(g));
   check(
@@ -60,7 +64,7 @@ for (const [doc, decl] of [["254-FC-001", FC001], ["254-PL-001", PL001], ["254-R
   }
 }
 
-for (const doc of ["254-SL-001", "254-MH-001", "254-DS-001", "254-WS-001", "254-WP-001"]) {
+for (const doc of ["254-DS-001", "254-WS-001", "254-WP-001"]) {
   check(`${doc} published is not ruled into review, so it governs nothing`, governingDeclaration(doc, "published") === null);
 }
 check("an unknown document governs nothing", governingDeclaration("254-XX-001", "published") === null);
