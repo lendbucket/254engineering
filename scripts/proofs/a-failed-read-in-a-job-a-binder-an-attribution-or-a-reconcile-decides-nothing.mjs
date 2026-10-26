@@ -247,6 +247,20 @@ state.fail = new Set();
 const profilePage = (await import("node:fs")).readFileSync("src/app/portal/(app)/profile/page.tsx", "utf8");
 check("and the profile page offers no form over settings it could not read", profilePage.indexOf("{stored === null ? (") > 0 && profilePage.indexOf("{stored === null ? (") < profilePage.indexOf("<PreferencesForm"));
 
+/* Class A, severity 2: the recovery codes left. A failed count is null, never "none left". */
+const mfa = await import("../../src/lib/ops-mfa.ts");
+ROWS.eng_mfa_enrolments = [{
+  secret_cipher: "proof-cipher", verified_at: "2026-10-20T15:00:00Z", pending_cipher: null, pending_started_at: null,
+  last_used_at: null, recovery_codes_issued_at: "2026-10-20T15:00:00Z", recovery_codes_acknowledged_at: "2026-10-20T15:00:00Z",
+}];
+state.fail = new Set();
+const mfaClean = await mfa.mfaStateFor(ACTOR.id);
+check("the second factor state reads clean, with a count", mfaClean.enrolled === true && typeof mfaClean.recoveryRemaining === "number", JSON.stringify(mfaClean));
+state.fail = new Set(["eng_mfa_recovery_codes"]);
+const mfaFailed = await mfa.mfaStateFor(ACTOR.id);
+check("and a failed count of the recovery codes is null, never zero", mfaFailed.recoveryRemaining === null, JSON.stringify(mfaFailed.recoveryRemaining));
+state.fail = new Set();
+
 /* Class A, severity 2: the queue's dead letters. A failed read is null, which the queue page says. */
 const jobs = await import("../../src/lib/ops-jobs.ts");
 check("the dead letters read clean as a list", Array.isArray(await jobs.deadLetters()));
