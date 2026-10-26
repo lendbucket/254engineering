@@ -423,8 +423,10 @@ export async function packageFor(actor: Actor | null, fileId: string): Promise<P
  */
 async function completeness(
   fileId: string,
-  view: { state: { canSubmit: boolean; blockers: string[] } },
+  view: { state: { canSubmit: boolean; blockers: string[] }; unreadable?: string | null },
 ): Promise<{ complete: boolean; blockers: string[] }> {
+  /* Sweep A5: a job that did not read is never complete, by either route below. */
+  if (view.unreadable) return { complete: false, blockers: [view.unreadable] };
   if (view.state.canSubmit) return { complete: true, blockers: [] };
 
   const desk = await deskPackageComplete(fileId);

@@ -95,7 +95,13 @@ export type ProtocolTemplateRow = {
   approved_by_license: string | null;
 };
 
-export type ProtocolWithItems = ProtocolTemplateRow & { items: ProtocolItem[] };
+/*
+ * `itemsUnreadable` is set when the template was read and its items were not.
+ * Audit sweep A5, 2026-10-25: the items read used to ignore its error and hand
+ * back an empty checklist, which reads as a protocol with nothing to capture.
+ * Every reader that acts on the items refuses when it is set.
+ */
+export type ProtocolWithItems = ProtocolTemplateRow & { items: ProtocolItem[]; itemsUnreadable?: string };
 
 /*
  * ONE STRING LITERAL, NOT A CONCATENATION, AND THAT IS LOAD BEARING RATHER
@@ -567,7 +573,7 @@ export async function publishedProtocolFor(serviceSlug: string): Promise<Protoco
       : ({ state: "unknown" } as const);
     if (status.state !== "signed") return null;
   }
-  const { data: items } = await db
+  const { data: items, error: itemsError } = await db
     .from("eng_protocol_items")
     .select(ITEM_COLUMNS)
     .eq("template_id", (data as ProtocolTemplateRow).id)
@@ -575,6 +581,7 @@ export async function publishedProtocolFor(serviceSlug: string): Promise<Protoco
   return {
     ...(data as ProtocolTemplateRow),
     items: ((items ?? []) as ProtocolItemRow[]).map(toProtocolItem),
+    ...(itemsError ? { itemsUnreadable: `the protocol's checklist items could not be read (${itemsError.message})` } : {}),
   };
 }
 
@@ -820,6 +827,9 @@ export async function sendOffers(
         "No published protocol exists for this service line. A technician accepting this job would " +
         "open an empty checklist, so dispatch is blocked until an engineer publishes one.",
     };
+  }
+  if (protocol.itemsUnreadable) {
+    return { ok: false, error: `Nothing was dispatched: ${protocol.itemsUnreadable}, and a technician would open an empty checklist. Try again in a minute.` };
   }
 
   /*
@@ -1364,6 +1374,14 @@ export type JobView = {
   repairs: RepairItemRow[];
   state: ChecklistState;
   offer: { id: string; amountCents: number | null; state: OfferState } | null;
+  /**
+   * What could not be read, or null. Audit sweep A5, 2026-10-25: the protocol
+   * items, the captures, the exceptions and the repair list were each read with
+   * the error ignored, so a failed read looked like an empty list. When this is
+   * set, `state` cannot be submitted and its first blocker says what failed, so
+   * every gate that reads `state` refuses, and the binder is never complete.
+   */
+  unreadable: string | null;
 };
 
 export type ExceptionRow = {
@@ -1429,7 +1447,7 @@ export async function jobView(actor: Actor | null, fileId: string): Promise<JobV
     ? await getProtocolForWork(file.protocol_template_id as string)
     : await publishedProtocolFor(file.service_slug as string);
 
-  const { data: captures } = await db
+  const { data: captures, error: capturesError } = await db
     .from("eng_evidence_items")
     .select(
       "id, item_key, kind, value_text, value_number, unit, storage_key, captured_at, captured_lat, captured_lng, clock_skew_seconds, clock_disagrees, client_capture_id, status",
@@ -1454,7 +1472,7 @@ export async function jobView(actor: Actor | null, fileId: string): Promise<JobV
    * `protocol-run-audit` asserts that jobView supplies it rather than only that
    * checklistState accepts it.
    */
-  const { data: exceptionRows } = await db
+  const { data: exceptionRows, error: exceptionsError } = await db
     .from("eng_checklist_exceptions")
     .select("id, item_key, kind, reason, recorded_by, recorded_at")
     .eq("file_id", fileId)
@@ -1472,11 +1490,20 @@ export async function jobView(actor: Actor | null, fileId: string): Promise<JobV
    * The list is empty for almost every file, which is one indexed read
    * returning nothing.
    */
-  const { data: repairRows } = await db
+  const { data: repairRows, error: repairsError } = await db
     .from("eng_repair_items")
     .select("id, sort_order, requirement, item_key, closed_at, closed_by, closed_note, verified_by_evidence_id")
     .eq("file_id", fileId)
     .order("sort_order");
+
+  /* Sweep A5: every failed read is named, never folded into an empty list. */
+  const failed = [
+    protocol?.itemsUnreadable ?? null,
+    capturesError ? `the captured evidence could not be read (${capturesError.message})` : null,
+    exceptionsError ? `the recorded exceptions could not be read (${exceptionsError.message})` : null,
+    repairsError ? `the repair list could not be read (${repairsError.message})` : null,
+  ].filter((x): x is string => Boolean(x));
+  const unreadable = failed.length ? `Part of this job could not be read: ${failed.join("; ")}. Nothing can be submitted from it until it reads.` : null;
 
   const rows = (captures ?? []) as EvidenceRow[];
   const exceptions = (exceptionRows ?? []) as ExceptionRow[];
@@ -1495,11 +1522,15 @@ export async function jobView(actor: Actor | null, fileId: string): Promise<JobV
     captures: rows,
     exceptions,
     repairs,
-    state: checklistState(
-      protocol?.items ?? [],
-      captured,
-      exceptions.map((e) => ({ itemKey: e.item_key, reason: e.reason, kind: e.kind })),
+    state: unreadableState(
+      checklistState(
+        protocol?.items ?? [],
+        captured,
+        exceptions.map((e) => ({ itemKey: e.item_key, reason: e.reason, kind: e.kind })),
+      ),
+      unreadable,
     ),
+    unreadable,
     offer: offer
       ? {
           id: offer.id as string,
@@ -1510,13 +1541,18 @@ export async function jobView(actor: Actor | null, fileId: string): Promise<JobV
   };
 }
 
+/** A checklist state that cannot be submitted, its first blocker naming what could not be read (sweep A5). */
+export function unreadableState(state: ChecklistState, unreadable: string | null): ChecklistState {
+  return unreadable ? { ...state, canSubmit: false, blockers: [unreadable, ...state.blockers] } : state;
+}
+
 /** The protocol a file is pinned to, read without the authoring permission. */
 async function getProtocolForWork(templateId: string): Promise<ProtocolWithItems | null> {
   const db = supabaseAdmin();
   if (!db) return null;
   const { data } = await db.from("eng_protocol_templates").select(TEMPLATE_COLUMNS).eq("id", templateId).maybeSingle();
   if (!data) return null;
-  const { data: items } = await db
+  const { data: items, error: itemsError } = await db
     .from("eng_protocol_items")
     .select(ITEM_COLUMNS)
     .eq("template_id", templateId)
@@ -1524,6 +1560,7 @@ async function getProtocolForWork(templateId: string): Promise<ProtocolWithItems
   return {
     ...(data as ProtocolTemplateRow),
     items: ((items ?? []) as ProtocolItemRow[]).map(toProtocolItem),
+    ...(itemsError ? { itemsUnreadable: `the protocol's checklist items could not be read (${itemsError.message})` } : {}),
   };
 }
 
@@ -2564,7 +2601,8 @@ export async function checkFor(actor: Actor | null, serviceSlug: string): Promis
   if (actor.role !== "field_tech" && actor.role !== "admin") return null;
 
   const protocol = await publishedProtocolFor(serviceSlug);
-  if (!protocol) return null;
+  /* An unread checklist is not a check with no questions (sweep A5). */
+  if (!protocol || protocol.itemsUnreadable) return null;
 
   /* Newest first. A second certification row for one person and service would
    * be a re-certification, and the current one is what governs whether they may
