@@ -161,12 +161,21 @@ const otherTech = actor("field_tech", "tech-2");
    * outside the platform. Everything operational stays optional, because a
    * notification nobody can turn off is one people learn to ignore.
    */
-  const MANDATORY = ["credential.expiring", "certification.revoked"];
+  /* Three since 2026-10-25: insurance.expiring, Robert's addendum item 1 (a lapsed policy stops the firm). */
+  const MANDATORY = ["credential.expiring", "certification.revoked", "insurance.expiring"];
+  /* Each is asked as a role that receives it: insurance goes to the office and the owner, never a technician. */
+  const RECEIVER = { "credential.expiring": "field_tech", "certification.revoked": "field_tech", "insurance.expiring": "ops_manager" };
   for (const kind of MANDATORY) {
     const off = { kind, in_app: true, email: false, sms: false };
-    rec(`${kind} still emails when the person turned email off`, channelsFor(kind, "field_tech", off).includes("email"));
+    rec(`${kind} still emails when the person turned email off`, channelsFor(kind, RECEIVER[kind], off).includes("email"));
     rec(`and the screen knows it is fixed`, emailIsMandatory(kind));
   }
+  rec(
+    "insurance.expiring reaches the office and the owner, and no technician or engineer",
+    channelsFor("insurance.expiring", "admin", null).includes("email") &&
+      channelsFor("insurance.expiring", "field_tech", null).length === 0 &&
+      channelsFor("insurance.expiring", "engineer", null).length === 0,
+  );
   const optional = NOTIFICATION_KINDS.filter((k) => !MANDATORY.includes(k.kind));
   rec(
     "nothing else is mandatory",
@@ -175,7 +184,7 @@ const otherTech = actor("field_tech", "tech-2");
   );
   rec(
     "the mandatory set is small",
-    NOTIFICATION_KINDS.filter((k) => emailIsMandatory(k.kind)).length === 2,
+    NOTIFICATION_KINDS.filter((k) => emailIsMandatory(k.kind)).length === 3,
   );
 
   rec(

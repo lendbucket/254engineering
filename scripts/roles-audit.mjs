@@ -297,6 +297,8 @@ const EXPECTED = {
   "refunds.approve_within_limit": { admin: true,  engineer: false, field_tech: false },
   "settings.refund_limit":        { admin: true,  engineer: false, field_tech: false },
   "technicians.onboard":          { admin: true,  engineer: false, field_tech: false },
+  /* The insurance register, Robert's addendum of 2026-10-25 (0090): the owner and the office. */
+  "insurance.manage":             { admin: true,  engineer: false, field_tech: false },
   "pricing.override_at_intake":   { admin: true,  engineer: false, field_tech: false },
   "pricing.read_tech_rate":       { admin: true,  engineer: false, field_tech: false },
   "reports.turnaround":           { admin: true,  engineer: false, field_tech: false },
@@ -451,6 +453,13 @@ const STAFF_LEVELS = ["rep", "ops_manager"];
         (action === "refunds.approve_within_limit" && !["admin", "ops_manager"].includes(role)) ||
         (action === "technicians.onboard" && !["admin", "ops_manager"].includes(role))
           ? `${role} holds ${action}, which 0079 gave to a named set of roles only`
+          : null,
+    },
+    {
+      why: "the office and the owner record the firm's insurance, and nobody else",
+      check: (role, action) =>
+        action === "insurance.manage" && !["admin", "ops_manager"].includes(role)
+          ? `${role} holds insurance.manage, which Robert's addendum of 2026-10-25 gave to the administrator and the operations manager only`
           : null,
     },
     {
@@ -2166,6 +2175,13 @@ if (!db) {
          * this ruling agree rather than disagreeing on the first board.
          */
         "/portal/windstorm-inquiries",
+        /*
+         * The firm's insurance register, Robert's addendum of 2026-10-25: what
+         * the firm is insured for and with whom is the owner's and the office's
+         * business, and the screen gates on insurance.manage, which he does not
+         * hold.
+         */
+        "/portal/insurance",
         /*
          * The desk, 2026-10-20: the sales list, the one inbox, order lookup,
          * refund requests, credential review and the operator's settings. All

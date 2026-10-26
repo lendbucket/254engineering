@@ -3352,6 +3352,24 @@ export const APPLIED = [
       "chat applies it with apply_migration, development first, then production. The branch merges only after " +
       "the production apply is read back, and a migration on main is never pending.",
   },
+  {
+    file: "0090_insurance_is_a_register.sql", appliedBy: "apply_migration",
+    fingerprint: "8daaba436e02fb92c9a6b227fcb98caf",
+    behaviour: "25076aa51d01188e59da94c9f6871ce0",
+    production: null,
+    proves: { table: "eng_insurance_policies", column: "certificate_sha256" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0090 on 2026-10-25, with 0089 reproducing its recorded " +
+      "pair first: shape 1333 to 1353 columns (eng_insurance_policies' seventeen and eng_insurance_alerts' three), " +
+      "behaviour 1251 to 1281 facts; tables 99 to 101, triggers 98 to 101, functions 64 to 67. The private " +
+      "eng-insurance bucket and the two insurance.manage grants (admin, ops_manager). No drop statement.",
+    because:
+      "WRITTEN 2026-10-25 ON feat/insurance-register, AND APPLIED NOWHERE. Robert's addendum of 2026-10-25, item 1: " +
+      "the firm's insurance is a register with the certificate kept beside each policy, and the office and the " +
+      "owner are warned at 45, 14 and 1 days. Posted on issue #1 for the chat to sit, development first, then " +
+      "production. The branch merges only after the production apply is read back, and a migration on main is " +
+      "never pending.",
+  },
 ];
 
 /*

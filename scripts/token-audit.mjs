@@ -248,6 +248,9 @@ function STAFF_LEVEL_SCREENS() {
     "src/app/portal/(app)/order-lookup/page.tsx",
     "src/app/portal/(app)/order-lookup/[id]/page.tsx",
     "src/app/portal/(app)/credentials/page.tsx",
+    /* The insurance register, Robert's addendum of 2026-10-25, built to the staff standard from the start. */
+    "src/app/portal/(app)/insurance/page.tsx",
+    "src/app/portal/(app)/insurance/InsuranceClient.tsx",
     "src/app/portal/(app)/settings/page.tsx",
     "src/app/portal/(app)/clients/[id]/page.tsx",
     "src/app/portal/(app)/files/DeskFileClient.tsx",

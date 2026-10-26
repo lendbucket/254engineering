@@ -114,6 +114,8 @@ const ADMIN_PAGES = [
   /* Design briefs and the reply each was promised. Behind files.list like the
    * other working surfaces, and closed to a signed out caller. */
   "/portal/inquiries",
+  /* The insurance register, Robert's addendum of 2026-10-25 (0090): insurance.manage, closed to a signed out caller. */
+  "/portal/insurance",
   /* Windstorm briefs on existing buildings. Same gate as the design briefs
    * above, files.create, and closed to a signed out caller like everything
    * else on this list. */
@@ -278,6 +280,7 @@ const ADMIN_APIS = [
   "/api/portal/files",
   "/api/portal/field",
   "/api/portal/inquiries",
+  "/api/portal/insurance",
   "/api/portal/windstorm-inquiries",
   "/api/portal/review",
   "/api/portal/comms",

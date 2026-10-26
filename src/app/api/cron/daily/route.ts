@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createHash, timingSafeEqual } from "node:crypto";
 import { enqueue } from "@/lib/ops-jobs";
 import { dayKey } from "@/lib/ops-metrics";
+import { todayInFirmCalendar } from "@/lib/firm-calendar";
 import { cronStarted, cronFinished, captureError } from "@/lib/ops-observability";
 
 export const dynamic = "force-dynamic";
@@ -79,12 +80,26 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ ok: false, error: refresh.error }, { status: 503 });
     }
 
+    /*
+     * THE INSURANCE WARNINGS, DAILY. Robert's addendum of 2026-10-25, item 1.
+     * Keyed on the firm's calendar day, because "14 days before expiry" is
+     * counted on the firm's calendar rather than in UTC.
+     */
+    const firmDay = todayInFirmCalendar();
+    const insurance = await enqueue("insurance.expiry_alerts", { day: firmDay });
+    if (!insurance.ok) {
+      await cronFinished(runId, false, insurance.error);
+      await captureError(new Error(insurance.error), { route: "/api/cron/daily", kind: "cron" });
+      return NextResponse.json({ ok: false, error: insurance.error }, { status: 503 });
+    }
+
     await cronFinished(
       runId,
       true,
       [
         queued.duplicate ? `${yesterday} was already queued` : `queued the rollup for ${yesterday}`,
         refresh.duplicate ? `the credential refresh for ${today} was already queued` : `queued the credential refresh for ${today}`,
+        insurance.duplicate ? `the insurance warnings for ${firmDay} were already queued` : `queued the insurance warnings for ${firmDay}`,
       ].join("; "),
     );
 

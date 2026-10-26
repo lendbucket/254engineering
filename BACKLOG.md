@@ -4,6 +4,23 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
+## THE SITTING FOR 0090, INSURANCE IS A REGISTER, OPEN
+
+`docs/production-sitting-0090-insurance-is-a-register.md`. Written 2026-10-25 on
+`feat/insurance-register`, to Robert's addendum of that night, item 1: the
+register, the private certificate bucket, the warnings at 45, 14 and 1 days to
+the office and the owner, and the insurance.manage grant. Applied nowhere yet;
+posted on issue #1. The owner's override in `src/config/credentials.ts` expires
+2026-10-28 and is not extended.
+
+**Owed a ruling before the gate reads the register.** CLAUDE.md lets the launch
+gate read the database for one thing only, a signed protocol, and only in the
+closing direction. Asked of Robert on 2026-10-25, with a recommendation: the
+protocols pattern. Opening needs the policy recorded in code as well (a
+deploy), and a lapsed or withdrawn register record closes the money doors at
+once. Until he rules, recording a policy here changes nothing about whether
+the firm may take orders, and the screen says so.
+
 ## AFTER 0089: RETIRE THE FIFTEEN- AND SIXTEEN-ARGUMENT SEAL DOORS
 
 0089 (a seal act records who it prints) is sat on both projects: development

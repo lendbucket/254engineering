@@ -42,6 +42,11 @@ export type JobKind =
    * day by /api/cron/daily. Until then it ran only from the seed button.
    */
   | "credentials.refresh_tasks"
+  /*
+   * 2026-10-25, Robert's addendum item 1. The insurance expiry warnings at 45,
+   * 14 and 1 days, queued once a day by /api/cron/daily.
+   */
+  | "insurance.expiry_alerts"
   | "errors.alert"
   /*
    * Phase 12 Section 2, the reporting prompt's Section 3. NOT the export itself: the RECORD that one was
