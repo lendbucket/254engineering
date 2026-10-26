@@ -37,6 +37,7 @@
  */
 
 import { isOwnerFieldTech } from "./owner-override";
+import { todayInFirmCalendar } from "./firm-calendar";
 
 export type CredentialKind =
   | "drivers_license"
@@ -184,7 +185,20 @@ export const RECORDABLE_KIND_OPTIONS: { kind: CredentialKind; expires: boolean }
 
 export type ExpiryState = "none" | "current" | "expiring" | "expired";
 
-const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+/*
+ * ON THE FIRM'S CALENDAR, NOT THE SERVER'S. Robert's audit of 2026-10-24,
+ * finding F28. This took "today" from the server's local day, and Vercel's
+ * server is on UTC, so from about seven in the evening Central a credential
+ * on its last day already read expired and dispatch refused the technician.
+ * Both sides are calendar dates now: the expiry as typed, and today in
+ * America/Chicago, so the count is whole days and no clock zone enters it.
+ */
+const dayNumber = (isoDate: string): number | null => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(isoDate);
+  if (!m) return null;
+  const t = Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  return Number.isNaN(t) ? null : Math.round(t / 86_400_000);
+};
 
 /**
  * How close a credential is to expiring.
@@ -194,24 +208,20 @@ const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDat
  * morning because that is when the audit ran.
  */
 export function expiryState(expiresOn: string | null | undefined, now: Date = new Date()): ExpiryState {
-  if (!expiresOn) return "none";
-  const expiry = new Date(`${expiresOn}T00:00:00`);
-  if (Number.isNaN(expiry.getTime())) return "none";
-
-  const today = startOfDay(now);
-  const days = Math.round((startOfDay(expiry).getTime() - today.getTime()) / 86_400_000);
-
+  const days = daysUntilExpiry(expiresOn, now);
+  if (days === null) return "none";
   if (days < 0) return "expired";
   if (days <= EXPIRY_WARNING_DAYS) return "expiring";
   return "current";
 }
 
-/** Whole days until expiry. Negative once it has passed. Null when it does not expire. */
+/** Whole days until expiry on the firm's calendar. Negative once it has passed. Null when it does not expire. */
 export function daysUntilExpiry(expiresOn: string | null | undefined, now: Date = new Date()): number | null {
   if (!expiresOn) return null;
-  const expiry = new Date(`${expiresOn}T00:00:00`);
-  if (Number.isNaN(expiry.getTime())) return null;
-  return Math.round((startOfDay(expiry).getTime() - startOfDay(now).getTime()) / 86_400_000);
+  const expiry = dayNumber(expiresOn.slice(0, 10));
+  const today = dayNumber(todayInFirmCalendar(now));
+  if (expiry === null || today === null) return null;
+  return expiry - today;
 }
 
 export type CredentialBlocker = { kind: CredentialKind; reason: string };
@@ -423,6 +433,17 @@ export function activationReadiness(
 ): Readiness {
   const blockers: string[] = [];
   const missingExpiry: string[] = [];
+
+  /*
+   * NO CHECKLIST IS NOT A FINISHED CHECKLIST. Audit, 2026-10-25 (F32, found by
+   * the F30 proof): an item missing from a person's checklist is skipped on
+   * purpose below, because checklists differ by role, so an onboarding with no
+   * items at all skipped everything and read as ready. Nothing was checked;
+   * that is a blocker.
+   */
+  if (items.length === 0) {
+    blockers.push("This onboarding has no checklist items, so nothing about this person has been checked.");
+  }
 
   const accepted = new Map(items.filter((i) => i.status === "accepted").map((i) => [i.itemKey, i]));
 
