@@ -39,7 +39,7 @@ const ACTOR = {
   role: "admin",
   status: "active",
   email: "failed-read-proof@audit-probe.invalid",
-  grants: new Set(["files.list", "evidence.review", "evidence.capture", "profiles.create"]),
+  grants: new Set(["files.list", "evidence.review", "evidence.capture", "profiles.create", "offers.dispatch"]),
 };
 const ONBOARDING = "00000000-0000-4000-8000-0000000000f4";
 
@@ -260,6 +260,37 @@ state.fail = new Set(["eng_mfa_recovery_codes"]);
 const mfaFailed = await mfa.mfaStateFor(ACTOR.id);
 check("and a failed count of the recovery codes is null, never zero", mfaFailed.recoveryRemaining === null, JSON.stringify(mfaFailed.recoveryRemaining));
 state.fail = new Set();
+
+/*
+ * Class A, severity 2: dispatch. A failed read of the technicians' open jobs
+ * made every one look free; any failed read now plans over nobody and says so.
+ * A technician is put in the played profiles for these checks only.
+ */
+const savedProfiles = ROWS.eng_profiles;
+ROWS.eng_profiles = [{ id: "t1", display_name: "Proof Technician, not a real person", status: "active", coverage_counties: ["Nueces"], base_lat: null, base_lng: null }];
+const dispatchFile = { id: FILE, county: "Nueces", service_slug: "roof-inspections", latitude: null, longitude: null };
+state.fail = new Set();
+const cleanDispatch = await field.dispatchContext(ACTOR, dispatchFile);
+check("a dispatch plan reads clean with nothing unreadable", Boolean(cleanDispatch) && cleanDispatch.unreadable === null, cleanDispatch?.unreadable ?? "");
+for (const [table, what] of [
+  ["eng_files", "open jobs"],
+  ["eng_certifications", "certifications"],
+  ["eng_assignments", "offers already sent"],
+]) {
+  state.fail = new Set([table]);
+  const ctx = await field.dispatchContext(ACTOR, dispatchFile);
+  check(
+    `a failed read of the technicians' ${what} offers nobody and says so`,
+    Boolean(ctx?.unreadable?.includes(what)) && ctx.plan.offers.length === 0,
+    ctx?.unreadable ?? "no unreadable",
+  );
+}
+state.fail = new Set();
+ROWS.eng_profiles = savedProfiles;
+const fieldSrc = (await import("node:fs")).readFileSync("src/lib/ops-field.ts", "utf8");
+check("and sending offers refuses on it", /if \(ctx\.unreadable\) return \{ ok: false, error: ctx\.unreadable \};/.test(fieldSrc));
+const bulkSrc = (await import("node:fs")).readFileSync("src/lib/ops-bulk-dispatch.ts", "utf8");
+check("and bulk dispatch says it, never \"no technician covers\"", bulkSrc.indexOf("context.unreadable") > 0 && bulkSrc.indexOf("context.unreadable") < bulkSrc.indexOf("No technician covers"));
 
 /* Class A, severity 2: the queue's dead letters. A failed read is null, which the queue page says. */
 const jobs = await import("../../src/lib/ops-jobs.ts");

@@ -364,6 +364,10 @@ export default async function FilesPage({
 
         {dispatch ? (
           <div className="border-b border-[var(--border)] px-4 py-4 sm:px-5">
+            {/* A plan over facts that could not be read is not offered: the sentence instead (section 6, class A). */}
+            {dispatch.unreadable ? (
+              <p role="alert" className="text-[14px] leading-[1.6] text-[var(--ink)]">{dispatch.unreadable}</p>
+            ) : null}
             <DispatchPanel
               fileId={selected.id}
               offers={dispatch.plan.offers}

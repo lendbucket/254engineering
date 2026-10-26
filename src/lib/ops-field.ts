@@ -601,26 +601,38 @@ export type DispatchContext = {
   /** Whether the PROPERTY has coordinates, so the screen can say which side is missing. */
   propertyLocated: boolean;
   alreadyOffered: { techId: string; state: OfferState }[];
+  /*
+   * What could not be read, in a sentence, or null. Section 6 of Robert's audit
+   * of 2026-10-24 (class A, severity 2): the technicians, their certifications,
+   * their open jobs and the offers already sent were read with their errors
+   * ignored. A failed open-jobs read made every technician look free, so a busy
+   * one ranked first, and a failed offers read showed nobody offered. When set,
+   * the plan offers nobody and sending refuses.
+   */
+  unreadable: string | null;
 };
 
-/** The technicians the platform could consider, with their live open job counts. */
-async function candidateTechs(): Promise<TechCandidate[]> {
+/** The technicians the platform could consider, with their live open job counts, and what could not be read. */
+async function candidateTechs(): Promise<{ candidates: TechCandidate[]; unreadable: string[] }> {
   const db = supabaseAdmin();
-  if (!db) return [];
+  if (!db) return { candidates: [], unreadable: ["the database is not configured"] };
+  const unreadable: string[] = [];
 
-  const { data: profiles } = await db
+  const { data: profiles, error: profilesError } = await db
     .from("eng_profiles")
     .select("id, display_name, status, coverage_counties, base_lat, base_lng")
     .eq("role", "field_tech");
-  if (!profiles?.length) return [];
+  if (profilesError) return { candidates: [], unreadable: ["the technicians could not be read"] };
+  if (!profiles?.length) return { candidates: [], unreadable };
 
   const ids = profiles.map((p) => p.id as string);
 
-  const { data: certs } = await db
+  const { data: certs, error: certsError } = await db
     .from("eng_certifications")
     .select("profile_id, service_slug")
     .in("profile_id", ids)
     .eq("status", "certified");
+  if (certsError) unreadable.push("their certifications could not be read");
 
   /*
    * Phase 3's fourth gate. Computed here rather than inside planDispatch so that
@@ -635,11 +647,12 @@ async function candidateTechs(): Promise<TechCandidate[]> {
    * files are not load; a technician holding four delivered files is holding
    * nothing.
    */
-  const { data: open } = await db
+  const { data: open, error: openError } = await db
     .from("eng_files")
     .select("assigned_tech_id")
     .in("assigned_tech_id", ids)
     .in("status", ["dispatched", "evidence_in_progress", "revisions_requested"]);
+  if (openError) unreadable.push("their open jobs could not be read, so nobody's load is known");
 
   const loadBy = new Map<string, number>();
   for (const row of open ?? []) {
@@ -652,7 +665,7 @@ async function candidateTechs(): Promise<TechCandidate[]> {
     certBy.set(id, [...(certBy.get(id) ?? []), row.service_slug as string]);
   }
 
-  return profiles.map((p) => ({
+  const candidates = profiles.map((p) => ({
     id: p.id as string,
     displayName: p.display_name as string,
     status: p.status as TechCandidate["status"],
@@ -663,6 +676,7 @@ async function candidateTechs(): Promise<TechCandidate[]> {
     baseLat: num(p.base_lat as number | string | null),
     baseLng: num(p.base_lng as number | string | null),
   }));
+  return { candidates, unreadable };
 }
 
 /** What a technician is paid for this service line, from the effective dated schedule. */
@@ -695,8 +709,14 @@ export async function dispatchContext(
   const db = supabaseAdmin();
   if (!db || !can(actor, "offers.dispatch")) return null;
 
-  const candidates = await candidateTechs();
+  const { candidates, unreadable } = await candidateTechs();
+  const { data: offers, error: offersError } = await db
+    .from("eng_assignments")
+    .select("tech_id, state")
+    .eq("file_id", file.id);
+  if (offersError) unreadable.push("the offers already sent for this file could not be read");
   const feeCents = await techFeeFor(file.service_slug);
+  /* Over nobody when anything could not be read: a plan on part of the facts is not offered. */
   const plan = planDispatch(
     {
       county: file.county,
@@ -704,14 +724,9 @@ export async function dispatchContext(
       lat: num(file.latitude),
       lng: num(file.longitude),
     },
-    candidates,
+    unreadable.length ? [] : candidates,
     feeCents,
   );
-
-  const { data: offers } = await db
-    .from("eng_assignments")
-    .select("tech_id, state")
-    .eq("file_id", file.id);
 
   /*
    * THE RATE IS SHOWN TO pricing.read_tech_rate ALONE. Operator ruling,
@@ -732,6 +747,7 @@ export async function dispatchContext(
     proximityUnavailable: plan.offers.length > 0 && plan.offers.every((o) => o.distanceMiles === null),
     propertyLocated: num(file.latitude) !== null && num(file.longitude) !== null,
     alreadyOffered: (offers ?? []).map((o) => ({ techId: o.tech_id as string, state: o.state as OfferState })),
+    unreadable: unreadable.length ? `Nothing can be offered right now: ${unreadable.join("; ")}. Try again in a minute.` : null,
   };
 }
 
@@ -839,6 +855,7 @@ export async function sendOffers(
    */
   const ctx = await dispatchContext(actor, file as never);
   if (!ctx) return { ok: false, error: "Could not plan this dispatch." };
+  if (ctx.unreadable) return { ok: false, error: ctx.unreadable };
 
   /*
    * NO OFFER WITHOUT A RATE. Operator ruling, 2026-10-10 (decision 3). An offer
