@@ -22,15 +22,16 @@ Each merge is a merge commit whose tree is identical to the boarded commit. Each
 | Now | **Bundle B**, reads and screens (F13, F21 to F26, F28 to F32), `2c8c9db` | Board **40290555850**, pushed 08:11 UTC. Prediction: 63 of 63, zero FAIL, no COULD NOT TELL. |
 | Next | **Bundle C**, `fix/bundle-c-sweep-letterhead-mfa` at **`412a7b4`**: the sweep branch (severity 1 and 2 fixes above), the letterhead and registrationLine branch, the mfa-audit optional-role branch, and `412a7b4` (the triage list and the uncredited reviews, each starved by a window), on main `a1d8100` | Built and merged clean. Non-writer readers 82 of 83 at `0a6692d`, Bundle A's readers on the combined tree 23 of 24, and the readers of `412a7b4`'s two files 9 of 10; the one red each time is security-audit wanting a server. 1,360 added lines, no long dash. **Prediction, stated before pushing: 63 of 63, zero FAIL, no COULD NOT TELL.** Named risks: mfa-audit's new optional-role example, which only the writers shard runs; queue-audit and dashboards-audit on the dispatch and review screens that now say when a read failed. |
 | Then | `feat/insurance-register` (0090 on development) | Brought up to main and boarded after Bundle C. |
-| After the sittings | 0091, then B and C with 0092, then 0093 and 0094 | Each needs its development sitting from the chat first. |
+| After that | 0091's branch, then the three letters (B), then the repair specification with 0092 (C) | Development holds all three migrations since 07:05 UTC. Each production sitting follows its board. |
+| Held | 0093 and 0094 | Posted for their development sittings once the mfa-audit branch (in Bundle C) is on main. |
 
 ### Built and waiting for a sitting (posted on issue #1 unless held)
 
 | Migration | Branch | State |
 | --- | --- | --- |
 | 0090, insurance is a register | `feat/insurance-register` | Applied to development by the chat at 04:48 UTC, every figure matching. Boards in its turn, then the production sitting. |
-| 0091, the three letters seal without a template (23:51 A) | `migration/0091-three-letters-seal-without-a-template` | Posted, comment 6408847729. Waits for 0090. |
-| 0092, the engineer's own document has its own drafts bucket (23:51 C) | `feat/repair-spec-own-document` | Posted, comment 6409220696. Waits for 0091. |
+| 0091, the three letters seal without a template (23:51 A) | `migration/0091-three-letters-seal-without-a-template` | **Applied to development by the chat at 07:05 UTC** (provider version 20261026070513), every figure matching. Boards after the insurance branch, then the production sitting. |
+| 0092, the engineer's own document has its own drafts bucket (23:51 C) | `feat/repair-spec-own-document` | **Applied to development at 07:05 UTC** (20261026070519), the bucket private, 25 MB, PDF only, empty. Boards after 0091, then the production sitting. |
 | 0093, the second factor for the administrator, the office and the rep (addendum 5) | `migration/0093-second-factor-for-staff` | **Built and held, not posted.** It waits for `fix/mfa-audit-optional-example` to merge (question 7). |
 | 0094, the old seal doors refuse (addendum 9) | `migration/0094-retire-the-old-seal-doors` | Built behind 0093, and waits with it. |
 
