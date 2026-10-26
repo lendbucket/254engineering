@@ -94,7 +94,8 @@ Each merge is a merge commit whose tree is identical to the boarded commit. Each
   - E3a, the missing root error pages (question 8);
   - the credentials read past 1,000, which fails closed, blocking dispatch rather than opening it;
   - message threads, where unread counts and previews come from the newest 400 messages across every thread, so a busy thread can hide another's unread count (a count per thread is a design choice, not a mechanical fix);
-  - the time log and the documents list, each showing the newest 300 entries without saying more exist (lists, not totals).
+  - the time log and the documents list, each showing the newest 300 entries without saying more exist (lists, not totals);
+  - E3f (severity 3): portal sign-out goes to the login page even when the sign-out request failed, so on a shared computer the session stays open while the screen says it closed. The fix shows a sentence the engineer would see, so it waits for Robert's word on it (for example: "Signing out did not finish, so this session is still open. Try again.").
 - **Not yet examined:** the rest of section 6's severity 2 and 3 list.
 
 ### Phase 2
