@@ -17,7 +17,12 @@ Each merge is a merge commit whose tree is identical to the boarded commit. Each
 
 ### Boarding, and next in line
 
-REPORT_BOARDING
+| Order | Branch | State |
+| --- | --- | --- |
+| Now | **Bundle B**, reads and screens (F13, F21 to F26, F28 to F32), `2c8c9db` | Board **40290555850**, pushed 08:11 UTC. Prediction: 63 of 63, zero FAIL, no COULD NOT TELL. |
+| Next | **Bundle C**, `fix/bundle-c-sweep-letterhead-mfa` at `0a6692d`: the sweep branch (severity 1 and 2 fixes above), the letterhead and registrationLine branch, and the mfa-audit optional-role branch, on main `a1d8100` | Built and merged clean. Non-writer readers 82 of 83, plus Bundle A's readers on the combined tree 23 of 24; the one red each time is security-audit wanting a server. 1,197 added lines, no long dash. **Prediction, stated before pushing: 63 of 63, zero FAIL, no COULD NOT TELL.** Named risks: mfa-audit's new optional-role example, which only the writers shard runs; queue-audit and dashboards-audit on the dispatch and review screens that now say when a read failed. |
+| Then | `feat/insurance-register` (0090 on development) | Brought up to main and boarded after Bundle C. |
+| After the sittings | 0091, then B and C with 0092, then 0093 and 0094 | Each needs its development sitting from the chat first. |
 
 ### Built and waiting for a sitting (posted on issue #1 unless held)
 
@@ -58,9 +63,8 @@ REPORT_BOARDING
 ### Findings by severity
 
 **The audit's 35 confirmed findings** (`docs/audit-2026-10-24.md` section 5 and P4-1 to P4-3):
-- **On main:** F1, F2, F4 to F8, F10, F11 (the paid check), F12, F14 to F20, and the letter findings L2a, L2b, L2d, L2e, L2f and L2j.
-- **Boarding:** F3 and F11's cards only (Bundle A).
-- **Built:** F13, F21 to F26 and F28 to F32 (Bundle B).
+- **On main:** F1 to F8, F10, F11 (the paid check and cards only), F12, F14 to F20, and the letter findings L2a, L2b, L2d, L2e, L2f and L2j.
+- **Boarding:** F13, F21 to F26 and F28 to F32 (Bundle B).
 - **Still with Robert:** F27, commission months on UTC.
 - **Ruled to leave:** F9.
 
@@ -85,7 +89,9 @@ REPORT_BOARDING
   - the training register, read past PostgREST's silent 1,000.
 - **Confirmed and not built:**
   - E3a, the missing root error pages (question 8);
-  - the credentials read past 1,000, which fails closed, blocking dispatch rather than opening it.
+  - the credentials read past 1,000, which fails closed, blocking dispatch rather than opening it;
+  - message threads, where unread counts and previews come from the newest 400 messages across every thread, so a busy thread can hide another's unread count (a count per thread is a design choice, not a mechanical fix);
+  - the time log and the documents list, each showing the newest 300 entries without saying more exist (lists, not totals).
 - **Not yet examined:** the rest of section 6's severity 2 and 3 list.
 
 ### Phase 2
