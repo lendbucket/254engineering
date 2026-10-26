@@ -73,7 +73,26 @@ export default async function PayPage() {
   const actor = await currentActor();
   if (!can(actor, "ledger.read_own") && !can(actor, "ledger.read_all")) notFound();
 
-  const rows = await payLedger(actor);
+  const read = await payLedger(actor);
+
+  /*
+   * A FAILED READ IS NOT AN EMPTY LEDGER (audit finding F24, 2026-10-24). The
+   * comment below is right that no entries is a known zero; a read that failed
+   * knows nothing, so no figure is shown at all.
+   */
+  if (!read.ok) {
+    return (
+      <>
+        <PageHead eyebrow="Field" title="Your pay" />
+        <RestrictedMode />
+        <p role="alert" className="text-[13.5px] leading-[1.55] text-[var(--ink)]">
+          {read.error} So no figure is shown: this is a failed read, not a ledger with nothing on it. Reload the page in a
+          moment.
+        </p>
+      </>
+    );
+  }
+  const rows = read.rows;
 
   /*
    * Summed by status rather than netted into one figure.
