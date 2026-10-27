@@ -1,5 +1,23 @@
 # Day queue, 2026-10-23
 
+## BOARD 5 OF 6, THIRD RUN: `feat/uploads-turnaround-alerts` at `eb520b6`
+
+**Prediction written and pushed before the board starts.**
+
+The second run, 40587397186 on `fcb44af`, missed: 62 of 63. The retention repair held and retention-audit passed with the writers, but schema-ledger-audit failed with "0098 is merged and the ledger says production does not have it".
+
+**The cause is mine.** I merged board 4 into main (`9311d54`, 0098 recorded applied) while board 5's first run was going. Then I re-boarded board 5 from `fcb44af` without bringing it up to that main first, so its ledger still read 0098 as pending. I had brought board 6 up to main and missed board 5.
+
+**Repaired in `eb520b6`.** It is main `9311d54` merged in, and its diff against `fcb44af` is `supabase/applied.mjs` only (20 lines added, 2 removed). Locally, schema-ledger-audit passes 32 of 32, with 99 applied and 1 pending (0099, allowed on a branch).
+
+**Retention order (standing rule):** in order across 103 tables, no duplicates.
+
+**Predicted:** 63 of 63, zero FAIL, no audit-level COULD NOT TELL, voice-audit 3 lines exempt, and the administrator's dashboard under 3000 ms.
+
+**Named risk:** none new. Every other audit passed on the second run.
+
+**On a match:** post the run and the boarded commit for 0099's production sitting. Merge only after the read-back.
+
 ## BOARD 5 OF 6, SECOND RUN: `feat/uploads-turnaround-alerts` at `fcb44af`
 
 **Prediction written and pushed before the board starts.**
