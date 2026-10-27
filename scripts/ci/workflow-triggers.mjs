@@ -20,11 +20,22 @@
  *
  * Exits 1 with the file and trigger named, or when it finds no workflow at all,
  * because a check of an empty directory is a check of nothing.
+ *
+ * ONE NAMED EXCEPTION, AND IT IS A FILE RATHER THAN A TRIGGER. Robert's
+ * addendum of 2026-10-25, 22:46 Central, item 11: the nightly backup runs on a
+ * schedule, "an exception to his push-or-dispatch rule, because a backup must
+ * run on its own". So `schedule` is allowed in backup.yml and in no other file:
+ * the allowlist above is not widened, and a schedule anywhere else still fails
+ * by name. A schedule cannot be started by a fork (GitHub runs it from the
+ * default branch with this repository's secrets), which is why it does not
+ * reopen what this check guards. The exception must name a file that exists,
+ * and the output says it was applied, so it cannot outlive the file or hide.
  */
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const ALLOWED = new Set(["push", "workflow_dispatch"]);
+const SCHEDULE_BY_RULING = new Map([["backup.yml", "Robert's addendum of 2026-10-25, item 11: the nightly backup"]]);
 const dir = process.argv[2] ?? ".github/workflows";
 
 const stripComments = (text) =>
@@ -59,6 +70,7 @@ function triggersOf(text) {
 
 const files = existsSync(dir) ? readdirSync(dir).filter((f) => /\.ya?ml$/.test(f)) : [];
 const problems = [];
+const applied = [];
 if (files.length === 0) problems.push(`no workflow file under ${dir}, so there was nothing to check`);
 for (const f of files) {
   const text = stripComments(readFileSync(join(dir, f), "utf8"));
@@ -67,8 +79,18 @@ for (const f of files) {
   if (triggers === null) problems.push(`${f} has no top level on: key that this check can read`);
   else {
     if (triggers.length === 0) problems.push(`${f} declares on: with no trigger this check can read`);
-    for (const t of triggers) if (!ALLOWED.has(t)) problems.push(`${f} triggers on ${t}; only push and workflow_dispatch are allowed`);
+    for (const t of triggers) {
+      if (ALLOWED.has(t)) continue;
+      if (t === "schedule" && SCHEDULE_BY_RULING.has(f)) {
+        applied.push(`${f} runs on a schedule by ruling (${SCHEDULE_BY_RULING.get(f)})`);
+        continue;
+      }
+      problems.push(`${f} triggers on ${t}; only push and workflow_dispatch are allowed`);
+    }
   }
+}
+for (const f of SCHEDULE_BY_RULING.keys()) {
+  if (!files.includes(f)) problems.push(`the schedule exception names ${f}, which is not a workflow under ${dir}`);
 }
 
 if (problems.length) {
@@ -76,4 +98,7 @@ if (problems.length) {
   for (const p of problems) console.log(`  ${p}`);
   process.exit(1);
 }
-console.log(`${files.length} workflow file(s): every trigger is push or workflow_dispatch, and none names pull_request_target.`);
+console.log(
+  `${files.length} workflow file(s): every trigger is push or workflow_dispatch${applied.length ? `, apart from ${applied.length} exception(s) by ruling` : ""}, and none names pull_request_target.`,
+);
+for (const a of applied) console.log(`  exception: ${a}`);

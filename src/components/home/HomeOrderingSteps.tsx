@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Container } from "@/components/ui/Container";
-import { headlineOffer } from "@/lib/ordering";
+import { headlineOffer, inSentence } from "@/lib/ordering";
 import { ORDERABLE_STEPS } from "@/content/ordering-steps";
 
 /**
@@ -26,7 +26,7 @@ export function HomeOrderingSteps() {
             How ordering works
           </h2>
           <p className="mt-2 text-[0.98rem] leading-[1.6] text-slate-muted">
-            {offer.deliverable ? `A ${offer.deliverable.toLowerCase()}, ordered online:` : `${offer.name}, ordered online:`}
+            {offer.deliverable ? `A ${inSentence(offer.deliverable)}, ordered online:` : `${offer.name}, ordered online:`}
           </p>
           <ol className="mt-5 flex flex-wrap gap-x-2 gap-y-3">
             {steps.map((step, i) => (

@@ -69,6 +69,7 @@
  */
 
 import { FIRST_TIER_COASTAL, FIRST_TIER_COUNT } from "./windstorm";
+import { HARRIS_DESIGNATION } from "./windstorm-harris";
 import {
   firmName,
   notYetTakingOrders,
@@ -113,6 +114,8 @@ export type WindstormPage = {
   question: string;
   sections: WindstormSection[];
   faqs?: { q: string; a: string }[];
+  /** Renders the windstorm county check (src/content/windstorm-county-tool.ts). */
+  countyCheck?: true;
 };
 
 export const windstormHub = {
@@ -163,15 +166,16 @@ export const windstormPages: WindstormPage[] = [
     title: "Texas Windstorm Catastrophe Area Counties | 254 Engineering",
     description:
       "The fourteen Texas seacoast counties in the designated catastrophe area, the Harris County line, and what changes at the boundary. See the coverage map.",
-    summary: `${FIRST_TIER_COUNT} counties, plus the part of Harris County east of State Highway 146. Inside that boundary the windstorm program applies. Outside it, none of this does.`,
+    countyCheck: true,
+    summary: `${FIRST_TIER_COUNT} counties, plus ${HARRIS_DESIGNATION}. Inside that boundary the windstorm program applies. Outside it, none of this does.`,
     sections: [
       {
         eyebrow: "The boundary",
         title: "Fourteen counties and one highway",
-        lede: "The designated area is defined by county, with a single exception drawn along a road.",
+        lede: "The designated area is defined by county, with a single exception named city by city along a road.",
         body: [
-          `The designated catastrophe area covers ${countyList} counties, together with the part of Harris County east of State Highway 146.`,
-          "That Harris County line is the part people get wrong, and it is the only place in the program where the boundary runs through a populated area rather than along a county line. A property on one side of 146 is inside the program. A property on the other side is not. Nothing about the two buildings has to differ for their obligations to differ completely.",
+          `The designated catastrophe area covers ${countyList} counties, together with ${HARRIS_DESIGNATION}. Those are the Texas Department of Insurance's own words.`,
+          "That Harris County exception is the part people get wrong, and it is the only place in the program where the boundary is drawn by city rather than by county. A property in one of those five cities is inside the program. A property elsewhere in Harris County is not, including one east of the highway in a city the department does not name. Nothing about two buildings has to differ for their obligations to differ completely.",
           "Outside the designated area the windstorm inspection program simply does not apply. There is no certificate to obtain, no WPI-1 to file, and no engineer appointment involved. Wind design requirements still exist in the building code everywhere in Texas, but they are enforced through the ordinary permit rather than through this parallel system.",
         ],
       },
@@ -197,7 +201,7 @@ export const windstormPages: WindstormPage[] = [
         eyebrow: "Coverage",
         title: "Where these counties sit in the state",
         body: [
-          "The designated counties fall across three of the coverage regions this firm is built to serve. Aransas, Calhoun, Kenedy, Kleberg, Nueces, Refugio, and San Patricio are in the Coastal Bend. Brazoria, Chambers, Galveston, Matagorda, and the Harris County strip are in the Greater Houston region. Cameron and Willacy are in the Rio Grande Valley, and Jefferson is on the upper coast.",
+          "The designated counties fall across three of the coverage regions this firm is built to serve. Aransas, Calhoun, Kenedy, Kleberg, Nueces, Refugio, and San Patricio are in the Coastal Bend. Brazoria, Chambers, Galveston, Matagorda, and the five Harris County cities are in the Greater Houston region. Cameron and Willacy are in the Rio Grande Valley, and Jefferson is on the upper coast.",
           "The regional pages carry the wind, soil, and permitting conditions specific to each, which differ enough along the coast that treating the designated area as one place would be misleading.",
         ],
       },
@@ -205,7 +209,7 @@ export const windstormPages: WindstormPage[] = [
     faqs: [
       {
         q: "Is a property inside the city of Houston in the catastrophe area?",
-        a: "Only if it lies east of State Highway 146, which is a small part of Harris County and excludes most of the city. The county is not designated as a whole, unlike the other fourteen.",
+        a: `Not on the department's list. In Harris County the Texas Department of Insurance designates ${HARRIS_DESIGNATION}, and Houston is not one of them. The county is not designated as a whole, unlike the other fourteen.`,
       },
       {
         q: "Does being outside the designated area mean wind design does not matter?",

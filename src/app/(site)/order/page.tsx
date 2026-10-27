@@ -5,6 +5,7 @@ import { buildMetadata } from "@/lib/seo";
 import { JsonLd, breadcrumbSchema } from "@/lib/schema";
 import { PublishedPrice } from "@/components/services/PublishedPrice";
 import { sellableLineOffers } from "@/lib/line-gate";
+import { inSentence } from "@/lib/ordering";
 import { displayPhone, telHref } from "@/config/contact";
 import { PhoneNumber } from "@/components/ui/PhoneNumber";
 
@@ -158,7 +159,7 @@ export default async function OrderChooserPage() {
               {open.length === 0
                 ? `Every line below starts with a request for a quote. ${PUBLISHED_IS_THE_QUOTE}`
                 : open.length === 1 && open[0].deliverable
-                  ? `A ${open[0].deliverable.toLowerCase()} can be ordered online now. Everything else starts with a request for a quote. ${PUBLISHED_IS_THE_QUOTE}`
+                  ? `A ${inSentence(open[0].deliverable)} can be ordered online now. Everything else starts with a request for a quote. ${PUBLISHED_IS_THE_QUOTE}`
                   : `${open.length} lines can be ordered online now. Everything else starts with a request for a quote. ${PUBLISHED_IS_THE_QUOTE}`}
             </p>
 
