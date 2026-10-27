@@ -84,20 +84,27 @@ rec(
  */
 const importsStore = (f) => /from "(@\/lib|\.)\/seal-store"/.test(readFileSync(f, "utf8"));
 const importers = sources.filter((f) => f !== STORE && importsStore(f));
+/*
+ * TWO SEALING STEPS SINCE 2026-10-26: the letter's, and the engineer's own
+ * document's (Robert's ruling of 2026-10-25, 23:51 Central, item C; control
+ * 16). Both are named here as literals, so a third reader costs an edit made
+ * on purpose.
+ */
+const SEALING_STEPS = ["src/lib/letter-seal.ts", "src/lib/own-document-seal.ts"];
 const allowed = [
   "src/app/api/portal/seal/route.ts",
   "src/app/portal/(app)/profile/seal/page.tsx",
-  "src/lib/letter-seal.ts",
+  ...SEALING_STEPS,
 ];
 rec(
-  "only the upload route, the engineer's own seal page and the sealing step import the seal store",
+  "only the upload route, the engineer's own seal page and the two sealing steps import the seal store",
   importers.length === allowed.length && importers.every((f) => allowed.includes(f)),
   importers.join(", ") || "NOTHING IMPORTS IT",
 );
 const callers = sources.filter((f) => f !== STORE && readFileSync(f, "utf8").includes("readImageForSealing("));
 rec(
-  "and the sealing step is the only caller of the image read (control 2)",
-  callers.length === 1 && callers[0] === "src/lib/letter-seal.ts",
+  "and the two sealing steps are the only callers of the image read (control 2)",
+  callers.length === SEALING_STEPS.length && callers.every((f) => SEALING_STEPS.includes(f)),
   callers.join(", ") || "NOTHING CALLS IT",
 );
 const route = readFileSync("src/app/api/portal/seal/route.ts", "utf8");

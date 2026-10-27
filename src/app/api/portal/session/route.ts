@@ -4,7 +4,9 @@ import { verifyCredentials, requestContext } from "@/lib/ops-auth";
 import { issueOpsSession, opsCookieOptions, OPS_COOKIE, opsSessionConfigured } from "@/lib/ops-session";
 import { mfaRequirementFor, mfaStateFor } from "@/lib/ops-mfa";
 import { takeLoginAttempt, clearLoginAttempts, clientKey } from "@/lib/ops-rate-limit";
-import { writeAudit } from "@/lib/ops-audit";
+import { writeAudit, writeAuditOrRefuse } from "@/lib/ops-audit";
+import { signInFactor } from "@/lib/sign-in-factor";
+import { OWNER_OVERRIDE_ACTION, OWNER_SIGN_IN_RULED_ON } from "@/lib/owner-override";
 import { homeFor } from "@/lib/ops-authz";
 import { supabaseAdmin } from "@/lib/supabase";
 import { withSaveOutcome } from "@/lib/save-outcome";
@@ -181,27 +183,51 @@ async function handlePOST(request: NextRequest) {
   let factor: "pending" | "full" = "full";
   let mfaNext: string | null = null;
   let mfaOffer: string | null = null;
+  let ownerOverride = false;
   try {
     const requirement = await mfaRequirementFor(result.profile.role);
     const state = await mfaStateFor(result.profile.id);
-
-    if (state.enrolled) {
-      factor = "pending";
-      mfaNext = "/portal/mfa";
-    } else if (requirement === "required") {
-      factor = "pending";
-      mfaNext = "/portal/mfa/enrol";
-    } else if (requirement === "optional") {
-      /*
-       * A full session, and the offer. Kept separate from mfaNext because an
-       * offer must not override a destination the person actually asked for;
-       * see where safeNext is worked out.
-       */
-      mfaOffer = "/portal/mfa/enrol";
-    }
+    /*
+     * The decision is signInFactor (src/lib/sign-in-factor.ts), the same order
+     * as before: enrolled first, then the requirement. The offer is kept apart
+     * from mfaNext because it must not override a destination the person
+     * actually asked for; see where safeNext is worked out.
+     */
+    const decided = signInFactor({
+      profileId: result.profile.id,
+      role: result.profile.role,
+      enrolled: state.enrolled,
+      requirement,
+    });
+    factor = decided.factor;
+    mfaNext = decided.next;
+    mfaOffer = decided.offer;
+    ownerOverride = decided.ownerOverride;
   } catch (err) {
     console.error("[session] the second factor state could not be read:", err);
     return fail(503, "Your account could not be checked just now. Try again in a moment.");
+  }
+
+  /*
+   * THE OWNER OVERRIDE ON SIGN IN, RECORDED BEFORE THE SESSION EXISTS. Robert's
+   * answer 3 of 2026-10-26 (0093): his administrator account, by id, signs in
+   * without the second factor his role requires, and every such sign in writes
+   * an audit row naming the override, through writeAuditOrRefuse. A row that
+   * cannot be written is a sign in that does not happen.
+   */
+  if (ownerOverride) {
+    const context = await requestContext();
+    const used = await writeAuditOrRefuse({
+      actor: { id: result.profile.id, role: result.profile.role, email: result.profile.email },
+      action: OWNER_OVERRIDE_ACTION,
+      entityType: "profile",
+      entityId: result.profile.id,
+      summary: "Owner override used: signed in without the second factor the administrator role requires",
+      diff: { override: "sign_in_second_factor", act: "auth.sign_in", ruled_on: OWNER_SIGN_IN_RULED_ON },
+      ip: context.ip,
+      userAgent: context.userAgent,
+    });
+    if (!used.ok) return fail(503, "Your sign in could not be recorded, so it was not completed. Try again in a moment.");
   }
 
   const session = issueOpsSession(result.profile.id, result.profile.role, factor);

@@ -412,6 +412,8 @@ const PORTED = [
   /* Added 2026-10-07 by the integration board: built that day and never read. Row 8. */
   "src/app/portal/(app)/protocols/SignProtocolPanel.tsx",
   "src/app/portal/(app)/review/LetterSealPanel.tsx",
+  /* The engineer's own specification, 2026-10-26 (item C), held to the staff rules from its first commit. */
+  "src/app/portal/(app)/review/OwnDocumentSealPanel.tsx",
   "src/app/portal/(app)/review/PrereviewPanel.tsx",
   "src/app/portal/(app)/pricebook/page.tsx",
   "src/app/portal/(app)/launch/page.tsx",
@@ -673,6 +675,7 @@ const STAFF_V10 = [
   "src/app/portal/(app)/review/page.tsx",
   "src/app/portal/(app)/review/ReviewClient.tsx",
   "src/app/portal/(app)/review/LetterSealPanel.tsx",
+  "src/app/portal/(app)/review/OwnDocumentSealPanel.tsx",
   "src/app/portal/(app)/review/PrereviewPanel.tsx",
   "src/app/portal/(app)/certification/page.tsx",
   "src/app/portal/(app)/certification/CertificationClient.tsx",

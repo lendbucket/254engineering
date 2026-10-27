@@ -154,7 +154,9 @@ check("a solar file with an installer's survey date is refused until that case i
 const seal = readFileSync("src/lib/letter-seal.ts", "utf8");
 check("both letters are sealable", /SEALABLE_PROTOCOLS = \["254-RC-001", "254-FC-001", "254-PL-001", "254-MH-001", "254-SL-001"\]/.test(seal));
 const run = readFileSync("src/lib/protocol-run.ts", "utf8");
-check("and their reviews record a determination", /REVIEWED_UNDER_SIGNATURE = \[[^\]]*"254-MH-001", "254-SL-001"\]/.test(run));
+/* Membership, not position: 254-RS-001 joins the same list (item C), and the exact set is pinned in fc-and-pl-reviews-record-a-determination. */
+const reviewed = (run.match(/REVIEWED_UNDER_SIGNATURE = \[([^\]]*)\]/) ?? [])[1] ?? "";
+check("and their reviews record a determination", reviewed.includes('"254-MH-001"') && reviewed.includes('"254-SL-001"'), reviewed);
 const sealBody = seal.slice(seal.indexOf("export async function sealLetter("), seal.indexOf("export function sealerFor(") > 0 ? seal.indexOf("export function sealerFor(") : seal.indexOf("export type AwaitingLetter"));
 check("sealing asks for no template and names none (0091)", !/letterNeedsTemplate|templateToSealFrom|p_letter_template_act_id/.test(sealBody));
 check("a recorded requirement other than HUD-7584 is refused", /if \(fact\("named_requirement"\)\) \{\s*return \{\s*ok: false,/.test(seal));
