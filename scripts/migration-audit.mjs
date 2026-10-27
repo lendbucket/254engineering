@@ -289,8 +289,15 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * (0096); no table; shape 6adde27e5bd8a1a52cf5a2d0500af466, read off
  * fingerprint-at.mjs with 0094 reproducing its recorded pair first.
  */
-const EXPECTED_FINGERPRINT = "6adde27e5bd8a1a52cf5a2d0500af466";
-const EXPECTED_COLUMNS = 1355;
+/*
+ * Moved 2026-10-27 by 0097, a void is the engineer's and a reissue names what
+ * it replaces, by Robert's addendum of 2026-10-25, item 2: 1,355 to 1,356 is
+ * eng_seal_acts' replaces_seal_act_id; no table; shape
+ * 8395cd8a75b4e3210c6f57ea5726bc10, read off fingerprint-at.mjs with 0096
+ * reproducing its recorded pair first.
+ */
+const EXPECTED_FINGERPRINT = "8395cd8a75b4e3210c6f57ea5726bc10";
+const EXPECTED_COLUMNS = 1356;
 const EXPECTED_TABLES = 101;
 /* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts.
  * 0074 adds two: eng_partner_billing_touch and eng_partner_billing_events_immutable.
@@ -1474,6 +1481,68 @@ if (failedAt === null) {
     rec(
       "after which the determination can be sealed again, as a new document",
       (await attempt(sealLetter("00000000-0000-4000-8000-0000000006a3", "00000000-0000-4000-8000-0000000006c3", SEALER, SEAL_NOW, SIG))) === null,
+    );
+
+    /*
+     * 0097, Robert's addendum of 2026-10-25, item 2: the void door refuses
+     * anyone but the licensed role, and a reissued letter records the act it
+     * replaces, named by the database rather than by the door.
+     */
+    const replacesOf = async (id) =>
+      (await db.query(`select replaces_seal_act_id as r from eng_seal_acts where id = '${id}'`)).rows[0]?.r ?? null;
+    const liveOf = async (id) =>
+      (await db.query(`select voided_at is null as live from eng_seal_acts where id = '${id}'`)).rows[0]?.live === true;
+    rec(
+      "a reissued letter records the voided act it replaces, and the database names it (0097)",
+      (await replacesOf("00000000-0000-4000-8000-0000000006a3")) === "00000000-0000-4000-8000-0000000006a1",
+      String(await replacesOf("00000000-0000-4000-8000-0000000006a3")),
+    );
+    const reissueAudit = Number(
+      (
+        await db.query(
+          "select count(*)::int as n from eng_audit_events where action = 'seal.applied' and entity_id = '00000000-0000-4000-8000-0000000006a3' and diff->>'replaces_seal_act_id' = '00000000-0000-4000-8000-0000000006a1'",
+        )
+      ).rows[0].n,
+    );
+    rec("and its audit event names the act it replaces (0097)", reissueAudit === 1, `${reissueAudit} event(s)`);
+    rec(
+      "and the act it replaces can never be rewritten (0097)",
+      await refused("update eng_seal_acts set replaces_seal_act_id = null where id = '00000000-0000-4000-8000-0000000006a3'"),
+    );
+    const NOT_LICENSED = "'00000000-0000-4000-8000-000000009701'";
+    await db.exec(`
+      insert into auth.users (id) values (${NOT_LICENSED});
+      insert into eng_profiles (id, email, display_name, role)
+      values (${NOT_LICENSED}, 'probe-admin-0097@audit-probe.invalid', 'Probe Administrator, not a real person', 'admin');
+    `);
+    const notLicensedVoid = await attempt(
+      `select eng_void_seal_act('00000000-0000-4000-8000-0000000006a3', ${NOT_LICENSED}, 'Probe: an administrator tries to void')`,
+    );
+    rec(
+      "a seal cannot be voided by anyone but the licensed role, and stays live (0097)",
+      notLicensedVoid !== null && /licensed engineer/.test(notLicensedVoid) && (await liveOf("00000000-0000-4000-8000-0000000006a3")),
+      notLicensedVoid ?? "the administrator's voiding went through",
+    );
+    const secondVoid = await attempt(
+      `select eng_void_seal_act('00000000-0000-4000-8000-0000000006a3', ${SEALER}, 'Probe: replaced again')`,
+    );
+    const secondReissue = await attempt(sealLetter("00000000-0000-4000-8000-000000009702", "00000000-0000-4000-8000-000000009712", SEALER, SEAL_NOW, SIG));
+    rec(
+      "a second reissue names the act it replaces, not the first one voided (0097)",
+      secondVoid === null && secondReissue === null &&
+        (await replacesOf("00000000-0000-4000-8000-000000009702")) === "00000000-0000-4000-8000-0000000006a3",
+      secondVoid ?? secondReissue ?? String(await replacesOf("00000000-0000-4000-8000-000000009702")),
+    );
+    await db.exec(`select eng_void_seal_act('00000000-0000-4000-8000-000000009702', ${SEALER}, 'Probe: voided to test a named replacement')`);
+    const wrongNamed = await attempt(`
+      insert into eng_seal_acts (id, kind, document_id, determination_id, content_sha256, seal_image_id, signature_image_id,
+                                 sealed_by, mfa_verified_at, letterhead_sha256, replaces_seal_act_id)
+      values ('00000000-0000-4000-8000-000000009703', 'letter', '00000000-0000-4000-8000-000000009713', ${DET}, ${HASH},
+              ${SEAL_NOW}, ${SIG}, ${SEALER}, now(), '${"a".repeat(64)}', '00000000-0000-4000-8000-0000000006a1');`);
+    rec(
+      "a letter that names some other act as the one it replaces is refused by the database (0097)",
+      wrongNamed !== null && /0097/.test(wrongNamed),
+      wrongNamed ?? "a replacement naming an act the database did not choose went in",
     );
 
     /*

@@ -3732,6 +3732,23 @@ export const APPLIED = [
       "untouched. Without it, 0052's approval would have retired WS-001 the moment WP-001 went in force. The branch " +
       "merges only after the production apply is read back, and a migration on main is never pending.",
   },
+  {
+    file: "0097_a_void_is_the_engineers_and_a_reissue_names_what_it_replaces.sql", appliedBy: "apply_migration",
+    fingerprint: "8395cd8a75b4e3210c6f57ea5726bc10",
+    behaviour: "5f64343db4331dfe0326d3a02d779eda",
+    production: null,
+    proves: { table: "eng_seal_acts", column: "replaces_seal_act_id" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0097 on 2026-10-27, with 0096 reproducing its recorded " +
+      "pair: one column, 1356, and 1289 facts (the replaced act's reference, its check, the index that lets an act " +
+      "be replaced once). Four function bodies are replaced: the seal act check, guard and audit, and the void door.",
+    because:
+      "WRITTEN 2026-10-27 ON feat/void-and-reissue, ON TOP OF 0096, AND APPLIED NOWHERE. Robert's addendum of " +
+      "2026-10-25, 22:46 Central, item 2: the void function refuses anyone but a licensed engineer, and a replacement " +
+      "letter records the seal act it replaces. Posted on issue #1 for the chat to sit on development, then on " +
+      "production after the board passes. The branch merges only after the production apply is read back, and a " +
+      "migration on main is never pending.",
+  },
 ];
 
 /*
