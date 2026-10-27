@@ -45,6 +45,22 @@ Bundle 1 (pieces 1, 2, 4) is new public pages plus a new check, so it goes on th
 
 **Robert's answers, 18:55 Central 2026-10-26: 16 yes, 17 yes, 18 yes, 19 yes (text badge, no logo).** So the tool takes a county; TDI's list is read at build time with its date and URL, and a difference stops the work; /press links the current logo files by path; the badge is the derived text disclosure with a link and no 254 logo, worded under the gate. Bundle 1 and bundle 2 stay queued after the migration boards, one board per bundle.
 
+### Robert's instruction, 22:05 Central 2026-10-26: real workflows proven end to end, then mobile apps (queued)
+
+**Queued, not started.** It runs after the current migration boards and the addendum items. The order I have set: the migration boards (the three letters, the repair specification with 0092, 0093, 0094, WPI-8 with 0095 and 0096), then fix/mobile-audit-unmeasured, then link-building bundles 1 and 2 (queued earlier, at 15:57), then the addendum items still open (2, 3, 4, 6, 8b, 10, 11), then W1 to W4, then the M plan. **Same rules:** nothing invented, development only, probes on @audit-probe.invalid only, never Aman's account, one board per bundle, a proof and an injection per fix. Each phase reports at the top of this file.
+
+1. **W1, the workflow map.** `docs/workflows.md`: every real workflow for each role (customer, rep, ops manager, admin and owner, field technician, engineer, partner), from first contact to records retention, derived from the code and from Robert's rulings in this queue and in BACKLOG. Numbered 254-WF-001 onward. Each step gives the screen (route), who acts, what they see, what they do, what happens next, who is notified, and what record is written. **Marked:** any step that today needs SQL, a script or a code edit (against the 2026-10-07 rule), and any step with no screen at all. The new document gets its pointer in `BACKLOG.md`, so backlog-audit can see it.
+2. **W2, walk every workflow.** A Playwright walk-through drives each workflow end to end as probe accounts in each role, at 390px and desktop, against development. **It runs as a GitHub Actions workflow on manual dispatch** (the 2026-10-22 rule), not on this PC, so the memory floor does not block it. Each step is recorded as works, works with friction (clicks counted, dead ends, unclear wording, a missing "what happens next"), broken, or missing. Results sit beside each step in `docs/workflows.md`, and screenshots are kept as run artifacts. A new workflow file is a full-lane change, so the walk-through branch gets a board of its own before its first dispatch.
+3. **W3, fix by severity.** Broken first, then missing, then friction, bundled by workflow, one board per bundle. **Anything that changes what a customer is charged, or what a letter says, goes to Robert.**
+4. **W4, procedures in the portal.** Each role's home leads with what needs that person now. Each workflow step says what happens next. Each role gets a Procedures page that renders its workflows from `docs/workflows.md` as numbered written procedures (254-OPS-001 onward), so a new hire is trained from the screen. The style laws apply.
+5. **M, mobile apps: plan first, build after W3.** `docs/mobile-apps.md` covers:
+   - the portals installable as PWAs first: a manifest, icons, and the offline capture already in `offline-queue.ts`;
+   - then native apps for admin, engineer and technician, as unlisted App Store and Google Play apps, the way Wattsmith is doing;
+   - push notifications, camera capture for technicians, and sealing on mobile with a fresh second factor;
+   - what Robert must supply: the Apple Developer and Google Play accounts, a D-U-N-S number, and which entity publishes.
+
+   **It stops for Robert's review before anything is built.**
+
 ### Robert's answers, 09:12 Central 2026-10-26
 
 | | Answer | Done |
