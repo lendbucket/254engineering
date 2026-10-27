@@ -436,6 +436,9 @@ export type Action =
   | "refunds.approve_within_limit"
   // Set that limit. The operator alone.
   | "settings.refund_limit"
+  // Record and withdraw the firm's insurance policies, and be warned before
+  // one expires. The office and the owner (Robert's addendum, 2026-10-25; 0090).
+  | "insurance.manage"
   // Invite a field technician, activate one, and review their credentials.
   // Never another role: profiles.create is the one that invites anybody.
   | "technicians.onboard"
@@ -506,6 +509,8 @@ const MATRIX: Record<Role, Action[]> = {
     "suppressions.manage",
     /* And the one permission that deletes. Seeded by 0030, admin alone. */
     "retention.execute",
+    /* The insurance register, seeded by 0090: the owner records and withdraws cover. */
+    "insurance.manage",
     /* The staff level actions, 0079, so an administrator can do anything a rep
      * or manager can, plus set the refund limit, which is the operator's alone. */
     "payments.send_link", "orders.read", "orders.resend_link", "files.update_details",
@@ -810,6 +815,8 @@ export const DEFAULT_ROLES: DefaultRole[] = [
       "refunds.approve_within_limit",
       "technicians.onboard",
       "reports.revenue", "reports.pipeline", "reports.turnaround", "reports.activity",
+      /* The insurance register, seeded by 0090: the office records cover and is warned before it lapses. */
+      "insurance.manage",
     ],
   },
 ];

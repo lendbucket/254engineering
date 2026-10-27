@@ -109,6 +109,16 @@ export const NAV: NavItem[] = [
     icon: "files",
   },
   {
+    /* The firm's insurance policies and their certificates, Robert's addendum
+     * of 2026-10-25 (0090). insurance.manage, matching the page's guard: the
+     * office and the owner. */
+    href: "/portal/insurance",
+    label: "Insurance",
+    short: "Insurance",
+    action: "insurance.manage",
+    icon: "files",
+  },
+  {
     /*
      * Windstorm briefs on existing buildings, and the reply each was promised.
      *

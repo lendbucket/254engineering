@@ -156,6 +156,16 @@ export const PROBES = [
       "credential proof's question, asked there against a probe technician with the result read back.",
   },
   {
+    kind: "insurance.expiry_alerts",
+    payload: { day: "not-a-day" },
+    expect: "dead",
+    realSubject: false,
+    why:
+      "Added 2026-10-25 (Robert's addendum, item 1). A malformed day is fatal, as for the credential refresh. " +
+      "A real day would read the real register and could raise warnings, which is the insurance proof's " +
+      "question, asked there against a fake database with the alert rule exercised directly.",
+  },
+  {
     kind: "errors.alert",
     payload: {},
     expect: "done",

@@ -226,3 +226,86 @@ export function TriagePanel({
     </div>
   );
 }
+
+/**
+ * THE FACTS A MANUFACTURED HOME OR SOLAR LETTER PRINTS, RECORDED BY WHOEVER
+ * THE CATALOGUE NAMES. Item B of Robert's ruling of 2026-10-25, 23:51 Central,
+ * with 0087's catalogue (src/content/letters/letter-fact-catalogue.ts): the
+ * engineer records what he observed, measured or determined at review, and
+ * the office records what the customer stated. Each fact is recorded on its
+ * own and the newest recording is the one the letter prints; nothing here
+ * decides a rule, which is on the server.
+ */
+export function CatalogueFactsPanel({
+  fileId,
+  capacity,
+  facts,
+}: {
+  fileId: string;
+  capacity: "engineer" | "office";
+  facts: { key: string; label: string; values?: readonly string[]; recorded: string | null }[];
+}) {
+  return (
+    <div className="mt-3 flex flex-col gap-4">
+      {facts.map((f) => (
+        <CatalogueFactRow key={f.key} fileId={fileId} capacity={capacity} fact={f} />
+      ))}
+    </div>
+  );
+}
+
+function CatalogueFactRow({
+  fileId,
+  capacity,
+  fact,
+}: {
+  fileId: string;
+  capacity: "engineer" | "office";
+  fact: { key: string; label: string; values?: readonly string[]; recorded: string | null };
+}) {
+  const router = useRouter();
+  const [value, setValue] = useState(fact.recorded ?? "");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState<string | null>(null);
+  const id = `cf-${fileId}-${fact.key}`;
+  return (
+    <form
+      className="flex flex-col gap-1.5"
+      onSubmit={async (e) => {
+        e.preventDefault();
+        setBusy(true);
+        setError(null);
+        setDone(null);
+        const result = await postJson("/api/portal/letter-facts", {
+          action: capacity === "engineer" ? "engineer_fact" : "office_fact",
+          fileId,
+          fact: fact.key,
+          value,
+        });
+        setBusy(false);
+        if (!result.ok) return setError(result.error);
+        setDone("Recorded. The letter prints it as written.");
+        router.refresh();
+      }}
+    >
+      <label htmlFor={id} className={labelClass}>{fact.label}</label>
+      <p className="text-[13px] leading-[1.5] text-[var(--secondary)]">
+        {fact.recorded ? <>Recorded: <span className="text-[var(--ink)]">{fact.recorded}</span></> : "Not recorded yet. The letter cannot be drafted without it."}
+      </p>
+      {fact.values ? (
+        <select id={id} value={value} onChange={(e) => setValue(e.target.value)} className={fieldClass}>
+          <option value="">Choose one</option>
+          {fact.values.map((v) => (
+            <option key={v} value={v}>{v}</option>
+          ))}
+        </select>
+      ) : (
+        <textarea id={id} rows={2} value={value} onChange={(e) => setValue(e.target.value)} className={`${fieldClass} py-2`} />
+      )}
+      <div><button type="submit" disabled={busy || !value.trim()} className={ghostClass}>{busy ? "Recording" : "Record"}</button></div>
+      <Problem message={error} />
+      <Done message={done} />
+    </form>
+  );
+}

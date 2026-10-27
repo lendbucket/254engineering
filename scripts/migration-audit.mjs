@@ -275,9 +275,16 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * 05bb694a74ad7aeb15a3c37c8474d2da, read off fingerprint-at.mjs with 0088
  * reproducing its recorded pair first.
  */
-const EXPECTED_FINGERPRINT = "05bb694a74ad7aeb15a3c37c8474d2da";
-const EXPECTED_COLUMNS = 1333;
-const EXPECTED_TABLES = 99;
+/*
+ * Moved 2026-10-25 by 0090, insurance is a register, by Robert's addendum of
+ * that night, item 1: 1,333 to 1,353 is eng_insurance_policies' seventeen
+ * columns and eng_insurance_alerts' three; 99 to 101 tables; shape
+ * 8daaba436e02fb92c9a6b227fcb98caf, read off fingerprint-at.mjs with 0089
+ * reproducing its recorded pair first.
+ */
+const EXPECTED_FINGERPRINT = "8daaba436e02fb92c9a6b227fcb98caf";
+const EXPECTED_COLUMNS = 1353;
+const EXPECTED_TABLES = 101;
 /* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts.
  * 0074 adds two: eng_partner_billing_touch and eng_partner_billing_events_immutable.
  * 0075 adds one: eng_payment_events_guarded.
@@ -293,8 +300,10 @@ const EXPECTED_TABLES = 99;
  * 0085 adds three, by operator ruling 7 of 2026-10-23: the append only guards on
  * eng_letter_facts, eng_job_triage and eng_job_capture_additions.
  * 0086 adds three, by operator ruling of 2026-10-23: eng_training_decisions_relayed_check,
- * eng_training_confirmations_check and eng_training_confirmations_append_only. */
-const EXPECTED_TRIGGERS = 98;
+ * eng_training_confirmations_check and eng_training_confirmations_append_only.
+ * 0090 adds three, by Robert's addendum of 2026-10-25: eng_insurance_policies_guard,
+ * eng_insurance_policies_audit and eng_insurance_alerts_guard. */
+const EXPECTED_TRIGGERS = 101;
 /**
  * 0014 added eng_freeze_attribution and 0019 added two more, the partner
  * entry freeze and its delete refusal, which are trigger functions like the
@@ -354,8 +363,10 @@ const EXPECTED_TRIGGERS = 98;
  * and eighteen-argument eng_record_letter_seal, which record the printed name and
  * licence and date the document by the act's own moment, beside 0081's fifteen
  * and 0088's sixteen, which are unchanged. eng_seal_act_guard is replaced with
- * the same signature, which is not a new row. */
-const EXPECTED_FUNCTIONS = 64;
+ * the same signature, which is not a new row.
+ * 67 since 0090, by Robert's addendum of 2026-10-25: the trigger functions
+ * eng_insurance_policy_guard, eng_insurance_policy_audit and eng_insurance_alert_guard. */
+const EXPECTED_FUNCTIONS = 67;
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });

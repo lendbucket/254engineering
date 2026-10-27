@@ -22,6 +22,7 @@ import { RELEASE, ENVIRONMENT } from "./ops-observability";
 import { business } from "@/config/business";
 import { reviewRequestKey, runReviewRequest } from "./review-request";
 import { raise } from "./ops-notify";
+import { sendInsuranceExpiryAlerts } from "./ops-insurance";
 import { notifyRepairsRequired, settleDecision } from "./ops-payments";
 import { orderForFile as liveOrderForFile } from "./order-for-file";
 import { REVIEW_AFTER_DECISION, reviewAfterDecisionKey } from "./review-jobs";
@@ -574,6 +575,34 @@ registerJob("credentials.refresh_tasks", {
       diff: { day: day ?? null, ...report },
     });
     if (report.faults.length > 0) return { kind: "retry", error: report.faults.slice(0, 3).join("; ") };
+    return { kind: "done" };
+  },
+});
+
+// ---------------------------------------------------- insurance.expiry_alerts
+
+/**
+ * The daily insurance warning, Robert's addendum of 2026-10-25, item 1. The
+ * office and the owner are told at 45, 14 and 1 days before a policy in force
+ * expires; sendInsuranceExpiryAlerts records each threshold before raising it,
+ * so a threshold is sent once however often this runs. Outside production it
+ * warns probe accounts only.
+ *
+ * A day that is not a day is fatal, as for the credential refresh above. A
+ * failed read is a retry: a warning missed because the register could not be
+ * read is a warning that must still go.
+ */
+registerJob("insurance.expiry_alerts", {
+  reachesOutside: false,
+  idempotency: (p) => keyFieldsMissing(p, ["day"]) ?? keyOf("insurance-alerts", p.day),
+  run: async (p): Promise<JobOutcome> => {
+    const day = typeof p.day === "string" ? p.day : undefined;
+    if (day === undefined || !/^\d{4}-\d{2}-\d{2}$/.test(day)) {
+      return { kind: "fatal", error: `"${day}" is not a day, so these warnings will never be keyed.` };
+    }
+    const result = await sendInsuranceExpiryAlerts(day);
+    if (!result.ok) return { kind: "retry", error: result.error };
+    console.log(`[insurance.expiry_alerts] ${day}: ${result.sent} warning(s) raised`);
     return { kind: "done" };
   },
 });

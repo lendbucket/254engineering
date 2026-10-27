@@ -4,6 +4,65 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
+## THE MANUFACTURED HOME AND SOLAR LETTERS ARE BUILT; WHAT THEY LEAVE FOR A RULING
+
+Item B of Robert's ruling of 2026-10-25, 23:51 Central, on
+`feat/three-letters-from-the-drafts` (on 0091, which must be on production
+before this merges). Both letters are drafted from
+`docs/letter-drafts/letter-drafts-for-adoption-2026-10-24.md`, the drafted
+wording on file, and the facts 0087 records; the engineer adopts each by
+sealing it after reading its full preview. Each point below was decided toward
+refusing rather than choosing for him, and is owed a word:
+
+1. **The four template sentences** the drafts document says "carry no
+   confirmation mark from you" (manufactured home) are not printed, because
+   they are not among its lines. If he wants any, they are added by name.
+2. **"The HUD Permanent Foundations Guide for Manufactured Housing, HUD-7584"**
+   prints as he wrote it, capital T included, mid-sentence ("conform to The
+   HUD..."). Lowercasing it would be an edit of his words.
+3. **A requirement other than HUD-7584** is refused: his answer is "another
+   requirement only where I approve it before dispatch", and no record holds
+   that approval.
+4. **The solar letter where the installer's survey was used** is refused: the
+   drafts say the date sentence changes, and the date sits in a sentence of
+   his own.
+5. **The two attached pages' headings**, "Attached repair list, file N" and
+   "Attached list, file N", follow each letter's own sentence. They need
+   Robert's word, as the roof letter's headings did (F14).
+
+**The WPI-8E postconstruction report is not built**, nor its report of
+non-compliance. Open: 28 TAC 5.4626 (Substantiating Information) is cited and
+not held; the applicable windstorm code under the plan of operation is per
+job; how "evidence relied on" prints; and section 10's non-compliance report
+belongs to a stage after repairs are not made. The office facts it needs (ZIP,
+TDI Application ID) can be recorded today.
+
+## THE SITTING FOR 0090, INSURANCE IS A REGISTER, OPEN
+
+`docs/production-sitting-0090-insurance-is-a-register.md`. Written 2026-10-25 on
+`feat/insurance-register`, to Robert's addendum of that night, item 1: the
+register, the private certificate bucket, the warnings at 45, 14 and 1 days to
+the office and the owner, and the insurance.manage grant. Applied nowhere yet;
+posted on issue #1.
+
+**Robert ruled on 2026-10-25, 23:49 Central: ordering stays live and insurance
+does not close it.** The owner's override runs to 2026-12-31 (its own branch,
+`fix/insurance-override-to-2026-12-31`), and its expiry is the only hard close.
+The register is still built: when a policy is recorded there, the gate counts it
+and the warnings run, and the register never closes the gate while the override
+stands. The owner is reminded 14 days before the override expires, by the
+register's daily sweep, once (built on this branch).
+
+**Owed back to Robert: how the gate counts a register policy.** The gate is
+read when pages are built and at each money door, and CLAUDE.md lets it read the
+database for one thing only, a signed protocol, in the closing direction. A
+register policy would be a second database read and in the opening direction.
+Recommendation: until 2026-12-31 nothing needs it, because the override holds
+the condition met; before then, the office records the policy in the register
+and the same policy in `verifiedInsurance` in one deploy, which the gate already
+counts, and the register goes on driving the warnings. Until he answers,
+recording a policy here opens nothing and closes nothing.
+
 ## THE LETTERHEAD PRINTS "254 ENGINEERING LLC" UNTIL THE BOARD CONFIRMS "254 ENGINEERING"
 
 Robert's addendum of 2026-10-25, item 7. A sealed letter's head prints the
