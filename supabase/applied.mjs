@@ -3749,6 +3749,22 @@ export const APPLIED = [
       "production after the board passes. The branch merges only after the production apply is read back, and a " +
       "migration on main is never pending.",
   },
+  {
+    file: "0098_a_quote_keeps_its_files_and_its_price.sql", appliedBy: "apply_migration",
+    fingerprint: "f758025ef6cdc3d2d7593c448211d0ba",
+    behaviour: "ffa0dc0962818bf8aede8d79f5ada312",
+    production: null,
+    proves: { table: "eng_quote_files", column: "storage_key" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0098 on 2026-10-27, with 0097 reproducing its recorded " +
+      "pair: eng_quote_files' eight columns, 1364, and 1307 facts (the table, its key, foreign key, unique pair, " +
+      "index, checks and guard trigger, the two checks on eng_quote_requests and its guard trigger, and two grants).",
+    because:
+      "WRITTEN 2026-10-27 ON feat/quotes, ON TOP OF 0097, AND APPLIED NOWHERE. Robert's addendum of 2026-10-25, " +
+      "22:46 Central, item 3: the office prices and sends a quote, the customer accepts and pays, and files attached " +
+      "to a quote request are kept. Posted on issue #1 for the chat to sit on development, then on production after " +
+      "the board passes. The branch merges only after the production apply is read back.",
+  },
 ];
 
 /*

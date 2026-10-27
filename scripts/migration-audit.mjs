@@ -296,9 +296,16 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * 8395cd8a75b4e3210c6f57ea5726bc10, read off fingerprint-at.mjs with 0096
  * reproducing its recorded pair first.
  */
-const EXPECTED_FINGERPRINT = "8395cd8a75b4e3210c6f57ea5726bc10";
-const EXPECTED_COLUMNS = 1356;
-const EXPECTED_TABLES = 101;
+/*
+ * Moved 2026-10-27 by 0098, a quote keeps its files and its price, by Robert's
+ * addendum of 2026-10-25, item 3: 1,356 to 1,364 is eng_quote_files' eight
+ * columns, and the table count moves 101 to 102; shape
+ * f758025ef6cdc3d2d7593c448211d0ba, read off fingerprint-at.mjs with 0097
+ * reproducing its recorded pair first.
+ */
+const EXPECTED_FINGERPRINT = "f758025ef6cdc3d2d7593c448211d0ba";
+const EXPECTED_COLUMNS = 1364;
+const EXPECTED_TABLES = 102;
 /* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts.
  * 0074 adds two: eng_partner_billing_touch and eng_partner_billing_events_immutable.
  * 0075 adds one: eng_payment_events_guarded.
@@ -316,8 +323,10 @@ const EXPECTED_TABLES = 101;
  * 0086 adds three, by operator ruling of 2026-10-23: eng_training_decisions_relayed_check,
  * eng_training_confirmations_check and eng_training_confirmations_append_only.
  * 0090 adds three, by Robert's addendum of 2026-10-25: eng_insurance_policies_guard,
- * eng_insurance_policies_audit and eng_insurance_alerts_guard. */
-const EXPECTED_TRIGGERS = 101;
+ * eng_insurance_policies_audit and eng_insurance_alerts_guard.
+ * 0098 adds two, by Robert's addendum of 2026-10-25, item 3: eng_quote_files_guard
+ * and eng_quote_requests_guard. */
+const EXPECTED_TRIGGERS = 103;
 /**
  * 0014 added eng_freeze_attribution and 0019 added two more, the partner
  * entry freeze and its delete refusal, which are trigger functions like the
@@ -382,8 +391,10 @@ const EXPECTED_TRIGGERS = 101;
  * eng_insurance_policy_guard, eng_insurance_policy_audit and eng_insurance_alert_guard.
  * 68 since 0095, by Robert's ruling of 2026-10-26: eng_line_pay. eng_scope_addendum_text
  * (0095), eng_approve_protocol and eng_put_signed_protocol_in_force (0096) are replaced
- * with the same signatures, which are not new rows. */
-const EXPECTED_FUNCTIONS = 68;
+ * with the same signatures, which are not new rows.
+ * 70 since 0098, by Robert's addendum of 2026-10-25, item 3: the trigger functions
+ * eng_quote_file_guard and eng_quote_request_guard. */
+const EXPECTED_FUNCTIONS = 70;
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
@@ -1543,6 +1554,77 @@ if (failedAt === null) {
       "a letter that names some other act as the one it replaces is refused by the database (0097)",
       wrongNamed !== null && /0097/.test(wrongNamed),
       wrongNamed ?? "a replacement naming an act the database did not choose went in",
+    );
+
+    /*
+     * 0098, Robert's addendum of 2026-10-25, item 3: a file attached to a quote
+     * request is kept, a sent quote states its price and when it lapses, and
+     * what the customer accepted cannot move.
+     */
+    const Q = "'00000000-0000-4000-8000-000000009801'";
+    const quoteMade = await attempt(`
+      insert into eng_quote_requests (id, site, reference, service_slug, status, customer_name, customer_email, brief)
+      values (${Q}, '254engineering', 'Q-PROBE-0098', 'residential-light-commercial-design', 'new',
+              'Probe Customer, not a real person', 'quote-0098@audit-probe.invalid', 'Probe brief');
+      insert into eng_quote_files (quote_id, input_key, bucket, storage_key, content_type, byte_size)
+      values (${Q}, 'drawings', 'eng-uploads', 'orders/probe-draft-0098/drawings/one.pdf', 'application/pdf', 2048);
+    `);
+    rec("a quote request keeps a file attached to it (0098)", quoteMade === null, quoteMade ?? "");
+    rec(
+      "and that file's row can never be removed (0098)",
+      await refused(`delete from eng_quote_files where quote_id = ${Q}`),
+    );
+    rec(
+      "or changed (0098)",
+      await refused(`update eng_quote_files set storage_key = 'orders/elsewhere/drawings/two.pdf' where quote_id = ${Q}`),
+    );
+    const elsewhere = await attempt(`
+        insert into eng_quote_files (quote_id, input_key, bucket, storage_key)
+        values (${Q}, 'drawings', 'eng-seal-images', 'orders/probe-draft-0098/drawings/three.pdf')`);
+    rec(
+      "and a file outside the order uploads bucket is refused by its bucket check (0098)",
+      elsewhere !== null && /eng_quote_files_bucket_check/.test(elsewhere),
+      elsewhere ?? "it went in",
+    );
+    const PRICED = /eng_quote_requests_priced_when_sent/;
+    const unpriced = await attempt(`update eng_quote_requests set status = 'sent', sent_at = now(), expires_at = now() + interval '30 days' where id = ${Q}`);
+    rec("a quote cannot be sent without a price (0098)", unpriced !== null && PRICED.test(unpriced), unpriced ?? "it was sent");
+    const lapsed = await attempt(`update eng_quote_requests set status = 'sent', quoted_cents = 200000, sent_at = now(), expires_at = now() where id = ${Q}`);
+    rec("or with an expiry that is not after it was sent (0098)", lapsed !== null && PRICED.test(lapsed), lapsed ?? "it was sent");
+    const sent = await attempt(
+      `update eng_quote_requests set status = 'sent', quoted_cents = 200000, scope = 'Probe scope', sent_at = now(), expires_at = now() + interval '30 days' where id = ${Q}`,
+    );
+    rec("a priced quote with a later expiry is sent (0098)", sent === null, sent ?? "");
+    const accepted = await attempt(`update eng_quote_requests set status = 'accepted', decided_at = now() where id = ${Q}`);
+    rec("and accepted (0098)", accepted === null, accepted ?? "");
+    const repriced = await attempt(`update eng_quote_requests set quoted_cents = 100 where id = ${Q}`);
+    rec("an accepted quote's price cannot change (0098)", repriced !== null && /0098/.test(repriced), repriced ?? "it changed");
+    const reopened = await attempt(`update eng_quote_requests set status = 'sent' where id = ${Q}`);
+    rec("nor can it go back to any other status (0098)", reopened !== null && /0098/.test(reopened), reopened ?? "it changed");
+    const notAccepted = await attempt(`
+        insert into eng_quote_requests (site, reference, service_slug, status, customer_name, customer_email, converted_order_id)
+        values ('254engineering', 'Q-PROBE-0098-B', 'residential-light-commercial-design', 'new', 'Probe', 'quote-0098b@audit-probe.invalid', gen_random_uuid())`);
+    rec(
+      "a quote that is not accepted cannot name an order, by its own check rather than the foreign key (0098)",
+      notAccepted !== null && /eng_quote_requests_converted_is_accepted/.test(notAccepted),
+      notAccepted ?? "it went in",
+    );
+    const QO = "'00000000-0000-4000-8000-000000009811'";
+    const QO2 = "'00000000-0000-4000-8000-000000009812'";
+    const ordersMade = await attempt(`
+      insert into eng_service_orders (id, site, reference, service_slug, order_type, status, customer_name, customer_email, property_address, county, client_request_id)
+      values (${QO}, '254engineering', 'O-PROBE-0098-A', 'residential-light-commercial-design', 'quote', 'awaiting_payment',
+              'Probe Customer, not a real person', 'quote-0098@audit-probe.invalid', '1 Probe Way', 'Nueces', 'quote:probe-0098-a'),
+             (${QO2}, '254engineering', 'O-PROBE-0098-B', 'residential-light-commercial-design', 'quote', 'awaiting_payment',
+              'Probe Customer, not a real person', 'quote-0098@audit-probe.invalid', '1 Probe Way', 'Nueces', 'quote:probe-0098-b');
+    `);
+    const converted = ordersMade ?? (await attempt(`update eng_quote_requests set converted_order_id = ${QO} where id = ${Q}`));
+    rec("an accepted quote converts to its order (0098)", converted === null, converted ?? "");
+    const moved = await attempt(`update eng_quote_requests set converted_order_id = ${QO2} where id = ${Q}`);
+    rec(
+      "and the order it names never changes (0098)",
+      moved !== null && /0098/.test(moved),
+      moved ?? "it moved",
     );
 
     /*
