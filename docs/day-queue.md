@@ -1,5 +1,35 @@
 # Day queue, 2026-10-23
 
+## BOARD 3 OF 6: addendum 2, void and reissue, with 0097 (on development), on main `dc03e74`
+
+**Prediction written and pushed before the board starts.** Branch `feat/void-and-reissue` at `153c22c`, which is main `dc03e74` plus:
+- `c9ad77b`: migration 0097 and its migration-audit checks.
+- `8649bee`: the application layer. The engineer voids his own sealed letter with a reason and a fresh code. A reissue records the act it replaces and tells the customer. Staff open a sealed document through the customer path's check.
+- `4daef57`: the ledger records 0097 on development, version 20261027160251, with its read-back in issue #1 comment 6447034883.
+
+The branch changes 13 files (1043 added, 15 removed lines), with no long dash. Robert's four rulings on the application layer are in comment 6445537155. Full lane, because it touches a migration, sealing and an API route.
+
+**Readers run locally, writers left to the board.** All green:
+- compliance 119: the standing acknowledgement, plus one COULD NOT TELL for want of a page
+- email 1072 of 1072, intake 116, migration 163, money 490, order 557, partner 205, review 91, token 115
+- schema-ledger 32: 97 applied, 1 pending (0097, allowed on a branch)
+- 17 reader proofs, including the new void and reissue proof, every-seal-asks-a-fresh-second-factor, a-seal-image-is-read-only-by-sealing, the owner override and the commit guard
+
+Writers (dashboards, doors, messaging, native) run only on the board. Development carries 0097, so they meet the schema they will meet in production.
+
+**Predicted:** 63 of 63, zero FAIL, no audit-level COULD NOT TELL, voice-audit 3 lines exempt, and the administrator's dashboard under 3000 ms.
+
+**Named risks:**
+- The void panel on `/portal/review` renders for the first time on the board, under contrast, mobile at 320, tap targets and native-audit.
+- Staff document links now answer 409 for a row marked sealed with no live seal act. A writer that opens an older uploaded deliverable that way would meet it.
+- Two new API routes are measured beside dashboard-speed-audit.
+
+**On a match:** confirm `origin/main` is still `dc03e74`. **Do not merge yet.** Post the board run and the boarded commit on issue #1, so the chat can sit 0097 on production from it. After the production read-back, record it in the ledger, merge `--no-ff` with `[skip ci]`, push with the exact command, run ls-remote, and post a status.
+
+## BOARD 2 OF 6, MERGED as `dc03e74`
+
+Second run 40536371472 on `0147ff7`: 63 of 63 as predicted, dashboard median 2284 ms, 3 lines exempt. Pushed; ls-remote confirmed; no run started.
+
 ## BOARD 2 OF 6, SECOND RUN: `bundle/board-2` at `0147ff7`
 
 **Prediction written and pushed before the board starts.**
