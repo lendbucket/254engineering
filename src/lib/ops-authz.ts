@@ -439,6 +439,11 @@ export type Action =
   // Record and withdraw the firm's insurance policies, and be warned before
   // one expires. The office and the owner (Robert's addendum, 2026-10-25; 0090).
   | "insurance.manage"
+  // Draft a scope addendum for the engineer to sign: a deliverable his
+  // agreement does not cover, and his pay for it. It decides what he is paid,
+  // so the owner alone (Robert's ruling of 2026-10-26, 07:10 Central; 0095).
+  // Drafting opens nothing and pays nothing until he signs it himself.
+  | "addenda.draft"
   // Invite a field technician, activate one, and review their credentials.
   // Never another role: profiles.create is the one that invites anybody.
   | "technicians.onboard"
@@ -511,6 +516,8 @@ const MATRIX: Record<Role, Action[]> = {
     "retention.execute",
     /* The insurance register, seeded by 0090: the owner records and withdraws cover. */
     "insurance.manage",
+    /* A scope addendum for the engineer to sign, seeded by 0095: the owner alone. */
+    "addenda.draft",
     /* The staff level actions, 0079, so an administrator can do anything a rep
      * or manager can, plus set the refund limit, which is the operator's alone. */
     "payments.send_link", "orders.read", "orders.resend_link", "files.update_details",

@@ -84,6 +84,19 @@ export const HELD_OUT_OF_FORCE: Readonly<Record<string, string>> = {
     "Deferred by operator ruling of 2026-10-22: it shares the windstorm line with 254-WS-001 and needs a signed scope addendum before any job.",
 };
 
+/**
+ * THE HOLD LIFTS ON HIS ADDENDUM. Robert's rulings of 2026-10-26, 07:10 and
+ * 08:19 Central (0095, 0096): a protocol listed here goes in force for its tier
+ * once a live signed per_job scope addendum covers the deliverable named, and
+ * not before. 0096's eng_put_signed_protocol_in_force asks the same question
+ * of eng_line_pay, so the database and the code hold the same condition.
+ * Approving it retires nothing on the other tier, because 0096 retires by line
+ * and tier.
+ */
+export const HELD_UNTIL_ADDENDUM: Readonly<Record<string, string>> = {
+  "254-WP-001": "windstorm-wpi-8/ongoing",
+};
+
 export function signableProtocol(documentNumber: string): SignableProtocol | undefined {
   return SIGNABLE_PROTOCOLS.find((p) => p.documentNumber === documentNumber);
 }

@@ -1232,6 +1232,13 @@ export function orderBlockedReason(
   entry: CatalogEntry | undefined,
   mode: OrderGateMode,
   hasApprovedProtocol: boolean,
+  /*
+   * True only from a money door that has read a live signed per_job scope
+   * addendum for this deliverable (src/lib/line-gate.ts, 0095). Every other
+   * caller leaves it false, so the deliverable stays refused: the closing
+   * direction, as ruling 11 requires of anything read from the database.
+   */
+  hasSignedAddendum = false,
 ): string | null {
   if (!entry) return "That deliverable is not in the order catalog.";
   if (mode === "prelaunch") {
@@ -1283,8 +1290,10 @@ export function orderBlockedReason(
    * Operator ruling, 2026-10-22: WPI-8 ongoing construction is not in
    * Schedule 2 and needs a signed scope addendum before any job. The reason
    * is internal, so the customer reads only that it is not available yet.
+   * Robert's ruling of 2026-10-26, 07:10 Central: it opens the moment his
+   * signature is recorded, which only the money door can read (0095).
    */
-  if (scopeAddendumMissing(entry.serviceSlug, entry.tier)) {
+  if (scopeAddendumMissing(entry.serviceSlug, entry.tier) && !hasSignedAddendum) {
     return "This service is not available to order yet. Call the office or send a message and somebody will take the details.";
   }
   if (entry.orderType === "quote") return null;
@@ -1301,4 +1310,5 @@ export const orderable = (
   entry: CatalogEntry | undefined,
   mode: OrderGateMode,
   hasApprovedProtocol: boolean,
-): boolean => orderBlockedReason(entry, mode, hasApprovedProtocol) === null;
+  hasSignedAddendum = false,
+): boolean => orderBlockedReason(entry, mode, hasApprovedProtocol, hasSignedAddendum) === null;

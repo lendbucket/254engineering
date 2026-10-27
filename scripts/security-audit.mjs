@@ -272,6 +272,8 @@ const ADMIN_APIS = [
   // And signing a protocol in the portal, ruling 2a of 2026-10-06.
   "/api/portal/protocols/sign",
   "/api/portal/addenda/sign",
+  // And the owner drafting a scope addendum for him to sign (0095, 2026-10-26).
+  "/api/portal/addenda/draft",
   // The facts a foundation or permit letter prints, the triage and the capture items (ruling 7, 2026-10-23).
   "/api/portal/letter-facts",
   "/api/portal/letter-templates/sign",

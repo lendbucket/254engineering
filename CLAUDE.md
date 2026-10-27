@@ -404,6 +404,31 @@ database. Nothing else in the gate may.
 The audit trail the rule above asks for is kept by the signing itself: every
 signature and every voiding writes to the append-only audit log. That is why
 this exception is safe where a database-driven gate in general is not.
+
+**RULING 11 EXTENDS, IN THE SAME SHAPE, TO ONE MORE SIGNATURE: THE SCOPE
+ADDENDUM FOR WPI-8 ONGOING CONSTRUCTION. Robert's answer 10, 2026-10-26, 09:12
+Central** (migrations 0095 and 0096). A deliverable listed in
+`SCOPE_ADDENDUM_REQUIRED` (`src/config/engineer-pay.ts`), which is
+`windstorm-wpi-8/ongoing` alone, is not in the engineer's agreement, and its
+door also reads his signed per job scope addendum, through `eng_line_pay`.
+
+- The line is offered by the deploy that ships it. Configuration lists which
+  deliverables need an addendum; it never lists which are signed, so nothing a
+  deploy types can open the line or pay for it.
+- Without a live signed addendum for that deliverable, it is closed, and the
+  customer reads that it is not available to order yet.
+- A voided signature, or a newer addendum he has not signed, closes it at
+  once, without a deploy. The exception runs in the closing direction only.
+- A failed or timed out read closes it, and /order says so in plain words.
+- His signature also lets his existing 254-WP-001 signature go in force for
+  the ongoing tier only (0096), so 254-WS-001 and completed construction are
+  untouched.
+
+The audit trail is the same one: an addendum signature is a seal act of kind
+`addendum`, written to the append-only audit log as `addendum.signed`, and
+voided like any seal act. Read by `src/lib/line-addendum.ts` from
+`lineIsSellable` in `src/lib/line-gate.ts`, and proved by
+`scripts/proofs/wpi8-ongoing-opens-only-on-its-own-signed-addendum.mjs`.
 ## 2. Brand differentiation (the ownership model is superseded)
 
 Three sites, one operator. To a search engine that is a doorway network unless each brand has a

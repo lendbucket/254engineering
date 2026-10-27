@@ -41,6 +41,7 @@ import { verifiedEngineers } from "@/config/credentials";
 import { licenceIsCurrentToday } from "./launch";
 import { signatureStatus } from "./protocol-sign";
 import { holdFor, holdRefusal } from "./dispatch-hold";
+import { headlineEntry } from "./ordering";
 
 /**
  * The field layer: protocols, offers, evidence, and what a technician is owed.
@@ -539,18 +540,55 @@ export async function approveProtocol(
   return { ok: true, items: items.length };
 }
 
-/** The one published protocol for a service line, or nothing. */
-export async function publishedProtocolFor(serviceSlug: string): Promise<ProtocolWithItems | null> {
+/**
+ * The tier a job was ordered at, from its newest order, or null when it has no
+ * order (a job taken over the telephone) or the read failed. Null is not a
+ * tier: on a line with one protocol it changes nothing, and on a line with two
+ * publishedProtocolFor refuses rather than guess (0096).
+ */
+export async function tierForFile(fileId: string): Promise<string | null> {
   const db = supabaseAdmin();
   if (!db) return null;
-  const { data } = await db
+  const { data, error } = await db
+    .from("eng_service_orders")
+    .select("tier")
+    .eq("file_id", fileId)
+    .order("created_at", { ascending: false })
+    .limit(1);
+  if (error) return null;
+  return (data?.[0]?.tier as string | null | undefined) ?? null;
+}
+
+/**
+ * The published protocol for a service line and tier, or nothing.
+ *
+ * BY TIER SINCE 0096. Robert's answer 12 of 2026-10-26: windstorm-wpi-8 keeps
+ * 254-WS-001 in force for completed construction and puts 254-WP-001 in force
+ * for ongoing, so the line can hold two published protocols. With one published
+ * record the answer is that record, exactly as before (unless a tier is asked
+ * for and the record names another). With two, the job's tier decides, and no
+ * tier is no answer: dispatch refuses rather than guessing which protocol a
+ * job runs under.
+ */
+export async function publishedProtocolFor(serviceSlug: string, tier: string | null = null): Promise<ProtocolWithItems | null> {
+  const db = supabaseAdmin();
+  if (!db) return null;
+  const { data: published } = await db
     .from("eng_protocol_templates")
-    .select(TEMPLATE_COLUMNS)
+    .select(`${TEMPLATE_COLUMNS}, service_tier`)
     .eq("service_slug", serviceSlug)
     .eq("status", "published")
     .order("version", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(10);
+  const inForce = (published ?? []) as unknown as (ProtocolTemplateRow & { service_tier: string | null })[];
+  const data =
+    inForce.length <= 1
+      ? inForce[0] && (tier === null || inForce[0].service_tier === null || inForce[0].service_tier === tier)
+        ? inForce[0]
+        : null
+      : tier === null
+        ? null
+        : (inForce.find((r) => r.service_tier === tier) ?? null);
   if (!data) return null;
   /*
    * A RECORD PUT IN FORCE BY A PORTAL SIGNATURE (0081) IS IN FORCE ONLY WHILE
@@ -740,7 +778,7 @@ export async function dispatchContext(
   const rateVisible = can(actor, "pricing.read_tech_rate");
   return {
     plan: rateVisible ? plan : { ...plan, offers: plan.offers.map((o) => ({ ...o, amountCents: null })) },
-    protocol: await publishedProtocolFor(file.service_slug),
+    protocol: await publishedProtocolFor(file.service_slug, await tierForFile(file.id)),
     feeCents: rateVisible ? feeCents : null,
     rateSet: offerRateRefusal(feeCents) === null,
     rateVisible,
@@ -835,7 +873,7 @@ export async function sendOffers(
   const heldBy = holdRefusal(await holdFor(fileId));
   if (heldBy) return { ok: false, error: heldBy };
 
-  const protocol = await publishedProtocolFor(file.service_slug as string);
+  const protocol = await publishedProtocolFor(file.service_slug as string, await tierForFile(fileId));
   if (!protocol) {
     return {
       ok: false,
@@ -1462,7 +1500,7 @@ export async function jobView(actor: Actor | null, fileId: string): Promise<JobV
 
   const protocol = file.protocol_template_id
     ? await getProtocolForWork(file.protocol_template_id as string)
-    : await publishedProtocolFor(file.service_slug as string);
+    : await publishedProtocolFor(file.service_slug as string, await tierForFile(fileId));
 
   const { data: captures, error: capturesError } = await db
     .from("eng_evidence_items")
@@ -2637,12 +2675,22 @@ export type CheckView = {
  * the point is that the technician knows where to look, not that they memorised
  * it in a room with no phone.
  */
-export async function checkFor(actor: Actor | null, serviceSlug: string): Promise<CheckView | null> {
+export async function checkFor(
+  actor: Actor | null,
+  serviceSlug: string,
+  /*
+   * THE LINE'S HEADLINE TIER WHEN NONE IS ASKED FOR (0096). windstorm-wpi-8
+   * holds two protocols once ongoing opens, and the check a technician takes
+   * from the certification screen stays the completed construction one it is
+   * today. A check on 254-WP-001 itself passes its tier (BACKLOG.md).
+   */
+  tier: string | null = headlineEntry(serviceSlug)?.tier ?? null,
+): Promise<CheckView | null> {
   const db = supabaseAdmin();
   if (!db || !actor) return null;
   if (actor.role !== "field_tech" && actor.role !== "admin") return null;
 
-  const protocol = await publishedProtocolFor(serviceSlug);
+  const protocol = await publishedProtocolFor(serviceSlug, tier);
   /* An unread checklist is not a check with no questions (sweep A5). */
   if (!protocol || protocol.itemsUnreadable) return null;
 
