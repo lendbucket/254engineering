@@ -58,6 +58,32 @@ const GIT_CASES = [
   ["no migration, on main", { branch: "main", stagedFiles: ["src/a.ts", "docs/b.md"] }, false],
   ["a migration on main, but detached HEAD", { branch: "", stagedFiles: ["supabase/migrations/0052_x.sql"] }, false],
   ["no git state at all", null, false],
+  /*
+   * The sitting merge, Robert's answer 2 of 22:11 Central 2026-10-26: allowed
+   * only when the STAGED ledger records every staged migration as applied to
+   * production. Each way that can fall short is a refusal of its own.
+   */
+  ["a sitting merge: the staged ledger records the migration on production",
+    { branch: "main", stagedFiles: ["supabase/migrations/0052_x.sql", "supabase/applied.mjs"],
+      ledger: { "0052_x.sql": { production: "2026-10-27", appliedBy: "apply_migration" } } }, false],
+  ["the staged ledger names it with no production date",
+    { branch: "main", stagedFiles: ["supabase/migrations/0052_x.sql"],
+      ledger: { "0052_x.sql": { production: null, appliedBy: "apply_migration" } } }, true],
+  ["the staged ledger has no entry for it",
+    { branch: "main", stagedFiles: ["supabase/migrations/0052_x.sql"],
+      ledger: { "0051_y.sql": { production: "2026-10-27", appliedBy: "apply_migration" } } }, true],
+  ["one of two staged migrations is recorded and the other is pending",
+    { branch: "main", stagedFiles: ["supabase/migrations/0052_x.sql", "supabase/migrations/0053_z.sql"],
+      ledger: { "0052_x.sql": { production: "2026-10-27", appliedBy: "apply_migration" },
+        "0053_z.sql": { production: null, appliedBy: "apply_migration" } } }, true],
+  ["a production date with no appliedBy",
+    { branch: "main", stagedFiles: ["supabase/migrations/0052_x.sql"],
+      ledger: { "0052_x.sql": { production: "2026-10-27" } } }, true],
+  ["a production value that is not a date",
+    { branch: "main", stagedFiles: ["supabase/migrations/0052_x.sql"],
+      ledger: { "0052_x.sql": { production: "yes", appliedBy: "apply_migration" } } }, true],
+  ["the staged ledger could not be read",
+    { branch: "main", stagedFiles: ["supabase/migrations/0052_x.sql"], ledger: null }, true],
 ];
 
 function ask(command) {
@@ -227,7 +253,81 @@ for (const [name, state, shouldRefuse] of GIT_CASES) {
   );
 }
 
+/*
+ * And the STAGED LEDGER READ, for the same reason: the sitting-merge cases
+ * above hand the rule its ledger, and this is the read that supplies it.
+ * 0091 is pinned because it is on production (2026-10-27, comment 6432012426).
+ */
+{
+  const { readStagedLedger } = await import("../hooks/commit-guard.mjs");
+  const ledger = await readStagedLedger();
+  const entry = ledger?.["0091_three_letters_seal_without_a_template.sql"];
+  const ok =
+    Boolean(ledger) && Object.keys(ledger).length >= 90 &&
+    entry?.production === "2026-10-27" && entry?.appliedBy === "apply_migration";
+  if (!ok) wrong += 1;
+  console.log(
+    `${ok ? "PASS" : "WRONG"}  the staged ledger can actually be read here` +
+      (ledger ? ` (${Object.keys(ledger).length} entries, 0091 production ${entry?.production})` : " (returned null)"),
+  );
+}
+
+/*
+ * And end to end, through the hook's own entry point, in a throwaway repository
+ * on main: the rule reads the ledger AS STAGED, never the working tree. A
+ * production date typed into the working copy and not staged must not open the
+ * door, and a staged record must open it whatever the working copy says.
+ */
+{
+  const { mkdtempSync, writeFileSync, rmSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const dir = mkdtempSync(join(tmpdir(), "commit-guard-sitting-"));
+  const git = (...args) => spawnSync("git", args, { cwd: dir, encoding: "utf8" });
+  const ledgerWith = (production) =>
+    `export const APPLIED = [\n  { file: "0052_x.sql", appliedBy: "apply_migration", production: ${production} },\n];\n`;
+  /*
+   * THE HOOK IS NAMED BY AN ABSOLUTE PATH HERE, AND THAT IS THE LESSON OF ITS
+   * FIRST RUN. HOOK is relative, and with cwd set to the throwaway repository
+   * node could not find it: empty output, which `ask` would read as "allowed".
+   * The allowed case passed because the hook never ran. So each answer here
+   * must also show the hook ran: exit 0 and no error on stderr.
+   */
+  const { resolve } = await import("node:path");
+  const absoluteHook = resolve(HOOK);
+  const askIn = (command) => {
+    const r = spawnSync(process.execPath, [absoluteHook], {
+      cwd: dir,
+      input: JSON.stringify({ tool_name: "Bash", tool_input: { command } }),
+      encoding: "utf8",
+    });
+    return { out: r.stdout.trim(), ran: r.status === 0 && !/Error|could not/.test(r.stderr) };
+  };
+  try {
+    git("init", "-q", "-b", "main");
+    const { mkdirSync } = await import("node:fs");
+    mkdirSync(join(dir, "supabase", "migrations"), { recursive: true });
+    writeFileSync(join(dir, "supabase", "migrations", "0052_x.sql"), "select 1;\n");
+    const cases = [
+      ["end to end: staged pending, working copy says applied", "null", '"2026-10-27"', true],
+      ["end to end: staged applied, working copy says pending", '"2026-10-27"', "null", false],
+    ];
+    for (const [name, staged, working, shouldRefuse] of cases) {
+      writeFileSync(join(dir, "supabase", "applied.mjs"), ledgerWith(staged));
+      git("add", "supabase");
+      writeFileSync(join(dir, "supabase", "applied.mjs"), ledgerWith(working));
+      const { out, ran } = askIn("git " + "commit -m 'sitting'");
+      const refused = out.includes('"permissionDecision":"deny"');
+      const ok = ran && refused === shouldRefuse;
+      if (!ok) wrong += 1;
+      console.log(`${ok ? "PASS" : "WRONG"}  ${shouldRefuse ? "refused" : "allowed"}: ${name}${ran ? "" : " (the hook did not run)"}`);
+    }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
 console.log(wrong === 0
-  ? `\nAll ${REFUSE.length + ALLOW.length + WRITE_CASES.length + GIT_CASES.length + 1} cases correct.`
+  ? `\nAll ${REFUSE.length + ALLOW.length + WRITE_CASES.length + GIT_CASES.length + 4} cases correct.`
   : `\n${wrong} case(s) wrong.`);
 process.exit(wrong === 0 ? 0 : 1);
