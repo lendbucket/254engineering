@@ -4,6 +4,17 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
+## THE WORKFLOW MAP IS WRITTEN AND NOT WALKED: W2, W3 AND W4 ARE OPEN
+
+Robert's instruction of 22:05 Central, 2026-10-26. `docs/workflows.md` maps 36
+workflows (254-WF-001 to 254-WF-036) across the seven roles, derived from the
+code at main `b6abbde`, and marks every step that needs SQL, a script or a code
+edit, and every step with no screen. Every step's W2 result reads "not walked
+yet". What remains is W2 (the Playwright walk on manual dispatch, against
+development, as probes), W3 (the fixes, by severity, one board per bundle) and
+W4 (each role's home and Procedures page). The reasoning and the counts are in
+the document; this is the pointer.
+
 ## THE MANUFACTURED HOME AND SOLAR LETTERS ARE BUILT; WHAT THEY LEAVE FOR A RULING
 
 Item B of Robert's ruling of 2026-10-25, 23:51 Central, on
