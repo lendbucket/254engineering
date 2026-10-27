@@ -14,13 +14,15 @@
 | `da15eb0` | 0093, the second factor for staff with the owner override (production 20261027060206) | 40452859017, 63 of 63 |
 | `c207809` | 0094, the old seal doors refuse (production 20261027080519) | 40458589746, 63 of 63 |
 | `6aed4d0` | `fix/mobile-audit-unmeasured`: an unmeasured route is COULD NOT TELL and blocks a merge; a run measuring too little fails outright | 40480981460, 63 of 63 |
+| `21bd982` (after the report, 11:41 UTC) | `feat/link-building-bundle-1` at `90fbd8d`: the press kit at `/press`, one name, address and phone on every public page | 40489636851, 63 of 63 as predicted; dashboard median 1471 ms, no API route; 3 lines exempt |
 
 Each is a merge commit pushed `[skip ci]` with the exact command and confirmed with ls-remote. Each migration merge differs from its boarded tree only in `supabase/applied.mjs`; `6aed4d0`'s tree is identical to the boarded `c01fc09`.
 
 ### Boarding
 
-- **`feat/link-building-bundle-1` at `90fbd8d`** (`b2c029d` with main `6aed4d0`), run **40489636851**, started 10:35 UTC. Predicted 63 of 63, zero FAIL, no audit-level COULD NOT TELL, voice-audit 3 exempt, dashboard-speed-audit with nothing left open. Named risk: `/press` is a new public route, and mobile-audit now fails on any route it could not measure. migration-audit (154 checks) and schema-ledger-audit pass on it. **Note:** the merge commit carried `[skip ci]`, so the push started no board; I started it with the workflow's own `workflow_dispatch` trigger on the same commit. The same will apply to bundle 2.
-- **Next:** bundle 2 with W1 (`acbe113`, brought up to main again first).
+- **`feat/link-building-bundle-2` with W1 at `8b91cd4`** (`acbe113` with main `21bd982`, no conflict), run **40498305719**, dispatched by `workflow_dispatch` because the merge commit carries `[skip ci]`. migration-audit 154 checks and schema-ledger-audit (95 applied, 0 pending) pass on it. Predicted 63 of 63, zero FAIL, no audit-level COULD NOT TELL, voice-audit 3 exempt, dashboard-speed-audit with nothing left open. Named risk: the partner portal checks added for W1 render for the first time on a board.
+- **Merged since the report:** bundle 1 (`90fbd8d`, run 40489636851, 63 of 63) as `21bd982`, pushed with the exact command, ls-remote confirmed. Its earlier row: `feat/link-building-bundle-1` at `90fbd8d` (`b2c029d` with main `6aed4d0`), run **40489636851**, started 10:35 UTC. Predicted 63 of 63, zero FAIL, no audit-level COULD NOT TELL, voice-audit 3 exempt, dashboard-speed-audit with nothing left open. Named risk: `/press` is a new public route, and mobile-audit now fails on any route it could not measure. migration-audit (154 checks) and schema-ledger-audit pass on it. **Note:** the merge commit carried `[skip ci]`, so the push started no board; I started it with the workflow's own `workflow_dispatch` trigger on the same commit. The same will apply to bundle 2.
+- **Next:** WPI-8 on 0096's read-back. Nothing else is queued for a board.
 
 ### Migrations waiting on the chat
 
