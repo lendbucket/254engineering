@@ -1,5 +1,24 @@
 # Day queue, 2026-10-23
 
+## BOARD 4 OF 6, SECOND RUN: `feat/quotes` at `2e8275a`
+
+**Prediction written and pushed before the board starts.**
+
+The first run, 40557511576 on `96f05e3`, missed: 61 of 63, with two FAILs, both in the writers shard.
+
+1. **v10-layout-audit:** "/order/quote/[reference] is measured (a dynamic route with no resolver; add one, a route with an id is not exempt)". This is the new customer quote page; it is the audit refusing to skip it. **Repaired in `2e8275a`.** A resolver issues a one-day signed link through `issueCustomerLink`, the product's own issuer, for the newest sent or accepted quote on development, the same way `/order/[reference]` is resolved. Development holds both kinds, from the two walk rows the chat repaired. Nothing was loosened.
+2. **roles-audit:** "no teardown step failed (1: profile probe-rep-... : 502 Bad Gateway, cloudflare)". The writers log carries four 502s from Cloudflare in front of development, and the suite counted four transient retries. **The branch did not cause this.** Teardown was refused at the gateway, so one rep probe profile may remain on development until the next sweep of the probe domain removes it.
+
+Everything else in the first run passed, writers included, apart from those two lines.
+
+**Predicted:** 63 of 63, zero FAIL, no audit-level COULD NOT TELL, voice-audit 3 lines exempt, and the administrator's dashboard under 3000 ms.
+
+**Named risks:**
+- `/order/quote/[reference]` renders under v10's layout rules for the first time. The first run never measured it.
+- A second gateway outage would fail roles-audit again for a reason outside the branch.
+
+**On a match:** post the run and the boarded commit on issue #1 for 0098's production sitting. Merge after board 3 merges, and after 0098 is read back from production.
+
 ## BOARD 4 OF 6: addendum 3, quotes, with 0098 (on development), Robert's five answers and the mobile plan, on board 3's `153c22c`
 
 **Prediction written and pushed before the board starts.**
