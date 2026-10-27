@@ -415,6 +415,73 @@ for (const route of allRoutes) {
     ["programmes", "programs"], ["cancelled", "canceled"], ["travelled", "traveled"],
   ];
 
+  /*
+   * THE ENGINEER'S STANDING SENTENCES, EXEMPT BY EXACT TEXT AND NOT BY FOLDER.
+   * Robert's ruling, 2026-10-26, 21:24 Central, after board 40431036823 went
+   * red on three lines of `src/content/letters/` carrying "programme".
+   *
+   * Those lines are the engineer's own words, marked "[Stands: your words]" in
+   * the drafts document sent for his adoption, and the letter files carry them
+   * exactly, as `the-three-letters-are-the-wording-on-file.mjs` requires. So
+   * the house spelling cannot be applied to them, and no question about it goes
+   * to him.
+   *
+   * A FOLDER EXEMPTION WAS REFUSED. Every other line in `src/content/letters/`
+   * is text this firm composed around his words, and stays under the sweep. The
+   * exemption is the two standing lines below, verbatim, and nothing else.
+   *
+   * IT CANNOT GROW QUIETLY. The list must equal, in both directions, the set of
+   * "[Stands" lines in the drafts document that carry a British form from the
+   * list above, so a sentence added here without the drafts document changing
+   * turns this red, and so does a standing line added there without this list
+   * changing. Both counts are pinned as literals as well: the sentences (2) and
+   * the lines they exempt (3), so a change to either costs an edit on purpose.
+   */
+  const LETTERS_DIR = "src/content/letters/";
+  const DRAFTS_DOC = "docs/letter-drafts/letter-drafts-for-adoption-2026-10-24.md";
+  const STANDING_SENTENCES = [
+    "This letter states conformance with {{named_requirement}} only. It states no opinion on any other standard, programme or requirement.",
+    "The recipient decides how to use this letter. This firm gives no opinion on its sufficiency for any particular permit or programme.",
+  ];
+  const STANDING_SENTENCE_COUNT = 2;
+  const STANDING_LINE_COUNT = 3;
+
+  if (STANDING_SENTENCES.length !== STANDING_SENTENCE_COUNT) {
+    record(
+      "spelling",
+      "us-spelling-standing",
+      `the standing exemption lists ${STANDING_SENTENCES.length} sentence(s) against a ruled ${STANDING_SENTENCE_COUNT}`,
+    );
+  }
+  {
+    const britishIn = (text) =>
+      BRITISH.some(([british]) => new RegExp(`\\b${british}\\b`).test(text.toLowerCase()));
+    const standingInDrafts = readSrc(DRAFTS_DOC, "utf8")
+      .split("\n")
+      .filter((l) => l.startsWith("[Stands"))
+      .map((l) => l.slice(l.indexOf("] ") + 2).trim())
+      .filter(britishIn);
+    for (const s of standingInDrafts) {
+      if (!STANDING_SENTENCES.includes(s)) {
+        record(
+          "spelling",
+          "us-spelling-standing",
+          `${DRAFTS_DOC} carries a standing line with a British form that the exemption does not list: ${s.slice(0, 90)}`,
+        );
+      }
+    }
+    for (const s of STANDING_SENTENCES) {
+      if (!standingInDrafts.includes(s)) {
+        record(
+          "spelling",
+          "us-spelling-standing",
+          `the exemption lists a sentence that is not a standing line of ${DRAFTS_DOC}: ${s.slice(0, 90)}`,
+        );
+      }
+    }
+  }
+  const standingExempt = [];
+
   const LITERAL = /"((?:[^"\\\n]|\\.)*)"|'((?:[^'\\\n]|\\.)*)'|`((?:[^`\\$]|\\.)*)`/g;
 
   /*
@@ -472,6 +539,11 @@ for (const route of allRoutes) {
           columnLists += 1;
           continue;
         }
+        /* The engineer's standing sentences, by exact text, in the letters only. */
+        if (file.startsWith(LETTERS_DIR) && STANDING_SENTENCES.includes(s)) {
+          standingExempt.push({ file, line: i + 1, text: s });
+          continue;
+        }
         const lower = s.toLowerCase();
         for (const [british, american] of BRITISH) {
           if (new RegExp(`\\b${british}\\b`).test(lower)) {
@@ -481,6 +553,20 @@ for (const route of allRoutes) {
         }
       }
     });
+  }
+
+  if (standingExempt.length !== STANDING_LINE_COUNT) {
+    record(
+      "spelling",
+      "us-spelling-standing",
+      `the standing sentences exempted ${standingExempt.length} line(s) against a ruled ${STANDING_LINE_COUNT}: ` +
+        standingExempt.map((e) => `${e.file}:${e.line}`).join(", "),
+    );
+  }
+  for (const s of STANDING_SENTENCES) {
+    if (!standingExempt.some((e) => e.text === s)) {
+      record("spelling", "us-spelling-standing", `a standing sentence exempted no line, so it is listed over nothing: ${s.slice(0, 90)}`);
+    }
   }
 
   for (const s of spelt) {
@@ -519,7 +605,9 @@ for (const route of allRoutes) {
     `US SPELLING: string literals in ${composedFiles.length} composed file(s) swept, ` +
       `${protocolFiles.length} protocol file(s) exempt as the signed document's own text ` +
       `(${protocolFiles.map((f) => f.slice(PROTOCOL_DIR.length)).join(", ")}), ` +
-      `${columnLists} column list(s) skipped as schema identifiers rather than prose.`,
+      `${columnLists} column list(s) skipped as schema identifiers rather than prose, ` +
+      `${standingExempt.length} line(s) exempt as the engineer's ${STANDING_SENTENCES.length} standing sentence(s) ` +
+      `(${standingExempt.map((e) => `${e.file.slice(LETTERS_DIR.length)}:${e.line}`).join(", ")}).`,
   );
   console.log(
     "  NOT READ BY THIS CHECK: JSX text nodes, and template literals carrying an " +
