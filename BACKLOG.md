@@ -4,6 +4,34 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
+## THE SITTINGS FOR 0091 AND 0092, AND THE REPAIR SPECIFICATION WAITS ON THEM
+
+`docs/production-sitting-0091-three-letters-seal-without-a-template.md` and
+`docs/production-sitting-0092-the-engineers-own-document-has-its-own-drafts-bucket.md`,
+both written 2026-10-26, in order after 0090. Both were applied to development
+by the chat at 07:05 UTC 2026-10-26 (issue #1); production follows each board. 0091 is
+item A of Robert's ruling of 2026-10-25, 23:51 Central; 0092 is the bucket
+item C needs. Until 0092 is on production and `feat/repair-spec-own-document`
+merges, repair specification orders are taken and paid and wait at sealing,
+and the customer's page says the specification is being prepared, with no
+date, which is the same ruling's own instruction.
+
+**Owed a look from Robert: where the seal goes on his document.** The
+platform adds a final page carrying the letterhead, the registrant with
+F-29811, the document's title and the seal block, and draws nothing on his
+pages, so no stamp can cover a line he wrote (control 16). The alternative,
+stamping his last page or every page, risks covering his content on a layout
+the platform cannot see. No new sentence is printed on the added page.
+
+## COPY-PROJECT'S BUCKET LIST IS SIX BUCKETS BEHIND THE CHAIN
+
+`scripts/copy-project.mjs` copies five buckets. The chain creates twelve:
+eng-documents, eng-seals, eng-partner-branding, eng-protocol-sources,
+eng-insurance and eng-engineer-drafts are not in its list, and nothing
+compares the two. It matters only on the cutover, which is deferred
+(`docs/production-cutover-plan.md`). The fix is to derive the list from the
+migrations, as migration-audit already derives the buckets the code names.
+
 ## THE MANUFACTURED HOME AND SOLAR LETTERS ARE BUILT; WHAT THEY LEAVE FOR A RULING
 
 Item B of Robert's ruling of 2026-10-25, 23:51 Central, on
