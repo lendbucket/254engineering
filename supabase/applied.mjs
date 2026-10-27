@@ -3743,7 +3743,10 @@ export const APPLIED = [
       "pair: one column, 1356, and 1289 facts (the replaced act's reference, its check, the index that lets an act " +
       "be replaced once). Four function bodies are replaced: the seal act check, guard and audit, and the void door.",
     because:
-      "WRITTEN 2026-10-27 ON feat/void-and-reissue, ON TOP OF 0096, AND APPLIED NOWHERE. Robert's addendum of " +
+      "WRITTEN 2026-10-27 ON feat/void-and-reissue, ON TOP OF 0096; ON DEVELOPMENT (version 20261027160251, " +
+      "applied by the operator's chat counterpart through apply_migration from stage/0097-void-and-reissue at " +
+      "cbd8593, file sha256 a76980a6, stored statement sha256 12373fc5, shape 8395cd8a across 1356 columns read " +
+      "back; issue #1 comment 6447034883), NOT YET ON PRODUCTION. Robert's addendum of " +
       "2026-10-25, 22:46 Central, item 2: the void function refuses anyone but a licensed engineer, and a replacement " +
       "letter records the seal act it replaces. Posted on issue #1 for the chat to sit on development, then on " +
       "production after the board passes. The branch merges only after the production apply is read back, and a " +
@@ -3760,7 +3763,10 @@ export const APPLIED = [
       "pair: eng_quote_files' eight columns, 1364, and 1307 facts (the table, its key, foreign key, unique pair, " +
       "index, checks and guard trigger, the two checks on eng_quote_requests and its guard trigger, and two grants).",
     because:
-      "WRITTEN 2026-10-27 ON feat/quotes, ON TOP OF 0097, AND APPLIED NOWHERE. Robert's addendum of 2026-10-25, " +
+      "WRITTEN 2026-10-27 ON feat/quotes, ON TOP OF 0097; ON DEVELOPMENT (version 20261027164640, applied by the " +
+      "operator's chat counterpart through apply_migration from stage/0098-quotes-2 at b3b80e0, file sha256 " +
+      "ea79198d, stored statement sha256 3a174cd5, shape f758025e across 1364 columns read back; issue #1 comment " +
+      "6447936290), NOT YET ON PRODUCTION. Robert's addendum of 2026-10-25, " +
       "22:46 Central, item 3: the office prices and sends a quote, the customer accepts and pays, and files attached " +
       "to a quote request are kept. Posted on issue #1 for the chat to sit on development, then on production after " +
       "the board passes. The branch merges only after the production apply is read back.",
@@ -3777,7 +3783,11 @@ export const APPLIED = [
       "email and removal checks, the live-once index, the guard trigger and its function, and one grant). The " +
       "eng-uploads bucket's 40 MB limit is a row, not a shape, so it moves neither figure.",
     because:
-      "WRITTEN 2026-10-27 ON feat/uploads-turnaround-alerts, ON TOP OF 0098, AND APPLIED NOWHERE. Robert's " +
+      "WRITTEN 2026-10-27 ON feat/uploads-turnaround-alerts, ON TOP OF 0098; ON DEVELOPMENT (version " +
+      "20261027164724, applied by the operator's chat counterpart through apply_migration from " +
+      "stage/0099-uploads-turnaround-alerts-2 at f7ef08b, file sha256 2384abfe, stored statement sha256 d217b4b1, " +
+      "shape 6bfbef5f across 1370 columns and the uploads limit 41943040 read back; issue #1 comment 6447936290), " +
+      "NOT YET ON PRODUCTION. Robert's " +
       "addendum of 2026-10-25, 22:46 Central, items 4 and 8b: a plan file of 40 MB fits the uploads bucket, and " +
       "the office's alerts go to a list the owner edits. Posted on issue #1 for the chat to sit on development, " +
       "then on production after the board passes. The branch merges only after the production apply is read back.",

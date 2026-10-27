@@ -36,7 +36,7 @@ import { todayInFirmCalendar } from "./firm-calendar";
 import { stripeAccountBlockedReason } from "./stripe-account";
 import { contact } from "@/config/contact";
 import { services } from "@/content/services";
-import { offeredServiceLines, selfServiceSignUp } from "@/config/launch-conditions";
+import { deskLines, offeredServiceLines, selfServiceSignUp } from "@/config/launch-conditions";
 import { protocolForLine } from "@/content/protocols";
 import { SIGNABLE_PROTOCOLS } from "@/content/protocols/signable";
 
@@ -352,10 +352,15 @@ export const LAUNCH_CONDITIONS: LaunchCondition[] = [
        * protocol in force for each offered line. Whether the engineer's
        * signature on it stands is read by every money door from the database,
        * which is the one place it lives.
+       *
+       * A DESK LINE IS SKIPPED BY NAME, Robert's answer 1 of 2026-10-27: design
+       * is paid on his signed scope addendum, never on a protocol. Every other
+       * offered line is asked exactly as before.
        */
-      const waiting = offeredServiceLines.filter((slug) => !lineHasProtocolInForce(slug));
+      const needProtocol = offeredServiceLines.filter((slug) => !deskLines.includes(slug));
+      const waiting = needProtocol.filter((slug) => !lineHasProtocolInForce(slug));
       if (waiting.length === 0) return null;
-      return `${waiting.length} of ${offeredServiceLines.length} OFFERED service line(s) have no protocol in force: ${waiting.join(", ")}. A line is offered when it is listed and its protocol is signed by the engineer of record, and both are needed.`;
+      return `${waiting.length} of ${needProtocol.length} OFFERED service line(s) have no protocol in force: ${waiting.join(", ")}. A line is offered when it is listed and its protocol is signed by the engineer of record, and both are needed.`;
     },
   },
 
@@ -749,6 +754,16 @@ export function sealingIsAvailableFor(serviceSlug: string): boolean {
  * day the two facts diverge.
  */
 export function serviceLineIsOffered(serviceSlug: string): boolean {
+  /*
+   * A DESK LINE IS NEVER OFFERED FOR ORDERING, ONLY QUOTED. Robert's answer 1
+   * of 2026-10-27 listed design in offeredServiceLines so its accepted quote
+   * can be paid. 254-DS-001 v1.1 was a signable transcription (signable.ts; it
+   * was withdrawn from signing on 2026-10-27), and another design text could be
+   * added one day, so without this clause design would read as offered here and every statically
+   * rendered card would show it as "Order online" once the gate opens. Its one
+   * money door is its accepted quote (designQuoteBlocked in line-gate.ts).
+   */
+  if (deskLines.includes(serviceSlug)) return false;
   /* Ruling 1 of 2026-10-24: a portal-signable protocol counts; the signature is read at the door. */
   return offeredServiceLines.includes(serviceSlug) && lineHasProtocolInForce(serviceSlug);
 }
@@ -906,7 +921,9 @@ export function linesWithNobodyTrained(): string[] {
    * prints ("1.1"), which is what the training register records beside the
    * integer the typed list used to carry.
    */
+  /* A desk line is exempt by name (Robert's answer 1 of 2026-10-27): design needs no technician. */
   return offeredServiceLines.filter((slug) => {
+    if (deskLines.includes(slug)) return false;
     const protocol = registeredProtocolFor(slug);
     if (!protocol) return false;
     return !verifiedTechnicianTraining.some(

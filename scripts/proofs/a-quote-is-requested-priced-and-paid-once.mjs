@@ -147,7 +147,93 @@ check("a lapsed quote is refused before it is accepted", accept.indexOf("view.la
 check("and the acceptance is conditional on the quote still being sent", /\.eq\("status", "sent"\)\s*\.select\("id"\)/.test(accept));
 const place = intakeSrc.slice(intakeSrc.indexOf("export async function placeOrder("), intakeSrc.indexOf("export function quoteFileProblem("));
 check("placeOrder takes a converted quote at the accepted figure", place.includes("? fromQuote.quotedCents"));
-check("and reads the signed record for it like any order", place.indexOf("orderBlockedNow(") !== -1 && place.indexOf("orderBlockedNow(") < place.indexOf("const fromQuote"));
+/*
+ * NAMED FOR THE NEW SHAPE, 2026-10-27. This asserted orderBlockedNow came before
+ * `const fromQuote`; Robert's answer 1 moved fromQuote up, because a design quote's
+ * door needs the quote id. What it still asserts: the signed record is read before
+ * the refusal returns, by the protocol door for any line and by his addendum for a
+ * design quote, and the design door reads the quote's STORED status (no fourth argument).
+ */
+const refusalAt = place.indexOf("if (!entry || blocked)");
+check(
+  "and reads the signed record for it like any order, before anything is decided",
+  place.indexOf("orderBlockedNow(") !== -1 && place.indexOf("orderBlockedNow(") < refusalAt,
+);
+check(
+  "and a design quote's door there reads the quote's stored status and his addendum",
+  place.includes("? await designQuoteBlocked(entry, fromQuote.quoteId, launchMode())") &&
+    place.indexOf("designQuoteBlocked(") < refusalAt &&
+    place.includes("deskLines.includes(entry.serviceSlug) && fromQuote"),
+);
+
+/* ------------------------------------------------ 7. Robert's answers of 2026-10-27, 11:48 Central */
+
+const DESIGN = "residential-light-commercial-design";
+const conditions = await import("../../src/config/launch-conditions.ts");
+
+/* Answer 3: a sent quote holds for 30 days. Pinned here as a literal (CLAUDE.md 6c). */
+check("a sent quote holds for 30 days by default, as ruled", rules.QUOTE_HOLD_DAYS.default === 30, String(rules.QUOTE_HOLD_DAYS.default));
+
+/* Answer 4: design's own refund sentence, word for word; the desk lines keep theirs. */
+const DESIGN_REFUND =
+  "The engineering fee is refundable in full until the engineer begins work. After work begins, fees for work completed are not refundable.";
+const designEntries = CATALOG.filter((e) => e.serviceSlug === DESIGN);
+check("the catalogue has design deliverables to ask about", designEntries.length >= 1, String(designEntries.length));
+for (const e of designEntries) {
+  check(`${e.tier}: a design quote shows exactly Robert's refund sentence before payment`, JSON.stringify(orders.refundDisclosure(e)) === JSON.stringify([DESIGN_REFUND]), orders.refundDisclosure(e).join(" | "));
+}
+/* "The desk lines keep their wording": every other deliverable in the catalogue, none of which carries design's sentence. */
+const others = CATALOG.filter((e) => e.serviceSlug !== DESIGN);
+const borrowed = others.filter((e) => orders.refundDisclosure(e).includes(DESIGN_REFUND) || orders.refundDisclosure(e).length < 2);
+check(
+  "and every other line keeps its own refund wording, not design's",
+  others.length > 0 && borrowed.length === 0,
+  borrowed.length === 0 ? `${others.length} other deliverables read` : borrowed.map((e) => `${e.serviceSlug}/${e.tier}`).join(", "),
+);
+const quotePage = read("src/app/(order)/order/quote/[reference]/page.tsx");
+check("and the customer's quote page shows the refund terms before the accept button", quotePage.indexOf("refundTerms.map(") !== -1 && quotePage.indexOf("refundTerms.map(") < quotePage.indexOf("<AcceptQuote"));
+
+/* Answer 1: design is offered, exempt by name, paid on an accepted quote and his signed addendum. */
+check("design is in offeredServiceLines", conditions.offeredServiceLines.includes(DESIGN), conditions.offeredServiceLines.join(", "));
+check("and the desk exemption names design and nothing else", JSON.stringify(conditions.deskLines) === JSON.stringify([DESIGN]), conditions.deskLines.join(", "));
+const pay = rules.designPaymentRefusal;
+check("accepted and signed: a design quote pays", pay({ offered: true, accepted: true, addendum: "signed" }) === null, String(pay({ offered: true, accepted: true, addendum: "signed" })));
+const noAddendum = pay({ offered: true, accepted: true, addendum: "unsigned" });
+check("accepted with no signed addendum: refused, naming the addendum only", Boolean(noAddendum) && /scope addendum/.test(noAddendum) && !/accepted/.test(noAddendum), String(noAddendum));
+const notAccepted = pay({ offered: true, accepted: false, addendum: "signed" });
+check("signed but not accepted: refused, naming the acceptance only", Boolean(notAccepted) && /not been accepted/.test(notAccepted) && !/scope addendum/.test(notAccepted), String(notAccepted));
+const neither = pay({ offered: true, accepted: false, addendum: "unsigned" });
+check("neither: refused, naming both", Boolean(neither) && /not been accepted/.test(neither) && /scope addendum/.test(neither), String(neither));
+const unknown = pay({ offered: true, accepted: true, addendum: "unknown" });
+check("a read that failed is never a yes", Boolean(unknown) && /could not confirm/.test(unknown), String(unknown));
+check("and a line not offered is refused whatever else holds", pay({ offered: false, accepted: true, addendum: "signed" }) !== null);
+const designEntry = designEntries[0];
+check("the door answers the gate first: a design quote is refused while the firm is not open", (await gate.designQuoteBlocked(designEntry, "q", "prelaunch")) !== null);
+const noDb = await gate.designQuoteBlocked(designEntry, "q", "open");
+check("and with no database to read, it closes in plain words", Boolean(noDb) && /could not confirm/.test(noDb), String(noDb));
+const viaOrderDoor = await gate.lineIsSellable(DESIGN);
+check("every door other than the accepted quote refuses design, by name", viaOrderDoor.ok === false && /accepted quote/.test(viaOrderDoor.why), viaOrderDoor.ok ? "ok" : viaOrderDoor.why);
+check("acceptQuote asks the design door before it records the acceptance", accept.includes("? await designQuoteBlocked(entry, quote.id, launchMode(), true)") && accept.indexOf("designQuoteBlocked(") < accept.indexOf('status: "accepted"'));
+
+/* Every other line's gate is unchanged: the protocol and training conditions skip design by name only. */
+const launch = await import("../../src/lib/launch.ts");
+const protocolsBlocker = launch.launchReadiness().find((r) => r.condition.id === "protocols")?.blocker ?? null;
+check("the protocols condition does not hold the gate shut over design", !String(protocolsBlocker ?? "").includes(DESIGN), String(protocolsBlocker));
+check("and the training condition does not name design", !launch.linesWithNobodyTrained().includes(DESIGN), launch.linesWithNobodyTrained().join(", "));
+const launchSrc = read("src/lib/launch.ts");
+const protocolsCond = launchSrc.slice(launchSrc.indexOf('id: "protocols"'), launchSrc.indexOf('id: "phone"'));
+check("and it skips desk lines by name, then asks every other offered line as before", protocolsCond.includes("offeredServiceLines.filter((slug) => !deskLines.includes(slug))") && protocolsCond.includes("needProtocol.filter((slug) => !lineHasProtocolInForce(slug))"));
+/*
+ * 254-DS-001 v1.1 was a signable transcription when design was listed, so design
+ * HAD a protocol the gate would count, and serviceLineIsOffered answered true
+ * until the desk clause. DS-001 was withdrawn from signing on 2026-10-27; the
+ * desk clause stays, asserted at runtime, never by wording.
+ */
+check("design is never offered for ordering, so no card shows it as an order", launch.serviceLineIsOffered(DESIGN) === false);
+check(
+  "and every other offered line still answers as it did",
+  conditions.offeredServiceLines.filter((s) => s !== DESIGN).every((s) => launch.serviceLineIsOffered(s) === launch.lineHasProtocolInForce(s)),
+);
 
 console.log(wrong === 0 ? "\nPASS: a quote is requested, keeps its files, is priced and sent, and is paid once." : `\nFAIL: ${wrong} check(s).`);
 process.exit(wrong === 0 ? 0 : 1);

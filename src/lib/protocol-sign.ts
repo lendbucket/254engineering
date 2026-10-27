@@ -5,7 +5,7 @@ import { holdsLicence, type Actor } from "./ops-authz";
 import type { ProfileRow } from "./ops-auth";
 import { verifyFreshCode } from "./ops-mfa";
 import { verifiedEngineers } from "@/config/credentials";
-import { HELD_OUT_OF_FORCE, HELD_UNTIL_ADDENDUM, SIGNABLE_PROTOCOLS, signableProtocol } from "@/content/protocols/signable";
+import { HELD_OUT_OF_FORCE, HELD_UNTIL_ADDENDUM, SIGNABLE_PROTOCOLS, signableProtocol, withdrawnRefusal } from "@/content/protocols/signable";
 import { linePayFor } from "./line-addendum";
 import { signedProtocolItemRows, type ProtocolItemRow } from "./protocol-run";
 import { licenceIsCurrentToday } from "./launch";
@@ -97,6 +97,9 @@ export async function signProtocol(
     return { ok: false, error: "Your license number on this account does not match the engineer on the firm's register." };
   }
 
+  /* A withdrawn document is refused by name (signable.ts), saying why, not "not waiting". */
+  const withdrawn = withdrawnRefusal(input.documentNumber);
+  if (withdrawn) return { ok: false, error: withdrawn };
   const protocol = signableProtocol(input.documentNumber);
   if (!protocol) return { ok: false, error: `${input.documentNumber} is not a protocol waiting for a signature.` };
   const version = protocol.version;

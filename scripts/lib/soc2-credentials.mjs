@@ -153,6 +153,16 @@ export const NOT_CREDENTIALS = new Set([
    */
   "NODE_OPTIONS",
   /*
+   * PATH, PG_DUMP and PG_RESTORE, 2026-10-27, for the backup (Robert's
+   * addendum item 11). PATH is the operating system's program search path,
+   * passed on by scripts/proofs/a-backup-proves-what-it-kept.mjs to the child
+   * processes it starts with an otherwise empty environment. PG_DUMP and
+   * PG_RESTORE are the file paths of the two PostgreSQL programs, so the
+   * workflow can name version 17 to match the server. Three paths, holding
+   * nothing and opening nothing.
+   */
+  "PATH", "PG_DUMP", "PG_RESTORE",
+  /*
    * SHOTS_GATE, SHOTS_ONLY and SHOTS_LABEL, 2026-10-03, all three on
    * scripts/design-shots.mjs and none of them a credential.
    *

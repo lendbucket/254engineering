@@ -1,6 +1,7 @@
 import type { CatalogEntry, Qualifier } from "@data/catalog";
 import type { FileStatus } from "./ops-files";
 import { add, isKnown, money, type Cents } from "./ops-money";
+import { DESIGN_REFUND_SENTENCE } from "./quote-rules";
 
 /**
  * The order engine's pure core: qualification, price composition, the refund
@@ -398,6 +399,15 @@ export function refundIfDeclinedEarly(entry: CatalogEntry): string {
 }
 
 export function refundDisclosure(entry: CatalogEntry): string[] {
+  /*
+   * DESIGN HAS ITS OWN SENTENCE, Robert's answer 4 of 2026-10-27, 11:48
+   * Central, word for word, shown before payment on a design quote. Design is
+   * the engineer's desk work rather than a review of gathered evidence, so the
+   * review and decline lines below do not describe it. The desk lines keep
+   * their wording.
+   */
+  if (entry.serviceSlug === "residential-light-commercial-design") return [DESIGN_REFUND_SENTENCE];
+
   const lines = [
     "The engineer reviews what is gathered and decides. They may seal it, ask for revisions, ask for another visit, or decline to seal.",
   ];

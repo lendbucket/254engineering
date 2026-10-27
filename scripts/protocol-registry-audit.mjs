@@ -1979,10 +1979,32 @@ if (carriers.length === 1) {
  * has already given, and this is where that shows.
  */
 {
-  const { SIGNABLE_PROTOCOLS, SUPERSEDED_RECEIVED } = await import("../src/content/protocols/signable.ts");
+  const { SIGNABLE_PROTOCOLS, SUPERSEDED_RECEIVED, SIGNABLE_AT_0081, WITHDRAWN_PROTOCOLS } = await import(
+    "../src/content/protocols/signable.ts"
+  );
+
+  /*
+   * 254-DS-001 v1.1 WAS WITHDRAWN FROM SIGNING ON 2026-10-27 (issue #1 comment
+   * 6449724196): design is a desk line paid on its accepted quote and his signed
+   * addendum, so nothing reads a signature on it. Pinned here as literals; a
+   * second withdrawal costs this edit and the one in signable.ts.
+   */
+  const WITHDRAWN_EXPECTED = ["254-DS-001 v1.1"];
+  const withdrawn = WITHDRAWN_PROTOCOLS.map((p) => `${p.documentNumber} v${p.version}`).sort();
+  rec(
+    "exactly the ruled document is withdrawn from signing, 254-DS-001 v1.1",
+    withdrawn.join("|") === WITHDRAWN_EXPECTED.join("|"),
+    withdrawn.join(", ") || "none",
+  );
+  rec(
+    "and the texts offered when 0081 was generated are the offered ones plus the withdrawn, so 0081's section 7 still regenerates",
+    SIGNABLE_AT_0081.map((p) => `${p.documentNumber} v${p.version}`).sort().join("|") ===
+      [...SIGNABLE_PROTOCOLS, ...WITHDRAWN_PROTOCOLS].map((p) => `${p.documentNumber} v${p.version}`).sort().join("|") &&
+      SIGNABLE_AT_0081.length === 8,
+    `${SIGNABLE_AT_0081.length} at 0081`,
+  );
 
   const EXPECTED = [
-    "254-DS-001 v1.1",
     "254-FC-001 v1.0",
     "254-MH-001 v1.1",
     "254-PL-001 v1.1",
@@ -1993,7 +2015,7 @@ if (carriers.length === 1) {
   ];
   const offered = SIGNABLE_PROTOCOLS.map((p) => `${p.documentNumber} v${p.version}`).sort();
   rec(
-    "the portal offers exactly the eight protocols ruled signable, WP-001 at v1.2 and FC-001 at v1.0 among them",
+    "the portal offers exactly the seven protocols ruled signable, WP-001 at v1.2 and FC-001 at v1.0 among them, and not DS-001",
     offered.join("|") === EXPECTED.join("|"),
     offered.join(", "),
   );
@@ -2017,10 +2039,12 @@ if (carriers.length === 1) {
     "254-DS-001": "c47536b8ab31009027e6f443a03bed1b28b6dbf443b85350b7e7bb817756958b",
   };
   for (const [number, signed] of Object.entries(SIGNED_ON_PRODUCTION)) {
-    const p = SIGNABLE_PROTOCOLS.find((s) => s.documentNumber === number && s.version === "1.1");
+    /* A withdrawn text is kept as the record of what he signed, so it must still hash to that signature. */
+    const fromWithdrawn = WITHDRAWN_PROTOCOLS.some((s) => s.documentNumber === number);
+    const p = (fromWithdrawn ? WITHDRAWN_PROTOCOLS : SIGNABLE_PROTOCOLS).find((s) => s.documentNumber === number && s.version === "1.1");
     const now = p ? createHash("sha256").update(p.text.join("\n"), "utf8").digest("hex") : null;
     rec(
-      `${number} v1.1: the text offered still hashes to the signature on production`,
+      `${number} v1.1: the text ${fromWithdrawn ? "kept as a record" : "offered"} still hashes to the signature on production`,
       now === signed,
       now === signed ? signed.slice(0, 12) : `offered ${now ? now.slice(0, 12) : "nothing"}, signed ${signed.slice(0, 12)}`,
     );
@@ -2076,7 +2100,8 @@ if (carriers.length === 1) {
  */
 {
   const { DISCIPLINE_BY_PROTOCOL, engineerDirections } = await import("../src/config/engineer-directions.ts");
-  const { SIGNABLE_PROTOCOLS } = await import("../src/content/protocols/signable.ts");
+  /* 0077 declared a discipline for every text then offered, DS-001 among them; an applied migration does not change. */
+  const { SIGNABLE_AT_0081: SIGNABLE_PROTOCOLS } = await import("../src/content/protocols/signable.ts");
   const { RECEIVED_PROTOCOLS } = await import("../src/content/protocols/received.ts");
   const { DOCX_RECEIVED_PROTOCOLS } = await import("../src/content/protocols/docx-received.ts");
 
@@ -2094,7 +2119,7 @@ if (carriers.length === 1) {
   const declared = DISCIPLINE_BY_PROTOCOL.map((e) => `${e.documentNumber} v${e.version}`).sort();
   const offered = SIGNABLE_PROTOCOLS.map((p) => `${p.documentNumber} v${p.version}`).sort();
   rec(
-    "every protocol offered for signature has its discipline declared, and nothing else does",
+    "every protocol offered for signature when 0077 and 0081 were written has its discipline declared, and nothing else does",
     declared.join("|") === offered.join("|"),
     declared.join(", "),
   );
