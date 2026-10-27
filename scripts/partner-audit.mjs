@@ -1051,6 +1051,112 @@ const terms = (over = {}) => ({
   );
 }
 
+// ---- THE PARTNER BADGE: text with a link, no 254 mark, worded under the gate --
+/*
+ * Robert's instruction of 2026-10-26, 15:57 Central, piece 3, and answer 19:
+ * the badge is the firm's derived disclosure as text with a link and no 254
+ * logo, and it follows the gate. partnerBadgeText says which sentence renders
+ * when; these checks hold it to that in BOTH modes. The shut mode is read in
+ * this process. The open mode is read in a child process with the gate's
+ * conditions stated true (gate-fixture.mjs), because the launch conditions are
+ * bound at first import and a patch cannot reach them here.
+ */
+{
+  const { partnerBadgeText, partnerBadgeHtml, partnerAttributionLine } = await import("../src/lib/partner-copy.ts");
+  const { isOpen } = await import("../src/lib/launch.ts");
+  const APEX = "https://254engineering.com";
+
+  /* What any badge, in any mode, must and must not be. */
+  const badgeFaults = (text, html) => {
+    const faults = [];
+    if (/254 Engineering Services/.test(text) || /254 Engineering Services/.test(html)) faults.push("names 254 Engineering Services");
+    if (/<img|<svg|<picture|logo|\.png|\.svg|\.jpg/i.test(html)) faults.push("carries an image or a logo");
+    const anchors = html.match(/<a\s/g) ?? [];
+    if (anchors.length !== 1) faults.push(`carries ${anchors.length} links, not one`);
+    if (!html.startsWith(`<a href="${APEX}"`)) faults.push("does not link to the apex");
+    const inner = html.replace(/^<a [^>]*>/, "").replace(/<\/a>$/, "");
+    const decoded = inner.replace(/&quot;/g, '"').replace(/&gt;/g, ">").replace(/&lt;/g, "<").replace(/&amp;/g, "&");
+    if (decoded !== text) faults.push("its link text is not the badge text");
+    return faults;
+  };
+
+  if (!isOpen()) {
+    /* The gate is shut in this process, which is what these two checks assert against. */
+    const withLine = partnerBadgeText(true);
+    const noLine = partnerBadgeText(false);
+    rec(
+      "the badge, with the gate shut, is the performing firm sentence whether or not a line is open",
+      withLine === performingFirmLine() && noLine === performingFirmLine(),
+      withLine.slice(0, 90),
+    );
+    const html = partnerBadgeHtml(withLine, APEX);
+    const faults = badgeFaults(withLine, html);
+    rec(
+      "and its code is one link to the apex, text only, with no 254 mark",
+      faults.length === 0 && copyVerdict(withLine).ok,
+      faults.join("; ") || copyVerdict(withLine).summary,
+    );
+  } else {
+    rec("the badge's shut-gate checks", false, "the gate read OPEN in this process, so the shut half could not be asserted");
+  }
+
+  const { inOpenGateProcess } = await import("./lib/gate-fixture.mjs");
+  const open = await inOpenGateProcess(`
+    const copy = await import("./src/lib/partner-copy.ts");
+    const launch = await import("./src/lib/launch.ts");
+    const withLine = copy.partnerBadgeText(true);
+    const noLine = copy.partnerBadgeText(false);
+    answer({
+      open: launch.isOpen(),
+      withLine,
+      noLine,
+      attribution: copy.partnerAttributionLine("Engineering"),
+      performing: copy.performingFirmLine(),
+      html: copy.partnerBadgeHtml(withLine, "${APEX}"),
+    });
+  `);
+  rec(
+    "with the gate open and a line open, the badge is the attribution line, Engineering by the firm and its number",
+    open.open === true &&
+      typeof open.attribution === "string" &&
+      open.withLine === open.attribution &&
+      open.withLine.startsWith("Engineering by ") &&
+      /TBPELS Firm /.test(open.withLine),
+    open.withLine,
+  );
+  rec(
+    "and with the gate open and no line open, it falls back to the performing firm sentence, so the two states read differently",
+    open.noLine === open.performing && open.noLine !== open.withLine,
+    open.noLine.slice(0, 90),
+  );
+  {
+    const faults = badgeFaults(open.withLine, open.html);
+    rec("and its open-gate code is one link to the apex, text only, with no 254 mark", faults.length === 0, faults.join("; ") || open.html);
+  }
+
+  /*
+   * NOTHING IN THE BADGE IS TYPED. The two functions name the firm only
+   * through partnerAttributionLine and performingFirmLine, both read from the
+   * register; a literal name or number in them would be a second home.
+   */
+  const source = codeOnly("src/lib/partner-copy.ts");
+  const badgeBody = source.slice(source.indexOf("export function partnerBadgeText"), source.indexOf("export function partnerBadgeHtml"));
+  rec(
+    "the badge types no firm name and no registration number",
+    badgeBody.length > 0 && !/254 Engineering|F-\d{5}|TBPELS Firm/.test(badgeBody),
+    badgeBody.length > 0 ? "names the firm only through the two derived sentences" : "partnerBadgeText was not found",
+  );
+
+  /* And the screen that shows it carries no image near it and derives the text. */
+  const materials = codeOnly("src/app/partner/(app)/materials/page.tsx");
+  rec(
+    "the materials screen renders the badge from the deriver and places no logo with it",
+    /partnerBadgeText\(/.test(materials) && /partnerBadgeHtml\(/.test(materials) && /orderBlockedNow\(/.test(materials) &&
+      !/<img|<Image|\/brand\/logo/.test(materials),
+    "partnerBadgeText, partnerBadgeHtml and orderBlockedNow called; no image",
+  );
+}
+
 // ---- NON NEGOTIABLE 3: no partner name on a deliverable or the RC log ------
 {
   const binder = codeOnly("src/lib/ops-binder.ts");

@@ -134,6 +134,7 @@ export function SiteFooter() {
               <FooterLink href="/government">Government and commercial</FooterLink>
               <FooterLink href="/insights">Insights</FooterLink>
               <FooterLink href="/careers">Careers</FooterLink>
+              <FooterLink href="/press">Press</FooterLink>
               <FooterLink href="/contact">Contact</FooterLink>
             </nav>
             <p className="mt-5 text-[12.5px] font-bold tracking-[0.12em] text-[#8a99b5] uppercase">

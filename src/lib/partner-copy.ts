@@ -216,3 +216,51 @@ export function partnerAttributionLine(
   const line = serviceNameInSentence(lineShortName);
   return `${line.charAt(0).toUpperCase()}${line.slice(1)} by ${name}, TBPELS Firm ${registration.number}`;
 }
+
+/*
+ * ===========================================================================
+ * THE PARTNER BADGE. Robert's instruction of 2026-10-26, 15:57 Central, piece
+ * 3, and his answer 19 of 18:55: a text badge with a link and no 254 logo,
+ * worded under the gate.
+ * ===========================================================================
+ *
+ * A partner places it on their own site. The 2026-10-15 ruling is that a
+ * partner never operates under any 254 mark, so the badge is text, never an
+ * image, and it names the firm only through the two sentences above, both
+ * derived from the register. Nothing here types the name or the number.
+ *
+ * IT FOLLOWS THE GATE THE WAY THE PARTNER ORDER PAGE DOES, and adds no wording
+ * of its own. That page shows the "<line> by <firm>, TBPELS Firm <number>"
+ * attribution only beside a line open for ordering now, and otherwise carries
+ * the performing firm sentence alone. So:
+ *
+ *   - the gate open AND at least one line open now: "Engineering by <firm>,
+ *     TBPELS Firm <number>" (partnerAttributionLine);
+ *   - anything else, which is every state today: performingFirmLine(), the
+ *     sentence every partner surface already carries, which says the firm
+ *     "will perform and seal" referred work while the gate is not open.
+ *
+ * `anyLineOpen` is asked by the caller through orderBlockedNow, the money door
+ * every order page uses (ruling 11), because only the caller can read the
+ * signed record. A caller that cannot tell passes false, which is the shut
+ * answer.
+ */
+export function partnerBadgeText(anyLineOpen: boolean): string {
+  if (isOpen() && anyLineOpen) {
+    const attribution = partnerAttributionLine("Engineering");
+    if (attribution) return attribution;
+  }
+  return performingFirmLine();
+}
+
+const escapeHtml = (s: string) =>
+  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+/**
+ * The snippet a partner pastes: one link, the badge text inside it, pointing
+ * at the apex. No image, no script, no styling the partner's site would have to
+ * load from here.
+ */
+export function partnerBadgeHtml(text: string, href: string): string {
+  return `<a href="${escapeHtml(href)}" rel="noopener">${escapeHtml(text)}</a>`;
+}

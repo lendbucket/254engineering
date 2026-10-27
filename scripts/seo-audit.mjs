@@ -17,6 +17,7 @@ import { chromium } from "playwright";
 import * as chromeLauncher from "chrome-launcher";
 import lighthouse from "lighthouse";
 import { AUDIT_BASE_URL } from "./lib/ports.mjs";
+import { napFindings } from "./lib/nap.mjs";
 
 const BASE = process.env.BASE_URL || AUDIT_BASE_URL;
 
@@ -116,6 +117,27 @@ const BASE = process.env.BASE_URL || AUDIT_BASE_URL;
  * JSON-LD by eye.
  */
 const PUBLIC_EMAIL = "support@254engineering.com";
+
+/*
+ * ==========================================================================
+ * ONE NAME, ADDRESS AND PHONE ON EVERY PUBLIC PAGE.
+ * ==========================================================================
+ *
+ * Robert's instruction of 2026-10-26, 15:57 Central, piece 4: "254 Engineering",
+ * "5601 South Padre Island Drive, Suite E, Corpus Christi, TX 78412" and
+ * "(281) 940-4490", identical everywhere. Pinned here as literals, never read
+ * from src/config/business.ts or contact.ts, for the reason PUBLIC_EMAIL above
+ * gives: an expectation imported from the config agrees with the config by
+ * construction. Every sitemap route's footer and its Organization node are read
+ * by scripts/lib/nap.mjs, and the count of pages read is asserted after the
+ * walk so the check cannot pass over none.
+ */
+const NAP = {
+  name: "254 Engineering",
+  address: "5601 South Padre Island Drive, Suite E, Corpus Christi, TX 78412",
+  phone: "(281) 940-4490",
+};
+let napPagesRead = 0;
 
 /*
  * THE GUIDE PAGES THAT CARRY ARTICLE SCHEMA, as Robert named them on
@@ -294,6 +316,8 @@ for (const route of routes) {
   const html = await res.text();
   pageHtml.set(route, { html, robotsHeader: res.headers.get("x-robots-tag") ?? "" });
   const meta = extract(html);
+  napPagesRead += 1;
+  problems.push(...napFindings(route, html, meta.jsonLd, NAP));
   const title = decode(meta.title);
   const description = decode(meta.description);
 
@@ -625,6 +649,15 @@ if (articlePagesSeen !== ARTICLE_PAGES.size) {
   problems.push(`the Article check reached ${articlePagesSeen} of the ${ARTICLE_PAGES.size} guide pages: the rest are missing from the sitemap`);
 } else {
   console.log(`PASS: Article schema checked on all ${ARTICLE_PAGES.size} guide pages, and refused everywhere else.`);
+}
+
+if (napPagesRead === 0 || napPagesRead !== routes.length) {
+  problems.push(
+    `the name, address and phone check read ${napPagesRead} of ${routes.length} sitemap pages; ` +
+      "every public page has to be read for it to mean anything",
+  );
+} else {
+  console.log(`PASS: name, address and phone read on all ${napPagesRead} sitemap pages, footer and Organization node.`);
 }
 
 if (schemaEmailsSeen === 0) {
