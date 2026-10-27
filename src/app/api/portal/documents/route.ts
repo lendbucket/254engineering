@@ -16,6 +16,10 @@ export const dynamic = "force-dynamic";
  *
  * The redirect is deliberate rather than proxying the bytes: the file goes from
  * storage to the person, and nothing in between keeps a copy.
+ *
+ * EXCEPT A SEALED DOCUMENT, since addendum item 2: its bytes are re-hashed
+ * against the live seal act and served from here, the customer path's check,
+ * because a redirect would reach the object after the check had run.
  */
 async function handleGET(request: NextRequest) {
   const actor = await currentActor();
@@ -27,8 +31,8 @@ async function handleGET(request: NextRequest) {
   const id = request.nextUrl.searchParams.get("id") ?? "";
   if (!id) return NextResponse.json({ ok: false, error: "Which document?" }, { status: 400 });
 
-  const url = await documentUrl(actor, id);
-  if (!url) {
+  const opened = await documentUrl(actor, id);
+  if (!opened) {
     /*
      * One message for "does not exist" and for "not yours". Telling the
      * difference would confirm the existence of a document somebody is not
@@ -36,17 +40,36 @@ async function handleGET(request: NextRequest) {
      */
     return NextResponse.json({ ok: false, error: "That document is not available to you." }, { status: 404 });
   }
+  /*
+   * A SEALED DOCUMENT THE CUSTOMER'S CHECK REFUSED IS REFUSED HERE TOO, with
+   * its sentence (addendum item 2). The reader already passed the visibility
+   * rule, so saying why a document they may see is not served confirms
+   * nothing they could not already know.
+   */
+  if (opened.kind === "refused") {
+    return NextResponse.json({ ok: false, error: opened.error }, { status: 409 });
+  }
 
   await writeAudit({
     actor,
     action: "document.open",
     entityType: "document",
     entityId: id,
-    summary: "Opened a filed document",
+    summary: opened.kind === "sealed" ? "Opened a sealed document, its hash checked against the seal" : "Opened a filed document",
     ...(await requestContext()),
   });
 
-  return NextResponse.redirect(url, { status: 302, headers: { "Cache-Control": "no-store, max-age=0" } });
+  if (opened.kind === "sealed") {
+    return new NextResponse(Buffer.from(opened.bytes), {
+      status: 200,
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `inline; filename="254-sealed-${id.slice(0, 8)}.pdf"`,
+        "Cache-Control": "no-store, max-age=0",
+      },
+    });
+  }
+  return NextResponse.redirect(opened.url, { status: 302, headers: { "Cache-Control": "no-store, max-age=0" } });
 }
 
 /* A save abandoned by the 20 second bound says it may not have saved, and a failed session read is never "Not signed in": save-outcome.ts. */

@@ -17,7 +17,8 @@ import { DecisionPanel, OpenReviewButton } from "./ReviewClient";
 import { LetterSealPanel } from "./LetterSealPanel";
 import { OwnDocumentSealPanel } from "./OwnDocumentSealPanel";
 import { FileThreadButton } from "@/components/portal/FileThreadButton";
-import { OWN_DOCUMENT_PROTOCOLS, lettersAwaitingSeal } from "@/lib/letter-seal";
+import { OWN_DOCUMENT_PROTOCOLS, lettersAwaitingSeal, liveLettersOf } from "@/lib/letter-seal";
+import { VoidSealPanel } from "./VoidSealPanel";
 import { heldFiles } from "@/lib/dispatch-hold";
 import { PrereviewPanel } from "./PrereviewPanel";
 import { TrainingDecisionPanel } from "./TrainingDecisionPanel";
@@ -72,6 +73,7 @@ export default async function ReviewPage({
   /* A failed read is said above the list, never "no letters waiting" (audit of 2026-10-24). */
   const awaitingRead = await lettersAwaitingSeal(actor);
   const awaiting = awaitingRead.ok ? awaitingRead.letters : [];
+  const liveRead = await liveLettersOf(actor);
   const held = await heldFiles();
   const trainingWaiting = await trainingAwaitingEngineer();
   const addenda = await addendaFor(actor!.id);
@@ -814,6 +816,20 @@ export default async function ReviewPage({
           </div>
         )}
       </div>
+
+      {/* Addendum item 2: void one of his own sealed letters, so it can be reissued. A failed read is said, never "no letters". */}
+      {liveRead.ok ? (
+        <VoidSealPanel
+          letters={liveRead.letters.map((l) => ({
+            sealActId: l.sealActId,
+            label: `${l.fileNumber ? `${l.fileNumber}, ` : ""}${l.title}, sealed ${formatInFirmZone(l.sealedAt)}`,
+          }))}
+        />
+      ) : (
+        <p role="alert" className="mt-8 text-[14px] text-[var(--ink)]">
+          Your sealed letters could not be read, so none is offered for voiding just now: {liveRead.error}
+        </p>
+      )}
     </>
   );
 }

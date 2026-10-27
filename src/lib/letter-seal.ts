@@ -7,7 +7,7 @@ import type { ProfileRow } from "./ops-auth";
 import { readImageForSealing } from "./seal-store";
 import { answersFor } from "./ops-file-inputs";
 import { transitionFile } from "./ops-crm";
-import { orderForFile, settleDecision } from "./ops-payments";
+import { orderForFile, sendLetterReplaced, settleDecision } from "./ops-payments";
 import { writeAudit } from "./ops-audit";
 import { DB_NOW } from "./db-now";
 import { raise } from "./ops-notify";
@@ -946,6 +946,14 @@ export async function sealLetter(actor: SignedIn | null, input: SealInput): Prom
   });
 
   /*
+   * 8a. A REISSUE IS TOLD, NOT DELIVERED AGAIN (addendum item 2, 0097). When
+   * this letter replaces one he voided, the customer is told and the order is
+   * not settled a second time: it was settled with the first letter.
+   */
+  const reissue = await replacementNotice(sealActId, det.file_id, "letter");
+  if (reissue) return { ok: true, documentId, sha256, ...reissue };
+
+  /*
    * 9. On a pass: the file is sealed and delivered, and the order settles and
    * completes. AND ON A FOUNDATION DECLINE (ruling FC-1, 2026-10-23): option C
    * is a sealed letter and "a C letter is delivered work: no refund", so it is
@@ -966,6 +974,159 @@ export async function sealLetter(actor: SignedIn | null, input: SealInput): Prom
     sha256,
     delivered: problems.length === 0,
     warning: problems.length ? `The letter is sealed. Then ${problems.join("; ")}.` : null,
+  };
+}
+
+/**
+ * WHETHER A SEAL JUST APPLIED REPLACES A VOIDED ONE, AND IF SO, THE NOTICE.
+ * Addendum item 2. The database names the act a letter replaces when the seal
+ * is recorded (0097), so this reads that record back rather than guessing from
+ * the file. Null when the act replaces nothing, which is a first letter and
+ * goes on to the ordinary delivery. When it replaces one: the customer of the
+ * file's order gets the replacement notice, and nothing is settled again.
+ *
+ * A failed read is not "a first letter": delivering again would settle an
+ * order a second time. So it stops here and says so.
+ */
+export async function replacementNotice(
+  sealActId: string,
+  fileId: string,
+  noun: "letter" | "specification",
+): Promise<{ delivered: boolean; warning: string | null } | null> {
+  const db = supabaseAdmin();
+  const Noun = noun === "letter" ? "letter" : "specification";
+  if (!db) return { delivered: false, warning: `The ${Noun} is sealed. Then the database was not configured, so nothing else ran.` };
+  const { data: act, error } = await db
+    .from("eng_seal_acts")
+    .select("replaces_seal_act_id")
+    .eq("id", sealActId)
+    .maybeSingle();
+  if (error || !act) {
+    return {
+      delivered: false,
+      warning: `The ${Noun} is sealed. Then whether it replaces an earlier one could not be read${error ? ` (${error.message})` : ""}, so neither the delivery nor a replacement notice ran. Tell the office.`,
+    };
+  }
+  if (!act.replaces_seal_act_id) return null;
+
+  const order = await orderForFile(fileId);
+  if (!order) {
+    return { delivered: true, warning: `The replacement ${Noun} is sealed. The file has no order, so no customer was emailed.` };
+  }
+  const sent = await sendLetterReplaced(order.id as string);
+  return sent.ok
+    ? { delivered: true, warning: null }
+    : { delivered: true, warning: `The replacement ${Noun} is sealed and on the order page. Then the customer was not emailed: ${sent.error}.` };
+}
+
+/**
+ * VOID A SEALED LETTER, SO IT CAN BE REISSUED. Robert's addendum of
+ * 2026-10-25, item 2: "Portal action, engineer only, fresh code required,
+ * reason required, calling eng_void_seal_act."
+ *
+ * The engineer who sealed it voids it, from his own session, with a fresh code
+ * and a reason. The database refuses any voider who is not the licensed role
+ * (0097) and writes the voiding to the audit log. Once voided, the letter is
+ * served to nobody (sealedLetterBytes refuses a void seal), and its
+ * determination is back in his letters awaiting a seal, where sealing it again
+ * is the reissue: the new act names this one (0097), and the customer is told
+ * (replacementNotice).
+ *
+ * ONLY HIS OWN SEAL. The ruling says engineer only; this also requires the
+ * engineer who applied it, the same identity rule sealing has (control 3). No
+ * other engineer, and no administrator, can withdraw a seal he applied.
+ */
+export async function voidSealedLetter(
+  actor: SignedIn | null,
+  input: { sealActId: string; code: string; reason: string; context?: { ip?: string | null; userAgent?: string | null } },
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+  if (!holdsLicence(actor, "documents.seal")) {
+    return { ok: false, error: "Only the engineer of record voids a sealed letter. No other role can stand in for him." };
+  }
+  const reason = input.reason.trim();
+  if (reason.length < 10) {
+    return { ok: false, error: "Say why the seal is voided, in a sentence. The reason is kept on the record with the voiding. Nothing was voided." };
+  }
+  const { data: act, error } = await db
+    .from("eng_seal_acts")
+    .select("id, kind, sealed_by, voided_at, determination_id, document_id")
+    .eq("id", input.sealActId)
+    .maybeSingle();
+  if (error) return { ok: false, error: `The seal could not be read: ${error.message}. Nothing was voided.` };
+  if (!act || act.kind !== "letter") return { ok: false, error: "That is not a sealed letter. Nothing was voided." };
+  if (act.voided_at) return { ok: false, error: "That letter's seal is already void." };
+  if (act.sealed_by !== actor!.id) {
+    return { ok: false, error: "Only the engineer who sealed this letter can void it. Nothing was voided." };
+  }
+
+  const fresh = await verifyFreshCode(actor!.id, input.code, "Voiding a seal");
+  if (!fresh.ok) return { ok: false, error: fresh.error };
+
+  const voided = await db.rpc("eng_void_seal_act", { p_seal_act_id: act.id, p_voided_by: actor!.id, p_because: reason });
+  if (voided.error) return { ok: false, error: `The seal could not be voided: ${voided.error.message}. Nothing changed.` };
+
+  const { data: det } = await db.from("eng_determinations").select("file_id").eq("id", act.determination_id as string).maybeSingle();
+  await writeAudit({
+    actor,
+    action: "letter.voided",
+    entityType: "file",
+    entityId: (det?.file_id as string | undefined) ?? (act.document_id as string),
+    summary: `Voided the sealed letter's seal so it can be reissued: ${reason}`,
+    ...(input.context ?? {}),
+  });
+  return { ok: true };
+}
+
+/**
+ * HIS SEALED LETTERS THAT ARE LIVE, so the screen can offer each one for
+ * voiding. Only his own, the same scope voidSealedLetter enforces.
+ */
+export type LiveLetter = { sealActId: string; documentId: string; title: string; sealedAt: string; fileNumber: string };
+export async function liveLettersOf(actor: SignedIn | null): Promise<{ ok: true; letters: LiveLetter[] } | { ok: false; error: string }> {
+  const db = supabaseAdmin();
+  if (!holdsLicence(actor, "documents.seal")) return { ok: true, letters: [] };
+  if (!db) return { ok: false, error: "The database is not configured." };
+  const acts = await readEvery<{ id: string; document_id: string; created_at: string }>((from, to) =>
+    db
+      .from("eng_seal_acts")
+      .select("id, document_id, created_at")
+      .eq("kind", "letter")
+      .eq("sealed_by", actor!.id)
+      .is("voided_at", null)
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  if (!acts.ok) return { ok: false, error: `Your sealed letters could not be read: ${acts.error}` };
+  if (!acts.rows.length) return { ok: true, letters: [] };
+  const docs = await readEveryIn<{ id: string; title: string; file_id: string | null }>(
+    acts.rows.map((a) => a.document_id),
+    (chunk, from, to) => db.from("eng_documents").select("id, title, file_id").in("id", [...chunk]).order("id").range(from, to),
+  );
+  if (!docs.ok) return { ok: false, error: `The documents of your sealed letters could not be read: ${docs.error}` };
+  const docOf = new Map(docs.rows.map((d) => [d.id, d]));
+  const fileIds = [...new Set(docs.rows.map((d) => d.file_id).filter((f): f is string => Boolean(f)))];
+  const files = fileIds.length
+    ? await readEveryIn<{ id: string; file_number: string }>(fileIds, (chunk, from, to) =>
+        db.from("eng_files").select("id, file_number").in("id", [...chunk]).order("id").range(from, to),
+      )
+    : { ok: true as const, rows: [] as { id: string; file_number: string }[] };
+  if (!files.ok) return { ok: false, error: `The files of your sealed letters could not be read: ${files.error}` };
+  const fileOf = new Map(files.rows.map((f) => [f.id, f.file_number]));
+  return {
+    ok: true,
+    letters: acts.rows.map((a) => {
+      const doc = docOf.get(a.document_id);
+      return {
+        sealActId: a.id,
+        documentId: a.document_id,
+        title: doc?.title ?? "Sealed letter",
+        sealedAt: a.created_at,
+        fileNumber: (doc?.file_id && fileOf.get(doc.file_id)) || "",
+      };
+    }),
   };
 }
 
