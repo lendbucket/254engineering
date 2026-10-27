@@ -10,6 +10,7 @@ import { attachmentRows, BINDER_HEADERS, binderRows, limitationsFor, type Binder
 import { csv } from "./csv";
 import { marginOf, moneyCell, periodTotals, type Cents, type FileMoney } from "./ops-money";
 import { partnerCostByFileRead } from "./ops-partner-comp";
+import { sealedLetterBytes } from "./letter-seal";
 
 /**
  * Documents, billing, and the numbers the dashboards read.
@@ -86,23 +87,53 @@ export async function listDocuments(
   return (data ?? []) as DocumentRow[];
 }
 
-/** A time limited link to a stored document. The buckets stay private. */
-export async function documentUrl(actor: Actor | null, documentId: string): Promise<string | null> {
+/**
+ * What opening a filed document gives a member of staff.
+ *
+ *   link     an unsealed document: a time limited signed link, as before
+ *   sealed   a sealed document: its bytes, served only after the same check
+ *            the customer's copy passes (sealedLetterBytes)
+ *   refused  a sealed document that check refused, with its sentence
+ */
+export type DocumentOpen =
+  | { kind: "link"; url: string }
+  | { kind: "sealed"; bytes: Uint8Array; title: string }
+  | { kind: "refused"; error: string };
+
+/**
+ * A stored document for staff. The buckets stay private.
+ *
+ * A SEALED DOCUMENT GETS THE CUSTOMER PATH'S CHECK, NOT A SIGNED LINK. Robert's
+ * addendum of 2026-10-25, item 2: "Staff document links (ops-docs.ts:
+ * documentUrl) get the same fingerprint and live-seal check as the customer
+ * path." Until then a staff link to a sealed letter was a signed URL straight
+ * to the object, so a voided letter, or one whose bytes no longer hash to what
+ * was sealed, still opened for staff while the customer's copy was refused.
+ * The check is sealedLetterBytes itself, called rather than copied, so the two
+ * paths cannot disagree; and the bytes are served by the route rather than by
+ * a link, because a link would reach the object after the check had run.
+ */
+export async function documentUrl(actor: Actor | null, documentId: string): Promise<DocumentOpen | null> {
   const db = supabaseAdmin();
   if (!db || !can(actor, "documents.read")) return null;
 
   const { data } = await db
     .from("eng_documents")
-    .select("bucket, storage_key, visibility")
+    .select("bucket, storage_key, visibility, sealed_at")
     .eq("id", documentId)
     .maybeSingle();
   if (!data) return null;
   if (data.visibility === "admin_only" && actor!.role !== "admin") return null;
 
+  if (data.sealed_at) {
+    const read = await sealedLetterBytes(documentId);
+    return read.ok ? { kind: "sealed", bytes: read.bytes, title: read.title } : { kind: "refused", error: read.error };
+  }
+
   const signed = await db.storage
     .from(data.bucket as string)
     .createSignedUrl(data.storage_key as string, 60 * 60);
-  return signed.data?.signedUrl ?? null;
+  return signed.data?.signedUrl ? { kind: "link", url: signed.data.signedUrl } : null;
 }
 
 // -------------------------------------------------------------- the binder

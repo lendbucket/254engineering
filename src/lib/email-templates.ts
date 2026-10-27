@@ -930,6 +930,63 @@ export function orderSealed(input: {
 }
 
 /**
+ * THE LETTER WAS REPLACED. Robert's addendum of 2026-10-25, item 2: "The
+ * customer gets an email that the letter was replaced, with the new one on the
+ * status page."
+ *
+ * The engineer voided the earlier seal with a reason and sealed a new letter,
+ * which records the act it replaces (0097). The earlier letter is no longer
+ * served anywhere, because a void seal is refused on every read, so the email
+ * says so plainly: the copy they hold should not be relied on, and the new one
+ * is on the order page. It does not repeat the engineer's reason, which is a
+ * regulatory record written for the file rather than a sentence composed for a
+ * customer; a customer who wants it can reply.
+ */
+export function orderLetterReplaced(input: {
+  customerName: string;
+  customerEmail: string;
+  reference: string;
+  propertyAddress: string;
+  sealedAt: string;
+  statusUrl: string;
+}): RenderedEmail {
+  return compose(
+    "order.letter_replaced",
+    "human",
+    `Replaced: ${input.reference}`,
+    {
+      preheader: `The engineer has sealed a replacement letter for ${input.propertyAddress}.`,
+      status: { reference: `Order ${input.reference}`, state: "Letter replaced" },
+      signed: true,
+      button: { label: "Download the replacement letter", url: input.statusUrl },
+      blocks: [
+        { kind: "p", text: `${input.customerName},` },
+        {
+          kind: "p",
+          text: `The engineer has withdrawn the earlier sealed letter for ${input.propertyAddress} and sealed a replacement. The replacement is on your order page, ready to download.`,
+        },
+        {
+          kind: "p",
+          text: "Please use the replacement from now on. The earlier letter's seal is void, so it should not be relied on or passed to anybody else.",
+        },
+        {
+          kind: "details",
+          rows: [
+            ["Property", input.propertyAddress],
+            ["Replacement sealed", input.sealedAt],
+          ],
+        },
+        {
+          kind: "p",
+          text: "If you sent the earlier letter to anybody, or have a question about the change, reply to this message.",
+        },
+      ],
+    },
+    { to: input.customerEmail },
+  );
+}
+
+/**
  * THE GOOGLE REVIEW REQUEST. Operator ruling, 2026-10-10 (run item 25).
  *
  * Sent to every customer alike, a set number of days after delivery: it does
@@ -2265,6 +2322,14 @@ export function allTemplatesForAudit(): RenderedEmail[] {
       reference: "254-O2026-ABCDEF",
       propertyAddress: "100 Sample Street, Corpus Christi",
       sealedAt: "5 September 2026 at 16:20",
+      statusUrl: "https://254engineering.com/order/254-O2026-ABCDEF?token=sample",
+    }),
+    orderLetterReplaced({
+      customerName: "Sample Customer",
+      customerEmail: "sample@example.com",
+      reference: "254-O2026-ABCDEF",
+      propertyAddress: "100 Sample Street, Corpus Christi",
+      sealedAt: "6 September 2026 at 10:05",
       statusUrl: "https://254engineering.com/order/254-O2026-ABCDEF?token=sample",
     }),
     refundFailed({

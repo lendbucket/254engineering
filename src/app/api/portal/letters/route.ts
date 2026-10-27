@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { currentActor } from "@/lib/ops-auth";
 import { holdsLicence } from "@/lib/ops-authz";
-import { draftForDetermination, sealLetter } from "@/lib/letter-seal";
+import { draftForDetermination, sealLetter, voidSealedLetter } from "@/lib/letter-seal";
 import { ownDocumentUploadUrl, previewOwnDocument, sealOwnDocument } from "@/lib/own-document-seal";
 import { withSaveOutcome } from "@/lib/save-outcome";
 
@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 /**
  * THE ENGINEER'S LETTER: READ THE DRAFT, THEN SEAL IT. POST ONLY.
  *
- * Sealing piece two, docs/sealing-controls.md. Five actions, all his alone:
+ * Sealing piece two, docs/sealing-controls.md. Six actions, all his alone:
  *
  *   draft        returns the drafted lines for him to read. Reads no seal image.
  *   seal         applies his seal with a fresh code from his authenticator.
@@ -18,6 +18,8 @@ export const dynamic = "force-dynamic";
  *   own-preview  a ten minute link to that PDF with the page the platform adds,
  *                stamped without the images (control 14).
  *   own-seal     seals it as previewed, with a fresh code (controls 15 to 17).
+ *   void         voids his own sealed letter with a reason and a fresh code, so
+ *                it can be reissued (addendum item 2, 0097).
  *
  * The licence is checked here so a refusal is a status code before any work,
  * and checked again in src/lib/letter-seal.ts against the determination's own
@@ -37,6 +39,26 @@ async function handlePOST(request: NextRequest) {
 
   const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
   if (!body) return bad("Send the request as JSON.");
+
+  /*
+   * VOID, so a letter can be reissued (Robert's addendum of 2026-10-25, item 2):
+   * his own sealed letter, a reason, a fresh code, through eng_void_seal_act.
+   * Named by its seal act rather than its determination, because the act is
+   * what is voided and a determination can have held more than one.
+   */
+  if (body.action === "void") {
+    const voided = await voidSealedLetter(actor, {
+      sealActId: typeof body.sealActId === "string" ? body.sealActId : "",
+      code: typeof body.code === "string" ? body.code : "",
+      reason: typeof body.reason === "string" ? body.reason : "",
+      context: {
+        ip: request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
+        userAgent: request.headers.get("user-agent"),
+      },
+    });
+    return voided.ok ? NextResponse.json({ ok: true }) : bad(voided.error);
+  }
+
   const determinationId = typeof body.determinationId === "string" ? body.determinationId : "";
   if (!determinationId) return bad("Name the determination whose letter this is.");
   const entered = {
@@ -137,7 +159,7 @@ async function handlePOST(request: NextRequest) {
       : bad(sealed.error);
   }
 
-  return bad("The action is draft, seal, own-upload, own-preview or own-seal.");
+  return bad("The action is draft, seal, own-upload, own-preview, own-seal or void.");
 }
 
 /* A save abandoned by the 20 second bound says it may not have saved, and a failed session read is never "Not signed in": save-outcome.ts. */

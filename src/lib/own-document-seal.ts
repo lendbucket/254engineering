@@ -16,6 +16,7 @@ import {
   deliverSealedFile,
   determination,
   frameFor,
+  replacementNotice,
   sealerFor,
   type LetterFrame,
   type SignedIn,
@@ -275,6 +276,10 @@ export async function sealOwnDocument(
   /* Control 13: the draft and its preview go once the sealed copy is stored and recorded. */
   const removed = await db.storage.from(DRAFTS_BUCKET).remove([draftKeyFor(det), previewKeyFor(det)]);
   if (removed.error) console.error(`[own-document] the draft for ${det.file_id} was not removed: ${removed.error.message}`);
+
+  /* A reissue is told, not delivered again (addendum item 2, 0097): see replacementNotice. */
+  const reissue = await replacementNotice(sealActId, det.file_id, "specification");
+  if (reissue) return { ok: true, documentId, sha256, ...reissue };
 
   const problems = await deliverSealedFile(actor!, det, input.context ?? {}, "specification");
   return {

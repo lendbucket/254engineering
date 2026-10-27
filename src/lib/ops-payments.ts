@@ -35,6 +35,7 @@ import {
   orderCancelled,
   orderConfirmed,
   orderDeclined,
+  orderLetterReplaced,
   orderRepairsRequired,
   orderSealed,
   orderTechnicianAccepted,
@@ -2918,6 +2919,57 @@ async function sendOrderSealed(orderId: string): Promise<void> {
       ? `The sealed document notice is queued to ${order.customer_email}. The next entry says when it is sent.`
       : `The sealed document notice could not be queued: ${queued.error}. It has to go out by hand.`,
   );
+}
+
+/**
+ * THE LETTER WAS REPLACED, TOLD TO THE CUSTOMER. Robert's addendum of
+ * 2026-10-25, item 2. Sent when a letter is sealed in place of one the
+ * engineer voided (0097 records which). The order is not settled again and
+ * its status does not move: it was paid and delivered with the first letter,
+ * and a replacement changes the document, not the sale. Every outcome is
+ * written to the order's timeline, so a notice that could not go out is said.
+ */
+export async function sendLetterReplaced(orderId: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "the database is not configured" };
+
+  const { data: order, error } = await db
+    .from("eng_service_orders")
+    .select("reference, customer_name, customer_email, property_address")
+    .eq("id", orderId)
+    .maybeSingle();
+  if (error || !order) return { ok: false, error: `the order could not be read${error ? `: ${error.message}` : ""}` };
+
+  if (!order.customer_email) {
+    await event(orderId, "email.not_sent", false, "The replacement notice could not be sent: no customer email on the order.");
+    return { ok: false, error: "the order has no customer email" };
+  }
+  const statusUrl = await statusUrlFor(orderId, order.reference as string);
+  if (!statusUrl) {
+    await event(orderId, "email.not_sent", false, "The replacement notice could not be sent: a status link could not be issued.");
+    return { ok: false, error: "a status link could not be issued" };
+  }
+
+  const queued = await queueEmail(
+    orderLetterReplaced({
+      customerName: order.customer_name as string,
+      customerEmail: order.customer_email as string,
+      reference: order.reference as string,
+      propertyAddress: order.property_address as string,
+      sealedAt: customerWhen(new Date().toISOString()) ?? "just now",
+      statusUrl,
+    }),
+    { orderId },
+  );
+  await event(
+    orderId,
+    queued.ok ? "email.queued" : "email.not_sent",
+    queued.ok,
+    queued.ok
+      ? `The replacement letter notice is queued to ${order.customer_email}. The next entry says when it is sent.`
+      : `The replacement letter notice could not be queued: ${queued.error}. It has to go out by hand.`,
+  );
+  return queued.ok ? { ok: true } : { ok: false, error: `the notice could not be queued: ${queued.error}` };
 }
 
 /**
