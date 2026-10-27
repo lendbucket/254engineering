@@ -42,6 +42,12 @@ const DOORS = [
   { file: "src/lib/scope-addendum.ts", rpc: "eng_record_addendum_signature" },
   /* 0088, Robert's instruction of 2026-10-24: a letter template signature, signed as a protocol is. */
   { file: "src/lib/letter-template-sign.ts", rpc: "eng_record_letter_template_signature" },
+  /*
+   * The engineer's own document, sealed through the letters' door (Robert's
+   * ruling of 2026-10-25, 23:51 Central, item C; 0092). A second door to the
+   * same function, held to every check below.
+   */
+  { file: "src/lib/own-document-seal.ts", rpc: "eng_record_letter_seal" },
 ];
 
 /*
@@ -63,9 +69,10 @@ const DOORS = [
   }
   const listed = new Set(DOORS.map((d) => d.rpc));
   const unlisted = [...writers].filter((w) => !listed.has(w));
+  /* Counted by function, since two doors (a letter and the engineer's own document) call one. */
   check(
     "every function the migrations open that writes a seal act or a seal image is a door this proof checks",
-    writers.size >= DOORS.length && unlisted.length === 0,
+    writers.size >= listed.size && unlisted.length === 0,
     unlisted.join(", ") || [...writers].sort().join(", "),
   );
 }
