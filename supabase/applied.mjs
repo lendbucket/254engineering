@@ -3474,14 +3474,45 @@ export const APPLIED = [
     file: "0092_the_engineers_own_document_has_its_own_drafts_bucket.sql", appliedBy: "apply_migration",
     fingerprint: "8daaba436e02fb92c9a6b227fcb98caf",
     behaviour: "92e2d140a1aefe8192833d9809b7d428",
-    production: null,
+    /*
+     * APPLIED TO PRODUCTION 2026-10-27 06:01 UTC, provider version
+     * 20261027060154, by the operator's chat counterpart through
+     * apply_migration, from
+     * docs/production-sitting-0092-the-engineers-own-document-has-its-own-drafts-bucket.md,
+     * after board 40446496126 matched its prediction, 63 of 63, on 30ef64b.
+     * Read back on issue #1, comment 6434998030. The file applied is sha256
+     * 4acbb8dad9478cc454341ce5440fb6cd26382c7688514914f2bc6e6fe96201ea, the
+     * file development sat; the stored statement reads back as sha256
+     * e1736e5e8dc62c8111dea68aace14d1069b02b7277ea28ef5962d83a9d150a20,
+     * identical to development.
+     *
+     * Section 0: shape 8daaba436e02fb92c9a6b227fcb98caf across 1353, with 0090
+     * and 0091 applied; no eng-engineer-drafts bucket. Section 2: shape
+     * unchanged; the bucket private, 26214400, application/pdf only, 0
+     * objects. The record rides in the merge, so 0092 is never pending on
+     * main.
+     */
+    production: "2026-10-27",
+    development: {
+      at: "0092",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-26",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-26 07:05 UTC by the operator's chat counterpart through apply_migration, " +
+        "provider version 20261026070519 (issue #1, comment 6410263671). The file sha256 " +
+        "4acbb8dad9478cc454341ce5440fb6cd26382c7688514914f2bc6e6fe96201ea; the stored statement sha256 " +
+        "e1736e5e8dc62c8111dea68aace14d1069b02b7277ea28ef5962d83a9d150a20, which production matched.",
+    },
     proves: { bucket: "eng-engineer-drafts" },
     note:
       "Both figures read off scripts/fingerprint-at.mjs at 0092 on 2026-10-26, with 0091 reproducing its " +
       "recorded pair first: both unchanged, because a bucket is a row in storage.buckets and neither digest " +
       "reads it. One private bucket, PDF only, 25 MB. No table, column, function or grant.",
     because:
-      "WRITTEN 2026-10-26 ON feat/repair-spec-own-document, ON TOP OF 0091, AND APPLIED NOWHERE. Robert's ruling " +
+      "WRITTEN 2026-10-26 ON feat/repair-spec-own-document, ON TOP OF 0091; ON DEVELOPMENT (version 20261026070519) " +
+      "AND PRODUCTION (version 20261027060154). Robert's ruling " +
       "of 2026-10-25, 23:51 Central, item C: the repair specification is the engineer's own document, uploaded, " +
       "previewed and sealed from his session. The unsealed upload needs a private home that is not the sealed " +
       "deliverable store. Posted on issue #1 for the chat to sit after 0090 and 0091, development first, then " +
