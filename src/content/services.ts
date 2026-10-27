@@ -21,6 +21,7 @@
  */
 
 import { SCOPE_PENDING } from "@data/catalog";
+import { HARRIS_DESIGNATION } from "./windstorm-harris";
 
 export type Faq = { q: string; a: string };
 
@@ -183,7 +184,7 @@ export const services: Service[] = [
     faqs: [
       {
         q: "Which Texas counties require a WPI-8?",
-        a: "The designated catastrophe area covers the fourteen Texas seacoast counties, Aransas, Brazoria, Calhoun, Cameron, Chambers, Galveston, Jefferson, Kenedy, Kleberg, Matagorda, Nueces, Refugio, San Patricio, and Willacy, together with the part of Harris County east of State Highway 146. Structures outside that area do not need one.",
+        a: `The designated catastrophe area covers the fourteen Texas seacoast counties, Aransas, Brazoria, Calhoun, Cameron, Chambers, Galveston, Jefferson, Kenedy, Kleberg, Matagorda, Nueces, Refugio, San Patricio, and Willacy, together with ${HARRIS_DESIGNATION}. Structures outside that area do not need one.`,
       },
       {
         q: "The building is already finished and was never certified. What happens?",
