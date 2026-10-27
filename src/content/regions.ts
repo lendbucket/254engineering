@@ -27,6 +27,8 @@
  * doorway content and it is worth less than nothing to a reader or a crawler.
  */
 
+import { HARRIS_DESIGNATION } from "./windstorm-harris";
+
 export type Region = {
   slug: string;
   /** Short name for the hub, breadcrumbs, and nav. */
@@ -102,7 +104,7 @@ export const regions: Region[] = [
       "Sixteen counties from the Brazos bottoms to the Sabine. The highest plasticity clays in Texas, measurable ground subsidence, and a windstorm line that runs through Harris County itself.",
     anchors: ["Houston", "Galveston", "Beaumont", "The Woodlands", "Sugar Land", "Katy"],
     wind: [
-      "Five counties in this region, Brazoria, Chambers, Galveston, Jefferson, and Matagorda, sit inside the designated catastrophe area, and so does the part of Harris County east of State Highway 146. That line runs through a working metropolitan county, which is why the windstorm question here is asked address by address rather than county by county.",
+      `Five counties in this region, Brazoria, Chambers, Galveston, Jefferson, and Matagorda, sit inside the designated catastrophe area, and so do ${HARRIS_DESIGNATION}. That boundary runs through a working metropolitan county, which is why the windstorm question here is asked address by address rather than county by county.`,
       "West of the line, design wind speeds fall steadily inland but remain high enough that roof attachment and opening protection are still the governing details on residential construction. Hurricane Ike in 2008 and Hurricane Harvey in 2017 both demonstrated how far inland roof and envelope damage extends.",
       "Straight line wind from thunderstorm outflow is an underrated peril across the northern counties of this region, and it damages structures that were never designed for anything a hurricane would bring.",
     ],
@@ -118,7 +120,7 @@ export const regions: Region[] = [
     ],
     emphasis: [
       { slug: "foundation-inspections", why: "The most expansive soils in the state make foundation performance the standing question." },
-      { slug: "windstorm-wpi-8", why: "Required in five counties here and in Harris County east of State Highway 146." },
+      { slug: "windstorm-wpi-8", why: `Required in five counties here and in ${HARRIS_DESIGNATION}.` },
       { slug: "structural-letters", why: "Dense municipal permitting means alterations routinely need a sealed letter." },
       { slug: "repair-specifications", why: "Damage has to be scoped in writing before it can be bid, permitted, or argued about." },
     ],
