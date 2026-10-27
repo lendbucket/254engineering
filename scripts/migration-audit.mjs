@@ -1058,8 +1058,8 @@ if (failedAt === null) {
   await db.exec(`
     insert into auth.users (id) values (${SEALER});
 
-    insert into eng_profiles (id, email, display_name, role)
-    values (${SEALER}, 'probe-sealer@example.com', 'Probe Sealer, not a real person', 'engineer');
+    insert into eng_profiles (id, email, display_name, role, license_number)
+    values (${SEALER}, 'probe-sealer@example.com', 'Probe Sealer, not a real person', 'engineer', '990062');
 
     insert into eng_files (id, client_id, file_number, property_address, county, service_slug)
     values (${SEALED_FILE}, '00000000-0000-4000-8000-0000000000dd', '254-PROBE-SEAL', '2 Probe Street', 'Nueces', 'windstorm'),
@@ -1325,17 +1325,23 @@ if (failedAt === null) {
       insert into eng_determinations (id, file_id, protocol_document, determination, relied_on_item_keys, relied_on_evidence_ids, engineer_id)
       values (${DET}, ${SEALED_FILE}, '254-RC-001', 'pass', array['probe'], array['00000000-0000-4000-8000-0000000000e1'::uuid], ${SEALER});
       insert into auth.users (id) values (${OTHER});
-      insert into eng_profiles (id, email, display_name, role)
-      values (${OTHER}, 'probe-other-engineer@example.com', 'Probe Other Engineer, not a real person', 'engineer');
+      insert into eng_profiles (id, email, display_name, role, license_number)
+      values (${OTHER}, 'probe-other-engineer@example.com', 'Probe Other Engineer, not a real person', 'engineer', '990063');
       insert into eng_seal_images (id, profile_id, kind, storage_key, sha256, byte_size, width, height, mfa_verified_at)
       values (${OTHER_SEAL}, ${OTHER}, 'seal', 'probe/other-seal.png', '${"f".repeat(64)}', 900, 600, 600, now()),
              (${OTHER_SIG}, ${OTHER}, 'signature', 'probe/other-sig.png', '${"9".repeat(64)}', 900, 800, 300, now());
     `);
 
+    /*
+     * The seventeen-argument door since 0094 retired the fifteen (Robert's
+     * addendum of 2026-10-25, item 9): the name and licence the letter prints,
+     * the licence being the sealer's own, which 0089's door checks.
+     */
     const sealLetter = (act, doc, by, seal, sig) => `
       select eng_record_letter_seal(
         '${act}', '${doc}', ${SEALED_FILE}, null, 'Probe roof letter', 'probe/letter-${doc.slice(-4)}.pdf',
-        4096, ${HASH}, 'F-29811', ${DET}, ${by}, ${seal}, ${sig}, now(), '${"a".repeat(64)}'
+        4096, ${HASH}, 'F-29811', ${DET}, ${by}, ${seal}, ${sig}, now(), '${"a".repeat(64)}',
+        'Probe Sealer', '${by === OTHER ? "990063" : "990062"}'
       );`;
     /* The fifteenth argument since 0081, operator ruling 2026-10-22: the checksum of the mark at the letter's head. */
     /*
