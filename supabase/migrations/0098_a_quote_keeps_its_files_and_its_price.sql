@@ -37,7 +37,11 @@
  * reads them first.
  *
  * ADDITIVE ONLY. One table, two checks, two functions, two triggers, two grant
- * rows. No drop, no delete.
+ * rows. No drop, no delete. The first version carried four `drop ... if exists`
+ * lines ahead of its own checks and triggers; the connector stopped on them for
+ * a confirmation prompt at the development sitting of 2026-10-27, and nothing
+ * was applied. They did nothing on a first apply, so they are gone, and this
+ * file runs once, as every migration here does.
  */
 
 create table if not exists eng_quote_files (
@@ -69,12 +73,9 @@ begin
 end;
 $fn$;
 
-drop trigger if exists eng_quote_files_guard on eng_quote_files;
 create trigger eng_quote_files_guard before update or delete on eng_quote_files
   for each row execute function eng_quote_file_guard();
 
-alter table eng_quote_requests
-  drop constraint if exists eng_quote_requests_priced_when_sent;
 alter table eng_quote_requests
   add constraint eng_quote_requests_priced_when_sent check (
     status not in ('sent', 'accepted')
@@ -83,8 +84,6 @@ alter table eng_quote_requests
         and expires_at is not null and expires_at > sent_at)
   );
 
-alter table eng_quote_requests
-  drop constraint if exists eng_quote_requests_converted_is_accepted;
 alter table eng_quote_requests
   add constraint eng_quote_requests_converted_is_accepted check (
     converted_order_id is null or status = 'accepted'
@@ -113,7 +112,6 @@ begin
 end;
 $fn$;
 
-drop trigger if exists eng_quote_requests_guard on eng_quote_requests;
 create trigger eng_quote_requests_guard before update on eng_quote_requests
   for each row execute function eng_quote_request_guard();
 
