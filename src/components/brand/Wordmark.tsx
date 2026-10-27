@@ -35,6 +35,23 @@ import Image from "next/image";
  * `priority` is off by default. The header mark is above the fold on every page
  * and Next will fetch it early regardless; marking it priority as well competes
  * with the LCP image for the same preload budget.
+ *
+ * UNOPTIMIZED, AND WIDTH AND HEIGHT SET TOGETHER
+ * ----------------------------------------------
+ * Robert's answer 15, 2026-10-26. Three cloud boards in a row failed
+ * dashboard-speed-audit on one request left open for about fifteen seconds on
+ * every load: `/_next/image?url=%2Fbrand%2Flogo-dark.png&w=64&q=75`, the image
+ * optimizer serving this mark on the portal sidebar. The two files are 30 and
+ * 52 KB and never change, so the optimizer buys nothing here; `unoptimized`
+ * serves `/brand/logo.png` and `/brand/logo-dark.png` as the static files they
+ * are, and that request no longer exists. Photographs keep the optimizer.
+ *
+ * The style sets BOTH dimensions. Next warns in development when the rendered
+ * height differs from the `height` attribute while the width does not, or the
+ * other way round, and `width: "auto"` with a responsive height produced 277 of
+ * those warnings in one board's logs. The CSS width is the CSS height times the
+ * ratio of the two attributes, so at the attributes' own size both match, and at
+ * any other size both differ.
  */
 
 const RATIO = 2262 / 1147;
@@ -67,15 +84,21 @@ export function Wordmark({
   className?: string;
 }) {
   const src = onDark ? "/brand/logo-dark.png" : "/brand/logo.png";
+  const width = Math.round(height * RATIO);
   return (
     <Image
       src={src}
       alt="254 Engineering"
-      width={Math.round(height * RATIO)}
+      width={width}
       height={height}
       priority={priority}
-      className={`block h-auto w-auto ${className}`}
-      style={{ height: cssHeight ?? height, width: "auto" }}
+      unoptimized
+      className={`block ${className}`}
+      style={
+        cssHeight
+          ? { height: cssHeight, width: `calc(${cssHeight} * ${width} / ${height})` }
+          : { height, width }
+      }
     />
   );
 }

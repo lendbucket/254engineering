@@ -469,6 +469,35 @@ export const RETENTION_POLICY: RetentionEntry[] = [
       ruledBy: "operator, 2026-09-12, and the trigger",
     },
   },
+  /*
+   * 0090, Robert's addendum of 2026-10-25. The insurance register and the
+   * warnings sent from it. Both kept forever: whether the firm was insured, by
+   * whom and for how much on a given day, and whether it was warned before a
+   * policy lapsed, are what a claim years later asks.
+   */
+  {
+    table: "eng_insurance_alerts",
+    rule: {
+      kind: "kept_forever",
+      because:
+        "THE RECORD THAT THE FIRM WAS WARNED BEFORE A POLICY LAPSED, AND WHEN. One row per policy and " +
+        "threshold, refused any change or removal by eng_insurance_alert_guard.",
+      ruledBy: "Robert's addendum of 2026-10-25, item 1, and the trigger in 0090",
+    },
+  },
+  {
+    table: "eng_insurance_policies",
+    rule: {
+      kind: "kept_forever",
+      because:
+        "WHETHER THE FIRM WAS INSURED, WITH WHOM AND FOR HOW MUCH, ON ANY GIVEN DAY. A claim arrives " +
+        "years after the work, and the policy in force on the day of the work is the question. A policy " +
+        "recorded in error or replaced is withdrawn with a reason, never removed; the database refuses " +
+        "DELETE and any change but a single withdrawal through eng_insurance_policy_guard. The " +
+        "certificates live in the private eng-insurance bucket, keyed by these rows.",
+      ruledBy: "Robert's addendum of 2026-10-25, item 1, and the trigger in 0090",
+    },
+  },
   {
     table: "eng_job_capture_additions",
     rule: {
@@ -798,35 +827,6 @@ export const RETENTION_POLICY: RetentionEntry[] = [
         "longer stands is voided with a reason and stays. The database refuses DELETE and any change " +
         "but a voiding through eng_seal_act_guard, and migration-audit proves it by firing it.",
       ruledBy: "operator rulings 2 and 2a of 2026-10-06, and the trigger in 0062",
-    },
-  },
-  /*
-   * 0090, Robert's addendum of 2026-10-25. The insurance register and the
-   * warnings sent from it. Both kept forever: whether the firm was insured, by
-   * whom and for how much on a given day, and whether it was warned before a
-   * policy lapsed, are what a claim years later asks.
-   */
-  {
-    table: "eng_insurance_policies",
-    rule: {
-      kind: "kept_forever",
-      because:
-        "WHETHER THE FIRM WAS INSURED, WITH WHOM AND FOR HOW MUCH, ON ANY GIVEN DAY. A claim arrives " +
-        "years after the work, and the policy in force on the day of the work is the question. A policy " +
-        "recorded in error or replaced is withdrawn with a reason, never removed; the database refuses " +
-        "DELETE and any change but a single withdrawal through eng_insurance_policy_guard. The " +
-        "certificates live in the private eng-insurance bucket, keyed by these rows.",
-      ruledBy: "Robert's addendum of 2026-10-25, item 1, and the trigger in 0090",
-    },
-  },
-  {
-    table: "eng_insurance_alerts",
-    rule: {
-      kind: "kept_forever",
-      because:
-        "THE RECORD THAT THE FIRM WAS WARNED BEFORE A POLICY LAPSED, AND WHEN. One row per policy and " +
-        "threshold, refused any change or removal by eng_insurance_alert_guard.",
-      ruledBy: "Robert's addendum of 2026-10-25, item 1, and the trigger in 0090",
     },
   },
   {
