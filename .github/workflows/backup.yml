@@ -1,0 +1,67 @@
+# THE NIGHTLY BACKUP. Robert's addendum of 2026-10-25, 22:46 Central, item 11.
+#
+# The one workflow here that runs on a schedule, by his ruling: "Robert rules
+# this one schedule an exception to his push-or-dispatch rule, because a backup
+# must run on its own." scripts/ci/workflow-triggers.mjs allows `schedule` in
+# this file by name and in no other.
+#
+# IT IS SWITCHED OFF, and stays off until Robert creates the bucket and sets the
+# secrets himself. The job runs only when the repository VARIABLE
+# BACKUP_ENABLED is the string true, and that variable is not set. With it set
+# and a secret missing, the script refuses and names the missing one.
+#
+# A scheduled run always runs the DEFAULT branch's copy of this file with this
+# repository's secrets, so no fork and no other branch can start it. Setup, the
+# secrets list and the test restore are in docs/backups.md.
+
+name: backup
+
+on:
+  schedule:
+    # 08:17 UTC, 03:17 Central: after the nightly board, off the hour.
+    - cron: "17 8 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    name: backup
+    if: ${{ vars.BACKUP_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+      - name: Refuse any workflow a fork could start with our secrets
+        run: node scripts/ci/workflow-triggers.mjs
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install
+        run: npm ci --no-audit --no-fund
+      - name: PostgreSQL 17 client, to match the server
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-17
+      - name: Back up production, sealed, and read it back
+        env:
+          ALLOW_PRODUCTION_DB: "1"
+          SUPABASE_URL: ${{ secrets.BACKUP_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.BACKUP_SUPABASE_SERVICE_ROLE_KEY }}
+          BACKUP_DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
+          BACKUP_S3_ENDPOINT: ${{ secrets.BACKUP_S3_ENDPOINT }}
+          BACKUP_S3_BUCKET: ${{ secrets.BACKUP_S3_BUCKET }}
+          BACKUP_S3_REGION: ${{ secrets.BACKUP_S3_REGION }}
+          BACKUP_S3_ACCESS_KEY_ID: ${{ secrets.BACKUP_S3_ACCESS_KEY_ID }}
+          BACKUP_S3_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_S3_SECRET_ACCESS_KEY }}
+          PG_DUMP: /usr/lib/postgresql/17/bin/pg_dump
+        run: node scripts/backup/production-backup.mjs

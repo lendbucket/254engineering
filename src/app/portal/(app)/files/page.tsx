@@ -6,6 +6,7 @@ import { can } from "@/lib/ops-authz";
 import { listFilesPage, FILE_LIST_CAP, getFile, listClients, fileTimeline, fileRegion } from "@/lib/ops-crm";
 import { availableTransitions, STATUS_LABEL, FILE_STATUSES } from "@/lib/ops-files";
 import { TEXAS_COUNTIES, twiaStatus } from "@/lib/ops-counties";
+import { HARRIS_DESIGNATION } from "@/content/windstorm-harris";
 import { outstandingFor, answeredFor, readAnswers } from "@/lib/ops-file-inputs";
 import { FILE_DETAIL_FIELDS } from "@/lib/file-detail-fields";
 import { ContactLogPanel } from "@/components/portal/ContactLog";
@@ -441,7 +442,7 @@ export default async function FilesPage({
                 ["Urgency", selected.urgency],
                 ["Due", when(selected.due_at)],
                 ["Opened", when(selected.created_at)],
-                ["Windstorm", twiaStatus(selected.county) === "check" ? "Harris County: confirm whether the property is east of SH 146" : selected.twia_county ? "Inside the designated catastrophe area" : "Outside the designated area"],
+                ["Windstorm", twiaStatus(selected.county) === "check" ? `Harris County: TDI designates only ${HARRIS_DESIGNATION}. Confirm the property is in one of those cities.` : selected.twia_county ? "Inside the designated catastrophe area" : "Outside the designated area"],
               ].map(([k, v]) => (
                 <div key={k} className="grid gap-1 py-2.5 sm:grid-cols-[130px_1fr] sm:gap-3">
                   <dt className="text-[14px] font-semibold text-[var(--ink)]">{k}</dt>
