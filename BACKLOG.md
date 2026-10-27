@@ -146,16 +146,23 @@ moved to form 20-19 on 2026-10-26 by Robert's ruling. The registry is not
 rendered, and it is synchronized verbatim across the three repositories, so
 it is corrected in all three at once rather than here alone.
 
-## AFTER 0089: RETIRE THE FIFTEEN- AND SIXTEEN-ARGUMENT SEAL DOORS
+## AFTER 0089: RETIRE THE FIFTEEN- AND SIXTEEN-ARGUMENT SEAL DOORS: BUILT AS 0094, WAITING BEHIND 0093
 
 0089 (a seal act records who it prints) is sat on both projects: development
 2026-10-25 19:41 UTC (20261025194122) and production 2026-10-26 03:17 UTC
 (20261026031701), every figure matching, recorded in `supabase/applied.mjs`.
 0081's fifteen- and 0088's sixteen-argument `eng_record_letter_seal` doors were
 deliberately not replaced, so the code deployed before the merge sealed
-throughout. Once the merge is deployed and nothing calls them, retiring them is
-its own later migration, a destructive one, so the operator runs it in the SQL
-editor (`docs/production-sitting-destructive.md`).
+throughout.
+
+**Built 2026-10-26 as 0094** (Robert's addendum of 2026-10-25, item 9), on
+`migration/0094-retire-the-old-seal-doors` with
+`docs/production-sitting-0094-the-old-seal-doors-refuse.md`. This entry once
+called it destructive and an SQL editor job; it is neither, by the 0081
+pattern 0089's own header names: each door keeps its signature and its body
+becomes a refusal, so `apply_migration` runs it. It sits behind 0093 in the
+chain, which is held, so it waits with it. The sitting's first read checks
+that no letter sealed in the last day went through an old door.
 
 ## FIXED: EVERY CLOUD BOARD SHARED ONE SIGN IN RATE LIMIT BUCKET
 
