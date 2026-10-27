@@ -3624,6 +3624,114 @@ export const APPLIED = [
       "in the chain, which is held, so this waits with it. The branch merges only after the production apply is " +
       "read back, and a migration on main is never pending.",
   },
+  {
+    file: "0095_a_scope_addendum_can_pay_a_flat_amount_per_job.sql", appliedBy: "apply_migration",
+    fingerprint: "7cd992a839ac7f3997910a36208f3cd1",
+    behaviour: "3dcf0b3e3917ef44c1127d399afce71e",
+    /*
+     * APPLIED TO PRODUCTION 2026-10-27 10:02 UTC, provider version
+     * 20261027100215, by the operator's chat counterpart through
+     * apply_migration, after board 40472967980 matched its prediction, 63 of
+     * 63, on 35ae0e8. Read back on issue #1, comment 6439022081. The file
+     * applied is sha256
+     * b85959e94c9b63651bcbb2585ddaa0c922a53b9f851371e493c1e8b8e811dccc, the
+     * file development sat; the stored statement reads back as sha256
+     * 552c8cbe6af39a2611abb883903bb7da3e0fb01d8c9a282dc23e49ec3a9b43d3, the
+     * development figure.
+     *
+     * Section 0: 254-WS-001 v1.1 published (act bf2fe0bb); 254-WP-001 v1.1 and
+     * v1.2 draft, v1.2 with a live unvoided protocol act (db6e5b2d); zero rows
+     * in eng_scope_addenda; shape 8daaba436e02fb92c9a6b227fcb98caf across
+     * 1353; last migration 20261027080519 (0094). After: shape
+     * 7cd992a839ac7f3997910a36208f3cd1 across 1354, as predicted;
+     * addenda.draft granted to admin; eng_line_pay('windstorm-wpi-8/ongoing')
+     * returns 0 rows; WS-001 v1.1 still published.
+     *
+     * 0096 DID NOT APPLY AT THE SAME SITTING: the connector's apply_migration
+     * stopped for a confirmation prompt that got no answer before its limit.
+     * Read back afterwards, nothing partial: no migration after
+     * 20261027100215 and no service_tier column. So this branch does not
+     * merge until 0096 is read back from production too. It was, at 13:35
+     * UTC the same day, version 20261027133540 (its entry below).
+     */
+    production: "2026-10-27",
+    development: {
+      at: "0095",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-26",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-26 14:15 UTC by the operator's chat counterpart through apply_migration, " +
+        "provider version 20261026141511 (issue #1). The file sha256 " +
+        "b85959e94c9b63651bcbb2585ddaa0c922a53b9f851371e493c1e8b8e811dccc; the stored statement sha256 " +
+        "552c8cbe6af39a2611abb883903bb7da3e0fb01d8c9a282dc23e49ec3a9b43d3, which production matched.",
+    },
+    proves: { table: "eng_scope_addenda", column: "basis" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0095 on 2026-10-26, with 0094 reproducing its recorded " +
+      "pair first (8daaba43 / 1353, 9996160f / 1281): one column, 1354, and 1285 facts (the basis and shape checks, " +
+      "eng_line_pay, the replaced text function, the addenda.draft grant). Three `drop not null` statements, each " +
+      "on a column the shape check in the same file still requires on every design_share row.",
+    because:
+      "WRITTEN 2026-10-26 ON feat/wpi8-ongoing-addendum, ON TOP OF 0094; ON DEVELOPMENT (version " +
+      "20261026141511) AND PRODUCTION (version 20261027100215). Robert's ruling of " +
+      "2026-10-26, 07:10 Central: WPI-8 ongoing opens through a per_job scope addendum, $175 per job, signed by the " +
+      "engineer in the portal. Boards after 0094 in migration order (his 08:19 answer 11). The branch merges only " +
+      "after the production apply is read back, and a migration on main is never pending.",
+  },
+  {
+    file: "0096_a_protocol_is_in_force_for_its_tier.sql", appliedBy: "apply_migration",
+    fingerprint: "6adde27e5bd8a1a52cf5a2d0500af466",
+    behaviour: "deb92bee42354ce8ef9b74a4955a90c7",
+    /*
+     * APPLIED TO PRODUCTION 2026-10-27 13:35 UTC, provider version
+     * 20261027133540, by the operator's chat counterpart through
+     * apply_migration, after Robert answered the connector's confirmation
+     * prompt that stopped the 10:02 sitting. Read back on issue #1, comment
+     * 6443269881. The file applied is sha256
+     * dc2b08fa7a159f8b1feac6e8328c8198fe80010f917e63d46d8567b9331ca3d1 at
+     * 35ae0e8, the file development sat; the stored statement reads back as
+     * sha256 0801b37beb054cf0b9957f5205b0aa4c2276ed515de15cbe9066fa2cb5223b6c,
+     * the development figure (comment 6418249935).
+     *
+     * Before: 254-WS-001 v1.1 published; no service_tier column; last
+     * migration 20261027100215 (0095). After: shape
+     * 6adde27e5bd8a1a52cf5a2d0500af466 across 1355, as predicted; 254-WS-001
+     * v1.1 completed tier and still published; 254-WP-001 v1.1 and v1.2
+     * ongoing tier and draft; eng_scope_addenda 0 rows;
+     * eng_line_pay('windstorm-wpi-8/ongoing') returns 0 rows; 0 eng_ functions
+     * executable by anon or authenticated.
+     *
+     * Robert's WP-001 v1.2 training is NOT recorded, and correctly: 0086's
+     * door refuses a template that is not published, and WP-001 stays draft
+     * until the engineer's per job addendum is signed and in force.
+     */
+    production: "2026-10-27",
+    development: {
+      at: "0096",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-26",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-26 14:15 UTC by the operator's chat counterpart through apply_migration, " +
+        "provider version 20261026141547 (issue #1, comment 6418249935). The file sha256 " +
+        "dc2b08fa7a159f8b1feac6e8328c8198fe80010f917e63d46d8567b9331ca3d1; the stored statement sha256 " +
+        "0801b37beb054cf0b9957f5205b0aa4c2276ed515de15cbe9066fa2cb5223b6c, which production matched.",
+    },
+    proves: { table: "eng_protocol_templates", column: "service_tier" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0096 on 2026-10-26: one column, 1355, and 1286 facts " +
+      "(the tier column and its check, eng_approve_protocol retiring by line and tier, the hold on 254-WP-001 " +
+      "made conditional on eng_line_pay). Sets service_tier on the two windstorm protocols' records only.",
+    because:
+      "WRITTEN 2026-10-26 ON feat/wpi8-ongoing-addendum, ON TOP OF 0095; ON DEVELOPMENT (version " +
+      "20261026141547) AND PRODUCTION (version 20261027133540). Robert's answer 12 " +
+      "of 08:19 Central: 254-WP-001 in force for the ongoing tier only, 254-WS-001 and completed construction " +
+      "untouched. Without it, 0052's approval would have retired WS-001 the moment WP-001 went in force. The branch " +
+      "merges only after the production apply is read back, and a migration on main is never pending.",
+  },
 ];
 
 /*

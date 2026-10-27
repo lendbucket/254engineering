@@ -1,10 +1,14 @@
 import "server-only";
 import { createHash, randomUUID } from "node:crypto";
 import { supabaseAdmin } from "./supabase";
-import { holdsLicence, type Actor } from "./ops-authz";
+import { can, holdsLicence, type Actor } from "./ops-authz";
 import type { ProfileRow } from "./ops-auth";
 import { verifyFreshCode } from "./ops-mfa";
 import { verifiedEngineers } from "@/config/credentials";
+import { SCOPE_ADDENDUM_REQUIRED } from "@/config/engineer-pay";
+import { HELD_UNTIL_ADDENDUM } from "@/content/protocols/signable";
+import { putHeldProtocolInForce } from "./protocol-sign";
+import { dollarsToCentsStrict } from "./ops-insurance";
 
 /**
  * ===========================================================================
@@ -26,18 +30,34 @@ import { verifiedEngineers } from "@/config/credentials";
 
 type SignedIn = Actor & ProfileRow;
 
+/*
+ * TWO KINDS SINCE 0095. design_share prices one design quote: quote, fee and
+ * share are all set. per_job pays a flat pay_cents for every job of one
+ * deliverable: quote, fee and share are null, by the shape check.
+ */
 export type AddendumRow = {
   id: string;
   created_at: string;
-  quote_id: string;
+  basis: "design_share" | "per_job";
+  quote_id: string | null;
   deliverable: string;
   scope: string;
-  fee_cents: number;
-  share_bp: number;
+  fee_cents: number | null;
+  share_bp: number | null;
   pay_cents: number;
   addendum_text: string;
   content_sha256: string;
 };
+
+/** What an addendum is about, from the text the database wrote: its job, or its deliverable. */
+export function addendumHeading(text: string): string {
+  const lines = text.split("\n");
+  return (
+    lines.find((l) => l.startsWith("Job: "))?.slice(5) ??
+    lines.find((l) => l.startsWith("Deliverable: "))?.slice(13) ??
+    "this addendum"
+  );
+}
 
 export type AddendumState =
   | { state: "unsigned" }
@@ -52,7 +72,7 @@ export async function addendaFor(engineerId: string): Promise<
   if (!db) return { ok: false, why: "The database is not configured." };
   const { data, error } = await db
     .from("eng_scope_addenda")
-    .select("id, created_at, quote_id, deliverable, scope, fee_cents, share_bp, pay_cents, addendum_text, content_sha256")
+    .select("id, created_at, basis, quote_id, deliverable, scope, fee_cents, share_bp, pay_cents, addendum_text, content_sha256")
     .eq("engineer_id", engineerId)
     .order("created_at", { ascending: false })
     .limit(50);
@@ -77,7 +97,7 @@ export async function addendaFor(engineerId: string): Promise<
 export async function signAddendum(
   actor: SignedIn | null,
   input: { addendumId: string; code: string },
-): Promise<{ ok: true; sha256: string } | { ok: false; error: string }> {
+): Promise<{ ok: true; sha256: string; note?: string } | { ok: false; error: string }> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
   if (!holdsLicence(actor, "protocols.author")) {
@@ -90,7 +110,7 @@ export async function signAddendum(
 
   const { data: addendum, error } = await db
     .from("eng_scope_addenda")
-    .select("id, engineer_id, addendum_text, content_sha256")
+    .select("id, engineer_id, deliverable, addendum_text, content_sha256")
     .eq("id", input.addendumId)
     .maybeSingle();
   if (error) return { ok: false, error: `The addendum could not be read: ${error.message}` };
@@ -126,7 +146,112 @@ export async function signAddendum(
     p_mfa_verified_at: fresh.verifiedAt,
   });
   if (recorded.error) return { ok: false, error: `The signature could not be recorded: ${recorded.error.message}` };
+
+  /*
+   * A PROTOCOL HELD UNTIL THIS ADDENDUM GOES IN FORCE NOW. Robert's answer 12
+   * of 2026-10-26: his 254-WP-001 signature is already live, and the addendum
+   * for windstorm-wpi-8/ongoing is what it waited for. The addendum's signature
+   * stands whatever happens here; if the protocol cannot be put in force, he is
+   * told why and the line stays shut, because its door asks for both.
+   */
+  const held = Object.entries(HELD_UNTIL_ADDENDUM).filter(([, deliverable]) => deliverable === addendum.deliverable);
+  for (const [documentNumber] of held) {
+    const put = await putHeldProtocolInForce(actor, documentNumber);
+    if (!put.ok) {
+      return { ok: true, sha256, note: `Your signature on the addendum is recorded. ${put.error} The line stays closed until it is.` };
+    }
+  }
   return { ok: true, sha256 };
+}
+
+/**
+ * WHERE A DELIVERABLE'S ADDENDUM STANDS, for the owner's screen: the newest
+ * per_job addendum (which is the one that decides, as eng_line_pay reads it),
+ * and whether he has signed it. A failed read says so, never "none drafted".
+ */
+export async function lineAddendumState(
+  deliverable: string,
+): Promise<
+  | { ok: true; newest: { id: string; payCents: number; createdAt: string } | null; signed: boolean }
+  | { ok: false; why: string }
+> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, why: "The database is not configured." };
+  const { data, error } = await db
+    .from("eng_scope_addenda")
+    .select("id, pay_cents, created_at, content_sha256")
+    .eq("basis", "per_job")
+    .eq("deliverable", deliverable)
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
+    .limit(1);
+  if (error) return { ok: false, why: `The scope addenda could not be read: ${error.message}` };
+  const row = data?.[0];
+  if (!row) return { ok: true, newest: null, signed: false };
+  const { data: acts, error: actsError } = await db
+    .from("eng_seal_acts")
+    .select("id")
+    .eq("kind", "addendum")
+    .eq("addendum_id", row.id)
+    .eq("content_sha256", row.content_sha256)
+    .is("voided_at", null)
+    .limit(1);
+  if (actsError) return { ok: false, why: `The addendum's signature could not be read: ${actsError.message}` };
+  return {
+    ok: true,
+    newest: { id: row.id as string, payCents: Number(row.pay_cents), createdAt: row.created_at as string },
+    signed: (acts ?? []).length > 0,
+  };
+}
+
+/**
+ * THE OWNER DRAFTS AN ADDENDUM FOR A DELIVERABLE HIS AGREEMENT DOES NOT COVER.
+ * Robert's ruling of 2026-10-26, 07:10 Central: "owner or admin drafts the
+ * addendum (line, amount, text), it appears on the engineer's portal home as
+ * waiting for his signature". addenda.draft, the administrator alone (0095).
+ *
+ * Only a deliverable SCOPE_ADDENDUM_REQUIRED lists can be drafted here, so this
+ * cannot be used to rewrite pay his agreement already sets. The database writes
+ * the text and its hash from the figures; nothing typed here reaches the hash
+ * except the scope, which is printed as written. Drafting opens nothing and pays
+ * nothing: only his signature does.
+ */
+export async function draftLineAddendum(
+  actor: SignedIn | null,
+  input: { deliverable: string; payDollars: string; scope: string },
+): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+  if (!actor || !can(actor, "addenda.draft")) return { ok: false, error: "Only the owner drafts a scope addendum." };
+  const deliverable = input.deliverable.trim();
+  if (!(deliverable in SCOPE_ADDENDUM_REQUIRED)) {
+    return { ok: false, error: `${deliverable || "That deliverable"} is not one the engineer's agreement leaves out, so it needs no addendum.` };
+  }
+  /* A blank or unreadable amount is no amount, never a zero (the strict parser of the insurance register). */
+  const payCents = dollarsToCentsStrict(input.payDollars);
+  if (payCents === null) return { ok: false, error: "Enter his pay per job in dollars, more than zero." };
+  const scope = input.scope.trim();
+  if (scope.length < 20) return { ok: false, error: "Write the scope in plain words: what the pay covers, and what else changes, if anything." };
+
+  /* The engineer it names is the one engineer of record on the register, by licence. */
+  const engineer = verifiedEngineers[0];
+  if (!engineer) return { ok: false, error: "No engineer of record is on the firm's register." };
+  const { data: profile, error: profileError } = await db
+    .from("eng_profiles")
+    .select("id")
+    .eq("role", "engineer")
+    .eq("license_number", engineer.licenseNumber)
+    .maybeSingle();
+  if (profileError) return { ok: false, error: `The engineer's account could not be read: ${profileError.message}` };
+  if (!profile) return { ok: false, error: "The engineer of record has no portal account with his license number, so there is nobody to sign it." };
+
+  const { data, error } = await db
+    .from("eng_scope_addenda")
+    .insert({ basis: "per_job", deliverable, engineer_id: profile.id, scope, pay_cents: payCents, created_by: actor.id })
+    .select("id")
+    .single();
+  if (error || !data) return { ok: false, error: `The addendum could not be recorded: ${error?.message ?? "no row came back"}` };
+  return { ok: true, id: data.id as string };
 }
 
 /**

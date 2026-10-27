@@ -120,9 +120,11 @@ for (const [slug, price] of Object.entries(PRICE)) {
  * WPI-8 ONGOING IS THE ONE DELIVERABLE STILL REFUSED, AND NOT BY THIS RULING.
  * Operator ruling of 2026-10-22: ongoing construction is not in the engineer's
  * Schedule 2 and needs a signed scope addendum before any job
- * (SIGNED_SCOPE_ADDENDA in src/config/engineer-pay.ts). Robert's ruling of
+ * (SCOPE_ADDENDUM_REQUIRED in src/config/engineer-pay.ts). Robert's ruling of
  * 2026-10-25 loosens nothing in the gate, so that guard stands, and its door
- * says the deliverable is not available yet. Put to Robert.
+ * says the deliverable is not available yet. Since his ruling of 2026-10-26,
+ * 07:10 Central (0095), it opens only on the engineer's signed per_job
+ * addendum, read at the door; this child process signs none, so it is refused.
  */
 const openDoors = Object.entries(child.open.doors).filter(([k]) => k !== "windstorm-wpi-8/ongoing");
 check("every other deliverable's door, WPI-8 completed included, lets an order through", openDoors.length >= 7 && openDoors.every(([, v]) => v === null), JSON.stringify(child.open.doors));

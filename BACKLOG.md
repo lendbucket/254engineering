@@ -4,6 +4,32 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
+## 0095 AND 0096, WPI-8 ONGOING THROUGH A SCOPE ADDENDUM: BUILT, TWO THINGS LEFT
+
+**Built since** (same branch): the owner's panel on `/portal/pricebook` and
+`/api/portal/addenda/draft`, the card on the engineer's review home, his WP-001
+signature put in force when he signs, dispatch choosing the protocol by the
+order's tier, and his $175 credited through `productionCreditFor`. **Left:**
+(1) the certification check takes the line's headline tier, so a check on
+254-WP-001 itself needs a tier passed to `/portal/certification`; (2)
+`cost-per-job.ts`, the price book's estimate, still shows no engineer cost for
+ongoing, because it reads configuration and the figure now lives in the signed
+record. (The CLAUDE.md amendment beside ruling 11 is written, on Robert's answer
+10 of 2026-10-26.)
+
+### As first written
+
+Robert's rulings of 2026-10-26, 07:10 and 08:19 Central, on
+`feat/wpi8-ongoing-addendum`, with
+`docs/production-sitting-0095-and-0096-wpi8-ongoing.md`. 0095 lets a scope
+addendum pay a flat amount per job; 0096 puts a protocol in force for its tier,
+so 254-WP-001 can go in force for ongoing construction without retiring
+254-WS-001. The money door reads the signed addendum first. **Not built yet:**
+the screen where the owner drafts an addendum, the engineer's home card, putting
+his existing WP-001 signature in force when he signs, dispatch choosing the
+protocol by the order's tier, and the pay figures. Boards after 0094, in
+migration order.
+
 ## 0093, THE SECOND FACTOR FOR THE ADMINISTRATOR, THE OFFICE AND THE REP: BUILT, HELD BEFORE ANY SITTING
 
 Robert's addendum of 2026-10-25, item 5, on `migration/0093-second-factor-for-staff`

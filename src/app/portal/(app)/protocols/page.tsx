@@ -11,7 +11,7 @@ import { SIGNABLE_PROTOCOLS } from "@/content/protocols/signable";
 import { signatureStatus } from "@/lib/protocol-sign";
 import { SignProtocolPanel } from "./SignProtocolPanel";
 import { SignAddendumPanel } from "./SignAddendumPanel";
-import { addendaFor } from "@/lib/scope-addendum";
+import { addendaFor, addendumHeading } from "@/lib/scope-addendum";
 
 export const dynamic = "force-dynamic";
 
@@ -155,8 +155,9 @@ export default async function ProtocolsPage({
       <section className="mb-8 border-t-2 border-[var(--ink)] pt-4">
         <h2 className="text-[16px] font-semibold text-[var(--ink)]">Scope addenda for your signature</h2>
         <p className="mt-1.5 max-w-[75ch] text-[14px] leading-[1.6] text-[var(--secondary)]">
-          A design job pays your share only under an addendum you have signed. Read it, then sign it with a fresh code.
-          Nothing is paid on a job whose addendum is unsigned.
+          A design job pays your share, and a deliverable your agreement does not cover pays its amount per job, only
+          under an addendum you have signed. Read it, then sign it with a fresh code. Nothing is paid, and nothing
+          opens, under an addendum that is unsigned.
         </p>
         {!addenda.ok ? (
           <p role="alert" className="mt-3 text-[14px] leading-[1.6] text-[var(--ink)]">
@@ -168,9 +169,7 @@ export default async function ProtocolsPage({
           <ul className="mt-3">
             {addenda.addenda.map((a) => (
               <li key={a.id} className="border-b border-[var(--row-rule)] py-3">
-                <p className="text-[14px] font-semibold text-[var(--ink)]">
-                  {a.addendum_text.split("\n").find((l) => l.startsWith("Job: "))?.slice(5) ?? a.quote_id}
-                </p>
+                <p className="text-[14px] font-semibold text-[var(--ink)]">{addendumHeading(a.addendum_text)}</p>
                 <p className="mt-1 text-[14px] leading-[1.6] text-[var(--secondary)]">
                   {a.signature.state === "signed" ? `Signed ${a.signature.signedAt.slice(0, 10)}.` : "Not signed."}
                 </p>
@@ -187,10 +186,7 @@ export default async function ProtocolsPage({
                   ))}
                 </div>
                 {a.signature.state === "unsigned" ? (
-                  <SignAddendumPanel
-                    addendumId={a.id}
-                    label={a.addendum_text.split("\n").find((l) => l.startsWith("Job: "))?.slice(5) ?? "this job"}
-                  />
+                  <SignAddendumPanel addendumId={a.id} label={addendumHeading(a.addendum_text)} />
                 ) : null}
               </li>
             ))}

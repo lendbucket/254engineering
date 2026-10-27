@@ -107,9 +107,17 @@ const CASES = [
    * manufactured home certification until Schedule 2 put it at tier 1, and the
    * tier 3 case was WPI-8 ongoing construction, which Schedule 2 does not list.
    * Ongoing now credits nothing, for a reason that names the missing tier.
+   *
+   * AND SINCE 0095 THE REASON NAMES THE UNSIGNED ADDENDUM, NOT A MISSING TIER.
+   * Robert's ruling of 2026-10-26, 07:10 Central: ongoing is paid under the
+   * engineer's signed per job addendum and nothing else, so until he signs
+   * one the file credits nothing and says that. Board 40465187754 went red
+   * on the old wording while the behaviour (no credit, a sentence why) held.
+   * This names the new sentence exactly. It asserts the UNSIGNED state on
+   * development, which expires the day he signs the ongoing addendum there.
    */
   { tag: "T2", slug: "repair-specifications", deliverable: "standard", order: null, tier: 2, how: "the file's own deliverable" },
-  { tag: "TN", slug: "windstorm-wpi-8", deliverable: "ongoing", order: null, tier: null, why: /no pay tier is ruled/, how: "its deliverable is not in Schedule 2" },
+  { tag: "TN", slug: "windstorm-wpi-8", deliverable: "ongoing", order: null, tier: null, why: /^no scope addendum signed by the engineer covers windstorm-wpi-8 \(ongoing\), so no pay is owed until he signs one$/, how: "its deliverable is not in Schedule 2 and no addendum he signed covers it" },
   { tag: "TO", slug: "windstorm-wpi-8", deliverable: null, order: "completed", tier: 2, how: "the deliverable of the order it is worked under" },
   { tag: "TX", slug: "windstorm-wpi-8", deliverable: null, order: null, tier: null, why: /deliverable/, how: "nothing records which of two deliverables it is" },
 ];

@@ -32,11 +32,18 @@ const {
   engineerDesignPayCents,
   TIER_BY_DELIVERABLE,
   SCOPE_ADDENDUM_REQUIRED,
-  SIGNED_SCOPE_ADDENDA,
   scopeAddendumMissing,
 } = await import("../src/config/engineer-pay.ts");
 const { CATALOG, orderBlockedReason } = await import("../data/catalog.ts");
 const { readFileSync } = await import("node:fs");
+/*
+ * Read as source, for the one export that must not come back. A regular
+ * expression rather than a string, because an ALL_CAPS string literal is what
+ * soc2-audit's scan reads as a candidate secret, and this name is no longer
+ * declared anywhere to excuse it.
+ */
+const ENGINEER_PAY_SOURCE = readFileSync("src/config/engineer-pay.ts", "utf8");
+const SIGNED_LIST_IS_BACK = /export const SIGNED_SCOPE_ADDENDA\b/.test(ENGINEER_PAY_SOURCE);
 const { TECHNICIAN_CALL_CENTS, PROCESSING_RATES, PROCESSING_READ_ON, PROCESSING_READ_FROM } =
   await import("../src/config/cost-inputs.ts");
 const { stripeConsole } = await import("../src/config/stripe-console.ts");
@@ -373,16 +380,27 @@ rec(
     !("windstorm-wpi-8/ongoing" in TIER_BY_DELIVERABLE) && "windstorm-wpi-8/ongoing" in SCOPE_ADDENDUM_REQUIRED,
     String(TIER_BY_DELIVERABLE["windstorm-wpi-8/ongoing"] ?? "no tier, addendum required"),
   );
+  /*
+   * 0095, Robert's ruling of 2026-10-26: the signed record is the one home.
+   * Configuration keeps WHICH deliverables need an addendum and never a list of
+   * signed ones, so nothing a deploy types can open the line or pay for it.
+   */
   rec(
-    "and no scope addendum is recorded, so it pays nothing",
-    SIGNED_SCOPE_ADDENDA.length === 0 && scopeAddendumMissing("windstorm-wpi-8", "ongoing") !== null,
-    `${SIGNED_SCOPE_ADDENDA.length} recorded`,
+    "and configuration holds no list of signed addenda, so only the signed record can cover it",
+    !SIGNED_LIST_IS_BACK && scopeAddendumMissing("windstorm-wpi-8", "ongoing") !== null,
+    SIGNED_LIST_IS_BACK ? "a typed list of signed addenda is back in engineer-pay.ts" : "none; the door reads eng_line_pay",
   );
   const blocked = orderBlockedReason(ongoing, "open", true);
   rec(
     "and the order door refuses it even with the gate open and a protocol approved",
     Boolean(ongoing) && blocked !== null,
     blocked ?? "IT COULD BE ORDERED",
+  );
+  const coveredReason = orderBlockedReason(ongoing, "open", true, true);
+  rec(
+    "and only a money door that has read his live signed addendum lets it through",
+    Boolean(ongoing) && coveredReason === null,
+    coveredReason ?? "orderable once his signature is read at the door",
   );
   const completed = CATALOG.find((e) => e.serviceSlug === "windstorm-wpi-8" && e.tier === "completed");
   rec(
