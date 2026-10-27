@@ -4,6 +4,18 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
+## THE NIGHTLY BACKUP IS BUILT AND SWITCHED OFF: ROBERT CREATES THE BUCKET AND SETS THE SECRETS
+
+Robert's addendum of 2026-10-25, item 11, built 2026-10-27 on
+`feat/addendum-11-backups`. The full procedure, the secrets list and the test
+restore are in `docs/backups.md`; this entry is the pointer. What is open:
+switching it on (the bucket, a read-only database role, eight GitHub Actions
+secrets and the `BACKUP_ENABLED` variable, all Robert's), the first test
+restore, and three questions asked there with recommendations: where the test
+restore goes, which key the backups are sealed to, and whether the dump holds
+only the firm's tables. Nothing deletes old backups, because how long to keep
+them is counsel's retention question.
+
 ## 0093, THE SECOND FACTOR FOR THE ADMINISTRATOR, THE OFFICE AND THE REP: BUILT, HELD BEFORE ANY SITTING
 
 Robert's addendum of 2026-10-25, item 5, on `migration/0093-second-factor-for-staff`

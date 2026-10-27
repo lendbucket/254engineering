@@ -654,6 +654,70 @@ export const CREDENTIALS: Credential[] = [
   { name: "COPY_FROM_URL", kind: "config", livesIn: "Typed by hand for one command.", grants: "Names the source project of a copy. pairClient applies the same production check to it as everything else.", rotated: "Never." },
   { name: "COPY_TO_URL", kind: "config", livesIn: "Typed by hand for one command.", grants: "Names the destination project of a copy.", rotated: "Never." },
   /*
+   * THE BACKUP'S, 2026-10-27. Robert's addendum of 2026-10-25, 22:46 Central,
+   * item 11: scripts/backup/production-backup.mjs, run nightly by
+   * .github/workflows/backup.yml, and scripts/backup/restore-backup.mjs. The
+   * procedure is docs/backups.md.
+   *
+   * NONE OF THESE IS SET ANYWHERE TODAY, and that is the ruling: the workflow
+   * stays off until Robert creates the bucket and sets the secrets himself.
+   * When he does, the backup's set lives in GitHub Actions encrypted secrets,
+   * which is the one place outside Vercel a PRODUCTION credential is ruled to
+   * live (its database URL, and its service role key under the secret name
+   * BACKUP_SUPABASE_SERVICE_ROLE_KEY, read by the script as
+   * SUPABASE_SERVICE_ROLE_KEY above). The restore's are typed by hand for one
+   * command and never stored.
+   */
+  {
+    name: "BACKUP_DATABASE_URL",
+    kind: "secret",
+    livesIn: "NOT SET. Robert sets it as a GitHub Actions secret on lendbucket/254engineering when he switches the backup on. Never in an env file on this machine.",
+    grants: "A Postgres connection to the project it names, with that role's password inside it: on production, reading every row the firm holds, and writing too unless the role is read only (docs/backups.md recommends a read only role).",
+    rotated: "Never. Not yet set.",
+    decides: "database",
+    environments: {
+      production: "absent",
+      preview: "absent",
+      development: "absent",
+      previewValueDistinct: null,
+      readOn:
+        "2026-10-27, NOT a console read: the name was coined that day on feat/addendum-11-backups, and the ruling places it in GitHub Actions and never in a Vercel environment, so no deployment reads it.",
+    },
+  },
+  {
+    name: "BACKUP_S3_ACCESS_KEY_ID",
+    kind: "secret",
+    livesIn: "NOT SET. A GitHub Actions secret when Robert switches the backup on; typed by hand for a restore.",
+    grants: "With its secret key, reading and writing the backup bucket. Every backup in it is sealed, so it does not open one.",
+    rotated: "Never. Not yet set.",
+  },
+  {
+    name: "BACKUP_S3_SECRET_ACCESS_KEY",
+    kind: "secret",
+    livesIn: "NOT SET. A GitHub Actions secret when Robert switches the backup on; typed by hand for a restore.",
+    grants: "With its key id, reading, writing and deleting the backup bucket. Deleting is the harm: it can remove backups, though it cannot read one.",
+    rotated: "Never. Not yet set.",
+  },
+  { name: "BACKUP_S3_ENDPOINT", kind: "config", livesIn: "NOT SET. A GitHub Actions secret when the backup is switched on.", grants: "Names the S3-compatible service the backups go to.", rotated: "Never." },
+  { name: "BACKUP_S3_BUCKET", kind: "config", livesIn: "NOT SET. A GitHub Actions secret when the backup is switched on.", grants: "Names the bucket the backups go to.", rotated: "Never." },
+  { name: "BACKUP_S3_REGION", kind: "config", livesIn: "NOT SET. A GitHub Actions secret when the backup is switched on.", grants: "The bucket's region, as the S3 client needs it.", rotated: "Never." },
+  {
+    name: "RESTORE_DATABASE_URL",
+    kind: "secret",
+    livesIn: "NOT SET IN ANY ENVIRONMENT. Typed by hand for one restore and never stored. The restore refuses any value naming production.",
+    grants: "A Postgres connection to the project being restored into, which the restore overwrites: its public schema is replaced by the backup's.",
+    rotated: "Never.",
+    decides: "database",
+    environments: {
+      production: "absent",
+      preview: "absent",
+      development: "absent",
+      previewValueDistinct: null,
+      readOn:
+        "2026-10-27, NOT a console read: the name was coined that day on feat/addendum-11-backups for a value typed by hand for one restore, so no deployment reads it.",
+    },
+  },
+  /*
    * The address family, read through src/config/contact.ts's env() helper,
    * which also takes the name as a string. Not secret, and publishing any of
    * them is a commitment: an address here is an address published permanently.
