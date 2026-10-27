@@ -38,7 +38,8 @@ export type NotificationKind =
   | "message.received"
   | "mention"
   | "credential.expiring"
-  | "certification.revoked";
+  | "certification.revoked"
+  | "insurance.expiring";
 
 export type Channel = "in_app" | "email" | "sms";
 
@@ -85,6 +86,19 @@ export const NOTIFICATION_KINDS: KindSpec[] = [
     kind: "certification.revoked",
     label: "A certification was withdrawn",
     roles: ["field_tech", "admin"],
+    emailByDefault: true,
+    mandatoryEmail: true,
+  },
+  /*
+   * Robert's addendum of 2026-10-25, item 1: the office and the owner are told
+   * at 45, 14 and 1 days before a policy expires. Mandatory email, for the
+   * reason the two above carry: a lapsed policy stops the firm, outside the
+   * platform, whether or not anybody reads the bell.
+   */
+  {
+    kind: "insurance.expiring",
+    label: "A firm insurance policy is expiring",
+    roles: ["admin", "ops_manager"],
     emailByDefault: true,
     mandatoryEmail: true,
   },
