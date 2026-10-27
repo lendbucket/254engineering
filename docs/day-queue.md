@@ -159,6 +159,8 @@ Each merge is a merge commit whose tree is identical to the boarded commit. Each
 
 ### The addendum's eleven items
 
+**NEEDS ROBERT, overnight 2026-10-27: items 11, 3, 2, 4, 6, 8b and 10 cannot be built tonight.** Robert's overnight order puts them sixth. Before building, I searched for their detail rather than starting from the titles. This session's transcript holds the 22:46 addendum only inside a context summary, as one line per title: "2. Void and reissue. 3. Quotes. 4. Customer uploads. 6. Turnaround targets. 8. ... alert recipients become a list the owner edits. 10. Sealed Engineering orders spec. 11. Backups." The message itself is not there; it was written to the chat before this session's summary. No document in the repository carries their scope. Building from a title would invent what each one does, which the standing rules forbid. **Recommendation:** paste the 22:46 message, or each item's detail, into this session. They are then built in Robert's order 11, 3, 2, 4, 6, 8b, 10. Only 8b's title is specific enough to start: "alert recipients become a list the owner edits". Even that leaves open who may be on the list, and whether the list replaces or joins the current recipient. Tonight's queue goes on to link-building bundles 1 and 2, then W1.
+
 | # | Item | State |
 | --- | --- | --- |
 | 1 | Insurance register | Built; 0090 on development; boards in its turn. |
