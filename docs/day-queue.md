@@ -1,5 +1,23 @@
 # Day queue, 2026-10-23
 
+## BOARD 5 OF 6, SECOND RUN: `feat/uploads-turnaround-alerts` at `fcb44af`
+
+**Prediction written and pushed before the board starts.**
+
+The first run, 40579097390 on `560e9a0`, missed: 62 of 63. The one FAIL was retention-audit: "the declaration is in alphabetical order". The 0099 entry `eng_alert_recipients` had been added after `eng_quote_requests`.
+
+**Repaired in `fcb44af`.** The entry and its comment move to sit before `eng_alert_state`. I checked this against `DECLARED_TABLES`, the list the audit imports:
+- the old order is wrong at index 4, the same spot the board named;
+- the new order holds across 103 tables, with no duplicates.
+
+The rule is unchanged, and nothing else moved. Every other audit in the first run passed, including protocol-registry-audit's first run of the withdrawn-list checks.
+
+**Predicted:** 63 of 63, zero FAIL, no audit-level COULD NOT TELL, voice-audit 3 lines exempt, and the administrator's dashboard under 3000 ms. retention-audit's five standing COULD NOT TELL lines (the 2026-09-04 rollup fixture) stay as they were.
+
+**Named risk:** retention-audit checks after the order line now run past it with the corrected list. The first run already reached them, and they passed.
+
+**On a match:** post the run and the boarded commit for 0099's production sitting. Merge only after the read-back.
+
 ## BOARD 5 OF 6: addendum 4, 6 and 8b with 0099 (on development), and DS-001 withdrawn from signing, on board 4's `2e8275a` and main `97bc15b`
 
 **Prediction written and pushed before the board starts.**
