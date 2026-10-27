@@ -25,6 +25,15 @@ design quote shows its own refund sentence; the v1 route keeps refusing quote
 files outside this site's upload folder. Briefs are the entry above. Declining a
 quote emails nobody; the office replies itself.
 
+## THE MOBILE APP IS A PLAN: NOTHING BUILT, SIX QUESTIONS FOR ROBERT
+
+Robert's instruction of 2026-10-27, written as `docs/mobile-plan.md`: the roles,
+the screens for each role, the shared API, the second factor, the technician's
+offline needs, and the publisher entity. That document is where the reasoning
+lives; this entry is the pointer. What is open: the six questions there, the
+first being which legal entity publishes the app, and the five phases, none of
+them started.
+
 ## 0095 AND 0096, WPI-8 ONGOING THROUGH A SCOPE ADDENDUM: BUILT, TWO THINGS LEFT
 
 **Built since** (same branch): the owner's panel on `/portal/pricebook` and
