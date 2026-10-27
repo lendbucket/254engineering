@@ -70,20 +70,28 @@ export type ReconcileReport = {
  * only, so it cannot be edited after the fact. Reading it from there needs no
  * migration and creates no second source of truth to keep in step.
  */
-async function sessionRefFor(orderId: string): Promise<string | null> {
+/*
+ * A FAILED READ IS NOT "NO CHECKOUT". Audit sweep A13, 2026-10-25: this read
+ * ignored its error, so a failure became a null ref, and judge() told the
+ * operator "No checkout was ever started for this order, so no money moved
+ * through one." It now says the record could not be read, which reconcileOrder
+ * turns into the unreachable verdict: cannot tell, so nothing is done.
+ */
+async function sessionRefFor(orderId: string): Promise<{ ok: true; ref: string | null } | { ok: false; error: string }> {
   const db = supabaseAdmin();
-  if (!db) return null;
-  const { data } = await db
+  if (!db) return { ok: false, error: "the database is not configured" };
+  const { data, error } = await db
     .from("eng_order_events")
     .select("detail, created_at")
     .eq("order_id", orderId)
     .eq("event", "checkout.started")
     .order("created_at", { ascending: false })
     .limit(1);
+  if (error) return { ok: false, error: `the order's checkout record could not be read (${error.message})` };
 
   const detail = data?.[0]?.detail as { session_ref?: unknown } | null | undefined;
   const ref = detail?.session_ref;
-  return typeof ref === "string" && ref.length > 0 ? ref : null;
+  return { ok: true, ref: typeof ref === "string" && ref.length > 0 ? ref : null };
 }
 
 /** Orders the platform is still waiting on. The only ones worth asking about. Throws when they cannot be read. */
@@ -279,8 +287,11 @@ export async function reconcileOrder(
   order: { id: string; reference: string; status: string; totalCents: number | null },
   options: { apply: boolean },
 ): Promise<ReconcileFinding> {
-  const sessionRef = await sessionRefFor(order.id);
-  const answer = await askProvider(sessionRef);
+  const refRead = await sessionRefFor(order.id);
+  const sessionRef = refRead.ok ? refRead.ref : null;
+  const answer: ProviderAnswer = refRead.ok
+    ? await askProvider(sessionRef)
+    : { known: false, reason: "unreachable", message: refRead.error };
   const ruling = judge({ totalCents: order.totalCents }, answer);
 
   const providerAmountCents = answer.known ? answer.status.amountCents : null;

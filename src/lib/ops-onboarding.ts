@@ -325,11 +325,28 @@ export async function activationView(actor: Actor | null, onboardingId: string):
     .maybeSingle();
   if (!onboarding) return null;
 
-  const { data: rows } = await db
+  const { data: rows, error: itemsError } = await db
     .from("eng_onboarding_items")
     .select("item_key, label, status, actor, issued_on, expires_on, sort_order")
     .eq("onboarding_id", onboardingId)
     .order("sort_order");
+
+  /*
+   * A FAILED READ IS NEVER READY. Robert's audit of 2026-10-24, finding F30:
+   * with the error ignored the items were an empty list, activationReadiness
+   * skipped every credential it had nothing to check, and the person read as
+   * ready to activate. The view says why it cannot tell, and activation, which
+   * reads this same view, refuses on it.
+   */
+  if (itemsError) {
+    const why = `The onboarding items could not be read, so whether this person is ready cannot be told: ${itemsError.message}`;
+    const shut = activationReadiness([], []);
+    return {
+      onboarding: onboarding as ActivationView["onboarding"],
+      items: [],
+      readiness: { ...shut, ready: false, blockers: [why, ...shut.blockers] },
+    };
+  }
 
   const items = (rows ?? []).map((r) => ({
     itemKey: r.item_key as string,

@@ -160,7 +160,11 @@ export default async function QueuePage() {
             description="Jobs that used every attempt and stopped. Nothing retries these on its own, which is the point: they are here because they need a decision."
             className="mt-6"
           >
-            {dead.length === 0 ? (
+            {dead === null ? (
+              <p role="alert" className="text-[14px] text-[var(--ink)]">
+                The dead letters could not be read just now, so whether any job has given up is not known. Reload the page; nothing was changed.
+              </p>
+            ) : dead.length === 0 ? (
               <EmptyState
                 title="Nothing has given up"
                 body={`A job retries with a growing delay, capped at ${Math.round(MAX_DELAY_MS / 60000)} minutes, and lands here only when it has used every attempt or failed in a way that cannot be fixed by trying again. When one arrives it stays until somebody retries it by hand.`}

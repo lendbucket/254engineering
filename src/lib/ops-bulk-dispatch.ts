@@ -127,9 +127,12 @@ export async function dispatchPlans(
           ? "This file already has a technician."
           : !context
             ? "No dispatch plan could be built for this file."
-            : context.plan.offers.length === 0
-              ? `No technician covers ${file.county} County for this service line.`
-              : null;
+            : /* A failed read is said, never "no technician covers" (section 6, class A). */
+              context.unreadable
+              ? context.unreadable
+              : context.plan.offers.length === 0
+                ? `No technician covers ${file.county} County for this service line.`
+                : null;
 
     plans.push({
       fileId: file.id,
