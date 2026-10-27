@@ -243,7 +243,7 @@ export async function draftLineAddendum(
     .eq("license_number", engineer.licenseNumber)
     .maybeSingle();
   if (profileError) return { ok: false, error: `The engineer's account could not be read: ${profileError.message}` };
-  if (!profile) return { ok: false, error: "The engineer of record has no portal account with his licence number, so there is nobody to sign it." };
+  if (!profile) return { ok: false, error: "The engineer of record has no portal account with his license number, so there is nobody to sign it." };
 
   const { data, error } = await db
     .from("eng_scope_addenda")

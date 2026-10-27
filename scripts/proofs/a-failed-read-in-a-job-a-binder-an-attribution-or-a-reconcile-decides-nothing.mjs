@@ -59,7 +59,13 @@ const ROWS = {
     postal_code: null, service_slug: "roof-inspections", status: "under_review", twia_county: false, evidence_due_at: null,
     notes: null, assigned_tech_id: null, protocol_template_id: TEMPLATE,
   }],
-  eng_protocol_templates: [{ id: TEMPLATE, name: "Proof protocol", version: 1, status: "published", service_slug: "roof-inspections", document_number: "254-RC-001", version_label: "1.1" }],
+  /*
+   * service_tier is null, as it is for every record but WS-001 and WP-001 since
+   * 0096. The row carried no such column until WPI-8 met this proof: the tier
+   * match then read undefined, found no protocol, and the two certification
+   * checks failed on a fixture rather than on the code.
+   */
+  eng_protocol_templates: [{ id: TEMPLATE, name: "Proof protocol", version: 1, status: "published", service_slug: "roof-inspections", service_tier: null, document_number: "254-RC-001", version_label: "1.1" }],
   eng_protocol_items: [{ id: "i1", template_id: TEMPLATE, item_key: "roof_overview", label: "Roof overview", kind: "photo", required: true, sort_order: 1, guidance: null, min_count: 1, unit: null }],
   eng_evidence_items: [],
   eng_checklist_exceptions: [],
