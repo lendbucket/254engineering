@@ -3777,7 +3777,11 @@ export const APPLIED = [
       "email and removal checks, the live-once index, the guard trigger and its function, and one grant). The " +
       "eng-uploads bucket's 40 MB limit is a row, not a shape, so it moves neither figure.",
     because:
-      "WRITTEN 2026-10-27 ON feat/uploads-turnaround-alerts, ON TOP OF 0098, AND APPLIED NOWHERE. Robert's " +
+      "WRITTEN 2026-10-27 ON feat/uploads-turnaround-alerts, ON TOP OF 0098; ON DEVELOPMENT (version " +
+      "20261027164724, applied by the operator's chat counterpart through apply_migration from " +
+      "stage/0099-uploads-turnaround-alerts-2 at f7ef08b, file sha256 2384abfe, stored statement sha256 d217b4b1, " +
+      "shape 6bfbef5f across 1370 columns and the uploads limit 41943040 read back; issue #1 comment 6447936290), " +
+      "NOT YET ON PRODUCTION. Robert's " +
       "addendum of 2026-10-25, 22:46 Central, items 4 and 8b: a plan file of 40 MB fits the uploads bucket, and " +
       "the office's alerts go to a list the owner edits. Posted on issue #1 for the chat to sit on development, " +
       "then on production after the board passes. The branch merges only after the production apply is read back.",
