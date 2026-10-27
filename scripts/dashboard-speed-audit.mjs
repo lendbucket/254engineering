@@ -47,6 +47,7 @@ import { createProbe, cookieFor, destroyProbes, probeFault } from "./lib/portal-
 import { COULD_NOT_TELL } from "./lib/reachable.mjs";
 import { auditClient } from "./lib/db-target.mjs";
 import { AUDIT_BASE_URL } from "./lib/ports.mjs";
+import { trackOpenRequests } from "./lib/open-requests.mjs";
 
 const BASE = process.env.BASE_URL ?? AUDIT_BASE_URL;
 /** The ruled ceiling. A literal, so the threshold is moved on purpose or not at all. */
@@ -84,11 +85,14 @@ const browser = await chromium.launch();
 const times = [];
 const apiCalls = [];
 const seen = [];
+const stillOpen = [];
 try {
   for (let run = 1; run <= RUNS; run++) {
     const ctx = await browser.newContext({ viewport: { width: 1280, height: 1600 } });
     await ctx.addCookies(cookieFor(admin, BASE));
     const page = await ctx.newPage();
+    /* What is still open when a load does not go quiet (answer 14 of 2026-10-26). */
+    const tracked = trackOpenRequests(page);
     page.on("request", (r) => {
       const path = r.url().replace(BASE, "");
       if (path.startsWith("/api/")) apiCalls.push(`run ${run}: ${path.slice(0, 80)}`);
@@ -110,6 +114,15 @@ try {
     /* Network idle is 500 ms of quiet after the last request; the page settled 500 ms earlier. */
     times.push(idle === null ? null : Math.max(0, idle - 500));
     console.log(`  run ${run}: ${idle === null ? "did NOT settle within 15s" : `settled in ${idle - 500} ms`} on ${what.path} (${what.eyebrow} / ${what.h1})`);
+    /*
+     * NAME WHAT KEPT IT BUSY. Boards 40169333114 and 40320368396 both said
+     * "never went quiet" and nothing else, so neither could be diagnosed.
+     */
+    if (idle === null) {
+      const named = tracked.describe();
+      stillOpen.push(`run ${run}: ${named}`);
+      console.log(`    still open: ${named}`);
+    }
     await ctx.close();
   }
 } finally {
@@ -129,7 +142,7 @@ rec(
   `the administrator's dashboard settles within ${CEILING_MS} ms (median of ${RUNS})`,
   onDashboard && median !== null && median <= CEILING_MS,
   median === null
-    ? `${RUNS - settled.length} of ${RUNS} loads never went quiet, which is the hung prefetch this check exists for`
+    ? `${RUNS - settled.length} of ${RUNS} loads never went quiet, which is the hung prefetch this check exists for. Still open: ${stillOpen.join(" | ")}`
     : `median ${median} ms, runs ${times.join(", ")} ms`,
 );
 

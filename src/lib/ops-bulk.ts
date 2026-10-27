@@ -282,6 +282,8 @@ export async function placeBatch(input: {
       },
       answers: item.property.answers,
       inputs: input.inputs,
+      /* The agreed price is the order's price (F3, Robert's answer of 2026-10-25), so its total is the share it is charged. */
+      agreedPriceCents: agreed,
     });
 
     if (!result.ok) {

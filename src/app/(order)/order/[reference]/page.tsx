@@ -190,6 +190,22 @@ export default async function OrderStatusPage({
           to say which it was, and a reader who cannot tell green from grey was
           reading the words all along.
         */}
+        {/*
+          WHAT COULD NOT BE READ IS SAID (audit finding F29, 2026-10-24). A failed
+          read of the timeline, the payments or the letters used to leave that
+          part of the page blank, which reads as "nothing yet" or "no refund"
+          about somebody's own money and documents.
+        */}
+        {view.unread.length > 0 ? (
+          <div role="alert" className="mt-7 border-l-2 border-[var(--color-slate)] pl-4">
+            <p className="text-[15px] font-semibold text-[var(--color-ink)]">Part of this page could not be loaded</p>
+            <p className="mt-1 text-[15px] leading-[1.65] text-[var(--color-ink-quiet)]">
+              We could not load {view.unread.join(" or ")} just now, so that part is not shown. Nothing about your
+              order has changed. Please reload this page in a few minutes.
+            </p>
+          </div>
+        ) : null}
+
         {paid ? (
           <div className="mt-7 border-l-2 border-[var(--color-slate)] pl-4">
             <p className="text-[15px] font-semibold text-[var(--color-ink)]">Payment received</p>

@@ -10,7 +10,8 @@ import { outstandingFor, answeredFor, readAnswers } from "@/lib/ops-file-inputs"
 import { FILE_DETAIL_FIELDS } from "@/lib/file-detail-fields";
 import { ContactLogPanel } from "@/components/portal/ContactLog";
 import { FileDetailsForm, ReleaseTechnician } from "./DeskFileClient";
-import { AuthorityDetailsForm } from "@/components/portal/LetterFactsPanels";
+import { AuthorityDetailsForm, CatalogueFactsPanel } from "@/components/portal/LetterFactsPanels";
+import { LETTER_FACT_CATALOGUE } from "@/content/letters/letter-fact-catalogue";
 import { recordedFactsFor } from "@/lib/letter-facts";
 import { services } from "@/content/services";
 import { EmptyState, PageHead, Panel } from "@/components/portal/surfaces";
@@ -68,7 +69,21 @@ export default async function FilesPage({
     oldest,
   });
   const selected = params.id ? await getFile(actor, params.id) : null;
-  const timeline = selected ? await fileTimeline(selected.id) : [];
+  const timelineRead = selected ? await fileTimeline(selected.id) : [];
+  /* A failed read is said where the timeline would be, never "Nothing recorded yet." (section 6, class A). */
+  const timelineFailed = timelineRead === null;
+  const timeline = timelineRead ?? [];
+  /* The decision that took the file out of review, while the file still stands where it put it (item B, 2026-10-25). */
+  const lastMove = timeline.find((e) => e.kind === "status");
+  const SENT_BACK: Record<string, string> = {
+    refused: "The engineer declined this file",
+    revisions_requested: "The engineer sent this file back for revisions",
+    needs_dispatch: "The engineer sent this file back for another site visit",
+  };
+  const sentBack =
+    selected && lastMove && lastMove.from_status === "under_review" && lastMove.to_status === selected.status && SENT_BACK[selected.status]
+      ? { heading: SENT_BACK[selected.status], reason: (lastMove.body as string | null)?.trim() || null }
+      : null;
 
   /* The contact, access and scheduling answers, for the details form (files.update_details, 2026-10-20). */
   const answersRead = selected && can(actor, "files.update_details") ? await readAnswers(selected.id) : null;
@@ -79,6 +94,10 @@ export default async function FilesPage({
   /* PL-2, ruling 7 of 2026-10-23: the office records the authority's address and salutation on a permit letter file. */
   const permitLetterFacts =
     selected && selected.service_slug === "structural-letters" && can(actor, "files.update_details")
+      ? await recordedFactsFor(selected.id)
+      : null;
+  const officeLetterFacts =
+    selected && selected.service_slug === "solar-structural-letters" && can(actor, "files.update_details")
       ? await recordedFactsFor(selected.id)
       : null;
 
@@ -310,6 +329,23 @@ export default async function FilesPage({
           </div>
         </div>
 
+        {/*
+          WHY THE ENGINEER DECLINED OR SENT IT BACK, AT THE TOP. Item B of
+          Robert's ruling of 2026-10-25, 23:51 Central: a decline or send-back
+          shows the office why. The reason is the note on the status event that
+          took the file out of review (eng_record_review_decision, 0068), the same
+          words the timeline below carries, and shown only while the file is
+          still in the status that decision gave it.
+        */}
+        {sentBack ? (
+          <div className="border-b border-[var(--border)] px-4 py-4 sm:px-5" role="status">
+            <p className="portal-kicker">{sentBack.heading}</p>
+            <p className="mt-1.5 max-w-[75ch] text-[14px] leading-[1.6] text-[var(--ink)]">
+              {sentBack.reason ?? "No reason was recorded with the decision."}
+            </p>
+          </div>
+        ) : null}
+
         {outstanding && (outstanding.now.length > 0 || outstanding.later.length > 0) ? (
           <div className="border-b border-[var(--border)] px-4 py-4 sm:px-5">
             <p className="portal-kicker">Outstanding information</p>
@@ -361,6 +397,10 @@ export default async function FilesPage({
 
         {dispatch ? (
           <div className="border-b border-[var(--border)] px-4 py-4 sm:px-5">
+            {/* A plan over facts that could not be read is not offered: the sentence instead (section 6, class A). */}
+            {dispatch.unreadable ? (
+              <p role="alert" className="text-[14px] leading-[1.6] text-[var(--ink)]">{dispatch.unreadable}</p>
+            ) : null}
             <DispatchPanel
               fileId={selected.id}
               offers={dispatch.plan.offers}
@@ -462,7 +502,9 @@ export default async function FilesPage({
             />
 
             <p className="mt-7 portal-label">Timeline</p>
-            {timeline.length === 0 ? (
+            {timelineFailed ? (
+              <p role="alert" className="mt-2 text-[14px] text-[var(--ink)]">The timeline could not be read just now. Reload the page; nothing was changed.</p>
+            ) : timeline.length === 0 ? (
               <p className="mt-2 text-[14px] text-[var(--secondary)]">Nothing recorded yet.</p>
             ) : (
               <ol className="mt-3 space-y-3">
@@ -550,6 +592,27 @@ export default async function FilesPage({
               />
             ) : (
               <p className="mt-2 text-[14px] text-[var(--ink)]">The authority&apos;s details could not be read just now. Reload the page; nothing was changed.</p>
+            )}
+          </div>
+        ) : null}
+
+        {/* Item B, 2026-10-25: what the office records for a solar letter (0087's catalogue: the purpose as stated). */}
+        {selected.service_slug === "solar-structural-letters" && can(actor, "files.update_details") ? (
+          <div className="mt-8 print:hidden">
+            <p className="portal-label">For the solar letter, as the customer stated it</p>
+            {officeLetterFacts ? (
+              <CatalogueFactsPanel
+                fileId={selected.id}
+                capacity="office"
+                facts={LETTER_FACT_CATALOGUE.filter((f) => f.line === "254-SL-001" && f.capacity === "office").map((f) => ({
+                  key: f.key,
+                  label: f.label,
+                  values: f.values,
+                  recorded: officeLetterFacts[f.key]?.value ?? null,
+                }))}
+              />
+            ) : (
+              <p className="mt-2 text-[14px] text-[var(--ink)]">The letter&apos;s recorded facts could not be read just now. Reload the page; nothing was changed.</p>
             )}
           </div>
         ) : null}

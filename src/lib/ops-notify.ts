@@ -55,15 +55,23 @@ export type RaiseInput = {
 export type RaiseResult = { ok: boolean; channels: Channel[]; emailError?: string };
 
 /** One person's preferences, defaulted for anything they have never set. */
-export async function preferencesFor(profileId: string, role: RoleKey): Promise<Preference[]> {
+/*
+ * Null when the stored preferences could not be read. Section 6 of Robert's
+ * audit of 2026-10-24 (class A, severity 2): a failed read showed the defaults,
+ * and saving the form then wrote them over what the person had chosen, turning
+ * email back on for somebody who had turned it off. The screen offers no form
+ * over preferences it could not read.
+ */
+export async function preferencesFor(profileId: string, role: RoleKey): Promise<Preference[] | null> {
   const db = supabaseAdmin();
   const applicable = kindsForRole(role);
-  if (!db) return applicable.map((k) => defaultPreference(k.kind));
+  if (!db) return null;
 
-  const { data } = await db
+  const { data, error } = await db
     .from("eng_notification_prefs")
     .select("kind, in_app, email, sms")
     .eq("profile_id", profileId);
+  if (error) return null;
 
   const stored = new Map((data ?? []).map((r) => [r.kind as NotificationKind, r as unknown as Preference]));
   return applicable.map((k) => stored.get(k.kind) ?? defaultPreference(k.kind));

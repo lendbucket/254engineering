@@ -159,24 +159,64 @@ export function verdict(command) {
  * against states that are awkward to create. `readGitState` below does the
  * reading and is exercised separately, because a rule tested only with its
  * input handed to it says nothing about whether the read that feeds it works.
+ *
+ * THE SITTING MERGE IS ALLOWED. Robert's answer 2, 22:11 Central 2026-10-26.
+ * The rule refused the one commit on main that is supposed to carry a
+ * migration: the merge made inside a sitting, after the production apply has
+ * been read back and recorded. On 2026-10-27 that refusal was worked round with
+ * `git merge --no-ff -m`, which this hook cannot see, and the ruling is that a
+ * guard is changed rather than worked round.
+ *
+ * So the commit is allowed when EVERY staged migration's entry in the ledger
+ * BEING COMMITTED (`git show :supabase/applied.mjs`, the index rather than the
+ * working tree or main) carries a production date and says how production got
+ * it. That is the criterion schema-ledger-audit applies to a migration on
+ * main. The audit itself is not run here: it reads committed main, so in this
+ * exact state it reports the migration as "declared applied and not on main"
+ * until the merge commit exists, which is the commit being asked about.
+ *
+ * It FAILS CLOSED. A ledger that cannot be read, a migration with no entry, or
+ * an entry with no production date is a refusal that names which, because the
+ * reason the rule exists is that a pending migration on main is never allowed.
  */
-export function migrationOnMainVerdict(command, state) {
-  if (typeof command !== "string") return null;
-  const stripped = stripQuoted(command) ?? command;
-  if (!/\bgit\s+commit\b/.test(stripped)) return null;
-  if (!state || state.branch !== "main") return null;
+const MIGRATION_FILE = /^supabase\/migrations\/\d{4}_.*\.sql$/;
+const PRODUCTION_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
-  const migrations = (state.stagedFiles ?? []).filter((f) =>
-    /^supabase\/migrations\/\d{4}_.*\.sql$/.test(f),
-  );
+export function stagedMigrationsOnMain(command, state) {
+  if (typeof command !== "string") return [];
+  const stripped = stripQuoted(command) ?? command;
+  if (!/\bgit\s+commit\b/.test(stripped)) return [];
+  if (!state || state.branch !== "main") return [];
+  return (state.stagedFiles ?? []).filter((f) => MIGRATION_FILE.test(f));
+}
+
+export function migrationOnMainVerdict(command, state) {
+  const migrations = stagedMigrationsOnMain(command, state);
   if (migrations.length === 0) return null;
+
+  const ledger = state.ledger;
+  let why;
+  if (!ledger || typeof ledger !== "object") {
+    why = "The ledger being committed could not be read, so nothing shows them applied to production.";
+  } else {
+    const pending = migrations.filter((m) => {
+      const entry = ledger[m.slice("supabase/migrations/".length)];
+      return !entry || typeof entry.production !== "string" || !PRODUCTION_DATE.test(entry.production) || !entry.appliedBy;
+    });
+    if (pending.length === 0) return null;
+    why =
+      `The ledger being committed does not record ${pending.join(", ")} as applied to production ` +
+      "(no entry, no production date, or no appliedBy).";
+  }
 
   return [
     `This commit adds ${migrations.length === 1 ? "a migration" : `${migrations.length} migrations`} while on main:`,
     migrations.join(", ") + ".",
+    why,
     "A migration on main is never pending. Either it goes to production in the",
     "merge sequence or it stays on its branch, because merging is the moment the",
-    "decision stops being deferrable.",
+    "decision stops being deferrable. A sitting merge is allowed once the",
+    "production read-back is recorded in supabase/applied.mjs and staged.",
     "On 2026-09-18 nineteen commits were made on main after a merge, two of them",
     "pending migrations, and the ledger caught it afterwards rather than the",
     "commit being refused. Branch first, then commit.",
@@ -426,6 +466,41 @@ function readGitState() {
   }
 }
 
+/**
+ * The ledger as it is STAGED, keyed by migration file: what this commit would
+ * put on main. Null when it cannot be read, which the rule treats as a refusal.
+ * The module carries no imports, so a copy in the temp directory loads alone.
+ */
+export async function readStagedLedger() {
+  const { writeFileSync, rmSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const { pathToFileURL } = await import("node:url");
+  const copy = join(tmpdir(), `commit-guard-ledger-${process.pid}-${Date.now()}.mjs`);
+  try {
+    const text = execFileSync("git", ["show", ":supabase/applied.mjs"], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+      maxBuffer: 64 * 1024 * 1024,
+    });
+    writeFileSync(copy, text);
+    const { APPLIED } = await import(pathToFileURL(copy).href);
+    if (!Array.isArray(APPLIED) || APPLIED.length === 0) return null;
+    const byFile = {};
+    for (const e of APPLIED) byFile[e.file] = { production: e.production, appliedBy: e.appliedBy };
+    return byFile;
+  } catch {
+    process.stderr.write("commit-guard: could not read the staged ledger, so a staged migration on main is refused\n");
+    return null;
+  } finally {
+    try {
+      rmSync(copy, { force: true });
+    } catch {
+      /* a temp copy left behind is harmless */
+    }
+  }
+}
+
 function deny(reason) {
   process.stdout.write(
     JSON.stringify({
@@ -452,11 +527,14 @@ async function main() {
     return;
   }
 
-  const refusal =
-    verdict(command) ??
-    sourceWriteVerdict(command) ??
-    lossyContentVerdict(command) ??
-    migrationOnMainVerdict(command, readGitState());
+  let refusal = verdict(command) ?? sourceWriteVerdict(command) ?? lossyContentVerdict(command);
+  if (!refusal) {
+    const state = readGitState();
+    // The ledger is read only when a migration is staged on main, so every
+    // other Bash call pays nothing for it.
+    if (stagedMigrationsOnMain(command, state).length > 0) state.ledger = await readStagedLedger();
+    refusal = migrationOnMainVerdict(command, state);
+  }
   if (refusal) deny(refusal);
 }
 
