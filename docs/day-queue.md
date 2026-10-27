@@ -73,6 +73,34 @@ Work through the queue all night, with one-off checks that each read the run fre
 
 ### Robert's instruction, 22:05 Central 2026-10-26: real workflows proven end to end, then mobile apps (queued)
 
+**W1 REPORT, overnight 2026-10-27.** `docs/workflows.md` is written on `docs/workflow-map` at `3393039` (on main `b6abbde`), local only. It changes only that file and a pointer in `BACKLOG.md`, so it is fast lane.
+- **36 workflows, 254-WF-001 to 036:**
+  - customer, 6;
+  - rep, 8;
+  - ops manager, 5;
+  - admin and owner, 9;
+  - field technician, 3;
+  - engineer, 3;
+  - partner, 2.
+- **Each step** names its route, the action or API route it calls, who is told, and the record written. Each carries a "W2 result: not walked yet" line for the walk to fill.
+- **Marked:** 8 steps need SQL, a script or a code edit (admin 5, customer 1, ops 1, engineer 1). 14 steps have no screen (admin 6, customer 4, ops 2, rep 1, technician 1).
+  - **Six of the 8 are standing rulings:** the first administrator, the gate's conditions, prices and floors, opening a line, protocol transcription, and the retention pass.
+  - **Four of the 14 are machine doors or the scheduler, by design.**
+- **The five that most need a screen:**
+  1. resending a payment link or invoicing an account (`send_payment_link` and `invoice_account` exist, and only an API route and a job handler read them; verified);
+  2. an account's credit limit and terms;
+  3. withdrawing or restoring a technician's certification;
+  4. the technician and partner invitation links, delivered by hand (the `onboardingInvite` template is never sent);
+  5. the proving charge and the launch announcement email, which nothing calls.
+- **Also found:**
+  - issuing a statement emails nobody;
+  - `task.due` is declared and never raised.
+- **Not found in code, so W2 looks at these first:** what verifying a credential records; whether anyone is told when a refund is requested or decided; what joins an approved refund request to the refund; whether the admin is told when a partner submits material.
+- **Checks:** 447 added lines, no long dash; backlog-audit 12 checks pass; readers 4 of 5. The one not green is security-audit, which needs a server. So this branch rides on the last board of the night rather than merging on readers alone.
+- **Needs Robert:**
+  - the 2026-10-07 rule's text is not in the repository, so the document cites CLAUDE.md 2d (2026-10-20), "Nothing operational needs SQL, a script or code";
+  - confirm the 8 code-edit and script steps. The two not covered by an existing ruling are opening self-service sign-up and the insurance override.
+
 **Queued, not started.** The order is set by Robert's answer 3 of 22:11, above. **Same rules:** nothing invented, development only, probes on @audit-probe.invalid only, never Aman's account, one board per bundle, a proof and an injection per fix. Each phase reports at the top of this file.
 
 1. **W1, the workflow map.** `docs/workflows.md`: every real workflow for each role (customer, rep, ops manager, admin and owner, field technician, engineer, partner), from first contact to records retention, derived from the code and from Robert's rulings in this queue and in BACKLOG. Numbered 254-WF-001 onward. Each step gives the screen (route), who acts, what they see, what they do, what happens next, who is notified, and what record is written. **Marked:** any step that today needs SQL, a script or a code edit (against the 2026-10-07 rule), and any step with no screen at all. The new document gets its pointer in `BACKLOG.md`, so backlog-audit can see it.
