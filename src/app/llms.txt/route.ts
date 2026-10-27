@@ -91,6 +91,7 @@ ${
 - [Careers](${business.url}/careers): Professional Engineer and field technician tracks.
 - [Insights](${business.url}/insights): the analysis corpus.
 - [Contact](${business.url}/contact)
+- [Press kit](${business.url}/press): how to write the firm's name, its registration line, contact details and logo files.
 - [Privacy policy](${business.url}/privacy)
 - [Terms of use](${business.url}/terms)
 

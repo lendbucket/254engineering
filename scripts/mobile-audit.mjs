@@ -33,6 +33,7 @@ import {
 } from "./lib/portal-probe.mjs";
 import { allPages } from "./lib/surfaces.mjs";
 import { PORTS } from "./lib/ports.mjs";
+import { unmeasuredVerdict } from "./lib/unmeasured-verdict.mjs";
 
 const WIDTHS = [320, 375, 390, 430];
 const HEIGHT = 844;
@@ -175,13 +176,20 @@ async function measurePage(base, browser, path, width, probe = null, session = "
      * 200 and passes every check in this file. Twenty six portal templates
      * would then report pass while measuring one page twenty six times, which
      * is the exact shape of defect this repository keeps finding.
+     *
+     * AND IT IS NOT A FAIL EITHER. Robert's ruling of 2026-10-26, answer 9: a
+     * page that bounced was never measured, so it is COULD NOT TELL, which
+     * blocks a merge exactly as a FAIL does. Printed as three FAILs, a lost
+     * session on board 40266030302 read as 284 layout defects nobody saw. A run
+     * that loses its sign in for more than a set share of routes fails outright
+     * (scripts/lib/unmeasured-verdict.mjs), so it cannot look partial and fine.
      */
     if (
       probe &&
       /^\/(portal|partner|account)\/login$/.test(new URL(page.url()).pathname) &&
       !/\/login$/.test(path)
     ) {
-      return { hscroll: false, taps: false, clip: false, phone: false, note: "bounced to sign in, not measured" };
+      return { unreachable: true, hscroll: null, taps: null, clip: null, phone: null, note: "bounced to sign in, not measured" };
     }
     if (!res || res.status() >= 400) {
       return { hscroll: false, taps: false, clip: false, phone: false, note: `HTTP ${res ? res.status() : "no response"}` };
@@ -545,6 +553,9 @@ async function main() {
      * the run; a screen that never answered says so loudly and does not.
      */
     const unreachable = [];
+    /* Routes with any width unmeasured, against the share that fails the run (unmeasured-verdict.mjs). */
+    const unmeasuredRoutes = new Set();
+    const routesAsked = [...TEMPLATES, ...OPEN_TEMPLATES, ...PORTAL_TEMPLATES].length;
 
     const sessions = {};
     for (const role of ["admin", "engineer", "field_tech"]) {
@@ -558,12 +569,18 @@ async function main() {
       for (const w of WIDTHS) {
         /*
          * A portal template with no session lands on the sign in screen, which
-         * passes every check here while measuring the wrong page. Reported as a
-         * failure rather than skipped.
+         * passes every check here while measuring the wrong page. It was meant
+         * to be "reported as a failure rather than skipped", and it was neither:
+         * the cell was written and never counted, so a missing session passed.
+         * It is now unmeasured, COULD NOT TELL, and counts toward the share that
+         * fails the run outright (answer 9 of 2026-10-26).
          */
         if (t.portal && !sessions[t.portal]?.cookie) {
-          cells[w] = { hscroll: false, taps: false, clip: false, phone: false, note: "no " + t.portal + " session" };
-          log("  " + pad(t.name, 18) + " @" + w + ": NOT MEASURED (no " + t.portal + " session)");
+          const note = "no " + t.portal + " session, not measured";
+          cells[w] = { unreachable: true, hscroll: null, taps: null, clip: null, phone: null, note };
+          log(`  ${pad(t.name, 18)} @${w}: COULD NOT TELL  (${note})`);
+          unreachable.push(`${t.name} @${w}: ${note}`);
+          unmeasuredRoutes.add(t.name);
           continue;
         }
         const cell = await measurePage(
@@ -578,6 +595,7 @@ async function main() {
         if (cell.unreachable) {
           log(`  ${pad(t.name, 18)} @${w}: COULD NOT TELL  (${cell.note})`);
           unreachable.push(`${t.name} @${w}: ${cell.note}`);
+          unmeasuredRoutes.add(t.name);
         } else {
           log(
             `  ${pad(t.name, 18)} @${w}: hscroll=${cell.hscroll ? "ok" : "FAIL"} taps=${cell.taps ? "ok" : "FAIL"} clip=${cell.clip ? "ok" : "FAIL"} phone=${cell.phone ? "ok" : "FAIL"}${cell.note ? "  (" + cell.note + ")" : ""}`,
@@ -641,19 +659,23 @@ async function main() {
       log("");
     }
 
-    if (failures.length === 0) {
-      const measured = `Zero horizontal scroll, every tap target satisfies WCAG 2.5.8 at ${MIN_TAP}px, menu behaves.`;
-      log(
-        unreachable.length === 0
-          ? `ALL GREEN. ${measured}`
-          : `GREEN ON WHAT LOADED, and ${unreachable.length} combination(s) were not measured either way. ${measured}`,
-      );
-      process.exitCode = 0;
-    } else {
+    /*
+     * ONE VERDICT FROM THREE FACTS. Answer 9 of 2026-10-26: anything unmeasured
+     * is COULD NOT TELL (exit 3), a FAIL on what was measured is a FAIL, and
+     * more than the set share of routes unmeasured fails the run outright.
+     * "GREEN ON WHAT LOADED" exited 0, which the board recorded as a PASS.
+     */
+    const verdict = unmeasuredVerdict({ failures, unmeasuredRoutes: unmeasuredRoutes.size, totalRoutes: routesAsked });
+    if (failures.length > 0) {
       log(`${failures.length} FAILURE(S):`);
       failures.forEach((f) => log("  - " + f));
-      process.exitCode = 1;
     }
+    if (verdict.verdict === "PASS") {
+      log(`ALL GREEN. Zero horizontal scroll, every tap target satisfies WCAG 2.5.8 at ${MIN_TAP}px, menu behaves.`);
+    } else {
+      log(verdict.headline);
+    }
+    process.exitCode = verdict.exitCode;
   } catch (err) {
     log(`Harness error: ${err.message}`);
     process.exitCode = 1;

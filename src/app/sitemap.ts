@@ -94,6 +94,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
      * only pages meant for the index. The audits that crawl the sitemap read
      * it by name. */
     entry("/contact", 0.7, "yearly"),
+    /* The press kit (Robert, 2026-10-26, 15:57 Central, piece 1). */
+    entry("/press", 0.5, "yearly"),
     entry("/privacy", 0.3, "yearly"),
     entry("/terms", 0.3, "yearly"),
   ];
