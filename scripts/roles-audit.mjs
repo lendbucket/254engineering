@@ -2153,6 +2153,12 @@ if (!db) {
          */
         "/portal/search",
         "/portal/tasks",
+        /*
+         * His own written procedures, W4 of 2026-10-26: the engineer's section
+         * of the workflow map and nothing else (src/lib/procedures.ts). Gated
+         * on tasks.use, which he holds, like Tasks.
+         */
+        "/portal/procedures",
         "/portal/profile",
         "/portal/charge-log",
         /*

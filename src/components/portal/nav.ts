@@ -169,6 +169,8 @@ export const NAV: NavItem[] = [
     icon: "charge",
   },
   { href: "/portal/tasks", label: "Tasks", short: "Tasks", action: "tasks.use", primary: true, icon: "tasks" },
+  /* Each role's written procedures, from the workflow map (W4, 2026-10-26). tasks.use, matching the page's guard. */
+  { href: "/portal/procedures", label: "Procedures", short: "Steps", action: "tasks.use", icon: "documents" },
   { href: "/portal/messages", label: "Messages", short: "Chat", action: "messages.use", primary: true, icon: "messages" },
   { href: "/portal/files", label: "Files", short: "Files", action: "files.list", primary: true, icon: "files" },
   /* One search for a record by reference, email, phone or address (2026-10-10), the page's own guard. */
