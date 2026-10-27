@@ -1,6 +1,20 @@
 # Day queue, 2026-10-23
 
+## BOARD 2 OF 6, SECOND RUN: `bundle/board-2` at `0147ff7`
+
+**Prediction written and pushed before the board starts.**
+
+- **The first run, 40526142434 on `95f2a17`, missed:** 62 of 63, with one FAIL. guide-dates-audit reported that `/windstorm/catastrophe-area`'s dateModified (2026-08-31) was not its git history (2026-10-27).
+- **Cause:** the Harris commits changed the page's sources, and the emitted dates were not regenerated. The fork ran guide-dates-audit green before committing, when history did not yet hold the change.
+- **Repair:** `0147ff7` re-emits `src/content/guide-dates.ts` with `scripts/emit-guide-dates.mjs`. It is one line, that page's dateModified. guide-dates-audit passes on the committed tree. Nothing else changed since `95f2a17`.
+- **Every other line of the first run matched its prediction.** Writers passed in full.
+- **Predicted:** 63 of 63, zero FAIL, no audit-level COULD NOT TELL, voice-audit 3 lines exempt, and the administrator's dashboard under 3000 ms.
+- **Named risk:** none new. The first run already rendered the county check, the staff Harris line and the backup credential entries, all green.
+- **On a match:** confirm `origin/main` is still `1b01119`, merge `--no-ff` with `[skip ci]`, push with the exact command, ls-remote, then post status on issue #1.
+
 ## BOARD 2 OF 6, 2026-10-27: addendum 11, the Harris wording and county tool, the WPI-8 label, on main `1b01119`
+
+**First run 40526142434: missed, 62 of 63 (guide-dates-audit). Repaired in `0147ff7`; the second run is above.**
 
 **Prediction written and pushed before the board starts.** Branch `bundle/board-2` at `95f2a17`, which is main `1b01119` plus:
 - `4303188`, addendum 11. The nightly backup is switched off: the job runs only when the repository variable `BACKUP_ENABLED` is `true`, and that variable is not set. It includes a restore script and a documented test restore. It was checked line by line against comment 6415570636.
