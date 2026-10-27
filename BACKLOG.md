@@ -4,6 +4,22 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
+## 0098, QUOTES: BUILT, AND A DESIGN QUOTE CANNOT YET BE PAID
+
+Robert's addendum of 2026-10-25, item 3, on `feat/quotes` (0098). A quote is
+requested, keeps its files, is priced and sent from `/portal/quotes`, and is
+accepted and paid from the emailed link through the one checkout. **What is
+open, each asked of Robert on issue #1:** (1) every quoted deliverable is a
+design deliverable, and acceptance is a money door, so it reads the signed
+record (ruling 11): design is not in `offeredServiceLines`, 254-DS-001's
+signature is not known here, and the training check counts technicians, so a
+design quote can be requested and priced today and is refused at payment until
+design is offered and its protocol question is ruled; (2) `/design-inquiry`
+writes `eng_design_inquiries`, a separate table, so a brief sent that way does
+not reach the quote list; (3) the default hold of 30 days and the refund terms
+a design quote shows (the desk wording) are unruled. Declining a quote emails
+nobody; the office replies itself.
+
 ## 0095 AND 0096, WPI-8 ONGOING THROUGH A SCOPE ADDENDUM: BUILT, TWO THINGS LEFT
 
 **Built since** (same branch): the owner's panel on `/portal/pricebook` and

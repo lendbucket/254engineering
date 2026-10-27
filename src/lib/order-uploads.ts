@@ -26,7 +26,9 @@ import { supabaseAdmin } from "./supabase";
  * size and type limits.
  */
 
-const BUCKET = "eng-uploads";
+/** Exported so a quote request can refuse a file from anywhere else (ops-intake.ts, quoteFileProblem). */
+export const ORDER_UPLOAD_BUCKET = "eng-uploads";
+const BUCKET = ORDER_UPLOAD_BUCKET;
 
 /** What a customer may attach. Narrower than the career flow on purpose. */
 const ALLOWED = [

@@ -664,6 +664,56 @@ export function jobPaymentLink(input: {
 }
 
 /**
+ * The firm's written quote, with the link that accepts it. Robert's addendum
+ * of 2026-10-25, item 3: the office prices a quote request and sends it, and
+ * the customer accepts by a tokened link and pays.
+ *
+ * It states the price, the scope in the office's words, and the date it
+ * lapses, and nothing about when the work will be done: turnaround stays
+ * qualitative while the gate governs what the firm may say about sealed work.
+ */
+export function quoteSent(input: {
+  customerName: string;
+  customerEmail: string;
+  reference: string;
+  deliverableName: string;
+  amount: string;
+  scope: string;
+  expiresOn: string;
+  quoteUrl: string;
+}): RenderedEmail {
+  return compose(
+    "quote.sent",
+    "human",
+    `Your quote for the ${input.deliverableName}, ${input.reference}`,
+    {
+      preheader: `The quoted price is ${input.amount}. It holds until ${input.expiresOn}.`,
+      signed: true,
+      blocks: [
+        { kind: "p", text: `${input.customerName},` },
+        {
+          kind: "p",
+          text: `Here is the firm's quote for the ${input.deliverableName} you asked about. The reference is ${input.reference}.`,
+        },
+        { kind: "p", text: `The quoted price is ${input.amount}. It covers this scope:` },
+        { kind: "p", text: input.scope },
+        {
+          kind: "p",
+          text: `The quote holds until ${input.expiresOn}. To accept it, open the quote and pay from there; the work is not taken on until you do.`,
+        },
+        {
+          kind: "note",
+          text: "Card details are entered on the payment provider's page and never reach this firm. Nothing is charged until you complete it.",
+        },
+        { kind: "p", text: "If the scope is not what you meant, reply to this email before accepting and it will be corrected." },
+      ],
+      button: { label: "Open the quote", url: input.quoteUrl },
+    },
+    { to: input.customerEmail },
+  );
+}
+
+/**
  * Asking a customer for the things the job is still missing.
  *
  * Phase 10 Section 1.5 Section C item 4. Chasing by hand is the thing that
@@ -2236,6 +2286,16 @@ export function unreleasedPaymentsAlert(input: UnreleasedPaymentsAlertInput): Re
 export function allTemplatesForAudit(): RenderedEmail[] {
 
   return [
+    quoteSent({
+      customerName: "Sample Customer",
+      customerEmail: "sample@example.com",
+      reference: "Q-SAMPLE-0001",
+      deliverableName: "custom foundation and framing package",
+      amount: "$2,400.00",
+      scope: "Foundation plan and framing plan for a single storey addition, with the calculations they rest on.",
+      expiresOn: "November 26, 2026",
+      quoteUrl: "https://254engineering.com/order/quote/Q-SAMPLE-0001?token=SAMPLE",
+    }),
     /*
      * ALL THREE VARIANTS OF THE WELCOME, because the three doors say different
      * things and a registry carrying two of them would leave the third

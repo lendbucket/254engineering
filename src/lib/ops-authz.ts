@@ -444,6 +444,10 @@ export type Action =
   // so the owner alone (Robert's ruling of 2026-10-26, 07:10 Central; 0095).
   // Drafting opens nothing and pays nothing until he signs it himself.
   | "addenda.draft"
+  // Price a quote request, send it to the customer, and decline one. The office
+  // and the owner (Robert's addendum of 2026-10-25, item 3; 0098). A sent price
+  // is what the customer can accept and pay, so it is not every staff role's.
+  | "quotes.manage"
   // Invite a field technician, activate one, and review their credentials.
   // Never another role: profiles.create is the one that invites anybody.
   | "technicians.onboard"
@@ -518,6 +522,8 @@ const MATRIX: Record<Role, Action[]> = {
     "insurance.manage",
     /* A scope addendum for the engineer to sign, seeded by 0095: the owner alone. */
     "addenda.draft",
+    /* Pricing and sending a quote, seeded by 0098: the owner and the office. */
+    "quotes.manage",
     /* The staff level actions, 0079, so an administrator can do anything a rep
      * or manager can, plus set the refund limit, which is the operator's alone. */
     "payments.send_link", "orders.read", "orders.resend_link", "files.update_details",
@@ -824,6 +830,8 @@ export const DEFAULT_ROLES: DefaultRole[] = [
       "reports.revenue", "reports.pipeline", "reports.turnaround", "reports.activity",
       /* The insurance register, seeded by 0090: the office records cover and is warned before it lapses. */
       "insurance.manage",
+      /* Pricing and sending a quote, seeded by 0098: the office prices what a customer asked for. */
+      "quotes.manage",
     ],
   },
 ];

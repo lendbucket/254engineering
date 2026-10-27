@@ -264,3 +264,40 @@ export async function orderBlockedForDisplay(entry: CatalogEntry | undefined, mo
   const sellable = await lineIsSellableForDisplay(entry.serviceSlug, entry.tier);
   return sellable.ok ? orderBlockedReason(entry, mode, true, true) : sellableRefusal(sellable, orderBlockedReason(entry, mode, false));
 }
+
+/**
+ * ===========================================================================
+ * A QUOTE REQUEST IS NOT A MONEY DOOR. Robert's addendum of 2026-10-25, item 3.
+ * ===========================================================================
+ *
+ * "Fix requestQuote so design and the other quote lines can actually be
+ * requested (today line-gate refuses every quote entry)." Every quote entry in
+ * the catalogue is a design deliverable, and design is not in
+ * offeredServiceLines, so lineIsSellable answered "not offered for ordering
+ * yet" to every one: a request that takes no money was refused by the check
+ * that exists to stop money being taken.
+ *
+ * WHAT STILL HOLDS IT. The gate: a quote request is the firm taking work, so
+ * prelaunch and trading refuse it with the catalogue's own sentences, as
+ * before. A deliverable that is not a quote is refused by requestQuote with its
+ * own sentence. A deliverable needing a scope addendum stays refused here, in
+ * the closing direction, because the read that would open it belongs to the
+ * money door.
+ *
+ * WHAT MOVED, AND WHERE IT WENT. The signed record (ruling 11) is read where
+ * money is taken: acceptQuote calls orderBlockedNow before it converts a quote
+ * into an order and opens checkout. Nothing about a line's sellability is
+ * loosened; the question is asked at the moment the money is.
+ */
+export function quoteRequestBlocked(entry: CatalogEntry | undefined, mode: OrderGateMode): string | null {
+  if (!entry || mode !== "open") return orderBlockedReason(entry, mode, false);
+  if (entry.orderType !== "quote") return null;
+  /* Not the protocol question, which is the money door's: the addendum check and the quote answer are what remain. */
+  return orderBlockedReason(entry, mode, true, false);
+}
+
+/** What the order start page shows for one deliverable: a quote is asked as a request, everything else as an order. */
+export async function deliverableBlockedForDisplay(entry: CatalogEntry | undefined, mode: OrderGateMode): Promise<string | null> {
+  if (entry?.orderType === "quote") return quoteRequestBlocked(entry, mode);
+  return orderBlockedForDisplay(entry, mode);
+}

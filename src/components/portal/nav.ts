@@ -178,6 +178,8 @@ export const NAV: NavItem[] = [
   /* Looking an order up, which reads and changes nothing about money. 0079. */
   { href: "/portal/order-lookup", label: "Order lookup", short: "Lookup", action: "orders.read", icon: "orders" },
   { href: "/portal/refunds", label: "Refund requests", short: "Refunds", action: "refunds.request", icon: "orders" },
+  /* Quote requests, priced and sent by the office (addendum item 3, 0098). quotes.manage, matching the page's guard. */
+  { href: "/portal/quotes", label: "Quotes", short: "Quotes", action: "quotes.manage", icon: "orders" },
   { href: "/portal/inbox", label: "Inbox", short: "Inbox", action: "inbox.read", icon: "messages" },
   { href: "/portal/prospects", label: "Sales list", short: "Sales", action: "crm.use", icon: "clients" },
   { href: "/portal/accounts", label: "Accounts", short: "Accts", action: "accounts.manage", icon: "accounts" },

@@ -110,6 +110,17 @@ async function handlePOST(request: NextRequest) {
     company: body.customer?.company ?? null,
   };
 
+  /* Read before the quote branch, which used to return without them: a quote request's files are kept (addendum item 3). */
+  const files = (body.files ?? [])
+    .filter((f) => typeof f.key === "string" && typeof f.bucket === "string" && typeof f.storageKey === "string")
+    .map((f) => ({
+      key: f.key as string,
+      bucket: f.bucket as string,
+      storageKey: f.storageKey as string,
+      contentType: f.contentType ?? null,
+      byteSize: typeof f.byteSize === "number" ? f.byteSize : null,
+    }));
+
   if (body.intent === "quote") {
     const result = await requestQuote({
       site: SITE_KEY,
@@ -122,19 +133,10 @@ async function handlePOST(request: NextRequest) {
       brief: body.brief ?? body.inputs?.project ?? body.inputs?.matter ?? "",
       neededBy: body.neededBy ?? null,
       attribution,
+      files,
     });
     return result.ok ? NextResponse.json(result) : bad(result.error, 422);
   }
-
-  const files = (body.files ?? [])
-    .filter((f) => typeof f.key === "string" && typeof f.bucket === "string" && typeof f.storageKey === "string")
-    .map((f) => ({
-      key: f.key as string,
-      bucket: f.bucket as string,
-      storageKey: f.storageKey as string,
-      contentType: f.contentType ?? null,
-      byteSize: typeof f.byteSize === "number" ? f.byteSize : null,
-    }));
 
   /*
    * THE SESSION IS READ HERE, AND ITS ABSENCE IS THE ANONYMOUS PATH.
