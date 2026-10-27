@@ -64,7 +64,54 @@ const fromPdf: SignableProtocol[] = RECEIVED_PROTOCOLS.map((p) => p.declaration)
     text: d.text as readonly string[],
   }));
 
-export const SIGNABLE_PROTOCOLS: readonly SignableProtocol[] = [...fromPdf, ...fromWord];
+/**
+ * EVERY TEXT THE PORTAL HAS EVER OFFERED, in the order it offered them. This is
+ * the list 0081 was generated from (scripts/emit-signed-protocols-backfill.mjs),
+ * and an applied migration does not change, so the generator keeps reading it.
+ * Nothing else should: what the engineer is offered TODAY is SIGNABLE_PROTOCOLS.
+ */
+export const SIGNABLE_AT_0081: readonly SignableProtocol[] = [...fromPdf, ...fromWord];
+
+/**
+ * WITHDRAWN FROM SIGNING: A TEXT NO GATE, DOOR, DISPATCH OR PAY FIGURE READS.
+ * Issue #1 comment 6449724196 (2026-10-27, 1 pm Central), following Robert's
+ * answer 1 of 2026-10-27, 11:48 Central: design is paid on its accepted quote
+ * and his signed per-quote scope addendum, with no protocol, and he signs
+ * nothing more until a live order. A document the portal offers him that
+ * nothing reads should not be in front of him.
+ *
+ * THE TRANSCRIPTION STAYS AS A RECORD. 254-DS-001 v1.1 remains in ds-001.ts and
+ * received.ts, still proved word for word against his PDF by
+ * protocol-registry-audit, and his signature already on production is left as
+ * it is: nothing reads it, and nothing here voids it. What changes is only
+ * that the protocols screen does not show it and the signing door refuses it
+ * by name.
+ *
+ * A DOCUMENT A LINE READS IS NEVER LISTED HERE. line-gate.ts finds each
+ * non-desk line's protocol in SIGNABLE_PROTOCOLS, so withdrawing one would
+ * close that line. protocol-registry-audit pins this list as a literal.
+ */
+export const WITHDRAWN_FROM_SIGNING: Readonly<Record<string, { on: string; why: string }>> = {
+  "254-DS-001": {
+    on: "2026-10-27",
+    why: "Design is a desk line, paid on its accepted quote and the engineer's signed scope addendum with no protocol (Robert's answer 1 of 2026-10-27), so nothing reads a signature on this text.",
+  },
+};
+
+export const SIGNABLE_PROTOCOLS: readonly SignableProtocol[] = SIGNABLE_AT_0081.filter(
+  (p) => !WITHDRAWN_FROM_SIGNING[p.documentNumber],
+);
+
+/** The signing door's refusal for a withdrawn document, by name, or null. */
+export function withdrawnRefusal(documentNumber: string): string | null {
+  const w = WITHDRAWN_FROM_SIGNING[documentNumber];
+  return w ? `${documentNumber} was withdrawn from signing on ${w.on}. ${w.why}` : null;
+}
+
+/** The withdrawn texts, kept as the record of what he was once offered. */
+export const WITHDRAWN_PROTOCOLS: readonly SignableProtocol[] = SIGNABLE_AT_0081.filter(
+  (p) => Boolean(WITHDRAWN_FROM_SIGNING[p.documentNumber]),
+);
 
 /** The received documents a later Word version replaced, so not offered. */
 export const SUPERSEDED_RECEIVED: readonly string[] = RECEIVED_PROTOCOLS.map((p) => p.declaration)
