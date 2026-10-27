@@ -254,6 +254,9 @@ function STAFF_LEVEL_SCREENS() {
     /* Quote requests, addendum item 3 of 2026-10-25, built to the staff standard from the start. */
     "src/app/portal/(app)/quotes/page.tsx",
     "src/app/portal/(app)/quotes/QuotesClient.tsx",
+    /* Payment links and invoices, W2 of 2026-10-27, built to the staff standard from the start. */
+    "src/app/portal/(app)/payment-links/page.tsx",
+    "src/app/portal/(app)/payment-links/PaymentLinksClient.tsx",
     "src/app/portal/(app)/settings/page.tsx",
     "src/app/portal/(app)/clients/[id]/page.tsx",
     "src/app/portal/(app)/files/DeskFileClient.tsx",

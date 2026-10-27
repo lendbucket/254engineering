@@ -143,6 +143,8 @@ const ADMIN_PAGES = [
   "/portal/refunds",
   /* Quote requests, priced and sent by the office (addendum item 3, 0098): quotes.manage, closed to a signed out caller. */
   "/portal/quotes",
+  /* Payment links and invoices for jobs not yet paid (W2, 2026-10-27): payments.charge, closed to a signed out caller. */
+  "/portal/payment-links",
   "/portal/credentials",
   "/portal/settings",
   "/portal/techs",
@@ -288,6 +290,8 @@ const ADMIN_APIS = [
   /* Pricing, sending and declining a quote, and the quote list as a CSV (addendum item 3, 0098). */
   "/api/portal/quotes",
   "/api/portal/quotes/export",
+  /* The jobs not yet paid as a CSV (W2, 2026-10-27). Sending goes through /api/portal/files, already listed. */
+  "/api/portal/payment-links/export",
   /* Adding and removing where the office's alerts go (addendum item 8b, 0099). */
   "/api/portal/alerts",
   "/api/portal/windstorm-inquiries",

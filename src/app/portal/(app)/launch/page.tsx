@@ -7,6 +7,7 @@ import { offeredServiceLines } from "@/config/launch-conditions";
 import { deliverablesFor } from "@data/catalog";
 import { Chip, PageHead, Panel } from "@/components/portal/surfaces";
 import { OWNER_OVERRIDE, OWNER_OVERRIDE_ACTION, OWNER_OVERRIDES } from "@/lib/owner-override";
+import { configSwitches } from "@/lib/config-switches";
 
 export const dynamic = "force-dynamic";
 
@@ -193,6 +194,44 @@ export default async function LaunchReadinessPage() {
                 <p className="text-[15px] font-semibold text-[var(--navy)]">{o.label}</p>
               </div>
               <p className="mt-2 text-[13.5px] leading-[1.65] text-[var(--secondary)]">{o.holder}</p>
+            </li>
+          ))}
+        </ul>
+      </Panel>
+
+      {/*
+        THE THREE SWITCHES PEOPLE ASK TO FLIP FROM A SCREEN, SHOWN AND NOT
+        FLIPPED. Robert's W2 ruling of 2026-10-27 asked for screens to turn on
+        self-service sign-up and to set and clear the insurance override. Both
+        are gate conditions stated in configuration, and CLAUDE.md section 1
+        lets the gate read the database for one thing only (a signed protocol,
+        ruling 11, closing direction). So this panel shows each switch, who set
+        it, when, and the exact edit that changes it, and changes nothing: a
+        screen that wrote them would be a second gate. Whether a screen may set
+        them is a question for Robert (docs/workflows.md, 254-WF-004 and 018).
+      */}
+      <Panel
+        title="Switches stated in configuration"
+        description="Each of these is changed by an edit to the file named and a deploy, so the change leaves a commit behind. This screen shows where each stands and what the edit is; it does not change them."
+      >
+        <ul className="flex flex-col gap-4">
+          {configSwitches().map((s) => (
+            <li key={s.name} className="border-t border-[var(--border)] pt-4 first:border-t-0 first:pt-0">
+              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                <Chip label={s.state} tone={s.tone} />
+                <p className="text-[15px] font-semibold text-[var(--navy)]">{s.name}</p>
+              </div>
+              <p className="mt-2 text-[13.5px] leading-[1.65] text-[var(--secondary)]">{s.detail}</p>
+              <dl className="mt-2 flex flex-col gap-1 text-[13.5px] leading-[1.6] text-[var(--secondary)]">
+                <div className="flex flex-wrap gap-x-2">
+                  <dt className="font-semibold">Set by</dt>
+                  <dd>{s.setBy}</dd>
+                </div>
+                <div className="flex flex-wrap gap-x-2">
+                  <dt className="font-semibold">To change it</dt>
+                  <dd className="text-[12.5px]">{s.edit}</dd>
+                </div>
+              </dl>
             </li>
           ))}
         </ul>

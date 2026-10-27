@@ -180,6 +180,8 @@ export const NAV: NavItem[] = [
   { href: "/portal/refunds", label: "Refund requests", short: "Refunds", action: "refunds.request", icon: "orders" },
   /* Quote requests, priced and sent by the office (addendum item 3, 0098). quotes.manage, matching the page's guard. */
   { href: "/portal/quotes", label: "Quotes", short: "Quotes", action: "quotes.manage", icon: "orders" },
+  /* Sending a payment link and invoicing an account (W2, Robert 2026-10-27). payments.charge, matching the page's guard. */
+  { href: "/portal/payment-links", label: "Payment links", short: "Bill", action: "payments.charge", icon: "orders" },
   { href: "/portal/inbox", label: "Inbox", short: "Inbox", action: "inbox.read", icon: "messages" },
   { href: "/portal/prospects", label: "Sales list", short: "Sales", action: "crm.use", icon: "clients" },
   { href: "/portal/accounts", label: "Accounts", short: "Accts", action: "accounts.manage", icon: "accounts" },

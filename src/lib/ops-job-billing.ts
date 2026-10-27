@@ -12,7 +12,21 @@ import { orderBlockedNow } from "./line-gate";
 import { DEMO_FILE_SEGMENT, referenceForCustomer } from "./ops-files";
 import { paymentOptions } from "./job-intake-rules";
 import { refundDisclosure } from "./ops-orders";
+import { alreadyRaised } from "./billing-rules";
 import type { Author } from "./ops-crm";
+
+/**
+ * The orders already raised against this job, for the guard in billing-rules.
+ * A read that fails refuses the bill: not knowing whether an order exists is
+ * exactly when a second one would be raised.
+ */
+async function secondOrderRefusal(fileId: string): Promise<string | null> {
+  const db = supabaseAdmin();
+  if (!db) return "The database is not configured.";
+  const { data, error } = await db.from("eng_service_orders").select("reference, status").eq("file_id", fileId);
+  if (error) return `Could not check whether this job already has an order, so nothing was raised: ${error.message}`;
+  return alreadyRaised((data ?? []) as { reference: string; status: string }[]);
+}
 
 /**
  * GETTING PAID FOR A JOB THE CUSTOMER DID NOT PLACE.
@@ -287,6 +301,10 @@ export async function sendPaymentLink(actor: Author, fileId: string): Promise<Bi
   const client = await loadClient(file.client_id);
   if (!client) return { ok: false, error: "That file has no client." };
 
+  /* One order per job: a second press is refused naming the first (billing-rules, alreadyRaised). */
+  const second = await secondOrderRefusal(fileId);
+  if (second) return { ok: false, error: second };
+
   const order = await createOrderForFile(actor, file, client, "card");
   if (!order.ok) return order;
 
@@ -387,6 +405,10 @@ export async function invoiceAccount(actor: Author, fileId: string): Promise<Bil
 
   const client = await loadClient(file.client_id);
   if (!client) return { ok: false, error: "That file has no client." };
+
+  /* One order per job, as on the link path. */
+  const second = await secondOrderRefusal(fileId);
+  if (second) return { ok: false, error: second };
 
   const order = await createOrderForFile(actor, file, client, "invoice");
   if (!order.ok) return order;
