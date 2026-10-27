@@ -1,5 +1,14 @@
 # Day queue, 2026-10-23
 
+## BOARDING, 2026-10-27 from 13:42 UTC: WPI-8 with 0095 and 0096 on main `2504200`
+
+**Written after the board started, at about 14:00 UTC, by a fresh session after the PC restart, and before the board landed.** The session that dispatched run 40514367509 did not record its prediction here. This one is written from the tree, not from that session's memory.
+
+- **Run 40514367509**, branch `board/wpi8-on-2504200` at `101e12c` (WPI-8 `35ae0e8` with main `2504200`, no ledger records). WPI-8 changes 30 files against main: 0095, 0096, two new API routes (`/api/portal/addenda/draft`, `/api/portal/addenda/sign`), and changes to `/portal/pricebook`, `/portal/protocols` and `/portal/review`. It adds no route.
+- **Predicted:** 63 of 63, zero FAIL, no audit-level COULD NOT TELL, voice-audit 3 exempt, dashboard-speed-audit with nothing left open. schema-ledger-audit passes because the board tree still records 0095 and 0096 as `production: null`, which is allowed on a branch.
+- **Named risks:** this tree is where main's three new checks first meet WPI-8's screens. Those checks are mobile-audit failing an unmeasured route, the name, address and phone check, and the partner badge checks. `35ae0e8` passed alone on run 40472967980. Two API routes are new on a board that includes main's dashboard-speed-audit.
+- **On a match:** merge `a6a6747`, not `101e12c`. `a6a6747` is the board tree plus the two ledger commits `e5b22c0` and `930aabf`. Its diff against `101e12c` is `supabase/applied.mjs` alone (79 added and 4 removed lines). It records 0095 as 20261027100215 and 0096 as 20261027133540. That is the same pattern as every migration merge overnight. Before merging, confirm `origin/main` is still `2504200`.
+
 ## MORNING REPORT, 2026-10-27, for Robert's overnight instruction of 22:40 Central
 
 **Needed from Robert:** (1) answer the connector's confirmation prompt so the chat can apply 0096; (2) the detail of addendum items 11, 3, 2, 4, 6, 8b, 10; (3) the Harris wording; (4) the two W1 questions. Each has a recommendation below. **At 10:40 UTC:** six merges overnight, each on a board that matched its prediction; one miss (WPI-8, mechanical, repaired, passed on its second board); bundle 1 boarding. This session wrote nothing to production. **One rule broken, disclosed below.**
