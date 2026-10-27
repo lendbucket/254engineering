@@ -3651,7 +3651,8 @@ export const APPLIED = [
      * stopped for a confirmation prompt that got no answer before its limit.
      * Read back afterwards, nothing partial: no migration after
      * 20261027100215 and no service_tier column. So this branch does not
-     * merge until 0096 is read back from production too.
+     * merge until 0096 is read back from production too. It was, at 13:35
+     * UTC the same day, version 20261027133540 (its entry below).
      */
     production: "2026-10-27",
     development: {
@@ -3683,7 +3684,42 @@ export const APPLIED = [
     file: "0096_a_protocol_is_in_force_for_its_tier.sql", appliedBy: "apply_migration",
     fingerprint: "6adde27e5bd8a1a52cf5a2d0500af466",
     behaviour: "deb92bee42354ce8ef9b74a4955a90c7",
-    production: null,
+    /*
+     * APPLIED TO PRODUCTION 2026-10-27 13:35 UTC, provider version
+     * 20261027133540, by the operator's chat counterpart through
+     * apply_migration, after Robert answered the connector's confirmation
+     * prompt that stopped the 10:02 sitting. Read back on issue #1, comment
+     * 6443269881. The file applied is sha256
+     * dc2b08fa7a159f8b1feac6e8328c8198fe80010f917e63d46d8567b9331ca3d1 at
+     * 35ae0e8, the file development sat; the stored statement reads back as
+     * sha256 0801b37beb054cf0b9957f5205b0aa4c2276ed515de15cbe9066fa2cb5223b6c,
+     * the development figure (comment 6418249935).
+     *
+     * Before: 254-WS-001 v1.1 published; no service_tier column; last
+     * migration 20261027100215 (0095). After: shape
+     * 6adde27e5bd8a1a52cf5a2d0500af466 across 1355, as predicted; 254-WS-001
+     * v1.1 completed tier and still published; 254-WP-001 v1.1 and v1.2
+     * ongoing tier and draft; eng_scope_addenda 0 rows;
+     * eng_line_pay('windstorm-wpi-8/ongoing') returns 0 rows; 0 eng_ functions
+     * executable by anon or authenticated.
+     *
+     * Robert's WP-001 v1.2 training is NOT recorded, and correctly: 0086's
+     * door refuses a template that is not published, and WP-001 stays draft
+     * until the engineer's per job addendum is signed and in force.
+     */
+    production: "2026-10-27",
+    development: {
+      at: "0096",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-26",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-26 14:15 UTC by the operator's chat counterpart through apply_migration, " +
+        "provider version 20261026141547 (issue #1, comment 6418249935). The file sha256 " +
+        "dc2b08fa7a159f8b1feac6e8328c8198fe80010f917e63d46d8567b9331ca3d1; the stored statement sha256 " +
+        "0801b37beb054cf0b9957f5205b0aa4c2276ed515de15cbe9066fa2cb5223b6c, which production matched.",
+    },
     proves: { table: "eng_protocol_templates", column: "service_tier" },
     note:
       "Both figures read off scripts/fingerprint-at.mjs at 0096 on 2026-10-26: one column, 1355, and 1286 facts " +
@@ -3691,7 +3727,7 @@ export const APPLIED = [
       "made conditional on eng_line_pay). Sets service_tier on the two windstorm protocols' records only.",
     because:
       "WRITTEN 2026-10-26 ON feat/wpi8-ongoing-addendum, ON TOP OF 0095; ON DEVELOPMENT (version " +
-      "20261026141547), NOT YET ON PRODUCTION (the 2026-10-27 sitting stopped on a connector prompt). Robert's answer 12 " +
+      "20261026141547) AND PRODUCTION (version 20261027133540). Robert's answer 12 " +
       "of 08:19 Central: 254-WP-001 in force for the ongoing tier only, 254-WS-001 and completed construction " +
       "untouched. Without it, 0052's approval would have retired WS-001 the moment WP-001 went in force. The branch " +
       "merges only after the production apply is read back, and a migration on main is never pending.",
