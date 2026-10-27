@@ -3777,7 +3777,25 @@ export const APPLIED = [
     file: "0098_a_quote_keeps_its_files_and_its_price.sql", appliedBy: "apply_migration",
     fingerprint: "f758025ef6cdc3d2d7593c448211d0ba",
     behaviour: "ffa0dc0962818bf8aede8d79f5ada312",
-    production: null,
+    /*
+     * APPLIED TO PRODUCTION 2026-10-27 20:53 UTC, provider version
+     * 20261027205302, by the operator's chat counterpart through
+     * apply_migration from the boarded commit 2e8275a (board 40568566583,
+     * 63 of 63). Read back on issue #1, comment 6453282449. The file applied
+     * is sha256 ea79198d61696b713dab947168f22967d0f2b15ad18c1bdf96307e1a80e8f86d,
+     * with no drop lines; the stored statement reads back as sha256
+     * 3a174cd52e2db36f3541eea124670af2a957e6db09489c8245428c0a4e49af71, the
+     * development figure.
+     *
+     * Before: last migration 0097 (20261027200159); shape 8395cd8a across
+     * 1356; eng_quote_requests 0 rows, so 0 breaking either check; no
+     * eng_quote_files. After: shape f758025ef6cdc3d2d7593c448211d0ba across
+     * 1364, as predicted; eng_quote_files with RLS on; priced_when_sent and
+     * converted_is_accepted present; both guard triggers present; quotes.manage
+     * granted to exactly admin and ops_manager; 0 eng_ functions executable by
+     * anon or authenticated.
+     */
+    production: "2026-10-27",
     proves: { table: "eng_quote_files", column: "storage_key" },
     note:
       "Both figures read off scripts/fingerprint-at.mjs at 0098 on 2026-10-27, with 0097 reproducing its recorded " +
@@ -3787,7 +3805,7 @@ export const APPLIED = [
       "WRITTEN 2026-10-27 ON feat/quotes, ON TOP OF 0097; ON DEVELOPMENT (version 20261027164640, applied by the " +
       "operator's chat counterpart through apply_migration from stage/0098-quotes-2 at b3b80e0, file sha256 " +
       "ea79198d, stored statement sha256 3a174cd5, shape f758025e across 1364 columns read back; issue #1 comment " +
-      "6447936290), NOT YET ON PRODUCTION. Robert's addendum of 2026-10-25, " +
+      "6447936290) AND PRODUCTION (version 20261027205302, comment 6453282449). Robert's addendum of 2026-10-25, " +
       "22:46 Central, item 3: the office prices and sends a quote, the customer accepts and pays, and files attached " +
       "to a quote request are kept. Posted on issue #1 for the chat to sit on development, then on production after " +
       "the board passes. The branch merges only after the production apply is read back.",
