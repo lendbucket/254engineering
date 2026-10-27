@@ -132,9 +132,19 @@ check(
   "the foundation letter prints the version the file ran under and the accepted count",
   /protocol_version: base\.protocolVersion,/.test(seal) && /evidence_count: String\(base\.evidenceCount\),[\s\S]{0,80}items_not_observed/.test(seal),
 );
+/*
+ * Since 2026-10-26 the check lives in sealerFor, the one reading of who may
+ * seal that a letter and the engineer's own document share (item C). So the
+ * property is read in two parts: sealerFor refuses a licence not current
+ * today, and sealLetter asks sealerFor before it spends the code.
+ */
+const sealerBody = seal.slice(seal.indexOf("export function sealerFor("), seal.indexOf("export async function deliverSealedFile("));
+const sealLetterBody = seal.slice(seal.indexOf("export async function sealLetter("), seal.indexOf("export function sealerFor("));
 check(
   "sealing refuses a licence that is not current today, before the code is spent",
-  /if \(!licenceIsCurrentToday\(engineer\.expires\)\) \{/.test(seal) && seal.indexOf("licenceIsCurrentToday(engineer.expires)") < seal.indexOf("verifyFreshCode(actor!.id, input.code)"),
+  /if \(!licenceIsCurrentToday\(engineer\.expires\)\) \{/.test(sealerBody) &&
+    sealLetterBody.indexOf("sealerFor(actor!, det)") > 0 &&
+    sealLetterBody.indexOf("sealerFor(actor!, det)") < sealLetterBody.indexOf("verifyFreshCode(actor!.id, input.code)"),
 );
 
 console.log("");

@@ -258,8 +258,13 @@ export function protocolItemRowsFor(documentNumber: string | null): ProtocolItem
  * 254-MH-001 and 254-SL-001 entered by Robert's ruling of 2026-10-25, 23:51
  * Central, item B: their letters are built and sealed, and a letter seals only
  * against the determination its engineer recorded (0062's check).
+ *
+ * 254-RS-001 entered by the same ruling, item C: the engineer seals his own
+ * repair specification and the seal act records it as a letter's does, which
+ * binds it to his determination on the file (0062's check). Section 11 issues
+ * the specification on a pass.
  */
-export const REVIEWED_UNDER_SIGNATURE = ["254-FC-001", "254-PL-001", "254-MH-001", "254-SL-001"] as const;
+export const REVIEWED_UNDER_SIGNATURE = ["254-FC-001", "254-PL-001", "254-MH-001", "254-SL-001", "254-RS-001"] as const;
 
 /** Appendix C as a review reads it: the five determinations, verbatim from the declaration. */
 export type GoverningDeclaration = {
