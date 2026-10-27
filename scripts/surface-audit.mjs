@@ -132,6 +132,12 @@ const APIS_MEASURED_ELSEWHERE = {
    * asserts the uniform 404 with no token and with a bad one.
    */
   "order-document": ["scripts/security-audit.mjs", "the sealed letter download, refused without a valid order token"],
+  /*
+   * A requested document sent from the status page, addendum item 4 of
+   * 2026-10-25. Token gated, no session; security-audit asserts the same 404
+   * and no upload URL with no token and with a bad one.
+   */
+  "order-documents": ["scripts/security-audit.mjs", "a requested document sent after ordering, refused without a valid order token"],
   orders: ["scripts/security-audit.mjs", "the customer facing order lookup"],
   /*
    * Accepting a quote, addendum item 3 of 2026-10-25. Token gated, no session;

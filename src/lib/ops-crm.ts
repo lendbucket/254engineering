@@ -16,6 +16,7 @@ import {
 import { accrueForDelivery, accrueForQualifiedLead } from "./ops-partner-comp";
 import { scheduleReviewRequest } from "./review-request";
 import { resolveCounty, twiaStatus, regionForCounty } from "./ops-counties";
+import { dueForToday } from "./turnaround-target";
 
 /**
  * Reads and writes for clients, contacts, and files.
@@ -750,7 +751,13 @@ export async function createFile(
         postal_code: input.postalCode?.trim() || null,
         twia_county: twiaFlag,
         urgency: input.urgency ?? "standard",
-        due_at: input.dueAt || null,
+        /*
+         * A date somebody typed wins. Otherwise a line with a target sets it at
+         * order (Robert's addendum of 2026-10-25, item 6): business days on the
+         * firm's calendar, due through the end of that day in Chicago. A line
+         * with no target, design and WPI-8 ongoing among them, stays null.
+         */
+        due_at: input.dueAt || dueForToday(input.serviceSlug, input.deliverable)?.dueAt || null,
         notes: input.notes?.trim() || null,
         client_price_cents: input.clientPriceCents ?? null,
         deliverable: input.deliverable || null,

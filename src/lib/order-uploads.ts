@@ -39,7 +39,22 @@ const ALLOWED = [
   "image/webp",
 ] as const;
 
-const MAX_BYTES = 10 * 1024 * 1024;
+/**
+ * A PLAN FILE IS 40 MB, A PHOTOGRAPH STAYS AT 10. Robert's addendum of
+ * 2026-10-25, item 4: "Raise the order upload limit to 40 MB for plan files
+ * (PDF only for now)." Plans arrive as PDFs, and a sheet set at 10 MB was the
+ * limit a customer met first. The bucket takes 40 MB since 0099 and stays the
+ * last check; a photograph keeps the old limit, because nothing asked for it.
+ */
+export const ORDER_PDF_MAX_BYTES = 40 * 1024 * 1024;
+export const ORDER_IMAGE_MAX_BYTES = 10 * 1024 * 1024;
+
+/** The limit for one content type, and how it reads to a customer. */
+export function orderUploadLimit(contentType: string): { bytes: number; label: string } {
+  return contentType === "application/pdf"
+    ? { bytes: ORDER_PDF_MAX_BYTES, label: "40 MB" }
+    : { bytes: ORDER_IMAGE_MAX_BYTES, label: "10 MB" };
+}
 
 /** Anything that is not a plain path segment is refused rather than sanitised. */
 const SAFE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,80}$/;
@@ -59,9 +74,13 @@ export async function signOrderUpload(params: {
   /**
    * Whose draft. A customer's order drafts under "orders"; a job the firm takes
    * by telephone drafts under "intake" (0078), so neither door can write into
-   * the other's keys.
+   * the other's keys. A document a customer sends AFTER ordering, from their
+   * tokened status page, lands under "status", keyed on the order's id
+   * (addendum item 4), so it can never be mistaken for a draft's.
    */
-  space?: "orders" | "intake";
+  space?: "orders" | "intake" | "status";
+  /** Only a PDF, for a slot that asks for a plan or a document rather than a photograph. */
+  pdfOnly?: boolean;
 }): Promise<OrderUpload> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "Uploads are not configured." };
@@ -69,14 +88,18 @@ export async function signOrderUpload(params: {
   if (!SAFE.test(params.draftId)) return { ok: false, error: "That draft reference is not valid." };
   if (!SAFE.test(params.inputKey)) return { ok: false, error: "That document slot is not valid." };
 
+  if (params.pdfOnly && params.contentType !== "application/pdf") {
+    return { ok: false, error: "This document is taken as a PDF. Save or scan it as a PDF and attach that." };
+  }
   if (!ALLOWED.includes(params.contentType as (typeof ALLOWED)[number])) {
     return { ok: false, error: "That file type is not accepted. Use a PDF or a photograph." };
   }
   if (!Number.isFinite(params.size) || params.size <= 0) {
     return { ok: false, error: "That file looks empty." };
   }
-  if (params.size > MAX_BYTES) {
-    return { ok: false, error: "That file is over 10MB. Please attach a smaller one." };
+  const limit = orderUploadLimit(params.contentType);
+  if (params.size > limit.bytes) {
+    return { ok: false, error: `That file is over ${limit.label}. Please attach a smaller one.` };
   }
 
   /*

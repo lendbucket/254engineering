@@ -448,6 +448,10 @@ export type Action =
   // and the owner (Robert's addendum of 2026-10-25, item 3; 0098). A sent price
   // is what the customer can accept and pay, so it is not every staff role's.
   | "quotes.manage"
+  // Edit who the office's alerts go to. The owner alone (Robert's addendum of
+  // 2026-10-25, item 8b; 0099): an alert that reaches nobody is a fault nobody
+  // hears about, so the list is not every staff role's to change.
+  | "alerts.manage"
   // Invite a field technician, activate one, and review their credentials.
   // Never another role: profiles.create is the one that invites anybody.
   | "technicians.onboard"
@@ -524,6 +528,8 @@ const MATRIX: Record<Role, Action[]> = {
     "addenda.draft",
     /* Pricing and sending a quote, seeded by 0098: the owner and the office. */
     "quotes.manage",
+    /* Where the office's alerts go, seeded by 0099: the owner alone. */
+    "alerts.manage",
     /* The staff level actions, 0079, so an administrator can do anything a rep
      * or manager can, plus set the refund limit, which is the operator's alone. */
     "payments.send_link", "orders.read", "orders.resend_link", "files.update_details",

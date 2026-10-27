@@ -116,6 +116,47 @@ export function formatCalendarDate(
 }
 
 /**
+ * A calendar date ("YYYY-MM-DD") moved forward by a number of BUSINESS days.
+ *
+ * Robert's addendum of 2026-10-25, item 6: a file's target is stated in
+ * business days. A business day here is Monday to Friday. The firm has no
+ * declared holiday calendar, so none is subtracted, and that is stated rather
+ * than guessed: a holiday list typed here would be a fact nobody ruled. The
+ * date is the firm's own (todayInFirmCalendar), never a UTC day.
+ */
+export function addBusinessDays(date: string, days: number): string | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isInteger(days) || days < 0) return null;
+  const at = new Date(`${date}T12:00:00Z`);
+  let left = days;
+  while (left > 0) {
+    at.setUTCDate(at.getUTCDate() + 1);
+    const weekday = at.getUTCDay();
+    if (weekday !== 0 && weekday !== 6) left -= 1;
+  }
+  return at.toISOString().slice(0, 10);
+}
+
+/**
+ * The last moment of a calendar date in the firm's zone, as an instant.
+ *
+ * A file due "on" a date is due through the end of that day in Chicago, not at
+ * UTC midnight, which is 6 or 7 pm the evening before. The offset is read from
+ * the zone for that date, so a date either side of a daylight saving change
+ * gets its own.
+ */
+export function endOfFirmDay(date: string): string | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+  const noon = new Date(`${date}T12:00:00Z`);
+  const zone = new Intl.DateTimeFormat("en-US", { timeZone: FIRM_TIME_ZONE, timeZoneName: "longOffset" })
+    .formatToParts(noon)
+    .find((p) => p.type === "timeZoneName")?.value;
+  const match = zone?.match(/GMT([+-])(\d{2}):(\d{2})/);
+  if (!match) return null;
+  const end = new Date(`${date}T23:59:59.999${match[1]}${match[2]}:${match[3]}`);
+  return Number.isNaN(end.getTime()) ? null : end.toISOString();
+}
+
+/**
  * A CALENDAR DATE ("YYYY-MM-DD", such as an expiry) in the same words. A
  * calendar date belongs to no time zone, so it is read at noon UTC and printed
  * in UTC: converting it would move an expiry by a day for somebody, and the

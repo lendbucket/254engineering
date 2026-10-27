@@ -199,3 +199,45 @@ export function totalDays(segments: Segment[]): { min: number; max: number } {
 export function shareOf(owner: Segment["owner"], segments: Segment[]): { min: number; max: number } {
   return totalDays(segments.filter((s) => s.owner === owner));
 }
+
+/**
+ * ===========================================================================
+ * THE TARGET A FILE IS HELD TO, PER LINE. Robert's addendum of 2026-10-25,
+ * item 6, with his targets of 2026-10-27, 09:20 Central.
+ * ===========================================================================
+ *
+ * "A per-line target in config: roof 10 business days (already published).
+ * Other lines get no target until Robert gives one. Files on a line with a
+ * target get due_at set at order. Overdue files alert the office." He gave the
+ * others at 09:20: windstorm WPI-8 completed construction 7, foundation 7,
+ * solar 5, manufactured home 5, structural letters for permits 5, repair
+ * specifications 10. Design and WPI-8 ongoing have NO target.
+ *
+ * A TARGET IS NOT A PUBLISHED TURNAROUND, and the two are kept apart on purpose.
+ * PUBLISHED_TURNAROUND above is what a page may promise, and a line enters it
+ * only with segments somebody has put their name to. A target is what the
+ * office holds a file to: it sets due_at and raises the overdue alert. Roof is
+ * the one line with both, and turnaround-audit asserts the two agree, so the
+ * firm never holds a roof file to a date it does not publish.
+ *
+ * Keyed "service/tier", because WPI-8 has a target for completed construction
+ * and none for ongoing. A key that is absent has no target, which is the
+ * record of design and WPI-8 ongoing; there is no null slot to fill in a hurry.
+ * Each figure is pinned as a literal in scripts/turnaround-audit.mjs (CLAUDE.md
+ * 6c), so changing one costs two edits made on purpose.
+ */
+export const TURNAROUND_TARGET_DAYS: Record<string, number> = {
+  "roof-inspections/standard": ROOF_CERTIFICATION_PUBLISHED_DAYS,
+  "windstorm-wpi-8/completed": 7,
+  "foundation-inspections/standard": 7,
+  "solar-structural-letters/standard": 5,
+  "manufactured-home-foundation-certifications/standard": 5,
+  "structural-letters/standard": 5,
+  "repair-specifications/standard": 10,
+};
+
+/** The target in business days for a line and tier, or null when Robert has given none. */
+export function targetDaysFor(serviceSlug: string, tier: string | null | undefined): number | null {
+  if (!tier) return null;
+  return TURNAROUND_TARGET_DAYS[`${serviceSlug}/${tier}`] ?? null;
+}

@@ -4,6 +4,22 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
+## 0099, UPLOADS AFTER ORDERING, TURNAROUND TARGETS AND THE ALERT LIST: BUILT, FOUR THINGS OPEN
+
+Robert's addendum of 2026-10-25, items 4, 6 and 8b, with his targets of
+2026-10-27, on `feat/uploads-turnaround-alerts`. **Open:**
+(1) the status page's target date is held behind the gate, the same hold as the
+published roof figure, so no customer sees one until the firm is open; for the
+six lines whose target has no segments behind it (PUBLISHED_TURNAROUND), whether
+the date shows at gate open is Robert's ruling;
+(2) business days count Monday to Friday with no holidays, because the firm has
+no declared holiday calendar;
+(3) the eng-uploads bucket now takes 40 MB for every upload in it, and a career
+upload is held to 10 MB by the application alone;
+(4) item 8b keeps evidence thumbnails and the paged export here, as ruled
+(thumbnails: "Evidence thumbnails: a column that has never been written",
+below).
+
 ## 0098, QUOTES: BUILT, AND A DESIGN QUOTE CANNOT YET BE PAID
 
 Robert's addendum of 2026-10-25, item 3, on `feat/quotes` (0098). A quote is

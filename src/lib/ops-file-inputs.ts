@@ -4,8 +4,29 @@ import { missingFor, fieldsFor, type IntakeField, type FieldStage } from "@data/
 import { writeAudit } from "./ops-audit";
 import { queueEmail } from "./ops-jobs";
 import { outstandingInformation } from "./email-templates";
-import { deploymentOrigin } from "./site-url";
+import { issueCustomerLink } from "./ops-intake";
+import { customerStatusUrl } from "./customer-link-url";
 import type { Author } from "./ops-crm";
+
+/**
+ * The tokened status link for the order behind a file, or null when the file
+ * has no order (a job taken by telephone and not yet paid) or the link could
+ * not be issued. Never the bare reference, which opens nothing.
+ */
+export async function supplyUrlFor(fileId: string): Promise<string | null> {
+  const db = supabaseAdmin();
+  if (!db) return null;
+  const { data: order, error } = await db
+    .from("eng_service_orders")
+    .select("id, reference")
+    .eq("file_id", fileId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error || !order) return null;
+  const link = await issueCustomerLink({ orderId: order.id as string });
+  return link ? customerStatusUrl(order.reference as string, link.token) : null;
+}
 
 /**
  * WHAT A FILE IS STILL MISSING, ASKED IN ONE PLACE.
@@ -235,11 +256,15 @@ export async function requestOutstanding(
       items: now.map((f) => ({ label: f.label, when: whenFor(f.stage) })),
       holdingUp: input.stage === "dispatch" ? "a technician can be sent" : "it can be sealed",
       /*
-       * The customer's existing order page, which is the only surface they
-       * already have and already reach by reference. A new one time link would
-       * be another credential to issue, expire and support.
+       * THE CUSTOMER'S TOKENED STATUS PAGE, WHERE THE DOCUMENTS ARE UPLOADED.
+       * Robert's addendum of 2026-10-25, item 4: this was the bare order page,
+       * /order/<reference> with no token, and that page opens nothing without
+       * one: it answers that the link does not open an order. The token is
+       * minted here the way every other customer email mints its own
+       * (statusUrlFor in ops-payments), because a stored token cannot be read
+       * back. A job with no order has no status page, so it gets no button.
        */
-      supplyUrl: `${deploymentOrigin()}/order/${input.orderReference ?? input.fileNumber}`,
+      supplyUrl: await supplyUrlFor(input.fileId),
     }),
   );
 

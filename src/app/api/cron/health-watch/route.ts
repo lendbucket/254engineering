@@ -8,6 +8,7 @@ import { cronStarted, cronFinished } from "@/lib/ops-observability";
 import { watchQueue } from "@/lib/queue-watch";
 import { watchRetention, reportRetentionWatch } from "@/lib/retention-watch";
 import { watchUnreleasedPayments } from "@/lib/payments-watch";
+import { watchOverdueFiles } from "@/lib/overdue-watch";
 import {
   HEALTH_PROBE_PATH,
   HEALTH_WATCH_EVERY_MINUTES,
@@ -212,6 +213,15 @@ export async function GET(request: NextRequest) {
   if (!payments.looked) console.error(`[payments-watch] DID NOT LOOK: ${payments.note}`);
   else if (payments.count) console.warn(`[payments-watch] ${payments.note}`);
 
+  /*
+   * AND WHETHER ANY FILE IS PAST ITS TARGET DATE. Robert's addendum of
+   * 2026-10-25, item 6: "Overdue files alert the office." Before the early
+   * return, for the same reason as the three above.
+   */
+  const overdue = await watchOverdueFiles();
+  if (!overdue.looked) console.error(`[overdue-watch] DID NOT LOOK: ${overdue.note}`);
+  else if (overdue.count) console.warn(`[overdue-watch] ${overdue.note}`);
+
   if (!shouldAlert(outcome)) {
     /*
      * Deliberately silent. A watcher that emails on success trains the operator
@@ -227,9 +237,9 @@ export async function GET(request: NextRequest) {
     await cronFinished(
       runId,
       true,
-      `healthy, ${status}; queue: ${queue.note}; retention: ${retention.note}; payments: ${payments.note}`,
+      `healthy, ${status}; queue: ${queue.note}; retention: ${retention.note}; payments: ${payments.note}; overdue: ${overdue.note}`,
     );
-    return NextResponse.json({ ok: true, outcome, host, status, checkedAt, queue, retention, payments });
+    return NextResponse.json({ ok: true, outcome, host, status, checkedAt, queue, retention, payments, overdue });
   }
 
   console.error(
@@ -248,7 +258,7 @@ export async function GET(request: NextRequest) {
   await cronFinished(
     runId,
     true,
-    `${outcome}, status ${status ?? "none"}; queue: ${queue.note}; payments: ${payments.note}`,
+    `${outcome}, status ${status ?? "none"}; queue: ${queue.note}; payments: ${payments.note}; overdue: ${overdue.note}`,
   );
 
   const result = await notify(

@@ -1,12 +1,15 @@
 import "server-only";
 import { supabaseAdmin } from "./supabase";
-import { business } from "@/config/business";
 import { catalogFor } from "@data/catalog";
 import { orderForCustomerToken } from "./ops-intake";
 import { CUSTOMER_STATUS, CUSTOMER_STATUS_REFUND_ISSUED, CUSTOMER_STATUS_REPAIR_SPEC, CUSTOMER_STATUS_REPAIRS, type OrderStatus } from "./ops-orders";
 import { money, type Cents } from "./ops-money";
 import { REFUND_ISSUED_SENTENCE } from "./refund-update";
 import { customerLettersRead, type CustomerLetter } from "./letter-delivery";
+import { isOpen } from "./launch";
+import { targetDateLine } from "./turnaround-target";
+import { requestedDocuments } from "./status-uploads";
+import type { UploadSlot } from "./status-upload-rules";
 
 /**
  * What a customer sees about their own order.
@@ -65,22 +68,25 @@ export type CustomerView = {
    * when everything was read.
    */
   unread: string[];
+  /**
+   * The firm's target date, as a sentence, or null. Robert's addendum of
+   * 2026-10-25, item 6: "The customer status page shows the target date where
+   * one exists." Held behind the gate exactly as the published roof figure is
+   * (targetDateLine in turnaround-target.ts), so it is null while the firm is
+   * not open, and null on a line with no target.
+   */
+  targetDate: string | null;
+  /**
+   * The documents the firm is still waiting on, which the customer can send
+   * from this page (addendum item 4). Empty when nothing is outstanding.
+   */
+  requested: UploadSlot[];
 };
 
 const cents = (v: unknown): Cents => (v === null || v === undefined ? null : Number(v));
 
-/**
- * The customer's way back in, built in one place.
- *
- * Every email that carries this link and the page that answers it agree by
- * construction rather than by two string templates that happen to match today.
- * The reference is in the path because it is what a customer quotes on the
- * phone and what makes the entry recognisable in their history; the token is
- * the query, and the reference alone opens nothing.
- */
-export function customerStatusUrl(reference: string, token: string): string {
-  return `${business.url}/order/${encodeURIComponent(reference)}?token=${encodeURIComponent(token)}`;
-}
+/* The customer's way back in, built in one place: customer-link-url.ts since addendum item 4. */
+export { customerStatusUrl } from "./customer-link-url";
 
 /**
  * A timestamp a customer can read.
@@ -217,6 +223,22 @@ export async function customerView(token: string): Promise<CustomerView | null> 
   const lettersRead = await customerLettersRead(subject.orderId);
   if (!lettersRead.ok) unread.push("your sealed documents");
 
+  /* The target date, read off the file, said only when the gate is open (addendum item 6). */
+  let dueAt: string | null = null;
+  if (order.file_id) {
+    const { data: due, error: dueError } = await db
+      .from("eng_files")
+      .select("due_at")
+      .eq("id", order.file_id as string)
+      .maybeSingle();
+    if (dueError) unread.push("the firm's target date");
+    dueAt = (due?.due_at as string | null) ?? null;
+  }
+
+  /* The documents still asked for, which this page can take (addendum item 4). */
+  const requested = await requestedDocuments(subject.orderId);
+  if (!requested.ok) unread.push(requested.error);
+
   return {
     reference: order.reference as string,
     status: order.status as OrderStatus,
@@ -254,5 +276,7 @@ export async function customerView(token: string): Promise<CustomerView | null> 
     refundIssued: issuedCents > 0 ? { amount: money(issuedCents), sentence: REFUND_ISSUED_SENTENCE } : null,
     letters: lettersRead.ok ? lettersRead.letters : [],
     unread,
+    targetDate: targetDateLine(dueAt, isOpen()),
+    requested: requested.ok ? requested.slots : [],
   };
 }

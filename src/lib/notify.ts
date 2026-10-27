@@ -2,6 +2,8 @@ import "server-only";
 import { Resend } from "resend";
 import { business } from "@/config/business";
 import type { RenderedEmail } from "./email-templates";
+import { isOfficeAlert } from "./alert-recipient-rules";
+import { officeAlertAddresses } from "./alert-addresses";
 
 /**
  * Notification email for form submissions.
@@ -91,10 +93,18 @@ export async function notify(email: RenderedEmail): Promise<NotifyResult> {
     return log(email, { sent: false, outcome: "no content", reason: "rendered body was empty" });
   }
 
+  /*
+   * AN OFFICE ALERT WITH NO RECIPIENT GOES TO THE LIST THE OWNER EDITS
+   * (addendum item 8b, 0099). The outage and queue alerts are sent here
+   * directly, so this is where they reach it. Anything else with no
+   * recipient still goes to the firm's notification address.
+   */
+  const to = email.to ?? (isOfficeAlert(email.id) ? (await officeAlertAddresses()).to : business.notificationEmail);
+
   try {
     const { data, error } = await mailer.emails.send({
       from: email.from,
-      to: email.to ?? business.notificationEmail,
+      to,
       subject: email.subject,
       replyTo: email.replyTo,
       // Multipart. The text part is what a lock screen preview shows and what

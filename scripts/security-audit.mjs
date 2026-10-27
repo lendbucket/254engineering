@@ -288,6 +288,8 @@ const ADMIN_APIS = [
   /* Pricing, sending and declining a quote, and the quote list as a CSV (addendum item 3, 0098). */
   "/api/portal/quotes",
   "/api/portal/quotes/export",
+  /* Adding and removing where the office's alerts go (addendum item 8b, 0099). */
+  "/api/portal/alerts",
   "/api/portal/windstorm-inquiries",
   "/api/portal/review",
   "/api/portal/comms",
@@ -1507,6 +1509,47 @@ async function run() {
       "and the two refusals are indistinguishable",
       acceptNoToken.status === acceptBadToken.status && acceptNoTokenBody === acceptBadTokenBody,
       "a different answer would tell somebody which of their guesses was a real quote",
+    );
+
+    /*
+     * A REQUESTED DOCUMENT SENT AFTER ORDERING, the third public token-gated API
+     * route (addendum item 4). It hands out a signed upload into the private
+     * bucket, so the same pair: no token and a wrong token are refused alike,
+     * and neither answer carries an upload URL. Read for the refusal and the
+     * absence of a URL, never for a status code alone.
+     */
+    const uploadPost = (token) =>
+      fetch(`${BASE}/api/order-documents`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          action: "sign",
+          fieldId: "plans",
+          filename: "plans.pdf",
+          contentType: "application/pdf",
+          size: 1024,
+          ...(token === null ? {} : { token }),
+        }),
+        redirect: "manual",
+      });
+    const upNoToken = await uploadPost(null);
+    const upNoTokenBody = await upNoToken.text();
+    const upBadToken = await uploadPost("not-a-real-token");
+    const upBadTokenBody = await upBadToken.text();
+    rec(
+      "a requested document with no token is given no upload",
+      upNoToken.status === 404 && !/uploadUrl/.test(upNoTokenBody) && /does not open an order/.test(upNoTokenBody),
+      `HTTP ${upNoToken.status}`,
+    );
+    rec(
+      "and a wrong token is refused the same way",
+      upBadToken.status === 404 && !/uploadUrl/.test(upBadTokenBody),
+      `HTTP ${upBadToken.status}`,
+    );
+    rec(
+      "and the two refusals are indistinguishable",
+      upNoToken.status === upBadToken.status && upNoTokenBody === upBadTokenBody,
+      "a different answer would tell somebody which of their guesses was a real order",
     );
   }
 }

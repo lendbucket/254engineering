@@ -728,6 +728,22 @@ export const RETENTION_POLICY: RetentionEntry[] = [
   },
   { table: "eng_quote_requests", rule: { kind: "kept_pending_counsel", because: COUNSEL } },
   /*
+   * 0099. Where the office's alerts go. Robert's addendum of 2026-10-25, item
+   * 8b: a list the owner edits. Removal is stamped, never a delete, so who was
+   * told about the firm's faults and from when stays readable.
+   */
+  {
+    table: "eng_alert_recipients",
+    rule: {
+      kind: "kept_forever",
+      because:
+        "WHO RECEIVED THE FIRM'S ALERTS, AND FROM WHEN. Robert's addendum of 2026-10-25, item 8b: a list the owner " +
+        "edits. A removal stamps removed_at and removed_by once; eng_alert_recipient_guard refuses DELETE and any " +
+        "change to an address, so the history of who was told cannot be rewritten.",
+      ruledBy: "Robert's addendum of 2026-10-25, item 8b",
+    },
+  },
+  /*
    * 0079. The operator's refund approval limit, as dated rows, and refund
    * requests and their decisions. All three refuse change and removal at the
    * database: a limit that can be rewritten is a limit nobody can show was in
