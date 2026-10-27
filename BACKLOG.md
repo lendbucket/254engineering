@@ -34,6 +34,18 @@ lives; this entry is the pointer. What is open: the six questions there, the
 first being which legal entity publishes the app, and the five phases, none of
 them started.
 
+## THE NIGHTLY BACKUP IS BUILT AND SWITCHED OFF: ROBERT CREATES THE BUCKET AND SETS THE SECRETS
+
+Robert's addendum of 2026-10-25, item 11, built 2026-10-27 on
+`feat/addendum-11-backups`. The full procedure, the secrets list and the test
+restore are in `docs/backups.md`; this entry is the pointer. What is open:
+switching it on (the bucket, a read-only database role, eight GitHub Actions
+secrets and the `BACKUP_ENABLED` variable, all Robert's), the first test
+restore, and three questions asked there with recommendations: where the test
+restore goes, which key the backups are sealed to, and whether the dump holds
+only the firm's tables. Nothing deletes old backups, because how long to keep
+them is counsel's retention question.
+
 ## 0095 AND 0096, WPI-8 ONGOING THROUGH A SCOPE ADDENDUM: BUILT, TWO THINGS LEFT
 
 **Built since** (same branch): the owner's panel on `/portal/pricebook` and

@@ -10,6 +10,8 @@ import { FaqBlock } from "@/components/site/FaqBlock";
 import { buildMetadata } from "@/lib/seo";
 import { ArticleJsonLd, JsonLd, breadcrumbSchema, faqSchema } from "@/lib/schema";
 import { windstormBySlug, windstormPages } from "@/content/windstorm-program";
+import { TDI_WINDSTORM_SOURCE, windstormCountyAnswers } from "@/content/windstorm-county-tool";
+import { WindstormCountyCheck } from "@/components/site/WindstormCountyCheck";
 
 export const dynamicParams = false;
 
@@ -104,6 +106,19 @@ export default async function WindstormClusterPage({
           </Section>
         );
       })}
+
+      {/* The county check sits after the sections, on a white band, so it
+          never touches the dark FAQ band or another sunk band. */}
+      {page.countyCheck ? (
+        <Section tone="white">
+          <SectionHead
+            eyebrow="Check a county"
+            title="One county at a time"
+            lede="Choose a county to see what the department's list says about it. Harris is the one county the list splits."
+          />
+          <WindstormCountyCheck answers={windstormCountyAnswers()} source={TDI_WINDSTORM_SOURCE} />
+        </Section>
+      ) : null}
 
       {/* FaqBlock renders its own eyebrow and heading. A SectionHead above it
           produced two stacked headings that both said Questions. */}
