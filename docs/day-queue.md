@@ -43,6 +43,8 @@ Bundle 1 (pieces 1, 2, 4) is new public pages plus a new check, so it goes on th
 18. **Which logo /press offers.** Recommendation: the files the site draws now, linked by path, so the press kit changes when the held corrected logo merges, with nothing to edit.
 19. **The partner badge.** Recommendation: the badge carries the disclosure the 2026-10-15 ruling already allows, "Engineering by 254 Engineering LLC, TBPELS Firm F-29811" (derived from the register), as text with a link and no 254 logo. Its wording follows the gate, the same as the partner disclosure does today. The alternative is the logo badge as written, which needs your word that it sits outside that ruling.
 
+**Robert's answers, 18:55 Central 2026-10-26: 16 yes, 17 yes, 18 yes, 19 yes (text badge, no logo).** So the tool takes a county; TDI's list is read at build time with its date and URL, and a difference stops the work; /press links the current logo files by path; the badge is the derived text disclosure with a link and no 254 logo, worded under the gate. Bundle 1 and bundle 2 stay queued after the migration boards, one board per bundle.
+
 ### Robert's answers, 09:12 Central 2026-10-26
 
 | | Answer | Done |
