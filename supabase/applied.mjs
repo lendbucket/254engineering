@@ -3743,7 +3743,10 @@ export const APPLIED = [
       "pair: one column, 1356, and 1289 facts (the replaced act's reference, its check, the index that lets an act " +
       "be replaced once). Four function bodies are replaced: the seal act check, guard and audit, and the void door.",
     because:
-      "WRITTEN 2026-10-27 ON feat/void-and-reissue, ON TOP OF 0096, AND APPLIED NOWHERE. Robert's addendum of " +
+      "WRITTEN 2026-10-27 ON feat/void-and-reissue, ON TOP OF 0096; ON DEVELOPMENT (version 20261027160251, " +
+      "applied by the operator's chat counterpart through apply_migration from stage/0097-void-and-reissue at " +
+      "cbd8593, file sha256 a76980a6, stored statement sha256 12373fc5, shape 8395cd8a across 1356 columns read " +
+      "back; issue #1 comment 6447034883), NOT YET ON PRODUCTION. Robert's addendum of " +
       "2026-10-25, 22:46 Central, item 2: the void function refuses anyone but a licensed engineer, and a replacement " +
       "letter records the seal act it replaces. Posted on issue #1 for the chat to sit on development, then on " +
       "production after the board passes. The branch merges only after the production apply is read back, and a " +
