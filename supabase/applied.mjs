@@ -3411,6 +3411,65 @@ export const APPLIED = [
       "production. The branch merges only after the production apply is read back, and a migration on main is " +
       "never pending.",
   },
+  {
+    file: "0091_three_letters_seal_without_a_template.sql", appliedBy: "apply_migration",
+    fingerprint: "8daaba436e02fb92c9a6b227fcb98caf",
+    behaviour: "92e2d140a1aefe8192833d9809b7d428",
+    /*
+     * APPLIED TO PRODUCTION 2026-10-27 02:10 UTC, provider version
+     * 20261027021030, by the operator's chat counterpart through
+     * apply_migration, from
+     * docs/production-sitting-0091-three-letters-seal-without-a-template.md,
+     * after board 40423411499 matched its prediction, 63 of 63, on 6b96bb6.
+     * Read back on issue #1, comment 6432012426. The file applied is sha256
+     * fcee7662cb37cc616044ff9e855bd4f6d13312b8ed6838710c4f9a19fc37b168, the
+     * file development sat; the stored statement reads back as sha256
+     * 1c67c2d17fc8447a773ec57ed24aad3d508d7ad81d285cf917bdee3396ad8bcd,
+     * identical to development.
+     *
+     * Section 0: shape 8daaba436e02fb92c9a6b227fcb98caf across 1353, with 0090
+     * applied; the eng_seal_act_check body md5 2fdeda91c4a13a3a77ce41a39975bf91,
+     * as development had before its sitting; no letter sealed on production.
+     * Section 2: shape unchanged; the "seals only from a letter template"
+     * clause absent, the own-protocol clause present, the other-lines clause
+     * kept; the new body md5 49dd9c7109d15d59f2c0cc59c1af7abc. The record
+     * rides in the merge, so 0091 is never pending on main.
+     */
+    production: "2026-10-27",
+    development: {
+      at: "0091",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-26",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-26 07:05 UTC by the operator's chat counterpart through apply_migration, " +
+        "provider version 20261026070513 (issue #1, comment 6410263671). The file was read in full at 7f48d45, " +
+        "sha256 fcee7662cb37cc616044ff9e855bd4f6d13312b8ed6838710c4f9a19fc37b168; the statement stored in " +
+        "supabase_migrations reads back as sha256 1c67c2d17fc8447a773ec57ed24aad3d508d7ad81d285cf917bdee3396ad8bcd, " +
+        "the file without its trailing newline. Before: shape 8daaba436e02fb92c9a6b227fcb98caf across 1353 with " +
+        "0090 applied; the check body md5 2fdeda91c4a13a3a77ce41a39975bf91. After: shape unchanged; the template " +
+        "clause absent, the own-protocol clause present, the other-lines clause kept.",
+    },
+    proves: null,
+    provesNote:
+      "Nothing in it is visible through PostgREST: it replaces one function body and creates no table, column, " +
+      "row, bucket or grant. The sitting document's dry run and verification read the function's source from " +
+      "pg_proc directly, and scripts/proofs/the-three-letters-seal-without-a-template.mjs walks the behaviour " +
+      "against the whole replayed chain.",
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0091 on 2026-10-26, with 0090 reproducing its " +
+      "recorded pair first: shape unchanged at 8daaba43 across 1353 columns, behaviour 25076aa5 to 92e2d140 at " +
+      "1281 facts, the one replaced body of eng_seal_act_check. Tables, triggers and functions unchanged at 101, " +
+      "101 and 67. No drop statement.",
+    because:
+      "WRITTEN 2026-10-26 ON migration/0091-three-letters-seal-without-a-template, ON TOP OF 0090; ON DEVELOPMENT " +
+      "(version 20261026070513) AND PRODUCTION (version 20261027021030). Robert's ruling of 2026-10-25, 23:51 Central, item A: the engineer signs no templates, and his " +
+      "seal on each letter after reading its full preview is his adoption of it, so eng_seal_act_check stops " +
+      "requiring a template for 254-MH-001, 254-SL-001 and 254-WS-001. Posted on issue #1 for the chat to sit " +
+      "after 0090, development first, then production. The branch merges only after the production apply is " +
+      "read back, and a migration on main is never pending.",
+  },
 ];
 
 /*
