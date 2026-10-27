@@ -9,6 +9,12 @@ import { EmptyState, Panel, RestrictedMode, StatusPill } from "@/components/port
 import { CopyBlock } from "./CopyBlock";
 import { SubmitForm } from "./SubmitForm";
 import { formatInFirmZone } from "@/lib/firm-calendar";
+import { business } from "@/config/business";
+import { deliverablesFor } from "@data/catalog";
+import { services } from "@/content/services";
+import { launchMode } from "@/lib/launch";
+import { orderBlockedNow } from "@/lib/line-gate";
+import { partnerBadgeHtml, partnerBadgeText } from "@/lib/partner-copy";
 
 export const dynamic = "force-dynamic";
 
@@ -51,6 +57,20 @@ export default async function PartnerMaterials() {
   );
   const urlFor = new Map(files.map((f) => [f.slug, f.url]));
 
+  /*
+   * THE BADGE ASKS WHAT THE PARTNER ORDER PAGE ASKS: is any line open for
+   * ordering now, through the same money door (orderBlockedNow). Its wording
+   * then follows from partnerBadgeText, which says which sentence renders when.
+   */
+  const mode = launchMode();
+  const anyLineOpen = (
+    await Promise.all(
+      services.flatMap((service) => deliverablesFor(service.slug).map((d) => orderBlockedNow(d, mode))),
+    )
+  ).some((blocked) => blocked === null);
+  const badgeText = partnerBadgeText(anyLineOpen);
+  const badgeHtml = partnerBadgeHtml(badgeText, business.url);
+
   return (
     <>
       <RestrictedMode />
@@ -76,6 +96,31 @@ export default async function PartnerMaterials() {
         description="On any page or document of yours that mentions this program, near the offer rather than in a footer."
       >
         <CopyBlock text={performingFirmLine()} />
+      </Panel>
+
+      {/*
+        THE BADGE, AS TEXT WITH A LINK AND NO 254 LOGO (answer 19 of
+        2026-10-26). A partner never operates under a 254 mark, so there is no
+        image to place: the badge is the firm's own disclosure, linked to the
+        firm's site, and its wording is partnerBadgeText's.
+      */}
+      <Panel
+        title="A badge for your website"
+        description="Text and a link to the firm's site, with no logo. Paste the code below where you mention this program."
+      >
+        <p className="text-[14px] leading-[1.65] text-[var(--ink)]">
+          <a href={business.url} rel="noopener" className="font-semibold text-[var(--ink)] underline">
+            {badgeText}
+          </a>
+        </p>
+        <p className="mt-4 text-[13px] font-semibold text-[var(--secondary)]">The code to paste</p>
+        <div className="mt-1.5">
+          <CopyBlock text={badgeHtml} />
+        </div>
+        <p className="mt-3 max-w-[74ch] text-[13px] leading-[1.55] text-[var(--secondary)]">
+          The wording changes when the firm opens for engagements, so take the code again from this
+          page then rather than editing your copy.
+        </p>
       </Panel>
 
       <Panel
