@@ -1,5 +1,43 @@
 # Day queue, 2026-10-23
 
+## BOARD 6 OF 6: addendum 10 and the W2 screens, on board 5's `eb520b6` and main `9311d54`
+
+**Prediction written and pushed before the board starts.**
+
+Branch `feat/sealed-handoff-and-w2` at `20ffba0`. It is board 5's boarded `eb520b6` plus:
+- `5d9f2a9`, item 10:
+  - `/api/orders` takes a Sealed site key and places a normal order with checkout;
+  - a `sisterOrdering` switch in configuration, Sealed and StampMyPlans closed;
+  - `docs/sealed-order-handoff.md`; the Sealed repository is untouched.
+- `7807d6c`, W2:
+  - `/portal/payment-links` lists unpaid jobs to the office-ready standard, gated on `payments.charge`, and sends through the existing actions;
+  - the second-order guard on those two actions;
+  - `/portal/launch` shows the configuration switches, with who set each and the exact edit; it writes nothing.
+- `4f2d595`: the retention-order rule in CLAUDE.md.
+
+Against `eb520b6` it changes 21 files (1175 added, 5 removed), with no long dash and **no migration**. Full lane: an API route, money actions, the portal and CLAUDE.md.
+
+**Retention order (standing rule):** in order across 103 tables, no duplicates. No table is added.
+
+**Readers run locally, writers left to the board.** All green:
+- **Audits:** accounts 135, backlog 12, compliance 121 (the standing acknowledgement, plus one COULD NOT TELL for want of a page), intake 116, migration 188, money 500, order 557, portal-voice 29, schema-ledger 32, sister-intake 22, surface 26, token 115.
+- **Proofs:** the new sister-order proof (21) and billing proof (37), plus backup, quote, agreed price, every money door, clients list, commit guard and owner override.
+
+security-audit (the two new perimeter entries) and roles-audit run only on the board.
+
+**Predicted:** 63 of 63, zero FAIL, no audit-level COULD NOT TELL, voice-audit 3 lines exempt, and the administrator's dashboard under 3000 ms.
+
+**Named risks:**
+- `/portal/payment-links` renders for the first time under contrast, mobile at 320, tap targets, native and v10-layout.
+- security-audit reads its perimeter entries.
+- The `/portal/launch` switches panel is measured.
+
+**On a match:** board 6 has no migration, but it carries board 5's 0099. It merges after board 5 merges, which waits on 0099's production read-back.
+
+## BOARD 5 OF 6, PASSED: run 40595911245 on `eb520b6`
+
+63 of 63 as predicted, dashboard median 2273 ms, 3 lines exempt. Posted for 0099's production sitting (comment 6456366838).
+
 ## BOARD 5 OF 6, THIRD RUN: `feat/uploads-turnaround-alerts` at `eb520b6`
 
 **Prediction written and pushed before the board starts.**
