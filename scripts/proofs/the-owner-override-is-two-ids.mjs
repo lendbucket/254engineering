@@ -45,9 +45,11 @@ check(
     Object.keys(OWNER_OVERRIDE).length === 3,
   JSON.stringify(OWNER_OVERRIDE),
 );
+/* Three since Robert's answer 3 of 2026-10-26 (0093): the sign in second factor, on the same admin id. */
 check(
-  "exactly two overrides are declared, the no-charge password and the dispatch credentials",
-  OWNER_OVERRIDES.length === 2 && OWNER_OVERRIDES.map((o) => o.key).join(",") === "no_charge_password,dispatch_credentials",
+  "exactly three overrides are declared: the no-charge password, the dispatch credentials, and the sign in second factor",
+  OWNER_OVERRIDES.length === 3 &&
+    OWNER_OVERRIDES.map((o) => o.key).join(",") === "no_charge_password,dispatch_credentials,sign_in_second_factor",
 );
 check("the waived kinds are exactly the licence and the vehicle insurance", [...OWNER_OVERRIDE_KINDS].sort().join(", ") === "drivers_license, vehicle_insurance");
 check("every use is recorded under one action", OWNER_OVERRIDE_ACTION === "owner_override.used");
