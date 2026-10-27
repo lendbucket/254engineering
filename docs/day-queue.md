@@ -1,5 +1,40 @@
 # Day queue, 2026-10-23
 
+## BOARD 5 OF 6: addendum 4, 6 and 8b with 0099 (on development), and DS-001 withdrawn from signing, on board 4's `2e8275a` and main `97bc15b`
+
+**Prediction written and pushed before the board starts.**
+
+Branch `feat/uploads-turnaround-alerts` at `560e9a0`. It is board 4's boarded `2e8275a` and main `97bc15b` (board 3 merged; the only difference is the ledger) plus:
+- `842a7df` (0099) and `cca79c0` (the application):
+  - item 4: the tokened "send these" link, the upload control on the status page, and PDFs up to 40 MB;
+  - item 6: Robert's targets of 09:20 pinned, `due_at` at order on the firm calendar, an overdue alert once a day, and the target date held behind the gate;
+  - item 8b: the owner-edited alert list.
+- `f528a4c`: 0099 recorded on development, 20261027164724.
+- `4164bed`: 254-DS-001 v1.1 withdrawn from the signing list, refused by name at the door, its transcription kept.
+
+Against `2e8275a` it changes 46 files (1937 lines added, 63 removed), with no long dash. Full lane: a migration, storage limits, the signing door and the alert machinery.
+
+**Readers run locally, writers left to the board.** All green:
+- Audits: accounts 135, backlog 12, compliance 121 (the standing acknowledgement and one COULD NOT TELL for want of a page), email, files 67, intake 116, jobs 190, migration 188, money 496, partner 205, schema-ledger 32 (98 applied, 2 pending, allowed on a branch), sister-intake 22, surface 26, token 115, turnaround 21.
+- 23 reader proofs, including the new uploads, targets and alerts proof (40), the new signable proof (18), one-version-of-a-protocol (11 of 11), a-signature-puts-its-protocol-in-force, the business-date and zone proofs, the quote and void proofs, and every gate proof.
+
+protocol-registry-audit's new withdrawn-list checks need a development client, so the board is their first run. Development carries 0097, 0098 and 0099.
+
+**Predicted:** 63 of 63, zero FAIL, no audit-level COULD NOT TELL, voice-audit 3 lines exempt, and the administrator's dashboard under 3000 ms.
+
+**Named risks:**
+- protocol-registry-audit's withdrawn-list checks run for the first time.
+- `/settings` gains the alert list.
+- The status page gains the upload control. It is measured by contrast, mobile at 320, native and v10-layout through the `/order/[reference]` resolver.
+- retention-audit and roles-audit read `eng_alert_recipients` and `alerts.manage`.
+- The health-watch cron gains the overdue watcher.
+
+**On a match:** post the run and the boarded commit for 0099's production sitting. Merge after board 4 merges and 0099 is read back.
+
+## BOARD 4 OF 6, PASSED: run 40568566583 on `2e8275a`
+
+63 of 63 as predicted, dashboard median 1175 ms, 3 lines exempt, `/order/quote/[reference]` measured. Posted for 0098's production sitting (comment 6452870151). Board 3 merged as `97bc15b`.
+
 ## BOARD 4 OF 6, SECOND RUN: `feat/quotes` at `2e8275a`
 
 **Prediction written and pushed before the board starts.**
