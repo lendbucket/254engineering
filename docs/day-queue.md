@@ -45,6 +45,15 @@ Bundle 1 (pieces 1, 2, 4) is new public pages plus a new check, so it goes on th
 
 **Robert's answers, 18:55 Central 2026-10-26: 16 yes, 17 yes, 18 yes, 19 yes (text badge, no logo).** So the tool takes a county; TDI's list is read at build time with its date and URL, and a difference stops the work; /press links the current logo files by path; the badge is the derived text disclosure with a link and no 254 logo, worded under the gate. Bundle 1 and bundle 2 stay queued after the migration boards, one board per bundle.
 
+### Robert's overnight instruction, 22:40 Central 2026-10-26
+
+Work through the queue all night, with one-off checks that each read the run fresh, acting in the same turn a board lands. **Order:** (1) the three letters board 40439992960, merged on a match; (2) the repair specification with 0092, carrying `fix/commit-guard-sitting-merge`; (3) 0093 with the owner exemption, then 0094; (4) WPI-8 with 0095 and 0096; (5) fix/mobile-audit-unmeasured; (6) the addendum items 11, 3, 2, 4, 6, 8b, 10; (7) link-building bundles 1 and 2; (8) W1 if time remains.
+- **Migrations:** a branch that passes its board is posted on issue #1 for the chat's production sitting, and the next item boards on top of it. The chat checks at about 01:00, 03:00, 05:00 and 07:00 Central. On a read-back, write the record and merge (Robert's word is given for 0092 to 0096 on a matching board plus a read-back).
+- **A new migration:** posted for its development sitting, and the next independent item goes on.
+- **On a miss:** fix it only if the fix is mechanical and inside the branch's scope, prove it with an injection, and board it once more with the cause recorded. Otherwise it is "needs Robert" and the next independent item goes on. An outage-caused miss boards once more unchanged; nothing else does.
+- **Never work round a guard:** stop and report instead.
+- **Morning report** at the top of this file by 07:00 Central, with a one-line summary on issue #1.
+
 ### Robert's answers, 22:11 Central 2026-10-26
 
 1. **Yes:** on a matching board, the three letters merge with `[skip ci]`, the exact push command and ls-remote. 0091 is already on production.
