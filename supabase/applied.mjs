@@ -3765,6 +3765,23 @@ export const APPLIED = [
       "to a quote request are kept. Posted on issue #1 for the chat to sit on development, then on production after " +
       "the board passes. The branch merges only after the production apply is read back.",
   },
+  {
+    file: "0099_plans_fit_and_alerts_go_to_a_list.sql", appliedBy: "apply_migration",
+    fingerprint: "6bfbef5f84906d2a453fefe1cf3c03fb",
+    behaviour: "66aefe449b8883977c85dddbce4ade7d",
+    production: null,
+    proves: { table: "eng_alert_recipients", column: "removed_by" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0099 on 2026-10-27, with 0098 reproducing its recorded " +
+      "pair: eng_alert_recipients' six columns, 1370, and 1318 facts (the table, its key, two foreign keys, the " +
+      "email and removal checks, the live-once index, the guard trigger and its function, and one grant). The " +
+      "eng-uploads bucket's 40 MB limit is a row, not a shape, so it moves neither figure.",
+    because:
+      "WRITTEN 2026-10-27 ON feat/uploads-turnaround-alerts, ON TOP OF 0098, AND APPLIED NOWHERE. Robert's " +
+      "addendum of 2026-10-25, 22:46 Central, items 4 and 8b: a plan file of 40 MB fits the uploads bucket, and " +
+      "the office's alerts go to a list the owner edits. Posted on issue #1 for the chat to sit on development, " +
+      "then on production after the board passes. The branch merges only after the production apply is read back.",
+  },
 ];
 
 /*
