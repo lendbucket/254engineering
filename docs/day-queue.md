@@ -1,5 +1,49 @@
 # Day queue, 2026-10-23
 
+## BOARD 4 OF 6: addendum 3, quotes, with 0098 (on development), Robert's five answers and the mobile plan, on board 3's `153c22c`
+
+**Prediction written and pushed before the board starts.**
+
+Branch `feat/quotes` at `96f05e3`: board 3's boarded `153c22c` (main `dc03e74` plus 0097) plus the commits below.
+- `24877e9` and `71b526b`: 0098 and the quotes application.
+- `43b65ec`: the design-job proof's fixture.
+- `99dfa52`: 0098 without drop lines, sha256 `ea79198d`. It is on development as 20261027164640.
+- `f1b36f5`: Robert's five answers of 11:48.
+  - Design is paid only with an accepted quote and his signed addendum, and is exempt by name through `deskLines`.
+  - The design refund sentence.
+  - 30 days, pinned.
+  - The v1 refusal is kept.
+  - Briefs go to BACKLOG.
+- `c81364c`: `docs/mobile-plan.md`, a document only.
+
+Against `153c22c` it changes 38 files, 2640 lines added and 58 removed, with no long dash. Full lane: a migration, money doors, the gate configuration and API routes.
+
+**Readers run locally, writers left to the board.** All green:
+- **Audits:** accounts 135, backlog 12, compliance 121 (the standing acknowledgement, plus one COULD NOT TELL for want of a page), email 1098 of 1098, files 67, intake 116, jobs 190, migration 177, money 494, order 557, partner 205, schema-ledger 32 (2 pending, allowed on a branch), sister-intake 22, surface 26, token 115, turnaround 15.
+- **Proofs, 17:**
+  - the quote proof and the design-job proof
+  - void and reissue
+  - every-line-with-a-price and every-money-door
+  - the gate counts a portal-signed protocol
+  - insurance and training, a line opens only when trained, sign up needs the gate
+  - WPI-8 ongoing, the retried order, the voided signature at checkout, the agreed price
+  - the firm name, every-line-shows-the-steps, the commit guard, the windstorm decline
+
+Writers and server audits (roles, retention, doors, dashboards, bulk, demo, launch, seo, cta, voice, security, v10-layout) run only on the board. Development carries 0097 and 0098.
+
+**Predicted:** 63 of 63, zero FAIL, no audit-level COULD NOT TELL, voice-audit 3 lines exempt, and the administrator's dashboard under 3000 ms.
+
+**Named risks:**
+- `/portal/quotes` and the customer quote page `/order/quote/[reference]` render for the first time, under contrast, mobile at 320, tap targets, native and seo.
+- The gate now carries design in `offeredServiceLines` with `deskLines`. launch-audit and voice-audit are where a design line wrongly shown as orderable or present tense would appear.
+- roles-audit and retention-audit read the new `quotes.manage` grant and `eng_quote_files`.
+
+**On a match:** post the run and the boarded commit on issue #1 for 0098's production sitting, after 0097's. Merge after board 3 merges and 0098 is read back from production.
+
+## BOARD 3 OF 6, PASSED: run 40548086355 on `153c22c`
+
+63 of 63 as predicted, dashboard median 1306 ms, 3 lines exempt. Posted for 0097's production sitting (issue #1 comment 6449918234). It merges after the read-back.
+
 ## BOARD 3 OF 6: addendum 2, void and reissue, with 0097 (on development), on main `dc03e74`
 
 **Prediction written and pushed before the board starts.** Branch `feat/void-and-reissue` at `153c22c`, which is main `dc03e74` plus:
