@@ -3575,7 +3575,38 @@ export const APPLIED = [
     file: "0094_the_old_seal_doors_refuse.sql", appliedBy: "apply_migration",
     fingerprint: "8daaba436e02fb92c9a6b227fcb98caf",
     behaviour: "9996160feeebb47be1426e84e760524e",
-    production: null,
+    /*
+     * APPLIED TO PRODUCTION 2026-10-27 08:05 UTC, provider version
+     * 20261027080519, by the operator's chat counterpart through
+     * apply_migration, from docs/production-sitting-0094-the-old-seal-doors-refuse.md,
+     * after board 40458589746 matched its prediction, 63 of 63, on af32f6d.
+     * Read back on issue #1, comment 6436791767. The file applied is sha256
+     * da6afe68e71978c721c5cc3edeb5e246a3986b8598b998ef16665adda2619f6a, the
+     * file development sat; the stored statement reads back as sha256
+     * 513b7b2215a7c0e95b3f39abdbb286357c5399003174241418d21626c9ca8831, the
+     * file without its trailing newline.
+     *
+     * Section 0: production on main da15eb0 (the owner exemption live);
+     * eng_record_letter_seal had five doors, 14 to 18 arguments, none retired;
+     * no letter sealed in the last day without a printed licence, so the stop
+     * did not apply; shape 8daaba436e02fb92c9a6b227fcb98caf across 1353; last
+     * migration 20261027060206 (0093). Section 2: doors 15 and 16 retired,
+     * 14, 17 and 18 not; shape unchanged; no eng_ function executable by anon
+     * or authenticated. The record rides in the merge, so 0094 is never
+     * pending on main.
+     */
+    production: "2026-10-27",
+    development: {
+      at: "0094",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-26",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-26 14:14 UTC by the operator's chat counterpart through apply_migration, " +
+        "provider version 20261026141439 (issue #1). The file sha256 " +
+        "da6afe68e71978c721c5cc3edeb5e246a3986b8598b998ef16665adda2619f6a, which production matched.",
+    },
     proves: null,
     provesNote:
       "Nothing in it is visible through PostgREST: it replaces two function bodies and creates no table, column, " +
@@ -3586,7 +3617,8 @@ export const APPLIED = [
       "pair first: shape unchanged at 8daaba43 across 1353 columns, behaviour d76bf143 to 9996160f at 1281 facts, " +
       "the two replaced bodies. No drop statement.",
     because:
-      "WRITTEN 2026-10-26 ON migration/0094-retire-the-old-seal-doors, ON TOP OF 0093, AND APPLIED NOWHERE. Robert's " +
+      "WRITTEN 2026-10-26 ON migration/0094-retire-the-old-seal-doors, ON TOP OF 0093; ON DEVELOPMENT (version " +
+      "20261026141439) AND PRODUCTION (version 20261027080519). Robert's " +
       "addendum of 2026-10-25, item 9: the fifteen- and sixteen-argument eng_record_letter_seal doors refuse, the " +
       "0081 pattern, now that 0089's merge is deployed and main calls only the seventeen and eighteen. Behind 0093 " +
       "in the chain, which is held, so this waits with it. The branch merges only after the production apply is " +
