@@ -1,6 +1,33 @@
 # Day queue, 2026-10-23
 
+## BOARD 2 OF 6, 2026-10-27: addendum 11, the Harris wording and county tool, the WPI-8 label, on main `1b01119`
+
+**Prediction written and pushed before the board starts.** Branch `bundle/board-2` at `95f2a17`, which is main `1b01119` plus:
+- `4303188`, addendum 11. The nightly backup is switched off: the job runs only when the repository variable `BACKUP_ENABLED` is `true`, and that variable is not set. It includes a restore script and a documented test restore. It was checked line by line against comment 6415570636.
+- `adefb29` and `116532b`. Every windstorm page names TDI's five Harris cities word for word. TDI was read 2026-10-27 and its 14 counties match. The county check is a section on `/windstorm/catastrophe-area` and adds no route.
+- `e97758f`, the WPI-8 button label: "Order a WPI-8E windstorm evaluation, completed construction".
+- `a664ec0`, the staff Harris line on `/portal/files`.
+
+No migration. No API route. Full lane, because it touches `scripts/` and portal and public pages.
+
+**Readers run locally, writers left to the board:**
+- Green: backlog 12, compliance 119 (the standing acknowledgement, plus one COULD NOT TELL for want of a rendered page), migration 156, price-book 68, turnaround 15, order 557, token 115, schema-ledger 32 (97 applied, 0 pending), and workflow-triggers.
+- Green, the new proofs: backup 31, form number 11, TDI wording 38.
+- Green, the eight existing reader proofs.
+- Not green, each for want of an environment file in this worktree: db-guard 1 FAIL ("SUPABASE_URL is unset"), soc2 4 FAIL ("none found"), protocol-registry COULD NOT TELL, and coverage-audit, which needs a server.
+
+**Predicted:** 63 of 63, zero FAIL, no audit-level COULD NOT TELL, voice-audit 3 lines exempt, and the administrator's dashboard under 3000 ms.
+
+**Named risks:**
+- The county check is a new client component, a native select, rendered for the first time on the board. It is measured by contrast, mobile at 320, tap targets and native-audit.
+- soc2-audit reads the eight new `BACKUP_*` entries in `credential-inventory.ts` against a real environment for the first time.
+- The longer staff Harris line on `/portal/files` at 320.
+
+**On a match:** confirm `origin/main` is still `1b01119`, merge `--no-ff` with `[skip ci]`, push with the exact command, run ls-remote, and post a short status on issue #1.
+
 ## BOARDING, 2026-10-27 from 13:42 UTC: WPI-8 with 0095 and 0096 on main `2504200`
+
+**Landed: success, 63 of 63 as predicted, dashboard median 2171 ms, 3 lines exempt. Merged as `1b01119`** (the tree is `a6a6747`; ledger 97 applied, 0 pending; issue #1 comment 6445246942).
 
 **Written after the board started, at about 14:00 UTC, by a fresh session after the PC restart, and before the board landed.** The session that dispatched run 40514367509 did not record its prediction here. This one is written from the tree, not from that session's memory.
 
