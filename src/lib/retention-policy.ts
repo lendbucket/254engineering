@@ -710,6 +710,22 @@ export const RETENTION_POLICY: RetentionEntry[] = [
   { table: "eng_protocol_items", rule: { kind: "not_a_record", because: "Part of a protocol template. Configuration an engineer authors." } },
   { table: "eng_protocol_questions", rule: { kind: "not_a_record", because: "Part of a protocol template. Configuration an engineer authors." } },
   { table: "eng_protocol_templates", rule: { kind: "not_a_record", because: "What a service requires captured. Configuration an engineer authors, referenced by files with ON DELETE RESTRICT." } },
+  /*
+   * 0098. A file a customer attached to a quote request, keyed to the request.
+   * Robert's addendum of 2026-10-25, item 3: "Files attached to a quote request
+   * are kept, not dropped." The database refuses change and removal.
+   */
+  {
+    table: "eng_quote_files",
+    rule: {
+      kind: "kept_forever",
+      because:
+        "WHAT A CUSTOMER SENT THE FIRM TO PRICE. Robert's addendum of 2026-10-25, item 3: files attached to a " +
+        "quote request are kept, not dropped. The rows refuse UPDATE and DELETE through eng_quote_file_guard, and " +
+        "the objects live in the private eng-uploads bucket, keyed by these rows.",
+      ruledBy: "Robert's addendum of 2026-10-25, item 3",
+    },
+  },
   { table: "eng_quote_requests", rule: { kind: "kept_pending_counsel", because: COUNSEL } },
   /*
    * 0079. The operator's refund approval limit, as dated rows, and refund

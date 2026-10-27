@@ -4,6 +4,36 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
+## DESIGN BRIEFS: "START A QUOTE FROM THIS BRIEF", A LATER BUNDLE
+
+Robert's answer 2 of 2026-10-27, 11:48 Central (issue #1 comment 6447951314).
+A brief sent through `/design-inquiry` is written to `eng_design_inquiries`,
+which is a separate table from `eng_quote_requests`, so it never reaches the
+quote list on `/portal/quotes`. A later bundle adds a "start a quote from this
+brief" action on the inquiries screen, which opens a quote request carrying the
+brief. **The tables are not merged**, on his answer. Not built.
+
+## 0098, QUOTES: BUILT, AND HIS FIVE ANSWERS OF 2026-10-27 ARE IN
+
+Robert's addendum of 2026-10-25, item 3, on `feat/quotes` (0098). A quote is
+requested, keeps its files, is priced and sent from `/portal/quotes`, and is
+accepted and paid from the emailed link through the one checkout. His answers
+of 2026-10-27, 11:48 Central, are built: design is offered and paid on an
+accepted quote and his signed design_share addendum, with no protocol and no
+technician training, by name (`deskLines`); a sent quote holds 30 days; a
+design quote shows its own refund sentence; the v1 route keeps refusing quote
+files outside this site's upload folder. Briefs are the entry above. Declining a
+quote emails nobody; the office replies itself.
+
+## THE MOBILE APP IS A PLAN: NOTHING BUILT, SIX QUESTIONS FOR ROBERT
+
+Robert's instruction of 2026-10-27, written as `docs/mobile-plan.md`: the roles,
+the screens for each role, the shared API, the second factor, the technician's
+offline needs, and the publisher entity. That document is where the reasoning
+lives; this entry is the pointer. What is open: the six questions there, the
+first being which legal entity publishes the app, and the five phases, none of
+them started.
+
 ## THE NIGHTLY BACKUP IS BUILT AND SWITCHED OFF: ROBERT CREATES THE BUCKET AND SETS THE SECRETS
 
 Robert's addendum of 2026-10-25, item 11, built 2026-10-27 on

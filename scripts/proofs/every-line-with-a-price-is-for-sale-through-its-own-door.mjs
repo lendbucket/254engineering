@@ -12,7 +12,8 @@
  *   - an unsigned line, and a signed line nobody is trained on, are refused at
  *     their door and offered as a quote, with no price;
  *   - roof, foundation and permit are unchanged, and design is still a quote;
- *   - and the configuration lists exactly the seven, pinned here as literals.
+ *   - and the configuration lists exactly the seven and design (Robert's
+ *     answer 1 of 2026-10-27), pinned here as literals.
  */
 import { readFileSync } from "node:fs";
 
@@ -31,9 +32,15 @@ const SEVEN = [
   "windstorm-wpi-8",
   "repair-specifications",
 ];
+/* Robert's answer 1 of 2026-10-27, 11:48 Central: design is offered too, as a quote paid on his signed addendum. */
+const DESIGN = "residential-light-commercial-design";
 const conditions = readFileSync("src/config/launch-conditions.ts", "utf8");
 const listed = [...(conditions.match(/export const offeredServiceLines: string\[\] = \[([\s\S]*?)\];/)?.[1] ?? "").matchAll(/"([a-z0-9-]+)"/g)].map((m) => m[1]);
-check("configuration offers exactly the seven priced lines", JSON.stringify([...listed].sort()) === JSON.stringify([...SEVEN].sort()), listed.join(", "));
+check(
+  "configuration offers exactly the seven priced lines and design",
+  JSON.stringify([...listed].sort()) === JSON.stringify([...SEVEN, DESIGN].sort()),
+  listed.join(", "),
+);
 
 const { inOpenGateProcess } = await import("../lib/gate-fixture.mjs");
 const child = await inOpenGateProcess(`

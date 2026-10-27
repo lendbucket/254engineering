@@ -7,7 +7,7 @@ import { deliverablesFor, orderBlockedReason } from "@data/catalog";
 import { serviceBySlug } from "@/content/services";
 import { isTrading, launchMode, peInResponsibleCharge, registrationLine } from "@/lib/launch";
 import { displayPhone, postalAddressLine } from "@/config/contact";
-import { orderBlockedForDisplay } from "@/lib/line-gate";
+import { deliverableBlockedForDisplay } from "@/lib/line-gate";
 import { coverVerbFor, orderHeading, serviceNameInSentence } from "@/lib/order-copy";
 import { currentCustomer } from "@/lib/customer-auth";
 
@@ -85,8 +85,12 @@ export default async function OrderStartPage({ params }: { params: Promise<{ slu
    * placeOrder, behind the form, which asks orderBlockedNow live every time,
    * ruling 11, so a signature voided inside the minute is refused at checkout
    * even while this page still shows the line.
+   *
+   * A QUOTED DELIVERABLE IS ASKED AS A REQUEST (addendum item 3, 2026-10-25):
+   * it takes no money here, so the signed record is read when the customer
+   * accepts and pays, not when they ask (deliverableBlockedForDisplay).
    */
-  const blockedEach = await Promise.all(deliverables.map((d) => orderBlockedForDisplay(d, mode)));
+  const blockedEach = await Promise.all(deliverables.map((d) => deliverableBlockedForDisplay(d, mode)));
   const available = deliverables.filter((_, i) => blockedEach[i] === null);
   const blockedReason = deliverables[0] ? blockedEach[0] : orderBlockedReason(undefined, mode, false);
 

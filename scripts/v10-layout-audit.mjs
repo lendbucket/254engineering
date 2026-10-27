@@ -274,6 +274,26 @@ async function resolve(pattern) {
     const link = await issueCustomerLink({ orderId: order.id }, 1);
     return link ? `/order/${order.reference}?token=${encodeURIComponent(link.token)}` : null;
   }
+  /*
+   * The customer's quote page, resolved 2026-10-27 (board 4, 0098). Like the
+   * order status page it opens only with a signed link, so the resolver issues
+   * one through issueCustomerLink, the product's own issuer, for the newest sent
+   * or accepted quote on development, expiring in one day. Board 40557511576
+   * failed this route as unresolved, which is the audit refusing to skip it.
+   */
+  if (pattern === "/order/quote/[reference]") {
+    const { data } = await db
+      .from("eng_quote_requests")
+      .select("id, reference")
+      .in("status", ["sent", "accepted"])
+      .order("created_at", { ascending: false })
+      .limit(1);
+    const quote = data?.[0];
+    if (!quote) return null;
+    const { issueCustomerLink } = await import("../src/lib/ops-intake.ts");
+    const link = await issueCustomerLink({ quoteId: quote.id }, 1);
+    return link ? `/order/quote/${quote.reference}?token=${encodeURIComponent(link.token)}` : null;
+  }
   if (pattern === "/portal/accounts/[id]/pricing") {
     const id = sessions.customer?.accountId ?? null;
     return id ? `/portal/accounts/${id}/pricing` : null;

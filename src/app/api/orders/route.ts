@@ -111,6 +111,17 @@ async function handlePOST(request: NextRequest) {
     .filter((a) => typeof a.qualifierId === "string" && Number.isInteger(a.optionIndex))
     .map((a) => ({ qualifierId: a.qualifierId as string, optionIndex: a.optionIndex as number }));
 
+  /* Read before the quote branch, which used to return without them: a quote request's files are kept (addendum item 3). */
+  const files = (body.files ?? [])
+    .filter((f) => typeof f.key === "string" && typeof f.bucket === "string" && typeof f.storageKey === "string")
+    .map((f) => ({
+      key: f.key as string,
+      bucket: f.bucket as string,
+      storageKey: f.storageKey as string,
+      contentType: f.contentType ?? null,
+      byteSize: typeof f.byteSize === "number" ? f.byteSize : null,
+    }));
+
   if (body.intent === "quote") {
     const result = await requestQuote({
       site,
@@ -128,22 +139,13 @@ async function handlePOST(request: NextRequest) {
       brief: body.brief ?? "",
       neededBy: body.neededBy ?? null,
       attribution,
+      files,
     });
 
     return result.ok
       ? NextResponse.json(result, { status: result.duplicate ? 200 : 201 })
       : NextResponse.json(result, { status: 422 });
   }
-
-  const files = (body.files ?? [])
-    .filter((f) => typeof f.key === "string" && typeof f.bucket === "string" && typeof f.storageKey === "string")
-    .map((f) => ({
-      key: f.key as string,
-      bucket: f.bucket as string,
-      storageKey: f.storageKey as string,
-      contentType: f.contentType ?? null,
-      byteSize: typeof f.byteSize === "number" ? f.byteSize : null,
-    }));
 
   const result = await placeOrder({
     site,

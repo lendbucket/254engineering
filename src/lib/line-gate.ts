@@ -8,6 +8,8 @@ import { signatureStatus } from "./protocol-sign";
 import { orderBlockedReason, type CatalogEntry, type OrderGateMode } from "@data/catalog";
 import { allLineOffers, headlineEntry, lineOffer, type LineOffer } from "./ordering";
 import { addendumRequired, deliverableKey, linePayFor } from "./line-addendum";
+import { deskLines, offeredServiceLines } from "@/config/launch-conditions";
+import { designPaymentRefusal, type DesignAddendum } from "./quote-rules";
 
 /**
  * ===========================================================================
@@ -155,6 +157,15 @@ async function trainedInDatabase(serviceSlug: string, documentNumber: string, ve
 }
 
 export async function lineIsSellable(serviceSlug: string, tier?: string | null): Promise<Sellable> {
+  /*
+   * A DESK LINE HAS ONE MONEY DOOR, ITS ACCEPTED QUOTE. Robert's answer 1 of
+   * 2026-10-27: design is paid without a protocol or training, once its quote
+   * is accepted and the engineer has signed its scope addendum. Every other
+   * door refuses it here, by name, and designQuoteBlocked below is the door.
+   */
+  if (deskLines.includes(serviceSlug)) {
+    return closed(`${serviceSlug} is paid only from its accepted quote, once the engineer has signed that quote's scope addendum.`);
+  }
   if (!serviceLineIsOffered(serviceSlug)) {
     return closed("This service line is not offered for ordering yet.");
   }
@@ -263,4 +274,95 @@ export async function orderBlockedForDisplay(entry: CatalogEntry | undefined, mo
   if (!entry || mode !== "open") return orderBlockedReason(entry, mode, false);
   const sellable = await lineIsSellableForDisplay(entry.serviceSlug, entry.tier);
   return sellable.ok ? orderBlockedReason(entry, mode, true, true) : sellableRefusal(sellable, orderBlockedReason(entry, mode, false));
+}
+
+/**
+ * ===========================================================================
+ * A QUOTE REQUEST IS NOT A MONEY DOOR. Robert's addendum of 2026-10-25, item 3.
+ * ===========================================================================
+ *
+ * "Fix requestQuote so design and the other quote lines can actually be
+ * requested (today line-gate refuses every quote entry)." Every quote entry in
+ * the catalogue is a design deliverable, and design is not in
+ * offeredServiceLines, so lineIsSellable answered "not offered for ordering
+ * yet" to every one: a request that takes no money was refused by the check
+ * that exists to stop money being taken.
+ *
+ * WHAT STILL HOLDS IT. The gate: a quote request is the firm taking work, so
+ * prelaunch and trading refuse it with the catalogue's own sentences, as
+ * before. A deliverable that is not a quote is refused by requestQuote with its
+ * own sentence. A deliverable needing a scope addendum stays refused here, in
+ * the closing direction, because the read that would open it belongs to the
+ * money door.
+ *
+ * WHAT MOVED, AND WHERE IT WENT. The signed record (ruling 11) is read where
+ * money is taken: acceptQuote calls orderBlockedNow before it converts a quote
+ * into an order and opens checkout. Nothing about a line's sellability is
+ * loosened; the question is asked at the moment the money is.
+ */
+export function quoteRequestBlocked(entry: CatalogEntry | undefined, mode: OrderGateMode): string | null {
+  if (!entry || mode !== "open") return orderBlockedReason(entry, mode, false);
+  if (entry.orderType !== "quote") return null;
+  /* Not the protocol question, which is the money door's: the addendum check and the quote answer are what remain. */
+  return orderBlockedReason(entry, mode, true, false);
+}
+
+/**
+ * ===========================================================================
+ * THE MONEY DOOR FOR A DESK LINE: ITS ACCEPTED QUOTE AND HIS SIGNED ADDENDUM.
+ * ===========================================================================
+ *
+ * Robert's answer 1 of 2026-10-27, 11:48 Central: "A design quote can be paid
+ * once (a) the customer has accepted it, and (b) the engineer has signed that
+ * quote's design_share scope addendum (0082, eng_design_pay returns a row).
+ * Without both, payment refuses and says which is missing."
+ *
+ * The gate answers first, as at every door. Then the quote's stored status and
+ * eng_design_pay are read live, never cached, under the same four second bound
+ * as lineIsSellable; a read that fails or times out is "unknown", and unknown
+ * closes. The decision itself is designPaymentRefusal in quote-rules.ts.
+ *
+ * `acceptingNow` is acceptQuote asking before it records the customer's
+ * acceptance: the acceptance is the act being made, so only the addendum and
+ * the gate can refuse there. placeOrder asks again with the stored status, so
+ * an unaccepted quote never reaches checkout.
+ */
+export async function designQuoteBlocked(
+  entry: CatalogEntry | undefined,
+  quoteId: string,
+  mode: OrderGateMode,
+  acceptingNow = false,
+): Promise<string | null> {
+  if (!entry || mode !== "open") return orderBlockedReason(entry, mode, false);
+  if (!deskLines.includes(entry.serviceSlug)) return "Only a design quote is paid through this door.";
+
+  const read = async (): Promise<{ accepted: boolean; addendum: DesignAddendum }> => {
+    const db = supabaseAdmin();
+    if (!db) return { accepted: false, addendum: "unknown" };
+    let accepted = acceptingNow;
+    if (!acceptingNow) {
+      const { data, error } = await db.from("eng_quote_requests").select("status").eq("id", quoteId).maybeSingle();
+      if (error || !data) return { accepted: false, addendum: "unknown" };
+      accepted = data.status === "accepted";
+    }
+    const { data: pay, error: payError } = await db.rpc("eng_design_pay", { p_quote_id: quoteId });
+    if (payError) return { accepted, addendum: "unknown" };
+    return { accepted, addendum: Array.isArray(pay) && pay.length > 0 ? "signed" : "unsigned" };
+  };
+  const timeout = new Promise<{ accepted: boolean; addendum: DesignAddendum }>((resolve) =>
+    setTimeout(() => resolve({ accepted: false, addendum: "unknown" }), READ_LIMIT_MS),
+  );
+  let facts: { accepted: boolean; addendum: DesignAddendum };
+  try {
+    facts = await Promise.race([read(), timeout]);
+  } catch {
+    facts = { accepted: false, addendum: "unknown" };
+  }
+  return designPaymentRefusal({ offered: offeredServiceLines.includes(entry.serviceSlug), ...facts });
+}
+
+/** What the order start page shows for one deliverable: a quote is asked as a request, everything else as an order. */
+export async function deliverableBlockedForDisplay(entry: CatalogEntry | undefined, mode: OrderGateMode): Promise<string | null> {
+  if (entry?.orderType === "quote") return quoteRequestBlocked(entry, mode);
+  return orderBlockedForDisplay(entry, mode);
 }

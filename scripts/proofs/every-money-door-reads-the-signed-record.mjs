@@ -41,14 +41,46 @@ const check = (name, ok, note = "") => {
 const DOORS = {
   "src/app/account/order/page.tsx": 1,
   "src/lib/ops-bulk.ts": 1,
-  /* placeOrder, requestQuote, and duplicateStillSellable for a retried web order (audit finding F10, 2026-10-24). */
-  "src/lib/ops-intake.ts": 3,
+  /*
+   * placeOrder, and duplicateStillSellable for a retried web order (audit
+   * finding F10, 2026-10-24). requestQuote LEFT ON 2026-10-27, by Robert's
+   * addendum of 2026-10-25, item 3: a request takes no money, and asking it the
+   * money door's question refused every quote line. The question moved to the
+   * door that takes the money, acceptQuote in ops-quotes.ts, declared below,
+   * and requestQuote is held to quoteRequestBlocked by the check after this.
+   */
+  "src/lib/ops-intake.ts": 2,
   "src/lib/ops-job-billing.ts": 1,
+  /* acceptQuote: the customer accepts a quote and pays (addendum item 3, 0098). */
+  "src/lib/ops-quotes.ts": 1,
 };
 
 for (const [file, want] of Object.entries(DOORS)) {
   const got = readFileSync(file, "utf8").split("orderBlockedNow(").length - 1;
   check(`${file} reads the signed record (${want} call${want === 1 ? "" : "s"})`, got === want, `${got} found`);
+}
+
+/*
+ * THE REQUEST DOOR, declared (2026-10-27). quoteRequestBlocked answers without
+ * the signed record, which is right for a request and would be a hole in any
+ * door that takes money. So it is called by requestQuote alone, inside
+ * ops-intake.ts, and by the start page's display through line-gate.ts; a money
+ * door that started calling it would go red here.
+ */
+const REQUEST_ONLY = { "src/lib/ops-intake.ts": 1, "src/lib/line-gate.ts": 1 };
+{
+  const intake = readFileSync("src/lib/ops-intake.ts", "utf8");
+  const requestBody = intake.slice(intake.indexOf("export async function requestQuote("), intake.indexOf("export async function issueCustomerLink("));
+  check(
+    "requestQuote asks the request question and never the money door's",
+    requestBody.includes("quoteRequestBlocked(") && !requestBody.includes("orderBlockedNow("),
+  );
+  const quotes = readFileSync("src/lib/ops-quotes.ts", "utf8");
+  const acceptBody = quotes.slice(quotes.indexOf("export async function acceptQuote("), quotes.indexOf("async function convertAndCheckout("));
+  check(
+    "and acceptQuote, where the money is taken, reads the signed record before it accepts",
+    acceptBody.indexOf("orderBlockedNow(") !== -1 && acceptBody.indexOf("orderBlockedNow(") < acceptBody.indexOf('status: "accepted"'),
+  );
 }
 
 /*
@@ -59,8 +91,9 @@ for (const [file, want] of Object.entries(DOORS)) {
  * sellableLineOffers asks it.
  */
 const DISPLAY = {
-  "src/app/(order)/order/start/[slug]/page.tsx": { orderBlockedForDisplay: 1 },
-  "src/lib/line-gate.ts": { lineIsSellableForDisplay: 2 },
+  /* Through deliverableBlockedForDisplay since 2026-10-27, which asks a quote as a request (addendum item 3). */
+  "src/app/(order)/order/start/[slug]/page.tsx": { deliverableBlockedForDisplay: 1 },
+  "src/lib/line-gate.ts": { lineIsSellableForDisplay: 2, orderBlockedForDisplay: 1 },
 };
 for (const [file, calls] of Object.entries(DISPLAY)) {
   for (const [fn, want] of Object.entries(calls)) {
@@ -85,7 +118,15 @@ const walk = (d) => {
 walk("src");
 check("the source tree was read", files.length > 200, `${files.length} files`);
 
-const displayReaders = files.filter((f) => !(f in DISPLAY) && /(lineIsSellableForDisplay|orderBlockedForDisplay)\(/.test(readFileSync(f, "utf8")));
+const displayReaders = files.filter((f) => !(f in DISPLAY) && /(lineIsSellableForDisplay|orderBlockedForDisplay|deliverableBlockedForDisplay)\(/.test(readFileSync(f, "utf8")));
+const requestReaders = files
+  .filter((f) => readFileSync(f, "utf8").includes("quoteRequestBlocked("))
+  .map((f) => [f, readFileSync(f, "utf8").replace(/function quoteRequestBlocked\(/g, "").split("quoteRequestBlocked(").length - 1]);
+check(
+  "the request question is asked by requestQuote and the display alone",
+  requestReaders.length === Object.keys(REQUEST_ONLY).length && requestReaders.every(([f, n]) => REQUEST_ONLY[f] === n),
+  requestReaders.map(([f, n]) => `${f} ${n}`).join(", "),
+);
 check(
   "nothing but the declared display pages reads the cached display answer",
   displayReaders.length === 0,

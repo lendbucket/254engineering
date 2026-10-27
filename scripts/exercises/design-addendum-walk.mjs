@@ -149,6 +149,8 @@ const { data: quote, error: qErr } = await db
     customer_name: `${LABEL} contact, not a real person`, customer_email: `addendum-walk-contact-${STAMP}@audit-probe.invalid`,
     property_address: "200 Invented Avenue", city: "Nowhere", county: "Fictional",
     quoted_cents: 200000, scope: "Framing check, attachment and uplift calculation, sealed letter.", status: "sent",
+    /* 0098: a sent quote states when it was sent and when it lapses (eng_quote_requests_priced_when_sent). */
+    sent_at: new Date().toISOString(), expires_at: new Date(Date.now() + 30 * 86_400_000).toISOString(),
     notes: `${LABEL}: test data, invented, never a real job`,
   })
   .select("id, reference")

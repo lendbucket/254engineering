@@ -133,6 +133,12 @@ const APIS_MEASURED_ELSEWHERE = {
    */
   "order-document": ["scripts/security-audit.mjs", "the sealed letter download, refused without a valid order token"],
   orders: ["scripts/security-audit.mjs", "the customer facing order lookup"],
+  /*
+   * Accepting a quote, addendum item 3 of 2026-10-25. Token gated, no session;
+   * security-audit asserts the same 404 and no checkout link with no token and
+   * with a bad one.
+   */
+  "quote-accept": ["scripts/security-audit.mjs", "accepting a quote, refused without a valid quote token"],
   referral: ["scripts/partner-audit.mjs", "partner attribution"],
   stripe: ["scripts/order-audit.mjs", "the payment webhook"],
   upload: ["scripts/lib/careers-audit.mjs", "signed upload urls for an application"],

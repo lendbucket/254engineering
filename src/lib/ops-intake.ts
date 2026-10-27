@@ -9,7 +9,8 @@ import { resolveCounty, twiaStatus, windstormAreaRefusal } from "./ops-counties"
 import { launchMode } from "./launch";
 import { catalogFor, deliverablesFor, type CatalogEntry } from "@data/catalog";
 import { fieldsFor } from "@data/intake-fields";
-import { orderBlockedNow } from "./line-gate";
+import { designQuoteBlocked, orderBlockedNow, quoteRequestBlocked } from "./line-gate";
+import { deskLines } from "@/config/launch-conditions";
 import {
   landingStatusFor,
   qualify,
@@ -18,6 +19,7 @@ import {
   type QualifierAnswer,
 } from "./ops-orders";
 import { isKnown } from "./ops-money";
+import { ORDER_UPLOAD_BUCKET } from "./order-uploads";
 
 /**
  * Order intake: the one door every brand's customer flow comes through.
@@ -223,6 +225,16 @@ export type PlaceOrderInput = {
    * order route passes it.
    */
   agreedPriceCents?: number | null;
+  /**
+   * The accepted quote this order converts, set by acceptQuote alone (ops-quotes.ts).
+   *
+   * Robert's addendum of 2026-10-25, item 3: "the customer accepts by a tokened
+   * link and pays; it converts with convertibleToOrder." The quoted figure IS
+   * the price: it is the whole of what was accepted, so no coastal line is added
+   * to it and the catalogue's quote refusal does not apply. Everything else a
+   * money door asks is asked as for any order, the signed record first.
+   */
+  fromQuote?: { quoteId: string; quotedCents: number } | null;
 };
 
 /**
@@ -305,12 +317,21 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
       field: "tier",
     };
   }
-  /* A MONEY DOOR, ruling 11: placeOrder reads the engineer's signed record before taking money. */
-  const blocked = await orderBlockedNow(entry, launchMode());
+  const fromQuote =
+    input.fromQuote && Number.isInteger(input.fromQuote.quotedCents) && input.fromQuote.quotedCents > 0 ? input.fromQuote : null;
+  /*
+   * A MONEY DOOR, ruling 11: placeOrder reads the engineer's signed record before taking money.
+   * A desk line's record is its accepted quote and his signed scope addendum, read with the
+   * quote's STORED status (Robert's answer 1 of 2026-10-27), and only from a quote.
+   */
+  const blocked =
+    entry && deskLines.includes(entry.serviceSlug) && fromQuote
+      ? await designQuoteBlocked(entry, fromQuote.quoteId, launchMode())
+      : await orderBlockedNow(entry, launchMode());
   if (!entry || blocked) {
     return { ok: false, error: blocked ?? "That service cannot be ordered.", field: "serviceSlug" };
   }
-  if (entry.orderType === "quote") {
+  if (entry.orderType === "quote" && !fromQuote) {
     return {
       ok: false,
       error: "That service is quoted rather than ordered. Send a quote request instead.",
@@ -329,9 +350,11 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
   /*
    * Re-evaluated here rather than trusted from the flow. A customer who skipped
    * the questions, or a caller with a stale copy of the catalog, must not be
-   * able to place an order the firm would refuse.
+   * able to place an order the firm would refuse. A converted quote was
+   * qualified when it was requested (requestQuote) and scoped by the office
+   * since, and its answers are not carried, so it is not asked again.
    */
-  const qualified = qualify(entry, input.answers ?? []);
+  const qualified = fromQuote ? ({ ok: true } as const) : qualify(entry, input.answers ?? []);
   if (!qualified.ok) {
     return { ok: false, error: qualified.message, field: `qualifier.${qualified.qualifierId}` };
   }
@@ -350,8 +373,13 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
   if (outsideArea) return { ok: false, error: outsideArea, field: "property.county" };
   const twia = twiaStatus(county) === "designated";
 
-  const agreed = typeof input.agreedPriceCents === "number" && input.agreedPriceCents > 0 ? input.agreedPriceCents : null;
-  const priced = quoteFor(entry, twia, county, agreed);
+  const agreed = fromQuote
+    ? fromQuote.quotedCents
+    : typeof input.agreedPriceCents === "number" && input.agreedPriceCents > 0
+      ? input.agreedPriceCents
+      : null;
+  /* A quoted figure is the whole of what was accepted, so no coastal line is priced on top of it. */
+  const priced = quoteFor(entry, fromQuote ? false : twia, county, agreed);
   if (priced.unavailable || !isKnown(priced.totalCents)) {
     return { ok: false, error: priced.unavailable ?? "That order cannot be priced." };
   }
@@ -397,7 +425,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
       twia_county: twia,
       /* The agreed price when there is one (F3); the published one stays in catalog_snapshot. */
       price_cents: agreed ?? entry.priceCents,
-      coastal_surcharge_cents: twia ? entry.coastalSurchargeCents : null,
+      coastal_surcharge_cents: twia && !fromQuote ? entry.coastalSurchargeCents : null,
       inspection_fee_cents: entry.inspectionFeeCents,
       total_cents: priced.totalCents,
       catalog_snapshot: entry as unknown as Record<string, unknown>,
@@ -447,6 +475,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
     total_cents: priced.totalCents,
     order_type: entry.orderType,
     ...(agreed !== null ? { agreed_price_cents: agreed, published_price_cents: entry.priceCents } : {}),
+    ...(fromQuote ? { quote_id: fromQuote.quoteId } : {}),
   });
 
   /*
@@ -639,7 +668,54 @@ export type RequestQuoteInput = {
   brief: string;
   neededBy?: string | null;
   attribution?: IntakeAttribution;
+  /** Files already uploaded under this request's draft (signOrderUpload). Every one is recorded, or the request fails. */
+  files?: { key: string; bucket: string; storageKey: string; contentType?: string | null; byteSize?: number | null }[];
 };
+
+/**
+ * THE FILES A QUOTE REQUEST CARRIES, CHECKED AND RECORDED. Robert's addendum of
+ * 2026-10-25, item 3: "Files attached to a quote request are kept, not
+ * dropped." requestQuote recorded none of them, so a drawing a customer
+ * uploaded sat in eng-uploads with no row pointing at it.
+ *
+ * A file is accepted only from this request's own draft folder in the order
+ * uploads bucket, where signOrderUpload put it, so a caller cannot attach an
+ * object somebody else uploaded. Recording is idempotent on (quote, key), and
+ * runs on a retried request too, so a retry that brings a file the first
+ * attempt did not record still keeps it.
+ */
+export function quoteFileProblem(
+  clientRequestId: string,
+  file: { key: string; bucket: string; storageKey: string },
+): string | null {
+  if (file.bucket !== ORDER_UPLOAD_BUCKET) return "An attached file is not in the order uploads.";
+  if (!file.storageKey.startsWith(`orders/${clientRequestId}/`)) return "An attached file does not belong to this request.";
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,80}$/.test(file.key)) return "An attached file names a document slot that is not valid.";
+  return null;
+}
+
+async function recordQuoteFiles(quoteId: string, input: RequestQuoteInput): Promise<string | null> {
+  const files = input.files ?? [];
+  if (files.length === 0) return null;
+  for (const f of files) {
+    const problem = quoteFileProblem(input.clientRequestId, f);
+    if (problem) return problem;
+  }
+  const db = supabaseAdmin();
+  if (!db) return "The order system is not configured.";
+  const { error } = await db.from("eng_quote_files").upsert(
+    files.map((f) => ({
+      quote_id: quoteId,
+      input_key: f.key,
+      bucket: f.bucket,
+      storage_key: f.storageKey,
+      content_type: f.contentType ?? null,
+      byte_size: typeof f.byteSize === "number" && f.byteSize > 0 ? f.byteSize : null,
+    })),
+    { onConflict: "quote_id,storage_key", ignoreDuplicates: true },
+  );
+  return error ? "The attached files could not be recorded, so the request was not completed. Try again." : null;
+}
 
 export type RequestQuoteResult =
   | { ok: true; quoteId: string; reference: string; duplicate: boolean }
@@ -691,12 +767,19 @@ export async function requestQuote(input: RequestQuoteInput): Promise<RequestQuo
     .eq("client_request_id", input.clientRequestId)
     .maybeSingle();
   if (existing) {
+    const filesNotKept = await recordQuoteFiles(existing.id as string, input);
+    if (filesNotKept) return { ok: false, error: filesNotKept, field: "files" };
     return {
       ok: true,
       quoteId: existing.id as string,
       reference: existing.reference as string,
       duplicate: true,
     };
+  }
+
+  for (const f of input.files ?? []) {
+    const problem = quoteFileProblem(input.clientRequestId, f);
+    if (problem) return { ok: false, error: problem, field: "files" };
   }
 
   /*
@@ -709,8 +792,13 @@ export async function requestQuote(input: RequestQuoteInput): Promise<RequestQuo
   const quotable = deliverablesFor(input.serviceSlug).filter((d) => d.orderType === "quote");
   const entry =
     catalogFor(input.serviceSlug, input.tier) ?? (quotable.length === 1 ? quotable[0] : undefined);
-  /* The quote path asks the same question through the same door helper, ruling 11. */
-  const blocked = await orderBlockedNow(entry, launchMode());
+  /*
+   * NOT THE MONEY DOOR'S QUESTION. Robert's addendum of 2026-10-25, item 3: a
+   * request takes no money, so it asks the gate and the catalogue
+   * (quoteRequestBlocked), and the signed record is read when the customer
+   * accepts and pays (acceptQuote, through orderBlockedNow, ruling 11).
+   */
+  const blocked = quoteRequestBlocked(entry, launchMode());
   if (!entry || blocked) {
     return { ok: false, error: blocked ?? "That service is not in the catalog.", field: "serviceSlug" };
   }
@@ -774,6 +862,9 @@ export async function requestQuote(input: RequestQuoteInput): Promise<RequestQuo
   if (error || !quote) {
     return { ok: false, error: error?.message ?? "The quote request could not be recorded." };
   }
+
+  const filesNotKept = await recordQuoteFiles(quote.id as string, input);
+  if (filesNotKept) return { ok: false, error: filesNotKept, field: "files" };
 
   await writeAudit({
     actor: { id: null, role: "admin", email: SYSTEM_AUTHOR.email },

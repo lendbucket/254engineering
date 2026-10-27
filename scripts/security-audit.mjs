@@ -141,6 +141,8 @@ const ADMIN_PAGES = [
   "/portal/inbox",
   "/portal/order-lookup",
   "/portal/refunds",
+  /* Quote requests, priced and sent by the office (addendum item 3, 0098): quotes.manage, closed to a signed out caller. */
+  "/portal/quotes",
   "/portal/credentials",
   "/portal/settings",
   "/portal/techs",
@@ -283,6 +285,9 @@ const ADMIN_APIS = [
   "/api/portal/field",
   "/api/portal/inquiries",
   "/api/portal/insurance",
+  /* Pricing, sending and declining a quote, and the quote list as a CSV (addendum item 3, 0098). */
+  "/api/portal/quotes",
+  "/api/portal/quotes/export",
   "/api/portal/windstorm-inquiries",
   "/api/portal/review",
   "/api/portal/comms",
@@ -1468,6 +1473,40 @@ async function run() {
     rec(
       "and neither is cached",
       /no-store/.test(docNoToken.headers.get("cache-control") ?? "") && /no-store/.test(docBadToken.headers.get("cache-control") ?? ""),
+    );
+
+    /*
+     * ACCEPTING A QUOTE, the second public token-gated API route (addendum
+     * item 3, 0098). It turns a quote into an order and opens checkout, so the
+     * same pair: no token and a wrong token are refused alike, and neither
+     * answer carries a checkout link. Read for the refusal and the absence of
+     * a link, never for a status code alone.
+     */
+    const acceptPost = (token) =>
+      fetch(`${BASE}/api/quote-accept`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(token === null ? {} : { token }),
+        redirect: "manual",
+      });
+    const acceptNoToken = await acceptPost(null);
+    const acceptNoTokenBody = await acceptNoToken.text();
+    const acceptBadToken = await acceptPost("not-a-real-token");
+    const acceptBadTokenBody = await acceptBadToken.text();
+    rec(
+      "accepting a quote with no token opens no checkout",
+      acceptNoToken.status === 404 && !/checkoutUrl/.test(acceptNoTokenBody) && /does not open a quote/.test(acceptNoTokenBody),
+      `HTTP ${acceptNoToken.status}`,
+    );
+    rec(
+      "and a wrong token is refused the same way",
+      acceptBadToken.status === 404 && !/checkoutUrl/.test(acceptBadTokenBody),
+      `HTTP ${acceptBadToken.status}`,
+    );
+    rec(
+      "and the two refusals are indistinguishable",
+      acceptNoToken.status === acceptBadToken.status && acceptNoTokenBody === acceptBadTokenBody,
+      "a different answer would tell somebody which of their guesses was a real quote",
     );
   }
 }

@@ -251,6 +251,9 @@ function STAFF_LEVEL_SCREENS() {
     /* The insurance register, Robert's addendum of 2026-10-25, built to the staff standard from the start. */
     "src/app/portal/(app)/insurance/page.tsx",
     "src/app/portal/(app)/insurance/InsuranceClient.tsx",
+    /* Quote requests, addendum item 3 of 2026-10-25, built to the staff standard from the start. */
+    "src/app/portal/(app)/quotes/page.tsx",
+    "src/app/portal/(app)/quotes/QuotesClient.tsx",
     "src/app/portal/(app)/settings/page.tsx",
     "src/app/portal/(app)/clients/[id]/page.tsx",
     "src/app/portal/(app)/files/DeskFileClient.tsx",
@@ -307,6 +310,9 @@ const PORTED = [
   // Every portal and customer surface. The list existed so the audit could be
   // real while the port was partial; it now names everything.
   "src/app/(order)/order/[reference]/page.tsx",
+  /* The customer's quote, addendum item 3 of 2026-10-25, on the day it was built. */
+  "src/app/(order)/order/quote/[reference]/page.tsx",
+  "src/app/(order)/order/quote/[reference]/AcceptQuote.tsx",
   "src/app/(order)/order/start/[slug]/page.tsx",
   "src/app/(order)/order/referred/[code]/page.tsx",
   "src/app/account/SignOutButton.tsx",
@@ -606,6 +612,8 @@ const CUSTOMER_V10 = [
   "src/app/account/SignOutButton.tsx",
   "src/components/order/OrderFlow.tsx",
   "src/app/(order)/order/[reference]/page.tsx",
+  "src/app/(order)/order/quote/[reference]/page.tsx",
+  "src/app/(order)/order/quote/[reference]/AcceptQuote.tsx",
   "src/app/(order)/order/start/[slug]/page.tsx",
   "src/app/(order)/order/referred/[code]/page.tsx",
   /* The credential screens, restyled 2026-09-29. Every account door's link and

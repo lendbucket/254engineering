@@ -53,11 +53,12 @@ await db.exec(`
            ('${OSEAL}', '${OTHER}', 'seal', 'proof/o-seal.png', '${h64}', 1, 1, 1, now()),
            ('${OSIG}', '${OTHER}', 'signature', 'proof/o-sig.png', '${h64}', 1, 1, 1, now());
   insert into eng_quote_requests (id, site, reference, service_slug, tier, customer_name, customer_email,
-                                  property_address, city, county, quoted_cents, scope, status)
+                                  property_address, city, county, quoted_cents, scope, status, sent_at, expires_at)
     values ('${QUOTE}', '254engineering', '254-Q2026-PROBE01', 'residential-light-commercial-design', 'custom-package',
             'Probe Contact, not a real person', 'design-probe@audit-probe.invalid',
             '100 Fictional Way', 'Probeville', 'Probe', 200000,
-            'Framing check, attachment and uplift calculation, sealed letter.', 'sent');
+            'Framing check, attachment and uplift calculation, sealed letter.', 'sent',
+            now(), now() + interval '30 days');
 `);
 
 const addendum = async (by = ENG, scope = "Framing check, attachment and uplift calculation, sealed letter.") =>
