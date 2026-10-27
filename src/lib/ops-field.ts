@@ -96,7 +96,13 @@ export type ProtocolTemplateRow = {
   approved_by_license: string | null;
 };
 
-export type ProtocolWithItems = ProtocolTemplateRow & { items: ProtocolItem[] };
+/*
+ * `itemsUnreadable` is set when the template was read and its items were not.
+ * Audit sweep A5, 2026-10-25: the items read used to ignore its error and hand
+ * back an empty checklist, which reads as a protocol with nothing to capture.
+ * Every reader that acts on the items refuses when it is set.
+ */
+export type ProtocolWithItems = ProtocolTemplateRow & { items: ProtocolItem[]; itemsUnreadable?: string };
 
 /*
  * ONE STRING LITERAL, NOT A CONCATENATION, AND THAT IS LOAD BEARING RATHER
@@ -605,7 +611,7 @@ export async function publishedProtocolFor(serviceSlug: string, tier: string | n
       : ({ state: "unknown" } as const);
     if (status.state !== "signed") return null;
   }
-  const { data: items } = await db
+  const { data: items, error: itemsError } = await db
     .from("eng_protocol_items")
     .select(ITEM_COLUMNS)
     .eq("template_id", (data as ProtocolTemplateRow).id)
@@ -613,6 +619,7 @@ export async function publishedProtocolFor(serviceSlug: string, tier: string | n
   return {
     ...(data as ProtocolTemplateRow),
     items: ((items ?? []) as ProtocolItemRow[]).map(toProtocolItem),
+    ...(itemsError ? { itemsUnreadable: `the protocol's checklist items could not be read (${itemsError.message})` } : {}),
   };
 }
 
@@ -632,26 +639,38 @@ export type DispatchContext = {
   /** Whether the PROPERTY has coordinates, so the screen can say which side is missing. */
   propertyLocated: boolean;
   alreadyOffered: { techId: string; state: OfferState }[];
+  /*
+   * What could not be read, in a sentence, or null. Section 6 of Robert's audit
+   * of 2026-10-24 (class A, severity 2): the technicians, their certifications,
+   * their open jobs and the offers already sent were read with their errors
+   * ignored. A failed open-jobs read made every technician look free, so a busy
+   * one ranked first, and a failed offers read showed nobody offered. When set,
+   * the plan offers nobody and sending refuses.
+   */
+  unreadable: string | null;
 };
 
-/** The technicians the platform could consider, with their live open job counts. */
-async function candidateTechs(): Promise<TechCandidate[]> {
+/** The technicians the platform could consider, with their live open job counts, and what could not be read. */
+async function candidateTechs(): Promise<{ candidates: TechCandidate[]; unreadable: string[] }> {
   const db = supabaseAdmin();
-  if (!db) return [];
+  if (!db) return { candidates: [], unreadable: ["the database is not configured"] };
+  const unreadable: string[] = [];
 
-  const { data: profiles } = await db
+  const { data: profiles, error: profilesError } = await db
     .from("eng_profiles")
     .select("id, display_name, status, coverage_counties, base_lat, base_lng")
     .eq("role", "field_tech");
-  if (!profiles?.length) return [];
+  if (profilesError) return { candidates: [], unreadable: ["the technicians could not be read"] };
+  if (!profiles?.length) return { candidates: [], unreadable };
 
   const ids = profiles.map((p) => p.id as string);
 
-  const { data: certs } = await db
+  const { data: certs, error: certsError } = await db
     .from("eng_certifications")
     .select("profile_id, service_slug")
     .in("profile_id", ids)
     .eq("status", "certified");
+  if (certsError) unreadable.push("their certifications could not be read");
 
   /*
    * Phase 3's fourth gate. Computed here rather than inside planDispatch so that
@@ -666,11 +685,12 @@ async function candidateTechs(): Promise<TechCandidate[]> {
    * files are not load; a technician holding four delivered files is holding
    * nothing.
    */
-  const { data: open } = await db
+  const { data: open, error: openError } = await db
     .from("eng_files")
     .select("assigned_tech_id")
     .in("assigned_tech_id", ids)
     .in("status", ["dispatched", "evidence_in_progress", "revisions_requested"]);
+  if (openError) unreadable.push("their open jobs could not be read, so nobody's load is known");
 
   const loadBy = new Map<string, number>();
   for (const row of open ?? []) {
@@ -683,7 +703,7 @@ async function candidateTechs(): Promise<TechCandidate[]> {
     certBy.set(id, [...(certBy.get(id) ?? []), row.service_slug as string]);
   }
 
-  return profiles.map((p) => ({
+  const candidates = profiles.map((p) => ({
     id: p.id as string,
     displayName: p.display_name as string,
     status: p.status as TechCandidate["status"],
@@ -694,6 +714,7 @@ async function candidateTechs(): Promise<TechCandidate[]> {
     baseLat: num(p.base_lat as number | string | null),
     baseLng: num(p.base_lng as number | string | null),
   }));
+  return { candidates, unreadable };
 }
 
 /** What a technician is paid for this service line, from the effective dated schedule. */
@@ -726,8 +747,14 @@ export async function dispatchContext(
   const db = supabaseAdmin();
   if (!db || !can(actor, "offers.dispatch")) return null;
 
-  const candidates = await candidateTechs();
+  const { candidates, unreadable } = await candidateTechs();
+  const { data: offers, error: offersError } = await db
+    .from("eng_assignments")
+    .select("tech_id, state")
+    .eq("file_id", file.id);
+  if (offersError) unreadable.push("the offers already sent for this file could not be read");
   const feeCents = await techFeeFor(file.service_slug);
+  /* Over nobody when anything could not be read: a plan on part of the facts is not offered. */
   const plan = planDispatch(
     {
       county: file.county,
@@ -735,14 +762,9 @@ export async function dispatchContext(
       lat: num(file.latitude),
       lng: num(file.longitude),
     },
-    candidates,
+    unreadable.length ? [] : candidates,
     feeCents,
   );
-
-  const { data: offers } = await db
-    .from("eng_assignments")
-    .select("tech_id, state")
-    .eq("file_id", file.id);
 
   /*
    * THE RATE IS SHOWN TO pricing.read_tech_rate ALONE. Operator ruling,
@@ -763,6 +785,7 @@ export async function dispatchContext(
     proximityUnavailable: plan.offers.length > 0 && plan.offers.every((o) => o.distanceMiles === null),
     propertyLocated: num(file.latitude) !== null && num(file.longitude) !== null,
     alreadyOffered: (offers ?? []).map((o) => ({ techId: o.tech_id as string, state: o.state as OfferState })),
+    unreadable: unreadable.length ? `Nothing can be offered right now: ${unreadable.join("; ")}. Try again in a minute.` : null,
   };
 }
 
@@ -859,6 +882,9 @@ export async function sendOffers(
         "open an empty checklist, so dispatch is blocked until an engineer publishes one.",
     };
   }
+  if (protocol.itemsUnreadable) {
+    return { ok: false, error: `Nothing was dispatched: ${protocol.itemsUnreadable}, and a technician would open an empty checklist. Try again in a minute.` };
+  }
 
   /*
    * The plan is recomputed rather than trusted from the form. The screen that
@@ -867,6 +893,7 @@ export async function sendOffers(
    */
   const ctx = await dispatchContext(actor, file as never);
   if (!ctx) return { ok: false, error: "Could not plan this dispatch." };
+  if (ctx.unreadable) return { ok: false, error: ctx.unreadable };
 
   /*
    * NO OFFER WITHOUT A RATE. Operator ruling, 2026-10-10 (decision 3). An offer
@@ -1402,6 +1429,14 @@ export type JobView = {
   repairs: RepairItemRow[];
   state: ChecklistState;
   offer: { id: string; amountCents: number | null; state: OfferState } | null;
+  /**
+   * What could not be read, or null. Audit sweep A5, 2026-10-25: the protocol
+   * items, the captures, the exceptions and the repair list were each read with
+   * the error ignored, so a failed read looked like an empty list. When this is
+   * set, `state` cannot be submitted and its first blocker says what failed, so
+   * every gate that reads `state` refuses, and the binder is never complete.
+   */
+  unreadable: string | null;
 };
 
 export type ExceptionRow = {
@@ -1467,7 +1502,7 @@ export async function jobView(actor: Actor | null, fileId: string): Promise<JobV
     ? await getProtocolForWork(file.protocol_template_id as string)
     : await publishedProtocolFor(file.service_slug as string, await tierForFile(fileId));
 
-  const { data: captures } = await db
+  const { data: captures, error: capturesError } = await db
     .from("eng_evidence_items")
     .select(
       "id, item_key, kind, value_text, value_number, unit, storage_key, captured_at, captured_lat, captured_lng, clock_skew_seconds, clock_disagrees, client_capture_id, status",
@@ -1492,7 +1527,7 @@ export async function jobView(actor: Actor | null, fileId: string): Promise<JobV
    * `protocol-run-audit` asserts that jobView supplies it rather than only that
    * checklistState accepts it.
    */
-  const { data: exceptionRows } = await db
+  const { data: exceptionRows, error: exceptionsError } = await db
     .from("eng_checklist_exceptions")
     .select("id, item_key, kind, reason, recorded_by, recorded_at")
     .eq("file_id", fileId)
@@ -1510,11 +1545,20 @@ export async function jobView(actor: Actor | null, fileId: string): Promise<JobV
    * The list is empty for almost every file, which is one indexed read
    * returning nothing.
    */
-  const { data: repairRows } = await db
+  const { data: repairRows, error: repairsError } = await db
     .from("eng_repair_items")
     .select("id, sort_order, requirement, item_key, closed_at, closed_by, closed_note, verified_by_evidence_id")
     .eq("file_id", fileId)
     .order("sort_order");
+
+  /* Sweep A5: every failed read is named, never folded into an empty list. */
+  const failed = [
+    protocol?.itemsUnreadable ?? null,
+    capturesError ? `the captured evidence could not be read (${capturesError.message})` : null,
+    exceptionsError ? `the recorded exceptions could not be read (${exceptionsError.message})` : null,
+    repairsError ? `the repair list could not be read (${repairsError.message})` : null,
+  ].filter((x): x is string => Boolean(x));
+  const unreadable = failed.length ? `Part of this job could not be read: ${failed.join("; ")}. Nothing can be submitted from it until it reads.` : null;
 
   const rows = (captures ?? []) as EvidenceRow[];
   const exceptions = (exceptionRows ?? []) as ExceptionRow[];
@@ -1533,11 +1577,15 @@ export async function jobView(actor: Actor | null, fileId: string): Promise<JobV
     captures: rows,
     exceptions,
     repairs,
-    state: checklistState(
-      protocol?.items ?? [],
-      captured,
-      exceptions.map((e) => ({ itemKey: e.item_key, reason: e.reason, kind: e.kind })),
+    state: unreadableState(
+      checklistState(
+        protocol?.items ?? [],
+        captured,
+        exceptions.map((e) => ({ itemKey: e.item_key, reason: e.reason, kind: e.kind })),
+      ),
+      unreadable,
     ),
+    unreadable,
     offer: offer
       ? {
           id: offer.id as string,
@@ -1548,13 +1596,18 @@ export async function jobView(actor: Actor | null, fileId: string): Promise<JobV
   };
 }
 
+/** A checklist state that cannot be submitted, its first blocker naming what could not be read (sweep A5). */
+export function unreadableState(state: ChecklistState, unreadable: string | null): ChecklistState {
+  return unreadable ? { ...state, canSubmit: false, blockers: [unreadable, ...state.blockers] } : state;
+}
+
 /** The protocol a file is pinned to, read without the authoring permission. */
 async function getProtocolForWork(templateId: string): Promise<ProtocolWithItems | null> {
   const db = supabaseAdmin();
   if (!db) return null;
   const { data } = await db.from("eng_protocol_templates").select(TEMPLATE_COLUMNS).eq("id", templateId).maybeSingle();
   if (!data) return null;
-  const { data: items } = await db
+  const { data: items, error: itemsError } = await db
     .from("eng_protocol_items")
     .select(ITEM_COLUMNS)
     .eq("template_id", templateId)
@@ -1562,6 +1615,7 @@ async function getProtocolForWork(templateId: string): Promise<ProtocolWithItems
   return {
     ...(data as ProtocolTemplateRow),
     items: ((items ?? []) as ProtocolItemRow[]).map(toProtocolItem),
+    ...(itemsError ? { itemsUnreadable: `the protocol's checklist items could not be read (${itemsError.message})` } : {}),
   };
 }
 
@@ -2317,12 +2371,21 @@ export type LedgerRow = {
  * There is no view in between, because "an engineer can see what techs are paid"
  * is a decision nobody has made and defaulting to yes would be making it.
  */
-export async function payLedger(actor: Actor | null, techId?: string): Promise<LedgerRow[]> {
+/*
+ * A failed read is said, never an empty ledger. Robert's audit of 2026-10-24,
+ * finding F24: it returned [] and the Pay screen showed "Owed to you $0.00"
+ * and "Paid to date $0.00", which the screen's own comment rightly calls a
+ * KNOWN zero. A read that failed is not one.
+ */
+export async function payLedger(
+  actor: Actor | null,
+  techId?: string,
+): Promise<{ ok: true; rows: LedgerRow[] } | { ok: false; error: string }> {
   const db = supabaseAdmin();
-  if (!db || !actor) return [];
+  if (!db || !actor) return { ok: false, error: "The pay ledger could not be read." };
 
   const all = can(actor, "ledger.read_all");
-  if (!all && !can(actor, "ledger.read_own")) return [];
+  if (!all && !can(actor, "ledger.read_own")) return { ok: true, rows: [] };
 
   /*
    * EVERY ROW, NOT THE NEWEST 300. Product audit, 2026-10-10: this read stopped
@@ -2340,14 +2403,17 @@ export async function payLedger(actor: Actor | null, techId?: string): Promise<L
     if (scope) q = q.eq("tech_id", scope);
     return q;
   });
-  if (!read.ok) return [];
-  return read.rows.map((r) => {
-    const files = r.eng_files as { is_demo?: boolean } | { is_demo?: boolean }[] | null;
-    const isDemo = Array.isArray(files) ? files.some((f) => f?.is_demo === true) : files?.is_demo === true;
-    const { eng_files: _files, ...rest } = r;
-    void _files;
-    return { ...(rest as Omit<LedgerRow, "amount_cents" | "is_demo">), amount_cents: Number(r.amount_cents), is_demo: isDemo };
-  });
+  if (!read.ok) return { ok: false, error: `The pay ledger could not be read: ${read.error}` };
+  return {
+    ok: true,
+    rows: read.rows.map((r) => {
+      const files = r.eng_files as { is_demo?: boolean } | { is_demo?: boolean }[] | null;
+      const isDemo = Array.isArray(files) ? files.some((f) => f?.is_demo === true) : files?.is_demo === true;
+      const { eng_files: _files, ...rest } = r;
+      void _files;
+      return { ...(rest as Omit<LedgerRow, "amount_cents" | "is_demo">), amount_cents: Number(r.amount_cents), is_demo: isDemo };
+    }),
+  };
 }
 
 export async function setLedgerStatus(
@@ -2476,13 +2542,26 @@ const toQuestion = (r: QuestionRow): CheckQuestion => ({
  * formality that writes a certification record.
  */
 async function questionsWithKey(templateId: string): Promise<CheckQuestion[]> {
+  return (await questionsWithKeyRead(templateId)) ?? [];
+}
+
+/*
+ * THE KEY, OR NULL WHEN IT COULD NOT BE READ. Section 6 of Robert's audit of
+ * 2026-10-24: scoring read the key a second time with its error ignored, so a
+ * failed read graded the attempt against no questions and RECORDED A FAILED
+ * CERTIFICATION for a technician who may have answered every question right.
+ * Scoring reads this and refuses on null; the screens that only list the
+ * questions keep reading an empty list.
+ */
+async function questionsWithKeyRead(templateId: string): Promise<CheckQuestion[] | null> {
   const db = supabaseAdmin();
-  if (!db) return [];
-  const { data } = await db
+  if (!db) return null;
+  const { data, error } = await db
     .from("eng_protocol_questions")
     .select("id, template_id, sort_order, prompt, options, correct_index, rationale")
     .eq("template_id", templateId)
     .order("sort_order");
+  if (error) return null;
   return ((data ?? []) as QuestionRow[]).map(toQuestion);
 }
 
@@ -2612,7 +2691,8 @@ export async function checkFor(
   if (actor.role !== "field_tech" && actor.role !== "admin") return null;
 
   const protocol = await publishedProtocolFor(serviceSlug, tier);
-  if (!protocol) return null;
+  /* An unread checklist is not a check with no questions (sweep A5). */
+  if (!protocol || protocol.itemsUnreadable) return null;
 
   /* Newest first. A second certification row for one person and service would
    * be a re-certification, and the current one is what governs whether they may
@@ -2696,7 +2776,14 @@ export async function submitAttempt(
     };
   }
 
-  const questions = await questionsWithKey(view.templateId);
+  const questions = await questionsWithKeyRead(view.templateId);
+  if (questions === null || questions.length !== view.questions.length) {
+    return {
+      ok: false,
+      error:
+        "The answer key could not be read just now, so this attempt was not scored and nothing was recorded. Submit it again in a moment.",
+    };
+  }
   const grade = gradeAttempt(questions, answers);
 
   await db.from("eng_certification_attempts").insert({

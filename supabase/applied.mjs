@@ -3356,15 +3356,56 @@ export const APPLIED = [
     file: "0090_insurance_is_a_register.sql", appliedBy: "apply_migration",
     fingerprint: "8daaba436e02fb92c9a6b227fcb98caf",
     behaviour: "25076aa51d01188e59da94c9f6871ce0",
-    production: null,
+    /*
+     * APPLIED TO PRODUCTION 2026-10-27 00:24 UTC, provider version
+     * 20261027002457, by the operator's chat counterpart through
+     * apply_migration, from
+     * docs/production-sitting-0090-insurance-is-a-register.md, after board
+     * 40412697407 matched its prediction, 63 of 63, on 01afc22. Read back on
+     * issue #1, comment 6430595185. The file applied is sha256
+     * debafc1889859f70e817a050d3a3530e7e480958bcb11deaaafc9fca23b4a780, the
+     * file development sat; the stored statement reads back as sha256
+     * 1753176a47395ffc5276db606156db5af76ff730cc38a69b6537d1fa4220fd52,
+     * identical to development.
+     *
+     * Section 0: shape 05bb694a74ad7aeb15a3c37c8474d2da across 1333; neither
+     * table, no eng-insurance bucket, no insurance.manage grant, and no 009x
+     * migration on production. Section 2: shape
+     * 8daaba436e02fb92c9a6b227fcb98caf across 1353; RLS true on both tables;
+     * 0 policies; triggers eng_insurance_alerts_guard,
+     * eng_insurance_policies_audit and eng_insurance_policies_guard; the bucket
+     * private, 10485760 bytes, application/pdf only; grants to admin and
+     * ops_manager; anon and authenticated SELECT false and false. The record
+     * rides in the merge, so 0090 is never pending on main.
+     */
+    production: "2026-10-27",
+    development: {
+      at: "0090",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-26",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-26 04:48 UTC by the operator's chat counterpart through apply_migration, " +
+        "provider version 20261026044802 (issue #1, comment 6408474378). The file was read in full at ed487a4, " +
+        "sha256 debafc1889859f70e817a050d3a3530e7e480958bcb11deaaafc9fca23b4a780; the statement stored in " +
+        "supabase_migrations reads back as sha256 1753176a47395ffc5276db606156db5af76ff730cc38a69b6537d1fa4220fd52, " +
+        "the file without its trailing newline. Section 0: shape 05bb694a74ad7aeb15a3c37c8474d2da across 1333; " +
+        "neither table, no bucket, no grant; eng_role_grants keyed on (role_key, action) as the on conflict clause " +
+        "needs. Section 2: shape 8daaba436e02fb92c9a6b227fcb98caf across 1353, as predicted; RLS true on both " +
+        "tables; 0 policies; the three triggers; the bucket private, 10485760, application/pdf; grants to admin " +
+        "and ops_manager; anon and authenticated SELECT false and false.",
+    },
     proves: { table: "eng_insurance_policies", column: "certificate_sha256" },
     note:
       "Both figures read off scripts/fingerprint-at.mjs at 0090 on 2026-10-25, with 0089 reproducing its recorded " +
       "pair first: shape 1333 to 1353 columns (eng_insurance_policies' seventeen and eng_insurance_alerts' three), " +
       "behaviour 1251 to 1281 facts; tables 99 to 101, triggers 98 to 101, functions 64 to 67. The private " +
-      "eng-insurance bucket and the two insurance.manage grants (admin, ops_manager). No drop statement.",
+      "eng-insurance bucket and the two insurance.manage grants (admin, ops_manager). It drops nothing that " +
+      "existed before it: its only drop statements are drop trigger if exists on its own two new tables, ahead " +
+      "of each create, which the development sitting noted.",
     because:
-      "WRITTEN 2026-10-25 ON feat/insurance-register, AND APPLIED NOWHERE. Robert's addendum of 2026-10-25, item 1: " +
+      "WRITTEN 2026-10-25 ON feat/insurance-register; ON DEVELOPMENT (version 20261026044802) AND PRODUCTION (version 20261027002457). Robert's addendum of 2026-10-25, item 1: " +
       "the firm's insurance is a register with the certificate kept beside each policy, and the office and the " +
       "owner are warned at 45, 14 and 1 days. Posted on issue #1 for the chat to sit, development first, then " +
       "production. The branch merges only after the production apply is read back, and a migration on main is " +
@@ -3374,7 +3415,42 @@ export const APPLIED = [
     file: "0091_three_letters_seal_without_a_template.sql", appliedBy: "apply_migration",
     fingerprint: "8daaba436e02fb92c9a6b227fcb98caf",
     behaviour: "92e2d140a1aefe8192833d9809b7d428",
-    production: null,
+    /*
+     * APPLIED TO PRODUCTION 2026-10-27 02:10 UTC, provider version
+     * 20261027021030, by the operator's chat counterpart through
+     * apply_migration, from
+     * docs/production-sitting-0091-three-letters-seal-without-a-template.md,
+     * after board 40423411499 matched its prediction, 63 of 63, on 6b96bb6.
+     * Read back on issue #1, comment 6432012426. The file applied is sha256
+     * fcee7662cb37cc616044ff9e855bd4f6d13312b8ed6838710c4f9a19fc37b168, the
+     * file development sat; the stored statement reads back as sha256
+     * 1c67c2d17fc8447a773ec57ed24aad3d508d7ad81d285cf917bdee3396ad8bcd,
+     * identical to development.
+     *
+     * Section 0: shape 8daaba436e02fb92c9a6b227fcb98caf across 1353, with 0090
+     * applied; the eng_seal_act_check body md5 2fdeda91c4a13a3a77ce41a39975bf91,
+     * as development had before its sitting; no letter sealed on production.
+     * Section 2: shape unchanged; the "seals only from a letter template"
+     * clause absent, the own-protocol clause present, the other-lines clause
+     * kept; the new body md5 49dd9c7109d15d59f2c0cc59c1af7abc. The record
+     * rides in the merge, so 0091 is never pending on main.
+     */
+    production: "2026-10-27",
+    development: {
+      at: "0091",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-26",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-26 07:05 UTC by the operator's chat counterpart through apply_migration, " +
+        "provider version 20261026070513 (issue #1, comment 6410263671). The file was read in full at 7f48d45, " +
+        "sha256 fcee7662cb37cc616044ff9e855bd4f6d13312b8ed6838710c4f9a19fc37b168; the statement stored in " +
+        "supabase_migrations reads back as sha256 1c67c2d17fc8447a773ec57ed24aad3d508d7ad81d285cf917bdee3396ad8bcd, " +
+        "the file without its trailing newline. Before: shape 8daaba436e02fb92c9a6b227fcb98caf across 1353 with " +
+        "0090 applied; the check body md5 2fdeda91c4a13a3a77ce41a39975bf91. After: shape unchanged; the template " +
+        "clause absent, the own-protocol clause present, the other-lines clause kept.",
+    },
     proves: null,
     provesNote:
       "Nothing in it is visible through PostgREST: it replaces one function body and creates no table, column, " +
@@ -3387,8 +3463,8 @@ export const APPLIED = [
       "1281 facts, the one replaced body of eng_seal_act_check. Tables, triggers and functions unchanged at 101, " +
       "101 and 67. No drop statement.",
     because:
-      "WRITTEN 2026-10-26 ON migration/0091-three-letters-seal-without-a-template, ON TOP OF 0090, AND APPLIED " +
-      "NOWHERE. Robert's ruling of 2026-10-25, 23:51 Central, item A: the engineer signs no templates, and his " +
+      "WRITTEN 2026-10-26 ON migration/0091-three-letters-seal-without-a-template, ON TOP OF 0090; ON DEVELOPMENT " +
+      "(version 20261026070513) AND PRODUCTION (version 20261027021030). Robert's ruling of 2026-10-25, 23:51 Central, item A: the engineer signs no templates, and his " +
       "seal on each letter after reading its full preview is his adoption of it, so eng_seal_act_check stops " +
       "requiring a template for 254-MH-001, 254-SL-001 and 254-WS-001. Posted on issue #1 for the chat to sit " +
       "after 0090, development first, then production. The branch merges only after the production apply is " +

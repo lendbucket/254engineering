@@ -11,7 +11,8 @@ import { services } from "@/content/services";
 import { EmptyState, PageHead } from "@/components/portal/surfaces";
 import { readAnswers, outstandingFor } from "@/lib/ops-file-inputs";
 import { captureAdditionsFor, filesAwaitingTriage, recordedFactsFor, triageFor } from "@/lib/letter-facts";
-import { ElementDescribedReview, FoundationTypeConfirm, TriagePanel } from "@/components/portal/LetterFactsPanels";
+import { CatalogueFactsPanel, ElementDescribedReview, FoundationTypeConfirm, TriagePanel } from "@/components/portal/LetterFactsPanels";
+import { LETTER_FACT_CATALOGUE } from "@/content/letters/letter-fact-catalogue";
 import { DecisionPanel, OpenReviewButton } from "./ReviewClient";
 import { LetterSealPanel } from "./LetterSealPanel";
 import { OwnDocumentSealPanel } from "./OwnDocumentSealPanel";
@@ -97,6 +98,20 @@ export default async function ReviewPage({
   const letterAnswers = letterAnswersRead?.ok ? letterAnswersRead.answers : {};
   /* A failed answers read shows the panel's own "could not be read" sentence, never "No authority on the order" (finding F12). */
   const letterFacts = selected && letterLine && letterAnswersRead?.ok ? await recordedFactsFor(selected.file.id) : null;
+  /*
+   * ITEM B OF ROBERT'S RULING OF 2026-10-25, 23:51 CENTRAL: THE MANUFACTURED
+   * HOME AND SOLAR LETTERS PRINT THE FACTS 0087 RECORDS. He records his here,
+   * at review; the office's (the solar letter's purpose as stated) show beside
+   * them as the office recorded them. Read only for those two lines.
+   */
+  const catalogueLine =
+    selected?.file.service_slug === "manufactured-home-foundation-certifications"
+      ? "254-MH-001"
+      : selected?.file.service_slug === "solar-structural-letters"
+        ? "254-SL-001"
+        : null;
+  const catalogueRecorded = selected && catalogueLine ? await recordedFactsFor(selected.file.id) : null;
+  const catalogueFacts = catalogueLine ? LETTER_FACT_CATALOGUE.filter((f) => f.line === catalogueLine) : [];
   const letterTriage = selected?.file.service_slug === "structural-letters" ? await triageFor(selected.file.id) : null;
   const letterAdditions = selected?.file.service_slug === "structural-letters" ? await captureAdditionsFor(selected.file.id) : null;
 
@@ -276,7 +291,7 @@ export default async function ReviewPage({
                 <p className="text-[14px] text-[var(--ink)]">
                   <span className="font-semibold">{f.fileNumber}</span>, {f.address}
                 </p>
-                <TriagePanel fileId={f.id} basis={null} additions={[]} />
+                <TriagePanel fileId={f.id} basis={null} additions={f.additions} />
               </li>
             ))}
           </ul>
@@ -310,7 +325,11 @@ export default async function ReviewPage({
 
       <div className="grid gap-6 lg:grid-cols-[minmax(280px,360px)_1fr]">
         <div className={selected ? "hidden lg:block" : "block"}>
-          {queue.length === 0 ? (
+          {queue === null ? (
+            <p role="alert" className="text-[14px] leading-[1.6] text-[var(--ink)]">
+              The review queue could not be read just now, so whether anything is waiting is not known. Reload the page; nothing was changed.
+            </p>
+          ) : queue.length === 0 ? (
             <EmptyState
               title="Nothing waiting"
               body="A file arrives here when a technician submits a complete evidence package. It stays until an engineer decides it."
@@ -690,6 +709,37 @@ export default async function ReviewPage({
                             <p className="mt-2 text-[14px] text-[var(--ink)]">The triage could not be read just now. Reload the page; nothing was changed.</p>
                           )}
                         </div>
+                      </>
+                    )}
+                  </div>
+                ) : null}
+
+                {catalogueLine ? (
+                  <div className="mt-7 border-t border-[var(--border)] pt-6">
+                    <p className="portal-label">What the letter will print, for you to record</p>
+                    {!catalogueRecorded ? (
+                      <p className="mt-2 text-[14px] text-[var(--ink)]">The letter&apos;s recorded facts could not be read just now. Reload the page; nothing was changed.</p>
+                    ) : (
+                      <>
+                        {catalogueFacts.some((f) => f.capacity === "office") ? (
+                          <div className="mt-3">
+                            <p className="text-[14px] font-semibold text-[var(--ink)]">As the office recorded them</p>
+                            {catalogueFacts
+                              .filter((f) => f.capacity === "office")
+                              .map((f) => (
+                                <p key={f.key} className="mt-1 max-w-[70ch] text-[14px] leading-[1.55] text-[var(--ink)]">
+                                  {f.label}: {catalogueRecorded[f.key]?.value ?? <span className="text-[var(--secondary)]">not recorded yet, so the letter cannot be drafted</span>}
+                                </p>
+                              ))}
+                          </div>
+                        ) : null}
+                        <CatalogueFactsPanel
+                          fileId={selected.file.id}
+                          capacity="engineer"
+                          facts={catalogueFacts
+                            .filter((f) => f.capacity === "engineer")
+                            .map((f) => ({ key: f.key, label: f.label, values: f.values, recorded: catalogueRecorded[f.key]?.value ?? null }))}
+                        />
                       </>
                     )}
                   </div>

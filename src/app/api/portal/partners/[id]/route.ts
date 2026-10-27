@@ -10,6 +10,7 @@ import {
 } from "@/lib/ops-partner-comp";
 import { decideSubmission } from "@/lib/ops-partner-assets";
 import { decidePartnerLogo } from "@/lib/partner-branding";
+import { typedDollarsToCents, typedPercentToBps } from "@/lib/money-input";
 import { deploymentOrigin } from "@/lib/site-url";
 import { money } from "@/lib/ops-money";
 import type { CompModel, Tier } from "@/lib/partner-comp";
@@ -39,11 +40,9 @@ import { withSaveOutcome } from "@/lib/save-outcome";
 
 export const dynamic = "force-dynamic";
 
-function dollarsToCents(raw: unknown): number | null {
-  const value = Number(String(raw ?? "").replace(/[$,\s]/g, ""));
-  if (!Number.isFinite(value)) return null;
-  return Math.round(value * 100);
-}
+/* A blank is not zero (M-partner-blank): src/lib/money-input.ts. */
+const dollarsToCents = typedDollarsToCents;
+const percentToBps = typedPercentToBps;
 
 async function handlePOST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   const actor = await currentActor();
@@ -88,8 +87,7 @@ async function handlePOST(request: NextRequest, context: { params: Promise<{ id:
        * A percentage arrives as a percentage and is stored in basis points, so
        * a rate is an integer and never a float. 2.5 becomes 250.
        */
-      const percent = body?.percent === null || body?.percent === undefined ? null : Number(body.percent);
-      const percentBps = percent === null || !Number.isFinite(percent) ? null : Math.round(percent * 100);
+      const percentBps = body?.percent === null || body?.percent === undefined ? null : percentToBps(body.percent);
 
       const result = await setPartnerTerms(actor, partnerId, {
         model,

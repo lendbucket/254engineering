@@ -70,9 +70,10 @@ export function RecordPolicyForm() {
         <label htmlFor="ins-insureds" className={labelClass}>Named insureds, one per line</label>
         <textarea id="ins-insureds" name="namedInsureds" rows={3} required className={`${fieldClass} mt-1.5 py-2`} />
       </div>
-      <div className="sm:col-span-2">
+      {/* min-w-0 and max-w-full: a native file input's own width put this cell 2px past a 320px screen (board 40308999656). */}
+      <div className="min-w-0 max-w-full sm:col-span-2">
         <label htmlFor="ins-certificate" className={labelClass}>Certificate of insurance, PDF</label>
-        <input id="ins-certificate" name="certificate" type="file" accept="application/pdf" required className="mt-1.5 block min-h-[44px] text-[14px] text-[var(--ink)]" />
+        <input id="ins-certificate" name="certificate" type="file" accept="application/pdf" required className="mt-1.5 block min-h-[44px] min-w-0 max-w-full text-[14px] text-[var(--ink)]" />
       </div>
       <div className="sm:col-span-2">
         <button type="submit" disabled={busy} className={primaryClass}>{busy ? "Recording" : "Record the policy"}</button>

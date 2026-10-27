@@ -191,12 +191,23 @@ export async function attributeOrder(input: {
   }
 
   const keys = [input.visitorKey, `order:${input.orderId}`].filter(Boolean) as string[];
-  const { data: rows } = await db
+  const { data: rows, error: touchesError } = await db
     .from("eng_partner_touches")
     .select("partner_id, code, kind, occurred_at")
     .in("visitor_key", keys)
     .order("occurred_at", { ascending: false })
     .limit(50);
+
+  /*
+   * A FAILED READ DECIDES NOTHING. Audit sweep A12, 2026-10-25. Both reads
+   * below used to ignore their errors, so a transient failure read as "no
+   * touch" or "never a customer" and the order was attributed to nobody, with
+   * that reason, and frozen so at payment by 0014. Now the order is left
+   * unattributed (partner, code and attributed_at untouched), the reason says
+   * the evidence could not be read, and the visitor key is kept so the operator
+   * can decide it from the touches, which are all still there.
+   */
+  if (touchesError) return await undecided(db, input, `the partner touches could not be read (${touchesError.message})`);
 
   const touches: Touch[] = (rows ?? []).map((r) => ({
     partnerId: r.partner_id as string,
@@ -211,13 +222,14 @@ export async function attributeOrder(input: {
    * customer has, and only of orders that were actually paid: an abandoned
    * checkout is not a relationship.
    */
-  const { data: prior } = await db
+  const { data: prior, error: priorError } = await db
     .from("eng_service_orders")
     .select("paid_at")
     .eq("customer_email", input.customerEmail.trim().toLowerCase())
     .not("paid_at", "is", null)
     .order("paid_at", { ascending: true })
     .limit(1);
+  if (priorError) return await undecided(db, input, `whether this buyer had paid before could not be read (${priorError.message})`);
 
   const firstPaidOrderAtMs = prior?.[0]?.paid_at ? Date.parse(prior[0].paid_at as string) : null;
 
@@ -271,4 +283,30 @@ export async function attributeOrder(input: {
   return decision.attributed
     ? { attributed: true, partnerId: decision.partnerId, because: decision.because }
     : { attributed: false, because: decision.because };
+}
+
+/**
+ * The order's record when the evidence could not be read: no partner, no code,
+ * no attributed_at, so nothing is decided and nothing is frozen as decided; the
+ * reason and the visitor key say why and where the evidence is. Its own update
+ * error is reported in the audit row rather than dropped.
+ */
+async function undecided(
+  db: NonNullable<ReturnType<typeof supabaseAdmin>>,
+  input: { orderId: string; reference: string; visitorKey: string | null },
+  what: string,
+): Promise<{ attributed: false; because: string }> {
+  const because = `Not decided: ${what}. Nothing was attributed; the touches are kept, so the operator can decide it from them.`;
+  const { error } = await db
+    .from("eng_service_orders")
+    .update({ attribution_reason: because, visitor_key: input.visitorKey })
+    .eq("id", input.orderId);
+  await writeAudit({
+    actor: { id: null, role: "admin", email: SYSTEM_AUTHOR.email },
+    action: "partner.attribution_unreadable",
+    entityType: "service_order",
+    entityId: input.orderId,
+    summary: `${input.reference}: ${because}${error ? ` The reason could not be recorded on the order either (${error.message}).` : ""}`,
+  });
+  return { attributed: false, because };
 }

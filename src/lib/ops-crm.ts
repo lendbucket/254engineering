@@ -940,15 +940,21 @@ export async function transitionFile(
   return { ok: true };
 }
 
+/*
+ * The newest hundred events, or null when they could not be read. Section 6
+ * of Robert's audit of 2026-10-24 (class A, severity 2): a failed read was []
+ * and the timeline said "Nothing recorded yet." over a file with a history.
+ */
 export async function fileTimeline(id: string) {
   const db = supabaseAdmin();
-  if (!db) return [];
-  const { data } = await db
+  if (!db) return null;
+  const { data, error } = await db
     .from("eng_file_events")
     .select("id, created_at, kind, from_status, to_status, body, actor_id")
     .eq("file_id", id)
     .order("created_at", { ascending: false })
     .limit(100);
+  if (error) return null;
   return data ?? [];
 }
 
@@ -1029,8 +1035,20 @@ export async function convertLead(
    *
    * Silent for every model except flat_per_qualified_lead, and idempotent by a
    * unique index on the lead, so converting twice cannot pay twice.
+   *
+   * A failure is written on the new file's timeline, as a delivery's is,
+   * rather than discarded (audit finding F26, 2026-10-24): the conversion
+   * stands, and somebody meets the commission that was not written down.
    */
-  await accrueForQualifiedLead(leadId);
+  const leadAccrual = await accrueForQualifiedLead(leadId);
+  if (!leadAccrual.ok) {
+    await db.from("eng_file_events").insert({
+      file_id: file.id,
+      actor_id: null,
+      kind: "note",
+      body: `The partner commission on this converted lead could not be recorded: ${leadAccrual.error}`,
+    });
+  }
 
   await writeAudit({
     actor,

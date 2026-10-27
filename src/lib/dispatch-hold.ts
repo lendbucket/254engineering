@@ -7,6 +7,7 @@ import { answersFor } from "./ops-file-inputs";
 import { writeAudit } from "./ops-audit";
 import { SYSTEM_AUTHOR, transitionFile } from "./ops-crm";
 import { orderForFile, settleDecision } from "./ops-payments";
+import { readEvery } from "./bounded-read";
 
 /**
  * ===========================================================================
@@ -111,15 +112,24 @@ export async function heldFiles(): Promise<
 > {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
-  const { data, error } = await db
-    .from("eng_files")
-    .select("id, file_number, property_address, service_slug")
-    .eq("status", "needs_dispatch")
-    .order("created_at", { ascending: true })
-    .limit(200);
-  if (error) return { ok: false, error: error.message };
+  /*
+   * EVERY FILE WAITING FOR DISPATCH, NOT THE OLDEST 200. Section 6 of Robert's
+   * audit of 2026-10-24 (class B, severity 2): past 200 files a held file was
+   * never listed for his pre-review, so it waited for a decision nobody was
+   * shown.
+   */
+  const read = await readEvery<{ id: string; file_number: string; property_address: string; service_slug: string }>((from, to) =>
+    db
+      .from("eng_files")
+      .select("id, file_number, property_address, service_slug")
+      .eq("status", "needs_dispatch")
+      .order("created_at", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  if (!read.ok) return { ok: false, error: read.error };
   const out: { id: string; fileNumber: string; address: string; questions: HoldQuestion[] }[] = [];
-  for (const f of data ?? []) {
+  for (const f of read.rows) {
     if (!protocolForLine(f.service_slug as string)) continue;
     const hold = await holdFor(f.id as string);
     if (hold.held === true) out.push({ id: f.id as string, fileNumber: f.file_number as string, address: f.property_address as string, questions: hold.questions });

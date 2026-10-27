@@ -12,9 +12,6 @@ import { signatureStatus } from "@/lib/protocol-sign";
 import { SignProtocolPanel } from "./SignProtocolPanel";
 import { SignAddendumPanel } from "./SignAddendumPanel";
 import { addendaFor, addendumHeading } from "@/lib/scope-addendum";
-import { LETTER_TEMPLATES } from "@/content/letters/templates";
-import { templateSignatureStatus } from "@/lib/letter-template-sign";
-import { SignTemplatePanel } from "./SignTemplatePanel";
 
 export const dynamic = "force-dynamic";
 
@@ -72,10 +69,6 @@ export default async function ProtocolsPage({
   );
 
   const addenda = await addendaFor(actor!.id);
-  /* 0088: the letter templates, each with its signature judged against the words in code today. */
-  const templateSignatures = await Promise.all(
-    LETTER_TEMPLATES.map(async (template) => ({ template, status: await templateSignatureStatus(template.key, template.version) })),
-  );
 
   const published = new Set(templates.filter((t) => t.status === "published").map((t) => t.service_slug));
   const uncovered = services.filter((s) => !published.has(s.slug));
@@ -202,57 +195,13 @@ export default async function ProtocolsPage({
       </section>
 
       {/*
-        THE LETTER TEMPLATES WAITING FOR HIS SIGNATURE. Robert's instruction of
-        2026-10-24, migration 0088: a line's letter seals only from a template
-        he has signed here, exactly as he signs a protocol. The text is the one
-        every letter of that line is drafted from, so what he reads is what is
-        hashed and what a letter carries.
+        NO LETTER TEMPLATES WAIT HERE. Until 2026-10-26 a section listed the
+        manufactured home, solar and WPI-8E templates for his signature (0088).
+        Robert's ruling of 2026-10-25, 23:51 Central: the engineer signs no
+        templates; his seal on each letter, after reading its full preview on
+        the review screen, is his adoption (0091). The signing door and
+        SignTemplatePanel stay, callable and unused.
       */}
-      <section className="mb-8 border-t-2 border-[var(--ink)] pt-4">
-        <h2 className="text-[16px] font-semibold text-[var(--ink)]">Letter templates for your signature</h2>
-        <p className="mt-1.5 max-w-[75ch] text-[14px] leading-[1.6] text-[var(--secondary)]">
-          A manufactured home, solar or WPI-8E letter seals only from a template you have signed. Read each one, then sign
-          it with a fresh code. A template changed after you sign needs your signature again. Roof, foundation and permit
-          letters seal as they always have.
-        </p>
-        {templateSignatures.length === 0 ? (
-          <EmptyState
-            title="No template is waiting for your signature"
-            body="The manufactured home, solar and WPI-8E letters each get a template here once their drafted wording is adopted. Until then those letters cannot be sealed."
-          />
-        ) : null}
-        <ul className="mt-3">
-          {templateSignatures.map(({ template, status }) => (
-            <li key={template.key} className="border-b border-[var(--row-rule)] py-3">
-              <p className="text-[14px] font-semibold text-[var(--ink)]">
-                {template.title}, {template.key}, from your answered templates of {template.version}
-              </p>
-              <p className="mt-1 text-[14px] leading-[1.6] text-[var(--secondary)]">
-                {status.state === "signed"
-                  ? `Signed ${status.signedAt.slice(0, 10)}. Letters seal from it.`
-                  : status.state === "void"
-                    ? `${status.why} Nothing seals from it until it is signed again.`
-                    : status.state === "unknown"
-                      ? status.why
-                      : "Not signed. No letter of this line can be sealed."}
-              </p>
-              <div
-                tabIndex={0}
-                role="region"
-                aria-label={`The ${template.title.toLowerCase()} template's text`}
-                className="mt-2 border-y border-[var(--border)] bg-white py-3"
-              >
-                {template.text.map((line, i) => (
-                  <p key={i} className="text-[14px] leading-[1.55] text-[var(--ink)] [overflow-wrap:anywhere]">
-                    {line}
-                  </p>
-                ))}
-              </div>
-              {status.state === "unsigned" ? <SignTemplatePanel templateKey={template.key} title={template.title} /> : null}
-            </li>
-          ))}
-        </ul>
-      </section>
 
       {uncovered.length > 0 ? (
         <div className="mb-6 border-b border-[var(--row-rule)] pb-3">
