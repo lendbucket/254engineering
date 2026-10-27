@@ -3736,7 +3736,27 @@ export const APPLIED = [
     file: "0097_a_void_is_the_engineers_and_a_reissue_names_what_it_replaces.sql", appliedBy: "apply_migration",
     fingerprint: "8395cd8a75b4e3210c6f57ea5726bc10",
     behaviour: "5f64343db4331dfe0326d3a02d779eda",
-    production: null,
+    /*
+     * APPLIED TO PRODUCTION 2026-10-27 20:01 UTC, provider version
+     * 20261027200159, by the operator's chat counterpart through
+     * apply_migration from the boarded commit 153c22c (board 40548086355,
+     * 63 of 63). Read back on issue #1, comment 6452258276. The file applied
+     * is sha256 a76980a647d338eb920979e58baed67ce1e4e462c0ce53293a6b069c5e914a81;
+     * the stored statement reads back as sha256
+     * 12373fc54cfe69e6d1feee664dc5b7b301a72c9e38f154c82e79da5c6db8f804, the
+     * development figure.
+     *
+     * Before: the 254 side as 0096 left it (shape 6adde27e across 1355, no
+     * replaces_seal_act_id, the post-0091 seal check body). Production's last
+     * provider version was 20261027141134, three Wattsmith migrations on the
+     * shared project that touch no eng_ table. After: shape
+     * 8395cd8a75b4e3210c6f57ea5726bc10 across 1356, as predicted; the column
+     * nullable uuid with eng_seal_acts_replaces_seal_act_id_fkey and
+     * eng_seal_acts_replaced_once; the void door carrying "(0097)"; 0 eng_
+     * functions executable by anon or authenticated; 0 rows carrying
+     * replaces_seal_act_id.
+     */
+    production: "2026-10-27",
     proves: { table: "eng_seal_acts", column: "replaces_seal_act_id" },
     note:
       "Both figures read off scripts/fingerprint-at.mjs at 0097 on 2026-10-27, with 0096 reproducing its recorded " +
@@ -3746,7 +3766,8 @@ export const APPLIED = [
       "WRITTEN 2026-10-27 ON feat/void-and-reissue, ON TOP OF 0096; ON DEVELOPMENT (version 20261027160251, " +
       "applied by the operator's chat counterpart through apply_migration from stage/0097-void-and-reissue at " +
       "cbd8593, file sha256 a76980a6, stored statement sha256 12373fc5, shape 8395cd8a across 1356 columns read " +
-      "back; issue #1 comment 6447034883), NOT YET ON PRODUCTION. Robert's addendum of " +
+      "back; issue #1 comment 6447034883) AND PRODUCTION (version 20261027200159, comment 6452258276). " +
+      "Robert's addendum of " +
       "2026-10-25, 22:46 Central, item 2: the void function refuses anyone but a licensed engineer, and a replacement " +
       "letter records the seal act it replaces. Posted on issue #1 for the chat to sit on development, then on " +
       "production after the board passes. The branch merges only after the production apply is read back, and a " +
