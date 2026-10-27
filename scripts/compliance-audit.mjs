@@ -1594,9 +1594,18 @@ const RULED_CONDITIONS = [
     "solar-structural-letters",
     "windstorm-wpi-8",
     "repair-specifications",
+    /* Robert's answer 1 of 2026-10-27, 11:48 Central: design is offered, paid on its accepted quote and his signed addendum. */
+    "residential-light-commercial-design",
   ];
+  /*
+   * THE DESK EXEMPTION, PINNED AND COUNTED. The same answer exempts design from
+   * the protocol and training checks BY NAME, never by loosening them for every
+   * line. A second name here costs this edit and the one in launch-conditions,
+   * made on purpose; an exemption nobody counts becomes the rule.
+   */
+  const DESK_LINES_RULED = ["residential-light-commercial-design"];
 
-  const { offeredServiceLines } = await import("../src/config/launch-conditions.ts");
+  const { offeredServiceLines, deskLines } = await import("../src/config/launch-conditions.ts");
   const { PROTOCOL_ENTRIES } = await import("../src/content/protocols/index.ts");
   const { SIGNABLE_PROTOCOLS } = await import("../src/content/protocols/signable.ts");
   const { services } = await import("../src/content/services.ts");
@@ -1625,12 +1634,34 @@ const RULED_CONDITIONS = [
    * gate's own function, so this can disagree with it.
    */
   const signableFor = new Set(SIGNABLE_PROTOCOLS.map((p) => p.serviceSlug));
-  const offeredWithout = offeredServiceLines.filter((s) => !inForceFor.has(s) && !signableFor.has(s));
   rec(
-    "and every offered line has a protocol in force, 254-RC-001 or one he signs in the portal",
-    offeredWithout.length === 0,
+    `and exactly the ${DESK_LINES_RULED.length} ruled desk line(s) are exempt from the protocol and training checks, by name`,
+    JSON.stringify([...deskLines].sort()) === JSON.stringify([...DESK_LINES_RULED].sort()),
+    `deskLines: ${deskLines.join(", ") || "none"}. Ruled: ${DESK_LINES_RULED.join(", ")}`,
+  );
+  /*
+   * WHAT THE EXEMPTION MUST NOT OPEN. 254-DS-001 v1.1 is a signable
+   * transcription, so a desk line has a protocol the gate would count, and
+   * listing it would make it "offered" for ordering. The exemption is for its
+   * accepted quote's payment only: a desk line is never offered as an order, and
+   * no registered protocol (PROTOCOL_ENTRIES) drives one.
+   */
+  const { serviceLineIsOffered } = await import("../src/lib/launch.ts");
+  const deskOrderable = deskLines.filter((s) => serviceLineIsOffered(s) || inForceFor.has(s));
+  rec(
+    "and no desk line is offered as an order or driven by a registered protocol, so the exemption opens a quote's payment and nothing else",
+    deskOrderable.length === 0,
+    deskOrderable.length === 0
+      ? `${deskLines.length} desk line(s), none orderable, none in PROTOCOL_ENTRIES`
+      : `desk lines that would read as orderable or registered: ${deskOrderable.join(", ")}`,
+  );
+  const offeredWithout = offeredServiceLines.filter((s) => !deskLines.includes(s) && !inForceFor.has(s) && !signableFor.has(s));
+  const needProtocol = offeredServiceLines.filter((s) => !deskLines.includes(s));
+  rec(
+    "and every other offered line has a protocol in force, 254-RC-001 or one he signs in the portal",
+    offeredWithout.length === 0 && needProtocol.length > 0,
     offeredWithout.length === 0
-      ? `${offeredServiceLines.length} offered, each with a protocol in force; its signature and training are read at the money doors`
+      ? `${needProtocol.length} offered beside the desk line(s), each with a protocol in force; its signature and training are read at the money doors`
       : `offered with no protocol in force: ${offeredWithout.join(", ")}`,
   );
 

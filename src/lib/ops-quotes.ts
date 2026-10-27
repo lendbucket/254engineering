@@ -5,7 +5,8 @@ import { writeAudit } from "./ops-audit";
 import { readEvery } from "./bounded-read";
 import { DB_NOW } from "./db-now";
 import { launchMode } from "./launch";
-import { orderBlockedNow } from "./line-gate";
+import { designQuoteBlocked, orderBlockedNow } from "./line-gate";
+import { deskLines } from "@/config/launch-conditions";
 import { issueCustomerLink, orderForCustomerToken, placeOrder } from "./ops-intake";
 import { canTransitionQuote, convertibleToOrder, refundDisclosure, QUOTE_STATUS_LABEL, type QuoteStatus } from "./ops-orders";
 import { startCheckout } from "./ops-payments";
@@ -366,7 +367,16 @@ export async function acceptQuote(token: string): Promise<AcceptResult> {
   const { quote } = view;
   const entry = catalogFor(quote.serviceSlug, quote.tier ?? undefined);
 
-  const blocked = await orderBlockedNow(entry, launchMode());
+  /*
+   * A design quote is paid on its accepted quote and his signed scope addendum,
+   * never on a protocol (Robert's answer 1 of 2026-10-27). Asked before the
+   * acceptance is recorded, which is the act being made here; placeOrder asks
+   * again with the stored status before any checkout opens.
+   */
+  const blocked =
+    entry && deskLines.includes(entry.serviceSlug)
+      ? await designQuoteBlocked(entry, quote.id, launchMode(), true)
+      : await orderBlockedNow(entry, launchMode());
   if (blocked) return { ok: false, error: blocked };
 
   if (quote.status === "sent") {

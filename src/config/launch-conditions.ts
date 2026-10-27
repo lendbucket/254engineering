@@ -57,6 +57,12 @@
  * still sells only through line-gate.ts's live read, a portal-signed protocol
  * and a technician trained on its version. Design, priced by the hour with a
  * minimum, sells through the quote path.
+ *
+ * DESIGN IS OFFERED, AS A QUOTE, ON ITS OWN TERMS: Robert's answer 1 of
+ * 2026-10-27, 11:48 Central (issue #1 comment 6447951314). Design is the
+ * engineer's own desk work and no 254-DS-001 is coming, so it is paid without a
+ * protocol and without technician training. It is listed in `deskLines` below,
+ * by name, and that is the only thing that exempts it.
  */
 export const offeredServiceLines: string[] = [
   "roof-inspections",
@@ -66,6 +72,29 @@ export const offeredServiceLines: string[] = [
   "solar-structural-letters",
   "windstorm-wpi-8",
   "repair-specifications",
+  "residential-light-commercial-design",
+];
+
+/**
+ * THE LINES PAID ON THE ENGINEER'S SIGNED SCOPE ADDENDUM, NOT ON A PROTOCOL.
+ * Robert's answer 1 of 2026-10-27, 11:48 Central, word for word: "Design is
+ * paid without a protocol or technician training." A design quote can be paid
+ * once (a) the customer has accepted it and (b) the engineer has signed that
+ * quote's design_share scope addendum (0082, eng_design_pay returns a row).
+ *
+ * BY NAME, AND COUNTED. The ruling was explicit that the exemption is design's
+ * by name and never a loosening of the protocol or training check for every
+ * line. So the `protocols` and `technician-training` conditions skip exactly the
+ * slugs here, every other offered line is asked as before, and compliance-audit
+ * pins this list as a literal so a second name costs two edits made on purpose.
+ *
+ * A DESK LINE IS NEVER ORDERED, ONLY QUOTED. serviceLineIsOffered still asks
+ * for a protocol in force, so no desk line is ever "orderable" and no page shows
+ * an Order button for it; its one money door is the accepted quote
+ * (designQuoteBlocked in src/lib/line-gate.ts).
+ */
+export const deskLines: string[] = [
+  "residential-light-commercial-design",
 ];
 
 /**

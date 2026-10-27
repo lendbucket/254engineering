@@ -590,7 +590,20 @@ function fixtureProtocols() {
    * state a fact the gate never reads. It is skipped; a line with neither kind
    * of protocol still throws.
    */
+  /*
+   * A DESK LINE NEEDS NO PROTOCOL AND NO TRAINING, Robert's answer 1 of
+   * 2026-10-27. Read from the same file by name, as the gate reads it, so the
+   * fixture skips exactly the lines the gate skips and still throws for any
+   * other offered line with no protocol.
+   */
+  const desk = conditions.match(/export const deskLines: string\[\] = \[([\s\S]*?)\];/);
+  if (!desk) {
+    throw new Error(`The gate fixture could not find deskLines in ${CONDITIONS}, so it cannot tell which offered lines need no protocol.`);
+  }
+  const deskSlugs = [...desk[1].matchAll(/"([a-z0-9-]+)"/g)].map((m) => m[1]);
+
   return slugs.flatMap((serviceSlug) => {
+    if (deskSlugs.includes(serviceSlug)) return [];
     const protocol = protocolForLine(serviceSlug);
     if (!protocol) {
       if (SIGNABLE_PROTOCOLS.some((p) => p.serviceSlug === serviceSlug)) return [];

@@ -4,21 +4,26 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
-## 0098, QUOTES: BUILT, AND A DESIGN QUOTE CANNOT YET BE PAID
+## DESIGN BRIEFS: "START A QUOTE FROM THIS BRIEF", A LATER BUNDLE
+
+Robert's answer 2 of 2026-10-27, 11:48 Central (issue #1 comment 6447951314).
+A brief sent through `/design-inquiry` is written to `eng_design_inquiries`,
+which is a separate table from `eng_quote_requests`, so it never reaches the
+quote list on `/portal/quotes`. A later bundle adds a "start a quote from this
+brief" action on the inquiries screen, which opens a quote request carrying the
+brief. **The tables are not merged**, on his answer. Not built.
+
+## 0098, QUOTES: BUILT, AND HIS FIVE ANSWERS OF 2026-10-27 ARE IN
 
 Robert's addendum of 2026-10-25, item 3, on `feat/quotes` (0098). A quote is
 requested, keeps its files, is priced and sent from `/portal/quotes`, and is
-accepted and paid from the emailed link through the one checkout. **What is
-open, each asked of Robert on issue #1:** (1) every quoted deliverable is a
-design deliverable, and acceptance is a money door, so it reads the signed
-record (ruling 11): design is not in `offeredServiceLines`, 254-DS-001's
-signature is not known here, and the training check counts technicians, so a
-design quote can be requested and priced today and is refused at payment until
-design is offered and its protocol question is ruled; (2) `/design-inquiry`
-writes `eng_design_inquiries`, a separate table, so a brief sent that way does
-not reach the quote list; (3) the default hold of 30 days and the refund terms
-a design quote shows (the desk wording) are unruled. Declining a quote emails
-nobody; the office replies itself.
+accepted and paid from the emailed link through the one checkout. His answers
+of 2026-10-27, 11:48 Central, are built: design is offered and paid on an
+accepted quote and his signed design_share addendum, with no protocol and no
+technician training, by name (`deskLines`); a sent quote holds 30 days; a
+design quote shows its own refund sentence; the v1 route keeps refusing quote
+files outside this site's upload folder. Briefs are the entry above. Declining a
+quote emails nobody; the office replies itself.
 
 ## 0095 AND 0096, WPI-8 ONGOING THROUGH A SCOPE ADDENDUM: BUILT, TWO THINGS LEFT
 
