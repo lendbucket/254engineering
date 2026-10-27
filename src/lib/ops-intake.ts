@@ -9,7 +9,8 @@ import { resolveCounty, twiaStatus, windstormAreaRefusal } from "./ops-counties"
 import { launchMode } from "./launch";
 import { catalogFor, deliverablesFor, type CatalogEntry } from "@data/catalog";
 import { fieldsFor } from "@data/intake-fields";
-import { orderBlockedNow, quoteRequestBlocked } from "./line-gate";
+import { designQuoteBlocked, orderBlockedNow, quoteRequestBlocked } from "./line-gate";
+import { deskLines } from "@/config/launch-conditions";
 import {
   landingStatusFor,
   qualify,
@@ -316,13 +317,20 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
       field: "tier",
     };
   }
-  /* A MONEY DOOR, ruling 11: placeOrder reads the engineer's signed record before taking money. */
-  const blocked = await orderBlockedNow(entry, launchMode());
+  const fromQuote =
+    input.fromQuote && Number.isInteger(input.fromQuote.quotedCents) && input.fromQuote.quotedCents > 0 ? input.fromQuote : null;
+  /*
+   * A MONEY DOOR, ruling 11: placeOrder reads the engineer's signed record before taking money.
+   * A desk line's record is its accepted quote and his signed scope addendum, read with the
+   * quote's STORED status (Robert's answer 1 of 2026-10-27), and only from a quote.
+   */
+  const blocked =
+    entry && deskLines.includes(entry.serviceSlug) && fromQuote
+      ? await designQuoteBlocked(entry, fromQuote.quoteId, launchMode())
+      : await orderBlockedNow(entry, launchMode());
   if (!entry || blocked) {
     return { ok: false, error: blocked ?? "That service cannot be ordered.", field: "serviceSlug" };
   }
-  const fromQuote =
-    input.fromQuote && Number.isInteger(input.fromQuote.quotedCents) && input.fromQuote.quotedCents > 0 ? input.fromQuote : null;
   if (entry.orderType === "quote" && !fromQuote) {
     return {
       ok: false,

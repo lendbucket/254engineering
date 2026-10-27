@@ -154,6 +154,24 @@ export type LineOffer = {
   deliverable: string | null;
 };
 
+/**
+ * A catalogue name as it reads inside a sentence: "Order a roof certification
+ * letter", "Order a WPI-8E windstorm evaluation, completed construction".
+ *
+ * A FORM NUMBER IS A NAME AND KEEPS ITS CASE. Robert, 2026-10-26, from a reading
+ * of /order on production: the WPI-8 button said "Order a wpi-8e windstorm
+ * evaluation", because the whole name went through toLowerCase(). TDI's form is
+ * the WPI-8E, and a reader checking it against the department's own page meets a
+ * different word. So a word carrying a digit or starting with two capitals is a
+ * designation and is left alone; every other word is lowered.
+ */
+export function inSentence(name: string): string {
+  return name
+    .split(" ")
+    .map((w) => (/[0-9]/.test(w) || /^[A-Z]{2}/.test(w) ? w : w.toLowerCase()))
+    .join(" ");
+}
+
 /** The catalogue entry a price is quoted from: the cheapest orderable one. */
 export function headlineEntry(slug: string): CatalogEntry | null {
   const forLine = CATALOG.filter((e) => e.serviceSlug === slug && isKnown(e.priceCents));
@@ -249,8 +267,8 @@ export function lineOffer(slug: string, sellable = true): LineOffer {
     cta: orderable ? "Order online" : quoteLabel,
     orderLabel: orderable
       ? entry
-        ? `Order a ${entry.name.toLowerCase()}`
-        : `Order ${name.toLowerCase()}`
+        ? `Order a ${inSentence(entry.name)}`
+        : `Order ${inSentence(name)}`
       : quoteLabel,
     /*
      * THE PRICE IS SHOWN ONLY WHERE IT CAN BE ACTED ON. A figure beside a line

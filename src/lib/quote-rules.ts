@@ -34,11 +34,49 @@ export type QuoteRow = {
 };
 
 /**
- * The days a sent quote holds: the office chooses each time. No period has been
- * ruled, so the bounds only refuse a figure that cannot be meant (none, or more
- * than a year), and the default the form offers is 30 days, asked of Robert.
+ * The days a sent quote holds. THE DEFAULT IS RULED: Robert's answer 3 of
+ * 2026-10-27, 11:48 Central, "A sent quote holds for 30 days." It is pinned as
+ * a literal in scripts/proofs/a-quote-is-requested-priced-and-paid-once.mjs, so
+ * moving it costs two edits (CLAUDE.md 6c). The office may still choose another
+ * period for one quote; the bounds only refuse a figure that cannot be meant
+ * (none, or more than a year).
  */
 export const QUOTE_HOLD_DAYS = { min: 1, max: 365, default: 30 } as const;
+
+/**
+ * DESIGN'S OWN REFUND SENTENCE, word for word. Robert's answer 4 of 2026-10-27,
+ * 11:48 Central: shown before payment on a design quote. The desk lines keep
+ * their wording (refundDisclosure in src/lib/ops-orders.ts reads this). Pinned
+ * as a literal in the quote proof.
+ */
+export const DESIGN_REFUND_SENTENCE =
+  "The engineering fee is refundable in full until the engineer begins work. After work begins, fees for work completed are not refundable.";
+
+/** What the money door could read about a design quote's scope addendum (0082, eng_design_pay). */
+export type DesignAddendum = "signed" | "unsigned" | "unknown";
+
+/**
+ * MAY A DESIGN QUOTE BE PAID? Robert's answer 1 of 2026-10-27, 11:48 Central:
+ * once (a) the customer has accepted it and (b) the engineer has signed that
+ * quote's design_share scope addendum. Without both, payment refuses and says
+ * which is missing. No protocol and no technician training is asked, by name,
+ * for a desk line only (deskLines in src/config/launch-conditions.ts).
+ *
+ * A pure decision, so the proof exercises the rule itself. The door that reads
+ * the database (designQuoteBlocked in src/lib/line-gate.ts) only gathers these
+ * three facts. A read that failed is never a yes.
+ */
+export function designPaymentRefusal(facts: { offered: boolean; accepted: boolean; addendum: DesignAddendum }): string | null {
+  if (!facts.offered) return "Design is not offered for payment yet.";
+  if (facts.addendum === "unknown") {
+    return "Payment for this design quote is paused because the platform could not confirm the engineer's scope addendum just now. Nothing has been charged. Try again in a few minutes, or call the office.";
+  }
+  const missing: string[] = [];
+  if (!facts.accepted) missing.push("the quote has not been accepted");
+  if (facts.addendum !== "signed") missing.push("the engineer has not yet signed the scope addendum for this quote");
+  if (missing.length === 0) return null;
+  return `This design quote cannot be paid yet: ${missing.join(", and ")}.`;
+}
 
 /**
  * Dollars as a person types them, to cents, or a sentence saying what is wrong.
