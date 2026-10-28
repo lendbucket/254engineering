@@ -3859,10 +3859,14 @@ export const APPLIED = [
       "pair: eng_site_order_requests' four columns, 1374, and 1324 facts (the table, its key, the site and intent " +
       "checks, the window index and row level security).",
     because:
-      "WRITTEN 2026-10-28 ON feat/sealed-before-open, ON TOP OF 0099. Robert's ruling 6 of 2026-10-27, 22:05 " +
-      "Central: a per-site limit of 20 requests a minute on /api/orders before Sealed's ordering opens, counted " +
-      "from rows. Pending until the chat sits it on development from its stage branch and on production from a " +
-      "passed board's boarded commit. The branch merges only after the production apply is read back.",
+      "WRITTEN 2026-10-28 ON feat/sealed-before-open, ON TOP OF 0099; ON DEVELOPMENT (version 20261028100304, " +
+      "applied by the operator's chat counterpart through apply_migration from stage/0100-site-orders-2 at " +
+      "0313d9c, file sha256 b0d157e4, stored statement sha256 ba43840a, shape 0a97717f across 1374 columns read " +
+      "back, the table and its sequence closed to anon; issue #1 comment 6466085622), NOT YET ON PRODUCTION. The " +
+      "first staging lacked the revokes and was held by the chat (comment 6462860460). Robert's ruling 6 of " +
+      "2026-10-27, 22:05 Central: a per-site limit of 20 requests a minute on /api/orders before Sealed's " +
+      "ordering opens, counted from rows. Production only from a passed board's boarded commit; the branch " +
+      "merges only after the production apply is read back.",
   },
   {
     file: "0101_three_roles_land_on_their_dashboard.sql", appliedBy: "apply_migration",
@@ -3875,8 +3879,10 @@ export const APPLIED = [
       "pair. Three rows of eng_roles move, so the shape (1374 columns) and the fact count (1324) are unchanged and " +
       "the behaviour digest moves with the seeded rows.",
     because:
-      "WRITTEN 2026-10-28 ON feat/rulings-11-12-b, ON TOP OF 0100 (feat/sealed-before-open); NOT YET ON DEVELOPMENT " +
-      "OR PRODUCTION. Numbered 0100 when first staged as stage/0100-three-roles-land, renumbered before any sitting " +
+      "WRITTEN 2026-10-28 ON feat/rulings-11-12-b, ON TOP OF 0100 (feat/sealed-before-open); ON DEVELOPMENT " +
+      "(version 20261028100329, applied by the operator's chat counterpart through apply_migration from " +
+      "stage/0101-three-roles-land-2 at 7b33b97, file sha256 06079f09, stored statement sha256 52d40269, the three " +
+      "roles read /portal and the rest unchanged; issue #1 comment 6466085622), NOT YET ON PRODUCTION. Numbered 0100 when first staged as stage/0100-three-roles-land, renumbered before any sitting " +
       "because the Sealed bundle boards first and holds 0100. Robert's ruling 11 of 2026-10-27, 22:05 Central: " +
       "sales, customer service and the dispatcher land on their /portal dashboard. Posted on issue #1 for the chat " +
       "to sit on development from its stage branch, then on production from the boarded commit after the board " +
