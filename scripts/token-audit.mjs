@@ -257,6 +257,8 @@ function STAFF_LEVEL_SCREENS() {
     /* Payment links and invoices, W2 of 2026-10-27, built to the staff standard from the start. */
     "src/app/portal/(app)/payment-links/page.tsx",
     "src/app/portal/(app)/payment-links/PaymentLinksClient.tsx",
+    /* The written procedures for each role, W4 of 2026-10-26, built to the staff standard from the start. */
+    "src/app/portal/(app)/procedures/page.tsx",
     "src/app/portal/(app)/settings/page.tsx",
     "src/app/portal/(app)/clients/[id]/page.tsx",
     "src/app/portal/(app)/files/DeskFileClient.tsx",
