@@ -1,5 +1,73 @@
 # Day queue, 2026-10-23
 
+## MORNING REPORT, 2026-10-28, from the overnight run of Robert's 22:48 instruction
+
+**Needs Robert: six questions below, each with a recommendation.** Nothing in the queue is blocked on him except the technician's second factor. The Sealed bundle is boarding now. Its production sitting is the chat's, after the board passes.
+
+### Merged overnight
+
+Every merge was `--no-ff` with `[skip ci]`, pushed with the exact command and confirmed by ls-remote. Every merged tree is its boarded tree.
+
+| Bundle | What | Merge | Board |
+| --- | --- | --- | --- |
+| 1 | W4 (`/portal/procedures`), roles-audit probes under `roles-*@audit-probe.invalid`, the skip-ci note in CLAUDE.md | `1af76dc` | 40629495423, 63 of 63 |
+| 2 | W2, the walk: a writers-shard audit that opens every step of the map as its role | `9455063` | 40635489767, 64 of 64 |
+| 3 | W3 from the walk: map corrected, empty lists not read as friction, the two slow screens recorded | `02840f7` | 40643524322, 64 of 64 |
+| 4 | Mobile phase 1: the portal installs as the field app, a worker for the jobs screens that caches no record | `2caeca6` | 40651682215, 64 of 64 |
+| 5 | Start a quote from a design brief, one quote per brief | `98c56a0` | 40660993206, 64 of 64 |
+
+Main is `98c56a0`. Every board matched its prediction line for line. **No board missed overnight.**
+
+### Boarding now
+
+**Bundle 6**, run 40672094620 on `c99361b`:
+- Ruling 6, Sealed before it opens: 20 requests a minute per site on `/api/orders`, a signed upload door, and a checkout again for an unpaid repeat. The Sealed switch stays closed.
+- Ruling 11, landing on `/portal` for sales, customer service and the dispatcher.
+- Ruling 12, the rep and the ops manager read 254-OPS-001 to 006.
+
+Predicted 64 of 64. On a match, 0100 and 0101 are posted for production from that commit. The branch merges only after the production read-back.
+
+### Migrations
+
+None reached production overnight. Main still declares 100 applied, 0 pending.
+
+| | File | Development | Production |
+| --- | --- | --- | --- |
+| 0100 | `0100_a_site_orders_twenty_times_a_minute.sql`, sha256 `b0d157e4` | 20261028100304, read back as predicted | after bundle 6's board |
+| 0101 | `0101_three_roles_land_on_their_dashboard.sql`, sha256 `06079f09` | 20261028100329, read back as predicted | after bundle 6's board |
+
+**0100 was held once.** At 02:00 the chat found the new table and its id sequence still granted to anon and authenticated. 0100 now revokes both and reads them back. migration-audit now refuses any new `eng_` table or serial sequence created without that revoke in its own file; with the revoke removed, that check went red.
+
+The superseded stage branches stay on the remote, untouched: `stage/0100-three-roles-land`, `stage/0100-site-orders` and `stage/0101-three-roles-land`.
+
+### What the walk found (W2, then W3)
+
+- **First walk:** 163 works, 23 friction, 10 broken, 20 missing, 8 off-screen, 24 unreached.
+- **Now:** 177 works, 9 friction, 0 broken, 20 missing, 8 off-screen, 34 unreached.
+- **The 10 broken were the map naming a role the code refuses on purpose.** The map is corrected.
+- **12 friction lines were empty lists.** The walk now reads a page showing its empty state as unreached.
+- **The 9 friction lines left are speed.** The board's server log shows `/portal/accounts` at 8.4 to 9.1 s and `/portal/review` at about 6 s of application time, against the 2 s office standard. Both are recorded in BACKLOG.
+- **The 34 unreached** need records the probes do not own: a job assigned to them, an order reference, an offer.
+
+Rulings 9 (the overdue alert at most once a day) and 7 (the target date on the status page once the gate opens) were already built in board 5.
+
+### Needs Robert, each with a recommendation
+
+1. **The technician's second factor on the app (ruling 13).** The server cannot tell the installed app from a browser, so it holds only if field technicians require it everywhere. **Recommendation:** require it everywhere, as 0102, in the shape of 0093. That changes your words "on the app", so it is not built.
+2. **Ruling 12, the three older roles.** Sales, customer service and the dispatcher read the rep's procedures and not the customer's. **Recommendation:** leave them as they are.
+3. **The ops manager and technicians.** He holds `technicians.onboard`, but not the grants that read applications or verify a credential. **Recommendation:** grant `profiles.list`, `profiles.update` and reading applications, as a migration.
+4. **The two slow screens.** **Recommendation:** a profiling bundle first, timing each read on the board, then a paged accounts list sized from what it shows.
+5. **The repeat checkout (ruling 6).** A repeated Sealed request gets the same live Stripe page inside Stripe's window, so one order never has two. The chat read your ruling the same way. **Recommendation:** keep it.
+6. **The grant cleanup**, from the chat's read of production. Every `eng_` table and 12 `eng_` sequences carry the default grants to anon and authenticated. They sit behind row level security, with no exposure today. **Recommendation:** one migration after the Sealed bundle that names each object from the chain and leaves the default privileges alone, since Wattsmith shares them. Nothing in `src` uses a publishable key.
+
+### Next five
+
+1. Bundle 6: on a match, post 0100 and 0101 for production from the boarded commit, then merge on the read-back.
+2. The grant cleanup migration, on your answer to 6.
+3. The profiling bundle for `/portal/accounts` and `/portal/review`, on your answer to 4.
+4. The technician second factor (0102), on your answer to 1.
+5. The ops manager's technician grants, on your answer to 3. After that, the walk gets records to reach its 34 unreached steps.
+
 ## OVERNIGHT, BUNDLE 6: Sealed before it opens (0100) and rulings 11 and 12 (0101), on main `98c56a0`
 
 **Prediction written and pushed before the board starts.** Bundle 5 merged as `98c56a0` (board 40660993206, 64 of 64 as predicted, dashboard median 1917 ms, 3 lines exempt). The chat sat 0100 (20261028100304) and 0101 (20261028100329) on development, both read back as predicted (issue #1 comment 6466085622).
