@@ -2221,6 +2221,8 @@ if (!db) {
         "/portal/refunds",
         /* Quote requests: pricing and sending what a customer is offered is commercial, on quotes.manage, which he does not hold (0098). */
         "/portal/quotes",
+        /* Payment links and invoices: taking money for a job is commercial, on payments.charge, which he does not hold (W2, 2026-10-27). */
+        "/portal/payment-links",
         "/portal/credentials",
         "/portal/settings",
         "/portal/files/dispatch",

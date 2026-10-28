@@ -3,6 +3,8 @@ import { placeOrder, requestQuote, siteFromKey } from "@/lib/ops-intake";
 import { startCheckout } from "@/lib/ops-payments";
 import { isOpen, notYetAcceptingEngagements } from "@/lib/launch";
 import { withSaveOutcome } from "@/lib/save-outcome";
+import { sisterOrderingRefusal } from "@/lib/sister-ordering";
+import { SITE_KEY } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
 
@@ -68,6 +70,18 @@ type Body = {
 async function handlePOST(request: NextRequest) {
   const site = siteFromKey(request.headers.get("x-intake-key"));
   if (!site) return NOWHERE();
+
+  /*
+   * THE KEY SAYS WHO IS CALLING; THE SWITCH SAYS WHETHER THEY MAY ORDER.
+   * Addendum item 10: Sealed ordering stays closed until Sealed uses this door,
+   * and a key alone in Vercel must not open it. Answered before the body is
+   * read, so a closed site's request is never parsed, priced or written.
+   */
+  const closed = sisterOrderingRefusal(site, SITE_KEY);
+  if (closed) {
+    console.error(`[orders] refused: ordering is not open for site "${site}" (src/config/sister-ordering.ts).`);
+    return NextResponse.json({ ok: false, error: closed, closed: true }, { status: 409 });
+  }
 
   const body = (await request.json().catch(() => null)) as Body | null;
   if (!body) return NextResponse.json({ ok: false, error: "Send a JSON body." }, { status: 400 });

@@ -3061,6 +3061,8 @@ accounted for. So: **say what the run will do before running it, in terms
 specific enough to be wrong**, and when it is wrong, the gap is the finding.
 A prediction offered only after the result is not a prediction.
 
+**A bundle that adds a table runs retention-audit's alphabetical-order check statically against `src/lib/retention-policy.ts` before it boards, and the prediction states the result.** Operator ruling, 2026-10-27, after board 40579097390 missed on that one line.
+
 **AND A PREDICTION FOR AN INTEGRATED BOARD REASONS ABOUT EACH BRANCH'S EFFECT ON
 THE AUDITS OF EVERY OTHER BRANCH, NOT ABOUT BRANCHES ONE AT A TIME.** Operator
 ruling, 2026-09-24.

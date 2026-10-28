@@ -4,6 +4,31 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
+## SEALED ENGINEERING ORDERS: THE DOOR IS CONFIRMED AND CLOSED BY A SWITCH, THREE THINGS OPEN
+
+Robert's addendum of 2026-10-25, item 10, built 2026-10-27 on
+`feat/sealed-handoff-and-w2`. The spec for the Sealed repository is
+`docs/sealed-order-handoff.md`; this entry is the pointer. `/api/orders` places
+a keyed sister's order through `placeOrder` and opens checkout with
+`startCheckout`, and `sisterOrdering` in `src/config/sister-ordering.ts` keeps
+Sealed and StampMyPlans closed until Robert opens one. **Open, each a question
+there with a recommendation:** a per-site rate limit on the orders door, a signed
+upload door so a sister's order can carry files, and a fresh checkout for a
+duplicate whose order is still awaiting payment. Opening Sealed waits on Sealed's
+repository changing first, which is not this repository's to do.
+
+## THE SIGN-UP AND INSURANCE OVERRIDE SCREENS: SHOWN ON THE LAUNCH SCREEN, NOT SWITCHABLE, AWAITING A RULING
+
+Robert's W2 ruling of 2026-10-27 asked for screens to turn on self-service
+sign-up and to set and clear the insurance override. Both are gate conditions in
+configuration (`selfServiceSignUp` in `src/config/launch-conditions.ts`,
+`insuranceOverride` in `src/config/credentials.ts`), and the gate may read the
+database for a signed protocol only (CLAUDE.md section 1, ruling 11). So
+`/portal/launch` now shows each switch, who set it, when, and the edit that
+changes it, under "Switches stated in configuration", and writes nothing.
+Whether a screen may set them is the question in `docs/workflows.md`, 254-WF-004
+step 1 and 254-WF-018 step 2.
+
 ## 0099, UPLOADS AFTER ORDERING, TURNAROUND TARGETS AND THE ALERT LIST: BUILT, FOUR THINGS OPEN
 
 Robert's addendum of 2026-10-25, items 4, 6 and 8b, with his targets of
