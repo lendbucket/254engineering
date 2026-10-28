@@ -593,6 +593,18 @@ const PHASE_ONE = [
   },
   {
     /*
+     * W2, Robert's instruction of 22:05 Central, 2026-10-26, and his ruling of
+     * 22:48, 2026-10-27, that the walk runs only on a board because it writes
+     * probe accounts. Phase one because it opens pages on the suite's server,
+     * as v10-layout-audit does. It walks every step of docs/workflows.md as the
+     * role the map names, and its findings are the "W2 RESULT:" lines W3 is
+     * built from; it fails only when a step could not be walked.
+     */
+    name: "w2-walk-audit",
+    why: "every workflow step walked as its role, with a result for each",
+  },
+  {
+    /*
      * Phase 12 Section 2. Derives the four reports from the registry in
      * ops-reports.ts and fails on one it is not measuring, which is the
      * surfaces idiom applied to figures. email-audit learned why the hard way:
