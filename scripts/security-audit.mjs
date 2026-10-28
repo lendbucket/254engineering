@@ -145,6 +145,8 @@ const ADMIN_PAGES = [
   "/portal/quotes",
   /* Payment links and invoices for jobs not yet paid (W2, 2026-10-27): payments.charge, closed to a signed out caller. */
   "/portal/payment-links",
+  /* The written procedures for each role (W4, 2026-10-26): tasks.use, closed to a signed out caller. */
+  "/portal/procedures",
   "/portal/credentials",
   "/portal/settings",
   "/portal/techs",
