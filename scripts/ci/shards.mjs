@@ -81,7 +81,7 @@ export const SHARDS = {
     audits: [
       "proofs-audit", "trade-pricing-audit", "queue-audit", "bulk-audit",
       "forms-audit", "mfa-audit", "sister-intake-audit", "roles-audit", "mobile-overflow-audit",
-      "native-audit", "messaging-audit", "perf-audit", "v10-layout-audit", "reporting-audit",
+      "native-audit", "messaging-audit", "perf-audit", "v10-layout-audit", "w2-walk-audit", "reporting-audit",
       "demo-audit", "dashboards-audit", "dashboard-speed-audit", "retention-audit",
       "break-glass-audit", "doors-audit", "mobile-audit", "contrast-audit",
     ],

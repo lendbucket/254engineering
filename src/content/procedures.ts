@@ -869,7 +869,7 @@ export const PROCEDURES: Procedure[] = [
         "routes": [
           "/portal/applications"
         ],
-        "who": "Ops manager, admin",
+        "who": "Admin (`profiles.create`; the ops manager does not hold it, found by the W2 walk 2026-10-28, ruling asked)",
         "sees": "The applications",
         "does": "Reads one",
         "next": "",
@@ -958,7 +958,7 @@ export const PROCEDURES: Procedure[] = [
         "routes": [
           "/portal/techs"
         ],
-        "who": "Ops manager, admin",
+        "who": "Admin (`profiles.list`, `profiles.update`; the ops manager holds neither, found by the W2 walk 2026-10-28, ruling asked)",
         "sees": "Submitted credentials",
         "does": "Verifies or rejects one",
         "next": "`verify_credential`, `reject_credential`",
@@ -970,7 +970,7 @@ export const PROCEDURES: Procedure[] = [
         "n": "3",
         "screen": "`src/app/portal/(app)/techs/[id]` (`RecordCredentialForm`)",
         "routes": [],
-        "who": "Ops manager, admin",
+        "who": "Admin (as step 2)",
         "sees": "One technician",
         "does": "Records a credential seen",
         "next": "`record_credential`, `recordCredential`",
@@ -982,7 +982,7 @@ export const PROCEDURES: Procedure[] = [
         "n": "4",
         "screen": "`src/app/portal/(app)/techs/[id]` (`RecordTrainingForm`, `AttachConfirmationForm`)",
         "routes": [],
-        "who": "Ops manager, admin",
+        "who": "Admin (as step 2)",
         "sees": "Their training",
         "does": "Records training, and attaches the engineer's written confirmation of a relayed approval",
         "next": "`record_training`, `attach_relayed_confirmation`",
@@ -996,7 +996,7 @@ export const PROCEDURES: Procedure[] = [
         "routes": [
           "/portal/techs"
         ],
-        "who": "Ops manager, admin",
+        "who": "Admin (as step 2)",
         "sees": "Coverage and base",
         "does": "Sets coverage counties and base",
         "next": "`set_coverage` (`setTechCoverage`), `/api/portal/field` `set_tech_base`",
@@ -1871,7 +1871,7 @@ export const PROCEDURES: Procedure[] = [
         "routes": [
           "/portal/protocols"
         ],
-        "who": "Admin",
+        "who": "Engineer (`protocols.author`, a licensed action: the screen and the action both refuse the admin, corrected after the W2 walk 2026-10-28)",
         "sees": "A protocol's check questions",
         "does": "Adds or removes a question",
         "next": "`add_question`, `remove_question`",
@@ -1962,7 +1962,7 @@ export const PROCEDURES: Procedure[] = [
         "routes": [
           "/portal/protocols"
         ],
-        "who": "Admin",
+        "who": "Engineer (`protocols.author` and `protocols.publish`, licensed actions: the screen and the actions refuse the admin, corrected after the W2 walk 2026-10-28)",
         "sees": "A protocol record",
         "does": "Creates one, adds or removes an item, approves one",
         "next": "`/api/portal/field` `create_protocol`, `add_protocol_item`, `remove_protocol_item`, `approve_protocol` (`eng_approve_protocol`)",
