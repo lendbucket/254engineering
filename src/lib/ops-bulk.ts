@@ -555,6 +555,74 @@ export async function accountBalances(
   return { ok: true, balances };
 }
 
+/**
+ * EVERY ACCOUNT'S BALANCE, READ WITHOUT AN ID FILTER. The accounts list,
+ * Robert's answer 4 of 2026-10-28.
+ *
+ * accountBalances(ids) passes every id through chunked `.in()` reads: one round
+ * trip per 150 accounts, twice, one after another. Board 40733329479 timed that
+ * at 4.6 to 5.2 seconds over about 3,020 accounts, for a screen that needs the
+ * credit verdict of EVERY account (the warning above the list names every
+ * account that cannot order) and shows fifty.
+ *
+ * The two row sets it reads are issued statements and unbilled invoiced orders.
+ * Their size is the firm's OUTSTANDING work, not its number of accounts, so
+ * reading them whole and grouping by account gives each account exactly the
+ * input accountBalances builds for it, in two paged reads. The arithmetic is
+ * balanceFrom, unchanged, so there is still one answer to whether somebody may
+ * order on invoice. An account with neither gets balanceFrom([], []), which is
+ * what accountBalances gives it too.
+ */
+export async function openBalancesForEveryAccount(): Promise<
+  | { ok: true; balanceOf: (accountId: string) => ReturnType<typeof balanceFrom>; rowsRead: number }
+  | { ok: false; error: string }
+> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured, so no balance could be read." };
+
+  const [statementRead, unbilledRead] = await Promise.all([
+    readEvery<{ account_id: string; total_cents: number | null; due_at: string | null }>((from, to) =>
+      db
+        .from("eng_statements")
+        .select("account_id, total_cents, due_at")
+        .eq("status", "issued")
+        .order("created_at", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to),
+    ),
+    readEvery<{ account_id: string | null; total_cents: number | null }>((from, to) =>
+      db
+        .from("eng_service_orders")
+        .select("account_id, total_cents")
+        .not("account_id", "is", null)
+        .eq("billing_mode", "invoice")
+        .is("statement_id", null)
+        .in("status", ["paid", "in_fulfilment", "complete"])
+        .order("created_at", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to),
+    ),
+  ]);
+  if (!statementRead.ok) return { ok: false, error: `Issued statements: ${statementRead.error}` };
+  if (!unbilledRead.ok) return { ok: false, error: `Unbilled orders: ${unbilledRead.error}` };
+
+  const statementsBy = new Map<string, { total_cents: number | null; due_at: string | null }[]>();
+  for (const s of statementRead.rows) {
+    statementsBy.set(s.account_id, [...(statementsBy.get(s.account_id) ?? []), s]);
+  }
+  const unbilledBy = new Map<string, { total_cents: number | null }[]>();
+  for (const o of unbilledRead.rows) {
+    const id = o.account_id as string;
+    unbilledBy.set(id, [...(unbilledBy.get(id) ?? []), o]);
+  }
+  const now = Date.now();
+  return {
+    ok: true,
+    balanceOf: (accountId) => balanceFrom(statementsBy.get(accountId) ?? [], unbilledBy.get(accountId) ?? [], now),
+    rowsRead: statementRead.rows.length + unbilledRead.rows.length,
+  };
+}
+
 const ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 
 function batchReference(): string {

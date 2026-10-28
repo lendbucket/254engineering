@@ -1,7 +1,8 @@
 import "server-only";
 import { readEvery, readEveryIn } from "./bounded-read";
 import { supabaseAdmin } from "./supabase";
-import { accountBalances } from "./ops-bulk";
+import { openBalancesForEveryAccount } from "./ops-bulk";
+import { accountListQuery, pageOfAccounts, type AccountListQuery, type RosterEntry } from "./account-list";
 import { creditDecision } from "./account-credit";
 import type { Cents } from "./ops-money";
 
@@ -54,7 +55,21 @@ function periodOf(d: Date): string {
  * The screen rendered the same encouraging empty state for both.
  */
 export type AccountRowsResult =
-  | { ok: true; rows: AccountRow[] }
+  | {
+      ok: true;
+      /** The page shown: at most ACCOUNT_PAGE_SIZE rows, every figure on them read. */
+      rows: AccountRow[];
+      /** How many accounts match the search and filters, over EVERY account. */
+      total: number;
+      /** How many ordering accounts the firm has, whatever the search says. */
+      all: number;
+      page: number;
+      pages: number;
+      /** Every active account the credit rule refuses, over every account, not this page. */
+      blocked: { id: string; clientName: string; reason: string }[];
+      /** How many accounts have work no statement covers yet, over every account. */
+      unbilledAccounts: number;
+    }
   | { ok: false; unavailable: string[] };
 
 /**
@@ -134,7 +149,7 @@ function reportTiming(phases: Phase[], total: number): void {
   console.log(`[accounts.timing] total=${total}ms ${body}`);
 }
 
-export async function accountRows(): Promise<AccountRowsResult> {
+export async function accountRows(query: AccountListQuery = accountListQuery({})): Promise<AccountRowsResult> {
   const startedAt = Date.now();
   const phases: Phase[] = [];
   const since = (t: number) => Date.now() - t;
@@ -145,26 +160,34 @@ export async function accountRows(): Promise<AccountRowsResult> {
   }
 
   /*
-   * FIVE READS, AND THE ORDERS ONE BREAKS FIRST BY A LONG WAY.
+   * ===========================================================================
+   * ONE PAGE IS READ IN FULL; EVERY ACCOUNT IS READ ONLY FOR WHAT IT TAKES TO
+   * COUNT, FILTER AND WARN. Robert's answer 4 of 2026-10-28.
+   * ===========================================================================
    *
-   * The roster itself is bounded by how many accounts the firm has. The orders
-   * lookup is every order EVER placed by every one of them, which is the
-   * account count multiplied by all of history, and it feeds the per account
-   * order counts on the screen.
+   * Board 40733329479 timed this function at 10.0 to 10.2 seconds over about
+   * 3,020 accounts: roster 1.1 to 1.5, four reads 3.2 to 3.8, balances 4.6 to
+   * 5.2, and the screen then showed fifty. Two of those three costs were spent
+   * on accounts nobody was looking at.
    *
-   * Each is paged separately rather than the whole thing being given one bound,
-   * because they truncate at different sizes and a shared bound would hide
-   * which one ran out.
-   */
-  /*
+   * WHAT IS STILL READ FOR EVERY ACCOUNT, AND WHY:
+   *   - the roster, because the total, the filters and the paging are over
+   *     every account, and a page's length is not a count;
+   *   - the open balances, because the warning above the list names EVERY
+   *     account that cannot order, and that verdict needs the balance. They are
+   *     read without an id filter (openBalancesForEveryAccount), so their cost
+   *     is the firm's outstanding work rather than its number of accounts;
+   *   - the names of the accounts that warning names, and every name when the
+   *     list is sorted by name or searched.
+   *
+   * WHAT IS READ FOR THE PAGE ONLY: the order counts, the seats and the open
+   * statement. Those are the reads that scaled with every order every account
+   * ever placed.
+   *
    * SUPERSEDED ACCOUNTS ARE NOT CUSTOMERS. Operator ruling, 2026-09-14: a
    * duplicate or a typo is superseded rather than deleted, and every read
-   * excludes them by default. A superseded row reappearing in this list is a
-   * second entry for one organisation, which is the thing supersession exists
-   * to remove from view.
-   *
-   * Closed accounts still appear, because a closed account is a real customer
-   * who stopped trading.
+   * excludes them by default. Closed accounts still appear, because a closed
+   * account is a real customer who stopped trading.
    */
   const rosterAt = Date.now();
   const accountRead = await readEvery<Record<string, unknown>>((from, to) =>
@@ -172,6 +195,7 @@ export async function accountRows(): Promise<AccountRowsResult> {
       .from("eng_customer_accounts")
       .select("id, client_id, status, billing_mode, credit_limit_cents, net_days, created_at")
       .order("created_at", { ascending: true })
+      .order("id", { ascending: true })
       .range(from, to),
   );
   phases.push({
@@ -193,43 +217,148 @@ export async function accountRows(): Promise<AccountRowsResult> {
   const accounts = accountRead.rows;
   if (!accounts.length) {
     reportTiming(phases, since(startedAt));
-    return { ok: true, rows: [] };
+    return { ok: true, rows: [], total: 0, all: 0, page: 1, pages: 1, blocked: [], unbilledAccounts: 0 };
   }
 
-  const ids = accounts.map((a) => a.id as string);
-  const clientIds = accounts.map((a) => a.client_id as string);
+  /*
+   * The credit verdict of every account, from the same creditDecision the
+   * ordering path uses, so this screen and the refusal a customer sees can
+   * never disagree about why. A failed balance read is an absence: it refuses
+   * the screen rather than reading as zero, because creditDecision grants on a
+   * zero and refuses on an unknown.
+   */
+  const balancesAt = Date.now();
+  const balanceRead = await openBalancesForEveryAccount();
+  phases.push({
+    name: "balances",
+    ms: since(balancesAt),
+    note: balanceRead.ok ? `${accounts.length} accounts from ${balanceRead.rowsRead} open rows` : "failed",
+  });
+  if (!balanceRead.ok) {
+    reportTiming(phases, since(startedAt));
+    return { ok: false, unavailable: [`Account balances: ${balanceRead.error}`] };
+  }
+
+  const verdictOf = new Map<string, ReturnType<typeof creditDecision>>();
+  for (const a of accounts) {
+    const balance = balanceRead.balanceOf(a.id as string);
+    verdictOf.set(
+      a.id as string,
+      creditDecision(
+        {
+          billingMode: a.billing_mode as "card" | "invoice",
+          status: a.status as "active" | "suspended" | "closed",
+          creditLimitCents: a.credit_limit_cents === null ? null : Number(a.credit_limit_cents),
+          outstandingCents: balance.outstandingCents,
+          oldestUnpaidDays: balance.oldestUnpaidDays,
+          netDays: Number(a.net_days),
+        },
+        /*
+         * Zero, because this asks "can they order at all", not "can they order
+         * this". A row that reported a block only for some hypothetical amount
+         * would be a column nobody could act on.
+         */
+        0,
+      ),
+    );
+  }
+
+  const roster: RosterEntry[] = accounts.map((a) => ({
+    id: a.id as string,
+    clientId: a.client_id as string,
+    status: a.status as string,
+    billingMode: a.billing_mode as string,
+    createdAt: a.created_at as string,
+    cannotOrder: a.status === "active" && !verdictOf.get(a.id as string)!.ok,
+  }));
+  const unbilledAccounts = accounts.filter((a) => (balanceRead.balanceOf(a.id as string).unbilledCents ?? 0) > 0).length;
+
+  /*
+   * THE SEARCH IS OVER EVERY ACCOUNT, IN THE DATABASE. A name lives on the
+   * client, so the search asks eng_clients which names match and keeps the
+   * accounts whose client is one of them. A filter applied to the page alone
+   * would look like a search and be a search of fifty.
+   *
+   * EVERY WORD, NOT THE CLEANED PHRASE. cleanSearchTerm turns a comma or a
+   * bracket into a space, so "Acme, Inc." became "%Acme Inc.%", which the
+   * stored name "Acme, Inc." does not contain: typing an organization's own
+   * name found nothing. Board 40755884083's proof asked exactly that. Each word
+   * must appear in the name, in any order.
+   */
+  let matchingClients: Set<string> | null = null;
+  if (query.term) {
+    const searchAt = Date.now();
+    const words = query.term.split(" ").filter((w) => w.length > 0);
+    const searchRead = await readEvery<Record<string, unknown>>((from, to) => {
+      let q = db.from("eng_clients").select("id");
+      for (const w of words) q = q.ilike("name", `%${w}%`);
+      return q.order("id", { ascending: true }).range(from, to);
+    });
+    phases.push({ name: "search", ms: since(searchAt), note: searchRead.ok ? `${searchRead.rows.length} names` : "failed" });
+    if (!searchRead.ok) {
+      reportTiming(phases, since(startedAt));
+      return { ok: false, unavailable: [`The search by organization name: ${searchRead.error}`] };
+    }
+    matchingClients = new Set(searchRead.rows.map((c) => c.id as string));
+  }
 
   /*
    * ===========================================================================
    * CHUNKED, BECAUSE AN `.in()` OF EVERY ACCOUNT ID FAILS WHOLE ABOVE ~350.
-   * Operator ruling, 2026-09-24: chunk now, aggregate recorded as the larger
-   * option.
+   * Operator ruling, 2026-09-24. The evidence and the chunk size are in
+   * `IN_FILTER_CHUNK` in bounded-read.ts.
    * ===========================================================================
    *
-   * All four of these passed the full id list into one filter. Measured, that
-   * is fine to 300 ids and returns `TypeError: fetch failed` from 400: a
-   * request too large for the transport rather than a slow query. The evidence
-   * and the chunk size are in `IN_FILTER_CHUNK` in bounded-read.ts.
+   * Sorting by name is the one path that still reads a name for every account,
+   * and it goes through the same chunked reader, so it crosses that cliff
+   * safely or refuses. Every other path reads names for the page and for the
+   * accounts the warning names.
+   */
+  const blockedIds = roster.filter((a) => a.cannotOrder).map((a) => a.id);
+  const accountById = new Map(accounts.map((a) => [a.id as string, a]));
+  const clientOf = (id: string) => accountById.get(id)!.client_id as string;
+
+  let allNames: Map<string, string> | null = null;
+  if (query.sort === "name") {
+    const namesAt = Date.now();
+    const nameRead = await readEveryIn<Record<string, unknown>>(
+      [...new Set(roster.map((a) => a.clientId))],
+      (chunk, from, to) => db.from("eng_clients").select("id, name").in("id", chunk as string[]).order("id", { ascending: true }).range(from, to),
+    );
+    phases.push({ name: "names", ms: since(namesAt), note: nameRead.ok ? `${nameRead.rows.length} names` : "failed" });
+    if (!nameRead.ok) {
+      reportTiming(phases, since(startedAt));
+      return { ok: false, unavailable: [`Client names: ${nameRead.error}`] };
+    }
+    allNames = new Map(nameRead.rows.map((c) => [c.id as string, c.name as string]));
+  }
+
+  const shown = pageOfAccounts(roster, query, matchingClients, allNames);
+  const ids = shown.ids;
+
+  /*
+   * ===========================================================================
+   * A FAILED READ IS AN ABSENCE, NOT A ZERO. Operator ruling, 2026-09-24.
+   * ===========================================================================
    *
-   * Development holds 529 accounts, so all four failed, every time.
+   * Each of these used to fail into `?? []`, and on 2026-09-24 the screen
+   * rendered 529 accounts every one of which read "Unknown organization" with
+   * no orders, no seats and no open statement, beside real outstanding
+   * balances. So the function refuses to state anything it could not read.
+   * A figure is a number a query produced, the word none because it found
+   * nothing, or an absence with a reason. There is no fourth.
    *
-   * THE LARGER OPTION, RECORDED RATHER THAN TAKEN. The order and seat figures
-   * are COUNTS, and a database can count without shipping a row per order. An
-   * aggregate view, or an RPC returning one row per account, would remove these
-   * reads entirely rather than making them survivable, and would stop the page
-   * paging every order that every account has ever placed in order to display a
-   * number beside each. It is the right shape and it is a migration, a new
-   * declared surface and a second thing for the ledger to carry. Chunking is
-   * what was ruled today; this paragraph is so the next person knows the
-   * ceiling was chosen rather than missed.
+   * THE FOUR ARE TIMED TOGETHER BECAUSE THEY RUN TOGETHER, and the counts are
+   * per read, because which of them is large is the thing worth knowing.
    */
   const fourAt = Date.now();
+  const nameIds = allNames ? [] : [...new Set([...ids, ...blockedIds].map(clientOf))];
   const [clientRead, orderRead, userRead, statementRead] = await Promise.all([
     // A client missing from this map renders an account with no name.
-    readEveryIn<Record<string, unknown>>(clientIds, (chunk, from, to) =>
+    readEveryIn<Record<string, unknown>>(nameIds, (chunk, from, to) =>
       db.from("eng_clients").select("id, name").in("id", chunk as string[]).order("id", { ascending: true }).range(from, to),
     ),
-    // This is the order COUNT per account, and a partial count is a wrong one.
+    // This is the order COUNT per account on the page, and a partial count is a wrong one.
     readEveryIn<Record<string, unknown>>(ids, (chunk, from, to) =>
       db.from("eng_service_orders").select("account_id, created_at").in("account_id", chunk as string[]).order("created_at", { ascending: true }).range(from, to),
     ),
@@ -248,47 +377,11 @@ export async function accountRows(): Promise<AccountRowsResult> {
         .range(from, to),
     ),
   ]);
-
-  /*
-   * ===========================================================================
-   * A FAILED READ IS AN ABSENCE, NOT A ZERO. Operator ruling, 2026-09-24.
-   * ===========================================================================
-   *
-   * This read `clientRead.ok ? clientRead.rows : null` and then every consumer
-   * did `?? []`. Each read is a bounded read BECAUSE a partial answer would be
-   * wrong, and the comments above them say so: "a partial count is a wrong
-   * one", "an open statement missed here is a bill the screen says does not
-   * exist". Those guards were written against TRUNCATION. On FAILURE the same
-   * code turned the whole set into an empty list.
-   *
-   * WHAT THAT LOOKED LIKE, read back from this function rather than argued:
-   *
-   *     117979ms, 529 rows
-   *     clientName "Unknown organization": 529 of 529
-   *     orders 0:                          529 of 529
-   *     users 0:                           529 of 529
-   *     openStatement null:                529 of 529
-   *
-   * beside a first row carrying issuedUnpaidCents 127500 and canOrder true,
-   * because the balance was the one read that still worked. Every figure on a
-   * billing screen was wrong, confidently, and it took two minutes to say so.
-   *
-   * So the function now refuses to state anything it could not read. It is the
-   * rule every report in this platform already follows: a figure is a number a
-   * query produced, the word none because it found nothing, or an absence with
-   * a reason. There is no fourth, and "zero because the read failed" was one.
-   */
-  /*
-   * THE FOUR ARE TIMED TOGETHER BECAUSE THEY RUN TOGETHER. Timing each one
-   * inside the Promise.all would report four durations that all include each
-   * other's waiting, which reads as four slow reads when there is one.
-   * The row counts are per read, because which of the four is large is the
-   * thing worth knowing.
-   */
   phases.push({
     name: "four-reads",
     ms: since(fourAt),
     note:
+      `page=${ids.length} ` +
       `clients=${clientRead.ok ? clientRead.rows.length : "fail"} ` +
       `orders=${orderRead.ok ? orderRead.rows.length : "fail"} ` +
       `users=${userRead.ok ? userRead.rows.length : "fail"} ` +
@@ -307,70 +400,21 @@ export async function accountRows(): Promise<AccountRowsResult> {
     return { ok: false, unavailable: failures };
   }
 
-  const clients = clientRead.ok ? clientRead.rows : [];
+  const nameOf = allNames ?? new Map((clientRead.ok ? clientRead.rows : []).map((c) => [c.id as string, c.name as string]));
   const orders = orderRead.ok ? orderRead.rows : [];
   const users = userRead.ok ? userRead.rows : [];
   const statements = statementRead.ok ? statementRead.rows : [];
-
-  /*
-   * ONE CHUNKED READ FOR EVERY BALANCE, NOT TWO ROUND TRIPS PER ACCOUNT.
-   *
-   * `await accountBalance(id)` sat inside the loop below. That function issues
-   * two sequential paged reads, so 529 accounts cost 1,058 round trips in
-   * series and that is the whole of the two minutes. The four reads above,
-   * even failing, accounted for about eight seconds of it.
-   *
-   * The arithmetic is unchanged and is not duplicated: `accountBalances` reads
-   * in bulk and both it and `accountBalance` hand their rows to the same
-   * `balanceFrom`. This is the credit gate, and a second account of it would be
-   * a second answer to whether somebody may order on invoice.
-   */
-  const balancesAt = Date.now();
-  const balanceRead = await accountBalances(ids);
-  phases.push({
-    name: "balances",
-    ms: since(balancesAt),
-    note: balanceRead.ok ? `${balanceRead.balances.size} accounts` : "failed",
-  });
-  if (!balanceRead.ok) {
-    reportTiming(phases, since(startedAt));
-    return { ok: false, unavailable: [`Account balances: ${balanceRead.error}`] };
-  }
-
-  const nameOf = new Map(clients.map((c) => [c.id as string, c.name as string]));
   const thisPeriod = periodOf(new Date());
 
   const assemblyAt = Date.now();
   const rows: AccountRow[] = [];
 
-  for (const a of accounts) {
-    const id = a.id as string;
+  for (const id of ids) {
+    const a = accountById.get(id)!;
     const mine = orders.filter((o) => o.account_id === id);
-    const balance = balanceRead.balances.get(id) ?? {
-      issuedUnpaidCents: null,
-      unbilledCents: null,
-      outstandingCents: null,
-      oldestUnpaidDays: null,
-    };
-
-    const verdict = creditDecision(
-      {
-        billingMode: a.billing_mode as "card" | "invoice",
-        status: a.status as "active" | "suspended" | "closed",
-        creditLimitCents: a.credit_limit_cents === null ? null : Number(a.credit_limit_cents),
-        outstandingCents: balance.outstandingCents,
-        oldestUnpaidDays: balance.oldestUnpaidDays,
-        netDays: Number(a.net_days),
-      },
-      /*
-       * Zero, because this asks "can they order at all", not "can they order
-       * this". A row that reported a block only for some hypothetical amount
-       * would be a column nobody could act on.
-       */
-      0,
-    );
-
-    const open = (statements ?? []).find((s) => s.account_id === id);
+    const balance = balanceRead.balanceOf(id);
+    const verdict = verdictOf.get(id)!;
+    const open = statements.find((s) => s.account_id === id);
 
     rows.push({
       id,
@@ -387,7 +431,7 @@ export async function accountRows(): Promise<AccountRowsResult> {
       oldestUnpaidDays: balance.oldestUnpaidDays,
       canOrder: verdict.ok,
       blockedReason: verdict.ok ? "" : verdict.message,
-      users: (users ?? []).filter((u) => u.account_id === id).length,
+      users: users.filter((u) => u.account_id === id).length,
       openStatement: open
         ? {
             id: open.id as string,
@@ -399,28 +443,34 @@ export async function accountRows(): Promise<AccountRowsResult> {
     });
   }
 
+  const blocked = blockedIds.map((id) => {
+    const verdict = verdictOf.get(id)!;
+    return {
+      id,
+      clientName: nameOf.get(clientOf(id)) ?? "Unknown organization",
+      reason: verdict.ok ? "" : verdict.message,
+    };
+  });
+
   /*
-   * ASSEMBLY IS TIMED TOO, AND THE FIRST READING KILLED THE HYPOTHESIS THIS
-   * COMMENT ORIGINALLY CARRIED.
-   *
-   * It said the loop was the phase nobody had suspected, because
-   * `orders.filter` and `users.filter` run once per account so the cost is
-   * accounts multiplied by orders rather than either alone. Plausible, written
-   * confidently, and measured FALSE within the minute: three runs against
-   * development reported `rows=1ms` on 918 accounts.
-   *
-   * It is kept as a correction rather than deleted, because a wrong
-   * explanation is worse than none: it is the thing that makes the next reader
-   * stop looking, and this one was written by the session adding the timer and
-   * would have been believed on that account alone.
-   *
-   * The phase is still timed. A figure that is 1ms today and is not 1ms later
-   * is exactly what this line exists to show.
+   * ASSEMBLY IS TIMED TOO, AND ITS FIRST READING KILLED A HYPOTHESIS. A comment
+   * here once said the per account filters were the phase nobody suspected;
+   * three runs on 918 accounts measured rows=1ms. Kept as a correction, because
+   * a wrong explanation is the thing that makes the next reader stop looking.
    */
-  phases.push({ name: "rows", ms: since(assemblyAt), note: `${rows.length} rows` });
+  phases.push({ name: "rows", ms: since(assemblyAt), note: `${rows.length} rows of ${shown.total}` });
   reportTiming(phases, since(startedAt));
 
-  return { ok: true, rows };
+  return {
+    ok: true,
+    rows,
+    total: shown.total,
+    all: accounts.length,
+    page: shown.page,
+    pages: shown.pages,
+    blocked,
+    unbilledAccounts,
+  };
 }
 
 /**

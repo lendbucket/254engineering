@@ -869,7 +869,7 @@ export const PROCEDURES: Procedure[] = [
         "routes": [
           "/portal/applications"
         ],
-        "who": "Admin (`profiles.create`; the ops manager does not hold it, found by the W2 walk 2026-10-28, ruling asked)",
+        "who": "Ops manager, admin (`applications.read`, 0104, Robert's answer 3 of 2026-10-28)",
         "sees": "The applications",
         "does": "Reads one",
         "next": "",
@@ -958,7 +958,7 @@ export const PROCEDURES: Procedure[] = [
         "routes": [
           "/portal/techs"
         ],
-        "who": "Admin (`profiles.list`, `profiles.update`; the ops manager holds neither, found by the W2 walk 2026-10-28, ruling asked)",
+        "who": "Ops manager, admin (`profiles.list`, `profiles.update`; the ops manager's since 0104, Robert's answer 3 of 2026-10-28)",
         "sees": "Submitted credentials",
         "does": "Verifies or rejects one",
         "next": "`verify_credential`, `reject_credential`",
@@ -970,7 +970,7 @@ export const PROCEDURES: Procedure[] = [
         "n": "3",
         "screen": "`src/app/portal/(app)/techs/[id]` (`RecordCredentialForm`)",
         "routes": [],
-        "who": "Admin (as step 2)",
+        "who": "Ops manager, admin (as step 2)",
         "sees": "One technician",
         "does": "Records a credential seen",
         "next": "`record_credential`, `recordCredential`",
@@ -982,7 +982,7 @@ export const PROCEDURES: Procedure[] = [
         "n": "4",
         "screen": "`src/app/portal/(app)/techs/[id]` (`RecordTrainingForm`, `AttachConfirmationForm`)",
         "routes": [],
-        "who": "Admin (as step 2)",
+        "who": "Ops manager, admin (as step 2)",
         "sees": "Their training",
         "does": "Records training, and attaches the engineer's written confirmation of a relayed approval",
         "next": "`record_training`, `attach_relayed_confirmation`",
@@ -996,7 +996,7 @@ export const PROCEDURES: Procedure[] = [
         "routes": [
           "/portal/techs"
         ],
-        "who": "Admin (as step 2)",
+        "who": "Ops manager, admin (as step 2)",
         "sees": "Coverage and base",
         "does": "Sets coverage counties and base",
         "next": "`set_coverage` (`setTechCoverage`), `/api/portal/field` `set_tech_base`",

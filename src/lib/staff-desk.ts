@@ -4,7 +4,7 @@ import { can, type Actor } from "./ops-authz";
 import { inbox } from "./ops-inbox";
 import { callList, type ProspectRow } from "./ops-prospects";
 import { listRefundRequests } from "./ops-refund-requests";
-import { holdFor } from "./dispatch-hold";
+import { holdsFor } from "./dispatch-hold";
 import { readEvery } from "./bounded-read";
 import type { Attention, Breakdown } from "./ops-dashboard";
 
@@ -92,11 +92,12 @@ export async function deskDashboard(actor: Actor): Promise<DeskDashboard> {
   const heldFiles: { id: string; file_number: string }[] = [];
   if (waiting.ok) {
     let unknown = 0;
-    for (const f of waiting.rows) {
-      const h = await holdFor(f.id);
+    const holdStates = await holdsFor(waiting.rows.map((f) => f.id));
+    waiting.rows.forEach((f, i) => {
+      const h = holdStates[i];
       if (h.held === null) unknown += 1;
       else if (h.held) heldFiles.push(f);
-    }
+    });
     if (unknown) notComputable.push(`${unknown} unassigned job${unknown === 1 ? "" : "s"} could not be checked for an engineer hold.`);
     else holds = heldFiles.length;
   }

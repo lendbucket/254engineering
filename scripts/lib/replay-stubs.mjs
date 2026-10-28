@@ -22,6 +22,17 @@
  * authenticated. A future migration that creates a function and forgets its
  * revoke therefore fails the board, which is the guard, rather than a default
  * changed on a database other applications share.
+ *
+ * AND THE SAME FOR TABLES AND SEQUENCES, FROM 2026-10-28. The chat's read of
+ * development and production (issue #1 comments 6462860460 and 6462870632)
+ * found the default privileges grant every new table and sequence to anon and
+ * authenticated as well. A replay that granted only functions could not show
+ * that, so a migration's revoke and its read-back of has_table_privilege both
+ * passed over nothing here: 0102's read-back, with one revoke removed, stayed
+ * green. The replay now reproduces the table and sequence default too, and
+ * migration-audit asserts that after the chain anon and authenticated hold
+ * nothing on any eng_ table or sequence. Neither fingerprint counts privileges,
+ * so no recorded figure moves.
  */
 export const SUPABASE_REPLAY_STUBS = `
   create schema if not exists auth;
@@ -45,4 +56,6 @@ export const SUPABASE_REPLAY_STUBS = `
   end;
   $stub$;
   alter default privileges in schema public grant execute on functions to anon, authenticated, service_role;
+  alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
+  alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;
 `;

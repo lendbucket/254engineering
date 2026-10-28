@@ -2,8 +2,9 @@ import { redirect } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
 import { accountRows } from "@/lib/ops-accounts-admin";
-import { money } from "@/lib/ops-money";
+import { ACCOUNT_PAGE_SIZE, accountListQuery } from "@/lib/account-list";
 import { Chip, EmptyState, PageHead, Panel } from "@/components/portal/surfaces";
+import { ListControls, Pager, listHref } from "@/components/portal/ListControls";
 import { AccountsClient } from "./AccountsClient";
 import { OpenAccountClient } from "./OpenAccountClient";
 
@@ -25,12 +26,36 @@ export const dynamic = "force-dynamic";
  * covers yet. Summing them into one number hides which of the two is growing,
  * and they call for completely different actions.
  */
-export default async function AccountsPage() {
+export default async function AccountsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
+  /*
+   * THE PAGE'S OWN SHARE, beside [accounts.timing], Robert's answer 4 of
+   * 2026-10-28. The W2 walk measured 8.4 to 9.1 seconds of application code
+   * here while accountRows reported 3.6 to 4.7, so about half the time is
+   * outside it. This line times the session read and accountRows from the
+   * page's side and counts the rows handed to the render; the server's own
+   * "GET /portal/accounts ... application-code" figure minus this total is the
+   * render. Durations and counts only, never a row.
+   */
+  const startedAt = Date.now();
   const actor = await currentActor();
+  const actorMs = Date.now() - startedAt;
   if (!actor) redirect("/portal/login");
   if (!can(actor, "accounts.manage")) redirect("/portal");
 
-  const result = await accountRows();
+  /*
+   * ONE PAGE, CHOSEN ON THE SERVER, Robert's answer 4 of 2026-10-28. The
+   * search, the filters, the sort and the page live in the address, so a
+   * filtered list can be bookmarked, sent, printed and reloaded, and the
+   * search covers every account rather than the fifty on screen.
+   */
+  const params = await searchParams;
+  const query = accountListQuery(params);
+  const rowsAt = Date.now();
+  const result = await accountRows(query);
+  console.log(
+    `[accounts.page.timing] total=${Date.now() - startedAt}ms actor=${actorMs}ms accountRows=${Date.now() - rowsAt}ms ` +
+      `rendered=${result.ok ? result.rows.length : "unread"}`,
+  );
 
   /*
    * ===========================================================================
@@ -68,9 +93,19 @@ export default async function AccountsPage() {
     );
   }
 
+  /*
+   * THE WARNING AND THE UNBILLED COUNT ARE OVER EVERY ACCOUNT, NOT THIS PAGE.
+   * Both used to be computed from the rows handed to the screen, which was
+   * every account; computed from a page they would be the length of a sample
+   * read as a count, and an account that cannot order would vanish from the
+   * warning by being on page two.
+   */
   const rows = result.rows;
-  const blocked = rows.filter((r) => !r.canOrder && r.status === "active");
-  const unbilled = rows.filter((r) => (r.unbilledCents ?? 0) > 0);
+  const blocked = result.blocked;
+  const unbilledAccounts = result.unbilledAccounts;
+  const filtered =
+    query.term !== "" || query.status !== "all" || query.billing !== "all" || query.attention !== "all";
+  const keep = { q: params.q, status: params.status, billing: params.billing, attention: params.attention, sort: params.sort, dir: params.dir };
 
   return (
     <>
@@ -80,7 +115,7 @@ export default async function AccountsPage() {
         lede="Organizations that order regularly. What they have ordered, what they owe, and whether they can order right now."
       />
 
-      {rows.length === 0 ? (
+      {result.all === 0 ? (
         <>
           {/*
             THIS COPY WENT OUT OF DATE THE DAY THE TELEPHONE DOOR WAS BUILT.
@@ -108,7 +143,7 @@ export default async function AccountsPage() {
               <ul className="mt-2 space-y-1">
                 {blocked.map((r) => (
                   <li key={r.id} className="text-[14px] leading-[1.55] text-[var(--ink)]">
-                    <span className="font-semibold">{r.clientName}</span>: {r.blockedReason}
+                    <span className="font-semibold">{r.clientName}</span>: {r.reason}
                   </li>
                 ))}
               </ul>
@@ -147,14 +182,64 @@ export default async function AccountsPage() {
             </Panel>
           </div>
 
+          <ListControls
+            action="/portal/accounts"
+            search={params.q ?? ""}
+            searchLabel="Search by organization"
+            filters={[
+              {
+                name: "status",
+                label: "Status",
+                value: query.status,
+                options: [
+                  { value: "all", label: "Every status" },
+                  { value: "active", label: "Active" },
+                  { value: "suspended", label: "Suspended" },
+                  { value: "closed", label: "Closed" },
+                ],
+              },
+              {
+                name: "billing",
+                label: "Pays",
+                value: query.billing,
+                options: [
+                  { value: "all", label: "Card or invoice" },
+                  { value: "invoice", label: "On invoice" },
+                  { value: "card", label: "By card" },
+                ],
+              },
+              {
+                name: "attention",
+                label: "Ordering",
+                value: query.attention,
+                options: [
+                  { value: "all", label: "Every account" },
+                  { value: "cannot_order", label: "Cannot order" },
+                ],
+              },
+            ]}
+            sorts={[{ value: "added", label: "Opened" }, { value: "name", label: "Organization" }]}
+            sort={query.sort}
+            direction={query.ascending ? "asc" : "desc"}
+          />
           <Panel
-            title="Accounts"
+            title={
+              filtered
+                ? `${result.total} matching account${result.total === 1 ? "" : "s"}, of ${result.all}`
+                : `${result.all} account${result.all === 1 ? "" : "s"}`
+            }
             description={
-              unbilled.length > 0
-                ? `${unbilled.length} account${unbilled.length === 1 ? " has" : "s have"} work that no statement covers yet.`
+              unbilledAccounts > 0
+                ? `${unbilledAccounts} account${unbilledAccounts === 1 ? " has" : "s have"} work that no statement covers yet.`
                 : "Every invoiced account is billed up to date."
             }
           >
+            {rows.length === 0 ? (
+              <EmptyState
+                title="No account matches that search"
+                body="Clear the search or a filter to see every account."
+              />
+            ) : null}
             <AccountsClient
               rows={rows.map((r) => ({
                 id: r.id,
@@ -173,6 +258,14 @@ export default async function AccountsPage() {
                 users: r.users,
                 openStatement: r.openStatement,
               }))}
+              pager={
+                <Pager
+                  page={result.page}
+                  pageSize={ACCOUNT_PAGE_SIZE}
+                  total={result.total}
+                  hrefFor={(p) => listHref("/portal/accounts", keep, { page: String(p) })}
+                />
+              }
             />
           </Panel>
 

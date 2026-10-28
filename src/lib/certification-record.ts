@@ -5,6 +5,7 @@ import { DB_NOW } from "./db-now";
 import { verifiedEngineers } from "@/config/credentials";
 import { licenceIsCurrentToday } from "./launch";
 import { readEvery, readEveryIn } from "./bounded-read";
+import { mayOnboardRole, profileRole } from "./onboarding-scope";
 
 /**
  * ===========================================================================
@@ -325,6 +326,10 @@ export async function recordTraining(
   if (!actor || !can(actor, "profiles.update")) return { ok: false, error: "Your role cannot record a certification." };
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
+  /* The operations manager's profiles.update reaches field technicians only (onboarding-scope.ts, 0104). */
+  if (!mayOnboardRole(actor, await profileRole(profileId), "profiles.update")) {
+    return { ok: false, error: "Your role records a certification for a field technician only." };
+  }
 
   if (!/^\d{4}-\d{2}-\d{2}$/.test(input.trainedOn)) return { ok: false, error: "The training date must be a calendar date." };
   const supervisedBy = input.supervisedBy.trim();
