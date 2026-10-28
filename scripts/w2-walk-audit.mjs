@@ -101,28 +101,49 @@ const WIDTHS = [1280, 390];
  *               access row v10-layout-audit already leaves each run, recorded
  *               in docs/audit-2026-10/GAPS.md.
  *
- * AND FOUR KINDS STAY UNREACHED, EACH WITH ITS REASON IN ITS OWN LINE, because
- * the record they need is permanent or dispatches real work: a job and an
- * offer for the technician probe (dispatch writes eng_assignments and moves a
- * development file), an order stuck on payment (an append-only order row
- * every later audit would count), and an onboarding link (its token exists
- * only when issued, and issuing writes an onboarding record that cannot be
- * deleted). Seeding any of those is a ruling, not a fixture.
+ *   TECHNICIAN  Robert's order of 2026-10-28 (issue #1 comment 6480742347,
+ *               item 5): "give the probes the records they need (an assigned
+ *               job, an order reference, an offer)". Two DEMONSTRATION files
+ *               on a demonstration client, numbered 254-DEMO-W2..., each with
+ *               an eng_assignments row for the walk's own technician probe:
+ *               one offered at a rate (/portal/jobs, 254-WF-029) and one
+ *               accepted with the file assigned and dispatched
+ *               (/portal/jobs/[id], 254-WF-030). Written directly, the shape
+ *               scripts/proofs/an-offer-without-a-rate-cannot-be-accepted.mjs
+ *               uses, NOT through sendOffers or acceptOffer: those raise a
+ *               notification and tell the buyer, and a fixture tells nobody.
+ *   ORDER       one DEMONSTRATION order left awaiting payment, reference
+ *               254-O2026-DEMO-W2..., buyer at the probe domain, so
+ *               /portal/orders has a row to cancel and refund (254-WF-015
+ *               step 3, 254-WF-023). The shape demo-audit inserts. Nothing
+ *               is written against it (no event, no payment), which is what
+ *               keeps it deletable: eng_order_events and eng_order_payments
+ *               refuse a delete, and either would pin the order for good.
+ *
+ * All three go in teardown by their marks, files with their assignments and
+ * file events, and the removal is read back. PER RUN, ON DEVELOPMENT, NOTHING
+ * PERMANENT: no audit row, no order event, no payment, no notification. A run
+ * that dies mid-walk leaves them for the next run's first sweep, which looks
+ * for the marks rather than this run's ids.
+ *
+ * AND ONE KIND STAYS UNREACHED, WITH ITS REASON IN ITS OWN LINE: an onboarding
+ * link (254-WF-016 step 4). Its token exists only when issued, and issuing
+ * writes an onboarding record that cannot be deleted, and Robert's order named
+ * the job, the order and the offer, not the invitation.
  */
 const db = auditClient(LABEL, { neverProduction: true });
 const WALK_PROSPECT = "W2 walk probe prospect";
 const WALK_DEAD_KIND = "w2_walk.probe_dead_letter";
+const WALK_FILE_PREFIX = "254-DEMO-W2";
+const WALK_FILE_ADDRESS = "W2 Walk Probe Way";
+const WALK_ORDER_PREFIX = "254-O2026-DEMO-W2";
+const WALK_RATE_CENTS = 18_500;
 const NOT_SEEDED = {
-  "/portal/jobs/[id]":
-    "not seeded: a job assigned to the technician probe would dispatch a development file through eng_assignments and move its status",
   "/onboarding/[token]":
     "not seeded: an onboarding link's token exists only when issued, and issuing one writes an onboarding record that cannot be deleted",
 };
-const EMPTY_NOT_SEEDED = {
-  "/portal/jobs": "an offer to the technician probe would dispatch a development file, so none is seeded",
-  "/portal/orders": "an order stuck on payment is a permanent append-only row every later audit would count, so none is seeded",
-};
-const fixtures = { prospectId: null, deadJobId: null, faults: [] };
+const EMPTY_NOT_SEEDED = {};
+const fixtures = { prospectId: null, deadJobId: null, offerFileId: null, jobFileId: null, orderId: null, faults: [] };
 
 /** Removes what this walk makes, from this run or one that died, before the probes. */
 async function removeWalkFixtures() {
@@ -132,13 +153,67 @@ async function removeWalkFixtures() {
   if (p.error) faults.push(`prospect: ${p.error.message}`);
   const j = await db.from("eng_jobs").delete().eq("kind", WALK_DEAD_KIND);
   if (j.error) faults.push(`dead job: ${j.error.message}`);
+  /* The technician's files: assignments and file events first, then the files. */
+  const { data: walkFiles, error: wfe } = await db.from("eng_files").select("id").like("file_number", `${WALK_FILE_PREFIX}%`).eq("is_demo", true);
+  if (wfe) faults.push(`the walk's files could not be read: ${wfe.message}`);
+  const fileIds = (walkFiles ?? []).map((f) => f.id);
+  if (fileIds.length) {
+    for (const table of ["eng_assignments", "eng_file_events"]) {
+      const r = await db.from(table).delete().in("file_id", fileIds);
+      if (r.error) faults.push(`${table}: ${r.error.message}`);
+    }
+    const f = await db.from("eng_files").delete().in("id", fileIds);
+    if (f.error) faults.push(`files: ${f.error.message}`);
+  }
+  const o = await db.from("eng_service_orders").delete().like("reference", `${WALK_ORDER_PREFIX}%`).eq("is_demo", true);
+  if (o.error) faults.push(`order: ${o.error.message}`);
   const left = [];
   const { count: pc, error: pe } = await db.from("eng_prospects").select("id", { count: "exact", head: true }).like("company", `${WALK_PROSPECT}%`);
   const { count: jc, error: je } = await db.from("eng_jobs").select("id", { count: "exact", head: true }).eq("kind", WALK_DEAD_KIND);
-  if (pe || je) faults.push(`the read-back failed: ${(pe ?? je).message}`);
+  const { count: fc, error: fe } = await db.from("eng_files").select("id", { count: "exact", head: true }).like("file_number", `${WALK_FILE_PREFIX}%`);
+  const { count: oc, error: oe } = await db.from("eng_service_orders").select("id", { count: "exact", head: true }).like("reference", `${WALK_ORDER_PREFIX}%`);
+  const readFault = pe ?? je ?? fe ?? oe;
+  if (readFault) faults.push(`the read-back failed: ${readFault.message}`);
   if (pc) left.push(`${pc} prospect(s)`);
   if (jc) left.push(`${jc} dead job(s)`);
+  if (fc) left.push(`${fc} technician file(s)`);
+  if (oc) left.push(`${oc} unpaid order(s)`);
   return { ok: faults.length === 0 && left.length === 0, faults: [...faults, ...left.map((l) => `${l} left`)] };
+}
+
+/** One demonstration file with one assignment for the technician probe. Returns the file id, or null with a fault named. */
+async function walkFileFor(techId, clientId, n, assigned) {
+  const tail = `${String(Date.now()).slice(-6)}${n}`;
+  const { data: file, error } = await db
+    .from("eng_files")
+    .insert({
+      file_number: `${WALK_FILE_PREFIX}${tail}`,
+      is_demo: true,
+      client_id: clientId,
+      service_slug: "roof-inspections",
+      property_address: `${n} ${WALK_FILE_ADDRESS}`,
+      county: "Kenedy",
+      status: assigned ? "dispatched" : "needs_dispatch",
+      assigned_tech_id: assigned ? techId : null,
+      notes: "A W2 walk fixture, not a real job: removed in teardown.",
+    })
+    .select("id")
+    .single();
+  if (error || !file) {
+    fixtures.faults.push(`the ${assigned ? "assigned job" : "offer"} file could not be made: ${error?.message ?? "no row came back"}`);
+    return null;
+  }
+  const { error: aErr } = await db.from("eng_assignments").insert({
+    file_id: file.id,
+    tech_id: techId,
+    state: assigned ? "accepted" : "offered",
+    offer_amount_cents: WALK_RATE_CENTS,
+  });
+  if (aErr) {
+    fixtures.faults.push(`the ${assigned ? "assignment" : "offer"} could not be made: ${aErr.message}`);
+    return null;
+  }
+  return file.id;
 }
 
 /** The records made for this run, after the sessions exist. Each failure is named, never fatal. */
@@ -177,12 +252,53 @@ async function makeWalkFixtures() {
     .single();
   if (jobError) fixtures.faults.push(`the dead job could not be made: ${jobError.message}`);
   fixtures.deadJobId = job?.id ?? null;
+
+  /* The technician's offer and assigned job, on a demonstration client. */
+  const techId = sessions.field_tech?.probe?.id ?? null;
+  if (techId) {
+    const { data: client, error: cErr } = await db.from("eng_clients").select("id").eq("is_demo", true).limit(1).maybeSingle();
+    if (cErr || !client) {
+      fixtures.faults.push(`no demonstration client to hang the technician's files on${cErr ? ` (${cErr.message})` : ""}`);
+    } else {
+      fixtures.offerFileId = await walkFileFor(techId, client.id, 1, false);
+      fixtures.jobFileId = await walkFileFor(techId, client.id, 2, true);
+    }
+  } else if (rolesNeeded.includes("field_tech")) {
+    fixtures.faults.push("no technician probe, so no offer or assigned job was made");
+  }
+
+  /* One demonstration order left awaiting payment, with nothing written against it. */
+  const { data: order, error: orderError } = await db
+    .from("eng_service_orders")
+    .insert({
+      site: "254engineering",
+      reference: `${WALK_ORDER_PREFIX}${String(Date.now()).slice(-6)}`,
+      service_slug: "roof-inspections",
+      order_type: "field",
+      status: "awaiting_payment",
+      customer_name: "W2 Walk Probe Buyer",
+      customer_email: "w2-walk-order@audit-probe.invalid",
+      property_address: `3 ${WALK_FILE_ADDRESS}`,
+      county: "Kenedy",
+      twia_county: false,
+      total_cents: 600_00,
+      is_demo: true,
+    })
+    .select("id")
+    .single();
+  if (orderError) fixtures.faults.push(`the unpaid order could not be made: ${orderError.message}`);
+  fixtures.orderId = order?.id ?? null;
 }
 
 /** A record for a dynamic route when no page links to one. A path, or the reason there is none. */
 async function resolveDirect(pattern) {
   if (NOT_SEEDED[pattern]) return { path: null, reason: NOT_SEEDED[pattern] };
   if (!db) return { path: null, reason: "no development database client, so no record could be read" };
+  if (pattern === "/portal/jobs/[id]") {
+    return fixtures.jobFileId
+      ? { path: `/portal/jobs/${fixtures.jobFileId}`, how: "the run's job assigned to the technician probe" }
+      : { path: null, reason: "the technician probe's assigned job was not made" };
+  }
   if (pattern === "/portal/prospects/[id]") {
     return fixtures.prospectId ? { path: `/portal/prospects/${fixtures.prospectId}`, how: "the run's probe prospect" } : { path: null, reason: "the probe prospect was not made" };
   }
@@ -588,9 +704,9 @@ rec(
     `staff ${t.staff.left ?? "?"} left, partners ${t.partners.left ?? "?"} left, customers ${t.customers.left ?? "?"} left`,
   );
   rec(
-    "and the walk's own prospect and dead job were removed, read back",
+    "and the walk's own prospect, dead job, technician files and unpaid order were removed, read back",
     t.records.ok,
-    t.records.faults.join("; ") || "0 prospects and 0 dead jobs of the walk's left",
+    t.records.faults.join("; ") || "0 prospects, 0 dead jobs, 0 technician files and 0 unpaid orders of the walk's left",
   );
 }
 

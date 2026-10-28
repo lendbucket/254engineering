@@ -212,10 +212,24 @@ by severity:
   a one day signed link to that order through `issueCustomerLink` (the status
   page), as v10-layout-audit does; and it makes one prospect (`eng_prospects`)
   and one dead job of an unregistered kind with no external effect (`eng_jobs`),
-  both removed in teardown and read back. Left unreached, each with its reason in
-  its own line, because the record would be permanent or would dispatch real
-  work: a job and an offer for the technician probe, an order stuck on payment,
-  and an onboarding link. Seeding those is a ruling, not a fixture.
+  both removed in teardown and read back.
+- **And the job, the offer and the order, Robert's item 5 of 2026-10-28, 16:11
+  Central (issue #1 comment 6480742347):** "give the probes the records they
+  need (an assigned job, an order reference, an offer)". Each run makes two
+  demonstration files (`254-DEMO-W2...`, on a demonstration client) with an
+  `eng_assignments` row for its own technician probe, one offered at $185.00
+  and one accepted and dispatched, and one demonstration order
+  (`254-O2026-DEMO-W2...`, buyer at `audit-probe.invalid`) left awaiting
+  payment. They are written directly, as `an-offer-without-a-rate-cannot-be-
+  accepted.mjs` writes its offer, and not through `sendOffers` or `acceptOffer`,
+  which notify; nothing is written against the order, so no order event or
+  payment pins it. **What each run leaves on development: nothing.** All five
+  rows (two files, two assignments, one order) and any file events go in
+  teardown by their marks, read back, and a crashed run's go in the next run's
+  first sweep. Still unreached, with its reason in its own line: the onboarding
+  link (254-WF-016 step 4), whose token exists only when issued and whose
+  record cannot be deleted. **Not yet boarded**, so which steps the records
+  actually reach is the next board's sealed log, not this entry.
 
 ## THE MANUFACTURED HOME AND SOLAR LETTERS ARE BUILT; WHAT THEY LEAVE FOR A RULING
 
