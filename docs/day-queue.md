@@ -1,5 +1,20 @@
 # Day queue, 2026-10-23
 
+## OVERNIGHT, BUNDLE 2: the W2 walk, on main `1af76dc`
+
+**Prediction written and pushed before the board starts.** Bundle 1 merged as `1af76dc` (board 40629495423, 63 of 63 as predicted, dashboard median 1492 ms, 3 lines exempt).
+
+Branch `feat/w2-walk` at `90dced2`: `4410bf1` (the walk) brought up to main `1af76dc`. No migration, no table, full lane (a new audit on the board, which signs probe accounts in on development, so it runs only in the cloud writers shard).
+
+- **What it adds:** `scripts/w2-walk-audit.mjs` and `scripts/lib/workflow-map.mjs`, registered in package.json, scripts/audit.mjs (phase one, after v10-layout-audit, on the shared server) and the writers shard. The walk opens every step of `docs/workflows.md` (36 workflows, 138 steps) as a probe in the role the map names, at 390 and 1280. It submits nothing: payment, sending and sealing steps read "control present, not driven". Each step is printed as a `W2 RESULT:` line: works, friction, broken, missing, off-screen, or unreached. It FAILs only when a step could not be walked or classified, and is COULD NOT TELL when a probe could not be built. Its teardown is read back. Not informational: that set stays empty, as it needs a ruling.
+- **Readers run here, with no environment file:** the-procedures-are-the-workflow-map passes after main came in. `emit-procedures` rewrites nothing, because the walk's one sentence in the map sits outside the step tables. Also pass: an-unmeasured-route, every-port, indexnow, a-backup-proves-what-it-kept, the-build-guard, the-commit-guard, surface 26, backlog 12, token 115, accounts 135, jobs 190, observability 168 and migration 188. Run with no server and no database, the walk is COULD NOT TELL for all eight principals and does not crash.
+- **Added lines:** 0 long dashes, 0 British forms, 0 blocklist matches (the fork's range check).
+- **Retention order:** no table is added. It stays OK at 103.
+
+**Prediction: 64 of 64.** w2-walk-audit PASSes with 138 steps walked or accounted for, and a `W2 RESULT:` line per step. voice-audit "3 line(s) exempt". The administrator's dashboard median under 3000 ms. No FAIL line in any sealed shard log. The writers shard runs 10 to 20 minutes longer.
+
+**The risk, stated before the run:** the walk's live path has never run. Its role mapping, how it reaches pages with an id in the path, its friction rules and its teardown are proved only by this board. A miss most likely lands on w2-walk-audit itself, as a harness fault. A walk finding is a W3 item and does not fail the board.
+
 ## OVERNIGHT 2026-10-27/28, BUNDLE 1: W4 plus the two 09:14 fixes, on main `de1293b`
 
 **Prediction written and pushed before the board starts.**
