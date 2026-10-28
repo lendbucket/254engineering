@@ -147,6 +147,8 @@ export const metadata: Metadata = {
   description:
     `${firmName()} is a veteran owned Texas engineering firm named for the 254 counties of Texas, serving every one of them.`,
   applicationName: business.name,
+  /* src/app/manifest.webmanifest/route.ts. The portal's layout names the field app's instead. */
+  manifest: "/manifest.webmanifest",
   authors: [{ name: business.legalName, url: business.url }],
   creator: business.legalName,
   publisher: business.legalName,

@@ -28,6 +28,12 @@ import { MispointedDeployment } from "@/components/portal/Mispointed";
 export const metadata: Metadata = {
   title: "Portal | 254 Engineering",
   robots: { index: false, follow: false, nocache: true },
+  /*
+   * The field app's manifest rather than the public site's: a technician who
+   * installs the portal opens on his jobs (src/app/field-app.webmanifest).
+   * Mobile phase 1, ruling 13 of 2026-10-27.
+   */
+  manifest: "/field-app.webmanifest",
 };
 
 export default function PortalRootLayout({ children }: { children: React.ReactNode }) {
