@@ -3849,10 +3849,27 @@ export const APPLIED = [
       "then on production after the board passes. The branch merges only after the production apply is read back.",
   },
   {
-    file: "0100_a_site_orders_twenty_times_a_minute.sql",
+    file: "0100_a_site_orders_twenty_times_a_minute.sql", appliedBy: "apply_migration",
     fingerprint: "0a97717f953b0be7267ab818ad99eda6",
     behaviour: "d6e8584f8323cab071add95fb1faaabd",
-    production: null,
+    /*
+     * APPLIED TO PRODUCTION 2026-10-28 12:05 UTC, provider version
+     * 20261028120534, by the operator's chat counterpart through
+     * apply_migration from the boarded commit c99361b (board 40672094620,
+     * 64 of 64). Read back on issue #1, comment 6468534727. The file applied
+     * is sha256 b0d157e4b7ead5d0ce68fc80dcebcb4bfa5531be028366a26e5b78187ce4051c;
+     * the stored statement reads back as sha256
+     * ba43840a35c16df759e6536f19a80100cc9100902a0503709d28603604bf4729, the
+     * development figure.
+     *
+     * Before: last migration 0099 (20261028010153); shape 6bfbef5f across
+     * 1370; no eng_site_order_requests. After: shape
+     * 0a97717f953b0be7267ab818ad99eda6 across 1374 columns and 104 eng_
+     * tables, as predicted; RLS on, 0 policies, 0 rows; anon false on the
+     * table and its sequence; 0 eng_ functions executable by anon or
+     * authenticated.
+     */
+    production: "2026-10-28",
     proves: { table: "eng_site_order_requests", column: "intent" },
     note:
       "Both figures read off scripts/fingerprint-at.mjs at 0100 on 2026-10-28, with 0099 reproducing its recorded " +
@@ -3862,7 +3879,8 @@ export const APPLIED = [
       "WRITTEN 2026-10-28 ON feat/sealed-before-open, ON TOP OF 0099; ON DEVELOPMENT (version 20261028100304, " +
       "applied by the operator's chat counterpart through apply_migration from stage/0100-site-orders-2 at " +
       "0313d9c, file sha256 b0d157e4, stored statement sha256 ba43840a, shape 0a97717f across 1374 columns read " +
-      "back, the table and its sequence closed to anon; issue #1 comment 6466085622), NOT YET ON PRODUCTION. The " +
+      "back, the table and its sequence closed to anon; issue #1 comment 6466085622) AND PRODUCTION (version " +
+      "20261028120534, comment 6468534727). The " +
       "first staging lacked the revokes and was held by the chat (comment 6462860460). Robert's ruling 6 of " +
       "2026-10-27, 22:05 Central: a per-site limit of 20 requests a minute on /api/orders before Sealed's " +
       "ordering opens, counted from rows. Production only from a passed board's boarded commit; the branch " +
@@ -3872,7 +3890,19 @@ export const APPLIED = [
     file: "0101_three_roles_land_on_their_dashboard.sql", appliedBy: "apply_migration",
     fingerprint: "0a97717f953b0be7267ab818ad99eda6",
     behaviour: "e4014da34aedcf2c5176f51803d9ef3d",
-    production: null,
+    /*
+     * APPLIED TO PRODUCTION 2026-10-28 12:05 UTC, provider version
+     * 20261028120554, by the operator's chat counterpart through
+     * apply_migration from the boarded commit c99361b (board 40672094620,
+     * 64 of 64), after 0100. Read back on issue #1, comment 6468534727. The
+     * file applied is sha256
+     * 06079f09acb0303e1dcf6f68789f936d35de394fed22b8788331c20a600a4125; the
+     * stored statement reads back as sha256
+     * 52d4026944c229fa799d1d5d9a295a7723ab2768dee357efb73e36ac325cc37c, the
+     * development figure. Dispatcher, sales and customer_service read
+     * /portal, every other role unchanged, the shape unchanged.
+     */
+    production: "2026-10-28",
     proves: { row: { table: "eng_roles", where: "key = 'sales' and landing_path = '/portal'" } },
     note:
       "Both figures read off scripts/fingerprint-at.mjs at 0101 on 2026-10-28, with 0100 reproducing its recorded " +
@@ -3882,7 +3912,8 @@ export const APPLIED = [
       "WRITTEN 2026-10-28 ON feat/rulings-11-12-b, ON TOP OF 0100 (feat/sealed-before-open); ON DEVELOPMENT " +
       "(version 20261028100329, applied by the operator's chat counterpart through apply_migration from " +
       "stage/0101-three-roles-land-2 at 7b33b97, file sha256 06079f09, stored statement sha256 52d40269, the three " +
-      "roles read /portal and the rest unchanged; issue #1 comment 6466085622), NOT YET ON PRODUCTION. Numbered 0100 when first staged as stage/0100-three-roles-land, renumbered before any sitting " +
+      "roles read /portal and the rest unchanged; issue #1 comment 6466085622) AND PRODUCTION (version " +
+      "20261028120554, comment 6468534727). Numbered 0100 when first staged as stage/0100-three-roles-land, renumbered before any sitting " +
       "because the Sealed bundle boards first and holds 0100. Robert's ruling 11 of 2026-10-27, 22:05 Central: " +
       "sales, customer service and the dispatcher land on their /portal dashboard. Posted on issue #1 for the chat " +
       "to sit on development from its stage branch, then on production from the boarded commit after the board " +
