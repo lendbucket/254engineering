@@ -1,5 +1,42 @@
 # Day queue, 2026-10-23
 
+## 2026-10-28 AFTERNOON: BUNDLES 7 TO 10 MERGED
+
+| Bundle | Merge | Board |
+| --- | --- | --- |
+| 7, 0102 | `a03473c` | 40695995700 |
+| 8, 0103 and 0104 | `f0be68b` | 40722907178. Vercel READY, per the chat at 6481560748; the owner's technician exemption is live |
+| 9, slow screens | `999bef4` | 40747015235 |
+| 10, paged accounts | `c935731` | 40768601973, 64 of 64. `/portal/accounts` 1.6 to 2.1 s over 19 renders, against 10.3 to 10.5 s |
+
+- Production versions: 0102 at 20261028210825, 0103 at 20261028210847, 0104 at 20261028210855.
+- schema-ledger-audit on main: 105 applied, 0 pending.
+- Each merged tree differs from its boarded one only in `supabase/applied.mjs`.
+
+## 2026-10-28, BUNDLE 11: the accounts CSV export and the superseded question, `feat/accounts-csv` at `2ccb0ec`
+
+**Prediction written and pushed before the board starts.** Built on bundle 10, brought up to main `c935731`.
+
+**Robert's answers 4a and 4b of 16:11 Central** (comment 6480742347):
+- `report=accounts` on the existing export door. It covers every account matching the page's query through `accountListQuery` and the same `accountRows` path, scoped to every matching account.
+- Gated on `accounts.manage`, the grant the screen asks, which roles-audit pins to the administrator; the owner holds that role.
+- `csv.ts` and `moneyCell`, the shared CSV safety. An `export.accounts` audit row, and a 503 with no file on a failed read.
+- An Export CSV link on the page carrying the query, drawn only for the grant.
+- The BACKLOG question on superseded accounts, with a recommendation.
+- No migration, no table, no new route.
+
+**Readers on `2ccb0ec`:**
+- tsc clean; surface-audit and backlog-audit pass.
+- The new proof `the-accounts-csv-is-every-matching-account-for-the-admin.mjs` passes. It was injected twice when built, each red on its own checks, both restored byte identical.
+- The paging and inbox export proofs pass.
+- 299 added lines: no long dash, no banned phrase, no present tense claim.
+- soc2-audit passes every line but the four that need an environment file.
+
+**Prediction: 64 of 64.**
+- roles-audit refuses the accounts export to the rep and the operations manager at the real route.
+- Both accounts proofs pass.
+- 3 lines exempt; the walk at 0 broken.
+
 ## 2026-10-28, BUNDLE 10 AGAIN, after one miss, at `669a9f4`
 
 **Prediction written and pushed before the board starts.**
