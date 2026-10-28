@@ -1,5 +1,25 @@
 # Day queue, 2026-10-23
 
+## 2026-10-28, BUNDLE 8 PASSED: run 40722907178 on `68d239b`, 64 of 64
+
+- **Every named line held, and one did not.** The walk read 3 friction lines where I predicted 9, on a faster runner (dashboard median 876 ms).
+- **0102, 0103 and 0104 are posted for production** (6472048892, 6475572432). The bundle merges after their read-backs.
+
+## 2026-10-28, BUNDLE 9: profiling the two slow staff screens, `feat/profile-slow-screens` at `87b11b9`
+
+**Prediction written and pushed before the board starts.** Built on main `7827c17`. Bundle 8 waits only on its production read-backs, so this bundle boards from main and not on top of it.
+
+**What it carries:** timing lines only, no behavior change.
+- `[review.timing]` gives the total and each of the review page's 8 reads.
+- `[accounts.page.timing]` gives total, actor, accountRows and rendered on `/portal/accounts`, beside the existing `[accounts.timing]`.
+- Two files, 42 lines added. No migration, no table (so no retention order check), no route, no role.
+
+**Prediction: 64 of 64, every gating audit passing.**
+- 3 lines exempt.
+- The walk at 0 broken.
+- The sealed writers server log carries at least one `[review.timing]` line and one `[accounts.page.timing]` line, each with every named read.
+- I state no figure for the timings in advance: the point is to measure them.
+
 ## 2026-10-28, BUNDLE 8 AGAIN, after one miss, at `68d239b`
 
 **Prediction written and pushed before the board starts.**
