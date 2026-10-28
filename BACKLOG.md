@@ -47,14 +47,17 @@ below).
 
 ## 0098, QUOTES: BUILT, AND A DESIGN QUOTE CANNOT YET BE PAID
 
-## DESIGN BRIEFS: "START A QUOTE FROM THIS BRIEF", A LATER BUNDLE
+## DESIGN BRIEFS: "START A QUOTE FROM THIS BRIEF", BUILT ON feat/brief-to-quote
 
 Robert's answer 2 of 2026-10-27, 11:48 Central (issue #1 comment 6447951314).
 A brief sent through `/design-inquiry` is written to `eng_design_inquiries`,
 which is a separate table from `eng_quote_requests`, so it never reaches the
-quote list on `/portal/quotes`. A later bundle adds a "start a quote from this
-brief" action on the inquiries screen, which opens a quote request carrying the
-brief. **The tables are not merged**, on his answer. Not built.
+quote list on `/portal/quotes`. Built 2026-10-28 on `feat/brief-to-quote`, not
+yet boarded: the inquiries screen offers "start a quote from this brief" to
+`quotes.manage`, which opens a quote request through `requestQuote` keyed on the
+brief, as the design deliverable the office picks. **The tables are not
+merged**, on his answer. While the gate is shut, `requestQuote` refuses every
+quote request, this one included, and the screen shows its sentence.
 
 ## 0098, QUOTES: BUILT, AND HIS FIVE ANSWERS OF 2026-10-27 ARE IN
 
