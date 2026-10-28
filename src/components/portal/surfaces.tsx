@@ -102,9 +102,12 @@ export function EmptyState({
   body: string;
   action?: ReactNode;
 }) {
-  /* V10: no box, dashed or otherwise. What will appear here, said plainly, where the rows would be. */
+  /*
+   * V10: no box, dashed or otherwise. What will appear here, said plainly, where the rows would be.
+   * data-empty-state lets the W2 walk tell "nothing to act on yet" from "no way to act" (2026-10-28).
+   */
   return (
-    <div className="py-6">
+    <div className="py-6" data-empty-state="">
       <p className="text-[15px] font-semibold text-[var(--ink)]">{title}</p>
       <p className="mt-2 max-w-[62ch] text-[14px] leading-[1.6] text-[var(--secondary)]">{body}</p>
       {action ? <div className="mt-4 flex">{action}</div> : null}
