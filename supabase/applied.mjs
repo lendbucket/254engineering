@@ -3848,6 +3848,22 @@ export const APPLIED = [
       "the office's alerts go to a list the owner edits. Posted on issue #1 for the chat to sit on development, " +
       "then on production after the board passes. The branch merges only after the production apply is read back.",
   },
+  {
+    file: "0100_three_roles_land_on_their_dashboard.sql", appliedBy: "apply_migration",
+    fingerprint: "6bfbef5f84906d2a453fefe1cf3c03fb",
+    behaviour: "f620a503d989204ecb9a84fc7a2cd2e3",
+    production: null,
+    proves: { row: { table: "eng_roles", where: "key = 'sales' and landing_path = '/portal'" } },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0100 on 2026-10-28, with 0099 reproducing its recorded " +
+      "pair. Three rows of eng_roles move, so the shape (1370 columns) and the fact count (1318) are unchanged and " +
+      "the behaviour digest moves with the seeded rows.",
+    because:
+      "WRITTEN 2026-10-28 ON feat/rulings-11-12, ON MAIN de1293b; NOT YET ON DEVELOPMENT OR PRODUCTION. Robert's " +
+      "ruling 11 of 2026-10-27, 22:05 Central: sales, customer service and the dispatcher land on their /portal " +
+      "dashboard. Posted on issue #1 for the chat to sit on development from its stage branch, then on production " +
+      "from the boarded commit after the board passes. The branch merges only after the production apply is read back.",
+  },
 ];
 
 /*
