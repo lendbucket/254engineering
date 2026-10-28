@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { currentActor, requestContext } from "@/lib/ops-auth";
-import { markInquiryResponded } from "@/lib/ops-inquiries";
+import { markInquiryResponded, startQuoteFromBrief } from "@/lib/ops-inquiries";
 import { withSaveOutcome } from "@/lib/save-outcome";
 
 /**
@@ -26,6 +26,14 @@ async function handlePOST(request: NextRequest) {
   if (action === "mark_answered") {
     const result = await markInquiryResponded(actor, String(body?.inquiryId ?? ""), context);
     return result.ok ? NextResponse.json({ ok: true }) : bad(result.error);
+  }
+
+  /* Robert's answer 2 of 2026-10-27: a quote request carrying the brief, through requestQuote. */
+  if (action === "start_quote") {
+    const result = await startQuoteFromBrief(actor, String(body?.inquiryId ?? ""), String(body?.tier ?? ""), context);
+    return result.ok
+      ? NextResponse.json({ ok: true, reference: result.reference, duplicate: result.duplicate })
+      : bad(result.error);
   }
 
   return bad("Unknown action.");

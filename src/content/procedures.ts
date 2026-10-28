@@ -432,11 +432,11 @@ export const PROCEDURES: Procedure[] = [
         ],
         "who": "Rep",
         "sees": "The design briefs and windstorm enquiries",
-        "does": "Marks one answered",
-        "next": "`/api/portal/inquiries` and `/api/portal/windstorm-inquiries`, `mark_answered`",
+        "does": "Marks one answered; or, for a design brief, starts a quote from it, choosing which design deliverable it is (office or owner, `quotes.manage`, added 2026-10-28)",
+        "next": "`/api/portal/inquiries` and `/api/portal/windstorm-inquiries`, `mark_answered`; `/api/portal/inquiries` `start_quote` (`startQuoteFromBrief`, through `requestQuote`)",
         "told": "",
-        "record": "`eng_design_inquiries` or `eng_windstorm_inquiries` update; audit `design_inquiry.answered` or `windstorm_inquiry.answered`",
-        "marks": "The reply itself is written outside the platform; the screen records that it was answered"
+        "record": "`eng_design_inquiries` or `eng_windstorm_inquiries` update; audit `design_inquiry.answered` or `windstorm_inquiry.answered`. A started quote: `eng_quote_requests` insert keyed `design-inquiry:<id>`; audits `quote.requested` and `design_inquiry.quote_started`",
+        "marks": "The reply itself is written outside the platform; the screen records that it was answered. A started quote waits on `/portal/quotes` to be priced and sent, and one brief opens one quote"
       },
       {
         "n": "4",

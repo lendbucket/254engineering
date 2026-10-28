@@ -1,9 +1,11 @@
 import "server-only";
 import { DB_NOW } from "./db-now";
-import { supabaseAdmin } from "./supabase";
+import { supabaseAdmin, SITE_KEY } from "./supabase";
 import { writeAudit } from "./ops-audit";
 import { can, type Actor } from "./ops-authz";
 import { INQUIRY_PAGE_SIZE, inquiryListQuery, inquirySearchOr, type InquiryListQuery } from "./inquiry-list";
+import { requestQuote } from "./ops-intake";
+import { DESIGN_SERVICE, briefQuoteRequestId, composeQuoteBrief } from "./brief-quote-rules";
 
 /**
  * ===========================================================================
@@ -50,6 +52,13 @@ export type InquiryRow = {
   respond_by: string;
   responded_at: string | null;
   responded_by: string | null;
+  /*
+   * The quote request started from this brief, found by its idempotency key
+   * (briefQuoteRequestId). Null is "none started". Undefined is "not looked
+   * up": the reader cannot open quotes, or the lookup failed, which the read
+   * says through quotesKnown rather than by showing every brief as unquoted.
+   */
+  quote?: { id: string; reference: string; status: string } | null;
 };
 
 const COLUMNS =
@@ -79,7 +88,7 @@ const COLUMNS =
  * failed read, never a smaller number.
  */
 export type InquiryListRead =
-  | { ok: true; rows: InquiryRow[]; total: number; open: number; answered: number }
+  | { ok: true; rows: InquiryRow[]; total: number; open: number; answered: number; quotesKnown?: boolean }
   | { ok: false; error: string };
 
 export async function designInquiries(actor: Actor | null, query: InquiryListQuery = inquiryListQuery({})): Promise<InquiryListRead> {
@@ -117,7 +126,102 @@ export async function designInquiries(actor: Actor | null, query: InquiryListQue
     console.error(`[inquiries] the design briefs could not be read: ${message}`);
     return { ok: false, error: message };
   }
-  return { ok: true, rows: (data ?? []) as InquiryRow[], total: count, open: open.count, answered: answered.count };
+  const rows = (data ?? []) as InquiryRow[];
+
+  /*
+   * WHICH OF THESE BRIEFS ALREADY HAS A QUOTE, for the people who can start
+   * one. One read for the page, by idempotency key. A failed read leaves every
+   * row unmarked and says so (quotesKnown false), because "no quote yet" on a
+   * brief that has one would invite a second press that changes nothing and a
+   * person who believes the screen.
+   */
+  let quotesKnown = false;
+  if (can(actor, "quotes.manage") && rows.length > 0) {
+    const keys = rows.map((r) => briefQuoteRequestId(r.id));
+    const { data: quotes, error: quoteError } = await db
+      .from("eng_quote_requests")
+      .select("id, reference, status, client_request_id")
+      .in("client_request_id", keys);
+    if (quoteError) {
+      console.error(`[inquiries] the quotes started from these briefs could not be read: ${quoteError.message}`);
+    } else {
+      quotesKnown = true;
+      const byKey = new Map((quotes ?? []).map((q) => [q.client_request_id as string, q]));
+      for (const r of rows) {
+        const q = byKey.get(briefQuoteRequestId(r.id));
+        r.quote = q ? { id: q.id as string, reference: q.reference as string, status: q.status as string } : null;
+      }
+    }
+  }
+  return { ok: true, rows, total: count, open: open.count, answered: answered.count, quotesKnown };
+}
+
+/**
+ * START A QUOTE FROM THIS BRIEF. Robert's answer 2 of 2026-10-27: a quote
+ * request carrying the brief, opened from the inquiries screen; the two tables
+ * stay separate.
+ *
+ * It goes through requestQuote, the one door every quote request takes, so the
+ * gate, the catalogue and the design line's own rules apply exactly as they do
+ * to a request from the site, and the request lands on /portal/quotes like any
+ * other. The idempotency key is the brief's (briefQuoteRequestId), so pressing
+ * twice returns the same quote and a second one is never opened.
+ *
+ * WHICH DESIGN DELIVERABLE IS THE OFFICE'S CHOICE, not a mapping. The brief's
+ * four answers (sealed plans, a sealed letter, a repair specification, a design
+ * review) do not name the line's three quoted deliverables, and translating one
+ * into another would be the platform deciding the scope of engineering work.
+ * So the person starting the quote picks it, and requestQuote refuses anything
+ * that is not a quoted deliverable on the design line.
+ *
+ * Who: quotes.manage, the grant behind /portal/quotes, because what this
+ * creates is a quote request. Answering the brief is a separate act and this
+ * does not record it.
+ */
+export async function startQuoteFromBrief(
+  actor: Actor & { email: string },
+  inquiryId: string,
+  tier: string,
+  context: { ip?: string | null; userAgent?: string | null } = {},
+): Promise<{ ok: true; reference: string; duplicate: boolean } | { ok: false; error: string }> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+  if (!can(actor, "quotes.manage")) return { ok: false, error: "Only the office or the owner starts a quote." };
+  if (!tier) return { ok: false, error: "Choose which design deliverable to quote." };
+
+  const { data: row, error: readError } = await db
+    .from("eng_design_inquiries")
+    .select(
+      "id, name, email, phone, asking_as, work_kind, deliverable, property_address, jurisdiction, square_feet, storeys, drawings, soil_report, permit_status, deadline, open_insurance_claim, active_litigation, prior_adverse_report",
+    )
+    .eq("id", inquiryId)
+    .maybeSingle();
+  if (readError) return { ok: false, error: `The brief could not be read, so no quote was started: ${readError.message}` };
+  if (!row) return { ok: false, error: "That brief does not exist." };
+  const brief = row as unknown as InquiryRow;
+
+  const result = await requestQuote({
+    site: SITE_KEY,
+    clientRequestId: briefQuoteRequestId(brief.id),
+    serviceSlug: DESIGN_SERVICE,
+    tier,
+    customer: { name: brief.name, email: brief.email, phone: brief.phone },
+    property: { propertyAddress: brief.property_address },
+    brief: composeQuoteBrief(brief),
+  });
+  if (!result.ok) return { ok: false, error: result.error };
+
+  if (!result.duplicate) {
+    await writeAudit({
+      actor,
+      action: "design_inquiry.quote_started",
+      entityType: "design_inquiry",
+      entityId: brief.id,
+      summary: `Started quote ${result.reference} from the design brief from ${brief.name}`,
+      ...context,
+    });
+  }
+  return { ok: true, reference: result.reference, duplicate: result.duplicate };
 }
 
 /**
