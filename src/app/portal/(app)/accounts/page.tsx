@@ -221,6 +221,13 @@ export default async function AccountsPage({ searchParams }: { searchParams: Pro
             sorts={[{ value: "added", label: "Opened" }, { value: "name", label: "Organization" }]}
             sort={query.sort}
             direction={query.ascending ? "asc" : "desc"}
+            /*
+             * EVERY MATCHING ACCOUNT AS A CSV. Robert, 2026-10-28, 16:11
+             * Central: the same query and filters as this page, owner or admin
+             * only. The link carries this page's query, and is drawn only for
+             * the grant the export door asks.
+             */
+            csvHref={can(actor, "accounts.manage") ? listHref("/api/portal/exports", keep, { report: "accounts" }) : undefined}
           />
           <Panel
             title={

@@ -8,6 +8,9 @@ import { exportFilename, exportRowCount, reportCsv } from "@/lib/ops-report-expo
 import { enqueue } from "@/lib/ops-jobs";
 import { writeAudit } from "@/lib/ops-audit";
 import { withSaveOutcome } from "@/lib/save-outcome";
+import { accountRows } from "@/lib/ops-accounts-admin";
+import { accountListQuery } from "@/lib/account-list";
+import { accountsCsv, accountsFilename } from "@/lib/account-export";
 
 export const dynamic = "force-dynamic";
 
@@ -119,6 +122,44 @@ async function handleGET(request: NextRequest) {
     return new NextResponse(body, {
       headers: csvHeaders(`${report === "margin" ? "margin-by-file" : "margin-by-period"}-${stamp()}.csv`),
     });
+  }
+
+  if (report === "accounts") {
+    /*
+     * EVERY MATCHING ORDERING ACCOUNT. Robert, 2026-10-28, 16:11 Central:
+     * owner or admin only, which is accounts.manage, the grant the accounts
+     * screen itself asks and that roles-audit pins to the administrator alone.
+     * The query is the page's own, parsed by accountListQuery, and the rows are
+     * accountRows with scope "every", so the file holds exactly the accounts
+     * the screen would page through.
+     *
+     * A failed read refuses the file. A CSV of some accounts, headed as the
+     * firm's ordering accounts, is a statement that the rest do not exist.
+     */
+    if (!can(actor, "accounts.manage")) return bad("Your role cannot export the ordering accounts.", 403);
+    const p = request.nextUrl.searchParams;
+    const query = accountListQuery({
+      q: p.get("q") ?? undefined,
+      status: p.get("status") ?? undefined,
+      billing: p.get("billing") ?? undefined,
+      attention: p.get("attention") ?? undefined,
+      sort: p.get("sort") ?? undefined,
+      dir: p.get("dir") ?? undefined,
+    });
+    const read = await accountRows(query, "every");
+    if (!read.ok) {
+      return bad(`The ordering accounts could not be read, so nothing was exported: ${read.unavailable.join(" ")}`, 503);
+    }
+
+    await writeAudit({
+      actor,
+      action: "export.accounts",
+      entityType: "account",
+      summary: `Exported ${read.rows.length} ordering account(s) of ${read.all}`,
+      ...context,
+    });
+
+    return new NextResponse(accountsCsv(read.rows, query, read.all), { headers: csvHeaders(accountsFilename()) });
   }
 
   /*
