@@ -1,5 +1,33 @@
 # Day queue, 2026-10-23
 
+## 2026-10-28, BUNDLE 7: the grant cleanup (0102), on main `7827c17`
+
+**Prediction written and pushed before the board starts.** Robert's answers of 08:18 Central (issue #1 comment 6470044608): yes to all six. The order he set is 0102's board, then 0103 and 0104 in one bundle, then the profiling bundle, then records for the walk's 34 unreached steps. Bundle 6 merged as `7827c17`, with 0100 and 0101 on production; main declares 102 applied, 0 pending.
+
+Branch `feat/grant-cleanup` at `8e8f87f`, on main `7827c17`. Full lane: a migration, the replay stub and migration-audit.
+- **0102** revokes all privileges from public, anon and authenticated on the 104 `eng_` tables and 13 `eng_` sequences that a replay of the chain creates. Each object is named; the shared default privileges are untouched. It is on development at 20261028131133 (comment 6469887899). The file then changed inside its read-back only: the service role's four privileges are now asked one by one (`stage/0102-grants-2`).
+- **The replay stub** reproduces Supabase's default grant on tables and sequences.
+- **migration-audit** checks the premise first: a new table and its sequence are granted to anon by default. It then asserts that none of the 104 tables and 13 sequences is open.
+- **Readers, run here:**
+  - migration-audit 194 and schema-ledger 32 pass.
+  - Every proof that uses the replay stub passes (24), except three that print COULD NOT TELL because they need a production build. Also passing: a-seal-act-records-who-it-prints and the commit-guard proof.
+  - Injections:
+    - One table revoke removed: the replay stops at 0102, naming `eng_audit_events`.
+    - `delete` taken from the service role on `eng_jobs`: the replay stops at 0102, naming `eng_jobs`.
+    - Before the stub change, the first injection stayed green.
+- **Retention order:** no table added; still OK at 104.
+- **Cross-branch:**
+  - The board's writers use the service role, whose grants 0102 leaves and its read-back asserts.
+  - No audit or proof reads through anon or authenticated: no publishable key exists in `src` or `scripts`.
+
+**Prediction: 64 of 64.**
+- migration-audit reads "the replay grants a new table and its sequence to anon by default" and "no eng_ table or sequence is open to anon or authenticated (104 tables, 13 sequences checked)".
+- The walk is unchanged: 0 broken, the nine speed lines as friction.
+- voice-audit reads "3 line(s) exempt".
+- The administrator's dashboard median is under 3000 ms.
+- No FAIL line appears in any sealed shard log.
+- On a match, 0102 is posted for production from this boarded commit, with Section 0 expecting 111 open.
+
 ## MORNING REPORT, 2026-10-28, from the overnight run of Robert's 22:48 instruction
 
 **Needs Robert: six questions below, each with a recommendation.** Nothing in the queue is blocked on him except the technician's second factor. The Sealed bundle is boarding now. Its production sitting is the chat's, after the board passes.
