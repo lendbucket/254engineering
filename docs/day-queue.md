@@ -1,5 +1,29 @@
 # Day queue, 2026-10-23
 
+## OVERNIGHT, BUNDLE 3: W3 from the first walk, on main `9455063`
+
+**Prediction written and pushed before the board starts.** Bundle 2 merged as `9455063` (board 40635489767, 64 of 64 as predicted; the walk 138 of 138 steps, teardown 0 left; dashboard median 1781 ms; 3 lines exempt). The walk found 163 works, 23 friction, 10 broken, 20 missing, 8 off-screen and 24 unreached.
+
+Branch `feat/w3-walk-findings` at `cdc6105`, on main `9455063`. No migration, no table, full lane (a shared portal component and the walk audit).
+
+- **What it changes:**
+  - **The 10 broken lines were the map's error, and the map is corrected.** The ops manager holds neither `profiles.create` nor `profiles.list`. `/portal/protocols` is licensed. The map now names the admin and the engineer, and the procedures are re-emitted (still 138 steps).
+  - **Empty lists are no longer friction.** `EmptyState` carries `data-empty-state`. The walk reads a page with no control and its empty state as unreached ("no row to act on on development"). A page with no control and no empty state is still friction.
+  - **The two slow screens are recorded in BACKLOG, unfixed.** `/portal/accounts` spends 8.4 to 9.1 s in application code and `/portal/review` 6.3 s, read off the board's server log. Section 6c: no fix on a billing screen without a profile.
+- **Readers run here:**
+  - Pass: the procedures proof, token 115, portal-voice 29, surface 26, backlog 12, email 1150 of 1150, a-partner-order-page and a-backup-proves-what-it-kept.
+  - The walk, run with no server, is COULD NOT TELL for all eight roles and does not crash.
+  - Added lines: 0 long dashes, 0 blocklist, 0 regulatory.
+- **Retention order:** no table, still OK at 103.
+
+**Prediction: 64 of 64.** w2-walk-audit PASSes, 138 of 138, teardown 0 left, and its tally moves as follows:
+- **broken 0.** The admin now opens `/portal/applications` and `/portal/techs`, and the engineer opens `/portal/protocols`.
+- **friction at least 9.** The three `/portal/accounts` and six `/portal/review` speed lines stay, because nothing here makes them faster.
+- **friction at most 21.** A "no control" page that is not on its empty state stays friction, and that would be a finding.
+- **unreached rises** by the empty-state steps.
+
+voice-audit "3 line(s) exempt". The administrator's dashboard median under 3000 ms. No FAIL line in any sealed shard log.
+
 ## OVERNIGHT, BUNDLE 2: the W2 walk, on main `1af76dc`
 
 **Prediction written and pushed before the board starts.** Bundle 1 merged as `1af76dc` (board 40629495423, 63 of 63 as predicted, dashboard median 1492 ms, 3 lines exempt).
