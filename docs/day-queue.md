@@ -1,5 +1,39 @@
 # Day queue, 2026-10-23
 
+## 2026-10-28, BUNDLE 8: 0103 and 0104, the fourth override and option 2, on bundle 7's `8e8f87f`
+
+**Prediction written and pushed before the board starts.** Bundle 7 passed: board 40695995700, 64 of 64 as predicted, dashboard median 2030 ms. 0102 is posted for production (comment 6472048892).
+
+Branch `feat/tech-mfa-and-ops-grants` at `eeaf556`, which is bundle 7's boarded `8e8f87f` plus the work below, on main `7827c17`. Full lane: migrations, roles, the sign in route, owner overrides. It merges only after 0102, 0103 and 0104 are read back from production.
+
+- **0103**: field_tech requires the second factor. Development applied it at 20261028135200.
+- **0104**: applications.read for admin and ops_manager; profiles.list and profiles.update for ops_manager. Development applied it at 20261028135208.
+- **The fourth named override**, `sign_in_second_factor_tech`: the owner's technician profile `c9d46cd2`, under field_tech only, with an audit row from the declaration before any session. `/portal/launch` derives its count.
+- **Option 2**: `WIDE_GRANT_TECHNICIANS_ONLY` keeps the ops manager's profiles.update to field technicians, and recording a certification asks it of the profile's role.
+- **The applications page and its nav item** ask applications.read.
+- **The map** names the ops manager on 254-WF-016 step 2 and 254-WF-017 steps 2 to 5. The procedures are re-emitted (still 138 steps).
+- **Readers, run here:**
+  - These pass: migration-audit 196, schema-ledger 32, token 115, backlog 12, surface 26, accounts 135, and the procedures proof.
+  - Four proofs pass: the new `the-field-technician-requires-the-second-factor`, the new `the-operations-manager-keeps-technicians-only`, and the updated `the-owner-override-is-two-ids` and `the-owner-signs-in-without-the-second-factor-and-nobody-else-does`.
+  - Six neighbouring proofs pass.
+  - A replica of roles-audit's chain read matches `DEFAULT_ROLES` both ways: 191 grants, 31 for ops_manager.
+  - `a-certification-waits-for-the-engineer` needs the development database, so it runs on the board.
+- **Injections**, each red, each restored byte identical:
+  - dropping ops_manager profiles.update from 0104;
+  - letting 0103 move the dispatcher;
+  - removing the technician override branch;
+  - emptying the narrowing list.
+- **Retention order:** no table, OK at 104.
+- **Cross-branch:** board probes enrol whenever sign in redirects them to enrolment (`signInFully`), so the field_tech requirement on development strands no probe. The walk's field_tech steps sign in the same way.
+
+**Prediction: 64 of 64.**
+- roles-audit reads "the operations manager reads applications and lists and keeps technicians" and "no grant breaks a rule the firm holds".
+- proofs-audit passes with the four proofs above.
+- The walk reads 0 broken. Its ops manager steps on `/portal/applications` and `/portal/techs` now open, and the nine speed lines stay friction.
+- voice-audit reads "3 line(s) exempt".
+- The administrator's dashboard median stays under 3000 ms.
+- No FAIL line appears in any sealed shard log.
+
 ## 2026-10-28, BUNDLE 7: the grant cleanup (0102), on main `7827c17`
 
 **Prediction written and pushed before the board starts.** Robert's answers of 08:18 Central (issue #1 comment 6470044608): yes to all six. The order he set is 0102's board, then 0103 and 0104 in one bundle, then the profiling bundle, then records for the walk's 34 unreached steps. Bundle 6 merged as `7827c17`, with 0100 and 0101 on production; main declares 102 applied, 0 pending.
