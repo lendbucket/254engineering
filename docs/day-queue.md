@@ -1,5 +1,19 @@
 # Day queue, 2026-10-23
 
+## 2026-10-28, BUNDLE 11 AGAIN, after one miss, at `6f9a6a1`
+
+**Prediction written and pushed before the board starts.**
+
+**The miss.** Board 40779701058 on `2ccb0ec` read 63 of 64. db-guard-audit's "no observed timestamp in src/ is written from this process's clock" named `src/lib/account-export.ts`, whose filename called `new Date().toISOString()`.
+- **Why I missed it:** I did not run db-guard-audit locally, though it reads every file in `src`. It belongs in the readers of any bundle adding a `src/lib` file.
+- **The repair:** the filename takes its day from the export door's `stamp()`. That is the clock read the audit already excuses, and the door's other exports use it. No allowance was added.
+- **The proof:** its pin named the old call and now names the new one exactly, plus a check that the module reads no clock.
+- **The injection:** putting the call back turned db-guard-audit's line and the new check red, and the file was restored byte identical.
+
+**Prediction: 64 of 64.**
+- db-guard-audit passes its clock line with 12 allowances, every one used. Its environment line fails here only because this worktree has no environment file.
+- Everything else as the first prediction below.
+
 ## 2026-10-28 AFTERNOON: BUNDLES 7 TO 10 MERGED
 
 | Bundle | Merge | Board |
