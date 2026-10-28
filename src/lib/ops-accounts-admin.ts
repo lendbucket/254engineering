@@ -278,13 +278,22 @@ export async function accountRows(query: AccountListQuery = accountListQuery({})
    * client, so the search asks eng_clients which names match and keeps the
    * accounts whose client is one of them. A filter applied to the page alone
    * would look like a search and be a search of fifty.
+   *
+   * EVERY WORD, NOT THE CLEANED PHRASE. cleanSearchTerm turns a comma or a
+   * bracket into a space, so "Acme, Inc." became "%Acme Inc.%", which the
+   * stored name "Acme, Inc." does not contain: typing an organization's own
+   * name found nothing. Board 40755884083's proof asked exactly that. Each word
+   * must appear in the name, in any order.
    */
   let matchingClients: Set<string> | null = null;
   if (query.term) {
     const searchAt = Date.now();
-    const searchRead = await readEvery<Record<string, unknown>>((from, to) =>
-      db.from("eng_clients").select("id").ilike("name", `%${query.term}%`).order("id", { ascending: true }).range(from, to),
-    );
+    const words = query.term.split(" ").filter((w) => w.length > 0);
+    const searchRead = await readEvery<Record<string, unknown>>((from, to) => {
+      let q = db.from("eng_clients").select("id");
+      for (const w of words) q = q.ilike("name", `%${w}%`);
+      return q.order("id", { ascending: true }).range(from, to);
+    });
     phases.push({ name: "search", ms: since(searchAt), note: searchRead.ok ? `${searchRead.rows.length} names` : "failed" });
     if (!searchRead.ok) {
       reportTiming(phases, since(startedAt));

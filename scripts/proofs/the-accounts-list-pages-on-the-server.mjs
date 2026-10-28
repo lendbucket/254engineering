@@ -104,6 +104,18 @@ check(
   "and the unbilled count is over every account",
   /const unbilledAccounts = accounts\.filter\(/.test(body),
 );
+/*
+ * The search asks for every word of the cleaned term, never the cleaned phrase:
+ * cleanSearchTerm turns "Acme, Inc." into "Acme Inc.", which the stored name
+ * does not contain, so a phrase search could not find an organization typed as
+ * it is written (board 40755884083).
+ */
+const cleanedFromPunctuation = accountListQuery({ q: "Acme, Inc. (North)" }).term;
+check("a name with a comma and brackets is cleaned to words", cleanedFromPunctuation === "Acme Inc. North", JSON.stringify(cleanedFromPunctuation));
+check(
+  "and the search asks for each word, not the cleaned phrase",
+  /for \(const w of words\) q = q\.ilike\("name", `%\$\{w\}%`\);/.test(body) && !/ilike\("name", `%\$\{query\.term\}%`\)/.test(body),
+);
 
 const page = readFileSync("src/app/portal/(app)/accounts/page.tsx", "utf8");
 check(

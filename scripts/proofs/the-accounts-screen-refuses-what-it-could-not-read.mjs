@@ -134,9 +134,18 @@ function readWorld(label, targets, skipFind = false) {
   }
 }
 
+/*
+ * proofs-audit keeps only a proof's last line, so the names of the checks that
+ * failed travel on it. Board 40755884083 read "2 check(s) wrong." and nothing
+ * else, which left the cause to be inferred.
+ */
 let wrong = 0;
+const failed = [];
 const check = (name, ok, note) => {
-  if (!ok) wrong += 1;
+  if (!ok) {
+    wrong += 1;
+    failed.push(`${name}${note ? ` (${String(note).slice(0, 160)})` : ""}`);
+  }
   console.log(`${ok ? "PASS" : "FAIL"}  ${name}${note ? ` (${note})` : ""}`);
 };
 
@@ -282,6 +291,6 @@ check(
 console.log(
   wrong === 0
     ? "\nAll checks correct. A read that fails is an absence, not a page of zeros."
-    : `\n${wrong} check(s) wrong.`,
+    : `\n${wrong} check(s) wrong: ${failed.join(" | ")}`,
 );
 process.exitCode = wrong === 0 ? 0 : 1;

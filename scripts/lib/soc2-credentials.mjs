@@ -303,6 +303,14 @@ export const NOT_CREDENTIALS = new Set([
    */
   "TZ", "EVERY_DATE_CHILD",
   /*
+   * ACCOUNTS_PROOF_TARGETS and ACCOUNTS_PROOF_SKIP_FIND, 2026-10-28.
+   * scripts/proofs/the-accounts-screen-refuses-what-it-could-not-read.mjs hands
+   * its child process two account ids and their organization names as JSON,
+   * and a flag that skips the search under the injection. Development record
+   * names and a flag; neither grants or opens anything.
+   */
+  "ACCOUNTS_PROOF_TARGETS", "ACCOUNTS_PROOF_SKIP_FIND",
+  /*
    * AUDIT_RETRY_LOG, 2026-10-09. A file path under the system temp directory
    * where each audit records the network faults it retried, so the board can
    * count them (scripts/lib/transient-retry.mjs). A path and nothing else.
