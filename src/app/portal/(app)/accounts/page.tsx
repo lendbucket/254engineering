@@ -26,11 +26,27 @@ export const dynamic = "force-dynamic";
  * and they call for completely different actions.
  */
 export default async function AccountsPage() {
+  /*
+   * THE PAGE'S OWN SHARE, beside [accounts.timing], Robert's answer 4 of
+   * 2026-10-28. The W2 walk measured 8.4 to 9.1 seconds of application code
+   * here while accountRows reported 3.6 to 4.7, so about half the time is
+   * outside it. This line times the session read and accountRows from the
+   * page's side and counts the rows handed to the render; the server's own
+   * "GET /portal/accounts ... application-code" figure minus this total is the
+   * render. Durations and counts only, never a row.
+   */
+  const startedAt = Date.now();
   const actor = await currentActor();
+  const actorMs = Date.now() - startedAt;
   if (!actor) redirect("/portal/login");
   if (!can(actor, "accounts.manage")) redirect("/portal");
 
+  const rowsAt = Date.now();
   const result = await accountRows();
+  console.log(
+    `[accounts.page.timing] total=${Date.now() - startedAt}ms actor=${actorMs}ms accountRows=${Date.now() - rowsAt}ms ` +
+      `rendered=${result.ok ? result.rows.length : "unread"}`,
+  );
 
   /*
    * ===========================================================================

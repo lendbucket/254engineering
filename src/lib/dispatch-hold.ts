@@ -106,6 +106,28 @@ export function holdRefusal(hold: HoldState): string | null {
     .join(", ")}. The engineer records accept or decline first.`;
 }
 
+/** How many files are checked for a hold at once. Each check is three small reads. */
+export const HOLD_READS_AT_ONCE = 8;
+
+/**
+ * holdFor for many files, several at a time, in the order given. Board
+ * 40733329479 timed the one-after-another loop at 4.6 to 6.6 seconds of a 5.2
+ * to 7.7 second review page. holdFor stays the one rule; only the waiting
+ * between files goes.
+ */
+export async function holdsFor(fileIds: readonly string[]): Promise<HoldState[]> {
+  const out: HoldState[] = new Array(fileIds.length);
+  let next = 0;
+  const worker = async () => {
+    while (next < fileIds.length) {
+      const i = next++;
+      out[i] = await holdFor(fileIds[i]);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(HOLD_READS_AT_ONCE, fileIds.length) }, worker));
+  return out;
+}
+
 /** Every file waiting in dispatch that is held, for the engineer's screen. */
 export async function heldFiles(): Promise<
   { ok: true; files: { id: string; fileNumber: string; address: string; questions: HoldQuestion[] }[] } | { ok: false; error: string }
@@ -128,12 +150,26 @@ export async function heldFiles(): Promise<
       .range(from, to),
   );
   if (!read.ok) return { ok: false, error: read.error };
-  const out: { id: string; fileNumber: string; address: string; questions: HoldQuestion[] }[] = [];
-  for (const f of read.rows) {
-    if (!protocolForLine(f.service_slug as string)) continue;
-    const hold = await holdFor(f.id as string);
-    if (hold.held === true) out.push({ id: f.id as string, fileNumber: f.file_number as string, address: f.property_address as string, questions: hold.questions });
+  const candidates = read.rows.filter((f) => protocolForLine(f.service_slug as string));
+  const holds = await holdsFor(candidates.map((f) => f.id as string));
+  /*
+   * A FILE WHOSE HOLD COULD NOT BE READ IS NOT LEFT OFF THE SCREEN. Dispatch
+   * refuses it (holdRefusal), so dropping it here meant a job nobody could
+   * send and nobody was shown. The unknown answer is the shut one, and it is
+   * said, as the staff desk already says it.
+   */
+  const unread = candidates.flatMap((f, i) => {
+    const h = holds[i];
+    return h.held === null ? [`${f.file_number as string}: ${h.error}`] : [];
+  });
+  if (unread.length > 0) {
+    return { ok: false, error: `${unread.length} waiting job${unread.length === 1 ? "" : "s"} could not be checked for a hold. ${unread.slice(0, 3).join("; ")}` };
   }
+  const out: { id: string; fileNumber: string; address: string; questions: HoldQuestion[] }[] = [];
+  candidates.forEach((f, i) => {
+    const hold = holds[i];
+    if (hold.held === true) out.push({ id: f.id as string, fileNumber: f.file_number as string, address: f.property_address as string, questions: hold.questions });
+  });
   return { ok: true, files: out };
 }
 

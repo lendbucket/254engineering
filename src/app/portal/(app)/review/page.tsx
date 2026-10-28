@@ -63,22 +63,40 @@ export default async function ReviewPage({
   if (!holdsLicence(actor, "review.queue")) notFound();
   const params = await searchParams;
 
-  const queue = await reviewQueue(actor);
-  const selected = params.id ? await packageFor(actor, params.id) : null;
+  /*
+   * THE PROFILE OF THIS PAGE'S READS, Robert's answer 4 of 2026-10-28: the W2
+   * walk measured 5.5 to 6 seconds here against the 2 second standard of
+   * CLAUDE.md 2d, and the fix waits on a measurement (section 6c). Each read
+   * below runs one after another, so each is timed on its own and the sum is
+   * the page's wait before it renders. One line per load, in the shape of
+   * [accounts.timing]; it carries durations and counts only, never a row.
+   */
+  const startedAt = Date.now();
+  const phases: string[] = [];
+  const timed = async <T,>(name: string, read: Promise<T>): Promise<T> => {
+    const at = Date.now();
+    const value = await read;
+    phases.push(`${name}=${Date.now() - at}ms`);
+    return value;
+  };
+
+  const queue = await timed("queue", reviewQueue(actor));
+  const selected = params.id ? await timed("package", packageFor(actor, params.id)) : null;
   /*
    * THE LETTERS HE HAS DECIDED AND NOT YET SEALED, sealing piece two. Every
    * one of his, for the list at the top, and the selected file's, which takes
    * the place of the decision buttons.
    */
   /* A failed read is said above the list, never "no letters waiting" (audit of 2026-10-24). */
-  const awaitingRead = await lettersAwaitingSeal(actor);
+  const awaitingRead = await timed("awaiting-seal", lettersAwaitingSeal(actor));
   const awaiting = awaitingRead.ok ? awaitingRead.letters : [];
-  const liveRead = await liveLettersOf(actor);
-  const held = await heldFiles();
-  const trainingWaiting = await trainingAwaitingEngineer();
-  const addenda = await addendaFor(actor!.id);
+  const liveRead = await timed("live-letters", liveLettersOf(actor));
+  const held = await timed("held", heldFiles());
+  const trainingWaiting = await timed("training", trainingAwaitingEngineer());
+  const addenda = await timed("addenda", addendaFor(actor!.id));
   const unsignedAddenda = addenda.ok ? addenda.addenda.filter((a) => a.signature.state === "unsigned") : [];
-  const awaitingTriage = await filesAwaitingTriage();
+  const awaitingTriage = await timed("triage", filesAwaitingTriage());
+  console.log(`[review.timing] total=${Date.now() - startedAt}ms ${phases.join(" ")} queue=${queue === null ? "unread" : queue.length}`);
   const selectedAwaiting = selected ? awaiting.filter((l) => l.fileId === selected.file.id) : [];
   /*
    * Every letter waiting for his seal can be sealed here (F14, Robert's answer
