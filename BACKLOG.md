@@ -203,6 +203,17 @@ by severity:
   code, an onboarding token. Reaching them means the walk seeding a record per
   step on development, which is a later bundle and a ruling about what it may
   write.
+- **Records for them, Robert's order of 2026-10-28 (`feat/walk-records`, not
+  yet boarded).** The walk now reads or makes a record where CLAUDE.md 6b
+  allows it: it reads the newest demonstration order (order lookup) and the
+  demonstration partner's code `demo-title` (the referred order page); it issues
+  a one day signed link to that order through `issueCustomerLink` (the status
+  page), as v10-layout-audit does; and it makes one prospect (`eng_prospects`)
+  and one dead job of an unregistered kind with no external effect (`eng_jobs`),
+  both removed in teardown and read back. Left unreached, each with its reason in
+  its own line, because the record would be permanent or would dispatch real
+  work: a job and an offer for the technician probe, an order stuck on payment,
+  and an onboarding link. Seeding those is a ruling, not a fixture.
 
 ## THE MANUFACTURED HOME AND SOLAR LETTERS ARE BUILT; WHAT THEY LEAVE FOR A RULING
 
