@@ -311,6 +311,12 @@ begin
    * it holds every eng_ table through the default privileges, and every one must
    * still answer select. A replay that never granted it anything has nothing to
    * check, which is why the premise is read first rather than assumed.
+   *
+   * EACH PRIVILEGE IS ASKED ON ITS OWN. has_table_privilege with a list answers
+   * true when ANY one of them is held, so a list would prove "any of the four",
+   * not "all four". Found by the chat on the development sitting (issue #1
+   * comment 6469887899). The API roles' check above keeps the list on purpose:
+   * there, any one held is the failure.
    */
   select exists (
     select 1 from unnest(tables) as x(name)
@@ -318,7 +324,10 @@ begin
   ) into service_had;
   if service_had then
     foreach t in array tables loop
-      if not has_table_privilege('service_role', t, 'select, insert, update, delete') then
+      if not (has_table_privilege('service_role', t, 'select')
+              and has_table_privilege('service_role', t, 'insert')
+              and has_table_privilege('service_role', t, 'update')
+              and has_table_privilege('service_role', t, 'delete')) then
         service_missing := service_missing || ' ' || t;
       end if;
     end loop;
