@@ -1,5 +1,48 @@
 # Day queue, 2026-10-23
 
+## 2026-10-28, BUNDLE 9 AGAIN, after one miss, at `0124b3a` (on bundle 8)
+
+**Prediction written and pushed before the board starts.**
+
+**The miss.** Board 40733329479 on `87b11b9` read 62 of 64. Two audits failed, and neither failure came from the two files the bundle changed:
+- **roles-audit** failed on "ops_manager cannot open /portal/techs (HTTP 200)" and the same for `/portal/people`. Development holds 0104 since today, so main's roles-audit (which lacks bundle 8's repair) now fails on any branch built from main. **The nightly board on main will fail the same way until bundle 8 merges.**
+- **perf-audit** failed on "coverage hub: LCP 3406ms within 3400ms (/coverage, spread 36ms)". That is the standing NOT STABLE public page. The bundle touches no public page.
+
+I predicted 64 of 64 without carrying in that development already held 0104. That was the cross-branch question I should have asked.
+
+**What the profile found** (25 renders of the review page, 5 of the accounts page):
+
+| Screen | Read | Time |
+| --- | --- | --- |
+| `/portal/review` | total | 5.2 to 7.7 s |
+| | **held** (heldFiles) | **4.6 to 6.6 s** |
+| | each of the other seven | 0.08 to 0.32 s |
+| `/portal/accounts` | page total | 10.3 to 10.5 s |
+| | accountRows | 10.0 to 10.2 s, over 3,017 to 3,023 accounts |
+| | roster | 1.1 to 1.5 s |
+| | four reads | 3.2 to 3.8 s |
+| | balances | 4.6 to 5.2 s |
+
+**The repair, `5a34336`:**
+- `heldFiles` asked `holdFor` of each waiting file one after another. `holdsFor` now runs `holdFor` eight at a time, in order. `holdFor` is unchanged. The staff desk had the same loop and uses it too.
+- `heldFiles` also dropped a file whose hold could not be read, a job dispatch refuses and nobody was shown. It now says so with the file numbers.
+- Proof `the-held-list-reads-holds-together-and-drops-none.mjs`, injected twice, each red on its own check, both files restored byte identical. The three existing hold proofs pass.
+
+**Then** bundle 8 (`68d239b`) merged underneath as `0124b3a`, so this tree carries the roles-audit that reads 0102 to 0104. Merge order is 7, 8, then 9.
+
+**Readers:**
+- tsc clean.
+- surface-audit passes.
+- 206 added lines in src and docs: no banned phrase, no present tense claim.
+- 1,094 added lines over the range: no long dash.
+
+**Prediction: 64 of 64.**
+- roles-audit passes, with the four ops manager and rep lines as on bundle 8's board.
+- The proof passes inside proofs-audit.
+- 3 lines exempt; the walk at 0 broken.
+- `[review.timing]` shows held under 1.5 s on every render, and the review total under 2.5 s.
+- `/coverage` is a coin toss at a 36 ms spread around its ceiling. If it is the only red, I will say so, not re-run the same commit. The accounts timings are unchanged by this bundle; the paged list is bundle 10.
+
 ## 2026-10-28, BUNDLE 8 PASSED: run 40722907178 on `68d239b`, 64 of 64
 
 - **Every named line held, and one did not.** The walk read 3 friction lines where I predicted 9, on a faster runner (dashboard median 876 ms).
