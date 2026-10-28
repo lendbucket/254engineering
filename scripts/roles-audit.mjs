@@ -1743,7 +1743,16 @@ if (!db) {
       { act: "activate a technician", req: (r) => post(r, "/api/portal/onboarding", { action: "activate", onboardingId: NOWHERE }), status: 400, says: /cannot activate/ },
       { act: "read the revenue report", req: (r) => get(r, "/api/portal/exports?report=revenue"), status: 403, says: /cannot read the revenue report/i },
     ];
-    const STAFF_PAGES_REFUSED = ["/portal/pay", "/portal/techs", "/portal/people", "/portal/roles", "/portal/status", "/portal/pricebook", "/portal/settings", "/portal/billing", "/portal/orders", "/portal/accounts"];
+    const STAFF_PAGES_REFUSED = ["/portal/pay", "/portal/techs", "/portal/people", "/portal/roles", "/portal/status", "/portal/pricebook", "/portal/settings", "/portal/billing", "/portal/orders", "/portal/accounts", "/portal/applications"];
+    /*
+     * THE OPERATIONS MANAGER OPENS THREE OF THEM, Robert's answer 3 of
+     * 2026-10-28 (0104): the technician list and the staff list (profiles.list)
+     * and the applications (applications.read), for the technician screens.
+     * Named by role and page, so the rep is still asked all of them, and the
+     * three are then asserted to OPEN for him rather than merely dropped from
+     * the refusals, which a page that 404s for everybody would also satisfy.
+     */
+    const OPS_MANAGER_OPENS = ["/portal/techs", "/portal/people", "/portal/applications"];
 
     /*
      * OPENING A JOB WITHOUT PAYMENT IS ADMIN ONLY. Owner ruling, 2026-10-20,
@@ -1807,6 +1816,7 @@ if (!db) {
         );
       }
       for (const path of STAFF_PAGES_REFUSED) {
+        if (role === "ops_manager" && OPS_MANAGER_OPENS.includes(path)) continue;
         const res = await get(role, path);
         const where = res.headers.get("location") ?? "";
         rec(
@@ -1815,6 +1825,10 @@ if (!db) {
           `HTTP ${res.status}${where ? ` to ${where}` : ""}`,
         );
       }
+    }
+    for (const path of OPS_MANAGER_OPENS) {
+      const res = await get("ops_manager", path);
+      rec(`ops_manager opens ${path} (0104)`, res.status === 200, `HTTP ${res.status}`);
     }
 
     /*
