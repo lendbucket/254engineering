@@ -432,11 +432,11 @@ export const PROCEDURES: Procedure[] = [
         ],
         "who": "Rep",
         "sees": "The design briefs and windstorm enquiries",
-        "does": "Marks one answered",
-        "next": "`/api/portal/inquiries` and `/api/portal/windstorm-inquiries`, `mark_answered`",
+        "does": "Marks one answered; or, for a design brief, starts a quote from it, choosing which design deliverable it is (office or owner, `quotes.manage`, added 2026-10-28)",
+        "next": "`/api/portal/inquiries` and `/api/portal/windstorm-inquiries`, `mark_answered`; `/api/portal/inquiries` `start_quote` (`startQuoteFromBrief`, through `requestQuote`)",
         "told": "",
-        "record": "`eng_design_inquiries` or `eng_windstorm_inquiries` update; audit `design_inquiry.answered` or `windstorm_inquiry.answered`",
-        "marks": "The reply itself is written outside the platform; the screen records that it was answered"
+        "record": "`eng_design_inquiries` or `eng_windstorm_inquiries` update; audit `design_inquiry.answered` or `windstorm_inquiry.answered`. A started quote: `eng_quote_requests` insert keyed `design-inquiry:<id>`; audits `quote.requested` and `design_inquiry.quote_started`",
+        "marks": "The reply itself is written outside the platform; the screen records that it was answered. A started quote waits on `/portal/quotes` to be priced and sent, and one brief opens one quote"
       },
       {
         "n": "4",
@@ -869,7 +869,7 @@ export const PROCEDURES: Procedure[] = [
         "routes": [
           "/portal/applications"
         ],
-        "who": "Ops manager, admin",
+        "who": "Admin (`profiles.create`; the ops manager does not hold it, found by the W2 walk 2026-10-28, ruling asked)",
         "sees": "The applications",
         "does": "Reads one",
         "next": "",
@@ -958,7 +958,7 @@ export const PROCEDURES: Procedure[] = [
         "routes": [
           "/portal/techs"
         ],
-        "who": "Ops manager, admin",
+        "who": "Admin (`profiles.list`, `profiles.update`; the ops manager holds neither, found by the W2 walk 2026-10-28, ruling asked)",
         "sees": "Submitted credentials",
         "does": "Verifies or rejects one",
         "next": "`verify_credential`, `reject_credential`",
@@ -970,7 +970,7 @@ export const PROCEDURES: Procedure[] = [
         "n": "3",
         "screen": "`src/app/portal/(app)/techs/[id]` (`RecordCredentialForm`)",
         "routes": [],
-        "who": "Ops manager, admin",
+        "who": "Admin (as step 2)",
         "sees": "One technician",
         "does": "Records a credential seen",
         "next": "`record_credential`, `recordCredential`",
@@ -982,7 +982,7 @@ export const PROCEDURES: Procedure[] = [
         "n": "4",
         "screen": "`src/app/portal/(app)/techs/[id]` (`RecordTrainingForm`, `AttachConfirmationForm`)",
         "routes": [],
-        "who": "Ops manager, admin",
+        "who": "Admin (as step 2)",
         "sees": "Their training",
         "does": "Records training, and attaches the engineer's written confirmation of a relayed approval",
         "next": "`record_training`, `attach_relayed_confirmation`",
@@ -996,7 +996,7 @@ export const PROCEDURES: Procedure[] = [
         "routes": [
           "/portal/techs"
         ],
-        "who": "Ops manager, admin",
+        "who": "Admin (as step 2)",
         "sees": "Coverage and base",
         "does": "Sets coverage counties and base",
         "next": "`set_coverage` (`setTechCoverage`), `/api/portal/field` `set_tech_base`",
@@ -1871,7 +1871,7 @@ export const PROCEDURES: Procedure[] = [
         "routes": [
           "/portal/protocols"
         ],
-        "who": "Admin",
+        "who": "Engineer (`protocols.author`, a licensed action: the screen and the action both refuse the admin, corrected after the W2 walk 2026-10-28)",
         "sees": "A protocol's check questions",
         "does": "Adds or removes a question",
         "next": "`add_question`, `remove_question`",
@@ -1962,7 +1962,7 @@ export const PROCEDURES: Procedure[] = [
         "routes": [
           "/portal/protocols"
         ],
-        "who": "Admin",
+        "who": "Engineer (`protocols.author` and `protocols.publish`, licensed actions: the screen and the actions refuse the admin, corrected after the W2 walk 2026-10-28)",
         "sees": "A protocol record",
         "does": "Creates one, adds or removes an item, approves one",
         "next": "`/api/portal/field` `create_protocol`, `add_protocol_item`, `remove_protocol_item`, `approve_protocol` (`eng_approve_protocol`)",

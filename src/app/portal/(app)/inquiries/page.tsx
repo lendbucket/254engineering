@@ -1,10 +1,13 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
 import { designInquiries, overdueBy } from "@/lib/ops-inquiries";
 import { Chip, EmptyState, PageHead } from "@/components/portal/surfaces";
 import { PhoneLink } from "@/components/portal/PhoneLink";
-import { MarkAnswered } from "./InquiriesClient";
+import { MarkAnswered, StartQuote } from "./InquiriesClient";
+import { ASKING_AS, WORK_KIND, DELIVERABLE, DESIGN_SERVICE } from "@/lib/brief-quote-rules";
+import { deliverablesFor } from "@data/catalog";
 import { formatInFirmZone } from "@/lib/firm-calendar";
 import { LIST_NOT_LOADED } from "@/lib/outcome-copy";
 import { RetryButton } from "@/components/portal/Unreachable";
@@ -28,26 +31,12 @@ export const dynamic = "force-dynamic";
  * is told in the first conversation rather than after paying, and whoever picks
  * up the phone needs to know before they dial rather than halfway down a form.
  */
-const ASKING_AS: Record<string, string> = {
-  owner: "Owner",
-  builder: "Builder",
-  architect: "Architect",
-  engineer: "Engineer",
-};
+/* The brief's labels live in src/lib/brief-quote-rules.ts, which the quote started from a brief also writes from. */
 
-const WORK_KIND: Record<string, string> = {
-  new_construction: "New construction",
-  addition: "Addition",
-  repair: "Repair",
-  remediation: "Remediation",
-};
-
-const DELIVERABLE: Record<string, string> = {
-  sealed_plans: "Sealed plans",
-  sealed_letter: "Sealed letter",
-  repair_specification: "Repair specification",
-  design_review: "Design review",
-};
+/* The design line's quoted deliverables, the only ones a brief can be quoted as. */
+const DESIGN_QUOTES = deliverablesFor(DESIGN_SERVICE)
+  .filter((d) => d.orderType === "quote")
+  .map((d) => ({ tier: d.tier, name: d.name }));
 
 const when = (value: string) =>
   (formatInFirmZone(value, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) ?? "");
@@ -77,6 +66,7 @@ export default async function InquiriesPage({ searchParams }: { searchParams: Pr
   const params = await searchParams;
   const query = inquiryListQuery(params);
   const read = await designInquiries(actor, query);
+  const canQuote = can(actor, "quotes.manage");
   const rows = read.ok ? read.rows : [];
   /* Nothing at all is "no briefs yet"; nothing under a search or a filter is "nothing matches". */
   const nothingAtAll = read.ok && read.open + read.answered === 0 && query.term === "";
@@ -200,6 +190,25 @@ export default async function InquiriesPage({ searchParams }: { searchParams: Pr
                   ) : null}
 
                   {r.responded_at === null ? <MarkAnswered inquiryId={r.id} name={r.name} /> : null}
+
+                  {/* Robert's answer 2 of 2026-10-27: start a quote from this brief, for whoever can open quotes. */}
+                  {canQuote ? (
+                    r.quote ? (
+                      <p className="mt-3 text-[13.5px] text-[var(--navy)]">
+                        Quote{" "}
+                        <Link href={`/portal/quotes?id=${r.quote.id}`} className="font-semibold underline">
+                          {r.quote.reference}
+                        </Link>{" "}
+                        was started from this brief.
+                      </p>
+                    ) : r.quote === null ? (
+                      <StartQuote inquiryId={r.id} options={DESIGN_QUOTES} />
+                    ) : (
+                      <p className="mt-3 text-[13.5px] text-[var(--secondary)]">
+                        Whether a quote was started from this brief could not be checked just now. Reload to try again.
+                      </p>
+                    )
+                  ) : null}
                 </li>
               );
             })}

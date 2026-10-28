@@ -47,14 +47,17 @@ below).
 
 ## 0098, QUOTES: BUILT, AND A DESIGN QUOTE CANNOT YET BE PAID
 
-## DESIGN BRIEFS: "START A QUOTE FROM THIS BRIEF", A LATER BUNDLE
+## DESIGN BRIEFS: "START A QUOTE FROM THIS BRIEF", BUILT ON feat/brief-to-quote
 
 Robert's answer 2 of 2026-10-27, 11:48 Central (issue #1 comment 6447951314).
 A brief sent through `/design-inquiry` is written to `eng_design_inquiries`,
 which is a separate table from `eng_quote_requests`, so it never reaches the
-quote list on `/portal/quotes`. A later bundle adds a "start a quote from this
-brief" action on the inquiries screen, which opens a quote request carrying the
-brief. **The tables are not merged**, on his answer. Not built.
+quote list on `/portal/quotes`. Built 2026-10-28 on `feat/brief-to-quote`, not
+yet boarded: the inquiries screen offers "start a quote from this brief" to
+`quotes.manage`, which opens a quote request through `requestQuote` keyed on the
+brief, as the design deliverable the office picks. **The tables are not
+merged**, on his answer. While the gate is shut, `requestQuote` refuses every
+quote request, this one included, and the screen shows its sentence.
 
 ## 0098, QUOTES: BUILT, AND HIS FIVE ANSWERS OF 2026-10-27 ARE IN
 
@@ -164,10 +167,42 @@ Robert's instruction of 22:05 Central, 2026-10-26. `docs/workflows.md` maps 36
 workflows (254-WF-001 to 254-WF-036) across the seven roles, derived from the
 code at main `b6abbde`, and marks every step that needs SQL, a script or a code
 edit, and every step with no screen. Every step's W2 result reads "not walked
-yet". What remains is W2 (the Playwright walk on manual dispatch, against
-development, as probes), W3 (the fixes, by severity, one board per bundle) and
+yet". What remains is W2 (the Playwright walk against development, as probes,
+built as `scripts/w2-walk-audit.mjs` in the board's writers shard by Robert's
+ruling of 22:48 Central, 2026-10-27), W3 (the fixes, by severity, one board per bundle) and
 W4 (each role's home and Procedures page). The reasoning and the counts are in
 the document; this is the pointer.
+
+## W2 WALKED, 2026-10-28: WHAT IT FOUND AND WHAT W3 DID WITH IT
+
+The first walk ran on board 40635489767 (`90dced2`), 138 of 138 steps at 390
+and 1280: 163 works, 23 friction, 10 broken, 20 missing, 8 off-screen and 24
+unreached, one line per step and width. W3 (`feat/w3-walk-findings`) took them
+by severity:
+
+- **Speed, two staff screens over the 2 second standard of section 2d, not
+  fixed, and the reason is section 6c.** The server's own log on that board:
+  `/portal/accounts` spent 8.4 to 9.1 seconds in application code on four loads,
+  and `/portal/review` 6.3 seconds. `accountRows` reads every account and every
+  service order of every account, unpaged, on each load; that is a hypothesis
+  about the cause and nobody has profiled it. Both screens carry figures money
+  is decided on, so a fix waits on a measurement and Robert's ruling.
+- **Broken, all ten lines, were the map naming a role the code refuses on
+  purpose.** The ops manager holds neither `profiles.create` (`/portal/
+  applications`) nor `profiles.list` (`/portal/techs`), and `/portal/protocols`
+  and its actions are licensed (`protocols.author`, `protocols.publish`), so the
+  admin is refused by design. The map now names the role the code allows; whether
+  the ops manager should hold the two profile grants is asked of Robert.
+- **Friction, twelve "no control" lines, were empty lists.** Refunding an order,
+  reconciling, attaching an account, retrying a dead job, accepting and declining
+  an offer: every control exists in the source and renders on a row, and the
+  probe's list had no rows. `EmptyState` now carries `data-empty-state`, and the
+  walk reads such a step as unreached rather than friction.
+- **Unreached, twelve steps, need records the probes do not own**: a job
+  assigned to the technician probe, an order reference, a prospect, a referral
+  code, an onboarding token. Reaching them means the walk seeding a record per
+  step on development, which is a later bundle and a ruling about what it may
+  write.
 
 ## THE MANUFACTURED HOME AND SOLAR LETTERS ARE BUILT; WHAT THEY LEAVE FOR A RULING
 

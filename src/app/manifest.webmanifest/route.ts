@@ -22,8 +22,16 @@ import { business } from "@/config/business";
  * it to whatever shape the launcher uses without clipping the numerals, which is
  * why the artwork is composited with padding around the mark rather than tight
  * to it.
+ *
+ * A ROUTE RATHER THAN THE FILE CONVENTION, SINCE 2026-10-28, AND THE URL IS THE
+ * SAME. As src/app/manifest.ts this was file-based metadata, which outranks every
+ * layout's metadata object, so the portal could not name a manifest of its own.
+ * Mobile phase 1 gives the portal the field app's manifest
+ * (src/app/field-app.webmanifest), so this one is served here at the same
+ * /manifest.webmanifest and named by the root layout's metadata, which the
+ * portal's layout replaces. The body is unchanged.
  */
-export default function manifest(): MetadataRoute.Manifest {
+function manifest(): MetadataRoute.Manifest {
   return {
     name: business.name,
     short_name: "254 Engineering",
@@ -44,4 +52,16 @@ export default function manifest(): MetadataRoute.Manifest {
       { src: "/apple-icon.png", sizes: "180x180", type: "image/png", purpose: "any" },
     ],
   };
+}
+
+/* Served as the file convention served it: static, the manifest media type, revalidated. */
+export const dynamic = "force-static";
+
+export function GET() {
+  return new Response(JSON.stringify(manifest()), {
+    headers: {
+      "Content-Type": "application/manifest+json",
+      "Cache-Control": "public, max-age=0, must-revalidate",
+    },
+  });
 }
