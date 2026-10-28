@@ -650,6 +650,45 @@ if (failedAt === null) {
     closed.map((r) => r.sig).join(", ") || "all",
   );
 
+  /*
+   * NO eng_ TABLE OR SEQUENCE IS OPEN TO anon OR authenticated. 0102.
+   *
+   * The same shape as the function check above, and for the same reason: the
+   * default privileges grant every new table and sequence to the API roles, row
+   * level security keeps the rows and not the sequences, and 0102 revokes them
+   * all by name. THE PREMISE FIRST, because an absence holds just as well in a
+   * replay that never granted anything: a throwaway table with a serial id is
+   * created after the chain and must be granted to anon by default.
+   */
+  await db.exec(`create table public.replay_default_table_probe (id bigserial primary key)`);
+  const tablePremise = (await db.query(`
+    select has_table_privilege('anon', 'public.replay_default_table_probe', 'select') as t,
+           has_sequence_privilege('anon', 'public.replay_default_table_probe_id_seq', 'usage') as s
+  `)).rows[0];
+  await db.exec(`drop table public.replay_default_table_probe`);
+  rec(
+    "the replay grants a new table and its sequence to anon by default, as Supabase does",
+    tablePremise.t === true && tablePremise.s === true,
+    tablePremise.t && tablePremise.s ? "so the next check can find one nobody revoked" : "the stub lost the default, so the next check passes over nothing",
+  );
+  const relRows = (await db.query(`
+    select c.relname as name, c.relkind as kind,
+           case when c.relkind = 'S'
+             then has_sequence_privilege('anon', c.oid, 'usage, select, update') or has_sequence_privilege('authenticated', c.oid, 'usage, select, update')
+             else has_table_privilege('anon', c.oid, 'select, insert, update, delete, truncate, references, trigger')
+               or has_table_privilege('authenticated', c.oid, 'select, insert, update, delete, truncate, references, trigger')
+           end as open
+    from pg_class c join pg_namespace n on n.oid = c.relnamespace
+    where n.nspname = 'public' and c.relname like 'eng\\_%' and c.relkind in ('r', 'S')
+    order by 1
+  `)).rows;
+  const openRels = relRows.filter((r) => r.open);
+  rec(
+    `no eng_ table or sequence is open to anon or authenticated (${relRows.filter((r) => r.kind === "r").length} tables, ${relRows.filter((r) => r.kind === "S").length} sequences checked)`,
+    relRows.length > 0 && openRels.length === 0,
+    openRels.map((r) => r.name).join(", ") || "none",
+  );
+
   const trgRows = await db.query(`
     select count(*)::int as n from pg_trigger t join pg_class c on c.oid = t.tgrelid
     where not t.tgisinternal and c.relname like 'eng\\_%'

@@ -3919,6 +3919,28 @@ export const APPLIED = [
       "to sit on development from its stage branch, then on production from the boarded commit after the board " +
       "passes. The branch merges only after the production apply is read back.",
   },
+  {
+    file: "0102_the_api_roles_hold_nothing_on_eng_objects.sql", appliedBy: "apply_migration",
+    fingerprint: "0a97717f953b0be7267ab818ad99eda6",
+    behaviour: "e4014da34aedcf2c5176f51803d9ef3d",
+    production: null,
+    proves: null,
+    provesNote:
+      "Nothing in it is visible through PostgREST: it revokes privileges and creates no table, column or row. Its " +
+      "own read-back refuses unless anon and authenticated hold nothing on the 104 tables and 13 sequences, and the " +
+      "sitting's read-back asks has_table_privilege and has_sequence_privilege directly.",
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0102 on 2026-10-28, identical to 0101's: revokes " +
+      "move neither the shape nor the behaviour digest, which does not count table or sequence privileges. The " +
+      "migration's own read-back is what proves it, and it ran clean in the replay.",
+    because:
+      "WRITTEN 2026-10-28 ON feat/grant-cleanup, ON MAIN 7827c17; NOT YET ON DEVELOPMENT OR PRODUCTION. The chat's " +
+      "read of production (issue #1 comments 6462860460 and 6462870632): every eng_ table and every eng_ sequence " +
+      "still carried the default grants to anon and authenticated behind row level security. Revokes them from " +
+      "the 104 tables and 13 sequences a replay of the chain creates, each named, the shared default privileges " +
+      "untouched. Robert's question 6 of the morning report of 2026-10-28 asks his word; posted on issue #1 for the " +
+      "chat to sit on development from its stage branch, then on production from a passed board's boarded commit.",
+  },
 ];
 
 /*
