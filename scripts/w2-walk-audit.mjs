@@ -153,15 +153,18 @@ async function removeWalkFixtures() {
   if (p.error) faults.push(`prospect: ${p.error.message}`);
   const j = await db.from("eng_jobs").delete().eq("kind", WALK_DEAD_KIND);
   if (j.error) faults.push(`dead job: ${j.error.message}`);
-  /* The technician's files: assignments and file events first, then the files. */
+  /*
+   * The technician's files: assignments first, then the files. File events are
+   * NOT deleted directly: eng_forbid_mutation_allow_cascade refuses a direct
+   * DELETE on eng_file_events and allows only the cascade from eng_files, so a
+   * direct delete would fail the teardown the first time any event existed.
+   */
   const { data: walkFiles, error: wfe } = await db.from("eng_files").select("id").like("file_number", `${WALK_FILE_PREFIX}%`).eq("is_demo", true);
   if (wfe) faults.push(`the walk's files could not be read: ${wfe.message}`);
   const fileIds = (walkFiles ?? []).map((f) => f.id);
   if (fileIds.length) {
-    for (const table of ["eng_assignments", "eng_file_events"]) {
-      const r = await db.from(table).delete().in("file_id", fileIds);
-      if (r.error) faults.push(`${table}: ${r.error.message}`);
-    }
+    const r = await db.from("eng_assignments").delete().in("file_id", fileIds);
+    if (r.error) faults.push(`eng_assignments: ${r.error.message}`);
     const f = await db.from("eng_files").delete().in("id", fileIds);
     if (f.error) faults.push(`files: ${f.error.message}`);
   }
