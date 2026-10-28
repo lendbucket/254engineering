@@ -23,7 +23,17 @@
  *   off-screen the step happens outside this platform's pages (Stripe's card
  *              page, an email, a notice), so a browser here has nothing to open
  *   unreached  the page needs a record (an id in the path) and the list it is
- *              opened from offered none on development
+ *              opened from offered none on development; or the page opened
+ *              on its empty state (data-empty-state), so the control the step
+ *              names, which belongs to a row, had no row to sit on
+ *
+ * THE SECOND HALF OF "unreached" CAME FROM THE FIRST RUN (board 40635489767).
+ * Twelve steps read "no control to do ..." as friction: refunding an order,
+ * retrying a dead job, accepting an offer. Every one of those controls exists
+ * in the source and renders on a row, and the probe's list had no rows. A page
+ * with nothing to act on and a page with no way to act read the same to a
+ * count of buttons, so the empty state now says which it is. A page with no
+ * control and no empty state is still friction.
  *
  * NOTHING IS DRIVEN. The walk opens pages and reads them; it never submits a
  * form or presses a button, so nothing is charged, sent, sealed or written by
@@ -206,6 +216,7 @@ function readPage() {
     text: text.slice(0, 400),
     chars: text.length,
     controls,
+    empty: main.querySelector("[data-empty-state]") !== null,
     overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
     interactive: nav ? Math.round(nav.domInteractive) : null,
     links: [...document.querySelectorAll("a[href]")].map((a) => a.getAttribute("href")),
@@ -263,7 +274,10 @@ async function openAndJudge(ctx, path, step, width, staff) {
     }
     const friction = [];
     if (seen.chars < 60) friction.push(`the page says almost nothing (${seen.chars} characters)`);
-    if (!PASSIVE.test(step.does.trim()) && seen.controls === 0) friction.push(`no control to do "${step.does.slice(0, 60)}"`);
+    /* No control on an EMPTY list is nothing to act on yet, not no way to act (see the header). */
+    const noControl = !PASSIVE.test(step.does.trim()) && seen.controls === 0;
+    if (noControl && !seen.empty) friction.push(`no control to do "${step.does.slice(0, 60)}"`);
+    if (noControl && seen.empty) notes.push(`opened on its empty state, so no row to "${step.does.slice(0, 60)}" on development`);
     if (seen.overflow > 1) friction.push(`scrolls sideways by ${seen.overflow}px`);
     if (consoleErrors.length) friction.push(`${consoleErrors.length} console error(s), first: ${consoleErrors[0]}`);
     if (staff && width === 1280 && seen.interactive && seen.interactive > STAFF_INTERACTIVE_MS) {
@@ -271,6 +285,7 @@ async function openAndJudge(ctx, path, step, width, staff) {
     }
     if (!PASSIVE.test(step.does.trim()) && seen.controls > 0 && NOT_DRIVEN.test(step.does)) notes.push("control present, not driven");
     if (friction.length) return { result: "friction", reason: [...friction, ...notes].join("; "), seen };
+    if (noControl && seen.empty) return { result: "unreached", reason: [`${path} opened`, ...notes].join("; "), seen };
     return { result: "works", reason: [`${path} opened`, ...notes].join("; "), seen };
   } finally {
     await page.close();
