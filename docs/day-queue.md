@@ -1,5 +1,25 @@
 # Day queue, 2026-10-23
 
+## 2026-10-28, BUNDLE 10 AGAIN, after one miss, at `669a9f4`
+
+**Prediction written and pushed before the board starts.**
+
+**The miss.** Board 40755884083 on `a752603` read 62 of 64:
+- **soc2-audit** failed: "UNDECLARED: ACCOUNTS_PROOF_SKIP_FIND, ACCOUNTS_PROOF_TARGETS". These are the two names the rewritten proof hands its child process. I missed them because I did not run soc2-audit locally; it reads every file.
+- **proofs-audit** failed: `the-accounts-screen-refuses-what-it-could-not-read.mjs`, "2 check(s) wrong." The log keeps only that last line, so the two checks are inferred, not read. The pair that rests on one finding is the account with an order being found by its name, and that search counted over every account. `cleanSearchTerm` turns a comma or bracket into a space, so "Acme, Inc." was searched as `%Acme Inc.%`, which the stored name does not contain. That is a real defect on the screen as well: typing a name as it is written found nothing.
+
+**The repair, `669a9f4`:**
+- The two names are in NOT_CREDENTIALS with their reason. soc2-audit, run standalone, now passes that line. Its four other lines fail locally only because this worktree has no environment file.
+- The search asks for each word of the cleaned term. The new check in the paging proof went red with the phrase search put back, and the file was restored byte identical.
+- The proof's last line now names each failed check and its note, so another miss can be read rather than inferred.
+- tsc clean, surface-audit passes, 765 added lines with no long dash, no banned phrase.
+
+**Prediction: 64 of 64.**
+- `the-accounts-screen-refuses-what-it-could-not-read.mjs` passes.
+- `[accounts.page.timing]` total under 4 s on every render.
+- 3 lines exempt; the walk at 0 broken.
+- **If my inference about the two checks is wrong, the proof's last line will name the real pair**, and I will report it as a second miss of my reasoning, not of the code.
+
 ## 2026-10-28, BUNDLE 9 PASSED: run 40747015235 on `0124b3a`, 64 of 64
 
 Every named line held:
