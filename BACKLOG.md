@@ -164,8 +164,9 @@ Robert's instruction of 22:05 Central, 2026-10-26. `docs/workflows.md` maps 36
 workflows (254-WF-001 to 254-WF-036) across the seven roles, derived from the
 code at main `b6abbde`, and marks every step that needs SQL, a script or a code
 edit, and every step with no screen. Every step's W2 result reads "not walked
-yet". What remains is W2 (the Playwright walk on manual dispatch, against
-development, as probes), W3 (the fixes, by severity, one board per bundle) and
+yet". What remains is W2 (the Playwright walk against development, as probes,
+built as `scripts/w2-walk-audit.mjs` in the board's writers shard by Robert's
+ruling of 22:48 Central, 2026-10-27), W3 (the fixes, by severity, one board per bundle) and
 W4 (each role's home and Procedures page). The reasoning and the counts are in
 the document; this is the pointer.
 

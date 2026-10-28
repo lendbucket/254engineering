@@ -26,6 +26,8 @@
     "native-audit": "node scripts/native-audit.mjs",
     "prev10-layout-audit": "node scripts/preflight-audit.mjs",
     "v10-layout-audit": "tsx --conditions=react-server scripts/v10-layout-audit.mjs",
+    "prew2-walk-audit": "node scripts/preflight-audit.mjs",
+    "w2-walk-audit": "tsx --conditions=react-server scripts/w2-walk-audit.mjs",
     "premessaging-audit": "node scripts/preflight-audit.mjs",
     "messaging-audit": "node scripts/messaging-audit.mjs",
     "preforms-audit": "node scripts/preflight-audit.mjs",
