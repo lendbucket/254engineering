@@ -1,5 +1,27 @@
 # Day queue, 2026-10-23
 
+## 2026-10-28, BUNDLE 8 AGAIN, after one miss, at `68d239b`
+
+**Prediction written and pushed before the board starts.**
+
+**The miss.** Board 40708702334 on `eeaf556` read 63 of 64. roles-audit failed on two lines: "ops_manager cannot open /portal/techs (HTTP 200)" and "ops_manager cannot open /portal/people (HTTP 200)". Every other line of the prediction held:
+- the four proofs and the rule pins;
+- the walk at 0 broken;
+- 3 lines exempt;
+- a dashboard median of 2003 ms.
+
+**Why I missed it.** The two lines were `STAFF_PAGES_REFUSED`, the 2026-10-20 pin of the pages both staff levels may not open. 0104 deliberately opens `/portal/techs` and `/portal/people` to the operations manager. I updated the grant rules in roles-audit and missed this second pin of the same ruling.
+
+**The repair, `68d239b`:**
+- The refusal list is role-aware by name. The rep is still asked every page, and `/portal/applications` is added for him.
+- The operations manager's three pages are asserted to OPEN with HTTP 200, not only dropped from his refusals.
+- The before state is the first walk's 404s for him on `/portal/techs` and `/portal/applications`. Those are what the new check would have failed on.
+- Nothing else changed since `eeaf556`. Main is still `7827c17`.
+
+**Prediction: 64 of 64.**
+- roles-audit passes: "ops_manager opens /portal/techs (0104)", the same for `/portal/people` and `/portal/applications`, and "rep cannot open /portal/applications".
+- Everything else is as the first prediction below.
+
 ## 2026-10-28, BUNDLE 8: 0103 and 0104, the fourth override and option 2, on bundle 7's `8e8f87f`
 
 **Prediction written and pushed before the board starts.** Bundle 7 passed: board 40695995700, 64 of 64 as predicted, dashboard median 2030 ms. 0102 is posted for production (comment 6472048892).
