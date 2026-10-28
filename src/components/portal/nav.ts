@@ -239,13 +239,14 @@ export const NAV: NavItem[] = [
   {
     /*
      * The hiring pipeline, moved here from /admin when that surface was deleted.
-     * Gated on profiles.create, because the person who reads an application is
-     * the person who invites the successful one.
+     * Gated on applications.read since 0104, the same action as the page:
+     * the administrator and the operations manager (Robert's answer 3 of
+     * 2026-10-28).
      */
     href: "/portal/applications",
     label: "Applications",
     short: "Apps",
-    action: "profiles.create",
+    action: "applications.read",
     icon: "applications",
   },
   { href: "/portal/people", label: "People", short: "People", action: "profiles.list", primary: true, icon: "people" },

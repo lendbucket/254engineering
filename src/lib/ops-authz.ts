@@ -452,6 +452,11 @@ export type Action =
   // 2026-10-25, item 8b; 0099): an alert that reaches nobody is a fault nobody
   // hears about, so the list is not every staff role's to change.
   | "alerts.manage"
+  // Read the careers applications on /portal/applications. Split out of
+  // profiles.create, which gated that screen until Robert's answer 3 of
+  // 2026-10-28 (0104): the operations manager reads applications and does not
+  // create staff accounts. The administrator and the operations manager.
+  | "applications.read"
   // Invite a field technician, activate one, and review their credentials.
   // Never another role: profiles.create is the one that invites anybody.
   | "technicians.onboard"
@@ -530,6 +535,8 @@ const MATRIX: Record<Role, Action[]> = {
     "quotes.manage",
     /* Where the office's alerts go, seeded by 0099: the owner alone. */
     "alerts.manage",
+    /* Reading careers applications, seeded by 0104: the owner and the office. */
+    "applications.read",
     /* The staff level actions, 0079, so an administrator can do anything a rep
      * or manager can, plus set the refund limit, which is the operator's alone. */
     "payments.send_link", "orders.read", "orders.resend_link", "files.update_details",
@@ -841,6 +848,13 @@ export const DEFAULT_ROLES: DefaultRole[] = [
       "insurance.manage",
       /* Pricing and sending a quote, seeded by 0098: the office prices what a customer asked for. */
       "quotes.manage",
+      /*
+       * The technician screens and the applications, seeded by 0104. Robert's
+       * answer 3 of 2026-10-28: he onboards technicians, so he reads their
+       * applications, lists them on /portal/techs and verifies their
+       * credentials. It narrows the ruling of 2026-10-20 for this role only.
+       */
+      "profiles.list", "profiles.update", "applications.read",
     ],
   },
 ];

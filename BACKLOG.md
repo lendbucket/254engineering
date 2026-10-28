@@ -191,8 +191,10 @@ by severity:
   purpose.** The ops manager holds neither `profiles.create` (`/portal/
   applications`) nor `profiles.list` (`/portal/techs`), and `/portal/protocols`
   and its actions are licensed (`protocols.author`, `protocols.publish`), so the
-  admin is refused by design. The map now names the role the code allows; whether
-  the ops manager should hold the two profile grants is asked of Robert.
+  admin is refused by design. The map names the role the code allows. Robert's
+  answer 3 of 2026-10-28 gives the ops manager `applications.read`,
+  `profiles.list` and `profiles.update` (0104, `feat/tech-mfa-and-ops-grants`),
+  and the map names him again on those steps.
 - **Friction, twelve "no control" lines, were empty lists.** Refunding an order,
   reconciling, attaching an account, retrying a dead job, accepting and declining
   an offer: every control exists in the source and renders on a row, and the

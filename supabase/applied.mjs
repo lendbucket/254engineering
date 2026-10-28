@@ -3919,6 +3919,75 @@ export const APPLIED = [
       "to sit on development from its stage branch, then on production from the boarded commit after the board " +
       "passes. The branch merges only after the production apply is read back.",
   },
+  {
+    file: "0102_the_api_roles_hold_nothing_on_eng_objects.sql", appliedBy: "apply_migration",
+    fingerprint: "0a97717f953b0be7267ab818ad99eda6",
+    behaviour: "e4014da34aedcf2c5176f51803d9ef3d",
+    production: null,
+    proves: null,
+    provesNote:
+      "Nothing in it is visible through PostgREST: it revokes privileges and creates no table, column or row. Its " +
+      "own read-back refuses unless anon and authenticated hold nothing on the 104 tables and 13 sequences, and the " +
+      "sitting's read-back asks has_table_privilege and has_sequence_privilege directly.",
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0102 on 2026-10-28, identical to 0101's: revokes " +
+      "move neither the shape nor the behaviour digest, which does not count table or sequence privileges. The " +
+      "migration's own read-back is what proves it, and it ran clean in the replay.",
+    because:
+      "WRITTEN 2026-10-28 ON feat/grant-cleanup, ON MAIN 7827c17; ON DEVELOPMENT (version 20261028131133, applied " +
+      "by the operator's chat counterpart from stage/0102-grants at c481470, file sha256 926c8662, stored statement " +
+      "sha256 9acfc378; 111 open before, 0 after, the service role holding all four privileges on all 104 tables, " +
+      "each read separately; issue #1 comment 6469887899). The file then changed inside its read-back only, so the " +
+      "service role's four privileges are asked one by one (stage/0102-grants-2 at 915ab65, sha256 70a07583); the " +
+      "revokes are the text development holds. NOT YET ON PRODUCTION. Approved by Robert, answer 5 of 08:18 Central " +
+      "2026-10-28 (comment 6470044608). The chat's " +
+      "read of production (issue #1 comments 6462860460 and 6462870632): every eng_ table and every eng_ sequence " +
+      "still carried the default grants to anon and authenticated behind row level security. Revokes them from " +
+      "the 104 tables and 13 sequences a replay of the chain creates, each named, the shared default privileges " +
+      "untouched. Production from a passed board's boarded commit, with Section 0 expecting 111 open.",
+  },
+  {
+    file: "0103_the_second_factor_is_required_for_the_field_technician.sql", appliedBy: "apply_migration",
+    fingerprint: "0a97717f953b0be7267ab818ad99eda6",
+    behaviour: "2a3acaf384de830017abd2377aae2327",
+    production: null,
+    proves: { row: { table: "eng_roles", where: "key = 'field_tech' and mfa_requirement = 'required'" } },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0103 on 2026-10-28, with 0102 reproducing its recorded " +
+      "pair. One eng_roles row moves, so the shape (1374) and the fact count (1324) are unchanged and the behaviour " +
+      "digest moves with the seeded row.",
+    because:
+      "WRITTEN 2026-10-28 ON feat/tech-mfa-and-ops-grants, ON TOP OF 0102 (feat/grant-cleanup); ON DEVELOPMENT " +
+      "(version 20261028135200, applied by the operator's chat counterpart from stage/0103-tech-mfa at b91150b, file " +
+      "sha256 d35f43e0, stored statement sha256 44d0d477, field_tech required and the other eight unchanged; issue #1 " +
+      "comment 6470846047), NOT YET ON PRODUCTION. The owner's own technician profile is exempt by the fourth named " +
+      "override (sign_in_second_factor_tech, Robert, 2026-10-28, comment 6470882290), shipped in the same bundle so it " +
+      "is on main before this reaches production. Robert's answer 1 of 2026-10-28, 08:18 Central (issue #1 comment 6470044608): " +
+      "field technicians require the second factor everywhere, because the server cannot tell the installed app " +
+      "from a browser. The shape is 0093's, with a read-back over every role. Development from its stage branch, " +
+      "production from a passed board's boarded commit.",
+  },
+  {
+    file: "0104_the_operations_manager_reads_applications_and_keeps_technicians.sql", appliedBy: "apply_migration",
+    fingerprint: "0a97717f953b0be7267ab818ad99eda6",
+    behaviour: "bdcf6d84e3af00f96ee268009f475017",
+    production: null,
+    proves: { grant: { role: "ops_manager", action: "applications.read" } },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0104 on 2026-10-28, with 0103 reproducing its recorded " +
+      "pair. Four grant rows, so the shape (1374) is unchanged and the fact count moves from 1324 to 1328.",
+    because:
+      "WRITTEN 2026-10-28 ON feat/tech-mfa-and-ops-grants, ON TOP OF 0103; ON DEVELOPMENT (version 20261028135208, " +
+      "applied by the operator's chat counterpart from stage/0104-ops-grants at 859c49e, file sha256 88ecdacd, stored " +
+      "statement sha256 2869af8b, 191 grants, 31 held by ops_manager; issue #1 comment 6470846047), NOT YET ON " +
+      "PRODUCTION. " +
+      "Robert's answer 3 of 2026-10-28, 08:18 Central (issue #1 comment 6470044608): the operations manager reads " +
+      "applications (applications.read, a new action that the administrator also holds and the applications page " +
+      "now asks for) and holds profiles.list and profiles.update for the technician screens, narrowing the ruling " +
+      "of 2026-10-20 for this role only. Declared in DEFAULT_ROLES and pinned in roles-audit. His profiles.update " +
+      "reaches field technicians only (WIDE_GRANT_TECHNICIANS_ONLY in onboarding-scope.ts), the narrower reading " +
+      "taken on issue #1 (comment 6470846047).",
+  },
 ];
 
 /*

@@ -30,14 +30,15 @@ export const dynamic = "force-dynamic";
  * its hiring pipeline. Ported rather than rewritten: same query, same signed
  * link behaviour, portal chrome and portal permissions.
  *
- * GATED ON profiles.create, AND THAT IS A JUDGMENT
- * ------------------------------------------------
- * There is no `applications.read` action, and adding one means a migration and
- * a grant seed for a screen two people will ever open. The person who reads an
- * application is the person who invites the successful one, and inviting is
- * exactly what `profiles.create` gates, so the permission already names this
- * job. If the operator ever wants a recruiter who can read applications and not
- * create accounts, that is one action and one migration and this line changes.
+ * GATED ON applications.read, SINCE 0104
+ * --------------------------------------
+ * This was gated on `profiles.create`, with the reasoning that whoever reads an
+ * application is whoever invites the successful one, and the note that a reader
+ * who does not create accounts would be "one action and one migration and this
+ * line changes". Robert's answer 3 of 2026-10-28 is that reader: the operations
+ * manager onboards technicians and reads their applications, and does not
+ * create staff accounts. So the screen asks `applications.read`, which the
+ * administrator and the operations manager hold (0104).
  *
  * THE DOCUMENT LINKS ARE MINTED AT RENDER AND NEVER STORED
  * --------------------------------------------------------
@@ -68,7 +69,7 @@ const ROLE_LABEL: Record<string, string> = {
 export default async function PortalApplicationsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const actor = await currentActor();
   if (!actor) redirect("/portal/login");
-  if (!can(actor, "profiles.create")) notFound();
+  if (!can(actor, "applications.read")) notFound();
   const params = await searchParams;
   const page = Math.max(1, Math.floor(Number(params.page)) || 1);
 
