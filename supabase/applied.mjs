@@ -3968,7 +3968,15 @@ export const APPLIED = [
     file: "0103_the_second_factor_is_required_for_the_field_technician.sql", appliedBy: "apply_migration",
     fingerprint: "0a97717f953b0be7267ab818ad99eda6",
     behaviour: "2a3acaf384de830017abd2377aae2327",
-    production: null,
+    /*
+     * APPLIED TO PRODUCTION 2026-10-28 21:08 UTC, provider version
+     * 20261028210847, by the operator's chat counterpart through
+     * apply_migration from the boarded commit 68d239b (board 40722907178,
+     * 64 of 64), after 0102. The stored statement hashes to 44d0d477, the
+     * development figure. field_tech reads required, the other eight
+     * unchanged. Issue #1 comment 6480742347.
+     */
+    production: "2026-10-28",
     proves: { row: { table: "eng_roles", where: "key = 'field_tech' and mfa_requirement = 'required'" } },
     note:
       "Both figures read off scripts/fingerprint-at.mjs at 0103 on 2026-10-28, with 0102 reproducing its recorded " +
@@ -3978,7 +3986,8 @@ export const APPLIED = [
       "WRITTEN 2026-10-28 ON feat/tech-mfa-and-ops-grants, ON TOP OF 0102 (feat/grant-cleanup); ON DEVELOPMENT " +
       "(version 20261028135200, applied by the operator's chat counterpart from stage/0103-tech-mfa at b91150b, file " +
       "sha256 d35f43e0, stored statement sha256 44d0d477, field_tech required and the other eight unchanged; issue #1 " +
-      "comment 6470846047), NOT YET ON PRODUCTION. The owner's own technician profile is exempt by the fourth named " +
+      "comment 6470846047) AND PRODUCTION (version 20261028210847, from 68d239b, stored 44d0d477; comment " +
+      "6480742347). The owner's own technician profile is exempt by the fourth named " +
       "override (sign_in_second_factor_tech, Robert, 2026-10-28, comment 6470882290), shipped in the same bundle so it " +
       "is on main before this reaches production. Robert's answer 1 of 2026-10-28, 08:18 Central (issue #1 comment 6470044608): " +
       "field technicians require the second factor everywhere, because the server cannot tell the installed app " +
@@ -3989,7 +3998,16 @@ export const APPLIED = [
     file: "0104_the_operations_manager_reads_applications_and_keeps_technicians.sql", appliedBy: "apply_migration",
     fingerprint: "0a97717f953b0be7267ab818ad99eda6",
     behaviour: "bdcf6d84e3af00f96ee268009f475017",
-    production: null,
+    /*
+     * APPLIED TO PRODUCTION 2026-10-28 21:08 UTC, provider version
+     * 20261028210855, by the operator's chat counterpart through
+     * apply_migration from the boarded commit 68d239b, after 0103. The stored
+     * statement hashes to 2869af8b, the development figure. 191 grants (187
+     * before), 31 held by ops_manager (28 before), applications.read held by
+     * exactly admin and ops_manager, the rep holding none of the three. Issue
+     * #1 comment 6480742347.
+     */
+    production: "2026-10-28",
     proves: { grant: { role: "ops_manager", action: "applications.read" } },
     note:
       "Both figures read off scripts/fingerprint-at.mjs at 0104 on 2026-10-28, with 0103 reproducing its recorded " +
@@ -3997,8 +4015,8 @@ export const APPLIED = [
     because:
       "WRITTEN 2026-10-28 ON feat/tech-mfa-and-ops-grants, ON TOP OF 0103; ON DEVELOPMENT (version 20261028135208, " +
       "applied by the operator's chat counterpart from stage/0104-ops-grants at 859c49e, file sha256 88ecdacd, stored " +
-      "statement sha256 2869af8b, 191 grants, 31 held by ops_manager; issue #1 comment 6470846047), NOT YET ON " +
-      "PRODUCTION. " +
+      "statement sha256 2869af8b, 191 grants, 31 held by ops_manager; issue #1 comment 6470846047) AND PRODUCTION " +
+      "(version 20261028210855, from 68d239b, stored 2869af8b, 187 grants before and 191 after; comment 6480742347). " +
       "Robert's answer 3 of 2026-10-28, 08:18 Central (issue #1 comment 6470044608): the operations manager reads " +
       "applications (applications.read, a new action that the administrator also holds and the applications page " +
       "now asks for) and holds profiles.list and profiles.update for the technician screens, narrowing the ruling " +
