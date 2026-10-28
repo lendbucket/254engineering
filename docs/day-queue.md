@@ -1,5 +1,9 @@
 # Day queue, 2026-10-23
 
+## END OF DAY 2026-10-27: all six boards merged, main `de1293b`, 100 applied, 0 pending
+
+Board 5 was merged as `b41bc7a` (0099 on production at 20261028010153, comment 6457829124) and board 6 as `de1293b`. The end-of-day status is issue #1 comment 6458195521: merges, migrations with production versions, what is open, and 15 items for Robert, each with a recommendation. **First tomorrow:** W4 (`feat/w4-procedures`, brought up to `de1293b`, prediction first), then W3 after the W2 walk.
+
 ## BOARD 6 OF 6: addendum 10 and the W2 screens, on board 5's `eb520b6` and main `9311d54`
 
 **Prediction written and pushed before the board starts.**
