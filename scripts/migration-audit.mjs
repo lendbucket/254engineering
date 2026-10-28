@@ -303,9 +303,16 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * f758025ef6cdc3d2d7593c448211d0ba, read off fingerprint-at.mjs with 0097
  * reproducing its recorded pair first.
  */
-const EXPECTED_FINGERPRINT = "f758025ef6cdc3d2d7593c448211d0ba";
-const EXPECTED_COLUMNS = 1364;
-const EXPECTED_TABLES = 102;
+/*
+ * Moved 2026-10-27 by 0099, a plan file fits and alerts go to a list, by
+ * Robert's addendum of 2026-10-25, items 4 and 8b: 1,364 to 1,370 is
+ * eng_alert_recipients' six columns, and the table count moves 102 to 103;
+ * shape 6bfbef5f84906d2a453fefe1cf3c03fb, read off fingerprint-at.mjs with
+ * 0098 reproducing its recorded pair first.
+ */
+const EXPECTED_FINGERPRINT = "6bfbef5f84906d2a453fefe1cf3c03fb";
+const EXPECTED_COLUMNS = 1370;
+const EXPECTED_TABLES = 103;
 /* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts.
  * 0074 adds two: eng_partner_billing_touch and eng_partner_billing_events_immutable.
  * 0075 adds one: eng_payment_events_guarded.
@@ -325,8 +332,9 @@ const EXPECTED_TABLES = 102;
  * 0090 adds three, by Robert's addendum of 2026-10-25: eng_insurance_policies_guard,
  * eng_insurance_policies_audit and eng_insurance_alerts_guard.
  * 0098 adds two, by Robert's addendum of 2026-10-25, item 3: eng_quote_files_guard
- * and eng_quote_requests_guard. */
-const EXPECTED_TRIGGERS = 103;
+ * and eng_quote_requests_guard.
+ * 0099 adds one, by Robert's addendum of 2026-10-25, item 8b: eng_alert_recipients_guard. */
+const EXPECTED_TRIGGERS = 104;
 /**
  * 0014 added eng_freeze_attribution and 0019 added two more, the partner
  * entry freeze and its delete refusal, which are trigger functions like the
@@ -393,8 +401,10 @@ const EXPECTED_TRIGGERS = 103;
  * (0095), eng_approve_protocol and eng_put_signed_protocol_in_force (0096) are replaced
  * with the same signatures, which are not new rows.
  * 70 since 0098, by Robert's addendum of 2026-10-25, item 3: the trigger functions
- * eng_quote_file_guard and eng_quote_request_guard. */
-const EXPECTED_FUNCTIONS = 70;
+ * eng_quote_file_guard and eng_quote_request_guard.
+ * 71 since 0099, by Robert's addendum of 2026-10-25, item 8b: the trigger function
+ * eng_alert_recipient_guard. */
+const EXPECTED_FUNCTIONS = 71;
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
@@ -1626,6 +1636,45 @@ if (failedAt === null) {
       moved !== null && /0098/.test(moved),
       moved ?? "it moved",
     );
+
+    /*
+     * 0099, Robert's addendum of 2026-10-25, items 4 and 8b: a plan file of 40 MB
+     * fits the uploads bucket, and the alert list keeps who received the firm's
+     * alerts and from when.
+     */
+    const uploadsBucket = (await db.query("select file_size_limit from storage.buckets where id = 'eng-uploads'")).rows[0];
+    rec(
+      "the uploads bucket takes a 40 MB plan file (0099)",
+      uploadsBucket && Number(uploadsBucket.file_size_limit) === 41943040,
+      JSON.stringify(uploadsBucket ?? null),
+    );
+    const AR = "'00000000-0000-4000-8000-000000009901'";
+    const recipientAdded = await attempt(`
+      insert into eng_alert_recipients (id, email, added_by) values (${AR}, 'alerts-0099@audit-probe.invalid', ${SEALER})`);
+    rec("an alert recipient is added with who added it (0099)", recipientAdded === null, recipientAdded ?? "");
+    const twice = await attempt(`insert into eng_alert_recipients (email, added_by) values ('ALERTS-0099@audit-probe.invalid', ${SEALER})`);
+    rec(
+      "and the same address cannot be live twice, whatever its case (0099)",
+      twice !== null && /eng_alert_recipients_live_once/.test(twice),
+      twice ?? "it went in twice",
+    );
+    const notAnAddress = await attempt(`insert into eng_alert_recipients (email, added_by) values ('not an address', ${SEALER})`);
+    rec("an entry that is not an address is refused (0099)", notAnAddress !== null && /eng_alert_recipients_email_check/.test(notAnAddress), notAnAddress ?? "it went in");
+    rec("a recipient row is never deleted (0099)", await refused(`delete from eng_alert_recipients where id = ${AR}`));
+    const readdressed = await attempt(`update eng_alert_recipients set email = 'elsewhere-0099@audit-probe.invalid' where id = ${AR}`);
+    rec("nor is its address changed (0099)", readdressed !== null && /0099/.test(readdressed), readdressed ?? "it changed");
+    const halfRemoved = await attempt(`update eng_alert_recipients set removed_at = now() where id = ${AR}`);
+    rec(
+      "a removal names who removed it (0099)",
+      halfRemoved !== null && /eng_alert_recipients_removed_whole/.test(halfRemoved),
+      halfRemoved ?? "it was removed with nobody named",
+    );
+    const removed = await attempt(`update eng_alert_recipients set removed_at = now(), removed_by = ${SEALER} where id = ${AR}`);
+    rec("and is recorded once (0099)", removed === null, removed ?? "");
+    const restored = await attempt(`update eng_alert_recipients set removed_at = null, removed_by = null where id = ${AR}`);
+    rec("a removed recipient stays removed (0099)", restored !== null && /0099/.test(restored), restored ?? "it came back");
+    const readded = await attempt(`insert into eng_alert_recipients (email, added_by) values ('alerts-0099@audit-probe.invalid', ${SEALER})`);
+    rec("and the address can be added again as a new row (0099)", readded === null, readded ?? "");
 
     /*
      * 0089, Robert's answers of 2026-10-25 on L2e and L2j: the seventeen- and

@@ -310,6 +310,8 @@ const PORTED = [
   // Every portal and customer surface. The list existed so the audit could be
   // real while the port was partial; it now names everything.
   "src/app/(order)/order/[reference]/page.tsx",
+  /* The upload for a requested document on the status page, addendum item 4. */
+  "src/app/(order)/order/[reference]/RequestedDocumentUpload.tsx",
   /* The customer's quote, addendum item 3 of 2026-10-25, on the day it was built. */
   "src/app/(order)/order/quote/[reference]/page.tsx",
   "src/app/(order)/order/quote/[reference]/AcceptQuote.tsx",
@@ -612,6 +614,7 @@ const CUSTOMER_V10 = [
   "src/app/account/SignOutButton.tsx",
   "src/components/order/OrderFlow.tsx",
   "src/app/(order)/order/[reference]/page.tsx",
+  "src/app/(order)/order/[reference]/RequestedDocumentUpload.tsx",
   "src/app/(order)/order/quote/[reference]/page.tsx",
   "src/app/(order)/order/quote/[reference]/AcceptQuote.tsx",
   "src/app/(order)/order/start/[slug]/page.tsx",

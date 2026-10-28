@@ -8,6 +8,8 @@ import { LEASE_SECONDS, BATCH_SIZE, nextState, type JobOutcome } from "./job-rul
 import { business } from "@/config/business";
 import type { RenderedEmail } from "./email-templates";
 import { effectModeFor, isFixtureIdentity } from "./fixture-identity";
+import { isOfficeAlert } from "./alert-recipient-rules";
+import { officeAlertAddresses } from "./alert-addresses";
 
 /**
  * The queue: enqueue, claim, run, record.
@@ -691,6 +693,23 @@ export async function queueEmail(
    */
   effectMode?: EffectMode,
 ): Promise<EnqueueResult> {
+  /*
+   * AN OFFICE ALERT WITH NO RECIPIENT IS QUEUED ONCE PER ADDRESS ON THE LIST
+   * THE OWNER EDITS (addendum item 8b, 0099), each its own job with its own
+   * recipient, so the payload names who it went to and one bounce does not
+   * hold the others. The first refusal stops and is returned.
+   */
+  if (!email.to && isOfficeAlert(email.id)) {
+    const { to } = await officeAlertAddresses();
+    let first: EnqueueResult | null = null;
+    for (const address of to) {
+      const queued = await queueEmail({ ...email, to: address }, about, effectMode);
+      if (!queued.ok) return queued;
+      first ??= queued;
+    }
+    if (first) return first;
+  }
+
   /*
    * THE ACTOR DECIDES, AND NOBODY HAS TO REMEMBER TO SAY SO.
    *

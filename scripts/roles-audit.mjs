@@ -303,6 +303,8 @@ const EXPECTED = {
   "addenda.draft":                { admin: true,  engineer: false, field_tech: false },
   /* Pricing and sending a quote, Robert's addendum of 2026-10-25, item 3 (0098): the owner and the office. */
   "quotes.manage":                { admin: true,  engineer: false, field_tech: false },
+  /* Where the office's alerts go, Robert's addendum of 2026-10-25, item 8b (0099): the owner alone. */
+  "alerts.manage":                { admin: true,  engineer: false, field_tech: false },
   "pricing.override_at_intake":   { admin: true,  engineer: false, field_tech: false },
   "pricing.read_tech_rate":       { admin: true,  engineer: false, field_tech: false },
   "reports.turnaround":           { admin: true,  engineer: false, field_tech: false },
@@ -464,6 +466,13 @@ const STAFF_LEVELS = ["rep", "ops_manager"];
       check: (role, action) =>
         action === "quotes.manage" && !["admin", "ops_manager"].includes(role)
           ? `${role} holds quotes.manage, which Robert's addendum of 2026-10-25, item 3, gives to the administrator and the operations manager only`
+          : null,
+    },
+    {
+      why: "the owner alone edits where the office's alerts go",
+      check: (role, action) =>
+        action === "alerts.manage" && role !== "admin"
+          ? `${role} holds alerts.manage, which Robert's addendum of 2026-10-25, item 8b, gives to the owner alone`
           : null,
     },
     {

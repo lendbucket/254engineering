@@ -738,7 +738,15 @@ export function outstandingInformation(input: {
   items: { label: string; when: string }[];
   /** What it is holding up, in a customer's terms. */
   holdingUp: string;
-  supplyUrl: string;
+  /**
+   * The customer's tokened status page, where documents can be uploaded, or
+   * null when the job has no order to open one for (a job taken by telephone
+   * and not yet paid). Addendum item 4: this was the bare order page with no
+   * token, which opens nothing, so the button led to a page saying the link
+   * does not open an order. Null sends no button and asks for a reply instead,
+   * rather than a link that cannot work.
+   */
+  supplyUrl: string | null;
 }): RenderedEmail {
   return compose(
     "job.outstanding_information",
@@ -758,8 +766,11 @@ export function outstandingInformation(input: {
           kind: "note",
           text: "Nothing here is a delay on your side alone. The work carries on where it can, and this is what it needs from you to finish.",
         },
+        ...(input.supplyUrl
+          ? []
+          : [{ kind: "p" as const, text: "Reply to this email with them, and attach any document the list asks for." }]),
       ],
-      button: { label: "Send these to the firm", url: input.supplyUrl },
+      ...(input.supplyUrl ? { button: { label: "Send these to the firm", url: input.supplyUrl } } : {}),
     },
     { to: input.customerEmail },
   );
@@ -2283,6 +2294,52 @@ export function unreleasedPaymentsAlert(input: UnreleasedPaymentsAlertInput): Re
   );
 }
 
+export type FilesOverdueAlertInput = {
+  files: { fileNumber: string; service: string; dueOn: string; status: string }[];
+  total: number;
+  cooldownHours: number;
+  checkedAt: string;
+  filesUrl: string;
+  environment: string;
+};
+
+/**
+ * FILES PAST THEIR TARGET DATE. Robert's addendum of 2026-10-25, item 6:
+ * "Overdue files alert the office." Sent by the overdue watch on the health
+ * watch's schedule, at most once per cooldown, to the alert list (0099).
+ */
+export function filesOverdueAlert(input: FilesOverdueAlertInput): RenderedEmail {
+  return compose(
+    "ops.files_overdue",
+    "operator",
+    `Past the target date: ${input.total} file${input.total === 1 ? "" : "s"} on ${input.environment}`,
+    {
+      preheader: `${input.total} file${input.total === 1 ? " is" : "s are"} past the target date for its line and not yet sealed. Checked at ${input.checkedAt}.`,
+      blocks: [
+        {
+          kind: "p",
+          text: "These files are past the target date their line sets, counted in business days from the order, and the firm still owes the customer the work. A file waiting on the owner's repairs is not counted, because that wait is not the firm's.",
+        },
+        {
+          kind: "details",
+          title: "Past the target, oldest first",
+          rows: rows(
+            input.files.map((f) => [f.fileNumber, `${f.service}, due ${f.dueOn}, now ${f.status.toLowerCase()}`] as [string, string]),
+          ),
+        },
+        {
+          kind: "p",
+          text: `The files list sorts by due date: ${input.filesUrl}`,
+        },
+        {
+          kind: "note",
+          text: `One email about this every ${input.cooldownHours} hours at most, while any file is past its target.`,
+        },
+      ],
+    },
+  );
+}
+
 export function allTemplatesForAudit(): RenderedEmail[] {
 
   return [
@@ -2518,7 +2575,17 @@ export function allTemplatesForAudit(): RenderedEmail[] {
         { label: "Gate or lockbox code", when: "Before a technician is sent" },
       ],
       holdingUp: "a technician can be sent",
-      supplyUrl: "https://254engineering.com/order/SAMPLE",
+      supplyUrl: "https://254engineering.com/order/254-ORD-SAMPLE?token=SAMPLE",
+    }),
+    /* The same request for a job with no order yet: no button, a reply instead (addendum item 4). */
+    outstandingInformation({
+      customerName: "Sample Customer",
+      customerEmail: "sample@example.com",
+      fileNumber: "254-2026-0002",
+      propertyAddress: "102 Sample Street, Corpus Christi",
+      items: [{ label: "Who should the document be addressed to", when: "Before it can be sealed" }],
+      holdingUp: "it can be sealed",
+      supplyUrl: null,
     }),
     jobPaymentLink({
       customerName: "Sample Customer",
@@ -2554,6 +2621,17 @@ export function allTemplatesForAudit(): RenderedEmail[] {
       cooldownMinutes: 60,
       checkedAt: "2026-10-13T05:00:00.000Z",
       dashboardUrl: "https://254engineering.com/portal",
+      environment: "production",
+    }),
+    filesOverdueAlert({
+      files: [
+        { fileNumber: "254-2026-0042", service: "Roof certification letter", dueOn: "Nov 10, 2026", status: "Under review" },
+        { fileNumber: "254-2026-0047", service: "Foundation certification", dueOn: "Nov 12, 2026", status: "Dispatched" },
+      ],
+      total: 2,
+      cooldownHours: 24,
+      checkedAt: "2026-11-13T15:00:00.000Z",
+      filesUrl: "https://254engineering.com/portal/files",
       environment: "production",
     }),
     errorAlert({

@@ -37,7 +37,8 @@ const check = (name, ok, note = "") => {
   console.log(`  ${ok ? "PASS" : "FAIL"}: ${name}${note ? ` (${note})` : ""}`);
 };
 
-const { SIGNABLE_PROTOCOLS, HELD_OUT_OF_FORCE } = await import("../../src/content/protocols/signable.ts");
+/* This proof is about 0081, so it reads the texts 0081 was generated from, 254-DS-001 among them. */
+const { SIGNABLE_AT_0081: SIGNABLE_PROTOCOLS, HELD_OUT_OF_FORCE } = await import("../../src/content/protocols/signable.ts");
 const { signedProtocolItemRows } = await import("../../src/lib/protocol-run.ts");
 const { PROTOCOL_ENTRIES } = await import("../../src/content/protocols/index.ts");
 const { verifiedEngineers } = await import("../../src/config/credentials.ts");

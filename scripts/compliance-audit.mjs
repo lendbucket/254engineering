@@ -1640,9 +1640,10 @@ const RULED_CONDITIONS = [
     `deskLines: ${deskLines.join(", ") || "none"}. Ruled: ${DESK_LINES_RULED.join(", ")}`,
   );
   /*
-   * WHAT THE EXEMPTION MUST NOT OPEN. 254-DS-001 v1.1 is a signable
-   * transcription, so a desk line has a protocol the gate would count, and
-   * listing it would make it "offered" for ordering. The exemption is for its
+   * WHAT THE EXEMPTION MUST NOT OPEN. 254-DS-001 v1.1 was a signable
+   * transcription until it was withdrawn on 2026-10-27, and a design text could
+   * be offered again, so a desk line could have a protocol the gate would count,
+   * and listing it would make it "offered" for ordering. The exemption is for its
    * accepted quote's payment only: a desk line is never offered as an order, and
    * no registered protocol (PROTOCOL_ENTRIES) drives one.
    */

@@ -224,9 +224,10 @@ const launchSrc = read("src/lib/launch.ts");
 const protocolsCond = launchSrc.slice(launchSrc.indexOf('id: "protocols"'), launchSrc.indexOf('id: "phone"'));
 check("and it skips desk lines by name, then asks every other offered line as before", protocolsCond.includes("offeredServiceLines.filter((slug) => !deskLines.includes(slug))") && protocolsCond.includes("needProtocol.filter((slug) => !lineHasProtocolInForce(slug))"));
 /*
- * 254-DS-001 v1.1 is a signable transcription, so design HAS a protocol the gate
- * would count. Listing design therefore made serviceLineIsOffered answer true
- * until the desk clause: asserted at runtime, never by wording.
+ * 254-DS-001 v1.1 was a signable transcription when design was listed, so design
+ * HAD a protocol the gate would count, and serviceLineIsOffered answered true
+ * until the desk clause. DS-001 was withdrawn from signing on 2026-10-27; the
+ * desk clause stays, asserted at runtime, never by wording.
  */
 check("design is never offered for ordering, so no card shows it as an order", launch.serviceLineIsOffered(DESIGN) === false);
 check(

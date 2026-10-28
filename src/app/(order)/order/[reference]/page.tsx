@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Container } from "@/components/ui/Container";
 import { customerView } from "@/lib/ops-customer";
 import { FIRM_TIME_ZONE } from "@/lib/firm-calendar";
+import { RequestedDocumentUpload } from "./RequestedDocumentUpload";
 
 export const dynamic = "force-dynamic";
 
@@ -255,7 +256,33 @@ export default async function OrderStatusPage({
           <p className="mt-3 text-[17px] leading-[1.55] font-semibold text-[var(--color-ink)]">
             {view.statusLine}
           </p>
+          {/*
+            THE TARGET DATE, addendum item 6. Null while the gate is shut, the
+            same hold the published roof figure is under, and null on a line
+            Robert has given no target.
+          */}
+          {view.targetDate ? (
+            <p className="mt-2 text-[15px] leading-[1.65] text-[var(--color-ink-quiet)]">{view.targetDate}</p>
+          ) : null}
         </section>
+
+        {/*
+          THE DOCUMENTS THE FIRM ASKED FOR, SENT FROM HERE. Addendum item 4.
+          Only a document the firm is still waiting on is offered, and the same
+          token that opened this page is the credential for the upload.
+        */}
+        {view.requested.length > 0 && token ? (
+          <section className="mt-12">
+            <h2 className={LABEL}>Documents the firm asked for</h2>
+            <ul className="mt-3 space-y-6">
+              {view.requested.map((slot) => (
+                <li key={slot.id}>
+                  <RequestedDocumentUpload token={token} slot={slot} />
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
 
         {/*
           THE SEALED LETTER, WHEN THERE IS ONE. Sealing piece two, 2026-10-07.

@@ -757,8 +757,9 @@ export function serviceLineIsOffered(serviceSlug: string): boolean {
   /*
    * A DESK LINE IS NEVER OFFERED FOR ORDERING, ONLY QUOTED. Robert's answer 1
    * of 2026-10-27 listed design in offeredServiceLines so its accepted quote
-   * can be paid. 254-DS-001 v1.1 is a signable transcription (signable.ts), so
-   * without this clause design would read as offered here and every statically
+   * can be paid. 254-DS-001 v1.1 was a signable transcription (signable.ts; it
+   * was withdrawn from signing on 2026-10-27), and another design text could be
+   * added one day, so without this clause design would read as offered here and every statically
    * rendered card would show it as "Order online" once the gate opens. Its one
    * money door is its accepted quote (designQuoteBlocked in line-gate.ts).
    */

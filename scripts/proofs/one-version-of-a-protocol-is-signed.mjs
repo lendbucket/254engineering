@@ -32,6 +32,7 @@ import { createHash } from "node:crypto";
 import { transcriptionSha256 } from "../../src/lib/protocol-sign.ts";
 import { WP001_V1_2, FC001_V1_0 } from "../../src/content/protocols/docx-received.ts";
 import { WP001 } from "../../src/content/protocols/wp-001.ts";
+import { WITHDRAWN_PROTOCOLS } from "../../src/content/protocols/signable.ts";
 
 const results = [];
 const check = (name, ok, note = "") => results.push({ name, ok, note });
@@ -62,6 +63,17 @@ const SIGNED_ON_PRODUCTION = {
   "254-DS-001": "c47536b8ab31009027e6f443a03bed1b28b6dbf443b85350b7e7bb817756958b",
 };
 for (const [number, signed] of Object.entries(SIGNED_ON_PRODUCTION)) {
+  /*
+   * 254-DS-001 was withdrawn from signing on 2026-10-27 (signable.ts), so the
+   * door hashes nothing for it; the text kept as the record must still hash to
+   * the signature he gave, so withdrawing it altered no word he signed.
+   */
+  const kept = WITHDRAWN_PROTOCOLS.find((p) => p.documentNumber === number && p.version === "1.1");
+  if (kept) {
+    check(`${number} v1.1 is withdrawn, so the signing door hashes nothing for it`, transcriptionSha256(number, "1.1") === null);
+    check(`${number} v1.1's text kept as the record still hashes to his signature on production`, sha(kept.text) === signed, sha(kept.text).slice(0, 12));
+    continue;
+  }
   const now = transcriptionSha256(number, "1.1");
   check(`${number} v1.1 still hashes to his signature on production`, now === signed, now ? now.slice(0, 12) : "null");
 }

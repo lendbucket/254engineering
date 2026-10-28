@@ -206,6 +206,64 @@ rec(
     silent.length + " of " + services.length + " lines publish no turnaround, awaiting a ruled figure",
   );
 }
+
+/* ------------- 4. the target a file is held to, per line (item 6) */
+
+/*
+ * ROBERT'S TARGETS OF 2026-10-27, 09:20 CENTRAL, PINNED AS LITERALS. CLAUDE.md
+ * section 6c: a ruled figure lives in the config AND here, so moving one costs
+ * two edits made on purpose. Design and WPI-8 ongoing have no target, and that
+ * absence is pinned too.
+ */
+{
+  const { TURNAROUND_TARGET_DAYS, targetDaysFor } = await import("../src/config/turnaround.ts");
+  const { catalogFor } = await import("../data/catalog.ts");
+  const { targetDateLine } = await import("../src/lib/turnaround-target.ts");
+  const RULED = {
+    "roof-inspections/standard": 10,
+    "windstorm-wpi-8/completed": 7,
+    "foundation-inspections/standard": 7,
+    "solar-structural-letters/standard": 5,
+    "manufactured-home-foundation-certifications/standard": 5,
+    "structural-letters/standard": 5,
+    "repair-specifications/standard": 10,
+  };
+  const drift = [
+    ...Object.entries(RULED).filter(([k, v]) => TURNAROUND_TARGET_DAYS[k] !== v).map(([k, v]) => `${k}: ruled ${v}, config ${TURNAROUND_TARGET_DAYS[k]}`),
+    ...Object.keys(TURNAROUND_TARGET_DAYS).filter((k) => !(k in RULED)).map((k) => `${k}: in the config and never ruled`),
+  ];
+  rec("every line's target is the figure Robert ruled, and no other line has one", drift.length === 0, drift.join(" | ") || `${Object.keys(RULED).length} targets agree`);
+
+  const NONE = [
+    ["windstorm-wpi-8", "ongoing"],
+    ["residential-light-commercial-design", "beam-header-sizing"],
+    ["residential-light-commercial-design", "carport-patio-plan-set"],
+    ["residential-light-commercial-design", "custom-package"],
+  ];
+  const given = NONE.filter(([s, t]) => targetDaysFor(s, t) !== null).map(([s, t]) => `${s}/${t}`);
+  rec("design and WPI-8 ongoing have no target", given.length === 0, given.join(", ") || "none of the four has one");
+
+  const unknown = Object.keys(TURNAROUND_TARGET_DAYS).filter((k) => {
+    const [slug, tier] = k.split("/");
+    return !catalogFor(slug, tier);
+  });
+  rec("and every target names a deliverable the catalogue sells", unknown.length === 0, unknown.join(", ") || "all known");
+
+  rec(
+    "roof's target is the turnaround it publishes, so a file is never held to a date the firm does not state",
+    TURNAROUND_TARGET_DAYS["roof-inspections/standard"] === ROOF_CERTIFICATION_PUBLISHED_DAYS,
+    `target ${TURNAROUND_TARGET_DAYS["roof-inspections/standard"]}, published ${ROOF_CERTIFICATION_PUBLISHED_DAYS}`,
+  );
+
+  /* The status page's target date is held behind the gate exactly as the published figure is. */
+  const sample = "2026-11-10T05:59:59.999Z";
+  rec("the status page's target date says nothing while the gate is shut", targetDateLine(sample, false) === null);
+  rec(
+    "and says the date once it is open, read in the firm's calendar",
+    /Nov 9, 2026/.test(String(targetDateLine(sample, true))),
+    String(targetDateLine(sample, true)),
+  );
+}
 /* ----------------------------------------------------------------- verdict */
 
 console.log("");
