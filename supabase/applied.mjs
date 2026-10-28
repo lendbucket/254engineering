@@ -3957,8 +3957,12 @@ export const APPLIED = [
       "pair. One eng_roles row moves, so the shape (1374) and the fact count (1324) are unchanged and the behaviour " +
       "digest moves with the seeded row.",
     because:
-      "WRITTEN 2026-10-28 ON feat/tech-mfa-and-ops-grants, ON TOP OF 0102 (feat/grant-cleanup); NOT YET ON " +
-      "DEVELOPMENT OR PRODUCTION. Robert's answer 1 of 2026-10-28, 08:18 Central (issue #1 comment 6470044608): " +
+      "WRITTEN 2026-10-28 ON feat/tech-mfa-and-ops-grants, ON TOP OF 0102 (feat/grant-cleanup); ON DEVELOPMENT " +
+      "(version 20261028135200, applied by the operator's chat counterpart from stage/0103-tech-mfa at b91150b, file " +
+      "sha256 d35f43e0, stored statement sha256 44d0d477, field_tech required and the other eight unchanged; issue #1 " +
+      "comment 6470846047), NOT YET ON PRODUCTION. The owner's own technician profile is exempt by the fourth named " +
+      "override (sign_in_second_factor_tech, Robert, 2026-10-28, comment 6470882290), shipped in the same bundle so it " +
+      "is on main before this reaches production. Robert's answer 1 of 2026-10-28, 08:18 Central (issue #1 comment 6470044608): " +
       "field technicians require the second factor everywhere, because the server cannot tell the installed app " +
       "from a browser. The shape is 0093's, with a read-back over every role. Development from its stage branch, " +
       "production from a passed board's boarded commit.",
@@ -3973,12 +3977,16 @@ export const APPLIED = [
       "Both figures read off scripts/fingerprint-at.mjs at 0104 on 2026-10-28, with 0103 reproducing its recorded " +
       "pair. Four grant rows, so the shape (1374) is unchanged and the fact count moves from 1324 to 1328.",
     because:
-      "WRITTEN 2026-10-28 ON feat/tech-mfa-and-ops-grants, ON TOP OF 0103; NOT YET ON DEVELOPMENT OR PRODUCTION. " +
+      "WRITTEN 2026-10-28 ON feat/tech-mfa-and-ops-grants, ON TOP OF 0103; ON DEVELOPMENT (version 20261028135208, " +
+      "applied by the operator's chat counterpart from stage/0104-ops-grants at 859c49e, file sha256 88ecdacd, stored " +
+      "statement sha256 2869af8b, 191 grants, 31 held by ops_manager; issue #1 comment 6470846047), NOT YET ON " +
+      "PRODUCTION. " +
       "Robert's answer 3 of 2026-10-28, 08:18 Central (issue #1 comment 6470044608): the operations manager reads " +
       "applications (applications.read, a new action that the administrator also holds and the applications page " +
       "now asks for) and holds profiles.list and profiles.update for the technician screens, narrowing the ruling " +
-      "of 2026-10-20 for this role only. Declared in DEFAULT_ROLES and pinned in roles-audit. How far " +
-      "profiles.update reaches beyond technicians is asked of Robert (comment 6470204135) before the board.",
+      "of 2026-10-20 for this role only. Declared in DEFAULT_ROLES and pinned in roles-audit. His profiles.update " +
+      "reaches field technicians only (WIDE_GRANT_TECHNICIANS_ONLY in onboarding-scope.ts), the narrower reading " +
+      "taken on issue #1 (comment 6470846047).",
   },
 ];
 
