@@ -783,6 +783,46 @@ const STAFF_LEVELS = ["rep", "ops_manager"];
   const seededRoles = [...rolesBlock.matchAll(/\('([a-z_]+)',\s*'([^']+)',\s*'([^']+)',\s*(true|false)\)/g)].map(
     (m) => ({ key: m[1], name: m[2], landingPath: m[3], isSystem: m[4] === "true" }),
   );
+
+  /*
+   * A LANDING PATH CAN BE MOVED BY A LATER MIGRATION. Robert's ruling 11 of
+   * 2026-10-27, 22:05 Central: sales, customer service and the dispatcher land
+   * on their /portal dashboard, and 0101 moves the three rows with an update.
+   * This read only knew the inserts, so it would have reported the three as
+   * landing where 0018 put them. Every insert in the chain is "on conflict do
+   * nothing", so a later update is the last word on a row that already exists,
+   * and applying the updates after the inserts is the order a database reads.
+   *
+   * An update that sets landing_path in a shape this cannot model is a red,
+   * not a skip, for the reason the grant removals below give.
+   */
+  const landingMoves = [];
+  for (const m of sql.matchAll(/update\s+eng_roles\s+set\s+([\s\S]*?)\s+where\s+([\s\S]*?);/gi)) {
+    if (!/landing_path/i.test(m[1])) continue;
+    const to = m[1].match(/^landing_path\s*=\s*'([^']+)'$/i);
+    const one = m[2].match(/^key\s*=\s*'([a-z_]+)'$/i);
+    const many = m[2].match(/^key\s+in\s*\(([^)]*)\)$/i);
+    const keys = one ? [one[1]] : many ? [...many[1].matchAll(/'([a-z_]+)'/g)].map((k) => k[1]) : null;
+    if (!to || !keys || keys.length === 0) {
+      rec(
+        "every landing path move in the chain is in a shape this audit understands",
+        false,
+        `unrecognised: update eng_roles set ${m[1].trim().slice(0, 80)} where ${m[2].trim().slice(0, 80)}`,
+      );
+      continue;
+    }
+    for (const key of keys) {
+      const row = seededRoles.find((r) => r.key === key);
+      if (row) row.landingPath = to[1];
+      landingMoves.push(`${key} -> ${to[1]}`);
+    }
+  }
+  rec(
+    `the chain's landing path moves are read as well as its inserts (${landingMoves.length})`,
+    true,
+    landingMoves.length ? landingMoves.join(", ") : "none yet",
+  );
+
   const inserted = [...grantsBlock.matchAll(/\('([a-z_]+)',\s*'([^']+)'\)/g)].map((m) => m[1] + ":" + m[2]);
 
   /*

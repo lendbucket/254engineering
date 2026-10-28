@@ -310,9 +310,16 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * shape 6bfbef5f84906d2a453fefe1cf3c03fb, read off fingerprint-at.mjs with
  * 0098 reproducing its recorded pair first.
  */
-const EXPECTED_FINGERPRINT = "6bfbef5f84906d2a453fefe1cf3c03fb";
-const EXPECTED_COLUMNS = 1370;
-const EXPECTED_TABLES = 103;
+/*
+ * Moved 2026-10-28 by 0100, a site orders twenty times a minute, by Robert's
+ * ruling 6 of 2026-10-27: 1,370 to 1,374 is eng_site_order_requests' four
+ * columns, and the table count moves 103 to 104; shape
+ * 0a97717f953b0be7267ab818ad99eda6, read off fingerprint-at.mjs with 0099
+ * reproducing its recorded pair first.
+ */
+const EXPECTED_FINGERPRINT = "0a97717f953b0be7267ab818ad99eda6";
+const EXPECTED_COLUMNS = 1374;
+const EXPECTED_TABLES = 104;
 /* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts.
  * 0074 adds two: eng_partner_billing_touch and eng_partner_billing_events_immutable.
  * 0075 adds one: eng_payment_events_guarded.
@@ -428,6 +435,49 @@ rec(
   contiguous,
   contiguous ? files.map((f) => f.slice(0, 4)).join(", ") : `got ${numbers.join(", ")}`,
 );
+
+/*
+ * A NEW eng_ TABLE, AND THE SEQUENCE OF ANY SERIAL ID IT OWNS, IS REVOKED FROM
+ * THE API ROLES IN ITS OWN FILE. From 0100. Found by the chat's read of the
+ * default privileges on 2026-10-28 (issue #1 comments 6462860460 and
+ * 6462870632): this project grants every new table and sequence to anon and
+ * authenticated, row level security keeps the rows and not the sequence, and
+ * 0100 as first written revoked neither. 0098 and 0099 had revoked their
+ * tables by hand, which is a habit, and a habit is what a board replaces.
+ *
+ * Read from the files rather than from the replay, because the replay's stub
+ * grants functions by default and not tables, so a replay check would find
+ * nothing to refuse. Files before 0100 are counted and named as the grant
+ * cleanup's subject (its own bundle, queued), not passed over in silence.
+ */
+{
+  const FROM = 100;
+  const unrevoked = [];
+  let tablesChecked = 0;
+  let grandfathered = 0;
+  for (const f of files) {
+    const body = readSource(join(DIR, f));
+    const tables = [...body.matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?(eng_[a-z0-9_]+)\s*\(([\s\S]*?)\n\);/gi)];
+    if (Number(f.slice(0, 4)) < FROM) {
+      grandfathered += tables.length;
+      continue;
+    }
+    for (const [, table, columns] of tables) {
+      tablesChecked += 1;
+      const revoked = (name, kind) =>
+        new RegExp(`revoke\\s+all\\s+on\\s+${kind}${name}\\s+from\\s+public,\\s*anon,\\s*authenticated\\s*;`, "i").test(body);
+      if (!revoked(table, "")) unrevoked.push(`${f}: ${table}`);
+      for (const [, column] of columns.matchAll(/^\s*([a-z0-9_]+)\s+(?:big|small)?serial\b/gim)) {
+        if (!revoked(`${table}_${column}_seq`, "sequence\\s+")) unrevoked.push(`${f}: ${table}_${column}_seq`);
+      }
+    }
+  }
+  rec(
+    `every eng_ table created from 0100, and its serial sequence, is revoked from public, anon and authenticated in its own file (${tablesChecked} checked)`,
+    unrevoked.length === 0,
+    unrevoked.join(", ") || `${grandfathered} table(s) created before 0100 are the grant cleanup bundle's subject`,
+  );
+}
 
 /*
  * Balanced dollar quoting, checked before the replay so the failure names the

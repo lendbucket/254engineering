@@ -5,6 +5,9 @@ import { isOpen, notYetAcceptingEngagements } from "@/lib/launch";
 import { withSaveOutcome } from "@/lib/save-outcome";
 import { sisterOrderingRefusal } from "@/lib/sister-ordering";
 import { SITE_KEY } from "@/lib/supabase";
+import { signOrderUpload } from "@/lib/order-uploads";
+import { orderStatus, siteOrderRate, type SiteOrderIntent } from "@/lib/sister-order-door";
+import { repeatAnswer, siteFileProblem } from "@/lib/sister-order-door-rules";
 
 export const dynamic = "force-dynamic";
 
@@ -42,7 +45,12 @@ export const dynamic = "force-dynamic";
 const NOWHERE = () => NextResponse.json({ ok: false }, { status: 404 });
 
 type Body = {
-  intent?: "order" | "quote";
+  intent?: "order" | "quote" | "upload";
+  /* An upload's slot, file name, type and size (intent "upload"). */
+  inputKey?: string;
+  filename?: string;
+  contentType?: string;
+  size?: number;
   clientRequestId?: string;
   serviceSlug?: string;
   tier?: string;
@@ -83,9 +91,6 @@ async function handlePOST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: closed, closed: true }, { status: 409 });
   }
 
-  const body = (await request.json().catch(() => null)) as Body | null;
-  if (!body) return NextResponse.json({ ok: false, error: "Send a JSON body." }, { status: 400 });
-
   /*
    * Stated here as well as inside ops-intake. The gate is checked at the point
    * of writing, which is what actually enforces it, and answered here so the
@@ -109,6 +114,52 @@ async function handlePOST(request: NextRequest) {
       },
       { status: 409 },
     );
+  }
+
+  /*
+   * TWENTY REQUESTS A MINUTE PER SITE, COUNTED BEFORE THE BODY IS ACTED ON.
+   * Robert's ruling 6 of 2026-10-27 (0100, src/lib/sister-order-door.ts). Read
+   * after the switch and the gate, so a closed site or a closed gate writes
+   * nothing, and before anything is priced or placed, so a refused request
+   * costs a count and nothing else. A body that is not JSON still counts.
+   */
+  const body = (await request.json().catch(() => null)) as Body | null;
+  const intent: SiteOrderIntent = !body
+    ? "unreadable"
+    : body.intent === "quote"
+      ? "quote"
+      : body.intent === "upload"
+        ? "upload"
+        : "order";
+  const overRate = await siteOrderRate(site, intent);
+  if (overRate) {
+    console.error(`[orders] refused for site "${site}" with ${overRate.status}: ${overRate.error}`);
+    return NextResponse.json({ ok: false, error: overRate.error }, { status: overRate.status });
+  }
+  if (!body) return NextResponse.json({ ok: false, error: "Send a JSON body." }, { status: 400 });
+
+  /*
+   * THE SIGNED UPLOAD DOOR FOR A SITE'S FILES. Robert's ruling 6 of 2026-10-27.
+   * The same machinery as 254's own order flow (signOrderUpload, the private
+   * eng-uploads bucket, a PDF to 40 MB and a photograph to 10), keyed on the
+   * request's idempotency key under orders/<clientRequestId>/. The calling
+   * site's server asks with its key; the customer's browser sends the file
+   * straight to the signed URL, which the storage provider expires, so a plan
+   * set never passes through a function. The order or quote that follows may
+   * attach only files under that same request (siteFileProblem below).
+   */
+  if (body.intent === "upload") {
+    const signed = await signOrderUpload({
+      draftId: body.clientRequestId ?? "",
+      inputKey: body.inputKey ?? "",
+      filename: body.filename ?? "",
+      contentType: body.contentType ?? "",
+      size: Number(body.size ?? 0),
+      space: "orders",
+    });
+    return signed.ok
+      ? NextResponse.json(signed, { status: 200, headers: { "Cache-Control": "no-store" } })
+      : NextResponse.json(signed, { status: 422 });
   }
 
   const attribution = {
@@ -161,6 +212,15 @@ async function handlePOST(request: NextRequest) {
       : NextResponse.json(result, { status: 422 });
   }
 
+  /*
+   * An order may attach only files this door signed for the same request. A
+   * quote already refuses anything else inside requestQuote; an order did not,
+   * so a key could have named any object in the bucket (ruling 6, the upload
+   * door). Refused before anything is placed.
+   */
+  const fileProblem = siteFileProblem(body.clientRequestId ?? "", files);
+  if (fileProblem) return NextResponse.json({ ok: false, error: fileProblem, field: "files" }, { status: 422 });
+
   const result = await placeOrder({
     site,
     clientRequestId: body.clientRequestId ?? "",
@@ -192,12 +252,29 @@ async function handlePOST(request: NextRequest) {
   if (!result.ok) return NextResponse.json(result, { status: 422 });
 
   /*
-   * A duplicate does not open a second checkout. The first one is still valid
-   * and Stripe's idempotency key on the order would return it anyway; asking
-   * again would just be a round trip to learn that.
+   * A REPEATED REQUEST GETS A CHECKOUT FOR AN UNPAID ORDER. Robert's ruling 6
+   * of 2026-10-27: "a fresh checkout returned when a repeated request finds an
+   * unpaid order." Until then a duplicate answered with no checkout at all, so
+   * a site whose first response was lost had nowhere to send its customer.
+   *
+   * startCheckout is asked again. The provider's idempotency key is the order
+   * (payments-stripe.ts), so inside its window the same live session comes
+   * back rather than a second payment page for one order, and after it a new
+   * session is opened. Either way the link answers. A paid, canceled or
+   * otherwise settled order gets its status and no checkout.
    */
   let checkout: { url: string } | { error: string } | null = null;
-  if (!result.duplicate) {
+  let status: string | null = null;
+  if (result.duplicate) {
+    status = await orderStatus(result.orderId);
+    if (status === null) {
+      checkout = { error: "This order's state could not be read just now, so no checkout was opened. Send the request again in a minute." };
+    } else if (repeatAnswer(status) === "checkout") {
+      const started = await startCheckout(result.orderId);
+      checkout = started.ok ? { url: started.url } : { error: started.error };
+      if (!started.ok) console.error(`[orders] ${result.reference} repeated and its checkout did not open: ${started.error}`);
+    }
+  } else {
     const started = await startCheckout(result.orderId);
     checkout = started.ok ? { url: started.url } : { error: started.error };
     if (!started.ok) {
@@ -206,7 +283,7 @@ async function handlePOST(request: NextRequest) {
   }
 
   return NextResponse.json(
-    { ...result, checkout },
+    { ...result, ...(status === null ? {} : { status }), checkout },
     { status: result.duplicate ? 200 : 201 },
   );
 }
