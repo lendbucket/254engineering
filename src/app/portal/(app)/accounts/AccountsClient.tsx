@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { money } from "@/lib/ops-money";
 import { Chip } from "@/components/portal/surfaces";
@@ -55,32 +55,20 @@ type Row = {
  * well under the audit's 250. The remainder is STATED rather than dropped, for
  * the reason the reports module gives about its own window: a table that
  * silently stops is a reader counting fifty rows under a heading that says 544.
+ *
+ * SINCE 2026-10-28 THE FIFTY ARE CHOSEN ON THE SERVER (ACCOUNT_PAGE_SIZE in
+ * account-list.ts). This component used to receive every account and search
+ * and page them in the browser, which meant reading every figure for about
+ * 3,020 accounts to show fifty: 10 seconds on board 40733329479. The search,
+ * the filters, the sort and the pager are a GET form and links on the page now,
+ * with the total and the window stated there, and this renders the page given.
  */
-const PER_PAGE = 50;
-
-export function AccountsClient({ rows }: { rows: Row[] }) {
+export function AccountsClient({ rows, pager }: { rows: Row[]; pager?: ReactNode }) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
-  const [query, setQuery] = useState("");
-  const [page, setPage] = useState(1);
-
-  /*
-   * SEARCH BEFORE PAGING, so a search covers every account rather than the
-   * fifty currently on screen. A filter applied after the window would be the
-   * bounded-read defect wearing a text box: it would look like a search and
-   * would be a search of one page.
-   */
-  const needle = query.trim().toLowerCase();
-  const matching = needle
-    ? rows.filter((r) => r.clientName.toLowerCase().includes(needle))
-    : rows;
-
-  const pages = Math.max(1, Math.ceil(matching.length / PER_PAGE));
-  const current = Math.min(Math.max(1, page), pages);
-  const from = (current - 1) * PER_PAGE;
-  const shown = matching.slice(from, from + PER_PAGE);
+  const shown = rows;
 
   async function act(payload: Record<string, unknown>, key: string) {
     setBusy(key);
@@ -119,10 +107,12 @@ export function AccountsClient({ rows }: { rows: Row[] }) {
 
   return (
     <div>
-      <div className="mb-3 flex flex-wrap items-baseline gap-x-3 gap-y-2">
+      <div>
         {/*
-          aria-label RATHER THAN A VISUALLY HIDDEN SPAN, and the reason is
-          measured rather than stylistic.
+          THE SEARCH BOX THAT LIVED HERE MOVED TO THE PAGE'S GET FORM on
+          2026-10-28, with visible labels. Its lesson is kept, because it holds
+          for any control put back here: an aria-label RATHER THAN A VISUALLY
+          HIDDEN SPAN, and the reason is measured rather than stylistic.
 
           This was `<span className="sr-only">`, and native-audit went red:
           "/portal/accounts: the page itself does not scroll (the document
@@ -145,38 +135,6 @@ export function AccountsClient({ rows }: { rows: Row[] }) {
           the portal's scroll region has this shape. Point 1 is the only check
           that can see it, and it sees it as a page that scrolls.
         */}
-        <label className="flex-1 min-w-[200px]">
-          <input
-            type="search"
-            aria-label="Search accounts by organization name"
-            value={query}
-            onChange={(e) => {
-              setQuery(e.target.value);
-              setPage(1);
-            }}
-            placeholder="Search by organization"
-            /* min-h-44 because this is a new interactive control on a screen
-             * mobile-audit measures, and py-2 alone lands it under the tap
-             * target minimum. Caught by asking, before the board, which rules
-             * a change makes newly applicable rather than waiting to be told. */
-            className="min-h-[44px] w-full rounded-[2px] border border-limestone-line px-3 py-2 text-[14px] text-[var(--ink)]"
-          />
-        </label>
-        {/*
-          THE TOTAL AND THE WINDOW, BOTH, because either alone misleads. The
-          count of what is shown without the total is a reader believing they
-          have seen everything; the total without the window is a reader
-          wondering where the rest went.
-        */}
-        <p className="text-[14px] text-[var(--secondary)]">
-          {matching.length === 0
-            ? needle
-              ? `No account matches "${query.trim()}". ${rows.length} in total.`
-              : "No accounts."
-            : `Showing ${from + 1} to ${from + shown.length} of ${matching.length}${
-                needle ? ` matching "${query.trim()}", ${rows.length} in total` : ""
-              }, ${PER_PAGE} to a page.`}
-        </p>
       </div>
 
       <ul className="divide-y divide-limestone-line">
@@ -290,29 +248,8 @@ export function AccountsClient({ rows }: { rows: Row[] }) {
         </p>
       ) : null}
 
-      {pages > 1 ? (
-        <nav aria-label="Accounts pages" className="mt-4 flex items-center justify-between gap-3">
-          <button
-            type="button"
-            onClick={() => setPage(current - 1)}
-            disabled={current === 1}
-            className="min-h-[44px] rounded-[2px] border border-limestone-line px-4 text-[14px] text-[var(--ink)] disabled:opacity-40"
-          >
-            Previous
-          </button>
-          <span className="text-[14px] text-[var(--secondary)]">
-            Page {current} of {pages}
-          </span>
-          <button
-            type="button"
-            onClick={() => setPage(current + 1)}
-            disabled={current === pages}
-            className="min-h-[44px] rounded-[2px] border border-limestone-line px-4 text-[14px] text-[var(--ink)] disabled:opacity-40"
-          >
-            Next
-          </button>
-        </nav>
-      ) : null}
+      {/* The server's pager, with the total and the window: links, so a page can be sent and printed. */}
+      {pager}
 
       <SendResetLink />
     </div>
