@@ -3934,12 +3934,17 @@ export const APPLIED = [
       "move neither the shape nor the behaviour digest, which does not count table or sequence privileges. The " +
       "migration's own read-back is what proves it, and it ran clean in the replay.",
     because:
-      "WRITTEN 2026-10-28 ON feat/grant-cleanup, ON MAIN 7827c17; NOT YET ON DEVELOPMENT OR PRODUCTION. The chat's " +
+      "WRITTEN 2026-10-28 ON feat/grant-cleanup, ON MAIN 7827c17; ON DEVELOPMENT (version 20261028131133, applied " +
+      "by the operator's chat counterpart from stage/0102-grants at c481470, file sha256 926c8662, stored statement " +
+      "sha256 9acfc378; 111 open before, 0 after, the service role holding all four privileges on all 104 tables, " +
+      "each read separately; issue #1 comment 6469887899). The file then changed inside its read-back only, so the " +
+      "service role's four privileges are asked one by one (stage/0102-grants-2 at 915ab65, sha256 70a07583); the " +
+      "revokes are the text development holds. NOT YET ON PRODUCTION. Approved by Robert, answer 5 of 08:18 Central " +
+      "2026-10-28 (comment 6470044608). The chat's " +
       "read of production (issue #1 comments 6462860460 and 6462870632): every eng_ table and every eng_ sequence " +
       "still carried the default grants to anon and authenticated behind row level security. Revokes them from " +
       "the 104 tables and 13 sequences a replay of the chain creates, each named, the shared default privileges " +
-      "untouched. Robert's question 6 of the morning report of 2026-10-28 asks his word; posted on issue #1 for the " +
-      "chat to sit on development from its stage branch, then on production from a passed board's boarded commit.",
+      "untouched. Production from a passed board's boarded commit, with Section 0 expecting 111 open.",
   },
 ];
 
