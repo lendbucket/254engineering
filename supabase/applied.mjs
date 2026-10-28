@@ -3814,7 +3814,24 @@ export const APPLIED = [
     file: "0099_plans_fit_and_alerts_go_to_a_list.sql", appliedBy: "apply_migration",
     fingerprint: "6bfbef5f84906d2a453fefe1cf3c03fb",
     behaviour: "66aefe449b8883977c85dddbce4ade7d",
-    production: null,
+    /*
+     * APPLIED TO PRODUCTION 2026-10-28 01:01 UTC, provider version
+     * 20261028010153, by the operator's chat counterpart through
+     * apply_migration from the boarded commit eb520b6 (board 40595911245,
+     * 63 of 63). Read back on issue #1, comment 6457829124. The file applied
+     * is sha256 2384abfeddab1cd32492dad1545fd34b00a7fe0a60e84539fba4f00fa7bc2680;
+     * the stored statement reads back as sha256
+     * d217b4b1d91789ce47471c09ed54c6d1a68c0ae47748437823dc244f46850610, the
+     * development figure.
+     *
+     * Before: last migration 0098 (20261027205302); shape f758025e across
+     * 1364; uploads limit 10485760; no eng_alert_recipients. After: shape
+     * 6bfbef5f84906d2a453fefe1cf3c03fb across 1370 columns and 103 eng_
+     * tables, as predicted; uploads limit 41943040; eng_alert_recipients with
+     * RLS on and 0 rows; alerts.manage granted to exactly admin; 0 eng_
+     * functions executable by anon or authenticated.
+     */
+    production: "2026-10-28",
     proves: { table: "eng_alert_recipients", column: "removed_by" },
     note:
       "Both figures read off scripts/fingerprint-at.mjs at 0099 on 2026-10-27, with 0098 reproducing its recorded " +
@@ -3826,7 +3843,7 @@ export const APPLIED = [
       "20261027164724, applied by the operator's chat counterpart through apply_migration from " +
       "stage/0099-uploads-turnaround-alerts-2 at f7ef08b, file sha256 2384abfe, stored statement sha256 d217b4b1, " +
       "shape 6bfbef5f across 1370 columns and the uploads limit 41943040 read back; issue #1 comment 6447936290), " +
-      "NOT YET ON PRODUCTION. Robert's " +
+      "AND PRODUCTION (version 20261028010153, comment 6457829124). Robert's " +
       "addendum of 2026-10-25, 22:46 Central, items 4 and 8b: a plan file of 40 MB fits the uploads bucket, and " +
       "the office's alerts go to a list the owner edits. Posted on issue #1 for the chat to sit on development, " +
       "then on production after the board passes. The branch merges only after the production apply is read back.",
