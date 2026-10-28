@@ -3946,6 +3946,40 @@ export const APPLIED = [
       "the 104 tables and 13 sequences a replay of the chain creates, each named, the shared default privileges " +
       "untouched. Production from a passed board's boarded commit, with Section 0 expecting 111 open.",
   },
+  {
+    file: "0103_the_second_factor_is_required_for_the_field_technician.sql", appliedBy: "apply_migration",
+    fingerprint: "0a97717f953b0be7267ab818ad99eda6",
+    behaviour: "2a3acaf384de830017abd2377aae2327",
+    production: null,
+    proves: { row: { table: "eng_roles", where: "key = 'field_tech' and mfa_requirement = 'required'" } },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0103 on 2026-10-28, with 0102 reproducing its recorded " +
+      "pair. One eng_roles row moves, so the shape (1374) and the fact count (1324) are unchanged and the behaviour " +
+      "digest moves with the seeded row.",
+    because:
+      "WRITTEN 2026-10-28 ON feat/tech-mfa-and-ops-grants, ON TOP OF 0102 (feat/grant-cleanup); NOT YET ON " +
+      "DEVELOPMENT OR PRODUCTION. Robert's answer 1 of 2026-10-28, 08:18 Central (issue #1 comment 6470044608): " +
+      "field technicians require the second factor everywhere, because the server cannot tell the installed app " +
+      "from a browser. The shape is 0093's, with a read-back over every role. Development from its stage branch, " +
+      "production from a passed board's boarded commit.",
+  },
+  {
+    file: "0104_the_operations_manager_reads_applications_and_keeps_technicians.sql", appliedBy: "apply_migration",
+    fingerprint: "0a97717f953b0be7267ab818ad99eda6",
+    behaviour: "bdcf6d84e3af00f96ee268009f475017",
+    production: null,
+    proves: { grant: { role: "ops_manager", action: "applications.read" } },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0104 on 2026-10-28, with 0103 reproducing its recorded " +
+      "pair. Four grant rows, so the shape (1374) is unchanged and the fact count moves from 1324 to 1328.",
+    because:
+      "WRITTEN 2026-10-28 ON feat/tech-mfa-and-ops-grants, ON TOP OF 0103; NOT YET ON DEVELOPMENT OR PRODUCTION. " +
+      "Robert's answer 3 of 2026-10-28, 08:18 Central (issue #1 comment 6470044608): the operations manager reads " +
+      "applications (applications.read, a new action that the administrator also holds and the applications page " +
+      "now asks for) and holds profiles.list and profiles.update for the technician screens, narrowing the ruling " +
+      "of 2026-10-20 for this role only. Declared in DEFAULT_ROLES and pinned in roles-audit. How far " +
+      "profiles.update reaches beyond technicians is asked of Robert (comment 6470204135) before the board.",
+  },
 ];
 
 /*

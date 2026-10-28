@@ -305,6 +305,8 @@ const EXPECTED = {
   "quotes.manage":                { admin: true,  engineer: false, field_tech: false },
   /* Where the office's alerts go, Robert's addendum of 2026-10-25, item 8b (0099): the owner alone. */
   "alerts.manage":                { admin: true,  engineer: false, field_tech: false },
+  /* Reading careers applications, Robert's answer 3 of 2026-10-28 (0104): the owner and the office. */
+  "applications.read":            { admin: true,  engineer: false, field_tech: false },
   "pricing.override_at_intake":   { admin: true,  engineer: false, field_tech: false },
   "pricing.read_tech_rate":       { admin: true,  engineer: false, field_tech: false },
   "reports.turnaround":           { admin: true,  engineer: false, field_tech: false },
@@ -428,8 +430,16 @@ const STAFF_LEVELS = ["rep", "ops_manager"];
        * ARRIVES RED. The narrow actions the levels do hold are not in it.
        */
       why: "the two staff levels touch no price, no pay, no staff account, no role and no Stripe setting",
+      /*
+       * ONE NAMED NARROWING, Robert's answer 3 of 2026-10-28 (0104): the
+       * operations manager holds profiles.list and profiles.update, for the
+       * technician screens. Named by role and action rather than by dropping
+       * the two from the list, so the rep holding either is still red and the
+       * operations manager holding profiles.create, suspend or force_reset is too.
+       */
       check: (role, action) =>
         STAFF_LEVELS.includes(role) &&
+        !(role === "ops_manager" && (action === "profiles.list" || action === "profiles.update")) &&
         (/^(pricing\.|ledger\.|billing\.|settings\.)/.test(action) ||
           (/^payments\./.test(action) && action !== "payments.send_link") ||
           [
@@ -439,6 +449,13 @@ const STAFF_LEVELS = ["rep", "ops_manager"];
             "suppressions.manage", "documents.deliver", "evidence.review", "ledger.approve",
           ].includes(action))
           ? `${role} holds ${action}, which the ruling of 2026-10-20 keeps from both staff levels`
+          : null,
+    },
+    {
+      why: "the owner and the office read careers applications, and nobody else",
+      check: (role, action) =>
+        action === "applications.read" && !["admin", "ops_manager"].includes(role)
+          ? `${role} holds applications.read, which Robert's answer 3 of 2026-10-28 gives to the administrator and the operations manager only`
           : null,
     },
     {
@@ -643,6 +660,15 @@ const STAFF_LEVELS = ["rep", "ops_manager"];
     "and no grant breaks a rule the firm holds",
     broken.length === 0,
     broken.length ? broken.slice(0, 4).join(" | ") : `${RULES.length} rules`,
+  );
+
+  /* And what Robert's answer 3 of 2026-10-28 gives the operations manager, held (0104). */
+  const OPS_MANAGER_TECHNICIAN_GRANTS = ["applications.read", "profiles.list", "profiles.update"];
+  const opsMissing = OPS_MANAGER_TECHNICIAN_GRANTS.filter((a) => !grantsOf("ops_manager").has(a));
+  rec(
+    "the operations manager reads applications and lists and keeps technicians",
+    opsMissing.length === 0,
+    opsMissing.length ? `missing: ${opsMissing.join(", ")}` : OPS_MANAGER_TECHNICIAN_GRANTS.join(", "),
   );
 
   /*
