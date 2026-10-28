@@ -3848,6 +3848,22 @@ export const APPLIED = [
       "the office's alerts go to a list the owner edits. Posted on issue #1 for the chat to sit on development, " +
       "then on production after the board passes. The branch merges only after the production apply is read back.",
   },
+  {
+    file: "0100_a_site_orders_twenty_times_a_minute.sql",
+    fingerprint: "0a97717f953b0be7267ab818ad99eda6",
+    behaviour: "d6e8584f8323cab071add95fb1faaabd",
+    production: null,
+    proves: { table: "eng_site_order_requests", column: "intent" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0100 on 2026-10-28, with 0099 reproducing its recorded " +
+      "pair: eng_site_order_requests' four columns, 1374, and 1324 facts (the table, its key, the site and intent " +
+      "checks, the window index and row level security).",
+    because:
+      "WRITTEN 2026-10-28 ON feat/sealed-before-open, ON TOP OF 0099. Robert's ruling 6 of 2026-10-27, 22:05 " +
+      "Central: a per-site limit of 20 requests a minute on /api/orders before Sealed's ordering opens, counted " +
+      "from rows. Pending until the chat sits it on development from its stage branch and on production from a " +
+      "passed board's boarded commit. The branch merges only after the production apply is read back.",
+  },
 ];
 
 /*

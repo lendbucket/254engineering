@@ -886,6 +886,16 @@ export const RETENTION_POLICY: RetentionEntry[] = [
         "disputes. Nothing deletes from it: a reset is a row. " + COUNSEL,
     },
   },
+  /* 0100, Robert's ruling 6 of 2026-10-27: the per-site limit on /api/orders, counted from rows. */
+  {
+    table: "eng_site_order_requests",
+    rule: {
+      kind: "kept_pending_counsel",
+      because:
+        "Telemetry in shape, like the ordering API's request log, and the evidence behind a rate limit a sister " +
+        "site disputes. " + COUNSEL,
+    },
+  },
   { table: "eng_statement_lines", rule: { kind: "kept_pending_counsel", because: "What a customer was billed, line by line. " + COUNSEL } },
   { table: "eng_statements", rule: { kind: "kept_pending_counsel", because: "What a customer was billed. " + COUNSEL } },
   { table: "eng_tasks", rule: { kind: "kept_pending_counsel", because: COUNSEL } },

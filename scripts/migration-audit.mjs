@@ -310,9 +310,16 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * shape 6bfbef5f84906d2a453fefe1cf3c03fb, read off fingerprint-at.mjs with
  * 0098 reproducing its recorded pair first.
  */
-const EXPECTED_FINGERPRINT = "6bfbef5f84906d2a453fefe1cf3c03fb";
-const EXPECTED_COLUMNS = 1370;
-const EXPECTED_TABLES = 103;
+/*
+ * Moved 2026-10-28 by 0100, a site orders twenty times a minute, by Robert's
+ * ruling 6 of 2026-10-27: 1,370 to 1,374 is eng_site_order_requests' four
+ * columns, and the table count moves 103 to 104; shape
+ * 0a97717f953b0be7267ab818ad99eda6, read off fingerprint-at.mjs with 0099
+ * reproducing its recorded pair first.
+ */
+const EXPECTED_FINGERPRINT = "0a97717f953b0be7267ab818ad99eda6";
+const EXPECTED_COLUMNS = 1374;
+const EXPECTED_TABLES = 104;
 /* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts.
  * 0074 adds two: eng_partner_billing_touch and eng_partner_billing_events_immutable.
  * 0075 adds one: eng_payment_events_guarded.
