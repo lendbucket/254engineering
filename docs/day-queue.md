@@ -1,5 +1,41 @@
 # Day queue, 2026-10-23
 
+## 2026-10-28, BUNDLE 9 PASSED: run 40747015235 on `0124b3a`, 64 of 64
+
+Every named line held:
+- The proof passes inside proofs-audit, and so do the four ops manager and rep lines.
+- 3 lines exempt; the walk at 0 broken.
+- The review page took 0.41 to 0.89 s over 25 renders, down from 5.2 to 7.7 s, and the hold check 0.23 to 0.53 s.
+- `/coverage` passed at 3352 ms.
+
+It merges after bundles 7 and 8, which wait on the production read-backs of 0102 to 0104.
+
+## 2026-10-28, BUNDLE 10: the paged accounts list, `feat/paged-accounts` at `a752603` (on bundle 9)
+
+**Prediction written and pushed before the board starts.**
+
+**What it does:**
+- `/portal/accounts` reads and renders one page of 50.
+- Search, filters, sort and page travel in the URL as a GET form.
+- Orders, seats and open statements are read only for the page's ids.
+- Balances for the warning and the unbilled count come from one read over every issued statement and unbilled invoiced order. Its cost follows outstanding work, not the number of accounts.
+- Every count on the screen is over every account. The timing lines are kept.
+- Seven files. No migration, no table, no route, no role.
+
+**Readers, re-run by me on the commit:**
+- tsc clean.
+- surface-audit passes.
+- `the-accounts-list-pages-on-the-server.mjs` passes. It was injected twice when built, each red on its own check, and restored byte identical.
+- 469 added lines in src and docs: no banned phrase, no present tense claim.
+- 725 added lines: no long dash.
+
+**Prediction: 64 of 64.**
+- Every gating audit passes.
+- `the-accounts-screen-refuses-what-it-could-not-read.mjs`, rewritten for the paged shape, passes against development. It is the one part never run here, because it needs the database.
+- `[accounts.page.timing]` shows accountRows under 3 s and the page total under 4 s on every render. It was 10.0 to 10.5 s.
+- native-audit, mobile and contrast pass on `/portal/accounts`.
+- 3 lines exempt; the walk at 0 broken.
+
 ## 2026-10-28, BUNDLE 9 AGAIN, after one miss, at `0124b3a` (on bundle 8)
 
 **Prediction written and pushed before the board starts.**
