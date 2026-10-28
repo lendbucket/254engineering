@@ -3864,6 +3864,24 @@ export const APPLIED = [
       "from rows. Pending until the chat sits it on development from its stage branch and on production from a " +
       "passed board's boarded commit. The branch merges only after the production apply is read back.",
   },
+  {
+    file: "0101_three_roles_land_on_their_dashboard.sql", appliedBy: "apply_migration",
+    fingerprint: "0a97717f953b0be7267ab818ad99eda6",
+    behaviour: "e4014da34aedcf2c5176f51803d9ef3d",
+    production: null,
+    proves: { row: { table: "eng_roles", where: "key = 'sales' and landing_path = '/portal'" } },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0101 on 2026-10-28, with 0100 reproducing its recorded " +
+      "pair. Three rows of eng_roles move, so the shape (1374 columns) and the fact count (1324) are unchanged and " +
+      "the behaviour digest moves with the seeded rows.",
+    because:
+      "WRITTEN 2026-10-28 ON feat/rulings-11-12-b, ON TOP OF 0100 (feat/sealed-before-open); NOT YET ON DEVELOPMENT " +
+      "OR PRODUCTION. Numbered 0100 when first staged as stage/0100-three-roles-land, renumbered before any sitting " +
+      "because the Sealed bundle boards first and holds 0100. Robert's ruling 11 of 2026-10-27, 22:05 Central: " +
+      "sales, customer service and the dispatcher land on their /portal dashboard. Posted on issue #1 for the chat " +
+      "to sit on development from its stage branch, then on production from the boarded commit after the board " +
+      "passes. The branch merges only after the production apply is read back.",
+  },
 ];
 
 /*

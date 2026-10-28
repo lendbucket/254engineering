@@ -693,7 +693,8 @@ export const DEFAULT_ROLES: DefaultRole[] = [
      */
     key: "dispatcher",
     name: "Dispatcher",
-    landingPath: "/portal/files",
+    /* Robert's ruling 11, 2026-10-27: each role lands on its /portal dashboard (0101). */
+    landingPath: "/portal",
     isSystem: false,
     inviteFields: [],
     grants: [
@@ -727,7 +728,8 @@ export const DEFAULT_ROLES: DefaultRole[] = [
      */
     key: "sales",
     name: "Sales",
-    landingPath: "/portal/clients",
+    /* Robert's ruling 11, 2026-10-27: each role lands on its /portal dashboard (0101). */
+    landingPath: "/portal",
     isSystem: false,
     inviteFields: [],
     grants: [
@@ -753,7 +755,8 @@ export const DEFAULT_ROLES: DefaultRole[] = [
      */
     key: "customer_service",
     name: "Customer Service",
-    landingPath: "/portal/files",
+    /* Robert's ruling 11, 2026-10-27: each role lands on its /portal dashboard (0101). */
+    landingPath: "/portal",
     isSystem: false,
     inviteFields: [],
     grants: [
