@@ -17,13 +17,19 @@ import { PROCEDURES, type Procedure } from "@/content/procedures";
  *     procedures and no link to the page (the page and its nav item both ask
  *     tasks.use, which every role but read_only holds).
  *
+ * THE REP ALSO READS THE CUSTOMER'S PROCEDURES, 254-OPS-001 TO 006. Robert's
+ * ruling 12 of 2026-10-27, 22:05 Central: a rep answers the telephone about
+ * exactly those steps. The operations manager reads them too, because he holds
+ * the rep's grants plus four. Sales, customer service and the dispatcher read
+ * the rep's own procedures and not these, until Robert rules on them.
+ *
  * A role created later in the permission screen and not named here sees an
  * empty page that says so, rather than somebody else's procedures.
  */
 export const SECTIONS_FOR_ROLE: Readonly<Record<string, readonly string[]>> = {
   admin: ["Customer", "Rep", "Ops manager", "Admin and owner", "Field technician", "Engineer", "Partner"],
-  ops_manager: ["Rep", "Ops manager"],
-  rep: ["Rep"],
+  ops_manager: ["Customer", "Rep", "Ops manager"],
+  rep: ["Customer", "Rep"],
   sales: ["Rep"],
   customer_service: ["Rep"],
   dispatcher: ["Rep"],

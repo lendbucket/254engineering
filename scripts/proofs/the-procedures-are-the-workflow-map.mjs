@@ -68,8 +68,9 @@ check("every portal screen named in a Screen cell, other than a dynamic one, bec
 console.log("3. Each role reads its own procedures");
 const PINNED = {
   admin: ["Customer", "Rep", "Ops manager", "Admin and owner", "Field technician", "Engineer", "Partner"],
-  ops_manager: ["Rep", "Ops manager"],
-  rep: ["Rep"],
+  /* Ruling 12 of 2026-10-27: the rep, and so the operations manager, read 254-OPS-001 to 006. */
+  ops_manager: ["Customer", "Rep", "Ops manager"],
+  rep: ["Customer", "Rep"],
   sales: ["Rep"],
   customer_service: ["Rep"],
   dispatcher: ["Rep"],
