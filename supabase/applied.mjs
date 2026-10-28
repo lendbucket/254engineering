@@ -3923,7 +3923,24 @@ export const APPLIED = [
     file: "0102_the_api_roles_hold_nothing_on_eng_objects.sql", appliedBy: "apply_migration",
     fingerprint: "0a97717f953b0be7267ab818ad99eda6",
     behaviour: "e4014da34aedcf2c5176f51803d9ef3d",
-    production: null,
+    /*
+     * APPLIED TO PRODUCTION 2026-10-28 21:08 UTC, provider version
+     * 20261028210825, by the operator's chat counterpart through
+     * apply_migration from the boarded commit 68d239b (board 40722907178,
+     * 64 of 64), the file sha256 70a07583, unchanged since 8e8f87f (board
+     * 40695995700). The stored statement reads back as sha256
+     * a314ac050961a2bbc05175260bc97907c7c5e3c4b5c836ccb4788f3993fc9a82, the
+     * file minus its trailing newline. Section 0 read 111 open (99 tables, 12
+     * sequences); the read-back 0 open, and the service role holding select,
+     * insert, update and delete on all 104 tables, each asked separately.
+     * Issue #1 comment 6480742347.
+     *
+     * AN ACCEPTED DIFFERENCE, recorded by the chat: development holds the
+     * earlier text (926c8662, stored 9acfc378), which differs only in the
+     * read-back's service role check. That check changes no state, and the
+     * stricter one passes on development.
+     */
+    production: "2026-10-28",
     proves: null,
     provesNote:
       "Nothing in it is visible through PostgREST: it revokes privileges and creates no table, column or row. Its " +
@@ -3939,7 +3956,8 @@ export const APPLIED = [
       "sha256 9acfc378; 111 open before, 0 after, the service role holding all four privileges on all 104 tables, " +
       "each read separately; issue #1 comment 6469887899). The file then changed inside its read-back only, so the " +
       "service role's four privileges are asked one by one (stage/0102-grants-2 at 915ab65, sha256 70a07583); the " +
-      "revokes are the text development holds. NOT YET ON PRODUCTION. Approved by Robert, answer 5 of 08:18 Central " +
+      "revokes are the text development holds. ON PRODUCTION (version 20261028210825, from 68d239b, file sha256 " +
+      "70a07583, stored a314ac05, 111 open before and 0 after; comment 6480742347). Approved by Robert, answer 5 of 08:18 Central " +
       "2026-10-28 (comment 6470044608). The chat's " +
       "read of production (issue #1 comments 6462860460 and 6462870632): every eng_ table and every eng_ sequence " +
       "still carried the default grants to anon and authenticated behind row level security. Revokes them from " +
