@@ -1,5 +1,27 @@
 # Day queue, 2026-10-23
 
+## OVERNIGHT, BUNDLE 6: Sealed before it opens (0100) and rulings 11 and 12 (0101), on main `98c56a0`
+
+**Prediction written and pushed before the board starts.** Bundle 5 merged as `98c56a0` (board 40660993206, 64 of 64 as predicted, dashboard median 1917 ms, 3 lines exempt). The chat sat 0100 (20261028100304) and 0101 (20261028100329) on development, both read back as predicted (issue #1 comment 6466085622).
+
+Branch `feat/rulings-11-12-b` at `c99361b`. That is `feat/sealed-before-open` at `c95919f` (ruling 6 and 0100 with its revokes), plus ruling 11 (0101), ruling 12, main `98c56a0`, and the development versions in the ledger. Full lane: an API route, a table, roles and a migration-audit rule. **Two migrations, both pending on production, so this merges only after the production read-back.**
+
+- **Retention order, checked statically:** ORDER OK, 104 tables, 0 duplicates. `eng_site_order_requests` is kept pending counsel.
+- **Readers, run here on the merged tree:**
+  - These pass: migration-audit 191 (the new revoke rule included), schema-ledger 32, the Sealed proof `a-site-is-held-to-its-rate-its-files-and-one-checkout`, the procedures proof (the rep and ops manager read 254-OPS-001 to 006), sister-intake 22, money 506, order 557, accounts 135, files 67, surface 26, token 115 and the commit-guard proof.
+  - The landing replica of roles-audit's read passes.
+  - roles-audit runs only on the board, because it writes.
+- **Cross-branch:** overnight-roles, role-total-functions and roles-audit all derive landing paths from `DEFAULT_ROLES`, so the move to `/portal` is read, not pinned. The walk does not sign in through a landing redirect. The Sealed switch stays closed, so `/api/orders` refuses a Sealed key before the rate limit is consulted.
+
+**Prediction: 64 of 64.**
+- roles-audit reads "the chain's landing path moves are read as well as its inserts (3)" and "each lands where DEFAULT_ROLES says it lands".
+- migration-audit reads "every eng_ table created from 0100 ... (1 checked)".
+- The walk is unchanged: 0 broken, and the nine speed lines as friction.
+- voice-audit reads "3 line(s) exempt", and the administrator's dashboard median is under 3000 ms.
+- No FAIL line in any sealed shard log.
+
+On a match, 0100 and 0101 are posted for production from this boarded commit.
+
 ## OVERNIGHT, BUNDLE 5: start a quote from a design brief, on main `2caeca6`
 
 **Prediction written and pushed before the board starts.** Bundle 4 merged as `2caeca6`: board 40651682215 read 64 of 64 as predicted, with the walk unchanged, a dashboard median of 1979 ms and 3 lines exempt. The Sealed bundle still waits on the development sitting.
