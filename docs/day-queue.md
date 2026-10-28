@@ -1,5 +1,18 @@
 # Day queue, 2026-10-23
 
+## OVERNIGHT 2026-10-27/28, BUNDLE 1: W4 plus the two 09:14 fixes, on main `de1293b`
+
+**Prediction written and pushed before the board starts.**
+
+Branch `feat/w4-procedures` at `299d165`: W4 (`/portal/procedures`, generated from `docs/workflows.md`) brought up to main `de1293b` (`432f17e`), plus `fix/roles-audit-probe-domain` at `c843a0f` (`a090dc3`) and `docs/skip-ci-is-not-vercel` at `a164f5e` (`299d165`). No migration, no table added, full lane (a new portal page and an audit's probe accounts).
+
+- **Retention order, checked statically:** ORDER OK, 103 tables, 0 duplicates.
+- **Readers run here, with no environment file:** surface 26, token 115, backlog 12, schema-ledger 32, accounts 135, project-accountability 20, portal-voice 29, and proofs the-procedures-are-the-workflow-map, a-job-is-billed-once-from-its-screen, the-clients-list-searches-sorts-and-pages, a-backup-proves-what-it-kept and a-probe-that-cannot-be-deleted-cannot-sign-in all pass. db-guard is 85 of 86 here, and the one FAIL is SUPABASE_URL unset in this worktree, which the board sets. roles-audit, mfa-audit, sister-intake-audit and reporting-audit read the changed files and are writers, so they run only on the board.
+- **Added lines:** 0 long dashes, 0 British forms, 0 present-tense regulatory claims. One blocklist match, "unlock", is the existing route path `/api/portal/unlock` quoted on the admin's procedures page; it is a signed-in screen and portal-voice-audit passes.
+- **The probe domain change:** roles-audit's probes move to `roles-*@audit-probe.invalid`, the domain `destroyProbes` sweeps whole. Every writer runs in sequence in the one writers shard, so no other audit's sweep runs while roles-audit holds probes. Its survivor check matches its own prefix and the legacy domain.
+
+**Prediction: 63 of 63.** voice-audit "3 line(s) exempt". The administrator's dashboard median under 3000 ms. roles-audit reaches `/portal/procedures` as an engineer and its probe teardown reads 0 left. No FAIL line in any sealed shard log.
+
 ## END OF DAY 2026-10-27: all six boards merged, main `de1293b`, 100 applied, 0 pending
 
 Board 5 was merged as `b41bc7a` (0099 on production at 20261028010153, comment 6457829124) and board 6 as `de1293b`. The end-of-day status is issue #1 comment 6458195521: merges, migrations with production versions, what is open, and 15 items for Robert, each with a recommendation. **First tomorrow:** W4 (`feat/w4-procedures`, brought up to `de1293b`, prediction first), then W3 after the W2 walk.
