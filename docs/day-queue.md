@@ -1,5 +1,29 @@
 # Day queue, 2026-10-23
 
+## OVERNIGHT, BUNDLE 5: start a quote from a design brief, on main `2caeca6`
+
+**Prediction written and pushed before the board starts.** Bundle 4 merged as `2caeca6`: board 40651682215 read 64 of 64 as predicted, with the walk unchanged, a dashboard median of 1979 ms and 3 lines exempt. The Sealed bundle still waits on the development sitting.
+
+Branch `feat/brief-to-quote` at `ed690e8`: `a55adb4` brought up to main `2caeca6`. Item 6, Robert's answer 2 of 2026-10-27. No migration and no table. Full lane, because it is an API action that creates quote requests.
+
+- **What it adds.** On `/portal/inquiries`, for `quotes.manage` only, a control that opens a quote request through `requestQuote` on the design line. The office picks which of the line's three quoted deliverables it is.
+  - It is keyed `design-inquiry:<id>`, so one brief opens one quote, and the list shows a quote a brief already has.
+  - A failed lookup says so rather than offering a second press.
+  - The quote's brief carries every answer, says when one was not given, and keeps the three flags by name.
+  - The audit event `design_inquiry.quote_started` is written only when a quote was opened. No email is sent.
+  - The brief's labels move to `src/lib/brief-quote-rules.ts`.
+  - Step 3 of 254-WF-007 in the map says so, and the procedures are re-emitted (still 138 steps).
+- **Readers run here, on the merged tree:**
+  - The new proof `a-brief-starts-one-quote-carrying-its-words` passes. With the claim flag removed, it went red on the two checks that read it.
+  - Also passing: the procedures proof, the field app proof, the-design-briefs-list proof, a-backup-proves-what-it-kept, token 115, portal-voice 29, surface 26 and backlog 12.
+  - Added lines: 0 long dashes, 0 blocklist matches, 0 regulatory claims, and "Stories" rather than "Storeys".
+- **Retention order:** no table, still OK at 103.
+- **Cross-branch:**
+  - The walk opens `/portal/inquiries` as the rep for 254-WF-007 step 3. Nothing is driven, so no quote is opened.
+  - While the gate is shut, `requestQuote` refuses every quote request, this one included, and the screen shows that sentence.
+
+**Prediction: 64 of 64.** w2-walk-audit unchanged: 0 broken, the nine speed lines as friction. voice-audit "3 line(s) exempt". The administrator's dashboard median under 3000 ms. No FAIL line in any sealed shard log.
+
 ## OVERNIGHT, BUNDLE 4: mobile phase 1, the installable portal, on main `02840f7`
 
 **Prediction written and pushed before the board starts.** Bundle 3 merged as `02840f7` (board 40643524322, 64 of 64 as predicted; the walk at 177 works, 9 friction which are exactly the nine speed lines, 0 broken, 34 unreached; dashboard median 1892 ms; 3 lines exempt). The Sealed bundle (0100, 0101) waits on the chat's development sitting of the re-staged `stage/0100-site-orders-2` and `stage/0101-three-roles-land-2`, so the next item on the queue that can board is item 5.
