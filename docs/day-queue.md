@@ -1,5 +1,23 @@
 # Day queue, 2026-10-23
 
+## OVERNIGHT, BUNDLE 4: mobile phase 1, the installable portal, on main `02840f7`
+
+**Prediction written and pushed before the board starts.** Bundle 3 merged as `02840f7` (board 40643524322, 64 of 64 as predicted; the walk at 177 works, 9 friction which are exactly the nine speed lines, 0 broken, 34 unreached; dashboard median 1892 ms; 3 lines exempt). The Sealed bundle (0100, 0101) waits on the chat's development sitting of the re-staged `stage/0100-site-orders-2` and `stage/0101-three-roles-land-2`, so the next item on the queue that can board is item 5.
+
+Branch `feat/mobile-phase1` at `a2b9a87`: `a9ce729` brought up to main `02840f7`. No migration, no table. Full lane: two public routes, the root and portal layouts, and a service worker. **The technician's second factor is not in it.** That waits on Robert, because requiring it everywhere would change his ruling ("on the app").
+
+- **What it adds:**
+  - `/field-app.webmanifest`, the portal's manifest: start `/portal/jobs`, scope `/portal`, standalone, the site's own icons.
+  - `/field-sw.js`, registered only from a new `portal/(app)/jobs/layout.tsx` with scope `/portal/jobs`. It caches GETs of `/_next/static` and nothing else, and sends every page, API call and non-GET to the network.
+  - The site's manifest moves from the file convention, which outranks every layout's metadata, to a route at the same `/manifest.webmanifest` with the same body. The root layout names it; the portal layout names the field app's.
+- **Readers run here:** the new proof `the-field-app-installs-the-portal-and-caches-no-record` passes. It runs the worker against simulated requests, and two injections, the static-only guard and the GET guard, each turned it red. accounts 135, partner 205, token 115, surface 26 and portal-voice 29 also pass. Added lines: 0 long dashes, 0 blocklist, 0 regulatory.
+- **Retention order:** no table, still OK at 103.
+- **Cross-branch:**
+  - placeholder-audit fetches `/manifest.webmanifest`, which still answers with the same body and media type.
+  - The walk opens `/portal/jobs` as the technician, so the worker registers inside its browser and serves only static files; a failed registration is a warning, not a console error.
+
+**Prediction: 64 of 64.** w2-walk-audit unchanged from bundle 3: 0 broken and the same nine speed lines as friction. voice-audit "3 line(s) exempt". The administrator's dashboard median under 3000 ms. No FAIL line in any sealed shard log.
+
 ## OVERNIGHT, BUNDLE 3: W3 from the first walk, on main `9455063`
 
 **Prediction written and pushed before the board starts.** Bundle 2 merged as `9455063` (board 40635489767, 64 of 64 as predicted; the walk 138 of 138 steps, teardown 0 left; dashboard median 1781 ms; 3 lines exempt). The walk found 163 works, 23 friction, 10 broken, 20 missing, 8 off-screen and 24 unreached.
