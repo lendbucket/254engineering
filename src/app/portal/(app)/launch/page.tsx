@@ -6,7 +6,7 @@ import { lineIsSellable } from "@/lib/line-gate";
 import { offeredServiceLines } from "@/config/launch-conditions";
 import { deliverablesFor } from "@data/catalog";
 import { Chip, PageHead, Panel } from "@/components/portal/surfaces";
-import { OWNER_OVERRIDE, OWNER_OVERRIDE_ACTION, OWNER_OVERRIDES } from "@/lib/owner-override";
+import { OWNER_OVERRIDE, OWNER_OVERRIDE_ACTION, OWNER_OVERRIDES, OWNER_SIGN_IN_TECH_RULED_ON } from "@/lib/owner-override";
 import { configSwitches } from "@/lib/config-switches";
 
 export const dynamic = "force-dynamic";
@@ -184,7 +184,7 @@ export default async function LaunchReadinessPage() {
       */}
       <Panel
         title="Owner overrides in force"
-        description={`Two exemptions for the owner's own accounts, matched by user id and reachable by no other account, ruled ${OWNER_OVERRIDE.ruledOn}. Every use is recorded in the audit trail as ${OWNER_OVERRIDE_ACTION}, and an act whose record cannot be written is refused.`}
+        description={`${OWNER_OVERRIDES.length} exemptions for the owner's own two accounts, matched by user id and reachable by no other account, ruled between ${OWNER_OVERRIDE.ruledOn} and ${OWNER_SIGN_IN_TECH_RULED_ON}. Every use is recorded in the audit trail as ${OWNER_OVERRIDE_ACTION}, and an act whose record cannot be written is refused.`}
       >
         <ul className="flex flex-col gap-3">
           {OWNER_OVERRIDES.map((o) => (

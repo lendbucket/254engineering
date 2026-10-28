@@ -6,7 +6,7 @@ import { mfaRequirementFor, mfaStateFor } from "@/lib/ops-mfa";
 import { takeLoginAttempt, clearLoginAttempts, clientKey } from "@/lib/ops-rate-limit";
 import { writeAudit, writeAuditOrRefuse } from "@/lib/ops-audit";
 import { signInFactor } from "@/lib/sign-in-factor";
-import { OWNER_OVERRIDE_ACTION, OWNER_SIGN_IN_RULED_ON } from "@/lib/owner-override";
+import { OWNER_OVERRIDE_ACTION, SIGN_IN_OVERRIDE_RECORD, type SignInOverrideKey } from "@/lib/owner-override";
 import { homeFor } from "@/lib/ops-authz";
 import { supabaseAdmin } from "@/lib/supabase";
 import { withSaveOutcome } from "@/lib/save-outcome";
@@ -183,7 +183,7 @@ async function handlePOST(request: NextRequest) {
   let factor: "pending" | "full" = "full";
   let mfaNext: string | null = null;
   let mfaOffer: string | null = null;
-  let ownerOverride = false;
+  let ownerOverride: SignInOverrideKey | null = null;
   try {
     const requirement = await mfaRequirementFor(result.profile.role);
     const state = await mfaStateFor(result.profile.id);
@@ -210,20 +210,23 @@ async function handlePOST(request: NextRequest) {
 
   /*
    * THE OWNER OVERRIDE ON SIGN IN, RECORDED BEFORE THE SESSION EXISTS. Robert's
-   * answer 3 of 2026-10-26 (0093): his administrator account, by id, signs in
-   * without the second factor his role requires, and every such sign in writes
-   * an audit row naming the override, through writeAuditOrRefuse. A row that
-   * cannot be written is a sign in that does not happen.
+   * answer 3 of 2026-10-26 (0093) for his administrator account, and his ruling
+   * of 2026-10-28 (0103) for his field technician profile: each, by id, signs
+   * in without the second factor its role requires, and every such sign in
+   * writes an audit row naming WHICH override, through writeAuditOrRefuse. The
+   * summary and the ruling date come from the declaration. A row that cannot be
+   * written is a sign in that does not happen.
    */
   if (ownerOverride) {
     const context = await requestContext();
+    const record = SIGN_IN_OVERRIDE_RECORD[ownerOverride];
     const used = await writeAuditOrRefuse({
       actor: { id: result.profile.id, role: result.profile.role, email: result.profile.email },
       action: OWNER_OVERRIDE_ACTION,
       entityType: "profile",
       entityId: result.profile.id,
-      summary: "Owner override used: signed in without the second factor the administrator role requires",
-      diff: { override: "sign_in_second_factor", act: "auth.sign_in", ruled_on: OWNER_SIGN_IN_RULED_ON },
+      summary: record.summary,
+      diff: { override: ownerOverride, act: "auth.sign_in", ruled_on: record.ruledOn },
       ip: context.ip,
       userAgent: context.userAgent,
     });

@@ -45,11 +45,16 @@ check(
     Object.keys(OWNER_OVERRIDE).length === 3,
   JSON.stringify(OWNER_OVERRIDE),
 );
-/* Three since Robert's answer 3 of 2026-10-26 (0093): the sign in second factor, on the same admin id. */
+/*
+ * Three since Robert's answer 3 of 2026-10-26 (0093): the sign in second factor, on the same admin id.
+ * Four since his ruling of 2026-10-28 (0103): the sign in second factor, on the same technician id.
+ * Still two ids: every override is held by one of the two pinned above.
+ */
 check(
-  "exactly three overrides are declared: the no-charge password, the dispatch credentials, and the sign in second factor",
-  OWNER_OVERRIDES.length === 3 &&
-    OWNER_OVERRIDES.map((o) => o.key).join(",") === "no_charge_password,dispatch_credentials,sign_in_second_factor",
+  "exactly four overrides are declared: the no-charge password, the dispatch credentials, and the sign in second factor for the admin and for the technician",
+  OWNER_OVERRIDES.length === 4 &&
+    OWNER_OVERRIDES.map((o) => o.key).join(",") ===
+      "no_charge_password,dispatch_credentials,sign_in_second_factor,sign_in_second_factor_tech",
 );
 check("the waived kinds are exactly the licence and the vehicle insurance", [...OWNER_OVERRIDE_KINDS].sort().join(", ") === "drivers_license, vehicle_insurance");
 check("every use is recorded under one action", OWNER_OVERRIDE_ACTION === "owner_override.used");
@@ -113,7 +118,7 @@ check(
 );
 check("and an override that cannot be checked sends nothing", /if \(reliedOn === null\) return \{ ok: false/.test(send));
 for (const f of ["src/lib/letter-seal.ts", "src/lib/protocol-sign.ts", "src/lib/seal-store.ts", "src/lib/ops-mfa.ts"]) {
-  check(`${f} never reads the override`, !/owner-override|isOwnerAdmin|OWNER_OVERRIDE/.test(src(f)));
+  check(`${f} never reads the override`, !/owner-override|isOwnerAdmin|isOwnerFieldTech|OWNER_OVERRIDE|SIGN_IN_OVERRIDE/.test(src(f)));
 }
 const launch = src("src/app/portal/(app)/launch/page.tsx");
 check("/portal/launch renders every declared override as active", /OWNER_OVERRIDES\.map\(/.test(launch) && /label="Active"/.test(launch));
