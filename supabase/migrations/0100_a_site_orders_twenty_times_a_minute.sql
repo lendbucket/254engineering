@@ -42,5 +42,31 @@ create index if not exists eng_site_order_requests_window_idx
 
 alter table eng_site_order_requests enable row level security;
 
+/*
+ * THE TABLE AND ITS SEQUENCE ARE REVOKED FROM THE API ROLES, AS 0098 AND 0099
+ * DO. Found by the chat's read of development's default privileges on
+ * 2026-10-28 (issue #1 comment 6462860460): this project grants every new table
+ * and every new sequence to anon and authenticated. Row level security with no
+ * policy keeps the rows from them, and does nothing for the sequence, which is
+ * outside it. A caller holding the publishable key could move the id sequence
+ * and make the limiter's own inserts collide on the primary key, and this is
+ * the counter the limit rests on. The read-back below refuses unless both are
+ * closed.
+ */
+revoke all on eng_site_order_requests from public, anon, authenticated;
+revoke all on sequence eng_site_order_requests_id_seq from public, anon, authenticated;
+
+do $$
+begin
+  if has_table_privilege('anon', 'eng_site_order_requests', 'select, insert, update, delete')
+     or has_table_privilege('authenticated', 'eng_site_order_requests', 'select, insert, update, delete') then
+    raise exception 'eng: after 0100 the API roles must hold nothing on eng_site_order_requests.';
+  end if;
+  if has_sequence_privilege('anon', 'eng_site_order_requests_id_seq', 'usage, select, update')
+     or has_sequence_privilege('authenticated', 'eng_site_order_requests_id_seq', 'usage, select, update') then
+    raise exception 'eng: after 0100 the API roles must hold nothing on eng_site_order_requests_id_seq.';
+  end if;
+end $$;
+
 comment on table eng_site_order_requests is
   'One row per /api/orders request from a site whose ordering is open. The per-site limit of 20 a minute counts these (0100). Stores no request body.';

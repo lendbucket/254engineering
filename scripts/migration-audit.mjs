@@ -437,6 +437,49 @@ rec(
 );
 
 /*
+ * A NEW eng_ TABLE, AND THE SEQUENCE OF ANY SERIAL ID IT OWNS, IS REVOKED FROM
+ * THE API ROLES IN ITS OWN FILE. From 0100. Found by the chat's read of the
+ * default privileges on 2026-10-28 (issue #1 comments 6462860460 and
+ * 6462870632): this project grants every new table and sequence to anon and
+ * authenticated, row level security keeps the rows and not the sequence, and
+ * 0100 as first written revoked neither. 0098 and 0099 had revoked their
+ * tables by hand, which is a habit, and a habit is what a board replaces.
+ *
+ * Read from the files rather than from the replay, because the replay's stub
+ * grants functions by default and not tables, so a replay check would find
+ * nothing to refuse. Files before 0100 are counted and named as the grant
+ * cleanup's subject (its own bundle, queued), not passed over in silence.
+ */
+{
+  const FROM = 100;
+  const unrevoked = [];
+  let tablesChecked = 0;
+  let grandfathered = 0;
+  for (const f of files) {
+    const body = readSource(join(DIR, f));
+    const tables = [...body.matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?(eng_[a-z0-9_]+)\s*\(([\s\S]*?)\n\);/gi)];
+    if (Number(f.slice(0, 4)) < FROM) {
+      grandfathered += tables.length;
+      continue;
+    }
+    for (const [, table, columns] of tables) {
+      tablesChecked += 1;
+      const revoked = (name, kind) =>
+        new RegExp(`revoke\\s+all\\s+on\\s+${kind}${name}\\s+from\\s+public,\\s*anon,\\s*authenticated\\s*;`, "i").test(body);
+      if (!revoked(table, "")) unrevoked.push(`${f}: ${table}`);
+      for (const [, column] of columns.matchAll(/^\s*([a-z0-9_]+)\s+(?:big|small)?serial\b/gim)) {
+        if (!revoked(`${table}_${column}_seq`, "sequence\\s+")) unrevoked.push(`${f}: ${table}_${column}_seq`);
+      }
+    }
+  }
+  rec(
+    `every eng_ table created from 0100, and its serial sequence, is revoked from public, anon and authenticated in its own file (${tablesChecked} checked)`,
+    unrevoked.length === 0,
+    unrevoked.join(", ") || `${grandfathered} table(s) created before 0100 are the grant cleanup bundle's subject`,
+  );
+}
+
+/*
  * Balanced dollar quoting, checked before the replay so the failure names the
  * file rather than surfacing as a syntax error from somewhere inside it.
  *
