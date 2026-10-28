@@ -81,7 +81,10 @@ check(
   /if \(!read\.ok\) \{\s*return bad\(/.test(branch) && branch.indexOf("if (!read.ok)") < branch.indexOf("writeAudit(") && branch.indexOf("if (!read.ok)") < branch.indexOf("accountsCsv("),
 );
 check("every export is audited, as the door's others are", /action: "export\.accounts"/.test(branch));
-check("and the file is the shared builder behind the shared headers", /accountsCsv\(read\.rows, query, read\.all\)/.test(branch) && /csvHeaders\(accountsFilename\(\)\)/.test(branch));
+check("and the file is the shared builder behind the shared headers", /accountsCsv\(read\.rows, query, read\.all\)/.test(branch) && /csvHeaders\(accountsFilename\(stamp\(\)\)\)/.test(branch));
+/* The name is dated by the door's own stamp(), so the export module reads no clock (board 40779701058). */
+const exportModule = readFileSync("src/lib/account-export.ts", "utf8");
+check("and the export module reads no clock of its own", !/new Date\(/.test(exportModule.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "")));
 const builder = readFileSync("src/lib/account-export.ts", "utf8");
 check("the builder escapes through csv.ts and writes money through moneyCell, with no escaper of its own", /from "\.\/csv"/.test(builder) && /moneyCell\(/.test(builder) && !/replace\(\/"\/g/.test(builder));
 

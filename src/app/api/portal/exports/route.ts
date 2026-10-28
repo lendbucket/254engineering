@@ -159,7 +159,7 @@ async function handleGET(request: NextRequest) {
       ...context,
     });
 
-    return new NextResponse(accountsCsv(read.rows, query, read.all), { headers: csvHeaders(accountsFilename()) });
+    return new NextResponse(accountsCsv(read.rows, query, read.all), { headers: csvHeaders(accountsFilename(stamp())) });
   }
 
   /*

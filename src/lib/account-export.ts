@@ -74,7 +74,11 @@ export function accountsCsv(rows: readonly AccountRow[], query: AccountListQuery
   });
 }
 
-/** The file's name, dated in UTC as the other exports are. */
-export function accountsFilename(): string {
-  return `ordering-accounts-${new Date().toISOString().slice(0, 10)}.csv`;
+/**
+ * The file's name, dated by the caller. The export door passes its own stamp(),
+ * the one clock read db-guard-audit excuses for a filename, so this module makes
+ * no clock call of its own (board 40779701058).
+ */
+export function accountsFilename(day: string): string {
+  return `ordering-accounts-${day}.csv`;
 }
