@@ -21,13 +21,25 @@ import { can, type Actor } from "./ops-authz";
 
 export const ONBOARDABLE_BY_NARROW_GRANT = "field_tech";
 
+/*
+ * ROLES WHOSE WIDE GRANT STILL REACHES TECHNICIANS ONLY. Robert's answer 3 of
+ * 2026-10-28 gave the operations manager profiles.update "for the technician
+ * screens" (0104), and the reading taken on issue #1 (comment 6470846047) is
+ * the narrower one: holding the wide grant does not let him onboard, verify or
+ * certify anybody but a field technician, so an engineer's licence stays the
+ * administrator's to verify. Named by role, on purpose, so a role added later
+ * with profiles.update is wide unless somebody lists it here.
+ */
+export const WIDE_GRANT_TECHNICIANS_ONLY: readonly string[] = ["ops_manager"];
+
 export function mayOnboardRole(
   actor: Actor | null,
   role: string | null,
   wide: "profiles.create" | "profiles.update",
 ): boolean {
-  if (can(actor, wide)) return true;
-  return can(actor, "technicians.onboard") && role === ONBOARDABLE_BY_NARROW_GRANT;
+  const narrowed = actor !== null && WIDE_GRANT_TECHNICIANS_ONLY.includes(actor.role);
+  if (can(actor, wide) && !narrowed) return true;
+  return (can(actor, "technicians.onboard") || can(actor, wide)) && role === ONBOARDABLE_BY_NARROW_GRANT;
 }
 
 /** Whether this actor may open onboarding at all, before knowing whose. */

@@ -3964,6 +3964,66 @@ export const APPLIED = [
       "the 104 tables and 13 sequences a replay of the chain creates, each named, the shared default privileges " +
       "untouched. Production from a passed board's boarded commit, with Section 0 expecting 111 open.",
   },
+  {
+    file: "0103_the_second_factor_is_required_for_the_field_technician.sql", appliedBy: "apply_migration",
+    fingerprint: "0a97717f953b0be7267ab818ad99eda6",
+    behaviour: "2a3acaf384de830017abd2377aae2327",
+    /*
+     * APPLIED TO PRODUCTION 2026-10-28 21:08 UTC, provider version
+     * 20261028210847, by the operator's chat counterpart through
+     * apply_migration from the boarded commit 68d239b (board 40722907178,
+     * 64 of 64), after 0102. The stored statement hashes to 44d0d477, the
+     * development figure. field_tech reads required, the other eight
+     * unchanged. Issue #1 comment 6480742347.
+     */
+    production: "2026-10-28",
+    proves: { row: { table: "eng_roles", where: "key = 'field_tech' and mfa_requirement = 'required'" } },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0103 on 2026-10-28, with 0102 reproducing its recorded " +
+      "pair. One eng_roles row moves, so the shape (1374) and the fact count (1324) are unchanged and the behaviour " +
+      "digest moves with the seeded row.",
+    because:
+      "WRITTEN 2026-10-28 ON feat/tech-mfa-and-ops-grants, ON TOP OF 0102 (feat/grant-cleanup); ON DEVELOPMENT " +
+      "(version 20261028135200, applied by the operator's chat counterpart from stage/0103-tech-mfa at b91150b, file " +
+      "sha256 d35f43e0, stored statement sha256 44d0d477, field_tech required and the other eight unchanged; issue #1 " +
+      "comment 6470846047) AND PRODUCTION (version 20261028210847, from 68d239b, stored 44d0d477; comment " +
+      "6480742347). The owner's own technician profile is exempt by the fourth named " +
+      "override (sign_in_second_factor_tech, Robert, 2026-10-28, comment 6470882290), shipped in the same bundle so it " +
+      "is on main before this reaches production. Robert's answer 1 of 2026-10-28, 08:18 Central (issue #1 comment 6470044608): " +
+      "field technicians require the second factor everywhere, because the server cannot tell the installed app " +
+      "from a browser. The shape is 0093's, with a read-back over every role. Development from its stage branch, " +
+      "production from a passed board's boarded commit.",
+  },
+  {
+    file: "0104_the_operations_manager_reads_applications_and_keeps_technicians.sql", appliedBy: "apply_migration",
+    fingerprint: "0a97717f953b0be7267ab818ad99eda6",
+    behaviour: "bdcf6d84e3af00f96ee268009f475017",
+    /*
+     * APPLIED TO PRODUCTION 2026-10-28 21:08 UTC, provider version
+     * 20261028210855, by the operator's chat counterpart through
+     * apply_migration from the boarded commit 68d239b, after 0103. The stored
+     * statement hashes to 2869af8b, the development figure. 191 grants (187
+     * before), 31 held by ops_manager (28 before), applications.read held by
+     * exactly admin and ops_manager, the rep holding none of the three. Issue
+     * #1 comment 6480742347.
+     */
+    production: "2026-10-28",
+    proves: { grant: { role: "ops_manager", action: "applications.read" } },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0104 on 2026-10-28, with 0103 reproducing its recorded " +
+      "pair. Four grant rows, so the shape (1374) is unchanged and the fact count moves from 1324 to 1328.",
+    because:
+      "WRITTEN 2026-10-28 ON feat/tech-mfa-and-ops-grants, ON TOP OF 0103; ON DEVELOPMENT (version 20261028135208, " +
+      "applied by the operator's chat counterpart from stage/0104-ops-grants at 859c49e, file sha256 88ecdacd, stored " +
+      "statement sha256 2869af8b, 191 grants, 31 held by ops_manager; issue #1 comment 6470846047) AND PRODUCTION " +
+      "(version 20261028210855, from 68d239b, stored 2869af8b, 187 grants before and 191 after; comment 6480742347). " +
+      "Robert's answer 3 of 2026-10-28, 08:18 Central (issue #1 comment 6470044608): the operations manager reads " +
+      "applications (applications.read, a new action that the administrator also holds and the applications page " +
+      "now asks for) and holds profiles.list and profiles.update for the technician screens, narrowing the ruling " +
+      "of 2026-10-20 for this role only. Declared in DEFAULT_ROLES and pinned in roles-audit. His profiles.update " +
+      "reaches field technicians only (WIDE_GRANT_TECHNICIANS_ONLY in onboarding-scope.ts), the narrower reading " +
+      "taken on issue #1 (comment 6470846047).",
+  },
 ];
 
 /*

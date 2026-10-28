@@ -62,6 +62,11 @@ export const OWNER_OVERRIDES = [
     label: "Sign in: the second factor the administrator role requires is not asked",
     holder: "The owner's administrator account, by user id",
   },
+  {
+    key: "sign_in_second_factor_tech",
+    label: "Sign in: the second factor the field technician role requires is not asked",
+    holder: "The owner's field technician profile, by user id",
+  },
 ] as const;
 
 /**
@@ -74,6 +79,30 @@ export const OWNER_OVERRIDES = [
  * enrolled. It reaches no other account and no sealing act.
  */
 export const OWNER_SIGN_IN_RULED_ON = "2026-10-26";
+
+/**
+ * THE FOURTH OVERRIDE, Robert's ruling of 2026-10-28, 08:54 Central (issue #1
+ * comment 6470882290), made with 0103, which requires the second factor for
+ * every field technician. His field technician profile, the same id as above,
+ * signs in without enrolling, in the shape of the third: an audit row through
+ * writeAuditOrRefuse on every such sign in, challenged like anybody if he
+ * enrols anyway, and reaching no other account and no sealing act.
+ */
+export const OWNER_SIGN_IN_TECH_RULED_ON = "2026-10-28";
+
+/** The two sign in overrides, as the session route records them. */
+export const SIGN_IN_OVERRIDE_RECORD = {
+  sign_in_second_factor: {
+    summary: "Owner override used: signed in without the second factor the administrator role requires",
+    ruledOn: OWNER_SIGN_IN_RULED_ON,
+  },
+  sign_in_second_factor_tech: {
+    summary: "Owner override used: signed in without the second factor the field technician role requires",
+    ruledOn: OWNER_SIGN_IN_TECH_RULED_ON,
+  },
+} as const;
+
+export type SignInOverrideKey = keyof typeof SIGN_IN_OVERRIDE_RECORD;
 
 export type OwnerOverrideKey = (typeof OWNER_OVERRIDES)[number]["key"];
 
