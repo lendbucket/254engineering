@@ -1,8 +1,11 @@
 import { notFound } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
-import { can, roleLabel, type RoleKey } from "@/lib/ops-authz";
+import { can, roleLabel } from "@/lib/ops-authz";
 import { assignableRoles } from "@/lib/ops-roles";
-import { supabaseAdmin } from "@/lib/supabase";
+import { readPeople, type Person } from "@/lib/people-roster";
+import { PEOPLE_LIST, STAFF_LIST_PAGE_SIZE, staffListPage, staffListQuery, staffListRows } from "@/lib/staff-lists";
+import { LIST_EXPORT_GRANT } from "@/lib/list-exports";
+import { ListControls, Pager, listHref } from "@/components/portal/ListControls";
 import { regions } from "@/content/regions";
 import {
   Chip,
@@ -18,20 +21,6 @@ import { formatInFirmZone } from "@/lib/firm-calendar";
 
 export const dynamic = "force-dynamic";
 
-type Person = {
-  id: string;
-  email: string;
-  display_name: string;
-  role: RoleKey;
-  status: "invited" | "active" | "suspended";
-  phone: string | null;
-  license_number: string | null;
-  base_county: string | null;
-  coverage_counties: string[];
-  last_sign_in_at: string | null;
-  created_at: string;
-};
-
 const STATUS_TONE = {
   active: "good",
   invited: "warn",
@@ -43,7 +32,7 @@ function when(value: string | null): string {
   return (formatInFirmZone(value, { month: "short", day: "numeric", year: "numeric" }) ?? "");
 }
 
-export default async function PeoplePage() {
+export default async function PeoplePage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const actor = await currentActor();
   /*
    * notFound rather than a redirect, and rather than rendering a denial.
@@ -53,17 +42,14 @@ export default async function PeoplePage() {
    */
   if (!can(actor, "profiles.list")) notFound();
 
-  const db = supabaseAdmin();
-  const { data, error } = db
-    ? await db
-        .from("eng_profiles")
-        .select(
-          "id, email, display_name, role, status, phone, license_number, base_county, coverage_counties, last_sign_in_at, created_at",
-        )
-        .order("created_at", { ascending: false })
-    : { data: null, error: { message: "The database is not configured." } };
-
-  const people = (data ?? []) as Person[];
+  const params = await searchParams;
+  const read = await readPeople();
+  const error = read.ok ? null : { message: read.error };
+  const query = staffListQuery(params, PEOPLE_LIST);
+  const matching = read.ok ? staffListRows(read.rows, query, PEOPLE_LIST) : [];
+  const shown = staffListPage(matching, query.page);
+  const people = shown.rows;
+  const searching = Boolean(query.term || query.filters.status);
 
   /*
    * The roles that exist, read from the table rather than listed here.
@@ -125,21 +111,52 @@ export default async function PeoplePage() {
         <NewPersonForm counties={counties} roles={roles} />
       </div>
 
+      <ListControls
+        action="/portal/people"
+        search={params.q ?? ""}
+        searchLabel="Search name, email, phone or county"
+        filters={[
+          {
+            name: "status",
+            label: "Status",
+            value: query.filters.status,
+            options: [
+              { value: "", label: "Everyone" },
+              { value: "active", label: "Active" },
+              { value: "invited", label: "Invited" },
+              { value: "suspended", label: "Suspended" },
+            ],
+          },
+        ]}
+        sorts={[
+          { value: "added", label: "Added" },
+          { value: "name", label: "Name" },
+          { value: "seen", label: "Last sign in" },
+        ]}
+        sort={query.sort}
+        direction={query.ascending ? "asc" : "desc"}
+        csvHref={can(actor, LIST_EXPORT_GRANT) ? listHref("/api/portal/exports", { q: params.q, status: params.status, sort: params.sort, dir: params.dir }, { report: "people" }) : undefined}
+      />
+
       {error ? (
         <ErrorState
           title="The roster could not be loaded"
           body={`The database returned: ${error.message}. Nothing has been changed.`}
         />
       ) : (
-        <Panel title={`${people.length} ${people.length === 1 ? "person" : "people"}`}>
+        <Panel title={searching ? `${shown.total} matching of ${read.ok ? read.rows.length : 0}` : `${shown.total} ${shown.total === 1 ? "person" : "people"}`}>
           <RecordTable
             rows={people}
             columns={columns}
             empty={
-              <EmptyState
-                title="Nobody has an account yet"
-                body="Add the first person above. They receive a branded invite with a one time link and choose their own password, which nobody at the firm can see."
-              />
+              searching ? (
+                <EmptyState title="Nobody matches that search" body="Clear the search or show everyone." />
+              ) : (
+                <EmptyState
+                  title="Nobody has an account yet"
+                  body="Add the first person above. They receive a branded invite with a one time link and choose their own password, which nobody at the firm can see."
+                />
+              )
             }
             card={(p) => (
               <div>
@@ -160,6 +177,7 @@ export default async function PeoplePage() {
               </div>
             )}
           />
+          <Pager page={shown.page} pageSize={STAFF_LIST_PAGE_SIZE} total={shown.total} hrefFor={(n) => listHref("/portal/people", params, { page: n > 1 ? String(n) : "" })} />
         </Panel>
       )}
     </>

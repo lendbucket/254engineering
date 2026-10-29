@@ -3,6 +3,9 @@ import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
 import { listSuppressions } from "@/lib/marketing-suppression";
 import { Chip, EmptyState, ErrorState, PageHead, Panel } from "@/components/portal/surfaces";
+import { ListControls, Pager, listHref } from "@/components/portal/ListControls";
+import { SUPPRESSION_LIST, STAFF_LIST_PAGE_SIZE, staffListPage, staffListQuery, staffListRows } from "@/lib/staff-lists";
+import { LIST_EXPORT_GRANT } from "@/lib/list-exports";
 import { AddSuppression, VoidSuppression } from "./SuppressionsClient";
 import { formatInFirmZone } from "@/lib/firm-calendar";
 
@@ -55,11 +58,16 @@ function sentence(text: string): string {
   return /[.!?]$/.test(t) ? t : `${t}.`;
 }
 
-export default async function SuppressionsPage() {
+export default async function SuppressionsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const actor = await currentActor();
   if (!can(actor, "suppressions.manage")) notFound();
 
-  const rows = await listSuppressions();
+  const params = await searchParams;
+  const all = await listSuppressions();
+  const query = staffListQuery(params, SUPPRESSION_LIST);
+  const shown = all === null ? null : staffListPage(staffListRows(all, query, SUPPRESSION_LIST), query.page);
+  const rows = shown?.rows ?? null;
+  const searching = Boolean(query.term || query.filters.source || query.filters.state);
 
   return (
     <>
@@ -74,7 +82,41 @@ export default async function SuppressionsPage() {
           <AddSuppression />
         </Panel>
 
-        <Panel title="The list">
+        <Panel title={shown && all ? (searching ? `The list (${shown.total} matching of ${all.length})` : `The list (${shown.total})`) : "The list"}>
+          <ListControls
+            action="/portal/suppressions"
+            search={params.q ?? ""}
+            searchLabel="Search address or reason"
+            filters={[
+              {
+                name: "source",
+                label: "How it came",
+                value: query.filters.source,
+                options: [
+                  { value: "", label: "Either" },
+                  { value: "clicked", label: "They clicked the link" },
+                  { value: "recorded", label: "Recorded by somebody here" },
+                ],
+              },
+              {
+                name: "state",
+                label: "Standing",
+                value: query.filters.state,
+                options: [
+                  { value: "", label: "Both" },
+                  { value: "standing", label: "In force" },
+                  { value: "mistake", label: "Marked as a mistake" },
+                ],
+              },
+            ]}
+            sorts={[
+              { value: "added", label: "Added" },
+              { value: "email", label: "Address" },
+            ]}
+            sort={query.sort}
+            direction={query.ascending ? "asc" : "desc"}
+            csvHref={can(actor, LIST_EXPORT_GRANT) ? listHref("/api/portal/exports", { q: params.q, source: params.source, state: params.state, sort: params.sort, dir: params.dir }, { report: "suppressions" }) : undefined}
+          />
           {/*
             Null is a failed read and it is not an empty list. Saying "nobody has
             asked" when the query did not run would be the absent-versus-zero
@@ -86,6 +128,8 @@ export default async function SuppressionsPage() {
               title="The list could not be read"
               body="This is not the same as nobody having asked. Do not send marketing on the strength of this screen until it loads. Tell an administrator."
             />
+          ) : rows.length === 0 && searching ? (
+            <EmptyState title="No row matches that search" body="This is a search with no match, not an empty list. Clear the search to see every row." />
           ) : rows.length === 0 ? (
             <EmptyState
               title="Nobody has asked to stop"
@@ -150,6 +194,9 @@ export default async function SuppressionsPage() {
               ))}
             </ul>
           )}
+          {shown ? (
+            <Pager page={shown.page} pageSize={STAFF_LIST_PAGE_SIZE} total={shown.total} hrefFor={(n) => listHref("/portal/suppressions", params, { page: n > 1 ? String(n) : "" })} />
+          ) : null}
         </Panel>
       </div>
     </>

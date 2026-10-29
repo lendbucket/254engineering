@@ -6,6 +6,8 @@ import { awaitingVerification } from "@/lib/ops-credential-submissions";
 import { calendarDateLabel, firmDateLabel } from "@/lib/firm-calendar";
 import { EmptyState, ErrorState, PageHead, Panel } from "@/components/portal/surfaces";
 import { VerificationQueue } from "../techs/VerificationQueue";
+import { ListControls, Pager, listHref } from "@/components/portal/ListControls";
+import { CREDENTIAL_LIST, STAFF_LIST_PAGE_SIZE, staffListPage, staffListQuery, staffListRows } from "@/lib/staff-lists";
 
 export const dynamic = "force-dynamic";
 
@@ -18,10 +20,15 @@ export const dynamic = "force-dynamic";
  * and reject actions behind it check technicians.onboard against the
  * credential owner being a field technician.
  */
-export default async function CredentialsPage() {
+export default async function CredentialsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const actor = await currentActor();
   if (!actor || !can(actor, "technicians.onboard")) notFound();
-  const queue = await awaitingVerification();
+  const params = await searchParams;
+  const all = await awaitingVerification();
+  const query = staffListQuery(params, CREDENTIAL_LIST);
+  const shown = all === null ? null : staffListPage(staffListRows(all, query, CREDENTIAL_LIST), query.page);
+  const queue = shown?.rows ?? null;
+  const searching = Boolean(query.term || query.filters.expiry);
 
   return (
     <>
@@ -35,9 +42,35 @@ export default async function CredentialsPage() {
           </Link>
         }
       />
-      <Panel title={`Awaiting verification${queue && queue.length ? ` (${queue.length})` : ""}`}>
+      <ListControls
+        action="/portal/credentials"
+        search={params.q ?? ""}
+        searchLabel="Search technician, credential or state"
+        filters={[
+          {
+            name: "expiry",
+            label: "Expiry",
+            value: query.filters.expiry,
+            options: [
+              { value: "", label: "Either" },
+              { value: "dated", label: "Carries an expiry" },
+              { value: "undated", label: "No expiry" },
+            ],
+          },
+        ]}
+        sorts={[
+          { value: "submitted", label: "Submitted" },
+          { value: "name", label: "Technician" },
+          { value: "expires", label: "Expires" },
+        ]}
+        sort={query.sort}
+        direction={query.ascending ? "asc" : "desc"}
+      />
+      <Panel title={`Awaiting verification${all && all.length ? ` (${searching ? `${shown?.total ?? 0} matching of ${all.length}` : all.length})` : ""}`}>
         {queue === null ? (
           <ErrorState title="The submissions could not be read" body="This is not an empty queue. Reload in a minute; if it persists, tell an administrator." />
+        ) : queue.length === 0 && searching ? (
+          <EmptyState title="No submission matches that search" body="This is a search with no match, not an empty queue. Clear the search to see every submission." />
         ) : queue.length === 0 ? (
           <EmptyState
             title="Nothing is waiting"
@@ -56,6 +89,9 @@ export default async function CredentialsPage() {
             }))}
           />
         )}
+        {shown ? (
+          <Pager page={shown.page} pageSize={STAFF_LIST_PAGE_SIZE} total={shown.total} hrefFor={(n) => listHref("/portal/credentials", params, { page: n > 1 ? String(n) : "" })} />
+        ) : null}
       </Panel>
     </>
   );

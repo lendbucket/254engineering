@@ -73,12 +73,32 @@ failed or partial read.
 
 **Not built, and why.** These screens show rows but have no list controls yet
 (no search, filter, sort or page), so an export "through the screen's own
-query" has no query to follow: people, suppressions, deletion requests,
-insurance, credentials, the job queue, orders, the audit trail, onboarding,
-review, waiting, the technician's jobs and messages. Each needs its list
-controls first (section 2d), and its export then follows the same pattern.
-/portal/procedures is a document a role reads, not a list of records, and is
-left out.
+query" has no query to follow: the job queue, orders, the audit trail,
+onboarding, review, waiting, the technician's jobs and messages. Each needs
+its list controls first (section 2d), and its export then follows the same
+pattern. /portal/procedures is a document a role reads, not a list of
+records, and is left out.
+
+**Built on `feat/list-controls-1` (2026-10-29): five of the thirteen.**
+People, do not contact, asked to be forgotten, insurance and credential review
+now search, filter, sort and page through one engine (`src/lib/staff-lists.ts`),
+each reading its whole register so every count is of the whole matching set.
+Three reads were capped or unbounded and are read in full now: people (an
+unbounded select), do not contact (the same), and the credential queue (cut at
+200 by hand, with its panel titled by the length of what came back). People
+and do not contact export as `report=people` and `report=suppressions` on the
+same gate. Three do not export, each a finding by name (section 2d):
+
+- **Asked to be forgotten: a question for Robert.** Each row quotes a
+  person's own words about what they want erased. Whether that leaves the
+  screen as a file is his to rule. **Recommend no** until counsel has answered
+  what the firm may keep, because a CSV of erasure requests is itself a copy of
+  the personal data the request is about.
+- **Credential review:** a queue that empties as each submission is verified;
+  its rows are working items rather than a record anybody reconciles in a
+  spreadsheet. Export it if Robert wants one; it is one report.
+- **Insurance:** a register of a handful of policies, each with its
+  certificate one click away. Same answer.
 
 ## /portal/accounts COUNTS SUPERSEDED ACCOUNTS IN "ALL": RULED, BUILT ON feat/superseded-hidden
 

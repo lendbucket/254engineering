@@ -19,6 +19,8 @@ import {
   designBriefsCsv,
   listExportFilename,
   partnersCsv,
+  peopleCsv,
+  suppressionsCsv,
   tasksCsv,
   techniciansCsv,
   windstormBriefsCsv,
@@ -33,6 +35,9 @@ import { techListQuery, techListRows } from "@/lib/tech-list";
 import { partnerRoster } from "@/lib/ops-partners-admin";
 import { partnerListRows } from "@/lib/partner-list";
 import { listEveryTask } from "@/lib/ops-tasks";
+import { readPeople } from "@/lib/people-roster";
+import { listSuppressions } from "@/lib/marketing-suppression";
+import { PEOPLE_LIST, SUPPRESSION_LIST, staffListQuery, staffListRows } from "@/lib/staff-lists";
 
 export const dynamic = "force-dynamic";
 
@@ -203,6 +208,8 @@ async function handleGET(request: NextRequest) {
       technicians: "profiles.list",
       partners: "partners.manage",
       tasks: "tasks.use",
+      people: "profiles.list",
+      suppressions: "suppressions.manage",
     };
     if (!can(actor, LIST_EXPORT_GRANT) || !can(actor, screenGrant[listReport])) {
       return bad("Your role cannot export this list.", 403);
@@ -247,6 +254,18 @@ async function handleGET(request: NextRequest) {
       if (read.failed.length) return refuse("partners", read.failed.join(" "));
       const rows = partnerListRows(read.rows, { q: param("q"), state: param("state") });
       body = partnersCsv(rows, describe([["search", param("q")], ["state", param("state")]]));
+      count = rows.length;
+    } else if (listReport === "people") {
+      const read = await readPeople();
+      if (!read.ok) return refuse("people", read.error);
+      const rows = staffListRows(read.rows, staffListQuery({ q: param("q"), status: param("status"), sort: param("sort"), dir: param("dir") }, PEOPLE_LIST), PEOPLE_LIST);
+      body = peopleCsv(rows, describe([["search", param("q")], ["status", param("status")], ["sort", param("sort")], ["direction", param("dir")]]));
+      count = rows.length;
+    } else if (listReport === "suppressions") {
+      const all = await listSuppressions();
+      if (all === null) return refuse("do not contact list", "the read failed.");
+      const rows = staffListRows(all, staffListQuery({ q: param("q"), source: param("source"), state: param("state"), sort: param("sort"), dir: param("dir") }, SUPPRESSION_LIST), SUPPRESSION_LIST);
+      body = suppressionsCsv(rows, describe([["search", param("q")], ["source", param("source")], ["standing", param("state")], ["sort", param("sort")], ["direction", param("dir")]]));
       count = rows.length;
     } else {
       const rows = await listEveryTask(actor, { status: param("status"), q: param("q") });

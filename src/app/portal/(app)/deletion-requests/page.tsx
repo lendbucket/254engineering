@@ -4,6 +4,8 @@ import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
 import { listDeletionRequests } from "@/lib/deletion-requests";
 import { Chip, EmptyState, ErrorState, PageHead, Panel } from "@/components/portal/surfaces";
+import { ListControls, Pager, listHref } from "@/components/portal/ListControls";
+import { DELETION_LIST, STAFF_LIST_PAGE_SIZE, staffListPage, staffListQuery, staffListRows } from "@/lib/staff-lists";
 import { AnswerRequest, TakeRequest } from "./DeletionRequestsClient";
 
 export const dynamic = "force-dynamic";
@@ -40,12 +42,18 @@ export const dynamic = "force-dynamic";
  * already tells the public that engineering records are kept for the periods
  * Texas requires. A screen that promised more would make that policy false.
  */
-export default async function DeletionRequestsPage() {
+export default async function DeletionRequestsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const actor = await currentActor();
   if (!can(actor, "suppressions.manage")) notFound();
 
-  const rows = await listDeletionRequests();
-  const open = rows?.filter((r) => r.answered === null) ?? [];
+  const params = await searchParams;
+  const all = await listDeletionRequests();
+  /* The unanswered count is of every request, never of the page or the search. */
+  const open = all?.filter((r) => r.answered === null) ?? [];
+  const query = staffListQuery(params, DELETION_LIST);
+  const shown = all === null ? null : staffListPage(staffListRows(all, query, DELETION_LIST), query.page);
+  const rows = shown?.rows ?? null;
+  const searching = Boolean(query.term || query.filters.answer);
 
   return (
     <>
@@ -62,6 +70,34 @@ export default async function DeletionRequestsPage() {
 
         <Panel title={rows === null ? "Requests" : `Requests (${open.length} unanswered)`}>
           {/*
+            No CSV here, deliberately: each row quotes a person's own words
+            about what they want erased, and whether that leaves the screen as
+            a file is a question for Robert rather than a list control.
+          */}
+          <ListControls
+            action="/portal/deletion-requests"
+            search={params.q ?? ""}
+            searchLabel="Search address, note or request"
+            filters={[
+              {
+                name: "answer",
+                label: "Answer",
+                value: query.filters.answer,
+                options: [
+                  { value: "", label: "Both" },
+                  { value: "waiting", label: "Waiting on an answer" },
+                  { value: "answered", label: "Answered" },
+                ],
+              },
+            ]}
+            sorts={[
+              { value: "received", label: "Received" },
+              { value: "email", label: "Address" },
+            ]}
+            sort={query.sort}
+            direction={query.ascending ? "asc" : "desc"}
+          />
+          {/*
             Null is a failed read and it is not an empty list. On this screen the
             wrong answer means telling somebody nobody has asked when the query
             never ran, about a request they made out loud.
@@ -71,6 +107,8 @@ export default async function DeletionRequestsPage() {
               title="The requests could not be read"
               body="This is not the same as nobody having asked. Do not tell anybody their request is not on file on the strength of this screen. Tell an administrator."
             />
+          ) : rows.length === 0 && searching ? (
+            <EmptyState title="No request matches that search" body="This is a search with no match, not an empty list. Clear the search to see every request." />
           ) : rows.length === 0 ? (
             <EmptyState
               title="Nobody has asked"
@@ -145,6 +183,9 @@ export default async function DeletionRequestsPage() {
               ))}
             </ul>
           )}
+          {shown ? (
+            <Pager page={shown.page} pageSize={STAFF_LIST_PAGE_SIZE} total={shown.total} hrefFor={(n) => listHref("/portal/deletion-requests", params, { page: n > 1 ? String(n) : "" })} />
+          ) : null}
         </Panel>
       </div>
     </>

@@ -7,6 +7,8 @@ import type { WindstormInquiryRow } from "./ops-windstorm-inquiries";
 import type { RosterRow } from "./ops-field";
 import type { PartnerRow } from "./ops-partners-admin";
 import type { TaskRow } from "./ops-tasks";
+import type { PersonListRow } from "./staff-lists";
+import type { SuppressionRow } from "./marketing-suppression";
 
 /**
  * ===========================================================================
@@ -32,8 +34,11 @@ import type { TaskRow } from "./ops-tasks";
  */
 export const LIST_EXPORT_GRANT: Action = "accounts.manage";
 
-/** The six reports the export door accepts beside its existing ones. */
-export const LIST_EXPORT_REPORTS = ["applications", "design-briefs", "windstorm-briefs", "technicians", "partners", "tasks"] as const;
+/**
+ * The staff list reports the export door accepts beside its existing ones.
+ * People and do not contact joined with their list controls (2026-10-29).
+ */
+export const LIST_EXPORT_REPORTS = ["applications", "design-briefs", "windstorm-briefs", "technicians", "partners", "tasks", "people", "suppressions"] as const;
 export type ListExportReport = (typeof LIST_EXPORT_REPORTS)[number];
 
 const yesNo = (v: boolean | null | undefined) => (v === null || v === undefined ? "" : v ? "yes" : "no");
@@ -200,6 +205,47 @@ export function tasksCsv(rows: readonly TaskRow[], filter: string): string {
     ],
     headers: ["Title", "Status", "Priority", "Due", "Created", "Completed", "Repeats", "Description"],
     rows: rows.map((t) => [t.title, t.status, t.priority, t.due_at ?? "", t.created_at, t.completed_at ?? "", t.recurrence ?? "", t.description ?? ""]),
+  });
+}
+
+/**
+ * Who can sign in. Never a password or a token, which this platform does not
+ * hold anyway; the licence number is the engineer's public record.
+ */
+export function peopleCsv(rows: readonly PersonListRow[], filter: string): string {
+  return csv({
+    preamble: [
+      ["People", `${rows.length} matching`],
+      ["Filter", filter],
+    ],
+    headers: ["Name", "Email", "Phone", "Role", "Status", "Base county", "Last sign in", "Added"],
+    rows: rows.map((p) => [p.display_name, p.email, p.phone ?? "", p.role, p.status, p.base_county ?? "", p.last_sign_in_at ?? "never", p.created_at]),
+  });
+}
+
+/**
+ * The do not contact list. A row marked as a mistake is still exported and
+ * says so, because a file that dropped it would be a consent record with the
+ * correction missing.
+ */
+export function suppressionsCsv(rows: readonly SuppressionRow[], filter: string): string {
+  return csv({
+    preamble: [
+      ["Do not contact", `${rows.length} matching`],
+      ["Filter", filter],
+      ["Standing", "A row marked as a mistake no longer stops marketing to that address; it is kept as the record of the correction."],
+    ],
+    headers: ["Email", "Reason", "Added", "How it came", "Standing", "Marked as a mistake on", "Why", "Recorded instead for"],
+    rows: rows.map((r) => [
+      r.email,
+      r.because,
+      r.createdAt,
+      r.enteredByOperator ? "recorded by somebody here" : "they clicked the link",
+      r.voided ? "marked as a mistake" : "in force",
+      r.voided?.at ?? "",
+      r.voided?.because ?? "",
+      r.voided?.replacedBy ?? "",
+    ]),
   });
 }
 
