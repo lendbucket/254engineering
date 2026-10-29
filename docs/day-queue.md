@@ -69,6 +69,24 @@ Every repair was proved by an injection, and each file was restored byte identic
 4. Skip re-boarding a push to main whose exact commit already has a green board (ruled 2026-10-22). It edits `board.yml`, so it comes after bundle 17.
 5. List controls (search, filter, sort, paging) on the 13 staff screens that have none, so each can then take a CSV export, office ready section 2d.
 
+## 2026-10-29, BUNDLE 18: copy-project's bucket list from the chain, `feat/backlog-small` at `e62b34e`
+
+**Prediction written and pushed before the board starts.** The smallest BACKLOG item needing no ruling (Robert's item 5 of 21:07).
+
+**What it does:**
+- `scripts/copy-project.mjs` takes its bucket list from the migration files through `scripts/lib/chain-buckets.mjs`, not a typed list of five.
+- migration-audit gains "copy-project copies every eng- bucket the replay holds (11)". BACKLOG had said twelve; that was a miscount.
+- Injected when built: dropping `eng-seals` from the parse turned that check red, naming the bucket. Restored byte identical.
+
+**Readers on `e62b34e`:**
+- Preflight GREEN, 35 rules, 0 failed, 48 s, migration-audit included.
+- tsc clean.
+
+**Prediction: 64 of 64.**
+- The preflight job is green.
+- migration-audit passes with the new check.
+- The walk as in bundle 16; 3 lines exempt.
+
 ## 2026-10-29, BUNDLE 17 AGAIN, after its own preflight stopped it, at `bae72c3`
 
 **Prediction written and pushed before the board starts.**
