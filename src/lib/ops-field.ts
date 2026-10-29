@@ -30,6 +30,7 @@ import {
   type TechCandidate,
 } from "./ops-dispatch";
 import {
+  captureDeleteRefusal,
   checklistState,
   type CapturedItem,
   type ChecklistState,
@@ -2071,20 +2072,95 @@ export async function closeRepairItem(
   return { ok: true, remaining };
 }
 
+/**
+ * Remove one capture from a file still in the field. Robert's ruling,
+ * 2026-10-29 (WF-030 step 5): a delete button on the job screen, and the audit
+ * row added here first.
+ *
+ * THE RECORD IS WRITTEN BEFORE THE ROW GOES, THROUGH writeAuditOrRefuse. A
+ * capture is evidence the engineer will review and seal on, and a removal
+ * with no record is a gap in the package nobody can see. So a removal that
+ * could not be recorded does not happen, and the record names who removed
+ * what, from which item, and the stored object it pointed at.
+ *
+ * A CAPTURE A REPAIR WAS VERIFIED AGAINST IS REFUSED. 0053's foreign key is
+ * `on delete set null`, so deleting it would leave the repair closed with its
+ * evidence quietly gone, which is the tick the protocol does not allow.
+ */
 export async function deleteCapture(
   actor: Actor & { email: string },
   fileId: string,
   captureId: string,
+  context: Context = {},
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
   const view = await jobView(actor, fileId);
   if (!view) return { ok: false, error: "That job is not yours." };
-  if (view.file.status !== "evidence_in_progress" && view.file.status !== "revisions_requested") {
-    return { ok: false, error: "Captures can only be removed while the file is still in the field." };
+
+  const refused = captureDeleteRefusal({
+    actorId: actor.id,
+    actorRole: actor.role,
+    mayCapture: can(actor, "evidence.capture") || can(actor, "evidence.review"),
+    assignedTechId: view.file.assigned_tech_id,
+    status: view.file.status,
+  });
+  if (refused) return { ok: false, error: refused };
+
+  const capture = view.captures.find((c) => c.id === captureId);
+  if (!capture) return { ok: false, error: "That capture is not on this file. Reload the job to see what is." };
+  if (view.repairs.some((r) => r.verified_by_evidence_id === captureId)) {
+    return {
+      ok: false,
+      error: "A repair was verified against this capture, so it stays. Capture the item again instead.",
+    };
   }
-  const { error } = await db.from("eng_evidence_items").delete().eq("id", captureId).eq("file_id", fileId);
-  return error ? { ok: false, error: error.message } : { ok: true };
+
+  const label = view.protocol?.items.find((i) => i.itemKey === capture.item_key)?.label ?? capture.item_key;
+  const recorded = await writeAuditOrRefuse({
+    actor,
+    action: "capture.delete",
+    entityType: "file",
+    entityId: fileId,
+    summary: `Removed a ${capture.kind} capture for ${label} from ${view.file.file_number}.`,
+    diff: {
+      capture_id: capture.id,
+      item_key: capture.item_key,
+      kind: capture.kind,
+      value_text: capture.value_text,
+      value_number: capture.value_number,
+      storage_key: capture.storage_key,
+      captured_at: capture.captured_at,
+      file_status: view.file.status,
+    },
+    ...context,
+  });
+  if (!recorded.ok) return { ok: false, error: recorded.error };
+
+  const { data: removed, error } = await db
+    .from("eng_evidence_items")
+    .delete()
+    .eq("id", captureId)
+    .eq("file_id", fileId)
+    .select("id");
+  if (error || !removed || removed.length === 0) {
+    /*
+     * THE RECORD SAYS IT WAS REMOVED AND IT WAS NOT, so a second row says so,
+     * naming the first. Best effort, because the refusal below is what the
+     * technician needs; the trail must not be left asserting a removal alone.
+     */
+    await writeAudit({
+      actor,
+      action: "capture.delete_failed",
+      entityType: "file",
+      entityId: fileId,
+      summary: `The removal recorded as ${recorded.id} did not happen: ${error?.message ?? "no row was removed"}.`,
+      diff: { capture_id: captureId, audit_id: recorded.id },
+      ...context,
+    });
+    return { ok: false, error: `The capture could not be removed: ${error?.message ?? "it was not found"}.` };
+  }
+  return { ok: true };
 }
 
 /**

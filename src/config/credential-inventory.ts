@@ -728,7 +728,7 @@ export const CREDENTIALS: Credential[] = [
   { name: "FIRM_POSTAL_CODE", kind: "config", livesIn: "Not set.", grants: "Publishes the postal code.", rotated: "Never." },
   { name: "FIRM_LATITUDE", kind: "config", livesIn: "Not set.", grants: "The geo point for LocalBusiness markup. Omitted rather than approximated: a map pin is trusted absolutely.", rotated: "Never." },
   { name: "FIRM_LONGITUDE", kind: "config", livesIn: "Not set.", grants: "The other half of the geo point.", rotated: "Never." },
-  { name: "FIRM_HOURS", kind: "config", livesIn: "Not set.", grants: "Publishes opening hours, which is a commitment to answer during them.", rotated: "Never." },
+  { name: "FIRM_HOURS", kind: "config", livesIn: "RETIRED 2026-10-29. It was never set, and nothing in src/ reads it any more. Robert gave the hours at 12:50 Central that day and they are declared once in src/config/contact.ts, for the reason the address is: a published commitment to answer is checked against the listing, and an environment variable can differ between a build and a deployment.", grants: "Nothing.", rotated: "Never." },
   {
     name: "SENTRY_DSN",
     kind: "secret",
