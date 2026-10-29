@@ -1,5 +1,29 @@
 # Day queue, 2026-10-23
 
+## 2026-10-29, BUNDLE 16 AGAIN, after one miss, at `e17a6ff`
+
+**Prediction written and pushed before the board starts.**
+
+**The miss.** Board 40833339969 on `09ce70c` read 63 of 64. w2-walk-audit failed on "the marks parsed are the marks the map counts (... 12 with no screen (the map says 13))".
+- Removing WF-016 step 3's `[NO SCREEN]` mark also needed two other edits: the walk's pinned `MAP_NO_SCREEN`, and the map's per-role count table.
+- **My walk prediction was also off.** I predicted works 218 and off-screen 8. The walk read 219 works, 3 friction, 19 missing, **7 off-screen**, 2 unreached, 0 broken. WF-007 step 4's corrected wording took it from off-screen to walked, which I did not carry in.
+
+**The repair, `e17a6ff`:**
+- The pin is 12.
+- The map's table has the ops manager at 0 and the engineer at 1, since WF-017 step 6 is the engineer's.
+- The prose reads twelve.
+- Item 4 of the "five that most need a screen" no longer says the technician's invite goes by hand.
+- Counted through the walk's own parser: 138 steps, 8 needing code (pinned 8), 12 with no screen (pinned 12). The failed board is the before state.
+- **This mark count is static. It belongs in the preflight and will go there.**
+
+**Readers:**
+- Preflight GREEN; the procedures proof passes.
+- 0 banned phrases on added lines.
+
+**Prediction: 64 of 64.**
+- w2-walk-audit passes all 8 checks.
+- The walk reads 219 works (plus or minus the friction lines, which follow runner speed), 19 missing, 7 off-screen, 2 unreached, 0 broken.
+
 ## 2026-10-29: BUNDLE 15 MERGED; BUNDLE 16, W3 ROUND 2, AT `09ce70c`
 
 **Bundle 15 merged as `417bdfa`.** The merged tree is the boarded tree. Board 40825157227 on `f6700ad` read 64 of 64, every predicted line held:
