@@ -1,5 +1,40 @@
 # Day queue, 2026-10-23
 
+## 2026-10-28 NIGHT: BUNDLE 12 MERGED; BUNDLE 13, THE PREFLIGHT, AT `5f37977`
+
+**Bundle 12 merged as `f897936`.** The merged tree is the boarded tree. Board 40801619224 on `38fa4fc` read 64 of 64, and every predicted line held:
+- **The walk:** 216 works, 2 friction, 0 broken, 20 missing, 8 off-screen, **2 unreached, down from 34**.
+  - WF-029, WF-030 steps 1 to 4, WF-015 step 3 and WF-023 are reached at both widths.
+  - The 2 unreached are WF-016 step 4 at two widths, by design.
+- **Teardown:** "0 prospects, 0 dead jobs, 0 technician files and 0 unpaid orders of the walk's left".
+
+**Prediction for bundle 13 (Robert's item 2 of 21:07), written and pushed before the board starts.**
+
+**What it adds.** `node scripts/preflight.mjs` runs every static rule the board applies, with no server and no environment file:
+- the runtime declarations, through the one function `scripts/audit.mjs` now shares;
+- every static-shard audit run the board's way. registry-audit and citation-audit are named as not run here, with reasons, and asserted still in the shard;
+- soc2-audit;
+- the retention declaration, through one module that retention-audit also calls;
+- voice and long dashes on added lines since the merge base.
+
+**Exemptions.** db-guard-audit has 1 environment-file line and soc2-audit 4. Each is excused by its exact name, only when there is no `.env.local`, only when the audit's failure count equals the count excused. Each name is asserted to still exist.
+
+**Proof.** Each of today's misses, injected alone, turned exactly its own rule red, and each file was restored byte identical:
+- an undeclared env name;
+- a clock timestamp in `src/lib`;
+- a missing runtime line;
+- the retention order.
+
+**Also in this bundle:**
+- The CLAUDE.md line Robert asked for.
+- WF-016 step 4 as unreached by design, in a section of `docs/workflows.md` that is not published to staff.
+
+**Preflight on `5f37977`: GREEN, 33 rules, 0 failed, 0 could not tell, 41 s.** tsc clean.
+
+**Prediction: 64 of 64.**
+- `scripts/audit.mjs` and `retention-audit` now call the shared functions. The board is the first thing to run them: the runtime refusal must not fire, and retention-audit's order check must pass.
+- 3 lines exempt; the walk as above.
+
 ## 2026-10-28, BUNDLE 12 AGAIN, after the board refused to start, at `38fa4fc`
 
 **Prediction written and pushed before the board starts.**
