@@ -1,5 +1,37 @@
 # Day queue, 2026-10-23
 
+## 2026-10-28, BUNDLE 11 MERGED; BUNDLE 12, THE WALK'S RECORDS, AT `113472e`
+
+**Bundle 11 merged.**
+- Board 40789442209 on `6f9a6a1` read 64 of 64, every predicted line held:
+  - "rep cannot export the ordering accounts" and "ops_manager cannot export…", both HTTP 403.
+  - The export proof passes, and so does db-guard-audit's clock line.
+- Merged as `7698b5d`, its tree identical to the boarded one. Pushed, and `ls-remote` agrees.
+
+**Prediction for bundle 12, written and pushed before the board starts.** Robert's item 5 of 16:11 Central (comment 6480742347): give the walk's probes the records they need.
+
+**What it adds to `scripts/w2-walk-audit.mjs`.** On development, in the writers shard only, each run makes:
+- two demonstration files for the walk's own technician probe: one offered at $185.00, one accepted and dispatched;
+- one unpaid demonstration order whose buyer is at `audit-probe.invalid`;
+- a prospect and a dead job, carried from `285fcd4`.
+
+Records are written directly, never through `sendOffers` or `acceptOffer`, so nobody is notified. Teardown deletes assignments, the files (whose events go by the cascade the table allows), the order, the prospect and the job. It then reads every set back to zero.
+
+**Readers:**
+- tsc clean; surface-audit and backlog-audit pass.
+- `the-procedures-are-the-workflow-map.mjs` passes.
+- db-guard-audit and soc2-audit fail only their environment-file lines.
+- 328 added lines: no long dash; 25 BACKLOG lines: no banned phrase.
+
+**Prediction: 64 of 64.**
+- **The walk:**
+  - Still 0 broken.
+  - The unreached count falls from 34. WF-029 steps 1 and 2, WF-030 steps 1 to 4, WF-015 step 3 and WF-023 steps 1 to 3 should be reached at each width they are walked.
+  - WF-016 step 4 stays unreached, with its reason.
+  - I give no exact new count: I have not mapped each step to its widths, and the sealed log will.
+- **Its teardown check passes, reading zero of everything it made.**
+- 3 lines exempt.
+
 ## 2026-10-28, BUNDLE 11 AGAIN, after one miss, at `6f9a6a1`
 
 **Prediction written and pushed before the board starts.**
