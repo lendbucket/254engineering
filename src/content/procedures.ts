@@ -1275,15 +1275,17 @@ export const PROCEDURES: Procedure[] = [
       },
       {
         "n": "3",
-        "screen": "none",
-        "routes": [],
-        "who": "Admin",
-        "sees": "",
-        "does": "Sets an account's credit limit and terms",
-        "next": "`/api/portal/accounts` `set-terms` exists",
+        "screen": "`src/app/portal/(app)/accounts` (`AccountsClient`, `TermsPanel`)",
+        "routes": [
+          "/portal/accounts"
+        ],
+        "who": "Admin (`accounts.manage`)",
+        "sees": "An account's billing, credit limit and net days",
+        "does": "Changes the terms, with their password entered again (Robert, 2026-10-29)",
+        "next": "`/api/portal/accounts` `set-terms`, `setAccountTerms` (`verifyOwnPassword`, then `writeAuditOrRefuse`, then the update)",
         "told": "",
-        "record": "`eng_customer_accounts` update, `eng_audit_events` insert",
-        "marks": "**[NO SCREEN]**: no screen sends `set-terms`"
+        "record": "Audit `account.terms_changed` with both sides of each field, written before `eng_customer_accounts` update; `account.terms_change_failed` when no row changed",
+        "marks": ""
       },
       {
         "n": "4",

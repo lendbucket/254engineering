@@ -5,6 +5,18 @@ import { openBalancesForEveryAccount } from "./ops-bulk";
 import { accountListQuery, pageOfAccounts, type AccountListQuery, type RosterEntry } from "./account-list";
 import { creditDecision } from "./account-credit";
 import type { Cents } from "./ops-money";
+import { can, type Actor } from "./ops-authz";
+import { verifyOwnPassword } from "./ops-auth";
+import { writeAudit, writeAuditOrRefuse } from "./ops-audit";
+import {
+  TERMS_AUDIT_ACTION,
+  TERMS_FAILED_ACTION,
+  TERMS_PASSWORD_MISSING,
+  termsDiff,
+  termsFromChange,
+  type AccountTerms,
+  type TermsChange,
+} from "./account-terms";
 
 /**
  * What the operator sees about every ordering account.
@@ -587,4 +599,108 @@ export async function convertClientToAccount(
 
   if (error || !created) return { ok: false, error: "The account could not be created." };
   return { ok: true, accountId: created.id as string, alreadyExisted: false };
+}
+
+/**
+ * SET AN ACCOUNT'S CREDIT TERMS: billing mode, credit limit and net days.
+ * Robert's ruling, 10:52 Central 2026-10-29, 254-WF-022 step 3. The rule and
+ * its reasons are in account-terms.ts; this is the part that needs the
+ * database, in this order, and the order is the point:
+ *
+ *   1. the grant, accounts.manage, the one every account write path asks;
+ *   2. the password, re-entered, through verifyOwnPassword, the same check a
+ *      job at no charge uses, so it is the signed-in person's own password;
+ *   3. the current terms, read, so the record can say what they were;
+ *   4. the record, through writeAuditOrRefuse, BEFORE the change, naming the
+ *      actor, the account and every field with both sides. A change whose
+ *      record cannot be written does not happen;
+ *   5. the change, and a count of the rows it touched. None touched is said,
+ *      and written as its own record, because the first record now describes
+ *      a change that did not land.
+ *
+ * Until 2026-10-29 the set-terms action wrote the row first and the record
+ * after with writeAudit, which logs a failure and carries on, and it asked for
+ * nothing but the grant. No screen sent it, which is why that never bit.
+ */
+export async function setAccountTerms(
+  actor: Actor & { email: string },
+  accountId: string,
+  change: TermsChange,
+  context: { ip: string | null; userAgent: string | null } = { ip: null, userAgent: null },
+): Promise<{ ok: true; changed: string[] } | { ok: false; status: number; error: string; field?: string }> {
+  if (!can(actor, "accounts.manage")) {
+    return { ok: false, status: 403, error: "Only an administrator can change an account's terms." };
+  }
+  if (!accountId) return { ok: false, status: 400, error: "Which account?" };
+
+  const password = typeof change.password === "string" ? change.password : "";
+  if (!password) return { ok: false, status: 400, error: TERMS_PASSWORD_MISSING, field: "password" };
+  const pw = await verifyOwnPassword(actor.id, password);
+  if (!pw.ok) return { ok: false, status: 403, error: pw.error, field: "password" };
+
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, status: 503, error: "The database is not configured." };
+
+  /* A superseded account is a record of a duplicate, and takes no new terms. */
+  const { data: row, error: readError } = await db
+    .from("eng_customer_accounts")
+    .select("id, billing_mode, credit_limit_cents, net_days")
+    .eq("id", accountId)
+    .is("superseded_at", null)
+    .maybeSingle();
+  if (readError) return { ok: false, status: 503, error: `The account's terms could not be read: ${readError.message}` };
+  if (!row) return { ok: false, status: 404, error: "That account does not exist, or it has been superseded." };
+
+  const current: AccountTerms = {
+    billingMode: row.billing_mode === "invoice" ? "invoice" : "card",
+    creditLimitCents: row.credit_limit_cents === null ? null : Number(row.credit_limit_cents),
+    netDays: Number(row.net_days),
+  };
+  const decided = termsFromChange(current, change);
+  if (!decided.ok) return { ok: false, status: 400, error: decided.error };
+  const diff = termsDiff(current, decided.next);
+  const changed = Object.keys(diff);
+  if (changed.length === 0) return { ok: false, status: 400, error: "Nothing to change: these are the account's terms already." };
+
+  const actorRef = { id: actor.id, role: actor.role, email: actor.email };
+  const recorded = await writeAuditOrRefuse({
+    actor: actorRef,
+    action: TERMS_AUDIT_ACTION,
+    entityType: "customer_account",
+    entityId: accountId,
+    summary: `${actor.email} changed ${changed.join(", ")}, confirmed by password`,
+    diff: { ...diff, confirmed_by: "password" },
+    ...context,
+  });
+  if (!recorded.ok) return { ok: false, status: 503, error: recorded.error };
+
+  const { data: touched, error: writeError } = await db
+    .from("eng_customer_accounts")
+    .update({
+      billing_mode: decided.next.billingMode,
+      credit_limit_cents: decided.next.creditLimitCents,
+      net_days: decided.next.netDays,
+    })
+    .eq("id", accountId)
+    .is("superseded_at", null)
+    .select("id");
+  if (writeError || (touched ?? []).length !== 1) {
+    await writeAudit({
+      actor: actorRef,
+      action: TERMS_FAILED_ACTION,
+      entityType: "customer_account",
+      entityId: accountId,
+      summary: `The terms change recorded as ${recorded.id} did not land: ${writeError?.message ?? "no row was changed"}`,
+      diff: { terms_event_id: recorded.id },
+      ...context,
+    });
+    return {
+      ok: false,
+      status: 503,
+      error: writeError
+        ? "The record was written, but the terms could not be saved. Nothing changed; try again."
+        : "No account was changed. It may have been superseded a moment ago.",
+    };
+  }
+  return { ok: true, changed };
 }

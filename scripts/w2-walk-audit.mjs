@@ -340,12 +340,13 @@ async function resolveDirect(pattern) {
  * went from 13 to 12 on 2026-10-29 when WF-016 step 3 gained its screen (W3
  * round 2, the invite emailed from /portal/onboarding), and from 12 to 11 the
  * same day when WF-030 step 5 gained its delete button (Robert's ruling of
- * 10:52 Central 2026-10-29).
+ * 10:52 Central 2026-10-29), and from 11 to 10 when WF-022 step 3 gained the
+ * credit terms panel on /portal/accounts under the same ruling.
  */
 const MAP_WORKFLOWS = 36;
 const MAP_STEPS_AT_LEAST = 138;
 const MAP_NEEDS_CODE = 8;
-const MAP_NO_SCREEN = 11;
+const MAP_NO_SCREEN = 10;
 
 /** The office-ready standard, CLAUDE.md section 2d: a staff page is interactive in under 2 seconds. */
 const STAFF_INTERACTIVE_MS = 2000;
