@@ -29,7 +29,23 @@ for (const f of files) {
   }
 }
 
+/*
+ * THE PREFLIGHT, FIRST (decided overnight 2026-10-28, Robert to confirm). The
+ * shards need it, so when it is red no shard ran, and the board must say that
+ * in its first line, naming the rules, rather than list every audit as NO
+ * VERDICT: board 40798160014 read exactly like that and meant one setup refusal.
+ */
+const preflight = byShard.get("preflight") ?? null;
+const preflightStop = preflight === null ? "the preflight reported nothing" : preflight.passed !== true ? "the preflight was red" : null;
+
 const problems = [];
+if (preflightStop) {
+  problems.push(
+    preflight?.failed?.length
+      ? `PREFLIGHT STOPPED THE BOARD: ${preflight.failed.join(", ")}. No shard ran and nothing touched development.`
+      : `PREFLIGHT STOPPED THE BOARD: ${preflightStop}${preflight && preflight.completed === false ? ", and it did not run to completion" : ""}. No shard ran and nothing touched development.`,
+  );
+}
 const rows = [];
 let pass = 0;
 let fail = 0;
@@ -53,7 +69,11 @@ for (const [shard, { audits }] of Object.entries(SHARDS)) {
 
 const ok = problems.length === 0;
 const lines = [
-  `## Cloud board: ${ok ? "PASS" : "NOT GREEN"}`,
+  `## Cloud board: ${ok ? "PASS" : preflightStop ? "STOPPED BY THE PREFLIGHT" : "NOT GREEN"}`,
+  "",
+  preflight
+    ? `Preflight: ${preflight.passed ? "GREEN" : "RED"}, ${preflight.rules ?? 0} rules, ${preflight.failed?.length ?? 0} failed, ${preflight.untold?.length ?? 0} could not tell.`
+    : "Preflight: no verdict.",
   "",
   `${pass} pass + ${fail} fail or no verdict + ${cnt} could not tell = ${pass + fail + cnt}, against ${declared} declared audits.`,
   INFORMATIONAL.size > 0
@@ -64,7 +84,7 @@ const lines = [
   "| --- | --- | --- |",
   ...rows.map(([s, n, v]) => `| ${s} | ${n} | ${v}${INFORMATIONAL.has(n) ? " (informational)" : ""} |`),
   "",
-  ...[...byShard.values()].map((v) => `${v.shard}: ${v.facts?.retries ?? "Transient retries: unknown"}${v.facts?.manyRetries ? ", MORE THAN FIVE" : ""}`),
+  ...[...byShard.values()].filter((v) => v.shard !== "preflight").map((v) => `${v.shard}: ${v.facts?.retries ?? "Transient retries: unknown"}${v.facts?.manyRetries ? ", MORE THAN FIVE" : ""}`),
   "",
   ok ? "Every gating audit passed." : `Holding the board:\n\n${problems.map((p) => `- ${p}`).join("\n")}`,
   "",

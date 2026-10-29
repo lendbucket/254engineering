@@ -11,6 +11,7 @@ import { LIST_NOT_LOADED } from "@/lib/outcome-copy";
 import { RetryButton } from "@/components/portal/Unreachable";
 import { ListControls, Pager, listHref } from "@/components/portal/ListControls";
 import { INQUIRY_PAGE_SIZE, inquiryListQuery } from "@/lib/inquiry-list";
+import { LIST_EXPORT_GRANT } from "@/lib/list-exports";
 
 export const dynamic = "force-dynamic";
 
@@ -104,6 +105,11 @@ export default async function WindstormInquiriesPage({ searchParams }: { searchP
         sorts={[{ value: "due", label: "Reply by" }, { value: "received", label: "Received" }, { value: "name", label: "Name" }]}
         sort={query.sort}
         direction={query.ascending ? "asc" : "desc"}
+        csvHref={
+          can(actor, LIST_EXPORT_GRANT)
+            ? listHref("/api/portal/exports", { q: params.q, show: params.show, sort: params.sort, dir: params.dir }, { report: "windstorm-briefs" })
+            : undefined
+        }
       />
 
       {/* A failed read never renders as "No briefs yet": the operator's ruling of 2026-10-12, as on the design briefs. */}

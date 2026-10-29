@@ -3,6 +3,7 @@ import { supabaseAdmin } from "./supabase";
 import { currentActor } from "./ops-auth";
 import { can } from "./ops-authz";
 import { cleanSearchTerm } from "./search-rules";
+import { readEvery } from "./bounded-read";
 
 /**
  * Applications, read by the portal.
@@ -81,22 +82,47 @@ export async function listApplicationsPage(
   await requireAdmin();
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
-  let read = db.from("eng_applications").select("id, created_at, site, role, name, email, phone, city, payload");
-  const term = cleanSearchTerm(options.q ?? "");
-  if (term) read = read.or(`name.ilike.%${term}%,email.ilike.%${term}%,city.ilike.%${term}%`);
-  if (options.role === "professional_engineer" || options.role === "field_technician") read = read.eq("role", options.role);
   const page = Math.max(1, Math.floor(options.page ?? 1));
   const from = (page - 1) * APPLICATION_PAGE_SIZE;
-  const { data, error } = await read
-    .order("created_at", { ascending: false })
-    .order("id", { ascending: true })
-    .range(from, from + APPLICATION_PAGE_SIZE);
+  const { data, error } = await applicationsMatching(db, options).range(from, from + APPLICATION_PAGE_SIZE);
   if (error) {
     console.error(`[applications] the applications could not be read: ${error.message}`);
     return { ok: false, error: error.message };
   }
   const all = (data ?? []) as ApplicationRow[];
   return { ok: true, rows: all.slice(0, APPLICATION_PAGE_SIZE), more: all.length > APPLICATION_PAGE_SIZE };
+}
+
+/**
+ * The search and the position filter, and the order, that the screen pages
+ * through. One home, so the page and the CSV export cannot disagree about
+ * which applications match.
+ */
+function applicationsMatching(db: NonNullable<ReturnType<typeof supabaseAdmin>>, options: { q?: string; role?: string }) {
+  let read = db.from("eng_applications").select("id, created_at, site, role, name, email, phone, city, payload");
+  const term = cleanSearchTerm(options.q ?? "");
+  if (term) read = read.or(`name.ilike.%${term}%,email.ilike.%${term}%,city.ilike.%${term}%`);
+  if (options.role === "professional_engineer" || options.role === "field_technician") read = read.eq("role", options.role);
+  return read.order("created_at", { ascending: false }).order("id", { ascending: true });
+}
+
+/**
+ * EVERY APPLICATION THE SCREEN'S QUERY MATCHES, for the CSV export (office
+ * ready, Robert, 2026-10-28). Read in full through readEvery, which refuses
+ * rather than returning a capped list as the set.
+ */
+export async function listEveryApplication(
+  options: { q?: string; role?: string } = {},
+): Promise<{ ok: true; rows: ApplicationRow[] } | { ok: false; error: string }> {
+  await requireAdmin();
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+  const read = await readEvery<ApplicationRow>((from, to) => applicationsMatching(db, options).range(from, to));
+  if (!read.ok) {
+    console.error(`[applications] every application could not be read: ${read.error}`);
+    return { ok: false, error: read.error };
+  }
+  return { ok: true, rows: read.rows };
 }
 
 export async function getApplication(id: string): Promise<ApplicationRow | null> {

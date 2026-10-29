@@ -52,7 +52,7 @@
 
 import { chromium } from "playwright";
 
-import { readWorkflowMap } from "./lib/workflow-map.mjs";
+import { readWorkflowMap, mapChecks } from "./lib/workflow-map.mjs";
 import { SURFACES, roleForRoute } from "./lib/surfaces.mjs";
 import { AUDIT_BASE_URL } from "./lib/ports.mjs";
 import { navigationVerdict, orCouldNotTell, COULD_NOT_TELL } from "./lib/reachable.mjs";
@@ -335,13 +335,15 @@ async function resolveDirect(pattern) {
  * its expectation from the thing it audits (CLAUDE.md section 6), so the
  * counts are typed here and compared with what the parser found: 36
  * workflows, at least 138 steps, and the marks as the map's own table counts
- * them (8 steps needing SQL, a script or a code edit; 13 with no screen). A
- * step added to the map raises the floor on purpose, in two places.
+ * them (8 steps needing SQL, a script or a code edit; 12 with no screen). A
+ * step added to the map raises the floor on purpose, in two places. No screen
+ * went from 13 to 12 on 2026-10-29 when WF-016 step 3 gained its screen (W3
+ * round 2, the invite emailed from /portal/onboarding).
  */
 const MAP_WORKFLOWS = 36;
 const MAP_STEPS_AT_LEAST = 138;
 const MAP_NEEDS_CODE = 8;
-const MAP_NO_SCREEN = 13;
+const MAP_NO_SCREEN = 12;
 
 /** The office-ready standard, CLAUDE.md section 2d: a staff page is interactive in under 2 seconds. */
 const STAFF_INTERACTIVE_MS = 2000;
@@ -355,27 +357,10 @@ console.log("================ W2, EVERY WORKFLOW WALKED AS ITS ROLE ============
 // ------------------------------------------------------------------ the map
 const workflows = readWorkflowMap();
 const steps = workflows.flatMap((w) => w.steps.map((s) => ({ ...s, wf: w.id, section: w.section })));
-const ids = workflows.map((w) => w.id);
-const expectedIds = Array.from({ length: MAP_WORKFLOWS }, (_, i) => `254-WF-${String(i + 1).padStart(3, "0")}`);
-rec(
-  "the map names 254-WF-001 to 254-WF-036, once each and in order",
-  ids.join(",") === expectedIds.join(","),
-  `${ids.length} workflow(s) parsed`,
-);
-const malformed = steps.filter((s) => s.malformed);
-rec("every step row has the map's ten columns", malformed.length === 0, malformed.map((s) => `${s.wf} step ${s.n}: ${s.malformed}`).join("; "));
-rec(
-  `the map holds at least ${MAP_STEPS_AT_LEAST} steps`,
-  steps.length >= MAP_STEPS_AT_LEAST,
-  `${steps.length} parsed; a parser that matched nothing would walk nothing and pass`,
-);
-const needsCode = steps.filter((s) => s.marks?.needsCode).length;
-const noScreen = steps.filter((s) => s.marks?.noScreen).length;
-rec(
-  "the marks parsed are the marks the map counts",
-  needsCode === MAP_NEEDS_CODE && noScreen === MAP_NO_SCREEN,
-  `${needsCode} needing SQL, a script or a code edit (the map says ${MAP_NEEDS_CODE}); ${noScreen} with no screen (the map says ${MAP_NO_SCREEN})`,
-);
+/* The four static checks, one function shared with scripts/preflight.mjs (scripts/lib/workflow-map.mjs). */
+for (const c of mapChecks(workflows, { workflows: MAP_WORKFLOWS, stepsAtLeast: MAP_STEPS_AT_LEAST, needsCode: MAP_NEEDS_CODE, noScreen: MAP_NO_SCREEN })) {
+  rec(c.name, c.ok, c.note);
+}
 
 // ------------------------------------------------------------------ who walks each step
 const portal = SURFACES.find((s) => s.key === "portal");

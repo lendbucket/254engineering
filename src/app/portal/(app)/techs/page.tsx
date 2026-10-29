@@ -13,7 +13,8 @@ import { BaseForm, LedgerActions } from "./TechsClient";
 import { VerificationQueue } from "./VerificationQueue";
 import { awaitingVerification } from "@/lib/ops-credential-submissions";
 import { calendarDateLabel, firmDateLabel } from "@/lib/firm-calendar";
-import { ListControls } from "@/components/portal/ListControls";
+import { ListControls, listHref } from "@/components/portal/ListControls";
+import { LIST_EXPORT_GRANT } from "@/lib/list-exports";
 import { LIST_NOT_LOADED } from "@/lib/outcome-copy";
 import { RetryButton } from "@/components/portal/Unreachable";
 import { techListQuery, techListRows } from "@/lib/tech-list";
@@ -144,6 +145,11 @@ export default async function TechsPage({ searchParams }: { searchParams: Promis
         sorts={[{ value: "name", label: "Name" }, { value: "open", label: "Open jobs" }, { value: "owed", label: "Owed" }]}
         sort={query.sort}
         direction={query.ascending ? "asc" : "desc"}
+        csvHref={
+          can(actor, LIST_EXPORT_GRANT)
+            ? listHref("/api/portal/exports", { q: params.q, status: params.status, sort: params.sort, dir: params.dir }, { report: "technicians" })
+            : undefined
+        }
       />
       {rosterRead.ok && rosterRead.failed.length ? (
         <Panel className="mb-6" title="Part of the roster could not be read" description="What is listed below is real; what failed is missing from it, not zero.">

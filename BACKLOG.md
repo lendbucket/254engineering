@@ -4,6 +4,82 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
+## W3 ROUND 2, 2026-10-28: THE WALK'S 28 MISSING AND OFF-SCREEN STEPS
+
+From the W2 walk on board 40789442209 (20 missing, 8 off-screen). Robert's loop
+of 21:07 Central and his pre-approval of 21:11 Central, tonight only: build my
+own recommendation unless it changes one of his rulings, touches a payment,
+price or money flow, touches sealing, or exposes anything new to customers or
+partners. Those are questions, below.
+
+| Class | Count | Steps |
+| --- | --- | --- |
+| Off-screen by nature, the map is right | 7 | WF-002 step 2 and WF-008 step 3 (Stripe Checkout); WF-003 steps 2, 3, 5 and 6 (email to the buyer); WF-030 step 6 (an in-app notice) |
+| Map wording corrected | 1 | WF-007 step 4: the call log lives on four screens, now named (prospects, clients, files, order lookup) instead of "any record" |
+| No screen by design, a machine door or the scheduler | 4 | WF-001 step 4 and WF-002 step 5 (sister sites), WF-002 step 4 (the account API), WF-026 step 1 (the scheduler) |
+| A code edit by design or by ruling | 8 | WF-004 step 1 and WF-018 step 2 (already asked, both wait on Robert); WF-020 step 1 (the first administrator); WF-024 steps 2, 5 and 6 (gate conditions, prices, service lines: CLAUDE.md sections 1 and 6c); WF-027 step 3 (retention, dry run first); WF-032 step 1 (verbatim transcription) |
+| Built | 1 | WF-016 step 3, below |
+| Asked, not built | 7 | Below |
+
+**Built: WF-016 step 3, the onboarding invite is emailed.** The `onboardingInvite` template existed and nothing sent it, so every onboarding link was carried by hand. The invite now asks how the link goes out: by email to the address on the application (the default, as the staff invite on `/portal/people` already does) or by hand. The link comes back to the screen only by hand, or when the email could not be queued; the audit row says how it went out and never carries the link. Proof: `the-onboarding-invite-is-emailed-and-the-licence-refusal-is-true.mjs`.
+
+**Repaired in passing: WF-017 step 6.** `revokeCertification` and `restoreCertification` refuse everybody but the licensed role, and both said "Only an engineer or an administrator can", telling an administrator he could do what the line above refuses. They now give `licenceRefusal`. The map row named the admin; it now names the engineer. Same proof.
+
+**Decided overnight, Robert to confirm:**
+- The onboarding invite is emailed by default, with "by hand" kept as the other choice (WF-016 step 3).
+- WF-007 step 4's screen cell names the four screens that carry the call log.
+
+**Questions for Robert, each with a recommendation:**
+1. **WF-017 step 6, withdrawing or restoring a technician's certification has no screen.** It is a licensed action, so only the engineer may send it, and the engineer cannot open `/portal/techs`. Recommend: a panel on `/portal/review` beside the training decisions, engineer only, with the reason required.
+2. **WF-021 step 4, releasing a sign-in lock has no screen.** The route behind `releaseLock` takes the operator's token. Recommend: keep it off-screen; a screen would put the break-glass token, or its equivalent, behind an ordinary session.
+3. **WF-022 step 3, setting an account's credit limit and terms has no screen.** That is a money flow. Recommend: an administrator panel on `/portal/accounts`, with a fresh second factor, once you rule.
+4. **WF-024 step 3, the proving charge has no screen.** A live charge. Recommend: an administrator button on `/portal/launch` that shows the blockers first; build only on your word.
+5. **WF-024 step 4, telling the waitlist the firm is open has no screen.** It emails customers. Recommend: a button on `/portal/launch`, enabled only once the gate reads live, sending a preview to you first.
+6. **WF-006 step 2, a customer cannot ask to be forgotten except by calling.** A new customer-facing form. Recommend: keep it staff-taken for now; `/portal/deletion-requests` already records it.
+7. **WF-030 step 5, a technician cannot delete a capture.** `deleteCapture` writes no audit row, and the evidence feeds what the engineer seals. Recommend: a delete button on the capture screen while the file is in the field, and an audit row added to `deleteCapture` first.
+
+## OFFICE READY: WHICH STAFF LISTS EXPORT CSV, AND WHAT IS LEFT
+
+Robert, 21:07 Central 2026-10-28: "list every staff list screen without a CSV
+export. Build the missing ones as one bundle, owner or admin only, with the
+shared CSV safety and an audit row, the same as the accounts export." The
+inventory, taken from `src/app/portal/(app)/` on `feat/office-csv`:
+
+| Screen | Exported before | This bundle |
+| --- | --- | --- |
+| /portal/accounts | yes, `report=accounts` | unchanged |
+| /portal/clients | yes, `/api/portal/clients/export` | unchanged |
+| /portal/inbox | yes | unchanged |
+| /portal/order-lookup | yes | unchanged |
+| /portal/payment-links | yes | unchanged |
+| /portal/prospects | yes | unchanged |
+| /portal/quotes | yes | unchanged |
+| /portal/refunds | yes | unchanged |
+| /portal/files | yes, the selected files | unchanged |
+| /portal/billing, /portal/reports, /portal/charge-log, /portal/documents | yes | unchanged |
+| /portal/applications | no | `report=applications` |
+| /portal/inquiries | no | `report=design-briefs` |
+| /portal/windstorm-inquiries | no | `report=windstorm-briefs` |
+| /portal/techs | no | `report=technicians` |
+| /portal/partners | no | `report=partners` |
+| /portal/tasks | no | `report=tasks` |
+
+The six new ones sit in the export door, gated on `accounts.manage` (the
+administrator's grant the accounts export uses; `src/lib/list-exports.ts`
+says why one grant and not six) and on the screen's own grant, through each
+screen's own read and filter with every row, the shared `csv.ts` writer and
+`moneyCell`, an `export.<report>` audit row, and a 503 with no file on a
+failed or partial read.
+
+**Not built, and why.** These screens show rows but have no list controls yet
+(no search, filter, sort or page), so an export "through the screen's own
+query" has no query to follow: people, suppressions, deletion requests,
+insurance, credentials, the job queue, orders, the audit trail, onboarding,
+review, waiting, the technician's jobs and messages. Each needs its list
+controls first (section 2d), and its export then follows the same pattern.
+/portal/procedures is a document a role reads, not a list of records, and is
+left out.
+
 ## /portal/accounts COUNTS SUPERSEDED ACCOUNTS IN "ALL": RULED, BUILT ON feat/superseded-hidden
 
 **Ruled by Robert, 21:11 Central 2026-10-28:** "Superseded accounts: hidden
@@ -24,11 +100,13 @@ and, against development, in `the-accounts-screen-refuses-what-it-could-not-read
 accounts, against the 2026-09-14 ruling, and accounts-audit's "every read of an
 account excludes superseded rows" passed it because the check is per file and
 another function in `ops-accounts-admin.ts` names the column. The read is
-correct now; the per file granularity of that check is open, below.
+correct now, and the check was sharpened in the same bundle.
 
-**Open, no ruling needed:** accounts-audit's supersession sweep matches a file,
-not a read. Narrowing it to each `.from("eng_customer_accounts")...select(`
-block would have caught this read; it is a sharpening, not a change of rule.
+**Closed in the same bundle (`18d24f9`, merged as `da6d165`, board
+40817335866):** accounts-audit's supersession sweep now asks each read of
+`eng_customer_accounts` rather than each file, and with the roster fix reverted
+it named `src/lib/ops-accounts-admin.ts:216`. It reads "18 reads scoped, 4 in 2
+declared exception files" on the board.
 
 **The question as it stood:**
 
@@ -195,7 +273,18 @@ pages, so no stamp can cover a line he wrote (control 16). The alternative,
 stamping his last page or every page, risks covering his content on a layout
 the platform cannot see. No new sentence is printed on the added page.
 
-## COPY-PROJECT'S BUCKET LIST IS SIX BUCKETS BEHIND THE CHAIN
+## BUILT 2026-10-28 ON feat/backlog-small: COPY-PROJECT'S BUCKET LIST IS DERIVED FROM THE CHAIN
+
+**Built.** `scripts/lib/chain-buckets.mjs` reads every `insert into
+storage.buckets` in `supabase/migrations/`, and `copy-project.mjs` takes its
+list from it. migration-audit now compares that parse with the replayed
+database: "copy-project copies every eng- bucket the replay holds (11)".
+Injected by making the parse drop `eng-seals`: that check went red naming it,
+and the file was restored byte identical. **The chain creates eleven eng-
+buckets, not twelve**: the replay holds eleven, the five that were listed
+plus the six named below, so the "twelve" written here was a miscount.
+
+The entry as first written:
 
 `scripts/copy-project.mjs` copies five buckets. The chain creates twelve:
 eng-documents, eng-seals, eng-partner-branding, eng-protocol-sources,

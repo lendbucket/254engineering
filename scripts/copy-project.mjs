@@ -54,6 +54,7 @@ import { readEveryRow } from "./lib/read-every-row.mjs";
  * meaningless: see the header of scripts/lib/bucket-walk.mjs.
  */
 import { walkBucket } from "./lib/bucket-walk.mjs";
+import { chainBuckets } from "./lib/chain-buckets.mjs";
 /*
  * Three reads a survey of this file found answering the wrong question. See the
  * header of scripts/lib/copy-preconditions.mjs for each, with what it measured.
@@ -303,19 +304,16 @@ const NOT_COPIED = {
     "The LEGACY intake table reconstructed in 0000. Zero rows on production, nothing in this repository writes it, and no eng_files row references it. 0006's header argues at length why it was not repurposed.",
 };
 
-const BUCKETS = [
-  "eng-evidence",
-  "eng-onboarding",
-  "eng-uploads",
-  /*
-   * Both added 2026-09-07. They existed in the schema since Phase 9 and Phase
-   * 11 and were absent here for the same reason the three tables above were:
-   * this list was written before they were. Empty on production today, which is
-   * the only reason their absence had cost nothing yet.
-   */
-  "eng-messages",
-  "eng-partner-assets",
-];
+/*
+ * DERIVED FROM THE CHAIN, 2026-10-28. This was a typed list of five, and the
+ * comment it carried told the story twice: eng-messages and eng-partner-assets
+ * were added on 2026-09-07 because "this list was written before they were",
+ * and then six more buckets were created by migrations and never added
+ * (eng-documents, eng-seals, eng-partner-branding, eng-protocol-sources,
+ * eng-insurance, eng-engineer-drafts). The list now comes from the migration
+ * files, and migration-audit compares that parse with a real replay.
+ */
+const BUCKETS = chainBuckets();
 
 function refOf(url) {
   const m = /https:\/\/([a-z0-9]+)\.supabase\.co/.exec(url ?? "");

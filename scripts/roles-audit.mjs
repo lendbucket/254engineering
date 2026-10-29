@@ -1730,6 +1730,13 @@ if (!db) {
       { act: "read the firm's billing, by period", req: (r) => get(r, "/api/portal/exports?report=period"), status: 403, says: /cannot read the firm's billing/i },
       /* The accounts CSV, owner or admin only (Robert, 2026-10-28, 16:11 Central). */
       { act: "export the ordering accounts", req: (r) => get(r, "/api/portal/exports?report=accounts"), status: 403, says: /cannot export the ordering accounts/i },
+      /* The six staff lists, owner or admin only (Robert, 21:07 Central 2026-10-28), asked at the real route. */
+      ...["applications", "design-briefs", "windstorm-briefs", "technicians", "partners", "tasks"].map((report) => ({
+        act: `export the ${report} list`,
+        req: (r) => get(r, `/api/portal/exports?report=${report}`),
+        status: 403,
+        says: /cannot export this list/i,
+      })),
       { act: "approve technician pay", req: (r) => post(r, "/api/portal/field", { action: "set_ledger_status", ids: [NOWHERE], status: "approved" }), status: 400, says: /cannot approve payments/i },
       { act: "create a staff account", req: (r) => post(r, "/api/portal/people", { action: "create", role: "field_tech", displayName: "Probe", email: `staff-${STAMP}@audit-probe.invalid` }), status: 403, says: /Not permitted/ },
       { act: "change a role", req: (r) => post(r, "/api/portal/roles", { action: "set_user_role", profileId: NOWHERE, role: "admin" }), status: 403, says: /Not permitted/ },

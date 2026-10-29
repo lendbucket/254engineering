@@ -5,6 +5,7 @@ import { writeAudit } from "./ops-audit";
 import { can, type Actor } from "./ops-authz";
 import { overdueBy } from "./ops-inquiries";
 import { INQUIRY_PAGE_SIZE, inquiryListQuery, inquirySearchOr, type InquiryListQuery } from "./inquiry-list";
+import { readEvery } from "./bounded-read";
 
 /**
  * ===========================================================================
@@ -87,23 +88,48 @@ export type WindstormListRead =
   | { ok: true; rows: WindstormInquiryRow[]; total: number; open: number; answered: number }
   | { ok: false; error: string };
 
-export async function windstormInquiries(actor: Actor | null, query: InquiryListQuery = inquiryListQuery({})): Promise<WindstormListRead> {
+export async function windstormInquiries(
+  actor: Actor | null,
+  query: InquiryListQuery = inquiryListQuery({}),
+  /* "page" is the screen's fifty; "every" is every brief the query matches, for the CSV export, read in full. */
+  scope: "page" | "every" = "page",
+): Promise<WindstormListRead> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
   if (!can(actor, "files.create")) return { ok: true, rows: [], total: 0, open: 0, answered: 0 };
   const search = inquirySearchOr(query.term);
 
-  let read = db.from("eng_windstorm_inquiries").select(COLUMNS, { count: "exact" });
-  if (search) read = read.or(search);
-  if (query.show === "open") read = read.is("responded_at", null);
-  if (query.show === "answered") read = read.not("responded_at", "is", null);
-  if (query.sort === "due") {
-    read = read.order("responded_at", { ascending: true, nullsFirst: true }).order("respond_by", { ascending: query.ascending });
+  /* One filter and one order, for the page and for every row alike. */
+  const filtered = (withCount: boolean) => {
+    let read = db.from("eng_windstorm_inquiries").select(COLUMNS, withCount ? { count: "exact" } : undefined);
+    if (search) read = read.or(search);
+    if (query.show === "open") read = read.is("responded_at", null);
+    if (query.show === "answered") read = read.not("responded_at", "is", null);
+    if (query.sort === "due") {
+      read = read.order("responded_at", { ascending: true, nullsFirst: true }).order("respond_by", { ascending: query.ascending });
+    } else {
+      read = read.order(query.sort === "name" ? "name" : "created_at", { ascending: query.ascending });
+    }
+    return read.order("id", { ascending: true });
+  };
+  let data: unknown[] | null = null;
+  let error: { message: string } | null = null;
+  let count: number | null = null;
+  if (scope === "every") {
+    const every = await readEvery<unknown>((from, to) => filtered(false).range(from, to));
+    if (every.ok) {
+      data = every.rows;
+      count = every.rows.length;
+    } else {
+      error = { message: every.error };
+    }
   } else {
-    read = read.order(query.sort === "name" ? "name" : "created_at", { ascending: query.ascending });
+    const from = (query.page - 1) * INQUIRY_PAGE_SIZE;
+    const page = await filtered(true).range(from, from + INQUIRY_PAGE_SIZE - 1);
+    data = page.data;
+    error = page.error;
+    count = page.count;
   }
-  const from = (query.page - 1) * INQUIRY_PAGE_SIZE;
-  const { data, error, count } = await read.order("id", { ascending: true }).range(from, from + INQUIRY_PAGE_SIZE - 1);
 
   const figure = async (answered: boolean) => {
     let c = db.from("eng_windstorm_inquiries").select("id", { count: "exact", head: true });
