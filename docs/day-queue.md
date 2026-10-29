@@ -69,6 +69,24 @@ Every repair was proved by an injection, and each file was restored byte identic
 4. Skip re-boarding a push to main whose exact commit already has a green board (ruled 2026-10-22). It edits `board.yml`, so it comes after bundle 17.
 5. List controls (search, filter, sort, paging) on the 13 staff screens that have none, so each can then take a CSV export, office ready section 2d.
 
+## 2026-10-29: BUNDLE 24 MISSED ON A LINK COUNT; REBOARD AT `76687b6`
+
+**Board 40941717169 on `44988d7`: 63 of 64.** The one FAIL is seo-audit: "/corpus-christi: 1 page(s) link to it (/insights/texas-windstorm-inspections); every sitemap page needs at least two".
+- The cause: the branch rewrote `/windstorm`'s "based in Corpus Christi" sentence and dropped its link.
+- A real miss, caused by the branch. The preflight cannot see it, because the count is read from the rendered site.
+
+**The repair, `76687b6`:** `/windstorm` reads "The firm's office is in {contact.city}, and it serves [Corpus Christi and the Coastal Bend](/corpus-christi) from there."
+- In the prelaunch build the verb is "is built to serve".
+- It follows Robert's 13:11 wording, "the firm serving Corpus Christi and the Coastal Bend now".
+- The source now links `/corpus-christi` from `/windstorm` and `insights-coastal.ts`. The board's red on the old state is the injection.
+
+**Readers on `76687b6`, on main `a190a10`:** Preflight GREEN, 35 rules; tsc clean.
+
+**Prediction: 64 of 64.**
+- seo-audit: no problems.
+- The standing notes as named for `44988d7`.
+- The first board's walk read 222 works and 2 friction. The walk's friction moves between runs, so no figure is predicted for it.
+
 ## 2026-10-29: BUNDLE 23 MERGED; BUNDLE 24, THE SAN ANTONIO ADDRESS, AT `44988d7`
 
 **Bundle 23 merged as `a190a10`.** The merged tree is the boarded tree. Board 40930082505 on `c4225b0` read 64 of 64, preflight GREEN.
