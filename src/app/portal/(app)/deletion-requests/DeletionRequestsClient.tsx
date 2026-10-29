@@ -183,12 +183,12 @@ export function TakeRequest() {
       </p>
 
       {error ? (
-        <p role="alert" className="text-[13px] text-[var(--bad)]">
+        <p role="alert" className="text-[13px] text-[var(--ink)]">
           {error}
         </p>
       ) : null}
       {done ? (
-        <p role="status" className="text-[13px] text-[var(--good)]">
+        <p role="status" className="text-[13px] text-[var(--ink)]">
           {done}
         </p>
       ) : null}
@@ -255,7 +255,7 @@ export function AnswerRequest({ id }: { id: string }) {
   return (
     <div className="flex flex-col gap-2">
       <label className="text-left">
-        <span className="block text-[12px] font-semibold text-[var(--ink-soft)]">
+        <span className="block text-[12px] font-semibold text-[var(--secondary)]">
           What was said to them?
         </span>
         <textarea
@@ -288,7 +288,7 @@ export function AnswerRequest({ id }: { id: string }) {
         </button>
       </div>
       {error ? (
-        <p role="alert" className="text-[12px] text-[var(--bad)]">
+        <p role="alert" className="text-[12px] text-[var(--ink)]">
           {error}
         </p>
       ) : null}

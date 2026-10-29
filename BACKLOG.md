@@ -1187,6 +1187,20 @@ not define, so that text inherits its colour instead of reading as an error.
 token-audit does not ask whether a named token exists; that is its own small
 item.
 
+**Closed on `fix/bad-token`, 2026-10-29.** token-audit now asks "every
+var(--name) a portal file uses is defined", against the custom properties of
+the stylesheets the root layout loads (followed through their @imports, 86
+names) and any a portal file sets inline. Its first run found nine undefined
+names in 31 uses across eight files, not one: `--bad`, `--danger`, `--good`,
+`--ink-soft`, `--line`, `--radius-sm`, `--red-bg`, `--red-border` and
+`--paper`. Each became the defined token for the same role: `--secondary`,
+`--border`, `--radius-control`, `--canvas`, and `bg-white` for the red tint,
+which has no token. An error or success became `--ink` on the six V10 screens,
+whose rule is that red and green are not colours the design has, and `--red`
+on the two staff screens still on the old standard. Injected by putting one
+`var(--bad)` back: the check went red naming the file and line, restored byte
+identical.
+
 **As first written:**
 
 Found 2026-10-07 by the integration board, which caught `text-[14px]` in two

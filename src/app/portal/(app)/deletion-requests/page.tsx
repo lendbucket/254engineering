@@ -125,14 +125,14 @@ export default async function DeletionRequestsPage() {
                         A task was raised.
                       </Link>
                     ) : (
-                      <span className="font-semibold text-[var(--bad)]">
+                      <span className="font-semibold text-[var(--ink)]">
                         No task was raised for this. Raise one.
                       </span>
                     )}
                   </p>
 
                   {row.answered ? (
-                    <p className="mt-2 rounded-[2px] bg-[var(--paper)] p-2 text-[13px] break-words text-[var(--ink)]">
+                    <p className="mt-2 rounded-[2px] bg-[var(--canvas)] p-2 text-[13px] break-words text-[var(--ink)]">
                       <span className="font-semibold">What the firm said: </span>
                       {row.answered.because}
                     </p>

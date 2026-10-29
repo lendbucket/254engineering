@@ -90,12 +90,12 @@ export function AddSuppression() {
       </div>
 
       {error ? (
-        <p role="alert" className="text-[14px] font-semibold text-[var(--bad)]">
+        <p role="alert" className="text-[14px] font-semibold text-[var(--ink)]">
           {error}
         </p>
       ) : null}
       {done ? (
-        <p role="status" className="text-[14px] font-semibold text-[var(--good)]">
+        <p role="status" className="text-[14px] font-semibold text-[var(--ink)]">
           {done}
         </p>
       ) : null}
@@ -193,7 +193,7 @@ export function VoidSuppression({ email }: { email: string }) {
      */
     <div className="flex w-full min-w-0 flex-col items-stretch gap-2 sm:max-w-[280px] sm:items-end">
       <label className="w-full text-left">
-        <span className="block text-[12px] font-semibold text-[var(--ink-soft)]">
+        <span className="block text-[12px] font-semibold text-[var(--secondary)]">
           What was wrong with it?
         </span>
         <input
@@ -201,7 +201,7 @@ export function VoidSuppression({ email }: { email: string }) {
           value={because}
           onChange={(e) => setBecause(e.target.value)}
           placeholder="Wrong address typed on the call"
-          className="mt-1 w-full min-w-0 rounded-[var(--radius-sm)] border border-[var(--line)] px-3 py-2 text-[14px]"
+          className="mt-1 w-full min-w-0 rounded-[var(--radius-control)] border border-[var(--border)] px-3 py-2 text-[14px]"
         />
       </label>
       {/*
@@ -214,7 +214,7 @@ export function VoidSuppression({ email }: { email: string }) {
         */}
       {noReplacement ? (
         <label className="w-full text-left">
-          <span className="block text-[12px] font-semibold text-[var(--ink-soft)]">
+          <span className="block text-[12px] font-semibold text-[var(--secondary)]">
             Why is there no correct address?
           </span>
           <input
@@ -222,12 +222,12 @@ export function VoidSuppression({ email }: { email: string }) {
             value={noneBecause}
             onChange={(e) => setNoneBecause(e.target.value)}
             placeholder="Nobody asked; this was the wrong record entirely"
-            className="mt-1 w-full min-w-0 rounded-[var(--radius-sm)] border border-[var(--line)] px-3 py-2 text-[14px]"
+            className="mt-1 w-full min-w-0 rounded-[var(--radius-control)] border border-[var(--border)] px-3 py-2 text-[14px]"
           />
         </label>
       ) : (
         <label className="w-full text-left">
-          <span className="block text-[12px] font-semibold text-[var(--ink-soft)]">
+          <span className="block text-[12px] font-semibold text-[var(--secondary)]">
             What should it have said?
           </span>
           <input
@@ -235,9 +235,9 @@ export function VoidSuppression({ email }: { email: string }) {
             value={instead}
             onChange={(e) => setInstead(e.target.value)}
             placeholder="the address they actually asked about"
-            className="mt-1 w-full min-w-0 rounded-[var(--radius-sm)] border border-[var(--line)] px-3 py-2 text-[14px]"
+            className="mt-1 w-full min-w-0 rounded-[var(--radius-control)] border border-[var(--border)] px-3 py-2 text-[14px]"
           />
-          <span className="mt-1 block text-[12px] text-[var(--ink-soft)]">
+          <span className="mt-1 block text-[12px] text-[var(--secondary)]">
             Suppressed in the same motion, so their request is not lost.
           </span>
         </label>
@@ -246,7 +246,7 @@ export function VoidSuppression({ email }: { email: string }) {
       <button
         type="button"
         onClick={() => { setNoReplacement(!noReplacement); setError(null); }}
-        className="text-[12px] text-[var(--ink-soft)] underline"
+        className="text-[12px] text-[var(--secondary)] underline"
       >
         {noReplacement ? "Give the correct address instead" : "There is no correct address"}
       </button>
@@ -255,7 +255,7 @@ export function VoidSuppression({ email }: { email: string }) {
         <button
           type="button"
           onClick={() => { setOpen(false); setError(null); }}
-          className="inline-flex min-h-[var(--tap-target)] items-center text-[13px] font-semibold text-[var(--ink-soft)] underline"
+          className="inline-flex min-h-[var(--tap-target)] items-center text-[13px] font-semibold text-[var(--secondary)] underline"
         >
           Cancel
         </button>
@@ -269,7 +269,7 @@ export function VoidSuppression({ email }: { email: string }) {
         </button>
       </div>
       {error ? (
-        <p role="alert" className="w-full text-right text-[12px] text-[var(--bad)]">
+        <p role="alert" className="w-full text-right text-[12px] text-[var(--ink)]">
           {error}
         </p>
       ) : null}

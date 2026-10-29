@@ -178,7 +178,7 @@ export function OpenAccountClient() {
         <p
           id="open-account-error"
           role="alert"
-          className="rounded-[2px] border border-[var(--red-border)] bg-[var(--red-bg)] px-3 py-2.5 text-[14px] leading-[1.55] text-[var(--ink)]"
+          className="rounded-[2px] border border-[var(--ink)] bg-white px-3 py-2.5 text-[14px] leading-[1.55] text-[var(--ink)]"
         >
           {error}
         </p>
