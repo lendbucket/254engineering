@@ -1,5 +1,39 @@
 # Day queue, 2026-10-23
 
+## 2026-10-29: BUNDLE 14 MERGED; BUNDLE 15, THE OFFICE CSV EXPORTS, AT `f6700ad`
+
+**Bundle 14 merged as `da6d165`.** The merged tree is the boarded tree. Board 40817335866 on `d502c95` read 64 of 64, every predicted line held:
+- accounts-audit "every read of an account excludes superseded rows (18 reads scoped, 4 in 2 declared exception files)".
+- All three accounts proofs, the database one included.
+- The walk at 0 broken.
+
+**Prediction for bundle 15, written and pushed before the board starts.** Robert's item 4 of 21:07: every staff list without a CSV export.
+
+**Before this bundle,** 13 screens already exported. This bundle adds 6:
+- applications, design briefs, windstorm briefs, technicians, partners and tasks;
+- each a `report=` on the export door, through the screen's own filter with every row;
+- each gated on `accounts.manage` (the administrator's grant) and the screen's own grant;
+- `csv.ts` and `moneyCell`, an `export.<report>` audit row, and a 503 with no file on a failed or partial read;
+- a link drawn only for the grant.
+
+**Not built:** 13 screens with no list controls yet, so there is no screen query to follow. The inventory is in BACKLOG.
+
+**Brought up to main:**
+- BACKLOG conflicted and was resolved by keeping both entries.
+- Main's superseded entry still called the accounts-audit sharpening open; corrected, since bundle 14 shipped it.
+- **The preflight stayed GREEN with a conflict marker left in BACKLOG.** I found it by reading and removed it. A conflict marker rule for the preflight is the next small bundle.
+
+**Readers on `f6700ad`:**
+- Preflight GREEN, 33 rules, 42 s.
+- tsc clean; backlog-audit passes.
+- The accounts CSV and paging proofs pass.
+
+**Prediction: 64 of 64.**
+- roles-audit refuses all six new exports to the rep and the ops manager with HTTP 403.
+- The new export proof passes in proofs-audit.
+- The design briefs proof passes, its two pins updated to the new code.
+- 3 lines exempt; the walk as before.
+
 ## 2026-10-28 NIGHT: THE PREFLIGHT MERGED; BUNDLE 14, SUPERSEDED ACCOUNTS HIDDEN, AT `d502c95`
 
 **The preflight merged as `8a5bbb7`.** The merged tree is the boarded tree. Board 40809554227 on `5f37977` read 64 of 64, every predicted line held:
