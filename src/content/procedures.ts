@@ -1822,15 +1822,15 @@ export const PROCEDURES: Procedure[] = [
       },
       {
         "n": "5",
-        "screen": "none",
+        "screen": "`src/app/portal/(app)/jobs/[id]` (`CaptureClient`), added 2026-10-29 by Robert's ruling",
         "routes": [],
-        "who": "Technician",
-        "sees": "",
-        "does": "Deletes a capture",
-        "next": "`delete_capture` exists (`deleteCapture`)",
+        "who": "Technician on a job they accepted (`captureDeleteRefusal`, the rule the screen and `deleteCapture` share)",
+        "sees": "Each item's captures on file, while the file is in the field (evidence in progress, or revisions requested)",
+        "does": "Removes one, after a confirmation",
+        "next": "`delete_capture`, `deleteCapture`; a capture a repair was verified against is refused",
         "told": "",
-        "record": "`eng_evidence_items` delete",
-        "marks": "**[NO SCREEN]**: no screen and not the offline queue sends it"
+        "record": "Audit `capture.delete` first, through `writeAuditOrRefuse`, then `eng_evidence_items` delete; `capture.delete_failed` if the row did not go",
+        "marks": "Marked no screen until 2026-10-29"
       },
       {
         "n": "6",

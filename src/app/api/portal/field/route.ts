@@ -227,7 +227,7 @@ async function handlePOST(request: NextRequest) {
   }
 
   if (action === "delete_capture") {
-    const result = await deleteCapture(actor, String(body?.fileId ?? ""), String(body?.captureId ?? ""));
+    const result = await deleteCapture(actor, String(body?.fileId ?? ""), String(body?.captureId ?? ""), context);
     return result.ok ? NextResponse.json({ ok: true }) : bad(result.error);
   }
 
