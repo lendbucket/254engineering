@@ -8,6 +8,8 @@ import { Eyebrow, Rule } from "@/components/ui/primitives";
 import { buildMetadata } from "@/lib/seo";
 import { JsonLd, breadcrumbSchema } from "@/lib/schema";
 import { business } from "@/config/business";
+import { displayPhone, hasPostalAddress, hoursLine, postalAddressLine, telHref } from "@/config/contact";
+import { PhoneNumber } from "@/components/ui/PhoneNumber";
 import { isPrelaunch } from "@/lib/launch";
 import { services } from "@/content/services";
 
@@ -83,6 +85,41 @@ export default async function ContactPage({
                     </a>
                   </dd>
                 </div>
+                {/*
+                  NAME, ADDRESS, PHONE AND HOURS, EACH FROM src/config/contact.ts.
+                  Robert, 12:50 Central 2026-10-29. Nothing here is typed: the
+                  number, the office and the hours are the same derivers the
+                  footer and the schema read.
+                */}
+                {telHref() ? (
+                  <div className="py-5">
+                    <dt className="font-sans text-[0.7rem] font-semibold tracking-[0.16em] text-brass-ink uppercase">
+                      Telephone
+                    </dt>
+                    <dd className="mt-2">
+                      <a
+                        href={telHref() ?? undefined}
+                        className="flex min-h-[44px] items-center text-[1.02rem] text-slate underline decoration-brass/60 underline-offset-4 transition-colors hover:decoration-brass"
+                      >
+                        <PhoneNumber />
+                      </a>
+                    </dd>
+                  </div>
+                ) : null}
+                {hasPostalAddress() ? (
+                  <div className="py-5">
+                    <dt className="font-sans text-[0.7rem] font-semibold tracking-[0.16em] text-brass-ink uppercase">
+                      Office
+                    </dt>
+                    <dd className="mt-2 text-[0.98rem] leading-[1.65] text-slate">{postalAddressLine()}</dd>
+                  </div>
+                ) : null}
+                <div className="py-5">
+                  <dt className="font-sans text-[0.7rem] font-semibold tracking-[0.16em] text-brass-ink uppercase">
+                    Hours
+                  </dt>
+                  <dd className="mt-2 text-[0.98rem] leading-[1.65] text-slate">{hoursLine()}</dd>
+                </div>
                 <div className="py-5">
                   <dt className="font-sans text-[0.7rem] font-semibold tracking-[0.16em] text-brass-ink uppercase">
                     Coverage
@@ -130,10 +167,12 @@ export default async function ContactPage({
                 </div>
               </dl>
 
-              <p className="mt-8 text-[0.92rem] leading-[1.7] text-slate-muted">
-                No telephone number is published yet. When one is, it will appear here and on every
-                page of this site rather than only where it is convenient.
-              </p>
+              {displayPhone() ? null : (
+                <p className="mt-8 text-[0.92rem] leading-[1.7] text-slate-muted">
+                  No telephone number is published yet. When one is, it will appear here and on every
+                  page of this site rather than only where it is convenient.
+                </p>
+              )}
             </div>
 
             <div className="lg:col-span-7">

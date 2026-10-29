@@ -19,7 +19,10 @@
  *     phone split across two nodes does not count as the phone.
  *   - The Organization node of the JSON-LD, in the forms schema.org asks for:
  *     `name` exactly; `telephone` as the E.164 of the pinned phone; `address`
- *     as a PostalAddress whose parts, joined, are the pinned address line.
+ *     as a PostalAddress whose parts, joined, are the pinned address line;
+ *     and, since 2026-10-29, one `openingHoursSpecification` with the pinned
+ *     days, opening and closing time. The footer carries the hours sentence
+ *     as a text of its own, the same as the other three.
  *
  * Pure, so it is proved against pages built to be right and wrong
  * (scripts/proofs/one-name-address-and-phone-everywhere.mjs) without a server.
@@ -61,14 +64,23 @@ export function e164Of(display) {
  * blocks, as seo-audit's extractor returns them.
  */
 export function napFindings(route, html, jsonLd, expected) {
-  const { name, address, phone } = expected;
+  const { name, address, phone, hours } = expected;
   const findings = [];
+  /*
+   * THE HOURS JOINED THE THREE ON 2026-10-29, when Robert gave them. They are
+   * required rather than optional: an expectation that may be left out is a
+   * check a caller can switch off by forgetting it.
+   */
+  if (!hours || !hours.line || !Array.isArray(hours.days)) {
+    findings.push(`${route}: no hours were passed to check against, so the hours could not be read`);
+  }
 
   const nodes = footerTextNodes(html);
   if (!nodes) {
     findings.push(`${route}: no footer, so its name, address and phone could not be read`);
   } else {
-    for (const [label, value] of [["name", name], ["address", address], ["phone", phone]]) {
+    for (const [label, value] of [["name", name], ["address", address], ["phone", phone], ["hours", hours?.line]]) {
+      if (value === undefined) continue;
       if (!nodes.includes(value)) {
         findings.push(`${route}: the footer does not render the ${label} "${value}" as a text of its own`);
       }
@@ -94,6 +106,18 @@ export function napFindings(route, html, jsonLd, expected) {
       : null;
   if (line !== address) {
     findings.push(`${route}: the Organization address reads "${line ?? "(none)"}", expected "${address}"`);
+  }
+  if (hours && Array.isArray(hours.days)) {
+    const specs = [].concat(org.openingHoursSpecification ?? []);
+    const want = hours.days.map((d) => `https://schema.org/${d}`).join(",");
+    const got = specs
+      .map((s) => `${[].concat(s?.dayOfWeek ?? []).join(",")} ${s?.opens}-${s?.closes}`)
+      .join(" | ");
+    if (specs.length !== 1 || got !== `${want} ${hours.opens}-${hours.closes}`) {
+      findings.push(
+        `${route}: the Organization opening hours read "${got || "(none)"}", expected "${want} ${hours.opens}-${hours.closes}"`,
+      );
+    }
   }
   return findings;
 }

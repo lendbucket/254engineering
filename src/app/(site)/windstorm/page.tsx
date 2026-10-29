@@ -8,6 +8,7 @@ import { buildMetadata } from "@/lib/seo";
 import { JsonLd, breadcrumbSchema } from "@/lib/schema";
 import { windstormHub, windstormPages } from "@/content/windstorm-program";
 import { firmName } from "@/lib/launch";
+import { contact } from "@/config/contact";
 
 /**
  * The cluster hub.
@@ -125,11 +126,7 @@ export default function WindstormHubPage() {
             </Link>
             , the upper coast, and the Rio Grande Valley, and the wind, soil, and permitting
             conditions differ enough between them that each coverage region is written separately.
-            The firm itself is{" "}
-            <Link href="/corpus-christi" className="underline underline-offset-4">
-              based in Corpus Christi
-            </Link>
-            , inside the designated area.
+            The firm&apos;s office is in {contact.city}.
           </p>
           <p className="mt-6 text-[1.02rem] leading-[1.75] text-slate-muted">
             What {firmName()} is built to deliver on windstorm work, once it
