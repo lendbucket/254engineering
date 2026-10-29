@@ -1,5 +1,23 @@
 # Day queue, 2026-10-23
 
+## 2026-10-29, BUNDLE 17 AGAIN, after its own preflight stopped it, at `bae72c3`
+
+**Prediction written and pushed before the board starts.**
+
+**The miss.** Board 40850573904 was stopped by the new job in under five minutes, before any shard ran and before anything touched development. The stop works.
+- The public log read "FAIL email-audit" and "PREFLIGHT RED: no shard runs". The sealed log read "exit 1 with no FAIL line: name: 'Error' / } / Node.js v24.22.1".
+- **The cause:** email-audit renders every template in Playwright's Chromium. The static shard installs it, the new preflight job did not, and locally the browser is already installed, which is why the local preflight was green. My prediction said a stop would be a miss of the new job, and it was.
+
+**The repair, `bae72c3`:**
+- The preflight job restores the same Playwright cache and runs the same `npx playwright install --with-deps chromium` step as the shards.
+- The three proofs that read `board.yml` pass, and workflow-triggers passes.
+- Proving it needs GitHub's runner: the failed board is the before state.
+
+**Prediction: 64 of 64.**
+- The preflight job passes all 35 rules.
+- No shard starts before it.
+- The walk as in bundle 16; 3 lines exempt.
+
 ## 2026-10-29: BUNDLE 16 MERGED; BUNDLE 17, THE BOARD RUNS THE PREFLIGHT FIRST, AT `fa06a83`
 
 **Bundle 16 merged as `4d7e537`.** The merged tree is the boarded tree. Board 40842438078 on `e17a6ff` read 64 of 64:
