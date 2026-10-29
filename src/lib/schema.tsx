@@ -50,6 +50,15 @@ const PARENT_ORGANIZATION = "Craftline Brands";
 
 const ORG_ID = `${business.url}/#organization`;
 const SITE_ID = `${business.url}/#website`;
+/*
+ * The organization's logo for Google: a SQUARE PNG, 512 by 512, the numerals
+ * on the navy ground, written by scripts/emit-favicons.mjs from the corrected
+ * lockup (Robert, 13:05 and 13:09 Central 2026-10-29). Google asks for at least
+ * 112 by 112; the wide lockup at /brand/logo.png is neither square nor free of
+ * the old descriptor. One constant, because the Organization node and the
+ * JobPosting's inline hiringOrganization both carry it.
+ */
+const ORG_LOGO = `${business.url}/brand/logo-square-512.png`;
 
 export function organizationSchema() {
   const firmNumber = tbpelsFirmNumber();
@@ -100,7 +109,7 @@ export function organizationSchema() {
     // The real mark, not the social card. schema.org logo is meant to be the
     // organisation logo itself, and a knowledge panel that picks up a 1200x630
     // card with a tagline on it renders the tagline as the logo.
-    logo: `${business.url}/brand/logo.png`,
+    logo: ORG_LOGO,
     image: `${business.url}/og/default.png`,
     sameAs: business.brands.map((b) => b.url),
     /*
@@ -265,7 +274,7 @@ export function jobPostingSchema(opening: {
       "@id": ORG_ID,
       name: business.shortName,
       sameAs: business.brands.map((b) => b.url),
-      logo: `${business.url}/brand/logo.png`,
+      logo: ORG_LOGO,
     },
     url: `${business.url}/careers#${opening.anchor}`,
     directApply: true,
