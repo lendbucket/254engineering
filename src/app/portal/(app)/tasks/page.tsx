@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
 import { listTasksPage } from "@/lib/ops-tasks";
+import { listHref } from "@/components/portal/ListControls";
+import { LIST_EXPORT_GRANT } from "@/lib/list-exports";
 import { LIST_NOT_LOADED } from "@/lib/outcome-copy";
 import { RetryButton } from "@/components/portal/Unreachable";
 import { isOverdue, RECURRENCE_LABEL, type Recurrence } from "@/lib/ops-comms";
@@ -141,6 +143,14 @@ export default async function TasksPage({
         <button type="submit" className="min-h-[44px] rounded-[var(--radius-control)] border border-[var(--navy)] bg-[var(--navy)] px-4 text-[14px] font-semibold text-[var(--on-navy)]">
           Search
         </button>
+        {can(actor, LIST_EXPORT_GRANT) ? (
+          <a
+            href={listHref("/api/portal/exports", { status: params.status, q: params.q }, { report: "tasks" })}
+            className="inline-flex min-h-[44px] items-center px-2 text-[14px] font-semibold text-[var(--navy)] underline"
+          >
+            Export CSV
+          </a>
+        ) : null}
       </form>
 
       {!read ? (

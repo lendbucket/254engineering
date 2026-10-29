@@ -4,6 +4,48 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
+## OFFICE READY: WHICH STAFF LISTS EXPORT CSV, AND WHAT IS LEFT
+
+Robert, 21:07 Central 2026-10-28: "list every staff list screen without a CSV
+export. Build the missing ones as one bundle, owner or admin only, with the
+shared CSV safety and an audit row, the same as the accounts export." The
+inventory, taken from `src/app/portal/(app)/` on `feat/office-csv`:
+
+| Screen | Exported before | This bundle |
+| --- | --- | --- |
+| /portal/accounts | yes, `report=accounts` | unchanged |
+| /portal/clients | yes, `/api/portal/clients/export` | unchanged |
+| /portal/inbox | yes | unchanged |
+| /portal/order-lookup | yes | unchanged |
+| /portal/payment-links | yes | unchanged |
+| /portal/prospects | yes | unchanged |
+| /portal/quotes | yes | unchanged |
+| /portal/refunds | yes | unchanged |
+| /portal/files | yes, the selected files | unchanged |
+| /portal/billing, /portal/reports, /portal/charge-log, /portal/documents | yes | unchanged |
+| /portal/applications | no | `report=applications` |
+| /portal/inquiries | no | `report=design-briefs` |
+| /portal/windstorm-inquiries | no | `report=windstorm-briefs` |
+| /portal/techs | no | `report=technicians` |
+| /portal/partners | no | `report=partners` |
+| /portal/tasks | no | `report=tasks` |
+
+The six new ones sit in the export door, gated on `accounts.manage` (the
+administrator's grant the accounts export uses; `src/lib/list-exports.ts`
+says why one grant and not six) and on the screen's own grant, through each
+screen's own read and filter with every row, the shared `csv.ts` writer and
+`moneyCell`, an `export.<report>` audit row, and a 503 with no file on a
+failed or partial read.
+
+**Not built, and why.** These screens show rows but have no list controls yet
+(no search, filter, sort or page), so an export "through the screen's own
+query" has no query to follow: people, suppressions, deletion requests,
+insurance, credentials, the job queue, orders, the audit trail, onboarding,
+review, waiting, the technician's jobs and messages. Each needs its list
+controls first (section 2d), and its export then follows the same pattern.
+/portal/procedures is a document a role reads, not a list of records, and is
+left out.
+
 ## /portal/accounts COUNTS SUPERSEDED ACCOUNTS IN "ALL": RULED, BUILT ON feat/superseded-hidden
 
 **Ruled by Robert, 21:11 Central 2026-10-28:** "Superseded accounts: hidden
@@ -24,11 +66,13 @@ and, against development, in `the-accounts-screen-refuses-what-it-could-not-read
 accounts, against the 2026-09-14 ruling, and accounts-audit's "every read of an
 account excludes superseded rows" passed it because the check is per file and
 another function in `ops-accounts-admin.ts` names the column. The read is
-correct now; the per file granularity of that check is open, below.
+correct now, and the check was sharpened in the same bundle.
 
-**Open, no ruling needed:** accounts-audit's supersession sweep matches a file,
-not a read. Narrowing it to each `.from("eng_customer_accounts")...select(`
-block would have caught this read; it is a sharpening, not a change of rule.
+**Closed in the same bundle (`18d24f9`, merged as `da6d165`, board
+40817335866):** accounts-audit's supersession sweep now asks each read of
+`eng_customer_accounts` rather than each file, and with the roster fix reverted
+it named `src/lib/ops-accounts-admin.ts:216`. It reads "18 reads scoped, 4 in 2
+declared exception files" on the board.
 
 **The question as it stood:**
 
