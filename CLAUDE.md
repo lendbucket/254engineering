@@ -742,6 +742,11 @@ Run the suite before any report of completion.
 npm run audit
 ```
 
+**Every prediction states the preflight result, and no bundle boards on a red
+preflight.** `node scripts/preflight.mjs` runs every static, repo-wide rule the
+board applies, with no server and no environment file. Robert, 21:07 Central
+2026-10-28, after three boards in one day missed on rules it would have caught.
+
 **The suite starts its own server.** It clears the audit ports, builds once,
 starts the app, waits until both `/` and `/portal/login` answer 200, runs, and
 tears it down. There is no second terminal and no build flag.

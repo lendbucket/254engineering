@@ -49,8 +49,8 @@
 
 process.loadEnvFile?.(".env.local");
 
-import { readdirSync } from "node:fs";
 import { inOpenGateProcess } from "./lib/gate-fixture.mjs";
+import { declarationChecks } from "./lib/retention-declaration.mjs";
 /*
  * readSource rather than readFileSync, because every pattern below that spans
  * two lines was measuring how the file arrived on disk. This audit passed on
@@ -159,66 +159,13 @@ console.log("");
 // =====================================================================
 
 /*
- * The schema's own list, read from the MIGRATIONS rather than from the
- * declaration or from a live database.
- *
- * Migrations are the only source that is independent of both: the declaration
- * is the thing under test, and a live database can be ahead of or behind the
- * files. roles-audit reads the whole chain for the same reason.
+ * The five checks of this section live in scripts/lib/retention-declaration.mjs
+ * since 2026-10-28, word for word, so scripts/preflight.mjs runs the same rule
+ * with no environment file. The schema's list is still read from the
+ * MIGRATIONS, the one source independent of both the declaration and a live
+ * database.
  */
-const declaredInSchema = (() => {
-  const found = new Set();
-  for (const file of readdirSync("supabase/migrations").filter((f) => f.endsWith(".sql")).sort()) {
-    const sql = readSource(`supabase/migrations/${file}`);
-    for (const m of sql.matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?(eng_[a-z0-9_]+)/gi)) {
-      found.add(m[1].toLowerCase());
-    }
-    for (const m of sql.matchAll(/drop\s+table\s+(?:if\s+exists\s+)?(eng_[a-z0-9_]+)/gi)) {
-      found.delete(m[1].toLowerCase());
-    }
-  }
-  return [...found].sort();
-})();
-
-rec(
-  "the migrations name tables at all",
-  declaredInSchema.length > 50,
-  `${declaredInSchema.length} found; if this said zero every check below it would pass over nothing`,
-);
-
-{
-  const missing = declaredInSchema.filter((t) => !DECLARED_TABLES.includes(t));
-  rec(
-    "every table in the schema is declared in retention-policy.ts",
-    missing.length === 0,
-    missing.length ? `UNDECLARED: ${missing.join(", ")}` : `${declaredInSchema.length} tables, all declared`,
-  );
-}
-
-{
-  const phantom = DECLARED_TABLES.filter((t) => !declaredInSchema.includes(t));
-  rec(
-    "and the declaration names no table the schema does not have",
-    phantom.length === 0,
-    phantom.length
-      ? `DECLARED BUT ABSENT: ${phantom.join(", ")}`
-      : "a rule for a table nobody created is a rule nothing enforces",
-  );
-}
-
-{
-  const sorted = [...DECLARED_TABLES].sort();
-  rec(
-    "the declaration is in alphabetical order",
-    DECLARED_TABLES.every((t, i) => t === sorted[i]),
-    "so it can be diffed against the schema without anybody deciding where a new table belongs",
-  );
-  rec(
-    "and lists nothing twice",
-    new Set(DECLARED_TABLES).size === DECLARED_TABLES.length,
-    "two rules for one table are two rules that will disagree",
-  );
-}
+for (const c of declarationChecks()) rec(c.name, c.ok, c.note);
 
 // =====================================================================
 // 2. THE RULINGS, PINNED AS LITERALS
