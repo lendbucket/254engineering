@@ -3,6 +3,7 @@ import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
 import { listApplicationsPage } from "@/lib/admin-data";
 import { ListControls, listHref } from "@/components/portal/ListControls";
+import { LIST_EXPORT_GRANT } from "@/lib/list-exports";
 import { LIST_NOT_LOADED } from "@/lib/outcome-copy";
 import { RetryButton } from "@/components/portal/Unreachable";
 import { signedDownloadUrl } from "@/lib/uploads";
@@ -187,6 +188,7 @@ export default async function PortalApplicationsPage({ searchParams }: { searchP
         sorts={[{ value: "applied", label: "Applied" }]}
         sort="applied"
         direction="desc"
+        csvHref={can(actor, LIST_EXPORT_GRANT) ? listHref("/api/portal/exports", { q: params.q, role: params.role }, { report: "applications" }) : undefined}
       />
       {!read.ok ? (
         <div role="alert" data-list-not-loaded className="py-6">

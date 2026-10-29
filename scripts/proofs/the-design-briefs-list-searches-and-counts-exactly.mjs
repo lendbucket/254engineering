@@ -39,11 +39,27 @@ for (const [label, lib, fnName, pagePath] of [
 ]) {
   const src = readFileSync(lib, "utf8");
   const fn = src.slice(src.indexOf(`export async function ${fnName}(`));
-  check(`${label}: the list carries an exact count of what matches`, /select\(COLUMNS, \{ count: "exact" \}\)/.test(fn));
+  /*
+   * Sharpened 2026-10-28 for the office-ready CSV export: the one filter is a
+   * function the page calls with its count and the export calls without, so
+   * these name that shape exactly, and a third asks that the export's every-row
+   * read goes through the same filter rather than a second copy.
+   */
+  check(
+    `${label}: the list carries an exact count of what matches`,
+    /select\(COLUMNS, withCount \? \{ count: "exact" \} : undefined\)/.test(fn) && /await filtered\(true\)\.range\(/.test(fn),
+  );
+  check(
+    `${label}: every row, for the export, is read through the same filter`,
+    /scope === "every"/.test(fn) && /await readEvery<unknown>\(\(from, to\) => filtered\(false\)\.range\(from, to\)\)/.test(fn),
+  );
   check(`${label}: the open and answered figures are exact counts of their own, over the same search`, (fn.match(/select\("id", \{ count: "exact", head: true \}\)/g) ?? []).length === 1 && /const \[open, answered\] = await Promise\.all\(\[figure\(false\), figure\(true\)\]\)/.test(fn) && /if \(search\) c = c\.or\(search\);/.test(fn));
   check(`${label}: no read stops at a hand-written limit any more`, !/\.limit\(200\)/.test(fn) && !/return \(data \?\? \[\]\)/.test(fn));
   check(`${label}: any of the three failing is a failed read, never a smaller number`, /if \(failed \|\| count === null \|\| open\.count === null \|\| answered\.count === null\)/.test(fn) && /return \{ ok: false, error: message \}/.test(fn));
-  check(`${label}: it pages by range with a tie broken by id`, /\.order\("id", \{ ascending: true \}\)\.range\(from, from \+ INQUIRY_PAGE_SIZE - 1\)/.test(fn));
+  check(
+    `${label}: it pages by range with a tie broken by id`,
+    /return read\.order\("id", \{ ascending: true \}\);/.test(fn) && /filtered\(true\)\.range\(from, from \+ INQUIRY_PAGE_SIZE - 1\)/.test(fn),
+  );
 
   const page = readFileSync(pagePath, "utf8");
   check(`${label}: the figures on screen are the counts, not the rows' length`, /\{read\.open\} awaiting a reply, \{read\.answered\} answered/.test(page) && !/rows\.length - open\.length/.test(page));
