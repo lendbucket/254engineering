@@ -622,7 +622,7 @@ export const CREDENTIALS: Credential[] = [
     kind: "secret",
     livesIn: "Issued by GitHub Actions for each run and expiring with it. This firm never sets or stores it.",
     grants:
-      "Read access to this repository's workflow runs (permissions: actions read), which scripts/ci/dev-db-turn.mjs uses to wait its turn on the development database.",
+      "Read access to this repository's workflow runs (permissions: actions read), which scripts/ci/dev-db-turn.mjs uses to wait its turn on the development database, and scripts/ci/prior-green.mjs uses to ask whether this exact commit already passed a full board.",
     rotated: "Every run, by GitHub.",
   },
   /*

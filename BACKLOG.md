@@ -601,7 +601,19 @@ verdict was informational until calibrated; three clean main runs passed with
 no FAIL and no NOT STABLE, and it gates since the operator's ruling of
 2026-10-22 (`INFORMATIONAL` in `scripts/ci/shards.mjs` is empty).
 
-## A PUSH TO MAIN RE-BOARDS A COMMIT THAT ALREADY HAS A GREEN BOARD, OPEN
+## A PUSH TO MAIN RE-BOARDS A COMMIT THAT ALREADY HAS A GREEN BOARD, BUILT ON ci/skip-green-reboard
+
+**Built 2026-10-29, as ruled: same commit only.** A `prior` job in
+`board.yml` runs `scripts/ci/prior-green.mjs`, which asks the Actions API, with
+the run's read-only token, for completed runs of `board.yml` on this exact
+commit. It skips the build, and so every shard, only when a run passed with
+build, preflight, every declared shard and board all successful. A run that
+was itself a skip never counts. Any API error or doubt boards, and a failed
+`prior` job still boards (`!cancelled()`). The preflight runs on every push.
+`board-verdict` opens "Cloud board: SKIPPED" and "skipped: the same commit
+passed on run N", never PASS. **What it does not do, by the ruling:** a --no-ff
+merge commit is a new commit, so a merge whose tree equals its boarded branch
+is still boarded. Proved by `a-green-commit-is-not-boarded-twice.mjs`.
 
 `.github/workflows/board.yml`. Ruled 2026-10-22, not built that night. Moving
 main to `c063762` started run `39879066187` on the exact commit that run

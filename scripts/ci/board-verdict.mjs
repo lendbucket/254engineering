@@ -35,6 +35,32 @@ for (const f of files) {
  * in its first line, naming the rules, rather than list every audit as NO
  * VERDICT: board 40798160014 read exactly like that and meant one setup refusal.
  */
+/*
+ * A SKIPPED BOARD SAYS SO IN ITS FIRST LINE (ruled 2026-10-22, built
+ * 2026-10-29). When this push's exact commit already passed a full board, no
+ * build and no shard ran, so this run measured nothing: the summary names the
+ * earlier run and never reads like a pass of this one. The answer is green,
+ * because the commit was measured green, by that run. A red preflight still
+ * holds it.
+ */
+const prior = byShard.get("prior") ?? null;
+if (prior?.skip === true && prior.run) {
+  const pf = byShard.get("preflight") ?? null;
+  const pfRed = pf !== null && pf.passed !== true;
+  const lines = [
+    `## Cloud board: SKIPPED${pfRed ? ", AND THE PREFLIGHT WAS RED" : ""}`,
+    "",
+    `skipped: the same commit passed on run ${prior.run}. No build and no shard ran in this run, and nothing touched development; this run measured nothing.`,
+    "",
+    pf ? `Preflight: ${pf.passed ? "GREEN" : "RED"}, ${pf.rules ?? 0} rules, ${pf.failed?.length ?? 0} failed.` : "Preflight: no verdict.",
+    "",
+    pfRed ? `Holding the board: the preflight failed ${pf.failed?.join(", ") || "without naming a rule"}.` : `The board's answer is run ${prior.run}'s.`,
+  ];
+  console.log(lines.join("\n"));
+  if (summaryPath) appendFileSync(summaryPath, lines.join("\n") + "\n");
+  process.exit(pfRed ? 1 : 0);
+}
+
 const preflight = byShard.get("preflight") ?? null;
 const preflightStop = preflight === null ? "the preflight reported nothing" : preflight.passed !== true ? "the preflight was red" : null;
 

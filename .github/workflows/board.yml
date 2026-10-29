@@ -43,8 +43,39 @@ env:
   NEXT_TELEMETRY_DISABLED: "1"
 
 jobs:
+  # A push to main whose EXACT COMMIT already passed a full board is not boarded
+  # again (ruled 2026-10-22). Same commit only: a --no-ff merge commit is a new
+  # commit and is boarded. Fails closed: any doubt and the board runs. It reads
+  # the Actions API with this run's read-only token and no secret.
+  prior:
+    name: prior
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      skip: ${{ steps.decide.outputs.skip }}
+      run: ${{ steps.decide.outputs.run }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - name: Has this exact commit already passed a full board
+        id: decide
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/ci/prior-green.mjs "$RUNNER_TEMP/verdict-prior.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: verdict-prior
+          path: ${{ runner.temp }}/verdict-prior.json
+          retention-days: 30
+
   build:
     name: build
+    needs: [prior]
+    # !cancelled() rather than the default success(): if `prior` itself fails,
+    # its output is empty and the build still runs. Only a positive skip stops it.
+    if: ${{ !cancelled() && needs.prior.outputs.skip != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
@@ -315,7 +346,7 @@ jobs:
 
   board:
     name: board
-    needs: [build, preflight, shard]
+    needs: [prior, build, preflight, shard]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 10
