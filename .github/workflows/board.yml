@@ -137,6 +137,15 @@ jobs:
         run: |
           sudo apt-get update -qq > /dev/null
           sudo apt-get install -y -qq poppler-utils unzip lsof > /dev/null
+      # email-audit renders every template in Chromium, as it does in the
+      # static shard. Board 40850573904 stopped here without it: email-audit
+      # crashed launching the browser, and the preflight read that as red.
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      - name: Browser
+        run: npx playwright install --with-deps chromium > /dev/null
       - name: Run the preflight
         run: |
           mkdir -p "$RUNNER_TEMP/board"
