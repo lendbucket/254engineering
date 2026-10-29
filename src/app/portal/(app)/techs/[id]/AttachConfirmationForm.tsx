@@ -49,7 +49,7 @@ export function AttachConfirmationForm({ decisionId }: { decisionId: string }) {
   return (
     <form onSubmit={submit} className="mt-3">
       <fieldset>
-        <legend className="text-[13px] font-semibold text-[var(--ink)]">Attach his written confirmation</legend>
+        <legend className="text-[12.5px] font-semibold text-[var(--ink)]">Attach his written confirmation</legend>
         <div className="mt-2 flex gap-6 text-[15px] text-[var(--ink)]">
           {(["text", "email"] as const).map((k) => (
             <label key={k} className="flex min-h-[48px] cursor-pointer items-center gap-2">
@@ -66,7 +66,7 @@ export function AttachConfirmationForm({ decisionId }: { decisionId: string }) {
           ))}
         </div>
       </fieldset>
-      <label htmlFor={`received-${decisionId}`} className="mt-3 block text-[13px] font-semibold text-[var(--ink)]">
+      <label htmlFor={`received-${decisionId}`} className="mt-3 block text-[12.5px] font-semibold text-[var(--ink)]">
         When it arrived
       </label>
       <input
@@ -76,7 +76,7 @@ export function AttachConfirmationForm({ decisionId }: { decisionId: string }) {
         onChange={(e) => setReceivedAt(e.target.value)}
         className="mt-1.5 w-full max-w-[280px] rounded-[2px] border border-[var(--border)] bg-white px-3 py-2.5 text-[16px] text-[var(--ink)]"
       />
-      <label htmlFor={`body-${decisionId}`} className="mt-3 block text-[13px] font-semibold text-[var(--ink)]">
+      <label htmlFor={`body-${decisionId}`} className="mt-3 block text-[12.5px] font-semibold text-[var(--ink)]">
         The text or email, as he sent it
       </label>
       <textarea
@@ -94,7 +94,7 @@ export function AttachConfirmationForm({ decisionId }: { decisionId: string }) {
         Attach it
       </button>
       {error ? (
-        <p role="alert" className="mt-2 text-[14px] text-[var(--ink)]">
+        <p role="alert" className="mt-2 text-[13.5px] text-[var(--ink)]">
           {error}
         </p>
       ) : null}

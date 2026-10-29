@@ -163,7 +163,7 @@ export default async function AccountPricingPage({
               screen that reads as broken.
             */
           >
-            <p className="mb-3 text-[13px] leading-[1.6] text-[var(--secondary)]">
+            <p className="mb-3 text-[12.5px] leading-[1.6] text-[var(--secondary)]">
               A floor is ruled in <code>src/config/trade-floors.ts</code>, which is a
               file rather than a form on purpose: it is a decision worth making deliberately, with the
               reason written beside it, rather than a number typed in at the end of a call.
@@ -172,8 +172,8 @@ export default async function AccountPricingPage({
               {awaiting.map((b) => (
                 <li key={`${b.serviceSlug}/${b.tier}`} className="py-3 first:pt-0 last:pb-0">
                   <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                    <span className="text-[14px] font-semibold text-[var(--navy)]">{b.name}</span>
-                    <span className="text-[13px] text-[var(--secondary)]">
+                    <span className="text-[13.5px] font-semibold text-[var(--navy)]">{b.name}</span>
+                    <span className="text-[12.5px] text-[var(--secondary)]">
                       {b.catalogueCents === null ? "Quoted, no published price" : `Published ${money(b.catalogueCents)}`}
                     </span>
                   </div>
@@ -189,7 +189,7 @@ export default async function AccountPricingPage({
                     to find out something the screen already knows.
                   */}
                   {b.refusal ? (
-                    <p className="mt-1 text-[13px] leading-[1.55] text-[var(--secondary)]">{b.refusal}</p>
+                    <p className="mt-1 text-[12.5px] leading-[1.55] text-[var(--secondary)]">{b.refusal}</p>
                   ) : null}
                 </li>
               ))}
@@ -208,14 +208,14 @@ export default async function AccountPricingPage({
               {noFloorOwed.map((b) => (
                 <li key={`${b.serviceSlug}/${b.tier}`} className="py-3 first:pt-0 last:pb-0">
                   <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                    <span className="text-[14px] font-semibold text-[var(--navy)]">{b.name}</span>
-                    <span className="text-[13px] text-[var(--secondary)]">Quoted from hours</span>
+                    <span className="text-[13.5px] font-semibold text-[var(--navy)]">{b.name}</span>
+                    <span className="text-[12.5px] text-[var(--secondary)]">Quoted from hours</span>
                   </div>
                   <p className="mt-1 text-[12px] leading-[1.55] text-[var(--secondary)]">
                     {b.serviceSlug}/{b.tier}
                   </p>
                   {b.refusal ? (
-                    <p className="mt-1 text-[13px] leading-[1.55] text-[var(--secondary)]">{b.refusal}</p>
+                    <p className="mt-1 text-[12.5px] leading-[1.55] text-[var(--secondary)]">{b.refusal}</p>
                   ) : null}
                 </li>
               ))}
@@ -234,13 +234,13 @@ export default async function AccountPricingPage({
               {refusedForDrift.map((b) => (
                 <li key={`${b.serviceSlug}/${b.tier}`} className="py-3 first:pt-0 last:pb-0">
                   <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                    <span className="text-[14px] font-semibold text-[var(--navy)]">{b.name}</span>
+                    <span className="text-[13.5px] font-semibold text-[var(--navy)]">{b.name}</span>
                   </div>
                   <p className="mt-1 text-[12px] leading-[1.55] text-[var(--secondary)]">
                     {b.serviceSlug}/{b.tier}
                   </p>
                   {b.refusal ? (
-                    <p className="mt-1 text-[13px] leading-[1.55] text-[var(--secondary)]">{b.refusal}</p>
+                    <p className="mt-1 text-[12.5px] leading-[1.55] text-[var(--secondary)]">{b.refusal}</p>
                   ) : null}
                 </li>
               ))}
@@ -259,14 +259,14 @@ export default async function AccountPricingPage({
               {history.map((h) => (
                 <li key={h.id} className="py-3 first:pt-0 last:pb-0">
                   <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                    <span className="text-[14px] font-semibold text-[var(--navy)]">
+                    <span className="text-[13.5px] font-semibold text-[var(--navy)]">
                       {h.serviceSlug}/{h.tier}
                     </span>
-                    <span className="text-[14px] font-semibold text-[var(--navy)]">
+                    <span className="text-[13.5px] font-semibold text-[var(--navy)]">
                       {money(h.priceCents)}
                     </span>
                   </div>
-                  <p className="mt-1 text-[13px] leading-[1.55] text-[var(--secondary)]">
+                  <p className="mt-1 text-[12.5px] leading-[1.55] text-[var(--secondary)]">
                     Set by {h.setByEmail} on {new Date(h.createdAt).toISOString().slice(0, 10)}, against a
                     floor of {money(h.floorCentsAtTime)}.{" "}
                     {h.supersededAt

@@ -55,7 +55,7 @@ export function TradePricingClient({ accountId, rows }: { accountId: string; row
         return (
           <li key={key} className="py-3.5 first:pt-0 last:pb-0">
             <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-              <span className="text-[14px] font-semibold text-[var(--navy)]">{r.name}</span>
+              <span className="text-[13.5px] font-semibold text-[var(--navy)]">{r.name}</span>
               <span className="text-[13.5px] text-[var(--navy)]">
                 {r.current ? (
                   <strong className="font-semibold">{money(r.current.priceCents)}</strong>
@@ -65,7 +65,7 @@ export function TradePricingClient({ accountId, rows }: { accountId: string; row
               </span>
             </div>
 
-            <p className="mt-1 text-[13px] leading-[1.55] text-[var(--secondary)]">
+            <p className="mt-1 text-[12.5px] leading-[1.55] text-[var(--secondary)]">
               {r.catalogueCents === null ? "Quoted, no published price" : `Published ${money(r.catalogueCents)}`}
               {r.floorCents !== null ? ` · Floor ${money(r.floorCents)}` : null}
               {r.current
@@ -74,9 +74,9 @@ export function TradePricingClient({ accountId, rows }: { accountId: string; row
             </p>
 
             {isOpen ? (
-              <div className="mt-3 rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface-muted,#f7f8f9)] p-3">
+              <div className="mt-3 rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--canvas)] p-3">
                 {r.floorCents !== null ? (
-                  <p className="text-[13px] leading-[1.55] text-[var(--navy)]">
+                  <p className="text-[12.5px] leading-[1.55] text-[var(--navy)]">
                     The floor is <strong className="font-semibold">{money(r.floorCents)}</strong>, ruled by{" "}
                     {r.floorBy} on {r.floorOn}. {r.floorBecause} A price at the floor is allowed. Below it is
                     refused, at every role, and there is no override.
@@ -84,7 +84,7 @@ export function TradePricingClient({ accountId, rows }: { accountId: string; row
                 ) : null}
 
                 <label className="mt-2.5 flex flex-col gap-1.5">
-                  <span className="text-[13px] font-semibold text-[var(--navy)]">
+                  <span className="text-[12.5px] font-semibold text-[var(--navy)]">
                     Price in dollars
                   </span>
                   <input
@@ -157,7 +157,7 @@ export function TradePricingClient({ accountId, rows }: { accountId: string; row
                         setBusy(false);
                       }
                     }}
-                    className="min-h-[var(--tap-target)] rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[14px] font-semibold text-white disabled:opacity-60"
+                    className="min-h-[var(--tap-target)] rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[13.5px] font-semibold text-white disabled:opacity-60"
                   >
                     {busy ? "Setting" : r.current ? "Supersede the price" : "Set the price"}
                   </button>
@@ -169,7 +169,7 @@ export function TradePricingClient({ accountId, rows }: { accountId: string; row
                       setDone(null);
                       setValue("");
                     }}
-                    className="min-h-[var(--tap-target)] rounded-[var(--radius-control)] border border-[var(--border)] px-4 text-[14px] font-semibold text-[var(--navy)]"
+                    className="min-h-[var(--tap-target)] rounded-[var(--radius-control)] border border-[var(--border)] px-4 text-[13.5px] font-semibold text-[var(--navy)]"
                   >
                     Cancel
                   </button>
@@ -184,7 +184,7 @@ export function TradePricingClient({ accountId, rows }: { accountId: string; row
                   setDone(null);
                   setValue("");
                 }}
-                className="min-h-[var(--tap-target)] mt-1 text-[13px] font-semibold text-[var(--navy)] underline"
+                className="min-h-[var(--tap-target)] mt-1 text-[12.5px] font-semibold text-[var(--navy)] underline"
               >
                 {r.current ? "Change this price" : "Set a trade price"}
               </button>

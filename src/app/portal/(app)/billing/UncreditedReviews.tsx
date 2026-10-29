@@ -66,17 +66,17 @@ function Row({ row }: { row: UncreditedRow }) {
 
   return (
     <li className="py-3 first:pt-0 last:pb-0">
-      <p className="text-[14px] font-semibold text-[var(--ink)]">
+      <p className="text-[13.5px] font-semibold text-[var(--ink)]">
         {row.fileNumber}, {row.decision === "refuse" ? "declined to seal" : row.decision}
       </p>
-      <p className="mt-1 text-[13px] leading-[1.6] text-[var(--secondary)]">
+      <p className="mt-1 text-[12.5px] leading-[1.6] text-[var(--secondary)]">
         {row.missing
           ? `Missing: ${row.missing}.`
           : `A credit of ${money(row.dueCents)} is due and was never written.`}
       </p>
       <div className="mt-2 flex flex-wrap items-center gap-3">
         {needsChoice ? (
-          <label className="flex items-center gap-2 text-[14px] text-[var(--ink)]">
+          <label className="flex items-center gap-2 text-[13.5px] text-[var(--ink)]">
             Deliverable
             <select value={choice} onChange={(e) => setChoice(e.target.value)} className={field}>
               {row.choices.map((c) => (
@@ -91,13 +91,13 @@ function Row({ row }: { row: UncreditedRow }) {
           type="button"
           disabled={busy}
           onClick={credit}
-          className="inline-flex min-h-[var(--tap-target)] items-center rounded-[2px] bg-[var(--navy)] px-4 text-[14px] font-semibold text-white disabled:opacity-50"
+          className="inline-flex min-h-[var(--tap-target)] items-center rounded-[2px] bg-[var(--navy)] px-4 text-[13.5px] font-semibold text-white disabled:opacity-50"
         >
           {busy ? "Crediting" : needsChoice ? "Record and credit" : "Credit this review"}
         </button>
       </div>
       {error ? (
-        <p role="alert" className="mt-2 text-[13px] text-[var(--danger)]">
+        <p role="alert" className="mt-2 text-[12.5px] text-[var(--danger)]">
           {error}
         </p>
       ) : null}
