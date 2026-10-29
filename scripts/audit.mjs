@@ -36,9 +36,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { readSource } from "./lib/read-source.mjs";
-
-import { runtimeFor, DECLARATION } from "./lib/audit-runtime.mjs";
+import { invocationProblems } from "./lib/audit-runtime.mjs";
 import { assertClearToBuild } from "./lib/build-guard.mjs";
 import { takeLock } from "./lib/machine-lock.mjs";
 import { startNextServer } from "./lib/dev-server.mjs";
@@ -947,32 +945,8 @@ async function waitUntilHealthy(base, timeoutMs = 120_000) {
  * twenty minutes of browser audits is finding it too late to be useful.
  */
 function assertInvocationsMatchDeclarations() {
-  const pkg = JSON.parse(readSource("package.json"));
-  const wrong = [];
-
-  for (const [name, cmd] of Object.entries(pkg.scripts)) {
-    if (!/audit/.test(name)) continue;
-    const match = cmd.match(/scripts\/[\w./-]+\.mjs/);
-    if (!match) continue;
-
-    const { needsReactServer, declares, reason } = runtimeFor(match[0]);
-    const invoked = /--conditions=react-server/.test(cmd);
-
-    if (needsReactServer && !invoked) {
-      wrong.push(
-        `  ${name}: imports ${reason}, which is server-only, and runs as "${cmd}".\n` +
-          `      It cannot load that module. Add --conditions=react-server.`,
-      );
-    } else if (needsReactServer && !declares) {
-      wrong.push(
-        `  ${name}: needs react-server because of ${reason} and does not declare "${DECLARATION}" at the top of the file.`,
-      );
-    } else if (!needsReactServer && invoked && declares) {
-      wrong.push(
-        `  ${name}: declares "${DECLARATION}" and imports nothing server-only. Remove the declaration or the flag.`,
-      );
-    }
-  }
+  /* The rule lives in scripts/lib/audit-runtime.mjs, shared with scripts/preflight.mjs. */
+  const wrong = invocationProblems();
 
   if (wrong.length) {
     console.log("");
