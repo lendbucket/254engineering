@@ -9,6 +9,10 @@ import { raise } from "./ops-notify";
 import { canonicalCounty } from "./ops-counties";
 import { checklistFor } from "@/content/onboarding-checklists";
 import { createOnboarding } from "./onboarding";
+import { queueEmail } from "./ops-jobs";
+import { onboardingInvite } from "./email-templates";
+import { business } from "@/config/business";
+import { formatInFirmZone } from "./firm-calendar";
 import {
   CREDENTIAL_LABEL,
   CREDENTIAL_OF_ITEM,
@@ -113,9 +117,13 @@ export async function listApplications(actor: Actor | null): Promise<Application
 export async function inviteFromApplication(
   actor: Actor & { email: string },
   applicationId: string,
-  input: { role: "engineer" | "field_tech"; notes?: string | null },
+  input: { role: "engineer" | "field_tech"; notes?: string | null; deliverBy?: "email" | "hand" },
   context: Context = {},
-): Promise<{ ok: true; onboardingId: string; token: string } | { ok: false; error: string }> {
+): Promise<
+  | { ok: true; onboardingId: string; delivered: "email"; sentTo: string }
+  | { ok: true; onboardingId: string; delivered: "hand"; token: string; emailFailed?: string }
+  | { ok: false; error: string }
+> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
   if (!mayOnboardRole(actor, input.role, "profiles.create")) {
@@ -164,16 +172,51 @@ export async function inviteFromApplication(
   // Status only. The row itself is the origin record and stays as it is.
   await db.from("eng_applications").update({ status: "invited" }).eq("id", applicationId);
 
+  /*
+   * WHO DELIVERS THE LINK. W3 round 2, 2026-10-28 (254-WF-016 step 3, decided
+   * overnight under Robert's pre-approval of 21:11 Central, for him to confirm).
+   * The onboardingInvite template existed and nothing sent it, so every link
+   * was carried by hand. The default is now the email, as the staff invite on
+   * /portal/people already does; "hand" keeps the old way. Either way the click
+   * is the operator meaning it, which is what the template's own comment asks.
+   *
+   * The link goes back to the screen only when it is delivered by hand, or when
+   * the email could not be queued, because a link nobody holds is a dead invite
+   * and eng_onboardings stores only its hash.
+   */
+  const deliverBy = input.deliverBy === "hand" ? "hand" : "email";
+  let emailFailed: string | undefined;
+  if (deliverBy === "email") {
+    const base = (process.env.NEXT_PUBLIC_SITE_URL || business.url).replace(/\/$/, "");
+    const queued = await queueEmail(
+      onboardingInvite({
+        personName: app.name,
+        personEmail: app.email,
+        role: input.role,
+        inviteUrl: `${base}/onboarding/${encodeURIComponent(created.data.token)}`,
+        expiresAt:
+          formatInFirmZone(new Date(created.data.onboarding.invite_expires_at), { month: "long", day: "numeric", year: "numeric" }) ?? "",
+      }),
+    );
+    if (!queued.ok) emailFailed = queued.error;
+  }
+  const emailed = deliverBy === "email" && !emailFailed;
+
   await writeAudit({
     actor,
     action: "onboarding.invite_from_application",
     entityType: "onboarding",
     entityId: created.data.onboarding.id,
-    summary: `Invited ${app.name} as ${input.role} from a careers application`,
+    /* How it went out, never the link: an audit row is readable by everybody with audit.read. */
+    summary: `Invited ${app.name} as ${input.role} from a careers application. ${
+      emailed ? `Link queued by email to ${app.email}.` : emailFailed ? `The email could not be queued (${emailFailed}); the link was handed to ${actor.email} to deliver.` : `Link handed to ${actor.email} to deliver.`
+    }`,
     ...context,
   });
 
-  return { ok: true, onboardingId: created.data.onboarding.id, token: created.data.token };
+  return emailed
+    ? { ok: true, onboardingId: created.data.onboarding.id, delivered: "email", sentTo: app.email }
+    : { ok: true, onboardingId: created.data.onboarding.id, delivered: "hand", token: created.data.token, ...(emailFailed ? { emailFailed } : {}) };
 }
 
 // --------------------------------------------------------- item dates, scope
