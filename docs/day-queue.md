@@ -69,6 +69,27 @@ Every repair was proved by an injection, and each file was restored byte identic
 4. Skip re-boarding a push to main whose exact commit already has a green board (ruled 2026-10-22). It edits `board.yml`, so it comes after bundle 17.
 5. List controls (search, filter, sort, paging) on the 13 staff screens that have none, so each can then take a CSV export, office ready section 2d.
 
+## 2026-10-29: BUNDLE 23 MISSED ON A DATE WITH NO ZONE; REBOARD AT `c4225b0`
+
+**Board 40918058948 on `93866aa`: 63 of 64.**
+- The one FAIL is proofs-audit: `every-date-names-its-zone.mjs`, "NO ZONE: src/app/portal/(app)/jobs/[id]/CaptureClient.tsx:77".
+- The cause: the new Remove list printed a capture's time with `toLocaleTimeString` and no `timeZone`. A real miss, caused by the branch.
+
+**The repair, `c4225b0`:** `timeZone: FIRM_TIME_ZONE` from `src/lib/firm-calendar.ts`.
+- The proof passes, and the board's red on the old line is the injection.
+- The preflight did not run this proof, because it scans all of `src` and is not in the static shard. Making the preflight run the repo-wide static proofs is queued as its own bundle.
+
+**Readers on `c4225b0`, on main `647fc18`:**
+- Preflight GREEN, 35 rules.
+- tsc clean.
+- `every-date-names-its-zone.mjs` PASS.
+- `a-capture-is-removed-only-with-its-record.mjs` PROVED.
+
+**Prediction: 64 of 64.**
+- The walk read 215 works, 9 friction, 18 missing and 7 off-screen on the first board. The same counts are expected.
+- **Standing notes as named for `93866aa`:** stripe-webhook's two, dashboards' empty firm, retention's eng_jobs fixture lines, perf's unmeasured authenticated screens, and any perf NOT STABLE line.
+- **Also seen on the first board:** citation-audit's could-not-tell lines for sources that refuse a script, the queue depth note, and proofs-audit's "5 of 63 checks" could-not-tell.
+
 ## 2026-10-29: BUNDLE 22 MISSED ON /coverage BY 17 ms; BUNDLE 23, THE CAPTURE DELETE BUTTON, AT `93866aa`
 
 **Bundle 22, board 40906332499 on `97f4475`: 63 of 64.**
