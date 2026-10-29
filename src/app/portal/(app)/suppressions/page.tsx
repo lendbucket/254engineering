@@ -135,7 +135,7 @@ export default async function SuppressionsPage() {
                      * instead for meant@example.com." The copy cannot require the
                      * operator to punctuate; it has to close the sentence itself.
                      */
-                    <p className="mt-2 w-full text-[13px] text-[var(--ink-soft)]">
+                    <p className="mt-2 w-full text-[13px] text-[var(--secondary)]">
                       Marked as a mistake: {sentence(row.voided.because)}{" "}
                       {row.voided.replacedBy
                         ? `Recorded instead for ${row.voided.replacedBy}.`

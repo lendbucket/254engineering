@@ -102,7 +102,7 @@ export function TradePricingClient({ accountId, rows }: { accountId: string; row
                   <p
                     id="pricing-error"
                     role="alert"
-                    className="mt-2.5 rounded-[var(--radius-control)] border border-[var(--red-border)] bg-[var(--red-bg)] px-3 py-2.5 text-[13.5px] leading-[1.55] text-[var(--red)]"
+                    className="mt-2.5 rounded-[var(--radius-control)] border border-[var(--red)] bg-white px-3 py-2.5 text-[13.5px] leading-[1.55] text-[var(--red)]"
                   >
                     {error}
                   </p>

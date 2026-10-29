@@ -1511,6 +1511,82 @@ for (const [standard, site] of TWINS) {
   );
 }
 
+/*
+ * EVERY var(--name) A PORTAL FILE USES IS DEFINED. 2026-10-29: three portal
+ * files coloured their error lines with var(--bad), a token no stylesheet has
+ * ever defined, so the alert rendered in the inherited ink rather than red and
+ * every check above passed, because none of them asked whether a name exists.
+ *
+ * The defined set is derived, not typed: the stylesheets the root layout
+ * imports, followed through their relative @imports, plus any custom property
+ * a portal file sets inline. A use with a fallback, var(--x, y), is counted
+ * apart and accepted only when its fallback is itself a defined token, and the
+ * count is printed so the allowance cannot grow unseen.
+ */
+{
+  const layoutSrc = readSource("src/app/layout.tsx");
+  const sheets = [];
+  const queue = [...layoutSrc.matchAll(/import "\.\/([^"]+\.css)"/g)].map((m) => join("src/app", m[1]).replace(/\\/g, "/"));
+  while (queue.length) {
+    const sheet = queue.shift();
+    if (sheets.includes(sheet) || !existsSync(sheet)) continue;
+    sheets.push(sheet);
+    const dir = sheet.split("/").slice(0, -1).join("/");
+    for (const m of readSource(sheet).matchAll(/@import "(\.{1,2}\/[^"]+\.css)"/g)) {
+      const parts = `${dir}/${m[1]}`.split("/");
+      const resolved = [];
+      for (const part of parts) {
+        if (part === "..") resolved.pop();
+        else if (part !== ".") resolved.push(part);
+      }
+      queue.push(resolved.join("/"));
+    }
+  }
+  const defined = new Set();
+  for (const sheet of sheets) for (const m of readSource(sheet).matchAll(/(--[A-Za-z0-9_-]+)\s*:/g)) defined.add(m[1]);
+  for (const f of portalFiles) for (const m of codeOnly(f).matchAll(/["'](--[A-Za-z0-9_-]+)["']\s*:/g)) defined.add(m[1]);
+
+  /* Comments blanked but their newlines kept, so a finding names the real source line. */
+  const keepLines = (text) => text.replace(/[^\n]/g, " ");
+  const codeKeepingLines = (path) =>
+    readSource(path)
+      .replace(/\{\/\*[\s\S]*?\*\/\}/g, keepLines)
+      .replace(/\/\*[\s\S]*?\*\//g, keepLines)
+      .split("\n")
+      .map((line) => (/^\s*\/\//.test(line) ? "" : line))
+      .join("\n");
+  const undefinedUses = [];
+  let withFallback = 0;
+  for (const f of portalFiles) {
+    codeKeepingLines(f)
+      .split("\n")
+      .forEach((line, i) => {
+        for (const m of line.matchAll(/var\((--[A-Za-z0-9_-]+)\s*(?:,\s*([^)]*))?\)/g)) {
+          if (defined.has(m[1])) continue;
+          const fallback = m[2]?.trim();
+          const fallbackToken = fallback && /^var\((--[A-Za-z0-9_-]+)/.exec(fallback)?.[1];
+          if (fallbackToken && defined.has(fallbackToken)) {
+            withFallback += 1;
+            continue;
+          }
+          undefinedUses.push(`${f}:${i + 1} ${m[1]}`);
+        }
+      });
+  }
+  rec(
+    "the stylesheets the portal loads define custom properties",
+    sheets.length >= 2 && defined.size > 50,
+    `${sheets.length} stylesheet(s), ${defined.size} names defined: ${sheets.join(", ")}`,
+  );
+  rec(
+    "every var(--name) a portal file uses is defined",
+    undefinedUses.length === 0,
+    undefinedUses.length
+      ? `${undefinedUses.length} undefined: ${undefinedUses.slice(0, 8).join("  |  ")}`
+      : `${portalFiles.length} files read; ${withFallback} use(s) of an undefined name with a defined fallback token`,
+  );
+}
+
 // =========================================================================
 
 const failed = out.filter((o) => !o.ok);
