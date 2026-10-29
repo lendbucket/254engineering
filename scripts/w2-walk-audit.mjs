@@ -1,3 +1,4 @@
+// @runtime react-server
 /**
  * W2: WALK EVERY WORKFLOW THE MAP NAMES, AS THE ROLE THE MAP NAMES.
  *
