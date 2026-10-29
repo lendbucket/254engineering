@@ -1,5 +1,72 @@
 # Day queue, 2026-10-23
 
+## MORNING REPORT, 2026-10-29 (the night of Robert's 21:07 and 21:11 instructions)
+
+**Needed from Robert:** the seven W3 questions and two others below, each with a recommendation, and a look at the six things decided overnight.
+
+### Merged to main, every one on a board that passed as predicted (each merged tree is the boarded tree or differs only in the ledger)
+
+| Bundle | Merge | Board | What |
+| --- | --- | --- | --- |
+| 7 | `a03473c` | 40695995700 | 0102, the API roles hold nothing on 104 eng_ tables and 13 sequences |
+| 8 | `f0be68b` | 40722907178 | 0103 field technicians require the second factor, the owner's technician profile exempt (READY on Vercel, chat 6481560748); 0104 the ops manager reads applications and keeps technicians only |
+| 9 | `999bef4` | 40747015235 | /portal/review 5.2 to 7.7 s down to 0.41 to 0.89 s; a hold nobody could read is now said |
+| 10 | `c935731` | 40768601973 | /portal/accounts paged on the server, 10.3 s down to 1.6 to 2.1 s |
+| 11 | `7698b5d` | 40789442209 | /portal/accounts CSV export (your 4a) |
+| 12 | `f897936` | 40801619224 | the walk makes its own records: unreached 34 to 2 |
+| 13 | `8a5bbb7` | 40809554227 | `scripts/preflight.mjs` and the CLAUDE.md line (your item 2) |
+| 14 | `da6d165` | 40817335866 | superseded accounts hidden by default with a filter (your 21:11 ruling 1); accounts-audit asks every read |
+| 15 | `417bdfa` | 40825157227 | CSV exports for six more staff lists (your item 4) |
+| 16 | `4d7e537` | 40842438078 | W3 round 2 (your item 3) |
+
+**Migrations:** 0102 at 20261028210825, 0103 at 20261028210847 and 0104 at 20261028210855, read back by the chat (6480742347). schema-ledger-audit on main reads 105 applied and 0 pending. No migration was written overnight.
+
+### Boarding now
+
+**Bundle 17, the board runs the preflight before any shard** (run 40851638472 on `bae72c3`). It also carries two new preflight rules: no merge conflict marker in any file, and the workflow map against the walk's pins. Its first board was stopped in under five minutes by the new job itself, because email-audit needs Chromium and the job did not install it. The repair adds the install. It merges on a match.
+
+### What missed tonight, and why
+
+- **Bundle 12, 0 of 64 ran.** The walk imported a react-server module without declaring the runtime. The preflight now checks this.
+- **Bundle 15:** no miss. Bringing it up to main left a conflict marker in BACKLOG that the preflight passed. Removed by hand, and the preflight now checks for markers.
+- **Bundle 16, 63 of 64.** The walk's pinned count of steps with no screen was not moved when the map's was. The preflight now runs that comparison through the walk's own function. My walk prediction was also one step off.
+- **Bundle 17's first board:** the missing Chromium above.
+
+Every repair was proved by an injection, and each file was restored byte identical.
+
+### Decided overnight, Robert to confirm (your 21:11 pre-approval, or small session calls)
+
+1. **WF-016 step 3:** the technician onboarding invite is emailed by default through the existing template, with "by hand" as the other choice. The audit row records how it went out, never the link.
+2. **WF-007 step 4:** the map now names the four screens that carry the call log.
+3. **The accounts list:** "all" means every account in use. The filter label is "Superseded, kept as records (N)". The cannot-order warning and the unbilled count leave superseded accounts out. The CSV header says which set it holds.
+4. **The six new CSV exports** are gated on `accounts.manage`, the administrator's grant the accounts export uses, plus each screen's own grant, rather than six new grants. That would need a migration. The grant is one constant in `src/lib/list-exports.ts`.
+5. **The board runs the preflight first** (bundle 17).
+6. **A preflight "could not tell" does not stop the board.** On a branch it means only that no lines were added.
+
+### Questions for Robert, each with a recommendation
+
+**From W3 round 2, none built:**
+1. **WF-017 step 6, withdrawing or restoring a technician's certification.** It is a licensed action, and the engineer cannot open `/portal/techs`. **Recommend** an engineer-only panel on `/portal/review`, with the reason required.
+2. **WF-021 step 4, releasing a sign-in lock.** **Recommend** it stays off screen, behind the operator's token.
+3. **WF-022 step 3, setting an account's credit terms (money).** **Recommend** an admin panel on `/portal/accounts` that asks for a fresh second factor, once you rule.
+4. **WF-024 step 3, the proving charge (a live charge).** **Recommend** an admin button on `/portal/launch`, used only on your word.
+5. **WF-024 step 4, emailing the waitlist that the firm is open.** **Recommend** a button on `/portal/launch`, enabled only when the gate reads live, with a preview sent to you first.
+6. **WF-006 step 2, a customer's request to be forgotten.** **Recommend** it stays taken by staff for now.
+7. **WF-030 step 5, deleting a field capture.** **Recommend** a delete button on the capture screen while the file is in the field, with an audit row added to `deleteCapture` first.
+
+**Two others:**
+
+8. **Should the walk issue a real onboarding invitation so WF-016 step 4 is reached,** leaving one permanent probe record per run? **Recommend no**: it is recorded as unreached by design.
+9. **The office address change for the Google Business Profile**, still waiting on you from your list. **Recommend** you send the new address and I prepare the change for the chat.
+
+### Next five
+
+1. Merge bundle 17 on a match, then bring every waiting branch up to main.
+2. Board the copy-project bucket list (`a9f20a2`). Its bucket list is now read from the migrations, with a check against the replay's 11 buckets.
+3. Board token-audit coverage (`7003d10`). Every one of 199 portal files is now read, 25 newly, 11 with styling-only fixes.
+4. Skip re-boarding a push to main whose exact commit already has a green board (ruled 2026-10-22). It edits `board.yml`, so it comes after bundle 17.
+5. List controls (search, filter, sort, paging) on the 13 staff screens that have none, so each can then take a CSV export, office ready section 2d.
+
 ## 2026-10-29, BUNDLE 17 AGAIN, after its own preflight stopped it, at `bae72c3`
 
 **Prediction written and pushed before the board starts.**
