@@ -27,7 +27,7 @@ The source of truth for the running loop. Robert, 2026-10-29: the loop prompt is
 - 109 of 182 proofs are static, derived by `scripts/lib/proof-needs.mjs`.
 - The preflight takes 91 to 98 s, up from 43 s.
 - An injection named the file. Preflight GREEN, 37 rules. | **Merged as `00e66a0`** (board 40960219426) |
-| 24 | WF-017 step 6: an engineer-only panel on `/portal/review` to withdraw or restore a technician's certification, with the reason required. | To build |
+| 24 | WF-017 step 6: an engineer-only panel on `/portal/review` to withdraw or restore a technician's certification, with the reason required. **Bundle 26, boarding** at `c79506f`. One question: withdraw still accepts a record that is not certified. Recommend keeping it, because that behavior is unchanged. | Boarding |
 | 25 | List controls for `/portal/onboarding`: search, filter, sort, paging, counts over every matching row, and a failed read said. | To build |
 | 26 | WF-022 step 3: an admin panel on `/portal/accounts` to set an account's credit terms. **This is a money flow: it gets its own proof and an injection.** It must: confirm by password re-entry, the same as the no-charge override, never an authenticator code (the owner's admin account uses none); write an audit row on every change. | To build |
 | 27 | WF-024 step 3: a proving-charge button on `/portal/launch`, admin only. It states the charge before it runs, and is used only on Robert's word. | To build |

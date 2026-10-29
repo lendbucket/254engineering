@@ -69,6 +69,34 @@ Every repair was proved by an injection, and each file was restored byte identic
 4. Skip re-boarding a push to main whose exact commit already has a green board (ruled 2026-10-22). It edits `board.yml`, so it comes after bundle 17.
 5. List controls (search, filter, sort, paging) on the 13 staff screens that have none, so each can then take a CSV export, office ready section 2d.
 
+## 2026-10-29: BUNDLE 25 MERGED; BUNDLE 26, THE CERTIFICATION PANEL ON /portal/review, AT `c79506f`
+
+**Bundle 25 merged as `00e66a0`.** The merged tree is the boarded tree. Board 40960219426 on `30eecdd` read 64 of 64 with preflight GREEN at 37 rules, as predicted.
+
+**Prediction for bundle 26, written and pushed before the board starts.** Robert's ruling of 10:52 (6501552714), WF-017 step 6.
+
+**What it adds:**
+- `revokeCertification` and `restoreCertification` in `ops-field.ts`. Both write `certification.revoke` or `certification.restore` through `writeAuditOrRefuse` before the change, and refuse without the record. Before, the record came after the change and a failed write went unnoticed.
+- Restore now requires a reason, as withdraw already did. The onboarding route passes it.
+- **`CertificationStandingPanel`** on `/portal/review`:
+  - drawn only when `holdsLicence(actor, "protocols.publish")`;
+  - placed below everything on the page, so the review queue's order is untouched, as Robert ruled;
+  - its read is complete, and a failed read is said.
+- MAP_NO_SCREEN moves from 11 to 10, and the procedures are re-emitted.
+
+**Injections:** six, each restored byte identical, and each turned only its own check red.
+
+**Readers on `c79506f`, on main `00e66a0`:**
+- Preflight GREEN, 37 rules, "repo-wide static proofs (112)".
+- tsc clean.
+- `the-engineer-withdraws-a-certification-on-review-with-a-reason.mjs` PASS.
+- The procedures proof PASS.
+
+**Prediction: 64 of 64.**
+- The walk passes with no-screen 10.
+- roles-audit and token-audit pass with the new panel.
+- The standing notes as named for bundle 24.
+
 ## 2026-10-29: BUNDLE 24 MERGED; BUNDLE 25, THE PREFLIGHT RUNS THE STATIC PROOFS, AT `30eecdd`
 
 **Bundle 24 merged as `da81f0a`.** The merged tree is the boarded tree. Board 40951053748 on `76687b6` read 64 of 64, preflight GREEN, as predicted. seo-audit found no problems.
