@@ -41,6 +41,7 @@ const roster = Array.from({ length: N }, (_, i) => ({
   billingMode: i % 3 === 0 ? "invoice" : "card",
   createdAt: new Date(Date.UTC(2026, 0, 1) + i * 3600_000).toISOString(),
   cannotOrder: i % 3 === 0 && i % 10 !== 0 && i % 17 !== 0 && i % 2 === 0,
+  superseded: false,
 }));
 const nameOf = new Map(roster.map((a, i) => [a.clientId, `Org ${String((i * 37) % N).padStart(3, "0")}`]));
 
@@ -78,6 +79,37 @@ check("and descending begins at the last name", nameOf.get(`c${byNameDesc.ids[0]
 const q = accountListQuery({ q: "50% off, (draft)", status: "nonsense", page: "-3" });
 check("the query is cleaned and normalised", q.term === "50 off draft" && q.status === "all" && q.page === 1, JSON.stringify(q));
 
+/*
+ * SUPERSEDED ACCOUNTS: HIDDEN BY DEFAULT AND FROM THE COUNTS, SHOWN UNDER THEIR
+ * OWN FILTER. Robert, 21:11 Central 2026-10-28. Fifty-nine superseded accounts
+ * among the 173, more than a page, every status represented, so the filter's
+ * count can only be right if it is taken over every one of them.
+ */
+const withSuperseded = roster.map((a, i) => ({ ...a, superseded: i % 3 === 1 || i === 0 }));
+const supersededIds = new Set(withSuperseded.filter((a) => a.superseded).map((a) => a.id));
+const inUse = N - supersededIds.size;
+const byDefault = pageOfAccounts(withSuperseded, accountListQuery({}), null, null);
+check(
+  "by default no superseded account is on any page, and the total is the accounts in use",
+  byDefault.total === inUse && byDefault.matchingIds.every((id) => !supersededIds.has(id)),
+  `${byDefault.total} of ${N}, ${supersededIds.size} superseded`,
+);
+const statuses = ["active", "suspended", "closed"];
+check(
+  "nor under any other status filter",
+  statuses.every((s) => pageOfAccounts(withSuperseded, accountListQuery({ status: s }), null, null).matchingIds.every((id) => !supersededIds.has(id))),
+);
+const onlySuperseded = pageOfAccounts(withSuperseded, accountListQuery({ status: "superseded" }), null, null);
+check(
+  "the superseded filter shows every superseded account and nothing else, counted exactly across pages",
+  onlySuperseded.total === supersededIds.size &&
+    onlySuperseded.matchingIds.length === supersededIds.size &&
+    onlySuperseded.matchingIds.every((id) => supersededIds.has(id)) &&
+    onlySuperseded.pages === Math.ceil(supersededIds.size / 50),
+  `${onlySuperseded.total} of ${supersededIds.size}`,
+);
+check("and the filter value survives the query", accountListQuery({ status: "superseded" }).status === "superseded");
+
 /* ------------------------------------------------ which ids reach which read */
 
 const admin = readFileSync("src/lib/ops-accounts-admin.ts", "utf8");
@@ -104,14 +136,27 @@ check(
   "the balances come from a read that does not take the account ids",
   /await openBalancesForEveryAccount\(\)/.test(body) && !/accountBalances\(/.test(body),
 );
-check("the total is the matching set, and all is every account", /total: shown\.total,/.test(body) && /all: accounts\.length,/.test(body));
+/*
+ * "all" was every account until 21:11 Central 2026-10-28, and is now every
+ * account IN USE: superseded ones are counted only under their own filter. The
+ * pins below name the new shape exactly rather than accepting either.
+ */
 check(
-  "the warning names every account that cannot order, from the whole roster",
-  /const blockedIds = roster\.filter\(\(a\) => a\.cannotOrder\)\.map\(\(a\) => a\.id\);/.test(body),
+  "the roster reads superseded_at for every account",
+  /\.select\("id, client_id, status, billing_mode, credit_limit_cents, net_days, created_at, superseded_at"\)/.test(body),
 );
 check(
-  "and the unbilled count is over every account",
-  /const unbilledAccounts = accounts\.filter\(/.test(body),
+  "the total is the matching set, all is every account in use, and the superseded are counted apart",
+  /total: shown\.total,/.test(body) && /all: inUse\.length,/.test(body) && /superseded: accounts\.length - inUse\.length,/.test(body),
+);
+check(
+  "the warning names every account that cannot order, from the whole roster, and never a superseded one",
+  /const blockedIds = roster\.filter\(\(a\) => a\.cannotOrder\)\.map\(\(a\) => a\.id\);/.test(body) &&
+    /cannotOrder: !isSuperseded\(a\) && a\.status === "active"/.test(body),
+);
+check(
+  "and the unbilled count is over every account in use",
+  /const unbilledAccounts = inUse\.filter\(/.test(body),
 );
 /*
  * The search asks for every word of the cleaned term, never the cleaned phrase:
