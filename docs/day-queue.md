@@ -69,6 +69,34 @@ Every repair was proved by an injection, and each file was restored byte identic
 4. Skip re-boarding a push to main whose exact commit already has a green board (ruled 2026-10-22). It edits `board.yml`, so it comes after bundle 17.
 5. List controls (search, filter, sort, paging) on the 13 staff screens that have none, so each can then take a CSV export, office ready section 2d.
 
+## 2026-10-29: BUNDLE 22 MISSED ON /coverage BY 17 ms; BUNDLE 23, THE CAPTURE DELETE BUTTON, AT `93866aa`
+
+**Bundle 22, board 40906332499 on `97f4475`: 63 of 64.**
+- The one FAIL is perf-audit: "coverage hub: LCP 3417ms within 3400ms (/coverage, median of 3, spread 125ms)".
+- The branch touches no public route. Its only files outside the portal and its proofs are BACKLOG, email-audit, roles-audit and the export route.
+- Bundle 21's board passed /coverage on main hours earlier.
+- It is held for Robert's word, and the unchanged commit is not re-run.
+
+**Prediction for bundle 23, written and pushed before the board starts.** Robert's ruling of 10:52 (6501552714), with his yes to its three questions.
+- **What it adds:** `deleteCapture` writes `capture.delete` through `writeAuditOrRefuse` before the row goes, and refuses when the record cannot be written.
+- **Who and when:** one rule, `captureDeleteRefusal`, decides both the server refusal and the button.
+  - Allowed: the capture roles, and a technician only on a job he accepted.
+  - Only while the file is in evidence in progress or revisions requested.
+  - Never for a capture a repair was verified against.
+- **The button:** Remove buttons on `/portal/jobs/[id]`.
+- **The map:** WF-030 step 5 names its screen, and MAP_NO_SCREEN moves from 12 to 11.
+
+**Readers on `93866aa`, on main `647fc18`:**
+- Preflight GREEN, 35 rules, 43 s.
+- tsc clean.
+- `a-capture-is-removed-only-with-its-record.mjs` PROVED.
+- Four injections, each restored byte identical.
+
+**Prediction: 64 of 64.**
+- The walk passes with no-screen 11, and its friction and missing counts may each move by one step.
+- **Standing notes:** stripe-webhook's two, dashboards' empty firm, retention's eng_jobs fixture lines, perf's unmeasured authenticated screens, and any perf NOT STABLE line.
+- An LCP FAIL on `/coverage` would be the same miss as bundle 22's, on a route this branch does not touch.
+
 ## 2026-10-29: BUNDLE 21 MERGED; BUNDLE 22, LIST CONTROLS ON FIVE STAFF SCREENS, AT `97f4475`
 
 **Bundle 21 merged as `647fc18`.** The merged tree is the boarded tree. Board 40895736424 on `0ba0a82` read 64 of 64, preflight GREEN:
