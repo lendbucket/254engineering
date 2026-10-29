@@ -19,9 +19,10 @@ The source of truth for the running loop. Robert, 2026-10-29: the loop prompt is
 | # | Item | State |
 | --- | --- | --- |
 | 22 | List controls on five staff screens: people, do not contact, asked to be forgotten, insurance, credential review. The audit trail pages every event. People, do not contact and the audit trail export CSV. `feat/list-controls-2` at `97f4475`, on main `647fc18`, preflight GREEN. | Boarding, run 40906332499 |
-| 23 | WF-030 step 5: a delete button for a field capture while the file is in the field. The audit row goes into `deleteCapture` first. Built as `93866aa` on `feat/capture-delete`, preflight GREEN. It also refuses to delete a capture a repair was verified against. Two questions:
-- **The bucket.** The photograph stays in the evidence bucket with its storage path recorded in the audit row. Recommend keeping it.
-- **Who may delete.** The engineer and the administrator may delete, as they may capture. Recommend keeping it. | Built, boards after 22 |
+| 23 | WF-030 step 5: a delete button for a field capture while the file is in the field. The audit row goes into `deleteCapture` first. Built as `93866aa` on `feat/capture-delete`, preflight GREEN. Robert ruled yes to all three on 2026-10-29:
+- a capture a repair was verified against is refused;
+- the photograph stays in the evidence bucket, with its storage path in the audit row;
+- the engineer and the administrator may delete, as they may capture. | Built, ruled, boards after 22 |
 | 24 | WF-017 step 6: an engineer-only panel on `/portal/review` to withdraw or restore a technician's certification, with the reason required. | To build |
 | 25 | List controls for `/portal/onboarding`: search, filter, sort, paging, counts over every matching row, and a failed read said. | To build |
 | 26 | WF-022 step 3: an admin panel on `/portal/accounts` to set an account's credit terms. **This is a money flow: it gets its own proof and an injection.** It must: confirm by password re-entry, the same as the no-charge override, never an authenticator code (the owner's admin account uses none); write an audit row on every change. | To build |
