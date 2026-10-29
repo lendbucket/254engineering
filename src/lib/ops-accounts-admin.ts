@@ -61,8 +61,10 @@ export type AccountRowsResult =
       rows: AccountRow[];
       /** How many accounts match the search and filters, over EVERY account. */
       total: number;
-      /** How many ordering accounts the firm has, whatever the search says. */
+      /** How many ordering accounts the firm has in use, whatever the search says. Superseded ones are not counted. */
       all: number;
+      /** How many superseded accounts are kept as records, shown only under their own filter. */
+      superseded: number;
       page: number;
       pages: number;
       /** Every active account the credit rule refuses, over every account, not this page. */
@@ -198,12 +200,21 @@ export async function accountRows(
    * duplicate or a typo is superseded rather than deleted, and every read
    * excludes them by default. Closed accounts still appear, because a closed
    * account is a real customer who stopped trading.
+   *
+   * THIS READ DID NOT EXCLUDE THEM, and that is corrected here. Robert, 21:11
+   * Central 2026-10-28: hidden from this list and its counts by default, with
+   * a status filter that shows them. The roster reads superseded_at for every
+   * account, because the superseded view's count must be exact too; every
+   * count below is then taken over the accounts in use, and the paging rule
+   * keeps superseded ones out of every view but their own. accounts-audit's
+   * "every read of an account excludes superseded rows" passed this read
+   * because another function in this file names the column.
    */
   const rosterAt = Date.now();
   const accountRead = await readEvery<Record<string, unknown>>((from, to) =>
     db
       .from("eng_customer_accounts")
-      .select("id, client_id, status, billing_mode, credit_limit_cents, net_days, created_at")
+      .select("id, client_id, status, billing_mode, credit_limit_cents, net_days, created_at, superseded_at")
       .order("created_at", { ascending: true })
       .order("id", { ascending: true })
       .range(from, to),
@@ -227,8 +238,11 @@ export async function accountRows(
   const accounts = accountRead.rows;
   if (!accounts.length) {
     reportTiming(phases, since(startedAt));
-    return { ok: true, rows: [], total: 0, all: 0, page: 1, pages: 1, blocked: [], unbilledAccounts: 0 };
+    return { ok: true, rows: [], total: 0, all: 0, superseded: 0, page: 1, pages: 1, blocked: [], unbilledAccounts: 0 };
   }
+  const isSuperseded = (a: Record<string, unknown>) => a.superseded_at !== null && a.superseded_at !== undefined;
+  /* The accounts in use: what "all", the warning and the unbilled count are over. */
+  const inUse = accounts.filter((a) => !isSuperseded(a));
 
   /*
    * The credit verdict of every account, from the same creditDecision the
@@ -279,9 +293,11 @@ export async function accountRows(
     status: a.status as string,
     billingMode: a.billing_mode as string,
     createdAt: a.created_at as string,
-    cannotOrder: a.status === "active" && !verdictOf.get(a.id as string)!.ok,
+    /* A superseded account is never named in the warning: it is not a customer who cannot order. */
+    cannotOrder: !isSuperseded(a) && a.status === "active" && !verdictOf.get(a.id as string)!.ok,
+    superseded: isSuperseded(a),
   }));
-  const unbilledAccounts = accounts.filter((a) => (balanceRead.balanceOf(a.id as string).unbilledCents ?? 0) > 0).length;
+  const unbilledAccounts = inUse.filter((a) => (balanceRead.balanceOf(a.id as string).unbilledCents ?? 0) > 0).length;
 
   /*
    * THE SEARCH IS OVER EVERY ACCOUNT, IN THE DATABASE. A name lives on the
@@ -491,7 +507,8 @@ export async function accountRows(
     ok: true,
     rows,
     total: shown.total,
-    all: accounts.length,
+    all: inUse.length,
+    superseded: accounts.length - inUse.length,
     page: shown.page,
     pages: shown.pages,
     blocked,

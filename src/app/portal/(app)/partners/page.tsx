@@ -17,7 +17,9 @@ import { PageHead } from "@/components/portal/surfaces";
 import { NewPartner } from "./NewPartner";
 import type { PartnerRow } from "@/lib/ops-partners-admin";
 import { formatInFirmZone } from "@/lib/firm-calendar";
-import { ListControls } from "@/components/portal/ListControls";
+import { ListControls, listHref } from "@/components/portal/ListControls";
+import { partnerListRows, partnerListState } from "@/lib/partner-list";
+import { LIST_EXPORT_GRANT } from "@/lib/list-exports";
 import { LIST_NOT_LOADED } from "@/lib/outcome-copy";
 import { RetryButton } from "@/components/portal/Unreachable";
 
@@ -45,13 +47,9 @@ export default async function PartnersPage({ searchParams }: { searchParams: Pro
   /* A failed read is said, and a figure whose read failed is missing, never zero (office ready, 2026-10-24). */
   const read = await partnerRoster(actor);
   const all = read.ok ? read.rows : [];
-  const needle = (params.q ?? "").trim().toLowerCase();
-  const state = params.state === "active" || params.state === "suspended" ? params.state : "all";
-  const rows = all.filter(
-    (p) =>
-      (state === "all" || p.status === state || p.status === "ended") &&
-      (!needle || [p.organisation, p.contactName, p.contactEmail, p.code].some((v) => (v ?? "").toLowerCase().includes(needle))),
-  );
+  /* The filter the CSV export reads too, in one home (partner-list.ts). */
+  const rows = partnerListRows(all, { q: params.q, state: params.state });
+  const state = partnerListState({ state: params.state });
   const queue = await submissionsAwaitingDecision();
   const unread = "could not be read";
 
@@ -183,6 +181,7 @@ export default async function PartnersPage({ searchParams }: { searchParams: Pro
         sorts={[{ value: "name", label: "Partner" }]}
         sort="name"
         direction="asc"
+        csvHref={can(actor, LIST_EXPORT_GRANT) ? listHref("/api/portal/exports", { q: params.q, state: params.state }, { report: "partners" }) : undefined}
       />
 
       {read.ok && read.failed.length ? (
@@ -211,7 +210,7 @@ export default async function PartnersPage({ searchParams }: { searchParams: Pro
             total={live.length}
             onRowHref={(p) => `/portal/partners/${p.id}`}
             empty={
-              needle || state !== "all" ? (
+              (params.q ?? "").trim() || state !== "all" ? (
                 <EmptyState title="No partner matches that search" body="Clear the search or the filter to see the whole roster." />
               ) : (
                 <EmptyState

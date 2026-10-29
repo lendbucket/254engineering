@@ -38,7 +38,77 @@ partners. Those are questions, below.
 6. **WF-006 step 2, a customer cannot ask to be forgotten except by calling.** A new customer-facing form. Recommend: keep it staff-taken for now; `/portal/deletion-requests` already records it.
 7. **WF-030 step 5, a technician cannot delete a capture.** `deleteCapture` writes no audit row, and the evidence feeds what the engineer seals. Recommend: a delete button on the capture screen while the file is in the field, and an audit row added to `deleteCapture` first.
 
-## /portal/accounts COUNTS SUPERSEDED ACCOUNTS IN "ALL": A QUESTION FOR ROBERT
+## OFFICE READY: WHICH STAFF LISTS EXPORT CSV, AND WHAT IS LEFT
+
+Robert, 21:07 Central 2026-10-28: "list every staff list screen without a CSV
+export. Build the missing ones as one bundle, owner or admin only, with the
+shared CSV safety and an audit row, the same as the accounts export." The
+inventory, taken from `src/app/portal/(app)/` on `feat/office-csv`:
+
+| Screen | Exported before | This bundle |
+| --- | --- | --- |
+| /portal/accounts | yes, `report=accounts` | unchanged |
+| /portal/clients | yes, `/api/portal/clients/export` | unchanged |
+| /portal/inbox | yes | unchanged |
+| /portal/order-lookup | yes | unchanged |
+| /portal/payment-links | yes | unchanged |
+| /portal/prospects | yes | unchanged |
+| /portal/quotes | yes | unchanged |
+| /portal/refunds | yes | unchanged |
+| /portal/files | yes, the selected files | unchanged |
+| /portal/billing, /portal/reports, /portal/charge-log, /portal/documents | yes | unchanged |
+| /portal/applications | no | `report=applications` |
+| /portal/inquiries | no | `report=design-briefs` |
+| /portal/windstorm-inquiries | no | `report=windstorm-briefs` |
+| /portal/techs | no | `report=technicians` |
+| /portal/partners | no | `report=partners` |
+| /portal/tasks | no | `report=tasks` |
+
+The six new ones sit in the export door, gated on `accounts.manage` (the
+administrator's grant the accounts export uses; `src/lib/list-exports.ts`
+says why one grant and not six) and on the screen's own grant, through each
+screen's own read and filter with every row, the shared `csv.ts` writer and
+`moneyCell`, an `export.<report>` audit row, and a 503 with no file on a
+failed or partial read.
+
+**Not built, and why.** These screens show rows but have no list controls yet
+(no search, filter, sort or page), so an export "through the screen's own
+query" has no query to follow: people, suppressions, deletion requests,
+insurance, credentials, the job queue, orders, the audit trail, onboarding,
+review, waiting, the technician's jobs and messages. Each needs its list
+controls first (section 2d), and its export then follows the same pattern.
+/portal/procedures is a document a role reads, not a list of records, and is
+left out.
+
+## /portal/accounts COUNTS SUPERSEDED ACCOUNTS IN "ALL": RULED, BUILT ON feat/superseded-hidden
+
+**Ruled by Robert, 21:11 Central 2026-10-28:** "Superseded accounts: hidden
+from /portal/accounts and its counts by default, with a status filter that
+shows them." The recommendation below, adopted as written.
+
+**What was built.** The roster reads `superseded_at`, and the paging rule keeps
+superseded accounts out of every view but their own: "all", active, suspended
+and closed leave them out, and a new status value, "Superseded, kept as
+records (N)", shows only them, counted exactly across pages. "All" is now every
+account in use. The cannot-order warning never names a superseded account, and
+the unbilled count is over the accounts in use. The CSV export takes the page's
+own query, so it follows the same rule, and its preamble says when superseded
+accounts are left out. Proved in `the-accounts-list-pages-on-the-server.mjs`
+and, against development, in `the-accounts-screen-refuses-what-it-could-not-read.mjs`.
+
+**Found while building it:** the roster read had never excluded superseded
+accounts, against the 2026-09-14 ruling, and accounts-audit's "every read of an
+account excludes superseded rows" passed it because the check is per file and
+another function in `ops-accounts-admin.ts` names the column. The read is
+correct now, and the check was sharpened in the same bundle.
+
+**Closed in the same bundle (`18d24f9`, merged as `da6d165`, board
+40817335866):** accounts-audit's supersession sweep now asks each read of
+`eng_customer_accounts` rather than each file, and with the roster fix reverted
+it named `src/lib/ops-accounts-admin.ts:216`. It reads "18 reads scoped, 4 in 2
+declared exception files" on the board.
+
+**The question as it stood:**
 
 The accounts list reads the whole roster, superseded accounts included, so
 "all" counts them, and so do the paged list and the CSV export (bundles 10
