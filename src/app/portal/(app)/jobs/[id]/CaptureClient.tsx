@@ -59,7 +59,25 @@ type ServerCapture = {
   valueText: string | null;
   valueNumber: number | null;
   storageKey: string | null;
+  capturedAt?: string | null;
 };
+
+const KIND_NOUN: Record<EvidenceKind, string> = {
+  photo: "Photograph",
+  measurement: "Measurement",
+  reading: "Reading",
+  document: "Document",
+  note: "Note",
+};
+
+/** What one capture on the server is, in a line a technician can match to the roof. */
+function captureLine(c: ServerCapture, n: number): string {
+  const value = c.valueText ?? (c.valueNumber === null ? null : String(c.valueNumber));
+  const at = c.capturedAt
+    ? new Date(c.capturedAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
+    : null;
+  return [`${KIND_NOUN[c.kind]} ${n}`, value, at ? `taken ${at}` : null].filter(Boolean).join(", ");
+}
 
 const KIND_VERB: Record<EvidenceKind, string> = {
   photo: "Take a photograph",
@@ -82,6 +100,7 @@ export function Checklist({
   exceptions,
   protocolName,
   readOnly,
+  canRemove = false,
 }: {
   fileId: string;
   items: Item[];
@@ -89,8 +108,11 @@ export function Checklist({
   exceptions: ServerException[];
   protocolName: string;
   readOnly: boolean;
+  /** Drawn from captureDeleteRefusal on the server: the file is in the field and this person may remove. */
+  canRemove?: boolean;
 }) {
   const router = useRouter();
+  const [removing, setRemoving] = useState<string | null>(null);
   const [queue, setQueue] = useState<QueuedCapture[]>([]);
   const [online, setOnline] = useState(true);
   const [flushing, setFlushing] = useState(false);
@@ -327,6 +349,34 @@ export function Checklist({
     }
   }
 
+  /**
+   * Remove one capture that has reached the server. WF-030 step 5, Robert's
+   * ruling 2026-10-29. Asked first in plain words, because the removal is
+   * recorded in the firm's audit trail and cannot be undone from this screen.
+   */
+  async function removeCapture(item: Item, c: ServerCapture, n: number) {
+    if (!window.confirm(`Remove ${captureLine(c, n)} from ${item.label}? The removal is recorded, and you will need to capture it again.`)) return;
+    setError(null);
+    setRemoving(c.id);
+    try {
+      const res = await fetch("/api/portal/field", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "delete_capture", fileId, captureId: c.id }),
+      });
+      const body = (await res.json().catch(() => null)) as { ok?: boolean; error?: string } | null;
+      if (!res.ok || !body?.ok) {
+        setError(body?.error ?? "The capture was not removed. Try again.");
+        return;
+      }
+      router.refresh();
+    } catch {
+      setError("The network dropped that, so nothing was removed. Try again when you have signal.");
+    } finally {
+      setRemoving(null);
+    }
+  }
+
   async function submit() {
     setSubmitting(true);
     setError(null);
@@ -416,6 +466,7 @@ export function Checklist({
            */
           const status = state.items[index];
           const mine = queue.filter((q) => q.itemKey === item.itemKey && !q.exception);
+          const onServer = canRemove && !readOnly ? captures.filter((c) => c.itemKey === item.itemKey) : [];
           const needed = item.kind === "photo" ? Math.max(1, item.minCount ?? 1) : 1;
 
           return (
@@ -475,6 +526,24 @@ export function Checklist({
                       </li>
                     ) : null,
                   )}
+                </ul>
+              ) : null}
+
+              {onServer.length > 0 ? (
+                <ul className="mt-3 flex flex-col gap-1">
+                  {onServer.map((c, i) => (
+                    <li key={c.id} className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-[14px] leading-[1.5] text-[var(--ink)]">{captureLine(c, i + 1)}</span>
+                      <button
+                        type="button"
+                        onClick={() => void removeCapture(item, c, i + 1)}
+                        disabled={removing !== null}
+                        className="inline-flex min-h-[44px] items-center rounded-[2px] border border-[var(--border)] px-3 text-[14px] font-semibold text-[var(--ink)] disabled:opacity-50"
+                      >
+                        {removing === c.id ? "Removing" : "Remove"}
+                      </button>
+                    </li>
+                  ))}
                 </ul>
               ) : null}
 
