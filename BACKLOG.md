@@ -31,7 +31,7 @@ partners. Those are questions, below.
 
 **Questions for Robert, each with a recommendation:**
 1. **WF-017 step 6, withdrawing or restoring a technician's certification has no screen.** It is a licensed action, so only the engineer may send it, and the engineer cannot open `/portal/techs`. Recommend: a panel on `/portal/review` beside the training decisions, engineer only, with the reason required.
-2. **WF-021 step 4, releasing a sign-in lock has no screen.** `/api/portal/unlock` takes the operator's token. Recommend: keep it off-screen; a screen would put the break-glass token, or its equivalent, behind an ordinary session.
+2. **WF-021 step 4, releasing a sign-in lock has no screen.** The route behind `releaseLock` takes the operator's token. Recommend: keep it off-screen; a screen would put the break-glass token, or its equivalent, behind an ordinary session.
 3. **WF-022 step 3, setting an account's credit limit and terms has no screen.** That is a money flow. Recommend: an administrator panel on `/portal/accounts`, with a fresh second factor, once you rule.
 4. **WF-024 step 3, the proving charge has no screen.** A live charge. Recommend: an administrator button on `/portal/launch` that shows the blockers first; build only on your word.
 5. **WF-024 step 4, telling the waitlist the firm is open has no screen.** It emails customers. Recommend: a button on `/portal/launch`, enabled only once the gate reads live, sending a preview to you first.
