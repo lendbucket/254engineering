@@ -159,3 +159,43 @@ export function runtimeFor(scriptPath) {
 
   return { needsReactServer: reason !== null, declares, reason };
 }
+
+/**
+ * Every audit in package.json that would be run the wrong way, as the lines the
+ * board prints before refusing. Empty when every invocation matches what its
+ * file needs and declares.
+ *
+ * In one home since 2026-10-28, so scripts/audit.mjs (which refuses the board
+ * on it) and scripts/preflight.mjs (which runs it before a board) cannot
+ * disagree. Board 40798160014 ran no audit at all because w2-walk-audit needed
+ * react-server and did not declare it; nothing run locally had asked.
+ */
+export function invocationProblems() {
+  const pkg = JSON.parse(readSource("package.json"));
+  const wrong = [];
+
+  for (const [name, cmd] of Object.entries(pkg.scripts)) {
+    if (!/audit/.test(name)) continue;
+    const match = cmd.match(/scripts\/[\w./-]+\.mjs/);
+    if (!match) continue;
+
+    const { needsReactServer, declares, reason } = runtimeFor(match[0]);
+    const invoked = /--conditions=react-server/.test(cmd);
+
+    if (needsReactServer && !invoked) {
+      wrong.push(
+        `  ${name}: imports ${reason}, which is server-only, and runs as "${cmd}".\n` +
+          `      It cannot load that module. Add --conditions=react-server.`,
+      );
+    } else if (needsReactServer && !declares) {
+      wrong.push(
+        `  ${name}: needs react-server because of ${reason} and does not declare "${DECLARATION}" at the top of the file.`,
+      );
+    } else if (!needsReactServer && invoked && declares) {
+      wrong.push(
+        `  ${name}: declares "${DECLARATION}" and imports nothing server-only. Remove the declaration or the flag.`,
+      );
+    }
+  }
+  return wrong;
+}

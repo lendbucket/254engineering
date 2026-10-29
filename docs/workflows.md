@@ -434,3 +434,9 @@ Recorded so W2 looks at these first rather than trusting a gap in this map:
 ## Where this sits
 
 The walk that fills the W2 column is Phase W2 of the same instruction: a Playwright run against development, as probe accounts on `@audit-probe.invalid`. It was planned as a manual dispatch; Robert's ruling of 22:48 Central, 2026-10-27 is that a walk which writes to development runs only on a board, so it is `scripts/w2-walk-audit.mjs` in the board's writers shard, which reads this document's step tables and prints one "W2 RESULT:" line per step and width into the sealed log. It opens pages and submits nothing. The fixes are W3, by severity, and anything that changes what a customer is charged or what a letter says goes to Robert. The Procedures pages are W4. The plan is recorded in `docs/day-queue.md` on `ops/day` under Robert's instruction of 22:05 Central, 2026-10-26.
+
+## Unreached by design
+
+One step stays unreached in the walk on purpose, and is not a gap.
+
+- **254-WF-016 step 4**, the technician's onboarding page. It opens only from a real invitation's token, and issuing one leaves a permanent probe onboarding record on development every run. Robert, 21:07 Central 2026-10-28 (the chat, issue #1 comment 6485923380).
