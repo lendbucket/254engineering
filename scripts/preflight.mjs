@@ -145,6 +145,69 @@ for (const name of SHARDS.static.audits) {
 }
 runAudit("soc2-audit");
 
+/* ------------------------------------------------------------- 3a. the workflow map against the walk's pins */
+
+/*
+ * w2-walk-audit runs in the writers shard, but its first four checks need only
+ * the files: docs/workflows.md parsed, compared with the walk's own pins. Board
+ * 40833339969 missed on one of them (12 steps with no screen, the pin 13). The
+ * checks are the walk's own function, mapChecks; the pins are read from the
+ * walk's source with mapPinsFrom, never retyped, so the two cannot disagree.
+ */
+{
+  const { readWorkflowMap, mapChecks, mapPinsFrom } = await import("./lib/workflow-map.mjs");
+  const pins = mapPinsFrom(readFileSync("scripts/w2-walk-audit.mjs", "utf8"));
+  if (!pins) say("the workflow map against the walk's pins", "FAIL", "the walk's four MAP_ pins were not each found exactly once in scripts/w2-walk-audit.mjs");
+  else {
+    const bad = mapChecks(readWorkflowMap(), pins).filter((c) => !c.ok);
+    if (bad.length) say("the workflow map against the walk's pins", "FAIL", bad.map((c) => `${c.name} (${c.note})`).join(" | "));
+    else say("the workflow map against the walk's pins", "PASS", `${pins.workflows} workflows, at least ${pins.stepsAtLeast} steps, ${pins.needsCode} needing code, ${pins.noScreen} with no screen`);
+  }
+}
+
+/* ------------------------------------------------------------- 3b. merge markers */
+
+/*
+ * A HAND-RESOLVED MERGE LEAVES NO MARKER BEHIND. 2026-10-29: a tree carrying a
+ * leftover opening marker at the top of BACKLOG.md was GREEN here, because no
+ * rule read for one. Every tracked or untracked, not ignored, text file is read
+ * (git's own exclusions keep node_modules and .next out; a file with a NUL byte
+ * is binary and skipped). A line starting with the opening or closing marker,
+ * or a line that is exactly the divider, fails, named by file and line. When
+ * this was written no file in the tree had a line that is exactly the divider,
+ * so it is a failure on its own rather than only inside a full triplet. The
+ * three strings are built by repetition, so this file carries none of them.
+ */
+{
+  const OPEN = "<".repeat(7) + " ";
+  const DIVIDER = "=".repeat(7);
+  const CLOSE = ">".repeat(7) + " ";
+  const listed = execFileSync("git", ["ls-files", "--cached", "--others", "--exclude-standard"], { encoding: "utf8", maxBuffer: 1 << 28 })
+    .split("\n")
+    .filter((f) => f && !/(^|\/)(node_modules|\.next)\//.test(f));
+  const found = [];
+  let read = 0;
+  for (const f of listed) {
+    let buf;
+    try {
+      buf = readFileSync(f);
+    } catch {
+      continue; // deleted in the working tree but still in the index
+    }
+    if (buf.includes(0)) continue;
+    read += 1;
+    buf
+      .toString("utf8")
+      .split(/\r?\n/)
+      .forEach((line, i) => {
+        if (line.startsWith(OPEN) || line === DIVIDER || line.startsWith(CLOSE)) found.push(`${f}:${i + 1}`);
+      });
+  }
+  if (read === 0) say("no merge conflict marker in any file", "COULD NOT TELL", "no text file was read");
+  else if (found.length) say("no merge conflict marker in any file", "FAIL", `${found.length} line(s): ${found.slice(0, 10).join(", ")}`);
+  else say("no merge conflict marker in any file", "PASS", `${read} text files read`);
+}
+
 /* ------------------------------------------------------------- 4. retention declaration */
 
 {
@@ -195,6 +258,19 @@ const failed = results.filter((r) => r.verdict === "FAIL");
 const untold = results.filter((r) => r.verdict === "COULD NOT TELL");
 console.log("");
 console.log(`preflight: ${results.length} rules, ${failed.length} failed, ${untold.length} could not tell, ${((Date.now() - started) / 1000).toFixed(0)} s`);
+/*
+ * --summary <path> writes the rules and their verdicts, and nothing an audit
+ * printed, for the board's first job (scripts/ci/preflight-gate.mjs). The rule
+ * names are this file's own fixed strings and the audit names in shards.mjs.
+ */
+{
+  const at = process.argv.indexOf("--summary");
+  if (at > 0) {
+    const { writeFileSync } = await import("node:fs");
+    const exit = results.length === 0 ? 2 : failed.length ? 1 : untold.length ? 2 : 0;
+    writeFileSync(process.argv[at + 1], JSON.stringify({ results, exit, seconds: Math.round((Date.now() - started) / 1000) }, null, 2));
+  }
+}
 if (results.length === 0) process.exit(2);
 if (failed.length) {
   console.log(`RED: ${failed.map((f) => f.rule).join(", ")}. No bundle boards on a red preflight.`);
