@@ -9,7 +9,7 @@ import { OfferCta } from "@/components/launch/OfferCta";
 import { buildMetadata } from "@/lib/seo";
 import { JsonLd, breadcrumbSchema } from "@/lib/schema";
 import { business } from "@/config/business";
-import { displayPhone, hasPostalAddress, postalAddressLine, telHref } from "@/config/contact";
+import { contact, displayPhone, hasPostalAddress, hoursLine, postalAddressLine, telHref } from "@/config/contact";
 import { firmName, registrationLine } from "@/lib/launch";
 
 /**
@@ -118,7 +118,7 @@ export default function PressPage() {
             </div>
             <div className="lg:col-span-8">
               <p className="text-[1.05rem] leading-[1.75] text-slate">
-                {business.name} is a veteran owned Texas engineering firm based in Corpus Christi.
+                {business.name} is a veteran owned Texas engineering firm based in {contact.city}.
                 It takes its name from the 254 counties of Texas and is organized to hold one
                 standard of field record and engineering review across all of them.
               </p>
@@ -222,6 +222,12 @@ export default function PressPage() {
                     <dd className="mt-1.5 text-[1.05rem] text-slate">{postalAddressLine()}</dd>
                   </div>
                 ) : null}
+                <div>
+                  <dt className="text-[0.85rem] font-semibold tracking-[0.08em] text-slate-muted uppercase">
+                    Hours
+                  </dt>
+                  <dd className="mt-1.5 text-[1.05rem] text-slate">{hoursLine()}</dd>
+                </div>
               </dl>
             </div>
           </div>

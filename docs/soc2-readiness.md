@@ -462,7 +462,7 @@ Nothing in this platform RECORDS a rotation, so that column is the operator's st
 | `FIRM_POSTAL_CODE` | Publishes the postal code. | Not set. |
 | `FIRM_LATITUDE` | The geo point for LocalBusiness markup. Omitted rather than approximated: a map pin is trusted absolutely. | Not set. |
 | `FIRM_LONGITUDE` | The other half of the geo point. | Not set. |
-| `FIRM_HOURS` | Publishes opening hours, which is a commitment to answer during them. | Not set. |
+| `FIRM_HOURS` | Nothing. | RETIRED 2026-10-29. It was never set, and nothing in src/ reads it any more. Robert gave the hours at 12:50 Central that day and they are declared once in src/config/contact.ts, for the reason the address is: a published commitment to answer is checked against the listing, and an environment variable can differ between a build and a deployment. |
 | `NEXT_PUBLIC_SENTRY_DSN` | Nothing secret. A DSN is write only and is inlined into the browser bundle. | Not set. Public by construction if it ever is. |
 | `SUPABASE_URL` | Names which database. Not a secret, and the single most important value to get right: db-guard exists because of it. | Vercel and .env.local. |
 | `LAUNCH_MODE` | One of seven launch gate conditions. Alone it opens nothing. | Vercel. |

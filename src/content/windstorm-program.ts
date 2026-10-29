@@ -122,7 +122,7 @@ export const windstormHub = {
   h1: "The Texas Windstorm Inspection Program",
   title: "Texas Windstorm Inspection Program | 254 Engineering",
   description:
-    "How the Texas windstorm inspection program works: the catastrophe area, WPI-1, WPI-8, and TWIA eligibility. Join the waitlist for coastal engineering.",
+    "How the Texas windstorm inspection program works: the catastrophe area, WPI-1, WPI-8, and TWIA eligibility. Read each step in the order the program runs.",
   summary:
     "Along the Texas coast, a building becomes insurable through a paper trail that starts before the first nail. This is how that system fits together, and where each part of it is decided.",
 
@@ -295,7 +295,7 @@ export const windstormPages: WindstormPage[] = [
     h1: "Certifying Coastal Work That Is Already Finished",
     title: "WPI-8E Completed Construction Certificate | 254 Engineering",
     description:
-      "The WPI-2E and WPI-8E route for coastal work finished without inspection, and what a sealed post-construction report must establish. Join the waitlist.",
+      "The WPI-2E and WPI-8E route for coastal work finished without inspection, and what a sealed post-construction report must establish. Read what it must show.",
     summary:
       "There is a route for work that was never inspected. It runs on a sealed post-construction report rather than on observations, which makes it slower, more involved, and occasionally impossible without opening the building back up.",
     sections: [
@@ -356,7 +356,7 @@ export const windstormPages: WindstormPage[] = [
     h1: "What a TDI Windstorm Appointment Actually Is",
     title: "TDI Appointed Windstorm Engineer Explained | 254 Engineering",
     description:
-      "What the Texas Department of Insurance windstorm appointment permits, how it differs from a Texas PE license, and how to verify one. Join the waitlist.",
+      "What the Texas Department of Insurance windstorm appointment permits, how it differs from a Texas PE license, and how to verify one. Read what each one allows.",
     summary:
       "A Texas engineering license permits an engineer to practice. The windstorm appointment is a separate thing entirely: permission to inspect on the department's behalf for this specific program.",
     sections: [
@@ -443,7 +443,7 @@ export const windstormPages: WindstormPage[] = [
     h1: "Why a Coastal Re-Roof Needs a Windstorm Certificate",
     title: "Coastal Re-Roof Windstorm Certification | 254 Engineering",
     description:
-      "Why re-roofing inside the Texas catastrophe area is a certifiable improvement, and what an uncertified re-roof does to coverage. Join the waitlist.",
+      "Why re-roofing inside the Texas catastrophe area is a certifiable improvement, and what an uncertified re-roof does to coverage. Read what the record needs.",
     summary:
       "Replacing a roof inside the designated area is an improvement the program covers. It is also the single most common piece of coastal work that gets done without anyone filing anything.",
     sections: [
@@ -502,7 +502,7 @@ export const windstormPages: WindstormPage[] = [
     h1: "Why Openings Govern Coastal Wind Performance",
     title: "Coastal Opening Protection Requirements | 254 Engineering",
     description:
-      "Why windows, doors, and garage doors govern wind performance on the Texas coast, and what a missing element means for certification. Join the waitlist.",
+      "Why windows, doors, and garage doors govern wind performance on the Texas coast, and what a missing element means for certification. Read what each part needs.",
     summary:
       "A roof that stays on a building whose openings have failed is holding down a structure that is already pressurized from the inside. Openings are where coastal wind performance is decided.",
     sections: [
@@ -561,7 +561,7 @@ export const windstormPages: WindstormPage[] = [
     h1: "Windstorm Certificates in a Coastal Closing",
     title: "Windstorm Certificates at Coastal Closing | 254 Engineering",
     description:
-      "What a coastal closing needs from the windstorm record, and how to check certificate history before the option period ends. Join the waitlist.",
+      "What a coastal closing needs from the windstorm record, and how to check certificate history before the option period ends. Read the checks to run first.",
     summary:
       "Certificates attach to the structure and stay on file, which means a coastal property carries its windstorm history into every transaction whether or not anyone looks at it before the closing date.",
     sections: [
@@ -622,7 +622,7 @@ export const windstormPages: WindstormPage[] = [
     h1: "How a Windstorm Certificate Reaches TWIA Coverage",
     title: "TWIA Coverage and the WPI-8 Certificate | 254 Engineering",
     description:
-      "What the Texas Windstorm Insurance Association is, why the WPI-8 governs eligibility for wind and hail coverage, and what it does not cover. Join the waitlist.",
+      "What the Texas Windstorm Insurance Association is, why the WPI-8 governs eligibility for wind and hail coverage, and what it does not cover. Read how it works.",
     summary:
       "The association exists because ordinary carriers frequently will not write wind and hail on the coast. The certificate exists because an insurer of last resort still needs to know what it is insuring.",
     sections: [

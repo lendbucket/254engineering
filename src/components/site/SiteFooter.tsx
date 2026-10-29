@@ -3,7 +3,7 @@ import { Container } from "@/components/ui/Container";
 import { Wordmark } from "@/components/brand/Wordmark";
 import { business } from "@/config/business";
 import { registrationLine } from "@/lib/launch";
-import { displayPhone, hasPostalAddress, postalAddressLine, telHref } from "@/config/contact";
+import { displayPhone, hasPostalAddress, hoursLine, postalAddressLine, telHref } from "@/config/contact";
 
 import { services } from "@/content/services";
 import { regions } from "@/content/regions";
@@ -85,6 +85,8 @@ export function SiteFooter() {
             {hasPostalAddress() ? (
               <p className="mt-3 text-[14px] leading-[1.65]">{postalAddressLine()}</p>
             ) : null}
+            {/* The hours, from the one declared value. Robert, 2026-10-29. */}
+            <p className="mt-1 text-[14px] leading-[1.65]">{hoursLine()}</p>
             {displayPhone() ? (
               <a
                 href={telHref() ?? undefined}

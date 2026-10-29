@@ -125,11 +125,29 @@ export const contact = {
    *
    * `founder` below is the precedent and its reasoning is identical: not
    * environment driven, because it is already public.
+   *
+   * ==========================================================================
+   * MOVED TO SAN ANTONIO. Robert, 12:50 Central 2026-10-29.
+   * ==========================================================================
+   *
+   * 11103 San Pedro Ave, San Antonio, TX 78216, with no suite. The Corpus
+   * Christi address above is the record of what this said from 2026-09-18 to
+   * 2026-10-29, kept for the reasoning rather than as a description of today.
+   *
+   * THE SENTENCE ABOVE ABOUT STRIPE IS NO LONGER A CLAIM ABOUT THIS ADDRESS.
+   * It was true of the Corpus Christi address on 2026-09-18. Whether Stripe's
+   * support address has been moved is a fact about Stripe's console, which no
+   * check here can read, and src/config/stripe-console.ts declares what was
+   * last read there. Only a person reading the console may change that record.
+   *
+   * The same holds for the Board's mailing address in src/config/credentials.ts:
+   * it is the Board's record, it changes when the Board's record changes, and
+   * it is not edited to match this one.
    */
-  street: "5601 South Padre Island Drive",
-  street2: "Suite E",
-  city: "Corpus Christi",
-  postalCode: "78412",
+  street: "11103 San Pedro Ave",
+  street2: null as string | null,
+  city: "San Antonio",
+  postalCode: "78216",
 
   /**
    * Coordinates of that address, for LocalBusiness geo.
@@ -142,10 +160,25 @@ export const contact = {
   longitude: env("FIRM_LONGITUDE"),
 
   /**
-   * Opening hours in schema.org openingHours syntax, comma separated.
-   * Example shape only, not a default: "Mo-Fr 08:00-17:00".
+   * THE OFFICE HOURS. Robert, 12:50 Central 2026-10-29: every day of the week,
+   * 8:00 AM to 8:00 PM Central.
+   *
+   * DECLARED, NOT READ FROM FIRM_HOURS, for the reason the address is: a
+   * published commitment to answer the telephone is a fact somebody checks
+   * against the listing, and an environment variable can differ between a
+   * build and a deployment. FIRM_HOURS was never set and is recorded as
+   * retired in src/config/credential-inventory.ts.
+   *
+   * ONE VALUE, TWO DERIVERS. `hoursLine()` is the sentence a person reads and
+   * `openingHoursSchema()` is the node a machine reads. Neither is typed
+   * anywhere else, so the listing, the page and the schema cannot disagree.
    */
-  hours: env("FIRM_HOURS"),
+  hours: {
+    days: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+    opens: "08:00",
+    closes: "20:00",
+    timeZone: "America/Chicago",
+  },
 } as const;
 
 /**
@@ -266,6 +299,52 @@ export function postalAddressLine(): string | null {
     [contact.street, contact.street2].filter(Boolean).join(", "),
     `${contact.city}, TX ${contact.postalCode}`,
   ].join(", ");
+}
+
+/** "08:00" as "8:00 AM", "20:00" as "8:00 PM". */
+function clock(hhmm: string): string {
+  const [h, m] = hhmm.split(":").map(Number);
+  const suffix = h < 12 ? "AM" : "PM";
+  const twelve = h % 12 === 0 ? 12 : h % 12;
+  return `${twelve}:${String(m).padStart(2, "0")} ${suffix}`;
+}
+
+/** The zone a person reads beside the hours. Only the firm's own zone is named. */
+const ZONE_NAME: Record<string, string> = { "America/Chicago": "Central" };
+
+/**
+ * The office hours as a person reads them: "Monday to Sunday, 8:00 AM to 8:00
+ * PM Central". Derived from `contact.hours`, never typed.
+ *
+ * A run of days is written as its first and last day, which is only honest
+ * when the declared days are consecutive. They are today; if they ever stop
+ * being, this lists every day rather than imply the ones between.
+ */
+export function hoursLine(): string {
+  const { opens, closes, timeZone } = contact.hours;
+  const days: readonly string[] = contact.hours.days;
+  const week = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+  const start = week.indexOf(days[0]);
+  const consecutive = days.every((d, i) => week.indexOf(d) === start + i);
+  const span =
+    days.length === 1 ? days[0] : consecutive ? `${days[0]} to ${days[days.length - 1]}` : days.join(", ");
+  return `${span}, ${clock(opens)} to ${clock(closes)} ${ZONE_NAME[timeZone] ?? timeZone}`;
+}
+
+/**
+ * The OpeningHoursSpecification node for the Organization and
+ * ProfessionalService entity. schema.org reads opens and closes as local time
+ * at the business, which is the firm's own zone.
+ */
+export function openingHoursSchema() {
+  return [
+    {
+      "@type": "OpeningHoursSpecification" as const,
+      dayOfWeek: contact.hours.days.map((d) => `https://schema.org/${d}`),
+      opens: contact.hours.opens,
+      closes: contact.hours.closes,
+    },
+  ];
 }
 
 /** The GeoCoordinates node, or null. */
