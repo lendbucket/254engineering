@@ -54,6 +54,7 @@ import { join } from "node:path";
 import { createHash } from "node:crypto";
 import { PGlite } from "@electric-sql/pglite";
 import { RETENTION_POLICY } from "../src/lib/retention-policy.ts";
+import { chainBuckets } from "./lib/chain-buckets.mjs";
 
 const DIR = join(process.cwd(), "supabase", "migrations");
 
@@ -2509,6 +2510,26 @@ try {
     missing.length
       ? `${missing.join(", ")} is used in src and no migration creates it, so a rebuilt database has nowhere to put those files`
       : `${created.size} created: ${[...created].join(", ")}`,
+  );
+
+  /*
+   * AND THE BUCKETS copy-project.mjs COPIES ARE EVERY eng- BUCKET THE CHAIN
+   * CREATES. Added 2026-10-28: that list was typed, fell six behind, and nothing
+   * compared it with anything. It is now parsed from the migration files
+   * (scripts/lib/chain-buckets.mjs), and this compares the parse with the
+   * replay, which is the independent side: a bucket created in a shape the
+   * parse cannot read would be in the replay and missing from the copy.
+   */
+  const parsed = chainBuckets();
+  const replayed = [...created].filter((b) => b.startsWith("eng-")).sort();
+  const notCopied = replayed.filter((b) => !parsed.includes(b));
+  const notCreated = parsed.filter((b) => !replayed.includes(b));
+  rec(
+    `copy-project copies every eng- bucket the replay holds (${replayed.length})`,
+    replayed.length > 0 && notCopied.length === 0 && notCreated.length === 0,
+    notCopied.length || notCreated.length
+      ? `${notCopied.length ? `created and not copied: ${notCopied.join(", ")}` : ""}${notCopied.length && notCreated.length ? "; " : ""}${notCreated.length ? `copied and not created: ${notCreated.join(", ")}` : ""}`
+      : `${parsed.length} parsed from the migrations, ${replayed.length} in the replay, the same set`,
   );
 } catch (err) {
   /*
