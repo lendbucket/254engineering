@@ -69,6 +69,38 @@ Every repair was proved by an injection, and each file was restored byte identic
 4. Skip re-boarding a push to main whose exact commit already has a green board (ruled 2026-10-22). It edits `board.yml`, so it comes after bundle 17.
 5. List controls (search, filter, sort, paging) on the 13 staff screens that have none, so each can then take a CSV export, office ready section 2d.
 
+## 2026-10-29: BUNDLE 19 MERGED; BUNDLE 20, A GREEN COMMIT IS NOT BOARDED TWICE, AT `30e597c`
+
+**Bundle 19 merged as `a23dc9f`.** The merged tree is the boarded tree. Board 40870134329 on `62f404e` read 64 of 64, preflight GREEN:
+- "every portal .tsx is read by this audit or named as not read, with a reason (199 files, 0 not read)".
+- contrast and mobile passed on the restyled screens.
+- The walk read 218 works and 4 friction (the same 222 between them), 19 missing, 7 off-screen, 2 unreached, 0 broken.
+
+**Prediction for bundle 20, written and pushed before the board starts.** The BACKLOG item ruled 2026-10-22: "Same commit only".
+
+**What it does:**
+- A push whose exact commit already passed a full board (build, preflight, all five shards and board, and not itself a skip) is not boarded again. Its summary opens "Cloud board: SKIPPED", naming the earlier run.
+- A new `prior` job asks the GitHub API with the run's read-only token.
+- Any error boards.
+- The build skips only on a positive skip.
+- The preflight runs on every push.
+- A `--no-ff` merge is a new commit and still boards, so this rarely fires.
+
+**Proof:** `a-green-commit-is-not-boarded-twice.mjs`, 23 checks over every case. Injected twice, each red on its own check, both restored byte identical. The preflight caught five undeclared GitHub run names, now declared.
+
+**Readers on `30e597c`:**
+- Preflight GREEN.
+- The proof passes.
+- tsc clean.
+
+**Prediction: 64 of 64.**
+- The `prior` job finds no earlier run of this commit and lets it board. **That is its first live call to the API.**
+- The preflight is green.
+- The walk as before; 3 lines exempt.
+- **If the `prior` job errors, the board must still run.** That is the fail-closed design, and the summary will say so.
+
+**One question for Robert:** should a merge whose tree matches its boarded branch also skip? I recommend no for now. It widens your ruling, which said same commit only.
+
 ## 2026-10-29: BUNDLE 18 MERGED; BUNDLE 19, TOKEN-AUDIT READS EVERY PORTAL FILE, AT `62f404e`
 
 **Bundle 18 merged as `fae1331`.** The merged tree is the boarded tree. Board 40859705400 on `e62b34e` read 64 of 64, preflight GREEN:
