@@ -52,7 +52,7 @@
 
 import { chromium } from "playwright";
 
-import { readWorkflowMap } from "./lib/workflow-map.mjs";
+import { readWorkflowMap, mapChecks } from "./lib/workflow-map.mjs";
 import { SURFACES, roleForRoute } from "./lib/surfaces.mjs";
 import { AUDIT_BASE_URL } from "./lib/ports.mjs";
 import { navigationVerdict, orCouldNotTell, COULD_NOT_TELL } from "./lib/reachable.mjs";
@@ -355,27 +355,10 @@ console.log("================ W2, EVERY WORKFLOW WALKED AS ITS ROLE ============
 // ------------------------------------------------------------------ the map
 const workflows = readWorkflowMap();
 const steps = workflows.flatMap((w) => w.steps.map((s) => ({ ...s, wf: w.id, section: w.section })));
-const ids = workflows.map((w) => w.id);
-const expectedIds = Array.from({ length: MAP_WORKFLOWS }, (_, i) => `254-WF-${String(i + 1).padStart(3, "0")}`);
-rec(
-  "the map names 254-WF-001 to 254-WF-036, once each and in order",
-  ids.join(",") === expectedIds.join(","),
-  `${ids.length} workflow(s) parsed`,
-);
-const malformed = steps.filter((s) => s.malformed);
-rec("every step row has the map's ten columns", malformed.length === 0, malformed.map((s) => `${s.wf} step ${s.n}: ${s.malformed}`).join("; "));
-rec(
-  `the map holds at least ${MAP_STEPS_AT_LEAST} steps`,
-  steps.length >= MAP_STEPS_AT_LEAST,
-  `${steps.length} parsed; a parser that matched nothing would walk nothing and pass`,
-);
-const needsCode = steps.filter((s) => s.marks?.needsCode).length;
-const noScreen = steps.filter((s) => s.marks?.noScreen).length;
-rec(
-  "the marks parsed are the marks the map counts",
-  needsCode === MAP_NEEDS_CODE && noScreen === MAP_NO_SCREEN,
-  `${needsCode} needing SQL, a script or a code edit (the map says ${MAP_NEEDS_CODE}); ${noScreen} with no screen (the map says ${MAP_NO_SCREEN})`,
-);
+/* The four static checks, one function shared with scripts/preflight.mjs (scripts/lib/workflow-map.mjs). */
+for (const c of mapChecks(workflows, { workflows: MAP_WORKFLOWS, stepsAtLeast: MAP_STEPS_AT_LEAST, needsCode: MAP_NEEDS_CODE, noScreen: MAP_NO_SCREEN })) {
+  rec(c.name, c.ok, c.note);
+}
 
 // ------------------------------------------------------------------ who walks each step
 const portal = SURFACES.find((s) => s.key === "portal");

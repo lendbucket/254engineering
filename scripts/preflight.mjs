@@ -145,6 +145,26 @@ for (const name of SHARDS.static.audits) {
 }
 runAudit("soc2-audit");
 
+/* ------------------------------------------------------------- 3a. the workflow map against the walk's pins */
+
+/*
+ * w2-walk-audit runs in the writers shard, but its first four checks need only
+ * the files: docs/workflows.md parsed, compared with the walk's own pins. Board
+ * 40833339969 missed on one of them (12 steps with no screen, the pin 13). The
+ * checks are the walk's own function, mapChecks; the pins are read from the
+ * walk's source with mapPinsFrom, never retyped, so the two cannot disagree.
+ */
+{
+  const { readWorkflowMap, mapChecks, mapPinsFrom } = await import("./lib/workflow-map.mjs");
+  const pins = mapPinsFrom(readFileSync("scripts/w2-walk-audit.mjs", "utf8"));
+  if (!pins) say("the workflow map against the walk's pins", "FAIL", "the walk's four MAP_ pins were not each found exactly once in scripts/w2-walk-audit.mjs");
+  else {
+    const bad = mapChecks(readWorkflowMap(), pins).filter((c) => !c.ok);
+    if (bad.length) say("the workflow map against the walk's pins", "FAIL", bad.map((c) => `${c.name} (${c.note})`).join(" | "));
+    else say("the workflow map against the walk's pins", "PASS", `${pins.workflows} workflows, at least ${pins.stepsAtLeast} steps, ${pins.needsCode} needing code, ${pins.noScreen} with no screen`);
+  }
+}
+
 /* ------------------------------------------------------------- 3b. merge markers */
 
 /*
