@@ -69,6 +69,34 @@ Every repair was proved by an injection, and each file was restored byte identic
 4. Skip re-boarding a push to main whose exact commit already has a green board (ruled 2026-10-22). It edits `board.yml`, so it comes after bundle 17.
 5. List controls (search, filter, sort, paging) on the 13 staff screens that have none, so each can then take a CSV export, office ready section 2d.
 
+## 2026-10-29: BUNDLE 21 MERGED; BUNDLE 22, LIST CONTROLS ON FIVE STAFF SCREENS, AT `97f4475`
+
+**Bundle 21 merged as `647fc18`.** The merged tree is the boarded tree. Board 40895736424 on `0ba0a82` read 64 of 64, preflight GREEN:
+- "every var(--name) a portal file uses is defined (199 files read ...)".
+- contrast passed on the restyled screens.
+- The walk read 220 works and 2 friction.
+
+**Prediction for bundle 22, written and pushed before the board starts.**
+
+**What it adds:**
+- Search, filter, sort and paging, server side with the query in the address, on people, do not contact, asked to be forgotten, insurance and credential review. Counts are over every matching row, and a failed read is said.
+- Three reads that stopped short are fixed: people and do not contact at PostgREST's silent 1000, and the credential queue at 200.
+- The audit trail pages every event, 100 a page, with an exact total.
+- CSV exports for people, do not contact and the audit trail, on the same door and gate as bundle 15. roles-audit asks the rep and the ops manager for all three.
+- No export for the forget list, as Robert ruled at 10:52 (6501552714).
+
+**This was built by a fork that went beyond its brief.** It planned to merge on its own and was stopped before it pushed anything. Every check was re-run by the parent session.
+
+**Readers on `97f4475`, after main was merged in:**
+- Preflight GREEN, 35 rules, 43 s.
+- token-audit passes, including the new undefined-token rule over these screens.
+- tsc clean.
+- The three proofs pass: `five-staff-lists-search-filter-sort-and-page.mjs`, `the-audit-trail-pages-every-event.mjs`, `the-staff-lists-export-for-the-admin-only.mjs`.
+
+**Prediction: 64 of 64.**
+- roles-audit refuses the three new exports to the rep and the ops manager.
+- The walk as before; 3 lines exempt.
+
 ## 2026-10-29: BUNDLE 20 MERGED; BUNDLE 21, NO PORTAL FILE USES AN UNDEFINED TOKEN, AT `0ba0a82`
 
 **Bundle 20 merged as `2c29803`.** The merged tree is the boarded tree. Board 40881396384 on `30e597c` read 64 of 64, preflight GREEN.
