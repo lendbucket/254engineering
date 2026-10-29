@@ -1,5 +1,49 @@
 # Day queue, 2026-10-23
 
+## 2026-10-29: BUNDLE 15 MERGED; BUNDLE 16, W3 ROUND 2, AT `09ce70c`
+
+**Bundle 15 merged as `417bdfa`.** The merged tree is the boarded tree. Board 40825157227 on `f6700ad` read 64 of 64, every predicted line held:
+- The rep and the ops manager are each refused all six new exports, and the accounts export, at the real route.
+- `the-staff-lists-export-for-the-admin-only.mjs` passes, and so does the design briefs proof.
+- The walk at 0 broken.
+
+**Prediction for bundle 16, written and pushed before the board starts.** Robert's item 3 of 21:07, with his pre-approval of 21:11.
+
+**The 28 steps of the walk's missing and off-screen lists:**
+
+| Class | Count |
+| --- | --- |
+| Off-screen by nature, map already right | 7 |
+| Map wording corrected (WF-007 step 4 names the four screens with the call log) | 1 |
+| No screen by design | 4 |
+| Code edit by design or by ruling | 8 |
+| Built | 1 |
+| Asked, not built | 7 |
+
+**Built, WF-016 step 3:**
+- The onboarding invite is emailed by default, through the existing `onboardingInvite` template, with "by hand" as the other choice.
+- The link comes back to the screen only when sent by hand, or when the email could not be queued.
+- The audit row records how the link went out, never the link.
+
+**Repaired, WF-017 step 6:** the certification refusals said "an engineer or an administrator" where only the licensed role passes. They now use `licenceRefusal`.
+
+**Proof:** `the-onboarding-invite-is-emailed-and-the-licence-refusal-is-true.mjs`, injected twice, each red on its own checks.
+
+**Brought up to main:** BACKLOG conflicted and was resolved keeping all three sections, with no marker left. The preflight now checks for markers once its branch lands; here they were checked by reading, and 0 remain.
+
+**Readers on `09ce70c`:**
+- Preflight GREEN.
+- tsc clean; backlog-audit passes.
+- The new proof and the procedures proof pass.
+
+**Prediction: 64 of 64.**
+- onboarding-audit and email-audit pass.
+- proofs-audit passes with the new proof.
+- **The walk changes.** On main, WF-016 step 3 carries `[NO SCREEN]`, and this branch removes the mark because the screen now does the step. So the walk takes it as the ops manager at 1280 and 390:
+  - **missing 20 to 19, works 216 to 218**;
+  - off-screen 8, unreached 2, broken 0 unchanged.
+- 3 lines exempt.
+
 ## 2026-10-29: BUNDLE 14 MERGED; BUNDLE 15, THE OFFICE CSV EXPORTS, AT `f6700ad`
 
 **Bundle 14 merged as `da6d165`.** The merged tree is the boarded tree. Board 40817335866 on `d502c95` read 64 of 64, every predicted line held:
