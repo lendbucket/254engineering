@@ -97,7 +97,7 @@ function Row({ row }: { row: UncreditedRow }) {
         </button>
       </div>
       {error ? (
-        <p role="alert" className="mt-2 text-[12.5px] text-[var(--danger)]">
+        <p role="alert" className="mt-2 text-[12.5px] text-[var(--red)]">
           {error}
         </p>
       ) : null}

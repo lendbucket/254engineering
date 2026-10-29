@@ -523,7 +523,7 @@ export function IntakeClient({
         ) : null}
 
         {done.paymentLinkWarning ? (
-          <p className="mt-3 border-l-2 border-[var(--danger)] py-1 pl-3 text-[14px] leading-[1.55] text-[var(--ink)]">
+          <p className="mt-3 border-l-2 border-[var(--ink)] py-1 pl-3 text-[14px] leading-[1.55] text-[var(--ink)]">
             {done.paymentLinkWarning} The customer has not been asked to pay, and the file says the link was not sent.
           </p>
         ) : null}
@@ -656,7 +656,7 @@ export function IntakeClient({
             ) : null}
 
             {query.trim().length >= 2 && !searching && searchFailed ? (
-              <p role="alert" className="mt-2 text-[14px] font-semibold leading-[1.5] text-[var(--danger)]">
+              <p role="alert" className="mt-2 text-[14px] font-semibold leading-[1.5] text-[var(--ink)]">
                 The client search did not work ({searchFailed}), so whether this client already exists is not known. Try the search again before creating them.
               </p>
             ) : query.trim().length >= 2 && !searching && visibleMatches.length === 0 ? (
@@ -999,7 +999,7 @@ export function IntakeClient({
           </div>
         ) : null}
         {priceError ? (
-          <p className="mt-2 text-[14px] font-semibold leading-[1.5] text-[var(--danger)]">{priceError}</p>
+          <p className="mt-2 text-[14px] font-semibold leading-[1.5] text-[var(--ink)]">{priceError}</p>
         ) : null}
       </Section>
 
@@ -1101,7 +1101,7 @@ export function IntakeClient({
         ) : null}
 
         {error ? (
-          <p className="mb-3 text-[14px] font-semibold leading-[1.5] text-[var(--danger)]">{error}</p>
+          <p className="mb-3 text-[14px] font-semibold leading-[1.5] text-[var(--ink)]">{error}</p>
         ) : null}
 
         <button
