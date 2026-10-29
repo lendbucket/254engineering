@@ -145,6 +145,49 @@ for (const name of SHARDS.static.audits) {
 }
 runAudit("soc2-audit");
 
+/* ------------------------------------------------------------- 3b. merge markers */
+
+/*
+ * A HAND-RESOLVED MERGE LEAVES NO MARKER BEHIND. 2026-10-29: a tree carrying a
+ * leftover opening marker at the top of BACKLOG.md was GREEN here, because no
+ * rule read for one. Every tracked or untracked, not ignored, text file is read
+ * (git's own exclusions keep node_modules and .next out; a file with a NUL byte
+ * is binary and skipped). A line starting with the opening or closing marker,
+ * or a line that is exactly the divider, fails, named by file and line. When
+ * this was written no file in the tree had a line that is exactly the divider,
+ * so it is a failure on its own rather than only inside a full triplet. The
+ * three strings are built by repetition, so this file carries none of them.
+ */
+{
+  const OPEN = "<".repeat(7) + " ";
+  const DIVIDER = "=".repeat(7);
+  const CLOSE = ">".repeat(7) + " ";
+  const listed = execFileSync("git", ["ls-files", "--cached", "--others", "--exclude-standard"], { encoding: "utf8", maxBuffer: 1 << 28 })
+    .split("\n")
+    .filter((f) => f && !/(^|\/)(node_modules|\.next)\//.test(f));
+  const found = [];
+  let read = 0;
+  for (const f of listed) {
+    let buf;
+    try {
+      buf = readFileSync(f);
+    } catch {
+      continue; // deleted in the working tree but still in the index
+    }
+    if (buf.includes(0)) continue;
+    read += 1;
+    buf
+      .toString("utf8")
+      .split(/\r?\n/)
+      .forEach((line, i) => {
+        if (line.startsWith(OPEN) || line === DIVIDER || line.startsWith(CLOSE)) found.push(`${f}:${i + 1}`);
+      });
+  }
+  if (read === 0) say("no merge conflict marker in any file", "COULD NOT TELL", "no text file was read");
+  else if (found.length) say("no merge conflict marker in any file", "FAIL", `${found.length} line(s): ${found.slice(0, 10).join(", ")}`);
+  else say("no merge conflict marker in any file", "PASS", `${read} text files read`);
+}
+
 /* ------------------------------------------------------------- 4. retention declaration */
 
 {
