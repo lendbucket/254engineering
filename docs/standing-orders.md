@@ -29,13 +29,16 @@ The source of truth for the running loop. Robert, 2026-10-29: the loop prompt is
 | 27 | WF-024 step 3: a proving-charge button on `/portal/launch`, admin only. It states the charge before it runs, and is used only on Robert's word. | To build |
 | 28 | WF-024 step 4: a waitlist "we are open" email button on `/portal/launch`. It is enabled only when the gate reads live and sends Robert a preview first. Never sent by a board or a probe. | To build |
 
-| A | The San Antonio address and hours (Robert, 12:50 Central 2026-10-29): 11103 San Pedro Ave, San Antonio, TX 78216; (281) 940-4490, which matches `FIRM_PHONE`; Mon to Sun 8 AM to 8 PM Central; the brand stays "254 Engineering". One bundle covers the source of truth, footer, /contact, /press, schema and the pinned literals. Being built on `feat/sa-address`. **Held for Robert's answer on `/corpus-christi`** (issue #1 comment 6504279212; recommend a redirect to `/coverage/coastal-bend`, with a San Antonio page as its own bundle). Robert changes Stripe's support address, TBPELS's mailing address and the GBP himself. | Building; boards after the answer |
+| A | The San Antonio address and hours (Robert, 12:50 Central 2026-10-29): 11103 San Pedro Ave, San Antonio, TX 78216; (281) 940-4490, which matches `FIRM_PHONE`; Mon to Sun 8 AM to 8 PM Central; the brand stays "254 Engineering". One bundle covers the source of truth, footer, /contact, /press, schema and the pinned literals. Being built on `feat/sa-address`. **Robert, 13:09, in his own words: option 1.** `/corpus-christi` gets a 308 redirect to `/coverage/coastal-bend` and leaves the sitemap, and the San Antonio page becomes the firm's location page. The address bundle merges on a passing board. Robert changes Stripe's support address, TBPELS's mailing address and the GBP himself. | Building; boards after the answer |
 | B | Robert 13:05, items 2 and 3, folded into bundle A:
 - remove "254 Engineering Services" from every public page and add it to the banned-phrase check;
 - closed-for-business sentences only where the gate per line is really closed. | Building |
-| C | Robert 13:05, item 4: the square favicon set and a square Organization logo, on `feat/favicon`. The 48 px and 192 px images go on issue #1 for his approval before merge. Asked which logo: held `bf391d6` or main's. | Building |
+| C | Robert 13:05, item 4: the square favicon set and a square Organization logo, on `feat/favicon`. The 48 px and 192 px images go on issue #1 for his approval before merge. **Robert 13:09: the corrected held logo** (`hold/logo-254-engineering`, `bf391d6`). Post both renders on issue #1 for comparison before it merges. | Building |
 | D | Robert 13:05, item 5: the GBP link goes into `sameAs` only after Robert says the profile is verified. | Waiting on Robert |
-| E | Robert 13:05, item 6: `/guides` and four articles, one per board, then San Antonio. The section 8 proposal is being drafted. The section 2 city-page question is open (6504589043). | Proposal first |
+| E | Robert 13:05, item 6: `/guides` and four articles, one per board, then San Antonio. The section 8 proposal is being drafted. **Robert 13:09:**
+- Post the research proposal for his yes.
+- The foundation article is written for Texas foundations generally, with San Antonio's permit facts as the example.
+- The San Antonio location page's outline and sources are proposed on issue #1 before it is written. | Proposal first |
 
 Source of 23 to 28: Robert, 10:52 Central 2026-10-29, issue #1 comment 6501552714.
 
