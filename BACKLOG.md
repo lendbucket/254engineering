@@ -4,6 +4,34 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
+## THE OFFICE MOVED TO SAN ANTONIO, 2026-10-29: WHAT THE MOVE DID NOT MOVE
+
+Robert, 12:50 Central 2026-10-29: the office is 11103 San Pedro Ave, San Antonio,
+TX 78216, the phone stays (281) 940-4490, and the hours are Monday to Sunday,
+8:00 AM to 8:00 PM Central. `feat/sa-address` moved the one declared address in
+`src/config/contact.ts`, declared the hours there with two derivers
+(`hoursLine()`, `openingHoursSchema()`), and carried both to the footer,
+/contact, /press, the Organization and ProfessionalService node, and seo-audit's
+pinned literals. These four things it did not move, each on purpose:
+
+1. **/corpus-christi, the firm's single location page** (CLAUDE.md section 2;
+   `src/content/location.ts`). It is written as "the one place the firm actually
+   sits", and it prints `contact.street` and `contact.city`, so it now shows the
+   San Antonio office on a page about Corpus Christi. **Robert to rule** whether
+   it is retired with a permanent redirect to /coverage/coastal-bend, and whether
+   a San Antonio location page is written in its place from primary sources. The
+   windstorm hub's link to it ("based in Corpus Christi") was rewritten to a
+   plain sentence without the link.
+2. **The Stripe support address** in `src/config/stripe-console.ts` is a dated
+   record of what Stripe's console held when somebody last read it. Nothing
+   compares it to `contact.ts`. It moves when Robert changes the console and
+   somebody reads it back.
+3. **The Board's mailing address** in `src/config/credentials.ts` is the TBPELS
+   record as the Board's letter of 2026-09-21 stated it. Nothing compares it to
+   `contact.ts`. It moves when the Board's record moves.
+4. **The Google Business Profile** is Robert's to change. `docs/gbp-brief.md`
+   now states the values and the description to paste.
+
 ## W3 ROUND 2, 2026-10-28: THE WALK'S 28 MISSING AND OFF-SCREEN STEPS
 
 From the W2 walk on board 40789442209 (20 missing, 8 off-screen). Robert's loop
@@ -36,7 +64,7 @@ partners. Those are questions, below.
 4. **WF-024 step 3, the proving charge has no screen.** A live charge. Recommend: an administrator button on `/portal/launch` that shows the blockers first; build only on your word.
 5. **WF-024 step 4, telling the waitlist the firm is open has no screen.** It emails customers. Recommend: a button on `/portal/launch`, enabled only once the gate reads live, sending a preview to you first.
 6. **WF-006 step 2, a customer cannot ask to be forgotten except by calling.** A new customer-facing form. Recommend: keep it staff-taken for now; `/portal/deletion-requests` already records it.
-7. **WF-030 step 5, a technician cannot delete a capture.** `deleteCapture` writes no audit row, and the evidence feeds what the engineer seals. Recommend: a delete button on the capture screen while the file is in the field, and an audit row added to `deleteCapture` first.
+7. **WF-030 step 5, a technician cannot delete a capture.** `deleteCapture` writes no audit row, and the evidence feeds what the engineer seals. Recommend: a delete button on the capture screen while the file is in the field, and an audit row added to `deleteCapture` first. **Ruled yes by Robert, 10:52 Central 2026-10-29, and built:** `deleteCapture` writes `capture.delete` through `writeAuditOrRefuse` before the row goes and refuses when it cannot, refuses a capture a repair was verified against, and the job screen draws a Remove control per capture from the same rule (`captureDeleteRefusal`). Proved by `scripts/proofs/a-capture-is-removed-only-with-its-record.mjs`. Still open: the stored photograph stays in the evidence bucket after its row goes, named in the audit row's `storage_key`.
 
 ## OFFICE READY: WHICH STAFF LISTS EXPORT CSV, AND WHAT IS LEFT
 

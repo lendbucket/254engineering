@@ -8,7 +8,7 @@ import { OfferCta } from "@/components/launch/OfferCta";
 import { buildMetadata } from "@/lib/seo";
 import { JsonLd, breadcrumbSchema } from "@/lib/schema";
 import { location } from "@/content/location";
-import { contact, displayPhone, hasPostalAddress, telHref } from "@/config/contact";
+import { displayPhone, telHref } from "@/config/contact";
 import { business } from "@/config/business";
 import { PhoneNumber } from "@/components/ui/PhoneNumber";
 
@@ -28,6 +28,15 @@ import { PhoneNumber } from "@/components/ui/PhoneNumber";
  * correct and complete either way: it reads as a firm that publishes an email
  * and a form, which is what the firm currently is, rather than as a page with a
  * hole in it where a number should be.
+ *
+ * NO STREET ADDRESS ON THIS PAGE. Robert, 13:11 Central 2026-10-29. The office
+ * moved to San Antonio, and the address block here read contact.ts, so it
+ * printed the San Antonio street under a Corpus Christi heading. The page stays
+ * live and in the sitemap and prints no street address. The phone stays,
+ * derived as before. The firm's address is on /contact, /press, the footer and
+ * the Organization node. The sentences that still say the firm is based in this
+ * city (src/content/location.ts) go to Robert as a copy proposal first, and the
+ * rewrite is a later bundle, by the same ruling.
  */
 
 const crumbs = [
@@ -206,20 +215,6 @@ export default function LocationPage() {
                   <a href={tel} className="underline underline-offset-4">
                     <PhoneNumber />
                   </a>
-                </dd>
-              </>
-            ) : null}
-
-            {hasPostalAddress() ? (
-              <>
-                <dt className="mt-6 font-semibold text-slate">Address</dt>
-                <dd className="mt-1">
-                  <address className="not-italic">
-                    {contact.street}
-                    {contact.street2 ? <>, {contact.street2}</> : null}
-                    <br />
-                    {contact.city}, TX {contact.postalCode}
-                  </address>
                 </dd>
               </>
             ) : null}

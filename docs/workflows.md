@@ -332,7 +332,7 @@ The decision is 254-WF-015.
 | 2 | `src/app/portal/(app)/jobs/[id]` | Technician | An item that cannot be captured | Records an exception, or withdraws one | `record_exception` (from the offline queue), `withdraw_exception` | | `eng_checklist_exceptions` upsert or delete | | not walked yet |
 | 3 | `src/app/portal/(app)/jobs/[id]` | Technician | The repair items, on a repairs job | Verifies one closed | `close_repair_item`, `closeRepairItem` | | `eng_repair_items` update; audit `repair.verified` | | not walked yet |
 | 4 | `src/app/portal/(app)/jobs/[id]` | Technician | What blocks submission, or a ready package | Submits the evidence | `submit_evidence`, `submitEvidence` | The engineer (`evidence.submitted`) | `eng_tech_pay_ledger` insert | | not walked yet |
-| 5 | none | Technician | | Deletes a capture | `delete_capture` exists (`deleteCapture`) | | `eng_evidence_items` delete | **[NO SCREEN]**: no screen and not the offline queue sends it | not walked yet |
+| 5 | `src/app/portal/(app)/jobs/[id]` (`CaptureClient`), added 2026-10-29 by Robert's ruling | Technician on a job they accepted (`captureDeleteRefusal`, the rule the screen and `deleteCapture` share) | Each item's captures on file, while the file is in the field (evidence in progress, or revisions requested) | Removes one, after a confirmation | `delete_capture`, `deleteCapture`; a capture a repair was verified against is refused | | Audit `capture.delete` first, through `writeAuditOrRefuse`, then `eng_evidence_items` delete; `capture.delete_failed` if the row did not go | Marked no screen until 2026-10-29 | not walked yet |
 | 6 | Notice only | Technician | The engineer sent the file back | Captures again from step 1 | From 254-WF-033 | The technician (`review.revisions`) | | | not walked yet |
 
 ### 254-WF-031 Get certified on a protocol
@@ -405,11 +405,11 @@ Counted from the tables above. A step carrying both marks is counted once under 
 | Rep | 0 | 0 (254-WF-008 step 4 gained a screen on 2026-10-27) |
 | Ops manager | 1 (254-WF-018 step 2) | 0 (254-WF-016 step 3 gained a screen on 2026-10-29; 254-WF-017 step 6 is the engineer's) |
 | Admin and owner | 5 (254-WF-020 step 1; 254-WF-024 steps 2, 5 and 6; 254-WF-027 step 3) | 6 (254-WF-021 step 4; 254-WF-022 step 3; 254-WF-024 steps 3 and 4; 254-WF-026 step 1; 254-WF-027 step 3) |
-| Field technician | 0 | 1 (254-WF-030 step 5) |
+| Field technician | 0 | 0 (254-WF-030 step 5 gained a screen on 2026-10-29) |
 | Engineer | 1 (254-WF-032 step 1) | 1 (254-WF-017 step 6) |
 | Partner | 0 | 0 |
 
-**Read the counts with the reasons beside them.** Of the eight [NEEDS SQL, A SCRIPT OR A CODE EDIT] steps, six are by standing ruling: the first administrator, the gate's conditions, prices and floors, opening a service line, the protocol transcription, and the retention pass. Each is recorded in `CLAUDE.md` or `BACKLOG.md` with why it is not a screen. The other two, opening self-service sign-up and the insurance override, are gate or override values stated in configuration on the same principle. **Whether each should stay that way is Robert's to confirm, not this document's to decide.** Of the twelve [NO SCREEN] steps (thirteen until the onboarding invite was emailed from /portal/onboarding on 2026-10-29, fourteen until the payment links screen of 2026-10-27), four are machine doors or the scheduler by design: the sister intake door, the sister order door, the account API, and the cron.
+**Read the counts with the reasons beside them.** Of the eight [NEEDS SQL, A SCRIPT OR A CODE EDIT] steps, six are by standing ruling: the first administrator, the gate's conditions, prices and floors, opening a service line, the protocol transcription, and the retention pass. Each is recorded in `CLAUDE.md` or `BACKLOG.md` with why it is not a screen. The other two, opening self-service sign-up and the insurance override, are gate or override values stated in configuration on the same principle. **Whether each should stay that way is Robert's to confirm, not this document's to decide.** Of the eleven [NO SCREEN] steps (twelve until the capture delete button of 2026-10-29, thirteen until the onboarding invite was emailed from /portal/onboarding on 2026-10-29, fourteen until the payment links screen of 2026-10-27), four are machine doors or the scheduler by design: the sister intake door, the sister order door, the account API, and the cron.
 
 ## The five that most need a screen, in order
 

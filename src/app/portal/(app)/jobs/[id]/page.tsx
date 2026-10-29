@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
 import { jobView } from "@/lib/ops-field";
-import { progressLabel } from "@/lib/ops-evidence";
+import { captureDeleteRefusal, progressLabel } from "@/lib/ops-evidence";
 import { photoAnswersFor } from "@/lib/protocol-run";
 import { services } from "@/content/services";
 import { STATUS_LABEL, type FileStatus } from "@/lib/ops-files";
@@ -46,6 +46,21 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
   const closed = ["evidence_submitted", "under_review", "sealed", "delivered", "closed", "cancelled"].includes(
     view.file.status,
   );
+
+  /*
+   * WF-030 step 5, Robert's ruling 2026-10-29: a capture can be removed while
+   * the file is in the field. The same rule deleteCapture asks, so the control
+   * is drawn only where the server would allow the removal.
+   */
+  const canRemove =
+    actor !== null &&
+    captureDeleteRefusal({
+      actorId: actor.id,
+      actorRole: actor.role,
+      mayCapture: can(actor, "evidence.capture") || can(actor, "evidence.review"),
+      assignedTechId: view.file.assigned_tech_id,
+      status: view.file.status,
+    }) === null;
 
   return (
     <>
@@ -149,6 +164,7 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
         <Checklist
           fileId={view.file.id}
           readOnly={closed}
+          canRemove={canRemove}
           protocolName={`${view.protocol.name} v${view.protocol.version}`}
           items={view.protocol.items.map((i) => ({
             id: i.id,
@@ -170,6 +186,7 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
             valueText: c.value_text,
             valueNumber: c.value_number === null ? null : Number(c.value_number),
             storageKey: c.storage_key,
+            capturedAt: c.captured_at,
           }))}
           exceptions={view.exceptions.map((e) => ({
             itemKey: e.item_key,

@@ -12,6 +12,7 @@
  *   board 40755884083  soc2-audit, two environment names nobody declared
  *   board 40779701058  db-guard-audit, a src file writing a timestamp from the process clock
  *   board 40798160014  the runner itself, an audit needing react-server and not declaring it
+ *   board 40918058948  proofs-audit, a client file formatting a time with no zone (2026-10-29)
  *
  * Each was findable in seconds here, and each cost a board of about an hour.
  *
@@ -27,6 +28,9 @@
  * 4. retention-audit's declaration half (scripts/lib/retention-declaration.mjs,
  *    the same function the audit calls). The rest of that audit plans against
  *    development and is the board's.
+ * 4a. Every proof in scripts/proofs that needs no database, server, build or
+ *    environment file, derived by scripts/lib/proof-needs.mjs from what each
+ *    proof reads and calls. The ones that write into the repository run alone.
  * 5. The voice rules on every line added since the merge base with origin/main,
  *    working tree and untracked files included: banned phrases and
  *    present-tense regulatory claims in src and docs, long dashes anywhere.
@@ -85,6 +89,12 @@ if (process.argv.includes("--retention-declaration")) {
   const failed = declarationChecks().filter((c) => !c.ok);
   for (const c of failed) console.log(`  FAIL: ${c.name} (${c.note})`);
   process.exit(failed.length ? 1 : 0);
+}
+
+/* A proof the preflight runs must never run the preflight again. */
+if (process.env.PREFLIGHT_CHILD === "1") {
+  console.log("preflight: refused inside a proof the preflight is running");
+  process.exit(0);
 }
 
 const started = Date.now();
@@ -215,6 +225,73 @@ runAudit("soc2-audit");
   const fails = (r.stdout || "").split("\n").filter((l) => /FAIL:/.test(l)).map((l) => l.trim().replace(/^FAIL: /, ""));
   if (r.status === 0) say("retention-audit, the declaration against the schema", "PASS");
   else say("retention-audit, the declaration against the schema", "FAIL", fails.join(" | ") || (r.stderr || "").slice(-300));
+}
+
+/* ------------------------------------------------------------- 4a. the repo-wide static proofs */
+
+/*
+ * Board 40918058948 missed on proofs-audit's every-date-names-its-zone.mjs, a
+ * sweep of src that needs nothing but the files. proofs-audit runs in the
+ * writers shard, so the preflight never saw it. The set is derived by
+ * scripts/lib/proof-needs.mjs from what each proof reads and calls, so a new
+ * static proof joins without anybody listing it.
+ *
+ * Proofs that write into the repository run alone after the rest, because a
+ * config file patched by one is read by every proof running beside it.
+ *
+ * Three assertions keep the derivation honest, because a classifier that
+ * returned nothing would make this rule pass over an empty set: the set is not
+ * empty, it holds the proof that motivated it, and a known database proof is
+ * classified as needing one.
+ */
+{
+  const { classifyProofs } = await import("./lib/proof-needs.mjs");
+  const c = classifyProofs();
+  const KNOWN_STATIC = "every-date-names-its-zone.mjs";
+  const KNOWN_DATABASE = "a-partner-money-read-that-fails-writes-nothing.mjs";
+  const guard = [];
+  if (c.static.length === 0) guard.push("no proof classified static");
+  if (!c.static.includes(KNOWN_STATIC)) guard.push(`${KNOWN_STATIC} is not classified static`);
+  if (!c.all.includes(KNOWN_DATABASE)) guard.push(`${KNOWN_DATABASE} no longer exists; name another database proof`);
+  else if (!c.needing[KNOWN_DATABASE]?.database) guard.push(`${KNOWN_DATABASE} is not classified as needing a database`);
+  if (guard.length) say("the static proof set is derived and not empty", "FAIL", guard.join(" | "));
+  else say("the static proof set is derived and not empty", "PASS", `${c.static.length} static of ${c.all.length}, ${c.alone.length} run alone`);
+
+  const { spawn } = await import("node:child_process");
+  const runProof = (f) =>
+    new Promise((done) => {
+      const path = join("scripts/proofs", f);
+      const args = runtimeFor(path).needsReactServer ? [tsx, "--conditions=react-server", path] : [tsx, path];
+      const p = spawn(process.execPath, args, { stdio: ["ignore", "pipe", "pipe"], env: { ...process.env, PREFLIGHT_CHILD: "1" } });
+      let out = "";
+      p.stdout.on("data", (d) => (out += d));
+      p.stderr.on("data", (d) => (out += d));
+      const timer = setTimeout(() => p.kill(), 180000);
+      p.on("close", (code) => {
+        clearTimeout(timer);
+        done({ f, code, out });
+      });
+    });
+  const t0 = Date.now();
+  const shared = c.static.filter((f) => !c.alone.includes(f));
+  const outcomes = [];
+  const queue = [...shared];
+  await Promise.all(
+    Array.from({ length: 6 }, async () => {
+      while (queue.length) outcomes.push(await runProof(queue.shift()));
+    }),
+  );
+  for (const f of c.alone) outcomes.push(await runProof(f));
+  const failed = outcomes.filter((o) => o.code !== 0);
+  const rule = `repo-wide static proofs (${outcomes.length})`;
+  if (failed.length === 0) say(rule, "PASS", `${((Date.now() - t0) / 1000).toFixed(0)} s`);
+  else {
+    const named = failed.map((o) => {
+      const line = o.out.split("\n").find((l) => /^\s*FAIL\b/.test(l) && !/^\s*FAIL: \d+ (of \d+ )?check/.test(l)) ?? o.out.trim().split("\n").slice(-1)[0] ?? "";
+      return `${o.f}: ${line.trim().slice(0, 200)}`;
+    });
+    say(rule, "FAIL", named.join(" | "));
+  }
 }
 
 /* ------------------------------------------------------------- 5. voice on added lines */
