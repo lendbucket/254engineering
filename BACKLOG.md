@@ -108,6 +108,22 @@ controls first (section 2d), and its export then follows the same pattern.
 /portal/procedures is a document a role reads, not a list of records, and is
 left out.
 
+**Built 2026-10-29 on `feat/onboarding-list`: /portal/onboarding, Robert's
+ruling of 10:52 Central ("Build list controls for onboarding").**
+- The "In onboarding" list searches name, email and phone. It filters by status, and by role for a grant that may see both roles. It sorts by invited or name and pages 50 at a time.
+- The query is in the address and the count is exact, from `src/lib/onboarding-list.ts`. The technician scope is applied in the query.
+- The unbounded `listOnboardings()` is gone; it read past nobody's ceiling and showed "Nobody yet" on a failed read.
+- The invited set reads every row against an exact count, and a failure is said. The applications read is null on error, not "Nothing waiting".
+- Proof: `the-onboarding-list-searches-filters-sorts-and-pages.mjs`.
+- Onboarding had no CSV export, and none was added.
+
+**Still open on that screen, a finding for Robert.** "Applications not yet
+invited" is the newest 200 applications minus everyone with an onboarding, a
+difference between two tables. It cannot be searched or paged in one query
+without a database view or function, which is a migration. The screen now states
+the bound when a read fills it. Recommendation: leave it bounded and stated. An
+older application is reached on `/portal/applications`, which already pages.
+
 ## /portal/accounts COUNTS SUPERSEDED ACCOUNTS IN "ALL": RULED, BUILT ON feat/superseded-hidden
 
 **Ruled by Robert, 21:11 Central 2026-10-28:** "Superseded accounts: hidden
