@@ -355,6 +355,15 @@ export const NOT_CREDENTIALS = new Set([
   "NX_DAEMON", "TURBO_CACHE", "TURBO_DOWNLOAD_LOCAL_ENABLED", "TURBO_REMOTE_ONLY", "TURBO_RUN_SUMMARY",
   /* Provided by the runtime or the platform, never by this firm. */
   "CI", "GITHUB_ACTIONS", "NODE_ENV", "VERCEL", "VERCEL_ENV", "VERCEL_DEPLOYMENT_ID",
+  /*
+   * GITHUB_EVENT_NAME, GITHUB_REF, GITHUB_SHA, GITHUB_RUN_ID, GITHUB_REPOSITORY
+   * and GITHUB_OUTPUT, 2026-10-29: GitHub Actions sets each for every run.
+   * scripts/ci/prior-green.mjs reads them to ask whether this exact commit
+   * already passed a board, and writes its answer to GITHUB_OUTPUT, a file
+   * path. Identifiers and a path; none grants anything. GITHUB_TOKEN, which
+   * does, is declared as a secret in src/config/credential-inventory.ts.
+   */
+  "GITHUB_EVENT_NAME", "GITHUB_REF", "GITHUB_SHA", "GITHUB_RUN_ID", "GITHUB_REPOSITORY", "GITHUB_OUTPUT",
   /* NEXT_RUNTIME, 2026-10-24: Next.js sets it to "nodejs" or "edge"; instrumentation.ts reads it to keep node-only code out of the Edge bundle. */
   "NEXT_RUNTIME",
   "VERCEL_GIT_COMMIT_SHA", "NEXT_PUBLIC_VERCEL_ENV", "NEXT_PUBLIC_SENTRY_RELEASE", "SENTRY_RELEASE",

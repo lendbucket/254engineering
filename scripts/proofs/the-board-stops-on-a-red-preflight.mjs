@@ -44,7 +44,9 @@ const preCode = pre.split("\n").filter((l) => !/^\s*#/.test(l)).join("\n");
 check("the preflight job reads no secret and writes no .env.local", !/secrets\./.test(preCode) && !/write-env\.mjs/.test(preCode) && !/\.env\.local/.test(preCode) && /\.env\.local/.test(pre));
 check("it has the whole history and a local main, as the static shard does", /fetch-depth: 0/.test(pre) && /git branch main origin\/main/.test(pre));
 check("no shard starts until the build and the preflight have both passed", /\n {2}shard:\n[\s\S]*?\n {4}needs: \[build, preflight\]\n/.test(yml));
-check("and the board's answer waits for the preflight too", /\n {2}board:\n[\s\S]*?\n {4}needs: \[build, preflight, shard\]\n/.test(yml));
+check("and the board's answer waits for the preflight too", /\n {2}board:\n[\s\S]*?\n {4}needs: \[prior, build, preflight, shard\]\n/.test(yml));
+/* The skip of 2026-10-29 must not let a red preflight through: the preflight has no needs, so it runs on every push. */
+check("the preflight runs on every push, skip or not", !/\n {4}needs:/.test(jobBody("preflight")) && !/\n {4}if:/.test(jobBody("preflight")));
 
 /* ---------------------------------------------------------------- the gate */
 
