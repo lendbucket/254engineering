@@ -23,7 +23,9 @@
 
 ### Boarding now
 
-**Bundle 17, the board runs the preflight before any shard** (run 40851638472 on `bae72c3`). It also carries two new preflight rules: no merge conflict marker in any file, and the workflow map against the walk's pins. Its first board was stopped in under five minutes by the new job itself, because email-audit needs Chromium and the job did not install it. The repair adds the install. It merges on a match.
+**Bundle 17, the board runs the preflight before any shard: MERGED as `a902e22` at 05:45 Central.** Board 40851638472 on `bae72c3` read 64 of 64, and its summary opens "Preflight: GREEN, 35 rules, 0 failed". It also carries two new preflight rules: no merge conflict marker in any file, and the workflow map against the walk's pins. Its first board was stopped in under five minutes by the new job itself, because email-audit needs Chromium and the job did not install it. The repair added the install. Every board from here runs the preflight first.
+
+**Next to board:** the copy-project bucket list (`a9f20a2`).
 
 ### What missed tonight, and why
 
