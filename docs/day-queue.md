@@ -1,5 +1,24 @@
 # Day queue, 2026-10-23
 
+## 2026-10-28, BUNDLE 12 AGAIN, after the board refused to start, at `38fa4fc`
+
+**Prediction written and pushed before the board starts.**
+
+**The miss.** Board 40798160014 on `113472e` ran no audit at all: 0 of 64, every one NO VERDICT. Every shard stopped at setup with "w2-walk-audit: needs react-server because of ../src/lib/ops-intake.ts and does not declare "@runtime react-server" at the top of the file."
+- The import came with the WF-003 customer link in `285fcd4`.
+- I had not run the board's runtime rule locally. Nothing else in the readers asks it.
+
+**The repair, `38fa4fc`:** the declaration on line 1. A scratchpad script asks the board's own `runtimeFor` of all 67 audits:
+- with the line, 20 need react-server and 0 are undeclared;
+- without it, 1 is undeclared, this audit.
+
+That script is now one of the readers.
+
+**Prediction: 64 of 64.** Everything else as the prediction below:
+- the walk reaches the offer, assigned job and order steps;
+- 0 broken;
+- its teardown reads zero.
+
 ## 2026-10-28, BUNDLE 11 MERGED; BUNDLE 12, THE WALK'S RECORDS, AT `113472e`
 
 **Bundle 11 merged.**
