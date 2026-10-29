@@ -69,6 +69,37 @@ Every repair was proved by an injection, and each file was restored byte identic
 4. Skip re-boarding a push to main whose exact commit already has a green board (ruled 2026-10-22). It edits `board.yml`, so it comes after bundle 17.
 5. List controls (search, filter, sort, paging) on the 13 staff screens that have none, so each can then take a CSV export, office ready section 2d.
 
+## 2026-10-29: BUNDLE 23 MERGED; BUNDLE 24, THE SAN ANTONIO ADDRESS, AT `44988d7`
+
+**Bundle 23 merged as `a190a10`.** The merged tree is the boarded tree. Board 40930082505 on `c4225b0` read 64 of 64, preflight GREEN.
+- **One prediction line was falsified:** the walk read 218 works and 6 friction, not the predicted 215 and 9. Friction moves between runs of the walk; no check failed.
+
+**Prediction for bundle 24, written and pushed before the board starts.** Robert's 12:50, 13:05 (items 1 to 3) and 13:11 (item 1, and `/corpus-christi`'s address block).
+
+**What it changes:**
+- **The firm's place:** `contact.ts` holds 11103 San Pedro Ave, San Antonio, TX 78216, with no suite. The phone stays `+12819404490`, which equals `FIRM_PHONE`.
+- **The hours** are declared once beside the address. `hoursLine()` and `openingHoursSchema()` derive the sentence and the schema node (Mo to Su, 08:00 to 20:00).
+- **Pages:** the footer, `/contact` and `/press` print the hours. The Organization node carries the San Antonio address. Three "based in Corpus Christi" sentences now read `contact.city`.
+- **`/corpus-christi`** stays live and in the sitemap. Its street address block is removed, and its schema carries no Corpus Christi location.
+- **"254 Engineering Services":** no rendered string remained. `regulatory.mjs` learns the brand, so a present-tense claim naming "254 Engineering" is now caught (`a-claim-naming-the-brand-is-caught.mjs`).
+- **Closed-for-business sentences** now render only in the prelaunch build:
+  - "once it opens for work" on `/windstorm` and its seven guides;
+  - the seven guides' "Join the waitlist" meta endings, now "Read ..." at 153 to 159 characters;
+  - the SAM sentence on `/government`.
+- **The guide dates** are re-emitted. The first preflight caught them stale.
+
+**Readers on `44988d7`, on main `a190a10`:**
+- Preflight GREEN, 35 rules. The first run was red on guide-dates-audit, repaired by the emitter.
+- tsc clean.
+- `one-name-address-and-phone-everywhere.mjs` PASS.
+- `a-claim-naming-the-brand-is-caught.mjs` PASS.
+- No long dash in 742 added lines.
+
+**Prediction: 64 of 64.**
+- **The audits that read these pages:** seo-audit (the name, address and phone pins and the new hours pins, titles and descriptions), launch-audit, voice-audit, placeholder-audit, compliance-audit, cta-audit and guide-dates-audit.
+- **Standing notes:** stripe-webhook's two, dashboards' empty firm, retention's eng_jobs fixture lines, perf's unmeasured authenticated screens, any perf NOT STABLE line, citation-audit's sources that refuse a script, and proofs-audit's database could-not-tell lines.
+- **Risk named in advance:** the footer gains one line on every public page, so perf byte budgets move by a few hundred bytes. `/coverage` sits near its LCP ceiling, as bundle 22 showed.
+
 ## 2026-10-29: BUNDLE 23 MISSED ON A DATE WITH NO ZONE; REBOARD AT `c4225b0`
 
 **Board 40918058948 on `93866aa`: 63 of 64.**
