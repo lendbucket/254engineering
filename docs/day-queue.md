@@ -1,5 +1,37 @@
 # Day queue, 2026-10-23
 
+## 2026-10-29: BUNDLE 16 MERGED; BUNDLE 17, THE BOARD RUNS THE PREFLIGHT FIRST, AT `fa06a83`
+
+**Bundle 16 merged as `4d7e537`.** The merged tree is the boarded tree. Board 40842438078 on `e17a6ff` read 64 of 64:
+- "12 with no screen (the map says 12)".
+- The onboarding proof passes.
+- The walk read 220 works and 2 friction (the 222 predicted between them), 19 missing, 7 off-screen, 2 unreached, 0 broken.
+
+**Prediction for bundle 17, written and pushed before the board starts.** This is a session decision, so it goes under "decided overnight, Robert to confirm": the board runs `node scripts/preflight.mjs` before any shard, so a red preflight stops the board in about a minute and before anything touches development.
+
+**`board.yml`:**
+- A `preflight` job runs beside `build`, with no secret and no `.env.local`, so its environment-file exemptions apply exactly as locally.
+- Shards need `[build, preflight]`, and the board job needs `[build, preflight, shard]`.
+- The full output is sealed as `board-log-preflight`. The public log shows rule names and verdicts only, through `scripts/ci/preflight-gate.mjs`.
+
+**`board-verdict.mjs`:** a stop reads "Cloud board: STOPPED BY THE PREFLIGHT ... No shard ran and nothing touched development." A missing preflight verdict is a stop, never a green.
+
+**Two rules join the preflight:**
+- **No merge conflict marker in any file.** A leftover `<<<<<<< HEAD` in BACKLOG passed the preflight at 00:51. Injected, it went red naming `BACKLOG.md:1`.
+- **The workflow map against the walk's pins.** Bundle 16's first board missed on this; the walk and the preflight now share one `mapChecks` function. Injected (one `[NO SCREEN]` removed), it went red on only this rule.
+
+**Proof:** `the-board-stops-on-a-red-preflight.mjs`, fed fixture verdicts. Injected twice, both restored byte identical.
+
+**Readers on `fa06a83`:**
+- Preflight GREEN: 35 rules, 0 failed, 66 s. That includes "the workflow map against the walk's pins: 36 workflows, at least 138 steps, 8 needing code, 12 with no screen" and "no merge conflict marker in any file: 1362 text files read".
+- tsc clean; the stop proof passes.
+
+**Prediction: 64 of 64, plus a preflight job that passes before any shard starts.**
+- The summary carries the preflight's green line.
+- The walk as in bundle 16.
+- 3 lines exempt.
+- **This is the first run of the new job on GitHub's runner.** If it stops the board, the summary will say "STOPPED BY THE PREFLIGHT" and name the rule. That is a miss of the new job, not of the code it checks.
+
 ## 2026-10-29, BUNDLE 16 AGAIN, after one miss, at `e17a6ff`
 
 **Prediction written and pushed before the board starts.**
