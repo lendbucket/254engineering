@@ -14,7 +14,7 @@ export const GUIDE_DATES: Record<string, { datePublished: string; dateModified: 
   "/structural-engineer/cost": { datePublished: "2026-09-18T13:25:00-05:00", dateModified: "2026-10-25T21:01:08-05:00" },
   "/structural-engineer/when-you-need-one": { datePublished: "2026-08-31T11:07:45-05:00", dateModified: "2026-10-07T09:08:43-05:00" },
   "/structural-engineer/inspection": { datePublished: "2026-09-18T13:25:00-05:00", dateModified: "2026-10-07T09:14:00-05:00" },
-  "/structural-engineer/how-to-choose": { datePublished: "2026-08-31T11:07:45-05:00", dateModified: "2026-10-25T15:30:56-05:00" },
+  "/structural-engineer/how-to-choose": { datePublished: "2026-08-31T11:07:45-05:00", dateModified: "2026-10-29T13:00:29-05:00" },
   "/windstorm/before-work-begins": { datePublished: "2026-08-31T10:47:51-05:00", dateModified: "2026-09-15T10:49:19-05:00" },
   "/windstorm/catastrophe-area": { datePublished: "2026-08-31T10:47:51-05:00", dateModified: "2026-10-27T09:27:49-05:00" },
   "/windstorm/completed-construction": { datePublished: "2026-08-31T10:47:51-05:00", dateModified: "2026-09-15T10:49:19-05:00" },
