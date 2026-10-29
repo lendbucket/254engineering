@@ -79,6 +79,20 @@ its list controls first (section 2d), and its export then follows the same
 pattern. /portal/procedures is a document a role reads, not a list of
 records, and is left out.
 
+**The seven left are FINDINGS FOR ROBERT, by name (section 2d says a screen
+that cannot meet an item is reported, never quietly exempted).** Read
+2026-10-29; none is built, each with a recommendation:
+
+| Screen | What it is | Recommend |
+| --- | --- | --- |
+| /portal/orders | Three exception panels (refund failed after refunded, paid with no account, waiting on payment), each meant to be empty | **Exempt.** A filter on an exception queue is a way to hide a stuck payment. |
+| /portal/queue | Queue health per kind and the dead letters | **Exempt** for the same reason; the dead letters already page. |
+| /portal/waiting | The engineer's files waiting on an owner | **Exempt**; it is a short worklist read whole. |
+| /portal/review | The engineer's review queue, 853 lines of workflow | **Sort and filter only**, built after you rule, because it is the engineer's desk and changing its order changes what he reviews first. |
+| /portal/onboarding | Applications to invite and onboardings in progress | **Build** search and a status filter; no ruling needed beyond yes. |
+| /portal/jobs | The technician's own offers, on a phone | **Exempt**: a field screen rather than an office list. |
+| /portal/messages | Message threads, which already carry a search | **Exempt**: the search is the control a thread list needs. |
+
 **Built on `feat/list-controls-1` (2026-10-29): five of the thirteen.**
 People, do not contact, asked to be forgotten, insurance and credential review
 now search, filter, sort and page through one engine (`src/lib/staff-lists.ts`),
