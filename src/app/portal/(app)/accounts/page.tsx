@@ -115,7 +115,7 @@ export default async function AccountsPage({ searchParams }: { searchParams: Pro
         lede="Organizations that order regularly. What they have ordered, what they owe, and whether they can order right now."
       />
 
-      {result.all === 0 ? (
+      {result.all === 0 && result.superseded === 0 ? (
         <>
           {/*
             THIS COPY WENT OUT OF DATE THE DAY THE TELEPHONE DOOR WAS BUILT.
@@ -196,6 +196,12 @@ export default async function AccountsPage({ searchParams }: { searchParams: Pro
                   { value: "active", label: "Active" },
                   { value: "suspended", label: "Suspended" },
                   { value: "closed", label: "Closed" },
+                  /*
+                   * Robert, 21:11 Central 2026-10-28: superseded accounts are
+                   * hidden by default and shown here. Labelled as records so
+                   * nothing reads as deleted.
+                   */
+                  { value: "superseded", label: `Superseded, kept as records (${result.superseded})` },
                 ],
               },
               {
@@ -231,9 +237,11 @@ export default async function AccountsPage({ searchParams }: { searchParams: Pro
           />
           <Panel
             title={
-              filtered
-                ? `${result.total} matching account${result.total === 1 ? "" : "s"}, of ${result.all}`
-                : `${result.all} account${result.all === 1 ? "" : "s"}`
+              query.status === "superseded"
+                ? `${result.total} superseded account${result.total === 1 ? "" : "s"}, kept as records and not counted in the ${result.all} in use`
+                : filtered
+                  ? `${result.total} matching account${result.total === 1 ? "" : "s"}, of ${result.all}`
+                  : `${result.all} account${result.all === 1 ? "" : "s"}`
             }
             description={
               unbilledAccounts > 0

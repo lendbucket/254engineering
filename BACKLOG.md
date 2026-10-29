@@ -4,7 +4,33 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
-## /portal/accounts COUNTS SUPERSEDED ACCOUNTS IN "ALL": A QUESTION FOR ROBERT
+## /portal/accounts COUNTS SUPERSEDED ACCOUNTS IN "ALL": RULED, BUILT ON feat/superseded-hidden
+
+**Ruled by Robert, 21:11 Central 2026-10-28:** "Superseded accounts: hidden
+from /portal/accounts and its counts by default, with a status filter that
+shows them." The recommendation below, adopted as written.
+
+**What was built.** The roster reads `superseded_at`, and the paging rule keeps
+superseded accounts out of every view but their own: "all", active, suspended
+and closed leave them out, and a new status value, "Superseded, kept as
+records (N)", shows only them, counted exactly across pages. "All" is now every
+account in use. The cannot-order warning never names a superseded account, and
+the unbilled count is over the accounts in use. The CSV export takes the page's
+own query, so it follows the same rule, and its preamble says when superseded
+accounts are left out. Proved in `the-accounts-list-pages-on-the-server.mjs`
+and, against development, in `the-accounts-screen-refuses-what-it-could-not-read.mjs`.
+
+**Found while building it:** the roster read had never excluded superseded
+accounts, against the 2026-09-14 ruling, and accounts-audit's "every read of an
+account excludes superseded rows" passed it because the check is per file and
+another function in `ops-accounts-admin.ts` names the column. The read is
+correct now; the per file granularity of that check is open, below.
+
+**Open, no ruling needed:** accounts-audit's supersession sweep matches a file,
+not a read. Narrowing it to each `.from("eng_customer_accounts")...select(`
+block would have caught this read; it is a sharpening, not a change of rule.
+
+**The question as it stood:**
 
 The accounts list reads the whole roster, superseded accounts included, so
 "all" counts them, and so do the paged list and the CSV export (bundles 10
