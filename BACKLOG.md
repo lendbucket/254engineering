@@ -4,6 +4,23 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
+## /portal/accounts COUNTS SUPERSEDED ACCOUNTS IN "ALL": A QUESTION FOR ROBERT
+
+The accounts list reads the whole roster, superseded accounts included, so
+"all" counts them, and so do the paged list and the CSV export (bundles 10
+and 11). This is how the screen behaved before paging. Robert's answer 4b of
+2026-10-28, 16:11 Central (issue #1 comment 6480742347): leave the count as
+it is, and ask him separately.
+
+**The question:** should superseded accounts be listed on /portal/accounts and
+counted in "all", or left out, or shown only under a filter? An account is
+superseded rather than deleted, and every customer probe a board runs leaves
+one. Development lists about 3,020 accounts; how many of them are superseded
+has not been counted.
+**Recommendation:** leave them out of the default list and its count, with a
+"superseded" status filter that shows them, so the firm's own accounts are not
+buried under probe records and nothing is hidden for good.
+
 ## SEALED ENGINEERING ORDERS: THE DOOR IS CONFIRMED AND CLOSED BY A SWITCH, THREE THINGS OPEN
 
 Robert's addendum of 2026-10-25, item 10, built 2026-10-27 on

@@ -84,7 +84,16 @@ const admin = readFileSync("src/lib/ops-accounts-admin.ts", "utf8");
 const at = admin.indexOf("export async function accountRows(");
 const body = admin.slice(at, admin.indexOf("\nexport ", at + 10));
 
-check("the page is chosen by the paging rule over the whole roster", /const shown = pageOfAccounts\(roster, query, matchingClients, allNames\);\s*const ids = shown\.ids;/.test(body));
+/*
+ * Since bundle 11 the CSV export asks scope "every" and reads the paging rule's
+ * matchingIds; the screen keeps the default, one page. Both halves are asserted:
+ * the default must stay "page", or the screen would read every account again.
+ */
+check(
+  "the page is chosen by the paging rule over the whole roster, and the screen's default scope is one page",
+  /const shown = pageOfAccounts\(roster, query, matchingClients, allNames\);\s*const ids = scope === "every" \? shown\.matchingIds : shown\.ids;/.test(body) &&
+    /scope: "page" \| "every" = "page",/.test(admin),
+);
 for (const table of ["eng_service_orders", "eng_customer_users", "eng_statements"]) {
   check(
     `${table} is read for the page's ids only`,

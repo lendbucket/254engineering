@@ -75,7 +75,7 @@ export function pageOfAccounts(
   query: AccountListQuery,
   matchingClients: ReadonlySet<string> | null,
   nameOf: ReadonlyMap<string, string> | null,
-): { ids: string[]; total: number; page: number; pages: number } {
+): { ids: string[]; matchingIds: string[]; total: number; page: number; pages: number } {
   const matching = roster.filter(
     (a) =>
       (query.status === "all" || a.status === query.status) &&
@@ -101,5 +101,10 @@ export function pageOfAccounts(
   const pages = Math.max(1, Math.ceil(total / ACCOUNT_PAGE_SIZE));
   const page = Math.min(query.page, pages);
   const from = (page - 1) * ACCOUNT_PAGE_SIZE;
-  return { ids: sorted.slice(from, from + ACCOUNT_PAGE_SIZE).map((a) => a.id), total, page, pages };
+  /*
+   * matchingIds is every matching account in the page's order: what the CSV
+   * export hands over (Robert, 2026-10-28, 16:11 Central), from this one rule
+   * rather than a second filter.
+   */
+  return { ids: sorted.slice(from, from + ACCOUNT_PAGE_SIZE).map((a) => a.id), matchingIds: sorted.map((a) => a.id), total, page, pages };
 }

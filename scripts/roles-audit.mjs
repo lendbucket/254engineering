@@ -1728,6 +1728,8 @@ if (!db) {
       /* The billing exports are margin and period; "billing" is no report, and asking for it measured the unknown-report answer. */
       { act: "read the firm's billing, margin", req: (r) => get(r, "/api/portal/exports?report=margin"), status: 403, says: /cannot read the firm's billing/i },
       { act: "read the firm's billing, by period", req: (r) => get(r, "/api/portal/exports?report=period"), status: 403, says: /cannot read the firm's billing/i },
+      /* The accounts CSV, owner or admin only (Robert, 2026-10-28, 16:11 Central). */
+      { act: "export the ordering accounts", req: (r) => get(r, "/api/portal/exports?report=accounts"), status: 403, says: /cannot export the ordering accounts/i },
       { act: "approve technician pay", req: (r) => post(r, "/api/portal/field", { action: "set_ledger_status", ids: [NOWHERE], status: "approved" }), status: 400, says: /cannot approve payments/i },
       { act: "create a staff account", req: (r) => post(r, "/api/portal/people", { action: "create", role: "field_tech", displayName: "Probe", email: `staff-${STAMP}@audit-probe.invalid` }), status: 403, says: /Not permitted/ },
       { act: "change a role", req: (r) => post(r, "/api/portal/roles", { action: "set_user_role", profileId: NOWHERE, role: "admin" }), status: 403, says: /Not permitted/ },
