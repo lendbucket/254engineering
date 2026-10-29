@@ -69,6 +69,27 @@ Every repair was proved by an injection, and each file was restored byte identic
 4. Skip re-boarding a push to main whose exact commit already has a green board (ruled 2026-10-22). It edits `board.yml`, so it comes after bundle 17.
 5. List controls (search, filter, sort, paging) on the 13 staff screens that have none, so each can then take a CSV export, office ready section 2d.
 
+## 2026-10-29: BUNDLE 24 MERGED; BUNDLE 25, THE PREFLIGHT RUNS THE STATIC PROOFS, AT `30eecdd`
+
+**Bundle 24 merged as `da81f0a`.** The merged tree is the boarded tree. Board 40951053748 on `76687b6` read 64 of 64, preflight GREEN, as predicted. seo-audit found no problems.
+
+**Prediction for bundle 25, written and pushed before the board starts.** The class fix for bundle 23's first miss.
+
+**What it adds:**
+- `scripts/lib/proof-needs.mjs` derives which proofs need no database, server, build or env file. On this tree that is 111 of 184.
+- The preflight runs all of them. Six run alone, because they patch config through the gate fixture.
+- **Guard:** the set is not empty, holds `every-date-names-its-zone.mjs`, and classifies a database proof as not static.
+- **Injection:** a time with no zone in `src/lib/firm-calendar.ts` turned only the new rule red, naming the line.
+
+**Readers on `30eecdd`, on main `da81f0a`:**
+- Preflight GREEN, 37 rules, 118 s, including "repo-wide static proofs (111) 50 s".
+- tsc clean.
+
+**Prediction: 64 of 64.**
+- The board's summary opens "Preflight: GREEN, 37 rules", up from 35, because the board's preflight job runs the same file.
+- The preflight job takes about a minute longer.
+- The standing notes as named for bundle 24.
+
 ## 2026-10-29: BUNDLE 24 MISSED ON A LINK COUNT; REBOARD AT `76687b6`
 
 **Board 40941717169 on `44988d7`: 63 of 64.** The one FAIL is seo-audit: "/corpus-christi: 1 page(s) link to it (/insights/texas-windstorm-inspections); every sitemap page needs at least two".
