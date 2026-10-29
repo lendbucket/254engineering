@@ -26,7 +26,7 @@ The source of truth for the running loop. Robert, 2026-10-29: the loop prompt is
 | P | The preflight runs every repo-wide static proof (`ci/preflight-static-proofs`), so a miss like bundle 23's is caught before the board. Built as `e14bea7`:
 - 109 of 182 proofs are static, derived by `scripts/lib/proof-needs.mjs`.
 - The preflight takes 91 to 98 s, up from 43 s.
-- An injection named the file. Preflight GREEN, 37 rules. | **Bundle 25, boarding** at `30eecdd` |
+- An injection named the file. Preflight GREEN, 37 rules. | **Merged as `00e66a0`** (board 40960219426) |
 | 24 | WF-017 step 6: an engineer-only panel on `/portal/review` to withdraw or restore a technician's certification, with the reason required. | To build |
 | 25 | List controls for `/portal/onboarding`: search, filter, sort, paging, counts over every matching row, and a failed read said. | To build |
 | 26 | WF-022 step 3: an admin panel on `/portal/accounts` to set an account's credit terms. **This is a money flow: it gets its own proof and an injection.** It must: confirm by password re-entry, the same as the no-charge override, never an authenticator code (the owner's admin account uses none); write an audit row on every change. | To build |
