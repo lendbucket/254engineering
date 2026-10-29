@@ -56,17 +56,24 @@ async function handlePOST(request: NextRequest) {
     const result = await inviteFromApplication(
       actor,
       String(body?.applicationId ?? ""),
-      { role, notes: body?.notes ? String(body.notes) : null },
+      { role, notes: body?.notes ? String(body.notes) : null, deliverBy: body?.deliverBy === "hand" ? "hand" : "email" },
       context,
     );
     /*
-     * The token is returned exactly once, here, and is never stored in
-     * plaintext. There is no "resend the same link" anywhere in this system for
-     * that reason; a new link is issued instead.
+     * The token is returned exactly once, here, and only when it is delivered by
+     * hand (or its email could not be queued). It is never stored in plaintext,
+     * so there is no "resend the same link" anywhere; a new link is issued.
      */
-    return result.ok
-      ? NextResponse.json({ ok: true, onboardingId: result.onboardingId, token: result.token })
-      : bad(result.error);
+    if (!result.ok) return bad(result.error);
+    return result.delivered === "email"
+      ? NextResponse.json({ ok: true, onboardingId: result.onboardingId, delivered: "email", sentTo: result.sentTo })
+      : NextResponse.json({
+          ok: true,
+          onboardingId: result.onboardingId,
+          delivered: "hand",
+          token: result.token,
+          emailFailed: result.emailFailed ?? null,
+        });
   }
 
   if (action === "set_item_dates") {

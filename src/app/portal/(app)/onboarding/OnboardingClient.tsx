@@ -26,7 +26,18 @@ async function post(payload: Record<string, unknown>) {
     body: JSON.stringify(payload),
   });
   const body = (await res.json().catch(() => null)) as
-    | { ok?: boolean; error?: string; blockers?: string[]; token?: string; onboardingId?: string; credentials?: number; linked?: boolean }
+    | {
+        ok?: boolean;
+        error?: string;
+        blockers?: string[];
+        token?: string;
+        onboardingId?: string;
+        credentials?: number;
+        linked?: boolean;
+        delivered?: "email" | "hand";
+        sentTo?: string;
+        emailFailed?: string | null;
+      }
     | null;
   if (!res.ok || !body?.ok) {
     const err = new Error(body?.error ?? "That did not work.") as Error & { blockers?: string[] };
@@ -76,14 +87,33 @@ export function InviteButton({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  const [sentTo, setSentTo] = useState<string | null>(null);
+  const [emailFailed, setEmailFailed] = useState<string | null>(null);
+  const [deliverBy, setDeliverBy] = useState<"email" | "hand">("email");
   const [role, setRole] = useState(
     !technicianOnly && defaultRole.toLowerCase().includes("engineer") ? "engineer" : "field_tech",
   );
+
+  if (sentTo) {
+    return (
+      <div className="mt-3 border-t-2 border-[var(--ink)] pt-3">
+        <p className="text-[14px] font-semibold text-[var(--ink)]">Invitation emailed to {sentTo}</p>
+        <p className="mt-1.5 text-[13px] leading-[1.5] text-[var(--secondary)]">
+          The email carries their onboarding link. If it does not arrive, issue a new invitation by hand.
+        </p>
+      </div>
+    );
+  }
 
   if (token) {
     const url = `${window.location.origin}/onboarding/${token}`;
     return (
       <div className="mt-3 border-t-2 border-[var(--ink)] pt-3">
+        {emailFailed ? (
+          <p role="alert" className="mb-2 text-[14px] leading-[1.5] font-semibold text-[var(--ink)]">
+            The email could not be queued ({emailFailed}). Send them this link instead.
+          </p>
+        ) : null}
         <p className="text-[14px] font-semibold text-[var(--ink)]">Invitation link, shown once</p>
         <p className="mt-1.5 text-[12px] leading-[1.5] break-all text-[var(--ink)]">{url}</p>
         <p className="mt-2 text-[13px] leading-[1.5] text-[var(--secondary)]">
@@ -114,6 +144,20 @@ export function InviteButton({
             {technicianOnly ? null : <option value="engineer">Professional Engineer</option>}
           </select>
         </div>
+        <div className="min-w-[160px] flex-1">
+          <label htmlFor={`deliver-${applicationId}`} className="block text-[14px] font-semibold text-[var(--ink)]">
+            Send the link
+          </label>
+          <select
+            id={`deliver-${applicationId}`}
+            value={deliverBy}
+            onChange={(e) => setDeliverBy(e.target.value === "hand" ? "hand" : "email")}
+            className={`${field} mt-1.5`}
+          >
+            <option value="email">By email, to the address on the application</option>
+            <option value="hand">By hand: show me the link once</option>
+          </select>
+        </div>
         <button
           type="button"
           disabled={busy}
@@ -121,8 +165,12 @@ export function InviteButton({
             setBusy(true);
             setError(null);
             try {
-              const body = await post({ action: "invite_from_application", applicationId, role });
-              setToken(body.token ?? null);
+              const body = await post({ action: "invite_from_application", applicationId, role, deliverBy });
+              if (body.delivered === "email" && body.sentTo) setSentTo(body.sentTo);
+              else {
+                setEmailFailed(body.emailFailed ?? null);
+                setToken(body.token ?? null);
+              }
               router.refresh();
             } catch (err) {
               setError(err instanceof Error ? err.message : "That did not work.");

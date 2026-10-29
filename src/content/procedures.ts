@@ -440,8 +440,10 @@ export const PROCEDURES: Procedure[] = [
       },
       {
         "n": "4",
-        "screen": "Any record (`ContactLogForm`)",
-        "routes": [],
+        "screen": "`src/app/portal/(app)/prospects/[id]`, `src/app/portal/(app)/clients/[id]`, `src/app/portal/(app)/files`, `src/app/portal/(app)/order-lookup/[id]` (`ContactLogPanel`, `ContactLogForm`)",
+        "routes": [
+          "/portal/files"
+        ],
         "who": "Rep (`contact_log.write`)",
         "sees": "The call log form",
         "does": "Logs a call",
@@ -885,11 +887,11 @@ export const PROCEDURES: Procedure[] = [
         ],
         "who": "Ops manager (`technicians.onboard`), admin",
         "sees": "The application",
-        "does": "Invites them from it",
+        "does": "Invites them from it, choosing how the link goes out: by email (the default) or by hand",
         "next": "`/api/portal/onboarding` `invite_from_application`, `inviteFromApplication`",
-        "told": "Nobody by email: the screen shows the link once, \"Send this to them\"",
-        "record": "`eng_onboardings` update, `eng_applications` update; audit `onboarding.invite_from_application`",
-        "marks": "The link is delivered by hand, outside the platform. The `onboardingInvite` template exists and nothing calls it: **[NO SCREEN]** for sending it"
+        "told": "The applicant (`onboardingInvite`, queued by email), unless the link is chosen to go by hand, when the screen shows it once",
+        "record": "`eng_onboardings` update, `eng_applications` update; `email.send` job; audit `onboarding.invite_from_application`, saying how the link went out and never the link",
+        "marks": "Emailed by default since 2026-10-28. Before that the link was always carried by hand"
       },
       {
         "n": "4",
@@ -1008,7 +1010,7 @@ export const PROCEDURES: Procedure[] = [
         "n": "6",
         "screen": "none",
         "routes": [],
-        "who": "Admin",
+        "who": "Engineer (`protocols.publish`, a licensed action: both functions refuse the admin, `holdsLicence`)",
         "sees": "",
         "does": "Withdraws or restores a certification",
         "next": "`/api/portal/onboarding` `revoke_certification` and `restore_certification` exist",

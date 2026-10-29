@@ -4,6 +4,40 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
+## W3 ROUND 2, 2026-10-28: THE WALK'S 28 MISSING AND OFF-SCREEN STEPS
+
+From the W2 walk on board 40789442209 (20 missing, 8 off-screen). Robert's loop
+of 21:07 Central and his pre-approval of 21:11 Central, tonight only: build my
+own recommendation unless it changes one of his rulings, touches a payment,
+price or money flow, touches sealing, or exposes anything new to customers or
+partners. Those are questions, below.
+
+| Class | Count | Steps |
+| --- | --- | --- |
+| Off-screen by nature, the map is right | 7 | WF-002 step 2 and WF-008 step 3 (Stripe Checkout); WF-003 steps 2, 3, 5 and 6 (email to the buyer); WF-030 step 6 (an in-app notice) |
+| Map wording corrected | 1 | WF-007 step 4: the call log lives on four screens, now named (prospects, clients, files, order lookup) instead of "any record" |
+| No screen by design, a machine door or the scheduler | 4 | WF-001 step 4 and WF-002 step 5 (sister sites), WF-002 step 4 (the account API), WF-026 step 1 (the scheduler) |
+| A code edit by design or by ruling | 8 | WF-004 step 1 and WF-018 step 2 (already asked, both wait on Robert); WF-020 step 1 (the first administrator); WF-024 steps 2, 5 and 6 (gate conditions, prices, service lines: CLAUDE.md sections 1 and 6c); WF-027 step 3 (retention, dry run first); WF-032 step 1 (verbatim transcription) |
+| Built | 1 | WF-016 step 3, below |
+| Asked, not built | 7 | Below |
+
+**Built: WF-016 step 3, the onboarding invite is emailed.** The `onboardingInvite` template existed and nothing sent it, so every onboarding link was carried by hand. The invite now asks how the link goes out: by email to the address on the application (the default, as the staff invite on `/portal/people` already does) or by hand. The link comes back to the screen only by hand, or when the email could not be queued; the audit row says how it went out and never carries the link. Proof: `the-onboarding-invite-is-emailed-and-the-licence-refusal-is-true.mjs`.
+
+**Repaired in passing: WF-017 step 6.** `revokeCertification` and `restoreCertification` refuse everybody but the licensed role, and both said "Only an engineer or an administrator can", telling an administrator he could do what the line above refuses. They now give `licenceRefusal`. The map row named the admin; it now names the engineer. Same proof.
+
+**Decided overnight, Robert to confirm:**
+- The onboarding invite is emailed by default, with "by hand" kept as the other choice (WF-016 step 3).
+- WF-007 step 4's screen cell names the four screens that carry the call log.
+
+**Questions for Robert, each with a recommendation:**
+1. **WF-017 step 6, withdrawing or restoring a technician's certification has no screen.** It is a licensed action, so only the engineer may send it, and the engineer cannot open `/portal/techs`. Recommend: a panel on `/portal/review` beside the training decisions, engineer only, with the reason required.
+2. **WF-021 step 4, releasing a sign-in lock has no screen.** The route behind `releaseLock` takes the operator's token. Recommend: keep it off-screen; a screen would put the break-glass token, or its equivalent, behind an ordinary session.
+3. **WF-022 step 3, setting an account's credit limit and terms has no screen.** That is a money flow. Recommend: an administrator panel on `/portal/accounts`, with a fresh second factor, once you rule.
+4. **WF-024 step 3, the proving charge has no screen.** A live charge. Recommend: an administrator button on `/portal/launch` that shows the blockers first; build only on your word.
+5. **WF-024 step 4, telling the waitlist the firm is open has no screen.** It emails customers. Recommend: a button on `/portal/launch`, enabled only once the gate reads live, sending a preview to you first.
+6. **WF-006 step 2, a customer cannot ask to be forgotten except by calling.** A new customer-facing form. Recommend: keep it staff-taken for now; `/portal/deletion-requests` already records it.
+7. **WF-030 step 5, a technician cannot delete a capture.** `deleteCapture` writes no audit row, and the evidence feeds what the engineer seals. Recommend: a delete button on the capture screen while the file is in the field, and an audit row added to `deleteCapture` first.
+
 ## OFFICE READY: WHICH STAFF LISTS EXPORT CSV, AND WHAT IS LEFT
 
 Robert, 21:07 Central 2026-10-28: "list every staff list screen without a CSV
