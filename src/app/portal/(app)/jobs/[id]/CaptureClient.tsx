@@ -12,6 +12,7 @@ import {
   type ProtocolItem,
 } from "@/lib/ops-evidence";
 import { dequeue, enqueue, flushOne, markAttempt, pendingFor, positionOrNull, type QueuedCapture } from "@/lib/offline-queue";
+import { FIRM_TIME_ZONE } from "@/lib/firm-calendar";
 
 /**
  * The checklist a technician works.
@@ -74,7 +75,7 @@ const KIND_NOUN: Record<EvidenceKind, string> = {
 function captureLine(c: ServerCapture, n: number): string {
   const value = c.valueText ?? (c.valueNumber === null ? null : String(c.valueNumber));
   const at = c.capturedAt
-    ? new Date(c.capturedAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
+    ? new Date(c.capturedAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: FIRM_TIME_ZONE })
     : null;
   return [`${KIND_NOUN[c.kind]} ${n}`, value, at ? `taken ${at}` : null].filter(Boolean).join(", ");
 }
