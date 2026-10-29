@@ -3,7 +3,12 @@
 # posted back as a check on the commit, the full log kept as an ENCRYPTED
 # artifact because this repository is public.
 #
-# Shape: one build per commit, then four shards in parallel. Three touch no
+# Shape: one build and one preflight per commit, side by side, then the shards
+# in parallel once BOTH have passed. The preflight (scripts/preflight.mjs) runs
+# every static rule the board applies, with no secret and no .env.local, so its
+# environment-file exemptions apply exactly as they do on a laptop; a red one
+# means no shard starts and no writer touches development (decided overnight
+# 2026-10-28, Robert to confirm). Three shards touch no
 # database. The fourth, `writers`, holds every audit that writes to development
 # and waits its turn across all runs (scripts/ci/dev-db-turn.mjs), because probe
 # sweeps clear the whole probe domain and two writers at once would delete each
@@ -100,9 +105,68 @@ jobs:
           path: ${{ runner.temp }}/build-log.sealed
           retention-days: 30
 
+  preflight:
+    # No secret is read in this job and no .env.local is written, on purpose:
+    # the preflight is the laptop's check, run where the laptop cannot skip it.
+    # Its full output goes to a sealed artifact; the public log shows only each
+    # rule's name and verdict (scripts/ci/preflight-gate.mjs).
+    name: preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash
+    steps:
+      # The whole history and a local main, as the static shard has them:
+      # guide-dates-audit and schema-ledger-audit read git, and the voice rule
+      # reads the lines added since the merge base with origin/main.
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: A local main, which schema-ledger-audit reads
+        run: |
+          git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
+          git show-ref --verify --quiet refs/heads/main || git branch main origin/main
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install
+        run: npm ci --no-audit --no-fund
+      - name: PDF, archive and port tools
+        run: |
+          sudo apt-get update -qq > /dev/null
+          sudo apt-get install -y -qq poppler-utils unzip lsof > /dev/null
+      - name: Run the preflight
+        run: |
+          mkdir -p "$RUNNER_TEMP/board"
+          set +e
+          node scripts/preflight.mjs --summary "$RUNNER_TEMP/preflight.json" > "$RUNNER_TEMP/board/preflight.log" 2>&1
+          echo $? > "$RUNNER_TEMP/board/exit"
+          echo "preflight exit $(cat "$RUNNER_TEMP/board/exit")"
+      - name: Verdicts
+        run: node scripts/ci/preflight-gate.mjs "$RUNNER_TEMP/preflight.json" "$RUNNER_TEMP/verdict-preflight.json"
+      - name: Seal the preflight log
+        if: always()
+        run: |
+          (cd "$RUNNER_TEMP" && tar -czf board-log.tgz board)
+          node scripts/ci/seal.mjs seal "$RUNNER_TEMP/board-log.tgz" "$RUNNER_TEMP/board-log-preflight.sealed"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: board-log-preflight
+          path: ${{ runner.temp }}/board-log-preflight.sealed
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: verdict-preflight
+          path: ${{ runner.temp }}/verdict-preflight.json
+          retention-days: 30
+
   shard:
     name: shard ${{ matrix.shard }}
-    needs: build
+    needs: [build, preflight]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 360
     defaults:
@@ -242,7 +306,7 @@ jobs:
 
   board:
     name: board
-    needs: [build, shard]
+    needs: [build, preflight, shard]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 10

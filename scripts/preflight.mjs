@@ -195,6 +195,19 @@ const failed = results.filter((r) => r.verdict === "FAIL");
 const untold = results.filter((r) => r.verdict === "COULD NOT TELL");
 console.log("");
 console.log(`preflight: ${results.length} rules, ${failed.length} failed, ${untold.length} could not tell, ${((Date.now() - started) / 1000).toFixed(0)} s`);
+/*
+ * --summary <path> writes the rules and their verdicts, and nothing an audit
+ * printed, for the board's first job (scripts/ci/preflight-gate.mjs). The rule
+ * names are this file's own fixed strings and the audit names in shards.mjs.
+ */
+{
+  const at = process.argv.indexOf("--summary");
+  if (at > 0) {
+    const { writeFileSync } = await import("node:fs");
+    const exit = results.length === 0 ? 2 : failed.length ? 1 : untold.length ? 2 : 0;
+    writeFileSync(process.argv[at + 1], JSON.stringify({ results, exit, seconds: Math.round((Date.now() - started) / 1000) }, null, 2));
+  }
+}
 if (results.length === 0) process.exit(2);
 if (failed.length) {
   console.log(`RED: ${failed.map((f) => f.rule).join(", ")}. No bundle boards on a red preflight.`);
