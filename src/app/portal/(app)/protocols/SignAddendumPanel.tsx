@@ -22,11 +22,11 @@ export function SignAddendumPanel({ addendumId, label }: { addendumId: string; l
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
 
-  if (done) return <p className="mt-3 text-[14px] leading-[1.6] text-[var(--ink)]" aria-live="polite">{done}</p>;
+  if (done) return <p className="mt-3 text-[13.5px] leading-[1.6] text-[var(--ink)]" aria-live="polite">{done}</p>;
 
   return (
     <div className="mt-3">
-      <label htmlFor={`sign-addendum-${addendumId}`} className="block text-[14px] font-semibold text-[var(--ink)]">
+      <label htmlFor={`sign-addendum-${addendumId}`} className="block text-[13.5px] font-semibold text-[var(--ink)]">
         Code from your authenticator, to sign the scope addendum for {label}
       </label>
       <input
@@ -68,7 +68,7 @@ export function SignAddendumPanel({ addendumId, label }: { addendumId: string; l
         </button>
       </div>
       {error ? (
-        <p role="alert" className="mt-3 text-[14px] leading-[1.6] text-[var(--ink)]">
+        <p role="alert" className="mt-3 text-[13.5px] leading-[1.6] text-[var(--ink)]">
           {error}
         </p>
       ) : null}

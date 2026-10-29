@@ -64,23 +64,23 @@ export function VoidSealPanel({ letters }: { letters: VoidableLetter[] }) {
       <h2 id="void-seal-heading" className="text-[16px] font-semibold text-[var(--ink)]">
         Void a sealed letter to reissue it
       </h2>
-      <p className="mt-1.5 text-[14px] leading-[1.6] text-[var(--secondary)]">
+      <p className="mt-1.5 text-[13.5px] leading-[1.6] text-[var(--secondary)]">
         Only a letter you sealed. The reason is kept on the record with the voiding, and the voiding cannot be undone.
       </p>
 
       {done ? (
-        <p className="mt-3 text-[14px] leading-[1.6] text-[var(--ink)]" aria-live="polite">
+        <p className="mt-3 text-[13.5px] leading-[1.6] text-[var(--ink)]" aria-live="polite">
           {done}
         </p>
       ) : null}
 
       {letters.length === 0 ? (
-        <p className="mt-3 text-[14px] leading-[1.6] text-[var(--ink)]">
+        <p className="mt-3 text-[13.5px] leading-[1.6] text-[var(--ink)]">
           You have no live sealed letter. A letter you seal from the list above appears here.
         </p>
       ) : (
         <div className="mt-3">
-          <label htmlFor="void-letter" className="block text-[14px] font-semibold text-[var(--ink)]">
+          <label htmlFor="void-letter" className="block text-[13.5px] font-semibold text-[var(--ink)]">
             Letter
           </label>
           <select id="void-letter" value={sealActId} onChange={(e) => setSealActId(e.target.value)} className={FIELD}>
@@ -92,12 +92,12 @@ export function VoidSealPanel({ letters }: { letters: VoidableLetter[] }) {
             ))}
           </select>
 
-          <label htmlFor="void-reason" className="mt-4 block text-[14px] font-semibold text-[var(--ink)]">
+          <label htmlFor="void-reason" className="mt-4 block text-[13.5px] font-semibold text-[var(--ink)]">
             Why the seal is voided
           </label>
           <textarea id="void-reason" rows={3} value={reason} onChange={(e) => setReason(e.target.value)} className={FIELD} />
 
-          <label htmlFor="void-code" className="mt-4 block text-[14px] font-semibold text-[var(--ink)]">
+          <label htmlFor="void-code" className="mt-4 block text-[13.5px] font-semibold text-[var(--ink)]">
             Code from your authenticator
           </label>
           <input
@@ -122,7 +122,7 @@ export function VoidSealPanel({ letters }: { letters: VoidableLetter[] }) {
       )}
 
       {error ? (
-        <p role="alert" className="mt-3 text-[14px] leading-[1.6] text-[var(--ink)]">
+        <p role="alert" className="mt-3 text-[13.5px] leading-[1.6] text-[var(--ink)]">
           {error}
         </p>
       ) : null}

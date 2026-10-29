@@ -492,11 +492,51 @@ const PORTED = [
   "src/components/portal/surfaces.tsx",
   /* Read from the admin-accounts batch of 2026-10-09, which declared them V10. */
   "src/app/portal/(app)/accounts/OpenAccountClient.tsx",
-  "src/app/portal/(app)/partners/[id]/page.tsx",
-  "src/app/portal/(app)/partners/[id]/PartnerActions.tsx",
   "src/app/portal/(app)/deletion-requests/page.tsx",
   "src/app/portal/(app)/deletion-requests/DeletionRequestsClient.tsx",
+  /*
+   * THE LAST OF THE NEVER READ, 2026-10-29 (BACKLOG, "SEVENTEEN PORTAL FILES
+   * TOKEN-AUDIT HAS NEVER READ"). Nine of the seventeen named on 2026-10-07 were
+   * still off this list, and sixteen files built since had joined them, 25 in
+   * all. From here the class check below fails on any portal file this list
+   * and the counted exemptions do not name, so the twenty-sixth is a red board
+   * rather than a sweep somebody remembers to run.
+   */
+  "src/app/(order)/layout.tsx",
+  "src/app/portal/(app)/accounts/[id]/pricing/page.tsx",
+  "src/app/portal/(app)/accounts/[id]/pricing/TradePricingClient.tsx",
+  "src/app/portal/(app)/billing/UncreditedReviews.tsx",
+  "src/app/portal/(app)/error.tsx",
+  "src/app/portal/(app)/files/dispatch/BulkDispatchClient.tsx",
+  "src/app/portal/(app)/files/dispatch/page.tsx",
+  "src/app/portal/(app)/inquiries/InquiriesClient.tsx",
+  "src/app/portal/(app)/inquiries/page.tsx",
+  "src/app/portal/(app)/jobs/layout.tsx",
+  "src/app/portal/(app)/orders/AttachAccountClient.tsx",
+  "src/app/portal/(app)/pricebook/AddendumDraftForm.tsx",
+  "src/app/portal/(app)/protocols/SignAddendumPanel.tsx",
+  "src/app/portal/(app)/protocols/SignTemplatePanel.tsx",
+  "src/app/portal/(app)/review/VoidSealPanel.tsx",
+  "src/app/portal/(app)/settings/AlertRecipientsClient.tsx",
+  "src/app/portal/(app)/techs/[id]/AttachConfirmationForm.tsx",
+  "src/app/portal/(app)/windstorm-inquiries/page.tsx",
+  "src/app/portal/(app)/windstorm-inquiries/WindstormInquiriesClient.tsx",
+  "src/components/portal/FieldAppWorker.tsx",
+  "src/components/portal/FileThreadButton.tsx",
+  "src/components/portal/LetterFactsPanels.tsx",
+  "src/components/portal/PhoneLink.tsx",
+  "src/components/portal/SignOutControl.tsx",
+  "src/components/portal/Unreachable.tsx",
 ];
+
+/**
+ * PORTAL FILES THIS AUDIT DELIBERATELY DOES NOT READ, each with its reason.
+ * Counted and printed on every run, and the class check below asserts the
+ * count, so the list cannot grow quietly into the way the check is avoided.
+ * Empty on 2026-10-29: every portal file is read.
+ */
+const NOT_READ = {};
+const NOT_READ_COUNT = 0;
 
 /**
  * The one file the COLOUR rule does not govern, and why.
@@ -540,6 +580,23 @@ rec(
   "every file named as ported actually exists",
   PORTED.every((f) => allPortalFiles.includes(f)),
   PORTED.filter((f) => !allPortalFiles.includes(f)).join(", ") || "none stale",
+);
+/*
+ * THE CLASS CHECK. Every .tsx the surfaces declare is either read (PORTED) or
+ * named in NOT_READ with a reason. A new portal file nobody listed is red here,
+ * naming it, which is docs/new-surface-checklist.md row 8 made mechanical.
+ */
+const unlisted = allPortalFiles.filter((f) => f.endsWith(".tsx") && !PORTED.includes(f) && !(f in NOT_READ));
+rec(
+  "every portal .tsx is read by this audit or named as not read, with a reason",
+  unlisted.length === 0,
+  unlisted.length ? `${unlisted.length} unlisted: ${unlisted.slice(0, 6).join(", ")}` : `${allPortalFiles.filter((f) => f.endsWith(".tsx")).length} files, ${Object.keys(NOT_READ).length} not read`,
+);
+rec(
+  `and the not-read list holds exactly ${NOT_READ_COUNT}, each with a reason and each a real file`,
+  Object.keys(NOT_READ).length === NOT_READ_COUNT &&
+    Object.entries(NOT_READ).every(([f, why]) => allPortalFiles.includes(f) && String(why).length > 20),
+  `${Object.keys(NOT_READ).length} named`,
 );
 console.log(
   `  NOTE: ${PORTED.length} of ${allPortalFiles.length} portal files are ported to the design system. ` +
@@ -618,6 +675,8 @@ const CUSTOMER_V10 = [
   "src/app/account/page.tsx",
   "src/app/account/SignOutButton.tsx",
   "src/components/order/OrderFlow.tsx",
+  /* The order surface's own layout, read from 2026-10-29: every page under it is on this list, so it is held to the same scale. */
+  "src/app/(order)/layout.tsx",
   "src/app/(order)/order/[reference]/page.tsx",
   "src/app/(order)/order/[reference]/RequestedDocumentUpload.tsx",
   "src/app/(order)/order/quote/[reference]/page.tsx",

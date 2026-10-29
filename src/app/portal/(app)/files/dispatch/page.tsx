@@ -68,7 +68,7 @@ export default async function BulkDispatchPage({
             missing from a review screen reads as a file that was fine.
           */}
           {outcome.plans.length !== ids.length && (
-            <p className="mb-4 rounded-[4px] border border-[var(--border)] bg-[var(--canvas)] p-3 text-[13px] text-[var(--secondary)]">
+            <p className="mb-4 rounded-[4px] border border-[var(--border)] bg-[var(--canvas)] p-3 text-[12.5px] text-[var(--secondary)]">
               {ids.length} file{ids.length === 1 ? "" : "s"} were selected and {outcome.plans.length} came
               back. A selected file is missing here when your role cannot see it, or when it no longer exists.
             </p>
