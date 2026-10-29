@@ -29,7 +29,12 @@ export type AccountListParams = {
 export type AccountListQuery = {
   /** The organization name searched for, cleaned of PostgREST syntax; "" for none. */
   term: string;
-  status: "all" | "active" | "suspended" | "closed";
+  /**
+   * "all" is every account in use: superseded accounts are not in it and not
+   * in its count (Robert, 21:11 Central 2026-10-28). "superseded" shows only
+   * them, kept as records.
+   */
+  status: "all" | "active" | "suspended" | "closed" | "superseded";
   billing: "all" | "card" | "invoice";
   /** "cannot_order" keeps only the accounts the warning above the list names. */
   attention: "all" | "cannot_order";
@@ -40,7 +45,9 @@ export type AccountListQuery = {
 
 export function accountListQuery(params: AccountListParams): AccountListQuery {
   const status =
-    params.status === "active" || params.status === "suspended" || params.status === "closed" ? params.status : "all";
+    params.status === "active" || params.status === "suspended" || params.status === "closed" || params.status === "superseded"
+      ? params.status
+      : "all";
   const billing = params.billing === "card" || params.billing === "invoice" ? params.billing : "all";
   const attention = params.attention === "cannot_order" ? "cannot_order" : "all";
   const sort = params.sort === "name" ? "name" : "added";
@@ -59,6 +66,8 @@ export type RosterEntry = {
   createdAt: string;
   /** Active and refused by the credit rule: the accounts the warning names. */
   cannotOrder: boolean;
+  /** superseded_at is set: a duplicate or a typo kept as a record, never a customer. */
+  superseded: boolean;
 };
 
 /**
@@ -76,9 +85,17 @@ export function pageOfAccounts(
   matchingClients: ReadonlySet<string> | null,
   nameOf: ReadonlyMap<string, string> | null,
 ): { ids: string[]; matchingIds: string[]; total: number; page: number; pages: number } {
+  /*
+   * SUPERSEDED ACCOUNTS ARE OUT OF EVERY VIEW BUT THEIR OWN. Robert, 21:11
+   * Central 2026-10-28: hidden from the list and its counts by default, with a
+   * status filter that shows them. So "all", "active", "suspended" and "closed"
+   * all leave them out, and "superseded" keeps only them, through this same
+   * rule, so its count is exact over every superseded account.
+   */
   const matching = roster.filter(
     (a) =>
-      (query.status === "all" || a.status === query.status) &&
+      (query.status === "superseded" ? a.superseded : !a.superseded) &&
+      (query.status === "all" || query.status === "superseded" || a.status === query.status) &&
       (query.billing === "all" || a.billingMode === query.billing) &&
       (query.attention === "all" || a.cannotOrder) &&
       (matchingClients === null || matchingClients.has(a.clientId)),
