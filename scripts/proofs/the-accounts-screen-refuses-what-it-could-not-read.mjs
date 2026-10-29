@@ -72,7 +72,7 @@ const targets = JSON.parse(process.env.ACCOUNTS_PROOF_TARGETS || "{}");
 const unknown = (rows) => rows.filter((r) => r.clientName === "Unknown organization").length;
 const summary = (r) =>
   r.ok
-    ? { ok: true, all: r.all, total: r.total, shown: r.rows.length, unknownNames: unknown(r.rows), blockedUnknown: unknown(r.blocked) }
+    ? { ok: true, all: r.all, superseded: r.superseded, total: r.total, shown: r.rows.length, unknownNames: unknown(r.rows), blockedUnknown: unknown(r.blocked) }
     : { ok: false, unavailable: r.unavailable };
 
 async function findRow(target) {
@@ -91,11 +91,13 @@ const began = Date.now();
 const first = await accountRows();
 const took = Date.now() - began;
 const byName = await accountRows(accountListQuery({ sort: "name" }));
+const superseded = process.env.ACCOUNTS_PROOF_SKIP_FIND ? null : await accountRows(accountListQuery({ status: "superseded" }));
 const out = {
   took,
   pageSize: ACCOUNT_PAGE_SIZE,
   first: summary(first),
   byName: summary(byName),
+  superseded: superseded ? summary(superseded) : null,
   withOrder: process.env.ACCOUNTS_PROOF_SKIP_FIND ? null : await findRow(targets.order),
   withSeat: process.env.ACCOUNTS_PROOF_SKIP_FIND ? null : await findRow(targets.seat),
 };
@@ -174,14 +176,29 @@ if (!db) {
   console.error("No database is configured here, so there is no screen to ask. This proof runs where .env.local exists.");
   process.exit(1);
 }
+/*
+ * AN ACCOUNT IN USE, NOT MERELY THE FIRST ONE. Since Robert's ruling of 21:11
+ * Central 2026-10-28 the default list hides superseded accounts, and every
+ * customer probe a board runs leaves one, so the lowest account id with an
+ * order may well be superseded and correctly absent from a default search.
+ * The candidates are read first, then the first one still in use is asked.
+ */
 async function accountWith(table, filter) {
   let q = db.from(table).select("account_id").not("account_id", "is", null);
   if (filter) q = filter(q);
-  const { data, error } = await q.order("account_id", { ascending: true }).limit(1);
+  const { data, error } = await q.order("account_id", { ascending: true }).limit(400);
   if (error || !data?.length) return null;
-  const id = data[0].account_id;
-  const { data: account } = await db.from("eng_customer_accounts").select("id, client_id").eq("id", id).maybeSingle();
+  const candidates = [...new Set(data.map((r) => r.account_id))];
+  const { data: inUse } = await db
+    .from("eng_customer_accounts")
+    .select("id, client_id")
+    .in("id", candidates)
+    .is("superseded_at", null)
+    .order("id", { ascending: true })
+    .limit(1);
+  const account = inUse?.[0];
   if (!account) return null;
+  const id = account.id;
   const { data: client } = await db.from("eng_clients").select("name").eq("id", account.client_id).maybeSingle();
   return client?.name ? { id, name: client.name } : null;
 }
@@ -199,10 +216,16 @@ const first = healthy.first;
 
 check("the screen computes", first.ok === true, first.ok ? `page of ${first.shown} from ${first.all} accounts in ${healthy.took}ms` : JSON.stringify(first.unavailable));
 
+/*
+ * The cliff is crossed by the name read sorted by name, which covers the whole
+ * roster, superseded accounts included. Since 21:11 Central 2026-10-28 "all"
+ * counts only the accounts in use, so the subject is all plus superseded.
+ */
+const rosterSize = (first.all ?? 0) + (first.superseded ?? 0);
 check(
-  `the database holds enough accounts to cross the cliff (${first.all ?? 0})`,
-  (first.all ?? 0) > 350,
-  (first.all ?? 0) > 350
+  `the database holds enough accounts to cross the cliff (${rosterSize} in the roster, ${first.all ?? 0} in use)`,
+  rosterSize > 350,
+  rosterSize > 350
     ? "so the injection below is a real oversized request rather than a hypothetical"
     : "FEWER THAN 350, so an oversized filter would succeed and the injection would prove nothing",
 );
@@ -211,6 +234,17 @@ check(
   "one page is shown, and the count is over every account rather than the page",
   first.ok === true && first.shown <= healthy.pageSize && first.total === first.all && first.all > first.shown,
   `${first.shown} shown, ${first.total} matching, ${first.all} in all`,
+);
+
+/*
+ * Robert, 21:11 Central 2026-10-28: superseded accounts are out of the default
+ * list and its count, and their own filter counts every one of them, read
+ * against the real database rather than a fixture.
+ */
+check(
+  "the superseded filter counts exactly the accounts the default view leaves out",
+  healthy.superseded?.ok === true && first.ok === true && healthy.superseded.total === first.superseded && healthy.superseded.all === first.all,
+  healthy.superseded?.ok ? `${healthy.superseded.total} shown under the filter, ${first.superseded} counted apart, ${first.all} in use` : JSON.stringify(healthy.superseded),
 );
 
 check(

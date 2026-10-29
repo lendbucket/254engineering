@@ -24,7 +24,7 @@
  * It is pure. No server, no database, no network, so it runs in phase zero.
  */
 
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { readSource, codeOnly } from "./lib/read-source.mjs";
 import { createHmac } from "node:crypto";
@@ -1083,30 +1083,71 @@ withEnv({ CUSTOMER_SESSION_SECRET: CUS_SECRET }, () => {
 // obviously wrong; there is simply one customer too many.
 
 {
-  const accountReaders = [];
+  /*
+   * EACH READ, NOT EACH FILE. Until 2026-10-28 this asked whether a FILE that
+   * reads accounts mentions superseded_at anywhere, so one scoped read in a file
+   * excused every other read in it. The /portal/accounts roster read in
+   * ops-accounts-admin.ts never excluded superseded accounts and passed for
+   * months, because convertClientToAccount in the same file names the column.
+   * Robert's ruling of 21:11 Central that day found it; the check now asks the
+   * statement that holds each .from("eng_customer_accounts") call.
+   *
+   * The statement runs from the previous semicolon to the next one, so a read
+   * built inside readEvery's arrow, or chained over several lines, is one
+   * statement. It is scoped when that statement filters or selects
+   * superseded_at, or passes through withAccountScope.
+   */
+  const accountReads = [];
+  const accountFiles = new Set();
   const walkSrc = (dir) => {
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
       const p = join(dir, entry.name);
       if (entry.isDirectory()) walkSrc(p);
       else if (/\.tsx?$/.test(entry.name)) {
         const text = codeOnly(p);
+        const path = p.split("\\").join("/");
+        const call = /from\(\s*["']eng_customer_accounts["']\s*\)/g;
         /*
-         * A READ, not a write. An update or an insert names the row it is
-         * changing and has no business filtering on supersession; only a
-         * SELECT can quietly return one too many.
+         * The line a person opens is the line in the FILE, not in codeOnly's
+         * comment-stripped text, so the nth call in the code is located as the
+         * nth call in the raw source. Comments quoting the call would shift
+         * that, so raw matches inside a comment line are skipped.
          */
-        const reads = text.match(/from\(\s*["']eng_customer_accounts["']\s*\)[\s\S]{0,400}?\.select\(/g) ?? [];
-        if (reads.length > 0) {
-          accountReaders.push({ path: p.split("\\").join("/"), text });
+        const rawLines = readFileSync(p, "utf8").split("\n");
+        const rawCallLines = rawLines
+          .map((l, i) => (/from\(\s*["']eng_customer_accounts["']\s*\)/.test(l) && !/^\s*(\/\/|\*|\/\*)/.test(l) ? i + 1 : 0))
+          .filter((n) => n > 0);
+        let nth = 0;
+        let m;
+        while ((m = call.exec(text)) !== null) {
+          const rawLine = rawCallLines[nth] ?? null;
+          nth += 1;
+          const start = text.lastIndexOf(";", m.index) + 1;
+          const endAt = text.indexOf(";", m.index);
+          const statement = text.slice(start, endAt < 0 ? text.length : endAt);
+          const after = statement.slice(m.index - start);
+          /*
+           * A READ, not a write. An update or an insert names the row it is
+           * changing and has no business filtering on supersession; only a
+           * SELECT can quietly return one too many. A write that selects its
+           * own row back is still a write.
+           */
+          const selectAt = after.search(/\.select\(/);
+          if (selectAt < 0) continue;
+          if (/\.(insert|update|upsert|delete)\(/.test(after.slice(0, selectAt))) continue;
+          const line = rawLine ?? `code line ${text.slice(0, m.index).split("\n").length}`;
+          accountReads.push({ path, line, scoped: /superseded_at/.test(statement) || /withAccountScope\(/.test(statement) });
+          accountFiles.add(path);
         }
       }
     }
   };
   walkSrc("src");
+  const accountReaders = [...accountFiles].map((path) => ({ path }));
 
   rec(
-    `there are account reads to check (${accountReaders.length})`,
-    accountReaders.length >= 4,
+    `there are account reads to check (${accountReads.length} reads in ${accountReaders.length} files)`,
+    accountReads.length >= 4,
     "a sweep over an empty list passes every run",
   );
 
@@ -1117,23 +1158,35 @@ withEnv({ CUSTOMER_SESSION_SECRET: CUS_SECRET }, () => {
   const MAY_SEE_SUPERSEDED = {
     "src/lib/account-scope.ts":
       "it IS the scope helper, and supersedeAccount reads the row it is about to mark, which is the one read that must see an unsuperseded row and then a superseded one.",
-    "src/lib/account-creation.ts":
-      "it inserts the account and selects the id back. There is no superseded row to exclude because the row is one statement old.",
+    /*
+     * src/lib/account-creation.ts was excused here until 2026-10-28 for an
+     * insert that selects its id back. Asked per read, a write that selects its
+     * own row back is not a read, so the exception excused nothing and the
+     * stale-exception check below named it. Removed, which narrows the list.
+     */
     "src/lib/ops-statements.ts":
       "IT RESOLVES A MONEY RECORD RATHER THAN A CUSTOMER, and that is the whole distinction the operator ruling turns on. Closing a period and issuing a statement are about work already done and money already owed. An account superseded after that work was billed must still resolve, or superseding a duplicate would orphan the statements the supersession exists to keep intact. Every read that asks whether somebody may ACT excludes superseded rows; this one asks what an account was charged.",
   };
 
-  const unscoped = accountReaders
+  const unscoped = accountReads
     .filter((r) => !MAY_SEE_SUPERSEDED[r.path])
-    .filter((r) => !/superseded_at/.test(r.text))
-    .map((r) => r.path);
+    .filter((r) => !r.scoped)
+    .map((r) => `${r.path}:${r.line}`);
+  const excused = accountReads.filter((r) => MAY_SEE_SUPERSEDED[r.path]).length;
 
   rec(
     "every read of an account excludes superseded rows",
     unscoped.length === 0,
     unscoped.length
-      ? `READS ACCOUNTS AND NEVER MENTIONS superseded_at: ${unscoped.join(", ")}`
-      : `${accountReaders.length - Object.keys(MAY_SEE_SUPERSEDED).length} scoped, ${Object.keys(MAY_SEE_SUPERSEDED).length} declared exceptions`,
+      ? `A READ OF eng_customer_accounts THAT NEVER NAMES superseded_at: ${unscoped.join(", ")}`
+      : `${accountReads.length - excused} reads scoped, ${excused} in ${Object.keys(MAY_SEE_SUPERSEDED).length} declared exception files`,
+  );
+  /* The exceptions are files that still read accounts, so a stale one is named rather than kept. */
+  const staleExceptions = Object.keys(MAY_SEE_SUPERSEDED).filter((path) => !accountFiles.has(path));
+  rec(
+    "every declared exception still reads accounts",
+    staleExceptions.length === 0,
+    staleExceptions.join(", ") || `${Object.keys(MAY_SEE_SUPERSEDED).length} exceptions, each still a reader`,
   );
 
   /*
