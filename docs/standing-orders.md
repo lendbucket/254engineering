@@ -22,7 +22,7 @@ The source of truth for the running loop. Robert, 2026-10-29: the loop prompt is
 | 23 | WF-030 step 5: a delete button for a field capture while the file is in the field. The audit row goes into `deleteCapture` first. Built as `93866aa` on `feat/capture-delete`, preflight GREEN. Robert ruled yes to all three on 2026-10-29:
 - a capture a repair was verified against is refused;
 - the photograph stays in the evidence bucket, with its storage path in the audit row;
-- the engineer and the administrator may delete, as they may capture. | **Reboarding, run 40930082505, on `c4225b0`.** The first board (40918058948) missed on a time printed with no zone; that is fixed. |
+- the engineer and the administrator may delete, as they may capture. | **Merged as `a190a10`** (board 40930082505). |
 | P | The preflight runs every repo-wide static proof (`ci/preflight-static-proofs`), so a miss like bundle 23's is caught before the board. Built as `e14bea7`:
 - 109 of 182 proofs are static, derived by `scripts/lib/proof-needs.mjs`.
 - The preflight takes 91 to 98 s, up from 43 s.
