@@ -126,7 +126,12 @@ export default function WindstormHubPage() {
             </Link>
             , the upper coast, and the Rio Grande Valley, and the wind, soil, and permitting
             conditions differ enough between them that each coverage region is written separately.
-            The firm&apos;s office is in {contact.city}.
+            The firm&apos;s office is in {contact.city}, and it{" "}
+            {isPrelaunch() ? "is built to serve" : "serves"}{" "}
+            <Link href="/corpus-christi" className="underline underline-offset-4">
+              Corpus Christi and the Coastal Bend
+            </Link>{" "}
+            from there.
           </p>
           {/*
             * READ OFF THE GATE, NOT TYPED. Robert, 13:05 Central 2026-10-29: a
