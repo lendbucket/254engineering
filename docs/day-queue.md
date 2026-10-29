@@ -69,6 +69,34 @@ Every repair was proved by an injection, and each file was restored byte identic
 4. Skip re-boarding a push to main whose exact commit already has a green board (ruled 2026-10-22). It edits `board.yml`, so it comes after bundle 17.
 5. List controls (search, filter, sort, paging) on the 13 staff screens that have none, so each can then take a CSV export, office ready section 2d.
 
+## 2026-10-29: BUNDLE 20 MERGED; BUNDLE 21, NO PORTAL FILE USES AN UNDEFINED TOKEN, AT `0ba0a82`
+
+**Bundle 20 merged as `2c29803`.** The merged tree is the boarded tree. Board 40881396384 on `30e597c` read 64 of 64, preflight GREEN.
+- The prior job answered "not a push to main" and boarded, as designed.
+- Its live API lookup runs on the first push to main that starts a board.
+
+**Prediction for bundle 21, written and pushed before the board starts.** A BACKLOG item needing no ruling.
+
+**The class check:** token-audit gains "every var(--name) a portal file uses is defined", over the portal files it reads and the stylesheets the portal loads.
+- Before the fix it named 31 uses of 9 undefined names across 8 files, not only the 3 BACKLOG knew about: `--ink-soft` 8, `--danger` 5, `--bad` 5, `--radius-sm` 3, `--line` 3, `--red-border` 2, `--red-bg` 2, `--good` 2, `--paper` 1.
+- An undefined `var()` renders as the inherited value, so those error lines were never red.
+
+**The swaps,** styling only, 26 lines for 26:
+- to the defined tokens the rest of the portal uses for the same role;
+- errors and successes in `--ink` on the six V10 screens, under token-audit's own rule that the V10 design has no red, and in `--red` on the two older staff screens.
+
+**Injection:** `var(--bad)` put back turned only the new check red, naming the line. Restored byte identical.
+
+**Readers:**
+- Preflight GREEN, 35 rules, 43 s.
+- token-audit 119 of 119.
+- tsc clean.
+
+**Prediction: 64 of 64.**
+- token-audit passes.
+- **contrast-audit passes on the 8 restyled screens.** It is the one check that cannot run here.
+- The walk as before; 3 lines exempt.
+
 ## 2026-10-29: BUNDLE 19 MERGED; BUNDLE 20, A GREEN COMMIT IS NOT BOARDED TWICE, AT `30e597c`
 
 **Bundle 19 merged as `a23dc9f`.** The merged tree is the boarded tree. Board 40870134329 on `62f404e` read 64 of 64, preflight GREEN:
