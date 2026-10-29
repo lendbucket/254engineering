@@ -403,13 +403,13 @@ Counted from the tables above. A step carrying both marks is counted once under 
 | --- | --- | --- |
 | Customer | 1 (254-WF-004 step 1) | 4 (254-WF-001 step 4, 254-WF-002 steps 4 and 5, 254-WF-006 step 2) |
 | Rep | 0 | 0 (254-WF-008 step 4 gained a screen on 2026-10-27) |
-| Ops manager | 1 (254-WF-018 step 2) | 2 (254-WF-016 step 3, 254-WF-017 step 6) |
+| Ops manager | 1 (254-WF-018 step 2) | 0 (254-WF-016 step 3 gained a screen on 2026-10-29; 254-WF-017 step 6 is the engineer's) |
 | Admin and owner | 5 (254-WF-020 step 1; 254-WF-024 steps 2, 5 and 6; 254-WF-027 step 3) | 6 (254-WF-021 step 4; 254-WF-022 step 3; 254-WF-024 steps 3 and 4; 254-WF-026 step 1; 254-WF-027 step 3) |
 | Field technician | 0 | 1 (254-WF-030 step 5) |
-| Engineer | 1 (254-WF-032 step 1) | 0 |
+| Engineer | 1 (254-WF-032 step 1) | 1 (254-WF-017 step 6) |
 | Partner | 0 | 0 |
 
-**Read the counts with the reasons beside them.** Of the eight [NEEDS SQL, A SCRIPT OR A CODE EDIT] steps, six are by standing ruling: the first administrator, the gate's conditions, prices and floors, opening a service line, the protocol transcription, and the retention pass. Each is recorded in `CLAUDE.md` or `BACKLOG.md` with why it is not a screen. The other two, opening self-service sign-up and the insurance override, are gate or override values stated in configuration on the same principle. **Whether each should stay that way is Robert's to confirm, not this document's to decide.** Of the thirteen [NO SCREEN] steps (fourteen until the payment links screen of 2026-10-27), four are machine doors or the scheduler by design: the sister intake door, the sister order door, the account API, and the cron.
+**Read the counts with the reasons beside them.** Of the eight [NEEDS SQL, A SCRIPT OR A CODE EDIT] steps, six are by standing ruling: the first administrator, the gate's conditions, prices and floors, opening a service line, the protocol transcription, and the retention pass. Each is recorded in `CLAUDE.md` or `BACKLOG.md` with why it is not a screen. The other two, opening self-service sign-up and the insurance override, are gate or override values stated in configuration on the same principle. **Whether each should stay that way is Robert's to confirm, not this document's to decide.** Of the twelve [NO SCREEN] steps (thirteen until the onboarding invite was emailed from /portal/onboarding on 2026-10-29, fourteen until the payment links screen of 2026-10-27), four are machine doors or the scheduler by design: the sister intake door, the sister order door, the account API, and the cron.
 
 ## The five that most need a screen, in order
 
@@ -418,7 +418,7 @@ These are the steps where a person has to do something today and nothing they ca
 1. **Resending a payment link, and invoicing an account** (254-WF-008 step 4). The actions exist and no screen sends them. A customer who loses the link from the telephone job cannot be sent another from the portal.
 2. **Setting an account's credit limit and terms** (254-WF-022 step 3). `set-terms` exists and no screen sends it, so a trade account's credit cannot be set from the portal, while the bulk order screen decides credit against it.
 3. **Withdrawing or restoring a technician's certification** (254-WF-017 step 6). The mandatory-email notice behind it exists, and no screen can start it.
-4. **Delivering the technician and partner invitation links** (254-WF-016 steps 3 and 5, 254-WF-028 step 2). Each is shown once on screen and delivered by hand outside the platform; the onboarding invite template exists and nothing sends it.
+4. **Delivering the partner invitation link** (254-WF-028 step 2). It is shown once on screen and delivered by hand outside the platform. The technician's invite (254-WF-016 step 3) is emailed through the onboarding invite template since 2026-10-29, with "by hand" as the other choice.
 5. **The proving charge and the launch announcement** (254-WF-024 steps 3 and 4). Both are needed exactly once, at opening, and neither has a screen.
 
 **One gap carries neither mark and belongs beside these.** Issuing an account's statement tells nobody: `issueStatement` writes rows and sends no email (254-WF-022 step 4). An account on terms learns of a statement only by signing in.
