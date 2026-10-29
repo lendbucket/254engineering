@@ -149,7 +149,17 @@ function reportTiming(phases: Phase[], total: number): void {
   console.log(`[accounts.timing] total=${total}ms ${body}`);
 }
 
-export async function accountRows(query: AccountListQuery = accountListQuery({})): Promise<AccountRowsResult> {
+/**
+ * `scope: "every"` reads every account matching the query, in the page's
+ * order, rather than one page: the CSV export (Robert, 2026-10-28, 16:11
+ * Central), through this function so the export and the screen cannot
+ * disagree about which accounts match. The page reads are chunked, and any
+ * failed read refuses, so the file is whole or not written.
+ */
+export async function accountRows(
+  query: AccountListQuery = accountListQuery({}),
+  scope: "page" | "every" = "page",
+): Promise<AccountRowsResult> {
   const startedAt = Date.now();
   const phases: Phase[] = [];
   const since = (t: number) => Date.now() - t;
@@ -334,7 +344,7 @@ export async function accountRows(query: AccountListQuery = accountListQuery({})
   }
 
   const shown = pageOfAccounts(roster, query, matchingClients, allNames);
-  const ids = shown.ids;
+  const ids = scope === "every" ? shown.matchingIds : shown.ids;
 
   /*
    * ===========================================================================
@@ -409,12 +419,28 @@ export async function accountRows(query: AccountListQuery = accountListQuery({})
   const assemblyAt = Date.now();
   const rows: AccountRow[] = [];
 
+  /*
+   * Grouped once rather than filtered per account: a page is fifty, but the
+   * export asks every matching account, and a filter per account is every
+   * order read once for each of them.
+   */
+  const ordersOf = new Map<string, Record<string, unknown>[]>();
+  for (const o of orders) {
+    const list = ordersOf.get(o.account_id as string);
+    if (list) list.push(o);
+    else ordersOf.set(o.account_id as string, [o]);
+  }
+  const seatsOf = new Map<string, number>();
+  for (const u of users) seatsOf.set(u.account_id as string, (seatsOf.get(u.account_id as string) ?? 0) + 1);
+  const openOf = new Map<string, Record<string, unknown>>();
+  for (const s of statements) if (!openOf.has(s.account_id as string)) openOf.set(s.account_id as string, s);
+
   for (const id of ids) {
     const a = accountById.get(id)!;
-    const mine = orders.filter((o) => o.account_id === id);
+    const mine = ordersOf.get(id) ?? [];
     const balance = balanceRead.balanceOf(id);
     const verdict = verdictOf.get(id)!;
-    const open = statements.find((s) => s.account_id === id);
+    const open = openOf.get(id);
 
     rows.push({
       id,
@@ -431,7 +457,7 @@ export async function accountRows(query: AccountListQuery = accountListQuery({})
       oldestUnpaidDays: balance.oldestUnpaidDays,
       canOrder: verdict.ok,
       blockedReason: verdict.ok ? "" : verdict.message,
-      users: users.filter((u) => u.account_id === id).length,
+      users: seatsOf.get(id) ?? 0,
       openStatement: open
         ? {
             id: open.id as string,
