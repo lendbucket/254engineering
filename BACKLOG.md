@@ -73,8 +73,8 @@ failed or partial read.
 
 **Not built, and why.** These screens show rows but have no list controls yet
 (no search, filter, sort or page), so an export "through the screen's own
-query" has no query to follow: the job queue, orders, the audit trail,
-onboarding, review, waiting, the technician's jobs and messages. Each needs
+query" has no query to follow: the job queue, orders, onboarding, review,
+waiting, the technician's jobs and messages. Each needs
 its list controls first (section 2d), and its export then follows the same
 pattern. /portal/procedures is a document a role reads, not a list of
 records, and is left out.
@@ -99,6 +99,13 @@ same gate. Three do not export, each a finding by name (section 2d):
   spreadsheet. Export it if Robert wants one; it is one report.
 - **Insurance:** a register of a handful of policies, each with its
   certificate one click away. Same answer.
+
+**Built on `feat/list-controls-2` (2026-10-29): the audit trail.** It read the
+newest 200 events and said "capped at 200 for now", so nothing older was
+reachable from the portal. It is searched and paged in the database now
+(`src/lib/audit-trail-list.ts`), a hundred to a page with an exact count of the
+whole matching set, and exports as `report=audit-trail` on the staff list gate
+plus `audit.read`, with the action key as stored rather than its label.
 
 ## /portal/accounts COUNTS SUPERSEDED ACCOUNTS IN "ALL": RULED, BUILT ON feat/superseded-hidden
 

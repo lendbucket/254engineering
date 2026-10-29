@@ -8,6 +8,7 @@ import type { RosterRow } from "./ops-field";
 import type { PartnerRow } from "./ops-partners-admin";
 import type { TaskRow } from "./ops-tasks";
 import type { PersonListRow, SuppressionListRow } from "./staff-lists";
+import type { AuditEvent } from "./audit-trail-list";
 
 /**
  * ===========================================================================
@@ -35,9 +36,10 @@ export const LIST_EXPORT_GRANT: Action = "accounts.manage";
 
 /**
  * The staff list reports the export door accepts beside its existing ones.
- * People and do not contact joined with their list controls (2026-10-29).
+ * People and do not contact joined with their list controls (2026-10-29),
+ * and the audit trail when it stopped being capped at 200.
  */
-export const LIST_EXPORT_REPORTS = ["applications", "design-briefs", "windstorm-briefs", "technicians", "partners", "tasks", "people", "suppressions"] as const;
+export const LIST_EXPORT_REPORTS = ["applications", "design-briefs", "windstorm-briefs", "technicians", "partners", "tasks", "people", "suppressions", "audit-trail"] as const;
 export type ListExportReport = (typeof LIST_EXPORT_REPORTS)[number];
 
 const yesNo = (v: boolean | null | undefined) => (v === null || v === undefined ? "" : v ? "yes" : "no");
@@ -245,6 +247,23 @@ export function suppressionsCsv(rows: readonly SuppressionListRow[], filter: str
       r.voided?.because ?? "",
       r.voided?.replacedBy ?? "",
     ]),
+  });
+}
+
+/**
+ * The audit trail as it is stored: the action key rather than its English
+ * label, so the file can be matched against the table, and every event the
+ * search matches, with nothing capped.
+ */
+export function auditTrailCsv(rows: readonly AuditEvent[], filter: string): string {
+  return csv({
+    preamble: [
+      ["Audit trail", `${rows.length} matching`],
+      ["Filter", filter],
+      ["Who", "An empty actor is the system: a database function or a scheduled job."],
+    ],
+    headers: ["When", "Actor", "Actor role", "Action", "Record type", "Record", "What happened", "IP"],
+    rows: rows.map((e) => [e.created_at, e.actor_email ?? "", e.actor_role ?? "", e.action, e.entity_type, e.entity_id ?? "", e.summary ?? "", e.ip ?? ""]),
   });
 }
 

@@ -1730,8 +1730,8 @@ if (!db) {
       { act: "read the firm's billing, by period", req: (r) => get(r, "/api/portal/exports?report=period"), status: 403, says: /cannot read the firm's billing/i },
       /* The accounts CSV, owner or admin only (Robert, 2026-10-28, 16:11 Central). */
       { act: "export the ordering accounts", req: (r) => get(r, "/api/portal/exports?report=accounts"), status: 403, says: /cannot export the ordering accounts/i },
-      /* The staff lists, owner or admin only (Robert, 21:07 Central 2026-10-28), asked at the real route; people and do not contact joined 2026-10-29. */
-      ...["applications", "design-briefs", "windstorm-briefs", "technicians", "partners", "tasks", "people", "suppressions"].map((report) => ({
+      /* The staff lists, owner or admin only (Robert, 21:07 Central 2026-10-28), asked at the real route; people, do not contact and the audit trail joined 2026-10-29. */
+      ...["applications", "design-briefs", "windstorm-briefs", "technicians", "partners", "tasks", "people", "suppressions", "audit-trail"].map((report) => ({
         act: `export the ${report} list`,
         req: (r) => get(r, `/api/portal/exports?report=${report}`),
         status: 403,
