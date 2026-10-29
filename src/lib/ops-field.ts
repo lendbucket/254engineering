@@ -2859,8 +2859,13 @@ export async function revokeCertification(
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
+  /*
+   * holdsLicence admits the licensed role only, so the old sentence here, "an
+   * engineer or an administrator", told an administrator he could do a thing the
+   * line above refuses him (found in W3 round 2, 2026-10-28).
+   */
   if (!holdsLicence(actor, "protocols.publish")) {
-    return { ok: false, error: "Only an engineer or an administrator can revoke a certification." };
+    return { ok: false, error: licenceRefusal("Withdrawing a certification") };
   }
   if (!reason.trim()) {
     return { ok: false, error: "Say why. A revocation with no reason is one nobody can act on or reverse." };
@@ -2910,7 +2915,7 @@ export async function restoreCertification(
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
   if (!holdsLicence(actor, "protocols.publish")) {
-    return { ok: false, error: "Only an engineer or an administrator can restore a certification." };
+    return { ok: false, error: licenceRefusal("Restoring a certification") };
   }
   const { error } = await db
     .from("eng_certifications")

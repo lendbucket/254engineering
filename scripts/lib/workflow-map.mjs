@@ -97,3 +97,64 @@ export function readWorkflowMap(root = process.cwd()) {
   }
   return workflows;
 }
+
+/**
+ * THE MAP AGAINST WHAT IT SAYS ABOUT ITSELF: the four static checks the W2 walk
+ * runs before it walks anything, as one function the walk and the preflight
+ * both call, so they cannot disagree about the rule. The PINS are not here: the
+ * walk types them as literals (an audit never imports its expectation from the
+ * thing it audits), and the preflight reads them from the walk's source with
+ * mapPinsFrom, so there is one copy of each number.
+ *
+ * Board 40833339969 missed on the fourth: the map had 12 steps marked with no
+ * screen and the walk's pin still said 13, a check that needs only the files.
+ */
+export function mapChecks(workflows, pins) {
+  const steps = workflows.flatMap((w) => w.steps.map((s) => ({ ...s, wf: w.id })));
+  const ids = workflows.map((w) => w.id);
+  const expectedIds = Array.from({ length: pins.workflows }, (_, i) => `254-WF-${String(i + 1).padStart(3, "0")}`);
+  const malformed = steps.filter((s) => s.malformed);
+  const needsCode = steps.filter((s) => s.marks?.needsCode).length;
+  const noScreen = steps.filter((s) => s.marks?.noScreen).length;
+  return [
+    {
+      name: `the map names 254-WF-001 to 254-WF-${String(pins.workflows).padStart(3, "0")}, once each and in order`,
+      ok: ids.join(",") === expectedIds.join(","),
+      note: `${ids.length} workflow(s) parsed`,
+    },
+    {
+      name: "every step row has the map's ten columns",
+      ok: malformed.length === 0,
+      note: malformed.map((s) => `${s.wf} step ${s.n}: ${s.malformed}`).join("; "),
+    },
+    {
+      name: `the map holds at least ${pins.stepsAtLeast} steps`,
+      ok: steps.length >= pins.stepsAtLeast,
+      note: `${steps.length} parsed; a parser that matched nothing would walk nothing and pass`,
+    },
+    {
+      name: "the marks parsed are the marks the map counts",
+      ok: needsCode === pins.needsCode && noScreen === pins.noScreen,
+      note: `${needsCode} needing SQL, a script or a code edit (the map says ${pins.needsCode}); ${noScreen} with no screen (the map says ${pins.noScreen})`,
+    },
+  ];
+}
+
+/**
+ * The walk's four pins, read from its source text, never retyped. Refuses
+ * (returns null) unless all four are found exactly once, so a renamed pin is a
+ * failure rather than a silent default.
+ */
+export function mapPinsFrom(walkSource) {
+  const one = (name) => {
+    const found = [...walkSource.matchAll(new RegExp(`^const ${name} = (\\d+);$`, "gm"))];
+    return found.length === 1 ? Number(found[0][1]) : null;
+  };
+  const pins = {
+    workflows: one("MAP_WORKFLOWS"),
+    stepsAtLeast: one("MAP_STEPS_AT_LEAST"),
+    needsCode: one("MAP_NEEDS_CODE"),
+    noScreen: one("MAP_NO_SCREEN"),
+  };
+  return Object.values(pins).every((v) => Number.isInteger(v)) ? pins : null;
+}

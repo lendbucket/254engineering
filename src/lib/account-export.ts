@@ -42,13 +42,14 @@ function describe(query: AccountListQuery): string {
   if (query.status !== "all") parts.push(`status ${query.status}`);
   if (query.billing !== "all") parts.push(query.billing === "invoice" ? "on invoice" : "by card");
   if (query.attention === "cannot_order") parts.push("cannot order");
-  return parts.length ? parts.join(", ") : "every account";
+  return parts.length ? parts.join(", ") : "every account in use, superseded accounts left out";
 }
 
 export function accountsCsv(rows: readonly AccountRow[], query: AccountListQuery, all: number): string {
   return csv({
     preamble: [
-      ["Ordering accounts", `${rows.length} matching, of ${all}`],
+      /* "of" the accounts in use: superseded ones are counted only under their own filter (Robert, 21:11 Central 2026-10-28). */
+      ["Ordering accounts", query.status === "superseded" ? `${rows.length} superseded, kept as records` : `${rows.length} matching, of ${all}`],
       ["Filter", describe(query)],
       ["Sorted by", `${query.sort === "name" ? "organization" : "opened"}, ${query.ascending ? "ascending" : "descending"}`],
       ["Money", "In dollars. An empty money cell means the figure is not known, and is not zero."],

@@ -11,6 +11,28 @@ import { withSaveOutcome } from "@/lib/save-outcome";
 import { accountRows } from "@/lib/ops-accounts-admin";
 import { accountListQuery } from "@/lib/account-list";
 import { accountsCsv, accountsFilename } from "@/lib/account-export";
+import type { Action } from "@/lib/ops-authz";
+import {
+  LIST_EXPORT_GRANT,
+  LIST_EXPORT_REPORTS,
+  applicationsCsv,
+  designBriefsCsv,
+  listExportFilename,
+  partnersCsv,
+  tasksCsv,
+  techniciansCsv,
+  windstormBriefsCsv,
+  type ListExportReport,
+} from "@/lib/list-exports";
+import { listEveryApplication } from "@/lib/admin-data";
+import { designInquiries } from "@/lib/ops-inquiries";
+import { windstormInquiries } from "@/lib/ops-windstorm-inquiries";
+import { inquiryListQuery } from "@/lib/inquiry-list";
+import { techRoster } from "@/lib/ops-field";
+import { techListQuery, techListRows } from "@/lib/tech-list";
+import { partnerRoster } from "@/lib/ops-partners-admin";
+import { partnerListRows } from "@/lib/partner-list";
+import { listEveryTask } from "@/lib/ops-tasks";
 
 export const dynamic = "force-dynamic";
 
@@ -160,6 +182,88 @@ async function handleGET(request: NextRequest) {
     });
 
     return new NextResponse(accountsCsv(read.rows, query, read.all), { headers: csvHeaders(accountsFilename(stamp())) });
+  }
+
+  if ((LIST_EXPORT_REPORTS as readonly string[]).includes(report)) {
+    /*
+     * THE STAFF LISTS, OWNER OR ADMIN ONLY. Robert, 21:07 Central 2026-10-28:
+     * the same as the accounts export. Two grants, both asked before anything
+     * is read: LIST_EXPORT_GRANT, the administrator's (list-exports.ts says
+     * why it is that one), and the screen's own, so a file never carries more
+     * than its screen shows. Each list is read through the screen's own
+     * function and filter with every row, and a read that failed or came back
+     * partial refuses the file before any audit row: a CSV of some rows,
+     * headed as the list, is a statement that the rest do not exist.
+     */
+    const listReport = report as ListExportReport;
+    const screenGrant: Record<ListExportReport, Action> = {
+      applications: "applications.read",
+      "design-briefs": "files.create",
+      "windstorm-briefs": "files.create",
+      technicians: "profiles.list",
+      partners: "partners.manage",
+      tasks: "tasks.use",
+    };
+    if (!can(actor, LIST_EXPORT_GRANT) || !can(actor, screenGrant[listReport])) {
+      return bad("Your role cannot export this list.", 403);
+    }
+    const p = request.nextUrl.searchParams;
+    const param = (k: string) => p.get(k) ?? undefined;
+    const describe = (pairs: [string, string | undefined][]) =>
+      pairs.filter(([, v]) => v).map(([k, v]) => `${k} ${v}`).join(", ") || "everything the screen lists by default";
+    const refuse = (what: string, why: string) => bad(`The ${what} could not be read, so nothing was exported: ${why}`, 503);
+
+    let body: string;
+    let count: number;
+    if (listReport === "applications") {
+      const read = await listEveryApplication({ q: param("q"), role: param("role") });
+      if (!read.ok) return refuse("applications", read.error);
+      body = applicationsCsv(read.rows, describe([["search", param("q")], ["position", param("role")]]));
+      count = read.rows.length;
+    } else if (listReport === "design-briefs" || listReport === "windstorm-briefs") {
+      const query = inquiryListQuery({ q: param("q"), show: param("show"), sort: param("sort"), dir: param("dir") });
+      const filter = describe([["search", param("q")], ["show", param("show")], ["sort", param("sort")], ["direction", param("dir")]]);
+      if (listReport === "design-briefs") {
+        const read = await designInquiries(actor, query, "every");
+        if (!read.ok) return refuse("design briefs", read.error);
+        body = designBriefsCsv(read.rows, filter);
+        count = read.rows.length;
+      } else {
+        const read = await windstormInquiries(actor, query, "every");
+        if (!read.ok) return refuse("windstorm briefs", read.error);
+        body = windstormBriefsCsv(read.rows, filter);
+        count = read.rows.length;
+      }
+    } else if (listReport === "technicians") {
+      const read = await techRoster(actor);
+      if (!read.ok) return refuse("technicians", read.error);
+      if (read.failed.length) return refuse("technicians", read.failed.join(" "));
+      const rows = techListRows(read.rows, techListQuery({ q: param("q"), status: param("status"), sort: param("sort"), dir: param("dir") }));
+      body = techniciansCsv(rows, describe([["search", param("q")], ["status", param("status")], ["sort", param("sort")], ["direction", param("dir")]]));
+      count = rows.length;
+    } else if (listReport === "partners") {
+      const read = await partnerRoster(actor);
+      if (!read.ok) return refuse("partners", read.error);
+      if (read.failed.length) return refuse("partners", read.failed.join(" "));
+      const rows = partnerListRows(read.rows, { q: param("q"), state: param("state") });
+      body = partnersCsv(rows, describe([["search", param("q")], ["state", param("state")]]));
+      count = rows.length;
+    } else {
+      const rows = await listEveryTask(actor, { status: param("status"), q: param("q") });
+      if (rows === null) return refuse("tasks", "the read failed.");
+      body = tasksCsv(rows, describe([["search", param("q")], ["status", param("status")]]));
+      count = rows.length;
+    }
+
+    await writeAudit({
+      actor,
+      action: `export.${listReport}`,
+      entityType: "export",
+      summary: `Exported ${count} row(s) of ${listReport}`,
+      ...context,
+    });
+
+    return new NextResponse(body, { headers: csvHeaders(listExportFilename(listReport, stamp())) });
   }
 
   /*
