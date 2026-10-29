@@ -18,7 +18,7 @@ The source of truth for the running loop. Robert, 2026-10-29: the loop prompt is
 
 | # | Item | State |
 | --- | --- | --- |
-| 22 | List controls on five staff screens: people, do not contact, asked to be forgotten, insurance, credential review. The audit trail pages every event. People, do not contact and the audit trail export CSV. `feat/list-controls-2` at `97f4475`, on main `647fc18`, preflight GREEN. | Next to board |
+| 22 | List controls on five staff screens: people, do not contact, asked to be forgotten, insurance, credential review. The audit trail pages every event. People, do not contact and the audit trail export CSV. `feat/list-controls-2` at `97f4475`, on main `647fc18`, preflight GREEN. | Boarding, run 40906332499 |
 | 23 | WF-030 step 5: a delete button for a field capture while the file is in the field. The audit row goes into `deleteCapture` first. | To build |
 | 24 | WF-017 step 6: an engineer-only panel on `/portal/review` to withdraw or restore a technician's certification, with the reason required. | To build |
 | 25 | List controls for `/portal/onboarding`: search, filter, sort, paging, counts over every matching row, and a failed read said. | To build |
