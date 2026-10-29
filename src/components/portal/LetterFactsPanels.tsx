@@ -53,7 +53,7 @@ export function AuthorityDetailsForm({
         router.refresh();
       }}
     >
-      <p className="text-[14px] leading-[1.55] text-[var(--secondary)] sm:col-span-2">
+      <p className="text-[13.5px] leading-[1.55] text-[var(--secondary)] sm:col-span-2">
         The authority, from the order: {authorityName ? <span className="text-[var(--ink)]">{authorityName}</span> : "not given yet"}.
       </p>
       <div className="sm:col-span-2">
@@ -95,7 +95,7 @@ export function FoundationTypeConfirm({ fileId, fromIntake, confirmed }: { fileI
         router.refresh();
       }}
     >
-      <p className="text-[14px] leading-[1.55] text-[var(--secondary)]">
+      <p className="text-[13.5px] leading-[1.55] text-[var(--secondary)]">
         The customer said: {fromIntake ? <span className="text-[var(--ink)]">{fromIntake}</span> : "nothing"}.{" "}
         {confirmed ? <>You confirmed: <span className="text-[var(--ink)]">{confirmed}</span>.</> : "Not yet confirmed."}
       </p>
@@ -145,7 +145,7 @@ export function ElementDescribedReview({
         router.refresh();
       }}
     >
-      <p className="text-[14px] leading-[1.55] text-[var(--secondary)]">
+      <p className="text-[13.5px] leading-[1.55] text-[var(--secondary)]">
         Category from the order: {category ? <span className="text-[var(--ink)]">{category}</span> : "not given"}.{" "}
         {reviewed ? "You have reviewed the description below." : "The description below is the customer's until you record it."}
       </p>
@@ -185,7 +185,7 @@ export function TriagePanel({
   };
   return (
     <div className="mt-3 flex flex-col gap-3">
-      <p className="text-[14px] leading-[1.55] text-[var(--secondary)]">
+      <p className="text-[13.5px] leading-[1.55] text-[var(--secondary)]">
         {basis ? <>Triaged as a <span className="text-[var(--ink)]">{basis} job</span>. The letter&apos;s basis sentence comes from this record.</> : "Not triaged yet. The letter's basis sentence comes only from this record."}
       </p>
       <div className="flex flex-wrap gap-2">
@@ -195,11 +195,11 @@ export function TriagePanel({
       <div>
         <p className={labelClass}>Your items on this job&apos;s capture list, beside the protocol&apos;s</p>
         {additions.length ? (
-          <ul className="mt-1.5 flex flex-col gap-1 text-[14px] leading-[1.5] text-[var(--ink)]">
+          <ul className="mt-1.5 flex flex-col gap-1 text-[13.5px] leading-[1.5] text-[var(--ink)]">
             {additions.map((a) => <li key={a.id}>{a.label}</li>)}
           </ul>
         ) : (
-          <p className="mt-1.5 text-[14px] text-[var(--secondary)]">None added. The protocol&apos;s items are the list.</p>
+          <p className="mt-1.5 text-[13.5px] text-[var(--secondary)]">None added. The protocol&apos;s items are the list.</p>
         )}
       </div>
       <form
@@ -290,7 +290,7 @@ function CatalogueFactRow({
       }}
     >
       <label htmlFor={id} className={labelClass}>{fact.label}</label>
-      <p className="text-[13px] leading-[1.5] text-[var(--secondary)]">
+      <p className="text-[12.5px] leading-[1.5] text-[var(--secondary)]">
         {fact.recorded ? <>Recorded: <span className="text-[var(--ink)]">{fact.recorded}</span></> : "Not recorded yet. The letter cannot be drafted without it."}
       </p>
       {fact.values ? (

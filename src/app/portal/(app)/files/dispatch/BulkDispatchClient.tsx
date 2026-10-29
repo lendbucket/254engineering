@@ -105,7 +105,7 @@ export function BulkDispatchClient({ plans }: { plans: DispatchPlanRow[] }) {
               </p>
               <ul className="mt-2 flex flex-col gap-1">
                 {done.refused.map((r) => (
-                  <li key={r.fileNumber} className="text-[13px] text-[var(--secondary)]">
+                  <li key={r.fileNumber} className="text-[12.5px] text-[var(--secondary)]">
                     <span className="text-[12.5px]">{r.fileNumber}</span>: {r.reason}
                   </li>
                 ))}
@@ -125,13 +125,13 @@ export function BulkDispatchClient({ plans }: { plans: DispatchPlanRow[] }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-3 rounded-[4px] border border-[var(--border)] bg-[var(--surface-2,#F6F7F9)] p-3">
+      <div className="flex flex-wrap items-center gap-3 rounded-[4px] border border-[var(--border)] bg-[var(--canvas)] p-3">
         <p className="text-[13.5px] font-semibold text-[var(--navy)]">
           {chosenOffers === 0
             ? "Nothing chosen yet"
             : `${chosenOffers} offer${chosenOffers === 1 ? "" : "s"} across ${chosenFiles} file${chosenFiles === 1 ? "" : "s"}`}
         </p>
-        <label className="ml-auto flex items-center gap-2 text-[13px] text-[var(--secondary)]">
+        <label className="ml-auto flex items-center gap-2 text-[12.5px] text-[var(--secondary)]">
           Expires in
           <input
             type="number"
@@ -152,7 +152,7 @@ export function BulkDispatchClient({ plans }: { plans: DispatchPlanRow[] }) {
           {busy ? "Sending" : "Send the offers"}
         </button>
         {problem && (
-          <p role="alert" className="w-full text-[13px] text-[var(--bad,#B3261E)]">
+          <p role="alert" className="w-full text-[12.5px] text-[var(--red)]">
             {problem}
           </p>
         )}
@@ -162,20 +162,20 @@ export function BulkDispatchClient({ plans }: { plans: DispatchPlanRow[] }) {
         <div key={plan.fileId} className="rounded-[4px] border border-[var(--border)] bg-white p-4">
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div className="min-w-0">
-              <p className="text-[13px] text-[var(--secondary)]">{plan.fileNumber}</p>
+              <p className="text-[12.5px] text-[var(--secondary)]">{plan.fileNumber}</p>
               <p className="mt-1 text-[13.5px] font-semibold text-[var(--navy)]">{plan.propertyAddress}</p>
               <p className="mt-0.5 text-[13.5px] text-[var(--secondary)]">{plan.county} County</p>
             </div>
             <Link
               href={`/portal/files?id=${plan.fileId}`}
-              className="text-[13px] font-semibold text-[var(--navy)] underline"
+              className="text-[12.5px] font-semibold text-[var(--navy)] underline"
             >
               Open the file
             </Link>
           </div>
 
           {plan.blocked ? (
-            <p className="mt-3 rounded-[3px] border border-[var(--border)] bg-[var(--canvas)] p-3 text-[13px] text-[var(--secondary)]">
+            <p className="mt-3 rounded-[3px] border border-[var(--border)] bg-[var(--canvas)] p-3 text-[12.5px] text-[var(--secondary)]">
               {plan.blocked}
             </p>
           ) : (
@@ -209,12 +209,12 @@ export function BulkDispatchClient({ plans }: { plans: DispatchPlanRow[] }) {
           */}
           {plan.ineligible.length > 0 && (
             <details className="mt-3">
-              <summary className="cursor-pointer text-[13px] text-[var(--secondary)]">
+              <summary className="cursor-pointer text-[12.5px] text-[var(--secondary)]">
                 {plan.ineligible.length} not eligible for this file
               </summary>
               <ul className="mt-2 flex flex-col gap-1">
                 {plan.ineligible.map((i) => (
-                  <li key={i.id} className="text-[13px] text-[var(--secondary)]">
+                  <li key={i.id} className="text-[12.5px] text-[var(--secondary)]">
                     {i.displayName}: {i.reason}
                   </li>
                 ))}

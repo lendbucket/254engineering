@@ -1059,7 +1059,34 @@ Three things it found are not the session's to decide:
    printed in a sealed, locked letter. **Ruled 2026-10-07: they stay, as
    recorded here.**
 
-## SEVENTEEN PORTAL FILES TOKEN-AUDIT HAS NEVER READ
+## SEVENTEEN PORTAL FILES TOKEN-AUDIT HAS NEVER READ: CLOSED 2026-10-29 ON feat/token-coverage
+
+**Built.** By 2026-10-29 eight of the seventeen had been read along the way
+(the four MFA files, the protocol document and RC-001, the open account
+client, deletion requests), nine were still unread, and sixteen files built
+since had joined them: 25 in all. All 25 are on `PORTED` now, and token-audit
+has the class check: "every portal .tsx is read by this audit or named as not
+read, with a reason", with the not-read list counted (0) and each entry
+required to be a real file with a reason. A new portal file nobody listed is
+red, naming it.
+
+**What reading them found:** 61 off-scale sizes in eleven staff files and three
+fallback colours behind tokens that do not exist (`--surface-muted`,
+`--surface-2`, `--bad`). Sizes moved by the 2026-10-07 precedent (14px to
+13.5px, 13px to 12.5px); the two muted panels to `--canvas` and the error text
+to `--red`. `src/app/(order)/layout.tsx` joined the customer scale, which every
+page under it already uses. Styling only: no copy, no behavior. Two duplicate
+`PORTED` entries came out. Injected twice: an unlisted portal file turned the
+class check red naming it, and the old fallback colour put back turned "no
+portal component contains a raw colour" red.
+
+**Not closed here:** three other ported files (deletion requests, its page,
+and suppressions) still write `text-[var(--bad)]`, a token `portal.css` does
+not define, so that text inherits its colour instead of reading as an error.
+token-audit does not ask whether a named token exists; that is its own small
+item.
+
+**As first written:**
 
 Found 2026-10-07 by the integration board, which caught `text-[14px]` in two
 panels built that day and in no list: `docs/new-surface-checklist.md` row 8,

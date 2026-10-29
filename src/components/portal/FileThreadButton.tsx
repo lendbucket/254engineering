@@ -55,7 +55,7 @@ export function FileThreadButton({ fileId }: { fileId: string }) {
         {busy ? "Opening" : "Messages on this file"}
       </button>
       {error ? (
-        <p role="alert" className="mt-1.5 text-[14px] leading-[1.5] font-semibold text-[var(--ink)]">
+        <p role="alert" className="mt-1.5 text-[13.5px] leading-[1.5] font-semibold text-[var(--ink)]">
           {error}
         </p>
       ) : null}
