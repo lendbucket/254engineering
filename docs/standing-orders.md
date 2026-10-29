@@ -23,7 +23,10 @@ The source of truth for the running loop. Robert, 2026-10-29: the loop prompt is
 - a capture a repair was verified against is refused;
 - the photograph stays in the evidence bucket, with its storage path in the audit row;
 - the engineer and the administrator may delete, as they may capture. | **Reboarding, run 40930082505, on `c4225b0`.** The first board (40918058948) missed on a time printed with no zone; that is fixed. |
-| P | The preflight runs every repo-wide static proof (`ci/preflight-static-proofs`), so a miss like bundle 23's is caught before the board. | Building |
+| P | The preflight runs every repo-wide static proof (`ci/preflight-static-proofs`), so a miss like bundle 23's is caught before the board. Built as `e14bea7`:
+- 109 of 182 proofs are static, derived by `scripts/lib/proof-needs.mjs`.
+- The preflight takes 91 to 98 s, up from 43 s.
+- An injection named the file. Preflight GREEN, 37 rules. | Built; boards after the address bundle |
 | 24 | WF-017 step 6: an engineer-only panel on `/portal/review` to withdraw or restore a technician's certification, with the reason required. | To build |
 | 25 | List controls for `/portal/onboarding`: search, filter, sort, paging, counts over every matching row, and a failed read said. | To build |
 | 26 | WF-022 step 3: an admin panel on `/portal/accounts` to set an account's credit terms. **This is a money flow: it gets its own proof and an injection.** It must: confirm by password re-entry, the same as the no-charge override, never an authenticator code (the owner's admin account uses none); write an audit row on every change. | To build |
