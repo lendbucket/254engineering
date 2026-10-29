@@ -273,7 +273,18 @@ pages, so no stamp can cover a line he wrote (control 16). The alternative,
 stamping his last page or every page, risks covering his content on a layout
 the platform cannot see. No new sentence is printed on the added page.
 
-## COPY-PROJECT'S BUCKET LIST IS SIX BUCKETS BEHIND THE CHAIN
+## BUILT 2026-10-28 ON feat/backlog-small: COPY-PROJECT'S BUCKET LIST IS DERIVED FROM THE CHAIN
+
+**Built.** `scripts/lib/chain-buckets.mjs` reads every `insert into
+storage.buckets` in `supabase/migrations/`, and `copy-project.mjs` takes its
+list from it. migration-audit now compares that parse with the replayed
+database: "copy-project copies every eng- bucket the replay holds (11)".
+Injected by making the parse drop `eng-seals`: that check went red naming it,
+and the file was restored byte identical. **The chain creates eleven eng-
+buckets, not twelve**: the replay holds eleven, the five that were listed
+plus the six named below, so the "twelve" written here was a miscount.
+
+The entry as first written:
 
 `scripts/copy-project.mjs` copies five buckets. The chain creates twelve:
 eng-documents, eng-seals, eng-partner-branding, eng-protocol-sources,
