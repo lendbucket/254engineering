@@ -7,8 +7,7 @@ import type { WindstormInquiryRow } from "./ops-windstorm-inquiries";
 import type { RosterRow } from "./ops-field";
 import type { PartnerRow } from "./ops-partners-admin";
 import type { TaskRow } from "./ops-tasks";
-import type { PersonListRow } from "./staff-lists";
-import type { SuppressionRow } from "./marketing-suppression";
+import type { PersonListRow, SuppressionListRow } from "./staff-lists";
 
 /**
  * ===========================================================================
@@ -228,7 +227,7 @@ export function peopleCsv(rows: readonly PersonListRow[], filter: string): strin
  * says so, because a file that dropped it would be a consent record with the
  * correction missing.
  */
-export function suppressionsCsv(rows: readonly SuppressionRow[], filter: string): string {
+export function suppressionsCsv(rows: readonly SuppressionListRow[], filter: string): string {
   return csv({
     preamble: [
       ["Do not contact", `${rows.length} matching`],

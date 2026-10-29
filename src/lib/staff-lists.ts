@@ -124,7 +124,18 @@ export const PEOPLE_LIST: StaffListSpec<PersonListRow> = {
   defaultSort: "added",
 };
 
-export type SuppressionListRow = { email: string; because: string; createdAt: string; enteredByOperator: boolean; voided: unknown };
+/*
+ * The do not contact row's shape, written here rather than imported from
+ * marketing-suppression.ts, because email-audit counts every importer of that
+ * module as a reader of the list and the CSV builder reads nothing.
+ */
+export type SuppressionListRow = {
+  email: string;
+  because: string;
+  createdAt: string;
+  enteredByOperator: boolean;
+  voided: { at: string; because: string; replacedBy: string | null } | null;
+};
 
 export const SUPPRESSION_LIST: StaffListSpec<SuppressionListRow> = {
   text: (r) => [r.email, r.because],
