@@ -1,5 +1,30 @@
 # Day queue, 2026-10-23
 
+## 2026-10-28 NIGHT: THE PREFLIGHT MERGED; BUNDLE 14, SUPERSEDED ACCOUNTS HIDDEN, AT `d502c95`
+
+**The preflight merged as `8a5bbb7`.** The merged tree is the boarded tree. Board 40809554227 on `5f37977` read 64 of 64, every predicted line held:
+- The runner refused nothing.
+- retention-audit's "the declaration is in alphabetical order" passed through the shared module.
+- The walk was unchanged at 0 broken and 2 unreached.
+
+**Prediction for bundle 14, written and pushed before the board starts.** Robert's ruling 1 of 21:11 Central: superseded accounts are hidden from `/portal/accounts` and its counts by default, with a status filter that shows them.
+
+**What it does:**
+- "All" is every account in use.
+- "Superseded, kept as records (N)" is a status filter with an exact count across pages.
+- The cannot-order warning never names a superseded account, and the unbilled count is over accounts in use.
+- The CSV export follows the page and says in its header which set it holds.
+- The BACKLOG question is marked ruled.
+
+**Found while building it:** the roster read had never excluded superseded accounts, against the ruling of 2026-09-14. accounts-audit now asks each read of `eng_customer_accounts` rather than each file (22 reads in 16 files), and with the roster fix reverted it named `src/lib/ops-accounts-admin.ts:216`. One stale exemption, for a file that only writes accounts, is gone. Three injections in all, each red on its own check and restored byte identical.
+
+**Preflight on `d502c95`: GREEN, 33 rules, 0 failed, 42 s.**
+
+**Prediction: 64 of 64.**
+- accounts-audit passes with every account read excluding superseded rows.
+- Both accounts proofs pass. The database one now checks that the superseded view's count equals what the default view leaves out.
+- The CSV proof passes; 3 lines exempt; the walk as before.
+
 ## 2026-10-28 NIGHT: BUNDLE 12 MERGED; BUNDLE 13, THE PREFLIGHT, AT `5f37977`
 
 **Bundle 12 merged as `f897936`.** The merged tree is the boarded tree. Board 40801619224 on `38fa4fc` read 64 of 64, and every predicted line held:
