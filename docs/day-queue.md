@@ -69,6 +69,39 @@ Every repair was proved by an injection, and each file was restored byte identic
 4. Skip re-boarding a push to main whose exact commit already has a green board (ruled 2026-10-22). It edits `board.yml`, so it comes after bundle 17.
 5. List controls (search, filter, sort, paging) on the 13 staff screens that have none, so each can then take a CSV export, office ready section 2d.
 
+## 2026-10-29: BUNDLE 18 MERGED; BUNDLE 19, TOKEN-AUDIT READS EVERY PORTAL FILE, AT `62f404e`
+
+**Bundle 18 merged as `fae1331`.** The merged tree is the boarded tree. Board 40859705400 on `e62b34e` read 64 of 64, preflight GREEN:
+- "copy-project copies every eng- bucket the replay holds (11) (11 parsed from the migrations, 11 in the replay...)".
+- The walk as in bundle 16.
+
+**Prediction for bundle 19, written and pushed before the board starts.** The next BACKLOG item needing no ruling (Robert's item 5).
+
+**The class check:** token-audit's "every portal .tsx is read by this audit or named as not read, with a reason" takes its list from the surface directories. It reads 199 files, 0 excused.
+
+**The new files:**
+- 25 newly read: the seventeen BACKLOG named that were still unread, plus newer ones.
+- 11 got styling-only fixes:
+  - 61 off-scale sizes moved by the 2026-10-07 precedent;
+  - three fallbacks behind tokens that do not exist now use `--canvas` and `--red`;
+  - the order layout moved to the customer scale.
+- The undefined `--bad` token in three other files is a BACKLOG item of its own.
+
+**Injections when built, both restored byte identical:**
+- an unlisted file turned only the class check red;
+- a raw color put back turned only "no portal component contains a raw colour" red.
+
+**Readers on `62f404e`:**
+- Preflight GREEN, 35 rules, 49 s.
+- token-audit 117 of 117, 199 files and 0 not read.
+- tsc clean.
+
+**Prediction: 64 of 64.**
+- The preflight is green.
+- token-audit passes.
+- contrast-audit and mobile-audit pass on the 11 restyled screens.
+- The walk as before; 3 lines exempt.
+
 ## 2026-10-29, BUNDLE 18: copy-project's bucket list from the chain, `feat/backlog-small` at `e62b34e`
 
 **Prediction written and pushed before the board starts.** The smallest BACKLOG item needing no ruling (Robert's item 5 of 21:07).
