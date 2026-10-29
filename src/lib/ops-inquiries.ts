@@ -5,6 +5,7 @@ import { writeAudit } from "./ops-audit";
 import { can, type Actor } from "./ops-authz";
 import { INQUIRY_PAGE_SIZE, inquiryListQuery, inquirySearchOr, type InquiryListQuery } from "./inquiry-list";
 import { requestQuote } from "./ops-intake";
+import { readEvery } from "./bounded-read";
 import { DESIGN_SERVICE, briefQuoteRequestId, composeQuoteBrief } from "./brief-quote-rules";
 
 /**
@@ -91,7 +92,16 @@ export type InquiryListRead =
   | { ok: true; rows: InquiryRow[]; total: number; open: number; answered: number; quotesKnown?: boolean }
   | { ok: false; error: string };
 
-export async function designInquiries(actor: Actor | null, query: InquiryListQuery = inquiryListQuery({})): Promise<InquiryListRead> {
+export async function designInquiries(
+  actor: Actor | null,
+  query: InquiryListQuery = inquiryListQuery({}),
+  /*
+   * "page" is the screen's fifty; "every" is every brief the same query
+   * matches, for the CSV export (office ready, Robert, 2026-10-28), read in
+   * full through readEvery so a cap can never stand in for the set.
+   */
+  scope: "page" | "every" = "page",
+): Promise<InquiryListRead> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
   /* files.create, the intake grant. See the note on the page: an engineer
@@ -99,17 +109,37 @@ export async function designInquiries(actor: Actor | null, query: InquiryListQue
   if (!can(actor, "files.create")) return { ok: true, rows: [], total: 0, open: 0, answered: 0 };
   const search = inquirySearchOr(query.term);
 
-  let read = db.from("eng_design_inquiries").select(COLUMNS, { count: "exact" });
-  if (search) read = read.or(search);
-  if (query.show === "open") read = read.is("responded_at", null);
-  if (query.show === "answered") read = read.not("responded_at", "is", null);
-  if (query.sort === "due") {
-    read = read.order("responded_at", { ascending: true, nullsFirst: true }).order("respond_by", { ascending: query.ascending });
+  /* One filter and one order, for the page and for every row alike. */
+  const filtered = (withCount: boolean) => {
+    let read = db.from("eng_design_inquiries").select(COLUMNS, withCount ? { count: "exact" } : undefined);
+    if (search) read = read.or(search);
+    if (query.show === "open") read = read.is("responded_at", null);
+    if (query.show === "answered") read = read.not("responded_at", "is", null);
+    if (query.sort === "due") {
+      read = read.order("responded_at", { ascending: true, nullsFirst: true }).order("respond_by", { ascending: query.ascending });
+    } else {
+      read = read.order(query.sort === "name" ? "name" : "created_at", { ascending: query.ascending });
+    }
+    return read.order("id", { ascending: true });
+  };
+  let data: unknown[] | null = null;
+  let error: { message: string } | null = null;
+  let count: number | null = null;
+  if (scope === "every") {
+    const every = await readEvery<unknown>((from, to) => filtered(false).range(from, to));
+    if (every.ok) {
+      data = every.rows;
+      count = every.rows.length;
+    } else {
+      error = { message: every.error };
+    }
   } else {
-    read = read.order(query.sort === "name" ? "name" : "created_at", { ascending: query.ascending });
+    const from = (query.page - 1) * INQUIRY_PAGE_SIZE;
+    const page = await filtered(true).range(from, from + INQUIRY_PAGE_SIZE - 1);
+    data = page.data;
+    error = page.error;
+    count = page.count;
   }
-  const from = (query.page - 1) * INQUIRY_PAGE_SIZE;
-  const { data, error, count } = await read.order("id", { ascending: true }).range(from, from + INQUIRY_PAGE_SIZE - 1);
 
   /* The two figures above the list: exact, over the same search, never derived from one page. */
   const figure = async (answered: boolean) => {
@@ -136,7 +166,8 @@ export async function designInquiries(actor: Actor | null, query: InquiryListQue
    * person who believes the screen.
    */
   let quotesKnown = false;
-  if (can(actor, "quotes.manage") && rows.length > 0) {
+  /* The page only: the export carries no quote column, and every key in one .in() would meet the cliff. */
+  if (scope === "page" && can(actor, "quotes.manage") && rows.length > 0) {
     const keys = rows.map((r) => briefQuoteRequestId(r.id));
     const { data: quotes, error: quoteError } = await db
       .from("eng_quote_requests")

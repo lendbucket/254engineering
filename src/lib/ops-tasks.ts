@@ -19,6 +19,7 @@ import {
 } from "./ops-comms";
 import { formatInFirmZone } from "@/lib/firm-calendar";
 import { cleanSearchTerm } from "./search-rules";
+import { readEvery } from "./bounded-read";
 
 /**
  * Tasks, including the ones nobody types.
@@ -99,6 +100,32 @@ export async function listTasksPage(
   if (!db) return null;
   if (!actor || actor.status !== "active") return { rows: [], more: false };
 
+  const page = Math.max(1, Math.floor(filters.page ?? 1));
+  const from = (page - 1) * TASK_PAGE_SIZE;
+  const { data, error } = await tasksMatching(db, actor, filters).range(from, from + TASK_PAGE_SIZE);
+  if (error) {
+    console.error(`[tasks] the tasks could not be read: ${error.message}`);
+    return null;
+  }
+
+  const all = (data ?? []) as TaskRow[];
+  return {
+    rows: all
+      .slice(0, TASK_PAGE_SIZE)
+      .filter((t) => canSeeTask(actor, { assigneeId: t.assignee_id, createdBy: t.created_by, fileId: t.file_id })),
+    more: all.length > TASK_PAGE_SIZE,
+  };
+}
+
+/**
+ * Who sees which tasks, the status and search filters, and the order: one
+ * home, so the page and the CSV export cannot disagree about which tasks match.
+ */
+function tasksMatching(
+  db: NonNullable<ReturnType<typeof supabaseAdmin>>,
+  actor: Actor,
+  filters: { status?: string; mine?: boolean; q?: string },
+) {
   let query = db.from("eng_tasks").select(TASK_COLUMNS);
 
   if (actor.role !== "admin") {
@@ -115,25 +142,30 @@ export async function listTasksPage(
   const term = cleanSearchTerm(filters.q ?? "");
   if (term) query = query.ilike("title", `%${term}%`);
 
-  const page = Math.max(1, Math.floor(filters.page ?? 1));
-  const from = (page - 1) * TASK_PAGE_SIZE;
-  const { data, error } = await query
+  return query
     .order("due_at", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: false })
-    .order("id", { ascending: true })
-    .range(from, from + TASK_PAGE_SIZE);
-  if (error) {
-    console.error(`[tasks] the tasks could not be read: ${error.message}`);
+    .order("id", { ascending: true });
+}
+
+/**
+ * EVERY TASK THE SCREEN'S QUERY MATCHES, for the CSV export (office ready,
+ * Robert, 2026-10-28). Read in full through readEvery; null on a failed read,
+ * as listTasksPage, so the export refuses rather than writing a short file.
+ */
+export async function listEveryTask(
+  actor: Actor | null,
+  filters: { status?: string; mine?: boolean; q?: string } = {},
+): Promise<TaskRow[] | null> {
+  const db = supabaseAdmin();
+  if (!db) return null;
+  if (!actor || actor.status !== "active") return [];
+  const read = await readEvery<TaskRow>((from, to) => tasksMatching(db, actor, filters).range(from, to));
+  if (!read.ok) {
+    console.error(`[tasks] every task could not be read: ${read.error}`);
     return null;
   }
-
-  const all = (data ?? []) as TaskRow[];
-  return {
-    rows: all
-      .slice(0, TASK_PAGE_SIZE)
-      .filter((t) => canSeeTask(actor, { assigneeId: t.assignee_id, createdBy: t.created_by, fileId: t.file_id })),
-    more: all.length > TASK_PAGE_SIZE,
-  };
+  return read.rows.filter((t) => canSeeTask(actor, { assigneeId: t.assignee_id, createdBy: t.created_by, fileId: t.file_id }));
 }
 
 export type CreateTaskInput = {
