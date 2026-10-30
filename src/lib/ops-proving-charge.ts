@@ -6,6 +6,9 @@ import { stripeAccount } from "@/config/launch-readiness";
 import { deploymentOrigin } from "./site-url";
 import { paymentProvider } from "./ops-payments";
 import { money } from "./ops-money";
+import { writeAuditOrRefuse } from "./ops-audit";
+import { verifyOwnPassword } from "./ops-auth";
+import { isProbeAddress } from "./ops-files";
 
 /**
  * =============================================================================
@@ -285,4 +288,95 @@ export async function startProvingCheckout(actor: Actor | null): Promise<{ ok: t
   });
 
   return { ok: true, url: session.url, sessionRef: session.ref };
+}
+
+/**
+ * THE BUTTON ON /portal/launch, AND THE ONLY THING THAT PRESSES IT.
+ *
+ * Robert, 10:52 Central 2026-10-29 (issue #1 comment 6501552714), 254-WF-024
+ * step 3: "a proving-charge button on /portal/launch, admin only. It is used
+ * only on Robert's word, and states the charge before it runs."
+ *
+ * It adds four things to `startProvingCheckout`, in this order, and the order
+ * is part of the contract:
+ *
+ *   1  the confirmation word, first, so a request that never meant it is
+ *      refused before anything is read, and roles-audit can still learn the
+ *      word from the refusal
+ *   2  the four conditions, unchanged, as `provingChargeBlockers`
+ *   3  no probe: an account on an unroutable address (the board's and every
+ *      audit's) is refused, so no run of the harness can take this charge
+ *      even with the switch set on the deployment it runs against
+ *   4  the person's own password again, the owner override's mechanism
+ *
+ * Then the record, written FIRST through `writeAuditOrRefuse`, and only then
+ * the checkout. A charge nobody recorded asking for is the one fact about this
+ * path that must never be missing.
+ *
+ * AND IT DOES NOT RUN TWICE BY ACCIDENT. The proof being recorded closes it in
+ * `provingChargeBlockers`. Before that, a proving order that has moved past
+ * awaiting payment means the charge was taken and not yet recorded, and a
+ * second checkout would charge again, so it is refused with what to do instead.
+ */
+export type ProvingRequest = { confirm: string; password: string };
+
+export async function runProvingCharge(
+  actor: Actor | null,
+  request: ProvingRequest,
+): Promise<
+  | { ok: true; url: string; sessionRef: string }
+  | { ok: false; status: number; error: string; blockers?: string[] }
+> {
+  if (!actor) return { ok: false, status: 401, error: "Not signed in." };
+
+  if (String(request.confirm ?? "") !== PROVING_REFERENCE) {
+    return {
+      ok: false,
+      status: 400,
+      error: `To take the proving charge, type the reference ${PROVING_REFERENCE}, or post {"confirm":"${PROVING_REFERENCE}"}.`,
+    };
+  }
+
+  const blockers = provingChargeBlockers(actor);
+  if (blockers.length > 0) return { ok: false, status: 409, error: blockers.join(" "), blockers };
+
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, status: 503, error: "The database is not configured." };
+
+  const { data: profile, error: profileError } = await db.from("eng_profiles").select("email").eq("id", actor.id).maybeSingle();
+  if (profileError) return { ok: false, status: 503, error: `Your account could not be read, so nothing was charged: ${profileError.message}` };
+  if (isProbeAddress((profile?.email as string | null) ?? null)) {
+    return { ok: false, status: 403, error: "An audit or probe account cannot take the proving charge. It is taken only by the operator, on his word." };
+  }
+
+  const { data: existing, error: existingError } = await db
+    .from("eng_service_orders")
+    .select("status")
+    .eq("reference", PROVING_REFERENCE)
+    .maybeSingle();
+  if (existingError) return { ok: false, status: 503, error: `The proving order could not be read, so nothing was charged: ${existingError.message}` };
+  if (existing && existing.status !== "awaiting_payment") {
+    return {
+      ok: false,
+      status: 409,
+      error: `The proving charge has already been taken (the order reads ${String(existing.status)}). Refund it in Stripe and record it in stripeAccount.proof; nothing was charged again.`,
+    };
+  }
+
+  const password = await verifyOwnPassword(actor.id, String(request.password ?? ""));
+  if (!password.ok) return { ok: false, status: 403, error: password.error };
+
+  const recorded = await writeAuditOrRefuse({
+    actor: { id: actor.id, role: actor.role, email: (profile?.email as string | undefined) ?? undefined },
+    action: "proving_charge.started",
+    entityType: "service_order",
+    entityId: PROVING_REFERENCE,
+    summary: `Started the proving charge, ${money(PROVING_AMOUNT_CENTS)}, to be refunded in full`,
+    diff: { reference: PROVING_REFERENCE, amountCents: PROVING_AMOUNT_CENTS, confirmedBy: "password" },
+  });
+  if (!recorded.ok) return { ok: false, status: 503, error: recorded.error };
+
+  const started = await startProvingCheckout(actor);
+  if (!started.ok) return { ok: false, status: 502, error: started.error };
+  return started;
 }

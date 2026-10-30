@@ -1405,27 +1405,31 @@ export const PROCEDURES: Procedure[] = [
       },
       {
         "n": "3",
-        "screen": "none",
-        "routes": [],
-        "who": "Admin",
-        "sees": "",
-        "does": "Runs the proving charge, a live charge and its refund that proves the Stripe account",
-        "next": "`/api/portal/proving-charge`, `provingChargeBlockers`, `startProvingCheckout`",
+        "screen": "`src/app/portal/(app)/launch` (`ProvingChargePanel`)",
+        "routes": [
+          "/portal/launch"
+        ],
+        "who": "Admin (`payments.charge`)",
+        "sees": "The charge stated before the button: the amount, the reference, that it is refunded, and the server's own blockers",
+        "does": "Types the reference and re-enters the password, then takes the charge on Stripe's checkout page",
+        "next": "`/api/portal/proving-charge`, `runProvingCharge`: the confirmation, `provingChargeBlockers`, no probe account, a proving order already past payment refused, the password, then `startProvingCheckout`",
         "told": "",
-        "record": "",
-        "marks": "**[NO SCREEN]**: no screen calls it"
+        "record": "Audit `proving_charge.started`, written first and refusing if it fails",
+        "marks": "A screen since 2026-10-30, Robert's ruling (issue #1 comment 6501552714). Used only on Robert's word; it never writes `stripeAccount.proof`"
       },
       {
         "n": "4",
-        "screen": "none",
-        "routes": [],
-        "who": "Admin",
-        "sees": "",
-        "does": "Tells the waitlist the firm is open",
-        "next": "The `launchAnnouncement` template exists, sent by `src/lib/ops-announce.ts`",
-        "told": "The waitlist",
-        "record": "",
-        "marks": "**[NO SCREEN]**: nothing in `src` calls it; only the audits read it"
+        "screen": "`src/app/portal/(app)/launch` (`AnnouncementPanel`)",
+        "routes": [
+          "/portal/launch"
+        ],
+        "who": "Admin (`roles.manage`)",
+        "sees": "Whether the gate is open, the waitlist count, and whether this content was previewed or already sent",
+        "does": "Sends himself the preview, then sends to the waitlist, each with the password again",
+        "next": "`/api/portal/launch-announcement`: `sendAnnouncementPreview` to `business.notificationEmail`, then `sendAnnouncementToWaitlist`, which needs a preview of the same content hash and refuses a second send; `sendLaunchAnnouncement` queues one email per address and skips the suppressed",
+        "told": "The operator (the preview), then the waitlist",
+        "record": "Audit `announcement.previewed` and `announcement.sent`, each written first and refusing if it fails, then `announcement.queued` or `announcement.send_failed` with the counts",
+        "marks": "A screen since 2026-10-30, Robert's ruling (issue #1 comment 6501552714). Enabled only when the gate is open; never sent by a probe account"
       },
       {
         "n": "5",
