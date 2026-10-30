@@ -1722,6 +1722,9 @@ if (!db) {
       { act: "open a job unpaid", req: (r) => post(r, "/api/portal/files", { action: "take_job", serviceSlug: "roof-inspections", tier: "standard", paymentIntent: "released_unpaid", channel: "phone", propertyAddress: "1 Probe Street" }), status: 400, says: /by sending the customer a payment link/ },
       { act: "invoice an account", req: (r) => post(r, "/api/portal/files", { action: "invoice_account", fileId: NOWHERE }), status: 403, says: /Not permitted/ },
       { act: "take the proving charge", req: (r) => post(r, "/api/portal/proving-charge", { confirm: provingWord }), status: 409, says: /Only somebody holding payments\.charge/ },
+      /* The launch announcement, the administrator's alone (Robert, 10:52 Central 2026-10-29, 254-WF-024 step 4): both steps, asked at the real route. */
+      { act: "send the launch announcement preview", req: (r) => post(r, "/api/portal/launch-announcement", { step: "preview" }), status: 403, says: /Only the administrator tells the waitlist/ },
+      { act: "send the launch announcement to the waitlist", req: (r) => post(r, "/api/portal/launch-announcement", { step: "send", contentHash: "x" }), status: 403, says: /Only the administrator tells the waitlist/ },
       { act: "reconcile a payment", req: (r) => post(r, "/api/portal/orders/reconcile", { orderId: NOWHERE }), status: 403, says: /Not permitted/ },
       { act: "refund an order directly", req: (r) => post(r, "/api/portal/orders/refund", { orderId: NOWHERE, reason: "a reason long enough" }), status: 403, says: /Not permitted/ },
       { act: "read the production pay report", req: (r) => get(r, "/api/portal/exports?report=production"), status: 403, says: /cannot read the production report/i },

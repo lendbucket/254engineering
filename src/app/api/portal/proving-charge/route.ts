@@ -5,7 +5,7 @@ import {
   PROVING_AMOUNT_CENTS,
   PROVING_REFERENCE,
   provingChargeBlockers,
-  startProvingCheckout,
+  runProvingCharge,
 } from "@/lib/ops-proving-charge";
 
 /**
@@ -49,20 +49,23 @@ async function handlePOST(request: NextRequest) {
   if (!actor) return bad("Not signed in.", 401);
 
   /*
-   * The body is read and ignored except for the confirmation, which is the
-   * point: no amount, no reference and no customer comes from the request. The
-   * only thing a caller may supply is the word that says they meant it.
+   * The body is read and ignored except for the confirmation and the person's
+   * own password, which is the point: no amount, no reference and no customer
+   * comes from the request. The order of the refusals, and the record written
+   * before the checkout, are runProvingCharge's (254-WF-024 step 3, the button
+   * on /portal/launch since 2026-10-30).
    */
   const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
-  if (String(body?.confirm ?? "") !== PROVING_REFERENCE) {
-    return bad(`To take the proving charge, post {"confirm":"${PROVING_REFERENCE}"}.`);
+  const result = await runProvingCharge(actor, {
+    confirm: String(body?.confirm ?? ""),
+    password: String(body?.password ?? ""),
+  });
+  if (!result.ok) {
+    return NextResponse.json(
+      { ok: false, error: result.error, ...(result.blockers ? { blockers: result.blockers } : {}) },
+      { status: result.status },
+    );
   }
-
-  const blockers = provingChargeBlockers(actor);
-  if (blockers.length > 0) return NextResponse.json({ ok: false, blockers }, { status: 409 });
-
-  const result = await startProvingCheckout(actor);
-  if (!result.ok) return bad(result.error, 502);
 
   return NextResponse.json({
     ok: true,

@@ -8,6 +8,11 @@ import { deliverablesFor } from "@data/catalog";
 import { Chip, PageHead, Panel } from "@/components/portal/surfaces";
 import { OWNER_OVERRIDE, OWNER_OVERRIDE_ACTION, OWNER_OVERRIDES, OWNER_SIGN_IN_TECH_RULED_ON } from "@/lib/owner-override";
 import { configSwitches } from "@/lib/config-switches";
+import { PROVING_AMOUNT_CENTS, PROVING_REFERENCE, provingChargeBlockers } from "@/lib/ops-proving-charge";
+import { announcementBlockedReason, announcementContentHash, announcementHistory, waitlistRecipients } from "@/lib/ops-announce";
+import { money } from "@/lib/ops-money";
+import { business } from "@/config/business";
+import { AnnouncementPanel, ProvingChargePanel } from "./LaunchActions";
 
 export const dynamic = "force-dynamic";
 
@@ -56,6 +61,8 @@ export default async function LaunchReadinessPage() {
 
   const rows = launchReadiness();
   const outstanding = rows.filter((r) => r.blocker !== null);
+  const contentHash = announcementContentHash();
+  const [history, waitlist] = await Promise.all([announcementHistory(contentHash), waitlistRecipients()]);
   const mode = launchMode();
   /*
    * ONE ROW PER DELIVERABLE WHERE A LINE SELLS MORE THAN ONE. WPI-8's two
@@ -235,6 +242,42 @@ export default async function LaunchReadinessPage() {
             </li>
           ))}
         </ul>
+      </Panel>
+
+      {/*
+        THE TWO ONE-TIME ACTS OF OPENING, 254-WF-024 steps 3 and 4 (Robert,
+        10:52 Central 2026-10-29). The facts are read here, on the server, and
+        every refusal is the server's: ops-proving-charge.ts and ops-announce.ts.
+      */}
+      <Panel
+        title="The proving charge"
+        description="The one live charge, refunded, that proves the Stripe account belongs to the firm. It opens the stripe condition once Robert records it."
+      >
+        <ProvingChargePanel
+          proving={{
+            canCharge: can(actor, "payments.charge"),
+            amount: money(PROVING_AMOUNT_CENTS),
+            reference: PROVING_REFERENCE,
+            blockers: provingChargeBlockers(actor),
+          }}
+        />
+      </Panel>
+
+      <Panel
+        title="Tell the waitlist the firm is open"
+        description="Enabled only when the gate is open. A preview goes to the firm's own notification address first, and the same announcement then goes to the list once."
+      >
+        <AnnouncementPanel
+          announcement={{
+            blocked: announcementBlockedReason(),
+            contentHash,
+            previewed: history.ok ? history.previewed : false,
+            sent: history.ok ? history.sent : false,
+            recipients: waitlist.ok ? waitlist.recipients.length : null,
+            readError: !history.ok ? history.error : !waitlist.ok ? waitlist.error : null,
+            previewTo: business.notificationEmail,
+          }}
+        />
       </Panel>
 
       <Panel
