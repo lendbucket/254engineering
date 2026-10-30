@@ -1,5 +1,15 @@
 # Day queue, 2026-10-23
 
+## MORNING REPORT, 2026-10-30 (the night of Robert's 22:12 queue)
+
+**The full report is posted on issue #1. Summary:**
+- **Merged:** ten bundles, 22 to 31, each on a board that passed. No migrations.
+- **Boarding:** `/san-antonio` (bundle 32).
+- **Every overnight miss was repaired as a class:** the preflight now runs the static proofs and the US spelling sweep.
+- **Not started:** `/coverage` LCP, because another project held the machine lock all night.
+- **Robert to confirm:** the navigation padding.
+- **Four questions,** each with a recommendation, on issue #1.
+
 ## MORNING REPORT, 2026-10-29 (the night of Robert's 21:07 and 21:11 instructions)
 
 **Needed from Robert:** the seven W3 questions and two others below, each with a recommendation, and a look at the six things decided overnight.
