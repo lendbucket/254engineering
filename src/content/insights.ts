@@ -1917,6 +1917,166 @@ insights.push(...buyerInsights);
 insights.push(...roofInsights);
 
 /*
+ * THE SOLAR PERMIT LETTER POST, 2026-10-30. Robert's 22:12 Central ruling of
+ * 2026-10-29 on the article proposal (issue #1 comment 6504641036, item 4):
+ * written from what a building official checks, distinct from Sealed
+ * Engineering's /insights/solar-structural-letter-requirements-texas, which is
+ * organized around uplift design and exposure.
+ *
+ * SOURCES, EACH READ IN FULL 2026-10-30, and nothing else is cited:
+ *   Tex. Loc. Gov't Code 214.212, read on texas.public.law, which reproduces
+ *     the official text and links it.
+ *   City of Houston, form CE-1198, revised March 2024, read in full by
+ *     pdftotext.
+ *   City of Waxahachie, residential rooftop solar checklist, rev. 05/24, read in
+ *     full by pdftotext.
+ *   Austin Energy, Solar Permitting Manual, published May 2026, read in full by
+ *     pdftotext. Austin Energy is the City of Austin's own utility.
+ *
+ * NOT READ, SO NOTHING HERE RESTS ON THEM: the ICC's text of IRC R324 (403 to
+ * a script), the City of Celina's checklist (403), the City of Rosenberg's
+ * application (404), and any San Antonio solar submittal page (none found on
+ * the city's own site). The model code's wording is therefore not quoted.
+ *
+ * THE POST AGREES WITH THE SERVICE PAGE, INCLUDING WHERE THAT IS
+ * INCONVENIENT. /services/solar-structural-letters says wind uplift is not
+ * calculated. Two of the three city documents ask for wind, so the post says
+ * plainly that a letter of that scope does not meet them.
+ */
+const SOLAR_DATE = "2026-10-30";
+
+const solarInsights: Insight[] = [
+  {
+    slug: "engineer-letter-solar-permit-texas",
+    title: "Engineer Letter for Solar Permits in Texas | 254 Engineering",
+    h1: "Engineer's letter for a solar permit in Texas: when a city asks for one",
+    description:
+      "When a Texas city asks for an engineer's letter before a rooftop solar permit, what the official checks, and what the letter does not cover. Read the guide.",
+    summary:
+      "There is no single Texas rule for when a rooftop solar permit needs an engineer's letter. What the statute leaves to each city, what three published city documents ask for, and what a gravity load letter leaves unanswered.",
+    eyebrow: "Solar permitting",
+    primaryKeyword: "engineer letter for solar permit texas",
+    datePublished: SOLAR_DATE,
+    dateModified: SOLAR_DATE,
+    body: [
+      {
+        kind: "p",
+        text: "A Texas building official who asks for an engineer's letter before issuing a rooftop solar permit is asking a structural question. Which question, and in what form, depends on the city. No statewide rule says when a letter is required or what it has to cover.",
+      },
+      {
+        kind: "p",
+        text: "This page sets out why that is, what three published city documents actually ask for, and what a letter limited to the weight of the array leaves unanswered.",
+      },
+
+      { kind: "h2", text: "Why the answer changes at the city line" },
+      {
+        kind: "p",
+        text: "Texas sets the starting point and leaves the rest to each municipality. Section 214.212 of the Local Government Code adopts the International Residential Code, as it existed on May 1, 2012, as a municipal residential building code, and applies it to the construction, alteration and repair of residential structures in a municipality.",
+      },
+      {
+        kind: "p",
+        text: "The same section lets a city adopt local amendments that add, modify or remove requirements, and lets it review later editions the International Code Council publishes. A local amendment needs a public hearing and an ordinance. The code an array is reviewed against is therefore the edition and the amendments that particular city has adopted, and two neighboring cities can differ.",
+      },
+      {
+        kind: "p",
+        text: "What a building department wants to see before it issues is a further layer. Each one publishes its own submittal list, and the lists are where the differences show.",
+      },
+
+      { kind: "h2", text: "What three published city documents ask for" },
+      { kind: "h3", text: "Waxahachie: one sealed letter covering every load" },
+      {
+        kind: "p",
+        text: "Waxahachie's residential rooftop solar checklist, revised May 2024, says the city has the 2021 International Residential Code with NCTCOG amendments in effect. The first required document is a structural letter sealed by an engineer licensed by the State of Texas, covering live, dead and wind uplift loads. A one line diagram, a load calculation sheet and construction plans come after it.",
+      },
+      { kind: "h3", text: "Houston: wind design for the address, then a second letter" },
+      {
+        kind: "p",
+        text: "Houston's Solar Photovoltaic Panel Permit and Inspection Guide, form CE-1198, revised March 2024, requires both a structural and an electrical permit for any photovoltaic system. The structural documents are designed and sealed by a Texas professional engineer and address the added loads of the product and the anchorage of the panels to the existing structure. The alternative it names is sealed plans identifying the additional framing needed.",
+      },
+      {
+        kind: "p",
+        text: "It asks for two more things. For a residence built to the 2021 IRC, the plans show the minimum design wind speed for that specific address, with the printout from the ASCE 7 hazard tool attached. And at final inspection, the structural engineer provides a special inspection letter certifying that the finished installation matches the design the city approved.",
+      },
+      { kind: "h3", text: "Austin: engineer stamped plans for shingles and ground mounts" },
+      {
+        kind: "p",
+        text: "In Austin, solar permits run through the city's own utility. Austin Energy's Solar Permitting Manual, published May 2026, lists three required uploads for a residential Auxiliary Power Electrical Permit: a Distributed Generation Planning Application, a wire diagram or design packet, and an interconnection agreement. A structural letter is not among them.",
+      },
+      {
+        kind: "p",
+        text: "The manual routes solar shingles and ground mounted systems inside the city limits to residential plan review, which requires engineer stamped plan sets, a building permit and a city inspection.",
+      },
+
+      { kind: "h2", text: "What the reviewer is checking" },
+      {
+        kind: "p",
+        text: "Where a city does ask, the structural question has the same parts. The first is whether the existing framing carries the added load of the array. The second is how each attachment anchors the panels to that framing. Houston's guide names both. The third, asked by Waxahachie and Houston in different words, is wind on the array at that address.",
+      },
+
+      { kind: "h2", text: "What a letter limited to gravity load does not answer" },
+      {
+        kind: "p",
+        text: "A letter can be written to the first two parts only. The [solar structural letter page](/services/solar-structural-letters) on this site describes a review of that scope: the weight of the array applied to the existing framing and to each attachment, with wind uplift not calculated and the letter saying so.",
+      },
+      {
+        kind: "p",
+        text: "A letter of that scope does not meet a checklist that asks for wind uplift, as Waxahachie's does, or for wind design at the address, as Houston's does. Nor does it stand in for the inspection letter Houston asks for after installation. The checklist for the address decides which document is needed, so it is worth reading before anything is ordered.",
+      },
+      {
+        kind: "p",
+        text: "No structural letter covers the electrical design, the roof access pathways or the utility's interconnection. Each of the city documents above lists those separately.",
+      },
+      {
+        kind: "p",
+        text: "With the city's checklist in hand, the [order page](/order) states which of these documents is available to order.",
+      },
+    ],
+    sources: [
+      {
+        label: "Tex. Loc. Gov't Code § 214.212, International Residential Code",
+        url: "https://texas.public.law/statutes/tex._local_gov't_code_section_214.212",
+        supports:
+          "That the IRC as it existed on May 1, 2012 is adopted as a municipal residential building code, that it applies to residential construction, alteration and repair, and that a city may adopt local amendments by ordinance after a public hearing and review later ICC editions.",
+      },
+      {
+        label: "City of Waxahachie, Residential Rooftop Solar PV System Submittal Checklist (rev. 05/24)",
+        url: "https://www.waxahachietx.gov/DocumentCenter/View/332/Residential-Rooftop-Solar-PV-System-Permit-Submittal-Guide-PDF",
+        supports:
+          "That Waxahachie has the 2021 IRC with NCTCOG amendments in effect and requires a structural letter sealed by a Texas licensed engineer covering live, dead and wind uplift loads, with a one line diagram, a load calculation sheet and construction plans.",
+      },
+      {
+        label: "City of Houston, Solar Photovoltaic Panel Permit and Inspection Guide and Checklist, form CE-1198 (rev. March 2024)",
+        url: "https://www.houstonpermittingcenter.org/media/2211/download",
+        supports:
+          "That Houston requires structural and electrical permits, sealed structural documents addressing added loads and anchorage or identifying added framing, the address's design wind speed on the plans for a 2021 IRC residence, and a special inspection letter from the structural engineer at final inspection.",
+      },
+      {
+        label: "Austin Energy, Solar Permitting Manual (published May 2026)",
+        url: "https://austinenergy.com/-/media/Project/Websites/AustinEnergy/Green-Power/Solar/AustinEnergy_SolarPermittingManual.pdf",
+        supports:
+          "The three required uploads for a residential Auxiliary Power Electrical Permit, and that solar shingles and ground mounted systems inside Austin city limits go to residential plan review with engineer stamped plan sets.",
+      },
+    ],
+    faqs: [
+      {
+        q: "Does every rooftop solar permit in Texas need an engineer's letter?",
+        a: "No statewide rule requires one. Section 214.212 leaves amendments and administration to each city, and the published lists differ: Waxahachie and Houston require a sealed structural submittal, while Austin Energy's manual lists no structural letter among the uploads for a residential permit.",
+      },
+      {
+        q: "Does the letter have to address wind uplift?",
+        a: "Where the city's checklist says so. Waxahachie's requires a letter covering wind uplift, and Houston's requires the design wind speed for the address on the plans. A letter limited to gravity load does not meet either requirement.",
+      },
+      {
+        q: "Is one letter enough in Houston?",
+        a: "Not under its published guide. Houston also asks the structural engineer for a special inspection letter at final inspection, certifying that the completed installation matches the approved design.",
+      },
+    ],
+  },
+];
+
+insights.push(...solarInsights);
+
+/*
  * EVERY POST'S DATES ARE ITS GIT HISTORY. Robert, 2026-10-25: a post whose
  * wording changed takes that day as its dateModified, from the same generated
  * file the guide pages use (src/content/guide-dates.ts), and a typed date that
