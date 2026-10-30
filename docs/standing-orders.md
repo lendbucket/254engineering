@@ -75,7 +75,12 @@ The source of truth for the running loop. Robert, 2026-10-29: the loop prompt is
 - **Robert 15:53:** "Manufactured Home Foundation Certification | 254 Engineering". Asked, because that is the service page's title and duplicates are refused (6533242185).
 - **Robert 16:23, final:** the title is "FHA Mobile Home Foundation Requirements | 254 Engineering" (57). It targets the research search, and the service page keeps the certification title. The H1 is his full FHA phrase. Committed; boards next, and merges on a pass. |
 | 14 | **The masthead photo fix `e7f4711` (Robert, 09:26: yes).** | **Board 41118588757 on `576faec`: 63 of 64.** The miss was its own route: `/coverage/coastal-bend` LCP 3402 ms, spread 23 ms, every sample over. Not merged. **Robert 16:23: yes to the map first.** The map shrink boards, then the photo fix on top, and both merge on a passing board. |
-| 14b | **The county map's markup shrunk, still server rendered** (`perf/map-markup`). Round coordinates and drop repeated attributes. No visible change, all 254 counties kept, measured before and after. | Building |
+| 14b | **The county map's markup shrunk, still server rendered** (`perf/map-markup`). Built as `70cd154`:
+- markup 61,365 to 34,015 bytes;
+- 0 pixels differ;
+- map-markup-audit checks every county.
+
+**LCP did not move:** coastal-bend 3,168 to 3,167 ms. The lead is that the LCP element is the prelaunch compliance paragraph, which is text. Asked Robert (6535822312) to add an LCP-element diagnostic line to perf-audit and board it alone. **Held**, with the photo fix, until the real fix. | Held |
 | 11 | If the queue empties: BACKLOG items that need no ruling, smallest first. | |
 
 ## Ruled, nothing to build
