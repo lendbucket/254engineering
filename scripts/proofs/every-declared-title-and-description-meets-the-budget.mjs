@@ -30,7 +30,13 @@ import { pathToFileURL } from "node:url";
 import { titleProblems, descriptionProblems, duplicateProblems } from "../lib/metadata-rules.mjs";
 
 const ROOT = "src/app/(site)";
-const { fitTitle, fitDescription } = await import(pathToFileURL(resolve("src/lib/seo.ts")).href);
+/*
+ * A literal specifier, so proofs-audit's invocation scan sees that this proof
+ * imports TypeScript and runs it under tsx. A computed path hid it, and board
+ * 41127255244 ran it under bare node, where the `@/config` alias inside seo.ts
+ * cannot resolve.
+ */
+const { fitTitle, fitDescription } = await import("../../src/lib/seo.ts");
 
 let wrong = 0;
 const check = (name, ok, detail) => {

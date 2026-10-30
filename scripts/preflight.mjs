@@ -259,10 +259,16 @@ runAudit("soc2-audit");
   else say("the static proof set is derived and not empty", "PASS", `${c.static.length} static of ${c.all.length}, ${c.alone.length} run alone`);
 
   const { spawn } = await import("node:child_process");
+  /*
+   * Each proof is launched EXACTLY as proofs-audit launches it on the board, by
+   * the shared invocationFor. Until 2026-10-30 this always used tsx, so a proof
+   * the board ran under bare node, and could not start, passed here (board
+   * 41127255244).
+   */
+  const { invocationFor } = await import("./lib/proof-invocation.mjs");
   const runProof = (f) =>
     new Promise((done) => {
-      const path = join("scripts/proofs", f);
-      const args = runtimeFor(path).needsReactServer ? [tsx, "--conditions=react-server", path] : [tsx, path];
+      const { args } = invocationFor(f);
       const p = spawn(process.execPath, args, { stdio: ["ignore", "pipe", "pipe"], env: { ...process.env, PREFLIGHT_CHILD: "1" } });
       let out = "";
       p.stdout.on("data", (d) => (out += d));
