@@ -69,6 +69,28 @@ Every repair was proved by an injection, and each file was restored byte identic
 4. Skip re-boarding a push to main whose exact commit already has a green board (ruled 2026-10-22). It edits `board.yml`, so it comes after bundle 17.
 5. List controls (search, filter, sort, paging) on the 13 staff screens that have none, so each can then take a CSV export, office ready section 2d.
 
+## 2026-10-30: BUNDLE 28 MERGED; BUNDLE 22 RE-BOARDED ON MAIN AT `e9e5eca`
+
+**Bundle 28 merged as `cf94d65`.** This is the credit terms panel. The merged tree is the boarded tree. Board 41002078784 on `a621c8d` read 64 of 64, preflight GREEN at 38 rules, as predicted.
+
+**Prediction for bundle 22, re-boarded on a new commit as Robert ruled at 22:12.**
+- The list controls at `97f4475` are unchanged.
+- Main (`cf94d65`, bundles 23 to 29) merged in cleanly as `e9e5eca`, with no conflicts.
+
+**What it adds, as before:**
+- Search, filter, sort and paging on people, do not contact, asked to be forgotten, insurance and credential review.
+- The audit trail pages every event.
+- CSV exports for people, do not contact and the audit trail. There is none for the forget list, as Robert ruled.
+
+**Readers on `e9e5eca`:**
+- Preflight GREEN, 38 rules, 103 s.
+- tsc clean.
+- No conflict marker in BACKLOG.
+
+**Prediction: 64 of 64.**
+- The standing notes as named for bundle 24.
+- **Named in advance:** `/coverage` is unchanged, because its fix is still waiting for the machine lock. An LCP miss within the run spread there would be that route, and still no merge under the 22:12 ruling.
+
 ## 2026-10-30: BUNDLE 29 MERGED; BUNDLE 28 RE-BOARDED ON MAIN AT `a621c8d`
 
 **Bundle 29 merged as `1e16714`.** The merged tree is the boarded tree. Board 40996170450 on `588e5d6` read 64 of 64 with preflight GREEN at 38 rules, as predicted.
