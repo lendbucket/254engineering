@@ -2947,12 +2947,46 @@ export async function revokeCertification(
     return { ok: false, error: "Say why. A revocation with no reason is one nobody can act on or reverse." };
   }
 
-  const { error } = await db
+  /*
+   * THE RECORD IS WRITTEN FIRST, AND A RECORD THAT FAILS STOPS THE CHANGE.
+   * Robert's ruling of 2026-10-29 (WF-017 step 6) put this on /portal/review
+   * with an audit row on every change. It used to be written after the update
+   * through writeAudit, which logs a failure and carries on, so a withdrawal
+   * could stop somebody working with nothing in the trail saying who or why.
+   */
+  const recorded = await writeAuditOrRefuse({
+    actor,
+    action: "certification.revoke",
+    entityType: "profile",
+    entityId: profileId,
+    summary: `Revoked ${serviceSlug}: ${reason.trim()}`,
+    ...context,
+  });
+  if (!recorded.ok) return recorded;
+
+  const { data: changed, error } = await db
     .from("eng_certifications")
     .update({ status: "revoked", revoked_at: DB_NOW })
     .eq("profile_id", profileId)
-    .eq("service_slug", serviceSlug);
-  if (error) return { ok: false, error: error.message };
+    .eq("service_slug", serviceSlug)
+    .select("id");
+  if (error || !changed?.length) {
+    /* The record above says it was done; this one says it was not, so the trail never claims a withdrawal that did not happen. */
+    await writeAudit({
+      actor,
+      action: "certification.revoke_failed",
+      entityType: "profile",
+      entityId: profileId,
+      summary: `Revoking ${serviceSlug} changed nothing: ${error?.message ?? "no certification record for that line"}`,
+      ...context,
+    });
+    return {
+      ok: false,
+      error: error
+        ? `The certification was not withdrawn: ${error.message}`
+        : "Nothing was withdrawn: that technician has no certification record for that line. Refresh the page.",
+    };
+  }
 
   /*
    * Mandatory email. A revoked certification stops somebody working, and the
@@ -2970,22 +3004,19 @@ export async function revokeCertification(
     entityId: profileId,
   });
 
-  await writeAudit({
-    actor,
-    action: "certification.revoke",
-    entityType: "profile",
-    entityId: profileId,
-    summary: `Revoked ${serviceSlug}: ${reason.trim()}`,
-    ...context,
-  });
   return { ok: true };
 }
 
-/** Restore a revoked certification, which is the same person deciding again. */
+/**
+ * Restore a revoked certification, which is the same person deciding again.
+ * Robert's ruling of 2026-10-29: the reason is required here too, and the
+ * record is written before the change, the same as a withdrawal.
+ */
 export async function restoreCertification(
   actor: Actor & { email: string },
   profileId: string,
   serviceSlug: string,
+  reason: string,
   context: Context = {},
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const db = supabaseAdmin();
@@ -2993,21 +3024,42 @@ export async function restoreCertification(
   if (!holdsLicence(actor, "protocols.publish")) {
     return { ok: false, error: licenceRefusal("Restoring a certification") };
   }
-  const { error } = await db
-    .from("eng_certifications")
-    .update({ status: "failed", revoked_at: null })
-    .eq("profile_id", profileId)
-    .eq("service_slug", serviceSlug)
-    .eq("status", "revoked");
-  if (error) return { ok: false, error: error.message };
+  if (!reason.trim()) {
+    return { ok: false, error: "Say why. A restoration with no reason is one nobody can check later." };
+  }
 
-  await writeAudit({
+  const recorded = await writeAuditOrRefuse({
     actor,
     action: "certification.restore",
     entityType: "profile",
     entityId: profileId,
-    summary: `Restored ${serviceSlug} to uncertified, so the check can be retaken`,
+    summary: `Restored ${serviceSlug} to uncertified, so the check can be retaken: ${reason.trim()}`,
     ...context,
   });
+  if (!recorded.ok) return recorded;
+
+  const { data: changed, error } = await db
+    .from("eng_certifications")
+    .update({ status: "failed", revoked_at: null })
+    .eq("profile_id", profileId)
+    .eq("service_slug", serviceSlug)
+    .eq("status", "revoked")
+    .select("id");
+  if (error || !changed?.length) {
+    await writeAudit({
+      actor,
+      action: "certification.restore_failed",
+      entityType: "profile",
+      entityId: profileId,
+      summary: `Restoring ${serviceSlug} changed nothing: ${error?.message ?? "no withdrawn record for that line"}`,
+      ...context,
+    });
+    return {
+      ok: false,
+      error: error
+        ? `The certification was not restored: ${error.message}`
+        : "Nothing was restored: that technician holds no withdrawn certification for that line. Refresh the page.",
+    };
+  }
   return { ok: true };
 }

@@ -22,7 +22,8 @@ import { VoidSealPanel } from "./VoidSealPanel";
 import { heldFiles } from "@/lib/dispatch-hold";
 import { PrereviewPanel } from "./PrereviewPanel";
 import { TrainingDecisionPanel } from "./TrainingDecisionPanel";
-import { trainingAwaitingEngineer } from "@/lib/certification-record";
+import { CertificationStandingPanel } from "./CertificationStandingPanel";
+import { certificationStanding, trainingAwaitingEngineer } from "@/lib/certification-record";
 import { governingDeclaration } from "@/lib/protocol-run";
 import { formatInFirmZone } from "@/lib/firm-calendar";
 import { addendaFor, addendumHeading } from "@/lib/scope-addendum";
@@ -96,6 +97,13 @@ export default async function ReviewPage({
   const addenda = await timed("addenda", addendaFor(actor!.id));
   const unsignedAddenda = addenda.ok ? addenda.addenda.filter((a) => a.signature.state === "unsigned") : [];
   const awaitingTriage = await timed("triage", filesAwaitingTriage());
+  /*
+   * WF-017 step 6, Robert's ruling of 2026-10-29: the licence holder withdraws
+   * or restores a certification here. Read only for him, with the same test the
+   * server applies to the change, so the panel is drawn exactly when it works.
+   */
+  const mayDecideStanding = holdsLicence(actor, "protocols.publish");
+  const standing = mayDecideStanding ? await timed("standing", certificationStanding()) : null;
   console.log(`[review.timing] total=${Date.now() - startedAt}ms ${phases.join(" ")} queue=${queue === null ? "unread" : queue.length}`);
   const selectedAwaiting = selected ? awaiting.filter((l) => l.fileId === selected.file.id) : [];
   /*
@@ -847,6 +855,39 @@ export default async function ReviewPage({
         <p role="alert" className="mt-8 text-[14px] text-[var(--ink)]">
           Your sealed letters could not be read, so none is offered for voiding just now: {liveRead.error}
         </p>
+      )}
+
+      {/*
+        WF-017 step 6: below the queue and every panel above it, so the order he
+        reviews in is untouched (Robert, 2026-10-29: no re-sorting on this page).
+        A failed read is said, never "no certifications".
+      */}
+      {standing === null ? null : !standing.ok ? (
+        <p role="alert" className="mt-8 text-[14px] text-[var(--ink)]">
+          Technicians&apos; certifications could not be read, so none is offered for withdrawal just now: {standing.error}
+        </p>
+      ) : (
+        <section className="mt-8 border-t-2 border-[var(--ink)] pt-4">
+          <h2 className="text-[16px] font-semibold text-[var(--ink)]">Technicians&apos; certifications</h2>
+          <p className="mt-1 text-[14px] text-[var(--secondary)]">
+            Withdraw a certification to stop a technician being offered work on that line, or restore one you withdrew. Your reason is required, is recorded, and a withdrawal is emailed to the technician.
+          </p>
+          {standing.rows.length === 0 ? (
+            <p className="mt-2 text-[14px] text-[var(--secondary)]">
+              No active technician holds or has had a certification withdrawn yet. Certifications appear here once one is approved.
+            </p>
+          ) : (
+            <CertificationStandingPanel
+              rows={standing.rows.map((r) => ({
+                profileId: r.profileId,
+                technician: r.technician,
+                serviceSlug: r.serviceSlug,
+                line: serviceName(r.serviceSlug),
+                status: r.status,
+              }))}
+            />
+          )}
+        </section>
       )}
     </>
   );
