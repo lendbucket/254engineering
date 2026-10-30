@@ -58,6 +58,9 @@ The source of truth for the running loop. Robert, 2026-10-29: the loop prompt is
 - **The announcement:** `announcementBlockedReason` gates it on `isOpen()`. The preview goes only to `business.notificationEmail`. The send needs a preview of the same content hash, and goes through the existing queue-based `sendLaunchAnnouncement`, which skips suppressed addresses.
 - **Injections:** four, each restored byte identical.
 - **Question:** a send that fails partway is recorded as sent, so nobody is mailed twice, and anyone missed is resent by hand. Recommend keeping it. | **Bundle 35, boarding** at `73e08ff` |
+| 12 | **The "receives" placeholder (Robert, 09:28).** Every order deliverable whose protocol is in force says what the signed protocol delivers, taken from its own record. A check refuses the pre-signature text on any in-force line. Its own small bundle, next in the queue. | Building on `fix/receives-placeholder` |
+| 13 | **The manufactured home article, FHA only (Robert, 09:26).** Title "FHA Manufactured Home Foundations in Texas | 254 Engineering" (60; the ruled wording runs 73). `/guides` is in the same branch. Preflight GREEN at `44a37dd`. | Boards after bundle 35; merges on Robert's yes to the title |
+| 14 | **The masthead photo fix `e7f4711` (Robert, 09:26: yes).** | To board |
 | 11 | If the queue empties: BACKLOG items that need no ruling, smallest first. | |
 
 ## Ruled, nothing to build
@@ -76,6 +79,13 @@ The source of truth for the running loop. Robert, 2026-10-29: the loop prompt is
 - No re-sorting or filtering on `/portal/review`. Its order is what the engineer reviews first.
 - **Robert, 13:11:** San Antonio is the primary name, address and phone. `/corpus-christi` stays live as a highlighted market, with no street address, until Robert gives one.
 - **Robert, 22:12:** a red board does not merge, including a perf miss on a route the branch does not touch. The branch is brought up to main and boarded on the new commit.
+- **Robert, 09:26 Central 2026-10-30:**
+  1. The manufactured home article is retitled to FHA only ("FHA Manufactured Home Foundation Certification in Texas | 254 Engineering", with the H1 and description to match) and boarded now. VA and USDA come later as an update, once their sources are read. USDA's foundation rule is HB-1-3555 chapter 13, section 13.6, not chapter 12.
+  2. `/coverage`: board and merge the masthead photo fix (`e7f4711`). Keep the county map server rendered.
+  3. Confirmed: the navigation padding, and the compact `/insights` list.
+  4. The four questions from built work are kept as built: certification withdraw, the onboarding bound, the password for every administrator, and the announcement sent once.
+  5. Robert takes the solar letter scope to the engineer himself. **Until he says otherwise, do not promote solar letters for cities whose published submittal asks for wind loads.**
+  6. Bring `/insights/wpi-8-certificate` under the height ceiling at 390 in its own small bundle. **Correction sent:** the last board measured it at 15,326 px, already 674 px under the 16,000 px ceiling. Its question is on issue #1.
 
 ## Waiting on Robert, do not build
 
