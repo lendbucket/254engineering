@@ -69,6 +69,21 @@ Every repair was proved by an injection, and each file was restored byte identic
 4. Skip re-boarding a push to main whose exact commit already has a green board (ruled 2026-10-22). It edits `board.yml`, so it comes after bundle 17.
 5. List controls (search, filter, sort, paging) on the 13 staff screens that have none, so each can then take a CSV export, office ready section 2d.
 
+## 2026-10-30: BUNDLE 29 MERGED; BUNDLE 28 RE-BOARDED ON MAIN AT `a621c8d`
+
+**Bundle 29 merged as `1e16714`.** The merged tree is the boarded tree. Board 40996170450 on `588e5d6` read 64 of 64 with preflight GREEN at 38 rules, as predicted.
+
+**Prediction for bundle 28, re-boarded on a new commit as Robert ruled at 22:12.**
+- The credit terms panel at `a267eb8` is unchanged.
+- Main (`1e16714`, bundle 29) is merged in, as `a621c8d`.
+- Its first board, 40990127640, read 63 of 64 on a 2 ms LCP miss at `/coverage/coastal-bend`, a public route the branch does not touch.
+
+**Readers on `a621c8d`:** Preflight GREEN, 38 rules, 101 s, now including the US spelling sweep.
+
+**Prediction: 64 of 64.**
+- The standing notes as named for bundle 24.
+- **Named in advance:** nothing about `/coverage` has changed yet. Its fix, item 7, is waiting for the machine lock to build and measure. So an LCP miss within the run spread on `/coverage` or a region page would be that route again, not this branch. Under Robert's 22:12 rule it would still be no merge.
+
 ## 2026-10-29: BUNDLE 28 MISSED ON /coverage/coastal-bend BY 2 ms; BUNDLE 29, THE PREFLIGHT CHECKS US SPELLING, AT `588e5d6`
 
 **Bundle 28, board 40990127640 on `a267eb8`: 63 of 64.**
