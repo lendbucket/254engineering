@@ -79,6 +79,35 @@ Every repair was proved by an injection, and each file was restored byte identic
 4. Skip re-boarding a push to main whose exact commit already has a green board (ruled 2026-10-22). It edits `board.yml`, so it comes after bundle 17.
 5. List controls (search, filter, sort, paging) on the 13 staff screens that have none, so each can then take a CSV export, office ready section 2d.
 
+## 2026-10-30: BUNDLE 33 MERGED; BUNDLE 34, THE SOLAR PERMIT LETTER ARTICLE, AT `d313636`
+
+**Bundle 33 merged as `e248703`.** These are the WPI-8 process details. The merged tree is the boarded tree. Board 41040053857 on `cd119a9` read 64 of 64, preflight GREEN, as predicted.
+
+**Prediction for bundle 34, written and pushed before the board starts.** Robert's 22:12 yes on article proposal item 4: the solar article, from what the building official checks.
+
+**What it adds:**
+- `/insights/engineer-letter-solar-permit-texas`.
+- Title: "Engineer Letter for Solar Permits in Texas | 254 Engineering" (60). The approved title measured 61, so one word became plural.
+- The approved description (156) and H1 (71).
+- **Read in full and cited:**
+  - Tex. Loc. Gov't Code 214.212;
+  - Houston form CE-1198 (March 2024);
+  - Waxahachie's solar checklist (rev. 05/24);
+  - Austin Energy's Solar Permitting Manual (May 2026).
+- **Not read, so not used:** the ICC's IRC R324 text (403), Celina (403), Rosenberg (404), and San Antonio, which has no solar submittal page found on the city's site.
+- **Distinct from Sealed's post:** no heading or sentence is shared, and the structure is built on the statute and three city documents.
+- **Dates:** the guide dates are re-emitted. Main's WPI-8 dates merged in cleanly, and guide-dates-audit passes in the preflight.
+
+**Readers on `d313636`, on main `e248703`:**
+- Preflight GREEN, 38 rules.
+- tsc clean.
+- citation-audit standalone: 71 answer, including the four new sources.
+
+**Prediction: 64 of 64.**
+- registry-audit scores this post against Sealed's on the board, and must stay under 0.75.
+- **Standing notes:** as named for bundle 24, including citation-audit's could-not-tell lines.
+- **Named in advance:** an LCP miss within the run spread on `/coverage` would be that route.
+
 ## 2026-10-30: BUNDLE 32 MERGED; BUNDLE 33, THE WPI-8 PROCESS DETAILS, AT `cd119a9`
 
 **Bundle 32 merged as `9854131`.** This is `/san-antonio`. The merged tree is the boarded tree. Board 41030775857 on `75a4973` read 64 of 64, preflight GREEN, as predicted.

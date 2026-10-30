@@ -42,7 +42,8 @@ The source of truth for the running loop. Robert, 2026-10-29: the loop prompt is
 | 8 | **The WPI-8 process details** added to `/insights/wpi-8-certificate` (article proposal item 2). | **Merged as `e248703`** (board 41040053857) |
 | 9 | **The articles, one per board, under `/insights`, with `/guides` as their index:** the manufactured home article, then the solar article, then the foundation article ("what a Texas foundation letter says and what a city does with it", with San Antonio's bulletin as the example). **Every HUD, San Antonio, VA and USDA source is read before it is cited; anything not read is not cited.**
 - **Manufactured home article and `/guides`:** built on `content/mh-article` (`d5dc677`), and **held.** The VA and USDA handbooks could not be read (a JavaScript bot check, and a 403), so the body states FHA only while the title names all three.
-- **Question on issue #1:** Robert pastes the VA and USDA passages, or the article is retitled to FHA. Recommend the paste. | Manufactured home held; solar next |
+- **Question on issue #1:** Robert pastes the VA and USDA passages, or the article is retitled to FHA. Recommend the paste. - **Solar article:** bundle 34, boarding at `d313636`.
+- **Finding for Robert:** the solar letter service page says the letter does not calculate wind uplift, while Houston and Waxahachie, as published, ask for wind loads. The article says so plainly. Whether the service scope changes is Robert's to rule. | Manufactured home held; solar boarding |
 | 10 | **The remaining 10:52 rulings on `/portal/launch`:** the proving charge button (admin only, states the charge before it runs, used only on Robert's word) and the waitlist "we are open" button (enabled only when the gate reads live, preview to Robert first, never sent by a board or a probe). | To build |
 | 11 | If the queue empties: BACKLOG items that need no ruling, smallest first. | |
 
