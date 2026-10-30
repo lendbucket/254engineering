@@ -40,7 +40,9 @@ The source of truth for the running loop. Robert, 2026-10-29: the loop prompt is
 - What moves the region pages is the county map in the HTML (coastal-bend 3016 ms without it). That reverses Robert's 2026-09-07 decision.
 - Two questions are on issue #1 (6521207420). Recommend no on the map, and yes to merging `e7f4711`. | Waiting on Robert |
 | 8 | **The WPI-8 process details** added to `/insights/wpi-8-certificate` (article proposal item 2). | **Bundle 33, boarding** at `cd119a9` |
-| 9 | **The articles, one per board, under `/insights`, with `/guides` as their index:** the manufactured home article, then the solar article, then the foundation article ("what a Texas foundation letter says and what a city does with it", with San Antonio's bulletin as the example). **Every HUD, San Antonio, VA and USDA source is read before it is cited; anything not read is not cited.** | To build |
+| 9 | **The articles, one per board, under `/insights`, with `/guides` as their index:** the manufactured home article, then the solar article, then the foundation article ("what a Texas foundation letter says and what a city does with it", with San Antonio's bulletin as the example). **Every HUD, San Antonio, VA and USDA source is read before it is cited; anything not read is not cited.**
+- **Manufactured home article and `/guides`:** built on `content/mh-article` (`d5dc677`), and **held.** The VA and USDA handbooks could not be read (a JavaScript bot check, and a 403), so the body states FHA only while the title names all three.
+- **Question on issue #1:** Robert pastes the VA and USDA passages, or the article is retitled to FHA. Recommend the paste. | Manufactured home held; solar next |
 | 10 | **The remaining 10:52 rulings on `/portal/launch`:** the proving charge button (admin only, states the charge before it runs, used only on Robert's word) and the waitlist "we are open" button (enabled only when the gate reads live, preview to Robert first, never sent by a board or a probe). | To build |
 | 11 | If the queue empties: BACKLOG items that need no ruling, smallest first. | |
 
