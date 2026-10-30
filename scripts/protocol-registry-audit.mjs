@@ -827,7 +827,39 @@ if (pdftotext.error || pdftotext.status !== 0) {
     for (const rule of exclusions) out = out.split(rule.rule.toLowerCase()).join(" ");
     return out;
   };
-  const copy = SUBJECTS.map((p) => strip(readSource(p))).join("\n");
+  /*
+   * AND ANY OTHER SIGNED PROTOCOL'S OWN SENTENCE, 2026-10-30. Robert's 09:28
+   * item made the catalogue quote section 11 of every protocol in force, and
+   * 254-MH-001 and 254-RS-001 each say, in the negative, that their document
+   * does not forecast future performance. This check read those as promises,
+   * because it excused only 254-RC-001's sentences while reading the whole
+   * file. A string literal that appears word for word in a protocol
+   * transcription under src/content/protocols is the signed document speaking,
+   * not a promise, so it is removed before matching. The transcriptions are the
+   * signed documents, not the copy under test, and a paraphrase is not in
+   * them, so a paraphrased promise is still caught.
+   */
+  const norm = (s) => s.toLowerCase().replace(/•/g, " ").replace(/\s+/g, " ").trim();
+  const literals = (src) => [...src.matchAll(/"((?:[^"\\]|\\.)*)"/g)].map((m) => m[1]);
+  const protocolDir = "src/content/protocols";
+  const protocolText = norm(
+    readdirSync(protocolDir)
+      .filter((f) => f.endsWith(".ts"))
+      .map((f) => literals(readFileSync(`${protocolDir}/${f}`, "utf8")).join(" "))
+      .join(" "),
+  );
+  const quotedHere = [];
+  const notQuoted = (text) => {
+    let out = text;
+    for (const lit of literals(text)) {
+      if (lit.length >= 24 && protocolText.includes(norm(lit))) {
+        quotedHere.push(lit);
+        out = out.split(`"${lit}"`).join(" ");
+      }
+    }
+    return out;
+  };
+  const copy = SUBJECTS.map((p) => strip(notQuoted(readSource(p)))).join("\n");
   const promised = forbidden.filter((f) => copy.includes(f.phrase.toLowerCase()));
 
   rec(
@@ -836,7 +868,19 @@ if (pdftotext.error || pdftotext.status !== 0) {
     promised.length
       ? promised.map((p) => `"${p.phrase}" (excluded by ${p.from})`).join("; ") +
           ". The signed protocol says the letter does not do this. A page that promises it is promising something the engineer will not seal."
-      : `${forbidden.length} excluded phrase(s) checked against ${SUBJECTS.join(" and ")}`,
+      : `${forbidden.length} excluded phrase(s) checked against ${SUBJECTS.join(" and ")}, ${quotedHere.length} sentence(s) excused as word for word quotations of a signed protocol`,
+  );
+  /*
+   * The exemption is counted and has a floor and a ceiling, because an
+   * exemption nobody counts becomes the rule (CLAUDE.md section 6). The six
+   * protocols in force are quoted in two files; fewer than six excused means
+   * the quotations stopped matching, and the check would then fail on the
+   * negatives rather than pass on nothing.
+   */
+  rec(
+    "the protocol quotations excused from that check are counted",
+    quotedHere.length >= 6,
+    `${quotedHere.length} excused`,
   );
 }
 
