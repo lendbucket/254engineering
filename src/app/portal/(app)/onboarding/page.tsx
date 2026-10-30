@@ -3,8 +3,10 @@ import { notFound } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
 import { mayOpenOnboarding } from "@/lib/onboarding-scope";
-import { activationView, listApplications } from "@/lib/ops-onboarding";
-import { listOnboardings } from "@/lib/onboarding";
+import { APPLICATION_READ_LIMIT, activationView, listApplications } from "@/lib/ops-onboarding";
+import { ONBOARDING_PAGE_SIZE, countOnboardings, listOnboardingsPage, onboardedEmails } from "@/lib/onboarding";
+import { onboardingListQuery } from "@/lib/onboarding-list";
+import { ListControls, Pager, listHref } from "@/components/portal/ListControls";
 import { TEXAS_COUNTIES } from "@/lib/ops-counties";
 import { CREDENTIAL_LABEL, expiryState } from "@/lib/ops-credentials";
 import { Chip, EmptyState, PageHead } from "@/components/portal/surfaces";
@@ -52,7 +54,7 @@ const STATUS_TONE: Record<string, "neutral" | "good" | "warn" | "bad"> = {
 export default async function OnboardingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ id?: string }>;
+  searchParams: Promise<{ id?: string; q?: string; status?: string; role?: string; sort?: string; dir?: string; page?: string }>;
 }) {
   const actor = await currentActor();
   if (!mayOpenOnboarding(actor, "profiles.create")) notFound();
@@ -61,19 +63,39 @@ export default async function OnboardingPage({
   /*
    * technicians.onboard without profiles.create sees field technicians only,
    * 2026-10-20. The server refuses everything else for that grant; the screen
-   * does not offer what the server would refuse.
+   * does not offer what the server would refuse. The list query applies the
+   * same scope, so the page and its count are both of what this grant may see.
    */
   const technicianOnly = !can(actor, "profiles.create");
 
-  const [allApplications, allOnboardings] = await Promise.all([listApplications(actor), listOnboardings()]);
-  const applications = technicianOnly
-    ? allApplications.filter((a) => !(a.role ?? "").toLowerCase().includes("engineer"))
-    : allApplications;
-  const onboardings = technicianOnly ? allOnboardings.filter((o) => o.role === "field_tech") : allOnboardings;
+  /*
+   * OFFICE READY, Robert's ruling of 10:52 Central 2026-10-29: the onboarding
+   * list searches, filters, sorts and pages in the database, with the query in
+   * the address, read by the same functions as its count.
+   */
+  const query = onboardingListQuery(params);
+  const scope = { fieldTechOnly: technicianOnly };
+  const [allApplications, invited, onboardings, total] = await Promise.all([
+    listApplications(actor),
+    onboardedEmails(),
+    listOnboardingsPage(query, scope),
+    countOnboardings(query, scope),
+  ]);
+  const applications =
+    allApplications === null
+      ? null
+      : technicianOnly
+        ? allApplications.filter((a) => !(a.role ?? "").toLowerCase().includes("engineer"))
+        : allApplications;
   const selected = params.id ? await activationView(actor, params.id) : null;
+  const filtered = Boolean(query.term) || query.status !== "all" || query.role !== "all";
 
-  const invited = new Set(allOnboardings.map((o) => o.email.toLowerCase()));
-  const open = applications.filter((a) => a.email && !invited.has(a.email.toLowerCase()));
+  /* Which applications are not yet invited needs both reads; either failing is said. */
+  const open =
+    applications === null || invited === null
+      ? null
+      : applications.filter((a) => a.email && !invited.has(a.email.toLowerCase()));
+  const listParams = { q: params.q, status: params.status, role: params.role, sort: params.sort, dir: params.dir, page: params.page };
 
   return (
     <>
@@ -83,6 +105,44 @@ export default async function OnboardingPage({
         lede="From a careers application to somebody dispatch can offer work to. Activation writes the account, the coverage, and the credentials in one act, so the paperwork and the roster cannot drift apart."
       />
 
+      <ListControls
+        action="/portal/onboarding"
+        search={params.q ?? ""}
+        searchLabel="Search onboarding by name, email or phone"
+        filters={[
+          {
+            name: "status",
+            label: "Status",
+            value: query.status,
+            options: [
+              { value: "all", label: "Every status" },
+              { value: "invited", label: "Invited" },
+              { value: "in_progress", label: "In progress" },
+              { value: "submitted", label: "Submitted" },
+              { value: "verified", label: "Verified" },
+              { value: "complete", label: "Complete" },
+            ],
+          },
+          ...(technicianOnly
+            ? []
+            : [
+                {
+                  name: "role",
+                  label: "Role",
+                  value: query.role,
+                  options: [
+                    { value: "all", label: "Everyone" },
+                    { value: "field_tech", label: "Field technicians" },
+                    { value: "engineer", label: "Engineers" },
+                  ],
+                },
+              ]),
+        ]}
+        sorts={[{ value: "invited", label: "Invited" }, { value: "name", label: "Name" }]}
+        sort={query.sort}
+        direction={query.ascending ? "asc" : "desc"}
+      />
+
       <div className="grid gap-6 lg:grid-cols-[minmax(300px,380px)_1fr]">
         <div className={selected ? "hidden lg:block" : "block"}>
           <section aria-labelledby="applications">
@@ -90,7 +150,12 @@ export default async function OnboardingPage({
               Applications not yet invited
             </h2>
             <div className="mt-3">
-              {open.length === 0 ? (
+              {open === null ? (
+                <EmptyState
+                  title="The applications could not be read"
+                  body="This is a failed read, not an empty list. Reload the page; if it still fails, the server log names the cause."
+                />
+              ) : open.length === 0 ? (
                 <EmptyState
                   title="Nothing waiting"
                   body="Applications from the careers form appear here until somebody is invited to onboard. An application is never deleted; it is the origin record and it carries the attribution the public site captured."
@@ -114,22 +179,38 @@ export default async function OnboardingPage({
                   ))}
                 </ul>
               )}
+              {allApplications !== null && allApplications.length === APPLICATION_READ_LIMIT ? (
+                <p className="mt-3 text-[14px] leading-[1.5] text-[var(--secondary)]">
+                  This reads the newest {APPLICATION_READ_LIMIT} applications. An older one is reached on the applications screen.
+                </p>
+              ) : null}
             </div>
           </section>
 
           <section aria-labelledby="onboardings" className="mt-8">
             <h2 id="onboardings" className="portal-label">
-              In onboarding
+              {total === null
+                ? "In onboarding; the total could not be read"
+                : `In onboarding: ${total} ${filtered ? "matching" : total === 1 ? "person" : "people"}`}
             </h2>
             <div className="mt-3">
-              {onboardings.length === 0 ? (
-                <EmptyState title="Nobody yet" body="Invite somebody from an application above." />
+              {onboardings === null ? (
+                <EmptyState
+                  title="The onboarding list could not be read"
+                  body="This is a failed read, not an empty list. Reload the page; if it still fails, the server log names the cause."
+                />
+              ) : onboardings.length === 0 ? (
+                filtered ? (
+                  <EmptyState title="Nobody matches that search" body="Clear the search or the filters to see everyone in onboarding." />
+                ) : (
+                  <EmptyState title="Nobody yet" body="Invite somebody from an application above." />
+                )
               ) : (
                 <ul className="flex flex-col gap-2">
                   {onboardings.map((o) => (
                     <li key={o.id}>
                       <Link
-                        href={`/portal/onboarding?id=${o.id}`}
+                        href={listHref("/portal/onboarding", listParams, { id: o.id })}
                         className={`block ${selected?.onboarding.id === o.id ? "border-l-[length:var(--active-bar-width)] border-l-[var(--navy)] pl-3" : ""}`}
                       >
                         <div className="flex items-start justify-between gap-3">
@@ -146,6 +227,14 @@ export default async function OnboardingPage({
                   ))}
                 </ul>
               )}
+              {total !== null && onboardings !== null ? (
+                <Pager
+                  page={query.page}
+                  pageSize={ONBOARDING_PAGE_SIZE}
+                  total={total}
+                  hrefFor={(n) => listHref("/portal/onboarding", listParams, { page: String(n) })}
+                />
+              ) : null}
             </div>
           </section>
         </div>
@@ -153,7 +242,7 @@ export default async function OnboardingPage({
         {selected ? (
           <div>
             <Link
-              href="/portal/onboarding"
+              href={listHref("/portal/onboarding", listParams, {})}
               className="mb-4 inline-flex min-h-[44px] items-center text-[14px] font-semibold text-[var(--secondary)] lg:hidden"
             >
               Back to the list

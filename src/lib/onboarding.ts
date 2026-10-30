@@ -3,6 +3,7 @@ import { DB_NOW } from "./db-now";
 import { supabaseAdmin, supabaseConfigured } from "./supabase";
 import { checklistFor, type OnboardingRole } from "@/content/onboarding-checklists";
 import { generateInvite, hashToken, isExpired, looksLikeToken } from "./onboarding-tokens";
+import { onboardingSearchOr, type OnboardingListQuery } from "./onboarding-list";
 
 /**
  * Reading and writing onboardings.
@@ -295,16 +296,97 @@ export async function regenerateInvite(onboardingId: string): Promise<Result<{ t
   return error ? { ok: false, error: error.message } : { ok: true, data: { token: invite.token } };
 }
 
-export async function listOnboardings(): Promise<OnboardingRow[]> {
-  if (!supabaseConfigured()) return [];
+/** How many onboardings one page of the list shows. */
+export const ONBOARDING_PAGE_SIZE = 50;
+
+/**
+ * The onboarding list, one page of it, searched, filtered and sorted in the
+ * database. Office ready, Robert's ruling of 10:52 Central 2026-10-29.
+ *
+ * It replaces listOnboardings(), which read every row unbounded (PostgREST's
+ * silent 1000 ceiling) and answered a failed read with an empty list, so the
+ * screen said "Nobody yet" over a read that never happened.
+ *
+ * `fieldTechOnly` is the technicians.onboard scope of 2026-10-20, applied in
+ * the query rather than after it, so the page and the count are both of what
+ * the caller may see. NULL ON ERROR, NEVER AN EMPTY PAGE.
+ */
+export async function listOnboardingsPage(
+  query: OnboardingListQuery,
+  options: { fieldTechOnly: boolean },
+): Promise<OnboardingRow[] | null> {
+  if (!supabaseConfigured()) return null;
   const db = supabaseAdmin();
-  if (!db) return [];
-  const { data, error } = await db
-    .from("eng_onboardings")
-    .select()
-    .order("created_at", { ascending: false });
-  if (error || !data) return [];
+  if (!db) return null;
+  let read = db.from("eng_onboardings").select();
+  const search = onboardingSearchOr(query.term);
+  if (search) read = read.or(search);
+  if (query.status !== "all") read = read.eq("status", query.status);
+  if (options.fieldTechOnly) read = read.eq("role", "field_tech");
+  else if (query.role !== "all") read = read.eq("role", query.role);
+  const offset = (query.page - 1) * ONBOARDING_PAGE_SIZE;
+  const { data, error } = await read
+    .order(query.sort === "name" ? "person_name" : "invited_at", { ascending: query.ascending })
+    /* A tie broken by id, so a page boundary never shows a person twice or not at all. */
+    .order("id", { ascending: true })
+    .range(offset, offset + ONBOARDING_PAGE_SIZE - 1);
+  if (error || !data) return null;
   return data as OnboardingRow[];
+}
+
+/**
+ * How many onboardings match, exactly, with the same search, filters and scope
+ * as the page. A separate exact count, never the length of the page. Null when
+ * it could not be read, which the screen says rather than printing zero.
+ */
+export async function countOnboardings(
+  query: OnboardingListQuery,
+  options: { fieldTechOnly: boolean },
+): Promise<number | null> {
+  if (!supabaseConfigured()) return null;
+  const db = supabaseAdmin();
+  if (!db) return null;
+  let read = db.from("eng_onboardings").select("id", { count: "exact", head: true });
+  const search = onboardingSearchOr(query.term);
+  if (search) read = read.or(search);
+  if (query.status !== "all") read = read.eq("status", query.status);
+  if (options.fieldTechOnly) read = read.eq("role", "field_tech");
+  else if (query.role !== "all") read = read.eq("role", query.role);
+  const { count, error } = await read;
+  if (error) return null;
+  return count ?? null;
+}
+
+/**
+ * Every email that already has an onboarding, so the screen can tell which
+ * applications are not yet invited.
+ *
+ * EVERY ROW OR NULL. It reads in pages and compares what it assembled with an
+ * exact count, because PostgREST answers an unbounded select with at most 1000
+ * rows and says nothing, and a short set here would show an invited person's
+ * application as waiting. Null on any failure, which the screen says.
+ */
+export async function onboardedEmails(): Promise<Set<string> | null> {
+  if (!supabaseConfigured()) return null;
+  const db = supabaseAdmin();
+  if (!db) return null;
+  const { count, error: countError } = await db.from("eng_onboardings").select("id", { count: "exact", head: true });
+  if (countError || count === null) return null;
+  const emails = new Set<string>();
+  let read = 0;
+  const PAGE = 1000;
+  for (let offset = 0; offset < count; offset += PAGE) {
+    const { data, error } = await db
+      .from("eng_onboardings")
+      .select("id, email")
+      .order("id", { ascending: true })
+      .range(offset, offset + PAGE - 1);
+    if (error || !data) return null;
+    read += data.length;
+    for (const row of data as { email: string }[]) emails.add(row.email.toLowerCase());
+  }
+  if (read !== count) return null;
+  return emails;
 }
 
 export async function getOnboarding(id: string): Promise<OnboardingRow | null> {

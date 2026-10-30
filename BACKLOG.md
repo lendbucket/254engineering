@@ -58,7 +58,7 @@ partners. Those are questions, below.
 - WF-007 step 4's screen cell names the four screens that carry the call log.
 
 **Questions for Robert, each with a recommendation:**
-1. **WF-017 step 6, withdrawing or restoring a technician's certification has no screen.** It is a licensed action, so only the engineer may send it, and the engineer cannot open `/portal/techs`. Recommend: a panel on `/portal/review` beside the training decisions, engineer only, with the reason required.
+1. **WF-017 step 6, withdrawing or restoring a technician's certification has no screen.** It is a licensed action, so only the engineer may send it, and the engineer cannot open `/portal/techs`. Recommend: a panel on `/portal/review` beside the training decisions, engineer only, with the reason required. **BUILT on `feat/cert-panel`, Robert's ruling of 10:52 Central 2026-10-29 (issue #1 comment 6501552714).** The panel sits below everything already on `/portal/review`, so the queue's order is untouched, and is drawn only for the licence holder. `revokeCertification` and `restoreCertification` stay the one path: restore now takes a reason too, both write `certification.revoke` or `certification.restore` through `writeAuditOrRefuse` before the change and refuse if it fails, and a change that touched no row is recorded as `_failed` and reported. Proof: `scripts/proofs/the-engineer-withdraws-a-certification-on-review-with-a-reason.mjs`.
 2. **WF-021 step 4, releasing a sign-in lock has no screen.** The route behind `releaseLock` takes the operator's token. Recommend: keep it off-screen; a screen would put the break-glass token, or its equivalent, behind an ordinary session.
 3. **WF-022 step 3, setting an account's credit limit and terms has no screen.** That is a money flow. Recommend: an administrator panel on `/portal/accounts`, with a fresh second factor, once you rule.
 4. **WF-024 step 3, the proving charge has no screen.** A live charge. Recommend: an administrator button on `/portal/launch` that shows the blockers first; build only on your word.
@@ -107,6 +107,22 @@ review, waiting, the technician's jobs and messages. Each needs its list
 controls first (section 2d), and its export then follows the same pattern.
 /portal/procedures is a document a role reads, not a list of records, and is
 left out.
+
+**Built 2026-10-29 on `feat/onboarding-list`: /portal/onboarding, Robert's
+ruling of 10:52 Central ("Build list controls for onboarding").**
+- The "In onboarding" list searches name, email and phone. It filters by status, and by role for a grant that may see both roles. It sorts by invited or name and pages 50 at a time.
+- The query is in the address and the count is exact, from `src/lib/onboarding-list.ts`. The technician scope is applied in the query.
+- The unbounded `listOnboardings()` is gone; it read past nobody's ceiling and showed "Nobody yet" on a failed read.
+- The invited set reads every row against an exact count, and a failure is said. The applications read is null on error, not "Nothing waiting".
+- Proof: `the-onboarding-list-searches-filters-sorts-and-pages.mjs`.
+- Onboarding had no CSV export, and none was added.
+
+**Still open on that screen, a finding for Robert.** "Applications not yet
+invited" is the newest 200 applications minus everyone with an onboarding, a
+difference between two tables. It cannot be searched or paged in one query
+without a database view or function, which is a migration. The screen now states
+the bound when a read fills it. Recommendation: leave it bounded and stated. An
+older application is reached on `/portal/applications`, which already pages.
 
 ## /portal/accounts COUNTS SUPERSEDED ACCOUNTS IN "ALL": RULED, BUILT ON feat/superseded-hidden
 

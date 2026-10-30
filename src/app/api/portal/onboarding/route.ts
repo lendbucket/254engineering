@@ -271,6 +271,7 @@ async function handlePOST(request: NextRequest) {
       actor,
       String(body?.profileId ?? ""),
       String(body?.serviceSlug ?? ""),
+      String(body?.reason ?? ""),
       context,
     );
     return result.ok ? NextResponse.json({ ok: true }) : bad(result.error);

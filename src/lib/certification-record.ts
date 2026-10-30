@@ -426,6 +426,66 @@ export async function trainingAwaitingEngineer(): Promise<
 }
 
 /**
+ * EVERY CURRENT OR WITHDRAWN CERTIFICATION, FOR THE ENGINEER'S PANEL ON
+ * /portal/review. Robert's ruling of 2026-10-29 (WF-017 step 6): he withdraws
+ * or restores one there, with a reason, because the engineer cannot open
+ * /portal/techs. Read in full rather than to a page, so a technician past row
+ * 1000 is never quietly missing from the one screen that can withdraw him; a
+ * failed read is said, never an empty list.
+ */
+export type CertificationStanding = {
+  profileId: string;
+  technician: string;
+  serviceSlug: string;
+  status: "certified" | "revoked";
+  certifiedAt: string | null;
+  revokedAt: string | null;
+};
+
+export async function certificationStanding(): Promise<
+  { ok: true; rows: CertificationStanding[] } | { ok: false; error: string }
+> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+  const certs = await readEvery<{ profile_id: string; service_slug: string; status: string; certified_at: string | null; revoked_at: string | null }>(
+    (from, to) =>
+      db
+        .from("eng_certifications")
+        .select("profile_id, service_slug, status, certified_at, revoked_at", { count: "exact" })
+        .in("status", ["certified", "revoked"])
+        .order("id")
+        .range(from, to),
+  );
+  if (!certs.ok) return { ok: false, error: `The certifications could not be read: ${certs.error}` };
+  const ids = [...new Set(certs.rows.map((c) => c.profile_id))];
+  /* Active technicians only, the same rule as the training list above. */
+  const people = await readEveryIn<{ id: string; display_name: string }>(ids, (chunk, from, to) =>
+    db
+      .from("eng_profiles")
+      .select("id, display_name", { count: "exact" })
+      .in("id", chunk as string[])
+      .eq("role", "field_tech")
+      .eq("status", "active")
+      .order("id")
+      .range(from, to),
+  );
+  if (!people.ok) return { ok: false, error: `The technicians could not be read: ${people.error}` };
+  const names = new Map(people.rows.map((p) => [p.id, p.display_name]));
+  const rows = certs.rows
+    .filter((c) => names.has(c.profile_id))
+    .map((c) => ({
+      profileId: c.profile_id,
+      technician: names.get(c.profile_id) as string,
+      serviceSlug: c.service_slug,
+      status: c.status as "certified" | "revoked",
+      certifiedAt: c.certified_at,
+      revokedAt: c.revoked_at,
+    }))
+    .sort((a, b) => a.technician.localeCompare(b.technician) || a.serviceSlug.localeCompare(b.serviceSlug));
+  return { ok: true, rows };
+}
+
+/**
  * The engineer of record's decision, from his own session: the engineer role,
  * active, and a license the register holds as current, the same test protocol
  * approval applies. Approval writes the certification dispatch reads; refusal
