@@ -79,6 +79,32 @@ Every repair was proved by an injection, and each file was restored byte identic
 4. Skip re-boarding a push to main whose exact commit already has a green board (ruled 2026-10-22). It edits `board.yml`, so it comes after bundle 17.
 5. List controls (search, filter, sort, paging) on the 13 staff screens that have none, so each can then take a CSV export, office ready section 2d.
 
+## 2026-10-30: BUNDLE 36 MERGED; BUNDLE 37, THE FHA ARTICLE AND /guides, AT `b76d100`
+
+**Bundle 36 merged as `694b79b`.** This is the "receives" fix. The merged tree is the boarded tree. Board 41090210363 on `a76dc12` read 64 of 64, as predicted: "55 sentence(s) excused as word for word quotations of a signed protocol".
+
+**Prediction for bundle 37, written and pushed before the board starts.** Robert's 22:12 yes on articles 1 and 4, retitled to FHA only at 09:26. **The merge waits on Robert's yes to the 60 character title** (6525230978).
+
+**What it adds:**
+- `/insights/manufactured-home-foundation-certification-loans`:
+  - title "FHA Manufactured Home Foundations in Texas | 254 Engineering" (60);
+  - H1 "FHA manufactured home foundation certification in Texas";
+  - description 150.
+- **Cited, all read in full:** HUD 4000.1 Update 18 (manufactured housing and appraiser sections), ML 2009-16 (edition only), and TDHCA's statement of ownership FAQ.
+- **Not cited, because not read:** VA, USDA (HB-1-3555 13.6, per Robert) and the foundations guide itself.
+- `/guides`: an index over `/insights` grouped by topic, derived from the content. It is in the sitemap and linked from the footer and the `/insights` hub.
+
+**Readers on `b76d100`, on main `694b79b`:**
+- Preflight GREEN, 38 rules.
+- tsc clean.
+- citation-audit standalone: 71 answer at build time.
+
+**Prediction: 64 of 64.**
+- seo-audit: `/guides` has two inbound links, and both new titles are unique.
+- mobile-overflow-audit: `/insights` stays well under 16,000 px, because one more post moves into the compact list.
+- **Standing notes:** as named for bundle 24.
+- **Named in advance:** an LCP miss within the run spread on `/coverage` would be that route. Its photo fix is next in the queue.
+
 ## 2026-10-30: BUNDLE 36 MISSED ON RC-001'S EXCLUSION CHECK; REBOARD
 
 **Board 41078181970 on `b9f4c42`: 63 of 64.**
