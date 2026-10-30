@@ -228,6 +228,67 @@ export type CatalogEntry = {
 export const SCOPE_PENDING =
   "The scope of this service is published here once the engineer of record signs its protocol.";
 
+/**
+ * WHAT EACH PROTOCOL IN FORCE DELIVERS, QUOTED FROM ITS OWN TRANSCRIPTION.
+ * Robert, 09:28 Central 2026-10-30: the windstorm completed line still carried
+ * SCOPE_PENDING although 254-WS-001 was signed in the portal and put in force by
+ * 0081 on 2026-10-23, as were FC, MH, SL, PL and RS. Each item below is a whole
+ * sentence of that protocol's own section 11, joined across the transcription's
+ * line breaks with the bullet removed, and nothing else: no process step for the
+ * coordinator, and no address. protocol-registry-audit compares every item with
+ * the transcription, which sections 8 and 9 of that audit prove word for word
+ * against the engineer's own file. Read by this catalogue's "receives" and by
+ * the service pages' "deliverable", so each list has one home.
+ */
+export const PROTOCOL_RECEIVES = {
+  "254-WS-001": [
+    "On a pass determination, the engineer seals a postconstruction evaluation report that identifies the property, the certification scope, the applicable code, the wind design conditions, each product in scope with its evaluation, and the evidence relied on, and confirms that the improvement complies with the applicable code.",
+    "The engineer signs the WPI-2E application.",
+    "The report covers the scope recorded at intake only. It states that the inspection was visual except where work was opened, states where concealed work was opened and photographed, and reflects condition on the date of inspection.",
+    "The report does not forecast how the improvement will perform in a future storm and does not warrant the work.",
+  ],
+  "254-FC-001": [
+    "On a pass determination, the engineer issues a sealed letter addressed to the recipient recorded at intake, for the purpose recorded at intake.",
+    "The letter identifies the property, the date of inspection, the foundation type, the method by which the evidence was collected and reviewed, and the observed condition.",
+    "The letter states observed condition only. It does not forecast future movement, warrant against future movement, or represent that the foundation will not require future repair.",
+    "The letter states that the inspection was visual and non-invasive, that it reflects condition on the date of inspection only, and that no representation is made about concealed or below-grade conditions.",
+  ],
+  "254-MH-001": [
+    "On a pass determination, the engineer issues a sealed certification addressed to the recipient recorded at intake.",
+    "The certification identifies the property, the home by manufacturer, serial number, HUD label numbers, and date of manufacture, the date of inspection, the foundation and anchorage as observed, and every addition.",
+    "The certification names the requirement it is written against and states that the foundation complies with it. It names no other requirement.",
+    "The certification states that the inspection was visual and non-invasive, that it reflects condition on the date of inspection only, and that no representation is made about concealed or below-grade conditions.",
+    "The certification does not address the home's own structure, and does not forecast future performance of the foundation.",
+  ],
+  "254-SL-001": [
+    "On a pass determination, the engineer issues a sealed letter addressed to the recipient recorded at intake, for the purpose recorded at intake.",
+    "The letter identifies the property, the date of inspection or of the installer's survey, the existing roof framing as observed, the adopted code and the loads used, and the array design by its date and revision: module, module count, racking, attachment type, attachment spacing, and layout.",
+    "The letter states the engineer's opinion that the existing roof structure is adequate to support the array as described.",
+    "The letter states that it is void if the modules, racking, attachment pattern, or layout change from the array design it names.",
+    "The letter states that it does not cover the design of the modules, racking, or attachment hardware, the waterproofing of penetrations, the electrical work, the condition of the roof covering, or wind uplift on the array or on the framing.",
+  ],
+  "254-PL-001": [
+    "On a pass determination, the engineer issues a sealed letter addressed to the permitting authority recorded at intake.",
+    "Where the element satisfies the requirement subject to conditions, the letter says so and states each condition in an attached schedule.",
+    "The letter gives the property, the permit number, the authority's request as written, the element described, the adopted code, and the evidence and documents the opinion is based on, with the date of inspection for a site job.",
+    "The letter states the engineer's opinion on the element against the request. It gives no opinion on anything the authority did not ask about.",
+    "The letter states that it does not cover the rest of the structure or any concealed condition, and that it reflects condition on the date of inspection only.",
+  ],
+  "254-RS-001": [
+    "On a pass determination, the engineer issues a sealed repair specification addressed to the customer recorded at intake.",
+    "The specification identifies the property, the date of inspection, each damaged location, and for each one: the location, the work, the material and standard, and the quantity where it can be measured.",
+    "The specification includes the sketches or details the contractor needs to build it.",
+    "The specification covers the locations it names only. It states that other damage may exist where the structure was concealed, and that the contractor stops and reports any condition that differs from the specification.",
+    "The specification states that it does not determine the cause of the damage.",
+    "The specification does not warrant the repair and does not forecast future performance.",
+  ],
+} as const satisfies Record<string, readonly string[]>;
+
+/** A mutable copy of one protocol's quoted list, for a deliverable's "receives". */
+export function receivesFrom(documentNumber: keyof typeof PROTOCOL_RECEIVES): string[] {
+  return [...PROTOCOL_RECEIVES[documentNumber]];
+}
+
 // ---------------------------------------------------------------------------
 
 const ADDRESS_QUALIFIER: Qualifier = {
@@ -492,7 +553,7 @@ const DECLARED: CatalogDeclaration[] = [
      * and does not promise that TDI will." This read "The windstorm
      * certification the engineer's review supports, sealed". Item 8.
      */
-    receives: [SCOPE_PENDING],
+    receives: receivesFrom("254-WS-001"),
     notes: ["The certificate itself, Form WPI-8E, is issued by the Department rather than by the firm"],
   },
   {
@@ -634,7 +695,7 @@ const DECLARED: CatalogDeclaration[] = [
     ],
     turnaround:
       "The engineer's review begins when the evidence is complete.",
-    receives: [SCOPE_PENDING],
+    receives: receivesFrom("254-FC-001"),
   },
   {
     serviceSlug: "manufactured-home-foundation-certifications",
@@ -690,7 +751,7 @@ const DECLARED: CatalogDeclaration[] = [
     ],
     turnaround:
       "Lenders commonly set their own deadline, so say if you have one.",
-    receives: [SCOPE_PENDING],
+    receives: receivesFrom("254-MH-001"),
   },
 
   // -------------------------------------------------------------- desk orders
@@ -761,7 +822,7 @@ const DECLARED: CatalogDeclaration[] = [
      */
     turnaround:
       "The engineer decides at intake whether a technician visits or the installer's site survey photographs are enough. No letter is issued from drawings alone, and no calculation starts until the array design arrives.",
-    receives: [SCOPE_PENDING],
+    receives: receivesFrom("254-SL-001"),
   },
   {
     serviceSlug: "structural-letters",
@@ -865,7 +926,7 @@ const DECLARED: CatalogDeclaration[] = [
     turnaround:
       /* No triage interval: PL-001 states one and nothing in the app enforces it (owner rule, 2026-10-18). */
       "The engineer triages the order and records whether it is a site job or a desk job. A letter about existing construction rests on a technician's visit. Review begins when the record is complete.",
-    receives: [SCOPE_PENDING],
+    receives: receivesFrom("254-PL-001"),
   },
   {
     /*
@@ -935,7 +996,7 @@ const DECLARED: CatalogDeclaration[] = [
      */
     turnaround:
       "A technician visits before the specification is written, unless an earlier job file of this firm already holds the evidence and the engineer finds it still current. Review begins when the record is complete.",
-    receives: [SCOPE_PENDING],
+    receives: receivesFrom("254-RS-001"),
   },
 
   // ------------------------------------------------------------- quote orders

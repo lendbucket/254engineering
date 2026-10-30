@@ -474,12 +474,9 @@ Consequences that are easy to get wrong:
 - Geo on this brand is regional. The shipped geo pages are the eight coverage regions under
   /coverage, each carrying the counties inside it, and the coverage hub carries all 254. There are
   no city geo pages and no service-times-place combo pages, which is the doorway trap.
-- One exception, and it is an exception about the entity rather than about geo. /corpus-christi is
-  the firm's own location page: where the firm actually is, which is what a Google Business Profile,
-  a LocalBusiness node, and a procurement officer checking principal place of business all ask.
-  There is exactly one and there will only ever be one, because the firm has one address. A second
-  one written for a city the firm merely covers would be the doorway pattern this rule exists to
-  prevent. The full reasoning is at the top of src/content/location.ts.
+- **Location pages: the firm's open offices with a real address, plus Corpus Christi as a highlighted market until its address is set.** Operator ruling, 2026-10-29. A location page answers "where are you", which is the question a Google Business Profile, a LocalBusiness node, and a procurement officer checking principal place of business all ask. There is one per open office with a real street address, today `/san-antonio`, and the schema carries only those addresses. **Corpus Christi is the one named exception:** `/corpus-christi` stays live as a market the firm serves, prints no street address, claims no office, and carries no location in the schema until the operator gives its address, at which point it becomes a location page under the first sentence. A page for any other city the firm merely covers is still the doorway pattern this rule exists to prevent, and the find-and-replace test applies to every page here. The full reasoning is at the top of `src/content/location.ts`.
+
+  **The rule this replaces, kept for its reasoning.** It read: "One exception, and it is an exception about the entity rather than about geo. /corpus-christi is the firm's own location page ... There is exactly one and there will only ever be one, because the firm has one address. A second one written for a city the firm merely covers would be the doorway pattern this rule exists to prevent." The office moved to San Antonio on 2026-10-29, and the operator ruled that Corpus Christi stays highlighted as a market rather than being redirected.
 - Templates and engineering patterns may be shared between the three repos. Rendered sentences may
   not. Every page is written fresh in this brand's voice.
 - Cross-brand linking is sparing and honest, never reciprocal footer blasting.

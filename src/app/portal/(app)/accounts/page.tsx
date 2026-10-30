@@ -273,6 +273,8 @@ export default async function AccountsPage({ searchParams }: { searchParams: Pro
                 users: r.users,
                 openStatement: r.openStatement,
               }))}
+              /* The terms panel, 254-WF-022 step 3: drawn on the grant every account write path asks. */
+              canSetTerms={can(actor, "accounts.manage")}
               pager={
                 <Pager
                   page={result.page}

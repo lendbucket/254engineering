@@ -61,8 +61,19 @@ partners. Those are questions, below.
 1. **WF-017 step 6, withdrawing or restoring a technician's certification has no screen.** It is a licensed action, so only the engineer may send it, and the engineer cannot open `/portal/techs`. Recommend: a panel on `/portal/review` beside the training decisions, engineer only, with the reason required. **BUILT on `feat/cert-panel`, Robert's ruling of 10:52 Central 2026-10-29 (issue #1 comment 6501552714).** The panel sits below everything already on `/portal/review`, so the queue's order is untouched, and is drawn only for the licence holder. `revokeCertification` and `restoreCertification` stay the one path: restore now takes a reason too, both write `certification.revoke` or `certification.restore` through `writeAuditOrRefuse` before the change and refuse if it fails, and a change that touched no row is recorded as `_failed` and reported. Proof: `scripts/proofs/the-engineer-withdraws-a-certification-on-review-with-a-reason.mjs`.
 2. **WF-021 step 4, releasing a sign-in lock has no screen.** The route behind `releaseLock` takes the operator's token. Recommend: keep it off-screen; a screen would put the break-glass token, or its equivalent, behind an ordinary session.
 3. **WF-022 step 3, setting an account's credit limit and terms has no screen.** That is a money flow. Recommend: an administrator panel on `/portal/accounts`, with a fresh second factor, once you rule.
+   - **BUILT 2026-10-29 on Robert's ruling of 10:52:** password re-entry, not an authenticator code.
+   - **The screen:** the "Change terms" panel on each row of `/portal/accounts`, drawn on `accounts.manage`.
+   - **The server:** `setAccountTerms` in `ops-accounts-admin.ts` asks the grant, then `verifyOwnPassword`, then writes `account.terms_changed` with both sides of each field through `writeAuditOrRefuse`, then updates. No row changed is recorded as `account.terms_change_failed`.
+   - **Money:** whole cents, never rounded. The `set-terms` branch no longer writes a terms column or calls `Math.round`.
+   - **The proof:** `an-accounts-terms-change-asks-the-password-and-is-recorded-first.mjs`.
 4. **WF-024 step 3, the proving charge has no screen.** A live charge. Recommend: an administrator button on `/portal/launch` that shows the blockers first; build only on your word.
+   - **BUILT 2026-10-30**, on Robert's ruling of 10:52 Central 2026-10-29 (6501552714): `ProvingChargePanel` on `/portal/launch` states the charge, then takes the typed reference and the password again.
+   - **The server:** `runProvingCharge` in `ops-proving-charge.ts` asks the confirmation, then `provingChargeBlockers`, then refuses a probe account and a proving order already past payment, then `verifyOwnPassword`, then writes `proving_charge.started` through `writeAuditOrRefuse`, then `startProvingCheckout`.
+   - **The proof:** `the-launch-buttons-refuse-before-they-act.mjs`.
 5. **WF-024 step 4, telling the waitlist the firm is open has no screen.** It emails customers. Recommend: a button on `/portal/launch`, enabled only once the gate reads live, sending a preview to you first.
+   - **BUILT 2026-10-30**, on the same ruling: `AnnouncementPanel` on `/portal/launch`.
+   - **The server:** `sendAnnouncementPreview` sends to `business.notificationEmail` only. `sendAnnouncementToWaitlist` refuses content whose hash was not previewed, and refuses content already sent. Both are `roles.manage`, the gate, no probe account, and the password again, with `announcement.previewed` and `announcement.sent` written first.
+   - **Open:** a send that fails partway is recorded as sent, so a second press cannot mail anybody twice. The remainder is then sent by hand from the job queue's record. Recommend keeping that direction.
 6. **WF-006 step 2, a customer cannot ask to be forgotten except by calling.** A new customer-facing form. Recommend: keep it staff-taken for now; `/portal/deletion-requests` already records it.
 7. **WF-030 step 5, a technician cannot delete a capture.** `deleteCapture` writes no audit row, and the evidence feeds what the engineer seals. Recommend: a delete button on the capture screen while the file is in the field, and an audit row added to `deleteCapture` first. **Ruled yes by Robert, 10:52 Central 2026-10-29, and built:** `deleteCapture` writes `capture.delete` through `writeAuditOrRefuse` before the row goes and refuses when it cannot, refuses a capture a repair was verified against, and the job screen draws a Remove control per capture from the same rule (`captureDeleteRefusal`). Proved by `scripts/proofs/a-capture-is-removed-only-with-its-record.mjs`. Still open: the stored photograph stays in the evidence bucket after its row goes, named in the audit row's `storage_key`.
 
@@ -101,12 +112,53 @@ failed or partial read.
 
 **Not built, and why.** These screens show rows but have no list controls yet
 (no search, filter, sort or page), so an export "through the screen's own
-query" has no query to follow: people, suppressions, deletion requests,
-insurance, credentials, the job queue, orders, the audit trail, onboarding,
-review, waiting, the technician's jobs and messages. Each needs its list
-controls first (section 2d), and its export then follows the same pattern.
-/portal/procedures is a document a role reads, not a list of records, and is
-left out.
+query" has no query to follow: the job queue, orders, onboarding, review,
+waiting, the technician's jobs and messages. Each needs
+its list controls first (section 2d), and its export then follows the same
+pattern. /portal/procedures is a document a role reads, not a list of
+records, and is left out.
+
+**The seven left are FINDINGS FOR ROBERT, by name (section 2d says a screen
+that cannot meet an item is reported, never quietly exempted).** Read
+2026-10-29; none is built, each with a recommendation:
+
+| Screen | What it is | Recommend |
+| --- | --- | --- |
+| /portal/orders | Three exception panels (refund failed after refunded, paid with no account, waiting on payment), each meant to be empty | **Exempt.** A filter on an exception queue is a way to hide a stuck payment. |
+| /portal/queue | Queue health per kind and the dead letters | **Exempt** for the same reason; the dead letters already page. |
+| /portal/waiting | The engineer's files waiting on an owner | **Exempt**; it is a short worklist read whole. |
+| /portal/review | The engineer's review queue, 853 lines of workflow | **Sort and filter only**, built after you rule, because it is the engineer's desk and changing its order changes what he reviews first. |
+| /portal/onboarding | Applications to invite and onboardings in progress | **Build** search and a status filter; no ruling needed beyond yes. |
+| /portal/jobs | The technician's own offers, on a phone | **Exempt**: a field screen rather than an office list. |
+| /portal/messages | Message threads, which already carry a search | **Exempt**: the search is the control a thread list needs. |
+
+**Built on `feat/list-controls-1` (2026-10-29): five of the thirteen.**
+People, do not contact, asked to be forgotten, insurance and credential review
+now search, filter, sort and page through one engine (`src/lib/staff-lists.ts`),
+each reading its whole register so every count is of the whole matching set.
+Three reads were capped or unbounded and are read in full now: people (an
+unbounded select), do not contact (the same), and the credential queue (cut at
+200 by hand, with its panel titled by the length of what came back). People
+and do not contact export as `report=people` and `report=suppressions` on the
+same gate. Three do not export, each a finding by name (section 2d):
+
+- **Asked to be forgotten: a question for Robert.** Each row quotes a
+  person's own words about what they want erased. Whether that leaves the
+  screen as a file is his to rule. **Recommend no** until counsel has answered
+  what the firm may keep, because a CSV of erasure requests is itself a copy of
+  the personal data the request is about.
+- **Credential review:** a queue that empties as each submission is verified;
+  its rows are working items rather than a record anybody reconciles in a
+  spreadsheet. Export it if Robert wants one; it is one report.
+- **Insurance:** a register of a handful of policies, each with its
+  certificate one click away. Same answer.
+
+**Built on `feat/list-controls-2` (2026-10-29): the audit trail.** It read the
+newest 200 events and said "capped at 200 for now", so nothing older was
+reachable from the portal. It is searched and paged in the database now
+(`src/lib/audit-trail-list.ts`), a hundred to a page with an exact count of the
+whole matching set, and exports as `report=audit-trail` on the staff list gate
+plus `audit.read`, with the action key as stored rather than its label.
 
 **Built 2026-10-29 on `feat/onboarding-list`: /portal/onboarding, Robert's
 ruling of 10:52 Central ("Build list controls for onboarding").**
@@ -1117,6 +1169,22 @@ sentence, so the registration cannot quietly leave it behind.
 
 The WPI-8 disclaimers moved to `notes` word for word and are pinned in the same
 audit; a new note is a deliberate edit listed for the operator's review.
+
+**DONE FOR SIX, 2026-10-30, on Robert's 09:28 Central instruction.** The
+follow-ups above never happened, and nothing went red, because the check read
+"signed" from `PROTOCOL_ENTRIES`, where the portal-signed protocols never went:
+0081 put DS, FC, MH, PL, RS, SL and WS in force on production on 2026-10-23,
+and the windstorm completed page went on saying its scope waited on a signature.
+The windstorm completed, foundation, manufactured home, solar, structural letter
+and repair specification lines, and their six service pages, now quote section
+11 of WS-001, FC-001, MH-001, SL-001, PL-001 and RS-001 (`PROTOCOL_RECEIVES` in
+`data/catalog.ts`). The rule moved to `scripts/lib/receives-check.mjs`, which
+reads "in force" as the code declares it, SIGNABLE_PROTOCOLS less
+HELD_OUT_OF_FORCE plus the paper-signed entries, and refuses pre-signature
+wording of any spelling on such a line. protocol-registry-audit and the static
+proof `a-deliverable-quotes-its-protocol-in-force.mjs` both apply it.
+**Still pending, correctly:** windstorm ongoing (254-WP-001, held until his
+scope addendum) and the three design tiers (no protocol).
 
 ## OUR LOCK AND WATTSMITH'S WERE BOTH HELD AT ONCE, 2026-10-09. NOT EXPLAINED.
 

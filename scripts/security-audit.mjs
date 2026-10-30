@@ -267,6 +267,8 @@ const ADMIN_APIS = [
    * perimeter, which is the layer that should not need them to.
    */
   "/api/portal/proving-charge",
+  /* The waitlist's "we are open" email, preview then send (254-WF-024 step 4, 2026-10-30). POST only. */
+  "/api/portal/launch-announcement",
 
   "/api/portal/people",
   "/api/portal/password",

@@ -118,7 +118,14 @@ export default function PressPage() {
             </div>
             <div className="lg:col-span-8">
               <p className="text-[1.05rem] leading-[1.75] text-slate">
-                {business.name} is a veteran owned Texas engineering firm based in {contact.city}.
+                {business.name} is a veteran owned Texas engineering firm based in{" "}
+                <Link
+                  href="/san-antonio"
+                  className="font-medium text-slate underline decoration-brass underline-offset-4 transition-colors hover:text-brass"
+                >
+                  {contact.city}
+                </Link>
+                .
                 It takes its name from the 254 counties of Texas and is organized to hold one
                 standard of field record and engineering review across all of them.
               </p>

@@ -20,7 +20,7 @@
  * print a number it has not yet measured across a statewide technician network.
  */
 
-import { SCOPE_PENDING } from "@data/catalog";
+import { SCOPE_PENDING, receivesFrom } from "@data/catalog";
 import { HARRIS_DESIGNATION } from "./windstorm-harris";
 
 export type Faq = { q: string; a: string };
@@ -175,7 +175,7 @@ export const services: Service[] = [
      * what the firm provides, not part of the deliverable, so it moved to
      * notes word for word, as the order email's did.
      */
-    deliverable: [SCOPE_PENDING],
+    deliverable: receivesFrom("254-WS-001"),
     notes: [
       "The certificate itself, the WPI-8 or the WPI-8E, which is issued by the Department on the strength of that submission and never by the firm.",
     ],
@@ -232,7 +232,7 @@ export const services: Service[] = [
       "Attorneys and owners documenting the condition of a structure at a point in time",
     ],
     /* No signed protocol for this line yet: the pending sentence, 2026-10-08. */
-    deliverable: [SCOPE_PENDING],
+    deliverable: receivesFrom("254-FC-001"),
     turnaround:
       "Foundation reports are ordinarily reviewed and sealed within a few business days of the field visit. Elevation data is reduced before review, so a report is never sealed ahead of the measurements it rests on.",
     faqs: [
@@ -281,7 +281,7 @@ export const services: Service[] = [
       "Racking and equipment suppliers supporting a dealer network across multiple jurisdictions",
     ],
     /* No signed protocol for this line yet: the pending sentence, 2026-10-08. */
-    deliverable: [SCOPE_PENDING],
+    deliverable: receivesFrom("254-SL-001"),
     turnaround:
       "Review begins when the record is complete: the array design and either the technician's field record or installer site survey photographs the engineer has accepted. No issue date is estimated before the engineer has made a determination.",
     faqs: [
@@ -327,7 +327,7 @@ export const services: Service[] = [
       "Retailers and installers who want the foundation right before a buyer finds out it is not",
     ],
     /* No signed protocol for this line yet: the pending sentence, 2026-10-08. */
-    deliverable: [SCOPE_PENDING],
+    deliverable: receivesFrom("254-MH-001"),
     turnaround:
       "These are usually scheduled against a closing date, so say if the lender has set one. Review begins when the record is complete, and no issue date is estimated before the engineer has made a determination. Where a reinspection is needed after corrective work, it is scheduled as its own visit.",
     faqs: [
@@ -385,7 +385,7 @@ export const services: Service[] = [
       "Contractors correcting work that was done without a permit and is now being inspected",
     ],
     /* No signed protocol for this line yet: the pending sentence, 2026-10-08. */
-    deliverable: [SCOPE_PENDING],
+    deliverable: receivesFrom("254-PL-001"),
     turnaround:
       "The engineer triages each order within one business day and records whether it is a site job or a desk job. Review begins when the record is complete, and no issue date is estimated before the engineer has made a determination.",
     faqs: [
@@ -431,7 +431,7 @@ export const services: Service[] = [
       "Owners correcting distress identified in a prior engineering report",
     ],
     /* No signed protocol for this line yet: the pending sentence, 2026-10-08. */
-    deliverable: [SCOPE_PENDING],
+    deliverable: receivesFrom("254-RS-001"),
     turnaround:
       "Repair specifications follow the assessment they rest on, and the schedule depends on the size of the damage rather than on a queue. A scope is agreed before work begins so that the document arrives when the bidding does.",
     faqs: [

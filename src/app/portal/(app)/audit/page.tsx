@@ -2,7 +2,9 @@ import { notFound } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
 import { actionLabel } from "@/lib/portal-labels";
-import { supabaseAdmin } from "@/lib/supabase";
+import { AUDIT_PAGE_SIZE, auditTrailPage, auditTrailQuery, type AuditEvent } from "@/lib/audit-trail-list";
+import { LIST_EXPORT_GRANT } from "@/lib/list-exports";
+import { ListControls, Pager, listHref } from "@/components/portal/ListControls";
 import {
   EmptyState,
   ErrorState,
@@ -15,17 +17,7 @@ import { formatInFirmZone } from "@/lib/firm-calendar";
 
 export const dynamic = "force-dynamic";
 
-type Event = {
-  id: string;
-  created_at: string;
-  actor_email: string | null;
-  actor_role: string | null;
-  action: string;
-  entity_type: string;
-  entity_id: string | null;
-  summary: string | null;
-  ip: string | null;
-};
+type Event = AuditEvent;
 
 function stamp(value: string): string {
   return (formatInFirmZone(value, {
@@ -36,23 +28,17 @@ function stamp(value: string): string {
   }) ?? "");
 }
 
-export default async function AuditPage() {
+export default async function AuditPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const actor = await currentActor();
   if (!can(actor, "audit.read")) notFound();
 
-  const db = supabaseAdmin();
-  const { data, error } = db
-    ? await db
-        .from("eng_audit_events")
-        .select("id, created_at, actor_email, actor_role, action, entity_type, entity_id, summary, ip")
-        .order("created_at", { ascending: false })
-        .limit(200)
-    : { data: null, error: { message: "The database is not configured." } };
-
-  const events = ((data ?? []) as unknown[]).map((e) => {
-    const row = e as Record<string, unknown>;
-    return { ...row, id: String(row.id) } as Event;
-  });
+  const params = await searchParams;
+  const query = auditTrailQuery(params);
+  const read = await auditTrailPage(query);
+  const error = read.ok ? null : { message: read.error };
+  const events = read.ok ? read.rows : [];
+  const total = read.ok ? read.total : 0;
+  const searching = Boolean(query.term || query.who);
 
   const columns: Column<Event>[] = [
     { key: "when", head: "When", cell: (e) => stamp(e.created_at) },
@@ -78,14 +64,45 @@ export default async function AuditPage() {
         lede="Every create, update, status change, assignment, upload, and review decision. The table refuses updates and deletes at the database level, so what is written here stays written."
       />
 
+      <ListControls
+        action="/portal/audit"
+        search={params.q ?? ""}
+        searchLabel="Search what happened, who, action or record"
+        filters={[
+          {
+            name: "who",
+            label: "Who",
+            value: query.who,
+            options: [
+              { value: "", label: "Everyone and the system" },
+              { value: "people", label: "A person" },
+              { value: "system", label: "The system" },
+            ],
+          },
+        ]}
+        sorts={[{ value: "when", label: "When" }]}
+        sort="when"
+        direction={query.ascending ? "asc" : "desc"}
+        csvHref={can(actor, LIST_EXPORT_GRANT) ? listHref("/api/portal/exports", { q: params.q, who: params.who, dir: params.dir }, { report: "audit-trail" }) : undefined}
+      />
+
       {error ? (
         <ErrorState title="The trail could not be loaded" body={`The database returned: ${error.message}`} />
       ) : (
-        <Panel title={`Most recent ${events.length}`} description="Newest first, capped at 200 for now.">
+        <Panel
+          title={searching ? `${total} matching` : `${total} events`}
+          description={query.ascending ? "Oldest first. Every event is here; nothing is capped." : "Newest first. Every event is here; nothing is capped."}
+        >
           <RecordTable
             rows={events}
             columns={columns}
-            empty={<EmptyState title="Nothing recorded yet" body="Every action anyone takes in the platform lands here." />}
+            empty={
+              searching ? (
+                <EmptyState title="No event matches that search" body="This is a search with no match, not an empty trail. Clear the search to see every event." />
+              ) : (
+                <EmptyState title="Nothing recorded yet" body="Every action anyone takes in the platform lands here." />
+              )
+            }
             card={(e) => (
               <div>
                 <p className="text-[12px] font-semibold text-[var(--faint)]">{actionLabel(e.action)}</p>
@@ -108,6 +125,7 @@ export default async function AuditPage() {
               </div>
             )}
           />
+          <Pager page={query.page} pageSize={AUDIT_PAGE_SIZE} total={total} hrefFor={(n) => listHref("/portal/audit", params, { page: n > 1 ? String(n) : "" })} />
         </Panel>
       )}
     </>

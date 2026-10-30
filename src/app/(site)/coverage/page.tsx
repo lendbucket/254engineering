@@ -78,6 +78,14 @@ export default function CoveragePage() {
               title="Every county belongs to exactly one region"
               lede="The groupings follow the state's regional council boundaries rather than being drawn by feel, because those are the lines that already organize permitting, emergency management, and procurement in Texas."
             />
+            {/* Robert, 13:11 and 22:12 Central 2026-10-29: /coverage links the highlighted market. */}
+            <p className="mt-6 max-w-[68ch] text-[1.02rem] leading-[1.75] text-slate-fg/80">
+              In the Coastal Bend,{" "}
+              <Link href="/corpus-christi" className="underline underline-offset-4">
+                Corpus Christi and its barrier islands
+              </Link>{" "}
+              are covered on a page of their own.
+            </p>
 
             <CardGrid className="mt-11">
               {regions.map((region) => (
