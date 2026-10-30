@@ -79,6 +79,25 @@ Every repair was proved by an injection, and each file was restored byte identic
 4. Skip re-boarding a push to main whose exact commit already has a green board (ruled 2026-10-22). It edits `board.yml`, so it comes after bundle 17.
 5. List controls (search, filter, sort, paging) on the 13 staff screens that have none, so each can then take a CSV export, office ready section 2d.
 
+## 2026-10-30: BUNDLE 39 MISSED: THE BOARD COULD NOT LAUNCH ITS PROOF; REBOARD
+
+**Board 41127255244 on `e4d2fd4`: 63 of 64.**
+- The one FAIL is proofs-audit: "every-declared-title-and-description-meets-the-budget.mjs could not be invoked ... ran as node and the loader refused: ... Cannot find package '@/config' imported from .../src/lib/seo.ts".
+- **The cause:** proofs-audit decides node or tsx by scanning for a literal TypeScript import. The proof built its path with `pathToFileURL(resolve(...))`, so the scan missed it. The preflight passed it, because the preflight launched every proof under tsx regardless.
+- **The class:** two runners deciding separately how to run one file.
+
+**The repair:**
+- `invocationFor` moves from proofs-audit into `scripts/lib/proof-invocation.mjs`, unchanged. proofs-audit and the preflight both call it, so the preflight launches each proof exactly as the board does.
+- **Proved:** with the proof unchanged, the preflight went red on it, "repo-wide static proofs (120) every-declared-title-and-description-meets-the-budget.mjs".
+- The proof now imports `../../src/lib/seo.ts` by a literal path, and the preflight is green.
+
+**Readers:** Preflight GREEN, 38 rules; tsc clean.
+
+**Prediction: 64 of 64.**
+- proofs-audit runs the metadata proof under tsx and passes, with 84 titles and descriptions.
+- **Standing notes:** as named for bundle 24.
+- **Named in advance:** `/coverage` and `/coverage/coastal-bend` sit at the LCP ceiling until the map size bundle lands. A miss there would be that route.
+
 ## 2026-10-30: BUNDLE 38 MISSED ON ITS OWN ROUTE; BUNDLE 39, THE PREFLIGHT CHECKS TITLES AND DESCRIPTIONS, AT `e4d2fd4`
 
 **Bundle 38, board 41118588757 on `576faec`: 63 of 64.**
