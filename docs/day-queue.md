@@ -79,6 +79,23 @@ Every repair was proved by an injection, and each file was restored byte identic
 4. Skip re-boarding a push to main whose exact commit already has a green board (ruled 2026-10-22). It edits `board.yml`, so it comes after bundle 17.
 5. List controls (search, filter, sort, paging) on the 13 staff screens that have none, so each can then take a CSV export, office ready section 2d.
 
+## 2026-10-30: BUNDLE 37 MISSED ON A CALL TO ACTION; REBOARD
+
+**Board 41099813913 on `b76d100`: 63 of 64.**
+- The one FAIL is seo-audit: "/guides: description has no call to action ("topic with its primary sources. Find yours here.")".
+- **The cause:** a real miss, caused by the branch. The audit's verb list (`CTA_VERB`) does not include "find".
+
+**The repair:** the description ends "Explore the list." It is 156 characters and matches `CTA_VERB`, measured against the audit's own pattern. The board's red is the injection.
+
+**The class, queued:** the description length and call-to-action rules could run in the preflight over every `buildMetadata` call, statically, with seo-audit's own pattern.
+
+**Readers:** Preflight GREEN, 38 rules.
+
+**Prediction: 64 of 64.**
+- seo-audit: no problems.
+- **Standing notes:** as named for bundle 24.
+- The merge still waits on Robert's yes to the FHA title.
+
 ## 2026-10-30: BUNDLE 36 MERGED; BUNDLE 37, THE FHA ARTICLE AND /guides, AT `b76d100`
 
 **Bundle 36 merged as `694b79b`.** This is the "receives" fix. The merged tree is the boarded tree. Board 41090210363 on `a76dc12` read 64 of 64, as predicted: "55 sentence(s) excused as word for word quotations of a signed protocol".
