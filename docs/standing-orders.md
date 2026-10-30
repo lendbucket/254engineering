@@ -63,6 +63,7 @@ The source of truth for the running loop. Robert, 2026-10-29: the loop prompt is
 - **Ongoing and design** stay pending.
 - **The check:** `scripts/lib/receives-check.mjs`, used by protocol-registry-audit and a static proof.
 - **Robert 09:48: yes.** The windstorm page quotes the completed tier only until the addendum puts ongoing in force. **Merged as `694b79b`** (board 41090210363). |
+| M | **The preflight checks every title and description** with seo-audit's own rules, which now live in `scripts/lib/metadata-rules.mjs`. Built as `e4d2fd4`: 84 checked, 0 not statically known, three injections. **Found:** `CTA_VERB` counts "call" inside "on-call" as a call to action, so a description can pass without one. Recorded; tightening it is its own small bundle. | Built; boards after the photo fix |
 | 15 | **"In force" read from the database (Robert, 09:48, later).** The scope sentence reads the live signed protocol record, as `lineIsSellable` does under ruling 11, so a voided signature drops it. To scope first: the pages are statically prerendered, so the read decides whether those pages become dynamic or the order flow alone reads it. | Queued |
 | 13 | **The manufactured home article, FHA only (Robert, 09:26).** Title "FHA Manufactured Home Foundations in Texas | 254 Engineering" (60; the ruled wording runs 73). `/guides` is in the same branch. Preflight GREEN at `44a37dd`. | Boards after bundle 35; merges on Robert's yes to the title |
 | 14 | **The masthead photo fix `e7f4711` (Robert, 09:26: yes).** | To board |
