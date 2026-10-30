@@ -3,6 +3,7 @@ import { business } from "@/config/business";
 import { services } from "@/content/services";
 import { regions } from "@/content/regions";
 import { location } from "@/content/location";
+import { sanAntonio } from "@/content/location-san-antonio";
 import { windstormPages } from "@/content/windstorm-program";
 import { proximityPages } from "@/content/structural-engineer";
 import { openPositions } from "@data/positions";
@@ -75,8 +76,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...services.map((s) => entry(`/services/${s.slug}`, 0.8, "monthly")),
     entry("/coverage", 0.9, "monthly"),
     ...regions.map((r) => entry(`/coverage/${r.slug}`, 0.8, "monthly")),
-    // The entity location page. One of these exists and only one ever will.
-    // See the reasoning at the top of src/content/location.ts.
+    // The location pages: one per open office with a real address, today San
+    // Antonio, plus Corpus Christi as a highlighted market until its address is
+    // set. Operator ruling, 2026-10-29, in CLAUDE.md section 2. It replaced
+    // "one of these exists and only one ever will". The reasoning is at the top
+    // of src/content/location.ts.
+    entry(`/${sanAntonio.slug}`, 0.8, "monthly"),
     entry(`/${location.slug}`, 0.8, "monthly"),
     entry("/windstorm", 0.9, "monthly"),
     ...windstormPages.map((w) => entry(`/windstorm/${w.slug}`, 0.8, "monthly")),

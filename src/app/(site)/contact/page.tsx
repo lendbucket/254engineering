@@ -8,7 +8,7 @@ import { Eyebrow, Rule } from "@/components/ui/primitives";
 import { buildMetadata } from "@/lib/seo";
 import { JsonLd, breadcrumbSchema } from "@/lib/schema";
 import { business } from "@/config/business";
-import { displayPhone, hasPostalAddress, hoursLine, postalAddressLine, telHref } from "@/config/contact";
+import { contact, displayPhone, hasPostalAddress, hoursLine, postalAddressLine, telHref } from "@/config/contact";
 import { PhoneNumber } from "@/components/ui/PhoneNumber";
 import { isPrelaunch } from "@/lib/launch";
 import { services } from "@/content/services";
@@ -112,6 +112,14 @@ export default async function ContactPage({
                       Office
                     </dt>
                     <dd className="mt-2 text-[0.98rem] leading-[1.65] text-slate">{postalAddressLine()}</dd>
+                    <dd className="mt-1">
+                      <Link
+                        href="/san-antonio"
+                        className="flex min-h-[44px] items-center text-[0.98rem] text-slate underline decoration-brass/60 underline-offset-4 transition-colors hover:decoration-brass"
+                      >
+                        About the {contact.city} office
+                      </Link>
+                    </dd>
                   </div>
                 ) : null}
                 <div className="py-5">
