@@ -34,7 +34,7 @@ The source of truth for the running loop. Robert, 2026-10-29: the loop prompt is
 - **Dropped, for want of a source read in full:** the Houston Black soil under the city, "county seat", the courthouse, and the map viewer.
 - **Links in:** `/press` and `/contact`.
 - **Schema:** the breadcrumb only.
-- **CLAUDE.md:** section 2 replaced word for word. | **Bundle 32, boarding** at `75a4973` |
+- **CLAUDE.md:** section 2 replaced word for word. | **Merged as `9854131`** (board 41030775857) |
 | 7 | **`/coverage` well under 3400 ms without raising the ceiling.** Profile what it loads, and make static or defer what can be. | To build |
 | 8 | **The WPI-8 process details** added to `/insights/wpi-8-certificate` (article proposal item 2). | To build |
 | 9 | **The articles, one per board, under `/insights`, with `/guides` as their index:** the manufactured home article, then the solar article, then the foundation article ("what a Texas foundation letter says and what a city does with it", with San Antonio's bulletin as the example). **Every HUD, San Antonio, VA and USDA source is read before it is cited; anything not read is not cited.** | To build |
