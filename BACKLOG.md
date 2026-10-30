@@ -106,12 +106,53 @@ failed or partial read.
 
 **Not built, and why.** These screens show rows but have no list controls yet
 (no search, filter, sort or page), so an export "through the screen's own
-query" has no query to follow: people, suppressions, deletion requests,
-insurance, credentials, the job queue, orders, the audit trail, onboarding,
-review, waiting, the technician's jobs and messages. Each needs its list
-controls first (section 2d), and its export then follows the same pattern.
-/portal/procedures is a document a role reads, not a list of records, and is
-left out.
+query" has no query to follow: the job queue, orders, onboarding, review,
+waiting, the technician's jobs and messages. Each needs
+its list controls first (section 2d), and its export then follows the same
+pattern. /portal/procedures is a document a role reads, not a list of
+records, and is left out.
+
+**The seven left are FINDINGS FOR ROBERT, by name (section 2d says a screen
+that cannot meet an item is reported, never quietly exempted).** Read
+2026-10-29; none is built, each with a recommendation:
+
+| Screen | What it is | Recommend |
+| --- | --- | --- |
+| /portal/orders | Three exception panels (refund failed after refunded, paid with no account, waiting on payment), each meant to be empty | **Exempt.** A filter on an exception queue is a way to hide a stuck payment. |
+| /portal/queue | Queue health per kind and the dead letters | **Exempt** for the same reason; the dead letters already page. |
+| /portal/waiting | The engineer's files waiting on an owner | **Exempt**; it is a short worklist read whole. |
+| /portal/review | The engineer's review queue, 853 lines of workflow | **Sort and filter only**, built after you rule, because it is the engineer's desk and changing its order changes what he reviews first. |
+| /portal/onboarding | Applications to invite and onboardings in progress | **Build** search and a status filter; no ruling needed beyond yes. |
+| /portal/jobs | The technician's own offers, on a phone | **Exempt**: a field screen rather than an office list. |
+| /portal/messages | Message threads, which already carry a search | **Exempt**: the search is the control a thread list needs. |
+
+**Built on `feat/list-controls-1` (2026-10-29): five of the thirteen.**
+People, do not contact, asked to be forgotten, insurance and credential review
+now search, filter, sort and page through one engine (`src/lib/staff-lists.ts`),
+each reading its whole register so every count is of the whole matching set.
+Three reads were capped or unbounded and are read in full now: people (an
+unbounded select), do not contact (the same), and the credential queue (cut at
+200 by hand, with its panel titled by the length of what came back). People
+and do not contact export as `report=people` and `report=suppressions` on the
+same gate. Three do not export, each a finding by name (section 2d):
+
+- **Asked to be forgotten: a question for Robert.** Each row quotes a
+  person's own words about what they want erased. Whether that leaves the
+  screen as a file is his to rule. **Recommend no** until counsel has answered
+  what the firm may keep, because a CSV of erasure requests is itself a copy of
+  the personal data the request is about.
+- **Credential review:** a queue that empties as each submission is verified;
+  its rows are working items rather than a record anybody reconciles in a
+  spreadsheet. Export it if Robert wants one; it is one report.
+- **Insurance:** a register of a handful of policies, each with its
+  certificate one click away. Same answer.
+
+**Built on `feat/list-controls-2` (2026-10-29): the audit trail.** It read the
+newest 200 events and said "capped at 200 for now", so nothing older was
+reachable from the portal. It is searched and paged in the database now
+(`src/lib/audit-trail-list.ts`), a hundred to a page with an exact count of the
+whole matching set, and exports as `report=audit-trail` on the staff list gate
+plus `audit.read`, with the action key as stored rather than its label.
 
 **Built 2026-10-29 on `feat/onboarding-list`: /portal/onboarding, Robert's
 ruling of 10:52 Central ("Build list controls for onboarding").**
