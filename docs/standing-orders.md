@@ -14,46 +14,21 @@ The source of truth for the running loop. Robert, 2026-10-29: the loop prompt is
 - Schedule only one fallback wakeup of 7200 seconds, in case a board hangs.
 - Do not poll.
 
-## Queue, in board order
+## Tonight's queue, in board order (Robert, 22:12 Central 2026-10-29)
 
 | # | Item | State |
 | --- | --- | --- |
-| 22 | List controls on five staff screens: people, do not contact, asked to be forgotten, insurance, credential review. The audit trail pages every event. People, do not contact and the audit trail export CSV. `feat/list-controls-2` at `97f4475`, on main `647fc18`, preflight GREEN. | **Held for Robert.** Board 40906332499 read 63 of 64; the one FAIL is perf `/coverage` LCP 3417 ms against 3400 ms (spread 125 ms). It is a public route the branch does not touch, and it passed on bundle 21's board. Question on issue #1. |
-| 23 | WF-030 step 5: a delete button for a field capture while the file is in the field. The audit row goes into `deleteCapture` first. Built as `93866aa` on `feat/capture-delete`, preflight GREEN. Robert ruled yes to all three on 2026-10-29:
-- a capture a repair was verified against is refused;
-- the photograph stays in the evidence bucket, with its storage path in the audit row;
-- the engineer and the administrator may delete, as they may capture. | **Merged as `a190a10`** (board 40930082505). |
-| P | The preflight runs every repo-wide static proof (`ci/preflight-static-proofs`), so a miss like bundle 23's is caught before the board. Built as `e14bea7`:
-- 109 of 182 proofs are static, derived by `scripts/lib/proof-needs.mjs`.
-- The preflight takes 91 to 98 s, up from 43 s.
-- An injection named the file. Preflight GREEN, 37 rules. | **Merged as `00e66a0`** (board 40960219426) |
-| 24 | WF-017 step 6: an engineer-only panel on `/portal/review` to withdraw or restore a technician's certification, with the reason required. **Merged as `ba7a8e4`** (board 40977483013). One question: withdraw still accepts a record that is not certified. Recommend keeping it, because that behavior is unchanged. | Done |
-| 25 | List controls for `/portal/onboarding`: search, filter, sort, paging, counts over every matching row, and a failed read said. Built as `8cdeb22`, preflight GREEN. One question: "Applications not yet invited" stays bounded at the newest 200, and the screen says so when it hits the bound. Paging it would need a view, which means a migration. Recommend keeping it bounded. | **Merged as `ed779ae`** (board 40984065455) |
-| 26 | WF-022 step 3: an admin panel on `/portal/accounts` to set an account's credit terms. **This is a money flow: it gets its own proof and an injection.** It must: confirm by password re-entry, the same as the no-charge override, never an authenticator code (the owner's admin account uses none); write an audit row on every change. Built as `33f278e`, preflight GREEN.
-- **Path:** one path, `setAccountTerms`. The route's old grant-only path now calls it.
-- **Password:** confirmed by `verifyOwnPassword`, the no-charge override's check.
-- **Record:** `account.terms_changed` is written first, with the old and new values. A failed record refuses the change.
-- **Money:** whole cents only; the old silent rounding of fractions now refuses.
-- **Map:** MAP_NO_SCREEN moves again. It is reconciled when the branch is brought up to main.
-- **Question:** every administrator confirms with a password, not only the owner. Recommend yes, as built. | **Bundle 28, boarding** at `a267eb8` |
-| 27 | WF-024 step 3: a proving-charge button on `/portal/launch`, admin only. It states the charge before it runs, and is used only on Robert's word. | To build |
-| 28 | WF-024 step 4: a waitlist "we are open" email button on `/portal/launch`. It is enabled only when the gate reads live and sends Robert a preview first. Never sent by a board or a probe. | To build |
-
-| A | The San Antonio address and hours (Robert, 12:50 Central 2026-10-29): 11103 San Pedro Ave, San Antonio, TX 78216; (281) 940-4490, which matches `FIRM_PHONE`; Mon to Sun 8 AM to 8 PM Central; the brand stays "254 Engineering". One bundle covers the source of truth, footer, /contact, /press, schema and the pinned literals. Being built on `feat/sa-address`. **Robert, 13:11, replacing his 13:09 option 1: do NOT redirect `/corpus-christi`.** San Antonio is the primary name, address and phone for the footer, /contact, /press and the Organization schema. The address bundle merges on that basis. In this bundle, `/corpus-christi` loses its street address block and any Corpus Christi location in its schema, and keeps the San Antonio phone. The address bundle merges on a passing board. Robert changes Stripe's support address, TBPELS's mailing address and the GBP himself. | **Merged as `da81f0a`** (board 40951053748). |
-| B | Robert 13:05, items 2 and 3, folded into bundle A:
-- remove "254 Engineering Services" from every public page and add it to the banned-phrase check;
-- closed-for-business sentences only where the gate per line is really closed. | Building |
-| C | Robert 13:05, item 4: the square favicon set and a square Organization logo, on `feat/favicon`. The 48 px and 192 px images go on issue #1 for his approval before merge. **Robert 13:09: the corrected held logo** (`hold/logo-254-engineering`, `bf391d6`). Post both renders on issue #1 for comparison before it merges. | Building |
-| F | Robert 13:11, item 2: highlight Corpus Christi. `/corpus-christi` stays live and in the sitemap, and is linked from the home page, the main navigation and `/coverage`. It presents the firm as serving Corpus Christi and the Coastal Bend now, with the San Antonio phone. Until Robert gives the address, it prints no street address, claims no office, and its schema carries no Corpus Christi location. **The revised copy is proposed on issue #1 before it boards.** | Proposal first |
-| G | Robert 13:11, item 3: the San Antonio location page, the firm's location page, with its outline and sources on issue #1 first. CLAUDE.md section 2 is amended in the same bundle: the location page rule covers the firm's open offices with a real address, plus Corpus Christi as a highlighted market until its address is set. | Proposal first |
-| S | The preflight runs voice-audit's US spelling sweep through one shared list, `scripts/lib/us-spelling.mjs`. It covers 633 written-copy files, including `procedures.ts`. Built as `c47a498`, preflight GREEN with 38 rules, and the injection named the line. | Built; boards after the credit terms |
-| D | Robert 13:05, item 5: the GBP link goes into `sameAs` only after Robert says the profile is verified. | Waiting on Robert |
-| E | Robert 13:05, item 6: `/guides` and four articles, one per board, then San Antonio. The section 8 proposal is being drafted. **Robert 13:09:**
-- Post the research proposal for his yes.
-- The foundation article is written for Texas foundations generally, with San Antonio's permit facts as the example.
-- The San Antonio location page's outline and sources are proposed on issue #1 before it is written. | Proposal first |
-
-Source of 23 to 28: Robert, 10:52 Central 2026-10-29, issue #1 comment 6501552714.
+| 1 | **Bundle 28, the credit terms panel**, a money flow confirmed by password re-entry (`feat/credit-terms`). Merge on a match. | Board 40990127640 on `a267eb8` read 63 of 64. The one FAIL is perf `/coverage/coastal-bend` LCP 3402 ms against 3400 ms (spread 234 ms), on a public route the branch does not touch. Under Robert's 22:12 rule for bundle 22 there is no merge on a red board. It is re-boarded on a new commit brought up to main after item 2 merges. |
+| 2 | **The preflight's US spelling check** (`ci/preflight-us-spelling`). One shared list, `scripts/lib/us-spelling.mjs`, covering 635 written-copy files. | Preflight GREEN, 38 rules, at `588e5d6` on main `ed779ae`. **Boarding next.** |
+| 3 | **Bundle 22 re-boarded on main.** List controls on five staff screens; the audit trail pages every event. Robert: "no merge on that red board. Bring it up to main and board the new commit; merge if it passes." | To board |
+| 4 | **The favicon set** (`feat/favicon`, `ab0a58f`), drawn from the held corrected logo. Robert: "yes, merge as shown". | To board |
+| 5 | **The `/corpus-christi` revision**, as proposed (6504744447), with the gate-derived verb and the H1 "Corpus Christi Engineering for the Coastal Bend". It stays live and highlighted, is never replaced or redirected, and prints no street address until Robert gives one. Recommendations taken: the plain "The firm's office is in San Antonio", the home page chip, and "serves" only once the gate reads trading. | To build |
+| 6 | **The `/san-antonio` location page**, as proposed (6504744856), with the H1 "San Antonio Engineering Firm: 254 Engineering's Office", and the CLAUDE.md section 2 wording in the same bundle. Robert took all four recommendations: the route `/san-antonio`; the code edition described generally; IB224 only; the section 2 wording as written. It is added alongside `/corpus-christi`, not in place of it. | To build |
+| 7 | **`/coverage` well under 3400 ms without raising the ceiling.** Profile what it loads, and make static or defer what can be. | To build |
+| 8 | **The WPI-8 process details** added to `/insights/wpi-8-certificate` (article proposal item 2). | To build |
+| 9 | **The articles, one per board, under `/insights`, with `/guides` as their index:** the manufactured home article, then the solar article, then the foundation article ("what a Texas foundation letter says and what a city does with it", with San Antonio's bulletin as the example). **Every HUD, San Antonio, VA and USDA source is read before it is cited; anything not read is not cited.** | To build |
+| 10 | **The remaining 10:52 rulings on `/portal/launch`:** the proving charge button (admin only, states the charge before it runs, used only on Robert's word) and the waitlist "we are open" button (enabled only when the gate reads live, preview to Robert first, never sent by a board or a probe). | To build |
+| 11 | If the queue empties: BACKLOG items that need no ruling, smallest first. | |
 
 ## Ruled, nothing to build
 
@@ -69,16 +44,27 @@ Source of 23 to 28: Robert, 10:52 Central 2026-10-29, issue #1 comment 650155271
 - No CSV export for the forget list until counsel rules.
 - No list controls on orders, the job queue, waiting, technician jobs or messages.
 - No re-sorting or filtering on `/portal/review`. Its order is what the engineer reviews first.
+- **Robert, 13:11:** San Antonio is the primary name, address and phone. `/corpus-christi` stays live as a highlighted market, with no street address, until Robert gives one.
+- **Robert, 22:12:** a red board does not merge, including a perf miss on a route the branch does not touch. The branch is brought up to main and boarded on the new commit.
 
 ## Waiting on Robert, do not build
 
-- The office address change for the Google Business Profile.
+- The GBP link goes into Organization `sameAs` only after Robert says the profile is verified.
 - Whether a `--no-ff` merge whose tree matches its boarded branch should also skip the board. The 2026-10-22 ruling says same commit only. Recommendation: keep it that way.
+- **Open questions from built work, each with a recommendation:**
+  - Certification withdraw still accepts a record that is not certified. Recommend keeping it, because that behavior is unchanged.
+  - "Applications not yet invited" on onboarding stays bounded at the newest 200. Recommend keeping it bounded.
+  - Every administrator confirms a terms change with a password, not only the owner. Recommend yes, as built.
 
 ## Done (newest first)
 
 | Bundle | Merge | Board |
 | --- | --- | --- |
+| 27, onboarding list controls | `ed779ae` | 40984065455 |
+| 26, the certification panel on `/portal/review` | `ba7a8e4` | 40977483013 |
+| 25, the preflight runs the static proofs | `00e66a0` | 40960219426 |
+| 24, the San Antonio name, address, phone and hours | `da81f0a` | 40951053748 |
+| 23, the capture delete button | `a190a10` | 40930082505 |
 | 21, undefined portal tokens | `647fc18` | 40895736424 |
 | 20, a green commit is not boarded twice | `2c29803` | 40881396384 |
 | 19, token-audit reads every portal file | `a23dc9f` | 40870134329 |
@@ -103,7 +89,7 @@ Source of 23 to 28: Robert, 10:52 Central 2026-10-29, issue #1 comment 650155271
    - `git -C C:/Users/salon/projects/254engineering push origin main`;
    - `ls-remote`;
    - a short status on issue #1.
-7. **On a miss:** read the sealed log, repair the cause, prove it with an injection, bring the branch up to main, and board again. Never re-run an unchanged commit.
+7. **On a miss:** read the sealed log, repair the cause, prove it with an injection, bring the branch up to main, and board again. Never re-run an unchanged commit. A red board never merges (Robert, 22:12).
 8. While a board runs, build the next bundle in its own worktree. Forks are allowed, local only.
 9. **Every fork brief says: no push, no merge, no board dispatch. The parent session does all three.** (Robert, 2026-10-29, after a fork planned to merge on its own.)
 10. One board at a time.
@@ -156,7 +142,6 @@ Source of 23 to 28: Robert, 10:52 Central 2026-10-29, issue #1 comment 650155271
 By 06:30 Central, at the top of `docs/day-queue.md` on ops/day, and also posted on issue #1. It holds:
 - what merged, with commits;
 - migrations, with versions;
-- what is boarding;
 - what missed and why;
 - every item that needs Robert, with a recommendation;
 - anything decided overnight, under "decided overnight, Robert to confirm";
