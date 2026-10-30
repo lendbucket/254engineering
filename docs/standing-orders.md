@@ -35,7 +35,10 @@ The source of truth for the running loop. Robert, 2026-10-29: the loop prompt is
 - **Links in:** `/press` and `/contact`.
 - **Schema:** the breadcrumb only.
 - **CLAUDE.md:** section 2 replaced word for word. | **Merged as `9854131`** (board 41030775857) |
-| 7 | **`/coverage` well under 3400 ms without raising the ceiling.** Profile what it loads, and make static or defer what can be. | To build |
+| 7 | **`/coverage` well under 3400 ms without raising the ceiling.** Profile what it loads, and make static or defer what can be. **Not met.** The LCP element is the masthead photo.
+- `e7f4711` loads it eagerly at high priority, with a proof. The gain is within the run spread: `/coverage` went from 3251 to about 3180 ms, and coastal-bend from 3241 to 3168 to 3337 ms.
+- What moves the region pages is the county map in the HTML (coastal-bend 3016 ms without it). That reverses Robert's 2026-09-07 decision.
+- Two questions are on issue #1 (6521207420). Recommend no on the map, and yes to merging `e7f4711`. | Waiting on Robert |
 | 8 | **The WPI-8 process details** added to `/insights/wpi-8-certificate` (article proposal item 2). | **Bundle 33, boarding** at `cd119a9` |
 | 9 | **The articles, one per board, under `/insights`, with `/guides` as their index:** the manufactured home article, then the solar article, then the foundation article ("what a Texas foundation letter says and what a city does with it", with San Antonio's bulletin as the example). **Every HUD, San Antonio, VA and USDA source is read before it is cited; anything not read is not cited.** | To build |
 | 10 | **The remaining 10:52 rulings on `/portal/launch`:** the proving charge button (admin only, states the charge before it runs, used only on Robert's word) and the waitlist "we are open" button (enabled only when the gate reads live, preview to Robert first, never sent by a board or a probe). | To build |
