@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { currentActor } from "@/lib/ops-auth";
+import { currentActor, requestContext } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
+import { setAccountTerms } from "@/lib/ops-accounts-admin";
 import { closePeriod, issuableStatement, periodKey } from "@/lib/ops-statements";
 import { enqueue } from "@/lib/ops-jobs";
 import { supabaseAdmin } from "@/lib/supabase";
@@ -105,33 +106,39 @@ async function handlePOST(request: NextRequest) {
     const db = supabaseAdmin();
     if (!db) return NextResponse.json({ ok: false, error: "Not configured." }, { status: 503 });
 
-    const patch: Record<string, unknown> = {};
-
-    if (body?.billingMode === "card" || body?.billingMode === "invoice") {
-      patch.billing_mode = body.billingMode;
-    }
-
     /*
+     * THE TERMS GO THROUGH setAccountTerms, Robert's ruling of 10:52 Central
+     * 2026-10-29 (254-WF-022 step 3): the password re-entered, the record
+     * written before the change, both sides of every field in it, and money in
+     * whole cents with nothing rounded. This branch used to patch billing_mode,
+     * credit_limit_cents (through Math.round) and net_days itself and record it
+     * afterwards; that path is gone, so there is one way to change terms.
+     *
      * A credit limit of null is NO credit, and clearing it is a real action
-     * rather than an omission. So an explicit null clears, an absent field is
-     * left alone, and a negative number is refused rather than stored.
+     * rather than an omission: an explicit null clears, an absent field is left
+     * alone.
      */
-    if (body && "creditLimitCents" in body) {
-      const raw = body.creditLimitCents;
-      if (raw === null) patch.credit_limit_cents = null;
-      else if (typeof raw === "number" && Number.isFinite(raw) && raw >= 0) {
-        patch.credit_limit_cents = Math.round(raw);
-      } else {
-        return NextResponse.json(
-          { ok: false, error: "A credit limit is a whole number of cents, or null for no credit." },
-          { status: 400 },
-        );
+    const termsFields = ["billingMode", "creditLimitCents", "netDays"].filter((k) => body && k in body);
+    let termsChanged: string[] = [];
+    if (termsFields.length > 0) {
+      const set = await setAccountTerms(
+        g.actor,
+        accountId,
+        {
+          billingMode: body?.billingMode,
+          creditLimitCents: body?.creditLimitCents,
+          netDays: body?.netDays,
+          password: body?.password,
+        },
+        await requestContext(),
+      );
+      if (!set.ok) {
+        return NextResponse.json({ ok: false, error: set.error, field: set.field }, { status: set.status });
       }
+      termsChanged = set.changed;
     }
 
-    if (typeof body?.netDays === "number" && body.netDays >= 0 && body.netDays <= 120) {
-      patch.net_days = Math.round(body.netDays);
-    }
+    const patch: Record<string, unknown> = {};
 
     if (body?.status === "active" || body?.status === "suspended" || body?.status === "closed") {
       patch.status = body.status;
@@ -141,6 +148,7 @@ async function handlePOST(request: NextRequest) {
     }
 
     if (Object.keys(patch).length === 0) {
+      if (termsChanged.length > 0) return NextResponse.json({ ok: true, changed: termsChanged });
       return NextResponse.json({ ok: false, error: "Nothing to change." }, { status: 400 });
     }
 
@@ -162,7 +170,9 @@ async function handlePOST(request: NextRequest) {
           ? "account.suspended"
           : patch.status === "closed"
             ? "account.closed"
-            : "account.terms_changed",
+            : /* A status set back to active. Not account.terms_changed, which since
+               * 2026-10-29 is the password-confirmed record setAccountTerms writes. */
+              "account.status_changed",
       entityType: "customer_account",
       entityId: accountId,
       summary:
@@ -173,7 +183,7 @@ async function handlePOST(request: NextRequest) {
             : `${g.actor.email} changed ${Object.keys(patch).join(", ")}`,
     });
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, changed: [...termsChanged, "status"] });
   }
 
   return NextResponse.json({ ok: false, error: "Unknown action." }, { status: 400 });

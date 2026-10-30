@@ -252,7 +252,7 @@ The decision is 254-WF-015.
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | `src/app/portal/(app)/accounts` (`OpenAccountClient`) | Admin (`accounts.manage`) | The open account form | Opens an account from a call | `/api/portal/accounts/create`, `createCustomerAccount` | The person (`accountWelcome`, a set password link) | `eng_clients`, `eng_customer_accounts`, `eng_customer_users` insert; audit `customer_account.create` | | not walked yet |
 | 2 | `src/app/portal/(app)/accounts/[id]/pricing` (`TradePricingClient`) | Admin | The account's trade prices against the floors | Sets a trade price | `/api/portal/accounts/pricing`, `setTradePrice` | | Through the database function; audit `trade_price.set` | | not walked yet |
-| 3 | none | Admin | | Sets an account's credit limit and terms | `/api/portal/accounts` `set-terms` exists | | `eng_customer_accounts` update, `eng_audit_events` insert | **[NO SCREEN]**: no screen sends `set-terms` | not walked yet |
+| 3 | `src/app/portal/(app)/accounts` (`AccountsClient`, `TermsPanel`) | Admin (`accounts.manage`) | An account's billing, credit limit and net days | Changes the terms, with their password entered again (Robert, 2026-10-29) | `/api/portal/accounts` `set-terms`, `setAccountTerms` (`verifyOwnPassword`, then `writeAuditOrRefuse`, then the update) | | Audit `account.terms_changed` with both sides of each field, written before `eng_customer_accounts` update; `account.terms_change_failed` when no row changed | | not walked yet |
 | 4 | `src/app/portal/(app)/accounts` (`AccountsClient`) | Admin | An account's period | Closes the period, then issues the statement | `close-period` (`closePeriod`), `issue-statement` (enqueues `statement.issue`, which runs `issueStatement`) | Nobody: `issueStatement` "writes rows and nothing else: it does not email the account" (`src/lib/job-handlers.ts`). The account holder sees it on `/account/statements` | `eng_statements` and `eng_statement_lines` insert, `eng_service_orders` update; audit `statement.period_closed`; `eng_jobs` insert | | not walked yet |
 | 5 | `src/app/portal/(app)/accounts` | Admin | An account holder | Sends a password reset | `/api/portal/accounts/reset-password` | The person (`passwordReset`) | Audit `customer_account.reset_link_issued` | | not walked yet |
 
@@ -404,23 +404,22 @@ Counted from the tables above. A step carrying both marks is counted once under 
 | Customer | 1 (254-WF-004 step 1) | 4 (254-WF-001 step 4, 254-WF-002 steps 4 and 5, 254-WF-006 step 2) |
 | Rep | 0 | 0 (254-WF-008 step 4 gained a screen on 2026-10-27) |
 | Ops manager | 1 (254-WF-018 step 2) | 0 (254-WF-016 step 3 gained a screen on 2026-10-29; 254-WF-017 step 6 is the engineer's) |
-| Admin and owner | 5 (254-WF-020 step 1; 254-WF-024 steps 2, 5 and 6; 254-WF-027 step 3) | 6 (254-WF-021 step 4; 254-WF-022 step 3; 254-WF-024 steps 3 and 4; 254-WF-026 step 1; 254-WF-027 step 3) |
+| Admin and owner | 5 (254-WF-020 step 1; 254-WF-024 steps 2, 5 and 6; 254-WF-027 step 3) | 5 (254-WF-021 step 4; 254-WF-024 steps 3 and 4; 254-WF-026 step 1; 254-WF-027 step 3; 254-WF-022 step 3 gained a screen on 2026-10-29) |
 | Field technician | 0 | 0 (254-WF-030 step 5 gained a screen on 2026-10-29) |
 | Engineer | 1 (254-WF-032 step 1) | 0 (254-WF-017 step 6 gained a screen on 2026-10-29) |
 | Partner | 0 | 0 |
 
-**Read the counts with the reasons beside them.** Of the eight [NEEDS SQL, A SCRIPT OR A CODE EDIT] steps, six are by standing ruling: the first administrator, the gate's conditions, prices and floors, opening a service line, the protocol transcription, and the retention pass. Each is recorded in `CLAUDE.md` or `BACKLOG.md` with why it is not a screen. The other two, opening self-service sign-up and the insurance override, are gate or override values stated in configuration on the same principle. **Whether each should stay that way is Robert's to confirm, not this document's to decide.** Of the ten [NO SCREEN] steps (eleven until the certification panel on /portal/review of 2026-10-29, twelve until the capture delete button the same day, thirteen until the onboarding invite was emailed from /portal/onboarding the same day, fourteen until the payment links screen of 2026-10-27), four are machine doors or the scheduler by design: the sister intake door, the sister order door, the account API, and the cron.
+**Read the counts with the reasons beside them.** Of the eight [NEEDS SQL, A SCRIPT OR A CODE EDIT] steps, six are by standing ruling: the first administrator, the gate's conditions, prices and floors, opening a service line, the protocol transcription, and the retention pass. Each is recorded in `CLAUDE.md` or `BACKLOG.md` with why it is not a screen. The other two, opening self-service sign-up and the insurance override, are gate or override values stated in configuration on the same principle. **Whether each should stay that way is Robert's to confirm, not this document's to decide.** Of the nine [NO SCREEN] steps (ten until the credit terms panel of 2026-10-29, eleven until the certification panel on /portal/review the same day, twelve until the capture delete button the same day, thirteen until the onboarding invite was emailed from /portal/onboarding the same day, fourteen until the payment links screen of 2026-10-27), four are machine doors or the scheduler by design: the sister intake door, the sister order door, the account API, and the cron.
 
-## The four that most need a screen, in order
+## The three that most need a screen, in order
 
 These are the steps where a person has to do something today and nothing they can open lets them, ranked by how often the work arises and whether a customer or the firm's record waits on it.
 
 1. **Resending a payment link, and invoicing an account** (254-WF-008 step 4). The actions exist and no screen sends them. A customer who loses the link from the telephone job cannot be sent another from the portal.
-2. **Setting an account's credit limit and terms** (254-WF-022 step 3). `set-terms` exists and no screen sends it, so a trade account's credit cannot be set from the portal, while the bulk order screen decides credit against it.
-3. **Delivering the partner invitation link** (254-WF-028 step 2). It is shown once on screen and delivered by hand outside the platform. The technician's invite (254-WF-016 step 3) is emailed through the onboarding invite template since 2026-10-29, with "by hand" as the other choice.
-4. **The proving charge and the launch announcement** (254-WF-024 steps 3 and 4). Both are needed exactly once, at opening, and neither has a screen.
+2. **Delivering the partner invitation link** (254-WF-028 step 2). It is shown once on screen and delivered by hand outside the platform. The technician's invite (254-WF-016 step 3) is emailed through the onboarding invite template since 2026-10-29, with "by hand" as the other choice.
+3. **The proving charge and the launch announcement** (254-WF-024 steps 3 and 4). Both are needed exactly once, at opening, and neither has a screen.
 
-Withdrawing or restoring a technician's certification (254-WF-017 step 6) was third here until it gained its panel on /portal/review on 2026-10-29.
+Withdrawing or restoring a technician's certification (254-WF-017 step 6) was third here until it gained its panel on /portal/review on 2026-10-29. Setting an account's credit limit and terms (254-WF-022 step 3) was second until it gained its panel on /portal/accounts the same day.
 
 **One gap carries neither mark and belongs beside these.** Issuing an account's statement tells nobody: `issueStatement` writes rows and sends no email (254-WF-022 step 4). An account on terms learns of a statement only by signing in.
 
