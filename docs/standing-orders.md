@@ -39,7 +39,7 @@ The source of truth for the running loop. Robert, 2026-10-29: the loop prompt is
 - `e7f4711` loads it eagerly at high priority, with a proof. The gain is within the run spread: `/coverage` went from 3251 to about 3180 ms, and coastal-bend from 3241 to 3168 to 3337 ms.
 - What moves the region pages is the county map in the HTML (coastal-bend 3016 ms without it). That reverses Robert's 2026-09-07 decision.
 - Two questions are on issue #1 (6521207420). Recommend no on the map, and yes to merging `e7f4711`. | Waiting on Robert |
-| 8 | **The WPI-8 process details** added to `/insights/wpi-8-certificate` (article proposal item 2). | **Bundle 33, boarding** at `cd119a9` |
+| 8 | **The WPI-8 process details** added to `/insights/wpi-8-certificate` (article proposal item 2). | **Merged as `e248703`** (board 41040053857) |
 | 9 | **The articles, one per board, under `/insights`, with `/guides` as their index:** the manufactured home article, then the solar article, then the foundation article ("what a Texas foundation letter says and what a city does with it", with San Antonio's bulletin as the example). **Every HUD, San Antonio, VA and USDA source is read before it is cited; anything not read is not cited.**
 - **Manufactured home article and `/guides`:** built on `content/mh-article` (`d5dc677`), and **held.** The VA and USDA handbooks could not be read (a JavaScript bot check, and a 403), so the body states FHA only while the title names all three.
 - **Question on issue #1:** Robert pastes the VA and USDA passages, or the article is retitled to FHA. Recommend the paste. | Manufactured home held; solar next |
