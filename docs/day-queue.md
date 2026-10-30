@@ -79,6 +79,31 @@ Every repair was proved by an injection, and each file was restored byte identic
 4. Skip re-boarding a push to main whose exact commit already has a green board (ruled 2026-10-22). It edits `board.yml`, so it comes after bundle 17.
 5. List controls (search, filter, sort, paging) on the 13 staff screens that have none, so each can then take a CSV export, office ready section 2d.
 
+## 2026-10-30: BUNDLE 35 MERGED; BUNDLE 36, THE "RECEIVES" PLACEHOLDER, AT `b9f4c42`
+
+**Bundle 35 merged as `2852892`.** These are the `/portal/launch` buttons. The merged tree is the boarded tree. Board 41067718105 on `73e08ff` read 64 of 64, preflight GREEN, as predicted.
+
+**Prediction for bundle 36, written and pushed before the board starts.** Robert's 09:28, with his yes at 09:48 on the windstorm tier.
+
+**What it changes:**
+- The six order lines whose protocol is in force now quote that protocol's section 11 in `receives`: WS-001, FC-001, MH-001, SL-001, PL-001 and RS-001. Their `/services` pages share the same list, `PROTOCOL_RECEIVES` in `data/catalog.ts`.
+- Windstorm ongoing (WP-001, held) and the three design tiers keep the pending sentence, now rendered by one function.
+- **The check:** `scripts/lib/receives-check.mjs`, used by protocol-registry-audit and the new static proof `a-deliverable-quotes-its-protocol-in-force.mjs`, refuses the pending sentence on any in-force line. It also refuses a sentence that is not the protocol's own, and asserts WS-001 is in the in-force set.
+- **Injections:** the pending sentence put back on WPI-8 completed, and an invented solar sentence, each went red, naming the line.
+- **The caveat, stated in the check:** "in force" is the code's record, matching 0081's read-back. Reading it from the database is queued as item 15.
+
+**Readers on `b9f4c42`, on main `2852892`:**
+- Preflight GREEN, 38 rules.
+- tsc clean.
+- **The artifact, read:** the WPI-8 completed line now begins "On a pass determination, the engineer seals a postconstruction evaluation report that identifies the property ..." and "The engineer signs the WPI-2E application."
+
+**Prediction: 64 of 64.**
+- protocol-registry-audit passes with the new check.
+- **Named in advance, the one risk:** these quoted lines state sealing in the present tense, on lines the gate reads as open.
+  - voice-audit and launch-audit judge them against the gate's open sets.
+  - In the prelaunch build, launch-audit's sealing set could refuse them. That would be a real finding about how protocol quotes render before launch, not a miss to explain away.
+- **Standing notes:** as named for bundle 24.
+
 ## 2026-10-30: BUNDLE 34 MERGED; BUNDLE 35, THE /portal/launch BUTTONS, AT `73e08ff`
 
 **Bundle 34 merged as `4c292ab`.** This is the solar article and the compact `/insights` hub. The merged tree is the boarded tree. Board 41058621423 on `98c2441` read 64 of 64, as predicted.
