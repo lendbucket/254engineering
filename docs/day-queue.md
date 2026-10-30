@@ -79,6 +79,28 @@ Every repair was proved by an injection, and each file was restored byte identic
 4. Skip re-boarding a push to main whose exact commit already has a green board (ruled 2026-10-22). It edits `board.yml`, so it comes after bundle 17.
 5. List controls (search, filter, sort, paging) on the 13 staff screens that have none, so each can then take a CSV export, office ready section 2d.
 
+## 2026-10-30: BUNDLE 37 PASSED, HELD FOR THE TITLE; BUNDLE 38, THE MASTHEAD PHOTO FIX, AT `576faec`
+
+**Bundle 37, board 41109712078 on `b5d7ae6`: 64 of 64, as predicted.**
+- Not merged: the merge waits on Robert's yes to the 60 character FHA title (6525230978).
+- When the yes arrives, it merges as boarded if main has not moved, or is brought up to main and boarded again if it has.
+
+**Prediction for bundle 38, written and pushed before the board starts.** Robert's 09:26: "yes, board and merge the masthead photo fix (e7f4711)".
+
+**What it changes:**
+- `src/components/site/PageHeader.tsx`: every masthead photo loads with `loading="eager"` and `fetchPriority="high"`. Lighthouse names that photo as the LCP element on `/coverage` and flags both the lazy load and the missing priority.
+- No text, link, heading or schema changes.
+- The proof `the-hero-photo-is-fetched-first.mjs` holds it. Swapping the original header back in turned exactly its two checks red.
+
+**Readers on `576faec`, on main `694b79b`:**
+- Preflight GREEN, 38 rules.
+- tsc clean.
+- Two files changed.
+
+**Prediction: 64 of 64.**
+- perf-audit passes. The measured gain is within the run spread (`/coverage` about 3,250 to 3,180 ms locally), so a miss within the spread on `/coverage` or a region page remains possible. If it happens, it is that route, and no merge, under the 22:12 ruling.
+- **Standing notes:** as named for bundle 24.
+
 ## 2026-10-30: BUNDLE 37 MISSED ON A CALL TO ACTION; REBOARD
 
 **Board 41099813913 on `b76d100`: 63 of 64.**
