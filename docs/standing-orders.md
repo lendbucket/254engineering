@@ -58,7 +58,11 @@ The source of truth for the running loop. Robert, 2026-10-29: the loop prompt is
 - **The announcement:** `announcementBlockedReason` gates it on `isOpen()`. The preview goes only to `business.notificationEmail`. The send needs a preview of the same content hash, and goes through the existing queue-based `sendLaunchAnnouncement`, which skips suppressed addresses.
 - **Injections:** four, each restored byte identical.
 - **Question:** a send that fails partway is recorded as sent, so nobody is mailed twice, and anyone missed is resent by hand. Recommend keeping it. | **Bundle 35, boarding** at `73e08ff` |
-| 12 | **The "receives" placeholder (Robert, 09:28).** Every order deliverable whose protocol is in force says what the signed protocol delivers, taken from its own record. A check refuses the pre-signature text on any in-force line. Its own small bundle, next in the queue. | Building on `fix/receives-placeholder` |
+| 12 | **The "receives" placeholder (Robert, 09:28).** Every order deliverable whose protocol is in force says what the signed protocol delivers, taken from its own record. A check refuses the pre-signature text on any in-force line. Its own small bundle, next in the queue. | Built as `59b2b34`, preflight GREEN.
+- **The six in-force lines** quote their protocol's section 11: WS, FC, MH, SL, PL and RS.
+- **Ongoing and design** stay pending.
+- **The check:** `scripts/lib/receives-check.mjs`, used by protocol-registry-audit and a static proof.
+- **Question:** the windstorm page quotes the completed tier only until WP-001 is in force. Recommend keeping it. **Boards next.** |
 | 13 | **The manufactured home article, FHA only (Robert, 09:26).** Title "FHA Manufactured Home Foundations in Texas | 254 Engineering" (60; the ruled wording runs 73). `/guides` is in the same branch. Preflight GREEN at `44a37dd`. | Boards after bundle 35; merges on Robert's yes to the title |
 | 14 | **The masthead photo fix `e7f4711` (Robert, 09:26: yes).** | To board |
 | 11 | If the queue empties: BACKLOG items that need no ruling, smallest first. | |
