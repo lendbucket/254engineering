@@ -1012,7 +1012,7 @@ export const PROCEDURES: Procedure[] = [
         "routes": [
           "/portal/review"
         ],
-        "who": "Engineer (`protocols.publish`, a licensed action: both functions refuse the admin, `holdsLicence`, and the panel is drawn only for the licence holder)",
+        "who": "Engineer (`protocols.publish`, a licensed action: both functions refuse the admin, `holdsLicence`, and the panel is drawn only for the license holder)",
         "sees": "Every active technician's current or withdrawn certification",
         "does": "Withdraws or restores one, with a reason both ways",
         "next": "`/api/portal/onboarding` `revoke_certification` and `restore_certification` (`revokeCertification`, `restoreCertification`)",
