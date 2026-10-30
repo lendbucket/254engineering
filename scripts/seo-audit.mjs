@@ -18,6 +18,7 @@ import * as chromeLauncher from "chrome-launcher";
 import lighthouse from "lighthouse";
 import { AUDIT_BASE_URL } from "./lib/ports.mjs";
 import { napFindings } from "./lib/nap.mjs";
+import { titleProblems, descriptionProblems, duplicateProblems } from "./lib/metadata-rules.mjs";
 
 const BASE = process.env.BASE_URL || AUDIT_BASE_URL;
 
@@ -236,13 +237,11 @@ let schemaEmailsSeen = 0;
  * The description floor moves from 110 to the playbook's 140, and a call to
  * action becomes mandatory. 24 of 26 descriptions had none.
  */
-const MIN_TITLE = 50;
-const MAX_TITLE = 60;
-const MIN_DESC = 140;
-const MAX_DESC = 160;
-
-/** A description has to end somewhere a reader can act. */
-const CTA_VERB = /\b(?:join|see|read|apply|send|call|contact|start|ask|request|explore|compare)\b/i;
+/*
+ * The bounds (titles 50 to 60, descriptions 140 to 160) and the call to action
+ * pattern live in scripts/lib/metadata-rules.mjs since 2026-10-30, so the
+ * preflight's static proof applies the same rules before a server runs.
+ */
 
 /** One of every template type, plus enough breadth to be a real sample. */
 const LIGHTHOUSE_TARGETS = [
@@ -333,21 +332,8 @@ for (const route of routes) {
 
   rows.push({ route, title, description, h1s: meta.h1s });
 
-  if (!title) problems.push(`${route}: no <title>`);
-  else if (title.length > MAX_TITLE)
-    problems.push(`${route}: title is ${title.length} chars, over ${MAX_TITLE} ("${title}")`);
-  else if (title.length < MIN_TITLE)
-    problems.push(`${route}: title is only ${title.length} chars, under ${MIN_TITLE} ("${title}")`);
-  else if (!title.includes("254 Engineering"))
-    problems.push(`${route}: title carries no brand suffix ("${title}")`);
-
-  if (!description) problems.push(`${route}: no meta description`);
-  else if (description.length > MAX_DESC)
-    problems.push(`${route}: description is ${description.length} chars, over ${MAX_DESC}`);
-  else if (description.length < MIN_DESC)
-    problems.push(`${route}: description is only ${description.length} chars, under ${MIN_DESC}`);
-  else if (!CTA_VERB.test(description))
-    problems.push(`${route}: description has no call to action ("${description.slice(-48)}")`);
+  problems.push(...titleProblems(route, title));
+  problems.push(...descriptionProblems(route, description));
 
   if (!meta.canonical) problems.push(`${route}: no canonical link`);
   // Ruled 2026-10-19: the site name is "254 Engineering". It was pinned as
@@ -783,13 +769,7 @@ if (schemaEmailsSeen === 0) {
   }
 }
 
-for (const [title, where] of titles) {
-  if (where.length > 1) problems.push(`duplicate title on ${where.join(", ")}: "${title}"`);
-}
-for (const [description, where] of descriptions) {
-  if (where.length > 1)
-    problems.push(`duplicate description on ${where.join(", ")}: "${description.slice(0, 60)}..."`);
-}
+problems.push(...duplicateProblems(titles, descriptions));
 
 console.log("=== METADATA BUDGET ===");
 console.log(`${routes.length} routes from the sitemap against ${BASE}\n`);
