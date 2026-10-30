@@ -36,7 +36,7 @@ The source of truth for the running loop. Robert, 2026-10-29: the loop prompt is
 - **Schema:** the breadcrumb only.
 - **CLAUDE.md:** section 2 replaced word for word. | **Merged as `9854131`** (board 41030775857) |
 | 7 | **`/coverage` well under 3400 ms without raising the ceiling.** Profile what it loads, and make static or defer what can be. | To build |
-| 8 | **The WPI-8 process details** added to `/insights/wpi-8-certificate` (article proposal item 2). | To build |
+| 8 | **The WPI-8 process details** added to `/insights/wpi-8-certificate` (article proposal item 2). | **Bundle 33, boarding** at `cd119a9` |
 | 9 | **The articles, one per board, under `/insights`, with `/guides` as their index:** the manufactured home article, then the solar article, then the foundation article ("what a Texas foundation letter says and what a city does with it", with San Antonio's bulletin as the example). **Every HUD, San Antonio, VA and USDA source is read before it is cited; anything not read is not cited.** | To build |
 | 10 | **The remaining 10:52 rulings on `/portal/launch`:** the proving charge button (admin only, states the charge before it runs, used only on Robert's word) and the waitlist "we are open" button (enabled only when the gate reads live, preview to Robert first, never sent by a board or a probe). | To build |
 | 11 | If the queue empties: BACKLOG items that need no ruling, smallest first. | |

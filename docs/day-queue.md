@@ -79,6 +79,33 @@ Every repair was proved by an injection, and each file was restored byte identic
 4. Skip re-boarding a push to main whose exact commit already has a green board (ruled 2026-10-22). It edits `board.yml`, so it comes after bundle 17.
 5. List controls (search, filter, sort, paging) on the 13 staff screens that have none, so each can then take a CSV export, office ready section 2d.
 
+## 2026-10-30: BUNDLE 32 MERGED; BUNDLE 33, THE WPI-8 PROCESS DETAILS, AT `cd119a9`
+
+**Bundle 32 merged as `9854131`.** This is `/san-antonio`. The merged tree is the boarded tree. Board 41030775857 on `75a4973` read 64 of 64, preflight GREEN, as predicted.
+
+**Prediction for bundle 33, written and pushed before the board starts.** Robert's 22:12 yes on article proposal item 2: no fifth WPI-8 page; the missing process details go on `/insights/wpi-8-certificate`.
+
+**What it adds**, only facts the site did not state, each cited:
+- **From TDI's process page:**
+  - tell the insurance agent about the work;
+  - TDI does not regulate or track engineers' inspection rates;
+  - a commercial structure insured for wind and hail through TWIA must at a minimum meet TDI's adopted standards.
+  - The parent session confirmed all three sentences on the page, word for word, by a second read.
+- **From TDI's WPI-8 fact sheet, read in full:** TWIA and insurers can look certificates up, and there are two routes to a certificate.
+- **Already in the post, so not added:** the A/C unit's separate WPI-8, the post-construction route, and WPI-2-BC-8.
+- **Dropped:** the fact sheet's "free" TDI inspection, because the file records that the statute and TDI's page disagree on fees.
+- **Dates:** the guide dates are re-emitted and the post's `dateModified` is 2026-10-30.
+
+**Readers on `cd119a9`, on main `9854131`:**
+- Preflight GREEN, 38 rules.
+- tsc clean.
+- citation-audit standalone: 69 citations answer, including the new fact sheet. 9 older sources refuse a script.
+
+**Prediction: 64 of 64.**
+- guide-dates-audit and citation-audit pass.
+- **Standing notes:** as named for bundle 24, including citation-audit's could-not-tell lines.
+- **Named in advance:** an LCP miss within the run spread on `/coverage` would be that route.
+
 ## 2026-10-30: BUNDLE 31 MERGED; BUNDLE 32, /san-antonio AND THE SECTION 2 WORDING, AT `75a4973`
 
 **Bundle 31 merged as `d011bba`.** This is the `/corpus-christi` revision. The merged tree is the boarded tree. Board 41022947388 on `d401611` read 64 of 64, preflight GREEN, as predicted.
