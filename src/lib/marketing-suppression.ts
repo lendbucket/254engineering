@@ -2,6 +2,7 @@ import "server-only";
 import { DB_NOW } from "./db-now";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { supabaseAdmin } from "./supabase";
+import { readEvery } from "./bounded-read";
 import { business } from "@/config/business";
 
 /**
@@ -186,19 +187,29 @@ export async function listSuppressions(): Promise<SuppressionRow[] | null> {
   const db = supabaseAdmin();
   if (!db) return null;
 
-  const { data, error } = await db
-    .from("eng_marketing_suppressions")
-    .select(
-      "email, because, created_at, token_hash, voided_at, voided_because, replaced_by_email, no_replacement_because",
-    )
-    .order("created_at", { ascending: false });
+  /*
+   * Every row, through readEvery, which refuses rather than returning a list
+   * cut at PostgREST's 1000 as if it were the whole of it. On this screen a
+   * silently short list is somebody who asked to stop reading as somebody who
+   * never did.
+   */
+  const read = await readEvery<Record<string, unknown>>((from, to) =>
+    db
+      .from("eng_marketing_suppressions")
+      .select(
+        "email, because, created_at, token_hash, voided_at, voided_because, replaced_by_email, no_replacement_because",
+      )
+      .order("created_at", { ascending: false })
+      .order("email", { ascending: true })
+      .range(from, to),
+  );
 
-  if (error) {
-    console.error("[marketing] the suppression list could not be listed:", error.message);
+  if (!read.ok) {
+    console.error("[marketing] the suppression list could not be listed:", read.error);
     return null;
   }
 
-  return (data ?? []).map((r) => ({
+  return read.rows.map((r) => ({
     email: r.email as string,
     because: r.because as string,
     createdAt: r.created_at as string,
@@ -207,8 +218,8 @@ export async function listSuppressions(): Promise<SuppressionRow[] | null> {
       r.voided_at === null || r.voided_at === undefined
         ? null
         : {
-            at: r.voided_at,
-            because: r.voided_because ?? "",
+            at: r.voided_at as string,
+            because: (r.voided_because ?? "") as string,
             replacedBy: (r.replaced_by_email ?? null) as string | null,
             noReplacementBecause: (r.no_replacement_because ?? null) as string | null,
           },

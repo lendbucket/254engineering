@@ -1,6 +1,7 @@
 import "server-only";
 import { DB_NOW } from "./db-now";
 import { supabaseAdmin } from "./supabase";
+import { readEvery, readEveryIn } from "./bounded-read";
 import { writeAudit } from "./ops-audit";
 import { can, type Actor } from "./ops-authz";
 import { todayInFirmCalendar } from "./firm-calendar";
@@ -250,17 +251,29 @@ export async function submissionsFor(profileId: string): Promise<SubmissionRow[]
   return (data ?? []).map(toRow);
 }
 
-/** Every submission awaiting verification, oldest first, with who submitted it. */
+/**
+ * Every submission awaiting verification, oldest first, with who submitted it.
+ *
+ * EVERY ONE, NOT THE OLDEST 200. This read was `.limit(200)` and the screen
+ * titled its panel with the length of what came back, so a queue of 201
+ * would have read "200" and hidden the newest submission from review. It is
+ * read in full now (readEvery refuses rather than returning a capped list),
+ * and the names are read in chunks; a failed name read is a failed read,
+ * said on the screen, rather than a column of "A technician".
+ */
 export async function awaitingVerification(): Promise<(SubmissionRow & { name: string })[] | null> {
   const db = supabaseAdmin();
   if (!db) return null;
-  const { data, error } = await db.from("eng_credentials").select(COLUMNS).eq("status", "pending").order("created_at", { ascending: true }).limit(200);
-  if (error) return null;
-  const rows = (data ?? []).map(toRow);
+  const read = await readEvery<Record<string, unknown>>((from, to) =>
+    db.from("eng_credentials").select(COLUMNS).eq("status", "pending").order("created_at", { ascending: true }).order("id", { ascending: true }).range(from, to),
+  );
+  if (!read.ok) return null;
+  const rows = read.rows.map(toRow);
   const ids = [...new Set(rows.map((r) => r.profileId))];
-  const { data: people } = ids.length
-    ? await db.from("eng_profiles").select("id, display_name, email").in("id", ids)
-    : { data: [] };
-  const nameOf = new Map((people ?? []).map((p) => [p.id as string, (p.display_name as string | null) ?? (p.email as string)]));
+  const people = await readEveryIn<Record<string, unknown>>(ids, (chunk, from, to) =>
+    db.from("eng_profiles").select("id, display_name, email").in("id", [...chunk]).order("id", { ascending: true }).range(from, to),
+  );
+  if (!people.ok) return null;
+  const nameOf = new Map(people.rows.map((p) => [p.id as string, (p.display_name as string | null) ?? (p.email as string)]));
   return rows.map((r) => ({ ...r, name: nameOf.get(r.profileId) ?? "A technician" }));
 }

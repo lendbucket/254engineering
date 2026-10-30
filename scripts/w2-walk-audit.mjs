@@ -335,18 +335,19 @@ async function resolveDirect(pattern) {
  * its expectation from the thing it audits (CLAUDE.md section 6), so the
  * counts are typed here and compared with what the parser found: 36
  * workflows, at least 138 steps, and the marks as the map's own table counts
- * them (8 steps needing SQL, a script or a code edit; 10 with no screen). A
+ * them (8 steps needing SQL, a script or a code edit; 9 with no screen). A
  * step added to the map raises the floor on purpose, in two places. No screen
  * went from 13 to 12 on 2026-10-29 when WF-016 step 3 gained its screen (W3
  * round 2, the invite emailed from /portal/onboarding), from 12 to 11 the
  * same day when WF-030 step 5 gained its delete button (Robert's ruling of
- * 10:52 Central 2026-10-29), and from 11 to 10 when WF-017 step 6 gained its
- * panel on /portal/review under the same ruling.
+ * 10:52 Central 2026-10-29), from 11 to 10 when WF-017 step 6 gained its
+ * panel on /portal/review under the same ruling, and from 10 to 9 when WF-022
+ * step 3 gained the credit terms panel on /portal/accounts.
  */
 const MAP_WORKFLOWS = 36;
 const MAP_STEPS_AT_LEAST = 138;
 const MAP_NEEDS_CODE = 8;
-const MAP_NO_SCREEN = 10;
+const MAP_NO_SCREEN = 9;
 
 /** The office-ready standard, CLAUDE.md section 2d: a staff page is interactive in under 2 seconds. */
 const STAFF_INTERACTIVE_MS = 2000;

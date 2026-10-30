@@ -1,5 +1,7 @@
 /**
- * THE SIX STAFF LISTS EXPORT EVERY MATCHING ROW, FOR THE ADMINISTRATOR ONLY.
+ * THE NINE STAFF LISTS EXPORT EVERY MATCHING ROW, FOR THE ADMINISTRATOR ONLY.
+ * (Six from 2026-10-28; people, do not contact and the audit trail joined on
+ * 2026-10-29.)
  *
  *   node node_modules/tsx/dist/cli.mjs --conditions=react-server scripts/proofs/the-staff-lists-export-for-the-admin-only.mjs
  *
@@ -22,6 +24,9 @@ const {
   techniciansCsv,
   partnersCsv,
   tasksCsv,
+  peopleCsv,
+  suppressionsCsv,
+  auditTrailCsv,
   listExportFilename,
 } = await import("../../src/lib/list-exports.ts");
 const { DEFAULT_ROLES } = await import("../../src/lib/ops-authz.ts");
@@ -36,7 +41,7 @@ const check = (name, ok, note = "") => {
 /* ---- the gate is the administrator's alone ---- */
 const holders = DEFAULT_ROLES.filter((r) => r.grants.includes(LIST_EXPORT_GRANT)).map((r) => r.key);
 check("the export grant is held by the administrator alone", holders.length === 1 && holders[0] === "admin", `${LIST_EXPORT_GRANT}: ${holders.join(", ")}`);
-check("six reports, named", LIST_EXPORT_REPORTS.length === 6 && ["applications", "design-briefs", "windstorm-briefs", "technicians", "partners", "tasks"].every((r) => LIST_EXPORT_REPORTS.includes(r)));
+check("nine reports, named", LIST_EXPORT_REPORTS.length === 9 && ["applications", "design-briefs", "windstorm-briefs", "technicians", "partners", "tasks", "people", "suppressions", "audit-trail"].every((r) => LIST_EXPORT_REPORTS.includes(r)));
 
 /* ---- the builders: the shared writer's formula guard, and money as dollars or empty ---- */
 const hostile = "=HYPERLINK(1)";
@@ -61,6 +66,19 @@ for (const [name, out] of [
 ]) {
   check(`the ${name} file states its count and filter in its preamble`, out.startsWith(`"${name[0].toUpperCase()}${name.slice(1)}","0 matching"`) && out.includes(`"Filter","f"`), out.split("\r\n")[0]);
 }
+const people = peopleCsv([{ email: "p@x.invalid", display_name: hostile, role: "admin", status: "active", phone: null, base_county: null, last_sign_in_at: null, created_at: "2026-10-29" }], "f");
+check("a person's name beginning = is guarded, and a never-signed-in person says never", people.includes(`"'${hostile}"`) && people.split("\r\n").at(-1).includes(`"never"`), people.split("\r\n").at(-1));
+const sup = suppressionsCsv(
+  [
+    { email: "a@x.invalid", because: "asked", createdAt: "2026-10-01", enteredByOperator: false, voided: null },
+    { email: "b@x.invalid", because: "typed", createdAt: "2026-10-02", enteredByOperator: true, voided: { at: "2026-10-03", because: "wrong address", replacedBy: "c@x.invalid", noReplacementBecause: null } },
+  ],
+  "f",
+);
+const supRows = sup.split("\r\n");
+check("a do not contact row marked as a mistake is still exported, and says so", supRows.at(-1).includes(`"marked as a mistake","2026-10-03","wrong address","c@x.invalid"`) && supRows.at(-2).includes(`"they clicked the link","in force"`), supRows.at(-1));
+const trail = auditTrailCsv([{ id: "1", created_at: "2026-10-29T01:00:00Z", actor_email: null, actor_role: null, action: "customer.signed_in", entity_type: "customer", entity_id: null, summary: hostile, ip: null }], "f");
+check("an audit event keeps its stored key, the system actor is empty, and a summary beginning = is guarded", trail.split("\r\n").at(-1).startsWith(`"2026-10-29T01:00:00Z","","","customer.signed_in"`) && trail.includes(`"'${hostile}"`), trail.split("\r\n").at(-1));
 check("a file's name is dated by the caller", listExportFilename("tasks", "2026-10-28") === "tasks-2026-10-28.csv");
 
 const lib = readFileSync("src/lib/list-exports.ts", "utf8");
@@ -84,13 +102,13 @@ const at = route.indexOf("if ((LIST_EXPORT_REPORTS as readonly string[]).include
 const branch = route.slice(at, route.indexOf("\n  }\n", at));
 const gate = branch.indexOf("if (!can(actor, LIST_EXPORT_GRANT) || !can(actor, screenGrant[listReport])) {");
 const firstRead = Math.min(
-  ...["await listEveryApplication(", "await designInquiries(", "await windstormInquiries(", "await techRoster(", "await partnerRoster(", "await listEveryTask("].map((s) => {
+  ...["await listEveryApplication(", "await designInquiries(", "await windstormInquiries(", "await techRoster(", "await partnerRoster(", "await listEveryTask(", "await readPeople(", "await listSuppressions(", "await auditTrailEvery("].map((s) => {
     const i = branch.indexOf(s);
     return i < 0 ? Infinity : i;
   }),
 );
 check("the door asks the administrator's grant and the screen's own before reading anything", at > 0 && gate > 0 && gate < firstRead && Number.isFinite(firstRead));
-check("each screen's own grant, by name", /applications: "applications\.read"/.test(branch) && /"design-briefs": "files\.create"/.test(branch) && /"windstorm-briefs": "files\.create"/.test(branch) && /technicians: "profiles\.list"/.test(branch) && /partners: "partners\.manage"/.test(branch) && /tasks: "tasks\.use"/.test(branch));
+check("each screen's own grant, by name", /applications: "applications\.read"/.test(branch) && /"design-briefs": "files\.create"/.test(branch) && /"windstorm-briefs": "files\.create"/.test(branch) && /technicians: "profiles\.list"/.test(branch) && /partners: "partners\.manage"/.test(branch) && /tasks: "tasks\.use"/.test(branch) && /people: "profiles\.list"/.test(branch) && /suppressions: "suppressions\.manage"/.test(branch) && /"audit-trail": "audit\.read"/.test(branch));
 check(
   "each list is read through the screen's own function and filter, every row",
   /await listEveryApplication\(\{ q: param\("q"\), role: param\("role"\) \}\)/.test(branch) &&
@@ -98,10 +116,13 @@ check(
     /await windstormInquiries\(actor, query, "every"\)/.test(branch) &&
     /techListRows\(read\.rows, techListQuery\(/.test(branch) &&
     /partnerListRows\(read\.rows, \{ q: param\("q"\), state: param\("state"\) \}\)/.test(branch) &&
-    /await listEveryTask\(actor, \{ status: param\("status"\), q: param\("q"\) \}\)/.test(branch),
+    /await listEveryTask\(actor, \{ status: param\("status"\), q: param\("q"\) \}\)/.test(branch) &&
+    /staffListRows\(read\.rows, staffListQuery\(\{ q: param\("q"\), status: param\("status"\), sort: param\("sort"\), dir: param\("dir"\) \}, PEOPLE_LIST\), PEOPLE_LIST\)/.test(branch) &&
+    /staffListRows\(all, staffListQuery\(\{ q: param\("q"\), source: param\("source"\), state: param\("state"\), sort: param\("sort"\), dir: param\("dir"\) \}, SUPPRESSION_LIST\), SUPPRESSION_LIST\)/.test(branch) &&
+    /await auditTrailEvery\(auditTrailQuery\(\{ q: param\("q"\), who: param\("who"\), dir: param\("dir"\) \}\)\)/.test(branch),
 );
 const refusals = (branch.match(/return refuse\(/g) ?? []).length;
-check("a failed or partial read refuses before any audit row or file", refusals === 8 && branch.indexOf("return refuse(") < branch.indexOf("await writeAudit("), `${refusals} refusals`);
+check("a failed or partial read refuses before any audit row or file", refusals === 11 && branch.indexOf("return refuse(") < branch.indexOf("await writeAudit("), `${refusals} refusals`);
 check("every export writes an audit row before the body", /action: `export\.\$\{listReport\}`/.test(branch) && branch.indexOf("await writeAudit(") < branch.indexOf("return new NextResponse(body"));
 check("and the file is the shared headers, dated by the door's stamp()", /csvHeaders\(listExportFilename\(listReport, stamp\(\)\)\)/.test(branch));
 
@@ -119,6 +140,9 @@ for (const [screen, report] of [
   ["techs", "technicians"],
   ["partners", "partners"],
   ["tasks", "tasks"],
+  ["people", "people"],
+  ["suppressions", "suppressions"],
+  ["audit", "audit-trail"],
 ]) {
   const src = readFileSync(`src/app/portal/(app)/${screen}/page.tsx`, "utf8");
   check(`/portal/${screen} draws its export only for the grant, carrying the query`, new RegExp(`can\\(actor, LIST_EXPORT_GRANT\\)[\\s\\S]{0,40}listHref\\("/api/portal/exports", \\{[^}]*\\}, \\{ report: "${report}" \\}\\)`).test(src));
@@ -126,7 +150,7 @@ for (const [screen, report] of [
 
 console.log("");
 if (wrong === 0) {
-  console.log("PASS: the six staff lists export every matching row through their own filters, for the administrator only, safely and audited.");
+  console.log("PASS: the nine staff lists export every matching row through their own filters, for the administrator only, safely and audited.");
   process.exitCode = 0;
 } else {
   console.log(`FAIL: ${wrong} check(s).`);

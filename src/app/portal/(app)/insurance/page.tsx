@@ -6,6 +6,8 @@ import { todayInFirmCalendar } from "@/lib/firm-calendar";
 import { INSURANCE_KIND_LABEL, daysToExpiry, listPolicies } from "@/lib/ops-insurance";
 import { Chip, EmptyState, ErrorState, PageHead, Panel } from "@/components/portal/surfaces";
 import { RecordPolicyForm, WithdrawPolicy } from "./InsuranceClient";
+import { ListControls, Pager, listHref } from "@/components/portal/ListControls";
+import { STAFF_LIST_PAGE_SIZE, policyList, staffListPage, staffListQuery, staffListRows } from "@/lib/staff-lists";
 
 export const dynamic = "force-dynamic";
 
@@ -17,11 +19,16 @@ export const dynamic = "force-dynamic";
  * policy recorded here; how it counts it is put back to him, so until then the
  * screen says the gate reads the code, rather than implying it reads this.
  */
-export default async function InsurancePage() {
+export default async function InsurancePage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const actor = await currentActor();
   if (!actor || !can(actor, "insurance.manage")) notFound();
+  const params = await searchParams;
   const read = await listPolicies(actor);
   const today = todayInFirmCalendar();
+  const spec = policyList(today);
+  const query = staffListQuery(params, spec);
+  const shown = read.ok ? staffListPage(staffListRows(read.policies, query, spec), query.page) : null;
+  const searching = Boolean(query.term || query.filters.standing);
 
   return (
     <>
@@ -34,13 +41,39 @@ export default async function InsurancePage() {
         title="On the register"
         description="Recording a policy here does not yet change whether the firm may take orders; that still reads the policy recorded in the code, until how the order gate counts this register is settled."
       >
-        {!read.ok ? (
-          <ErrorState title="The register could not be read" body={`${read.error} Reload the page to try again.`} />
-        ) : read.policies.length === 0 ? (
+        <ListControls
+          action="/portal/insurance"
+          search={params.q ?? ""}
+          searchLabel="Search carrier, policy number or insured"
+          filters={[
+            {
+              name: "standing",
+              label: "Standing",
+              value: query.filters.standing,
+              options: [
+                { value: "", label: "Every policy" },
+                { value: "force", label: "In force" },
+                { value: "expired", label: "Expired" },
+                { value: "withdrawn", label: "Withdrawn" },
+              ],
+            },
+          ]}
+          sorts={[
+            { value: "expires", label: "Expires" },
+            { value: "carrier", label: "Carrier" },
+          ]}
+          sort={query.sort}
+          direction={query.ascending ? "asc" : "desc"}
+        />
+        {!read.ok || !shown ? (
+          <ErrorState title="The register could not be read" body={`${read.ok ? "" : read.error} Reload the page to try again.`} />
+        ) : shown.rows.length === 0 && searching ? (
+          <EmptyState title="No policy matches that search" body="This is a search with no match, not an empty register. Clear the search to see every policy." />
+        ) : shown.rows.length === 0 ? (
           <EmptyState title="No policy is recorded yet" body="Record the professional liability policy below from its certificate, once it is bound." />
         ) : (
           <ul className="divide-y divide-[var(--row-rule)]">
-            {read.policies.map((p) => {
+            {shown.rows.map((p) => {
               const left = daysToExpiry(p.expiresOn, today);
               const tone = p.withdrawnAt ? "neutral" : left < 0 ? "bad" : left <= 45 ? "warn" : "good";
               const status = p.withdrawnAt ? "Withdrawn" : left < 0 ? "Expired" : left === 0 ? "Expires today" : `${left} days left`;
@@ -73,6 +106,9 @@ export default async function InsurancePage() {
             })}
           </ul>
         )}
+        {shown ? (
+          <Pager page={shown.page} pageSize={STAFF_LIST_PAGE_SIZE} total={shown.total} hrefFor={(n) => listHref("/portal/insurance", params, { page: n > 1 ? String(n) : "" })} />
+        ) : null}
       </Panel>
       <Panel title="Record a policy" description="Type each figure exactly as the certificate prints it, and attach the certificate as a PDF.">
         <RecordPolicyForm />

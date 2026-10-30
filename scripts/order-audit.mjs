@@ -2207,14 +2207,27 @@ const answerAll = (entry, pick = () => 0) =>
 
   const route = readSource("src/app/api/portal/accounts/route.ts");
   rec("the operator account route checks accounts.manage", route.includes('can(actor, "accounts.manage")'));
+  /*
+   * THE TERMS RULE MOVED, 2026-10-29, so these two checks read it where it is.
+   * Robert's ruling of 10:52 (254-WF-022 step 3) put the terms behind a
+   * password and a record written first, in setAccountTerms, with the values
+   * decided by termsFromChange in account-terms.ts. The route now only passes a
+   * field on when the body carries it. Both properties are asserted in their
+   * new home and the route is asserted to hand over only present fields, so an
+   * absent limit still cannot clear credit or grant it.
+   */
+  const terms = readSource("src/lib/account-terms.ts");
   rec(
     "and a credit limit is cleared explicitly rather than by omission",
-    /"creditLimitCents" in body/.test(route),
+    /\.filter\(\(k\) => body && k in body\)/.test(route) &&
+      /"creditLimitCents" in change && change\.creditLimitCents !== undefined/.test(terms) &&
+      /if \(raw === null\) next\.creditLimitCents = null;/.test(terms),
     "an absent field must not silently remove credit, nor grant it",
   );
   rec(
     "and a negative credit limit is refused rather than stored",
-    /raw >= 0/.test(route),
+    /Number\.isSafeInteger\(raw\) && raw >= 0\) next\.creditLimitCents = raw;/.test(terms) &&
+      !/patch\.credit_limit_cents\s*=/.test(route),
   );
 }
 

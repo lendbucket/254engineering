@@ -3,9 +3,8 @@
 //   npm run brand-rasters
 //
 // Produces:
-//   src/app/icon.png          512  App Router icon convention
-//   src/app/apple-icon.png    180  App Router apple-icon convention
-//   src/app/favicon.ico       16/32/48
+//   every icon, through scripts/emit-favicons.mjs (the one writer of icons
+//     since 2026-10-29; see that file for the sizes)
 //   public/og/default.png     1200x630 Open Graph card
 //
 // PENDING: a commissioned logo will replace all of this. Rerun the script after
@@ -22,11 +21,9 @@
 import fs from "node:fs";
 import path from "node:path";
 import { chromium } from "playwright";
-import sharp from "sharp";
-import pngToIco from "png-to-ico";
+import { emit as emitFavicons, DEFAULT_SOURCE } from "./emit-favicons.mjs";
 
 const SLATE = "#14315d";
-const SLATE_INK = "#0b1b36";
 const LIMESTONE = "#ffffff";
 const BRASS = "#d9a032";
 const SLATE_MUTED = "#555e6b";
@@ -34,70 +31,13 @@ const SLATE_MUTED = "#555e6b";
 const SERIF = "Archivo, 'Segoe UI', system-ui, sans-serif";
 const SANS = "'Segoe UI', system-ui, -apple-system, sans-serif";
 
-const appDir = path.join(process.cwd(), "src", "app");
 const ogDir = path.join(process.cwd(), "public", "og");
 
-/**
- * The square mark, used for every icon size.
- *
- * THE REAL ARTWORK, CROPPED TO THE NUMERALS
- * -----------------------------------------
- * The delivered lockup is a wide horizontal mark: numerals, a gold rule, then
- * "254 ENGINEERING SERVICES" tracked out beneath. At 512 pixels square that
- * whole lockup would sit in a thin band across the middle, and at 16 pixels the
- * descriptor is not text any more, it is a grey smudge under the part that
- * matters.
- *
- * So the icon uses the reverse artwork cropped to the numerals only, on the deep
- * navy ground. The numerals plus the gold parallelogram are what survive being
- * scaled to a tab strip, and they are the distinctive half of the mark.
- *
- * NUMERAL_BAND is the fraction of the artwork height occupied by the numerals,
- * measured from the delivered file rather than guessed: the gold rule sits at
- * roughly 72 percent and everything below it is the descriptor.
+/*
+ * THE SQUARE MARK MOVED to scripts/emit-favicons.mjs on 2026-10-29. Its crop
+ * was a typed 70 percent of the old lockup's height; the corrected lockup puts
+ * its gold rule lower, so that file finds the rule in the artwork instead.
  */
-const NUMERAL_BAND = 0.7;
-
-async function markPng(size) {
-  const src = path.join(process.cwd(), "brand-assets", "logo-dark.png");
-  const meta = await sharp(src).metadata();
-  const cropH = Math.round(meta.height * NUMERAL_BAND);
-
-  // The numerals inset inside the square. Leaving air around a mark is what
-  // stops it looking like a screenshot of a logo.
-  const inner = Math.round(size * 0.76);
-  // Three pipelines rather than one chain. sharp applies extract relative to the
-  // pipeline it is in, and extract followed by trim in a single chain throws
-  // "bad extract area" because the second operation is reasoning about the
-  // pre-extract dimensions.
-  const band = await sharp(src)
-    .extract({ left: 0, top: 0, width: meta.width, height: cropH })
-    .toBuffer();
-  const tight = await sharp(band).trim().toBuffer();
-  const numerals = await sharp(tight)
-    .resize({ width: inner, fit: "inside", withoutEnlargement: false })
-    .toBuffer();
-
-  const placed = await sharp(numerals).metadata();
-
-  return sharp({
-    create: {
-      width: size,
-      height: size,
-      channels: 4,
-      background: SLATE_INK,
-    },
-  })
-    .composite([
-      {
-        input: numerals,
-        left: Math.round((size - placed.width) / 2),
-        top: Math.round((size - placed.height) / 2),
-      },
-    ])
-    .png()
-    .toBuffer();
-}
 
 /**
  * The Open Graph card.
@@ -165,43 +105,19 @@ async function shoot(browser, html, width, height, file) {
 async function main() {
   fs.mkdirSync(ogDir, { recursive: true });
   const browser = await chromium.launch();
-  const tmp = path.join(process.cwd(), "scripts", ".raster-tmp");
-  fs.mkdirSync(tmp, { recursive: true });
 
   try {
-    // Icons come from sharp compositing the real artwork. No browser needed for
-    // them any more, which also means they are deterministic rather than subject
-    // to a headless font stack.
-    fs.writeFileSync(path.join(appDir, "icon.png"), await markPng(512));
-    console.log(`  ${path.relative(process.cwd(), path.join(appDir, "icon.png"))}  512`);
-    fs.writeFileSync(path.join(appDir, "apple-icon.png"), await markPng(180));
-    console.log(`  ${path.relative(process.cwd(), path.join(appDir, "apple-icon.png"))}  180`);
+    // Every icon comes from scripts/emit-favicons.mjs, the one writer of them.
+    // Two scripts writing one file would be two homes for one fact.
+    const icons = await emitFavicons(path.join(process.cwd(), DEFAULT_SOURCE), process.cwd());
+    for (const rel of Object.keys(icons)) console.log(`  ${rel}`);
 
     const logoDataUri =
       "data:image/png;base64," +
       fs.readFileSync(path.join(process.cwd(), "brand-assets", "logo.png")).toString("base64");
     await shoot(browser, ogHtml(logoDataUri), 1200, 630, path.join(ogDir, "default.png"));
-
-    // The .ico carries three sizes because Windows and older browsers pick
-    // different ones, and a single 32px entry upscaled to 48 is visibly soft in
-    // a bookmarks bar. Rendered at 512 once and downsampled by sharp, which
-    // produces a cleaner small size than asking a browser to lay out 16px text.
-    // The 512 icon written above is the master. Rendering it a second time would
-    // be a second chance for the two to differ.
-    const master = path.join(appDir, "icon.png");
-
-    const icoSources = [];
-    for (const size of [16, 32, 48]) {
-      const out = path.join(tmp, `mark-${size}.png`);
-      await sharp(master).resize(size, size, { kernel: "lanczos3" }).png().toFile(out);
-      icoSources.push(out);
-    }
-    const ico = await pngToIco(icoSources);
-    fs.writeFileSync(path.join(appDir, "favicon.ico"), ico);
-    console.log(`  ${path.relative(process.cwd(), path.join(appDir, "favicon.ico"))}  16/32/48`);
   } finally {
     await browser.close();
-    fs.rmSync(tmp, { recursive: true, force: true });
   }
 
   console.log("\nBrand rasters written. Regenerate with `npm run brand-rasters` when the logo lands.");

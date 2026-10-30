@@ -5,6 +5,13 @@ import { useRouter } from "next/navigation";
 import { money } from "@/lib/ops-money";
 import { Chip } from "@/components/portal/surfaces";
 import Link from "next/link";
+import {
+  NET_DAYS_MAX,
+  NET_DAYS_MIN,
+  TERMS_PASSWORD_MISSING,
+  centsFromDollars,
+  dollarsForInput,
+} from "@/lib/account-terms";
 
 type Row = {
   id: string;
@@ -63,7 +70,16 @@ type Row = {
  * the filters, the sort and the pager are a GET form and links on the page now,
  * with the total and the window stated there, and this renders the page given.
  */
-export function AccountsClient({ rows, pager }: { rows: Row[]; pager?: ReactNode }) {
+export function AccountsClient({
+  rows,
+  pager,
+  canSetTerms = false,
+}: {
+  rows: Row[];
+  pager?: ReactNode;
+  /** accounts.manage, read by the page. Without it no terms panel is drawn. */
+  canSetTerms?: boolean;
+}) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -200,6 +216,8 @@ export function AccountsClient({ rows, pager }: { rows: Row[]; pager?: ReactNode
               </Link>
             </div>
 
+            {canSetTerms ? <TermsPanel row={r} /> : null}
+
             {r.billingMode === "invoice" ? (
               <div className="mt-3 flex flex-wrap items-center gap-3">
                 <button
@@ -253,6 +271,146 @@ export function AccountsClient({ rows, pager }: { rows: Row[]; pager?: ReactNode
 
       <SendResetLink />
     </div>
+  );
+}
+
+/**
+ * CHANGE AN ACCOUNT'S CREDIT TERMS. Robert's ruling, 10:52 Central 2026-10-29,
+ * 254-WF-022 step 3: confirmed by the administrator's password, entered again
+ * here, and recorded before the change (setAccountTerms, ops-accounts-admin.ts).
+ *
+ * Closed until asked for, one per account row, so a list of fifty accounts is
+ * not fifty forms. The current terms are printed above the fields, so the
+ * person sees what they are changing from before they type.
+ */
+function TermsPanel({ row }: { row: Row }) {
+  const router = useRouter();
+  const [billingMode, setBillingMode] = useState<"card" | "invoice">(row.billingMode);
+  const [limit, setLimit] = useState(dollarsForInput(row.creditLimitCents));
+  const [netDays, setNetDays] = useState(String(row.netDays));
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+  const id = `terms-${row.id}`;
+
+  return (
+    <details className="mt-3">
+      <summary className="inline-flex min-h-[44px] cursor-pointer items-center text-[14px] font-semibold text-[var(--ink)] underline underline-offset-2">
+        Change terms
+      </summary>
+      <p className="mt-2 max-w-[62ch] text-[14px] leading-[1.6] text-[var(--secondary)]">
+        Now: {row.billingMode === "invoice" ? `invoiced, net ${row.netDays} days` : "pays by card"}, credit limit{" "}
+        {row.creditLimitCents === null ? "none agreed" : money(row.creditLimitCents)}. A change asks for your
+        password again and is recorded before it is saved.
+      </p>
+      <form
+        className="mt-3 flex flex-wrap items-end gap-3"
+        onSubmit={async (e) => {
+          e.preventDefault();
+          if (busy) return;
+          setError(null);
+          setNote(null);
+          const cents = centsFromDollars(limit);
+          if (!cents.ok) return setError(cents.error);
+          const days = Number(netDays);
+          if (!Number.isInteger(days) || days < NET_DAYS_MIN || days > NET_DAYS_MAX) {
+            return setError(`Net days are a whole number from ${NET_DAYS_MIN} to ${NET_DAYS_MAX}.`);
+          }
+          if (!password) return setError(TERMS_PASSWORD_MISSING);
+          setBusy(true);
+          try {
+            const res = await fetch("/api/portal/accounts", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                action: "set-terms",
+                accountId: row.id,
+                billingMode,
+                creditLimitCents: cents.cents,
+                netDays: days,
+                password,
+              }),
+            });
+            const data = (await res.json().catch(() => null)) as { ok?: boolean; error?: string; changed?: string[] } | null;
+            if (!res.ok || !data?.ok) {
+              setError(data?.error ?? "That did not work. Nothing was changed.");
+              return;
+            }
+            setPassword("");
+            setNote(`Saved and recorded: ${(data.changed ?? []).join(", ").replace(/_/g, " ")}.`);
+            router.refresh();
+          } catch {
+            setError("The network did not answer. The terms may not have changed; reload to see them.");
+          } finally {
+            setBusy(false);
+          }
+        }}
+      >
+        <label className="flex flex-col gap-1.5" htmlFor={`${id}-mode`}>
+          <span className="text-[13px] font-bold text-[var(--secondary)]">Billing</span>
+          <select
+            id={`${id}-mode`}
+            value={billingMode}
+            onChange={(e) => setBillingMode(e.target.value === "invoice" ? "invoice" : "card")}
+            className="min-h-[44px] rounded-[2px] border border-limestone-line px-3 text-[14px] text-[var(--ink)]"
+          >
+            <option value="card">Pays by card</option>
+            <option value="invoice">Invoiced</option>
+          </select>
+        </label>
+        <label className="flex flex-col gap-1.5" htmlFor={`${id}-limit`}>
+          <span className="text-[13px] font-bold text-[var(--secondary)]">Credit limit, dollars (empty for none)</span>
+          <input
+            id={`${id}-limit`}
+            inputMode="decimal"
+            value={limit}
+            onChange={(e) => setLimit(e.target.value)}
+            autoComplete="off"
+            className="min-h-[44px] w-[10rem] rounded-[2px] border border-limestone-line px-3 text-[14px] text-[var(--ink)]"
+          />
+        </label>
+        <label className="flex flex-col gap-1.5" htmlFor={`${id}-days`}>
+          <span className="text-[13px] font-bold text-[var(--secondary)]">Net days</span>
+          <input
+            id={`${id}-days`}
+            inputMode="numeric"
+            value={netDays}
+            onChange={(e) => setNetDays(e.target.value)}
+            autoComplete="off"
+            className="min-h-[44px] w-[6rem] rounded-[2px] border border-limestone-line px-3 text-[14px] text-[var(--ink)]"
+          />
+        </label>
+        <label className="flex flex-col gap-1.5" htmlFor={`${id}-password`}>
+          <span className="text-[13px] font-bold text-[var(--secondary)]">Your password, entered again</span>
+          <input
+            id={`${id}-password`}
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoComplete="current-password"
+            className="min-h-[44px] w-[min(100%,16rem)] rounded-[2px] border border-limestone-line px-3 text-[14px] text-[var(--ink)]"
+          />
+        </label>
+        <button
+          type="submit"
+          disabled={busy}
+          className="min-h-[44px] rounded-[2px] bg-[var(--navy)] px-5 text-[14px] font-bold text-white disabled:opacity-50"
+        >
+          {busy ? "Saving" : "Save the terms"}
+        </button>
+      </form>
+      {error ? (
+        <p role="alert" className="mt-3 rounded-[2px] px-3 py-2 text-[14px] leading-[1.6] text-[var(--ink)]">
+          {error}
+        </p>
+      ) : null}
+      {note ? (
+        <p role="status" className="mt-3 border-l-2 border-[var(--ink)] py-1 pl-3 text-[14px] leading-[1.6] text-[var(--ink)]">
+          {note}
+        </p>
+      ) : null}
+    </details>
   );
 }
 

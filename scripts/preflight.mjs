@@ -31,6 +31,7 @@
  * 4a. Every proof in scripts/proofs that needs no database, server, build or
  *    environment file, derived by scripts/lib/proof-needs.mjs from what each
  *    proof reads and calls. The ones that write into the repository run alone.
+ * 4b. voice-audit's US spelling sweep, whole, through scripts/lib/us-spelling.mjs.
  * 5. The voice rules on every line added since the merge base with origin/main,
  *    working tree and untracked files included: banned phrases and
  *    present-tense regulatory claims in src and docs, long dashes anywhere.
@@ -291,6 +292,31 @@ runAudit("soc2-audit");
       return `${o.f}: ${line.trim().slice(0, 200)}`;
     });
     say(rule, "FAIL", named.join(" | "));
+  }
+}
+
+/* ------------------------------------------------------------- 4b. US spelling, voice-audit's sweep */
+
+/*
+ * voice-audit's US spelling sweep, the same function on the same subject
+ * (scripts/lib/us-spelling.mjs). It reads files only, so it runs whole here.
+ * Board 40969663851 missed on it: "licence holder" emitted into
+ * src/content/procedures.ts, while the rule below read banned phrases and
+ * claims and not spelling. A sweep over nothing passes forever, so the subject
+ * must hold procedures.ts, the file that missed.
+ */
+{
+  const rule = "US spelling in composed text (voice-audit's sweep)";
+  const { usSpellingSweep } = await import("./lib/us-spelling.mjs");
+  const sweep = usSpellingSweep();
+  const guard = [];
+  if (!sweep.composedFiles.includes("src/content/procedures.ts")) guard.push("the composed files do not include src/content/procedures.ts");
+  if (sweep.findings.length) {
+    say(rule, "FAIL", [...guard, ...sweep.findings.map((f) => `${f.route}: ${f.detail.slice(0, 160)}`)].join(" | "));
+  } else if (guard.length) {
+    say(rule, "FAIL", guard.join(" | "));
+  } else {
+    say(rule, "PASS", `${sweep.composedFiles.length} composed files, ${sweep.protocolFiles.length} protocol files exempt`);
   }
 }
 
