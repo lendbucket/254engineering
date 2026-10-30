@@ -79,6 +79,31 @@ Every repair was proved by an injection, and each file was restored byte identic
 4. Skip re-boarding a push to main whose exact commit already has a green board (ruled 2026-10-22). It edits `board.yml`, so it comes after bundle 17.
 5. List controls (search, filter, sort, paging) on the 13 staff screens that have none, so each can then take a CSV export, office ready section 2d.
 
+## 2026-10-30: BUNDLE 38 MISSED ON ITS OWN ROUTE; BUNDLE 39, THE PREFLIGHT CHECKS TITLES AND DESCRIPTIONS, AT `e4d2fd4`
+
+**Bundle 38, board 41118588757 on `576faec`: 63 of 64.**
+- **perf-audit:** "region: LCP 3402ms within 3400ms (/coverage/coastal-bend, median of 3, spread 23ms. Every sample was over, so this is not noise.)"
+- `/coverage` was 3405 ms, NOT STABLE (spread 446 ms).
+- **The photo fix does not hold these two pages up.** They are the only public routes over about 3,220 ms, and the only ones with 59 to 70 KB of HTML: the county map. Not merged.
+- The map's own markup is being shrunk, still server rendered, as bundle 14b. Question 6533267787.
+
+**Prediction for bundle 39, written and pushed before the board starts.** The class fix for bundle 37's first miss.
+
+**What it changes:**
+- seo-audit's title and description rules move to `scripts/lib/metadata-rules.mjs`, which seo-audit calls with the same messages.
+- The static proof `every-declared-title-and-description-meets-the-budget.mjs` applies them to every title and description declared in code: 84, with 0 not statically known.
+- **Injections:** "Find yours here.", a 61 character title, and a duplicate description, each red.
+- **Found and recorded, not changed:** `CTA_VERB` matches "call" inside "on-call".
+
+**Readers on `e4d2fd4`, on main `694b79b`:**
+- Preflight GREEN, 38 rules, 120 static proofs.
+- tsc clean.
+
+**Prediction: 64 of 64.**
+- seo-audit passes unchanged.
+- **Standing notes:** as named for bundle 24.
+- **Named in advance:** `/coverage` and `/coverage/coastal-bend` sit at the LCP ceiling on every board now. Bundle 38 measured coastal-bend over on every sample. A miss there would be that route, untouched by this branch, and still no merge under the 22:12 ruling.
+
 ## 2026-10-30: BUNDLE 37 PASSED, HELD FOR THE TITLE; BUNDLE 38, THE MASTHEAD PHOTO FIX, AT `576faec`
 
 **Bundle 37, board 41109712078 on `b5d7ae6`: 64 of 64, as predicted.**
