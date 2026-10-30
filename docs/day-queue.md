@@ -69,6 +69,29 @@ Every repair was proved by an injection, and each file was restored byte identic
 4. Skip re-boarding a push to main whose exact commit already has a green board (ruled 2026-10-22). It edits `board.yml`, so it comes after bundle 17.
 5. List controls (search, filter, sort, paging) on the 13 staff screens that have none, so each can then take a CSV export, office ready section 2d.
 
+## 2026-10-29: BUNDLE 26 MERGED; BUNDLE 27, LIST CONTROLS ON /portal/onboarding, AT `2ae017b`
+
+**Bundle 26 merged as `ba7a8e4`.** The merged tree is the boarded tree. Board 40977483013 on `5ccbde9` read 64 of 64, preflight GREEN.
+- **One prediction line was badly worded:** it implied the walk's missing count would drop. The walk read 17 missing, the same as the first board, which already included this screen.
+
+**Prediction for bundle 27, written and pushed before the board starts.** Robert's ruling of 10:52 (6501552714), "Build list controls for onboarding".
+
+**What it adds:**
+- `/portal/onboarding` searches name, email and phone, filters by status (and by role where the grant sees both), sorts by invited date or name, and pages 50 at a time. The query is in the address.
+- Counts are exact. The technician-only grant is applied in the query, so who sees what is unchanged.
+- `listOnboardings()`, an unbounded read that showed "Nobody yet" on a failed read, is gone. The invited set reads every row against an exact count, and a failed read is said.
+- No CSV export, as before.
+
+**Readers on `2ae017b`, on main `ba7a8e4`:**
+- Preflight GREEN, 37 rules.
+- tsc clean.
+- `the-onboarding-list-searches-filters-sorts-and-pages.mjs` PASS.
+- No conflict marker left in BACKLOG.
+
+**Prediction: 64 of 64.**
+- The standing notes as named for bundle 24.
+- roles-audit and the perf audits open `/portal/onboarding` as before.
+
 ## 2026-10-29: BUNDLE 26 MISSED ON A BRITISH SPELLING; REBOARD AT `5ccbde9`
 
 **Board 40969663851 on `c79506f`: 63 of 64.**
