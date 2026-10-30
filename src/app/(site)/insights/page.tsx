@@ -55,6 +55,13 @@ export default function InsightsPage() {
       <section className="border-b border-limestone-line">
         <Container>
           <div className="py-[clamp(48px,7vw,88px)]">
+            <p className="mb-8 max-w-[46rem] text-[1.01rem] leading-[1.72] text-slate-muted">
+              Newest first.{" "}
+              <Link href="/guides" className="underline underline-offset-4">
+                The same articles by topic
+              </Link>
+              , with the windstorm and structural engineer guides beside them.
+            </p>
             <ul className="max-w-[46rem] divide-y divide-limestone-line border-t border-limestone-line">
               {posts.map((post) => (
                 <li key={post.slug} className="py-9">
