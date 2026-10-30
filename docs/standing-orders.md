@@ -63,7 +63,7 @@ The source of truth for the running loop. Robert, 2026-10-29: the loop prompt is
 - **Ongoing and design** stay pending.
 - **The check:** `scripts/lib/receives-check.mjs`, used by protocol-registry-audit and a static proof.
 - **Robert 09:48: yes.** The windstorm page quotes the completed tier only until the addendum puts ongoing in force. **Merged as `694b79b`** (board 41090210363). |
-| M | **The preflight checks every title and description** with seo-audit's own rules, which now live in `scripts/lib/metadata-rules.mjs`. Built as `e4d2fd4`: 84 checked, 0 not statically known, three injections. **Found:** `CTA_VERB` counts "call" inside "on-call" as a call to action, so a description can pass without one. Recorded; tightening it is its own small bundle. | **Bundle 39, boarding** at `e4d2fd4` |
+| M | **The preflight checks every title and description** with seo-audit's own rules, which now live in `scripts/lib/metadata-rules.mjs`. Built as `e4d2fd4`: 84 checked, 0 not statically known, three injections. **Found:** `CTA_VERB` counts "call" inside "on-call" as a call to action, so a description can pass without one. Recorded; tightening it is its own small bundle. | **Merged as `764b4b5`** (board 41136495238) |
 | H | **The height warning (Robert, 15:08: yes, a warning only).** mobile-overflow-audit names every public route within 1,000 px of the 16,000 px ceiling at 390. The verdict is unchanged. Built as `0695325`:
 - `HEIGHT_WARNING_HEADROOM_PX = 1000`, decided by `nearCeiling()`;
 - a static proof with two injections;

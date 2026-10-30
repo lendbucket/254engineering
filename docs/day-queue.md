@@ -79,6 +79,22 @@ Every repair was proved by an injection, and each file was restored byte identic
 4. Skip re-boarding a push to main whose exact commit already has a green board (ruled 2026-10-22). It edits `board.yml`, so it comes after bundle 17.
 5. List controls (search, filter, sort, paging) on the 13 staff screens that have none, so each can then take a CSV export, office ready section 2d.
 
+## 2026-10-30: BUNDLE 39 MERGED; BUNDLE 37 RE-BOARDED WITH THE FINAL TITLE, AT `b61132a`
+
+**Bundle 39 merged as `764b4b5`.** This is the preflight metadata check and the shared proof invocation. The merged tree is the boarded tree. Board 41136495238 on `9d054f0` read 64 of 64, as predicted.
+
+**Prediction for bundle 37, re-boarded as Robert ruled at 16:23** ("Board and merge on a pass").
+- **The change since its passing board:** the title is now "FHA Mobile Home Foundation Requirements | 254 Engineering" (57). The H1 stays "FHA manufactured home foundation certification in Texas".
+- Main merged in as `b61132a`, and the head was confirmed moved.
+- The preflight now runs the metadata check, so the new title's length, suffix and uniqueness are checked statically. They pass.
+
+**Readers on `b61132a`, on main `764b4b5`:** Preflight GREEN, 38 rules; tsc clean.
+
+**Prediction: 64 of 64.**
+- seo-audit: no problems, and the title is unique.
+- **Standing notes:** as named for bundle 24.
+- **Named in advance:** an LCP miss on `/coverage` or a region page would be that route, which still waits for the map size bundle.
+
 ## 2026-10-30: BUNDLE 39 MISSED: THE BOARD COULD NOT LAUNCH ITS PROOF; REBOARD
 
 **Board 41127255244 on `e4d2fd4`: 63 of 64.**
