@@ -79,6 +79,48 @@ Every repair was proved by an injection, and each file was restored byte identic
 4. Skip re-boarding a push to main whose exact commit already has a green board (ruled 2026-10-22). It edits `board.yml`, so it comes after bundle 17.
 5. List controls (search, filter, sort, paging) on the 13 staff screens that have none, so each can then take a CSV export, office ready section 2d.
 
+## 2026-10-30: BUNDLE 34 MERGED; BUNDLE 35, THE /portal/launch BUTTONS, AT `73e08ff`
+
+**Bundle 34 merged as `4c292ab`.** This is the solar article and the compact `/insights` hub. The merged tree is the boarded tree. Board 41058621423 on `98c2441` read 64 of 64, as predicted.
+- `/insights` left the twelve tallest pages.
+- `/insights/wpi-8-certificate` is now the tallest public page, at 15,326 px against the 16,000 px ceiling. It is recorded here for the next content change to that post.
+
+**Prediction for bundle 35, written and pushed before the board starts.** Robert's 10:52 and 22:12 rulings, WF-024 steps 3 and 4.
+
+**The proving charge:** `runProvingCharge` in `src/lib/ops-proving-charge.ts` wraps the existing `provingChargeBlockers` and `startProvingCheckout`. It runs these steps in order:
+1. the typed reference;
+2. the existing conditions (`payments.charge`, `PROVING_CHARGE=1`, no recorded proof);
+3. no probe account;
+4. the password;
+5. `proving_charge.started` written first;
+6. the checkout.
+
+It refuses a second charge, and the panel states the amount and the reference before its button.
+
+**The "we are open" email:**
+- `src/lib/ops-announce.ts` needs `roles.manage` and an open gate (`isOpen()`).
+- The preview goes only to `business.notificationEmail`.
+- The send needs an `announcement.previewed` record carrying the current content hash. It goes through the existing queue-based `sendLaunchAnnouncement`, which skips suppressed addresses.
+- **Records:** `announcement.previewed` and `announcement.sent` are written first, then `announcement.queued` or `announcement.send_failed`.
+
+**Also:**
+- roles-audit refuses both announcement steps to the rep and the ops manager.
+- security-audit lists `/api/portal/launch-announcement`.
+- MAP_NO_SCREEN moves from 9 to 7, and the procedures are re-emitted.
+- Nothing calls Stripe or sends mail in any proof.
+
+**Readers on `73e08ff`, on main `4c292ab`:**
+- Preflight GREEN, 38 rules.
+- tsc clean.
+- The map marks equal the pins, 8 and 7.
+- Four injections at build time.
+
+**Prediction: 64 of 64.**
+- roles-audit and security-audit pass with the new route.
+- The walk's no-screen count is 7.
+- **Standing notes:** as named for bundle 24.
+- **Named in advance:** an LCP miss within the run spread on `/coverage` or a region page would be that route.
+
 ## 2026-10-30: BUNDLE 34 MISSED TWICE; REBOARD AT `98c2441`
 
 **Board 41049232908 on `d313636`: 62 of 64.**
