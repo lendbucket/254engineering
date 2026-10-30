@@ -69,6 +69,34 @@ Every repair was proved by an injection, and each file was restored byte identic
 4. Skip re-boarding a push to main whose exact commit already has a green board (ruled 2026-10-22). It edits `board.yml`, so it comes after bundle 17.
 5. List controls (search, filter, sort, paging) on the 13 staff screens that have none, so each can then take a CSV export, office ready section 2d.
 
+## 2026-10-30: BUNDLE 31 MERGED; BUNDLE 32, /san-antonio AND THE SECTION 2 WORDING, AT `75a4973`
+
+**Bundle 31 merged as `d011bba`.** This is the `/corpus-christi` revision. The merged tree is the boarded tree. Board 41022947388 on `d401611` read 64 of 64, preflight GREEN, as predicted.
+
+**Prediction for bundle 32, written and pushed before the board starts.** Robert's 22:12 yes on 6504744856, with his H1 and the four recommendations.
+
+**What it adds:**
+- `/san-antonio`, the firm's location page, added alongside `/corpus-christi`.
+  - H1: "San Antonio Engineering Firm: 254 Engineering's Office". The title is 59 characters and the description 152.
+  - The street, hours and phone come from `contact.ts`.
+  - The capability section reads the gate.
+- **Every cited source was read in full this session:** the city's Chapter 10, IB224 (as the trench cut bulletin it is), and 30 TAC 213 for Bexar in the Edwards program.
+- **Dropped for want of a source read in full:** the soil series under the city, "county seat", the courthouse and the map viewer.
+- **Linking:** in from `/press` and `/contact`; out to `/coverage`, `/coverage/san-antonio`, `/services/foundation-inspections` and `/contact`. The page is in the sitemap.
+- **Schema:** the breadcrumb only. The site's Organization node already carries the address and hours.
+- **CLAUDE.md section 2:** the "/corpus-christi is the firm's own location page" bullet is replaced word for word by the approved wording, which keeps the old rule as a superseded note.
+
+**Readers on `75a4973`, on main `d011bba`:**
+- Preflight GREEN, 38 rules.
+- tsc clean.
+- The name, address and phone proof and the firm-name proof both PASS.
+
+**Prediction: 64 of 64.**
+- seo-audit: `/san-antonio` is linked from two pages, its title and description are unique, and canonical and og are present.
+- voice-audit and launch-audit: no present-tense service claim in prelaunch.
+- **Standing notes:** as named for bundle 24.
+- **Named in advance:** an LCP miss within the run spread on `/coverage` would be that route.
+
 ## 2026-10-30: BUNDLE 30 MERGED; BUNDLE 31, THE /corpus-christi REVISION, AT `d401611`
 
 **Bundle 30 merged as `05dbb6a`.** This is the favicon set. The merged tree is the boarded tree. Board 41014921146 on `a75aecc` read 64 of 64, preflight GREEN, as predicted.
