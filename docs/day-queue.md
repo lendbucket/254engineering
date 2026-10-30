@@ -91,7 +91,13 @@ Every repair was proved by an injection, and each file was restored byte identic
 - **Proved:** with the proof unchanged, the preflight went red on it, "repo-wide static proofs (120) every-declared-title-and-description-meets-the-budget.mjs".
 - The proof now imports `../../src/lib/seo.ts` by a literal path, and the preflight is green.
 
-**Readers:** Preflight GREEN, 38 rules; tsc clean.
+**Readers on `9d054f0`:** Preflight GREEN, 38 rules; tsc clean.
+
+**A mistake of mine, recorded.**
+- The first commit of this repair was refused by the commit guard, because the add named files under `scripts/`. I did not check the result.
+- I then pushed and dispatched run 41136208166 on the unchanged `e4d2fd4`, which breaks "never re-run an unchanged commit".
+- It was cancelled during preflight and build. No shard ran, so nothing touched the development database.
+- The repair was then committed as `9d054f0`, and boarded.
 
 **Prediction: 64 of 64.**
 - proofs-audit runs the metadata proof under tsx and passes, with 84 titles and descriptions.
