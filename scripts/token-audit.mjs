@@ -430,6 +430,8 @@ const PORTED = [
   "src/app/portal/(app)/review/PrereviewPanel.tsx",
   "src/app/portal/(app)/pricebook/page.tsx",
   "src/app/portal/(app)/launch/page.tsx",
+  /* WF-024 steps 3 and 4, Robert 2026-10-29: the proving charge and the launch announcement panels. */
+  "src/app/portal/(app)/launch/LaunchActions.tsx",
   "src/app/portal/(app)/queue/QueueClient.tsx",
   "src/app/portal/(app)/queue/page.tsx",
   "src/app/portal/(app)/review/ReviewClient.tsx",

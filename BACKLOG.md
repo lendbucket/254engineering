@@ -67,7 +67,13 @@ partners. Those are questions, below.
    - **Money:** whole cents, never rounded. The `set-terms` branch no longer writes a terms column or calls `Math.round`.
    - **The proof:** `an-accounts-terms-change-asks-the-password-and-is-recorded-first.mjs`.
 4. **WF-024 step 3, the proving charge has no screen.** A live charge. Recommend: an administrator button on `/portal/launch` that shows the blockers first; build only on your word.
+   - **BUILT 2026-10-30**, on Robert's ruling of 10:52 Central 2026-10-29 (6501552714): `ProvingChargePanel` on `/portal/launch` states the charge, then takes the typed reference and the password again.
+   - **The server:** `runProvingCharge` in `ops-proving-charge.ts` asks the confirmation, then `provingChargeBlockers`, then refuses a probe account and a proving order already past payment, then `verifyOwnPassword`, then writes `proving_charge.started` through `writeAuditOrRefuse`, then `startProvingCheckout`.
+   - **The proof:** `the-launch-buttons-refuse-before-they-act.mjs`.
 5. **WF-024 step 4, telling the waitlist the firm is open has no screen.** It emails customers. Recommend: a button on `/portal/launch`, enabled only once the gate reads live, sending a preview to you first.
+   - **BUILT 2026-10-30**, on the same ruling: `AnnouncementPanel` on `/portal/launch`.
+   - **The server:** `sendAnnouncementPreview` sends to `business.notificationEmail` only. `sendAnnouncementToWaitlist` refuses content whose hash was not previewed, and refuses content already sent. Both are `roles.manage`, the gate, no probe account, and the password again, with `announcement.previewed` and `announcement.sent` written first.
+   - **Open:** a send that fails partway is recorded as sent, so a second press cannot mail anybody twice. The remainder is then sent by hand from the job queue's record. Recommend keeping that direction.
 6. **WF-006 step 2, a customer cannot ask to be forgotten except by calling.** A new customer-facing form. Recommend: keep it staff-taken for now; `/portal/deletion-requests` already records it.
 7. **WF-030 step 5, a technician cannot delete a capture.** `deleteCapture` writes no audit row, and the evidence feeds what the engineer seals. Recommend: a delete button on the capture screen while the file is in the field, and an audit row added to `deleteCapture` first. **Ruled yes by Robert, 10:52 Central 2026-10-29, and built:** `deleteCapture` writes `capture.delete` through `writeAuditOrRefuse` before the row goes and refuses when it cannot, refuses a capture a repair was verified against, and the job screen draws a Remove control per capture from the same rule (`captureDeleteRefusal`). Proved by `scripts/proofs/a-capture-is-removed-only-with-its-record.mjs`. Still open: the stored photograph stays in the evidence bucket after its row goes, named in the audit row's `storage_key`.
 
@@ -1163,6 +1169,22 @@ sentence, so the registration cannot quietly leave it behind.
 
 The WPI-8 disclaimers moved to `notes` word for word and are pinned in the same
 audit; a new note is a deliberate edit listed for the operator's review.
+
+**DONE FOR SIX, 2026-10-30, on Robert's 09:28 Central instruction.** The
+follow-ups above never happened, and nothing went red, because the check read
+"signed" from `PROTOCOL_ENTRIES`, where the portal-signed protocols never went:
+0081 put DS, FC, MH, PL, RS, SL and WS in force on production on 2026-10-23,
+and the windstorm completed page went on saying its scope waited on a signature.
+The windstorm completed, foundation, manufactured home, solar, structural letter
+and repair specification lines, and their six service pages, now quote section
+11 of WS-001, FC-001, MH-001, SL-001, PL-001 and RS-001 (`PROTOCOL_RECEIVES` in
+`data/catalog.ts`). The rule moved to `scripts/lib/receives-check.mjs`, which
+reads "in force" as the code declares it, SIGNABLE_PROTOCOLS less
+HELD_OUT_OF_FORCE plus the paper-signed entries, and refuses pre-signature
+wording of any spelling on such a line. protocol-registry-audit and the static
+proof `a-deliverable-quotes-its-protocol-in-force.mjs` both apply it.
+**Still pending, correctly:** windstorm ongoing (254-WP-001, held until his
+scope addendum) and the three design tiers (no protocol).
 
 ## OUR LOCK AND WATTSMITH'S WERE BOTH HELD AT ONCE, 2026-10-09. NOT EXPLAINED.
 
