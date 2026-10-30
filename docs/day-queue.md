@@ -69,6 +69,37 @@ Every repair was proved by an injection, and each file was restored byte identic
 4. Skip re-boarding a push to main whose exact commit already has a green board (ruled 2026-10-22). It edits `board.yml`, so it comes after bundle 17.
 5. List controls (search, filter, sort, paging) on the 13 staff screens that have none, so each can then take a CSV export, office ready section 2d.
 
+## 2026-10-30: BUNDLE 30 MERGED; BUNDLE 31, THE /corpus-christi REVISION, AT `d401611`
+
+**Bundle 30 merged as `05dbb6a`.** This is the favicon set. The merged tree is the boarded tree. Board 41014921146 on `a75aecc` read 64 of 64, preflight GREEN, as predicted.
+
+**Prediction for bundle 31, written and pushed before the board starts.** Robert's 22:12 yes on 6504744447, with his H1.
+
+**What it changes:**
+- The page reads as a market the firm serves: H1 "Corpus Christi Engineering for the Coastal Bend", title "Corpus Christi Engineering, Coastal Bend | 254 Engineering" (58), description 150.
+- **The verb follows the gate:** `servesVerb()` reads "serves" when trading and "is built to serve" in prelaunch, on the page and on `/windstorm`.
+- **Gate-derived text:** the capability lede and the registration sentence come from the gate, and `OfferCta` takes no typed copy.
+- **New Office row:** "The firm's office is in San Antonio".
+- **Unchanged:** every sourced fact. No street address, and the schema is the breadcrumb only.
+- **Links in:** the main navigation, a home page chip, `/coverage` and `/windstorm`.
+- **The navigation, measured rather than estimated.** Production's bar at 1024 to 1440, with a ninth link added and measured in place:
+  - At the old padding, nine items overran the row by 47 px at 1024 and 25 px at 1080. The row does not wrap, and no audit measures between 390 and 1280.
+  - The link padding is now `clamp(8px, calc(2.6vw - 17px), 18px)`.
+  - The same measurement then leaves 14 px spare at 1024, 44 px at 1080, 70 px at 1280 and 39 px at 1440.
+  - The preview could not be measured, because it sits behind Vercel's sign-in.
+- **The firm-name proof:** it now asserts that the description names no firm, and still asserts that the body follows the register. An injection turned two checks red.
+
+**Readers on `d401611`, on main `05dbb6a`:**
+- Preflight GREEN, 38 rules, including US spelling.
+- tsc clean.
+
+**Prediction: 64 of 64.**
+- seo-audit: `/corpus-christi` is linked from four pages, and its title and description are unique.
+- launch-audit and voice-audit: "is built to serve" in prelaunch, and "serves" when live.
+- mobile-audit and contrast-audit pass at 390 and 1280.
+- **Standing notes:** as named for bundle 24.
+- **Named in advance:** an LCP miss within the run spread on `/coverage` would be that route. This branch adds one sentence to `/coverage`'s regions section.
+
 ## 2026-10-30: BUNDLE 22 MERGED; BUNDLE 30, THE FAVICON SET, AT `a75aecc`
 
 **Bundle 22 merged as `3975b96`.** These are the list controls. The merged tree is the boarded tree. Board 41008700702 on `e9e5eca` read 64 of 64, preflight GREEN, as predicted.
