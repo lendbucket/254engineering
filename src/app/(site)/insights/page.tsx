@@ -15,7 +15,15 @@ import { insightsByDate } from "@/content/insights";
  * posts in a two column grid leaves a visibly empty cell, and more importantly
  * these are documents rather than products: the thing a reader needs from the
  * index is the title, what the piece covers, and when it was written.
+ *
+ * THE NEWEST TWELVE IN FULL, THE REST AS A COMPACT LIST. 2026-10-30: at 37
+ * posts the full list reached 16,027px at 390 wide, over the 16,000px ceiling
+ * mobile-overflow-audit holds public content to, and every post added makes it
+ * longer. Every post is still linked from this page, so no post loses its
+ * inbound link from the hub; the older ones carry their title and date only.
  */
+
+const FULL_ENTRIES = 12;
 
 export const metadata: Metadata = buildMetadata({
   title: "Engineering Insights for Texas Buyers | 254 Engineering",
@@ -39,7 +47,9 @@ function longDate(iso: string): string {
 }
 
 export default function InsightsPage() {
-  const posts = insightsByDate();
+  const all = insightsByDate();
+  const posts = all.slice(0, FULL_ENTRIES);
+  const earlier = all.slice(FULL_ENTRIES);
 
   return (
     <>
@@ -87,6 +97,26 @@ export default function InsightsPage() {
                 </li>
               ))}
             </ul>
+            {earlier.length > 0 ? (
+              <div className="mt-14 max-w-[46rem]">
+                <h2 className="font-display text-[1.25rem] font-semibold text-slate">Earlier pieces</h2>
+                <ul className="mt-4 divide-y divide-limestone-line border-t border-limestone-line">
+                  {earlier.map((post) => (
+                    <li key={post.slug} className="py-4">
+                      <Link
+                        href={`/insights/${post.slug}`}
+                        className="inline-block py-1 text-[1.05rem] leading-[1.4] font-semibold text-slate transition-colors hover:text-brass-ink"
+                      >
+                        {post.h1}
+                      </Link>
+                      <p className="mt-1 font-sans text-[0.85rem] text-slate-muted">
+                        <time dateTime={post.datePublished}>{longDate(post.datePublished)}</time>
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
           </div>
         </Container>
       </section>
