@@ -414,3 +414,12 @@
     scroll-behavior: auto;
   }
 }
+
+/*
+ * The county map's hairlines stay hairlines at every size. vector-effect does
+ * not inherit in SVG, so it was written on each of 254 paths; one rule here
+ * replaces that on the standalone map (src/components/map/TexasCountyMap.tsx).
+ */
+.tx-counties > path {
+  vector-effect: non-scaling-stroke;
+}
