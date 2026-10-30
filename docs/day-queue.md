@@ -79,6 +79,25 @@ Every repair was proved by an injection, and each file was restored byte identic
 4. Skip re-boarding a push to main whose exact commit already has a green board (ruled 2026-10-22). It edits `board.yml`, so it comes after bundle 17.
 5. List controls (search, filter, sort, paging) on the 13 staff screens that have none, so each can then take a CSV export, office ready section 2d.
 
+## 2026-10-30: BUNDLE 36 MISSED ON RC-001'S EXCLUSION CHECK; REBOARD
+
+**Board 41078181970 on `b9f4c42`: 63 of 64.**
+- The one FAIL is protocol-registry-audit: "no rendered sentence describes the deliverable in terms 254-RC-001 excludes ("future performance" ...)".
+- **The cause:** a real miss, caused by the branch, in the check rather than the copy. The check reads all of `data/catalog.ts` and `services.ts`, but excused only RC-001's own sentences. The new quotations of 254-MH-001 and 254-RS-001 each say, in the negative, that their document "does not forecast future performance", and the check read that as a promise.
+- **Named in advance and did not fire:** the present-tense sealing risk. voice-audit and launch-audit passed.
+
+**The repair:**
+- A sentence that appears word for word in a signed protocol's transcription under `src/content/protocols` is removed before matching, and the exemption is counted with a floor of six.
+- A paraphrase is not in the transcriptions, so it is still caught.
+- **Proved with a scratch harness** that runs the rewritten matching over the real files: 55 sentences excused, nothing promised.
+- **Injection:** a paraphrased promise, "The letter gives a view of the roof's future performance over the next decade.", added to the catalogue, went red on "future performance". Restored byte identical.
+
+**Readers:** Preflight GREEN, 38 rules.
+
+**Prediction: 64 of 64.**
+- protocol-registry-audit's line reads "... N sentence(s) excused as word for word quotations of a signed protocol", with N at or above 6.
+- **Standing notes:** as named for bundle 24.
+
 ## 2026-10-30: BUNDLE 35 MERGED; BUNDLE 36, THE "RECEIVES" PLACEHOLDER, AT `b9f4c42`
 
 **Bundle 35 merged as `2852892`.** These are the `/portal/launch` buttons. The merged tree is the boarded tree. Board 41067718105 on `73e08ff` read 64 of 64, preflight GREEN, as predicted.
