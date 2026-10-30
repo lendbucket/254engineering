@@ -1008,15 +1008,17 @@ export const PROCEDURES: Procedure[] = [
       },
       {
         "n": "6",
-        "screen": "none",
-        "routes": [],
-        "who": "Engineer (`protocols.publish`, a licensed action: both functions refuse the admin, `holdsLicence`)",
-        "sees": "",
-        "does": "Withdraws or restores a certification",
-        "next": "`/api/portal/onboarding` `revoke_certification` and `restore_certification` exist",
-        "told": "The technician (`certification.revoked`, mandatory email)",
-        "record": "`eng_certifications` update; audits `certification.revoke`, `certification.restore`",
-        "marks": "**[NO SCREEN]**: no screen sends either action"
+        "screen": "`src/app/portal/(app)/review` (`CertificationStandingPanel`, below the queue)",
+        "routes": [
+          "/portal/review"
+        ],
+        "who": "Engineer (`protocols.publish`, a licensed action: both functions refuse the admin, `holdsLicence`, and the panel is drawn only for the license holder)",
+        "sees": "Every active technician's current or withdrawn certification",
+        "does": "Withdraws or restores one, with a reason both ways",
+        "next": "`/api/portal/onboarding` `revoke_certification` and `restore_certification` (`revokeCertification`, `restoreCertification`)",
+        "told": "The technician (`certification.revoked`, mandatory email) on a withdrawal",
+        "record": "Audit `certification.revoke` or `certification.restore` written first and refusing if it fails, then `eng_certifications` update; `certification.revoke_failed` or `certification.restore_failed` when the update changed nothing",
+        "marks": "A screen since 2026-10-29, Robert's ruling (issue #1 comment 6501552714). The queue's order is untouched: no sort or filter was added to /portal/review"
       }
     ],
     "notes": []
