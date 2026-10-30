@@ -4,6 +4,34 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
+## THE OFFICE MOVED TO SAN ANTONIO, 2026-10-29: WHAT THE MOVE DID NOT MOVE
+
+Robert, 12:50 Central 2026-10-29: the office is 11103 San Pedro Ave, San Antonio,
+TX 78216, the phone stays (281) 940-4490, and the hours are Monday to Sunday,
+8:00 AM to 8:00 PM Central. `feat/sa-address` moved the one declared address in
+`src/config/contact.ts`, declared the hours there with two derivers
+(`hoursLine()`, `openingHoursSchema()`), and carried both to the footer,
+/contact, /press, the Organization and ProfessionalService node, and seo-audit's
+pinned literals. These four things it did not move, each on purpose:
+
+1. **/corpus-christi, the firm's single location page** (CLAUDE.md section 2;
+   `src/content/location.ts`). It is written as "the one place the firm actually
+   sits", and it prints `contact.street` and `contact.city`, so it now shows the
+   San Antonio office on a page about Corpus Christi. **Robert to rule** whether
+   it is retired with a permanent redirect to /coverage/coastal-bend, and whether
+   a San Antonio location page is written in its place from primary sources. The
+   windstorm hub's link to it ("based in Corpus Christi") was rewritten to a
+   plain sentence without the link.
+2. **The Stripe support address** in `src/config/stripe-console.ts` is a dated
+   record of what Stripe's console held when somebody last read it. Nothing
+   compares it to `contact.ts`. It moves when Robert changes the console and
+   somebody reads it back.
+3. **The Board's mailing address** in `src/config/credentials.ts` is the TBPELS
+   record as the Board's letter of 2026-09-21 stated it. Nothing compares it to
+   `contact.ts`. It moves when the Board's record moves.
+4. **The Google Business Profile** is Robert's to change. `docs/gbp-brief.md`
+   now states the values and the description to paste.
+
 ## W3 ROUND 2, 2026-10-28: THE WALK'S 28 MISSING AND OFF-SCREEN STEPS
 
 From the W2 walk on board 40789442209 (20 missing, 8 off-screen). Robert's loop
@@ -30,13 +58,18 @@ partners. Those are questions, below.
 - WF-007 step 4's screen cell names the four screens that carry the call log.
 
 **Questions for Robert, each with a recommendation:**
-1. **WF-017 step 6, withdrawing or restoring a technician's certification has no screen.** It is a licensed action, so only the engineer may send it, and the engineer cannot open `/portal/techs`. Recommend: a panel on `/portal/review` beside the training decisions, engineer only, with the reason required.
+1. **WF-017 step 6, withdrawing or restoring a technician's certification has no screen.** It is a licensed action, so only the engineer may send it, and the engineer cannot open `/portal/techs`. Recommend: a panel on `/portal/review` beside the training decisions, engineer only, with the reason required. **BUILT on `feat/cert-panel`, Robert's ruling of 10:52 Central 2026-10-29 (issue #1 comment 6501552714).** The panel sits below everything already on `/portal/review`, so the queue's order is untouched, and is drawn only for the licence holder. `revokeCertification` and `restoreCertification` stay the one path: restore now takes a reason too, both write `certification.revoke` or `certification.restore` through `writeAuditOrRefuse` before the change and refuse if it fails, and a change that touched no row is recorded as `_failed` and reported. Proof: `scripts/proofs/the-engineer-withdraws-a-certification-on-review-with-a-reason.mjs`.
 2. **WF-021 step 4, releasing a sign-in lock has no screen.** The route behind `releaseLock` takes the operator's token. Recommend: keep it off-screen; a screen would put the break-glass token, or its equivalent, behind an ordinary session.
 3. **WF-022 step 3, setting an account's credit limit and terms has no screen.** That is a money flow. Recommend: an administrator panel on `/portal/accounts`, with a fresh second factor, once you rule.
+   - **BUILT 2026-10-29 on Robert's ruling of 10:52:** password re-entry, not an authenticator code.
+   - **The screen:** the "Change terms" panel on each row of `/portal/accounts`, drawn on `accounts.manage`.
+   - **The server:** `setAccountTerms` in `ops-accounts-admin.ts` asks the grant, then `verifyOwnPassword`, then writes `account.terms_changed` with both sides of each field through `writeAuditOrRefuse`, then updates. No row changed is recorded as `account.terms_change_failed`.
+   - **Money:** whole cents, never rounded. The `set-terms` branch no longer writes a terms column or calls `Math.round`.
+   - **The proof:** `an-accounts-terms-change-asks-the-password-and-is-recorded-first.mjs`.
 4. **WF-024 step 3, the proving charge has no screen.** A live charge. Recommend: an administrator button on `/portal/launch` that shows the blockers first; build only on your word.
 5. **WF-024 step 4, telling the waitlist the firm is open has no screen.** It emails customers. Recommend: a button on `/portal/launch`, enabled only once the gate reads live, sending a preview to you first.
 6. **WF-006 step 2, a customer cannot ask to be forgotten except by calling.** A new customer-facing form. Recommend: keep it staff-taken for now; `/portal/deletion-requests` already records it.
-7. **WF-030 step 5, a technician cannot delete a capture.** `deleteCapture` writes no audit row, and the evidence feeds what the engineer seals. Recommend: a delete button on the capture screen while the file is in the field, and an audit row added to `deleteCapture` first.
+7. **WF-030 step 5, a technician cannot delete a capture.** `deleteCapture` writes no audit row, and the evidence feeds what the engineer seals. Recommend: a delete button on the capture screen while the file is in the field, and an audit row added to `deleteCapture` first. **Ruled yes by Robert, 10:52 Central 2026-10-29, and built:** `deleteCapture` writes `capture.delete` through `writeAuditOrRefuse` before the row goes and refuses when it cannot, refuses a capture a repair was verified against, and the job screen draws a Remove control per capture from the same rule (`captureDeleteRefusal`). Proved by `scripts/proofs/a-capture-is-removed-only-with-its-record.mjs`. Still open: the stored photograph stays in the evidence bucket after its row goes, named in the audit row's `storage_key`.
 
 ## OFFICE READY: WHICH STAFF LISTS EXPORT CSV, AND WHAT IS LEFT
 
@@ -73,12 +106,69 @@ failed or partial read.
 
 **Not built, and why.** These screens show rows but have no list controls yet
 (no search, filter, sort or page), so an export "through the screen's own
-query" has no query to follow: people, suppressions, deletion requests,
-insurance, credentials, the job queue, orders, the audit trail, onboarding,
-review, waiting, the technician's jobs and messages. Each needs its list
-controls first (section 2d), and its export then follows the same pattern.
-/portal/procedures is a document a role reads, not a list of records, and is
-left out.
+query" has no query to follow: the job queue, orders, onboarding, review,
+waiting, the technician's jobs and messages. Each needs
+its list controls first (section 2d), and its export then follows the same
+pattern. /portal/procedures is a document a role reads, not a list of
+records, and is left out.
+
+**The seven left are FINDINGS FOR ROBERT, by name (section 2d says a screen
+that cannot meet an item is reported, never quietly exempted).** Read
+2026-10-29; none is built, each with a recommendation:
+
+| Screen | What it is | Recommend |
+| --- | --- | --- |
+| /portal/orders | Three exception panels (refund failed after refunded, paid with no account, waiting on payment), each meant to be empty | **Exempt.** A filter on an exception queue is a way to hide a stuck payment. |
+| /portal/queue | Queue health per kind and the dead letters | **Exempt** for the same reason; the dead letters already page. |
+| /portal/waiting | The engineer's files waiting on an owner | **Exempt**; it is a short worklist read whole. |
+| /portal/review | The engineer's review queue, 853 lines of workflow | **Sort and filter only**, built after you rule, because it is the engineer's desk and changing its order changes what he reviews first. |
+| /portal/onboarding | Applications to invite and onboardings in progress | **Build** search and a status filter; no ruling needed beyond yes. |
+| /portal/jobs | The technician's own offers, on a phone | **Exempt**: a field screen rather than an office list. |
+| /portal/messages | Message threads, which already carry a search | **Exempt**: the search is the control a thread list needs. |
+
+**Built on `feat/list-controls-1` (2026-10-29): five of the thirteen.**
+People, do not contact, asked to be forgotten, insurance and credential review
+now search, filter, sort and page through one engine (`src/lib/staff-lists.ts`),
+each reading its whole register so every count is of the whole matching set.
+Three reads were capped or unbounded and are read in full now: people (an
+unbounded select), do not contact (the same), and the credential queue (cut at
+200 by hand, with its panel titled by the length of what came back). People
+and do not contact export as `report=people` and `report=suppressions` on the
+same gate. Three do not export, each a finding by name (section 2d):
+
+- **Asked to be forgotten: a question for Robert.** Each row quotes a
+  person's own words about what they want erased. Whether that leaves the
+  screen as a file is his to rule. **Recommend no** until counsel has answered
+  what the firm may keep, because a CSV of erasure requests is itself a copy of
+  the personal data the request is about.
+- **Credential review:** a queue that empties as each submission is verified;
+  its rows are working items rather than a record anybody reconciles in a
+  spreadsheet. Export it if Robert wants one; it is one report.
+- **Insurance:** a register of a handful of policies, each with its
+  certificate one click away. Same answer.
+
+**Built on `feat/list-controls-2` (2026-10-29): the audit trail.** It read the
+newest 200 events and said "capped at 200 for now", so nothing older was
+reachable from the portal. It is searched and paged in the database now
+(`src/lib/audit-trail-list.ts`), a hundred to a page with an exact count of the
+whole matching set, and exports as `report=audit-trail` on the staff list gate
+plus `audit.read`, with the action key as stored rather than its label.
+
+**Built 2026-10-29 on `feat/onboarding-list`: /portal/onboarding, Robert's
+ruling of 10:52 Central ("Build list controls for onboarding").**
+- The "In onboarding" list searches name, email and phone. It filters by status, and by role for a grant that may see both roles. It sorts by invited or name and pages 50 at a time.
+- The query is in the address and the count is exact, from `src/lib/onboarding-list.ts`. The technician scope is applied in the query.
+- The unbounded `listOnboardings()` is gone; it read past nobody's ceiling and showed "Nobody yet" on a failed read.
+- The invited set reads every row against an exact count, and a failure is said. The applications read is null on error, not "Nothing waiting".
+- Proof: `the-onboarding-list-searches-filters-sorts-and-pages.mjs`.
+- Onboarding had no CSV export, and none was added.
+
+**Still open on that screen, a finding for Robert.** "Applications not yet
+invited" is the newest 200 applications minus everyone with an onboarding, a
+difference between two tables. It cannot be searched or paged in one query
+without a database view or function, which is a migration. The screen now states
+the bound when a read fills it. Recommendation: leave it bounded and stated. An
+older application is reached on `/portal/applications`, which already pages.
 
 ## /portal/accounts COUNTS SUPERSEDED ACCOUNTS IN "ALL": RULED, BUILT ON feat/superseded-hidden
 

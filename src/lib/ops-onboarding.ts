@@ -90,16 +90,32 @@ export type ApplicationRow = {
 const APPLICATION_COLUMNS =
   "id, created_at, site, role, name, email, phone, city, counties, experience, drone_license, reliable_vehicle, status";
 
-export async function listApplications(actor: Actor | null): Promise<ApplicationRow[]> {
+/**
+ * The newest applications the onboarding screen reads, and the bound it says
+ * out loud when a read reaches it.
+ */
+export const APPLICATION_READ_LIMIT = 200;
+
+/**
+ * The newest applications, bounded at APPLICATION_READ_LIMIT.
+ *
+ * NULL ON ERROR, NEVER AN EMPTY LIST (2026-10-29). It returned `data ?? []`, so
+ * a read that failed reached the screen as "Nothing waiting", a confident
+ * statement that nobody had applied. The bound stays and the screen states it
+ * whenever a read fills it, because "not yet invited" is a difference between
+ * two tables and cannot be paged in one query; BACKLOG.md carries that.
+ */
+export async function listApplications(actor: Actor | null): Promise<ApplicationRow[] | null> {
   const db = supabaseAdmin();
-  if (!db || !mayOpenOnboarding(actor, "profiles.create")) return [];
-  const { data } = await db
+  if (!db || !mayOpenOnboarding(actor, "profiles.create")) return null;
+  const { data, error } = await db
     .from("eng_applications")
     .select(APPLICATION_COLUMNS)
     .eq("site", "254")
     .order("created_at", { ascending: false })
-    .limit(200);
-  return (data ?? []) as ApplicationRow[];
+    .limit(APPLICATION_READ_LIMIT);
+  if (error || !data) return null;
+  return data as ApplicationRow[];
 }
 
 /**

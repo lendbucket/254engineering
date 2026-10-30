@@ -30,6 +30,7 @@ import {
   type TechCandidate,
 } from "./ops-dispatch";
 import {
+  captureDeleteRefusal,
   checklistState,
   type CapturedItem,
   type ChecklistState,
@@ -2071,20 +2072,95 @@ export async function closeRepairItem(
   return { ok: true, remaining };
 }
 
+/**
+ * Remove one capture from a file still in the field. Robert's ruling,
+ * 2026-10-29 (WF-030 step 5): a delete button on the job screen, and the audit
+ * row added here first.
+ *
+ * THE RECORD IS WRITTEN BEFORE THE ROW GOES, THROUGH writeAuditOrRefuse. A
+ * capture is evidence the engineer will review and seal on, and a removal
+ * with no record is a gap in the package nobody can see. So a removal that
+ * could not be recorded does not happen, and the record names who removed
+ * what, from which item, and the stored object it pointed at.
+ *
+ * A CAPTURE A REPAIR WAS VERIFIED AGAINST IS REFUSED. 0053's foreign key is
+ * `on delete set null`, so deleting it would leave the repair closed with its
+ * evidence quietly gone, which is the tick the protocol does not allow.
+ */
 export async function deleteCapture(
   actor: Actor & { email: string },
   fileId: string,
   captureId: string,
+  context: Context = {},
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
   const view = await jobView(actor, fileId);
   if (!view) return { ok: false, error: "That job is not yours." };
-  if (view.file.status !== "evidence_in_progress" && view.file.status !== "revisions_requested") {
-    return { ok: false, error: "Captures can only be removed while the file is still in the field." };
+
+  const refused = captureDeleteRefusal({
+    actorId: actor.id,
+    actorRole: actor.role,
+    mayCapture: can(actor, "evidence.capture") || can(actor, "evidence.review"),
+    assignedTechId: view.file.assigned_tech_id,
+    status: view.file.status,
+  });
+  if (refused) return { ok: false, error: refused };
+
+  const capture = view.captures.find((c) => c.id === captureId);
+  if (!capture) return { ok: false, error: "That capture is not on this file. Reload the job to see what is." };
+  if (view.repairs.some((r) => r.verified_by_evidence_id === captureId)) {
+    return {
+      ok: false,
+      error: "A repair was verified against this capture, so it stays. Capture the item again instead.",
+    };
   }
-  const { error } = await db.from("eng_evidence_items").delete().eq("id", captureId).eq("file_id", fileId);
-  return error ? { ok: false, error: error.message } : { ok: true };
+
+  const label = view.protocol?.items.find((i) => i.itemKey === capture.item_key)?.label ?? capture.item_key;
+  const recorded = await writeAuditOrRefuse({
+    actor,
+    action: "capture.delete",
+    entityType: "file",
+    entityId: fileId,
+    summary: `Removed a ${capture.kind} capture for ${label} from ${view.file.file_number}.`,
+    diff: {
+      capture_id: capture.id,
+      item_key: capture.item_key,
+      kind: capture.kind,
+      value_text: capture.value_text,
+      value_number: capture.value_number,
+      storage_key: capture.storage_key,
+      captured_at: capture.captured_at,
+      file_status: view.file.status,
+    },
+    ...context,
+  });
+  if (!recorded.ok) return { ok: false, error: recorded.error };
+
+  const { data: removed, error } = await db
+    .from("eng_evidence_items")
+    .delete()
+    .eq("id", captureId)
+    .eq("file_id", fileId)
+    .select("id");
+  if (error || !removed || removed.length === 0) {
+    /*
+     * THE RECORD SAYS IT WAS REMOVED AND IT WAS NOT, so a second row says so,
+     * naming the first. Best effort, because the refusal below is what the
+     * technician needs; the trail must not be left asserting a removal alone.
+     */
+    await writeAudit({
+      actor,
+      action: "capture.delete_failed",
+      entityType: "file",
+      entityId: fileId,
+      summary: `The removal recorded as ${recorded.id} did not happen: ${error?.message ?? "no row was removed"}.`,
+      diff: { capture_id: captureId, audit_id: recorded.id },
+      ...context,
+    });
+    return { ok: false, error: `The capture could not be removed: ${error?.message ?? "it was not found"}.` };
+  }
+  return { ok: true };
 }
 
 /**
@@ -2871,12 +2947,46 @@ export async function revokeCertification(
     return { ok: false, error: "Say why. A revocation with no reason is one nobody can act on or reverse." };
   }
 
-  const { error } = await db
+  /*
+   * THE RECORD IS WRITTEN FIRST, AND A RECORD THAT FAILS STOPS THE CHANGE.
+   * Robert's ruling of 2026-10-29 (WF-017 step 6) put this on /portal/review
+   * with an audit row on every change. It used to be written after the update
+   * through writeAudit, which logs a failure and carries on, so a withdrawal
+   * could stop somebody working with nothing in the trail saying who or why.
+   */
+  const recorded = await writeAuditOrRefuse({
+    actor,
+    action: "certification.revoke",
+    entityType: "profile",
+    entityId: profileId,
+    summary: `Revoked ${serviceSlug}: ${reason.trim()}`,
+    ...context,
+  });
+  if (!recorded.ok) return recorded;
+
+  const { data: changed, error } = await db
     .from("eng_certifications")
     .update({ status: "revoked", revoked_at: DB_NOW })
     .eq("profile_id", profileId)
-    .eq("service_slug", serviceSlug);
-  if (error) return { ok: false, error: error.message };
+    .eq("service_slug", serviceSlug)
+    .select("id");
+  if (error || !changed?.length) {
+    /* The record above says it was done; this one says it was not, so the trail never claims a withdrawal that did not happen. */
+    await writeAudit({
+      actor,
+      action: "certification.revoke_failed",
+      entityType: "profile",
+      entityId: profileId,
+      summary: `Revoking ${serviceSlug} changed nothing: ${error?.message ?? "no certification record for that line"}`,
+      ...context,
+    });
+    return {
+      ok: false,
+      error: error
+        ? `The certification was not withdrawn: ${error.message}`
+        : "Nothing was withdrawn: that technician has no certification record for that line. Refresh the page.",
+    };
+  }
 
   /*
    * Mandatory email. A revoked certification stops somebody working, and the
@@ -2894,22 +3004,19 @@ export async function revokeCertification(
     entityId: profileId,
   });
 
-  await writeAudit({
-    actor,
-    action: "certification.revoke",
-    entityType: "profile",
-    entityId: profileId,
-    summary: `Revoked ${serviceSlug}: ${reason.trim()}`,
-    ...context,
-  });
   return { ok: true };
 }
 
-/** Restore a revoked certification, which is the same person deciding again. */
+/**
+ * Restore a revoked certification, which is the same person deciding again.
+ * Robert's ruling of 2026-10-29: the reason is required here too, and the
+ * record is written before the change, the same as a withdrawal.
+ */
 export async function restoreCertification(
   actor: Actor & { email: string },
   profileId: string,
   serviceSlug: string,
+  reason: string,
   context: Context = {},
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const db = supabaseAdmin();
@@ -2917,21 +3024,42 @@ export async function restoreCertification(
   if (!holdsLicence(actor, "protocols.publish")) {
     return { ok: false, error: licenceRefusal("Restoring a certification") };
   }
-  const { error } = await db
-    .from("eng_certifications")
-    .update({ status: "failed", revoked_at: null })
-    .eq("profile_id", profileId)
-    .eq("service_slug", serviceSlug)
-    .eq("status", "revoked");
-  if (error) return { ok: false, error: error.message };
+  if (!reason.trim()) {
+    return { ok: false, error: "Say why. A restoration with no reason is one nobody can check later." };
+  }
 
-  await writeAudit({
+  const recorded = await writeAuditOrRefuse({
     actor,
     action: "certification.restore",
     entityType: "profile",
     entityId: profileId,
-    summary: `Restored ${serviceSlug} to uncertified, so the check can be retaken`,
+    summary: `Restored ${serviceSlug} to uncertified, so the check can be retaken: ${reason.trim()}`,
     ...context,
   });
+  if (!recorded.ok) return recorded;
+
+  const { data: changed, error } = await db
+    .from("eng_certifications")
+    .update({ status: "failed", revoked_at: null })
+    .eq("profile_id", profileId)
+    .eq("service_slug", serviceSlug)
+    .eq("status", "revoked")
+    .select("id");
+  if (error || !changed?.length) {
+    await writeAudit({
+      actor,
+      action: "certification.restore_failed",
+      entityType: "profile",
+      entityId: profileId,
+      summary: `Restoring ${serviceSlug} changed nothing: ${error?.message ?? "no withdrawn record for that line"}`,
+      ...context,
+    });
+    return {
+      ok: false,
+      error: error
+        ? `The certification was not restored: ${error.message}`
+        : "Nothing was restored: that technician holds no withdrawn certification for that line. Refresh the page.",
+    };
+  }
   return { ok: true };
 }

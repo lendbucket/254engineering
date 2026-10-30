@@ -1,11 +1,11 @@
 import { business } from "@/config/business";
 import {
-  contact,
   e164Phone,
   founder,
   geoSchema,
   hasGeo,
   hasPostalAddress,
+  openingHoursSchema,
   postalAddressSchema,
 } from "@/config/contact";
 import { firmName, isOpen, tbpelsFirmNumber } from "./launch";
@@ -29,8 +29,9 @@ import { GUIDE_DATES } from "@/content/guide-dates";
  * violation and the kind of thing a procurement officer notices.
  *
  * Telephone, postal address, geo, and opening hours are present ONLY when they
- * have been configured in src/config/contact.ts, which reads them from the
- * environment and defaults every one of them to null. An invented value in
+ * have been configured in src/config/contact.ts. The telephone and geo are read
+ * from the environment and default to null; the address and the hours are
+ * declared there, on Robert's word (2026-09-18 and 2026-10-29). An invented value in
  * schema is worse than an absent one: schema is machine read, gets copied into
  * knowledge panels and directories, and is very hard to retract once it has
  * been. So each property is spread in conditionally and simply does not exist
@@ -129,7 +130,8 @@ export function organizationSchema() {
     ...(e164Phone() ? { telephone: e164Phone() } : {}),
     ...(hasPostalAddress() ? { address: postalAddressSchema() } : {}),
     ...(hasGeo() ? { geo: geoSchema() } : {}),
-    ...(contact.hours ? { openingHours: contact.hours.split(",").map((h) => h.trim()) } : {}),
+    // Derived from the one declared value in src/config/contact.ts.
+    openingHoursSpecification: openingHoursSchema(),
     // Only present once the board has actually issued it. See src/lib/launch.ts.
     ...(firmNumber
       ? {

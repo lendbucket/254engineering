@@ -271,8 +271,7 @@ export default function GovernmentPage() {
                 </p>
                 <p className="mt-3 text-[0.95rem] leading-[1.7] text-slate-muted">
                   A one page capability statement in the format contracting officers file will be
-                  published here once the firm opens for work and the SAM identifiers are
-                  confirmed. Until then a contracting officer can request the current version by
+                  published here once the SAM identifiers are confirmed. Until then a contracting officer can request the current version by
                   email and will receive it with the pending items marked as pending.
                 </p>
               </div>
