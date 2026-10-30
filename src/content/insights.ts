@@ -870,7 +870,9 @@ const BUYER_SRC = {
    * edition. Not cited, because no copy could be read: the Permanent
    * Foundations Guide itself (HUD's guidebook page carries no file and the
    * archive answers 404), VA Pamphlet 26-7 chapter 7 (it answers a script with
-   * a JavaScript check) and USDA HB-1-3555 chapter 12 (403).
+   * a JavaScript check) and USDA HB-1-3555 (403). Robert, 09:26 Central
+   * 2026-10-30: the post is FHA only until those are read, and USDA's foundation
+   * rule is HB-1-3555 chapter 13, section 13.6, not chapter 12 as tried here.
    */
   hud40001: {
     label: "HUD Handbook 4000.1, FHA Single Family Housing Policy Handbook, Update 18 (redline published August 12, 2026)",
@@ -1943,10 +1945,10 @@ const buyerInsights: Insight[] = [
    */
   {
     slug: "manufactured-home-foundation-certification-loans",
-    title: "FHA, VA, USDA Manufactured Home Foundation | 254 Engineering",
-    h1: "Manufactured home foundation certification for FHA, VA and USDA loans in Texas",
+    title: "FHA Manufactured Home Foundations in Texas | 254 Engineering",
+    h1: "FHA manufactured home foundation certification in Texas",
     description:
-      "What an FHA, VA or USDA lender needs in a manufactured home foundation certification in Texas, measured against HUD's foundations guide. Read the guide.",
+      "What an FHA lender needs in a manufactured home foundation certification in Texas, from HUD's handbook and the Texas ownership record. Read the guide.",
     summary:
       "What HUD's handbook makes the lender obtain on a manufactured home, when an earlier foundation certification can stand, and the Texas real property record that has to sit beside it.",
     eyebrow: "Buying and lending",
