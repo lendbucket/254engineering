@@ -163,6 +163,18 @@ export default function HomePage() {
                 </Link>
               ))}
             </div>
+            {/*
+              A HIGHLIGHTED MARKET, AS A CHIP. Robert, 13:11 and 22:12 Central
+              2026-10-29: Corpus Christi is linked from the home page, and as a
+              navigation element rather than a sentence written to carry a link
+              (CLAUDE.md section 8).
+            */}
+            <Link
+              href="/corpus-christi"
+              className="mt-2 flex items-center gap-[11px] rounded-[3px] border border-limestone-line bg-white px-3.5 py-[11px] transition-colors hover:border-brass"
+            >
+              <span className="text-[14.5px] font-semibold text-ink">Corpus Christi and the Coastal Bend</span>
+            </Link>
           </div>
         </div>
       </Section>
