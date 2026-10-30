@@ -69,6 +69,32 @@ Every repair was proved by an injection, and each file was restored byte identic
 4. Skip re-boarding a push to main whose exact commit already has a green board (ruled 2026-10-22). It edits `board.yml`, so it comes after bundle 17.
 5. List controls (search, filter, sort, paging) on the 13 staff screens that have none, so each can then take a CSV export, office ready section 2d.
 
+## 2026-10-29: BUNDLE 28 MISSED ON /coverage/coastal-bend BY 2 ms; BUNDLE 29, THE PREFLIGHT CHECKS US SPELLING, AT `588e5d6`
+
+**Bundle 28, board 40990127640 on `a267eb8`: 63 of 64.**
+- The one FAIL is perf-audit: "region: LCP 3402ms within 3400ms (/coverage/coastal-bend, median of 3, spread 234ms)".
+- The branch touches no public route.
+- Under Robert's 22:12 ruling a red board does not merge. Bundle 28 is brought up to main after bundle 29 and boarded on that new commit.
+- `/coverage` is queued, as item 7, to be brought well under the ceiling.
+
+**Prediction for bundle 29, written and pushed before the board starts.** The class fix for bundle 26's first miss.
+
+**What it changes:**
+- voice-audit's British word list and its sweep move to one home, `scripts/lib/us-spelling.mjs`, which voice-audit calls. Its output is unchanged.
+- The preflight runs the same sweep: 635 composed files, with the 18 protocol files exempt.
+- A guard holds `src/content/procedures.ts` in the subject.
+- **Injection:** "licence holder" in a workflows row, re-emitted, turned only the new rule red, naming `procedures.ts`.
+
+**Readers on `588e5d6`, on main `ed779ae`:**
+- Preflight GREEN, 38 rules, 100 s.
+- tsc clean.
+
+**Prediction: 64 of 64.**
+- The board's summary opens "Preflight: GREEN, 38 rules".
+- voice-audit passes, calling the shared sweep.
+- **Standing notes:** as named for bundle 24.
+- **Named in advance:** `/coverage` and `/coverage/coastal-bend` sit within about 20 ms of the LCP ceiling. They missed on bundles 22 and 28 by 17 ms and 2 ms. A miss there again would be that, not this branch.
+
 ## 2026-10-29: BUNDLE 27 MERGED; BUNDLE 28, THE CREDIT TERMS PANEL, AT `a267eb8`
 
 **Bundle 27 merged as `ed779ae`.** The merged tree is the boarded tree. Board 40984065455 on `2ae017b` read 64 of 64, preflight GREEN, as predicted.
