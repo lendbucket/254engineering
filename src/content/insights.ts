@@ -1945,7 +1945,7 @@ const buyerInsights: Insight[] = [
    */
   {
     slug: "manufactured-home-foundation-certification-loans",
-    title: "FHA Manufactured Home Foundations in Texas | 254 Engineering",
+    title: "FHA Mobile Home Foundation Requirements | 254 Engineering",
     h1: "FHA manufactured home foundation certification in Texas",
     description:
       "What an FHA lender needs in a manufactured home foundation certification in Texas, from HUD's handbook and the Texas ownership record. Read the guide.",
