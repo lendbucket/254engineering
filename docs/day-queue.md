@@ -69,6 +69,30 @@ Every repair was proved by an injection, and each file was restored byte identic
 4. Skip re-boarding a push to main whose exact commit already has a green board (ruled 2026-10-22). It edits `board.yml`, so it comes after bundle 17.
 5. List controls (search, filter, sort, paging) on the 13 staff screens that have none, so each can then take a CSV export, office ready section 2d.
 
+## 2026-10-30: BUNDLE 22 MERGED; BUNDLE 30, THE FAVICON SET, AT `a75aecc`
+
+**Bundle 22 merged as `3975b96`.** These are the list controls. The merged tree is the boarded tree. Board 41008700702 on `e9e5eca` read 64 of 64, preflight GREEN, as predicted.
+
+**Prediction for bundle 30, written and pushed before the board starts.** Robert's 22:12 answer on 6504716106: "yes, merge as shown with the held corrected logo".
+
+**What it adds:**
+- `scripts/emit-favicons.mjs` writes every icon from the held corrected logo's white artwork: the "254" numerals with the gold slash, on navy `#0b1b36`.
+- `favicon.ico` holds 16, 32 and 48.
+- App icons at 48, 96, 144, 192 and 512, the apple icon at 180, and manifest icons including a maskable 512.
+- The Organization schema `logo` is the square 512 PNG at `/brand/logo-square-512.png`.
+- From the hold branch it takes only the white logo file. The held Wordmark and email-layout changes stay held.
+
+**Readers on `a75aecc`, on main `3975b96`:**
+- Preflight GREEN, 38 rules.
+- tsc clean.
+- `the-favicon-set-is-square-and-complete.mjs` PASS, 49 checks.
+
+**Prediction: 64 of 64.**
+- seo-audit passes with the new schema logo URL.
+- perf byte budgets move by the icon links only.
+- The standing notes as named for bundle 24.
+- **Named in advance:** an LCP miss within the run spread on `/coverage` would be that route. Its fix is still waiting for the machine lock.
+
 ## 2026-10-30: BUNDLE 28 MERGED; BUNDLE 22 RE-BOARDED ON MAIN AT `e9e5eca`
 
 **Bundle 28 merged as `cf94d65`.** This is the credit terms panel. The merged tree is the boarded tree. Board 41002078784 on `a621c8d` read 64 of 64, preflight GREEN at 38 rules, as predicted.
