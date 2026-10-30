@@ -69,6 +69,34 @@ Every repair was proved by an injection, and each file was restored byte identic
 4. Skip re-boarding a push to main whose exact commit already has a green board (ruled 2026-10-22). It edits `board.yml`, so it comes after bundle 17.
 5. List controls (search, filter, sort, paging) on the 13 staff screens that have none, so each can then take a CSV export, office ready section 2d.
 
+## 2026-10-29: BUNDLE 27 MERGED; BUNDLE 28, THE CREDIT TERMS PANEL, AT `a267eb8`
+
+**Bundle 27 merged as `ed779ae`.** The merged tree is the boarded tree. Board 40984065455 on `2ae017b` read 64 of 64, preflight GREEN, as predicted.
+
+**Prediction for bundle 28, written and pushed before the board starts.** Robert's ruling of 10:52 (6501552714), WF-022 step 3. A money flow.
+
+**What it adds:**
+- **One path:** `setAccountTerms` in `ops-accounts-admin.ts`. The route's `set-terms`, which changed terms on the grant alone, now calls it. The values rule is `termsFromChange` in `src/lib/account-terms.ts`, shared by the panel and the server.
+- **The order:** the grant `accounts.manage`, then the password through `verifyOwnPassword` (the no-charge override's check), then a read of the current terms, then `account.terms_changed` written through `writeAuditOrRefuse` with the old and new values and `confirmed_by: "password"`, then the update.
+- **Failures:** a failed record refuses the change. An update that touches nothing writes `account.terms_change_failed`.
+- **Money:** whole cents only. A fraction of a cent, a negative limit, a non-number or net days outside 0 to 120 are refused. The old route silently rounded fractions.
+- **The panel:** "Change terms" on `/portal/accounts`, drawn only for `accounts.manage`.
+- **order-audit:** its two credit-limit checks read the rule in its new home and assert more than before, not less.
+- **A rename:** an account status set back to active is now recorded as `account.status_changed`, not `account.terms_changed`.
+- **The map:** MAP_NO_SCREEN moves from 10 to 9 after the merge with bundle 26. The ranked list is now three.
+
+**Readers on `a267eb8`, on main `ed779ae`:**
+- Preflight GREEN, 37 rules, 126 s.
+- tsc clean.
+- `an-accounts-terms-change-asks-the-password-and-is-recorded-first.mjs` PASS.
+- The map marks equal the pins, 8 and 9.
+- Four injections at build time, each restored byte identical.
+
+**Prediction: 64 of 64.**
+- order-audit and money-audit pass with the moved rule.
+- roles-audit refuses the terms change to the rep and the ops manager.
+- The standing notes as named for bundle 24.
+
 ## 2026-10-29: BUNDLE 26 MERGED; BUNDLE 27, LIST CONTROLS ON /portal/onboarding, AT `2ae017b`
 
 **Bundle 26 merged as `ba7a8e4`.** The merged tree is the boarded tree. Board 40977483013 on `5ccbde9` read 64 of 64, preflight GREEN.

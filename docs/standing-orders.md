@@ -28,14 +28,14 @@ The source of truth for the running loop. Robert, 2026-10-29: the loop prompt is
 - The preflight takes 91 to 98 s, up from 43 s.
 - An injection named the file. Preflight GREEN, 37 rules. | **Merged as `00e66a0`** (board 40960219426) |
 | 24 | WF-017 step 6: an engineer-only panel on `/portal/review` to withdraw or restore a technician's certification, with the reason required. **Merged as `ba7a8e4`** (board 40977483013). One question: withdraw still accepts a record that is not certified. Recommend keeping it, because that behavior is unchanged. | Done |
-| 25 | List controls for `/portal/onboarding`: search, filter, sort, paging, counts over every matching row, and a failed read said. Built as `8cdeb22`, preflight GREEN. One question: "Applications not yet invited" stays bounded at the newest 200, and the screen says so when it hits the bound. Paging it would need a view, which means a migration. Recommend keeping it bounded. | **Bundle 27, boarding** at `2ae017b` |
+| 25 | List controls for `/portal/onboarding`: search, filter, sort, paging, counts over every matching row, and a failed read said. Built as `8cdeb22`, preflight GREEN. One question: "Applications not yet invited" stays bounded at the newest 200, and the screen says so when it hits the bound. Paging it would need a view, which means a migration. Recommend keeping it bounded. | **Merged as `ed779ae`** (board 40984065455) |
 | 26 | WF-022 step 3: an admin panel on `/portal/accounts` to set an account's credit terms. **This is a money flow: it gets its own proof and an injection.** It must: confirm by password re-entry, the same as the no-charge override, never an authenticator code (the owner's admin account uses none); write an audit row on every change. Built as `33f278e`, preflight GREEN.
 - **Path:** one path, `setAccountTerms`. The route's old grant-only path now calls it.
 - **Password:** confirmed by `verifyOwnPassword`, the no-charge override's check.
 - **Record:** `account.terms_changed` is written first, with the old and new values. A failed record refuses the change.
 - **Money:** whole cents only; the old silent rounding of fractions now refuses.
 - **Map:** MAP_NO_SCREEN moves again. It is reconciled when the branch is brought up to main.
-- **Question:** every administrator confirms with a password, not only the owner. Recommend yes, as built. | Built; boards after onboarding |
+- **Question:** every administrator confirms with a password, not only the owner. Recommend yes, as built. | **Bundle 28, boarding** at `a267eb8` |
 | 27 | WF-024 step 3: a proving-charge button on `/portal/launch`, admin only. It states the charge before it runs, and is used only on Robert's word. | To build |
 | 28 | WF-024 step 4: a waitlist "we are open" email button on `/portal/launch`. It is enabled only when the gate reads live and sends Robert a preview first. Never sent by a board or a probe. | To build |
 
