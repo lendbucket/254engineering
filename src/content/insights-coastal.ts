@@ -77,6 +77,10 @@ const SRC = {
     label: "Texas Department of Insurance, Windstorm Inspection Process",
     url: "https://www.tdi.texas.gov/wind/inspectionproc.html",
   },
+  tdiWpi8FactSheet: {
+    label: "Texas Department of Insurance, WPI-8 fact sheet",
+    url: "https://tdi.texas.gov/WIND/documents/WPI-8-fact-sheet-eng-sp.pdf",
+  },
   tdiCompleted: {
     label: "Texas Department of Insurance, Completed Construction Certificates",
     url: "https://www.tdi.texas.gov/wind/completed-construction-certificates.html",
@@ -1163,7 +1167,7 @@ export const coastalInsights: Insight[] = [
     eyebrow: "Windstorm law",
     primaryKeyword: "wpi8",
     datePublished: WINDSTORM_SECTION_DATE,
-    dateModified: "2026-10-17",
+    dateModified: "2026-10-30",
     body: [
       {
         kind: "p",
@@ -1243,6 +1247,19 @@ export const coastalInsights: Insight[] = [
       },
       {
         kind: "p",
+        text: "The certificate is also read by more than the association. The department's WPI-8 fact sheet says the Texas Windstorm Insurance Association and insurance companies can look up certificates to confirm that a property, repair or addition is certified. The department's process page asks the owner to tell their insurance agent about the work, so the policy and the certificate describe the same building.",
+      },
+      { kind: "h2", text: "Choosing who inspects, and what the department sets" },
+      {
+        kind: "p",
+        text: "The fact sheet offers two routes to a certificate: request a TDI inspector, or hire a Texas licensed professional engineer or an appointed qualified inspector. It adds that the department does not regulate inspection rates, and its process page says the same of the rates appointed engineers charge. Price is therefore agreed between the owner and the inspector, with nothing from the department to compare it against.",
+      },
+      {
+        kind: "p",
+        text: "Commercial buildings are not outside the program. The process page says a commercial structure that will be insured for wind and hail through the association must, at a minimum, be built to the department's adopted building standards, and the same certificate sequence then applies to it.",
+      },
+      {
+        kind: "p",
         text: "Once issued, a certificate stays issued. Section 2210.2515(k) of the Insurance Code says the department may not rescind a certificate of compliance after issuing it, and the reasons that matters are read through on [the certificate of compliance page](/insights/windstorm-certificate-of-compliance).",
       },
       { kind: "h2", text: "Which work needs one" },
@@ -1275,7 +1292,8 @@ export const coastalInsights: Insight[] = [
     ],
     sources: [
       cite("twiaCert", "The three certificate types and who issues each, the June 1, 2020 start for WPI-8-E applications, the WPI-8-C window, that TWIA certificates are not on TDI's site and remain valid, and the lists of work that does and does not need a certificate."),
-      cite("tdiProcess", "That the WPI-1 is filed before construction whoever inspects, that TDI issues the WPI-8 once all inspections are approved and TWIA coverage requires it, that TDI inspectors handle all non-structural work including most re-roofs, the air conditioning example, and that an appointed engineer must perform a post-construction inspection."),
+      cite("tdiProcess", "That the WPI-1 is filed before construction whoever inspects, that TDI issues the WPI-8 once all inspections are approved and TWIA coverage requires it, that TDI inspectors handle all non-structural work including most re-roofs, the air conditioning example, that an appointed engineer must perform a post-construction inspection, that the owner should tell their insurance agent of the work, that TDI does not regulate or track appointed engineers' inspection rates, and that a commercial structure insured for wind and hail through TWIA must at a minimum meet TDI's adopted building standards."),
+      cite("tdiWpi8FactSheet", "That TWIA and insurance companies can look up certificates, the two routes to one (a TDI inspector, or a Texas licensed professional engineer or appointed qualified inspector), and that TDI does not regulate inspection rates."),
       cite("tdiForms", "The WPI-1 application and the WPI-2-BC-5, 6, 7 and 8 inspection verification forms with their construction start dates, and the WPI-2E for completed improvements."),
       cite("tdiGenInfo", "That the 2024 IRC and IBC are listed under 28 TAC 5.4013 as effective from April 1, 2026."),
       cite("tdiFaq", "That the WPI-1 serves as proof of enrollment for a building permit, that WPI-8 data go to TWIA nightly and certificates are published online, and the two routes for correcting an address."),
