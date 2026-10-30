@@ -7,7 +7,8 @@ import { OfferCta } from "@/components/launch/OfferCta";
 import { buildMetadata } from "@/lib/seo";
 import { JsonLd, breadcrumbSchema } from "@/lib/schema";
 import { windstormHub, windstormPages } from "@/content/windstorm-program";
-import { firmName } from "@/lib/launch";
+import { firmName, isPrelaunch } from "@/lib/launch";
+import { contact } from "@/config/contact";
 
 /**
  * The cluster hub.
@@ -125,21 +126,39 @@ export default function WindstormHubPage() {
             </Link>
             , the upper coast, and the Rio Grande Valley, and the wind, soil, and permitting
             conditions differ enough between them that each coverage region is written separately.
-            The firm itself is{" "}
+            The firm&apos;s office is in {contact.city}, and it{" "}
+            {isPrelaunch() ? "is built to serve" : "serves"}{" "}
             <Link href="/corpus-christi" className="underline underline-offset-4">
-              based in Corpus Christi
-            </Link>
-            , inside the designated area.
+              Corpus Christi and the Coastal Bend
+            </Link>{" "}
+            from there.
           </p>
-          <p className="mt-6 text-[1.02rem] leading-[1.75] text-slate-muted">
-            What {firmName()} is built to deliver on windstorm work, once it
-            opens for work, is set out on the{" "}
-            <Link href="/services/windstorm-wpi-8" className="underline underline-offset-4">
-              windstorm capability page
-            </Link>
-            . Nothing in this cluster is an offer to perform engineering services, because the firm
-            is not yet in a position to make one.
-          </p>
+          {/*
+            * READ OFF THE GATE, NOT TYPED. Robert, 13:05 Central 2026-10-29: a
+            * line open for ordering carries no closed for business sentence. This
+            * said "once it opens for work" and "not yet in a position to make one"
+            * on a windstorm line the gate offers. The prelaunch wording stays for
+            * the prelaunch build, which launch-audit renders.
+            */}
+          {isPrelaunch() ? (
+            <p className="mt-6 text-[1.02rem] leading-[1.75] text-slate-muted">
+              What {firmName()} is built to deliver on windstorm work, once it
+              opens for work, is set out on the{" "}
+              <Link href="/services/windstorm-wpi-8" className="underline underline-offset-4">
+                windstorm capability page
+              </Link>
+              . Nothing in this cluster is an offer to perform engineering services, because the firm
+              is not yet in a position to make one.
+            </p>
+          ) : (
+            <p className="mt-6 text-[1.02rem] leading-[1.75] text-slate-muted">
+              The windstorm work the firm takes on, and how to order it, is set out on the{" "}
+              <Link href="/services/windstorm-wpi-8" className="underline underline-offset-4">
+                windstorm capability page
+              </Link>
+              .
+            </p>
+          )}
         </div>
       </Section>
 

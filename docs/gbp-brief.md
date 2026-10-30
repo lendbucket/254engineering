@@ -32,17 +32,18 @@ Everything below is ready to execute on the day both are true.
 ## 2. What is not known yet, and must come from the operator
 
 Nothing in this section may be guessed, including by a future session reading
-this file. Every one of these values is read from the environment through
-`src/config/contact.ts`, defaults to null, and is absent from the site until set.
+this file. Every value comes from `src/config/contact.ts`. The table read "Not
+supplied" for every row until 2026-10-29, which had stopped being true of the
+address on 2026-09-18 and of the telephone on 2026-09-14; it now says where
+each value lives.
 
-| Field | Environment variable | Status |
+| Field | Where it lives | Value, as Robert gave it on 2026-10-29 |
 | --- | --- | --- |
-| Street address | `FIRM_STREET`, `FIRM_STREET_2` | Not supplied |
-| City | `FIRM_CITY` | Not supplied |
-| Postal code | `FIRM_POSTAL_CODE` | Not supplied |
-| Latitude, longitude | `FIRM_LATITUDE`, `FIRM_LONGITUDE` | Not supplied |
-| Telephone | `FIRM_PHONE` | Not supplied |
-| Opening hours | `FIRM_HOURS` | Not supplied |
+| Name | `business.shortName` | 254 Engineering |
+| Street address, city, postal code | Declared in `contact.ts` | 11103 San Pedro Ave, San Antonio, TX 78216 |
+| Latitude, longitude | `FIRM_LATITUDE`, `FIRM_LONGITUDE` | Not supplied, omitted rather than approximated |
+| Telephone | `FIRM_PHONE`, stored as E.164 | (281) 940-4490 |
+| Opening hours | Declared in `contact.ts` | Monday to Sunday, 8:00 AM to 8:00 PM Central |
 
 Setting these requires a rebuild, because the pages are statically prerendered.
 That is deliberate. Publishing an address is a deployment with an audit trail.
@@ -131,9 +132,8 @@ actually filters on.
 
 ## 5. Description, ready to paste
 
-> 254 Engineering Services is a veteran owned Texas engineering firm named for
-> the 254 counties of Texas. Based in Corpus Christi, inside the windstorm
-> catastrophe area designated by the Texas Department of Insurance, the firm is
+> 254 Engineering is a veteran owned Texas engineering firm named for the 254
+> counties of Texas. Based in San Antonio, the firm is
 > built to deliver windstorm certification, roof condition and certification
 > work, foundation evaluation, forensic investigation, and repair
 > specifications, under a licensed Texas Professional Engineer in responsible

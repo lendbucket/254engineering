@@ -8,6 +8,7 @@ import { PrelaunchNotice } from "@/components/launch/PrelaunchNotice";
 import { OfferCta } from "@/components/launch/OfferCta";
 import { FaqBlock } from "@/components/site/FaqBlock";
 import { buildMetadata } from "@/lib/seo";
+import { isPrelaunch } from "@/lib/launch";
 import { ArticleJsonLd, JsonLd, breadcrumbSchema, faqSchema } from "@/lib/schema";
 import { windstormBySlug, windstormPages } from "@/content/windstorm-program";
 import { TDI_WINDSTORM_SOURCE, windstormCountyAnswers } from "@/content/windstorm-county-tool";
@@ -155,7 +156,10 @@ export default async function WindstormClusterPage({
           <Link href="/services/windstorm-wpi-8" className="underline underline-offset-4">
             windstorm capability page
           </Link>{" "}
-          covers what this firm is built to deliver once it opens for work.
+          {/* Read off the gate (Robert, 13:05 Central 2026-10-29): the open line says how to order. */}
+          {isPrelaunch()
+            ? "covers what this firm is built to deliver once it opens for work."
+            : "covers the windstorm work the firm takes on and how to order it."}
         </p>
       </Section>
 

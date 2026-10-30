@@ -245,6 +245,44 @@ export function newCaptureId(): string {
   return `cap_${random}`;
 }
 
+/**
+ * The file statuses in which a capture may be removed: the file is in the
+ * field. Once the package is submitted the evidence is what the engineer
+ * reviews, and nothing on the job screen may take a photograph out from under
+ * that review.
+ */
+export const CAPTURE_REMOVABLE_STATUSES: readonly string[] = ["evidence_in_progress", "revisions_requested"];
+
+/**
+ * Whether this person may remove a capture from this file, as a sentence, or
+ * null when they may. Robert's ruling, 2026-10-29 (WF-030 step 5).
+ *
+ * ONE RULE FOR THE BUTTON AND THE REFUSAL. The job screen asks it to decide
+ * whether to draw the delete control, and `deleteCapture` asks it before it
+ * writes anything, so the control is never drawn for a removal the server
+ * would refuse. The people are the ones `recordCapture` lets capture: a role
+ * that captures or reviews evidence, and a technician only on a job they
+ * accepted, because holding an offer is not holding the job.
+ */
+export function captureDeleteRefusal(input: {
+  actorId: string | null;
+  actorRole: string | null;
+  mayCapture: boolean;
+  assignedTechId: string | null;
+  status: string;
+}): string | null {
+  if (!input.actorId || !input.mayCapture) return "Your role cannot remove evidence.";
+  if (input.actorRole === "field_tech" && input.assignedTechId !== input.actorId) {
+    return input.assignedTechId
+      ? "Another technician accepted this job, so its captures are theirs to remove."
+      : "Accept this job before removing anything from it.";
+  }
+  if (!CAPTURE_REMOVABLE_STATUSES.includes(input.status)) {
+    return "Captures can only be removed while the file is still in the field.";
+  }
+  return null;
+}
+
 /** A human summary for the file list and the tech's job card. */
 export function progressLabel(state: ChecklistState): string {
   if (state.requiredTotal === 0) return "No protocol attached";

@@ -311,6 +311,12 @@ export const NOT_CREDENTIALS = new Set([
    */
   "ACCOUNTS_PROOF_TARGETS", "ACCOUNTS_PROOF_SKIP_FIND",
   /*
+   * PREFLIGHT_CHILD, 2026-10-29. scripts/preflight.mjs sets it on every static
+   * proof it runs, so that a proof which ever invoked the preflight would not
+   * start it again inside itself. A flag; it grants or opens nothing.
+   */
+  "PREFLIGHT_CHILD",
+  /*
    * AUDIT_RETRY_LOG, 2026-10-09. A file path under the system temp directory
    * where each audit records the network faults it retried, so the board can
    * count them (scripts/lib/transient-retry.mjs). A path and nothing else.

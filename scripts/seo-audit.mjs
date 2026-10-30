@@ -131,11 +131,21 @@ const PUBLIC_EMAIL = "support@254engineering.com";
  * construction. Every sitemap route's footer and its Organization node are read
  * by scripts/lib/nap.mjs, and the count of pages read is asserted after the
  * walk so the check cannot pass over none.
+ *
+ * MOVED AND JOINED BY THE HOURS, Robert, 12:50 Central 2026-10-29: the office
+ * is "11103 San Pedro Ave, San Antonio, TX 78216", and the hours, "Mon-Sun,
+ * 8:00 AM to 8:00 PM Central", are pinned beside the three in the same way.
  */
 const NAP = {
   name: "254 Engineering",
-  address: "5601 South Padre Island Drive, Suite E, Corpus Christi, TX 78412",
+  address: "11103 San Pedro Ave, San Antonio, TX 78216",
   phone: "(281) 940-4490",
+  hours: {
+    line: "Monday to Sunday, 8:00 AM to 8:00 PM Central",
+    days: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+    opens: "08:00",
+    closes: "20:00",
+  },
 };
 let napPagesRead = 0;
 

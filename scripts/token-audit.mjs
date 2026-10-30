@@ -445,6 +445,8 @@ const PORTED = [
   "src/app/portal/(app)/techs/[id]/CoverageForm.tsx",
   "src/app/portal/(app)/techs/[id]/RecordTrainingForm.tsx",
   "src/app/portal/(app)/review/TrainingDecisionPanel.tsx",
+  /* WF-017 step 6, Robert 2026-10-29: the engineer withdraws or restores a certification on review. */
+  "src/app/portal/(app)/review/CertificationStandingPanel.tsx",
   "src/components/portal/CredentialTables.tsx",
   /*
    * /portal/waiting, added 2026-10-03, and it is the FOURTH screen in three days
@@ -846,6 +848,8 @@ const STAFF_V10 = [
   "src/app/portal/(app)/techs/[id]/CoverageForm.tsx",
   "src/app/portal/(app)/techs/[id]/RecordTrainingForm.tsx",
   "src/app/portal/(app)/review/TrainingDecisionPanel.tsx",
+  /* WF-017 step 6, Robert 2026-10-29: the engineer withdraws or restores a certification on review. */
+  "src/app/portal/(app)/review/CertificationStandingPanel.tsx",
   "src/components/portal/CredentialTables.tsx",
   /*
    * Tasks, 2026-10-08, the first of the technician's screens in the restyle

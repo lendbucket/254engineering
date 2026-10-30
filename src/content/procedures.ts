@@ -1008,15 +1008,17 @@ export const PROCEDURES: Procedure[] = [
       },
       {
         "n": "6",
-        "screen": "none",
-        "routes": [],
-        "who": "Engineer (`protocols.publish`, a licensed action: both functions refuse the admin, `holdsLicence`)",
-        "sees": "",
-        "does": "Withdraws or restores a certification",
-        "next": "`/api/portal/onboarding` `revoke_certification` and `restore_certification` exist",
-        "told": "The technician (`certification.revoked`, mandatory email)",
-        "record": "`eng_certifications` update; audits `certification.revoke`, `certification.restore`",
-        "marks": "**[NO SCREEN]**: no screen sends either action"
+        "screen": "`src/app/portal/(app)/review` (`CertificationStandingPanel`, below the queue)",
+        "routes": [
+          "/portal/review"
+        ],
+        "who": "Engineer (`protocols.publish`, a licensed action: both functions refuse the admin, `holdsLicence`, and the panel is drawn only for the license holder)",
+        "sees": "Every active technician's current or withdrawn certification",
+        "does": "Withdraws or restores one, with a reason both ways",
+        "next": "`/api/portal/onboarding` `revoke_certification` and `restore_certification` (`revokeCertification`, `restoreCertification`)",
+        "told": "The technician (`certification.revoked`, mandatory email) on a withdrawal",
+        "record": "Audit `certification.revoke` or `certification.restore` written first and refusing if it fails, then `eng_certifications` update; `certification.revoke_failed` or `certification.restore_failed` when the update changed nothing",
+        "marks": "A screen since 2026-10-29, Robert's ruling (issue #1 comment 6501552714). The queue's order is untouched: no sort or filter was added to /portal/review"
       }
     ],
     "notes": []
@@ -1275,15 +1277,17 @@ export const PROCEDURES: Procedure[] = [
       },
       {
         "n": "3",
-        "screen": "none",
-        "routes": [],
-        "who": "Admin",
-        "sees": "",
-        "does": "Sets an account's credit limit and terms",
-        "next": "`/api/portal/accounts` `set-terms` exists",
+        "screen": "`src/app/portal/(app)/accounts` (`AccountsClient`, `TermsPanel`)",
+        "routes": [
+          "/portal/accounts"
+        ],
+        "who": "Admin (`accounts.manage`)",
+        "sees": "An account's billing, credit limit and net days",
+        "does": "Changes the terms, with their password entered again (Robert, 2026-10-29)",
+        "next": "`/api/portal/accounts` `set-terms`, `setAccountTerms` (`verifyOwnPassword`, then `writeAuditOrRefuse`, then the update)",
         "told": "",
-        "record": "`eng_customer_accounts` update, `eng_audit_events` insert",
-        "marks": "**[NO SCREEN]**: no screen sends `set-terms`"
+        "record": "Audit `account.terms_changed` with both sides of each field, written before `eng_customer_accounts` update; `account.terms_change_failed` when no row changed",
+        "marks": ""
       },
       {
         "n": "4",
@@ -1822,15 +1826,15 @@ export const PROCEDURES: Procedure[] = [
       },
       {
         "n": "5",
-        "screen": "none",
+        "screen": "`src/app/portal/(app)/jobs/[id]` (`CaptureClient`), added 2026-10-29 by Robert's ruling",
         "routes": [],
-        "who": "Technician",
-        "sees": "",
-        "does": "Deletes a capture",
-        "next": "`delete_capture` exists (`deleteCapture`)",
+        "who": "Technician on a job they accepted (`captureDeleteRefusal`, the rule the screen and `deleteCapture` share)",
+        "sees": "Each item's captures on file, while the file is in the field (evidence in progress, or revisions requested)",
+        "does": "Removes one, after a confirmation",
+        "next": "`delete_capture`, `deleteCapture`; a capture a repair was verified against is refused",
         "told": "",
-        "record": "`eng_evidence_items` delete",
-        "marks": "**[NO SCREEN]**: no screen and not the offline queue sends it"
+        "record": "Audit `capture.delete` first, through `writeAuditOrRefuse`, then `eng_evidence_items` delete; `capture.delete_failed` if the row did not go",
+        "marks": "Marked no screen until 2026-10-29"
       },
       {
         "n": "6",

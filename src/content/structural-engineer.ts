@@ -48,6 +48,7 @@
  * number on this page would be invented.
  */
 import { firmName, notYetTakingOrders, registrationStatement, responsibleChargeStatement } from "@/lib/launch";
+import { contact } from "@/config/contact";
 
 
 export type ProximitySection = {
@@ -415,7 +416,7 @@ export const proximityPages: ProximityPage[] = [
            * revert it to a report.
            */
           [
-            `${firmName()} is a veteran owned Texas firm, based in Corpus Christi and named for the 254 counties of Texas.`,
+            `${firmName()} is a veteran owned Texas firm, based in ${contact.city} and named for the 254 counties of Texas.`,
             registrationStatement(),
             responsibleChargeStatement(),
           ]

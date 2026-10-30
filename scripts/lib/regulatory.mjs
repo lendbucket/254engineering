@@ -127,9 +127,22 @@ export const CONDITIONAL_GUARD = String.raw`(?<!\b(?:when|once|if|until|unless|b
  * The test to apply before ever shortening this list: a name comes OUT only
  * when nothing anywhere could still say it, which is a different question from
  * whether any record still holds it.
+ *
+ * ===========================================================================
+ * AND THE BRAND ITSELF WAS MISSING FOR FOUR DAYS. Found 2026-10-29.
+ * ===========================================================================
+ *
+ * The brand became "254 Engineering" on 2026-10-25, and every rendered page
+ * now names the firm that way. This list matched the legal name and the old
+ * wordmark and not the brand, so "254 Engineering performs windstorm
+ * inspections" passed every present tense pattern below. That is the hazard
+ * described above, arriving through the brand rather than the registrant:
+ * the copy moved to a name these patterns could not see. It is the last
+ * alternative so the longer names are tried first; alternation backtracks, so
+ * "254 Engineering LLC performs" is caught either way.
  */
 const FIRM_NAMES =
-  "254 Services LLC|254 Engineering LLC|254 Engineering Services|Sealed Engineering|StampMyPlans|the firm";
+  "254 Services LLC|254 Engineering LLC|254 Engineering Services|Sealed Engineering|StampMyPlans|the firm|254 Engineering";
 
 /**
  * Claims no engineering firm may make, in any gate state, ever.
