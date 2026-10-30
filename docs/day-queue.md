@@ -79,6 +79,31 @@ Every repair was proved by an injection, and each file was restored byte identic
 4. Skip re-boarding a push to main whose exact commit already has a green board (ruled 2026-10-22). It edits `board.yml`, so it comes after bundle 17.
 5. List controls (search, filter, sort, paging) on the 13 staff screens that have none, so each can then take a CSV export, office ready section 2d.
 
+## 2026-10-30: BUNDLE 34 MISSED TWICE; REBOARD AT `98c2441`
+
+**Board 41049232908 on `d313636`: 62 of 64.**
+- **mobile-overflow-audit:** "/insights @390: 16027px tall, ... over the 16000px ceiling for public content by 27px".
+  - A real miss caused by the branch: the hub printed every post in full, and the new post tipped it over.
+  - Each post adds about 400 px, so every article after this would miss the same way.
+- **perf-audit:** "region: LCP 3403ms within 3400ms (/coverage/coastal-bend, median of 3, spread 154ms)".
+  - A route the branch does not touch.
+  - It is the third miss there; the photo fix and the map question wait on Robert (6521207420).
+  - No merge on a red board, under the 22:12 ruling.
+
+**The repair, `98c2441`:**
+- The hub shows the newest twelve posts in full and the rest as a compact title and date list.
+- Every post is still linked from the hub, so no inbound link is lost, and nothing is removed from any page.
+- The compact links carry `py-1` so they meet the 24 px tap target.
+- The board's red at 16,027 px is the injection.
+
+**Readers on `98c2441`, on main `e248703`:** Preflight GREEN, 38 rules; tsc clean.
+
+**Prediction: 64 of 64.**
+- mobile-overflow-audit: `/insights` well under 16,000 px at 390, near 9,000 by estimate (twelve entries of about 400 px plus 25 compact rows of about 90 px plus the frame).
+- mobile-audit and contrast-audit pass on the hub.
+- **Standing notes:** as named for bundle 24.
+- **Named in advance:** a fourth LCP miss within the run spread on `/coverage` or a region page is possible until Robert rules on 6521207420. It would be that route, and still no merge.
+
 ## 2026-10-30: BUNDLE 33 MERGED; BUNDLE 34, THE SOLAR PERMIT LETTER ARTICLE, AT `d313636`
 
 **Bundle 33 merged as `e248703`.** These are the WPI-8 process details. The merged tree is the boarded tree. Board 41040053857 on `cd119a9` read 64 of 64, preflight GREEN, as predicted.
