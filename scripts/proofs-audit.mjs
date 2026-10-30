@@ -49,9 +49,9 @@ import { readdirSync, existsSync, readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 import { readSource } from "./lib/read-source.mjs";
-import { runtimeFor } from "./lib/audit-runtime.mjs";
+import { PROOF_DIR, TSX_CLI, invocationFor } from "./lib/proof-invocation.mjs";
 
-const DIR = "scripts/proofs";
+const DIR = PROOF_DIR;
 
 /*
  * TSX IS INVOKED AS A SCRIPT, NEVER AS A COMMAND NAME.
@@ -67,8 +67,10 @@ const DIR = "scripts/proofs";
  * shell and no `.cmd`: the path is tsx's own declared `bin` entry. Asserted
  * below rather than assumed, because a tsx upgrade that moves it would
  * otherwise reproduce exactly the failure this paragraph describes.
+ *
+ * TSX_CLI and invocationFor live in scripts/lib/proof-invocation.mjs since
+ * 2026-10-30, so the preflight runs each proof exactly as this audit does.
  */
-const TSX_CLI = "node_modules/tsx/dist/cli.mjs";
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
@@ -105,36 +107,12 @@ rec(
 
 /* ------------------------------------------------- how each one is invoked */
 
-/**
- * Does this proof import TypeScript?
- *
- * A proof that imports a `.ts` module cannot run under bare `node`: the loader
- * reports ERR_MODULE_NOT_FOUND for the specifier, or for a path alias it cannot
- * resolve. Derived from the source rather than listed, so a proof that starts
- * importing TypeScript tomorrow is invoked correctly without anybody noticing.
+/*
+ * Whether a proof imports TypeScript, and so needs tsx, is decided by
+ * importsTypeScript in scripts/lib/proof-invocation.mjs, from the source rather
+ * than a list, so a proof that starts importing TypeScript tomorrow is invoked
+ * correctly without anybody noticing.
  */
-function importsTypeScript(path) {
-  const src = readSource(path);
-  if (/from\s+"[^"]+\.tsx?"/.test(src) || /import\(\s*[`"][^`"]+\.tsx?/.test(src)) return true;
-  if (/from\s+"@\//.test(src) || /import\(\s*[`"]@\//.test(src)) return true;
-  /* A relative specifier that resolves to a .ts file on disk. */
-  const specs = [...src.matchAll(/from\s+"(\.\.?\/[^"]+)"/g)].map((m) => m[1]);
-  return specs.some((s) => {
-    const base = join(DIR, s);
-    return existsSync(`${base}.ts`) || existsSync(`${base}.tsx`);
-  });
-}
-
-function invocationFor(file) {
-  const path = `${DIR}/${file}`;
-  const needsTsx = importsTypeScript(path);
-  const { needsReactServer } = runtimeFor(path);
-  const args = [];
-  if (needsTsx) args.push(TSX_CLI);
-  if (needsReactServer) args.push("--conditions=react-server");
-  args.push(path);
-  return { command: "node", args, needsTsx, needsReactServer };
-}
 
 /* --------------------------------------------------------------- run them */
 
