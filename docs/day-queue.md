@@ -69,6 +69,23 @@ Every repair was proved by an injection, and each file was restored byte identic
 4. Skip re-boarding a push to main whose exact commit already has a green board (ruled 2026-10-22). It edits `board.yml`, so it comes after bundle 17.
 5. List controls (search, filter, sort, paging) on the 13 staff screens that have none, so each can then take a CSV export, office ready section 2d.
 
+## 2026-10-29: BUNDLE 26 MISSED ON A BRITISH SPELLING; REBOARD AT `5ccbde9`
+
+**Board 40969663851 on `c79506f`: 63 of 64.**
+- The one FAIL is voice-audit: "us-spelling: 1 finding", `src/content/procedures.ts:1015`, "licence holder". It was emitted from the new WF-017 step 6 row in `docs/workflows.md`.
+- A real miss caused by the branch. The preflight's voice rule checks banned phrases and regulatory claims, not US spelling.
+
+**The repair, `5ccbde9`:**
+- "license holder" in `docs/workflows.md`, and the procedures re-emitted, with no "licence holder" left.
+- The code identifier `holdsLicence` is not prose and voice-audit does not flag it.
+- Giving the preflight a US spelling check is queued as its own bundle.
+
+**Readers on `5ccbde9`, on main `00e66a0`:** preflight GREEN, 37 rules.
+
+**Prediction: 64 of 64.**
+- The standing notes as named for bundle 24.
+- The first board's walk read 224 works and 17 missing. A missing step drops by one with this screen.
+
 ## 2026-10-29: BUNDLE 25 MERGED; BUNDLE 26, THE CERTIFICATION PANEL ON /portal/review, AT `c79506f`
 
 **Bundle 25 merged as `00e66a0`.** The merged tree is the boarded tree. Board 40960219426 on `30eecdd` read 64 of 64 with preflight GREEN at 37 rules, as predicted.
