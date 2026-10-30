@@ -9,6 +9,7 @@ import { JsonLd, breadcrumbSchema } from "@/lib/schema";
 import { windstormHub, windstormPages } from "@/content/windstorm-program";
 import { firmName, isPrelaunch } from "@/lib/launch";
 import { contact } from "@/config/contact";
+import { servesVerb } from "@/content/location";
 
 /**
  * The cluster hub.
@@ -127,7 +128,7 @@ export default function WindstormHubPage() {
             , the upper coast, and the Rio Grande Valley, and the wind, soil, and permitting
             conditions differ enough between them that each coverage region is written separately.
             The firm&apos;s office is in {contact.city}, and it{" "}
-            {isPrelaunch() ? "is built to serve" : "serves"}{" "}
+            {servesVerb()}{" "}
             <Link href="/corpus-christi" className="underline underline-offset-4">
               Corpus Christi and the Coastal Bend
             </Link>{" "}
