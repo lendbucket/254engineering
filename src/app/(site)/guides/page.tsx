@@ -25,7 +25,7 @@ import { proximityHub, proximityPages } from "@/content/structural-engineer";
 export const metadata: Metadata = buildMetadata({
   title: "Texas Engineering Guides by Topic | 254 Engineering",
   description:
-    "Every guide and article on Texas engineering, windstorm certification, lending and foundations, grouped by topic with its primary sources. Find yours here.",
+    "Every guide and article on Texas engineering, windstorm certification, lending and foundations, grouped by topic with its primary sources. Explore the list.",
   path: "/guides",
 });
 
