@@ -73,12 +73,21 @@ export function SiteHeader() {
       <div className="sticky top-0 z-50 bg-slate shadow-[0_2px_6px_rgba(6,16,34,0.25)]">
         <Container>
           <div className="flex items-stretch justify-between gap-2">
+            {/*
+              * NINE ITEMS SINCE 2026-10-29, when Corpus Christi joined the bar.
+              * Measured on production at 1024 and 1080 wide, nine links at the
+              * old 1.4vw padding overran the row by 47 and 25 pixels, and the
+              * row does not wrap. The padding now narrows faster below about
+              * 1350 wide (9.6px a side at 1024, 16.3px at 1280, 18px from
+              * 1346), and the same measurement with nine links leaves 14px
+              * spare at 1024, 44px at 1080 and 70px at 1280.
+              */}
             <nav aria-label="Primary" className="hidden items-stretch lg:flex">
               {primaryNav.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="flex items-center border-b-[3px] border-transparent px-[clamp(10px,1.4vw,18px)] py-[17px] text-[15px] font-semibold text-slate-fg transition-colors hover:border-brass hover:bg-white/8"
+                  className="flex items-center border-b-[3px] border-transparent px-[clamp(8px,calc(2.6vw_-_17px),18px)] py-[17px] text-[15px] font-semibold text-slate-fg transition-colors hover:border-brass hover:bg-white/8"
                 >
                   {item.label}
                 </Link>

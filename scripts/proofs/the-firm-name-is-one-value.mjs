@@ -92,10 +92,21 @@ const check = (name, ok, note) => {
 
 const before = readWorld("before the rename");
 check("firmName() reads the register today", before.firmName === TODAY, before.firmName);
+/*
+ * THE LOCATION DESCRIPTION STOPPED NAMING THE FIRM ON 2026-10-29, Robert's
+ * approved Corpus Christi copy (issue #1 comment 6504744447). So the moving
+ * sentence is the body alone, and the description is asserted to type no name
+ * at all, before and after, which is what would go stale if one were typed back.
+ */
 check(
-  "and the rendered sentences carry that name",
-  before.locationDescription.includes(TODAY) && before.locationBody.includes(TODAY),
-  "location description and body",
+  "and the rendered sentence carries that name",
+  before.locationBody.includes(TODAY),
+  "location body",
+);
+check(
+  "and the location description types no firm name",
+  !before.locationDescription.includes(TODAY) && !before.locationDescription.includes(RENAMED),
+  before.locationDescription,
 );
 
 copyFileSync(REGISTER, BACKUP);
@@ -117,11 +128,10 @@ try {
   );
   check(
     "and every rendered sentence follows, with no trace of the old name",
-    after.locationDescription.includes(RENAMED) &&
-      after.locationBody.includes(RENAMED) &&
-      !after.locationDescription.includes(TODAY) &&
-      !after.locationBody.includes(TODAY),
-    "location description and body",
+    after.locationBody.includes(RENAMED) &&
+      !after.locationBody.includes(TODAY) &&
+      !after.locationDescription.includes(TODAY),
+    "location body, and no old name in the description",
   );
 } finally {
   copyFileSync(BACKUP, REGISTER);

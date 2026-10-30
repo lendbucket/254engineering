@@ -18,6 +18,12 @@ export const primaryNav = [
    */
   { href: "/process", label: "How it works" },
   { href: "/coverage", label: "Coverage" },
+  /*
+   * ADDED 2026-10-29. Robert, 13:11 and 22:12 Central: Corpus Christi is a
+   * highlighted market, linked from the main navigation, the home page and
+   * /coverage, until its office address is set.
+   */
+  { href: "/corpus-christi", label: "Corpus Christi" },
   { href: "/government", label: "Government" },
   { href: "/insights", label: "Insights" },
   { href: "/careers", label: "Careers" },

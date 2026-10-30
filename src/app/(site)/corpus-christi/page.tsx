@@ -7,10 +7,11 @@ import { PrelaunchNotice } from "@/components/launch/PrelaunchNotice";
 import { OfferCta } from "@/components/launch/OfferCta";
 import { buildMetadata } from "@/lib/seo";
 import { JsonLd, breadcrumbSchema } from "@/lib/schema";
-import { location } from "@/content/location";
-import { displayPhone, telHref } from "@/config/contact";
+import { location, servesVerb } from "@/content/location";
+import { contact, displayPhone, telHref } from "@/config/contact";
 import { business } from "@/config/business";
 import { PhoneNumber } from "@/components/ui/PhoneNumber";
+import { isPrelaunch, notYetAcceptingEngagements, registrationStatement } from "@/lib/launch";
 
 /**
  * The entity's location page. Reasoning for its existence, and for why it is not
@@ -34,9 +35,13 @@ import { PhoneNumber } from "@/components/ui/PhoneNumber";
  * printed the San Antonio street under a Corpus Christi heading. The page stays
  * live and in the sitemap and prints no street address. The phone stays,
  * derived as before. The firm's address is on /contact, /press, the footer and
- * the Organization node. The sentences that still say the firm is based in this
- * city (src/content/location.ts) go to Robert as a copy proposal first, and the
- * rewrite is a later bundle, by the same ruling.
+ * the Organization node.
+ *
+ * THE COPY IS ROBERT'S APPROVED REVISION, 22:12 Central 2026-10-29 (issue #1
+ * comment 6504744447): a market the firm serves, the verb read off the gate,
+ * the capability lede and the registration sentence derived from the gate,
+ * and no typed headline on the closing call to action, so OfferCta reads the
+ * gate itself.
  */
 
 const crumbs = [
@@ -53,6 +58,7 @@ export const metadata: Metadata = buildMetadata({
 export default function LocationPage() {
   const phone = displayPhone();
   const tel = telHref();
+  const statement = registrationStatement();
 
   return (
     <>
@@ -60,7 +66,7 @@ export default function LocationPage() {
 
       {/* 1. white by construction: the header is its own dark surface */}
       <PageHeader
-        eyebrow="Where the firm is"
+        eyebrow={`A market the firm ${servesVerb()}`}
         title={location.h1}
         lede={location.summary}
         crumbs={crumbs}
@@ -71,9 +77,9 @@ export default function LocationPage() {
       {/* 2 */}
       <Section tone="sunk">
         <SectionHead
-          eyebrow="Position"
-          title="Why the address is worth stating"
-          lede="A firm inside the catastrophe area answers to the same rules as the structures it is built to certify."
+          eyebrow="Why this market"
+          title="Why Corpus Christi is called out"
+          lede="Inside the catastrophe area, construction answers to windstorm rules that do not apply inland."
         />
         <div className="mt-8 max-w-[68ch]">
           {location.position.map((p, i) => (
@@ -146,7 +152,7 @@ export default function LocationPage() {
         <SectionHead
           eyebrow="Capability"
           title="What the firm is built to deliver"
-          lede="Stated as capability, because nothing here is offered yet."
+          lede={isPrelaunch() ? notYetAcceptingEngagements() : "The documents coastal work in this city turns on."}
           onDark
         />
         <div className="mt-8 max-w-[68ch]">
@@ -157,6 +163,9 @@ export default function LocationPage() {
               className={`text-[1.02rem] leading-[1.75] text-slate-fg/80 ${i > 0 ? "mt-6" : ""}`}
             />
           ))}
+          {statement ? (
+            <p className="mt-6 text-[1.02rem] leading-[1.75] text-slate-fg/80">{statement}</p>
+          ) : null}
         </div>
       </Section>
 
@@ -208,6 +217,15 @@ export default function LocationPage() {
               </a>
             </dd>
 
+            <dt className="mt-6 font-semibold text-slate">Office</dt>
+            <dd className="mt-1">
+              The firm&apos;s office is in {contact.city}. Its street address is on the{" "}
+              <Link href="/contact" className="underline underline-offset-4">
+                contact page
+              </Link>
+              .
+            </dd>
+
             {phone && tel ? (
               <>
                 <dt className="mt-6 font-semibold text-slate">Telephone</dt>
@@ -233,10 +251,7 @@ export default function LocationPage() {
       </Section>
 
       {/* 9, dark */}
-      <OfferCta
-        headline="Be first when the doors open"
-        body="The waitlist is how the firm will tell you the work is open."
-      />
+      <OfferCta />
     </>
   );
 }

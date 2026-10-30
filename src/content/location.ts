@@ -1,20 +1,38 @@
 /**
- * The firm's own place, as a page.
+ * Corpus Christi, as a highlighted market.
  *
- * WHY A CITY PAGE EXISTS ON A SITE WITH NO CITY PAGES
- * ---------------------------------------------------
- * The standing rule is that geo on this brand is regional, not municipal, and
- * that rule holds. This is not a geo page. It is the entity's location page: the
- * one place the firm actually sits, which is a different kind of object from a
- * page minted for a city the firm merely covers.
+ * WHAT THIS PAGE IS NOW. Robert's ruling, 13:11 and 22:12 Central 2026-10-29.
+ * --------------------------------------------------------------------------
+ * The firm's office moved to San Antonio. This page is NOT replaced or
+ * redirected: it stays live, in the sitemap, and linked from the main
+ * navigation, the home page and /coverage, presented as the firm serving
+ * Corpus Christi and the Coastal Bend. Until Robert gives a Corpus Christi
+ * street address it prints none, claims no office here, and carries no
+ * Corpus Christi location in any schema. The firm's address is on /contact,
+ * /press, the footer and the Organization node, from src/config/contact.ts.
  *
- * The distinction is testable rather than rhetorical. A geo page answers "do you
- * work here". This one answers "where are you", which is the question a Google
- * Business Profile, a LocalBusiness node, and a procurement officer checking a
- * bidder's principal place of business all ask. There is exactly one of these
- * pages and there will only ever be one, because the firm has one address. The
- * day it is written twice for two cities is the day it has become the doorway
- * pattern it is currently not.
+ * "Serves" is a present tense claim, so the verb follows the gate through
+ * `servesVerb()` below rather than being typed: "serves" once the gate reads
+ * trading, "is built to serve" in prelaunch. launch-audit renders both.
+ *
+ * The find-and-replace test still applies. This page keeps only what is false
+ * of Victoria or Kingsville, so it is a market page and not a doorway.
+ *
+ * THE RULE THIS REPLACES, KEPT FOR ITS REASONING
+ * ----------------------------------------------
+ * It read: "WHY A CITY PAGE EXISTS ON A SITE WITH NO CITY PAGES. The standing
+ * rule is that geo on this brand is regional, not municipal, and that rule
+ * holds. This is not a geo page. It is the entity's location page: the one
+ * place the firm actually sits, which is a different kind of object from a page
+ * minted for a city the firm merely covers. The distinction is testable rather
+ * than rhetorical. A geo page answers 'do you work here'. This one answers
+ * 'where are you', which is the question a Google Business Profile, a
+ * LocalBusiness node, and a procurement officer checking a bidder's principal
+ * place of business all ask. There is exactly one of these pages and there
+ * will only ever be one, because the firm has one address. The day it is
+ * written twice for two cities is the day it has become the doorway pattern it
+ * is currently not." The office moved on 2026-10-29, and the operator ruled
+ * that Corpus Christi stays highlighted as a market rather than redirected.
  *
  * IT MUST NOT REPEAT THE COASTAL BEND REGION PAGE
  * -----------------------------------------------
@@ -46,30 +64,45 @@
  *              The number that governs a specific structure comes from the
  *              current standard and the site's exposure category, not from here.
  *
- * NO PRESENT TENSE SERVICE CLAIMS ANYWHERE IN THIS FILE. The registration is
- * pending. Everything the firm is built to do is written as what it is built to
- * do. scripts/voice-audit.mjs enforces that mechanically.
+ * NO PRESENT TENSE SERVICE CLAIMS IN PRELAUNCH. Everything the firm is built
+ * to do is written as what it is built to do, and the one present tense verb
+ * reads the gate. scripts/voice-audit.mjs enforces that mechanically.
  */
 
-import { firmName } from "@/lib/launch";
+import { firmName, isTrading } from "@/lib/launch";
+import { contact } from "@/config/contact";
+
+/**
+ * THE VERB FOR "THE FIRM SERVES THIS MARKET", READ OFF THE GATE. Robert,
+ * 22:12 Central 2026-10-29: "serves" only once the gate reads trading, "is
+ * built to serve" in prelaunch. A function rather than a constant, because a
+ * module level value is read once (CLAUDE.md section 6). /windstorm reads it
+ * too, so the two pages cannot disagree.
+ */
+export function servesVerb(): "serves" | "is built to serve" {
+  return isTrading() ? "serves" : "is built to serve";
+}
 
 export const location = {
   slug: "corpus-christi",
   city: "Corpus Christi",
   county: "Nueces County",
 
-  h1: "A Texas Engineering Firm Based in Corpus Christi",
-  title: "Corpus Christi Texas Engineering Firm | 254 Engineering",
+  h1: "Corpus Christi Engineering for the Coastal Bend",
+  title: "Corpus Christi Engineering, Coastal Bend | 254 Engineering",
   description:
-    `Where ${firmName()} is based, and what building on the Corpus Christi coast asks of a structure. See the coverage map and join the waitlist.`,
-  summary:
-    "The firm is based in Corpus Christi, inside the windstorm catastrophe area, in a city whose limits reach from a limestone bluff to the open Gulf side of two barrier islands.",
+    "Corpus Christi and the Coastal Bend: the barrier islands, the bluff, Celia, and what building on this coast asks of a structure. See the coverage map.",
+  get summary(): string {
+    return `Corpus Christi sits inside the windstorm catastrophe area, in a city whose limits reach from a limestone bluff to the open Gulf side of two barrier islands, and the firm ${servesVerb()} it from ${contact.city}.`;
+  },
 
-  /** Why the firm's own position is a fact worth stating rather than filler. */
-  position: [
-    `${firmName()} is named for the 254 counties of Texas and is built to cover all of them. It is based in Corpus Christi, and that is not an incidental detail about where the mail goes. The Coastal Bend is where the most demanding version of the work sits, and a firm headquartered inside the catastrophe area is answering to the same rules as the structures it is built to certify.`,
-    "Corpus Christi is the seat of Nueces County, which is one of the fourteen Texas seacoast counties inside the catastrophe area designated by the Texas Department of Insurance. Inside that line, new construction and reroofing require [windstorm inspection and a WPI-8 certificate of compliance](/windstorm) before windstorm coverage can be written through the Texas Windstorm Insurance Association. That requirement is the organizing fact of construction here, and it applies to the firm's own city.",
-  ],
+  /** Why this market is called out rather than left to the region page. */
+  get position(): readonly string[] {
+    return [
+      `${firmName()} is named for the 254 counties of Texas and is built to cover all of them. Corpus Christi and the Coastal Bend are a market it ${isTrading() ? "serves now" : "is built to serve"}, and that is not an incidental detail. The Coastal Bend is where the most demanding version of the work sits, because every new building and reroof inside the catastrophe area answers to the windstorm rules before it can be insured.`,
+      "Corpus Christi is the seat of Nueces County, which is one of the fourteen Texas seacoast counties inside the catastrophe area designated by the Texas Department of Insurance. Inside that line, new construction and reroofing require [windstorm inspection and a WPI-8 certificate of compliance](/windstorm) before windstorm coverage can be written through the Texas Windstorm Insurance Association. That requirement is the organizing fact of construction here.",
+    ];
+  },
 
   /**
    * The genuinely city specific part. None of this is true of Victoria, and
@@ -99,6 +132,6 @@ export const location = {
    */
   capability: [
     "The firm is built around the documents that coastal transactions actually turn on: windstorm certification for construction inside the catastrophe area, roof condition and certification work for lenders and carriers, foundation evaluation where the soils argue with the slab, and repair specifications written so that damage can be scoped, bid, and permitted rather than argued about.",
-    "All of it is designed to be delivered under a licensed Texas Professional Engineer in responsible charge. Until the firm's registration with the Texas Board of Professional Engineers and Land Surveyors is issued and a Professional Engineer is in responsible charge, none of it is offered or performed, and no page on this site says otherwise.",
+    "All of it is designed to be delivered under a licensed Texas Professional Engineer in responsible charge.",
   ],
-} as const;
+};

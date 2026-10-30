@@ -400,6 +400,10 @@ if (templates.length === 0) {
      * anything and neither imports the gate. */
     "src/app/portal/(app)/suppressions/page.tsx",
     "src/app/api/portal/suppressions/route.ts",
+    /* The export door, for the same list as a CSV (office ready, 2026-10-29).
+     * It reads listSuppressions to write the file, sends nothing, and does not
+     * import the gate. */
+    "src/app/api/portal/exports/route.ts",
     /*
      * And the deletion request module, which WRITES to the list and never
      * reads the gate.
