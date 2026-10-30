@@ -827,7 +827,39 @@ if (pdftotext.error || pdftotext.status !== 0) {
     for (const rule of exclusions) out = out.split(rule.rule.toLowerCase()).join(" ");
     return out;
   };
-  const copy = SUBJECTS.map((p) => strip(readSource(p))).join("\n");
+  /*
+   * AND ANY OTHER SIGNED PROTOCOL'S OWN SENTENCE, 2026-10-30. Robert's 09:28
+   * item made the catalogue quote section 11 of every protocol in force, and
+   * 254-MH-001 and 254-RS-001 each say, in the negative, that their document
+   * does not forecast future performance. This check read those as promises,
+   * because it excused only 254-RC-001's sentences while reading the whole
+   * file. A string literal that appears word for word in a protocol
+   * transcription under src/content/protocols is the signed document speaking,
+   * not a promise, so it is removed before matching. The transcriptions are the
+   * signed documents, not the copy under test, and a paraphrase is not in
+   * them, so a paraphrased promise is still caught.
+   */
+  const norm = (s) => s.toLowerCase().replace(/•/g, " ").replace(/\s+/g, " ").trim();
+  const literals = (src) => [...src.matchAll(/"((?:[^"\\]|\\.)*)"/g)].map((m) => m[1]);
+  const protocolDir = "src/content/protocols";
+  const protocolText = norm(
+    readdirSync(protocolDir)
+      .filter((f) => f.endsWith(".ts"))
+      .map((f) => literals(readFileSync(`${protocolDir}/${f}`, "utf8")).join(" "))
+      .join(" "),
+  );
+  const quotedHere = [];
+  const notQuoted = (text) => {
+    let out = text;
+    for (const lit of literals(text)) {
+      if (lit.length >= 24 && protocolText.includes(norm(lit))) {
+        quotedHere.push(lit);
+        out = out.split(`"${lit}"`).join(" ");
+      }
+    }
+    return out;
+  };
+  const copy = SUBJECTS.map((p) => strip(notQuoted(readSource(p)))).join("\n");
   const promised = forbidden.filter((f) => copy.includes(f.phrase.toLowerCase()));
 
   rec(
@@ -836,7 +868,19 @@ if (pdftotext.error || pdftotext.status !== 0) {
     promised.length
       ? promised.map((p) => `"${p.phrase}" (excluded by ${p.from})`).join("; ") +
           ". The signed protocol says the letter does not do this. A page that promises it is promising something the engineer will not seal."
-      : `${forbidden.length} excluded phrase(s) checked against ${SUBJECTS.join(" and ")}`,
+      : `${forbidden.length} excluded phrase(s) checked against ${SUBJECTS.join(" and ")}, ${quotedHere.length} sentence(s) excused as word for word quotations of a signed protocol`,
+  );
+  /*
+   * The exemption is counted and has a floor and a ceiling, because an
+   * exemption nobody counts becomes the rule (CLAUDE.md section 6). The six
+   * protocols in force are quoted in two files; fewer than six excused means
+   * the quotations stopped matching, and the check would then fail on the
+   * negatives rather than pass on nothing.
+   */
+  rec(
+    "the protocol quotations excused from that check are counted",
+    quotedHere.length >= 6,
+    `${quotedHere.length} excused`,
   );
 }
 
@@ -884,16 +928,8 @@ if (pdftotext.error || pdftotext.status !== 0) {
    * as the catalogue's "what you receive". Each page is checked as one more
    * line, keyed `service:<slug>`, with its list read from `deliverable`.
    */
-  const entries = [
-    ...catalog.CATALOG,
-    ...services.map((s) => ({
-      serviceSlug: s.slug,
-      tier: "page",
-      receives: s.deliverable,
-      notes: s.notes,
-      _key: `service:${s.slug}`,
-    })),
-  ];
+  const { receivesEntries, inForceResolver, checkReceives } = await import("./lib/receives-check.mjs");
+  const entries = receivesEntries(catalog, services);
   const squashed = new Map();
   const signedText = (entry) => {
     const file = entry.declaration.sourceFile;
@@ -910,47 +946,39 @@ if (pdftotext.error || pdftotext.status !== 0) {
     catalog.SCOPE_PENDING === PENDING ? "" : `the catalogue says "${catalog.SCOPE_PENDING}"`,
   );
 
-  const wrong = [];
-  const quoted = [];
-  const pending = [];
-  let itemsCompared = 0;
-  let unread = 0;
-  for (const d of entries) {
-    const where = d._key ?? `${d.serviceSlug}/${d.tier}`;
-    const signed = PROTOCOL_ENTRIES.find(
-      (p) => p.declaration.serviceSlug === d.serviceSlug && p.signatureEvidence !== null,
-    );
-    if (d.receives.length === 1 && d.receives[0] === PENDING) {
-      if (signed) wrong.push(`${where}: its protocol ${signed.declaration.documentNumber} is signed, so the pending sentence is false; quote it`);
-      else pending.push(where);
-      continue;
-    }
-    if (!signed) {
-      wrong.push(`${where}: no signed protocol, so it must carry the pending sentence alone, and carries ${d.receives.length} item(s) of its own`);
-      continue;
-    }
-    const doc = signedText(signed);
-    if (doc === null) {
-      unread++;
-      continue;
-    }
-    const missing = d.receives.filter((r) => !doc.includes(r.replace(/\s+/g, "")));
-    itemsCompared += d.receives.length;
-    if (d.receives.length === 0) wrong.push(`${where}: an empty list says nothing at all`);
-    else if (missing.length) wrong.push(...missing.map((m) => `${where}: not a sentence of ${signed.declaration.documentNumber}: "${m.slice(0, 70)}"`));
-    else quoted.push(`${where} (${d.receives.length} from ${signed.declaration.documentNumber})`);
-  }
+  /*
+   * WHICH PROTOCOLS ARE IN FORCE, and the rule itself, live in
+   * scripts/lib/receives-check.mjs (Robert, 09:28 Central 2026-10-30), so the
+   * preflight's static proof and this audit apply one rule. This audit adds the
+   * comparison of the paper-signed 254-RC-001 against its fetched PDF.
+   */
+  const { SIGNABLE_PROTOCOLS, HELD_OUT_OF_FORCE } = await import("../src/content/protocols/signable.ts");
+  const { inForceFor, inForceSet } = inForceResolver({
+    PROTOCOL_ENTRIES,
+    SIGNABLE_PROTOCOLS,
+    HELD_OUT_OF_FORCE,
+    paperText: signedText,
+  });
+  const { wrong, quoted, pending, itemsCompared, unread } = checkReceives(entries, inForceFor, PENDING);
+  rec(
+    "the protocols in force are the code's declared set, and it is not empty: it holds 254-WS-001 and 254-RC-001, and the windstorm completed line reads 254-WS-001",
+    inForceSet.includes("254-WS-001") &&
+      inForceSet.includes("254-RC-001") &&
+      inForceFor({ serviceSlug: "windstorm-wpi-8", tier: "completed" })?.documentNumber === "254-WS-001" &&
+      inForceFor({ serviceSlug: "windstorm-wpi-8", tier: "ongoing" }) === null,
+    `in force: ${inForceSet.join(", ")}`,
+  );
   if (unread) tell.push(`${unread} deliverable(s) were not compared with their signed protocol, because pdftotext could not read it.`);
 
   rec(
-    "every deliverable's \"what you receive\" and every service page's \"what arrives at the end\" quotes its own signed protocol or carries the pending sentence alone",
+    "every deliverable's \"what you receive\" and every service page's \"what arrives at the end\" quotes its own protocol in force, with no pre-signature wording, or carries the pending sentence alone",
     wrong.length === 0,
     wrong.length ? wrong.join("; ") : `${quoted.length} quoted: ${quoted.join(", ")}; ${pending.length} pending: ${pending.join(", ")}`,
   );
   rec(
     "and the comparison had something to compare (a quoted line and a pending line exist, and the service pages were read)",
     quoted.length > 0 && pending.length > 0 && itemsCompared > 0 && services.length >= 8,
-    `${itemsCompared} item(s) compared against a signed PDF, ${pending.length} pending line(s), ${services.length} service page(s) among them`,
+    `${itemsCompared} item(s) compared against a protocol in force, ${pending.length} pending line(s), ${services.length} service page(s) among them`,
   );
 
   const notesFound = Object.fromEntries(

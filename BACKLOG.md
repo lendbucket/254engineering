@@ -1170,6 +1170,22 @@ sentence, so the registration cannot quietly leave it behind.
 The WPI-8 disclaimers moved to `notes` word for word and are pinned in the same
 audit; a new note is a deliberate edit listed for the operator's review.
 
+**DONE FOR SIX, 2026-10-30, on Robert's 09:28 Central instruction.** The
+follow-ups above never happened, and nothing went red, because the check read
+"signed" from `PROTOCOL_ENTRIES`, where the portal-signed protocols never went:
+0081 put DS, FC, MH, PL, RS, SL and WS in force on production on 2026-10-23,
+and the windstorm completed page went on saying its scope waited on a signature.
+The windstorm completed, foundation, manufactured home, solar, structural letter
+and repair specification lines, and their six service pages, now quote section
+11 of WS-001, FC-001, MH-001, SL-001, PL-001 and RS-001 (`PROTOCOL_RECEIVES` in
+`data/catalog.ts`). The rule moved to `scripts/lib/receives-check.mjs`, which
+reads "in force" as the code declares it, SIGNABLE_PROTOCOLS less
+HELD_OUT_OF_FORCE plus the paper-signed entries, and refuses pre-signature
+wording of any spelling on such a line. protocol-registry-audit and the static
+proof `a-deliverable-quotes-its-protocol-in-force.mjs` both apply it.
+**Still pending, correctly:** windstorm ongoing (254-WP-001, held until his
+scope addendum) and the three design tiers (no protocol).
+
 ## OUR LOCK AND WATTSMITH'S WERE BOTH HELD AT ONCE, 2026-10-09. NOT EXPLAINED.
 
 Read, not inferred. At 04:22:32Z the lock file named wattsmith
