@@ -136,18 +136,19 @@ The source of truth for the running loop. Robert, 2026-10-29: the loop prompt is
 1. Built from main, in its own worktree with no environment file.
 2. `node scripts/preflight.mjs` GREEN. Every prediction states the preflight result, and no bundle boards on a red preflight.
 3. The prediction is pushed to `docs/day-queue.md` on ops/day with `[skip ci]` BEFORE the board.
-4. Board: push the branch, then `gh workflow run board.yml --ref <branch>` when the head carries `[skip ci]`. Then `gh run watch` in the background.
-5. Read the sealed logs (`scripts/ci/seal.mjs open` with `C:/Users/salon/.254-ci/log-key.pem`). Tally with `scripts/ci/board-verdict.mjs` run from the bundle's own worktree.
-6. **On a match:**
+4. **After every commit, confirm with `git rev-parse HEAD` that the branch head actually moved to the new commit, before pushing or dispatching a board.** (Robert, 2026-10-30, after a commit refused by the commit guard went unnoticed and run 41136208166 was dispatched on the unchanged commit.)
+5. Board: push the branch, then `gh workflow run board.yml --ref <branch>` when the head carries `[skip ci]`. Confirm the run's `headSha` is the commit just made. Then `gh run watch` in the background.
+6. Read the sealed logs (`scripts/ci/seal.mjs open` with `C:/Users/salon/.254-ci/log-key.pem`). Tally with `scripts/ci/board-verdict.mjs` run from the bundle's own worktree.
+7. **On a match:**
    - confirm `origin/main` has not moved;
-   - `git merge --no-ff` with `[skip ci]`;
+   - `git merge --no-ff` with `[skip ci]`, then `git rev-parse HEAD` to confirm the merge commit exists;
    - `git -C C:/Users/salon/projects/254engineering push origin main`;
    - `ls-remote`;
    - a short status on issue #1.
-7. **On a miss:** read the sealed log, repair the cause, prove it with an injection, bring the branch up to main, and board again. Never re-run an unchanged commit. A red board never merges (Robert, 22:12).
-8. While a board runs, build the next bundle in its own worktree. Forks are allowed, local only.
-9. **Every fork brief says: no push, no merge, no board dispatch. The parent session does all three.** (Robert, 2026-10-29, after a fork planned to merge on its own.)
-10. One board at a time.
+8. **On a miss:** read the sealed log, repair the cause, prove it with an injection, bring the branch up to main, and board again. Never re-run an unchanged commit. A red board never merges (Robert, 22:12).
+9. While a board runs, build the next bundle in its own worktree. Forks are allowed, local only.
+10. **Every fork brief says: no push, no merge, no board dispatch. The parent session does all three.** (Robert, 2026-10-29, after a fork planned to merge on its own.)
+11. One board at a time.
 
 ## MIGRATIONS
 
