@@ -57,6 +57,7 @@ import fs from "node:fs";
 import { createRequire } from "node:module";
 import { feature, mesh } from "topojson-client";
 import { geoConicEqualArea, geoPath } from "d3-geo";
+import { toRelativePath } from "./lib/relative-path.mjs";
 import { regions } from "../src/content/regions";
 import { regionAssignmentFingerprint } from "../src/content/region-fingerprint";
 
@@ -125,9 +126,16 @@ const projection = geoConicEqualArea()
 
 const pathOf = geoPath(projection);
 
-/** Trim coordinate noise without touching the shape. */
+/**
+ * Trim coordinate noise without touching the shape, then spell the same points
+ * with relative commands. The second step is exact at this precision (see
+ * scripts/lib/relative-path.mjs): it changes how the path is written, never
+ * which points it visits. Added 2026-10-30, after board 41118588757 measured
+ * /coverage/coastal-bend 2ms over its LCP ceiling with this geometry most of
+ * the page's HTML.
+ */
 const round = (d: string) =>
-  d.replace(/-?\d+\.\d+/g, (n) => String(Number(Number(n).toFixed(PRECISION))));
+  toRelativePath(d.replace(/-?\d+\.\d+/g, (n) => String(Number(Number(n).toFixed(PRECISION)))));
 
 const sorted = [...collection.features].sort((a, b) =>
   String(a.id).localeCompare(String(b.id)),

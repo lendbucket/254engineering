@@ -855,7 +855,17 @@ for (const r of rows) {
  * went. The decision of what it reads lives in scripts/lib/lcp-element.mjs.
  */
 console.log("");
-console.log("  LCP ELEMENT, recorded not judged (most common across runs; subparts in ms):");
+/*
+ * The subparts are read off the trace Lighthouse recorded, which is not
+ * throttled; the LCP figure above is SIMULATED at 4x CPU and 1.6Mbps. So the
+ * subparts say which phases exist and their proportions on a fast load, and
+ * never add up to the gated figure. Board 41227555325 is the instance:
+ * /coverage/coastal-bend's subparts summed to about 110ms beside an LCP of
+ * 3,263ms.
+ */
+console.log(
+  "  LCP ELEMENT, recorded not judged (most common across runs; subparts are the unthrottled trace's ms, not the simulated LCP):",
+);
 for (const r of rows) {
   if (r.failed) continue;
   const e = r.lcpElement;
