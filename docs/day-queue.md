@@ -12,6 +12,10 @@
 
 **Prediction, bundle 40 (`ci/height-headroom` at `4b974a3`, main `4a69a00` merged in; full lane, audit code):** preflight GREEN, 38 rules, 0 failed. Both warning proofs pass standalone and are injection-verified. Board: 64 of 64. seo-audit prints no posting WARNING, because both dates are 92 days out and the notice window is 45 days. mobile-overflow-audit prints the two height WARNINGs (`/insights/wpi-8-certificate`, `/insights/pre-purchase-home-inspection`), verdict unchanged. Standing note: perf `/coverage` NOT STABLE; coastal-bend read 3,257 ms on the last board. Migrations: none.
 
+**Result, bundle 40:** board 41221882794 on `4b974a3`, 64 of 64. No posting WARNING, and the two height WARNINGs (15,380 and 15,090 px), all as predicted. Merged as `15a02ab`, tree identical to the boarded commit.
+
+**Prediction, bundle 42 (`perf/lcp-element` at `602781f`, main `15a02ab` merged in; full lane, audit code; boarded alone on Robert's word):** preflight GREEN, 38 rules, 0 failed. The proof passes standalone and is injection-verified. Board: 64 of 64, and perf-audit's verdicts are unchanged because the new block calls no rec(). perf-audit prints an LCP ELEMENT line for every measured route, none reading "not named". The finding I expect, stated so it can be wrong: `/coverage` and `/coverage/coastal-bend` name a TEXT element, the prelaunch compliance paragraph, with most of the time in elementRenderDelay. Standing note: perf `/coverage` NOT STABLE. Migrations: none.
+
 ## MORNING REPORT, 2026-10-31
 
 **Needed from Robert: two answers.** The first blocks every board.
