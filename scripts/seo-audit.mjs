@@ -19,6 +19,7 @@ import lighthouse from "lighthouse";
 import { AUDIT_BASE_URL } from "./lib/ports.mjs";
 import { napFindings } from "./lib/nap.mjs";
 import { titleProblems, descriptionProblems, duplicateProblems } from "./lib/metadata-rules.mjs";
+import { postingNotices, POSTING_NOTICE_DAYS } from "./lib/posting-notice.mjs";
 
 const BASE = process.env.BASE_URL || AUDIT_BASE_URL;
 
@@ -629,6 +630,26 @@ for (const route of routes) {
     console.log(`${route}: valid through ${node.validThrough} (posted ${node.datePosted})`);
   }
   console.log(`warning window: ${windowDays} days, so anything on or before ${warnFrom} fails`);
+
+  /*
+   * AND A POSTING CLOSE TO THAT WINDOW IS NAMED, AS A WARNING ONLY. Robert,
+   * 10:26 Central 2026-10-31: any validThrough within 45 days, so the 30 day
+   * failure never arrives unannounced. Recorded, not judged: nothing here is
+   * pushed into problems, so it changes no verdict and no exit code. A posting
+   * already inside the failure window is not repeated here; it is a finding
+   * above.
+   */
+  const notices = postingNotices(
+    postings.map(({ route, node }) => ({ route, validThrough: String(node.validThrough ?? "") })),
+    today,
+    windowDays,
+  );
+  if (notices.length > 0) {
+    console.log(`WARNING, recorded not judged: ${notices.length} posting(s) within ${POSTING_NOTICE_DAYS} days of validThrough.`);
+    for (const n of notices) {
+      console.log(`  WARNING ${n.route}: validThrough ${n.validThrough}, ${n.daysLeft} days left; seo-audit fails it from ${windowDays} days. Refresh it or set open: false in data/positions.ts.`);
+    }
+  }
 }
 
 /*
