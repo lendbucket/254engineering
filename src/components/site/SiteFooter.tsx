@@ -135,6 +135,7 @@ export function SiteFooter() {
               <FooterLink href="/about">About the firm</FooterLink>
               <FooterLink href="/government">Government and commercial</FooterLink>
               <FooterLink href="/insights">Insights</FooterLink>
+              <FooterLink href="/guides">Guides by topic</FooterLink>
               <FooterLink href="/careers">Careers</FooterLink>
               <FooterLink href="/press">Press</FooterLink>
               <FooterLink href="/contact">Contact</FooterLink>

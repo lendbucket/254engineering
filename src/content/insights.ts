@@ -859,6 +859,33 @@ const BUYER_SRC = {
     label: "House Committee Report, bill analysis of C.S.H.B. 613, 83rd Legislature (2013)",
     url: "https://capitol.texas.gov/tlodocs/83R/analysis/html/HB00613H.htm",
   },
+  /*
+   * THE MANUFACTURED HOME POST'S SOURCES, READ IN FULL 2026-10-30, under
+   * Robert's 22:12 rule that nothing unread is cited. HUD's handbook page links
+   * one PDF, the Update 18 redline published August 12, 2026, and that is the
+   * copy read: section II.A.1 (7) Manufactured Housing, and section II.D.5,
+   * Property Acceptability Criteria for Manufactured Housing. Every sentence
+   * the post draws from it is text the redline does not mark as changed.
+   * Mortgagee Letter 2009-16 is cited only for naming the foundations guide's
+   * edition. Not cited, because no copy could be read: the Permanent
+   * Foundations Guide itself (HUD's guidebook page carries no file and the
+   * archive answers 404), VA Pamphlet 26-7 chapter 7 (it answers a script with
+   * a JavaScript check) and USDA HB-1-3555 (403). Robert, 09:26 Central
+   * 2026-10-30: the post is FHA only until those are read, and USDA's foundation
+   * rule is HB-1-3555 chapter 13, section 13.6, not chapter 12 as tried here.
+   */
+  hud40001: {
+    label: "HUD Handbook 4000.1, FHA Single Family Housing Policy Handbook, Update 18 (redline published August 12, 2026)",
+    url: "https://www.hud.gov/sites/default/files/Housing/documents/40001-hsgh-Update-18-Redline.pdf",
+  },
+  hudMl0916: {
+    label: "HUD Mortgagee Letter 2009-16, Manufactured Housing Policy Guidance, May 21, 2009",
+    url: "https://www.hud.gov/sites/documents/09-16ml.pdf",
+  },
+  tdhcaSol: {
+    label: "Texas Department of Housing and Community Affairs, Manufactured Housing Division, Frequently Asked Questions: Statement of Ownership",
+    url: "https://www.tdhca.texas.gov/frequently-asked-questions-statement-ownership",
+  },
 } as const;
 
 const bcite = (key: keyof typeof BUYER_SRC, supports: string) => ({ ...BUYER_SRC[key], supports });
@@ -1903,6 +1930,163 @@ const buyerInsights: Insight[] = [
       {
         q: "Who issues the final letter after a foundation repair?",
         a: "Under the ASCE Texas Section guidelines, the engineer whose documents the repair was built to should measure the floor afterwards and provide a letter of substantial completion.",
+      },
+    ],
+  },
+  // ------------------------------------------------- buyers, manufactured home
+  /*
+   * WRITTEN FROM THE LENDER'S FILE, 2026-10-30. Robert's 22:12 yes on article
+   * proposal item 4: the loan officer's checklist, distinct from Sealed
+   * Engineering's borrower post on the same requirement. It states the FHA rule
+   * from HUD's handbook and the Texas real property rule from TDHCA, and only
+   * those, because the VA and USDA handbooks could not be read (see the source
+   * note above); the note block says so on the page rather than restating them
+   * from a secondary source.
+   */
+  {
+    slug: "manufactured-home-foundation-certification-loans",
+    title: "FHA Mobile Home Foundation Requirements | 254 Engineering",
+    h1: "FHA manufactured home foundation certification in Texas",
+    description:
+      "What an FHA lender needs in a manufactured home foundation certification in Texas, from HUD's handbook and the Texas ownership record. Read the guide.",
+    summary:
+      "What HUD's handbook makes the lender obtain on a manufactured home, when an earlier foundation certification can stand, and the Texas real property record that has to sit beside it.",
+    eyebrow: "Buying and lending",
+    primaryKeyword: "manufactured home foundation certification",
+    datePublished: "2026-10-30",
+    dateModified: "2026-10-30",
+    body: [
+      {
+        kind: "p",
+        text: "A loan FHA insures on a manufactured home does not close on the home alone. HUD Handbook 4000.1 makes the mortgagee responsible for obtaining a certification, by an engineer or architect licensed or registered in the state where the home is located, that the foundation complies with HUD's Permanent Foundations Guide for Manufactured Housing.",
+      },
+      {
+        kind: "p",
+        text: "This guide reads that requirement from the lender's side of the table: what the loan file has to hold, when an earlier certification can be used again, what the appraiser reports and does not certify, and the Texas record that decides whether the home is real estate at all.",
+      },
+      {
+        kind: "note",
+        title: "VA and USDA files",
+        body: [
+          "VA guaranteed and USDA guaranteed loans are made under each program's own handbook, and a lender reads the foundation condition for those files there. This guide states the FHA rule from HUD's handbook and does not restate the VA or USDA rule from anyone else's summary of it.",
+        ],
+      },
+      { kind: "h2", text: "What makes the home eligible in the first place" },
+      {
+        kind: "p",
+        text: "Section II.A of the handbook lists what manufactured housing must be to be eligible for a Single Family Title II mortgage. The foundation is one line of that list, and the rest decide whether the certification is worth ordering.",
+      },
+      {
+        kind: "ul",
+        items: [
+          "Designed as a one family dwelling, with a floor area of not less than 400 square feet.",
+          "Carrying the HUD Certification Label, or a letter of label verification issued on behalf of HUD, showing it was built on or after June 15, 1976 to the Federal Manufactured Home Construction and Safety Standards.",
+          "Classified as real estate, though it need not be treated as real estate for state taxation.",
+          "Built on, and remaining on, a permanent chassis.",
+          "Designed to be used as a dwelling with a permanent foundation built in accordance with the Permanent Foundations Guide for Manufactured Housing.",
+          "Transported directly from the manufacturer or the dealership to the site.",
+        ],
+      },
+      { kind: "h2", text: "The certification the mortgagee obtains" },
+      {
+        kind: "p",
+        text: "The handbook names the foundation certification as required documentation, and it puts the duty on the mortgagee rather than on the appraiser or the borrower. The certifier has to be an engineer or architect licensed or registered in the state where the home sits, so a Texas home needs a Texas license or registration on the document.",
+      },
+      {
+        kind: "p",
+        text: "The label sits in the same part of the handbook. Where the appraisal reports the HUD Certification Label missing, the mortgagee must obtain label verification from the Institute for Building Technology and Safety.",
+      },
+      { kind: "h2", text: "When an earlier certification can stand" },
+      {
+        kind: "p",
+        text: "The handbook lets the mortgagee rely on a copy of the foundation certification from a previous FHA insured mortgage. That copy has to show the foundation met the guide in effect at the time it was certified, and it holds only if there have been no alterations to the foundation and no observable damage to it since.",
+      },
+      {
+        kind: "p",
+        text: "Additions change the answer. If the appraiser notes additions or alterations to the home, the mortgagee must make sure the foundation certification addressed them. If it did not, the handbook calls for one of two things: an inspection by the state administrative agency that inspects manufactured housing for compliance, or, where the state does not employ inspectors, a certification of structural integrity from a licensed structural engineer.",
+      },
+      { kind: "h2", text: "What the appraiser reports, and what the appraiser does not certify" },
+      {
+        kind: "p",
+        text: "The appraisal and the certification answer different questions, and the handbook keeps them apart. Under its property acceptability criteria for manufactured housing, the appraiser notifies the mortgagee and reports a deficiency when the home falls short on the eligibility points, when the towing hitch or running gear is still attached, or when the home is not properly enclosed or its skirting is not properly affixed.",
+      },
+      {
+        kind: "p",
+        text: "What counts as properly enclosed depends on how long the home has been in place, measured to the case number assignment date. A home permanently erected on its site for less than one year is new construction, and the space beneath it must be enclosed by continuous foundation type construction designed to resist all forces on it without transmitting them to the superstructure. A home installed for one year or more is existing construction, and lightweight non load bearing skirting is acceptable only if its entire surface is permanently attached to backing of concrete, masonry, treated wood or a product of similar strength and durability.",
+      },
+      {
+        kind: "p",
+        text: "Two more of the appraiser's duties bear on the file. The appraiser reports the HUD label number for every section, or reports that a label is missing or could not be found. And where the home is in FEMA flood zone A or V, the appraiser stops work and contacts the mortgagee, and continues only once the mortgagee provides a letter of map amendment, a letter of map revision or a flood elevation certification.",
+      },
+      { kind: "h2", text: "The guide the certification is measured against" },
+      {
+        kind: "p",
+        text: "HUD's Mortgagee Letter 2009-16 identified the Permanent Foundations Guide for Manufactured Housing as HUD-7584, dated September 1996, a revision of HUD Handbook 4930.3G of August 1989. The current handbook measures a reused certification against the guide in effect when it was made, so the edition a certification names is worth reading on the document itself.",
+      },
+      {
+        kind: "note",
+        title: "The guide's own text, which this post does not summarize",
+        body: [
+          "HUD's guidebook page for the Permanent Foundations Guide carried no copy of the guide when this post was written, so its technical content is not described here. What the handbook requires is that the certification attest to compliance with it.",
+        ],
+      },
+      { kind: "h2", text: "What Texas adds: the home has to be real property" },
+      {
+        kind: "p",
+        text: "HUD's list requires the home to be classified as real estate. In Texas that classification is recorded through the Manufactured Housing Division of the Texas Department of Housing and Community Affairs, and its guidance starts from the opposite default: every manufactured home is personal property unless real property is elected on a completed Application for Statement of Ownership, accompanied by the fees and recorded with the county clerk.",
+      },
+      {
+        kind: "ul",
+        items: [
+          "The election is open only for a home attached to land the owner owns, or to land leased under a qualifying long term lease: one each lienholder has approved by filing written consent with the department, or one of at least five years if the home is not financed.",
+          "Existing liens on the home must be discharged or consented to in writing, unless a title company handling the transaction is insuring against existing liens, in which case a copy of the title commitment or policy is required.",
+          "The conversion is not complete until a certified copy of the Statement of Ownership is recorded in the real property records of the county shown on it.",
+          "Ownership does not pass at a sale until a completed Application for Statement of Ownership is filed with the department, and the application is due within 60 days of the sale.",
+        ],
+      },
+      {
+        kind: "p",
+        text: "So a Texas file carries two separate proofs that answer two separate questions: one from the engineer about the foundation, and one from the department and the county clerk about the home's legal status.",
+      },
+      { kind: "h2", text: "Who may correct the foundation" },
+      {
+        kind: "p",
+        text: "When a certification lists items that do not comply, the correction is installation work, and Texas restricts who may do it. The department's guidance states that only a licensed installer may install, relevel or modify any component of a manufactured home's foundation.",
+      },
+      { kind: "h2", text: "The lender's checklist" },
+      {
+        kind: "ul",
+        items: [
+          "The HUD label number for each section, or label verification from the Institute for Building Technology and Safety where the appraisal reports a label missing.",
+          "A certification by an engineer or architect licensed or registered in Texas, attesting to compliance with the Permanent Foundations Guide for Manufactured Housing.",
+          "If an earlier certification is used: that it came from a previous FHA insured mortgage, and that nothing in the appraisal shows alterations or observable damage since.",
+          "If the appraisal notes an addition: that the certification addressed it, or the state inspection or structural engineer's certification the handbook calls for.",
+          "The appraiser's findings on the running gear, the enclosure and skirting, and the flood zone, cleared.",
+          "The Texas Statement of Ownership showing the real property election, recorded in the county's real property records.",
+        ],
+      },
+      {
+        kind: "p",
+        text: "What a foundation certification on a Texas manufactured home covers, as 254 Engineering describes it, is on [the manufactured home foundation certification page](/services/manufactured-home-foundation-certifications), and [the order page](/order) shows whether that line can be ordered today.",
+      },
+    ],
+    sources: [
+      bcite("hud40001", "The Title II eligibility list for manufactured housing, the mortgagee's duty to obtain the foundation certification and label verification, reuse of an earlier FHA certification, additions, the appraiser's reporting duties, the new and existing construction enclosure rules, and the flood zone stop."),
+      bcite("hudMl0916", "That the Permanent Foundations Guide for Manufactured Housing is HUD-7584, dated September 1996, a revision of HUD Handbook 4930.3G of August 1989."),
+      bcite("tdhcaSol", "The personal property default, the real property election and who may make it, liens, recording with the county, the 60 day application, and that only a licensed installer may modify a manufactured home's foundation."),
+    ],
+    faqs: [
+      {
+        q: "Does the FHA appraiser certify the foundation?",
+        a: "No. HUD Handbook 4000.1 keeps the two apart: the appraiser reports deficiencies such as attached running gear or an improper enclosure, and the mortgagee obtains the foundation certification from an engineer or architect licensed or registered in the state.",
+      },
+      {
+        q: "Can a lender use the foundation certification from the last sale?",
+        a: "Under the handbook, a copy from a previous FHA insured mortgage is acceptable if it shows the foundation met the guide in effect at the time, and there have been no alterations or observable damage to the foundation since.",
+      },
+      {
+        q: "When is a Texas manufactured home real property?",
+        a: "According to the Texas Department of Housing and Community Affairs, once real property has been elected on an Application for Statement of Ownership and a certified copy of the Statement of Ownership is recorded in the real property records of the county shown on it.",
       },
     ],
   },

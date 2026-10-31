@@ -93,6 +93,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     entry("/careers", 0.8, "monthly"),
     ...openPositions().map((p) => entry(`/careers/${p.slug}`, 0.7, "monthly")),
     entry("/insights", 0.8, "monthly"),
+    entry("/guides", 0.7, "monthly"),
     ...insights.map((i) => entry(`/insights/${i.slug}`, 0.7, "monthly", i.dateModified)),
     /* The design brief is not listed. It is a quote form, noindex, follow
      * since 2026-10-25 (Robert, from the Ahrefs crawl), and a sitemap lists
