@@ -22,6 +22,10 @@
 
 **Prediction, bundle 43 (`perf/coverage-fix` at `099156f`: main `aad0279` plus `perf/map-markup` `70cd154`, plus `perf/coverage-lcp` `576faec`, plus the header line; Robert's map-first plan of 16:23, merged on a pass; full lane):** preflight GREEN, 38 rules, 0 failed. The photo, map and LCP proofs pass standalone. Board: 64 of 64. map-markup-audit passes on the lean markup. The LCP element is still the photo on both coverage routes. Medians: `/coverage` under 3,270 ms and `/coverage/coastal-bend` under 3,263 ms. This is a small move, roughly 50 to 100 ms, inside the noise, and a miss in that direction is the finding. Standing note: perf `/coverage` NOT STABLE. Migrations: none.
 
+**Result, bundle 43:** board 41234693852 on `099156f`, 64 of 64. `/coverage` read 2,864 ms (from 3,270, spread 542) and `/coverage/coastal-bend` 3,171 ms (from 3,263, spread 15, a plain PASS rather than NOT STABLE). Both are under the prediction. The photo's resourceLoadDelay fell from about 60 ms to about 10 ms in the trace. Merged as `e8306a1`, tree identical to the boarded commit.
+
+**Prediction, bundle 44 (`chore/cutover-ack` at `491246f`, main `e8306a1` merged in; Robert 15:07 Central; full lane, audit code and a src/config file):** preflight GREEN, 38 rules, 0 failed. compliance-audit standalone passes 121 checks with 1 ACKNOWLEDGED, through 2027-03-31, and prints no WARNING (151 days out). With the old date patched in, it printed the 31-day WARNING and still passed. The new proof passes and is injection-verified. backlog-audit passes 12. Board: 64 of 64. Standing note: perf `/coverage` NOT STABLE. Migrations: none.
+
 ## MORNING REPORT, 2026-10-31
 
 **Needed from Robert: two answers.** The first blocks every board.
