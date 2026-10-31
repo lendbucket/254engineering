@@ -1,5 +1,13 @@
 # Day queue, 2026-10-23
 
+## Robert 10:26 Central, 2026-10-31, and the order it sets
+
+1. Bundle 41, `fix/job-dates` at `e2d38e4`: both postings open, validThrough 2027-01-31.
+2. Bundle 40 re-boards on main, and gains a JobPosting warning: any validThrough within 45 days prints a WARNING line, verdict unchanged.
+3. The LCP diagnostic line in perf-audit, boarded alone. Then a fix aimed at what it names; any font change goes to Robert first.
+
+**Prediction, bundle 41 (`e2d38e4`, full lane: data a server path reads):** preflight GREEN, 38 rules, 0 failed (run 2026-10-31). compliance-audit standalone 122 of 123, the one COULD NOT TELL being the rendered licence check that needs a build. Board: 64 of 64. seo-audit passes because both dates are now 92 days out. Standing note: perf `/coverage` NOT STABLE, which held on the last two boards. Migrations: none. Retention: no table added.
+
 ## MORNING REPORT, 2026-10-31
 
 **Needed from Robert: two answers.** The first blocks every board.
