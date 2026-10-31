@@ -30,6 +30,17 @@
 
 **Prediction, bundle 45 (`ci/cta-word` at `3b448cf`, main `e3ff1e6` merged in; full lane, audit code):** preflight GREEN, 38 rules, 0 failed. The metadata proof passes all 86 declared titles and descriptions, with the tightened CTA_VERB refusing a verb inside a hyphenated compound. Board: 64 of 64. seo-audit's call-to-action rule passes on every rendered description. Standing note: perf `/coverage` NOT STABLE. Migrations: none.
 
+**Result, bundle 45:** board 41247690230 on `3b448cf`, 64 of 64, as predicted. Merged as `0394e9f`, tree identical to the boarded commit.
+
+**Prediction, bundle 46 (`feat/services-scope-live` at `d1031c6`, main `0394e9f` merged in; item 15 as Robert ruled at 17:31 and amended at 18:04; full lane: a public page reads the database at build, plus the cron route and a new email template):**
+- Preflight GREEN, 38 rules, 0 failed. tsc clean.
+- The new proof passes 34 checks and is injection-verified (failed-read-shows-pending, no error event).
+- email-audit standalone passes 1,176 of 1,176, with the new `ops.scope_read_failed`. The office alerts proof passes.
+- **Not run locally:** jobs-audit, observability-audit and security-audit (they need a server or the database; refused here). Each reads the jobs cron route, and I expect each to pass, because the route's auth, batch and run rows are untouched.
+- Board: 64 of 64.
+- **What the board's pages will show, stated so it can be wrong:** development holds no protocol signatures. So if the build reads development, the six quoting service pages and llms-full render the pending sentence. If it reads nothing, they keep the quotes and log a scope-read error. No audit asserts the rendered scope, so either way the verdict is unchanged. I will read the rendered `/services/windstorm-wpi-8` line from the pages log to say which happened.
+- Standing note: perf `/coverage` NOT STABLE. Migrations: none.
+
 ## MORNING REPORT, 2026-10-31
 
 **Needed from Robert: two answers.** The first blocks every board.
