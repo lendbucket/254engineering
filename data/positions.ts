@@ -20,6 +20,10 @@
  * deliberately, because an auto extending posting is a posting that outlives the
  * job. OWNER VERIFICATION: refresh or close before it lapses.
  *
+ * Both roles were refreshed to 2027-01-31 on 2026-10-31, on Robert's word at
+ * 10:26 Central that both stay open, after seo-audit's 30 day window turned
+ * every board red on the 2026-11-30 dates.
+ *
  * AND SINCE 2026-09-06 IT CANNOT LAPSE QUIETLY.
  *
  * "Refresh it before it lapses" was a note addressed to whoever happened to
@@ -185,7 +189,7 @@ export const positions: Position[] = [
     open: true,
     employmentType: "PART_TIME",
     datePosted: "2026-08-16",
-    validThrough: "2026-11-30",
+    validThrough: "2027-01-31",
     remote: true,
   },
 
@@ -252,7 +256,7 @@ export const positions: Position[] = [
     open: true,
     employmentType: "CONTRACTOR",
     datePosted: "2026-08-16",
-    validThrough: "2026-11-30",
+    validThrough: "2027-01-31",
     remote: false,
   },
 ];

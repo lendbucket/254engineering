@@ -66,6 +66,7 @@ import { signInFully } from "./lib/probe-mfa.mjs";
 import { navigationVerdict, sayCouldNotTell, orCouldNotTell, COULD_NOT_TELL } from "./lib/reachable.mjs";
 import { assertNavigationVerdictHolds } from "./proofs/unreachable-is-not-failed.mjs";
 import { AUDIT_BASE_URL } from "./lib/ports.mjs";
+import { nearCeiling, HEIGHT_WARNING_HEADROOM_PX } from "./lib/height-headroom.mjs";
 
 const BASE = process.env.BASE_URL || AUDIT_BASE_URL;
 const WIDTHS = [360, 390];
@@ -351,6 +352,21 @@ function reportHeights() {
       ? `  Every route is inside its ceiling (${HEIGHT_CEILINGS.public}px content, ${HEIGHT_CEILINGS.application}px application).`
       : `  ${over.length} route(s) over ceiling.`,
   );
+
+  /*
+   * AND A ROUTE CLOSE TO ITS CEILING IS NAMED, AS A WARNING ONLY. Robert,
+   * 15:08 Central 2026-10-30: within 1,000 px of the ceiling, a warning only.
+   * Recorded, not judged: nothing here is pushed into findings, so it changes
+   * no verdict, no exit code and no FAIL count. A route over its ceiling is
+   * not repeated here; it is a finding above.
+   */
+  const near = nearCeiling(sorted, ceilingFor);
+  if (near.length > 0) {
+    console.log(`  WARNING, recorded not judged: ${near.length} route(s) within ${HEIGHT_WARNING_HEADROOM_PX}px of their ceiling.`);
+    for (const h of near) {
+      console.log(`    WARNING ${h.route} @390: ${h.height}px tall, ${h.headroom}px under the ${h.limit}px ceiling for ${h.kind}.`);
+    }
+  }
 }
 const checks = [];
 /*
