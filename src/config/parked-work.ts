@@ -92,11 +92,14 @@ export const parkedWork: ParkedWork[] = [
     what: "Moving this firm off the shared production project onto one of its own.",
     reasoningIn: "docs/production-cutover-plan.md",
     ruledBy: "Robert Reyna, operator",
-    ruledOn: "2026-09-22",
-    acknowledgedThrough: "2026-12-01",
+    ruledOn: "2026-10-31",
+    acknowledgedThrough: "2027-03-31",
     because:
       "He will not let the cutover delay opening. It happens in the first months of trading. " +
-      "It is not a launch blocker and the firm can trade without it.",
+      "It is not a launch blocker and the firm can trade without it. " +
+      "First parked 2026-09-22 through 2026-12-01; re-ruled by him at 15:07 Central 2026-10-31 " +
+      "through 2027-03-31, with the move planned for Q1 2027 and a written plan proposed to him " +
+      "in January 2027 (BACKLOG.md).",
     costsWhileParked:
       "Production fsaryeciduszuahgjbly is shared with unrelated applications. Read from outside " +
       "this repository on 2026-09-22: 171 public tables, and another application migrated it that " +

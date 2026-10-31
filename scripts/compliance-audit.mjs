@@ -36,6 +36,7 @@
  */
 
 import { readSource } from "./lib/read-source.mjs";
+import { ackNotices, ACK_NOTICE_DAYS } from "./lib/ack-notice.mjs";
 
 /*
  * Comments stripped before any source is matched.
@@ -62,7 +63,13 @@ const rec = (name, ok, note = "") => out.push({ name, ok, note });
  * again, because an acknowledgement with no end date is an exemption nobody
  * revisits. Operator ruling, 2026-09-22.
  */
-const ack = (name, note) => out.push({ name, ok: "acknowledged", note });
+/*
+ * `through` is the last day the acknowledgement holds and `today` is the day
+ * the check judged it against, in the check's own calendar. Both feed the
+ * 45 day WARNING at the end of this file (Robert, 15:07 Central 2026-10-31),
+ * and neither changes the verdict.
+ */
+const ack = (name, note, through, today) => out.push({ name, ok: "acknowledged", note, through, today });
 
 /*
  * THE RULED VALUES, AS LITERALS. Changing one of these is changing what the
@@ -455,6 +462,8 @@ const {
               `Today is ${TODAY}. From the day after ${e.rosterNameLag.expires} this is a FAIL unless the roster is re-read and records ${e.rosterNameLag.expectedName}.`,
           )
           .join(" | "),
+        covered.map((e) => e.rosterNameLag.expires).sort()[0],
+        TODAY,
       );
     } else {
       rec(
@@ -606,6 +615,8 @@ const {
           `From the day after ${p.acknowledgedThrough} this is a FAIL unless it is re-ruled. ` +
           (p.retiredWhen ? `Ends early if: ${p.retiredWhen} ` : "") +
           `Reasoning: ${p.reasoningIn}. Why: ${p.because}`,
+        p.acknowledgedThrough,
+        firmToday,
       );
     }
 
@@ -2609,6 +2620,29 @@ if (acknowledged.length) {
   console.log(`ACKNOWLEDGED: ${acknowledged.length} of ${out.length} checks are a known difference with an END DATE, not a pass:`);
   for (const r of acknowledged) console.log(`  ${r.name}: ${r.note}`);
   console.log("");
+
+  /*
+   * AND AN ACKNOWLEDGEMENT CLOSE TO ITS END IS NAMED, AS A WARNING ONLY.
+   * Robert, 15:07 Central 2026-10-31: every acknowledged date, within 45
+   * days. Recorded, not judged: nothing here is pushed into `out`, so it
+   * changes no verdict, no exit code and no FAIL count. Each is judged against
+   * the day its own check used, and one with no readable date is said out
+   * loud rather than silently left out of the warning.
+   */
+  const undated = acknowledged.filter((r) => !/^\d{4}-\d{2}-\d{2}$/.test(r.through ?? "") || !r.today);
+  const notices = acknowledged
+    .filter((r) => !undated.includes(r))
+    .flatMap((r) => ackNotices([{ name: r.name, through: r.through }], r.today));
+  if (notices.length > 0 || undated.length > 0) {
+    console.log(`WARNING, recorded not judged: ${notices.length} acknowledgement(s) end within ${ACK_NOTICE_DAYS} days.`);
+    for (const n of notices) {
+      console.log(`  WARNING ${n.name}: acknowledged through ${n.through}, ${n.daysLeft} days left; a FAIL from the day after. Do it, or re-rule it.`);
+    }
+    for (const r of undated) {
+      console.log(`  WARNING ${r.name}: carries no end date this warning can read, so it cannot be warned about.`);
+    }
+    console.log("");
+  }
 }
 
 /* Unreachable is not failed, and it is not passed either: said, and not counted
