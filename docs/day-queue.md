@@ -1,5 +1,56 @@
 # Day queue, 2026-10-23
 
+## MORNING REPORT, 2026-10-31
+
+**Needed from Robert: two answers.** The first blocks every board.
+1. **Job posting dates.** Asked in comment 6537205584. **I recommend 2027-01-31** for both roles.
+2. **The LCP diagnostic line** for `/coverage`. Asked in comment 6535822312. **I recommend yes.**
+
+### Merged since the last report
+
+Each was merged on a board that passed, and each merged tree is the tree that was boarded.
+
+| Bundle | Merge | Board | What |
+| --- | --- | --- | --- |
+| 32 | `9854131` | 41030775857 | `/san-antonio`, plus the CLAUDE.md section 2 wording |
+| 33 | `e248703` | 41040053857 | WPI-8 process details |
+| 34 | `4c292ab` | 41058621423 | The solar article. `/insights` now shows the newest 12 entries in full and the rest as a compact list. |
+| 35 | `2852892` | 41067718105 | On `/portal/launch`: the proving charge and the announcement |
+| 36 | `694b79b` | 41090210363 | "Receives" now quotes protocol section 11, with a check |
+| 39 | `764b4b5` | 41136495238 | The preflight now runs the metadata rules, and launches every proof the same way proofs-audit does |
+| 37 | `f229723` | 41143149087 | The FHA article and `/guides` |
+
+**Migrations:** none.
+
+### What missed, and why
+
+**Board 41150373240, bundle 40 (the height warning): 63 of 64.**
+- The one FAIL was seo-audit. The job postings' `validThrough` of 2026-11-30 is now inside the audit's 30-day window.
+- Nothing on the branch caused it. Every board fails the same way, main included, until `data/positions.ts` changes.
+- The height warning itself worked: it named two pages that are under the ceiling by less than 1,000 px.
+
+**Run 41136208166 was dispatched on an unchanged commit.** The commit guard had refused the commit, and I didn't notice. I cancelled the run before any shard started. Your new rev-parse rule now prevents this.
+
+### Built and waiting for a board
+
+| Branch | Commit | State |
+| --- | --- | --- |
+| `ci/height-headroom` (bundle 40) | `c892f84` | Re-boards on main after the job postings fix |
+| `ci/cta-word` | `e5eeb02` | The call-to-action word matcher, tightened. All 86 routes still pass. |
+| `perf/map-markup` | `70cd154` | Map markup cut from 61 KB to 34 KB with 0 pixels changed. LCP did not move, so it is held. |
+| `perf/coverage-lcp` | `576faec` | The photo fix. The coastal-bend page still measured 3,402 ms against the 3,400 ms ceiling, so it is held. |
+
+### The next five
+
+1. **The job postings fix,** once you answer. It boards first.
+2. **Bundle 40** re-boards on main.
+3. **The CTA matcher** boards.
+4. **The LCP diagnostic,** if you say yes. Then the real `/coverage` fix, with the map and photo branches boarded alongside it.
+5. **Queued, in this order:**
+   - "In force" read from the database (item 15).
+   - The foundation article.
+   - The VA and USDA update to the FHA article.
+
 ## MORNING REPORT, 2026-10-30 (the night of Robert's 22:12 queue)
 
 **The full report is posted on issue #1. Summary:**
