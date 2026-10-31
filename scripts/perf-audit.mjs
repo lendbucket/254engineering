@@ -104,6 +104,7 @@ import {
   budgetKbFor,
   KNOWN_OVER_BUDGET,
 } from "./perf-budgets.mjs";
+import { lcpElementOf, lcpElementAcross } from "./lib/lcp-element.mjs";
 /*
  * Pass, fail, and could not tell. In its own module so it can be exercised:
  * this file launches Chrome on load, so anything defined here is unreachable to
@@ -596,6 +597,7 @@ for (const route of MEASURED) {
         tbt: a["total-blocking-time"]?.numericValue ?? Infinity,
         bytes: summary.total ?? Infinity,
         summary,
+        element: lcpElementOf(a),
       });
     } catch (err) {
       runs.push({ error: String(err.message).split("\n")[0] });
@@ -691,7 +693,15 @@ for (const route of MEASURED) {
   };
   const summary = ok[0].summary;
 
-  rows.push({ ...route, median, spread, summary, runs: ok.length, samples: ok.map((r) => ({ lcp: r.lcp, cls: r.cls, tbt: r.tbt, bytes: r.bytes })) });
+  rows.push({
+    ...route,
+    median,
+    spread,
+    summary,
+    runs: ok.length,
+    samples: ok.map((r) => ({ lcp: r.lcp, cls: r.cls, tbt: r.tbt, bytes: r.bytes })),
+    lcpElement: lcpElementAcross(ok.map((r) => r.element)),
+  });
 
   /*
    * A route may carry its OWN lcp ceiling, and one does. Everything else is
@@ -833,6 +843,33 @@ for (const r of rows) {
       .padStart(5)}  ${String(Math.round(r.median.tbt)).padStart(6)}   ${String(kb(r.median.bytes)).padStart(
       8,
     )} / ${String(budgetKbFor(r) ?? "none").padEnd(5)}  ${s("document")}  ${s("script")}  ${s("font")}  ${s("image")}  ${r.path}`,
+  );
+}
+
+/*
+ * THE LCP ELEMENT PER ROUTE, RECORDED NOT JUDGED. Robert, 10:26 Central
+ * 2026-10-31: a diagnostic line naming each page's LCP element, no limit or
+ * verdict changed. Nothing here calls rec() or touches a ceiling, so it
+ * changes no verdict, no exit code and no FAIL count. "text" means Lighthouse
+ * found no resource the element waited on; the subparts say where the time
+ * went. The decision of what it reads lives in scripts/lib/lcp-element.mjs.
+ */
+console.log("");
+console.log("  LCP ELEMENT, recorded not judged (most common across runs; subparts in ms):");
+for (const r of rows) {
+  if (r.failed) continue;
+  const e = r.lcpElement;
+  if (!e?.named) {
+    console.log(`    ${r.path}: not named by Lighthouse (${e?.reason ?? "no element read"})`);
+    continue;
+  }
+  const parts = Object.entries(e.subparts)
+    .map(([k, v]) => `${k} ${v}`)
+    .join(", ");
+  console.log(
+    `    ${r.path}: ${e.text ? "TEXT" : "RESOURCE"} ${e.selector} "${e.label.slice(0, 80)}" in ${e.count} of ${e.runs} runs${
+      e.distinct > 1 ? ` (${e.distinct} different elements across runs)` : ""
+    }; ${parts}`,
   );
 }
 
