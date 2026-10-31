@@ -56,7 +56,7 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
    * here at build or revalidation and never on a public view (Robert, 17:31
    * Central 2026-10-31, queue item 15). See src/lib/scope-live.ts.
    */
-  const deliverable = await deliverableAsSigned(service.deliverable);
+  const deliverable = await deliverableAsSigned(service.deliverable, `/services/${service.slug}`);
 
   const crumbs = [
     { name: "Home", path: "/" },

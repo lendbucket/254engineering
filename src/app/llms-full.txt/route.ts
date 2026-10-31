@@ -98,7 +98,7 @@ ${service.whoOrders.map((w) => `- ${w}`).join("\n")}
 
 ### The deliverable
 
-${(await deliverableAsSigned(service.deliverable)).map((d) => `- ${d}`).join("\n")}
+${(await deliverableAsSigned(service.deliverable, "/llms-full.txt")).map((d) => `- ${d}`).join("\n")}
 ${service.notes?.length ? `\n### Notes\n\n${service.notes.map((n) => `- ${n}`).join("\n")}\n` : ""}${turnaroundCopy(service.turnaround) ? `\n### Turnaround\n\n${turnaroundCopy(service.turnaround)}\n` : ""}
 ### Questions
 
