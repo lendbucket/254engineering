@@ -27,7 +27,7 @@
 import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import { titleProblems, descriptionProblems, duplicateProblems } from "../lib/metadata-rules.mjs";
+import { titleProblems, descriptionProblems, duplicateProblems, CTA_VERB } from "../lib/metadata-rules.mjs";
 
 const ROOT = "src/app/(site)";
 /*
@@ -231,6 +231,26 @@ check(
   problems.length === 0,
   problems.length ? problems.join(" | ") : `${entries.length} of ${entries.length}`,
 );
+
+/*
+ * THE CALL TO ACTION MATCHER, 2026-10-30. A verb inside a hyphenated compound
+ * is not an instruction: "on-call" passed as a call to action until the
+ * matcher refused an adjacent hyphen. A real instruction still matches.
+ */
+const ctaCases = [
+  ["on-call", false],
+  ["see-through", false],
+  ["start-up", false],
+  ["Call today.", true],
+  ["Read the guide.", true],
+  ["See the coverage map.", true],
+];
+for (const [text, expected] of ctaCases) {
+  check(
+    `the call to action matcher ${expected ? "accepts" : "refuses"} "${text}"`,
+    CTA_VERB.test(text) === expected,
+  );
+}
 
 console.log("");
 if (wrong === 0) {

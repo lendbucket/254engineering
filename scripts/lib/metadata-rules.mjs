@@ -19,8 +19,15 @@ export const MAX_TITLE = 60;
 export const MIN_DESC = 140;
 export const MAX_DESC = 160;
 
-/** A description has to end somewhere a reader can act. */
-export const CTA_VERB = /\b(?:join|see|read|apply|send|call|contact|start|ask|request|explore|compare)\b/i;
+/**
+ * A description has to end somewhere a reader can act.
+ *
+ * NOT INSIDE A HYPHENATED COMPOUND, 2026-10-30. The plain word boundary counted
+ * "call" in "on-call" as a call to action, so a description could pass with no
+ * real one. A hyphen next to the verb on either side means it is part of a
+ * compound ("on-call", "see-through", "start-up"), not an instruction.
+ */
+export const CTA_VERB = /(?<![\w-])(?:join|see|read|apply|send|call|contact|start|ask|request|explore|compare)(?![\w-])/i;
 
 /** Every finding on one page's title, in seo-audit's words. */
 export function titleProblems(route, title) {
