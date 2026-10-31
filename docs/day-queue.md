@@ -8,6 +8,10 @@
 
 **Prediction, bundle 41 (`e2d38e4`, full lane: data a server path reads):** preflight GREEN, 38 rules, 0 failed (run 2026-10-31). compliance-audit standalone 122 of 123, the one COULD NOT TELL being the rendered licence check that needs a build. Board: 64 of 64. seo-audit passes because both dates are now 92 days out. Standing note: perf `/coverage` NOT STABLE, which held on the last two boards. Migrations: none. Retention: no table added.
 
+**Result, bundle 41:** board 41215212126 on `e2d38e4`, 64 of 64, as predicted. All four JobPosting nodes read 2027-01-31. Merged as `4a69a00`, tree identical to the boarded commit.
+
+**Prediction, bundle 40 (`ci/height-headroom` at `4b974a3`, main `4a69a00` merged in; full lane, audit code):** preflight GREEN, 38 rules, 0 failed. Both warning proofs pass standalone and are injection-verified. Board: 64 of 64. seo-audit prints no posting WARNING, because both dates are 92 days out and the notice window is 45 days. mobile-overflow-audit prints the two height WARNINGs (`/insights/wpi-8-certificate`, `/insights/pre-purchase-home-inspection`), verdict unchanged. Standing note: perf `/coverage` NOT STABLE; coastal-bend read 3,257 ms on the last board. Migrations: none.
+
 ## MORNING REPORT, 2026-10-31
 
 **Needed from Robert: two answers.** The first blocks every board.
