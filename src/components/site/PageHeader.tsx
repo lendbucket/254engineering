@@ -103,10 +103,22 @@ export function PageHeader({
                   history: 100vw includes the scrollbar and is the usual cause of
                   phantom horizontal overflow. */}
               <div className="absolute inset-y-0 left-1/2 w-screen -translate-x-1/2 lg:left-0 lg:w-[50vw] lg:translate-x-0">
+                {/* EAGER AND HIGH PRIORITY, because at 390 this photograph is
+                    the largest thing above the fold and Lighthouse names it the
+                    LCP element. Left at next/image's default of loading="lazy"
+                    it was fetched late and at low priority, which put /coverage
+                    and /coverage/coastal-bend within 20ms of the 3400ms ceiling
+                    on boards 40906332499 and 40990127640 (Robert, 22:12
+                    Central 2026-10-29: "well under 3400 ms without raising the
+                    ceiling"). Next 16 recommends loading="eager" or
+                    fetchPriority="high" over preload for this case.
+                    scripts/proofs/the-hero-photo-is-fetched-first.mjs holds it. */}
                 <Image
                   src={image.src}
                   alt={image.alt}
                   fill
+                  loading="eager"
+                  fetchPriority="high"
                   sizes="(max-width: 1023px) 100vw, 50vw"
                   className="object-cover object-[50%_55%]"
                 />

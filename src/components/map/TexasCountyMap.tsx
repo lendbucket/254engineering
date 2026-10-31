@@ -253,20 +253,32 @@ export function TexasCountyMap({
       {/* Counties. Hairlines stay hairlines at 390 and at 1280: without
           non-scaling-stroke they thicken as the map scales up and vanish as it
           scales down. */}
-      <g stroke={t.hairline} strokeWidth={0.5} strokeLinejoin="round" vectorEffect="non-scaling-stroke">
+      {/*
+        * THE STANDALONE BRANCH CARRIES NO PER COUNTY ATTRIBUTES, 2026-10-30.
+        * It wrote fill and vector-effect on each of 254 paths, about 13KB of the
+        * markup and again of the React payload, on the two coverage routes the
+        * board measured at the LCP ceiling. The default fill now sits on this
+        * group and inherits; only the active region's counties carry their own.
+        * vector-effect does not inherit in SVG, so it comes from one rule in
+        * globals.css on the class below. The homepage's shared geometry keeps
+        * its attributes, because its paths are drawn through a use element.
+        */}
+      <g
+        stroke={t.hairline}
+        strokeWidth={0.5}
+        strokeLinejoin="round"
+        vectorEffect="non-scaling-stroke"
+        fill={activeRegion || !shared ? t.county : undefined}
+        className={activeRegion || !shared ? "tx-counties" : undefined}
+      >
         {activeRegion || !shared ? (
-          countyShapes.map((county) => (
-            <path
-              key={county.fips}
-              d={county.d}
-              fill={
-                activeRegion && regionOfCounty.get(county.name) === activeRegion
-                  ? t.active
-                  : t.county
-              }
-              vectorEffect="non-scaling-stroke"
-            />
-          ))
+          countyShapes.map((county) =>
+            activeRegion && regionOfCounty.get(county.name) === activeRegion ? (
+              <path key={county.fips} d={county.d} fill={t.active} />
+            ) : (
+              <path key={county.fips} d={county.d} />
+            ),
+          )
         ) : (
           <>
             {shared === "define" ? (

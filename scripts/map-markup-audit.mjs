@@ -41,6 +41,7 @@ import { readSource } from "./lib/read-source.mjs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createElement } from "react";
 import { TexasCountyMap } from "../src/components/map/TexasCountyMap.tsx";
+import { pointsOf } from "./lib/relative-path.mjs";
 
 const FIXTURES = "scripts/fixtures";
 
@@ -51,10 +52,15 @@ console.log("");
 console.log("=========== THE MAP RENDERS THE BYTES IT USED TO ===========");
 console.log("");
 
-/** The county group: the <g> carrying the hairline stroke and the 254 paths. */
+/**
+ * The county group: the <g> carrying the hairline stroke and the 254 paths.
+ * Since 2026-10-30 the standalone group may also carry the default fill and the
+ * tx-counties class, after the stroke attributes, so those are allowed and
+ * nothing else is.
+ */
 function countyGroup(html) {
   const open =
-    /<g stroke="[^"]+" stroke-width="0\.5" stroke-linejoin="round" vector-effect="non-scaling-stroke">/g;
+    /<g stroke="[^"]+" stroke-width="0\.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"(?: fill="[^"]+")?(?: class="tx-counties")?>/g;
   const m = open.exec(html);
   if (!m) return null;
   const start = m.index;
@@ -82,20 +88,49 @@ function render(props) {
 
 /* ------------------------------------------------------- the two fixtures */
 
+/*
+ * THE FIXTURES WERE RE-BASED ON 2026-10-30, ON PURPOSE, AND THE LIVE RECORD IS
+ * KEPT. Board 41118588757 measured /coverage/coastal-bend at LCP 3402ms against
+ * 3400, and Robert ruled the map stays server rendered, so its markup was made
+ * smaller without moving a point: the geometry is written with relative
+ * commands (scripts/lib/relative-path.mjs, exact at one decimal), the default
+ * fill moved to the group, and vector-effect moved to one rule in globals.css.
+ *
+ * Byte identity is now held against the 2026-10-30 fixtures. What the
+ * 2026-09-07 fixtures guaranteed, that a browser receives the same map the live
+ * site served, is held by the check after it: every county in the render
+ * visits exactly the points the live fixture's county visits, in the same order,
+ * with the same effective fill. A rasterized comparison at 1440 and 390, at 2x,
+ * found 0 differing pixels in standalone, active-region and dark renders, and
+ * the same comparison saw 175,411 pixels move when the css rule was left out.
+ */
 const CASES = [
   {
     name: "standalone, light",
     props: {},
-    fixture: `${FIXTURES}/county-map-standalone-light.txt`,
-    from: "the live /coverage on 2026-09-07",
+    fixture: `${FIXTURES}/county-map-standalone-light-2026-10-30.txt`,
+    live: `${FIXTURES}/county-map-standalone-light.txt`,
+    from: "the re-based fixture of 2026-10-30",
   },
   {
     name: "activeRegion coastal-bend, light",
     props: { activeRegion: "coastal-bend" },
-    fixture: `${FIXTURES}/county-map-coastal-bend-light.txt`,
-    from: "the live /coverage/coastal-bend on 2026-09-07",
+    fixture: `${FIXTURES}/county-map-coastal-bend-light-2026-10-30.txt`,
+    live: `${FIXTURES}/county-map-coastal-bend-light.txt`,
+    from: "the re-based fixture of 2026-10-30",
   },
 ];
+
+/** Each path's points (exact, in tenths) and its effective fill. */
+function shapesOf(group) {
+  const groupFill = group.match(/^<g [^>]*\bfill="([^"]+)"/)?.[1] ?? null;
+  return [...group.matchAll(/<path ([^>]*?)\/?>/g)].map((m) => {
+    const attrs = m[1];
+    const d = attrs.match(/\bd="([^"]+)"/)?.[1] ?? "";
+    const fill = attrs.match(/\bfill="([^"]+)"/)?.[1] ?? groupFill;
+    return { points: pointsOf(d), fill };
+  });
+}
 
 let compared = 0;
 
@@ -128,6 +163,30 @@ for (const c of CASES) {
     `${c.name}: byte identical to ${c.from}`,
     same,
     same ? `${actual.length} bytes, ${(actual.match(/<path /g) || []).length} paths` : where,
+  );
+
+  if (!existsSync(c.live)) {
+    rec(`${c.name}: the live 2026-09-07 fixture exists`, false, `${c.live} is missing`);
+    continue;
+  }
+  const live = shapesOf(readSource(c.live));
+  const now = shapesOf(actual);
+  const moved = live.filter((s, i) => !now[i] || now[i].points !== s.points).length;
+  const recoloured = live.filter((s, i) => now[i] && now[i].fill !== s.fill).length;
+  rec(
+    `${c.name}: every county visits the points the live site drew on 2026-09-07, with the same fill`,
+    live.length === 254 && now.length === live.length && moved === 0 && recoloured === 0,
+    `${live.length} live, ${now.length} now, ${moved} moved, ${recoloured} recoloured`,
+  );
+}
+
+{
+  const css = readSource("src/app/globals.css");
+  rec(
+    "the standalone map's hairlines keep vector-effect, from one rule in globals.css",
+    /\.tx-counties\s*>\s*path\s*\{[^}]*vector-effect:\s*non-scaling-stroke/.test(css) &&
+      (countyGroup(render({})) ?? "").includes('class="tx-counties"'),
+    "vector-effect does not inherit in SVG, so without the rule the hairlines scale with the map",
   );
 }
 
