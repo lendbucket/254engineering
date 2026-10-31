@@ -16,6 +16,12 @@
 
 **Prediction, bundle 42 (`perf/lcp-element` at `602781f`, main `15a02ab` merged in; full lane, audit code; boarded alone on Robert's word):** preflight GREEN, 38 rules, 0 failed. The proof passes standalone and is injection-verified. Board: 64 of 64, and perf-audit's verdicts are unchanged because the new block calls no rec(). perf-audit prints an LCP ELEMENT line for every measured route, none reading "not named". The finding I expect, stated so it can be wrong: `/coverage` and `/coverage/coastal-bend` name a TEXT element, the prelaunch compliance paragraph, with most of the time in elementRenderDelay. Standing note: perf `/coverage` NOT STABLE. Migrations: none.
 
+**Result, bundle 42:** board 41227555325 on `602781f`, 64 of 64, every measured route named. **The element prediction was falsified.** `/coverage` and `/coverage/coastal-bend` name the hero photo, `img.object-cover`, in 3 of 3 runs, not the prelaunch paragraph. Merged as `aad0279`, tree identical to the boarded commit. The subparts turned out to be unthrottled trace timings, about 110 ms in total, so the header now says so (bundle 43).
+
+**Reading across routes:** the routes whose LCP is a photo order by HTML weight. `/services/windstorm-wpi-8` has 21 KB of HTML and a 71 KB image at 3,039 ms. `/coverage` has 70 KB and 84 KB at 3,270 ms. Coastal-bend has 59 KB and 86 KB at 3,263 ms. About 45 KB more HTML at 1.6 Mbps is about 230 ms, which is the gap. The map markup is most of that HTML. This is a reading, not a finding, until this board's numbers agree.
+
+**Prediction, bundle 43 (`perf/coverage-fix` at `099156f`: main `aad0279` plus `perf/map-markup` `70cd154`, plus `perf/coverage-lcp` `576faec`, plus the header line; Robert's map-first plan of 16:23, merged on a pass; full lane):** preflight GREEN, 38 rules, 0 failed. The photo, map and LCP proofs pass standalone. Board: 64 of 64. map-markup-audit passes on the lean markup. The LCP element is still the photo on both coverage routes. Medians: `/coverage` under 3,270 ms and `/coverage/coastal-bend` under 3,263 ms. This is a small move, roughly 50 to 100 ms, inside the noise, and a miss in that direction is the finding. Standing note: perf `/coverage` NOT STABLE. Migrations: none.
+
 ## MORNING REPORT, 2026-10-31
 
 **Needed from Robert: two answers.** The first blocks every board.
