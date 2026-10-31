@@ -68,7 +68,8 @@ The source of truth for the running loop. Robert, 2026-10-29: the loop prompt is
 - `HEIGHT_WARNING_HEADROOM_PX = 1000`, decided by `nearCeiling()`;
 - a static proof with two injections;
 - `board-verdict.mjs` counts verdict files, not log lines;
-- preflight GREEN. | **Bundle 40, boarding** at `c892f84` |
+- preflight GREEN. | **Board 41150373240 on `c892f84`: 63 of 64.** The warning worked: `/insights/wpi-8-certificate` 15,380 px, and pre-purchase 15,090 px. seo-audit failed on the job postings' `validThrough` 2026-11-30, now inside its 30-day window. That fails every board, main included. **Blocked on Robert** (job question). Re-board after the positions fix. |
+| J | **The job postings (blocks every board).** For each role in `data/positions.ts`, a new real `validThrough`, or `open: false`. Asked; recommend 2027-01-31 if still open. | **Waiting on Robert; boards first** |
 | 15 | **"In force" read from the database (Robert, 09:48, later).** The scope sentence reads the live signed protocol record, as `lineIsSellable` does under ruling 11, so a voided signature drops it. To scope first: the pages are statically prerendered, so the read decides whether those pages become dynamic or the order flow alone reads it. | Queued |
 | 13 | **The manufactured home article, FHA only (Robert, 09:26).** Title "FHA Manufactured Home Foundations in Texas | 254 Engineering" (60; the ruled wording runs 73). `/guides` is in the same branch. Preflight GREEN at `44a37dd`. | **Board 41109712078 on `b5d7ae6` read 64 of 64. Held for the title.**
 - **Robert 15:08:** a 55 character title with no suffix. Asked, because seo-audit requires the suffix.
