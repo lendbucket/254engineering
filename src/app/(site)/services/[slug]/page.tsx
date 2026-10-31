@@ -17,6 +17,7 @@ import { turnaroundCopy } from "@/content/model-copy";
 import { servicePhotos } from "@/content/photos";
 import { ServiceOrderAction } from "@/components/services/ServiceOrderAction";
 import { HowOrderingWorks } from "@/components/services/HowOrderingWorks";
+import { deliverableAsSigned } from "@/lib/scope-live";
 
 /**
  * Every service page is generated at build time and there is no dynamic
@@ -49,6 +50,13 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
   const { slug } = await params;
   const service = serviceBySlug(slug);
   if (!service) notFound();
+
+  /*
+   * The quoted scope only while its protocol's signature reads as live, read
+   * here at build or revalidation and never on a public view (Robert, 17:31
+   * Central 2026-10-31, queue item 15). See src/lib/scope-live.ts.
+   */
+  const deliverable = await deliverableAsSigned(service.deliverable);
 
   const crumbs = [
     { name: "Home", path: "/" },
@@ -156,7 +164,7 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
             <div>
               <SectionHeading eyebrow="The deliverable" title="What arrives at the end" />
               <ul className="mt-9 space-y-5">
-                {service.deliverable.map((item) => (
+                {deliverable.map((item) => (
                   <li key={item} className="flex gap-4">
                     <span
                       aria-hidden="true"
