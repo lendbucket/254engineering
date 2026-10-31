@@ -79,6 +79,26 @@ Every repair was proved by an injection, and each file was restored byte identic
 4. Skip re-boarding a push to main whose exact commit already has a green board (ruled 2026-10-22). It edits `board.yml`, so it comes after bundle 17.
 5. List controls (search, filter, sort, paging) on the 13 staff screens that have none, so each can then take a CSV export, office ready section 2d.
 
+## 2026-10-30: BUNDLE 37 MERGED; BUNDLE 40, THE HEIGHT WARNING, AT `c892f84`
+
+**Bundle 37 merged as `f229723`.** This is the FHA article with the title "FHA Mobile Home Foundation Requirements | 254 Engineering", plus `/guides`. The merged tree is the boarded tree. Board 41143149087 on `b61132a` read 64 of 64, as predicted.
+
+**Prediction for bundle 40, written and pushed before the board starts.** Robert's 15:08: "Yes to the height audit warning within 1,000 px of the ceiling, a warning only."
+
+**What it changes:**
+- `scripts/lib/height-headroom.mjs` adds `HEIGHT_WARNING_HEADROOM_PX = 1000` and `nearCeiling()`.
+- mobile-overflow-audit prints a WARNING block naming every public route within 1,000 px of its height ceiling at 390.
+- The verdict, the exit code, the FAIL count and the 16,000 px ceiling are unchanged.
+- `board-verdict.mjs` counts verdict files, not log lines, so a WARNING line cannot read as a failure.
+- The static proof `a-page-near-the-height-ceiling-is-named.mjs`, injection-verified twice.
+
+**Readers on `c892f84`, on main `f229723`:** Preflight GREEN, 38 rules; tsc clean.
+
+**Prediction: 64 of 64.**
+- mobile-overflow-audit passes, and its height section prints a WARNING naming `/insights/wpi-8-certificate` (last measured 15,326 px, 674 px of headroom), and any other public route at or above 15,000 px.
+- **Standing notes:** as named for bundle 24, plus that WARNING block.
+- **Named in advance:** an LCP miss on `/coverage` or a region page would be that route.
+
 ## 2026-10-30: BUNDLE 39 MERGED; BUNDLE 37 RE-BOARDED WITH THE FINAL TITLE, AT `b61132a`
 
 **Bundle 39 merged as `764b4b5`.** This is the preflight metadata check and the shared proof invocation. The merged tree is the boarded tree. Board 41136495238 on `9d054f0` read 64 of 64, as predicted.

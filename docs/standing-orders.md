@@ -68,12 +68,12 @@ The source of truth for the running loop. Robert, 2026-10-29: the loop prompt is
 - `HEIGHT_WARNING_HEADROOM_PX = 1000`, decided by `nearCeiling()`;
 - a static proof with two injections;
 - `board-verdict.mjs` counts verdict files, not log lines;
-- preflight GREEN. | Built; boards after the metadata check |
+- preflight GREEN. | **Bundle 40, boarding** at `c892f84` |
 | 15 | **"In force" read from the database (Robert, 09:48, later).** The scope sentence reads the live signed protocol record, as `lineIsSellable` does under ruling 11, so a voided signature drops it. To scope first: the pages are statically prerendered, so the read decides whether those pages become dynamic or the order flow alone reads it. | Queued |
 | 13 | **The manufactured home article, FHA only (Robert, 09:26).** Title "FHA Manufactured Home Foundations in Texas | 254 Engineering" (60; the ruled wording runs 73). `/guides` is in the same branch. Preflight GREEN at `44a37dd`. | **Board 41109712078 on `b5d7ae6` read 64 of 64. Held for the title.**
 - **Robert 15:08:** a 55 character title with no suffix. Asked, because seo-audit requires the suffix.
 - **Robert 15:53:** "Manufactured Home Foundation Certification | 254 Engineering". Asked, because that is the service page's title and duplicates are refused (6533242185).
-- **Robert 16:23, final:** the title is "FHA Mobile Home Foundation Requirements | 254 Engineering" (57). It targets the research search, and the service page keeps the certification title. The H1 is his full FHA phrase. Committed; boards next, and merges on a pass. |
+- **Robert 16:23, final:** the title is "FHA Mobile Home Foundation Requirements | 254 Engineering" (57). It targets the research search, and the service page keeps the certification title. The H1 is his full FHA phrase. **Merged as `f229723`** (board 41143149087). |
 | 14 | **The masthead photo fix `e7f4711` (Robert, 09:26: yes).** | **Board 41118588757 on `576faec`: 63 of 64.** The miss was its own route: `/coverage/coastal-bend` LCP 3402 ms, spread 23 ms, every sample over. Not merged. **Robert 16:23: yes to the map first.** The map shrink boards, then the photo fix on top, and both merge on a passing board. |
 | 14b | **The county map's markup shrunk, still server rendered** (`perf/map-markup`). Built as `70cd154`:
 - markup 61,365 to 34,015 bytes;
