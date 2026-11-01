@@ -22,7 +22,14 @@ const { insights } = await import("../../src/content/insights.ts");
 const PAGE = "src/app/(site)/insights/[slug]/page.tsx";
 const page = readFileSync(PAGE, "utf8");
 
-check("the corpus was found (the floor is the 37 articles of 2026-10-31)", insights.length >= 37, `${insights.length} articles`);
+/*
+ * The floor guards against a walk that found nothing. It was the 37 articles of
+ * 2026-10-31; item h (Robert, 2026-11-01) retired one,
+ * /insights/windstorm-certificate-of-compliance, which now answers 301 to the
+ * WPI-8 guide, so the floor is 36. It moves only with a ruled removal or
+ * addition, named here, and never to make a short walk pass.
+ */
+check("the corpus was found (the floor is 36 articles: the 37 of 2026-10-31, less the one item h retired)", insights.length >= 36, `${insights.length} articles`);
 
 /* The Updated date: on every article, a real day, never before publication, and always rendered. */
 const DAY = /^\d{4}-\d{2}-\d{2}$/;

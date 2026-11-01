@@ -542,86 +542,6 @@ export const coastalInsights: Insight[] = [
     ],
   },
 
-  // ------------------------------------------------------------------------ 4
-  {
-    slug: "windstorm-certificate-of-compliance",
-    title: "Texas Windstorm Certificate Requirements | 254 Engineering",
-    h1: "Texas windstorm certificate: what section 2210.2515 actually requires",
-    description:
-      "The law behind the Texas windstorm certificate: notice before work, who may inspect, the six month limit, and why it cannot be rescinded. Read the statute.",
-    summary:
-      "The WPI-8 is the department's form. The obligations behind it are in section 2210.2515, and two of them, the six month limit and the bar on rescission, are rarely mentioned until they matter.",
-    eyebrow: "Windstorm law",
-    primaryKeyword: "texas windstorm certificate",
-    datePublished: DATE,
-    dateModified: DATE,
-    body: [
-      {
-        kind: "p",
-        text: "Everybody on the coast calls it the WPI-8, and plenty of people look for it as TWIA certification, though the certificate the association relies on today is issued by the department. The Insurance Code calls it a certificate of compliance, and section 2210.2515 is where the department's authority to issue one is written down. The forms implement the section, and reading the section answers questions the forms never raise.",
-      },
-      { kind: "h2", text: "Notice comes before the work" },
-      {
-        kind: "p",
-        text: "Subsection (b) requires a person seeking coverage to give written notice, on a form the department prescribes, of the intent to construct, repair, alter, remodel, or enlarge a structure, before beginning. The department's process page identifies that notice as Form WPI-1, the application for a certificate of compliance, submitted before construction begins. How that sequence plays out on site is set out on [the page about filing before work begins](/windstorm/before-work-begins).",
-      },
-      { kind: "h2", text: "Ongoing work and who may inspect it" },
-      {
-        kind: "p",
-        text: "For an ongoing improvement, subsection (d) directs the department to issue the certificate if a qualified inspector inspects in accordance with commissioner rule and affirms that the improvement either conforms to a design sealed by a licensed professional engineer that complies with the applicable code, or complies with the applicable code.",
-      },
-      {
-        kind: "p",
-        text: "Section 2210.254 says who a qualified inspector is. It includes a person the department determines is qualified by training or experience, a licensed professional engineer, and an inspector holding the code body certifications and the buildings and coastal construction inspector certifications that section lists. Two further sentences in it carry the weight: a windstorm inspection may be performed only by a qualified inspector, and before performing inspections a qualified inspector must be approved and appointed or employed by the department. The practical meaning of that appointment is covered on [the page about appointed engineers](/windstorm/appointed-engineers).",
-      },
-      {
-        kind: "p",
-        text: "The department's process page adds the observation that governs every schedule: all inspectors must see the work in progress, during and not before or after the construction or repair.",
-      },
-      { kind: "h2", text: "Completed work goes a different way" },
-      {
-        kind: "p",
-        text: "Subsection (c) covers a completed improvement and gives two routes, both through a licensed professional engineer. Either the engineer designed the improvement, sealed the design, and affirms on the department's form that the design complies and the improvement was built to it, or the engineer submits a sealed post-construction evaluation report with supporting documentation. The distinction between ongoing and completed turns on a definition that surprises builders, and it has [its own page](/insights/ongoing-vs-completed-improvement).",
-      },
-      { kind: "h2", text: "The six month limit after final inspection" },
-      {
-        kind: "p",
-        text: "Subsection (e) is the clause that catches finished jobs. For an ongoing improvement, the department may not issue the certificate if, within six months after the date of the final inspection, it has not received fully completed forms demonstrating that the improvement meets subsection (d), and payment in full of all inspection fees owed to it, including fees for prior department inspections.",
-      },
-      {
-        kind: "p",
-        text: "Read that plainly. A job can pass its final inspection and still never receive a certificate, because the paperwork after the inspection was not finished in time. Nothing about the building has to be wrong.",
-      },
-      { kind: "h2", text: "Once issued, it stays issued" },
-      {
-        kind: "p",
-        text: "Subsection (k) is short: the department may not rescind a certificate of compliance after issuing it under the section. The statute pairs that with accountability placed on the people rather than the document. Subsection (i) authorizes the department to submit a formal complaint to the Texas Board of Professional Engineers and Land Surveyors about an engineer's work reflected in a sealed post-construction evaluation report or other materials submitted under subsection (c), and subsection (j) lets it penalize a qualified inspector who fails to provide complete and accurate information, including by barring that inspector from applying for certificates.",
-      },
-      {
-        kind: "note",
-        title: "Two sources that do not agree about fees",
-        body: [
-          "Section 2210.2515(h) says the department shall charge a reasonable fee for each inspection of each structure, in an amount set by the commissioner. The department's inspection process page says TDI inspectors do not charge an inspection fee. Both were read on the date of this page. They are recorded here rather than reconciled, and no fee is stated in either direction; the department is the place to confirm what applies to a given job.",
-        ],
-      },
-    ],
-    sources: [
-      cite("ins2210_2515", "Notice before work, the ongoing and completed routes, the six month limit after final inspection, the fee provision, the referral to the engineering board, inspector penalties, and the bar on rescission."),
-      cite("ins2210_254", "Who is a qualified inspector, that only a qualified inspector may perform a windstorm inspection, and that one must be approved and appointed or employed by the department."),
-      cite("tdiProcess", "Form WPI-1 submitted before construction, that all inspectors must see the work in progress, and the statement that TDI inspectors do not charge an inspection fee."),
-    ],
-    faqs: [
-      {
-        q: "Can TDI take back a WPI-8 after it is issued?",
-        a: "Section 2210.2515(k) says the department may not rescind a certificate of compliance after issuing it under that section. The statute addresses errors through the people instead, with a referral of an engineer's work to the engineering board and penalties on qualified inspectors.",
-      },
-      {
-        q: "What happens if the final paperwork is late?",
-        a: "Under section 2210.2515(e), for an ongoing improvement the department may not issue the certificate if it has not received the fully completed forms and full payment of inspection fees within six months after the date of the final inspection.",
-      },
-    ],
-  },
-
   // ------------------------------------------------------------------------ 5
   {
     slug: "ongoing-vs-completed-improvement",
@@ -716,7 +636,7 @@ export const coastalInsights: Insight[] = [
     eyebrow: "Windstorm law",
     primaryKeyword: "post-construction evaluation report",
     datePublished: DATE,
-    dateModified: DATE,
+    dateModified: "2026-11-01",
     body: [
       {
         kind: "p",
@@ -771,7 +691,7 @@ export const coastalInsights: Insight[] = [
       },
       {
         kind: "p",
-        text: "The report route is also the reason the [certificate of compliance section](/insights/windstorm-certificate-of-compliance) puts so much weight on notice before work. Inspection while the work is open records the evidence. A report after the fact has to reconstruct it.",
+        text: "The report route is also the reason [the WPI-8 guide](/insights/wpi-8-certificate) puts so much weight on notice before work. Inspection while the work is open records the evidence. A report after the fact has to reconstruct it.",
       },
     ],
     sources: [
@@ -887,7 +807,7 @@ export const coastalInsights: Insight[] = [
     eyebrow: "Windstorm law",
     primaryKeyword: "windstorm inspector",
     datePublished: DATE,
-    dateModified: DATE,
+    dateModified: "2026-11-01",
     body: [
       {
         kind: "p",
@@ -932,7 +852,7 @@ export const coastalInsights: Insight[] = [
       },
       {
         kind: "p",
-        text: "Once the certificate does issue, subsection (k) says the department may not rescind it. The full section is read through on [the certificate of compliance page](/insights/windstorm-certificate-of-compliance).",
+        text: "Once the certificate does issue, subsection (k) says the department may not rescind it. What the section adds to the certificate is set out in [the WPI-8 certificate guide](/insights/wpi-8-certificate).",
       },
       { kind: "h2", text: "A roofer's list for a coastal job" },
       {
@@ -1055,7 +975,7 @@ export const coastalInsights: Insight[] = [
     eyebrow: "Windstorm law",
     primaryKeyword: "inspection vs forensic report",
     datePublished: DATE,
-    dateModified: "2026-10-17",
+    dateModified: "2026-11-01",
     body: [
       {
         kind: "p",
@@ -1073,7 +993,7 @@ export const coastalInsights: Insight[] = [
       { kind: "h2", text: "The certificate: the department's record of compliance" },
       {
         kind: "p",
-        text: "The certificate of compliance is issued by the department under section 2210.2515. Section 2210.251(g) says it demonstrates compliance with the applicable building code under the plan of operation and is evidence of insurability of the structure by the association, and section 2210.2515(k) says the department may not rescind it once issued. What it records, and what it leaves out, is set out on [the certificate of compliance page](/insights/windstorm-certificate-of-compliance).",
+        text: "The certificate of compliance is issued by the department under section 2210.2515. Section 2210.251(g) says it demonstrates compliance with the applicable building code under the plan of operation and is evidence of insurability of the structure by the association, and section 2210.2515(k) says the department may not rescind it once issued. What it records, and what it leaves out, is set out in [the guide to the WPI-8](/insights/wpi-8-certificate).",
       },
       {
         kind: "p",
@@ -1194,7 +1114,7 @@ export const coastalInsights: Insight[] = [
     eyebrow: "Windstorm law",
     primaryKeyword: "wpi8",
     datePublished: WINDSTORM_SECTION_DATE,
-    dateModified: "2026-10-31",
+    dateModified: "2026-11-01",
     /*
      * ANSWER FIRST, Robert's GEO ruling of 2026-10-31, item 4, upgraded in
      * place by his answer 4 (no second WPI-8 page): a 50-word answer first,
@@ -1279,7 +1199,7 @@ export const coastalInsights: Insight[] = [
       { kind: "h2", text: "How long does a WPI-8 take?" },
       {
         kind: "p",
-        text: "The inspections happen during construction, not before or after it, and the process page says TDI inspectors try to inspect within 48 hours of the requested date, excluding weekends and holidays. The certificate issues once every required inspection is approved, so the job's own schedule sets the pace, and the department's general questions page says WPI-8 data go to TWIA nightly.",
+        text: "The inspections happen during construction, not before or after it, and the process page says TDI inspectors try to inspect within 48 hours of the requested date, excluding weekends and holidays. The certificate issues once every required inspection is approved, so the job's own schedule sets the pace, and the department's general questions page says WPI-8 data go to TWIA nightly. One deadline sits after the work: under section 2210.2515(e), the department may not issue the certificate for an ongoing improvement unless it has the fully completed forms and full payment of inspection fees within six months after the final inspection, so a job can pass its final inspection and still never be certified.",
       },
       {
         kind: "p",
@@ -1288,7 +1208,7 @@ export const coastalInsights: Insight[] = [
       { kind: "h2", text: "What does a WPI-8 cost?" },
       {
         kind: "p",
-        text: "TDI inspectors do not charge an inspection fee, the process page says, and the department does not regulate or track the rates appointed engineers charge, so an engineer's price is agreed between the owner and the engineer.",
+        text: "TDI inspectors do not charge an inspection fee, the process page says, and the department does not regulate or track the rates appointed engineers charge, so an engineer's price is agreed between the owner and the engineer. Section 2210.2515(h) says the department shall charge a reasonable fee for each inspection, set by the commissioner; the two sources are recorded here rather than reconciled, and the department confirms what applies to a given job.",
       },
       {
         kind: "p",
@@ -1307,7 +1227,7 @@ export const coastalInsights: Insight[] = [
       { kind: "h2", text: "What a WPI-8 does not say" },
       {
         kind: "p",
-        text: "It does not describe the condition of the work today, it says nothing about work done after it issued, and it is not a flood document. Section 2210.251(g) of the Insurance Code makes it evidence of insurability of the structure by TWIA, and section 2210.2515(k) says the department may not rescind one after issuing it. The difference between that record and an opinion on a roof's present condition is on [the roof certification comparison](/insights/roof-certification-vs-wpi-8).",
+        text: "It does not describe the condition of the work today, it says nothing about work done after it issued, and it is not a flood document. Section 2210.251(g) of the Insurance Code makes it evidence of insurability of the structure by TWIA, and section 2210.2515(k) says the department may not rescind one after issuing it; subsections (i) and (j) place the accountability on people instead, with a complaint to the engineering board about an engineer's sealed report and penalties on an inspector who files incomplete or inaccurate information. The difference between that record and an opinion on a roof's present condition is on [the roof certification comparison](/insights/roof-certification-vs-wpi-8).",
       },
     ],
     sources: [
@@ -1320,7 +1240,15 @@ export const coastalInsights: Insight[] = [
       cite("tdiFaq", "That the WPI-1 serves as proof of enrollment for a building permit, that WPI-8 data go to TWIA nightly, and the two routes for correcting an address."),
       cite("tdiSystem", "The WPI-2E with a sealed post-construction report or sealed design, the address and application ID requirement, and the rule on physical versus standardized addresses."),
       cite("tdiCompleted", "That any professional engineer licensed by TBPELS can perform inspections on completed construction."),
-      cite("ins2210_2515", "That the department may not rescind a certificate of compliance after issuing it."),
+      /*
+       * Item h, Robert 2026-11-01: /insights/windstorm-certificate-of-compliance
+       * redirects here (301, next.config.ts), and what it said that this page did
+       * not, subsections (e), (h), (i) and (j), was folded in as one sentence each
+       * into the timing, cost and closing paragraphs. Its two FAQs were not
+       * carried: their answers are now in the body, and this page stood 757px
+       * under its 16,000px height ceiling.
+       */
+      cite("ins2210_2515", "That the department may not rescind a certificate of compliance after issuing it, the six month limit after the final inspection, the fee provision, the referral of an engineer's work to the engineering board, and the penalties on qualified inspectors."),
       cite("ins2210_251", "That the certificate is evidence of insurability of the structure by the association."),
     ],
     faqs: [
@@ -1342,8 +1270,9 @@ export const coastalInsights: Insight[] = [
   // ----------------------------------------------------------------------- 13
   {
     slug: "texas-windstorm-inspections",
-    title: "Texas Windstorm Inspections Explained | 254 Engineering",
-    h1: "Texas windstorm inspections: the code they measure against and who makes them",
+    /* Retargeted to how an inspection works, item h (Robert, 2026-11-01); it ranks 14.5 for "wind storm inspections". */
+    title: "Windstorm Inspection Process in Texas | 254 Engineering",
+    h1: "How a Texas windstorm inspection works: the code, who inspects, and the timing",
     description:
       "How a Texas windstorm inspection works: where it applies, the adopted code and zones, who inspects which work, timing, and deficiencies. See the details.",
     summary:
@@ -1635,16 +1564,17 @@ export const coastalInsights: Insight[] = [
   // ----------------------------------------------------------------------- 15
   {
     slug: "windstorm-inspection-coastal-buyers",
-    title: "Windstorm Inspection for Coastal Buyers | 254 Engineering",
+    /* Retargeted to the buyer's own question, item h (Robert, 2026-11-01): "windstorm inspection" is the service page's intent. */
+    title: "No Windstorm Certificate on a Coastal Home | 254 Engineering",
     h1: "Buying a coastal house with no windstorm certificate: what it means and what to do",
     description:
       "Buying a Texas coastal house without a windstorm certificate? See why one goes missing, what it means for TWIA coverage, and what to settle before closing.",
     summary:
       "A missing windstorm certificate can mean nothing, or it can mean the house cannot be insured through TWIA as it stands. The reason it is missing decides which, and a buyer can find out before closing.",
     eyebrow: "Windstorm law",
-    primaryKeyword: "windstorm inspection",
+    primaryKeyword: "no windstorm certificate",
     datePublished: WINDSTORM_SECTION_DATE,
-    dateModified: WINDSTORM_SECTION_DATE,
+    dateModified: "2026-11-01",
     body: [
       {
         kind: "p",

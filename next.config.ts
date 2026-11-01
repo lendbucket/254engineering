@@ -12,6 +12,23 @@ const nextConfig: NextConfig = {
   images: {
     formats: ["image/avif", "image/webp"],
   },
+  /*
+   * ONE PAGE PER WPI-8 INTENT. Robert, 2026-11-01, round 3 item h: a page that
+   * duplicates an owner is 301ed to it, with its unique sourced facts folded
+   * into the owner. The mapping and the reason for each were posted on issue #1
+   * (comment 6559524740) before merging. statusCode rather than `permanent`,
+   * because `permanent: true` answers 308 and the ruling says 301. Pinned by
+   * scripts/proofs/a-duplicate-wpi-8-page-redirects-to-its-owner.mjs.
+   */
+  async redirects() {
+    return [
+      {
+        source: "/insights/windstorm-certificate-of-compliance",
+        destination: "/insights/wpi-8-certificate",
+        statusCode: 301,
+      },
+    ];
+  },
 };
 
 export default nextConfig;
