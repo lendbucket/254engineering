@@ -18,6 +18,30 @@ function wpi8(tier: "ongoing" | "completed"): CatalogEntry {
 }
 const WPI8_ONGOING = wpi8("ongoing");
 const WPI8_COMPLETED = wpi8("completed");
+
+/* The cost guide's other two lines (item f), read the same way. */
+function line(serviceSlug: string): CatalogEntry {
+  const entry = catalogFor(serviceSlug);
+  if (!entry) throw new Error(`the catalog has no ${serviceSlug} entry`);
+  return entry;
+}
+const FOUNDATION = line("foundation-inspections");
+const ROOF_LETTER = line("roof-inspections");
+/** ", plus $75 in a first tier coastal county", or nothing when the line has no difference. */
+const coastalClause = (e: CatalogEntry): string =>
+  e.coastalSurchargeCents !== null ? `, plus ${money(e.coastalSurchargeCents)} in a first tier coastal county` : "";
+/*
+ * The one coastal difference the cost guide states for all four deliverables.
+ * It says "each", so it is only stated if the catalog agrees for every one;
+ * otherwise the build fails here rather than the page saying something false.
+ */
+const COST_GUIDE_COASTAL: string = (() => {
+  const all = [WPI8_ONGOING, WPI8_COMPLETED, FOUNDATION, ROOF_LETTER].map((e) => e.coastalSurchargeCents);
+  if (all.some((c) => c === null || c !== all[0])) {
+    throw new Error(`the cost guide states one coastal difference for all four deliverables, and the catalog carries ${JSON.stringify(all)}`);
+  }
+  return money(all[0] as number);
+})();
 const priceOf = (entry: CatalogEntry): string => (entry.priceCents !== null ? money(entry.priceCents) : "priced by quote");
 /* The surcharge as one clause when both tiers carry the same one, and per tier when they differ. */
 function coastalOfBoth(a: CatalogEntry, b: CatalogEntry): string {
@@ -1982,6 +2006,80 @@ export const coastalInsights: Insight[] = [
       {
         q: "Can an engineer help with a hurricane insurance claim?",
         a: "An engineer can establish what failed and why, in a sealed report that answers to the facts rather than to whoever paid for it. An engineer does not negotiate the claim or advise on the policy; that is the work of a licensed agent, an adjuster, or an attorney.",
+      },
+    ],
+  },
+
+  // ----------------------------------------------------------------------- 12
+  /*
+   * THE COST GUIDE. Robert, 2026-11-01, round 3 item f: answer "WPI-8
+   * certificate cost", "foundation inspection cost" and "roof certification
+   * cost", each under its own question H2 with the catalog price. Every figure
+   * and turnaround is read from data/catalog.ts, never typed. Each answer is
+   * short and links the page that owns the topic, /insights/wpi-8-certificate,
+   * /insights/foundation-inspection-cost and /insights/roof-inspection-cost, so
+   * this page answers the price and sends the rest of the question to its
+   * owner rather than competing with it (item h). No "5 year" wording, which is
+   * parked until Robert answers.
+   */
+  {
+    slug: "structural-inspection-cost-texas",
+    title: "Structural Inspection Cost in Texas | 254 Engineering",
+    h1: "What a structural inspection costs in Texas: WPI-8, foundation and roof",
+    description: `A WPI-8 inspection from ${priceOf(WPI8_COMPLETED)}, a foundation certification at ${priceOf(FOUNDATION)} and a roof certification letter at ${priceOf(ROOF_LETTER)}, from 254 Engineering's published prices. See them all.`,
+    summary:
+      "The three prices people ask for most, each read from 254 Engineering's published catalog, with the page that explains each one in full.",
+    eyebrow: "Prices",
+    primaryKeyword: "structural inspection cost texas",
+    datePublished: "2026-11-01",
+    dateModified: "2026-11-01",
+    body: [
+      {
+        kind: "p",
+        text: `254 Engineering publishes its prices before any order: a WPI-8 windstorm inspection from ${priceOf(WPI8_COMPLETED)}, a foundation certification at ${priceOf(FOUNDATION)}, and a roof certification letter at ${priceOf(ROOF_LETTER)}, each ${COST_GUIDE_COASTAL} more in a first tier coastal county. Each figure is the one the order page charges.`,
+      },
+      { kind: "h2", text: "What does a WPI-8 certificate cost?" },
+      {
+        kind: "p",
+        text: `${priceOf(WPI8_ONGOING)} for a WPI-8 inspection of ongoing construction and ${priceOf(WPI8_COMPLETED)} for a WPI-8E evaluation of completed construction${coastalOfBoth(WPI8_ONGOING, WPI8_COMPLETED)}. The Texas Department of Insurance issues the certificate itself once the inspections are approved, and [its inspection process page](https://www.tdi.texas.gov/wind/inspectionproc.html) says a TDI inspector or an appointed Texas licensed professional engineer must inspect the work. ${WPI8_COMPLETED.turnaround}`,
+      },
+      {
+        kind: "p",
+        text: "What the certificate is, who signs the forms behind it, and how one is looked up is on [the WPI-8 guide](/insights/wpi-8-certificate). [The WPI-8 order page](/order/start/windstorm-wpi-8) shows whether each tier can be ordered online today.",
+      },
+      { kind: "h2", text: "What does a foundation inspection cost?" },
+      {
+        kind: "p",
+        text: `A foundation certification is ${priceOf(FOUNDATION)}${coastalClause(FOUNDATION)}, for a sealed opinion on how a foundation is performing. ${FOUNDATION.turnaround} What other providers sell under the same name, and what costs sit outside the fee, is on [the foundation inspection cost guide](/insights/foundation-inspection-cost). [The foundation order page](/order/start/foundation-inspections) shows whether it can be ordered online today.`,
+      },
+      { kind: "h2", text: "What does a roof certification cost?" },
+      {
+        kind: "p",
+        text: `A roof certification letter is ${priceOf(ROOF_LETTER)}${coastalClause(ROOF_LETTER)}, for a sealed opinion on the observed condition of a roof on the date it was inspected. ${ROOF_LETTER.turnaround} What a home inspector, a roofing contractor and an engineer each provide for a roof inspection fee is on [the roof inspection cost guide](/insights/roof-inspection-cost). [The roof order page](/order/start/roof-inspections) shows whether it can be ordered online today.`,
+      },
+      { kind: "h2", text: "The prices side by side" },
+      {
+        kind: "table",
+        caption: "254 Engineering's published prices, from its catalog",
+        head: ["Deliverable", "Price", "In a first tier coastal county"],
+        rows: [WPI8_ONGOING, WPI8_COMPLETED, FOUNDATION, ROOF_LETTER].map((e) => [
+          e.name,
+          priceOf(e),
+          e.coastalSurchargeCents !== null && e.priceCents !== null ? money(e.priceCents + e.coastalSurchargeCents) : priceOf(e),
+        ]),
+      },
+    ],
+    sources: [
+      cite("tdiProcess", "That the department issues the WPI-8 once the inspections are approved, and that a TDI inspector or an appointed Texas licensed professional engineer must inspect."),
+    ],
+    faqs: [
+      {
+        q: "Is the price on this page what the order page charges?",
+        a: "Yes. Each figure here is read from the same catalog the order page charges from, so the two cannot differ.",
+      },
+      {
+        q: "Does the price change in a coastal county?",
+        a: `Yes. Each of these deliverables carries a published difference of ${COST_GUIDE_COASTAL} in a first tier coastal county, as the table shows.`,
       },
     ],
   },
