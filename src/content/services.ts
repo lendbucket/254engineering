@@ -36,11 +36,10 @@ export type Faq = { q: string; a: string };
  * scripts/proofs/a-service-title-price-is-the-catalog-price.mjs is the
  * preflight rule he asked for.
  *
- * ONE TITLE IS HELD: solar-structural-letters keeps the title main carries.
- * Robert's GEO ruling of 2026-10-31, item 6, holds that page's words still,
- * and the-solar-page-is-dated-and-priced-and-its-scope-unchanged.mjs
- * fingerprints every worded field, its title among them. Its priced title
- * waits on his answer; the title-price proof names it as the one exception.
+ * The solar title and description follow the same rule since Robert's answer
+ * 3 of 2026-11-01, which amends his 2026-10-31 solar ruling for the title and
+ * meta description only; that page's scope text and wind uplift wording stay
+ * frozen, and its proof's fingerprint still covers every other worded field.
  */
 
 /** The lowest price the catalog states for a line, or null for a quoted line. */
@@ -57,6 +56,18 @@ export function lowestCatalogCents(serviceSlug: string): number | null {
 export function pricedTitle(lead: string, serviceSlug: string): string {
   const cents = lowestCatalogCents(serviceSlug);
   return cents == null ? `${lead} | 254 Engineering` : `${lead}, from ${money(cents)} | 254 Engineering`;
+}
+
+/**
+ * "<lead> from $795, sealed by a licensed Texas PE. <rest>", for the lines
+ * whose catalog turnaround is too long for a description. Robert's answer 2 of
+ * 2026-11-01: the description states the price and the seal, and the turnaround
+ * stays on the page. "From", for the same reason as the title.
+ */
+export function fromPriceDescription(lead: string, serviceSlug: string, rest: string): string {
+  const cents = lowestCatalogCents(serviceSlug);
+  if (cents == null) throw new Error(`fromPriceDescription: ${serviceSlug} has no catalog price`);
+  return `${lead} from ${money(cents)}, sealed by a licensed Texas PE. ${rest}`;
 }
 
 /**
@@ -183,8 +194,7 @@ export const services: Service[] = [
     shortName: "Windstorm WPI-8",
     h1: "Windstorm WPI-8 Certifications in Texas",
     title: pricedTitle("WPI-8 Windstorm Certification", "windstorm-wpi-8"),
-    description:
-      "How WPI-8 windstorm certification works on the Texas coast, which counties require one, and what a TDI appointed engineer inspects. See the price.",
+    description: fromPriceDescription("WPI-8 windstorm certification in Texas", "windstorm-wpi-8", "Which coastal counties need one and who may inspect. See the scope."),
     summary:
       "The windstorm certificate of compliance required in the Texas coastal catastrophe area, inspected and submitted by an engineer appointed by the Texas Department of Insurance.",
     what: [
@@ -314,13 +324,12 @@ export const services: Service[] = [
 
   {
     slug: "solar-structural-letters",
-    dateModified: "2026-10-30",
+    dateModified: "2026-11-01",
     name: "Solar Structural Letters",
     shortName: "Solar Letters",
     h1: "Solar Structural Letters for Texas Installations",
-    title: "Solar Structural Engineering in Texas | 254 Engineering",
-    description:
-      "The sealed structural review a Texas jurisdiction requires before a rooftop solar permit: gravity load on existing framing and each attachment. See the price.",
+    title: pricedTitle("Solar Structural Letter", "solar-structural-letters"),
+    description: fromPriceDescription("Solar structural letter in Texas", "solar-structural-letters", "Gravity load on the existing framing and each attachment. See the scope."),
     summary:
       "The sealed structural review most Texas jurisdictions require before a rooftop solar permit is issued: the existing framing and each attachment under the gravity load of the array.",
     what: [
@@ -421,8 +430,7 @@ export const services: Service[] = [
      * limits the letter to a permitting authority's written request about a
      * described structure or element.
      */
-    description:
-      "The sealed letter a Texas building department asks for in writing about an existing element: its request, what was inspected, the opinion. See the price.",
+    description: fromPriceDescription("Engineering letter for a Texas permit", "structural-letters", "It answers a building department's written request. See the scope."),
     summary:
       "The sealed letter a building department asks for, in writing, when it needs an engineer's opinion on a described structure or element before it issues or closes a permit.",
     what: [
@@ -467,8 +475,7 @@ export const services: Service[] = [
     shortName: "Repair Specifications",
     h1: "Engineered Repair Specifications in Texas",
     title: pricedTitle("Repair Specification", "repair-specifications"),
-    description:
-      "A sealed repair specification defines what is repaired and how, so contractors bid the same scope and a building department can permit it. See the price.",
+    description: fromPriceDescription("Engineered repair specification in Texas", "repair-specifications", "Defines what is repaired and how, so contractors bid one scope. See more."),
     summary:
       "A sealed document that defines exactly what is repaired and how it is repaired, so every contractor bids the same scope and a building department can permit the work.",
     what: [
