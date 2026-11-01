@@ -159,6 +159,14 @@ WPI-8 facts stand as read from TDI and TWIA: TWIA's lookup is WPI-8-C only; the 
 - No height warning expected beyond the standing WPI-8 guide figure near 15,243 px (one line moves, none is added).
 - perf-audit: `/coverage` and `/coverage/coastal-bend` under 3,400 ms, near 3,170 and 3,171 ms. Standing note: perf `/coverage` NOT STABLE. Migrations: none.
 
+**Result, bundle 53 (GEO item 7): board 41314145201 on `3c5caef`, 64 of 64, as predicted. Merged as `5b6a259`, tree identical to the boarded commit; `ls-remote` confirms `5b6a259`.** `/coverage` **3,191 ms** (spread 568 ms), `/coverage/coastal-bend` **3,191 ms** (spread 26 ms), both PASS. The height warning named two routes, not the one predicted: `/insights/wpi-8-certificate` 15,243 px and `/insights/pre-purchase-home-inspection` 15,090 px. The second is a standing figure, recorded on bundle 47 and left out of this prediction; nothing moved it. Morning report posted on issue #1 (6559831819).
+
+**Prediction, bundle 54, round 3 item b (`feat/press-facts` at `a3d5c2f`, main `5b6a259` merged in cleanly; full lane by doubt: `/press` is a server rendered page reading the register and `services`):**
+- Preflight GREEN, 38 rules, 0 failed (run on `a3d5c2f`); its proof `the-press-kit-states-the-firm-facts` among the static proofs. tsc clean.
+- Board: 64 of 64. seo-audit passes with the new description (149 characters; its call to action is the word "contact", which `CTA_VERB` in `scripts/lib/metadata-rules.mjs` accepts, and the static metadata proof in preflight already passed it); voice-audit and placeholder-audit find no present tense service claim, no engineer name, no license number and no long dash; contrast-audit and mobile-audit pass on the three new sections, which reuse the page's existing classes; compliance-audit unchanged, since the registration line is still `registrationLine()`.
+- `/press` grows by three sections; it is far from the 16,000 px ceiling, so no new height warning. The two standing warnings stay.
+- perf-audit: `/coverage` and `/coverage/coastal-bend` under 3,400 ms, near 3,191 and 3,191 ms (no page they render changes). Standing note: perf `/coverage` NOT STABLE. Migrations: none.
+
 ## MORNING REPORT, 2026-10-31
 
 **Needed from Robert: two answers.** The first blocks every board.
