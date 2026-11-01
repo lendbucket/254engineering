@@ -55,8 +55,8 @@ check("no service title is typed as a string", typed.length === 0, `${typed.leng
 const calls = [...src.matchAll(/^\s+title:\s*pricedTitle\(/gm)].length;
 check("every service carries a pricedTitle() call", calls === services.length, `${calls} of ${services.length}`);
 
-/* The three lines whose catalog turnaround fits a description carry it verbatim. */
-const DESCRIBED = ["roof-inspections", "foundation-inspections", "manufactured-home-foundation-certifications"];
+/* The lines whose catalog turnaround fits a description carry it verbatim. */
+const DESCRIBED = ["roof-inspections", "foundation-inspections"];
 for (const slug of DESCRIBED) {
   const s = services.find((x) => x.slug === slug);
   const entry = CATALOG.find((e) => e.serviceSlug === slug && e.priceCents != null);
@@ -66,18 +66,20 @@ for (const slug of DESCRIBED) {
 }
 
 /*
- * The four whose turnaround does not fit: price and seal, turnaround left to
- * the page (Robert's answer 2 of 2026-11-01). Design is quoted with no catalog
- * price, so its description is the one with neither, named here.
+ * The lines whose turnaround does not fit: price and seal, turnaround left to
+ * the page (Robert's answer 2 of 2026-11-01). The manufactured home line is
+ * here because its description names FHA, VA and USDA (his answer to
+ * 6560030875), and the programs and the turnaround do not both fit. Design is
+ * quoted with no catalog price, so its description is the one with neither.
  */
-const PRICED_ONLY = ["windstorm-wpi-8", "solar-structural-letters", "structural-letters", "repair-specifications"];
+const PRICED_ONLY = ["windstorm-wpi-8", "solar-structural-letters", "structural-letters", "repair-specifications", "manufactured-home-foundation-certifications"];
 for (const slug of PRICED_ONLY) {
   const s = services.find((x) => x.slug === slug);
   const lowest = Math.min(...CATALOG.filter((e) => e.serviceSlug === slug && e.priceCents != null).map((e) => e.priceCents));
   check(`${slug}: the description states the catalog's lowest price, ${dollars(lowest)}`, s.description.includes(` from ${dollars(lowest)},`), s.description);
   check(`${slug}: it says a licensed Texas PE seals it`, s.description.includes("sealed by a licensed Texas PE"));
 }
-check("every service is accounted for: three with turnaround, four priced only, design quoted", DESCRIBED.length + PRICED_ONLY.length + 1 === services.length);
+check(`every service is accounted for: ${DESCRIBED.length} with turnaround, ${PRICED_ONLY.length} priced only, design quoted`, DESCRIBED.length + PRICED_ONLY.length + 1 === services.length);
 
 let failed = 0;
 for (const x of out) {
@@ -86,7 +88,7 @@ for (const x of out) {
 }
 console.log(
   failed === 0
-    ? "PASS: every service title names the catalog's lowest price for its line, or none for a quoted line, no title is typed, three descriptions state price, turnaround and seal, and four state price and seal."
+    ? `PASS: every service title names the catalog's lowest price for its line, or none for a quoted line, no title is typed, ${DESCRIBED.length} descriptions state price, turnaround and seal, and ${PRICED_ONLY.length} state price and seal.`
     : `FAIL: ${failed} check(s).`,
 );
 process.exitCode = failed === 0 ? 0 : 1;

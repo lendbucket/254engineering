@@ -373,7 +373,8 @@ export const services: Service[] = [
     shortName: "Manufactured Home Certifications",
     h1: "What Lenders Require on a Manufactured Home Foundation",
     title: pricedTitle("Manufactured Home Foundations", "manufactured-home-foundation-certifications"),
-    description: sealedDescription("Manufactured home foundation certification", "manufactured-home-foundation-certifications", "See more."),
+    /* The loan programs stay in it: FHA, VA and USDA, Robert's answer to 6560030875 (2026-11-01). Price and seal, as answer 2 allows, because the three programs and the turnaround do not both fit. */
+    description: fromPriceDescription("Manufactured home foundation certification for FHA, VA and USDA loans", "manufactured-home-foundation-certifications", "See what it confirms for a lender."),
     summary:
       "The engineer's foundation certification required before an FHA, VA, or USDA loan will close on a manufactured home, measured against the HUD permanent foundations guide.",
     what: [
