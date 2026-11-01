@@ -107,6 +107,15 @@ WPI-8 facts stand as read from TDI and TWIA: TWIA's lookup is WPI-8-C only; the 
 - perf-audit: `/coverage` and `/coverage/coastal-bend` under 3,400 ms, near this evening's 3,097 and 3,170 ms now that the masthead is AVIF. Standing note: perf `/coverage` NOT STABLE. Migrations: none.
 - **If it misses on a perf ceiling only: parked with the figures, no re-run tonight (Robert's overnight ruling).**
 
+**Result, bundle 46 on the new main: board 41274474130 on `968ed4b`, 64 of 64, as predicted. Merged as `c60d710`, tree identical to the boarded commit; `ls-remote` confirms `c60d710`.** `/coverage` **3,212 ms** (spread 559 ms), `/coverage/coastal-bend` **3,192 ms** (spread 22 ms), both PASS; second of the three boards Robert asked `/coverage` reported on. Due after the deploy: the chat confirms `/services/windstorm-wpi-8` on production still shows "What arrives at the end" with the quoted sentences.
+
+**Prediction, bundle 48, GEO item 1 (`feat/geo-llms` at `23b1807`, main `c60d710` merged in; full lane: `data/catalog.ts` is read by server paths):**
+- The one conflict was `src/app/llms-full.txt/route.ts`: each deliverable is quoted through item 15's `deliverableAsSigned`, and item 1's catalog price and turnaround section follows it. tsc clean.
+- Preflight GREEN, 38 rules, 0 failed (run on `23b1807`), its new proof `llms-names-the-office-and-every-page` among them.
+- Readers run before the merge: compliance-audit and turnaround-audit pass standalone.
+- Board: 64 of 64. voice-audit and placeholder-audit read the two text routes and find no long dash, no AI-tell word and no off-domain email; seo-audit and launch-audit unchanged.
+- perf-audit: `/coverage` and `/coverage/coastal-bend` under 3,400 ms, near 3,212 and 3,192 ms (the branch touches no page those routes render). Standing note: perf `/coverage` NOT STABLE. Migrations: none.
+
 ## MORNING REPORT, 2026-10-31
 
 **Needed from Robert: two answers.** The first blocks every board.
