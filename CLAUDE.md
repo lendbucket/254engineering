@@ -759,16 +759,33 @@ The runner re-checks the server between phase zero and phase one, refuses to
 start if the build fails, and prints `THE SUITE DID NOT RUN TO COMPLETION`
 rather than a list of failures when it could not measure anything.
 
-**REACHING THE DEPLOYMENT NEEDS A BROWSER, NOT curl, AND THERE IS NO BYPASS
-HEADER.** Recorded 2026-09-08 after an operator and a session both assumed
-otherwise. `254engineering.com` sits behind Vercel's bot checkpoint, which
-answers curl with **403 and a JavaScript challenge page**, not with the route
-you asked for. Chromium executes the challenge and gets 200, which is why the
-browser audits reach production and a shell one liner does not.
+**THE PRODUCTION SITE HAS NO FIREWALL CONFIGURATION. A 403 FROM IT IS
+VERCEL'S AUTOMATIC MITIGATION OF A REQUEST BURST.** Operator ruling,
+2026-10-31, replacing a 2026-09-08 note that said `254engineering.com` sits
+behind a bot checkpoint that answers curl with 403 and a challenge page.
 
-There is **no protection bypass secret** in this repository, in `.env.local`, or
-sent by any script. Do not go looking for one and do not add one to make curl
-work: the harness already has the mechanism, and it is Playwright.
+What was read, and by whom. On 2026-10-31 Robert's chat counterpart read the
+Vercel Firewall API for project `prj_KJ48pX8vZQ1PonNreGCGgPFhFgET`: the active
+config and the attack status both answered 404, config not found. So there is
+no Bot Protection, no AI Bots managed ruleset, no Attack Challenge Mode and no
+custom rule. The same evening the session requested `/`,
+`/services/foundation-inspections` and `/llms.txt` from this machine as GPTBot,
+OAI-SearchBot, ChatGPT-User, PerplexityBot, ClaudeBot, Google-Extended,
+Googlebot, Bingbot, a plain browser, plain curl and Lighthouse's own user
+agent: every one answered 200 with the real page and no `x-vercel-mitigated`
+header. Neither `src/proxy.ts`, whose matcher covers only the portal, admin,
+account and partner prefixes, nor `vercel.json`, which holds only crons, can
+refuse a public page.
+
+**So a 403 seen from production is the platform reacting to a burst**, such as
+Lighthouse pulling a page and its assets in quick succession, and it is not a
+rule anybody set. It is not evidence that any crawler is blocked, and it is
+never a reason to add a firewall rule or to pace a script around it. **No
+firewall rule is added** without Robert's ruling.
+
+There is still **no protection bypass secret** in this repository, in
+`.env.local`, or sent by any script. Do not go looking for one and do not add
+one: a script that meets a 403 reports it and stops.
 
 The trap underneath it, found while verifying an emailed link: the order status
 page answers **200 while saying the link does not open an order**, and the
