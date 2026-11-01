@@ -61,7 +61,7 @@ The source of truth for the running loop. Robert, 2026-10-29: the loop prompt is
 | d | Built, `feat/catastrophe-zones` `dc40648`, preflight GREEN; boards after g |
 | c | Built, `feat/partner-badge` `5538443`, preflight GREEN; boards after d |
 | j | Built on e, `fix/mh-loan-programs` `e39c7f4`, preflight GREEN; boards after c |
-| k | Parked: HB-1-3555 answers 403 on rd.usda.gov and VAP26-07 renders only behind JavaScript on KnowVA; asked for the two PDFs (6560997657) |
+| k | Parked: HB-1-3555 answers 403 on rd.usda.gov and VAP26-07 renders only behind JavaScript on KnowVA; asked for the two PDFs (6560997657). **Robert's answer (relayed 2026-11-01): both chapters are attached to his comment on issue #1; download them into `docs/sources/` on ops/day, read both in full, cite the official rd.usda.gov and va.gov addresses with each edition's date, build k with its proof, and do not use the LINC copy.** As of 17:03 UTC no such comment or attachment exists on issue #1 or anywhere in the repo; k builds the moment it appears |
 | truss letter, "5 year roof certification" | Parked by Robert, do not build |
 
 ## Tonight's queue, in board order (Robert, 22:12 Central 2026-10-29)
