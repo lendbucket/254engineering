@@ -44,7 +44,7 @@ The source of truth for the running loop. Robert, 2026-10-29: the loop prompt is
 3. **Solar title: approved,** "Solar Structural Letter, from $709 | 254 Engineering". This amends the 2026-10-31 solar ruling for the title and meta description only; scope text and wind uplift wording stay frozen.
 4. **c badge: approved as recommended.** A text-only SVG, gate-aware wording, carrying "254 Engineering LLC, Firm F-29811".
 5. **Keyword registry:** record the WPI-8 line change in `docs/day-queue.md` as a pending sync for the Sealed Engineering and StampMyPlans repos. Do not touch those repos from here.
-6. **Manufactured home loans:** the ruling arrived with its placeholder unfilled ("[Robert fills in: "FHA, VA and USDA" or "FHA only"]"). **Parked until Robert fills it in**; nothing about loan programs changes meanwhile.
+6. **Manufactured home loans: FHA, VA and USDA** (Robert's answer to 6560030875, 2026-11-01): "The manufactured home foundation certification serves FHA, VA and USDA loans. Make the service page, catalog wording, llms.txt and JSON-LD say FHA, VA and USDA consistently." The 2026-10-30 "FHA only" ruling was scoped to the loans insight, until the VA and USDA handbooks are read; this answer names the four surfaces above and not that post, so the post stays FHA only. **Item j**, built on e: the catalog wording names the three programs, e's manufactured home description keeps them, and a proof holds all four surfaces to the same three.
 - Board order stands: b, a, h, e, i, f, g, one at a time. The e answers (2 and 3) join e before it boards; d and c board after g.
 
 | Item | State |
