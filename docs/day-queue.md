@@ -70,6 +70,14 @@
 - The prediction missed on the region page, not the hub: the hub was predicted under 3,400 and could not be told; the region page was not named.
 - **Next, inside the existing rules:** `perf/avif` boards next on main, aimed at that same masthead photo. When main moves, item 15 is brought up to it, which is a new commit, and boards on top. No re-run of `d1031c6`.
 
+**Merged, fast lane:** `docs/platform-mitigation` at `74b6f06` as `ef75756` (CLAUDE.md, Robert's crawler closure). backlog-audit 12 of 12, preflight GREEN, 27 added lines and 0 long dashes; tree identical to the branch; `ls-remote` confirms `ef75756`. No board started on the push.
+
+**Prediction, bundle 47 (`perf/avif` at `5647d73`, main `ef75756` merged in; Robert's Q2 yes; full lane: `next.config.ts` is build configuration):**
+- Preflight GREEN, 38 rules, 0 failed (run on `5647d73`). tsc clean. The new proof passes 4 checks and is injection-verified twice (formats reversed; a raw img in PageHeader), each red on its own check, both restored byte identical.
+- Board: 64 of 64.
+- perf-audit: the img column on `/coverage`, `/coverage/coastal-bend` and `/services/windstorm-wpi-8` falls below today's 84, 86 and 71 KB, because the masthead photo is now AVIF for Lighthouse's Chrome. `/coverage` and `/coverage/coastal-bend` under 3,400 ms. **Named risk:** Next encodes AVIF more slowly on an image's first request, so a cold first sample can read slower; the median of 3 should absorb one. Standing note: perf `/coverage` NOT STABLE. Migrations: none.
+- Reported per Robert: `/coverage` on this board and the next two.
+
 ## MORNING REPORT, 2026-10-31
 
 **Needed from Robert: two answers.** The first blocks every board.
