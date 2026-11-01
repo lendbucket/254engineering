@@ -71,7 +71,7 @@ The source of truth for the running loop. Robert, 2026-10-29: the loop prompt is
 | b | **Merged as `cf59a77`** (board 41320517236) |
 | a | **Merged as `0a01a5b`** (board 41326354068); `/coverage` 3,249 to 2,745, coastal-bend 3,237 to 3,103; posted (6561831283) |
 | h | **Merged as `970ff56`** (board 41334970182); WPI-8 guide 15,880 px, 120 px under the ceiling |
-| e | Boarding, 41340491179 on `d138781` (main `970ff56` merged in) |
+| e | **Merged as `a605060`** (board 41340491179) |
 | i | Built, `fix/sa-soil-scope` `91b58a5`, preflight GREEN |
 | f | Built on e (first part), `seo/cost-guide` `ac0fd98`, preflight GREEN |
 | g | Built on f, `seo/closing-links` `1b27854`, preflight GREEN |
