@@ -636,7 +636,7 @@ export const coastalInsights: Insight[] = [
     eyebrow: "Windstorm law",
     primaryKeyword: "post-construction evaluation report",
     datePublished: DATE,
-    dateModified: DATE,
+    dateModified: "2026-11-01",
     body: [
       {
         kind: "p",
@@ -807,7 +807,7 @@ export const coastalInsights: Insight[] = [
     eyebrow: "Windstorm law",
     primaryKeyword: "windstorm inspector",
     datePublished: DATE,
-    dateModified: DATE,
+    dateModified: "2026-11-01",
     body: [
       {
         kind: "p",
@@ -975,7 +975,7 @@ export const coastalInsights: Insight[] = [
     eyebrow: "Windstorm law",
     primaryKeyword: "inspection vs forensic report",
     datePublished: DATE,
-    dateModified: "2026-10-17",
+    dateModified: "2026-11-01",
     body: [
       {
         kind: "p",
@@ -1114,7 +1114,7 @@ export const coastalInsights: Insight[] = [
     eyebrow: "Windstorm law",
     primaryKeyword: "wpi8",
     datePublished: WINDSTORM_SECTION_DATE,
-    dateModified: "2026-10-31",
+    dateModified: "2026-11-01",
     /*
      * ANSWER FIRST, Robert's GEO ruling of 2026-10-31, item 4, upgraded in
      * place by his answer 4 (no second WPI-8 page): a 50-word answer first,
@@ -1574,7 +1574,7 @@ export const coastalInsights: Insight[] = [
     eyebrow: "Windstorm law",
     primaryKeyword: "no windstorm certificate",
     datePublished: WINDSTORM_SECTION_DATE,
-    dateModified: WINDSTORM_SECTION_DATE,
+    dateModified: "2026-11-01",
     body: [
       {
         kind: "p",
