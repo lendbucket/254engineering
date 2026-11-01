@@ -127,6 +127,14 @@ WPI-8 facts stand as read from TDI and TWIA: TWIA's lookup is WPI-8-C only; the 
 - Board: 64 of 64. seo-audit passes its new rendered checks: the entity node typed Organization, ProfessionalService and LocalBusiness, areaServed San Antonio, Corpus Christi and Texas, identifier F-29811, geo absent while the coordinates are null, and the existing Lighthouse SEO 100. soc2-audit passes with FIRM_LATITUDE and FIRM_LONGITUDE recorded as retired. compliance-audit and launch-audit unchanged.
 - perf-audit: `/coverage` and `/coverage/coastal-bend` under 3,400 ms, near 2,785 and 3,159 ms. Standing note: perf `/coverage` NOT STABLE. Migrations: none.
 
+**Result, bundle 49 (GEO item 2): board 41286942489 on `b4ef7cc`, 64 of 64, as predicted. Merged as `522cd55`, tree identical to the boarded commit; `ls-remote` confirms `522cd55`.** `/coverage` **3,223 ms** (spread 137 ms), `/coverage/coastal-bend` **2,489 ms** (spread 713 ms), both PASS.
+
+**Prediction, bundle 50, GEO item 4 (`feat/geo-wpi8` at `4790ea2`, main `522cd55` merged in cleanly; full lane by doubt: `src/components/insights/Body.tsx` and `src/content/insights.ts` change how a guide renders):**
+- Preflight GREEN, 38 rules, 0 failed (run on `4790ea2`), its proof `the-wpi-8-guide-answers-first` and guide-dates-audit among them. tsc clean.
+- Board: 64 of 64. citation-audit passes with the TDI and TWIA links; seo-audit passes with the guide's FAQPage matching its visible questions; voice-audit and placeholder-audit find no long dash, no AI-tell word, no engineer name or license number.
+- The page-height warning may name `/insights/wpi-8-certificate` over 16,000 px (it stood at 15,380 px and the answer box and table add height). It is a warning only and fails nothing.
+- perf-audit: `/coverage` and `/coverage/coastal-bend` under 3,400 ms, near 3,223 and 2,489 ms (no page they render changes). Standing note: perf `/coverage` NOT STABLE. Migrations: none.
+
 ## MORNING REPORT, 2026-10-31
 
 **Needed from Robert: two answers.** The first blocks every board.
