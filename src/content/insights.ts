@@ -67,7 +67,15 @@ export type Block =
    * so this file stays a .ts data module: the moment prose data can hold JSX it
    * stops being reviewable as writing. A wrong id is a type error there.
    */
-  | { kind: "figure"; id: FigureId };
+  | { kind: "figure"; id: FigureId }
+  /**
+   * A real table, one per answer-first page (Robert's GEO ruling of
+   * 2026-10-31). A <table> rather than a list, so a reader or a machine
+   * extracting the comparison gets rows and columns. At phone width each row
+   * stacks into labelled lines, so nothing scrolls sideways. Cells take the
+   * same `[label](/path)` links as prose.
+   */
+  | { kind: "table"; caption: string; head: string[]; rows: string[][] };
 
 export type Source = {
   label: string;

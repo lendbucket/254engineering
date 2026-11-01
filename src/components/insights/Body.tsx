@@ -124,6 +124,43 @@ export function InsightBody({ blocks }: { blocks: Block[] }) {
             );
           case "figure":
             return <div key={i}>{figures[block.id]}</div>;
+          case "table":
+            /*
+             * Below sm the header row is visually hidden (kept for screen
+             * readers) and each cell prints its column name before its value,
+             * so a phone reads one labelled block per row with no sideways
+             * scroll. From sm up it is an ordinary table.
+             */
+            return (
+              <table key={i} className="mt-8 w-full border-collapse text-left">
+                <caption className="pb-3 text-left font-sans text-[0.85rem] font-semibold text-slate">
+                  {block.caption}
+                </caption>
+                <thead className="sr-only sm:not-sr-only">
+                  <tr className="border-b border-limestone-line">
+                    {block.head.map((h, j) => (
+                      <th key={j} scope="col" className="py-3 pr-4 align-bottom font-sans text-[0.85rem] font-semibold text-slate">
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {block.rows.map((row, j) => (
+                    <tr key={j} className="block border-b border-limestone-line py-3 sm:table-row sm:py-0">
+                      {row.map((cell, k) => (
+                        <td key={k} className="block py-1 text-[0.98rem] leading-[1.6] text-slate-muted sm:table-cell sm:py-3 sm:pr-4 sm:align-top">
+                          <span aria-hidden="true" className="block font-sans text-[0.8rem] font-semibold text-slate sm:hidden">
+                            {block.head[k]}
+                          </span>
+                          {renderInline(cell)}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            );
           case "p":
           default:
             return (
