@@ -40,16 +40,16 @@ The source of truth for the running loop. Robert, 2026-10-29: the loop prompt is
 
 | Item | State |
 | --- | --- |
-| 7 | Boarding, 41314145201 on `3c5caef` |
-| b | Built, `feat/press-facts` `9666f9e`, preflight GREEN; boards after item 7 |
-| a | Approved; build the map as a separate SVG file; boards after b |
-| h | Mapping to issue #1, then build; boards after a |
-| e | After h, ranking pages first |
-| c | Approved with the register line |
-| d | Approved after three fixes; `draft/windstorm-by-county` `fdf5825` |
+| 7 | **Merged as `5b6a259`** (board 41314145201); morning report posted (6559831819) |
+| b | Boarding, 41320517236 on `a3d5c2f` |
+| a | Built, `perf/map-file` `ab067cb`, preflight GREEN; boards after b |
+| h | Built, `seo/wpi8-owners` `252197e`, preflight GREEN; mapping posted (6559524740); boards after a |
+| e | First part built on h, `seo/titles-meta` `1840291`, preflight GREEN; five descriptions wait on 6559527807, the solar title on 6559816791 |
+| i | Built, `fix/sa-soil-scope` `91b58a5`, preflight GREEN |
+| c | Parked: SVG against answer 19 and the gate wording (6559636080) |
+| d | Parked: overlaps `/windstorm/catastrophe-area`; recommendation to fold in (6559524740) |
 | f | Queued |
 | g | Queued |
-| i | Check `/coverage/san-antonio` |
 | truss letter, "5 year roof certification" | Parked by Robert, do not build |
 
 ## Tonight's queue, in board order (Robert, 22:12 Central 2026-10-29)
