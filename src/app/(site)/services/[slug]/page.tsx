@@ -45,6 +45,16 @@ export async function generateMetadata({
   });
 }
 
+/** "2026-10-30" as "October 30, 2026". A day, so UTC on both sides keeps it the same day. */
+function longDate(iso: string): string {
+  return new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    timeZone: "UTC",
+  });
+}
+
 export default async function ServicePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const service = serviceBySlug(slug);
@@ -83,6 +93,12 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
         crumbs={crumbs}
         image={servicePhotos[service.slug]}
       >
+        {/* The page's own Updated date, where its record carries one (item 6, the solar page). */}
+        {service.dateModified ? (
+          <p className="font-sans text-[0.85rem] text-slate-fg-muted">
+            Updated <time dateTime={service.dateModified}>{longDate(service.dateModified)}</time>
+          </p>
+        ) : null}
         <PrelaunchNotice service={service.name} />
         {/*
           THE ORDER IS AT THE TOP OF THE PAGE, NOT ONLY AT THE BOTTOM.

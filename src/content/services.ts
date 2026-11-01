@@ -27,6 +27,14 @@ export type Faq = { q: string; a: string };
 
 export type Service = {
   slug: string;
+  /**
+   * The day this page's wording last changed, shown as "Updated" when present.
+   * Robert's GEO ruling of 2026-10-31, item 6, for the solar page. It is the
+   * block's git history as a Chicago day, never a guess: a proof derives it
+   * again from `git log -L` and refuses a typed date that disagrees, and a
+   * commit that changes only this line does not count as a change.
+   */
+  dateModified?: string;
   /** Full name. Card titles, nav, schema. */
   name: string;
   /** Shorter form for breadcrumbs and tight lists. */
@@ -261,6 +269,7 @@ export const services: Service[] = [
 
   {
     slug: "solar-structural-letters",
+    dateModified: "2026-10-30",
     name: "Solar Structural Letters",
     shortName: "Solar Letters",
     h1: "Solar Structural Letters for Texas Installations",
