@@ -58,7 +58,7 @@ export const POST_DATES: Record<string, { datePublished: string; dateModified: s
   "roof-certification-vs-wpi-8": { datePublished: "2026-09-15", dateModified: "2026-10-08" },
   "inspection-vs-forensic-report": { datePublished: "2026-09-15", dateModified: "2026-10-17" },
   "wpi-8-certificate": { datePublished: "2026-10-16", dateModified: "2026-10-31" },
-  "texas-windstorm-inspections": { datePublished: "2026-10-16", dateModified: "2026-10-25" },
+  "texas-windstorm-inspections": { datePublished: "2026-10-16", dateModified: "2026-11-01" },
   "twia-insurance-and-windstorm-certificates": { datePublished: "2026-10-16", dateModified: "2026-10-25" },
   "windstorm-inspection-coastal-buyers": { datePublished: "2026-10-16", dateModified: "2026-10-16" },
   "hurricane-damage-structural-checklist": { datePublished: "2026-10-16", dateModified: "2026-10-25" },
