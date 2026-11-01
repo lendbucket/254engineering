@@ -8,8 +8,9 @@ import {
   openingHoursSchema,
   postalAddressSchema,
 } from "@/config/contact";
-import { firmName, isOpen, tbpelsFirmNumber } from "./launch";
+import { activeFirmRegistration, firmName, tbpelsFirmNumber } from "./launch";
 import { GUIDE_DATES } from "@/content/guide-dates";
+import { deliverablesFor } from "@data/catalog";
 
 /**
  * Structured data for the whole brand family.
@@ -29,9 +30,11 @@ import { GUIDE_DATES } from "@/content/guide-dates";
  * violation and the kind of thing a procurement officer notices.
  *
  * Telephone, postal address, geo, and opening hours are present ONLY when they
- * have been configured in src/config/contact.ts. The telephone and geo are read
- * from the environment and default to null; the address and the hours are
- * declared there, on Robert's word (2026-09-18 and 2026-10-29). An invented value in
+ * have been configured. The telephone is read from the environment and
+ * defaults to null; the address and the hours are declared in
+ * src/config/contact.ts, on Robert's word (2026-09-18 and 2026-10-29), and the
+ * map point in src/config/business.ts (2026-10-31), null until he supplies the
+ * Google Business Profile pin. An invented value in
  * schema is worse than an absent one: schema is machine read, gets copied into
  * knowledge panels and directories, and is very hard to retract once it has
  * been. So each property is spread in conditionally and simply does not exist
@@ -63,6 +66,14 @@ const ORG_LOGO = `${business.url}/brand/logo-square-512.png`;
 
 export function organizationSchema() {
   const firmNumber = tbpelsFirmNumber();
+  /*
+   * THE REGISTRATION AS AN IDENTIFIER, Robert's GEO ruling of 2026-10-31, item
+   * 2: "identifier TBPELS F-29811". It is the disclosure of who the registrant
+   * is, the same fact the footer prints beside registrationLine(), so it reads
+   * the register's active entry rather than tbpelsFirmNumber(), which feeds
+   * claims of capability and is null while the gate is shut. Never typed.
+   */
+  const registration = activeFirmRegistration();
 
   return {
     "@context": "https://schema.org",
@@ -70,8 +81,14 @@ export function organizationSchema() {
      * BOTH TYPES ON THE ONE NODE, Robert, 2026-10-25, from the Ahrefs crawl:
      * Organization and ProfessionalService, the same properties, one entity.
      * seo-audit pins the pair.
+     *
+     * AND LocalBusiness, Robert's GEO ruling of 2026-10-31, item 2:
+     * "ProfessionalService + LocalBusiness sitewide". ProfessionalService is
+     * already a LocalBusiness in schema.org; naming it outright costs nothing
+     * and answers a reader that matches on the type name. seo-audit pins all
+     * three.
      */
-    "@type": ["Organization", "ProfessionalService"],
+    "@type": ["Organization", "ProfessionalService", "LocalBusiness"],
     "@id": ORG_ID,
     /*
      * The brand, then the registrant, then the parent. Operator ruling,
@@ -93,12 +110,30 @@ export function organizationSchema() {
       "@type": "Place",
       address: { "@type": "PostalAddress", addressRegion: "TX", addressCountry: "US" },
     },
-    areaServed: {
-      "@type": "State",
-      name: "Texas",
-      alternateName: "TX",
-      containedInPlace: { "@type": "Country", name: "United States" },
-    },
+    /*
+     * San Antonio, where the office is; Corpus Christi, the market the firm
+     * highlights (CLAUDE.md section 2, 2026-10-29); and Texas, all 254
+     * counties. Robert's GEO ruling of 2026-10-31, item 2.
+     */
+    areaServed: [
+      { "@type": "City", name: "San Antonio", containedInPlace: { "@type": "State", name: "Texas" } },
+      { "@type": "City", name: "Corpus Christi", containedInPlace: { "@type": "State", name: "Texas" } },
+      {
+        "@type": "State",
+        name: "Texas",
+        alternateName: "TX",
+        containedInPlace: { "@type": "Country", name: "United States" },
+      },
+    ],
+    ...(registration
+      ? {
+          identifier: {
+            "@type": "PropertyValue",
+            propertyID: "TBPELS engineering firm registration",
+            value: registration.number,
+          },
+        }
+      : {}),
     knowsAbout: [
       "Structural engineering",
       "Roof inspection and certification",
@@ -179,7 +214,28 @@ export function breadcrumbSchema(crumbs: Crumb[]) {
   };
 }
 
-export function serviceSchema(params: { name: string; description: string; path: string }) {
+/**
+ * One Offer per priced deliverable on a service line, read from the catalog,
+ * which fills its price from the price book. Robert's GEO ruling of
+ * 2026-10-31, item 2, with his answer 5: "catalog price, no availability
+ * claim". A quoted deliverable carries no price in the catalog, so it gets no
+ * Offer rather than an invented one.
+ */
+export function serviceOffers(serviceSlug: string, path: string) {
+  return deliverablesFor(serviceSlug)
+    .filter((entry) => entry.priceCents !== null)
+    .map((entry) => ({
+      "@type": "Offer" as const,
+      name: entry.name,
+      price: (entry.priceCents! / 100).toFixed(2),
+      priceCurrency: "USD" as const,
+      url: `${business.url}${path}`,
+      seller: { "@id": ORG_ID },
+    }));
+}
+
+export function serviceSchema(params: { name: string; description: string; path: string; serviceSlug: string }) {
+  const offers = serviceOffers(params.serviceSlug, params.path);
   return {
     "@context": "https://schema.org",
     "@type": "Service",
@@ -190,17 +246,13 @@ export function serviceSchema(params: { name: string; description: string; path:
     provider: { "@id": ORG_ID },
     areaServed: { "@type": "State", name: "Texas" },
     /*
-     * InStock IS AN ORDERABILITY CLAIM, SO IT FOLLOWS ORDERS RATHER THAN THE
-     * FIRM'S STATUS. Reclassified 2026-09-17 with the three state gate.
-     *
-     * It used to appear whenever the site was not prelaunch. Under `trading`
-     * the firm describes its services in the present tense and quotes them, and
-     * still takes no order on any line, so publishing InStock to every machine
-     * that reads this page would assert something no visitor could act on. It
-     * is the JSON-LD version of the defect the phone number had: the human copy
-     * is right and nobody reads the structured data by eye.
+     * THE PRICE, AND NO AVAILABILITY. Robert's answer 5 of 2026-10-31. The
+     * offer used to be `{ availability: InStock }` whenever the site was open,
+     * for every line, including lines nobody could order: an orderability claim
+     * the human copy never made. It now states only what the page states, the
+     * catalog's price, and never whether a line can be ordered today.
      */
-    ...(isOpen() ? { offers: { "@type": "Offer", availability: "https://schema.org/InStock" } } : {}),
+    ...(offers.length ? { offers: offers.length === 1 ? offers[0] : offers } : {}),
   };
 }
 

@@ -146,6 +146,18 @@ export const business = {
   foundingLocation: "Texas",
   countyCount: 254,
 
+  /**
+   * THE OFFICE'S MAP POINT, FOR LocalBusiness geo. Robert, 2026-10-31, answer 2
+   * on issue #1: FIRM_LATITUDE and FIRM_LONGITUDE were set in no Vercel
+   * environment, coordinates are not secret, so they are constants here and
+   * the environment lookup is gone. He supplies the values from the Google
+   * Business Profile pin. Until then both are null and geo is left out of the
+   * schema, because a pin off by half a mile is worse than none: a map point is
+   * trusted absolutely by the person driving to it.
+   */
+  latitude: null as number | null,
+  longitude: null as number | null,
+
   /** Veteran ownership, stated at entity level only. */
   veteranOwned: true,
 
