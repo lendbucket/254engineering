@@ -63,6 +63,13 @@
 
 **Prediction, bundle 46 re-run (`d1031c6` unchanged, the one exception to order 8):** every line of the first prediction above stands: preflight GREEN 38 rules, board 64 of 64, standing note perf `/coverage` NOT STABLE, migrations none. `/coverage` under 3,400 ms, expected near today's 2,859 to 2,968 ms; the other 63 verdicts as on 41252970510.
 
+**Result, bundle 46 re-run: board 41264474817 on `d1031c6`, 63 of 64. A MISS, not merged. Stopped, no second re-run (Robert).**
+- The one FAIL is perf-audit: `/coverage/coastal-bend` LCP **3,404 ms** against 3,400 ms, spread 2 ms, every sample over. Its LCP element is the masthead photo ("A timber fishing pier..."), 3 of 3 runs.
+- `/coverage` itself read 2,977 ms, spread 560 ms (2,866 to 3,426), NOT STABLE, COULD NOT TELL, which is not a FAIL. `/services/windstorm-wpi-8` 3,100 ms, spread 437 ms, PASS.
+- Every other audit passed: static, documents, pages and gate green; writers 1 of 82 failed, retries 4. Preflight GREEN.
+- The prediction missed on the region page, not the hub: the hub was predicted under 3,400 and could not be told; the region page was not named.
+- **Next, inside the existing rules:** `perf/avif` boards next on main, aimed at that same masthead photo. When main moves, item 15 is brought up to it, which is a new commit, and boards on top. No re-run of `d1031c6`.
+
 ## MORNING REPORT, 2026-10-31
 
 **Needed from Robert: two answers.** The first blocks every board.
