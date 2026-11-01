@@ -41,6 +41,12 @@
 - **What the board's pages will show, stated so it can be wrong:** development holds no protocol signatures. So if the build reads development, the six quoting service pages and llms-full render the pending sentence. If it reads nothing, they keep the quotes and log a scope-read error. No audit asserts the rendered scope, so either way the verdict is unchanged. I will read the rendered `/services/windstorm-wpi-8` line from the pages log to say which happened.
 - Standing note: perf `/coverage` NOT STABLE. Migrations: none.
 
+**Result, bundle 46: board 41252970510 on `d1031c6`, 63 of 64. A MISS, not merged.**
+- The one FAIL is perf-audit: `/coverage` LCP 3,414 ms against 3,400 ms, spread 18 ms, every sample over. Coastal-bend read 3,395 ms, NOT STABLE.
+- The branch does not touch `/coverage`. Its bytes match the earlier boards exactly (449 KB, HTML 60, JS 149, font 98, img 84).
+- Today's three earlier boards read `/coverage` at 2,864 (bundle 43), 2,859 (bundle 44) and 2,968 ms (bundle 45). `/services/windstorm-wpi-8` read 3,100 ms here, against 2,338 to 3,016 ms before. That reads as a slow runner, not the branch, and is still a red board (Robert, 22:12).
+- **Blocked:** order 8 forbids re-running an unchanged commit, and main has not moved, so there is no honest new commit to board. Asked Robert on issue #1.
+
 ## MORNING REPORT, 2026-10-31
 
 **Needed from Robert: two answers.** The first blocks every board.
