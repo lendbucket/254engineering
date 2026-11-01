@@ -71,6 +71,7 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
           name: service.name,
           description: service.summary,
           path: `/services/${service.slug}`,
+          serviceSlug: service.slug,
         })}
       />
       <JsonLd data={faqSchema(service.faqs)} />
