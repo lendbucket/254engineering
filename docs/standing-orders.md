@@ -73,8 +73,8 @@ The source of truth for the running loop. Robert, 2026-10-29: the loop prompt is
 | h | **Merged as `970ff56`** (board 41334970182); WPI-8 guide 15,880 px, 120 px under the ceiling |
 | e | **Merged as `a605060`** (board 41340491179) |
 | l | **Merged as `c1fd530`** (board 41347983909); font 98 to 48 KB; `/coverage` 2,591 to 2,339, coastal-bend 3,100 to 2,642, service 3,039 to 2,675, home 2,742 to 2,584; screenshots identical apart from orderable lines (production database against development). Second reading on i's board |
-| i | **Boarding**, `fix/sa-soil-scope` `6950f1d` (main `c1fd530` in), preflight GREEN; also l's second board |
-| f | Built on e (first part), `seo/cost-guide` `ac0fd98`, preflight GREEN |
+| i | **Parked on a question.** Board 41354122919 on `6950f1d` 64 of 64, but `/` read 2,805 against my 2,450 to 2,750 (same bytes as board 1; variance). Asked on issue #1 whether it may merge; if no, re-board on main after f |
+| f | **Boarding**, `seo/cost-guide` `be36d86` (main `c1fd530` in, corpus floor 37), preflight GREEN |
 | g | Built on f, `seo/closing-links` `1b27854`, preflight GREEN |
 | d | Built, `feat/catastrophe-zones` `dc40648`, preflight GREEN; boards after g |
 | c | Built, `feat/partner-badge` `5538443`, preflight GREEN; boards after d |
