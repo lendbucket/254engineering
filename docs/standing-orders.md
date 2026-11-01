@@ -80,6 +80,8 @@ The source of truth for the running loop. Robert, 2026-10-29: the loop prompt is
 | j | Built on e, `fix/mh-loan-programs` `e39c7f4`, preflight GREEN; boards after c |
 | k | Parked: HB-1-3555 answers 403 on rd.usda.gov and VAP26-07 renders only behind JavaScript on KnowVA; asked for the two PDFs (6560997657). **Robert's answer (relayed 2026-11-01): both chapters are attached to his comment on issue #1; download them into `docs/sources/` on ops/day, read both in full, cite the official rd.usda.gov and va.gov addresses with each edition's date, build k with its proof, and do not use the LINC copy.** As of 17:03 UTC no such comment or attachment exists on issue #1 or anywhere in the repo; k builds the moment it appears |
 | l | Approved as built; `perf/load-path` `0ca980d` from `970ff56`, preflight GREEN: italic font not preloaded (proof, injection verified), screenshots job; hero photo and CSS split measured and left; boards after j, twice, dispatched with `-f screenshots=true` |
+| speed survey | **Posted (6563269468).** On production every measured template is under 2,500 ms and CLS 0.000 (home closest at 2,451); the board reads 500 to 1,000 ms slower (localhost profile). Largest shared costs: italic font preload (item l), header logo 51 KB raw (asked), a 72 KB chunk 22 to 29 KB unused (next) |
+| m | GA4, `feat/ga4` `672c1fb` from `970ff56`, preflight GREEN, proof injection verified. Boards after l. **Does not merge until Q1 (privacy paragraph) is answered; Q2 (the ID as a repository variable) decides whether the board's build renders the tag** |
 | truss letter, "5 year roof certification" | Parked by Robert, do not build |
 
 ## Tonight's queue, in board order (Robert, 22:12 Central 2026-10-29)
