@@ -726,8 +726,8 @@ export const CREDENTIALS: Credential[] = [
   { name: "FIRM_STREET_2", kind: "config", livesIn: "Not set.", grants: "The second address line.", rotated: "Never." },
   { name: "FIRM_CITY", kind: "config", livesIn: "Not set.", grants: "Publishes the city.", rotated: "Never." },
   { name: "FIRM_POSTAL_CODE", kind: "config", livesIn: "Not set.", grants: "Publishes the postal code.", rotated: "Never." },
-  { name: "FIRM_LATITUDE", kind: "config", livesIn: "Not set.", grants: "The geo point for LocalBusiness markup. Omitted rather than approximated: a map pin is trusted absolutely.", rotated: "Never." },
-  { name: "FIRM_LONGITUDE", kind: "config", livesIn: "Not set.", grants: "The other half of the geo point.", rotated: "Never." },
+  { name: "FIRM_LATITUDE", kind: "config", livesIn: "RETIRED 2026-10-31. It was set in no Vercel environment, read by Robert's counterpart that day, and nothing in src/ reads it any more. Coordinates are not secret, so Robert ruled they are constants in src/config/business.ts, supplied from the Google Business Profile pin.", grants: "Nothing.", rotated: "Never." },
+  { name: "FIRM_LONGITUDE", kind: "config", livesIn: "RETIRED 2026-10-31, with FIRM_LATITUDE and for the same reason: the coordinates are constants in src/config/business.ts.", grants: "Nothing.", rotated: "Never." },
   { name: "FIRM_HOURS", kind: "config", livesIn: "RETIRED 2026-10-29. It was never set, and nothing in src/ reads it any more. Robert gave the hours at 12:50 Central that day and they are declared once in src/config/contact.ts, for the reason the address is: a published commitment to answer is checked against the listing, and an environment variable can differ between a build and a deployment.", grants: "Nothing.", rotated: "Never." },
   {
     name: "SENTRY_DSN",

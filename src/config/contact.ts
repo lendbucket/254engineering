@@ -41,6 +41,8 @@
  * the audits assert that it is.
  */
 
+import { business } from "./business";
+
 const env = (key: string): string | null => {
   const v = process.env[key];
   return v && v.trim() ? v.trim() : null;
@@ -149,15 +151,11 @@ export const contact = {
   city: "San Antonio",
   postalCode: "78216",
 
-  /**
-   * Coordinates of that address, for LocalBusiness geo.
-   *
-   * Omitted rather than approximated. A geo point that is off by half a mile is
-   * worse than none, because a map pin is trusted absolutely by the person
-   * driving to it.
+  /*
+   * Coordinates of that address live in src/config/business.ts as constants
+   * since 2026-10-31 (Robert's answer 2), not in the environment. hasGeo() and
+   * geoSchema() below read them there.
    */
-  latitude: env("FIRM_LATITUDE"),
-  longitude: env("FIRM_LONGITUDE"),
 
   /**
    * THE OFFICE HOURS. Robert, 12:50 Central 2026-10-29: every day of the week,
@@ -200,7 +198,7 @@ export function hasPostalAddress(): boolean {
 
 /** Whether a map point has been configured. Independent of the address. */
 export function hasGeo(): boolean {
-  return Boolean(contact.latitude && contact.longitude);
+  return business.latitude !== null && business.longitude !== null;
 }
 
 /**
@@ -352,7 +350,7 @@ export function geoSchema() {
   if (!hasGeo()) return null;
   return {
     "@type": "GeoCoordinates" as const,
-    latitude: Number(contact.latitude),
-    longitude: Number(contact.longitude),
+    latitude: business.latitude,
+    longitude: business.longitude,
   };
 }
