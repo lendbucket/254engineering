@@ -14,6 +14,24 @@ The source of truth for the running loop. Robert, 2026-10-29: the loop prompt is
 - Schedule only one fallback wakeup of 7200 seconds, in case a board hangs.
 - Do not poll.
 
+## Round 3, in board order (Robert, 2026-11-01 morning)
+
+1. **Item 7:** merge if green, per standing orders. Then post the morning report on issue #1 accounting for every item queued on 2026-10-31: AVIF, item 15, and GEO items 1 to 8. For each, merged (commit, board, audits passed, live URL) or parked (why, the exact answer needed from Robert, a recommendation). Include `/coverage` and `/coverage/coastal-bend` from every board, and main's head from ls-remote.
+2. **Round 3, after the report, one board per item.** Standing orders and content rules apply.
+   - **a. `/coverage` headroom.** Both pages read 3,170 to 3,270 ms against 3,400. Target: under 3,000 ms on every board. Find the largest remaining cost on the LCP path (hero photo bytes, its sizes attribute, priority and preload, render-blocking CSS or fonts) and fix it. Report before and after readings. Do not raise the ceiling. (A font change comes to Robert first, ruling of 2026-10-31.)
+   - **b. `/press`:** firm facts (legal name 254 Engineering LLC, TBPELS F-29811, offices, service lines, veteran owned as plain prose, never certified), logo files to download, media contact support@254engineering.com, and expert topics (Texas windstorm and WPI-8, foundations on expansive clay, solar structural review, manufactured home foundations for FHA). No engineer name.
+   - **c. Partner badge:** a small SVG "Engineering by 254 Engineering" badge with copy-paste HTML linking to 254engineering.com, on a `/partners/badge` page. Plain link, no tracking script.
+   - **d. Draft only, do not publish:** `/insights/texas-windstorm-certification-by-county`, covering the 14 first tier coastal counties, what TDI requires, and how to look up a certificate (TDI search for WPI-8 and WPI-8-E, TWIA lookup for WPI-8-C only), sourced and linked to TDI and TWIA pages actually read. Post the draft URL on issue #1 for Robert's review.
+3. Questions never stop the queue: post on issue #1 with a recommendation, park the item, move to the next. Wake on board completion, not on a timer. When round 3 is done or every item is parked, post a short report on issue #1 and stop.
+
+| Item | State |
+| --- | --- |
+| 7 | Boarding, 41314145201 on `3c5caef` |
+| a | Next |
+| b | Queued |
+| c | Queued |
+| d | Queued (draft, no merge) |
+
 ## Tonight's queue, in board order (Robert, 22:12 Central 2026-10-29)
 
 | # | Item | State |
