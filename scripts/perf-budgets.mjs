@@ -328,7 +328,8 @@ export const ROUTE_BUDGETS = [
   { name: "insights post: twia eligibility", path: "/insights/twia-eligibility-requirements", kb: 540 },
   { name: "insights post: pre 1988 homes", path: "/insights/twia-coverage-homes-built-before-1988", kb: 540 },
   { name: "insights post: certificate lookup", path: "/insights/texas-windstorm-certificate-lookup", kb: 540 },
-  { name: "insights post: certificate of compliance", path: "/insights/windstorm-certificate-of-compliance", kb: 540 },
+  /* The certificate of compliance post redirects to the WPI-8 guide since item h (Robert, 2026-11-01); the guide that absorbed it takes its place here. */
+  { name: "insights post: wpi-8 certificate", path: "/insights/wpi-8-certificate", kb: 540 },
   { name: "insights post: ongoing vs completed", path: "/insights/ongoing-vs-completed-improvement", kb: 540 },
   { name: "insights post: post-construction report", path: "/insights/post-construction-evaluation-report", kb: 540 },
   { name: "insights post: engineer letter", path: "/insights/engineer-letter-vs-windstorm-certificate", kb: 540 },
