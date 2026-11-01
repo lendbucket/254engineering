@@ -46,15 +46,22 @@ The source of truth for the running loop. Robert, 2026-10-29: the loop prompt is
 5. **Keyword registry:** record the WPI-8 line change in `docs/day-queue.md` as a pending sync for the Sealed Engineering and StampMyPlans repos. Do not touch those repos from here.
 6. **Manufactured home loans: FHA, VA and USDA** (Robert's answer to 6560030875, 2026-11-01): "The manufactured home foundation certification serves FHA, VA and USDA loans. Make the service page, catalog wording, llms.txt and JSON-LD say FHA, VA and USDA consistently." The 2026-10-30 "FHA only" ruling was scoped to the loans insight, until the VA and USDA handbooks are read; this answer names the four surfaces above and not that post, so the post stays FHA only. **Item j**, built on e: the catalog wording names the three programs, e's manufactured home description keeps them, and a proof holds all four surfaces to the same three.
 7. **Item k, the loans insight gets VA and USDA, sourced** (Robert, 2026-11-01): read the VA Lenders Handbook (VA Pamphlet 26-7) chapter on manufactured homes and USDA HB-1-3555 on manufactured housing, from va.gov and rd.usda.gov, for their permanent foundation and engineer certification requirements. Add a section per program to `/insights/manufactured-home-foundation-certification-loans` stating only what those sources say, each linked, beside the existing FHA section. If either source does not address the foundation certification, say what it does require and stop there. Board it as item k after j. **This lifts the 2026-10-30 FHA-only hold for that post.** (On 2026-10-30 HB-1-3555 answered 403 and the VA handbook sat behind a JavaScript check; a source that cannot be read is not cited, and no bot check is worked around.)
-- Board order stands: b, a, h, e, i, f, g, one at a time. The e answers (2 and 3) join e before it boards; d and c board after g, then j, then k.
+8. **Item l, the load path to the masthead** (Robert's ruling on 6561831283, coastal-bend at 3,014 ms, 2026-11-01). Approved, and nothing else:
+   - **Fonts:** change how fonts load, not which fonts or how they look. Same typefaces, weights and sizes. Allowed: self-host through next/font, subset to Latin, preload only the weights used above the fold, font-display swap or optional, remove unused weights. Prove no visual change with before and after screenshots of `/`, `/coverage` and one service page at phone and desktop width.
+   - **Hero photo:** tighten its `sizes`, set fetchpriority high, serve a smaller phone variant. Same photo, same crop.
+   - **CSS:** remove unused CSS, and inline critical CSS for the hero only.
+   - Board it as item l after the current queue. Report before and after for `/coverage`, `/coverage/coastal-bend` and `/services/windstorm-wpi-8` across two boards.
+9. **WPI-8 guide height** (same ruling): nothing more goes on `/insights/wpi-8-certificate` until it is measured. If a future item needs space there, move content to the lookup guide or the service page instead. (g closes the lookup guide, not this one; checked.)
+10. **Item k:** keep parked until the PDFs are attached. **Do not search for other copies.**
+- Board order stands: b, a, h, e, i, f, g, one at a time. The e answers (2 and 3) join e before it boards; d and c board after g, then j, then k, then l (k parked does not hold l).
 
 | Item | State |
 | --- | --- |
 | 7 | **Merged as `5b6a259`** (board 41314145201); morning report posted (6559831819) |
 | b | **Merged as `cf59a77`** (board 41320517236) |
 | a | **Merged as `0a01a5b`** (board 41326354068); `/coverage` 3,249 to 2,745, coastal-bend 3,237 to 3,103; posted (6561831283) |
-| h | Boarding, 41334970182 on `342ae84`; mapping posted (6559524740) |
-| e | Built on h, `seo/titles-meta` `2075ea1` with answers 2 and 3 and the loan programs kept in its manufactured home description |
+| h | **Merged as `970ff56`** (board 41334970182); WPI-8 guide 15,880 px, 120 px under the ceiling |
+| e | Boarding, 41340491179 on `d138781` (main `970ff56` merged in) |
 | i | Built, `fix/sa-soil-scope` `91b58a5`, preflight GREEN |
 | f | Built on e (first part), `seo/cost-guide` `ac0fd98`, preflight GREEN |
 | g | Built on f, `seo/closing-links` `1b27854`, preflight GREEN |
@@ -62,6 +69,7 @@ The source of truth for the running loop. Robert, 2026-10-29: the loop prompt is
 | c | Built, `feat/partner-badge` `5538443`, preflight GREEN; boards after d |
 | j | Built on e, `fix/mh-loan-programs` `e39c7f4`, preflight GREEN; boards after c |
 | k | Parked: HB-1-3555 answers 403 on rd.usda.gov and VAP26-07 renders only behind JavaScript on KnowVA; asked for the two PDFs (6560997657). **Robert's answer (relayed 2026-11-01): both chapters are attached to his comment on issue #1; download them into `docs/sources/` on ops/day, read both in full, cite the official rd.usda.gov and va.gov addresses with each edition's date, build k with its proof, and do not use the LINC copy.** As of 17:03 UTC no such comment or attachment exists on issue #1 or anywhere in the repo; k builds the moment it appears |
+| l | Ruled 2026-11-01 (fonts load, hero photo, CSS); building on `perf/load-path` from `970ff56`; boards after j |
 | truss letter, "5 year roof certification" | Parked by Robert, do not build |
 
 ## Tonight's queue, in board order (Robert, 22:12 Central 2026-10-29)
