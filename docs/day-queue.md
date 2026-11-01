@@ -47,6 +47,10 @@
 - Today's three earlier boards read `/coverage` at 2,864 (bundle 43), 2,859 (bundle 44) and 2,968 ms (bundle 45). `/services/windstorm-wpi-8` read 3,100 ms here, against 2,338 to 3,016 ms before. That reads as a slow runner, not the branch, and is still a red board (Robert, 22:12).
 - **Blocked:** order 8 forbids re-running an unchanged commit, and main has not moved, so there is no honest new commit to board. Asked Robert on issue #1.
 
+**Robert, 21:2x Central (relayed), on comment 6551453855:** Q1 yes, one re-run of `d1031c6`, merges only on a pass; if `/coverage` misses again, stop and report, no second re-run. Q2 yes, AVIF with WebP fallback for the hero photo and site images; report `/coverage` on the next three boards.
+
+**Prediction, bundle 46 re-run (`d1031c6` unchanged, the one exception to order 8):** every line of the first prediction above stands: preflight GREEN 38 rules, board 64 of 64, standing note perf `/coverage` NOT STABLE, migrations none. `/coverage` under 3,400 ms, expected near today's 2,859 to 2,968 ms; the other 63 verdicts as on 41252970510.
+
 ## MORNING REPORT, 2026-10-31
 
 **Needed from Robert: two answers.** The first blocks every board.
