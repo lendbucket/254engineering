@@ -736,7 +736,8 @@ const DECLARED: CatalogDeclaration[] = [
       {
         id: "lender_request",
         label: "The lender's written request for the certification",
-        help: "The lender's letter, email or condition naming the certification. The certification follows HUD-7584 unless the lender names another requirement in writing and the engineer approves it before the visit.",
+        /* The loan programs, FHA, VA and USDA: Robert's answer to 6560030875 (2026-11-01). */
+        help: "The FHA, VA or USDA lender's letter, email or condition naming the certification. The certification follows HUD-7584 unless the lender names another requirement in writing and the engineer approves it before the visit.",
         kind: "file",
         required: true,
         accepts: "PDF or a photograph",
@@ -751,7 +752,7 @@ const DECLARED: CatalogDeclaration[] = [
       },
     ],
     turnaround:
-      "Lenders commonly set their own deadline, so say if you have one.",
+      "FHA, VA and USDA lenders commonly set their own deadline, so say if you have one.",
     receives: receivesFrom("254-MH-001"),
   },
 
