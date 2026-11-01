@@ -1,5 +1,32 @@
 import type { Insight } from "./insights";
 import { registrationStatement, windstormAppointmentStatement } from "@/lib/launch";
+import { catalogFor, type CatalogEntry } from "@data/catalog";
+import { money } from "@/config/prices";
+
+/*
+ * THE WPI-8 PRICES AND TURNAROUND, READ FROM THE CATALOG, never typed. Robert's
+ * GEO ruling of 2026-10-31, item 4: "What it costs, from catalog.ts", and his
+ * answer that turnaround uses the catalog's wording. The catalog fills its
+ * prices from the price book, so the article cannot state a figure the
+ * checkout does not charge. A missing entry fails the build here rather than
+ * printing "undefined" into a page.
+ */
+function wpi8(tier: "ongoing" | "completed"): CatalogEntry {
+  const entry = catalogFor("windstorm-wpi-8", tier);
+  if (!entry) throw new Error(`the catalog has no windstorm-wpi-8 ${tier} entry`);
+  return entry;
+}
+const WPI8_ONGOING = wpi8("ongoing");
+const WPI8_COMPLETED = wpi8("completed");
+const priceOf = (entry: CatalogEntry): string => (entry.priceCents !== null ? money(entry.priceCents) : "priced by quote");
+/* The surcharge as one clause when both tiers carry the same one, and per tier when they differ. */
+function coastalOfBoth(a: CatalogEntry, b: CatalogEntry): string {
+  const sa = a.coastalSurchargeCents;
+  const sb = b.coastalSurchargeCents;
+  if (sa === null && sb === null) return "";
+  if (sa !== null && sa === sb) return `, each ${money(sa)} more in first tier coastal counties`;
+  return [sa !== null ? `, ${money(sa)} more for ongoing work` : "", sb !== null ? `, ${money(sb)} more for completed work` : ""].join("") + " in first tier coastal counties";
+}
 
 /**
  * TEN POSTS ON THE COASTAL WINDSTORM RECORD, READ FROM THE STATUTE.
@@ -1159,146 +1186,140 @@ export const coastalInsights: Insight[] = [
   {
     slug: "wpi-8-certificate",
     title: "WPI-8 Certificate Explained for Texas | 254 Engineering",
-    h1: "The WPI-8 certificate: what the document is, and the forms that produce it",
+    h1: "The WPI-8 windstorm certificate: what it is, who signs, and what it costs",
     description:
-      "What a WPI-8 certificate is, how it differs from a WPI-8-E and a WPI-8-C, which forms produce it, and which coastal work needs one. Read the full guide.",
+      "What a WPI-8 windstorm certificate is, who signs the forms behind it, how WPI-8, WPI-8-E and WPI-8-C differ, and what one costs. Read the full guide.",
     summary:
-      "The WPI-8 is one page issued by the Texas Department of Insurance, and a short chain of forms stands behind it. Knowing which form does what is most of the work of getting one.",
+      "A WPI-8 is one page from the Texas Department of Insurance, issued once the inspections on a coastal improvement are approved. Who signs the forms behind it, how to find one, and what it costs.",
     eyebrow: "Windstorm law",
     primaryKeyword: "wpi8",
     datePublished: WINDSTORM_SECTION_DATE,
-    dateModified: "2026-10-30",
+    dateModified: "2026-10-31",
+    /*
+     * ANSWER FIRST, Robert's GEO ruling of 2026-10-31, item 4, upgraded in
+     * place by his answer 4 (no second WPI-8 page): a 50-word answer first,
+     * six question H2s, one comparison table, the TDI process and forms pages
+     * and the TWIA lookup linked in the text, the price from the catalog, and
+     * TDI, TWIA and TBPELS named. The firm's TDI appointment is
+     * windstormAppointmentStatement(), read from the register, with no name.
+     * Five headings stay statements, so the page's question headings stay
+     * inside voice-audit's 40 percent (6 of 16 with the template's five).
+     */
     body: [
       {
         kind: "p",
-        text: "A WPI-8 is the certificate of compliance the Texas Department of Insurance issues once every required windstorm inspection on a coastal improvement has been approved. If a lender, an agent or a buyer has asked you for one, they are asking for the department's record that specific work inside the catastrophe area was inspected and found compliant, because wind and hail coverage through the Texas Windstorm Insurance Association requires it.",
+        text: "A WPI-8 is the certificate of compliance the Texas Department of Insurance (TDI) issues once the required windstorm inspections on a coastal improvement are approved. Wind and hail coverage through the Texas Windstorm Insurance Association (TWIA) requires it. The inspector signs the WPI-2 forms; TDI issues the certificate.",
       },
       {
         kind: "p",
-        text: "The certificate is the end of a sequence, not a document anyone can produce on request. The scope of the windstorm work 254 Engineering describes, and its published prices for ongoing and completed construction, are on [the WPI-8 certification page](/services/windstorm-wpi-8).",
+        text: `${windstormAppointmentStatement()} The scope of the firm's windstorm work is on [the WPI-8 certification page](/services/windstorm-wpi-8), and its published prices are in the cost section below.`,
       },
-      { kind: "h2", text: "Three certificates share the name" },
+      { kind: "h2", text: "What is a WPI-8?" },
       {
         kind: "p",
-        text: "People say WPI-8 for any windstorm certificate. The Texas Windstorm Insurance Association lists three, and they come from different places.",
-      },
-      {
-        kind: "ul",
-        items: [
-          "WPI-8: issued by the department for new and ongoing improvements, the work an inspector saw while it was open.",
-          "WPI-8-E: issued by the department for completed improvements. The association's page says the department began accepting those applications on June 1, 2020.",
-          "WPI-8-C: issued by the association itself for completed improvements, on applications it accepted from January 1, 2017 to May 31, 2020.",
-        ],
-      },
-      {
-        kind: "p",
-        text: "The third one is the one that goes missing. The association says the certificates it issued are not on the department's website and that copies are requested through its own lookup, and it also says those certificates remain valid. A file built only from the department's search can therefore be short a certificate that exists. How to run both searches is set out on [the certificate lookup page](/insights/texas-windstorm-certificate-lookup).",
-      },
-      { kind: "h2", text: "The forms behind an ongoing improvement" },
-      {
-        kind: "p",
-        text: "Every WPI-8 for ongoing work starts with Form WPI-1, the application for a certificate of compliance, filed before construction begins. The department's process page says that holds whoever inspects: where an engineer inspects, the owner or builder still files the WPI-1 first. The department's general questions page adds a detail builders use every week, that the WPI-1 serves as proof of enrollment for a building permit.",
-      },
-      {
-        kind: "p",
-        text: "The inspector's side of the record is an inspection verification form, and which one applies depends on when construction began. The department's forms page lists them by start date:",
-      },
-      {
-        kind: "ul",
-        items: [
-          "WPI-2-BC-5, for ongoing improvements to construction that began between January 1, 2008 and December 31, 2016.",
-          "WPI-2-BC-6, for projects that began construction between January 1, 2017 and August 31, 2020.",
-          "WPI-2-BC-7, for ongoing improvements to construction that began on or after September 1, 2020 and before April 1, 2026.",
-          "WPI-2-BC-8, for ongoing improvements to construction that began on or after April 1, 2026.",
-        ],
-      },
-      {
-        kind: "p",
-        text: "The newest boundary lines up with the code table. The department's general information page lists the 2024 International Residential Code and International Building Code, under 28 Tex. Admin. Code 5.4013, as effective from April 1, 2026, the same date the forms page uses to divide WPI-2-BC-7 from WPI-2-BC-8. A job that straddles that date is worth confirming with the department before the first inspection rather than after the last.",
-      },
-      {
-        kind: "p",
-        text: "When the inspections are approved the department issues the WPI-8. Its general questions page says inspection and WPI-8 data go to the association nightly and that certificates are published online, which is why a new certificate can usually be found by address soon after it issues.",
-      },
-      { kind: "h2", text: "The forms behind a completed improvement" },
-      {
-        kind: "p",
-        text: "Work that was finished without inspection takes a different application. The department's system information page says it needs a signed WPI-2E together with either a sealed post-construction inspection report and its supporting documents, or a sealed design, and that the documents must carry the structure's address and the application ID. The result is a WPI-8-E rather than a WPI-8.",
-      },
-      {
-        kind: "p",
-        text: "Which side of that line a job falls on is a question of statutory definition rather than of whether the crew has left, and it is worked through on [the ongoing versus completed improvement page](/insights/ongoing-vs-completed-improvement). What the sealed report has to contain is on [the completed construction page](/windstorm/completed-construction).",
-      },
-      {
-        kind: "note",
-        title: "Who may inspect completed work: two TDI pages disagree",
-        body: [
-          "The department's inspection process page says that if work was completed without an inspection, an appointed engineer must perform a post-construction inspection. Its completed construction certificates page says any professional engineer licensed by the board can perform inspections on completed construction. Both were read for this post. They are recorded here rather than reconciled, and the department is the authority to confirm which applies to a particular job.",
-        ],
+        text: "It is the department's record that a specific improvement inside the catastrophe area was inspected and found compliant. The department's WPI-8 fact sheet says TWIA and insurance companies can look certificates up to confirm that a property, repair or addition is certified, and its process page asks the owner to tell their insurance agent about the work, so the policy and the certificate describe the same building.",
       },
       { kind: "h2", text: "What one certificate records" },
       {
         kind: "p",
-        text: "A certificate records an improvement, not a building. A coastal house can hold several: one for the original construction, another for a replacement roof, another for a window package. The department's own example is the air conditioning unit. Where the unit is not yet installed, the department can issue a WPI-8 for the rest of the home and a separate WPI-8 once the unit has been installed and inspected.",
+        text: "A certificate records an improvement, not a building. A coastal house can hold several: one for the original construction, another for a replacement roof, another for a window package. The department's own example is an air conditioning unit installed after the rest of the home, which gets a WPI-8 of its own once it is inspected. One certificate on file therefore does not settle a question about the whole structure.",
+      },
+      { kind: "h2", text: "Who can sign a WPI-8?" },
+      {
+        kind: "p",
+        text: "No inspector signs the WPI-8 itself. The inspector signs the WPI-2 inspection verification forms, and TDI issues the certificate from them once every required inspection is approved.",
       },
       {
         kind: "p",
-        text: "That is why one certificate on file does not settle a question about the whole structure. The useful check is whether the certificates present account for each piece of work visible on the building.",
+        text: "For ongoing construction, [the TDI windstorm inspection process page](https://www.tdi.texas.gov/wind/inspectionproc.html) says a TDI inspector or an appointed Texas licensed professional engineer must inspect, and that TDI inspectors handle all non-structural work, including most repairs, alterations and re-roofs. For completed construction, the department's completed construction page says any professional engineer licensed by the Texas Board of Professional Engineers and Land Surveyors (TBPELS) can inspect, while the process page says an appointed engineer must. The two are recorded here rather than reconciled, and the department is the authority on which applies to a particular job.",
+      },
+      { kind: "h2", text: "What is the difference between WPI-2, WPI-8, WPI-8-C and WPI-8-E?" },
+      {
+        kind: "p",
+        text: "People say WPI-8 for any windstorm certificate. There are three certificates and a family of forms behind them, and they come from different places.",
+      },
+      {
+        kind: "table",
+        caption: "WPI-2, WPI-8, WPI-8-E and WPI-8-C compared",
+        head: ["Document", "What it is", "Who issues it"],
+        rows: [
+          ["WPI-2 forms", "The inspector's verification for ongoing work (WPI-2-BC-5 to WPI-2-BC-8, by construction start date), or the WPI-2E application for completed work", "Signed by the inspector or applicant and filed with TDI"],
+          ["WPI-8", "The certificate of compliance for new and ongoing improvements, the work an inspector saw while it was open", "TDI"],
+          ["WPI-8-E", "The certificate for completed improvements, on applications TDI has accepted since June 1, 2020", "TDI"],
+          ["WPI-8-C", "The certificate for completed improvements, on applications accepted from January 1, 2017 to May 31, 2020", "TWIA"],
+        ],
+      },
+      { kind: "h2", text: "The forms, in the order they are filed" },
+      {
+        kind: "p",
+        text: "Every WPI-8 for ongoing work starts with Form WPI-1, the application for a certificate of compliance, filed before construction begins whoever inspects; the department's general questions page adds that it serves as proof of enrollment for a building permit. [The TDI windstorm forms page](https://agate.tdi.texas.gov/forms/form13windstorm.html) then lists the verification form by the date construction began:",
+      },
+      {
+        kind: "ul",
+        items: [
+          "WPI-2-BC-5, for construction that began between January 1, 2008 and December 31, 2016.",
+          "WPI-2-BC-6, for construction that began between January 1, 2017 and August 31, 2020.",
+          "WPI-2-BC-7, for construction that began on or after September 1, 2020 and before April 1, 2026.",
+          "WPI-2-BC-8, for construction that began on or after April 1, 2026.",
+        ],
       },
       {
         kind: "p",
-        text: "The certificate is also read by more than the association. The department's WPI-8 fact sheet says the Texas Windstorm Insurance Association and insurance companies can look up certificates to confirm that a property, repair or addition is certified. The department's process page asks the owner to tell their insurance agent about the work, so the policy and the certificate describe the same building.",
+        text: "Completed work takes a signed WPI-2E with either a sealed post-construction inspection report and its supporting documents, or a sealed design, carrying the structure's address and the application ID; the result is a WPI-8-E. Which side of that line a job falls on is worked through on [the ongoing versus completed improvement page](/insights/ongoing-vs-completed-improvement).",
       },
-      { kind: "h2", text: "Choosing who inspects, and what the department sets" },
+      { kind: "h2", text: "How do you look up a WPI-8 on TWIA?" },
       {
         kind: "p",
-        text: "The fact sheet offers two routes to a certificate: request a TDI inspector, or hire a Texas licensed professional engineer or an appointed qualified inspector. It adds that the department does not regulate inspection rates, and its process page says the same of the rates appointed engineers charge. Price is therefore agreed between the owner and the inspector, with nothing from the department to compare it against.",
-      },
-      {
-        kind: "p",
-        text: "Commercial buildings are not outside the program. The process page says a commercial structure that will be insured for wind and hail through the association must, at a minimum, be built to the department's adopted building standards, and the same certificate sequence then applies to it.",
+        text: "TWIA's lookup finds only WPI-8-C certificates, the ones TWIA issued on applications from January 1, 2017 to May 31, 2020. On [the TWIA WPI-8 lookup](https://www.twia.org/wpi-8-lookup/), enter the ZIP code and the address number, request the certificate, and TWIA sends a copy.",
       },
       {
         kind: "p",
-        text: "Once issued, a certificate stays issued. Section 2210.2515(k) of the Insurance Code says the department may not rescind a certificate of compliance after issuing it, and the reasons that matters are read through on [the certificate of compliance page](/insights/windstorm-certificate-of-compliance).",
+        text: "A WPI-8 or a WPI-8-E is in [TDI's certificate search](https://appscenter.tdi.texas.gov/windstorm/p/searchForAppl), because TDI publishes the certificates it issues. A file built from one search alone can be short a certificate that exists, and both searches are set out on [the certificate lookup page](/insights/texas-windstorm-certificate-lookup).",
+      },
+      { kind: "h2", text: "How long does a WPI-8 take?" },
+      {
+        kind: "p",
+        text: "The inspections happen during construction, not before or after it, and the process page says TDI inspectors try to inspect within 48 hours of the requested date, excluding weekends and holidays. The certificate issues once every required inspection is approved, so the job's own schedule sets the pace, and the department's general questions page says WPI-8 data go to TWIA nightly.",
+      },
+      {
+        kind: "p",
+        text: `For 254 Engineering's ongoing construction work: ${WPI8_ONGOING.turnaround} For completed construction: ${WPI8_COMPLETED.turnaround}`,
+      },
+      { kind: "h2", text: "What does a WPI-8 cost?" },
+      {
+        kind: "p",
+        text: "TDI inspectors do not charge an inspection fee, the process page says, and the department does not regulate or track the rates appointed engineers charge, so an engineer's price is agreed between the owner and the engineer.",
+      },
+      {
+        kind: "p",
+        text: `254 Engineering publishes its price before any order: ${priceOf(WPI8_ONGOING)} for a WPI-8 inspection of ongoing construction and ${priceOf(WPI8_COMPLETED)} for a WPI-8E evaluation of completed construction${coastalOfBoth(WPI8_ONGOING, WPI8_COMPLETED)}. [The WPI-8 order page](/order/start/windstorm-wpi-8) shows whether each can be ordered online today.`,
       },
       { kind: "h2", text: "Which work needs one" },
       {
         kind: "p",
-        text: "The association's certification page lists the work that needs a certificate: new structures, additions or enlargements, windows, entry doors and garage doors, patio covers and decks, replacing a roof or repairing a significant portion of one, and re-siding a significant portion of an exterior wall.",
-      },
-      {
-        kind: "p",
-        text: "Its list of work that does not includes painting, carpeting and refinishing, plumbing and electrical repairs, fence repair, gutter repair or replacement, and temporary repairs after a storm. The department keeps the full list of work that needs no inspection on its own site. Two words in the first list do most of the arguing on real jobs, significant portion, and neither list puts a number on them. Where a repair is close to that line, the department's field office is the place to ask before work begins.",
-      },
-      {
-        kind: "p",
-        text: "For a re-roof, the department's process page says its own inspectors handle all non-structural work, including most repairs, alterations and re-roofs. The same page names an appointed engineer as the other kind of inspector, and which of the two a job calls for is the subject of [the Texas windstorm inspections page](/insights/texas-windstorm-inspections).",
+        text: "TWIA's certification page lists new structures, additions, windows, entry and garage doors, patio covers and decks, replacing a roof or repairing a significant portion of one, and re-siding a significant portion of an exterior wall. Painting, carpeting and refinishing, plumbing and electrical repairs, fence repair, gutter repair or replacement, and temporary repairs after a storm need none. Neither list puts a number on significant portion, so a repair near that line is worth asking the department's field office about before work begins. A commercial structure insured for wind and hail through TWIA follows the same sequence, and the details of a re-roof are on [the Texas windstorm inspections page](/insights/texas-windstorm-inspections).",
       },
       { kind: "h2", text: "Fixing a certificate with the wrong address" },
       {
         kind: "p",
-        text: "Addresses go wrong on coastal certificates more often than anything else, usually because the physical address differs from the standardized one. The department's general questions page gives two routes. Where a TDI inspector did the inspection, the owner submits a written request to the department for a revised WPI-8. Where a Texas licensed engineer did it, the engineer resubmits corrected WPI-1 and WPI-2-BC forms.",
-      },
-      {
-        kind: "p",
-        text: "The system information page adds that the physical address is the one to record, and that where it differs from the standardized address the applicant keeps the physical address and submits the documents that support it.",
+        text: "Where a TDI inspector did the inspection, the owner sends the department a written request for a revised WPI-8; where a Texas licensed engineer did it, the engineer resubmits corrected WPI-1 and WPI-2-BC forms. The department's system information page says the physical address is the one to record, with documents supporting it where it differs from the standardized address.",
       },
       { kind: "h2", text: "What a WPI-8 does not say" },
       {
         kind: "p",
-        text: "It does not describe the condition of the work today, it says nothing about work done after it issued, and it is not a flood document. Section 2210.251(g) makes it evidence of insurability of the structure by the association, which is a narrower statement than it looks. The difference between that record and an opinion about a roof's present condition is set out on [the roof certification comparison](/insights/roof-certification-vs-wpi-8), and how the certificate meets the association's own rules is on [the TWIA insurance page](/insights/twia-insurance-and-windstorm-certificates).",
+        text: "It does not describe the condition of the work today, it says nothing about work done after it issued, and it is not a flood document. Section 2210.251(g) of the Insurance Code makes it evidence of insurability of the structure by TWIA, and section 2210.2515(k) says the department may not rescind one after issuing it. The difference between that record and an opinion on a roof's present condition is on [the roof certification comparison](/insights/roof-certification-vs-wpi-8).",
       },
     ],
     sources: [
-      cite("twiaCert", "The three certificate types and who issues each, the June 1, 2020 start for WPI-8-E applications, the WPI-8-C window, that TWIA certificates are not on TDI's site and remain valid, and the lists of work that does and does not need a certificate."),
-      cite("tdiProcess", "That the WPI-1 is filed before construction whoever inspects, that TDI issues the WPI-8 once all inspections are approved and TWIA coverage requires it, that TDI inspectors handle all non-structural work including most re-roofs, the air conditioning example, that an appointed engineer must perform a post-construction inspection, that the owner should tell their insurance agent of the work, that TDI does not regulate or track appointed engineers' inspection rates, and that a commercial structure insured for wind and hail through TWIA must at a minimum meet TDI's adopted building standards."),
-      cite("tdiWpi8FactSheet", "That TWIA and insurance companies can look up certificates, the two routes to one (a TDI inspector, or a Texas licensed professional engineer or appointed qualified inspector), and that TDI does not regulate inspection rates."),
+      cite("twiaCert", "The three certificate types and who issues each, the June 1, 2020 start for WPI-8-E applications, the WPI-8-C window, and the lists of work that does and does not need a certificate."),
+      cite("twiaLookup", "That TWIA's lookup holds the WPI-8-C certificates it issued on applications from January 1, 2017 to May 31, 2020, searched by ZIP code and address number, with a copy sent on request."),
+      cite("tdiSearch", "TDI's own search for the WPI-8 and WPI-8-E certificates it issued."),
+      cite("tdiProcess", "That a TDI inspector or an appointed Texas licensed professional engineer must inspect, that TDI inspectors handle all non-structural work including most re-roofs, that inspections happen during construction, the 48 hour aim, that TDI inspectors charge no fee and TDI does not regulate or track engineers' rates, that TDI issues the WPI-8 once all inspections are approved and TWIA coverage requires it, the air conditioning example, that an appointed engineer must perform a post-construction inspection, that the owner should tell their insurance agent, and that a commercial structure insured through TWIA follows the program."),
+      cite("tdiWpi8FactSheet", "That TWIA and insurance companies can look up certificates to confirm a property, repair or addition is certified."),
       cite("tdiForms", "The WPI-1 application and the WPI-2-BC-5, 6, 7 and 8 inspection verification forms with their construction start dates, and the WPI-2E for completed improvements."),
-      cite("tdiGenInfo", "That the 2024 IRC and IBC are listed under 28 TAC 5.4013 as effective from April 1, 2026."),
-      cite("tdiFaq", "That the WPI-1 serves as proof of enrollment for a building permit, that WPI-8 data go to TWIA nightly and certificates are published online, and the two routes for correcting an address."),
+      cite("tdiFaq", "That the WPI-1 serves as proof of enrollment for a building permit, that WPI-8 data go to TWIA nightly, and the two routes for correcting an address."),
       cite("tdiSystem", "The WPI-2E with a sealed post-construction report or sealed design, the address and application ID requirement, and the rule on physical versus standardized addresses."),
-      cite("tdiCompleted", "That any professional engineer licensed by the board can perform inspections on completed construction."),
+      cite("tdiCompleted", "That any professional engineer licensed by TBPELS can perform inspections on completed construction."),
       cite("ins2210_2515", "That the department may not rescind a certificate of compliance after issuing it."),
       cite("ins2210_251", "That the certificate is evidence of insurability of the structure by the association."),
     ],
@@ -1306,6 +1327,10 @@ export const coastalInsights: Insight[] = [
       {
         q: "What is a WPI-8 certificate?",
         a: "It is the certificate of compliance the Texas Department of Insurance issues after every required windstorm inspection on an improvement inside the catastrophe area has been approved. Wind and hail coverage through the Texas Windstorm Insurance Association requires it for covered work.",
+      },
+      {
+        q: "Can I find a WPI-8 on TWIA's website?",
+        a: "TWIA's lookup holds only the WPI-8-C certificates it issued on applications from January 1, 2017 to May 31, 2020. A WPI-8 or WPI-8-E is found in the Texas Department of Insurance's own certificate search.",
       },
       {
         q: "Does a re-roof need a WPI-8?",
@@ -1326,7 +1351,7 @@ export const coastalInsights: Insight[] = [
     eyebrow: "Windstorm law",
     primaryKeyword: "texas windstorm",
     datePublished: WINDSTORM_SECTION_DATE,
-    dateModified: "2026-10-25",
+    dateModified: "2026-11-01",
     body: [
       {
         kind: "p",
@@ -1339,7 +1364,7 @@ export const coastalInsights: Insight[] = [
       },
       {
         kind: "p",
-        text: "The area is the fourteen first tier coastal counties and part of Harris County. The association's overview names the Harris County portion as parts of La Porte, Morgan's Point, Pasadena, Seabrook and Shore Acres east of Highway 146. How the line is drawn is on [the catastrophe area page](/windstorm/catastrophe-area). The department runs windstorm field offices in Beaumont, La Marque, Angleton and Corpus Christi, according to the association's certification page, so on the Coastal Bend the program's local office is in the same city as [254 Engineering's own office](/corpus-christi).",
+        text: "The area is the fourteen first tier coastal counties and part of Harris County. The association's overview names the Harris County portion as parts of La Porte, Morgan's Point, Pasadena, Seabrook and Shore Acres east of Highway 146. How the line is drawn is on [the catastrophe area page](/windstorm/catastrophe-area). The department runs windstorm field offices in Beaumont, La Marque, Angleton and Corpus Christi, according to the association's certification page, so the program keeps a local office on the Coastal Bend, in [Corpus Christi](/corpus-christi).",
       },
       { kind: "h2", text: "The code an inspection measures against" },
       {
