@@ -92,6 +92,21 @@ WPI-8 facts stand as read from TDI and TWIA: TWIA's lookup is WPI-8-C only; the 
 - **Rules for tonight.** One board at a time. Never re-run an unchanged commit. Never merge red. Never loosen a check or raise a perf ceiling. A question for Robert never stops the queue: post it on issue #1 with a recommendation, park that item, go to the next. A board that fails twice on new commits for the same item: park it and move on. No production database writes, no migrations, no email or SMS to real people, no secrets in output, no force push, no branch deletion. Keep the 12 GB memory floor. Content: no long dashes, no hyphens as sentence connectors, no AI-tell words, US spelling, "254 Engineering", no engineer name or license number on public pages; solar scope and wind uplift wording unchanged. Wake on board completion, not on a timer.
 - **Morning report (issue #1, then stop):** merged (item, commit, board, audits passed, live URL); parked (item, why, the exact answer needed, with a recommendation); `/coverage` and `/coverage/coastal-bend` from every board tonight; main's head by ls-remote.
 
+**Result, bundle 47 (`perf/avif`): board 41269952910 on `5647d73`, 64 of 64, as predicted. Merged as `d30f5b7`, tree identical to the boarded commit; `ls-remote` confirms `d30f5b7`.**
+- The masthead image (img column) fell from 84 to 69 KB on `/coverage`, 86 to 71 KB on `/coverage/coastal-bend`, 71 to 64 KB on `/services/windstorm-wpi-8`.
+- `/coverage` **3,097 ms** (spread 610 ms), `/coverage/coastal-bend` **3,170 ms** (spread 83 ms), `/services/windstorm-wpi-8` 2,949 ms. All PASS. First of the three boards Robert asked `/coverage` reported on.
+- Height warnings unchanged: `/insights/wpi-8-certificate` 15,380 px (620 under), `/insights/pre-purchase-home-inspection` 15,090 px.
+
+**Parked tonight, each posted on issue #1:** GEO item 3 (6553355493: the cost guide overlaps `/structural-engineer/cost`; recommend upgrading that page in place); GEO item 8 (6553540120: IndexNow already runs from the production build by Robert's 2026-10-25 answer (a); recommend keeping it).
+
+**Built and waiting their turn, preflight GREEN each:** item 1 `feat/geo-llms` `23f8553`; item 2 `feat/geo-jsonld` `2ab30aa`; item 4 `feat/geo-wpi8` `561d4fb`; item 6 `feat/geo-solar` `712ef03` (on item 2); item 7 `feat/geo-standard` `33f2df3`.
+
+**Prediction, bundle 46 on the new main (`feat/services-scope-live` at `968ed4b`, main `d30f5b7` merged in; a new commit, not a re-run; full lane):**
+- Preflight GREEN, 38 rules, 0 failed (run on `968ed4b`).
+- Board: 64 of 64. The branch's own audits as on both earlier runs (jobs, observability, security, email, the new proof all pass).
+- perf-audit: `/coverage` and `/coverage/coastal-bend` under 3,400 ms, near this evening's 3,097 and 3,170 ms now that the masthead is AVIF. Standing note: perf `/coverage` NOT STABLE. Migrations: none.
+- **If it misses on a perf ceiling only: parked with the figures, no re-run tonight (Robert's overnight ruling).**
+
 ## MORNING REPORT, 2026-10-31
 
 **Needed from Robert: two answers.** The first blocks every board.
