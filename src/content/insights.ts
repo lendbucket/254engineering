@@ -117,7 +117,7 @@ export const insights: Insight[] = [
     eyebrow: "Government procurement",
     primaryKeyword: "texas professional services procurement act",
     datePublished: "2026-08-23",
-    dateModified: "2026-08-24",
+    dateModified: "2026-11-01",
     body: [
       {
         kind: "p",
@@ -279,7 +279,7 @@ export const insights: Insight[] = [
     eyebrow: "Licensure",
     primaryKeyword: "texas engineering firm registration",
     datePublished: "2026-08-23",
-    dateModified: "2026-10-21",
+    dateModified: "2026-11-01",
     body: [
       {
         kind: "p",
@@ -574,7 +574,7 @@ export const insights: Insight[] = [
     eyebrow: "Licensure",
     primaryKeyword: "texas pe license lookup",
     datePublished: "2026-08-23",
-    dateModified: "2026-09-21",
+    dateModified: "2026-11-01",
     body: [
       {
         kind: "p",
