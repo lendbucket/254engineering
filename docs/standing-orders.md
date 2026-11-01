@@ -51,14 +51,14 @@ The source of truth for the running loop. Robert, 2026-10-29: the loop prompt is
 | --- | --- |
 | 7 | **Merged as `5b6a259`** (board 41314145201); morning report posted (6559831819) |
 | b | Boarding, 41320517236 on `a3d5c2f` |
-| a | Built, `perf/map-file` `ab067cb`, preflight GREEN; boards after b |
+| a | Built, `perf/map-file` `1cc566e` (map image through next/image); boards after b |
 | h | Built, `seo/wpi8-owners` `252197e`, preflight GREEN; mapping posted (6559524740); boards after a |
-| e | Built on h, `seo/titles-meta` `1840291`; answers 2 and 3 to be added before it boards |
+| e | Built on h, `seo/titles-meta` `1f796ed` with answers 2 and 3, preflight GREEN |
 | i | Built, `fix/sa-soil-scope` `91b58a5`, preflight GREEN |
-| f | Built on e, `seo/cost-guide` `ac0fd98`, preflight GREEN |
+| f | Built on e (first part), `seo/cost-guide` `ac0fd98`, preflight GREEN |
 | g | Built on f, `seo/closing-links` `1b27854`, preflight GREEN |
-| d | Approved: fold into `/windstorm/catastrophe-area`; boards after g |
-| c | Approved: text-only SVG badge; boards after d |
+| d | Built, `feat/catastrophe-zones` `dc40648`, preflight GREEN; boards after g |
+| c | Built, `feat/partner-badge` `5538443`, preflight GREEN; boards after d |
 | 6, loan programs | Parked: placeholder unfilled, asked on issue #1 |
 | truss letter, "5 year roof certification" | Parked by Robert, do not build |
 
