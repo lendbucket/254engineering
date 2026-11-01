@@ -72,14 +72,14 @@ The source of truth for the running loop. Robert, 2026-10-29: the loop prompt is
 | a | **Merged as `0a01a5b`** (board 41326354068); `/coverage` 3,249 to 2,745, coastal-bend 3,237 to 3,103; posted (6561831283) |
 | h | **Merged as `970ff56`** (board 41334970182); WPI-8 guide 15,880 px, 120 px under the ceiling |
 | e | **Merged as `a605060`** (board 41340491179) |
-| i | Built, `fix/sa-soil-scope` `91b58a5`, preflight GREEN |
+| l | **Merged as `c1fd530`** (board 41347983909); font 98 to 48 KB; `/coverage` 2,591 to 2,339, coastal-bend 3,100 to 2,642, service 3,039 to 2,675, home 2,742 to 2,584; screenshots identical apart from orderable lines (production database against development). Second reading on i's board |
+| i | **Boarding**, `fix/sa-soil-scope` `6950f1d` (main `c1fd530` in), preflight GREEN; also l's second board |
 | f | Built on e (first part), `seo/cost-guide` `ac0fd98`, preflight GREEN |
 | g | Built on f, `seo/closing-links` `1b27854`, preflight GREEN |
 | d | Built, `feat/catastrophe-zones` `dc40648`, preflight GREEN; boards after g |
 | c | Built, `feat/partner-badge` `5538443`, preflight GREEN; boards after d |
 | j | Built on e, `fix/mh-loan-programs` `e39c7f4`, preflight GREEN; boards after c |
 | k | Parked: HB-1-3555 answers 403 on rd.usda.gov and VAP26-07 renders only behind JavaScript on KnowVA; asked for the two PDFs (6560997657). **Robert's answer (relayed 2026-11-01): both chapters are attached to his comment on issue #1; download them into `docs/sources/` on ops/day, read both in full, cite the official rd.usda.gov and va.gov addresses with each edition's date, build k with its proof, and do not use the LINC copy.** As of 17:03 UTC no such comment or attachment exists on issue #1 or anywhere in the repo; k builds the moment it appears |
-| l | Approved as built; `perf/load-path` `0ca980d` from `970ff56`, preflight GREEN: italic font not preloaded (proof, injection verified), screenshots job; hero photo and CSS split measured and left; boards after j, twice, dispatched with `-f screenshots=true` |
 | speed survey | **Posted (6563269468).** On production every measured template is under 2,500 ms and CLS 0.000 (home closest at 2,451); the board reads 500 to 1,000 ms slower (localhost profile). Largest shared costs: italic font preload (item l), header logo 51 KB raw (asked), a 72 KB chunk 22 to 29 KB unused (next) |
 | n | Header mark at drawn size, `perf/header-mark` `4c6b1f5` from `970ff56`, preflight GREEN, proof byte-exact and injection verified; 52 to 22 KB light, 30 to 15 KB dark. **Boards only on Robert's word** (asked in 6563269468). The 72 KB chunk is the React DOM and Next runtime; its unused bytes are framework paths, nothing to remove |
 | m | GA4, `feat/ga4` `672c1fb` from `970ff56`, preflight GREEN, proof injection verified. Boards after l. **Does not merge until Q1 (privacy paragraph) is answered; Q2 (the ID as a repository variable) decides whether the board's build renders the tag** |

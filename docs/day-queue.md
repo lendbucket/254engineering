@@ -205,6 +205,18 @@ WPI-8 facts stand as read from TDI and TWIA: TWIA's lookup is WPI-8-C only; the 
 - **The screenshots job:** 12 shots (before and after, three routes, 390 and 1440), uploaded as `screenshots`; I read them for any visible difference before reporting. A failure there is recorded, never a verdict.
 - Height warnings unchanged. Standing note: perf `/coverage` NOT STABLE. Migrations: none.
 
+**Result, bundle 58 (item l board 1): board 41347983909 on `f4938aa`, 64 of 64, preflight GREEN. Merged as `c1fd530`, tree identical to the boarded commit; `ls-remote` confirms `c1fd530`.**
+- Font column 98 to **48 KB** on every public route, as predicted.
+- LCP, every route better than my range (the miss is on the good side, and it is still a miss of the estimate): `/coverage` **2,339 ms** (was 2,591; predicted 2,400 to 2,550), `/coverage/coastal-bend` **2,642 ms** (3,100; predicted 2,850 to 3,000; spread 490), `/services/windstorm-wpi-8` **2,675 ms** (3,039; predicted 2,800 to 2,950), `/` **2,584 ms** (2,742; predicted 0 to 150 lower, came 158 lower). Why I undercounted: 50 KB at the board's simulated 1.6 Mbps is about 250 ms of transfer, and on the photo routes it was competing with the LCP photo itself.
+- Screenshots, 12 taken, read side by side and pixel diffed: type, the photo, its crop and the layout are identical. `/coverage` differs in 0.03% of pixels, all in the header button. `/` and the WPI-8 page differ in which lines are orderable ("Order online" and the order buttons on production, "Start a job" and "Describe the property" on the board's build), because production reads its signed protocols from the production database and the board's build reads development. That is not item l.
+- Height warnings unchanged (15,880 and 15,090 px). Migrations: none.
+
+**Prediction, bundle 59, item i (`fix/sa-soil-scope` at `6950f1d`, main `c1fd530` merged in cleanly; full lane, `src/content/regions.ts` is read by server rendered pages). This is also item l's second board, since l is now on main (Robert: before and after across two boards).**
+- Preflight GREEN, 38 rules, 0 failed (run on `6950f1d`); its proof `the-san-antonio-page-claims-no-soil-engineering` among the static proofs. tsc clean.
+- Board: 64 of 64. voice-audit and placeholder-audit pass the new sentences; seo-audit passes the changed region description inside 140 to 160 with no duplicate; coverage-audit unchanged (no county moves).
+- perf-audit, l's second reading: font column 48 KB everywhere; `/coverage` near 2,250 to 2,550, `/coverage/coastal-bend` near 2,500 to 2,900 (its spread runs to 700 ms), `/services/windstorm-wpi-8` near 2,550 to 2,800, `/` near 2,450 to 2,750. Coastal-bend under 3,000 is predicted, so the full stylesheet inlining question does not go to Robert unless this board reads it over.
+- Height warnings unchanged; `/coverage/san-antonio` gains at most a line. Standing note: perf `/coverage` NOT STABLE. Migrations: none.
+
 **PENDING SYNC, keyword registry (Robert, answer 5, 2026-11-01).** `data/keyword-registry.ts` is meant to be synchronized verbatim across the three repos, and item h (`seo/wpi8-owners`, `49638cd`) changes one line in it. The 254 angle for the WPI-8 entry (path `/insights/wpi-8-certificate`) no longer says "Not the statute walk-through, which is /insights/windstorm-certificate-of-compliance." and now ends "...what one certificate records, and address corrections, with the statute's six month limit, fee provision and accountability clauses folded in from the retired statute post, which redirects here (item h, 2026-11-01)." **The Sealed Engineering and StampMyPlans repos need the same line once item h merges.** Not touched from here, by Robert's word.
 
 ## MORNING REPORT, 2026-10-31
