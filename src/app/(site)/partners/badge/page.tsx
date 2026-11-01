@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import { Container } from "@/components/ui/Container";
 import { PageHeader } from "@/components/site/PageHeader";
 import { Rule } from "@/components/ui/primitives";
@@ -64,8 +65,8 @@ export default function PartnerBadgePage() {
               <Rule className="mt-5" />
             </div>
             <div className="lg:col-span-8">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/partners/badge.svg" alt={text} width={width} height={height} className="h-auto max-w-full" />
+              {/* next/image, unoptimized because an SVG is served as it is rather than re-encoded (the-site-images-serve-avif-then-webp.mjs holds every public image to next/image). */}
+              <Image src="/partners/badge.svg" alt={text} width={width} height={height} unoptimized className="h-auto max-w-full" />
               <p className="mt-8 text-[1.02rem] leading-[1.75] text-slate-muted">
                 The sentence is read from the firm&apos;s registration record, so the name and number
                 in it are the ones the Texas Board of Professional Engineers and Land Surveyors holds.
