@@ -116,6 +116,17 @@ WPI-8 facts stand as read from TDI and TWIA: TWIA's lookup is WPI-8-C only; the 
 - Board: 64 of 64. voice-audit and placeholder-audit read the two text routes and find no long dash, no AI-tell word and no off-domain email; seo-audit and launch-audit unchanged.
 - perf-audit: `/coverage` and `/coverage/coastal-bend` under 3,400 ms, near 3,212 and 3,192 ms (the branch touches no page those routes render). Standing note: perf `/coverage` NOT STABLE. Migrations: none.
 
+**Result, bundle 48 (GEO item 1): board 41281290146 on `23b1807`, 64 of 64, as predicted. Merged as `eee98b1`, tree identical to the boarded commit; `ls-remote` confirms `eee98b1`.** `/coverage` **2,785 ms** (spread 617 ms), `/coverage/coastal-bend` **3,159 ms** (spread 79 ms); third of the three boards Robert asked `/coverage` reported on. Live URLs once deployed: https://254engineering.com/llms.txt and https://254engineering.com/llms-full.txt.
+
+**Built meanwhile: GEO item 5** on `feat/geo-foundation` at `3310975` (from main `c60d710`), preflight GREEN, new proof `a-location-page-answers-the-foundation-question` (30 checks; injection red on exactly the three expected checks, restored byte identical). Boards after items 2 and 4.
+
+**Found, to be corrected on item 4's branch:** `/insights/texas-windstorm-inspections` says the department's Corpus Christi field office "is in the same city as 254 Engineering's own office", linking `/corpus-christi`. False since the office moved to San Antonio on 2026-10-29.
+
+**Prediction, bundle 49, GEO item 2 (`feat/geo-jsonld` at `b4ef7cc`, main `eee98b1` merged in cleanly; full lane: `contact.ts`, `schema.tsx` and `seo-audit.mjs`):**
+- Preflight GREEN, 38 rules, 0 failed (run on `b4ef7cc`), its proof `json-ld-prices-equal-the-catalog` among them. tsc clean.
+- Board: 64 of 64. seo-audit passes its new rendered checks: the entity node typed Organization, ProfessionalService and LocalBusiness, areaServed San Antonio, Corpus Christi and Texas, identifier F-29811, geo absent while the coordinates are null, and the existing Lighthouse SEO 100. soc2-audit passes with FIRM_LATITUDE and FIRM_LONGITUDE recorded as retired. compliance-audit and launch-audit unchanged.
+- perf-audit: `/coverage` and `/coverage/coastal-bend` under 3,400 ms, near 2,785 and 3,159 ms. Standing note: perf `/coverage` NOT STABLE. Migrations: none.
+
 ## MORNING REPORT, 2026-10-31
 
 **Needed from Robert: two answers.** The first blocks every board.
