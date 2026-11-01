@@ -38,18 +38,28 @@ The source of truth for the running loop. Robert, 2026-10-29: the loop prompt is
    - **e, revised priority.** Titles and meta first on pages already ranking 4 to 25: `/insights/roof-certification-letter` (position 4; no truss wording until Robert confirms truss letters), `/services/structural-letters` ("engineering letter for permit", 11), `/insights/pre-purchase-home-inspection` (11.75), `/services/manufactured-home-foundation-certifications` ("manufactured home foundation inspectors texas", 14), `/insights/texas-windstorm-inspections` ("wind storm inspections", 14.5; skipped if h redirects it). Then the rest of e.
    - **i.** `/coverage/san-antonio` ranks 3.5 for "soil engineering san antonio". The firm offers no geotechnical engineering. Check the page makes no soil or geotechnical claim; where it mentions expansive clay, it is in the context of foundation inspections only.
 
+**Round 3 answers (Robert, issue #1, 2026-11-01):**
+1. **d: approved as recommended.** Fold the county zone table, with the Port Arthur fix and the WPI-8 price link, into `/windstorm/catastrophe-area`. No new URL. Keep its sources list.
+2. **e descriptions: approved.** Descriptions state the price and "sealed by a licensed Texas PE"; the turnaround stays on the page.
+3. **Solar title: approved,** "Solar Structural Letter, from $709 | 254 Engineering". This amends the 2026-10-31 solar ruling for the title and meta description only; scope text and wind uplift wording stay frozen.
+4. **c badge: approved as recommended.** A text-only SVG, gate-aware wording, carrying "254 Engineering LLC, Firm F-29811".
+5. **Keyword registry:** record the WPI-8 line change in `docs/day-queue.md` as a pending sync for the Sealed Engineering and StampMyPlans repos. Do not touch those repos from here.
+6. **Manufactured home loans:** the ruling arrived with its placeholder unfilled ("[Robert fills in: "FHA, VA and USDA" or "FHA only"]"). **Parked until Robert fills it in**; nothing about loan programs changes meanwhile.
+- Board order stands: b, a, h, e, i, f, g, one at a time. The e answers (2 and 3) join e before it boards; d and c board after g.
+
 | Item | State |
 | --- | --- |
 | 7 | **Merged as `5b6a259`** (board 41314145201); morning report posted (6559831819) |
 | b | Boarding, 41320517236 on `a3d5c2f` |
 | a | Built, `perf/map-file` `ab067cb`, preflight GREEN; boards after b |
 | h | Built, `seo/wpi8-owners` `252197e`, preflight GREEN; mapping posted (6559524740); boards after a |
-| e | First part built on h, `seo/titles-meta` `1840291`, preflight GREEN; five descriptions wait on 6559527807, the solar title on 6559816791 |
+| e | Built on h, `seo/titles-meta` `1840291`; answers 2 and 3 to be added before it boards |
 | i | Built, `fix/sa-soil-scope` `91b58a5`, preflight GREEN |
-| c | Parked: SVG against answer 19 and the gate wording (6559636080) |
-| d | Parked: overlaps `/windstorm/catastrophe-area`; recommendation to fold in (6559524740) |
-| f | Queued |
-| g | Queued |
+| f | Built on e, `seo/cost-guide` `ac0fd98`, preflight GREEN |
+| g | Built on f, `seo/closing-links` `1b27854`, preflight GREEN |
+| d | Approved: fold into `/windstorm/catastrophe-area`; boards after g |
+| c | Approved: text-only SVG badge; boards after d |
+| 6, loan programs | Parked: placeholder unfilled, asked on issue #1 |
 | truss letter, "5 year roof certification" | Parked by Robert, do not build |
 
 ## Tonight's queue, in board order (Robert, 22:12 Central 2026-10-29)
