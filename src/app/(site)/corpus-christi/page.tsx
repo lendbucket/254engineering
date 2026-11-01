@@ -6,8 +6,12 @@ import { PageHeader } from "@/components/site/PageHeader";
 import { PrelaunchNotice } from "@/components/launch/PrelaunchNotice";
 import { OfferCta } from "@/components/launch/OfferCta";
 import { buildMetadata } from "@/lib/seo";
-import { JsonLd, breadcrumbSchema } from "@/lib/schema";
+import { JsonLd, breadcrumbSchema, faqSchema } from "@/lib/schema";
+import { FaqBlock } from "@/components/site/FaqBlock";
 import { location, servesVerb } from "@/content/location";
+import { corpusChristiFoundationFaqs, foundationAnswerCorpusChristi, foundationVisit } from "@/content/foundation-local";
+import { serviceBySlug } from "@/content/services";
+import { deliverableAsSigned } from "@/lib/scope-live";
 import { contact, displayPhone, telHref } from "@/config/contact";
 import { business } from "@/config/business";
 import { PhoneNumber } from "@/components/ui/PhoneNumber";
@@ -19,8 +23,13 @@ import { isPrelaunch, notYetAcceptingEngagements, registrationStatement } from "
  *
  * BAND RHYTHM
  * -----------
- * Nine sections, three of them dark, at positions three, six, and nine. Never
- * adjacent, never stacked at the end. Same grammar as every other interior page.
+ * Ten sections, three of them dark, at positions three, six, and ten. Never
+ * adjacent, never stacked at the end. Section seven is the foundation answer
+ * (Robert's GEO ruling of 2026-10-31, item 5: the San Antonio pattern without
+ * an address), so coverage and contact swap tones to keep light bands apart.
+ * What the letter contains is read through deliverableAsSigned, and
+ * ALSO_QUOTED_ON in scope-quote.ts names this page for the void sweep; the rest
+ * of the band is derived in src/content/foundation-local.ts.
  *
  * THE ADDRESS BLOCK IS THE ONLY CONDITIONAL PART
  * ----------------------------------------------
@@ -55,14 +64,18 @@ export const metadata: Metadata = buildMetadata({
   path: `/${location.slug}`,
 });
 
-export default function LocationPage() {
+export default async function LocationPage() {
   const phone = displayPhone();
   const tel = telHref();
   const statement = registrationStatement();
+  const foundation = serviceBySlug("foundation-inspections");
+  const letter = foundation ? await deliverableAsSigned(foundation.deliverable, `/${location.slug}`) : [];
+  const faqs = corpusChristiFoundationFaqs();
 
   return (
     <>
       <JsonLd data={breadcrumbSchema(crumbs)} />
+      <JsonLd data={faqSchema(faqs)} />
 
       {/* 1. white by construction: the header is its own dark surface */}
       <PageHeader
@@ -169,8 +182,37 @@ export default function LocationPage() {
         </div>
       </Section>
 
-      {/* 7 */}
+      {/* 7, the foundation answer */}
       <Section>
+        <SectionHead
+          eyebrow="Foundation inspections"
+          title="A foundation inspection in Corpus Christi"
+          lede={foundationAnswerCorpusChristi()}
+        />
+        <div className="mt-8 grid gap-12 lg:grid-cols-2 lg:gap-16">
+          <div>
+            <h3 className="text-[1.05rem] font-semibold text-slate">What the visit covers</h3>
+            <p className="mt-4 text-[1.02rem] leading-[1.75] text-slate-muted">{foundationVisit()}</p>
+          </div>
+          <div>
+            <h3 className="text-[1.05rem] font-semibold text-slate">What the letter contains</h3>
+            <ul className="mt-4 space-y-4">
+              {letter.map((item) => (
+                <li key={item} className="flex gap-4">
+                  <span aria-hidden="true" className="mt-[0.65rem] h-px w-4 shrink-0 bg-brass" />
+                  <span className="text-[0.98rem] leading-[1.7] text-slate-muted">{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+        <div className="mt-14">
+          <FaqBlock faqs={faqs} title="Foundation inspection questions" />
+        </div>
+      </Section>
+
+      {/* 8 */}
+      <Section tone="sunk">
         <SectionHead
           eyebrow="Coverage"
           title="The region this city sits inside"
@@ -201,8 +243,8 @@ export default function LocationPage() {
         </div>
       </Section>
 
-      {/* 8 */}
-      <Section tone="sunk">
+      {/* 9 */}
+      <Section>
         <SectionHead
           eyebrow="Contact"
           title="How to reach the firm"
@@ -250,7 +292,7 @@ export default function LocationPage() {
         </div>
       </Section>
 
-      {/* 9, dark */}
+      {/* 10, dark */}
       <OfferCta />
     </>
   );
