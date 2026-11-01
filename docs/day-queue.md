@@ -78,6 +78,15 @@
 - perf-audit: the img column on `/coverage`, `/coverage/coastal-bend` and `/services/windstorm-wpi-8` falls below today's 84, 86 and 71 KB, because the masthead photo is now AVIF for Lighthouse's Chrome. `/coverage` and `/coverage/coastal-bend` under 3,400 ms. **Named risk:** Next encodes AVIF more slowly on an image's first request, so a cold first sample can read slower; the median of 3 should absorb one. Standing note: perf `/coverage` NOT STABLE. Migrations: none.
 - Reported per Robert: `/coverage` on this board and the next two.
 
+**Robert, about 22:45 Central (relayed), on the six GEO questions (6552392858):**
+1. sameAs keeps the sibling brand URLs; the Google Business Profile Maps URL is added once Robert sends it, verified.
+2. `FIRM_LATITUDE` and `FIRM_LONGITUDE` are set in no Vercel environment. Coordinates are not secret: they move to `src/config/business.ts` as constants and the env lookup is dropped. Robert supplies the values from the GBP pin; until then geo stays out.
+3. llms-full.txt stays the generated page, gaining each service's price and turnaround from the catalog. No typed copy in `public/`.
+4. **Articles stay under /insights (the 2026-10-29 ruling). No /guides pages.** `/insights/wpi-8-certificate` is upgraded in place to the WPI-8 spec (no second WPI-8 page). The cost guide is `/insights/structural-inspection-cost-texas`. Item 7's preflight rule applies to /insights pages.
+5. Offers: catalog price, no availability claim.
+6. IndexNow approved as proposed: a GitHub workflow after a successful production deploy only, changed sitemap URLs only.
+WPI-8 facts stand as read from TDI and TWIA: TWIA's lookup is WPI-8-C only; the engineer signs WPI-2 forms and TDI issues the certificate; turnaround uses the catalog's wording.
+
 ## MORNING REPORT, 2026-10-31
 
 **Needed from Robert: two answers.** The first blocks every board.
