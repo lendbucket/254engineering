@@ -1194,7 +1194,7 @@ export const coastalInsights: Insight[] = [
     eyebrow: "Windstorm law",
     primaryKeyword: "wpi8",
     datePublished: WINDSTORM_SECTION_DATE,
-    dateModified: "2026-10-30",
+    dateModified: "2026-10-31",
     /*
      * ANSWER FIRST, Robert's GEO ruling of 2026-10-31, item 4, upgraded in
      * place by his answer 4 (no second WPI-8 page): a 50-word answer first,
