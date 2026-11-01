@@ -6,8 +6,12 @@ import { PageHeader } from "@/components/site/PageHeader";
 import { PrelaunchNotice } from "@/components/launch/PrelaunchNotice";
 import { OfferCta } from "@/components/launch/OfferCta";
 import { buildMetadata } from "@/lib/seo";
-import { JsonLd, breadcrumbSchema } from "@/lib/schema";
+import { JsonLd, breadcrumbSchema, faqSchema } from "@/lib/schema";
+import { FaqBlock } from "@/components/site/FaqBlock";
 import { sanAntonio } from "@/content/location-san-antonio";
+import { foundationAnswer, foundationVisit, sanAntonioFoundationFaqs } from "@/content/foundation-local";
+import { serviceBySlug } from "@/content/services";
+import { deliverableAsSigned } from "@/lib/scope-live";
 import { displayPhone, hasPostalAddress, hoursLine, postalAddressLine, telHref } from "@/config/contact";
 import { business } from "@/config/business";
 import { PhoneNumber } from "@/components/ui/PhoneNumber";
@@ -20,15 +24,24 @@ import { isPrelaunch, notYetAcceptingEngagements, registrationStatement } from "
  *
  * BAND RHYTHM
  * -----------
- * Nine sections, three of them dark, at positions three, six, and nine, the
- * same grammar as /corpus-christi and every other interior page.
+ * Ten sections, three of them dark, at positions three, six, and ten, the
+ * same grammar as /corpus-christi. Section seven is the foundation answer
+ * (Robert's GEO ruling of 2026-10-31, item 5), so coverage and contact swap
+ * tones to keep light bands from touching.
+ *
+ * THE FOUNDATION ANSWER QUOTES THE SIGNED SCOPE. What the letter contains is
+ * the service's deliverable read through deliverableAsSigned, at build or
+ * revalidation, exactly as the service page reads it, and ALSO_QUOTED_ON in
+ * scope-quote.ts names this page so a voided FC-001 signature revalidates it.
+ * Everything else in the band is derived in src/content/foundation-local.ts.
  *
  * NOTHING ABOUT THE OFFICE IS TYPED HERE. The street, the hours and the
  * telephone are read from src/config/contact.ts, the one source the footer,
  * /contact, /press and the Organization node also read. The page adds no second
  * LocalBusiness node: the site's Organization node already carries this
  * address and its opening hours, and two nodes for one office would be two
- * homes for one fact. It emits the breadcrumb only.
+ * homes for one fact. It emits the breadcrumb, and the FAQPage for the
+ * foundation questions it renders.
  *
  * THE GATE IS READ, NOT TYPED. The capability band appends the gate's own
  * sentences while it reads prelaunch, and the closing band is OfferCta with no
@@ -46,9 +59,12 @@ export const metadata: Metadata = buildMetadata({
   path: `/${sanAntonio.slug}`,
 });
 
-export default function SanAntonioPage() {
+export default async function SanAntonioPage() {
   const phone = displayPhone();
   const tel = telHref();
+  const foundation = serviceBySlug("foundation-inspections");
+  const letter = foundation ? await deliverableAsSigned(foundation.deliverable, `/${sanAntonio.slug}`) : [];
+  const faqs = sanAntonioFoundationFaqs();
   const gateLines = isPrelaunch()
     ? [notYetAcceptingEngagements(), registrationStatement()].filter((s): s is string => Boolean(s))
     : [];
@@ -56,6 +72,7 @@ export default function SanAntonioPage() {
   return (
     <>
       <JsonLd data={breadcrumbSchema(crumbs)} />
+      <JsonLd data={faqSchema(faqs)} />
 
       {/* 1. white by construction: the header is its own dark surface */}
       <PageHeader eyebrow="Where the firm is" title={sanAntonio.h1} lede={sanAntonio.summary} crumbs={crumbs}>
@@ -161,8 +178,37 @@ export default function SanAntonioPage() {
         </div>
       </Section>
 
-      {/* 7 */}
+      {/* 7, the foundation answer */}
       <Section>
+        <SectionHead
+          eyebrow="Foundation inspections"
+          title="A foundation inspection from the San Antonio office"
+          lede={foundationAnswer()}
+        />
+        <div className="mt-8 grid gap-12 lg:grid-cols-2 lg:gap-16">
+          <div>
+            <h3 className="text-[1.05rem] font-semibold text-slate">What the visit covers</h3>
+            <p className="mt-4 text-[1.02rem] leading-[1.75] text-slate-muted">{foundationVisit()}</p>
+          </div>
+          <div>
+            <h3 className="text-[1.05rem] font-semibold text-slate">What the letter contains</h3>
+            <ul className="mt-4 space-y-4">
+              {letter.map((item) => (
+                <li key={item} className="flex gap-4">
+                  <span aria-hidden="true" className="mt-[0.65rem] h-px w-4 shrink-0 bg-brass" />
+                  <span className="text-[0.98rem] leading-[1.7] text-slate-muted">{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+        <div className="mt-14">
+          <FaqBlock faqs={faqs} title="Foundation inspection questions" />
+        </div>
+      </Section>
+
+      {/* 8 */}
+      <Section tone="sunk">
         <SectionHead
           eyebrow="Coverage"
           title="From one office to 254 counties"
@@ -184,8 +230,8 @@ export default function SanAntonioPage() {
         </div>
       </Section>
 
-      {/* 8 */}
-      <Section tone="sunk">
+      {/* 9 */}
+      <Section>
         <SectionHead
           eyebrow="Contact"
           title="How to reach the office"
@@ -234,7 +280,7 @@ export default function SanAntonioPage() {
         </div>
       </Section>
 
-      {/* 9, dark */}
+      {/* 10, dark */}
       <OfferCta />
     </>
   );
