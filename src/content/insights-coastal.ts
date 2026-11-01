@@ -1351,7 +1351,7 @@ export const coastalInsights: Insight[] = [
     eyebrow: "Windstorm law",
     primaryKeyword: "texas windstorm",
     datePublished: WINDSTORM_SECTION_DATE,
-    dateModified: "2026-10-25",
+    dateModified: "2026-11-01",
     body: [
       {
         kind: "p",
