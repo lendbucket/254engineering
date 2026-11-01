@@ -20,10 +20,68 @@
  * print a number it has not yet measured across a statewide technician network.
  */
 
-import { SCOPE_PENDING, receivesFrom } from "@data/catalog";
+import { CATALOG, SCOPE_PENDING, receivesFrom } from "@data/catalog";
+import { money } from "@/config/prices";
 import { HARRIS_DESIGNATION } from "./windstorm-harris";
 
 export type Faq = { q: string; a: string };
+
+/*
+ * TITLES AND DESCRIPTIONS THAT CARRY THE CATALOG'S PRICE. Robert, 2026-11-01,
+ * round 3 item e: every service page title leads with the search phrase and the
+ * catalog price, ending "| 254 Engineering"; descriptions state the price, the
+ * catalog's turnaround wording, and that a licensed Texas PE seals it. The price
+ * and the turnaround are read from data/catalog.ts here, never typed, so a
+ * title cannot disagree with what the order page charges.
+ * scripts/proofs/a-service-title-price-is-the-catalog-price.mjs is the
+ * preflight rule he asked for.
+ *
+ * The solar title and description follow the same rule since Robert's answer
+ * 3 of 2026-11-01, which amends his 2026-10-31 solar ruling for the title and
+ * meta description only; that page's scope text and wind uplift wording stay
+ * frozen, and its proof's fingerprint still covers every other worded field.
+ */
+
+/** The lowest price the catalog states for a line, or null for a quoted line. */
+export function lowestCatalogCents(serviceSlug: string): number | null {
+  const prices = CATALOG.filter((e) => e.serviceSlug === serviceSlug && e.priceCents != null).map((e) => e.priceCents as number);
+  return prices.length > 0 ? Math.min(...prices) : null;
+}
+
+/**
+ * "<lead>, from $709 | 254 Engineering", or "<lead> | 254 Engineering" for a
+ * quoted line. "From", because every priced line adds a coastal difference in
+ * first tier counties and the WPI-8 line has two tiers.
+ */
+export function pricedTitle(lead: string, serviceSlug: string): string {
+  const cents = lowestCatalogCents(serviceSlug);
+  return cents == null ? `${lead} | 254 Engineering` : `${lead}, from ${money(cents)} | 254 Engineering`;
+}
+
+/**
+ * "<lead> from $795, sealed by a licensed Texas PE. <rest>", for the lines
+ * whose catalog turnaround is too long for a description. Robert's answer 2 of
+ * 2026-11-01: the description states the price and the seal, and the turnaround
+ * stays on the page. "From", for the same reason as the title.
+ */
+export function fromPriceDescription(lead: string, serviceSlug: string, rest: string): string {
+  const cents = lowestCatalogCents(serviceSlug);
+  if (cents == null) throw new Error(`fromPriceDescription: ${serviceSlug} has no catalog price`);
+  return `${lead} from ${money(cents)}, sealed by a licensed Texas PE. ${rest}`;
+}
+
+/**
+ * "<lead> for $709, sealed by a licensed Texas PE. <catalog turnaround> <cta>",
+ * for a line with exactly one catalog deliverable, whose turnaround sentence is
+ * short enough to fit. The seal is stated as a property of the deliverable, not
+ * as an act happening now, which is the reading CLAUDE.md section 1 allows while
+ * sealingIsAvailableFor() is false.
+ */
+export function sealedDescription(lead: string, serviceSlug: string, cta: string): string {
+  const entries = CATALOG.filter((e) => e.serviceSlug === serviceSlug && e.priceCents != null);
+  if (entries.length !== 1) throw new Error(`sealedDescription: ${serviceSlug} has ${entries.length} priced deliverables, not one`);
+  return `${lead} for ${money(entries[0].priceCents as number)}, sealed by a licensed Texas PE. ${entries[0].turnaround} ${cta}`;
+}
 
 export type Service = {
   slug: string;
@@ -66,9 +124,8 @@ export const services: Service[] = [
     name: "Roof Inspections and Certifications",
     shortName: "Roof Certifications",
     h1: "Roof Certification in Texas, Sealed by a Licensed Engineer",
-    title: "Roof Certification in Texas, Sealed | 254 Engineering",
-    description:
-      "A roof certification is a sealed opinion on the observed condition of a roof on the date it was inspected. Read what it covers, who orders one, and the cost.",
+    title: pricedTitle("Roof Certification in Texas", "roof-inspections"),
+    description: sealedDescription("Roof certification letter in Texas", "roof-inspections", "See what it states."),
     summary:
       "A sealed engineering opinion on the condition of a roof as it stood on the date it was inspected, issued after a documented field inspection to a written protocol.",
     what: [
@@ -136,9 +193,8 @@ export const services: Service[] = [
     name: "Windstorm WPI-8 Certifications",
     shortName: "Windstorm WPI-8",
     h1: "Windstorm WPI-8 Certifications in Texas",
-    title: "Texas Windstorm WPI-8 Certification | 254 Engineering",
-    description:
-      "How WPI-8 windstorm certification works on the Texas coast, which counties require one, and what a TDI appointed engineer inspects. See the price.",
+    title: pricedTitle("WPI-8 Windstorm Certification", "windstorm-wpi-8"),
+    description: fromPriceDescription("WPI-8 windstorm certification in Texas", "windstorm-wpi-8", "Which coastal counties need one and who may inspect. See the scope."),
     summary:
       "The windstorm certificate of compliance required in the Texas coastal catastrophe area, inspected and submitted by an engineer appointed by the Texas Department of Insurance.",
     what: [
@@ -222,9 +278,8 @@ export const services: Service[] = [
     name: "Foundation Inspections and Certifications",
     shortName: "Foundation Certifications",
     h1: "Foundation Inspections and Certifications in Texas",
-    title: "Foundation Inspection and Certification | 254 Engineering",
-    description:
-      "A sealed engineering opinion on how a foundation is performing, based on floor elevation measurement and a documented site inspection. See the price.",
+    title: pricedTitle("Foundation Certification", "foundation-inspections"),
+    description: sealedDescription("Foundation certification in Texas", "foundation-inspections", "See the scope."),
     summary:
       "A sealed engineering opinion on how a foundation is performing, supported by floor elevation measurement and a documented inspection of the structure, the drainage, and the site.",
     what: [
@@ -269,13 +324,12 @@ export const services: Service[] = [
 
   {
     slug: "solar-structural-letters",
-    dateModified: "2026-10-30",
+    dateModified: "2026-11-01",
     name: "Solar Structural Letters",
     shortName: "Solar Letters",
     h1: "Solar Structural Letters for Texas Installations",
-    title: "Solar Structural Engineering in Texas | 254 Engineering",
-    description:
-      "The sealed structural review a Texas jurisdiction requires before a rooftop solar permit: gravity load on existing framing and each attachment. See the price.",
+    title: pricedTitle("Solar Structural Letter", "solar-structural-letters"),
+    description: fromPriceDescription("Solar structural letter in Texas", "solar-structural-letters", "Gravity load on the existing framing and each attachment. See the scope."),
     summary:
       "The sealed structural review most Texas jurisdictions require before a rooftop solar permit is issued: the existing framing and each attachment under the gravity load of the array.",
     what: [
@@ -318,9 +372,9 @@ export const services: Service[] = [
     name: "Manufactured Home Foundation Certifications",
     shortName: "Manufactured Home Certifications",
     h1: "What Lenders Require on a Manufactured Home Foundation",
-    title: "Manufactured Home Foundation Certification | 254 Engineering",
-    description:
-      "The engineer's foundation certification an FHA, VA, or USDA loan requires on a manufactured home in Texas, and what it confirms. See the price.",
+    title: pricedTitle("Manufactured Home Foundations", "manufactured-home-foundation-certifications"),
+    /* The loan programs stay in it: FHA, VA and USDA, Robert's answer to 6560030875 (2026-11-01). Price and seal, as answer 2 allows, because the three programs and the turnaround do not both fit. */
+    description: fromPriceDescription("Manufactured home foundation certification for FHA, VA and USDA loans", "manufactured-home-foundation-certifications", "See what it confirms for a lender."),
     summary:
       "The engineer's foundation certification required before an FHA, VA, or USDA loan will close on a manufactured home, measured against the HUD permanent foundations guide.",
     what: [
@@ -368,7 +422,7 @@ export const services: Service[] = [
     name: "Structural Letters for Permits",
     shortName: "Structural Letters",
     h1: "Structural Letters for Permits in Texas",
-    title: "Structural Letters for Texas Permits | 254 Engineering",
+    title: pricedTitle("Engineering Letter for a Permit", "structural-letters"),
     /*
      * REWRITTEN TO PL-001 v1.1 BY RULING 6 OF 2026-10-07 (docs/conflicts-v1.1.md
      * items 20 to 22). The page described a letter that sizes a beam, draws a
@@ -377,8 +431,7 @@ export const services: Service[] = [
      * limits the letter to a permitting authority's written request about a
      * described structure or element.
      */
-    description:
-      "The sealed letter a Texas building department asks for in writing about an existing element: its request, what was inspected, the opinion. See the price.",
+    description: fromPriceDescription("Engineering letter for a Texas permit", "structural-letters", "It answers a building department's written request. See the scope."),
     summary:
       "The sealed letter a building department asks for, in writing, when it needs an engineer's opinion on a described structure or element before it issues or closes a permit.",
     what: [
@@ -422,9 +475,8 @@ export const services: Service[] = [
     name: "Repair Specifications",
     shortName: "Repair Specifications",
     h1: "Engineered Repair Specifications in Texas",
-    title: "Engineered Repair Specifications | 254 Engineering",
-    description:
-      "A sealed repair specification defines what is repaired and how, so contractors bid the same scope and a building department can permit it. See the price.",
+    title: pricedTitle("Repair Specification", "repair-specifications"),
+    description: fromPriceDescription("Engineered repair specification in Texas", "repair-specifications", "Defines what is repaired and how, so contractors bid one scope. See more."),
     summary:
       "A sealed document that defines exactly what is repaired and how it is repaired, so every contractor bids the same scope and a building department can permit the work.",
     what: [
@@ -468,7 +520,7 @@ export const services: Service[] = [
     name: "Residential and Light Commercial Design",
     shortName: "Design",
     h1: "Residential and Light Commercial Design in Texas",
-    title: "Residential and Light Commercial Design | 254 Engineering",
+    title: pricedTitle("Residential and Light Commercial Design", "residential-light-commercial-design"),
     description:
       "Sealed structural design for Texas homes, additions, and light commercial buildings: foundations for expansive soil and framing plans. See the price.",
     summary:
