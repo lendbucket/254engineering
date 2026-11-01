@@ -167,6 +167,8 @@ WPI-8 facts stand as read from TDI and TWIA: TWIA's lookup is WPI-8-C only; the 
 - `/press` grows by three sections; it is far from the 16,000 px ceiling, so no new height warning. The two standing warnings stay.
 - perf-audit: `/coverage` and `/coverage/coastal-bend` under 3,400 ms, near 3,191 and 3,191 ms (no page they render changes). Standing note: perf `/coverage` NOT STABLE. Migrations: none.
 
+**PENDING SYNC, keyword registry (Robert, answer 5, 2026-11-01).** `data/keyword-registry.ts` is meant to be synchronized verbatim across the three repos, and item h (`seo/wpi8-owners`, `49638cd`) changes one line in it. The 254 angle for the WPI-8 entry (path `/insights/wpi-8-certificate`) no longer says "Not the statute walk-through, which is /insights/windstorm-certificate-of-compliance." and now ends "...what one certificate records, and address corrections, with the statute's six month limit, fee provision and accountability clauses folded in from the retired statute post, which redirects here (item h, 2026-11-01)." **The Sealed Engineering and StampMyPlans repos need the same line once item h merges.** Not touched from here, by Robert's word.
+
 ## MORNING REPORT, 2026-10-31
 
 **Needed from Robert: two answers.** The first blocks every board.
