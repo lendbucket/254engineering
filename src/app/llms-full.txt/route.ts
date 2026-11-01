@@ -20,6 +20,7 @@ import { regions } from "@/content/regions";
  */
 import { notYetTakingOrders, registrationLine, registrationStatement, responsibleChargeStatement } from "@/lib/launch";
 import { responsibleChargeCopy, specialistsCopy, turnaroundCopy } from "@/content/model-copy";
+import { deliverableAsSigned } from "@/lib/scope-live";
 import { deliverablesFor, type CatalogEntry } from "@data/catalog";
 import { displayPhone, hoursLine, postalAddressLine } from "@/config/contact";
 import { isKnown, money } from "@/lib/ops-money";
@@ -50,7 +51,13 @@ function priceLine(entry: CatalogEntry): string {
  */
 export const dynamic = "force-static";
 
-export function GET() {
+/*
+ * Async since 2026-10-31: each service's deliverable is the one the service
+ * page renders, read through deliverableAsSigned at build or revalidation, so
+ * the long form drops a protocol's scope exactly when the page does (Robert,
+ * 17:31 Central, queue item 15).
+ */
+export async function GET() {
   const sections: string[] = [];
 
   sections.push(`# ${business.name}
@@ -110,7 +117,7 @@ ${service.whoOrders.map((w) => `- ${w}`).join("\n")}
 
 ### The deliverable
 
-${service.deliverable.map((d) => `- ${d}`).join("\n")}
+${(await deliverableAsSigned(service.deliverable, "/llms-full.txt")).map((d) => `- ${d}`).join("\n")}
 ${deliverablesFor(service.slug).length ? `\n### Price and turnaround\n\n${deliverablesFor(service.slug).map(priceLine).join("\n")}\n` : ""}${service.notes?.length ? `\n### Notes\n\n${service.notes.map((n) => `- ${n}`).join("\n")}\n` : ""}${turnaroundCopy(service.turnaround) ? `\n### Turnaround\n\n${turnaroundCopy(service.turnaround)}\n` : ""}
 ### Questions
 
