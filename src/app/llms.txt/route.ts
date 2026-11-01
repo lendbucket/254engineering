@@ -5,6 +5,9 @@ import { insightsByDate } from "@/content/insights";
 import { openPositions } from "@data/positions";
 import { registrationLine } from "@/lib/launch";
 import { modelSentence } from "@/content/model-copy";
+import { displayPhone, hoursLine, postalAddressLine } from "@/config/contact";
+import { windstormHub, windstormPages } from "@/content/windstorm-program";
+import { proximityHub, proximityPages } from "@/content/structural-engineer";
 
 /**
  * /llms.txt
@@ -32,6 +35,23 @@ import { modelSentence } from "@/content/model-copy";
 export const dynamic = "force-static";
 
 export function GET() {
+  /*
+   * THE OFFICE, READ FROM ITS ONE HOME. Robert's GEO ruling of 2026-10-31, item
+   * 1: the address, telephone and hours, and Corpus Christi as a service area.
+   * Each line is derived from src/config/contact.ts, so a line whose value is
+   * not configured is left out rather than printed empty.
+   */
+  const office = [
+    postalAddressLine() ? `- Office: ${postalAddressLine()}` : null,
+    displayPhone() ? `- Telephone: ${displayPhone()}` : null,
+    `- Hours: ${hoursLine()}`,
+    `- Email: ${business.email}`,
+    `- Location page: ${business.url}/san-antonio`,
+    `- Service area: San Antonio, Corpus Christi (${business.url}/corpus-christi), and all ${business.countyCount} counties of Texas`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
   const body = `# ${business.name}
 
 > ${business.legalName}. A veteran owned Texas engineering firm named for the 254 counties of Texas, serving every one of them. Inspections, sealed letters, certifications, and design, delivered through standardized field protocols and central engineering review. ${modelSentence()}
@@ -40,12 +60,15 @@ export function GET() {
 
 ${registrationLine()}
 
+## Office and service area
+
+${office}
+
 ## Identity
 
 - Legal name: ${business.legalName}
 - Brand: ${business.name}
 - Website: ${business.url}
-- Email: ${business.email}
 - State: ${business.state}
 - Area served: All ${business.countyCount} counties of Texas
 - Ownership: Veteran owned
@@ -71,6 +94,15 @@ Written from statute and board rule text, with the primary sources cited on each
 ${insightsByDate()
   .map((i) => `- [${i.h1}](${business.url}/insights/${i.slug}): ${i.summary}`)
   .join("\n")}
+
+## Guides
+
+- [All guides by topic](${business.url}/guides)
+- [${windstormHub.h1}](${business.url}/windstorm)
+${windstormPages.map((p) => `- [${p.h1}](${business.url}/windstorm/${p.slug})`).join("\n")}
+- [${proximityHub.h1}](${business.url}/structural-engineer)
+${proximityPages.map((p) => `- [${p.h1}](${business.url}/structural-engineer/${p.slug})`).join("\n")}
+- [What is a structural engineer](${business.url}/what-is-a-structural-engineer)
 
 ## Open positions
 
