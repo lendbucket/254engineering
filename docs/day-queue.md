@@ -143,6 +143,14 @@ WPI-8 facts stand as read from TDI and TWIA: TWIA's lookup is WPI-8-C only; the 
 - The height warning may name `/san-antonio` or `/corpus-christi`, each now ten sections; a warning fails nothing.
 - perf-audit: `/coverage` and `/coverage/coastal-bend` under 3,400 ms, near 3,173 and 3,174 ms. Standing note: perf `/coverage` NOT STABLE. Migrations: none.
 
+**Result, bundle 51 (GEO item 5): board 41301574666 on `4f816c5`, 64 of 64, as predicted. Merged as `c2600c5`, tree identical to the boarded commit; `ls-remote` confirms `c2600c5`.** `/coverage` **3,269 ms** (spread 444 ms), `/coverage/coastal-bend` **3,264 ms** (spread 8 ms), both PASS. No height warning named a location page, so the "may name" line did not happen.
+
+**Prediction, bundle 52, GEO item 6 (`feat/geo-solar` at `5d6d04a`, main `c2600c5` merged in; `services/[slug]/page.tsx` auto-merged with item 5's answer block and still emits exactly one FAQPage; full lane: that page is server rendered):**
+- Preflight GREEN, 38 rules, 0 failed (run on `5d6d04a`), its proof `...is-dated-and-priced-and-its-scope-unchanged` among them. tsc clean.
+- Board: 64 of 64. seo-audit passes with the solar page's FAQPage matching its visible questions and its Service Offer carrying the catalog price and no availability; voice-audit and placeholder-audit find nothing; the solar scope and wind uplift wording is byte identical to main's, held by the proof's fingerprint.
+- No height warning expected: the page gains one Updated line.
+- perf-audit: `/coverage` and `/coverage/coastal-bend` under 3,400 ms, near 3,269 and 3,264 ms. Standing note: perf `/coverage` NOT STABLE. Migrations: none.
+
 ## MORNING REPORT, 2026-10-31
 
 **Needed from Robert: two answers.** The first blocks every board.
