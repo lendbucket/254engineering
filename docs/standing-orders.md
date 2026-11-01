@@ -50,16 +50,16 @@ The source of truth for the running loop. Robert, 2026-10-29: the loop prompt is
 | Item | State |
 | --- | --- |
 | 7 | **Merged as `5b6a259`** (board 41314145201); morning report posted (6559831819) |
-| b | Boarding, 41320517236 on `a3d5c2f` |
-| a | Built, `perf/map-file` `1cc566e` (map image through next/image); boards after b |
+| b | **Merged as `cf59a77`** (board 41320517236) |
+| a | Boarding, 41326354068 on `c661c42` |
 | h | Built, `seo/wpi8-owners` `252197e`, preflight GREEN; mapping posted (6559524740); boards after a |
-| e | Built on h, `seo/titles-meta` `1f796ed` with answers 2 and 3, preflight GREEN |
+| e | Built on h, `seo/titles-meta` `2075ea1` with answers 2 and 3 and the loan programs kept in its manufactured home description |
 | i | Built, `fix/sa-soil-scope` `91b58a5`, preflight GREEN |
 | f | Built on e (first part), `seo/cost-guide` `ac0fd98`, preflight GREEN |
 | g | Built on f, `seo/closing-links` `1b27854`, preflight GREEN |
 | d | Built, `feat/catastrophe-zones` `dc40648`, preflight GREEN; boards after g |
 | c | Built, `feat/partner-badge` `5538443`, preflight GREEN; boards after d |
-| 6, loan programs | Parked: placeholder unfilled, asked on issue #1 |
+| j | Built on e, `fix/mh-loan-programs` `e39c7f4`, preflight GREEN; boards after c |
 | truss letter, "5 year roof certification" | Parked by Robert, do not build |
 
 ## Tonight's queue, in board order (Robert, 22:12 Central 2026-10-29)
