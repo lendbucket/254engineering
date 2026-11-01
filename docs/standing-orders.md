@@ -30,16 +30,26 @@ The source of truth for the running loop. Robert, 2026-10-29: the loop prompt is
    - **g.** The four informational articles with the most impressions (`texas-pe-license-lookup`, `texas-engineering-firm-registration`, `texas-professional-services-procurement-act`, `texas-windstorm-certificate-lookup`) each get one short closing section linking to the matching service. No rewording of their existing text.
    - **Parked until Robert answers:** a truss certification letter page, and any "5 year roof certification" wording. Do not build either.
 
+**Round 3 decisions (Robert, 2026-11-01, with Search Console findings his chat counterpart pulled, 100 queries with positions):**
+   - **a: approved.** Serve the county map as a separate SVG file. County names stay in the HTML as the text list. This amends "keep the county map server rendered" for the drawing only.
+   - **c: approved with the recommendation.** The badge carries "254 Engineering LLC, Firm F-29811" read from the register.
+   - **d: approved to publish after three fixes.** Jefferson County shows Port Arthur under both Seaward and Inland I, so the Seaward entry reads "part of Port Arthur" with a note the way Corpus Christi is handled; a closing section links to `/services/windstorm-wpi-8` with the catalog price; "None listed" and the Corpus Christi treatment stay as recommended. Boards on its own.
+   - **h, cannibalization (before item e's titles).** WPI-8 queries are split across up to six URLs ranking 45 to 80. One page per intent: hire or price a WPI-8, `/services/windstorm-wpi-8`; what a WPI-8 is, `/insights/wpi-8-certificate`; look one up, `/insights/texas-windstorm-certificate-lookup`; TWIA coverage and eligibility, `/windstorm/twia-coverage`. Compare `/insights/windstorm-certificate-of-compliance`, `/insights/windstorm-inspection-coastal-buyers` and `/insights/texas-windstorm-inspections` against the four owners. A duplicate is 301ed to its owner with any unique sourced facts folded into the owner; a distinct intent is kept with its title and H1 retargeted to it. **Post the mapping on issue #1, with the reason for each, before merging.**
+   - **e, revised priority.** Titles and meta first on pages already ranking 4 to 25: `/insights/roof-certification-letter` (position 4; no truss wording until Robert confirms truss letters), `/services/structural-letters` ("engineering letter for permit", 11), `/insights/pre-purchase-home-inspection` (11.75), `/services/manufactured-home-foundation-certifications` ("manufactured home foundation inspectors texas", 14), `/insights/texas-windstorm-inspections` ("wind storm inspections", 14.5; skipped if h redirects it). Then the rest of e.
+   - **i.** `/coverage/san-antonio` ranks 3.5 for "soil engineering san antonio". The firm offers no geotechnical engineering. Check the page makes no soil or geotechnical claim; where it mentions expansive clay, it is in the context of foundation inspections only.
+
 | Item | State |
 | --- | --- |
 | 7 | Boarding, 41314145201 on `3c5caef` |
-| a | Parked: moving the county map out of the HTML changes "Keep the county map server rendered"; question on issue #1 |
 | b | Built, `feat/press-facts` `9666f9e`, preflight GREEN; boards after item 7 |
-| c | Parked: badge wording against the 2026-10-15 partner disclosure ruling; question on issue #1 |
-| d | Draft on `draft/windstorm-by-county` `fdf5825`, not merged |
-| e | Queued after b |
-| f | Queued after e |
-| g | Queued after f |
+| a | Approved; build the map as a separate SVG file; boards after b |
+| h | Mapping to issue #1, then build; boards after a |
+| e | After h, ranking pages first |
+| c | Approved with the register line |
+| d | Approved after three fixes; `draft/windstorm-by-county` `fdf5825` |
+| f | Queued |
+| g | Queued |
+| i | Check `/coverage/san-antonio` |
 | truss letter, "5 year roof certification" | Parked by Robert, do not build |
 
 ## Tonight's queue, in board order (Robert, 22:12 Central 2026-10-29)
