@@ -28,6 +28,19 @@ on:
     branches: ["**"]
     tags-ignore: ["**"]
   workflow_dispatch:
+    inputs:
+      # Robert's ruling on item l, 2026-11-01: before and after screenshots
+      # taken in the board and uploaded as artifacts. Off unless a dispatch asks,
+      # so an ordinary board runs exactly as before. See the screenshots job.
+      screenshots:
+        description: "Before (production) screenshots, and the after target below"
+        type: boolean
+        default: false
+      after:
+        description: "The after target: none, or build (this run's own build, served by next start)"
+        type: choice
+        options: [none, build]
+        default: none
 
 permissions:
   contents: read
@@ -342,6 +355,88 @@ jobs:
         with:
           name: verdict-${{ matrix.shard }}
           path: ${{ runner.temp }}/verdict-${{ matrix.shard }}.json
+          retention-days: 30
+
+  # BEFORE AND AFTER SCREENSHOTS (Robert's ruling on item l, 2026-11-01), on a
+  # dispatch that asks for them. "Before" is production, 254engineering.com, which
+  # is main as deployed. "After" is this run's own build served by next start
+  # when `after` is build; the Vercel preview is not a target, because it sits
+  # behind Vercel Authentication and CLAUDE.md section 6 forbids a bypass secret
+  # (asked on issue #1, 6562823861). Evidence for a person to look at, never a
+  # verdict: the script exits 0 and writes what it could not take into
+  # manifest.json, and the `board` job does not wait for this one.
+  screenshots:
+    name: screenshots
+    needs: [build]
+    if: ${{ !cancelled() && github.event_name == 'workflow_dispatch' && inputs.screenshots && needs.build.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # A crash here is not a board result, so it never turns the run red.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install
+        run: npm ci --no-audit --no-fund
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      - name: Browser
+        run: npx playwright install --with-deps chromium > /dev/null
+      - uses: actions/download-artifact@v4
+        if: inputs.after == 'build'
+        with:
+          name: next-build
+          path: ${{ runner.temp }}
+      - name: Unlock the build
+        if: inputs.after == 'build'
+        env:
+          BUILD_ARTIFACT_KEY: ${{ secrets.BUILD_ARTIFACT_KEY }}
+        run: |
+          node scripts/ci/seal.mjs unlock "$RUNNER_TEMP/next.locked" "$RUNNER_TEMP/next.tgz"
+          tar -xzf "$RUNNER_TEMP/next.tgz"
+          echo "BUILD_ID $(cat .next/BUILD_ID)"
+      - name: Write the development environment
+        if: inputs.after == 'build'
+        env:
+          SUPABASE_URL: ${{ secrets.DEV_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.DEV_SUPABASE_SERVICE_ROLE_KEY }}
+          OPS_SESSION_SECRET: ${{ secrets.CI_OPS_SESSION_SECRET }}
+          CUSTOMER_SESSION_SECRET: ${{ secrets.CI_CUSTOMER_SESSION_SECRET }}
+          PARTNER_SESSION_SECRET: ${{ secrets.CI_PARTNER_SESSION_SECRET }}
+          MFA_ENCRYPTION_KEY: ${{ secrets.DEV_MFA_ENCRYPTION_KEY }}
+          INTAKE_KEY_SEALED: ${{ secrets.DEV_INTAKE_KEY_SEALED }}
+          INTAKE_KEY_STAMP: ${{ secrets.DEV_INTAKE_KEY_STAMP }}
+          LAUNCH_MODE: ${{ vars.LAUNCH_MODE }}
+          NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL }}
+          FIRM_PHONE: ${{ vars.FIRM_PHONE }}
+        run: node scripts/ci/write-env.mjs
+      - name: Refuse anything live or production
+        if: inputs.after == 'build'
+        run: node scripts/ci/refuse-live.mjs .env.local
+      - name: Photograph
+        run: |
+          targets="before=https://254engineering.com"
+          if [ "${{ inputs.after }}" = "build" ]; then
+            (npx next start -p 4400 > "$RUNNER_TEMP/next-start.log" 2>&1 &)
+            for i in $(seq 1 60); do
+              code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:4400/ || true)
+              [ "$code" = "200" ] && break
+              sleep 2
+            done
+            echo "local server answered $code"
+            targets="$targets after=http://localhost:4400"
+          fi
+          node scripts/ci/screenshots.mjs "$RUNNER_TEMP/screenshots" $targets
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: screenshots
+          path: ${{ runner.temp }}/screenshots
           retention-days: 30
 
   board:
