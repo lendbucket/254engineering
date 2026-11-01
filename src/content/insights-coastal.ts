@@ -1364,7 +1364,7 @@ export const coastalInsights: Insight[] = [
       },
       {
         kind: "p",
-        text: "The area is the fourteen first tier coastal counties and part of Harris County. The association's overview names the Harris County portion as parts of La Porte, Morgan's Point, Pasadena, Seabrook and Shore Acres east of Highway 146. How the line is drawn is on [the catastrophe area page](/windstorm/catastrophe-area). The department runs windstorm field offices in Beaumont, La Marque, Angleton and Corpus Christi, according to the association's certification page, so on the Coastal Bend the program's local office is in the same city as [254 Engineering's own office](/corpus-christi).",
+        text: "The area is the fourteen first tier coastal counties and part of Harris County. The association's overview names the Harris County portion as parts of La Porte, Morgan's Point, Pasadena, Seabrook and Shore Acres east of Highway 146. How the line is drawn is on [the catastrophe area page](/windstorm/catastrophe-area). The department runs windstorm field offices in Beaumont, La Marque, Angleton and Corpus Christi, according to the association's certification page, so the program keeps a local office on the Coastal Bend, in [Corpus Christi](/corpus-christi).",
       },
       { kind: "h2", text: "The code an inspection measures against" },
       {
