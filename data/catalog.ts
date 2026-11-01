@@ -600,7 +600,8 @@ const DECLARED: CatalogDeclaration[] = [
       },
     ],
     turnaround:
-      "Attendance is staged against the construction programme rather than booked as a single visit, because the evidence has to be gathered while each stage is still open.",
+      /* "program", US spelling (standing order). It read "programme" until 2026-10-31; the spelling sweep reads src/ only, so nothing caught it, and llms-full.txt now prints this sentence. */
+      "Attendance is staged against the construction program rather than booked as a single visit, because the evidence has to be gathered while each stage is still open.",
     /* WP-001 section 1, and the firm does not issue the certificate. Item 8. */
     receives: [SCOPE_PENDING],
     notes: ["The certificate itself, Form WPI-8, is issued by the Department rather than by the firm"],

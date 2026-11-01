@@ -19,6 +19,7 @@ export const OFFICE_ALERT_IDS = [
   "ops.payments_unreleased",
   "ops.refund_failed",
   "ops.files_overdue",
+  "ops.scope_read_failed",
 ] as const;
 
 export function isOfficeAlert(id: string): boolean {
