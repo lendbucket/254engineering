@@ -407,8 +407,22 @@ for (const route of routes) {
    */
   const orgNode = meta.jsonLd.find((d) => d && [].concat(d["@type"] ?? []).includes("ProfessionalService"));
   if (!orgNode) problems.push(`${route}: no node carries ProfessionalService`);
-  else if (JSON.stringify(orgNode["@type"]) !== JSON.stringify(["Organization", "ProfessionalService"]))
-    problems.push(`${route}: the organisation node's @type is ${JSON.stringify(orgNode["@type"])}, expected ["Organization","ProfessionalService"]`);
+  else if (JSON.stringify(orgNode["@type"]) !== JSON.stringify(["Organization", "ProfessionalService", "LocalBusiness"]))
+    problems.push(`${route}: the organisation node's @type is ${JSON.stringify(orgNode["@type"])}, expected ["Organization","ProfessionalService","LocalBusiness"]`);
+  /*
+   * WHERE IT SERVES AND WHO REGISTERED IT. Robert's GEO ruling of 2026-10-31,
+   * item 2: areaServed San Antonio, Corpus Christi and Texas, and the TBPELS
+   * registration as an identifier. Literals, never read from the config.
+   */
+  if (orgNode) {
+    const served = [].concat(orgNode.areaServed ?? []).map((a) => a?.name);
+    for (const place of ["San Antonio", "Corpus Christi", "Texas"])
+      if (!served.includes(place)) problems.push(`${route}: the organisation node's areaServed lacks ${place} (${JSON.stringify(served)})`);
+    if (orgNode.identifier?.value !== "F-29811")
+      problems.push(`${route}: the organisation node's identifier is ${JSON.stringify(orgNode.identifier)}, expected the TBPELS registration F-29811`);
+    if ("geo" in orgNode && !(typeof orgNode.geo?.latitude === "number" && typeof orgNode.geo?.longitude === "number"))
+      problems.push(`${route}: the organisation node carries a geo point that is not two numbers (${JSON.stringify(orgNode.geo)})`);
+  }
   const orgNodes = meta.jsonLd.filter((d) => d && [].concat(d["@type"] ?? []).some((t) => t === "Organization" || t === "ProfessionalService") && d["@id"]);
   if (orgNodes.length > 1) problems.push(`${route}: ${orgNodes.length} organisation nodes with an @id, expected one entity`);
 

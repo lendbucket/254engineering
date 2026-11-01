@@ -41,7 +41,7 @@ each value lives.
 | --- | --- | --- |
 | Name | `business.shortName` | 254 Engineering |
 | Street address, city, postal code | Declared in `contact.ts` | 11103 San Pedro Ave, San Antonio, TX 78216 |
-| Latitude, longitude | `FIRM_LATITUDE`, `FIRM_LONGITUDE` | Not supplied, omitted rather than approximated |
+| Latitude, longitude | Constants in `business.ts` since 2026-10-31 (the environment variables are retired) | Not supplied; Robert gives them from the Google Business Profile pin. Omitted rather than approximated |
 | Telephone | `FIRM_PHONE`, stored as E.164 | (281) 940-4490 |
 | Opening hours | Declared in `contact.ts` | Monday to Sunday, 8:00 AM to 8:00 PM Central |
 
