@@ -151,6 +151,14 @@ WPI-8 facts stand as read from TDI and TWIA: TWIA's lookup is WPI-8-C only; the 
 - No height warning expected: the page gains one Updated line.
 - perf-audit: `/coverage` and `/coverage/coastal-bend` under 3,400 ms, near 3,269 and 3,264 ms. Standing note: perf `/coverage` NOT STABLE. Migrations: none.
 
+**Result, bundle 52 (GEO item 6): board 41306694307 on `5d6d04a`, 64 of 64, as predicted. Merged as `9a88be0`, tree identical to the boarded commit; `ls-remote` confirms `9a88be0`.** `/coverage` **3,170 ms** (spread 79 ms), `/coverage/coastal-bend` **3,171 ms** (spread 11 ms), both PASS. No height warning.
+
+**Prediction, bundle 53, GEO item 7 (`feat/geo-standard` at `3c5caef`, main `9a88be0` merged in cleanly; full lane by doubt: `insights/[slug]/page.tsx` changes how every guide renders its Updated date):**
+- Preflight GREEN, 38 rules, 0 failed (run on `3c5caef`); the new rule is a proof inside preflight (`...t-is-dated-and-its-questions-are-its-markup`), so the rule count stays 38. tsc clean.
+- Board: 64 of 64. seo-audit passes with every /insights guide showing an Updated date and an FAQPage matching its visible questions; guide-dates-audit, voice-audit and placeholder-audit unchanged; backlog-audit passes with `docs/content-standard.md` carrying no open work.
+- No height warning expected beyond the standing WPI-8 guide figure near 15,243 px (one line moves, none is added).
+- perf-audit: `/coverage` and `/coverage/coastal-bend` under 3,400 ms, near 3,170 and 3,171 ms. Standing note: perf `/coverage` NOT STABLE. Migrations: none.
+
 ## MORNING REPORT, 2026-10-31
 
 **Needed from Robert: two answers.** The first blocks every board.
