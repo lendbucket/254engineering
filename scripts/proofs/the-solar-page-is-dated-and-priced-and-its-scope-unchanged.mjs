@@ -17,7 +17,18 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { lineRange, chicagoDay } from "../lib/guide-dates.mjs";
 
-const SCOPE_FINGERPRINT = "f46c0eaead251212645f2146e59b4b518067bd42f09e630841f8c49545171aba";
+/*
+ * AMENDED FOR THE TITLE AND DESCRIPTION ONLY. Robert's answer 3 of 2026-11-01:
+ * the solar page takes "Solar Structural Letter, from $709 | 254 Engineering"
+ * and a priced description, which "amends the 2026-10-31 solar ruling for the
+ * title and meta description only; scope text and wind uplift wording stay
+ * frozen." So those two fields leave the fingerprint and every other worded
+ * field stays in it. The value below is the hash of main's own text at 5b6a259
+ * without them; the full hash of that same text is the value this proof pinned
+ * before, f46c0eaead251212, which is how the two were checked against each other.
+ */
+const FROZEN_OUT = ["title", "description"];
+const SCOPE_FINGERPRINT = "5529c25f2506e2783536aa85fd6cc9d36e35fb7d9b3f2e2d8159ecdb46435456";
 const WIND_UPLIFT = "Wind uplift is not calculated, and the letter says so.";
 
 let wrong = 0;
@@ -32,7 +43,9 @@ const { CATALOG } = await import("../../data/catalog.ts");
 const solar = services.find((s) => s.slug === "solar-structural-letters");
 
 /* 1. The words are the words on main. */
-const { dateModified, ...worded } = solar;
+const { dateModified, ...all } = solar;
+const worded = Object.fromEntries(Object.entries(all).filter(([k]) => !FROZEN_OUT.includes(k)));
+check("only the title and description are left out of the fingerprint", FROZEN_OUT.length === 2 && Object.keys(worded).length === Object.keys(all).length - 2);
 const fingerprint = createHash("sha256").update(JSON.stringify(worded)).digest("hex");
 check("the solar page's wording, scope included, is unchanged", fingerprint === SCOPE_FINGERPRINT, fingerprint.slice(0, 16));
 check("and the wind uplift sentence stands as written", solar.what.some((p) => p.includes(WIND_UPLIFT)));

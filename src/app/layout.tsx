@@ -84,9 +84,24 @@ import { firmName } from "@/lib/launch";
  * file per style serving 400 to 700), so what a visitor downloads is unchanged.
  * Inter is under the SIL Open Font License 1.1; see src/fonts/README.md.
  */
+/*
+ * ONLY THE UPRIGHT FILE IS PRELOADED. Item l, Robert 2026-11-01 ("preload only
+ * the weights used above the fold"). One declaration preloaded both files, so
+ * every public page fetched the 51 KB italic beside the masthead photo it
+ * competes with, and no public page renders italic. The italic is now its own
+ * declaration with preload off: the same file and the same face, fetched only
+ * by a page that paints italic text, which is the portal's absent data chip.
+ * The italic rule in globals.css points italic text at it, so the chip keeps a
+ * real italic rather than a synthesised oblique.
+ */
 const inter = localFont({
+  src: [{ path: "../fonts/inter-latin.woff2", weight: "400 700", style: "normal" }],
+  variable: "--font-inter",
+  display: "swap",
+});
+
+const interItalic = localFont({
   src: [
-    { path: "../fonts/inter-latin.woff2", weight: "400 700", style: "normal" },
     /*
      * Italic is loaded, and it is loaded for exactly one thing.
      *
@@ -102,8 +117,9 @@ const inter = localFont({
      */
     { path: "../fonts/inter-latin-italic.woff2", weight: "400 700", style: "italic" },
   ],
-  variable: "--font-inter",
+  variable: "--font-inter-italic",
   display: "swap",
+  preload: false,
 });
 
 
@@ -175,7 +191,7 @@ export const metadata: Metadata = {
  */
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={inter.variable}>
+    <html lang="en" className={`${inter.variable} ${interItalic.variable}`}>
       <body className="flex min-h-screen flex-col">{children}</body>
     </html>
   );

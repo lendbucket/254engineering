@@ -423,16 +423,21 @@ export const roofInsights: Insight[] = [
   // ------------------------------------------------------------ roofs, post 3
   {
     slug: "roof-certification-letter",
-    title: "Roof Certification Letter: Who Can Sign It | 254 Engineering",
+    /*
+     * Item e, Robert 2026-11-01: position 4, so the title leads with the
+     * search phrase and the description carries the catalog price, read from
+     * ROOF_ENTRY rather than typed. No truss wording until Robert confirms
+     * truss letters.
+     */
+    title: "Roof Certification Letter in Texas | 254 Engineering",
     h1: "Roof certification letter: who in Texas can sign one, and what it states in a sale",
-    description:
-      "A roof certification letter is an opinion no Texas resale contract requires. See who can sign one, what a sealed letter states, and when to start it in a sale.",
+    description: `Who in Texas can sign a roof certification letter, what a sealed letter states in a sale, and what one costs: ${ROOF_ENTRY?.priceCents != null ? money(ROOF_ENTRY.priceCents) : "the published price"} from 254 Engineering. Read the guide.`,
     summary:
       "Buyers, sellers and agents ask for a roof certification as if it were a standard form. It is not one. The questions that matter are who signs it, what it states, and who it is addressed to.",
     eyebrow: "Buying and selling",
     primaryKeyword: "roof certification letter",
     datePublished: ROOFS_SECTION_DATE,
-    dateModified: "2026-10-25",
+    dateModified: "2026-11-01",
     body: [
       {
         kind: "p",
