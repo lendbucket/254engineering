@@ -135,6 +135,14 @@ WPI-8 facts stand as read from TDI and TWIA: TWIA's lookup is WPI-8-C only; the 
 - The page-height warning may name `/insights/wpi-8-certificate` over 16,000 px (it stood at 15,380 px and the answer box and table add height). It is a warning only and fails nothing.
 - perf-audit: `/coverage` and `/coverage/coastal-bend` under 3,400 ms, near 3,223 and 2,489 ms (no page they render changes). Standing note: perf `/coverage` NOT STABLE. Migrations: none.
 
+**Result, bundle 50 (GEO item 4): board 41294569324 on `4790ea2`, 64 of 64, as predicted. Merged as `06288e2`, tree identical to the boarded commit; `ls-remote` confirms `06288e2`.** `/coverage` **3,173 ms** (spread 11 ms), `/coverage/coastal-bend` **3,174 ms** (spread 689 ms), both PASS. The height warning named `/insights/wpi-8-certificate` at 15,243 px, 757 px under the ceiling, so the "may go over" line did not happen.
+
+**Prediction, bundle 51, GEO item 5 (`feat/geo-foundation` at `4f816c5`, main `06288e2` merged in cleanly; full lane: `src/lib/scope-quote.ts` and `services/[slug]/page.tsx` are server code):**
+- Preflight GREEN, 38 rules, 0 failed (run on `4f816c5`), its proof `a-location-page-answers-the-foundation-question` (30 checks) among them. tsc clean.
+- Board: 64 of 64. seo-audit passes with one FAQPage each on `/san-antonio`, `/corpus-christi` and `/services/foundation-inspections`, each matching its visible questions; voice-audit, placeholder-audit and launch-audit find no present tense service claim, no long dash and no street on `/corpus-christi`; compliance-audit, price-book-audit and turnaround-audit unchanged, since every figure derives from the catalog.
+- The height warning may name `/san-antonio` or `/corpus-christi`, each now ten sections; a warning fails nothing.
+- perf-audit: `/coverage` and `/coverage/coastal-bend` under 3,400 ms, near 3,173 and 3,174 ms. Standing note: perf `/coverage` NOT STABLE. Migrations: none.
+
 ## MORNING REPORT, 2026-10-31
 
 **Needed from Robert: two answers.** The first blocks every board.
