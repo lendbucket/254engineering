@@ -87,6 +87,11 @@
 6. IndexNow approved as proposed: a GitHub workflow after a successful production deploy only, changed sitemap URLs only.
 WPI-8 facts stand as read from TDI and TWIA: TWIA's lookup is WPI-8-C only; the engineer signs WPI-2 forms and TDI issues the certificate; turnaround uses the catalog's wording.
 
+**Robert's overnight ruling, 2026-10-31 (relayed), recorded before the next board.** Run until the queue is done or every remaining item is blocked; then stop and post the morning report. Follow `docs/standing-orders.md` throughout.
+- **Order.** (1) `perf/avif` board 41269952910: green, merge and confirm main with ls-remote; red on `/coverage` or `/coverage/coastal-bend` only, record the figures, no re-run, move on with item 15 boarded on main as it stands; red on anything else, fix on the branch and board the new commit once. (2) Item 15 on top of the new main (a new commit, not a re-run): green, merge; red on a perf ceiling only, park it with the figures, no re-run tonight. (3) GEO items 1 to 8 per the combined ruling as amended by the six answers, one board per item, preflight first, green merges in order.
+- **Rules for tonight.** One board at a time. Never re-run an unchanged commit. Never merge red. Never loosen a check or raise a perf ceiling. A question for Robert never stops the queue: post it on issue #1 with a recommendation, park that item, go to the next. A board that fails twice on new commits for the same item: park it and move on. No production database writes, no migrations, no email or SMS to real people, no secrets in output, no force push, no branch deletion. Keep the 12 GB memory floor. Content: no long dashes, no hyphens as sentence connectors, no AI-tell words, US spelling, "254 Engineering", no engineer name or license number on public pages; solar scope and wind uplift wording unchanged. Wake on board completion, not on a timer.
+- **Morning report (issue #1, then stop):** merged (item, commit, board, audits passed, live URL); parked (item, why, the exact answer needed, with a recommendation); `/coverage` and `/coverage/coastal-bend` from every board tonight; main's head by ls-remote.
+
 ## MORNING REPORT, 2026-10-31
 
 **Needed from Robert: two answers.** The first blocks every board.
