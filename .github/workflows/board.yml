@@ -362,7 +362,8 @@ jobs:
   # is main as deployed. "After" is this run's own build served by next start
   # when `after` is build; the Vercel preview is not a target, because it sits
   # behind Vercel Authentication and CLAUDE.md section 6 forbids a bypass secret
-  # (asked on issue #1, 6562823861). Evidence for a person to look at, never a
+  # (Robert's answer to issue #1, 6562823861: after from the board's own build,
+  # served inside the job; section 6 stands). Evidence for a person to look at, never a
   # verdict: the script exits 0 and writes what it could not take into
   # manifest.json, and the `board` job does not wait for this one.
   screenshots:
