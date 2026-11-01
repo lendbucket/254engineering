@@ -52,8 +52,8 @@ The source of truth for the running loop. Robert, 2026-10-29: the loop prompt is
 | --- | --- |
 | 7 | **Merged as `5b6a259`** (board 41314145201); morning report posted (6559831819) |
 | b | **Merged as `cf59a77`** (board 41320517236) |
-| a | Boarding, 41326354068 on `c661c42` |
-| h | Built, `seo/wpi8-owners` `252197e`, preflight GREEN; mapping posted (6559524740); boards after a |
+| a | **Merged as `0a01a5b`** (board 41326354068); `/coverage` 3,249 to 2,745, coastal-bend 3,237 to 3,103; posted (6561831283) |
+| h | Boarding, 41334970182 on `342ae84`; mapping posted (6559524740) |
 | e | Built on h, `seo/titles-meta` `2075ea1` with answers 2 and 3 and the loan programs kept in its manufactured home description |
 | i | Built, `fix/sa-soil-scope` `91b58a5`, preflight GREEN |
 | f | Built on e (first part), `seo/cost-guide` `ac0fd98`, preflight GREEN |
