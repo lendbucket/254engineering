@@ -79,14 +79,17 @@ export default async function InsightPage({ params }: { params: Promise<{ slug: 
       <PageHeader eyebrow={post.eyebrow} title={post.h1} lede={post.summary} crumbs={crumbs}>
         <p className="font-sans text-[0.85rem] text-slate-fg-muted">
           Published <time dateTime={post.datePublished}>{longDate(post.datePublished)}</time>
-          {post.dateModified !== post.datePublished ? (
-            <>
-              <span aria-hidden="true" className="px-2">
-                /
-              </span>
-              Updated <time dateTime={post.dateModified}>{longDate(post.dateModified)}</time>
-            </>
-          ) : null}
+          {/*
+            UPDATED ALWAYS SHOWS. docs/content-standard.md, item 5 (Robert's GEO
+            ruling of 2026-10-31, item 7): every article carries a visible
+            Updated date. It used to appear only when the two dates differed, so
+            an article never revised showed none; it now shows dateModified,
+            which for such an article is the day it was published.
+          */}
+          <span aria-hidden="true" className="px-2">
+            /
+          </span>
+          Updated <time dateTime={post.dateModified}>{longDate(post.dateModified)}</time>
         </p>
       </PageHeader>
 
