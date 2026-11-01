@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createHash, timingSafeEqual, randomUUID } from "node:crypto";
 import { runBatch, queueHealth } from "@/lib/ops-jobs";
 import { cronStarted, cronFinished, captureError } from "@/lib/ops-observability";
+import { sweepVoidedProtocolScopes } from "@/lib/scope-revalidate";
 
 export const dynamic = "force-dynamic";
 
@@ -77,6 +78,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: false }, { status: 500 });
   }
 
+  /*
+   * A voided protocol signature takes its scope off the service pages within
+   * about a minute (Robert, 17:31 and 18:04 Central 2026-10-31, trigger A).
+   * After the batch, and it cannot fail the worker: the sweep catches its own
+   * faults and records them. See src/lib/scope-revalidate.ts.
+   */
+  const scopes = await sweepVoidedProtocolScopes();
+
   const health = await queueHealth();
 
   await cronFinished(
@@ -97,7 +106,8 @@ export async function GET(request: NextRequest) {
   console.log(
     `[jobs] ${workerId} claimed ${report.claimed} in ${Date.now() - startedAt}ms ` +
       `(done ${report.done}, retried ${report.retried}, dead ${report.dead}) ` +
-      `queue: ${health ? `${health.pending} pending, ${health.overdue} overdue, ${health.dead} dead` : "unreadable"}`,
+      `queue: ${health ? `${health.pending} pending, ${health.overdue} overdue, ${health.dead} dead` : "unreadable"} ` +
+      `scopes: ${scopes.revalidated.length > 0 ? `revalidated ${scopes.revalidated.join(", ")}` : scopes.note}`,
   );
 
   return NextResponse.json({
@@ -105,5 +115,6 @@ export async function GET(request: NextRequest) {
     worker: workerId,
     ...report,
     queue: health,
+    scopes,
   });
 }

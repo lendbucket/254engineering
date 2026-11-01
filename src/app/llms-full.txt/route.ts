@@ -20,6 +20,25 @@ import { regions } from "@/content/regions";
  */
 import { notYetTakingOrders, registrationLine, registrationStatement, responsibleChargeStatement } from "@/lib/launch";
 import { responsibleChargeCopy, specialistsCopy, turnaroundCopy } from "@/content/model-copy";
+import { deliverableAsSigned } from "@/lib/scope-live";
+import { deliverablesFor, type CatalogEntry } from "@data/catalog";
+import { displayPhone, hoursLine, postalAddressLine } from "@/config/contact";
+import { isKnown, money } from "@/lib/ops-money";
+
+/*
+ * PRICE AND TURNAROUND, READ FROM THE CATALOG. Robert's GEO ruling of
+ * 2026-10-31, item 1, and his answer 3: llms-full.txt stays this generated page
+ * and gains each service's price and turnaround from data/catalog.ts, with no
+ * typed copy anywhere. The catalog fills priceCents from the price book, so
+ * this line can never state a figure the checkout does not charge.
+ */
+function priceLine(entry: CatalogEntry): string {
+  const price = isKnown(entry.priceCents) ? money(entry.priceCents) : "priced by quote";
+  const coastal = isKnown(entry.coastalSurchargeCents)
+    ? `, plus ${money(entry.coastalSurchargeCents)} in first tier coastal counties`
+    : "";
+  return `- ${entry.name}: ${price}${coastal}. Turnaround: ${entry.turnaround}`;
+}
 
 /**
  * /llms-full.txt
@@ -32,7 +51,13 @@ import { responsibleChargeCopy, specialistsCopy, turnaroundCopy } from "@/conten
  */
 export const dynamic = "force-static";
 
-export function GET() {
+/*
+ * Async since 2026-10-31: each service's deliverable is the one the service
+ * page renders, read through deliverableAsSigned at build or revalidation, so
+ * the long form drops a protocol's scope exactly when the page does (Robert,
+ * 17:31 Central, queue item 15).
+ */
+export async function GET() {
   const sections: string[] = [];
 
   sections.push(`# ${business.name}
@@ -41,7 +66,8 @@ ${business.legalName}. A veteran owned Texas engineering firm named for the 254 
 
 Website: ${business.url}
 Email: ${business.email}
-Area served: All ${business.countyCount} counties of Texas
+${postalAddressLine() ? `Office: ${postalAddressLine()}\n` : ""}${displayPhone() ? `Telephone: ${displayPhone()}\n` : ""}Hours: ${hoursLine()}
+Service area: San Antonio, Corpus Christi, and all ${business.countyCount} counties of Texas
 Ownership: Veteran owned
 
 ## Current status
@@ -91,8 +117,8 @@ ${service.whoOrders.map((w) => `- ${w}`).join("\n")}
 
 ### The deliverable
 
-${service.deliverable.map((d) => `- ${d}`).join("\n")}
-${service.notes?.length ? `\n### Notes\n\n${service.notes.map((n) => `- ${n}`).join("\n")}\n` : ""}${turnaroundCopy(service.turnaround) ? `\n### Turnaround\n\n${turnaroundCopy(service.turnaround)}\n` : ""}
+${(await deliverableAsSigned(service.deliverable, "/llms-full.txt")).map((d) => `- ${d}`).join("\n")}
+${deliverablesFor(service.slug).length ? `\n### Price and turnaround\n\n${deliverablesFor(service.slug).map(priceLine).join("\n")}\n` : ""}${service.notes?.length ? `\n### Notes\n\n${service.notes.map((n) => `- ${n}`).join("\n")}\n` : ""}${turnaroundCopy(service.turnaround) ? `\n### Turnaround\n\n${turnaroundCopy(service.turnaround)}\n` : ""}
 ### Questions
 
 ${service.faqs.map((f) => `Q: ${f.q}\nA: ${f.a}`).join("\n\n")}
