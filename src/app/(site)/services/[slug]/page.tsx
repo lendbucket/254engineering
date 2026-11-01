@@ -18,6 +18,7 @@ import { servicePhotos } from "@/content/photos";
 import { ServiceOrderAction } from "@/components/services/ServiceOrderAction";
 import { HowOrderingWorks } from "@/components/services/HowOrderingWorks";
 import { deliverableAsSigned } from "@/lib/scope-live";
+import { serviceAnswer } from "@/content/foundation-local";
 
 /**
  * Every service page is generated at build time and there is no dynamic
@@ -57,6 +58,9 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
    * Central 2026-10-31, queue item 15). See src/lib/scope-live.ts.
    */
   const deliverable = await deliverableAsSigned(service.deliverable, `/services/${service.slug}`);
+
+  /* The short answer this line leads with, if it has one (GEO item 5). */
+  const answer = serviceAnswer(service.slug);
 
   const crumbs = [
     { name: "Home", path: "/" },
@@ -133,6 +137,21 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
           title={`${service.shortName}, in plain terms`}
           lede={service.summary}
         />
+        {/*
+          THE ANSWER FIRST, WHERE A LINE HAS ONE. Robert's GEO ruling of
+          2026-10-31, item 5: about fifty words with the catalog's price and
+          turnaround, then the office's address and hours, all derived in
+          src/content/foundation-local.ts. What the visit covers is the
+          paragraphs below and what the report contains is the deliverable.
+        */}
+        {answer ? (
+          <div className="mt-9 max-w-[68ch] rounded-[3px] border border-limestone-line bg-limestone-raised p-6">
+            <p className="text-[1.02rem] leading-[1.75] text-slate">{answer.answer}</p>
+            {answer.office ? (
+              <p className="mt-3 text-[0.96rem] leading-[1.7] text-slate-muted">{answer.office}</p>
+            ) : null}
+          </div>
+        ) : null}
         <div className="mt-9 max-w-[68ch]">
           {service.what.map((paragraph, i) => (
             <p
