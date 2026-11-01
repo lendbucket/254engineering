@@ -2340,6 +2340,57 @@ export function filesOverdueAlert(input: FilesOverdueAlertInput): RenderedEmail 
   );
 }
 
+export type ScopeReadFailedAlertInput = {
+  /** The page that rendered, by path. */
+  page: string;
+  documentNumber: string;
+  /** What the read said, or why it could not be made. */
+  why: string;
+  pageUrl: string;
+  environment: string;
+};
+
+/**
+ * A SERVICE PAGE COULD NOT READ ITS PROTOCOL'S SIGNATURE. Robert, 18:04
+ * Central 2026-10-31: on a failed read the page keeps the code's in-force
+ * scope, and the office is told which page. Sent from scope-live.ts when a
+ * page renders, at build or on revalidation, to the alert list (0099).
+ */
+export function scopeReadFailedAlert(input: ScopeReadFailedAlertInput): RenderedEmail {
+  return compose(
+    "ops.scope_read_failed",
+    "operator",
+    `Signature read failed for ${input.page} on ${input.environment}`,
+    {
+      preheader: `${input.page} could not read the signature on ${input.documentNumber}, so it shows the scope the code records.`,
+      blocks: [
+        {
+          kind: "p",
+          text: "A service page reads its protocol's signature when it is built or refreshed. This read failed, so the page kept the scope the code records as in force. Nobody was shown the pending sentence, and nothing about ordering changed: ordering reads the signature itself and stays closed while it cannot.",
+        },
+        {
+          kind: "details",
+          title: "The read",
+          rows: rows([
+            ["Page", input.page],
+            ["Protocol", input.documentNumber],
+            ["What failed", input.why],
+            ["Environment", input.environment],
+          ]),
+        },
+        {
+          kind: "p",
+          text: `Check whether the signature is still live in the portal, then look at the page: ${input.pageUrl}`,
+        },
+        {
+          kind: "note",
+          text: "One email each time a page fails this read. The error is also recorded on the status page.",
+        },
+      ],
+    },
+  );
+}
+
 export function allTemplatesForAudit(): RenderedEmail[] {
 
   return [
@@ -2621,6 +2672,13 @@ export function allTemplatesForAudit(): RenderedEmail[] {
       cooldownMinutes: 60,
       checkedAt: "2026-10-13T05:00:00.000Z",
       dashboardUrl: "https://254engineering.com/portal",
+      environment: "production",
+    }),
+    scopeReadFailedAlert({
+      page: "/services/windstorm-wpi-8",
+      documentNumber: "254-WS-001",
+      why: "The signature record could not be read: canceling statement due to statement timeout",
+      pageUrl: "https://254engineering.com/services/windstorm-wpi-8",
       environment: "production",
     }),
     filesOverdueAlert({
