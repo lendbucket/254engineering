@@ -24,13 +24,23 @@ The source of truth for the running loop. Robert, 2026-10-29: the loop prompt is
    - **d. Draft only, do not publish:** `/insights/texas-windstorm-certification-by-county`, covering the 14 first tier coastal counties, what TDI requires, and how to look up a certificate (TDI search for WPI-8 and WPI-8-E, TWIA lookup for WPI-8-C only), sourced and linked to TDI and TWIA pages actually read. Post the draft URL on issue #1 for Robert's review.
 3. Questions never stop the queue: post on issue #1 with a recommendation, park the item, move to the next. Wake on board completion, not on a timer. When round 3 is done or every item is parked, post a short report on issue #1 and stop.
 
+**Round 3 addition (Robert, 2026-11-01, from Search Console: 28 days, 11 clicks, 2.26K impressions, 0.5% CTR, average position 24.2; impressions rising; top queries buyer intent: wpi-8 certificate cost, foundation certification, windstorm inspection, structural engineer report, foundation inspection cost, truss certification letter, twia coverage, wpi-8, 5 year roof certification cost):**
+   - **e. Titles and meta descriptions.** Every service page, and `/insights/wpi-8-certificate`, `/insights/texas-windstorm-inspections`, `/insights/texas-windstorm-certificate-lookup` and `/windstorm/twia-coverage`, gets a title that leads with the search phrase and, on service pages, the catalog price from `catalog.ts`, ending "| 254 Engineering", 60 characters or less where possible. Meta descriptions state the price, the turnaround wording from the catalog, and that a licensed Texas PE seals it. Preflight rule: a service page title price must equal `catalog.ts`.
+   - **f. The cost guide** (`/insights/structural-inspection-cost-texas`) answers "WPI-8 certificate cost", "foundation inspection cost" and "roof certification cost", each under its own question H2 with the catalog price.
+   - **g.** The four informational articles with the most impressions (`texas-pe-license-lookup`, `texas-engineering-firm-registration`, `texas-professional-services-procurement-act`, `texas-windstorm-certificate-lookup`) each get one short closing section linking to the matching service. No rewording of their existing text.
+   - **Parked until Robert answers:** a truss certification letter page, and any "5 year roof certification" wording. Do not build either.
+
 | Item | State |
 | --- | --- |
 | 7 | Boarding, 41314145201 on `3c5caef` |
-| a | Next |
-| b | Queued |
-| c | Queued |
-| d | Queued (draft, no merge) |
+| a | Parked: moving the county map out of the HTML changes "Keep the county map server rendered"; question on issue #1 |
+| b | Built, `feat/press-facts` `9666f9e`, preflight GREEN; boards after item 7 |
+| c | Parked: badge wording against the 2026-10-15 partner disclosure ruling; question on issue #1 |
+| d | Draft on `draft/windstorm-by-county` `fdf5825`, not merged |
+| e | Queued after b |
+| f | Queued after e |
+| g | Queued after f |
+| truss letter, "5 year roof certification" | Parked by Robert, do not build |
 
 ## Tonight's queue, in board order (Robert, 22:12 Central 2026-10-29)
 
