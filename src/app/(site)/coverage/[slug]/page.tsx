@@ -7,7 +7,7 @@ import { PrelaunchNotice } from "@/components/launch/PrelaunchNotice";
 import { OfferCta } from "@/components/launch/OfferCta";
 import { CardGrid, cardCell, SectionHeading } from "@/components/ui/primitives";
 import { Section, SectionHead } from "@/components/ui/section";
-import { TexasCountyMap } from "@/components/map/TexasCountyMap";
+import { CountyMapImage } from "@/components/map/CountyMapImage";
 import { regionPhotos } from "@/content/photos";
 import { buildMetadata } from "@/lib/seo";
 import { JsonLd, breadcrumbSchema } from "@/lib/schema";
@@ -178,7 +178,8 @@ export default async function RegionPage({ params }: { params: Promise<{ slug: s
               lede={`Population centers include ${region.anchors.join(", ")}. Coverage is the whole list, not the centers.`}
             />
             <div className="mt-10 max-w-md">
-              <TexasCountyMap activeRegion={region.slug} />
+              {/* A file, not inline markup (round 3 item a); the counties are the list below. */}
+              <CountyMapImage activeRegion={region.slug} />
             </div>
             <ul className="mt-10 grid grid-cols-2 gap-x-8 sm:grid-cols-3 lg:grid-cols-4">
               {region.counties.map((county) => (
