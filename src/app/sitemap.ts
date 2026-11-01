@@ -102,6 +102,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     entry("/contact", 0.7, "yearly"),
     /* The press kit (Robert, 2026-10-26, 15:57 Central, piece 1). */
     entry("/press", 0.5, "yearly"),
+    /* The partner badge (Robert, 2026-11-01, round 3 item c). Listed so seo-audit and every sitemap-driven audit measure it. */
+    entry("/partners/badge", 0.3, "yearly"),
     entry("/privacy", 0.3, "yearly"),
     entry("/terms", 0.3, "yearly"),
   ];
