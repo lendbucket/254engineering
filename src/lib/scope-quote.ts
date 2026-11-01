@@ -36,9 +36,23 @@ export function protocolQuotedBy(deliverable: readonly string[]): QuotedProtocol
 export const VOID_LOOKBACK_MINUTES = 10;
 
 /**
+ * PAGES OUTSIDE /services THAT QUOTE A SERVICE'S DELIVERABLE, by service slug.
+ * Robert's GEO ruling of 2026-10-31, item 5: /san-antonio and /corpus-christi
+ * state what the foundation letter contains, read through deliverableAsSigned
+ * like the service page, so a void has to revalidate them too. The proof
+ * a-location-page-answers-the-foundation-question asserts that every page
+ * calling deliverableAsSigned is named here or is a service page, so a new
+ * quoting page cannot be left out of the sweep.
+ */
+export const ALSO_QUOTED_ON: Readonly<Record<string, readonly string[]>> = {
+  "foundation-inspections": ["/san-antonio", "/corpus-christi"],
+};
+
+/**
  * The pages to revalidate when these protocols' signatures are voided: every
- * service page whose deliverable quotes one of them, and /llms-full.txt, which
- * prints every service's deliverable. Nothing when nothing quotes them.
+ * service page whose deliverable quotes one of them, the pages ALSO_QUOTED_ON
+ * names for those services, and /llms-full.txt, which prints every service's
+ * deliverable. Nothing when nothing quotes them.
  */
 export function pagesQuoting(
   documentNumbers: readonly string[],
@@ -50,7 +64,7 @@ export function pagesQuoting(
       const doc = protocolQuotedBy(s.deliverable);
       return doc !== null && wanted.has(doc);
     })
-    .map((s) => `/services/${s.slug}`);
+    .flatMap((s) => [`/services/${s.slug}`, ...(ALSO_QUOTED_ON[s.slug] ?? [])]);
   return pages.length > 0 ? [...pages, "/llms-full.txt"] : [];
 }
 
