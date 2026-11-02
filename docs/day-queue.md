@@ -278,6 +278,10 @@ WPI-8 facts stand as read from TDI and TWIA: TWIA's lookup is WPI-8-C only; the 
 
 **Item g re-merged over `cd09409` as `11ea380`** (clean; same diff), preflight GREEN, 38 rules, 113 s. Bundle 64's prediction below stands, with "bundle 63's range" as the yardstick.
 
+**Result, bundle 64 (board 41388758703 on `11ea380`): 64 of 64, preflight GREEN, every prediction line met.** Certificate lookup 2,630 ms, HTML 19 to 20 KB; `/` 2,709, `/coverage` 2,559, coastal-bend 2,696, service 2,718, cost guide 2,628, all inside bundle 63's ranges. Component columns identical on every other route; totals moved 1 KB either way on untouched routes (`/coverage` 397 to 396, `/structural-engineer` 333 to 332, `/windstorm/before-work-begins` 331 to 332), read as transfer noise. TBT 12 to 23, CLS 0.000, heights 15,856 and 15,090. **Merged as `8fa0592`** (tree identical to the boarded commit; pushed, ls-remote confirms).
+
+**Bundle 65, item d:** main `8fa0592` merged in as `e2c02af` (clean), preflight GREEN, 38 rules, 100 s. Board 41395596832 dispatched on `e2c02af`. Prediction as written below.
+
 **GA4 production check (Robert's answer 2), posted 6569169362: not reverted.** Three runs per page against the afternoon survey (confounded: items l, e and f deployed between): `/` 2,215 (2,451), coastal-bend 1,857 (1,700), service 2,086 (2,003); TBT 10, 10, 10 (6, 5, 3). Then a same-minute A/B on production, five interleaved pairs per page, GA4's origins blocked against live, gtag.js confirmed absent or loaded on every run. LCP medians unchanged: `/` 2,209 vs 2,154; coastal-bend 1,552 vs 1,555; service 1,705 vs 1,704. TBT medians: `/` 8 vs 11, coastal-bend 7 vs 13, service 8 vs 9. The arms' ranges overlap on every page (coastal-bend live 7 to 21 against blocked 6 to 10), read as inside run-to-run variance; Robert can say "revert GA4".
 
 **d, c and j re-merged over `cd09409`**: d `6be3105`, c `c12129c`, j `03c2602`, each clean and each preflight GREEN (38 rules). Each is brought up to main again before its own board, after the item ahead of it merges.
