@@ -15,6 +15,7 @@ import type { Action } from "@/lib/ops-authz";
 import {
   LIST_EXPORT_GRANT,
   LIST_EXPORT_REPORTS,
+  mayExport,
   applicationsCsv,
   auditTrailCsv,
   designBriefsCsv,
@@ -127,7 +128,8 @@ async function handleGET(request: NextRequest) {
   }
 
   if (report === "margin" || report === "period") {
-    if (!can(actor, "billing.read")) return bad("Your role cannot read the firm's billing.", 403);
+    /* The billing grant and, since 2026-11-02, the administrator's export gate (mayExport, Robert's P2 approval, option a). */
+    if (!mayExport(actor, "billing.read")) return bad("Your role cannot export the firm's billing.", 403);
 
     /*
      * A failed read is not an empty firm, and an export is the worst place to
@@ -306,10 +308,15 @@ async function handleGET(request: NextRequest) {
    * pipeline can export the pipeline and gets a 403 on revenue. The screen
    * makes the same test against the same field, so a button that appears is a
    * button that works.
+   *
+   * Since 2026-11-02 that test is mayExport: the report's own action AND the
+   * administrator's export gate (Robert's P2 approval, option a: every CSV
+   * export is owner or admin only). Somebody granted a report still reads it
+   * on the screen; only the file is the administrator's.
    */
   const entry = REPORTS.find((r) => r.key === report);
   if (entry) {
-    if (!can(actor, entry.action)) return bad(`Your role cannot read the ${entry.title.toLowerCase()} report.`, 403);
+    if (!mayExport(actor, entry.action)) return bad(`Your role cannot export the ${entry.title.toLowerCase()} report.`, 403);
 
     const asked = request.nextUrl.searchParams.get("period") ?? "";
     const period = /^\d{4}-\d{2}$/.test(asked) ? asked : periodOf();

@@ -36,10 +36,11 @@ const page = readFileSync("src/app/portal/(app)/refunds/page.tsx", "utf8");
 const exp = readFileSync("src/app/api/portal/refunds/export/route.ts", "utf8");
 const money = readFileSync("src/app/api/portal/refunds/route.ts", "utf8");
 check("the screen and the export use the one function, so their rows cannot differ", /refundListRows\(read\.rows/.test(page) && /refundListRows\(read\.rows/.test(exp));
-check("the screen offers the export with its own state, search and sort", /csvHref=\{`\/api\/portal\/refunds\/export\?\$\{csvQuery\}`\}/.test(page) && /\{ state, q: params\.q, sort: params\.sort, dir: params\.dir \}/.test(page));
+/* Since 2026-11-02 the screen offers the file only to the export gate's holder, and the door asks the gate first (Robert's P2 approval, option a). */
+check("the screen offers the export with its own state, search and sort, to the export gate only", /csvHref=\{can\(actor, LIST_EXPORT_GRANT\) \? `\/api\/portal\/refunds\/export\?\$\{csvQuery\}` : undefined\}/.test(page) && /\{ state, q: params\.q, sort: params\.sort, dir: params\.dir \}/.test(page));
 check(
-  "the export asks the screen's grants",
-  /can\(actor, "refunds\.request"\) \|\| can\(actor, "refunds\.approve_within_limit"\) \|\| can\(actor, "payments\.refund"\)/.test(exp),
+  "the export asks the administrator's export gate and then the screen's grants",
+  /if \(!can\(actor, LIST_EXPORT_GRANT\) \|\| !\(can\(actor, "refunds\.request"\) \|\| can\(actor, "refunds\.approve_within_limit"\) \|\| can\(actor, "payments\.refund"\)\)\)/.test(exp),
 );
 check("money is written as dollars, blank where unknown, never cents", /moneyCell\(r\.owedCentsAtRequest\)/.test(exp) && /moneyCell\(r\.decision\.refundedCents\)/.test(exp) && !/owedCentsAtRequest,/.test(exp));
 check("every cell goes through the shared escaping rule (the formula guard)", /from "@\/lib\/csv"/.test(exp) && /csv\(\{/.test(exp));
