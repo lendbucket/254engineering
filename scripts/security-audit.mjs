@@ -140,6 +140,8 @@ const ADMIN_PAGES = [
    * Each closed to a signed out caller, and each behind its own grant.
    */
   "/portal/prospects",
+  /* The sales list's imports (Robert's CRM R2, 2026-11-02): crm.import, closed to a signed out caller. */
+  "/portal/crm/imports",
   "/portal/inbox",
   "/portal/order-lookup",
   "/portal/refunds",
@@ -353,6 +355,8 @@ const ADMIN_APIS = [
   // customer, releasing a technician, a job's access details) and its live
   // counts; and a CSV of every order. Each closed to a signed out caller.
   "/api/portal/prospects",
+  // The sales list's imports (Robert's CRM R2, 2026-11-02): previews, writes and settling held and conflicting rows, on crm.import.
+  "/api/portal/crm/imports",
   "/api/portal/contact-log",
   "/api/portal/refunds",
   // The refund requests as a CSV, a read beside the POST only route (office ready, 2026-10-24).
