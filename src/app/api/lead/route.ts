@@ -8,6 +8,7 @@ import { inquiryAcknowledged, leadNotification } from "@/lib/email-templates";
 import { cookies } from "next/headers";
 import { partnerForVisitor, VISITOR_COOKIE } from "@/lib/ops-partners";
 import { withSaveOutcome } from "@/lib/save-outcome";
+import { PUBLIC_FORM_REFUSAL, takeAcknowledgement, takePublicFormAttempt } from "@/lib/public-form-limits";
 
 /**
  * Contact and waitlist intake.
@@ -47,6 +48,11 @@ async function handlePOST(request: Request) {
 
   const userAgent = request.headers.get("user-agent") ?? undefined;
   const form = isWaitlist ? "waitlist" : "contact";
+
+  /* Robert's Q11 (office audit F2): per connection and per typed address, before anything is saved or queued. */
+  if (!(await takePublicFormAttempt(form, request.headers, data.email)).allowed) {
+    return NextResponse.json({ ok: false, message: PUBLIC_FORM_REFUSAL }, { status: 429 });
+  }
 
   /*
    * Read before the row is written, because the answer lives in a cookie that
@@ -103,7 +109,10 @@ async function handlePOST(request: Request) {
    * queued after the answer, through after().
    */
   if (write.ok) {
+    const headers = request.headers;
     after(async () => {
+      /* One acknowledgement per address per form per firm calendar day (Q11); the notification above always goes. */
+      if (!(await takeAcknowledgement(form, headers, data.email))) return;
       const ack = await queueEmail(inquiryAcknowledged({ kind: form, email: data.email }));
       if (!ack.ok) console.error(`[lead] acknowledgement not queued (${form}): ${ack.error}`);
     });

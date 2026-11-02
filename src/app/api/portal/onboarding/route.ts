@@ -203,8 +203,12 @@ async function handlePOST(request: NextRequest) {
     return result.ok ? NextResponse.json({ ok: true }) : bad(result.error);
   }
 
-  /* A working technician's coverage counties, from the same page. setTechCoverage refuses unknown names. */
-  if (action === "set_coverage") {
+  /*
+   * A working technician's coverage counties, from the technician sheet. setTechCoverage refuses unknown names.
+   * Its own action name since Robert's Q11 (office audit F1, 2026-11-02): it was a second "set_coverage"
+   * branch below the onboarding one, which always returned first, so this never ran.
+   */
+  if (action === "set_tech_coverage") {
     const counties = Array.isArray(body?.counties) ? body.counties.map(String) : [];
     const result = await setTechCoverage(actor, String(body?.profileId ?? ""), counties, context);
     return result.ok ? NextResponse.json({ ok: true, counties: result.counties }) : bad(result.error);
