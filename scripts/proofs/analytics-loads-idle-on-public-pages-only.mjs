@@ -38,6 +38,25 @@ for (const p of ["/", "/partners/badge", "/accounting-is-not-account", "/service
   check(`analytics allowed on ${p}`, ga.analyticsAllowedOn(p, "") === true);
 }
 check("a status page opened with its signed link loads none", ga.analyticsAllowedOn("/order/254-ABC123", "?token=abc.def") === false);
+check("an onboarding invite, whose token is in the path, loads none", ga.analyticsAllowedOn("/onboarding/abcdef0123456789", "") === false && ga.analyticsAllowedOn("/onboarding/abcdef0123456789/training", "") === false);
+
+/*
+ * THE CLASS, NOT THE INSTANCE. Every public route whose path carries a [token]
+ * segment is a signed link, and must load no analytics at all, because cleaning
+ * only replaces the paths it knows. Walked from the filesystem so a new one is
+ * found the day it is written. Route groups like (site) are not in the URL.
+ */
+const routeDirs = (dir) =>
+  readdirSync(dir).flatMap((n) => {
+    const p = join(dir, n).replace(/\\/g, "/");
+    return statSync(p).isDirectory() ? [p, ...routeDirs(p)] : [];
+  });
+const tokenRoutes = ["src/app/(site)", "src/app/(order)"]
+  .flatMap(routeDirs)
+  .filter((d) => /\/\[[^\]]*token[^\]]*\]$/i.test(d))
+  .map((d) => d.replace(/^src\/app/, "").replace(/\/\([^)]+\)/g, "").replace(/\[[^\]]+\]/g, "x0123456789"));
+check("every public route with a token in its path is found", tokenRoutes.length >= 1, tokenRoutes.join(", "));
+for (const r of tokenRoutes) check(`and loads no analytics: ${r}`, ga.analyticsAllowedOn(r, "") === false);
 check("the Stripe return, which carries no token, is allowed", ga.analyticsAllowedOn("/order/254-ABC123", "?paid=1") === true);
 
 /* The cleaned address. */

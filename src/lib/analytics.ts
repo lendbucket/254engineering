@@ -27,7 +27,17 @@
  * in perf-audit's figures, and sends nothing from localhost.
  */
 
-export const GA_EXCLUDED_PREFIXES = ["/portal", "/admin", "/partner", "/account"] as const;
+/*
+ * /onboarding joined on 2026-11-01, before GA4 merged. The onboarding invite
+ * carries its credential IN THE PATH (/onboarding/<token>), not in a query
+ * string, so the ?token= rule below never saw it and cleaning would have sent
+ * the token to Google as a page path. It is a signed link to somebody's
+ * identity paperwork, so it loads no analytics at all, which is stricter than
+ * the ruling's four prefixes and keeps the privacy page's "signed links" true.
+ * The proof walks every public route with a [token] segment and requires it
+ * excluded, so the next one is caught rather than remembered.
+ */
+export const GA_EXCLUDED_PREFIXES = ["/portal", "/admin", "/partner", "/account", "/onboarding"] as const;
 
 export const GA_EVENTS = { orderStarted: "order_started", orderPaid: "order_paid" } as const;
 export type GaEvent = (typeof GA_EVENTS)[keyof typeof GA_EVENTS];
