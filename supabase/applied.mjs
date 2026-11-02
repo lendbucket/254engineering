@@ -4024,6 +4024,24 @@ export const APPLIED = [
       "reaches field technicians only (WIDE_GRANT_TECHNICIANS_ONLY in onboarding-scope.ts), the narrower reading " +
       "taken on issue #1 (comment 6470846047).",
   },
+  {
+    file: "0107_every_evidence_file_carries_its_sha256.sql", appliedBy: "apply_migration",
+    fingerprint: "e12033a2c91fead686fc9a4632ed20dc",
+    behaviour: "5ce9349a818ea5f249aedd6fd93ac939",
+    production: null,
+    proves: { column: { table: "eng_evidence_items", name: "content_sha256" } },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-01 on feat/evidence-sha256, whose chain runs 0104 " +
+      "then 0107, with 0104 reproducing its recorded pair. One column (1374 to 1375) and its shape check and index " +
+      "(1328 to 1330 facts). RECOMPUTED AT THE BOARD once 0105 and 0106 are on main ahead of it, because both " +
+      "figures depend on the whole chain.",
+    because:
+      "WRITTEN 2026-11-01 ON feat/evidence-sha256; NOT YET ON DEVELOPMENT OR PRODUCTION. Robert's ruling P5 of " +
+      "2026-11-01 evening: a SHA-256 of every evidence file at upload, development first, and the no duplicate " +
+      "photos check on the engineer's queue once every item in a job has a hash; items captured before show " +
+      "not checked, never a pass. The server hashes the stored object in recordCapture. Development from its " +
+      "stage branch, production from a passed board's boarded commit.",
+  },
 ];
 
 /*

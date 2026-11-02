@@ -27,6 +27,7 @@ import { certificationStanding, trainingAwaitingEngineer } from "@/lib/certifica
 import { governingDeclaration } from "@/lib/protocol-run";
 import { formatInFirmZone } from "@/lib/firm-calendar";
 import { addendaFor, addendumHeading } from "@/lib/scope-addendum";
+import { duplicateCheckSentence } from "@/lib/evidence-fingerprint";
 
 export const dynamic = "force-dynamic";
 
@@ -535,6 +536,22 @@ export default async function ReviewPage({
                 <h3 className="mt-5 border-b-2 border-[var(--ink)] pb-2 text-[15px] font-semibold text-[var(--ink)]">
                   Evidence
                 </h3>
+
+                {/*
+                  NO DUPLICATE PHOTOS, Robert's ruling P5 of 2026-11-01. One plain
+                  line, weight for a finding and none for the rest (V10: words,
+                  never colour). The sentence comes from evidence-fingerprint.ts,
+                  so "not checked" can never read as a pass here.
+                */}
+                {selected.items.length > 0 ? (
+                  <p
+                    className={`mt-3 max-w-[70ch] text-[14px] leading-[1.55] text-[var(--ink)] ${
+                      selected.duplicates?.state === "clear" ? "" : "font-semibold"
+                    }`}
+                  >
+                    {duplicateCheckSentence(selected.duplicates)}
+                  </p>
+                ) : null}
 
                 {selected.items.length === 0 ? (
                   <p className="mt-3 text-[14px] text-[var(--secondary)]">
