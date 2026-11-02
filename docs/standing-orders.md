@@ -121,6 +121,8 @@ Run until everything below is merged or parked, then post the morning report and
 
 **Board order from here:** P9 (running) → d (re-merged) → c (fixed) → P1 → P3 → P5 → P2. P1, P3, P5 and P2 carry migrations, so each is boarded and staged for a production sitting, not merged unattended.
 
+**Robert, 2026-11-02 (relayed in session), P2's two single-record exports: keep both on their current gates.** The engineer's monthly responsible charge log is his own record; one file's evidence binder follows access to that file. P2 is built that way; no change. **Development sitting for 0108 done (6581087129).** Board order stands: c (running), P1, P3, P5, P2.
+
 ## Finish the portal (Robert, 2026-11-01 evening), after GA4, g, d, c, j
 
 Robert's ruling, relayed in session, verbatim in substance:
