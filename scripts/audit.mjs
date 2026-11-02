@@ -603,6 +603,17 @@ const PHASE_ONE = [
   },
   {
     /*
+     * Robert's ruling P1, 2026-11-01: a probe technician and a probe engineer
+     * go from invite to activated with no SQL. Phase one because it drives the
+     * suite's server; writers shard because it writes probe accounts,
+     * onboardings and applications to development and removes them. COULD NOT
+     * TELL, never a failure, on a database without 0105.
+     */
+    name: "onboarding-walk-audit",
+    why: "a probe technician and engineer go from invite to activated through the product's own routes",
+  },
+  {
+    /*
      * Phase 12 Section 2. Derives the four reports from the registry in
      * ops-reports.ts and fails on one it is not measuring, which is the
      * surfaces idiom applied to figures. email-audit learned why the hard way:

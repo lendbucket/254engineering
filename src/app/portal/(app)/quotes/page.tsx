@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
+import { mayExport } from "@/lib/list-exports";
 import { getQuote, listQuotes } from "@/lib/ops-quotes";
 import { QUOTE_SORTS, QUOTE_HOLD_DAYS, hasLapsed, quoteListRows, shownStatus, type QuoteRow } from "@/lib/quote-rules";
 import { QUOTE_STATUSES, QUOTE_STATUS_LABEL } from "@/lib/ops-orders";
@@ -88,7 +89,7 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
         sorts={[...QUOTE_SORTS]}
         sort={params.sort ?? "asked"}
         direction={params.dir === "asc" ? "asc" : "desc"}
-        csvHref={`/api/portal/quotes/export?${csvQuery}`}
+        csvHref={mayExport(actor, "quotes.manage") ? `/api/portal/quotes/export?${csvQuery}` : undefined}
       />
       {!read.ok ? (
         <ErrorState title="Quote requests could not be read" body={`${read.error} Nothing here means nothing is waiting.`} />

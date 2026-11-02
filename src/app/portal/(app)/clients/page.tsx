@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
+import { mayExport } from "@/lib/list-exports";
 import { CLIENT_PAGE_SIZE, countClients, listClients } from "@/lib/ops-crm";
 import { supabaseAdmin } from "@/lib/supabase";
 import { TEXAS_COUNTIES } from "@/lib/ops-counties";
@@ -231,7 +232,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
         sorts={[{ value: "added", label: "Added" }, { value: "name", label: "Name" }]}
         sort={query.sort}
         direction={query.ascending ? "asc" : "desc"}
-        csvHref={listHref("/api/portal/clients/export", { q: params.q, kind: params.kind, sort: params.sort, dir: params.dir }, {})}
+        csvHref={mayExport(actor, "clients.list") ? listHref("/api/portal/clients/export", { q: params.q, kind: params.kind, sort: params.sort, dir: params.dir }, {}) : undefined}
       />
       <Panel
         title={
