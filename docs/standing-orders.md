@@ -125,7 +125,28 @@ Run until everything below is merged or parked, then post the morning report and
 
 **Robert, 2026-11-02 (relayed in session): the chat restored the five grants on development (6581232441), so development matches main.** Board c, P1, P3, P5 as planned. **Before P2's board, tell the counterpart on issue #1** and it re-runs 0108's deletes on development; production sits 0108 after P2 passes. If any check objects to development's ledger recording 0108, post it on issue #1.
 
-## Finish the portal (Robert, 2026-11-01 evening), after GA4, g, d, c, j
+## AUDIT FIXES, Q1 TO Q14 (Robert, 2026-11-02, relayed in session)
+
+The chat posted five audit files on issue #1: auth 6585008053, money 6585008424, field and seal 6585008833, office 6585009173, the live site REPORT 6585009543. Read in full 2026-11-02. **After P1, P3, P5 and P2 board, build these in this order, one board per item, standing orders apply, a question never stops the queue.** Verbatim:
+
+- **Q1** field F1: evidence count. Count standing evidence (not revision_requested) and refuse a draft at zero. Re-check every live letter template's count line.
+- **Q2** field F2 and F4: sign_upload loads the file through jobView, requires the assigned technician and an open status, uploads with upsert false; record_capture refuses a storage key that is not exactly fileId/captureId.ext and confirms the object exists.
+- **Q3** field F3, F7, F16, F15: assigned technician guard on submitEvidence; acceptance only when status is needs_dispatch, withdraw offers when a file leaves needs_dispatch; refused and repairs_required close capture; evidence writes scoped to evidence.capture and the assigned technician.
+- **Q4** field F8 and F12: foundation decline delivery. Let refused move to sealed under documents.seal, set delivered_at, run accruals; decide letters-instead from the FC-001 determination, refund otherwise.
+- **Q5** field F5: migration on a stage branch: unique partial index on eng_profiles (license_number) where role = engineer; createAccount and eng_seal_act_check refuse a duplicate.
+- **Q6** field F6, F13, F14, F10, F11: revoke withdraws offers and re-checks at acceptance; dispatch refuses when the protocol pin write fails; the self service check writes in_progress not certified; a trigger refuses sealed or delivered on eng_files without a live seal act (stage branch); transitionFile checks its row count.
+- **Q7** money F1, F3, F4: single orders through refundableOn, capped at what is left; invoiceAccount writes account_id, runs creditDecision, calls acceptOnInvoice; exposure counts open and issued statements.
+- **Q8** money F2, F5, F7, F8: refund row inserted pending before the Stripe call and matched by the webhook; expireCheckout skips when a newer session exists and a payment on a cancelled order raises a staff task; batch total recomputed from accepted members; unique (account_id, period) on eng_statements and unique order_id on statement lines (stage branch). Disputes (F10): dispute.created raises a task, dispute.closed lost records a refund row.
+- **Q9** auth H1 and H2: success resets only the signed in identity, never the address bucket; documentUrl loads the document's file and applies canSeeFile.
+- **Q10** auth M1, M3, M4: replacing a second factor from a full session requires a current code or the password; setPartnerPassword refuses a suspended user; verifyOwnPassword goes through takeLoginAttempt. **M2 session epoch: post the schema design on issue #1 for his ruling before building.**
+- **Q11** office F1 and F2: set_tech_coverage action for the technician sheet; rate limit lead, design inquiry, windstorm inquiry and apply per address and IP, one acknowledgement per address per kind per day.
+- **Q12** office F3, F5, F6, F8: Resend idempotency key per job; apply refuses a document path outside the applicant's own prefix; applications page signs links for ten minutes; setGrants becomes one SQL function (stage branch).
+- **Q13** office F4, F7, F9, F10, F11, F12, F13: every failed read renders an error, never an empty state or a count; messages scoped in SQL before the limit; uninvited applications from a database query; error state copy says "a failed read, not an empty list".
+- **Q14** website: remove the $995 figure from the five pages and llms-full until the line opens, saying ongoing construction is quoted; fix the cost guide sentence; replace "leverage"; remove the waitlist references from privacy and terms; https for the txrules links; add CSP report only, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy and includeSubDomains; poweredByHeader false; server render the onboarding not found page; own titles for account login and 404.
+- **Low findings: build after Q14 as one bundle per audit file, skipping any that touch a ruling. Post a report on issue #1 when Q1 to Q14 are merged or parked.**
+
+**How it is built (my plan, not a ruling).** Code is built by forks on their own branches while boards run, stacked within a group so each item's branch carries the one before it (Q1, Q2, Q3, Q4 stacked from main; the money, auth, office and website groups likewise), and boarded strictly Q1 to Q14. Items carrying a migration (Q5, Q6's trigger, Q8's indexes, Q12's function) take the next numbers after 0108 (0109 onward) and must stack on P2's branch for contiguity, so they board after P2 and wait for production sittings with the P chain. Q2 overlaps P5 in `recordCapture` (P5 already hashes the object and refuses a foreign key prefix); resolved when the two meet. Forks never push, merge or dispatch.
+ (Robert, 2026-11-01 evening), after GA4, g, d, c, j
 
 Robert's ruling, relayed in session, verbatim in substance:
 - Work through P1 to P10 after the current queue (GA4, g, d, c, j), **one board per item**, standing orders apply.
