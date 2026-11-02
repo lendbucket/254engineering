@@ -286,6 +286,17 @@ WPI-8 facts stand as read from TDI and TWIA: TWIA's lookup is WPI-8-C only; the 
 
 **Bundle 66, item c:** main `8fa0592` merged in as `a545b8e` (clean), preflight GREEN, 38 rules, 98 s. Board 41402651253 dispatched on `a545b8e`. Prediction as written below; if `/coverage` reads outside bundle 63's range again it is an untouched page with unchanged bytes and is recorded under the green-board rule.
 
+**Result, bundle 67 (board 41410202142 on `24f41a7`): 64 of 64, preflight GREEN; one line missed on an untouched page.** `/coverage` LCP 2,961 against 2,250 to 2,600, bytes unchanged, under its ceiling, NOT STABLE (2,896 on bundle 65 the same way). Every route's HTML, JS, font and image bytes identical to bundle 64; `/` 2,886, coastal-bend 2,737, service 2,734, cost guide 2,666; TBT 24 to 43, CLS 0.000; heights 15,856 and 15,090. **Merged as `849edd9` under Robert's green-board rule**, the miss in the merge message (tree identical to the boarded commit; pushed, ls-remote confirms). The current queue (GA4, g, d, c, j) is done: GA4, g and j merged; d and c parked on questions.
+
+**Bundle 68, P4 (`feat/review-queue-controls`):** main `849edd9` merged in as `eae4e85` (clean). Diff: `src/lib/review-queue-list.ts` +68, `src/app/portal/(app)/review/page.tsx` +46 -4, the withdraw proof updated to the new rule, the proof `the-review-queue-first-view-does-not-move`. Audits that read `/portal/review`: roles, security, dashboards, mobile-overflow, native, v10-layout, w2-walk, token, proofs. Preflight GREEN, 38 rules, 111 s.
+
+**Prediction, bundle 68 (P4 at `eae4e85`, over main `849edd9`; full lane, a portal screen).**
+- Preflight GREEN. Board 64 of 64.
+- proofs-audit runs the new proof and the updated withdraw proof, both PASS.
+- `/portal/review`: engineer opens it 200 in roles-audit; signed out still 307 to its own sign in; v10-layout "follows V10's layout rules"; native-audit doc 0px, tables 0; no horizontal scroll at 360, 390 or desktop; contrast passes; the w2 walk steps that open it read "works" at 1280 and 390; token-audit passes with ListControls already on its list.
+- perf-audit: no public file changes, so every listed route keeps its HTML, JS, font and image bytes; LCP in bundle 63's range, `/coverage` excepted under its NOT STABLE note and the green-board rule.
+- Heights unchanged: 15,856 and 15,090, no new warning. No migration. Merges on a match.
+
 **Result, bundle 66 (board 41402651253 on `a545b8e`): 63 of 64, RED, NOT MERGED, c PARKED.** seo-audit: "/partners/badge: 0 page(s) link to it; every sitemap page needs at least two". A real finding the prediction missed: the page went into the sitemap with no inbound link. Speed and heights in range (`/` 2,590, `/coverage` 2,338, coastal-bend 2,716, service 2,750, cost guide 2,540; TBT 35 to 57). One natural prose link exists (`/press`, logo section); the second would be the footer, a sitewide template link, so asked on issue #1 (6572085510), recommending `/press` plus a footer link. First red for c; a second red on a new commit parks it for good.
 
 **Bundle 67, item j:** main `8fa0592` merged in as `24f41a7` (clean), preflight GREEN, 38 rules, 101 s. Board 41410202142 dispatched on `24f41a7`. Prediction as written above; `/coverage` outside bundle 63's range would be an untouched page with unchanged bytes, recorded under the green-board rule.
