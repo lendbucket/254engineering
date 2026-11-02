@@ -4024,6 +4024,22 @@ export const APPLIED = [
       "reaches field technicians only (WIDE_GRANT_TECHNICIANS_ONLY in onboarding-scope.ts), the narrower reading " +
       "taken on issue #1 (comment 6470846047).",
   },
+  {
+    file: "0105_identity_and_i9_record_what_was_seen_and_by_whom.sql", appliedBy: "apply_migration",
+    fingerprint: "812467e78ee8e18958afef349643e8de",
+    behaviour: "5f6a399607c588e7c383e4a24d8e8224",
+    production: null,
+    proves: { table: "eng_onboardings", column: "identity_document_type" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0105 on 2026-11-01, with 0104 reproducing its recorded " +
+      "pair. Four columns on eng_onboardings (1374 to 1378) and six behaviour facts (1328 to 1334): four check " +
+      "constraints and two foreign keys to eng_profiles.",
+    because:
+      "WRITTEN 2026-11-01 ON feat/onboarding-end-to-end, Robert's ruling P1 (finish the portal): identity and I-9 " +
+      "verification record the document type seen, who and when, and no copy of any document. NOT YET ON " +
+      "DEVELOPMENT OR PRODUCTION: it waits for the chat counterpart's sitting from its stage branch, and the branch " +
+      "does not merge until production reads it back. Section 0 at the top of the file must read 0 and 0 first.",
+  },
 ];
 
 /*

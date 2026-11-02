@@ -318,8 +318,16 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * 0a97717f953b0be7267ab818ad99eda6, read off fingerprint-at.mjs with 0099
  * reproducing its recorded pair first.
  */
-const EXPECTED_FINGERPRINT = "0a97717f953b0be7267ab818ad99eda6";
-const EXPECTED_COLUMNS = 1374;
+/*
+ * Moved 2026-11-01 by 0105, identity and I-9 record what was seen and by whom,
+ * by Robert's ruling P1: 1,374 to 1,378 is four columns on eng_onboardings
+ * (identity_document_type, identity_verified_by, i9_document_type,
+ * i9_examined_by); no table, no trigger, no function; shape
+ * 812467e78ee8e18958afef349643e8de, read off fingerprint-at.mjs with 0104
+ * reproducing its recorded pair first.
+ */
+const EXPECTED_FINGERPRINT = "812467e78ee8e18958afef349643e8de";
+const EXPECTED_COLUMNS = 1378;
 const EXPECTED_TABLES = 104;
 /* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts.
  * 0074 adds two: eng_partner_billing_touch and eng_partner_billing_events_immutable.
