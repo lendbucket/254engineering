@@ -671,7 +671,7 @@ export const topics: Topic[] = [
     evidence: "2026-10-16, operator's Ahrefs pull, US, supplied with the brief: primary 'wpi8' 600/mo, KD 0. Supporting: 'wpi-8', 'wpi 8 certificate', 'windstorm certificate texas'.",
     angles: {
       "254": {
-        angle: "The certificate family (WPI-8, WPI-8-E, WPI-8-C) and the forms that produce each, read from TDI's forms and process pages: the WPI-1, the WPI-2-BC series assigned by construction start date, the WPI-2E, what one certificate records, and address corrections. Not the statute walk-through, which is /insights/windstorm-certificate-of-compliance.",
+        angle: "The certificate family (WPI-8, WPI-8-E, WPI-8-C) and the forms that produce each, read from TDI's forms and process pages: the WPI-1, the WPI-2-BC series assigned by construction start date, the WPI-2E, what one certificate records, and address corrections, with the statute's six month limit, fee provision and accountability clauses folded in from the retired statute post, which redirects here (item h, 2026-11-01).",
         path: "/insights/wpi-8-certificate",
         status: "live",
       },

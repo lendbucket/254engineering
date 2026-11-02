@@ -1188,7 +1188,8 @@ const buyerInsights: Insight[] = [
   // --------------------------------------------------------- buyers, post 6
   {
     slug: "pre-purchase-home-inspection",
-    title: "Pre Purchase Home Inspection Guide | 254 Engineering",
+    /* Item e, Robert 2026-11-01: position 11.75; the title leads with the search phrase. */
+    title: "Pre Purchase Home Inspection in Texas | 254 Engineering",
     h1: "The pre purchase home inspection in Texas, and where an engineer fits",
     description:
       "How a pre purchase home inspection works in Texas: the option period, what TREC rules require, the roof, and when to add an engineer before closing. Read more.",
@@ -1197,7 +1198,7 @@ const buyerInsights: Insight[] = [
     eyebrow: "Buying and lending",
     primaryKeyword: "pre purchase home inspection",
     datePublished: BUYERS_SECTION_DATE,
-    dateModified: "2026-10-25",
+    dateModified: "2026-11-01",
     body: [
       {
         kind: "p",

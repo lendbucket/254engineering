@@ -22,7 +22,16 @@ const { insights } = await import("../../src/content/insights.ts");
 const PAGE = "src/app/(site)/insights/[slug]/page.tsx";
 const page = readFileSync(PAGE, "utf8");
 
-check("the corpus was found (the floor is the 37 articles of 2026-10-31)", insights.length >= 37, `${insights.length} articles`);
+/*
+ * The floor guards against a walk that found nothing. It was the 37 articles of
+ * 2026-10-31; item h (Robert, 2026-11-01) retired one,
+ * /insights/windstorm-certificate-of-compliance, which now answers 301 to the
+ * WPI-8 guide, so the floor was 36. Item f (Robert, 2026-11-01) added
+ * /insights/structural-inspection-cost-texas, so the floor is 37. It moves only
+ * with a ruled removal or addition, named here, and never to make a short walk
+ * pass.
+ */
+check("the corpus was found (the floor is 37 articles: the 37 of 2026-10-31, less the one item h retired, plus the cost guide of item f)", insights.length >= 37, `${insights.length} articles`);
 
 /* The Updated date: on every article, a real day, never before publication, and always rendered. */
 const DAY = /^\d{4}-\d{2}-\d{2}$/;

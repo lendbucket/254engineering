@@ -181,19 +181,28 @@ export const regions: Region[] = [
     h1: "Engineering Services Across San Antonio and South Central Texas",
     title: "San Antonio Engineering Coverage | 254 Engineering",
     description:
-      "Engineering coverage across San Antonio and South Central Texas, where the Balcones Escarpment splits limestone from clay. See the county list.",
+      "Coverage across San Antonio and South Central Texas, where the Balcones Escarpment decides whether a foundation sits on limestone or clay. See the county list.",
     summary:
-      "Thirteen counties along the Balcones Escarpment. The single most useful fact about engineering here is that the escarpment runs through Bexar County, and the soil on either side of it is not the same soil.",
+      "Thirteen counties along the Balcones Escarpment. The single most useful fact about a foundation here is that the escarpment runs through Bexar County, and the ground on either side of it is not the same ground.",
     anchors: ["San Antonio", "New Braunfels", "Kerrville", "Boerne", "Seguin", "Fredericksburg"],
     wind: [
       "This region is fully inland. There is no windstorm certification requirement, and design wind speeds are moderate by Texas standards, which puts the governing load on gravity and on soil rather than on wind for most residential structures.",
       "Hail and severe thunderstorm wind still reach the region regularly, and the Hill Country counties see damaging downslope wind events that surprise structures designed only to the mapped speed.",
       "Flash flooding is the more distinctive hazard here. The escarpment turns Hill Country rainfall into fast moving water, and site and foundation decisions on stream adjacent property are made with scour and hydrostatic loading in view.",
     ],
+    /*
+     * FOUNDATION CONTEXT ONLY. Robert, 2026-11-01, round 3 item i: this page
+     * ranks 3.5 for "soil engineering san antonio", and the firm offers no
+     * geotechnical engineering. So the ground is described only for what it
+     * does to a foundation, the expansive clay is tied to what a foundation
+     * inspection looks for, and the last paragraph says plainly what is not
+     * offered. Pinned by scripts/proofs/the-san-antonio-page-claims-no-soil-engineering.mjs.
+     */
     soils: [
       "The Balcones Escarpment divides the region and it divides the engineering with it. North and west of it, in Kendall, Kerr, Bandera, Gillespie, and northern Bexar county, soils are thin over Edwards limestone, rock is often within a few feet of the surface, and the foundation problem is excavation and bearing on irregular rock rather than expansion.",
-      "South and east of the escarpment the region sits on Taylor and Del Rio clays and the marls beneath them, with high plasticity and pronounced seasonal movement. Southern and eastern Bexar, Wilson, Guadalupe, Atascosa, Medina, and Frio counties behave much more like the Blackland Prairie than like the Hill Country twenty miles away.",
-      "Karst features complicate the limestone side. Voids, solution cavities, and infilled sinkholes are encountered in the Edwards outcrop, and a foundation investigation that assumes uniform rock bearing on that terrain is assuming too much.",
+      "South and east of the escarpment the region sits on Taylor and Del Rio clays and the marls beneath them, with high plasticity and pronounced seasonal movement, and the effects of that movement on a slab are what a foundation inspection here is looking for. Southern and eastern Bexar, Wilson, Guadalupe, Atascosa, Medina, and Frio counties behave much more like the Blackland Prairie than like the Hill Country twenty miles away.",
+      "Karst features complicate the limestone side. Voids, solution cavities, and infilled sinkholes are encountered in the Edwards outcrop, and a foundation design that assumes uniform rock bearing on that terrain is assuming too much.",
+      "254 Engineering does not offer geotechnical engineering, soil testing or soil borings. The ground is described here because it decides how a foundation performs, and how a foundation is performing is what a foundation inspection evaluates.",
     ],
     permitting: [
       "The City of San Antonio permits within its limits and exercises authority in its extraterritorial jurisdiction, and Bexar County permits in unincorporated areas. New Braunfels, Schertz, Boerne, Seguin, and Kerrville each operate their own departments with their own adopted editions.",
