@@ -83,7 +83,9 @@ Stripe calls 254's webhook, not Sealed's. The order is marked paid there and rel
 
 ## Files
 
-**An order with files cannot come through this door from Sealed yet.** Files attached to an order must already be in this site's own upload folder. They are put there by the upload door 254's own order page uses, and that door is not open to a sister site. A Sealed order today is an order without attachments, and the office asks the customer for documents from the file. This is a question for Robert, below.
+**Built on Robert's ruling 6 of 2026-10-27, behind the closed switch.** A request with `intent: "upload"` carrying the site's key gets a signed upload URL from the same machinery 254's own order page uses (`signOrderUpload`, the private `eng-uploads` bucket, a PDF to 40 MB and a photograph to 10), under `orders/<clientRequestId>/`. The customer's browser sends the file straight to that URL. The order or quote that follows may attach only files under that same request, and any other object is refused (`siteFileProblem` in `src/lib/sister-order-door-rules.ts`). Sealed must send the upload request with the same `clientRequestId` it then places the order with.
+
+*Recorded 2026-11-01 (Robert's ruling P6, which asked for this door): this section said the door was not open to a sister site and put it to Robert as a question. It was answered and built on 2026-10-27 and this page was not updated.*
 
 ## What Sealed must stop doing
 
@@ -92,7 +94,9 @@ Stripe calls 254's webhook, not Sealed's. The order is marked paid there and rel
 
 ## Rate
 
-**This door has no per-site rate limit today.** The lead door allows 20 a minute per site (`SISTER_RATE_PER_MINUTE`, a ruling). This is a question for Robert, below.
+**Twenty requests a minute per site, built on Robert's ruling 6 of 2026-10-27** (`SITE_ORDER_RATE_PER_MINUTE`, migration 0100, `eng_site_order_requests`). Every request counts, an upload, a quote and an unreadable body included, and is counted after the switch and the gate and before anything is priced or placed. Over the limit answers `429` with nothing placed. A count that cannot be read, or a request that cannot be logged, answers `503` rather than letting the request through. It is a separate figure from the lead door's `SISTER_RATE_PER_MINUTE`, so one moving does not move the other.
+
+*Recorded 2026-11-01: this section said the door had no limit. 0100 has been on production since 2026-10-28.*
 
 ## The switch that opens it, in order
 
@@ -103,8 +107,12 @@ Stripe calls 254's webhook, not Sealed's. The order is marked paid there and rel
 
 The launch screen (`/portal/launch`) shows where the switch stands, under "Switches stated in configuration".
 
-## Questions for Robert, each with a recommendation
+## The three questions, answered and built
 
-1. **Rate limit on the orders door.** Recommendation: the same 20 a minute per site as the lead door, counted from the orders themselves, built before Sealed's switch opens.
-2. **Files from Sealed.** Recommendation: a signed upload door for a keyed sister site, writing to a folder of its own, built before Sealed's switch opens. Until then, Sealed orders carry no attachments.
-3. **A duplicate's checkout.** Recommendation: when a duplicate's order is still awaiting payment, return a fresh checkout for it, the way 254's own order flow handles a retry, after asking the money door again.
+Robert answered all three in ruling 6 of 2026-10-27, 22:05 Central, and confirmed them as item P6 of 2026-11-01. Each is built behind the closed switch, and Sealed and StampMyPlans stay closed.
+
+1. **Rate limit on the orders door.** Twenty a minute per site (above).
+2. **Files from Sealed.** The signed upload door (above).
+3. **A duplicate's checkout.** A repeated request whose order is still awaiting payment gets `startCheckout` asked again. Inside the provider's idempotency window the same session comes back, and after it a new one is opened. A paid, canceled or otherwise settled order gets its status and no checkout (`repeatAnswer`).
+
+Proved by `scripts/proofs/a-site-is-held-to-its-rate-its-files-and-one-checkout.mjs` and `scripts/proofs/a-sister-order-is-a-normal-order-behind-its-switch.mjs`, both run with `--conditions=react-server`.

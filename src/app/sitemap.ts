@@ -102,6 +102,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     entry("/contact", 0.7, "yearly"),
     /* The press kit (Robert, 2026-10-26, 15:57 Central, piece 1). */
     entry("/press", 0.5, "yearly"),
+    /*
+     * The partner badge (/partners/badge) is NOT listed: Robert, 2026-11-02,
+     * answer to 6572085510, "remove it from the sitemap and mark it noindex".
+     * It is a tool for partners, linked from /press, and the sitemap-driven
+     * audits read it by name instead.
+     */
     entry("/privacy", 0.3, "yearly"),
     entry("/terms", 0.3, "yearly"),
   ];

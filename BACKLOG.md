@@ -245,18 +245,21 @@ has not been counted.
 "superseded" status filter that shows them, so the firm's own accounts are not
 buried under probe records and nothing is hidden for good.
 
-## SEALED ENGINEERING ORDERS: THE DOOR IS CONFIRMED AND CLOSED BY A SWITCH, THREE THINGS OPEN
+## SEALED ENGINEERING ORDERS: THE DOOR IS CONFIRMED, CLOSED BY A SWITCH, AND ITS THREE THINGS ARE BUILT
 
 Robert's addendum of 2026-10-25, item 10, built 2026-10-27 on
 `feat/sealed-handoff-and-w2`. The spec for the Sealed repository is
 `docs/sealed-order-handoff.md`; this entry is the pointer. `/api/orders` places
 a keyed sister's order through `placeOrder` and opens checkout with
 `startCheckout`, and `sisterOrdering` in `src/config/sister-ordering.ts` keeps
-Sealed and StampMyPlans closed until Robert opens one. **Open, each a question
-there with a recommendation:** a per-site rate limit on the orders door, a signed
-upload door so a sister's order can carry files, and a fresh checkout for a
-duplicate whose order is still awaiting payment. Opening Sealed waits on Sealed's
-repository changing first, which is not this repository's to do.
+Sealed and StampMyPlans closed until Robert opens one. **The three things this
+entry listed as open were answered by Robert's ruling 6 of 2026-10-27 and built
+the same night** (0959af0, migration 0100 on production since 2026-10-28): twenty
+requests a minute per site, a signed upload door for a sister's files, and a
+checkout asked again for a repeat whose order is unpaid. This entry still read
+"open" until 2026-11-01, when Robert's ruling P6 asked for them again; corrected
+then, with the spec. **What is left is outside this repository:** opening Sealed
+waits on Sealed's repository changing first.
 
 ## THE SIGN-UP AND INSURANCE OVERRIDE SCREENS: SHOWN ON THE LAUNCH SCREEN, NOT SWITCHABLE, AWAITING A RULING
 
@@ -278,8 +281,10 @@ Robert's addendum of 2026-10-25, items 4, 6 and 8b, with his targets of
 published roof figure, so no customer sees one until the firm is open; for the
 six lines whose target has no segments behind it (PUBLISHED_TURNAROUND), whether
 the date shows at gate open is Robert's ruling;
-(2) business days count Monday to Friday with no holidays, because the firm has
-no declared holiday calendar;
+(2) CLOSED 2026-11-01 by Robert's ruling P8: business days skip the seven firm
+holidays declared in `src/config/firm-holidays.ts` (a fixed date on a weekend
+is observed on the weekday beside it), proved by
+`scripts/proofs/business-days-skip-the-firm-holidays.mjs`;
 (3) the eng-uploads bucket now takes 40 MB for every upload in it, and a career
 upload is held to 10 MB by the application alone;
 (4) item 8b keeps evidence thumbnails and the paged export here, as ruled
@@ -1612,7 +1617,7 @@ a commit is one the next session has to go looking for.
 
 | Asked | Subject | State |
 | --- | --- | --- |
-| 2026-10-06 | **Technician onboarding cannot finish, queued after roof certification works end to end** | **QUEUED, NO BUILD, by operator ruling.** Surveyed read only on 2026-10-06 against main: (1) activation requires every dispatch-required and admin item to be `accepted` (`src/lib/ops-credentials.ts`, `activationReadiness`) and nothing in the portal can accept one: `setItemDecision` in `src/lib/onboarding.ts` has no caller, and `setVerification` in `src/lib/admin-onboarding.ts` has had no importer since the `/admin` screens were deleted on 2026-09-06, so the identity and I-9 verification steps lost their screen; (2) the `onboardingInvite` email has no sender, and the link is shown once for the operator to copy; (3) the step text in `src/content/onboarding-checklists.ts` still mentions photo ID, W-4 and I-9 uploads and a voided check, and the completion screen says two steps still need the firm when an engineer has five; (4) the engineer path never records a licence number at activation, and the coverage form renders only for technicians while readiness requires counties for every role. Until this is built, Aman and Robert's technician profile are set up through the People screen's create and invite. |
+| 2026-10-06 | **Technician onboarding cannot finish, queued after roof certification works end to end** | **BUILT 2026-11-01 ON `feat/onboarding-end-to-end`, Robert's ruling P1; MERGES AFTER MIGRATION 0105 IS READ BACK FROM PRODUCTION.** Each item is accepted or rejected on /portal/onboarding, a rejection with its reason, an audit row first and an email to the person (`src/lib/onboarding-decisions.ts`, the rule in `src/lib/onboarding-decision-rules.ts`, `setItemDecision` its write); identity and the I-9 are recorded as the document type seen, who and when, with no copy (`src/lib/admin-onboarding.ts`, `src/lib/onboarding-verification.ts`, the columns and constraints in 0105), and the two operator items take their state from that record; activation records an engineer's license number on the profile and its expiry as a verified credential, readiness asks counties of `COVERAGE_REQUIRED_ROLES` (the technician) and the screen renders the form for exactly those; the step text, the invite email, the submitted email and the completion screen no longer ask for an ID or a tax form and count per role (`firmItemLabels`). Item (2) below had already closed on 2026-10-28 (the invite is emailed). Proved by `scripts/proofs/onboarding-finishes-in-the-portal.mjs` and walked invite to activated by `scripts/onboarding-walk-audit.mjs` on the board, which says COULD NOT TELL until 0105 is on development. The 2026-10-06 survey, kept: Surveyed read only on 2026-10-06 against main: (1) activation requires every dispatch-required and admin item to be `accepted` (`src/lib/ops-credentials.ts`, `activationReadiness`) and nothing in the portal can accept one: `setItemDecision` in `src/lib/onboarding.ts` has no caller, and `setVerification` in `src/lib/admin-onboarding.ts` has had no importer since the `/admin` screens were deleted on 2026-09-06, so the identity and I-9 verification steps lost their screen; (2) the `onboardingInvite` email has no sender, and the link is shown once for the operator to copy; (3) the step text in `src/content/onboarding-checklists.ts` still mentions photo ID, W-4 and I-9 uploads and a voided check, and the completion screen says two steps still need the firm when an engineer has five; (4) the engineer path never records a licence number at activation, and the coverage form renders only for technicians while readiness requires counties for every role. Until this is built, Aman and Robert's technician profile are set up through the People screen's create and invite. |
 | 2026-10-06 | **Technician training academy, queued after roof certification works end to end** | **ENGINE BUILT 2026-11-01 on `feat/training-academy`, Robert's ruling P3; TWO THINGS WAIT.** Built: the courses in `src/content/academy/courses.ts` (course 1 drawn verbatim from each signed protocol's sections 4 to 8 plus 254-RC-001's photo procedure, a quiz per lesson, each lesson naming the protocol version it teaches; course 2 a placeholder), the rules in `src/lib/academy.ts` (pass mark, version binding by content hash, nothing graduated against a draft), approvals and attempts in migration 0106 (pending, `stage/0106-academy`), `/portal/training` for the office and the engineer, the courses on the technician's onboarding link, and one question asked by every door that enrolls a field technician (activation, the People screen, the roles screen). **Waits:** (a) the engineer of record's approval of course 1 on `/portal/training`; (b) Robert's text for course 2. Until both are in force nobody can graduate, so no new field technician can be enrolled. Proofs: `the-academy-teaches-the-protocols-own-words`, `nothing-graduates-against-a-draft`. No video and no generated person, by the same ruling, which replaces the video sentence below. The instruction as first queued: Two courses a technician must graduate before the `field_tech` role is enrolled: (1) duties, responsibilities and each signed protocol, with content and quiz questions approved by Aman and versioned to the protocol version it teaches; (2) a firm safety course on ladder use and fall protection on roofs, written by Robert. Video lessons may be AI generated, never presenting a generated person as staff, with narration matching the protocol text. Graduation is the entry requirement only: certification still requires Aman's sign off after a supervised inspection. |
 | 2026-10-06 | **0055 carries `requires_discipline = null`, and it is known** | **KNOWN, NOT A DEFECT ON PRODUCTION.** Production's RC-001 row carries `structural`, read by the operator's chat counterpart on 2026-10-06, so 0056 corrected it there. The `null` in 0055 is a seed artifact. 0055 is applied and on main and is not changed. The generator no longer reproduces 0055 because of it, which is recorded on `feat/protocol-registry`. |
 | 2026-10-06 | **Dispatch readiness on production: a sitting script, and a role that blocks it** | **OPEN, SCRIPT WRITTEN, NOT RUN.** `docs/production-sitting-dispatch-readiness.md` writes Robert's roof certification, all 254 counties and two credentials. Dispatch only considers role `field_tech` and his profile is `admin`, so the role has to be ruled first (the document recommends a second technician profile). The W-9 and contractor agreement block is held for a ruling on whether an owner needs them. |

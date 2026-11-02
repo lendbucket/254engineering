@@ -13,6 +13,7 @@ import { ArticleJsonLd, JsonLd, breadcrumbSchema, faqSchema } from "@/lib/schema
 import { windstormBySlug, windstormPages } from "@/content/windstorm-program";
 import { TDI_WINDSTORM_SOURCE, windstormCountyAnswers } from "@/content/windstorm-county-tool";
 import { WindstormCountyCheck } from "@/components/site/WindstormCountyCheck";
+import { InsightBody, SourceList } from "@/components/insights/Body";
 
 export const dynamicParams = false;
 
@@ -83,7 +84,8 @@ export default async function WindstormClusterPage({
       </PageHeader>
 
       {page.sections.map((section, i) => {
-        const tone = toneFor(i, page.sections.length);
+        const banded = toneFor(i, page.sections.length);
+        const tone = section.table && banded === "navy" ? ("white" as const) : banded;
         const onDark = tone === "navy";
         return (
           <Section key={section.title} tone={tone}>
@@ -104,9 +106,18 @@ export default async function WindstormClusterPage({
                 />
               ))}
             </div>
+            {/* A section's table renders the way an insights table does, stacked into labelled rows at phone width. Its colors are the light surface's, which is why toneFor never puts a table on navy. */}
+            {section.table ? <InsightBody blocks={[{ kind: "table", ...section.table }]} /> : null}
           </Section>
         );
       })}
+
+      {page.sources ? (
+        <Section tone="white">
+          <SectionHead eyebrow="Sources" title="Where these facts come from" />
+          <SourceList sources={page.sources} />
+        </Section>
+      ) : null}
 
       {/* The county check sits after the sections, on a white band, so it
           never touches the dark FAQ band or another sunk band. */}

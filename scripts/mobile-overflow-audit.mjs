@@ -227,7 +227,8 @@ async function routes() {
   );
   // The homepage and the waitlist are reachable and indexable; whether they are
   // in the sitemap is a separate question from whether they overflow.
-  for (const extra of ["/", "/waitlist"]) if (!found.includes(extra)) found.push(extra);
+  // The partner badge left the sitemap on 2026-11-02 (Robert, noindex), so it is added by name.
+  for (const extra of ["/", "/waitlist", "/partners/badge"]) if (!found.includes(extra)) found.push(extra);
 
   /*
    * The sitemap is the public list and the inventory is everything else. Pages
