@@ -4024,6 +4024,23 @@ export const APPLIED = [
       "reaches field technicians only (WIDE_GRANT_TECHNICIANS_ONLY in onboarding-scope.ts), the narrower reading " +
       "taken on issue #1 (comment 6470846047).",
   },
+  {
+    file: "0106_the_academy_records_approvals_and_attempts.sql", appliedBy: "apply_migration",
+    fingerprint: "a38cdc761b90af3348910f4e7e897990",
+    behaviour: "ef58094ea9f9038df6247cac20ed115d",
+    production: null,
+    proves: { table: "eng_academy_attempts" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0106 on 2026-11-01, on a chain WITHOUT 0105, which is P1's " +
+      "migration on its own branch (feat/onboarding-end-to-end). Two tables: 1374 to 1391 columns, 104 to 106 tables, " +
+      "1328 to 1351 facts. Whichever of 0105 and 0106 merges second re-derives both figures on the combined chain.",
+    because:
+      "WRITTEN 2026-11-01 ON feat/training-academy, Robert's ruling P3 of 2026-11-01 (the technician training academy: " +
+      "courses, lessons, quizzes, a pass mark, every attempt recorded, each course versioned to the protocol version it " +
+      "teaches, nothing graduated against a draft, graduation from both required courses before a field_tech " +
+      "enrollment). His ruling the same evening: any migration goes to development on a stage/ branch and waits for the " +
+      "chat counterpart's production sitting. Not applied anywhere yet; staged on stage/0106-academy.",
+  },
 ];
 
 /*

@@ -318,9 +318,18 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * 0a97717f953b0be7267ab818ad99eda6, read off fingerprint-at.mjs with 0099
  * reproducing its recorded pair first.
  */
-const EXPECTED_FINGERPRINT = "0a97717f953b0be7267ab818ad99eda6";
-const EXPECTED_COLUMNS = 1374;
-const EXPECTED_TABLES = 104;
+/*
+ * Moved 2026-11-01 by 0106, the academy records approvals and attempts, by
+ * Robert's ruling P3 of 2026-11-01: 1,374 to 1,391 is
+ * eng_academy_course_approvals' seven columns and eng_academy_attempts' ten,
+ * and the table count moves 104 to 106; shape
+ * a38cdc761b90af3348910f4e7e897990, read off fingerprint-at.mjs on a chain
+ * WITHOUT 0105 (P1's migration, on its own branch). Whichever of the two
+ * merges second re-derives this figure on the combined chain.
+ */
+const EXPECTED_FINGERPRINT = "a38cdc761b90af3348910f4e7e897990";
+const EXPECTED_COLUMNS = 1391;
+const EXPECTED_TABLES = 106;
 /* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts.
  * 0074 adds two: eng_partner_billing_touch and eng_partner_billing_events_immutable.
  * 0075 adds one: eng_payment_events_guarded.
@@ -341,8 +350,10 @@ const EXPECTED_TABLES = 104;
  * eng_insurance_policies_audit and eng_insurance_alerts_guard.
  * 0098 adds two, by Robert's addendum of 2026-10-25, item 3: eng_quote_files_guard
  * and eng_quote_requests_guard.
- * 0099 adds one, by Robert's addendum of 2026-10-25, item 8b: eng_alert_recipients_guard. */
-const EXPECTED_TRIGGERS = 104;
+ * 0099 adds one, by Robert's addendum of 2026-10-25, item 8b: eng_alert_recipients_guard.
+ * 0106 adds two, by Robert's ruling P3 of 2026-11-01: eng_academy_course_approvals_append_only
+ * and eng_academy_attempts_append_only. */
+const EXPECTED_TRIGGERS = 106;
 /**
  * 0014 added eng_freeze_attribution and 0019 added two more, the partner
  * entry freeze and its delete refusal, which are trigger functions like the
