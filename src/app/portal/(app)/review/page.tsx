@@ -167,10 +167,15 @@ export default async function ReviewPage({
       )
     : null;
   const serviceName = (slug: string) => services.find((s) => s.slug === slug)?.name ?? slug;
-  /* P4: what he chose, or nothing, in which case `shown` is `queue` in its own order. */
+  /*
+    P4: what he chose, or nothing, in which case `shown` is `queue` in its own
+    order. An unread queue leaves it empty rather than null: the page decides on
+    `queue === null` first and says the queue could not be read, so `shown` is
+    only ever read beside a queue that was.
+  */
   const listSpec = reviewQueueList(serviceName, services.map((s) => s.slug), actor?.id ?? null);
   const listQuery = staffListQuery(params, listSpec);
-  const shown = queue === null ? null : staffListRows(queue, listQuery, listSpec);
+  const shown = queue === null ? [] : staffListRows(queue, listQuery, listSpec);
 
   const actions = selected
     ? availableReviewActions(
@@ -390,7 +395,7 @@ export default async function ReviewPage({
 
       <div className="grid gap-6 lg:grid-cols-[minmax(280px,360px)_1fr]">
         <div className={selected ? "hidden lg:block" : "block"}>
-          {queue === null || shown === null ? (
+          {queue === null ? (
             <p role="alert" className="text-[14px] leading-[1.6] text-[var(--ink)]">
               The review queue could not be read just now, so whether anything is waiting is not known. Reload the page; nothing was changed.
             </p>

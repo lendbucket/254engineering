@@ -86,10 +86,10 @@ check("and its read runs only for the licence holder", /const standing = mayDeci
 check("so nobody else is drawn the panel", /\{standing === null \? null : !standing\.ok \? \(/.test(live) && (live.match(/<CertificationStandingPanel/g) ?? []).length === 1);
 check("a failed read is said, never an empty list", /Technicians&apos; certifications could not be read[\s\S]{0,80}\{standing\.error\}/.test(live));
 
-const queueAt = at(live, /\{queue === null \|\| shown === null \? \(/);
+const queueAt = at(live, /\{queue === null \? \(/);
 check("the queue's render is found", queueAt >= 0);
 const queueRender = queueAt < 0 ? "" : live.slice(queueAt);
-check("the review queue is rendered from the P4 list over its read, and nothing else", /const shown = queue === null \? null : staffListRows\(queue, listQuery, listSpec\);/.test(live) && /\{shown\.map\(\(f\) => \{/.test(queueRender) && !/\{queue\.map\(/.test(live));
+check("the review queue is rendered from the P4 list over its read, and nothing else", /const shown = queue === null \? \[\] : staffListRows\(queue, listQuery, listSpec\);/.test(live) && /\{shown\.map\(\(f\) => \{/.test(queueRender) && !/\{queue\.map\(/.test(live));
 check("whose spec is the review queue's, built once", (live.match(/reviewQueueList\(/g) ?? []).length === 1 && /const listQuery = staffListQuery\(params, listSpec\);/.test(live));
 check("with no other sort or filter applied to it on the page", !/(queue|shown)\s*\.\s*(sort|filter|toSorted|slice)\(/.test(live) && !/\[\.\.\.(queue|shown)\]/.test(live));
 const voidAt = at(live, /<VoidSealPanel/);
