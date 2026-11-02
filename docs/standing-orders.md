@@ -108,6 +108,19 @@ Run until everything below is merged or parked, then post the morning report and
 
 **How this reads against the queue as it stands.** P1, P3 and P5 need their migrations on development, which the chat sits from the stage branches (asked in 6568178900); until then they cannot board green, so each is parked behind the sitting and the next item boards. P1 and P3 also carry questions to Robert (same comment); by "a question never stops the queue" they are parked until answered. P2 and P10 are posts, done. P6 is a docs-only record fix (fast lane). P7 is closed.
 
+## ROBERT'S ANSWERS, 2026-11-02 morning (relayed in session, all as recommended)
+
+- **P2 permissions (6567596115): approved with one addition.** engineer loses `clients.list`; read_only loses `pricing.read`, `billing.read`, `ledger.read_all` **and `clients.list`**; every CSV export moves to the admin export gate (option a), per his 2026-10-28 ruling "owner or admin only". The chat read production's `eng_role_grants` on 2026-11-02 and it matches the posted table. **Build it**: the revoke migration on a `stage/` branch for the counterpart's sitting, and roles-audit EXPECTED for all nine roles.
+- **P1 counties (6568178900 Q1): yes, field technicians only.** P1 is built that way; no change.
+- **P3 enrollment block (Q2): accepted; merge P3 after P1's walk.** Draft course 2 (ladder use and roof fall protection) from OSHA 29 CFR 1926 Subpart X and Subpart M, cited, marked "Awaiting Robert" for his approval.
+- **P3 back doors (Q3): yes, keep both refused.** His own technician profile is untouched.
+- **Item d (6570990439): yes, merge with both misses recorded.** Brought up to the current main and boarded on that tree first (a merge only from a boarded tree that includes main).
+- **Item c (6572085510): link `/partners/badge` from the `/press` sentence only, remove it from the sitemap and mark it noindex. No footer link.**
+- **P10 mobile (6567562093):** 1 deferred until a native app is needed; 2 yes, installable portal with offline start first; 3 yes, no sealing on the phone; 4 yes, field technician first; 5 yes, second factor required for technicians signing in on the app, except the owner's own account, which keeps its owner override; 6 yes, offers and returned evidence only. Recorded; nothing built for mobile tonight.
+- **Development sitting for 0105, 0106, 0107 done (6578648098). Board P1, P3, P5 in order.**
+
+**Board order from here:** P9 (running) → d (re-merged) → c (fixed) → P1 → P3 → P5 → P2. P1, P3, P5 and P2 carry migrations, so each is boarded and staged for a production sitting, not merged unattended.
+
 ## Finish the portal (Robert, 2026-11-01 evening), after GA4, g, d, c, j
 
 Robert's ruling, relayed in session, verbatim in substance:
