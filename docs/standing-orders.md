@@ -182,6 +182,12 @@ The chat posted five audit files on issue #1: auth 6585008053, money 6585008424,
 4. Austin: Robert opens the terms PDF and posts its date and answer. Austin stays on hold until then.
 - **The chat sat 0109 on development (6588568307). Q5 may board after P2.**
 
+**Robert, 2026-11-02 evening (relayed in session):**
+- **Board P2 on 8852119 (6591248382).** Q6 boards with the same proof fix in its turn.
+- **R3 (6589813147):** 1 approved: the narrow counted exemption for the open script variants in src/content/crm-scripts.ts only, with the second check that they render nowhere except behind the sellable test. 2 keep Houston and Waxahachie; add a city only after its published checklist is read. 3 yes, R3 and R7 merge in the same sitting. 4 yes, "other" follows the roof line.
+- **R2 (6589406190):** 1 keep TREC running. 2 yes, retire the old prospects CSV import in a later R item. 3 yes, a count of previews waiting on the manager's home screen in R5.
+- **0111 (fb7c092) and 0112: the counterpart sits them on development immediately before R1's board, not earlier.** (The same holds in spirit for 0113 and 0114 before R4 and R5; ask each sitting just before its board.)
+
 **Follow-ups queued after Q14, in this order:** M2 session epoch; per-door attempt counters; suppress the review request on a decline; message search and mentions over every readable conversation. Then the low findings.
 
 (The "Finish the portal" heading below was dropped by my edit of the Q section and is restored here, 2026-11-02.)
