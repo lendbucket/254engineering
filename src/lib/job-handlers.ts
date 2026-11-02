@@ -78,6 +78,27 @@ function keyOf(...parts: unknown[]): string {
  * template for something decided last week, and the refund disclosure already
  * establishes that the firm keeps what was actually shown.
  */
+/** The key Resend dedupes one job's send on (Q12, office audit F3). Exported for the proof. */
+export function emailJobIdempotencyKey(jobId: number): string {
+  return `email-job-${jobId}`;
+}
+
+/*
+ * The provider accepted the message: write its id onto the job's payload
+ * before the job is marked done, so a re-run after an expired lease reads it
+ * and stops. A failed stamp is logged, not fatal: the message has gone, and the
+ * idempotency key still holds a re-run at the provider.
+ */
+async function stampSent(jobId: number, payload: Record<string, unknown>, messageId: string): Promise<void> {
+  const db = supabaseAdmin();
+  if (!db) return;
+  const { error } = await db
+    .from("eng_jobs")
+    .update({ payload: { ...payload, sentMessageId: messageId } })
+    .eq("id", jobId);
+  if (error) console.error(`[jobs] email.send #${jobId} was sent but its stamp did not save: ${error.message}`);
+}
+
 registerJob("email.send", {
   reachesOutside: true,
   reaches:
@@ -95,6 +116,20 @@ registerJob("email.send", {
     const subject = typeof p.subject === "string" ? p.subject : "";
     if (!to || !subject) {
       return { kind: "fatal", error: "An email job needs a recipient and a subject." };
+    }
+
+    /*
+     * ALREADY SENT, AND SAID SO ON THE JOB ITSELF. Robert's Q12 (office audit
+     * F3, 2026-11-02). A lease can expire between the provider accepting the
+     * message and this job being marked done, and the job is then claimable
+     * again. The provider's message id is stamped on the payload the moment
+     * Resend accepts it, so a re-run stops here; and the send carries a key per
+     * job, so a re-run that gets past a failed stamp is answered by Resend with
+     * the first message rather than a second one.
+     */
+    if (typeof p.sentMessageId === "string" && p.sentMessageId) {
+      console.warn("[jobs] email.send #" + job.id + " was already accepted as " + p.sentMessageId + "; not sent again.");
+      return { kind: "done" };
     }
 
     /*
@@ -155,9 +190,10 @@ registerJob("email.send", {
       replyTo: (p.replyTo as string) ?? undefined,
       text: signedText,
       html: signedHtml,
-    });
+    }, { idempotencyKey: emailJobIdempotencyKey(job.id) });
 
     if (result.outcome === "ok") {
+      await stampSent(job.id, p, result.messageId ?? "accepted");
       /*
        * THE ONLY PLACE CONTACT IS RECORDED, AND IT IS RECORDED HERE BECAUSE
        * THIS IS THE ONLY PLACE THAT KNOWS.
