@@ -12,6 +12,11 @@ import { RC001 } from "@/content/protocols/rc-001";
  * (ladder and roof fall safety) is a placeholder marked 'Awaiting Robert', same
  * rule. No video and no generated person."
  *
+ * COURSE 2 IS NOW DRAFTED, and still awaits Robert. His answer of 2026-11-02
+ * replaced the placeholder with a draft from OSHA 29 CFR 1926 Subparts X and M
+ * (see OSHA_SOURCES below). Written is not approved: it reads "Awaiting Robert"
+ * until he approves exactly this content.
+ *
  * COURSE 1 IS THE PROTOCOLS' OWN WORDS. Each lesson's reading is drawn at load
  * from the transcription of one signed protocol (src/content/protocols), by
  * section heading, so nothing in it is paraphrased and a change to the
@@ -98,6 +103,24 @@ const pl = sectionLines("254-PL-001", ROLES, NINE);
 const rs = sectionLines("254-RS-001", ROLES, NINE);
 const wp = sectionLines("254-WP-001", ROLES, NINE, wpTableCell);
 const fc = sectionLines("254-FC-001", ROLES, NINE);
+
+/*
+ * COURSE 2'S SOURCES. Robert, 2026-11-02: "Draft course 2 (ladder use and roof
+ * fall protection) from OSHA 29 CFR 1926 Subpart X and Subpart M, cited, marked
+ * 'Awaiting Robert' for my approval." Each reading line is the regulation's own
+ * text, prefixed with its section and paragraph, read from the eCFR versioner
+ * API for title 29 as up to date on 2026-10-29. A course 2 lesson names the
+ * subpart in place of a protocol, and this date in place of a version, so an
+ * amended regulation is a reason to draft a new course version the same way a
+ * new protocol version is. The owner approves it; until he does it reads
+ * "Awaiting Robert" and graduates nobody (src/lib/academy.ts).
+ */
+export const OSHA_SUBPART_X = "29 CFR 1926 Subpart X";
+export const OSHA_SUBPART_M = "29 CFR 1926 Subpart M";
+export const OSHA_SOURCES: Readonly<Record<string, string>> = {
+  [OSHA_SUBPART_X]: "eCFR 2026-10-29",
+  [OSHA_SUBPART_M]: "eCFR 2026-10-29",
+};
 
 export const ACADEMY_COURSES: readonly Course[] = [
   {
@@ -324,8 +347,165 @@ export const ACADEMY_COURSES: readonly Course[] = [
     title: "Ladder use and fall protection on roofs",
     approver: "owner",
     passMarkPercent: 80,
-    placeholder: "Awaiting Robert: this is the firm's own safety course on ladder use and fall protection on roofs, and Robert writes it.",
-    lessons: [],
+    placeholder: null,
+    lessons: [
+      {
+        key: "osha-ladder-inspection",
+        title: "Choosing and inspecting a ladder",
+        teaches: { documentNumber: OSHA_SUBPART_X, version: OSHA_SOURCES[OSHA_SUBPART_X] },
+        lines: [
+          "1926.1053(b)(15) Ladders shall be inspected by a competent person for visible defects on a periodic basis and after any occurrence that could affect their safe use.",
+          "1926.1053(b)(16) Portable ladders with structural defects, such as, but not limited to, broken or missing rungs, cleats, or steps, broken or split rails, corroded components, or other faulty or defective components, shall either be immediately marked in a manner that readily identifies them as defective, or be tagged with “Do Not Use” or similar language, and shall be withdrawn from service until repaired.",
+          "1926.1053(b)(18) Ladder repairs shall restore the ladder to a condition meeting its original design criteria, before the ladder is returned to use.",
+          "1926.1053(b)(2) Ladders shall be maintained free of oil, grease, and other slipping hazards.",
+          "1926.1053(b)(3) Ladders shall not be loaded beyond the maximum intended load for which they were built, nor beyond their manufacturer's rated capacity.",
+          "1926.1053(b)(4) Ladders shall be used only for the purpose for which they were designed.",
+          "1926.1053(b)(12) Ladders shall have nonconductive siderails if they are used where the employee or the ladder could contact exposed energized electrical equipment, except as provided in § 1926.955(b) and (c) of this part.",
+          "1926.1053(b)(19) Single-rail ladders shall not be used.",
+          "1926.1053(a)(8) A metal spreader or locking device shall be provided on each stepladder to hold the front and back sections in an open position when the ladder is being used.",
+        ],
+        quiz: [
+          {
+            prompt: "You find a portable ladder with a split rail. What happens to it?",
+            choices: ["It is used carefully until the end of the day", "It is marked as defective or tagged \"Do Not Use\", and withdrawn from service until repaired", "It is used only as a stepladder"],
+            answer: 1,
+            source: "shall either be immediately marked in a manner that readily identifies them as defective, or be tagged with “Do Not Use” or similar language, and shall be withdrawn from service until repaired.",
+          },
+          {
+            prompt: "When is a ladder inspected for visible defects?",
+            choices: ["Only when it is new", "On a periodic basis and after any occurrence that could affect its safe use", "Once a year by the manufacturer"],
+            answer: 1,
+            source: "Ladders shall be inspected by a competent person for visible defects on a periodic basis and after any occurrence that could affect their safe use.",
+          },
+          {
+            prompt: "The work is near an overhead service drop that could be energized. What kind of ladder side rails are required?",
+            choices: ["Nonconductive siderails", "Aluminum siderails", "Any siderails, if the ladder is new"],
+            answer: 0,
+            source: "Ladders shall have nonconductive siderails if they are used where the employee or the ladder could contact exposed energized electrical equipment",
+          },
+        ],
+      },
+      {
+        key: "osha-ladder-use",
+        title: "Setting up and climbing a ladder",
+        teaches: { documentNumber: OSHA_SUBPART_X, version: OSHA_SOURCES[OSHA_SUBPART_X] },
+        lines: [
+          "1926.1053(b)(1) When portable ladders are used for access to an upper landing surface, the ladder side rails shall extend at least 3 feet (.9 m) above the upper landing surface to which the ladder is used to gain access; or, when such an extension is not possible because of the ladder's length, then the ladder shall be secured at its top to a rigid support that will not deflect, and a grasping device, such as a grabrail, shall be provided to assist employees in mounting and dismounting the ladder.",
+          "1926.1053(b)(5)(i) Non-self-supporting ladders shall be used at an angle such that the horizontal distance from the top support to the foot of the ladder is approximately one-quarter of the working length of the ladder (the distance along the ladder between the foot and the top support).",
+          "1926.1053(b)(6) Ladders shall be used only on stable and level surfaces unless secured to prevent accidental displacement.",
+          "1926.1053(b)(7) Ladders shall not be used on slippery surfaces unless secured or provided with slip-resistant feet to prevent accidental displacement.",
+          "1926.1053(b)(8) Ladders placed in any location where they can be displaced by workplace activities or traffic, such as in passageways, doorways, or driveways, shall be secured to prevent accidental displacement, or a barricade shall be used to keep the activities or traffic away from the ladder.",
+          "1926.1053(b)(9) The area around the top and bottom of ladders shall be kept clear.",
+          "1926.1053(b)(10) The top of a non-self-supporting ladder shall be placed with the two rails supported equally unless it is equipped with a single support attachment.",
+          "1926.1053(b)(11) Ladders shall not be moved, shifted, or extended while occupied.",
+          "1926.1053(b)(13) The top or top step of a stepladder shall not be used as a step.",
+          "1926.1053(b)(20) When ascending or descending a ladder, the user shall face the ladder.",
+          "1926.1053(b)(21) Each employee shall use at least one hand to grasp the ladder when progressing up and/or down the ladder.",
+          "1926.1053(b)(22) An employee shall not carry any object or load that could cause the employee to lose balance and fall.",
+        ],
+        quiz: [
+          {
+            prompt: "An extension ladder gives access to a roof edge. How far must its side rails extend above the roof edge?",
+            choices: ["At least 1 foot", "At least 3 feet", "It does not matter if someone holds the base"],
+            answer: 1,
+            source: "the ladder side rails shall extend at least 3 feet (.9 m) above the upper landing surface to which the ladder is used to gain access",
+          },
+          {
+            prompt: "The ladder's working length to the gutter is 16 feet. About how far from the wall does its foot go?",
+            choices: ["About 1 foot", "About 4 feet, one quarter of the working length", "About 8 feet, half the working length"],
+            answer: 1,
+            source: "the horizontal distance from the top support to the foot of the ladder is approximately one-quarter of the working length of the ladder",
+          },
+          {
+            prompt: "The ladder stands in the client's driveway. What is required?",
+            choices: ["Nothing, if the job is short", "Secure it to prevent accidental displacement, or barricade the traffic away from it", "Leave the hazard lights on in the truck"],
+            answer: 1,
+            source: "shall be secured to prevent accidental displacement, or a barricade shall be used to keep the activities or traffic away from the ladder.",
+          },
+          {
+            prompt: "How do you climb with a camera and a clipboard?",
+            choices: ["Face the ladder, keep at least one hand on it, and carry nothing that could cost your balance", "Carry both in your hands and climb slowly", "Climb facing away from the ladder to see the roof"],
+            answer: 0,
+            source: "An employee shall not carry any object or load that could cause the employee to lose balance and fall.",
+          },
+        ],
+      },
+      {
+        key: "osha-roof-fall-protection",
+        title: "Fall protection on low-slope and steep roofs",
+        teaches: { documentNumber: OSHA_SUBPART_M, version: OSHA_SOURCES[OSHA_SUBPART_M] },
+        lines: [
+          "1926.500(b) Low-slope roof means a roof having a slope less than or equal to 4 in 12 (vertical to horizontal).",
+          "1926.500(b) Steep roof means a roof having a slope greater than 4 in 12 (vertical to horizontal).",
+          "1926.500(b) Unprotected sides and edges means any side or edge (except at entrances to points of access) of a walking/working surface, e.g., floor, roof, ramp, or runway where there is no wall or guardrail system at least 39 inches (1.0 m) high.",
+          "1926.501(a)(2) The employer shall determine if the walking/working surfaces on which its employees are to work have the strength and structural integrity to support employees safely. Employees shall be allowed to work on those surfaces only when the surfaces have the requisite strength and structural integrity.",
+          "1926.501(b)(1) Each employee on a walking/working surface (horizontal and vertical surface) with an unprotected side or edge which is 6 feet (1.8 m) or more above a lower level shall be protected from falling by the use of guardrail systems, safety net systems, or personal fall arrest systems.",
+          "1926.501(b)(4)(i) Each employee on walking/working surfaces shall be protected from falling through holes (including skylights) more than 6 feet (1.8 m) above lower levels, by personal fall arrest systems, covers, or guardrail systems erected around such holes.",
+          "1926.501(b)(10) Except as otherwise provided in paragraph (b) of this section, each employee engaged in roofing activities on low-slope roofs, with unprotected sides and edges 6 feet (1.8 m) or more above lower levels shall be protected from falling by guardrail systems, safety net systems, personal fall arrest systems, or a combination of warning line system and guardrail system, warning line system and safety net system, or warning line system and personal fall arrest system, or warning line system and safety monitoring system. Or, on roofs 50-feet (15.25 m) or less in width (see appendix A to subpart M of this part), the use of a safety monitoring system alone [i.e. without the warning line system] is permitted.",
+          "1926.501(b)(11) Each employee on a steep roof with unprotected sides and edges 6 feet (1.8 m) or more above lower levels shall be protected from falling by guardrail systems with toeboards, safety net systems, or personal fall arrest systems.",
+          "1926.500(b) Personal fall arrest system means a system used to arrest an employee in a fall from a working level. It consists of an anchorage, connectors, a body belt or body harness and may include a lanyard, deceleration device, lifeline, or suitable combinations of these. As of January 1, 1998, the use of a body belt for fall arrest is prohibited.",
+        ],
+        quiz: [
+          {
+            prompt: "A roof rises 6 inches for every 12 inches of run. Which kind of roof is it?",
+            choices: ["Low-slope, because it is under 45 degrees", "Steep, because its slope is greater than 4 in 12", "Flat"],
+            answer: 1,
+            source: "Steep roof means a roof having a slope greater than 4 in 12 (vertical to horizontal).",
+          },
+          {
+            prompt: "At what height above a lower level does an unprotected roof edge require fall protection?",
+            choices: ["6 feet or more", "10 feet or more", "Only above the second story"],
+            answer: 0,
+            source: "with an unprotected side or edge which is 6 feet (1.8 m) or more above a lower level shall be protected from falling",
+          },
+          {
+            prompt: "On a steep roof, which protection does 1926.501(b)(11) name?",
+            choices: ["A warning line alone", "Guardrail systems with toeboards, safety net systems, or personal fall arrest systems", "A safety monitor alone"],
+            answer: 1,
+            source: "shall be protected from falling by guardrail systems with toeboards, safety net systems, or personal fall arrest systems.",
+          },
+          {
+            prompt: "Can a body belt be used for fall arrest?",
+            choices: ["Yes, if it is new", "No, its use for fall arrest has been prohibited since January 1, 1998", "Yes, on low-slope roofs only"],
+            answer: 1,
+            source: "As of January 1, 1998, the use of a body belt for fall arrest is prohibited.",
+          },
+        ],
+      },
+      {
+        key: "osha-training-duties",
+        title: "Training, certification of training and retraining",
+        teaches: { documentNumber: OSHA_SUBPART_M, version: OSHA_SOURCES[OSHA_SUBPART_M] },
+        lines: [
+          "1926.1060(a) The employer shall provide a training program for each employee using ladders and stairways, as necessary. The program shall enable each employee to recognize hazards related to ladders and stairways, and shall train each employee in the procedures to be followed to minimize these hazards.",
+          "1926.1060(b) Retraining shall be provided for each employee as necessary so that the employee maintains the understanding and knowledge acquired through compliance with this section.",
+          "1926.503(a)(1) The employer shall provide a training program for each employee who might be exposed to fall hazards. The program shall enable each employee to recognize the hazards of falling and shall train each employee in the procedures to be followed in order to minimize these hazards.",
+          "1926.503(b)(1) The employer shall verify compliance with paragraph (a) of this section by preparing a written certification record. The written certification record shall contain the name or other identity of the employee trained, the date(s) of the training, and the signature of the person who conducted the training or the signature of the employer.",
+          "1926.503(c) When the employer has reason to believe that any affected employee who has already been trained does not have the understanding and skill required by paragraph (a) of this section, the employer shall retrain each such employee.",
+          "1926.503(c)(2) Changes in the types of fall protection systems or equipment to be used render previous training obsolete; or",
+        ],
+        quiz: [
+          {
+            prompt: "What must the fall hazard training enable each employee to do?",
+            choices: ["Recognize the hazards of falling, and follow the procedures that minimize them", "Inspect a roof faster", "Sign the job's safety form"],
+            answer: 0,
+            source: "The program shall enable each employee to recognize the hazards of falling and shall train each employee in the procedures to be followed in order to minimize these hazards.",
+          },
+          {
+            prompt: "What does the written certification record of fall protection training contain?",
+            choices: ["Only the course title", "The name or other identity of the employee, the date of the training, and the trainer's or employer's signature", "The employee's test score"],
+            answer: 1,
+            source: "The written certification record shall contain the name or other identity of the employee trained, the date(s) of the training, and the signature of the person who conducted the training or the signature of the employer.",
+          },
+          {
+            prompt: "The firm changes the fall arrest equipment it issues. What follows?",
+            choices: ["Nothing, training is done once", "Retraining, because a change in the equipment can render previous training obsolete", "A new ladder"],
+            answer: 1,
+            source: "Changes in the types of fall protection systems or equipment to be used render previous training obsolete",
+          },
+        ],
+      },
+    ],
   },
 ];
 
@@ -335,5 +515,6 @@ export const REQUIRED_COURSES: readonly string[] = ["duties-and-protocols", "lad
 /** The version of each protocol's transcription today, so a lesson naming an older one reads out of date. */
 export function currentProtocolVersion(documentNumber: string): string | null {
   if (documentNumber === RC001.documentNumber) return RC001.version;
+  if (documentNumber in OSHA_SOURCES) return OSHA_SOURCES[documentNumber];
   return SIGNABLE_PROTOCOLS.find((p) => p.documentNumber === documentNumber)?.version ?? null;
 }

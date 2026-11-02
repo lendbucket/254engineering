@@ -16,7 +16,10 @@
  *   - every quiz question's source sentence occurs word for word in its own
  *     lesson's reading, whitespace aside, and its answer is one of its choices;
  *   - no reading names a person or the banned trading name;
- *   - course 2 has no lessons, says it awaits Robert, and is the owner's;
+ *   - course 2, drafted from OSHA 29 CFR 1926 Subparts X and M on 2026-11-02,
+ *     reads "Awaiting Robert", is approved by the owner only, graduates
+ *     nobody without his approval, and cites a Subpart X or M section and
+ *     paragraph on every line of every reading;
  *   - both courses are required, and nothing in either is a video.
  *
  * NO DATABASE, NO SERVER, NO CREDENTIAL.
@@ -67,10 +70,38 @@ for (const lesson of course1?.lessons ?? []) {
   }
 }
 
-check("course 2 has no lessons yet", (course2?.lessons ?? []).length === 0);
-check("and says it awaits Robert", /^Awaiting Robert/.test(course2?.placeholder ?? ""));
+/*
+ * COURSE 2, drafted from OSHA 29 CFR 1926 Subparts X and M (Robert,
+ * 2026-11-02). Its readings cannot be compared to a transcription in this
+ * repository, so the proof holds the shape that makes the comparison possible
+ * by hand: every line carries the section and paragraph it quotes, every
+ * section is in Subpart X (1926.1050 to 1926.1060) or Subpart M (1926.500 to
+ * 1926.503), and every question is drawn from its own lesson's reading. The
+ * words were checked against the eCFR text on 2026-11-02 before commit.
+ */
+const { OSHA_SOURCES } = await import("../../src/content/academy/courses.ts");
+const { courseStanding, approvalRefusal, graduation, COURSE_STATUS_LABEL } = await import("../../src/lib/academy.ts");
+const CITE = /^1926\.(\d+)\((?:[a-z0-9]+)\)(?:\([a-z0-9]+\))* \S/;
+const inScope = (n) => (n >= 1050 && n <= 1060) || (n >= 500 && n <= 503);
+check("course 2 is written: no placeholder, and it has lessons", course2?.placeholder === null && (course2?.lessons ?? []).length >= 3, `${(course2?.lessons ?? []).length} lessons`);
+check("its standing with no approval reads Awaiting Robert", course2 && COURSE_STATUS_LABEL[courseStanding(course2, []).status] === "Awaiting Robert");
+check("only the owner may approve it, never the engineer of record", course2 && approvalRefusal(course2, [], "engineer_of_record") !== null && approvalRefusal(course2, [], "owner") === null);
+check("and with no approval of it, nobody graduates", graduation([], []).graduated === false && graduation([], []).courses.find((c) => c.slug === course2?.slug)?.status === "awaiting_robert");
+for (const lesson of course2?.lessons ?? []) {
+  check(`${lesson.key}: it teaches a subpart this ruling names, at the version its source records`, lesson.teaches.documentNumber in OSHA_SOURCES && OSHA_SOURCES[lesson.teaches.documentNumber] === lesson.teaches.version, `${lesson.teaches.documentNumber} ${lesson.teaches.version}`);
+  const cites = lesson.lines.map((l) => l.match(CITE));
+  check(`${lesson.key}: every line cites a section and paragraph`, lesson.lines.length >= 3 && cites.every(Boolean), `${lesson.lines.length} lines`);
+  check(`${lesson.key}: every cited section is in Subpart X or Subpart M`, cites.every((m) => m && inScope(Number(m[1]))), cites.map((m) => m?.[1]).join(","));
+  const reading = norm(lesson.lines.join(" "));
+  check(`${lesson.key}: no line names a person or the banned trading name`, !/Aman|Dhakal|Reyna|254 Engineering Services/i.test(reading));
+  check(`${lesson.key}: the quiz has questions`, lesson.quiz.length >= 3, `${lesson.quiz.length}`);
+  for (const [n, q] of lesson.quiz.entries()) {
+    check(`${lesson.key} question ${n + 1}: its source is in this reading`, reading.includes(norm(q.source)), q.source.slice(0, 60));
+    check(`${lesson.key} question ${n + 1}: its answer is one of its choices, and the choices differ`, Number.isInteger(q.answer) && q.answer >= 0 && q.answer < q.choices.length && new Set(q.choices).size === q.choices.length);
+  }
+}
 const everything = JSON.stringify(ACADEMY_COURSES);
 check("nothing in either course is a video or an image", !/\.(mp4|mov|webm|png|jpe?g|gif)\b|youtube|vimeo|<video/i.test(everything));
 
-console.log(wrong === 0 ? "PASS: course 1 is the signed protocols' own words, every question is drawn from its reading, and course 2 awaits Robert." : `FAIL: ${wrong} check(s).`);
+console.log(wrong === 0 ? "PASS: course 1 is the signed protocols' own words, course 2 cites OSHA Subparts X and M line by line, every question is drawn from its reading, and course 2 awaits Robert." : `FAIL: ${wrong} check(s).`);
 process.exitCode = wrong === 0 ? 0 : 1;

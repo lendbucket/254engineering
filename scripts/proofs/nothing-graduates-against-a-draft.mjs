@@ -31,10 +31,13 @@ const [real1, real2] = ACADEMY_COURSES;
 
 /* ---- the real courses, today: drafts, so nobody graduates ---- */
 check("course 1 with no approval awaits the engineer", courseStanding(real1, []).status === "awaiting_engineer");
-check("course 2, a placeholder, awaits Robert", courseStanding(real2, []).status === "awaiting_robert");
+check("course 2, drafted and not approved, awaits Robert", courseStanding(real2, []).status === "awaiting_robert");
 const today = graduation([], []);
 check("so nobody has graduated, and the blockers name both courses", !today.graduated && graduationBlockers(today).length === 2, graduationBlockers(today).join(" | "));
-check("a placeholder cannot be approved, even by the owner", approvalRefusal(real2, [], "owner") !== null);
+check("a placeholder cannot be approved, even by the owner", approvalRefusal({ ...real2, placeholder: "Awaiting Robert: not written.", lessons: [] }, [], "owner") !== null);
+check("course 2 as drafted can be approved by the owner only", approvalRefusal(real2, [], "owner") === null && approvalRefusal(real2, [], "engineer_of_record") !== null);
+const ownerApproval = { id: "o1", course_slug: real2.slug, course_version: real2.version, content_sha256: courseContentHash(real2), approver_kind: "owner", approved_by: "owner", created_at: "2026-11-02T00:00:00Z" };
+check("and only his approval of exactly this content puts it in force", courseStanding(real2, [ownerApproval]).status === "in_force" && courseStanding(real2, [{ ...ownerApproval, content_sha256: "0".repeat(64) }]).status === "awaiting_robert");
 check("course 1 cannot be approved by the owner", approvalRefusal(real1, [], "owner") !== null);
 check("course 1 can be approved by the engineer of record, as it stands", approvalRefusal(real1, [], "engineer_of_record") === null);
 
