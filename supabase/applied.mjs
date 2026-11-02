@@ -4106,6 +4106,27 @@ export const APPLIED = [
       "DELETEs naming both columns, the shape 0059 reached production in through apply_migration; if the MCP " +
       "cancels it as destructive, it is run by the operator under docs/production-sitting-destructive.md.",
   },
+  {
+    file: "0109_one_licence_number_belongs_to_one_engineer.sql", appliedBy: "apply_migration",
+    fingerprint: "22346b566a73ea946ca112725b16569f",
+    behaviour: "35929eba9b71a0d6daebb05cd004fdcb",
+    production: null,
+    proves: null,
+    provesNote:
+      "An index and a function body, neither of which the production check can probe by row or column. The " +
+      "read-back is by name in the sitting: pg_indexes holds eng_profiles_engineer_license_key, and " +
+      "eng_seal_act_check's source carries its 0109 clause. The migration's own closing block raises if either " +
+      "is missing.",
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-02 on the combined chain 0104 to 0109 (the P " +
+      "chain merged into fix/q5-one-licence). An index adds no column, so the shape is 0108's (22346b56, 1396 " +
+      "columns); the behaviour moves 1354 to 1355 facts, the index.",
+    because:
+      "WRITTEN 2026-11-02 ON fix/q5-one-licence AND STAGED ON stage/0109-one-licence-per-engineer FOR THE CHAT " +
+      "COUNTERPART'S SITTING; APPLIED NOWHERE. Robert's ruling Q5 of 2026-11-02 (audit field F5): a unique partial " +
+      "index on eng_profiles (license_number) where role = engineer, and createAccount and eng_seal_act_check refuse " +
+      "a duplicate. Section 0 refuses to run if two engineer profiles already share a number.",
+  },
 ];
 
 /*
