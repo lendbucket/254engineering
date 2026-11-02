@@ -268,6 +268,10 @@ WPI-8 facts stand as read from TDI and TWIA: TWIA's lookup is WPI-8-C only; the 
 - Standing note: perf `/coverage` NOT STABLE. No migration.
 - **On a match it merges** (Q1 answered). Then the production survey of answer 2.
 
+**Bundle 62 cancelled before its result (board 41375802010, cancelled in progress, never read).** The P3 build found that the onboarding invite carries its token in the PATH (`/onboarding/<token>`), which the `?token=` rule never saw, so GA4 would have sent the token to Google as a page path. Fixed on `c30be50`: `/onboarding` joins the excluded prefixes, and the proof walks every public route with a `[token]` segment and requires it excluded (injection verified, two red). Stricter than the ruling's four prefixes, no new exposure. Preflight GREEN, 38 rules, 109 s.
+
+**Prediction, bundle 63 (`feat/ga4` at `c30be50`, over main `a07b25e`; full lane).** Every line of bundle 62's prediction, unchanged: 64 of 64; no tag renders; JS within 1 KB of bundle 61; LCP `/` 2,100 to 2,900, `/coverage` 2,250 to 2,600, coastal-bend 2,200 to 2,950, service 2,550 to 2,850, the cost guide 2,000 to 2,900; TBT 25 to 65; CLS 0.000; heights 15,856 and 15,090. Standing note `/coverage` NOT STABLE. No migration. Merges on a match.
+
 **PENDING SYNC, keyword registry (Robert, answer 5, 2026-11-01).** `data/keyword-registry.ts` is meant to be synchronized verbatim across the three repos, and item h (`seo/wpi8-owners`, `49638cd`) changes one line in it. The 254 angle for the WPI-8 entry (path `/insights/wpi-8-certificate`) no longer says "Not the statute walk-through, which is /insights/windstorm-certificate-of-compliance." and now ends "...what one certificate records, and address corrections, with the statute's six month limit, fee provision and accountability clauses folded in from the retired statute post, which redirects here (item h, 2026-11-01)." **The Sealed Engineering and StampMyPlans repos need the same line once item h merges.** Not touched from here, by Robert's word.
 
 ## MORNING REPORT, 2026-10-31
