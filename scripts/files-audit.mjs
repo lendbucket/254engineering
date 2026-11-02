@@ -205,7 +205,13 @@ const GATED = { prelaunch: true };
     // A refusal does not go back into review by pressing back. Reopening one is
     // a deliberate act: somebody opens a new file.
     ["refused", "under_review", false],
-    ["refused", "sealed", false],
+    /*
+     * Was false until Robert's ruling Q4 of 2026-11-02 (audit field F8): the
+     * sealed option C letter on a 254-FC-001 decline delivers as a pass does,
+     * so the file moves refused, sealed, delivered. Still the engineer's move
+     * alone (documents.seal); refused straight to delivered stays refused.
+     */
+    ["refused", "sealed", true],
     ["refused", "delivered", false],
     ["evidence_submitted", "refused", false],
     ["under_review", "revisions_requested", true],

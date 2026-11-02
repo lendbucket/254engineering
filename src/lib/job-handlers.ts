@@ -26,6 +26,7 @@ import { sendInsuranceExpiryAlerts } from "./ops-insurance";
 import { notifyRepairsRequired, settleDecision } from "./ops-payments";
 import { orderForFile as liveOrderForFile } from "./order-for-file";
 import { REVIEW_AFTER_DECISION, reviewAfterDecisionKey } from "./review-jobs";
+import { lettersInsteadOfRefund } from "./foundation-decline-rules";
 import {
   selectAlerts,
   RATE_WINDOW_MINUTES,
@@ -979,10 +980,20 @@ registerJob("review.after_decision", {
        * work when he seals that letter (letter-seal.ts step 9). A decline
        * before dispatch is not this job and stays a refund (dispatch-hold.ts).
        * Read failing is a retry, never a refund decided on a guess.
+       *
+       * DECIDED FROM THE DETERMINATION, NOT THE SERVICE. Robert's ruling Q4 of
+       * 2026-11-02 (audit field F12). This read the file's service slug, so a
+       * foundation file refused with no 254-FC-001 decline recorded was neither
+       * refunded nor given a letter. The letter exists only for a recorded
+       * 254-FC-001 decline; anything else refused is refunded
+       * (foundation-decline-rules.ts says why the file's record answers it).
        */
-      const { data: refusedFile, error: fileError } = await db.from("eng_files").select("service_slug").eq("id", fileId).maybeSingle();
-      if (fileError) return { kind: "retry", error: `The file's service could not be read: ${fileError.message}` };
-      const lettersInstead = refusedFile?.service_slug === "foundation-inspections";
+      const { data: determinations, error: determinationError } = await db
+        .from("eng_determinations")
+        .select("protocol_document, determination")
+        .eq("file_id", fileId);
+      if (determinationError) return { kind: "retry", error: `The file's determinations could not be read: ${determinationError.message}` };
+      const lettersInstead = lettersInsteadOfRefund(determinations ?? []);
       const order = lettersInstead ? null : await liveOrderForFile(fileId, "id");
       if (order) {
         const { count, error } = await db
