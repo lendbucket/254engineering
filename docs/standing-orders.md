@@ -85,6 +85,27 @@ The source of truth for the running loop. Robert, 2026-10-29: the loop prompt is
 | m | GA4, `feat/ga4` **`761472a` (main `a07b25e` in, privacy paragraph added), preflight GREEN, Boarding (bundle 62)**. Bundle 61 on `a01eb49` met every line. **Robert: Q1 yes; Q2 no repository variable, merge on a green board without the tag; after the production deploy, three production runs each on `/`, `/coverage/coastal-bend`, `/services/windstorm-wpi-8`, LCP and TBT posted beside today's; revert GA4 and tell him if either worsens beyond variance.** Queue after m: g, d, c, j, then k only if the PDFs arrive |
 | truss letter, "5 year roof certification" | Parked by Robert, do not build |
 
+## Finish the portal (Robert, 2026-11-01 evening), after GA4, g, d, c, j
+
+Robert's ruling, relayed in session, verbatim in substance:
+- Work through P1 to P10 after the current queue (GA4, g, d, c, j), **one board per item**, standing orders apply.
+- Questions never stop the queue: post on issue #1 with a recommendation, park that item, move on.
+- **Any migration goes to development on a `stage/` branch and waits for the chat counterpart's production sitting.** Build the screens behind it so they work the day it lands. No production writes from here.
+- When P1 to P10 are each merged or parked, post one report on issue #1 listing every item with its commit or its parked question, **then stop**.
+
+| # | Item | State |
+| --- | --- | --- |
+| P1 | **Technician and engineer onboarding, end to end** (BACKLOG "Technician onboarding cannot finish"). Admin screen to accept or reject each onboarding item, reject needs a reason, an audit row, the person told by email. Identity and I-9 verification restored as an admin step on that screen: "verified", document type seen, who and when; **no copy of any ID or I-9 stored**. Activation records the engineer's license number and expiry; the coverage form renders for every role readiness requires counties for. Fix the checklist text (no photo ID, W-4, I-9 or voided check uploads; payroll paperwork is in Gusto) and the completion screen's step count per role. Proof: a probe technician and a probe engineer go from invite to activated with no SQL | Queued |
+| P2 | **Permissions for all seven roles** (BACKLOG "EXPECTED in roles-audit states three roles"). Draft the full EXPECTED table for admin, engineer, field_tech, customer_service, dispatcher, sales, read_only, from least privilege: money, refunds, pricing, roles, sealing and exports admin only unless a ruling grants them; licensed actions engineer only. **Post on issue #1** as a table grouped by area with changing grants marked. **Do not apply until Robert approves**; the chat counterpart reviews first | Queued |
+| P3 | **Technician training academy** (BACKLOG). Engine: courses, lessons, a quiz per lesson, pass mark, attempts recorded, each course versioned to the protocol version it teaches, graduation from both required courses before a field_tech enrollment can be created; admin and engineer progress screens. Course 1 drafted from each signed protocol's own text, "Awaiting engineer approval"; course 2 (ladder and roof fall safety) a placeholder "Awaiting Robert"; nothing graduates against a draft. No video, no generated person. Certification still needs the engineer's sign off after a supervised inspection; graduation is the entry requirement only | Queued |
+| P4 | **Engineer review queue: search, filter, sort.** The default order stays exactly as today; filters only narrow; nothing changes what he sees first unless he chooses it | Queued |
+| P5 | **Duplicate photo check.** SHA-256 of every evidence file at upload (migration, development first); the "no duplicate photos" check on the engineer's queue once every item in a job has a hash. Items captured before show "not checked", never a pass. Property location check stays off; no geocoder | Queued |
+| P6 | **Sister site ordering door**: per-site rate limit, signed upload door for a sister's order files, fresh checkout for a duplicate still awaiting payment, all behind the existing closed switch. Sealed and StampMyPlans stay closed | Queued |
+| P7 | **Sign-up and insurance override switches stay in configuration**, shown on /portal/launch as today. Close that question as ruled | Ruled; record only |
+| P8 | **Firm holiday calendar**: New Year's Day, Memorial Day, Independence Day, Labor Day, Thanksgiving, the day after, Christmas, in one config file; business days skip them. Status page target dates stay hidden until the gate opens | Queued |
+| P9 | **Exports**: CSV on credential review and insurance, same gate as the other staff lists. "Asked to be forgotten" gets no export | Queued |
+| P10 | **Mobile apps**: post the six questions from `docs/mobile-plan.md` on issue #1 with a recommendation each; publisher recommendation Craftline Brands IP LLC. Build nothing for mobile | Queued |
+
 ## Tonight's queue, in board order (Robert, 22:12 Central 2026-10-29)
 
 | # | Item | State |
