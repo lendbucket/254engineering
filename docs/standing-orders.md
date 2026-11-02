@@ -123,6 +123,8 @@ Run until everything below is merged or parked, then post the morning report and
 
 **Robert, 2026-11-02 (relayed in session), P2's two single-record exports: keep both on their current gates.** The engineer's monthly responsible charge log is his own record; one file's evidence binder follows access to that file. P2 is built that way; no change. **Development sitting for 0108 done (6581087129).** Board order stands: c (running), P1, P3, P5, P2.
 
+**Robert, 2026-11-02 (relayed in session): the chat restored the five grants on development (6581232441), so development matches main.** Board c, P1, P3, P5 as planned. **Before P2's board, tell the counterpart on issue #1** and it re-runs 0108's deletes on development; production sits 0108 after P2 passes. If any check objects to development's ledger recording 0108, post it on issue #1.
+
 ## Finish the portal (Robert, 2026-11-01 evening), after GA4, g, d, c, j
 
 Robert's ruling, relayed in session, verbatim in substance:
