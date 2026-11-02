@@ -131,6 +131,7 @@ console.log(`${BASE}, ${SCREENS.length} signed in screens\n`);
       "list and detail columns, which a phone shows one at a time",
     ],
     "src/app/portal/(app)/review/page.tsx": [
+      "the list's search, filter and sort (P4, 2026-11-01), which a phone shows with the list and hides with it while a package is open",
       "list and detail columns, which a phone shows one at a time",
       "list and detail columns, which a phone shows one at a time",
     ],

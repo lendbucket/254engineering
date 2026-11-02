@@ -2,6 +2,8 @@ import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { JsonLd, organizationSchema, websiteSchema } from "@/lib/schema";
 import { ReferralCapture } from "@/components/site/ReferralCapture";
+import { Analytics } from "@/components/site/Analytics";
+import { business } from "@/config/business";
 
 /**
  * The public site's chrome.
@@ -59,6 +61,8 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
         checkout would miss every referral that browsed first.
       */}
       <ReferralCapture />
+      {/* GA4 after idle, public pages only (Robert, 2026-11-01; src/lib/analytics.ts). */}
+      <Analytics host={new URL(business.url).host} />
     </>
   );
 }
