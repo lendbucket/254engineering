@@ -2581,7 +2581,8 @@ const RULED_CONDITIONS = [
     const sitemap = await read("/sitemap.xml");
     const routes = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => new URL(m[1]).pathname);
     for (const n of forbidden) if (sitemap.includes(n)) found.push(`/sitemap.xml: ${n}`);
-    const pages = [...new Set([...routes, "/llms.txt", "/llms-full.txt", "/robots.txt"])];
+    /* The partner badge prints the firm's registration and left the sitemap on 2026-11-02 (Robert, noindex), so it is read by name. */
+    const pages = [...new Set([...routes, "/partners/badge", "/llms.txt", "/llms-full.txt", "/robots.txt"])];
     for (const route of pages) {
       const body = await read(route);
       for (const n of forbidden) if (body.includes(n)) found.push(`${route}: ${n}`);
