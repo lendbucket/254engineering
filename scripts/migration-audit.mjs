@@ -355,10 +355,17 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * eng_prospects (roofer_application_id), 1,439 to 1,476; the table count moves
  * 108 to 109; and created_by on eng_prospects becomes nullable, which moves
  * the shape without a column. Read off fingerprint-at.mjs on the chain to 0113.
+ *
+ * Moved again by 0114, the sales list imports from named sources, by Robert's
+ * sales CRM ruling R2 of 2026-11-02, renumbered from 0112 to 0113 by his ruling
+ * (a) of 2026-11-04 and to 0114 by his order A of 2026-11-05: twenty columns on
+ * eng_crm_import_runs and thirteen on eng_crm_import_rows, 1,476 to 1,509; the
+ * table count moves 109 to 111; no trigger and no function. Read off
+ * fingerprint-at.mjs on the chain to 0114.
  */
-const EXPECTED_FINGERPRINT = "fead81771a43e1c4b0bd1f2b02e4fe2b";
-const EXPECTED_COLUMNS = 1476;
-const EXPECTED_TABLES = 109;
+const EXPECTED_FINGERPRINT = "PENDING_0114_SHAPE";
+const EXPECTED_COLUMNS = 1509;
+const EXPECTED_TABLES = 111;
 /* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts.
  * 0074 adds two: eng_partner_billing_touch and eng_partner_billing_events_immutable.
  * 0075 adds one: eng_payment_events_guarded.

@@ -4290,6 +4290,26 @@ export const APPLIED = [
       "due now review action, and a person holding roofers.review (admin and ops_manager) approves it, opening a " +
       "B2B account through door 2, or declines it, with a reason either way.",
   },
+  {
+    file: "0114_the_sales_list_imports_from_named_sources.sql", appliedBy: "apply_migration",
+    fingerprint: "PENDING_0114_SHAPE",
+    behaviour: "PENDING_0114_BEHAVIOUR",
+    production: null,
+    proves: { table: "eng_crm_import_runs" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on the chain to 0114, with 0113 (the roofer application) " +
+      "before it. Shape 1476 to 1509 columns: 20 on eng_crm_import_runs, 13 on eng_crm_import_rows; tables 109 to " +
+      "111. The file is byte identical to stage/0113-crm-imports with its own number moved from 0113 to 0114.",
+    because:
+      "WRITTEN 2026-11-02 ON feat/crm-r2-imports AS 0112, RENUMBERED TO 0113 BY ROBERT'S RULING (a) OF 2026-11-04 AND " +
+      "TO 0114 BY HIS ORDER A OF 2026-11-05 (the roofer application took 0113), STAGED ON stage/0114-crm-imports. " +
+      "DEVELOPMENT HOLDS THIS FILE UNDER ITS EARLIER NAME: 0113_the_sales_list_imports_from_named_sources was sat on " +
+      "2026-11-05 (6664433708, version 20261105171724), so development's history names it 0113 while main names it " +
+      "0114; the objects are the same, and production receives it as 0114. NOT ON PRODUCTION. Robert's sales CRM " +
+      "ruling of 2026-11-02, item R2, the import engine: one preview per source run, one verdict per record (add, " +
+      "merge, conflict, held, skip), and a person with crm.import writes (his answer 4); a record with no phone and " +
+      "no email is held (answer 3). Additive: two tables and a foreign key.",
+  },
 ];
 
 /*
