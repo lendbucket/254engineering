@@ -376,14 +376,14 @@ export const services: Service[] = [
     /* The loan programs stay in it: FHA, VA and USDA, Robert's answer to 6560030875 (2026-11-01). Price and seal, as answer 2 allows, because the three programs and the turnaround do not both fit. */
     description: fromPriceDescription("Manufactured home foundation certification for FHA, VA and USDA loans", "manufactured-home-foundation-certifications", "See what it confirms for a lender."),
     summary:
-      "The engineer's foundation certification required before an FHA, VA, or USDA loan will close on a manufactured home, measured against the HUD permanent foundations guide.",
+      "The engineer's foundation certification required before an FHA, VA or USDA loan will close on a manufactured home, measured against the HUD permanent foundations guide.",
     what: [
-      "Federally backed lending on a manufactured home turns on one document that a general home inspection cannot supply: a certification, signed and sealed by a licensed Professional Engineer, that the foundation system meets the standard in the HUD Permanent Foundations Guide for Manufactured Housing. FHA, VA, and USDA programs all require it, and a file will sit unclosed without it.",
+      "Federally backed lending on a manufactured home turns on one document that a general home inspection cannot supply: a certification, signed and sealed by a licensed Professional Engineer, that the foundation system meets the standard in the HUD Permanent Foundations Guide for Manufactured Housing. FHA, VA and USDA programs all require it, and a file will sit unclosed without it.",
       "The inspection looks at the whole support system rather than at the home. Pier type, spacing, and bearing, footing size and depth where it can be seen, anchoring and tie down where the design relies on it, perimeter enclosure, crawl space ventilation and vapor retarder, and site drainage away from the structure are all recorded and compared against the guide.",
       "Texas adds a second layer worth knowing about before an inspection is ordered. The Texas Department of Housing and Community Affairs administers manufactured housing statements of ownership and installation records separately from any lender requirement, and a home that was installed correctly may still have a record problem that the engineer's certification neither creates nor cures.",
     ],
     whoOrders: [
-      "Lenders, loan officers, and mortgage brokers closing FHA, VA, or USDA files",
+      "Lenders, loan officers, and mortgage brokers closing FHA, VA or USDA files",
       "Title companies that have found the certification missing from a file",
       "Buyers and sellers of a manufactured home on owned land",
       "Homeowners refinancing a manufactured home into a federally backed program",
@@ -396,7 +396,7 @@ export const services: Service[] = [
     faqs: [
       {
         q: "Why does a manufactured home need an engineer when a site built home does not?",
-        a: "Because the loan programs say so. FHA, VA, and USDA all require a licensed engineer's certification that the foundation meets the HUD permanent foundations standard, and no other inspection satisfies that requirement. It is a lending condition rather than a judgment about the home.",
+        a: "Because the loan programs say so. FHA, VA and USDA all require a licensed engineer's certification that the foundation meets the HUD permanent foundations standard, and no other inspection satisfies that requirement. It is a lending condition rather than a judgment about the home.",
       },
       {
         q: "What is the HUD Permanent Foundations Guide for Manufactured Housing?",

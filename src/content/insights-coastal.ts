@@ -475,7 +475,7 @@ export const coastalInsights: Insight[] = [
     eyebrow: "Windstorm law",
     primaryKeyword: "texas windstorm certificate lookup",
     datePublished: DATE,
-    dateModified: DATE,
+    dateModified: "2026-11-01",
     body: [
       {
         kind: "p",
@@ -544,6 +544,12 @@ export const coastalInsights: Insight[] = [
           "Print the certificate details for the file rather than relying on a screenshot of the results table.",
           "Treat a certificate as a record of work when it was done, not as a statement about the building now.",
         ],
+      },
+      /* Item g, Robert 2026-11-01: one short closing section linking the matching service, prices read from the catalog; nothing above it reworded. */
+      { kind: "h2", text: "WPI-8 inspections from 254 Engineering" },
+      {
+        kind: "p",
+        text: `Where a search finds no certificate and the work needs one, 254 Engineering's WPI-8 inspection is ${priceOf(WPI8_ONGOING)} for ongoing construction and ${priceOf(WPI8_COMPLETED)} for completed construction${coastalOfBoth(WPI8_ONGOING, WPI8_COMPLETED)}. The scope is on [the WPI-8 certification page](/services/windstorm-wpi-8).`,
       },
     ],
     sources: [

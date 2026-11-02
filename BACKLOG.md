@@ -245,18 +245,21 @@ has not been counted.
 "superseded" status filter that shows them, so the firm's own accounts are not
 buried under probe records and nothing is hidden for good.
 
-## SEALED ENGINEERING ORDERS: THE DOOR IS CONFIRMED AND CLOSED BY A SWITCH, THREE THINGS OPEN
+## SEALED ENGINEERING ORDERS: THE DOOR IS CONFIRMED, CLOSED BY A SWITCH, AND ITS THREE THINGS ARE BUILT
 
 Robert's addendum of 2026-10-25, item 10, built 2026-10-27 on
 `feat/sealed-handoff-and-w2`. The spec for the Sealed repository is
 `docs/sealed-order-handoff.md`; this entry is the pointer. `/api/orders` places
 a keyed sister's order through `placeOrder` and opens checkout with
 `startCheckout`, and `sisterOrdering` in `src/config/sister-ordering.ts` keeps
-Sealed and StampMyPlans closed until Robert opens one. **Open, each a question
-there with a recommendation:** a per-site rate limit on the orders door, a signed
-upload door so a sister's order can carry files, and a fresh checkout for a
-duplicate whose order is still awaiting payment. Opening Sealed waits on Sealed's
-repository changing first, which is not this repository's to do.
+Sealed and StampMyPlans closed until Robert opens one. **The three things this
+entry listed as open were answered by Robert's ruling 6 of 2026-10-27 and built
+the same night** (0959af0, migration 0100 on production since 2026-10-28): twenty
+requests a minute per site, a signed upload door for a sister's files, and a
+checkout asked again for a repeat whose order is unpaid. This entry still read
+"open" until 2026-11-01, when Robert's ruling P6 asked for them again; corrected
+then, with the spec. **What is left is outside this repository:** opening Sealed
+waits on Sealed's repository changing first.
 
 ## THE SIGN-UP AND INSURANCE OVERRIDE SCREENS: SHOWN ON THE LAUNCH SCREEN, NOT SWITCHABLE, AWAITING A RULING
 
@@ -278,8 +281,10 @@ Robert's addendum of 2026-10-25, items 4, 6 and 8b, with his targets of
 published roof figure, so no customer sees one until the firm is open; for the
 six lines whose target has no segments behind it (PUBLISHED_TURNAROUND), whether
 the date shows at gate open is Robert's ruling;
-(2) business days count Monday to Friday with no holidays, because the firm has
-no declared holiday calendar;
+(2) CLOSED 2026-11-01 by Robert's ruling P8: business days skip the seven firm
+holidays declared in `src/config/firm-holidays.ts` (a fixed date on a weekend
+is observed on the weekday beside it), proved by
+`scripts/proofs/business-days-skip-the-firm-holidays.mjs`;
 (3) the eng-uploads bucket now takes 40 MB for every upload in it, and a career
 upload is held to 10 MB by the application alone;
 (4) item 8b keeps evidence thumbnails and the paged export here, as ruled
