@@ -74,7 +74,7 @@ The source of truth for the running loop. Robert, 2026-10-29: the loop prompt is
 | e | **Merged as `a605060`** (board 41340491179) |
 | l | **Merged as `c1fd530`** (board 41347983909); font 98 to 48 KB; `/coverage` 2,591 to 2,339, coastal-bend 3,100 to 2,642, service 3,039 to 2,675, home 2,742 to 2,584; screenshots identical apart from orderable lines (production database against development). Second reading on i's board |
 | i | **Merged as `e8a6806`** (board 41354122919, 64 of 64; `/` missed my range on variance, merged on Robert's answer to 6565116449, miss in the merge message) |
-| f | **Boarding**, `seo/cost-guide` `6a62251` (main `e8a6806` in, corpus floor 37), preflight GREEN; board on `be36d86` cancelled because it lacked i |
+| f | **Parked, asked on issue #1.** `seo/cost-guide` `6a62251`, board 41362833959 64 of 64. One line missed on a page f changes: the WPI-8 guide is 15,856 px against "unchanged" 15,880, because `relatedReading()` now lists the cost guide there |
 | g | Built on f, `seo/closing-links` `1b27854`, preflight GREEN |
 | d | Built, `feat/catastrophe-zones` `dc40648`, preflight GREEN; boards after g |
 | c | Built, `feat/partner-badge` `5538443`, preflight GREEN; boards after d |
@@ -82,7 +82,7 @@ The source of truth for the running loop. Robert, 2026-10-29: the loop prompt is
 | k | Parked: HB-1-3555 answers 403 on rd.usda.gov and VAP26-07 renders only behind JavaScript on KnowVA; asked for the two PDFs (6560997657). **Robert's answer (relayed 2026-11-01): both chapters are attached to his comment on issue #1; download them into `docs/sources/` on ops/day, read both in full, cite the official rd.usda.gov and va.gov addresses with each edition's date, build k with its proof, and do not use the LINC copy.** As of 17:03 UTC no such comment or attachment exists on issue #1 or anywhere in the repo; k builds the moment it appears |
 | speed survey | **Posted (6563269468).** On production every measured template is under 2,500 ms and CLS 0.000 (home closest at 2,451); the board reads 500 to 1,000 ms slower (localhost profile). Largest shared costs: italic font preload (item l), header logo 51 KB raw (asked), a 72 KB chunk 22 to 29 KB unused (next) |
 | n | Header mark at drawn size, `perf/header-mark` `4c6b1f5` from `970ff56`, preflight GREEN, proof byte-exact and injection verified; 52 to 22 KB light, 30 to 15 KB dark. **Boards only on Robert's word** (asked in 6563269468). The 72 KB chunk is the React DOM and Next runtime; its unused bytes are framework paths, nothing to remove |
-| m | GA4, `feat/ga4` `672c1fb` from `970ff56`, preflight GREEN, proof injection verified. **Robert, 2026-11-01 evening: boards right after item f** (then g, d, c, j); status posted on issue #1. **Does not merge until Q1 (privacy paragraph) is answered; Q2 (the ID as a repository variable) decides whether the board's build renders the tag** |
+| m | GA4, `feat/ga4` **`a01eb49` (main `e8a6806` in), preflight GREEN, Boarding (bundle 61)**, proof injection verified. **Robert, 2026-11-01 evening: boards right after item f** (then g, d, c, j); status posted on issue #1. **Does not merge until Q1 (privacy paragraph) is answered; Q2 (the ID as a repository variable) decides whether the board's build renders the tag** |
 | truss letter, "5 year roof certification" | Parked by Robert, do not build |
 
 ## Tonight's queue, in board order (Robert, 22:12 Central 2026-10-29)

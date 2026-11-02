@@ -231,6 +231,25 @@ WPI-8 facts stand as read from TDI and TWIA: TWIA's lookup is WPI-8-C only; the 
 
 **GA4 re-queued (Robert, 2026-11-01 evening): item m, `feat/ga4` `672c1fb`, boards right after item f, ahead of g, d, c, j.** After f merges: bring it up to main, preflight, state its prediction here, board. Q1 (privacy paragraph) and Q2 (the ID as a repository variable) from 6563216436 are still unanswered. Without Q2 the board's build renders no tag, so it measures the code path only and says so. Without Q1 it does not merge, however green.
 
+**Result, bundle 60 (board 41362833959 on `6a62251`): 64 of 64, preflight GREEN 38 rules. Not merged: one prediction line missed on a page the branch changes.**
+- **Met.** The new row `/insights/structural-inspection-cost-texas` read 2,613 ms (spread +56), 328 KB against 540, font 48. It is not in the height warnings, so it is under 15,000 px. `/coverage` read 2,490 ms and `/services/windstorm-wpi-8` 2,702 ms. `/insights/pre-purchase-home-inspection` is unchanged at 15,090 px.
+- **Below range, on the good side, on pages f does not touch.** `/` read 2,134 ms against 2,450 to 2,900; its bytes are 57/147/48/51 as before (total 371 against 370). `/coverage/coastal-bend` read 2,265 ms against 2,500 to 2,950; its bytes are identical (16/149/48/71). Robert's green-board rule covers both.
+- **The miss that stops the merge.** `/insights/wpi-8-certificate` read 15,856 px against my "unchanged" (15,880 on boards 1 and 2). That is 24 px shorter, and 144 px under the ceiling.
+- **Cause, read in the source.** `relatedReading()` in `src/content/insights.ts` ranks by section, then cluster, then newest `datePublished`. The cost guide is the newest article in the coastal section, so it enters the WPI-8 guide's related reading list and replaces a card with a longer title. So f does change that page, and I failed to predict it. Robert's rule says a missed line on a page the branch touches stops the merge.
+- **Asked on issue #1** whether f may merge. **Recommendation: yes.** The change is deterministic, it is understood from the source, and it moves the page 24 px further from its ceiling. If the answer is no, the only remedy is to exclude the cost guide from that list, which is a content decision for Robert.
+- **Meanwhile f is parked and m boards** (questions never stop the queue).
+
+**Bundle 61, item m (GA4), brought up to main.** Main `e8a6806` merged into `feat/ga4` as `a01eb49`. Preflight GREEN, 38 rules, 0 failed, 112 s.
+
+**Prediction, bundle 61, item m (`feat/ga4` at `a01eb49`, over main `e8a6806`, without f; full lane: the public layouts, two order pages and `src/lib/analytics.ts`).**
+- Preflight GREEN (stated above). The proof `analytics-loads-idle-on-public-pages-only` runs among the static proofs.
+- Board: 64 of 64. soc2-audit passes the inventory entry `NEXT_PUBLIC_GA_MEASUREMENT_ID`. security-audit, surface-audit and every portal audit pass; nothing renders on `/portal`, `/admin`, `/partner` or `/account`.
+- **No tag renders.** Q2 is unanswered, so the board's build has no ID. This board measures the cost of the client component and nothing of gtag.js. I say so here and again in the result.
+- **perf-audit.** JS grows by 0 to 5 KB on public routes for the client component; HTML, font and img are unchanged. LCP ranges, widened by the variance seen on bundle 60: `/` 2,100 to 2,900; `/coverage` 2,250 to 2,600; `/coverage/coastal-bend` 2,200 to 2,950; `/services/windstorm-wpi-8` 2,550 to 2,850. TBT stays 25 to 65 ms on every row. CLS stays 0.000.
+- **Height warnings unchanged:** `/insights/wpi-8-certificate` at 15,880 px (main's value, since f is not in this tree) and `/insights/pre-purchase-home-inspection` at 15,090 px.
+- Standing note: perf `/coverage` NOT STABLE. No migration.
+- **Does not merge until Q1 (the privacy paragraph) is answered, however green.**
+
 **PENDING SYNC, keyword registry (Robert, answer 5, 2026-11-01).** `data/keyword-registry.ts` is meant to be synchronized verbatim across the three repos, and item h (`seo/wpi8-owners`, `49638cd`) changes one line in it. The 254 angle for the WPI-8 entry (path `/insights/wpi-8-certificate`) no longer says "Not the statute walk-through, which is /insights/windstorm-certificate-of-compliance." and now ends "...what one certificate records, and address corrections, with the statute's six month limit, fee provision and accountability clauses folded in from the retired statute post, which redirects here (item h, 2026-11-01)." **The Sealed Engineering and StampMyPlans repos need the same line once item h merges.** Not touched from here, by Robert's word.
 
 ## MORNING REPORT, 2026-10-31
