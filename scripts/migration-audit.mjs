@@ -318,8 +318,16 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * 0a97717f953b0be7267ab818ad99eda6, read off fingerprint-at.mjs with 0099
  * reproducing its recorded pair first.
  */
-const EXPECTED_FINGERPRINT = "0a97717f953b0be7267ab818ad99eda6";
-const EXPECTED_COLUMNS = 1374;
+/*
+ * Moved 2026-11-01 by 0107, every evidence file carries its SHA-256, by
+ * Robert's ruling P5: 1,374 to 1,375 is eng_evidence_items.content_sha256, and
+ * the table count is unchanged; shape e12033a2c91fead686fc9a4632ed20dc, read
+ * off fingerprint-at.mjs with 0104 reproducing its recorded pair first. Read on
+ * a branch whose chain runs 0104 then 0107, so it is re-read at the board once
+ * 0105 and 0106 are on main ahead of it.
+ */
+const EXPECTED_FINGERPRINT = "e12033a2c91fead686fc9a4632ed20dc";
+const EXPECTED_COLUMNS = 1375;
 const EXPECTED_TABLES = 104;
 /* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts.
  * 0074 adds two: eng_partner_billing_touch and eng_partner_billing_events_immutable.
