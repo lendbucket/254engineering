@@ -4187,6 +4187,22 @@ export const APPLIED = [
       "and crm.import, crm.assign and crm.reports for admin and ops_manager. Additive: the prospect kind check stays " +
       "until Robert's destructive sitting (answer 8).",
   },
+  {
+    file: "0112_the_sales_list_imports_from_named_sources.sql", appliedBy: "apply_migration",
+    fingerprint: "7c9872e4b4836ec9de20ddf1776033f1",
+    behaviour: "8575a60084c878c5d2704d4116eede37",
+    production: null,
+    proves: { table: "eng_crm_import_runs" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-02 on the combined chain 0104 to 0112. Shape 1439 " +
+      "to 1472 columns: 20 on eng_crm_import_runs, 13 on eng_crm_import_rows; tables 108 to 110. Behaviour 1409 to " +
+      "1440 facts: the two tables' keys, checks and indexes, and one foreign key from eng_prospect_sources.import_run_id.",
+    because:
+      "WRITTEN 2026-11-02 ON feat/crm-r2-imports AND STAGED ON stage/0112-crm-imports FOR THE CHAT COUNTERPART'S " +
+      "SITTING; APPLIED NOWHERE. Robert's sales CRM ruling of 2026-11-02, item R2, the import engine: one preview per " +
+      "source run, one verdict per record (add, merge, conflict, held, skip), and a person with crm.import writes " +
+      "(his answer 4); a record with no phone and no email is held (answer 3). Additive: two tables and a foreign key.",
+  },
 ];
 
 /*
