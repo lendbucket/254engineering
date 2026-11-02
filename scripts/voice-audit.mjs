@@ -252,7 +252,8 @@ const routes = [...sm.html.matchAll(/<loc>([^<]+)<\/loc>/g)].map(
 // The waitlist is out of the sitemap by design and is the single most
 // compliance sensitive page on the site, so it is crawled explicitly.
 // The design brief left the sitemap on 2026-10-25 (a noindex quote form), so it is read by name.
-const allRoutes = [...routes, "/waitlist", "/design-inquiry", "/llms.txt", "/llms-full.txt"];
+// The partner badge left the sitemap on 2026-11-02 (Robert, noindex) and carries the registration sentence, so it is read by name.
+const allRoutes = [...routes, "/waitlist", "/design-inquiry", "/partners/badge", "/llms.txt", "/llms-full.txt"];
 
 if (allRoutes.length <= 3) {
   console.error("voice-audit: sitemap contained no URLs; refusing to report a pass on zero routes");

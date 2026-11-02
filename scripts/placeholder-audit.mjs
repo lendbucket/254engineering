@@ -278,7 +278,8 @@ const routes =
 // most likely to carry a slip is not the one page nobody checks.
 /* The web manifest names the site to a phone's home screen, so it is read too (2026-10-25). */
 /* The design brief left the sitemap on 2026-10-25 (a noindex quote form), so it is read by name. */
-const EXTRA_ROUTES = ["/waitlist", "/design-inquiry", "/llms.txt", "/llms-full.txt", "/manifest.webmanifest"];
+/* The partner badge left the sitemap on 2026-11-02 (Robert, noindex), so it is read by name. */
+const EXTRA_ROUTES = ["/waitlist", "/design-inquiry", "/partners/badge", "/llms.txt", "/llms-full.txt", "/manifest.webmanifest"];
 
 if (sm.status !== 200) {
   bail(`cannot read sitemap at ${BASE}/sitemap.xml (status ${sm.status})`);

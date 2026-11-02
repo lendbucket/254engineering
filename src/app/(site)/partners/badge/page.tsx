@@ -32,6 +32,8 @@ export const metadata: Metadata = buildMetadata({
   description:
     "A text-only badge for a partner's own site, naming the firm of record for the engineering, with the HTML to copy. No logo and no script. See the badge.",
   path: "/partners/badge",
+  /* Robert, 2026-11-02: noindex and out of the sitemap; /press links it. */
+  noIndex: true,
 });
 
 const crumbs = [

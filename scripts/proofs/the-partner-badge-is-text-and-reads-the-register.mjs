@@ -15,8 +15,11 @@
  *   C  that sentence names the registrant and the number the register holds
  *   D  the route and the page both take the sentence from partnerBadgeText and
  *      type no firm name or number of their own
- *   E  the snippets link business.url, carry no script, and the page is in the
- *      sitemap so the sitemap-driven audits measure it
+ *   E  the snippets link business.url and carry no script
+ *   F  Robert, 2026-11-02 (answer to 6572085510): the page is out of the
+ *      sitemap and noindex, /press links it in prose, there is no footer link,
+ *      and every audit that takes its subject from the sitemap reads it by name,
+ *      so leaving the sitemap does not leave it unmeasured
  *
  *   node node_modules/tsx/dist/cli.mjs --conditions=react-server scripts/proofs/the-partner-badge-is-text-and-reads-the-register.mjs
  */
@@ -62,7 +65,14 @@ const textSnippet = partnerBadgeHtml(text, business.url);
 check("the text snippet links business.url", textSnippet.startsWith(`<a href="${business.url}"`));
 check("the page's image snippet links business.url and the SVG", page.includes("<a href=\"${business.url}\" rel=\"noopener\"><img src=\"${svgUrl}\""));
 check("no snippet carries a script", !/<script/i.test(page) && !/<script/i.test(textSnippet));
-check("the page is in the sitemap", readFileSync("src/app/sitemap.ts", "utf8").includes('entry("/partners/badge"'));
+check("the page is not in the sitemap", !readFileSync("src/app/sitemap.ts", "utf8").includes('entry("/partners/badge"'));
+check("the page is noindex", /noIndex: true,/.test(page.slice(page.indexOf("buildMetadata("), page.indexOf("});", page.indexOf("buildMetadata(")))));
+const press = readFileSync("src/app/(site)/press/page.tsx", "utf8");
+check("/press links it", press.includes('href="/partners/badge"'));
+check("the footer does not", !readFileSync("src/components/site/SiteFooter.tsx", "utf8").includes("/partners/badge"));
+for (const audit of ["seo-audit", "voice-audit", "placeholder-audit", "cta-audit", "mobile-overflow-audit", "compliance-audit"]) {
+  check(`${audit} reads it by name`, readFileSync(`scripts/${audit}.mjs`, "utf8").includes('"/partners/badge"'));
+}
 
 let failed = 0;
 for (const x of out) {
@@ -71,7 +81,7 @@ for (const x of out) {
 }
 console.log(
   failed === 0
-    ? "PASS: the partner badge is a text-only SVG whose sentence is partnerBadgeText's, naming the registrant and number the register holds, offered as plain links with no script on a page the sitemap lists."
+    ? "PASS: the partner badge is a text-only SVG whose sentence is partnerBadgeText's, naming the registrant and number the register holds, offered as plain links with no script, on a noindex page outside the sitemap that /press links and the sitemap-driven audits read by name."
     : `FAIL: ${failed} check(s).`,
 );
 process.exitCode = failed === 0 ? 0 : 1;
