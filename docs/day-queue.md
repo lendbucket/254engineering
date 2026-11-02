@@ -371,6 +371,18 @@ WPI-8 facts stand as read from TDI and TWIA: TWIA's lookup is WPI-8-C only; the 
 
 **Result, bundle 75 (board 41503285565 on `0d7438f`): 65 of 65, preflight GREEN. P5 BOARDED GREEN, NOT MERGED (0105 to 0107 wait for production).** The duplicate photo proof, the review page proofs and the walk PASS; migration-audit PASS; bytes identical to bundle 74; `/` 2,439, `/coverage` 2,346, coastal-bend 2,587, cost guide 2,565, TBT 40 to 67. **Missed on an untouched page: `/services/windstorm-wpi-8` 2,288** (the same row as bundles 70 and 74). The writers shard ran about 60 minutes.
 
+**SITTINGS, 6587890300 (2026-11-02 20:38 UTC):** 0105, 0106, 0107 applied to PRODUCTION from the boarded commits and read back; 0108 re-run on development (0 of 5 rows, admin 4 of 4, 186 grants); 0110 applied on development; **0109 held**: development has 11 probe engineer profiles sharing two licence numbers (AUDIT-WALK-PE 9, AUDIT-ADDENDUM-PE 2) from older walks, and the order-path and design-addendum walks insert a fresh engineer with a fixed licence each run, so the index would turn the second run red.
+
+**P1, P3 and P5 MERGED as `34599d9`** (P5's boarded tree `0d7438f`, which carries P3 and P1, plus ledger commit `bee25a6` marking 0105 to 0107 production; schema-ledger-audit PASS on the merged main, 108 merged, all declared applied; pushed, ls-remote confirms).
+
+**Bundle 76, P2** (`feat/permissions-nine-roles`): main `34599d9` merged in as `1f488bf` (clean), preflight GREEN, 38 rules, 109 s. Development holds 0108's revokes.
+
+**Prediction, bundle 76 (P2 at `1f488bf`; full lane, roles, exports, migration 0108).**
+- Board 65 of 65. roles-audit PASS against the nine-role EXPECTED table, with development's grants matching (engineer without clients.list; read_only without pricing.read, billing.read, ledger.read_all, clients.list); "an engineer can open /portal/clients" now expected refused and asserted so.
+- The export proofs PASS (every CSV export on the admin gate; the charge log and the binder keep their gates, Robert 2026-11-02). security-audit PASS.
+- migration-audit PASS (shape unchanged at `22346b56…`, 1,396; behaviour on the replay `961400e8…`, 1,354); schema-ledger PASS with 0108 pending on a feature branch.
+- Public bytes identical; LCP in bundle 63's range, `/coverage` and `/services/windstorm-wpi-8` read under the green-board rule if outside it. Heights unchanged. Does not merge until 0108 sits on production.
+
 **P2 waits for the chat's re-run of 0108 on development** (asked 6586857015, by Robert's word in 6581232441).
 
 **Built in the background since Robert's audit and CRM rulings** (all forks, none pushed except stage branches, none boarded): Q1 `9bffc32`, Q2 `970d8d0`, Q3 `b6f6a2e`, Q4 `a3d16c5` (stacked from main); Q7 `7107543`; Q9 `677767b`, Q10 `3e09d10`; Q14 `a2a1082`; Q11 to Q13 and Q5, Q6 (migrations 0109, 0110 stacked on P2) building. Questions posted: M2 design and the per-door counter (6586517364), Q14 waitlist and the onboarding 200 (6586655667), Q7 refund after an outside refund and the statement label (6586714607), Q4 review request on a decline and the pre-Q6 exposure (6586834020).
