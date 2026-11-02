@@ -114,7 +114,8 @@ const ENGINEER: ChecklistItem[] = [
     key: "pe_license_card",
     step: "licensure",
     label: "Texas PE license verification",
-    help: "A wallet card, a certificate, or a printout of the TBPELS roster entry. The license number is already on file and is shown below for you to check.",
+    /* P1, 2026-11-01: this said the number was already on file and shown below. Nothing showed it; the number is recorded at activation from this document. */
+    help: "A wallet card, a certificate, or a printout of your TBPELS roster entry, showing the license number and its expiry. The firm records the number and the expiry date from it at activation.",
     actor: "person",
   },
   /*
@@ -390,27 +391,36 @@ export const FORBIDDEN_FIELD_PATTERNS = [
  */
 export type StepDef = { id: string; title: string; blurb: string };
 
+/*
+ * THE BLURBS SAID WHAT THE CHECKLIST STOPPED ASKING FOR, and were corrected by
+ * Robert's ruling P1, 2026-11-01: "no photo ID, W-4, I-9 or voided check
+ * uploads; payroll paperwork is in Gusto." The items changed on 2026-10-02 and
+ * these sentences did not, which is the fact with two homes again. A step with
+ * no item for the person is not drawn in the flow, so several of these are
+ * never shown; they are kept true anyway, because a sentence nobody reads
+ * today is the one somebody copies tomorrow.
+ */
 export const ONBOARDING_STEPS: Record<OnboardingRole, StepDef[]> = {
   engineer: [
     {
       id: "identity",
       title: "Identity",
-      blurb: "A government issued photo ID. A phone photograph is fine if it is readable.",
+      blurb: "Nothing to upload. The firm confirms who you are on a short video call and records only the kind of ID it saw.",
     },
     {
       id: "licensure",
       title: "Licensure",
-      blurb: "Verification of the Texas PE license already on file.",
+      blurb: "Your Texas PE license, showing its number and expiry.",
     },
     {
       id: "paperwork",
       title: "Employment paperwork",
-      blurb: "The W-4 and I-9 Section 1, completed and uploaded as documents.",
+      blurb: "The W-4 and the I-9 are completed in Gusto, not here. Nothing is uploaded at this step.",
     },
     {
       id: "pay",
-      title: "Direct deposit",
-      blurb: "A voided check or bank letter. The numbers stay inside the document.",
+      title: "Pay setup",
+      blurb: "Pay details go to Gusto. Nothing is uploaded here.",
     },
     {
       id: "agreements",
@@ -422,7 +432,7 @@ export const ONBOARDING_STEPS: Record<OnboardingRole, StepDef[]> = {
     {
       id: "identity",
       title: "Identity and license",
-      blurb: "A government issued photo ID and a current driver license.",
+      blurb: "Nothing to upload. The firm checks your driver license on a short video call and records only its expiry.",
     },
     {
       id: "coverage",
@@ -432,7 +442,7 @@ export const ONBOARDING_STEPS: Record<OnboardingRole, StepDef[]> = {
     {
       id: "paperwork",
       title: "Tax paperwork",
-      blurb: "A completed W-9, uploaded as a document.",
+      blurb: "The W-9 is completed in Gusto, not here. Nothing is uploaded at this step.",
     },
     {
       id: "agreements",
@@ -448,6 +458,17 @@ export const CATCH_ALL_STEP: StepDef = {
   title: "Additional items",
   blurb: "Items added to your checklist specifically.",
 };
+
+/**
+ * What still needs the firm once the person has sent everything: the role's
+ * operator items, by label. The completion screen and the operator's
+ * submitted email both read this, so neither types a count (P1, 2026-11-01:
+ * the screen said "two steps" to an engineer with five and to a technician
+ * with three).
+ */
+export function firmItemLabels(role: OnboardingRole): string[] {
+  return checklists[role].filter((i) => i.actor === "admin").map((i) => i.label);
+}
 
 /** Items the person completes. Operator verified items never appear in the flow. */
 export function personItemKeys(role: OnboardingRole): string[] {

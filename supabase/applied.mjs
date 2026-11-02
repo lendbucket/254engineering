@@ -4024,6 +4024,80 @@ export const APPLIED = [
       "reaches field technicians only (WIDE_GRANT_TECHNICIANS_ONLY in onboarding-scope.ts), the narrower reading " +
       "taken on issue #1 (comment 6470846047).",
   },
+  {
+    file: "0105_identity_and_i9_record_what_was_seen_and_by_whom.sql", appliedBy: "apply_migration",
+    fingerprint: "812467e78ee8e18958afef349643e8de",
+    behaviour: "5f6a399607c588e7c383e4a24d8e8224",
+        /*
+     * APPLIED TO PRODUCTION 2026-11-02 20:33 UTC, provider version 20261102203345,
+     * by the operator's chat counterpart through apply_migration from the boarded
+     * commit f9090eb (P1, board 41478612374, 65 of 65). The stored statement hashes
+     * to ea9bb75f, the development figure. Read back: four columns and four
+     * constraints on eng_onboardings. Issue #1 comment 6587890300.
+     */
+    production: "2026-11-02",
+    proves: { table: "eng_onboardings", column: "identity_document_type" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0105 on 2026-11-01, with 0104 reproducing its recorded " +
+      "pair. Four columns on eng_onboardings (1374 to 1378) and six behaviour facts (1328 to 1334): four check " +
+      "constraints and two foreign keys to eng_profiles.",
+    because:
+      "WRITTEN 2026-11-01 ON feat/onboarding-end-to-end, Robert's ruling P1 (finish the portal): identity and I-9 " +
+      "verification record the document type seen, who and when, and no copy of any document. NOT YET ON " +
+      "DEVELOPMENT OR PRODUCTION: it waits for the chat counterpart's sitting from its stage branch, and the branch " +
+      "does not merge until production reads it back. Section 0 at the top of the file must read 0 and 0 first.",
+  },
+  {
+    file: "0106_the_academy_records_approvals_and_attempts.sql", appliedBy: "apply_migration",
+    fingerprint: "f70724c174b2135624170d94bf8d0772",
+    behaviour: "2ff049a3a3fde84bfeed700ccb2bd310",
+        /*
+     * APPLIED TO PRODUCTION 2026-11-02 20:34 UTC, provider version 20261102203415,
+     * by the operator's chat counterpart through apply_migration from the boarded
+     * commit 7e62683 (P3, board 41491305761, 65 of 65), after 0105. The stored
+     * statement hashes to 7709478c, the development figure. Read back: both tables
+     * with row level security on and zero policies, both append-only triggers, no
+     * grant to anon, authenticated or PUBLIC. Issue #1 comment 6587890300.
+     */
+    production: "2026-11-02",
+    proves: { table: "eng_academy_attempts" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0106 on 2026-11-02, on the COMBINED chain 0104, 0105, 0106 " +
+      "(P1 merged into this branch). Two tables: 1378 to 1395 columns, 104 to 106 tables, 1334 to 1357 facts. The " +
+      "branch-local pair without 0105 was a38cdc761b90af3348910f4e7e897990 / ef58094ea9f9038df6247cac20ed115d. " +
+      "Applied on development 2026-11-02 from stage/0106-academy (6578648098).",
+    because:
+      "WRITTEN 2026-11-01 ON feat/training-academy, Robert's ruling P3 of 2026-11-01 (the technician training academy: " +
+      "courses, lessons, quizzes, a pass mark, every attempt recorded, each course versioned to the protocol version it " +
+      "teaches, nothing graduated against a draft, graduation from both required courses before a field_tech " +
+      "enrollment). His ruling the same evening: any migration goes to development on a stage/ branch and waits for the " +
+      "chat counterpart's production sitting. Not applied anywhere yet; staged on stage/0106-academy.",
+  },
+  {
+    file: "0107_every_evidence_file_carries_its_sha256.sql", appliedBy: "apply_migration",
+    fingerprint: "22346b566a73ea946ca112725b16569f",
+    behaviour: "f61f2b5168c668bb6d381a57bc674f9a",
+        /*
+     * APPLIED TO PRODUCTION 2026-11-02 20:34 UTC, provider version 20261102203429,
+     * by the operator's chat counterpart through apply_migration from the boarded
+     * commit 0d7438f (P5, board 41503285565, 65 of 65), after 0106. The stored
+     * statement hashes to b4faee2d, the development figure. Read back: the shape
+     * check constraint and the partial index present. Issue #1 comment 6587890300.
+     */
+    production: "2026-11-02",
+    proves: { column: { table: "eng_evidence_items", name: "content_sha256" } },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-02 on the COMBINED chain 0104 to 0107 (P1 and P3 " +
+      "merged into this branch). One column (1395 to 1396) and its shape check and index (1357 to 1359 facts). The " +
+      "branch-local pair on 0104 then 0107 was e12033a2c91fead686fc9a4632ed20dc / 5ce9349a818ea5f249aedd6fd93ac939. " +
+      "Applied on development 2026-11-02 from stage/0107-evidence-sha256 (6578648098).",
+    because:
+      "WRITTEN 2026-11-01 ON feat/evidence-sha256; NOT YET ON DEVELOPMENT OR PRODUCTION. Robert's ruling P5 of " +
+      "2026-11-01 evening: a SHA-256 of every evidence file at upload, development first, and the no duplicate " +
+      "photos check on the engineer's queue once every item in a job has a hash; items captured before show " +
+      "not checked, never a pass. The server hashes the stored object in recordCapture. Development from its " +
+      "stage branch, production from a passed board's boarded commit.",
+  },
 ];
 
 /*

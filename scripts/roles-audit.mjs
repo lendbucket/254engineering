@@ -2243,6 +2243,12 @@ if (!db) {
          * documents.seal, a licensed capability rather than a grant.
          */
         "/portal/profile/seal",
+        /*
+         * The training academy, Robert's ruling P3 of 2026-11-01: "Admin and
+         * engineer screens to see progress." He approves the protocol course
+         * there, from his licence, and sees who has passed what. No money on it.
+         */
+        "/portal/training",
         // Ordinary working surfaces an engineer holds by grant, not by licence.
         "/portal/files",
         "/portal/clients",

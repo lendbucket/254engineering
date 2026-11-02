@@ -1,6 +1,7 @@
 import "server-only";
 import { supabaseAdmin } from "./supabase";
 import { writeAudit } from "./ops-audit";
+import { fieldTechEnrollmentRefusal } from "./academy-record";
 import {
   ALL_ACTIONS,
   LICENSED_ACTIONS,
@@ -165,6 +166,14 @@ export async function setUserRole(
 
   const wasRole = holders.find((h) => h.id === userId)?.roleKey ?? null;
   const person = view.flatMap((r) => r.holders).find((h) => h.id === userId);
+
+  /* Robert's ruling P3: moving somebody INTO field_tech enrolls them, so it asks the academy first. */
+  if (nextRoleKey === "field_tech" && wasRole !== "field_tech") {
+    const { data: profile, error: profileError } = await db.from("eng_profiles").select("onboarding_id").eq("id", userId).maybeSingle();
+    if (profileError) return { ok: false, error: `Whether this person has graduated could not be told, so the role was not changed: ${profileError.message}` };
+    const untrained = await fieldTechEnrollmentRefusal((profile?.onboarding_id as string | null) ?? null);
+    if (untrained.length) return { ok: false, error: untrained.join(" ") };
+  }
 
   const { error } = await db.from("eng_profiles").update({ role: nextRoleKey }).eq("id", userId);
   if (error) return { ok: false, error: error.message };
