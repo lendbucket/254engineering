@@ -70,7 +70,7 @@ type ConvertedProspect = {
 };
 
 async function readConverted(db: Db): Promise<{ ok: true; rows: ConvertedProspect[] } | { ok: false; error: string }> {
-  const read = await readEvery<ConvertedProspect>((from, to) =>
+  const read = await readEvery<Record<string, unknown>>((from, to) =>
     db
       .from("eng_prospects")
       .select("id, company, owner_id, county, converted_account_id, converted_at, owner:eng_profiles!eng_prospects_owner_id_fkey(display_name)")
@@ -79,7 +79,18 @@ async function readConverted(db: Db): Promise<{ ok: true; rows: ConvertedProspec
       .range(from, to),
   );
   if (!read.ok) return { ok: false, error: `The converted accounts could not be read: ${read.error}` };
-  return { ok: true, rows: read.rows };
+  return {
+    ok: true,
+    rows: read.rows.map((r) => ({
+      id: String(r.id),
+      company: String(r.company),
+      owner_id: (r.owner_id as string | null) ?? null,
+      county: (r.county as string | null) ?? null,
+      converted_account_id: String(r.converted_account_id),
+      converted_at: String(r.converted_at),
+      owner: (r.owner as { display_name?: string } | null) ?? null,
+    })),
+  };
 }
 
 async function readOrders(db: Db, accountIds: readonly string[]): Promise<{ ok: true; byAccount: Map<string, AccountOrder[]> } | { ok: false; error: string }> {
