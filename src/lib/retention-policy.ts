@@ -340,6 +340,8 @@ export const RETENTION_POLICY: RetentionEntry[] = [
    */
   { table: "eng_crm_import_rows", rule: { kind: "kept_pending_counsel", because: "Telemetry in shape, one verdict per record a source gave in an import run. No floor is ruled. " + COUNSEL } },
   { table: "eng_crm_import_runs", rule: { kind: "kept_pending_counsel", because: "Telemetry in shape, one preview of one source and what a person did with it. No floor is ruled. " + COUNSEL } },
+  /* 0115 (Robert's CRM R4). One person's named filter and sort on the sales list. A preference, not a record about a customer; no floor is ruled, so kept like its neighbours. */
+  { table: "eng_crm_saved_views", rule: { kind: "kept_pending_counsel", because: "A person's saved filter and sort on the sales list. No floor is ruled. " + COUNSEL } },
   {
     table: "eng_cron_runs",
     rule: {
@@ -755,6 +757,8 @@ export const RETENTION_POLICY: RetentionEntry[] = [
   { table: "eng_prospect_contacts", rule: { kind: "kept_pending_counsel", because: COUNSEL } },
   /* 0112. Where each company on the sales list came from, with the fields the source gave, names and telephones among them. Counsel decides, as for eng_prospects. */
   { table: "eng_prospect_sources", rule: { kind: "kept_pending_counsel", because: COUNSEL } },
+  /* 0115. Which direct thread holds a company's notes. The notes themselves are eng_messages, kept with the thread; counsel decides, as for eng_prospects. */
+  { table: "eng_prospect_threads", rule: { kind: "kept_pending_counsel", because: COUNSEL } },
   /* 0079. The sales list: companies the firm is calling and how to reach them. Personal contact details, so counsel decides. */
   { table: "eng_prospects", rule: { kind: "kept_pending_counsel", because: COUNSEL } },
   { table: "eng_protocol_items", rule: { kind: "not_a_record", because: "Part of a protocol template. Configuration an engineer authors." } },

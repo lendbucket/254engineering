@@ -323,7 +323,12 @@ async function resolve(pattern) {
       .limit(1);
     return data?.[0]?.id ? `/portal/order-lookup/${data[0].id}` : null;
   }
-  if (pattern === "/portal/prospects/[id]") {
+  /*
+   * The sales CRM's company page (Robert's R4, 2026-11-02) opens the same kind
+   * of record as the prospect screen, so it gets the same probe prospect, made
+   * the same way and swept by the same name.
+   */
+  if (pattern === "/portal/prospects/[id]" || pattern === "/portal/crm/[id]") {
     if (!sessions.admin?.id) return null;
     const { data, error } = await db
       .from("eng_prospects")
@@ -339,7 +344,7 @@ async function resolve(pattern) {
       .select("id")
       .single();
     if (error) console.log(`  PROBE PROSPECT NOT MADE: ${error.message}`);
-    return data?.id ? `/portal/prospects/${data.id}` : null;
+    return data?.id ? pattern.replace("[id]", String(data.id)) : null;
   }
   return null;
 }

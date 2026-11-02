@@ -362,10 +362,17 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * eng_crm_import_runs and thirteen on eng_crm_import_rows, 1,476 to 1,509; the
  * table count moves 109 to 111; no trigger and no function. Read off
  * fingerprint-at.mjs on the chain to 0114.
+ *
+ * Moved again by 0115, the sales list keeps views and a thread per company, by
+ * Robert's sales CRM ruling R4 of 2026-11-02 with his answer 5, renumbered
+ * from 0113 to 0115 by his ruling (a) of 2026-11-04 and order A of 2026-11-05:
+ * six columns on eng_crm_saved_views and four on eng_prospect_threads, 1,509
+ * to 1,519; the table count moves 111 to 113; no trigger and no function. Read
+ * off fingerprint-at.mjs on the chain to 0115.
  */
-const EXPECTED_FINGERPRINT = "31b85d837dfe6f0610477e699d318b6e";
-const EXPECTED_COLUMNS = 1509;
-const EXPECTED_TABLES = 111;
+const EXPECTED_FINGERPRINT = "714fc1396bb24141f263db185bce739d";
+const EXPECTED_COLUMNS = 1519;
+const EXPECTED_TABLES = 113;
 /* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts.
  * 0074 adds two: eng_partner_billing_touch and eng_partner_billing_events_immutable.
  * 0075 adds one: eng_payment_events_guarded.

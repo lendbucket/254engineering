@@ -99,7 +99,7 @@ function CardView({ card }: { card: QueueCard }) {
             <dd className="text-[var(--ink)]">{card.sequenceStep ? `Step ${card.sequenceStep} of 5` : "First call"}</dd>
           </dl>
           <div className="mt-4">
-            <Link href={`/portal/prospects/${card.id}`} className="inline-flex min-h-[44px] items-center text-[14px] font-semibold text-[var(--navy)] underline">Open the company</Link>
+            <Link href={`/portal/crm/${card.id}`} className="inline-flex min-h-[44px] items-center text-[14px] font-semibold text-[var(--navy)] underline">Open the company</Link>
           </div>
         </Panel>
 
