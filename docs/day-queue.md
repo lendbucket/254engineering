@@ -301,6 +301,18 @@ WPI-8 facts stand as read from TDI and TWIA: TWIA's lookup is WPI-8-C only; the 
 
 **Fix `44783ea` (P4's first red; a second red on a new commit parks P4).** `shown` is `[]` when the queue is unread, so the page keeps its original guard; the withdraw proof names the new line exactly; native-audit gains the controls wrapper's reason (3 reasons for 3 elements; the stale check still guards the count). The three proofs that read the page PASS standalone; preflight GREEN, 38 rules, 101 s. **Board 41428669295** started by the push (no dispatch). Prediction: bundle 68's lines, plus native-audit's hidden-below-lg line PASS at 3 of 3 and proofs-audit PASS.
 
+**Result, bundle 68 second board (41428669295 on `44783ea`): 64 of 64, preflight GREEN, every prediction line met.** native-audit 752 of 752; the three proofs that read the page PASS; `/portal/review` engineer 200, signed out 307, V10 layout, doc 0px tables 0, w2 works at 1280 and 390; public bytes identical to bundle 67; `/` 2,713, `/coverage` 2,562, coastal-bend 2,718, service 2,722, cost guide 2,033; TBT 11 to 25; heights unchanged. **P4 merged as `3a4a717`** (tree identical; pushed, ls-remote confirms).
+
+**P6 merged on the fast lane as `3709823`.** Docs only (BACKLOG.md, docs/sealed-order-handoff.md), brought up to `3a4a717` as `0e1cd63`; readers: backlog-audit 12 checks PASS, preflight GREEN 38 rules; range dash check 23 added lines, 0 long dashes. (The P6 worktree had no node_modules junction, so the first preflight failed 31 rules in 7 s on module resolution; the junction was added and the rerun is the result.) **P7 closed as ruled.**
+
+**Bundle 69, P8 (`feat/firm-holidays`):** main `3709823` merged in as `eb62e1e` (BACKLOG auto-merged). Diff: `src/config/firm-holidays.ts` +87, `src/lib/firm-calendar.ts` +9 -5, the proof `business-days-skip-the-firm-holidays`, the uploads proof's summer case moved to 2026-07-09, BACKLOG 0099 item (2) closed. Readers: compliance-audit, db-guard-audit, proofs-audit (three calendar proofs), turnaround-audit (no independent date arithmetic; turnaround-target.ts calls addBusinessDays). Preflight GREEN, 38 rules, 110 s; both changed proofs PASS standalone.
+
+**Prediction, bundle 69 (P8 at `eb62e1e`, over main `3709823`; full lane, `firm-calendar.ts` is read by server paths).**
+- Preflight GREEN. Board 64 of 64.
+- proofs-audit runs the new holiday proof and the updated uploads proof, both PASS, and `a-business-date-is-the-firms-calendar` and `every-date-names-its-zone` stay PASS.
+- turnaround-audit, compliance-audit and db-guard-audit PASS unchanged in result.
+- No public file changes, so every listed route keeps its bytes; LCP in bundle 63's range, `/coverage` excepted under NOT STABLE and the green-board rule. Heights 15,856 and 15,090. No migration. Merges on a match.
+
 **Result, bundle 66 (board 41402651253 on `a545b8e`): 63 of 64, RED, NOT MERGED, c PARKED.** seo-audit: "/partners/badge: 0 page(s) link to it; every sitemap page needs at least two". A real finding the prediction missed: the page went into the sitemap with no inbound link. Speed and heights in range (`/` 2,590, `/coverage` 2,338, coastal-bend 2,716, service 2,750, cost guide 2,540; TBT 35 to 57). One natural prose link exists (`/press`, logo section); the second would be the footer, a sitewide template link, so asked on issue #1 (6572085510), recommending `/press` plus a footer link. First red for c; a second red on a new commit parks it for good.
 
 **Bundle 67, item j:** main `8fa0592` merged in as `24f41a7` (clean), preflight GREEN, 38 rules, 101 s. Board 41410202142 dispatched on `24f41a7`. Prediction as written above; `/coverage` outside bundle 63's range would be an untouched page with unchanged bytes, recorded under the green-board rule.
