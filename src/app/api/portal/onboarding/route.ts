@@ -303,7 +303,10 @@ async function handlePOST(request: NextRequest) {
       String(body?.reason ?? ""),
       context,
     );
-    return result.ok ? NextResponse.json({ ok: true }) : bad(result.error);
+    /* Q6 (2026-11-02): how many open offers were withdrawn, and how many jobs the technician still holds on the line. */
+    return result.ok
+      ? NextResponse.json({ ok: true, withdrawnOffers: result.withdrawnOffers, heldJobs: result.heldJobs })
+      : bad(result.error);
   }
 
   if (action === "restore_certification") {

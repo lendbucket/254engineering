@@ -886,8 +886,23 @@ export async function transitionFile(
   const stamp = STATUS_TIMESTAMP[to];
   if (stamp) patch[stamp] = DB_NOW;
 
-  const { error } = await db.from("eng_files").update(patch).eq("id", id).eq("status", current.status);
+  /*
+   * THE MOVE IS COUNTED, AND A MOVE THAT CHANGED NO ROW IS REFUSED. Robert's
+   * ruling Q6, 2026-11-02 (audit field F11). The update is conditional on the
+   * status read a moment ago, which is right, but a no-match is not an error
+   * from PostgREST, so a lost race wrote a status event and a file.transition
+   * audit row describing a move that did not happen and answered ok. Nothing
+   * below runs unless exactly this file moved.
+   */
+  const { data: moved, error } = await db.from("eng_files").update(patch).eq("id", id).eq("status", current.status).select("id");
+  /* 0110 (Q6, F10): the database refuses sealed or delivered without a live sealed letter; said in plain words, not the trigger's. */
+  if (error && /\(0110\)/.test(error.message)) {
+    return { ok: false, error: `This file cannot be marked ${to === "delivered" ? "delivered" : "sealed"} by hand. A file is sealed by sealing its letter on the review screen, and there is no live sealed letter for it.` };
+  }
   if (error) return { ok: false, error: error.message };
+  if (!moved?.length) {
+    return { ok: false, error: "The file moved while this was being done, so nothing was changed. Open it again to see where it is now." };
+  }
 
   /*
    * A FILE THAT STOPS WAITING FOR A TECHNICIAN TAKES ITS OPEN OFFERS WITH IT.

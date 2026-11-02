@@ -4127,6 +4127,22 @@ export const APPLIED = [
       "index on eng_profiles (license_number) where role = engineer, and createAccount and eng_seal_act_check refuse " +
       "a duplicate. Section 0 refuses to run if two engineer profiles already share a number.",
   },
+  {
+    file: "0110_a_sealed_file_has_a_live_seal_act.sql", appliedBy: "apply_migration",
+    fingerprint: "22346b566a73ea946ca112725b16569f",
+    behaviour: "68f67ded9047f9737a20d55d5ee12a94",
+    production: null,
+    proves: { function: "eng_file_sealed_needs_a_seal_act" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-02 on the combined chain 0104 to 0110. A trigger " +
+      "and its function add no column, so the shape is 0108's (22346b56, 1396 columns); the behaviour moves 1355 to " +
+      "1357 facts, the function and the trigger.",
+    because:
+      "WRITTEN 2026-11-02 ON fix/q6-dispatch-and-seal-truth AND STAGED ON stage/0110-sealed-needs-a-seal-act FOR THE " +
+      "CHAT COUNTERPART'S SITTING; APPLIED NOWHERE. Robert's ruling Q6 of 2026-11-02 (audit field F10): a trigger " +
+      "refuses sealed or delivered on eng_files without a live seal act. The one product path that moves a file " +
+      "there, deliverSealedFile, runs after the letter act is recorded, so it passes; the generic transition does not.",
+  },
 ];
 
 /*
