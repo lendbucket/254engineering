@@ -323,6 +323,14 @@ WPI-8 facts stand as read from TDI and TWIA: TWIA's lookup is WPI-8-C only; the 
 - `/portal/credentials` and `/portal/insurance`: native, v10-layout, contrast and mobile pass unchanged in result (one link each, no hidden element).
 - No public file changes: bytes identical; LCP in bundle 63's range, `/coverage` excepted under NOT STABLE and the green-board rule. Heights unchanged. No migration. Merges on a match.
 
+**Result, bundle 70 (board 41447022442 on `8239be6`): 64 of 64, preflight GREEN, every prediction line met** (`/coverage` 2,560 in range; `/` 2,189, coastal-bend 2,636, service 2,338, cost guide 2,644; bytes identical; export proofs, roles and security PASS). **P9 merged as `39006e7`** (tree identical; pushed, ls-remote confirms).
+
+**Robert's answers of 2026-11-02 arrived (standing-orders `8c80a37`).** Order now: d, c, P1, P3, P5, P2. P2 (nine-role permissions, 0108 on a stage branch) and P3's course 2 (OSHA 1926 Subparts X and M) are being built by two forks in the background; neither pushes, merges or boards.
+
+**Bundle 71, item d again:** main `39006e7` merged in as `563aca8` (clean), preflight GREEN, 38 rules, 120 s. Robert answered 6570990439 "yes, merge with both misses recorded"; this board measures d on the current main.
+
+**Prediction, bundle 71 (d at `563aca8`, over main `39006e7`; full lane).** Board 64 of 64. `/windstorm/catastrophe-area` 15,071 px at 390, a third route in the warning band (ruled acceptable); the other two 15,856 and 15,090. Every listed route's bytes identical to bundle 70; LCP in bundle 63's range, `/coverage` excepted under NOT STABLE and the green-board rule. No migration. Merges on a match, with bundle 65's two misses recorded in the merge message.
+
 **Result, bundle 66 (board 41402651253 on `a545b8e`): 63 of 64, RED, NOT MERGED, c PARKED.** seo-audit: "/partners/badge: 0 page(s) link to it; every sitemap page needs at least two". A real finding the prediction missed: the page went into the sitemap with no inbound link. Speed and heights in range (`/` 2,590, `/coverage` 2,338, coastal-bend 2,716, service 2,750, cost guide 2,540; TBT 35 to 57). One natural prose link exists (`/press`, logo section); the second would be the footer, a sitewide template link, so asked on issue #1 (6572085510), recommending `/press` plus a footer link. First red for c; a second red on a new commit parks it for good.
 
 **Bundle 67, item j:** main `8fa0592` merged in as `24f41a7` (clean), preflight GREEN, 38 rules, 101 s. Board 41410202142 dispatched on `24f41a7`. Prediction as written above; `/coverage` outside bundle 63's range would be an untouched page with unchanged bytes, recorded under the green-board rule.
