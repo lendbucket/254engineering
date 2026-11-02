@@ -33,6 +33,12 @@ export const CAPTURE_ID = /^cap_[A-Za-z0-9-]{8,60}$/;
 /**
  * Statuses in which capture is closed. A file that has left the field takes no
  * new bytes and no new rows.
+ *
+ * refused and repairs_required joined by Robert's ruling Q3 of 2026-11-02
+ * (audit field F16): the engineer's decision rests on the record he read, and
+ * the assigned technician could go on adding to it after he declined. A
+ * revisit for repairs goes back through needs_dispatch first, so closing
+ * repairs_required closes nothing the revisit needs.
  */
 export const CAPTURE_CLOSED_STATUSES: readonly string[] = [
   "evidence_submitted",
@@ -41,7 +47,39 @@ export const CAPTURE_CLOSED_STATUSES: readonly string[] = [
   "delivered",
   "closed",
   "cancelled",
+  "refused",
+  "repairs_required",
 ];
+
+/**
+ * WHO MAY WRITE EVIDENCE: the evidence.capture grant AND the file's assigned
+ * technician, whatever the role. Robert's ruling Q3 of 2026-11-02 (audit field
+ * F3 and F15). submitEvidence had no assignment check at all, so a technician
+ * whose offer was withdrawn could submit the assigned technician's package;
+ * and evidence.review let the reviewing engineer and the administrator author
+ * captures, exceptions and repair closures on the files they review. Null
+ * when the write may proceed, otherwise the sentence.
+ */
+export function evidenceWriteRefusal(
+  actor: { id: string; mayCapture: boolean },
+  assignedTechId: string | null,
+): string | null {
+  if (!actor.mayCapture) return "Evidence is recorded by the technician on the job. Your role reviews it and does not write it.";
+  if (assignedTechId !== actor.id) {
+    return assignedTechId ? "Another technician accepted this job first." : "Accept this job before recording against it.";
+  }
+  return null;
+}
+
+/**
+ * Whether a move takes a file out of waiting for dispatch while offers may
+ * still be open, so the open offers are withdrawn with it. Robert's ruling Q3
+ * of 2026-11-02 (audit field F7): a cancelled file left its offers live, and a
+ * technician accepting one the next morning was told the job was his.
+ */
+export function leavesDispatchWithOffers(from: string, to: string): boolean {
+  return from === "needs_dispatch" && to !== "dispatched";
+}
 
 /** The one storage key a capture may carry: its own file's folder, its own capture id, an allowed extension. */
 export function captureStorageKey(fileId: string, captureId: string, contentType: string): string | null {
