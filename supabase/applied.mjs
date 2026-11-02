@@ -4165,6 +4165,26 @@ export const APPLIED = [
       "refuses sealed or delivered on eng_files without a live seal act. The one product path that moves a file " +
       "there, deliverSealedFile, runs after the letter act is recorded, so it passes; the generic transition does not.",
   },
+  {
+    file: "0111_the_sales_list_knows_companies_contacts_and_sources.sql", appliedBy: "apply_migration",
+    fingerprint: "72bb0e8c9223c6cd634a610fb0506b82",
+    behaviour: "f3c828fa8a7fe74b1ff8b828383b6828",
+    production: null,
+    proves: { table: "eng_prospect_sources" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-02 on the combined chain 0104 to 0111. Shape 1396 " +
+      "to 1439 columns: 17 on eng_prospects, 11 on eng_prospect_contacts, 8 on eng_prospect_sources, 7 on " +
+      "eng_contact_log; tables 106 to 108. Behaviour 1357 to 1409 facts: two functions, one trigger, the new checks, " +
+      "keys and indexes, and six grant rows.",
+    because:
+      "WRITTEN 2026-11-02 ON feat/crm-r1-data-model AND STAGED ON stage/0111-crm-data-model FOR THE CHAT " +
+      "COUNTERPART'S SITTING; APPLIED NOWHERE. Robert's sales CRM ruling of 2026-11-02, item R1, the data model: " +
+      "eng_prospects extended (vertical, stage, score, next action, tags, website, address and county, permit " +
+      "activity, normalized name and phone as generated columns), several contacts and several sources per company, " +
+      "activities in the existing contact log, unique on normalized (name, phone) and on (source, source record id), " +
+      "and crm.import, crm.assign and crm.reports for admin and ops_manager. Additive: the prospect kind check stays " +
+      "until Robert's destructive sitting (answer 8).",
+  },
 ];
 
 /*

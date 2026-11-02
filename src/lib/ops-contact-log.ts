@@ -9,6 +9,7 @@ import {
   type ContactOutcome,
   type ContactSubject,
 } from "./contact-log-rules";
+import { ACTIVITY_KINDS, CRM_OUTCOMES, CRM_STAGES, type ActivityKind, type CrmOutcome, type CrmStage } from "./crm-rules";
 
 /**
  * THE CALL LOG. Operator ruling, 2026-10-20. 0079.
@@ -67,6 +68,21 @@ export async function logContact(
     body?: string | null;
     visitAt?: string | null;
     followUpOn?: string | null;
+    /*
+     * The sales CRM's activity fields, 0111 (Robert, 2026-11-02, R1): every
+     * call, email, note and stage change on a prospect is a row of this log,
+     * so these ride on the one writer rather than a second table. Each is
+     * prospect only, and 0111's checks refuse them on anything else.
+     */
+    crm?: {
+      activityKind?: ActivityKind;
+      crmOutcome?: CrmOutcome | null;
+      callbackAt?: string | null;
+      stageFrom?: CrmStage | null;
+      stageTo?: CrmStage | null;
+      notInterestedReason?: string | null;
+      contactId?: string | null;
+    };
   },
 ): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
   if (!actor || !can(actor, "contact_log.write")) return { ok: false, error: "Your role cannot record a call or a note." };
@@ -90,6 +106,35 @@ export async function logContact(
   }
   const followUpOn = input.followUpOn?.trim() || null;
   if (followUpOn && !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(followUpOn)) return { ok: false, error: "The follow-up date is not a date." };
+
+  const crm = input.crm ?? null;
+  const crmRow: Record<string, unknown> = {};
+  if (crm) {
+    if (input.subject !== "prospect") return { ok: false, error: "A sales activity is recorded against a company on the sales list." };
+    const kind = crm.activityKind ?? input.channel;
+    if (!(ACTIVITY_KINDS as readonly string[]).includes(kind)) return { ok: false, error: "That is not an activity the sales list records." };
+    if (crm.crmOutcome && !(CRM_OUTCOMES as readonly string[]).includes(crm.crmOutcome)) return { ok: false, error: "That is not a call outcome the sales list records." };
+    const isStageChange = kind === "stage_change";
+    if (isStageChange !== Boolean(crm.stageTo)) return { ok: false, error: "A stage change names the stage it moved to, and only a stage change does." };
+    if (isStageChange && input.channel !== "note") return { ok: false, error: "A stage change is recorded as a note." };
+    for (const s of [crm.stageFrom, crm.stageTo]) {
+      if (s && !(CRM_STAGES as readonly string[]).includes(s)) return { ok: false, error: "That is not a stage on the sales list." };
+    }
+    const callbackAt = crm.callbackAt?.trim() || null;
+    if ((crm.crmOutcome === "callback") !== Boolean(callbackAt)) return { ok: false, error: "A callback needs the date and time to call back, and only a callback has one." };
+    if (callbackAt && Number.isNaN(Date.parse(callbackAt))) return { ok: false, error: "The callback time is not a date and time." };
+    const reason = crm.notInterestedReason?.trim() || null;
+    if (crm.crmOutcome === "not_interested" && !reason) return { ok: false, error: "Say why they are not interested." };
+    Object.assign(crmRow, {
+      activity_kind: kind,
+      crm_outcome: crm.crmOutcome ?? null,
+      callback_at: callbackAt,
+      stage_from: crm.stageFrom ?? null,
+      stage_to: crm.stageTo ?? null,
+      not_interested_reason: reason,
+      contact_id: crm.contactId ?? null,
+    });
+  }
 
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured, so nothing was recorded." };
@@ -127,6 +172,7 @@ export async function logContact(
       body,
       visit_at: visitAt,
       follow_up_on: followUpOn,
+      ...crmRow,
     })
     .select("id")
     .single();
@@ -136,7 +182,8 @@ export async function logContact(
   if (input.subject === "prospect" && (followUpOn || outcome === "not_interested")) {
     const patch: Record<string, unknown> = {};
     if (followUpOn) patch.follow_up_on = followUpOn;
-    if (outcome === "not_interested") patch.status = "not_interested";
+    /* A refusal is dormant as well as not interested: 0111's eng_prospects_refusal_is_closed holds the pair together. */
+    if (outcome === "not_interested") Object.assign(patch, { status: "not_interested", stage: "dormant" });
     const { error: moveError } = await db.from("eng_prospects").update(patch).eq("id", input.subjectId).eq("status", "open");
     if (moveError) {
       return { ok: false, error: `The call was logged and the prospect's follow-up could not be moved: ${moveError.message}` };
