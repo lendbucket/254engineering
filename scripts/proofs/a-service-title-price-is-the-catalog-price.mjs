@@ -32,19 +32,11 @@ const dollars = (cents) => `$${(cents / 100).toLocaleString("en-US")}`;
 check("the service list was read", services.length >= 8, `${services.length}`);
 
 /*
- * THE ONE HELD TITLE, COUNTED AND NAMED. Robert's GEO ruling of 2026-10-31,
- * item 6, holds the solar page's words still, its title among them, and item
- * e's priced title for it waits on his answer. An exemption nobody counts
- * becomes the rule (CLAUDE.md section 6), so the held set is asserted to be
- * exactly this one line, carrying exactly the title main carries.
+ * NO TITLE IS HELD. The solar title was held under the 2026-10-31 solar ruling
+ * until Robert's answer 3 of 2026-11-01 released the title and description;
+ * that page's scope and wind uplift wording stay pinned by its own proof.
  */
-const HELD = { "solar-structural-letters": "Solar Structural Engineering in Texas | 254 Engineering" };
-for (const [slug, title] of Object.entries(HELD)) {
-  check(`${slug} is held: its title is the one main carries`, services.find((s) => s.slug === slug)?.title === title);
-}
-
 for (const s of services) {
-  if (s.slug in HELD) continue;
   const priced = CATALOG.filter((e) => e.serviceSlug === s.slug && e.priceCents != null).map((e) => e.priceCents);
   const lowest = priced.length ? Math.min(...priced) : null;
   const named = [...s.title.matchAll(/\$[\d,]+(?:\.\d{2})?/g)].map((m) => m[0]);
@@ -59,12 +51,12 @@ for (const s of services) {
 
 const src = readFileSync("src/content/services.ts", "utf8");
 const typed = [...src.matchAll(/^\s+title:\s*(["`])(.*)$/gm)].map((m) => m[2]);
-const heldCount = Object.keys(HELD).length;
-check(`no service title is typed as a string except the ${heldCount} held`, typed.length === heldCount, `${typed.length} typed: ${typed.join(" | ")}`);
+check("no service title is typed as a string", typed.length === 0, `${typed.length} typed: ${typed.join(" | ")}`);
 const calls = [...src.matchAll(/^\s+title:\s*pricedTitle\(/gm)].length;
-check("every service not held carries a pricedTitle() call", calls === services.length - heldCount, `${calls} of ${services.length - heldCount}`);
+check("every service carries a pricedTitle() call", calls === services.length, `${calls} of ${services.length}`);
 
-const DESCRIBED = ["roof-inspections", "foundation-inspections", "manufactured-home-foundation-certifications"];
+/* The lines whose catalog turnaround fits a description carry it verbatim. */
+const DESCRIBED = ["roof-inspections", "foundation-inspections"];
 for (const slug of DESCRIBED) {
   const s = services.find((x) => x.slug === slug);
   const entry = CATALOG.find((e) => e.serviceSlug === slug && e.priceCents != null);
@@ -73,6 +65,22 @@ for (const slug of DESCRIBED) {
   check(`${slug}: it says a licensed Texas PE seals it`, s.description.includes("sealed by a licensed Texas PE"));
 }
 
+/*
+ * The lines whose turnaround does not fit: price and seal, turnaround left to
+ * the page (Robert's answer 2 of 2026-11-01). The manufactured home line is
+ * here because its description names FHA, VA and USDA (his answer to
+ * 6560030875), and the programs and the turnaround do not both fit. Design is
+ * quoted with no catalog price, so its description is the one with neither.
+ */
+const PRICED_ONLY = ["windstorm-wpi-8", "solar-structural-letters", "structural-letters", "repair-specifications", "manufactured-home-foundation-certifications"];
+for (const slug of PRICED_ONLY) {
+  const s = services.find((x) => x.slug === slug);
+  const lowest = Math.min(...CATALOG.filter((e) => e.serviceSlug === slug && e.priceCents != null).map((e) => e.priceCents));
+  check(`${slug}: the description states the catalog's lowest price, ${dollars(lowest)}`, s.description.includes(` from ${dollars(lowest)},`), s.description);
+  check(`${slug}: it says a licensed Texas PE seals it`, s.description.includes("sealed by a licensed Texas PE"));
+}
+check(`every service is accounted for: ${DESCRIBED.length} with turnaround, ${PRICED_ONLY.length} priced only, design quoted`, DESCRIBED.length + PRICED_ONLY.length + 1 === services.length);
+
 let failed = 0;
 for (const x of out) {
   if (!x.ok) failed += 1;
@@ -80,7 +88,7 @@ for (const x of out) {
 }
 console.log(
   failed === 0
-    ? "PASS: every service title not held names the catalog's lowest price for its line, or none for a quoted line, only the one held solar title is typed, and the three described lines state the catalog price, turnaround and seal."
+    ? `PASS: every service title names the catalog's lowest price for its line, or none for a quoted line, no title is typed, ${DESCRIBED.length} descriptions state price, turnaround and seal, and ${PRICED_ONLY.length} state price and seal.`
     : `FAIL: ${failed} check(s).`,
 );
 process.exitCode = failed === 0 ? 0 : 1;

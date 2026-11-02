@@ -86,8 +86,11 @@ for (const region of regions) {
  * BACKLOG: SVG presentation attributes do not resolve Tailwind utilities, and a
  * class on each of 254 paths costs more than it saves. They move with the
  * palette by hand, and they moved with it in this pass.
+ *
+ * Exported so the coverage routes' map file (county-map-file.ts) draws in the
+ * same tones from the same home.
  */
-const TONES = {
+export const TONES = {
   light: {
     county: "#14315d12",
     hairline: "#c3c9d1",

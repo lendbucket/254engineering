@@ -11,6 +11,8 @@ import { JsonLd, breadcrumbSchema } from "@/lib/schema";
 import { business } from "@/config/business";
 import { contact, displayPhone, hasPostalAddress, hoursLine, postalAddressLine, telHref } from "@/config/contact";
 import { firmName, registrationLine } from "@/lib/launch";
+import { servesVerb } from "@/content/location";
+import { services } from "@/content/services";
 
 /**
  * THE PRESS PAGE. Robert's instruction of 2026-10-26, 15:57 Central, piece 1,
@@ -30,12 +32,20 @@ import { firmName, registrationLine } from "@/lib/launch";
  * present tense claim that engineering is offered or performed, names no
  * engineer, and states no license number, because none of those is this page's
  * to state while the gate is shut.
+ *
+ * ROUND 3, ITEM B. Robert, 2026-11-01 morning: firm facts, offices, service
+ * lines, veteran owned as plain prose and never as a certification, logo files,
+ * the media contact at support@254engineering.com, and the topics the firm
+ * speaks on. Offices follow the location rule in CLAUDE.md section 2: the San
+ * Antonio address is the one address, and Corpus Christi is a highlighted market
+ * with no street, its verb read from `servesVerb()`. The service lines are read
+ * from `services`, so a line added there appears here.
  */
 
 export const metadata: Metadata = buildMetadata({
   title: "Press Kit: Firm Facts, Name and Logo Files | 254 Engineering",
   description:
-    "The 254 Engineering press kit: how to write the firm's name, its registration line, address, telephone and logo files. Contact the firm with press questions.",
+    "The 254 Engineering press kit: firm facts, offices, service lines, expert topics and logo files, with the media contact to email for press questions.",
   path: "/press",
 });
 
@@ -54,6 +64,46 @@ const LOGOS = [
     file: "/brand/logo-dark.png",
     label: "Logo for dark backgrounds",
     note: "White numerals and descriptor with the gold mark kept gold. On a white page it looks almost empty, which is expected.",
+  },
+  {
+    file: "/brand/logo-square-512.png",
+    label: "Square mark",
+    note: "The numerals and gold mark on navy, 512 pixels square, for an avatar or a listing that wants a square image.",
+  },
+];
+
+/**
+ * THE TOPICS. Robert, 2026-11-01 morning, round 3 item b: Texas windstorm and
+ * the WPI-8, foundations on expansive clay, solar structural review, and
+ * manufactured home foundations for FHA. Each names what a writer would ask
+ * about and points at the page on this site that already explains it, so the
+ * kit adds no fact of its own. No person is named: the firm speaks on these,
+ * and no engineer's name goes on a public page.
+ */
+const TOPICS = [
+  {
+    title: "Texas windstorm certification and the WPI-8",
+    body: "How a building on the coast becomes insurable through the Texas Windstorm Insurance Association: the Texas Department of Insurance inspection program, the WPI-8 certificate of compliance, and why ongoing and completed construction are certified differently.",
+    href: "/insights/wpi-8-certificate",
+    anchor: "the WPI-8 certificate guide",
+  },
+  {
+    title: "Foundations on expansive clay",
+    body: "Why so much of Texas is built on soil that swells when it is wet and shrinks when it dries, what that movement does to a slab, and what a foundation inspection can and cannot tell a buyer or an owner.",
+    href: "/services/foundation-inspections",
+    anchor: "foundation inspections",
+  },
+  {
+    title: "Solar structural review",
+    body: "What a structural review looks at before a rooftop solar array goes on a house, and why a permitting office asks for one.",
+    href: "/services/solar-structural-letters",
+    anchor: "solar structural letters",
+  },
+  {
+    title: "Manufactured home foundations for FHA loans",
+    body: "The foundation certification an FHA insured loan on a manufactured home calls for, and what the inspection behind it examines.",
+    href: "/services/manufactured-home-foundation-certifications",
+    anchor: "manufactured home foundation certifications",
   },
 ];
 
@@ -155,6 +205,127 @@ export default function PressPage() {
         <Container>
           <div className="grid gap-12 py-[clamp(48px,7vw,88px)] lg:grid-cols-12 lg:gap-16">
             <div className="lg:col-span-4">
+              <SectionHead eyebrow="Where" title="Offices and markets" level="h2" />
+              <Rule className="mt-5" />
+            </div>
+            <div className="lg:col-span-8">
+              <dl className="grid gap-6">
+                {hasPostalAddress() ? (
+                  <div>
+                    <dt className="text-[0.85rem] font-semibold tracking-[0.08em] text-slate-muted uppercase">
+                      Office
+                    </dt>
+                    <dd className="mt-1.5 text-[1.05rem] leading-[1.7] text-slate">
+                      {postalAddressLine()}.{" "}
+                      <Link
+                        href="/san-antonio"
+                        className="font-medium text-slate underline decoration-brass underline-offset-4 transition-colors hover:text-brass"
+                      >
+                        The {contact.city} office
+                      </Link>{" "}
+                      is the firm&apos;s one address.
+                    </dd>
+                  </div>
+                ) : null}
+                <div>
+                  <dt className="text-[0.85rem] font-semibold tracking-[0.08em] text-slate-muted uppercase">
+                    Highlighted market
+                  </dt>
+                  <dd className="mt-1.5 text-[1.05rem] leading-[1.7] text-slate">
+                    <Link
+                      href="/corpus-christi"
+                      className="font-medium text-slate underline decoration-brass underline-offset-4 transition-colors hover:text-brass"
+                    >
+                      Corpus Christi and the Coastal Bend
+                    </Link>
+                    , a market the firm {servesVerb()}. There is no office address there.
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-[0.85rem] font-semibold tracking-[0.08em] text-slate-muted uppercase">
+                    Coverage
+                  </dt>
+                  <dd className="mt-1.5 text-[1.05rem] leading-[1.7] text-slate">
+                    All 254 Texas counties, organized into eight{" "}
+                    <Link
+                      href="/coverage"
+                      className="font-medium text-slate underline decoration-brass underline-offset-4 transition-colors hover:text-brass"
+                    >
+                      coverage regions
+                    </Link>
+                    .
+                  </dd>
+                </div>
+              </dl>
+            </div>
+          </div>
+        </Container>
+      </section>
+
+      <section className="border-b border-limestone-line bg-limestone-sunk">
+        <Container>
+          <div className="grid gap-12 py-[clamp(48px,7vw,88px)] lg:grid-cols-12 lg:gap-16">
+            <div className="lg:col-span-4">
+              <SectionHead eyebrow="What" title="Service lines" level="h2" />
+              <Rule className="mt-5" />
+            </div>
+            <div className="lg:col-span-8">
+              <p className="text-[1.02rem] leading-[1.75] text-slate-muted">
+                The {services.length} service lines the firm is built to deliver, each with its own
+                page stating its scope and what the deliverable contains.
+              </p>
+              <ul className="mt-6 grid gap-x-8 sm:grid-cols-2">
+                {services.map((s) => (
+                  <li key={s.slug} className="border-b border-limestone-line">
+                    <Link
+                      href={`/services/${s.slug}`}
+                      className="flex min-h-[44px] items-center py-2 text-[1rem] text-slate underline decoration-limestone-line underline-offset-4 transition-colors hover:decoration-brass"
+                    >
+                      {s.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </Container>
+      </section>
+
+      <section className="border-b border-limestone-line">
+        <Container>
+          <div className="grid gap-12 py-[clamp(48px,7vw,88px)] lg:grid-cols-12 lg:gap-16">
+            <div className="lg:col-span-4">
+              <SectionHead eyebrow="Interviews" title="Expert topics" level="h2" />
+              <Rule className="mt-5" />
+            </div>
+            <div className="lg:col-span-8">
+              <p className="text-[1.02rem] leading-[1.75] text-slate-muted">
+                Subjects the firm can speak to for a story, with the page on this site that already
+                sets out the background.
+              </p>
+              <ul className="mt-6 grid gap-6">
+                {TOPICS.map((t) => (
+                  <li key={t.href} className="border border-limestone-line p-5">
+                    <p className="text-[1.05rem] font-semibold text-slate">{t.title}</p>
+                    <p className="mt-2 text-[0.98rem] leading-[1.7] text-slate-muted">{t.body}</p>
+                    <Link
+                      href={t.href}
+                      className="mt-3 inline-flex min-h-[44px] items-center font-sans text-[0.96rem] font-semibold text-slate underline decoration-brass/60 underline-offset-[6px] transition-colors hover:decoration-brass"
+                    >
+                      Background: {t.anchor}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </Container>
+      </section>
+
+      <section className="border-b border-limestone-line bg-limestone-sunk">
+        <Container>
+          <div className="grid gap-12 py-[clamp(48px,7vw,88px)] lg:grid-cols-12 lg:gap-16">
+            <div className="lg:col-span-4">
               <SectionHead eyebrow="Logos" title="Logo files" level="h2" />
               <Rule className="mt-5" />
             </div>
@@ -184,11 +355,11 @@ export default function PressPage() {
         </Container>
       </section>
 
-      <section className="border-b border-limestone-line bg-limestone-sunk">
+      <section className="border-b border-limestone-line">
         <Container>
           <div className="grid gap-12 py-[clamp(48px,7vw,88px)] lg:grid-cols-12 lg:gap-16">
             <div className="lg:col-span-4">
-              <SectionHead eyebrow="Contact" title="Press questions" level="h2" />
+              <SectionHead eyebrow="Contact" title="Media contact" level="h2" />
               <Rule className="mt-5" />
             </div>
             <div className="lg:col-span-8">
