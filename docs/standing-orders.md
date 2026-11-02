@@ -175,6 +175,13 @@ The chat posted five audit files on issue #1: auth 6585008053, money 6585008424,
 - **CRM (6587550325):** 1 yes, reply subdomain with Resend Inbound; **post the exact DNS records on issue #1**; support mailbox until then. 2 yes, ops_manager is the sales manager and the rep is also the account manager; sales gets no crm.use. 3 yes, keep the rule and hold no-contact records. 4 yes, preview then a person presses Write. 5 yes, one thread per company. 6 yes, a rep presses Send on each email. 7 yes, build San Antonio, Austin, TDLR and TREC first; **draft the open records request letters for Houston, Dallas, Fort Worth and Corpus Christi for him to send**, each naming the dataset, the fields and the format. **For the Austin terms PDF and TDLR's three policy pages, read them in the session's browser or fetch and record the dates; if they cannot be read, say so and he will open them.** 8 yes, replace the prospect kind check with the eight verticals; **prepare it as a destructive sitting per docs/production-sitting-destructive.md.**
 - **Scripts (6587550851), sequences and emails (6587551356), sources (6587551734): approved as drafted. Scripts may show to reps once R3 merges.**
 
+**Robert, 2026-11-02 (relayed in session), answers to 6588393366:**
+1. Prospect kinds: as drafted. Title companies go to `other` tagged `title_company`, contractors to `other` tagged `contractor`.
+2. **AMENDMENT TO THE 2026-09-09 LEDGER RULING:** approved. Add the named route `operator_sql_editor`, allowed only for migrations listed in `docs/production-sitting-destructive.md`, each carrying the sentence saying what the provider's history will not show. 0025 stays the only grandfathered `execute_sql`. (Built with the prospect kind migration: schema-ledger-audit's WAYS gains the route with the list check, and the audit's comment and the destructive sitting document record the amendment with this date.)
+3. TDLR residential solar retailer and salesperson files: yes, add both as sources beside the electrical contractor file, same attribution rule.
+4. Austin: Robert opens the terms PDF and posts its date and answer. Austin stays on hold until then.
+- **The chat sat 0109 on development (6588568307). Q5 may board after P2.**
+
 **Follow-ups queued after Q14, in this order:** M2 session epoch; per-door attempt counters; suppress the review request on a decline; message search and mentions over every readable conversation. Then the low findings.
 
 (The "Finish the portal" heading below was dropped by my edit of the Q section and is restored here, 2026-11-02.)
