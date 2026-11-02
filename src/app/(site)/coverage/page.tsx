@@ -8,7 +8,7 @@ import { OfferCta } from "@/components/launch/OfferCta";
 import { CardGrid, cardCell, SectionHeading } from "@/components/ui/primitives";
 import { Section, SectionHead } from "@/components/ui/section";
 import { CountyFinder } from "@/components/site/CountyFinder";
-import { TexasCountyMap } from "@/components/map/TexasCountyMap";
+import { CountyMapImage } from "@/components/map/CountyMapImage";
 import { RegionKey } from "@/components/map/RegionKey";
 import { buildMetadata } from "@/lib/seo";
 import { JsonLd, breadcrumbSchema } from "@/lib/schema";
@@ -50,7 +50,9 @@ export default function CoveragePage() {
         <div>
             <div className="grid gap-10 lg:grid-cols-12 lg:gap-14">
               <div className="lg:col-span-7">
-                <TexasCountyMap />
+                {/* A file, not inline markup: Robert, 2026-11-01, round 3 item a.
+                    The county names are the server rendered list below. */}
+                <CountyMapImage />
               </div>
               <div className="lg:col-span-5 lg:pt-4">
                 <SectionHeading

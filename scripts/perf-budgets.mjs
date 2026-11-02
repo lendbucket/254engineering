@@ -336,6 +336,8 @@ export const ROUTE_BUDGETS = [
   { name: "insights post: roofers", path: "/insights/windstorm-inspection-for-roofers", kb: 540 },
   { name: "insights post: roof certification", path: "/insights/roof-certification-vs-wpi-8", kb: 540 },
   { name: "insights post: inspection vs forensic", path: "/insights/inspection-vs-forensic-report", kb: 540 },
+  /* The cost guide, round 3 item f (Robert, 2026-11-01), joins the set as every article does. */
+  { name: "insights post: cost guide", path: "/insights/structural-inspection-cost-texas", kb: 540 },
   { name: "careers hub", path: "/careers", kb: 580 },
   {
     name: "application stepper",

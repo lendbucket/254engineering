@@ -287,6 +287,15 @@
     }
   }
 
+  /*
+   * Italic text reads the italic declaration, which is not preloaded (item l,
+   * Robert 2026-11-01; see layout.tsx). Same Inter italic file as before; only
+   * when it is fetched changed.
+   */
+  :where(.italic, em, i) {
+    font-family: var(--font-inter-italic), var(--font-sans);
+  }
+
   body {
     background-color: var(--color-limestone);
     color: var(--color-slate-ink);
