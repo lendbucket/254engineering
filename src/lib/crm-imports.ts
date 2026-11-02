@@ -10,6 +10,7 @@ import { normalizeName, normalizePhone, prospectTypeForVertical, territoryFor, t
 import { AUSTIN_WHERE, TREC_WHERE, parseBoughtList, parseSource, type ImportRecord, type ParseResult } from "./crm-import-parse";
 import { HELD_KEEP, buildIndex, planRecords, rowsToStore, staleLines, tally, type ListIndex, type PlannedRow, type Verdict } from "./crm-import-plan";
 import { CRM_SOURCE_DECLS, sourceDecl, sourceRefusal, type CrmSourceDecl } from "@/config/crm-sources";
+import { roundRobinOwners } from "./crm-territories";
 
 /**
  * THE IMPORT ENGINE. Robert's sales CRM ruling of 2026-11-02, item R2,
@@ -336,25 +337,38 @@ export async function writeRun(
   const merges = stored.rows.filter((r) => r.verdict === "merge");
   const waiting = stored.rows.filter((r) => r.verdict === "conflict").length;
 
+  /*
+   * R5: "new imports assign round robin within the territory." Each new company
+   * whose county is in a territory goes to the next active holder of that
+   * territory; one in no territory, or in a territory nobody active holds, is
+   * written unassigned for a manager. Decided before anything is written, so a
+   * failure here writes nothing.
+   */
+  const newIds = adds.map(() => randomUUID());
+  const territoryOwners = await roundRobinOwners(db, adds.map((r, i) => ({ id: newIds[i], county: r.payload.county ?? null })));
+  if (!territoryOwners.ok) return refuse(`${territoryOwners.error} Nothing was written.`);
+  const assignedByTerritory = [...territoryOwners.owners.values()].filter(Boolean).length;
+
   const recorded = await writeAuditOrRefuse({
     actor,
     action: "prospect.imported",
     entityType: "crm_import_run",
     entityId: runId,
-    summary: `Import written from ${decl?.label ?? "a spreadsheet"}: ${adds.length} new companies, ${merges.length} already on the list, ${waiting} waiting for a choice.`,
-    diff: { source, adds: adds.length, merges: merges.length, conflicts: waiting },
+    summary: `Import written from ${decl?.label ?? "a spreadsheet"}: ${adds.length} new companies (${assignedByTerritory} assigned by territory), ${merges.length} already on the list, ${waiting} waiting for a choice.`,
+    diff: { source, adds: adds.length, assigned_by_territory: assignedByTerritory, merges: merges.length, conflicts: waiting },
   });
   if (!recorded.ok) return recorded;
 
-  /* The new companies, each with its person and its source. */
+  /* The new companies, each with its person, its source, and its owner by territory. */
   const newIdByLine = new Map<number, string>();
   for (let i = 0; i < adds.length; i += 500) {
-    const chunk = adds.slice(i, i + 500).map((r) => {
-      const id = randomUUID();
+    const chunk = adds.slice(i, i + 500).map((r, j) => {
+      const id = newIds[i + j];
       newIdByLine.set(r.line, id);
       return { row: r, id };
     });
-    const { error } = await db.from("eng_prospects").insert(chunk.map(({ row, id }) => prospectRowFrom(row.payload, id, actor.id)));
+    const rowsToWrite = chunk.map(({ row, id }) => ({ ...prospectRowFrom(row.payload, id, actor.id), owner_id: territoryOwners.owners.get(id) ?? null }));
+    const { error } = await db.from("eng_prospects").insert(rowsToWrite);
     if (error) {
       return refuse(
         `${i} of ${adds.length} new companies were written and the rest could not be: ${error.message}. ` +
@@ -485,7 +499,10 @@ export async function resolveHeld(
     joined = true;
   } else {
     prospectId = randomUUID();
-    const { error } = await db.from("eng_prospects").insert(prospectRowFrom(record, prospectId, actor.id));
+    /* R5: a held record brought onto the list is a new import, so it takes the round robin too. */
+    const owner = await roundRobinOwners(db, [{ id: prospectId, county: record.county ?? null }]);
+    if (!owner.ok) return refuse(`${owner.error} The company was not added.`);
+    const { error } = await db.from("eng_prospects").insert({ ...prospectRowFrom(record, prospectId, actor.id), owner_id: owner.owners.get(prospectId) ?? null });
     if (error) return refuse(`The company could not be added: ${error.message}`);
     const { error: contactError } = await db
       .from("eng_prospect_contacts")

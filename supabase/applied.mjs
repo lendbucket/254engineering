@@ -4218,6 +4218,22 @@ export const APPLIED = [
       "SITTING; APPLIED NOWHERE. Robert's sales CRM ruling of 2026-11-02, item R4, pipeline and lists: saved views per " +
       "person, and one existing direct thread linked per company for notes with mentions (his answer 5). Additive: two tables.",
   },
+  {
+    file: "0114_the_sales_list_divides_texas_into_territories.sql", appliedBy: "apply_migration",
+    fingerprint: "6c41b32b62512384935995194e2fee7e",
+    behaviour: "5a069d2b59c9348bf5bd2ea786a779f3",
+    production: null,
+    proves: { table: "eng_crm_territories" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-02 on the combined chain 0104 to 0114. Shape 1482 " +
+      "to 1495 columns: 5 on eng_crm_territories, 4 on eng_crm_territory_counties, 4 on eng_crm_territory_reps; tables " +
+      "112 to 115. Behaviour 1456 to 1477 facts: the three tables' keys, checks, foreign keys and the two unique indexes " +
+      "(a territory name once, a county in one territory) and the holder index.",
+    because:
+      "WRITTEN 2026-11-02 ON feat/crm-r5-territories AND STAGED ON stage/0114-crm-territories FOR THE CHAT COUNTERPART'S " +
+      "SITTING; APPLIED NOWHERE. Robert's sales CRM ruling of 2026-11-02, item R5, territories and assignment: counties " +
+      "grouped into territories, reps holding one or more, the round robin cursor new imports advance. Additive: three tables.",
+  },
 ];
 
 /*

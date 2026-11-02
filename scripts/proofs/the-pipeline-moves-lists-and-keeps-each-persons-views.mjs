@@ -6,8 +6,9 @@
  *      one per person per name, a name another person uses is theirs to use,
  *      its query is an object and its view is the board or the list; a company
  *      has one notes thread and a thread belongs to one company
- *   B  who sees what: a rep sees their own companies and nobody's, never
- *      another rep's; a holder of crm.assign sees all
+ *   B  who sees what: a rep sees their own companies and the unowned ones in
+ *      the counties of territories they hold (R5, 2026-11-02, which narrowed
+ *      R4's "nobody's"), never another rep's; a holder of crm.assign sees all
  *   C  bulk acts: assign is refused to a rep outright; tag touches only what
  *      the person may change and counts what it left alone
  *   D  the list's filters and sorts, each narrowing the whole set: vertical,
@@ -93,14 +94,16 @@ const sameKey = await refused(db, `insert into eng_threads (kind, direct_key, cr
 check("A: and 0005's key keeps one thread keyed to a company", sameKey.refused && /eng_threads_direct_key/.test(sameKey.message), sameKey.message);
 
 /* ---------------------------------------------------------------- B and C */
-const REP = { id: "rep-1", seesAll: false };
-const MANAGER = { id: "mgr-1", seesAll: true };
-check("B: a rep sees their own company", rules.canSeeCompany(REP, "rep-1"));
-check("B: and a company nobody owns", rules.canSeeCompany(REP, null));
-check("B: and never another rep's", !rules.canSeeCompany(REP, "rep-2"));
-check("B: a holder of crm.assign sees every company", rules.canSeeCompany(MANAGER, "rep-2") && rules.canSeeCompany(MANAGER, null));
+/* R5 (2026-11-02) narrowed "nobody's" to the unowned in the rep's territories; this rep holds Nueces. */
+const REP = { id: "rep-1", seesAll: false, counties: new Set(["Nueces"]) };
+const MANAGER = { id: "mgr-1", seesAll: true, counties: new Set() };
+check("B: a rep sees their own company", rules.canSeeCompany(REP, "rep-1", "Travis"));
+check("B: and a company nobody owns in their territory", rules.canSeeCompany(REP, null, "Nueces"));
+check("B: but not an unowned one outside it", !rules.canSeeCompany(REP, null, "Travis"));
+check("B: and never another rep's", !rules.canSeeCompany(REP, "rep-2", "Nueces"));
+check("B: a holder of crm.assign sees every company", rules.canSeeCompany(MANAGER, "rep-2", "Travis") && rules.canSeeCompany(MANAGER, null, null));
 
-const owners = new Map([["a", "rep-1"], ["b", null], ["c", "rep-2"]]);
+const owners = new Map([["a", { ownerId: "rep-1", county: "Travis" }], ["b", { ownerId: null, county: "Nueces" }], ["c", { ownerId: "rep-2", county: "Nueces" }]]);
 const repAssign = rules.bulkTargets(REP, "assign", ["a", "b"], owners);
 check("C: bulk assign is refused to a rep outright", !repAssign.ok && /sales manager/.test(repAssign.error), JSON.stringify(repAssign));
 const mgrAssign = rules.bulkTargets(MANAGER, "assign", ["a", "b", "c"], owners);
@@ -174,8 +177,8 @@ check("H: a stage move needs the stage the screen showed", /if \(!input\.from\) 
 check("H: and is refused, before setStage, when the company is not at it", moveBody.indexOf("if (input.from !== now)") > 0 && moveBody.indexOf("if (input.from !== now)") < moveBody.indexOf("setStage("));
 check("H: and the move itself is R1's setStage, which writes the stage change to the history", /await setStage\(actor, input\.prospectId, input\.to as CrmStage\)/.test(moveBody));
 const listBody = pipeline.slice(pipeline.indexOf("export async function companiesFor("), pipeline.indexOf("async function visibleCompany("));
-check("H: one read keeps what a person may see, by canSeeCompany", /read\.rows\.filter\(\(r\) => canSeeCompany\(viewer,/.test(listBody) && /if \(!viewer\.seesAll\) q = q\.or\(`owner_id\.eq\.\$\{actor\.id\},owner_id\.is\.null`\)/.test(listBody));
-check("H: the company page and every write go through visibleCompany or the same rule", /canSeeCompany\(viewerFor\(actor\), \(row\.owner_id/.test(pipeline) && (pipeline.match(/await visibleCompany\(actor, db,/g) ?? []).length >= 2);
+check("H: one read keeps what a person may see, by canSeeCompany with the county", /read\.rows\.filter\(\(r\) => canSeeCompany\(viewer, \(r\.owner_id as string \| null\) \?\? null, \(r\.county as string \| null\) \?\? null\)\)/.test(listBody) && /if \(!viewer\.seesAll\) q = q\.or\(`owner_id\.eq\.\$\{actor\.id\},owner_id\.is\.null`\)/.test(listBody));
+check("H: the company page and every write go through visibleCompany or the same rule", /canSeeCompany\(who\.viewer, \(row\.owner_id as string \| null\) \?\? null, \(row\.county as string \| null\) \?\? null\)/.test(pipeline) && (pipeline.match(/await visibleCompany\(actor, db,/g) ?? []).length >= 2);
 const viewsBody = pipeline.slice(pipeline.indexOf("export async function savedViewsFor("), pipeline.indexOf("/* ----------------------------------------------------- the company's notes */"));
 check("H: saved views are read for their owner only", /from\("eng_crm_saved_views"\)\.select\("id, name, view, query"\)\.eq\("profile_id", actor\.id\)/.test(viewsBody));
 check("H: and deleted for their owner only, somebody else's being not found", /\.delete\(\)\.eq\("id", id\)\.eq\("profile_id", actor\.id\)/.test(viewsBody) && /That view is not one of yours/.test(viewsBody));

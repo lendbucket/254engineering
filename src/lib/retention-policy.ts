@@ -342,6 +342,10 @@ export const RETENTION_POLICY: RetentionEntry[] = [
   { table: "eng_crm_import_runs", rule: { kind: "kept_pending_counsel", because: "Telemetry in shape, one preview of one source and what a person did with it. No floor is ruled. " + COUNSEL } },
   /* 0113 (Robert's CRM R4). One person's named filter and sort on the sales list. A preference, not a record about a customer; no floor is ruled, so kept like its neighbours. */
   { table: "eng_crm_saved_views", rule: { kind: "kept_pending_counsel", because: "A person's saved filter and sort on the sales list. No floor is ruled. " + COUNSEL } },
+  /* 0114 (Robert's CRM R5). Sales territories, their counties and who holds them: working settings a manager redraws, each change audited first. No floor is ruled, so kept like their neighbours. */
+  { table: "eng_crm_territories", rule: { kind: "kept_pending_counsel", because: "A named sales territory and its round robin cursor. No floor is ruled. " + COUNSEL } },
+  { table: "eng_crm_territory_counties", rule: { kind: "kept_pending_counsel", because: "The counties in a sales territory. No floor is ruled. " + COUNSEL } },
+  { table: "eng_crm_territory_reps", rule: { kind: "kept_pending_counsel", because: "Who holds a sales territory. No floor is ruled. " + COUNSEL } },
   {
     table: "eng_cron_runs",
     rule: {

@@ -8,6 +8,8 @@ import { normaliseEmail, suppress } from "./marketing-suppression";
 import { lineIsSellableForDisplay } from "./line-gate";
 import { SCRIPT_LINE } from "@/content/crm-scripts";
 import { scriptFor, type RenderedScript } from "./crm-script-render";
+import { canSeeCompany } from "./crm-board-rules";
+import { viewerFor } from "./crm-territories";
 import { STAGE_LABEL, VERTICAL_LABEL, type CrmStage, type CrmVertical } from "./crm-rules";
 import {
   CALL_OUTCOMES,
@@ -25,8 +27,9 @@ import {
  * THE CALL QUEUE. Robert's sales CRM ruling of 2026-11-02, item R3.
  *
  * One card at a time: the next company due a call, by due time then score,
- * that is the caller's own or nobody's (R5 adds the territory to the same
- * test, isDueForCaller). Before a card is drawn, a company that asked not to
+ * that is the caller's own or nobody's and, for a rep, in a territory they hold
+ * (R5: the companies come through canSeeCompany, the one visibility rule, and
+ * isDueForCaller keeps another person's off the queue). Before a card is drawn, a company that asked not to
  * be contacted never comes up, and a company any of whose people is on the
  * suppression list is passed over and counted, so the screen can say how many
  * it skipped and why. Outside 8 AM to 8 PM Central the queue draws nothing and
@@ -78,12 +81,20 @@ function repFirstName(actor: Actor): string {
   return name ? name.split(/\s+/)[0] : "your name";
 }
 
-const CANDIDATE_COLUMNS = "id, company, stage, score, next_action_at, next_action_kind, owner_id";
+const CANDIDATE_COLUMNS = "id, company, stage, score, next_action_at, next_action_kind, owner_id, county";
 
-/** The companies due a call for this caller, in queue order. Every open company is read, never a page of them. */
+/**
+ * The companies due a call for this caller, in queue order. Every open company
+ * is read, never a page of them. R5: the caller's own, and the unowned ones
+ * canSeeCompany allows (for a rep, those in the counties of territories they
+ * hold; for a manager, any). Another person's company is never on the caller's
+ * queue (isDueForCaller), whoever is looking.
+ */
 async function dueCandidates(actor: Actor, now: Date): Promise<{ ok: true; rows: QueueCandidate[] } | { ok: false; error: string }> {
   const db = supabaseAdmin();
   if (!db) return refuse("The database is not configured, so the queue could not be read.");
+  const who = await viewerFor(actor);
+  if (!who.ok) return who;
   const read = await readEvery<Record<string, unknown>>((from, to) =>
     db
       .from("eng_prospects")
@@ -95,7 +106,8 @@ async function dueCandidates(actor: Actor, now: Date): Promise<{ ok: true; rows:
       .range(from, to),
   );
   if (!read.ok) return refuse(`The queue could not be read: ${read.error}`);
-  const rows: QueueCandidate[] = read.rows.map((r) => ({
+  const seen = read.rows.filter((r) => canSeeCompany(who.viewer, (r.owner_id as string | null) ?? null, (r.county as string | null) ?? null));
+  const rows: QueueCandidate[] = seen.map((r) => ({
     id: String(r.id),
     company: String(r.company),
     stage: r.stage as CrmStage,
@@ -291,12 +303,18 @@ export async function recordOutcome(
   if (!db) return refuse("The database is not configured, so nothing was recorded.");
   const { data: row, error } = await db
     .from("eng_prospects")
-    .select("id, company, stage, status, sequence_step, owner_id, tags")
+    .select("id, company, stage, status, sequence_step, owner_id, county, tags")
     .eq("id", input.prospectId)
     .maybeSingle();
   if (error) return refuse(`The company could not be read: ${error.message}`);
   if (!row) return refuse("That company is not on the sales list.");
   if (row.owner_id && row.owner_id !== actor.id) return refuse("Another rep is working this company. Take the next card.");
+  /* R5: an unowned company is the caller's to work only if it is in a territory they hold (a manager may work any). */
+  const who = await viewerFor(actor);
+  if (!who.ok) return who;
+  if (!canSeeCompany(who.viewer, (row.owner_id as string | null) ?? null, (row.county as string | null) ?? null)) {
+    return refuse("This company is outside your territories. Take the next card.");
+  }
 
   const people = await contactsOf(input.prospectId);
   if (!people.ok) return people;

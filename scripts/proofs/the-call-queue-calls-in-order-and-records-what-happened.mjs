@@ -23,7 +23,9 @@
  *      read; do not contact and the suppression list checked before a card is
  *      drawn; an outcome moves the company conditionally, writes the call and the
  *      stage change, and a do not call suppresses every address; another rep's
- *      company and an outcome outside hours change nothing
+ *      company and an outcome outside hours change nothing; and (R5,
+ *      2026-11-02) an unowned company outside the caller's territories never
+ *      comes up and takes no outcome, and a territory read that fails draws no card
  *
  *   node node_modules/tsx/dist/cli.mjs --conditions=react-server scripts/proofs/the-call-queue-calls-in-order-and-records-what-happened.mjs
  */
@@ -176,9 +178,14 @@ const ROWS = {
   eng_prospects: [
     { id: P(1), company: "Someone Else's Roofing", vertical: "roofer", stage: "attempted", status: "open", score: 90, next_action_at: "2026-11-01T15:00:00Z", next_action_kind: "call", owner_id: OTHER, sequence_step: 1, tags: [], city: "San Antonio", county: "Bexar", website: null, permit_count: 0, last_permit_on: null, converted_account_id: null },
     { id: P(2), company: "Asked Not To Roofing", vertical: "roofer", stage: "do_not_contact", status: "not_interested", score: 99, next_action_at: null, next_action_kind: null, owner_id: null, sequence_step: 1, tags: [], city: null, county: null, website: null, permit_count: 0, last_permit_on: null, converted_account_id: null },
-    { id: P(3), company: "Suppressed Roofing", vertical: "roofer", stage: "attempted", status: "open", score: 80, next_action_at: "2026-11-01T15:00:00Z", next_action_kind: "call", owner_id: null, sequence_step: 1, tags: [], city: null, county: null, website: null, permit_count: 0, last_permit_on: null, converted_account_id: null },
+    { id: P(3), company: "Suppressed Roofing", vertical: "roofer", stage: "attempted", status: "open", score: 80, next_action_at: "2026-11-01T15:00:00Z", next_action_kind: "call", owner_id: null, sequence_step: 1, tags: [], city: null, county: "Bexar", website: null, permit_count: 0, last_permit_on: null, converted_account_id: null },
     { id: P(4), company: "Due First Roofing", vertical: "roofer", stage: "new", status: "open", score: 20, next_action_at: "2026-11-02T15:00:00Z", next_action_kind: "call", owner_id: null, sequence_step: 0, tags: [], city: "San Antonio", county: "Bexar", website: null, permit_count: 12, last_permit_on: "2026-10-20", converted_account_id: null },
+    /* R5 (2026-11-02): unowned, due earliest and scored highest, but in Travis, a county in no territory the caller holds, so it never comes up. */
+    { id: P(5), company: "Outside Territory Roofing", vertical: "roofer", stage: "attempted", status: "open", score: 95, next_action_at: "2026-10-30T15:00:00Z", next_action_kind: "call", owner_id: null, sequence_step: 1, tags: [], city: "Austin", county: "Travis", website: null, permit_count: 0, last_permit_on: null, converted_account_id: null },
   ],
+  /* R5: the caller holds one territory, Bexar County. */
+  eng_crm_territory_reps: [{ territory_id: "t-proof", profile_id: ME }],
+  eng_crm_territory_counties: [{ territory_id: "t-proof", county: "Bexar" }],
   eng_prospect_contacts: [
     { id: P(31), prospect_id: P(3), full_name: "Sam Suppressed", phone: "2105550103", email: "sam@suppressed-proof.invalid", is_primary: true },
     { id: P(41), prospect_id: P(4), full_name: "Pat Lee", phone: "2105550104", email: "pat@due-first-proof.invalid", is_primary: true },
@@ -244,6 +251,14 @@ check("F: outside calling hours the queue is closed and reads nothing", closed.o
 const open = await queue.queueFor(ACTOR, NOW);
 check("F: the card is the caller's next due company, not another rep's, not do not contact, not suppressed", open.ok && !open.closed && open.card?.id === P(4), open.ok ? `card ${open.card?.id}` : open.error);
 check("F: a company with somebody on the suppression list is passed over and counted", open.ok && !open.closed && open.skippedSuppressed === 1, open.ok ? `skipped ${open.skippedSuppressed}` : "");
+/* Due counts the two Bexar companies (the suppressed one included); without the territory rule it would be three. */
+check("F: an unowned company outside the caller's territories never comes up, however due and scored (R5)", open.ok && !open.closed && open.card?.id !== P(5) && open.due === 2, open.ok ? `card ${open.card?.id}, due ${open.due}` : "");
+const outside = await queue.recordOutcome(ACTOR, { prospectId: P(5), outcome: "no_answer" }, NOW);
+check("F: and a call cannot be recorded on it either", !outside.ok && /outside your territories/.test(outside.error), outside.ok ? "recorded" : outside.error);
+state.fail = new Set(["eng_crm_territory_reps"]);
+const noTerritories = await queue.queueFor(ACTOR, NOW);
+check("F: a territory read that fails shows no card (fails closed)", !noTerritories.ok && /territories could not be read/.test(noTerritories.error), noTerritories.ok ? "a card was drawn" : noTerritories.error);
+state.fail = new Set();
 check("F: the card carries its people with numbers, its permits, and the script", open.ok && !open.closed && open.card.contacts.length === 2 && open.card.permitCount === 12 && open.card.script.ok, open.ok && open.card ? JSON.stringify(open.card.script).slice(0, 120) : "");
 
 state.fail = new Set(["eng_marketing_suppressions"]);

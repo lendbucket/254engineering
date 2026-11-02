@@ -22,6 +22,8 @@ import {
   type CrmVertical,
 } from "./crm-rules";
 import { addPrimaryContactAndSource } from "./crm-prospects";
+import { canSeeCompany } from "./crm-board-rules";
+import { viewerFor } from "./crm-territories";
 
 /**
  * THE SALES LIST. Operator ruling, 2026-10-20. 0079.
@@ -74,9 +76,19 @@ export type ProspectQuery = {
 };
 
 const SELECT =
-  "id, created_at, updated_at, company, contact_name, phone, email, city, prospect_type, status, follow_up_on, owner_id, converted_account_id, vertical, stage, owner:eng_profiles!eng_prospects_owner_id_fkey(display_name)";
+  "id, created_at, updated_at, company, contact_name, phone, email, city, county, prospect_type, status, follow_up_on, owner_id, converted_account_id, vertical, stage, owner:eng_profiles!eng_prospects_owner_id_fkey(display_name)";
 
 const refuse = (error: string) => ({ ok: false as const, error });
+
+/**
+ * R5 (2026-11-02): these screens ask the sales list's one visibility rule,
+ * canSeeCompany, the same as the pipeline, the lists and the queue. Before R5
+ * they showed every company to every crm.use holder. A failed read of the
+ * viewer's territories refuses the screen.
+ */
+function seenBy(viewer: Parameters<typeof canSeeCompany>[0], rows: Record<string, unknown>[]): Record<string, unknown>[] {
+  return rows.filter((r) => canSeeCompany(viewer, (r.owner_id as string | null) ?? null, (r.county as string | null) ?? null));
+}
 
 function rowFrom(r: Record<string, unknown>, lastContact: Map<string, string>): ProspectRow {
   return {
@@ -130,9 +142,11 @@ export async function listProspects(
   actor: Actor | null,
   q: ProspectQuery,
 ): Promise<{ ok: true; rows: ProspectRow[]; total: number; page: number; pageSize: number } | { ok: false; error: string }> {
-  if (!can(actor, "crm.use")) return refuse("Your role cannot open the sales list.");
+  if (!actor || !can(actor, "crm.use")) return refuse("Your role cannot open the sales list.");
   const db = supabaseAdmin();
   if (!db) return refuse("The database is not configured, so the sales list could not be read.");
+  const who = await viewerFor(actor);
+  if (!who.ok) return who;
 
   const read = await readEvery<Record<string, unknown>>((from, to) => {
     let query = db.from("eng_prospects").select(SELECT);
@@ -146,16 +160,17 @@ export async function listProspects(
     return query.order("created_at", { ascending: true }).range(from, to);
   });
   if (!read.ok) return refuse(`The sales list could not be read: ${read.error}`);
+  const visible = seenBy(who.viewer, read.rows);
 
   const needle = (q.search ?? "").trim().toLowerCase();
   const digits = needle.replace(/[^0-9]/g, "");
   const matched = needle
-    ? read.rows.filter((r) => {
+    ? visible.filter((r) => {
         const hay = [r.company, r.contact_name, r.email, r.city].map((v) => String(v ?? "").toLowerCase());
         if (hay.some((h) => h.includes(needle))) return true;
         return digits.length >= 3 && String(r.phone ?? "").replace(/[^0-9]/g, "").includes(digits);
       })
-    : read.rows;
+    : visible;
 
   const last = await lastContactFor(matched.map((r) => String(r.id)));
   if (!last.ok) return last;
@@ -194,6 +209,8 @@ export async function callList(
   const db = supabaseAdmin();
   if (!db) return refuse("The database is not configured, so the call list could not be read.");
   const today = todayInFirmCalendar();
+  const who = await viewerFor(actor);
+  if (!who.ok) return who;
 
   const read = await readEvery<Record<string, unknown>>((from, to) => {
     let query = db.from("eng_prospects").select(SELECT).eq("status", "open").lte("follow_up_on", today);
@@ -201,21 +218,27 @@ export async function callList(
     return query.order("follow_up_on", { ascending: true }).order("company", { ascending: true }).range(from, to);
   });
   if (!read.ok) return refuse(`The call list could not be read: ${read.error}`);
-  const last = await lastContactFor(read.rows.map((r) => String(r.id)));
+  /* mineOnly keeps a manager's home screen to their own and the unowned; the rule then keeps a rep's unowned to their territories. */
+  const rowsSeen = seenBy(who.viewer, read.rows).filter((r) => !opts.mineOnly || !r.owner_id || r.owner_id === actor.id);
+  const last = await lastContactFor(rowsSeen.map((r) => String(r.id)));
   if (!last.ok) return last;
-  return { ok: true, today, rows: read.rows.map((r) => rowFrom(r, last.map)) };
+  return { ok: true, today, rows: rowsSeen.map((r) => rowFrom(r, last.map)) };
 }
 
 export async function prospectById(
   actor: Actor | null,
   id: string,
 ): Promise<{ ok: true; row: ProspectRow | null } | { ok: false; error: string }> {
-  if (!can(actor, "crm.use")) return refuse("Your role cannot open the sales list.");
+  if (!actor || !can(actor, "crm.use")) return refuse("Your role cannot open the sales list.");
   const db = supabaseAdmin();
   if (!db) return refuse("The database is not configured.");
   const { data, error } = await db.from("eng_prospects").select(SELECT).eq("id", id).maybeSingle();
   if (error) return refuse(`The prospect could not be read: ${error.message}`);
   if (!data) return { ok: true, row: null };
+  /* R5: a company this person may not see reads as not found, exactly like one that does not exist. */
+  const who = await viewerFor(actor);
+  if (!who.ok) return who;
+  if (seenBy(who.viewer, [data as Record<string, unknown>]).length === 0) return { ok: true, row: null };
   const last = await lastContactFor([id]);
   if (!last.ok) return last;
   return { ok: true, row: rowFrom(data as Record<string, unknown>, last.map) };
@@ -329,7 +352,20 @@ export async function updateProspect(
     if (change.followUpOn && !DATE.test(change.followUpOn)) return refuse("The follow-up date is not a date.");
     patch.follow_up_on = change.followUpOn || null;
   }
-  if (change.ownerId !== undefined) patch.owner_id = change.ownerId || null;
+  if (change.ownerId !== undefined) {
+    /*
+     * R5: "ops_manager and admin reassign singly or in bulk." A rep may take an
+     * unowned company they can see (it is in their territory) for themselves;
+     * giving a company to somebody else, or taking one off a person, is a
+     * manager's act (crm.assign).
+     */
+    const next = change.ownerId || null;
+    const takingForSelf = next === actor.id && current.row.ownerId === null;
+    if (next !== current.row.ownerId && !takingForSelf && !can(actor, "crm.assign")) {
+      return refuse("Only a sales manager or an administrator reassigns a company. You can take an unowned one in your territory for yourself.");
+    }
+    patch.owner_id = next;
+  }
   if (change.status !== undefined) {
     if (change.status !== "open" && change.status !== "not_interested") return refuse("That status cannot be set by hand.");
     /*
