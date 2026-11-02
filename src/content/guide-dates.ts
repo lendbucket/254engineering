@@ -62,4 +62,5 @@ export const POST_DATES: Record<string, { datePublished: string; dateModified: s
   "windstorm-inspection-coastal-buyers": { datePublished: "2026-10-16", dateModified: "2026-11-01" },
   "hurricane-damage-structural-checklist": { datePublished: "2026-10-16", dateModified: "2026-10-25" },
   "hurricane-damage-insurance-claim": { datePublished: "2026-10-16", dateModified: "2026-10-16" },
+  "structural-inspection-cost-texas": { datePublished: "2026-11-01", dateModified: "2026-11-01" },
 };
