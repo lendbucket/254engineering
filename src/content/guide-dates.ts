@@ -26,10 +26,10 @@ export const GUIDE_DATES: Record<string, { datePublished: string; dateModified: 
 };
 
 export const POST_DATES: Record<string, { datePublished: string; dateModified: string }> = {
-  "texas-professional-services-procurement-act": { datePublished: "2026-08-23", dateModified: "2026-08-24" },
-  "texas-engineering-firm-registration": { datePublished: "2026-08-23", dateModified: "2026-10-21" },
+  "texas-professional-services-procurement-act": { datePublished: "2026-08-23", dateModified: "2026-11-01" },
+  "texas-engineering-firm-registration": { datePublished: "2026-08-23", dateModified: "2026-11-01" },
   "engineer-of-record-texas": { datePublished: "2026-08-23", dateModified: "2026-09-21" },
-  "texas-pe-license-lookup": { datePublished: "2026-08-23", dateModified: "2026-09-21" },
+  "texas-pe-license-lookup": { datePublished: "2026-08-23", dateModified: "2026-11-01" },
   "foundation-inspection-cost": { datePublished: "2026-10-16", dateModified: "2026-10-25" },
   "free-foundation-inspection": { datePublished: "2026-10-16", dateModified: "2026-10-25" },
   "pre-purchase-home-inspection": { datePublished: "2026-10-16", dateModified: "2026-11-01" },
@@ -49,7 +49,7 @@ export const POST_DATES: Record<string, { datePublished: string; dateModified: s
   "roof-inspection-for-insurance": { datePublished: "2026-10-18", dateModified: "2026-10-18" },
   "twia-eligibility-requirements": { datePublished: "2026-09-15", dateModified: "2026-10-25" },
   "twia-coverage-homes-built-before-1988": { datePublished: "2026-09-15", dateModified: "2026-10-25" },
-  "texas-windstorm-certificate-lookup": { datePublished: "2026-09-15", dateModified: "2026-09-15" },
+  "texas-windstorm-certificate-lookup": { datePublished: "2026-09-15", dateModified: "2026-11-01" },
   "ongoing-vs-completed-improvement": { datePublished: "2026-09-15", dateModified: "2026-09-15" },
   "post-construction-evaluation-report": { datePublished: "2026-09-15", dateModified: "2026-11-01" },
   "engineer-letter-vs-windstorm-certificate": { datePublished: "2026-09-15", dateModified: "2026-09-15" },
