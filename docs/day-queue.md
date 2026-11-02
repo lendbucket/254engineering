@@ -250,6 +250,24 @@ WPI-8 facts stand as read from TDI and TWIA: TWIA's lookup is WPI-8-C only; the 
 - Standing note: perf `/coverage` NOT STABLE. No migration.
 - **Does not merge until Q1 (the privacy paragraph) is answered, however green.**
 
+**Result, bundle 61 (board 41369502303 on `a01eb49`): 64 of 64, every prediction line met.** JS 147 to 151 on `/`, 149 to 152 on coastal-bend (+3 to 4 KB). LCP `/` 2,436, `/coverage` 2,343, coastal-bend 2,773, service 2,725, each inside its range. TBT 35 to 52 ms on the surveyed rows (64 on `/careers/professional-engineer`). CLS 0.000. Heights 15,880 and 15,090 as predicted. No tag rendered (no ID). Superseded as the merge board by bundle 62, because f merged and the privacy paragraph was added.
+
+**Robert's answers, relayed in session 2026-11-01 evening, all as recommended.**
+1. GA4 Q1: yes to the privacy paragraph exactly as proposed; move the date.
+2. GA4 Q2: no repository variable for now. GA4 merges on a green board measured without the tag. After the production deploy, run the speed survey against production on `/`, `/coverage/coastal-bend` and `/services/windstorm-wpi-8`, three runs each, and post LCP and TBT with the tag live next to today's figures on issue #1. If LCP or TBT worsens by more than run-to-run variance, revert GA4 and tell Robert.
+3. Item f: yes, merge; record the miss. **Merged as `a07b25e`** (parents `e8a6806`, `6a62251`; tree identical to the boarded commit; pushed, ls-remote confirms). Miss recorded in the merge message: WPI-8 guide 15,856 px against a predicted unchanged 15,880, from `relatedReading()`.
+4. Queue after GA4: g, d, c, j, then k only if the PDFs arrive.
+
+**Bundle 62, item m (GA4), with the disclosure.** Main `a07b25e` merged into `feat/ga4` as `11f4bd5`; `761472a` adds the paragraph under "Information collected automatically" in Robert's approved words, moves `EFFECTIVE` to 1 November 2026, and adds three checks to the proof (the disclosure, the screens sentence, the moved date), injection verified (two red, restored byte identical). Preflight GREEN, 38 rules, 0 failed, 103 s; no long dash in added lines.
+
+**Prediction, bundle 62 (`feat/ga4` at `761472a`, over main `a07b25e`; full lane, as bundle 61).**
+- Preflight GREEN (stated above). Board: 64 of 64.
+- **No tag renders** (no repository variable, by Robert's answer 2). This board measures the component, not gtag.js.
+- **perf-audit.** JS on public routes as on bundle 61, within 1 KB. LCP `/` 2,100 to 2,900; `/coverage` 2,250 to 2,600; `/coverage/coastal-bend` 2,200 to 2,950; `/services/windstorm-wpi-8` 2,550 to 2,850; `/insights/structural-inspection-cost-texas` 2,000 to 2,900 at 328 to 334 KB. TBT 25 to 65 ms on every row. CLS 0.000.
+- **Heights:** `/insights/wpi-8-certificate` 15,856 px (f is in this tree), `/insights/pre-purchase-home-inspection` 15,090 px. `/privacy` gains one paragraph and stays out of the warnings.
+- Standing note: perf `/coverage` NOT STABLE. No migration.
+- **On a match it merges** (Q1 answered). Then the production survey of answer 2.
+
 **PENDING SYNC, keyword registry (Robert, answer 5, 2026-11-01).** `data/keyword-registry.ts` is meant to be synchronized verbatim across the three repos, and item h (`seo/wpi8-owners`, `49638cd`) changes one line in it. The 254 angle for the WPI-8 entry (path `/insights/wpi-8-certificate`) no longer says "Not the statute walk-through, which is /insights/windstorm-certificate-of-compliance." and now ends "...what one certificate records, and address corrections, with the statute's six month limit, fee provision and accountability clauses folded in from the retired statute post, which redirects here (item h, 2026-11-01)." **The Sealed Engineering and StampMyPlans repos need the same line once item h merges.** Not touched from here, by Robert's word.
 
 ## MORNING REPORT, 2026-10-31
