@@ -331,6 +331,15 @@ WPI-8 facts stand as read from TDI and TWIA: TWIA's lookup is WPI-8-C only; the 
 
 **Prediction, bundle 71 (d at `563aca8`, over main `39006e7`; full lane).** Board 64 of 64. `/windstorm/catastrophe-area` 15,071 px at 390, a third route in the warning band (ruled acceptable); the other two 15,856 and 15,090. Every listed route's bytes identical to bundle 70; LCP in bundle 63's range, `/coverage` excepted under NOT STABLE and the green-board rule. No migration. Merges on a match, with bundle 65's two misses recorded in the merge message.
 
+**Result, bundle 71 (board 41457211060 on `563aca8`): 64 of 64, preflight GREEN.** Catastrophe area 15,071 px as predicted; bytes identical to bundle 70; `/` 2,872, `/coverage` 2,495, service 2,773, cost guide 2,561; one line missed on an untouched page: coastal-bend 2,133, faster than 2,200 to 2,950, bytes unchanged. **d merged as `85d3f11`** on Robert's answer, all three misses in the merge message (tree identical; pushed, ls-remote confirms). (A background wait on this board was reaped for low memory once; restarted on the /loop.)
+
+**Bundle 72, item c fixed (`241304d`), brought up to `85d3f11` as `54a6a50`.** Preflight GREEN, 38 rules, 104 s. The badge proof PASS, injection verified.
+
+**Prediction, bundle 72 (c at `54a6a50`; full lane, a route handler and the sitemap).**
+- Board 64 of 64. seo-audit PASS: `/partners/badge` is out of the sitemap, so the two-inbound-links rule no longer applies to it; it is read by name for nofollow, and its noindex meta carries no nofollow. The link checks read one more page than the sitemap (OFF_SITEMAP grows by one).
+- voice, placeholder, cta, mobile-overflow and compliance read `/partners/badge` by name and PASS; compliance finds no engineer number on it.
+- perf: no listed route changes bytes except none (`/press` is not on the perf list); LCP in bundle 63's range, `/coverage` excepted under NOT STABLE and the green-board rule. Heights: the three warnings 15,856, 15,090, 15,071; `/press` grows by one paragraph, outside the band. No migration. Merges on a match.
+
 **Result, bundle 66 (board 41402651253 on `a545b8e`): 63 of 64, RED, NOT MERGED, c PARKED.** seo-audit: "/partners/badge: 0 page(s) link to it; every sitemap page needs at least two". A real finding the prediction missed: the page went into the sitemap with no inbound link. Speed and heights in range (`/` 2,590, `/coverage` 2,338, coastal-bend 2,716, service 2,750, cost guide 2,540; TBT 35 to 57). One natural prose link exists (`/press`, logo section); the second would be the footer, a sitewide template link, so asked on issue #1 (6572085510), recommending `/press` plus a footer link. First red for c; a second red on a new commit parks it for good.
 
 **Bundle 67, item j:** main `8fa0592` merged in as `24f41a7` (clean), preflight GREEN, 38 rules, 101 s. Board 41410202142 dispatched on `24f41a7`. Prediction as written above; `/coverage` outside bundle 63's range would be an untouched page with unchanged bytes, recorded under the green-board rule.
