@@ -94,6 +94,13 @@ const DISPLAY = {
   /* Through deliverableBlockedForDisplay since 2026-10-27, which asks a quote as a request (addendum item 3). */
   "src/app/(order)/order/start/[slug]/page.tsx": { deliverableBlockedForDisplay: 1 },
   "src/lib/line-gate.ts": { lineIsSellableForDisplay: 2, orderBlockedForDisplay: 1 },
+  /*
+   * The sales CRM's call queue, Robert's R3 of 2026-11-02: it asks whether a
+   * vertical's line is sellable only to choose which approved script a rep
+   * reads (the open one or the prelaunch one). It takes no money and opens no
+   * order, so a minute old answer costs a rep one script choice at most.
+   */
+  "src/lib/crm-queue.ts": { lineIsSellableForDisplay: 1 },
 };
 for (const [file, calls] of Object.entries(DISPLAY)) {
   for (const [fn, want] of Object.entries(calls)) {
