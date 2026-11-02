@@ -4028,7 +4028,14 @@ export const APPLIED = [
     file: "0105_identity_and_i9_record_what_was_seen_and_by_whom.sql", appliedBy: "apply_migration",
     fingerprint: "812467e78ee8e18958afef349643e8de",
     behaviour: "5f6a399607c588e7c383e4a24d8e8224",
-    production: null,
+        /*
+     * APPLIED TO PRODUCTION 2026-11-02 20:33 UTC, provider version 20261102203345,
+     * by the operator's chat counterpart through apply_migration from the boarded
+     * commit f9090eb (P1, board 41478612374, 65 of 65). The stored statement hashes
+     * to ea9bb75f, the development figure. Read back: four columns and four
+     * constraints on eng_onboardings. Issue #1 comment 6587890300.
+     */
+    production: "2026-11-02",
     proves: { table: "eng_onboardings", column: "identity_document_type" },
     note:
       "Both figures read off scripts/fingerprint-at.mjs at 0105 on 2026-11-01, with 0104 reproducing its recorded " +
@@ -4044,7 +4051,15 @@ export const APPLIED = [
     file: "0106_the_academy_records_approvals_and_attempts.sql", appliedBy: "apply_migration",
     fingerprint: "f70724c174b2135624170d94bf8d0772",
     behaviour: "2ff049a3a3fde84bfeed700ccb2bd310",
-    production: null,
+        /*
+     * APPLIED TO PRODUCTION 2026-11-02 20:34 UTC, provider version 20261102203415,
+     * by the operator's chat counterpart through apply_migration from the boarded
+     * commit 7e62683 (P3, board 41491305761, 65 of 65), after 0105. The stored
+     * statement hashes to 7709478c, the development figure. Read back: both tables
+     * with row level security on and zero policies, both append-only triggers, no
+     * grant to anon, authenticated or PUBLIC. Issue #1 comment 6587890300.
+     */
+    production: "2026-11-02",
     proves: { table: "eng_academy_attempts" },
     note:
       "Both figures read off scripts/fingerprint-at.mjs at 0106 on 2026-11-02, on the COMBINED chain 0104, 0105, 0106 " +
@@ -4062,7 +4077,14 @@ export const APPLIED = [
     file: "0107_every_evidence_file_carries_its_sha256.sql", appliedBy: "apply_migration",
     fingerprint: "22346b566a73ea946ca112725b16569f",
     behaviour: "f61f2b5168c668bb6d381a57bc674f9a",
-    production: null,
+        /*
+     * APPLIED TO PRODUCTION 2026-11-02 20:34 UTC, provider version 20261102203429,
+     * by the operator's chat counterpart through apply_migration from the boarded
+     * commit 0d7438f (P5, board 41503285565, 65 of 65), after 0106. The stored
+     * statement hashes to b4faee2d, the development figure. Read back: the shape
+     * check constraint and the partial index present. Issue #1 comment 6587890300.
+     */
+    production: "2026-11-02",
     proves: { column: { table: "eng_evidence_items", name: "content_sha256" } },
     note:
       "Both figures read off scripts/fingerprint-at.mjs on 2026-11-02 on the COMBINED chain 0104 to 0107 (P1 and P3 " +
