@@ -281,8 +281,10 @@ Robert's addendum of 2026-10-25, items 4, 6 and 8b, with his targets of
 published roof figure, so no customer sees one until the firm is open; for the
 six lines whose target has no segments behind it (PUBLISHED_TURNAROUND), whether
 the date shows at gate open is Robert's ruling;
-(2) business days count Monday to Friday with no holidays, because the firm has
-no declared holiday calendar;
+(2) CLOSED 2026-11-01 by Robert's ruling P8: business days skip the seven firm
+holidays declared in `src/config/firm-holidays.ts` (a fixed date on a weekend
+is observed on the weekday beside it), proved by
+`scripts/proofs/business-days-skip-the-firm-holidays.mjs`;
 (3) the eng-uploads bucket now takes 40 MB for every upload in it, and a career
 upload is held to 10 MB by the application alone;
 (4) item 8b keeps evidence thumbnails and the paged export here, as ruled
