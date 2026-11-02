@@ -3,6 +3,9 @@ import { Container } from "@/components/ui/Container";
 import { customerView } from "@/lib/ops-customer";
 import { FIRM_TIME_ZONE } from "@/lib/firm-calendar";
 import { RequestedDocumentUpload } from "./RequestedDocumentUpload";
+import { TrackOnMount } from "@/components/site/Analytics";
+import { GA_EVENTS } from "@/lib/analytics";
+import { business } from "@/config/business";
 
 export const dynamic = "force-dynamic";
 
@@ -84,6 +87,8 @@ export default async function OrderStatusPage({
           <h1 className="text-[32px] leading-[1.12] font-semibold tracking-[-0.5px] text-[var(--color-ink)]">
             Payment received
           </h1>
+          {/* Order paid: Stripe's return, no token, the reference cleaned from the address (GA4, Robert 2026-11-01). */}
+          <TrackOnMount event={GA_EVENTS.orderPaid} host={new URL(business.url).host} />
           {/*
             "WITHIN THE HOUR" CAME OUT, operator ruling of 2026-10-20 (finding 1):
             nothing bounds when an order is released, and an order whose account
