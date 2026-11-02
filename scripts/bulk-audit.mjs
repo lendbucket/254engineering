@@ -183,12 +183,20 @@ const ACTOR = {
    * written as cents" check reported zero priced rows on a database with
    * three. It was looking at a correctly redacted export and calling it a
    * sample with no prices in it.
+   *
+   * AND accounts.manage, THE EXPORT GATE, SINCE 2026-11-02. Robert approved P2
+   * (issue #1, 6567596115) with option (a): every CSV export is owner or admin
+   * only, and exportFiles asks the administrator's export gate before
+   * anything else. This fixture is an administrator, so it holds the gate.
+   * Written as the literal rather than imported from list-exports.ts, so a
+   * gate that moved would turn this red rather than move the fixture with it.
+   * The refusal of every role WITHOUT the gate is asserted below.
    */
-  grants: new Set(["files.list", "pricing.read"]),
+  grants: new Set(["accounts.manage", "files.list", "pricing.read"]),
 };
 
 /** The same person without the money capability, for the other direction. */
-const ACTOR_NO_MONEY = { ...ACTOR, grants: new Set(["files.list"]) };
+const ACTOR_NO_MONEY = { ...ACTOR, grants: new Set(["accounts.manage", "files.list"]) };
 
 /*
  * Real rows, chosen from what is already there rather than inserted.
@@ -230,14 +238,39 @@ rec(
     tooMany.ok ? "" : tooMany.error,
   );
 
+  /*
+   * Holds the export gate and not files.list, so the refusal measured is the
+   * screen's own grant. It held no grants at all until 2026-11-02, which since
+   * P2 would be refused by the gate first and would prove nothing about this.
+   */
   const cannotRead = await exportFiles(
-    { ...ACTOR, grants: new Set() },
+    { ...ACTOR, grants: new Set(["accounts.manage"]) },
     ids.length ? [ids[0]] : ["anything"],
   );
   rec(
     "a role that cannot list files cannot export them",
-    cannotRead.ok === false,
-    "an export must not be a wider read than the screen it is launched from",
+    cannotRead.ok === false && /cannot read files/i.test(cannotRead.ok ? "" : cannotRead.error),
+    cannotRead.ok ? "an export must not be a wider read than the screen it is launched from" : cannotRead.error,
+  );
+
+  /*
+   * EVERY ROLE BUT THE ADMINISTRATOR IS REFUSED THE EXPORT, Robert's P2
+   * approval of 2026-11-02 (option a). Asked of each shipped role holding
+   * files.list with its own declared grants, so the refusal is the export gate
+   * and not the screen: eight roles see the Files screen and none of them
+   * gets the file.
+   */
+  const { DEFAULT_ROLES: SHIPPED } = await import("../src/lib/ops-authz.ts");
+  const listers = SHIPPED.filter((r) => r.key !== "admin" && r.grants.includes("files.list"));
+  const served = [];
+  for (const r of listers) {
+    const out = await exportFiles({ ...ACTOR, role: r.key, grants: new Set(r.grants) }, ids.length ? [ids[0]] : ["anything"]);
+    if (out.ok || !/cannot export files/i.test(out.error)) served.push(`${r.key}: ${out.ok ? "served a file" : out.error}`);
+  }
+  rec(
+    `no role but the administrator may export files (${listers.length} roles that can list them asked)`,
+    listers.length === 8 && served.length === 0,
+    served.join(" | ") || listers.map((r) => r.key).join(", "),
   );
 }
 
