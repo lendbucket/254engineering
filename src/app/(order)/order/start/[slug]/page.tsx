@@ -10,6 +10,9 @@ import { displayPhone, postalAddressLine } from "@/config/contact";
 import { deliverableBlockedForDisplay } from "@/lib/line-gate";
 import { coverVerbFor, orderHeading, serviceNameInSentence } from "@/lib/order-copy";
 import { currentCustomer } from "@/lib/customer-auth";
+import { TrackOnMount } from "@/components/site/Analytics";
+import { GA_EVENTS } from "@/lib/analytics";
+import { business } from "@/config/business";
 
 export const dynamic = "force-dynamic";
 
@@ -166,6 +169,8 @@ export default async function OrderStartPage({ params }: { params: Promise<{ slu
               before anything is charged.
             </p>
             <div className="mt-10">
+              {/* Order started: the flow's first step is on screen (GA4, Robert 2026-11-01). */}
+              <TrackOnMount event={GA_EVENTS.orderStarted} host={new URL(business.url).host} params={{ service: slug }} />
               {/*
                 WHETHER THEY ARE SIGNED IN, read here because the flow is a
                 client component and cannot read a cookie.
