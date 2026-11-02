@@ -172,6 +172,8 @@ const PROBE_A = {
    * string, so this kind passed here on a key built from nothing. The
    * refusal check found it on its first run. */
   decisionId: "decision-a",
+  /* crm.import_preview (Robert's CRM R2, 2026-11-02) is keyed on the source AND the day. */
+  source: "source-a",
 };
 const PROBE_B = {
   id: "b",
@@ -191,6 +193,7 @@ const PROBE_B = {
   manifestId: "manifest-b",
   orderId: "order-b",
   decisionId: "decision-b",
+  source: "source-b",
 };
 
 /*

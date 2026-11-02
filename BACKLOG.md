@@ -4,6 +4,24 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
+## SALES LIST IMPORTS (CRM R2, 2026-11-02): SIX SOURCES WAIT, AND THE PLACES LOOKUP IS CLOSED
+
+Built on `feat/crm-r2-imports`, Robert's sales CRM ruling R2. The full account of
+every source, its terms and its state is `docs/crm-sources.md`; this is the
+pointer, not a second copy.
+
+- **Waiting on Robert:** Austin runs the day he records the City's open data
+  terms date (the PDF could not be read here). Houston, Dallas, Fort Worth and
+  Corpus Christi wait for the open records letters he is sending; each needs its
+  fields mapped and its terms recorded in `src/config/crm-sources.ts` when the
+  answer arrives. TDHCA waits for its terms to be read.
+- **The Google Places lookup is closed:** it needs a Google Maps Platform key,
+  which the firm has not added. A held company gets its phone typed by a person
+  until then, and the import screen says so.
+- **Held rows beyond the first 500 of a run are counted, not stored**
+  (`HELD_KEEP`): TREC alone gives well over a hundred thousand records with no
+  phone. They are read again on the next run of the source.
+
 ## PLANNED, Q1 2027: 254 ONTO ITS OWN SUPABASE PROJECT
 
 Robert, 15:07 Central 2026-10-31: the parked production cutover is acknowledged

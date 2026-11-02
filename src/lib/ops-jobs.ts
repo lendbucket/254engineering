@@ -49,6 +49,12 @@ export type JobKind =
    * 14 and 1 days, queued once a day by /api/cron/daily.
    */
   | "insurance.expiry_alerts"
+  /*
+   * 2026-11-02, Robert's sales CRM ruling R2. One preview of one source for
+   * the sales list, queued once a day per ready source by /api/cron/daily. It
+   * previews and writes nothing to the list: a person presses Write.
+   */
+  | "crm.import_preview"
   | "errors.alert"
   /*
    * Phase 12 Section 2, the reporting prompt's Section 3. NOT the export itself: the RECORD that one was

@@ -166,6 +166,17 @@ export const PROBES = [
       "question, asked there against a fake database with the alert rule exercised directly.",
   },
   {
+    kind: "crm.import_preview",
+    payload: { source: "not-a-source", day: "2026-11-02" },
+    expect: "dead",
+    realSubject: false,
+    why:
+      "Added 2026-11-02 (Robert's sales CRM ruling R2). A source the sales list does not declare is fatal, because " +
+      "sourceRefusal would refuse it on every attempt. A real source would fetch a public portal from the board's " +
+      "worker and write a run on development every board, which is the import proof's question, asked there on " +
+      "recorded samples with no network.",
+  },
+  {
     kind: "errors.alert",
     payload: {},
     expect: "done",

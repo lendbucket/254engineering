@@ -23,6 +23,8 @@ import { business } from "@/config/business";
 import { reviewRequestKey, runReviewRequest } from "./review-request";
 import { raise } from "./ops-notify";
 import { sendInsuranceExpiryAlerts } from "./ops-insurance";
+import { runPreview } from "./crm-imports";
+import { sourceDecl, sourceRefusal } from "@/config/crm-sources";
 import { notifyRepairsRequired, settleDecision } from "./ops-payments";
 import { orderForFile as liveOrderForFile } from "./order-for-file";
 import { REVIEW_AFTER_DECISION, reviewAfterDecisionKey } from "./review-jobs";
@@ -604,6 +606,40 @@ registerJob("insurance.expiry_alerts", {
     const result = await sendInsuranceExpiryAlerts(day);
     if (!result.ok) return { kind: "retry", error: result.error };
     console.log(`[insurance.expiry_alerts] ${day}: ${result.sent} warning(s) raised`);
+    return { kind: "done" };
+  },
+});
+
+// ------------------------------------------------------- crm.import_preview
+
+/**
+ * One scheduled preview of one source for the sales list. Robert's sales CRM
+ * ruling of 2026-11-02, item R2, and his answer 4: "preview then a person
+ * presses Write". So this reads the source, decides every record and stores
+ * the run; it writes nothing to the list itself.
+ *
+ * Keyed on the source and the firm's calendar day, so the daily cron queueing
+ * it twice finds the first. A source that is not declared, or that may not run
+ * (sourceRefusal), is fatal: retrying would only refuse again. A pull that
+ * failed is a retry, and each attempt leaves a run that says it failed.
+ *
+ * reachesOutside false: it GETs a public file or dataset and sends nothing to
+ * anybody, so the effect mode has nothing to suppress.
+ */
+registerJob("crm.import_preview", {
+  reachesOutside: false,
+  idempotency: (p) => keyFieldsMissing(p, ["source", "day"]) ?? keyOf("crm-import", p.source, p.day),
+  run: async (p): Promise<JobOutcome> => {
+    const day = typeof p.day === "string" ? p.day : undefined;
+    if (day === undefined || !/^\d{4}-\d{2}-\d{2}$/.test(day)) {
+      return { kind: "fatal", error: `"${day}" is not a day, so this preview will never be keyed.` };
+    }
+    const source = typeof p.source === "string" ? p.source : "";
+    const refusal = sourceRefusal(sourceDecl(source));
+    if (refusal) return { kind: "fatal", error: refusal };
+    const result = await runPreview(null, { source, trigger: "schedule" });
+    if (!result.ok) return { kind: "retry", error: result.error };
+    console.log(`[crm.import_preview] ${source} ${day}: ${result.counts.adds} adds, ${result.counts.merges} merges, ${result.counts.conflicts} conflicts, ${result.counts.held} held`);
     return { kind: "done" };
   },
 });

@@ -238,6 +238,9 @@ const allPortalFiles = PORTAL_DIRS.flatMap((d) => walk(d)).filter((f) => f !== T
  */
 function STAFF_LEVEL_SCREENS() {
   return [
+    /* The sales list's imports, Robert's CRM R2 of 2026-11-02, built to the staff standard from the start. */
+    "src/app/portal/(app)/crm/imports/page.tsx",
+    "src/app/portal/(app)/crm/imports/ImportsClient.tsx",
     "src/app/portal/(app)/prospects/page.tsx",
     "src/app/portal/(app)/prospects/ProspectsClient.tsx",
     "src/app/portal/(app)/prospects/[id]/page.tsx",
