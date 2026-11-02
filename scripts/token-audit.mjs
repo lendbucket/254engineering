@@ -241,6 +241,9 @@ function STAFF_LEVEL_SCREENS() {
     /* The sales list's imports, Robert's CRM R2 of 2026-11-02, built to the staff standard from the start. */
     "src/app/portal/(app)/crm/imports/page.tsx",
     "src/app/portal/(app)/crm/imports/ImportsClient.tsx",
+    /* The call queue, Robert's CRM R3 of 2026-11-02, built to the staff standard from the start. */
+    "src/app/portal/(app)/crm/queue/page.tsx",
+    "src/app/portal/(app)/crm/queue/QueueClient.tsx",
     "src/app/portal/(app)/prospects/page.tsx",
     "src/app/portal/(app)/prospects/ProspectsClient.tsx",
     "src/app/portal/(app)/prospects/[id]/page.tsx",

@@ -420,6 +420,19 @@ if (templates.length === 0) {
      * for.
      */
     "src/lib/deletion-requests.ts",
+    /*
+     * And the sales CRM's call queue, Robert's ruling of 2026-11-02, item R3:
+     * "Do-not-contact and the suppression list are checked before the card
+     * renders", and a do not call puts every address at the company on the
+     * list. It WRITES (suppress) and it READS the table for a batch of
+     * addresses before it draws a card, which is a decision whether to CALL,
+     * not whether to send. It does not import the gate and sends nothing; its
+     * read fails closed with the error said on the screen rather than a card
+     * silently skipped, which is why it is its own read and not isSuppressed
+     * (which answers true on a failed read). Proved by
+     * scripts/proofs/the-call-queue-calls-in-order-and-records-what-happened.mjs.
+     */
+    "src/lib/crm-queue.ts",
   ];
 
   const readers = [];

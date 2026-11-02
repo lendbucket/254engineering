@@ -194,6 +194,8 @@ export const NAV: NavItem[] = [
   { href: "/portal/payment-links", label: "Payment links", short: "Bill", action: "payments.charge", icon: "orders" },
   { href: "/portal/inbox", label: "Inbox", short: "Inbox", action: "inbox.read", icon: "messages" },
   { href: "/portal/prospects", label: "Sales list", short: "Sales", action: "crm.use", icon: "clients" },
+  /* The call queue (Robert's CRM R3, 2026-11-02). crm.use, matching the page's guard: the rep, ops_manager and admin. */
+  { href: "/portal/crm/queue", label: "Call queue", short: "Calls", action: "crm.use", icon: "clients" },
   /* The sales list's imports (Robert's CRM R2, 2026-11-02). crm.import, matching the page's guard: admin and ops_manager. */
   { href: "/portal/crm/imports", label: "Sales imports", short: "Imports", action: "crm.import", icon: "clients" },
   { href: "/portal/accounts", label: "Accounts", short: "Accts", action: "accounts.manage", icon: "accounts" },

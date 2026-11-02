@@ -2562,6 +2562,8 @@ if (!db) {
         "/portal/prospects",
         /* The sales list's imports, Robert's CRM R2 of 2026-11-02: crm.import, which only admin and ops_manager hold. Selling is not an engineer's work. */
         "/portal/crm/imports",
+        /* The call queue, Robert's CRM R3 of 2026-11-02: crm.use, which DEFAULT_ROLES gives him none of. Selling is not an engineer's work. */
+        "/portal/crm/queue",
         "/portal/inbox",
         "/portal/order-lookup",
         "/portal/refunds",
