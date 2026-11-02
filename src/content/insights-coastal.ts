@@ -1,6 +1,6 @@
 import type { Insight } from "./insights";
 import { registrationStatement, windstormAppointmentStatement } from "@/lib/launch";
-import { catalogFor, type CatalogEntry } from "@data/catalog";
+import { catalogFor, statedPriceCents, type CatalogEntry } from "@data/catalog";
 import { money } from "@/config/prices";
 
 /*
@@ -42,7 +42,25 @@ const COST_GUIDE_COASTAL: string = (() => {
   }
   return money(all[0] as number);
 })();
-const priceOf = (entry: CatalogEntry): string => (entry.priceCents !== null ? money(entry.priceCents) : "priced by quote");
+/*
+ * The figure a page may print, Robert's Q14 of 2026-11-02: statedPriceCents is
+ * null for a deliverable waiting on the engineer's signed scope addendum (WPI-8
+ * ongoing construction), and that deliverable reads "quoted" rather than a
+ * price nobody can order at. A line with no price at all is "priced by quote".
+ */
+const priceOf = (entry: CatalogEntry): string => {
+  const stated = statedPriceCents(entry);
+  if (stated !== null) return money(stated);
+  return entry.priceCents !== null ? "quoted" : "priced by quote";
+};
+const WPI8_ONGOING_STATED = statedPriceCents(WPI8_ONGOING) !== null;
+/*
+ * The two WPI-8 prices as one clause. While ongoing construction states no
+ * price, the clause gives the completed figure and says ongoing is quoted.
+ */
+const WPI8_PRICE_CLAUSE = WPI8_ONGOING_STATED
+  ? `${priceOf(WPI8_ONGOING)} for a WPI-8 inspection of ongoing construction and ${priceOf(WPI8_COMPLETED)} for a WPI-8E evaluation of completed construction${coastalOfBoth(WPI8_ONGOING, WPI8_COMPLETED)}`
+  : `${priceOf(WPI8_COMPLETED)} for a WPI-8E evaluation of completed construction${coastalClause(WPI8_COMPLETED)}; a WPI-8 inspection of ongoing construction is quoted`;
 /* The surcharge as one clause when both tiers carry the same one, and per tier when they differ. */
 function coastalOfBoth(a: CatalogEntry, b: CatalogEntry): string {
   const sa = a.coastalSurchargeCents;
@@ -150,7 +168,7 @@ const SRC = {
   },
   rule137_33: {
     label: "22 Tex. Admin. Code § 137.33, Sealing Procedures",
-    url: "http://txrules.elaws.us/rule/title22_chapter137_sec.137.33",
+    url: "https://txrules.elaws.us/rule/title22_chapter137_sec.137.33",
   },
   occ1001_401: {
     label: "Tex. Occ. Code § 1001.401, Use of Seal",
@@ -549,7 +567,9 @@ export const coastalInsights: Insight[] = [
       { kind: "h2", text: "WPI-8 inspections from 254 Engineering" },
       {
         kind: "p",
-        text: `Where a search finds no certificate and the work needs one, 254 Engineering's WPI-8 inspection is ${priceOf(WPI8_ONGOING)} for ongoing construction and ${priceOf(WPI8_COMPLETED)} for completed construction${coastalOfBoth(WPI8_ONGOING, WPI8_COMPLETED)}. The scope is on [the WPI-8 certification page](/services/windstorm-wpi-8).`,
+        text: WPI8_ONGOING_STATED
+          ? `Where a search finds no certificate and the work needs one, 254 Engineering's WPI-8 inspection is ${priceOf(WPI8_ONGOING)} for ongoing construction and ${priceOf(WPI8_COMPLETED)} for completed construction${coastalOfBoth(WPI8_ONGOING, WPI8_COMPLETED)}. The scope is on [the WPI-8 certification page](/services/windstorm-wpi-8).`
+          : `Where a search finds no certificate and the work needs one, 254 Engineering's WPI-8E evaluation of completed construction is ${priceOf(WPI8_COMPLETED)}${coastalClause(WPI8_COMPLETED)}, and ongoing construction is quoted. The scope is on [the WPI-8 certification page](/services/windstorm-wpi-8).`,
       },
     ],
     sources: [
@@ -1243,7 +1263,7 @@ export const coastalInsights: Insight[] = [
       },
       {
         kind: "p",
-        text: `254 Engineering publishes its price before any order: ${priceOf(WPI8_ONGOING)} for a WPI-8 inspection of ongoing construction and ${priceOf(WPI8_COMPLETED)} for a WPI-8E evaluation of completed construction${coastalOfBoth(WPI8_ONGOING, WPI8_COMPLETED)}. [The WPI-8 order page](/order/start/windstorm-wpi-8) shows whether each can be ordered online today.`,
+        text: `254 Engineering publishes its price before any order: ${WPI8_PRICE_CLAUSE}. [The WPI-8 order page](/order/start/windstorm-wpi-8) shows whether each can be ordered online today.`,
       },
       { kind: "h2", text: "Which work needs one" },
       {
@@ -2042,12 +2062,21 @@ export const coastalInsights: Insight[] = [
     body: [
       {
         kind: "p",
-        text: `254 Engineering publishes its prices before any order: a WPI-8 windstorm inspection from ${priceOf(WPI8_COMPLETED)}, a foundation certification at ${priceOf(FOUNDATION)}, and a roof certification letter at ${priceOf(ROOF_LETTER)}, each ${COST_GUIDE_COASTAL} more in a first tier coastal county. Each figure is the one the order page charges.`,
+        /*
+         * "Each figure is the one the order page charges" was false while the
+         * guide printed $995 for ongoing construction, which no order page
+         * offers (live site audit, issue 1; Robert's Q14 of 2026-11-02). Every
+         * figure in this sentence is now an orderable one, and the tier that is
+         * not is said to be quoted.
+         */
+        text: WPI8_ONGOING_STATED
+          ? `254 Engineering publishes its prices before any order: a WPI-8 windstorm inspection from ${priceOf(WPI8_COMPLETED)}, a foundation certification at ${priceOf(FOUNDATION)}, and a roof certification letter at ${priceOf(ROOF_LETTER)}, each ${COST_GUIDE_COASTAL} more in a first tier coastal county. Each figure is the one the order page charges.`
+          : `254 Engineering publishes its prices before any order: a WPI-8E evaluation of completed construction at ${priceOf(WPI8_COMPLETED)}, a foundation certification at ${priceOf(FOUNDATION)}, and a roof certification letter at ${priceOf(ROOF_LETTER)}, each ${COST_GUIDE_COASTAL} more in a first tier coastal county. Each figure is the one the order page charges; a WPI-8 inspection of ongoing construction is quoted.`,
       },
       { kind: "h2", text: "What does a WPI-8 certificate cost?" },
       {
         kind: "p",
-        text: `${priceOf(WPI8_ONGOING)} for a WPI-8 inspection of ongoing construction and ${priceOf(WPI8_COMPLETED)} for a WPI-8E evaluation of completed construction${coastalOfBoth(WPI8_ONGOING, WPI8_COMPLETED)}. The Texas Department of Insurance issues the certificate itself once the inspections are approved, and [its inspection process page](https://www.tdi.texas.gov/wind/inspectionproc.html) says a TDI inspector or an appointed Texas licensed professional engineer must inspect the work. ${WPI8_COMPLETED.turnaround}`,
+        text: `${WPI8_PRICE_CLAUSE}. The Texas Department of Insurance issues the certificate itself once the inspections are approved, and [its inspection process page](https://www.tdi.texas.gov/wind/inspectionproc.html) says a TDI inspector or an appointed Texas licensed professional engineer must inspect the work. ${WPI8_COMPLETED.turnaround}`,
       },
       {
         kind: "p",
@@ -2068,11 +2097,12 @@ export const coastalInsights: Insight[] = [
         kind: "table",
         caption: "254 Engineering's published prices, from its catalog",
         head: ["Deliverable", "Price", "In a first tier coastal county"],
-        rows: [WPI8_ONGOING, WPI8_COMPLETED, FOUNDATION, ROOF_LETTER].map((e) => [
-          e.name,
-          priceOf(e),
-          e.coastalSurchargeCents !== null && e.priceCents !== null ? money(e.priceCents + e.coastalSurchargeCents) : priceOf(e),
-        ]),
+        /* A deliverable that states no price (Q14, statedPriceCents) reads "Quoted" in both columns. */
+        rows: [WPI8_ONGOING, WPI8_COMPLETED, FOUNDATION, ROOF_LETTER].map((e) => {
+          const stated = statedPriceCents(e);
+          if (stated === null) return [e.name, "Quoted", "Quoted"];
+          return [e.name, money(stated), e.coastalSurchargeCents !== null ? money(stated + e.coastalSurchargeCents) : money(stated)];
+        }),
       },
     ],
     sources: [

@@ -71,7 +71,7 @@
 import { FIRST_TIER_COASTAL, FIRST_TIER_COUNT } from "./windstorm";
 import { HARRIS_DESIGNATION } from "./windstorm-harris";
 import { legacyZoneRows, legacyZoneSources } from "./windstorm-zones";
-import { catalogFor } from "@data/catalog";
+import { catalogFor, statedPriceCents } from "@data/catalog";
 import { money } from "@/config/prices";
 import {
   firmName,
@@ -102,19 +102,31 @@ const countyList = `${FIRST_TIER_COASTAL.slice(0, -1).join(", ")}, and ${
 /*
  * The WPI-8 prices for the one link to the firm on /windstorm/catastrophe-area
  * (round 3 item d, Robert's answer 1 of 2026-11-01), read from the catalog,
- * never typed. A missing tier fails the build here.
+ * never typed. A missing tier fails the build here. The price is the one a
+ * page may state (statedPriceCents, Robert's Q14 of 2026-11-02): null while
+ * the tier waits on the engineer's signed scope addendum, and then the
+ * sentence says the tier is quoted rather than printing a figure nobody can
+ * order at.
  */
-function wpi8Price(tier: "ongoing" | "completed"): { price: string; coastal: number | null } {
+function wpi8Price(tier: "ongoing" | "completed"): { price: string | null; coastal: number | null } {
   const entry = catalogFor("windstorm-wpi-8", tier);
   if (!entry || entry.priceCents === null) throw new Error(`windstorm-program: the catalog has no priced windstorm-wpi-8 ${tier} entry`);
-  return { price: money(entry.priceCents), coastal: entry.coastalSurchargeCents };
+  const stated = statedPriceCents(entry);
+  return stated === null ? { price: null, coastal: null } : { price: money(stated), coastal: entry.coastalSurchargeCents };
 }
 const WPI8_ONGOING_PRICE = wpi8Price("ongoing");
 const WPI8_COMPLETED_PRICE = wpi8Price("completed");
-const WPI8_COASTAL =
-  WPI8_ONGOING_PRICE.coastal !== null && WPI8_ONGOING_PRICE.coastal === WPI8_COMPLETED_PRICE.coastal
-    ? `, each ${money(WPI8_ONGOING_PRICE.coastal)} more in a first tier coastal county`
-    : "";
+if (WPI8_COMPLETED_PRICE.price === null) throw new Error("windstorm-program: the completed construction tier states no price");
+const WPI8_SENTENCE =
+  WPI8_ONGOING_PRICE.price === null
+    ? `For work that needs a certificate now, 254 Engineering's WPI-8E evaluation of completed construction is ${WPI8_COMPLETED_PRICE.price}${
+        WPI8_COMPLETED_PRICE.coastal !== null ? `, ${money(WPI8_COMPLETED_PRICE.coastal)} more in a first tier coastal county` : ""
+      }, and ongoing construction is quoted, with the scope on [the WPI-8 certification page](/services/windstorm-wpi-8).`
+    : `For work that needs a certificate now, 254 Engineering's WPI-8 inspection is ${WPI8_ONGOING_PRICE.price} for ongoing construction and ${WPI8_COMPLETED_PRICE.price} for completed construction${
+        WPI8_ONGOING_PRICE.coastal !== null && WPI8_ONGOING_PRICE.coastal === WPI8_COMPLETED_PRICE.coastal
+          ? `, each ${money(WPI8_ONGOING_PRICE.coastal)} more in a first tier coastal county`
+          : ""
+      }, with its scope on [the WPI-8 certification page](/services/windstorm-wpi-8).`;
 
 export type WindstormSection = {
   eyebrow: string;
@@ -238,7 +250,7 @@ export const windstormPages: WindstormPage[] = [
           "Under the 2006 International Residential and Building Codes with the Texas revisions, which the department applied from January 1, 2008 to August 31, 2020, each designated county was divided into up to three zones, each with a design wind speed as a 3 second gust: Seaward at 130 mph, Inland I at 120 mph and Inland II at 110 mph. Since April 1, 2026 new work is certified to the 2024 codes, with the wind speed worked out for each structure from its location, so these zones no longer set the speed for new work. They still say what a certificate or a set of drawings from those years was designed to.",
           "The table is a selection of the communities each county's map page lists. A city split by the Inland I and Inland II line was treated as Inland II throughout, except Corpus Christi, Angleton and Brownsville, each held to Inland I across its whole city limits. Nueces County lists Corpus Christi under both Seaward and Inland I, and its note holds the city to Inland I. Jefferson County lists Port Arthur under both Seaward and Inland I, and its page has no note saying which applies, because its split city rule covers only the Inland I and Inland II line; a Port Arthur address is read off the county map.",
           "The dividing line follows roads rather than a distance from the water: U.S. Highway 77 from the western city limits of Brownsville north through Willacy, Kenedy and Kleberg, past Corpus Christi, and on through Sinton and Refugio County; F.M. 616, State Highway 35 and State Highway 6 through Matagorda and Brazoria; Interstate 10 and the southeastern city limits of Beaumont in Jefferson. The department marks each map as informational and not suitable for legal, engineering or surveying purposes.",
-          `For work that needs a certificate now, 254 Engineering's WPI-8 inspection is ${WPI8_ONGOING_PRICE.price} for ongoing construction and ${WPI8_COMPLETED_PRICE.price} for completed construction${WPI8_COASTAL}, with its scope on [the WPI-8 certification page](/services/windstorm-wpi-8).`,
+          WPI8_SENTENCE,
         ],
         table: {
           caption: "Wind zones under the 2006 codes, by county, from the department's county map pages",
@@ -646,7 +658,7 @@ export const windstormPages: WindstormPage[] = [
         title: "The record is worth assembling before listing",
         lede: "A clean windstorm record is a marketing asset on the coast and a discount on a disclosure otherwise.",
         body: [
-          "A seller who assembles the certificate history before listing controls the timing of any problem it reveals. A seller who does not will meet the same problem later, with less leverage and a contract in place.",
+          "A seller who assembles the certificate history before listing controls the timing of any problem it reveals. A seller who does not will meet the same problem later, with less room to negotiate and a contract in place.",
           "Where an improvement was made without certification, addressing it before listing converts an unquantified risk that a buyer will price defensively into a known cost the seller chose when to incur.",
         ],
       },

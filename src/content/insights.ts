@@ -527,12 +527,12 @@ export const insights: Insight[] = [
     sources: [
       {
         label: "22 Tex. Admin. Code § 131.2, Definitions",
-        url: "http://txrules.elaws.us/rule/title22_chapter131_sec.131.2",
+        url: "https://txrules.elaws.us/rule/title22_chapter131_sec.131.2",
         supports: "The definitions of direct supervision and responsible charge, and the absence of any definition of engineer of record.",
       },
       {
         label: "22 Tex. Admin. Code § 137.33, Sealing Procedures",
-        url: "http://txrules.elaws.us/rule/title22_chapter137_sec.137.33",
+        url: "https://txrules.elaws.us/rule/title22_chapter137_sec.137.33",
         supports: "The stated purpose of the seal, the limits on what may be sealed, the treatment of multiple licensees, and the notification duty on altering another engineer's work.",
       },
       {
@@ -831,7 +831,7 @@ const BUYER_SRC = {
   },
   rule137_33: {
     label: "22 Tex. Admin. Code § 137.33, Sealing Procedures",
-    url: "http://txrules.elaws.us/rule/title22_chapter137_sec.137.33",
+    url: "https://txrules.elaws.us/rule/title22_chapter137_sec.137.33",
   },
   rule137_57: {
     label: "22 Tex. Admin. Code § 137.57, Engineers Shall Be Objective and Truthful",

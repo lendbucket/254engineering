@@ -28,6 +28,25 @@ for Q1 2027**.
   unless the move is done or re-ruled, and from 2027-02-14 it prints a WARNING
   line, 45 days ahead (Robert, same message).
 
+## WPI-8 ONGOING CONSTRUCTION IS "QUOTED" ON PUBLIC PAGES UNTIL IT OPENS: RESTORE THE FIGURE THEN
+
+Robert's ruling Q14 of 2026-11-02, from the live site audit (issue #1,
+6585009543, issue 1): "remove the $995 figure from the five pages and
+llms-full until the line opens, saying ongoing construction is quoted". Built
+on `fix/q14-website`. The price book keeps $995 (`WPI8_BY_TIER`); what a page
+prints is `statedPriceCents()` in `data/catalog.ts`, null for any deliverable
+in `SCOPE_ADDENDUM_REQUIRED`, because a prerendered page cannot read the
+engineer's signed addendum that opens the tier (only the money door can, 0095).
+
+**OPEN: when the engineer signs the WPI-8 ongoing addendum and the line opens,
+the public pages still say "quoted" until somebody restores the figure.** Two
+places to change on purpose: `statedPriceCents()` (or make those pages read the
+signed record at revalidation, as `deliverableAsSigned` does for llms-full), and
+the fixed sentence in `src/config/prices.ts` (`windstorm-wpi-8.whatChangesIt`,
+which cannot import the catalog). The proof
+`the-ongoing-wpi8-price-is-not-printed` will then go red, which is it asking
+whether you meant it: rewrite it to the opened state.
+
 ## THE OFFICE MOVED TO SAN ANTONIO, 2026-10-29: WHAT THE MOVE DID NOT MOVE
 
 Robert, 12:50 Central 2026-10-29: the office is 11103 San Pedro Ave, San Antonio,

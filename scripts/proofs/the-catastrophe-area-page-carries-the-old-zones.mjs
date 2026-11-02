@@ -24,7 +24,7 @@ import { existsSync } from "node:fs";
 const { windstormPages } = await import("../../src/content/windstorm-program.ts");
 const { FIRST_TIER_COASTAL } = await import("../../src/content/windstorm.ts");
 const { HARRIS_DESIGNATED_CITIES } = await import("../../src/content/windstorm-harris.ts");
-const { CATALOG } = await import("../../data/catalog.ts");
+const { CATALOG, statedPriceCents } = await import("../../data/catalog.ts");
 const { insights } = await import("../../src/content/insights.ts");
 
 const out = [];
@@ -57,7 +57,12 @@ check("the prose says the Jefferson page has no note deciding Port Arthur", pros
 check("the prose gives the Nueces note that holds Corpus Christi to Inland I", prose.includes("Nueces County lists Corpus Christi under both Seaward and Inland I, and its note holds the city to Inland I"));
 
 for (const e of CATALOG.filter((x) => x.serviceSlug === "windstorm-wpi-8" && x.priceCents != null)) {
-  check(`the firm link states ${e.name} at ${dollars(e.priceCents)}`, prose.includes(dollars(e.priceCents)));
+  /* Robert's Q14 of 2026-11-02: a tier no order page offers is quoted, its figure not printed. */
+  if (statedPriceCents(e) === null) {
+    check(`the firm link says ${e.name} is quoted, with no ${dollars(e.priceCents)}`, !prose.includes(dollars(e.priceCents)) && prose.includes("ongoing construction is quoted"));
+  } else {
+    check(`the firm link states ${e.name} at ${dollars(e.priceCents)}`, prose.includes(dollars(e.priceCents)));
+  }
 }
 check("the firm is linked once, at its WPI-8 page", (prose.match(/\]\(\/services\/windstorm-wpi-8\)/g) ?? []).length === 1);
 
