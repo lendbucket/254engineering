@@ -272,6 +272,16 @@ WPI-8 facts stand as read from TDI and TWIA: TWIA's lookup is WPI-8-C only; the 
 
 **Prediction, bundle 63 (`feat/ga4` at `c30be50`, over main `a07b25e`; full lane).** Every line of bundle 62's prediction, unchanged: 64 of 64; no tag renders; JS within 1 KB of bundle 61; LCP `/` 2,100 to 2,900, `/coverage` 2,250 to 2,600, coastal-bend 2,200 to 2,950, service 2,550 to 2,850, the cost guide 2,000 to 2,900; TBT 25 to 65; CLS 0.000; heights 15,856 and 15,090. Standing note `/coverage` NOT STABLE. No migration. Merges on a match.
 
+**Board for bundle 63 is the push board 41381816477.** Pushing `feat/ga4` started it, and the dispatched 41381826151 was a duplicate on the same commit, cancelled in build before any writers shard. Memory updated: push or dispatch, never both.
+
+**Bundle 64, item g (`seo/closing-links`), brought up to main.** Main `a07b25e` merged in as `ab63da3`, clean. Diff against main: the four informational articles each gain one closing section (`insights.ts` +21 -3, `insights-coastal.ts` +7 -1, the removed lines being each article's typed `dateModified`), `guide-dates.ts` four dateModified lines, the proof `four-informational-articles-close-on-their-service`. Preflight GREEN, 38 rules, 106 s.
+
+**Prediction, bundle 64 (`seo/closing-links` at `ab63da3`, over main `a07b25e`; full lane, insights content feeds server rendered pages). Boards after GA4 merges, brought up to that main first.**
+- Preflight GREEN. Board 64 of 64.
+- **perf-audit.** `/insights/texas-windstorm-certificate-lookup` (the one changed article on the board's route list) gains under 2 KB of HTML and stays 2,200 to 2,900 ms. Every other route's bytes are unchanged and its LCP stays in bundle 63's range.
+- **Heights.** The four articles each grow by one short section. None enters the 1,000 px warning band (none is in it today). `/insights/wpi-8-certificate` stays 15,856 px: g changes no `datePublished`, which is what `relatedReading()` ranks on, so its related list does not move. `/insights/pre-purchase-home-inspection` stays 15,090 px.
+- Standing note `/coverage` NOT STABLE. No migration. Merges on a match.
+
 **PENDING SYNC, keyword registry (Robert, answer 5, 2026-11-01).** `data/keyword-registry.ts` is meant to be synchronized verbatim across the three repos, and item h (`seo/wpi8-owners`, `49638cd`) changes one line in it. The 254 angle for the WPI-8 entry (path `/insights/wpi-8-certificate`) no longer says "Not the statute walk-through, which is /insights/windstorm-certificate-of-compliance." and now ends "...what one certificate records, and address corrections, with the statute's six month limit, fee provision and accountability clauses folded in from the retired statute post, which redirects here (item h, 2026-11-01)." **The Sealed Engineering and StampMyPlans repos need the same line once item h merges.** Not touched from here, by Robert's word.
 
 ## MORNING REPORT, 2026-10-31
