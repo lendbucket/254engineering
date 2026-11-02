@@ -2346,6 +2346,14 @@ if (!db) {
             "manager and the administrator hold. Selling is not an engineer's work.",
         },
         {
+          route: "/portal/crm/[id]",
+          reaches: false,
+          because:
+            "A company on the sales list, Robert's CRM R4 of 2026-11-02: its history, people, notes " +
+            "and account. Gated on crm.use like the pipeline it opens from, which only the rep, the " +
+            "operations manager and the administrator hold. Selling is not an engineer's work.",
+        },
+        {
           route: "/portal/techs/[id]",
           reaches: false,
           because:
@@ -2532,6 +2540,9 @@ if (!db) {
         "/portal/crm/imports",
         /* The call queue, Robert's CRM R3 of 2026-11-02: crm.use, which DEFAULT_ROLES gives him none of. Selling is not an engineer's work. */
         "/portal/crm/queue",
+        /* The stage board and the list, Robert's CRM R4 of 2026-11-02: crm.use, which DEFAULT_ROLES gives him none of. */
+        "/portal/crm",
+        "/portal/crm/list",
         "/portal/inbox",
         "/portal/order-lookup",
         "/portal/refunds",

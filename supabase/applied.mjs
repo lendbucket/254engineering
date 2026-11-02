@@ -4203,6 +4203,21 @@ export const APPLIED = [
       "source run, one verdict per record (add, merge, conflict, held, skip), and a person with crm.import writes " +
       "(his answer 4); a record with no phone and no email is held (answer 3). Additive: two tables and a foreign key.",
   },
+  {
+    file: "0113_the_sales_list_keeps_views_and_a_thread_per_company.sql", appliedBy: "apply_migration",
+    fingerprint: "1322856eae54e74168dbec05e6a56025",
+    behaviour: "2bb86baa957ffe451d2ab7627f7f62d3",
+    production: null,
+    proves: { table: "eng_crm_saved_views" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-02 on the combined chain 0104 to 0113. Shape 1472 " +
+      "to 1482 columns: 6 on eng_crm_saved_views, 4 on eng_prospect_threads; tables 110 to 112. Behaviour 1440 to " +
+      "1456 facts: the two tables' keys, checks, foreign keys and the saved views index.",
+    because:
+      "WRITTEN 2026-11-02 ON feat/crm-r4-pipeline AND STAGED ON stage/0113-crm-pipeline FOR THE CHAT COUNTERPART'S " +
+      "SITTING; APPLIED NOWHERE. Robert's sales CRM ruling of 2026-11-02, item R4, pipeline and lists: saved views per " +
+      "person, and one existing direct thread linked per company for notes with mentions (his answer 5). Additive: two tables.",
+  },
 ];
 
 /*

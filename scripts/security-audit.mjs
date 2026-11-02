@@ -142,6 +142,9 @@ const ADMIN_PAGES = [
   "/portal/crm/imports",
   /* The call queue (Robert's CRM R3, 2026-11-02): crm.use, closed to a signed out caller. */
   "/portal/crm/queue",
+  /* The stage board and the list (Robert's CRM R4, 2026-11-02): crm.use, closed to a signed out caller. */
+  "/portal/crm",
+  "/portal/crm/list",
   "/portal/inbox",
   "/portal/order-lookup",
   "/portal/refunds",
@@ -357,6 +360,8 @@ const ADMIN_APIS = [
   "/api/portal/crm/imports",
   // The call queue (Robert's CRM R3, 2026-11-02): recording a call's outcome, on crm.use and contact_log.write.
   "/api/portal/crm/queue",
+  // The pipeline (Robert's CRM R4, 2026-11-02): stage moves, bulk assign (crm.assign) and tag, saved views and company notes, on crm.use.
+  "/api/portal/crm",
   "/api/portal/contact-log",
   "/api/portal/refunds",
   // The refund requests as a CSV, a read beside the POST only route (office ready, 2026-10-24).

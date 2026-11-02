@@ -39,7 +39,8 @@ export default async function ProspectsPage({ searchParams }: { searchParams: Pr
   const qs = new URLSearchParams(Object.entries(params).filter(([k, v]) => v && k !== "page") as [string, string][]).toString();
 
   const columns: Column<ProspectRow>[] = [
-    { key: "company", header: "Company", cell: (r) => <Link href={`/portal/prospects/${r.id}`} className="font-semibold text-[var(--navy)] underline">{r.company}</Link> },
+    /* The company's own page (Robert's CRM R4, 2026-11-02): its history, people, notes and account. Editing and converting stay on /portal/prospects/[id], linked from it. */
+    { key: "company", header: "Company", cell: (r) => <Link href={`/portal/crm/${r.id}`} className="font-semibold text-[var(--navy)] underline">{r.company}</Link> },
     { key: "contact", header: "Contact", cell: (r) => r.contactName ?? "" },
     {
       key: "phone",
@@ -65,6 +66,10 @@ export default async function ProspectsPage({ searchParams }: { searchParams: Pr
         title="Sales list"
         lede="Companies the firm is calling that are not customers yet. Calls and email only: nothing here texts anybody, because no opt-in is recorded."
       />
+      <p className="mb-4 text-[14px] text-[var(--ink)] print:hidden">
+        The stage board, saved views and bulk tagging are on the{" "}
+        <Link href="/portal/crm" className="font-semibold text-[var(--navy)] underline">pipeline</Link>.
+      </p>
 
       <ListControls
         action="/portal/prospects"
