@@ -436,7 +436,7 @@ export async function createAccount(input: CreateAccountInput): Promise<CreateAc
 }
 
 export const duplicateLicenceRefusal =
-  "Another engineer profile already holds that licence number, so this account was not created. One licence number belongs to one engineer.";
+  "Another engineer profile already holds that license number, so this account was not created. One license number belongs to one engineer.";
 
 /**
  * Whether an engineer profile already holds this licence number, compared
@@ -452,7 +452,7 @@ export async function engineerHoldingLicence(
   const read = await readEvery<{ id: string; license_number: string | null }>((from, to) =>
     db.from("eng_profiles").select("id, license_number").eq("role", "engineer").not("license_number", "is", null).order("id").range(from, to),
   );
-  if (!read.ok) return { ok: false, error: `Whether another engineer holds that licence number could not be read, so the account was not created: ${read.error}` };
+  if (!read.ok) return { ok: false, error: `Whether another engineer holds that license number could not be read, so the account was not created: ${read.error}` };
   return { ok: true, held: read.rows.some((p) => String(p.license_number ?? "").trim() === wanted) };
 }
 

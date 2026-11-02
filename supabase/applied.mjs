@@ -4109,7 +4109,7 @@ export const APPLIED = [
   {
     file: "0109_one_licence_number_belongs_to_one_engineer.sql", appliedBy: "apply_migration",
     fingerprint: "22346b566a73ea946ca112725b16569f",
-    behaviour: "35929eba9b71a0d6daebb05cd004fdcb",
+    behaviour: "fd2c09f5c724f7743c7ec47edc8b7b3b",
     production: null,
     proves: null,
     provesNote:

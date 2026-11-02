@@ -44,7 +44,7 @@ begin
     having count(*) > 1
   ) d;
   if v_dupes > 0 then
-    raise exception 'eng: 0109 found % licence number(s) held by more than one engineer profile. Resolve them before this runs.', v_dupes;
+    raise exception 'eng: 0109 found % license number(s) held by more than one engineer profile. Resolve them before this runs.', v_dupes;
   end if;
 end;
 $$;
@@ -98,7 +98,7 @@ begin
        and me.license_number is not null
   ) then
     raise exception
-      'This licence number is held by more than one engineer profile, so it seals nothing until that is resolved (0109).';
+      'This license number is held by more than one engineer profile, so it seals nothing until that is resolved (0109).';
   end if;
 
   if new.kind = 'letter' and not exists (
@@ -180,7 +180,7 @@ begin
     raise exception 'eng: 0109 expects eng_profiles_engineer_license_key to exist after it runs.';
   end if;
   if position('0109' in (select prosrc from pg_proc where proname = 'eng_seal_act_check')) = 0 then
-    raise exception 'eng: 0109 expects eng_seal_act_check to carry its licence clause after it runs.';
+    raise exception 'eng: 0109 expects eng_seal_act_check to carry its license clause after it runs.';
   end if;
 end;
 $$;

@@ -148,7 +148,7 @@ const free = await engineerHoldingLicence(fakeDb([{ id: A, license_number: "7777
 check("a different number is free", free.ok && free.held === false, JSON.stringify(free));
 const failed = await engineerHoldingLicence(fakeDb([], { message: "timeout" }), "123456");
 check("a failed read refuses, never reads as free", failed.ok === false && /could not be read/.test(failed.error), JSON.stringify(failed));
-check("the sentence says what happened and why", /already holds that licence number/.test(duplicateLicenceRefusal) && /One licence number belongs to one engineer/.test(duplicateLicenceRefusal));
+check("the sentence says what happened and why", /already holds that license number/.test(duplicateLicenceRefusal) && /One license number belongs to one engineer/.test(duplicateLicenceRefusal));
 
 console.log(wrong === 0 ? "PASS: one licence number belongs to one engineer: the index, createAccount and the seal check each refuse a second holder." : `FAIL: ${wrong} check(s).`);
 process.exitCode = wrong === 0 ? 0 : 1;
