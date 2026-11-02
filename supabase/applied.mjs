@@ -4168,14 +4168,16 @@ export const APPLIED = [
   {
     file: "0111_the_sales_list_knows_companies_contacts_and_sources.sql", appliedBy: "apply_migration",
     fingerprint: "72bb0e8c9223c6cd634a610fb0506b82",
-    behaviour: "f3c828fa8a7fe74b1ff8b828383b6828",
+    behaviour: "336caebed4e79da7463221327f337310",
     production: null,
     proves: { table: "eng_prospect_sources" },
     note:
       "Both figures read off scripts/fingerprint-at.mjs on 2026-11-02 on the combined chain 0104 to 0111. Shape 1396 " +
       "to 1439 columns: 17 on eng_prospects, 11 on eng_prospect_contacts, 8 on eng_prospect_sources, 7 on " +
       "eng_contact_log; tables 106 to 108. Behaviour 1357 to 1409 facts: two functions, one trigger, the new checks, " +
-      "keys and indexes, and six grant rows.",
+      "keys and indexes, and six grant rows. The behaviour digest moved from f3c828fa to 336caebe on 2026-11-02, " +
+      "before 0111 was applied anywhere, when the source check gained tdlr_solar_retailers and " +
+      "tdlr_solar_salespeople (Robert's answer to 6588393366); the fact count is unchanged.",
     because:
       "WRITTEN 2026-11-02 ON feat/crm-r1-data-model AND STAGED ON stage/0111-crm-data-model FOR THE CHAT " +
       "COUNTERPART'S SITTING; APPLIED NOWHERE. Robert's sales CRM ruling of 2026-11-02, item R1, the data model: " +

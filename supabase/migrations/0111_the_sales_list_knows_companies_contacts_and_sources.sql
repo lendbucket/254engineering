@@ -253,7 +253,8 @@ create table if not exists eng_prospect_sources (
                       check (source in (
                         'permits_san_antonio', 'permits_corpus_christi', 'permits_houston',
                         'permits_dallas', 'permits_austin', 'permits_fort_worth',
-                        'tdlr_electrical', 'tdhca_mh', 'trec', 'csv', 'manual')),
+                        'tdlr_electrical', 'tdlr_solar_retailers', 'tdlr_solar_salespeople',
+                        'tdhca_mh', 'trec', 'csv', 'manual')),
   source_record_id  text not null check (length(btrim(source_record_id)) > 0),
   first_seen_at     timestamptz not null default now(),
   last_seen_at      timestamptz not null default now(),

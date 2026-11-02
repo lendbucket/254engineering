@@ -130,6 +130,9 @@ export const CRM_SOURCES = [
   "permits_austin",
   "permits_fort_worth",
   "tdlr_electrical",
+  /* TDLR's residential solar registrations, Robert's answer to 6588393366 (2026-11-02): vertical solar. */
+  "tdlr_solar_retailers",
+  "tdlr_solar_salespeople",
   "tdhca_mh",
   "trec",
   "csv",
@@ -145,6 +148,8 @@ export const SOURCE_LABEL: Record<CrmSource, string> = {
   permits_austin: "Austin building permits",
   permits_fort_worth: "Fort Worth building permits",
   tdlr_electrical: "TDLR electrical contractors",
+  tdlr_solar_retailers: "TDLR residential solar retailers",
+  tdlr_solar_salespeople: "TDLR residential solar salespeople",
   tdhca_mh: "TDHCA manufactured housing licensees",
   trec: "TREC brokers and sales agents",
   csv: "A spreadsheet",
