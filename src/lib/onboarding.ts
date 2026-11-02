@@ -231,7 +231,15 @@ export async function markItemAcknowledged(params: {
   return { ok: true, data: null };
 }
 
-/** Admin decision on one item. A rejection reopens it for the person. */
+/**
+ * Admin decision on one item. A rejection reopens it for the person.
+ *
+ * The write only. Who may decide, the reason rule, the audit row and the email
+ * are decideOnboardingItem's (src/lib/onboarding-decisions.ts), its one caller
+ * since Robert's ruling P1 of 2026-11-01; before that nothing called this at
+ * all. It says which rows it changed, so a decision on an item that is not
+ * there is a failure rather than a silent success.
+ */
 export async function setItemDecision(params: {
   onboardingId: string;
   itemKey: string;
@@ -241,7 +249,7 @@ export async function setItemDecision(params: {
   if (!supabaseConfigured()) return { ok: false, error: NOT_CONFIGURED };
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: NOT_CONFIGURED };
-  const { error } = await db
+  const { data, error } = await db
     .from("eng_onboarding_items")
     .update({
       status: params.decision,
@@ -249,8 +257,11 @@ export async function setItemDecision(params: {
       updated_at: DB_NOW,
     })
     .eq("onboarding_id", params.onboardingId)
-    .eq("item_key", params.itemKey);
-  return error ? { ok: false, error: error.message } : { ok: true, data: null };
+    .eq("item_key", params.itemKey)
+    .select("item_key");
+  if (error) return { ok: false, error: error.message };
+  if (!data?.length) return { ok: false, error: "No checklist item changed: it is not on this onboarding." };
+  return { ok: true, data: null };
 }
 
 export async function setStatus(

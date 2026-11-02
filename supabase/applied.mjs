@@ -4025,16 +4025,50 @@ export const APPLIED = [
       "taken on issue #1 (comment 6470846047).",
   },
   {
+    file: "0105_identity_and_i9_record_what_was_seen_and_by_whom.sql", appliedBy: "apply_migration",
+    fingerprint: "812467e78ee8e18958afef349643e8de",
+    behaviour: "5f6a399607c588e7c383e4a24d8e8224",
+    production: null,
+    proves: { table: "eng_onboardings", column: "identity_document_type" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0105 on 2026-11-01, with 0104 reproducing its recorded " +
+      "pair. Four columns on eng_onboardings (1374 to 1378) and six behaviour facts (1328 to 1334): four check " +
+      "constraints and two foreign keys to eng_profiles.",
+    because:
+      "WRITTEN 2026-11-01 ON feat/onboarding-end-to-end, Robert's ruling P1 (finish the portal): identity and I-9 " +
+      "verification record the document type seen, who and when, and no copy of any document. NOT YET ON " +
+      "DEVELOPMENT OR PRODUCTION: it waits for the chat counterpart's sitting from its stage branch, and the branch " +
+      "does not merge until production reads it back. Section 0 at the top of the file must read 0 and 0 first.",
+  },
+  {
+    file: "0106_the_academy_records_approvals_and_attempts.sql", appliedBy: "apply_migration",
+    fingerprint: "f70724c174b2135624170d94bf8d0772",
+    behaviour: "2ff049a3a3fde84bfeed700ccb2bd310",
+    production: null,
+    proves: { table: "eng_academy_attempts" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0106 on 2026-11-02, on the COMBINED chain 0104, 0105, 0106 " +
+      "(P1 merged into this branch). Two tables: 1378 to 1395 columns, 104 to 106 tables, 1334 to 1357 facts. The " +
+      "branch-local pair without 0105 was a38cdc761b90af3348910f4e7e897990 / ef58094ea9f9038df6247cac20ed115d. " +
+      "Applied on development 2026-11-02 from stage/0106-academy (6578648098).",
+    because:
+      "WRITTEN 2026-11-01 ON feat/training-academy, Robert's ruling P3 of 2026-11-01 (the technician training academy: " +
+      "courses, lessons, quizzes, a pass mark, every attempt recorded, each course versioned to the protocol version it " +
+      "teaches, nothing graduated against a draft, graduation from both required courses before a field_tech " +
+      "enrollment). His ruling the same evening: any migration goes to development on a stage/ branch and waits for the " +
+      "chat counterpart's production sitting. Not applied anywhere yet; staged on stage/0106-academy.",
+  },
+  {
     file: "0107_every_evidence_file_carries_its_sha256.sql", appliedBy: "apply_migration",
-    fingerprint: "e12033a2c91fead686fc9a4632ed20dc",
-    behaviour: "5ce9349a818ea5f249aedd6fd93ac939",
+    fingerprint: "22346b566a73ea946ca112725b16569f",
+    behaviour: "f61f2b5168c668bb6d381a57bc674f9a",
     production: null,
     proves: { column: { table: "eng_evidence_items", name: "content_sha256" } },
     note:
-      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-01 on feat/evidence-sha256, whose chain runs 0104 " +
-      "then 0107, with 0104 reproducing its recorded pair. One column (1374 to 1375) and its shape check and index " +
-      "(1328 to 1330 facts). RECOMPUTED AT THE BOARD once 0105 and 0106 are on main ahead of it, because both " +
-      "figures depend on the whole chain.",
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-02 on the COMBINED chain 0104 to 0107 (P1 and P3 " +
+      "merged into this branch). One column (1395 to 1396) and its shape check and index (1357 to 1359 facts). The " +
+      "branch-local pair on 0104 then 0107 was e12033a2c91fead686fc9a4632ed20dc / 5ce9349a818ea5f249aedd6fd93ac939. " +
+      "Applied on development 2026-11-02 from stage/0107-evidence-sha256 (6578648098).",
     because:
       "WRITTEN 2026-11-01 ON feat/evidence-sha256; NOT YET ON DEVELOPMENT OR PRODUCTION. Robert's ruling P5 of " +
       "2026-11-01 evening: a SHA-256 of every evidence file at upload, development first, and the no duplicate " +

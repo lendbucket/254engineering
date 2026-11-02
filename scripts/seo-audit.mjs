@@ -749,7 +749,8 @@ if (schemaEmailsSeen === 0) {
    */
   const catalogSlugs = [...new Set([...readFileSync("data/catalog.ts", "utf8").matchAll(/serviceSlug: "([a-z0-9-]+)"/g)].map((m) => m[1]))];
   const orderLinks = catalogSlugs.map((s) => `/order/start/${s}`);
-  const OFF_SITEMAP = ["/waitlist", "/design-inquiry", "/windstorm-inquiry", ...orderLinks];
+  /* The partner badge left the sitemap on 2026-11-02 (Robert, noindex), so it is read by name. */
+  const OFF_SITEMAP = ["/waitlist", "/design-inquiry", "/windstorm-inquiry", "/partners/badge", ...orderLinks];
   for (const route of OFF_SITEMAP) {
     if (pageHtml.has(route)) continue;
     const res = await fetch(`${BASE}${route}`);

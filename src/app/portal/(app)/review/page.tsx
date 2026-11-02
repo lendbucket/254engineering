@@ -28,6 +28,9 @@ import { governingDeclaration } from "@/lib/protocol-run";
 import { formatInFirmZone } from "@/lib/firm-calendar";
 import { addendaFor, addendumHeading } from "@/lib/scope-addendum";
 import { duplicateCheckSentence } from "@/lib/evidence-fingerprint";
+import { ListControls, listHref } from "@/components/portal/ListControls";
+import { staffListQuery, staffListRows } from "@/lib/staff-lists";
+import { REVIEW_STATUS_FILTER, reviewQueueList } from "@/lib/review-queue-list";
 
 export const dynamic = "force-dynamic";
 
@@ -59,7 +62,7 @@ const when = (value: string | null) =>
 export default async function ReviewPage({
   searchParams,
 }: {
-  searchParams: Promise<{ id?: string }>;
+  searchParams: Promise<Record<string, string | undefined>>;
 }) {
   const actor = await currentActor();
   if (!holdsLicence(actor, "review.queue")) notFound();
@@ -165,6 +168,15 @@ export default async function ReviewPage({
       )
     : null;
   const serviceName = (slug: string) => services.find((s) => s.slug === slug)?.name ?? slug;
+  /*
+    P4: what he chose, or nothing, in which case `shown` is `queue` in its own
+    order. An unread queue leaves it empty rather than null: the page decides on
+    `queue === null` first and says the queue could not be read, so `shown` is
+    only ever read beside a queue that was.
+  */
+  const listSpec = reviewQueueList(serviceName, services.map((s) => s.slug), actor?.id ?? null);
+  const listQuery = staffListQuery(params, listSpec);
+  const shown = queue === null ? [] : staffListRows(queue, listQuery, listSpec);
 
   const actions = selected
     ? availableReviewActions(
@@ -352,6 +364,36 @@ export default async function ReviewPage({
         </section>
       ) : null}
 
+      {/*
+        SEARCH, FILTER AND SORT, Robert's ruling P4 of 2026-11-01. Above the
+        list rather than inside its narrow column, and hidden on a phone while a
+        package is open, as the list is. With nothing chosen the list below is
+        the queue's read exactly (review-queue-list.ts says why).
+      */}
+      {queue && queue.length > 0 ? (
+        <div className={selected ? "hidden lg:block" : "block"}>
+          <ListControls
+            action="/portal/review"
+            search={params.q ?? ""}
+            searchLabel="Search file number, address, county or service"
+            filters={[
+              { name: "status", label: "Status", value: listQuery.filters.status, options: [{ value: "", label: "Any status" }, ...REVIEW_STATUS_FILTER.map((s) => ({ value: s.value, label: s.label }))] },
+              { name: "service", label: "Service", value: listQuery.filters.service, options: [{ value: "", label: "Any service" }, ...services.map((s) => ({ value: s.slug, label: s.name }))] },
+              { name: "assigned", label: "Assigned", value: listQuery.filters.assigned, options: [{ value: "", label: "Anyone" }, { value: "mine", label: "Assigned to me" }, { value: "unassigned", label: "Unassigned" }] },
+            ]}
+            sorts={[
+              { value: "waiting", label: "Longest waiting" },
+              { value: "county", label: "County" },
+              { value: "service", label: "Service" },
+              { value: "address", label: "Address" },
+              { value: "revisions", label: "Revisions so far" },
+            ]}
+            sort={listQuery.sort}
+            direction={listQuery.ascending ? "asc" : "desc"}
+          />
+        </div>
+      ) : null}
+
       <div className="grid gap-6 lg:grid-cols-[minmax(280px,360px)_1fr]">
         <div className={selected ? "hidden lg:block" : "block"}>
           {queue === null ? (
@@ -362,6 +404,11 @@ export default async function ReviewPage({
             <EmptyState
               title="Nothing waiting"
               body="A file arrives here when a technician submits a complete evidence package. It stays until an engineer decides it."
+            />
+          ) : shown.length === 0 ? (
+            <EmptyState
+              title="No package matches that search"
+              body={`This is a search with no match, not an empty queue: ${queue.length} package${queue.length === 1 ? " is" : "s are"} waiting. Clear the search to see every one.`}
             />
           ) : (
             /*
@@ -378,12 +425,12 @@ export default async function ReviewPage({
               the one thing this port is forbidden to do.
             */
             <ul className="border-t border-[var(--row-rule)]">
-              {queue.map((f) => {
+              {shown.map((f) => {
                 const open = selected?.file.id === f.id;
                 return (
                   <li key={f.id} className="border-b border-[var(--row-rule)]">
                     <Link
-                      href={`/portal/review?id=${f.id}`}
+                      href={listHref("/portal/review", params, { id: f.id })}
                       className={`block border-l-2 py-3.5 pr-3 transition-colors ${
                         open
                           ? "border-[var(--navy)] bg-[var(--canvas)] pl-3"

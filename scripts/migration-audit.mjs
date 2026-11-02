@@ -319,16 +319,32 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * reproducing its recorded pair first.
  */
 /*
- * Moved 2026-11-01 by 0107, every evidence file carries its SHA-256, by
- * Robert's ruling P5: 1,374 to 1,375 is eng_evidence_items.content_sha256, and
- * the table count is unchanged; shape e12033a2c91fead686fc9a4632ed20dc, read
- * off fingerprint-at.mjs with 0104 reproducing its recorded pair first. Read on
- * a branch whose chain runs 0104 then 0107, so it is re-read at the board once
- * 0105 and 0106 are on main ahead of it.
+ * Moved 2026-11-01 by 0105, identity and I-9 record what was seen and by whom,
+ * by Robert's ruling P1: 1,374 to 1,378 is four columns on eng_onboardings
+ * (identity_document_type, identity_verified_by, i9_document_type,
+ * i9_examined_by); no table, no trigger, no function; shape
+ * 812467e78ee8e18958afef349643e8de.
+ *
+ * Moved again by 0106, the academy records approvals and attempts, by Robert's
+ * ruling P3 of 2026-11-01, on the COMBINED chain 0104, 0105, 0106 (P1 merged
+ * into this branch on 2026-11-02): 1,378 to 1,395 is
+ * eng_academy_course_approvals' seven columns and eng_academy_attempts' ten,
+ * and the table count moves 104 to 106; shape
+ * f70724c174b2135624170d94bf8d0772, read off fingerprint-at.mjs, the figure
+ * posted for the development sitting (6568178900) and sat there (6578648098).
+ * The branch-local figure without 0105 was a38cdc761b90af3348910f4e7e897990.
+ *
+ * Moved again by 0107, every evidence file carries its SHA-256, by Robert's
+ * ruling P5 of 2026-11-01, on the COMBINED chain 0104 to 0107 (P1 and P3
+ * merged into this branch on 2026-11-02): 1,395 to 1,396 is
+ * eng_evidence_items.content_sha256, the table count unchanged at 106; shape
+ * 22346b566a73ea946ca112725b16569f, read off fingerprint-at.mjs, the figure
+ * posted for the development sitting (6568178900) and sat there (6578648098).
+ * The branch-local figure on 0104 then 0107 was e12033a2c91fead686fc9a4632ed20dc.
  */
-const EXPECTED_FINGERPRINT = "e12033a2c91fead686fc9a4632ed20dc";
-const EXPECTED_COLUMNS = 1375;
-const EXPECTED_TABLES = 104;
+const EXPECTED_FINGERPRINT = "22346b566a73ea946ca112725b16569f";
+const EXPECTED_COLUMNS = 1396;
+const EXPECTED_TABLES = 106;
 /* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts.
  * 0074 adds two: eng_partner_billing_touch and eng_partner_billing_events_immutable.
  * 0075 adds one: eng_payment_events_guarded.
@@ -349,8 +365,10 @@ const EXPECTED_TABLES = 104;
  * eng_insurance_policies_audit and eng_insurance_alerts_guard.
  * 0098 adds two, by Robert's addendum of 2026-10-25, item 3: eng_quote_files_guard
  * and eng_quote_requests_guard.
- * 0099 adds one, by Robert's addendum of 2026-10-25, item 8b: eng_alert_recipients_guard. */
-const EXPECTED_TRIGGERS = 104;
+ * 0099 adds one, by Robert's addendum of 2026-10-25, item 8b: eng_alert_recipients_guard.
+ * 0106 adds two, by Robert's ruling P3 of 2026-11-01: eng_academy_course_approvals_append_only
+ * and eng_academy_attempts_append_only. */
+const EXPECTED_TRIGGERS = 106;
 /**
  * 0014 added eng_freeze_attribution and 0019 added two more, the partner
  * entry freeze and its delete refusal, which are trigger functions like the

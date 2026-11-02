@@ -70,6 +70,9 @@
 
 import { FIRST_TIER_COASTAL, FIRST_TIER_COUNT } from "./windstorm";
 import { HARRIS_DESIGNATION } from "./windstorm-harris";
+import { legacyZoneRows, legacyZoneSources } from "./windstorm-zones";
+import { catalogFor } from "@data/catalog";
+import { money } from "@/config/prices";
 import {
   firmName,
   notYetTakingOrders,
@@ -96,11 +99,30 @@ const countyList = `${FIRST_TIER_COASTAL.slice(0, -1).join(", ")}, and ${
   FIRST_TIER_COASTAL[FIRST_TIER_COASTAL.length - 1]
 }`;
 
+/*
+ * The WPI-8 prices for the one link to the firm on /windstorm/catastrophe-area
+ * (round 3 item d, Robert's answer 1 of 2026-11-01), read from the catalog,
+ * never typed. A missing tier fails the build here.
+ */
+function wpi8Price(tier: "ongoing" | "completed"): { price: string; coastal: number | null } {
+  const entry = catalogFor("windstorm-wpi-8", tier);
+  if (!entry || entry.priceCents === null) throw new Error(`windstorm-program: the catalog has no priced windstorm-wpi-8 ${tier} entry`);
+  return { price: money(entry.priceCents), coastal: entry.coastalSurchargeCents };
+}
+const WPI8_ONGOING_PRICE = wpi8Price("ongoing");
+const WPI8_COMPLETED_PRICE = wpi8Price("completed");
+const WPI8_COASTAL =
+  WPI8_ONGOING_PRICE.coastal !== null && WPI8_ONGOING_PRICE.coastal === WPI8_COMPLETED_PRICE.coastal
+    ? `, each ${money(WPI8_ONGOING_PRICE.coastal)} more in a first tier coastal county`
+    : "";
+
 export type WindstormSection = {
   eyebrow: string;
   title: string;
   lede?: string;
   body: string[];
+  /** A table under the prose, rendered the way an insights table is (stacked at phone width). */
+  table?: { caption: string; head: string[]; rows: string[][] };
 };
 
 export type WindstormPage = {
@@ -116,6 +138,8 @@ export type WindstormPage = {
   faqs?: { q: string; a: string }[];
   /** Renders the windstorm county check (src/content/windstorm-county-tool.ts). */
   countyCheck?: true;
+  /** The primary sources a section rests on, each with the claim it supports. */
+  sources?: { label: string; url: string; supports: string }[];
 };
 
 export const windstormHub = {
@@ -167,6 +191,8 @@ export const windstormPages: WindstormPage[] = [
     description:
       "The fourteen Texas seacoast counties in the designated catastrophe area, the Harris County line, and what changes at the boundary. See the coverage map.",
     countyCheck: true,
+    /* The zone section's sources, kept from the draft (Robert's answer 1). */
+    sources: legacyZoneSources(),
     summary: `${FIRST_TIER_COUNT} counties, plus ${HARRIS_DESIGNATION}. Inside that boundary the windstorm program applies. Outside it, none of this does.`,
     sections: [
       {
@@ -196,6 +222,29 @@ export const windstormPages: WindstormPage[] = [
           "A house fronting open bay water and a house three miles inland behind mature live oak cover are in different wind environments and can require materially different roof attachment and opening protection, while sitting in the same county, under the same building department, inside the same designated area. Wind design copied from one to the other is a common and expensive error.",
           "This is also why the certificate is not portable between buildings in any sense. It records what was inspected on one structure at one address.",
         ],
+      },
+      /*
+       * FOLDED IN FROM THE DRAFT, Robert's answer 1 of 2026-11-01 (round 3
+       * item d): the county zone table, with the Port Arthur fix and the WPI-8
+       * price link, on this page rather than a new URL, which would have been a
+       * second page on this page's intent (item h). The data and its sources
+       * are in src/content/windstorm-zones.ts.
+       */
+      {
+        eyebrow: "Before 2020",
+        title: "The old wind zones, county by county",
+        lede: "A certificate issued under the 2006 codes was designed to one of three zones, and each county's map page says which places fell in which.",
+        body: [
+          "Under the 2006 International Residential and Building Codes with the Texas revisions, which the department applied from January 1, 2008 to August 31, 2020, each designated county was divided into up to three zones, each with a design wind speed as a 3 second gust: Seaward at 130 mph, Inland I at 120 mph and Inland II at 110 mph. Since April 1, 2026 new work is certified to the 2024 codes, with the wind speed worked out for each structure from its location, so these zones no longer set the speed for new work. They still say what a certificate or a set of drawings from those years was designed to.",
+          "The table is a selection of the communities each county's map page lists. A city split by the Inland I and Inland II line was treated as Inland II throughout, except Corpus Christi, Angleton and Brownsville, each held to Inland I across its whole city limits. Nueces County lists Corpus Christi under both Seaward and Inland I, and its note holds the city to Inland I. Jefferson County lists Port Arthur under both Seaward and Inland I, and its page has no note saying which applies, because its split city rule covers only the Inland I and Inland II line; a Port Arthur address is read off the county map.",
+          "The dividing line follows roads rather than a distance from the water: U.S. Highway 77 from the western city limits of Brownsville north through Willacy, Kenedy and Kleberg, past Corpus Christi, and on through Sinton and Refugio County; F.M. 616, State Highway 35 and State Highway 6 through Matagorda and Brazoria; Interstate 10 and the southeastern city limits of Beaumont in Jefferson. The department marks each map as informational and not suitable for legal, engineering or surveying purposes.",
+          `For work that needs a certificate now, 254 Engineering's WPI-8 inspection is ${WPI8_ONGOING_PRICE.price} for ongoing construction and ${WPI8_COMPLETED_PRICE.price} for completed construction${WPI8_COASTAL}, with its scope on [the WPI-8 certification page](/services/windstorm-wpi-8).`,
+        ],
+        table: {
+          caption: "Wind zones under the 2006 codes, by county, from the department's county map pages",
+          head: ["County", "Seaward (130 mph)", "Inland I (120 mph)", "Inland II (110 mph)"],
+          rows: legacyZoneRows(),
+        },
       },
       {
         eyebrow: "Coverage",
