@@ -8,6 +8,7 @@ import { Chip, EmptyState, ErrorState, PageHead, Panel } from "@/components/port
 import { RecordPolicyForm, WithdrawPolicy } from "./InsuranceClient";
 import { ListControls, Pager, listHref } from "@/components/portal/ListControls";
 import { STAFF_LIST_PAGE_SIZE, policyList, staffListPage, staffListQuery, staffListRows } from "@/lib/staff-lists";
+import { LIST_EXPORT_GRANT } from "@/lib/list-exports";
 
 export const dynamic = "force-dynamic";
 
@@ -64,6 +65,7 @@ export default async function InsurancePage({ searchParams }: { searchParams: Pr
           ]}
           sort={query.sort}
           direction={query.ascending ? "asc" : "desc"}
+          csvHref={can(actor, LIST_EXPORT_GRANT) ? listHref("/api/portal/exports", { q: params.q, standing: params.standing, sort: params.sort, dir: params.dir }, { report: "insurance" }) : undefined}
         />
         {!read.ok || !shown ? (
           <ErrorState title="The register could not be read" body={`${read.ok ? "" : read.error} Reload the page to try again.`} />

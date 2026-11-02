@@ -2,7 +2,11 @@
  * WF-017 STEP 6, ROBERT'S RULING OF 2026-10-29 (issue #1 comment 6501552714):
  * "an engineer-only panel on /portal/review to withdraw or restore a
  * technician's certification, with the reason required." And, in the same
- * ruling: no re-sorting or filtering on /portal/review.
+ * ruling: no re-sorting or filtering on /portal/review. THAT HALF WAS REPLACED
+ * by Robert's ruling P4 of 2026-11-01: search, filter and sort are added, the
+ * default order stays exactly the read's, and filters only narrow. The checks
+ * below assert the new rule; the engine's half is proved by
+ * the-review-queue-first-view-does-not-move.mjs.
  *
  *   node scripts/proofs/the-engineer-withdraws-a-certification-on-review-with-a-reason.mjs
  *
@@ -17,9 +21,10 @@
  *     returned as done;
  *   - the panel is drawn only when the page's actor holds the licence the
  *     server asks for, and a failed read is said rather than shown as empty;
- *   - the review queue's order is still the reviewQueue read's own order:
- *     rendered with no sort or filter, the page takes no parameter but the
- *     file id, and the new panel sits below everything that was there.
+ *   - the review queue's default order is still the reviewQueue read's own
+ *     order: the page renders it only through the P4 list engine, whose
+ *     default sort is the read's order, applies no other sort or filter, and
+ *     the new panel sits below everything that was there.
  */
 import { readFileSync } from "node:fs";
 
@@ -81,10 +86,12 @@ check("and its read runs only for the licence holder", /const standing = mayDeci
 check("so nobody else is drawn the panel", /\{standing === null \? null : !standing\.ok \? \(/.test(live) && (live.match(/<CertificationStandingPanel/g) ?? []).length === 1);
 check("a failed read is said, never an empty list", /Technicians&apos; certifications could not be read[\s\S]{0,80}\{standing\.error\}/.test(live));
 
-const queueRender = live.slice(at(live, /\{queue === null \? \(/));
-check("the review queue is rendered in the order its read returns", /\) : \(\s*<ul[^>]*>\s*\{queue\.map\(/.test(queueRender.slice(0, 1200)) || /\{queue\.map\(\(f\) => \{/.test(queueRender.slice(0, 1600)));
-check("with no sort or filter applied to it on the page", !/queue\s*\.\s*(sort|filter|toSorted|slice)\(/.test(live) && !/\[\.\.\.queue\]/.test(live));
-check("the page takes no parameter but the file id", /searchParams: Promise<\{ id\?: string \}>;/.test(live));
+const queueAt = at(live, /\{queue === null \? \(/);
+check("the queue's render is found", queueAt >= 0);
+const queueRender = queueAt < 0 ? "" : live.slice(queueAt);
+check("the review queue is rendered from the P4 list over its read, and nothing else", /const shown = queue === null \? \[\] : staffListRows\(queue, listQuery, listSpec\);/.test(live) && /\{shown\.map\(\(f\) => \{/.test(queueRender) && !/\{queue\.map\(/.test(live));
+check("whose spec is the review queue's, built once", (live.match(/reviewQueueList\(/g) ?? []).length === 1 && /const listQuery = staffListQuery\(params, listSpec\);/.test(live));
+check("with no other sort or filter applied to it on the page", !/(queue|shown)\s*\.\s*(sort|filter|toSorted|slice)\(/.test(live) && !/\[\.\.\.(queue|shown)\]/.test(live));
 const voidAt = at(live, /<VoidSealPanel/);
 const panelAt = at(live, /<CertificationStandingPanel/);
 check("and the panel sits below everything that was there", voidAt >= 0 && panelAt > voidAt);
@@ -105,7 +112,7 @@ check("and sends to the one path that already does this", (panel.match(/"\/api\/
 
 console.log(
   wrong === 0
-    ? "PASS: the engineer withdraws or restores a certification on /portal/review, with a reason, recorded first, and the queue's order untouched."
+    ? "PASS: the engineer withdraws or restores a certification on /portal/review, with a reason, recorded first, and the queue's default order untouched."
     : `FAIL: ${wrong} check(s) above.`,
 );
 process.exitCode = wrong === 0 ? 0 : 1;

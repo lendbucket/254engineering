@@ -117,7 +117,7 @@ export const insights: Insight[] = [
     eyebrow: "Government procurement",
     primaryKeyword: "texas professional services procurement act",
     datePublished: "2026-08-23",
-    dateModified: "2026-08-24",
+    dateModified: "2026-11-01",
     body: [
       {
         kind: "p",
@@ -222,6 +222,12 @@ export const insights: Insight[] = [
         kind: "p",
         text: "Chapter 2254 does not rest on that argument in any case. The legislature did not prohibit competitive bidding for engineering because it calculated a saving. It did so because the quality of a professional judgement is not a thing a purchaser can specify precisely enough to buy on price, which is a claim about the nature of the service rather than about its cost.",
       },
+      /* Item g, Robert 2026-11-01: one short closing section linking the matching service; nothing above it reworded. */
+      { kind: "h2", text: "254 Engineering for public clients" },
+      {
+        kind: "p",
+        text: "254 Engineering's capability statement for public entities, with how it approaches qualifications based selection, is on [the government page](/government).",
+      },
     ],
     sources: [
       {
@@ -273,7 +279,7 @@ export const insights: Insight[] = [
     eyebrow: "Licensure",
     primaryKeyword: "texas engineering firm registration",
     datePublished: "2026-08-23",
-    dateModified: "2026-10-21",
+    dateModified: "2026-11-01",
     body: [
       {
         kind: "p",
@@ -375,6 +381,12 @@ export const insights: Insight[] = [
       {
         kind: "p",
         text: "For public sector buyers, that distinction maps onto the statute governing the purchase: registration is the eligibility question, and demonstrated competence is the selection question that [the Professional Services Procurement Act](/insights/texas-professional-services-procurement-act) requires an entity to rank on.",
+      },
+      /* Item g, Robert 2026-11-01: one short closing section linking the matching service; nothing above it reworded. */
+      { kind: "h2", text: "254 Engineering's service lines" },
+      {
+        kind: "p",
+        text: "The service lines 254 Engineering is built to deliver, each with its scope and published price, are on [the services overview](/services).",
       },
     ],
     sources: [
@@ -562,7 +574,7 @@ export const insights: Insight[] = [
     eyebrow: "Licensure",
     primaryKeyword: "texas pe license lookup",
     datePublished: "2026-08-23",
-    dateModified: "2026-09-21",
+    dateModified: "2026-11-01",
     body: [
       {
         kind: "p",
@@ -641,6 +653,12 @@ export const insights: Insight[] = [
       {
         kind: "p",
         text: "For a public entity, these checks sit ahead of the selection rather than inside it. Eligibility is established first, and the ranking that follows is governed by [the Professional Services Procurement Act](/insights/texas-professional-services-procurement-act).",
+      },
+      /* Item g, Robert 2026-11-01: one short closing section linking the matching service; nothing above it reworded. */
+      { kind: "h2", text: "Structural letters from 254 Engineering" },
+      {
+        kind: "p",
+        text: "What a structural letter from 254 Engineering covers, and its published price, is on [the structural letters page](/services/structural-letters).",
       },
     ],
     sources: [

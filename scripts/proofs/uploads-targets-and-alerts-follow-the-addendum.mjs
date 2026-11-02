@@ -95,8 +95,11 @@ check("a roof order placed Friday Oct 30 is due ten business days later, Friday 
 check("through the end of that day in Chicago, which is 05:59:59 UTC after the clocks change", roof?.dueAt === "2026-11-14T05:59:59.999Z", roof?.dueAt);
 const wpi = dueFor("windstorm-wpi-8", "completed", "2026-10-26");
 check("WPI-8 completed construction ordered Monday Oct 26 is due seven business days later, Wednesday Nov 4", wpi?.dueDate === "2026-11-04", wpi?.dueDate);
+/* Moved from 2026-07-08 on 2026-11-01: Robert's holiday ruling (P8) makes
+ * Friday 3 July 2026, Independence Day observed, a day off, so five business
+ * days from 1 July now end on Thursday 9 July. */
 const summer = dueFor("solar-structural-letters", "standard", "2026-07-01");
-check("a summer date ends at 04:59:59 UTC, in daylight time", summer?.dueDate === "2026-07-08" && summer?.dueAt === "2026-07-09T04:59:59.999Z", `${summer?.dueDate} ${summer?.dueAt}`);
+check("a summer date ends at 04:59:59 UTC, in daylight time, and skips the observed Independence Day", summer?.dueDate === "2026-07-09" && summer?.dueAt === "2026-07-10T04:59:59.999Z", `${summer?.dueDate} ${summer?.dueAt}`);
 check("design has no target, so no due date", dueFor("residential-light-commercial-design", "custom-package", "2026-10-30") === null);
 check("WPI-8 ongoing has no target, so no due date", dueFor("windstorm-wpi-8", "ongoing", "2026-10-30") === null);
 
