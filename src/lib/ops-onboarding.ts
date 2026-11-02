@@ -13,6 +13,7 @@ import { queueEmail } from "./ops-jobs";
 import { onboardingInvite } from "./email-templates";
 import { business } from "@/config/business";
 import { formatInFirmZone } from "./firm-calendar";
+import { fieldTechEnrollmentRefusal } from "./academy-record";
 import {
   CREDENTIAL_LABEL,
   CREDENTIAL_OF_ITEM,
@@ -467,6 +468,13 @@ export async function activateTechnician(
       error: "This onboarding is not ready to activate.",
       blockers: view.readiness.blockers,
     };
+  }
+  /* Robert's ruling P3: a field technician is enrolled only after graduating from both required courses. */
+  if (view.onboarding.role === "field_tech") {
+    const untrained = await fieldTechEnrollmentRefusal(onboardingId);
+    if (untrained.length) {
+      return { ok: false, error: "This person has not graduated from both required training courses.", blockers: untrained };
+    }
   }
 
   const created = await createAccount({

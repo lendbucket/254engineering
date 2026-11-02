@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { Container } from "@/components/ui/Container";
 import { OnboardingFlow } from "@/components/onboarding/OnboardingFlow";
 import { findByToken, itemsFor } from "@/lib/onboarding";
@@ -108,6 +109,25 @@ export default async function OnboardingPage({
             acknowledgeOnly: d.acknowledgeOnly,
           }))}
       />
+      {/* The training courses, Robert's ruling P3 of 2026-11-01: a field technician graduates from both before enrollment. */}
+      {onboarding.role === "field_tech" ? (
+        <section className="border-b border-limestone-line">
+          <Container>
+            <div className="max-w-3xl py-12">
+              <p className="text-[0.98rem] leading-[1.75] text-slate">
+                Beside these documents there are two short training courses to finish before the firm can enroll you.{" "}
+                <Link
+                  href={`/onboarding/${token}/training`}
+                  className="font-medium text-slate underline decoration-brass underline-offset-4 transition-colors hover:text-brass-ink"
+                >
+                  Open your training courses
+                </Link>
+                .
+              </p>
+            </div>
+          </Container>
+        </section>
+      ) : null}
       {/* The support contact. Inside the page rather than in a second footer:
           the root layout already renders one, and this needs to sit with the
           flow rather than under the site's regulatory band. */}
