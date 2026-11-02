@@ -41,6 +41,8 @@
  * repair is one call site rather than a hunt.
  */
 
+import { isFirmHoliday } from "../config/firm-holidays";
+
 /** The IANA zone the firm's dates are stated in. One value, named once. */
 export const FIRM_TIME_ZONE = "America/Chicago";
 
@@ -119,10 +121,12 @@ export function formatCalendarDate(
  * A calendar date ("YYYY-MM-DD") moved forward by a number of BUSINESS days.
  *
  * Robert's addendum of 2026-10-25, item 6: a file's target is stated in
- * business days. A business day here is Monday to Friday. The firm has no
- * declared holiday calendar, so none is subtracted, and that is stated rather
- * than guessed: a holiday list typed here would be a fact nobody ruled. The
- * date is the firm's own (todayInFirmCalendar), never a UTC day.
+ * business days. A business day here is Monday to Friday, less the firm's
+ * holidays, which are declared in `src/config/firm-holidays.ts` by Robert's
+ * ruling of 2026-11-01 (P8) and read from there alone. Until that ruling none
+ * was subtracted, because a holiday list typed here would have been a fact
+ * nobody ruled. The date is the firm's own (todayInFirmCalendar), never a UTC
+ * day.
  */
 export function addBusinessDays(date: string, days: number): string | null {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isInteger(days) || days < 0) return null;
@@ -131,7 +135,7 @@ export function addBusinessDays(date: string, days: number): string | null {
   while (left > 0) {
     at.setUTCDate(at.getUTCDate() + 1);
     const weekday = at.getUTCDay();
-    if (weekday !== 0 && weekday !== 6) left -= 1;
+    if (weekday !== 0 && weekday !== 6 && !isFirmHoliday(at.toISOString().slice(0, 10))) left -= 1;
   }
   return at.toISOString().slice(0, 10);
 }

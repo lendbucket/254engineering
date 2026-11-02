@@ -8,6 +8,7 @@ import { EmptyState, ErrorState, PageHead, Panel } from "@/components/portal/sur
 import { VerificationQueue } from "../techs/VerificationQueue";
 import { ListControls, Pager, listHref } from "@/components/portal/ListControls";
 import { CREDENTIAL_LIST, STAFF_LIST_PAGE_SIZE, staffListPage, staffListQuery, staffListRows } from "@/lib/staff-lists";
+import { LIST_EXPORT_GRANT } from "@/lib/list-exports";
 
 export const dynamic = "force-dynamic";
 
@@ -65,6 +66,7 @@ export default async function CredentialsPage({ searchParams }: { searchParams: 
         ]}
         sort={query.sort}
         direction={query.ascending ? "asc" : "desc"}
+        csvHref={can(actor, LIST_EXPORT_GRANT) ? listHref("/api/portal/exports", { q: params.q, expiry: params.expiry, sort: params.sort, dir: params.dir }, { report: "credentials" }) : undefined}
       />
       <Panel title={`Awaiting verification${all && all.length ? ` (${searching ? `${shown?.total ?? 0} matching of ${all.length}` : all.length})` : ""}`}>
         {queue === null ? (
