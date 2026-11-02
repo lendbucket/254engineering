@@ -163,6 +163,20 @@ The chat posted five audit files on issue #1: auth 6585008053, money 6585008424,
 
 **Board order now:** P5 (running), P2, Q1 to Q7, R1 to R8, Q8 to Q14, then the low findings. Migration numbers follow board order after 0108 (Q5, Q6, the R items, Q8, Q12), each stacked on the one before for contiguity; none merges without its production sitting.
 
+## ROBERT'S RULINGS, 2026-11-02 afternoon (relayed in session), verbatim in substance
+
+- **Auth M2 (6586517364):** option A, rollout 1, built after Q14. **Per-door attempt counters:** yes, follow-up after Q14.
+- **Q14 (6586655667):** 1a, keep the waitlist sentences until /waitlist is retired. 2: accept 200 with noindex.
+- **Q7 (6586714607):** keep both as built; the label "On statements, unpaid" is accepted.
+- **Q4 (6586834020):** 1 suppress the review request on a decline, as a follow-up. 2 keep as built; Q6 boards right after.
+- **Q11 to Q13 (6587319903):** the form limits are confirmed (10 an hour per connection per form, 5 an hour per address per form, 1 acknowledgement per address per form per firm day). Extend message search and mentions to every readable conversation, as a follow-up.
+- **Q6 (6587395359):** keep the retake as built.
+- **0109:** fix the walks as the counterpart asked (6587890300): unique probe licence per run, and null the licence at teardown. The counterpart may null license_number on the 11 leftover probe profiles. Then it sits 0109.
+- **CRM (6587550325):** 1 yes, reply subdomain with Resend Inbound; **post the exact DNS records on issue #1**; support mailbox until then. 2 yes, ops_manager is the sales manager and the rep is also the account manager; sales gets no crm.use. 3 yes, keep the rule and hold no-contact records. 4 yes, preview then a person presses Write. 5 yes, one thread per company. 6 yes, a rep presses Send on each email. 7 yes, build San Antonio, Austin, TDLR and TREC first; **draft the open records request letters for Houston, Dallas, Fort Worth and Corpus Christi for him to send**, each naming the dataset, the fields and the format. **For the Austin terms PDF and TDLR's three policy pages, read them in the session's browser or fetch and record the dates; if they cannot be read, say so and he will open them.** 8 yes, replace the prospect kind check with the eight verticals; **prepare it as a destructive sitting per docs/production-sitting-destructive.md.**
+- **Scripts (6587550851), sequences and emails (6587551356), sources (6587551734): approved as drafted. Scripts may show to reps once R3 merges.**
+
+**Follow-ups queued after Q14, in this order:** M2 session epoch; per-door attempt counters; suppress the review request on a decline; message search and mentions over every readable conversation. Then the low findings.
+
 (The "Finish the portal" heading below was dropped by my edit of the Q section and is restored here, 2026-11-02.)
 
 ## Finish the portal (Robert, 2026-11-01 evening), after GA4, g, d, c, j
