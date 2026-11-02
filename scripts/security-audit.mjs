@@ -147,6 +147,8 @@ const ADMIN_PAGES = [
   "/portal/crm/list",
   /* The sales territories (Robert's CRM R5, 2026-11-02): crm.assign, closed to a signed out caller. */
   "/portal/crm/territories",
+  /* The account manager view (Robert's CRM R6, 2026-11-02): crm.use, closed to a signed out caller. */
+  "/portal/crm/accounts",
   "/portal/inbox",
   "/portal/order-lookup",
   "/portal/refunds",

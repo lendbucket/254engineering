@@ -24,6 +24,7 @@ import { reviewRequestKey, runReviewRequest } from "./review-request";
 import { raise } from "./ops-notify";
 import { sendInsuranceExpiryAlerts } from "./ops-insurance";
 import { runPreview } from "./crm-imports";
+import { refreshAccountTasks } from "./crm-accounts";
 import { sourceDecl, sourceRefusal } from "@/config/crm-sources";
 import { notifyRepairsRequired, settleDecision } from "./ops-payments";
 import { orderForFile as liveOrderForFile } from "./order-for-file";
@@ -640,6 +641,38 @@ registerJob("crm.import_preview", {
     const result = await runPreview(null, { source, trigger: "schedule" });
     if (!result.ok) return { kind: "retry", error: result.error };
     console.log(`[crm.import_preview] ${source} ${day}: ${result.counts.adds} adds, ${result.counts.merges} merges, ${result.counts.conflicts} conflicts, ${result.counts.held} held`);
+    return { kind: "done" };
+  },
+});
+
+// ------------------------------------------------------- crm.account_tasks
+
+/**
+ * The daily account reminders and check-ins. Robert's sales CRM ruling of
+ * 2026-11-02, item R6: a reorder reminder at the account's own average
+ * interval and a check-in every 90 days, raised as tasks for the account's
+ * owner (refreshAccountTasks in crm-accounts.ts, the rules in
+ * crm-account-rules.ts). Keyed on the firm's calendar day, so the daily cron
+ * queueing it twice finds the first; each task is keyed on its account and due
+ * day, so a run that is repeated, on any day, raises nothing twice.
+ *
+ * A day that is not a day is fatal, as for the credential refresh. A database
+ * fault is a retry. reachesOutside false: it writes tasks and emails nobody.
+ */
+registerJob("crm.account_tasks", {
+  reachesOutside: false,
+  idempotency: (p) => keyFieldsMissing(p, ["day"]) ?? keyOf("crm-account-tasks", p.day),
+  run: async (p): Promise<JobOutcome> => {
+    const day = typeof p.day === "string" ? p.day : undefined;
+    if (day === undefined || !/^\d{4}-\d{2}-\d{2}$/.test(day)) {
+      return { kind: "fatal", error: `"${day}" is not a day, so these reminders will never be keyed.` };
+    }
+    const report = await refreshAccountTasks();
+    console.log(
+      `[crm.account_tasks] ${day}: ${report.accounts} accounts, ${report.wanted} wanted, ${report.raised} raised, ` +
+        `${report.existing} already raised, ${report.faults.length} fault(s)`,
+    );
+    if (report.faults.length > 0) return { kind: "retry", error: report.faults.slice(0, 3).join("; ") };
     return { kind: "done" };
   },
 });

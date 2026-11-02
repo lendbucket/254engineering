@@ -194,6 +194,8 @@ export const NAV: NavItem[] = [
   { href: "/portal/crm/imports", label: "Sales imports", short: "Imports", action: "crm.import", icon: "clients" },
   /* The sales territories (Robert's CRM R5, 2026-11-02). crm.assign, matching the page's guard: admin and ops_manager. */
   { href: "/portal/crm/territories", label: "Territories", short: "Territories", action: "crm.assign", icon: "clients" },
+  /* The account manager view (Robert's CRM R6, 2026-11-02). crm.use, matching the page's guard: the rep, ops_manager and admin. */
+  { href: "/portal/crm/accounts", label: "Sales accounts", short: "Accounts", action: "crm.use", icon: "clients" },
   { href: "/portal/accounts", label: "Accounts", short: "Accts", action: "accounts.manage", icon: "accounts" },
   { href: "/portal/partners", label: "Partners", short: "Partners", action: "partners.manage", icon: "partners" },
   { href: "/portal/billing", label: "Billing", short: "Money", action: "billing.read", icon: "billing" },

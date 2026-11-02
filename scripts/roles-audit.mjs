@@ -2545,6 +2545,8 @@ if (!db) {
         "/portal/crm/list",
         /* The sales territories, Robert's CRM R5 of 2026-11-02: crm.assign, which only admin and ops_manager hold. */
         "/portal/crm/territories",
+        /* The account manager view, Robert's CRM R6 of 2026-11-02: crm.use, which DEFAULT_ROLES gives him none of. */
+        "/portal/crm/accounts",
         "/portal/inbox",
         "/portal/order-lookup",
         "/portal/refunds",
