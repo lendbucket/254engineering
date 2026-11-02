@@ -439,7 +439,7 @@ export const insights: Insight[] = [
     eyebrow: "Licensure",
     primaryKeyword: "engineer of record texas",
     datePublished: "2026-08-23",
-    dateModified: "2026-09-21",
+    dateModified: "2026-11-02",
     body: [
       {
         kind: "p",

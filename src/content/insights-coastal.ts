@@ -493,7 +493,7 @@ export const coastalInsights: Insight[] = [
     eyebrow: "Windstorm law",
     primaryKeyword: "texas windstorm certificate lookup",
     datePublished: DATE,
-    dateModified: "2026-11-01",
+    dateModified: "2026-11-02",
     body: [
       {
         kind: "p",
@@ -1165,7 +1165,7 @@ export const coastalInsights: Insight[] = [
     eyebrow: "Windstorm law",
     primaryKeyword: "wpi8",
     datePublished: WINDSTORM_SECTION_DATE,
-    dateModified: "2026-11-01",
+    dateModified: "2026-11-02",
     /*
      * ANSWER FIRST, Robert's GEO ruling of 2026-10-31, item 4, upgraded in
      * place by his answer 4 (no second WPI-8 page): a 50-word answer first,
@@ -2058,7 +2058,7 @@ export const coastalInsights: Insight[] = [
     eyebrow: "Prices",
     primaryKeyword: "structural inspection cost texas",
     datePublished: "2026-11-01",
-    dateModified: "2026-11-01",
+    dateModified: "2026-11-02",
     body: [
       {
         kind: "p",
