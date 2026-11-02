@@ -1105,7 +1105,8 @@ export const coastalInsights: Insight[] = [
   // ----------------------------------------------------------------------- 11
   {
     slug: "wpi-8-certificate",
-    title: "WPI-8 Certificate Explained for Texas | 254 Engineering",
+    /* Item e, Robert 2026-11-01: leads with "WPI-8 certificate" and names the cost query; lookup belongs to the lookup owner (item h). */
+    title: "WPI-8 Certificate: What It Is and Its Cost | 254 Engineering",
     h1: "The WPI-8 windstorm certificate: what it is, who signs, and what it costs",
     description:
       "What a WPI-8 windstorm certificate is, who signs the forms behind it, how WPI-8, WPI-8-E and WPI-8-C differ, and what one costs. Read the full guide.",
