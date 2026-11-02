@@ -16,7 +16,8 @@ export const dynamic = "force-dynamic";
  *
  * THE TWO FIGURES ARE SEPARATE HERE TOO
  * -------------------------------------
- * Issued and unpaid is what they owe today. Not yet billed is work already done
+ * On statements, unpaid is what they owe today: a closed period counts from the
+ * day it is closed, before it is issued (Q7, money F4). Not yet billed is work already done
  * that no statement covers, and a customer planning cash flow needs both. One
  * combined number would be the same total and a worse answer.
  *
@@ -73,7 +74,7 @@ export default async function StatementsPage() {
 
           <div className="flex flex-wrap gap-x-8 gap-y-2 border-b border-[var(--row-rule)] pb-4">
             <span className="text-[14px] text-[var(--secondary)]">
-              Issued and unpaid{" "}
+              On statements, unpaid{" "}
               <span className="font-semibold text-[var(--ink)]">{money(balance.issuedUnpaidCents)}</span>
             </span>
             <span className="text-[14px] text-[var(--secondary)]">
