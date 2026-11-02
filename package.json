@@ -29,7 +29,7 @@
     "prew2-walk-audit": "node scripts/preflight-audit.mjs",
     "w2-walk-audit": "tsx --conditions=react-server scripts/w2-walk-audit.mjs",
     "preonboarding-walk-audit": "node scripts/preflight-audit.mjs",
-    "onboarding-walk-audit": "tsx --conditions=react-server scripts/onboarding-walk-audit.mjs",
+    "onboarding-walk-audit": "tsx scripts/onboarding-walk-audit.mjs",
     "premessaging-audit": "node scripts/preflight-audit.mjs",
     "messaging-audit": "node scripts/messaging-audit.mjs",
     "preforms-audit": "node scripts/preflight-audit.mjs",

@@ -1,4 +1,3 @@
-// @runtime react-server
 /**
  * A PROBE TECHNICIAN AND A PROBE ENGINEER GO FROM INVITE TO ACTIVATED, WITH NO
  * SQL. Robert's ruling P1, 2026-11-01 evening: "Proof: a probe technician and
