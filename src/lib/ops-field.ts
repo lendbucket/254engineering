@@ -2,6 +2,7 @@ import "server-only";
 import { STATUS_LABEL, type FileStatus } from "./ops-files";
 import { DB_NOW } from "./db-now";
 import { clockReading } from "./clock-skew";
+import { CAPTURE_CLOSED_STATUSES, captureKeyProblem } from "./evidence-capture-rules";
 import { readEvery } from "./bounded-read";
 import { supabaseAdmin } from "./supabase";
 import type { Cents } from "./ops-money";
@@ -1638,6 +1639,25 @@ export type CaptureInput = {
   accuracy?: number | null;
 };
 
+/** The private bucket every evidence upload goes to. */
+export const EVIDENCE_BUCKET = "eng-evidence";
+
+/**
+ * Whether storage holds an evidence object, asked by listing its folder for
+ * its exact name (the shape status-uploads.ts uses). A failed listing is a
+ * failure, never "absent" and never "present" (Q2, 2026-11-02).
+ */
+export async function evidenceObjectExists(storageKey: string): Promise<{ ok: true; exists: boolean } | { ok: false; error: string }> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "Storage is not configured." };
+  const slash = storageKey.lastIndexOf("/");
+  const folder = storageKey.slice(0, slash);
+  const name = storageKey.slice(slash + 1);
+  const { data, error } = await db.storage.from(EVIDENCE_BUCKET).list(folder, { search: name });
+  if (error) return { ok: false, error: "Storage could not be checked just now, so nothing was recorded. It will be sent again." };
+  return { ok: true, exists: (data ?? []).some((o) => o.name === name) };
+}
+
 /**
  * Record one capture, idempotently.
  *
@@ -1691,7 +1711,7 @@ export async function recordCapture(
     };
   }
 
-  if (["evidence_submitted", "under_review", "sealed", "delivered", "closed", "cancelled"].includes(view.file.status)) {
+  if (CAPTURE_CLOSED_STATUSES.includes(view.file.status)) {
     return { ok: false, error: "This file has left the field. Capture is closed on it." };
   }
 
@@ -1708,6 +1728,22 @@ export async function recordCapture(
   const asks = item.kind === "photo" ? photoAnswersFor(view.protocol?.document_number ?? null)[item.itemKey] : undefined;
   const unanswered = photoAnswerRefusal(asks, input);
   if (unanswered) return { ok: false, error: unanswered };
+
+  /*
+   * THE KEY IS THIS CAPTURE'S OWN OBJECT, AND THE OBJECT IS THERE. Robert's
+   * ruling Q2 of 2026-11-02 (audit field F4). The key was written as the body
+   * sent it, so a capture on one file could point at another file's
+   * photograph, or at nothing, and the checklist read complete either way. It
+   * must be exactly fileId/captureId.ext, the one path sign_upload issues, and
+   * storage must hold it before the row says it does.
+   */
+  const keyProblem = captureKeyProblem(fileId, input.clientCaptureId, input.storageKey);
+  if (keyProblem) return { ok: false, error: keyProblem };
+  if (input.storageKey) {
+    const stored = await evidenceObjectExists(input.storageKey);
+    if (!stored.ok) return { ok: false, error: stored.error };
+    if (!stored.exists) return { ok: false, error: "The photograph did not arrive in storage, so it was not recorded. It will be sent again." };
+  }
 
   /*
    * THE SERVER CLOCK, READ ONCE. Both the skew below and the row's own
