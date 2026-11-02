@@ -313,6 +313,16 @@ WPI-8 facts stand as read from TDI and TWIA: TWIA's lookup is WPI-8-C only; the 
 - turnaround-audit, compliance-audit and db-guard-audit PASS unchanged in result.
 - No public file changes, so every listed route keeps its bytes; LCP in bundle 63's range, `/coverage` excepted under NOT STABLE and the green-board rule. Heights 15,856 and 15,090. No migration. Merges on a match.
 
+**Result, bundle 69 (board 41437524213 on `eb62e1e`): 64 of 64, preflight GREEN; one line missed on an untouched page.** `/coverage` 2,786, bytes unchanged, under its ceiling, NOT STABLE. The calendar proofs, turnaround, compliance and db-guard PASS; public bytes identical; `/` 2,708, coastal-bend 2,716, service 2,727, cost guide 2,637; TBT 11 to 27; heights unchanged. (My first background wait returned while the shards were still running; read again after completion.) **P8 merged as `65750d1` under the green-board rule** (tree identical; pushed, ls-remote confirms).
+
+**Bundle 70, P9 (`feat/credential-insurance-exports`):** main `65750d1` merged in as `8239be6` (clean). Diff: `list-exports.ts` +56 -4 (credentials and insurance reports, SHA-256 only, never the storage key), `exports/route.ts` +21 -2, the credentials and insurance pages each gain the CSV link for LIST_EXPORT_GRANT, the export proof (eleven reports; deletion requests get no export; 13 refusals), roles-audit's refusal list. Readers: roles, security, db-guard, email, jobs, money, reporting, dashboard-speed, the two export proofs. Preflight GREEN, 38 rules, 115 s; both export proofs PASS standalone.
+
+**Prediction, bundle 70 (P9 at `8239be6`, over main `65750d1`; full lane, an API route and two portal screens).**
+- Preflight GREEN. Board 64 of 64.
+- proofs-audit: both export proofs PASS. roles-audit PASS with the extended refusal list. security-audit: `/api/portal/exports` signed out still refused.
+- `/portal/credentials` and `/portal/insurance`: native, v10-layout, contrast and mobile pass unchanged in result (one link each, no hidden element).
+- No public file changes: bytes identical; LCP in bundle 63's range, `/coverage` excepted under NOT STABLE and the green-board rule. Heights unchanged. No migration. Merges on a match.
+
 **Result, bundle 66 (board 41402651253 on `a545b8e`): 63 of 64, RED, NOT MERGED, c PARKED.** seo-audit: "/partners/badge: 0 page(s) link to it; every sitemap page needs at least two". A real finding the prediction missed: the page went into the sitemap with no inbound link. Speed and heights in range (`/` 2,590, `/coverage` 2,338, coastal-bend 2,716, service 2,750, cost guide 2,540; TBT 35 to 57). One natural prose link exists (`/press`, logo section); the second would be the footer, a sitewide template link, so asked on issue #1 (6572085510), recommending `/press` plus a footer link. First red for c; a second red on a new commit parks it for good.
 
 **Bundle 67, item j:** main `8fa0592` merged in as `24f41a7` (clean), preflight GREEN, 38 rules, 101 s. Board 41410202142 dispatched on `24f41a7`. Prediction as written above; `/coverage` outside bundle 63's range would be an untouched page with unchanged bytes, recorded under the green-board rule.
