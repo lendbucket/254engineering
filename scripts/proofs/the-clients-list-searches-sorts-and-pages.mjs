@@ -44,7 +44,8 @@ for (const [name, body] of [["the list", list], ["the count", count]]) {
 check("the list pages by offset, with a tie broken by id so no client is shown twice or skipped", /\.range\(offset, offset \+ limit - 1\)/.test(list) && /\.order\("id", \{ ascending: true \}\)/.test(list));
 
 const page = readFileSync("src/app/portal/(app)/clients/page.tsx", "utf8");
-check("the screen reads one query and hands it to the list and the count", /const query = clientListQuery\(params\);/.test(page) && /listClients\(actor, \{ limit: CLIENT_PAGE_SIZE, offset: \(query\.page - 1\) \* CLIENT_PAGE_SIZE, query \}\)/.test(page) && /countClients\(actor, query\)/.test(page));
+/* Since Q13 (office audit F9, 2026-11-02) the screen reads through listClientsRead, which says when it failed. */
+check("the screen reads one query and hands it to the list and the count", /const query = clientListQuery\(params\);/.test(page) && /listClientsRead\(actor, \{ limit: CLIENT_PAGE_SIZE, offset: \(query\.page - 1\) \* CLIENT_PAGE_SIZE, query \}\)/.test(page) && /countClients\(actor, query\)/.test(page));
 check("it offers search, a filter and a sort, and pages over the matching count", /<ListControls/.test(page) && /<Pager page=\{query\.page\} pageSize=\{CLIENT_PAGE_SIZE\} total=\{total\}/.test(page));
 check("and no longer says search and paging are not built", !/Search and paging for the rest are/.test(page));
 

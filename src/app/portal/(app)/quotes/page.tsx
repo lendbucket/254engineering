@@ -91,7 +91,7 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
         csvHref={`/api/portal/quotes/export?${csvQuery}`}
       />
       {!read.ok ? (
-        <ErrorState title="Quote requests could not be read" body={`${read.error} Nothing here means nothing is waiting.`} />
+        <ErrorState title="Quote requests could not be read" body={`${read.error} This is a failed read, not an empty list.`} />
       ) : (
         <>
           <DataTable

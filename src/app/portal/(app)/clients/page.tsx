@@ -2,13 +2,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
-import { CLIENT_PAGE_SIZE, countClients, listClients } from "@/lib/ops-crm";
+import { CLIENT_PAGE_SIZE, countClients, listClientsRead } from "@/lib/ops-crm";
 import { supabaseAdmin } from "@/lib/supabase";
 import { TEXAS_COUNTIES } from "@/lib/ops-counties";
 import { services } from "@/content/services";
 import {
   Chip,
   EmptyState,
+  ErrorState,
   PageHead,
   Panel,
   RecordTable,
@@ -60,7 +61,9 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
    * clients that match and every one of them is reachable by paging.
    */
   const query = clientListQuery(params);
-  const clients = await listClients(actor, { limit: CLIENT_PAGE_SIZE, offset: (query.page - 1) * CLIENT_PAGE_SIZE, query });
+  /* Q13, office audit F9: a failed read is said, never drawn as "No clients yet". */
+  const clientsRead = await listClientsRead(actor, { limit: CLIENT_PAGE_SIZE, offset: (query.page - 1) * CLIENT_PAGE_SIZE, query });
+  const clients = clientsRead.ok ? clientsRead.rows : [];
   const total = await countClients(actor, query);
   const filtered = query.term !== "" || query.kind !== "all";
 
@@ -71,16 +74,27 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
    * already here, they have been since the sites launched, and until now the
    * only thing anybody could do with them was read them.
    */
+  /*
+   * Q13, office audit F9: the newest LEAD_SHOWN with an exact count of every
+   * unconverted lead, so the title says "the newest 50 of 300" rather than
+   * presenting 50 as the total, and a failed read is said rather than drawn as
+   * "No unconverted leads".
+   */
+  const LEAD_SHOWN = 50;
   const db = supabaseAdmin();
-  const { data: leadRows } = can(actor, "clients.create") && db
-    ? await db
-        .from("eng_leads")
-        .select("id, created_at, site, form, name, email, phone, company, city, service, message, status, utm_source")
-        .neq("status", "converted")
-        .order("created_at", { ascending: false })
-        .limit(50)
-    : { data: null };
-  const leads = (leadRows ?? []) as Lead[];
+  const leadRead = can(actor, "clients.create")
+    ? db
+      ? await db
+          .from("eng_leads")
+          .select("id, created_at, site, form, name, email, phone, company, city, service, message, status, utm_source", { count: "exact" })
+          .neq("status", "converted")
+          .order("created_at", { ascending: false })
+          .limit(LEAD_SHOWN)
+      : { data: null, count: null, error: { message: "The database is not configured." } }
+    : null;
+  const leadsError = leadRead?.error ? leadRead.error.message : leadRead && leadRead.count === null ? "The number of leads could not be counted." : null;
+  const leads = (leadRead && !leadsError ? (leadRead.data ?? []) : []) as Lead[];
+  const leadTotal = leadRead && !leadsError ? (leadRead.count as number) : null;
 
   const columns: Column<(typeof clients)[number]>[] = [
     {
@@ -138,10 +152,21 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
         </div>
       ) : null}
 
-      {can(actor, "clients.create") ? (
+      {can(actor, "clients.create") && leadsError !== null ? (
+        <div className="mb-6">
+          <ErrorState
+            title="The leads could not be read"
+            body={`${leadsError} This is a failed read, not an empty list: leads may be waiting. Reload in a moment.`}
+          />
+        </div>
+      ) : can(actor, "clients.create") ? (
         <Panel
           className="mb-6"
-          title={`${leads.length} lead${leads.length === 1 ? "" : "s"} waiting`}
+          title={
+            leadTotal !== null && leadTotal > leads.length
+              ? `The newest ${leads.length} of ${leadTotal} leads waiting`
+              : `${leads.length} lead${leads.length === 1 ? "" : "s"} waiting`
+          }
           description="Captured by the three public sites. Converting one creates a client and a file and keeps the original record linked."
         >
           {leads.length === 0 ? (
@@ -233,6 +258,12 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
         direction={query.ascending ? "asc" : "desc"}
         csvHref={listHref("/api/portal/clients/export", { q: params.q, kind: params.kind, sort: params.sort, dir: params.dir }, {})}
       />
+      {!clientsRead.ok ? (
+        <ErrorState
+          title="The clients could not be read"
+          body={`${clientsRead.error} This is a failed read, not an empty list: no client has been lost. Reload in a moment.`}
+        />
+      ) : (
       <Panel
         title={
           total === null
@@ -275,6 +306,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
           <Pager page={query.page} pageSize={CLIENT_PAGE_SIZE} total={total} hrefFor={(n) => listHref("/portal/clients", params, { page: String(n) })} />
         ) : null}
       </Panel>
+      )}
 
       <p className="mt-6 text-[14px] leading-[1.6] text-[var(--secondary)]">
         Files live on the{" "}

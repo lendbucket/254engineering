@@ -8,7 +8,8 @@ import { mayOnboardRole, mayOpenOnboarding, onboardingRole, profileRole } from "
 import { raise } from "./ops-notify";
 import { canonicalCounty } from "./ops-counties";
 import { checklistFor } from "@/content/onboarding-checklists";
-import { createOnboarding } from "./onboarding";
+import { createOnboarding, onboardedEmails } from "./onboarding";
+import { readEvery } from "./bounded-read";
 import { queueEmail } from "./ops-jobs";
 import { onboardingInvite } from "./email-templates";
 import { business } from "@/config/business";
@@ -91,31 +92,44 @@ const APPLICATION_COLUMNS =
   "id, created_at, site, role, name, email, phone, city, counties, experience, drone_license, reliable_vehicle, status";
 
 /**
- * The newest applications the onboarding screen reads, and the bound it says
- * out loud when a read reaches it.
+ * How many uninvited applications the onboarding screen shows at once, newest
+ * first. The screen says "the newest 200 of N" when there are more.
  */
 export const APPLICATION_READ_LIMIT = 200;
 
 /**
- * The newest applications, bounded at APPLICATION_READ_LIMIT.
+ * EVERY APPLICATION NOBODY HAS BEEN INVITED FROM, newest first. Robert's Q13
+ * (office audit F12, 2026-11-02).
  *
- * NULL ON ERROR, NEVER AN EMPTY LIST (2026-10-29). It returned `data ?? []`, so
- * a read that failed reached the screen as "Nothing waiting", a confident
- * statement that nobody had applied. The bound stays and the screen states it
- * whenever a read fills it, because "not yet invited" is a difference between
- * two tables and cannot be paged in one query; BACKLOG.md carries that.
+ * This used to read the newest 200 applications and then remove the invited
+ * ones, so an uninvited application older than the newest 200 was not in the
+ * list at all, and the note sent the operator to a screen with no invite
+ * button. "Not yet invited" is a difference between two tables, so both are
+ * read whole: every 254 application through readEvery (pages, refusing a short
+ * read), and every onboarded address through onboardedEmails (an exact count,
+ * or nothing). The difference is exact, and the screen shows its newest page
+ * and says how many there are.
+ *
+ * NULL ON ERROR, NEVER AN EMPTY LIST (2026-10-29): a failed read of either
+ * table reaches the screen as a failed read, never as "Nothing waiting".
  */
-export async function listApplications(actor: Actor | null): Promise<ApplicationRow[] | null> {
+export async function listUninvitedApplications(actor: Actor | null): Promise<ApplicationRow[] | null> {
   const db = supabaseAdmin();
   if (!db || !mayOpenOnboarding(actor, "profiles.create")) return null;
-  const { data, error } = await db
-    .from("eng_applications")
-    .select(APPLICATION_COLUMNS)
-    .eq("site", "254")
-    .order("created_at", { ascending: false })
-    .limit(APPLICATION_READ_LIMIT);
-  if (error || !data) return null;
-  return data as ApplicationRow[];
+  const [applications, invited] = await Promise.all([
+    readEvery<ApplicationRow>((from, to) =>
+      db
+        .from("eng_applications")
+        .select(APPLICATION_COLUMNS)
+        .eq("site", "254")
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: true })
+        .range(from, to),
+    ),
+    onboardedEmails(),
+  ]);
+  if (!applications.ok || invited === null) return null;
+  return applications.rows.filter((a) => a.email && !invited.has(a.email.toLowerCase()));
 }
 
 /**

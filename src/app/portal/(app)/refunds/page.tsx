@@ -87,7 +87,7 @@ export default async function RefundsPage({ searchParams }: { searchParams: Prom
         csvHref={`/api/portal/refunds/export?${csvQuery}`}
       />
       {!read.ok ? (
-        <ErrorState title="Refund requests could not be read" body={`${read.error} Nothing here means nothing is waiting.`} />
+        <ErrorState title="Refund requests could not be read" body={`${read.error} This is a failed read, not an empty list.`} />
       ) : (
         <>
           <DataTable
