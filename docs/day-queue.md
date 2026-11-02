@@ -274,6 +274,10 @@ WPI-8 facts stand as read from TDI and TWIA: TWIA's lookup is WPI-8-C only; the 
 
 **Board for bundle 63 is the push board 41381816477.** Pushing `feat/ga4` started it, and the dispatched 41381826151 was a duplicate on the same commit, cancelled in build before any writers shard. Memory updated: push or dispatch, never both.
 
+**Result, bundle 63 (board 41381816477 on `c30be50`): 64 of 64, preflight GREEN, every prediction line met.** `/` 2,861, `/coverage` 2,491, coastal-bend 2,770, service 2,726, the cost guide 2,555 at 331 KB; JS 151 to 155; TBT 38 to 59; CLS 0.000; heights 15,856 and 15,090. **Merged as `cd09409`** (parents `a07b25e`, `c30be50`; tree identical to the boarded commit; pushed, ls-remote confirms; no board started). Deployed: /privacy carries the paragraph.
+
+**Item g re-merged over `cd09409` as `11ea380`** (clean; same diff), preflight GREEN, 38 rules, 113 s. Bundle 64's prediction below stands, with "bundle 63's range" as the yardstick.
+
 **Bundle 64, item g (`seo/closing-links`), brought up to main.** Main `a07b25e` merged in as `ab63da3`, clean. Diff against main: the four informational articles each gain one closing section (`insights.ts` +21 -3, `insights-coastal.ts` +7 -1, the removed lines being each article's typed `dateModified`), `guide-dates.ts` four dateModified lines, the proof `four-informational-articles-close-on-their-service`. Preflight GREEN, 38 rules, 106 s.
 
 **Prediction, bundle 64 (`seo/closing-links` at `ab63da3`, over main `a07b25e`; full lane, insights content feeds server rendered pages). Boards after GA4 merges, brought up to that main first.**
