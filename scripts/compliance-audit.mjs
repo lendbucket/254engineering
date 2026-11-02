@@ -290,9 +290,22 @@ const {
     const { readdirSync, readFileSync: readCfg } = await import("node:fs");
     /* The probes' licences, as literals rather than imported from the walks (2026-10-25). */
     const WALK_IDENTITY = ["900000001", "900000002", "900000003", "900000004", "Audit Walk Engineer"];
+    /*
+     * And by range since 2026-11-02, because the walks' licences are now unique
+     * per run (scripts/lib/probe-licence.mjs, for 0109): any nine digits from 900,
+     * and any seven digits from 91, the onboarding walk's range, written here as
+     * patterns rather than imported, so a run's number can never reach shipped
+     * configuration unnoticed. Wider than the list it joins, never narrower.
+     */
+    const WALK_RANGES = [/\b900\d{6}\b/g, /\b9[1-9]\d{5}\b/g];
     const leaks = readdirSync("src/config")
       .filter((f) => f.endsWith(".ts"))
-      .flatMap((f) => WALK_IDENTITY.filter((s) => readCfg(`src/config/${f}`, "utf8").includes(s)).map((s) => `${f}: ${s}`));
+      .flatMap((f) => {
+        const text = readCfg(`src/config/${f}`, "utf8");
+        const named = WALK_IDENTITY.filter((s) => text.includes(s));
+        const ranged = WALK_RANGES.flatMap((r) => text.match(r) ?? []).filter((s) => !named.includes(s));
+        return [...named, ...ranged].map((s) => `${f}: ${s}`);
+      });
     rec("and the walk's test engineer appears nowhere in shipped configuration", leaks.length === 0, leaks.join("; ") || "src/config read, none found");
   }
 
