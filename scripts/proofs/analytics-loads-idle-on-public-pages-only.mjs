@@ -92,5 +92,11 @@ const paidBranch = paid.slice(paid.indexOf("if (!view && paid)"), paid.indexOf("
 check("order paid fires once, inside the Stripe return's branch", paidCall.length === 1 && /GA_EVENTS\.orderPaid/.test(paidCall[0]) && paidBranch.includes(paidCall[0]));
 check("and carries no parameter", !/params=/.test(paidCall[0] ?? ""));
 
+/* The disclosure. Robert, 2026-11-01, Q1: the privacy page says it, in his approved words. */
+const privacy = readFileSync("src/app/(site)/privacy/page.tsx", "utf8").replace(/\s+/g, " ");
+check("the privacy page discloses Google Analytics 4", privacy.includes("Public pages use Google Analytics 4 to count page views and two steps of an order"));
+check("and says staff and account screens do not load it", privacy.includes("Staff and account screens do not load it."));
+check("and its effective date moved with it", !privacy.includes('const EFFECTIVE = "16 August 2026"'));
+
 console.log(wrong === 0 ? "PASS: GA4 loads after idle on public pages only, and sends no token, reference or personal field." : `FAIL: ${wrong} check(s).`);
 process.exitCode = wrong === 0 ? 0 : 1;
