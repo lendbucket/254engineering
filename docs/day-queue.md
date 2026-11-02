@@ -340,6 +340,17 @@ WPI-8 facts stand as read from TDI and TWIA: TWIA's lookup is WPI-8-C only; the 
 - voice, placeholder, cta, mobile-overflow and compliance read `/partners/badge` by name and PASS; compliance finds no engineer number on it.
 - perf: no listed route changes bytes except none (`/press` is not on the perf list); LCP in bundle 63's range, `/coverage` excepted under NOT STABLE and the green-board rule. Heights: the three warnings 15,856, 15,090, 15,071; `/press` grows by one paragraph, outside the band. No migration. Merges on a match.
 
+**Result, bundle 72 (board 41467359370 on `54a6a50`): 64 of 64, preflight GREEN, every prediction line met.** Bytes identical to bundle 71; `/` 2,866, `/coverage` 2,340, coastal-bend 2,641, service 2,712, cost guide 2,580; TBT 39 to 67; the three warnings unchanged. roles-audit read "an engineer can open /portal/clients (HTTP 200)", so it ran outside the 15:30 to 15:37 UTC window when 0108's deletes were on development. **c merged as `2a25dc3`** (tree identical; pushed, ls-remote confirms).
+
+**Bundle 73, P1 (`feat/onboarding-end-to-end`, migration 0105 on development since 6578648098):** main `2a25dc3` merged in as `f9090eb`. 24 files, +1,636 -106: the admin accept/reject screen with a required reason, an audit row and an email; identity and I-9 as an admin step (verified, document type seen, who and when, no copy stored); activation records the engineer's licence number and expiry; coverage counties for field technicians only (Robert yes, Q1); checklist text and per-role step counts; migration 0105 (4 columns, 4 checks); `onboarding-walk-audit` (new, writers shard); proof `onboarding-finishes-in-the-portal`. Preflight GREEN, 38 rules, 102 s.
+
+**Prediction, bundle 73 (P1 at `f9090eb`, over main `2a25dc3`; full lane, migration, auth-adjacent).**
+- Board **65 of 65**: the new onboarding-walk-audit joins the writers shard and PASSES, a probe technician and a probe engineer each invite to activated through the product's routes, probe addresses only.
+- migration-audit PASS at `812467e7…`, 1,378 columns, 104 tables. schema-ledger-audit PASS: 0105 is pending on a feature branch, which is allowed.
+- The proof PASSES; email-audit takes the new onboarding templates and PASSES; roles, security, surface, native, v10-layout and contrast pass on `/portal/onboarding`.
+- No listed public route changes bytes; LCP in bundle 63's range, `/coverage` excepted under NOT STABLE and the green-board rule. Heights unchanged.
+- **Does not merge tonight**: 0105 waits for its production sitting. Staged for the morning.
+
 **Result, bundle 66 (board 41402651253 on `a545b8e`): 63 of 64, RED, NOT MERGED, c PARKED.** seo-audit: "/partners/badge: 0 page(s) link to it; every sitemap page needs at least two". A real finding the prediction missed: the page went into the sitemap with no inbound link. Speed and heights in range (`/` 2,590, `/coverage` 2,338, coastal-bend 2,716, service 2,750, cost guide 2,540; TBT 35 to 57). One natural prose link exists (`/press`, logo section); the second would be the footer, a sitewide template link, so asked on issue #1 (6572085510), recommending `/press` plus a footer link. First red for c; a second red on a new commit parks it for good.
 
 **Bundle 67, item j:** main `8fa0592` merged in as `24f41a7` (clean), preflight GREEN, 38 rules, 101 s. Board 41410202142 dispatched on `24f41a7`. Prediction as written above; `/coverage` outside bundle 63's range would be an untouched page with unchanged bytes, recorded under the green-board rule.
