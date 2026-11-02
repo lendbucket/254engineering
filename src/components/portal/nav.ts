@@ -235,6 +235,8 @@ export const NAV: NavItem[] = [
   /* technicians.onboard since 0079; profiles.create, which only admin holds, still opens every role on the screen. */
   { href: "/portal/onboarding", label: "Onboarding", short: "Onboard", action: "technicians.onboard", icon: "onboarding" },
   { href: "/portal/credentials", label: "Credential review", short: "Creds", action: "technicians.onboard", icon: "certification" },
+  /* The training academy, P3 of 2026-11-01: whoever onboards technicians, and the engineer by his licence, as the page's own guard. */
+  { href: "/portal/training", label: "Training academy", short: "Training", action: "technicians.onboard", anyOf: ["review.queue"], icon: "certification" },
   { href: "/portal/settings", label: "Settings", short: "Settings", action: "settings.refund_limit", icon: "status" },
   {
     /*

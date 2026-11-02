@@ -1910,8 +1910,8 @@ if (!db) {
       { act: "export the revenue report", req: (r) => get(r, "/api/portal/exports?report=revenue"), status: 403, says: /cannot export the revenue report/i },
       /* The accounts CSV, owner or admin only (Robert, 2026-10-28, 16:11 Central). */
       { act: "export the ordering accounts", req: (r) => get(r, "/api/portal/exports?report=accounts"), status: 403, says: /cannot export the ordering accounts/i },
-      /* The staff lists, owner or admin only (Robert, 21:07 Central 2026-10-28), asked at the real route; people, do not contact and the audit trail joined 2026-10-29. */
-      ...["applications", "design-briefs", "windstorm-briefs", "technicians", "partners", "tasks", "people", "suppressions", "audit-trail"].map((report) => ({
+      /* The staff lists, owner or admin only (Robert, 21:07 Central 2026-10-28), asked at the real route; people, do not contact and the audit trail joined 2026-10-29; credential review and insurance on P9, 2026-11-01, which the manager's screens show him and the export still refuses. */
+      ...["applications", "design-briefs", "windstorm-briefs", "technicians", "partners", "tasks", "people", "suppressions", "audit-trail", "credentials", "insurance"].map((report) => ({
         act: `export the ${report} list`,
         req: (r) => get(r, `/api/portal/exports?report=${report}`),
         status: 403,
@@ -2421,6 +2421,12 @@ if (!db) {
          * documents.seal, a licensed capability rather than a grant.
          */
         "/portal/profile/seal",
+        /*
+         * The training academy, Robert's ruling P3 of 2026-11-01: "Admin and
+         * engineer screens to see progress." He approves the protocol course
+         * there, from his licence, and sees who has passed what. No money on it.
+         */
+        "/portal/training",
         // Ordinary working surfaces an engineer holds by grant, not by licence.
         /*
          * "/portal/clients" WAS HERE UNTIL 2026-11-02 and is in the refused

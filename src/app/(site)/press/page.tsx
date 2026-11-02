@@ -350,6 +350,16 @@ export default function PressPage() {
                 recolored copy, because the gold has to stay gold on a dark background. Please do
                 not stretch, recolor or redraw either one.
               </p>
+              <p className="mt-6 text-[1.02rem] leading-[1.75] text-slate-muted">
+                A partner naming the firm on its own site uses neither logo. It uses the{" "}
+                <Link
+                  href="/partners/badge"
+                  className="font-medium text-slate underline decoration-brass underline-offset-4 transition-colors hover:text-brass"
+                >
+                  text-only partner badge
+                </Link>
+                , placed beside the partner&apos;s own business name.
+              </p>
             </div>
           </div>
         </Container>

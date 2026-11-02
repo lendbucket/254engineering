@@ -7,7 +7,8 @@ import type { WindstormInquiryRow } from "./ops-windstorm-inquiries";
 import type { RosterRow } from "./ops-field";
 import type { PartnerRow } from "./ops-partners-admin";
 import type { TaskRow } from "./ops-tasks";
-import type { PersonListRow, SuppressionListRow } from "./staff-lists";
+import type { CredentialListRow, PersonListRow, SuppressionListRow } from "./staff-lists";
+import type { InsurancePolicy } from "./ops-insurance";
 import type { AuditEvent } from "./audit-trail-list";
 
 /**
@@ -62,9 +63,13 @@ export function mayExport(actor: AuthzSubject | null, screenGrant: Action): bool
 /**
  * The staff list reports the export door accepts beside its existing ones.
  * People and do not contact joined with their list controls (2026-10-29),
- * and the audit trail when it stopped being capped at 200.
+ * and the audit trail when it stopped being capped at 200. Credential review
+ * and insurance joined on Robert's ruling P9 of 2026-11-01, "on the same gate
+ * as the other staff lists". The deletion requests ("asked to be forgotten")
+ * are deliberately absent: the same ruling says they get no export, and so did
+ * item 24 of the standing orders, until counsel rules.
  */
-export const LIST_EXPORT_REPORTS = ["applications", "design-briefs", "windstorm-briefs", "technicians", "partners", "tasks", "people", "suppressions", "audit-trail"] as const;
+export const LIST_EXPORT_REPORTS = ["applications", "design-briefs", "windstorm-briefs", "technicians", "partners", "tasks", "people", "suppressions", "audit-trail", "credentials", "insurance"] as const;
 export type ListExportReport = (typeof LIST_EXPORT_REPORTS)[number];
 
 const yesNo = (v: boolean | null | undefined) => (v === null || v === undefined ? "" : v ? "yes" : "no");
@@ -289,6 +294,55 @@ export function auditTrailCsv(rows: readonly AuditEvent[], filter: string): stri
     ],
     headers: ["When", "Actor", "Actor role", "Action", "Record type", "Record", "What happened", "IP"],
     rows: rows.map((e) => [e.created_at, e.actor_email ?? "", e.actor_role ?? "", e.action, e.entity_type, e.entity_id ?? "", e.summary ?? "", e.ip ?? ""]),
+  });
+}
+
+/**
+ * Credential review: what a technician submitted and is waiting to be checked.
+ * The facts only, as the screen shows them; a credential here is never a
+ * document, so there is nothing else to carry.
+ */
+export function credentialsCsv(rows: readonly CredentialListRow[], filter: string): string {
+  return csv({
+    preamble: [
+      ["Credentials awaiting verification", `${rows.length} matching`],
+      ["Filter", filter],
+      ["Expiry", "An empty expiry means the credential carries none."],
+    ],
+    headers: ["Technician", "Credential", "Issuing state", "Expires", "Submitted"],
+    rows: rows.map((r) => [r.name, r.label, r.issuingState ?? "", r.expiresOn ?? "", r.submittedAt]),
+  });
+}
+
+/**
+ * The insurance register, with each policy's standing on `today`, which the
+ * caller passes so this module reads no clock. The certificate itself is not
+ * in the file, only its SHA-256, so a reader can match a PDF to its row.
+ */
+export function insuranceCsv(rows: readonly InsurancePolicy[], filter: string, today: string): string {
+  const standing = (p: InsurancePolicy) => (p.withdrawnAt ? "withdrawn" : p.expiresOn < today ? "expired" : "in force");
+  return csv({
+    preamble: [
+      ["Insurance", `${rows.length} matching`],
+      ["Filter", filter],
+      ["Standing", `As of ${today}, in the firm's calendar.`],
+      ["Money", "In dollars."],
+    ],
+    headers: ["Kind", "Carrier", "Policy number", "Per claim", "Aggregate", "Named insureds", "Effective", "Expires", "Standing", "Withdrawn", "Why withdrawn", "Certificate SHA-256"],
+    rows: rows.map((p) => [
+      p.kind,
+      p.carrier,
+      p.policyNumber,
+      moneyCell(p.limitPerClaimCents),
+      moneyCell(p.limitAggregateCents),
+      p.namedInsureds.join("; "),
+      p.effectiveOn,
+      p.expiresOn,
+      standing(p),
+      p.withdrawnAt ?? "",
+      p.withdrawnReason ?? "",
+      p.certificateSha256,
+    ]),
   });
 }
 

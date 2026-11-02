@@ -18,7 +18,9 @@ import {
   mayExport,
   applicationsCsv,
   auditTrailCsv,
+  credentialsCsv,
   designBriefsCsv,
+  insuranceCsv,
   listExportFilename,
   partnersCsv,
   peopleCsv,
@@ -39,8 +41,11 @@ import { partnerListRows } from "@/lib/partner-list";
 import { listEveryTask } from "@/lib/ops-tasks";
 import { readPeople } from "@/lib/people-roster";
 import { listSuppressions } from "@/lib/marketing-suppression";
-import { PEOPLE_LIST, SUPPRESSION_LIST, staffListQuery, staffListRows } from "@/lib/staff-lists";
+import { CREDENTIAL_LIST, PEOPLE_LIST, SUPPRESSION_LIST, policyList, staffListQuery, staffListRows } from "@/lib/staff-lists";
 import { auditTrailEvery, auditTrailQuery } from "@/lib/audit-trail-list";
+import { awaitingVerification } from "@/lib/ops-credential-submissions";
+import { listPolicies } from "@/lib/ops-insurance";
+import { todayInFirmCalendar } from "@/lib/firm-calendar";
 
 export const dynamic = "force-dynamic";
 
@@ -215,6 +220,8 @@ async function handleGET(request: NextRequest) {
       people: "profiles.list",
       suppressions: "suppressions.manage",
       "audit-trail": "audit.read",
+      credentials: "technicians.onboard",
+      insurance: "insurance.manage",
     };
     if (!can(actor, LIST_EXPORT_GRANT) || !can(actor, screenGrant[listReport])) {
       return bad("Your role cannot export this list.", 403);
@@ -277,6 +284,20 @@ async function handleGET(request: NextRequest) {
       if (!read.ok) return refuse("audit trail", read.error);
       body = auditTrailCsv(read.rows, describe([["search", param("q")], ["who", param("who")], ["direction", param("dir")]]));
       count = read.rows.length;
+    } else if (listReport === "credentials") {
+      const all = await awaitingVerification();
+      if (all === null) return refuse("credential submissions", "the read failed.");
+      const rows = staffListRows(all, staffListQuery({ q: param("q"), expiry: param("expiry"), sort: param("sort"), dir: param("dir") }, CREDENTIAL_LIST), CREDENTIAL_LIST);
+      body = credentialsCsv(rows, describe([["search", param("q")], ["expiry", param("expiry")], ["sort", param("sort")], ["direction", param("dir")]]));
+      count = rows.length;
+    } else if (listReport === "insurance") {
+      const read = await listPolicies(actor);
+      if (!read.ok) return refuse("insurance register", read.error);
+      const today = todayInFirmCalendar();
+      const spec = policyList(today);
+      const rows = staffListRows(read.policies, staffListQuery({ q: param("q"), standing: param("standing"), sort: param("sort"), dir: param("dir") }, spec), spec);
+      body = insuranceCsv(rows, describe([["search", param("q")], ["standing", param("standing")], ["sort", param("sort")], ["direction", param("dir")]]), today);
+      count = rows.length;
     } else {
       const rows = await listEveryTask(actor, { status: param("status"), q: param("q") });
       if (rows === null) return refuse("tasks", "the read failed.");

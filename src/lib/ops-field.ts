@@ -2,6 +2,7 @@ import "server-only";
 import { STATUS_LABEL, type FileStatus } from "./ops-files";
 import { DB_NOW } from "./db-now";
 import { clockReading } from "./clock-skew";
+import { sha256Hex } from "./evidence-fingerprint";
 import { readEvery } from "./bounded-read";
 import { supabaseAdmin } from "./supabase";
 import type { Cents } from "./ops-money";
@@ -1710,6 +1711,29 @@ export async function recordCapture(
   if (unanswered) return { ok: false, error: unanswered };
 
   /*
+   * THE FINGERPRINT, FROM THE STORED BYTES. Robert's ruling P5, 2026-11-01
+   * (0107). The file is read back out of the private bucket and hashed here,
+   * because a hash the phone sent would be the technician's word about the
+   * file, and the duplicate check exists to catch the same photograph
+   * submitted twice. A file that cannot be read back is refused rather than
+   * recorded unhashed: the offline queue sends it again, and an unhashed
+   * capture would hold the whole package at "not checked".
+   *
+   * The key must sit under this job's own folder, which is where sign_upload
+   * puts every evidence upload, so a capture cannot point at another job's
+   * photograph and be fingerprinted as this one's.
+   */
+  let contentSha256: string | null = null;
+  if (input.storageKey) {
+    if (!input.storageKey.startsWith(`${fileId}/`)) return { ok: false, error: "That upload does not belong to this job." };
+    const { data: stored, error: readError } = await db.storage.from("eng-evidence").download(input.storageKey);
+    if (readError || !stored) {
+      return { ok: false, error: "The uploaded file could not be read back to fingerprint it, so it was not recorded. It will be sent again." };
+    }
+    contentSha256 = sha256Hex(await stored.arrayBuffer());
+  }
+
+  /*
    * THE SERVER CLOCK, READ ONCE. Both the skew below and the row's own
    * created_at are meant to describe the same instant, and reading the clock
    * twice would fold this function's own runtime into a figure whose entire
@@ -1741,6 +1765,8 @@ export async function recordCapture(
         value_number: input.valueNumber ?? null,
         unit: item.unit ?? null,
         storage_key: input.storageKey ?? null,
+        /* Written with every upsert, so a replay that replaced the bytes replaces the hash. */
+        content_sha256: contentSha256,
         /* DB_NOW as the fallback only. A supplied capturedAt is the DEVICE
          * saying when the photograph was taken, which is the honest answer and
          * is not this machine's clock either way. */
