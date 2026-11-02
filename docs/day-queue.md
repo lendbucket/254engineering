@@ -351,6 +351,14 @@ WPI-8 facts stand as read from TDI and TWIA: TWIA's lookup is WPI-8-C only; the 
 - No listed public route changes bytes; LCP in bundle 63's range, `/coverage` excepted under NOT STABLE and the green-board rule. Heights unchanged.
 - **Does not merge tonight**: 0105 waits for its production sitting. Staged for the morning.
 
+**Result, bundle 73 (board 41478612374 on `f9090eb`): 65 of 65, preflight GREEN, every prediction line met. P1 BOARDED GREEN, NOT MERGED (0105 waits for its production sitting).** onboarding-walk-audit "a probe technician and a probe engineer went from invite to activated with no SQL (60 checks)"; migration-audit and schema-ledger PASS; the P1 proof PASS; bytes identical to bundle 72; `/` 2,714, `/coverage` 2,562, coastal-bend 2,731, service 2,741, cost guide 2,033; TBT 16 to 36. The walk's 16 probe email jobs (probe domain) were removed by the queue sweep with the rest of the run's residue.
+
+**Prediction, bundle 74 (P3 at `7e62683`, P1 merged in, over main `2a25dc3`; full lane, migration 0106, enrollment doors).**
+- Board 65 of 65. migration-audit PASS at `f70724c1…`, 1,395 columns, 106 tables; schema-ledger PASS (0105 and 0106 pending on a feature branch).
+- onboarding-walk-audit PASS with the new technician lines: refused at activation with the graduation sentence, no profile made; the engineer to activated.
+- The academy proofs PASS (course 1 verbatim, course 2 cited to Subparts X and M, nothing graduates against a draft, every enrolling door asks first). roles-audit PASS with the People and roles screens refusing a field technician without a graduated onboarding. `/portal/training`: roles, surface, native, v10-layout, contrast and mobile pass.
+- Public bytes identical; LCP in bundle 63's range, `/coverage` excepted under NOT STABLE and the green-board rule. Heights unchanged. Does not merge tonight (0105 and 0106 wait for production).
+
 **The migration chain is staged as a stack while P1 boards (migration-audit needs contiguous numbers, and none of 0105 to 0108 reaches main without a production sitting):**
 - **P3** `7e62683` = P1 `f9090eb` merged into `feat/training-academy` (with course 2, `24639c8`). Conflicts combined: activation runs P3's graduation gate, then P1's licence check; the 0106 pair re-read on the combined chain, `f70724c1…` / 1,395 and `2ff049a3…` / 1,357, the sat figures. **onboarding-walk-audit changes on P3**: the probe technician records no quiz attempt, so in every state of the academy it is refused at activation with the graduation sentence, and the walk asserts that and that no profile was made; the engineer still walks to activated. Proofs PASS; preflight GREEN, 112 s.
 - **P5** `0d7438f` = P3 merged into `feat/evidence-sha256`. The review page imports P5's duplicate sentence and P4's list controls; 0107 on the combined chain `22346b56…` / 1,396 and `f61f2b51…` / 1,359, the sat figures. The four review-page proofs PASS; preflight GREEN, 116 s.
