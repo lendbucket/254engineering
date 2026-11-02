@@ -26,7 +26,7 @@ const crumbs = [
  * nothing about when the terms last changed, which is the only thing the date is
  * for. Change it by hand when the document changes.
  */
-const EFFECTIVE = "16 August 2026";
+const EFFECTIVE = "1 November 2026";
 
 export default function PrivacyPage() {
   return (
@@ -73,6 +73,13 @@ export default function PrivacyPage() {
                 page it was submitted from, the referring page if your browser sent one, and your
                 browser&apos;s user agent string are stored alongside it. That is used to understand
                 which pages produce enquiries and to identify automated submissions.
+              </p>
+              <p>
+                Google Analytics. Public pages use Google Analytics 4 to count page views and two
+                steps of an order (starting one and paying for one). It sets first party cookies to
+                tell one visit from the next. Google signals and advertising features are off, the
+                address sent leaves out order references and signed links, and no form contents are
+                sent. Staff and account screens do not load it.
               </p>
               <p>
                 <strong>What is not collected.</strong> This site sets no advertising cookies, runs
