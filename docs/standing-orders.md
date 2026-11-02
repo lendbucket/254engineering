@@ -85,6 +85,29 @@ The source of truth for the running loop. Robert, 2026-10-29: the loop prompt is
 | m | GA4, `feat/ga4` **`c30be50` (main `a07b25e` in, privacy paragraph, /onboarding excluded), preflight GREEN, Boarding (bundle 63, push board 41381816477)**. Bundle 61 on `a01eb49` met every line. **Robert: Q1 yes; Q2 no repository variable, merge on a green board without the tag; after the production deploy, three production runs each on `/`, `/coverage/coastal-bend`, `/services/windstorm-wpi-8`, LCP and TBT posted beside today's; revert GA4 and tell him if either worsens beyond variance.** Queue after m: g, d, c, j, then k only if the PDFs arrive |
 | truss letter, "5 year roof certification" | Parked by Robert, do not build |
 
+## OVERNIGHT RULING (Robert, 2026-11-01), governs tonight
+
+Run until everything below is merged or parked, then post the morning report and stop.
+
+**ORDER**
+1. Finish the current queue: GA4 (then the production speed check with the tag live, reverting if LCP or TBT gets worse beyond variance), g, d, c, j.
+2. Then the portal list, P1 to P10, in order: onboarding end to end, the seven-role permissions draft (post only, never apply), the training academy engine, review queue search/filter/sort, the evidence hash (development only), the sister ordering door behind its closed switch, the holiday calendar, the two exports, the mobile questions.
+
+**RULES FOR TONIGHT**
+- One board at a time. Never re-run an unchanged commit. Never merge red. Never loosen a check or raise a ceiling.
+- The green board merge rule stands: a missed prediction line on a page the branch does not touch, bytes unchanged and under its ceiling, may merge with the miss recorded. Anything else stops the merge.
+- A question never stops the queue: post it on issue #1 with a recommendation, park the item, take the next.
+- A board that fails twice on new commits for the same item: park it and move on.
+- Migrations: development only, on a stage/ branch, waiting for the chat counterpart's production sitting. No production database writes. No drop or delete shapes.
+- Nothing that seals, prices, refunds or emails a real customer changes tonight beyond what P1 to P10 state. No email or SMS to real people; onboarding proofs use probe addresses.
+- No force push, no branch deletion, no secrets in output. Keep the 12 GB memory floor; if memory is short, wait for the board rather than building locally.
+- Content rules: no long dashes, no hyphens as sentence connectors, no AI-tell words, US spelling, "254 Engineering", no engineer name or license number on public pages.
+- Wake on board completion, not on a timer.
+
+**MORNING REPORT (issue #1, then stop):** merged (item, commit, board, audits passed, live URL where public); parked (item, why, the exact answer needed, recommendation); migrations waiting for a production sitting (file, branch, development read-back); the permissions draft link; speed for /, /coverage/coastal-bend and /services/windstorm-wpi-8 from the last board and from production with GA4 live; main's head from ls-remote.
+
+**How this reads against the queue as it stands.** P1, P3 and P5 need their migrations on development, which the chat sits from the stage branches (asked in 6568178900); until then they cannot board green, so each is parked behind the sitting and the next item boards. P1 and P3 also carry questions to Robert (same comment); by "a question never stops the queue" they are parked until answered. P2 and P10 are posts, done. P6 is a docs-only record fix (fast lane). P7 is closed.
+
 ## Finish the portal (Robert, 2026-11-01 evening), after GA4, g, d, c, j
 
 Robert's ruling, relayed in session, verbatim in substance:
