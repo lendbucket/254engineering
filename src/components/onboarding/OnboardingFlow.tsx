@@ -70,12 +70,15 @@ export function OnboardingFlow({
   status,
   items,
   definitions,
+  firmItems,
 }: {
   token: string;
   role: OnboardingRole;
   status: string;
   items: ItemState[];
   definitions: Definition[];
+  /** The role's operator items by label (firmItemLabels), for the completion screen. */
+  firmItems: string[];
 }) {
   const [state, setState] = useState<Record<string, ItemState>>(() =>
     Object.fromEntries(items.map((i) => [i.key, i])),
@@ -222,10 +225,23 @@ export function OnboardingFlow({
               That is everything we needed from you
             </h2>
             <p className="mt-7 text-[1.04rem] leading-[1.75] text-slate-muted">
-              Your documents are in. Two steps still need the firm rather than you: confirming your
-              identity on the scheduled video call, and examining your I-9 documents live, which
-              federal procedure requires be done in person or on camera.
+              {/*
+                COUNTED FROM THE ROLE'S CHECKLIST, P1 2026-11-01. This said "two
+                steps" and named an I-9 to every role: an engineer has five
+                operator items and a field technician, a contractor, has three
+                and no I-9.
+              */}
+              {firmItems.length === 0
+                ? "Your documents are in, and nothing else needs the firm before it reviews them."
+                : `Your documents are in. ${firmItems.length === 1 ? "One item still needs" : `${firmItems.length} items still need`} the firm rather than you:`}
             </p>
+            {firmItems.length > 0 ? (
+              <ul className="mt-4 list-disc pl-6 text-[1.04rem] leading-[1.75] text-slate-muted">
+                {firmItems.map((label) => (
+                  <li key={label}>{label}</li>
+                ))}
+              </ul>
+            ) : null}
             <p className="mt-5 text-[1.04rem] leading-[1.75] text-slate-muted">
               If anything needs correcting you will hear directly, and this link will reopen for the
               item in question rather than for the whole checklist.

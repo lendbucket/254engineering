@@ -148,6 +148,8 @@ const ADMIN_PAGES = [
   /* The written procedures for each role (W4, 2026-10-26): tasks.use, closed to a signed out caller. */
   "/portal/procedures",
   "/portal/credentials",
+  /* The training academy, P3 of 2026-11-01: the office and the engineer, closed to a signed out caller. */
+  "/portal/training",
   "/portal/settings",
   "/portal/techs",
   "/portal/protocols",
@@ -291,6 +293,8 @@ const ADMIN_APIS = [
   "/api/portal/field",
   "/api/portal/inquiries",
   "/api/portal/insurance",
+  /* Approving a training course, P3 of 2026-11-01: the engineer of record or the owner, from the session. */
+  "/api/portal/training",
   /* Pricing, sending and declining a quote, and the quote list as a CSV (addendum item 3, 0098). */
   "/api/portal/quotes",
   "/api/portal/quotes/export",

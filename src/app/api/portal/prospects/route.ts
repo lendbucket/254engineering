@@ -15,6 +15,7 @@ import { queueEmail } from "@/lib/ops-jobs";
 import { VERIFICATION_TTL_WORDS } from "@/lib/account-doors";
 import { business } from "@/config/business";
 import { csv, csvHeaders } from "@/lib/csv";
+import { mayExport } from "@/lib/list-exports";
 import { withSaveOutcome } from "@/lib/save-outcome";
 
 export const dynamic = "force-dynamic";
@@ -23,7 +24,9 @@ export const dynamic = "force-dynamic";
  * THE SALES LIST. crm.use, 2026-10-20. Every act is audited inside the library
  * through writeAuditOrRefuse; this route only reads the request and answers.
  *
- * GET is the CSV of everything matching the filter, not one page.
+ * GET is the CSV of everything matching the filter, not one page. Since
+ * 2026-11-02 it also asks the administrator's export gate (mayExport, Robert's
+ * P2 approval, option a); the POST acts below keep crm.use alone.
  */
 
 const bad = (error: string, status = 400) => NextResponse.json({ ok: false, error }, { status });
@@ -45,7 +48,7 @@ function queryFrom(params: URLSearchParams): ProspectQuery {
 export async function GET(request: NextRequest) {
   const actor = await currentActor();
   if (!actor) return bad("Not signed in.", 401);
-  if (!can(actor, "crm.use")) return bad("Not permitted.", 403);
+  if (!mayExport(actor, "crm.use")) return bad("Your role cannot export the sales list.", 403);
 
   const params = request.nextUrl.searchParams;
   const q = queryFrom(params);

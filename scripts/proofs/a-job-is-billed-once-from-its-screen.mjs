@@ -62,12 +62,16 @@ check("an order waiting for payment refuses a second, naming it", typeof twice =
 check("and a paid one refuses it too", typeof alreadyRaised([{ reference: "R", status: "paid" }]) === "string");
 
 const billing = readFileSync("src/lib/ops-job-billing.ts", "utf8");
-for (const [fn, mode] of [["sendPaymentLink", "card"], ["invoiceAccount", "invoice"]]) {
+/* The invoice call names the account it bills since Q7 (money F3, 2026-11-02). */
+for (const [fn, call] of [
+  ["sendPaymentLink", 'createOrderForFile(actor, file, client, "card")'],
+  ["invoiceAccount", 'createOrderForFile(actor, file, client, "invoice", account.id as string)'],
+]) {
   const start = billing.indexOf(`export async function ${fn}(`);
   const next = billing.indexOf("export async function", start + 1);
   const body = billing.slice(start, next === -1 ? undefined : next);
   const guard = body.indexOf("await secondOrderRefusal(fileId)");
-  const raise = body.indexOf(`createOrderForFile(actor, file, client, "${mode}")`);
+  const raise = body.indexOf(call);
   check(`${fn} asks whether the job already has an order before it raises one`, guard > -1 && raise > -1 && guard < raise, `guard ${guard}, raise ${raise}`);
 }
 check("a failed read of the job's orders refuses rather than raising", /Could not check whether this job already has an order, so nothing was raised/.test(billing));
