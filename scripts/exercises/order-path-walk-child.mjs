@@ -251,14 +251,16 @@ for (const item of items) {
     continue;
   }
   let storageKey = null;
+  /* Q2, 2026-11-02: a capture's key is exactly fileId/captureId.ext, the one path sign_upload issues. */
+  const clientCaptureId = `cap_${randomUUID()}`;
   if (item.kind === "photo") {
-    storageKey = `${first.fileId}/walk-${STAMP}/${key}.png`;
+    storageKey = `${first.fileId}/${clientCaptureId}.png`;
     const { error } = await db.storage.from("eng-evidence").upload(storageKey, Buffer.from(png(400, 300, i)), { contentType: "image/png" });
     if (error) await stop(`evidence upload: ${error.message}`);
     made.objects.push(`eng-evidence/${storageKey}`);
   }
   const cap = await field.recordCapture(tech, first.fileId, {
-    clientCaptureId: randomUUID(),
+    clientCaptureId,
     itemKey: key,
     kind: item.kind,
     valueText: item.kind === "text" || item.kind === "note" ? `${LABEL} observation, not a real property` : null,

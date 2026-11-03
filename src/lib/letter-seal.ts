@@ -232,9 +232,18 @@ async function versionRunUnder(
 /**
  * THE VISIT AND THE COUNT, FROM THE EVIDENCE THAT STANDS. Robert's answer on
  * L2b, 2026-10-25: the visit date is the technician's recorded visit, in
- * America/Chicago, excluding revision-requested evidence; the evidence count
- * counts only accepted evidence. The visit is the earliest capture among the
- * evidence that was not sent back, printed by letterDate in the firm's zone.
+ * America/Chicago, excluding revision-requested evidence. The visit is the
+ * earliest capture among the evidence that was not sent back, printed by
+ * letterDate in the firm's zone.
+ *
+ * THE COUNT IS THE STANDING EVIDENCE, AND ZERO REFUSES. Robert's ruling Q1 of
+ * 2026-11-02 (audit field F1), replacing the L2b sentence "the evidence count
+ * counts only accepted evidence": nothing in the platform ever writes
+ * status 'accepted' (the column defaults to 'submitted' and no path marks it),
+ * so every sealed letter would have stated "0 items of evidence were
+ * recorded". The count is now every row not sent back, the set the visit is
+ * taken from, and a file with none refuses the draft rather than printing a
+ * zero on a sealed letter.
  *
  * AND THAT CAPTURE'S DEVICE TIME HAS TO BE BELIEVABLE. Robert's guard on L2b,
  * 2026-10-25: drafting refuses when the visit capture's device time
@@ -275,8 +284,19 @@ function visitAndCount(
   return {
     ok: true,
     visitDate: visit ? letterDate(visit.captured_at as string) : null,
-    count: evidence.filter((e) => e.status === "accepted").length,
+    count: evidence.filter((e) => e.status !== "revision_requested").length,
   };
+}
+
+/**
+ * The count a letter prints, or null for none, so a letter whose template
+ * prints the count refuses by name ("evidence_count") rather than sealing
+ * "0 items of evidence were recorded" (Q1, 2026-11-02). Null rather than a
+ * refusal inside visitAndCount, because the permit letter on a desk basis
+ * prints no count and is drafted with no evidence at all.
+ */
+export function evidenceCountSlot(count: number): string | null {
+  return count > 0 ? String(count) : null;
 }
 
 /** A checklist key with no label in the signed declaration refuses the draft (L2a): a raw key is not his words. */
@@ -351,7 +371,7 @@ export async function letterFactsFor(
     protocol_number: protocol.declaration.documentNumber,
     /* The version the file ran under (L2a), which versionRunUnder has matched to the transcription. */
     protocol_version: ranUnder.version,
-    evidence_count: String(visit.count),
+    evidence_count: evidenceCountSlot(visit.count),
     /*
      * "none" when every item was observed. His line reads "Items the protocol
      * required that were not observed, and the reason recorded for each:" and
@@ -414,7 +434,7 @@ async function fileFactsFor(det: DeterminationRow, options: { printsProtocolVers
     protocolVersion,
     requestor: (client?.name as string | undefined) ?? null,
     evidence: evidence ?? [],
-    /* Accepted evidence only (L2b). */
+    /* The standing evidence, never zero (Q1, 2026-11-02). */
     evidenceCount: visit.count,
     visitDate: visit.visitDate,
     notObserved: (exceptions ?? []).map((x) => `${labelFor(x.item_key as string)} (${(x.reason as string).trim()})`),
@@ -453,7 +473,7 @@ async function foundationDraft(
       method: confirmed ? methodFor(confirmed) : null,
       protocol_number: base.declaration.documentNumber,
       protocol_version: base.protocolVersion,
-      evidence_count: String(base.evidenceCount),
+      evidence_count: evidenceCountSlot(base.evidenceCount),
       items_not_observed: base.notObserved.length ? base.notObserved.join("; ") : "none",
     },
     entered.observedCondition,
@@ -499,8 +519,8 @@ async function permitDraft(det: DeterminationRow): Promise<{ ok: true; lines: Dr
       requestor_name: base.requestor,
       authority_requirement_verbatim: answers.question_text ?? null,
       visit_date: base.visitDate,
-      /* Accepted evidence only (L2b). */
-      evidence_count: String(base.evidenceCount),
+      /* The standing evidence, never zero (Q1, 2026-11-02). */
+      evidence_count: evidenceCountSlot(base.evidenceCount),
     },
   });
   if (!draft.ok) return { ok: false, error: draft.why };
@@ -594,7 +614,7 @@ async function manufacturedHomeOrSolarDraft(det: DeterminationRow, entered: Ente
     county: base.file.county as string,
     file_number: base.file.file_number as string,
     visit_date: base.visitDate,
-    evidence_count: String(base.evidenceCount),
+    evidence_count: evidenceCountSlot(base.evidenceCount),
   };
   const checklist = base.declaration.checklist as readonly { key: string; label: string }[];
 

@@ -481,8 +481,26 @@ console.log("");
   rec(
     "both routes raise an order row",
     /createOrderForFile\(actor, file, client, "card"\)/.test(billing) &&
-      /createOrderForFile\(actor, file, client, "invoice"\)/.test(billing),
+      /createOrderForFile\(actor, file, client, "invoice", account\.id as string\)/.test(billing),
   );
+  /*
+   * Q7, money finding F3, 2026-11-02: the invoice route billed an account with
+   * no account_id, no credit check and no acceptance, so the order was on no
+   * statement and in no exposure. Each of the three is asserted in its place.
+   */
+  {
+    const start = billing.indexOf("export async function invoiceAccount(");
+    const body = start < 0 ? "" : billing.slice(start);
+    const gate = body.indexOf("creditDecision(");
+    const raise = body.indexOf('createOrderForFile(actor, file, client, "invoice", account.id as string)');
+    const accept = body.indexOf("await acceptOnInvoice(order.orderId)");
+    rec(
+      "and the invoice route asks the credit gate before it raises the order, and accepts it on the account after",
+      start > -1 && gate > -1 && raise > gate && accept > raise,
+      `creditDecision at ${gate}, the order at ${raise}, acceptOnInvoice at ${accept}`,
+    );
+    rec("and the order it raises carries the account", /account_id: accountId,/.test(billing));
+  }
   rec(
     "and the order carries the file's price rather than re-deriving it",
     /total_cents: file\.client_price_cents/.test(billing),
