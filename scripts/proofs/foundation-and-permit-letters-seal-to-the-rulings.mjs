@@ -58,11 +58,15 @@ check(
 );
 check("roof's path is unchanged: its facts and draft are what they were", /const facts = await letterFactsFor\(det, entered\);[\s\S]{0,300}draftRoofLetter\(det\.determination, facts\.facts\)/.test(seal));
 
-/* The after decision job: no refund for a foundation decline at review. */
+/*
+ * The after decision job: no refund for a foundation decline at review.
+ * Since Robert's ruling Q4 of 2026-11-02 (audit field F12) decided from the
+ * recorded 254-FC-001 decline (lettersInsteadOfRefund), not the service slug.
+ */
 const jobs = readFileSync("src/lib/job-handlers.ts", "utf8");
 check(
   "FC-1: the after decision job does not refund a foundation decline at review",
-  /const lettersInstead = refusedFile\?\.service_slug === "foundation-inspections";\s*const order = lettersInstead \? null : await liveOrderForFile\(fileId, "id"\);/.test(jobs),
+  /const lettersInstead = lettersInsteadOfRefund\(determinations \?\? \[\]\);\s*const order = lettersInstead \? null : await liveOrderForFile\(fileId, "id"\);/.test(jobs),
 );
 const hold = readFileSync("src/lib/dispatch-hold.ts", "utf8");
 check("and a decline before dispatch still refunds", /settleDecision\(\{ orderId: order\.id as string, outcome: "refuse"/.test(hold));

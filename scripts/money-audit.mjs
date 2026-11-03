@@ -592,7 +592,8 @@ const rec = (name, ok, note = "") => out.push({ name, ok, note });
     (route.match(/writeAudit\(/g) ?? []).length >= 2,
     "taking records off the platform is an event",
   );
-  rec("the billing exports check billing.read", /can\(actor, "billing\.read"\)/.test(route));
+  /* `can(actor, "billing.read")` until 2026-11-02; mayExport asks billing.read AND the administrator's export gate since Robert's P2 approval (option a). */
+  rec("the billing exports check billing.read, through the export gate", /if \(!mayExport\(actor, "billing\.read"\)\)/.test(route));
   rec(
     "the report is chosen from a fixed list",
     /report === "binder"/.test(route) && /That is not a report this platform produces/.test(route),

@@ -9,6 +9,7 @@ import { portalInvite, portalPasswordReset } from "@/lib/email-templates";
 import { business } from "@/config/business";
 import { formatInFirmZone } from "@/lib/firm-calendar";
 import { withSaveOutcome } from "@/lib/save-outcome";
+import { fieldTechEnrollmentRefusal } from "@/lib/academy-record";
 
 /**
  * Account administration: create, resend an invite, suspend, restore, force a
@@ -88,6 +89,11 @@ async function handlePOST(request: NextRequest) {
         { ok: false, error: role ? "That is not a role." : "Choose a role." },
         { status: 400 },
       );
+    }
+    /* Robert's ruling P3: a field technician is enrolled from an onboarding, after graduating; this door has none. */
+    if (role === "field_tech") {
+      const untrained = await fieldTechEnrollmentRefusal(null);
+      if (untrained.length) return NextResponse.json({ ok: false, error: untrained.join(" ") }, { status: 400 });
     }
     const displayName = String(body?.displayName ?? "").trim();
     const email = String(body?.email ?? "").trim();

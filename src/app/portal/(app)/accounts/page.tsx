@@ -22,7 +22,7 @@ export const dynamic = "force-dynamic";
  *
  * THE BALANCE IS TWO FIGURES, NOT ONE
  * -----------------------------------
- * Issued and unpaid is what they owe. Unbilled is work done that no statement
+ * On statements, unpaid is what they owe, open or issued (Q7, money F4). Unbilled is work done that no statement
  * covers yet. Summing them into one number hides which of the two is growing,
  * and they call for completely different actions.
  */

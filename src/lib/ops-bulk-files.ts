@@ -2,6 +2,7 @@ import "server-only";
 import { csv } from "./csv";
 import { moneyCell } from "./ops-money";
 import { can, type Actor } from "./ops-authz";
+import { LIST_EXPORT_GRANT } from "./list-exports";
 import { filesByIds, type FileRow } from "./ops-crm";
 import { writeAudit } from "./ops-audit";
 
@@ -129,8 +130,11 @@ export async function exportFiles(
 ): Promise<ExportResult> {
   /*
    * The same capability the Files screen itself needs. An export is a read, and
-   * it must not be a wider read than the screen it is launched from.
+   * it must not be a wider read than the screen it is launched from. And since
+   * 2026-11-02 the administrator's export gate first (Robert's P2 approval,
+   * option a: every CSV export is owner or admin only).
    */
+  if (!can(actor, LIST_EXPORT_GRANT)) return { ok: false, error: "Your role cannot export files." };
   if (!can(actor, "files.list")) return { ok: false, error: "Your role cannot read files." };
   if (ids.length === 0) return { ok: false, error: "Nothing selected." };
   if (ids.length > EXPORT_LIMIT) {
