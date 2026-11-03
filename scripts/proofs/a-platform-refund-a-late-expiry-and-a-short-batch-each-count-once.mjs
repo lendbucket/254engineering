@@ -87,12 +87,51 @@ await db.exec(`
     ('${orderId("expireOne")}', 'checkout.started', false, 'only', '{"session_ref":"cs_q8_only"}', now() - interval '25 hours');
 `);
 
+/* F8: an invoiced account whose October statement another close has just opened, and one unbilled order. */
+/* 950s: the orders above take 801 to 806 and their files 901 to 906. */
+const ACCOUNT = id(951);
+const RACED_STATEMENT = id(952);
+const BILLED = id(953);
+const BILLED_FILE = id(954);
+await db.exec(`
+  insert into eng_customer_accounts (id, site, client_id, billing_mode) values ('${ACCOUNT}', '254engineering', '${CLIENT}', 'invoice');
+  insert into eng_statements (id, account_id, reference, period, status) values ('${RACED_STATEMENT}', '${ACCOUNT}', '254-S202610-PROOF', '2026-10', 'open');
+  insert into eng_files (id, file_number, client_id, service_slug, property_address, county, status)
+  values ('${BILLED_FILE}', '254-PROOF-Q8-953', '${CLIENT}', 'roof-inspections', '953 Ledger Way', 'Nueces', 'intake');
+  insert into eng_service_orders
+    (id, site, reference, service_slug, order_type, customer_name, customer_email, property_address, county,
+     status, total_cents, file_id, client_id, account_id, billing_mode)
+  values
+    ('${BILLED}', '254engineering', '254-PROOF-Q8-953', 'roof-inspections', 'field',
+     'Q8 money proof customer, not a real person', '${EMAIL}', '953 Ledger Way', 'Nueces',
+     'complete', 50000, '${BILLED_FILE}', '${CLIENT}', '${ACCOUNT}', 'invoice');
+`);
+
+/*
+ * The race, without two processes: the first read of the period's statement is
+ * answered empty, as it was for a close that read before the other close's
+ * insert committed. The admin client binds the global fetch when it is made, so
+ * the stand-in is armed before anything makes it, and answers that one read once.
+ */
+let hideStatementReadFor = null;
+const realFetch = globalThis.fetch;
+globalThis.fetch = async (input, init) => {
+  const url = decodeURIComponent(String(input instanceof Request ? input.url : input));
+  const method = (init?.method ?? (input instanceof Request ? input.method : "GET")).toUpperCase();
+  if (hideStatementReadFor && method === "GET" && url.includes("/eng_statements?") && url.includes(`account_id=eq.${hideStatementReadFor}`)) {
+    hideStatementReadFor = null;
+    return new Response("[]", { status: 200, headers: { "content-type": "application/json" } });
+  }
+  return realFetch(input, init);
+};
+
 const rest = await startReplayRest(db, PORTS.replayRest);
 process.env.SUPABASE_URL = rest.url;
 process.env.SUPABASE_SERVICE_ROLE_KEY = "replay-stand-in";
 process.env.ORDER_PAYMENTS_FAKE = "";
 const payments = await import("../../src/lib/ops-payments.ts");
 const { fakeProvider } = await import("../../src/lib/payments.ts");
+const { closePeriod } = await import("../../src/lib/ops-statements.ts");
 
 const one = async (sql, params = []) => (await db.query(sql, params)).rows[0] ?? null;
 const many = async (sql, params = []) => (await db.query(sql, params)).rows;
@@ -192,6 +231,19 @@ try {
       "a payment on a cancelled order raises a staff task naming the order and the charge",
       paid.ok === true && (await statusOf("paidLate")) === "cancelled" && Boolean(task) && /pi_q8_paid_late/.test(task?.description ?? ""),
       `${JSON.stringify(paid)}; task ${JSON.stringify(task)}`,
+    );
+  }
+
+  /* ============ F8: a close that loses the race uses the statement the other opened ============ */
+  {
+    hideStatementReadFor = ACCOUNT;
+    const closed = await closePeriod(ACCOUNT, "2026-10");
+    const statements = await many(`select id from eng_statements where account_id = $1 and period = '2026-10'`, [ACCOUNT]);
+    const billedOn = (await one(`select statement_id from eng_service_orders where id = $1`, [BILLED]))?.statement_id;
+    check(
+      "a close that meets the period's unique constraint uses the statement another close opened, and bills onto it",
+      hideStatementReadFor === null && closed.ok === true && closed.statementId === RACED_STATEMENT && statements.length === 1 && billedOn === RACED_STATEMENT,
+      `${JSON.stringify(closed)}; ${statements.length} statement(s); order billed on ${billedOn}`,
     );
   }
 
