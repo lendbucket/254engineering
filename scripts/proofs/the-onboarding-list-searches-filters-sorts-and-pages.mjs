@@ -64,8 +64,19 @@ check(
 check("the unbounded listOnboardings() is gone", !/export async function listOnboardings\(/.test(lib));
 
 const apps = readFileSync("src/lib/ops-onboarding.ts", "utf8");
-const appsList = apps.slice(apps.indexOf("export async function listApplications("), apps.indexOf("export async function inviteFromApplication("));
-check("the applications read is null on error, not an empty list", /if \(error \|\| !data\) return null;/.test(appsList) && !/data \?\? \[\]/.test(appsList));
+/*
+ * Robert's Q13 (office audit F12, 2026-11-02): the uninvited applications are
+ * the exact difference of two tables read whole, not a filter over the newest
+ * 200. The old check pinned `listApplications`' bounded read; this names the
+ * new shape.
+ */
+const appsAt = apps.indexOf("export async function listUninvitedApplications(");
+const appsList = appsAt < 0 ? "" : apps.slice(appsAt, apps.indexOf("export async function inviteFromApplication("));
+check("the uninvited applications read is found", appsAt >= 0);
+check(
+  "every application is read whole and every onboarded address with it, and either failing is null, not an empty list",
+  /readEvery<ApplicationRow>\(/.test(appsList) && /onboardedEmails\(\)/.test(appsList) && /if \(!applications\.ok \|\| invited === null\) return null;/.test(appsList) && !/\.limit\(/.test(appsList) && !/data \?\? \[\]/.test(appsList),
+);
 
 const page = readFileSync("src/app/portal/(app)/onboarding/page.tsx", "utf8");
 check("the screen reads one query and hands it to the page and the count", /const query = onboardingListQuery\(params\);/.test(page) && /listOnboardingsPage\(query, scope\)/.test(page) && /countOnboardings\(query, scope\)/.test(page));
@@ -73,7 +84,10 @@ check("the scope is the technician grant the screen already computed", /const sc
 check("it offers search, filters and a sort, and pages over the matching count", /<ListControls/.test(page) && /<Pager[\s\S]*?pageSize=\{ONBOARDING_PAGE_SIZE\}[\s\S]*?total=\{total\}/.test(page));
 check("a technician-only grant is not offered a role filter it cannot use", /\.\.\.\(technicianOnly\s*\?\s*\[\]/.test(page));
 check("both failed reads are said on the screen", /The onboarding list could not be read/.test(page) && /The applications could not be read/.test(page));
-check("the applications bound is stated when a read fills it", /allApplications\.length === APPLICATION_READ_LIMIT/.test(page));
+check(
+  "the screen lists the newest page of the uninvited and states how many there are when there are more",
+  /waiting\.slice\(0, APPLICATION_READ_LIMIT\)/.test(page) && /waiting\.length > APPLICATION_READ_LIMIT/.test(page) && /of \{waiting\.length\} applications not yet invited/.test(page),
+);
 check("choosing a person keeps the search and the page", /listHref\("\/portal\/onboarding", listParams, \{ id: o\.id \}\)/.test(page));
 
 console.log("");

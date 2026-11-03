@@ -136,9 +136,9 @@ console.log("");
   });
 
   rec(
-    `the four moneyless dashboards are declared (${MONEYLESS_ROLES.join(", ")})`,
-    MONEYLESS_ROLES.length === 4,
-    "an empty list would make the check below vacuous; the fourth is the desk, 2026-10-20",
+    `the five moneyless dashboards are declared (${MONEYLESS_ROLES.join(", ")})`,
+    MONEYLESS_ROLES.length === 5 && MONEYLESS_ROLES.includes("read_only"),
+    "an empty list would make the check below vacuous; the fourth is the desk, 2026-10-20, and the fifth read_only, 2026-11-02 (P2)",
   );
   rec(
     "and the check found every one of their types to read",
@@ -176,40 +176,56 @@ console.log("");
    * read_only a figure its grants do not name, that is a widened grant and it
    * is refused."
    *
-   * They do. `read_only` holds `billing.read`, `ledger.read_all` and
-   * `pricing.read` in DEFAULT_ROLES, `can()` returns true for all three, and
-   * 0018 seeds ('read_only', 'billing.read') and ('read_only', 'ledger.read_all')
-   * into eng_role_grants, so it is true in the database and not only in the
-   * TypeScript. The dashboard widens nothing: it shows a role the money its
-   * grants already name, which is the role's whole purpose, a buyer's
-   * accountant or an auditor evaluating the business.
+   * Until 2026-11-02 they did, and this said so: "`read_only` holds
+   * `billing.read`, `ledger.read_all` and `pricing.read` in DEFAULT_ROLES ...
+   * The dashboard widens nothing: it shows a role the money its grants already
+   * name". Robert approved P2 (issue #1, 6567596115) and 0108 took all three,
+   * so the grants now decide the other way: read_only is served its own
+   * dashboard, which has no money field. The ruling is unchanged; its answer
+   * for read_only is.
    *
-   * This is the check that keeps that true. It reads the ADMINISTRATOR's
-   * dashboard specifically, because that is the one carrying FIRM figures.
-   * The engineer's and the technician's also have money and it is their OWN
-   * pay, which no firm level grant governs and which the ruling above scopes
-   * separately.
+   * This is the check that keeps it true, both ways round. A role served the
+   * ADMINISTRATOR's dashboard, the one carrying FIRM figures, must hold the
+   * grants that name them; and a role without those grants must be served a
+   * dashboard with no firm money, which is a moneyless one or the engineer's
+   * or the technician's, whose money is their OWN pay, which no firm level
+   * grant governs and which the ruling above scopes separately.
    */
   const { DASHBOARD_FOR_ROLE } = await import("./lib/role-total-functions.mjs");
 
-  const onFirmMoney = DEFAULT_ROLES.filter((r) => DASHBOARD_FOR_ROLE[r.key] === "admin");
   const FIRM_MONEY_GRANTS = ["ledger.read_all", "billing.read"];
+  const holdsMoney = (r) => FIRM_MONEY_GRANTS.every((g) => can({ id: "x", role: r.key, status: "active", grants: new Set(r.grants) }, g));
+  const onFirmMoney = DEFAULT_ROLES.filter((r) => DASHBOARD_FOR_ROLE[r.key] === "admin");
+  const widened = onFirmMoney.filter((r) => !holdsMoney(r)).map((r) => r.key);
 
-  const widened = onFirmMoney
-    .filter((r) => !FIRM_MONEY_GRANTS.every((g) => can({ id: "x", role: r.key, status: "active", grants: new Set(r.grants) }, g)))
-    .map((r) => r.key);
+  /* Own-pay dashboards carry money that is the reader's own, not the firm's. */
+  const NO_FIRM_MONEY = new Set([...MONEYLESS_ROLES, "engineer", "field_tech"]);
+  const withoutGrants = DEFAULT_ROLES.filter((r) => !holdsMoney(r));
+  const shownFirmMoney = withoutGrants.filter((r) => !NO_FIRM_MONEY.has(DASHBOARD_FOR_ROLE[r.key])).map((r) => `${r.key} (${DASHBOARD_FOR_ROLE[r.key]})`);
 
   rec(
-    `more than one role is served the firm's money dashboard (${onFirmMoney.map((r) => r.key).join(", ")})`,
-    onFirmMoney.length > 1,
-    "if only the administrator reached it, this check would pass over the one role nobody worried about",
+    `the administrator is served the firm's money dashboard, and holds what names it (${onFirmMoney.map((r) => r.key).join(", ")})`,
+    onFirmMoney.some((r) => r.key === "admin"),
+    "a check that found nobody on the firm's money dashboard would be looking at nothing",
   );
   rec(
     "and every one of them already holds the grants that name that money",
     widened.length === 0,
     widened.length
       ? `${widened.join(", ")} is served firm level money by a dashboard and does not hold ${FIRM_MONEY_GRANTS.join(" and ")}. That is a widened grant, which the operator refused.`
-      : `${FIRM_MONEY_GRANTS.join(", ")}, seeded by 0018 rather than only declared in TypeScript`,
+      : `${FIRM_MONEY_GRANTS.join(", ")}`,
+  );
+  rec(
+    `the roles without those grants were found (${withoutGrants.length} of ${DEFAULT_ROLES.length}), read_only among them since P2`,
+    withoutGrants.length === DEFAULT_ROLES.length - 1 && withoutGrants.some((r) => r.key === "read_only"),
+    withoutGrants.map((r) => r.key).join(", "),
+  );
+  rec(
+    "and every one of them is served a dashboard with no firm money",
+    shownFirmMoney.length === 0,
+    shownFirmMoney.length
+      ? `${shownFirmMoney.join(", ")} is served a dashboard carrying the firm's money without holding ${FIRM_MONEY_GRANTS.join(" and ")}. That is a widened grant, which the operator refused.`
+      : `read_only is served ${DASHBOARD_FOR_ROLE.read_only}`,
   );
 }
 

@@ -71,7 +71,7 @@ export default async function OrderLookupPage({ searchParams }: { searchParams: 
         csvHref={can(actor, LIST_EXPORT_GRANT) ? `/api/portal/order-lookup${qs ? `?${qs}` : ""}` : undefined}
       />
       {!list.ok ? (
-        <ErrorState title="Orders could not be read" body={`${list.error} Nothing here means there are no orders.`} />
+        <ErrorState title="Orders could not be read" body={`${list.error} This is a failed read, not an empty list.`} />
       ) : (
         <>
           <DataTable

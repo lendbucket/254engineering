@@ -53,7 +53,7 @@ export default async function ClientPage({ params }: { params: Promise<{ id: str
       {orders ? (
         <Panel className="mt-6" title="Orders">
           {!orders.ok ? (
-            <ErrorState title="Orders could not be read" body={`${orders.error} Nothing here means this client has none.`} />
+            <ErrorState title="Orders could not be read" body={`${orders.error} This is a failed read, not an empty list.`} />
           ) : orders.rows.length === 0 ? (
             <EmptyState title="No orders yet" body="Orders this client places, and jobs taken for them that are paid, appear here." />
           ) : (
