@@ -85,7 +85,33 @@ The source of truth for the running loop. Robert, 2026-10-29: the loop prompt is
 | m | **Merged as `cd09409`** (board 41381816477, every line met). Production check posted (6569169362): LCP unchanged, TBT +1 to +6 ms inside variance, not reverted. Was: GA4, `feat/ga4` `c30be50`. Bundle 61 on `a01eb49` met every line. **Robert: Q1 yes; Q2 no repository variable, merge on a green board without the tag; after the production deploy, three production runs each on `/`, `/coverage/coastal-bend`, `/services/windstorm-wpi-8`, LCP and TBT posted beside today's; revert GA4 and tell him if either worsens beyond variance.** Queue after m: g, d, c, j, then k only if the PDFs arrive |
 | truss letter, "5 year roof certification" | Parked by Robert, do not build |
 
-## OVERNIGHT RULING (Robert, 2026-11-01), governs tonight
+## OVERNIGHT RULING (Robert, 2026-11-02), GOVERNS TONIGHT. Verbatim.
+
+"Run until everything below is merged or parked, then post the morning report and stop. Follow docs/standing-orders.md. Record this on ops/day first.
+
+ORDER
+1. P2 (fourth board running). On green: post the production sitting request for 0108 on issue #1. The chat counterpart checks issue #1 at 12:15, 2:15, 4:15 and 6:15 AM Central and sits whatever has passed its board; merge P2 when its read-back is posted.
+2. Then in this order, one board per item: Q1, Q2, Q3, Q4, Q7, Q9, Q10, Q11, Q12, Q13, Q14, then Q5 (0109 production sitting after its board), Q6 (0110 after its board), Q8, then the CRM R1 to R8 (request the development sittings for 0111 and 0112 on issue #1 before R1 boards, and each later CRM migration before its item), then the follow-ups (review request suppression, per-door counters, message search, F9), then M2 (0117), then the five low bundles.
+3. While a board waits on a sitting, board the next code-only item whose branch does not depend on the unsat migration, if one exists; otherwise wait.
+
+RULES
+- One board at a time. Never re-run an unchanged commit. Never merge red. Never loosen a check or raise a ceiling. The green-board variance rule stands.
+- A question never stops the queue: post it on issue #1 with your recommendation, park the item, take the next.
+- A board that fails twice on new commits for the same item: park it.
+- No production database writes, no email or SMS to real people, no force push, no branch deletion, no secrets in output, 12 GB memory floor. Migrations to development only on stage/ branches, and only through the counterpart's sittings.
+- Content rules apply everywhere: no long dashes, no hyphens as sentence connectors, no AI-tell words, US spelling, "254 Engineering", no engineer name or license number on public pages.
+- Wake on board completion, not on a timer.
+
+MORNING REPORT (issue #1, then stop)
+- Merged: item, commit, board, audits passed, live URL where public.
+- Parked: item, why, the exact answer needed from Robert, your recommendation.
+- Sittings done and sittings still owed, by migration number.
+- /coverage, /coverage/coastal-bend, / and /services/windstorm-wpi-8 from the last board.
+- Main's head from ls-remote."
+
+**How it reads against the state at 2026-11-02 22:00 Central.** P2's fourth board passed (41568841308, 65 of 65) and the 0108 production sitting is already asked (6595054766). Development holds 0108's revokes, so a branch without P2's role table fails roles-audit; under item 3, Q1 to Q14 therefore board with P2's branch merged in while 0108 waits, and each merges after P2 does, with only the ledger commit between its boarded tree and its merge (the same shape as the P1, P3, P5 merge of 34599d9). F9 waits on Robert's template question (6594767802): parked until answered.
+
+## OVERNIGHT RULING (Robert, 2026-11-01), superseded by the one above
 
 Run until everything below is merged or parked, then post the morning report and stop.
 
