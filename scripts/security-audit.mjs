@@ -142,6 +142,8 @@ const ADMIN_PAGES = [
   "/portal/crm/imports",
   /* The call queue (Robert's CRM R3, 2026-11-02): crm.use, closed to a signed out caller. */
   "/portal/crm/queue",
+  /* The sequence emails and the replies (Robert's CRM R7, 2026-11-02): crm.use, closed to a signed out caller. */
+  "/portal/crm/emails",
   /* The stage board and the list (Robert's CRM R4, 2026-11-02): crm.use, closed to a signed out caller. */
   "/portal/crm",
   "/portal/crm/list",

@@ -333,6 +333,14 @@ export const RETENTION_POLICY: RetentionEntry[] = [
   { table: "eng_contacts", rule: { kind: "kept_pending_counsel", because: COUNSEL } },
   { table: "eng_credentials", rule: { kind: "kept_pending_counsel", because: COUNSEL } },
   /*
+   * 0115 (Robert's CRM R7). The replies to sales emails and the ledger of the
+   * sends: a record of what the firm wrote to a prospect and what came back,
+   * and the ledger is what proves one send per address per day. No floor is
+   * ruled, so both are kept like their neighbours.
+   */
+  { table: "eng_crm_email_replies", rule: { kind: "kept_pending_counsel", because: "A reply to a sales email, as the webhook delivered it. No floor is ruled. " + COUNSEL } },
+  { table: "eng_crm_email_sends", rule: { kind: "kept_pending_counsel", because: "One sales sequence email sent, the record that one address got at most one a day. No floor is ruled. " + COUNSEL } },
+  /*
    * The sales list's import runs and their verdicts, 0112 (Robert's CRM R2).
    * Telemetry in shape: a run describes a pull, not a customer. A floor is
    * defensible and none is ruled, and the tables retention may delete from are

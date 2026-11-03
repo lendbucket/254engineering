@@ -3,6 +3,7 @@ import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
 import { recordOutcome } from "@/lib/crm-queue";
 import { firmInstant } from "@/lib/crm-queue-rules";
+import { readReply, sendSequenceEmail } from "@/lib/crm-email";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +28,15 @@ export async function POST(request: NextRequest) {
     body = (await request.json()) as Record<string, unknown>;
   } catch {
     return bad("The request could not be read.");
+  }
+  /* R7: a rep presses Send on a due sequence email, or reads a reply. The library asks everything again. */
+  if (str(body.action) === "send_email") {
+    const sent = await sendSequenceEmail(actor, { prospectId: str(body.prospectId) });
+    return sent.ok ? NextResponse.json(sent) : bad(sent.error, 422);
+  }
+  if (str(body.action) === "read_reply") {
+    const read = await readReply(actor, { replyId: str(body.replyId) });
+    return read.ok ? NextResponse.json(read) : bad(read.error, 422);
   }
   if (str(body.action) !== "outcome") return bad("That is not something the call queue does.");
 

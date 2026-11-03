@@ -389,6 +389,14 @@ if (templates.length === 0) {
      * marketing.review_request and nothing transactional.
      */
     "src/lib/review-request.ts",
+    /*
+     * The third: the sales sequence email, Robert's sales CRM ruling of
+     * 2026-11-02, item R7, "suppression consulted". A prospect has entered
+     * into nothing with the firm, so the email is marketing.crm_sequence and
+     * the send path asks the gate before every send. It sends that one
+     * template and nothing transactional.
+     */
+    "src/lib/crm-email.ts",
   ];
 
   const SUPPRESSION_READERS = [
@@ -433,6 +441,8 @@ if (templates.length === 0) {
      * scripts/proofs/the-call-queue-calls-in-order-and-records-what-happened.mjs.
      */
     "src/lib/crm-queue.ts",
+    /* The sales sequence email (R7), as in the gate list above: it reads the gate and sends only marketing.crm_sequence. */
+    "src/lib/crm-email.ts",
   ];
 
   const readers = [];

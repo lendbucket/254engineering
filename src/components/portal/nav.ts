@@ -188,6 +188,8 @@ export const NAV: NavItem[] = [
   { href: "/portal/prospects", label: "Sales list", short: "Sales", action: "crm.use", icon: "clients" },
   /* The call queue (Robert's CRM R3, 2026-11-02). crm.use, matching the page's guard: the rep, ops_manager and admin. */
   { href: "/portal/crm/queue", label: "Call queue", short: "Calls", action: "crm.use", icon: "clients" },
+  /* The sequence emails and the replies (Robert's CRM R7, 2026-11-02). crm.use, matching the page's guard: the rep, ops_manager and admin. */
+  { href: "/portal/crm/emails", label: "Sequence emails", short: "Emails", action: "crm.use", icon: "messages" },
   /* The stage board and the list (Robert's CRM R4, 2026-11-02). crm.use, matching the page's guard: the rep, ops_manager and admin. */
   { href: "/portal/crm", label: "Pipeline", short: "Pipeline", action: "crm.use", icon: "clients" },
   /* The sales list's imports (Robert's CRM R2, 2026-11-02). crm.import, matching the page's guard: admin and ops_manager. */

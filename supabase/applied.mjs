@@ -4234,6 +4234,23 @@ export const APPLIED = [
       "SITTING; APPLIED NOWHERE. Robert's sales CRM ruling of 2026-11-02, item R5, territories and assignment: counties " +
       "grouped into territories, reps holding one or more, the round robin cursor new imports advance. Additive: three tables.",
   },
+  {
+    file: "0115_the_sales_list_sends_one_email_a_day_and_hears_replies.sql", appliedBy: "apply_migration",
+    fingerprint: "bb028b19633238ee698b4f5ba2facf28",
+    behaviour: "7bbd0e10d7b7a5daad23107236ebefb9",
+    production: null,
+    proves: { table: "eng_crm_email_sends" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-02 on the combined chain 0104 to 0115. Shape 1495 " +
+      "to 1520 columns: 12 on eng_crm_email_sends, 12 on eng_crm_email_replies, 1 on eng_prospects (sequence_paused_at); " +
+      "tables 115 to 117. Behaviour 1477 to 1502 facts: the two tables' keys, checks and foreign keys, the one send per " +
+      "address per day partial unique index, the reply event once index and the two lookup indexes.",
+    because:
+      "WRITTEN 2026-11-02 ON feat/crm-r7-email AND STAGED ON stage/0115-crm-email FOR THE CHAT COUNTERPART'S SITTING; " +
+      "APPLIED NOWHERE. Robert's sales CRM ruling of 2026-11-02, item R7, sequences and email: one send per address per " +
+      "day, written before the email is queued; replies recorded once by the webhook's event id; a reply pauses the " +
+      "sequence. Additive: two tables and one column.",
+  },
 ];
 
 /*
