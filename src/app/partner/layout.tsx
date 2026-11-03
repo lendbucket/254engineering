@@ -8,6 +8,8 @@ export const metadata: Metadata = {
    * tell which one is theirs.
    */
   title: "Referral partners | 254 Engineering",
+  /* Its own description rather than the home page's (site audit issue 12, 2026-11-02). */
+  description: "Sign in to a 254 Engineering referral partner account. Partner accounts are created by the firm.",
   robots: { index: false, follow: false, nocache: true },
 };
 

@@ -27,6 +27,8 @@ import { MispointedDeployment } from "@/components/portal/Mispointed";
  */
 export const metadata: Metadata = {
   title: "Portal | 254 Engineering",
+  /* Its own description rather than the home page's (site audit issue 12, 2026-11-02). */
+  description: "Sign in to the 254 Engineering operations portal. Accounts are created by an administrator.",
   robots: { index: false, follow: false, nocache: true },
   /*
    * The field app's manifest rather than the public site's: a technician who
