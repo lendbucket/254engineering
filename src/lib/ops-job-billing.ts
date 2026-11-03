@@ -14,6 +14,7 @@ import { paymentOptions } from "./job-intake-rules";
 import { refundDisclosure } from "./ops-orders";
 import { alreadyRaised } from "./billing-rules";
 import type { Author } from "./ops-crm";
+import { attributeOrder } from "./crm-attribution";
 
 /**
  * The orders already raised against this job, for the guard in billing-rules.
@@ -412,6 +413,9 @@ export async function invoiceAccount(actor: Author, fileId: string): Promise<Bil
 
   const order = await createOrderForFile(actor, file, client, "invoice");
   if (!order.ok) return order;
+
+  /* The sales attribution (R8, 0116): a telephoned job invoiced to an account that came from a prospect is credited to that prospect's rep, as an order placed online is. */
+  await attributeOrder(order.orderId, account ? String(account.id) : null);
 
   await db
     .from("eng_files")

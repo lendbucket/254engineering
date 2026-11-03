@@ -374,10 +374,16 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * eng_prospects.sequence_paused_at; the table count moves 115 to 117; no
  * trigger and no function; shape bb028b19633238ee698b4f5ba2facf28, read off
  * fingerprint-at.mjs.
+ *
+ * Moved again by 0116, the sales list attributes accounts and orders to reps,
+ * by Robert's sales CRM ruling R8 of 2026-11-02: 1,520 to 1,527 is the seven
+ * columns of eng_crm_attributions; the table count moves 117 to 118; one
+ * trigger, no function; shape 4baf42d188f691ea5dee5ed9053e17d1, read off
+ * fingerprint-at.mjs.
  */
-const EXPECTED_FINGERPRINT = "bb028b19633238ee698b4f5ba2facf28";
-const EXPECTED_COLUMNS = 1520;
-const EXPECTED_TABLES = 117;
+const EXPECTED_FINGERPRINT = "4baf42d188f691ea5dee5ed9053e17d1";
+const EXPECTED_COLUMNS = 1527;
+const EXPECTED_TABLES = 118;
 /* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts.
  * 0074 adds two: eng_partner_billing_touch and eng_partner_billing_events_immutable.
  * 0075 adds one: eng_payment_events_guarded.
@@ -404,8 +410,10 @@ const EXPECTED_TABLES = 117;
  * 0110 adds one, by Robert's ruling Q6 of 2026-11-02 (audit field F10):
  * eng_files_sealed_needs_a_seal_act.
  * 0111 adds one, by Robert's sales CRM ruling R1 of 2026-11-02: eng_prospect_contacts_touch,
- * the updated_at stamp on a company's people, which change as numbers do. */
-const EXPECTED_TRIGGERS = 108;
+ * the updated_at stamp on a company's people, which change as numbers do.
+ * 0116 adds one, by Robert's sales CRM ruling R8 of 2026-11-02:
+ * eng_crm_attributions_append_only, because credit decided once is evidence. */
+const EXPECTED_TRIGGERS = 109;
 /**
  * 0014 added eng_freeze_attribution and 0019 added two more, the partner
  * entry freeze and its delete refusal, which are trigger functions like the

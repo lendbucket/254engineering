@@ -4251,6 +4251,22 @@ export const APPLIED = [
       "day, written before the email is queued; replies recorded once by the webhook's event id; a reply pauses the " +
       "sequence. Additive: two tables and one column.",
   },
+  {
+    file: "0116_the_sales_list_attributes_accounts_and_orders_to_reps.sql", appliedBy: "apply_migration",
+    fingerprint: "4baf42d188f691ea5dee5ed9053e17d1",
+    behaviour: "cd52446b84ac7e01df825e9eeae53381",
+    production: null,
+    proves: { table: "eng_crm_attributions" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-02 on the combined chain 0104 to 0116. Shape 1520 " +
+      "to 1527 columns: 7 on eng_crm_attributions; tables 117 to 118. Behaviour 1502 to 1515 facts: the table's key, " +
+      "its two checks and three foreign keys, the one row per order and one opening per prospect partial unique " +
+      "indexes, the two lookup indexes, row level security and the append only trigger.",
+    because:
+      "WRITTEN 2026-11-02 ON feat/crm-r8-reports AND STAGED ON stage/0116-crm-attribution FOR THE CHAT COUNTERPART'S " +
+      "SITTING; APPLIED NOWHERE. Robert's sales CRM ruling of 2026-11-02, item R8: the attribution chain prospect to " +
+      "account to order, written on conversion and on each order. Additive: one append only table.",
+  },
 ];
 
 /*

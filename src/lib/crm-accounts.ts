@@ -13,6 +13,7 @@ import {
   type AccountOrder,
   type AccountStanding,
 } from "./crm-account-rules";
+import { revenueOf } from "./crm-report-rules";
 
 /**
  * ACCOUNT MANAGEMENT. Robert's sales CRM ruling of 2026-11-02, item R6; the
@@ -29,10 +30,10 @@ import {
  * WHO SEES MONEY. Lifetime revenue is shown only to a holder of crm.reports
  * (admin and ops_manager, whose R8 reports carry revenue by Robert's ruling) or
  * of billing.read (the existing money grant, the administrator's). A rep sees
- * order counts and dates and no revenue at all until R8 attributes orders to
- * the rep: "reps see no revenue figures beyond their own attributed orders",
- * and until attribution exists no order is theirs to see the money of. The
- * figure is never computed into a rep's response, not hidden on the screen.
+ * order counts and dates, and, since R8 attributes orders (0116), the revenue of
+ * the orders attributed to them and nothing else: "reps see no revenue figures
+ * beyond their own attributed orders". The account's lifetime figure is never
+ * computed into a rep's response, not hidden on the screen.
  */
 
 type Db = NonNullable<ReturnType<typeof supabaseAdmin>>;
@@ -48,6 +49,12 @@ export type AccountRow = {
   standing: Omit<AccountStanding, "lifetimeRevenueCents">;
   /** Present only for a viewer who may see money; null for a rep, never a zero that reads as "no revenue". */
   lifetimeRevenueCents: number | null;
+  /**
+   * For a viewer who may not see money: the revenue of this account's orders
+   * attributed to them (R8), and nothing else. Null when none is theirs, or for
+   * a money viewer, who reads lifetimeRevenueCents instead.
+   */
+  attributedRevenueCents: number | null;
 };
 
 export type AccountsView =
@@ -93,7 +100,9 @@ async function readConverted(db: Db): Promise<{ ok: true; rows: ConvertedProspec
   };
 }
 
-async function readOrders(db: Db, accountIds: readonly string[]): Promise<{ ok: true; byAccount: Map<string, AccountOrder[]> } | { ok: false; error: string }> {
+type IdentifiedOrder = AccountOrder & { orderId: string };
+
+async function readOrders(db: Db, accountIds: readonly string[]): Promise<{ ok: true; byAccount: Map<string, IdentifiedOrder[]> } | { ok: false; error: string }> {
   const orders = await readEveryIn<{ id: string; account_id: string; status: string; total_cents: number | null; placed_at: string | null; created_at: string }>(
     accountIds,
     (chunk, from, to) =>
@@ -121,10 +130,11 @@ async function readOrders(db: Db, accountIds: readonly string[]): Promise<{ ok: 
   if (!refunds.ok) return { ok: false, error: `The accounts' refunds could not be read: ${refunds.error}` };
   const refunded = new Map<string, number>();
   for (const r of refunds.rows) refunded.set(r.order_id, (refunded.get(r.order_id) ?? 0) + Number(r.amount_cents));
-  const byAccount = new Map<string, AccountOrder[]>();
+  const byAccount = new Map<string, IdentifiedOrder[]>();
   for (const o of orders.rows) {
     const list = byAccount.get(o.account_id) ?? [];
     list.push({
+      orderId: o.id,
       day: todayInFirmCalendar(new Date(o.placed_at ?? o.created_at)),
       status: o.status,
       totalCents: o.total_cents === null ? null : Number(o.total_cents),
@@ -161,8 +171,31 @@ export async function accountsFor(actor: Actor | null, now: Date = new Date()): 
   if (!orders.ok) return orders;
   const today = todayInFirmCalendar(now);
   const money = seesAccountRevenue(actor);
+  /*
+   * R8: "reps see no revenue figures beyond their own attributed orders". A
+   * person who may not see revenue sees it only on the orders attributed to
+   * them (eng_crm_attributions, 0116), and only those orders are summed: an
+   * account's other orders contribute nothing to the figure.
+   */
+  let mineOrderIds: Set<string> | null = null;
+  if (!money) {
+    const attributed = await readEvery<{ order_id: string }>((from, to) =>
+      db
+        .from("eng_crm_attributions")
+        .select("order_id")
+        .eq("kind", "order")
+        .eq("rep_id", actor.id)
+        .order("order_id", { ascending: true })
+        .range(from, to),
+    );
+    if (!attributed.ok) return { ok: false, error: `Your attributed orders could not be read: ${attributed.error}` };
+    mineOrderIds = new Set(attributed.rows.map((r) => r.order_id));
+  }
   const rows: AccountRow[] = standingsFor(mine, orders.byAccount, today).map(({ prospect, openedOn, standing }) => {
     const { lifetimeRevenueCents, ...rest } = standing;
+    const own = mineOrderIds
+      ? (orders.byAccount.get(prospect.converted_account_id) ?? []).filter((o) => mineOrderIds!.has(o.orderId))
+      : [];
     return {
       prospectId: prospect.id,
       accountId: prospect.converted_account_id,
@@ -172,6 +205,7 @@ export async function accountsFor(actor: Actor | null, now: Date = new Date()): 
       openedOn,
       standing: rest,
       lifetimeRevenueCents: money ? lifetimeRevenueCents : null,
+      attributedRevenueCents: mineOrderIds ? (own.length ? revenueOf(own) : null) : null,
     };
   });
   return { ok: true, rows: byRisk(rows), seesRevenue: money, today };

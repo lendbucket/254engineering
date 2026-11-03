@@ -20,6 +20,7 @@ import {
 } from "./ops-orders";
 import { isKnown } from "./ops-money";
 import { ORDER_UPLOAD_BUCKET } from "./order-uploads";
+import { attributeOrder } from "./crm-attribution";
 
 /**
  * Order intake: the one door every brand's customer flow comes through.
@@ -477,6 +478,15 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
     ...(agreed !== null ? { agreed_price_cents: agreed, published_price_cents: entry.priceCents } : {}),
     ...(fromQuote ? { quote_id: fromQuote.quoteId } : {}),
   });
+
+  /*
+   * The sales attribution (R8, 0116): an order for an account that came from a
+   * prospect is credited to that prospect's rep, written here where the order is
+   * placed and never on read. Every door (the web, the sister sites, a bulk
+   * batch, a converted quote) places through this function. A failed write
+   * leaves the order standing and is recorded (crm-attribution.ts says why).
+   */
+  await attributeOrder(orderId, accountIdForPlacement(input));
 
   /*
    * The client and the file. Authored by the order engine, which has no profile

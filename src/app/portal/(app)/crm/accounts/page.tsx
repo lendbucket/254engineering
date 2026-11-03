@@ -22,7 +22,8 @@ export const dynamic = "force-dynamic";
  *
  * Lifetime revenue is a column only for a holder of crm.reports or
  * billing.read; for a rep the figure is never read into the page at all
- * (crm-accounts.ts says why).
+ * (crm-accounts.ts says why). A rep sees one money column instead: the revenue
+ * of the orders attributed to them (R8), and no other order's.
  */
 export default async function AccountsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const actor = await currentActor();
@@ -67,7 +68,13 @@ export default async function AccountsPage({ searchParams }: { searchParams: Pro
     { key: "owner", header: "Owner", cell: (r) => r.ownerName ?? "Nobody yet", desktopOnly: true },
     ...(read.seesRevenue
       ? [{ key: "revenue", header: "Lifetime revenue", cell: (r: AccountRow & { id: string }) => money(r.lifetimeRevenueCents) }]
-      : []),
+      : [
+          {
+            key: "attributed",
+            header: "Your attributed revenue",
+            cell: (r: AccountRow & { id: string }) => (r.attributedRevenueCents === null ? "None attributed to you" : money(r.attributedRevenueCents)),
+          },
+        ]),
   ];
 
   return (
@@ -100,7 +107,7 @@ export default async function AccountsPage({ searchParams }: { searchParams: Pro
             direction={query.ascending ? "asc" : "desc"}
           />
           {!read.seesRevenue ? (
-            <p className="mb-4 text-[14px] text-[var(--ink)]">Revenue is not shown here: it is shown to the sales manager, and to you on your own attributed orders once those are recorded.</p>
+            <p className="mb-4 text-[14px] text-[var(--ink)]">You see revenue only on the orders attributed to you. An account&apos;s other orders, and its lifetime figure, are shown to the sales manager.</p>
           ) : null}
           {matching.length === 0 ? (
             <EmptyState title="No account matches that search" body={`This is a search with no match, not an empty list: ${read.rows.length} ${read.rows.length === 1 ? "account" : "accounts"} in all. Clear the search to see every one.`} />
