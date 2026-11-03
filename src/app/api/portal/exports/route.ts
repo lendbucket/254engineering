@@ -6,7 +6,7 @@ import { binderCsv, binderFor, fileMargins, marginCsv, periodCsv } from "@/lib/o
 import { REPORTS, ROW_CEILING, periodOf } from "@/lib/ops-reports";
 import { exportFilename, exportRowCount, reportCsv } from "@/lib/ops-report-export";
 import { enqueue } from "@/lib/ops-jobs";
-import { writeAudit } from "@/lib/ops-audit";
+import { writeAuditOrRefuse } from "@/lib/ops-audit";
 import { withSaveOutcome } from "@/lib/save-outcome";
 import { accountRows } from "@/lib/ops-accounts-admin";
 import { accountListQuery } from "@/lib/account-list";
@@ -95,7 +95,7 @@ async function handleGET(request: NextRequest) {
     const binder = await binderFor(actor, fileId);
     if (!binder) return bad("That file is not available to you.", 404);
 
-    await writeAudit({
+    const audited = await writeAuditOrRefuse({
       actor,
       action: "export.binder",
       entityType: "file",
@@ -105,6 +105,8 @@ async function handleGET(request: NextRequest) {
       }`,
       ...context,
     });
+    /* Office audit F20, 2026-11-02: the record is written or the file is not handed over. */
+    if (!audited.ok) return bad(`${audited.error} No file was made.`, 503);
 
     /*
      * THE DOWNLOAD IS NOT QUEUED. THE RECORD OF IT IS.
@@ -145,13 +147,15 @@ async function handleGET(request: NextRequest) {
     }
     const body = report === "margin" ? marginCsv(files) : periodCsv(files);
 
-    await writeAudit({
+    const audited = await writeAuditOrRefuse({
       actor,
       action: `export.${report}`,
       entityType: "billing",
       summary: `Exported ${report === "margin" ? "margin by file" : "margin by period"} across ${files.length} file(s)`,
       ...context,
     });
+    /* Office audit F20, 2026-11-02: the record is written or the file is not handed over. */
+    if (!audited.ok) return bad(`${audited.error} No file was made.`, 503);
 
     return new NextResponse(body, {
       headers: csvHeaders(`${report === "margin" ? "margin-by-file" : "margin-by-period"}-${stamp()}.csv`),
@@ -185,13 +189,15 @@ async function handleGET(request: NextRequest) {
       return bad(`The ordering accounts could not be read, so nothing was exported: ${read.unavailable.join(" ")}`, 503);
     }
 
-    await writeAudit({
+    const audited = await writeAuditOrRefuse({
       actor,
       action: "export.accounts",
       entityType: "account",
       summary: `Exported ${read.rows.length} ordering account(s) of ${read.all}`,
       ...context,
     });
+    /* Office audit F20, 2026-11-02: the record is written or the file is not handed over. */
+    if (!audited.ok) return bad(`${audited.error} No file was made.`, 503);
 
     return new NextResponse(accountsCsv(read.rows, query, read.all), { headers: csvHeaders(accountsFilename(stamp())) });
   }
@@ -303,13 +309,15 @@ async function handleGET(request: NextRequest) {
       count = rows.length;
     }
 
-    await writeAudit({
+    const audited = await writeAuditOrRefuse({
       actor,
       action: `export.${listReport}`,
       entityType: "export",
       summary: `Exported ${count} row(s) of ${listReport}`,
       ...context,
     });
+    /* Office audit F20, 2026-11-02: the record is written or the file is not handed over. */
+    if (!audited.ok) return bad(`${audited.error} No file was made.`, 503);
 
     return new NextResponse(body, { headers: csvHeaders(listExportFilename(listReport, stamp())) });
   }
@@ -365,7 +373,7 @@ async function handleGET(request: NextRequest) {
 
     const body = reportCsv(built, { email: actor.email, role: actor.role });
 
-    await writeAudit({
+    const audited = await writeAuditOrRefuse({
       actor,
       action: `export.report.${entry.key}`,
       entityType: "report",
@@ -375,6 +383,8 @@ async function handleGET(request: NextRequest) {
       }`,
       ...context,
     });
+    /* Office audit F20, 2026-11-02: the record is written or the file is not handed over. */
+    if (!audited.ok) return bad(`${audited.error} No file was made.`, 503);
 
     /*
      * The record goes on the queue, the file does not. Same decision as the

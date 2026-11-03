@@ -588,9 +588,9 @@ const rec = (name, ok, note = "") => out.push({ name, ok, note });
   const route = read("src/app/api/portal/exports/route.ts") ?? "";
   rec("the export route exists", route.length > 0);
   rec(
-    "every export writes an audit row",
-    (route.match(/writeAudit\(/g) ?? []).length >= 2,
-    "taking records off the platform is an event",
+    "every export writes an audit row, or refuses (office audit F20, 2026-11-02)",
+    (route.match(/await writeAuditOrRefuse\(/g) ?? []).length >= 5 && !/await writeAudit\(/.test(route),
+    "taking records off the platform is an event, and a record that could not be written is no export",
   );
   rec("the billing exports check billing.read", /can\(actor, "billing\.read"\)/.test(route));
   rec(

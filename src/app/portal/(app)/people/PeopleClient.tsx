@@ -409,8 +409,16 @@ export function NewPersonForm({
   );
 }
 
-/** Suspend, restore, resend, force reset. */
-export function PersonActions({ person, selfId }: { person: Person; selfId: string }) {
+/**
+ * What the signed in person may do to someone, read from the grants the route
+ * asks (office audit F15, 2026-11-02): resend_invite needs profiles.create,
+ * force_reset profiles.force_reset, suspend and restore profiles.suspend. A
+ * button the route would refuse is not drawn.
+ */
+export type PersonPermissions = { invite: boolean; forceReset: boolean; suspend: boolean };
+
+/** Suspend, restore, resend, force reset, each only for whoever the route accepts. */
+export function PersonActions({ person, selfId, may }: { person: Person; selfId: string; may: PersonPermissions }) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -463,10 +471,12 @@ export function PersonActions({ person, selfId }: { person: Person; selfId: stri
     <div>
       <div className="flex flex-wrap gap-2">
         {person.status === "invited" ? (
-          <button type="button" disabled={busy !== null} onClick={() => run("resend_invite")} className={btn}>
-            {busy === "resend_invite" ? "Sending..." : "Resend invite"}
-          </button>
-        ) : (
+          may.invite ? (
+            <button type="button" disabled={busy !== null} onClick={() => run("resend_invite")} className={btn}>
+              {busy === "resend_invite" ? "Sending..." : "Resend invite"}
+            </button>
+          ) : null
+        ) : !may.forceReset ? null : (
           <button
             type="button"
             disabled={busy !== null}
@@ -481,7 +491,7 @@ export function PersonActions({ person, selfId }: { person: Person; selfId: stri
           <span className="inline-flex min-h-[40px] items-center text-[14px] text-[var(--secondary)]">
             This is you
           </span>
-        ) : person.status === "suspended" ? (
+        ) : !may.suspend ? null : person.status === "suspended" ? (
           <button type="button" disabled={busy !== null} onClick={() => run("restore")} className={btn}>
             {busy === "restore" ? "Restoring..." : "Restore"}
           </button>

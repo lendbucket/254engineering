@@ -987,6 +987,24 @@ export async function convertLead(
   if (!lead) return { ok: false, error: "That lead no longer exists." };
   if (lead.status === "converted") return { ok: false, error: "That lead has already been converted." };
 
+  /*
+   * CLAIMED BEFORE ANYTHING IS CREATED (office audit F18, 2026-11-02). Two people
+   * converting the same lead both passed the read above and each made a client
+   * and a file. The lead is now marked converted only where it is not already,
+   * and only the person whose write landed goes on; a failure below puts the
+   * lead back the way it was.
+   */
+  const priorStatus = lead.status as string;
+  const { data: claimed, error: claimError } = await db
+    .from("eng_leads")
+    .update({ status: "converted" })
+    .eq("id", leadId)
+    .neq("status", "converted")
+    .select("id");
+  if (claimError) return { ok: false, error: `The lead could not be claimed for conversion: ${claimError.message}` };
+  if (!claimed || claimed.length === 0) return { ok: false, error: "Somebody converted that lead a moment ago." };
+  const release = () => db.from("eng_leads").update({ status: priorStatus }).eq("id", leadId).eq("status", "converted");
+
   const name = (lead.company as string) || (lead.name as string) || "Unnamed enquirer";
 
   const client = await createClient(
@@ -1013,7 +1031,10 @@ export async function convertLead(
     },
     context,
   );
-  if (!client.ok) return { ok: false, error: client.error };
+  if (!client.ok) {
+    await release();
+    return { ok: false, error: client.error };
+  }
 
   const file = await createFile(
     actor,
@@ -1028,9 +1049,11 @@ export async function convertLead(
     },
     context,
   );
-  if (!file.ok) return { ok: false, error: file.error };
-
-  await db.from("eng_leads").update({ status: "converted" }).eq("id", leadId);
+  if (!file.ok) {
+    /* The client stays (clients are not deleted), so the lead is released to be converted against it by hand. */
+    await release();
+    return { ok: false, error: `${file.error} The client ${name} was created; the lead is open again.` };
+  }
 
   /*
    * A QUALIFIED LEAD IS A LEAD SOMEBODY AT THE FIRM CONVERTED.

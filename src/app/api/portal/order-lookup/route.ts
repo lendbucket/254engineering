@@ -3,6 +3,7 @@ import { currentActor } from "@/lib/ops-auth";
 import { canLookUpOrders, listOrders, type OrderQuery } from "@/lib/ops-order-lookup";
 import { csv, csvHeaders } from "@/lib/csv";
 import { money } from "@/lib/ops-money";
+import { auditExportOrRefuse } from "@/lib/export-audit";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +32,8 @@ export async function GET(request: NextRequest) {
     rows.push(...read.rows);
     if (page * read.pageSize >= read.total) break;
   }
+  const refused = await auditExportOrRefuse(actor, "export.orders", `Exported ${rows.length} orders as CSV`);
+  if (refused) return NextResponse.json({ ok: false, error: refused }, { status: 503 });
   const body = csv({
     preamble: [
       ["Orders", `${rows.length} matching the filter`],
