@@ -149,6 +149,21 @@ const callText = callAt < 0 ? "" : queue.slice(callAt, queue.indexOf(");", callA
 check("and hands it sellable.ok", /,\s*sellable\.ok,?\s*\)\s*;$/.test(callText), callText.slice(-60));
 const assigned = queue.slice(0, callAt).match(/const sellable = await lineIsSellableForDisplay\([^)]*\);/g) ?? [];
 check("where sellable is the line's own lineIsSellableForDisplay answer", assigned.length >= 1);
+/*
+ * G. THE GENERAL SCRIPT FOLLOWS THE ROOF LINE, Robert's R3 ruling 4 of
+ * 2026-11-02, including when it stands in for solar in a listed wind load city:
+ * the queue reads the sellable answer for the line of the script actually shown.
+ */
+const { SCRIPT_LINE, SOLAR_WIND_LOAD_CITIES } = await import("../../src/content/crm-scripts.ts");
+check("the general script's line is the roof line", SCRIPT_LINE.other?.serviceSlug === "roof-inspections" && !SCRIPT_LINE.other?.tier, JSON.stringify(SCRIPT_LINE.other));
+const windCity = SOLAR_WIND_LOAD_CITIES[0];
+check("a solar company in a wind load city is shown the general script", Boolean(windCity) && render.scriptVerticalFor({ vertical: "solar", city: ` ${String(windCity).toUpperCase()} ` }) === "other", String(windCity));
+check("and a solar company elsewhere keeps its own", render.scriptVerticalFor({ vertical: "solar", city: "Amarillo" }) === "solar");
+check(
+  "the queue reads the sellable answer for the line of the script it shows",
+  /const line = SCRIPT_LINE\[scriptVerticalFor\(\{ vertical, city: [^\]]*\}\)\];/.test(queue) && !/const line = SCRIPT_LINE\[vertical\];/.test(queue),
+);
+
 const fillers = srcFiles.filter((f) => f !== "src/lib/crm-script-render.ts" && /\bfillScript\s*\(/.test(readFileSync(f, "utf8")));
 check("nothing outside the renderer fills a script", fillers.length === 0, fillers.join(", "));
 
