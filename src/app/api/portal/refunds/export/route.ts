@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
+import { LIST_EXPORT_GRANT } from "@/lib/list-exports";
 import { listRefundRequests } from "@/lib/ops-refund-requests";
 import { refundListRows } from "@/lib/refund-list";
 import { csv, csvHeaders } from "@/lib/csv";
@@ -19,15 +20,18 @@ export const dynamic = "force-dynamic";
  * Every request the screen would show for the same state, search and sort, not
  * one page: the rows come from refundListRows, the function the screen uses.
  * Money from moneyCell: dollars, and blank where a figure is unknown, never 0.
- * The same grants as the screen.
+ * The same grants as the screen and, since 2026-11-02, the administrator's
+ * export gate first (Robert's P2 approval, option a). The screen takes any of
+ * three grants, so this asks the gate and then any of the three rather than
+ * mayExport, which takes one.
  */
 const bad = (error: string, status = 400) => NextResponse.json({ ok: false, error }, { status });
 
 export async function GET(request: NextRequest) {
   const actor = await currentActor();
   if (!actor) return bad("Not signed in.", 401);
-  if (!(can(actor, "refunds.request") || can(actor, "refunds.approve_within_limit") || can(actor, "payments.refund"))) {
-    return bad("Not permitted.", 403);
+  if (!can(actor, LIST_EXPORT_GRANT) || !(can(actor, "refunds.request") || can(actor, "refunds.approve_within_limit") || can(actor, "payments.refund"))) {
+    return bad("Your role cannot export the refund requests.", 403);
   }
   const params = request.nextUrl.searchParams;
   const raw = params.get("state");

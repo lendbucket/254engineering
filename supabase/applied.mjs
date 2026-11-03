@@ -4098,6 +4098,43 @@ export const APPLIED = [
       "not checked, never a pass. The server hashes the stored object in recordCapture. Development from its " +
       "stage branch, production from a passed board's boarded commit.",
   },
+  {
+    file: "0108_least_privilege_for_the_engineer_and_read_only.sql", appliedBy: "apply_migration",
+    /* The combined chain 0104 to 0108, P5, P3 and P1 merged into this branch on 2026-11-02; re-read off fingerprint-at.mjs that day. */
+    fingerprint: "22346b566a73ea946ca112725b16569f",
+    behaviour: "961400e898dc3961cd71a4dd08012e3d",
+        /*
+     * Applied 2026-11-03 14:00:06 UTC by the chat counterpart through
+     * apply_migration from the boarded commit 1acae24 (board 41568841308),
+     * Robert present to confirm the deletes. Read back: 186 grants, the five
+     * rows gone, admin 4 of 4; schema_migrations version 20261103140006
+     * (issue #1, 6605797441).
+     */
+    production: "2026-11-03",
+    proves: null,
+    provesNote:
+      "A revoke is an ABSENCE, and the production check asks whether a declared row EXISTS, so there is nothing " +
+      "it could probe that would prove this migration ran. The read-back is by name in the sitting: the five " +
+      "(role, action) rows below are gone and admin still holds all four actions. The migration's own closing " +
+      "block raises if either is false.",
+    note:
+      "Five grant rows deleted, so the shape is unchanged from 0104 (0a97717f, 1374 columns) and the fact count " +
+      "falls by five. BRANCH-LOCAL FIGURES: this branch carries 0108 directly on 0104, because 0105, 0106 and 0107 " +
+      "are pending on their own branches; read off scripts/fingerprint-at.mjs on 2026-11-02 as behaviour 6d6bd1ab " +
+      "across 1323 facts. ON THE COMBINED CHAIN 0104, 0105, 0106, 0107, 0108 (replayed the same day in a scratch " +
+      "copy holding the three stage branches' files, with 0104 and 0107 reproducing their recorded pairs) 0108 reads " +
+      "shape 22346b56 across 1396 columns and behaviour 961400e8 across 1354 facts, five fewer than 0107's 1359. " +
+      "When this branch is brought up to a main carrying 0105 to 0107, this entry takes the combined figures.",
+    because:
+      "WRITTEN 2026-11-02 ON feat/permissions-nine-roles AND STAGED ON stage/0108-permissions-nine-roles FOR THE " +
+      "CHAT COUNTERPART'S SITTING; APPLIED NOWHERE. Robert approved P2 on 2026-11-02 (issue #1, comment " +
+      "6567596115) with one addition: engineer loses clients.list; read_only loses pricing.read, billing.read, " +
+      "ledger.read_all and clients.list; every CSV export moves to the admin export gate (option a), per his " +
+      "2026-10-28 ruling owner or admin only. The counterpart read production's eng_role_grants the same day and " +
+      "it matched the posted table. Declared in DEFAULT_ROLES and pinned for all nine roles in roles-audit. Plain " +
+      "DELETEs naming both columns, the shape 0059 reached production in through apply_migration; if the MCP " +
+      "cancels it as destructive, it is run by the operator under docs/production-sitting-destructive.md.",
+  },
 ];
 
 /*
