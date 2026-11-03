@@ -400,6 +400,37 @@ export function stripeProvider(): PaymentProvider {
       }
 
       /*
+       * A CHARGEBACK (Robert's Q8 of 2026-11-02, money audit F10). A lost
+       * dispute returns the money with no charge.refunded event, so without
+       * these the ledger kept a charge with nothing against it and a later
+       * cancellation asked Stripe to refund money already reversed. The
+       * payment intent is what a charge row is recorded under.
+       */
+      if (event.type === "charge.dispute.created" || event.type === "charge.dispute.closed") {
+        const dispute = event.data.object as Stripe.Dispute;
+        const intent =
+          typeof dispute.payment_intent === "string" ? dispute.payment_intent : dispute.payment_intent?.id ?? null;
+        if (event.type === "charge.dispute.created") {
+          return {
+            kind: "charge.dispute.created",
+            eventId: event.id,
+            disputeRef: dispute.id,
+            chargeRef: intent,
+            amountCents: dispute.amount,
+            reason: dispute.reason ?? "unknown",
+          };
+        }
+        return {
+          kind: "charge.dispute.closed",
+          eventId: event.id,
+          disputeRef: dispute.id,
+          chargeRef: intent,
+          amountCents: dispute.amount,
+          outcome: dispute.status ?? "unknown",
+        };
+      }
+
+      /*
        * Everything else. Returned as null rather than falling through, so a new
        * Stripe event type cannot take a branch written for a different one.
        *
@@ -410,7 +441,7 @@ export function stripeProvider(): PaymentProvider {
        * had before it was given a voice.
        */
       console.log(
-        `[stripe] ${event.type} verified and not acted on. This platform handles checkout.session.completed, checkout.session.expired, charge.refunded and charge.refund.updated.`,
+        `[stripe] ${event.type} verified and not acted on. This platform handles checkout.session.completed, checkout.session.expired, charge.refunded, charge.refund.updated, charge.dispute.created and charge.dispute.closed.`,
       );
       return null;
     },
@@ -461,6 +492,9 @@ export async function confirmStripeAccount(event: PaymentEvent): Promise<void> {
     }
     if (event.kind === "charge.refund.updated") {
       return stripe().refunds.retrieve(event.refundRef);
+    }
+    if (event.kind === "charge.dispute.created" || event.kind === "charge.dispute.closed") {
+      return stripe().disputes.retrieve(event.disputeRef);
     }
     return stripe().checkout.sessions.retrieve(event.sessionRef);
   };

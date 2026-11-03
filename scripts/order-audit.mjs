@@ -1394,7 +1394,10 @@ const answerAll = (entry, pick = () => 0) =>
   const recorder = pay.slice(pay.indexOf("export async function recordExternalRefund"));
   rec(
     "the recorder writes the difference rather than the running total",
-    /const delta = input\.refundedToDateCents - alreadyRefunded/.test(recorder),
+    // Robert's Q8 of 2026-11-02 (money audit F10): a lost dispute carries no
+    // running total, so its disputed amount is the delta; every refund still
+    // writes the difference against what is on file.
+    /const delta = input\.lostDispute \? input\.lostDispute\.disputedCents : input\.refundedToDateCents - alreadyRefunded;/.test(recorder),
     "writing the total whole would double the ledger on a second partial refund",
   );
   /*

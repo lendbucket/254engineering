@@ -149,6 +149,30 @@ export type PaymentEvent =
       failureReason: string | null;
     }
   /*
+   * A CHARGEBACK (Robert's Q8 of 2026-11-02, money audit F10). Opened: a staff
+   * task. Closed lost: the disputed amount went back to the customer with no
+   * charge.refunded event, so it is recorded as a refund with its own case.
+   * Closed any other way: nothing to record.
+   */
+  | {
+      kind: "charge.dispute.created";
+      eventId: string;
+      disputeRef: string;
+      /** The payment intent, which is what a charge row is recorded under. Null when Stripe sent none. */
+      chargeRef: string | null;
+      amountCents: number;
+      reason: string;
+    }
+  | {
+      kind: "charge.dispute.closed";
+      eventId: string;
+      disputeRef: string;
+      chargeRef: string | null;
+      amountCents: number;
+      /** won, lost, warning_closed and the rest, as Stripe spells it. Only "lost" records money. */
+      outcome: string;
+    }
+  /*
    * THE PARTNER BILLING LANE (0074, operator ruling 2026-10-11). A partner
    * paying 254 for the program, through the same account and webhook. The
    * adapter decides the lane before it reads anything as an order, and the

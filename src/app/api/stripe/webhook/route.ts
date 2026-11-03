@@ -4,6 +4,7 @@ import {
   markPaid,
   markBatchPaid,
   expireCheckout,
+  noticeDispute,
   recordExternalRefund,
   recordRefundUpdate,
 } from "@/lib/ops-payments";
@@ -320,6 +321,61 @@ async function handle(request: NextRequest): Promise<Response> {
       }`,
     );
 
+    return NextResponse.json({ ok: true, handled: true, duplicate: result.alreadyRecorded });
+  }
+
+  /*
+   * A CHARGEBACK (Robert's Q8 of 2026-11-02, money audit F10). Opened: a staff
+   * task, because the bank holds the money and the firm has a deadline to
+   * answer. Closed lost: the disputed amount went back with no charge.refunded
+   * event, so it is recorded as a refund of its own case (0118), once, keyed on
+   * the dispute. Closed any other way: nothing moved, nothing is written. A
+   * failure answers non 2xx so Stripe sends it again, as every other refusal.
+   */
+  if (parsed.kind === "charge.dispute.created") {
+    const noticed = await noticeDispute({
+      disputeRef: parsed.disputeRef,
+      chargeRef: parsed.chargeRef,
+      amountCents: parsed.amountCents,
+      reason: parsed.reason,
+      provider: provider.name,
+    });
+    if (!noticed.ok) {
+      console.error(`[stripe] dispute ${parsed.disputeRef} could not be raised as a task: ${noticed.error}`);
+      return NextResponse.json({ ok: false, reason: "not recorded" }, { status: 500 });
+    }
+    return NextResponse.json({ ok: true, handled: true });
+  }
+
+  if (parsed.kind === "charge.dispute.closed") {
+    if (parsed.outcome !== "lost") {
+      console.log(`[stripe] dispute ${parsed.disputeRef} closed ${parsed.outcome}: no money moved, nothing written.`);
+      return NextResponse.json({ ok: true, handled: false });
+    }
+    if (!parsed.chargeRef) {
+      console.error(`[stripe] lost dispute ${parsed.disputeRef} carried no payment_intent, so there is no charge on file to attach it to.`);
+      return NextResponse.json({ ok: false, reason: "no charge on file" }, { status: 409 });
+    }
+    const result = await recordExternalRefund({
+      eventId: parsed.eventId,
+      chargeRef: parsed.chargeRef,
+      refundRef: parsed.disputeRef,
+      refundedToDateCents: 0,
+      provider: provider.name,
+      lostDispute: { disputedCents: parsed.amountCents },
+    });
+    if (!result.ok) {
+      console.error(`[stripe] lost dispute ${parsed.disputeRef} could not be recorded: ${result.error}`);
+      return NextResponse.json(
+        { ok: false, reason: result.noCharge ? "no charge on file" : "not recorded" },
+        { status: result.noCharge ? 409 : 500 },
+      );
+    }
+    console.log(
+      `[stripe] lost dispute ${parsed.disputeRef} on ${parsed.chargeRef}: ${
+        result.alreadyRecorded ? "already on file, nothing written" : `recorded ${result.recordedCents} cents`
+      }`,
+    );
     return NextResponse.json({ ok: true, handled: true, duplicate: result.alreadyRecorded });
   }
 

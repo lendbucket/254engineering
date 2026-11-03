@@ -1748,6 +1748,13 @@ export async function recordExternalRefund(input: {
   /** CUMULATIVE refunds on the charge, from which the delta is derived. */
   refundedToDateCents: number;
   provider: string;
+  /*
+   * A LOST DISPUTE (Robert's Q8 of 2026-11-02, money audit F10, 0118). Stripe
+   * sends no cumulative figure for it: the disputed amount is the money that
+   * went back, so it is the delta itself, and the row is written as
+   * dispute_lost under charge.dispute.closed. refundedToDateCents is ignored.
+   */
+  lostDispute?: { disputedCents: number };
 }): Promise<
   | { ok: true; alreadyRecorded: boolean; recordedCents?: number }
   | { ok: false; error: string; noCharge?: true }
@@ -1824,7 +1831,7 @@ export async function recordExternalRefund(input: {
   if (priorError) return { ok: false, error: `The refunds already on file could not be read: ${priorError.message}` };
 
   const alreadyRefunded = (priorRefunds ?? []).reduce((n, r) => n + Number(r.amount_cents), 0);
-  const delta = input.refundedToDateCents - alreadyRefunded;
+  const delta = input.lostDispute ? input.lostDispute.disputedCents : input.refundedToDateCents - alreadyRefunded;
   const orderId = subject("order_id");
 
   /*
@@ -1853,7 +1860,7 @@ export async function recordExternalRefund(input: {
    */
   let markRefunded = false;
   let expectedOrderStatus: string | null = null;
-  if (orderId && delta > 0 && input.refundedToDateCents >= Number(charge.amount_cents)) {
+  if (orderId && delta > 0 && alreadyRefunded + delta >= Number(charge.amount_cents)) {
     const { data: order, error: orderError } = await db
       .from("eng_service_orders")
       .select("status")
@@ -1890,10 +1897,15 @@ export async function recordExternalRefund(input: {
       reverses_id: r.reversesId,
       audit_summary: `${money(r.amountCents)}: ${r.explanation}`,
     })),
-    refund_summary: `${money(delta)} was refunded to your card.`,
+    ...(input.lostDispute ? { refund_case: "dispute_lost", event_type: "charge.dispute.closed" } : {}),
+    refund_summary: input.lostDispute
+      ? `${money(delta)} went back to your card through a dispute with your bank.`
+      : `${money(delta)} was refunded to your card.`,
     mark_refunded: markRefunded,
     expected_order_status: expectedOrderStatus,
-    audit_summary: `${money(Math.max(delta, 0))} refunded outside the platform, recorded from ${input.refundRef}${subjectNote}`,
+    audit_summary: input.lostDispute
+      ? `${money(Math.max(delta, 0))} returned to the customer by a lost dispute, recorded from ${input.refundRef}${subjectNote}`
+      : `${money(Math.max(delta, 0))} refunded outside the platform, recorded from ${input.refundRef}${subjectNote}`,
   });
   if (!applied.ok) return applied;
 
@@ -2039,6 +2051,42 @@ async function orderForCharge(provider: string, chargeRef: string): Promise<stri
 async function raiseRefundTask(task: { key: string; title: string; description: string }): Promise<void> {
   const raised = await raiseSystemTask(task);
   if (!raised.ok) console.error(`[payments] the refund task ${task.key} could not be raised: ${raised.error}`);
+}
+
+/*
+ * A CHARGEBACK WAS OPENED. Robert's ruling Q8 of 2026-11-02 (money audit F10).
+ * The bank holds the disputed money and the firm has a deadline to answer it,
+ * so it is a person's job: a staff task naming the order, keyed on the dispute
+ * so a resent event finds the first. Nothing moves in the ledger until the
+ * dispute closes; a lost one is recorded by recordExternalRefund.
+ *
+ * Answers whether the task was raised, so the webhook can ask Stripe to send
+ * the event again when it was not.
+ */
+export async function noticeDispute(input: {
+  disputeRef: string;
+  chargeRef: string | null;
+  amountCents: number;
+  reason: string;
+  provider: string;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  const orderId = input.chargeRef ? await orderForCharge(input.provider, input.chargeRef) : null;
+  let reference: string | null = null;
+  if (orderId) {
+    const db = supabaseAdmin();
+    const { data } = db ? await db.from("eng_service_orders").select("reference").eq("id", orderId).maybeSingle() : { data: null };
+    reference = (data?.reference as string | undefined) ?? null;
+  }
+  const subject = reference ?? (input.chargeRef ? `the charge ${input.chargeRef}` : `dispute ${input.disputeRef}`);
+  const raised = await raiseSystemTask({
+    key: `dispute:${input.disputeRef}`,
+    title: `${subject}: a chargeback of ${money(input.amountCents)} was opened`,
+    description:
+      `The customer's bank opened dispute ${input.disputeRef} for ${money(input.amountCents)}` +
+      `${input.chargeRef ? ` on ${input.chargeRef}` : ""}, reason ${input.reason}. ` +
+      `Answer it in the Stripe dashboard before its deadline. If it is lost, the money is recorded as returned when Stripe says so.`,
+  });
+  return raised.ok ? { ok: true } : { ok: false, error: raised.error };
 }
 
 export type RefundFailedAfterRefunded = {
