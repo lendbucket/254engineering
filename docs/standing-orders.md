@@ -85,6 +85,16 @@ The source of truth for the running loop. Robert, 2026-10-29: the loop prompt is
 | m | **Merged as `cd09409`** (board 41381816477, every line met). Production check posted (6569169362): LCP unchanged, TBT +1 to +6 ms inside variance, not reverted. Was: GA4, `feat/ga4` `c30be50`. Bundle 61 on `a01eb49` met every line. **Robert: Q1 yes; Q2 no repository variable, merge on a green board without the tag; after the production deploy, three production runs each on `/`, `/coverage/coastal-bend`, `/services/windstorm-wpi-8`, LCP and TBT posted beside today's; revert GA4 and tell him if either worsens beyond variance.** Queue after m: g, d, c, j, then k only if the PDFs arrive |
 | truss letter, "5 year roof certification" | Parked by Robert, do not build |
 
+## ROBERT'S ANSWERS, 2026-11-03 morning (relayed in session). Verbatim.
+
+"Q9: bucket per audit on development only. The key comes from the harness, never from a request. Production keeps one bucket per address, unchanged. When Q9 merges, revert 2ad0d95 in the same merge.
+Q8 order: 0118 boards after M2, accepted.
+Q8c: I registered charge.dispute.created and charge.dispute.closed on the live endpoint, go ahead. (only after you actually add them in Stripe)
+Review-request proof: seal one fixture file once and reuse it.
+F9: yes, template v1.1, I will have Aman re-sign MH-001 and SL-001."
+
+**How it reads.** Q9 is unparked: build the per audit bucket (development only, keyed by the harness, production unchanged), re-board Q9, and revert `2ad0d95` in Q9's merge. Q8b stays after M2. Q8c: `src/config/stripe-webhook.ts` is updated to the two events as a dated record of Robert's word; the parenthetical is read as the condition that they are actually on the endpoint, confirmed back to him before Q8c boards. The review-request proof's fixture changes to one sealed file reused across runs. F9 is unparked: template v1.1 with the protocol line, the engineer re-signs 254-MH-001 and 254-SL-001; until he does, letters seal as today.
+
 ## OVERNIGHT RULING (Robert, 2026-11-02), GOVERNS TONIGHT. Verbatim.
 
 "Run until everything below is merged or parked, then post the morning report and stop. Follow docs/standing-orders.md. Record this on ops/day first.
