@@ -1276,6 +1276,20 @@ export async function destroyProbes(label = "audit") {
    * verification was looking at profiles where the failure does not show.
    */
   const refusals = [];
+  /*
+   * PROBE ONBOARDINGS AND APPLICATIONS GO FIRST. Robert's ruling P1,
+   * 2026-11-01, migration 0105: the profile that recorded an identity or I-9
+   * verification is a restricting foreign key on eng_onboardings, so a probe
+   * onboarding left by a crashed onboarding-walk-audit would refuse the
+   * deletion of the administrator probe that verified it, in every audit's
+   * sweep. Swept by the probe domain, like everything else here: only a run on
+   * development makes an onboarding at that address. A refusal is said, never
+   * swallowed.
+   */
+  for (const table of ["eng_onboardings", "eng_applications"]) {
+    const { error } = await d.from(table).delete().like("email", `%@${PROBE_DOMAIN}`);
+    if (error) refusals.push(`${table}: ${error.message ?? error}`);
+  }
   for (const id of ids) {
     await d.from("eng_auth_tokens").delete().eq("profile_id", id);
     await d.from("eng_profiles").delete().eq("id", id);

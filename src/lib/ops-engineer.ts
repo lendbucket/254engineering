@@ -22,6 +22,7 @@ import { effectModeFor } from "./fixture-identity";
 import { addendumRequired, deliverableKey, linePayFor } from "./line-addendum";
 import { REVIEW_AFTER_DECISION, reviewAfterDecisionKey, type ReviewAfterDecisionPayload } from "./review-jobs";
 import { readEvery, readEveryIn } from "./bounded-read";
+import { duplicatePhotoCheck, type DuplicateCheck } from "./evidence-fingerprint";
 import {
   ACTION_LABEL,
   ACTION_TARGET,
@@ -300,6 +301,8 @@ export type PackageView = {
   blockers: string[];
   session: { id: string; startedAt: string; minutesSoFar: number } | null;
   technician: { id: string; name: string } | null;
+  /** Robert's ruling P5: the no duplicate photos check, or null when its read failed (said, never a pass). */
+  duplicates: DuplicateCheck | null;
 };
 
 /**
@@ -413,8 +416,28 @@ export async function packageFor(actor: Actor | null, fileId: string): Promise<P
     if (tech) technician = { id: tech.id as string, name: tech.display_name as string };
   }
 
+  /*
+   * THE FINGERPRINTS, IN A READ OF THEIR OWN (P5, 0107). Kept out of jobView's
+   * capture read on purpose, so a failure here costs the engineer one line on
+   * the screen rather than the whole package. A failed read is null, which the
+   * screen says, never a pass.
+   */
+  const hashRead = await readEvery<{ id: string; content_sha256: string | null }>((from, to) =>
+    db.from("eng_evidence_items").select("id, content_sha256").eq("file_id", fileId).order("id", { ascending: true }).range(from, to),
+  );
+  if (!hashRead.ok) console.error(`[engineer] could not read the evidence fingerprints for ${fileId}: ${hashRead.error}`);
+  const hashOf = new Map((hashRead.ok ? hashRead.rows : []).map((r) => [r.id, r.content_sha256 ?? null]));
+  const duplicates = !hashRead.ok
+    ? null
+    : duplicatePhotoCheck(
+        items.flatMap((item) =>
+          item.captures.map((c) => ({ id: c.id, itemKey: item.itemKey, label: item.label, kind: item.kind, sha256: hashOf.get(c.id) ?? null })),
+        ),
+      );
+
   return {
     file: file as PackageView["file"],
+    duplicates,
     protocolName: view.protocol ? `${view.protocol.name} v${view.protocol.version}` : null,
     protocolDocument: view.protocol?.document_number ?? null,
     protocolStatus: view.protocol?.status ?? null,
