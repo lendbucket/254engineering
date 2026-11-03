@@ -349,7 +349,7 @@ export function TaskRowControls({
                 setBusy(false);
               }
             }}
-            className="min-h-[44px] rounded-[var(--radius-control)] border border-[var(--border-strong)] bg-white px-2 text-[14px] text-[var(--ink)]"
+            className="min-h-[44px] min-w-0 max-w-full rounded-[var(--radius-control)] border border-[var(--border-strong)] bg-white px-2 text-[14px] text-[var(--ink)]"
           >
             <option value="">Unassigned</option>
             {people.map((p) => (

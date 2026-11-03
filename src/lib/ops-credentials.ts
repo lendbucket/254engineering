@@ -426,10 +426,44 @@ export type Readiness = {
  * Coverage counties are checked because a technician with none is invisible to
  * every dispatch query and would sit in the roster looking available forever.
  */
+/*
+ * WHICH ROLES NEED COVERAGE COUNTIES TO ACTIVATE, AND THE SCREEN READS THE SAME
+ * LIST. Robert's ruling P1, 2026-11-01: "the coverage form renders for every
+ * role readiness requires counties for." Until then readiness required
+ * counties of every role while the form rendered for technicians only, so no
+ * engineer could ever be activated, and createAccount drops counties for an
+ * engineer anyway: dispatch matches technicians to counties, not engineers. So
+ * the list is the technician alone, and /portal/onboarding renders the form for
+ * exactly the roles named here.
+ */
+export const COVERAGE_REQUIRED_ROLES: readonly string[] = ["field_tech"];
+
+/*
+ * WHAT AN ENGINEER MUST HAVE ACCEPTED, beside the operator items. His license
+ * is not a dispatch credential (REQUIRED_FOR_DISPATCH is the technician's), so
+ * the loop below never asked for it; activation now records his license number
+ * and its expiry (P1), and the expiry comes from this item.
+ */
+export const REQUIRED_ITEMS_BY_ROLE: Record<string, string[]> = { engineer: ["pe_license_card"] };
+
+/**
+ * Why a Texas PE license number cannot be recorded, or null. Digits only, as
+ * TBPELS issues them, four to seven of them; nothing else is guessed about it.
+ * The number is a public record and is checked by the operator against the
+ * roster entry or card he accepted, never derived from it.
+ */
+export function licenceNumberProblem(value: string | null | undefined): string | null {
+  const v = (value ?? "").trim();
+  if (!v) return "Type the engineer's Texas PE license number, from the license you accepted.";
+  if (!/^\d{4,7}$/.test(v)) return "A Texas PE license number is digits only, as TBPELS prints it.";
+  return null;
+}
+
 export function activationReadiness(
   items: OnboardingItemView[],
   coverageCounties: string[],
   now: Date = new Date(),
+  role: string = "field_tech",
 ): Readiness {
   const blockers: string[] = [];
   const missingExpiry: string[] = [];
@@ -466,12 +500,29 @@ export function activationReadiness(
     }
   }
 
+  for (const itemKey of REQUIRED_ITEMS_BY_ROLE[role] ?? []) {
+    const item = items.find((i) => i.itemKey === itemKey);
+    const mapping = CREDENTIAL_OF_ITEM[itemKey];
+    if (!item) {
+      if (items.length) blockers.push(`This checklist has no ${itemKey.replace(/_/g, " ")} item, which this role needs before it can be activated.`);
+      continue;
+    }
+    if (item.status !== "accepted") {
+      blockers.push(`${item.label} has not been accepted yet.`);
+    } else if (mapping?.expires && !item.expiresOn) {
+      missingExpiry.push(item.label);
+      blockers.push(`${item.label} is accepted but has no expiry date recorded.`);
+    } else if (mapping?.expires && expiryState(item.expiresOn, now) === "expired") {
+      blockers.push(`${item.label} expired on ${item.expiresOn}.`);
+    }
+  }
+
   const outstanding = items.filter((i) => i.actor === "admin" && i.status !== "accepted");
   for (const item of outstanding) {
     blockers.push(`${item.label} is still outstanding on the operator's side.`);
   }
 
-  if (coverageCounties.length === 0) {
+  if (COVERAGE_REQUIRED_ROLES.includes(role) && coverageCounties.length === 0) {
     blockers.push(
       "No coverage counties set. A technician with none is offered nothing and would sit in the roster looking available.",
     );

@@ -54,8 +54,16 @@ import { useState } from "react";
 export function EnrolForm({
   required,
   declineTo,
+  replacing = false,
 }: {
   required: boolean;
+  /**
+   * This account already has a verified factor, so the new one replaces it,
+   * and the server refuses that without a code from the factor in place or the
+   * password (Q10, auth M1). Decided by the server from the session and the
+   * enrolment row.
+   */
+  replacing?: boolean;
   /**
    * Where "Not now" goes, or null when there is nowhere to decline to. Decided
    * by the server from the session, never from a prop the client could invent:
@@ -69,6 +77,7 @@ export function EnrolForm({
   /* The SVG, rendered by the server. This component never sees the encoder. */
   const [qr, setQr] = useState<string | null>(null);
   const [code, setCode] = useState("");
+  const [proof, setProof] = useState("");
   const [codes, setCodes] = useState<string[] | null>(null);
   const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -184,7 +193,7 @@ export function EnrolForm({
         onSubmit={async (e) => {
           e.preventDefault();
           if (busy) return;
-          const data = await post({ action: "confirm", code });
+          const data = await post(replacing ? { action: "confirm", code, proof } : { action: "confirm", code });
           if (data) {
             setCodes(data.recoveryCodes as string[]);
             setCompletion(typeof data.completion === "string" ? data.completion : null);
@@ -249,6 +258,31 @@ export function EnrolForm({
             className="min-h-[var(--tap-target)] rounded-[var(--radius-control)] border border-[var(--border)] px-3 text-[15px] text-[var(--navy)]"
           />
         </label>
+
+        {/*
+          REPLACING A FACTOR, Q10 (auth M1): the server refuses the confirm
+          without a code from the authenticator in use now, or the password.
+          One field takes either: six digits are read as a code, anything else
+          as the password.
+        */}
+        {replacing ? (
+          <label className="flex flex-col gap-1.5">
+            <span className="text-[13px] font-semibold text-[var(--navy)]">
+              A code from the app you use now, or your password
+            </span>
+            <span className="text-[13px] leading-[1.5] text-[var(--secondary)]">
+              This account already has a second factor. Replacing it needs the one in place or your password.
+            </span>
+            <input
+              value={proof}
+              onChange={(e) => setProof(e.target.value)}
+              type="password"
+              autoComplete="current-password"
+              required
+              className="min-h-[var(--tap-target)] rounded-[var(--radius-control)] border border-[var(--border)] px-3 text-[15px] text-[var(--navy)]"
+            />
+          </label>
+        ) : null}
 
         {error ? (
           <p

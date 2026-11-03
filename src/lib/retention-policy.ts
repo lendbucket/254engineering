@@ -189,6 +189,28 @@ const RESTRICTED = (what: string) =>
  * where a new table belongs.
  */
 export const RETENTION_POLICY: RetentionEntry[] = [
+  {
+    table: "eng_academy_attempts",
+    rule: {
+      kind: "kept_forever",
+      because:
+        REFUSES_DELETE("eng_forbid_mutation_allow_cascade") +
+        " EVERY QUIZ ATTEMPT IN THE TECHNICIAN TRAINING ACADEMY, against the approval of the exact course it was taken on. " +
+        "Whether a technician had graduated when they were enrolled is answered from it. It goes only when its onboarding does.",
+      ruledBy: "Robert's ruling P3 of 2026-11-01 (every attempt recorded), and the trigger in 0106",
+    },
+  },
+  {
+    table: "eng_academy_course_approvals",
+    rule: {
+      kind: "kept_forever",
+      because:
+        REFUSES_DELETE("eng_forbid_mutation") +
+        " WHO APPROVED EXACTLY WHICH CONTENT OF A TRAINING COURSE: the engineer of record for the protocol course, the owner for " +
+        "the safety course. Every attempt references one, so it is the record a graduation rests on.",
+      ruledBy: "Robert's ruling P3 of 2026-11-01 (nothing graduated against a draft), and the trigger in 0106",
+    },
+  },
   { table: "eng_account_api_keys", rule: { kind: "kept_pending_counsel", because: COUNSEL } },
   {
     table: "eng_account_api_requests",

@@ -51,10 +51,11 @@ check("and no longer says search and paging are not built", !/Search and paging 
 
 /* The CSV: every matching client or no file. */
 const exp = readFileSync("src/app/api/portal/clients/export/route.ts", "utf8");
-check("the export reads the screen's own query and asks the screen's grant", /clientListQuery\(\{ q: params\.q, kind: params\.kind, sort: params\.sort, dir: params\.dir \}\)/.test(exp) && /can\(actor, "clients\.list"\)/.test(exp));
+/* `can(actor, "clients.list")` until 2026-11-02; mayExport asks the screen's grant AND the administrator's export gate since Robert's P2 approval (option a). */
+check("the export reads the screen's own query and asks the screen's grant through the export gate", /clientListQuery\(\{ q: params\.q, kind: params\.kind, sort: params\.sort, dir: params\.dir \}\)/.test(exp) && /if \(!mayExport\(actor, "clients\.list"\)\)/.test(exp));
 check("it reads every page and refuses unless the rows equal the exact count", /for \(let offset = 0; offset < total; offset \+= PAGE\)/.test(exp) && /if \(rows\.length !== total\) \{\s*return bad\(/.test(exp));
 check("an uncounted total makes no file rather than an empty one", /if \(total === null\) return bad\(/.test(exp));
-check("the screen offers it with its own search, kind and sort", /csvHref=\{listHref\("\/api\/portal\/clients\/export", \{ q: params\.q, kind: params\.kind, sort: params\.sort, dir: params\.dir \}, \{\}\)\}/.test(page));
+check("the screen offers it with its own search, kind and sort, to the export gate only", /csvHref=\{mayExport\(actor, "clients\.list"\) \? listHref\("\/api\/portal\/clients\/export", \{ q: params\.q, kind: params\.kind, sort: params\.sort, dir: params\.dir \}, \{\}\) : undefined\}/.test(page));
 check("and security-audit declares the route", /"\/api\/portal\/clients\/export",/.test(readFileSync("scripts/security-audit.mjs", "utf8")));
 
 console.log("");

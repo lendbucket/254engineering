@@ -213,7 +213,13 @@ export const DASHBOARD_FOR_ROLE = {
   dispatcher: "dispatcher",
   sales: "sales",
   customer_service: "customer_service",
-  read_only: "admin",
+  /*
+   * "admin" until 2026-11-02: read_only was served the administrator's
+   * dashboard because its grants named the firm's money. P2 took
+   * pricing.read, billing.read and ledger.read_all from it (0108), so it has
+   * its own dashboard with no money field (ReadOnlyDashboard).
+   */
+  read_only: "read_only",
   /* The two staff levels share the desk (staff-desk.ts, 2026-10-20). */
   rep: "desk",
   ops_manager: "desk",

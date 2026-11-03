@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { Container } from "@/components/ui/Container";
 import { OnboardingFlow } from "@/components/onboarding/OnboardingFlow";
 import { findByToken, itemsFor } from "@/lib/onboarding";
-import { checklistFor, ROLE_LABELS } from "@/content/onboarding-checklists";
+import { checklistFor, firmItemLabels, ROLE_LABELS } from "@/content/onboarding-checklists";
 import { business } from "@/config/business";
 
 /**
@@ -79,8 +80,8 @@ export default async function OnboardingPage({
             </p>
             <p className="mt-6 text-[0.98rem] leading-[1.7] text-slate-fg-muted">
               You are never asked to type a social security, account, or routing
-              number into this site. Where a form involves one, you upload the
-              completed document and nothing is read out of it.
+              number into this site. Tax and pay paperwork is completed in Gusto,
+              not here, and no copy of an ID or an I-9 is kept on this site.
             </p>
           </div>
         </Container>
@@ -90,6 +91,7 @@ export default async function OnboardingPage({
         token={token}
         role={onboarding.role}
         status={onboarding.status}
+        firmItems={firmItemLabels(onboarding.role)}
         items={personRows.map((r) => ({
           key: r.item_key,
           label: r.label,
@@ -108,6 +110,25 @@ export default async function OnboardingPage({
             acknowledgeOnly: d.acknowledgeOnly,
           }))}
       />
+      {/* The training courses, Robert's ruling P3 of 2026-11-01: a field technician graduates from both before enrollment. */}
+      {onboarding.role === "field_tech" ? (
+        <section className="border-b border-limestone-line">
+          <Container>
+            <div className="max-w-3xl py-12">
+              <p className="text-[0.98rem] leading-[1.75] text-slate">
+                Beside these documents there are two short training courses to finish before the firm can enroll you.{" "}
+                <Link
+                  href={`/onboarding/${token}/training`}
+                  className="font-medium text-slate underline decoration-brass underline-offset-4 transition-colors hover:text-brass-ink"
+                >
+                  Open your training courses
+                </Link>
+                .
+              </p>
+            </div>
+          </Container>
+        </section>
+      ) : null}
       {/* The support contact. Inside the page rather than in a second footer:
           the root layout already renders one, and this needs to sit with the
           flow rather than under the site's regulatory band. */}

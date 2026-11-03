@@ -17,6 +17,7 @@ import { accrueForDelivery, accrueForQualifiedLead } from "./ops-partner-comp";
 import { scheduleReviewRequest } from "./review-request";
 import { resolveCounty, twiaStatus, regionForCounty } from "./ops-counties";
 import { dueForToday } from "./turnaround-target";
+import { leavesDispatchWithOffers } from "./evidence-capture-rules";
 
 /**
  * Reads and writes for clients, contacts, and files.
@@ -904,6 +905,27 @@ export async function transitionFile(
 
   const { error } = await db.from("eng_files").update(patch).eq("id", id).eq("status", current.status);
   if (error) return { ok: false, error: error.message };
+
+  /*
+   * A FILE THAT STOPS WAITING FOR A TECHNICIAN TAKES ITS OPEN OFFERS WITH IT.
+   * Robert's ruling Q3 of 2026-11-02 (audit field F7). Offers were withdrawn
+   * only when another technician accepted, when the office released, and in
+   * the review decision, so a file cancelled from needs_dispatch left its
+   * offers live for the next morning. Any move out of needs_dispatch except
+   * dispatched itself (which acceptOffer makes, after withdrawing the others)
+   * withdraws them. A failed withdrawal is said, not hidden: acceptOffer
+   * refuses a file that is not waiting in any case.
+   */
+  if (leavesDispatchWithOffers(current.status, to)) {
+    const { error: withdrawError } = await db
+      .from("eng_assignments")
+      .update({ state: "withdrawn", responded_at: DB_NOW })
+      .eq("file_id", id)
+      .eq("state", "offered");
+    if (withdrawError) {
+      console.error(`[transitionFile] ${current.file_number} left needs_dispatch and its open offers could not be withdrawn: ${withdrawError.message}`);
+    }
+  }
 
   await db.from("eng_file_events").insert({
     file_id: id,
