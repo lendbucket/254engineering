@@ -125,7 +125,8 @@ async function handlePOST(request: NextRequest) {
 
   await clearLoginAttempts(clientKey(request.headers), attempted);
 
-  const session = issuePartnerSession(result.principal.id, result.principal.partnerId);
+  /* Under the user's current session epoch, auth M2 (Robert, 2026-11-02): currentPartner refuses any other. */
+  const session = issuePartnerSession(result.principal.id, result.principal.partnerId, Date.now(), result.principal.sessionEpoch);
   if (!session) return fail(503, "The partner program is not configured.");
 
   await writeAudit({

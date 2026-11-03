@@ -168,7 +168,8 @@ withEnv(
     const forgeWithMarker = (marker) => {
       const key = createHmac("sha256", PARTNER_SECRET).update("eng-partner-session-v1").digest();
       const exp = Math.floor(Date.now() / 1000) + 3600;
-      const payload = `${UUID_A}.${UUID_B}.${marker}.${exp}`;
+      /* Six fields since auth M2 (2026-11-02): sub.partner.p.epoch.exp.mac, so the length check passes and only the marker can refuse. */
+      const payload = `${UUID_A}.${UUID_B}.${marker}.0.${exp}`;
       return `${payload}.${createHmac("sha256", key).update(payload).digest("base64url")}`;
     };
 
@@ -197,8 +198,16 @@ withEnv(
      */
     const wrongKey = createHmac("sha256", CUS_SECRET).update("eng-customer-session-v1").digest();
     const exp = Math.floor(Date.now() / 1000) + 3600;
-    const payload = `${UUID_A}.${UUID_B}.p.${exp}`;
+    /* The six field shape of auth M2, so shape and length really are correct and only the key can refuse. */
+    const payload = `${UUID_A}.${UUID_B}.p.0.${exp}`;
     const crossSigned = `${payload}.${createHmac("sha256", wrongKey).update(payload).digest("base64url")}`;
+    rec(
+      "and the same payload signed with the partner key is accepted, so the refusal above is the key's",
+      (() => {
+        const rightKey = createHmac("sha256", PARTNER_SECRET).update("eng-partner-session-v1").digest();
+        return readPartnerSession(`${payload}.${createHmac("sha256", rightKey).update(payload).digest("base64url")}`)?.partner === UUID_B;
+      })(),
+    );
     rec(
       "a partner shaped payload signed with the customer key is refused",
       readPartnerSession(crossSigned) === null,
@@ -308,7 +317,7 @@ withEnv({ PARTNER_SESSION_SECRET: undefined }, () => {
   rec("and no partner session can be issued", issuePartnerSession(UUID_A, UUID_B) === null);
   rec(
     "and an unset partner secret is a closed door",
-    readPartnerSession("anything.at.p.all.here") === null,
+    readPartnerSession("anything.at.p.0.all.here") === null,
     "the failure mode of a missing secret is a closed door, never an open one",
   );
 });

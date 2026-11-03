@@ -380,9 +380,15 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * columns of eng_crm_attributions; the table count moves 117 to 118; one
  * trigger, no function; shape 4baf42d188f691ea5dee5ed9053e17d1, read off
  * fingerprint-at.mjs.
+ *
+ * Moved again by 0117, a session ends when its epoch moves, by auth M2 (Robert,
+ * issue #1, option A, rollout 1): 1,527 to 1,530 is session_epoch on
+ * eng_profiles, eng_customer_users and eng_partner_users; the table count stays
+ * 118; no trigger, no function; shape 4b7c3c896a64fcdc2dc11e275e09145d, read
+ * off fingerprint-at.mjs.
  */
-const EXPECTED_FINGERPRINT = "4baf42d188f691ea5dee5ed9053e17d1";
-const EXPECTED_COLUMNS = 1527;
+const EXPECTED_FINGERPRINT = "4b7c3c896a64fcdc2dc11e275e09145d";
+const EXPECTED_COLUMNS = 1530;
 const EXPECTED_TABLES = 118;
 /* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts.
  * 0074 adds two: eng_partner_billing_touch and eng_partner_billing_events_immutable.

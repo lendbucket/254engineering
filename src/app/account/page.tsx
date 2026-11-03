@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Wordmark } from "@/components/brand/Wordmark";
 import { registrationLine } from "@/lib/launch";
 import { SignOutButton } from "./SignOutButton";
+import { SignOutEverywhereButton } from "./SignOutEverywhereButton";
 
 export const dynamic = "force-dynamic";
 
@@ -132,6 +133,18 @@ export default async function AccountHomePage() {
           >
             Open settings
           </Link>
+        </section>
+
+        {/* Auth M2 (Robert, 2026-11-02): ends every session on every device, this one included. */}
+        <section className="mt-11">
+          <h2 className="border-b-2 border-[var(--color-ink)] pb-3 text-[17px] font-semibold text-[var(--color-ink)]">
+            Sessions
+          </h2>
+          <p className="mt-2 text-[15px] leading-[1.65] text-[var(--color-ink-quiet)]">
+            For a phone left somewhere or a device you no longer use. This signs you out on every
+            device, this one included, and setting a new password does the same.
+          </p>
+          <SignOutEverywhereButton />
         </section>
 
         {me.account.billingMode === "invoice" ? (

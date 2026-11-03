@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { cookies } from "next/headers";
-import { signInCustomer, issueCustomerSession } from "@/lib/customer-auth";
+import { signInCustomer, issueCustomerSession, currentCustomer, signOutCustomerEverywhere } from "@/lib/customer-auth";
 import { CUSTOMER_COOKIE, customerCookieOptions } from "@/lib/customer-session";
 import { writeAudit } from "@/lib/ops-audit";
 import { takeLoginAttempt, clearLoginAttempts, clientKey } from "@/lib/ops-rate-limit";
@@ -59,7 +59,8 @@ async function handlePOST(request: NextRequest) {
 
   await clearLoginAttempts(clientKey(request.headers), attempted);
 
-  const session = issueCustomerSession(result.principal.id, result.principal.accountId);
+  /* Under the user's current session epoch, auth M2 (Robert, 2026-11-02): currentCustomer refuses any other. */
+  const session = issueCustomerSession(result.principal.id, result.principal.accountId, Date.now(), result.principal.sessionEpoch);
   if (!session) {
     return NextResponse.json(
       { ok: false, error: "Accounts are not available on this deployment." },
@@ -90,8 +91,37 @@ async function handlePOST(request: NextRequest) {
   return NextResponse.json({ ok: true, redirect: "/account" });
 }
 
-async function handleDELETE() {
+/**
+ * Sign out. With `?scope=everywhere`, "sign out everywhere" (auth M2, Robert,
+ * 2026-11-02): the user's session epoch moves, so every cookie they hold on any
+ * device ends at its next request, this one included. A failed bump is said,
+ * and this cookie is still cleared.
+ */
+async function handleDELETE(request: NextRequest) {
   const jar = await cookies();
+  if (request.nextUrl.searchParams.get("scope") === "everywhere") {
+    const me = await currentCustomer();
+    if (!me) {
+      jar.set(CUSTOMER_COOKIE, "", customerCookieOptions());
+      return NextResponse.json({ ok: false, error: "Not signed in." }, { status: 401 });
+    }
+    const ended = await signOutCustomerEverywhere(me.id);
+    jar.set(CUSTOMER_COOKIE, "", customerCookieOptions());
+    if (!ended.ok) {
+      return NextResponse.json(
+        { ok: false, error: `You are signed out here, but your other sessions could not be ended: ${ended.error}` },
+        { status: 503 },
+      );
+    }
+    await writeAudit({
+      actor: { id: null, role: "customer" as never, email: me.email },
+      action: "customer.signed_out_everywhere",
+      entityType: "customer_account",
+      entityId: me.accountId,
+      summary: `${me.displayName} signed out of every session`,
+    });
+    return NextResponse.json({ ok: true, redirect: "/account/login" });
+  }
   jar.set(CUSTOMER_COOKIE, "", customerCookieOptions());
   return NextResponse.json({ ok: true, redirect: "/account/login" });
 }

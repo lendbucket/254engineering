@@ -4267,6 +4267,22 @@ export const APPLIED = [
       "SITTING; APPLIED NOWHERE. Robert's sales CRM ruling of 2026-11-02, item R8: the attribution chain prospect to " +
       "account to order, written on conversion and on each order. Additive: one append only table.",
   },
+  {
+    file: "0117_a_session_ends_when_its_epoch_moves.sql", appliedBy: "apply_migration",
+    fingerprint: "4b7c3c896a64fcdc2dc11e275e09145d",
+    behaviour: "cd52446b84ac7e01df825e9eeae53381",
+    production: null,
+    proves: { column: { table: "eng_profiles", name: "session_epoch" } },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-02 on the combined chain 0104 to 0117. Shape 1527 " +
+      "to 1530 columns: session_epoch on eng_profiles, eng_customer_users and eng_partner_users; tables 118 unchanged. " +
+      "Behaviour unchanged at 1515 facts: three columns with a default add no key, check, index, trigger or function.",
+    because:
+      "WRITTEN 2026-11-02 ON fix/m2-session-epoch AND STAGED ON stage/0117-session-epoch FOR THE CHAT COUNTERPART'S " +
+      "SITTING; APPLIED NOWHERE. Auth M2, Robert's ruling on issue #1 (answer to 6586517364), option A, rollout 1: " +
+      "each session cookie carries the epoch it was issued under and is refused when the row's has moved. Additive: " +
+      "three columns, integer not null default 0.",
+  },
 ];
 
 /*

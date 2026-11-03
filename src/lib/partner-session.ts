@@ -1,5 +1,6 @@
 import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { parseEpochSegment, validEpoch } from "./session-epoch-rules";
 
 /**
  * The partner session cookie. The THIRD principal on this platform.
@@ -69,6 +70,8 @@ export type PartnerClaims = {
   /** eng_partners.id */
   partner: string;
   exp: number;
+  /** The session epoch it was issued under (auth M2, 0117); currentPartner compares it with the user's. */
+  epoch: number;
 };
 
 function signingKey(): Buffer | null {
@@ -111,15 +114,24 @@ function sign(payload: string, key: Buffer): string {
  */
 const MARKER = "p";
 
+/*
+ * FIVE SEGMENTS BECOME SIX. Auth M2, Robert's ruling of 2026-11-02 (option A,
+ * rollout 1): `sub.partner.p.epoch.exp.mac`. currentPartner refuses a cookie
+ * whose epoch is not the user's, so a password set ends every earlier session;
+ * a five segment cookie is refused rather than read as epoch 0. A staff cookie
+ * is also six segments, and its third is "full" or "pending", never the marker.
+ */
 export function issuePartnerSession(
   sub: string,
   partner: string,
   now: number = Date.now(),
+  epoch: number = 0,
 ): { value: string; expiresAt: Date } | null {
   const key = signingKey();
   if (!key) return null;
+  if (!validEpoch(epoch)) return null;
   const exp = Math.floor(now / 1000) + TTL_SECONDS;
-  const payload = `${sub}.${partner}.${MARKER}.${exp}`;
+  const payload = `${sub}.${partner}.${MARKER}.${epoch}.${exp}`;
   return {
     value: `${payload}.${sign(payload, key)}`,
     expiresAt: new Date(exp * 1000),
@@ -139,12 +151,14 @@ export function readPartnerSession(
   if (!key) return null;
 
   const parts = value.split(".");
-  if (parts.length !== 5) return null;
-  const [sub, partner, marker, expRaw, provided] = parts;
-  if (!sub || !partner || !expRaw || !provided) return null;
+  if (parts.length !== 6) return null;
+  const [sub, partner, marker, epochRaw, expRaw, provided] = parts;
+  if (!sub || !partner || !epochRaw || !expRaw || !provided) return null;
   if (marker !== MARKER) return null;
+  const epoch = parseEpochSegment(epochRaw);
+  if (epoch === null) return null;
 
-  const expected = sign(`${sub}.${partner}.${marker}.${expRaw}`, key);
+  const expected = sign(`${sub}.${partner}.${marker}.${epochRaw}.${expRaw}`, key);
   const a = Buffer.from(expected);
   const b = Buffer.from(provided);
   if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
@@ -160,7 +174,7 @@ export function readPartnerSession(
    */
   if (partner === "admin" || partner === "engineer" || partner === "field_tech") return null;
 
-  return { sub, partner, exp };
+  return { sub, partner, exp, epoch };
 }
 
 export function partnerCookieOptions(expiresAt?: Date) {

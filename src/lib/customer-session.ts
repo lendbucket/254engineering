@@ -1,5 +1,6 @@
 import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { parseEpochSegment, validEpoch } from "./session-epoch-rules";
 
 /**
  * The customer account session cookie.
@@ -56,6 +57,8 @@ export type CustomerClaims = {
   /** eng_customer_accounts.id */
   account: string;
   exp: number;
+  /** The session epoch it was issued under (auth M2, 0117); currentCustomer compares it with the user's. */
+  epoch: number;
 };
 
 function signingKey(): Buffer | null {
@@ -83,15 +86,25 @@ function sign(payload: string, key: Buffer): string {
   return createHmac("sha256", key).update(payload).digest("base64url");
 }
 
+/*
+ * FOUR SEGMENTS BECOME FIVE. Auth M2, Robert's ruling of 2026-11-02 (option A,
+ * rollout 1): `sub.account.epoch.exp.mac`. currentCustomer refuses a cookie
+ * whose epoch is not the user's, so a password set or a "sign out everywhere"
+ * ends every earlier session; a four segment cookie is refused rather than read
+ * as epoch 0. The epoch position holds digits only, so a partner cookie's
+ * marker "p" can never stand in it.
+ */
 export function issueCustomerSession(
   sub: string,
   account: string,
   now: number = Date.now(),
+  epoch: number = 0,
 ): { value: string; expiresAt: Date } | null {
   const key = signingKey();
   if (!key) return null;
+  if (!validEpoch(epoch)) return null;
   const exp = Math.floor(now / 1000) + TTL_SECONDS;
-  const payload = `${sub}.${account}.${exp}`;
+  const payload = `${sub}.${account}.${epoch}.${exp}`;
   return {
     value: `${payload}.${sign(payload, key)}`,
     expiresAt: new Date(exp * 1000),
@@ -112,11 +125,13 @@ export function readCustomerSession(
   if (!key) return null;
 
   const parts = value.split(".");
-  if (parts.length !== 4) return null;
-  const [sub, account, expRaw, provided] = parts;
-  if (!sub || !account || !expRaw || !provided) return null;
+  if (parts.length !== 5) return null;
+  const [sub, account, epochRaw, expRaw, provided] = parts;
+  if (!sub || !account || !epochRaw || !expRaw || !provided) return null;
+  const epoch = parseEpochSegment(epochRaw);
+  if (epoch === null) return null;
 
-  const expected = sign(`${sub}.${account}.${expRaw}`, key);
+  const expected = sign(`${sub}.${account}.${epochRaw}.${expRaw}`, key);
   const a = Buffer.from(expected);
   const b = Buffer.from(provided);
   if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
@@ -132,7 +147,7 @@ export function readCustomerSession(
    */
   if (account === "admin" || account === "engineer" || account === "field_tech") return null;
 
-  return { sub, account, exp };
+  return { sub, account, exp, epoch };
 }
 
 export function customerCookieOptions(expiresAt?: Date) {
