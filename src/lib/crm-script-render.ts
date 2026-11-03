@@ -71,16 +71,32 @@ export function fillScript(template: string, card: ScriptCard): { ok: true; text
   return unknown.length ? { ok: false, error: `The script names ${unknown.join(", ")}, which the price book does not answer, so it is not shown.` } : { ok: true, text };
 }
 
-/**
- * The script for a card. `sellable` is the server's answer for the vertical's
- * line (SCRIPT_LINE); the solar ruling turns a solar company in a listed city
- * to the general script with the reason.
- */
-export function scriptFor(card: ScriptCard, sellable: boolean): RenderedScript {
-  const windCity = card.vertical === "solar" && card.city
+/** Whether the solar ruling of 2026-10-30 applies: a solar company in a listed wind load city. */
+function inWindLoadCity(card: Pick<ScriptCard, "vertical" | "city">): boolean {
+  return card.vertical === "solar" && card.city
     ? SOLAR_WIND_LOAD_CITIES.some((c) => c.toLowerCase() === card.city!.trim().toLowerCase())
     : false;
-  const usedVertical: CrmVertical = windCity ? "other" : card.vertical;
+}
+
+/**
+ * Which vertical's script a card shows: its own, or the general script for a
+ * solar company in a listed wind load city. The caller reads the sellable
+ * answer for THIS vertical's line (SCRIPT_LINE), so the general script always
+ * follows the roof line, Robert's R3 ruling 4 of 2026-11-02, including when it
+ * stands in for solar.
+ */
+export function scriptVerticalFor(card: Pick<ScriptCard, "vertical" | "city">): CrmVertical {
+  return inWindLoadCity(card) ? "other" : card.vertical;
+}
+
+/**
+ * The script for a card. `sellable` is the server's answer for the line of
+ * scriptVerticalFor(card) (SCRIPT_LINE); the solar ruling turns a solar company
+ * in a listed city to the general script with the reason.
+ */
+export function scriptFor(card: ScriptCard, sellable: boolean): RenderedScript {
+  const windCity = inWindLoadCity(card);
+  const usedVertical: CrmVertical = scriptVerticalFor(card);
   const pair: ScriptPair = CRM_SCRIPTS[usedVertical];
   const variant = sellable ? "open" : "prelaunch";
   const filled = fillScript(pair[variant], { ...card, vertical: usedVertical });
