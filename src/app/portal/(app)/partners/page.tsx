@@ -13,7 +13,7 @@ import {
   StatusPill,
   type Column,
 } from "@/components/portal/design";
-import { PageHead } from "@/components/portal/surfaces";
+import { ErrorState, PageHead } from "@/components/portal/surfaces";
 import { NewPartner } from "./NewPartner";
 import type { PartnerRow } from "@/lib/ops-partners-admin";
 import { formatInFirmZone } from "@/lib/firm-calendar";
@@ -119,13 +119,23 @@ export default async function PartnersPage({ searchParams }: { searchParams: Pro
         lede="Who is sending work, what the firm owes them, and what is waiting for a person."
       />
 
-      {queue.length > 0 ? (
+      {/* Q13, office audit F11: a failed read is said, and a capped list says what it is part of. */}
+      {!queue.ok ? (
+        <ErrorState
+          title="Partner material waiting for a decision could not be read"
+          body={`${queue.error} This is a failed read, not an empty list: material may be waiting. Reload in a moment.`}
+        />
+      ) : queue.rows.length > 0 ? (
         <Panel
-          title={`${queue.length} piece${queue.length === 1 ? "" : "s"} of material waiting for a decision`}
+          title={
+            queue.total > queue.rows.length
+              ? `The oldest ${queue.rows.length} of ${queue.total} pieces of material waiting for a decision`
+              : `${queue.total} piece${queue.total === 1 ? "" : "s"} of material waiting for a decision`
+          }
           description="A partner sent these to be looked at before publishing them. The firm's own read of each is on the partner's page."
         >
           <ul className="flex flex-col gap-2">
-            {queue.map((s) => (
+            {queue.rows.map((s) => (
               <li key={s.id as string} className="rounded-[var(--radius-card)] border border-[var(--border)] p-3">
                 {/*
                   The submission title is the link that opens the partner who

@@ -17,6 +17,7 @@ import { accrueForDelivery, accrueForQualifiedLead } from "./ops-partner-comp";
 import { scheduleReviewRequest } from "./review-request";
 import { resolveCounty, twiaStatus, regionForCounty } from "./ops-counties";
 import { dueForToday } from "./turnaround-target";
+import { leavesDispatchWithOffers } from "./evidence-capture-rules";
 
 /**
  * Reads and writes for clients, contacts, and files.
@@ -179,8 +180,24 @@ export async function listClients(
   actor: Actor | null,
   options: { limit?: number; offset?: number; query?: ClientListQuery } = {},
 ): Promise<ClientRow[]> {
+  const read = await listClientsRead(actor, options);
+  if (!read.ok) console.error(`[clients] the client list could not be read: ${read.error}`);
+  return read.ok ? read.rows : [];
+}
+
+/**
+ * The same read, saying when it failed. Robert's Q13 (office audit F9,
+ * 2026-11-02): the clients screen drew "No clients yet" over a read that had
+ * failed. The screen reads through this; the file picker and the export keep
+ * listClients (the export already refuses a short read against its exact count).
+ */
+export async function listClientsRead(
+  actor: Actor | null,
+  options: { limit?: number; offset?: number; query?: ClientListQuery } = {},
+): Promise<{ ok: true; rows: ClientRow[] } | { ok: false; error: string }> {
   const db = supabaseAdmin();
-  if (!db || !actor) return [];
+  if (!db) return { ok: false, error: "The database is not configured." };
+  if (!actor) return { ok: true, rows: [] };
   /*
    * Office ready, 2026-10-24: the list screen passes a query, searched, filtered
    * and sorted in the database, and paged by offset. The picker passes none and
@@ -199,12 +216,13 @@ export async function listClients(
   const search = q ? clientSearchOr(q.term) : null;
   if (search) read = read.or(search);
   if (q && q.kind !== "all") read = read.eq("kind", q.kind);
-  const { data } = await read
+  const { data, error } = await read
     .order(q?.sort === "name" ? "name" : "created_at", { ascending: q ? q.ascending : false })
     /* A tie broken by id, so a page boundary never shows a client twice or not at all. */
     .order("id", { ascending: true })
     .range(offset, offset + limit - 1);
-  return (data ?? []) as ClientRow[];
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, rows: (data ?? []) as ClientRow[] };
 }
 
 /**
@@ -887,6 +905,27 @@ export async function transitionFile(
 
   const { error } = await db.from("eng_files").update(patch).eq("id", id).eq("status", current.status);
   if (error) return { ok: false, error: error.message };
+
+  /*
+   * A FILE THAT STOPS WAITING FOR A TECHNICIAN TAKES ITS OPEN OFFERS WITH IT.
+   * Robert's ruling Q3 of 2026-11-02 (audit field F7). Offers were withdrawn
+   * only when another technician accepted, when the office released, and in
+   * the review decision, so a file cancelled from needs_dispatch left its
+   * offers live for the next morning. Any move out of needs_dispatch except
+   * dispatched itself (which acceptOffer makes, after withdrawing the others)
+   * withdraws them. A failed withdrawal is said, not hidden: acceptOffer
+   * refuses a file that is not waiting in any case.
+   */
+  if (leavesDispatchWithOffers(current.status, to)) {
+    const { error: withdrawError } = await db
+      .from("eng_assignments")
+      .update({ state: "withdrawn", responded_at: DB_NOW })
+      .eq("file_id", id)
+      .eq("state", "offered");
+    if (withdrawError) {
+      console.error(`[transitionFile] ${current.file_number} left needs_dispatch and its open offers could not be withdrawn: ${withdrawError.message}`);
+    }
+  }
 
   await db.from("eng_file_events").insert({
     file_id: id,

@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { currentActor } from "@/lib/ops-auth";
-import { can } from "@/lib/ops-authz";
+import { mayExport } from "@/lib/list-exports";
 import { countClients, listClients } from "@/lib/ops-crm";
 import { clientListQuery } from "@/lib/client-list";
 import { csv, csvHeaders } from "@/lib/csv";
@@ -13,7 +13,9 @@ export const dynamic = "force-dynamic";
  *
  * Office ready, operator ruling of 2026-10-20: "export to CSV". Every client
  * matching the screen's search, kind and sort, not one page: the same
- * clientListQuery the screen reads, the same grant as the screen.
+ * clientListQuery the screen reads, the same grant as the screen, and since
+ * 2026-11-02 the administrator's export gate as well (mayExport; Robert's P2
+ * approval, option a: every CSV export is owner or admin only).
  *
  * EVERY ROW OR NO FILE. The rows are read a page at a time and their number is
  * compared with the exact count of the same query before anything is handed
@@ -27,7 +29,7 @@ const MOST = 20_000;
 export async function GET(request: NextRequest) {
   const actor = await currentActor();
   if (!actor) return bad("Not signed in.", 401);
-  if (!can(actor, "clients.list")) return bad("Not permitted.", 403);
+  if (!mayExport(actor, "clients.list")) return bad("Your role cannot export the clients.", 403);
   const params = Object.fromEntries(request.nextUrl.searchParams.entries());
   const query = clientListQuery({ q: params.q, kind: params.kind, sort: params.sort, dir: params.dir });
 

@@ -3,15 +3,17 @@ import { notFound } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
 import { mayOpenOnboarding } from "@/lib/onboarding-scope";
-import { APPLICATION_READ_LIMIT, activationView, listApplications } from "@/lib/ops-onboarding";
-import { ONBOARDING_PAGE_SIZE, countOnboardings, listOnboardingsPage, onboardedEmails } from "@/lib/onboarding";
+import { APPLICATION_READ_LIMIT, activationView, listUninvitedApplications } from "@/lib/ops-onboarding";
+import { ONBOARDING_PAGE_SIZE, countOnboardings, listOnboardingsPage } from "@/lib/onboarding";
 import { onboardingListQuery } from "@/lib/onboarding-list";
 import { ListControls, Pager, listHref } from "@/components/portal/ListControls";
 import { TEXAS_COUNTIES } from "@/lib/ops-counties";
-import { CREDENTIAL_LABEL, expiryState } from "@/lib/ops-credentials";
+import { COVERAGE_REQUIRED_ROLES, CREDENTIAL_LABEL, expiryState } from "@/lib/ops-credentials";
 import { Chip, EmptyState, PageHead } from "@/components/portal/surfaces";
 import { PhoneLink } from "@/components/portal/PhoneLink";
-import { ActivatePanel, CoverageForm, InviteButton, ItemDates } from "./OnboardingClient";
+import { ActivatePanel, CoverageForm, InviteButton, ItemDates, ItemDecision, VerificationPanel } from "./OnboardingClient";
+import { decisionsOffered } from "@/lib/onboarding-decision-rules";
+import { DOCUMENT_TYPES, checkForItem, documentTypeLabel, verificationItemStatus } from "@/lib/onboarding-verification";
 import { formatInFirmZone } from "@/lib/firm-calendar";
 
 export const dynamic = "force-dynamic";
@@ -34,10 +36,17 @@ export const dynamic = "force-dynamic";
  * WHAT IS DELIBERATELY ABSENT
  * ---------------------------
  * There is no field on this screen for a social security number, a date of
- * birth, or a bank account number, and there is no column behind it for one. The
- * W-9 and the I-9 arrive as uploaded documents and are never read. The firm
- * needs the completed form; it does not need the number off the form, and those
- * are different obligations.
+ * birth, or a bank account number, and there is no column behind it for one.
+ * The tax and pay forms are completed in Gusto (ruling of 2026-10-02) and no ID
+ * or I-9 is uploaded here: identity and the I-9 examination are recorded as the
+ * document type seen, who and when (Robert's ruling P1, 2026-11-01, migration
+ * 0105).
+ *
+ * WHAT THE SCREEN DOES SINCE P1. Each item is accepted or rejected here, a
+ * rejection with its reason, an audit row and an email to the person
+ * (onboarding-decisions.ts); identity and the I-9 are recorded in their own
+ * section; the coverage form renders for exactly the roles readiness asks
+ * counties of; and an engineer is activated with his license number.
  */
 
 const when = (value: string | null) =>
@@ -75,26 +84,26 @@ export default async function OnboardingPage({
    */
   const query = onboardingListQuery(params);
   const scope = { fieldTechOnly: technicianOnly };
-  const [allApplications, invited, onboardings, total] = await Promise.all([
-    listApplications(actor),
-    onboardedEmails(),
+  const [uninvited, onboardings, total] = await Promise.all([
+    listUninvitedApplications(actor),
     listOnboardingsPage(query, scope),
     countOnboardings(query, scope),
   ]);
-  const applications =
-    allApplications === null
-      ? null
-      : technicianOnly
-        ? allApplications.filter((a) => !(a.role ?? "").toLowerCase().includes("engineer"))
-        : allApplications;
   const selected = params.id ? await activationView(actor, params.id) : null;
   const filtered = Boolean(query.term) || query.status !== "all" || query.role !== "all";
 
-  /* Which applications are not yet invited needs both reads; either failing is said. */
-  const open =
-    applications === null || invited === null
+  /*
+   * Every uninvited application, exactly (Q13, office audit F12): both tables
+   * are read whole in listUninvitedApplications, and either failing is said.
+   * The newest APPLICATION_READ_LIMIT are listed and the rest are counted.
+   */
+  const waiting =
+    uninvited === null
       ? null
-      : applications.filter((a) => a.email && !invited.has(a.email.toLowerCase()));
+      : technicianOnly
+        ? uninvited.filter((a) => !(a.role ?? "").toLowerCase().includes("engineer"))
+        : uninvited;
+  const open = waiting === null ? null : waiting.slice(0, APPLICATION_READ_LIMIT);
   const listParams = { q: params.q, status: params.status, role: params.role, sort: params.sort, dir: params.dir, page: params.page };
 
   return (
@@ -179,9 +188,9 @@ export default async function OnboardingPage({
                   ))}
                 </ul>
               )}
-              {allApplications !== null && allApplications.length === APPLICATION_READ_LIMIT ? (
+              {waiting !== null && waiting.length > APPLICATION_READ_LIMIT ? (
                 <p className="mt-3 text-[14px] leading-[1.5] text-[var(--secondary)]">
-                  This reads the newest {APPLICATION_READ_LIMIT} applications. An older one is reached on the applications screen.
+                  The newest {APPLICATION_READ_LIMIT} of {waiting.length} applications not yet invited are shown. Invite these and the older ones move up.
                 </p>
               ) : null}
             </div>
@@ -304,6 +313,23 @@ export default async function OnboardingPage({
                         * is broken. Same class as an optional checklist item
                         * that says "Needs a note".
                         */}
+                      {item.status === "rejected" && item.rejectedReason ? (
+                        <p className="mt-1 text-[14px] leading-[1.5] text-[var(--ink)]">Rejected, and the person was told: {item.rejectedReason}</p>
+                      ) : null}
+                      {checkForItem(item.itemKey) ? (
+                        <p className="mt-1 text-[13px] leading-[1.5] text-[var(--secondary)]">Recorded in Identity and I-9 below, with the document type seen.</p>
+                      ) : (
+                        <ItemDecision
+                          onboardingId={selected.onboarding.id}
+                          itemKey={item.itemKey}
+                          label={item.label}
+                          offered={decisionsOffered(
+                            { itemKey: item.itemKey, actor: item.actor, status: item.status },
+                            Boolean(selected.onboarding.activated_at),
+                          )}
+                        />
+                      )}
+
                       {item.credentialKind && item.expires ? (
                         <ItemDates
                           onboardingId={selected.onboarding.id}
@@ -319,7 +345,45 @@ export default async function OnboardingPage({
                   ))}
                 </ul>
 
-                {selected.onboarding.role === "field_tech" ? (
+                {/*
+                  IDENTITY AND I-9, P1 2026-11-01: the document type seen, who
+                  and when, never a copy. The I-9 is an employee's, so an
+                  engineer's; a field technician is a contractor. A failed read
+                  of the record (as on a database without 0105) is said, and
+                  readiness refuses on it.
+                */}
+                <div className="mt-7 border-t border-[var(--border)] pt-5">
+                  <p className="portal-label">Identity and I-9</p>
+                  {!selected.verification.ok ? (
+                    <p role="alert" className="mt-2 text-[14px] leading-[1.5] text-[var(--ink)]">
+                      The identity and I-9 record could not be read, so whether this person was verified is not known: {selected.verification.error}
+                    </p>
+                  ) : (
+                    <div className="mt-1 divide-y divide-limestone-line">
+                      {(selected.onboarding.role === "engineer" ? (["identity", "i9"] as const) : (["identity"] as const)).map((check) => {
+                        const record = selected.verification.ok ? selected.verification.record[check] : null;
+                        return (
+                          <VerificationPanel
+                            key={check}
+                            onboardingId={selected.onboarding.id}
+                            check={check}
+                            title={check === "identity" ? "Identity confirmed on a video call" : "I-9 Section 2 documents examined"}
+                            types={DOCUMENT_TYPES[check].map((d) => ({ value: d.value, label: d.label }))}
+                            recorded={
+                              record && verificationItemStatus(record) === "accepted"
+                                ? { typeLabel: documentTypeLabel(check, record.type), byName: record.byName, at: when(record.at) }
+                                : null
+                            }
+                            locked={Boolean(selected.onboarding.activated_at)}
+                          />
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* The roles readiness asks counties of, from the one list (P1). */}
+                {COVERAGE_REQUIRED_ROLES.includes(selected.onboarding.role) ? (
                   <div className="mt-7 border-t border-[var(--border)] pt-5">
                     <CoverageForm
                       onboardingId={selected.onboarding.id}
@@ -335,6 +399,7 @@ export default async function OnboardingPage({
                 <div className="mt-7 border-t border-[var(--border)] pt-5">
                   <ActivatePanel
                     onboardingId={selected.onboarding.id}
+                    role={selected.onboarding.role}
                     ready={selected.readiness.ready}
                     blockers={selected.readiness.blockers}
                     activatedAt={selected.onboarding.activated_at}
@@ -348,7 +413,7 @@ export default async function OnboardingPage({
           <div className="hidden lg:block">
             <EmptyState
               title="Nobody selected"
-              body="Choose somebody from the list to see their checklist, record document expiry dates, set their coverage, and activate them."
+              body="Choose somebody from the list to accept or reject their checklist items, record identity and document expiry dates, set their coverage, and activate them."
             />
           </div>
         )}
