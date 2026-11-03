@@ -91,9 +91,47 @@ type FileForBilling = {
   county: string;
   postal_code: string | null;
   client_price_cents: number | null;
+  catalog_price_cents?: number | null;
+  coastal_surcharge_cents?: number | null;
+  twia_county?: boolean | null;
   payment_intent: string;
   client_id: string;
 };
+
+/**
+ * THE TELEPHONED ORDER CARRIES ITS PRICE BREAKDOWN WHEN THE PRICE IS THE
+ * CATALOG'S. Money audit F11, 2026-11-02: the order row carried total_cents
+ * only, so checkout fell back to one "Sealed document" line for the whole
+ * total and a Nueces customer saw $784.00 with no coastal line, and any report
+ * reading coastal_surcharge_cents undercounted the surcharge.
+ *
+ * The breakdown is written ONLY when the file's price is exactly the catalog
+ * price it recorded (catalog_price_cents is the total including the coastal
+ * line). An operator override carries no breakdown at all, so checkout keeps
+ * its single line at the overridden total: lines that did not add up to the
+ * total would charge the wrong amount. The total charged never changes.
+ */
+export function orderBreakdownFor(file: Pick<FileForBilling, "client_price_cents" | "catalog_price_cents" | "coastal_surcharge_cents" | "twia_county">): {
+  price_cents: number | null;
+  coastal_surcharge_cents: number | null;
+  twia_county: boolean;
+} {
+  const twia = Boolean(file.twia_county);
+  const total = file.client_price_cents === null || file.client_price_cents === undefined ? null : Number(file.client_price_cents);
+  const catalog = file.catalog_price_cents === null || file.catalog_price_cents === undefined ? null : Number(file.catalog_price_cents);
+  if (total === null || catalog === null || total !== catalog) {
+    return { price_cents: null, coastal_surcharge_cents: null, twia_county: twia };
+  }
+  const coastal = file.coastal_surcharge_cents === null || file.coastal_surcharge_cents === undefined ? 0 : Number(file.coastal_surcharge_cents);
+  if (!Number.isInteger(coastal) || coastal < 0 || coastal > total) {
+    return { price_cents: null, coastal_surcharge_cents: null, twia_county: twia };
+  }
+  /* Checkout draws the coastal line only for a TWIA county; a coastal amount without the flag would make the lines short of the total. */
+  if (coastal > 0 && !twia) {
+    return { price_cents: null, coastal_surcharge_cents: null, twia_county: twia };
+  }
+  return { price_cents: total - coastal, coastal_surcharge_cents: coastal > 0 ? coastal : null, twia_county: twia };
+}
 
 async function loadFile(fileId: string): Promise<FileForBilling | null> {
   const db = supabaseAdmin();
@@ -101,7 +139,7 @@ async function loadFile(fileId: string): Promise<FileForBilling | null> {
   const { data } = await db
     .from("eng_files")
     .select(
-      "id, file_number, service_slug, deliverable, property_address, city, county, postal_code, client_price_cents, payment_intent, client_id",
+      "id, file_number, service_slug, deliverable, property_address, city, county, postal_code, client_price_cents, catalog_price_cents, coastal_surcharge_cents, twia_county, payment_intent, client_id",
     )
     .eq("id", fileId)
     .maybeSingle();
@@ -193,6 +231,8 @@ async function createOrderForFile(
       city: file.city,
       county: file.county,
       postal_code: file.postal_code,
+      /* Money audit F11: the breakdown only when the price is the catalog's; see orderBreakdownFor. */
+      ...orderBreakdownFor(file),
       total_cents: file.client_price_cents,
       inspection_fee_cents: entry.inspectionFeeCents,
       refund_disclosure: disclosure,
