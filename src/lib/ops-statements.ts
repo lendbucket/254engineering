@@ -200,8 +200,24 @@ export async function closePeriod(
       amount_cents: amount,
     });
 
-    // 23505 means this order is already on this statement. Not an error.
     if (lineError && lineError.code !== "23505") continue;
+
+    /*
+     * A 23505 USED TO MEAN "ALREADY ON THIS STATEMENT". Since 0118 (Robert's Q8,
+     * money audit F8) an order is a line on one statement only, so it can also
+     * mean another close billed it a moment ago on another statement. The
+     * order is pointed at this statement only when its line is on this one;
+     * otherwise it stays with the statement that billed it, and nothing here
+     * moves it.
+     */
+    if (lineError) {
+      const { data: held, error: heldError } = await db
+        .from("eng_statement_lines")
+        .select("statement_id")
+        .eq("order_id", o.id)
+        .limit(1);
+      if (heldError || (held ?? [])[0]?.statement_id !== statementId) continue;
+    }
 
     await db.from("eng_service_orders").update({ statement_id: statementId }).eq("id", o.id);
     if (!lineError) {
