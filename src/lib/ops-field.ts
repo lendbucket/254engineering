@@ -2,6 +2,7 @@ import "server-only";
 import { STATUS_LABEL, type FileStatus } from "./ops-files";
 import { DB_NOW } from "./db-now";
 import { clockReading } from "./clock-skew";
+import { CAPTURE_CLOSED_STATUSES, captureKeyProblem } from "./evidence-capture-rules";
 import { sha256Hex } from "./evidence-fingerprint";
 import { readEvery } from "./bounded-read";
 import { supabaseAdmin } from "./supabase";
@@ -1639,6 +1640,25 @@ export type CaptureInput = {
   accuracy?: number | null;
 };
 
+/** The private bucket every evidence upload goes to. */
+export const EVIDENCE_BUCKET = "eng-evidence";
+
+/**
+ * Whether storage holds an evidence object, asked by listing its folder for
+ * its exact name (the shape status-uploads.ts uses). A failed listing is a
+ * failure, never "absent" and never "present" (Q2, 2026-11-02).
+ */
+export async function evidenceObjectExists(storageKey: string): Promise<{ ok: true; exists: boolean } | { ok: false; error: string }> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "Storage is not configured." };
+  const slash = storageKey.lastIndexOf("/");
+  const folder = storageKey.slice(0, slash);
+  const name = storageKey.slice(slash + 1);
+  const { data, error } = await db.storage.from(EVIDENCE_BUCKET).list(folder, { search: name });
+  if (error) return { ok: false, error: "Storage could not be checked just now, so nothing was recorded. It will be sent again." };
+  return { ok: true, exists: (data ?? []).some((o) => o.name === name) };
+}
+
 /**
  * Record one capture, idempotently.
  *
@@ -1692,7 +1712,7 @@ export async function recordCapture(
     };
   }
 
-  if (["evidence_submitted", "under_review", "sealed", "delivered", "closed", "cancelled"].includes(view.file.status)) {
+  if (CAPTURE_CLOSED_STATUSES.includes(view.file.status)) {
     return { ok: false, error: "This file has left the field. Capture is closed on it." };
   }
 
@@ -1711,26 +1731,34 @@ export async function recordCapture(
   if (unanswered) return { ok: false, error: unanswered };
 
   /*
+   * THE KEY IS THIS CAPTURE'S OWN OBJECT, AND THE OBJECT IS THERE. Robert's
+   * ruling Q2 of 2026-11-02 (audit field F4). The key was written as the body
+   * sent it, so a capture on one file could point at another file's
+   * photograph, or at nothing, and the checklist read complete either way. It
+   * must be exactly fileId/captureId.ext, the one path sign_upload issues, and
+   * storage must hold it before the row says it does.
+   */
+  const keyProblem = captureKeyProblem(fileId, input.clientCaptureId, input.storageKey);
+  if (keyProblem) return { ok: false, error: keyProblem };
+  if (input.storageKey) {
+    const stored = await evidenceObjectExists(input.storageKey);
+    if (!stored.ok) return { ok: false, error: stored.error };
+    if (!stored.exists) return { ok: false, error: "The photograph did not arrive in storage, so it was not recorded. It will be sent again." };
+  }
+
+  /*
    * THE FINGERPRINT, FROM THE STORED BYTES. Robert's ruling P5, 2026-11-01
-   * (0107). The file is read back out of the private bucket and hashed here,
-   * because a hash the phone sent would be the technician's word about the
-   * file, and the duplicate check exists to catch the same photograph
-   * submitted twice. A file that cannot be read back is refused rather than
-   * recorded unhashed: the offline queue sends it again, and an unhashed
-   * capture would hold the whole package at "not checked".
-   *
-   * The key must sit under this job's own folder, which is where sign_upload
-   * puts every evidence upload, so a capture cannot point at another job's
-   * photograph and be fingerprinted as this one's.
+   * (0107). The key is already this capture's own object and it exists (Q2,
+   * above), so the file is read back and hashed here; a file that cannot be
+   * read back is refused rather than recorded unhashed.
    */
   let contentSha256: string | null = null;
   if (input.storageKey) {
-    if (!input.storageKey.startsWith(`${fileId}/`)) return { ok: false, error: "That upload does not belong to this job." };
-    const { data: stored, error: readError } = await db.storage.from("eng-evidence").download(input.storageKey);
-    if (readError || !stored) {
+    const { data: bytes, error: readError } = await db.storage.from("eng-evidence").download(input.storageKey);
+    if (readError || !bytes) {
       return { ok: false, error: "The uploaded file could not be read back to fingerprint it, so it was not recorded. It will be sent again." };
     }
-    contentSha256 = sha256Hex(await stored.arrayBuffer());
+    contentSha256 = sha256Hex(await bytes.arrayBuffer());
   }
 
   /*

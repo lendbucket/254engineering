@@ -56,12 +56,19 @@ check("and so does a duplicate", /byte for byte/.test(duplicateCheckSentence(dup
 const field = readFileSync("src/lib/ops-field.ts", "utf8");
 const fn = field.slice(field.indexOf("export async function recordCapture("), field.indexOf("export async function", field.indexOf("export async function recordCapture(") + 10));
 const download = fn.indexOf('.storage.from("eng-evidence").download(input.storageKey)');
-const hashed = fn.indexOf("contentSha256 = sha256Hex(await stored.arrayBuffer());");
+/* Combined with Q2 (2026-11-02): the bytes are read into `bytes`, since `stored` is now Q2's existence answer. */
+const hashed = fn.indexOf("contentSha256 = sha256Hex(await bytes.arrayBuffer());");
 const upsert = fn.indexOf(".upsert(");
 check("recordCapture reads the stored object back and hashes those bytes, before the row is written", download > 0 && hashed > download && upsert > hashed);
 check("and writes that value, never one from the request", /content_sha256: contentSha256,/.test(fn) && !/input\.(sha256|contentSha256|hash)/i.test(fn));
-check("a file that cannot be read back is refused, not recorded unhashed", /if \(readError \|\| !stored\) \{\s*return \{ ok: false,/.test(fn));
-check("and a key outside this job's folder is refused before it is read", fn.indexOf("if (!input.storageKey.startsWith(`${fileId}/`))") > 0 && fn.indexOf("if (!input.storageKey.startsWith(`${fileId}/`))") < download);
+check("a file that cannot be read back is refused, not recorded unhashed", /if \(readError \|\| !bytes\) \{\s*return \{ ok: false,/.test(fn));
+/*
+ * P5 checked a prefix here. Q2 (Robert, 2026-11-02, audit field F4) replaced it
+ * with the stricter exact key, fileId/captureId.ext, and an existence check,
+ * both ahead of the read; this names that shape exactly.
+ */
+const keyCheck = fn.indexOf("const keyProblem = captureKeyProblem(fileId, input.clientCaptureId, input.storageKey);");
+check("and a key that is not this capture's own object is refused before it is read", keyCheck > 0 && keyCheck < download && fn.indexOf("if (keyProblem) return { ok: false, error: keyProblem };") > keyCheck);
 
 const engineer = readFileSync("src/lib/ops-engineer.ts", "utf8");
 check("the package reads the fingerprints in a read of its own, every row", /readEvery<\{ id: string; content_sha256: string \| null \}>\(\(from, to\) =>\s*db\.from\("eng_evidence_items"\)\.select\("id, content_sha256"\)\.eq\("file_id", fileId\)/.test(engineer));
