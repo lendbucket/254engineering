@@ -109,14 +109,14 @@ export default async function SalesReportsPage({ searchParams }: { searchParams:
         </p>
       ) : null}
 
-      <h2 className="mb-3 text-[18px] font-semibold text-[var(--ink)]">Leaderboard</h2>
+      <h2 className="mb-3 text-[16px] font-semibold text-[var(--ink)]">Leaderboard</h2>
       {r.leaders.length === 0 ? (
         <EmptyState title="Nobody has a call or a sale yet" body="Calls made from the call queue and accounts opened from the sales list are counted here." />
       ) : (
         <DataTable caption="Leaderboard, all time" rows={r.leaders.map((l) => ({ ...l, id: l.repId ?? "unowned" }))} total={r.leaders.length} columns={leaderColumns} empty={null} />
       )}
 
-      <h2 className="mb-3 mt-10 text-[18px] font-semibold text-[var(--ink)]">Each rep by {period}</h2>
+      <h2 className="mb-3 mt-10 text-[16px] font-semibold text-[var(--ink)]">Each rep by {period}</h2>
       {r.rows.length === 0 ? (
         <EmptyState title="Nothing to count yet" body="A row appears for each rep and each period with a call, an account opened or an order credited." />
       ) : (
@@ -132,14 +132,14 @@ export default async function SalesReportsPage({ searchParams }: { searchParams:
         </>
       )}
 
-      <h2 className="mb-3 mt-10 text-[18px] font-semibold text-[var(--ink)]">Conversion by vertical</h2>
+      <h2 className="mb-3 mt-10 text-[16px] font-semibold text-[var(--ink)]">Conversion by vertical</h2>
       {r.byVertical.length === 0 ? (
         <EmptyState title="No companies on the sales list yet" body="Add or import companies, and their conversion shows here." />
       ) : (
         <DataTable caption="Conversion by vertical" rows={r.byVertical.map((x) => ({ ...x, id: x.key }))} total={r.byVertical.length} columns={convColumns(verticalLabel)} empty={null} />
       )}
 
-      <h2 className="mb-3 mt-10 text-[18px] font-semibold text-[var(--ink)]">Conversion by source</h2>
+      <h2 className="mb-3 mt-10 text-[16px] font-semibold text-[var(--ink)]">Conversion by source</h2>
       <p className="mb-3 text-[14px] text-[var(--ink)]">A company found in two sources counts under each.</p>
       {r.bySource.length === 0 ? (
         <EmptyState title="No companies on the sales list yet" body="Add or import companies, and their conversion shows here." />
