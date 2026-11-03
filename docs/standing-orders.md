@@ -194,6 +194,8 @@ The chat posted five audit files on issue #1: auth 6585008053, money 6585008424,
 - **M2 (6593730973):** 1 yes, bump in the same update when an individual customer or partner suspension path is built. 2 keep (restore leaves the epoch). 3 leave it (no partner sign-out-everywhere).
 - **Low bundles:** the 1 to 60 per minute API cap is accepted as mine. L6 comes back as a question when the bundle is ready.
 
+**Robert, 2026-11-02 night, F9 (6594543361), verbatim:** "do not refuse the draft. When the visit capture's clock disagreed or was never measured, the letter states the inspection date from the server's receipt of the first standing capture, which is a recorded fact, and uses the protocol's own wording that the device time was recorded as disagreeing. A draft is refused only if no standing capture has a receipt time. Own branch, boards with the follow-ups."
+
 **Follow-ups queued after Q14, in this order:** M2 session epoch; per-door attempt counters; suppress the review request on a decline; message search and mentions over every readable conversation. Then the low findings.
 
 (The "Finish the portal" heading below was dropped by my edit of the Q section and is restored here, 2026-11-02.)
