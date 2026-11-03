@@ -82,7 +82,7 @@ export type QueuedCapture = {
   queuedAt?: string;
 };
 
-/** The order a queue replays in: when each entry was queued, oldest first. */
+/** How a queue is replayed: by when each entry was queued, oldest first. */
 export function inQueueOrder(entries: QueuedCapture[]): QueuedCapture[] {
   const at = (e: QueuedCapture) => Date.parse(e.queuedAt ?? e.capturedAt) || 0;
   return [...entries].sort((a, b) => at(a) - at(b) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));

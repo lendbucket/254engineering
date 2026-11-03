@@ -61,5 +61,5 @@ for (const x of out) {
   if (!x.ok) failed += 1;
   console.log(`${x.ok ? "  PASS" : "  FAIL"}: ${x.name}${x.note ? ` (${x.note})` : ""}`);
 }
-console.log(failed === 0 ? "PASS: the field audit's low findings hold: the firm's calendar, the queue's order, a live guard and a bounded window." : `FAIL: ${failed} check(s).`);
+console.log(failed === 0 ? "PASS: the field audit's low findings hold: the firm's calendar, the queue replayed as queued, a live guard and a bounded window." : `FAIL: ${failed} check(s).`);
 process.exitCode = failed === 0 ? 0 : 1;
