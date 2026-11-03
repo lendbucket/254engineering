@@ -3,6 +3,7 @@ import { STATUS_LABEL, type FileStatus } from "./ops-files";
 import { DB_NOW } from "./db-now";
 import { clockReading } from "./clock-skew";
 import { CAPTURE_CLOSED_STATUSES, captureKeyProblem, evidenceWriteRefusal } from "./evidence-capture-rules";
+import { sha256Hex } from "./evidence-fingerprint";
 import { readEvery } from "./bounded-read";
 import { supabaseAdmin } from "./supabase";
 import type { Cents } from "./ops-money";
@@ -1753,6 +1754,21 @@ export async function recordCapture(
   }
 
   /*
+   * THE FINGERPRINT, FROM THE STORED BYTES. Robert's ruling P5, 2026-11-01
+   * (0107). The key is already this capture's own object and it exists (Q2,
+   * above), so the file is read back and hashed here; a file that cannot be
+   * read back is refused rather than recorded unhashed.
+   */
+  let contentSha256: string | null = null;
+  if (input.storageKey) {
+    const { data: bytes, error: readError } = await db.storage.from("eng-evidence").download(input.storageKey);
+    if (readError || !bytes) {
+      return { ok: false, error: "The uploaded file could not be read back to fingerprint it, so it was not recorded. It will be sent again." };
+    }
+    contentSha256 = sha256Hex(await bytes.arrayBuffer());
+  }
+
+  /*
    * THE SERVER CLOCK, READ ONCE. Both the skew below and the row's own
    * created_at are meant to describe the same instant, and reading the clock
    * twice would fold this function's own runtime into a figure whose entire
@@ -1784,6 +1800,8 @@ export async function recordCapture(
         value_number: input.valueNumber ?? null,
         unit: item.unit ?? null,
         storage_key: input.storageKey ?? null,
+        /* Written with every upsert, so a replay that replaced the bytes replaces the hash. */
+        content_sha256: contentSha256,
         /* DB_NOW as the fallback only. A supplied capturedAt is the DEVICE
          * saying when the photograph was taken, which is the honest answer and
          * is not this machine's clock either way. */
