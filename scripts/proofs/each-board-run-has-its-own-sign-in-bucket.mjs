@@ -59,18 +59,58 @@ check(
 );
 check("with no database named, the variable is ignored", clientKey(h(), { BOARD_RUN_ID: RUN }) === "unknown");
 check("on development, a value that is not a run id is ignored", clientKey(h(), { SUPABASE_URL: DEV, BOARD_RUN_ID: "everyone-shares-this" }) === "unknown");
+
+/*
+ * A BUCKET PER AUDIT, Robert's answer of 2026-11-03 (Q9): "bucket per audit on
+ * development only. The key comes from the harness, never from a request.
+ * Production keeps one bucket per address, unchanged." Q9's H1 stopped a
+ * successful sign in clearing the address count, and board 41635661415 met 429
+ * on every probe after a run's twentieth sign in from one address.
+ */
+const AUDIT_A = "roles-audit";
+const AUDIT_B = "contrast-audit";
+const keyA = clientKey(h({ "x-forwarded-for": "::1" }), { SUPABASE_URL: DEV, BOARD_RUN_ID: RUN, BOARD_AUDIT: AUDIT_A });
+const keyB = clientKey(h({ "x-forwarded-for": "::1" }), { SUPABASE_URL: DEV, BOARD_RUN_ID: RUN, BOARD_AUDIT: AUDIT_B });
+check("on development, each audit's server keys its own bucket inside the run", keyA === `board:${RUN}:${AUDIT_A}:::1` && keyB === `board:${RUN}:${AUDIT_B}:::1`, `${keyA} / ${keyB}`);
+check("and two audits of one run never share a bucket", keyA !== keyB);
+check(
+  "and a request cannot choose the audit",
+  clientKey(h({ ...CHOOSING, "x-board-audit": AUDIT_B, "board-audit": AUDIT_B, cookie: `BOARD_AUDIT=${AUDIT_B}` }), { SUPABASE_URL: DEV, BOARD_RUN_ID: RUN, BOARD_AUDIT: AUDIT_A }) === `board:${RUN}:${AUDIT_A}:unknown`,
+);
+check("an audit name with no run id keys nothing on development", clientKey(h(), { SUPABASE_URL: DEV, BOARD_AUDIT: AUDIT_A }) === "unknown");
+check("on production, the audit name is ignored and the address is the key", clientKey(h({ "x-forwarded-for": "203.0.113.9" }), { SUPABASE_URL: PROD, BOARD_RUN_ID: RUN, BOARD_AUDIT: AUDIT_A }) === "203.0.113.9");
+check("a value that is not an audit name leaves the run's key as it was", clientKey(h(), { SUPABASE_URL: DEV, BOARD_RUN_ID: RUN, BOARD_AUDIT: "Any:Thing" }) === `board:${RUN}:unknown`);
 check("and with no run id, development keys exactly as before", clientKey(h({ "x-forwarded-for": "198.51.100.4" }), { SUPABASE_URL: DEV }) === "198.51.100.4");
 
 /* The source: the key is read from the environment, never from the request. */
 const limiter = readFileSync("src/lib/ops-rate-limit.ts", "utf8");
 const body = limiter.slice(limiter.indexOf("export function clientKey("), limiter.indexOf("export const RATE_LIMITS"));
 check("clientKey reads the run id from the environment", /const boardRun = env\.BOARD_RUN_ID;/.test(body) && /BOARD_RUN_ID: process\.env\.BOARD_RUN_ID/.test(body));
+check("and reads the audit name from the environment only", /const audit = env\.BOARD_AUDIT;/.test(body) && /BOARD_AUDIT: process\.env\.BOARD_AUDIT/.test(body));
 check("and reads nothing else from the request but the forwarded address", (body.match(/headers\.get\(/g) ?? []).length === 2 && /headers\.get\("x-forwarded-for"\)/.test(body) && /headers\.get\("x-real-ip"\)/.test(body));
 
 /* The wiring. */
 const yml = readFileSync(".github/workflows/board.yml", "utf8");
 check("the board sets the run id on the shard every server inherits", /BOARD_RUN_ID="\$\{\{ github\.run_id \}\}" \\\s*\n\s*node scripts\/audit\.mjs/.test(yml));
 check("and loads no preload into the shard's processes", !/NODE_OPTIONS/.test(yml) && !existsSync("scripts/ci/board-run-header.mjs"));
+/*
+ * The harness sets the audit name. Phase one shares one server, so under a board
+ * run the suite restarts it for each audit with that audit's name in the
+ * server's own environment; phase zero and phase two pass it to the audit,
+ * whose own servers inherit it.
+ */
+const suite = readFileSync("scripts/audit.mjs", "utf8");
+const phaseOne = suite.slice(suite.indexOf("for (const audit of RUN_ONE) {"), suite.indexOf("PHASE TWO: these audits start their own servers."));
+check(
+  "the suite restarts the shared server for each phase one audit with that audit's name, under a board run",
+  /const PER_AUDIT_BUCKET = MANAGED && \/\^\\d\{6,20\}\$\/\.test\(process\.env\.BOARD_RUN_ID/.test(suite) &&
+    /if \(PER_AUDIT_BUCKET && server\) \{[\s\S]{0,120}await server\.stop\(\);[\s\S]{0,80}server = await startNextServer\(\{ port: PORT, env: \{ BOARD_AUDIT: audit\.name \} \}\);/.test(phaseOne),
+);
+check(
+  "and every phase hands the audit its own name",
+  (suite.match(/BOARD_AUDIT: audit\.name/g) ?? []).length === 4,
+  `${(suite.match(/BOARD_AUDIT: audit\.name/g) ?? []).length} of 4 (phase zero, the phase one restart, phase one, phase two)`,
+);
 const overflow = readFileSync("scripts/mobile-overflow-audit.mjs", "utf8");
 check(
   "under the board, a real browser sign in is read back for its key",
