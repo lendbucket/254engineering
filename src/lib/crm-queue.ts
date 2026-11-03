@@ -7,7 +7,7 @@ import { logContact } from "./ops-contact-log";
 import { normaliseEmail, suppress } from "./marketing-suppression";
 import { lineIsSellableForDisplay } from "./line-gate";
 import { SCRIPT_LINE } from "@/content/crm-scripts";
-import { scriptFor, type RenderedScript } from "./crm-script-render";
+import { scriptFor, scriptVerticalFor, type RenderedScript } from "./crm-script-render";
 import { STAGE_LABEL, VERTICAL_LABEL, type CrmStage, type CrmVertical } from "./crm-rules";
 import {
   CALL_OUTCOMES,
@@ -232,7 +232,8 @@ export async function queueFor(actor: Actor | null, now = new Date()): Promise<Q
       orders = read.orders;
     }
     const vertical = row.vertical as CrmVertical;
-    const line = SCRIPT_LINE[vertical];
+    /* The sellable answer is for the line of the script actually shown: the general script follows the roof line even when it stands in for solar (Robert, R3 ruling 4). */
+    const line = SCRIPT_LINE[scriptVerticalFor({ vertical, city: (row.city as string | null) ?? null })];
     const sellable = await lineIsSellableForDisplay(line.serviceSlug, line.tier ?? null);
     const primary = people.rows.find((p) => p.isPrimary) ?? people.rows[0] ?? null;
     const script = scriptFor(
