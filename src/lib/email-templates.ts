@@ -1196,10 +1196,11 @@ export function crmSequenceEmail(input: {
     input.subject,
     {
       preheader: input.paragraphs[0]?.slice(0, 110) ?? input.subject,
-      signed: true,
+      /* Signed by the rep, one line above the firm footer, not the signer's block: email identity ruling, 2026-11-02 (REP_SIGNED_TEMPLATES). */
+      signed: false,
+      repSignature: input.signOff,
       blocks: [
         ...input.paragraphs.map((text) => ({ kind: "p" as const, text })),
-        { kind: "p", text: input.signOff },
         { kind: "p", text: "The link at the bottom stops emails like this one." },
       ],
       unsubscribeUrl: input.unsubscribeUrl,

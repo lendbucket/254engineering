@@ -40,8 +40,18 @@ Built on `feat/crm-r7-email`, Robert's sales CRM ruling R7. The reasoning is in
   delivery events, so an address Resend refuses is known only from Resend's
   own log, and the sequence moves on as if the email went. A delivery
   webhook (`email.bounced`, `email.complained`) recorded against the send
-  ledger, with a bounced address suppressed, is the build; not done because
-  R7 named suppression and a bounce note, not a delivery feed.
+  ledger, with a bounced address suppressed, is the build. **QUEUED by
+  Robert, 2026-11-02 (issue #1 answer 4 to 6592143963): "yes, delivery
+  webhook in BACKLOG."** Not built in R7, which named suppression and a bounce
+  note, not a delivery feed.
+- **List-Unsubscribe headers. QUEUED as a follow-up by Robert, 2026-11-02
+  (issue #1 answer 6 to 6592143963): "add the List-Unsubscribe and
+  List-Unsubscribe-Post headers to every marketing template as a follow-up;
+  the footer link stays."** Every template in `MARKETING_TEMPLATES` gains
+  `List-Unsubscribe: <https unsubscribe URL>` (and a mailto if one is ruled)
+  and `List-Unsubscribe-Post: List-Unsubscribe=One-Click`, passed through
+  `notify()` to Resend as headers; the one-click POST needs the unsubscribe
+  route to accept POST. The footer link and its wording stay. Not built.
 - **No Resend idempotency key on this branch.** Q12 (office F3) adds one per
   job; until Q12 merges, the queue's own key (address, subject, text) and the
   send ledger are what stop a second send.

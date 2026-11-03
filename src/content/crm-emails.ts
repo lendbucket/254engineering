@@ -152,7 +152,8 @@ export const CRM_EMAILS: Record<CrmVertical, EmailPair> = {
     open: {
       subject: "Engineering letters for Texas properties",
       body: [
-        "{{contact}}, following up on my call. 254 Engineering provides engineering letters for homes and small commercial buildings across Texas, ordered online with the price shown first: {{order_url}}.",
+        /* Reworded on Robert's answer 1 to issue #1 6592143963 (2026-11-02): the approved sentence named the firm in the present tense, which the voice rule refuses with the gate shut; the exemption was not widened. */
+        "{{contact}}, following up on my call. Engineering letters for homes and small commercial buildings across Texas are ordered online with the price shown first: {{order_url}}.",
       ],
       signOff: OPEN_SIGN_OFF,
     },

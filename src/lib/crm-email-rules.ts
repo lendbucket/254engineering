@@ -1,6 +1,6 @@
 import { CRM_EMAILS, type EmailVariant } from "@/content/crm-emails";
-import { SCRIPT_LINE, SOLAR_WIND_LOAD_CITIES } from "@/content/crm-scripts";
-import { fillScript } from "./crm-script-render";
+import { SCRIPT_LINE } from "@/content/crm-scripts";
+import { fillScript, scriptVerticalFor } from "./crm-script-render";
 import { firmClock, nextStepAfter, currentStep, OFF_QUEUE_STAGES } from "./crm-queue-rules";
 import type { CrmStage, CrmVertical } from "./crm-rules";
 
@@ -49,10 +49,15 @@ export function orderUrlFor(siteUrl: string, vertical: CrmVertical): string {
   return `${siteUrl.replace(/\/$/, "")}/order/start/${SCRIPT_LINE[vertical].serviceSlug}`;
 }
 
-/** Whether Robert's ruling of 2026-10-30 turns this solar company to the general email. */
-export function solarWindCity(vertical: CrmVertical, city: string | null): boolean {
-  if (vertical !== "solar" || !city) return false;
-  return SOLAR_WIND_LOAD_CITIES.some((c) => c.toLowerCase() === city.trim().toLowerCase());
+/**
+ * Which email a company gets: the call scripts' own rule, scriptVerticalFor
+ * (Robert's ruling of 2026-10-30 turns a solar company in a listed wind load
+ * city to the general email). One rule for the call and the email after it, so
+ * the two never disagree about what the company was told; this file carried
+ * its own copy until 2026-11-02.
+ */
+export function emailVerticalFor(vertical: CrmVertical, city: string | null): CrmVertical {
+  return scriptVerticalFor({ vertical, city });
 }
 
 /**
@@ -70,12 +75,13 @@ function fill(text: string, card: EmailCard, orderUrl: string): { ok: true; text
 }
 
 /**
- * The email a company is sent. `sellable` is the server's answer for the
- * vertical's line, the same one the call script reads; the solar ruling turns
- * a solar company in a listed city to the general email.
+ * The email a company is sent. `sellable` is the server's answer for the line
+ * of the email actually shown, SCRIPT_LINE[emailVerticalFor(...)], the same
+ * line the call script reads; so the general email follows the roof line even
+ * when it stands in for solar (Robert's R3 ruling 4 of 2026-11-02).
  */
 export function renderSequenceEmail(card: EmailCard, sellable: boolean): RenderedSequenceEmail {
-  const usedVertical: CrmVertical = solarWindCity(card.vertical, card.city) ? "other" : card.vertical;
+  const usedVertical: CrmVertical = emailVerticalFor(card.vertical, card.city);
   const variant = sellable ? "open" : "prelaunch";
   const template: EmailVariant = CRM_EMAILS[usedVertical][variant];
   const orderUrl = orderUrlFor(card.siteUrl, usedVertical);
