@@ -4,6 +4,7 @@ import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
 import { jobView } from "@/lib/ops-field";
 import { captureDeleteRefusal, progressLabel } from "@/lib/ops-evidence";
+import { CAPTURE_CLOSED_STATUSES, evidenceWriteRefusal } from "@/lib/evidence-capture-rules";
 import { photoAnswersFor } from "@/lib/protocol-run";
 import { services } from "@/content/services";
 import { STATUS_LABEL, type FileStatus } from "@/lib/ops-files";
@@ -43,9 +44,17 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
   /* The photograph items that also take a written answer, from the signed document. */
   const photoAnswers = photoAnswersFor(view.protocol?.document_number ?? null);
 
-  const closed = ["evidence_submitted", "under_review", "sealed", "delivered", "closed", "cancelled"].includes(
-    view.file.status,
-  );
+  /*
+   * Read only when capture is closed on the file, or when this person is not
+   * the one who may write evidence on it: the evidence.capture grant and the
+   * assigned technician, the rule the server asks (Q3, 2026-11-02). An engineer
+   * or administrator reading the job sees the record, not controls the server
+   * would refuse.
+   */
+  const closed =
+    CAPTURE_CLOSED_STATUSES.includes(view.file.status) ||
+    actor === null ||
+    evidenceWriteRefusal({ id: actor.id, mayCapture: can(actor, "evidence.capture") }, view.file.assigned_tech_id) !== null;
 
   /*
    * WF-030 step 5, Robert's ruling 2026-10-29: a capture can be removed while
@@ -57,7 +66,7 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
     captureDeleteRefusal({
       actorId: actor.id,
       actorRole: actor.role,
-      mayCapture: can(actor, "evidence.capture") || can(actor, "evidence.review"),
+      mayCapture: can(actor, "evidence.capture"),
       assignedTechId: view.file.assigned_tech_id,
       status: view.file.status,
     }) === null;

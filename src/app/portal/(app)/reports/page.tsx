@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
+import { mayExport } from "@/lib/list-exports";
 import { ButtonLink, PageHead, Panel, EmptyState } from "@/components/portal/surfaces";
 import { SystemAlert } from "@/components/portal/design";
 import { REPORTS, ROWS_PER_PAGE, formatFigure, pageOfRows, periodOf, type Figure } from "@/lib/ops-reports";
@@ -249,7 +250,7 @@ export default async function ReportsPage({
         </SystemAlert>
       </div>
 
-      {built.map((report) => (
+      {built.map((report, i) => (
         <Panel
           key={report.key}
           title={report.title}
@@ -261,16 +262,21 @@ export default async function ReportsPage({
            * machine to send to an accountant, and rebuilding it in JavaScript
            * is more code between the row and the disk.
            *
-           * The button is per report and asks the same grant the panel above it
-           * did, so a button that appears is a button that works.
+           * The button is per report and asks what the export door asks,
+           * mayExport on the report's own action, so a button that appears is a
+           * button that works. Since 2026-11-02 that includes the
+           * administrator's export gate (Robert's P2 approval, option a), so a
+           * role granted a report reads it here and is not offered the file.
            */
           actions={
-            <ButtonLink
-              href={`/api/portal/exports?report=${report.key}&period=${period}`}
-              tone="ghost"
-            >
-              Export {period}
-            </ButtonLink>
+            mayExport(actor, allowed[i].action) ? (
+              <ButtonLink
+                href={`/api/portal/exports?report=${report.key}&period=${period}`}
+                tone="ghost"
+              >
+                Export {period}
+              </ButtonLink>
+            ) : undefined
           }
         >
           {report.covers === "the reader's own work" ? (

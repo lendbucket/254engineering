@@ -2,6 +2,8 @@ import "server-only";
 import { STATUS_LABEL, type FileStatus } from "./ops-files";
 import { DB_NOW } from "./db-now";
 import { clockReading } from "./clock-skew";
+import { CAPTURE_CLOSED_STATUSES, captureKeyProblem, evidenceWriteRefusal } from "./evidence-capture-rules";
+import { sha256Hex } from "./evidence-fingerprint";
 import { readEvery } from "./bounded-read";
 import { supabaseAdmin } from "./supabase";
 import type { Cents } from "./ops-money";
@@ -1135,15 +1137,28 @@ export async function acceptOffer(
     };
   }
 
+  /*
+   * ONLY A FILE STILL WAITING FOR A TECHNICIAN CAN BE ACCEPTED. Robert's ruling
+   * Q3 of 2026-11-02 (audit field F7). A file cancelled or declined while its
+   * offers were out kept them live, the claim asked only that nobody was
+   * assigned, and a technician accepting a stale offer was told the job was
+   * his and drove to a cancelled property. Said here for the sentence, and
+   * required again in the claim itself, which is the decision.
+   */
+  if (file.status !== "needs_dispatch") {
+    return { ok: false, error: "This job is no longer waiting for a technician, so the offer cannot be accepted." };
+  }
+
   // The claim. Everything above this line is a courtesy; this is the decision.
   const { data: claimed } = await db
     .from("eng_files")
     .update({ assigned_tech_id: offer.tech_id })
     .eq("id", offer.file_id)
+    .eq("status", "needs_dispatch")
     .is("assigned_tech_id", null)
     .select("id");
 
-  if (!claimed?.length) return { ok: false, error: "Another technician accepted this job first." };
+  if (!claimed?.length) return { ok: false, error: "Another technician accepted this job first, or it is no longer waiting for one." };
 
   await db
     .from("eng_assignments")
@@ -1638,6 +1653,25 @@ export type CaptureInput = {
   accuracy?: number | null;
 };
 
+/** The private bucket every evidence upload goes to. */
+export const EVIDENCE_BUCKET = "eng-evidence";
+
+/**
+ * Whether storage holds an evidence object, asked by listing its folder for
+ * its exact name (the shape status-uploads.ts uses). A failed listing is a
+ * failure, never "absent" and never "present" (Q2, 2026-11-02).
+ */
+export async function evidenceObjectExists(storageKey: string): Promise<{ ok: true; exists: boolean } | { ok: false; error: string }> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "Storage is not configured." };
+  const slash = storageKey.lastIndexOf("/");
+  const folder = storageKey.slice(0, slash);
+  const name = storageKey.slice(slash + 1);
+  const { data, error } = await db.storage.from(EVIDENCE_BUCKET).list(folder, { search: name });
+  if (error) return { ok: false, error: "Storage could not be checked just now, so nothing was recorded. It will be sent again." };
+  return { ok: true, exists: (data ?? []).some((o) => o.name === name) };
+}
+
 /**
  * Record one capture, idempotently.
  *
@@ -1662,9 +1696,6 @@ export async function recordCapture(
 ): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
-  if (!can(actor, "evidence.capture") && !can(actor, "evidence.review")) {
-    return { ok: false, error: "Your role cannot capture evidence." };
-  }
 
   const view = await jobView(actor, fileId);
   if (!view) return { ok: false, error: "That job is not yours." };
@@ -1680,18 +1711,15 @@ export async function recordCapture(
    * not theirs, and the engineer would review a package assembled by two people
    * without knowing it.
    *
-   * Caught by walking the flow rather than by reading it.
+   * Caught by walking the flow rather than by reading it. Since Robert's ruling
+   * Q3 of 2026-11-02 (audit field F15) it binds every role, not only the
+   * technician's: evidence.review no longer writes evidence, so the engineer
+   * and the administrator cannot author the record they review.
    */
-  if (actor.role === "field_tech" && view.file.assigned_tech_id !== actor.id) {
-    return {
-      ok: false,
-      error: view.file.assigned_tech_id
-        ? "Another technician accepted this job first."
-        : "Accept this job before capturing against it.",
-    };
-  }
+  const notYours = evidenceWriteRefusal({ id: actor.id, mayCapture: can(actor, "evidence.capture") }, view.file.assigned_tech_id);
+  if (notYours) return { ok: false, error: notYours };
 
-  if (["evidence_submitted", "under_review", "sealed", "delivered", "closed", "cancelled"].includes(view.file.status)) {
+  if (CAPTURE_CLOSED_STATUSES.includes(view.file.status)) {
     return { ok: false, error: "This file has left the field. Capture is closed on it." };
   }
 
@@ -1708,6 +1736,37 @@ export async function recordCapture(
   const asks = item.kind === "photo" ? photoAnswersFor(view.protocol?.document_number ?? null)[item.itemKey] : undefined;
   const unanswered = photoAnswerRefusal(asks, input);
   if (unanswered) return { ok: false, error: unanswered };
+
+  /*
+   * THE KEY IS THIS CAPTURE'S OWN OBJECT, AND THE OBJECT IS THERE. Robert's
+   * ruling Q2 of 2026-11-02 (audit field F4). The key was written as the body
+   * sent it, so a capture on one file could point at another file's
+   * photograph, or at nothing, and the checklist read complete either way. It
+   * must be exactly fileId/captureId.ext, the one path sign_upload issues, and
+   * storage must hold it before the row says it does.
+   */
+  const keyProblem = captureKeyProblem(fileId, input.clientCaptureId, input.storageKey);
+  if (keyProblem) return { ok: false, error: keyProblem };
+  if (input.storageKey) {
+    const stored = await evidenceObjectExists(input.storageKey);
+    if (!stored.ok) return { ok: false, error: stored.error };
+    if (!stored.exists) return { ok: false, error: "The photograph did not arrive in storage, so it was not recorded. It will be sent again." };
+  }
+
+  /*
+   * THE FINGERPRINT, FROM THE STORED BYTES. Robert's ruling P5, 2026-11-01
+   * (0107). The key is already this capture's own object and it exists (Q2,
+   * above), so the file is read back and hashed here; a file that cannot be
+   * read back is refused rather than recorded unhashed.
+   */
+  let contentSha256: string | null = null;
+  if (input.storageKey) {
+    const { data: bytes, error: readError } = await db.storage.from("eng-evidence").download(input.storageKey);
+    if (readError || !bytes) {
+      return { ok: false, error: "The uploaded file could not be read back to fingerprint it, so it was not recorded. It will be sent again." };
+    }
+    contentSha256 = sha256Hex(await bytes.arrayBuffer());
+  }
 
   /*
    * THE SERVER CLOCK, READ ONCE. Both the skew below and the row's own
@@ -1741,6 +1800,8 @@ export async function recordCapture(
         value_number: input.valueNumber ?? null,
         unit: item.unit ?? null,
         storage_key: input.storageKey ?? null,
+        /* Written with every upsert, so a replay that replaced the bytes replaces the hash. */
+        content_sha256: contentSha256,
         /* DB_NOW as the fallback only. A supplied capturedAt is the DEVICE
          * saying when the photograph was taken, which is the honest answer and
          * is not this machine's clock either way. */
@@ -1824,9 +1885,6 @@ export async function recordException(
 ): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
-  if (!can(actor, "evidence.capture") && !can(actor, "evidence.review")) {
-    return { ok: false, error: "Your role cannot record against a checklist." };
-  }
 
   const view = await jobView(actor, fileId);
   if (!view) return { ok: false, error: "That job is not yours." };
@@ -1837,18 +1895,13 @@ export async function recordException(
    * the checklist before accepting; writing against it is a different act. A
    * technician who lost the race could otherwise mark items not applicable on a
    * job that is not theirs, and an exception is a stronger claim about a
-   * property than a photograph is.
+   * property than a photograph is. Every role since Q3 (2026-11-02, F15).
    */
-  if (actor.role === "field_tech" && view.file.assigned_tech_id !== actor.id) {
-    return {
-      ok: false,
-      error: view.file.assigned_tech_id
-        ? "Another technician accepted this job first."
-        : "Accept this job before recording against it.",
-    };
-  }
+  const notYours = evidenceWriteRefusal({ id: actor.id, mayCapture: can(actor, "evidence.capture") }, view.file.assigned_tech_id);
+  if (notYours) return { ok: false, error: notYours };
 
-  if (["evidence_submitted", "under_review", "sealed", "delivered", "closed", "cancelled"].includes(view.file.status)) {
+  /* The same closed list as capture, refused and repairs_required included (Q3, F16). */
+  if (CAPTURE_CLOSED_STATUSES.includes(view.file.status)) {
     return { ok: false, error: "This file has left the field. Recording is closed on it." };
   }
 
@@ -1934,6 +1987,9 @@ export async function withdrawException(
   if (!db) return { ok: false, error: "The database is not configured." };
   const view = await jobView(actor, fileId);
   if (!view) return { ok: false, error: "That job is not yours." };
+  /* A withdrawal changes the record as much as an entry does: the assigned technician's alone (Q3, 2026-11-02, F15). */
+  const notYours = evidenceWriteRefusal({ id: actor.id, mayCapture: can(actor, "evidence.capture") }, view.file.assigned_tech_id);
+  if (notYours) return { ok: false, error: notYours };
   if (view.file.status !== "evidence_in_progress" && view.file.status !== "revisions_requested") {
     return { ok: false, error: "Entries can only be withdrawn while the file is still in the field." };
   }
@@ -1979,9 +2035,6 @@ export async function closeRepairItem(
 ): Promise<{ ok: true; remaining: number } | { ok: false; error: string }> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
-  if (!can(actor, "evidence.capture") && !can(actor, "evidence.review")) {
-    return { ok: false, error: "Your role cannot verify a repair." };
-  }
 
   const view = await jobView(actor, fileId);
   if (!view) return { ok: false, error: "That job is not yours." };
@@ -1991,16 +2044,11 @@ export async function closeRepairItem(
    * reason and deliberately not abbreviated. A technician who lost the race to
    * accept could otherwise mark somebody else's repairs verified, and a
    * verified repair is a stronger claim than a photograph: it is the thing
-   * standing between a property and a seal.
+   * standing between a property and a seal. Every role since Q3 (2026-11-02,
+   * F15): the engineer who reviews the revisit does not also close its items.
    */
-  if (actor.role === "field_tech" && view.file.assigned_tech_id !== actor.id) {
-    return {
-      ok: false,
-      error: view.file.assigned_tech_id
-        ? "Another technician accepted this revisit first."
-        : "Accept this revisit before verifying repairs on it.",
-    };
-  }
+  const notYours = evidenceWriteRefusal({ id: actor.id, mayCapture: can(actor, "evidence.capture") }, view.file.assigned_tech_id);
+  if (notYours) return { ok: false, error: notYours };
 
   const item = view.repairs.find((r) => r.id === repairItemId);
   if (!item) return { ok: false, error: "That repair item does not belong to this file." };
@@ -2101,7 +2149,8 @@ export async function deleteCapture(
   const refused = captureDeleteRefusal({
     actorId: actor.id,
     actorRole: actor.role,
-    mayCapture: can(actor, "evidence.capture") || can(actor, "evidence.review"),
+    /* evidence.capture alone since Q3 (2026-11-02, F15): review reads evidence and does not change it. */
+    mayCapture: can(actor, "evidence.capture"),
     assignedTechId: view.file.assigned_tech_id,
     status: view.file.status,
   });
@@ -2200,6 +2249,17 @@ export async function submitEvidence(
 
   const view = await jobView(actor, fileId);
   if (!view) return { ok: false, error: "That job is not yours." };
+
+  /*
+   * THE PACKAGE IS SUBMITTED BY THE TECHNICIAN WHO GATHERED IT. Robert's ruling
+   * Q3 of 2026-11-02 (audit field F3). The four functions that write evidence
+   * each refused anybody but the assigned technician and this one did not, so a
+   * technician whose offer had been withdrawn, still able to open the job
+   * because it was offered to him, could submit the assigned technician's
+   * package under his own name while that technician was still on the roof.
+   */
+  const notYours = evidenceWriteRefusal({ id: actor.id, mayCapture: can(actor, "evidence.capture") }, view.file.assigned_tech_id);
+  if (notYours) return { ok: false, error: notYours };
 
   if (!view.state.canSubmit) {
     return {

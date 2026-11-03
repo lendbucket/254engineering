@@ -466,12 +466,14 @@ export function CoverageForm({
  */
 export function ActivatePanel({
   onboardingId,
+  role,
   ready,
   blockers,
   activatedAt,
   profileId,
 }: {
   onboardingId: string;
+  role: "engineer" | "field_tech";
   ready: boolean;
   blockers: string[];
   activatedAt: string | null;
@@ -483,17 +485,19 @@ export function ActivatePanel({
   const [failed, setFailed] = useState<string[]>([]);
   const [token, setToken] = useState<string | null>(null);
   const [linked, setLinked] = useState(false);
+  const [licenseNumber, setLicenseNumber] = useState("");
+  const engineer = role === "engineer";
 
   if (activatedAt) {
     return (
       <div>
         <p className="portal-label">Activated</p>
         <p className="mt-2 max-w-[70ch] text-[14px] leading-[1.55] text-[var(--secondary)]">
-          The account exists and the credentials are on file. This person is not certified for any
-          service line yet, so dispatch will not offer them work until they pass a protocol check.
-          That is the gate working, not a missing step.
+          {engineer
+            ? "The account exists with the license number on the profile and the license, with its expiry, on file as a verified credential."
+            : "The account exists and the credentials are on file. This person is not certified for any service line yet, so dispatch will not offer them work until they pass a protocol check. That is the gate working, not a missing step."}
         </p>
-        {profileId ? (
+        {profileId && !engineer ? (
           <a
             href="/portal/techs"
             className="mt-3 inline-flex min-h-[44px] items-center text-[14px] font-semibold text-[var(--ink)] underline underline-offset-4"
@@ -552,6 +556,26 @@ export function ActivatePanel({
         </div>
       ) : null}
 
+      {engineer ? (
+        <div className="mt-4 max-w-[320px]">
+          <label htmlFor={`licence-${onboardingId}`} className="block text-[14px] font-semibold text-[var(--ink)]">
+            Texas PE license number
+          </label>
+          <p className="mt-0.5 text-[13px] leading-[1.5] text-[var(--secondary)]">
+            From the license you accepted above. It goes on the profile; the expiry recorded on that item becomes the license credential.
+          </p>
+          <input
+            id={`licence-${onboardingId}`}
+            name="licenseNumber"
+            inputMode="numeric"
+            autoComplete="off"
+            value={licenseNumber}
+            onChange={(e) => setLicenseNumber(e.target.value)}
+            className={`${field} mt-1.5`}
+          />
+        </div>
+      ) : null}
+
       <Problem message={error} blockers={failed} />
 
       <button
@@ -562,7 +586,7 @@ export function ActivatePanel({
           setError(null);
           setFailed([]);
           try {
-            const body = await post({ action: "activate", onboardingId });
+            const body = await post({ action: "activate", onboardingId, ...(engineer ? { licenseNumber } : {}) });
             setToken(body.token ?? null);
             setLinked(Boolean(body.linked));
             router.refresh();
@@ -575,8 +599,203 @@ export function ActivatePanel({
         }}
         className={`${primary} mt-4`}
       >
-        {busy ? "Activating" : "Activate this technician"}
+        {busy ? "Activating" : engineer ? "Activate this engineer" : "Activate this technician"}
       </button>
+    </div>
+  );
+}
+
+/**
+ * ACCEPT OR REJECT ONE ITEM, P1 2026-11-01. The buttons drawn are exactly the
+ * decisions the server would allow (decisionsOffered, passed in from the page),
+ * a rejection asks for its reason before anything is sent, and the result says
+ * whether the person's email was queued.
+ */
+export function ItemDecision({
+  onboardingId,
+  itemKey,
+  label,
+  offered,
+}: {
+  onboardingId: string;
+  itemKey: string;
+  label: string;
+  offered: ("accepted" | "rejected")[];
+}) {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  const [rejecting, setRejecting] = useState(false);
+  const [reason, setReason] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+
+  if (offered.length === 0) return null;
+
+  async function decide(decision: "accepted" | "rejected") {
+    if (decision === "rejected" && !reason.trim()) {
+      setError("Say why it is rejected. The reason is what the person is told.");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    setNote(null);
+    try {
+      const res = await fetch("/api/portal/onboarding", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "decide_item", onboardingId, itemKey, decision, reason }),
+      });
+      const body = (await res.json().catch(() => null)) as { ok?: boolean; error?: string; emailed?: boolean; emailError?: string } | null;
+      if (!res.ok || !body?.ok) throw new Error(body?.error ?? "That did not save.");
+      setNote(body.emailed ? "Saved, and the person's email is queued." : `Saved. The email to the person could not be queued: ${body.emailError ?? "no reason given"}. Tell them another way.`);
+      setRejecting(false);
+      setReason("");
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "That did not save.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mt-2">
+      <div className="flex flex-wrap gap-2">
+        {offered.includes("accepted") ? (
+          <button type="button" disabled={busy} onClick={() => void decide("accepted")} className={ghost}>
+            Accept {label}
+          </button>
+        ) : null}
+        {offered.includes("rejected") && !rejecting ? (
+          <button type="button" disabled={busy} onClick={() => setRejecting(true)} className={ghost}>
+            Reject {label}
+          </button>
+        ) : null}
+      </div>
+      {rejecting ? (
+        <div className="mt-2 max-w-[520px]">
+          <label htmlFor={`reject-${onboardingId}-${itemKey}`} className="block text-[14px] font-semibold text-[var(--ink)]">
+            Why it is rejected (the person is told this)
+          </label>
+          <textarea
+            id={`reject-${onboardingId}-${itemKey}`}
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            rows={3}
+            className={`${field} mt-1.5 py-2`}
+          />
+          <div className="mt-2 flex flex-wrap gap-2">
+            <button type="button" disabled={busy} onClick={() => void decide("rejected")} className={primary}>
+              {busy ? "Sending" : "Reject and tell them"}
+            </button>
+            <button type="button" disabled={busy} onClick={() => { setRejecting(false); setError(null); }} className={ghost}>
+              Keep it as it is
+            </button>
+          </div>
+        </div>
+      ) : null}
+      <Problem message={error} />
+      {note ? <p role="status" className="mt-2 text-[14px] leading-[1.5] text-[var(--ink)]">{note}</p> : null}
+    </div>
+  );
+}
+
+/**
+ * IDENTITY AND I-9: THE DOCUMENT TYPE SEEN, WHO AND WHEN. P1, 2026-11-01. No
+ * upload and no number: a type from the list, and the server stamps who and
+ * when. A recorded check can be cleared with a reason, which clears all three.
+ */
+export function VerificationPanel({
+  onboardingId,
+  check,
+  title,
+  types,
+  recorded,
+  locked,
+}: {
+  onboardingId: string;
+  check: "identity" | "i9";
+  title: string;
+  types: { value: string; label: string }[];
+  recorded: { typeLabel: string | null; byName: string | null; at: string | null } | null;
+  locked: boolean;
+}) {
+  const router = useRouter();
+  const [type, setType] = useState("");
+  const [clearing, setClearing] = useState(false);
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function send(payload: Record<string, unknown>) {
+    setBusy(true);
+    setError(null);
+    try {
+      await post({ onboardingId, check, ...payload });
+      setClearing(false);
+      setReason("");
+      setType("");
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "That did not save.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="py-3">
+      <p className="text-[14px] font-semibold text-[var(--ink)]">{title}</p>
+      {recorded ? (
+        <>
+          <p className="mt-0.5 text-[14px] leading-[1.5] text-[var(--ink)]">
+            Verified: {recorded.typeLabel ?? "a document type this screen does not know"} seen by {recorded.byName ?? "a profile that could not be named"}, {recorded.at}.
+          </p>
+          {!locked && !clearing ? (
+            <button type="button" onClick={() => setClearing(true)} className={`${ghost} mt-2`}>
+              Clear this record
+            </button>
+          ) : null}
+          {clearing ? (
+            <div className="mt-2 max-w-[520px]">
+              <label htmlFor={`clear-${onboardingId}-${check}`} className="block text-[14px] font-semibold text-[var(--ink)]">
+                Why it is being cleared
+              </label>
+              <input id={`clear-${onboardingId}-${check}`} value={reason} onChange={(e) => setReason(e.target.value)} className={`${field} mt-1.5`} />
+              <div className="mt-2 flex flex-wrap gap-2">
+                <button type="button" disabled={busy || !reason.trim()} onClick={() => void send({ action: "clear_verification", reason })} className={primary}>
+                  {busy ? "Clearing" : "Clear it"}
+                </button>
+                <button type="button" disabled={busy} onClick={() => setClearing(false)} className={ghost}>
+                  Keep it
+                </button>
+              </div>
+            </div>
+          ) : null}
+        </>
+      ) : locked ? (
+        <p className="mt-0.5 text-[14px] leading-[1.5] text-[var(--secondary)]">Not recorded.</p>
+      ) : (
+        <div className="mt-1.5 flex flex-wrap items-end gap-2">
+          <div className="min-w-[260px] flex-1">
+            <label htmlFor={`type-${onboardingId}-${check}`} className="block text-[13px] font-semibold text-[var(--ink)]">
+              Document type seen
+            </label>
+            <select id={`type-${onboardingId}-${check}`} value={type} onChange={(e) => setType(e.target.value)} className={`${field} mt-1`}>
+              <option value="">Choose what you saw</option>
+              {types.map((t) => (
+                <option key={t.value} value={t.value}>
+                  {t.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button type="button" disabled={busy || !type} onClick={() => void send({ action: "record_verification", documentType: type })} className={primary}>
+            {busy ? "Recording" : "Record as verified"}
+          </button>
+        </div>
+      )}
+      <Problem message={error} />
     </div>
   );
 }
