@@ -353,6 +353,18 @@ async function handlePOST(request: NextRequest) {
     if (!breakGlassConfigured()) {
       return NextResponse.json({ ok: false, error: "That is not available." }, { status: 404 });
     }
+    /*
+     * Counted by the same limiter, on the same key, as a code guess (auth audit
+     * L2, 2026-11-02): a pending session could otherwise try break glass tokens
+     * with no 429, and each try would only write an audit row.
+     */
+    const glassLimit = await takeLoginAttempt(clientKey(request.headers), `${MFA_SCOPE}:${profile.id}`);
+    if (!glassLimit.allowed) {
+      return NextResponse.json(
+        { ok: false, error: "Too many attempts. Wait a few minutes." },
+        { status: 429, headers: { "Retry-After": String(glassLimit.retryAfterSeconds) } },
+      );
+    }
     if (!breakGlassMatches(profile.email, String(body?.token ?? ""))) {
       await writeAudit({
         actor,

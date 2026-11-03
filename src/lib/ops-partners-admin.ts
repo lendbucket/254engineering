@@ -1,6 +1,7 @@
 import "server-only";
 import { readEvery } from "./bounded-read";
 import { supabaseAdmin } from "./supabase";
+import { exactEmailPattern } from "./email-match";
 import { writeAudit } from "./ops-audit";
 import { can, type Actor } from "./ops-authz";
 import { normaliseCode, looksLikeCode } from "./attribution-rules";
@@ -494,7 +495,7 @@ export async function invitePartnerUser(
   const { data: existingRows, error: existingErr } = await db
     .from("eng_partner_users")
     .select("id, partner_id")
-    .ilike("email", email)
+    .ilike("email", exactEmailPattern(email))
     .order("created_at", { ascending: true })
     .limit(1);
 

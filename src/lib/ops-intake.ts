@@ -307,6 +307,18 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
     };
   }
 
+  /*
+   * AN ORDER RECORDS ONLY FILES ITS OWN REQUEST UPLOADED. Auth audit L4,
+   * 2026-11-02: the quote path refused a file outside its own request's
+   * prefix, and the order path stored whatever bucket and key the caller sent,
+   * so a row could claim an object the customer never uploaded. The same check
+   * now runs here, before anything is written.
+   */
+  for (const f of input.files ?? []) {
+    const problem = quoteFileProblem(input.clientRequestId, f);
+    if (problem) return { ok: false, error: problem };
+  }
+
   const entry = catalogFor(input.serviceSlug, input.tier);
   if (!entry && deliverablesFor(input.serviceSlug).length > 1) {
     return {
