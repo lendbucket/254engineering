@@ -18,6 +18,7 @@ import { CRM_REPLY_DOMAIN } from "@/config/crm-email";
 import {
   emailDue,
   firmDay,
+  emailVerticalFor,
   ledgerAddress,
   planAfterEmail,
   renderSequenceEmail,
@@ -90,7 +91,8 @@ function recipientOf(people: Person[]): Person | null {
 
 async function emailFor(actor: Actor, row: Record<string, unknown>, person: Person | null): Promise<RenderedSequenceEmail> {
   const vertical = row.vertical as CrmVertical;
-  const line = SCRIPT_LINE[vertical];
+  /* The line of the email actually shown: the general email follows the roof line even in place of solar (R3 ruling 4). */
+  const line = SCRIPT_LINE[emailVerticalFor(vertical, (row.city as string | null) ?? null)];
   const sellable = await lineIsSellableForDisplay(line.serviceSlug, line.tier ?? null);
   return renderSequenceEmail(
     {
