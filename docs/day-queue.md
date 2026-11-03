@@ -421,6 +421,10 @@ WPI-8 facts stand as read from TDI and TWIA: TWIA's lookup is WPI-8-C only; the 
 
 **Q12, Q13, Q14 prepared** (each carrying everything before it and P2): Q12 `a7d1862` (clean), Q13 `0891922` (clients page imports: P2's mayExport and Q13's listClientsRead), Q14 `20ad7d6` (onboarding token page imports: Link kept, notFound dropped per 1a). Proofs and preflight GREEN on each.
 
+**Q5 and Q6 prepared over the Q14 chain:** Q5 `cc8e1ab` (recordCapture: Q5's single-block form of the Q2 and P5 combination kept; field and licence proofs PASS), Q6 `9674d1f` (clean; its proof PASS). Preflight GREEN on both. 0109 and 0110 are on development already.
+
+**Q8 was never built** (no branch carried it). A fork is building it now: the code-only part on `fix/q8-money-integrity` over the Q14 chain, so it boards in Robert's slot; any part needing a migration as Q8b, numbered 0118 and stacked on M2 (`b16b496`, which carries 0111 to 0117), since contiguity puts a new migration after M2's 0117.
+
 **0108 NOT APPLIED ON PRODUCTION (6596936527, 00:16 Central):** the connector asked for confirmation of the five deletes, nobody was awake, it timed out; production unchanged (5 rows, admin 4 of 4, 191 grants, no ledger row). The chat recommends Robert answers the connector's prompt while it applies through apply_migration (as 0096 went); it will not retry unattended. **So nothing merges tonight; the stack keeps boarding (ruling item 3) and merges in order the morning 0108 lands.** Ready and preflight GREEN, each carrying everything before it and P2: Q3 `e8bf476` (board 41591970347 running), Q4 `b4d379d`, Q7 `43215be`, Q9 `5e3ffd6`, Q10 `4596a99`.
 
 **P2 waits for the chat's re-run of 0108 on development** (asked 6586857015, by Robert's word in 6581232441).
