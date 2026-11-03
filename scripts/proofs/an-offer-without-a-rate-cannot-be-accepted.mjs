@@ -64,6 +64,10 @@ try {
     const { error: fErr } = await db.from("eng_files").insert({
       id, file_number: `254-DEMO-RP${String(STAMP).slice(-6)}${n}`, is_demo: true, client_id: client.id,
       service_slug: "roof-inspections", property_address: `${n} Rate Proof Way`, county: "Kenedy",
+      // Waiting for a technician, as an offered file is: since Robert's Q3 (2026-11-02, field F7)
+      // acceptOffer refuses a file that is not in needs_dispatch, so without this the control
+      // would be refused for the status and the rate refusal above would prove nothing.
+      status: "needs_dispatch",
     });
     if (fErr) throw new Error(`file: ${fErr.message}`);
     files.push(id);
