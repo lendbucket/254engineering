@@ -9,6 +9,8 @@ import {
   setTechCoverage,
 } from "@/lib/ops-onboarding";
 import { attachRelayedConfirmation, recordTraining } from "@/lib/certification-record";
+import { decideOnboardingItem } from "@/lib/onboarding-decisions";
+import { clearVerification, recordVerification } from "@/lib/admin-onboarding";
 import { rejectCredential, submitCredential, verifyCredential } from "@/lib/ops-credential-submissions";
 import { withSaveOutcome } from "@/lib/save-outcome";
 import {
@@ -105,8 +107,39 @@ async function handlePOST(request: NextRequest) {
     return result.ok ? NextResponse.json({ ok: true, counties: result.counties }) : bad(result.error);
   }
 
+  /*
+   * ROBERT'S RULING P1, 2026-11-01: accept or reject each item (a reason on
+   * reject, an audit row, the person emailed), and identity and I-9 recorded
+   * as the document type seen, who and when. Every rule lives in the three
+   * functions; this only passes what was sent.
+   */
+  if (action === "decide_item") {
+    const result = await decideOnboardingItem(
+      actor,
+      String(body?.onboardingId ?? ""),
+      String(body?.itemKey ?? ""),
+      String(body?.decision ?? ""),
+      String(body?.reason ?? ""),
+      context,
+    );
+    return result.ok
+      ? NextResponse.json({ ok: true, emailed: result.emailed, emailError: result.emailError ?? null })
+      : bad(result.error);
+  }
+  if (action === "record_verification" || action === "clear_verification") {
+    const check = body?.check === "i9" ? "i9" : body?.check === "identity" ? "identity" : null;
+    if (!check) return bad("Say which check: identity or I-9.");
+    const result =
+      action === "record_verification"
+        ? await recordVerification(actor, String(body?.onboardingId ?? ""), check, String(body?.documentType ?? ""), context)
+        : await clearVerification(actor, String(body?.onboardingId ?? ""), check, String(body?.reason ?? ""), context);
+    return result.ok ? NextResponse.json({ ok: true }) : bad(result.error);
+  }
+
   if (action === "activate") {
-    const result = await activateTechnician(actor, String(body?.onboardingId ?? ""), context);
+    const result = await activateTechnician(actor, String(body?.onboardingId ?? ""), context, {
+      licenseNumber: body?.licenseNumber ? String(body.licenseNumber) : null,
+    });
     return result.ok
       ? NextResponse.json({
           ok: true,
