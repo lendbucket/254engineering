@@ -443,6 +443,8 @@ WPI-8 facts stand as read from TDI and TWIA: TWIA's lookup is WPI-8-C only; the 
 
 **Q9 rebuilt per Robert's 2026-11-03 answer** at `092c06f` (per audit bucket: `BOARD_AUDIT` in each server's environment beside `BOARD_RUN_ID`, development only; the suite restarts the shared phase one server per audit; production and requests unchanged; bucket proof 26 checks, two injections red as expected; preflight GREEN). **Order, because Q10 carries the revert of Q9:** Q10 merges first; then Q9 takes the new main, reverts `2ad0d95` on its branch (Robert's "revert 2ad0d95 in the same merge"), and boards on that tree; Q9 merges after it passes. Q9 must never merge before Q10, or Q10's merge would take Q9 back out of main.
 
+**Result, bundle 83 (board 41642696380 on `2ad0d95`): 65 of 65, every gating audit, no probe 429. Q10 BOARDED GREEN, NOT MERGED (Robert's stop order of 2026-11-03).** Public bytes identical to bundle 81; `/` 2,486, `/coverage` 2,562, coastal-bend 2,412, service 2,721. Handoff written to `docs/handoff/session-A.md`.
+
 **F9 CORRECTION (issue #1, F9 correction comment).** My F9 question 6594767802 was wrong twice: no letter template is signed since 0091 (2026-10-25), so nothing needs re-signing; and the quoted section 9 sentence exists only in 254-RC-001. F9 built for the roof letter only at `c7e8a31` (`fix/f9-visit-date-receipt`, over main `3446a44`), preflight GREEN, proof 15 checks, five injections. Two questions posted (the four other letters; adoption by sealing). Boards with the follow-ups.
 
 **Review-request fixture** built at `f9761a2` (`fix/review-request-fixture-once`): one sealed `254-DEMO-RQ-FIXTURE` file reused; boards with the follow-ups.
