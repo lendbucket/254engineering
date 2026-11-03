@@ -465,7 +465,35 @@ const GATED = { prelaunch: true };
     for (const part of parts) {
       const statement = part.split(";")[0];
       if (!/\.update\(/.test(statement)) continue;
-      if (!/\bstatus\b/.test(statement)) continue;
+      /*
+       * THE PAYLOAD IS THE WRITE, NOT THE FILTER. Sharpened 2026-11-02 for
+       * Robert's ruling Q3 (audit field F7), whose claim in acceptOffer is
+       * `.update({ assigned_tech_id }).eq("status", "needs_dispatch")`: it
+       * filters on the status and writes only the technician, and the old test
+       * (the word status anywhere in the statement) read the filter as a write.
+       * A literal payload is now searched for status inside its own braces. A
+       * payload that is a variable cannot be seen into, so it keeps the old,
+       * wider test: any mention of status in the statement flags it.
+       */
+      const payload = statement.slice(statement.indexOf(".update(") + ".update(".length).trimStart();
+      if (payload.startsWith("{")) {
+        let depth = 0;
+        let end = -1;
+        for (let i = 0; i < payload.length; i++) {
+          if (payload[i] === "{") depth += 1;
+          else if (payload[i] === "}") {
+            depth -= 1;
+            if (depth === 0) {
+              end = i;
+              break;
+            }
+          }
+        }
+        const object = end < 0 ? payload : payload.slice(0, end + 1);
+        if (!/\bstatus\b/.test(object)) continue;
+      } else if (!/\bstatus\b/.test(statement)) {
+        continue;
+      }
       offenders.push(file.replace(/^src\//, "") + ": " + statement.trim().slice(0, 60));
     }
   }
