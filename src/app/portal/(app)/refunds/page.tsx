@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
+import { LIST_EXPORT_GRANT } from "@/lib/list-exports";
 import { currentRefundLimit, listRefundRequests, type RefundRequestRow } from "@/lib/ops-refund-requests";
 import { money } from "@/lib/ops-money";
 import { formatInFirmZone } from "@/lib/firm-calendar";
@@ -84,7 +85,7 @@ export default async function RefundsPage({ searchParams }: { searchParams: Prom
         sorts={[{ value: "asked", label: "Date asked" }, { value: "amount", label: "Amount" }, { value: "order", label: "Order" }]}
         sort={sort}
         direction={dir === -1 ? "desc" : "asc"}
-        csvHref={`/api/portal/refunds/export?${csvQuery}`}
+        csvHref={can(actor, LIST_EXPORT_GRANT) ? `/api/portal/refunds/export?${csvQuery}` : undefined}
       />
       {!read.ok ? (
         <ErrorState title="Refund requests could not be read" body={`${read.error} Nothing here means nothing is waiting.`} />

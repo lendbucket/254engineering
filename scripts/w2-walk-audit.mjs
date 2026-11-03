@@ -142,6 +142,8 @@ const WALK_RATE_CENTS = 18_500;
 const NOT_SEEDED = {
   "/onboarding/[token]":
     "not seeded: an onboarding link's token exists only when issued, and issuing one writes an onboarding record that cannot be deleted",
+  "/onboarding/[token]/training":
+    "not seeded: the training courses hang off the same onboarding link, so the same reason holds (P3, 2026-11-01)",
 };
 const EMPTY_NOT_SEEDED = {};
 const fixtures = { prospectId: null, deadJobId: null, offerFileId: null, jobFileId: null, orderId: null, faults: [] };
