@@ -399,6 +399,8 @@ WPI-8 facts stand as read from TDI and TWIA: TWIA's lookup is WPI-8-C only; the 
 
 **Prediction, bundle 76d (P2 fourth board on Robert's word, 1acae24 = 8852119 plus the tasks select width only).** Board 65 of 65. mobile-overflow-audit and mobile-audit PASS on `/portal/tasks` at 320 (the per-task assignee select capped to its row). The review-request proof PASS; dashboards, roles, reporting, bulk PASS. Public bytes identical; LCP in range, `/coverage` and `/services/windstorm-wpi-8` under the green-board rule. Merges only after 0108 sits on production.
 
+**Result, bundle 76d (board 41568841308 on `1acae24`): 65 of 65, preflight GREEN. P2 BOARDED GREEN.** `/portal/tasks` @320 passes; the review-request proof, dashboards, roles, reporting, bulk PASS; public bytes identical to bundle 75; `/` 2,892, `/coverage` 2,567, coastal-bend 2,743, cost guide 2,662, TBT 25 to 46; missed on an untouched page: `/services/windstorm-wpi-8` 2,415 (unchanged bytes). **Production sitting for 0108 asked** (issue #1); P2 merges after the read-back, then Q1 boards on that main.
+
 **P2 waits for the chat's re-run of 0108 on development** (asked 6586857015, by Robert's word in 6581232441).
 
 **Built in the background since Robert's audit and CRM rulings** (all forks, none pushed except stage branches, none boarded): Q1 `9bffc32`, Q2 `970d8d0`, Q3 `b6f6a2e`, Q4 `a3d16c5` (stacked from main); Q7 `7107543`; Q9 `677767b`, Q10 `3e09d10`; Q14 `a2a1082`; Q11 to Q13 and Q5, Q6 (migrations 0109, 0110 stacked on P2) building. Questions posted: M2 design and the per-door counter (6586517364), Q14 waitlist and the onboarding 200 (6586655667), Q7 refund after an outside refund and the statement label (6586714607), Q4 review request on a decline and the pre-Q6 exposure (6586834020).
