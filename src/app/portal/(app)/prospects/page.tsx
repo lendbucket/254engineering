@@ -88,7 +88,7 @@ export default async function ProspectsPage({ searchParams }: { searchParams: Pr
       />
 
       {!list.ok ? (
-        <ErrorState title="The sales list could not be read" body={`${list.error} Nothing here means the list is empty.`} />
+        <ErrorState title="The sales list could not be read" body={`${list.error} This is a failed read, not an empty list.`} />
       ) : (
         <>
           <DataTable

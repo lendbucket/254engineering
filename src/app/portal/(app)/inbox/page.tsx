@@ -106,7 +106,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
         csvHref={mayExport(actor, "inbox.read") ? `/api/portal/inbox/export${csvQuery ? `?${csvQuery}` : ""}` : undefined}
       />
       {!read.ok ? (
-        <ErrorState title="The inbox could not be read" body={`${read.error} Nothing here means nobody is waiting.`} />
+        <ErrorState title="The inbox could not be read" body={`${read.error} This is a failed read, not an empty list.`} />
       ) : (
         <>
           {read.failed.length ? (

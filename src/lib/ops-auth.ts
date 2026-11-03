@@ -8,6 +8,7 @@ import { OPS_COOKIE, readOpsSession } from "./ops-session";
 import type { Action, Actor, Role, RoleKey } from "./ops-authz";
 import { cache } from "react";
 import { DatabaseUnreachable, isDatabaseUnreachable } from "./save-outcome";
+import { clearLoginAttempts, clientKey, takeLoginAttempt } from "./ops-rate-limit";
 
 /**
  * Everything that turns a request into an actor, and an admin's intent into an
@@ -609,14 +610,42 @@ export async function verifyOwnPassword(
   if (readError) return { ok: false, error: `Your account could not be read: ${readError.message}` };
   if (!profile?.email) return { ok: false, error: "That account no longer exists." };
 
+  const limited = await passwordAttemptRefusal(actorId);
+  if (limited) return { ok: false, error: limited };
+
   const auth = supabaseCredentialCheck();
   if (!auth) return { ok: false, error: "The database is not configured." };
   const check = await auth.auth.signInWithPassword({ email: profile.email as string, password });
   await auth.auth.signOut().catch(() => {});
   if (check.error || check.data.user?.id !== actorId) return { ok: false, error: "That is not your password." };
+  await passwordAttemptsClear(actorId);
   // No time is returned: the time of record is the audit row's own, written by
   // the database, rather than this process's clock.
   return { ok: true };
+}
+
+/**
+ * THE PASSWORD RE-ENTRY IS COUNTED LIKE A SIGN IN. Robert, 2026-11-02, Q10
+ * (auth M4): verifyOwnPassword and changeOwnPassword asked Supabase for every
+ * guess with nothing counting, so a session somebody had taken could try the
+ * owner's password at the speed of the network, and under the owner override a
+ * right guess authorises a job at no charge. Each check now takes an attempt
+ * through takeLoginAttempt, keyed on the caller's address and this account,
+ * with the sign in limits (eight an account, twenty an address, fifteen
+ * minutes); a right password ends that account's count, never the address's.
+ */
+const PASSWORD_SCOPE = "password";
+
+async function passwordAttemptRefusal(actorId: string): Promise<string | null> {
+  const address = clientKey(await headers());
+  const limit = await takeLoginAttempt(address, `${PASSWORD_SCOPE}:${actorId}`);
+  if (limit.allowed) return null;
+  const minutes = Math.max(1, Math.ceil(limit.retryAfterSeconds / 60));
+  return `Too many password attempts. Wait ${minutes} minute${minutes === 1 ? "" : "s"} and try again.`;
+}
+
+async function passwordAttemptsClear(actorId: string): Promise<void> {
+  await clearLoginAttempts(clientKey(await headers()), `${PASSWORD_SCOPE}:${actorId}`);
 }
 
 /** A person changing their own password, already signed in. */
@@ -636,11 +665,15 @@ export async function changeOwnPassword(
 
   // The current password is required, so a borrowed session cannot lock the
   // owner out of their own account. Throwaway client, for the reason above.
+  // Counted like a sign in (Q10, auth M4), the same bucket verifyOwnPassword uses.
+  const limited = await passwordAttemptRefusal(actorId);
+  if (limited) return { ok: false, error: limited };
   const auth = supabaseCredentialCheck();
   if (!auth) return { ok: false, error: "The database is not configured." };
   const check = await auth.auth.signInWithPassword({ email: profile.email, password: currentPassword });
   await auth.auth.signOut().catch(() => {});
   if (check.error) return { ok: false, error: "That is not your current password." };
+  await passwordAttemptsClear(actorId);
 
   const { error } = await db.auth.admin.updateUserById(actorId, { password: nextPassword });
   if (error) return { ok: false, error: "The password could not be changed." };

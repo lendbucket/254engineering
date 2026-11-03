@@ -14,7 +14,7 @@
  *   node node_modules/tsx/dist/cli.mjs scripts/proofs/the-cost-guide-answers-three-prices.mjs
  */
 const { insights } = await import("../../src/content/insights.ts");
-const { CATALOG } = await import("../../data/catalog.ts");
+const { CATALOG, statedPriceCents } = await import("../../data/catalog.ts");
 
 const out = [];
 const check = (name, ok, note = "") => out.push({ name, ok, note });
@@ -35,7 +35,12 @@ for (const [q, slug, owner] of QUESTIONS) {
   for (let i = at + 1; i < post.body.length && post.body[i].kind !== "h2"; i++) section.push(post.body[i].text ?? "");
   const text = section.join(" ");
   for (const e of CATALOG.filter((x) => x.serviceSlug === slug && x.priceCents != null)) {
-    check(`under it, the catalog price ${dollars(e.priceCents)} for "${e.name}"`, text.includes(dollars(e.priceCents)));
+    /* Robert's Q14 of 2026-11-02: a deliverable no order page offers states no figure and reads "quoted". */
+    if (statedPriceCents(e) === null) {
+      check(`under it, "${e.name}" is quoted and its ${dollars(e.priceCents)} is not printed`, !text.includes(dollars(e.priceCents)) && /ongoing construction is quoted/.test(text));
+    } else {
+      check(`under it, the catalog price ${dollars(e.priceCents)} for "${e.name}"`, text.includes(dollars(e.priceCents)));
+    }
   }
   check(`under it, a link to the page that owns the topic, ${owner}`, text.includes(`](${owner})`));
 }
@@ -44,6 +49,11 @@ const table = post.body.find((b) => b.kind === "table");
 check("the post carries one table", post.body.filter((b) => b.kind === "table").length === 1);
 const cells = JSON.stringify(table?.rows ?? []);
 for (const e of CATALOG.filter((x) => ["windstorm-wpi-8", "foundation-inspections", "roof-inspections"].includes(x.serviceSlug) && x.priceCents != null)) {
+  if (statedPriceCents(e) === null) {
+    const row = (table?.rows ?? []).find((r) => r[0] === e.name);
+    check(`the table carries ${e.name} as Quoted, with no ${dollars(e.priceCents)} and no coastal total`, JSON.stringify(row) === JSON.stringify([e.name, "Quoted", "Quoted"]) && !cells.includes(dollars(e.priceCents)) && (e.coastalSurchargeCents == null || !cells.includes(dollars(e.priceCents + e.coastalSurchargeCents))), JSON.stringify(row));
+    continue;
+  }
   check(`the table carries ${e.name} at ${dollars(e.priceCents)}`, cells.includes(dollars(e.priceCents)));
   if (e.coastalSurchargeCents != null) check(`and its coastal total ${dollars(e.priceCents + e.coastalSurchargeCents)}`, cells.includes(dollars(e.priceCents + e.coastalSurchargeCents)));
 }

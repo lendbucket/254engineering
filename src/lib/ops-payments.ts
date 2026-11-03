@@ -2534,28 +2534,27 @@ export async function settleDecision(input: {
   if (!order) return { ok: false, error: "That order does not exist." };
 
   /*
-   * A BULK MEMBER'S MONEY IS READ FROM ITS SUBMISSION. Robert's answer on F1
-   * and F2, 2026-10-25: its own share, against the submission's charge, under
-   * the same refund rules as a single order. refundableOn is the one reading of
-   * it, with the cap at what is left on the submission's charge. A single order
-   * reads its own charges, exactly as before.
+   * EVERY ORDER'S MONEY IS READ THROUGH refundableOn. A bulk member's from its
+   * submission (Robert's answer on F1 and F2, 2026-10-25): its own share,
+   * against the submission's charge, capped at what is left on it.
+   *
+   * A SINGLE ORDER TOO, SINCE 2026-11-02. Robert's ruling Q7, money finding F1:
+   * a single order used to read its own charges and hand refundFor the full paid
+   * figure, with no account of refunds already on file. $709.00 paid, $100.00
+   * given back from Stripe's dashboard (recorded by charge.refunded), then a
+   * decline with no visit: the rule's $709.00 went to Stripe against $609.00
+   * left. Now the same reading and the same cap as a member: what was paid is
+   * the rule's input, and the refund is refused and said when it exceeds what is
+   * left, for a person to settle. The rule itself, refundFor, is unchanged.
    */
-  const member = order.batch_id ? await refundableOn(input.orderId) : null;
-  const ownCharges = member
-    ? { data: [] as { provider: string; provider_ref: string | null; amount_cents: number }[], error: null }
-    : await db
-        .from("eng_order_payments")
-        .select("provider, provider_ref, amount_cents")
-        .eq("order_id", input.orderId)
-        .eq("kind", "charge")
-        .eq("status", "succeeded");
-  const chargesError = member && !member.ok ? { message: member.error } : ownCharges.error;
-  const charges =
-    member && member.ok
-      ? member.chargeRef
-        ? [{ provider_ref: member.chargeRef, amount_cents: member.paidCents }]
-        : []
-      : ownCharges.data;
+  const refundable = await refundableOn(input.orderId);
+  const member = order.batch_id ? refundable : null;
+  const chargesError = refundable.ok ? null : { message: refundable.error };
+  const charges = refundable.ok
+    ? refundable.chargeRef || refundable.paidCents > 0
+      ? [{ provider_ref: refundable.chargeRef, amount_cents: refundable.paidCents }]
+      : []
+    : null;
 
   const paidCents = (charges ?? []).reduce((n, c) => n + Number(c.amount_cents), 0);
   const charge = (charges ?? [])[0];
@@ -2652,8 +2651,10 @@ export async function settleDecision(input: {
    * back cannot be given the rule's full figure again. The rule is not bent to
    * fit: the refund is refused and said, for a person to settle.
    */
-  if (member && member.ok && decision.refundCents > member.owedCents) {
-    const why = `${order.reference}'s refund under this decision is ${money(decision.refundCents)}, and only ${money(member.owedCents)} is left to give back on its share of its submission's charge, so no refund was issued automatically. A person settles it.`;
+  if (refundable.ok && decision.refundCents > refundable.owedCents) {
+    const why = member
+      ? `${order.reference}'s refund under this decision is ${money(decision.refundCents)}, and only ${money(refundable.owedCents)} is left to give back on its share of its submission's charge, so no refund was issued automatically. A person settles it.`
+      : `${order.reference}'s refund under this decision is ${money(decision.refundCents)}, and only ${money(refundable.owedCents)} is left to give back on its charge after ${money(refundable.alreadyRefundedCents)} already refunded, so no refund was issued automatically. A person settles it.`;
     await event(input.orderId, "refund.blocked", false, why);
     return { ok: false, error: why };
   }

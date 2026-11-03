@@ -1,7 +1,7 @@
 import "server-only";
 import { supabaseAdmin } from "./supabase";
 import { can, canSeeFile, redactFile, type Actor } from "./ops-authz";
-import { listFiles, type FileRow } from "./ops-crm";
+import { listFilesPage, type FileRow } from "./ops-crm";
 
 /**
  * ONE SEARCH FOR A RECORD. Operator ruling, 2026-10-10 (gap 6 of the product
@@ -45,8 +45,16 @@ export type SearchResult =
       term: string;
       files: FileRow[];
       filesMore: boolean;
+      /**
+       * A read behind the files section failed: the file search, the client
+       * lookup, or the files by client. Robert's Q13 (office audit F4): the
+       * page says so instead of "No file you can see matches".
+       */
+      filesError: string | null;
       orders: OrderHit[] | null;
       ordersMore: boolean;
+      /** The order read failed (Q13, F4). `orders` is null then too, and the page says which. */
+      ordersError: string | null;
       /** Clients by name, email, phone or city, for clients.list. Null when not asked. */
       clients: ClientHit[] | null;
       /** Prospects on the sales list, for crm.use. Null when not asked. */
@@ -76,21 +84,28 @@ export async function searchRecords(actor: Actor | null, raw: string): Promise<S
   const phoneLike = `%${digits.split("").join("%")}%`;
   const like = `%${term}%`;
 
+  /* Every read below keeps its error (Q13, office audit F4): a failed read is said, never "no match". */
+  const filesFailed: string[] = [];
+
   /* Files by number or address, through the actor's own scope. */
-  const byFile = await listFiles(actor, { search: term });
+  const filePage = await listFilesPage(actor, { search: term });
+  if (filePage.error) filesFailed.push(`the file search: ${filePage.error}`);
+  const byFile = filePage.rows;
 
   /* Files whose client matches an email or a phone. */
   const clientOr = [`email.ilike.${like}`, ...(digits.length >= 7 ? [`phone.ilike.${phoneLike}`] : [])].join(",");
-  const { data: clients } = await db.from("eng_clients").select("id").or(clientOr).limit(SEARCH_LIMIT);
+  const { data: clients, error: clientsError } = await db.from("eng_clients").select("id").or(clientOr).limit(SEARCH_LIMIT);
+  if (clientsError) filesFailed.push(`the client lookup: ${clientsError.message}`);
   const clientIds = (clients ?? []).map((c) => c.id as string);
   let byClient: FileRow[] = [];
   if (clientIds.length) {
-    const { data } = await db
+    const { data, error: byClientError } = await db
       .from("eng_files")
       .select("*")
       .in("client_id", clientIds)
       .order("created_at", { ascending: false })
       .limit(SEARCH_LIMIT);
+    if (byClientError) filesFailed.push(`the files by client: ${byClientError.message}`);
     byClient = ((data ?? []) as FileRow[])
       .filter((f) => canSeeFile(actor, f as unknown as Parameters<typeof canSeeFile>[1]))
       .map((f) => redactFile(actor, f as unknown as Record<string, unknown>) as unknown as FileRow);
@@ -100,6 +115,7 @@ export async function searchRecords(actor: Actor | null, raw: string): Promise<S
 
   let orders: OrderHit[] | null = null;
   let ordersMore = false;
+  let ordersError: string | null = null;
   /* orders.read as well, since 0079: looking an order up reads nothing about money beyond what was charged. */
   if (can(actor, "payments.reconcile") || can(actor, "orders.read")) {
     const orderOr = [
@@ -110,15 +126,19 @@ export async function searchRecords(actor: Actor | null, raw: string): Promise<S
       `city.ilike.${like}`,
       ...(digits.length >= 7 ? [`customer_phone.ilike.${phoneLike}`] : []),
     ].join(",");
-    const { data } = await db
+    const { data, error } = await db
       .from("eng_service_orders")
       .select("reference, status, service_slug, customer_name, customer_email, customer_phone, property_address, file_id, created_at, is_demo")
       .or(orderOr)
       .order("created_at", { ascending: false })
       .limit(SEARCH_LIMIT + 1);
-    const rows = (data ?? []) as OrderHit[];
-    ordersMore = rows.length > SEARCH_LIMIT;
-    orders = rows.slice(0, SEARCH_LIMIT);
+    if (error) {
+      ordersError = error.message;
+    } else {
+      const rows = (data ?? []) as OrderHit[];
+      ordersMore = rows.length > SEARCH_LIMIT;
+      orders = rows.slice(0, SEARCH_LIMIT);
+    }
   }
 
   /*
@@ -151,8 +171,10 @@ export async function searchRecords(actor: Actor | null, raw: string): Promise<S
     term,
     files: files.slice(0, SEARCH_LIMIT),
     filesMore: files.length > SEARCH_LIMIT,
+    filesError: filesFailed.length ? filesFailed.join("; ") : null,
     orders,
     ordersMore,
+    ordersError,
     clients: clientHits,
     prospects: prospectHits,
   };

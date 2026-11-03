@@ -3,8 +3,8 @@ import { notFound } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
 import { mayOpenOnboarding } from "@/lib/onboarding-scope";
-import { APPLICATION_READ_LIMIT, activationView, listApplications } from "@/lib/ops-onboarding";
-import { ONBOARDING_PAGE_SIZE, countOnboardings, listOnboardingsPage, onboardedEmails } from "@/lib/onboarding";
+import { APPLICATION_READ_LIMIT, activationView, listUninvitedApplications } from "@/lib/ops-onboarding";
+import { ONBOARDING_PAGE_SIZE, countOnboardings, listOnboardingsPage } from "@/lib/onboarding";
 import { onboardingListQuery } from "@/lib/onboarding-list";
 import { ListControls, Pager, listHref } from "@/components/portal/ListControls";
 import { TEXAS_COUNTIES } from "@/lib/ops-counties";
@@ -84,26 +84,26 @@ export default async function OnboardingPage({
    */
   const query = onboardingListQuery(params);
   const scope = { fieldTechOnly: technicianOnly };
-  const [allApplications, invited, onboardings, total] = await Promise.all([
-    listApplications(actor),
-    onboardedEmails(),
+  const [uninvited, onboardings, total] = await Promise.all([
+    listUninvitedApplications(actor),
     listOnboardingsPage(query, scope),
     countOnboardings(query, scope),
   ]);
-  const applications =
-    allApplications === null
-      ? null
-      : technicianOnly
-        ? allApplications.filter((a) => !(a.role ?? "").toLowerCase().includes("engineer"))
-        : allApplications;
   const selected = params.id ? await activationView(actor, params.id) : null;
   const filtered = Boolean(query.term) || query.status !== "all" || query.role !== "all";
 
-  /* Which applications are not yet invited needs both reads; either failing is said. */
-  const open =
-    applications === null || invited === null
+  /*
+   * Every uninvited application, exactly (Q13, office audit F12): both tables
+   * are read whole in listUninvitedApplications, and either failing is said.
+   * The newest APPLICATION_READ_LIMIT are listed and the rest are counted.
+   */
+  const waiting =
+    uninvited === null
       ? null
-      : applications.filter((a) => a.email && !invited.has(a.email.toLowerCase()));
+      : technicianOnly
+        ? uninvited.filter((a) => !(a.role ?? "").toLowerCase().includes("engineer"))
+        : uninvited;
+  const open = waiting === null ? null : waiting.slice(0, APPLICATION_READ_LIMIT);
   const listParams = { q: params.q, status: params.status, role: params.role, sort: params.sort, dir: params.dir, page: params.page };
 
   return (
@@ -188,9 +188,9 @@ export default async function OnboardingPage({
                   ))}
                 </ul>
               )}
-              {allApplications !== null && allApplications.length === APPLICATION_READ_LIMIT ? (
+              {waiting !== null && waiting.length > APPLICATION_READ_LIMIT ? (
                 <p className="mt-3 text-[14px] leading-[1.5] text-[var(--secondary)]">
-                  This reads the newest {APPLICATION_READ_LIMIT} applications. An older one is reached on the applications screen.
+                  The newest {APPLICATION_READ_LIMIT} of {waiting.length} applications not yet invited are shown. Invite these and the older ones move up.
                 </p>
               ) : null}
             </div>
