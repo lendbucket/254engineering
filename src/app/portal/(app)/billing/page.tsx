@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
 import { fileMargins, marginByPeriod } from "@/lib/ops-docs";
 import { canSeeBilling } from "@/lib/ops-dashboard";
+import { mayExport } from "@/lib/list-exports";
 import { marginOf, money } from "@/lib/ops-money";
 import type { PeriodTotals } from "@/lib/ops-money";
 import type { Column } from "@/components/portal/design";
@@ -86,12 +87,15 @@ export default async function BillingPage() {
         title="Billing"
         lede="Margin per file and per period, from the figures on the files. Nothing here is estimated and nothing absent is treated as a zero."
         actions={
-          <>
-            <ButtonLink href="/api/portal/exports?report=margin" tone="ghost">
-              By file
-            </ButtonLink>
-            <ButtonLink href="/api/portal/exports?report=period">By period</ButtonLink>
-          </>
+          /* The export door asks mayExport since 2026-11-02 (Robert's P2 approval, option a), so the buttons ask it too. */
+          mayExport(actor, "billing.read") ? (
+            <>
+              <ButtonLink href="/api/portal/exports?report=margin" tone="ghost">
+                By file
+              </ButtonLink>
+              <ButtonLink href="/api/portal/exports?report=period">By period</ButtonLink>
+            </>
+          ) : undefined
         }
       />
 
