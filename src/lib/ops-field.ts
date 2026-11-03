@@ -1,6 +1,7 @@
 import "server-only";
 import { STATUS_LABEL, type FileStatus } from "./ops-files";
 import { DB_NOW } from "./db-now";
+import { todayInFirmCalendar } from "./firm-calendar";
 import { clockReading } from "./clock-skew";
 import { sha256Hex } from "./evidence-fingerprint";
 import { readEvery } from "./bounded-read";
@@ -723,7 +724,8 @@ async function candidateTechs(): Promise<{ candidates: TechCandidate[]; unreadab
 async function techFeeFor(serviceSlug: string): Promise<number | null> {
   const db = supabaseAdmin();
   if (!db) return null;
-  const today = new Date().toISOString().slice(0, 10);
+  /* The firm's day, not UTC's (field audit F17, 2026-11-02): a rate effective tomorrow does not apply from 7 PM Central today. */
+  const today = todayInFirmCalendar();
   const { data } = await db
     .from("eng_fee_schedule")
     .select("amount_cents, effective_from, effective_to")
@@ -2259,7 +2261,8 @@ export async function submitEvidence(
       amount_cents: offer.offer_amount_cents,
       kind: "job",
       status: "pending",
-      period: new Date().toISOString().slice(0, 7),
+      /* The firm's month (field audit F17): a submission at 7:30 PM Central on the last day of a month books to that month. */
+      period: todayInFirmCalendar().slice(0, 7),
       note: `${view.file.file_number}, ${view.file.county} County`,
     });
     if (error && !/duplicate key/i.test(error.message)) {

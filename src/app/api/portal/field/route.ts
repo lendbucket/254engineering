@@ -141,11 +141,13 @@ async function handlePOST(request: NextRequest) {
 
   if (action === "send_offers") {
     const techIds = Array.isArray(body?.techIds) ? body.techIds.map(String) : [];
+    /* Bounded the way the bulk route bounds it (field audit F19, 2026-11-02): a negative or zero window is dropped, so no offer is born expired. */
+    const hours = nullableNumber(body?.expiresInHours);
     const result = await sendOffers(
       actor,
       String(body?.fileId ?? ""),
       techIds,
-      { expiresInHours: nullableNumber(body?.expiresInHours) ?? undefined },
+      { expiresInHours: hours !== null && Number.isFinite(hours) && hours > 0 ? hours : undefined },
       context,
     );
     return result.ok ? NextResponse.json({ ok: true, sent: result.sent }) : bad(result.error);
