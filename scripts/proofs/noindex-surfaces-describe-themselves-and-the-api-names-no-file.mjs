@@ -24,6 +24,8 @@ const out = [];
 const check = (name, ok, note = "") => out.push({ name, ok, note });
 
 const HOME_DESCRIPTION_START = "254 Engineering LLC is a veteran owned Texas engineering firm";
+/* Figure, en, em and horizontal bar dashes, built from code points so this file carries none. */
+const LONG_DASH = new RegExp(`[${String.fromCodePoint(0x2012)}-${String.fromCodePoint(0x2015)}]`);
 
 const SURFACES = [
   ["the portal", "src/app/portal/layout.tsx"],
@@ -41,7 +43,7 @@ for (const [name, file] of SURFACES) {
   const text = m ? m[1] : "";
   check(`${name} declares its own description`, Boolean(text), file);
   check(`${name}'s description is not the home page's`, Boolean(text) && !text.startsWith(HOME_DESCRIPTION_START), text.slice(0, 60));
-  check(`${name}'s description carries no long dash`, !/[‒-―]/.test(text));
+  check(`${name}'s description carries no long dash`, !LONG_DASH.test(text));
   check(`${name}'s description says no "we" service claim`, !/\bwe (seal|inspect|provide|issue|certify|offer)\b/i.test(text), text.slice(0, 60));
 }
 
