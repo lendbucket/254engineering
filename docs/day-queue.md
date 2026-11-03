@@ -429,6 +429,10 @@ WPI-8 facts stand as read from TDI and TWIA: TWIA's lookup is WPI-8-C only; the 
 
 **Bundle 81, Q7 (`fix/q7-money` at `0825911` = Q7 over Q4 `9241299`, Q3, Q2, Q1 and P2).** Preflight GREEN. Prediction: 65 of 65; the Q7 money proof PASS (refund capped at what is left on the charge, a closed unissued statement owed, the invoice route asks the credit gate); order-audit, accounts-audit, reporting-audit and dashboards-audit PASS ("On statements, unpaid" accepted per Robert); bulk-audit cents PASS; public bytes identical.
 
+**Result, bundle 81 (board 41627371607 on `0825911`): 65 of 65, every prediction line met. Q7 BOARDED GREEN.** Public bytes identical; `/` 2,868, `/coverage` 2,562, coastal-bend 2,718, service 2,714.
+
+**Bundle 82, Q9 (`fix/q9-signin-and-documents` at `91ea960` = Q9 over Q7 `0825911` and everything before it).** Preflight GREEN. Prediction: 65 of 65; the sign-in reset and staff document proof PASS; mfa-audit, roles-audit and security-audit PASS (a successful sign in resets only its own account's counter; a staff document opens only for someone who can see its file); public bytes identical.
+
 **Q8 built by fork, in three parts.** Part 1 (code only) `fix/q8-money-integrity` stacked on Q6 at `4ffebc7`, proof PASS, preflight GREEN: boards in Q8's slot after Q6. Q8b `fix/q8b-money-constraints` at `6c7e064` (0118, on M2 `b16b496`), stage `stage/0118-money-constraints` at `7113306` pushed: boards after M2. Q8c `fix/q8c-disputes` at `97b01ae` PARKED: needs `charge.dispute.created` and `charge.dispute.closed` registered in Stripe (question 1 of the Q8 comment on issue #1). F8's statement constraint already existed since 0009 (comment corrected). Q5 `a03008c` and Q6 `60c7724` carry the bulk-audit fix.
 
 **Q5 and Q6 prepared over the Q14 chain:** Q5 `cc8e1ab` (recordCapture: Q5's single-block form of the Q2 and P5 combination kept; field and licence proofs PASS), Q6 `9674d1f` (clean; its proof PASS). Preflight GREEN on both. 0109 and 0110 are on development already.
