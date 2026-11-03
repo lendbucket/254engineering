@@ -57,6 +57,7 @@ import { join } from "node:path";
 import { SHARDS } from "./ci/shards.mjs";
 import { runtimeFor, invocationProblems } from "./lib/audit-runtime.mjs";
 import { findBannedPhrases, findRegulatoryClaims } from "./lib/voice-blocklist.mjs";
+import { crmScriptVariants, exemptOpenScriptLines } from "./lib/crm-open-scripts.mjs";
 
 /* Static-shard audits that cannot run here, each with the reason. Asserted to be in the shard. */
 const NOT_HERE = {
@@ -346,16 +347,31 @@ runAudit("soc2-audit");
   if (added.length === 0) {
     say(`voice on added lines since ${base.slice(0, 8)}`, "COULD NOT TELL", "no added lines in the range; pass --base <ref> to name one");
   } else {
-    const prose = added.filter((a) => /^(src|docs)\//.test(a.path)).map((a) => a.text).join("\n");
+    const proseLines = added.filter((a) => /^(src|docs)\//.test(a.path));
+    const prose = proseLines.map((a) => a.text).join("\n");
     const banned = findBannedPhrases(prose);
-    const claims = findRegulatoryClaims(prose);
+    /*
+     * THE ONE EXEMPTION, Robert's ruling of 2026-11-02 evening on R3 (issue #1,
+     * answer to 6589813147, item 1): the open call script variants in
+     * src/content/crm-scripts.ts are exempt from the present tense check ONLY,
+     * found by structure (the `open` property of a CRM_SCRIPTS entry), counted
+     * and named below. Banned phrases and long dashes still read them, every
+     * prelaunch variant is read as usual, and no other file is exempt. That they
+     * render only behind the sellable test is proved by
+     * the-open-call-scripts-render-only-behind-the-sellable-test.mjs.
+     */
+    const variants = existsSync("src/content/crm-scripts.ts") ? crmScriptVariants() : { open: [], prelaunch: [], problems: [] };
+    const { kept, exempted } = exemptOpenScriptLines(proseLines, variants);
+    const claims = findRegulatoryClaims(kept.map((a) => a.text).join("\n"));
     const dashes = added.filter((a) => LONG_DASH.test(a.text));
     const problems = [
+      ...variants.problems.map((p) => `the open script exemption cannot read ${"src/content/crm-scripts.ts"}: ${p}`),
       ...banned.map((b) => `banned phrase: ${JSON.stringify(b).slice(0, 80)}`),
       ...claims.map((c) => `present tense claim: ${JSON.stringify(c).slice(0, 80)}`),
       ...dashes.slice(0, 5).map((d) => `long dash in ${d.path}: ${d.text.trim().slice(0, 80)}`),
     ];
-    const detail = `${added.length} added lines (${untracked.length} untracked files read), base ${base.slice(0, 8)}`;
+    const exemptNote = exempted.length ? `; ${exempted.length} open script variants exempted: ${exempted.join(", ")}` : "";
+    const detail = `${added.length} added lines (${untracked.length} untracked files read), base ${base.slice(0, 8)}${exemptNote}`;
     if (problems.length) say("voice on added lines", "FAIL", `${problems.join(" | ")}  [${detail}]`);
     else say("voice on added lines", "PASS", detail);
   }
