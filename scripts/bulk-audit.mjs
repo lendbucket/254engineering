@@ -207,13 +207,33 @@ const ACTOR_NO_MONEY = { ...ACTOR, grants: new Set(["accounts.manage", "files.li
  * READ, so it can be exercised against rows that already exist without changing
  * one of them.
  */
-const { data: someFiles } = await db
+const { data: newestFiles } = await db
   .from("eng_files")
   .select("id, is_demo")
   .order("created_at", { ascending: false })
-  .limit(8);
+  .limit(7);
+/*
+ * AND THE NEWEST PRICED FILE, ALWAYS. Board 41606344690 (2026-11-03) went red
+ * on "no amount is written as cents" with zero priced rows of eight, on a
+ * development database holding priced files. The review-request proof leaves
+ * one sealed, delivered, unpriced demonstration file per run (a sealed file
+ * cannot be deleted), and seven runs had pushed every priced file out of a
+ * newest-eight sample. The check was right to refuse a sample with nothing in
+ * it; the sample was the defect. So the subject is chosen to contain a price:
+ * the newest priced file joins the seven newest, and if development holds no
+ * priced file at all the check still fails, naming that.
+ */
+const { data: pricedFile } = await db
+  .from("eng_files")
+  .select("id, is_demo")
+  .not("client_price_cents", "is", null)
+  .order("created_at", { ascending: false })
+  .limit(1);
+const someFiles = [...(newestFiles ?? []), ...(pricedFile ?? [])].filter(
+  (f, i, all) => all.findIndex((g) => g.id === f.id) === i,
+);
 
-const ids = (someFiles ?? []).map((f) => f.id);
+const ids = someFiles.map((f) => f.id);
 
 rec(
   `there are files to export (${ids.length})`,
