@@ -415,6 +415,12 @@ WPI-8 facts stand as read from TDI and TWIA: TWIA's lookup is WPI-8-C only; the 
 
 **Bundle 79b, Q3 second board (41598989978 on `7bea0a3`): the fixture inserts `status: "needs_dispatch"`.** Preflight GREEN. Prediction (written while the board runs; the edit carrying it was refused before dispatch, so it is committed after dispatch and before any result): 65 of 65; the rate proof PASS (refuses the unpriced offer naming the rate, accepts the priced control); everything else as bundle 79. A second red parks Q3. Q4 to Q11 each take `7bea0a3` before their own boards.
 
+**Result, bundle 79b (board 41598989978 on `7bea0a3`): 65 of 65, every prediction line met. Q3 BOARDED GREEN.** The rate proof PASS; public bytes identical; `/` 2,710, `/coverage` 2,560, coastal-bend 2,718, service 2,716, TBT 12 to 19.
+
+**Bundle 80, Q4 (`fix/q4-foundation-decline` at `2483e9d` = Q4 with Q3 `7bea0a3`, Q2, Q1 and P2).** Preflight GREEN. Prediction: 65 of 65; the foundation decline proof PASS; the review-request and refund proofs PASS; everything else as bundle 79b; public bytes identical.
+
+**Q12, Q13, Q14 prepared** (each carrying everything before it and P2): Q12 `a7d1862` (clean), Q13 `0891922` (clients page imports: P2's mayExport and Q13's listClientsRead), Q14 `20ad7d6` (onboarding token page imports: Link kept, notFound dropped per 1a). Proofs and preflight GREEN on each.
+
 **0108 NOT APPLIED ON PRODUCTION (6596936527, 00:16 Central):** the connector asked for confirmation of the five deletes, nobody was awake, it timed out; production unchanged (5 rows, admin 4 of 4, 191 grants, no ledger row). The chat recommends Robert answers the connector's prompt while it applies through apply_migration (as 0096 went); it will not retry unattended. **So nothing merges tonight; the stack keeps boarding (ruling item 3) and merges in order the morning 0108 lands.** Ready and preflight GREEN, each carrying everything before it and P2: Q3 `e8bf476` (board 41591970347 running), Q4 `b4d379d`, Q7 `43215be`, Q9 `5e3ffd6`, Q10 `4596a99`.
 
 **P2 waits for the chat's re-run of 0108 on development** (asked 6586857015, by Robert's word in 6581232441).
