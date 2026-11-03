@@ -188,6 +188,12 @@ The chat posted five audit files on issue #1: auth 6585008053, money 6585008424,
 - **R2 (6589406190):** 1 keep TREC running. 2 yes, retire the old prospects CSV import in a later R item. 3 yes, a count of previews waiting on the manager's home screen in R5.
 - **0111 (fb7c092) and 0112: the counterpart sits them on development immediately before R1's board, not earlier.** (The same holds in spirit for 0113 and 0114 before R4 and R5; ask each sitting just before its board.)
 
+**Robert, 2026-11-02 night (relayed in session):**
+- **P2 (6592694625): option a. Board P2 a fourth time with 1acae24, the tasks page select fix, as its only new change.**
+- **R7 (6592143963):** 1 reword the "other" open email as proposed; do not widen the exemption. 2 approved: the rep signature variant "{{rep}}, 254 Engineering, {{phone}}" above the firm footer, **recorded as an email identity ruling**. 3 approved, the second suppression check in the marketing-only branch with email-audit asserting it. 4 yes, delivery webhook in BACKLOG. 6 add the List-Unsubscribe and List-Unsubscribe-Post headers to every marketing template as a follow-up; the footer link stays.
+- **M2 (6593730973):** 1 yes, bump in the same update when an individual customer or partner suspension path is built. 2 keep (restore leaves the epoch). 3 leave it (no partner sign-out-everywhere).
+- **Low bundles:** the 1 to 60 per minute API cap is accepted as mine. L6 comes back as a question when the bundle is ready.
+
 **Follow-ups queued after Q14, in this order:** M2 session epoch; per-door attempt counters; suppress the review request on a decline; message search and mentions over every readable conversation. Then the low findings.
 
 (The "Finish the portal" heading below was dropped by my edit of the Q section and is restored here, 2026-11-02.)
