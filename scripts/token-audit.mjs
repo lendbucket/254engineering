@@ -348,6 +348,8 @@ const PORTED = [
   "src/app/(order)/order/start/[slug]/page.tsx",
   "src/app/(order)/order/referred/[code]/page.tsx",
   "src/app/account/SignOutButton.tsx",
+  /* Auth M2's "Sign out everywhere" on the account screen, 2026-11-02, on the day it was built. */
+  "src/app/account/SignOutEverywhereButton.tsx",
   "src/app/account/layout.tsx",
   /*
    * The forgot password pair, 2026-09-29, added the same day the screen was
@@ -438,6 +440,8 @@ const PORTED = [
   "src/app/portal/(app)/people/page.tsx",
   "src/app/portal/(app)/profile/PasswordForm.tsx",
   "src/app/portal/(app)/profile/PreferencesForm.tsx",
+  /* Auth M2's "Sign out everywhere" on the profile screen, 2026-11-02, on the day it was built. */
+  "src/app/portal/(app)/profile/SignOutEverywhere.tsx",
   "src/app/portal/(app)/profile/page.tsx",
   /* The engineer's seal and signature, 2026-10-07. Staff scale, like the
    * profile screen it hangs off. Missed on the first board, named by none of
@@ -703,6 +707,7 @@ const CUSTOMER_V10 = [
   "src/app/account/sign-up/SignUpForm.tsx",
   "src/app/account/page.tsx",
   "src/app/account/SignOutButton.tsx",
+  "src/app/account/SignOutEverywhereButton.tsx",
   "src/components/order/OrderFlow.tsx",
   /* The order surface's own layout, read from 2026-10-29: every page under it is on this list, so it is held to the same scale. */
   "src/app/(order)/layout.tsx",

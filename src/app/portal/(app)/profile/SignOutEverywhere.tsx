@@ -37,11 +37,11 @@ export function SignOutEverywhere() {
 
   return (
     <div>
-      <p className="text-[14px] leading-[1.6] text-[var(--secondary)]">
+      <p className="text-[13.5px] leading-[1.6] text-[var(--secondary)]">
         Ends every session on this account, on every device, including this one. You will sign in again here.
       </p>
       {error ? (
-        <p role="alert" className="mt-3 text-[14px] font-semibold text-[var(--ink)]">
+        <p role="alert" className="mt-3 text-[13.5px] font-semibold text-[var(--ink)]">
           {error}
         </p>
       ) : null}
