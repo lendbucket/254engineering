@@ -105,6 +105,23 @@ export async function deskDashboard(actor: Actor): Promise<DeskDashboard> {
   const unassigned = waiting.ok ? waiting.rows.length - heldFiles.length : null;
   const approves = can(actor, "refunds.approve_within_limit") || can(actor, "payments.refund");
 
+  /*
+   * IMPORT PREVIEWS WAITING, Robert's R2 answer 3 of 2026-11-02: a count of
+   * previews waiting on the manager's home screen. Only for crm.import holders
+   * (admin and ops_manager), the people who can press Write. An exact count of
+   * runs still in the previewed state; a failed read is said, never zero.
+   */
+  let previewsWaiting: number | null = null;
+  const importsHeld = can(actor, "crm.import");
+  if (importsHeld) {
+    const { count, error } = await db
+      .from("eng_crm_import_runs")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "previewed");
+    if (error || count === null) notComputable.push(`Import previews waiting could not be counted: ${error?.message ?? "no count came back"}`);
+    else previewsWaiting = count;
+  }
+
   const tiles: DeskTile[] = [
     {
       label: "New inquiries",
@@ -140,6 +157,22 @@ export async function deskDashboard(actor: Actor): Promise<DeskDashboard> {
       href: "/portal/refunds",
       tone: refunds.ok && refunds.rows.length ? "warn" : "good",
     },
+    ...(importsHeld
+      ? [
+          {
+            label: "Import previews waiting",
+            count: previewsWaiting,
+            note:
+              previewsWaiting === null
+                ? "Not counted: see below. This is a failed read, not an empty list."
+                : previewsWaiting === 0
+                  ? "No import is waiting for somebody to press Write."
+                  : "Previewed and waiting for somebody to read them and press Write.",
+            href: "/portal/crm/imports",
+            tone: previewsWaiting ? ("warn" as const) : ("good" as const),
+          },
+        ]
+      : []),
   ];
 
   const attention = heldFiles.map((f) => ({
