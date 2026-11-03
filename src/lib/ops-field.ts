@@ -4,7 +4,7 @@ import { DB_NOW } from "./db-now";
 import { clockReading } from "./clock-skew";
 import { CAPTURE_CLOSED_STATUSES, captureKeyProblem, evidenceWriteRefusal } from "./evidence-capture-rules";
 import { sha256Hex } from "./evidence-fingerprint";
-import { readEvery } from "./bounded-read";
+import { readEvery, readEveryIn } from "./bounded-read";
 import { supabaseAdmin } from "./supabase";
 import type { Cents } from "./ops-money";
 import { notifyTechnicianAccepted, recordTechnicianVisit } from "./ops-payments";
@@ -963,12 +963,27 @@ export async function sendOffers(
     };
   });
 
+  /*
+   * THE PROTOCOL THE FILE RUNS UNDER IS PINNED FIRST, AND A FAILED PIN SENDS
+   * NOTHING. Robert's ruling Q6, 2026-11-02 (audit field F13). The pin's
+   * result was discarded after the offers were written, so a failed write
+   * left a dispatched file naming no protocol: the technician saw a checklist
+   * by fallback, and the letter later refused "This file records no protocol
+   * it was run under". The version a file ran under is the one its letter
+   * prints, so it is written before anybody is offered the job.
+   */
+  const { data: pinned, error: pinError } = await db
+    .from("eng_files")
+    .update({ protocol_template_id: protocol.id })
+    .eq("id", fileId)
+    .select("id");
+  if (pinError) return { ok: false, error: `The protocol this file runs under could not be recorded, so nobody was offered it: ${pinError.message}` };
+  if (!pinned?.length) return { ok: false, error: "The file could not be found to record its protocol, so nobody was offered it." };
+
   // upsert rather than insert: re-offering a job to somebody who declined it
   // earlier is a normal thing an operator does after a phone call.
   const { error } = await db.from("eng_assignments").upsert(rows, { onConflict: "file_id,tech_id" });
   if (error) return { ok: false, error: error.message };
-
-  await db.from("eng_files").update({ protocol_template_id: protocol.id }).eq("id", fileId);
 
   await db.from("eng_file_events").insert({
     file_id: fileId,
@@ -1074,6 +1089,33 @@ export async function listOffers(
 }
 
 /**
+ * Whether the technician an offer names may take it now: certified for the
+ * line, and no credential blocking dispatch, read the way candidateTechs reads
+ * them (credentialBlockersFor carries the owner's named exemption unchanged).
+ * Robert's ruling Q6, 2026-11-02 (audit field F6). A failed read refuses.
+ */
+export async function eligibleToAccept(
+  techId: string,
+  serviceSlug: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+  const { data: cert, error: certError } = await db
+    .from("eng_certifications")
+    .select("status")
+    .eq("profile_id", techId)
+    .eq("service_slug", serviceSlug)
+    .maybeSingle();
+  if (certError) return { ok: false, error: "Whether you are still certified for this work could not be read, so the offer was not accepted. Try again." };
+  if (cert?.status !== "certified") {
+    return { ok: false, error: "You are no longer certified for this line of work, so the offer cannot be accepted. Ask the office if you think this is wrong." };
+  }
+  const blockers = (await credentialBlockersFor([techId])).get(techId) ?? [];
+  if (blockers.length) return { ok: false, error: `This offer cannot be accepted until a credential is in order: ${blockers.join(" ")}` };
+  return { ok: true };
+}
+
+/**
  * Accept an offer, and be the only one who does.
  *
  * THE RACE, AND WHERE IT IS ACTUALLY DECIDED
@@ -1105,7 +1147,7 @@ export async function acceptOffer(
 
   const { data: file } = await db
     .from("eng_files")
-    .select("id, file_number, status, assigned_tech_id")
+    .select("id, file_number, status, assigned_tech_id, service_slug")
     .eq("id", offer.file_id)
     .maybeSingle();
   if (!file) return { ok: false, error: "That file does not exist." };
@@ -1148,6 +1190,17 @@ export async function acceptOffer(
   if (file.status !== "needs_dispatch") {
     return { ok: false, error: "This job is no longer waiting for a technician, so the offer cannot be accepted." };
   }
+
+  /*
+   * STILL ELIGIBLE NOW, NOT ONLY WHEN THE OFFER WAS SENT. Robert's ruling Q6,
+   * 2026-11-02 (audit field F6). Eligibility was judged once, at sendOffers,
+   * so a technician whose certification was withdrawn, or whose credential
+   * lapsed, between the offer and the acceptance could still take the job.
+   * The same two questions dispatch asks are asked again for the technician
+   * the offer names; a failed read refuses.
+   */
+  const stillEligible = await eligibleToAccept(offer.tech_id as string, file.service_slug as string);
+  if (!stillEligible.ok) return { ok: false, error: stillEligible.error };
 
   // The claim. Everything above this line is a courtesy; this is the decision.
   const { data: claimed } = await db
@@ -1744,23 +1797,23 @@ export async function recordCapture(
    * photograph, or at nothing, and the checklist read complete either way. It
    * must be exactly fileId/captureId.ext, the one path sign_upload issues, and
    * storage must hold it before the row says it does.
+   *
+   * THEN THE FINGERPRINT, FROM THE STORED BYTES. Robert's ruling P5,
+   * 2026-11-01 (0107). The file is read back out of the private bucket and
+   * hashed here, because a hash the phone sent would be the technician's word
+   * about the file, and the duplicate check exists to catch the same
+   * photograph submitted twice. A file that cannot be read back is refused
+   * rather than recorded unhashed: the offline queue sends it again, and an
+   * unhashed capture would hold the whole package at "not checked". P5's own
+   * prefix test is gone: Q2's exact key check above is stricter.
    */
   const keyProblem = captureKeyProblem(fileId, input.clientCaptureId, input.storageKey);
   if (keyProblem) return { ok: false, error: keyProblem };
+  let contentSha256: string | null = null;
   if (input.storageKey) {
     const stored = await evidenceObjectExists(input.storageKey);
     if (!stored.ok) return { ok: false, error: stored.error };
     if (!stored.exists) return { ok: false, error: "The photograph did not arrive in storage, so it was not recorded. It will be sent again." };
-  }
-
-  /*
-   * THE FINGERPRINT, FROM THE STORED BYTES. Robert's ruling P5, 2026-11-01
-   * (0107). The key is already this capture's own object and it exists (Q2,
-   * above), so the file is read back and hashed here; a file that cannot be
-   * read back is refused rather than recorded unhashed.
-   */
-  let contentSha256: string | null = null;
-  if (input.storageKey) {
     const { data: bytes, error: readError } = await db.storage.from("eng-evidence").download(input.storageKey);
     if (readError || !bytes) {
       return { ok: false, error: "The uploaded file could not be read back to fingerprint it, so it was not recorded. It will be sent again." };
@@ -2922,7 +2975,7 @@ export async function submitAttempt(
   }
   const grade = gradeAttempt(questions, answers);
 
-  await db.from("eng_certification_attempts").insert({
+  const { error: attemptError } = await db.from("eng_certification_attempts").insert({
     profile_id: actor.id,
     template_id: view.templateId,
     service_slug: serviceSlug,
@@ -2931,30 +2984,36 @@ export async function submitAttempt(
     answers,
     wrong_question_ids: grade.wrong.map((w) => w.questionId),
   });
+  if (attemptError) {
+    return { ok: false, error: `This attempt could not be recorded, so it does not count yet. Submit it again: ${attemptError.message}` };
+  }
 
+  /*
+   * A PASSED CHECK IS NOT A CERTIFICATION. Robert's ruling Q6, 2026-11-02
+   * (audit field F14). A pass wrote status certified, which is the one value
+   * dispatch reads, so a new technician passing the multiple choice check on
+   * a phone was offered work the same afternoon with no training record and
+   * no engineer decision. certification-record.ts already said certified is
+   * written only on the engineer's approval (decideTraining); this was a
+   * second door. A pass now writes in_progress, and only the engineer's
+   * approval writes certified. Both writes' errors are read: a refused write
+   * used to come back "passed" while dispatch never offered anything.
+   */
   const attempts = (view.certification?.attempts ?? 0) + 1;
-  await db.from("eng_certifications").upsert(
+  const { error: certError } = await db.from("eng_certifications").upsert(
     {
       profile_id: actor.id,
       service_slug: serviceSlug,
       template_id: view.templateId,
-      status: grade.passed ? "certified" : "failed",
+      status: grade.passed ? "in_progress" : "failed",
       score: grade.score,
       attempts,
-      /* DB_NOW. When a technician became certified decides what work they may
-       * be offered, so it is the database's clock. */
-      certified_at: grade.passed ? DB_NOW : null,
+      certified_at: null,
     },
     { onConflict: "profile_id,service_slug" },
   );
-
-  if (grade.passed) {
-    /*
-     * The profile's summary flag follows the certifications rather than being
-     * set independently. Two places that both claim to say whether somebody is
-     * certified is two places that will disagree.
-     */
-    await db.from("eng_profiles").update({ certification_status: "certified" }).eq("id", actor.id);
+  if (certError) {
+    return { ok: false, error: `The attempt was recorded, but its result could not be saved on your record: ${certError.message}` };
   }
 
   await writeAudit({
@@ -2992,7 +3051,7 @@ export async function revokeCertification(
   serviceSlug: string,
   reason: string,
   context: Context = {},
-): Promise<{ ok: true } | { ok: false; error: string }> {
+): Promise<{ ok: true; withdrawnOffers: number; heldJobs: number } | { ok: false; error: string }> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
   /*
@@ -3049,6 +3108,39 @@ export async function revokeCertification(
   }
 
   /*
+   * HIS OPEN OFFERS FOR THE LINE ARE WITHDRAWN, AND A JOB HE HOLDS IS FLAGGED.
+   * Robert's ruling Q6, 2026-11-02 (audit field F6). The revocation wrote only
+   * the certification row, so an offer sent on Friday could be accepted on
+   * Tuesday under a certification the engineer withdrew on Monday (acceptance
+   * now re-checks it too). An accepted job is not taken away here, because
+   * the technician may be on the roof: it is written onto the file's timeline
+   * for the office to decide, and said in this function's answer.
+   */
+  const lineFiles = await openFilesForTechOnLine(profileId, serviceSlug);
+  if (!lineFiles.ok) {
+    return { ok: false, error: `The certification was withdrawn, but ${lineFiles.error} Withdraw their offers for this line by hand.` };
+  }
+  if (lineFiles.offeredFileIds.length) {
+    const { error: withdrawError } = await db
+      .from("eng_assignments")
+      .update({ state: "withdrawn", responded_at: DB_NOW })
+      .eq("tech_id", profileId)
+      .eq("state", "offered")
+      .in("file_id", lineFiles.offeredFileIds);
+    if (withdrawError) {
+      return { ok: false, error: `The certification was withdrawn, but their open offers for this line were not: ${withdrawError.message}` };
+    }
+  }
+  for (const fileId of lineFiles.assignedFileIds) {
+    await db.from("eng_file_events").insert({
+      file_id: fileId,
+      actor_id: actor.id,
+      kind: "note",
+      body: `The assigned technician's ${serviceSlug} certification was withdrawn while this job was theirs. The office decides whether to release it.`,
+    });
+  }
+
+  /*
    * Mandatory email. A revoked certification stops somebody working, and the
    * consequence lands outside the platform, so they are told even if they have
    * muted everything.
@@ -3064,7 +3156,43 @@ export async function revokeCertification(
     entityId: profileId,
   });
 
-  return { ok: true };
+  return { ok: true, withdrawnOffers: lineFiles.offeredFileIds.length, heldJobs: lineFiles.assignedFileIds.length };
+}
+
+/**
+ * The files of one line where this technician has an open offer, and the
+ * unfinished ones assigned to him. Read whole; a failed read is said, so a
+ * revocation never reports withdrawing offers it could not find.
+ */
+async function openFilesForTechOnLine(
+  techId: string,
+  serviceSlug: string,
+): Promise<{ ok: true; offeredFileIds: string[]; assignedFileIds: string[] } | { ok: false; error: string }> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "the database is not configured." };
+  const offers = await readEvery<{ file_id: string }>((from, to) =>
+    db.from("eng_assignments").select("file_id").eq("tech_id", techId).eq("state", "offered").order("file_id").range(from, to),
+  );
+  if (!offers.ok) return { ok: false, error: `their open offers could not be read (${offers.error}).` };
+  const offeredIds = [...new Set(offers.rows.map((o) => o.file_id))];
+  const lineFiles = offeredIds.length
+    ? await readEveryIn<{ id: string }>(offeredIds, (chunk, from, to) =>
+        db.from("eng_files").select("id").in("id", chunk as string[]).eq("service_slug", serviceSlug).order("id").range(from, to),
+      )
+    : { ok: true as const, rows: [] as { id: string }[] };
+  if (!lineFiles.ok) return { ok: false, error: `the files behind their open offers could not be read (${lineFiles.error}).` };
+  const held = await readEvery<{ id: string }>((from, to) =>
+    db
+      .from("eng_files")
+      .select("id")
+      .eq("assigned_tech_id", techId)
+      .eq("service_slug", serviceSlug)
+      .in("status", ["dispatched", "evidence_in_progress", "revisions_requested"])
+      .order("id")
+      .range(from, to),
+  );
+  if (!held.ok) return { ok: false, error: `the jobs assigned to them could not be read (${held.error}).` };
+  return { ok: true, offeredFileIds: lineFiles.rows.map((f) => f.id), assignedFileIds: held.rows.map((f) => f.id) };
 }
 
 /**

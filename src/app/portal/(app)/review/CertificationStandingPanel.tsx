@@ -33,6 +33,7 @@ function StandingItem({ row }: { row: StandingRow }) {
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const withdrawing = row.status === "certified";
   const fieldId = `standing-${row.profileId}-${row.serviceSlug}`;
 
@@ -58,6 +59,17 @@ function StandingItem({ row }: { row: StandingRow }) {
       if (!out.ok) setError(out.error ?? "That was not recorded.");
       else {
         setReason("");
+        /* Q6 (2026-11-02): say what the withdrawal did to this line's offers and jobs. */
+        if (withdrawing && typeof out.withdrawnOffers === "number" && typeof out.heldJobs === "number") {
+          const offers = out.withdrawnOffers === 1 ? "1 open offer was" : `${out.withdrawnOffers} open offers were`;
+          const jobs =
+            out.heldJobs === 0
+              ? "They hold no unfinished job on this line."
+              : `They still hold ${out.heldJobs === 1 ? "1 unfinished job" : `${out.heldJobs} unfinished jobs`} on this line, noted on each file for the office to decide.`;
+          setNotice(`Withdrawn. ${offers} withdrawn. ${jobs}`);
+        } else {
+          setNotice(null);
+        }
         router.refresh();
       }
     } catch {
@@ -96,6 +108,11 @@ function StandingItem({ row }: { row: StandingRow }) {
       {!withdrawing ? (
         <p className="mt-2 text-[14px] leading-[1.6] text-[var(--secondary)]">
           Restoring sets the line back to uncertified, so the technician can retake the check. It does not certify them.
+        </p>
+      ) : null}
+      {notice ? (
+        <p role="status" className="mt-3 text-[14px] leading-[1.6] text-[var(--ink)]">
+          {notice}
         </p>
       ) : null}
       {error ? (
