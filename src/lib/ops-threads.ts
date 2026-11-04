@@ -1,6 +1,7 @@
 import "server-only";
 import { DB_NOW } from "./db-now";
 import { supabaseAdmin } from "./supabase";
+import { readEvery } from "./bounded-read";
 import { writeAudit } from "./ops-audit";
 import { can, canSeeFile, type Actor, type RoleKey } from "./ops-authz";
 import { raise } from "./ops-notify";
@@ -203,57 +204,73 @@ export async function threadsReadableBy<T extends { id: string; kind: ThreadRow[
   return readable;
 }
 
-export async function listThreads(actor: Actor | null): Promise<ThreadListItem[]> {
+/**
+ * The conversations this actor may read, the newest THREAD_PAGE of them, and
+ * how many they may read in all; or why that could not be read.
+ *
+ * THE RULE IS APPLIED BEFORE THE PAGE, NOT AFTER IT. Robert's Q13 (office audit
+ * F10, 2026-11-02): this used to read the newest 100 threads firm wide and then
+ * filter them by canReadThread, so a technician whose only thread was older
+ * than the newest 100 anybody had saw an empty inbox, and message search, which
+ * takes its threads from here, could not find his messages either. Every thread
+ * row is now read (readEvery, so a silent row ceiling cannot shorten it), the
+ * actor's rule is applied to all of them in chunks (threadsReadableBy, the same
+ * rule), and only then is the newest page taken. And every read below reports
+ * its failure: an outage used to render "No conversations yet".
+ */
+export type ThreadsRead = { ok: true; threads: ThreadListItem[]; readableTotal: number } | { ok: false; error: string };
+
+export async function readThreads(
+  actor: Actor | null,
+  /** A thread to carry even when it is older than the page: the one being opened, so threadView finds it. */
+  options: { include?: string } = {},
+): Promise<ThreadsRead> {
   const db = supabaseAdmin();
-  if (!db || !actor || actor.status !== "active") return [];
+  if (!db) return { ok: false, error: "The database is not configured." };
+  if (!actor || actor.status !== "active") return { ok: true, threads: [], readableTotal: 0 };
 
-  /*
-   * PAGINATED, AND THE COUNT IS ASKED FOR SEPARATELY.
-   *
-   * This read was capped at 200 with nothing saying so, which is the defect
-   * TableFooter exists to prevent sitting in the messaging code: a truncated
-   * list looks identical to a complete one and somebody decides on the
-   * difference. The cap is smaller now and the total comes back with it.
-   */
-  const { data, count } = await db
-    .from("eng_threads")
-    .select(THREAD_COLUMNS, { count: "exact" })
-    .order("last_message_at", { ascending: false, nullsFirst: false })
-    .limit(THREAD_PAGE);
-
-  const rows = (data ?? []) as ThreadRow[];
-  const byThread = await participantsOf(rows.map((r) => r.id));
-  const visibleFiles = await visibleFileIds(
-    actor,
-    rows.filter((r) => r.file_id).map((r) => r.file_id as string),
+  const all = await readEvery<ThreadRow>((from, to) =>
+    db
+      .from("eng_threads")
+      .select(THREAD_COLUMNS)
+      .order("last_message_at", { ascending: false, nullsFirst: false })
+      .order("id", { ascending: true })
+      .range(from, to),
   );
+  if (!all.ok) return { ok: false, error: `The conversations could not be read: ${all.error}` };
 
-  const readable = rows.filter((row) => {
-    const subject: ThreadSubject = {
-      id: row.id,
-      kind: row.kind,
-      fileId: row.file_id,
-      participantIds: (byThread.get(row.id) ?? []).map((p) => p.id),
-      channelRoles: row.channel_roles ?? [],
-    };
-    return canReadThread(actor, subject, row.file_id ? visibleFiles.has(row.file_id) : false);
+  let scopeFailed = false;
+  const readableAll = await threadsReadableBy(actor, all.rows, () => {
+    scopeFailed = true;
   });
+  if (scopeFailed) return { ok: false, error: "Who may read each conversation could not be worked out, so none are shown." };
 
-  if (readable.length === 0) return [];
+  const readable = readableAll.slice(0, THREAD_PAGE);
+  const opened = options.include ? readableAll.find((r) => r.id === options.include) : undefined;
+  if (opened && !readable.includes(opened)) readable.push(opened);
+  if (readable.length === 0) return { ok: true, threads: [], readableTotal: readableAll.length };
+
+  let pageFailed = false;
+  const byThread = await participantsOf(readable.map((r) => r.id), () => {
+    pageFailed = true;
+  });
 
   // Titles for file threads, and the last message for a preview.
   const fileIds = readable.filter((r) => r.file_id).map((r) => r.file_id as string);
-  const { data: files } = fileIds.length
+  const { data: files, error: filesError } = fileIds.length
     ? await db.from("eng_files").select("id, file_number, property_address").in("id", fileIds)
-    : { data: [] };
+    : { data: [], error: null };
   const fileById = new Map((files ?? []).map((f) => [f.id as string, f]));
 
-  const { data: lastMessages } = await db
+  const { data: lastMessages, error: messagesError } = await db
     .from("eng_messages")
     .select("thread_id, body, created_at")
     .in("thread_id", readable.map((r) => r.id))
     .order("created_at", { ascending: false })
     .limit(400);
+  if (pageFailed || filesError || messagesError) {
+    return { ok: false, error: `The conversations' details could not be read: ${(filesError ?? messagesError)?.message ?? "who is in them"}.` };
+  }
 
   const previewByThread = new Map<string, string>();
   const countsByThread = new Map<string, { body: string; created_at: string }[]>();
@@ -263,7 +280,7 @@ export async function listThreads(actor: Actor | null): Promise<ThreadListItem[]
     countsByThread.set(id, [...(countsByThread.get(id) ?? []), m as { body: string; created_at: string }]);
   }
 
-  return readable.map((row) => {
+  const threads = readable.map((row) => {
     const participants = byThread.get(row.id) ?? [];
     const me = participants.find((p) => p.id === actor.id);
     const messages = countsByThread.get(row.id) ?? [];
@@ -290,6 +307,22 @@ export async function listThreads(actor: Actor | null): Promise<ThreadListItem[]
       title,
     };
   });
+  return { ok: true, threads, readableTotal: readableAll.length };
+}
+
+/**
+ * The list for the callers that look a thread up in it (threadView, message
+ * search, mentions). A failed read is logged and gives them nothing to look in,
+ * which each already treats as "not found" or "no match" in its own sentence;
+ * the messages screen reads readThreads itself and says the read failed.
+ */
+export async function listThreads(actor: Actor | null): Promise<ThreadListItem[]> {
+  const read = await readThreads(actor);
+  if (!read.ok) {
+    console.error(`[threads] ${read.error}`);
+    return [];
+  }
+  return read.threads;
 }
 
 export type MessageRow = {
@@ -321,8 +354,13 @@ export async function threadView(actor: Actor | null, threadId: string): Promise
   const db = supabaseAdmin();
   if (!db || !actor) return null;
 
-  const all = await listThreads(actor);
-  const thread = all.find((t) => t.id === threadId);
+  /* The thread being opened is carried even when it is older than the page (Q13, office audit F10). */
+  const read = await readThreads(actor, { include: threadId });
+  if (!read.ok) {
+    console.error(`[threads] ${read.error}`);
+    return null;
+  }
+  const thread = read.threads.find((t) => t.id === threadId);
   if (!thread) return null;
 
   /*

@@ -100,7 +100,7 @@ export default async function PaymentLinksPage({ searchParams }: { searchParams:
         csvHref={mayExport(actor, "payments.charge") ? `/api/portal/payment-links/export?${csvQuery}` : undefined}
       />
       {!read.ok ? (
-        <ErrorState title="The jobs could not be read" body={`${read.error} Nothing here means nothing is waiting.`} />
+        <ErrorState title="The jobs could not be read" body={`${read.error} This is a failed read, not an empty list.`} />
       ) : (
         <>
           <DataTable
