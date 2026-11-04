@@ -4103,7 +4103,14 @@ export const APPLIED = [
     /* The combined chain 0104 to 0108, P5, P3 and P1 merged into this branch on 2026-11-02; re-read off fingerprint-at.mjs that day. */
     fingerprint: "22346b566a73ea946ca112725b16569f",
     behaviour: "961400e898dc3961cd71a4dd08012e3d",
-    production: null,
+        /*
+     * Applied 2026-11-03 14:00:06 UTC by the chat counterpart through
+     * apply_migration from the boarded commit 1acae24 (board 41568841308),
+     * Robert present to confirm the deletes. Read back: 186 grants, the five
+     * rows gone, admin 4 of 4; schema_migrations version 20261103140006
+     * (issue #1, 6605797441).
+     */
+    production: "2026-11-03",
     proves: null,
     provesNote:
       "A revoke is an ABSENCE, and the production check asks whether a declared row EXISTS, so there is nothing " +
