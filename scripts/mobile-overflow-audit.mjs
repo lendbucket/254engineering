@@ -484,8 +484,11 @@ async function run() {
   {
     const { DEVELOPMENT_REF, refOf } = await import("./lib/db-target.mjs");
     const runId = process.env.BOARD_RUN_ID ?? "";
-    /* The run id prefixes the address main uses (question 2, 2026-10-25), so the browser's key starts with this run's prefix. */
-    const expected = /^\d{6,20}$/.test(runId) && refOf(process.env.SUPABASE_URL) === DEVELOPMENT_REF ? `board:${runId}:` : null;
+    /* The run id prefixes the address main uses (question 2, 2026-10-25), so the browser's key starts with this run's prefix,
+     * and since Q9 (2026-11-03) with this audit's own name, which the suite sets on the server it restarts for this audit. */
+    const auditName = process.env.BOARD_AUDIT ?? "";
+    const runPrefix = /^\d{6,20}$/.test(runId) && refOf(process.env.SUPABASE_URL) === DEVELOPMENT_REF ? `board:${runId}:` : null;
+    const expected = runPrefix && /^[a-z0-9][a-z0-9-]{0,63}$/.test(auditName) ? `${runPrefix}${auditName}:` : runPrefix;
     let ok = false;
     let detail = "";
     if (!techProbe?.password) {
