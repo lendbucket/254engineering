@@ -132,6 +132,8 @@ export const NOT_CREDENTIALS = new Set([
   "PERF_RUNS", "PERF_SAMPLES", "ROUND3_PORT", "SHOTS_PORT", "KEEP_EXISTING", "LOAD_JOBS",
   /* BOARD_RUN_ID, 2026-10-24: the cloud board's github.run_id, set on the shard its servers inherit; the sign in bucket key on development only (ruling 5). Public, not a secret. */
   "BOARD_RUN_ID",
+  /* BOARD_AUDIT, 2026-11-03: the audit's name, set by scripts/audit.mjs on the server each audit uses; with BOARD_RUN_ID, the per audit sign in bucket on development only (Q9). Public, not a secret. */
+  "BOARD_AUDIT",
   /*
    * SHOTS_OUT, 2026-09-29. Where scripts/design-shots.mjs writes screenshots,
    * defaulting to a scratchpad path. A directory to save PNGs into, holding
