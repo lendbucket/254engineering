@@ -26,7 +26,8 @@ Nothing else was parked. **Not reached** (the queue stopped at the report deadli
 
 **Sittings:** none done overnight. Still owed, by migration:
 
-- **0109** (Q5): production sitting, requested after Q5's board passes. Development is held: 11 probe engineer profiles there share two licence numbers, so the unique index needs those probes dealt with first (a delete, so it waits for you).
+- **0109** (Q5): production sitting, requested after Q5's board passes. **Corrected 2026-11-04 on Robert's word: 0109 is ON development.** The chat counterpart nulled the 11 probe licence numbers with Robert's word on 2026-11-02 and sat 0109 on development that night (comment 6588568307, ledger version 20261102211122, unique index present). This report's original line said development was held and waited on Robert; that was stale, written from the 20:38 UTC entry (6587890300) without reading the later sitting. Nothing waits on Robert for 0109.
+- **Q12 F8, added 2026-11-04 on Robert's question:** `setGrants` as one SQL function was MISSED. It was drafted on 2026-11-02 (scratchpad only, unnumbered) and never staged; Q12 merged without it. Answer and question in 6631618666; nothing is built for it until Robert answers.
 - **0110** (Q6): production sitting after Q6's board; already on development.
 - **0111, 0112** (CRM R1, R2): development sitting, requested immediately before R1 boards. **0113 to 0116** (R4, R5, R7, R8): each requested immediately before its own item.
 - **0117** (M2) and **0118** (Q8b, with the duplicate read): each requested at its slot.
