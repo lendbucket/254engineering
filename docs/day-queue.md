@@ -1,5 +1,31 @@
 # Day queue, 2026-10-23
 
+## Robert's overnight ruling, 2026-11-03 into 2026-11-04 (verbatim)
+
+> Overnight ruling. Record this on ops/day first, verbatim. Follow docs/standing-orders.md. Run until everything below is merged or parked, then post the morning report and stop.
+>
+> FIRST
+> Q9's board 41761841168 on 4237422 finished at 03:50 UTC: 64 of 65, roles-audit FAIL in the writers shard. Your waiter was reaped and nothing woke you. Read the sealed logs now. Q9 does not merge on this board. Find the cause. If it is the branch, repair it, prove the repair with an injection, bring Q9 up to main and board the new commit. If it is a fixture or sample and not the branch, fix it in the harness without loosening the check and record it as not the branch's doing. Never re-run 4237422 unchanged. If Q9's next board fails too, park Q9 with the question on issue #1 and take the next item. Q9 still never merges before Q10, which is done.
+>
+> ORDER, one board per item
+> Q9, Q11, Q12, Q13, Q14, then Q5 (post the 0109 production sitting request on issue #1 after its board passes and merge Q5 only after my counterpart's read back is posted), Q6 (0110 the same way), Q8 part 1, then the CRM R1 to R8 (post the development sitting requests for 0111 and 0112 on issue #1 immediately before R1 boards, never earlier, and each later CRM migration immediately before its own item), then the follow-ups F3, F2, F4, the review request fixture and F9 roof, then M2 (0117), then Q8b (0118, with the duplicate read posted with its sitting request), then the five low bundles. Q8c stays parked until I confirm the Stripe events myself. Each branch takes the current main before it boards. While an item waits on a sitting, board the next code only item that does not depend on it, if one exists; otherwise wait.
+>
+> My counterpart checks issue #1 at 12:15, 2:15, 4:15 and 6:15 AM Central and sits whatever is asked and allowed. Anything with a delete or drop waits for me in the morning.
+>
+> RULES
+> One board at a time. Never re-run an unchanged commit. Never merge red. Never loosen a check or raise a ceiling. The green board variance rule stands. A question never stops the queue: post it on issue #1 with your recommendation, park the item, take the next. A board that fails twice on new commits for the same item: park it.
+> After every dispatch, start the waiter and also schedule the 7200 second fallback wakeup, so a reaped waiter never leaves you idle again. When any wake comes, read the board's state from GitHub before anything else.
+> No production database writes, no email or SMS to real people, no force push, no branch deletion, no secrets in output, 12 GB memory floor. Migrations reach development only through my counterpart's sittings from stage branches.
+> Content rules apply everywhere: no long dashes, no hyphens as sentence connectors, no AI tell words, US spelling, "254 Engineering", no engineer name or license number on public pages.
+> Wake on board completion, not on a timer.
+>
+> MORNING REPORT, on issue #1 and at the top of docs/day-queue.md by 6:30 AM Central, then stop
+> Merged: item, commit, board, audits passed, live URL where public.
+> Parked: item, why, the exact answer needed from me, your recommendation.
+> Sittings done and sittings still owed, by migration number.
+> /, /coverage, /coverage/coastal-bend and /services/windstorm-wpi-8 from the last board.
+> Main's head from ls-remote.
+
 ## Robert 10:26 Central, 2026-10-31, and the order it sets
 
 1. Bundle 41, `fix/job-dates` at `e2d38e4`: both postings open, validThrough 2027-01-31.
