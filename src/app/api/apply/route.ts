@@ -8,6 +8,7 @@ import { insertStructuredApplication } from "@/lib/intake";
 import { queueEmail } from "@/lib/ops-jobs";
 import { applicantConfirmation, applicationNotification } from "@/lib/email-templates";
 import { deferredLink } from "@/lib/deferred-links";
+import { isApplicantDocumentPath } from "@/lib/uploads";
 import { positionByTrack } from "@data/positions";
 import { withSaveOutcome } from "@/lib/save-outcome";
 import { PUBLIC_FORM_REFUSAL, takeAcknowledgement, takePublicFormAttempt } from "@/lib/public-form-limits";
@@ -69,6 +70,27 @@ async function handlePOST(request: Request) {
   /* Robert's Q11 (office audit F2): per connection and per typed address, before anything is saved or queued. */
   if (!(await takePublicFormAttempt("apply", request.headers, data.email)).allowed) {
     return NextResponse.json({ ok: false, message: PUBLIC_FORM_REFUSAL }, { status: 429 });
+  }
+
+  /*
+   * EVERY DOCUMENT MUST BE THIS APPLICANT'S OWN UPLOAD. Robert's Q12 (office
+   * audit F5, 2026-11-02). A path is only a string in the body, and the
+   * operator's email and the applications screen sign whatever is stored, so a
+   * path under another application's id would hand the operator somebody
+   * else's resume labelled as this person's. Refused before anything is saved.
+   */
+  const foreign = (["resume", "certifications", "licenseDocument"] as const).filter((field) => {
+    const file = data[field] as { path?: unknown } | undefined;
+    return file?.path !== undefined && !isApplicantDocumentPath(file.path, data.applicationId);
+  });
+  if (foreign.length) {
+    return NextResponse.json(
+      {
+        ok: false,
+        errors: Object.fromEntries(foreign.map((f) => [f, "This document was not uploaded for this application. Attach it again."])),
+      },
+      { status: 422 },
+    );
   }
 
   const position = positionByTrack(isEngineer ? "engineer" : "technician");

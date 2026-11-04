@@ -6,7 +6,7 @@ import { ListControls, listHref } from "@/components/portal/ListControls";
 import { LIST_EXPORT_GRANT } from "@/lib/list-exports";
 import { LIST_NOT_LOADED } from "@/lib/outcome-copy";
 import { RetryButton } from "@/components/portal/Unreachable";
-import { signedDownloadUrl } from "@/lib/uploads";
+import { APPLICATIONS_SCREEN_LINK_SECONDS, isApplicantDocumentPath, signedDownloadUrl } from "@/lib/uploads";
 import {
   DataTable,
   EmptyState,
@@ -89,10 +89,15 @@ export default async function PortalApplicationsPage({ searchParams }: { searchP
       ] as const) {
         const file = payload[key];
         if (file?.path) {
+          /*
+           * Signed for ten minutes, and only when the path is this applicant's
+           * own (Q12, office audit F5 and F6). A path outside it is shown as a
+           * document with no link rather than signed under this person's name.
+           */
           documents.push({
             label,
             filename: file.filename ?? label,
-            url: await signedDownloadUrl(file.path),
+            url: isApplicantDocumentPath(file.path, r.id) ? await signedDownloadUrl(file.path, APPLICATIONS_SCREEN_LINK_SECONDS) : null,
           });
         }
       }
