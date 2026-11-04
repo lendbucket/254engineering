@@ -1934,8 +1934,20 @@ const answerAll = (entry, pick = () => 0) =>
   rec(
     "an abandoned batch closes every order under it",
     /\.eq\("batch_id", input\.batchId as string\)/.test(abandon) &&
-      /cancel: batchOpen && canTransitionOrder\(o\.status as never, "cancelled"\)/.test(abandon),
+      /cancel: closes && !superseded\.has\(o\.id\) && canTransitionOrder\(o\.status as never, "cancelled"\)/.test(abandon) &&
+      /const closes = batchOpen && /.test(abandon),
     "otherwise one abandonment puts ten rows on the stuck order screen",
+  );
+  // Robert's Q8 of 2026-11-02 (money audit F5): an expiry of a session that is
+  // not the order's latest checkout closes nothing. The latest is read from the
+  // newest checkout.started event, and a failed read refuses the expiry.
+  rec(
+    "and an expired session that is not the order's latest checkout closes nothing",
+    /if \(ref && ref !== input\.sessionRef\) superseded\.add\(o\.id\);/.test(abandon) &&
+      /\.eq\("event", "checkout\.started"\)\s*\.order\("created_at", \{ ascending: false \}\)/.test(abandon) &&
+      /if \(!started\.ok\) return \{ ok: false,/.test(abandon) &&
+      /const closes = batchOpen && !\(input\.batchId !== null && superseded\.size > 0\);/.test(abandon),
+    "a late expiry of the first session cancelled the order the customer was paying through the second",
   );
   rec(
     "and refuses to abandon a batch that was already paid",

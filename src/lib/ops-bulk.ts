@@ -352,16 +352,36 @@ export async function placeBatch(input: {
    * the work is released and the amount goes onto the account until period
    * close. A card batch waits for its checkout.
    */
+  /*
+   * THE TOTAL IS WHAT WAS PLACED, NOT WHAT WAS SUBMITTED. Robert's ruling Q8 of
+   * 2026-11-02 (money audit F7). total_cents was written from the split before
+   * any member was placed, so a member that failed to place left the header
+   * above the sum of the shares, and startBatchCheckout, which refuses when
+   * the two disagree, refused every attempt: placed orders nobody could pay
+   * for, and a repeat of the request quoting a total nobody would be charged.
+   * Recomputed from the accepted members, with the failures counted as
+   * rejected, in the same update that sets the status. A member with no share
+   * leaves no total, as the split itself would.
+   */
+  const placedTotalCents = accepted.some((a) => a.shareCents === null)
+    ? null
+    : accepted.reduce((n, a) => n + (a.shareCents as number), 0);
+  const placed = {
+    accepted_count: accepted.length,
+    rejected_count: split.rejected.length + failures.length,
+    total_cents: placedTotalCents,
+  };
+
   if (billingMode === "invoice") {
     for (const a of accepted) await acceptOnInvoice(a.orderId);
     await db
       .from("eng_order_batches")
-      .update({ status: "accepted", accepted_count: accepted.length })
+      .update({ status: "accepted", ...placed })
       .eq("id", batch.id);
   } else {
     await db
       .from("eng_order_batches")
-      .update({ status: "awaiting_payment", accepted_count: accepted.length })
+      .update({ status: "awaiting_payment", ...placed })
       .eq("id", batch.id);
   }
 
@@ -371,7 +391,7 @@ export async function placeBatch(input: {
     entityType: "order_batch",
     entityId: batch.id as string,
     summary: `${reference}: ${accepted.length} of ${input.properties.length} properties taken, ${money(
-      split.totalCents,
+      placedTotalCents,
     )}, ${billingMode === "invoice" ? "on account" : "awaiting payment"}`,
   });
 
@@ -381,7 +401,7 @@ export async function placeBatch(input: {
     reference,
     accepted,
     rejected: [...split.rejected.map((r) => ({ ref: r.ref, reason: r.reason })), ...failures],
-    totalCents: split.totalCents,
+    totalCents: placedTotalCents,
     billingMode,
     duplicate: false,
   };

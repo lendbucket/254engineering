@@ -548,9 +548,18 @@ async function windstormInquiryChecks() {
    * the check passed on the read-back, and a person submitting the form would
    * have seen nothing happen. Found by running it rather than by reading it.
    */
+  /*
+   * WAITED FOR, NOT SAMPLED. Board 41888823268 (2026-11-04) read this once,
+   * 900ms after the click, while development was answering slowly enough to
+   * abandon other reads at 20 seconds: the route answered 200 and the row was
+   * read back, and the sentence had not yet rendered. The assertion is the
+   * same sentence on the same screen; it is given the time a person waits for
+   * a form to answer, and a form that never says it arrived still fails.
+   */
   const accepted = await page
     .getByText(/your brief is with us/i)
-    .isVisible()
+    .waitFor({ state: "visible", timeout: 15_000 })
+    .then(() => true)
     .catch(() => false);
   rec(
     "and the person is told on screen that the brief arrived",
