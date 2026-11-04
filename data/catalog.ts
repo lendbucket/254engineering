@@ -1214,6 +1214,23 @@ export function catalogFor(serviceSlug: string, tier?: string): CatalogEntry | u
   return forService.length === 1 ? forService[0] : undefined;
 }
 
+/**
+ * THE PRICE A PUBLIC PAGE MAY STATE. Robert's ruling Q14 of 2026-11-02, from
+ * the live site audit (issue #1, 6585009543, issue 1): "remove the $995 figure
+ * from the five pages and llms-full until the line opens, saying ongoing
+ * construction is quoted". WPI-8 ongoing construction is $995 in the price
+ * book and cannot be ordered: it opens only on the engineer's signed scope
+ * addendum (SCOPE_ADDENDUM_REQUIRED, ruling 11's extension), which only the
+ * money door reads. A prerendered page cannot read that signature, so it
+ * states no price for a deliverable that needs one, and says it is quoted.
+ * The price book keeps the figure; this decides only what a page prints.
+ * Restoring the published price when the line opens is in BACKLOG.md.
+ */
+export function statedPriceCents(entry: CatalogEntry): number | null {
+  if (scopeAddendumMissing(entry.serviceSlug, entry.tier)) return null;
+  return entry.priceCents;
+}
+
 /** Every deliverable a service line sells, in the order the customer sees. */
 export const deliverablesFor = (serviceSlug: string): CatalogEntry[] =>
   CATALOG.filter((entry) => entry.serviceSlug === serviceSlug);

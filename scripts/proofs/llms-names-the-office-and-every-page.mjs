@@ -28,7 +28,7 @@ const { services } = await import("../../src/content/services.ts");
 const { insightsByDate } = await import("../../src/content/insights.ts");
 const { windstormPages } = await import("../../src/content/windstorm-program.ts");
 const { proximityPages } = await import("../../src/content/structural-engineer.ts");
-const { CATALOG } = await import("../../data/catalog.ts");
+const { CATALOG, statedPriceCents } = await import("../../data/catalog.ts");
 
 check("llms.txt states the office address", short.includes(`Office: ${STREET}`));
 check("and the hours", short.includes(`Hours: ${HOURS}`));
@@ -52,11 +52,19 @@ const urls = [
 const missing = urls.filter((u) => !short.includes(`https://254engineering.com${u})`));
 check(`llms.txt links every live service and guide page (${urls.length})`, urls.length > 40 && missing.length === 0, missing.join(", "));
 
+/*
+ * A deliverable no order page offers states no figure and reads "quoted"
+ * (statedPriceCents, Robert's Q14 of 2026-11-02): WPI-8 ongoing construction.
+ */
+const dollars2 = (cents) => `$${(cents / 100).toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
 const unpriced = CATALOG.filter((e) => {
-  const price = e.priceCents == null ? "priced by quote" : `$${(e.priceCents / 100).toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
+  const stated = statedPriceCents(e);
+  const price = stated == null ? (e.priceCents == null ? "priced by quote" : "quoted") : dollars2(stated);
   return !full.includes(`- ${e.name}: ${price}`) || !full.includes(`Turnaround: ${e.turnaround}`);
 });
-check(`llms-full.txt states every deliverable's catalog price and turnaround (${CATALOG.length})`, CATALOG.length >= 10 && unpriced.length === 0, unpriced.map((e) => e.name).join(", "));
+check(`llms-full.txt states every deliverable's stated price and turnaround (${CATALOG.length})`, CATALOG.length >= 10 && unpriced.length === 0, unpriced.map((e) => e.name).join(", "));
+const withheld = CATALOG.filter((e) => statedPriceCents(e) == null && e.priceCents != null);
+check("and prints no figure for a deliverable that states none", withheld.length > 0 && withheld.every((e) => !full.includes(dollars2(e.priceCents))), withheld.map((e) => e.name).join(", "));
 check("llms-full.txt states the office address", full.includes(`Office: ${STREET}`));
 
 check("no typed copy of llms-full.txt sits in public/", !existsSync("public/llms-full.txt") && !existsSync("public/llms.txt"));

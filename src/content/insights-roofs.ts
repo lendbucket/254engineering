@@ -100,7 +100,7 @@ const ROOF_SRC = {
   },
   rule137_33: {
     label: "22 Tex. Admin. Code § 137.33, Sealing Procedures",
-    url: "http://txrules.elaws.us/rule/title22_chapter137_sec.137.33",
+    url: "https://txrules.elaws.us/rule/title22_chapter137_sec.137.33",
   },
   rule137_35: {
     label: "22 Tex. Admin. Code § 137.35, Electronic Seals and Electronic Signatures",
