@@ -1,5 +1,42 @@
 # Day queue, 2026-10-23
 
+## MORNING REPORT, 2026-11-04 (written 11:10 UTC, 06:10 Central)
+
+**Nothing needed from Robert to continue, apart from Q8c, which already waits on you.** Main is `1fc01b986a998e493dabb99096435150310d6a89` (ls-remote, 11:07 UTC).
+
+**Merged overnight (five items, each on its own board, each 65 of 65 with zero FAIL lines, `[skip ci]`, no run started on main). Q9, Q11, Q12 and Q13 are byte identical to their boarded trees; Q10's merged tree is its boarded tree plus the 0108 ledger line, checked by the merge script:**
+
+| Item | Branch at commit | Merged as | Board | Audits that carried it |
+| --- | --- | --- | --- | --- |
+| Q10, auth M1, M3, M4 | `fix/q10-factor-and-passwords` at `2ad0d95` | `e19ebc0` | 41642696380 | every gating audit, 0 could not tell (sign in and password code only) |
+| Q9, auth H1, H2 | `fix/q9-signin-and-documents` at `359fdee` | `97f249d` | 41777913070 | roles (every probe signed in, no-grant HTTP 404), mfa, security, break glass, proofs |
+| Q11, office F1, F2 | `fix/q11-coverage-and-forms` at `90116da` | `2927425` | 41795157780 | forms (no 429), proofs (public forms proof), roles |
+| Q12, office F3, F5, F6 | `fix/q12-sends-and-uploads` at `5d9b865` | `df52b98` | 41803602636 | proofs (both), forms, email, jobs, roles |
+| Q13, office F4 to F13 | `fix/q13-failed-reads` at `69bcbdc` | `1fc01b9` | 41812222719 | proofs (three), messaging, roles, partner, native, token |
+
+No public page changed in any of the five, so there is no live URL to verify; production is for your counterpart to confirm on Vercel.
+
+Two reds on the way, both explained and neither the product: Q9's board 41761841168 (64 of 65, the harness signed eleven probes in from one address; fixed in `359fdee`) and Q11's board 41786068640 (64 of 65, Q11's own proof did not clear `BOARD_AUDIT`, a cross effect of Q9 my prediction missed; fixed in `90116da`). One push of main for Q12 returned an error and moved nothing; the retry went through. I did not capture the error text.
+
+**Parked:**
+
+- **Q8c.** Why: your ruling holds it until you confirm the Stripe events yourself. Answer needed: "the Stripe events Q8c handles are confirmed" (or the list you want). Recommendation: confirm them against the Stripe dashboard's webhook endpoint for the live account, then it boards in its slot.
+
+Nothing else was parked. **Not reached** (the queue stopped at the report deadline, not on a finding): Q14, then Q5 (0109), Q6 (0110), Q8 part 1, CRM R1 to R8, the follow ups, M2, Q8b, the low bundles. Q14 is next.
+
+**Sittings:** none done overnight. Still owed, by migration:
+
+- **0109** (Q5): production sitting, requested after Q5's board passes. Development is held: 11 probe engineer profiles there share two licence numbers, so the unique index needs those probes dealt with first (a delete, so it waits for you).
+- **0110** (Q6): production sitting after Q6's board; already on development.
+- **0111, 0112** (CRM R1, R2): development sitting, requested immediately before R1 boards. **0113 to 0116** (R4, R5, R7, R8): each requested immediately before its own item.
+- **0117** (M2) and **0118** (Q8b, with the duplicate read): each requested at its slot.
+
+**LCP from the last board (41812222719, Q13):** `/` 2,190 ms, `/coverage` 2,338 ms, `/coverage/coastal-bend` 2,737 ms, `/services/windstorm-wpi-8` 2,746 ms, all under ceiling.
+
+**Standing COULD NOT TELL on every board, none caused by a branch:** retention-audit 5 of 63 (the 2026-09-04 `eng_jobs` day has no metrics rollup on development); the job queue is 1,421 deep on development, past the 1,000 row ceiling (audit residue, wants pruning by whoever may remove it); 73 signed in screens not measured by the board's perf scope; the Stripe and FIRM_PHONE live halves; external citation URLs answering 403 or 503 to a script.
+
+Posted on issue #1, comment 6629080539.
+
 ## Robert's overnight ruling, 2026-11-03 into 2026-11-04 (verbatim)
 
 > Overnight ruling. Record this on ops/day first, verbatim. Follow docs/standing-orders.md. Run until everything below is merged or parked, then post the morning report and stop.
@@ -498,6 +535,8 @@ WPI-8 facts stand as read from TDI and TWIA: TWIA's lookup is WPI-8-C only; the 
 **Result, bundle 87 (board 41803602636 on `5d9b865`): 65 of 65, zero FAIL, every prediction line met. MERGED as `df52b98`** (parents `2927425`, `5d9b865`), tree byte identical to the boarded tree, ls-remote `df52b98d731d9f93fa8e357b00d65822106ec964`, no run started on main. Posted on issue #1, comment 6628043970. The first push of main returned an error and moved nothing; the second went through; the error text was not captured. LCP: `/` 2,861, `/coverage` 2,342, coastal-bend 2,639, service 2,119. Standing only.
 
 **Bundle 88, Q13 (`69bcbdc`): main `df52b98` merged into `fix/q13-failed-reads`, clean.** Q13 against main: 23 files, staff screens and their reads only (clients, inbox, messages, onboarding, order lookup, partners, payment links, prospects, quotes, refunds, roles, search), each failed read now an error state rather than an empty list or a count; `rolesView` and the thread read return `{ ok, ... }`. No public file. Cross effects checked: no script calls the reshaped reads (`rolesView`, `readThreads`, `listUninvitedApplications`, `submissionsAwaitingDecision`) except Q13's own proof; messaging-audit's "search resolves what the actor may read before it queries" still finds `await listThreads(actor)` before `.from("eng_messages")` in `searchMessages`; the roles page keeps its `notFound()` for an actor without `roles.manage`, so roles-audit's no-grant 404 stands. Proofs, each under `BOARD_RUN_ID` plus `BOARD_AUDIT=proofs-audit`: Q13's three PASS, Q11's and Q12's PASS. token-audit 120 PASS, files-audit 68 PASS; messaging-audit COULD NOT TELL locally (no database client in this worktree), writers shard on the board. Preflight GREEN, 38 rules, 106 s. origin/main `df52b98` unmoved. **Prediction, bundle 88, stated before dispatch: 65 of 65, zero FAIL.** proofs-audit PASS with Q13's three proofs; messaging-audit, roles-audit (no-grant HTTP 404), partner-audit, native-audit and token-audit PASS; public bytes unchanged, the four LCP pages under ceiling; standing COULD NOT TELL lines only.
+
+**Result, bundle 88 (board 41812222719 on `69bcbdc`): 65 of 65, zero FAIL, every prediction line met. MERGED as `1fc01b9`** (parents `df52b98`, `69bcbdc`), tree byte identical to the boarded tree, ls-remote `1fc01b986a998e493dabb99096435150310d6a89`, no run started on main. LCP: `/` 2,190, `/coverage` 2,338, coastal-bend 2,737, service 2,746. Standing only. Then the morning report (top of this file), and the run stops at the deadline; Q14 is next.
 
 **F9 CORRECTION (issue #1, F9 correction comment).** My F9 question 6594767802 was wrong twice: no letter template is signed since 0091 (2026-10-25), so nothing needs re-signing; and the quoted section 9 sentence exists only in 254-RC-001. F9 built for the roof letter only at `c7e8a31` (`fix/f9-visit-date-receipt`, over main `3446a44`), preflight GREEN, proof 15 checks, five injections. Two questions posted (the four other letters; adoption by sealing). Boards with the follow-ups.
 
