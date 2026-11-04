@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
 import { can, ALL_ACTIONS } from "@/lib/ops-authz";
 import { rolesView, licensedCapabilities } from "@/lib/ops-roles";
-import { PageHead } from "@/components/portal/surfaces";
+import { ErrorState, PageHead } from "@/components/portal/surfaces";
 import { RolesClient } from "./RolesClient";
 
 export const dynamic = "force-dynamic";
@@ -28,7 +28,7 @@ export default async function RolesPage() {
   const actor = await currentActor();
   if (!actor || !can(actor, "roles.manage")) notFound();
 
-  const roles = await rolesView();
+  const read = await rolesView();
 
   /*
    * Grouped by their module prefix, which is how somebody reads a matrix of
@@ -49,12 +49,20 @@ export default async function RolesPage() {
         lede="What each role may do, who holds it, and what no role can be given. Every change here is recorded with who made it and when."
       />
 
-      <RolesClient
-        roles={roles}
-        groups={[...groups.entries()].map(([name, actions]) => ({ name, actions }))}
-        licensed={licensedCapabilities()}
-        selfId={actor.id}
-      />
+      {/* Q13, office audit F7: a failed read is said, never drawn as roles with no grants and nobody holding them. */}
+      {read.ok ? (
+        <RolesClient
+          roles={read.roles}
+          groups={[...groups.entries()].map(([name, actions]) => ({ name, actions }))}
+          licensed={licensedCapabilities()}
+          selfId={actor.id}
+        />
+      ) : (
+        <ErrorState
+          title="The roles could not be read"
+          body={`${read.error} This is a failed read, not an empty list: no role has lost a permission. Nothing can be changed until it reads. Reload in a moment.`}
+        />
+      )}
     </div>
   );
 }

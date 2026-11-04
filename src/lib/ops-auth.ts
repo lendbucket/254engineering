@@ -8,6 +8,7 @@ import { OPS_COOKIE, readOpsSession } from "./ops-session";
 import type { Action, Actor, Role, RoleKey } from "./ops-authz";
 import { cache } from "react";
 import { DatabaseUnreachable, isDatabaseUnreachable } from "./save-outcome";
+import { clearLoginAttempts, clientKey, takeLoginAttempt } from "./ops-rate-limit";
 
 /**
  * Everything that turns a request into an actor, and an admin's intent into an
@@ -346,6 +347,22 @@ export async function createAccount(input: CreateAccountInput): Promise<CreateAc
   const email = input.email.trim().toLowerCase();
   if (!email.includes("@")) return { ok: false, error: "That is not an email address." };
 
+  /*
+   * ONE LICENCE NUMBER, ONE ENGINEER. Robert's ruling Q5, 2026-11-02 (audit
+   * field F5). Sealing trusts "role engineer and this licence number", so a
+   * second engineer profile carrying a number another already holds could
+   * seal under his name. Asked before any auth user exists, so a refusal
+   * leaves nothing behind; 0109's unique index refuses it again at the row,
+   * and eng_seal_act_check refuses a seal by a shared number. A failed read
+   * refuses, because "could not tell" is not "nobody holds it".
+   */
+  const licence = input.role === "engineer" ? input.licenseNumber?.trim() || null : null;
+  if (licence) {
+    const holder = await engineerHoldingLicence(db, licence);
+    if (!holder.ok) return { ok: false, error: holder.error };
+    if (holder.held) return { ok: false, error: duplicateLicenceRefusal };
+  }
+
   // Does this address already exist in the shared auth table?
   const existingUserId = await findAuthUserId(db, email);
 
@@ -402,6 +419,10 @@ export async function createAccount(input: CreateAccountInput): Promise<CreateAc
      * application away, which is a far worse outcome than a failed create.
      */
     if (!existingUserId && userId) await db.auth.admin.deleteUser(userId).catch(() => {});
+    /* 0109's index, if two creates raced past the read above: the same sentence, not the driver's. */
+    if (profileError.code === "23505" && /eng_profiles_engineer_license_key/.test(profileError.message)) {
+      return { ok: false, error: duplicateLicenceRefusal };
+    }
     return { ok: false, error: profileError.message };
   }
 
@@ -413,6 +434,27 @@ export async function createAccount(input: CreateAccountInput): Promise<CreateAc
   if (!issued) return { ok: false, error: "The account was created but the invite link could not be issued." };
 
   return { ok: true, profileId: userId!, token: issued.token, expiresAt: issued.expiresAt, linked: false };
+}
+
+export const duplicateLicenceRefusal =
+  "Another engineer profile already holds that license number, so this account was not created. One license number belongs to one engineer.";
+
+/**
+ * Whether an engineer profile already holds this licence number, compared
+ * trimmed as 0109's index compares it. Rows are compared here rather than with
+ * a filter on a trimmed column, which PostgREST cannot express; the engineer
+ * profiles are few and every one is read.
+ */
+export async function engineerHoldingLicence(
+  db: NonNullable<ReturnType<typeof supabaseAdmin>>,
+  licence: string,
+): Promise<{ ok: true; held: boolean } | { ok: false; error: string }> {
+  const wanted = licence.trim();
+  const read = await readEvery<{ id: string; license_number: string | null }>((from, to) =>
+    db.from("eng_profiles").select("id, license_number").eq("role", "engineer").not("license_number", "is", null).order("id").range(from, to),
+  );
+  if (!read.ok) return { ok: false, error: `Whether another engineer holds that license number could not be read, so the account was not created: ${read.error}` };
+  return { ok: true, held: read.rows.some((p) => String(p.license_number ?? "").trim() === wanted) };
 }
 
 /**
@@ -568,14 +610,42 @@ export async function verifyOwnPassword(
   if (readError) return { ok: false, error: `Your account could not be read: ${readError.message}` };
   if (!profile?.email) return { ok: false, error: "That account no longer exists." };
 
+  const limited = await passwordAttemptRefusal(actorId);
+  if (limited) return { ok: false, error: limited };
+
   const auth = supabaseCredentialCheck();
   if (!auth) return { ok: false, error: "The database is not configured." };
   const check = await auth.auth.signInWithPassword({ email: profile.email as string, password });
   await auth.auth.signOut().catch(() => {});
   if (check.error || check.data.user?.id !== actorId) return { ok: false, error: "That is not your password." };
+  await passwordAttemptsClear(actorId);
   // No time is returned: the time of record is the audit row's own, written by
   // the database, rather than this process's clock.
   return { ok: true };
+}
+
+/**
+ * THE PASSWORD RE-ENTRY IS COUNTED LIKE A SIGN IN. Robert, 2026-11-02, Q10
+ * (auth M4): verifyOwnPassword and changeOwnPassword asked Supabase for every
+ * guess with nothing counting, so a session somebody had taken could try the
+ * owner's password at the speed of the network, and under the owner override a
+ * right guess authorises a job at no charge. Each check now takes an attempt
+ * through takeLoginAttempt, keyed on the caller's address and this account,
+ * with the sign in limits (eight an account, twenty an address, fifteen
+ * minutes); a right password ends that account's count, never the address's.
+ */
+const PASSWORD_SCOPE = "password";
+
+async function passwordAttemptRefusal(actorId: string): Promise<string | null> {
+  const address = clientKey(await headers());
+  const limit = await takeLoginAttempt(address, `${PASSWORD_SCOPE}:${actorId}`);
+  if (limit.allowed) return null;
+  const minutes = Math.max(1, Math.ceil(limit.retryAfterSeconds / 60));
+  return `Too many password attempts. Wait ${minutes} minute${minutes === 1 ? "" : "s"} and try again.`;
+}
+
+async function passwordAttemptsClear(actorId: string): Promise<void> {
+  await clearLoginAttempts(clientKey(await headers()), `${PASSWORD_SCOPE}:${actorId}`);
 }
 
 /** A person changing their own password, already signed in. */
@@ -595,11 +665,15 @@ export async function changeOwnPassword(
 
   // The current password is required, so a borrowed session cannot lock the
   // owner out of their own account. Throwaway client, for the reason above.
+  // Counted like a sign in (Q10, auth M4), the same bucket verifyOwnPassword uses.
+  const limited = await passwordAttemptRefusal(actorId);
+  if (limited) return { ok: false, error: limited };
   const auth = supabaseCredentialCheck();
   if (!auth) return { ok: false, error: "The database is not configured." };
   const check = await auth.auth.signInWithPassword({ email: profile.email, password: currentPassword });
   await auth.auth.signOut().catch(() => {});
   if (check.error) return { ok: false, error: "That is not your current password." };
+  await passwordAttemptsClear(actorId);
 
   const { error } = await db.auth.admin.updateUserById(actorId, { password: nextPassword });
   if (error) return { ok: false, error: "The password could not be changed." };

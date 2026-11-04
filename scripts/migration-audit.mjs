@@ -318,9 +318,33 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * 0a97717f953b0be7267ab818ad99eda6, read off fingerprint-at.mjs with 0099
  * reproducing its recorded pair first.
  */
-const EXPECTED_FINGERPRINT = "0a97717f953b0be7267ab818ad99eda6";
-const EXPECTED_COLUMNS = 1374;
-const EXPECTED_TABLES = 104;
+/*
+ * Moved 2026-11-01 by 0105, identity and I-9 record what was seen and by whom,
+ * by Robert's ruling P1: 1,374 to 1,378 is four columns on eng_onboardings
+ * (identity_document_type, identity_verified_by, i9_document_type,
+ * i9_examined_by); no table, no trigger, no function; shape
+ * 812467e78ee8e18958afef349643e8de.
+ *
+ * Moved again by 0106, the academy records approvals and attempts, by Robert's
+ * ruling P3 of 2026-11-01, on the COMBINED chain 0104, 0105, 0106 (P1 merged
+ * into this branch on 2026-11-02): 1,378 to 1,395 is
+ * eng_academy_course_approvals' seven columns and eng_academy_attempts' ten,
+ * and the table count moves 104 to 106; shape
+ * f70724c174b2135624170d94bf8d0772, read off fingerprint-at.mjs, the figure
+ * posted for the development sitting (6568178900) and sat there (6578648098).
+ * The branch-local figure without 0105 was a38cdc761b90af3348910f4e7e897990.
+ *
+ * Moved again by 0107, every evidence file carries its SHA-256, by Robert's
+ * ruling P5 of 2026-11-01, on the COMBINED chain 0104 to 0107 (P1 and P3
+ * merged into this branch on 2026-11-02): 1,395 to 1,396 is
+ * eng_evidence_items.content_sha256, the table count unchanged at 106; shape
+ * 22346b566a73ea946ca112725b16569f, read off fingerprint-at.mjs, the figure
+ * posted for the development sitting (6568178900) and sat there (6578648098).
+ * The branch-local figure on 0104 then 0107 was e12033a2c91fead686fc9a4632ed20dc.
+ */
+const EXPECTED_FINGERPRINT = "22346b566a73ea946ca112725b16569f";
+const EXPECTED_COLUMNS = 1396;
+const EXPECTED_TABLES = 106;
 /* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts.
  * 0074 adds two: eng_partner_billing_touch and eng_partner_billing_events_immutable.
  * 0075 adds one: eng_payment_events_guarded.
@@ -341,8 +365,12 @@ const EXPECTED_TABLES = 104;
  * eng_insurance_policies_audit and eng_insurance_alerts_guard.
  * 0098 adds two, by Robert's addendum of 2026-10-25, item 3: eng_quote_files_guard
  * and eng_quote_requests_guard.
- * 0099 adds one, by Robert's addendum of 2026-10-25, item 8b: eng_alert_recipients_guard. */
-const EXPECTED_TRIGGERS = 104;
+ * 0099 adds one, by Robert's addendum of 2026-10-25, item 8b: eng_alert_recipients_guard.
+ * 0106 adds two, by Robert's ruling P3 of 2026-11-01: eng_academy_course_approvals_append_only
+ * and eng_academy_attempts_append_only.
+ * 0110 adds one, by Robert's ruling Q6 of 2026-11-02 (audit field F10):
+ * eng_files_sealed_needs_a_seal_act. */
+const EXPECTED_TRIGGERS = 107;
 /**
  * 0014 added eng_freeze_attribution and 0019 added two more, the partner
  * entry freeze and its delete refusal, which are trigger functions like the
@@ -411,8 +439,11 @@ const EXPECTED_TRIGGERS = 104;
  * 70 since 0098, by Robert's addendum of 2026-10-25, item 3: the trigger functions
  * eng_quote_file_guard and eng_quote_request_guard.
  * 71 since 0099, by Robert's addendum of 2026-10-25, item 8b: the trigger function
- * eng_alert_recipient_guard. */
-const EXPECTED_FUNCTIONS = 71;
+ * eng_alert_recipient_guard.
+ * 72 since 0110, by Robert's ruling Q6 of 2026-11-02 (audit field F10): the trigger
+ * function eng_file_sealed_needs_a_seal_act. 0109 replaces eng_seal_act_check with the
+ * same signature, which is not a new row. */
+const EXPECTED_FUNCTIONS = 72;
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
@@ -2299,6 +2330,25 @@ if (failedAt === null) {
       insert into eng_repair_items (id, file_id, determination_id, sort_order, requirement, raised_by)
       values ('00000000-0000-4000-8000-0000000000f5', ${F}, ${DET}, 0, 'Reseal the flashing at the rear penetration', ${ENG}),
              ('00000000-0000-4000-8000-0000000000f6', ${F}, ${DET}, 1, 'Replace the creased tabs on the west plane', ${ENG});
+    `);
+
+    /*
+     * A LIVE SEALED LETTER FOR THIS DETERMINATION, so the seal attempts below
+     * meet 0053's repair guard and not 0110's. Since 0110 (Robert's ruling Q6,
+     * 2026-11-02) a file cannot be marked sealed without one, and 0110's
+     * trigger runs before 0053's, so without this act every attempt here would
+     * be refused for the wrong reason and "closing one of two is not closing
+     * the list" would pass while proving nothing. 0110's own checks are below.
+     */
+    await db.exec(`
+      insert into eng_seal_images (id, profile_id, kind, storage_key, sha256, byte_size, width, height, mfa_verified_at)
+      values ('00000000-0000-4000-8000-0000000000f7', ${ENG}, 'seal', 'probe/0053-seal.png', '${"c".repeat(64)}', 1000, 600, 600, now()),
+             ('00000000-0000-4000-8000-0000000000f8', ${ENG}, 'signature', 'probe/0053-signature.png', '${"d".repeat(64)}', 1000, 600, 200, now());
+      insert into eng_documents (id, file_id, kind, title, bucket, storage_key)
+      values ('00000000-0000-4000-8000-0000000000f9', ${F}, 'deliverable', 'Probe sealed letter for 0053', 'docs', 'probe/0053-letter');
+      insert into eng_seal_acts (id, kind, document_id, determination_id, content_sha256, letterhead_sha256, seal_image_id, signature_image_id, sealed_by, mfa_verified_at)
+      values ('00000000-0000-4000-8000-0000000000fa', 'letter', '00000000-0000-4000-8000-0000000000f9', ${DET}, '${"e".repeat(64)}', '${"f".repeat(64)}',
+              '00000000-0000-4000-8000-0000000000f7', '00000000-0000-4000-8000-0000000000f8', ${ENG}, now());
     `);
 
     const sealWithOpen = await attempt(

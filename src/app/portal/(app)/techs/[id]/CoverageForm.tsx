@@ -40,7 +40,7 @@ export function CoverageForm({
       const res = await fetch("/api/portal/onboarding", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "set_coverage", profileId, counties: parse(text) }),
+        body: JSON.stringify({ action: "set_tech_coverage", profileId, counties: parse(text) }),
       });
       const out = await res.json().catch(() => ({ ok: false, error: "The answer could not be read." }));
       if (!out.ok) {

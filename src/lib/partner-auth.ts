@@ -219,6 +219,24 @@ export async function setPartnerPassword(
   const { hash, salt } = newPartnerPasswordRecord(password);
 
   /*
+   * A SUSPENDED PARTNER USER STAYS SUSPENDED. Robert, 2026-11-02, Q10 (auth
+   * M3). The update below wrote status "active" whatever the status was, so a
+   * link issued before a suspension reactivated the account when it was spent.
+   * setCustomerPassword has refused this since its own ruling; this matches it:
+   * the status is read before the link is spent, a suspended holder is refused
+   * with the same sentence an invalid link gets, and the write itself excludes
+   * a suspended row and counts what it changed, in case the suspension lands
+   * between the read and the write.
+   */
+  const { data: holder, error: holderError } = await db
+    .from("eng_partner_users")
+    .select("status")
+    .eq("id", inspected.userId)
+    .maybeSingle();
+  if (holderError) return { ok: false, error: "The password could not be set. Try the link again in a moment." };
+  if (!holder || holder.status === "suspended") return { ok: false, error: "That link is not valid." };
+
+  /*
    * Spent FIRST, conditionally on it still being unspent, so two requests
    * racing on the same link cannot both set a password. The loser is told the
    * link was used.
@@ -234,12 +252,15 @@ export async function setPartnerPassword(
     return { ok: false, error: "That link has already been used." };
   }
 
-  const { error } = await db
+  const { data: set, error } = await db
     .from("eng_partner_users")
     .update({ password_hash: hash, password_salt: salt, status: "active" })
-    .eq("id", inspected.userId);
+    .eq("id", inspected.userId)
+    .neq("status", "suspended")
+    .select("id");
 
   if (error) return { ok: false, error: "The password could not be set." };
+  if (!set || set.length !== 1) return { ok: false, error: "That link is not valid." };
   return { ok: true, userId: inspected.userId };
 }
 

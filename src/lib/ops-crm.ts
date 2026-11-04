@@ -180,8 +180,24 @@ export async function listClients(
   actor: Actor | null,
   options: { limit?: number; offset?: number; query?: ClientListQuery } = {},
 ): Promise<ClientRow[]> {
+  const read = await listClientsRead(actor, options);
+  if (!read.ok) console.error(`[clients] the client list could not be read: ${read.error}`);
+  return read.ok ? read.rows : [];
+}
+
+/**
+ * The same read, saying when it failed. Robert's Q13 (office audit F9,
+ * 2026-11-02): the clients screen drew "No clients yet" over a read that had
+ * failed. The screen reads through this; the file picker and the export keep
+ * listClients (the export already refuses a short read against its exact count).
+ */
+export async function listClientsRead(
+  actor: Actor | null,
+  options: { limit?: number; offset?: number; query?: ClientListQuery } = {},
+): Promise<{ ok: true; rows: ClientRow[] } | { ok: false; error: string }> {
   const db = supabaseAdmin();
-  if (!db || !actor) return [];
+  if (!db) return { ok: false, error: "The database is not configured." };
+  if (!actor) return { ok: true, rows: [] };
   /*
    * Office ready, 2026-10-24: the list screen passes a query, searched, filtered
    * and sorted in the database, and paged by offset. The picker passes none and
@@ -200,12 +216,13 @@ export async function listClients(
   const search = q ? clientSearchOr(q.term) : null;
   if (search) read = read.or(search);
   if (q && q.kind !== "all") read = read.eq("kind", q.kind);
-  const { data } = await read
+  const { data, error } = await read
     .order(q?.sort === "name" ? "name" : "created_at", { ascending: q ? q.ascending : false })
     /* A tie broken by id, so a page boundary never shows a client twice or not at all. */
     .order("id", { ascending: true })
     .range(offset, offset + limit - 1);
-  return (data ?? []) as ClientRow[];
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, rows: (data ?? []) as ClientRow[] };
 }
 
 /**
@@ -886,8 +903,23 @@ export async function transitionFile(
   const stamp = STATUS_TIMESTAMP[to];
   if (stamp) patch[stamp] = DB_NOW;
 
-  const { error } = await db.from("eng_files").update(patch).eq("id", id).eq("status", current.status);
+  /*
+   * THE MOVE IS COUNTED, AND A MOVE THAT CHANGED NO ROW IS REFUSED. Robert's
+   * ruling Q6, 2026-11-02 (audit field F11). The update is conditional on the
+   * status read a moment ago, which is right, but a no-match is not an error
+   * from PostgREST, so a lost race wrote a status event and a file.transition
+   * audit row describing a move that did not happen and answered ok. Nothing
+   * below runs unless exactly this file moved.
+   */
+  const { data: moved, error } = await db.from("eng_files").update(patch).eq("id", id).eq("status", current.status).select("id");
+  /* 0110 (Q6, F10): the database refuses sealed or delivered without a live sealed letter; said in plain words, not the trigger's. */
+  if (error && /\(0110\)/.test(error.message)) {
+    return { ok: false, error: `This file cannot be marked ${to === "delivered" ? "delivered" : "sealed"} by hand. A file is sealed by sealing its letter on the review screen, and there is no live sealed letter for it.` };
+  }
   if (error) return { ok: false, error: error.message };
+  if (!moved?.length) {
+    return { ok: false, error: "The file moved while this was being done, so nothing was changed. Open it again to see where it is now." };
+  }
 
   /*
    * A FILE THAT STOPS WAITING FOR A TECHNICIAN TAKES ITS OPEN OFFERS WITH IT.

@@ -1,5 +1,17 @@
+import type { Metadata } from "next";
 import { Container } from "@/components/ui/Container";
 import { ButtonLink, Eyebrow, Rule } from "@/components/ui/primitives";
+
+/*
+ * Its own title. Robert's ruling Q14 of 2026-11-02, from the live site audit
+ * (issue #1, 6585009543, issue 11): the 404 carried the home page's title, the
+ * root layout's default. Next reads a not-found module's metadata export
+ * (node_modules/next/dist/lib/metadata/resolve-metadata.js, the error
+ * convention). Next marks the 404 noindex by itself.
+ */
+export const metadata: Metadata = {
+  title: "Page not found | 254 Engineering",
+};
 
 /**
  * The 404.
