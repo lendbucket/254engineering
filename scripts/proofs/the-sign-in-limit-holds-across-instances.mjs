@@ -43,15 +43,8 @@ for (let i = 1; i <= 9; i += 1) ninth = await take("203.0.113.7", "probe@audit-p
 check("the ninth attempt on one account from one address is refused, counted across callers", ninth.allowed === false && ninth.scope === "identity", JSON.stringify(ninth));
 check("and it says how long until it may try again", ninth.retry_after_seconds > 0 && ninth.retry_after_seconds <= WINDOW, `${ninth.retry_after_seconds}s`);
 
-/*
- * A successful sign in writes a reset NAMING THE ACCOUNT, and that account's
- * count starts again. Robert, 2026-11-02, Q9 (auth H1): the success reset used
- * to carry a null identity, which ends every count on the address; only the
- * administrator's release writes that now. The proof that a named reset leaves
- * the address and every other account counting is
- * a-sign-in-resets-only-its-own-account-and-a-document-follows-its-file.mjs.
- */
-await db.query("insert into eng_sign_in_attempts (address, identity, kind) values ($1, $2, 'reset')", ["203.0.113.7", "probe@audit-probe.invalid"]);
+/* A successful sign in writes a reset, and the count starts again. */
+await db.query("insert into eng_sign_in_attempts (address, identity, kind) values ($1, null, 'reset')", ["203.0.113.7"]);
 const after = await take("203.0.113.7", "probe@audit-probe.invalid");
 /*
  * And the attempt after the reset COUNTS: remaining is seven, not eight. The

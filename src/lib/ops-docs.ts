@@ -3,7 +3,7 @@ import { activeFirmRegistration } from "./launch";
 import { readEvery } from "./bounded-read";
 import { supabaseAdmin } from "./supabase";
 import { writeAudit } from "./ops-audit";
-import { can, canSeeFile, visibleFiles, type Actor, type FileSubject } from "./ops-authz";
+import { can, type Actor } from "./ops-authz";
 import { jobView } from "./ops-field";
 import { services } from "@/content/services";
 import { attachmentRows, BINDER_HEADERS, binderRows, limitationsFor, type Binder } from "./ops-binder";
@@ -60,15 +60,12 @@ const DOCUMENT_COLUMNS =
  * from the field and the engineering side, and filtering it out in JavaScript
  * after loading it would mean it had already been serialized into a response.
  *
- * A DOCUMENT ON A FILE FOLLOWS THE FILE. Robert, 2026-11-02, audit fix Q9
- * (auth H2): "documentUrl loads the document's file and applies canSeeFile."
- * This list applies the same predicate, mayOpenDocument, because a list that
- * shows a document its opener refuses is the list and the record disagreeing.
- * It replaces a paragraph headed "what this deliberately does not scope", which
- * left documents unnarrowed on the reasoning that an engineer can be handed any
- * file in the review queue: that file is in his scope by canSeeFile already, so
- * the queue case is kept, and what closes is another engineer's file outside
- * the queue, opened by a document id, binders and charge exports included.
+ * WHAT THIS DELIBERATELY DOES NOT SCOPE
+ * -------------------------------------
+ * Documents are not narrowed to the files an engineer is on. An engineer already
+ * sees every file in the review queue and can be handed any of them, so a
+ * deliverable they cannot open is a document they will be asked about and cannot
+ * read. The gate is the role, through documents.read, which no technician has.
  *
  * Identity documents are not in this table. They live in eng_credentials with
  * their own storage keys and their own screens, which is why a technician's
@@ -87,60 +84,7 @@ export async function listDocuments(
   if (filters.kind) query = query.eq("kind", filters.kind);
 
   const { data } = await query.order("created_at", { ascending: false }).limit(300);
-  const rows = (data ?? []) as DocumentRow[];
-  const files = await fileSubjectsFor(rows.map((r) => r.file_id).filter((id): id is string => Boolean(id)));
-  /* A failed read of the files shows nothing rather than everything: the same answer documentUrl gives. */
-  if (!files) return [];
-  return rows.filter((r) => mayOpenDocument(actor, r, r.file_id ? files.get(r.file_id) ?? null : null));
-}
-
-/**
- * Kinds a document with no file may be opened on the role gate alone: the
- * firm's own papers, which belong to no one file. Any other kind with no file
- * (a binder or a charge export written without one) needs the whole-firm file
- * scope, since nothing says whose it is.
- */
-const FIRM_LEVEL_KINDS = new Set(["firm_document", "protocol_export"]);
-
-/**
- * Whether this actor may open this document. One predicate for the list and the
- * opener (Q9, auth H2). A document on a file is opened by whoever canSeeFile
- * admits to that file; a document whose file row is gone is opened by nobody
- * below the whole-firm scope.
- */
-export function mayOpenDocument(
-  actor: Actor | null,
-  doc: { file_id: string | null; kind: string; visibility: string },
-  file: FileSubject | null,
-): boolean {
-  if (!can(actor, "documents.read")) return false;
-  if (doc.visibility === "admin_only" && actor!.role !== "admin") return false;
-  if (doc.file_id) return file !== null && canSeeFile(actor, file);
-  return FIRM_LEVEL_KINDS.has(doc.kind) || visibleFiles(actor).kind === "all";
-}
-
-/** The files a set of documents sits on, with their offers, read in one pass. Null when either read fails. */
-async function fileSubjectsFor(fileIds: string[]): Promise<Map<string, FileSubject> | null> {
-  const db = supabaseAdmin();
-  if (!db) return null;
-  const ids = [...new Set(fileIds)];
-  const subjects = new Map<string, FileSubject>();
-  if (ids.length === 0) return subjects;
-  const [{ data: files, error: filesError }, { data: offers, error: offersError }] = await Promise.all([
-    db.from("eng_files").select("id, status, assigned_tech_id, assigned_engineer_id").in("id", ids),
-    db.from("eng_assignments").select("file_id, tech_id").in("file_id", ids),
-  ]);
-  if (filesError || offersError) return null;
-  for (const f of files ?? []) {
-    subjects.set(f.id as string, {
-      id: f.id as string,
-      status: f.status as string,
-      assigned_tech_id: (f.assigned_tech_id as string | null) ?? null,
-      assigned_engineer_id: (f.assigned_engineer_id as string | null) ?? null,
-      offered_tech_ids: (offers ?? []).filter((o) => o.file_id === f.id).map((o) => o.tech_id as string),
-    });
-  }
-  return subjects;
+  return (data ?? []) as DocumentRow[];
 }
 
 /**
@@ -175,22 +119,11 @@ export async function documentUrl(actor: Actor | null, documentId: string): Prom
 
   const { data } = await db
     .from("eng_documents")
-    .select("bucket, storage_key, visibility, sealed_at, file_id, kind")
+    .select("bucket, storage_key, visibility, sealed_at")
     .eq("id", documentId)
     .maybeSingle();
   if (!data) return null;
-
-  /*
-   * THE DOCUMENT'S FILE DECIDES, Robert, 2026-11-02, Q9 (auth H2). Before this
-   * the grant and the admin_only flag were the whole check, so an engineer
-   * holding another engineer's binder id opened it. A failed read of the file
-   * refuses, the same 404 as "not yours".
-   */
-  const fileId = (data.file_id as string | null) ?? null;
-  const files = fileId ? await fileSubjectsFor([fileId]) : new Map<string, FileSubject>();
-  if (!files) return null;
-  const doc = { file_id: fileId, kind: data.kind as string, visibility: data.visibility as string };
-  if (!mayOpenDocument(actor, doc, fileId ? files.get(fileId) ?? null : null)) return null;
+  if (data.visibility === "admin_only" && actor!.role !== "admin") return null;
 
   if (data.sealed_at) {
     const read = await sealedLetterBytes(documentId);

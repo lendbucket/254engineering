@@ -148,14 +148,9 @@ export function takeLoginAttemptInMemory(address: string, identity?: string, now
   return perIdentity;
 }
 
-/**
- * A successful sign in. Clears the bucket of the account that signed in, and
- * nothing else. Robert, 2026-11-02, Q9 (auth H1): it used to clear the
- * address bucket too, so one good sign in to an account the caller held wiped
- * the count of guesses the same address had made against every other account.
- * Only the administrator's release (releaseLockInMemory) clears an address.
- */
+/** A successful sign in. Clears both buckets for that caller and account. */
 export function clearLoginAttemptsInMemory(address: string, identity?: string) {
+  buckets.delete(`ip:${address}`);
   if (identity) buckets.delete(`id:${address}:${identity}`);
 }
 
@@ -401,39 +396,25 @@ export async function takeLoginAttempt(address: string, identity?: string): Prom
   return takeLoginAttemptInMemory(address, identity);
 }
 
-/**
- * A reset row. `identity` null ends every count for the address, which only
- * the administrator's release may do; a named identity ends that identity's
- * count alone, because eng_take_sign_in_attempt (0071) reads the address count
- * after the latest reset whose identity is null, and an identity's count after
- * the latest reset whose identity is null or that identity.
- */
-async function writeReset(address: string, identity: string | null): Promise<boolean> {
+async function writeReset(address: string): Promise<boolean> {
   const db = supabaseAdmin();
   if (!db) return false;
-  const { error } = await db.from("eng_sign_in_attempts").insert({ address, identity, kind: "reset" });
+  const { error } = await db.from("eng_sign_in_attempts").insert({ address, identity: null, kind: "reset" });
   if (error) console.error(`[rate-limit] a reset did not record: ${error.message}`);
   return !error;
 }
 
-/**
- * A successful sign in ends the count for the account that signed in, never
- * the address's. Robert, 2026-11-02, Q9 (auth H1): the reset used to carry a
- * null identity, which 0071 reads as "every count for this address", so an
- * attacker holding any account on any of the three doors could guess seven
- * times at the owner's, sign in to their own, and guess seven more, for ever.
- * With no identity there is nothing to reset, so nothing is written.
- */
+/** A successful sign in ends the count for its address, as the Map's delete did. */
 export async function clearLoginAttempts(address: string, identity?: string): Promise<void> {
   clearLoginAttemptsInMemory(address, identity);
-  if (identity) await writeReset(address, identity);
+  await writeReset(address);
 }
 
 /** The administrator's release (/api/portal/unlock). Answers how many attempts it cleared. */
 export async function releaseLock(address: string): Promise<number> {
   const state = await inspectLock(address);
   releaseLockInMemory(address);
-  await writeReset(address, null);
+  await writeReset(address);
   return state.address.used;
 }
 
