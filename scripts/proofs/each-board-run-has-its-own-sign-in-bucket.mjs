@@ -117,6 +117,83 @@ check(
   /page\.fill\('input\[name="email"\]', techProbe\.email\)/.test(overflow) && /\.from\("eng_sign_in_attempts"\)/.test(overflow) && /String\(address\)\.startsWith\(expected\)/.test(overflow) && /`board:\$\{runId\}:`/.test(overflow),
 );
 
+/*
+ * EACH ROLES-AUDIT PROBE SIGNS IN FROM ITS OWN ADDRESS. Board 41761841168 on
+ * Q9 (2026-11-04): 64 of 65, roles-audit's eleventh probe answered 429. Read
+ * back from eng_sign_in_attempts on development: inside roles-audit's own
+ * bucket, eleven probes each spent two attempts on one address (the sign in
+ * and the enrolment confirm), H1 resets only the account, and attempt twenty
+ * one was refused. The harness, not the branch: H1 is Robert's ruling and did
+ * what it says. The limiter is the real one, with its real ceilings.
+ */
+const { takeLoginAttemptInMemory, clearLoginAttemptsInMemory, RATE_LIMITS } = await import("../../src/lib/ops-rate-limit.ts");
+const ROLES_ENV = { SUPABASE_URL: DEV, BOARD_RUN_ID: "41761841168", BOARD_AUDIT: "roles-audit" };
+const T0 = 1_800_000_000_000;
+/* roles-audit's shape: a sign in, its success reset, then the enrolment confirm. */
+const walkProbes = (addressFor) => {
+  let refusedAt = 0;
+  let attempt = 0;
+  for (let p = 1; p <= 11; p++) {
+    const key = clientKey(h({ "x-forwarded-for": addressFor(p) }), ROLES_ENV);
+    const who = `roles-probe-${p}@example.com`;
+    attempt += 1;
+    const signIn = takeLoginAttemptInMemory(key, who, T0 + p * 1000);
+    if (!signIn.allowed) { refusedAt ||= attempt; continue; }
+    clearLoginAttemptsInMemory(key, who);
+    attempt += 1;
+    const confirm = takeLoginAttemptInMemory(key, `mfa:probe-${p}`, T0 + p * 1000 + 500);
+    if (!confirm.allowed) refusedAt ||= attempt;
+  }
+  return refusedAt;
+};
+const oneDesk = walkProbes(() => "::1");
+check(
+  "the failure, reproduced: eleven probes from one address meet the address ceiling at attempt twenty one, the eleventh sign in",
+  RATE_LIMITS.MAX_PER_ADDRESS === 20 && oneDesk === 21,
+  `refused at attempt ${oneDesk || "none"}`,
+);
+const ownDesks = walkProbes((p) => `198.51.100.${p}`);
+check("the repair: each probe from its own address, and no probe is refused", ownDesks === 0, `refused at attempt ${ownDesks || "none"}`);
+const deskKeys = new Set(Array.from({ length: 11 }, (_, i) => clientKey(h({ "x-forwarded-for": `198.51.100.${i + 1}` }), ROLES_ENV)));
+check(
+  "and every probe's bucket is its own, inside this run and this audit",
+  deskKeys.size === 11 && [...deskKeys].every((k) => k.startsWith("board:41761841168:roles-audit:198.51.100.")),
+);
+/* Not loosened: one desk still meets both ceilings exactly where it did. */
+let guesses = 0;
+let guessRefused = null;
+for (let i = 1; i <= RATE_LIMITS.MAX_PER_IDENTITY + 1; i++) {
+  const r = takeLoginAttemptInMemory("198.51.100.250", "one-account@example.com", T0 + i);
+  guesses = i;
+  if (!r.allowed) { guessRefused = r.scope; break; }
+}
+check("the limiter is not loosened: one account from one address is refused on guess nine", guesses === 9 && guessRefused === "identity", `${guesses}, ${guessRefused}`);
+let sprays = 0;
+let sprayRefused = null;
+for (let i = 1; i <= RATE_LIMITS.MAX_PER_ADDRESS + 1; i++) {
+  const r = takeLoginAttemptInMemory("198.51.100.251", `spray-${i}@example.com`, T0 + i);
+  sprays = i;
+  if (!r.allowed) { sprayRefused = r.scope; break; }
+}
+check("and spraying from one address is refused on attempt twenty one", sprays === 21 && sprayRefused === "address", `${sprays}, ${sprayRefused}`);
+/* The wiring: roles-audit hands each probe the next address, and the helper carries it to both counted calls. */
+const roles = readFileSync("scripts/roles-audit.mjs", "utf8");
+const rolesSignIn = roles.slice(roles.indexOf("let probeDesk = 0;"), roles.indexOf("const db = auditClient(\"roles-audit\""));
+check(
+  "roles-audit signs each probe in from the next documentation address",
+  /probeDesk \+= 1;/.test(rolesSignIn) && /signInFully\(BASE, email, password, \{ address: `198\.51\.100\.\$\{probeDesk\}` \}\)/.test(rolesSignIn),
+);
+const helper = readFileSync("scripts/lib/probe-mfa.mjs", "utf8");
+const fully = helper.slice(helper.indexOf("export async function signInFully("), helper.indexOf("function fromAddress("));
+check(
+  "and the helper carries the address to the sign in and to the enrolment confirm",
+  /signInOnly\(base, email, password, opts\)/.test(fully) &&
+    /completeEnrolment\(base, signedIn\.cookie, opts\)/.test(fully) &&
+    /headers: \{ "Content-Type": "application\/json", \.\.\.fromAddress\(opts\) \}/.test(helper) &&
+    (helper.match(/cookie: header, \.\.\.from \}/g) ?? []).length === 3 &&
+    /\{ "x-forwarded-for": opts\.address \}/.test(helper),
+);
+
 console.log("");
 if (wrong === 0) {
   console.log("PASS: each board run has its own sign in bucket on development, no request chooses a key, and production ignores the variable.");

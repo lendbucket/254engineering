@@ -1643,9 +1643,19 @@ async function makeProbe(db, role) {
  *
  * signInFully is shared with the browser probes so the two sign in paths in
  * this repository cannot disagree about what a session is.
+ *
+ * EACH PROBE SIGNS IN FROM ITS OWN ADDRESS. Board 41761841168 on Q9: H1 keeps
+ * the address count after a good sign in, each probe spends two attempts on it
+ * (the sign in and the enrolment confirm), and the eleventh probe's sign in
+ * was the twenty first attempt from one address, answered 429. Eleven people
+ * at eleven desks is what these probes stand for. The limiter is unchanged,
+ * and the address is an RFC 5737 documentation address inside this run's own
+ * bucket. See fromAddress in scripts/lib/probe-mfa.mjs.
  */
+let probeDesk = 0;
 async function signIn(email, password) {
-  const result = await signInFully(BASE, email, password);
+  probeDesk += 1;
+  const result = await signInFully(BASE, email, password, { address: `198.51.100.${probeDesk}` });
   return {
     ok: result.ok,
     cookie: result.cookie ? `eng_ops=${result.cookie}` : null,
