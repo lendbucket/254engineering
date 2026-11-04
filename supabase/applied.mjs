@@ -4139,7 +4139,18 @@ export const APPLIED = [
     file: "0109_one_licence_number_belongs_to_one_engineer.sql", appliedBy: "apply_migration",
     fingerprint: "22346b566a73ea946ca112725b16569f",
     behaviour: "fd2c09f5c724f7743c7ec47edc8b7b3b",
-    production: null,
+    /*
+     * Development: sat 2026-11-02 by the chat counterpart from 7b499ee,
+     * version 20261102211122, after the 11 probe licence numbers were nulled
+     * on Robert's word. Production: applied 2026-11-04 21:22:01 UTC by the
+     * chat counterpart through apply_migration from the boarded commit
+     * 99d08b8 (board 41857807988). Read back: 0 duplicate engineer licence
+     * numbers before; eng_profiles_engineer_license_key present;
+     * eng_seal_act_check carries the 0109 clause; EXECUTE for anon,
+     * authenticated and PUBLIC 0; schema_migrations version 20261104212201,
+     * stored hash b603ca92, the same as development (issue #1, 6642448509).
+     */
+    production: "2026-11-04",
     proves: null,
     provesNote:
       "An index and a function body, neither of which the production check can probe by row or column. The " +
