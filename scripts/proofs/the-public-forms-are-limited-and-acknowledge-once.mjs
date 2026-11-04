@@ -31,6 +31,15 @@ import { readFileSync } from "node:fs";
 delete process.env.SUPABASE_URL;
 delete process.env.SUPABASE_SERVICE_ROLE_KEY;
 delete process.env.BOARD_RUN_ID;
+/*
+ * And the audit's name. Since Q9 merged (97f249d) a board server carries
+ * BOARD_AUDIT beside BOARD_RUN_ID, and clientKey puts it in the connection key.
+ * proofs-audit runs this file under a board, so BOARD_AUDIT=proofs-audit was in
+ * this process on board 41786068640 and the exact key in section D read
+ * board:41500000001:proofs-audit:..., which is the product working. This
+ * process states its own environment; section D sets each variable it tests.
+ */
+delete process.env.BOARD_AUDIT;
 
 const forms = await import("../../src/lib/public-form-limits.ts");
 const { DEVELOPMENT_REF } = await import("../../src/lib/db-guard.ts");
@@ -90,10 +99,23 @@ process.env.BOARD_RUN_ID = "41500000001";
 const boarded = forms.publicFormKeys("contact", from("198.51.100.7"), "someone@example.com");
 check("a board run's connection key carries its run", boarded.connection === "form:contact:ip:board:41500000001:198.51.100.7", boarded.connection);
 check("and so do its address and acknowledgement keys", boarded.address.startsWith("form:contact:to:board:41500000001:") && boarded.acknowledgement.startsWith("ack:contact:board:41500000001:"));
+process.env.BOARD_AUDIT = "forms-audit";
+const perAudit = forms.publicFormKeys("contact", from("198.51.100.7"), "someone@example.com");
+check(
+  "under an audit, the connection key carries the run and the audit (Q9's bucket per audit)",
+  perAudit.connection === "form:contact:ip:board:41500000001:forms-audit:198.51.100.7",
+  perAudit.connection,
+);
+check(
+  "and the address and acknowledgement keys stay the run's, shared by its audits",
+  perAudit.address === boarded.address && perAudit.acknowledgement === boarded.acknowledgement,
+  JSON.stringify({ address: perAudit.address, ack: perAudit.acknowledgement }),
+);
 process.env.SUPABASE_URL = "https://fsaryeciduszuahgjbly.supabase.co";
 const production = forms.publicFormKeys("contact", from("198.51.100.7"), "someone@example.com");
-check("production's keys carry no run", !Object.values(production).some((k) => k.includes("board:")), JSON.stringify(production));
+check("production's keys carry no run and no audit, with both variables set", !Object.values(production).some((k) => k.includes("board:") || k.includes("forms-audit")), JSON.stringify(production));
 delete process.env.SUPABASE_URL;
+delete process.env.BOARD_AUDIT;
 delete process.env.BOARD_RUN_ID;
 
 /* E ------------------------------------------------------------------------ */
