@@ -1,5 +1,29 @@
 # Day queue, 2026-10-23
 
+## ROBERT'S RULING, 2026-11-05, in chat, verbatim: finish the platform queue
+
+> Finish the platform queue. Record this on ops/day first, verbatim. Follow docs/standing-orders.md and run until everything below is merged or parked, then post a report on issue #1 and stop.
+>
+> ORDER
+> 1. low-office finishes and merges on a match.
+> 2. F8 (0111). On green, post the production sitting request; my counterpart runs it with me approving the Supabase prompt. F8 merges after the read back.
+> 3. CRM R1 to R8 (0112 to 0117) straight through, each stacked on the one before. Post each development sitting request immediately before its item boards, and each production request after its board passes. Each merges after its production read back. R3 and R7 merge in the same sitting as ruled.
+> 4. Low-auth, L6 and L3 board only while a CRM item waits on a sitting.
+> 5. M2 (0118), then Q8b (0119) with the duplicate read posted with its sitting request, then F12 and F6 as one migration branch numbered 0120.
+> 6. The prospect kind check replacement with the eight verticals: stage it as 0121 after 0120, as a destructive sitting through the operator_sql_editor route, development first. My counterpart runs it with me approving the prompt.
+> 7. Q8c stays parked until I confirm the Stripe events.
+>
+> ANSWERS
+> R6 (6591993537): 1 keep, check-ins on the fixed 90 day marks from opening. 2 keep, an account that never ordered is quiet from opening and flags at 90 days.
+> R8 (6593031538): 1 keep, a telephoned job is credited to the account its invoice is billed to. 2 leave it as a rep's move; no system author.
+>
+> RULES
+> One board at a time. Never re-run an unchanged commit. Never merge red. Never loosen a check or raise a ceiling. A question never stops the queue: post it with your recommendation, park the item, take the next. Two reds on new commits for the same item: park it.
+> The 12 GB floor gates local work only; dispatch boards whatever free memory reads. After every dispatch start the waiter and the fallback wakeup, and read the board from GitHub first on every wake.
+> A cancelled sitting is never retried unattended; post it and my counterpart brings it to me.
+> No production writes from the PC, no email or SMS to real people, no force push, no branch deletion, no secrets in output. Content rules everywhere.
+> Wake on board completion, not on a timer.
+
 ## ROBERT, 2026-11-05 morning, in chat, verbatim: the order after F8
 
 > L3 limits accepted as built. Order: after F8, run CRM R1 to R8 straight through. Low-auth, L6 and L3 board only while a CRM item waits on a sitting, then M2, Q8b and 0120.
