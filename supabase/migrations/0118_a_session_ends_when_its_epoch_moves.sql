@@ -1,7 +1,7 @@
 
 /*
  * ===========================================================================
- * 0117: A SESSION ENDS WHEN ITS EPOCH MOVES.
+ * 0118: A SESSION ENDS WHEN ITS EPOCH MOVES.
  * Auth M2, Robert's ruling on issue #1 (answer to 6586517364): "option A,
  * rollout 1, built after Q14".
  * ===========================================================================
@@ -31,7 +31,7 @@
  * changed, no row rewritten beyond the default. The columns need no retention
  * declaration because they add no table.
  *
- * Development first, on stage/0117-session-epoch; production at the chat
+ * Development first, on stage/0118-session-epoch; production at the chat
  * counterpart's sitting after M2's board.
  */
 
@@ -40,12 +40,12 @@
 do $$
 begin
   if to_regclass('public.eng_crm_attributions') is null then
-    raise exception 'eng: 0117 follows 0116, which adds eng_crm_attributions. It does not exist here.';
+    raise exception 'eng: 0118 follows 0117, which adds eng_crm_attributions. It does not exist here.';
   end if;
   if to_regclass('public.eng_profiles') is null
      or to_regclass('public.eng_customer_users') is null
      or to_regclass('public.eng_partner_users') is null then
-    raise exception 'eng: 0117 adds a column to eng_profiles, eng_customer_users and eng_partner_users, and one of them does not exist here.';
+    raise exception 'eng: 0118 adds a column to eng_profiles, eng_customer_users and eng_partner_users, and one of them does not exist here.';
   end if;
 end;
 $$;
@@ -60,11 +60,11 @@ alter table eng_partner_users
   add column if not exists session_epoch integer not null default 0;
 
 comment on column eng_profiles.session_epoch is
-  'Auth M2 (0117): the epoch every staff session cookie carries. Moving it ends every session this person holds. Moved by a password set, a forced reset, a suspension, a replaced second factor and "sign out everywhere".';
+  'Auth M2 (0118): the epoch every staff session cookie carries. Moving it ends every session this person holds. Moved by a password set, a forced reset, a suspension, a replaced second factor and "sign out everywhere".';
 comment on column eng_customer_users.session_epoch is
-  'Auth M2 (0117): the epoch every customer session cookie carries. Moving it ends every session this user holds. Moved by a password set and "sign out everywhere".';
+  'Auth M2 (0118): the epoch every customer session cookie carries. Moving it ends every session this user holds. Moved by a password set and "sign out everywhere".';
 comment on column eng_partner_users.session_epoch is
-  'Auth M2 (0117): the epoch every partner session cookie carries. Moving it ends every session this user holds. Moved by a password set.';
+  'Auth M2 (0118): the epoch every partner session cookie carries. Moving it ends every session this user holds. Moved by a password set.';
 
 /* ------------------------------------------------------------- closing assert */
 
@@ -78,7 +78,7 @@ begin
        where table_schema = 'public' and table_name = t and column_name = 'session_epoch'
          and data_type = 'integer' and is_nullable = 'NO' and column_default = '0'
     ) then
-      raise exception 'eng: 0117 expects %.session_epoch, integer not null default 0, after it runs.', t;
+      raise exception 'eng: 0118 expects %.session_epoch, integer not null default 0, after it runs.', t;
     end if;
   end loop;
 end;
