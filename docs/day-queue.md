@@ -1,5 +1,17 @@
 # Day queue, 2026-10-23
 
+## ROBERT, 2026-11-05 afternoon, in chat, verbatim: the roofer application goes FIRST (supersedes the order below)
+
+> Roofer application rulings: 1 yes, an approved roofer is a B2B account through door 2, called a partner in the copy. 2 yes, the firm approves the roofer and the roofer gets no badge, logo or 254 mark to sell with. 3 yes, the application is its own source on a roofer prospect with a due now "review application" action. 4 yes, no cap; every application is read by a person against a Texas office, general liability with a certificate, and references a person checks. 5 name me, Robert Reyna, as the contact on the page. 6 yes, roofers.review held by admin and ops_manager, seeded in 0122 and pinned in roles-audit.
+>
+> Priority: this goes ahead of the remaining CRM branches. An email campaign to 1,477 Texas roofers is ready and waits on this page. Start now. If migration order forces 0122 to wait on 0121, build and board everything else, tell me the earliest date it can merge, and tell me what you need from me to get 0121 sat.
+>
+> The finish I want:
+> - The public page and the form are the best looking pages on the site. Build them to DESIGN_SPEC.md and the v5 artifact. The form is short, works well on a phone, saves progress if the roofer leaves, validates as they type, takes the certificate upload cleanly, and ends on a clear confirmation page that says what happens next.
+> - The review screen is in my admin portal at /portal/roofer-applications and on my home screen as work due now. It shows every application with all its answers and the certificate. It meets section 2d. Approve and decline are each one click plus a reason.
+> - Before you report it done, walk the whole flow yourself on a preview. Submit a test application as a roofer on a phone width. See it land on the admin home and on the review screen. Approve it. See the account open and the set-password email arrive. Decline a second one and see the decline email arrive. Send me screenshots at 390 and 1280 of the page, the form, the confirmation, the review screen and both emails. Remove the test records afterwards in the normal way.
+> - Board alone with your prediction stated. Report and stop.
+
 ## ROBERT, 2026-11-05 afternoon, in chat, verbatim: the roofer application rulings
 
 > Roofer application rulings: 1 yes, an approved roofer is a B2B account through door 2, called a partner in the copy. 2 yes, the firm approves the roofer and the roofer gets no badge, logo or 254 mark to sell with. 3 yes, the application is its own source on a roofer prospect with a due now "review application" action, carried in 0121's sitting. 4 yes, no cap; every application is read by a person against a Texas office, general liability with a certificate, and references a person checks. 5 name me, Robert Reyna, as the contact on the page. 6 yes, roofers.review held by admin and ops_manager, seeded in 0122 and pinned in roles-audit. Build it after the queued CRM branches as you planned.
