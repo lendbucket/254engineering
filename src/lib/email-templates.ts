@@ -1670,6 +1670,132 @@ export function inquiryNotification(input: {
 }
 
 /**
+ * ===========================================================================
+ * THE ROOFER PARTNER APPLICATION'S FOUR EMAILS. Robert's rulings of 2026-11-05.
+ * ===========================================================================
+ *
+ * The acknowledgement echoes nothing the form collected, for the reason
+ * inquiryAcknowledged gives: the address is whatever was typed. It says what
+ * happens next and promises no time, because a person reads each application
+ * and how long that takes is not something a template can know.
+ *
+ * The firm's notice carries the answers and a link to the review screen, and
+ * no reply-to of the applicant: the review happens on the screen, and the
+ * reply-to exceptions are pinned for the two inquiry notices alone.
+ *
+ * The approval is its own template rather than accountWelcome's door 2
+ * wording, which says the account followed a call. This one followed an
+ * application, and saying otherwise would be false in the first line.
+ *
+ * The decline is plain and polite, says no more than that the firm is not
+ * taking the application forward, and carries none of the reviewer's reason:
+ * that reason is the firm's record, written for the firm.
+ *
+ * NONE OF THEM OFFERS A FEE, A COMMISSION, A REBATE OR A CREDIT for sending
+ * work, 22 TAC 137.63(c)(4), and none gives the roofer a mark to use.
+ */
+export function rooferApplicationReceived(input: { email: string }): RenderedEmail {
+  return compose(
+    "roofer.received",
+    "human",
+    "We have your partner application",
+    {
+      preheader: "Your application reached the firm, and a person will read it.",
+      signed: true,
+      blocks: [
+        { kind: "p", text: "Hello," },
+        { kind: "p", text: `Your application to work with ${firmName()} as a roofing partner reached the firm.` },
+        {
+          kind: "p",
+          text: "A person at the firm reads every application. If it is approved, you receive a second email with a link to set the password for your account. If it is not, you receive a short note saying so.",
+        },
+        { kind: "p", text: "If you need to add or correct anything, reply to this message." },
+      ],
+    },
+    { to: input.email },
+  );
+}
+
+export function rooferApplicationNotice(input: {
+  legalName: string;
+  ownerName: string;
+  rows: Line[];
+  reviewUrl: string;
+}): RenderedEmail {
+  return compose(
+    "roofer.notice",
+    "operator",
+    `Roofer partner application: ${input.legalName}`,
+    {
+      preheader: `${input.legalName} applied to work with the firm as a roofing partner.`,
+      button: { label: "Review the application", url: input.reviewUrl },
+      blocks: [
+        { kind: "p", text: `${input.ownerName} applied for ${input.legalName}. It waits on the review screen for a decision.` },
+        { kind: "details", title: "The application", rows: rows(input.rows) },
+      ],
+    },
+  );
+}
+
+export function rooferApplicationApproved(input: {
+  ownerName: string;
+  email: string;
+  link: string;
+  expiresIn: string;
+}): RenderedEmail {
+  return compose(
+    "roofer.approved",
+    "human",
+    `Your partner account with ${firmName()}`,
+    {
+      preheader: `Your application was approved. The link sets your password and lasts ${input.expiresIn}.`,
+      signed: true,
+      blocks: [
+        { kind: "p", text: `${input.ownerName},` },
+        {
+          kind: "p",
+          text: `Your application to work with ${firmName()} as a roofing partner was approved, and an account has been opened for your company.`,
+        },
+        {
+          kind: "p",
+          text: "From the account you order and track every job in one place, at the partner prices set for it. Nobody here has set a password for it and nobody can see one: the link below is how you choose your own.",
+        },
+        {
+          kind: "note",
+          text: `This link lasts ${input.expiresIn}. If it has expired by the time you open it, the sign in page will send you a fresh one.`,
+        },
+      ],
+      button: { label: "Set your password", url: input.link },
+    },
+    { to: input.email },
+  );
+}
+
+export function rooferApplicationDeclined(input: { ownerName: string; legalName: string; email: string }): RenderedEmail {
+  return compose(
+    "roofer.declined",
+    "human",
+    "Your partner application",
+    {
+      preheader: `About the application from ${input.legalName}.`,
+      signed: true,
+      blocks: [
+        { kind: "p", text: `${input.ownerName},` },
+        {
+          kind: "p",
+          text: `Thank you for applying to work with ${firmName()} as a roofing partner. After reading the application, the firm is not taking it forward at this time.`,
+        },
+        {
+          kind: "p",
+          text: "Your company is still welcome to order from the firm like any customer. If anything about the company changes, you are welcome to apply again.",
+        },
+      ],
+    },
+    { to: input.email },
+  );
+}
+
+/**
  * A refund the provider would not carry out.
  *
  * THIS GOES TO THE FIRM AND NEVER TO THE CUSTOMER, AND THAT IS A RULING RATHER
@@ -2679,6 +2805,21 @@ export function allTemplatesForAudit(): RenderedEmail[] {
       rows: [["County", "Nueces"], ["Address", "100 Sample Street, Corpus Christi"]],
       portalUrl: "https://254engineering.com/portal/inquiries",
     }),
+    /* The roofer partner application's four (Robert, 2026-11-05). */
+    rooferApplicationReceived({ email: "sample@example.com" }),
+    rooferApplicationNotice({
+      legalName: "Sample Roofing LLC",
+      ownerName: "Sample Owner",
+      rows: [["Office", "Corpus Christi"], ["Crews", "4"]],
+      reviewUrl: "https://254engineering.com/portal/roofer-applications?id=00000000-0000-4000-8000-000000000000",
+    }),
+    rooferApplicationApproved({
+      ownerName: "Sample Owner",
+      email: "sample@example.com",
+      link: "https://254engineering.com/account/set-password?token=sample",
+      expiresIn: "7 days",
+    }),
+    rooferApplicationDeclined({ ownerName: "Sample Owner", legalName: "Sample Roofing LLC", email: "sample@example.com" }),
     outstandingInformation({
       customerName: "Sample Customer",
       customerEmail: "sample@example.com",

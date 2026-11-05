@@ -437,6 +437,13 @@ export type Action =
   | "crm.assign"
   // The CRM dashboard: dials, connects, accounts opened and revenue attributed, per rep.
   | "crm.reports"
+  /*
+   * Read every roofer partner application, with its certificate, and approve or
+   * decline it with a reason. Robert's ruling 6 of 2026-11-05: admin and
+   * ops_manager, seeded in 0113 and pinned in roles-audit. A rep sees the due
+   * review on the prospect and cannot decide it.
+   */
+  | "roofers.review"
   // Ask for an order's money to go back. Somebody else decides.
   | "refunds.request"
   /*
@@ -558,6 +565,8 @@ const MATRIX: Record<Role, Action[]> = {
     "reports.turnaround", "reports.activity",
     /* The sales CRM's management grants, seeded by 0112 (Robert, 2026-11-02, R1). */
     "crm.import", "crm.assign", "crm.reports",
+    /* The roofer partner applications, seeded by 0113 (Robert, 2026-11-05, ruling 6). */
+    "roofers.review",
   ],
   engineer: [
     "profiles.read_self", "profiles.update_self",
@@ -886,6 +895,8 @@ export const DEFAULT_ROLES: DefaultRole[] = [
        * manager, so he imports, assigns and reads the reps' numbers.
        */
       "crm.import", "crm.assign", "crm.reports",
+      /* The roofer partner applications, seeded by 0113 (Robert, 2026-11-05, ruling 6). */
+      "roofers.review",
     ],
   },
 ];

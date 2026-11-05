@@ -6,6 +6,7 @@ import { callList, type ProspectRow } from "./ops-prospects";
 import { listRefundRequests } from "./ops-refund-requests";
 import { holdsFor } from "./dispatch-hold";
 import { readEvery } from "./bounded-read";
+import { rooferApplicationsWaiting } from "./ops-roofer-applications";
 import type { Attention, Breakdown } from "./ops-dashboard";
 
 /**
@@ -57,7 +58,7 @@ export async function deskDashboard(actor: Actor): Promise<DeskDashboard> {
     };
   }
 
-  const [box, calls, refunds, waiting] = await Promise.all([
+  const [box, calls, refunds, waiting, roofers] = await Promise.all([
     inbox(actor, { includeAnswered: false }),
     callList(actor, { mineOnly: true }),
     listRefundRequests(actor, { state: "waiting" }),
@@ -71,6 +72,7 @@ export async function deskDashboard(actor: Actor): Promise<DeskDashboard> {
         .order("created_at", { ascending: true })
         .range(from, to),
     ),
+    rooferApplicationsWaiting(actor),
   ]);
 
   let inboxCount: number | null = null;
@@ -140,6 +142,23 @@ export async function deskDashboard(actor: Actor): Promise<DeskDashboard> {
       href: "/portal/refunds",
       tone: refunds.ok && refunds.rows.length ? "warn" : "good",
     },
+    /* The roofer partner applications waiting for a decision (Robert, 2026-11-05), only for whoever may make it. */
+    ...(can(actor, "roofers.review")
+      ? [
+          {
+            label: "Roofer applications to review",
+            count: roofers,
+            note:
+              roofers === null
+                ? "Not counted: the applications could not be read."
+                : roofers === 0
+                  ? "No application is waiting for a decision."
+                  : "Waiting for a person to approve or decline, oldest first.",
+            href: "/portal/roofer-applications",
+            tone: (roofers ? "warn" : "good") as DeskTile["tone"],
+          },
+        ]
+      : []),
   ];
 
   const attention = heldFiles.map((f) => ({

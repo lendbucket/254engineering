@@ -302,6 +302,8 @@ const EXPECTED = {
   "crm.import":                   { admin: true,  engineer: false, field_tech: false },
   "crm.assign":                   { admin: true,  engineer: false, field_tech: false },
   "crm.reports":                  { admin: true,  engineer: false, field_tech: false },
+  /* The roofer partner applications, Robert's ruling 6 of 2026-11-05 (0113). */
+  "roofers.review":               { admin: true,  engineer: false, field_tech: false },
   "refunds.request":              { admin: true,  engineer: false, field_tech: false },
   "refunds.approve_within_limit": { admin: true,  engineer: false, field_tech: false },
   "settings.refund_limit":        { admin: true,  engineer: false, field_tech: false },
@@ -463,6 +465,8 @@ const EXPECTED_NINE = {
   "responsible_charge.read_own":  "Y Y . . . . . . .",
   "retention.execute":            "Y . . . . . . . .",
   "roles.manage":                 "Y . . . . . . . .",
+  /* The roofer partner applications, Robert's ruling 6 of 2026-11-05 (0113): admin and ops_manager, nobody else. */
+  "roofers.review":               "Y . . . . . . . Y",
   "settings.refund_limit":        "Y . . . . . . . .",
   "suppressions.manage":          "Y . . . . Y . . .",
   "tasks.use":                    "Y Y Y Y Y Y . Y Y",
@@ -2536,6 +2540,12 @@ if (!db) {
          * this ruling agree rather than disagreeing on the first board.
          */
         "/portal/windstorm-inquiries",
+        /*
+         * The roofer partner applications (Robert, 2026-11-05): deciding which
+         * roofing companies the firm works with is commercial, on
+         * roofers.review, which he does not hold.
+         */
+        "/portal/roofer-applications",
         /*
          * The firm's insurance register, Robert's addendum of 2026-10-25: what
          * the firm is insured for and with whom is the owner's and the office's

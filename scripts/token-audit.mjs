@@ -528,6 +528,10 @@ const PORTED = [
   "src/app/portal/(app)/techs/[id]/AttachConfirmationForm.tsx",
   "src/app/portal/(app)/windstorm-inquiries/page.tsx",
   "src/app/portal/(app)/windstorm-inquiries/WindstormInquiriesClient.tsx",
+  /* The roofer partner applications (Robert, 2026-11-05), read here and held to the staff V10 rules below. */
+  "src/app/portal/(app)/roofer-applications/page.tsx",
+  "src/app/portal/(app)/roofer-applications/RooferApplicationDetail.tsx",
+  "src/app/portal/(app)/roofer-applications/RooferDecision.tsx",
   "src/components/portal/FieldAppWorker.tsx",
   "src/components/portal/FileThreadButton.tsx",
   "src/components/portal/LetterFactsPanels.tsx",
@@ -752,6 +756,10 @@ const CUSTOMER_V10 = [
 const STAFF_V10 = [
   /* The record search, 2026-10-10, held to the staff rules from its first commit. */
   "src/app/portal/(app)/search/page.tsx",
+  /* The roofer partner applications, 2026-11-05, held to the staff rules from their first commit (section 2d). */
+  "src/app/portal/(app)/roofer-applications/page.tsx",
+  "src/app/portal/(app)/roofer-applications/RooferApplicationDetail.tsx",
+  "src/app/portal/(app)/roofer-applications/RooferDecision.tsx",
   /* The two staff levels' screens, 2026-10-20, held to the staff rules from their first commit. */
   ...STAFF_LEVEL_SCREENS(),
   "src/app/portal/(app)/review/page.tsx",

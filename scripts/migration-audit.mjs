@@ -349,10 +349,16 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * telephone), eleven on eng_prospect_contacts, eight on eng_prospect_sources
  * and seven on eng_contact_log; the table count moves 106 to 108; shape
  * 72bb0e8c9223c6cd634a610fb0506b82, read off fingerprint-at.mjs.
+ *
+ * Moved again by 0113, a roofer applies and a person decides (Robert,
+ * 2026-11-05): thirty six columns on eng_roofer_applications and one on
+ * eng_prospects (roofer_application_id), 1,439 to 1,476; the table count moves
+ * 108 to 109; and created_by on eng_prospects becomes nullable, which moves
+ * the shape without a column. Read off fingerprint-at.mjs on the chain to 0113.
  */
-const EXPECTED_FINGERPRINT = "72bb0e8c9223c6cd634a610fb0506b82";
-const EXPECTED_COLUMNS = 1439;
-const EXPECTED_TABLES = 108;
+const EXPECTED_FINGERPRINT = "PENDING_0113_SHAPE";
+const EXPECTED_COLUMNS = 1476;
+const EXPECTED_TABLES = 109;
 /* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts.
  * 0074 adds two: eng_partner_billing_touch and eng_partner_billing_events_immutable.
  * 0075 adds one: eng_payment_events_guarded.
@@ -379,8 +385,11 @@ const EXPECTED_TABLES = 108;
  * 0110 adds one, by Robert's ruling Q6 of 2026-11-02 (audit field F10):
  * eng_files_sealed_needs_a_seal_act.
  * 0112 adds one, by Robert's sales CRM ruling R1 of 2026-11-02: eng_prospect_contacts_touch,
- * the updated_at stamp on a company's people, which change as numbers do. */
-const EXPECTED_TRIGGERS = 108;
+ * the updated_at stamp on a company's people, which change as numbers do.
+ * 0113 adds two, by Robert's rulings of 2026-11-05: eng_roofer_applications_touch and
+ * eng_roofer_applications_decide_once, which lets a decision be made once and touch
+ * nothing the roofer wrote. */
+const EXPECTED_TRIGGERS = 110;
 /**
  * 0014 added eng_freeze_attribution and 0019 added two more, the partner
  * entry freeze and its delete refusal, which are trigger functions like the
@@ -457,8 +466,11 @@ const EXPECTED_TRIGGERS = 108;
  * of 2026-11-04: eng_set_role_grants, a role's grant set replaced in one act.
  * 75 since 0112, by Robert's sales CRM ruling R1 of 2026-11-02: eng_crm_normalize_name
  * and eng_crm_normalize_phone, the two immutable rules the generated normalized
- * columns and both unique keys are computed from. */
-const EXPECTED_FUNCTIONS = 75;
+ * columns and both unique keys are computed from.
+ * 77 since 0113, by Robert's rulings of 2026-11-05: eng_roofer_application_decides_once
+ * (the trigger function) and eng_take_roofer_application, which writes an
+ * application, its prospect and its source row in one transaction. */
+const EXPECTED_FUNCTIONS = 77;
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });

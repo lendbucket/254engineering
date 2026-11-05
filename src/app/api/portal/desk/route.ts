@@ -5,6 +5,7 @@ import { inboxCountsSince, markLeadContacted } from "@/lib/ops-inbox";
 import { resendStatusLink } from "@/lib/ops-payments";
 import { releaseAssignment } from "@/lib/ops-field";
 import { updateFileDetails } from "@/lib/ops-file-details";
+import { rooferApplicationsWaiting } from "@/lib/ops-roofer-applications";
 import { supabaseAdmin } from "@/lib/supabase";
 import { withSaveOutcome } from "@/lib/save-outcome";
 
@@ -51,8 +52,11 @@ export async function GET(request: NextRequest) {
     orders = counted && !counted.error ? (counted.count ?? 0) : null;
   }
 
+  /* The roofer partner applications waiting for a decision (Robert, 2026-11-05), for whoever may decide them. */
+  const roofers = await rooferApplicationsWaiting(actor);
+
   return NextResponse.json(
-    { ok: true, inquiries: counts?.waiting ?? null, inquiriesSince: counts?.since ?? null, ordersSince: orders },
+    { ok: true, inquiries: counts?.waiting ?? null, inquiriesSince: counts?.since ?? null, ordersSince: orders, roofersWaiting: roofers },
     { headers: { "Cache-Control": "no-store, max-age=0" } },
   );
 }

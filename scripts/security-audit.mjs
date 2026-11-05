@@ -120,6 +120,8 @@ const ADMIN_PAGES = [
    * above, files.create, and closed to a signed out caller like everything
    * else on this list. */
   "/portal/windstorm-inquiries",
+  /* The roofer partner applications (Robert, 2026-11-05): behind roofers.review, closed to a signed out caller. */
+  "/portal/roofer-applications",
   /* The record search, 2026-10-10: behind files.list, closed to a signed out caller. */
   "/portal/search",
   "/portal/jobs",
@@ -303,6 +305,8 @@ const ADMIN_APIS = [
   /* Adding and removing where the office's alerts go (addendum item 8b, 0099). */
   "/api/portal/alerts",
   "/api/portal/windstorm-inquiries",
+  /* Deciding and exporting the roofer partner applications (2026-11-05). */
+  "/api/portal/roofer-applications",
   "/api/portal/review",
   "/api/portal/comms",
   "/api/portal/onboarding",
