@@ -4193,6 +4193,21 @@ export const APPLIED = [
       "refuses sealed or delivered on eng_files without a live seal act. The one product path that moves a file " +
       "there, deliverSealedFile, runs after the letter act is recorded, so it passes; the generic transition does not.",
   },
+  {
+    file: "0111_a_role_grant_set_is_replaced_in_one_act.sql", appliedBy: "apply_migration",
+    fingerprint: "22346b566a73ea946ca112725b16569f",
+    behaviour: "1ba6334e77d708f51391a37b7625b1c9",
+    production: null,
+    proves: { function: "eng_set_role_grants" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-05 on the chain to 0111. One function adds no " +
+      "column, so the shape is 0110's (22346b56, 1396 columns); the behaviour moves 1357 to 1358 facts, the function.",
+    because:
+      "WRITTEN 2026-11-05 ON fix/f8-set-grants-one-act AND STAGED ON stage/0111-role-grants-one-act FOR THE CHAT " +
+      "COUNTERPART'S SITTING; APPLIED NOWHERE. Robert's Q12 of 2026-11-02 (office audit F8), numbered 0111 by his " +
+      "ruling (a) of 2026-11-04: setGrants replaces a role's grants through one function, so a failed insert never " +
+      "leaves the role with none. The delete in the function body runs only when the function is called.",
+  },
 ];
 
 /*

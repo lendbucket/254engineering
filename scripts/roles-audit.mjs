@@ -1332,10 +1332,22 @@ const STAFF_LEVELS = ["rep", "ops_manager"];
     "and a deletion through the guard",
     /const verdict = canDeleteRole\([\s\S]{0,120}if \(!verdict\.ok\) return/.test(opsRoles),
   );
+  /*
+   * THE WRITE IS ONE ACT SINCE 0111 (Robert's Q12, office audit F8). This
+   * check used to find the write as `.from("eng_role_grants").delete()`; it
+   * now names the function call, and asserts the call exists, because an
+   * index of -1 would otherwise read as "the guard comes first".
+   */
+  const rpcAt = opsRoles.indexOf('db.rpc("eng_set_role_grants"');
   rec(
     "and it asks BEFORE it writes",
-    opsRoles.indexOf("canSetGrants(") < opsRoles.indexOf('.from("eng_role_grants").delete()'),
+    rpcAt > 0 && opsRoles.indexOf("canSetGrants(") > 0 && opsRoles.indexOf("canSetGrants(") < rpcAt,
     "a guard applied after the write is a guard that has already lost",
+  );
+  rec(
+    "and the write is one act: no grant is deleted, inserted or upserted outside eng_set_role_grants",
+    !/from\("eng_role_grants"\)\s*\.(delete|insert|upsert|update)\(/.test(opsRoles),
+    "a delete and an insert as two calls leave a role with no grants when the second fails",
   );
 
   // ---- keys
