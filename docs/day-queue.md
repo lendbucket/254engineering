@@ -1010,6 +1010,31 @@ Every other line of the prediction held. migration-audit, schema-ledger-audit an
 
 On a pass, low-auth merges: full lane, auth server code; no migration.
 
+**Bundle 105b result: board `42093523082` on `6fd993f`, 65 of 65, zero FAIL, as predicted.** Preflight GREEN. proofs-audit PASS with the auth proof and F8's grant set proof. LCP `/` 2341ms, service 2767ms, `/coverage` 2735ms, coastal-bend 2439ms. Writers 6 transient retries, each a first retry of a development `eng_jobs` read after a dropped socket, each succeeding. **low-auth merged** as `920f6a6` (parents `0737b78`, `6fd993f`), tree identical to the boarded commit; `ls-remote` confirms. R1 still waits on memory (9.9 GB), so L6 takes the gap (Robert's word).
+
+**Bundle 106, L6: `fix/l6-token-cookie` at `b9bb309`, in the memory gap.** It is `44bca5a` with main `920f6a6` merged in. The one shared file, `security-audit.mjs`, merged clean, with low-auth's bearer unlock probe and L6's redirect checks both present.
+- **The change (7 files):** a tokened link is exchanged in `src/proxy.ts` for a one hour, httpOnly, Secure, SameSite=Lax `__Host-` cookie named for that page, and answered 307 without the token, with no-store and no-referrer. Later visits are rewritten inside the server. The invite goes to `/onboarding/invite`. The letter links by reference. The emailed links are unchanged.
+- **Readers:**
+  - proofs-audit (the new proof, 34 checks, five planted faults caught locally on 2026-11-05);
+  - security-audit (the 307, the cookie's attributes, then the page read where the redirect lands);
+  - onboarding-walk-audit (follows the invite redirect with its cookie and reads the flow's heading);
+  - forms-audit (the set password dead link, through the browser);
+  - v10-layout-audit and w2-walk-audit (the order and quote pages through the browser);
+  - asset-audit (`/portal/set-password?token=`);
+  - mfa, accounts and partner audits (the proxy's source: the partner branch still first, the open path lists unchanged, no principal cookie read by the link branch);
+  - sister-intake-audit (no `/api/intake` in the proxy).
+- **The one stated risk:** the browser audits open tokened pages on `http://localhost`, and the cookie is Secure with the `__Host-` prefix. Chromium treats localhost as a secure origin and sets it. If it did not, v10 and w2 would read the "does not open" page and name it.
+- **Local steps NOT run:** free memory read 9.9 GB.
+
+**Prediction, bundle 106, stated before dispatch: 65 of 65, zero FAIL.**
+- proofs-audit PASS with a-tokened-link-leaves-the-address.
+- security-audit and onboarding-walk-audit PASS with their new checks.
+- forms, v10, w2, asset, mfa, accounts and partner PASS.
+- Public bytes unchanged, apart from the order and onboarding pages' letter and training links. The four LCP pages under their ceilings.
+- Standing COULD NOT TELL lines only.
+
+On a pass, L6 merges: full lane, the proxy and auth adjacent; no migration.
+
 **Bundle 105 result: board `42072604995` on `5fe35cd`, 65 of 65, zero FAIL, as predicted.** Preflight GREEN. proofs-audit PASS with the-auth-audit-low-findings-are-closed (31 checks). LCP `/` 2954ms, service 2802ms, `/coverage` 2721ms, coastal-bend 2436ms. Its waiter was stopped for low memory and the result was read from GitHub. **NOT MERGED: main moved to `0737b78` (F8) while it ran,** so this green measured a main that is gone. It takes `0737b78` and reboards in the next sitting gap.
 
 **F8 MERGED** as `0737b78` (parents `6b772bd`, `eb3237b`), after 0111's production read-back (6664558644, version `20261105172304`). The merged tree is boarded `b27e5fe` plus the ledger line; `ls-remote` confirms. 0112 and 0113 are on development (6664433708: versions `20261105171658` and `20261105171724`; grants 186 to 192).
