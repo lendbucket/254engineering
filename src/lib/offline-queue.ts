@@ -190,19 +190,28 @@ export async function flushOne(entry: QueuedCapture): Promise<{ ok: true } | { o
         }),
       });
       const signedBody = (await signed.json().catch(() => null)) as
-        | { ok?: boolean; url?: string; path?: string; error?: string }
+        | { ok?: boolean; url?: string; path?: string; stored?: boolean; error?: string }
         | null;
-      if (!signed.ok || !signedBody?.ok || !signedBody.url) {
-        return { ok: false, error: signedBody?.error ?? "Could not prepare the upload." };
-      }
+      if (signed.ok && signedBody?.ok && signedBody.stored && signedBody.path) {
+        /*
+         * A replay whose upload already landed. The server issues no URL for a
+         * stored object (Q2, 2026-11-02: never an overwrite), so the row is
+         * recorded against the object that is there.
+         */
+        storageKey = signedBody.path;
+      } else {
+        if (!signed.ok || !signedBody?.ok || !signedBody.url) {
+          return { ok: false, error: signedBody?.error ?? "Could not prepare the upload." };
+        }
 
-      const put = await fetch(signedBody.url, {
-        method: "PUT",
-        headers: { "Content-Type": entry.contentType },
-        body: entry.blob,
-      });
-      if (!put.ok) return { ok: false, error: `The upload was refused (${put.status}).` };
-      storageKey = signedBody.path ?? null;
+        const put = await fetch(signedBody.url, {
+          method: "PUT",
+          headers: { "Content-Type": entry.contentType },
+          body: entry.blob,
+        });
+        if (!put.ok) return { ok: false, error: `The upload was refused (${put.status}).` };
+        storageKey = signedBody.path ?? null;
+      }
     }
 
     const recorded = await fetch("/api/portal/field", {

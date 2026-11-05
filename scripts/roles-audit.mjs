@@ -127,7 +127,12 @@ const EXPECTED = {
   "profiles.read_self":           { admin: true,  engineer: true,  field_tech: true },
   "profiles.update_self":         { admin: true,  engineer: true,  field_tech: true },
 
-  "clients.list":                 { admin: true,  engineer: true,  field_tech: false },
+  /*
+   * `engineer` WENT FROM true TO false ON 2026-11-02. Robert approved P2
+   * (issue #1, 6567596115): it opened the whole client directory. The cell
+   * read `engineer: true`. Revoked by 0108.
+   */
+  "clients.list":                 { admin: true,  engineer: false, field_tech: false },
   "clients.create":               { admin: true,  engineer: false, field_tech: false },
   "clients.update":               { admin: true,  engineer: false, field_tech: false },
 
@@ -353,6 +358,148 @@ rec(
   missing.join(", "),
 );
 
+// ===========================================================================
+// ALL NINE ROLES, STATED INDEPENDENTLY. Robert, 2026-11-02, approving P2.
+// ===========================================================================
+//
+// The table above states three roles. Six others shipped beside it and were
+// held only by the RULES further down, which catch a forbidden grant and say
+// nothing about one quietly dropped or quietly added outside a rule's family.
+// This is the full table Robert approved on issue #1 (comment 6567596115),
+// with his addition applied: the engineer loses clients.list, and read_only
+// loses pricing.read, billing.read, ledger.read_all and clients.list (0108).
+// It was transcribed from the posted table, not read off DEFAULT_ROLES, and
+// compared with the module once after transcription: no disagreement.
+//
+// Each row is one action across the nine roles, in this order:
+//   admin  engineer  field_tech  dispatcher  sales  customer_service  read_only  rep  ops_manager
+// Y holds it, . does not. Typed as literals for the reason the table above
+// gives: an expectation imported from the module under test agrees with it by
+// construction.
+//
+// THE CELLS THIS CHANGED, QUOTED SO THE OLD RULE STAYS FINDABLE. Before
+// 2026-11-02 the posted table read clients.list "Y Y . Y Y Y Y Y Y",
+// pricing.read "Y . . . . . Y . .", billing.read and ledger.read_all
+// "Y . . . . . Y . .", and read_only's seed comment read "Deliberately
+// includes billing.read and pricing.read: somebody evaluating the business has
+// to see the money".
+const NINE_ROLES = ["admin", "engineer", "field_tech", "dispatcher", "sales", "customer_service", "read_only", "rep", "ops_manager"];
+const EXPECTED_NINE = {
+  "accounts.manage":              "Y . . . . . . . .",
+  "addenda.draft":                "Y . . . . . . . .",
+  "alerts.manage":                "Y . . . . . . . .",
+  "applications.read":            "Y . . . . . . . Y",
+  "audit.read":                   "Y . . . . . Y . .",
+  "billing.read":                 "Y . . . . . . . .",
+  "clients.create":               "Y . . . Y . . Y Y",
+  "clients.list":                 "Y . . Y Y Y . Y Y",
+  "clients.update":               "Y . . . Y . . Y Y",
+  "contact_log.write":            "Y . . . . . . Y Y",
+  "crm.use":                      "Y . . . . . . Y Y",
+  "documents.deliver":            "Y Y . . . . . . .",
+  "documents.read":               "Y Y . . . . Y . .",
+  "evidence.capture":             ". . Y . . . . . .",
+  "evidence.review":              "Y Y . . . . . . .",
+  "evidence.start":               "Y Y Y . . . . . .",
+  "evidence.submit":              "Y Y Y . . . . . .",
+  "files.cancel":                 "Y . . . . . . . .",
+  "files.create":                 "Y . . . Y . . Y Y",
+  "files.list":                   "Y Y Y Y Y Y Y Y Y",
+  "files.transition":             "Y Y . Y . . . . .",
+  "files.update":                 "Y Y . Y . . . . .",
+  "files.update_details":         "Y . . . . . . Y Y",
+  "inbox.answer":                 "Y . . . . . . Y Y",
+  "inbox.read":                   "Y . . . . . . Y Y",
+  "insurance.manage":             "Y . . . . . . . Y",
+  "jobs.manage":                  "Y . . . . . . . .",
+  "ledger.approve":               "Y . . . . . . . .",
+  "ledger.read_all":              "Y . . . . . . . .",
+  "ledger.read_own":              "Y Y Y . . . . . .",
+  "messages.use":                 "Y Y Y Y Y Y . Y Y",
+  "offers.dispatch":              "Y . . Y . . . Y Y",
+  "offers.list_own":              "Y . Y Y . . . . .",
+  "offers.respond":               "Y . Y . . . . . .",
+  "orders.read":                  "Y . . . . . . Y Y",
+  "orders.resend_link":           "Y . . . . . . Y Y",
+  "partners.manage":              "Y . . . . . . . .",
+  "payments.charge":              "Y . . . . . . . .",
+  "payments.reconcile":           "Y . . . . . . . .",
+  "payments.refund":              "Y . . . . . . . .",
+  "payments.send_link":           "Y . . . Y . . Y Y",
+  "pricing.override_at_intake":   "Y . . . . . . . .",
+  "pricing.read":                 "Y . . . . . . . .",
+  "pricing.read_own_pay":         ". Y . . . . . . .",
+  "pricing.read_tech_rate":       "Y . . . . . . . .",
+  "pricing.write":                "Y . . . . . . . .",
+  "profiles.create":              "Y . . . . . . . .",
+  "profiles.force_reset":         "Y . . . . . . . .",
+  "profiles.list":                "Y . . Y . . Y . Y",
+  "profiles.read_self":           "Y Y Y Y Y Y Y Y Y",
+  "profiles.suspend":             "Y . . . . . . . .",
+  "profiles.update":              "Y . . . . . . . Y",
+  "profiles.update_self":         "Y Y Y Y Y Y Y Y Y",
+  "quotes.manage":                "Y . . . . . . . Y",
+  "refunds.approve_within_limit": "Y . . . . . . . Y",
+  "refunds.request":              "Y . . . . . . Y Y",
+  "reports.activity":             "Y . . . . . . . Y",
+  "reports.partner":              "Y . . . . . . . .",
+  "reports.pipeline":             "Y . . . . . . . Y",
+  "reports.production":           "Y Y . . . . . . .",
+  "reports.revenue":              "Y . . . . . . . Y",
+  "reports.turnaround":           "Y . . . . . . . Y",
+  "responsible_charge.read_all":  "Y . . . . . Y . .",
+  "responsible_charge.read_own":  "Y Y . . . . . . .",
+  "retention.execute":            "Y . . . . . . . .",
+  "roles.manage":                 "Y . . . . . . . .",
+  "settings.refund_limit":        "Y . . . . . . . .",
+  "suppressions.manage":          "Y . . . . Y . . .",
+  "tasks.use":                    "Y Y Y Y Y Y . Y Y",
+  "technicians.onboard":          "Y . . . . . . . Y",
+  "time.log_own":                 "Y Y . Y Y Y . Y Y",
+};
+{
+  const declaredRoles = DEFAULT_ROLES.map((r) => r.key).sort().join(",");
+  rec(
+    "the nine-role table names exactly the roles DEFAULT_ROLES declares",
+    [...NINE_ROLES].sort().join(",") === declaredRoles,
+    declaredRoles,
+  );
+  const malformed = Object.entries(EXPECTED_NINE).filter(([, row]) => row.split(" ").length !== NINE_ROLES.length || /[^Y. ]/.test(row));
+  rec("every row of the nine-role table has a cell for each of the nine roles", malformed.length === 0, malformed.map(([a]) => a).join(", "));
+
+  let nineFailures = 0;
+  for (const [action, row] of Object.entries(EXPECTED_NINE)) {
+    const cells = row.split(" ");
+    NINE_ROLES.forEach((role, i) => {
+      const expected = cells[i] === "Y";
+      const actual = can(active(role), action);
+      if (expected !== actual) {
+        nineFailures++;
+        rec(`${role} may ${action}`, false, `expected ${expected}, module says ${actual}`);
+      }
+    });
+  }
+  rec(
+    `every role agrees with the nine-role expectation (${Object.keys(EXPECTED_NINE).length} actions x ${NINE_ROLES.length} roles)`,
+    nineFailures === 0,
+    nineFailures ? `${nineFailures} disagreements` : "",
+  );
+
+  const nineKnown = new Set(NINE_ROLES.flatMap((r) => actionsFor(r)));
+  const nineMissing = [...nineKnown].filter((a) => !(a in EXPECTED_NINE));
+  rec("every action any role is granted is a row of the nine-role table", nineMissing.length === 0, nineMissing.join(", "));
+
+  /* The two tables are independent statements; where they cover the same cell they must agree, or one is stale. */
+  const drift = [];
+  for (const [action, three] of Object.entries(EXPECTED)) {
+    const cells = (EXPECTED_NINE[action] ?? "").split(" ");
+    ["admin", "engineer", "field_tech"].forEach((role) => {
+      if ((cells[NINE_ROLES.indexOf(role)] === "Y") !== three[role]) drift.push(`${role} ${action}`);
+    });
+  }
+  rec("the three-role table and the nine-role table agree on every cell they share", drift.length === 0, drift.join(", "));
+}
+
 // =====================================================================
 // EVERY ROLE AGAINST EVERY ACTION, JUDGED BY POLICY RATHER THAN BY A COPY
 //
@@ -534,10 +681,18 @@ const STAFF_LEVELS = ["rep", "ops_manager"];
        * list. It is out. What the engineer keeps is `pricing.read_own_pay`,
        * which returns one field on one file and is asserted separately below.
        */
-      why: "costs and margin are for the operator and whoever is evaluating the business, and not for the engineer",
+      /*
+       * NARROWED AGAIN 2026-11-02. Robert approved P2 (issue #1, 6567596115):
+       * read_only loses pricing.read, billing.read and ledger.read_all (0108).
+       * This read "costs and margin are for the operator and whoever is
+       * evaluating the business, and not for the engineer", with read_only in
+       * the allowed list beside admin. Money is admin only unless a ruling
+       * grants it, and none does.
+       */
+      why: "costs and margin are for the operator alone",
       check: (role, action) =>
-        action === "pricing.read" && !["admin", "read_only"].includes(role)
-          ? "a role that should not see cost or margin holds pricing.read"
+        ["pricing.read", "billing.read", "ledger.read_all"].includes(action) && role !== "admin"
+          ? `${role} holds ${action}, and since 2026-11-02 the firm's money is the administrator's alone`
           : null,
     },
     {
@@ -1488,9 +1643,19 @@ async function makeProbe(db, role) {
  *
  * signInFully is shared with the browser probes so the two sign in paths in
  * this repository cannot disagree about what a session is.
+ *
+ * EACH PROBE SIGNS IN FROM ITS OWN ADDRESS. Board 41761841168 on Q9: H1 keeps
+ * the address count after a good sign in, each probe spends two attempts on it
+ * (the sign in and the enrolment confirm), and the eleventh probe's sign in
+ * was the twenty first attempt from one address, answered 429. Eleven people
+ * at eleven desks is what these probes stand for. The limiter is unchanged,
+ * and the address is an RFC 5737 documentation address inside this run's own
+ * bucket. See fromAddress in scripts/lib/probe-mfa.mjs.
  */
+let probeDesk = 0;
 async function signIn(email, password) {
-  const result = await signInFully(BASE, email, password);
+  probeDesk += 1;
+  const result = await signInFully(BASE, email, password, { address: `198.51.100.${probeDesk}` });
   return {
     ok: result.ok,
     cookie: result.cookie ? `eng_ops=${result.cookie}` : null,
@@ -1727,10 +1892,32 @@ if (!db) {
       { act: "send the launch announcement to the waitlist", req: (r) => post(r, "/api/portal/launch-announcement", { step: "send", contentHash: "x" }), status: 403, says: /Only the administrator tells the waitlist/ },
       { act: "reconcile a payment", req: (r) => post(r, "/api/portal/orders/reconcile", { orderId: NOWHERE }), status: 403, says: /Not permitted/ },
       { act: "refund an order directly", req: (r) => post(r, "/api/portal/orders/refund", { orderId: NOWHERE, reason: "a reason long enough" }), status: 403, says: /Not permitted/ },
-      { act: "read the production pay report", req: (r) => get(r, "/api/portal/exports?report=production"), status: 403, says: /cannot read the production report/i },
+      /*
+       * The three below said "cannot read the ... report" and "cannot read the
+       * firm's billing" until 2026-11-02, when every CSV door started asking
+       * mayExport (Robert's P2 approval, option a) and the refusal began naming
+       * the export rather than the read: somebody granted a report still reads
+       * it on the screen.
+       */
+      { act: "read the production pay report", req: (r) => get(r, "/api/portal/exports?report=production"), status: 403, says: /cannot export the production report/i },
       /* The billing exports are margin and period; "billing" is no report, and asking for it measured the unknown-report answer. */
-      { act: "read the firm's billing, margin", req: (r) => get(r, "/api/portal/exports?report=margin"), status: 403, says: /cannot read the firm's billing/i },
-      { act: "read the firm's billing, by period", req: (r) => get(r, "/api/portal/exports?report=period"), status: 403, says: /cannot read the firm's billing/i },
+      { act: "read the firm's billing, margin", req: (r) => get(r, "/api/portal/exports?report=margin"), status: 403, says: /cannot export the firm's billing/i },
+      { act: "read the firm's billing, by period", req: (r) => get(r, "/api/portal/exports?report=period"), status: 403, says: /cannot export the firm's billing/i },
+      /*
+       * EVERY CSV EXPORT IS OWNER OR ADMIN ONLY, Robert 2026-11-02 approving P2
+       * (option a). Both staff levels hold the screen grant behind each of
+       * these (clients.list, inbox.read, refunds.request, orders.read, crm.use,
+       * files.list; the manager also quotes.manage and reports.revenue), so a
+       * 403 here is the export gate refusing and nothing else.
+       */
+      { act: "export the clients", req: (r) => get(r, "/api/portal/clients/export"), status: 403, says: /cannot export the clients/i },
+      { act: "export the inbox", req: (r) => get(r, "/api/portal/inbox/export"), status: 403, says: /cannot export the inbox/i },
+      { act: "export the refund requests", req: (r) => get(r, "/api/portal/refunds/export"), status: 403, says: /cannot export the refund requests/i },
+      { act: "export the orders", req: (r) => get(r, "/api/portal/order-lookup"), status: 403, says: /cannot export the orders/i },
+      { act: "export the sales list", req: (r) => get(r, "/api/portal/prospects"), status: 403, says: /cannot export the sales list/i },
+      { act: "export the quote requests", req: (r) => get(r, "/api/portal/quotes/export"), status: 403, says: /cannot export the quote requests/i },
+      { act: "export ticked files", req: (r) => post(r, "/api/portal/files/export", { ids: [NOWHERE] }), status: 403, says: /cannot export files/i },
+      { act: "export the revenue report", req: (r) => get(r, "/api/portal/exports?report=revenue"), status: 403, says: /cannot export the revenue report/i },
       /* The accounts CSV, owner or admin only (Robert, 2026-10-28, 16:11 Central). */
       { act: "export the ordering accounts", req: (r) => get(r, "/api/portal/exports?report=accounts"), status: 403, says: /cannot export the ordering accounts/i },
       /* The staff lists, owner or admin only (Robert, 21:07 Central 2026-10-28), asked at the real route; people, do not contact and the audit trail joined 2026-10-29; credential review and insurance on P9, 2026-11-01, which the manager's screens show him and the export still refuses. */
@@ -1753,7 +1940,8 @@ if (!db) {
     const REP_ONLY_REFUSALS = [
       { act: "decide a refund request", req: (r) => post(r, "/api/portal/refunds", { action: "decide", requestId: NOWHERE, decision: "approved" }), status: 403, says: /Not permitted/ },
       { act: "activate a technician", req: (r) => post(r, "/api/portal/onboarding", { action: "activate", onboardingId: NOWHERE }), status: 400, says: /cannot activate/ },
-      { act: "read the revenue report", req: (r) => get(r, "/api/portal/exports?report=revenue"), status: 403, says: /cannot read the revenue report/i },
+      /* "cannot read the revenue report" until 2026-11-02; the refusal names the export since mayExport (P2, option a). */
+      { act: "read the revenue report", req: (r) => get(r, "/api/portal/exports?report=revenue"), status: 403, says: /cannot export the revenue report/i },
     ];
     const STAFF_PAGES_REFUSED = ["/portal/pay", "/portal/techs", "/portal/people", "/portal/roles", "/portal/status", "/portal/pricebook", "/portal/settings", "/portal/billing", "/portal/orders", "/portal/accounts", "/portal/applications"];
     /*
@@ -2133,12 +2321,12 @@ if (!db) {
         },
         {
           route: "/portal/clients/[id]",
-          reaches: true,
+          reaches: false,
           because:
             "The client a file belongs to, 2026-10-20. Gated on clients.list like the list it " +
-            "opens from, which an engineer holds. Its one money column is the order list, read " +
-            "only for orders.read or payments.reconcile, neither of which an engineer holds, so " +
-            "he sees the client and none of what the firm charged them.",
+            "opens from. It read 'which an engineer holds' until 2026-11-02, when Robert approved " +
+            "P2 and the engineer lost clients.list (0108): he sees the client on each file " +
+            "assigned to him through files.list, and not the directory.",
         },
         {
           route: "/portal/order-lookup/[id]",
@@ -2250,8 +2438,13 @@ if (!db) {
          */
         "/portal/training",
         // Ordinary working surfaces an engineer holds by grant, not by licence.
+        /*
+         * "/portal/clients" WAS HERE UNTIL 2026-11-02 and is in the refused
+         * list below: Robert approved P2 (issue #1, 6567596115) and the
+         * engineer lost clients.list (0108). He sees the client on each file
+         * assigned to him, through files.list.
+         */
         "/portal/files",
-        "/portal/clients",
         "/portal/documents",
         "/portal/messages",
         /*
@@ -2292,6 +2485,8 @@ if (!db) {
        */
       const ENGINEER_REFUSED = [
         "/portal/people",
+        /* The client directory, refused since 2026-11-02: P2 took clients.list from the engineer (0108). */
+        "/portal/clients",
         /*
          * The two nested screens the widened walk brought into view, and both
          * rulings are READ OFF THE GRANTS rather than decided here.

@@ -2,9 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
-import { listThreads, MENTION_PAGE, mentionsFor, messageablepeople, threadView } from "@/lib/ops-threads";
+import { readThreads, MENTION_PAGE, mentionsFor, messageablepeople, threadView } from "@/lib/ops-threads";
 import { roleLabel } from "@/lib/ops-authz";
-import { Chip, EmptyState, PageHead } from "@/components/portal/surfaces";
+import { Chip, EmptyState, ErrorState, PageHead } from "@/components/portal/surfaces";
 import { Composer, MessageSearch, NewChannel, StartDirect } from "./MessagesClient";
 import { formatInFirmZone } from "@/lib/firm-calendar";
 
@@ -54,7 +54,9 @@ export default async function MessagesPage({
   if (!actor || !can(actor, "messages.use")) notFound();
   const params = await searchParams;
 
-  const threads = await listThreads(actor);
+  /* Q13, office audit F10: scoped before the page, and a failed read is said rather than drawn as "No conversations yet". */
+  const threadsRead = await readThreads(actor);
+  const threads = threadsRead.ok ? threadsRead.threads : [];
   const open = params.id ? await threadView(actor, params.id) : null;
   const people = await messageablepeople(actor);
 
@@ -66,10 +68,11 @@ export default async function MessagesPage({
    * opens, and the number beside the switch is what makes writing a mention
    * worth doing.
    *
-   * The threads this page already has are handed over, so this costs one query
-   * rather than repeating the readable set.
+   * Since 2026-11-02 (Robert, answer to 6587319903) it reads every readable
+   * conversation itself rather than this page's newest hundred, so an older
+   * conversation's mentions are found; a failed read is said below.
    */
-  const mentions = await mentionsFor(actor, threads);
+  const mentions = await mentionsFor(actor);
   const showing = params.view === "mentions" ? "mentions" : "threads";
 
   return (
@@ -142,7 +145,12 @@ export default async function MessagesPage({
 
           {showing === "mentions" ? (
             <div className="mt-4">
-              {mentions.items.length === 0 ? (
+              {mentions.error ? (
+                <ErrorState
+                  title="What named you could not be read"
+                  body={`${mentions.error} This is a failed read, not an empty list.`}
+                />
+              ) : mentions.items.length === 0 ? (
                 <EmptyState
                   title="Nothing has named you"
                   body="Somebody writes @ and your name in a message and it appears here, with what they said. An empty list is a result rather than a gap: nothing is waiting on you."
@@ -190,7 +198,12 @@ export default async function MessagesPage({
             </div>
           ) : (
           <div className="mt-4">
-            {threads.length === 0 ? (
+            {!threadsRead.ok ? (
+              <ErrorState
+                title="Your conversations could not be read"
+                body={`${threadsRead.error} This is a failed read, not an empty list: nothing has been deleted. Reload in a moment.`}
+              />
+            ) : threads.length === 0 ? (
               <EmptyState
                 title="No conversations yet"
                 body="A file gets a thread the first time somebody writes on it. You can also message a colleague directly, and an administrator can open a channel for a role."
@@ -229,6 +242,11 @@ export default async function MessagesPage({
                 ))}
               </ul>
             )}
+            {threadsRead.ok && threadsRead.readableTotal > threads.length ? (
+              <p className="mt-3 text-[13px] leading-[1.5] text-[var(--secondary)]">
+                The newest {threads.length} of your {threadsRead.readableTotal} conversations are shown. A file&apos;s conversation also opens from the file.
+              </p>
+            ) : null}
           </div>
           )}
         </div>

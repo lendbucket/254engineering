@@ -38,8 +38,9 @@ check("and never reorders the items it was given", items.map((i) => i.id).join("
 const page = readFileSync("src/app/portal/(app)/inbox/page.tsx", "utf8");
 const exp = readFileSync("src/app/api/portal/inbox/export/route.ts", "utf8");
 check("the screen and the export use the one function", /inboxListRows\(read\.items/.test(page) && /inboxListRows\(read\.items/.test(exp));
-check("the screen offers the export with its answered, kind, search and sort", /csvHref=\{`\/api\/portal\/inbox\/export/.test(page) && /answered: params\.answered, kind: params\.kind, q: params\.q/.test(page));
-check("the export asks the screen's grant", /can\(actor, "inbox\.read"\)/.test(exp));
+/* Since 2026-11-02 the screen offers the file only through mayExport, and the door asks it (Robert's P2 approval, option a). */
+check("the screen offers the export with its answered, kind, search and sort, to the export gate only", /csvHref=\{mayExport\(actor, "inbox\.read"\) \? `\/api\/portal\/inbox\/export/.test(page) && /answered: params\.answered, kind: params\.kind, q: params\.q/.test(page));
+check("the export asks the screen's grant through the export gate", /if \(!mayExport\(actor, "inbox\.read"\)\)/.test(exp));
 check("a source that could not be read is named in the file, so a short list is not passed off as the whole", /for \(const f of read\.failed\) preamble\.push\(\["Not included, could not be read", f\]\);/.test(exp));
 check("every cell goes through the shared escaping rule", /from "@\/lib\/csv"/.test(exp) && /csv\(\{/.test(exp));
 

@@ -459,6 +459,8 @@ export async function expireCheckout(input: {
   eventId: string;
   orderId: string | null;
   batchId: string | null;
+  /** The session that expired. An order whose latest checkout is another session is left alone (Q8, F5). */
+  sessionRef: string | null;
   reason: string;
 }): Promise<{ ok: true; duplicate: boolean; closed: number } | { ok: false; error: string }> {
   const db = supabaseAdmin();
@@ -498,8 +500,44 @@ export async function expireCheckout(input: {
     rows = [{ id: order.id as string, status: order.status as string }];
   }
 
+  /*
+   * AN EXPIRED SESSION THAT IS NOT THE ORDER'S LATEST CLOSES NOTHING. Robert's
+   * ruling Q8 of 2026-11-02 (money audit F5). A repeated checkout request after
+   * the 24 hour window opens a second session for the same order, by design.
+   * The first session's expiry, delivered late, used to cancel the order the
+   * customer was about to pay through the second, and the payment then landed
+   * on a cancelled order. The latest session an order opened is the one in its
+   * newest checkout.started event; when that is another session, this expiry
+   * is recorded and the order is left as it is. A read that fails decides
+   * nothing: the expiry is refused and Stripe sends it again.
+   */
+  const superseded = new Set<string>();
+  if (input.sessionRef && rows.length > 0) {
+    const started = await readEvery<{ order_id: string; detail: { session_ref?: unknown } | null }>((from, to) =>
+      db
+        .from("eng_order_events")
+        .select("order_id, detail, created_at")
+        .in("order_id", rows.map((o) => o.id))
+        .eq("event", "checkout.started")
+        .order("created_at", { ascending: false })
+        .range(from, to),
+    );
+    if (!started.ok) return { ok: false, error: "The orders' checkout records could not be read, so the expiry was not applied." };
+    const latest = new Map<string, string>();
+    for (const e of started.rows) {
+      const ref = e.detail?.session_ref;
+      if (!latest.has(e.order_id) && typeof ref === "string" && ref.length > 0) latest.set(e.order_id, ref);
+    }
+    for (const o of rows) {
+      const ref = latest.get(o.id);
+      if (ref && ref !== input.sessionRef) superseded.add(o.id);
+    }
+  }
+
   /* A batch that was paid is not abandoned, whatever order the events arrived in. */
   const batchOpen = batchStatus === null || batchStatus === "awaiting_payment" || batchStatus === "draft";
+  /* Nor is one whose orders opened a newer checkout than the session that expired. */
+  const closes = batchOpen && !(input.batchId !== null && superseded.size > 0);
 
   const applied = await applyPaymentEvent("eng_apply_checkout_expired", {
     event_id: input.eventId,
@@ -507,11 +545,11 @@ export async function expireCheckout(input: {
     order_id: input.batchId ? null : input.orderId,
     batch_id: input.batchId,
     expected_batch_status: batchStatus,
-    cancel_batch: input.batchId !== null && batchOpen,
+    cancel_batch: input.batchId !== null && closes,
     orders: rows.map((o) => ({
       id: o.id,
       expected_status: o.status,
-      cancel: batchOpen && canTransitionOrder(o.status as never, "cancelled"),
+      cancel: closes && !superseded.has(o.id) && canTransitionOrder(o.status as never, "cancelled"),
     })),
     reason: input.reason,
   });
@@ -576,6 +614,24 @@ export async function markPaid(input: {
   if (!applied.ok) return applied;
 
   const alreadyRecorded = applied.outcome !== "applied";
+
+  /*
+   * MONEY ON A CANCELLED ORDER IS A PERSON'S JOB, NOT A TIMELINE LINE. Robert's
+   * ruling Q8 of 2026-11-02 (money audit F5). The charge is recorded and the
+   * order stays cancelled, which is right, but the only trace used to be an
+   * internal event: money taken, no work released, nobody told. A staff task
+   * names the order and the charge, keyed on both so a resent event finds it.
+   */
+  if (!releases && order.status === "cancelled") {
+    await raiseRefundTask({
+      key: `payment-on-cancelled:${input.orderId}:${input.chargeRef}`,
+      title: `${order.reference}: a payment of ${money(input.amountCents)} arrived on a cancelled order`,
+      description:
+        `${input.provider} took ${money(input.amountCents)} under ${input.chargeRef} after ${order.reference} was cancelled, ` +
+        `so the work was not released. Decide whether to reopen the order or refund the charge.`,
+    });
+  }
+
   if (applied.release.length === 0) return { ok: true, alreadyRecorded };
   const released = await releaseAndFinish(input.eventId, applied.release);
   return released.ok ? { ok: true, alreadyRecorded } : released;
@@ -2041,6 +2097,81 @@ async function raiseRefundTask(task: { key: string; title: string; description: 
   if (!raised.ok) console.error(`[payments] the refund task ${task.key} could not be raised: ${raised.error}`);
 }
 
+/*
+ * A PLATFORM REFUND IS WRITTEN DOWN BEFORE STRIPE IS ASKED. Robert's ruling Q8
+ * of 2026-11-02 (money audit F2). Both platform refund paths used to call the
+ * provider first and insert the row afterwards. Stripe sends charge.refunded
+ * as soon as the refund exists, and that event carries the event id as its
+ * reference when the payload has no refund list, so a webhook landing in the
+ * gap saw no refund on file, recorded the whole amount as refunded outside the
+ * platform, and reversed the partner's commission; the platform's own row then
+ * landed beside it and reversed it again.
+ *
+ * So the row goes in first, pending, under a reference this platform makes,
+ * and the webhook's delta (which counts pending refunds) sees it. After the
+ * call the same row takes Stripe's id, amount and status. A row that could not
+ * be reserved means nothing is asked of Stripe at all.
+ */
+const PLATFORM_REFUND_REF_PREFIX = "platform-refund:";
+type RefundRowKind = "refund";
+
+async function reserveRefundRow(
+  db: NonNullable<ReturnType<typeof supabaseAdmin>>,
+  row: {
+    order_id: string;
+    batch_id: string | null;
+    /* Each caller says it is writing a refund, so partner-audit counts one write per path. */
+    kind: RefundRowKind;
+    amount_cents: number;
+    currency?: string;
+    provider: string;
+    refund_case: string;
+  },
+): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+  const { data, error } = await db
+    .from("eng_order_payments")
+    .insert({
+      ...row,
+      provider_ref: `${PLATFORM_REFUND_REF_PREFIX}${crypto.randomUUID()}`,
+      status: "pending",
+    })
+    .select("id")
+    .maybeSingle();
+  if (error || !data?.id) return { ok: false, error: error?.message ?? "the row did not come back" };
+  return { ok: true, id: data.id as string };
+}
+
+/*
+ * The reserved row takes Stripe's id and status. Its amount is never edited:
+ * Stripe refunds exactly what it was asked for, and an answer naming any other
+ * figure is treated as a row that could not be settled. If it cannot be
+ * settled (most likely a row already carrying Stripe's id, written by a
+ * webhook), the reservation is marked cancelled rather than left pending,
+ * because a pending row is counted as money given back and would count this
+ * refund twice.
+ */
+async function settleRefundRow(
+  db: NonNullable<ReturnType<typeof supabaseAdmin>>,
+  id: string,
+  reservedCents: number,
+  result: { ref: string; amountCents: number; status: string; failureReason?: string },
+): Promise<{ error: { message: string } | null }> {
+  const { error } =
+    result.amountCents === reservedCents
+      ? await db
+          .from("eng_order_payments")
+          .update({ provider_ref: result.ref, status: result.status, failure_reason: result.failureReason ?? null })
+          .eq("id", id)
+      : { error: { message: `the provider answered ${result.amountCents} cents for a refund of ${reservedCents}` } };
+  if (!error) return { error: null };
+  const { error: cancelError } = await db
+    .from("eng_order_payments")
+    .update({ status: "cancelled", failure_reason: `Superseded: the provider's answer ${result.ref} could not be written to this row (${error.message}).` })
+    .eq("id", id);
+  if (cancelError) console.error(`[payments] the reserved refund row ${id} could not be settled or cancelled: ${cancelError.message}`);
+  return { error };
+}
+
 export type RefundFailedAfterRefunded = {
   orderId: string;
   reference: string;
@@ -2067,6 +2198,8 @@ export async function refundsFailedAfterRefunded(): Promise<RefundFailedAfterRef
     .eq("kind", "refund")
     .in("status", ["failed", "cancelled"])
     .not("order_id", "is", null)
+    /* A reservation that never took Stripe's answer was never at Stripe, so it is not a refund that failed there (Q8, F2). */
+    .not("provider_ref", "like", `${PLATFORM_REFUND_REF_PREFIX}%`)
     .order("updated_at", { ascending: false })
     .limit(500);
   if (error) return null;
@@ -2401,6 +2534,22 @@ export async function cancelAndRefund(input: {
   }
 
   const provider = paymentProvider();
+
+  /* Written down pending before Stripe is asked (Q8, F2): see reserveRefundRow. */
+  const reserved = await reserveRefundRow(db, {
+    order_id: input.orderId,
+    /* A member's refund names its submission too: that row is what says which property the money went back for (0009). */
+    batch_id: refundable.batchId,
+    kind: "refund",
+    amount_cents: decision.refundCents,
+    currency: (order.currency as string) ?? "usd",
+    provider: provider.name,
+    refund_case: FIRM_CANCELLATION_CASE,
+  });
+  if (!reserved.ok) {
+    return { ok: false, error: `The refund could not be written down before it was issued (${reserved.error}), so nothing was refunded.` };
+  }
+
   const result = await provider.refund({
     chargeRef,
     amountCents: decision.refundCents,
@@ -2410,28 +2559,13 @@ export async function cancelAndRefund(input: {
   });
 
   /*
-   * The row goes in before the status changes, and a failure to record it is
+   * The row is settled before the status changes, and a failure to record it is
    * reported as a failure even though the money may already have moved. That
    * ordering is the lesson from settleDecision, which used to tell a customer
    * they had been refunded whether or not the ledger agreed.
    */
-  const { data: cancelRefundRow, error: payError } = await db
-    .from("eng_order_payments")
-    .insert({
-      order_id: input.orderId,
-      /* A member's refund names its submission too: that row is what says which property the money went back for (0009). */
-      batch_id: refundable.batchId,
-      kind: "refund",
-      amount_cents: result.amountCents,
-      currency: (order.currency as string) ?? "usd",
-      provider: provider.name,
-      provider_ref: result.ref,
-      status: result.status,
-      refund_case: FIRM_CANCELLATION_CASE,
-      failure_reason: result.failureReason ?? null,
-    })
-    .select("id")
-    .maybeSingle();
+  const cancelRefundRow = { id: reserved.id };
+  const { error: payError } = await settleRefundRow(db, reserved.id, decision.refundCents, result);
 
   if (result.status === "failed") {
     await event(input.orderId, "refund.failed", false, `The refund did not go through: ${result.failureReason}`);
@@ -2534,28 +2668,27 @@ export async function settleDecision(input: {
   if (!order) return { ok: false, error: "That order does not exist." };
 
   /*
-   * A BULK MEMBER'S MONEY IS READ FROM ITS SUBMISSION. Robert's answer on F1
-   * and F2, 2026-10-25: its own share, against the submission's charge, under
-   * the same refund rules as a single order. refundableOn is the one reading of
-   * it, with the cap at what is left on the submission's charge. A single order
-   * reads its own charges, exactly as before.
+   * EVERY ORDER'S MONEY IS READ THROUGH refundableOn. A bulk member's from its
+   * submission (Robert's answer on F1 and F2, 2026-10-25): its own share,
+   * against the submission's charge, capped at what is left on it.
+   *
+   * A SINGLE ORDER TOO, SINCE 2026-11-02. Robert's ruling Q7, money finding F1:
+   * a single order used to read its own charges and hand refundFor the full paid
+   * figure, with no account of refunds already on file. $709.00 paid, $100.00
+   * given back from Stripe's dashboard (recorded by charge.refunded), then a
+   * decline with no visit: the rule's $709.00 went to Stripe against $609.00
+   * left. Now the same reading and the same cap as a member: what was paid is
+   * the rule's input, and the refund is refused and said when it exceeds what is
+   * left, for a person to settle. The rule itself, refundFor, is unchanged.
    */
-  const member = order.batch_id ? await refundableOn(input.orderId) : null;
-  const ownCharges = member
-    ? { data: [] as { provider: string; provider_ref: string | null; amount_cents: number }[], error: null }
-    : await db
-        .from("eng_order_payments")
-        .select("provider, provider_ref, amount_cents")
-        .eq("order_id", input.orderId)
-        .eq("kind", "charge")
-        .eq("status", "succeeded");
-  const chargesError = member && !member.ok ? { message: member.error } : ownCharges.error;
-  const charges =
-    member && member.ok
-      ? member.chargeRef
-        ? [{ provider_ref: member.chargeRef, amount_cents: member.paidCents }]
-        : []
-      : ownCharges.data;
+  const refundable = await refundableOn(input.orderId);
+  const member = order.batch_id ? refundable : null;
+  const chargesError = refundable.ok ? null : { message: refundable.error };
+  const charges = refundable.ok
+    ? refundable.chargeRef || refundable.paidCents > 0
+      ? [{ provider_ref: refundable.chargeRef, amount_cents: refundable.paidCents }]
+      : []
+    : null;
 
   const paidCents = (charges ?? []).reduce((n, c) => n + Number(c.amount_cents), 0);
   const charge = (charges ?? [])[0];
@@ -2652,13 +2785,32 @@ export async function settleDecision(input: {
    * back cannot be given the rule's full figure again. The rule is not bent to
    * fit: the refund is refused and said, for a person to settle.
    */
-  if (member && member.ok && decision.refundCents > member.owedCents) {
-    const why = `${order.reference}'s refund under this decision is ${money(decision.refundCents)}, and only ${money(member.owedCents)} is left to give back on its share of its submission's charge, so no refund was issued automatically. A person settles it.`;
+  if (refundable.ok && decision.refundCents > refundable.owedCents) {
+    const why = member
+      ? `${order.reference}'s refund under this decision is ${money(decision.refundCents)}, and only ${money(refundable.owedCents)} is left to give back on its share of its submission's charge, so no refund was issued automatically. A person settles it.`
+      : `${order.reference}'s refund under this decision is ${money(decision.refundCents)}, and only ${money(refundable.owedCents)} is left to give back on its charge after ${money(refundable.alreadyRefundedCents)} already refunded, so no refund was issued automatically. A person settles it.`;
     await event(input.orderId, "refund.blocked", false, why);
     return { ok: false, error: why };
   }
 
   const provider = paymentProvider();
+
+  /* Written down pending before Stripe is asked (Q8, F2): see reserveRefundRow. */
+  const reserved = await reserveRefundRow(db, {
+    order_id: input.orderId,
+    /* A member's refund names its submission too (0009). */
+    batch_id: member && member.ok ? member.batchId : null,
+    kind: "refund",
+    amount_cents: decision.refundCents,
+    provider: provider.name,
+    refund_case: decision.caseName,
+  });
+  if (!reserved.ok) {
+    const why = `The refund of ${money(decision.refundCents)} could not be written down before it was issued (${reserved.error}), so nothing was refunded. A person settles it.`;
+    await event(input.orderId, "refund.blocked", false, why);
+    return { ok: false, error: why };
+  }
+
   const result = await provider.refund({
     chargeRef: charge.provider_ref as string,
     amountCents: decision.refundCents,
@@ -2667,22 +2819,8 @@ export async function settleDecision(input: {
     ...(member ? { orderId: input.orderId } : {}),
   });
 
-  const { data: decisionRefundRow, error: rowError } = await db
-    .from("eng_order_payments")
-    .insert({
-      order_id: input.orderId,
-      /* A member's refund names its submission too (0009). */
-      batch_id: member && member.ok ? member.batchId : null,
-      kind: "refund",
-      amount_cents: result.amountCents,
-      provider: provider.name,
-      provider_ref: result.ref,
-      status: result.status,
-      refund_case: decision.caseName,
-      failure_reason: result.failureReason ?? null,
-    })
-    .select("id")
-    .maybeSingle();
+  const decisionRefundRow = { id: reserved.id };
+  const { error: rowError } = await settleRefundRow(db, reserved.id, decision.refundCents, result);
 
   if (result.status === "failed") {
     await event(

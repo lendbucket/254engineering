@@ -189,8 +189,18 @@ const TRANSITIONS: Record<FileStatus, FileStatus[]> = {
    *
    * Not terminal, because the work still has to be closed and, rarely, called
    * off entirely.
+   *
+   * AND SEALED, FOR ONE CASE. Robert's ruling Q4 of 2026-11-02 (audit field
+   * F8): a 254-FC-001 decline is answered by a sealed option C letter that is
+   * delivered "exactly as a pass does" (ruling FC-1), and with refused able to
+   * reach only closed and cancelled the seal act could not move the file, so
+   * it stayed refused for good with no delivered_at, no accruals and a warning
+   * on every such seal. The move is documents.seal, a licensed action only
+   * the engineer holds (actionFor), so no administrator or office role can make
+   * it. Back into review is still forbidden, and so is delivered straight from
+   * refused: the file goes through sealed like every other sealed letter.
    */
-  refused: ["closed", "cancelled"],
+  refused: ["sealed", "closed", "cancelled"],
   sealed: ["delivered", "cancelled"],
   delivered: ["closed"],
   closed: [],

@@ -8,6 +8,7 @@ import {
   inquiryNotification,
 } from "@/lib/email-templates";
 import { business } from "@/config/business";
+import { PUBLIC_FORM_REFUSAL, takeAcknowledgement, takePublicFormAttempt } from "@/lib/public-form-limits";
 
 /**
  * The windstorm brief intake, for an existing building.
@@ -74,6 +75,11 @@ async function handlePOST(request: Request) {
     return NextResponse.json({ ok: true });
   }
 
+  /* Robert's Q11 (office audit F2): per connection and per typed address, before anything is saved or queued. */
+  if (!(await takePublicFormAttempt("windstorm", request.headers, data.email)).allowed) {
+    return NextResponse.json({ ok: false, message: PUBLIC_FORM_REFUSAL }, { status: 429 });
+  }
+
   const result = await insertWindstormInquiry({
     name: data.name,
     email: data.email,
@@ -135,6 +141,7 @@ async function handlePOST(request: Request) {
    */
   const show = (v: unknown) =>
     v === undefined || v === null ? undefined : String(v);
+  const headers = request.headers;
   after(async () => {
     const firm = await queueEmail(
       inquiryNotification({
@@ -169,6 +176,8 @@ async function handlePOST(request: Request) {
       console.error(
         `[windstorm-inquiry] firm notification not queued: ${firm.error}`,
       );
+    /* One acknowledgement per address per form per firm calendar day (Q11); the firm's copy above always goes. */
+    if (!(await takeAcknowledgement("windstorm", headers, data.email))) return;
     const ack = await queueEmail(
       inquiryAcknowledged({ kind: "windstorm", email: data.email }),
     );

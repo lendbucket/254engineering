@@ -511,12 +511,25 @@ console.log("");
       : "",
   );
 
-  /* The export is gated by the report's own action, read from the registry. */
+  /*
+   * The export is gated by the report's own action, read from the registry.
+   * Since 2026-11-02 through mayExport, which asks that action AND the
+   * administrator's export gate (Robert's P2 approval, option a); this matched
+   * `can(actor, entry.action)` until then. The gate is asked after the entry is
+   * found and before the file is built.
+   */
   const route = readSource("src/app/api/portal/exports/route.ts");
+  const gateAt = route.indexOf("if (!mayExport(actor, entry.action))");
+  const findAt = route.indexOf("const entry = REPORTS.find(");
   rec(
-    "the export route asks the grant the registry names",
-    /can\(actor, entry\.action\)/.test(route) && /REPORTS\.find/.test(route),
+    "the export route asks the grant the registry names, through the export gate",
+    findAt > 0 && gateAt > findAt && route.indexOf("reportCsv(", gateAt) > gateAt && !/can\(actor, entry\.action\)/.test(route),
     "a fixed list here would be a second list to keep in step, and the third entry is where somebody forgets the check",
+  );
+  const lists = readSource("src/lib/list-exports.ts");
+  rec(
+    "and mayExport is the administrator's export gate with the screen's own grant",
+    /export function mayExport\([^)]*\): boolean \{\s*return can\(actor, LIST_EXPORT_GRANT\) && can\(actor, screenGrant\);/.test(lists),
   );
 
   /* The record goes on the queue and the file does not, which is the standing

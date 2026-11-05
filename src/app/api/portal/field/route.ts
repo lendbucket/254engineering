@@ -20,7 +20,11 @@ import {
   setLedgerStatus,
   setTechBase,
   submitEvidence,
+  jobView,
+  evidenceObjectExists,
+  EVIDENCE_BUCKET,
 } from "@/lib/ops-field";
+import { CAPTURE_ID, captureDoorRefusal, captureStorageKey } from "@/lib/evidence-capture-rules";
 
 /**
  * Everything in the field that changes something: protocols, offers, captures,
@@ -44,17 +48,6 @@ import {
  */
 
 export const dynamic = "force-dynamic";
-
-const EVIDENCE_BUCKET = "eng-evidence";
-
-const ALLOWED_CAPTURE_TYPES = [
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/heic",
-  "image/heif",
-  "application/pdf",
-];
 
 /** 15MB, matching the bucket. A phone camera on a bright roof clears ten. */
 const MAX_CAPTURE_BYTES = 15 * 1024 * 1024;
@@ -189,18 +182,38 @@ async function handlePOST(request: NextRequest) {
      * the shape is known: cap_ and a uuid, or cap_ and a timestamp fallback for
      * a browser with no crypto.randomUUID.
      */
-    if (!/^cap_[A-Za-z0-9-]{8,60}$/.test(captureId)) return bad("Malformed capture reference.");
-    if (!ALLOWED_CAPTURE_TYPES.includes(contentType)) {
-      return bad("That file type is not accepted. Photographs or a PDF.");
-    }
+    if (!CAPTURE_ID.test(captureId)) return bad("Malformed capture reference.");
+    const path = captureStorageKey(fileId, captureId, contentType);
+    if (!path) return bad("That file type is not accepted. Photographs or a PDF.");
     if (!Number.isFinite(size) || size <= 0) return bad("That file looks empty.");
     if (size > MAX_CAPTURE_BYTES) return bad("That file is over 15MB.");
 
-    const ext = contentType === "application/pdf" ? "pdf" : contentType.split("/")[1] ?? "jpg";
-    const path = `${fileId}/${captureId}.${ext}`;
+    /*
+     * THE FILE, ITS TECHNICIAN AND ITS STATUS, BEFORE ANY URL. Robert's ruling
+     * Q2 of 2026-11-02 (audit field F2). This branch read no file, so any
+     * technician who knew a file id and a capture id could replace a
+     * photograph after the engineer had reviewed and sealed on it. The file is
+     * read through jobView, the upload is the assigned technician's alone, and
+     * only while capture is open.
+     */
+    const view = await jobView(actor, fileId);
+    if (!view) return bad("That job is not yours.", 403);
+    const refused = captureDoorRefusal(actor.id, view.file);
+    if (refused) return bad(refused, 403);
+
+    /*
+     * NEVER AN OVERWRITE. The URL is issued with upsert false, so an object
+     * once stored cannot be replaced through it. A replay from the offline
+     * queue whose upload already landed is told the object is stored and goes
+     * on to re-record the row; it does not rewrite the bytes.
+     */
+    const stored = await evidenceObjectExists(path);
+    if (!stored.ok) return bad(stored.error, 503);
+    if (stored.exists) return NextResponse.json({ ok: true, path, stored: true });
+
     const { data, error } = await db.storage
       .from(EVIDENCE_BUCKET)
-      .createSignedUploadUrl(path, { upsert: true });
+      .createSignedUploadUrl(path, { upsert: false });
     if (error || !data) return bad(error?.message ?? "Could not prepare the upload.");
 
     return NextResponse.json({ ok: true, url: data.signedUrl, path: data.path });

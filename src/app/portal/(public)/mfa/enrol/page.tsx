@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { OPS_COOKIE, readOpsSession, readPendingSession } from "@/lib/ops-session";
-import { mfaConfigured, mfaRequirementFor, mfaStatus } from "@/lib/ops-mfa";
+import { mfaConfigured, mfaRequirementFor, mfaStateFor, mfaStatus } from "@/lib/ops-mfa";
 import { homeFor } from "@/lib/ops-authz";
 import { Wordmark } from "@/components/brand/Wordmark";
 import { SystemAlert } from "@/components/portal/design";
@@ -83,6 +83,23 @@ export default async function MfaEnrolPage() {
    */
   const declineTo = full ? homeFor(role) : null;
 
+  /*
+   * REPLACING A FACTOR ASKS FOR THE ONE IN PLACE, OR THE PASSWORD. Robert,
+   * 2026-11-02, Q10 (auth M1). Only a full session can be here with a factor
+   * already verified, and the route refuses the confirm without the proof; the
+   * form asks for it up front rather than after a scan. A state that cannot be
+   * read asks too, which is the direction that cannot replace a factor
+   * unproven. A first enrolment asks for nothing extra.
+   */
+  let replacing = false;
+  if (full) {
+    try {
+      replacing = (await mfaStateFor(full.sub)).enrolled;
+    } catch {
+      replacing = true;
+    }
+  }
+
   return (
     <main className="portal-surface v10-phone-ground-centred grid min-h-dvh place-items-center px-4 py-6 sm:py-10">
       <div className="w-full max-w-[460px]">
@@ -104,7 +121,7 @@ export default async function MfaEnrolPage() {
             </div>
           )}
 
-          {ready ? <EnrolForm required={required} declineTo={declineTo} /> : null}
+          {ready ? <EnrolForm required={required} declineTo={declineTo} replacing={replacing} /> : null}
         </div>
 
         <p className="mt-4 text-center text-[13px] text-[var(--secondary)]">
