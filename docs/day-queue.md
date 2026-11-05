@@ -786,6 +786,28 @@ On a pass, low-site merges: full lane, because it changes an API route; no migra
 
 On a pass, low-field merges: full lane, server and dispatch code; no migration.
 
+**Bundle 101 result: board `42015959304` on `897ba82`, 65 of 65, zero FAIL, as predicted.** Preflight GREEN, 38 rules. proofs-audit PASS with the-field-low-findings-hold. LCP `/` 2791ms, `/services/windstorm-wpi-8` 2716ms, `/coverage` 2637ms, coastal-bend 2889ms, each under its ceiling. Writers took 4 transient retries. **low-field merged** as `bc4bd4e` (parents `76682f4`, `897ba82`), tree identical to the boarded commit; exact push, and `ls-remote` confirms main `bc4bd4e`; no board started on main. Issue #1 has nothing after the morning report (6657343153).
+
+**Bundle 102, low-money: `fix/low-money` at `2b91fae`.** It is `d55f416` with main `bc4bd4e` merged in, clean; no file changed on main since `97a8e9a` is in this bundle.
+- **The change over main (six files, money audit, findings needing no migration):**
+  - F13: a trade price must be a whole number of cents, refused in the platform's own sentence (`ops-intake.ts`, `job-intake-rules.ts`).
+  - F14: an order key replayed by another site or another account is refused as spent, as placeBatch already refuses it.
+  - F11: a telephoned order carries its price and coastal breakdown when the price is exactly the catalog's, and none under an override; the total charged never changes (`ops-job-billing.ts`).
+  - F9: a partner commission reversal is capped at what is left of the accrual, and a failed read of earlier reversals refuses the plan (`partner-comp.ts`, `ops-partner-comp.ts`).
+  - A new proof, the-money-audit-low-findings-are-closed.
+  - F12 and F6 stay parked; they need a migration.
+- **Readers:** proofs-audit, money-audit, order-audit, partner-audit, intake-audit, trade-pricing-audit and bulk-audit. No migration, and no new table or column: the order's `price_cents`, `coastal_surcharge_cents` and `twia_county` are in 0006.
+- **Local steps run:** free memory read 12.4 GB, over the floor. Preflight GREEN, 38 rules, 124 s. The proof passes, 26 checks. The rest of the readers write to development or need a server, so they run on the board.
+
+**Prediction, bundle 102, stated before dispatch: 65 of 65, zero FAIL.**
+- Preflight GREEN on the board.
+- proofs-audit PASS with the new proof.
+- money, order, partner, intake, trade-pricing and bulk audits PASS.
+- Public bytes unchanged, and the four LCP pages under their ceilings.
+- Standing COULD NOT TELL lines only.
+
+On a pass, low-money merges: full lane, money code; no migration.
+
 **F9 CORRECTION (issue #1, F9 correction comment).** My F9 question 6594767802 was wrong twice: no letter template is signed since 0091 (2026-10-25), so nothing needs re-signing; and the quoted section 9 sentence exists only in 254-RC-001. F9 built for the roof letter only at `c7e8a31` (`fix/f9-visit-date-receipt`, over main `3446a44`), preflight GREEN, proof 15 checks, five injections. Two questions posted (the four other letters; adoption by sealing). Boards with the follow-ups.
 
 **Review-request fixture** built at `f9761a2` (`fix/review-request-fixture-once`): one sealed `254-DEMO-RQ-FIXTURE` file reused; boards with the follow-ups.
