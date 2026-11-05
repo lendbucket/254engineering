@@ -675,6 +675,22 @@ On a pass, F4 merges: full lane, server code, no migration.
 
 On a pass, it merges: full lane, because the proof writes to development; no product code and no migration.
 
+**Bundle 98 result: board `41983464657` on `9e083a4`, 65 of 65, zero FAIL, as predicted.** Preflight GREEN, 38 rules. proofs-audit PASS with both review request proofs (the request goes once or not at all; the orderless request is refused and the delivery goes on). LCP `/` 2341ms, `/services/windstorm-wpi-8` 2902ms, `/coverage` 2496ms, coastal-bend 2895ms, each under its ceiling. Writers took 5 transient retries. **Merged** as `97a8e9a` (parents `73b9e84`, `9e083a4`), tree identical to the boarded commit; exact push, and `ls-remote` confirms main `97a8e9a`; no board started on main. Issue #1 has no comment after 6652139344 at 02:52, so development does not yet hold 0111 and F8 still waits.
+
+**Bundle 99, F9 roof: `fix/f9-visit-date-receipt` at `e5661be`.** It is `bf0bf7f` with main `97a8e9a` merged in, clean. Main's one new file is the review request proof, which F9 does not touch.
+- **The change over main (six files):** `letter-draft.ts`, `letter-seal.ts`, `src/content/letters/roof-certification.ts`, the new proof a-visit-date-from-an-uncertain-clock-is-the-receipt, and two existing letter proofs adjusted. A roof letter whose visit clock disagreed or was never measured states the server's receipt date, with RC-001 section 9's own line (template 1.1). No migration.
+- **Readers:** proofs-audit (about twenty letter proofs import the drafter or the sealer), migration-audit, and the US spelling list. All ran GREEN when F9 was built at `c7e8a31`; since then only main moved, and none of main's changes since touch a letter file.
+- **Local steps NOT run:** free memory read 11.7 GB. Under Robert's memory ruling, preflight and the proofs are skipped here, and the board is the check.
+
+**Prediction, bundle 99, stated before dispatch: 65 of 65, zero FAIL.**
+- Preflight GREEN on the board.
+- proofs-audit PASS, with F9's proof (15 checks) and every letter proof, the roof letter wording proof included.
+- migration-audit PASS, unmoved: no migration.
+- Public bytes unchanged, and the four LCP pages under their ceilings.
+- Standing COULD NOT TELL lines only.
+
+On a pass, F9 merges: full lane, sealing code, no migration.
+
 **F9 CORRECTION (issue #1, F9 correction comment).** My F9 question 6594767802 was wrong twice: no letter template is signed since 0091 (2026-10-25), so nothing needs re-signing; and the quoted section 9 sentence exists only in 254-RC-001. F9 built for the roof letter only at `c7e8a31` (`fix/f9-visit-date-receipt`, over main `3446a44`), preflight GREEN, proof 15 checks, five injections. Two questions posted (the four other letters; adoption by sealing). Boards with the follow-ups.
 
 **Review-request fixture** built at `f9761a2` (`fix/review-request-fixture-once`): one sealed `254-DEMO-RQ-FIXTURE` file reused; boards with the follow-ups.
