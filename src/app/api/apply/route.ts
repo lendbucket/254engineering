@@ -8,8 +8,10 @@ import { insertStructuredApplication } from "@/lib/intake";
 import { queueEmail } from "@/lib/ops-jobs";
 import { applicantConfirmation, applicationNotification } from "@/lib/email-templates";
 import { deferredLink } from "@/lib/deferred-links";
+import { isApplicantDocumentPath } from "@/lib/uploads";
 import { positionByTrack } from "@data/positions";
 import { withSaveOutcome } from "@/lib/save-outcome";
+import { PUBLIC_FORM_REFUSAL, takeAcknowledgement, takePublicFormAttempt } from "@/lib/public-form-limits";
 
 /**
  * Careers intake for both roles.
@@ -64,6 +66,32 @@ async function handlePOST(request: Request) {
   // Honeypot. Answered as success so a bot learns nothing, and nothing is
   // written. See src/lib/forms.ts for the full reasoning.
   if (data.company) return NextResponse.json({ ok: true });
+
+  /* Robert's Q11 (office audit F2): per connection and per typed address, before anything is saved or queued. */
+  if (!(await takePublicFormAttempt("apply", request.headers, data.email)).allowed) {
+    return NextResponse.json({ ok: false, message: PUBLIC_FORM_REFUSAL }, { status: 429 });
+  }
+
+  /*
+   * EVERY DOCUMENT MUST BE THIS APPLICANT'S OWN UPLOAD. Robert's Q12 (office
+   * audit F5, 2026-11-02). A path is only a string in the body, and the
+   * operator's email and the applications screen sign whatever is stored, so a
+   * path under another application's id would hand the operator somebody
+   * else's resume labelled as this person's. Refused before anything is saved.
+   */
+  const foreign = (["resume", "certifications", "licenseDocument"] as const).filter((field) => {
+    const file = data[field] as { path?: unknown } | undefined;
+    return file?.path !== undefined && !isApplicantDocumentPath(file.path, data.applicationId);
+  });
+  if (foreign.length) {
+    return NextResponse.json(
+      {
+        ok: false,
+        errors: Object.fromEntries(foreign.map((f) => [f, "This document was not uploaded for this application. Attach it again."])),
+      },
+      { status: 422 },
+    );
+  }
 
   const position = positionByTrack(isEngineer ? "engineer" : "technician");
   const roleLabel = position?.shortTitle ?? (isEngineer ? "Professional Engineer" : "Field Technician");
@@ -257,17 +285,20 @@ async function handlePOST(request: Request) {
     }),
   );
 
-  const applicantMail = await queueEmail(
-    applicantConfirmation({
-      roleLabel: positionTitle,
-      name: data.fullName,
-      email: data.email,
-      applicationId: data.applicationId,
-      nextStep: isEngineer
-        ? "If the fit looks right, the next step is a short call about the work itself: what you seal, and what you will not."
-        : "If the fit looks right, the next step is a short call about the counties you would genuinely drive to and what you have inspected before.",
-    }),
-  );
+  /* The applicant's confirmation is their acknowledgement: one per address per firm calendar day (Q11). The operator package above always goes. */
+  const applicantMail = (await takeAcknowledgement("apply", request.headers, data.email))
+    ? await queueEmail(
+        applicantConfirmation({
+          roleLabel: positionTitle,
+          name: data.fullName,
+          email: data.email,
+          applicationId: data.applicationId,
+          nextStep: isEngineer
+            ? "If the fit looks right, the next step is a short call about the work itself: what you seal, and what you will not."
+            : "If the fit looks right, the next step is a short call about the counties you would genuinely drive to and what you have inspected before.",
+        }),
+      )
+    : null;
 
   /*
    * Both emails leave on the queue. The application row is the record and it is
@@ -279,7 +310,7 @@ async function handlePOST(request: Request) {
    * here. A failed SEND is the queue's to show, on the screen built for it.
    */
   if (!operatorMail.ok) console.error(`[apply] operator mail not queued: ${operatorMail.error}`);
-  if (!applicantMail.ok) console.error(`[apply] applicant mail not queued: ${applicantMail.error}`);
+  if (applicantMail && !applicantMail.ok) console.error(`[apply] applicant mail not queued: ${applicantMail.error}`);
 
   return NextResponse.json({ ok: true, applicationId: data.applicationId });
 }

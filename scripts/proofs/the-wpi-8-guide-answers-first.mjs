@@ -17,7 +17,7 @@ const check = (name, ok, note = "") => {
 };
 
 const { insights } = await import("../../src/content/insights.ts");
-const { catalogFor } = await import("../../data/catalog.ts");
+const { catalogFor, statedPriceCents } = await import("../../data/catalog.ts");
 const { verifiedEngineers } = await import("../../src/config/credentials.ts");
 
 const post = insights.find((p) => p.slug === "wpi-8-certificate");
@@ -65,10 +65,24 @@ check("it states the firm's TDI appointment", /holds a Texas Department of Insur
 const dollars = (cents) => `$${(cents / 100).toLocaleString("en-US")}`;
 const ongoing = catalogFor("windstorm-wpi-8", "ongoing");
 const completed = catalogFor("windstorm-wpi-8", "completed");
-check(
-  "its prices are the catalog's, ongoing and completed",
-  prose.includes(`${dollars(ongoing.priceCents)} for a WPI-8 inspection of ongoing construction`) && prose.includes(`${dollars(completed.priceCents)} for a WPI-8E evaluation of completed construction`),
-);
+/*
+ * Robert's Q14 of 2026-11-02: while ongoing construction cannot be ordered
+ * (statedPriceCents null), the guide prints the completed figure and says
+ * ongoing is quoted, with the $995 nowhere on the page.
+ */
+if (statedPriceCents(ongoing) === null) {
+  check(
+    "its completed price is the catalog's, ongoing construction is quoted, and the ongoing figure is not printed",
+    prose.includes(`${dollars(completed.priceCents)} for a WPI-8E evaluation of completed construction`) &&
+      prose.includes("a WPI-8 inspection of ongoing construction is quoted") &&
+      !JSON.stringify(post).includes(dollars(ongoing.priceCents)),
+  );
+} else {
+  check(
+    "its prices are the catalog's, ongoing and completed",
+    prose.includes(`${dollars(ongoing.priceCents)} for a WPI-8 inspection of ongoing construction`) && prose.includes(`${dollars(completed.priceCents)} for a WPI-8E evaluation of completed construction`),
+  );
+}
 check("its turnaround is the catalog's wording, both tiers", prose.includes(ongoing.turnaround) && prose.includes(completed.turnaround));
 check("it links to order", prose.includes("](/order/start/windstorm-wpi-8)"));
 

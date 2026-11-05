@@ -2,7 +2,9 @@ import "server-only";
 import { randomBytes } from "node:crypto";
 import { supabaseAdmin, SITE_KEY } from "./supabase";
 import { writeAudit } from "./ops-audit";
-import { startCheckout } from "./ops-payments";
+import { acceptOnInvoice, startCheckout } from "./ops-payments";
+import { accountBalance } from "./ops-bulk";
+import { creditDecision } from "./account-credit";
 import { queueEmail } from "./ops-jobs";
 import { jobPaymentLink } from "./email-templates";
 import { money } from "./ops-money";
@@ -171,6 +173,8 @@ async function createOrderForFile(
   file: FileForBilling,
   client: { name: string; email: string | null; phone: string | null },
   billingMode: "card" | "invoice",
+  /* The account an invoiced job is billed to (Q7, money F3); null for a payment link. */
+  accountId: string | null = null,
 ): Promise<{ ok: true; orderId: string; reference: string } | { ok: false; error: string }> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
@@ -238,6 +242,12 @@ async function createOrderForFile(
       refund_disclosure: disclosure,
       status: "awaiting_payment",
       billing_mode: billingMode,
+      /*
+       * closePeriod and accountBalance select by account_id, so an invoiced
+       * order without one was on no statement and in no exposure, ever (Q7,
+       * money F3).
+       */
+      account_id: accountId,
       client_id: file.client_id,
       file_id: file.id,
     })
@@ -421,7 +431,7 @@ export async function invoiceAccount(actor: Author, fileId: string): Promise<Bil
    * accounts as none and refused an invoice the client was entitled to. */
   const { data: accountRows, error: accountErr } = await db
     .from("eng_customer_accounts")
-    .select("id, status, billing_mode")
+    .select("id, status, billing_mode, credit_limit_cents, net_days")
     .eq("client_id", file.client_id)
     /*
      * A superseded duplicate found by client_id would be billed against instead
@@ -450,8 +460,52 @@ export async function invoiceAccount(actor: Author, fileId: string): Promise<Bil
   const second = await secondOrderRefusal(fileId);
   if (second) return { ok: false, error: second };
 
-  const order = await createOrderForFile(actor, file, client, "invoice");
+  /*
+   * THE CREDIT GATE, THE SAME ONE A BULK SUBMISSION MEETS. Robert's ruling Q7,
+   * money finding F3, 2026-11-02. This door ran no creditDecision at all: a
+   * $5,000.00 account with $4,900.00 outstanding was invoiced a $709.00
+   * telephoned job without a word. It is asked here, against the same
+   * accountBalance, before any order exists, and refuses in its own sentence.
+   */
+  if (!account) return { ok: false, error: "That client has no ordering account to invoice." };
+  const balance = await accountBalance(account.id as string);
+  const verdict = creditDecision(
+    {
+      billingMode: "invoice",
+      status: account.status as "active" | "suspended" | "closed",
+      creditLimitCents: account.credit_limit_cents === null ? null : Number(account.credit_limit_cents),
+      outstandingCents: balance.outstandingCents,
+      oldestUnpaidDays: balance.oldestUnpaidDays,
+      netDays: Number(account.net_days),
+    },
+    file.client_price_cents,
+  );
+  if (!verdict.ok) return { ok: false, error: verdict.message };
+
+  const order = await createOrderForFile(actor, file, client, "invoice", account.id as string);
   if (!order.ok) return order;
+
+  /*
+   * ACCEPTED ON THE ACCOUNT, SO closePeriod PICKS IT UP (Q7, F3). The order used
+   * to sit at awaiting_payment with no checkout, which no statement selects and
+   * the orders screen listed as stuck for ever. acceptOnInvoice is the bulk
+   * path's own step: in_fulfilment, the customer told it goes on the next
+   * statement, and the file released for the work, as a paid link would be.
+   */
+  const accepted = await acceptOnInvoice(order.orderId);
+  if (!accepted.ok) {
+    await writeAudit({
+      actor,
+      action: "file.invoice_not_accepted",
+      entityType: "file",
+      entityId: fileId,
+      summary: `${file.file_number}: ${order.reference} was raised on the account and could not be accepted on it: ${accepted.error}`,
+    });
+    return {
+      ok: false,
+      error: `${order.reference} was raised on the account and could not be accepted on it, so it is not on a statement yet: ${accepted.error} A person settles it from the orders screen.`,
+    };
+  }
 
   await db
     .from("eng_files")

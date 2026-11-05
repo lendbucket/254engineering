@@ -154,10 +154,11 @@ check("a failed verification read makes the person not ready", /verification\.ok
 const route = strip(readFileSync("src/app/api/portal/onboarding/route.ts", "utf8"));
 check("the route carries the three new actions", ['action === "decide_item"', 'action === "record_verification"', 'action === "clear_verification"'].every((s) => route.includes(s)));
 check(
-  "a working technician's coverage save reaches setTechCoverage, before the onboarding branch can catch it",
-  pos(route, /if \(action === "set_coverage" && body\?\.profileId && !body\?\.onboardingId\) \{/) >= 0 &&
-    pos(route, /if \(action === "set_coverage" && body\?\.profileId && !body\?\.onboardingId\) \{/) < pos(route, /if \(action === "set_coverage"\) \{/) &&
-    (route.match(/action === "set_coverage"/g) ?? []).length === 2,
+  "a working technician's coverage save reaches setTechCoverage through its own action, and the onboarding branch is the only set_coverage",
+  // Robert's Q11 (2026-11-02) gave the technician's save its own action, set_tech_coverage, replacing P1's routing by which id was sent.
+  (route.match(/action === "set_coverage"/g) ?? []).length === 1 &&
+    (route.match(/action === "set_tech_coverage"/g) ?? []).length === 1 &&
+    /setTechCoverage\(/.test(route.slice(pos(route, /if \(action === "set_tech_coverage"\) \{/), pos(route, /if \(action === "set_tech_coverage"\) \{/) + 400)),
 );
 
 /* ---------------------------------------------------------------- the text */

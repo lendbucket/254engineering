@@ -56,6 +56,34 @@ try {
   const { data: grants } = await db.from("eng_role_grants").select("action").eq("role_key", "field_tech");
   const tech = { ...row, email, grants: new Set((grants ?? []).map((g) => g.action)) };
 
+  /*
+   * ELIGIBLE TO ACCEPT, so the control below is refused or accepted for its
+   * rate and nothing else. Since Robert's ruling Q6 (2026-11-02, audit field
+   * F14) acceptOffer re-checks that the technician is still certified for the
+   * file's line and has no credential blocker, so a probe with neither would
+   * be refused at the control for the wrong reason. The same fixture the order
+   * path walk gives its technician: a certification on the published RC-001
+   * and the four dispatch credentials, verified, far from expiry. Both cascade
+   * with the profile, so the teardown below removes them.
+   */
+  const { data: tpl } = await db
+    .from("eng_protocol_templates")
+    .select("id")
+    .eq("document_number", "254-RC-001")
+    .eq("status", "published")
+    .single();
+  if (!tpl) throw new Error("no published RC-001 on development to certify the probe on");
+  const { error: certErr } = await db.from("eng_certifications").insert({
+    profile_id: tech.id, service_slug: "roof-inspections", template_id: tpl.id, status: "certified", attempts: 1, certified_at: new Date().toISOString(),
+  });
+  if (certErr) throw new Error(`certification: ${certErr.message}`);
+  for (const kind of ["drivers_license", "vehicle_insurance", "w9", "ic_agreement"]) {
+    const { error: credErr } = await db.from("eng_credentials").insert({
+      profile_id: tech.id, kind, label: "Offer rate proof credential, no document", issued_on: "2026-01-01", expires_on: "2099-01-01", status: "verified", verified_at: new Date().toISOString(),
+    });
+    if (credErr) throw new Error(`credential ${kind}: ${credErr.message}`);
+  }
+
   const { data: client } = await db.from("eng_clients").select("id").eq("is_demo", true).limit(1).maybeSingle();
   if (!client) throw new Error("development holds no demonstration client to hang a file on");
 
@@ -64,6 +92,10 @@ try {
     const { error: fErr } = await db.from("eng_files").insert({
       id, file_number: `254-DEMO-RP${String(STAMP).slice(-6)}${n}`, is_demo: true, client_id: client.id,
       service_slug: "roof-inspections", property_address: `${n} Rate Proof Way`, county: "Kenedy",
+      // Waiting for a technician, as an offered file is: since Robert's Q3 (2026-11-02, field F7)
+      // acceptOffer refuses a file that is not in needs_dispatch, so without this the control
+      // would be refused for the status and the rate refusal above would prove nothing.
+      status: "needs_dispatch",
     });
     if (fErr) throw new Error(`file: ${fErr.message}`);
     files.push(id);

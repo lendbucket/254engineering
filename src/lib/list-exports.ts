@@ -1,6 +1,6 @@
 import { csv } from "./csv";
 import { moneyCell } from "./ops-money";
-import type { Action } from "./ops-authz";
+import { can, type Action, type AuthzSubject } from "./ops-authz";
 import type { ApplicationRow } from "./admin-data";
 import type { InquiryRow } from "./ops-inquiries";
 import type { WindstormInquiryRow } from "./ops-windstorm-inquiries";
@@ -34,6 +34,31 @@ import type { AuditEvent } from "./audit-trail-list";
  * left empty rather than zero. Pure, so a proof can hand them rows.
  */
 export const LIST_EXPORT_GRANT: Action = "accounts.manage";
+
+/**
+ * EVERY CSV DOOR ASKS THIS. Robert, 2026-11-02, approving P2 (issue #1,
+ * 6567596115) with option (a): every CSV export moves to the administrator's
+ * export gate, per his 2026-10-28 ruling "owner or admin only". Before it, six
+ * doors (clients, orders, inbox, refunds, quotes, prospects), the ticked files,
+ * the jobs not yet paid, the margin files and the report files each asked only
+ * their screen's grant, so the engineer could download the whole client
+ * directory and a rep the inbox.
+ *
+ * Two grants, as the staff lists always asked: the export gate, and the
+ * screen's own, so a file never carries more than its screen shows. Screens
+ * call it to decide whether to offer the CSV link at all, and the doors call
+ * it before reading anything.
+ *
+ * Not here, and asked of Robert rather than decided: the monthly responsible
+ * charge log (/api/portal/review), the engineer's own regulatory record read
+ * under the responsible charge grants, and the evidence binder of one file
+ * (report=binder), read under that file's own visibility. Both are CSV files
+ * about one record rather than lists, and neither was in the table he
+ * approved, so they keep their gates until he says otherwise.
+ */
+export function mayExport(actor: AuthzSubject | null, screenGrant: Action): boolean {
+  return can(actor, LIST_EXPORT_GRANT) && can(actor, screenGrant);
+}
 
 /**
  * The staff list reports the export door accepts beside its existing ones.

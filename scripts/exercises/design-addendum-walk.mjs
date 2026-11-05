@@ -30,6 +30,7 @@ throw new Error(
 
 const ROOT = new URL("../../", import.meta.url).href;
 const { auditClient } = await import(ROOT + "scripts/lib/db-target.mjs");
+const { walkProbeLicence } = await import(ROOT + "scripts/lib/probe-licence.mjs");
 const db = auditClient("design addendum walk", { neverProduction: true });
 if (!db) throw new Error("no development client");
 
@@ -40,12 +41,13 @@ const { uploadSealImage } = await import(ROOT + "src/lib/seal-store.ts");
 const { signAddendum, designPayFor, addendaFor } = await import(ROOT + "src/lib/scope-addendum.ts");
 const { productionCreditFor } = await import(ROOT + "src/lib/ops-engineer.ts");
 
-const STAMP = Date.now().toString(36);
+const STARTED = Date.now();
+const STAMP = STARTED.toString(36);
 const LABEL = "Addendum Walk";
 const TEST_ENGINEER = {
   name: "Addendum Walk Engineer, not a real person",
-  /* Digits in the probe range no Texas licence can hold (nine digits from 900), for 0089's digits-only doors (2026-10-25). */
-  licenseNumber: "900000002",
+  /* Digits in the probe range no Texas licence can hold (nine digits from 900), for 0089's digits-only doors (2026-10-25); unique to the run since 2026-11-02 for 0109 (scripts/lib/probe-licence.mjs). */
+  licenseNumber: walkProbeLicence(STARTED),
   disciplines: ["Civil"],
   sealsOnly: ["structural"],
   granted: "2020-01-01",
@@ -62,7 +64,7 @@ const check = (name, ok, note = "") => {
 };
 const stop = async (s) => {
   console.log(`WALK STOPPED: ${s}`);
-  for (const p of made.profiles) await db.from("eng_profiles").update({ status: "suspended" }).eq("id", p.id);
+  for (const p of made.profiles) await db.from("eng_profiles").update({ status: "suspended", license_number: null }).eq("id", p.id);
   console.log(`WALK MADE ${JSON.stringify(made)}`);
   process.exit(1);
 };
@@ -240,8 +242,8 @@ if (cErr) await stop(`quote conversion: ${cErr.message}`);
   check("voiding his signature stops the pay and the credit", !pay.ok && !credit.ok, pay.ok || credit.ok ? "STILL PAYS" : "nothing owed");
 }
 
-// ---------------------------------------------------------------- 7. the test accounts are closed
-for (const p of made.profiles) await db.from("eng_profiles").update({ status: "suspended" }).eq("id", p.id);
+// ---------------------------------------------------------------- 7. the test accounts are closed, their licences released (0109)
+for (const p of made.profiles) await db.from("eng_profiles").update({ status: "suspended", license_number: null }).eq("id", p.id);
 console.log(`WALK MADE ${JSON.stringify(made)}`);
 console.log("");
 if (wrong === 0) {

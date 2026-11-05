@@ -352,16 +352,36 @@ export async function placeBatch(input: {
    * the work is released and the amount goes onto the account until period
    * close. A card batch waits for its checkout.
    */
+  /*
+   * THE TOTAL IS WHAT WAS PLACED, NOT WHAT WAS SUBMITTED. Robert's ruling Q8 of
+   * 2026-11-02 (money audit F7). total_cents was written from the split before
+   * any member was placed, so a member that failed to place left the header
+   * above the sum of the shares, and startBatchCheckout, which refuses when
+   * the two disagree, refused every attempt: placed orders nobody could pay
+   * for, and a repeat of the request quoting a total nobody would be charged.
+   * Recomputed from the accepted members, with the failures counted as
+   * rejected, in the same update that sets the status. A member with no share
+   * leaves no total, as the split itself would.
+   */
+  const placedTotalCents = accepted.some((a) => a.shareCents === null)
+    ? null
+    : accepted.reduce((n, a) => n + (a.shareCents as number), 0);
+  const placed = {
+    accepted_count: accepted.length,
+    rejected_count: split.rejected.length + failures.length,
+    total_cents: placedTotalCents,
+  };
+
   if (billingMode === "invoice") {
     for (const a of accepted) await acceptOnInvoice(a.orderId);
     await db
       .from("eng_order_batches")
-      .update({ status: "accepted", accepted_count: accepted.length })
+      .update({ status: "accepted", ...placed })
       .eq("id", batch.id);
   } else {
     await db
       .from("eng_order_batches")
-      .update({ status: "awaiting_payment", accepted_count: accepted.length })
+      .update({ status: "awaiting_payment", ...placed })
       .eq("id", batch.id);
   }
 
@@ -371,7 +391,7 @@ export async function placeBatch(input: {
     entityType: "order_batch",
     entityId: batch.id as string,
     summary: `${reference}: ${accepted.length} of ${input.properties.length} properties taken, ${money(
-      split.totalCents,
+      placedTotalCents,
     )}, ${billingMode === "invoice" ? "on account" : "awaiting payment"}`,
   });
 
@@ -381,11 +401,18 @@ export async function placeBatch(input: {
     reference,
     accepted,
     rejected: [...split.rejected.map((r) => ({ ref: r.ref, reason: r.reason })), ...failures],
-    totalCents: split.totalCents,
+    totalCents: placedTotalCents,
     billingMode,
     duplicate: false,
   };
 }
+
+/**
+ * The statements that are money owed to the firm: closed but not yet issued,
+ * and issued but not yet paid (Q7, F4; the reason is above accountBalance).
+ * One home, so the three readers below cannot disagree about it.
+ */
+export const OWED_STATEMENT_STATUSES = ["open", "issued"] as const;
 
 /**
  * What an account owes, split into what has been billed and what has not.
@@ -394,6 +421,17 @@ export async function placeBatch(input: {
  * orders this month and not yet reached period close owes that money whether or
  * not a statement exists, and a credit limit that ignored it would be no limit
  * at all until the first of the month.
+ *
+ * AND A CLOSED PERIOD COUNTS BEFORE IT IS ISSUED. Robert's ruling Q7, money
+ * finding F4 of 2026-11-02: closePeriod and issueStatement are two separate
+ * acts, and between them the statement is `open` while every order on it
+ * carries a statement_id, so neither read below counted it. October's $4,800.00
+ * closed on the 1st and issued on the 3rd read as $0.00 owed on the 2nd, and a
+ * $5,000.00 invoiced batch passed a $5,000.00 limit. Every reader of the
+ * exposure asks for OWED_STATEMENT_STATUSES. `issuedUnpaidCents` keeps its name
+ * for its callers and now means billed and unpaid, open or issued; an open
+ * statement has no due date yet, so it adds to what is owed and never to how
+ * overdue it is.
  */
 export async function accountBalance(accountId: string): Promise<{
   issuedUnpaidCents: number | null;
@@ -417,7 +455,7 @@ export async function accountBalance(accountId: string): Promise<{
       .from("eng_statements")
       .select("total_cents, due_at")
       .eq("account_id", accountId)
-      .eq("status", "issued")
+      .in("status", [...OWED_STATEMENT_STATUSES])
       .order("created_at", { ascending: true })
       .range(from, to),
   );
@@ -518,11 +556,11 @@ export async function accountBalances(
         .from("eng_statements")
         .select("account_id, total_cents, due_at")
         .in("account_id", chunk as string[])
-        .eq("status", "issued")
+        .in("status", [...OWED_STATEMENT_STATUSES])
         .order("created_at", { ascending: true })
         .range(from, to),
   );
-  if (!statementRead.ok) return { ok: false, error: `Issued statements: ${statementRead.error}` };
+  if (!statementRead.ok) return { ok: false, error: `Statements owed (open or issued): ${statementRead.error}` };
 
   const unbilledRead = await readEveryIn<{ account_id: string; total_cents: number | null }>(
     ids,
@@ -585,7 +623,7 @@ export async function openBalancesForEveryAccount(): Promise<
       db
         .from("eng_statements")
         .select("account_id, total_cents, due_at")
-        .eq("status", "issued")
+        .in("status", [...OWED_STATEMENT_STATUSES])
         .order("created_at", { ascending: true })
         .order("id", { ascending: true })
         .range(from, to),
@@ -603,7 +641,7 @@ export async function openBalancesForEveryAccount(): Promise<
         .range(from, to),
     ),
   ]);
-  if (!statementRead.ok) return { ok: false, error: `Issued statements: ${statementRead.error}` };
+  if (!statementRead.ok) return { ok: false, error: `Statements owed (open or issued): ${statementRead.error}` };
   if (!unbilledRead.ok) return { ok: false, error: `Unbilled orders: ${unbilledRead.error}` };
 
   const statementsBy = new Map<string, { total_cents: number | null; due_at: string | null }[]>();

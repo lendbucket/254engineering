@@ -92,20 +92,6 @@ async function handlePOST(request: NextRequest) {
     return result.ok ? NextResponse.json({ ok: true }) : bad(result.error);
   }
 
-  /*
-   * ONE ACTION NAME, TWO SUBJECTS, ROUTED BY WHICH ID WAS SENT. Found during P1
-   * (2026-11-01): a working technician's coverage (techs/[id]/CoverageForm)
-   * posts set_coverage with a profileId, and the onboarding branch here caught
-   * every set_coverage first, so its second branch further down could never
-   * run and the technician page's coverage save always failed. A profileId and
-   * no onboardingId is the working technician's.
-   */
-  if (action === "set_coverage" && body?.profileId && !body?.onboardingId) {
-    const counties = Array.isArray(body?.counties) ? body.counties.map(String) : [];
-    const result = await setTechCoverage(actor, String(body.profileId), counties, context);
-    return result.ok ? NextResponse.json({ ok: true, counties: result.counties }) : bad(result.error);
-  }
-
   if (action === "set_coverage") {
     const counties = Array.isArray(body?.counties) ? body.counties.map(String) : [];
     const result = await setOnboardingCoverage(
@@ -250,6 +236,17 @@ async function handlePOST(request: NextRequest) {
     return result.ok ? NextResponse.json({ ok: true }) : bad(result.error);
   }
 
+  /*
+   * A working technician's coverage counties, from the technician sheet. setTechCoverage refuses unknown names.
+   * Its own action name since Robert's Q11 (office audit F1, 2026-11-02): it was a second "set_coverage"
+   * branch below the onboarding one, which always returned first, so this never ran.
+   */
+  if (action === "set_tech_coverage") {
+    const counties = Array.isArray(body?.counties) ? body.counties.map(String) : [];
+    const result = await setTechCoverage(actor, String(body?.profileId ?? ""), counties, context);
+    return result.ok ? NextResponse.json({ ok: true, counties: result.counties }) : bad(result.error);
+  }
+
   // -------------------------------------------------------- certification
 
   if (action === "add_question") {
@@ -303,7 +300,10 @@ async function handlePOST(request: NextRequest) {
       String(body?.reason ?? ""),
       context,
     );
-    return result.ok ? NextResponse.json({ ok: true }) : bad(result.error);
+    /* Q6 (2026-11-02): how many open offers were withdrawn, and how many jobs the technician still holds on the line. */
+    return result.ok
+      ? NextResponse.json({ ok: true, withdrawnOffers: result.withdrawnOffers, heldJobs: result.heldJobs })
+      : bad(result.error);
   }
 
   if (action === "restore_certification") {

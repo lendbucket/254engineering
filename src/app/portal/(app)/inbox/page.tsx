@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
+import { mayExport } from "@/lib/list-exports";
 import { inbox, type InboxItem, type InboxKind } from "@/lib/ops-inbox";
 import { telLink } from "@/lib/phone-link";
 import { formatInFirmZone } from "@/lib/firm-calendar";
@@ -102,10 +103,10 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
         sorts={[{ value: "due", label: "Answer by" }, { value: "received", label: "Received" }, { value: "name", label: "Name" }]}
         sort={sort}
         direction={dir === -1 ? "desc" : "asc"}
-        csvHref={`/api/portal/inbox/export${csvQuery ? `?${csvQuery}` : ""}`}
+        csvHref={mayExport(actor, "inbox.read") ? `/api/portal/inbox/export${csvQuery ? `?${csvQuery}` : ""}` : undefined}
       />
       {!read.ok ? (
-        <ErrorState title="The inbox could not be read" body={`${read.error} Nothing here means nobody is waiting.`} />
+        <ErrorState title="The inbox could not be read" body={`${read.error} This is a failed read, not an empty list.`} />
       ) : (
         <>
           {read.failed.length ? (

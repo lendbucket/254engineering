@@ -6,7 +6,7 @@ import { PartnerDetailUnreadable, partnerDetail } from "@/lib/ops-partners-admin
 import { supabaseAdmin } from "@/lib/supabase";
 import { money } from "@/lib/ops-money";
 import { AbsentChip, EmptyState, Panel, RestrictedMode, StatusPill } from "@/components/portal/design";
-import { PageHead } from "@/components/portal/surfaces";
+import { ErrorState, PageHead } from "@/components/portal/surfaces";
 import {
   AdjustmentForm,
   DecideSubmission,
@@ -67,15 +67,28 @@ export default async function PartnerPage({ params }: { params: Promise<{ id: st
    * Read here rather than in the module, because it is the one thing on this
    * screen that belongs to the asset library rather than to the partner record.
    */
+  /*
+   * Q13, office audit F11: the newest 25 with an exact count, so a longer
+   * history says "the newest 25 of 40", and a failed read is said rather than
+   * drawn as "Nothing sent".
+   */
+  const SUBMISSIONS_SHOWN = 25;
   const db = supabaseAdmin();
-  const { data: submissions } = db
+  const submissionsRead = db
     ? await db
         .from("eng_partner_submissions")
-        .select("id, kind, title, body, link, status, decision_note, decided_at, created_at")
+        .select("id, kind, title, body, link, status, decision_note, decided_at, created_at", { count: "exact" })
         .eq("partner_id", id)
         .order("created_at", { ascending: false })
-        .limit(25)
-    : { data: [] };
+        .limit(SUBMISSIONS_SHOWN)
+    : { data: null, count: null, error: { message: "The database is not configured." } };
+  const submissionsError = submissionsRead.error
+    ? submissionsRead.error.message
+    : submissionsRead.count === null
+      ? "The material could not be counted."
+      : null;
+  const submissions = submissionsError ? [] : (submissionsRead.data ?? []);
+  const submissionsTotal = submissionsError ? null : (submissionsRead.count as number);
 
   const current = terms.find((t) => !t.effectiveTo) ?? terms[0] ?? null;
   const actionable = statements.filter((s) => s.status === "open" || s.status === "issued");
@@ -312,15 +325,26 @@ export default async function PartnerPage({ params }: { params: Promise<{ id: st
         <AdjustmentForm partnerId={partner.id} />
       </Panel>
 
-      <Panel title="Material they have sent">
-        {(submissions ?? []).length === 0 ? (
+      <Panel
+        title={
+          submissionsTotal !== null && submissionsTotal > submissions.length
+            ? `Material they have sent: the newest ${submissions.length} of ${submissionsTotal}`
+            : "Material they have sent"
+        }
+      >
+        {submissionsError !== null ? (
+          <ErrorState
+            title="Their material could not be read"
+            body={`${submissionsError} This is a failed read, not an empty list: they may have sent something. Reload in a moment.`}
+          />
+        ) : submissions.length === 0 ? (
           <EmptyState
             title="Nothing sent"
             body="A partner can send wording or artwork from their own portal to be looked at before they publish it."
           />
         ) : (
           <ul className="flex flex-col gap-3">
-            {(submissions ?? []).map((s) => (
+            {submissions.map((s) => (
               <li key={s.id as string} className="border-b border-[var(--row-rule)] py-3">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <p className="text-[15px] font-bold text-[var(--ink)]">{s.title as string}</p>

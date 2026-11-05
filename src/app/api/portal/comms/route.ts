@@ -207,6 +207,8 @@ async function handlePOST(request: NextRequest) {
       since: body?.since ? String(body.since) : null,
       until: body?.until ? String(body.until) : null,
     });
+    /* A failed read is said, never answered as "Nothing matched" (Robert 2026-11-02, search over every readable conversation). */
+    if (found.error) return bad(`${found.error} This is a failed read, not an empty result.`, 503);
     return NextResponse.json({ ok: true, ...found });
   }
 

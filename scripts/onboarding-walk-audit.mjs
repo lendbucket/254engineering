@@ -48,14 +48,22 @@ import { AUDIT_BASE_URL } from "./lib/ports.mjs";
 import { COULD_NOT_TELL } from "./lib/reachable.mjs";
 import { createProbe, destroyProbes, PROBE_DOMAIN } from "./lib/portal-probe.mjs";
 import { auditClient } from "./lib/db-target.mjs";
+import { onboardingProbeLicence } from "./lib/probe-licence.mjs";
 import { checklistFor } from "../src/content/onboarding-checklists.ts";
 
 const BASE = process.env.BASE_URL ?? AUDIT_BASE_URL;
 const LABEL = "onboarding-walk";
-const STAMP = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+const STARTED = Date.now();
+const STAMP = `${STARTED.toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 const db = auditClient(LABEL, { neverProduction: true });
 const BUCKET = "eng-onboarding";
-const LICENCE = "9000105";
+/*
+ * Unique to this run since 2026-11-02 (it was a fixed 9000105): 0109 holds one
+ * licence number to one engineer profile, and a crashed run's probe, which the
+ * sweep has not yet removed, would refuse the next run's activation. Seven
+ * digits, because activation takes 4 to 7 (scripts/lib/probe-licence.mjs).
+ */
+const LICENCE = onboardingProbeLicence(STARTED);
 /* A real calendar date years out, so an expiry never lapses under the walk. */
 const FAR_EXPIRY = "2031-01-31";
 const ISSUED = "2026-01-15";
