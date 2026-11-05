@@ -128,6 +128,26 @@ function take(key: string, max: number, now: number): { allowed: boolean; remain
 }
 
 /**
+ * ONE COUNTER PER DOOR. Robert, 2026-11-02 (answer to issue #1 6586517364,
+ * item 2): the staff portal, the customer account and the partner sign in used
+ * to count attempts against the bare email, so one address shared a counter
+ * across all three doors, and a successful sign in on the customer door reset
+ * the guesses counted against a staff account with the same email. Every door
+ * now names its identity through doorIdentity, so a reset on one door ends only
+ * that door's count. The address bucket is untouched (Q9: a success never resets
+ * it). The second factor and password re-entry keep their own scopes, which
+ * already name a profile id rather than an email.
+ */
+export const SIGN_IN_DOORS = ["portal", "account", "partner"] as const;
+export type SignInDoor = (typeof SIGN_IN_DOORS)[number];
+
+/** The identity a door counts against: `<door>:<email>`, the email trimmed and lowercased. Empty when no email was typed. */
+export function doorIdentity(door: SignInDoor, email: string): string | undefined {
+  const typed = email.trim().toLowerCase();
+  return typed ? `${door}:${typed}` : undefined;
+}
+
+/**
  * Record an attempt.
  *
  * `identity` is the email being tried, lowercased by the caller. Passing it is

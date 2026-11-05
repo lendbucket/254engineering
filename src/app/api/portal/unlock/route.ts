@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { clientKey, inspectLock, releaseLock, RATE_LIMITS } from "@/lib/ops-rate-limit";
+import { clientKey, doorIdentity, inspectLock, releaseLock, RATE_LIMITS, SIGN_IN_DOORS, type SignInDoor } from "@/lib/ops-rate-limit";
 import { writeAudit } from "@/lib/ops-audit";
 import { withSaveOutcome } from "@/lib/save-outcome";
 
@@ -60,7 +60,14 @@ async function handleGET(request: NextRequest) {
   if (!matches(provided, expected)) return new NextResponse("Not found", { status: 404 });
 
   const address = clientKey(request.headers);
-  const email = (request.nextUrl.searchParams.get("email") ?? "").trim().toLowerCase() || undefined;
+  /*
+   * Counts are kept per door since 2026-11-02 (Robert, per-door counters), so
+   * the read names one: ?door=portal|account|partner, the staff portal unless
+   * said otherwise, since this is the operator's own break glass.
+   */
+  const doorParam = request.nextUrl.searchParams.get("door") ?? "portal";
+  const door: SignInDoor = (SIGN_IN_DOORS as readonly string[]).includes(doorParam) ? (doorParam as SignInDoor) : "portal";
+  const email = doorIdentity(door, request.nextUrl.searchParams.get("email") ?? "");
   const state = await inspectLock(address, email);
 
   return NextResponse.json({
