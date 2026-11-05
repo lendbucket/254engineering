@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { signInCustomer, issueCustomerSession } from "@/lib/customer-auth";
 import { CUSTOMER_COOKIE, customerCookieOptions } from "@/lib/customer-session";
 import { writeAudit } from "@/lib/ops-audit";
-import { takeLoginAttempt, clearLoginAttempts, clientKey } from "@/lib/ops-rate-limit";
+import { takeLoginAttempt, clearLoginAttempts, clientKey, doorIdentity } from "@/lib/ops-rate-limit";
 import { withSaveOutcome } from "@/lib/save-outcome";
 
 export const dynamic = "force-dynamic";
@@ -41,8 +41,9 @@ async function handlePOST(request: NextRequest) {
    * and nothing slowed a guess, while the staff and partner sign ins share this
    * limiter (eight per account, twenty per address, fifteen minutes).
    */
-  const attempted = email.trim().toLowerCase();
-  const limit = await takeLoginAttempt(clientKey(request.headers), attempted || undefined);
+  /* The customer door's own counter (Robert 2026-11-02, per-door counters). */
+  const doorKey = doorIdentity("account", email);
+  const limit = await takeLoginAttempt(clientKey(request.headers), doorKey);
   if (!limit.allowed) {
     const res = NextResponse.json(
       { ok: false, error: "Too many attempts. Wait a few minutes and try again.", retryAfterSeconds: limit.retryAfterSeconds },
@@ -57,7 +58,7 @@ async function handlePOST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: result.error }, { status: 401 });
   }
 
-  await clearLoginAttempts(clientKey(request.headers), attempted);
+  await clearLoginAttempts(clientKey(request.headers), doorKey);
 
   const session = issueCustomerSession(result.principal.id, result.principal.accountId);
   if (!session) {

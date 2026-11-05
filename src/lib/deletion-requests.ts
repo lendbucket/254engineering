@@ -242,12 +242,23 @@ export async function answerDeletionRequest(
     };
   }
 
-  const { error } = await client
+  /*
+   * Conditional on still being unanswered (office audit F18, 2026-11-02): two
+   * people answering at once both passed the read above, and the second write
+   * replaced the first person's words. Only a row with no answer is updated,
+   * and a write that touched nothing says so.
+   */
+  const { data: answered, error } = await client
     .from("eng_deletion_requests")
     .update({ answered_at: DB_NOW, answered_by: actor.id, answered_because: said })
-    .eq("id", id);
+    .eq("id", id)
+    .is("answered_at", null)
+    .select("id");
 
   if (error) return { ok: false, error: error.message };
+  if (!answered || answered.length === 0) {
+    return { ok: false, error: "Somebody answered that request a moment ago. Their words stand; reload to read them." };
+  }
   return { ok: true };
 }
 

@@ -83,6 +83,30 @@ export const ROOF_LETTER_LINES = [
   },
 ] as const;
 
+/**
+ * VERSION 1.1: ONE LINE THAT IS NOT HIS WORDS FROM THE WORD FILE, AND IS NOT
+ * IN ROOF_LETTER_LINES FOR THAT REASON. Robert's ruling F9 of 2026-11-02 and
+ * his answer of 2026-11-03 ("F9: yes, template v1.1"): when the visit
+ * capture's device clock was recorded as disagreeing with the server, or was
+ * never measured, the letter states the visit date from the server's receipt
+ * of the first standing capture, and says so in the protocol's own words.
+ *
+ * The line quotes 254-RC-001 section 9 exactly (src/content/protocols/
+ * rc-001.ts, rule "photos-from-the-field-application-only", which
+ * protocol-registry-audit compares against the signed PDF). It goes directly
+ * after the visit sentence and only when that condition holds; otherwise the
+ * letter is the 1.0 wording, line for line. The engineer reads it in the full
+ * preview before he seals, and his seal on that preview is his adoption of it
+ * (0091), as for every other line.
+ *
+ * Only the roof letter carries it: the sentence is in RC-001's section 9 and
+ * in no other protocol's, so "Per protocol {{protocol_number}} section 9"
+ * would misquote MH-001, SL-001, PL-001 or FC-001.
+ */
+export const ROOF_LETTER_VERSION = "1.1";
+export const ROOF_LETTER_CLOCK_SENTENCE = "A device clock that disagrees with the server is recorded as disagreeing rather than presented as certain.";
+export const ROOF_LETTER_CLOCK_LINE = `Per protocol {{protocol_number}} section 9: ${ROOF_LETTER_CLOCK_SENTENCE}`;
+
 /** Every slot the lines name. A draft that cannot fill one is refused, never sent with a gap. */
 export const ROOF_LETTER_SLOTS = [
   "determination_date",

@@ -453,10 +453,12 @@ const EXPECTED_TRIGGERS = 108;
  * 72 since 0110, by Robert's ruling Q6 of 2026-11-02 (audit field F10): the trigger
  * function eng_file_sealed_needs_a_seal_act. 0109 replaces eng_seal_act_check with the
  * same signature, which is not a new row.
- * 74 since 0112, by Robert's sales CRM ruling R1 of 2026-11-02: eng_crm_normalize_name
+ * 73 since 0111, by Robert's Q12 of 2026-11-02 (office audit F8) and his ruling (a)
+ * of 2026-11-04: eng_set_role_grants, a role's grant set replaced in one act.
+ * 75 since 0112, by Robert's sales CRM ruling R1 of 2026-11-02: eng_crm_normalize_name
  * and eng_crm_normalize_phone, the two immutable rules the generated normalized
  * columns and both unique keys are computed from. */
-const EXPECTED_FUNCTIONS = 74;
+const EXPECTED_FUNCTIONS = 75;
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });

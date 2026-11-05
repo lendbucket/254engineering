@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Wordmark } from "@/components/brand/Wordmark";
@@ -12,6 +13,16 @@ import { AccountLoginForm } from "./AccountLoginForm";
 import { PhoneNumber } from "@/components/ui/PhoneNumber";
 
 export const dynamic = "force-dynamic";
+
+/*
+ * Its own title, as the account's other doors have. Robert's ruling Q14 of
+ * 2026-11-02, from the live site audit (issue #1, 6585009543, issue 11):
+ * /account, /account/login and /account/orders, which all land here signed
+ * out, carried the home page's title. The account layout keeps it noindex.
+ */
+export const metadata: Metadata = {
+  title: "Sign in to your account | 254 Engineering",
+};
 
 /**
  * Where an ordering account signs in.

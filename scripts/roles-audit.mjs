@@ -1344,10 +1344,22 @@ const STAFF_LEVELS = ["rep", "ops_manager"];
     "and a deletion through the guard",
     /const verdict = canDeleteRole\([\s\S]{0,120}if \(!verdict\.ok\) return/.test(opsRoles),
   );
+  /*
+   * THE WRITE IS ONE ACT SINCE 0111 (Robert's Q12, office audit F8). This
+   * check used to find the write as `.from("eng_role_grants").delete()`; it
+   * now names the function call, and asserts the call exists, because an
+   * index of -1 would otherwise read as "the guard comes first".
+   */
+  const rpcAt = opsRoles.indexOf('db.rpc("eng_set_role_grants"');
   rec(
     "and it asks BEFORE it writes",
-    opsRoles.indexOf("canSetGrants(") < opsRoles.indexOf('.from("eng_role_grants").delete()'),
+    rpcAt > 0 && opsRoles.indexOf("canSetGrants(") > 0 && opsRoles.indexOf("canSetGrants(") < rpcAt,
     "a guard applied after the write is a guard that has already lost",
+  );
+  rec(
+    "and the write is one act: no grant is deleted, inserted or upserted outside eng_set_role_grants",
+    !/from\("eng_role_grants"\)\s*\.(delete|insert|upsert|update)\(/.test(opsRoles),
+    "a delete and an insert as two calls leave a role with no grants when the second fails",
   );
 
   // ---- keys
@@ -1655,9 +1667,19 @@ async function makeProbe(db, role) {
  *
  * signInFully is shared with the browser probes so the two sign in paths in
  * this repository cannot disagree about what a session is.
+ *
+ * EACH PROBE SIGNS IN FROM ITS OWN ADDRESS. Board 41761841168 on Q9: H1 keeps
+ * the address count after a good sign in, each probe spends two attempts on it
+ * (the sign in and the enrolment confirm), and the eleventh probe's sign in
+ * was the twenty first attempt from one address, answered 429. Eleven people
+ * at eleven desks is what these probes stand for. The limiter is unchanged,
+ * and the address is an RFC 5737 documentation address inside this run's own
+ * bucket. See fromAddress in scripts/lib/probe-mfa.mjs.
  */
+let probeDesk = 0;
 async function signIn(email, password) {
-  const result = await signInFully(BASE, email, password);
+  probeDesk += 1;
+  const result = await signInFully(BASE, email, password, { address: `198.51.100.${probeDesk}` });
   return {
     ok: result.ok,
     cookie: result.cookie ? `eng_ops=${result.cookie}` : null,

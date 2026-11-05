@@ -26,7 +26,7 @@ export const ACCOUNT_EXPORT_HEADERS = [
   "Net days",
   "Orders",
   "Orders this month",
-  "Issued and unpaid",
+  "On statements, unpaid",
   "Not yet billed",
   "Oldest unpaid, days",
   "Can order",

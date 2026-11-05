@@ -49,14 +49,18 @@
 /**
  * @typedef {object} AppliedEntry
  * @property {string} file        The migration filename, exactly.
- * @property {"apply_migration"|"execute_sql"|"pre_ledger"} appliedBy
+ * @property {"apply_migration"|"execute_sql"|"pre_ledger"|"operator_sql_editor"} appliedBy
  *   HOW production received it, which decides whether the provider's own
  *   migration history shows it. apply_migration writes a row into
  *   supabase_migrations.schema_migrations; execute_sql changes the database and
  *   writes nothing, so the migration is invisible to that history while being
  *   plainly present in the schema. pre_ledger covers 0000 to 0005, which
  *   production received under the names they were applied with, before the
- *   numbered convention existed.
+ *   numbered convention existed. operator_sql_editor is Robert's named route
+ *   of 2026-11-02: a migration the connector cancels, run by the operator in
+ *   the Supabase SQL editor from a script a session prepares, allowed only
+ *   for a migration listed in docs/production-sitting-destructive.md, and
+ *   carrying a handApplied sentence. 0111 is the first (2026-11-04).
  *
  *   Operator ruling, 2026-09-09: every production migration from here goes
  *   through apply_migration, so the two records agree. execute_sql therefore
@@ -4103,7 +4107,14 @@ export const APPLIED = [
     /* The combined chain 0104 to 0108, P5, P3 and P1 merged into this branch on 2026-11-02; re-read off fingerprint-at.mjs that day. */
     fingerprint: "22346b566a73ea946ca112725b16569f",
     behaviour: "961400e898dc3961cd71a4dd08012e3d",
-    production: null,
+        /*
+     * Applied 2026-11-03 14:00:06 UTC by the chat counterpart through
+     * apply_migration from the boarded commit 1acae24 (board 41568841308),
+     * Robert present to confirm the deletes. Read back: 186 grants, the five
+     * rows gone, admin 4 of 4; schema_migrations version 20261103140006
+     * (issue #1, 6605797441).
+     */
+    production: "2026-11-03",
     proves: null,
     provesNote:
       "A revoke is an ABSENCE, and the production check asks whether a declared row EXISTS, so there is nothing " +
@@ -4132,7 +4143,18 @@ export const APPLIED = [
     file: "0109_one_licence_number_belongs_to_one_engineer.sql", appliedBy: "apply_migration",
     fingerprint: "22346b566a73ea946ca112725b16569f",
     behaviour: "fd2c09f5c724f7743c7ec47edc8b7b3b",
-    production: null,
+    /*
+     * Development: sat 2026-11-02 by the chat counterpart from 7b499ee,
+     * version 20261102211122, after the 11 probe licence numbers were nulled
+     * on Robert's word. Production: applied 2026-11-04 21:22:01 UTC by the
+     * chat counterpart through apply_migration from the boarded commit
+     * 99d08b8 (board 41857807988). Read back: 0 duplicate engineer licence
+     * numbers before; eng_profiles_engineer_license_key present;
+     * eng_seal_act_check carries the 0109 clause; EXECUTE for anon,
+     * authenticated and PUBLIC 0; schema_migrations version 20261104212201,
+     * stored hash b603ca92, the same as development (issue #1, 6642448509).
+     */
+    production: "2026-11-04",
     proves: null,
     provesNote:
       "An index and a function body, neither of which the production check can probe by row or column. The " +
@@ -4153,7 +4175,17 @@ export const APPLIED = [
     file: "0110_a_sealed_file_has_a_live_seal_act.sql", appliedBy: "apply_migration",
     fingerprint: "22346b566a73ea946ca112725b16569f",
     behaviour: "68f67ded9047f9737a20d55d5ee12a94",
-    production: null,
+    /*
+     * Production: applied 2026-11-04 21:22:20 UTC by the chat counterpart
+     * through apply_migration, after 0109, from the boarded commit d1828f0
+     * (board 41871323055). Read back: 0 files sealed or delivered without a
+     * live letter seal act, before and after; trigger
+     * eng_files_sealed_needs_a_seal_act present; function
+     * eng_file_sealed_needs_a_seal_act present; EXECUTE for anon,
+     * authenticated and PUBLIC 0; schema_migrations version 20261104212220,
+     * stored hash 3233ead2, the same as development (issue #1, 6642448820).
+     */
+    production: "2026-11-04",
     proves: { function: "eng_file_sealed_needs_a_seal_act" },
     note:
       "Both figures read off scripts/fingerprint-at.mjs on 2026-11-02 on the combined chain 0104 to 0110. A trigger " +
@@ -4164,6 +4196,30 @@ export const APPLIED = [
       "CHAT COUNTERPART'S SITTING; APPLIED NOWHERE. Robert's ruling Q6 of 2026-11-02 (audit field F10): a trigger " +
       "refuses sealed or delivered on eng_files without a live seal act. The one product path that moves a file " +
       "there, deliverSealedFile, runs after the letter act is recorded, so it passes; the generic transition does not.",
+  },
+  {
+    file: "0111_a_role_grant_set_is_replaced_in_one_act.sql", appliedBy: "operator_sql_editor",
+    fingerprint: "22346b566a73ea946ca112725b16569f",
+    behaviour: "1ba6334e77d708f51391a37b7625b1c9",
+    production: null,
+    handApplied:
+      "The connector cancelled the development apply of 0111 on 2026-11-04 (6650906898), because the function body " +
+      "holds a delete, and Robert approved the operator_sql_editor route for development and production. The " +
+      "provider's history holds a row for 0111 only because the script's last block inserts it by hand after the " +
+      "verification read: apply_migration never wrote it, so its version is the moment of that insert rather than of " +
+      "the apply, and nothing in the provider's record shows how the file was run. On development the script's four " +
+      "blocks went through the connector's execute_sql on 2026-11-05, with Robert approving its confirmation for the " +
+      "migration block (6660074026); the history row there is version 20261105140855.",
+    proves: { function: "eng_set_role_grants" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-05 on the chain to 0111. One function adds no " +
+      "column, so the shape is 0110's (22346b56, 1396 columns); the behaviour moves 1357 to 1358 facts, the function.",
+    because:
+      "WRITTEN 2026-11-05 ON fix/f8-set-grants-one-act AND STAGED ON stage/0111-role-grants-one-act FOR THE CHAT " +
+      "COUNTERPART'S SITTING; ON DEVELOPMENT SINCE 2026-11-05 (6660074026), NOT ON PRODUCTION. Robert's Q12 of " +
+      "2026-11-02 (office audit F8), numbered 0111 by his " +
+      "ruling (a) of 2026-11-04: setGrants replaces a role's grants through one function, so a failed insert never " +
+      "leaves the role with none. The delete in the function body runs only when the function is called.",
   },
   {
     file: "0112_the_sales_list_knows_companies_contacts_and_sources.sql", appliedBy: "apply_migration",

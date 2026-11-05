@@ -80,7 +80,16 @@ function client(): Resend | null {
  * outbound template without a network, a key, or a send: it renders the same
  * functions this route does and reads the result.
  */
-export async function notify(email: RenderedEmail): Promise<NotifyResult> {
+export async function notify(
+  email: RenderedEmail,
+  /*
+   * Robert's Q12 (office audit F3, 2026-11-02): the queue passes one key per
+   * job, so a job re-run after its lease expired asks Resend for the same send
+   * and Resend answers with the first message rather than sending a second.
+   * A direct send (no queue, no job) passes nothing and is unchanged.
+   */
+  options: { idempotencyKey?: string } = {},
+): Promise<NotifyResult> {
   const mailer = client();
   if (!mailer) {
     return log(email, { sent: false, outcome: "skipped", reason: "RESEND_API_KEY is not set" });
@@ -112,7 +121,7 @@ export async function notify(email: RenderedEmail): Promise<NotifyResult> {
       // came from a firm. Both are generated from the same blocks.
       text: email.text,
       html: email.html,
-    });
+    }, options.idempotencyKey ? { idempotencyKey: options.idempotencyKey } : undefined);
     if (error) return log(email, { sent: false, outcome: "error", reason: error.message });
     return log(email, { sent: true, outcome: "ok", messageId: data?.id });
   } catch (err) {

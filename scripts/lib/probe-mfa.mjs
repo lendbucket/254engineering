@@ -51,14 +51,16 @@ import { base32Decode, codeForStep, stepAt } from "../../src/lib/totp.ts";
  *
  * @param {string} base       The server, e.g. http://localhost:4300
  * @param {string} cookie     The pending cookie value, with no `eng_ops=` prefix
+ * @param {{ address?: string }} [opts]  See fromAddress below.
  * @returns {Promise<{ ok: true, cookie: string, recoveryCodes: string[] } | { ok: false, error: string }>}
  */
-export async function completeEnrolment(base, cookie) {
+export async function completeEnrolment(base, cookie, opts = {}) {
   const header = `eng_ops=${cookie}`;
+  const from = fromAddress(opts);
 
   const begun = await fetch(`${base}/api/portal/mfa`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", cookie: header },
+    headers: { "Content-Type": "application/json", cookie: header, ...from },
     body: JSON.stringify({ action: "begin" }),
   });
   const started = await begun.json().catch(() => null);
@@ -71,7 +73,7 @@ export async function completeEnrolment(base, cookie) {
 
   const confirmed = await fetch(`${base}/api/portal/mfa`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", cookie: header },
+    headers: { "Content-Type": "application/json", cookie: header, ...from },
     body: JSON.stringify({ action: "confirm", code: codeForStep(bytes, stepAt(Date.now())) }),
   });
   const done = await confirmed.json().catch(() => null);
@@ -95,7 +97,7 @@ export async function completeEnrolment(base, cookie) {
    */
   const acknowledged = await fetch(`${base}/api/portal/mfa`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", cookie: header },
+    headers: { "Content-Type": "application/json", cookie: header, ...from },
     body: JSON.stringify({ action: "codes_saved", completion: done.completion }),
   });
   const finished = await acknowledged.json().catch(() => null);
@@ -128,12 +130,13 @@ export async function completeEnrolment(base, cookie) {
  * @param {string} base
  * @param {string} email
  * @param {string} password
+ * @param {{ address?: string }} [opts]  See fromAddress below.
  * @returns {Promise<{ ok: boolean, cookie: string | null, redirect: string | null, status: number }>}
  */
-export async function signInOnly(base, email, password) {
+export async function signInOnly(base, email, password, opts = {}) {
   const res = await fetch(`${base}/api/portal/session`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...fromAddress(opts) },
     body: JSON.stringify({ email, password }),
   });
   const cookie = (res.headers.get("set-cookie") ?? "").match(/eng_ops=([^;]+)/)?.[1] ?? null;
@@ -152,10 +155,12 @@ export async function signInOnly(base, email, password) {
  * The single entry point every probe should use, so the two sign in paths in
  * this repository cannot drift on this.
  *
+ * @param {{ address?: string }} [opts]  See fromAddress below. It reaches the
+ *   sign in AND the enrolment, because both count against the address.
  * @returns {Promise<{ ok: boolean, cookie: string | null, enrolled: boolean, error?: string }>}
  */
-export async function signInFully(base, email, password) {
-  const signedIn = await signInOnly(base, email, password);
+export async function signInFully(base, email, password, opts = {}) {
+  const signedIn = await signInOnly(base, email, password, opts);
   if (!signedIn.ok) return { ok: false, cookie: null, enrolled: false, error: `sign in ${signedIn.status}` };
 
 
@@ -173,8 +178,31 @@ export async function signInFully(base, email, password) {
 
   if (!needsEnrolment) return { ok: true, cookie: signedIn.cookie, enrolled: false };
 
-  const enrolled = await completeEnrolment(base, signedIn.cookie);
+  const enrolled = await completeEnrolment(base, signedIn.cookie, opts);
   if (!enrolled.ok) return { ok: false, cookie: null, enrolled: false, error: enrolled.error };
 
   return { ok: true, cookie: enrolled.cookie, enrolled: true };
+}
+
+/**
+ * A PROBE MAY SIGN IN FROM ITS OWN ADDRESS, SO EACH PROBE IS COUNTED AS THE
+ * SEPARATE PERSON IT STANDS FOR. Q9, board 41761841168, 2026-11-04.
+ *
+ * Q9's H1 (Robert, 2026-11-02) stopped a successful sign in clearing the
+ * address count: twenty attempts per address in fifteen minutes, ended only
+ * by an administrator's release. roles-audit signs in eleven probes in about
+ * two minutes, and each one spends TWO attempts on the address (the sign in,
+ * then the enrolment confirm). The twenty first, the eleventh probe's sign in,
+ * was answered 429 inside roles-audit's own bucket, read back from
+ * eng_sign_in_attempts on development. The limiter was right and is not
+ * loosened: the harness was signing eleven people in from one desk.
+ *
+ * With an address, the request carries it as x-forwarded-for, which clientKey
+ * already reads (Robert's answer of 2026-10-25: a request picks which of its
+ * own run's buckets it lands in and never leaves its run), so the count stays
+ * inside the board run and the audit's own bucket. Without one, nothing about
+ * the request changes. Use documentation addresses (RFC 5737) only.
+ */
+function fromAddress(opts) {
+  return opts && typeof opts.address === "string" && opts.address ? { "x-forwarded-for": opts.address } : {};
 }

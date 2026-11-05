@@ -3,7 +3,7 @@ import { DB_NOW } from "@/lib/db-now";
 import { verifyCredentials, requestContext } from "@/lib/ops-auth";
 import { issueOpsSession, opsCookieOptions, OPS_COOKIE, opsSessionConfigured } from "@/lib/ops-session";
 import { mfaRequirementFor, mfaStateFor } from "@/lib/ops-mfa";
-import { takeLoginAttempt, clearLoginAttempts, clientKey } from "@/lib/ops-rate-limit";
+import { takeLoginAttempt, clearLoginAttempts, clientKey, doorIdentity } from "@/lib/ops-rate-limit";
 import { writeAudit, writeAuditOrRefuse } from "@/lib/ops-audit";
 import { signInFactor } from "@/lib/sign-in-factor";
 import { OWNER_OVERRIDE_ACTION, SIGN_IN_OVERRIDE_RECORD, type SignInOverrideKey } from "@/lib/owner-override";
@@ -69,6 +69,8 @@ async function handlePOST(request: NextRequest) {
       : NextResponse.json({ ok: false, error }, { status });
 
   const attempted = email.trim().toLowerCase();
+  /* The staff door's own counter (Robert 2026-11-02, per-door counters). */
+  const doorKey = doorIdentity("portal", attempted);
 
   /*
    * RATE LIMIT HERE: after the body is read, before anything is verified.
@@ -86,7 +88,7 @@ async function handlePOST(request: NextRequest) {
    * first and meant an unconfigured deployment answered every attempt forever
    * without counting one. security-audit caught that against production.
    */
-  const limit = await takeLoginAttempt(clientKey(request.headers), attempted || undefined);
+  const limit = await takeLoginAttempt(clientKey(request.headers), doorKey);
   if (!limit.allowed) {
     const res = isForm
       ? NextResponse.redirect(new URL("/portal/login?throttled=1", request.url), { status: 303 })
@@ -134,7 +136,7 @@ async function handlePOST(request: NextRequest) {
     return fail(401, GENERIC);
   }
 
-  await clearLoginAttempts(clientKey(request.headers), attempted);
+  await clearLoginAttempts(clientKey(request.headers), doorKey);
 
   /*
    * THE SECOND FACTOR DECIDES WHICH KIND OF SESSION THIS IS.

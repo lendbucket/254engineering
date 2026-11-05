@@ -180,8 +180,24 @@ export async function listClients(
   actor: Actor | null,
   options: { limit?: number; offset?: number; query?: ClientListQuery } = {},
 ): Promise<ClientRow[]> {
+  const read = await listClientsRead(actor, options);
+  if (!read.ok) console.error(`[clients] the client list could not be read: ${read.error}`);
+  return read.ok ? read.rows : [];
+}
+
+/**
+ * The same read, saying when it failed. Robert's Q13 (office audit F9,
+ * 2026-11-02): the clients screen drew "No clients yet" over a read that had
+ * failed. The screen reads through this; the file picker and the export keep
+ * listClients (the export already refuses a short read against its exact count).
+ */
+export async function listClientsRead(
+  actor: Actor | null,
+  options: { limit?: number; offset?: number; query?: ClientListQuery } = {},
+): Promise<{ ok: true; rows: ClientRow[] } | { ok: false; error: string }> {
   const db = supabaseAdmin();
-  if (!db || !actor) return [];
+  if (!db) return { ok: false, error: "The database is not configured." };
+  if (!actor) return { ok: true, rows: [] };
   /*
    * Office ready, 2026-10-24: the list screen passes a query, searched, filtered
    * and sorted in the database, and paged by offset. The picker passes none and
@@ -200,12 +216,13 @@ export async function listClients(
   const search = q ? clientSearchOr(q.term) : null;
   if (search) read = read.or(search);
   if (q && q.kind !== "all") read = read.eq("kind", q.kind);
-  const { data } = await read
+  const { data, error } = await read
     .order(q?.sort === "name" ? "name" : "created_at", { ascending: q ? q.ascending : false })
     /* A tie broken by id, so a page boundary never shows a client twice or not at all. */
     .order("id", { ascending: true })
     .range(offset, offset + limit - 1);
-  return (data ?? []) as ClientRow[];
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, rows: (data ?? []) as ClientRow[] };
 }
 
 /**
@@ -1024,6 +1041,24 @@ export async function convertLead(
   if (!lead) return { ok: false, error: "That lead no longer exists." };
   if (lead.status === "converted") return { ok: false, error: "That lead has already been converted." };
 
+  /*
+   * CLAIMED BEFORE ANYTHING IS CREATED (office audit F18, 2026-11-02). Two people
+   * converting the same lead both passed the read above and each made a client
+   * and a file. The lead is now marked converted only where it is not already,
+   * and only the person whose write landed goes on; a failure below puts the
+   * lead back the way it was.
+   */
+  const priorStatus = lead.status as string;
+  const { data: claimed, error: claimError } = await db
+    .from("eng_leads")
+    .update({ status: "converted" })
+    .eq("id", leadId)
+    .neq("status", "converted")
+    .select("id");
+  if (claimError) return { ok: false, error: `The lead could not be claimed for conversion: ${claimError.message}` };
+  if (!claimed || claimed.length === 0) return { ok: false, error: "Somebody converted that lead a moment ago." };
+  const release = () => db.from("eng_leads").update({ status: priorStatus }).eq("id", leadId).eq("status", "converted");
+
   const name = (lead.company as string) || (lead.name as string) || "Unnamed enquirer";
 
   const client = await createClient(
@@ -1050,7 +1085,10 @@ export async function convertLead(
     },
     context,
   );
-  if (!client.ok) return { ok: false, error: client.error };
+  if (!client.ok) {
+    await release();
+    return { ok: false, error: client.error };
+  }
 
   const file = await createFile(
     actor,
@@ -1065,9 +1103,11 @@ export async function convertLead(
     },
     context,
   );
-  if (!file.ok) return { ok: false, error: file.error };
-
-  await db.from("eng_leads").update({ status: "converted" }).eq("id", leadId);
+  if (!file.ok) {
+    /* The client stays (clients are not deleted), so the lead is released to be converted against it by hand. */
+    await release();
+    return { ok: false, error: `${file.error} The client ${name} was created; the lead is open again.` };
+  }
 
   /*
    * A QUALIFIED LEAD IS A LEAD SOMEBODY AT THE FIRM CONVERTED.
