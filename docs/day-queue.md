@@ -1,5 +1,25 @@
 # Day queue, 2026-10-23
 
+## The roofer application, built (2026-11-05 afternoon)
+
+**`feat/roofer-application` at `74ad4c8`, stacked on R1 (`bb9b175`), not pushed, not boarded.** 37 files.
+- **Built:**
+  - the page, the three-step form and the confirmation;
+  - the links in the header, mobile sheet, footer and the three roofing service pages;
+  - the public and portal routes;
+  - the review screen to section 2d, with the application at `?id=`, so no new dynamic route is needed under v10's closed exemption list;
+  - the work due now tile and the tab title count;
+  - four emails;
+  - 0113, by the operator_sql_editor route;
+  - every inventory in the new-surface checklist;
+  - forms-audit's refusal checks;
+  - the proof.
+- **Questions posted (6667245292):**
+  - A or B for the number; 0113 is built for A;
+  - the two widened checks by the operator route;
+  - how the preview walk may reach the preview and read the emails.
+- **Owed before either R1 or the roofer branch can board:** the replay (`fingerprint-at.mjs 0111 0112 0113`) for 0112's behaviour digest on the chain with 0111, and for 0113's two digests. Free memory has read 10.3 to 11.6 GB since F8 merged; the replay is a local step under Robert's floor. The type check, the preflight and the proof also wait on it.
+
 ## ROBERT, 2026-11-05 afternoon, in chat, verbatim: the roofer application goes right after R1 (supersedes the next entry's order)
 
 > Change of priority on the roofer application: it goes ahead of R2 through R8, right after R1. An email campaign to 1,477 Texas roofers is ready and waits on this page. Start building it on its own branch now in the gaps. If 0122 has to wait on 0121, build and board everything else, tell me the earliest date it can merge, and tell me what you need from me to get 0121 sat.
