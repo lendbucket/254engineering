@@ -808,6 +808,33 @@ On a pass, low-field merges: full lane, server and dispatch code; no migration.
 
 On a pass, low-money merges: full lane, money code; no migration.
 
+**Bundle 102 result: board `42026451906` on `2b91fae`, 65 of 65, zero FAIL, as predicted.** Preflight GREEN, 38 rules. proofs-audit PASS with the-money-audit-low-findings-are-closed (26 checks). LCP `/` 2345ms, `/services/windstorm-wpi-8` 2860ms, `/coverage` 2884ms, coastal-bend 2713ms, each under its ceiling. Writers took 3 transient retries. **low-money merged** as `b705676` (parents `bc4bd4e`, `2b91fae`), tree identical to the boarded commit; exact push, and `ls-remote` confirms main `b705676`; no board started on main. Issue #1 has nothing after 6657863374.
+
+**Bundle 103, low-office: `fix/low-office` at `ab69bb6`.** It is `1883f51` with main `b705676` merged in, clean; no file changed on main since `97a8e9a` is in this bundle.
+- **The change over main (21 files, office audit 6585009173, commit `3b583fb`):**
+  - F14: four CSV exports (clients, inbox, order lookup, payment links) write their audit row before the file, through the new `src/lib/export-audit.ts`, and refuse when it cannot be written.
+  - F15: the people screen shows only the buttons the route's grants allow.
+  - F16: the task functions ask `tasks.use`.
+  - F17: activation resumes after the account exists.
+  - F18: the deletion answer and lead conversion are conditional.
+  - F19: `requireAdmin` takes the action.
+  - F20: `api/portal/exports` and suspend and restore record first or refuse.
+  - A new proof, the-office-low-findings-hold. No migration, and no table or column.
+- **Checks edited, each read and each sharper rather than looser:**
+  - money-audit's export line now needs at least five `await writeAuditOrRefuse(` and no bare `await writeAudit(`.
+  - Three proofs (accounts CSV, applications list, staff lists export) name the new call, and each adds an anchor-found guard, since an index of -1 sorts before everything.
+- **Readers:** proofs-audit, money-audit, roles-audit (people route, deletion requests, order lookup), jobs-audit, reporting-audit, email-audit, db-guard-audit (no `_at` stamp from the process clock is added), security-audit, token-audit, v10-layout-audit, w2-walk-audit, onboarding-audit and onboarding-walk-audit (activation), partner-audit, bulk-audit, files-audit and demo-audit (`ops-crm.ts`), and native-audit, mobile-overflow-audit and contrast-audit (the people and onboarding screens).
+- **Local steps NOT run:** free memory read 5.5 GB. Under Robert's memory ruling the local preflight and proof are skipped, and the board is the check.
+
+**Prediction, bundle 103, stated before dispatch: 65 of 65, zero FAIL.**
+- Preflight GREEN on the board.
+- proofs-audit PASS with the new proof and the three edited proofs.
+- money, roles, jobs, onboarding, onboarding-walk and the screen audits PASS.
+- Public bytes unchanged, and the four LCP pages under their ceilings.
+- Standing COULD NOT TELL lines only.
+
+On a pass, low-office merges: full lane, server, API routes and grants; no migration.
+
 **F9 CORRECTION (issue #1, F9 correction comment).** My F9 question 6594767802 was wrong twice: no letter template is signed since 0091 (2026-10-25), so nothing needs re-signing; and the quoted section 9 sentence exists only in 254-RC-001. F9 built for the roof letter only at `c7e8a31` (`fix/f9-visit-date-receipt`, over main `3446a44`), preflight GREEN, proof 15 checks, five injections. Two questions posted (the four other letters; adoption by sealing). Boards with the follow-ups.
 
 **Review-request fixture** built at `f9761a2` (`fix/review-request-fixture-once`): one sealed `254-DEMO-RQ-FIXTURE` file reused; boards with the follow-ups.
