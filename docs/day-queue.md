@@ -898,6 +898,26 @@ On a pass, low-office merges: full lane, server, API routes and grants; no migra
 
 On a pass the 0111 production sitting request is posted; F8 merges after the production read-back, with the ledger line.
 
+**Bundle 104 result: board `42049099563` on `629a8ca`, RED, 64 of 65. NOT MERGED, and no production request posted.** Preflight GREEN. One audit failed, v10-layout-audit, with two FAIL lines:
+- "a seedPartner session was created (setting the password was refused (HTTP 400))";
+- then "/partner/statements/[reference] is measured", because no seeded partner session existed to open it.
+
+Every other line of the prediction held. migration-audit, schema-ledger-audit and roles-audit PASS. proofs-audit PASS with a-role-grant-set-is-replaced-in-one-act. LCP `/` 2854ms, service 2860ms, `/coverage` 2638ms, coastal-bend 2864ms.
+
+**What is known, and what is not.**
+- F8 touches no partner code, and low-office's board passed v10-layout-audit on main's tree an hour earlier.
+- `/api/partner/set-password` answers 400 for a short password, an invalid, expired or spent link, a suspended holder, and a failed database read or write. The fixture printed only the status.
+- The `next start` log for port 4300 is not in the shard's artifact, so which of these it hit cannot be read.
+- The likeliest is a failed development read inside `setPartnerPassword`, the same dropped socket class as today's transient retries. That is a hypothesis, not a finding.
+- My prediction missed it.
+
+**Bundle 104b, F8 at `b27e5fe`:** `629a8ca` plus one harness change. The attached probe's set password fault now carries the route's own sentence, not only the status, so a repeat names its cause. No retry is added: a refusal stays a FAIL. Main `6b772bd` unmoved. Local steps NOT run: free memory under the floor.
+
+**Prediction, bundle 104b, stated before dispatch: 65 of 65, zero FAIL.**
+- v10-layout-audit PASS, the seeded partner session created and `/partner/statements/[reference]` measured.
+- Every other line as bundle 104.
+- If the seeded partner is refused again, the line names the route's sentence. That is F8's second red on a new commit, and F8 parks with the sentence as the question.
+
 **F9 CORRECTION (issue #1, F9 correction comment).** My F9 question 6594767802 was wrong twice: no letter template is signed since 0091 (2026-10-25), so nothing needs re-signing; and the quoted section 9 sentence exists only in 254-RC-001. F9 built for the roof letter only at `c7e8a31` (`fix/f9-visit-date-receipt`, over main `3446a44`), preflight GREEN, proof 15 checks, five injections. Two questions posted (the four other letters; adoption by sealing). Boards with the follow-ups.
 
 **Review-request fixture** built at `f9761a2` (`fix/review-request-fixture-once`): one sealed `254-DEMO-RQ-FIXTURE` file reused; boards with the follow-ups.
