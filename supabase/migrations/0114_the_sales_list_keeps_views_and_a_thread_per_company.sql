@@ -1,6 +1,6 @@
 /*
  * ===========================================================================
- * 0113: THE SALES LIST KEEPS EACH PERSON'S SAVED VIEWS, AND ONE THREAD PER
+ * 0114: THE SALES LIST KEEPS EACH PERSON'S SAVED VIEWS, AND ONE THREAD PER
  * COMPANY. Robert's sales CRM ruling of 2026-11-02, item R4 (pipeline and
  * lists), with his answer 5 the same afternoon.
  * ===========================================================================
@@ -24,7 +24,7 @@
  * KEPT, PENDING COUNSEL, as eng_prospects is: retention-policy.ts declares
  * both. ADDITIVE ONLY: no drop, no change to an existing table.
  *
- * Development first, on stage/0113-crm-pipeline; production at the chat
+ * Development first, on stage/0114-crm-pipeline; production at the chat
  * counterpart's sitting after R4's board.
  */
 
@@ -33,16 +33,16 @@
 do $$
 begin
   if to_regclass('public.eng_crm_import_runs') is null then
-    raise exception 'eng: 0113 follows 0112, which adds eng_crm_import_runs. It does not exist here.';
+    raise exception 'eng: 0114 follows 0113, which adds eng_crm_import_runs. It does not exist here.';
   end if;
   if not exists (
     select 1 from information_schema.columns
      where table_schema = 'public' and table_name = 'eng_threads' and column_name = 'direct_key'
   ) then
-    raise exception 'eng: 0113 links a company to a direct thread by direct_key (0005), and eng_threads has no direct_key here.';
+    raise exception 'eng: 0114 links a company to a direct thread by direct_key (0005), and eng_threads has no direct_key here.';
   end if;
   if exists (select 1 from public.eng_threads where direct_key like 'prospect:%') then
-    raise exception 'eng: 0113 expects no thread keyed to a company before the link table exists.';
+    raise exception 'eng: 0114 expects no thread keyed to a company before the link table exists.';
   end if;
 end;
 $$;
@@ -73,7 +73,7 @@ alter table eng_crm_saved_views enable row level security;
 revoke all on eng_crm_saved_views from public, anon, authenticated;
 
 comment on table eng_crm_saved_views is
-  'One person''s named search, filters and sort on the sales list, for the board or the list. Read only for that person. 0113.';
+  'One person''s named search, filters and sort on the sales list, for the board or the list. Read only for that person. 0114.';
 
 /* ------------------------------------------------------ one thread per company */
 
@@ -89,23 +89,23 @@ alter table eng_prospect_threads enable row level security;
 revoke all on eng_prospect_threads from public, anon, authenticated;
 
 comment on table eng_prospect_threads is
-  'The direct thread that holds a company''s notes, keyed prospect:<id>. One company, one thread (Robert''s answer 5, 2026-11-02). 0113.';
+  'The direct thread that holds a company''s notes, keyed prospect:<id>. One company, one thread (Robert''s answer 5, 2026-11-02). 0114.';
 
 /* ------------------------------------------------------------- closing assert */
 
 do $$
 begin
   if to_regclass('public.eng_crm_saved_views') is null or to_regclass('public.eng_prospect_threads') is null then
-    raise exception 'eng: 0113 expects eng_crm_saved_views and eng_prospect_threads after it runs.';
+    raise exception 'eng: 0114 expects eng_crm_saved_views and eng_prospect_threads after it runs.';
   end if;
   if exists (
     select 1 from pg_class c
      where c.relname in ('eng_crm_saved_views', 'eng_prospect_threads') and not c.relrowsecurity
   ) then
-    raise exception 'eng: 0113 expects row level security on both tables.';
+    raise exception 'eng: 0114 expects row level security on both tables.';
   end if;
   if not exists (select 1 from pg_constraint where conname = 'eng_crm_saved_views_name_once') then
-    raise exception 'eng: 0113 expects one saved view per person per name.';
+    raise exception 'eng: 0114 expects one saved view per person per name.';
   end if;
 end;
 $$;
