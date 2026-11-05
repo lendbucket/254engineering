@@ -78,7 +78,7 @@ check("it parses the page's query with the page's own helper", /const query = ac
 check("it reads every matching account through the screen's function", /await accountRows\(query, "every"\)/.test(branch));
 check(
   "a failed read refuses before any audit row or file",
-  /if \(!read\.ok\) \{\s*return bad\(/.test(branch) && branch.indexOf("if (!read.ok)") < branch.indexOf("writeAudit(") && branch.indexOf("if (!read.ok)") < branch.indexOf("accountsCsv("),
+  /if \(!read\.ok\) \{\s*return bad\(/.test(branch) && branch.indexOf("writeAuditOrRefuse(") >= 0 && branch.indexOf("if (!read.ok)") < branch.indexOf("writeAuditOrRefuse(") && branch.indexOf("if (!read.ok)") < branch.indexOf("accountsCsv("),
 );
 check("every export is audited, as the door's others are", /action: "export\.accounts"/.test(branch));
 check("and the file is the shared builder behind the shared headers", /accountsCsv\(read\.rows, query, read\.all\)/.test(branch) && /csvHeaders\(accountsFilename\(stamp\(\)\)\)/.test(branch));

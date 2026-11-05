@@ -41,6 +41,12 @@ export default async function PeoplePage({ searchParams }: { searchParams: Promi
    * answers at all. A 403 page confirms the route exists; a 404 says nothing.
    */
   if (!can(actor, "profiles.list")) notFound();
+  /* The grants the people route asks for each act (office audit F15): no button is drawn that the route would refuse. */
+  const may = {
+    invite: can(actor, "profiles.create"),
+    forceReset: can(actor, "profiles.force_reset"),
+    suspend: can(actor, "profiles.suspend"),
+  };
 
   const params = await searchParams;
   const read = await readPeople();
@@ -95,7 +101,7 @@ export default async function PeoplePage({ searchParams }: { searchParams: Promi
     {
       key: "actions",
       head: "Actions",
-      cell: (p) => <PersonActions person={p} selfId={actor!.id} />,
+      cell: (p) => <PersonActions person={p} selfId={actor!.id} may={may} />,
     },
   ];
 
@@ -172,7 +178,7 @@ export default async function PeoplePage({ searchParams }: { searchParams: Promi
                 </p>
                 <p className="mt-1 text-[14px] text-[var(--secondary)]">Last sign in {when(p.last_sign_in_at)}</p>
                 <div className="mt-3">
-                  <PersonActions person={p} selfId={actor!.id} />
+                  <PersonActions person={p} selfId={actor!.id} may={may} />
                 </div>
               </div>
             )}

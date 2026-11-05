@@ -5,6 +5,7 @@ import { countClients, listClients } from "@/lib/ops-crm";
 import { clientListQuery } from "@/lib/client-list";
 import { csv, csvHeaders } from "@/lib/csv";
 import { formatInFirmZone } from "@/lib/firm-calendar";
+import { auditExportOrRefuse } from "@/lib/export-audit";
 
 export const dynamic = "force-dynamic";
 
@@ -45,6 +46,8 @@ export async function GET(request: NextRequest) {
     return bad(`Read ${rows.length} clients against an exact count of ${total}, so no file was made. Try again.`, 500);
   }
 
+  const refused = await auditExportOrRefuse(actor, "export.clients", `Exported ${total} clients as CSV`);
+  if (refused) return bad(refused, 503);
   const body = csv({
     preamble: [["Clients", `${total} matching`]],
     headers: ["Client", "Kind", "Type", "Email", "Phone", "City", "County", "Source", "Added"],

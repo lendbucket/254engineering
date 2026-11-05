@@ -510,7 +510,7 @@ export async function activateTechnician(
    */
   input: { licenseNumber?: string | null } = {},
 ): Promise<
-  | { ok: true; profileId: string; token: string | null; linked: boolean; credentials: number }
+  | { ok: true; profileId: string; token: string | null; linked: boolean; resumed: boolean; credentials: number }
   | { ok: false; error: string; blockers?: string[] }
 > {
   const db = supabaseAdmin();
@@ -545,17 +545,56 @@ export async function activateTechnician(
     if (problem) return { ok: false, error: problem, blockers: [problem] };
   }
 
-  const created = await createAccount({
-    email: view.onboarding.email,
-    displayName: view.onboarding.person_name,
-    role: view.onboarding.role,
-    licenseNumber: isEngineer ? licenseNumber : null,
-    phone: view.onboarding.phone,
-    coverageCounties: view.onboarding.coverage_counties,
-    baseCity: view.onboarding.base_city,
-    baseCounty: view.onboarding.base_county,
-  });
-  if (!created.ok) return { ok: false, error: created.error };
+  /*
+   * RESUMABLE AFTER THE ACCOUNT EXISTS. Office audit F17, 2026-11-02 (issue #1
+   * comment 6585009173). The account used to be created and the credentials
+   * written after it with nothing recorded in between, so a failed credential
+   * write left an account and an error saying "Run this again", and running it
+   * again failed on "That email already has a portal account". The profile is
+   * now recorded on the onboarding the moment it exists, and a second attempt
+   * picks it up instead of creating a second account.
+   */
+  let created: { profileId: string; token: string | null; linked: boolean; resumed: boolean };
+  if (view.onboarding.profile_id) {
+    const { data: existing } = await db
+      .from("eng_profiles")
+      .select("id, license_number")
+      .eq("id", view.onboarding.profile_id)
+      .maybeSingle();
+    if (!existing) return { ok: false, error: "The account an earlier attempt created could not be read. Try again." };
+    if (isEngineer && existing.license_number !== licenseNumber) {
+      return {
+        ok: false,
+        error: `The account an earlier attempt created carries license ${existing.license_number ?? "(none)"}. Type that number to finish.`,
+      };
+    }
+    created = { profileId: String(existing.id), token: null, linked: false, resumed: true };
+  } else {
+    const made = await createAccount({
+      email: view.onboarding.email,
+      displayName: view.onboarding.person_name,
+      role: view.onboarding.role,
+      licenseNumber: isEngineer ? licenseNumber : null,
+      phone: view.onboarding.phone,
+      coverageCounties: view.onboarding.coverage_counties,
+      baseCity: view.onboarding.base_city,
+      baseCounty: view.onboarding.base_county,
+    });
+    if (!made.ok) return { ok: false, error: made.error };
+    created = { profileId: made.profileId, token: made.token, linked: made.linked, resumed: false };
+    const { error: recordError } = await db
+      .from("eng_onboardings")
+      .update({ profile_id: made.profileId })
+      .eq("id", onboardingId);
+    if (recordError) {
+      return {
+        ok: false,
+        error:
+          `The account was created but could not be recorded on this onboarding: ${recordError.message}. ` +
+          "Do not activate again; ask an administrator to link the account by hand.",
+      };
+    }
+  }
 
   /*
    * Every accepted document that dispatch reads becomes a credential row,
@@ -578,18 +617,32 @@ export async function activateTechnician(
       verified_by: actor.id,
     }));
 
+  /* On a resumed attempt, a kind already on file for this profile is not written twice. */
+  let toWrite = credentialRows;
+  if (created.resumed && credentialRows.length) {
+    const { data: onFile, error: onFileError } = await db
+      .from("eng_credentials")
+      .select("kind")
+      .eq("profile_id", created.profileId);
+    if (onFileError) {
+      return { ok: false, error: `The credentials already on file could not be read: ${onFileError.message}. Activate again.` };
+    }
+    const have = new Set((onFile ?? []).map((r) => String(r.kind)));
+    toWrite = credentialRows.filter((r) => !have.has(r.kind));
+  }
+
   let written = 0;
-  if (credentialRows.length) {
-    const { error } = await db.from("eng_credentials").insert(credentialRows);
+  if (toWrite.length) {
+    const { error } = await db.from("eng_credentials").insert(toWrite);
     if (error) {
       return {
         ok: false,
         error:
           `The account was created but the credentials did not save: ${error.message}. ` +
-          "The technician cannot be dispatched until they do. Run this again.",
+          "The technician cannot be dispatched until they do. Press Activate again: it finishes this account rather than making a second one.",
       };
     }
-    written = credentialRows.length;
+    written = toWrite.length;
   }
 
   await db
@@ -617,6 +670,7 @@ export async function activateTechnician(
     profileId: created.profileId,
     token: created.token,
     linked: created.linked,
+    resumed: created.resumed,
     credentials: written,
   };
 }
