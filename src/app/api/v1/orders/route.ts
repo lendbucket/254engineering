@@ -260,7 +260,8 @@ export async function POST(request: NextRequest) {
 /** Nothing is readable here yet, and a GET should say so rather than 404. */
 export async function GET() {
   return NextResponse.json(
-    { ok: false, error: "This endpoint accepts POST only. See docs/ordering-api.md." },
+    /* Site audit issue 7, 2026-11-02: the public answer names no internal file. */
+    { ok: false, error: "This endpoint accepts POST only." },
     { status: 405 },
   );
 }
