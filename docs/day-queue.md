@@ -1,5 +1,31 @@
 # Day queue, 2026-10-23
 
+## ROBERT'S OVERNIGHT RULING, 2026-11-04 night, in chat, verbatim
+
+> Overnight ruling. Record it on ops/day first, verbatim. Follow docs/standing-orders.md. Run until everything below is merged or parked, then post the morning report and stop.
+>
+> 0111
+> My counterpart's development apply of 0111 came back cancelled by the connector, nothing run, not retried (6650906898). I approve the operator_sql_editor route for 0111, development and production: add 0111 to docs/production-sitting-destructive.md with the sentence saying what the provider's history will not show. Post the development script on issue #1 now: the dry read, the file's exact text at 156a682, the verification read, and the ledger insert with route operator_sql_editor. I run it tonight and post my result. F8 boards only after my counterpart reads development back on issue #1. On green, post the production script for me to run in the morning. F8 merges after the production read back.
+>
+> ORDER
+> 1. F4 now, then the review request fixture, F9 roof, and the five low bundles. These are code only: each takes the current main, boards, and merges on a match tonight. L6 and anything else on 6594441148 that needs my answer is parked with its question; the rest of each bundle boards.
+> 2. As soon as development holds 0111: F8 boards. Then CRM R1 to R8 in order, each stacked on the item before it, starting on F8's boarded head. Post each development sitting request on issue #1 immediately before its item boards, never earlier; my counterpart sits the additive ones overnight. A CRM item merges only after F8 has merged and its own production read back is posted. Until then each one boards and waits green.
+> 3. Then M2 (0118) and Q8b (0119) the same way. Q8c stays parked.
+> 4. Whenever an item waits on a sitting, board the next item that does not depend on it.
+>
+> RULES
+> One board at a time. Never re-run an unchanged commit. Never merge red. Never loosen a check or raise a ceiling. A question never stops the queue: post it with your recommendation, park the item, take the next. Two reds on new commits for the same item: park it.
+> After every dispatch, start the waiter and schedule the fallback wakeup. Read the board from GitHub first on every wake.
+> If a sitting comes back cancelled, it is not retried: post it, and prepare the SQL editor script for me in the morning.
+> No production writes from the PC, no email or SMS to real people, no force push, no branch deletion, no secrets in output, 12 GB memory floor.
+> Content rules everywhere: no long dashes, no hyphens as sentence connectors, no AI tell words, US spelling, "254 Engineering", no engineer name or license number on public pages.
+> Wake on board completion, not on a timer.
+>
+> MORNING REPORT, issue #1 and the top of docs/day-queue.md by 6:30 AM Central
+> Merged with commits and boards. Green and waiting, with what each waits on. Parked with the exact answer needed and your recommendation. Sittings done and owed by number, and which ones need me at the SQL editor. The four tracked pages' LCP from the last board. Main's head from ls-remote.
+
+Recorded while board 41975497821 (F4, bundle 97, `5feca24`) runs in the cloud; nothing on this machine touches the board.
+
 ## MORNING REPORT, 2026-11-04 (written 11:10 UTC, 06:10 Central)
 
 **Nothing needed from Robert to continue, apart from Q8c, which already waits on you.** Main is `1fc01b986a998e493dabb99096435150310d6a89` (ls-remote, 11:07 UTC).
