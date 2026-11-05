@@ -31,6 +31,8 @@ export const dynamic = "force-dynamic";
  */
 export const metadata: Metadata = {
   title: "Your order | 254 Engineering",
+  /* Its own description rather than the home page's (site audit issue 12, 2026-11-02). */
+  description: "The status of one order, opened from the link 254 Engineering emailed.",
   robots: { index: false, follow: false, nocache: true },
 };
 
