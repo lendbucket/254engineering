@@ -3,6 +3,7 @@ import { DB_NOW } from "./db-now";
 import { cookies } from "next/headers";
 import { createHash, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { supabaseAdmin } from "./supabase";
+import { exactEmailPattern } from "./email-match";
 import {
   PARTNER_COOKIE,
   issuePartnerSession,
@@ -294,7 +295,7 @@ export async function signInPartner(
   const { data: userRows, error: userErr } = await db
     .from("eng_partner_users")
     .select("id, partner_id, email, display_name, status, password_hash, password_salt")
-    .ilike("email", email.trim())
+    .ilike("email", exactEmailPattern(email))
     .order("created_at", { ascending: true })
     .limit(1);
 

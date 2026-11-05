@@ -131,7 +131,8 @@ async function handlePOST(request: NextRequest) {
   if (!session) return fail(503, "The partner program is not configured.");
 
   await writeAudit({
-    actor: { id: null, role: "admin", email: result.principal.email },
+    /* A partner is not staff: the row says "partner", never "admin" (auth audit L1, 2026-11-02), the shape the customer door already uses. */
+    actor: { id: null, role: "partner" as never, email: result.principal.email },
     action: "partner.sign_in",
     entityType: "partner",
     entityId: result.principal.partnerId,
