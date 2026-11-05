@@ -1,5 +1,9 @@
 # Day queue, 2026-10-23
 
+## ROBERT, 2026-11-05 afternoon, in chat, verbatim: a memory gap is a gap
+
+> Yes. low-auth takes main 0737b78 and boards now, alone, with your prediction stated first. R1 goes next as soon as free memory is over 12 GB. The same rule applies to any later gap where a CRM item waits on memory rather than a sitting: L6 and L3 may use it.
+
 ## ROBERT, 2026-11-05, in chat, verbatim: the roofer partner application (plan first, after the queued CRM branches)
 
 > New full lane work, after the CRM branches that are already queued. I want a roofer partner application on 254engineering.com. Read docs/new-surface-checklist.md first, and inventory what the platform already has before you build anything: the partner program, the account doors, the CRM prospect kinds, and the self-service-signup gate condition. Report the plan to me before you write code.
@@ -966,6 +970,21 @@ On a pass, low-auth merges: full lane, auth server code; no migration.
 **R1 at `bb9b175`** (renumbered to 0112, over main `0737b78`) waits on one local step: 0112's behaviour digest and fact count, recomputed on the chain that now holds 0111 (`fingerprint-at.mjs 0111 0112`). Free memory has read 10.3 to 11.5 GB since, under the floor. It is not skipped, because without it migration-audit fails on a stale figure, which would be my red, not R1's.
 
 **The roofer partner application:** planned only, posted as 6665440881 with six questions. Nothing is built until Robert answers.
+
+**Bundle 105b, low-auth: `fix/low-auth` at `6fd993f`, boarded on Robert's word (a memory gap is a gap).** It is `5fe35cd` (green on the old main at 42072604995) with main `0737b78` merged in, clean. No file changed by F8 is in this bundle. Cross effects read:
+- low-auth writes no `eng_role_grants` row, which F8's new roles-audit check refuses;
+- F8's fixture change only adds the route's sentence to a fault.
+
+Local steps NOT run: free memory read 10.4 GB.
+
+**Prediction, bundle 105b, stated before dispatch: 65 of 65, zero FAIL.**
+- Every line as bundle 105.
+- proofs-audit PASS with the auth proof and F8's grant set proof.
+- roles-audit PASS with F8's checks.
+- Public bytes unchanged, and the four LCP pages under their ceilings.
+- Standing COULD NOT TELL lines only.
+
+On a pass, low-auth merges: full lane, auth server code; no migration.
 
 **F9 CORRECTION (issue #1, F9 correction comment).** My F9 question 6594767802 was wrong twice: no letter template is signed since 0091 (2026-10-25), so nothing needs re-signing; and the quoted section 9 sentence exists only in 254-RC-001. F9 built for the roof letter only at `c7e8a31` (`fix/f9-visit-date-receipt`, over main `3446a44`), preflight GREEN, proof 15 checks, five injections. Two questions posted (the four other letters; adoption by sealing). Boards with the follow-ups.
 
