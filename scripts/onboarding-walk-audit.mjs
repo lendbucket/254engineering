@@ -174,8 +174,23 @@ async function walk(role) {
   const { token, onboardingId } = invited.body;
   made.onboardings.push(onboardingId);
 
-  const page = await fetch(`${BASE}/onboarding/${encodeURIComponent(token)}`);
-  rec(`${word}: the invite link opens the flow`, page.status === 200, `HTTP ${page.status}`);
+  /*
+   * L6, Robert's answer of 2026-11-05: the invite link is exchanged for a
+   * short lived httpOnly cookie and redirected to /onboarding/invite, so the
+   * walk follows it the way a browser does, carrying the cookie, and reads the
+   * flow's own heading rather than a status: the "not active" page is a 200 too.
+   */
+  const first = await fetch(`${BASE}/onboarding/${encodeURIComponent(token)}`, { redirect: "manual" });
+  const inviteCookie = (first.headers.get("set-cookie") ?? "").split(";")[0];
+  const inviteAt = first.headers.get("location") ?? "";
+  rec(
+    `${word}: the invite link is redirected to /onboarding/invite with its token in a cookie`,
+    first.status === 307 && new URL(inviteAt || "/", BASE).pathname === "/onboarding/invite" && /^__Host-254-link-[0-9a-f]{20}=/.test(inviteCookie),
+    `HTTP ${first.status}, location ${new URL(inviteAt || "/", BASE).pathname}`,
+  );
+  const page = await fetch(new URL(inviteAt || "/onboarding/invite", BASE), { redirect: "manual", headers: { cookie: inviteCookie } });
+  const pageText = page.status === 200 ? await page.text() : "";
+  rec(`${word}: the invite link opens the flow`, page.status === 200 && /Welcome,/.test(pageText), `HTTP ${page.status}`);
 
   const checklist = checklistFor(role);
   const personItems = checklist.filter((i) => i.actor === "person");
