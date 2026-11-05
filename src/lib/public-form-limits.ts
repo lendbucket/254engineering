@@ -91,3 +91,53 @@ export async function takeAcknowledgement(kind: PublicFormKind, headers: Headers
   const taken = await takeCountedAttempt(keys.acknowledgement, PUBLIC_FORM_LIMITS.acknowledgementsPerDay, 24 * 60 * 60);
   return taken.allowed;
 }
+
+/*
+ * THE APPLICANT'S UPLOAD IS LIMITED THE SAME WAY. Robert's answer L3 of
+ * 2026-11-05 (auth low findings, 6594441148): "its own small branch on Q11's
+ * counted limiter."
+ *
+ * /api/upload hands a signed upload URL to anybody with no session, because an
+ * applicant has none, so a script could mint them without end and fill the
+ * private bucket. It is counted on the same counted limiter as the four forms,
+ * before any URL is signed.
+ *
+ * THE NUMBERS ARE MY CHOICE, not a ruling. An application carries at most three
+ * documents (resume, certifications, license) and a phone on poor signal may
+ * retry each a few times:
+ *
+ *   Per connection, an hour: 30 signed URLs.
+ *   Per application id, an hour: 12. The id is the caller's own, so this bounds
+ *   one application; the connection count is what bounds a script that invents
+ *   ids.
+ *
+ * Pinned in scripts/proofs/the-applicant-upload-is-limited.mjs. A board run
+ * counts the application key in its own bucket, as the address key above does.
+ */
+export const UPLOAD_LIMITS = {
+  windowSeconds: 60 * 60,
+  perConnection: 30,
+  perApplication: 12,
+} as const;
+
+/** The sentence a refused upload answers with. */
+export const UPLOAD_REFUSAL =
+  "Too many uploads were started from here in the last hour, so this one was not. Please try again later, or email the document to the firm.";
+
+/** The keys one upload is counted under. Exported for the proof. */
+export function uploadKeys(headers: Headers, applicationId: string) {
+  const connection = clientKey(headers);
+  return {
+    connection: `upload:ip:${connection}`,
+    application: `upload:app:${runPrefix(connection)}${applicationId}`,
+  };
+}
+
+/** Count one signed upload URL. Refused when this connection or this application has asked too often in the hour. */
+export async function takeUploadAttempt(headers: Headers, applicationId: string): Promise<{ allowed: boolean }> {
+  const keys = uploadKeys(headers, applicationId);
+  const byConnection = await takeCountedAttempt(keys.connection, UPLOAD_LIMITS.perConnection, UPLOAD_LIMITS.windowSeconds);
+  if (!byConnection.allowed) return { allowed: false };
+  const byApplication = await takeCountedAttempt(keys.application, UPLOAD_LIMITS.perApplication, UPLOAD_LIMITS.windowSeconds);
+  return { allowed: byApplication.allowed };
+}
