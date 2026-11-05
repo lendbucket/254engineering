@@ -1,5 +1,17 @@
 # Day queue, 2026-10-23
 
+## ROBERT, 2026-11-05 afternoon, in chat, verbatim: the roofer application answers
+
+> (His priority and finish list, word for word as recorded below, then:)
+>
+> Roofer application answers. 1 Order A: roofer's migration is 0113 right after R1, and R2 through the kind check move up one on new stage branches. 2 Yes, one file by the operator_sql_editor route, development then production; tell the counterpart on issue #1 when each sitting is ready and I will approve the prompts. 3a Previews are behind Vercel Authentication, so run the walk on a local production build pointed at development. 3b The two test applications use support+roofer-test-1@wattsmithelectric.com and support+roofer-test-2@wattsmithelectric.com; my counterpart reads that inbox and will confirm on issue #1 that the set-password and decline emails arrived. 3c Use a probe admin from the existing probe helper and remove it afterwards in the normal way. Screenshots at 390 and 1280 of every step as I asked.
+
+**What follows.**
+- **0113 is the roofer file.** R2 (0113 to 0114), R4, R5, R7 and R8, M2, Q8b, 0120 and the kind check each move up one on new stage branches when they come up; the old stage branches stay.
+- **Development already holds R2's file under the name `0113_the_sales_list_imports_from_named_sources`** (6664433708). R2's ledger entry records that when R2 is renumbered.
+- **The roofer 0113 sitting script** is generated from the file's bytes on a new stage branch, `stage/0113-roofer-applies`. It is posted only after the file has run clean against the replayed chain, which needs memory over the floor.
+- **The walk** runs on a local production build pointed at development, after development's sitting. Both are local steps under the 12 GB floor.
+
 ## The roofer application, built (2026-11-05 afternoon)
 
 **`feat/roofer-application` at `74ad4c8`, stacked on R1 (`bb9b175`), not pushed, not boarded.** 37 files.
