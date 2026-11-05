@@ -117,6 +117,7 @@ export function Checklist({
   const [queue, setQueue] = useState<QueuedCapture[]>([]);
   const [online, setOnline] = useState(true);
   const [flushing, setFlushing] = useState(false);
+  const flushingRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [blockers, setBlockers] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -146,7 +147,13 @@ export function Checklist({
    * out. One at a time finishes the first one.
    */
   const flush = useCallback(async () => {
-    if (flushing) return;
+    /*
+     * The guard reads a ref, not the state (field audit F18, 2026-11-02): the
+     * online listener held the first render's flush, whose `flushing` was
+     * always false, so a reconnect during a flush started a second loop.
+     */
+    if (flushingRef.current) return;
+    flushingRef.current = true;
     setFlushing(true);
     try {
       const pending = await pendingFor(fileId);
@@ -164,9 +171,13 @@ export function Checklist({
       await refreshQueue();
       if (sent > 0) router.refresh();
     } finally {
+      flushingRef.current = false;
       setFlushing(false);
     }
-  }, [fileId, flushing, refreshQueue, router]);
+  }, [fileId, refreshQueue, router]);
+  /* The listener below calls the latest flush through this ref, not the one it captured. */
+  const flushRef = useRef(flush);
+  flushRef.current = flush;
 
   useEffect(() => {
     setOnline(navigator.onLine);
@@ -174,7 +185,7 @@ export function Checklist({
 
     const up = () => {
       setOnline(true);
-      void flush();
+      void flushRef.current();
     };
     const down = () => setOnline(false);
     window.addEventListener("online", up);

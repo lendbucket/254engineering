@@ -6,6 +6,7 @@ import { BILL_INTENT_LABEL, billListRows } from "@/lib/billing-rules";
 import { csv, csvHeaders } from "@/lib/csv";
 import { moneyCell } from "@/lib/ops-money";
 import { formatInFirmZone } from "@/lib/firm-calendar";
+import { auditExportOrRefuse } from "@/lib/export-audit";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +35,8 @@ export async function GET(request: NextRequest) {
     sort: params.get("sort") ?? undefined,
     dir: params.get("dir") ?? undefined,
   });
+  const refused = await auditExportOrRefuse(actor, "export.payment_links", `Exported ${rows.length} jobs not yet paid as CSV`);
+  if (refused) return bad(refused, 503);
   const body = csv({
     preamble: [["Jobs not yet paid", `${rows.length} matching`]],
     headers: ["File", "Opened", "Client", "Email", "Phone", "Service", "Property", "County", "Status", "Billing", "Price", "Account on invoice terms"],

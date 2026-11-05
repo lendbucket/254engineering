@@ -263,6 +263,25 @@ export function accountIdForPlacement(input: Pick<PlaceOrderInput, "accountId">)
   return id.length > 0 ? id : null;
 }
 
+/**
+ * WHETHER AN EXISTING ORDER UNDER THIS KEY IS THIS CALLER'S RETRY.
+ * Money audit F14, 2026-11-02: the key was matched across sites and callers,
+ * so another site replaying a key received that order's reference, total and
+ * a checkout for it. The site must match, and the account must match when the
+ * caller names one (an order can gain an account at release, so a caller with
+ * none is not compared against it). The same rule placeBatch has kept since
+ * finding F5 of 2026-10-24, with the same sentence.
+ */
+export const SPENT_KEY_SENTENCE = "That submission key has already been used. Send this submission with a new key; nothing was placed.";
+export function isSameCallersOrder(
+  existing: { site: string | null; account_id: string | null },
+  input: Pick<PlaceOrderInput, "site" | "accountId">,
+): boolean {
+  if (existing.site !== input.site) return false;
+  const caller = accountIdForPlacement(input);
+  return caller === null || existing.account_id === caller;
+}
+
 export type PlaceOrderResult =
   | {
       ok: true;
@@ -293,11 +312,14 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
    */
   const { data: existing } = await db
     .from("eng_service_orders")
-    .select("id, reference, total_cents")
+    .select("id, reference, total_cents, site, account_id")
     .eq("client_request_id", input.clientRequestId)
     .maybeSingle();
 
   if (existing) {
+    if (!isSameCallersOrder(existing as { site: string | null; account_id: string | null }, input)) {
+      return { ok: false, error: SPENT_KEY_SENTENCE };
+    }
     return {
       ok: true,
       orderId: existing.id as string,
@@ -464,9 +486,12 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
     if (orderError?.code === "23505") {
       const { data: raced } = await db
         .from("eng_service_orders")
-        .select("id, reference, total_cents")
+        .select("id, reference, total_cents, site, account_id")
         .eq("client_request_id", input.clientRequestId)
         .maybeSingle();
+      if (raced && !isSameCallersOrder(raced as { site: string | null; account_id: string | null }, input)) {
+        return { ok: false, error: SPENT_KEY_SENTENCE };
+      }
       if (raced) {
         return {
           ok: true,

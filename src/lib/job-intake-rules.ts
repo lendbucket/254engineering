@@ -150,6 +150,17 @@ export function decidePrice(input: {
     return { overridden: false, cents: input.catalogCents };
   }
 
+  /*
+   * WHOLE CENTS, AND A NUMBER. Money audit F13, 2026-11-02: the body is not
+   * checked at runtime, so 70900.5 passed the floor and reached a bigint
+   * column, where Postgres refused it with a raw driver message, and a string
+   * passed the comparisons by coercion. The firm's rule is whole cents; the
+   * refusal is the platform's own sentence.
+   */
+  if (typeof input.enteredCents !== "number" || !Number.isSafeInteger(input.enteredCents)) {
+    return { ok: false, error: "A price is a whole number of cents." };
+  }
+
   if (input.enteredCents < 0) {
     return { ok: false, error: "A price cannot be negative." };
   }

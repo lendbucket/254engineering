@@ -72,7 +72,21 @@ export type QueuedCapture = {
   /** Attempts made. Shown to the technician rather than hidden. */
   attempts: number;
   lastError?: string | null;
+  /**
+   * When this entry joined the queue, set by enqueue. The queue replays in this
+   * order (field audit F18, 2026-11-02): the IndexedDB key is cap_<uuid>, so
+   * key order is random, and a capture and a later exception on one item would
+   * otherwise replay in either order. Entries queued before this field existed
+   * fall back to capturedAt.
+   */
+  queuedAt?: string;
 };
+
+/** How a queue is replayed: by when each entry was queued, oldest first. */
+export function inQueueOrder(entries: QueuedCapture[]): QueuedCapture[] {
+  const at = (e: QueuedCapture) => Date.parse(e.queuedAt ?? e.capturedAt) || 0;
+  return [...entries].sort((a, b) => at(a) - at(b) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+}
 
 const DB_NAME = "eng-field";
 const STORE = "captures";
@@ -107,12 +121,13 @@ function tx<T>(mode: IDBTransactionMode, run: (store: IDBObjectStore) => IDBRequ
 }
 
 export async function enqueue(entry: QueuedCapture): Promise<void> {
-  await tx("readwrite", (store) => store.put(entry));
+  const stamped: QueuedCapture = entry.queuedAt ? entry : { ...entry, queuedAt: new Date().toISOString() };
+  await tx("readwrite", (store) => store.put(stamped));
 }
 
 export async function pendingFor(fileId: string): Promise<QueuedCapture[]> {
   const all = await tx<QueuedCapture[]>("readonly", (store) => store.getAll() as IDBRequest<QueuedCapture[]>);
-  return all.filter((e) => e.fileId === fileId);
+  return inQueueOrder(all.filter((e) => e.fileId === fileId));
 }
 
 export async function dequeue(id: string): Promise<void> {

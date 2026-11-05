@@ -338,8 +338,22 @@ export function reversalFor(input: {
   /** What the accrual was computed against, for the proportional models. */
   basisCents: number | null;
   refundedCents: number;
+  /**
+   * What earlier counter entries have already reversed of THIS accrual,
+   * positive cents. Money audit F9, 2026-11-02: each partial refund rounded its
+   * own share half up, so two refunds could reverse more than was accrued and
+   * leave the partner's net negative. Every reversal is now capped at what is
+   * left of the accrual. Optional so a caller that cannot read the earlier
+   * entries gets the old answer, never a larger one.
+   */
+  alreadyReversedCents?: number;
 }): Reversal {
   const { model, accruedCents, basisCents, refundedCents } = input;
+  const already = Math.max(0, Math.round(input.alreadyReversedCents ?? 0));
+  const left = Math.max(0, accruedCents - already);
+  if (already > 0 && left === 0) {
+    return { reverse: false, explanation: `The commission of ${dollars(accruedCents)} has already been reversed in full, so nothing more is reversed.` };
+  }
 
   if (refundedCents <= 0) {
     return { reverse: false, explanation: "Nothing was refunded, so nothing is reversed." };
@@ -362,7 +376,7 @@ export function reversalFor(input: {
     }
     return {
       reverse: true,
-      amountCents: -accruedCents,
+      amountCents: -left,
       explanation: `The order was refunded in full, so the flat fee of ${dollars(accruedCents)} is reversed by a counter entry. The accrual stands in the ledger beside it.`,
     };
   }
@@ -371,13 +385,13 @@ export function reversalFor(input: {
   if (basisCents === null || basisCents <= 0) {
     return {
       reverse: true,
-      amountCents: -accruedCents,
+      amountCents: -left,
       explanation: `This commission was a share of order value and the value it was taken from is not on the entry, so the whole accrual of ${dollars(accruedCents)} is reversed rather than a guessed portion of it.`,
     };
   }
 
   const returned = Math.min(refundedCents, basisCents);
-  const share = Math.min(applyBps(accruedCents, Math.round((returned / basisCents) * 10000)), accruedCents);
+  const share = Math.min(applyBps(accruedCents, Math.round((returned / basisCents) * 10000)), left);
 
   if (share <= 0) {
     return {
