@@ -1,4 +1,5 @@
 import {
+  ROOF_LETTER_CLOCK_LINE,
   ROOF_LETTER_DETERMINATION_SENTENCE,
   ROOF_LETTER_LINES,
   ROOF_LETTER_SLOTS,
@@ -46,7 +47,13 @@ export function producesLetter(determination: string): determination is RoofLett
   return (PRODUCES_A_LETTER as string[]).includes(determination);
 }
 
-export function draftRoofLetter(determination: string, facts: LetterFacts): LetterDraft {
+/**
+ * `clockUncertain`: the visit date was taken from the server's receipt because
+ * the visit capture's device clock was recorded as disagreeing or never
+ * measured (F9, template 1.1). The protocol's own line then follows the visit
+ * sentence, so a receipt date is never printed without it.
+ */
+export function draftRoofLetter(determination: string, facts: LetterFacts, options: { clockUncertain?: boolean } = {}): LetterDraft {
   if (!producesLetter(determination)) {
     return {
       ok: false,
@@ -71,11 +78,11 @@ export function draftRoofLetter(determination: string, facts: LetterFacts): Lett
 
   const fill = (text: string) => text.replace(/{{([a-z_]+)}}/g, (_, slot: RoofLetterSlot) => (facts[slot] as string).trim());
 
-  const lines: DraftLine[] = ROOF_LETTER_LINES.map((line) =>
-    line.kind === "determination"
-      ? { kind: "determination", text: ROOF_LETTER_DETERMINATION_SENTENCE[determination] }
-      : { kind: line.kind, text: fill(line.text) },
-  );
+  const lines: DraftLine[] = ROOF_LETTER_LINES.flatMap((line): DraftLine[] => {
+    if (line.kind === "determination") return [{ kind: "determination", text: ROOF_LETTER_DETERMINATION_SENTENCE[determination] }];
+    const drafted: DraftLine = { kind: line.kind, text: fill(line.text) };
+    return options.clockUncertain && line.text.includes("{{visit_date}}") ? [drafted, { kind: "body", text: fill(ROOF_LETTER_CLOCK_LINE) }] : [drafted];
+  });
   return { ok: true, lines, determination };
 }
 
