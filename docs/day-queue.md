@@ -1,5 +1,14 @@
 # Day queue, 2026-10-23
 
+## ROBERT, 2026-11-05 afternoon, in chat, verbatim: the roofer application rulings
+
+> Roofer application rulings: 1 yes, an approved roofer is a B2B account through door 2, called a partner in the copy. 2 yes, the firm approves the roofer and the roofer gets no badge, logo or 254 mark to sell with. 3 yes, the application is its own source on a roofer prospect with a due now "review application" action, carried in 0121's sitting. 4 yes, no cap; every application is read by a person against a Texas office, general liability with a certificate, and references a person checks. 5 name me, Robert Reyna, as the contact on the page. 6 yes, roofers.review held by admin and ops_manager, seeded in 0122 and pinned in roles-audit. Build it after the queued CRM branches as you planned.
+
+**What follows from them.**
+- **0121**, staged after 0120 as one destructive sitting (operator_sql_editor, development first), now carries two changes: the prospect kind check replaced with the eight verticals, and a new prospect source value for the roofer application.
+- **The roofer application** builds after R8, on its own branch over the main of that day. Its 0122 carries `eng_roofer_applications` and the `roofers.review` grant for admin and ops_manager. It boards after R8 and merges only after 0121 is on production.
+- **Named contact:** Robert Reyna, as the firm's contact on `/roofing-partners`. He is not named as an engineer, and no license appears.
+
 ## ROBERT, 2026-11-05 afternoon, in chat, verbatim: a memory gap is a gap
 
 > Yes. low-auth takes main 0737b78 and boards now, alone, with your prediction stated first. R1 goes next as soon as free memory is over 12 GB. The same rule applies to any later gap where a CRM item waits on memory rather than a sitting: L6 and L3 may use it.
