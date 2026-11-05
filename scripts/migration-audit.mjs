@@ -356,7 +356,7 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * 108 to 109; and created_by on eng_prospects becomes nullable, which moves
  * the shape without a column. Read off fingerprint-at.mjs on the chain to 0113.
  */
-const EXPECTED_FINGERPRINT = "PENDING_0113_SHAPE";
+const EXPECTED_FINGERPRINT = "fead81771a43e1c4b0bd1f2b02e4fe2b";
 const EXPECTED_COLUMNS = 1476;
 const EXPECTED_TABLES = 109;
 /* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts.

@@ -4256,8 +4256,8 @@ export const APPLIED = [
   },
   {
     file: "0113_a_roofer_applies_and_a_person_decides.sql", appliedBy: "operator_sql_editor",
-    fingerprint: "PENDING_0113_SHAPE",
-    behaviour: "PENDING_0113_BEHAVIOUR",
+    fingerprint: "fead81771a43e1c4b0bd1f2b02e4fe2b",
+    behaviour: "e71f297052836059c3ad612cafcdd17b",
     production: null,
     handApplied:
       "The file drops and re-adds two of 0112's checks (the prospect source and the next action kind, each " +
@@ -4271,7 +4271,8 @@ export const APPLIED = [
     note:
       "Both figures read off scripts/fingerprint-at.mjs on the chain to 0113. Shape 1439 to 1476 columns: 36 on " +
       "eng_roofer_applications and roofer_application_id on eng_prospects, and created_by made nullable; tables " +
-      "108 to 109.",
+      "108 to 109. Behaviour 1410 to 1451 facts (2026-11-05): the table's checks, keys and indexes, two triggers, " +
+      "two functions, two grant rows, the two widened checks and the author check.",
     because:
       "WRITTEN 2026-11-05 ON feat/roofer-application, STACKED ON R1, FOR THE CHAT COUNTERPART'S SITTING WITH ROBERT " +
       "APPROVING THE PROMPT; APPLIED NOWHERE. Robert's request and rulings of 2026-11-05: a Texas roofing company " +

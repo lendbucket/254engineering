@@ -146,6 +146,8 @@ create index eng_roofer_applications_status_idx on eng_roofer_applications (stat
 create index eng_roofer_applications_prospect_idx on eng_roofer_applications (prospect_id);
 
 alter table eng_roofer_applications enable row level security;
+/* As every eng_ table since 0100: nothing but the service role reaches it, in its own file. */
+revoke all on eng_roofer_applications from public, anon, authenticated;
 
 /*
  * A DECISION IS MADE ONCE. An update may only move a received application to
