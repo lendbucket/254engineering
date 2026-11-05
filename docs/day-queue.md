@@ -1,5 +1,9 @@
 # Day queue, 2026-10-23
 
+## ROBERT, 2026-11-05 afternoon, in chat, verbatim: the memory floor is removed
+
+> Ruling: the 12 GB free memory floor is removed, for every local step, starting now. Do not hold any work waiting for memory. Run the 0112 ledger replay now, then board R1, test 0113 against the full chain, and post the 0113 development script on issue #1 for my counterpart. Run the walk's local production build when it comes up. If a step fails because memory ran out, say so plainly and run it again. Never report an out of memory failure as a code finding. Record this ruling on ops/day verbatim.
+
 ## ROBERT, 2026-11-05 afternoon, in chat, verbatim: the roofer application answers
 
 > (His priority and finish list, word for word as recorded below, then:)
