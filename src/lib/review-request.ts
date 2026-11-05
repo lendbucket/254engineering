@@ -8,6 +8,7 @@ import { reviewRequest } from "./email-templates";
 import { isSuppressed, unsubscribeUrl } from "./marketing-suppression";
 import { business } from "@/config/business";
 import { REVIEW_LINK, REVIEW_REQUEST_DELAY_DAYS } from "@/config/review-request";
+import { deliveredOnADecline } from "./foundation-decline-rules";
 
 /*
  * ===========================================================================
@@ -53,6 +54,35 @@ export function reviewRequestKey(orderId: unknown): string | KeyRefusal {
 export async function scheduleReviewRequest(fileId: string): Promise<void> {
   const order = await orderForFile(fileId, "reference");
   if (!order) return;
+
+  /*
+   * A delivery on a decline is not asked for a review (Robert 2026-11-02;
+   * foundation-decline-rules.ts says why). Decided from the file's own
+   * determinations. A failed read schedules nothing, because asking a declined
+   * customer for a review is the outcome this exists to prevent, and the order's
+   * timeline says which happened.
+   */
+  const db = supabaseAdmin();
+  const read = db
+    ? await db.from("eng_determinations").select("protocol_document, determination").eq("file_id", fileId)
+    : { data: null, error: { message: "The database is not configured." } };
+  if (read.error || !read.data) {
+    if (order.id) {
+      await orderEvent(
+        order.id,
+        "review_request.not_scheduled",
+        false,
+        `No Google review request was scheduled: whether this delivery was a decline could not be read (${read.error?.message ?? "no rows came back"}).`,
+      );
+    }
+    return;
+  }
+  if (deliveredOnADecline(read.data)) {
+    if (order.id) {
+      await orderEvent(order.id, "review_request.not_scheduled", false, "No Google review request was scheduled: this file was delivered on a decline letter.");
+    }
+    return;
+  }
 
   const runAfter = new Date(Date.now() + REVIEW_REQUEST_DELAY_DAYS * 86_400_000);
   const queued = await enqueue(REVIEW_REQUEST_JOB, { orderId: order.id }, { runAfter });

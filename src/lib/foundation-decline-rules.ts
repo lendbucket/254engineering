@@ -21,3 +21,17 @@ export type DeterminationFact = { protocol_document: string | null; determinatio
 export function lettersInsteadOfRefund(determinations: readonly DeterminationFact[]): boolean {
   return determinations.some((d) => d.protocol_document === "254-FC-001" && d.determination === "decline");
 }
+
+/**
+ * NO REVIEW REQUEST FOR A DECLINE. Robert, 2026-11-02 (answer to issue #1
+ * 6586834020, item 1): "suppress the review request on a decline". Since Q4 a
+ * 254-FC-001 decline letter is delivered, and the delivered transition queues
+ * the Google review request for every delivered file, so a customer whose
+ * foundation the engineer declined would have been asked for a review of it.
+ * The file's own determinations answer it: a delivery carrying a decline is not
+ * asked. Any decline counts, not only 254-FC-001, because no other decline
+ * reaches delivered today and one that did would deserve the same answer.
+ */
+export function deliveredOnADecline(determinations: readonly DeterminationFact[]): boolean {
+  return determinations.some((d) => d.determination === "decline");
+}

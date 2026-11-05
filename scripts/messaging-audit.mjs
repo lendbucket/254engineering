@@ -408,9 +408,17 @@ if (admin?.cookie && engineer?.cookie && tech?.cookie && db) {
    * even when it showed nothing.
    */
   const search = threads.slice(threads.indexOf("export async function searchMessages"));
+  /*
+   * Since 2026-11-02 (Robert, answer to 6587319903) the readable set is every
+   * readable conversation, read by readableThreadRows rather than the page
+   * listThreads returns. Both positions must be FOUND: a missing reader gives
+   * -1, which is less than any position and would pass over nothing.
+   */
+  const scopedAt = search.indexOf("await readableThreadRows(actor)");
+  const queriedAt = search.indexOf('.from("eng_messages")');
   rec(
     "search resolves what the actor may read before it queries",
-    search.indexOf("await listThreads(actor)") < search.indexOf('.from("eng_messages")'),
+    scopedAt > 0 && queriedAt > 0 && scopedAt < queriedAt,
     "filtering hits afterwards leaks the existence of what it filtered",
   );
 }
