@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import Link from "next/link";
 import { Container } from "@/components/ui/Container";
+import OnboardingNotFound from "./not-found";
 import { OnboardingFlow } from "@/components/onboarding/OnboardingFlow";
 import { findByToken, itemsFor } from "@/lib/onboarding";
-import { checklistFor, ROLE_LABELS } from "@/content/onboarding-checklists";
+import { checklistFor, firmItemLabels, ROLE_LABELS } from "@/content/onboarding-checklists";
 import { business } from "@/config/business";
 
 /**
@@ -18,7 +19,8 @@ import { business } from "@/config/business";
  * The robots metadata is belt and braces. The route is also disallowed in
  * robots.txt and absent from the sitemap, so all three signals agree, and none
  * of them is what actually protects it: a crawler that ignored every one of them
- * still needs a valid 43 character token to see anything but a 404.
+ * still needs a valid 43 character token to see anything but the "not active"
+ * page (a 404 until Q14 of 2026-11-02; see below).
  *
  * WHY THE READ HAPPENS HERE AND NOT IN AN API ROUTE
  * -------------------------------------------------
@@ -41,12 +43,26 @@ export default async function OnboardingPage({
 }) {
   const { token } = await params;
 
+  /*
+   * RENDERED HERE, NOT THROWN. Robert's ruling Q14 of 2026-11-02, from the live
+   * site audit (issue #1, 6585009543, issue 10): /onboarding/not-a-real-token
+   * answered 404 with an EMPTY server body, `<html id="__next_error__">`, and
+   * the "not active" copy only inside the RSC payload, so a visitor without
+   * JavaScript saw a blank page under the home page's title. notFound() thrown
+   * from this page's shell takes Next's error recovery path
+   * (node_modules/next/dist/server/app-render/app-render.js, getErrorRSCPayload),
+   * which sends that empty shell and leaves the not-found UI to the client.
+   * Returning the same component makes its copy part of the server HTML. The
+   * response is then 200 with noindex, the way /order/[reference] already
+   * answers a dead link; every failure still reads identically, which is the
+   * property not-found.tsx exists for.
+   */
   const onboarding = await findByToken(token);
-  if (!onboarding) notFound();
+  if (!onboarding) return <OnboardingNotFound />;
 
-  // A completed onboarding is closed. Same 404 as an invalid token: there is
-  // nothing left to do here and nothing to be gained by confirming it exists.
-  if (onboarding.status === "complete") notFound();
+  // A completed onboarding is closed. The same page as an invalid token: there
+  // is nothing left to do here and nothing to be gained by confirming it exists.
+  if (onboarding.status === "complete") return <OnboardingNotFound />;
 
   const rows = await itemsFor(onboarding.id);
   const definitions = checklistFor(onboarding.role);
@@ -79,8 +95,8 @@ export default async function OnboardingPage({
             </p>
             <p className="mt-6 text-[0.98rem] leading-[1.7] text-slate-fg-muted">
               You are never asked to type a social security, account, or routing
-              number into this site. Where a form involves one, you upload the
-              completed document and nothing is read out of it.
+              number into this site. Tax and pay paperwork is completed in Gusto,
+              not here, and no copy of an ID or an I-9 is kept on this site.
             </p>
           </div>
         </Container>
@@ -90,6 +106,7 @@ export default async function OnboardingPage({
         token={token}
         role={onboarding.role}
         status={onboarding.status}
+        firmItems={firmItemLabels(onboarding.role)}
         items={personRows.map((r) => ({
           key: r.item_key,
           label: r.label,
@@ -108,6 +125,25 @@ export default async function OnboardingPage({
             acknowledgeOnly: d.acknowledgeOnly,
           }))}
       />
+      {/* The training courses, Robert's ruling P3 of 2026-11-01: a field technician graduates from both before enrollment. */}
+      {onboarding.role === "field_tech" ? (
+        <section className="border-b border-limestone-line">
+          <Container>
+            <div className="max-w-3xl py-12">
+              <p className="text-[0.98rem] leading-[1.75] text-slate">
+                Beside these documents there are two short training courses to finish before the firm can enroll you.{" "}
+                <Link
+                  href={`/onboarding/${token}/training`}
+                  className="font-medium text-slate underline decoration-brass underline-offset-4 transition-colors hover:text-brass-ink"
+                >
+                  Open your training courses
+                </Link>
+                .
+              </p>
+            </div>
+          </Container>
+        </section>
+      ) : null}
       {/* The support contact. Inside the page rather than in a second footer:
           the root layout already renders one, and this needs to sit with the
           flow rather than under the site's regulatory band. */}

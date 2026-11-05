@@ -21,10 +21,29 @@
  *      refusal must be on record.
  *
  * Delivery is gated while the firm is prelaunch, so the second half runs in
- * inOpenGateProcess, the child the gate fixture opens. Every probe row is
- * removed and read back, except the one file.transition row the delivery writes
- * to eng_audit_events, which refuses deletes by design, as every audit that
- * moves a file leaves.
+ * inOpenGateProcess, the child the gate fixture opens.
+ *
+ * THE FILE REACHES SEALED BY A SEAL ACT, NEVER BY ITS STATUS. Since 0110
+ * (Robert's ruling Q6, 2026-11-02, applied on development that day) a file
+ * cannot be marked sealed or delivered without a live letter seal act for a
+ * determination on it. This proof used to insert its probe file straight at
+ * "sealed", which 0110 refuses, so it failed on every board after the sitting
+ * (P2's board 41535610791). The fixture now does what the database allows:
+ * the file is inserted under review, then a probe evidence item, a pass
+ * determination and a letter seal act are recorded against the permanent
+ * development fixture engineer (fixtureEngineer(), licence 900000003, the one
+ * account that exists for records which refuse deletion), with that engineer's
+ * current seal and signature images (or a probe pair recorded for him the first
+ * time). Only then is the file moved to sealed, and the delivery under test
+ * moves it on. The same rows as migration-audit's 0053 replay fixture. It works
+ * the same with or without 0110: the act simply exists first.
+ *
+ * WHAT STAYS. The determination, the seal act and their file refuse deletion by
+ * design, so the probe file, its evidence item, its document and its act stay on
+ * development, pinned to the fixture engineer exactly as the walks' sealed
+ * records are, along with the file.transition rows in eng_audit_events. The
+ * probe order and any orderless queue row this run made are removed and read
+ * back.
  */
 import { randomUUID } from "node:crypto";
 
@@ -121,10 +140,87 @@ try {
     service_slug: "roof-inspections",
     property_address: "1 Review Refusal Way",
     county: "Kenedy",
-    status: "sealed",
+    status: "under_review",
   });
   if (fErr) throw new Error(`probe file: ${fErr.message}`);
   fileMade = true;
+
+  /* The seal act that lets the file be sealed (0110), against the fixture engineer. */
+  const { fixtureEngineer } = await import("../lib/portal-probe.mjs");
+  const fixture = await fixtureEngineer("the review request refusal proof");
+  if (!fixture.ok) throw new Error(`the fixture engineer: ${fixture.error}`);
+  const currentImage = async (kind) => {
+    const { data, error } = await db
+      .from("eng_seal_images")
+      .select("id")
+      .eq("profile_id", fixture.id)
+      .eq("kind", kind)
+      .is("superseded_at", null)
+      .maybeSingle();
+    if (error) throw new Error(`the fixture engineer's ${kind} image could not be read: ${error.message}`);
+    if (data) return data.id;
+    const id = randomUUID();
+    const hex = kind === "seal" ? "c" : "d";
+    const { error: iErr } = await db.from("eng_seal_images").insert({
+      id,
+      profile_id: fixture.id,
+      kind,
+      storage_key: `probe/fixture-engineer-${kind}.png`,
+      sha256: hex.repeat(64),
+      byte_size: 1000,
+      width: 600,
+      height: kind === "seal" ? 600 : 200,
+      mfa_verified_at: new Date().toISOString(),
+    });
+    if (iErr) throw new Error(`a ${kind} image for the fixture engineer: ${iErr.message}`);
+    return id;
+  };
+  const sealImage = await currentImage("seal");
+  const signatureImage = await currentImage("signature");
+  const evidenceId = randomUUID();
+  const { error: eErr } = await db.from("eng_evidence_items").insert({ id: evidenceId, file_id: fileId, item_key: "probe", kind: "note" });
+  if (eErr) throw new Error(`probe evidence: ${eErr.message}`);
+  const determinationId = randomUUID();
+  const { error: dErr } = await db.from("eng_determinations").insert({
+    id: determinationId,
+    file_id: fileId,
+    protocol_document: "254-RC-001",
+    determination: "pass",
+    relied_on_item_keys: ["probe"],
+    relied_on_evidence_ids: [evidenceId],
+    engineer_id: fixture.id,
+  });
+  if (dErr) throw new Error(`probe determination: ${dErr.message}`);
+  const documentId = randomUUID();
+  const { error: docErr } = await db.from("eng_documents").insert({
+    id: documentId,
+    file_id: fileId,
+    kind: "deliverable",
+    title: "Probe sealed letter for the review request refusal proof",
+    bucket: "docs",
+    storage_key: `probe/review-refusal-${STAMP}`,
+  });
+  if (docErr) throw new Error(`probe document: ${docErr.message}`);
+  const { error: aErr } = await db.from("eng_seal_acts").insert({
+    id: randomUUID(),
+    kind: "letter",
+    document_id: documentId,
+    determination_id: determinationId,
+    content_sha256: "e".repeat(64),
+    letterhead_sha256: "f".repeat(64),
+    seal_image_id: sealImage,
+    signature_image_id: signatureImage,
+    sealed_by: fixture.id,
+    mfa_verified_at: new Date().toISOString(),
+  });
+  if (aErr) throw new Error(`probe seal act: ${aErr.message}`);
+  const { data: sealedRows, error: sErr } = await db
+    .from("eng_files")
+    .update({ status: "sealed", sealed_at: new Date().toISOString() })
+    .eq("id", fileId)
+    .eq("status", "under_review")
+    .select("id");
+  if (sErr || (sealedRows ?? []).length !== 1) throw new Error(`the probe file could not be sealed: ${sErr?.message ?? "no row moved"}`);
 
   const { data: order, error: oErr } = await db
     .from("eng_service_orders")
@@ -211,16 +307,13 @@ try {
     const { error } = await db.from("eng_service_orders").delete().eq("id", orderId);
     if (error) console.log(`  note: the probe order was not removed: ${error.message}`);
   }
-  if (fileMade) {
-    const { error } = await db.from("eng_files").delete().eq("id", fileId);
-    if (error) console.log(`  note: the probe file was not removed: ${error.message}`);
-  }
-  const { data: leftFile } = await db.from("eng_files").select("id").eq("id", fileId);
+  /* The probe file stays: its determination and seal act refuse deletion, and it is pinned to the fixture engineer (header). */
+  if (fileMade) console.log(`  note: the probe file ${fileId} stays on development with its seal act, pinned to the fixture engineer`);
   const { data: leftOrder } = orderId ? await db.from("eng_service_orders").select("id").eq("id", orderId) : { data: [] };
   check(
-    "the probe file and order are removed, read back",
-    (leftFile ?? []).length === 0 && (leftOrder ?? []).length === 0,
-    `${(leftFile ?? []).length} file(s), ${(leftOrder ?? []).length} order(s) left`,
+    "the probe order is removed, read back",
+    (leftOrder ?? []).length === 0,
+    `${(leftOrder ?? []).length} order(s) left`,
   );
 }
 

@@ -14,6 +14,9 @@ import { queueEmail } from "./ops-jobs";
 import { onboardingInvite } from "./email-templates";
 import { business } from "@/config/business";
 import { formatInFirmZone } from "./firm-calendar";
+import { fieldTechEnrollmentRefusal } from "./academy-record";
+import { readVerification, type OnboardingVerification } from "./admin-onboarding";
+import { checkForItem, verificationItemStatus } from "./onboarding-verification";
 import {
   CREDENTIAL_LABEL,
   CREDENTIAL_OF_ITEM,
@@ -22,6 +25,7 @@ import {
   OWNER_OVERRIDE_KINDS,
   RECORDABLE_KIND_OPTIONS,
   activationReadiness,
+  licenceNumberProblem,
   credentialBlockers,
   credentialStanding,
   exemptKindsFor,
@@ -381,7 +385,14 @@ export type ActivationView = {
     credentialKind: string | null;
     /** Whether this document HAS an expiry date. A W-9 does not. */
     expires: boolean;
+    /** The rejection the person was told, when the item stands rejected. */
+    rejectedReason: string | null;
   })[];
+  /**
+   * The identity and I-9 record (0105), or why it could not be read. A failed
+   * read is never two empty records: readiness carries it as a blocker.
+   */
+  verification: { ok: true; record: OnboardingVerification } | { ok: false; error: string };
   readiness: Readiness;
 };
 
@@ -400,9 +411,14 @@ export async function activationView(actor: Actor | null, onboardingId: string):
 
   const { data: rows, error: itemsError } = await db
     .from("eng_onboarding_items")
-    .select("item_key, label, status, actor, issued_on, expires_on, sort_order")
+    .select("item_key, label, status, actor, issued_on, expires_on, sort_order, rejected_reason")
     .eq("onboarding_id", onboardingId)
     .order("sort_order");
+  const role = onboarding.role as string;
+  const verificationRead = await readVerification(onboardingId);
+  const verification: ActivationView["verification"] = verificationRead.ok
+    ? { ok: true, record: verificationRead.verification }
+    : { ok: false, error: verificationRead.error };
 
   /*
    * A FAILED READ IS NEVER READY. Robert's audit of 2026-10-24, finding F30:
@@ -413,29 +429,53 @@ export async function activationView(actor: Actor | null, onboardingId: string):
    */
   if (itemsError) {
     const why = `The onboarding items could not be read, so whether this person is ready cannot be told: ${itemsError.message}`;
-    const shut = activationReadiness([], []);
+    const shut = activationReadiness([], [], new Date(), role);
     return {
       onboarding: onboarding as ActivationView["onboarding"],
       items: [],
+      verification,
       readiness: { ...shut, ready: false, blockers: [why, ...shut.blockers] },
     };
   }
 
-  const items = (rows ?? []).map((r) => ({
-    itemKey: r.item_key as string,
-    label: r.label as string,
-    status: r.status as OnboardingItemView["status"],
-    actor: r.actor as "person" | "admin",
-    expiresOn: (r.expires_on as string | null) ?? null,
-    issuedOn: (r.issued_on as string | null) ?? null,
-    credentialKind: CREDENTIAL_OF_ITEM[r.item_key as string]?.kind ?? null,
-    expires: CREDENTIAL_OF_ITEM[r.item_key as string]?.expires ?? false,
-  }));
+  /*
+   * THE TWO VERIFICATION ITEMS TAKE THEIR STATE FROM THE RECORD, P1 2026-11-01.
+   * identity_verified_video and i9_documents_examined read "accepted" exactly
+   * when the identity or I-9 record holds its time, type and verifier, and
+   * "pending" otherwise, including when the record could not be read. Their
+   * own row's status is never consulted, so the checklist and the record are
+   * one fact, not two.
+   */
+  const items = (rows ?? []).map((r) => {
+    const check = checkForItem(r.item_key as string);
+    const status = check
+      ? verificationItemStatus(verification.ok ? verification.record[check] : null)
+      : (r.status as OnboardingItemView["status"]);
+    return {
+      itemKey: r.item_key as string,
+      label: r.label as string,
+      status,
+      actor: r.actor as "person" | "admin",
+      expiresOn: (r.expires_on as string | null) ?? null,
+      issuedOn: (r.issued_on as string | null) ?? null,
+      credentialKind: CREDENTIAL_OF_ITEM[r.item_key as string]?.kind ?? null,
+      expires: CREDENTIAL_OF_ITEM[r.item_key as string]?.expires ?? false,
+      rejectedReason: status === "rejected" ? ((r.rejected_reason as string | null) ?? null) : null,
+    };
+  });
 
+  const readiness = activationReadiness(items, (onboarding.coverage_counties as string[]) ?? [], new Date(), role);
   return {
     onboarding: onboarding as ActivationView["onboarding"],
     items,
-    readiness: activationReadiness(items, (onboarding.coverage_counties as string[]) ?? []),
+    verification,
+    readiness: verification.ok
+      ? readiness
+      : {
+          ...readiness,
+          ready: false,
+          blockers: [`The identity and I-9 record could not be read, so whether this person was verified cannot be told: ${verification.error}`, ...readiness.blockers],
+        },
   };
 }
 
@@ -460,6 +500,15 @@ export async function activateTechnician(
   actor: Actor & { email: string },
   onboardingId: string,
   context: Context = {},
+  /*
+   * THE ENGINEER'S LICENSE NUMBER, typed at activation from the license the
+   * operator accepted. Robert's ruling P1, 2026-11-01: "Activation records the
+   * engineer's license number and expiry." The number goes on the profile
+   * (eng_profiles.license_number, which the seal functions read); the expiry
+   * comes from the accepted pe_license_card item and becomes a verified
+   * pe_license credential below, like every other accepted document.
+   */
+  input: { licenseNumber?: string | null } = {},
 ): Promise<
   | { ok: true; profileId: string; token: string | null; linked: boolean; credentials: number }
   | { ok: false; error: string; blockers?: string[] }
@@ -482,11 +531,25 @@ export async function activateTechnician(
       blockers: view.readiness.blockers,
     };
   }
+  /* Robert's ruling P3: a field technician is enrolled only after graduating from both required courses. */
+  if (view.onboarding.role === "field_tech") {
+    const untrained = await fieldTechEnrollmentRefusal(onboardingId);
+    if (untrained.length) {
+      return { ok: false, error: "This person has not graduated from both required training courses.", blockers: untrained };
+    }
+  }
+  const isEngineer = view.onboarding.role === "engineer";
+  const licenseNumber = (input.licenseNumber ?? "").trim();
+  if (isEngineer) {
+    const problem = licenceNumberProblem(licenseNumber);
+    if (problem) return { ok: false, error: problem, blockers: [problem] };
+  }
 
   const created = await createAccount({
     email: view.onboarding.email,
     displayName: view.onboarding.person_name,
     role: view.onboarding.role,
+    licenseNumber: isEngineer ? licenseNumber : null,
     phone: view.onboarding.phone,
     coverageCounties: view.onboarding.coverage_counties,
     baseCity: view.onboarding.base_city,
@@ -545,7 +608,7 @@ export async function activateTechnician(
     action: "onboarding.activate",
     entityType: "profile",
     entityId: created.profileId,
-    summary: `Activated ${view.onboarding.person_name} as ${view.onboarding.role} with ${written} credential${written === 1 ? "" : "s"}`,
+    summary: `Activated ${view.onboarding.person_name} as ${view.onboarding.role} with ${written} credential${written === 1 ? "" : "s"}${isEngineer ? `, Texas PE license ${licenseNumber}` : ""}`,
     ...context,
   });
 

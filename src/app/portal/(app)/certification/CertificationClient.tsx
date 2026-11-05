@@ -105,11 +105,12 @@ export function CheckRunner({
   if (result?.passed) {
     return (
       <div className="border-t-2 border-[var(--ink)] pt-6">
-        <p className="portal-label">Certified</p>
+        {/* Q6 (2026-11-02): a passed check is not a certification; the engineer's approval is. */}
+        <p className="portal-label">Check passed</p>
         <h2 className="mt-2 font-display text-[24px] leading-[1.2] font-bold text-[var(--navy)]">{serviceName}</h2>
         <p className="mt-2 max-w-[65ch] text-[14px] leading-[1.6] text-[var(--secondary)]">
-          {result.correct} of {result.total}. You can be offered work on this line as soon as your
-          paperwork is current, which the panel beside this one tells you.
+          {result.correct} of {result.total}. You are certified on this line when the engineer approves your
+          training record. Until then you are not offered work on it.
         </p>
         <a
           href="/portal/certification"

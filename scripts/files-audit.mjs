@@ -205,7 +205,13 @@ const GATED = { prelaunch: true };
     // A refusal does not go back into review by pressing back. Reopening one is
     // a deliberate act: somebody opens a new file.
     ["refused", "under_review", false],
-    ["refused", "sealed", false],
+    /*
+     * Was false until Robert's ruling Q4 of 2026-11-02 (audit field F8): the
+     * sealed option C letter on a 254-FC-001 decline delivers as a pass does,
+     * so the file moves refused, sealed, delivered. Still the engineer's move
+     * alone (documents.seal); refused straight to delivered stays refused.
+     */
+    ["refused", "sealed", true],
     ["refused", "delivered", false],
     ["evidence_submitted", "refused", false],
     ["under_review", "revisions_requested", true],
@@ -465,7 +471,35 @@ const GATED = { prelaunch: true };
     for (const part of parts) {
       const statement = part.split(";")[0];
       if (!/\.update\(/.test(statement)) continue;
-      if (!/\bstatus\b/.test(statement)) continue;
+      /*
+       * THE PAYLOAD IS THE WRITE, NOT THE FILTER. Sharpened 2026-11-02 for
+       * Robert's ruling Q3 (audit field F7), whose claim in acceptOffer is
+       * `.update({ assigned_tech_id }).eq("status", "needs_dispatch")`: it
+       * filters on the status and writes only the technician, and the old test
+       * (the word status anywhere in the statement) read the filter as a write.
+       * A literal payload is now searched for status inside its own braces. A
+       * payload that is a variable cannot be seen into, so it keeps the old,
+       * wider test: any mention of status in the statement flags it.
+       */
+      const payload = statement.slice(statement.indexOf(".update(") + ".update(".length).trimStart();
+      if (payload.startsWith("{")) {
+        let depth = 0;
+        let end = -1;
+        for (let i = 0; i < payload.length; i++) {
+          if (payload[i] === "{") depth += 1;
+          else if (payload[i] === "}") {
+            depth -= 1;
+            if (depth === 0) {
+              end = i;
+              break;
+            }
+          }
+        }
+        const object = end < 0 ? payload : payload.slice(0, end + 1);
+        if (!/\bstatus\b/.test(object)) continue;
+      } else if (!/\bstatus\b/.test(statement)) {
+        continue;
+      }
       offenders.push(file.replace(/^src\//, "") + ": " + statement.trim().slice(0, 60));
     }
   }

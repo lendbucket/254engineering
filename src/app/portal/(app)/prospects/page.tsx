@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
+import { mayExport } from "@/lib/list-exports";
 import { listProspects, type ProspectQuery, type ProspectRow } from "@/lib/ops-prospects";
 import { PROSPECT_TYPES, PROSPECT_TYPE_LABEL } from "@/lib/prospect-import";
 import { telLink } from "@/lib/phone-link";
@@ -83,7 +84,7 @@ export default async function ProspectsPage({ searchParams }: { searchParams: Pr
         ]}
         sort={q.sort ?? "follow_up"}
         direction={q.direction ?? "asc"}
-        csvHref={`/api/portal/prospects${qs ? `?${qs}` : ""}`}
+        csvHref={mayExport(actor, "crm.use") ? `/api/portal/prospects${qs ? `?${qs}` : ""}` : undefined}
       />
 
       {!list.ok ? (

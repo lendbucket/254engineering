@@ -547,7 +547,13 @@ const MATRIX: Record<Role, Action[]> = {
   ],
   engineer: [
     "profiles.read_self", "profiles.update_self",
-    "clients.list",
+    /*
+     * `clients.list` WAS HERE AND WAS REMOVED ON 2026-11-02. Robert approved
+     * P2 (issue #1, 6567596115): it opened the whole client directory, names,
+     * emails and telephones, at /portal/clients, in global search and in the
+     * clients CSV. He sees the client on each file assigned to him through
+     * files.list, and that is all his work needs. Revoked by 0108.
+     */
     "files.list", "files.update", "files.transition",
     "evidence.review", "evidence.start", "evidence.submit",
     /*
@@ -782,10 +788,17 @@ export const DEFAULT_ROLES: DefaultRole[] = [
   },
   {
     /*
-     * A buyer's accountant, an auditor, an operations manager in their first
-     * week. Reads, and nothing else. Deliberately includes billing.read and
-     * pricing.read: somebody evaluating the business has to see the money, and
-     * that is exactly the person this role is for.
+     * An auditor, or somebody in their first week. Reads, and nothing else,
+     * and no money and no customer directory.
+     *
+     * THIS SENTENCE WAS REVERSED ON 2026-11-02. It read: "Deliberately includes
+     * billing.read and pricing.read: somebody evaluating the business has to
+     * see the money, and that is exactly the person this role is for." Robert
+     * approved P2 (issue #1, 6567596115) under least privilege: money is admin
+     * only unless a ruling grants it, and none did. He added clients.list to
+     * the removals. pricing.read, billing.read, ledger.read_all and
+     * clients.list are revoked by 0108. An accountant or buyer who needs the
+     * money later is a named role created on purpose.
      */
     key: "read_only",
     name: "Read Only",
@@ -794,10 +807,8 @@ export const DEFAULT_ROLES: DefaultRole[] = [
     inviteFields: [],
     grants: [
       "profiles.read_self", "profiles.update_self", "profiles.list",
-      "clients.list",
       "files.list",
       "documents.read",
-      "pricing.read", "billing.read", "ledger.read_all",
       "audit.read",
       "responsible_charge.read_all",
     ],

@@ -251,6 +251,9 @@ function STAFF_LEVEL_SCREENS() {
     /* The insurance register, Robert's addendum of 2026-10-25, built to the staff standard from the start. */
     "src/app/portal/(app)/insurance/page.tsx",
     "src/app/portal/(app)/insurance/InsuranceClient.tsx",
+    /* The training academy, Robert's ruling P3 of 2026-11-01, built to the staff standard from the start. */
+    "src/app/portal/(app)/training/page.tsx",
+    "src/app/portal/(app)/training/ApproveCourseButton.tsx",
     /* Quote requests, addendum item 3 of 2026-10-25, built to the staff standard from the start. */
     "src/app/portal/(app)/quotes/page.tsx",
     "src/app/portal/(app)/quotes/QuotesClient.tsx",
