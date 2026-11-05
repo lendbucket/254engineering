@@ -1,5 +1,11 @@
 # Day queue, 2026-10-23
 
+## ROBERT, 2026-11-05 afternoon, in chat, verbatim: the roofer application goes right after R1 (supersedes the next entry's order)
+
+> Change of priority on the roofer application: it goes ahead of R2 through R8, right after R1. An email campaign to 1,477 Texas roofers is ready and waits on this page. Start building it on its own branch now in the gaps. If 0122 has to wait on 0121, build and board everything else, tell me the earliest date it can merge, and tell me what you need from me to get 0121 sat.
+>
+> (The finish list that followed is word for word the one in the entry below.)
+
 ## ROBERT, 2026-11-05 afternoon, in chat, verbatim: the roofer application goes FIRST (supersedes the order below)
 
 > Roofer application rulings: 1 yes, an approved roofer is a B2B account through door 2, called a partner in the copy. 2 yes, the firm approves the roofer and the roofer gets no badge, logo or 254 mark to sell with. 3 yes, the application is its own source on a roofer prospect with a due now "review application" action. 4 yes, no cap; every application is read by a person against a Texas office, general liability with a certificate, and references a person checks. 5 name me, Robert Reyna, as the contact on the page. 6 yes, roofers.review held by admin and ops_manager, seeded in 0122 and pinned in roles-audit.
