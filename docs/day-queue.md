@@ -881,6 +881,23 @@ On a pass, low-money merges: full lane, money code; no migration.
 
 On a pass, low-office merges: full lane, server, API routes and grants; no migration.
 
+**Bundle 103 result: board `42036419896` on `ab69bb6`, 65 of 65, zero FAIL, as predicted.** Preflight GREEN, 38 rules. proofs-audit PASS with the-office-low-findings-hold. LCP `/` 2356ms, `/services/windstorm-wpi-8` 2919ms, `/coverage` 2496ms, coastal-bend 2922ms, each under its ceiling. **Writers took 6 transient retries, flagged MORE THAN FIVE:** read in the log, every one is a first retry of a development `GET /rest/v1/eng_jobs` after a dropped socket (EPIPE or UND_ERR_SOCKET), and each succeeded. That is network noise, not a finding on the branch; recorded, not absorbed. **low-office merged** as `6b772bd` (parents `b705676`, `ab69bb6`), tree identical to the boarded commit; exact push, and `ls-remote` confirms main `6b772bd`.
+
+**Bundle 104, F8: `fix/f8-set-grants-one-act` at `629a8ca`.** It is `77baa24`, plus `d7f1249` (0111's ledger entry records the development sitting as it ran, 6660074026), with main `6b772bd` merged in, clean. No file changed on main since `7e08f1e` is in this branch, and nothing on main writes `eng_role_grants` (the reads in `ops-auth.ts` only).
+- **The change over main:** migration 0111 (`eng_set_role_grants`, one transaction, execute revoked from PUBLIC, anon and authenticated); `setGrants` calls it; the `operator_sql_editor` route in schema-ledger-audit and the destructive document; 0111's ledger entry, pending on production, on development since 2026-11-05.
+- **Readers:** migration-audit (replays to 0111; shape 22346b56 at 1396 columns, behaviour 1358 facts), schema-ledger-audit (0111 pending on a feature branch, on the named route with its sentence), roles-audit (the rpc asked before it writes, and no direct write to `eng_role_grants`; development holds the function since 6660074026), proofs-audit (the grant set proof and the failed-read proof), and the screen audits on `/portal/roles`.
+- **Local steps NOT run:** free memory read 11.0 GB. Under Robert's memory ruling the local preflight is skipped, and the board is the check.
+
+**Prediction, bundle 104, stated before dispatch: 65 of 65, zero FAIL.**
+- Preflight GREEN on the board.
+- migration-audit and schema-ledger-audit PASS with 0111 pending.
+- roles-audit PASS, saving a role's grants through `eng_set_role_grants` on development.
+- proofs-audit PASS with a-role-grant-set-is-replaced-in-one-act.
+- Public bytes unchanged, and the four LCP pages under their ceilings.
+- Standing COULD NOT TELL lines only.
+
+On a pass the 0111 production sitting request is posted; F8 merges after the production read-back, with the ledger line.
+
 **F9 CORRECTION (issue #1, F9 correction comment).** My F9 question 6594767802 was wrong twice: no letter template is signed since 0091 (2026-10-25), so nothing needs re-signing; and the quoted section 9 sentence exists only in 254-RC-001. F9 built for the roof letter only at `c7e8a31` (`fix/f9-visit-date-receipt`, over main `3446a44`), preflight GREEN, proof 15 checks, five injections. Two questions posted (the four other letters; adoption by sealing). Boards with the follow-ups.
 
 **Review-request fixture** built at `f9761a2` (`fix/review-request-fixture-once`): one sealed `254-DEMO-RQ-FIXTURE` file reused; boards with the follow-ups.
