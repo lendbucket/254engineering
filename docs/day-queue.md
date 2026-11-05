@@ -1132,6 +1132,26 @@ On a pass, the 0112 production sitting request is posted. R1 merges after its pr
 
 On a pass, the 0113 production script is generated from this commit and posted for Robert's prompt. The branch merges after R1 and after 0113's production read-back.
 
+**Pushes, 2026-11-05 evening.** From about 22:50 UTC every push was refused with `remote: fatal error in commit_refs` (posted 6672154208). The first push after Robert's standing rules went through at once: ops/day `a770241`, and `feat/roofer-application` `bf195d8` as a new branch. No fallback route was needed. **Bundle 108 dispatched** as board `42129740037` on `bf195d8`, after its prediction (`cd63fb9`) reached ops/day.
+
+**Ran beside another project's run (Robert's rule 1), 2026-11-05 ~23:15 UTC.**
+- The machine lock was held by another project's run, dispatch-scheduling, pid 26288, since 22:04 UTC. It was left alone: never killed, signalled or touched.
+- My own `npm run build` task, waiting on that lock through the prebuild hook, was stopped by me. `next build` then ran directly in `254-wt-roofer` (its own checkout and its own `.next`).
+- **Turbopack refused the worktree's junctioned `node_modules`** ("points out of the filesystem root"), an environment fault in this checkout, not a code finding. The build ran with `next build --webpack`, a production build, where Vercel builds with Turbopack, and compiled cleanly with all five roofer routes.
+- The server runs on port **3311**, checked free first, with `next start` from that checkout, pointed at development by its `.env.local`.
+
+**The walk, first half (no probe account, so it cannot collide with the board's probe sweep), 2026-11-05.** Screenshots in the scratchpad's `walk` folder.
+- `/roofing-partners` and `/roofing-partners/apply`: 200 at 390 and 1280.
+- **Application 1 sent as a roofer at 390**, `support+roofer-test-1@`, in three steps:
+  - counties by type-ahead;
+  - a PDF certificate uploaded and attached;
+  - the confirmation page.
+  - It landed as `a2663753`, received, with its certificate at `254/roofer/a2663753.../certificate-ad96974a-walk-certificate.pdf`.
+- **Application 2**, `support+roofer-test-2@`, posted as the form posts it: 200, `7b8066e9`.
+- **Both prospects read back:** vertical roofer, `next_action_kind` review_application, `follow_up_on` 2026-11-05, unowned, `created_by` null, `roofer_application_id` set. So they are on the rep's call list as due today, authored by the application.
+- **The local server rendered the trading copy with sealing available**, from its `.env.local` gate state, so the engineer's review sentence shows in the present tense, as it will wherever the gate allows it.
+- **The second half** runs after the board's writers shard: the probe admin's home and review screen, approve 1, decline 2, the account read back, and both emails screenshotted from their queued HTML. **Delivery is not tested** (Robert's rule 3) until a Resend key is in `.env.local`.
+
 **Bundle 105 result: board `42072604995` on `5fe35cd`, 65 of 65, zero FAIL, as predicted.** Preflight GREEN. proofs-audit PASS with the-auth-audit-low-findings-are-closed (31 checks). LCP `/` 2954ms, service 2802ms, `/coverage` 2721ms, coastal-bend 2436ms. Its waiter was stopped for low memory and the result was read from GitHub. **NOT MERGED: main moved to `0737b78` (F8) while it ran,** so this green measured a main that is gone. It takes `0737b78` and reboards in the next sitting gap.
 
 **F8 MERGED** as `0737b78` (parents `6b772bd`, `eb3237b`), after 0111's production read-back (6664558644, version `20261105172304`). The merged tree is boarded `b27e5fe` plus the ledger line; `ls-remote` confirms. 0112 and 0113 are on development (6664433708: versions `20261105171658` and `20261105171724`; grants 186 to 192).
