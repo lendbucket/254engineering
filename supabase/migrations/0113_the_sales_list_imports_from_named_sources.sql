@@ -1,6 +1,6 @@
 /*
  * ===========================================================================
- * 0112: THE SALES LIST IMPORTS FROM NAMED SOURCES, AND A PERSON WRITES IT.
+ * 0113: THE SALES LIST IMPORTS FROM NAMED SOURCES, AND A PERSON WRITES IT.
  * Robert's sales CRM ruling of 2026-11-02, item R2 (import engine), with his
  * answers the same afternoon.
  * ===========================================================================
@@ -28,10 +28,10 @@
  * (CLAUDE.md 6c). retention-policy.ts declares both tables kept.
  *
  * ADDITIVE ONLY. New tables, their checks and indexes, and one foreign key
- * from eng_prospect_sources.import_run_id (0111, always null until now) to the
- * run that wrote it. No grant: crm.import is 0111's.
+ * from eng_prospect_sources.import_run_id (0112, always null until now) to the
+ * run that wrote it. No grant: crm.import is 0112's.
  *
- * Development first, on stage/0112-crm-imports; production at the chat
+ * Development first, on stage/0113-crm-imports; production at the chat
  * counterpart's sitting after R2's board.
  */
 
@@ -40,10 +40,10 @@
 do $$
 begin
   if to_regclass('public.eng_prospect_sources') is null then
-    raise exception 'eng: 0112 follows 0111, which adds eng_prospect_sources. It does not exist here.';
+    raise exception 'eng: 0113 follows 0112, which adds eng_prospect_sources. It does not exist here.';
   end if;
   if exists (select 1 from public.eng_prospect_sources where import_run_id is not null) then
-    raise exception 'eng: 0112 expects eng_prospect_sources.import_run_id to be null on every row before the runs table exists.';
+    raise exception 'eng: 0113 expects eng_prospect_sources.import_run_id to be null on every row before the runs table exists.';
   end if;
 end;
 $$;
@@ -111,7 +111,7 @@ alter table eng_crm_import_runs enable row level security;
 revoke all on eng_crm_import_runs from public, anon, authenticated;
 
 comment on table eng_crm_import_runs is
-  'One preview of one source for the sales list, and what a person did with it. Scheduled runs only preview; a person with crm.import writes. 0112.';
+  'One preview of one source for the sales list, and what a person did with it. Scheduled runs only preview; a person with crm.import writes. 0113.';
 
 /* --------------------------------------------------------------- the verdicts */
 
@@ -155,7 +155,7 @@ alter table eng_crm_import_rows enable row level security;
 revoke all on eng_crm_import_rows from public, anon, authenticated;
 
 comment on table eng_crm_import_rows is
-  'One verdict per record a source gave in a run: add, merge, conflict, held (no phone and no email) or skip. 0112.';
+  'One verdict per record a source gave in a run: add, merge, conflict, held (no phone and no email) or skip. 0113.';
 
 /* --------------------------------------- a source row names the run that wrote it */
 
@@ -174,16 +174,16 @@ $$;
 do $$
 begin
   if to_regclass('public.eng_crm_import_runs') is null or to_regclass('public.eng_crm_import_rows') is null then
-    raise exception 'eng: 0112 expects eng_crm_import_runs and eng_crm_import_rows after it runs.';
+    raise exception 'eng: 0113 expects eng_crm_import_runs and eng_crm_import_rows after it runs.';
   end if;
   if not exists (select 1 from pg_constraint where conname = 'eng_prospect_sources_import_run_fkey') then
-    raise exception 'eng: 0112 expects eng_prospect_sources.import_run_id to reference eng_crm_import_runs after it runs.';
+    raise exception 'eng: 0113 expects eng_prospect_sources.import_run_id to reference eng_crm_import_runs after it runs.';
   end if;
   if exists (
     select 1 from pg_class c
      where c.relname in ('eng_crm_import_runs', 'eng_crm_import_rows') and not c.relrowsecurity
   ) then
-    raise exception 'eng: 0112 expects row level security on both import tables.';
+    raise exception 'eng: 0113 expects row level security on both import tables.';
   end if;
 end;
 $$;
