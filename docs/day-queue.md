@@ -1,5 +1,64 @@
 # Day queue, 2026-10-23
 
+## MORNING REPORT, 2026-11-05 (posted on issue #1 as 6657343153)
+
+**Needed from Robert: run the 0111 development script at the SQL editor (6651034226). F8 and everything behind it wait on that one step.**
+
+**Merged overnight.** Each merge's tree equals its boarded tree, checked by the merge script. Each push was confirmed by ls-remote, and no board started on main.
+
+| Item | Merge | Board | Result |
+| --- | --- | --- | --- |
+| F4, message search and mentions reach every readable conversation | `73b9e84` | 41975497821 on `5feca24` | 65 of 65 |
+| Review request fixture, sealed once and reused | `97a8e9a` | 41983464657 on `9e083a4` | 65 of 65 |
+| F9 roof, the visit date from an uncertain clock is the server's receipt (RC-001 section 9's own line) | `eda0dc4` | 41998019208 on `e5661be` | 65 of 65 |
+| low-site, the API names no internal file and six noindex surfaces describe themselves | `76682f4` | 42006776148 on `441ab25` | 65 of 65 |
+
+Every prediction was stated before its board and met. No migration merged.
+
+**Boarding or green and waiting.**
+- **low-field, `897ba82`, on board 42015959304 at 05:55.** Only the writers shard is left, and every other shard passed. The prediction is 65 of 65. It merges on a match (field audit F17, F18 and F19).
+- **low-money `d55f416`, low-office `1883f51`, low-auth `d955902`:** these are built and brought up to an earlier main. Each takes the current main and boards in turn after low-field. None waits on anything but the board.
+- **F8 (0111), `77baa24`, not boarded.** It waits for development to hold 0111 and for the counterpart's read-back on issue #1. That is ruling item 2.
+- **CRM R1 to R8 (0112 to 0117), M2 (0118), Q8b (0119): not started.** They stack from F8's boarded head. Each development sitting request is posted just before its board.
+
+**Parked, each with the answer needed.**
+1. **L6, tokens in URLs (6594441148).** Do tokened links swap the token for a short-lived httpOnly cookie on first visit and then redirect without it? **Recommended: yes.** The emailed links stay the same.
+2. **Money F12 and F6 (6594441148).** These need SQL function changes: the paid amount checked against the order before release, and the credit limit checked under a lock. **Recommended:** one migration branch for both, numbered 0120 after Q8b's 0119, through the normal sittings.
+3. **L3, a rate limit on public applicant uploads (6594441148).** **Recommended:** its own small branch on Q11's counted limiter.
+4. **F9's two follow-ups (6606054209).** Do the other four letters get a clock line, given that their protocols word section 9 differently? Is the roof line adopted when the engineer seals? **Recommended:** roof only, as built, until each protocol carries its own sentence.
+5. **Q8c, Stripe disputes.** Parked until Robert confirms `charge.dispute.created` and `charge.dispute.closed` are registered in Stripe.
+
+**Sittings.**
+- **Done overnight:** none. The connector cancelled the counterpart's development apply of 0111 (6650906898). Nothing ran, and it was not retried.
+- **Owed, and these need Robert at the SQL editor (operator_sql_editor route):**
+  - **0111 on development:** the script is 6651034226, and the counterpart checked it as safe (6652139344). Development read 186 grants, 69 of them for admin, with no function.
+  - **0111 on production:** posted after F8's board passes. It is generated from the boarded commit.
+- **Owed after F8:** the development sittings for 0112 to 0119, each requested just before its item boards. These are additive and are for the counterpart.
+
+**Decided overnight, for Robert to confirm.**
+- Under the memory ruling, every local preflight and proof tonight was skipped. Free memory read 10.8 to 11.7 GB. The board was the check each time, and each prediction says so.
+- One local step ran before the memory ruling arrived: the PGlite test of the 0111 script, at 11.4 GB. It was disclosed when it happened.
+- A board waiter was stopped for memory and not restarted. That board was read from GitHub on the next wake instead.
+- Merge commits bringing each low bundle up to main went in without a separate board. Each one's own board measures the combination.
+
+**The four tracked pages' LCP, from the last board (42006776148, low-site):**
+
+| Page | LCP | Ceiling |
+| --- | --- | --- |
+| `/` | 2822 ms | 3600 ms |
+| `/services/windstorm-wpi-8` | 2875 ms | 3400 ms |
+| `/coverage` | 3027 ms | 3400 ms |
+| `/coverage/coastal-bend` | 2873 ms | 3400 ms |
+
+**Main's head, from ls-remote at 05:55 Central:** `76682f496ee92d2adf40bb299dfcdfe3076543ec`.
+
+**Next five:**
+1. low-field: merge on a match.
+2. low-money.
+3. low-office.
+4. low-auth.
+5. F8: boards as soon as development holds 0111 and it is read back.
+
 ## ROBERT'S OVERNIGHT RULING, 2026-11-04 night, in chat, verbatim
 
 > Overnight ruling. Record it on ops/day first, verbatim. Follow docs/standing-orders.md. Run until everything below is merged or parked, then post the morning report and stop.
