@@ -659,6 +659,22 @@ WPI-8 facts stand as read from TDI and TWIA: TWIA's lookup is WPI-8-C only; the 
 
 On a pass, F4 merges: full lane, server code, no migration.
 
+**Bundle 97 result: board `41975497821` on `5feca24`, 65 of 65, zero FAIL, as predicted.** Preflight GREEN, 38 rules. proofs-audit PASS, including F4's proof (search and mentions reach every readable conversation), the clients list proof and the one-search proof. LCP `/` 2865ms, `/services/windstorm-wpi-8` 2879ms, `/coverage` 2640ms, coastal-bend 2866ms, each under its ceiling. Writers took 4 transient retries. **F4 merged** as `73b9e84` (parents `7e08f1e`, `5feca24`), tree identical to the boarded commit; exact push, and `ls-remote` confirms main `73b9e84`; no board started on main.
+
+**Bundle 98, the review request fixture: `fix/review-request-fixture-once` at `9e083a4`.** It is `f9761a2` with main `73b9e84` merged in, clean.
+- **The change:** one file, the proof a-review-request-with-no-order-is-refused-and-delivery-goes-on. It seals one `254-DEMO-RQ-FIXTURE` file once, through a seal act as 0110 requires, and reuses it on every later run instead of sealing a new file each run.
+- **Readers:** no other script reads the fixture or the proof. node --check passes, and 0 long dashes. The proof writes to development, so it runs only on the board.
+- **Preflight NOT run locally:** free memory read 11.2 GB. Under Robert's memory ruling the step is skipped, and the board's own preflight is the check.
+
+**Prediction, bundle 98, stated before dispatch: 65 of 65, zero FAIL.**
+- Preflight GREEN on the board.
+- proofs-audit PASS with this proof: the orderless request is refused, the delivery goes on, and nothing is queued.
+- demo-audit and dashboards-audit PASS, unmoved: the fixture file is a `254-DEMO` record.
+- Public bytes unchanged, and the four LCP pages under their ceilings.
+- Standing COULD NOT TELL lines only.
+
+On a pass, it merges: full lane, because the proof writes to development; no product code and no migration.
+
 **F9 CORRECTION (issue #1, F9 correction comment).** My F9 question 6594767802 was wrong twice: no letter template is signed since 0091 (2026-10-25), so nothing needs re-signing; and the quoted section 9 sentence exists only in 254-RC-001. F9 built for the roof letter only at `c7e8a31` (`fix/f9-visit-date-receipt`, over main `3446a44`), preflight GREEN, proof 15 checks, five injections. Two questions posted (the four other letters; adoption by sealing). Boards with the follow-ups.
 
 **Review-request fixture** built at `f9761a2` (`fix/review-request-fixture-once`): one sealed `254-DEMO-RQ-FIXTURE` file reused; boards with the follow-ups.
