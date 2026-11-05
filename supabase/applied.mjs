@@ -4201,7 +4201,16 @@ export const APPLIED = [
     file: "0111_a_role_grant_set_is_replaced_in_one_act.sql", appliedBy: "operator_sql_editor",
     fingerprint: "22346b566a73ea946ca112725b16569f",
     behaviour: "1ba6334e77d708f51391a37b7625b1c9",
-    production: null,
+    /*
+     * Production: applied 2026-11-05 17:23 UTC by the chat counterpart, the
+     * four blocks of the operator_sql_editor script (6664336087) through the
+     * connector's execute_sql with Robert approving block 2, from the boarded
+     * commit b27e5fe (board 42059867995). Read back: function present, execute
+     * for anon and authenticated false, grants 186 and admin 69 before and
+     * after; schema_migrations version 20261105172304, stored hash 010a57c0,
+     * the same as development (issue #1, 6664558644).
+     */
+    production: "2026-11-05",
     handApplied:
       "The connector cancelled the development apply of 0111 on 2026-11-04 (6650906898), because the function body " +
       "holds a delete, and Robert approved the operator_sql_editor route for development and production. The " +
@@ -4216,7 +4225,7 @@ export const APPLIED = [
       "column, so the shape is 0110's (22346b56, 1396 columns); the behaviour moves 1357 to 1358 facts, the function.",
     because:
       "WRITTEN 2026-11-05 ON fix/f8-set-grants-one-act AND STAGED ON stage/0111-role-grants-one-act FOR THE CHAT " +
-      "COUNTERPART'S SITTING; ON DEVELOPMENT SINCE 2026-11-05 (6660074026), NOT ON PRODUCTION. Robert's Q12 of " +
+      "COUNTERPART'S SITTING; ON DEVELOPMENT SINCE 2026-11-05 (6660074026), ON PRODUCTION SINCE 2026-11-05 (6664558644). Robert's Q12 of " +
       "2026-11-02 (office audit F8), numbered 0111 by his " +
       "ruling (a) of 2026-11-04: setGrants replaces a role's grants through one function, so a failed insert never " +
       "leaves the role with none. The delete in the function body runs only when the function is called.",
