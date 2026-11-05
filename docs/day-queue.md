@@ -1079,6 +1079,44 @@ On a pass, L6 merges: full lane, the proxy and auth adjacent; no migration.
 
 On a pass, the 0112 production sitting request is posted. R1 merges after its production read-back. The roofer branch then boards over it.
 
+**Bundle 107 result: board `42118983641` on `007532b`, 65 of 65, zero FAIL, as predicted.** Preflight GREEN. proofs-audit PASS with R1's proof. LCP `/` 2885ms, service 2885ms, `/coverage` 2340ms, coastal-bend 2890ms. Writers 3 transient retries. **R1 BOARDED GREEN; it waits on 0112's production read-back** (request 6672137326; file sha256 `46c59ded`, the same bytes as development).
+
+**0113 is on development** (6671002528, version `20261105221807`): grants 192 to 194, both checks widened, the author check present, no row changed.
+
+**Bundle 108, the roofer application: `feat/roofer-application` at `bf195d8`.** It is the roofer work (`74ad4c8`, then `76540cb`: the revoke fix and the digests) with R1 `007532b` merged in, so it carries main `7f3361a`.
+- **Local, under the lifted floor:**
+  - preflight GREEN, 38 rules, 111 s;
+  - migration-audit 205 of 205;
+  - schema-ledger-audit PASS;
+  - the type check clean;
+  - email-audit, surface-audit and token-audit each 0 FAIL;
+  - the proof PASS, with four planted faults caught.
+- **Readers:**
+  - proofs-audit (the roofer proof);
+  - migration-audit and schema-ledger-audit (0113 pending, on the operator route, named in the destructive document);
+  - roles-audit (`roofers.review` for admin and ops_manager; development holds the grant);
+  - security-audit (the new screen and API on the perimeter);
+  - forms-audit (the form's refusals, live checking, the kept draft, 390, the API's 422 and honeypot);
+  - email-audit (four new templates);
+  - seo, voice, cta, placeholder, contrast, mobile, native, v10 and token audits (the three public pages and the portal screen);
+  - dashboards and dashboard-speed (the admin's new due tile reads a count);
+  - retention-audit (one table, in order);
+  - launch-audit (the copy in both modes).
+- **The one stated risk:** the review screen and the tile read `eng_roofer_applications`, which development holds since 6671002528. Had the sitting not run, they would have shown a failed read rather than a FAIL.
+- **The walk:** it runs after this board, on a local production build. The build waits on the machine lock, held by another project's run (dispatch-scheduling, pid 26288, since 22:04 UTC). It is never stopped. The walk does not run during this board's writers shard, whose probe sweep would collide with the walk's probe admin.
+
+**Prediction, bundle 108, stated before dispatch: 65 of 65, zero FAIL.**
+- Preflight GREEN.
+- proofs-audit PASS with a-roofer-application-is-decided-by-a-person.
+- forms-audit PASS with the six roofer checks.
+- seo-audit PASS on `/roofing-partners` and `/roofing-partners/apply` (titles 57 and 56 characters, descriptions 158 and 154).
+- voice and cta PASS in prelaunch.
+- security, roles, email, token and surface PASS.
+- Public bytes change on every page (the header, mobile sheet and footer link) and on the three roofing service pages; the four LCP pages stay under their ceilings.
+- Standing COULD NOT TELL lines only.
+
+On a pass, the 0113 production script is generated from this commit and posted for Robert's prompt. The branch merges after R1 and after 0113's production read-back.
+
 **Bundle 105 result: board `42072604995` on `5fe35cd`, 65 of 65, zero FAIL, as predicted.** Preflight GREEN. proofs-audit PASS with the-auth-audit-low-findings-are-closed (31 checks). LCP `/` 2954ms, service 2802ms, `/coverage` 2721ms, coastal-bend 2436ms. Its waiter was stopped for low memory and the result was read from GitHub. **NOT MERGED: main moved to `0737b78` (F8) while it ran,** so this green measured a main that is gone. It takes `0737b78` and reboards in the next sitting gap.
 
 **F8 MERGED** as `0737b78` (parents `6b772bd`, `eb3237b`), after 0111's production read-back (6664558644, version `20261105172304`). The merged tree is boarded `b27e5fe` plus the ledger line; `ls-remote` confirms. 0112 and 0113 are on development (6664433708: versions `20261105171658` and `20261105171724`; grants 186 to 192).
