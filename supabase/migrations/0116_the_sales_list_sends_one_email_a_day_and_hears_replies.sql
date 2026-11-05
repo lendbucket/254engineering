@@ -1,6 +1,6 @@
 /*
  * ===========================================================================
- * 0115: THE SALES LIST SENDS ONE EMAIL A DAY TO AN ADDRESS, AND HEARS REPLIES.
+ * 0116: THE SALES LIST SENDS ONE EMAIL A DAY TO AN ADDRESS, AND HEARS REPLIES.
  * Robert's sales CRM ruling of 2026-11-02, item R7 (sequences and email), with
  * the sequence and templates he approved as drafted the same day (issue #1
  * comment 6587551356) and his answers 1 and 6 (6587550325): replies through a
@@ -38,7 +38,7 @@
  * COUNSEL, as eng_prospects is: declared in retention-policy.ts. RLS on, no
  * policies, every grant revoked: the service role reads and writes.
  *
- * Development first, on stage/0115-crm-email; production at the chat
+ * Development first, on stage/0116-crm-email; production at the chat
  * counterpart's sitting after R7's board.
  */
 
@@ -47,19 +47,19 @@
 do $$
 begin
   if to_regclass('public.eng_crm_territories') is null then
-    raise exception 'eng: 0115 follows 0114, which adds eng_crm_territories. It does not exist here.';
+    raise exception 'eng: 0116 follows 0115, which adds eng_crm_territories. It does not exist here.';
   end if;
   if to_regclass('public.eng_prospect_contacts') is null then
-    raise exception 'eng: 0115 names a contact from eng_prospect_contacts (0111), and that table does not exist here.';
+    raise exception 'eng: 0116 names a contact from eng_prospect_contacts (0112), and that table does not exist here.';
   end if;
   if to_regclass('public.eng_crm_email_sends') is not null or to_regclass('public.eng_crm_email_replies') is not null then
-    raise exception 'eng: 0115 expects neither email table before it runs.';
+    raise exception 'eng: 0116 expects neither email table before it runs.';
   end if;
   if exists (
     select 1 from information_schema.columns
      where table_schema = 'public' and table_name = 'eng_prospects' and column_name = 'sequence_paused_at'
   ) then
-    raise exception 'eng: 0115 expects no sequence_paused_at column on eng_prospects before it runs.';
+    raise exception 'eng: 0116 expects no sequence_paused_at column on eng_prospects before it runs.';
   end if;
 end;
 $$;
@@ -104,7 +104,7 @@ alter table eng_crm_email_sends enable row level security;
 revoke all on eng_crm_email_sends from public, anon, authenticated;
 
 comment on table eng_crm_email_sends is
-  'One row per sales sequence email a rep sent, written before the email is queued. Unique on (address, firm_day) while queued: one send per address per firm day. 0115.';
+  'One row per sales sequence email a rep sent, written before the email is queued. Unique on (address, firm_day) while queued: one send per address per firm day. 0116.';
 
 /* ------------------------------------------------------------ the replies */
 
@@ -141,40 +141,40 @@ alter table eng_crm_email_replies enable row level security;
 revoke all on eng_crm_email_replies from public, anon, authenticated;
 
 comment on table eng_crm_email_replies is
-  'One row per reply to a sales email, delivered by the Resend webhook. Unique on its event id, so a redelivery writes nothing twice. The inbox lists the unread ones, linked to the company they matched. 0115.';
+  'One row per reply to a sales email, delivered by the Resend webhook. Unique on its event id, so a redelivery writes nothing twice. The inbox lists the unread ones, linked to the company they matched. 0116.';
 
 /* ------------------------------------------------- a reply pauses the sequence */
 
 alter table eng_prospects add column if not exists sequence_paused_at timestamptz;
 
 comment on column eng_prospects.sequence_paused_at is
-  'Set when a reply to a sales email arrives: the sequence stops for a person. Cleared when a rep reads the reply and the company moves to connected. 0115.';
+  'Set when a reply to a sales email arrives: the sequence stops for a person. Cleared when a rep reads the reply and the company moves to connected. 0116.';
 
 /* ------------------------------------------------------------- closing assert */
 
 do $$
 begin
   if to_regclass('public.eng_crm_email_sends') is null or to_regclass('public.eng_crm_email_replies') is null then
-    raise exception 'eng: 0115 expects both email tables after it runs.';
+    raise exception 'eng: 0116 expects both email tables after it runs.';
   end if;
   if exists (
     select 1 from pg_class c
      where c.relname in ('eng_crm_email_sends', 'eng_crm_email_replies')
        and not c.relrowsecurity
   ) then
-    raise exception 'eng: 0115 expects row level security on both tables.';
+    raise exception 'eng: 0116 expects row level security on both tables.';
   end if;
   if to_regclass('public.eng_crm_email_sends_once_a_day') is null then
-    raise exception 'eng: 0115 expects one send per address per day.';
+    raise exception 'eng: 0116 expects one send per address per day.';
   end if;
   if to_regclass('public.eng_crm_email_replies_event_once') is null then
-    raise exception 'eng: 0115 expects a reply event to be recorded once.';
+    raise exception 'eng: 0116 expects a reply event to be recorded once.';
   end if;
   if not exists (
     select 1 from information_schema.columns
      where table_schema = 'public' and table_name = 'eng_prospects' and column_name = 'sequence_paused_at'
   ) then
-    raise exception 'eng: 0115 expects eng_prospects.sequence_paused_at after it runs.';
+    raise exception 'eng: 0116 expects eng_prospects.sequence_paused_at after it runs.';
   end if;
 end;
 $$;
