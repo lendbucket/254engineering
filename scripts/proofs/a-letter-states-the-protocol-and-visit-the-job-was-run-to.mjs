@@ -53,14 +53,19 @@ const state = {
   exceptions: [{ item_key: LABELLED.key, kind: "not_observed", reason: "Snow on the north slope" }],
   failTemplate: false,
 };
-/* created_at is the server's receipt (0057); each is shortly after its capture unless a case below moves it. */
+/*
+ * created_at is the server's receipt (0057); each is shortly after its capture unless a case below moves it.
+ * clock_disagrees false on every row: since Robert's ruling F9 (2026-11-02) the L2b guard below applies to a
+ * clock recorded as agreeing, and a clock recorded as disagreeing or never measured takes the receipt date
+ * with RC-001 section 9's line instead, which scripts/proofs/a-visit-date-from-an-uncertain-clock-is-the-receipt.mjs proves.
+ */
 const EVIDENCE = [
   /* Sent back: its earlier capture is not the visit, and it is not counted. */
-  { captured_at: "2026-10-18T15:00:00Z", created_at: "2026-10-18T15:05:00Z", status: "revision_requested" },
-  { captured_at: "2026-10-20T15:00:00Z", created_at: "2026-10-20T15:05:00Z", status: "accepted" },
+  { captured_at: "2026-10-18T15:00:00Z", created_at: "2026-10-18T15:05:00Z", status: "revision_requested", clock_disagrees: false },
+  { captured_at: "2026-10-20T15:00:00Z", created_at: "2026-10-20T15:05:00Z", status: "accepted", clock_disagrees: false },
   /* 02:00 UTC on the 21st is 21:00 Central on the 20th; submitted, which stands, so counted (Q1). */
-  { captured_at: "2026-10-21T02:00:00Z", created_at: "2026-10-21T02:05:00Z", status: "submitted" },
-  { captured_at: "2026-10-21T16:00:00Z", created_at: "2026-10-21T16:05:00Z", status: "accepted" },
+  { captured_at: "2026-10-21T02:00:00Z", created_at: "2026-10-21T02:05:00Z", status: "submitted", clock_disagrees: false },
+  { captured_at: "2026-10-21T16:00:00Z", created_at: "2026-10-21T16:05:00Z", status: "accepted", clock_disagrees: false },
 ];
 const json = (b, status = 200) => new Response(JSON.stringify(b), { status, headers: { "content-type": "application/json" } });
 globalThis.fetch = async (input) => {

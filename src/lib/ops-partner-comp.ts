@@ -425,6 +425,24 @@ export async function planReversals(input: {
     return { ok: true, reversals: [], notes: ["No commission was accrued on that order, so nothing is reversed."] };
   }
 
+  /*
+   * What has already been reversed of each accrual (money audit F9,
+   * 2026-11-02): a new reversal is capped at what is left, so partial refunds
+   * can never reverse more than was accrued. A failed read refuses the plan,
+   * because reversing without knowing what is already reversed is the defect.
+   */
+  const { data: priorReversals, error: priorError } = await db
+    .from("eng_partner_entries")
+    .select("reverses_id, amount_cents")
+    .eq("order_id", input.orderId)
+    .eq("kind", "reversal");
+  if (priorError) return { ok: false, error: `The commission already reversed on that order could not be read: ${priorError.message}` };
+  const reversedOf = new Map<string, number>();
+  for (const r of priorReversals ?? []) {
+    if (!r.reverses_id || r.amount_cents === null) continue;
+    reversedOf.set(r.reverses_id as string, (reversedOf.get(r.reverses_id as string) ?? 0) + Math.abs(Number(r.amount_cents)));
+  }
+
   const reversals: PlannedReversal[] = [];
   const notes: string[] = [];
   for (const accrual of entries) {
@@ -443,6 +461,7 @@ export async function planReversals(input: {
       accruedCents: Number(accrual.amount_cents),
       basisCents: accrual.basis_cents === null ? null : Number(accrual.basis_cents),
       refundedCents: input.refundedCents,
+      alreadyReversedCents: reversedOf.get(accrual.id as string) ?? 0,
     });
 
     if (!verdict.reverse) {

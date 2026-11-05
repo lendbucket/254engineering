@@ -33,6 +33,8 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Onboarding | 254 Engineering",
+  /* Its own description rather than the home page's (site audit issue 12, 2026-11-02). */
+  description: "The onboarding steps 254 Engineering sent to you, one link per person.",
   robots: { index: false, follow: false, nocache: true },
 };
 
