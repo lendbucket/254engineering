@@ -1,5 +1,20 @@
 # Day queue, 2026-10-23
 
+## ROBERT, 2026-11-05 evening, in chat, verbatim: new standing rules (nothing holds)
+
+> New standing rules, record them on ops/day verbatim. Nothing holds.
+>
+> 1. The machine lock. Wattsmith keeps running and nobody stops it. When another project holds the lock, the 254 session does not wait. It runs its own build, server and walk alongside, using only its own checkout, its own .next and its own audit ports. It never kills, signals or touches another project's process. If a port it needs is taken by another project, it picks a free port of its own and says which. Record each time it ran beside another project's run.
+>
+> 2. GitHub pushes. When a push fails, retry once. If it fails again, do not wait:
+>    a. Try the same push over the REST API instead: create the blobs, tree and commit, then update the branch ref, for that one branch.
+>    b. If that fails too, run git bundle create on the branch, upload it as a secret gist with gh gist create, and post the gist link and the branch head on issue #1. My counterpart pulls the bundle, checks the head matches, and pushes the branch from its side.
+>    Never force push, never touch main this way, and never push a branch you do not own.
+>
+> 3. The walk's emails. Do not wait on my key. Run the walk now with option 2: screenshot both emails from their queued HTML at 390 and 1280 and record that delivery was not tested yet. If I type a Resend key into .env.local later, send the two queued messages then and tell my counterpart.
+>
+> Apply all three now: board the roofer branch the moment it reaches GitHub by any of these routes, then run the walk.
+
 ## ROBERT, 2026-11-05 afternoon, in chat, verbatim: the memory floor is removed
 
 > Ruling: the 12 GB free memory floor is removed, for every local step, starting now. Do not hold any work waiting for memory. Run the 0112 ledger replay now, then board R1, test 0113 against the full chain, and post the 0113 development script on issue #1 for my counterpart. Run the walk's local production build when it comes up. If a step fails because memory ran out, say so plainly and run it again. Never report an out of memory failure as a code finding. Record this ruling on ops/day verbatim.
