@@ -260,9 +260,10 @@ export const CAPTURE_REMOVABLE_STATUSES: readonly string[] = ["evidence_in_progr
  * ONE RULE FOR THE BUTTON AND THE REFUSAL. The job screen asks it to decide
  * whether to draw the delete control, and `deleteCapture` asks it before it
  * writes anything, so the control is never drawn for a removal the server
- * would refuse. The people are the ones `recordCapture` lets capture: a role
- * that captures or reviews evidence, and a technician only on a job they
- * accepted, because holding an offer is not holding the job.
+ * would refuse. The people are the ones `recordCapture` lets capture: since
+ * Robert's ruling Q3 of 2026-11-02 (audit field F15), the evidence.capture
+ * grant AND the file's assigned technician, whatever the role. Review reads
+ * evidence and no longer removes it.
  */
 export function captureDeleteRefusal(input: {
   actorId: string | null;
@@ -272,7 +273,7 @@ export function captureDeleteRefusal(input: {
   status: string;
 }): string | null {
   if (!input.actorId || !input.mayCapture) return "Your role cannot remove evidence.";
-  if (input.actorRole === "field_tech" && input.assignedTechId !== input.actorId) {
+  if (input.assignedTechId !== input.actorId) {
     return input.assignedTechId
       ? "Another technician accepted this job, so its captures are theirs to remove."
       : "Accept this job before removing anything from it.";

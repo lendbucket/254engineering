@@ -484,22 +484,37 @@ async function run() {
   {
     const { DEVELOPMENT_REF, refOf } = await import("./lib/db-target.mjs");
     const runId = process.env.BOARD_RUN_ID ?? "";
-    /* The run id prefixes the address main uses (question 2, 2026-10-25), so the browser's key starts with this run's prefix. */
-    const expected = /^\d{6,20}$/.test(runId) && refOf(process.env.SUPABASE_URL) === DEVELOPMENT_REF ? `board:${runId}:` : null;
+    /* The run id prefixes the address main uses (question 2, 2026-10-25), so the browser's key starts with this run's prefix,
+     * and since Q9 (2026-11-03) with this audit's own name, which the suite sets on the server it restarts for this audit. */
+    const auditName = process.env.BOARD_AUDIT ?? "";
+    const runPrefix = /^\d{6,20}$/.test(runId) && refOf(process.env.SUPABASE_URL) === DEVELOPMENT_REF ? `board:${runId}:` : null;
+    const expected = runPrefix && /^[a-z0-9][a-z0-9-]{0,63}$/.test(auditName) ? `${runPrefix}${auditName}:` : runPrefix;
     let ok = false;
     let detail = "";
     if (!techProbe?.password) {
       detail = "the technician probe could not be made, so no browser sign in was tried";
     } else {
-      const attempts = async () =>
+      /*
+       * THE STAFF DOOR COUNTS AGAINST "portal:<email>". Robert, 2026-11-02 (F2,
+       * per-door counters): each door names its own identity, so the browser's
+       * attempt is read under the staff door's identity, written out here as a
+       * literal rather than taken from doorIdentity, and the bare email is read
+       * too: a new attempt under it would mean a door still counts against the
+       * shared identity F2 removed. Board 41956220362 went red here reading the
+       * bare email alone, which is how this check learned the new shape.
+       */
+      const attemptsFor = (identity) => async () =>
         techProbe.db
           .from("eng_sign_in_attempts")
           .select("address", { count: "exact" })
-          .eq("identity", techProbe.email)
+          .eq("identity", identity)
           .eq("kind", "attempt")
           .order("id", { ascending: false })
           .limit(1);
+      const attempts = attemptsFor(`portal:${techProbe.email.trim().toLowerCase()}`);
+      const bareAttempts = attemptsFor(techProbe.email.trim().toLowerCase());
       const before = await attempts();
+      const bareBefore = await bareAttempts();
       const ctx = await browser.newContext();
       const page = await ctx.newPage();
       let status = null;
@@ -518,10 +533,13 @@ async function run() {
       }
       await ctx.close();
       const after = await attempts();
+      const bareAfter = await bareAttempts();
       const address = after.data?.[0]?.address ?? null;
       if (!detail) {
         if (before.error || after.error) detail = `the attempts could not be read: ${(before.error ?? after.error).message}`;
-        else if ((after.count ?? 0) !== (before.count ?? 0) + 1) detail = `expected one new attempt from the browser, found ${(after.count ?? 0) - (before.count ?? 0)}`;
+        else if (bareBefore.error || bareAfter.error) detail = `the attempts under the bare email could not be read: ${(bareBefore.error ?? bareAfter.error).message}`;
+        else if ((bareAfter.count ?? 0) !== (bareBefore.count ?? 0)) detail = `the browser's attempt was also counted under the bare email (${(bareAfter.count ?? 0) - (bareBefore.count ?? 0)} new), so the staff door is not keeping its own count`;
+        else if ((after.count ?? 0) !== (before.count ?? 0) + 1) detail = `expected one new attempt from the browser under the staff door's identity, found ${(after.count ?? 0) - (before.count ?? 0)}`;
         else {
           ok = status === 200 && (expected ? String(address).startsWith(expected) : !String(address).startsWith("board:"));
           detail = `browser sign in answered ${status}; its attempt counted under "${address}"${expected ? `, inside this run's prefix ${expected}` : ", and no board run id is set here"}`;

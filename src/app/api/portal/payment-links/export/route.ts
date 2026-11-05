@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { currentActor } from "@/lib/ops-auth";
-import { can } from "@/lib/ops-authz";
+import { mayExport } from "@/lib/list-exports";
 import { listBillableJobs } from "@/lib/ops-bill-list";
 import { BILL_INTENT_LABEL, billListRows } from "@/lib/billing-rules";
 import { csv, csvHeaders } from "@/lib/csv";
@@ -16,14 +16,16 @@ export const dynamic = "force-dynamic";
  * Office ready, 2026-10-20: lists export to CSV. Every job the screen would
  * show for the same filter, search and sort, not one page, because the rows
  * come from billListRows, the function the screen uses. Money from moneyCell:
- * dollars, and blank where no price is set, never 0.
+ * dollars, and blank where no price is set, never 0. The screen's grant and,
+ * since 2026-11-02, the administrator's export gate (mayExport, Robert's P2
+ * approval, option a).
  */
 const bad = (error: string, status = 400) => NextResponse.json({ ok: false, error }, { status });
 
 export async function GET(request: NextRequest) {
   const actor = await currentActor();
   if (!actor) return bad("Not signed in.", 401);
-  if (!can(actor, "payments.charge")) return bad("Not permitted.", 403);
+  if (!mayExport(actor, "payments.charge")) return bad("Your role cannot export the jobs not yet paid.", 403);
   const read = await listBillableJobs(actor);
   if (!read.ok) return bad(read.error, 500);
   const params = request.nextUrl.searchParams;

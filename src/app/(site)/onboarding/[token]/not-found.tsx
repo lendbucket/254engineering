@@ -8,7 +8,8 @@ import { business } from "@/config/business";
  * ONE PAGE FOR FOUR DIFFERENT FAILURES, ON PURPOSE
  * ------------------------------------------------
  * A malformed token, an unknown token, an expired token, and a completed
- * onboarding all land here with a 404. They read identically because telling
+ * onboarding all land here (rendered by page.tsx itself since Q14 of
+ * 2026-11-02, so the copy is in the server HTML). They read identically because telling
  * them apart is exactly the disclosure the token scheme exists to prevent:
  * "this link has expired" confirms that the link was real, which tells somebody
  * probing the route that the token space is worth guessing at.

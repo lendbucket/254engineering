@@ -44,16 +44,18 @@ for (const [name, body] of [["the list", list], ["the count", count]]) {
 check("the list pages by offset, with a tie broken by id so no client is shown twice or skipped", /\.range\(offset, offset \+ limit - 1\)/.test(list) && /\.order\("id", \{ ascending: true \}\)/.test(list));
 
 const page = readFileSync("src/app/portal/(app)/clients/page.tsx", "utf8");
-check("the screen reads one query and hands it to the list and the count", /const query = clientListQuery\(params\);/.test(page) && /listClients\(actor, \{ limit: CLIENT_PAGE_SIZE, offset: \(query\.page - 1\) \* CLIENT_PAGE_SIZE, query \}\)/.test(page) && /countClients\(actor, query\)/.test(page));
+/* Since Q13 (office audit F9, 2026-11-02) the screen reads through listClientsRead, which says when it failed. */
+check("the screen reads one query and hands it to the list and the count", /const query = clientListQuery\(params\);/.test(page) && /listClientsRead\(actor, \{ limit: CLIENT_PAGE_SIZE, offset: \(query\.page - 1\) \* CLIENT_PAGE_SIZE, query \}\)/.test(page) && /countClients\(actor, query\)/.test(page));
 check("it offers search, a filter and a sort, and pages over the matching count", /<ListControls/.test(page) && /<Pager page=\{query\.page\} pageSize=\{CLIENT_PAGE_SIZE\} total=\{total\}/.test(page));
 check("and no longer says search and paging are not built", !/Search and paging for the rest are/.test(page));
 
 /* The CSV: every matching client or no file. */
 const exp = readFileSync("src/app/api/portal/clients/export/route.ts", "utf8");
-check("the export reads the screen's own query and asks the screen's grant", /clientListQuery\(\{ q: params\.q, kind: params\.kind, sort: params\.sort, dir: params\.dir \}\)/.test(exp) && /can\(actor, "clients\.list"\)/.test(exp));
+/* `can(actor, "clients.list")` until 2026-11-02; mayExport asks the screen's grant AND the administrator's export gate since Robert's P2 approval (option a). */
+check("the export reads the screen's own query and asks the screen's grant through the export gate", /clientListQuery\(\{ q: params\.q, kind: params\.kind, sort: params\.sort, dir: params\.dir \}\)/.test(exp) && /if \(!mayExport\(actor, "clients\.list"\)\)/.test(exp));
 check("it reads every page and refuses unless the rows equal the exact count", /for \(let offset = 0; offset < total; offset \+= PAGE\)/.test(exp) && /if \(rows\.length !== total\) \{\s*return bad\(/.test(exp));
 check("an uncounted total makes no file rather than an empty one", /if \(total === null\) return bad\(/.test(exp));
-check("the screen offers it with its own search, kind and sort", /csvHref=\{listHref\("\/api\/portal\/clients\/export", \{ q: params\.q, kind: params\.kind, sort: params\.sort, dir: params\.dir \}, \{\}\)\}/.test(page));
+check("the screen offers it with its own search, kind and sort, to the export gate only", /csvHref=\{mayExport\(actor, "clients\.list"\) \? listHref\("\/api\/portal\/clients\/export", \{ q: params\.q, kind: params\.kind, sort: params\.sort, dir: params\.dir \}, \{\}\) : undefined\}/.test(page));
 check("and security-audit declares the route", /"\/api\/portal\/clients\/export",/.test(readFileSync("scripts/security-audit.mjs", "utf8")));
 
 console.log("");

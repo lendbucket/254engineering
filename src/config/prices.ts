@@ -205,12 +205,21 @@ export const servicePrices: Record<string, ServicePrice> = {
    * the price cannot say different things. The first draft of this file had
    * "$995" typed into this very sentence beside a constant holding the same
    * number, which is the defect the map removes rather than relocates.
+   *
+   * THE ONGOING FIGURE IS NOT PRINTED WHILE THE TIER CANNOT BE ORDERED. Robert's
+   * Q14 of 2026-11-02, from the live site audit: the $995 stood on
+   * /structural-engineer/cost though no order page offers ongoing construction,
+   * which opens only on the engineer's signed scope addendum. The tier keeps its
+   * price in WPI8_BY_TIER; this sentence says it is quoted. It cannot ask the
+   * catalog's statedPriceCents, which imports this file, so the wording is
+   * fixed here and restoring the figure when the line opens is a BACKLOG.md
+   * entry, checked by the proof `the-ongoing-wpi8-price-is-not-printed`.
    */
   "windstorm-wpi-8": {
     kind: "fixed",
     byTier: WPI8_BY_TIER,
     headlineTier: "completed",
-    whatChangesIt: `This is the completed construction price, ${money(WPI8_BY_TIER.completed)}. Ongoing construction, inspected in stages while the work is open, is ${money(WPI8_BY_TIER.ongoing)} because it is more attendance rather than a premium on the same visit. That price includes ${WPI8_ONGOING_INCLUDED_VISITS} stage visits; each further visit the engineer calls for is ${money(WPI8_EXTRA_VISIT_CENTS)}. An existing building with no recent work is quoted per job.`,
+    whatChangesIt: `This is the completed construction price, ${money(WPI8_BY_TIER.completed)}. Ongoing construction, inspected in stages while the work is open, is quoted until it can be ordered online; it includes ${WPI8_ONGOING_INCLUDED_VISITS} stage visits, and each further visit the engineer calls for is ${money(WPI8_EXTRA_VISIT_CENTS)}. An existing building with no recent work is quoted per job.`,
   },
   "repair-specifications": {
     kind: "fixed",

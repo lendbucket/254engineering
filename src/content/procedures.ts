@@ -1001,7 +1001,7 @@ export const PROCEDURES: Procedure[] = [
         "who": "Ops manager, admin (as step 2)",
         "sees": "Coverage and base",
         "does": "Sets coverage counties and base",
-        "next": "`set_coverage` (`setTechCoverage`), `/api/portal/field` `set_tech_base`",
+        "next": "`set_tech_coverage` (`setTechCoverage`), `/api/portal/field` `set_tech_base`",
         "told": "",
         "record": "`eng_profiles` update; audits `profile.coverage_set`, `profile.set_base`",
         "marks": ""

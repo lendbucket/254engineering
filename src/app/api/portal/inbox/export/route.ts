@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { currentActor } from "@/lib/ops-auth";
-import { can } from "@/lib/ops-authz";
+import { mayExport } from "@/lib/list-exports";
 import { inbox } from "@/lib/ops-inbox";
 import { inboxListRows } from "@/lib/inbox-list";
 import { csv, csvHeaders } from "@/lib/csv";
@@ -15,7 +15,9 @@ export const dynamic = "force-dynamic";
  * Office ready, operator ruling of 2026-10-20: "Order summaries and reports
  * print cleanly and export to CSV." Every item the screen would show for the
  * same answered, kind, search and sort, not one page: the rows come from
- * inboxListRows, the function the screen uses. The same grant as the screen.
+ * inboxListRows, the function the screen uses. The same grant as the screen,
+ * and since 2026-11-02 the administrator's export gate (mayExport, Robert's
+ * P2 approval, option a).
  *
  * A PARTIAL READ IS SAID, NOT HIDDEN. The inbox reads several sources and one
  * can fail while the others answer; the screen says which, and so does the
@@ -26,7 +28,7 @@ const bad = (error: string, status = 400) => NextResponse.json({ ok: false, erro
 export async function GET(request: NextRequest) {
   const actor = await currentActor();
   if (!actor) return bad("Not signed in.", 401);
-  if (!can(actor, "inbox.read")) return bad("Not permitted.", 403);
+  if (!mayExport(actor, "inbox.read")) return bad("Your role cannot export the inbox.", 403);
   const params = request.nextUrl.searchParams;
   const read = await inbox(actor, { includeAnswered: params.get("answered") === "all" });
   if (!read.ok) return bad(read.error, 500);

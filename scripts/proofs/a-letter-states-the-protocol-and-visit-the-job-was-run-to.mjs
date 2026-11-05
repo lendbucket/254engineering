@@ -18,8 +18,10 @@
  *      label refuses the draft.
  * L2b. The visit date was the earliest capture across all evidence,
  *      revision-requested included, and evidence_count counted every row. Now:
- *      the earliest capture that was not sent back, in America/Chicago, and
- *      the accepted evidence only.
+ *      the earliest capture that was not sent back, in America/Chicago. The
+ *      count was "the accepted evidence only" until Robert's ruling Q1 of
+ *      2026-11-02: nothing ever writes 'accepted', so it is now the standing
+ *      evidence (every row not sent back), and none refuses the draft.
  * L2e. Sealing checked that the licence number is on the register and not its
  *      expiry. Asserted on the source here: the seal's own door is shut
  *      before it in this process, because the launch gate is.
@@ -56,7 +58,7 @@ const EVIDENCE = [
   /* Sent back: its earlier capture is not the visit, and it is not counted. */
   { captured_at: "2026-10-18T15:00:00Z", created_at: "2026-10-18T15:05:00Z", status: "revision_requested" },
   { captured_at: "2026-10-20T15:00:00Z", created_at: "2026-10-20T15:05:00Z", status: "accepted" },
-  /* 02:00 UTC on the 21st is 21:00 Central on the 20th; submitted, so not counted. */
+  /* 02:00 UTC on the 21st is 21:00 Central on the 20th; submitted, which stands, so counted (Q1). */
   { captured_at: "2026-10-21T02:00:00Z", created_at: "2026-10-21T02:05:00Z", status: "submitted" },
   { captured_at: "2026-10-21T16:00:00Z", created_at: "2026-10-21T16:05:00Z", status: "accepted" },
 ];
@@ -83,7 +85,7 @@ const entered = { recipientAddress: "1 Proof Way", recipientSalutation: "Dear Pr
 const good = await letterFactsFor(det, entered);
 check("with the file's template on the carried version, the letter prints that version", good.ok === true && good.facts.protocol_version === CARRIED, good.ok ? good.facts.protocol_version : good.error);
 check("the visit is the earliest capture that was not sent back, in Texas", good.ok === true && good.facts.visit_date === "October 20, 2026", good.ok ? good.facts.visit_date : "");
-check("the evidence count is the accepted evidence only", good.ok === true && good.facts.evidence_count === "2", good.ok ? good.facts.evidence_count : "");
+check("the evidence count is the standing evidence, every row not sent back (Q1)", good.ok === true && good.facts.evidence_count === "3", good.ok ? good.facts.evidence_count : "");
 check("an item not observed prints with his label, never its key", good.ok === true && good.facts.items_not_observed.startsWith(`${LABELLED.label} (`), good.ok ? good.facts.items_not_observed : "");
 
 state.template = { document_number: "254-RC-001", version_label: "0.9" };
@@ -129,8 +131,8 @@ EVIDENCE[0].created_at = "2026-10-18T15:05:00Z";
 
 const seal = readFileSync("src/lib/letter-seal.ts", "utf8");
 check(
-  "the foundation letter prints the version the file ran under and the accepted count",
-  /protocol_version: base\.protocolVersion,/.test(seal) && /evidence_count: String\(base\.evidenceCount\),[\s\S]{0,80}items_not_observed/.test(seal),
+  "the foundation letter prints the version the file ran under and the standing count",
+  /protocol_version: base\.protocolVersion,/.test(seal) && /evidence_count: evidenceCountSlot\(base\.evidenceCount\),[\s\S]{0,80}items_not_observed/.test(seal),
 );
 /*
  * Since 2026-10-26 the check lives in sealerFor, the one reading of who may
