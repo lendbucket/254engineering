@@ -1,6 +1,6 @@
 /*
  * ===========================================================================
- * 0114: THE SALES LIST DIVIDES TEXAS INTO TERRITORIES, AND REPS HOLD THEM.
+ * 0115: THE SALES LIST DIVIDES TEXAS INTO TERRITORIES, AND REPS HOLD THEM.
  * Robert's sales CRM ruling of 2026-11-02, item R5 (territories and
  * assignment), with his answer 2 the same afternoon.
  * ===========================================================================
@@ -32,7 +32,7 @@
  * first, from code. KEPT, PENDING COUNSEL, as eng_prospects is: declared in
  * retention-policy.ts. ADDITIVE ONLY: no drop, no change to an existing table.
  *
- * Development first, on stage/0114-crm-territories; production at the chat
+ * Development first, on stage/0115-crm-territories; production at the chat
  * counterpart's sitting after R5's board.
  */
 
@@ -41,16 +41,16 @@
 do $$
 begin
   if to_regclass('public.eng_crm_saved_views') is null then
-    raise exception 'eng: 0114 follows 0113, which adds eng_crm_saved_views. It does not exist here.';
+    raise exception 'eng: 0115 follows 0114, which adds eng_crm_saved_views. It does not exist here.';
   end if;
   if not exists (
     select 1 from information_schema.columns
      where table_schema = 'public' and table_name = 'eng_prospects' and column_name = 'county'
   ) then
-    raise exception 'eng: 0114 places a company by eng_prospects.county (0111), and that column does not exist here.';
+    raise exception 'eng: 0115 places a company by eng_prospects.county (0112), and that column does not exist here.';
   end if;
   if to_regclass('public.eng_crm_territories') is not null then
-    raise exception 'eng: 0114 expects no territory table before it runs.';
+    raise exception 'eng: 0115 expects no territory table before it runs.';
   end if;
 end;
 $$;
@@ -83,7 +83,7 @@ alter table eng_crm_territories enable row level security;
 revoke all on eng_crm_territories from public, anon, authenticated;
 
 comment on table eng_crm_territories is
-  'A sales territory: a named set of Texas counties, with the round robin cursor its imports advance. The region is derived from the coverage map in code, never stored. 0114.';
+  'A sales territory: a named set of Texas counties, with the round robin cursor its imports advance. The region is derived from the coverage map in code, never stored. 0115.';
 
 /* ------------------------------------------------------ the counties in each */
 
@@ -105,7 +105,7 @@ alter table eng_crm_territory_counties enable row level security;
 revoke all on eng_crm_territory_counties from public, anon, authenticated;
 
 comment on table eng_crm_territory_counties is
-  'The counties in a sales territory. A county is in at most one territory (unique on its trimmed lower case name). 0114.';
+  'The counties in a sales territory. A county is in at most one territory (unique on its trimmed lower case name). 0115.';
 
 /* ------------------------------------------------------- who holds each one */
 
@@ -123,7 +123,7 @@ alter table eng_crm_territory_reps enable row level security;
 revoke all on eng_crm_territory_reps from public, anon, authenticated;
 
 comment on table eng_crm_territory_reps is
-  'Who holds a sales territory. A rep holds one or more; a rep sees their own companies and the unassigned ones in counties they hold. 0114.';
+  'Who holds a sales territory. A rep holds one or more; a rep sees their own companies and the unassigned ones in counties they hold. 0115.';
 
 /* ------------------------------------------------------------- closing assert */
 
@@ -132,17 +132,17 @@ begin
   if to_regclass('public.eng_crm_territories') is null
      or to_regclass('public.eng_crm_territory_counties') is null
      or to_regclass('public.eng_crm_territory_reps') is null then
-    raise exception 'eng: 0114 expects its three territory tables after it runs.';
+    raise exception 'eng: 0115 expects its three territory tables after it runs.';
   end if;
   if exists (
     select 1 from pg_class c
      where c.relname in ('eng_crm_territories', 'eng_crm_territory_counties', 'eng_crm_territory_reps')
        and not c.relrowsecurity
   ) then
-    raise exception 'eng: 0114 expects row level security on all three tables.';
+    raise exception 'eng: 0115 expects row level security on all three tables.';
   end if;
   if to_regclass('public.eng_crm_territory_counties_county_once') is null then
-    raise exception 'eng: 0114 expects a county to be in at most one territory.';
+    raise exception 'eng: 0115 expects a county to be in at most one territory.';
   end if;
 end;
 $$;
