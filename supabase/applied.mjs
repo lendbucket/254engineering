@@ -4207,14 +4207,17 @@ export const APPLIED = [
       "holds a delete, and Robert approved the operator_sql_editor route for development and production. The " +
       "provider's history holds a row for 0111 only because the script's last block inserts it by hand after the " +
       "verification read: apply_migration never wrote it, so its version is the moment of that insert rather than of " +
-      "the apply, and nothing in the provider's record shows the file went through the SQL editor.",
+      "the apply, and nothing in the provider's record shows how the file was run. On development the script's four " +
+      "blocks went through the connector's execute_sql on 2026-11-05, with Robert approving its confirmation for the " +
+      "migration block (6660074026); the history row there is version 20261105140855.",
     proves: { function: "eng_set_role_grants" },
     note:
       "Both figures read off scripts/fingerprint-at.mjs on 2026-11-05 on the chain to 0111. One function adds no " +
       "column, so the shape is 0110's (22346b56, 1396 columns); the behaviour moves 1357 to 1358 facts, the function.",
     because:
       "WRITTEN 2026-11-05 ON fix/f8-set-grants-one-act AND STAGED ON stage/0111-role-grants-one-act FOR THE CHAT " +
-      "COUNTERPART'S SITTING; APPLIED NOWHERE. Robert's Q12 of 2026-11-02 (office audit F8), numbered 0111 by his " +
+      "COUNTERPART'S SITTING; ON DEVELOPMENT SINCE 2026-11-05 (6660074026), NOT ON PRODUCTION. Robert's Q12 of " +
+      "2026-11-02 (office audit F8), numbered 0111 by his " +
       "ruling (a) of 2026-11-04: setGrants replaces a role's grants through one function, so a failed insert never " +
       "leaves the role with none. The delete in the function body runs only when the function is called.",
   },
