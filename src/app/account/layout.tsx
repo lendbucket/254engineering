@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
+  /* Its own description rather than the home page's (site audit issue 12, 2026-11-02). */
+  description: "Sign in to a 254 Engineering customer account to see orders, statements and settings.",
   robots: { index: false, follow: false, nocache: true },
 };
 

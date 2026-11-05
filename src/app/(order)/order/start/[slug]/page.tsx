@@ -53,6 +53,8 @@ export async function generateMetadata({
      * inversion recorded in CLAUDE.md about the JSON-LD telephone.
      */
     title: service ? `${orderHeading(service.shortName, launchMode())} | 254 Engineering` : "Order | 254 Engineering",
+    /* Its own description rather than the home page's (site audit issue 12, 2026-11-02); the page's own first sentence, true in every mode. */
+    description: "A few questions decide whether this is work the firm can take, then the property, then what the engineer needs.",
     robots: { index: false, follow: true },
   };
 }

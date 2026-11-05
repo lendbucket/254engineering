@@ -5,6 +5,7 @@ import { inbox } from "@/lib/ops-inbox";
 import { inboxListRows } from "@/lib/inbox-list";
 import { csv, csvHeaders } from "@/lib/csv";
 import { formatInFirmZone } from "@/lib/firm-calendar";
+import { auditExportOrRefuse } from "@/lib/export-audit";
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +40,8 @@ export async function GET(request: NextRequest) {
   });
   const preamble: [string, unknown][] = [["Inbox", `${rows.length} matching`]];
   for (const f of read.failed) preamble.push(["Not included, could not be read", f]);
+  const refused = await auditExportOrRefuse(actor, "export.inbox", `Exported ${rows.length} inbox items as CSV`);
+  if (refused) return bad(refused, 503);
   const body = csv({
     preamble,
     headers: ["Kind", "Received", "From", "Email", "Phone", "About", "Respond by", "Answered", "Answered at"],
