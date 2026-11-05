@@ -44,18 +44,38 @@ export type RoleView = RoleRow & {
   holders: { id: string; display_name: string; email: string; status: string }[];
 };
 
-/** Every role, what it grants, and who holds it. */
-export async function rolesView(): Promise<RoleView[]> {
-  const db = supabaseAdmin();
-  if (!db) return [];
+/**
+ * Every role, what it grants, and who holds it, or why it could not be read.
+ *
+ * A FAILED READ IS NEVER A STATEMENT ABOUT PERMISSIONS. Robert's Q13 (office
+ * audit F7, 2026-11-02): the three reads used to drop their errors, so a failed
+ * grants read rendered every role with every box unticked and a failed people
+ * read put "Nobody" under every role, both false statements on the screen that
+ * decides who can do what. Any of the three failing is now a failed view: the
+ * screen says so, and setGrants, setUserRole, createRole and deleteRole refuse.
+ */
+export type RolesRead = { ok: true; roles: RoleView[] } | { ok: false; error: string };
 
-  const [{ data: roles }, { data: grants }, { data: people }] = await Promise.all([
+export async function rolesView(): Promise<RolesRead> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+
+  const [rolesRead, grantsRead, peopleRead] = await Promise.all([
     db.from("eng_roles").select("key, name, landing_path, is_system, description").order("is_system", { ascending: false }).order("key"),
     db.from("eng_role_grants").select("role_key, action"),
     db.from("eng_profiles").select("id, display_name, email, role, status").order("display_name"),
   ]);
+  const failed = [
+    rolesRead.error ? `the roles: ${rolesRead.error.message}` : null,
+    grantsRead.error ? `the grants: ${grantsRead.error.message}` : null,
+    peopleRead.error ? `who holds them: ${peopleRead.error.message}` : null,
+  ].filter(Boolean);
+  if (failed.length) return { ok: false, error: `The roles could not be read (${failed.join("; ")}).` };
+  const roles = rolesRead.data;
+  const grants = grantsRead.data;
+  const people = peopleRead.data;
 
-  return (roles ?? []).map((r) => ({
+  return { ok: true, roles: (roles ?? []).map((r) => ({
     ...(r as RoleRow),
     grants: (grants ?? [])
       .filter((g) => g.role_key === r.key)
@@ -69,7 +89,7 @@ export async function rolesView(): Promise<RoleView[]> {
         email: p.email as string,
         status: p.status as string,
       })),
-  }));
+  })) };
 }
 
 /** The shapes the pure rules need, from the same read. */
@@ -111,7 +131,9 @@ export async function setGrants(
    */
   const clean = [...new Set(next.filter((a) => (ALL_ACTIONS as string[]).includes(a)))].sort();
 
-  const view = await rolesView();
+  const read = await rolesView();
+  if (!read.ok) return { ok: false, error: `${read.error} Nothing was changed.` };
+  const view = read.roles;
   const { roles, holders } = shapesFrom(view);
 
   const verdict = canSetGrants(roles, holders, roleKey, clean);
@@ -158,7 +180,9 @@ export async function setUserRole(
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
 
-  const view = await rolesView();
+  const read = await rolesView();
+  if (!read.ok) return { ok: false, error: `${read.error} Nobody was moved.` };
+  const view = read.roles;
   const { roles, holders } = shapesFrom(view);
 
   const verdict = canSetUserRole(roles, holders, userId, nextRoleKey);
@@ -198,8 +222,9 @@ export async function createRole(
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
 
-  const view = await rolesView();
-  const problem = keyProblem(input.key, view.map((r) => r.key));
+  const read = await rolesView();
+  if (!read.ok) return { ok: false, error: `${read.error} No role was created.` };
+  const problem = keyProblem(input.key, read.roles.map((r) => r.key));
   if (problem) return { ok: false, error: problem };
 
   if (!input.name.trim()) return { ok: false, error: "A role needs a name." };
@@ -240,8 +265,9 @@ export async function deleteRole(actor: Actor & { email: string }, roleKey: stri
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
 
-  const view = await rolesView();
-  const { roles, holders } = shapesFrom(view);
+  const read = await rolesView();
+  if (!read.ok) return { ok: false, error: `${read.error} Nothing was deleted.` };
+  const { roles, holders } = shapesFrom(read.roles);
 
   const verdict = canDeleteRole(roles, holders, roleKey);
   if (!verdict.ok) return { ok: false, error: verdict.because };

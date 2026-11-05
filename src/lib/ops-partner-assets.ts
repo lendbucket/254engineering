@@ -457,18 +457,32 @@ export async function decideSubmission(
 }
 
 /** Everything waiting for a person. Section 6's queue reads this. */
-export async function submissionsAwaitingDecision() {
-  const db = supabaseAdmin();
-  if (!db) return [];
+/** How many waiting pieces the roster shows at once, oldest first. */
+export const SUBMISSION_QUEUE_SHOWN = 100;
 
-  const { data } = await db
+/*
+ * Robert's Q13 (office audit F11, 2026-11-02): the oldest SUBMISSION_QUEUE_SHOWN
+ * with an exact count of every waiting piece, so the roster says "the oldest
+ * 100 of 140" instead of presenting the page as the total, and a failed read is
+ * said instead of hiding the panel.
+ */
+export async function submissionsAwaitingDecision(): Promise<
+  | { ok: true; rows: { id: string; partner_id: string; kind: string; title: string; body: string | null; link: string | null; created_at: string; decision_note: string | null }[]; total: number }
+  | { ok: false; error: string }
+> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+
+  const { data, count, error } = await db
     .from("eng_partner_submissions")
-    .select("id, partner_id, kind, title, body, link, created_at, decision_note")
+    .select("id, partner_id, kind, title, body, link, created_at, decision_note", { count: "exact" })
     .eq("status", "submitted")
     .order("created_at", { ascending: true })
-    .limit(100);
+    .limit(SUBMISSION_QUEUE_SHOWN);
+  if (error) return { ok: false, error: error.message };
+  if (count === null) return { ok: false, error: "The waiting material could not be counted." };
 
-  return data ?? [];
+  return { ok: true, rows: (data ?? []) as never, total: count };
 }
 
 export { performingFirmLine };

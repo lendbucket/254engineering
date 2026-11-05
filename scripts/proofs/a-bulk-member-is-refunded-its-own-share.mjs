@@ -159,11 +159,16 @@ failRead = null;
 const sealed = await settleDecision({ orderId: M1, outcome: "seal" });
 check("a seal on a paid member refunds nothing and retains its share", sealed.ok === true && sealed.refundedCents === 0 && sealed.retainedCents === SHARE, JSON.stringify(sealed));
 
-/* FC-1: a foundation decline at review never reaches a refund; it settles as sealed work. */
+/*
+ * FC-1: a foundation decline at review never reaches a refund; it settles as
+ * sealed work. Since Robert's ruling Q4 of 2026-11-02 (audit field F12) the
+ * letter is decided from the recorded 254-FC-001 decline, not the service
+ * slug, so a foundation file refused with no such determination is refunded.
+ */
 const handlers = readFileSync("src/lib/job-handlers.ts", "utf8");
 check(
-  "a foundation decline at review is still kept from the refund path (FC-1)",
-  /const lettersInstead = refusedFile\?\.service_slug === "foundation-inspections";\s*const order = lettersInstead \? null : await liveOrderForFile\(fileId, "id"\);/.test(handlers),
+  "a foundation decline at review is still kept from the refund path (FC-1), decided from its determination (Q4)",
+  /const lettersInstead = lettersInsteadOfRefund\(determinations \?\? \[\]\);\s*const order = lettersInstead \? null : await liveOrderForFile\(fileId, "id"\);/.test(handlers),
 );
 const stripe = readFileSync("src/lib/payments-stripe.ts", "utf8");
 check("Stripe's refund key carries the member order when there is one", /`refund:\$\{request\.chargeRef\}:order:\$\{request\.orderId\}:\$\{request\.amountCents\}`/.test(stripe));

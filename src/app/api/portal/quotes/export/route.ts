@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { currentActor } from "@/lib/ops-auth";
-import { can } from "@/lib/ops-authz";
+import { mayExport } from "@/lib/list-exports";
 import { listQuotes } from "@/lib/ops-quotes";
 import { quoteListRows, shownStatus } from "@/lib/quote-rules";
 import { QUOTE_STATUS_LABEL } from "@/lib/ops-orders";
@@ -17,13 +17,15 @@ export const dynamic = "force-dynamic";
  * quote the screen would show for the same status, search and sort, not one
  * page, because the rows come from quoteListRows, the function the screen uses.
  * Money from moneyCell: dollars, and blank where no price is set, never 0.
+ * The screen's grant and, since 2026-11-02, the administrator's export gate
+ * (mayExport, Robert's P2 approval, option a).
  */
 const bad = (error: string, status = 400) => NextResponse.json({ ok: false, error }, { status });
 
 export async function GET(request: NextRequest) {
   const actor = await currentActor();
   if (!actor) return bad("Not signed in.", 401);
-  if (!can(actor, "quotes.manage")) return bad("Not permitted.", 403);
+  if (!mayExport(actor, "quotes.manage")) return bad("Your role cannot export the quote requests.", 403);
   const read = await listQuotes(actor);
   if (!read.ok) return bad(read.error, 500);
   const params = request.nextUrl.searchParams;

@@ -4,7 +4,7 @@ import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
 import { searchRecords, SEARCH_LIMIT, SEARCH_MIN_LENGTH } from "@/lib/ops-search";
 import { STATUS_LABEL, type FileStatus } from "@/lib/ops-files";
-import { Chip, EmptyState, PageHead, Panel } from "@/components/portal/surfaces";
+import { Chip, EmptyState, ErrorState, PageHead, Panel } from "@/components/portal/surfaces";
 import { formatInFirmZone } from "@/lib/firm-calendar";
 import { JoinedWithPhone } from "@/components/portal/PhoneLink";
 
@@ -98,7 +98,12 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
             </Panel>
           ) : null}
 
-          {result.orders !== null ? (
+          {result.ordersError !== null ? (
+            <ErrorState
+              title="Orders could not be searched"
+              body={`${result.ordersError} This is a failed read, not an empty list: an order may still match. Search again in a moment.`}
+            />
+          ) : result.orders !== null ? (
             <Panel
               title={`Orders matching "${result.term}"`}
               description={
@@ -140,6 +145,12 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
             </Panel>
           ) : null}
 
+          {result.filesError !== null ? (
+            <ErrorState
+              title="Files could not be searched"
+              body={`${result.filesError}. This is a failed read, not an empty list: a file may still match. Search again in a moment.`}
+            />
+          ) : (
           <Panel
             title={`Files matching "${result.term}"`}
             description={
@@ -169,6 +180,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
               </ul>
             )}
           </Panel>
+          )}
         </>
       )}
     </>

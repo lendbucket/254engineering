@@ -172,7 +172,7 @@ export function AccountsClient({
             {r.billingMode === "invoice" ? (
               <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-[14px] text-[var(--secondary)]">
                 <span>
-                  Issued and unpaid <span className="font-semibold text-[var(--ink)]">{money(r.issuedUnpaidCents)}</span>
+                  On statements, unpaid <span className="font-semibold text-[var(--ink)]">{money(r.issuedUnpaidCents)}</span>
                 </span>
                 <span>
                   Not yet billed <span className="font-semibold text-[var(--ink)]">{money(r.unbilledCents)}</span>

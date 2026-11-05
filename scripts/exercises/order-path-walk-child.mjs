@@ -11,6 +11,7 @@ const ROOT = new URL("../../", import.meta.url).href;
 const OUT = (await import("node:path")).join((await import("node:os")).tmpdir(), "order-path-walk");
 (await import("node:fs")).mkdirSync(OUT, { recursive: true });
 const { auditClient } = await import(ROOT + "scripts/lib/db-target.mjs");
+const { walkProbeLicence } = await import(ROOT + "scripts/lib/probe-licence.mjs");
 const db = auditClient("order path walk", { neverProduction: true });
 if (!db) throw new Error("no development client");
 
@@ -29,7 +30,8 @@ const { uploadSealImage } = await import(ROOT + "src/lib/seal-store.ts");
 const letters = await import(ROOT + "src/lib/letter-seal.ts");
 const delivery = await import(ROOT + "src/lib/letter-delivery.ts");
 
-const STAMP = Date.now().toString(36);
+const STARTED = Date.now();
+const STAMP = STARTED.toString(36);
 const LABEL = "Audit Walk";
 const TEST_ENGINEER = {
   name: "Audit Walk Engineer, not a real person",
@@ -37,9 +39,11 @@ const TEST_ENGINEER = {
    * Digits, in the probe range no Texas licence can hold (nine digits from 900;
    * a Texas PE number is six), because 0089's seal doors take a licence that is
    * digits only. Robert's instruction of 2026-10-25, after the chat's 0089
-   * development sitting found every probe licence carried letters.
+   * development sitting found every probe licence carried letters. Unique to
+   * this run since 2026-11-02 (scripts/lib/probe-licence.mjs), because 0109
+   * holds one licence number to one engineer profile, any status.
    */
-  licenseNumber: "900000001",
+  licenseNumber: walkProbeLicence(STARTED),
   disciplines: ["Civil"],
   sealsOnly: ["structural"],
   granted: "2020-01-01",
@@ -52,8 +56,8 @@ const made = { profiles: [], orders: [], files: [], clients: [], documents: [], 
 const log = (s) => console.log(`WALK ${s}`);
 const stop = async (s) => {
   console.log(`WALK STOPPED: ${s}`);
-  /* A stopped walk leaves no live account: every test account it made is suspended on the way out. */
-  for (const p of made.profiles) await db.from("eng_profiles").update({ status: "suspended" }).eq("id", p.id);
+  /* A stopped walk leaves no live account: every test account it made is suspended on the way out, its licence released (0109). */
+  for (const p of made.profiles) await db.from("eng_profiles").update({ status: "suspended", license_number: null }).eq("id", p.id);
   console.log(`WALK MADE ${JSON.stringify(made)}`);
   process.exit(1);
 };
@@ -251,14 +255,16 @@ for (const item of items) {
     continue;
   }
   let storageKey = null;
+  /* Q2, 2026-11-02: a capture's key is exactly fileId/captureId.ext, the one path sign_upload issues. */
+  const clientCaptureId = `cap_${randomUUID()}`;
   if (item.kind === "photo") {
-    storageKey = `${first.fileId}/walk-${STAMP}/${key}.png`;
+    storageKey = `${first.fileId}/${clientCaptureId}.png`;
     const { error } = await db.storage.from("eng-evidence").upload(storageKey, Buffer.from(png(400, 300, i)), { contentType: "image/png" });
     if (error) await stop(`evidence upload: ${error.message}`);
     made.objects.push(`eng-evidence/${storageKey}`);
   }
   const cap = await field.recordCapture(tech, first.fileId, {
-    clientCaptureId: randomUUID(),
+    clientCaptureId,
     itemKey: key,
     kind: item.kind,
     valueText: item.kind === "text" || item.kind === "note" ? `${LABEL} observation, not a real property` : null,
@@ -351,7 +357,8 @@ const leakSend2 = await field.sendOffers(admin, leakOrder.fileId, [tech.id]);
 log(`after the engineer accepted: dispatch ${leakSend2.ok ? `sent (${leakSend2.sent} offer)` : `STILL REFUSED: ${leakSend2.error}`}`);
 
 // ---------------------------------------------------------------- 8. the test accounts are closed
-for (const p of made.profiles) await db.from("eng_profiles").update({ status: "suspended" }).eq("id", p.id);
+/* Suspended with the licence released, so 0109's one-licence index never meets this probe again. */
+for (const p of made.profiles) await db.from("eng_profiles").update({ status: "suspended", license_number: null }).eq("id", p.id);
 log(`the ${made.profiles.length} test accounts are suspended; their records stay, labelled, because they cannot be deleted`);
 console.log(`WALK MADE ${JSON.stringify(made)}`);
 console.log("WALK DONE");

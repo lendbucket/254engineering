@@ -21,7 +21,7 @@ import { regions } from "@/content/regions";
 import { notYetTakingOrders, registrationLine, registrationStatement, responsibleChargeStatement } from "@/lib/launch";
 import { responsibleChargeCopy, specialistsCopy, turnaroundCopy } from "@/content/model-copy";
 import { deliverableAsSigned } from "@/lib/scope-live";
-import { deliverablesFor, type CatalogEntry } from "@data/catalog";
+import { deliverablesFor, statedPriceCents, type CatalogEntry } from "@data/catalog";
 import { displayPhone, hoursLine, postalAddressLine } from "@/config/contact";
 import { isKnown, money } from "@/lib/ops-money";
 
@@ -31,9 +31,15 @@ import { isKnown, money } from "@/lib/ops-money";
  * and gains each service's price and turnaround from data/catalog.ts, with no
  * typed copy anywhere. The catalog fills priceCents from the price book, so
  * this line can never state a figure the checkout does not charge.
+ *
+ * And a deliverable no order page offers states no figure (statedPriceCents,
+ * Robert's Q14 of 2026-11-02): WPI-8 ongoing construction reads "quoted"
+ * while it waits on the engineer's signed scope addendum.
  */
 function priceLine(entry: CatalogEntry): string {
-  const price = isKnown(entry.priceCents) ? money(entry.priceCents) : "priced by quote";
+  const stated = statedPriceCents(entry);
+  if (stated === null && isKnown(entry.priceCents)) return `- ${entry.name}: quoted. Turnaround: ${entry.turnaround}`;
+  const price = isKnown(stated) ? money(stated) : "priced by quote";
   const coastal = isKnown(entry.coastalSurchargeCents)
     ? `, plus ${money(entry.coastalSurchargeCents)} in first tier coastal counties`
     : "";
