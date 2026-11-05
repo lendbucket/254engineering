@@ -26,6 +26,20 @@
 
 Recorded while board 41975497821 (F4, bundle 97, `5feca24`) runs in the cloud; nothing on this machine touches the board.
 
+## ROBERT'S RULING ON MEMORY, 2026-11-05 overnight, in chat, verbatim
+
+> Ruling on memory: the 12 GB floor applies only to work that runs on this PC, meaning local builds, preflight, proofs, the type check and dev servers. It does not gate a board. Pushing a branch and dispatching board.yml runs on GitHub, so dispatch as soon as the item is ready whatever free memory reads. If a local step is under the floor, skip that step, say so in the prediction, and let the board be the check. Never set CLAUDE_CODE_DISABLE_BG_SHELL_PRESSURE_REAP and never stop another project's process.
+
+**Disclosed:** before this ruling arrived, one local step ran under the floor. The PGlite test of the 0111 SQL editor script ran at 11.4 GB free. It was a single in-process replay, it passed, and its result is in 6651034226.
+
+**Done under the overnight ruling so far:**
+- **The route.** `operator_sql_editor` built on F8:
+  - schema-ledger-audit accepts it only for a migration named in `docs/production-sitting-destructive.md`, with a handApplied sentence;
+  - the ledger typedef names it;
+  - 0111's entry is on the route, with its sentence;
+  - the destructive document records the amendment and 0111.
+- **The development script.** Posted as 6651034226: four blocks generated from the file's bytes at `156a682`.
+
 ## MORNING REPORT, 2026-11-04 (written 11:10 UTC, 06:10 Central)
 
 **Nothing needed from Robert to continue, apart from Q8c, which already waits on you.** Main is `1fc01b986a998e493dabb99096435150310d6a89` (ls-remote, 11:07 UTC).
