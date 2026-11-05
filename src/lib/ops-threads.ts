@@ -205,6 +205,77 @@ export async function threadsReadableBy<T extends { id: string; kind: ThreadRow[
 }
 
 /**
+ * EVERY conversation this actor may read, newest first, with no page; or why
+ * that could not be read. The one readable set: readThreads takes its page from
+ * it, and message search and mentions search inside all of it (Robert,
+ * 2026-11-02, answer to 6587319903: "Extend message search and mentions to
+ * every readable conversation"). Every thread row is read (readEvery, so no
+ * silent row ceiling) and canReadThread is applied to all of them.
+ */
+export type ReadableThreads = { ok: true; rows: ThreadRow[] } | { ok: false; error: string };
+
+export async function readableThreadRows(actor: Actor | null): Promise<ReadableThreads> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+  if (!actor || actor.status !== "active") return { ok: true, rows: [] };
+  const all = await readEvery<ThreadRow>((from, to) =>
+    db
+      .from("eng_threads")
+      .select(THREAD_COLUMNS)
+      .order("last_message_at", { ascending: false, nullsFirst: false })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  if (!all.ok) return { ok: false, error: `The conversations could not be read: ${all.error}` };
+  let scopeFailed = false;
+  const rows = await threadsReadableBy(actor, all.rows, () => {
+    scopeFailed = true;
+  });
+  if (scopeFailed) return { ok: false, error: "Who may read each conversation could not be worked out, so none are shown." };
+  return { ok: true, rows };
+}
+
+/** Thread ids are asked of the database in chunks this size, so a long readable set never builds one oversized query. */
+export const THREAD_ID_CHUNK = 200;
+
+/**
+ * Titles for the given readable threads: a file thread by its file, a direct
+ * thread by the other people in it, a channel by its name. Only the threads a
+ * search or the mentions view actually returns are titled, so the readable set
+ * can be long without reading every file and participant twice.
+ */
+async function titlesFor(actor: Actor, rows: ThreadRow[]): Promise<{ ok: true; titles: Map<string, string> } | { ok: false; error: string }> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+  let failed = false;
+  const byThread = await participantsOf(rows.filter((r) => r.kind === "direct").map((r) => r.id), () => {
+    failed = true;
+  });
+  const fileIds = [...new Set(rows.filter((r) => r.file_id).map((r) => r.file_id as string))];
+  const { data: files, error } = fileIds.length
+    ? await db.from("eng_files").select("id, file_number, property_address").in("id", fileIds)
+    : { data: [], error: null };
+  if (failed || error) return { ok: false, error: `The conversations' titles could not be read: ${error?.message ?? "who is in them"}.` };
+  const fileById = new Map((files ?? []).map((f) => [f.id as string, f]));
+  const titles = new Map<string, string>();
+  for (const row of rows) {
+    const file = row.file_id ? fileById.get(row.file_id) : null;
+    titles.set(
+      row.id,
+      row.kind === "file"
+        ? `${file?.file_number ?? "File"}: ${file?.property_address ?? "a file"}`
+        : row.kind === "direct"
+          ? (byThread.get(row.id) ?? [])
+              .filter((p) => p.id !== actor.id)
+              .map((p) => p.name)
+              .join(", ") || "Direct message"
+          : (row.name ?? "Channel"),
+    );
+  }
+  return { ok: true, titles };
+}
+
+/**
  * The conversations this actor may read, the newest THREAD_PAGE of them, and
  * how many they may read in all; or why that could not be read.
  *
@@ -229,21 +300,9 @@ export async function readThreads(
   if (!db) return { ok: false, error: "The database is not configured." };
   if (!actor || actor.status !== "active") return { ok: true, threads: [], readableTotal: 0 };
 
-  const all = await readEvery<ThreadRow>((from, to) =>
-    db
-      .from("eng_threads")
-      .select(THREAD_COLUMNS)
-      .order("last_message_at", { ascending: false, nullsFirst: false })
-      .order("id", { ascending: true })
-      .range(from, to),
-  );
-  if (!all.ok) return { ok: false, error: `The conversations could not be read: ${all.error}` };
-
-  let scopeFailed = false;
-  const readableAll = await threadsReadableBy(actor, all.rows, () => {
-    scopeFailed = true;
-  });
-  if (scopeFailed) return { ok: false, error: "Who may read each conversation could not be worked out, so none are shown." };
+  const set = await readableThreadRows(actor);
+  if (!set.ok) return { ok: false, error: set.error };
+  const readableAll = set.rows;
 
   const readable = readableAll.slice(0, THREAD_PAGE);
   const opened = options.include ? readableAll.find((r) => r.id === options.include) : undefined;
@@ -745,7 +804,8 @@ export async function messageablepeople(
  * or an author from a direct message they are not part of, and canReadThread
  * exists precisely to stop that.
  *
- * So the readable set is resolved FIRST, through listThreads, which already
+ * So the readable set is resolved FIRST, through readableThreadRows (every
+ * readable conversation since 2026-11-02, not the newest page), which already
  * applies canReadThread and the file visibility rules. The search then runs
  * inside it. The section 3 report names this as the place the pricing
  * constraint would bite, and this is the shape that holds it: search sees
@@ -767,35 +827,26 @@ export async function searchMessages(
     since?: string | null;
     until?: string | null;
   },
-): Promise<{ results: MessageHit[]; searched: number; truncated: boolean }> {
+): Promise<{ results: MessageHit[]; searched: number; truncated: boolean; error: string | null }> {
   const db = supabaseAdmin();
   if (!db || !actor || actor.status !== "active") {
-    return { results: [], searched: 0, truncated: false };
+    return { results: [], searched: 0, truncated: false, error: db ? null : "The database is not configured." };
   }
 
-  const threads = await listThreads(actor);
-  const byId = new Map(threads.map((t) => [t.id, t]));
-  const ids = query.fileId
-    ? threads.filter((t) => t.file_id === query.fileId).map((t) => t.id)
-    : threads.map((t) => t.id);
-
-  if (ids.length === 0) return { results: [], searched: 0, truncated: false };
-
-  let q = db
-    .from("eng_messages")
-    .select("id, created_at, thread_id, author_id, body, attachments, eng_profiles(display_name, role)")
-    .in("thread_id", ids)
-    .order("created_at", { ascending: false })
-    .limit(SEARCH_LIMIT + 1);
+  /*
+   * EVERY READABLE CONVERSATION, not the newest page (Robert 2026-11-02, answer
+   * to 6587319903). The readable set is still resolved FIRST, by the one rule,
+   * and the search runs inside it, so nothing outside it can leak a count. A
+   * failed read is said, never answered as "nothing matched".
+   */
+  const set = await readableThreadRows(actor);
+  if (!set.ok) return { results: [], searched: 0, truncated: false, error: set.error };
+  const scope = query.fileId ? set.rows.filter((t) => t.file_id === query.fileId) : set.rows;
+  const ids = scope.map((t) => t.id);
+  if (ids.length === 0) return { results: [], searched: 0, truncated: false, error: null };
 
   const text = (query.text ?? "").trim();
-  if (text) q = q.ilike("body", `%${text}%`);
-  if (query.authorId) q = q.eq("author_id", query.authorId);
-  if (query.since) q = q.gte("created_at", query.since);
-  if (query.until) q = q.lte("created_at", query.until);
-
-  const { data } = await q;
-  const rows = (data ?? []) as unknown as {
+  type Hit = {
     id: number;
     created_at: string;
     thread_id: string;
@@ -803,23 +854,45 @@ export async function searchMessages(
     body: string;
     attachments: Attachment[] | null;
     eng_profiles: { display_name: string; role: RoleKey } | null;
-  }[];
+  };
+  const hits: Hit[] = [];
+  for (let i = 0; i < ids.length; i += THREAD_ID_CHUNK) {
+    let q = db
+      .from("eng_messages")
+      .select("id, created_at, thread_id, author_id, body, attachments, eng_profiles(display_name, role)")
+      .in("thread_id", ids.slice(i, i + THREAD_ID_CHUNK))
+      .order("created_at", { ascending: false })
+      .limit(SEARCH_LIMIT + 1);
+    if (text) q = q.ilike("body", `%${text}%`);
+    if (query.authorId) q = q.eq("author_id", query.authorId);
+    if (query.since) q = q.gte("created_at", query.since);
+    if (query.until) q = q.lte("created_at", query.until);
+    const { data, error } = await q;
+    if (error) return { results: [], searched: 0, truncated: false, error: `The messages could not be searched: ${error.message}` };
+    hits.push(...((data ?? []) as unknown as Hit[]));
+  }
+  /* Each chunk returned its newest SEARCH_LIMIT + 1, so the newest SEARCH_LIMIT + 1 overall are among them. */
+  hits.sort((a, b) => (a.created_at < b.created_at ? 1 : a.created_at > b.created_at ? -1 : b.id - a.id));
+  const truncated = hits.length > SEARCH_LIMIT;
+  const page = truncated ? hits.slice(0, SEARCH_LIMIT) : hits;
 
-  const truncated = rows.length > SEARCH_LIMIT;
-  const page = truncated ? rows.slice(0, SEARCH_LIMIT) : rows;
+  const hitThreads = scope.filter((t) => page.some((m) => m.thread_id === t.id));
+  const titled = await titlesFor(actor, hitThreads);
+  if (!titled.ok) return { results: [], searched: ids.length, truncated: false, error: titled.error };
 
   return {
     results: page.map((m) => ({
       id: m.id,
       created_at: m.created_at,
       threadId: m.thread_id,
-      threadTitle: byId.get(m.thread_id)?.title ?? "A conversation",
+      threadTitle: titled.titles.get(m.thread_id) ?? "A conversation",
       authorName: m.eng_profiles?.display_name ?? "Somebody who has left",
       body: m.body,
       attachmentCount: (m.attachments ?? []).length,
     })),
     searched: ids.length,
     truncated,
+    error: null,
   };
 }
 
@@ -848,8 +921,8 @@ export type Mention = {
  * the place you go when you come back after two days and want to know what
  * asked for you, without reading five threads to find the two that did.
  *
- * WHY IT IS SCOPED THROUGH listThreads RATHER THAN QUERYING MESSAGES DIRECTLY
- * ---------------------------------------------------------------------------
+ * WHY IT IS SCOPED THROUGH THE READABLE SET RATHER THAN QUERYING MESSAGES DIRECTLY
+ * --------------------------------------------------------------------------------
  * The obvious query is "every message whose mentions array contains me". It is
  * also the one that leaks. A mention is written into the row at the time it is
  * posted, and what somebody may READ is decided later and elsewhere: a channel
@@ -862,9 +935,11 @@ export type Mention = {
  * searchMessages uses, deliberately: two ways of deciding what somebody may
  * read is one way too many, and the second one is the one that would be wrong.
  *
- * It inherits that function's cap of THREAD_PAGE conversations, which is the
- * honest limitation to record rather than paper over. At this firm's scale it
- * is not reachable; the day it is, both surfaces need the same fix.
+ * IT NO LONGER INHERITS THE THREAD_PAGE CAP. Robert, 2026-11-02 (answer to
+ * 6587319903): search and mentions cover every readable conversation. Both now
+ * take their scope from readableThreadRows, the full readable set under the same
+ * rule, rather than from the newest page; a failed read is said, never shown as
+ * "Nothing has named you".
  *
  * WHAT "UNREAD" MEANS HERE
  * ------------------------
@@ -875,53 +950,53 @@ export type Mention = {
  */
 export async function mentionsFor(
   actor: Actor | null,
-  /**
-   * The readable conversations, when the caller already has them.
-   *
-   * The messages screen loads them to render the list and would otherwise make
-   * this function load them again, which is several queries for an answer it is
-   * holding. It MUST be a list from listThreads: this is the scope that decides
-   * what a mention may show, and a hand assembled list would be a second
-   * permission model with no canReadThread in it.
-   */
-  known?: ThreadListItem[],
-): Promise<{ items: Mention[]; unread: number; truncated: boolean }> {
+): Promise<{ items: Mention[]; unread: number; truncated: boolean; error: string | null }> {
   const db = supabaseAdmin();
   if (!db || !actor || actor.status !== "active") {
-    return { items: [], unread: 0, truncated: false };
+    return { items: [], unread: 0, truncated: false, error: db ? null : "The database is not configured." };
   }
 
-  const threads = known ?? (await listThreads(actor));
-  if (threads.length === 0) return { items: [], unread: 0, truncated: false };
+  /* The full readable set, under the one rule (readableThreadRows), not the newest page. */
+  const set = await readableThreadRows(actor);
+  if (!set.ok) return { items: [], unread: 0, truncated: false, error: set.error };
+  if (set.rows.length === 0) return { items: [], unread: 0, truncated: false, error: null };
+  const ids = set.rows.map((t) => t.id);
 
-  const byId = new Map(threads.map((t) => [t.id, t]));
-  const lastRead = await participantsOf(threads.map((t) => t.id));
-
-  const { data } = await db
-    .from("eng_messages")
-    .select("id, created_at, thread_id, body, eng_profiles(display_name)")
-    .in("thread_id", threads.map((t) => t.id))
-    .contains("mentions", [actor.id])
-    .order("created_at", { ascending: false })
-    .limit(MENTION_PAGE + 1);
-
-  const rows = (data ?? []) as unknown as {
-    id: number;
-    created_at: string;
-    thread_id: string;
-    body: string;
-    eng_profiles: { display_name: string } | null;
-  }[];
-
+  type Row = { id: number; created_at: string; thread_id: string; body: string; eng_profiles: { display_name: string } | null };
+  const rows: Row[] = [];
+  for (let i = 0; i < ids.length; i += THREAD_ID_CHUNK) {
+    const { data, error } = await db
+      .from("eng_messages")
+      .select("id, created_at, thread_id, body, eng_profiles(display_name)")
+      .in("thread_id", ids.slice(i, i + THREAD_ID_CHUNK))
+      .contains("mentions", [actor.id])
+      .order("created_at", { ascending: false })
+      .limit(MENTION_PAGE + 1);
+    if (error) return { items: [], unread: 0, truncated: false, error: `What named you could not be read: ${error.message}` };
+    rows.push(...((data ?? []) as unknown as Row[]));
+  }
+  /* Each chunk returned its newest MENTION_PAGE + 1, so the newest overall are among them. */
+  rows.sort((a, b) => (a.created_at < b.created_at ? 1 : a.created_at > b.created_at ? -1 : b.id - a.id));
   const truncated = rows.length > MENTION_PAGE;
   const page = truncated ? rows.slice(0, MENTION_PAGE) : rows;
+
+  const hitThreads = set.rows.filter((t) => page.some((m) => m.thread_id === t.id));
+  const byId = new Map(hitThreads.map((t) => [t.id, t]));
+  let lastReadFailed = false;
+  const lastRead = await participantsOf(hitThreads.map((t) => t.id), () => {
+    lastReadFailed = true;
+  });
+  const titled = await titlesFor(actor, hitThreads);
+  if (lastReadFailed || !titled.ok) {
+    return { items: [], unread: 0, truncated: false, error: titled.ok ? "Who has read what could not be read." : titled.error };
+  }
 
   const items = page.map((m) => {
     const mine = (lastRead.get(m.thread_id) ?? []).find((p) => p.id === actor.id);
     return {
       messageId: m.id,
       threadId: m.thread_id,
-      threadTitle: byId.get(m.thread_id)?.title ?? "A conversation",
+      threadTitle: titled.titles.get(m.thread_id) ?? "A conversation",
       kind: byId.get(m.thread_id)?.kind ?? "channel",
       authorName: m.eng_profiles?.display_name ?? "Somebody who has left",
       createdAt: m.created_at,
@@ -930,5 +1005,5 @@ export async function mentionsFor(
     };
   });
 
-  return { items, unread: items.filter((i) => i.unread).length, truncated };
+  return { items, unread: items.filter((i) => i.unread).length, truncated, error: null };
 }

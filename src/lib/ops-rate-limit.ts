@@ -128,6 +128,26 @@ function take(key: string, max: number, now: number): { allowed: boolean; remain
 }
 
 /**
+ * ONE COUNTER PER DOOR. Robert, 2026-11-02 (answer to issue #1 6586517364,
+ * item 2): the staff portal, the customer account and the partner sign in used
+ * to count attempts against the bare email, so one address shared a counter
+ * across all three doors, and a successful sign in on the customer door reset
+ * the guesses counted against a staff account with the same email. Every door
+ * now names its identity through doorIdentity, so a reset on one door ends only
+ * that door's count. The address bucket is untouched (Q9: a success never resets
+ * it). The second factor and password re-entry keep their own scopes, which
+ * already name a profile id rather than an email.
+ */
+export const SIGN_IN_DOORS = ["portal", "account", "partner"] as const;
+export type SignInDoor = (typeof SIGN_IN_DOORS)[number];
+
+/** The identity a door counts against: `<door>:<email>`, the email trimmed and lowercased. Empty when no email was typed. */
+export function doorIdentity(door: SignInDoor, email: string): string | undefined {
+  const typed = email.trim().toLowerCase();
+  return typed ? `${door}:${typed}` : undefined;
+}
+
+/**
  * Record an attempt.
  *
  * `identity` is the email being tried, lowercased by the caller. Passing it is
@@ -148,9 +168,14 @@ export function takeLoginAttemptInMemory(address: string, identity?: string, now
   return perIdentity;
 }
 
-/** A successful sign in. Clears both buckets for that caller and account. */
+/**
+ * A successful sign in. Clears the bucket of the account that signed in, and
+ * nothing else. Robert, 2026-11-02, Q9 (auth H1): it used to clear the
+ * address bucket too, so one good sign in to an account the caller held wiped
+ * the count of guesses the same address had made against every other account.
+ * Only the administrator's release (releaseLockInMemory) clears an address.
+ */
 export function clearLoginAttemptsInMemory(address: string, identity?: string) {
-  buckets.delete(`ip:${address}`);
   if (identity) buckets.delete(`id:${address}:${identity}`);
 }
 
@@ -322,15 +347,35 @@ export function takeResetAttempt(
  * address still comes only from the forwarded headers, exactly as on main, so a
  * request can pick which of its own run's buckets it lands in and never leave
  * its run.
+ *
+ * Robert's answer of 2026-11-03 (Q9): A BUCKET PER AUDIT, ON DEVELOPMENT ONLY.
+ * Q9 stopped a successful sign in clearing the address count (H1), and one
+ * board run makes more than twenty probe sign ins in fifteen minutes from one
+ * address, so board 41635661415 met 429 on every probe after the twentieth.
+ * The limiter is not loosened. The suite gives every audit's server its own
+ * BOARD_AUDIT, the audit's name, in that server's environment (scripts/audit.mjs
+ * restarts the shared server per audit under a board run for exactly this), so
+ * the key comes from the harness and never from a request. It is read only
+ * beside a valid run id, on development, and only as a lower case name; any
+ * other value leaves the run's key as it was. Production keeps one bucket per
+ * address, unchanged.
  */
 export function clientKey(
   headers: Headers,
-  env: { SUPABASE_URL?: string; BOARD_RUN_ID?: string } = { SUPABASE_URL: process.env.SUPABASE_URL, BOARD_RUN_ID: process.env.BOARD_RUN_ID },
+  env: { SUPABASE_URL?: string; BOARD_RUN_ID?: string; BOARD_AUDIT?: string } = {
+    SUPABASE_URL: process.env.SUPABASE_URL,
+    BOARD_RUN_ID: process.env.BOARD_RUN_ID,
+    BOARD_AUDIT: process.env.BOARD_AUDIT,
+  },
 ): string {
   const forwarded = headers.get("x-forwarded-for");
   const address = forwarded ? forwarded.split(",")[0]!.trim() : (headers.get("x-real-ip") ?? "unknown");
   const boardRun = env.BOARD_RUN_ID;
-  if (boardRun && /^\d{6,20}$/.test(boardRun) && refOf(env.SUPABASE_URL) === DEVELOPMENT_REF) return `board:${boardRun}:${address}`;
+  if (boardRun && /^\d{6,20}$/.test(boardRun) && refOf(env.SUPABASE_URL) === DEVELOPMENT_REF) {
+    const audit = env.BOARD_AUDIT;
+    if (audit && /^[a-z0-9][a-z0-9-]{0,63}$/.test(audit)) return `board:${boardRun}:${audit}:${address}`;
+    return `board:${boardRun}:${address}`;
+  }
   return address;
 }
 
@@ -376,25 +421,39 @@ export async function takeLoginAttempt(address: string, identity?: string): Prom
   return takeLoginAttemptInMemory(address, identity);
 }
 
-async function writeReset(address: string): Promise<boolean> {
+/**
+ * A reset row. `identity` null ends every count for the address, which only
+ * the administrator's release may do; a named identity ends that identity's
+ * count alone, because eng_take_sign_in_attempt (0071) reads the address count
+ * after the latest reset whose identity is null, and an identity's count after
+ * the latest reset whose identity is null or that identity.
+ */
+async function writeReset(address: string, identity: string | null): Promise<boolean> {
   const db = supabaseAdmin();
   if (!db) return false;
-  const { error } = await db.from("eng_sign_in_attempts").insert({ address, identity: null, kind: "reset" });
+  const { error } = await db.from("eng_sign_in_attempts").insert({ address, identity, kind: "reset" });
   if (error) console.error(`[rate-limit] a reset did not record: ${error.message}`);
   return !error;
 }
 
-/** A successful sign in ends the count for its address, as the Map's delete did. */
+/**
+ * A successful sign in ends the count for the account that signed in, never
+ * the address's. Robert, 2026-11-02, Q9 (auth H1): the reset used to carry a
+ * null identity, which 0071 reads as "every count for this address", so an
+ * attacker holding any account on any of the three doors could guess seven
+ * times at the owner's, sign in to their own, and guess seven more, for ever.
+ * With no identity there is nothing to reset, so nothing is written.
+ */
 export async function clearLoginAttempts(address: string, identity?: string): Promise<void> {
   clearLoginAttemptsInMemory(address, identity);
-  await writeReset(address);
+  if (identity) await writeReset(address, identity);
 }
 
 /** The administrator's release (/api/portal/unlock). Answers how many attempts it cleared. */
 export async function releaseLock(address: string): Promise<number> {
   const state = await inspectLock(address);
   releaseLockInMemory(address);
-  await writeReset(address);
+  await writeReset(address, null);
   return state.address.used;
 }
 

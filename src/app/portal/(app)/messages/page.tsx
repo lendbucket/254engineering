@@ -68,10 +68,11 @@ export default async function MessagesPage({
    * opens, and the number beside the switch is what makes writing a mention
    * worth doing.
    *
-   * The threads this page already has are handed over, so this costs one query
-   * rather than repeating the readable set.
+   * Since 2026-11-02 (Robert, answer to 6587319903) it reads every readable
+   * conversation itself rather than this page's newest hundred, so an older
+   * conversation's mentions are found; a failed read is said below.
    */
-  const mentions = await mentionsFor(actor, threads);
+  const mentions = await mentionsFor(actor);
   const showing = params.view === "mentions" ? "mentions" : "threads";
 
   return (
@@ -144,7 +145,12 @@ export default async function MessagesPage({
 
           {showing === "mentions" ? (
             <div className="mt-4">
-              {mentions.items.length === 0 ? (
+              {mentions.error ? (
+                <ErrorState
+                  title="What named you could not be read"
+                  body={`${mentions.error} This is a failed read, not an empty list.`}
+                />
+              ) : mentions.items.length === 0 ? (
                 <EmptyState
                   title="Nothing has named you"
                   body="Somebody writes @ and your name in a message and it appears here, with what they said. An empty list is a result rather than a gap: nothing is waiting on you."
