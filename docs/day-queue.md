@@ -1051,6 +1051,34 @@ On a pass, low-auth merges: full lane, auth server code; no migration.
 
 On a pass, L6 merges: full lane, the proxy and auth adjacent; no migration.
 
+**Bundle 106 result: board `42106876463` on `b9bb309`, 65 of 65, zero FAIL, as predicted.** Preflight GREEN. proofs-audit PASS with a-tokened-link-leaves-the-address (34 checks). security-audit read the 307 to `/order/254-O2026-XXXXXX` and the cookie. onboarding-walk-audit followed both invites to `/onboarding/invite` and read the flow. The browser audits opened tokened pages through the cookie on localhost. LCP `/` 2946ms, service 2496ms, `/coverage` 2494ms, coastal-bend 2918ms. Writers 5 transient retries. Its waiter was stopped by Claude Code for memory and not restarted; the result was read from GitHub. **L6 merged** as `7f3361a` (parents `920f6a6`, `b9bb309`), tree identical to the boarded commit; `ls-remote` confirms.
+
+**Under Robert's ruling removing the memory floor (verbatim above), run locally on 2026-11-05:**
+- `fingerprint-at.mjs 0111 0112 0113`: 0111 `22346b56`/`1ba6334e` 1358 facts (as ledgered); 0112 `72bb0e8c`/`2a63b841` 1410 facts (the behaviour digest moves from `336caebe` because 0111 now sits before it; the file and its shape are unchanged); 0113 `fead8177` at 1476 columns, `e71f2970` at 1451 facts. 0113 replays clean on PGlite.
+- R1: migration-audit 204 of 204, schema-ledger-audit PASS, its proof PASS, preflight GREEN twice.
+- The roofer branch (`76540cb`): migration-audit first found a real defect, 0113 not revoking all on its table from public, anon and authenticated in its own file, as every table since 0100 must. Fixed, and it then read 205 of 205. The type check is clean. Its proof passes, with four planted faults each caught and restored byte identical.
+
+**Bundle 107, R1: `feat/crm-r1-data-model` at `007532b`.** It is R1 renumbered to 0112, stacked on F8, with 0112's ledger digest re-read and main `7f3361a` merged in, clean. Development holds 0112 (`20261105171658`) and R2's file under 0113 (6664433708).
+- **The change over main:**
+  - 0112: `eng_prospects` extended, contacts and sources per company, activities in the contact log, and six grant rows;
+  - `crm-prospects.ts` and `crm-rules.ts`;
+  - the prospects and contact log modules;
+  - the three CRM grants;
+  - retention, the ledger and the migration-audit pins;
+  - the proof the-sales-list-knows-companies-contacts-and-sources.
+- **Readers:** migration-audit and schema-ledger-audit (run locally, PASS); roles-audit (the three grants, admin and ops_manager; development holds them); proofs-audit (R1's proof, PASS locally); the screens that read prospects (dashboards, the desk's call list, the prospects screens through native, mobile-overflow, v10 and token audits); retention-audit (two tables, in order).
+- **Local:** preflight GREEN, 38 rules, 109 s.
+
+**Prediction, bundle 107, stated before dispatch: 65 of 65, zero FAIL.**
+- migration-audit and schema-ledger-audit PASS, with 0112 pending on production.
+- roles-audit PASS with the CRM grants.
+- proofs-audit PASS with R1's proof.
+- retention-audit PASS.
+- Public bytes unchanged, and the four LCP pages under their ceilings.
+- Standing COULD NOT TELL lines only.
+
+On a pass, the 0112 production sitting request is posted. R1 merges after its production read-back. The roofer branch then boards over it.
+
 **Bundle 105 result: board `42072604995` on `5fe35cd`, 65 of 65, zero FAIL, as predicted.** Preflight GREEN. proofs-audit PASS with the-auth-audit-low-findings-are-closed (31 checks). LCP `/` 2954ms, service 2802ms, `/coverage` 2721ms, coastal-bend 2436ms. Its waiter was stopped for low memory and the result was read from GitHub. **NOT MERGED: main moved to `0737b78` (F8) while it ran,** so this green measured a main that is gone. It takes `0737b78` and reboards in the next sitting gap.
 
 **F8 MERGED** as `0737b78` (parents `6b772bd`, `eb3237b`), after 0111's production read-back (6664558644, version `20261105172304`). The merged tree is boarded `b27e5fe` plus the ledger line; `ls-remote` confirms. 0112 and 0113 are on development (6664433708: versions `20261105171658` and `20261105171724`; grants 186 to 192).
