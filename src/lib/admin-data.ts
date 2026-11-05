@@ -1,7 +1,7 @@
 import "server-only";
 import { supabaseAdmin } from "./supabase";
 import { currentActor } from "./ops-auth";
-import { can } from "./ops-authz";
+import { can, type Action } from "./ops-authz";
 import { cleanSearchTerm } from "./search-rules";
 import { readEvery } from "./bounded-read";
 
@@ -47,11 +47,16 @@ import { readEvery } from "./bounded-read";
  * runtime disclosure.
  */
 
-export async function requireAdmin(): Promise<void> {
+/*
+ * The action is named by the caller (office audit F19, 2026-11-02). It checked
+ * profiles.list, which the dispatcher and customer service hold, while the
+ * applications screen asks applications.read since 0104: the second lock was a
+ * different and wider lock than the first.
+ */
+export async function requireAdmin(action: Action): Promise<void> {
   const actor = await currentActor();
-  if (!can(actor, "profiles.list")) {
-    throw new Error("Not signed in.");
-  }
+  if (!actor) throw new Error("Not signed in.");
+  if (!can(actor, action)) throw new Error("Not permitted.");
 }
 
 export type ApplicationRow = {
@@ -79,7 +84,7 @@ export const APPLICATION_PAGE_SIZE = 100;
 export async function listApplicationsPage(
   options: { q?: string; role?: string; page?: number } = {},
 ): Promise<{ ok: true; rows: ApplicationRow[]; more: boolean } | { ok: false; error: string }> {
-  await requireAdmin();
+  await requireAdmin("applications.read");
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
   const page = Math.max(1, Math.floor(options.page ?? 1));
@@ -114,7 +119,7 @@ function applicationsMatching(db: NonNullable<ReturnType<typeof supabaseAdmin>>,
 export async function listEveryApplication(
   options: { q?: string; role?: string } = {},
 ): Promise<{ ok: true; rows: ApplicationRow[] } | { ok: false; error: string }> {
-  await requireAdmin();
+  await requireAdmin("applications.read");
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
   const read = await readEvery<ApplicationRow>((from, to) => applicationsMatching(db, options).range(from, to));
@@ -126,7 +131,7 @@ export async function listEveryApplication(
 }
 
 export async function getApplication(id: string): Promise<ApplicationRow | null> {
-  await requireAdmin();
+  await requireAdmin("applications.read");
   const db = supabaseAdmin();
   if (!db) return null;
   const { data } = await db

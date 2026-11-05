@@ -979,6 +979,13 @@ async function run() {
       redirect: "manual",
     });
     rec("unlock: a wrong token cannot clear the limiter", post.status === 404, `HTTP ${post.status}`);
+
+    /* Since 2026-11-02 (auth audit L2) the token is read from the Authorization header or the body, never the URL. */
+    const bearerProbe = await fetch(`${BASE}/api/portal/unlock`, {
+      headers: { Authorization: "Bearer definitely-not-the-unlock-token" },
+      redirect: "manual",
+    });
+    rec("unlock: a wrong bearer token is indistinguishable from the route not existing", bearerProbe.status === 404, `HTTP ${bearerProbe.status}`);
   }
   // ---------- the portal is not indexable ----------
   {

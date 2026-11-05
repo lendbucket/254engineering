@@ -199,6 +199,8 @@ export async function createTask(
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
   if (!actor || actor.status !== "active") return { ok: false, error: "You are not signed in." };
+  /* The same grant the task screen asks (office audit F16, 2026-11-02). Every role that records a deletion request holds it. */
+  if (!can(actor, "tasks.use")) return { ok: false, error: "Your role does not use the task list." };
 
   const title = input.title.trim();
   if (!title) return { ok: false, error: "A task needs a title." };
@@ -295,6 +297,7 @@ export async function setTaskStatus(
 ): Promise<{ ok: true; nextId?: string } | { ok: false; error: string }> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
+  if (!can(actor, "tasks.use")) return { ok: false, error: "Your role does not use the task list." };
 
   const { data: task } = await db.from("eng_tasks").select(TASK_COLUMNS).eq("id", taskId).maybeSingle();
   if (!task) return { ok: false, error: "That task does not exist." };
@@ -359,6 +362,7 @@ export async function assignTask(
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
+  if (!can(actor, "tasks.use")) return { ok: false, error: "Your role does not use the task list." };
   if (!can(actor, "profiles.list")) return { ok: false, error: "Only an administrator reassigns a task." };
 
   const { data: task } = await db.from("eng_tasks").select("id, title, due_at").eq("id", taskId).maybeSingle();

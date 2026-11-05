@@ -138,8 +138,10 @@ check(
     /staffListRows\(read\.policies, staffListQuery\(\{ q: param\("q"\), standing: param\("standing"\), sort: param\("sort"\), dir: param\("dir"\) \}, spec\), spec\)/.test(branch),
 );
 const refusals = (branch.match(/return refuse\(/g) ?? []).length;
-check("a failed or partial read refuses before any audit row or file", refusals === 13 && branch.indexOf("return refuse(") < branch.indexOf("await writeAudit("), `${refusals} refusals`);
-check("every export writes an audit row before the body", /action: `export\.\$\{listReport\}`/.test(branch) && branch.indexOf("await writeAudit(") < branch.indexOf("return new NextResponse(body"));
+/* Office audit F20, 2026-11-02: the audit is written or the export refuses. The anchor must be found, since -1 is before everything. */
+const auditAt = branch.indexOf("await writeAuditOrRefuse(");
+check("a failed or partial read refuses before any audit row or file", refusals === 13 && auditAt >= 0 && branch.indexOf("return refuse(") < auditAt, `${refusals} refusals`);
+check("every export writes an audit row before the body, or refuses", /action: `export\.\$\{listReport\}`/.test(branch) && auditAt >= 0 && auditAt < branch.indexOf("return new NextResponse(body") && /if \(!audited\.ok\) return bad\(/.test(branch));
 check("and the file is the shared headers, dated by the door's stamp()", /csvHeaders\(listExportFilename\(listReport, stamp\(\)\)\)/.test(branch));
 
 /* ---- the reads behind the export share the screens' filters ---- */

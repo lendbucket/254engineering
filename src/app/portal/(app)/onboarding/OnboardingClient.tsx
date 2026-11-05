@@ -34,6 +34,7 @@ async function post(payload: Record<string, unknown>) {
         onboardingId?: string;
         credentials?: number;
         linked?: boolean;
+        resumed?: boolean;
         delivered?: "email" | "hand";
         sentTo?: string;
         emailFailed?: string | null;
@@ -485,6 +486,7 @@ export function ActivatePanel({
   const [failed, setFailed] = useState<string[]>([]);
   const [token, setToken] = useState<string | null>(null);
   const [linked, setLinked] = useState(false);
+  const [resumed, setResumed] = useState(false);
   const [licenseNumber, setLicenseNumber] = useState("");
   const engineer = role === "engineer";
 
@@ -497,6 +499,12 @@ export function ActivatePanel({
             ? "The account exists with the license number on the profile and the license, with its expiry, on file as a verified credential."
             : "The account exists and the credentials are on file. This person is not certified for any service line yet, so dispatch will not offer them work until they pass a protocol check. That is the gate working, not a missing step."}
         </p>
+        {resumed ? (
+          <p className="mt-2 max-w-[70ch] text-[14px] leading-[1.55] text-[var(--ink)]">
+            This finished an account an earlier attempt created. Its password link was never shown, so send
+            one with Resend invite on the People screen.
+          </p>
+        ) : null}
         {profileId && !engineer ? (
           <a
             href="/portal/techs"
@@ -542,6 +550,12 @@ export function ActivatePanel({
         dates recorded above, sets the coverage, and issues a one time link to set a password. It
         does not certify them for anything.
       </p>
+      {profileId ? (
+        <p className="mt-2 max-w-[70ch] text-[14px] leading-[1.55] text-[var(--ink)]">
+          An earlier attempt created the account and stopped before finishing. Activate again to finish
+          that account; a second one is not made.
+        </p>
+      ) : null}
 
       {!ready ? (
         <div className="mt-3">
@@ -589,6 +603,7 @@ export function ActivatePanel({
             const body = await post({ action: "activate", onboardingId, ...(engineer ? { licenseNumber } : {}) });
             setToken(body.token ?? null);
             setLinked(Boolean(body.linked));
+            setResumed(Boolean(body.resumed));
             router.refresh();
           } catch (err) {
             setError(err instanceof Error ? err.message : "That did not work.");

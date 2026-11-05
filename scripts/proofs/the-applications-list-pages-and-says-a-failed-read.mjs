@@ -19,7 +19,7 @@ const check = (name, ok, note = "") => {
 
 const lib = readFileSync("src/lib/admin-data.ts", "utf8");
 const fn = lib.slice(lib.indexOf("export async function listApplicationsPage("), lib.indexOf("export async function getApplication("));
-check("the read still checks the session itself first", /await requireAdmin\(\);/.test(fn));
+check("the read still checks the session itself first, on the screen's own grant (office audit F19)", /await requireAdmin\("applications\.read"\);/.test(fn));
 check("a search over name, email and city, cleaned by the shared rule", /const term = cleanSearchTerm\(options\.q \?\? ""\);/.test(fn) && /name\.ilike\.%\$\{term\}%,email\.ilike\.%\$\{term\}%,city\.ilike\.%\$\{term\}%/.test(fn));
 check("a position filter that accepts only the two positions", /options\.role === "professional_engineer" \|\| options\.role === "field_technician"/.test(fn));
 check("it pages, reading one past the page, with a tie broken by id", /\.range\(from, from \+ APPLICATION_PAGE_SIZE\)/.test(fn) && /more: all\.length > APPLICATION_PAGE_SIZE/.test(fn) && /\.order\("id", \{ ascending: true \}\)/.test(fn));

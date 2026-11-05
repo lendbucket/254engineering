@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { DB_NOW } from "@/lib/db-now";
 import { createAccount, currentActor, issueSetPasswordToken, requestContext } from "@/lib/ops-auth";
 import { can, type Role } from "@/lib/ops-authz";
-import { writeAudit } from "@/lib/ops-audit";
+import { writeAudit, writeAuditOrRefuse } from "@/lib/ops-audit";
 import { supabaseAdmin } from "@/lib/supabase";
 import { queueEmail } from "@/lib/ops-jobs";
 import { portalInvite, portalPasswordReset } from "@/lib/email-templates";
@@ -296,18 +296,15 @@ async function handlePOST(request: NextRequest) {
     if (!target) return NextResponse.json({ ok: false, error: "No such person." }, { status: 404 });
 
     const nextStatus = action === "suspend" ? "suspended" : "active";
-    const { error } = await db
-      .from("eng_profiles")
-      .update({
-        status: nextStatus,
-        /* DB_NOW. When an account was suspended is on the firm's audit trail,
-         * and it was written from whichever machine served the request. */
-        suspended_at: action === "suspend" ? DB_NOW : null,
-      })
-      .eq("id", profileId);
-    if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
 
-    await writeAudit({
+    /*
+     * THE RECORD FIRST (office audit F20, 2026-11-02). Who suspended or restored
+     * an account was written after the change with writeAudit, which carries on
+     * when the write fails, so an account could change state with no record of
+     * who did it. The record is written first or nothing changes; if the change
+     * then fails, a second record says so.
+     */
+    const audited = await writeAuditOrRefuse({
       actor: { id: actor.id, role: actor.role, email: actor.email },
       action: action === "suspend" ? "profile.suspend" : "profile.restore",
       entityType: "profile",
@@ -317,6 +314,29 @@ async function handlePOST(request: NextRequest) {
       ip,
       userAgent,
     });
+    if (!audited.ok) return NextResponse.json({ ok: false, error: audited.error }, { status: 503 });
+
+    const { error } = await db
+      .from("eng_profiles")
+      .update({
+        status: nextStatus,
+        /* DB_NOW. When an account was suspended is on the firm's audit trail,
+         * and it was written from whichever machine served the request. */
+        suspended_at: action === "suspend" ? DB_NOW : null,
+      })
+      .eq("id", profileId);
+    if (error) {
+      await writeAudit({
+        actor: { id: actor.id, role: actor.role, email: actor.email },
+        action: action === "suspend" ? "profile.suspend_failed" : "profile.restore_failed",
+        entityType: "profile",
+        entityId: profileId,
+        summary: `The ${action} of ${target.display_name} recorded above did not take effect: ${error.message}`,
+        ip,
+        userAgent,
+      });
+      return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+    }
 
     return NextResponse.json({ ok: true });
   }

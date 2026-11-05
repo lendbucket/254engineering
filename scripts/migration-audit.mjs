@@ -442,8 +442,10 @@ const EXPECTED_TRIGGERS = 107;
  * eng_alert_recipient_guard.
  * 72 since 0110, by Robert's ruling Q6 of 2026-11-02 (audit field F10): the trigger
  * function eng_file_sealed_needs_a_seal_act. 0109 replaces eng_seal_act_check with the
- * same signature, which is not a new row. */
-const EXPECTED_FUNCTIONS = 72;
+ * same signature, which is not a new row.
+ * 73 since 0111, by Robert's Q12 of 2026-11-02 (office audit F8) and his ruling (a)
+ * of 2026-11-04: eng_set_role_grants, a role's grant set replaced in one act. */
+const EXPECTED_FUNCTIONS = 73;
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
