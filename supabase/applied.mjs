@@ -49,14 +49,18 @@
 /**
  * @typedef {object} AppliedEntry
  * @property {string} file        The migration filename, exactly.
- * @property {"apply_migration"|"execute_sql"|"pre_ledger"} appliedBy
+ * @property {"apply_migration"|"execute_sql"|"pre_ledger"|"operator_sql_editor"} appliedBy
  *   HOW production received it, which decides whether the provider's own
  *   migration history shows it. apply_migration writes a row into
  *   supabase_migrations.schema_migrations; execute_sql changes the database and
  *   writes nothing, so the migration is invisible to that history while being
  *   plainly present in the schema. pre_ledger covers 0000 to 0005, which
  *   production received under the names they were applied with, before the
- *   numbered convention existed.
+ *   numbered convention existed. operator_sql_editor is Robert's named route
+ *   of 2026-11-02: a migration the connector cancels, run by the operator in
+ *   the Supabase SQL editor from a script a session prepares, allowed only
+ *   for a migration listed in docs/production-sitting-destructive.md, and
+ *   carrying a handApplied sentence. 0111 is the first (2026-11-04).
  *
  *   Operator ruling, 2026-09-09: every production migration from here goes
  *   through apply_migration, so the two records agree. execute_sql therefore
@@ -4194,10 +4198,16 @@ export const APPLIED = [
       "there, deliverSealedFile, runs after the letter act is recorded, so it passes; the generic transition does not.",
   },
   {
-    file: "0111_a_role_grant_set_is_replaced_in_one_act.sql", appliedBy: "apply_migration",
+    file: "0111_a_role_grant_set_is_replaced_in_one_act.sql", appliedBy: "operator_sql_editor",
     fingerprint: "22346b566a73ea946ca112725b16569f",
     behaviour: "1ba6334e77d708f51391a37b7625b1c9",
     production: null,
+    handApplied:
+      "The connector cancelled the development apply of 0111 on 2026-11-04 (6650906898), because the function body " +
+      "holds a delete, and Robert approved the operator_sql_editor route for development and production. The " +
+      "provider's history holds a row for 0111 only because the script's last block inserts it by hand after the " +
+      "verification read: apply_migration never wrote it, so its version is the moment of that insert rather than of " +
+      "the apply, and nothing in the provider's record shows the file went through the SQL editor.",
     proves: { function: "eng_set_role_grants" },
     note:
       "Both figures read off scripts/fingerprint-at.mjs on 2026-11-05 on the chain to 0111. One function adds no " +
