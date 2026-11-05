@@ -38,6 +38,34 @@ const KEY_BYTES = 24;
 /** Requests per minute when a key does not name its own. Not unlimited. */
 export const DEFAULT_RATE_LIMIT = 60;
 
+/**
+ * THE OWNER MAY LOWER THE LIMIT, NEVER RAISE IT PAST THE FIRM'S CEILING.
+ * Auth audit M5, 2026-11-02: the per-minute figure came from the request body
+ * and was stored as sent, so the throttle was set by the party it throttles
+ * (1e9 removed it; NaN locked the key out). A key's limit is a whole number
+ * from 1 to 60; 60 is the default and the ceiling. The range is the session's
+ * choice, recorded for Robert, and only staff could ever raise it.
+ */
+export const API_KEY_RATE_LIMIT_MIN = 1;
+export const API_KEY_RATE_LIMIT_MAX = 60;
+
+/** The refusal sentence for an out-of-range limit, or null when it is acceptable. */
+export function apiKeyRateLimitProblem(value: number | undefined): string | null {
+  if (value === undefined) return null;
+  if (!Number.isInteger(value) || value < API_KEY_RATE_LIMIT_MIN || value > API_KEY_RATE_LIMIT_MAX) {
+    return `A key's rate limit is a whole number of requests a minute from ${API_KEY_RATE_LIMIT_MIN} to ${API_KEY_RATE_LIMIT_MAX}.`;
+  }
+  return null;
+}
+
+/** A stored limit as the throttle reads it: never above the ceiling, never unreadable. */
+export function effectiveRateLimit(stored: unknown): number {
+  if (stored === null || stored === undefined) return DEFAULT_RATE_LIMIT;
+  const n = Number(stored);
+  if (!Number.isFinite(n) || n < API_KEY_RATE_LIMIT_MIN) return DEFAULT_RATE_LIMIT;
+  return Math.min(Math.floor(n), API_KEY_RATE_LIMIT_MAX);
+}
+
 export type VerifiedKey = {
   keyId: string;
   accountId: string;
@@ -65,6 +93,8 @@ export async function issueApiKey(
   if (!label.trim()) {
     return { ok: false, error: "Give the key a label so it can be told apart later." };
   }
+  const limitProblem = apiKeyRateLimitProblem(rateLimitPerMinute);
+  if (limitProblem) return { ok: false, error: limitProblem };
 
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The account system is not configured." };
@@ -192,8 +222,7 @@ export async function verifyApiKey(presented: string | null): Promise<VerifiedKe
   return {
     keyId: data.id as string,
     accountId: data.account_id as string,
-    rateLimitPerMinute:
-      data.rate_limit_per_minute === null ? DEFAULT_RATE_LIMIT : Number(data.rate_limit_per_minute),
+    rateLimitPerMinute: effectiveRateLimit(data.rate_limit_per_minute),
   };
 }
 

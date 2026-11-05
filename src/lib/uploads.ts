@@ -1,4 +1,5 @@
 import "server-only";
+import { randomBytes } from "node:crypto";
 import { SITE_KEY, supabaseAdmin } from "./supabase";
 
 /**
@@ -71,9 +72,17 @@ export function safeFilename(name: string): string {
  * Keyed to the application id, which is generated at the start of the flow and
  * is the same id the row is inserted with. That is what makes an operator able
  * to go from a row to its documents without a join table.
+ *
+ * EACH UPLOAD GETS ITS OWN KEY, AND NOTHING IS OVERWRITTEN. Auth audit L3,
+ * 2026-11-02: the key used to be the kind and the filename alone and the
+ * signed URL carried upsert, so anybody holding an applicant's id could
+ * replace their resume before staff opened it. A random segment per request
+ * makes every key new, so the URL is signed with upsert off and a retried
+ * upload simply lands beside the first. The segment keeps the shape the apply
+ * check reads: `<kind>-<letters, digits, dot, underscore, dash>`.
  */
-export function uploadPath(applicationId: string, kind: UploadKind, filename: string): string {
-  return `${SITE_KEY}/${applicationId}/${kind}-${safeFilename(filename)}`;
+export function uploadPath(applicationId: string, kind: UploadKind, filename: string, nonce: string = randomBytes(4).toString("hex")): string {
+  return `${SITE_KEY}/${applicationId}/${kind}-${nonce}-${safeFilename(filename)}`;
 }
 
 /**
@@ -131,7 +140,7 @@ export async function createSignedUpload(params: {
   }
 
   const path = uploadPath(params.applicationId, params.kind, params.filename);
-  const { data, error } = await db.storage.from(BUCKET).createSignedUploadUrl(path, { upsert: true });
+  const { data, error } = await db.storage.from(BUCKET).createSignedUploadUrl(path, { upsert: false });
 
   if (error || !data) {
     return { ok: false, error: error?.message ?? "Could not prepare the upload." };

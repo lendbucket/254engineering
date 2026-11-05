@@ -1,3 +1,4 @@
+import { createHash, timingSafeEqual } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { clientKey, doorIdentity, inspectLock, releaseLock, RATE_LIMITS, SIGN_IN_DOORS, type SignInDoor } from "@/lib/ops-rate-limit";
 import { writeAudit } from "@/lib/ops-audit";
@@ -44,19 +45,33 @@ function configured(): string | null {
   return typeof token === "string" && token.trim().length >= 24 ? token.trim() : null;
 }
 
-/** Constant time enough for a value this size, and no early return on length. */
+/**
+ * Both sides hashed to the same length before a constant time compare, so a
+ * wrong length answers in the same time as a wrong value (auth audit L2,
+ * 2026-11-02: the old loop returned early on a length mismatch).
+ */
 function matches(provided: string, expected: string): boolean {
-  if (provided.length !== expected.length) return false;
-  let diff = 0;
-  for (let i = 0; i < expected.length; i++) diff |= provided.charCodeAt(i) ^ expected.charCodeAt(i);
-  return diff === 0;
+  const a = createHash("sha256").update(provided).digest();
+  const b = createHash("sha256").update(expected).digest();
+  return timingSafeEqual(a, b);
+}
+
+/**
+ * The token, from the Authorization header ("Bearer <token>") or, on POST, the
+ * JSON body. NEVER from the query string: a token in the URL lands in request
+ * logs, browser history and analytics (auth audit L2, 2026-11-02).
+ */
+function bearer(request: NextRequest): string {
+  const header = request.headers.get("authorization") ?? "";
+  const m = /^Bearer\s+(.+)$/i.exec(header.trim());
+  return m ? m[1].trim() : "";
 }
 
 async function handleGET(request: NextRequest) {
   const expected = configured();
   if (!expected) return new NextResponse("Not found", { status: 404 });
 
-  const provided = request.nextUrl.searchParams.get("token") ?? "";
+  const provided = bearer(request);
   if (!matches(provided, expected)) return new NextResponse("Not found", { status: 404 });
 
   const address = clientKey(request.headers);
@@ -95,7 +110,7 @@ async function handlePOST(request: NextRequest) {
   if (!expected) return new NextResponse("Not found", { status: 404 });
 
   const body = (await request.json().catch(() => null)) as { token?: string } | null;
-  const provided = String(body?.token ?? request.nextUrl.searchParams.get("token") ?? "");
+  const provided = String(body?.token ?? "") || bearer(request);
   if (!matches(provided, expected)) return new NextResponse("Not found", { status: 404 });
 
   const address = clientKey(request.headers);
