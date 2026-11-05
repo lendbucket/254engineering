@@ -707,6 +707,26 @@ On a pass, F9 merges: full lane, sealing code, no migration.
 
 On a pass, low-site merges: full lane, because it changes an API route; no migration.
 
+**Bundle 100 result: board `42006776148` on `441ab25`, 65 of 65, zero FAIL, as predicted.** Preflight GREEN, 38 rules. proofs-audit PASS with the new proof (the noindex surfaces describe themselves, and the ordering API names no internal file). LCP `/` 2822ms, `/services/windstorm-wpi-8` 2875ms, `/coverage` 3027ms, coastal-bend 2873ms, each under its ceiling. Writers took 3 transient retries. **low-site merged** as `76682f4` (parents `eda0dc4`, `441ab25`), tree identical to the boarded commit; exact push, and `ls-remote` confirms main `76682f4`; no board started on main. Issue #1 still has nothing after 6655072978.
+
+**Bundle 101, low-field: `fix/low-field` at `897ba82`.** It is `0742c44` with main `76682f4` merged in, clean; no file changed on main since `97a8e9a` is in this bundle.
+- **The change over main (five files, field audit 6585008833):**
+  - F17: the pay rate's effective day and the fee period read the firm's calendar, not UTC (`ops-field.ts`, `todayInFirmCalendar`).
+  - F18: the offline queue replays in the order entries were queued, and the capture screen's flush guard reads a ref, so a reconnect during a flush starts no second loop (`offline-queue.ts`, `CaptureClient.tsx`).
+  - F19: the single dispatch route drops a zero or negative offer window, as the bulk route does.
+  - A new proof, the-field-low-findings-hold. F9 of that audit stays held for Robert. No migration.
+- **Readers:** proofs-audit, dispatch-audit (the dispatch route), db-guard-audit (its clock rule: the new `queuedAt` stamp is a client side IndexedDB field, not a `_at` database column), native-audit and mobile-overflow-audit (the capture screen), and token-audit.
+- **Local steps NOT run:** free memory read 11.4 GB. Under Robert's memory ruling the local preflight and proof are skipped, and the board is the check.
+
+**Prediction, bundle 101, stated before dispatch: 65 of 65, zero FAIL.**
+- Preflight GREEN on the board.
+- proofs-audit PASS with the new proof.
+- dispatch-audit, db-guard-audit, native-audit and mobile-overflow-audit PASS.
+- Public bytes unchanged, and the four LCP pages under their ceilings.
+- Standing COULD NOT TELL lines only.
+
+On a pass, low-field merges: full lane, server and dispatch code; no migration.
+
 **F9 CORRECTION (issue #1, F9 correction comment).** My F9 question 6594767802 was wrong twice: no letter template is signed since 0091 (2026-10-25), so nothing needs re-signing; and the quoted section 9 sentence exists only in 254-RC-001. F9 built for the roof letter only at `c7e8a31` (`fix/f9-visit-date-receipt`, over main `3446a44`), preflight GREEN, proof 15 checks, five injections. Two questions posted (the four other letters; adoption by sealing). Boards with the follow-ups.
 
 **Review-request fixture** built at `f9761a2` (`fix/review-request-fixture-once`): one sealed `254-DEMO-RQ-FIXTURE` file reused; boards with the follow-ups.
