@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { OPS_COOKIE, readOpsSession, readPendingSession } from "@/lib/ops-session";
 import { CUSTOMER_COOKIE, readCustomerSession } from "@/lib/customer-session";
 import { PARTNER_COOKIE, readPartnerSession } from "@/lib/partner-session";
+import { LINK_COOKIE_OPTIONS, planLinkRequest } from "@/lib/link-cookie";
 
 /**
  * The portal gate.
@@ -176,6 +177,40 @@ export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   /*
+   * A TOKENED LINK IS TAKEN OUT OF THE ADDRESS BEFORE ANY GATE IS CONSULTED.
+   * Robert's answer L6, 2026-11-05; the rule and its reasoning are in
+   * src/lib/link-cookie.ts. It reads no principal's cookie, only the link
+   * cookie named for the page, and it decides nothing about a session: each
+   * set password page it rewrites is an open path below in any case. The
+   * order, quote and onboarding pages and the letter download are matched for
+   * this alone, so on those paths it returns here whatever the plan, and they
+   * never reach the staff gate at the bottom.
+   */
+  const link = planLinkRequest(pathname, request.nextUrl.searchParams, (name) => request.cookies.get(name)?.value);
+  if (link.kind === "exchange") {
+    const url = request.nextUrl.clone();
+    const target = new URL(link.location, url.origin);
+    url.pathname = target.pathname;
+    url.search = target.search;
+    const response = NextResponse.redirect(url, 307);
+    response.cookies.set(link.cookie, link.token, LINK_COOKIE_OPTIONS);
+    response.headers.set("Cache-Control", "no-store");
+    response.headers.set("Referrer-Policy", "no-referrer");
+    return response;
+  }
+  if (link.kind === "rewrite") {
+    const url = request.nextUrl.clone();
+    url.pathname = link.pathname;
+    url.search = link.search;
+    const response = NextResponse.rewrite(url);
+    response.cookies.set(link.cookie, link.token, LINK_COOKIE_OPTIONS);
+    return response;
+  }
+  if (pathname === "/order" || pathname.startsWith("/order/") || pathname.startsWith("/onboarding/") || pathname === "/api/order-document") {
+    return NextResponse.next();
+  }
+
+  /*
    * THE CUSTOMER SURFACE, GATED BY A DIFFERENT COOKIE ENTIRELY.
    *
    * Handled first and returned from, so nothing below can see an /account path.
@@ -336,5 +371,13 @@ export const config = {
      */
     "/partner/:path*",
     "/api/partner/:path*",
+    /*
+     * The tokened links, matched only so their token can be taken out of the
+     * address (L6, 2026-11-05). The branch at the top of proxy() returns for
+     * every one of these, so none of them reaches a session gate.
+     */
+    "/order/:path*",
+    "/onboarding/:path*",
+    "/api/order-document",
   ],
 };

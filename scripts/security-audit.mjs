@@ -1439,18 +1439,54 @@ async function run() {
       `HTTP ${noToken.status}`,
     );
 
+    /*
+     * L6, Robert's answer of 2026-11-05: a tokened link is exchanged for a
+     * short lived httpOnly cookie on first visit and redirected without the
+     * token. So the wrong token is answered with that redirect, and the page
+     * is read where the redirect lands, carrying the cookie it set. Before L6
+     * these two checks read the page at the tokened address and passed on any
+     * status other than 200; they now require the page itself.
+     */
     const badToken = await fetch(`${BASE}/order/254-O2026-XXXXXX?token=not-a-real-token`, {
       redirect: "manual",
     });
-    const badBody = badToken.status === 200 ? await badToken.text() : "";
+    const linkCookie = badToken.headers.get("set-cookie") ?? "";
+    const linkLocation = badToken.headers.get("location") ?? "";
+    rec(
+      "a tokened order link is answered by a redirect to the same page without the token (L6)",
+      badToken.status === 307 &&
+        linkLocation !== "" &&
+        !/token=/.test(linkLocation) &&
+        new URL(linkLocation, BASE).pathname === "/order/254-O2026-XXXXXX",
+      `HTTP ${badToken.status}, location ${linkLocation.replace(/token=[^&]*/, "token=...")}`,
+    );
+    rec(
+      "and the token goes into a host only, httpOnly, Secure, SameSite=Lax cookie of one hour",
+      /^__Host-254-link-[0-9a-f]{20}=not-a-real-token;/.test(linkCookie) &&
+        /;\s*HttpOnly/i.test(linkCookie) &&
+        /;\s*Secure/i.test(linkCookie) &&
+        /;\s*SameSite=Lax/i.test(linkCookie) &&
+        /;\s*Path=\//i.test(linkCookie) &&
+        /;\s*Max-Age=3600/i.test(linkCookie),
+      linkCookie.replace(/=[^;]*/, "=..."),
+    );
+    rec(
+      "and the redirect is never cached and sends no Referer",
+      /no-store/.test(badToken.headers.get("cache-control") ?? "") && /no-referrer/.test(badToken.headers.get("referrer-policy") ?? ""),
+    );
+    const linkPair = linkCookie.split(";")[0];
+    const landed = linkLocation
+      ? await fetch(new URL(linkLocation, BASE), { redirect: "manual", headers: { cookie: linkPair } })
+      : null;
+    const badBody = landed && landed.status === 200 ? await landed.text() : "";
     rec(
       "and a wrong token says the same thing as a missing one",
-      badToken.status !== 200 || /does not open an order/.test(badBody),
-      "distinguishing them would confirm the order exists",
+      landed?.status === 200 && /does not open an order/.test(badBody),
+      `HTTP ${landed?.status ?? "none"}: distinguishing them would confirm the order exists`,
     );
     rec(
       "the customer page is never indexed",
-      !badBody || /noindex/.test(badBody),
+      /noindex/.test(badBody),
       "an order status page in a search result would be a leak",
     );
 

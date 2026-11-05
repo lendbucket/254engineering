@@ -135,7 +135,7 @@ export default async function OnboardingPage({
               <p className="text-[0.98rem] leading-[1.75] text-slate">
                 Beside these documents there are two short training courses to finish before the firm can enroll you.{" "}
                 <Link
-                  href={`/onboarding/${token}/training`}
+                  href="/onboarding/invite/training"
                   className="font-medium text-slate underline decoration-brass underline-offset-4 transition-colors hover:text-brass-ink"
                 >
                   Open your training courses
