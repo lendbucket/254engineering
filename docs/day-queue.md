@@ -1,5 +1,11 @@
 # Day queue, 2026-10-23
 
+## ROBERT, 2026-11-05 morning, in chat, verbatim: the order after F8
+
+> L3 limits accepted as built. Order: after F8, run CRM R1 to R8 straight through. Low-auth, L6 and L3 board only while a CRM item waits on a sitting, then M2, Q8b and 0120.
+
+**Queue now:** low-office (boarding), F8, then CRM R1 to R8 in order. low-auth (`d955902`), L6 (`44bca5a`) and L3 (`54ccb64`) board only in a gap where a CRM item waits on a sitting. Then M2 (0118), Q8b (0119), F12 and F6 (0120). Q8c parked.
+
 ## ROBERT, 2026-11-05 morning, in chat, verbatim: F8 next
 
 > 0111 is on development, read back on issue #1 (6660074026). F8 boards next, right after low-office's board, ahead of low-auth. On green, post the production sitting request; my counterpart runs it with me approving the Supabase prompt. Then CRM R1 with the 0112 and 0113 development sitting requests.
