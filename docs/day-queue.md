@@ -591,6 +591,34 @@ WPI-8 facts stand as read from TDI and TWIA: TWIA's lookup is WPI-8-C only; the 
 
 **Renumbered under ruling (a), map posted as 6650478889.** Eight new stage branches, each one commit on its old stage head: the file renamed, and every 0111 to 0118 reference in it moved up one. Checked mechanically: moving the numbers back down gives each old file byte for byte, and each commit is the rename alone. The old stage branches are unchanged on the remote. `stage/0112-crm-data-model` `7462583b`, `stage/0113-crm-imports` `0f1d5288`, `stage/0114-crm-pipeline` `7e1e51ee`, `stage/0115-crm-territories` `d1ba7b0d`, `stage/0116-crm-email` `e21f6370`, `stage/0117-crm-attribution` `942703bc`, `stage/0118-session-epoch` `7d99c9ff`, `stage/0119-money-constraints` `1ab79fab`. The feature branches R1 to R8, M2 and Q8b still carry the old numbers. Each is renumbered to match when it is brought up to main before its board.
 
+**F8 built, `fix/f8-set-grants-one-act` at `80e3362`, from main `7e08f1e`.**
+- **0111:** `eng_set_role_grants` replaces a role's grant set in one transaction. Execute is revoked from PUBLIC, anon and authenticated. Shape unchanged at 22346b56 (1396 columns); behaviour moves from 1357 to 1358 facts. The ledger entry is pending.
+- **Code:** setGrants calls the function with the filtered, sorted list. A refusal says the grants were not changed, and no audit row is written for it.
+- **Readers made sharper:**
+  - roles-audit's "asks BEFORE it writes" check names the rpc and asserts it exists.
+  - A new roles-audit check refuses any direct write to eng_role_grants. Both go red on main's old file.
+  - The failed-read proof also counts an rpc call as touching a grant.
+  - migration-audit counts 73 eng_ functions, and passes 203 of 203 locally.
+- **New proof:** a-role-grant-set-is-replaced-in-one-act, 21 checks. When the insert fails inside the function, admin keeps 69 of 69 grants; the same failure written the old way leaves 0. Injecting main's old setGrants turns 5 checks red, and the file was restored byte identical.
+- **Other checks:** schema-ledger-audit passes (111 applied, 1 pending). Preflight GREEN, 38 rules, 121 s. 0 long dashes.
+- **Stage branch:** `stage/0111-role-grants-one-act` at `156a682`, sha256 `341399a2…`, the same bytes as the file on F8.
+- **Waiting on:** the development sitting, requested as 6650618134. It says the delete runs only when the function is called, that Robert is present for the connector prompt, and that a cancelled apply is not retried. F8 boards after the read-back.
+
+**Bundle 97, F4, `fix/f4-search-every-thread` at `5feca24`, while F8 waits on its sitting.** F4 is the next code-only item, and it does not depend on F8.
+- **The merge:** `76d6fa6` with main `7e08f1e` merged in, clean. No file is changed on both sides.
+- **Five files over main:** `ops-threads.ts`, the messages page, the comms route, messaging-audit, and the proof search-and-mentions-reach-every-readable-conversation. Message search and mentions reach every readable conversation, not the newest hundred, and a failed read is said. No migration.
+- **Readers:** three in-process proofs PASS (F4's own, the failed-read proof whose F10 section reads `readThreads`, and the file thread proof); token-audit 119 of 119; tsc clean. messaging-audit, native-audit and security-audit write or need a server, so they run on the board.
+- **Cross effects:** only the read paths of threads and search move; nothing writes differently. Preflight GREEN, 38 rules, 108 s. 0 long dashes. origin/main `7e08f1e` unmoved.
+
+**Prediction, bundle 97, stated before dispatch: 65 of 65, zero FAIL.**
+- proofs-audit PASS, with F4's proof, the failed-read proof and the file thread proof.
+- messaging-audit PASS: the administrator cannot find a direct message they are not in, and a participant can.
+- native, token and security PASS.
+- Public bytes unchanged, and the four LCP pages under their ceilings.
+- Standing COULD NOT TELL lines only.
+
+On a pass, F4 merges: full lane, server code, no migration.
+
 **F9 CORRECTION (issue #1, F9 correction comment).** My F9 question 6594767802 was wrong twice: no letter template is signed since 0091 (2026-10-25), so nothing needs re-signing; and the quoted section 9 sentence exists only in 254-RC-001. F9 built for the roof letter only at `c7e8a31` (`fix/f9-visit-date-receipt`, over main `3446a44`), preflight GREEN, proof 15 checks, five injections. Two questions posted (the four other letters; adoption by sealing). Boards with the follow-ups.
 
 **Review-request fixture** built at `f9761a2` (`fix/review-request-fixture-once`): one sealed `254-DEMO-RQ-FIXTURE` file reused; boards with the follow-ups.
