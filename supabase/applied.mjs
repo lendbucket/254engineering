@@ -4245,7 +4245,8 @@ export const APPLIED = [
       "tdlr_solar_salespeople (Robert's answer to 6588393366); the fact count is unchanged.",
     because:
       "WRITTEN 2026-11-02 ON feat/crm-r1-data-model AND STAGED ON stage/0112-crm-data-model FOR THE CHAT " +
-      "COUNTERPART'S SITTING; APPLIED NOWHERE. Robert's sales CRM ruling of 2026-11-02, item R1, the data model: " +
+      "COUNTERPART'S SITTING; ON DEVELOPMENT SINCE 2026-11-05 (6664433708, version 20261105171658), NOT ON " +
+      "PRODUCTION. Robert's sales CRM ruling of 2026-11-02, item R1, the data model: " +
       "eng_prospects extended (vertical, stage, score, next action, tags, website, address and county, permit " +
       "activity, normalized name and phone as generated columns), several contacts and several sources per company, " +
       "activities in the existing contact log, unique on normalized (name, phone) and on (source, source record id), " +
