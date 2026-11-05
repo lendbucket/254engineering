@@ -253,14 +253,44 @@ async function versionRunUnder(
  * server's own record of receiving the photograph agrees it could be true.
  */
 export const VISIT_RECEIPT_WINDOW_MS = 3 * 86_400_000;
+/*
+ * AND WHEN THE CLOCK WAS RECORDED AS DISAGREEING, OR NEVER MEASURED, THE
+ * RECEIPT. Robert's ruling F9 of 2026-11-02: "do not refuse the draft. When
+ * the visit capture's clock disagreed or was never measured, the letter states
+ * the inspection date from the server's receipt of the first standing capture,
+ * which is a recorded fact, and uses the protocol's own wording that the
+ * device time was recorded as disagreeing. A draft is refused only if no
+ * standing capture has a receipt time."
+ *
+ * `receiptWhenClockUncertain` is set only by a letter that carries the
+ * protocol's line (the roof letter, template 1.1), so no letter prints a
+ * receipt date without it. The others keep the L2b guard exactly as before.
+ * A clock recorded as agreeing (clock_disagrees false) keeps the guard too.
+ */
 function visitAndCount(
-  evidence: { status?: unknown; captured_at?: unknown; created_at?: unknown }[],
-): { ok: true; visitDate: string | null; count: number } | { ok: false; error: string } {
-  const standing = evidence
-    .filter((e) => e.status !== "revision_requested")
+  evidence: { status?: unknown; captured_at?: unknown; created_at?: unknown; clock_disagrees?: unknown }[],
+  options: { receiptWhenClockUncertain?: boolean } = {},
+): { ok: true; visitDate: string | null; count: number; clockUncertain: boolean } | { ok: false; error: string } {
+  const standingRows = evidence.filter((e) => e.status !== "revision_requested");
+  const standing = standingRows
     .filter((e) => typeof e.captured_at === "string" && e.captured_at)
     .sort((a, b) => Date.parse(a.captured_at as string) - Date.parse(b.captured_at as string));
   const visit = standing[0];
+  if (options.receiptWhenClockUncertain === true && standingRows.length > 0 && (!visit || visit.clock_disagrees !== false)) {
+    const received = standingRows
+      .map((e) => (typeof e.created_at === "string" ? Date.parse(e.created_at) : Number.NaN))
+      .filter((ms) => Number.isFinite(ms))
+      .sort((a, b) => a - b);
+    if (!received.length) {
+      return { ok: false, error: "No standing capture has a server receipt time, so the visit date cannot be stated. The office corrects the evidence before this letter is sealed." };
+    }
+    return {
+      ok: true,
+      visitDate: letterDate(new Date(received[0]).toISOString()),
+      count: evidence.filter((e) => e.status !== "revision_requested").length,
+      clockUncertain: true,
+    };
+  }
   if (visit) {
     const device = Date.parse(visit.captured_at as string);
     const received = typeof visit.created_at === "string" ? Date.parse(visit.created_at) : Number.NaN;
@@ -285,6 +315,7 @@ function visitAndCount(
     ok: true,
     visitDate: visit ? letterDate(visit.captured_at as string) : null,
     count: evidence.filter((e) => e.status !== "revision_requested").length,
+    clockUncertain: false,
   };
 }
 
@@ -314,7 +345,7 @@ function unlabelled(keys: string[], checklist: readonly { key: string; label: st
 export async function letterFactsFor(
   det: DeterminationRow,
   entered: { recipientAddress: string; recipientSalutation: string },
-): Promise<{ ok: true; facts: LetterFacts; title: string } | { ok: false; error: string }> {
+): Promise<{ ok: true; facts: LetterFacts; title: string; clockUncertain: boolean } | { ok: false; error: string }> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
 
@@ -339,10 +370,11 @@ export async function letterFactsFor(
 
   const { data: evidence, error: evidenceError } = await db
     .from("eng_evidence_items")
-    .select("captured_at, created_at, status")
+    .select("captured_at, created_at, status, clock_disagrees")
     .eq("file_id", det.file_id);
   if (evidenceError) return { ok: false, error: `The evidence could not be counted: ${evidenceError.message}` };
-  const visit = visitAndCount(evidence ?? []);
+  /* The roof letter carries RC-001 section 9's own line (template 1.1), so it may state the receipt date (F9). */
+  const visit = visitAndCount(evidence ?? [], { receiptWhenClockUncertain: true });
   if (!visit.ok) return visit;
 
   const { data: exceptions, error: exceptionError } = await db
@@ -380,7 +412,7 @@ export async function letterFactsFor(
      */
     items_not_observed: notObserved.length ? notObserved.join("; ") : "none",
   };
-  return { ok: true, facts, title: `Roof certification, ${file.property_address}, file ${file.file_number}` };
+  return { ok: true, facts, title: `Roof certification, ${file.property_address}, file ${file.file_number}`, clockUncertain: visit.clockUncertain };
 }
 
 /**
@@ -731,7 +763,7 @@ async function draftFor(det: DeterminationRow, entered: Entered): Promise<Drafte
   const facts = await letterFactsFor(det, entered);
   if (!facts.ok) return { ok: false, error: facts.error };
   if (!producesLetter(det.determination)) return { ok: false, error: `A ${det.determination} determination produces no letter.` };
-  const draft = draftRoofLetter(det.determination, facts.facts);
+  const draft = draftRoofLetter(det.determination, facts.facts, { clockUncertain: facts.clockUncertain });
   if (!draft.ok) return { ok: false, error: draft.why };
   const attached = await roofAttachment(det, facts.facts.file_number as string);
   if (!attached.ok) return attached;
