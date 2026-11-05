@@ -1,5 +1,17 @@
 # Day queue, 2026-10-23
 
+## ROBERT, 2026-11-05, in chat, verbatim: the roofer partner application (plan first, after the queued CRM branches)
+
+> New full lane work, after the CRM branches that are already queued. I want a roofer partner application on 254engineering.com. Read docs/new-surface-checklist.md first, and inventory what the platform already has before you build anything: the partner program, the account doors, the CRM prospect kinds, and the self-service-signup gate condition. Report the plan to me before you write code.
+>
+> What it is. Texas roofing companies apply to become an approved 254 roofing partner. It is selective. Nothing approves automatically and nothing is AI generated or AI reviewed. A person at 254 reads every application in the portal and approves or declines it. An approved roofer gets an account in the partner portal. A declined roofer gets a plain, polite email.
+>
+> The application asks for: company legal name, DBA, owner name, title, email, phone, office city, counties served, years in business, crew count, residential or commercial or both, roofs a year, which 254 services they expect to order (inspections, roof certifications, windstorm, repair specifications), roughly how many a month, the insurance carrier and general liability limits, and two references. They can upload an insurance certificate. Every application lands in the CRM as a prospect with its own kind, so it shows on the rep home screen as work due now. Each item in section 2d applies to the review screen.
+>
+> The public page sells the program in the brand's voice. It covers volume pricing for partners, one place to order and track every job, the engineer's review and sealed letters through the platform, and a named contact at 254. It follows section 1 of CLAUDE.md to the letter. There is no turnaround promise for sealed work, only qualitative wording. There is no "engineer on call" or any other present tense claim while the gate reads prelaunch. Check launchMode() and write the copy for the mode it is actually in. There is no referral fee, commission, rebate or credit of any kind paid to a roofer for sending work: 22 TAC 137.63(c)(4). There is no "franchise" language anywhere. If being selective means any limit, such as a number of partners per county, ask me before writing it.
+>
+> Every page and call to action that suits a contractor gets a clear link to the application, and so does the site navigation. It goes inside the audit harness like every other surface: contrast, mobile, forms, voice, cta, seo, launch. The board runs alone with a stated prediction. Migrations go through the normal sittings. Report and stop.
+
 ## ROBERT'S RULING, 2026-11-05, in chat, verbatim: finish the platform queue
 
 > Finish the platform queue. Record this on ops/day first, verbatim. Follow docs/standing-orders.md and run until everything below is merged or parked, then post a report on issue #1 and stop.
