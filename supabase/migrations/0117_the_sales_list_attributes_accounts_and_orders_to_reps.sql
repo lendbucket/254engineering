@@ -1,6 +1,6 @@
 /*
  * ===========================================================================
- * 0116: THE SALES LIST ATTRIBUTES EACH ACCOUNT AND EACH ORDER TO A REP.
+ * 0117: THE SALES LIST ATTRIBUTES EACH ACCOUNT AND EACH ORDER TO A REP.
  * Robert's sales CRM ruling of 2026-11-02, item R8 (manager dashboard and
  * attribution).
  * ===========================================================================
@@ -40,7 +40,7 @@
  * COUNSEL, as eng_prospects is: declared in retention-policy.ts. RLS on, no
  * policies, every grant revoked: the service role reads and writes.
  *
- * Development first, on stage/0116-crm-attribution; production at the chat
+ * Development first, on stage/0117-crm-attribution; production at the chat
  * counterpart's sitting after R8's board.
  */
 
@@ -49,16 +49,16 @@
 do $$
 begin
   if to_regclass('public.eng_crm_email_sends') is null then
-    raise exception 'eng: 0116 follows 0115, which adds eng_crm_email_sends. It does not exist here.';
+    raise exception 'eng: 0117 follows 0116, which adds eng_crm_email_sends. It does not exist here.';
   end if;
   if to_regclass('public.eng_crm_attributions') is not null then
-    raise exception 'eng: 0116 expects no eng_crm_attributions before it runs.';
+    raise exception 'eng: 0117 expects no eng_crm_attributions before it runs.';
   end if;
   if not exists (
     select 1 from information_schema.columns
      where table_schema = 'public' and table_name = 'eng_prospects' and column_name = 'converted_account_id'
   ) then
-    raise exception 'eng: 0116 reads eng_prospects.converted_account_id (0079), and it does not exist here.';
+    raise exception 'eng: 0117 reads eng_prospects.converted_account_id (0079), and it does not exist here.';
   end if;
 end;
 $$;
@@ -93,7 +93,7 @@ create index if not exists eng_crm_attributions_account_idx
   on eng_crm_attributions (account_id);
 
 comment on table eng_crm_attributions is
-  'The sales attribution chain, prospect to account to order: one row when a prospect becomes an account, one row per order placed for that account, each crediting the rep who owned the company then. Append only; an order row goes only with its order. 0116, Robert''s sales CRM ruling R8 of 2026-11-02.';
+  'The sales attribution chain, prospect to account to order: one row when a prospect becomes an account, one row per order placed for that account, each crediting the rep who owned the company then. Append only; an order row goes only with its order. 0117, Robert''s sales CRM ruling R8 of 2026-11-02.';
 
 create trigger eng_crm_attributions_append_only
   before update or delete on eng_crm_attributions
@@ -104,20 +104,20 @@ create trigger eng_crm_attributions_append_only
 do $$
 begin
   if to_regclass('public.eng_crm_attributions') is null then
-    raise exception 'eng: 0116 expects eng_crm_attributions after it runs.';
+    raise exception 'eng: 0117 expects eng_crm_attributions after it runs.';
   end if;
   if exists (select 1 from pg_class c where c.relname = 'eng_crm_attributions' and not c.relrowsecurity) then
-    raise exception 'eng: 0116 expects row level security on eng_crm_attributions.';
+    raise exception 'eng: 0117 expects row level security on eng_crm_attributions.';
   end if;
   if to_regclass('public.eng_crm_attributions_order_once') is null
      or to_regclass('public.eng_crm_attributions_opened_once') is null then
-    raise exception 'eng: 0116 expects one row per order and one opening per prospect.';
+    raise exception 'eng: 0117 expects one row per order and one opening per prospect.';
   end if;
   if not exists (
     select 1 from pg_trigger
      where tgname = 'eng_crm_attributions_append_only' and tgrelid = 'public.eng_crm_attributions'::regclass
   ) then
-    raise exception 'eng: 0116 expects eng_crm_attributions to be append only.';
+    raise exception 'eng: 0117 expects eng_crm_attributions to be append only.';
   end if;
 end;
 $$;
