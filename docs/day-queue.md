@@ -691,6 +691,22 @@ On a pass, it merges: full lane, because the proof writes to development; no pro
 
 On a pass, F9 merges: full lane, sealing code, no migration.
 
+**Bundle 99 result: board `41998019208` on `e5661be`, 65 of 65, zero FAIL, as predicted.** Preflight GREEN, 38 rules. proofs-audit PASS with F9's proof (a visit date from an uncertain clock is the server's receipt, in RC-001 section 9's own words) and the roof letter wording proof. LCP `/` 2885ms, `/services/windstorm-wpi-8` 2883ms, `/coverage` 2492ms, coastal-bend 2417ms, each under its ceiling. Writers took 4 transient retries. **F9 merged** as `eda0dc4` (parents `97a8e9a`, `e5661be`), tree identical to the boarded commit; exact push, and `ls-remote` confirms main `eda0dc4`; no board started on main. Issue #1 still has nothing after 6653833148, so F8 still waits on development.
+
+**Bundle 100, low-site: `fix/low-site` at `441ab25`.** It is `e7026b3` with main `eda0dc4` merged in, clean; none of F9's six files is in this bundle.
+- **The change over main (eight files):** the ordering API's GET answers "This endpoint accepts POST only." and names no internal file (site audit issue 7). Six noindex surfaces carry their own description instead of the home page's (issue 12): the order status page, order start, onboarding, and the account, partner and portal layouts. One new proof, that these surfaces describe themselves and the API names no file. No migration.
+- **Readers:** seo-audit (the descriptions), voice-audit, placeholder-audit and launch-audit (rendered copy, in both modes), security-audit (the API answer), and proofs-audit. Each description was read for the content rules: no long dashes, no AI tell words, US spelling, "254 Engineering", no present tense service claim, no engineer name or license number.
+- **Local steps NOT run:** free memory read 10.8 GB. Under Robert's memory ruling the local preflight and proof are skipped, and the board is the check.
+
+**Prediction, bundle 100, stated before dispatch: 65 of 65, zero FAIL.**
+- Preflight GREEN on the board.
+- proofs-audit PASS with the new proof.
+- seo-audit PASS: the new descriptions sit on noindex surfaces, outside the sitemap's length and duplicate rules, and no sitemap page's metadata moves.
+- voice-audit and launch-audit PASS in both modes, and security-audit PASS.
+- The four LCP pages under their ceilings, and standing COULD NOT TELL lines only.
+
+On a pass, low-site merges: full lane, because it changes an API route; no migration.
+
 **F9 CORRECTION (issue #1, F9 correction comment).** My F9 question 6594767802 was wrong twice: no letter template is signed since 0091 (2026-10-25), so nothing needs re-signing; and the quoted section 9 sentence exists only in 254-RC-001. F9 built for the roof letter only at `c7e8a31` (`fix/f9-visit-date-receipt`, over main `3446a44`), preflight GREEN, proof 15 checks, five injections. Two questions posted (the four other letters; adoption by sealing). Boards with the follow-ups.
 
 **Review-request fixture** built at `f9761a2` (`fix/review-request-fixture-once`): one sealed `254-DEMO-RQ-FIXTURE` file reused; boards with the follow-ups.
