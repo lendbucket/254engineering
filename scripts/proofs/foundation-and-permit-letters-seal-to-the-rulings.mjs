@@ -56,7 +56,8 @@ check(
   "FC-1: a foundation decline letter is delivered and settles as sealed work, as a pass does",
   /const delivers = det\.determination === "pass" \|\| \(det\.protocol_document === "254-FC-001" && det\.determination === "decline"\);/.test(seal),
 );
-check("roof's path is unchanged: its facts and draft are what they were", /const facts = await letterFactsFor\(det, entered\);[\s\S]{0,300}draftRoofLetter\(det\.determination, facts\.facts\)/.test(seal));
+/* Changed on purpose by Robert's ruling F9 (2026-11-02): the roof draft now also carries whether the visit date came from the receipt. */
+check("roof's path: its facts, then its draft, told whether the visit date is the receipt (F9)", /const facts = await letterFactsFor\(det, entered\);[\s\S]{0,300}draftRoofLetter\(det\.determination, facts\.facts, \{ clockUncertain: facts\.clockUncertain \}\)/.test(seal));
 
 /*
  * The after decision job: no refund for a foundation decline at review.
@@ -98,7 +99,7 @@ check(
 
 console.log("");
 if (wrong === 0) {
-  console.log("PASS: the foundation and permit letters seal to the rulings, and roof is what it was.");
+  console.log("PASS: the foundation and permit letters seal to the rulings, and roof's path changed only by F9.");
   process.exitCode = 0;
 } else {
   console.log(`FAIL: ${wrong} check(s).`);
