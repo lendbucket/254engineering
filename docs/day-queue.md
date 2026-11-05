@@ -959,6 +959,14 @@ Every other line of the prediction held. migration-audit, schema-ledger-audit an
 
 On a pass, low-auth merges: full lane, auth server code; no migration.
 
+**Bundle 105 result: board `42072604995` on `5fe35cd`, 65 of 65, zero FAIL, as predicted.** Preflight GREEN. proofs-audit PASS with the-auth-audit-low-findings-are-closed (31 checks). LCP `/` 2954ms, service 2802ms, `/coverage` 2721ms, coastal-bend 2436ms. Its waiter was stopped for low memory and the result was read from GitHub. **NOT MERGED: main moved to `0737b78` (F8) while it ran,** so this green measured a main that is gone. It takes `0737b78` and reboards in the next sitting gap.
+
+**F8 MERGED** as `0737b78` (parents `6b772bd`, `eb3237b`), after 0111's production read-back (6664558644, version `20261105172304`). The merged tree is boarded `b27e5fe` plus the ledger line; `ls-remote` confirms. 0112 and 0113 are on development (6664433708: versions `20261105171658` and `20261105171724`; grants 186 to 192).
+
+**R1 at `bb9b175`** (renumbered to 0112, over main `0737b78`) waits on one local step: 0112's behaviour digest and fact count, recomputed on the chain that now holds 0111 (`fingerprint-at.mjs 0111 0112`). Free memory has read 10.3 to 11.5 GB since, under the floor. It is not skipped, because without it migration-audit fails on a stale figure, which would be my red, not R1's.
+
+**The roofer partner application:** planned only, posted as 6665440881 with six questions. Nothing is built until Robert answers.
+
 **F9 CORRECTION (issue #1, F9 correction comment).** My F9 question 6594767802 was wrong twice: no letter template is signed since 0091 (2026-10-25), so nothing needs re-signing; and the quoted section 9 sentence exists only in 254-RC-001. F9 built for the roof letter only at `c7e8a31` (`fix/f9-visit-date-receipt`, over main `3446a44`), preflight GREEN, proof 15 checks, five injections. Two questions posted (the four other letters; adoption by sealing). Boards with the follow-ups.
 
 **Review-request fixture** built at `f9761a2` (`fix/review-request-fixture-once`): one sealed `254-DEMO-RQ-FIXTURE` file reused; boards with the follow-ups.
