@@ -54,7 +54,7 @@ export type ProspectRow = {
   ownerName: string | null;
   convertedAccountId: string | null;
   lastContactAt: string | null;
-  /* The sales CRM's words for the company, 0111 (Robert, 2026-11-02, R1). */
+  /* The sales CRM's words for the company, 0112 (Robert, 2026-11-02, R1). */
   vertical: CrmVertical;
   stage: CrmStage;
 };
@@ -228,7 +228,7 @@ export type ProspectInput = {
   email?: string | null;
   city?: string | null;
   prospectType: string;
-  /* The sales CRM's vertical (0111). When given, the old kind is derived from it; when not, it is derived from the kind. */
+  /* The sales CRM's vertical (0112). When given, the old kind is derived from it; when not, it is derived from the kind. */
   vertical?: string | null;
   followUpOn?: string | null;
 };
@@ -295,7 +295,7 @@ export async function createProspect(
         : `The prospect could not be saved: ${error.message}`,
     );
   }
-  /* Its primary person and where it came from (0111): typed in by hand. */
+  /* Its primary person and where it came from (0112): typed in by hand. */
   const linked = await addPrimaryContactAndSource(db, [
     {
       prospectId: id,
@@ -333,7 +333,7 @@ export async function updateProspect(
   if (change.status !== undefined) {
     if (change.status !== "open" && change.status !== "not_interested") return refuse("That status cannot be set by hand.");
     /*
-     * The stage moves with it (0111): not interested is dormant by refusal;
+     * The stage moves with it (0112): not interested is dormant by refusal;
      * reopening a dormant company puts it back at new. Do not contact is for
      * good and is never reopened from here.
      */
@@ -456,7 +456,7 @@ export async function importProspects(
           `Those ${i} are batch ${batchId}; import the file again and they will be listed as already on the list.`,
       );
     }
-    /* Each company's primary person and the spreadsheet line it came from (0111). */
+    /* Each company's primary person and the spreadsheet line it came from (0112). */
     const linked = await addPrimaryContactAndSource(
       db,
       chunk.map((r) => ({
@@ -544,7 +544,7 @@ export async function convertProspect(
     .from("eng_prospects")
     .update({
       status: "converted",
-      /* Converted is the customer stage Account opened (0111's eng_prospects_stage_matches_conversion). */
+      /* Converted is the customer stage Account opened (0112's eng_prospects_stage_matches_conversion). */
       stage: "account_opened",
       converted_at: DB_NOW,
       converted_by: actor.id,

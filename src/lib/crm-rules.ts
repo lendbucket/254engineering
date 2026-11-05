@@ -2,14 +2,14 @@ import { regionOfCounty } from "@/content/regions";
 
 /**
  * THE SALES CRM'S VOCABULARY AND ITS RULES. Robert's sales CRM ruling of
- * 2026-11-02, item R1, migration 0111.
+ * 2026-11-02, item R1, migration 0112.
  *
  * Client safe and free of the database, so the screens, the server and the
- * proofs read one list. Every list here matches a check constraint in 0111,
+ * proofs read one list. Every list here matches a check constraint in 0112,
  * and the proof compares them.
  *
  * ONE CRM: a company is an eng_prospects row and an activity is an
- * eng_contact_log row, both extended by 0111. Nothing here starts a second
+ * eng_contact_log row, both extended by 0112. Nothing here starts a second
  * store.
  */
 
@@ -51,7 +51,7 @@ export function prospectTypeForVertical(v: CrmVertical): "roofer" | "agent" | "t
   return "contractor";
 }
 
-/** The vertical a row typed with the old kind has, as 0111's backfill read it. */
+/** The vertical a row typed with the old kind has, as 0112's backfill read it. */
 export function verticalForProspectType(t: string): CrmVertical {
   if (t === "roofer") return "roofer";
   if (t === "agent") return "real_estate";
@@ -90,7 +90,7 @@ export type ProspectStatus = "open" | "converted" | "not_interested";
 
 /**
  * Whether a stage move is allowed, and the status that goes with it, or the
- * sentence that refuses it. 0111's checks enforce the same at the database;
+ * sentence that refuses it. 0112's checks enforce the same at the database;
  * this says it in words before anything is written.
  *
  * - Do not contact is for good: nothing moves a prospect out of it.
@@ -178,7 +178,7 @@ export type CrmOutcome = (typeof CRM_OUTCOMES)[number];
 /*
  * THE TWO KEYS ARE THE DATABASE'S. name_normalized and phone_normalized are
  * generated columns over eng_crm_normalize_name and eng_crm_normalize_phone
- * (0111), so the unique key and its value cannot disagree. These mirrors exist
+ * (0112), so the unique key and its value cannot disagree. These mirrors exist
  * to look a company up BEFORE a write; the proof runs both on the same inputs.
  */
 const ENTITY_SUFFIX = /\b(l l c|llc|inc|incorporated|co|corp|corporation|company|ltd|limited|pllc|lp|llp|dba)\b/g;

@@ -23,7 +23,7 @@ import {
 
 /**
  * THE SALES CRM'S MODEL, ON THE ONE SALES LIST. Robert's ruling of 2026-11-02,
- * item R1, migration 0111.
+ * item R1, migration 0112.
  *
  * A company is an eng_prospects row; its people are eng_prospect_contacts;
  * where it came from is eng_prospect_sources; everything done with it is an
@@ -161,7 +161,7 @@ export async function sourcesFor(
 /**
  * The company already holding this normalized name and telephone, if any,
  * read before a write so a rep is told which company it is rather than met
- * with a refusal. The database's unique key (0111) is the guarantee; this is
+ * with a refusal. The database's unique key (0112) is the guarantee; this is
  * the courtesy.
  */
 export async function companyByNameAndPhone(

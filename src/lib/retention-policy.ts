@@ -743,9 +743,9 @@ export const RETENTION_POLICY: RetentionEntry[] = [
       ruledBy: "the schema, confirmed by the operator 2026-09-09",
     },
   },
-  /* 0111. The people at a company on the sales list: names, telephones and emails. Personal contact details, so counsel decides, as for eng_prospects. */
+  /* 0112. The people at a company on the sales list: names, telephones and emails. Personal contact details, so counsel decides, as for eng_prospects. */
   { table: "eng_prospect_contacts", rule: { kind: "kept_pending_counsel", because: COUNSEL } },
-  /* 0111. Where each company on the sales list came from, with the fields the source gave, names and telephones among them. Counsel decides, as for eng_prospects. */
+  /* 0112. Where each company on the sales list came from, with the fields the source gave, names and telephones among them. Counsel decides, as for eng_prospects. */
   { table: "eng_prospect_sources", rule: { kind: "kept_pending_counsel", because: COUNSEL } },
   /* 0079. The sales list: companies the firm is calling and how to reach them. Personal contact details, so counsel decides. */
   { table: "eng_prospects", rule: { kind: "kept_pending_counsel", because: COUNSEL } },

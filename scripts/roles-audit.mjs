@@ -298,7 +298,7 @@ const EXPECTED = {
   "inbox.answer":                 { admin: true,  engineer: false, field_tech: false },
   "contact_log.write":            { admin: true,  engineer: false, field_tech: false },
   "crm.use":                      { admin: true,  engineer: false, field_tech: false },
-  /* The sales CRM's management grants, Robert's ruling of 2026-11-02 (R1, 0111): admin and ops_manager. */
+  /* The sales CRM's management grants, Robert's ruling of 2026-11-02 (R1, 0112): admin and ops_manager. */
   "crm.import":                   { admin: true,  engineer: false, field_tech: false },
   "crm.assign":                   { admin: true,  engineer: false, field_tech: false },
   "crm.reports":                  { admin: true,  engineer: false, field_tech: false },
@@ -400,7 +400,7 @@ const EXPECTED_NINE = {
   "clients.update":               "Y . . . Y . . Y Y",
   "contact_log.write":            "Y . . . . . . Y Y",
   /*
-   * The sales CRM, Robert's ruling of 2026-11-02 (R1, 0111) with his answer 2:
+   * The sales CRM, Robert's ruling of 2026-11-02 (R1, 0112) with his answer 2:
    * the operations manager is the sales manager, the rep is also the account
    * manager and keeps crm.use, and sales holds no CRM grant.
    */

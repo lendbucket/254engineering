@@ -427,7 +427,7 @@ export type Action =
   | "crm.use"
   /*
    * The sales CRM's three management grants, Robert's ruling of 2026-11-02,
-   * seeded by 0111 for the administrator and the operations manager, who is
+   * seeded by 0112 for the administrator and the operations manager, who is
    * the sales manager (his answer 2). The rep keeps crm.use and is also the
    * account manager; sales holds none of these.
    */
@@ -556,7 +556,7 @@ const MATRIX: Record<Role, Action[]> = {
     "refunds.request", "refunds.approve_within_limit", "settings.refund_limit",
     "technicians.onboard", "pricing.override_at_intake", "pricing.read_tech_rate",
     "reports.turnaround", "reports.activity",
-    /* The sales CRM's management grants, seeded by 0111 (Robert, 2026-11-02, R1). */
+    /* The sales CRM's management grants, seeded by 0112 (Robert, 2026-11-02, R1). */
     "crm.import", "crm.assign", "crm.reports",
   ],
   engineer: [
@@ -881,7 +881,7 @@ export const DEFAULT_ROLES: DefaultRole[] = [
        */
       "profiles.list", "profiles.update", "applications.read",
       /*
-       * The sales manager's three, seeded by 0111. Robert's sales CRM ruling of
+       * The sales manager's three, seeded by 0112. Robert's sales CRM ruling of
        * 2026-11-02 with his answer 2: the operations manager is the sales
        * manager, so he imports, assigns and reads the reps' numbers.
        */

@@ -4166,20 +4166,20 @@ export const APPLIED = [
       "there, deliverSealedFile, runs after the letter act is recorded, so it passes; the generic transition does not.",
   },
   {
-    file: "0111_the_sales_list_knows_companies_contacts_and_sources.sql", appliedBy: "apply_migration",
+    file: "0112_the_sales_list_knows_companies_contacts_and_sources.sql", appliedBy: "apply_migration",
     fingerprint: "72bb0e8c9223c6cd634a610fb0506b82",
     behaviour: "336caebed4e79da7463221327f337310",
     production: null,
     proves: { table: "eng_prospect_sources" },
     note:
-      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-02 on the combined chain 0104 to 0111. Shape 1396 " +
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-02 on the combined chain 0104 to 0112. Shape 1396 " +
       "to 1439 columns: 17 on eng_prospects, 11 on eng_prospect_contacts, 8 on eng_prospect_sources, 7 on " +
       "eng_contact_log; tables 106 to 108. Behaviour 1357 to 1409 facts: two functions, one trigger, the new checks, " +
       "keys and indexes, and six grant rows. The behaviour digest moved from f3c828fa to 336caebe on 2026-11-02, " +
-      "before 0111 was applied anywhere, when the source check gained tdlr_solar_retailers and " +
+      "before 0112 was applied anywhere, when the source check gained tdlr_solar_retailers and " +
       "tdlr_solar_salespeople (Robert's answer to 6588393366); the fact count is unchanged.",
     because:
-      "WRITTEN 2026-11-02 ON feat/crm-r1-data-model AND STAGED ON stage/0111-crm-data-model FOR THE CHAT " +
+      "WRITTEN 2026-11-02 ON feat/crm-r1-data-model AND STAGED ON stage/0112-crm-data-model FOR THE CHAT " +
       "COUNTERPART'S SITTING; APPLIED NOWHERE. Robert's sales CRM ruling of 2026-11-02, item R1, the data model: " +
       "eng_prospects extended (vertical, stage, score, next action, tags, website, address and county, permit " +
       "activity, normalized name and phone as generated columns), several contacts and several sources per company, " +

@@ -1,6 +1,6 @@
 /*
  * ===========================================================================
- * 0111: THE SALES LIST KNOWS COMPANIES, THEIR PEOPLE AND WHERE EACH CAME FROM.
+ * 0112: THE SALES LIST KNOWS COMPANIES, THEIR PEOPLE AND WHERE EACH CAME FROM.
  * Robert's sales CRM ruling of 2026-11-02, item R1 (data model), with his
  * answers the same afternoon.
  * ===========================================================================
@@ -48,7 +48,7 @@
  * not_interested. A dormant prospect may be open (a sequence that ran out) or
  * not interested (a refusal).
  *
- * Development first, on stage/0111-crm-data-model; production at the chat
+ * Development first, on stage/0112-crm-data-model; production at the chat
  * counterpart's sitting after R1's board.
  */
 
@@ -98,7 +98,7 @@ declare
   v_dupes integer;
 begin
   if to_regclass('public.eng_prospects') is null then
-    raise exception 'eng: 0111 extends eng_prospects (0079), which does not exist here.';
+    raise exception 'eng: 0112 extends eng_prospects (0079), which does not exist here.';
   end if;
   select count(*) into v_dupes
     from (
@@ -109,7 +109,7 @@ begin
       having count(*) > 1
     ) d;
   if v_dupes > 0 then
-    raise exception 'eng: 0111 refuses: % normalized (name, phone) pairs on eng_prospects are held by more than one row. Merge them before the unique key is added.', v_dupes;
+    raise exception 'eng: 0112 refuses: % normalized (name, phone) pairs on eng_prospects are held by more than one row. Merge them before the unique key is added.', v_dupes;
   end if;
 end;
 $$;
@@ -234,7 +234,7 @@ alter table eng_prospect_contacts enable row level security;
 revoke all on eng_prospect_contacts from public, anon, authenticated;
 
 comment on table eng_prospect_contacts is
-  'The people at a company on the sales list, several per company. The primary one is copied onto the eng_prospects row so the existing screens and the reachable check keep reading it. 0111.';
+  'The people at a company on the sales list, several per company. The primary one is copied onto the eng_prospects row so the existing screens and the reachable check keep reading it. 0112.';
 
 /* The people already on the list: one primary contact per company that names somebody or a way to reach them. */
 insert into eng_prospect_contacts (prospect_id, full_name, phone, email, is_primary, created_by)
@@ -272,7 +272,7 @@ alter table eng_prospect_sources enable row level security;
 revoke all on eng_prospect_sources from public, anon, authenticated;
 
 comment on table eng_prospect_sources is
-  'Every source a company on the sales list came from, one row per source record. A merge moves rows here to the surviving company, so a merge keeps every source. Unique on (source, source_record_id). 0111.';
+  'Every source a company on the sales list came from, one row per source record. A merge moves rows here to the surviving company, so a merge keeps every source. Unique on (source, source_record_id). 0112.';
 
 /* The companies already on the list came from a spreadsheet or were typed in. */
 insert into eng_prospect_sources (prospect_id, source, source_record_id, first_seen_at, last_seen_at)
@@ -371,28 +371,28 @@ begin
      select 1 from information_schema.columns
       where table_schema = 'public' and table_name = 'eng_prospects' and column_name = c);
   if v_missing is not null then
-    raise exception 'eng: 0111 expects these eng_prospects columns after it runs: %', v_missing;
+    raise exception 'eng: 0112 expects these eng_prospects columns after it runs: %', v_missing;
   end if;
   if to_regclass('public.eng_prospect_contacts') is null or to_regclass('public.eng_prospect_sources') is null then
-    raise exception 'eng: 0111 expects eng_prospect_contacts and eng_prospect_sources after it runs.';
+    raise exception 'eng: 0112 expects eng_prospect_contacts and eng_prospect_sources after it runs.';
   end if;
   if to_regclass('public.eng_prospects_name_phone_key') is null then
-    raise exception 'eng: 0111 expects the unique index eng_prospects_name_phone_key after it runs.';
+    raise exception 'eng: 0112 expects the unique index eng_prospects_name_phone_key after it runs.';
   end if;
   if not exists (select 1 from pg_constraint where conname = 'eng_prospect_sources_record_key') then
-    raise exception 'eng: 0111 expects the unique key eng_prospect_sources_record_key after it runs.';
+    raise exception 'eng: 0112 expects the unique key eng_prospect_sources_record_key after it runs.';
   end if;
   if (select count(*) from eng_role_grants
        where action in ('crm.assign', 'crm.import', 'crm.reports') and role_key in ('admin', 'ops_manager')) <> 6 then
-    raise exception 'eng: 0111 expects crm.assign, crm.import and crm.reports held by admin and ops_manager.';
+    raise exception 'eng: 0112 expects crm.assign, crm.import and crm.reports held by admin and ops_manager.';
   end if;
   if exists (select 1 from eng_role_grants
               where action in ('crm.assign', 'crm.import', 'crm.reports') and role_key not in ('admin', 'ops_manager')) then
-    raise exception 'eng: 0111 found a CRM management grant held by a role other than admin and ops_manager.';
+    raise exception 'eng: 0112 found a CRM management grant held by a role other than admin and ops_manager.';
   end if;
   if exists (select 1 from eng_prospects p
               where not exists (select 1 from eng_prospect_sources s where s.prospect_id = p.id)) then
-    raise exception 'eng: 0111 expects every prospect to carry at least one source after it runs.';
+    raise exception 'eng: 0112 expects every prospect to carry at least one source after it runs.';
   end if;
 end;
 $$;

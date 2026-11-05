@@ -342,9 +342,9 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * posted for the development sitting (6568178900) and sat there (6578648098).
  * The branch-local figure on 0104 then 0107 was e12033a2c91fead686fc9a4632ed20dc.
  *
- * 0108, 0109 and 0110 add no column. Moved again by 0111, the sales list knows
+ * 0108, 0109 and 0110 add no column. Moved again by 0112, the sales list knows
  * companies, contacts and sources, by Robert's sales CRM ruling R1 of
- * 2026-11-02, on the combined chain 0104 to 0111: 1,396 to 1,439 is seventeen
+ * 2026-11-02, on the combined chain 0104 to 0112: 1,396 to 1,439 is seventeen
  * columns on eng_prospects (two of them generated, the normalized name and
  * telephone), eleven on eng_prospect_contacts, eight on eng_prospect_sources
  * and seven on eng_contact_log; the table count moves 106 to 108; shape
@@ -378,7 +378,7 @@ const EXPECTED_TABLES = 108;
  * and eng_academy_attempts_append_only.
  * 0110 adds one, by Robert's ruling Q6 of 2026-11-02 (audit field F10):
  * eng_files_sealed_needs_a_seal_act.
- * 0111 adds one, by Robert's sales CRM ruling R1 of 2026-11-02: eng_prospect_contacts_touch,
+ * 0112 adds one, by Robert's sales CRM ruling R1 of 2026-11-02: eng_prospect_contacts_touch,
  * the updated_at stamp on a company's people, which change as numbers do. */
 const EXPECTED_TRIGGERS = 108;
 /**
@@ -453,7 +453,7 @@ const EXPECTED_TRIGGERS = 108;
  * 72 since 0110, by Robert's ruling Q6 of 2026-11-02 (audit field F10): the trigger
  * function eng_file_sealed_needs_a_seal_act. 0109 replaces eng_seal_act_check with the
  * same signature, which is not a new row.
- * 74 since 0111, by Robert's sales CRM ruling R1 of 2026-11-02: eng_crm_normalize_name
+ * 74 since 0112, by Robert's sales CRM ruling R1 of 2026-11-02: eng_crm_normalize_name
  * and eng_crm_normalize_phone, the two immutable rules the generated normalized
  * columns and both unique keys are computed from. */
 const EXPECTED_FUNCTIONS = 74;

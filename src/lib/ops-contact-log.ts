@@ -69,10 +69,10 @@ export async function logContact(
     visitAt?: string | null;
     followUpOn?: string | null;
     /*
-     * The sales CRM's activity fields, 0111 (Robert, 2026-11-02, R1): every
+     * The sales CRM's activity fields, 0112 (Robert, 2026-11-02, R1): every
      * call, email, note and stage change on a prospect is a row of this log,
      * so these ride on the one writer rather than a second table. Each is
-     * prospect only, and 0111's checks refuse them on anything else.
+     * prospect only, and 0112's checks refuse them on anything else.
      */
     crm?: {
       activityKind?: ActivityKind;
@@ -182,7 +182,7 @@ export async function logContact(
   if (input.subject === "prospect" && (followUpOn || outcome === "not_interested")) {
     const patch: Record<string, unknown> = {};
     if (followUpOn) patch.follow_up_on = followUpOn;
-    /* A refusal is dormant as well as not interested: 0111's eng_prospects_refusal_is_closed holds the pair together. */
+    /* A refusal is dormant as well as not interested: 0112's eng_prospects_refusal_is_closed holds the pair together. */
     if (outcome === "not_interested") Object.assign(patch, { status: "not_interested", stage: "dormant" });
     const { error: moveError } = await db.from("eng_prospects").update(patch).eq("id", input.subjectId).eq("status", "open");
     if (moveError) {

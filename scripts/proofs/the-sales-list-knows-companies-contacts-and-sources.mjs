@@ -1,8 +1,8 @@
 /**
  * PROOF: THE SALES LIST KNOWS COMPANIES, THEIR PEOPLE AND WHERE EACH CAME FROM.
  *
- * Robert's sales CRM ruling of 2026-11-02, item R1, migration 0111. Replays
- * the chain to 0111 into PGlite and asserts, on that database:
+ * Robert's sales CRM ruling of 2026-11-02, item R1, migration 0112. Replays
+ * the chain to 0112 into PGlite and asserts, on that database:
  *
  *   A  unique 1: a second company with the same normalized name and
  *      telephone is refused, however the two are punctuated or suffixed;
@@ -19,7 +19,7 @@
  *      ops_manager and nobody else, in the seed and in DEFAULT_ROLES
  *   G  the TypeScript mirror of the two normalization rules agrees with the
  *      database's on the same inputs, and every vocabulary list in
- *      crm-rules.ts is the one 0111's checks hold
+ *      crm-rules.ts is the one 0112's checks hold
  *   H  the writers: every CRM activity goes through logContact, a new
  *      company is written with its primary person and its source, and a
  *      refusal moves the stage with the status
@@ -51,8 +51,8 @@ const db = new PGlite();
 await db.exec(SUPABASE_REPLAY_STUBS);
 const DIR = "supabase/migrations";
 const files = readdirSync(DIR).filter((f) => f.endsWith(".sql")).sort();
-const at = files.findIndex((f) => f.startsWith("0111_"));
-check("0111 is in the chain", at >= 0, at >= 0 ? files[at] : "missing");
+const at = files.findIndex((f) => f.startsWith("0112_"));
+check("0112 is in the chain", at >= 0, at >= 0 ? files[at] : "missing");
 for (const f of files.slice(0, at + 1)) await db.exec(readSource(join(DIR, f)));
 
 const ADMIN = "00000000-0000-4000-8000-0000000001a1";
@@ -219,11 +219,11 @@ const listIn = (constraint) => {
   return [...body.matchAll(/'([a-z_]+)'/g)].map((m) => m[1]);
 };
 const same = (a, b) => Array.isArray(a) && a.length === b.length && a.every((v, i) => v === b[i]);
-check("the verticals in code are 0111's", same(listIn("eng_prospects_vertical_known"), [...rules.CRM_VERTICALS]), JSON.stringify(listIn("eng_prospects_vertical_known")));
-check("the stages in code are 0111's", same(listIn("eng_prospects_stage_known"), [...rules.CRM_STAGES]), JSON.stringify(listIn("eng_prospects_stage_known")));
-check("the sources in code are 0111's", same(listIn("eng_prospect_sources_source_known"), [...rules.CRM_SOURCES]), JSON.stringify(listIn("eng_prospect_sources_source_known")));
-check("the activity kinds in code are 0111's", same(listIn("eng_contact_log_activity_kind_known"), [...rules.ACTIVITY_KINDS]));
-check("the CRM outcomes in code are 0111's", same(listIn("eng_contact_log_crm_outcome_known"), [...rules.CRM_OUTCOMES]));
+check("the verticals in code are 0112's", same(listIn("eng_prospects_vertical_known"), [...rules.CRM_VERTICALS]), JSON.stringify(listIn("eng_prospects_vertical_known")));
+check("the stages in code are 0112's", same(listIn("eng_prospects_stage_known"), [...rules.CRM_STAGES]), JSON.stringify(listIn("eng_prospects_stage_known")));
+check("the sources in code are 0112's", same(listIn("eng_prospect_sources_source_known"), [...rules.CRM_SOURCES]), JSON.stringify(listIn("eng_prospect_sources_source_known")));
+check("the activity kinds in code are 0112's", same(listIn("eng_contact_log_activity_kind_known"), [...rules.ACTIVITY_KINDS]));
+check("the CRM outcomes in code are 0112's", same(listIn("eng_contact_log_crm_outcome_known"), [...rules.CRM_OUTCOMES]));
 
 const t = rules.territoryFor("nueces county");
 check("the territory is the county, the region derived from the region map", t?.county === "Nueces" && t?.regionSlug === "coastal-bend", JSON.stringify(t));
