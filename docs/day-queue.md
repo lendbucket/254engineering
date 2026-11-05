@@ -1,5 +1,11 @@
 # Day queue, 2026-10-23
 
+## ROBERT, 2026-11-05 morning, in chat, verbatim: F8 next
+
+> 0111 is on development, read back on issue #1 (6660074026). F8 boards next, right after low-office's board, ahead of low-auth. On green, post the production sitting request; my counterpart runs it with me approving the Supabase prompt. Then CRM R1 with the 0112 and 0113 development sitting requests.
+
+**Read back (6660074026), 14:08 UTC:** development holds 0111 at version `20261105140855`; grants 186 and admin 69 before and after; the function present, executable by neither anon nor authenticated. **Queue now:** low-office (boarding), F8, CRM R1 (0112 and 0113 development requests posted just before it boards), then low-auth and the rest. L6 is built at `44bca5a` and waits its turn; L3 is started.
+
 ## ROBERT'S ANSWERS TO THE PARKED QUESTIONS, 2026-11-05 morning, in chat, verbatim
 
 > 6594441148: L6 yes, swap the token for a short lived httpOnly cookie on first visit and redirect without it. F12 and F6 yes, one migration branch numbered 0120 after Q8b, normal sittings. L3 yes, its own small branch on Q11's counted limiter. 6606054209: roof only as built until each protocol carries its own sentence, and adoption by sealing is enough for the roof line.
