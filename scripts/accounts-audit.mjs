@@ -1013,10 +1013,23 @@ withEnv({ CUSTOMER_SESSION_SECRET: CUS_SECRET }, () => {
     /recordApiRequest\(\{ key, route: ROUTE, status: 429 \}\)/.test(route),
     "otherwise bad bodies are free",
   );
+  /*
+   * Since 2026-11-02 (auth audit M5) the stored limit goes through
+   * effectiveRateLimit, which takes the default for an unset or unreadable
+   * value and never returns more than the ceiling; creation refuses anything
+   * outside 1 to 60. Both halves are named here exactly.
+   */
   rec(
     "and a key with no limit set takes the platform default rather than none",
-    /rate_limit_per_minute === null \? DEFAULT_RATE_LIMIT/.test(keys),
+    /rateLimitPerMinute: effectiveRateLimit\(data\.rate_limit_per_minute\)/.test(keys) &&
+      /if \(stored === null \|\| stored === undefined\) return DEFAULT_RATE_LIMIT;/.test(keys),
     "an unset limit must not be the permissive case",
+  );
+  rec(
+    "and no key's limit is above the firm's ceiling, however it was stored",
+    /return Math\.min\(Math\.floor\(n\), API_KEY_RATE_LIMIT_MAX\);/.test(keys) &&
+      /const limitProblem = apiKeyRateLimitProblem\(rateLimitPerMinute\);/.test(keys),
+    "the throttle must not be set by the party it throttles",
   );
 
   /*
