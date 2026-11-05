@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { cookies } from "next/headers";
-import { requestContext } from "@/lib/ops-auth";
+import { requestContext, verifyOwnPassword } from "@/lib/ops-auth";
 import {
   OPS_COOKIE,
   issueEnrolmentCompletion,
@@ -16,6 +16,7 @@ import {
   beginEnrolment,
   confirmEnrolment,
   mfaStateFor,
+  verifyFreshCode,
 } from "@/lib/ops-mfa";
 import { breakGlassMatches, breakGlassConfigured } from "@/lib/ops-mfa-breakglass";
 import { clearEnrolment } from "@/lib/ops-mfa";
@@ -59,7 +60,37 @@ type Body = {
   completion?: string;
   code?: string;
   token?: string;
+  /**
+   * Replacing a factor from a full session: a code from the CURRENT
+   * authenticator, or the account's password (Q10, auth M1).
+   */
+  proof?: string;
 };
+
+/**
+ * THE FACTOR BEING REPLACED, OR THE PASSWORD, PROVES THE REPLACEMENT. Robert,
+ * 2026-11-02, Q10 (auth M1): "replacing a second factor from a full session
+ * requires a current code or the password." A full session alone used to be
+ * enough, so a stolen staff cookie could begin, confirm with the thief's own
+ * app, void the recovery codes and hold the only working factor. Six digits
+ * are a code from the factor in place, spent through verifyFreshCode so it
+ * cannot be replayed; anything else is the password, through verifyOwnPassword,
+ * which counts its attempts like a sign in (M4).
+ */
+async function factorReplacementProven(userId: string, proof: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  const cleaned = proof.replace(/\s+/g, "");
+  if (!cleaned) {
+    return {
+      ok: false,
+      error: "This account already has a second factor. Enter a code from the authenticator app you use now, or your password, to replace it.",
+    };
+  }
+  if (/^\d{6}$/.test(cleaned)) {
+    const code = await verifyFreshCode(userId, cleaned, "Replacing the second factor");
+    return code.ok ? { ok: true } : { ok: false, error: code.error };
+  }
+  return verifyOwnPassword(userId, proof);
+}
 
 async function profileFor(userId: string) {
   const db = supabaseAdmin();
@@ -228,6 +259,37 @@ async function handlePOST(request: NextRequest) {
         { ok: false, error: "Too many attempts. Wait a few minutes." },
         { status: 429, headers: { "Retry-After": String(limit.retryAfterSeconds) } },
       );
+    }
+
+    /*
+     * REPLACING, NOT ENROLLING, NEEDS THE OLD FACTOR OR THE PASSWORD (Q10, auth
+     * M1). Asked here at confirm, the moment the active secret would change:
+     * begin only writes a pending secret, which replaces nothing. A pending
+     * session never reaches this with an active factor (the guard above refuses
+     * it), and an account with no verified factor is enrolling for the first
+     * time, which needs no proof. A state that cannot be read refuses.
+     */
+    let replacing: boolean;
+    try {
+      replacing = (await mfaStateFor(profile.id)).enrolled;
+    } catch {
+      return NextResponse.json(
+        { ok: false, error: "The second factor on this account could not be checked just now. Try again in a moment." },
+        { status: 503 },
+      );
+    }
+    const proven = replacing ? await factorReplacementProven(profile.id, String(body?.proof ?? "")) : ({ ok: true } as const);
+    if (!proven.ok) {
+      await writeAudit({
+        actor,
+        action: "mfa.replace_refused",
+        entityType: "profile",
+        entityId: profile.id,
+        summary: `A signed in session tried to replace ${profile.display_name}'s second factor without the current factor or the password, and was refused`,
+        ip,
+        userAgent,
+      });
+      return NextResponse.json({ ok: false, error: proven.error }, { status: 403 });
     }
 
     const done = await confirmEnrolment(profile.id, String(body?.code ?? ""));

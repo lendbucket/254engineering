@@ -260,6 +260,7 @@ async function handle(request: NextRequest): Promise<Response> {
         eventId: parsed.eventId,
         orderId: parsed.orderId,
         batchId: parsed.batchId,
+        sessionRef: parsed.sessionRef,
         reason: parsed.batchId
           ? "You opened a checkout for these properties and did not finish it. Nothing was charged."
           : "You opened a checkout and did not finish it, so the order was closed. Nothing was charged.",

@@ -8,6 +8,7 @@ import {
   inquiryNotification,
 } from "@/lib/email-templates";
 import { business } from "@/config/business";
+import { PUBLIC_FORM_REFUSAL, takeAcknowledgement, takePublicFormAttempt } from "@/lib/public-form-limits";
 
 /**
  * The design inquiry intake.
@@ -52,6 +53,11 @@ async function handlePOST(request: Request) {
   const data = parsed.data;
   if (data.company) {
     return NextResponse.json({ ok: true });
+  }
+
+  /* Robert's Q11 (office audit F2): per connection and per typed address, before anything is saved or queued. */
+  if (!(await takePublicFormAttempt("design", request.headers, data.email)).allowed) {
+    return NextResponse.json({ ok: false, message: PUBLIC_FORM_REFUSAL }, { status: 429 });
   }
 
   const result = await insertDesignInquiry({
@@ -106,6 +112,7 @@ async function handlePOST(request: Request) {
    */
   const show = (v: unknown) =>
     v === undefined || v === null ? undefined : String(v);
+  const headers = request.headers;
   after(async () => {
     const firm = await queueEmail(
       inquiryNotification({
@@ -136,6 +143,8 @@ async function handlePOST(request: Request) {
       console.error(
         `[design-inquiry] firm notification not queued: ${firm.error}`,
       );
+    /* One acknowledgement per address per form per firm calendar day (Q11); the firm's copy above always goes. */
+    if (!(await takeAcknowledgement("design", headers, data.email))) return;
     const ack = await queueEmail(
       inquiryAcknowledged({ kind: "design", email: data.email }),
     );

@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { signInPartner, issuePartnerSession } from "@/lib/partner-auth";
 import { PARTNER_COOKIE, partnerCookieOptions, partnerSessionConfigured } from "@/lib/partner-session";
-import { takeLoginAttempt, clearLoginAttempts, clientKey } from "@/lib/ops-rate-limit";
+import { takeLoginAttempt, clearLoginAttempts, clientKey, doorIdentity } from "@/lib/ops-rate-limit";
 import { writeAudit } from "@/lib/ops-audit";
 import { requestContext } from "@/lib/ops-auth";
 import { withSaveOutcome } from "@/lib/save-outcome";
@@ -63,6 +63,8 @@ async function handlePOST(request: NextRequest) {
       : NextResponse.json({ ok: false, error }, { status });
 
   const attempted = email.trim().toLowerCase();
+  /* The partner door's own counter (Robert 2026-11-02, per-door counters). */
+  const doorKey = doorIdentity("partner", attempted);
 
   /*
    * Rate limited on the same limiter the staff sign in uses, keyed by address
@@ -72,7 +74,7 @@ async function handlePOST(request: NextRequest) {
    * first answers every attempt forever without counting one. security-audit
    * caught that second case against production once.
    */
-  const limit = await takeLoginAttempt(clientKey(request.headers), attempted || undefined);
+  const limit = await takeLoginAttempt(clientKey(request.headers), doorKey);
   if (!limit.allowed) {
     const res = isForm
       ? NextResponse.redirect(new URL("/partner/login?throttled=1", request.url), { status: 303 })
@@ -123,7 +125,7 @@ async function handlePOST(request: NextRequest) {
       : fail(401, GENERIC);
   }
 
-  await clearLoginAttempts(clientKey(request.headers), attempted);
+  await clearLoginAttempts(clientKey(request.headers), doorKey);
 
   const session = issuePartnerSession(result.principal.id, result.principal.partnerId);
   if (!session) return fail(503, "The partner program is not configured.");

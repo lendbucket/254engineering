@@ -92,27 +92,36 @@ export async function closePeriod(
   /*
    * A SECOND STATEMENT FOR A PERIOD MUST NOT READ AS NONE.
    *
-   * There is no unique constraint on (account_id, period), so two statements
-   * for one month is a state this code can reach. `.maybeSingle()` with the
-   * error discarded answered PGRST116 for it and read it as "no statement for
-   * this period", which is the answer that ISSUES A THIRD and sends a customer
-   * a second invoice for a month they have already been billed for.
+   * `.maybeSingle()` with the error discarded answered PGRST116 for two
+   * statements in one period and read it as "no statement for this period",
+   * which is the answer that ISSUES A THIRD and sends a customer a second
+   * invoice for a month they have already been billed for.
    *
    * Oldest first, because the earliest statement for a period is the one the
    * customer was actually sent.
+   *
+   * CORRECTED 2026-11-03 (Robert's Q8, money audit F8). This comment used to
+   * say there was no unique constraint on (account_id, period). There has been
+   * one since 0009 (eng_statements_account_id_period_key), read back from a
+   * replay of the chain; the comment and the audit both repeated the claim.
+   * What was missing is what two concurrent closes do with it: both read no
+   * statement, the second insert meets that constraint, and it is now read as
+   * "another close opened it a moment ago" rather than as a failure.
    */
-  const { data: existingRows, error: existingErr } = await db
-    .from("eng_statements")
-    .select("id, reference, status, total_cents")
-    .eq("account_id", accountId)
-    .eq("period", period)
-    .order("created_at", { ascending: true })
-    .limit(1);
+  const periodStatement = () =>
+    db
+      .from("eng_statements")
+      .select("id, reference, status, total_cents")
+      .eq("account_id", accountId)
+      .eq("period", period)
+      .order("created_at", { ascending: true })
+      .limit(1);
+  const { data: existingRows, error: existingErr } = await periodStatement();
 
   if (existingErr) {
     return { ok: false, error: `Could not check whether that period already has a statement: ${existingErr.message}` };
   }
-  const existing = (existingRows ?? [])[0] ?? null;
+  let existing = (existingRows ?? [])[0] ?? null;
 
   /*
    * An issued statement is closed. Reopening it to add a late order would change
@@ -140,8 +149,27 @@ export async function closePeriod(
       .insert({ account_id: accountId, reference, period, status: "open" })
       .select("id")
       .single();
-    if (error || !created) return { ok: false, error: "The statement could not be opened." };
-    statementId = created.id as string;
+    if (error?.code === "23505") {
+      /* Another close opened this period's statement between the read above and this insert (F8): that one is used. */
+      const { data: raced, error: racedErr } = await periodStatement();
+      existing = (raced ?? [])[0] ?? null;
+      if (racedErr || !existing) return { ok: false, error: "The statement could not be opened." };
+      if (existing.status !== "open") {
+        return {
+          ok: true,
+          statementId: existing.id as string,
+          reference: existing.reference as string,
+          lines: 0,
+          totalCents: Number(existing.total_cents ?? 0),
+          alreadyExisted: true,
+        };
+      }
+      statementId = existing.id as string;
+      reference = existing.reference as string;
+    } else {
+      if (error || !created) return { ok: false, error: "The statement could not be opened." };
+      statementId = created.id as string;
+    }
   }
 
   /*

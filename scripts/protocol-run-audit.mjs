@@ -537,10 +537,17 @@ if (conditional.length > 0) {
   );
 
   const body = field.split("export async function closeRepairItem(")[1]?.split("\nexport ")[0] ?? "";
+  /*
+   * Since Robert's ruling Q3 of 2026-11-02 (audit field F15) the check is the
+   * shared evidenceWriteRefusal, which binds every role to the evidence.capture
+   * grant and the assigned technician. It used to read
+   * `actor.role === "field_tech" && view.file.assigned_tech_id !== actor.id`,
+   * which let the reviewing engineer close the items he reviews.
+   */
   rec(
     "and closing one carries the offer check the other field writes carry",
-    /assigned_tech_id !== actor\.id/.test(body),
-    "a technician who lost the race must not verify repairs on somebody else's job",
+    /evidenceWriteRefusal\(\{ id: actor\.id, mayCapture: can\(actor, "evidence\.capture"\) \}, view\.file\.assigned_tech_id\)/.test(body),
+    "a technician who lost the race must not verify repairs on somebody else's job, and the reviewer must not close them",
   );
   rec(
     "and a repair can only be verified against evidence captured for this file",

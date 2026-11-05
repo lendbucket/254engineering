@@ -188,6 +188,25 @@ export type CustomerServiceDashboard = {
   notComputable: string[];
 };
 
+/**
+ * THE READ ONLY ROLE'S OWN DASHBOARD, 2026-11-02. Robert approved P2 (issue
+ * #1, 6567596115) and read_only lost pricing.read, billing.read and
+ * ledger.read_all (0108). Until then it was served the administrator's
+ * dashboard, on purpose, because its grants named the firm's money; with them
+ * gone that dashboard would show it figures its grants no longer name, which
+ * is the widened grant the operator refused on 2026-09-09. So it gets the
+ * administrator's work counts that its own grants name (files and the
+ * technician roster) and, like the dispatcher's, the salesperson's and the
+ * customer service dashboards, a type with no money field at all.
+ */
+export type ReadOnlyDashboard = {
+  role: "read_only";
+  tiles: Tile[];
+  breakdowns: Breakdown[];
+  attention: Attention[];
+  notComputable: string[];
+};
+
 export type Dashboard =
   | AdminDashboard
   | EngineerDashboard
@@ -195,14 +214,16 @@ export type Dashboard =
   | DispatcherDashboard
   | SalesDashboard
   | CustomerServiceDashboard
+  | ReadOnlyDashboard
   | DeskDashboard;
 
 /**
  * The dashboards that carry no firm money, named so a check can derive rather
  * than list. "desk" is the rep's and the operations manager's (staff-desk.ts,
- * 2026-10-20), which carries no money field for the same reason.
+ * 2026-10-20), which carries no money field for the same reason. "read_only"
+ * joined on 2026-11-02, when P2 took the money grants from that role.
  */
-export const MONEYLESS_ROLES = ["dispatcher", "sales", "customer_service", "desk"] as const;
+export const MONEYLESS_ROLES = ["dispatcher", "sales", "customer_service", "read_only", "desk"] as const;
 
 /**
  * WHICH DASHBOARDS EXCLUDE DEMONSTRATIONS, AND WHY IT IS NOT ALL OF THEM.
@@ -233,7 +254,7 @@ export const MONEYLESS_ROLES = ["dispatcher", "sales", "customer_service", "desk
  * show anybody their own screen, which is worse and is the thing those records
  * are for.
  */
-export const FIRM_LEVEL_DASHBOARDS = ["admin", "dispatcher", "sales", "customer_service", "desk"] as const;
+export const FIRM_LEVEL_DASHBOARDS = ["admin", "dispatcher", "sales", "customer_service", "read_only", "desk"] as const;
 
 const HOURS_48 = 48 * 60 * 60 * 1000;
 const TECH_OPEN_STATUSES = ["dispatched", "evidence_in_progress", "revisions_requested"];
@@ -1172,10 +1193,10 @@ async function buildDashboard(actor: Actor | null): Promise<Dashboard | null> {
    * running this ladder returned field_tech for dispatcher.
    *
    * So the three specific roles are matched FIRST, on the capability that
-   * defines each one, before the broader branches can catch them. read_only
-   * still lands on the administrator's dashboard and that is correct rather
-   * than accidental: the role is granted ledger.read_all and billing.read on
-   * purpose, because somebody evaluating the business has to see the money.
+   * defines each one, before the broader branches can catch them. This went on
+   * to say read_only still lands on the administrator's dashboard because it is
+   * granted ledger.read_all and billing.read on purpose; that stopped being true
+   * on 2026-11-02 (P2, 0108), and read_only has its own dashboard below.
    */
   /*
    * THE ORDER IS LOAD BEARING, AND THE ADMINISTRATOR HAS TO BE FIRST.
@@ -1204,10 +1225,15 @@ async function buildDashboard(actor: Actor | null): Promise<Dashboard | null> {
    * the permission screen that lands on somebody else's dashboard is a red
    * board rather than something a person notices in a screenshot.
    *
-   * read_only lands on the administrator's dashboard and that is correct rather
-   * than accidental. The role is granted ledger.read_all and billing.read on
-   * purpose: it is for a buyer's accountant or an auditor, and somebody
-   * evaluating the business has to see the money.
+   * THE PARAGRAPH THAT STOOD HERE WAS REVERSED ON 2026-11-02. It read:
+   * "read_only lands on the administrator's dashboard and that is correct
+   * rather than accidental. The role is granted ledger.read_all and
+   * billing.read on purpose: it is for a buyer's accountant or an auditor, and
+   * somebody evaluating the business has to see the money." Robert approved P2
+   * (issue #1, 6567596115) and those grants went (0108), so the branch below no
+   * longer catches read_only, and read_only has its own branch after the desk:
+   * audit.read with responsible_charge.read_all, which only an administrator
+   * and read_only hold.
    */
   if (can(actor, "ledger.read_all") && can(actor, "billing.read")) return adminDashboard(actor);
   /*
@@ -1223,6 +1249,8 @@ async function buildDashboard(actor: Actor | null): Promise<Dashboard | null> {
   if (can(actor, "clients.create") && can(actor, "files.create")) return salesDashboard();
   if (can(actor, "evidence.review")) return engineerDashboard(actor);
   if (can(actor, "offers.list_own")) return techDashboard(actor);
+  /* read_only, 2026-11-02 (P2): the work counts its grants name and no money. Only an administrator and read_only hold this pair, and the administrator was answered first. */
+  if (can(actor, "audit.read") && can(actor, "responsible_charge.read_all")) return readOnlyDashboard();
 
   /*
    * AND NOTHING FOR ANYBODY ELSE, WHICH IS HONEST RATHER THAN COMPLETE.
@@ -1232,6 +1260,113 @@ async function buildDashboard(actor: Actor | null): Promise<Dashboard | null> {
    * saying so, rather than the nearest dashboard that happens to render.
    */
   return null;
+}
+
+/**
+ * THE READ ONLY DASHBOARD, 2026-11-02 (P2). The administrator's work counts
+ * that read_only's grants name, files.list and profiles.list, with the same
+ * reads, labels and notes, and nothing else: no money, no orders (it holds no
+ * orders.read), no offers (no offers grant), no tasks (no tasks.use). Links it
+ * cannot open are pruned by pruneUnreachableLinks like every dashboard's.
+ */
+async function readOnlyDashboard(): Promise<ReadOnlyDashboard> {
+  const NO_MONEY =
+    "This role reads the firm's work and records, not its money: no revenue, margin, payment or pay figure is on this screen, because its grants name none.";
+  const db = supabaseAdmin();
+  if (!db) {
+    return { role: "read_only", tiles: [], breakdowns: [], attention: [], notComputable: [NO_DATABASE, NO_MONEY] };
+  }
+
+  const now = new Date().toISOString();
+  const soon = new Date(Date.now() + HOURS_48).toISOString();
+
+  const [inQueue, overdueEvidence, dueSoon, activeTechs, atIntake, expiring] = await Promise.all([
+    countRows((d) =>
+      d.from("eng_files").select("id", { count: "exact", head: true }).in("status", REVIEW_QUEUE_STATUSES).eq("is_demo", false),
+    ),
+    countRows((d) =>
+      d
+        .from("eng_files")
+        .select("id", { count: "exact", head: true })
+        .lt("evidence_due_at", now)
+        .in("status", TECH_OPEN_STATUSES)
+        .eq("is_demo", false),
+    ),
+    countRows((d) =>
+      d
+        .from("eng_files")
+        .select("id", { count: "exact", head: true })
+        .gte("evidence_due_at", now)
+        .lt("evidence_due_at", soon)
+        .in("status", TECH_OPEN_STATUSES)
+        .eq("is_demo", false),
+    ),
+    countRows((d) =>
+      d
+        .from("eng_profiles")
+        .select("id", { count: "exact", head: true })
+        .eq("role", "field_tech")
+        .eq("status", "active")
+        .eq("is_demo", false),
+    ),
+    countRows((d) => d.from("eng_files").select("id", { count: "exact", head: true }).in("status", ["intake", "needs_dispatch"]).eq("is_demo", false)),
+    expiringCredentialCount(),
+  ]);
+
+  const notComputable: string[] = [NO_MONEY];
+  if (expiring === null) notComputable.push("Credentials could not be read, so the count expiring is not known.");
+
+  const tiles: Tile[] = [
+    {
+      label: "Waiting on an engineer",
+      count: inQueue,
+      note:
+        inQueue === null
+          ? "This could not be read, so it is not a count of zero."
+          : inQueue === 0
+            ? "Nothing is sitting in the review queue."
+            : "Evidence is in and no decision is recorded.",
+      href: "/portal/review",
+      tone: inQueue === null ? "neutral" : inQueue === 0 ? "good" : inQueue > 5 ? "warn" : "neutral",
+    },
+    {
+      label: "Evidence past due",
+      count: overdueEvidence,
+      note: countNote(overdueEvidence, "No dispatched file has run past its deadline.", "A technician holds these and the deadline has gone."),
+      href: "/portal/files",
+      tone: overdueEvidence === null ? "neutral" : overdueEvidence === 0 ? "good" : "bad",
+    },
+    {
+      label: "Due in 48 hours",
+      count: dueSoon,
+      note: dueSoon === null ? NOT_READ : "Dispatched files with a deadline inside two days.",
+      href: "/portal/files",
+      tone: dueSoon === null || dueSoon === 0 ? "neutral" : "warn",
+    },
+    {
+      label: "Not yet dispatched",
+      count: atIntake,
+      note: atIntake === null ? NOT_READ : "Opened, or waiting on dispatch, with nobody on them.",
+      href: "/portal/files",
+      tone: atIntake === null || atIntake === 0 ? "neutral" : "warn",
+    },
+    {
+      label: "Dispatchable technicians",
+      count: activeTechs,
+      note: countNote(activeTechs, "Nobody can be offered work.", "Active field accounts."),
+      href: "/portal/techs",
+      tone: activeTechs === null ? "neutral" : activeTechs === 0 ? "bad" : "good",
+    },
+    {
+      label: "Credentials expiring",
+      count: expiring,
+      note: countNote(expiring, "Nothing is inside the warning window.", "Inside the warning window or already past it."),
+      href: "/portal/techs",
+      tone: expiring === null ? "neutral" : expiring === 0 ? "good" : "warn",
+    },
+  ];
+
+  return { role: "read_only", tiles, breakdowns: [], attention: [], notComputable };
 }
 
 /** Whether this actor may open the billing screen. */
