@@ -1,6 +1,6 @@
 /*
  * ===========================================================================
- * 0118: AN ORDER IS ON ONE STATEMENT, AND A LOST DISPUTE IS A REFUND.
+ * 0119: AN ORDER IS ON ONE STATEMENT, AND A LOST DISPUTE IS A REFUND.
  * Robert's ruling Q8 of 2026-11-02, money audit F8 and F10.
  * ===========================================================================
  *
@@ -26,7 +26,7 @@
  * customer-visible order event carries the summary the caller passes, as it
  * always has.
  *
- * Development first, on stage/0118-money-constraints; production at the chat
+ * Development first, on stage/0119-money-constraints; production at the chat
  * counterpart's sitting after Q8b's board. Additive: one index, one widened
  * check, one function body.
  *
@@ -45,7 +45,7 @@ begin
     select 1 from information_schema.columns
      where table_schema = 'public' and table_name = 'eng_profiles' and column_name = 'session_epoch'
   ) then
-    raise exception 'eng: 0118 follows 0117, which adds eng_profiles.session_epoch. It is not here.';
+    raise exception 'eng: 0119 follows 0118, which adds eng_profiles.session_epoch. It is not here.';
   end if;
 
   if not exists (
@@ -53,13 +53,13 @@ begin
      where schemaname = 'public' and tablename = 'eng_statements'
        and indexname = 'eng_statements_account_id_period_key'
   ) then
-    raise exception 'eng: 0118 expects eng_statements_account_id_period_key (0009). It is not here, so one account can hold two statements for a period.';
+    raise exception 'eng: 0119 expects eng_statements_account_id_period_key (0009). It is not here, so one account can hold two statements for a period.';
   end if;
 
   select count(*) into v_dupes
     from (select order_id from public.eng_statement_lines group by order_id having count(*) > 1) d;
   if v_dupes > 0 then
-    raise exception 'eng: 0118 cannot make statement lines unique on order_id: % order(s) are already on more than one line. Settle those first.', v_dupes;
+    raise exception 'eng: 0119 cannot make statement lines unique on order_id: % order(s) are already on more than one line. Settle those first.', v_dupes;
   end if;
 end;
 $$;
@@ -70,7 +70,7 @@ create unique index if not exists eng_statement_lines_order_once
   on eng_statement_lines (order_id);
 
 comment on index eng_statement_lines_order_once is
-  'Money audit F8 (0118): an order is a line on one statement only, so two concurrent period closes cannot bill it twice.';
+  'Money audit F8 (0119): an order is a line on one statement only, so two concurrent period closes cannot bill it twice.';
 
 /* ------------------------------------------------- F10: the event type */
 
@@ -189,7 +189,7 @@ end;
 $fn$;
 
 comment on function eng_apply_refund(jsonb) is
-  'One provider refund in one transaction: the event, the refund row on the charge''s own subject, the commission reversals, the order event and status, the audit row. Refuses if the refunds on file moved since the delta was computed. 0075; since 0118 the refund_case and event type come from the payload, defaulting to issued_outside_the_platform and charge.refunded.';
+  'One provider refund in one transaction: the event, the refund row on the charge''s own subject, the commission reversals, the order event and status, the audit row. Refuses if the refunds on file moved since the delta was computed. 0075; since 0119 the refund_case and event type come from the payload, defaulting to issued_outside_the_platform and charge.refunded.';
 
 /* 0073's rule for a function replaced after it, for this function only, and asserted. */
 do $$
@@ -212,7 +212,7 @@ begin
     and (has_function_privilege('anon', p.oid, 'EXECUTE')
          or has_function_privilege('authenticated', p.oid, 'EXECUTE'));
   if open_fns is not null then
-    raise exception 'eng: after 0118 these are still executable by anon or authenticated: %', open_fns;
+    raise exception 'eng: after 0119 these are still executable by anon or authenticated: %', open_fns;
   end if;
 end;
 $$;
@@ -226,13 +226,13 @@ begin
      where schemaname = 'public' and tablename = 'eng_statement_lines'
        and indexname = 'eng_statement_lines_order_once' and indexdef like 'CREATE UNIQUE INDEX%'
   ) then
-    raise exception 'eng: 0118 expects the unique index eng_statement_lines_order_once after it runs.';
+    raise exception 'eng: 0119 expects the unique index eng_statement_lines_order_once after it runs.';
   end if;
   if pg_get_constraintdef((select oid from pg_constraint where conname = 'eng_payment_events_type_known')) not like '%charge.dispute.closed%' then
-    raise exception 'eng: 0118 expects eng_payment_events_type_known to admit charge.dispute.closed after it runs.';
+    raise exception 'eng: 0119 expects eng_payment_events_type_known to admit charge.dispute.closed after it runs.';
   end if;
   if position('v_case' in pg_get_functiondef('public.eng_apply_refund(jsonb)'::regprocedure)) = 0 then
-    raise exception 'eng: 0118 expects eng_apply_refund to read its refund_case from the payload after it runs.';
+    raise exception 'eng: 0119 expects eng_apply_refund to read its refund_case from the payload after it runs.';
   end if;
 end;
 $$;
