@@ -918,6 +918,35 @@ Every other line of the prediction held. migration-audit, schema-ledger-audit an
 - Every other line as bundle 104.
 - If the seeded partner is refused again, the line names the route's sentence. That is F8's second red on a new commit, and F8 parks with the sentence as the question.
 
+**Bundle 104b result: board `42059867995` on `b27e5fe`, 65 of 65, zero FAIL, as predicted.** Preflight GREEN. v10-layout-audit PASS: the seeded partner session was created and `/partner/statements/[reference]` measured. LCP `/` 2337ms, service 2189ms, `/coverage` 2786ms, coastal-bend 2890ms. Writers 4 transient retries. The first board's refusal did not recur, so its cause stays unread; the fixture now names the sentence if it comes back. **F8 BOARDED GREEN; waits on 0111's production read-back.** Production request posted as 6664336087, generated from `b27e5fe` (file sha256 `341399a2`, unchanged). The 0112 and 0113 development request is posted as 6664339545; R1 (`79dbda1`, on F8 `b27e5fe`) boards after that read-back.
+
+**Bundle 105, low-auth: `fix/low-auth` at `5fe35cd`, in the sitting gap (Robert's item 4).** It is `d955902` with main `6b772bd` merged in. The one shared file, `ops-intake.ts`, merged clean and was read.
+- **The change over main (13 files, auth audit 6594441148):**
+  - L1: a partner sign in is recorded as role "partner".
+  - L2: break glass counts against the limiter before the token is compared, and the unlock token is read from the header or the body, never the URL.
+  - L3: each applicant upload key carries a random segment, signed with upsert off.
+  - L4: `placeOrder` checks every file key as the quote path does.
+  - L5: the email match escapes `%` and `_` at customer and partner sign in and the partner invite lookup.
+  - M5: an API key's limit is a whole number from 1 to 60.
+  - A new proof, the-auth-audit-low-findings-are-closed.
+  - L6 is not in this bundle: it is its own branch.
+- **Checks edited, each sharper:**
+  - accounts-audit names `effectiveRateLimit` and adds the ceiling check.
+  - security-audit adds a wrong bearer token probe on unlock, answered 404.
+  - The query string probes stay and still answer 404.
+- **Readers:** proofs-audit, accounts-audit, security-audit, partner-audit, break-glass-audit, mfa-audit, bulk-audit and order-audit (placeOrder), forms-audit and the careers checks (the upload key keeps `<kind>-<letters, digits, dot, underscore, dash>`, the shape the apply route checks), and roles-audit.
+- **Local steps NOT run:** free memory read 11.3 GB.
+
+**Prediction, bundle 105, stated before dispatch: 65 of 65, zero FAIL.**
+- Preflight GREEN.
+- proofs-audit PASS with the new proof.
+- security-audit PASS, every unlock probe 404.
+- accounts, partner, break-glass, forms and order audits PASS.
+- Public bytes unchanged, and the four LCP pages under their ceilings.
+- Standing COULD NOT TELL lines only.
+
+On a pass, low-auth merges: full lane, auth server code; no migration.
+
 **F9 CORRECTION (issue #1, F9 correction comment).** My F9 question 6594767802 was wrong twice: no letter template is signed since 0091 (2026-10-25), so nothing needs re-signing; and the quoted section 9 sentence exists only in 254-RC-001. F9 built for the roof letter only at `c7e8a31` (`fix/f9-visit-date-receipt`, over main `3446a44`), preflight GREEN, proof 15 checks, five injections. Two questions posted (the four other letters; adoption by sealing). Boards with the follow-ups.
 
 **Review-request fixture** built at `f9761a2` (`fix/review-request-fixture-once`): one sealed `254-DEMO-RQ-FIXTURE` file reused; boards with the follow-ups.
