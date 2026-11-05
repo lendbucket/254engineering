@@ -1,5 +1,15 @@
 # Day queue, 2026-10-23
 
+## ROBERT'S ANSWERS TO THE PARKED QUESTIONS, 2026-11-05 morning, in chat, verbatim
+
+> 6594441148: L6 yes, swap the token for a short lived httpOnly cookie on first visit and redirect without it. F12 and F6 yes, one migration branch numbered 0120 after Q8b, normal sittings. L3 yes, its own small branch on Q11's counted limiter. 6606054209: roof only as built until each protocol carries its own sentence, and adoption by sealing is enough for the roof line.
+
+**What is done with them.**
+- **L6:** low-auth boards as built, since its board is next and its other findings need no answer. L6 is then built on its own branch, `fix/l6-token-cookie`, over the main low-auth lands on. It is code only, so it boards while F8 waits on the 0111 sitting (ruling item 4).
+- **L3:** its own branch, `fix/l3-upload-limit`, on Q11's `takeCountedAttempt`. Code only, so it boards in the same gap after L6.
+- **F12 and F6:** one migration branch, 0120, stacked after Q8b's 0119. Its development sitting is requested just before it boards, and it merges after its production read-back. It is behind Q8b in the queue.
+- **F9 follow-ups:** nothing to build. The roof line stays as merged in `eda0dc4`, and the engineer's seal adopts it. The four other letters keep today's guard until each protocol carries its own section 9 sentence. This item is closed.
+
 ## MORNING REPORT, 2026-11-05 (posted on issue #1 as 6657343153)
 
 **Needed from Robert: run the 0111 development script at the SQL editor (6651034226). F8 and everything behind it wait on that one step.**
