@@ -141,13 +141,15 @@ export async function setGrants(
 
   const before = view.find((r) => r.key === roleKey)?.grants ?? [];
 
-  await db.from("eng_role_grants").delete().eq("role_key", roleKey);
-  if (clean.length) {
-    const { error } = await db
-      .from("eng_role_grants")
-      .insert(clean.map((action) => ({ role_key: roleKey, action })));
-    if (error) return { ok: false, error: error.message };
-  }
+  /*
+   * ONE ACT. Robert's Q12 (office audit F8, 2026-11-02), migration 0111: the
+   * delete and the insert were two calls outside a transaction, so a failed
+   * insert left the role with no grants (for admin, every administrator locked
+   * out). The function replaces the set in one transaction; the rules above
+   * stay here, ahead of the call.
+   */
+  const { error } = await db.rpc("eng_set_role_grants", { p_role_key: roleKey, p_actions: clean });
+  if (error) return { ok: false, error: `The grants were not changed: ${error.message}` };
 
   const added = clean.filter((a) => !before.includes(a));
   const removed = before.filter((a) => !clean.includes(a));

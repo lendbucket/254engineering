@@ -655,7 +655,17 @@ async function setAndSignIn(base, kind, email, password, userId, d) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ token, password }),
   });
-  if (!set.ok) return { cookie: null, fault: `setting the password was refused (HTTP ${set.status})` };
+  /*
+   * The refusal's own sentence, not only its status. Board 42049099563
+   * (2026-11-05) failed here with "HTTP 400" alone, and the route answers 400
+   * for several different faults: a short password, an invalid, expired or
+   * spent link, a suspended holder, and a database read or write that failed. Only
+   * the sentence says which, and the next red has to.
+   */
+  if (!set.ok) {
+    const said = await set.json().then((b) => (typeof b?.error === "string" ? b.error : "")).catch(() => "");
+    return { cookie: null, fault: `setting the password was refused (HTTP ${set.status}${said ? `: ${said}` : ""})` };
+  }
   const res = await fetch(`${base}/api/${api}/session`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
