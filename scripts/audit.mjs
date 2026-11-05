@@ -603,6 +603,17 @@ const PHASE_ONE = [
   },
   {
     /*
+     * Robert's ruling P1, 2026-11-01: a probe technician and a probe engineer
+     * go from invite to activated with no SQL. Phase one because it drives the
+     * suite's server; writers shard because it writes probe accounts,
+     * onboardings and applications to development and removes them. COULD NOT
+     * TELL, never a failure, on a database without 0105.
+     */
+    name: "onboarding-walk-audit",
+    why: "a probe technician and engineer go from invite to activated through the product's own routes",
+  },
+  {
+    /*
      * Phase 12 Section 2. Derives the four reports from the registry in
      * ops-reports.ts and fails on one it is not measuring, which is the
      * surfaces idiom applied to figures. email-audit learned why the hard way:
@@ -794,6 +805,10 @@ const results = [];
  * that verifies a deployment.
  */
 const MANAGED = !process.env.BASE_URL;
+
+/* Under a cloud board run the shared phase one server is restarted per audit,
+ * so each audit has its own sign in bucket (Q9, 2026-11-03; see the loop). */
+const PER_AUDIT_BUCKET = MANAGED && /^\d{6,20}$/.test(process.env.BOARD_RUN_ID ?? "");
 
 /**
  * The pages the suite depends on. Both, because either can be up alone.
@@ -1159,7 +1174,7 @@ try {
   for (const audit of RUN_ZERO) {
     /* MACHINE_LOCK_HELD explicitly: AUDIT_ENV is frozen at import, before the
      * lock is taken, so a nested build would otherwise wait on its own parent. */
-    await runWatched(audit, { ...AUDIT_ENV, MACHINE_LOCK_HELD: String(process.pid) });
+    await runWatched(audit, { ...AUDIT_ENV, BOARD_AUDIT: audit.name, MACHINE_LOCK_HELD: String(process.pid) });
   }
 
   /*
@@ -1178,6 +1193,23 @@ try {
    * means "there was no app".
    */
   for (const audit of RUN_ONE) {
+    /*
+     * A SIGN IN BUCKET PER AUDIT, SET BY THE HARNESS. Robert's answer of
+     * 2026-11-03 (Q9). clientKey reads BOARD_AUDIT from the SERVER's own
+     * environment beside the run id, on development only, and no request can
+     * choose it. Phase one shares one server, so under a board run that server
+     * is restarted for each audit with that audit's name: the only way a
+     * per audit key reaches a shared server without a request carrying it.
+     * Outside a board run (no BOARD_RUN_ID) nothing is restarted, because the
+     * key ignores BOARD_AUDIT there anyway.
+     */
+    if (PER_AUDIT_BUCKET && server) {
+      await server.stop();
+      server = null;
+      server = await startNextServer({ port: PORT, env: { BOARD_AUDIT: audit.name } });
+      await waitUntilHealthy(server.base);
+      console.log(`  server restarted for ${audit.name}, its own sign in bucket.`);
+    }
     if (!(await healthy(BASE))) {
       throw new Error(
         `The server stopped answering before ${audit.name} (${lastHealthFault || "no fault recorded"}; ` +
@@ -1187,7 +1219,7 @@ try {
           "killed the process, and carries the error when it fell over by itself.",
       );
     }
-    await runWatched(audit, { ...AUDIT_ENV, BASE_URL: BASE, MACHINE_LOCK_HELD: String(process.pid) });
+    await runWatched(audit, { ...AUDIT_ENV, BASE_URL: BASE, BOARD_AUDIT: audit.name, MACHINE_LOCK_HELD: String(process.pid) });
   }
 
   console.log(`\n${"=".repeat(72)}`);
@@ -1206,7 +1238,9 @@ try {
     // BASE_URL is deliberately removed. With it set these harnesses point at the
     // shared server instead of spawning their own, and the launch audit in
     // particular would then measure one mode twice while reporting on two.
-    const env = { ...AUDIT_ENV, AUDIT_KILL_STALE: "1", MACHINE_LOCK_HELD: String(process.pid) };
+    /* BOARD_AUDIT reaches the servers these audits start, which inherit their
+     * environment: each audit's own sign in bucket (Q9, 2026-11-03). */
+    const env = { ...AUDIT_ENV, BOARD_AUDIT: audit.name, AUDIT_KILL_STALE: "1", MACHINE_LOCK_HELD: String(process.pid) };
     delete env.BASE_URL;
     await runWatched(audit, env);
   }

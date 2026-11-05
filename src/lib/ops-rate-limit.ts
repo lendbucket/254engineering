@@ -347,15 +347,35 @@ export function takeResetAttempt(
  * address still comes only from the forwarded headers, exactly as on main, so a
  * request can pick which of its own run's buckets it lands in and never leave
  * its run.
+ *
+ * Robert's answer of 2026-11-03 (Q9): A BUCKET PER AUDIT, ON DEVELOPMENT ONLY.
+ * Q9 stopped a successful sign in clearing the address count (H1), and one
+ * board run makes more than twenty probe sign ins in fifteen minutes from one
+ * address, so board 41635661415 met 429 on every probe after the twentieth.
+ * The limiter is not loosened. The suite gives every audit's server its own
+ * BOARD_AUDIT, the audit's name, in that server's environment (scripts/audit.mjs
+ * restarts the shared server per audit under a board run for exactly this), so
+ * the key comes from the harness and never from a request. It is read only
+ * beside a valid run id, on development, and only as a lower case name; any
+ * other value leaves the run's key as it was. Production keeps one bucket per
+ * address, unchanged.
  */
 export function clientKey(
   headers: Headers,
-  env: { SUPABASE_URL?: string; BOARD_RUN_ID?: string } = { SUPABASE_URL: process.env.SUPABASE_URL, BOARD_RUN_ID: process.env.BOARD_RUN_ID },
+  env: { SUPABASE_URL?: string; BOARD_RUN_ID?: string; BOARD_AUDIT?: string } = {
+    SUPABASE_URL: process.env.SUPABASE_URL,
+    BOARD_RUN_ID: process.env.BOARD_RUN_ID,
+    BOARD_AUDIT: process.env.BOARD_AUDIT,
+  },
 ): string {
   const forwarded = headers.get("x-forwarded-for");
   const address = forwarded ? forwarded.split(",")[0]!.trim() : (headers.get("x-real-ip") ?? "unknown");
   const boardRun = env.BOARD_RUN_ID;
-  if (boardRun && /^\d{6,20}$/.test(boardRun) && refOf(env.SUPABASE_URL) === DEVELOPMENT_REF) return `board:${boardRun}:${address}`;
+  if (boardRun && /^\d{6,20}$/.test(boardRun) && refOf(env.SUPABASE_URL) === DEVELOPMENT_REF) {
+    const audit = env.BOARD_AUDIT;
+    if (audit && /^[a-z0-9][a-z0-9-]{0,63}$/.test(audit)) return `board:${boardRun}:${audit}:${address}`;
+    return `board:${boardRun}:${address}`;
+  }
   return address;
 }
 
@@ -475,4 +495,54 @@ export async function inspectLock(address: string, identity?: string) {
     address: await read(null, MAX_PER_ADDRESS),
     identity: identity ? await read(identity, MAX_PER_IDENTITY) : null,
   };
+}
+
+/*
+ * ===========================================================================
+ * ONE COUNTED KEY, WITH ITS OWN CEILING AND WINDOW. Robert's Q11 (office audit
+ * F2, 2026-11-02): the public forms are limited by the same machinery.
+ * ===========================================================================
+ *
+ * eng_take_sign_in_attempt already takes its ceilings and window as arguments
+ * and counts per address, so a public form's count is one more caller of it
+ * under a key nothing else uses (`form:...`, `ack:...`), never a second table
+ * or a second limiter to reason about. Called with no identity it answers on
+ * the address count alone. When the database cannot answer, this instance
+ * counts in the same Map as the sign in fallback, with this key's own window.
+ */
+function takeWindowed(key: string, max: number, windowMs: number, now: number): RateResult {
+  prune(now);
+  const existing = buckets.get(key);
+  if (!existing || now - existing.first > windowMs) {
+    buckets.set(key, { count: 1, first: now });
+    return { allowed: max >= 1, remaining: Math.max(0, max - 1), retryAfterSeconds: 0 };
+  }
+  existing.count += 1;
+  if (existing.count > max) {
+    return { allowed: false, remaining: 0, retryAfterSeconds: Math.max(1, Math.ceil((existing.first + windowMs - now) / 1000)), scope: "address" };
+  }
+  return { allowed: true, remaining: max - existing.count, retryAfterSeconds: 0 };
+}
+
+export function takeCountedAttemptInMemory(key: string, max: number, windowSeconds: number, now: number = Date.now()): RateResult {
+  return takeWindowed(`counted:${key}`, max, windowSeconds * 1000, now);
+}
+
+export async function takeCountedAttempt(key: string, max: number, windowSeconds: number): Promise<RateResult> {
+  const db = supabaseAdmin();
+  if (db) {
+    const { data, error } = await db.rpc("eng_take_sign_in_attempt", {
+      p_address: key,
+      p_identity: null,
+      p_max_address: max,
+      p_max_identity: max,
+      p_window_seconds: windowSeconds,
+    });
+    if (!error && data) {
+      const r = data as { allowed: boolean; remaining: number; retry_after_seconds: number; scope?: "identity" | "address" };
+      return { allowed: r.allowed, remaining: r.remaining, retryAfterSeconds: r.retry_after_seconds, ...(r.scope ? { scope: r.scope } : {}) };
+    }
+    console.error(`[rate-limit] the database count failed for a counted key, counting in this instance: ${error?.message ?? "no answer"}`);
+  }
+  return takeCountedAttemptInMemory(key, max, windowSeconds);
 }

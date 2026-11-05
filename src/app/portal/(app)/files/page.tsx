@@ -18,6 +18,7 @@ import { services } from "@/content/services";
 import { EmptyState, PageHead, Panel } from "@/components/portal/surfaces";
 import { FileSelection } from "./FileSelection";
 import { EXPORT_LIMIT } from "@/lib/ops-bulk-files";
+import { mayExport } from "@/lib/list-exports";
 import { dispatchContext, jobView } from "@/lib/ops-field";
 import { marginOf, money } from "@/lib/ops-money";
 import { partnerCostByFile } from "@/lib/ops-partner-comp";
@@ -268,6 +269,7 @@ export default async function FilesPage({
         */
         <FileSelection
           canDispatch={can(actor, "offers.dispatch")}
+          canExport={mayExport(actor, "files.list")}
           limit={EXPORT_LIMIT}
           selectedId={selected?.id ?? null}
           files={files.map((f) => ({

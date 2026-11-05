@@ -4,6 +4,7 @@ import { firmName } from "./launch";
 import { REFUND_ISSUED_SENTENCE, refundRowLabel } from "./refund-update";
 import { catalogFor, SCOPE_PENDING } from "@data/catalog";
 import { emailIdentity, footerEmail, fromHeader, type SenderPurpose } from "@/config/email-identity";
+import { firmItemLabels } from "@/content/onboarding-checklists";
 import {
   OUTCOME_HEADLINE,
   OUTCOME_MEANING,
@@ -410,8 +411,14 @@ export function onboardingSubmitted(input: {
   onboardingId: string;
   itemCount: number;
 }): RenderedEmail {
-  const roleLabel =
-    input.role === "engineer" ? "Professional Engineer" : "Field Inspection Technician";
+  /* The role record's own name (2026-09-22), never a label typed here. */
+  const roleLabel = roleLabelFor(input.role);
+  /*
+   * What still needs the firm, read off the role's checklist (P1, 2026-11-01).
+   * This said identity and I-9 for everybody, and a field technician is a
+   * contractor with no I-9 and three operator items, none of them that.
+   */
+  const firmItems = firmItemLabels(input.role);
 
   return compose(
     "onboarding.submitted",
@@ -435,15 +442,12 @@ export function onboardingSubmitted(input: {
           title: "What is waiting",
           rows: [
             ["Checklist items complete", String(input.itemCount)],
-            [
-              "Still needs you",
-              "Identity confirmed on the video call, and I-9 Section 2 document examination, which federal procedure requires be done live.",
-            ],
+            ["Still needs you", `${firmItems.join("; ")}.`],
           ],
         },
         {
           kind: "note",
-          text: "Documents are not attached and no link in this message opens one. Sign in to the admin portal and open them there, where each link lasts ten minutes.",
+          text: "Documents are not attached and no link in this message opens one. Sign in to the portal and open them there, where each link lasts ten minutes.",
         },
       ],
       /*
@@ -482,8 +486,7 @@ export function onboardingInvite(input: {
   inviteUrl: string;
   expiresAt: string;
 }): RenderedEmail {
-  const roleLabel =
-    input.role === "engineer" ? "Professional Engineer" : "Field Inspection Technician";
+  const roleLabel = roleLabelFor(input.role);
 
   return compose(
     "onboarding.invite",
@@ -504,13 +507,19 @@ export function onboardingInvite(input: {
           text: `The link below works until ${input.expiresAt} and it is yours alone. Your progress saves as you go, so you can stop and come back to the same link.`,
         },
         { kind: "heading", text: "What you will need" },
+        /*
+         * P1, 2026-11-01: this said a photo ID and uploaded tax forms. No ID is
+         * uploaded (identity is confirmed on a video call and recorded as a
+         * fact), and the tax and pay paperwork is completed in Gusto (ruling of
+         * 2026-10-02).
+         */
         {
           kind: "p",
-          text: "A government issued photo ID, and the forms named in the flow. Each step says what it wants and links the form where one is needed.",
+          text: "The documents each step names, such as an insurance card or a signed agreement. Each step says what it wants. No photo ID is uploaded: the firm confirms who you are on a short video call.",
         },
         {
           kind: "note",
-          text: "You are never asked to type a social security, account, or routing number into this site. Where a form involves one, you upload the completed document and nothing is read out of it.",
+          text: "Tax and pay paperwork is completed in Gusto, not here. You are never asked to type a social security, account, or routing number into this site, and no copy of an ID or an I-9 is kept on it.",
         },
         {
           kind: "p",
@@ -518,6 +527,60 @@ export function onboardingInvite(input: {
         },
       ],
       button: { label: "Open your onboarding", url: input.inviteUrl },
+    },
+    { to: input.personEmail },
+  );
+}
+
+/**
+ * ONE CHECKLIST ITEM DECIDED, TOLD TO THE PERSON. Robert's ruling P1,
+ * 2026-11-01: "an administrator screen to accept or reject each onboarding
+ * item, with a required reason on reject, an audit row, and the person told by
+ * email."
+ *
+ * NO LINK TO THE FLOW. The invite token is stored only as a hash, so this
+ * message cannot carry it, and a fresh one would silently kill the link the
+ * person already holds. It points them back to the invite they were sent and
+ * says how to get a new one, which is the same sentence the invite ends on.
+ * A rejection carries the reason as the operator typed it, because the reason
+ * is the whole message; an acceptance carries nothing else.
+ */
+export function onboardingItemDecision(input: {
+  personName: string;
+  personEmail: string;
+  itemLabel: string;
+  decision: "accepted" | "rejected";
+  reason?: string | null;
+}): RenderedEmail {
+  const rejected = input.decision === "rejected";
+  return compose(
+    "onboarding.item_decision",
+    "human",
+    rejected ? `One onboarding item needs redoing: ${input.itemLabel}` : `Onboarding item accepted: ${input.itemLabel}`,
+    {
+      preheader: rejected
+        ? `${input.itemLabel} needs redoing, and why.`
+        : `${input.itemLabel} is accepted. Nothing more is needed for it.`,
+      signed: true,
+      blocks: rejected
+        ? [
+            { kind: "p", text: `${input.personName},` },
+            { kind: "p", text: `${input.itemLabel} on your onboarding checklist needs redoing. The reason given:` },
+            { kind: "note", text: (input.reason ?? "").trim() || "No reason was recorded." },
+            {
+              kind: "p",
+              text: "Open the onboarding link from your invitation email. This item has reopened there, and the rest of your checklist is as you left it.",
+            },
+            {
+              kind: "p",
+              text: `If that link has expired or you cannot find it, reply to this message or write to ${footerEmail()} and a new link will be issued.`,
+            },
+          ]
+        : [
+            { kind: "p", text: `${input.personName},` },
+            { kind: "p", text: `${input.itemLabel} on your onboarding checklist is accepted. Nothing more is needed for it.` },
+            { kind: "p", text: `Questions about anything else on the checklist can go to ${footerEmail()}.` },
+          ],
     },
     { to: input.personEmail },
   );
@@ -2762,6 +2825,13 @@ export function allTemplatesForAudit(): RenderedEmail[] {
       role: "engineer",
       inviteUrl: "https://254engineering.com/onboarding/sample-token-not-a-real-invite-abcdefghij",
       expiresAt: "7 September 2026",
+    }),
+    onboardingItemDecision({
+      personName: "Sample Technician",
+      personEmail: "sample.technician@254engineering.com",
+      itemLabel: "Vehicle insurance card",
+      decision: "rejected",
+      reason: "The card shown expired last month. Upload the current one.",
     }),
     leadNotification({
       form: "contact",

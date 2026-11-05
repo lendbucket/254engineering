@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { currentActor } from "@/lib/ops-auth";
 import { canLookUpOrders, listOrders, type OrderQuery } from "@/lib/ops-order-lookup";
+import { can } from "@/lib/ops-authz";
+import { LIST_EXPORT_GRANT } from "@/lib/list-exports";
 import { csv, csvHeaders } from "@/lib/csv";
 import { money } from "@/lib/ops-money";
 
@@ -9,12 +11,16 @@ export const dynamic = "force-dynamic";
 /**
  * Every order matching the filter, as a CSV. orders.read or payments.reconcile,
  * 2026-10-20. The same columns the lookup shows: what the customer was charged,
- * and nothing about what the work cost the firm.
+ * and nothing about what the work cost the firm. Since 2026-11-02 the
+ * administrator's export gate first (Robert's P2 approval, option a: every CSV
+ * export is owner or admin only); the lookup screen itself is unchanged.
  */
 export async function GET(request: NextRequest) {
   const actor = await currentActor();
   if (!actor) return NextResponse.json({ ok: false, error: "Not signed in." }, { status: 401 });
-  if (!canLookUpOrders(actor)) return NextResponse.json({ ok: false, error: "Not permitted." }, { status: 403 });
+  if (!can(actor, LIST_EXPORT_GRANT) || !canLookUpOrders(actor)) {
+    return NextResponse.json({ ok: false, error: "Your role cannot export the orders." }, { status: 403 });
+  }
 
   const p = request.nextUrl.searchParams;
   const q: OrderQuery = {

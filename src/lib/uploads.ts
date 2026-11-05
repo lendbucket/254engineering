@@ -76,6 +76,31 @@ export function uploadPath(applicationId: string, kind: UploadKind, filename: st
   return `${SITE_KEY}/${applicationId}/${kind}-${safeFilename(filename)}`;
 }
 
+/**
+ * WHETHER A DOCUMENT PATH IS THIS APPLICANT'S OWN. Robert's Q12 (office audit
+ * F5, 2026-11-02): /api/apply stored whatever path the body named and the
+ * operator's email and the applications screen signed it, so an applicant could
+ * name another applicant's resume as their own. A path is accepted only when it
+ * is one object directly under `${SITE_KEY}/${applicationId}/`, named as
+ * uploadPath names it.
+ */
+export function isApplicantDocumentPath(path: unknown, applicationId: string): boolean {
+  if (typeof path !== "string") return false;
+  const prefix = `${SITE_KEY}/${applicationId}/`;
+  if (!path.startsWith(prefix)) return false;
+  const rest = path.slice(prefix.length);
+  const kind = rest.slice(0, rest.indexOf("-"));
+  return (UPLOAD_KINDS as readonly string[]).includes(kind) && /^[a-z]+-[A-Za-z0-9._-]+$/.test(rest) && !rest.includes("..");
+}
+
+/**
+ * How long a document link on the applications screen lives. The lede says
+ * about ten minutes, and since Q12 (office audit F6) it is: the screen mints
+ * them as it renders, so a short life costs the operator nothing. The operator
+ * email keeps signedDownloadUrl's seven days.
+ */
+export const APPLICATIONS_SCREEN_LINK_SECONDS = 10 * 60;
+
 export type SignedUpload = { ok: true; url: string; path: string } | { ok: false; error: string };
 
 export async function createSignedUpload(params: {

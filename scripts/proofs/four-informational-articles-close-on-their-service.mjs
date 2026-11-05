@@ -19,7 +19,7 @@
  *   node node_modules/tsx/dist/cli.mjs scripts/proofs/four-informational-articles-close-on-their-service.mjs
  */
 const { insights } = await import("../../src/content/insights.ts");
-const { CATALOG } = await import("../../data/catalog.ts");
+const { CATALOG, statedPriceCents } = await import("../../data/catalog.ts");
 
 const out = [];
 const check = (name, ok, note = "") => out.push({ name, ok, note });
@@ -48,7 +48,12 @@ for (const [slug, [heading, target]] of Object.entries(CLOSINGS)) {
 const lookup = insights.find((p) => p.slug === "texas-windstorm-certificate-lookup");
 const last = lookup.body.at(-1).text;
 for (const e of CATALOG.filter((x) => x.serviceSlug === "windstorm-wpi-8" && x.priceCents != null)) {
-  check(`the WPI-8 closing states ${e.name} at ${dollars(e.priceCents)}`, last.includes(dollars(e.priceCents)));
+  /* Robert's Q14 of 2026-11-02: a tier no order page offers is quoted, its figure not printed. */
+  if (statedPriceCents(e) === null) {
+    check(`the WPI-8 closing says ${e.name} is quoted, with no ${dollars(e.priceCents)}`, !last.includes(dollars(e.priceCents)) && last.includes("ongoing construction is quoted"));
+  } else {
+    check(`the WPI-8 closing states ${e.name} at ${dollars(e.priceCents)}`, last.includes(dollars(e.priceCents)));
+  }
 }
 
 let failed = 0;
@@ -58,7 +63,7 @@ for (const x of out) {
 }
 console.log(
   failed === 0
-    ? "PASS: the four articles each end on one short closing section linking their matching service, and the WPI-8 one states both catalog prices."
+    ? "PASS: the four articles each end on one short closing section linking their matching service, and the WPI-8 one states each tier's catalog price or says it is quoted."
     : `FAIL: ${failed} check(s).`,
 );
 process.exitCode = failed === 0 ? 0 : 1;

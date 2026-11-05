@@ -53,11 +53,20 @@ export function FileSelection({
   files,
   selectedId,
   limit,
+  canExport,
   canDispatch,
 }: {
   files: SelectableFile[];
   selectedId: string | null;
   limit: number;
+  /*
+   * Whether this person may export at all, decided on the SERVER by
+   * mayExport and passed in, for the same reason as canDispatch below. Every
+   * CSV export is owner or admin only since Robert's P2 approval of
+   * 2026-11-02, so for anybody else Export is not offered; exportFiles would
+   * refuse it anyway.
+   */
+  canExport: boolean;
   /*
    * Whether this person may dispatch at all, decided on the SERVER and
    * passed in. The button is not rendered otherwise. It would be refused
@@ -139,14 +148,16 @@ export function FileSelection({
             {ticked.size} selected
           </p>
           <div className="ml-auto flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={exportSelected}
-              disabled={busy || over}
-              className="inline-flex min-h-[44px] items-center rounded-[2px] border border-[var(--border)] bg-white px-3 text-[14px] font-bold text-[var(--ink)] hover:border-slate disabled:opacity-50"
-            >
-              {busy ? "Exporting" : "Export"}
-            </button>
+            {canExport && (
+              <button
+                type="button"
+                onClick={exportSelected}
+                disabled={busy || over}
+                className="inline-flex min-h-[44px] items-center rounded-[2px] border border-[var(--border)] bg-white px-3 text-[14px] font-bold text-[var(--ink)] hover:border-slate disabled:opacity-50"
+              >
+                {busy ? "Exporting" : "Export"}
+              </button>
+            )}
             {canDispatch && (
               /*
                * A LINK, NOT A BUTTON, and it carries the ids to a review
@@ -170,7 +181,7 @@ export function FileSelection({
               Clear
             </button>
           </div>
-          {over && (
+          {canExport && over && (
             <p className="w-full text-[13px] font-semibold text-[var(--ink)]">
               That is more than {limit}. Export at most {limit} at a time.
             </p>

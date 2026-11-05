@@ -2,6 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
 import { canLookUpOrders, listOrders, type OrderQuery, type OrderRow } from "@/lib/ops-order-lookup";
+import { can } from "@/lib/ops-authz";
+import { LIST_EXPORT_GRANT } from "@/lib/list-exports";
 import { money } from "@/lib/ops-money";
 import { telLink } from "@/lib/phone-link";
 import { formatInFirmZone } from "@/lib/firm-calendar";
@@ -66,10 +68,10 @@ export default async function OrderLookupPage({ searchParams }: { searchParams: 
         sorts={[{ value: "placed", label: "Date placed" }, { value: "reference", label: "Reference" }, { value: "customer", label: "Customer" }, { value: "status", label: "Status" }, { value: "total", label: "Amount charged" }]}
         sort={q.sort ?? "placed"}
         direction={q.direction ?? "desc"}
-        csvHref={`/api/portal/order-lookup${qs ? `?${qs}` : ""}`}
+        csvHref={can(actor, LIST_EXPORT_GRANT) ? `/api/portal/order-lookup${qs ? `?${qs}` : ""}` : undefined}
       />
       {!list.ok ? (
-        <ErrorState title="Orders could not be read" body={`${list.error} Nothing here means there are no orders.`} />
+        <ErrorState title="Orders could not be read" body={`${list.error} This is a failed read, not an empty list.`} />
       ) : (
         <>
           <DataTable

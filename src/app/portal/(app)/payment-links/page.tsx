@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
+import { mayExport } from "@/lib/list-exports";
 import { isOpen } from "@/lib/launch";
 import { listBillableJobs } from "@/lib/ops-bill-list";
 import { BILL_INTENT_LABEL, BILL_SORTS, billChoices, billListRows, type BillRow } from "@/lib/billing-rules";
@@ -96,10 +97,10 @@ export default async function PaymentLinksPage({ searchParams }: { searchParams:
         sorts={[...BILL_SORTS]}
         sort={params.sort ?? "opened"}
         direction={params.dir === "asc" ? "asc" : "desc"}
-        csvHref={`/api/portal/payment-links/export?${csvQuery}`}
+        csvHref={mayExport(actor, "payments.charge") ? `/api/portal/payment-links/export?${csvQuery}` : undefined}
       />
       {!read.ok ? (
-        <ErrorState title="The jobs could not be read" body={`${read.error} Nothing here means nothing is waiting.`} />
+        <ErrorState title="The jobs could not be read" body={`${read.error} This is a failed read, not an empty list.`} />
       ) : (
         <>
           <DataTable

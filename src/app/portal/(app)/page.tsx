@@ -100,6 +100,8 @@ export default async function PortalHome() {
       "Where the work is coming from and how long it has been sitting. Flow and age only: what the firm makes on any of it is not on this screen.",
     customer_service:
       "What is in flight and who is waiting. Where the platform has never recorded the thing you were meant to see, it says so rather than showing something that looks like it.",
+    read_only:
+      "The firm's work as it stands: what waits on an engineer, what is late and who can take it. Reads only, and no money: what the firm charges and earns is not on this screen.",
     desk: "What is due now: inquiries waiting for an answer, today's calls, jobs nobody has, holds and refund requests. Nothing here is estimated.",
   };
   const lede = LEDE[dashboard.role];
@@ -158,7 +160,9 @@ export default async function PortalHome() {
         </Panel>
 
         {/*
-          THREE DASHBOARDS HAVE NO MONEY PANEL, AND THE NARROWING IS THE PROOF.
+          THE MONEYLESS DASHBOARDS HAVE NO MONEY PANEL, AND THE NARROWING IS THE
+          PROOF. (Three when this was written; read_only joined on 2026-11-02,
+          when P2 took its money grants, and the desk before it.)
 
           A dispatcher, a salesperson and a customer service account hold
           neither ledger.read_all nor billing.read, and the operator's ruling of
