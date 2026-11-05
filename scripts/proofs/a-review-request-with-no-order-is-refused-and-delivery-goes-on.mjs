@@ -44,6 +44,22 @@
  * records are, along with the file.transition rows in eng_audit_events. The
  * probe order and any orderless queue row this run made are removed and read
  * back.
+ *
+ * ONE SEALED FIXTURE FILE, MADE ONCE AND REUSED. Robert's answer of 2026-11-03:
+ * "Review-request proof: seal one fixture file once and reuse it." Each run
+ * used to make a new file, and a sealed file cannot be deleted, so one
+ * unpriced, delivered demonstration file stayed behind per board; seven of
+ * them pushed every priced file out of bulk-audit's sample (board 41606344690).
+ * The file is now found by its fixed number, FIXTURE_FILE_NUMBER. Its evidence,
+ * determination, document and letter seal act are recorded only when it has no
+ * live letter act (the first run, or a first run that stopped part way). Each
+ * run then puts it back at sealed, which 0110 allows because the act is live,
+ * and the delivery under test moves it to delivered through transitionFile,
+ * exactly as before. What stays per run is only telemetry and the audit trail;
+ * the probe order is still made and removed every run, and a probe order an
+ * earlier run failed to remove from this file is removed first, so the order
+ * lookup under test reads this run's order alone. The earlier per-run files
+ * (254-DEMO-RQ followed by six digits) are left exactly as they are.
  */
 import { randomUUID } from "node:crypto";
 
@@ -98,8 +114,12 @@ const refusals = async () => {
 };
 
 const STAMP = Date.now();
-const fileId = randomUUID();
-let fileMade = false;
+/** The one sealed fixture file every run reuses. */
+const FIXTURE_FILE_NUMBER = "254-DEMO-RQ-FIXTURE";
+/** A probe order this proof makes, and only this proof: its email names it. */
+const PROBE_EMAIL_PREFIX = "review-refusal-";
+const PROBE_EMAIL_DOMAIN = "@audit-probe.invalid";
+let fileId = null;
 let orderId = null;
 let preexisting = new Set();
 
@@ -132,20 +152,43 @@ try {
   const { data: client } = await db.from("eng_clients").select("id").eq("is_demo", true).limit(1).maybeSingle();
   if (!client) throw new Error("development holds no demonstration client to hang a file on");
 
-  const { error: fErr } = await db.from("eng_files").insert({
-    id: fileId,
-    file_number: `254-DEMO-RQ${String(STAMP).slice(-6)}`,
-    is_demo: true,
-    client_id: client.id,
-    service_slug: "roof-inspections",
-    property_address: "1 Review Refusal Way",
-    county: "Kenedy",
-    status: "under_review",
-  });
-  if (fErr) throw new Error(`probe file: ${fErr.message}`);
-  fileMade = true;
+  /* The fixture file: found by its fixed number, made only the first time. */
+  const { data: found, error: findErr } = await db
+    .from("eng_files")
+    .select("id, status")
+    .eq("file_number", FIXTURE_FILE_NUMBER);
+  if (findErr) throw new Error(`the fixture file could not be looked up: ${findErr.message}`);
+  if ((found ?? []).length > 1) throw new Error(`${found.length} files carry ${FIXTURE_FILE_NUMBER}; expected one at most`);
+  if ((found ?? []).length === 1) {
+    fileId = found[0].id;
+  } else {
+    fileId = randomUUID();
+    const { error: fErr } = await db.from("eng_files").insert({
+      id: fileId,
+      file_number: FIXTURE_FILE_NUMBER,
+      is_demo: true,
+      client_id: client.id,
+      service_slug: "roof-inspections",
+      property_address: "1 Review Refusal Way",
+      county: "Kenedy",
+      status: "under_review",
+    });
+    if (fErr) throw new Error(`fixture file: ${fErr.message}`);
+  }
 
-  /* The seal act that lets the file be sealed (0110), against the fixture engineer. */
+  /* Does it already carry a live letter seal act (made by an earlier run)? */
+  const { data: liveActs, error: actReadErr } = await db
+    .from("eng_seal_acts")
+    .select("id, eng_determinations!inner(file_id)")
+    .eq("kind", "letter")
+    .is("voided_at", null)
+    .eq("eng_determinations.file_id", fileId);
+  if (actReadErr) throw new Error(`the fixture file's seal acts could not be read: ${actReadErr.message}`);
+  const hasLiveAct = (liveActs ?? []).length > 0;
+  console.log(`  note: fixture file ${FIXTURE_FILE_NUMBER} ${(found ?? []).length === 1 ? "reused" : "made this run"}, ${hasLiveAct ? "its live letter act reused" : "its letter act recorded this run"}`);
+
+  /* The seal act that lets the file be sealed (0110), against the fixture engineer, recorded once. */
+  if (!hasLiveAct) {
   const { fixtureEngineer } = await import("../lib/portal-probe.mjs");
   const fixture = await fixtureEngineer("the review request refusal proof");
   if (!fixture.ok) throw new Error(`the fixture engineer: ${fixture.error}`);
@@ -214,13 +257,50 @@ try {
     mfa_verified_at: new Date().toISOString(),
   });
   if (aErr) throw new Error(`probe seal act: ${aErr.message}`);
-  const { data: sealedRows, error: sErr } = await db
-    .from("eng_files")
-    .update({ status: "sealed", sealed_at: new Date().toISOString() })
-    .eq("id", fileId)
-    .eq("status", "under_review")
-    .select("id");
-  if (sErr || (sealedRows ?? []).length !== 1) throw new Error(`the probe file could not be sealed: ${sErr?.message ?? "no row moved"}`);
+  }
+
+  /*
+   * Back to sealed, so the delivery under test starts where a real one does.
+   * From under_review on the first run, from delivered on every later one; 0110
+   * allows the move because the letter act above is live. delivered_at is
+   * cleared so the row reads as a sealed file that has not been delivered.
+   */
+  const { data: current, error: curErr } = await db.from("eng_files").select("status, sealed_at").eq("id", fileId).single();
+  if (curErr || !current) throw new Error(`the fixture file could not be read back: ${curErr?.message ?? "no row"}`);
+  if (current.status !== "sealed") {
+    const { data: sealedRows, error: sErr } = await db
+      .from("eng_files")
+      .update({ status: "sealed", sealed_at: current.sealed_at ?? new Date().toISOString(), delivered_at: null })
+      .eq("id", fileId)
+      .eq("status", current.status)
+      .select("id");
+    if (sErr || (sealedRows ?? []).length !== 1) throw new Error(`the fixture file could not be put back at sealed from ${current.status}: ${sErr?.message ?? "no row moved"}`);
+  }
+
+  /*
+   * A probe order an earlier run made on this file and failed to remove would be
+   * a second order for the lookup under test. Only this proof's own probe orders
+   * are removed (demonstration, and an email only this proof writes), then the
+   * file is read back as carrying no order before this run's is made.
+   */
+  const { data: staleOrders, error: staleErr } = await db
+    .from("eng_service_orders")
+    .select("id, customer_email, is_demo")
+    .eq("file_id", fileId);
+  if (staleErr) throw new Error(`the fixture file's orders could not be read: ${staleErr.message}`);
+  const ownStale = (staleOrders ?? []).filter(
+    (o) => o.is_demo === true && String(o.customer_email ?? "").startsWith(PROBE_EMAIL_PREFIX) && String(o.customer_email ?? "").endsWith(PROBE_EMAIL_DOMAIN),
+  );
+  if (ownStale.length !== (staleOrders ?? []).length) {
+    throw new Error(`the fixture file carries ${(staleOrders ?? []).length - ownStale.length} order(s) this proof did not make; refusing to touch them`);
+  }
+  if (ownStale.length > 0) {
+    const { error: delErr } = await db.from("eng_service_orders").delete().in("id", ownStale.map((o) => o.id));
+    if (delErr) throw new Error(`an earlier run's probe order could not be removed: ${delErr.message}`);
+    console.log(`  note: removed ${ownStale.length} probe order(s) an earlier run left on the fixture file`);
+  }
+  const { count: ordersLeft } = await db.from("eng_service_orders").select("id", { count: "exact", head: true }).eq("file_id", fileId);
+  if ((ordersLeft ?? 0) !== 0) throw new Error(`the fixture file still carries ${ordersLeft} order(s) before this run's`);
 
   const { data: order, error: oErr } = await db
     .from("eng_service_orders")
@@ -231,7 +311,7 @@ try {
       order_type: "desk",
       status: "complete",
       customer_name: "Review refusal proof customer, not a real person",
-      customer_email: `review-refusal-${STAMP}@audit-probe.invalid`,
+      customer_email: `${PROBE_EMAIL_PREFIX}${STAMP}${PROBE_EMAIL_DOMAIN}`,
       property_address: "1 Review Refusal Way",
       county: "Kenedy",
       is_demo: true,
@@ -307,8 +387,8 @@ try {
     const { error } = await db.from("eng_service_orders").delete().eq("id", orderId);
     if (error) console.log(`  note: the probe order was not removed: ${error.message}`);
   }
-  /* The probe file stays: its determination and seal act refuse deletion, and it is pinned to the fixture engineer (header). */
-  if (fileMade) console.log(`  note: the probe file ${fileId} stays on development with its seal act, pinned to the fixture engineer`);
+  /* The fixture file stays for the next run: its determination and seal act refuse deletion (header). */
+  if (fileId) console.log(`  note: the fixture file ${FIXTURE_FILE_NUMBER} (${fileId}) stays on development for the next run, pinned to the fixture engineer`);
   const { data: leftOrder } = orderId ? await db.from("eng_service_orders").select("id").eq("id", orderId) : { data: [] };
   check(
     "the probe order is removed, read back",
