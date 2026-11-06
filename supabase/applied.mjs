@@ -4283,7 +4283,9 @@ export const APPLIED = [
       "two functions, two grant rows, the two widened checks and the author check.",
     because:
       "WRITTEN 2026-11-05 ON feat/roofer-application, STACKED ON R1, FOR THE CHAT COUNTERPART'S SITTING WITH ROBERT " +
-      "APPROVING THE PROMPT; APPLIED NOWHERE. Robert's request and rulings of 2026-11-05: a Texas roofing company " +
+      "APPROVING THE PROMPT; ON DEVELOPMENT SINCE 2026-11-05 (6671002528, version 20261105221807, the four blocks of " +
+      "6670846102 through the connector's execute_sql), NOT ON PRODUCTION. Robert's request and rulings of " +
+      "2026-11-05: a Texas roofing company " +
       "applies on /roofing-partners/apply, the application lands as its own source on a roofer prospect with a " +
       "due now review action, and a person holding roofers.review (admin and ops_manager) approves it, opening a " +
       "B2B account through door 2, or declines it, with a reason either way.",
