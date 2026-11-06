@@ -27,10 +27,14 @@
  * Texas counties is decided by that map in code (territoryFor), and this file
  * keeps a county to one territory whatever its spelling, case or spacing.
  *
- * THESE ARE WORKING SETTINGS, NOT A RECORD: a manager redraws a territory or
- * moves a rep, so rows are edited and removed. Each change writes an audit row
- * first, from code. KEPT, PENDING COUNSEL, as eng_prospects is: declared in
- * retention-policy.ts. ADDITIVE ONLY: no drop, no change to an existing table.
+ * NOTHING IS DELETED. Robert's answer 1 of 2026-11-06 (6688927814): taking a
+ * county or a rep off a territory stamps removed_at and removed_by on the row;
+ * a county is in one territory, and a rep holds a territory once, among rows
+ * not removed; every read skips removed rows. So the history of who held which
+ * county stays readable, retention stays the only path that removes rows, and
+ * both tables are kept as retention-policy.ts says. Each change also writes an
+ * audit row first, from code. ADDITIVE ONLY: no drop, no change to an existing
+ * table.
  *
  * Development first, on stage/0116-crm-territories; production at the chat
  * counterpart's sitting after R5's board.
@@ -88,18 +92,23 @@ comment on table eng_crm_territories is
 /* ------------------------------------------------------ the counties in each */
 
 create table if not exists eng_crm_territory_counties (
+  id            uuid primary key default gen_random_uuid(),
   territory_id  uuid not null references eng_crm_territories (id) on delete cascade,
   county        text not null
                   constraint eng_crm_territory_counties_named
                   check (length(btrim(county)) between 2 and 40),
   created_at    timestamptz not null default now(),
   created_by    uuid references eng_profiles (id) on delete set null,
-  primary key (territory_id, county)
+  /* Taken out of the territory: stamped, never deleted (Robert's answer 1, 2026-11-06). */
+  removed_at    timestamptz,
+  removed_by    uuid references eng_profiles (id) on delete set null,
+  constraint eng_crm_territory_counties_removed_whole
+    check (removed_by is null or removed_at is not null)
 );
 
-/* A county is in at most one territory, however it is spelled. */
+/* A county is in at most one territory, however it is spelled, among the counties not taken out. */
 create unique index if not exists eng_crm_territory_counties_county_once
-  on eng_crm_territory_counties (lower(btrim(county)));
+  on eng_crm_territory_counties (lower(btrim(county))) where removed_at is null;
 
 alter table eng_crm_territory_counties enable row level security;
 revoke all on eng_crm_territory_counties from public, anon, authenticated;
@@ -110,12 +119,21 @@ comment on table eng_crm_territory_counties is
 /* ------------------------------------------------------- who holds each one */
 
 create table if not exists eng_crm_territory_reps (
+  id            uuid primary key default gen_random_uuid(),
   territory_id  uuid not null references eng_crm_territories (id) on delete cascade,
   profile_id    uuid not null references eng_profiles (id) on delete cascade,
   created_at    timestamptz not null default now(),
   created_by    uuid references eng_profiles (id) on delete set null,
-  primary key (territory_id, profile_id)
+  /* Taken off the territory: stamped, never deleted (Robert's answer 1, 2026-11-06). */
+  removed_at    timestamptz,
+  removed_by    uuid references eng_profiles (id) on delete set null,
+  constraint eng_crm_territory_reps_removed_whole
+    check (removed_by is null or removed_at is not null)
 );
+
+/* A rep holds a territory once, among the holders not taken off. */
+create unique index if not exists eng_crm_territory_reps_holds_once
+  on eng_crm_territory_reps (territory_id, profile_id) where removed_at is null;
 
 create index if not exists eng_crm_territory_reps_profile_idx on eng_crm_territory_reps (profile_id);
 
@@ -143,6 +161,11 @@ begin
   end if;
   if to_regclass('public.eng_crm_territory_counties_county_once') is null then
     raise exception 'eng: 0116 expects a county to be in at most one territory.';
+  end if;
+  if to_regclass('public.eng_crm_territory_reps_holds_once') is null
+     or not exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'eng_crm_territory_counties' and column_name = 'removed_at')
+     or not exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'eng_crm_territory_reps' and column_name = 'removed_at') then
+    raise exception 'eng: 0116 expects both tables to stamp a removal, and a rep to hold a territory once, after it runs.';
   end if;
 end;
 $$;
