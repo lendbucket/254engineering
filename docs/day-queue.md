@@ -1491,6 +1491,38 @@ On a pass: R4's production request, then R5's development request. R5 takes R4's
 - The four LCP pages under ceiling.
 - The standing COULD NOT TELL lines, the authenticated count rising by R5's screen.
 
+**The rework's plan was posted (6690568164) and question 4 asked (6690639798):**
+- **Question 3:** the migration number.
+- **Question 4:** the password. Door 1 sets it through the email link, and its tokens have two purposes only.
+
+## ROBERT, 2026-11-06, in chat, verbatim: the roofer rework answers
+
+> Roofer rework answers: 1 yes, "254" in the page headline only, never calling the roofer a 254 partner in the account, the emails or the status card. 2 yes, an account under review can order at the published price by card; partner pricing and partner ordering wait for approval. 3 yes, the rework takes 0117 and R7 onward move up one. 4 option 1, step one asks company, owner, email and phone, and the email link sets the password and signs them in.
+
+**What follows from them:**
+- R7 becomes 0118, R8 0119, M2 0120, Q8b 0121, F12 and F6 0122, and the prospect kinds 0123. Each moves on new stage branches when it comes up.
+- The prospect kinds script (6677926201) is regenerated before Robert runs it.
+
+**READ-BACKS:**
+- **0115 on production** (6690985133), 17:21 UTC, version `20261106172139`, stored `74f54ddc`.
+- **0116 on development** (6690985485), 17:22 UTC, version `20261106172208`, stored `9dc01eaa`, the nothing-deleted file.
+
+**Bundle 115 dispatched:** R5 as board `42261569942` on `1c0966c`, over main `3b50d10`.
+
+**R4 NOT MERGED. Question posted (6691074825):** R4 is built on R3, which Robert ruled merges with R7.
+- Recommended: hold R4, R5 and R6, and merge the stack with R7.
+- Nothing merges until he answers.
+
+**The roofer rework, part 1** on `feat/roofer-account-first` at `2ea5288`, over R5 `1c0966c`. All four answers are built as he gave them.
+- **Step one** is four fields. It opens a door 1 account by the sign-up route's own rules: the gate, the honeypot, door 1's rate limit, the identical answer, and no application attached to an existing account.
+- **The email link** sets the password and signs them in.
+- **"Finish your profile"** sits on `/account`, three sections each saving through `/api/account/partner`. The certificate upload moved there from the old public route, which is removed.
+- **The review list, the detail screen and the CSV** show completeness.
+- **The wording** is supplier wording everywhere, with "254" only in the landing headline. The questions box became the phone, email and Book a call. The step-two page keeps Robert's booking line.
+- **0117:** sixteen NOT NULLs dropped, the approval check widened, three done times and checks added, both functions replaced. Operator route. Shape `ac53d694`, 1541 columns; behaviour `1eb1de11`, 1527 facts.
+- **Checks:** token-audit, migration-audit and schema-ledger PASS; the type check clean.
+- **Part 2:** the proof and forms-audit, then the walk.
+
 **THE ROOFER APPLICATION MERGED** as `b10651c` (parents `c7bbe8c`, `130abe3`), after 0113's production read-back (6675087911, 02:18 UTC 2026-11-06).
 - **The read-back:** history version `20261106021807`, stored hash `4d6f7664`; grants 192 to 194; both checks widened; the author check present; no row changed.
 - **No connector prompt appeared** this time, and block 2 ran on the first call; the ledger records that.
