@@ -226,6 +226,11 @@ export default function RoofingPartnersPage() {
                   </a>
                 </>
               ) : null}
+              {/* Robert, 2026-11-06: the page's path to a quote, once "Ask a question first" goes to his booking page. */}
+              , or through the{" "}
+              <Link href="/contact" className="font-semibold text-slate underline">
+                contact page
+              </Link>
               .
             </Callout>
           </div>
