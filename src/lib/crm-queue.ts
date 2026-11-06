@@ -322,7 +322,7 @@ export async function recordOutcome(
     owner_id: actor.id,
   };
   /*
-   * A customer keeps its customer stage and status (0111 holds converted and
+   * A customer keeps its customer stage and status (0112 holds converted and
    * the two customer stages together): the call is logged and the next call is
    * scheduled, and a do not call still puts their addresses on the suppression
    * list below.

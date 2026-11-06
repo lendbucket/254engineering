@@ -128,7 +128,7 @@ const dnc = plan("do_not_call", { stage: "connected", sequenceStep: 3 });
 check("D: do not call is do not contact, for good, every address suppressed", dnc.ok && dnc.plan.stage === "do_not_contact" && dnc.plan.status === "not_interested" && dnc.plan.suppressEmails && dnc.plan.nextActionAt === null, JSON.stringify(dnc));
 check("D: nothing is recorded on a company that asked not to be contacted", !plan("no_answer", { stage: "do_not_contact", sequenceStep: 2 }).ok);
 check("D: every outcome R3 names is offered", rules.CALL_OUTCOMES.join(",") === "no_answer,voicemail,callback,interested,not_interested,wrong_number,do_not_call");
-check("D: every queue outcome is one 0111's check allows", rules.CALL_OUTCOMES.every((o) => crmRules.CRM_OUTCOMES.includes(o)));
+check("D: every queue outcome is one 0112's check allows", rules.CALL_OUTCOMES.every((o) => crmRules.CRM_OUTCOMES.includes(o)));
 
 /* ---------------------------------------------------------------- E scripts */
 

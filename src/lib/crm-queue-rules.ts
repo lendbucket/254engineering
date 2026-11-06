@@ -138,7 +138,7 @@ export const CALL_OUTCOME_LABEL: Record<CallOutcome, string> = {
   do_not_call: "Do not call",
 };
 
-/** The call log's own outcome word for each (0079's vocabulary), beside the CRM's (0111). */
+/** The call log's own outcome word for each (0079's vocabulary), beside the CRM's (0112). */
 export const LOG_OUTCOME: Record<CallOutcome, "no_answer" | "voicemail" | "reached" | "interested" | "not_interested" | "wrong_number"> = {
   no_answer: "no_answer",
   voicemail: "voicemail",
