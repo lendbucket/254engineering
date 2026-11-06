@@ -177,6 +177,16 @@ export const PROBES = [
       "recorded samples with no network.",
   },
   {
+    kind: "crm.account_tasks",
+    payload: { day: "not-a-day" },
+    expect: "dead",
+    realSubject: false,
+    why:
+      "Added 2026-11-02 (Robert's sales CRM ruling R6). A malformed day is fatal, as for the credential refresh. A real " +
+      "day would read every converted account on development and raise real reminder tasks on each board run, which is " +
+      "the account proof's question, asked there on the rules with the dates pinned.",
+  },
+  {
     kind: "errors.alert",
     payload: {},
     expect: "done",
