@@ -1,0 +1,30 @@
+{
+  "purpose": "Recorded samples for the sales list import proofs (Robert's CRM R2, 2026-11-02). Each was fetched once from the public source named, trimmed, and is read by scripts/proofs/the-imports-preview-dedupe-and-wait-for-a-person.mjs. No proof reaches a real portal.",
+  "fetchedOn": "2026-11-02",
+  "files": {
+    "san-antonio-permits.csv": {
+      "source": "https://data.sanantonio.gov/dataset/building-permits (permits_issued.csv)",
+      "trim": "The header and 320 rows from the first 4 MB of the file: up to 70 rows of each kept permit type and 3 of each other type, in file order."
+    },
+    "austin-permits.json": {
+      "source": "https://data.austintexas.gov/resource/3syk-w9eu.json",
+      "trim": "220 Socrata rows: 40 Roof, 80 Auxiliary Power naming solar or PV, 80 Repair naming foundation, and 20 Remodel that the filter must drop, newest first, selected columns only."
+    },
+    "tdlr-electrical-contractors.csv": {
+      "source": "https://www.tdlr.texas.gov/dbproduction2/Lteecele.csv",
+      "trim": "The header and the first 200 rows of 14,058."
+    },
+    "tdlr-solar-retailers.csv": {
+      "source": "https://www.tdlr.texas.gov/dbproduction2/vsResidentialSolarRetailers.csv",
+      "trim": "The whole file, 74 rows."
+    },
+    "tdlr-solar-salespeople.csv": {
+      "source": "https://www.tdlr.texas.gov/dbproduction2/vsResidentialSolarSalesperson.csv",
+      "trim": "The header and the first 200 rows of 1,684."
+    },
+    "trec-license-holders.json": {
+      "source": "https://data.texas.gov/resource/s7ft-44qi.json",
+      "trim": "200 Socrata rows ordered by license number, every status and type, so the filter has something to drop."
+    }
+  }
+}

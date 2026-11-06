@@ -332,6 +332,14 @@ export const RETENTION_POLICY: RetentionEntry[] = [
   },
   { table: "eng_contacts", rule: { kind: "kept_pending_counsel", because: COUNSEL } },
   { table: "eng_credentials", rule: { kind: "kept_pending_counsel", because: COUNSEL } },
+  /*
+   * The sales list's import runs and their verdicts, 0114 (Robert's CRM R2).
+   * Telemetry in shape: a run describes a pull, not a customer. A floor is
+   * defensible and none is ruled, and the tables retention may delete from are
+   * pinned at eng_cron_runs and eng_jobs (CLAUDE.md 6c), so both are kept.
+   */
+  { table: "eng_crm_import_rows", rule: { kind: "kept_pending_counsel", because: "Telemetry in shape, one verdict per record a source gave in an import run. No floor is ruled. " + COUNSEL } },
+  { table: "eng_crm_import_runs", rule: { kind: "kept_pending_counsel", because: "Telemetry in shape, one preview of one source and what a person did with it. No floor is ruled. " + COUNSEL } },
   {
     table: "eng_cron_runs",
     rule: {

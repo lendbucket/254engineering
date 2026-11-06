@@ -4,6 +4,7 @@ import { enqueue } from "@/lib/ops-jobs";
 import { dayKey } from "@/lib/ops-metrics";
 import { todayInFirmCalendar } from "@/lib/firm-calendar";
 import { cronStarted, cronFinished, captureError } from "@/lib/ops-observability";
+import { scheduledSources } from "@/config/crm-sources";
 
 export const dynamic = "force-dynamic";
 
@@ -93,6 +94,23 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ ok: false, error: insurance.error }, { status: 503 });
     }
 
+    /*
+     * THE SALES LIST'S SCHEDULED PREVIEWS, DAILY. Robert's sales CRM ruling of
+     * 2026-11-02, item R2: one job per ready source, keyed on the source and
+     * the firm's calendar day. Each previews only; a person presses Write
+     * (his answer 4). A source on hold is never queued (scheduledSources).
+     */
+    const previews: string[] = [];
+    for (const decl of scheduledSources()) {
+      const preview = await enqueue("crm.import_preview", { source: decl.key, day: firmDay });
+      if (!preview.ok) {
+        await cronFinished(runId, false, preview.error);
+        await captureError(new Error(preview.error), { route: "/api/cron/daily", kind: "cron" });
+        return NextResponse.json({ ok: false, error: preview.error }, { status: 503 });
+      }
+      previews.push(`${decl.key}${preview.duplicate ? " (already queued)" : ""}`);
+    }
+
     await cronFinished(
       runId,
       true,
@@ -100,6 +118,7 @@ export async function GET(request: NextRequest) {
         queued.duplicate ? `${yesterday} was already queued` : `queued the rollup for ${yesterday}`,
         refresh.duplicate ? `the credential refresh for ${today} was already queued` : `queued the credential refresh for ${today}`,
         insurance.duplicate ? `the insurance warnings for ${firmDay} were already queued` : `queued the insurance warnings for ${firmDay}`,
+        previews.length ? `the sales list previews for ${firmDay}: ${previews.join(", ")}` : "no sales list source is ready to preview",
       ].join("; "),
     );
 

@@ -2560,6 +2560,8 @@ if (!db) {
          * none of, so the guards and this ruling agree.
          */
         "/portal/prospects",
+        /* The sales list's imports, Robert's CRM R2 of 2026-11-02: crm.import, which only admin and ops_manager hold. Selling is not an engineer's work. */
+        "/portal/crm/imports",
         "/portal/inbox",
         "/portal/order-lookup",
         "/portal/refunds",
