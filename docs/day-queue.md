@@ -1203,6 +1203,44 @@ On a pass the polish merges: full lane, email templates; no migration.
 
 On a pass R3 does not merge yet: it merges together with R7 (Robert's ruling), and R4 stacks on it.
 
+**Bundle 111 dispatched** as board `42164371246` on `3732690`.
+
+**ROBERT'S OVERNIGHT ORDER, 2026-11-05 into 2026-11-06, verbatim:**
+
+> Overnight run, 2026-11-05 into 2026-11-06. Work the queue in this order until it is empty or 7:00 AM Central, whichever comes first.
+>
+> 1. R2: 0114 is on production (issue #1, 6677185149, version 20261106044912). Record it in supabase/applied.mjs, bring R2 up to main, confirm the tree is the boarded tree plus that ledger line, and merge.
+> 2. R3: finish its board (42164371246). On a pass it waits to merge with R7, as planned.
+> 3. R4 through R8, in order, each on its own branch over the one before. Renumber each migration to the next free number after 0114. For every branch that carries a migration: apply it to development by the normal route, board it alone with your prediction stated first, push, and stage it with its production request posted on issue #1. It does not merge tonight. My counterpart sits additive ones at the morning check; a destructive one waits for me.
+> 4. R3 and R7 merge together once R7 has passed and its migration is on production. Not tonight unless both are true.
+> 5. L3, if the board is free: it carries no migration, so it may merge under the standing unattended merge word.
+> 6. M2, Q8b, F12 and F6, then the prospect kinds migration last. Renumber each after the CRM files. The prospect kinds file is destructive: stage its operator_sql_editor script on issue #1 for me and do not run it.
+>
+> Standing rules for tonight:
+> - Nothing holds. If another project holds the machine lock, run beside it on your own checkout, .next and ports, and never touch its process. If a push fails twice, use the REST API route, then the gist bundle route, as ruled.
+> - No memory floor. If a step dies from memory, say so plainly and rerun it.
+> - No merge to main from a tree no board measured together with that main. No force push, no tag, no rewritten remote branch.
+> - A red board on a branch parks that branch and you move to the next item. A second red on the same branch parks it for me.
+> - Q8c stays parked.
+> - Every merge, park and staged sitting gets one line on ops/day as it happens.
+>
+> At 7:00 AM Central, post one report on issue #1. Open it with what you need from me, numbered, each with a recommendation. Then list what merged with hashes, what is staged and waiting for a sitting with its request comment, what parked and why, and the plan for today with a finish line.
+
+**Numbering tonight:** R4 0115, R5 0116, R6 (no migration), R7 0117, R8 0118, then M2 0119, Q8b 0120, F12 and F6 0121, and the prospect kinds 0122 (destructive).
+
+**R2: 0114 on production** (6677185149, version `20261106044912`). Main has moved past R2's boarded `ea94248` by more than ledger lines: it carries 0113's production line AND the roofer polish (`email-templates.ts` and the roofer proof). So "the boarded tree plus that ledger line" cannot hold. Under tonight's rule that no merge to main comes from a tree no board measured with that main, R2 brought up to main boards again first.
+- **`feat/crm-r2-at-main` at `ceb6b07`** is `ea94248` with main `2a8228b` merged in. It differs from `ea94248` only by the polish's two files and 0113's ledger line. Preflight GREEN, the roofer proof PASS.
+- It boards without 0114's production line, because the ledger refuses "applied" on a migration not yet on main (preflight red, as built, when the line was present).
+- On a pass, the 0114 line goes on top and it merges, with the tree equal to the boarded tree plus that line, which is what merge-q.sh checks.
+
+**R4 rebuilt as 0115** on `feat/crm-r4-pipeline-0115` at `ff2714b`, over R3 `3732690`.
+- Only R4's own numbers moved.
+- The shift script also moved R1's two 0112 lines and the roofer's 0113 line in `retention-policy.ts`. All three were restored by hand and the diff was re-read to show only R4's two entries.
+- Digests: `714fc139` at 1519 columns and 113 tables; behaviour `81c17991` at 1498 facts.
+- Locally: the pipeline proof PASS (61), migration-audit PASS, schema-ledger PASS, the type check clean, preflight GREEN.
+
+**STAGED: 0115** on `stage/0115-crm-pipeline` at `6a62baa`. The development request is 6677298218, to be sat after R3's board.
+
 **THE ROOFER APPLICATION MERGED** as `b10651c` (parents `c7bbe8c`, `130abe3`), after 0113's production read-back (6675087911, 02:18 UTC 2026-11-06).
 - **The read-back:** history version `20261106021807`, stored hash `4d6f7664`; grants 192 to 194; both checks widened; the author check present; no row changed.
 - **No connector prompt appeared** this time, and block 2 ran on the first call; the ledger records that.
