@@ -1164,6 +1164,10 @@ On a pass, the 0113 production script is generated from this commit and posted f
 
 **Bundle 108b result: board `42138978968` on `97b8da2`, 65 of 65, zero FAIL, as predicted.** Preflight GREEN. seo-audit PASS with the second link. queue-audit PASS, with no live outward job waiting. proofs-audit PASS with a-roofer-application-is-decided-by-a-person. forms-audit's six roofer checks PASS: the empty step, live checking, 390, the kept draft (read back "Zzq Formsaudit Roofing"), the API's 422 and the honeypot. LCP `/` 2352ms, service 2498ms, `/coverage` 2495ms, coastal-bend 2422ms. **THE ROOFER APPLICATION BOARDED GREEN.** The 0113 production request is 6674870647 (operator route, file sha256 `92571cca`, the same bytes development ran), and the counterpart is told it is ready for Robert's prompt (6674871129). It merges after that read-back.
 
+**Bundle 109 result: board `42147945042` on `ea94248`, 65 of 65, zero FAIL, as predicted.** Preflight GREEN. proofs-audit PASS with the imports proof. LCP `/` 2358ms, service 2796ms, `/coverage` 2723ms, coastal-bend 2439ms. Writers 5 transient retries. **R2 BOARDED GREEN.** The 0114 production request is 6676040567 (apply_migration, additive). It says plainly that development holds the same file under the 0113 name, and that production's stored hash will be `cbb875e4`, not development's `7ab62aef`, because only the file's own number differs. R2 merges after that read-back, taking main first.
+
+**Bundle 110 dispatched** as board `42156511065` on `ca889fe`, right after R2's board, with the prediction below already on ops/day.
+
 **Bundle 110, the roofer polish: `fix/roofer-email-polish` at `ca889fe`, over main `b10651c`.** Two files, both in Robert's words of 2026-11-05.
 - **`roofer.approved`** in his voice: "Hi" and the first name; "Welcome to the roofing partner program: your application is approved."; "Your company's account is open, and the button below sets your password."; "I'll be in touch to set up your partner pricing and walk you through ordering your first job." No time promised, and no 254 partner title. The password sentence is gone.
 - **`roofer.declined`** opens "Hi" and the first name.
