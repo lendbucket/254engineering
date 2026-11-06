@@ -4414,6 +4414,26 @@ export const APPLIED = [
       "each session cookie carries the epoch it was issued under and is refused when the row's has moved. Additive: " +
       "three columns, integer not null default 0.",
   },
+  {
+    file: "0120_an_order_is_on_one_statement_and_a_lost_dispute_is_a_refund.sql", appliedBy: "apply_migration",
+    fingerprint: "8b25e71507ed70a52452ef5e2fb3ca78",
+    behaviour: "72c0643b6a0758c592d86f0644ca41e6",
+    production: null,
+    proves: { function: "eng_apply_refund" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-05 on the chain to 0120 (written as 0118 on " +
+      "2026-11-03, renumbered by ruling (a) of 2026-11-04 and order A of 2026-11-05). Shape unchanged at 1567 " +
+      "columns and 119 tables. Behaviour 1557 to 1558 facts: the unique index eng_statement_lines_order_once; the " +
+      "widened eng_payment_events_type_known and the replaced eng_apply_refund change definitions, not counts. The " +
+      "proves probe names eng_apply_refund, which has existed since 0075, so it cannot tell this migration's presence " +
+      "on its own: the sitting's read back names the index and reads the function body for v_case.",
+    because:
+      "WRITTEN 2026-11-03 ON fix/q8b-money-constraints AND STAGED ON stage/0120-money-constraints FOR THE CHAT " +
+      "COUNTERPART'S DEVELOPMENT SITTING; APPLIED NOWHERE. Robert's Q8 of 2026-11-02, money audit F8 and F10: an order " +
+      "is a line on one statement only, and eng_apply_refund takes its refund_case and event type from the payload so " +
+      "a lost dispute is written as dispute_lost. unique (account_id, period) on eng_statements already exists (0009) " +
+      "and is asserted, not added.",
+  },
 ];
 
 /*
