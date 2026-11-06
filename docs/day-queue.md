@@ -1543,6 +1543,10 @@ On a pass: R4's production request, then R5's development request. R5 takes R4's
 - Writers had 3 transient retries.
 - **R5 BOARDED GREEN.** Its 0116 production request is 6692402974, at the boarded commit, byte identical to `stage/0116-crm-territories-b`. R5 does not merge until Robert answers the R4 question.
 
+**0116 on production** (6693496647), 19:26 UTC, version `20261106192619`, stored `9dc01eaa`, matching development. R4 and R5 are each ready, and hold behind the R4 question (6691074825).
+
+**Ran beside another project's lock:** the rework's webpack build in 254-wt-roofer2, about 18:40 UTC, while dispatch-scheduling (pid 19020) held `C:\Users\salon\.test-lock`. It used its own checkout and its own `.next`, and nothing of theirs was touched (standing rule 1).
+
 **THE ROOFER APPLICATION MERGED** as `b10651c` (parents `c7bbe8c`, `130abe3`), after 0113's production read-back (6675087911, 02:18 UTC 2026-11-06).
 - **The read-back:** history version `20261106021807`, stored hash `4d6f7664`; grants 192 to 194; both checks widened; the author check present; no row changed.
 - **No connector prompt appeared** this time, and block 2 ran on the first call; the ledger records that.
