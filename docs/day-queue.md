@@ -1132,6 +1132,27 @@ On a pass, the 0112 production sitting request is posted. R1 merges after its pr
 
 On a pass, the 0113 production script is generated from this commit and posted for Robert's prompt. The branch merges after R1 and after 0113's production read-back.
 
+**Bundle 108 result: board `42129740037` on `bf195d8`, RED, 63 pass, 1 FAIL, 1 COULD NOT TELL.** Preflight GREEN.
+- **FAIL, seo-audit** (the branch's): "/roofing-partners/apply: 1 page(s) link to it (/roofing-partners); every sitemap page needs at least two". Fixed at `67919de`.
+- **COULD NOT TELL, queue-audit, CAUSED BY MY WALK, NOT BY THE BRANCH.** It refused to start because development held four live `email.send` jobs (#45067 to #45070, 23:32 UTC). Those were my walk's first half, run on the local server while this board ran: two firm notices and two acknowledgements. I had reasoned only about the probe sweep and missed queue-audit's guard against live outward email. **The walk now never runs while a board is in its writers shard.** Those jobs, and the two from the second half, were removed in the walk's teardown, after being saved whole. Read back: no live `email.send` job waits on development.
+- Every other audit PASS. LCP in range.
+
+**The walk, second half, 2026-11-05 ~00:40 UTC, no board running.**
+- **The admin home** shows "Roofer applications to review: 2" in work due now, and "Follow-ups due: 2" from the two roofer prospects on the call list.
+- **The review screen** lists both applications. Each application page shows every answer, the certificate link, dialable references, Print, and the reason box with both buttons disabled until a reason is written.
+- **Approve** (application 1, with a reason) opened account `b55ea614` through door 2, read back.
+- **Decline** (application 2, with a reason) recorded it.
+- **The emails** were rendered from their queued HTML at 390 and 1280: `roofer.approved` with the set password button and the link's expiry, `roofer.declined` plain with no reason, and `roofer.received`. **Delivery not tested** (Robert's rule 3): this PC holds no Resend key. The six messages are saved whole in the scratchpad's `walk/walk-email-jobs.json` to queue again if a key is added. The approval's set password link no longer opens, because the account is superseded.
+- **A walk script fault, not the product:** waiting for "networkidle" on a signed in page timed out, because the portal's live counts poll. The screenshots wait for load plus 1.5 s instead.
+- **Teardown, read back:** account superseded, certificate removed, 2 prospects removed (their applications and sources with them; 0 left), 6 email jobs removed, probe admins 0 left.
+
+**Bundle 108b: `feat/roofer-application` at `97b8da2`.** `bf195d8`, plus the second link to the application (`67919de`), plus main `c7bbe8c` (R1 merged, the 0112 production line), plus 0113's ledger entry recording the development sitting. Preflight GREEN, 38 rules, 123 s. No board is running and no walk runs during it. **This is the item's second board; a second red parks it.**
+
+**Prediction, bundle 108b, stated before dispatch: 65 of 65, zero FAIL.**
+- seo-audit PASS, with `/roofing-partners/apply` linked from four pages.
+- queue-audit PASS, with no live outward job waiting.
+- Every other line as bundle 108.
+
 **R1 MERGED** as `c7bbe8c` (parents `7f3361a`, `becf7a2`) after 0112's production read-back (6672192716: version `20261105232655`, stored hash `c23ea39a`, grants 186 to 192). The merged tree is boarded `007532b` plus the 0112 ledger line; `ls-remote` confirms; no board started on main.
 
 **Bundle 108, partial (writers still running): the pages shard FAILED on one seo-audit check:** "/roofing-partners/apply: 1 page(s) link to it (/roofing-partners); every sitemap page needs at least two". A real gap in my build. Fixed locally at `67919de`: the roofer note on the three roofing service pages now also links the application. That commit is not pushed while the board runs, because a push would cancel it. The writers shard is awaited, so every failure is fixed in one new commit before the second board; a second red parks the item.
