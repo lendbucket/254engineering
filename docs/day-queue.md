@@ -1314,6 +1314,19 @@ On a pass: 0114's production line (6677185149, version `20261106044912`) goes on
 
 On a pass L3 merges under the standing unattended merge word: no migration, brought up to the current main, its board on that exact tree, every line met, and `origin/main` confirmed unmoved.
 
+**Bundle 112 result: board `42171592355` on `ceb6b07` (R2 at main), 65 of 65, zero FAIL, as predicted.**
+- Preflight GREEN.
+- LCP: `/` 2916ms, service 2612ms, `/coverage` 2726ms, coastal-bend 2933ms.
+- Writers had 4 transient retries.
+- Its six COULD NOT TELL lines (the 75 deferred authenticated screens, retention's eng_jobs fixture, Stripe with no key, three citation hosts) also appear on boards 110 and 111, so they are standing lines.
+
+**R2 MERGED** as `caa7167` (parents `2a8228b`, `370057e`), after 0114's production read-back (6677185149, version `20261106044912`).
+- The merged tree differs from the boarded `ceb6b07` only in `supabase/applied.mjs`, by 0114's production line.
+- schema-ledger-audit PASS on main.
+- `ls-remote` confirms it. It deploys with this push.
+
+**Bundle 113 dispatched:** L3 brought up to main `caa7167` at `4abb674` (preflight GREEN), board `42180117032`. Same prediction: 65 of 65, zero FAIL.
+
 **THE ROOFER APPLICATION MERGED** as `b10651c` (parents `c7bbe8c`, `130abe3`), after 0113's production read-back (6675087911, 02:18 UTC 2026-11-06).
 - **The read-back:** history version `20261106021807`, stored hash `4d6f7664`; grants 192 to 194; both checks widened; the author check present; no row changed.
 - **No connector prompt appeared** this time, and block 2 ran on the first call; the ledger records that.
