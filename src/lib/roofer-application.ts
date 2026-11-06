@@ -188,6 +188,86 @@ export const ROOFER_STEPS = [
   },
 ] as const;
 
+/*
+ * ===========================================================================
+ * ACCOUNT FIRST, THEN THE PROFILE. Robert's rework of 2026-11-06 (0117).
+ * ===========================================================================
+ *
+ * Step one asks who they are and opens their account; the work, insurance and
+ * references are three sections of "Finish your profile" inside the account,
+ * each saved on its own, none of them blocking a sign in. The decision is
+ * still a person's, made once, as above.
+ */
+
+/** Step one: who they are. The account opens on submit (door 1), and the email link sets the password. */
+export const rooferSignUpSchema = z.object({
+  legalName: required("your company's name"),
+  ownerName: required("the owner's name", 120),
+  email: trimmed(200)
+    .min(1, { message: "Enter an email address." })
+    .email({ message: "That email address does not look complete." }),
+  phone: trimmed(40).refine((v) => {
+    const d = phoneDigits(v);
+    return d.length === 10 || (d.length === 11 && d.startsWith("1"));
+  }, { message: "Enter a ten digit phone number." }),
+  /** The honeypot. A person never sees it. */
+  website: trimmed(200).optional(),
+  landingPath: trimmed(300).optional(),
+  referrer: trimmed(500).optional(),
+});
+export type RooferSignUpInput = z.infer<typeof rooferSignUpSchema>;
+
+/** The profile's three sections, each saved on its own. */
+export const ROOFER_SECTIONS = ["work", "insurance", "references"] as const;
+export type RooferSection = (typeof ROOFER_SECTIONS)[number];
+export const ROOFER_SECTION_LABEL: Record<RooferSection, string> = {
+  work: "Your work",
+  insurance: "Insurance",
+  references: "Two references",
+};
+
+export const rooferWorkSchema = rooferApplicationSchema.pick({
+  officeCity: true,
+  counties: true,
+  yearsInBusiness: true,
+  crewCount: true,
+  workMix: true,
+  roofsPerYear: true,
+  services: true,
+  monthlyVolume: true,
+});
+export const rooferInsuranceSchema = rooferApplicationSchema
+  .pick({ insuranceCarrier: true, glPerOccurrence: true, glAggregate: true })
+  .extend({ certificatePath: trimmed(400).min(1, { message: "Upload the certificate of insurance." }) });
+export const rooferReferencesSchema = rooferApplicationSchema.pick({
+  reference1Name: true,
+  reference1Company: true,
+  reference1Phone: true,
+  reference2Name: true,
+  reference2Company: true,
+  reference2Phone: true,
+});
+
+export type RooferWorkInput = z.infer<typeof rooferWorkSchema>;
+export type RooferInsuranceInput = z.infer<typeof rooferInsuranceSchema>;
+export type RooferReferencesInput = z.infer<typeof rooferReferencesSchema>;
+
+export const ROOFER_SECTION_SCHEMA = {
+  work: rooferWorkSchema,
+  insurance: rooferInsuranceSchema,
+  references: rooferReferencesSchema,
+} as const;
+
+/** How complete a profile is, from the three done times; the review screen and the account both say it. */
+export function profileCompleteness(done: Record<RooferSection, string | null | undefined>): { done: number; of: number; sentence: string } {
+  const n = ROOFER_SECTIONS.filter((s) => Boolean(done[s])).length;
+  return {
+    done: n,
+    of: ROOFER_SECTIONS.length,
+    sentence: n === ROOFER_SECTIONS.length ? "Profile complete" : `${n} of ${ROOFER_SECTIONS.length} profile sections done`,
+  };
+}
+
 /** The first error for each field, keyed by field name, the shape every form here shows. */
 export function rooferFieldErrors(error: z.ZodError): Record<string, string> {
   const out: Record<string, string> = {};

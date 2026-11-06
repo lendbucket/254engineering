@@ -247,6 +247,8 @@ const ADMIN_APIS = [
   "/api/account/bulk",
   "/api/account/settings",
   "/api/account/statements",
+  /* A roofing partner finishing its profile and attaching its certificate (Robert's rework of 2026-11-06, 0117). */
+  "/api/account/partner",
 
   /*
    * Phase 13 Section 1. Opens a customer account from a telephone call, so a

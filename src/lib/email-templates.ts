@@ -1694,23 +1694,33 @@ export function inquiryNotification(input: {
  * NONE OF THEM OFFERS A FEE, A COMMISSION, A REBATE OR A CREDIT for sending
  * work, 22 TAC 137.63(c)(4), and none gives the roofer a mark to use.
  */
-export function rooferApplicationReceived(input: { email: string }): RenderedEmail {
+export function rooferApplicationReceived(input: { ownerName: string; email: string; link: string; expiresIn: string }): RenderedEmail {
   return compose(
     "roofer.received",
     "human",
-    "We have your partner application",
+    `Your roofing partner account with ${firmName()}`,
     {
-      preheader: "Your application reached the firm, and a person will read it.",
+      preheader: `Your partner account is open. The link sets your password and lasts ${input.expiresIn}.`,
       signed: true,
+      /*
+       * ACCOUNT FIRST (Robert's rework of 2026-11-06): the account opened at
+       * step one, and this link both proves the address and sets the password
+       * (0043), then lands them signed in on the status card. No hiring
+       * language: a supplier opening an account.
+       */
       blocks: [
-        { kind: "p", text: "Hello," },
-        { kind: "p", text: `Your application to work with ${firmName()} as a roofing partner reached the firm.` },
+        { kind: "p", text: `Hi ${firstName(input.ownerName)},` },
+        { kind: "p", text: "Your roofing partner account is open. The button below sets your password and signs you in." },
         {
           kind: "p",
-          text: "A person at the firm reads every application. If it is approved, you receive a second email with a link to set the password for your account. If it is not, you receive a short note saying so.",
+          text: "Your account is being reviewed. A person at the firm approves every partner, which is what keeps the program selective. Finishing your profile, your work, your insurance and two references, speeds the review up.",
         },
-        { kind: "p", text: "If you need to add or correct anything, reply to this message." },
+        {
+          kind: "note",
+          text: `This link lasts ${input.expiresIn}. If it has expired by the time you open it, the sign in page will send you a fresh one.`,
+        },
       ],
+      button: { label: "Set your password", url: input.link },
     },
     { to: input.email },
   );
@@ -1725,13 +1735,16 @@ export function rooferApplicationNotice(input: {
   return compose(
     "roofer.notice",
     "operator",
-    `Roofer partner application: ${input.legalName}`,
+    `Roofing partner account to review: ${input.legalName}`,
     {
-      preheader: `${input.legalName} applied to work with the firm as a roofing partner.`,
-      button: { label: "Review the application", url: input.reviewUrl },
+      preheader: `${input.legalName} opened a roofing partner account. It waits for a decision.`,
+      button: { label: "Review the account", url: input.reviewUrl },
       blocks: [
-        { kind: "p", text: `${input.ownerName} applied for ${input.legalName}. It waits on the review screen for a decision.` },
-        { kind: "details", title: "The application", rows: rows(input.rows) },
+        {
+          kind: "p",
+          text: `${input.ownerName} opened a roofing partner account for ${input.legalName}. It waits on the review screen for a decision; the profile fills in as they finish it.`,
+        },
+        { kind: "details", title: "What they gave", rows: rows(input.rows) },
       ],
     },
   );
@@ -1745,37 +1758,47 @@ function firstName(name: string): string {
 export function rooferApplicationApproved(input: {
   ownerName: string;
   email: string;
-  link: string;
-  expiresIn: string;
+  /** Present only for an application from before 0117, whose account opens at approval. */
+  link?: string;
+  expiresIn?: string;
 }): RenderedEmail {
+  const opensNow = Boolean(input.link);
   return compose(
     "roofer.approved",
     "human",
     `Your partner account with ${firmName()}`,
     {
-      preheader: `Your application was approved. The link sets your password and lasts ${input.expiresIn}.`,
+      preheader: opensNow
+        ? `Your partner account was approved. The link sets your password and lasts ${input.expiresIn}.`
+        : "Your partner account was approved.",
       signed: true,
       /*
        * IN ROBERT'S VOICE (his polish of 2026-11-05): "Hi" and the first name,
-       * a one sentence welcome, the account open and the button setting the
-       * password, and what happens next, which is him getting in touch about
-       * partner pricing and ordering. No time is promised. The sentence about
-       * nobody seeing the password is gone, by his word.
+       * a one sentence welcome, and what happens next, which is him getting in
+       * touch about partner pricing and ordering. No time is promised. Since
+       * 0117 the account is already open, so there is no password link unless
+       * the application predates it.
        */
       blocks: [
         { kind: "p", text: `Hi ${firstName(input.ownerName)},` },
-        { kind: "p", text: "Welcome to the roofing partner program: your application is approved." },
-        { kind: "p", text: "Your company's account is open, and the button below sets your password." },
+        { kind: "p", text: "Welcome to the roofing partner program: your partner account is approved." },
+        ...(opensNow
+          ? [{ kind: "p" as const, text: "Your company's account is open, and the button below sets your password." }]
+          : []),
         {
           kind: "p",
           text: "I'll be in touch to set up your partner pricing and walk you through ordering your first job.",
         },
-        {
-          kind: "note",
-          text: `This link lasts ${input.expiresIn}. If it has expired by the time you open it, the sign in page will send you a fresh one.`,
-        },
+        ...(opensNow
+          ? [
+              {
+                kind: "note" as const,
+                text: `This link lasts ${input.expiresIn}. If it has expired by the time you open it, the sign in page will send you a fresh one.`,
+              },
+            ]
+          : []),
       ],
-      button: { label: "Set your password", url: input.link },
+      ...(opensNow ? { button: { label: "Set your password", url: input.link as string } } : {}),
     },
     { to: input.email },
   );
@@ -1785,19 +1808,19 @@ export function rooferApplicationDeclined(input: { ownerName: string; legalName:
   return compose(
     "roofer.declined",
     "human",
-    "Your partner application",
+    "Your partner account",
     {
-      preheader: `About the application from ${input.legalName}.`,
+      preheader: `About the partner account for ${input.legalName}.`,
       signed: true,
       blocks: [
         { kind: "p", text: `Hi ${firstName(input.ownerName)},` },
         {
           kind: "p",
-          text: `Thank you for applying to work with ${firmName()} as a roofing partner. After reading the application, the firm is not taking it forward at this time.`,
+          text: `Thank you for opening a roofing partner account with ${firmName()}. After reviewing it, the firm is not taking ${input.legalName} on as a partner at this time.`,
         },
         {
           kind: "p",
-          text: "Your company is still welcome to order from the firm like any customer. If anything about the company changes, you are welcome to apply again.",
+          text: "Your account stays open, and your company is welcome to order from the firm like any customer. If anything about the company changes, reply to this message.",
         },
       ],
     },
@@ -2815,14 +2838,21 @@ export function allTemplatesForAudit(): RenderedEmail[] {
       rows: [["County", "Nueces"], ["Address", "100 Sample Street, Corpus Christi"]],
       portalUrl: "https://254engineering.com/portal/inquiries",
     }),
-    /* The roofer partner application's four (Robert, 2026-11-05). */
-    rooferApplicationReceived({ email: "sample@example.com" }),
+    /* The roofer partner account's four (Robert, 2026-11-05; account first since his rework of 2026-11-06, 0117). */
+    rooferApplicationReceived({
+      ownerName: "Sample Owner",
+      email: "sample@example.com",
+      link: "https://254engineering.com/account/set-password?token=sample",
+      expiresIn: "7 days",
+    }),
     rooferApplicationNotice({
       legalName: "Sample Roofing LLC",
       ownerName: "Sample Owner",
-      rows: [["Office", "Corpus Christi"], ["Crews", "4"]],
+      rows: [["Owner", "Sample Owner"], ["Phone", "361 555 0100"]],
       reviewUrl: "https://254engineering.com/portal/roofer-applications?id=00000000-0000-4000-8000-000000000000",
     }),
+    rooferApplicationApproved({ ownerName: "Sample Owner", email: "sample@example.com" }),
+    /* An application from before 0117, whose account opens at approval. */
     rooferApplicationApproved({
       ownerName: "Sample Owner",
       email: "sample@example.com",

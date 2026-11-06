@@ -8,17 +8,19 @@ import { buildMetadata } from "@/lib/seo";
 import { BOOK_A_CALL_URL } from "@/content/book-a-call";
 
 /**
- * THE CONFIRMATION, AND WHAT HAPPENS NEXT. Robert's request of 2026-11-05.
+ * STEP TWO: CHECK YOUR EMAIL. Robert's rework of 2026-11-06 (0117).
  *
- * It names no time, because a person reads each application and how long that
- * takes is not something a page can know. It is out of the index: a page that
- * says "we have your application" is true only for the person just sent here.
+ * The account opened at step one; the email link proves the address, sets the
+ * password and signs them in. It names no time for the review, because a
+ * person approves every partner and how long that takes is not something a
+ * page can know. Out of the index: it is true only for the person just sent
+ * here. The booking line is Robert's request of the same morning.
  */
 export const metadata: Metadata = {
   ...buildMetadata({
-    title: "Your Roofing Partner Application Is In | 254 Engineering",
+    title: "Check Your Email: Your Partner Account | 254 Engineering",
     description:
-      "Your roofing partner application reached the firm. A person reads every one; approval brings an account and a password link, and a decline a short note.",
+      "Your roofing partner account is open. The email link sets your password and signs you in, where you finish your profile. A person approves every partner.",
     path: "/roofing-partners/apply/received",
   }),
   robots: { index: false, follow: true },
@@ -27,31 +29,31 @@ export const metadata: Metadata = {
 const crumbs = [
   { name: "Home", path: "/" },
   { name: "Roofing partners", path: "/roofing-partners" },
-  { name: "Application received", path: "/roofing-partners/apply/received" },
+  { name: "Check your email", path: "/roofing-partners/apply/received" },
 ];
 
 export default function RooferApplicationReceivedPage() {
   const next = [
     {
-      title: "An email confirms it",
-      body: "A short message to the address you gave says the application arrived. If it is not in your inbox, look in spam, then reply to it with anything you want to add.",
+      title: "Open the email link",
+      body: "A message to the address you gave carries a link that sets your password and signs you in. If it is not in your inbox, look in spam.",
     },
     {
-      title: "A person reads it",
-      body: "Someone at the firm reads the application, checks the office, the general liability cover and its certificate, and checks your two references.",
+      title: "Finish your profile",
+      body: "Inside your account: your work, your general liability cover with its certificate, and two references. Each part saves on its own.",
     },
     {
-      title: "You hear the decision by email",
-      body: "If it is approved, an email brings a link to set the password for your company's account. If it is not, a short note says so.",
+      title: "The firm approves your account",
+      body: "A person at the firm reviews it: the office, the cover and its certificate, and your two references. Partner pricing and ordering turn on at approval.",
     },
   ];
   return (
     <>
       <PageHeader
         crumbs={crumbs}
-        eyebrow="Application received"
-        title="Your application is in"
-        lede="Thank you. Nothing else is needed from you right now."
+        eyebrow="Step 2 of 3"
+        title="Check your email"
+        lede="Your partner account is open. The link in the email sets your password and signs you in."
       />
       <Section tone="white">
         <SectionHead eyebrow="What happens next" title="Three things, in this order" />

@@ -4368,6 +4368,27 @@ export const APPLIED = [
       "stage/0116-crm-territories FOR THE CHAT COUNTERPART'S SITTING; APPLIED NOWHERE. Robert's sales CRM ruling of 2026-11-02, item R5, territories and assignment: counties " +
       "grouped into territories, reps holding one or more, the round robin cursor new imports advance. Additive: three tables.",
   },
+  {
+    file: "0117_a_roofer_opens_an_account_first.sql", appliedBy: "operator_sql_editor",
+    fingerprint: "ac53d69433e0d24bd4b3f9fa24fb300b",
+    behaviour: "1eb1de1143737a34365ea599f7d9d381",
+    production: null,
+    handApplied:
+      "Not applied anywhere yet. It drops sixteen NOT NULLs and one check (re-added wider) and replaces a trigger " +
+      "function and a function, which the connector cancels, so development and production each go through the SQL " +
+      "editor in four blocks with Robert approving the prompt, as 0113 did; the provider's history holds a row only " +
+      "because the fourth block inserts it by hand after the verification read.",
+    proves: { column: { table: "eng_roofer_applications", name: "work_done_at" } },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-06 on the chain to 0117. Shape 1538 to 1541 " +
+      "columns: the three section done times; sixteen NOT NULLs dropped. Behaviour 1524 to 1527 facts: the three " +
+      "section checks; the approval check is replaced in place and the two functions with the same signatures.",
+    because:
+      "WRITTEN 2026-11-06 ON feat/roofer-account-first AND STAGED ON stage/0117-roofer-account-first FOR THE " +
+      "OPERATOR SITTING; APPLIED NOWHERE. Robert's rework of the roofer partner sign up, 2026-11-06, numbered 0117 by " +
+      "his answer 3: the account opens at step one through door 1, and the work, insurance and references are a " +
+      "profile filled in section by section. R7 onward move up one. No row, column or table is deleted.",
+  },
 ];
 
 /*
