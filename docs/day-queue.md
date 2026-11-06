@@ -1164,6 +1164,22 @@ On a pass, the 0113 production script is generated from this commit and posted f
 
 **Bundle 108b result: board `42138978968` on `97b8da2`, 65 of 65, zero FAIL, as predicted.** Preflight GREEN. seo-audit PASS with the second link. queue-audit PASS, with no live outward job waiting. proofs-audit PASS with a-roofer-application-is-decided-by-a-person. forms-audit's six roofer checks PASS: the empty step, live checking, 390, the kept draft (read back "Zzq Formsaudit Roofing"), the API's 422 and the honeypot. LCP `/` 2352ms, service 2498ms, `/coverage` 2495ms, coastal-bend 2422ms. **THE ROOFER APPLICATION BOARDED GREEN.** The 0113 production request is 6674870647 (operator route, file sha256 `92571cca`, the same bytes development ran), and the counterpart is told it is ready for Robert's prompt (6674871129). It merges after that read-back.
 
+**Bundle 110, the roofer polish: `fix/roofer-email-polish` at `ca889fe`, over main `b10651c`.** Two files, both in Robert's words of 2026-11-05.
+- **`roofer.approved`** in his voice: "Hi" and the first name; "Welcome to the roofing partner program: your application is approved."; "Your company's account is open, and the button below sets your password."; "I'll be in touch to set up your partner pricing and walk you through ordering your first job." No time promised, and no 254 partner title. The password sentence is gone.
+- **`roofer.declined`** opens "Hi" and the first name.
+- "Ask a question first" stays on `/contact`.
+- **The proof** gains four checks for those words. One planted fault (the full name back in the greeting) turned exactly that check red and was restored byte identical.
+- **Local:** email-audit 1306 of 1306, the proof PASS, the type check clean, preflight GREEN (38 rules, 116 s).
+- **Readers:** email-audit (both templates rendered, voice, plain text, 375px) and proofs-audit (the roofer proof).
+
+**Prediction, bundle 110, stated before dispatch: 65 of 65, zero FAIL.**
+- email-audit PASS.
+- proofs-audit PASS with the roofer proof's four new checks.
+- No page changes, so public bytes are unchanged and the four LCP pages stay under their ceilings.
+- Standing COULD NOT TELL lines only.
+
+On a pass the polish merges: full lane, email templates; no migration.
+
 **THE ROOFER APPLICATION MERGED** as `b10651c` (parents `c7bbe8c`, `130abe3`), after 0113's production read-back (6675087911, 02:18 UTC 2026-11-06).
 - **The read-back:** history version `20261106021807`, stored hash `4d6f7664`; grants 192 to 194; both checks widened; the author check present; no row changed.
 - **No connector prompt appeared** this time, and block 2 ran on the first call; the ledger records that.
