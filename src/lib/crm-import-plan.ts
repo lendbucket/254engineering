@@ -41,7 +41,7 @@ export type ExistingCompany = {
 export type ListIndex = {
   /** "source|record id" to the company holding that source record. */
   bySource: Map<string, string>;
-  /** "name|phone" to the company (unique on the list, 0111). */
+  /** "name|phone" to the company (unique on the list, 0112). */
   byNamePhone: Map<string, string>;
   /** Telephone to every company carrying it, on the company row or one of its people. */
   byPhone: Map<string, string[]>;

@@ -1,7 +1,7 @@
 /**
  * PROOF: THE SALES LIST'S IMPORTS PREVIEW, DEDUPE, AND WAIT FOR A PERSON.
  *
- * Robert's sales CRM ruling of 2026-11-02, item R2, migration 0112, with his
+ * Robert's sales CRM ruling of 2026-11-02, item R2, migration 0114, with his
  * answers the same afternoon (scheduled runs only preview, a person presses
  * Write; no phone and no email is held; build San Antonio, Austin, TDLR and
  * TREC first; TDLR's two solar files added; Austin on hold until he records
@@ -21,9 +21,9 @@
  *      is written
  *   E  no phone and no email is held, never added; a run stores at most
  *      HELD_KEEP held rows and counts every one
- *   F  0112 on a replay: counts whole, who asked, written and failure stated,
+ *   F  0114 on a replay: counts whole, who asked, written and failure stated,
  *      a conflict names two companies, a source row names its run
- *   G  one vocabulary: the sources and verdicts in code are the ones 0112 holds
+ *   G  one vocabulary: the sources and verdicts in code are the ones 0114 holds
  *   H  a bought list goes through the same reading and the same dedupe
  *
  *   node node_modules/tsx/dist/cli.mjs --conditions=react-server scripts/proofs/the-imports-preview-dedupe-and-wait-for-a-person.mjs
@@ -208,13 +208,13 @@ check("the daily cron queues from scheduledSources, one job per source and day",
   check("TREC's sample is held whole on an empty list", tp.filter((r) => r.verdict === "held").length === trec.records.length);
 }
 
-/* --------------------------------------------------------- F, 0112 on a replay */
+/* --------------------------------------------------------- F, 0114 on a replay */
 const db = new PGlite();
 await db.exec(SUPABASE_REPLAY_STUBS);
 const DIR = "supabase/migrations";
 const files = readdirSync(DIR).filter((f) => f.endsWith(".sql")).sort();
-const at12 = files.findIndex((f) => f.startsWith("0112_"));
-check("0112 is in the chain", at12 >= 0, at12 >= 0 ? files[at12] : "missing");
+const at12 = files.findIndex((f) => f.startsWith("0114_"));
+check("0114 is in the chain", at12 >= 0, at12 >= 0 ? files[at12] : "missing");
 for (const f of files.slice(0, at12 + 1)) await db.exec(readSource(join(DIR, f)));
 
 async function refused(sql) {
@@ -270,8 +270,8 @@ const listIn = (constraint) => {
   const block = sql.slice(i, sql.indexOf(")", sql.indexOf("in (", i)) + 1);
   return [...block.matchAll(/'([a-z_]+)'/g)].map((m) => m[1]).sort().join(",");
 };
-check("0112's source list is CRM_SOURCES", listIn("eng_crm_import_runs_source_known") === [...rules.CRM_SOURCES].sort().join(","), listIn("eng_crm_import_runs_source_known"));
-check("0112's verdicts are the planner's", listIn("eng_crm_import_rows_verdict_known") === "add,conflict,held,merge,skip");
+check("0114's source list is CRM_SOURCES", listIn("eng_crm_import_runs_source_known") === [...rules.CRM_SOURCES].sort().join(","), listIn("eng_crm_import_runs_source_known"));
+check("0114's verdicts are the planner's", listIn("eng_crm_import_rows_verdict_known") === "add,conflict,held,merge,skip");
 check("every declared source is one the list knows", config.CRM_SOURCE_DECLS.every((d) => rules.CRM_SOURCES.includes(d.key)));
 check("TDLR's two solar files are declared, vertical solar, under TDLR's terms", ["tdlr_solar_retailers", "tdlr_solar_salespeople"].every((k) => {
   const d = config.sourceDecl(k);

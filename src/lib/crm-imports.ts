@@ -13,7 +13,7 @@ import { CRM_SOURCE_DECLS, sourceDecl, sourceRefusal, type CrmSourceDecl } from 
 
 /**
  * THE IMPORT ENGINE. Robert's sales CRM ruling of 2026-11-02, item R2,
- * migration 0112.
+ * migration 0114.
  *
  * A PREVIEW fetches one source, reads it (crm-import-parse), decides every
  * record against the list as it is (crm-import-plan), and stores the run and
@@ -254,7 +254,7 @@ async function readRunRows(db: Db, runId: string, verdicts: Verdict[]): Promise<
   return { ok: true, rows: read.rows.map(toStored) };
 }
 
-/** The eng_prospects row a record becomes. The kind is derived from the vertical until Robert's destructive sitting replaces it (0111). */
+/** The eng_prospects row a record becomes. The kind is derived from the vertical until Robert's destructive sitting replaces it (0112). */
 export function prospectRowFrom(record: ImportRecord, id: string, createdBy: string): Record<string, unknown> {
   const territory = territoryFor(record.county);
   return {
