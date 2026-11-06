@@ -7,6 +7,7 @@ import { Container } from "@/components/ui/Container";
 import { business } from "@/config/business";
 import { displayPhone, founder, telHref } from "@/config/contact";
 import { BOOK_A_CALL_URL } from "@/content/book-a-call";
+import { selfServiceSignUpClosedSentence, selfServiceSignUpOpen } from "@/lib/launch";
 import { JsonLd, breadcrumbSchema } from "@/lib/schema";
 import { buildMetadata } from "@/lib/seo";
 
@@ -25,7 +26,7 @@ import { buildMetadata } from "@/lib/seo";
 export const metadata: Metadata = buildMetadata({
   title: "Create Your Roofing Partner Account | 254 Engineering",
   description:
-    "Open a roofing partner account in four answers: company, owner, email and phone. Finish your profile inside, and the firm approves every partner. Get started.",
+    "Open a roofing partner account in four answers: company, owner, email and phone. Finish your profile inside, and the firm approves every partner. Start today.",
   path: "/roofing-partners/apply",
 });
 
@@ -51,7 +52,15 @@ export default function RooferSignUpPage() {
         <Container>
           <div className="grid gap-8 py-[clamp(36px,6vw,72px)] lg:grid-cols-[minmax(0,1fr)_300px]">
             <div className="rounded-[4px] border border-limestone-line border-t-4 border-t-brass bg-white p-[clamp(20px,3vw,36px)]">
-              <RooferSignUpForm />
+              {/* Door 1's own condition (0043, cleared 2026-09-28): the form shows only while public sign up is open, as /account/sign-up does. */}
+              {selfServiceSignUpOpen() ? (
+                <RooferSignUpForm />
+              ) : (
+                <p role="status" className="text-[16px] leading-[1.7] text-slate-ink">
+                  {selfServiceSignUpClosedSentence()} To talk about a partner account in the meantime, call or email{" "}
+                  {founder.name}.
+                </p>
+              )}
             </div>
             <aside className="flex flex-col gap-5 lg:pt-2">
               <Callout label="Talk to a person" title={founder.name}>
