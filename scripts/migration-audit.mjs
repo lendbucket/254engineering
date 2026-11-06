@@ -405,6 +405,9 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * held once, money audit F12 and F6 (Robert's answer of 2026-11-03): the three
  * columns of eng_account_credit_holds, 1,567 to 1,570; the table count moves
  * 119 to 120. Read off fingerprint-at.mjs on the chain to 0121.
+ *
+ * 0122 (Robert's CRM answer 8) replaces one check and updates rows, so the
+ * shape does not move.
  */
 const EXPECTED_FINGERPRINT = "1692cd3ebcdde9d504aaded5c6c5d044";
 const EXPECTED_COLUMNS = 1570;

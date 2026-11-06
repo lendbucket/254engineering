@@ -113,6 +113,33 @@ nothing in the provider's record shows how the file was run.
 development from its stage branch, production from the boarded commit, each in
 the four blocks above.
 
+## 0122, `0122_a_prospect_is_one_of_eight_verticals.sql`, by the operator in the SQL editor
+
+**Robert's CRM answer 8, 2026-11-02:** replace the prospect kind check with the
+eight verticals, as a destructive sitting. His overnight order of 2026-11-05
+numbers it 0122, last, and says: stage its operator_sql_editor script on issue
+#1 for him, and do not run it. The prepared sitting is 6588395003.
+
+**What it drops, exactly:** `eng_prospects_type_known` (0079: roofer, agent,
+title, contractor), re-added under the same name with the eight verticals. No
+row is deleted and no column or table is dropped.
+
+**What it changes in rows:** every prospect's `prospect_type` becomes its
+`vertical`. A title row keeps `title_company` as a tag, and a contractor row
+whose vertical is other keeps `contractor` as a tag; both land on other. Those
+two mappings are the prepared sitting's, marked there for Robert's eye. The
+dry read counts each before anything runs.
+
+**The order with the code.** The branch that carries 0122 writes the vertical
+as the kind. Code from before it writes agent or contractor, which the new
+check refuses, so the merge follows the production sitting at once; between
+the two, saving a prospect from an older deployment is refused with the
+database's message.
+
+**What the provider's history will not show:** as with 0111 and 0113, the
+history holds a row for 0122 only because the script's fourth block inserts it
+by hand after the verification read.
+
 ---
 
 ## 0062, prepared and not run

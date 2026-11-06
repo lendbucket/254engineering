@@ -1,3 +1,5 @@
+import { CRM_VERTICALS, VERTICAL_LABEL, verticalFrom, type CrmVertical } from "./crm-rules";
+
 /**
  * READING A SPREADSHEET OF PROSPECTS. Pure, so a proof can drive it row by row.
  *
@@ -14,15 +16,19 @@
  * the eleventh row is a list somebody believes is complete.
  */
 
-export const PROSPECT_TYPES = ["roofer", "agent", "title", "contractor"] as const;
-export type ProspectType = (typeof PROSPECT_TYPES)[number];
+/*
+ * THE KINDS ARE THE EIGHT VERTICALS. Robert's CRM answer 8 (2026-11-02), 0122:
+ * the four old kinds (roofer, agent, title, contractor) were replaced by the
+ * verticals, so this list and its labels are the CRM's own, not a copy.
+ */
+export const PROSPECT_TYPES = CRM_VERTICALS;
+export type ProspectType = CrmVertical;
 
-export const PROSPECT_TYPE_LABEL: Record<ProspectType, string> = {
-  roofer: "Roofer",
-  agent: "Real estate agent",
-  title: "Title company",
-  contractor: "Contractor",
-};
+export const PROSPECT_TYPE_LABEL: Record<ProspectType, string> = VERTICAL_LABEL;
+
+/** What a refused type is told, naming the eight. */
+export const PROSPECT_TYPES_SENTENCE =
+  "roofer, solar, manufactured home dealer, foundation repair, real estate, lender, insurance agent or other";
 
 /** The most rows one import takes. A bigger file is split, and the screen says so. */
 export const IMPORT_ROW_LIMIT = 5000;
@@ -87,17 +93,9 @@ const HEADER: Record<keyof ParsedProspect, RegExp> = {
   prospectType: /^(type|kind|category|segment|prospect type)$/,
 };
 
-const TYPE_WORDS: Record<ProspectType, RegExp> = {
-  roofer: /^(roofer|roofers|roofing|roofing company|roofing contractor)$/,
-  agent: /^(agent|agents|realtor|realtors|real estate|real estate agent|broker)$/,
-  title: /^(title|title company|title companies|title agent|escrow)$/,
-  contractor: /^(contractor|contractors|general contractor|gc|builder|remodeler)$/,
-};
-
+/* The words for each vertical have one home, crm-rules.ts, shared with the CRM imports (0122). */
 export function typeFrom(value: string): ProspectType | null {
-  const v = value.trim().toLowerCase();
-  for (const t of PROSPECT_TYPES) if (TYPE_WORDS[t].test(v)) return t;
-  return null;
+  return verticalFrom(value);
 }
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -150,7 +148,7 @@ export function readProspectFile(text: string, defaultType: ProspectType | null)
     let prospectType: ProspectType | null = defaultType;
     if (typed) {
       prospectType = typeFrom(typed);
-      if (!prospectType) return { line, ok: false, reason: `"${typed}" is not a type. Use roofer, agent, title or contractor.` };
+      if (!prospectType) return { line, ok: false, reason: `"${typed}" is not a type. Use ${PROSPECT_TYPES_SENTENCE}.` };
     }
     if (!prospectType) return { line, ok: false, reason: "No type, and none was chosen for the import." };
     return {

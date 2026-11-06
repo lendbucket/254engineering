@@ -10,6 +10,7 @@ import { createCustomerAccount } from "./account-creation";
 import { doorFor } from "./account-doors";
 import {
   PROSPECT_TYPES,
+  PROSPECT_TYPES_SENTENCE,
   readProspectFile,
   sameProspectKeys,
   type ProspectType,
@@ -265,7 +266,7 @@ function cleanInput(input: ProspectInput): { ok: true; row: Record<string, unkno
   const vertical = input.vertical?.trim() || null;
   if (vertical && !(CRM_VERTICALS as readonly string[]).includes(vertical)) return refuse("That is not a vertical on the sales list.");
   const prospectType = vertical ? prospectTypeForVertical(vertical as CrmVertical) : input.prospectType;
-  if (!(PROSPECT_TYPES as readonly string[]).includes(prospectType)) return refuse("Choose roofer, agent, title or contractor.");
+  if (!(PROSPECT_TYPES as readonly string[]).includes(prospectType)) return refuse(`Choose a type: ${PROSPECT_TYPES_SENTENCE}.`);
   const phone = input.phone?.trim() || null;
   const email = input.email?.trim().toLowerCase() || null;
   if (!phone && !email) return refuse("A prospect needs a phone number or an email address, or nobody can reach them.");
