@@ -1327,6 +1327,20 @@ On a pass L3 merges under the standing unattended merge word: no migration, brou
 
 **Bundle 113 dispatched:** L3 brought up to main `caa7167` at `4abb674` (preflight GREEN), board `42180117032`. Same prediction: 65 of 65, zero FAIL.
 
+**Bundle 113 result: board `42180117032` on `4abb674` (L3), 65 of 65, zero FAIL, as predicted.**
+- Preflight GREEN.
+- The upload proof PASS.
+- LCP: `/` 2864ms, service 2878ms, `/coverage` 3016ms, coastal-bend 2880ms.
+- The same 24 standing COULD NOT TELL lines as board 112.
+- Writers had 3 transient retries.
+
+**L3 MERGED** as `84761d7`, under the standing unattended merge word (overnight order item 5).
+- `origin/main` was confirmed unmoved at `caa7167`.
+- The merged tree is identical to the boarded `4abb674`.
+- `ls-remote` confirms it.
+
+**R4 brought up to main `caa7167`** at `a7a1512`, preflight GREEN, pushed. It waits on 0115's development read-back (6677298218). Every remaining item carries a migration that must be on development first, so the board is idle until the counterpart sits.
+
 **THE ROOFER APPLICATION MERGED** as `b10651c` (parents `c7bbe8c`, `130abe3`), after 0113's production read-back (6675087911, 02:18 UTC 2026-11-06).
 - **The read-back:** history version `20261106021807`, stored hash `4d6f7664`; grants 192 to 194; both checks widened; the author check present; no row changed.
 - **No connector prompt appeared** this time, and block 2 ran on the first call; the ledger records that.
