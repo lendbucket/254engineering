@@ -1435,6 +1435,62 @@ On a pass R4 does not merge tonight. Its production request is posted, and it is
 
 On a pass: R4's production request, then R5's development request. R5 takes R4's fix first.
 
+**Read ahead of the later boards, so they do not repeat this miss:**
+- bulk-audit's static sweep was run on every later branch. Each inherits R4's finding until R4 merges up into it. R5 adds its own: `crm-territories.ts` deletes territory counties and holders, which went to Robert as a question (6688927814).
+- The V10 classes were read on the later screens:
+  - R5's territories `<details>` was a box. Fixed at `67a48b4`.
+  - R8's reports period tabs had no gold marker. Fixed at `7742d35`.
+  - M2's sign out control is a `<button>`, which V10 exempts.
+
+## ROBERT, 2026-11-06, in chat, verbatim: the roofer partner sign up rework
+
+> Rework the roofer partner sign up, full lane. Robert's direction: it reads like a job application, it is too long before they get anything, and parts of it do not make sense. Make it fast, clear and worth finishing, and give them an account at the start.
+>
+> 1. Wording everywhere: no "apply to work with the firm" or anything that sounds like hiring. The page and the buttons speak like a supplier opening an account: "Become a 254 roofing partner", "Create your partner account", "Get started". The person still approves every partner; say that once, plainly, as what keeps the program selective.
+> 2. Account first. Step one asks only company name, owner name, email, phone and a password, and creates their account on submit. They land in their own portal with a status card: "Your partner account is being reviewed. Finish your profile to speed it up." Partner pricing and partner ordering turn on only when Robert or ops approves, exactly as today.
+> 3. Inside the portal, a short "Finish your profile" checklist: the work (counties, crews, roofs a year, services, volume), insurance with the certificate upload, and two references. Each section saves on its own, shows done or not done, and none of it blocks them from signing in. The admin review screen shows how complete each profile is.
+> 4. Fix what is confusing on the current form: replace "Continue to your work" with plain step labels and "Next", and replace the "Questions, Robert Reyna" box with something useful: Robert's phone as a tap to call link, his email, and the "Book a call" link.
+> 5. Keep the approval, the decline email, the CRM prospect and every audit the current flow has. If the self-service-signup gate condition or any other standing rule blocks account creation for roofers, stop and tell me which rule before building around it.
+> 6. Before you report done: walk it on a phone width from the email link to a signed-in portal, then finish the profile, then approve it from the admin screen. Commit the screenshots to ops/day like last time so my counterpart can review them. Board alone with your prediction stated.
+
+## ROBERT, 2026-11-06, in chat, verbatim: R5 answer 1, the R4 declaration, and the order
+
+> R5: answer 1. Nothing is deleted. Taking a county or a rep off a territory stamps removed_at and removed_by; uniqueness holds among rows not removed; reads skip removed rows; 0116 changes before anything sits it. Both tables stay kept. R4: I accept the bulk assign declaration as you wrote it, without the person-who-gets-work refusal. Then, after R4 and R5, build the roofer partner sign up rework from my last message as the next priority ahead of R6.
+
+**Item 5 checked before building (6690337495).** No standing rule blocks an account at step one.
+- The account comes through door 1, `self_service`, cleared on 2026-09-28. 0043 makes the address be proven before the account can act.
+- This replaces ruling 1's door 2 at approval, and the post says so.
+- **Two questions asked:**
+  1. "254 roofing partner" against ruling 2. Recommended: on our own page only.
+  2. What an account under review may do. Recommended: order at published prices by card while it waits.
+
+**Bundle 114b result: board `42246068886` on `3d3edd0` (R4), 65 of 65, zero FAIL.**
+- bulk-audit PASS: the sweep finds 0.
+- v10-layout-audit PASS on `/portal/crm` and `/portal/crm/list`.
+- Preflight GREEN.
+- LCP: `/` 2338ms, service 2493ms, `/coverage` 2721ms, coastal-bend 2884ms.
+- **One line beyond the prediction:** a citation host, concrete.org, did not answer a script. That is the standing class, and the page is not touched by R4. The authenticated count rose from 75 to 78, which is R4's three new screens. Recorded as a variance.
+- **R4 BOARDED GREEN.**
+- Its 0115 production request is 6690359504, at the boarded commit, byte identical to the stage file development sat.
+
+**R5 REBUILT FOR ANSWER 1** at `1c0966c` (R4 `3d3edd0` merged in).
+- **0116:** each settings table gains `id`, `removed_at` and `removed_by`, and a check that a removal names when as well as who. Two partial unique indexes keep the uniqueness rules among rows not removed.
+- **The code:** taking a county out stamps the rows; taking a holder off stamps the row; giving a holder a territory again inserts a new row. All four reads skip removed rows, and nothing deletes.
+- **The bulk path:** declared, keeping `delete`.
+- **The proof:** 55 of 55. Two planted faults each turned exactly their checks red and were restored byte identical.
+- **Local:** migration-audit PASS, bulk sweep clean, the manager-home, pipeline and call queue proofs PASS, preflight GREEN.
+- **Figures:** shape `d0344004` at 1538 columns; behaviour `d5d09ff7` at 1524 facts.
+
+**STAGED: 0116 again**, on the new branch `stage/0116-crm-territories-b` at `bb95207`, sha256 `df67ba9a`, stored `9dc01eaa`. The old `stage/0116-crm-territories` stays as it was. Development request 6690536229.
+
+**Bundle 115 prediction, R5 at `1c0966c`, stated before dispatch: 65 of 65, zero FAIL.**
+- proofs-audit PASS with the territories proof.
+- bulk-audit PASS: the sweep finds 0, and nine paths are declared.
+- v10-layout-audit PASS on `/portal/crm/territories`.
+- migration-audit and schema-ledger-audit PASS.
+- The four LCP pages under ceiling.
+- The standing COULD NOT TELL lines, the authenticated count rising by R5's screen.
+
 **THE ROOFER APPLICATION MERGED** as `b10651c` (parents `c7bbe8c`, `130abe3`), after 0113's production read-back (6675087911, 02:18 UTC 2026-11-06).
 - **The read-back:** history version `20261106021807`, stored hash `4d6f7664`; grants 192 to 194; both checks widened; the author check present; no row changed.
 - **No connector prompt appeared** this time, and block 2 ran on the first call; the ledger records that.
