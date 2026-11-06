@@ -1396,6 +1396,45 @@ On a pass R4 does not merge tonight. Its production request is posted, and it is
   2. Let the nightly board measure the three writers. Recommended: yes.
 - **launch-audit** runs before the merge.
 
+**Robert, in chat:** "1 yes, add "or through the contact page" to the Your contact note as you wrote it. 2 yes, the nightly board measures the three writer audits. Merge in the fast lane once cta-audit is green."
+
+**THE BOOKING LINK MERGED** as `3b50d10`, FAST LANE (content and styling), over main `84761d7`.
+- The tree is identical to the boarded `a5fce70`. `ls-remote` confirms it. No board started on the push.
+- **Readers, against a local production build on port 3342:**
+  - cta-audit 98 of 98;
+  - seo, voice, placeholder and asset audits PASS;
+  - type check clean, preflight GREEN, the roofer proof PASS;
+  - range dash check: 38 added lines, no long dash.
+- **launch-audit 49 of 49.** It ran from the main checkout on `a5fce70`, then the checkout was put back on main. Turbopack refuses the worktree's junctioned `node_modules`, so it cannot run in the worktree.
+- **Port 3341** was still held by pid 26564 after my server's shell was stopped. It could not be identified, so it was left alone and the second build served on 3342.
+- **The three writer audits** are left to the nightly board, as ruled.
+
+**Bundle 114 result: board `42232560201` on `c264e2c` (R4), 63 of 65, NOT GREEN.** The first red on R4.
+- **bulk-audit:** `crm-pipeline.ts` writes owner_id over many companies (bulk assign) and is not declared a bulk path.
+- **v10-layout-audit, `/portal/crm`:** the stage board's cards are boxes, and the view switch's active item has no gold marker.
+- **v10-layout-audit, `/portal/crm/list`:** the bulk bar is a box, and the same missing marker.
+- Everything else passed: preflight GREEN, the pipeline proof PASS, the four LCP pages under ceiling, the same 24 standing COULD NOT TELL lines.
+
+**WHY THE PREDICTION MISSED.** Both audits are writers and were left out of R4's local checks for that reason. Both findings were readable before the board, if not runnable:
+- bulk-audit's sweep is static;
+- the V10 rules are classes in the source.
+
+**THE FIX, on R4 as a new commit (a second red parks R4 for Robert).**
+- The view switch's active item gets the portal nav's 3px gold marker, with no fill and no corner.
+- A card keeps a rule above it, and the bulk bar a rule above and below.
+- crm-pipeline.ts is declared in `scripts/lib/bulk-paths.mjs`:
+  - refusals kept: redaction, delete, silent and outward;
+  - `selection` not claimed, because the owner works the companies and R8 credits their revenue to them.
+- **bulk-audit's static half run on its own:** green with the declaration; red naming crm-pipeline.ts without it, as the board was. The file was restored by copy and `diff -q` identical.
+- **`feat/crm-r4-pipeline-0115` at `3d3edd0`:** the fix, with main `3b50d10` merged in. Type check clean, the pipeline proof PASS, preflight GREEN.
+
+**Bundle 114b prediction, stated before dispatch: 65 of 65, zero FAIL.**
+- bulk-audit PASS: the sweep finds 0.
+- v10-layout-audit PASS on `/portal/crm` and `/portal/crm/list`.
+- The rest as bundle 114, with the same 24 standing COULD NOT TELL lines.
+
+On a pass: R4's production request, then R5's development request. R5 takes R4's fix first.
+
 **THE ROOFER APPLICATION MERGED** as `b10651c` (parents `c7bbe8c`, `130abe3`), after 0113's production read-back (6675087911, 02:18 UTC 2026-11-06).
 - **The read-back:** history version `20261106021807`, stored hash `4d6f7664`; grants 192 to 194; both checks widened; the author check present; no row changed.
 - **No connector prompt appeared** this time, and block 2 ran on the first call; the ledger records that.
