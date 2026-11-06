@@ -9,6 +9,7 @@ import { displayPhone, founder, telHref } from "@/config/contact";
 import { firmName, isOpen, isTrading, sealingIsAvailable } from "@/lib/launch";
 import { JsonLd, breadcrumbSchema } from "@/lib/schema";
 import { buildMetadata } from "@/lib/seo";
+import { BOOK_A_CALL_URL } from "@/content/book-a-call";
 
 /**
  * ===========================================================================
@@ -225,6 +226,11 @@ export default function RoofingPartnersPage() {
                   </a>
                 </>
               ) : null}
+              {/* Robert, 2026-11-06: the page's path to a quote, once "Ask a question first" goes to his booking page. */}
+              , or through the{" "}
+              <Link href="/contact" className="font-semibold text-slate underline">
+                contact page
+              </Link>
               .
             </Callout>
           </div>
@@ -244,7 +250,7 @@ export default function RoofingPartnersPage() {
             <ButtonLink href={APPLY} tone="onDark">
               Start the application
             </ButtonLink>
-            <ButtonLink href="/contact" tone="onDarkOutline">
+            <ButtonLink href={BOOK_A_CALL_URL} tone="onDarkOutline" newTab>
               Ask a question first
             </ButtonLink>
           </div>
