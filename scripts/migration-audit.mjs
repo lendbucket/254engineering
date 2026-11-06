@@ -390,9 +390,16 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * by his ruling (a) of 2026-11-04 and order A of 2026-11-05: the seven columns
  * of eng_crm_attributions, 1,557 to 1,564; the table count moves 118 to 119;
  * one trigger, no function. Read off fingerprint-at.mjs on the chain to 0118.
+ *
+ * Moved again by 0119, a session ends when its epoch moves, by auth M2 (Robert,
+ * issue #1, option A, rollout 1), renumbered from 0117 to 0119 by his ruling
+ * (a) of 2026-11-04 and order A of 2026-11-05: session_epoch on eng_profiles,
+ * eng_customer_users and eng_partner_users, 1,564 to 1,567; the table count
+ * stays 119; no trigger, no function. Read off fingerprint-at.mjs on the chain
+ * to 0119.
  */
-const EXPECTED_FINGERPRINT = "9eb2cd35c7fa57141d617e3b84f5fdbd";
-const EXPECTED_COLUMNS = 1564;
+const EXPECTED_FINGERPRINT = "8b25e71507ed70a52452ef5e2fb3ca78";
+const EXPECTED_COLUMNS = 1567;
 const EXPECTED_TABLES = 119;
 /* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts.
  * 0074 adds two: eng_partner_billing_touch and eng_partner_billing_events_immutable.

@@ -4395,6 +4395,25 @@ export const APPLIED = [
       "SITTING; APPLIED NOWHERE. Robert's sales CRM ruling of 2026-11-02, item R8: the attribution chain prospect to " +
       "account to order, written on conversion and on each order. Additive: one append only table.",
   },
+  {
+    file: "0119_a_session_ends_when_its_epoch_moves.sql", appliedBy: "apply_migration",
+    fingerprint: "8b25e71507ed70a52452ef5e2fb3ca78",
+    behaviour: "cdb4bcf5d49e3c3a41a85ba1668252fa",
+    production: null,
+    proves: { column: { table: "eng_profiles", name: "session_epoch" } },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-05 on the chain to 0119. Shape 1564 " +
+      "to 1567 columns: session_epoch on eng_profiles, eng_customer_users and eng_partner_users; tables 119 unchanged. " +
+      "Behaviour unchanged at 1557 facts: three columns with a default add no key, check, index, trigger or function. " +
+      "Written as 0117 on 2026-11-02 and renumbered to 0119 by Robert's ruling (a) of 2026-11-04 and order A of " +
+      "2026-11-05; only its own numbers moved.",
+    because:
+      "WRITTEN 2026-11-02 ON fix/m2-session-epoch AS 0117, RENUMBERED ON fix/m2-session-epoch-0119 AND STAGED ON " +
+      "stage/0119-session-epoch FOR THE CHAT COUNTERPART'S " +
+      "SITTING; APPLIED NOWHERE. Auth M2, Robert's ruling on issue #1 (answer to 6586517364), option A, rollout 1: " +
+      "each session cookie carries the epoch it was issued under and is refused when the row's has moved. Additive: " +
+      "three columns, integer not null default 0.",
+  },
 ];
 
 /*

@@ -27,6 +27,8 @@ import { takeLoginAttempt, clientKey } from "@/lib/ops-rate-limit";
 import { supabaseAdmin } from "@/lib/supabase";
 import { homeFor } from "@/lib/ops-authz";
 import { withSaveOutcome } from "@/lib/save-outcome";
+import { epochStands } from "@/lib/session-epoch-rules";
+import { bumpSessionEpoch } from "@/lib/session-epoch";
 
 /**
  * The second factor: the challenge, the enrolment, and the break glass.
@@ -97,10 +99,10 @@ async function profileFor(userId: string) {
   if (!db) return null;
   const { data } = await db
     .from("eng_profiles")
-    .select("id, email, display_name, role")
+    .select("id, email, display_name, role, session_epoch")
     .eq("id", userId)
     .maybeSingle();
-  return data as { id: string; email: string; display_name: string; role: string } | null;
+  return data as { id: string; email: string; display_name: string; role: string; session_epoch: number } | null;
 }
 
 async function handlePOST(request: NextRequest) {
@@ -124,6 +126,15 @@ async function handlePOST(request: NextRequest) {
 
   const profile = await profileFor(claims.sub);
   if (!profile) return NextResponse.json({ ok: false, error: "That account is gone." }, { status: 401 });
+  /*
+   * Auth M2 (Robert, 2026-11-02): this route reads the cookie itself rather
+   * than through currentActor, so it compares the session epoch itself. A
+   * pending or full cookie issued before a password change, a reset or a
+   * replaced factor is nobody here too.
+   */
+  if (!epochStands(claims.epoch, profile.session_epoch)) {
+    return NextResponse.json({ ok: false, error: "Not signed in." }, { status: 401 });
+  }
 
   const { ip, userAgent } = await requestContext();
   const actor = { id: profile.id, role: profile.role, email: profile.email };
@@ -295,6 +306,27 @@ async function handlePOST(request: NextRequest) {
     const done = await confirmEnrolment(profile.id, String(body?.code ?? ""));
     if (!done.ok) return NextResponse.json({ ok: false, error: done.error }, { status: 400 });
 
+    /*
+     * A REPLACED FACTOR ENDS EVERY OTHER SESSION, auth M2 (Robert, 2026-11-02).
+     * Somebody replacing a factor may be doing it because a device went astray,
+     * so sessions opened under the old one end here. The person doing it gets a
+     * fresh cookie under the new epoch in this response, so the acknowledgement
+     * that completes the enrolment still finds them signed in. A first
+     * enrolment replaces nothing and ends nothing.
+     */
+    let freshCookie: { value: string; expiresAt: Date } | null = null;
+    if (replacing) {
+      const db = supabaseAdmin();
+      const ended = db ? await bumpSessionEpoch(db, "eng_profiles", profile.id) : null;
+      if (!ended || !ended.ok) {
+        return NextResponse.json(
+          { ok: false, error: `The new factor is in place, but other sessions could not be ended: ${ended?.error ?? "the database is not configured"}. Use "Sign out everywhere" on your profile.` },
+          { status: 503 },
+        );
+      }
+      freshCookie = issueOpsSession(profile.id, profile.role, full ? "full" : "pending", Date.now(), ended.epoch);
+    }
+
     await writeAudit({
       actor,
       action: "mfa.enrolled",
@@ -333,11 +365,13 @@ async function handlePOST(request: NextRequest) {
      * from the authenticator app. Somebody holding a stolen password has a
      * pending session and no way to produce one.
      */
-    return NextResponse.json({
+    const confirmed = NextResponse.json({
       ok: true,
       recoveryCodes: done.recoveryCodes,
       completion: issueEnrolmentCompletion(profile.id),
     });
+    if (freshCookie) confirmed.cookies.set(OPS_COOKIE, freshCookie.value, opsCookieOptions(freshCookie.expiresAt));
+    return confirmed;
   }
 
   /* -------------------------------------------------------- codes saved */
@@ -395,7 +429,7 @@ async function handlePOST(request: NextRequest) {
       userAgent,
     });
 
-    const session = issueOpsSession(profile.id, profile.role, "full");
+    const session = issueOpsSession(profile.id, profile.role, "full", Date.now(), profile.session_epoch);
     const res = NextResponse.json({ ok: true, redirect: homeFor(profile.role) });
     if (session) res.cookies.set(OPS_COOKIE, session.value, opsCookieOptions(session.expiresAt));
     return res;
@@ -508,7 +542,7 @@ async function handlePOST(request: NextRequest) {
     });
   }
 
-  const session = issueOpsSession(profile.id, profile.role, "full");
+  const session = issueOpsSession(profile.id, profile.role, "full", Date.now(), profile.session_epoch);
   if (!session) return NextResponse.json({ ok: false, error: "Not configured." }, { status: 503 });
 
   const res = NextResponse.json({
@@ -530,6 +564,11 @@ async function handleGET() {
   const jar = await cookies();
   const claims = readOpsSession(jar.get(OPS_COOKIE)?.value);
   if (!claims) return NextResponse.json({ ok: false, error: "Not signed in." }, { status: 401 });
+  /* Auth M2: the session epoch, compared here because this read is not currentActor's. */
+  const who = await profileFor(claims.sub);
+  if (!who || !epochStands(claims.epoch, who.session_epoch)) {
+    return NextResponse.json({ ok: false, error: "Not signed in." }, { status: 401 });
+  }
 
   try {
     const state = await mfaStateFor(claims.sub);
