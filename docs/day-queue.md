@@ -1254,6 +1254,29 @@ On a pass R3 does not merge yet: it merges together with R7 (Robert's ruling), a
 
 **STAGED: 0116** on `stage/0116-crm-territories` at `fab3986`, sha256 `dc2f1e17`, stored `c5b50197`. **STAGED: 0117** on `stage/0117-crm-email` at `714062b`, sha256 `c90602ac`, stored `3af17c34`. **STAGED: 0118** on `stage/0118-crm-attribution` at `b76310f`, sha256 `34f04e98`, stored `644504c4`. Each development request is posted just before its own board, so an earlier branch's board never runs against a later table.
 
+**L3 brought up to main** at `3f5144b` (main `2a8228b` merged in clean). Proof PASS (16), type check clean, preflight GREEN. Pushed. It boards when the board is free and merges under the unattended word on a pass.
+
+**M2, Q8b, F12 and F6, and the prospect kinds, built and stacked on R8.**
+- **M2** (0119) at `6fd31ef`, carried as its own two commits (Q9 and Q10 are on main).
+  - Conflict in `people/route.ts`: main's F20 writes the suspension record first; M2 bumps the epoch in the same update.
+  - Resolved by keeping F20's order: the epoch is read and checked before the record, the record is written, then M2's conditional update runs. A failed write or a lost race writes F20's second record and answers 500 or 409.
+  - A planted fault (the epoch bump dropped) turned exactly that check red; restored byte identical.
+  - Shape `8b25e715` at 1567 columns; behaviour unchanged at `cdb4bcf5`, 1557 facts.
+- **Q8b** (0120) at `e9fa021`. The body of `eng_apply_refund` it replaces is still current: only 0075, 0076 and this file define it. Proof PASS. Behaviour `72c0643b`, 1558 facts.
+- **F12 and F6** (0121) at `3a755f3`, BUILT TONIGHT, since no branch carried them.
+  - **F12:** both paid functions take `expected_amount_cents`. A charge for another amount is written down, releases nothing and raises a task. A payload with no expectation behaves as 0075.
+  - **F6:** `eng_account_credit_holds`, one hold per invoice account, taken by `placeBatch` before the balance is read and released in a finally. A hold lapses after 15 minutes. This is the audit's stated minimum fix; the arithmetic stays in `creditDecision`.
+  - The proof (29 checks) found a real defect while it was written: a take refused right after a release (`<` against a release's own `now()`), now `<=`.
+  - Six planted faults, each read for which checks went red. accounts-audit caught a billing-mode read that did not exclude superseded accounts; fixed.
+  - Shape `1692cd3e`, 1570 columns, 120 tables, 79 functions; behaviour `6551e54b`, 1564 facts.
+- **The prospect kinds** (0122, destructive) at `167dc66`.
+  - The prepared sitting (6588395003) plus one change: every row's kind becomes its vertical, because since 0112 code has written a derived stand-in, for example a solar company as contractor.
+  - Title rows and a person's contractor rows (vertical `other`) keep the old kind as a tag. Those two mappings await Robert's eye.
+  - The code writes the vertical as the kind. The words for each vertical have one home in `crm-rules.ts`.
+  - Proof 19 checks; two planted faults, each read for which checks went red. Listed in `docs/production-sitting-destructive.md`.
+
+**STAGED: 0119** `stage/0119-session-epoch` at `4d274d3`. **STAGED: 0120** `stage/0120-money-constraints` at `b929b6e`. **STAGED: 0121** `stage/0121-money-holds` at `d3bc9b0`. **STAGED, FOR ROBERT, NOT RUN: 0122** `stage/0122-prospect-kinds` at `62735fc`, sha256 `ec3428bd`, stored `7273ba44`. Its development operator script is posted for him (6677926201), with the instruction to run it only just before 0122's own board, because every earlier branch still writes the old kinds.
+
 **THE ROOFER APPLICATION MERGED** as `b10651c` (parents `c7bbe8c`, `130abe3`), after 0113's production read-back (6675087911, 02:18 UTC 2026-11-06).
 - **The read-back:** history version `20261106021807`, stored hash `4d6f7664`; grants 192 to 194; both checks widened; the author check present; no row changed.
 - **No connector prompt appeared** this time, and block 2 ran on the first call; the ledger records that.
