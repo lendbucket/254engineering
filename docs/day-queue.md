@@ -1153,6 +1153,28 @@ On a pass, the 0113 production script is generated from this commit and posted f
 - queue-audit PASS, with no live outward job waiting.
 - Every other line as bundle 108.
 
+**Bundle 108b result: board `42138978968` on `97b8da2`, 65 of 65, zero FAIL, as predicted.** Preflight GREEN. seo-audit PASS with the second link. queue-audit PASS, with no live outward job waiting. proofs-audit PASS with a-roofer-application-is-decided-by-a-person. forms-audit's six roofer checks PASS: the empty step, live checking, 390, the kept draft (read back "Zzq Formsaudit Roofing"), the API's 422 and the honeypot. LCP `/` 2352ms, service 2498ms, `/coverage` 2495ms, coastal-bend 2422ms. **THE ROOFER APPLICATION BOARDED GREEN.** The 0113 production request is 6674870647 (operator route, file sha256 `92571cca`, the same bytes development ran), and the counterpart is told it is ready for Robert's prompt (6674871129). It merges after that read-back.
+
+**R2 renumbered to 0114 for order A: `feat/crm-r2-imports-0114` at `ea94248`, over the roofer head `97b8da2`.**
+- **The commits:** R2's own two, `bbb6811` (the migration) and `0f6457e` (the imports engine), cherry-picked; the merge `7a7d392` was not, because R1 renumbered already carries it.
+- **The two conflicts,** in `migration-audit.mjs` and `applied.mjs`, were resolved by reading both sides: 0113 then 0114, columns 1476 to 1509, tables 109 to 111.
+- **R2's own references** moved: its 0112 to 0114 and R1's 0111 to 0112. The proof moves only its own number, because its fixture telephone numbers end 0111.
+- **The file is byte identical** to `stage/0113-crm-imports`'s with 0113 moved to 0114, sha256 `fddedbe9`. Staged on the new `stage/0114-crm-imports` at `577f88f`; the old stage branches stay.
+- **DEVELOPMENT HOLDS THIS FILE UNDER ITS EARLIER NAME,** `0113_the_sales_list_imports_from_named_sources` (6664433708, version `20261105171724`). Main names it 0114; production will receive it as 0114. The ledger entry says so.
+- **Digests,** read off fingerprint-at.mjs on the chain with 0113 before it: shape `31b85d83` at 1509 columns, behaviour `7cae564b` at 1482 facts.
+- **Local:** migration-audit 206 of 206, schema-ledger-audit PASS, the imports proof 85 checks PASS, the type check clean, preflight GREEN (38 rules, 118 s).
+
+**Bundle 109, R2 at `ea94248`, boarded while 0113 waits on its production sitting.**
+- **Readers:** migration-audit and schema-ledger-audit (0113 and 0114 pending); proofs-audit (the imports proof, and the roofer proof beneath it); jobs-audit (the import job kind); roles-audit (crm.import); security-audit (the imports screen and route); token-audit; the daily cron; retention-audit (two tables, in order).
+
+**Prediction, bundle 109, stated before dispatch: 65 of 65, zero FAIL.**
+- Every line as bundle 108b.
+- The imports proof PASS.
+- jobs-audit PASS with the import job kind.
+- Standing COULD NOT TELL lines only.
+
+On a pass, R2 waits on 0114's production sitting (apply_migration, additive). It merges after the roofer application and after that read-back.
+
 **R1 MERGED** as `c7bbe8c` (parents `7f3361a`, `becf7a2`) after 0112's production read-back (6672192716: version `20261105232655`, stored hash `c23ea39a`, grants 186 to 192). The merged tree is boarded `007532b` plus the 0112 ledger line; `ls-remote` confirms; no board started on main.
 
 **Bundle 108, partial (writers still running): the pages shard FAILED on one seo-audit check:** "/roofing-partners/apply: 1 page(s) link to it (/roofing-partners); every sitemap page needs at least two". A real gap in my build. Fixed locally at `67919de`: the roofer note on the three roofing service pages now also links the application. That commit is not pushed while the board runs, because a push would cancel it. The writers shard is awaited, so every failure is fixed in one new commit before the second board; a second red parks the item.
