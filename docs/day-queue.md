@@ -1368,6 +1368,17 @@ On a pass R4 does not merge tonight. Its production request is posted, and it is
 - **Staged:** 0115 to 0122.
 - **Parked:** none.
 
+## ROBERT, 2026-11-06 morning, in chat, verbatim: answers to the morning report
+
+> Answers to the morning report. 1 Yes to both 0122 mappings: title company rows and contractor rows with no known vertical go to other and keep their old kind as a tag. Run its operator script only just before 0122's own board, as you said. 2 Yes to the F6 hold design as written. 3 0115 is on development (issue #1, 6686916156). Board R4 now, and post each later development request just before its board. My counterpart now checks hourly around the clock, so requests will not sit overnight again.
+
+**What follows from them.**
+- **0122 as built.** Its two mappings are ruled, and its operator script (6677926201) runs only just before its own board.
+- **F6 as built** in 0121.
+- **0115 on development:** the read-back is issue #1 comment **6686915156**. The message says 6686916156, one digit apart; the comment that exists is 6686915156.
+  - Applied 14:15 UTC, version `20261106141518`, stored hash `74f54ddc`, exactly as predicted.
+- **Bundle 114 dispatched:** R4 as board `42232560201` on `c264e2c`, with main `84761d7` unmoved. The prediction above stands: 65 of 65, zero FAIL.
+
 **THE ROOFER APPLICATION MERGED** as `b10651c` (parents `c7bbe8c`, `130abe3`), after 0113's production read-back (6675087911, 02:18 UTC 2026-11-06).
 - **The read-back:** history version `20261106021807`, stored hash `4d6f7664`; grants 192 to 194; both checks widened; the author check present; no row changed.
 - **No connector prompt appeared** this time, and block 2 ran on the first call; the ledger records that.
