@@ -4266,7 +4266,18 @@ export const APPLIED = [
     file: "0113_a_roofer_applies_and_a_person_decides.sql", appliedBy: "operator_sql_editor",
     fingerprint: "fead81771a43e1c4b0bd1f2b02e4fe2b",
     behaviour: "e71f297052836059c3ad612cafcdd17b",
-    production: null,
+    /*
+     * Production: applied 2026-11-06 02:18 UTC by the chat counterpart, the
+     * four blocks of the operator_sql_editor script (6674870647) through the
+     * connector's execute_sql, from the boarded commit 97b8da2 (board
+     * 42138978968). No confirmation prompt appeared; block 2 ran on the first
+     * call. Read back: the table and function present, execute for anon and
+     * authenticated false, grants 192 to 194, roofers.review admin and
+     * ops_manager, prospects unchanged, both checks widened, the author check
+     * present, created_by nullable; schema_migrations version 20261106021807,
+     * stored hash 4d6f7664 (issue #1, 6675087911).
+     */
+    production: "2026-11-06",
     handApplied:
       "The file drops and re-adds two of 0112's checks (the prospect source and the next action kind, each " +
       "gaining one value) and drops the NOT NULL on eng_prospects.created_by in favour of a check that a " +
@@ -4284,7 +4295,8 @@ export const APPLIED = [
     because:
       "WRITTEN 2026-11-05 ON feat/roofer-application, STACKED ON R1, FOR THE CHAT COUNTERPART'S SITTING WITH ROBERT " +
       "APPROVING THE PROMPT; ON DEVELOPMENT SINCE 2026-11-05 (6671002528, version 20261105221807, the four blocks of " +
-      "6670846102 through the connector's execute_sql), NOT ON PRODUCTION. Robert's request and rulings of " +
+      "6670846102 through the connector's execute_sql), ON PRODUCTION SINCE 2026-11-06 (6675087911, version " +
+      "20261106021807). Robert's request and rulings of " +
       "2026-11-05: a Texas roofing company " +
       "applies on /roofing-partners/apply, the application lands as its own source on a roofer prospect with a " +
       "due now review action, and a person holding roofers.review (admin and ops_manager) approves it, opening a " +
