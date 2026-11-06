@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
-import { addToNotes, bulkAssign, bulkTag, companyThread, deleteView, moveStage, postCompanyNote, saveView } from "@/lib/crm-pipeline";
+import { addToNotes, bulkAssign, bulkAssignByTerritory, bulkTag, companyThread, deleteView, moveStage, postCompanyNote, saveView } from "@/lib/crm-pipeline";
 
 export const dynamic = "force-dynamic";
 
@@ -37,6 +37,11 @@ export async function POST(request: NextRequest) {
   if (action === "bulk_assign") {
     if (!can(actor, "crm.assign")) return bad("Only a sales manager or an administrator assigns companies.", 403);
     const result = await bulkAssign(actor, { ids: ids(body.ids), ownerId: str(body.ownerId) || null });
+    return result.ok ? NextResponse.json(result) : bad(result.error, 422);
+  }
+  if (action === "bulk_assign_by_territory") {
+    if (!can(actor, "crm.assign")) return bad("Only a sales manager or an administrator assigns companies.", 403);
+    const result = await bulkAssignByTerritory(actor, { ids: ids(body.ids) });
     return result.ok ? NextResponse.json(result) : bad(result.error, 422);
   }
   if (action === "bulk_tag") {

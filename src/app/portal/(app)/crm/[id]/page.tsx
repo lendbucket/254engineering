@@ -7,7 +7,7 @@ import { CRM_STAGES, CUSTOMER_STAGES, STAGE_LABEL, VERTICAL_LABEL } from "@/lib/
 import { telLink } from "@/lib/phone-link";
 import { calendarDateLabel, formatInFirmZone } from "@/lib/firm-calendar";
 import { ButtonLink, EmptyState, ErrorState, PageHead, Panel } from "@/components/portal/surfaces";
-import { CompanyNotes, MoveStage } from "../PipelineClient";
+import { AssignCompany, CompanyNotes, MoveStage } from "../PipelineClient";
 
 export const dynamic = "force-dynamic";
 
@@ -81,6 +81,16 @@ export default async function CompanyPageScreen({ params }: { params: Promise<{ 
               <MoveStage prospectId={p.id} stage={p.stage} targets={targets} />
             )}
           </Panel>
+
+          {can(actor, "crm.assign") ? (
+            <Panel title="Owner" description="Reassign it to a person, or to the next rep holding its county's territory. Each change is written to the history.">
+              {people.ok ? (
+                <AssignCompany prospectId={p.id} ownerId={p.ownerId} people={people.rows} />
+              ) : (
+                <p role="alert" className="text-[14px] text-[var(--ink)]">{people.error} Reassigning is unavailable until it can be read.</p>
+              )}
+            </Panel>
+          ) : null}
 
           <LinkedAccount p={p} />
 

@@ -15,19 +15,22 @@ import {
   linkedAccountView,
   mergeTimeline,
   savedViewNameProblem,
+  type CompanyPlace,
   type CrmListRow,
   type LinkedAccountView,
   type TimelineEntry,
-  type Viewer,
 } from "./crm-board-rules";
+import { roundRobinOwners, viewerFor } from "./crm-territories";
 
 /**
  * THE PIPELINE, THE LISTS AND THE COMPANY PAGE. Robert's sales CRM ruling of
  * 2026-11-02, item R4, migration 0115.
  *
- * ONE READ DECIDES WHO SEES WHAT: companiesFor reads every company and keeps
- * the ones canSeeCompany allows, and every screen, route and bulk act goes
- * through it or through companyOwner, so R5's territories land in one place.
+ * ONE RULE DECIDES WHO SEES WHAT: canSeeCompany, with the viewer viewerFor
+ * loads (crm-territories.ts, R5: a manager sees all; anybody else their own and
+ * the unassigned companies in the counties of territories they hold). Every
+ * read, the company page and each bulk act ask it, and a failed read of the
+ * viewer's territories refuses rather than showing a guess.
  *
  * Stage moves go through setStage (R1), which moves the company conditionally
  * and writes the stage change to the contact log; here the move is also
@@ -37,10 +40,6 @@ import {
 
 const refuse = (error: string) => ({ ok: false as const, error });
 type Db = NonNullable<ReturnType<typeof supabaseAdmin>>;
-
-export function viewerFor(actor: Actor): Viewer {
-  return { id: actor.id, seesAll: can(actor, "crm.assign") };
-}
 
 const LIST_COLUMNS =
   "id, created_at, company, contact_name, phone, email, city, county, vertical, prospect_type, stage, score, owner_id, tags, next_action_at, owner:eng_profiles!eng_prospects_owner_id_fkey(display_name)";
@@ -68,15 +67,18 @@ export async function companiesFor(actor: Actor | null): Promise<{ ok: true; row
   if (!actor || !can(actor, "crm.use")) return refuse("Your role cannot open the sales list.");
   const db = supabaseAdmin();
   if (!db) return refuse("The database is not configured, so the sales list could not be read.");
-  const viewer = viewerFor(actor);
+  const who = await viewerFor(actor);
+  if (!who.ok) return who;
+  const viewer = who.viewer;
 
+  /* A rep's read is narrowed to their own and the unowned, and canSeeCompany then keeps only the unowned in their counties. */
   const read = await readEvery<Record<string, unknown>>((from, to) => {
     let q = db.from("eng_prospects").select(LIST_COLUMNS);
     if (!viewer.seesAll) q = q.or(`owner_id.eq.${actor.id},owner_id.is.null`);
     return q.order("created_at", { ascending: true }).order("id", { ascending: true }).range(from, to);
   });
   if (!read.ok) return refuse(`The sales list could not be read: ${read.error}`);
-  const visible = read.rows.filter((r) => canSeeCompany(viewer, (r.owner_id as string | null) ?? null));
+  const visible = read.rows.filter((r) => canSeeCompany(viewer, (r.owner_id as string | null) ?? null, (r.county as string | null) ?? null));
   const ids = visible.map((r) => String(r.id));
 
   const sources = new Map<string, CrmSource[]>();
@@ -119,7 +121,9 @@ export async function companiesFor(actor: Actor | null): Promise<{ ok: true; row
 async function visibleCompany(actor: Actor, db: Db, id: string): Promise<{ ok: true; row: Record<string, unknown> } | { ok: false; error: string }> {
   const { data, error } = await db.from("eng_prospects").select("*").eq("id", id).maybeSingle();
   if (error) return refuse(`The company could not be read: ${error.message}`);
-  if (!data || !canSeeCompany(viewerFor(actor), (data.owner_id as string | null) ?? null)) return refuse("That company is not on your sales list.");
+  const who = await viewerFor(actor);
+  if (!who.ok) return who;
+  if (!data || !canSeeCompany(who.viewer, (data.owner_id as string | null) ?? null, (data.county as string | null) ?? null)) return refuse("That company is not on your sales list.");
   return { ok: true, row: data as Record<string, unknown> };
 }
 
@@ -171,18 +175,48 @@ export async function assignablePeople(actor: Actor | null): Promise<{ ok: true;
   return { ok: true, rows: people.rows.map((p) => ({ id: String(p.id), name: String(p.display_name) })) };
 }
 
-async function ownersOf(db: Db, ids: string[]): Promise<{ ok: true; owners: Map<string, string | null>; rows: Map<string, Record<string, unknown>> } | { ok: false; error: string }> {
-  const owners = new Map<string, string | null>();
+async function ownersOf(db: Db, ids: string[]): Promise<{ ok: true; owners: Map<string, CompanyPlace>; rows: Map<string, Record<string, unknown>> } | { ok: false; error: string }> {
+  const owners = new Map<string, CompanyPlace>();
   const rows = new Map<string, Record<string, unknown>>();
   for (let i = 0; i < ids.length; i += 200) {
-    const { data, error } = await db.from("eng_prospects").select("id, company, owner_id, tags, stage").in("id", ids.slice(i, i + 200));
+    const { data, error } = await db.from("eng_prospects").select("id, company, owner_id, county, tags, stage").in("id", ids.slice(i, i + 200));
     if (error) return refuse(`The companies could not be read: ${error.message}`);
     for (const r of data ?? []) {
-      owners.set(String(r.id), (r.owner_id as string | null) ?? null);
+      owners.set(String(r.id), { ownerId: (r.owner_id as string | null) ?? null, county: (r.county as string | null) ?? null });
       rows.set(String(r.id), r as Record<string, unknown>);
     }
   }
   return { ok: true, owners, rows };
+}
+
+/** Write the owner changes and one "Assigned to" note per company that changed hands. */
+async function applyAssignments(
+  actor: Actor,
+  db: Db,
+  changes: { id: string; before: string | null; after: string | null; label: string }[],
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const byOwner = new Map<string | null, string[]>();
+  for (const c of changes) byOwner.set(c.after, [...(byOwner.get(c.after) ?? []), c.id]);
+  let done = 0;
+  for (const [owner, ids] of byOwner) {
+    for (let i = 0; i < ids.length; i += 200) {
+      const { error } = await db.from("eng_prospects").update({ owner_id: owner }).in("id", ids.slice(i, i + 200));
+      if (error) return refuse(`${done} of ${changes.length} were assigned and the rest could not be: ${error.message}`);
+      done += Math.min(200, ids.length - i);
+    }
+  }
+  for (const c of changes) {
+    if (c.before === c.after) continue;
+    const logged = await logContact(actor, {
+      subject: "prospect",
+      subjectId: c.id,
+      channel: "note",
+      body: `Assigned to ${c.label}.`,
+      crm: { activityKind: "assignment" },
+    });
+    if (!logged.ok) return refuse(`The companies were assigned and a history entry could not be written: ${logged.error}`);
+  }
+  return { ok: true };
 }
 
 /**
@@ -199,7 +233,9 @@ export async function bulkAssign(
   if (!db) return refuse("The database is not configured, so nothing was assigned.");
   const read = await ownersOf(db, [...new Set(input.ids)]);
   if (!read.ok) return read;
-  const targets = bulkTargets(viewerFor(actor), "assign", input.ids, read.owners);
+  const who = await viewerFor(actor);
+  if (!who.ok) return who;
+  const targets = bulkTargets(who.viewer, "assign", input.ids, read.owners);
   if (!targets.ok) return targets;
 
   let ownerName = "nobody";
@@ -221,26 +257,64 @@ export async function bulkAssign(
   });
   if (!recorded.ok) return recorded;
 
-  for (let i = 0; i < targets.ids.length; i += 200) {
-    const { error } = await db.from("eng_prospects").update({ owner_id: input.ownerId }).in("id", targets.ids.slice(i, i + 200));
-    if (error) return refuse(`${i} of ${targets.ids.length} were assigned and the rest could not be: ${error.message}`);
-  }
-  for (const id of targets.ids) {
-    const before = read.owners.get(id) ?? null;
-    if (before === input.ownerId) continue;
-    const logged = await logContact(actor, {
-      subject: "prospect",
-      subjectId: id,
-      channel: "note",
-      body: `Assigned to ${ownerName}.`,
-      crm: { activityKind: "assignment" },
-    });
-    if (!logged.ok) return refuse(`The companies were assigned and a history entry could not be written: ${logged.error}`);
-  }
+  const applied = await applyAssignments(
+    actor,
+    db,
+    targets.ids.map((id) => ({ id, before: read.owners.get(id)?.ownerId ?? null, after: input.ownerId, label: ownerName })),
+  );
+  if (!applied.ok) return applied;
   return {
     ok: true,
     said: `${targets.ids.length} assigned to ${ownerName}.${targets.refused ? ` ${targets.refused} left alone: not found.` : ""}`,
   };
+}
+
+/**
+ * Assign companies BY TERRITORY: each goes to the next active holder of its
+ * county's territory, in the same round robin a new import uses (R5). A company
+ * in no territory, or in a territory nobody active holds, is left as it was and
+ * counted, so the manager sees how many still need a person. A sales manager's
+ * act (crm.assign). Each change gets an "Assigned to" entry in its history.
+ */
+export async function bulkAssignByTerritory(
+  actor: Actor | null,
+  input: { ids: string[] },
+): Promise<{ ok: true; said: string } | { ok: false; error: string }> {
+  if (!actor || !can(actor, "crm.use")) return refuse("Your role cannot change the sales list.");
+  if (!can(actor, "crm.assign")) return refuse("Only a sales manager or an administrator assigns companies.");
+  const db = supabaseAdmin();
+  if (!db) return refuse("The database is not configured, so nothing was assigned.");
+  const read = await ownersOf(db, [...new Set(input.ids)]);
+  if (!read.ok) return read;
+  const who = await viewerFor(actor);
+  if (!who.ok) return who;
+  const targets = bulkTargets(who.viewer, "assign", input.ids, read.owners);
+  if (!targets.ok) return targets;
+
+  const plan = await roundRobinOwners(db, targets.ids.map((id) => ({ id, county: read.owners.get(id)?.county ?? null })));
+  if (!plan.ok) return plan;
+  const people = await assignablePeople(actor);
+  if (!people.ok) return people;
+  const names = new Map(people.rows.map((p) => [p.id, p.name]));
+  const changes = targets.ids
+    .map((id) => ({ id, before: read.owners.get(id)?.ownerId ?? null, after: plan.owners.get(id) ?? null }))
+    .filter((c) => c.after !== null)
+    .map((c) => ({ ...c, label: `${names.get(c.after!) ?? "a holder of the territory"}, by territory` }));
+  const left = targets.ids.length - changes.length;
+  if (changes.length === 0) return refuse(`None of those companies is in a territory an active rep holds, so nothing was assigned. Assign them to a person instead.`);
+
+  const recorded = await writeAuditOrRefuse({
+    actor,
+    action: "prospect.assigned_by_territory",
+    entityType: "prospect",
+    entityId: changes[0].id,
+    summary: `${changes.length} ${changes.length === 1 ? "company" : "companies"} on the sales list assigned by territory; ${left} in no held territory.`,
+    diff: { assignments: changes.map((c) => ({ id: c.id, owner_id: c.after })) },
+  });
+  if (!recorded.ok) return recorded;
+  const applied = await applyAssignments(actor, db, changes);
+  if (!applied.ok) return applied;
+  return { ok: true, said: `${changes.length} assigned by territory.${left ? ` ${left} left as they were: in no territory an active rep holds.` : ""}` };
 }
 
 /** Add one tag to companies this person may change. */
@@ -255,7 +329,9 @@ export async function bulkTag(
   if (!db) return refuse("The database is not configured, so nothing was tagged.");
   const read = await ownersOf(db, [...new Set(input.ids)]);
   if (!read.ok) return read;
-  const targets = bulkTargets(viewerFor(actor), "tag", input.ids, read.owners);
+  const who = await viewerFor(actor);
+  if (!who.ok) return who;
+  const targets = bulkTargets(who.viewer, "tag", input.ids, read.owners);
   if (!targets.ok) return targets;
 
   const recorded = await writeAuditOrRefuse({
@@ -458,7 +534,9 @@ export async function companyPage(
     .eq("id", prospectId)
     .maybeSingle();
   if (error) return refuse(`The company could not be read: ${error.message}`);
-  if (!row || !canSeeCompany(viewerFor(actor), (row.owner_id as string | null) ?? null)) return { ok: true, page: null };
+  const who = await viewerFor(actor);
+  if (!who.ok) return who;
+  if (!row || !canSeeCompany(who.viewer, (row.owner_id as string | null) ?? null, (row.county as string | null) ?? null)) return { ok: true, page: null };
 
   const people = await contactsFor(actor, prospectId);
   if (!people.ok) return people;

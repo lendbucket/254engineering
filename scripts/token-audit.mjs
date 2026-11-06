@@ -250,6 +250,9 @@ function STAFF_LEVEL_SCREENS() {
     "src/app/portal/(app)/crm/[id]/page.tsx",
     "src/app/portal/(app)/crm/PipelineClient.tsx",
     "src/app/portal/(app)/crm/pipeline-shared.tsx",
+    /* The sales territories, Robert's CRM R5 of 2026-11-02, built to the staff standard from the start. */
+    "src/app/portal/(app)/crm/territories/page.tsx",
+    "src/app/portal/(app)/crm/territories/TerritoriesClient.tsx",
     "src/app/portal/(app)/prospects/page.tsx",
     "src/app/portal/(app)/prospects/ProspectsClient.tsx",
     "src/app/portal/(app)/prospects/[id]/page.tsx",

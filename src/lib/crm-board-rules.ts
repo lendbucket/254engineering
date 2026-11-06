@@ -15,16 +15,33 @@ import type { StaffListSpec } from "./staff-lists";
 /* ------------------------------------------------------------- who sees what */
 
 /**
- * A REP SEES THEIR OWN AND NOBODY'S; A HOLDER OF crm.assign SEES ALL. Until R5
- * adds territories, "nobody's" is every unowned company; R5 narrows it to the
- * rep's territories inside this one function, so no screen reshapes.
+ * WHO SEES WHICH COMPANY. Robert's R5, verbatim: "a rep sees only their own and
+ * unassigned in their territory, managers see all." A manager holds crm.assign
+ * (admin and ops_manager, his answer 2). Anybody else sees the companies they
+ * own, and the companies nobody owns whose county is in a territory they hold.
+ * Nobody else's, and no unassigned company outside their territories.
+ *
+ * `counties` holds the canonical names (territoryFor) of every county in the
+ * person's territories. A company with no county, or one the coverage map does
+ * not know, is in no territory, so an unowned one is a manager's to place.
+ *
+ * This is the one rule. R4's board, list, company page and bulk acts, R3's call
+ * queue and the older /portal/prospects screens all ask it (R5, 2026-11-02).
+ * R4 shipped "their own and every unowned company" here pending territories,
+ * R3's queue carried the same, and the prospects screens had no rule at all.
  */
-export type Viewer = { id: string; seesAll: boolean };
+export type Viewer = { id: string; seesAll: boolean; counties: ReadonlySet<string> };
 
-export function canSeeCompany(viewer: Viewer, ownerId: string | null): boolean {
+export function canSeeCompany(viewer: Viewer, ownerId: string | null, county: string | null): boolean {
   if (viewer.seesAll) return true;
-  return ownerId === null || ownerId === viewer.id;
+  if (ownerId === viewer.id) return true;
+  if (ownerId !== null) return false;
+  const place = territoryFor(county);
+  return place !== null && viewer.counties.has(place.county);
 }
+
+/** What the visibility rule needs of a company. */
+export type CompanyPlace = { ownerId: string | null; county: string | null };
 
 /**
  * Which companies a bulk act may touch. Bulk assign is a manager's act
@@ -37,7 +54,7 @@ export function bulkTargets(
   viewer: Viewer,
   act: "assign" | "tag",
   requested: readonly string[],
-  owners: ReadonlyMap<string, string | null>,
+  owners: ReadonlyMap<string, CompanyPlace>,
 ): { ok: true; ids: string[]; refused: number } | { ok: false; error: string } {
   if (act === "assign" && !viewer.seesAll) return { ok: false, error: "Only a sales manager or an administrator assigns companies." };
   const unique = [...new Set(requested.filter(Boolean))];
@@ -50,7 +67,8 @@ export function bulkTargets(
       refused += 1;
       continue;
     }
-    if (canSeeCompany(viewer, owners.get(id) ?? null)) ids.push(id);
+    const place = owners.get(id)!;
+    if (canSeeCompany(viewer, place.ownerId, place.county)) ids.push(id);
     else refused += 1;
   }
   if (ids.length === 0) return { ok: false, error: "None of those companies is yours to change." };

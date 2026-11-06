@@ -246,7 +246,9 @@ export const OFF_QUEUE_STAGES: readonly CrmStage[] = ["do_not_contact", "dormant
 
 /**
  * Whether a company is due a call now and is the rep's to call: their own or
- * nobody's (R5 adds the territory to this test, not a second test beside it).
+ * nobody's. R5 placed the territory in canSeeCompany (crm-board-rules.ts), the
+ * one visibility rule, which the queue applies to every company before this
+ * test; this test still keeps another person's company off the queue.
  * A company nobody has scheduled yet is due if it is new: it starts the
  * sequence with its first call.
  */

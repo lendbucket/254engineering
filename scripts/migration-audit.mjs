@@ -369,10 +369,17 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * six columns on eng_crm_saved_views and four on eng_prospect_threads, 1,509
  * to 1,519; the table count moves 111 to 113; no trigger and no function. Read
  * off fingerprint-at.mjs on the chain to 0115.
+ *
+ * Moved again by 0116, the sales list divides Texas into territories, by
+ * Robert's sales CRM ruling R5 of 2026-11-02, renumbered from 0114 to 0116 by
+ * his ruling (a) of 2026-11-04 and order A of 2026-11-05: five columns on
+ * eng_crm_territories, four on eng_crm_territory_counties and four on
+ * eng_crm_territory_reps, 1,519 to 1,532; the table count moves 113 to 116; no
+ * trigger and no function. Read off fingerprint-at.mjs on the chain to 0116.
  */
-const EXPECTED_FINGERPRINT = "714fc1396bb24141f263db185bce739d";
-const EXPECTED_COLUMNS = 1519;
-const EXPECTED_TABLES = 113;
+const EXPECTED_FINGERPRINT = "b27f543bad9a63b8b4de6843fbe34ebf";
+const EXPECTED_COLUMNS = 1532;
+const EXPECTED_TABLES = 116;
 /* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts.
  * 0074 adds two: eng_partner_billing_touch and eng_partner_billing_events_immutable.
  * 0075 adds one: eng_payment_events_guarded.

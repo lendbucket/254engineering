@@ -201,12 +201,57 @@ export function BulkBar({ canAssign, people }: { canAssign: boolean; people: { i
             </select>
             <button type="button" disabled={busy} className={primaryClass} onClick={() => void act({ action: "bulk_assign", ownerId })}>Assign</button>
           </div>
+          <button type="button" disabled={busy} className={`${ghostClass} mt-2`} onClick={() => void act({ action: "bulk_assign_by_territory" })}>
+            Assign by territory instead
+          </button>
         </div>
       ) : null}
       <div className="w-full">
         <Problem message={error} />
         <Done message={done} />
       </div>
+    </div>
+  );
+}
+
+/**
+ * Reassign one company from its page (R5: "ops_manager and admin reassign
+ * singly or in bulk"). Shown only to a holder of crm.assign; the route asks the
+ * same grant and writes the "Assigned to" entry in the company's history.
+ */
+export function AssignCompany({ prospectId, ownerId, people }: { prospectId: string; ownerId: string | null; people: { id: string; name: string }[] }) {
+  const router = useRouter();
+  const [next, setNext] = useState(ownerId ?? "");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState<string | null>(null);
+
+  async function act(payload: Record<string, unknown>) {
+    setBusy(true);
+    setError(null);
+    setDone(null);
+    const result = await postJson(MOVE_ROUTE, { ...payload, ids: [prospectId] });
+    setBusy(false);
+    if (!result.ok) return setError(result.error);
+    setDone(String(result.said ?? "Done."));
+    router.refresh();
+  }
+
+  return (
+    <div className="print:hidden">
+      <label htmlFor={`assign-${prospectId}`} className={labelClass}>Owner</label>
+      <div className="mt-1.5 flex flex-wrap gap-2">
+        <select id={`assign-${prospectId}`} value={next} onChange={(e) => setNext(e.target.value)} className={fieldClass}>
+          <option value="">Nobody</option>
+          {people.map((p) => (
+            <option key={p.id} value={p.id}>{p.name}</option>
+          ))}
+        </select>
+        <button type="button" disabled={busy} className={primaryClass} onClick={() => void act({ action: "bulk_assign", ownerId: next })}>Reassign</button>
+        <button type="button" disabled={busy} className={ghostClass} onClick={() => void act({ action: "bulk_assign_by_territory" })}>By territory</button>
+      </div>
+      <Problem message={error} />
+      <Done message={done} />
     </div>
   );
 }
