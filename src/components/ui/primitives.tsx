@@ -80,18 +80,31 @@ const buttonTones: Record<ButtonTone, string> = {
     "border-[1.5px] border-white/50 text-slate-fg hover:border-brass hover:text-brass-light",
 };
 
-/** A link styled as a button. Never a <button>: these all navigate. */
+/**
+ * A link styled as a button. Never a <button>: these all navigate. `newTab`
+ * is for a link off this site, such as Robert's booking page: a plain anchor
+ * opening a new tab, with rel noopener so the other site cannot reach back.
+ */
 export function ButtonLink({
   href,
   children,
   tone = "primary",
   className = "",
+  newTab = false,
 }: {
   href: string;
   children: ReactNode;
   tone?: ButtonTone;
   className?: string;
+  newTab?: boolean;
 }) {
+  if (newTab) {
+    return (
+      <a href={href} target="_blank" rel="noopener noreferrer" className={`${buttonBase} ${buttonTones[tone]} ${className}`}>
+        {children}
+      </a>
+    );
+  }
   return (
     <Link href={href} className={`${buttonBase} ${buttonTones[tone]} ${className}`}>
       {children}
