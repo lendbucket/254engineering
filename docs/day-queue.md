@@ -1616,6 +1616,23 @@ On a pass: the production script for 0117, by the operator route for Robert's pr
 - **Merging:** under Robert's R4 answer, the rework is recorded ready when the read-back lands, then merges in the sitting with R4 to R7, after R4 and R5.
 - **Open:** Robert's two copy answers (6697163476). Either answer would be a new commit with its own board, and neither touches the SQL.
 
+**R6, NEXT IN THE QUEUE: `feat/crm-r6-accounts-b` brought up to R5's head.** Merged `1c0966c` into `cda08fd` as `8c436b8`, clean, no conflicts. R6 has no migration.
+- **Static readers, locally:**
+  - type check clean, preflight GREEN;
+  - R6's proof PASS (50);
+  - token-audit, surface-audit, schema-ledger-audit and backlog-audit PASS;
+  - db-guard-audit (86) and migration-audit (208) PASS, run with development's `.env.local` and the react-server condition, as the suite runs them;
+  - bulk-audit's static half PASS (9 paths, 0 undeclared);
+  - the new screen `/portal/crm/accounts` carries no radius, shadow or monospace class, which is V10's static half.
+- **Development holds the rework's 0117,** which R6's tree (main's roofer code) has never run against. Checked: nothing on R6's tree takes a roofer application on development. forms-audit sends only the empty post and the honeypot post, and both answer before any insert. The roofer proof replays its own database.
+
+**Prediction, bundle 118, stated before dispatch: 65 of 65, zero FAIL.** `feat/crm-r6-accounts-b` at `8c436b8`.
+- proofs-audit PASS, with R6's proof among them.
+- roles-audit and security-audit PASS, with the new route in their lists.
+- v10-layout-audit, contrast-audit, mobile-overflow-audit and native-audit PASS on `/portal/crm/accounts`.
+- perf-audit: the four LCP pages under ceiling.
+- The standing COULD NOT TELL set.
+
 **THE ROOFER APPLICATION MERGED** as `b10651c` (parents `c7bbe8c`, `130abe3`), after 0113's production read-back (6675087911, 02:18 UTC 2026-11-06).
 - **The read-back:** history version `20261106021807`, stored hash `4d6f7664`; grants 192 to 194; both checks widened; the author check present; no row changed.
 - **No connector prompt appeared** this time, and block 2 ran on the first call; the ledger records that.
