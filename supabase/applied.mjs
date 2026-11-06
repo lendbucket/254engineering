@@ -49,14 +49,18 @@
 /**
  * @typedef {object} AppliedEntry
  * @property {string} file        The migration filename, exactly.
- * @property {"apply_migration"|"execute_sql"|"pre_ledger"} appliedBy
+ * @property {"apply_migration"|"execute_sql"|"pre_ledger"|"operator_sql_editor"} appliedBy
  *   HOW production received it, which decides whether the provider's own
  *   migration history shows it. apply_migration writes a row into
  *   supabase_migrations.schema_migrations; execute_sql changes the database and
  *   writes nothing, so the migration is invisible to that history while being
  *   plainly present in the schema. pre_ledger covers 0000 to 0005, which
  *   production received under the names they were applied with, before the
- *   numbered convention existed.
+ *   numbered convention existed. operator_sql_editor is Robert's named route
+ *   of 2026-11-02: a migration the connector cancels, run by the operator in
+ *   the Supabase SQL editor from a script a session prepares, allowed only
+ *   for a migration listed in docs/production-sitting-destructive.md, and
+ *   carrying a handApplied sentence. 0111 is the first (2026-11-04).
  *
  *   Operator ruling, 2026-09-09: every production migration from here goes
  *   through apply_migration, so the two records agree. execute_sql therefore
@@ -4192,6 +4196,111 @@ export const APPLIED = [
       "CHAT COUNTERPART'S SITTING; APPLIED NOWHERE. Robert's ruling Q6 of 2026-11-02 (audit field F10): a trigger " +
       "refuses sealed or delivered on eng_files without a live seal act. The one product path that moves a file " +
       "there, deliverSealedFile, runs after the letter act is recorded, so it passes; the generic transition does not.",
+  },
+  {
+    file: "0111_a_role_grant_set_is_replaced_in_one_act.sql", appliedBy: "operator_sql_editor",
+    fingerprint: "22346b566a73ea946ca112725b16569f",
+    behaviour: "1ba6334e77d708f51391a37b7625b1c9",
+    /*
+     * Production: applied 2026-11-05 17:23 UTC by the chat counterpart, the
+     * four blocks of the operator_sql_editor script (6664336087) through the
+     * connector's execute_sql with Robert approving block 2, from the boarded
+     * commit b27e5fe (board 42059867995). Read back: function present, execute
+     * for anon and authenticated false, grants 186 and admin 69 before and
+     * after; schema_migrations version 20261105172304, stored hash 010a57c0,
+     * the same as development (issue #1, 6664558644).
+     */
+    production: "2026-11-05",
+    handApplied:
+      "The connector cancelled the development apply of 0111 on 2026-11-04 (6650906898), because the function body " +
+      "holds a delete, and Robert approved the operator_sql_editor route for development and production. The " +
+      "provider's history holds a row for 0111 only because the script's last block inserts it by hand after the " +
+      "verification read: apply_migration never wrote it, so its version is the moment of that insert rather than of " +
+      "the apply, and nothing in the provider's record shows how the file was run. On development the script's four " +
+      "blocks went through the connector's execute_sql on 2026-11-05, with Robert approving its confirmation for the " +
+      "migration block (6660074026); the history row there is version 20261105140855.",
+    proves: { function: "eng_set_role_grants" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-05 on the chain to 0111. One function adds no " +
+      "column, so the shape is 0110's (22346b56, 1396 columns); the behaviour moves 1357 to 1358 facts, the function.",
+    because:
+      "WRITTEN 2026-11-05 ON fix/f8-set-grants-one-act AND STAGED ON stage/0111-role-grants-one-act FOR THE CHAT " +
+      "COUNTERPART'S SITTING; ON DEVELOPMENT SINCE 2026-11-05 (6660074026), ON PRODUCTION SINCE 2026-11-05 (6664558644). Robert's Q12 of " +
+      "2026-11-02 (office audit F8), numbered 0111 by his " +
+      "ruling (a) of 2026-11-04: setGrants replaces a role's grants through one function, so a failed insert never " +
+      "leaves the role with none. The delete in the function body runs only when the function is called.",
+  },
+  {
+    file: "0112_the_sales_list_knows_companies_contacts_and_sources.sql", appliedBy: "apply_migration",
+    fingerprint: "72bb0e8c9223c6cd634a610fb0506b82",
+    behaviour: "2a63b84154d4bca46a2b691a89a5584d",
+    /*
+     * Production: applied 2026-11-05 23:26 UTC by the chat counterpart through
+     * apply_migration, from the boarded commit 007532b (board 42118983641).
+     * Read back: grants 186 to 192, crm_mgmt 6, prospects, contacts and
+     * sources 0, both normalize functions present; schema_migrations version
+     * 20261105232655, stored hash c23ea39a, the same as development (issue #1,
+     * 6672192716).
+     */
+    production: "2026-11-05",
+    proves: { table: "eng_prospect_sources" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-05 on the chain to 0112 with 0111 (F8) before " +
+      "it. Shape 1396 to 1439 columns: 17 on eng_prospects, 11 on eng_prospect_contacts, 8 on eng_prospect_sources, " +
+      "7 on eng_contact_log; tables 106 to 108. Behaviour 1358 to 1410 facts: two functions, one trigger, the new " +
+      "checks, keys and indexes, and six grant rows. The behaviour digest moved from f3c828fa to 336caebe on " +
+      "2026-11-02, before 0112 was applied anywhere, when the source check gained tdlr_solar_retailers and " +
+      "tdlr_solar_salespeople (Robert's answer to 6588393366); and from 336caebe to 2a63b841 on 2026-11-05, when " +
+      "0111 took its place before it in the chain (one more fact, the function). The file and its shape did not change.",
+    because:
+      "WRITTEN 2026-11-02 ON feat/crm-r1-data-model AND STAGED ON stage/0112-crm-data-model FOR THE CHAT " +
+      "COUNTERPART'S SITTING; ON DEVELOPMENT SINCE 2026-11-05 (6664433708, version 20261105171658), ON " +
+      "PRODUCTION SINCE 2026-11-05 (6672192716, version 20261105232655). Robert's sales CRM ruling of 2026-11-02, item R1, the data model: " +
+      "eng_prospects extended (vertical, stage, score, next action, tags, website, address and county, permit " +
+      "activity, normalized name and phone as generated columns), several contacts and several sources per company, " +
+      "activities in the existing contact log, unique on normalized (name, phone) and on (source, source record id), " +
+      "and crm.import, crm.assign and crm.reports for admin and ops_manager. Additive: the prospect kind check stays " +
+      "until Robert's destructive sitting (answer 8).",
+  },
+  {
+    file: "0113_a_roofer_applies_and_a_person_decides.sql", appliedBy: "operator_sql_editor",
+    fingerprint: "fead81771a43e1c4b0bd1f2b02e4fe2b",
+    behaviour: "e71f297052836059c3ad612cafcdd17b",
+    /*
+     * Production: applied 2026-11-06 02:18 UTC by the chat counterpart, the
+     * four blocks of the operator_sql_editor script (6674870647) through the
+     * connector's execute_sql, from the boarded commit 97b8da2 (board
+     * 42138978968). No confirmation prompt appeared; block 2 ran on the first
+     * call. Read back: the table and function present, execute for anon and
+     * authenticated false, grants 192 to 194, roofers.review admin and
+     * ops_manager, prospects unchanged, both checks widened, the author check
+     * present, created_by nullable; schema_migrations version 20261106021807,
+     * stored hash 4d6f7664 (issue #1, 6675087911).
+     */
+    production: "2026-11-06",
+    handApplied:
+      "The file drops and re-adds two of 0112's checks (the prospect source and the next action kind, each " +
+      "gaining one value) and drops the NOT NULL on eng_prospects.created_by in favour of a check that a " +
+      "prospect's author is a person or a roofer application. The connector cancels those before they run, so " +
+      "Robert sits it by the operator_sql_editor route on development and production. The provider's history " +
+      "holds a row for 0113 only because the script's fourth block inserts it by hand after the verification " +
+      "read, so its version is the moment of that insert and nothing in the provider's record shows how the " +
+      "file was run.",
+    proves: { table: "eng_roofer_applications" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on the chain to 0113. Shape 1439 to 1476 columns: 36 on " +
+      "eng_roofer_applications and roofer_application_id on eng_prospects, and created_by made nullable; tables " +
+      "108 to 109. Behaviour 1410 to 1451 facts (2026-11-05): the table's checks, keys and indexes, two triggers, " +
+      "two functions, two grant rows, the two widened checks and the author check.",
+    because:
+      "WRITTEN 2026-11-05 ON feat/roofer-application, STACKED ON R1, FOR THE CHAT COUNTERPART'S SITTING WITH ROBERT " +
+      "APPROVING THE PROMPT; ON DEVELOPMENT SINCE 2026-11-05 (6671002528, version 20261105221807, the four blocks of " +
+      "6670846102 through the connector's execute_sql), ON PRODUCTION SINCE 2026-11-06 (6675087911, version " +
+      "20261106021807). Robert's request and rulings of " +
+      "2026-11-05: a Texas roofing company " +
+      "applies on /roofing-partners/apply, the application lands as its own source on a roofer prospect with a " +
+      "due now review action, and a person holding roofers.review (admin and ops_manager) approves it, opening a " +
+      "B2B account through door 2, or declines it, with a reason either way.",
   },
 ];
 

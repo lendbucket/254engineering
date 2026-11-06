@@ -166,7 +166,7 @@ rec(`there are migrations to check (${files.length})`, files.length > 0);
  * there, and anything applied by hand has to say so in a sentence.
  */
 {
-  const WAYS = ["apply_migration", "execute_sql", "pre_ledger"];
+  const WAYS = ["apply_migration", "execute_sql", "pre_ledger", "operator_sql_editor"];
   const applied = appliedToProduction();
 
   const undeclared = applied.filter((e) => !WAYS.includes(e.appliedBy));
@@ -212,6 +212,37 @@ rec(`there are migrations to check (${files.length})`, files.length > 0);
     forbidden.length
       ? `${forbidden.map((e) => e.file).join(", ")}. Operator ruling 2026-09-09: apply_migration, so the provider's history and this ledger agree.`
       : `${GRANDFATHERED.join(", ")} is the only one, and it predates the ruling`,
+  );
+
+  /*
+   * THE NAMED ROUTE operator_sql_editor. Robert's amendment to the 2026-09-09
+   * ruling, 2026-11-02 (answer 2 to 6588393366): a migration the connector
+   * cancels may be run by the operator in the Supabase SQL editor, but ONLY a
+   * migration listed in docs/production-sitting-destructive.md, and each one
+   * carries the sentence saying what the provider's history will not show.
+   * First used for 0111, approved for development and production on
+   * 2026-11-04 after the connector cancelled its development apply
+   * (6650906898).
+   *
+   * Asked of EVERY ledger entry declaring the route, pending ones included, so
+   * the check has a subject from the moment the route is declared rather than
+   * from the day production has it.
+   */
+  const destructiveDoc = readSource("docs/production-sitting-destructive.md");
+  const editor = APPLIED.filter((e) => e.appliedBy === "operator_sql_editor");
+  const unlisted = editor.filter((e) => !destructiveDoc.includes(e.file));
+  rec(
+    `every migration run by the operator in the SQL editor is listed in docs/production-sitting-destructive.md (${editor.length})`,
+    unlisted.length === 0,
+    unlisted.length
+      ? `${unlisted.map((e) => e.file).join(", ")} declares operator_sql_editor and is not named there. Robert, 2026-11-02: the route is allowed only for migrations listed in that document.`
+      : editor.map((e) => e.file).join(", ") || "none declared",
+  );
+  const unsaid = editor.filter((e) => !e.handApplied || !e.handApplied.trim());
+  rec(
+    `and each says what the provider's history will not show (${editor.length})`,
+    unsaid.length === 0,
+    unsaid.length ? `${unsaid.map((e) => e.file).join(", ")} declares operator_sql_editor with no handApplied sentence` : "",
   );
 }
 

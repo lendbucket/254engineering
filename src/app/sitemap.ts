@@ -90,6 +90,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
     entry("/structural-engineer/cost", 0.8, "monthly"),
     entry("/what-is-a-structural-engineer", 0.8, "monthly"),
     entry("/government", 0.9, "monthly"),
+    /* The roofer partner program and its application (Robert, 2026-11-05). The confirmation is noindex and absent. */
+    entry("/roofing-partners", 0.8, "monthly"),
+    entry("/roofing-partners/apply", 0.6, "monthly"),
     entry("/careers", 0.8, "monthly"),
     ...openPositions().map((p) => entry(`/careers/${p.slug}`, 0.7, "monthly")),
     entry("/insights", 0.8, "monthly"),

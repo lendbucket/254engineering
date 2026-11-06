@@ -57,6 +57,9 @@ function longDate(iso: string): string {
   });
 }
 
+/** The lines a roofing company orders, which carry the link to the roofer partner application (Robert, 2026-11-05). */
+const ROOFER_LINES = new Set(["roof-inspections", "windstorm-wpi-8", "repair-specifications"]);
+
 export default async function ServicePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const service = serviceBySlug(slug);
@@ -195,6 +198,24 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
                   </li>
                 ))}
               </ul>
+              {/* Roofing companies: the partner application (Robert, 2026-11-05), on the three lines a roofer orders. */}
+              {ROOFER_LINES.has(service.slug) ? (
+                <div className="mt-9 border-l-4 border-brass bg-white px-5 py-[18px]">
+                  <p className="text-[12px] font-bold tracking-[0.1em] text-slate-muted uppercase">For roofing companies</p>
+                  <p className="mt-2 text-[0.98rem] leading-[1.7] text-slate-muted">
+                    Texas roofers who order this work for their customers can{" "}
+                    <Link href="/roofing-partners" className="font-semibold text-slate underline">
+                      apply to work with the firm as a roofing partner
+                    </Link>
+                    , with prices set for the account and every job in one place. The application is three
+                    short steps:{" "}
+                    <Link href="/roofing-partners/apply" className="font-semibold text-slate underline">
+                      start the roofing partner application
+                    </Link>
+                    .
+                  </p>
+                </div>
+              ) : null}
             </div>
 
             <div>

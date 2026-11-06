@@ -37,6 +37,84 @@ the second block if the world is not the one the script was written against.
 
 ---
 
+## The named route `operator_sql_editor`
+
+**Robert's amendment to the 2026-09-09 ledger ruling, 2026-11-02** (answer 2 to
+6588393366). A migration run by the operator in the SQL editor is declared in
+`supabase/applied.mjs` with `appliedBy: "operator_sql_editor"`. The route is
+allowed ONLY for a migration listed in this document, and each one carries
+the sentence saying what the provider's history will not show, as its
+`handApplied` field. `schema-ledger-audit` refuses an entry on this route that
+is not named here or carries no sentence. 0025 stays the only grandfathered
+`execute_sql`.
+
+**A fourth block, after the verification.** Because the SQL editor writes no
+row into `supabase_migrations.schema_migrations`, the script's last block
+inserts the row `apply_migration` would have written, setting `created_by` to
+`operator_sql_editor` where that column exists. It refuses if the migration's
+object is missing or if the row already exists.
+
+---
+
+## 0111, `0111_a_role_grant_set_is_replaced_in_one_act.sql`, by the operator in the SQL editor
+
+**Robert, 2026-11-04 night:** the connector cancelled the development apply
+(6650906898). Nothing ran and it was not retried. He approved this route for
+0111 on development and on production. The file creates one function,
+`eng_set_role_grants`, and revokes its execute. Its body holds a delete, which
+runs only when the function is called, and that delete is what the connector
+refused. Applying the file changes no row and drops nothing.
+
+**What the provider's history will not show:** the history holds a row for
+0111 only because the script's fourth block inserts it by hand after the
+verification read. `apply_migration` never wrote that row, so its version is
+the moment of the insert rather than of the apply, and nothing in the
+provider's record shows that the file went through the SQL editor.
+
+**The scripts are posted on issue #1, generated from the file's exact bytes.**
+- Development: 6651034226, from `stage/0111-role-grants-one-act` at `156a682`.
+- Production: posted after F8's board passes, from the boarded commit.
+
+Each script has four blocks:
+1. The dry read.
+2. The file, exactly.
+3. The verification read, as its own statement.
+4. The history row.
+
+Before posting, the four blocks were run against the chain replayed to 0110 in an in-process Postgres, with and without a `created_by` column. Running the file a second time was refused, and so was writing the history row a second time.
+
+---
+
+## 0113, `0113_a_roofer_applies_and_a_person_decides.sql`, by the operator in the SQL editor
+
+**Robert, 2026-11-05:** the roofer partner application goes right after R1, and
+the application is its own source on a roofer prospect with a due now review
+action. That needs two of 0112's checks widened by one word each, which is a
+`drop constraint` and an `add constraint`, and a prospect whose author is the
+application rather than a person, which is a `drop not null`. The connector
+cancels each of those before it runs, so this file goes by this route on
+development and on production, with Robert approving the prompt.
+
+**What it drops, exactly:** `eng_prospect_sources_source_known` and
+`eng_prospects_next_action_kind_known`, each re-added in the same file with one
+more allowed value, and the NOT NULL on `eng_prospects.created_by`, replaced by
+`eng_prospects_has_an_author` (a person or the application, never neither). No
+row is deleted and no column is dropped. Everything else in the file is
+additive: `eng_roofer_applications`, its two triggers, the function
+`eng_take_roofer_application`, and the `roofers.review` grant for admin and
+ops_manager.
+
+**What the provider's history will not show:** as with 0111, the history holds
+a row for 0113 only because the script's fourth block inserts it by hand after
+the verification read, so its version is the moment of that insert, and
+nothing in the provider's record shows how the file was run.
+
+**The scripts are posted on issue #1, generated from the file's exact bytes:**
+development from its stage branch, production from the boarded commit, each in
+the four blocks above.
+
+---
+
 ## 0062, prepared and not run
 
 **DEFERRED OUT OF `release/2026-10-20`, operator ruling of 2026-10-07.** The

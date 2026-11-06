@@ -293,9 +293,11 @@ export default async function OrderStatusPage({
 
         {/*
           THE SEALED LETTER, WHEN THERE IS ONE. Sealing piece two, 2026-10-07.
-          The link carries the same token that opened this page, and the route
-          behind it serves the letter only if it is sealed, on this order's own
-          file, with a live seal, and still hashes to what was sealed.
+          The route behind it serves the letter only if it is sealed, on this
+          order's own file, with a live seal, and still hashes to what was
+          sealed. Since L6 (2026-11-05) the link names the order and never the
+          token: the proxy supplies the token from this page's link cookie, so
+          it never sits in an address, a log or a Referer.
         */}
         {view.letters.length > 0 && token ? (
           <section className="mt-12">
@@ -304,7 +306,7 @@ export default async function OrderStatusPage({
               {view.letters.map((letter) => (
                 <li key={letter.id}>
                   <a
-                    href={`/api/order-document?token=${encodeURIComponent(token)}&document=${encodeURIComponent(letter.id)}`}
+                    href={`/api/order-document?reference=${encodeURIComponent(reference)}&document=${encodeURIComponent(letter.id)}`}
                     className="inline-flex min-h-[44px] items-center text-[17px] font-semibold text-[var(--color-ink)] underline underline-offset-4"
                   >
                     Download {letter.title} (PDF)

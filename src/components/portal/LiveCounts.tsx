@@ -29,6 +29,12 @@ export function LiveCounts({ renderedAt }: { renderedAt: number }) {
   const router = useRouter();
   /* What the rendered screen already accounts for: nothing that arrived after it. */
   const last = useRef("0:0");
+  /*
+   * The roofer applications waiting (2026-11-05) are a total, not a count since
+   * the render, so the first answer is the baseline the screen already shows,
+   * and only a change after that refreshes it.
+   */
+  const roofersSeen = useRef<number | null>(null);
   const originalTitle = useRef<string | null>(null);
 
   useEffect(() => {
@@ -43,15 +49,19 @@ export function LiveCounts({ renderedAt }: { renderedAt: number }) {
           inquiries: number | null;
           inquiriesSince: number | null;
           ordersSince: number | null;
+          roofersWaiting?: number | null;
         };
         if (stopped) return;
-        const waiting = (body.inquiries ?? 0) + (body.ordersSince ?? 0);
+        const roofers = body.roofersWaiting ?? null;
+        const waiting = (body.inquiries ?? 0) + (body.ordersSince ?? 0) + (roofers ?? 0);
         const base = (originalTitle.current ?? document.title).replace(/^\([0-9]+\) /, "");
         document.title = waiting > 0 ? `(${waiting}) ${base}` : base;
         /* A count this role does not see, or that failed to read, holds its last value rather than moving. */
         const [seenInquiries, seenOrders] = last.current.split(":");
         const key = `${body.inquiriesSince ?? seenInquiries}:${body.ordersSince ?? seenOrders}`;
-        if (last.current !== key) router.refresh();
+        const roofersMoved = roofers !== null && roofersSeen.current !== null && roofers !== roofersSeen.current;
+        if (roofers !== null) roofersSeen.current = roofers;
+        if (last.current !== key || roofersMoved) router.refresh();
         last.current = key;
       } catch {
         /* Offline for a moment. The next tick asks again. */

@@ -29,3 +29,16 @@ export const primaryNav = [
   { href: "/careers", label: "Careers" },
   { href: "/contact", label: "Contact" },
 ] as const;
+
+/*
+ * THE ROOFER PARTNER APPLICATION, IN THE NAVIGATION BUT NOT IN THE BAR.
+ * Robert, 2026-11-05: "Every page and call to action that suits a contractor
+ * gets a clear link to the application, and so does the site navigation."
+ *
+ * The bar holds nine links and, as measured on 2026-10-29, leaves 70px spare at
+ * 1280 and 14px at 1024; a tenth overruns a row that does not wrap. So this one
+ * link sits in the header's right hand block on a desk, in the mobile sheet
+ * after the nine, and in the footer, which reach every page without moving the
+ * bar. Defined once here so the three cannot disagree.
+ */
+export const partnerLink = { href: "/roofing-partners", label: "Roofing partners" } as const;

@@ -140,6 +140,14 @@ export const NAV: NavItem[] = [
     action: "files.create",
     icon: "files",
   },
+  {
+    /* The roofer partner applications (Robert, 2026-11-05). roofers.review, matching the page's guard. */
+    href: "/portal/roofer-applications",
+    label: "Roofer applications",
+    short: "Roofers",
+    action: "roofers.review",
+    icon: "applications",
+  },
   { href: "/portal/review", label: "Review queue", short: "Review", action: "review.queue", primary: true, icon: "review" },
   {
     /*

@@ -298,6 +298,12 @@ const EXPECTED = {
   "inbox.answer":                 { admin: true,  engineer: false, field_tech: false },
   "contact_log.write":            { admin: true,  engineer: false, field_tech: false },
   "crm.use":                      { admin: true,  engineer: false, field_tech: false },
+  /* The sales CRM's management grants, Robert's ruling of 2026-11-02 (R1, 0112): admin and ops_manager. */
+  "crm.import":                   { admin: true,  engineer: false, field_tech: false },
+  "crm.assign":                   { admin: true,  engineer: false, field_tech: false },
+  "crm.reports":                  { admin: true,  engineer: false, field_tech: false },
+  /* The roofer partner applications, Robert's ruling 6 of 2026-11-05 (0113). */
+  "roofers.review":               { admin: true,  engineer: false, field_tech: false },
   "refunds.request":              { admin: true,  engineer: false, field_tech: false },
   "refunds.approve_within_limit": { admin: true,  engineer: false, field_tech: false },
   "settings.refund_limit":        { admin: true,  engineer: false, field_tech: false },
@@ -395,6 +401,14 @@ const EXPECTED_NINE = {
   "clients.list":                 "Y . . Y Y Y . Y Y",
   "clients.update":               "Y . . . Y . . Y Y",
   "contact_log.write":            "Y . . . . . . Y Y",
+  /*
+   * The sales CRM, Robert's ruling of 2026-11-02 (R1, 0112) with his answer 2:
+   * the operations manager is the sales manager, the rep is also the account
+   * manager and keeps crm.use, and sales holds no CRM grant.
+   */
+  "crm.assign":                   "Y . . . . . . . Y",
+  "crm.import":                   "Y . . . . . . . Y",
+  "crm.reports":                  "Y . . . . . . . Y",
   "crm.use":                      "Y . . . . . . Y Y",
   "documents.deliver":            "Y Y . . . . . . .",
   "documents.read":               "Y Y . . . . Y . .",
@@ -451,6 +465,8 @@ const EXPECTED_NINE = {
   "responsible_charge.read_own":  "Y Y . . . . . . .",
   "retention.execute":            "Y . . . . . . . .",
   "roles.manage":                 "Y . . . . . . . .",
+  /* The roofer partner applications, Robert's ruling 6 of 2026-11-05 (0113): admin and ops_manager, nobody else. */
+  "roofers.review":               "Y . . . . . . . Y",
   "settings.refund_limit":        "Y . . . . . . . .",
   "suppressions.manage":          "Y . . . . Y . . .",
   "tasks.use":                    "Y Y Y Y Y Y . Y Y",
@@ -1332,10 +1348,22 @@ const STAFF_LEVELS = ["rep", "ops_manager"];
     "and a deletion through the guard",
     /const verdict = canDeleteRole\([\s\S]{0,120}if \(!verdict\.ok\) return/.test(opsRoles),
   );
+  /*
+   * THE WRITE IS ONE ACT SINCE 0111 (Robert's Q12, office audit F8). This
+   * check used to find the write as `.from("eng_role_grants").delete()`; it
+   * now names the function call, and asserts the call exists, because an
+   * index of -1 would otherwise read as "the guard comes first".
+   */
+  const rpcAt = opsRoles.indexOf('db.rpc("eng_set_role_grants"');
   rec(
     "and it asks BEFORE it writes",
-    opsRoles.indexOf("canSetGrants(") < opsRoles.indexOf('.from("eng_role_grants").delete()'),
+    rpcAt > 0 && opsRoles.indexOf("canSetGrants(") > 0 && opsRoles.indexOf("canSetGrants(") < rpcAt,
     "a guard applied after the write is a guard that has already lost",
+  );
+  rec(
+    "and the write is one act: no grant is deleted, inserted or upserted outside eng_set_role_grants",
+    !/from\("eng_role_grants"\)\s*\.(delete|insert|upsert|update)\(/.test(opsRoles),
+    "a delete and an insert as two calls leave a role with no grants when the second fails",
   );
 
   // ---- keys
@@ -2512,6 +2540,12 @@ if (!db) {
          * this ruling agree rather than disagreeing on the first board.
          */
         "/portal/windstorm-inquiries",
+        /*
+         * The roofer partner applications (Robert, 2026-11-05): deciding which
+         * roofing companies the firm works with is commercial, on
+         * roofers.review, which he does not hold.
+         */
+        "/portal/roofer-applications",
         /*
          * The firm's insurance register, Robert's addendum of 2026-10-25: what
          * the firm is insured for and with whom is the owner's and the office's

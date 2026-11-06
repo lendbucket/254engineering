@@ -743,6 +743,10 @@ export const RETENTION_POLICY: RetentionEntry[] = [
       ruledBy: "the schema, confirmed by the operator 2026-09-09",
     },
   },
+  /* 0112. The people at a company on the sales list: names, telephones and emails. Personal contact details, so counsel decides, as for eng_prospects. */
+  { table: "eng_prospect_contacts", rule: { kind: "kept_pending_counsel", because: COUNSEL } },
+  /* 0112. Where each company on the sales list came from, with the fields the source gave, names and telephones among them. Counsel decides, as for eng_prospects. */
+  { table: "eng_prospect_sources", rule: { kind: "kept_pending_counsel", because: COUNSEL } },
   /* 0079. The sales list: companies the firm is calling and how to reach them. Personal contact details, so counsel decides. */
   { table: "eng_prospects", rule: { kind: "kept_pending_counsel", because: COUNSEL } },
   { table: "eng_protocol_items", rule: { kind: "not_a_record", because: "Part of a protocol template. Configuration an engineer authors." } },
@@ -858,6 +862,13 @@ export const RETENTION_POLICY: RetentionEntry[] = [
     rule: { kind: "not_a_record", because: "The permission matrix. Configuration, seeded by migrations and edited on the roles screen." },
   },
   { table: "eng_roles", rule: { kind: "not_a_record", because: "The roles themselves. Configuration, seeded by 0018." } },
+  /*
+   * 0113. A roofing company's partner application: its owner's name, email and
+   * telephone, its references' names and telephones, and the decision a person
+   * made with the reason. Personal contact details, so counsel decides, as for
+   * eng_prospects (Robert, 2026-11-05).
+   */
+  { table: "eng_roofer_applications", rule: { kind: "kept_pending_counsel", because: COUNSEL } },
   {
     table: "eng_scope_addenda",
     rule: {

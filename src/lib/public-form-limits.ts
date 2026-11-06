@@ -35,7 +35,8 @@ import { todayInFirmCalendar } from "./firm-calendar";
  * connection and the hashed address.
  */
 
-export type PublicFormKind = "contact" | "waitlist" | "design" | "windstorm" | "apply";
+/* "roofer" joined on 2026-11-05 with the roofer partner application, under the same limits. */
+export type PublicFormKind = "contact" | "waitlist" | "design" | "windstorm" | "apply" | "roofer";
 
 export const PUBLIC_FORM_LIMITS = {
   windowSeconds: 60 * 60,

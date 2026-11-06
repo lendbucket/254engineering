@@ -341,10 +341,24 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * 22346b566a73ea946ca112725b16569f, read off fingerprint-at.mjs, the figure
  * posted for the development sitting (6568178900) and sat there (6578648098).
  * The branch-local figure on 0104 then 0107 was e12033a2c91fead686fc9a4632ed20dc.
+ *
+ * 0108, 0109 and 0110 add no column. Moved again by 0112, the sales list knows
+ * companies, contacts and sources, by Robert's sales CRM ruling R1 of
+ * 2026-11-02, on the combined chain 0104 to 0112: 1,396 to 1,439 is seventeen
+ * columns on eng_prospects (two of them generated, the normalized name and
+ * telephone), eleven on eng_prospect_contacts, eight on eng_prospect_sources
+ * and seven on eng_contact_log; the table count moves 106 to 108; shape
+ * 72bb0e8c9223c6cd634a610fb0506b82, read off fingerprint-at.mjs.
+ *
+ * Moved again by 0113, a roofer applies and a person decides (Robert,
+ * 2026-11-05): thirty six columns on eng_roofer_applications and one on
+ * eng_prospects (roofer_application_id), 1,439 to 1,476; the table count moves
+ * 108 to 109; and created_by on eng_prospects becomes nullable, which moves
+ * the shape without a column. Read off fingerprint-at.mjs on the chain to 0113.
  */
-const EXPECTED_FINGERPRINT = "22346b566a73ea946ca112725b16569f";
-const EXPECTED_COLUMNS = 1396;
-const EXPECTED_TABLES = 106;
+const EXPECTED_FINGERPRINT = "fead81771a43e1c4b0bd1f2b02e4fe2b";
+const EXPECTED_COLUMNS = 1476;
+const EXPECTED_TABLES = 109;
 /* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts.
  * 0074 adds two: eng_partner_billing_touch and eng_partner_billing_events_immutable.
  * 0075 adds one: eng_payment_events_guarded.
@@ -369,8 +383,13 @@ const EXPECTED_TABLES = 106;
  * 0106 adds two, by Robert's ruling P3 of 2026-11-01: eng_academy_course_approvals_append_only
  * and eng_academy_attempts_append_only.
  * 0110 adds one, by Robert's ruling Q6 of 2026-11-02 (audit field F10):
- * eng_files_sealed_needs_a_seal_act. */
-const EXPECTED_TRIGGERS = 107;
+ * eng_files_sealed_needs_a_seal_act.
+ * 0112 adds one, by Robert's sales CRM ruling R1 of 2026-11-02: eng_prospect_contacts_touch,
+ * the updated_at stamp on a company's people, which change as numbers do.
+ * 0113 adds two, by Robert's rulings of 2026-11-05: eng_roofer_applications_touch and
+ * eng_roofer_applications_decide_once, which lets a decision be made once and touch
+ * nothing the roofer wrote. */
+const EXPECTED_TRIGGERS = 110;
 /**
  * 0014 added eng_freeze_attribution and 0019 added two more, the partner
  * entry freeze and its delete refusal, which are trigger functions like the
@@ -442,8 +461,16 @@ const EXPECTED_TRIGGERS = 107;
  * eng_alert_recipient_guard.
  * 72 since 0110, by Robert's ruling Q6 of 2026-11-02 (audit field F10): the trigger
  * function eng_file_sealed_needs_a_seal_act. 0109 replaces eng_seal_act_check with the
- * same signature, which is not a new row. */
-const EXPECTED_FUNCTIONS = 72;
+ * same signature, which is not a new row.
+ * 73 since 0111, by Robert's Q12 of 2026-11-02 (office audit F8) and his ruling (a)
+ * of 2026-11-04: eng_set_role_grants, a role's grant set replaced in one act.
+ * 75 since 0112, by Robert's sales CRM ruling R1 of 2026-11-02: eng_crm_normalize_name
+ * and eng_crm_normalize_phone, the two immutable rules the generated normalized
+ * columns and both unique keys are computed from.
+ * 77 since 0113, by Robert's rulings of 2026-11-05: eng_roofer_application_decides_once
+ * (the trigger function) and eng_take_roofer_application, which writes an
+ * application, its prospect and its source row in one transaction. */
+const EXPECTED_FUNCTIONS = 77;
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });

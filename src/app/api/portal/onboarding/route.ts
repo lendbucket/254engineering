@@ -146,6 +146,7 @@ async function handlePOST(request: NextRequest) {
           profileId: result.profileId,
           token: result.token,
           linked: result.linked,
+          resumed: result.resumed,
           credentials: result.credentials,
         })
       : NextResponse.json(

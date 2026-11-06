@@ -425,6 +425,25 @@ export type Action =
   | "contact_log.write"
   // The sales list: prospects, imports, the call list, converting one.
   | "crm.use"
+  /*
+   * The sales CRM's three management grants, Robert's ruling of 2026-11-02,
+   * seeded by 0112 for the administrator and the operations manager, who is
+   * the sales manager (his answer 2). The rep keeps crm.use and is also the
+   * account manager; sales holds none of these.
+   */
+  // Run and write an import from a source (permits, licence files, a purchased list).
+  | "crm.import"
+  // Reassign prospects and territories, singly or in bulk.
+  | "crm.assign"
+  // The CRM dashboard: dials, connects, accounts opened and revenue attributed, per rep.
+  | "crm.reports"
+  /*
+   * Read every roofer partner application, with its certificate, and approve or
+   * decline it with a reason. Robert's ruling 6 of 2026-11-05: admin and
+   * ops_manager, seeded in 0113 and pinned in roles-audit. A rep sees the due
+   * review on the prospect and cannot decide it.
+   */
+  | "roofers.review"
   // Ask for an order's money to go back. Somebody else decides.
   | "refunds.request"
   /*
@@ -544,6 +563,10 @@ const MATRIX: Record<Role, Action[]> = {
     "refunds.request", "refunds.approve_within_limit", "settings.refund_limit",
     "technicians.onboard", "pricing.override_at_intake", "pricing.read_tech_rate",
     "reports.turnaround", "reports.activity",
+    /* The sales CRM's management grants, seeded by 0112 (Robert, 2026-11-02, R1). */
+    "crm.import", "crm.assign", "crm.reports",
+    /* The roofer partner applications, seeded by 0113 (Robert, 2026-11-05, ruling 6). */
+    "roofers.review",
   ],
   engineer: [
     "profiles.read_self", "profiles.update_self",
@@ -866,6 +889,14 @@ export const DEFAULT_ROLES: DefaultRole[] = [
        * credentials. It narrows the ruling of 2026-10-20 for this role only.
        */
       "profiles.list", "profiles.update", "applications.read",
+      /*
+       * The sales manager's three, seeded by 0112. Robert's sales CRM ruling of
+       * 2026-11-02 with his answer 2: the operations manager is the sales
+       * manager, so he imports, assigns and reads the reps' numbers.
+       */
+      "crm.import", "crm.assign", "crm.reports",
+      /* The roofer partner applications, seeded by 0113 (Robert, 2026-11-05, ruling 6). */
+      "roofers.review",
     ],
   },
 ];

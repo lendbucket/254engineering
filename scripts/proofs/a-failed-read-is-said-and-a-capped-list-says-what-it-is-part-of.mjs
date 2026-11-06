@@ -107,7 +107,8 @@ failing.add("eng_role_grants");
 requests.length = 0;
 const refused = await setGrants(actor(uuid(1), "admin", ["roles.manage"]), "admin", ["roles.manage"]);
 check("a grant change refuses on a failed view", refused.ok === false && /could not be read/.test(refused.error), JSON.stringify(refused));
-check("and touches no grant", !requests.some((r) => r.table === "eng_role_grants" && r.method !== "GET" && r.method !== "HEAD"));
+// Since 0111 (F8) the write is the function eng_set_role_grants, so a call to it counts as touching a grant.
+check("and touches no grant", !requests.some((r) => (r.table === "eng_role_grants" || r.table.startsWith("rpc/eng_set_role_grants")) && r.method !== "GET" && r.method !== "HEAD"));
 failing.clear();
 
 /* F9 ---------------------------------------------------------------------- */
