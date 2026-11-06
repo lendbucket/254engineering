@@ -94,7 +94,8 @@ export function Board({ columns, listHref }: { columns: BoardColumnView[]; listH
                       draggable={col.acceptsDrop && !busy}
                       onDragStart={() => setDragging({ id: card.id, from: col.stage })}
                       onDragEnd={() => setDragging(null)}
-                      className="border border-[var(--row-rule)] bg-white p-3 text-[14px]"
+                      /* A rule above each card, not a box: V10 draws rows, never bordered boxes. */
+                      className="border-t border-[var(--row-rule)] bg-white p-3 text-[14px]"
                     >
                       <Link href={`/portal/crm/${card.id}`} className="inline-flex min-h-[44px] items-center font-semibold text-[var(--navy)] underline">
                         {card.company}
@@ -180,7 +181,7 @@ export function BulkBar({ canAssign, people }: { canAssign: boolean; people: { i
   }
 
   return (
-    <div className="mb-4 flex flex-wrap items-end gap-4 border border-[var(--row-rule)] p-3 print:hidden">
+    <div className="mb-4 flex flex-wrap items-end gap-4 border-y border-[var(--row-rule)] py-3 print:hidden">
       <PickAll />
       <div className="min-w-[200px]">
         <label htmlFor="bulk-tag" className={labelClass}>Tag the ticked companies</label>

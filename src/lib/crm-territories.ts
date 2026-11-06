@@ -1,5 +1,6 @@
 import "server-only";
 import { supabaseAdmin } from "./supabase";
+import { DB_NOW } from "./db-now";
 import { can, type Actor } from "./ops-authz";
 import { writeAuditOrRefuse } from "./ops-audit";
 import { readEvery } from "./bounded-read";
@@ -37,14 +38,14 @@ export async function viewerFor(actor: Actor): Promise<{ ok: true; viewer: Viewe
   const db = supabaseAdmin();
   if (!db) return refuse("The database is not configured, so your territories could not be read.");
   const held = await readEvery<{ territory_id: string }>((from, to) =>
-    db.from("eng_crm_territory_reps").select("territory_id").eq("profile_id", actor.id).order("territory_id", { ascending: true }).range(from, to),
+    db.from("eng_crm_territory_reps").select("territory_id").eq("profile_id", actor.id).is("removed_at", null).order("territory_id", { ascending: true }).range(from, to),
   );
   if (!held.ok) return refuse(`Your territories could not be read, so no company is shown: ${held.error}`);
   const ids = [...new Set(held.rows.map((r) => String(r.territory_id)))];
   const counties = new Set<string>();
   if (ids.length) {
     const read = await readEvery<{ county: string }>((from, to) =>
-      db.from("eng_crm_territory_counties").select("county").in("territory_id", ids).order("county", { ascending: true }).range(from, to),
+      db.from("eng_crm_territory_counties").select("county").in("territory_id", ids).is("removed_at", null).order("county", { ascending: true }).range(from, to),
     );
     if (!read.ok) return refuse(`Your territories' counties could not be read, so no company is shown: ${read.error}`);
     for (const r of read.rows) {
@@ -70,11 +71,11 @@ async function holdings(db: Db): Promise<{ ok: true; h: Holdings } | { ok: false
   );
   if (!t.ok) return refuse(`The territories could not be read: ${t.error}`);
   const c = await readEvery<{ territory_id: string; county: string }>((from, to) =>
-    db.from("eng_crm_territory_counties").select("territory_id, county").order("county", { ascending: true }).order("territory_id", { ascending: true }).range(from, to),
+    db.from("eng_crm_territory_counties").select("territory_id, county").is("removed_at", null).order("county", { ascending: true }).order("territory_id", { ascending: true }).range(from, to),
   );
   if (!c.ok) return refuse(`The territories' counties could not be read: ${c.error}`);
   const r = await readEvery<{ territory_id: string; profile_id: string }>((from, to) =>
-    db.from("eng_crm_territory_reps").select("territory_id, profile_id").order("territory_id", { ascending: true }).order("profile_id", { ascending: true }).range(from, to),
+    db.from("eng_crm_territory_reps").select("territory_id, profile_id").is("removed_at", null).order("territory_id", { ascending: true }).order("profile_id", { ascending: true }).range(from, to),
   );
   if (!r.ok) return refuse(`Who holds the territories could not be read: ${r.error}`);
 
@@ -253,7 +254,13 @@ export async function setTerritoryCounties(
     if (error) return refuse(error.code === "23505" ? "One of those counties was put in another territory a moment ago. Nothing was added. Reload and choose again." : `The counties could not be added: ${error.message}`);
   }
   if (drops.length) {
-    const { error } = await db.from("eng_crm_territory_counties").delete().eq("territory_id", territory.id).in("county", drops);
+    /* Stamped, never deleted (Robert's answer 1, 2026-11-06): the row stays as the history of where the county was. */
+    const { error } = await db
+      .from("eng_crm_territory_counties")
+      .update({ removed_at: DB_NOW, removed_by: a.id })
+      .eq("territory_id", territory.id)
+      .in("county", drops)
+      .is("removed_at", null);
     if (error) return refuse(`The new counties were added and the dropped ones could not be taken out: ${error.message}`);
   }
   return { ok: true, said: `${territory.name} now has ${wanted.counties.length} ${wanted.counties.length === 1 ? "county" : "counties"}.` };
@@ -288,11 +295,18 @@ export async function setTerritoryHolder(
   });
   if (!recorded.ok) return recorded;
   if (input.holds) {
-    const { error } = await db.from("eng_crm_territory_reps").upsert({ territory_id: String(territory.id), profile_id: input.profileId, created_by: a.id }, { onConflict: "territory_id,profile_id", ignoreDuplicates: true });
-    if (error) return refuse(`${name} could not be given the territory: ${error.message}`);
+    /* A new row each time a rep is given a territory; the partial unique index (0116) keeps one live row, so a repeat is already done. */
+    const { error } = await db.from("eng_crm_territory_reps").insert({ territory_id: String(territory.id), profile_id: input.profileId, created_by: a.id });
+    if (error && error.code !== "23505") return refuse(`${name} could not be given the territory: ${error.message}`);
     return { ok: true, said: `${name} holds ${String(territory.name)}.` };
   }
-  const { error } = await db.from("eng_crm_territory_reps").delete().eq("territory_id", String(territory.id)).eq("profile_id", input.profileId);
+  /* Stamped, never deleted (Robert's answer 1, 2026-11-06). */
+  const { error } = await db
+    .from("eng_crm_territory_reps")
+    .update({ removed_at: DB_NOW, removed_by: a.id })
+    .eq("territory_id", String(territory.id))
+    .eq("profile_id", input.profileId)
+    .is("removed_at", null);
   if (error) return refuse(`The holder could not be taken off: ${error.message}`);
   return { ok: true, said: `Taken off ${String(territory.name)}. Companies they own stay theirs until a manager reassigns them.` };
 }

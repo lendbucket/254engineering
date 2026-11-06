@@ -71,6 +71,21 @@ const t2 = (await pg.query(`insert into eng_crm_territories (name) values ('Hill
 await pg.query(`insert into eng_crm_territory_counties (territory_id, county) values ($1, 'Bexar')`, [t1]);
 const twice = await refused(pg, `insert into eng_crm_territory_counties (territory_id, county) values ($1, ' bexar ')`, [t2]);
 check("A: a county already in one territory is refused in another, however it is spelled", twice.refused && /eng_crm_territory_counties_county_once/.test(twice.message), twice.message);
+/* Robert's answer 1 of 2026-11-06: taking a county or a rep off stamps the row; uniqueness holds among rows not removed. */
+await pg.query(`update eng_crm_territory_counties set removed_at = now() where territory_id = $1 and county = 'Bexar'`, [t1]);
+const moved = await refused(pg, `insert into eng_crm_territory_counties (territory_id, county) values ($1, 'Bexar')`, [t2]);
+check("A: a county taken out of one territory can join another, its old row kept", !moved.refused && Number((await pg.query(`select count(*)::int as n from eng_crm_territory_counties where lower(county) = 'bexar'`)).rows[0].n) === 2, moved.message);
+await pg.exec(`insert into auth.users (id) values ('00000000-0000-4000-8000-0000000016a1');
+  insert into eng_profiles (id, email, display_name, role, status) values ('00000000-0000-4000-8000-0000000016a1', 'territory-proof@audit-probe.invalid', 'Territory proof rep, not a real person', 'rep', 'active');`);
+const TERRITORY_REP = "00000000-0000-4000-8000-0000000016a1";
+const halfRemoval = await refused(pg, `update eng_crm_territory_counties set removed_by = $2 where territory_id = $1 and removed_at is null`, [t2, TERRITORY_REP]);
+check("A: a removal names when as well as who", halfRemoval.refused && /eng_crm_territory_counties_removed_whole/.test(halfRemoval.message), halfRemoval.message);
+await pg.query(`insert into eng_crm_territory_reps (territory_id, profile_id) values ($1, $2)`, [t1, TERRITORY_REP]);
+const holdsTwice = await refused(pg, `insert into eng_crm_territory_reps (territory_id, profile_id) values ($1, $2)`, [t1, TERRITORY_REP]);
+check("A: a rep holds a territory once among the holders not taken off", holdsTwice.refused && /eng_crm_territory_reps_holds_once/.test(holdsTwice.message), holdsTwice.message);
+await pg.query(`update eng_crm_territory_reps set removed_at = now(), removed_by = $2 where territory_id = $1 and profile_id = $2 and removed_at is null`, [t1, TERRITORY_REP]);
+const again = await refused(pg, `insert into eng_crm_territory_reps (territory_id, profile_id) values ($1, $2)`, [t1, TERRITORY_REP]);
+check("A: a rep taken off and given the territory again gets a new row, the old one kept", !again.refused && Number((await pg.query(`select count(*)::int as n from eng_crm_territory_reps where profile_id = $1`, [TERRITORY_REP])).rows[0].n) === 2, again.message);
 const sameName = await refused(pg, `insert into eng_crm_territories (name) values (' south texas ')`);
 check("A: a territory name is used once, whatever its case or spacing", sameName.refused && /eng_crm_territories_name_once/.test(sameName.message), sameName.message);
 const negative = await refused(pg, `update eng_crm_territories set rr_cursor = -1 where id = $1`, [t1]);
@@ -261,6 +276,17 @@ check("H: the territories screen and its route ask crm.assign", /if \(!can\(acto
 const lib = readSource("src/lib/crm-territories.ts");
 check("H: every territory change is audited first", (lib.match(/await writeAuditOrRefuse\(/g) ?? []).length >= 4);
 check("H: a failed read of the viewer's territories refuses, never an empty set", /if \(!held\.ok\) return refuse\(`Your territories could not be read, so no company is shown/.test(lib));
+/* Robert's answer 1 of 2026-11-06: nothing is deleted, and every read of the two tables skips removed rows. */
+check("H: nothing in the territories library deletes a row", !/\.delete\(/.test(lib));
+check(
+  "H: taking a county or a rep off stamps removed_at and removed_by, only on a live row",
+  (lib.match(/\.update\(\{ removed_at: DB_NOW, removed_by: a\.id \}\)/g) ?? []).length === 2 && (lib.match(/\.is\("removed_at", null\);/g) ?? []).length === 2,
+);
+check(
+  "H: every read of the counties and the holders skips removed rows",
+  (lib.match(/db\.from\("eng_crm_territory_(counties|reps)"\)\.select\([^)]*\)[^\n]*\.is\("removed_at", null\)/g) ?? []).length === 4 &&
+    (lib.match(/db\.from\("eng_crm_territory_(counties|reps)"\)\.select\(/g) ?? []).length === 4,
+);
 const queueSrc = readSource("src/lib/crm-queue.ts");
 const pipeSrc = readSource("src/lib/crm-pipeline.ts");
 check("H: the queue, the board, the list and the old prospects screens all ask canSeeCompany with the county", /canSeeCompany\(who\.viewer, \(r\.owner_id as string \| null\) \?\? null, \(r\.county as string \| null\) \?\? null\)/.test(queueSrc) && /canSeeCompany\(viewer, \(r\.owner_id as string \| null\) \?\? null, \(r\.county as string \| null\) \?\? null\)/.test(pipeSrc) && /canSeeCompany\(viewer, \(r\.owner_id as string \| null\) \?\? null, \(r\.county as string \| null\) \?\? null\)/.test(ops));

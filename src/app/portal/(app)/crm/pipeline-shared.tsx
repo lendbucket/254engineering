@@ -62,16 +62,19 @@ export function PipelineFilters({ action, params, query }: { action: string; par
 /** The two views, as links that keep the current filters. */
 export function ViewSwitch({ current, params }: { current: "board" | "list"; params: Record<string, string | undefined> }) {
   const keep = { ...params, page: undefined };
-  const link = "inline-flex min-h-[44px] items-center px-3 text-[14px] font-semibold underline";
+  /* V10, operator ruling 4 of 2026-10-08: the active item is the gold marker only, no fill and no corner, as the portal's own nav. */
+  const link = "inline-flex min-h-[44px] items-center border-b-[3px] px-3 text-[14px] font-semibold";
+  const on = "border-b-[var(--gold)] text-[var(--ink)]";
+  const off = "border-b-transparent text-[var(--navy)] underline";
   return (
     <nav aria-label="Pipeline views" className="mb-4 flex flex-wrap items-center gap-2 print:hidden">
-      <Link href={listHref("/portal/crm", keep, {})} aria-current={current === "board" ? "page" : undefined} className={`${link} ${current === "board" ? "text-[var(--ink)]" : "text-[var(--navy)]"}`}>
+      <Link href={listHref("/portal/crm", keep, {})} aria-current={current === "board" ? "page" : undefined} className={`${link} ${current === "board" ? on : off}`}>
         Stage board
       </Link>
-      <Link href={listHref("/portal/crm/list", keep, {})} aria-current={current === "list" ? "page" : undefined} className={`${link} ${current === "list" ? "text-[var(--ink)]" : "text-[var(--navy)]"}`}>
+      <Link href={listHref("/portal/crm/list", keep, {})} aria-current={current === "list" ? "page" : undefined} className={`${link} ${current === "list" ? on : off}`}>
         List
       </Link>
-      <Link href="/portal/crm/queue" className={`${link} text-[var(--navy)]`}>
+      <Link href="/portal/crm/queue" className={`${link} ${off}`}>
         Call queue
       </Link>
     </nav>

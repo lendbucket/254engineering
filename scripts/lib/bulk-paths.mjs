@@ -186,6 +186,31 @@ export const BULK_PATHS = [
       "before the job is queued, the ids are hashed into it, and what it did is reconciled against what it " +
       "said it would do. A bulk screen offering deletion would be a second answer to all of that.",
   },
+  {
+    name: "Assigning or tagging many companies on the sales list",
+    module: "src/lib/crm-pipeline.ts",
+    refuses: ["redaction", "delete", "silent", "outward"],
+    note:
+      "Robert's sales CRM ruling R4 of 2026-11-02 asked for bulk assign and bulk tag; board 42232560201 found the " +
+      "assign write undeclared. It sets owner_id on companies, never a file, so `sealed` does not apply, and " +
+      "`assign` (no file assigned to an engineer) does not either. `selection` is not claimed: the bulk path " +
+      "chooses nobody, a sales manager holding crm.assign names the one person from the people who work the list, " +
+      "but that person does work the companies and R8 credits their revenue to the owner, so it is written here " +
+      "rather than refused. The targets pass bulkTargets for the actor first, the audit row is written before any " +
+      "change, a partial write says how many landed, and nothing is sent to anybody.",
+  },
+  {
+    name: "Taking counties out of a sales territory",
+    module: "src/lib/crm-territories.ts",
+    refuses: ["delete", "silent", "outward"],
+    note:
+      "Robert's sales CRM ruling R5 of 2026-11-02, with his answer 1 of 2026-11-06: a manager redraws a territory, " +
+      "and the counties taken out are STAMPED removed_at and removed_by in one update, never deleted, so `delete` " +
+      "holds. It acts on territory settings, not files, so `sealed` does not apply; it gives no company to anybody " +
+      "and chooses nobody, so `assign` and `selection` do not either; and it is a manager's screen over every " +
+      "territory, so there is no narrower record read for `redaction` to match. The audit row is written first, " +
+      "and a failed write says the new counties were added and the dropped ones were not.",
+  },
 ];
 
 /** The refusal keys, for checking a path names only real ones. */
