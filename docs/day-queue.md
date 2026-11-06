@@ -1523,6 +1523,18 @@ On a pass: R4's production request, then R5's development request. R5 takes R4's
 - **Checks:** token-audit, migration-audit and schema-ledger PASS; the type check clean.
 - **Part 2:** the proof and forms-audit, then the walk.
 
+**The roofer rework, part 2** at `48f79d6`, and the button wording at `bc979e1`.
+- **The proof, rewritten:** 63 of 63, including 0117 on a replay. Three planted faults each turned exactly their own check red and were restored byte identical.
+- **forms-audit** drives step one, and reads door 1's condition rather than assuming it.
+- **The apply page** shows the closed sentence when sign up is shut.
+- **Local:** email-audit 1332 of 1332, token-audit PASS, the type check clean, preflight GREEN, no long dash.
+
+**STAGED, OPERATOR ROUTE: 0117** on `stage/0117-roofer-account-first` at `fb28e27`, sha256 `a11bfb17`, stored `46a22fa5`. Development script 6691312062, to be run after R5's writers shard.
+
+**QUESTION 5 (6691333299): a standing rule.** `/api/account/set-password` deliberately does not sign anybody in ("two different grants"), so the email link sets the password and the next screen is sign in. Answer 4 said "and signs them in".
+- Recommended: keep the rule and correct the copy.
+- The walk follows whichever he rules, and option 1 if no answer has come by then.
+
 **THE ROOFER APPLICATION MERGED** as `b10651c` (parents `c7bbe8c`, `130abe3`), after 0113's production read-back (6675087911, 02:18 UTC 2026-11-06).
 - **The read-back:** history version `20261106021807`, stored hash `4d6f7664`; grants 192 to 194; both checks widened; the author check present; no row changed.
 - **No connector prompt appeared** this time, and block 2 ran on the first call; the ledger records that.
