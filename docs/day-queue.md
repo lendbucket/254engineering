@@ -1,5 +1,14 @@
 # Day queue, 2026-10-23
 
+## ROBERT, 2026-11-05 evening, in chat, verbatim: roofer polish (after the roofer branch merges)
+
+> Roofer polish, full lane, after the roofer branch merges. One: rewrite the roofer.approved email body to read like Robert wrote it. Open with "Hi" and the first name only, welcome them as a partner in one sentence, say the account is open and the button below sets their password, say what happens next (Robert will reach out to set up their partner pricing and walk them through ordering), and drop the sentence about nobody seeing the password. Two: both roofer emails open with "Hi" and the first name only. Three: leave "Ask a question first" pointing where it does today; I will send the booking link to use when it is ready. Board alone with your prediction stated.
+
+**How it is read.**
+- "Both roofer emails" are the two a decision sends, `roofer.approved` and `roofer.declined`, which carry the owner's name. `roofer.received` echoes nothing the form collected, by design, so it keeps "Hello,".
+- The polish builds on its own branch from main after the roofer merge, so the boarded roofer commit is not changed, and it boards alone with a prediction.
+- "Ask a question first" stays on `/contact`.
+
 ## ROBERT, 2026-11-05 evening, in chat, verbatim: new standing rules (nothing holds)
 
 > New standing rules, record them on ops/day verbatim. Nothing holds.
