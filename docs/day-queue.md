@@ -1547,6 +1547,49 @@ On a pass: R4's production request, then R5's development request. R5 takes R4's
 
 **Ran beside another project's lock:** the rework's webpack build in 254-wt-roofer2, about 18:40 UTC, while dispatch-scheduling (pid 19020) held `C:\Users\salon\.test-lock`. It used its own checkout and its own `.next`, and nothing of theirs was touched (standing rule 1).
 
+**0117 ON DEVELOPMENT** (6694338950).
+- Robert approved the prompts at 14:05 Central, and the counterpart ran the four blocks at about 20:07 UTC.
+- Version `20261106200757`, stored `46a22fa5`. Every block 3 figure was as predicted.
+
+**Question 5, relayed in the same comment: option 1, keep the set password rule.**
+- It was relayed by the counterpart, not pasted here. It is also how the code already behaves, so nothing waited on it.
+- The copy was corrected at `0bc2ed6`: the link sets the password, and they sign in once.
+
+**THE WALK** is at `walk/2026-11-06-roofer-account-first/` (`0559009`): 26 shots and an index.
+- It ran on a local production build on port 3344, with LAUNCH_MODE=live for that process only. That is the switch production runs and the only unmet condition here.
+- test-1 took the existing address path (a link and no application) because it still holds the 2026-11-05 account. Its email job was removed.
+- The walk itself used test-2, start to finish: step one, the email link, the password, sign in, the status card, the three sections and the certificate, then the review list ("Profile complete") and approval.
+- Torn down and read back.
+- Port 3343 was left held by an unidentified leftover process after my server's shell stopped, so it was not touched and 3344 was used.
+- **Fixed after the shots:** "Next" on Insurance pointed backwards. It goes forward now (`0a74349`).
+
+**Bundle 116, the roofer partner sign up rework: `feat/roofer-account-first` at `0a74349`, over R5 `1c0966c`, main `3b50d10` included.** Migration 0117, on development.
+- **Local:**
+  - the roofer proof 63 of 63;
+  - email-audit 1332 of 1332;
+  - token-audit, migration-audit and schema-ledger-audit PASS (0117 pending on a branch, with its operator route and handApplied sentence);
+  - cta, seo, voice, placeholder and asset audits PASS on the earlier booking build;
+  - the type check clean, preflight GREEN (38 rules), no long dash.
+- **Readers:**
+  - proofs-audit (the roofer proof);
+  - forms-audit (the roofer checks, now reading the sign up condition);
+  - email-audit (the four roofer templates);
+  - security-audit (`/api/account/partner` in the perimeter, the old public certificate route removed);
+  - token-audit (`PartnerProfile` on both lists);
+  - seo, cta, voice and launch audits (the three public pages);
+  - contrast and mobile (the account home and the new form);
+  - migration-audit and schema-ledger-audit.
+
+**Prediction, bundle 116, stated before dispatch: 65 of 65, zero FAIL.**
+- proofs-audit PASS with the roofer proof.
+- forms-audit PASS, whichever state the sign up condition reads on the board.
+- email-audit and security-audit PASS.
+- seo-audit PASS with the three new titles and descriptions inside budget.
+- The four LCP pages under ceiling.
+- The 24 standing COULD NOT TELL lines.
+
+On a pass: the production script for 0117, by the operator route for Robert's prompt. It merges after its production read-back, and after R4 and R5, under Robert's R4 answer.
+
 **THE ROOFER APPLICATION MERGED** as `b10651c` (parents `c7bbe8c`, `130abe3`), after 0113's production read-back (6675087911, 02:18 UTC 2026-11-06).
 - **The read-back:** history version `20261106021807`, stored hash `4d6f7664`; grants 192 to 194; both checks widened; the author check present; no row changed.
 - **No connector prompt appeared** this time, and block 2 ran on the first call; the ledger records that.
