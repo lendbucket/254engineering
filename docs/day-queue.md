@@ -1241,6 +1241,19 @@ On a pass R3 does not merge yet: it merges together with R7 (Robert's ruling), a
 
 **STAGED: 0115** on `stage/0115-crm-pipeline` at `6a62baa`. The development request is 6677298218, to be sat after R3's board.
 
+**R5 to R8 rebuilt and stacked.** Each was carried as its old branch's whole delta over its old parent, with the number map applied only to added lines and migration paths, so no line already on the base moved.
+- **R5** (0116) at `0a80571`. Conflicts: staff-desk keeps both tiles; new pins. Shape `b27f543b`, 1532 columns, 116 tables; behaviour `d9ee25e7`, 1519 facts. Proofs PASS (territories 49, manager home, pipeline, call queue); type check clean; preflight GREEN.
+- **R6** (no migration) at `cda08fd`. Applied clean. Proof PASS (50); type check clean.
+- **R7** (0117) at `933c681`. Conflicts: retention order, pins. Shape `199213b0`, 1557 columns, 118 tables; behaviour `21a5f247`, 1544 facts. Both sequence email proofs, every-money-door, open scripts and the call queue PASS; type check clean.
+- **R8** (0118) at `80412e4`. Conflicts:
+  - billing: main's acceptOnInvoice stays, and R8's attribution sits right after the order is created;
+  - retention order;
+  - pins: 111 triggers.
+
+  Shape `9eb2cd35`, 1564 columns, 119 tables; behaviour `cdb4bcf5`, 1557 facts. Its proof named createOrderForFile's old call literally and went red (-1). It now names main's call exactly (55 of 55). Type check clean, migration-audit PASS, preflight GREEN at the top of the stack.
+
+**STAGED: 0116** on `stage/0116-crm-territories` at `fab3986`, sha256 `dc2f1e17`, stored `c5b50197`. **STAGED: 0117** on `stage/0117-crm-email` at `714062b`, sha256 `c90602ac`, stored `3af17c34`. **STAGED: 0118** on `stage/0118-crm-attribution` at `b76310f`, sha256 `34f04e98`, stored `644504c4`. Each development request is posted just before its own board, so an earlier branch's board never runs against a later table.
+
 **THE ROOFER APPLICATION MERGED** as `b10651c` (parents `c7bbe8c`, `130abe3`), after 0113's production read-back (6675087911, 02:18 UTC 2026-11-06).
 - **The read-back:** history version `20261106021807`, stored hash `4d6f7664`; grants 192 to 194; both checks widened; the author check present; no row changed.
 - **No connector prompt appeared** this time, and block 2 ran on the first call; the ledger records that.
