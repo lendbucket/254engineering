@@ -160,7 +160,7 @@ export function CountyPicker({
         {regions.map((r) => {
           const inRegion = r.counties.filter((c) => picked.has(c)).length;
           return (
-            <details key={r.slug} className="border border-[var(--row-rule)]">
+            <details key={r.slug} className="border-t border-[var(--row-rule)]">
               <summary className="flex min-h-[44px] cursor-pointer items-center px-3 text-[14px] font-semibold text-[var(--ink)]">
                 {r.name} ({inRegion} of {r.counties.length})
               </summary>
