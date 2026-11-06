@@ -173,6 +173,15 @@ const declined = emails.rooferApplicationDeclined({ ownerName: "Proof Owner", le
 check("the decline email is plain and carries no reason field", !/reason/i.test(declined.text ?? "") && /not taking it forward/.test(declined.text ?? ""));
 const approved = emails.rooferApplicationApproved({ ownerName: "Proof Owner", email: "proof@example.com", link: "https://254engineering.com/account/set-password?token=t", expiresIn: "7 days" });
 check("the approval email carries the set password link", (approved.html ?? "").includes("https://254engineering.com/account/set-password?token=t"));
+/* Robert's polish of 2026-11-05: his voice, "Hi" and the first name, what happens next, and no password sentence. */
+const approvedText = approved.text ?? "";
+check("the approval opens \"Hi\" and the first name only", /^Hi Proof,/m.test(approvedText) && !/Proof Owner,/.test(approvedText));
+check("and welcomes them as a partner, says the account is open, and says Robert will be in touch about pricing and ordering",
+  /Welcome to the roofing partner program/.test(approvedText) &&
+    /account is open, and the button below sets your password/.test(approvedText) &&
+    /set up your partner pricing and walk you through ordering/.test(approvedText));
+check("and the sentence about nobody seeing the password is gone", !/nobody can see/i.test(approvedText));
+check("the decline opens \"Hi\" and the first name only", /^Hi Proof,/m.test(declined.text ?? "") && !/Proof Owner,/.test(declined.text ?? ""));
 
 /* G ------------------------------------------------------------------------ */
 const sql = migration.replace(/\/\*[\s\S]*?\*\//g, "").replace(/--[^\n]*/g, "");
