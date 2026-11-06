@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSignedUpload } from "@/lib/uploads";
 import { withSaveOutcome } from "@/lib/save-outcome";
+import { UPLOAD_REFUSAL, takeUploadAttempt } from "@/lib/public-form-limits";
 
 /**
  * Hands out a signed upload URL for one document on one application.
@@ -41,6 +42,15 @@ async function handlePOST(request: Request) {
     typeof size !== "number"
   ) {
     return NextResponse.json({ ok: false, error: "Missing upload details." }, { status: 400 });
+  }
+
+  /*
+   * Counted before anything is signed (L3, Robert 2026-11-05): per connection
+   * and per application, on Q11's counted limiter. src/lib/public-form-limits.ts.
+   */
+  const limited = await takeUploadAttempt(request.headers, applicationId);
+  if (!limited.allowed) {
+    return NextResponse.json({ ok: false, error: UPLOAD_REFUSAL }, { status: 429 });
   }
 
   const result = await createSignedUpload({
