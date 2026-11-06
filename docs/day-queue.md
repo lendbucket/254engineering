@@ -1590,6 +1590,12 @@ On a pass: R4's production request, then R5's development request. R5 takes R4's
 
 On a pass: the production script for 0117, by the operator route for Robert's prompt. It merges after its production read-back, and after R4 and R5, under Robert's R4 answer.
 
+**ROBERT'S R4 ANSWER, 1 (relayed in 6696118290, given in chat at 14:39 Central as "your recs").** Hold R4, R5 and R6. Merge the stack in order with R7, in the sitting where 0117 and R7's migration are on production. R3 still merges with R7. Each branch is recorded as ready when its production read-back lands. Nothing merges before that sitting.
+
+**THE COUNTERPART'S WALK REVIEW (6696136170), ANSWERED IN 6696528375.**
+- **The logo, item 1:** not a defect. The `src` is absolute and returns 200 image/png. Rendered again after waiting for the network to go idle, the image is complete at a natural width of 2262. The broken image came from the screenshot's timing on a local file. Inbox delivery was not tested (standing rule 3).
+- **"Pays by card", item 2:** this is the header line every customer who pays by card sees. It is on main unchanged and true under Robert's answer 2. Robert was asked whether to add one sentence to the under-review card only, with a recommendation of yes. The counterpart's wording describes something the platform does not do, so it was not used.
+
 **THE ROOFER APPLICATION MERGED** as `b10651c` (parents `c7bbe8c`, `130abe3`), after 0113's production read-back (6675087911, 02:18 UTC 2026-11-06).
 - **The read-back:** history version `20261106021807`, stored hash `4d6f7664`; grants 192 to 194; both checks widened; the author check present; no row changed.
 - **No connector prompt appeared** this time, and block 2 ran on the first call; the ledger records that.
