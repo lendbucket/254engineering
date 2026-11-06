@@ -1359,6 +1359,15 @@ On a pass L3 merges under the standing unattended merge word: no migration, brou
 
 On a pass R4 does not merge tonight. Its production request is posted, and it is staged for the morning sitting.
 
+**MORNING REPORT POSTED, 7:00 AM Central 2026-11-06 (6685411091).**
+- **Needed from Robert:**
+  1. Accept 0122's title and contractor mappings.
+  2. Accept F6's one-submission credit hold.
+  3. The 0115 to 0121 development sittings, starting with 0115 (6677298218). It was still not sat at 13:01 UTC, so R4 had not boarded and the board stood idle from 08:31 UTC.
+- **Merged overnight:** the polish `2a8228b`, R2 `caa7167`, L3 `84761d7`. R3 boarded green and waits for R7.
+- **Staged:** 0115 to 0122.
+- **Parked:** none.
+
 **THE ROOFER APPLICATION MERGED** as `b10651c` (parents `c7bbe8c`, `130abe3`), after 0113's production read-back (6675087911, 02:18 UTC 2026-11-06).
 - **The read-back:** history version `20261106021807`, stored hash `4d6f7664`; grants 192 to 194; both checks widened; the author check present; no row changed.
 - **No connector prompt appeared** this time, and block 2 ran on the first call; the ledger records that.
