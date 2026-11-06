@@ -1277,6 +1277,19 @@ On a pass R3 does not merge yet: it merges together with R7 (Robert's ruling), a
 
 **STAGED: 0119** `stage/0119-session-epoch` at `4d274d3`. **STAGED: 0120** `stage/0120-money-constraints` at `b929b6e`. **STAGED: 0121** `stage/0121-money-holds` at `d3bc9b0`. **STAGED, FOR ROBERT, NOT RUN: 0122** `stage/0122-prospect-kinds` at `62735fc`, sha256 `ec3428bd`, stored `7273ba44`. Its development operator script is posted for him (6677926201), with the instruction to run it only just before 0122's own board, because every earlier branch still writes the old kinds.
 
+**Bundle 112, R2 brought up to main: `feat/crm-r2-at-main` at `ceb6b07`.** It is R2's boarded `ea94248` with main `2a8228b` merged in. That adds only the roofer polish (`email-templates.ts` and the roofer proof) and 0113's production line. It does not carry 0114's production line, which goes on top after the board, as the roofer's did.
+- **Local:** preflight GREEN (38 rules), the roofer proof PASS.
+- **Readers:** email-audit (the polish's two templates), proofs-audit (the roofer and imports proofs), schema-ledger-audit (0114 pending on a branch, allowed).
+
+**Prediction, bundle 112, stated before dispatch: 65 of 65, zero FAIL.**
+- email-audit PASS.
+- proofs-audit PASS with the roofer and imports proofs.
+- schema-ledger-audit PASS.
+- The four LCP pages under their ceilings, since no public page changes.
+- Standing COULD NOT TELL lines only.
+
+On a pass: 0114's production line (6677185149, version `20261106044912`) goes on top, and R2 merges via merge-q.sh with the tree equal to the boarded tree plus that line. Full lane: migration.
+
 **THE ROOFER APPLICATION MERGED** as `b10651c` (parents `c7bbe8c`, `130abe3`), after 0113's production read-back (6675087911, 02:18 UTC 2026-11-06).
 - **The read-back:** history version `20261106021807`, stored hash `4d6f7664`; grants 192 to 194; both checks widened; the author check present; no row changed.
 - **No connector prompt appeared** this time, and block 2 ran on the first call; the ledger records that.
