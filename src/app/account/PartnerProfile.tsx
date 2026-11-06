@@ -122,7 +122,12 @@ export function PartnerProfile({
     }
   }
 
-  const nextAfter = (section: RooferSection) => ROOFER_SECTIONS.find((s) => s !== section && !done[s]) ?? null;
+  /* The next unfinished section going forward, wrapping only after the last, so "Next" never points backwards first. */
+  const nextAfter = (section: RooferSection) => {
+    const i = ROOFER_SECTIONS.indexOf(section);
+    const order = [...ROOFER_SECTIONS.slice(i + 1), ...ROOFER_SECTIONS.slice(0, i)];
+    return order.find((s) => !done[s]) ?? null;
+  };
 
   const sectionShell = (section: RooferSection, intro: string, body: ReactNode) => {
     const next = nextAfter(section);
