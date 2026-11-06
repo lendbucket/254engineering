@@ -1341,6 +1341,24 @@ On a pass L3 merges under the standing unattended merge word: no migration, brou
 
 **R4 brought up to main `caa7167`** at `a7a1512`, preflight GREEN, pushed. It waits on 0115's development read-back (6677298218). Every remaining item carries a migration that must be on development first, so the board is idle until the counterpart sits.
 
+**Bundle 114, CRM R4 (the pipeline): `feat/crm-r4-pipeline-0115` at `c264e2c`, which is R4 over R3 with main `84761d7` merged in.** Migration 0115, additive. It boards once 0115's development read-back (6677298218) is posted.
+- **Local:** the pipeline proof PASS (61), migration-audit PASS, schema-ledger PASS, the type check clean, preflight GREEN on this tree (38 rules), retention-audit's alphabetical order included.
+- **Readers:**
+  - proofs-audit: the pipeline proof, and the call queue proof R4 touches;
+  - migration-audit (1519 columns, 113 tables) and schema-ledger-audit (0115 pending on a branch);
+  - retention-audit: two new tables declared;
+  - roles-audit, security-audit, token-audit and surface-audit: `/portal/crm`, `/portal/crm/list`, `/portal/crm/[id]`;
+  - v10-layout-audit: the company page reuses the prospect screen's probe;
+  - the browser audits on the new portal screens.
+
+**Prediction, bundle 114, stated before dispatch: 65 of 65, zero FAIL.**
+- proofs-audit PASS with the pipeline proof.
+- migration-audit, schema-ledger-audit and retention-audit PASS.
+- The four LCP pages under their ceilings, since no public page changes.
+- The same 24 standing COULD NOT TELL lines as boards 112 and 113.
+
+On a pass R4 does not merge tonight. Its production request is posted, and it is staged for the morning sitting.
+
 **THE ROOFER APPLICATION MERGED** as `b10651c` (parents `c7bbe8c`, `130abe3`), after 0113's production read-back (6675087911, 02:18 UTC 2026-11-06).
 - **The read-back:** history version `20261106021807`, stored hash `4d6f7664`; grants 192 to 194; both checks widened; the author check present; no row changed.
 - **No connector prompt appeared** this time, and block 2 ran on the first call; the ledger records that.
