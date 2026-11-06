@@ -1164,6 +1164,11 @@ On a pass, the 0113 production script is generated from this commit and posted f
 
 **Bundle 108b result: board `42138978968` on `97b8da2`, 65 of 65, zero FAIL, as predicted.** Preflight GREEN. seo-audit PASS with the second link. queue-audit PASS, with no live outward job waiting. proofs-audit PASS with a-roofer-application-is-decided-by-a-person. forms-audit's six roofer checks PASS: the empty step, live checking, 390, the kept draft (read back "Zzq Formsaudit Roofing"), the API's 422 and the honeypot. LCP `/` 2352ms, service 2498ms, `/coverage` 2495ms, coastal-bend 2422ms. **THE ROOFER APPLICATION BOARDED GREEN.** The 0113 production request is 6674870647 (operator route, file sha256 `92571cca`, the same bytes development ran), and the counterpart is told it is ready for Robert's prompt (6674871129). It merges after that read-back.
 
+**THE ROOFER APPLICATION MERGED** as `b10651c` (parents `c7bbe8c`, `130abe3`), after 0113's production read-back (6675087911, 02:18 UTC 2026-11-06).
+- **The read-back:** history version `20261106021807`, stored hash `4d6f7664`; grants 192 to 194; both checks widened; the author check present; no row changed.
+- **No connector prompt appeared** this time, and block 2 ran on the first call; the ledger records that.
+- **The merged tree** is boarded `97b8da2` plus the 0113 ledger line; `ls-remote` confirms; no board started on main.
+
 **R2 renumbered to 0114 for order A: `feat/crm-r2-imports-0114` at `ea94248`, over the roofer head `97b8da2`.**
 - **The commits:** R2's own two, `bbb6811` (the migration) and `0f6457e` (the imports engine), cherry-picked; the merge `7a7d392` was not, because R1 renumbered already carries it.
 - **The two conflicts,** in `migration-audit.mjs` and `applied.mjs`, were resolved by reading both sides: 0113 then 0114, columns 1476 to 1509, tables 109 to 111.
