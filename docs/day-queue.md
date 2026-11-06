@@ -1535,6 +1535,14 @@ On a pass: R4's production request, then R5's development request. R5 takes R4's
 - Recommended: keep the rule and correct the copy.
 - The walk follows whichever he rules, and option 1 if no answer has come by then.
 
+**Bundle 115 result: board `42261569942` on `1c0966c` (R5), 65 of 65, zero FAIL, as predicted.**
+- Preflight GREEN.
+- The territories proof PASS; the bulk sweep found 0; `/portal/crm/territories` follows V10.
+- LCP: `/` 2794ms, service 2874ms, `/coverage` 2791ms, coastal-bend 2867ms.
+- The 24 standing COULD NOT TELL lines.
+- Writers had 3 transient retries.
+- **R5 BOARDED GREEN.** Its 0116 production request is 6692402974, at the boarded commit, byte identical to `stage/0116-crm-territories-b`. R5 does not merge until Robert answers the R4 question.
+
 **THE ROOFER APPLICATION MERGED** as `b10651c` (parents `c7bbe8c`, `130abe3`), after 0113's production read-back (6675087911, 02:18 UTC 2026-11-06).
 - **The read-back:** history version `20261106021807`, stored hash `4d6f7664`; grants 192 to 194; both checks widened; the author check present; no row changed.
 - **No connector prompt appeared** this time, and block 2 ran on the first call; the ledger records that.
