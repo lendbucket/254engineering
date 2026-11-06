@@ -391,11 +391,14 @@ export async function markBatchPaid(input: {
 
   const { data: batch, error: batchError } = await db
     .from("eng_order_batches")
-    .select("id, reference, status")
+    .select("id, reference, status, total_cents")
     .eq("id", input.batchId)
     .maybeSingle();
   if (batchError) return { ok: false, error: `The submission could not be read: ${batchError.message}` };
   if (!batch) return { ok: false, error: "That submission does not exist." };
+
+  /* F12 (0121): the submission's own total is the amount the charge must be, or nothing is accepted or released. */
+  const expectedCents = batch.total_cents === null ? null : Number(batch.total_cents);
 
   /*
    * PAGED, and a failed read refuses. Every row here is RELEASED to fulfilment;
@@ -428,10 +431,25 @@ export async function markBatchPaid(input: {
     provider: input.provider,
     expected_status: batch.status,
     orders,
+    ...(expectedCents === null ? {} : { expected_amount_cents: expectedCents }),
     received_summary: `Paid as part of ${batch.reference}. The firm is arranging the work.`,
+    amount_differs_summary:
+      `${batch.reference}: ${input.provider} took ${money(input.amountCents)} under ${input.chargeRef}, ` +
+      `and the submission is ${money(expectedCents)}. The charge is recorded and nothing was released.`,
     audit_summary: `${batch.reference}: ${money(input.amountCents)} received, ${releasing} properties released`,
   });
   if (!applied.ok) return applied;
+
+  if (applied.detail.amount_differs === true) {
+    await raiseRefundTask({
+      key: `payment-amount-differs:${input.batchId}:${input.chargeRef}`,
+      title: `${batch.reference}: a payment of ${money(input.amountCents)} arrived against a submission of ${money(expectedCents)}`,
+      description:
+        `${input.provider} took ${money(input.amountCents)} under ${input.chargeRef}, and ${batch.reference} is ` +
+        `${money(expectedCents)}. The charge is recorded and no property was released. Decide whether to collect ` +
+        `the difference, refund the charge, or release the work.`,
+    });
+  }
 
   const duplicate = applied.outcome !== "applied";
   if (applied.release.length === 0) return { ok: true, duplicate, released: 0 };
@@ -591,11 +609,21 @@ export async function markPaid(input: {
 
   const { data: order, error: orderError } = await db
     .from("eng_service_orders")
-    .select("id, reference, status")
+    .select("id, reference, status, total_cents")
     .eq("id", input.orderId)
     .maybeSingle();
   if (orderError) return { ok: false, error: `The order could not be read: ${orderError.message}` };
   if (!order) return { ok: false, error: "That order does not exist." };
+
+  /*
+   * THE CHARGE MUST BE THE ORDER'S AMOUNT BEFORE ANY WORK IS RELEASED. Money
+   * audit F12, Robert's answer of 2026-11-03 (0121). The reconcile path already
+   * refused a session whose total disagreed with the order; the webhook path
+   * did not look. The order's own total is passed as expected_amount_cents, and
+   * eng_apply_order_paid writes a differing charge down and releases nothing.
+   * An order with no total names no expectation, as before.
+   */
+  const expectedCents = order.total_cents === null ? null : Number(order.total_cents);
 
   const releases = canTransitionOrder(order.status as never, "paid");
   const applied = await applyPaymentEvent("eng_apply_order_paid", {
@@ -607,13 +635,34 @@ export async function markPaid(input: {
     provider: input.provider,
     expected_status: order.status,
     transition: releases ? "release" : "unexpected",
+    ...(expectedCents === null ? {} : { expected_amount_cents: expectedCents }),
     received_summary: `Payment of ${money(input.amountCents)} received. The firm is arranging the work.`,
     unexpected_summary: `A payment arrived while the order was ${order.status}.`,
+    amount_differs_summary:
+      `${order.reference}: ${input.provider} took ${money(input.amountCents)} under ${input.chargeRef}, ` +
+      `and the order is ${money(expectedCents)}. The charge is recorded and the work was not released.`,
     audit_summary: `${order.reference}: ${money(input.amountCents)} received via ${input.provider}`,
   });
   if (!applied.ok) return applied;
 
   const alreadyRecorded = applied.outcome !== "applied";
+
+  /*
+   * A CHARGE FOR ANOTHER AMOUNT IS A PERSON'S JOB (F12). The database held the
+   * work back; somebody decides whether to collect the difference, refund the
+   * charge, or release the work by hand. Keyed on the order and the charge, so
+   * a resent event finds the same task.
+   */
+  if (applied.detail.amount_differs === true) {
+    await raiseRefundTask({
+      key: `payment-amount-differs:${input.orderId}:${input.chargeRef}`,
+      title: `${order.reference}: a payment of ${money(input.amountCents)} arrived against an order of ${money(expectedCents)}`,
+      description:
+        `${input.provider} took ${money(input.amountCents)} under ${input.chargeRef}, and ${order.reference} is ` +
+        `${money(expectedCents)}. The charge is recorded and the work was not released. Decide whether to collect ` +
+        `the difference, refund the charge, or release the work.`,
+    });
+  }
 
   /*
    * MONEY ON A CANCELLED ORDER IS A PERSON'S JOB, NOT A TIMELINE LINE. Robert's
@@ -622,7 +671,7 @@ export async function markPaid(input: {
    * internal event: money taken, no work released, nobody told. A staff task
    * names the order and the charge, keyed on both so a resent event finds it.
    */
-  if (!releases && order.status === "cancelled") {
+  if (!releases && order.status === "cancelled" && applied.detail.amount_differs !== true) {
     await raiseRefundTask({
       key: `payment-on-cancelled:${input.orderId}:${input.chargeRef}`,
       title: `${order.reference}: a payment of ${money(input.amountCents)} arrived on a cancelled order`,

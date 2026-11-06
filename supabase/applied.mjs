@@ -4434,6 +4434,25 @@ export const APPLIED = [
       "a lost dispute is written as dispute_lost. unique (account_id, period) on eng_statements already exists (0009) " +
       "and is asserted, not added.",
   },
+  {
+    file: "0121_a_payment_releases_only_its_own_amount_and_credit_is_held_once.sql", appliedBy: "apply_migration",
+    fingerprint: "1692cd3ebcdde9d504aaded5c6c5d044",
+    behaviour: "6551e54b35d89b02a7230163cf68a4b1",
+    production: null,
+    proves: { table: "eng_account_credit_holds" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-06 on the chain to 0121. Shape 1567 to 1570 " +
+      "columns: the three of eng_account_credit_holds; tables 119 to 120. Behaviour 1558 to 1564 facts: the table's " +
+      "key and foreign key, its row level security, and the two new functions; eng_apply_order_paid and " +
+      "eng_apply_batch_paid are replaced with the same signatures, which change definitions, not counts.",
+    because:
+      "WRITTEN 2026-11-06 ON fix/f12-f6-money-0121 AND STAGED ON stage/0121-money-holds FOR THE CHAT COUNTERPART'S " +
+      "DEVELOPMENT SITTING; APPLIED NOWHERE. Money audit F12 and F6, Robert's answer of 2026-11-03 to 6594441148 " +
+      "(one migration branch for both), numbered 0121 by his overnight order of 2026-11-05. F12: a charge for an " +
+      "amount other than the order's or submission's releases nothing and raises a task. F6: one invoice submission " +
+      "at a time per account holds its credit, so two cannot both pass the limit. Additive: one table, two new " +
+      "functions, two function bodies replaced.",
+  },
 ];
 
 /*
