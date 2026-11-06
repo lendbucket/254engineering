@@ -1132,6 +1132,10 @@ On a pass, the 0112 production sitting request is posted. R1 merges after its pr
 
 On a pass, the 0113 production script is generated from this commit and posted for Robert's prompt. The branch merges after R1 and after 0113's production read-back.
 
+**R1 MERGED** as `c7bbe8c` (parents `7f3361a`, `becf7a2`) after 0112's production read-back (6672192716: version `20261105232655`, stored hash `c23ea39a`, grants 186 to 192). The merged tree is boarded `007532b` plus the 0112 ledger line; `ls-remote` confirms; no board started on main.
+
+**Bundle 108, partial (writers still running): the pages shard FAILED on one seo-audit check:** "/roofing-partners/apply: 1 page(s) link to it (/roofing-partners); every sitemap page needs at least two". A real gap in my build. Fixed locally at `67919de`: the roofer note on the three roofing service pages now also links the application. That commit is not pushed while the board runs, because a push would cancel it. The writers shard is awaited, so every failure is fixed in one new commit before the second board; a second red parks the item.
+
 **Pushes, 2026-11-05 evening.** From about 22:50 UTC every push was refused with `remote: fatal error in commit_refs` (posted 6672154208). The first push after Robert's standing rules went through at once: ops/day `a770241`, and `feat/roofer-application` `bf195d8` as a new branch. No fallback route was needed. **Bundle 108 dispatched** as board `42129740037` on `bf195d8`, after its prediction (`cd63fb9`) reached ops/day.
 
 **Ran beside another project's run (Robert's rule 1), 2026-11-05 ~23:15 UTC.**
