@@ -1184,6 +1184,25 @@ On a pass, the 0113 production script is generated from this commit and posted f
 
 On a pass the polish merges: full lane, email templates; no migration.
 
+**Bundle 110 result: board `42156511065` on `ca889fe`, 65 of 65, zero FAIL, as predicted.** Preflight GREEN (38 rules). proofs-audit PASS with the roofer proof. LCP `/` 2929ms (ceiling 3600), service 2495ms, `/coverage` 2698ms, coastal-bend 2663ms. Writers 4 transient retries.
+
+**THE ROOFER POLISH MERGED** as `2a8228b`, over main `b10651c`. The merged tree is the boarded `ca889fe`, and `ls-remote` confirms it. It deploys with this push.
+
+**Bundle 111, CRM R3 (the call queue): `feat/crm-r3-call-queue-a` at `3732690`.** R3 sits over R2 `ea94248`, with main `b10651c` merged in so the 0113 ledger line is present.
+- **What it adds:** the call queue at `/portal/crm/queue` with its API route, the queue rules and reads, the open scripts and their render, and the three proofs' changes. 17 files and 1,869 added lines, with no long dash.
+- **No migration.** Its three references to R1's migration were moved from 0111 to 0112 (order A).
+- **Local:** the call queue proof PASS, migration-audit PASS, the type check clean, preflight GREEN (38 rules, 115 s). Before main was merged in, preflight was red on schema-ledger-audit alone, because 0113 was on main without its production line on this base.
+- **Readers:** proofs-audit (the call queue proof, the scripts-render proof, every-money-door), email-audit, roles-audit, security-audit, token-audit, surface-audit and preflight. The browser audits also read the new portal screen: contrast, mobile, native, forms and perf.
+- **It runs while R2 waits on 0114's production read-back.** R3 is code only, so it needs no development request.
+
+**Prediction, bundle 111, stated before dispatch: 65 of 65, zero FAIL.**
+- proofs-audit PASS with the call queue proof.
+- surface-audit, roles-audit and security-audit PASS with `/portal/crm/queue` declared.
+- The public pages are unchanged, so the four LCP pages stay under their ceilings.
+- Standing COULD NOT TELL lines only.
+
+On a pass R3 does not merge yet: it merges together with R7 (Robert's ruling), and R4 stacks on it.
+
 **THE ROOFER APPLICATION MERGED** as `b10651c` (parents `c7bbe8c`, `130abe3`), after 0113's production read-back (6675087911, 02:18 UTC 2026-11-06).
 - **The read-back:** history version `20261106021807`, stored hash `4d6f7664`; grants 192 to 194; both checks widened; the author check present; no row changed.
 - **No connector prompt appeared** this time, and block 2 ran on the first call; the ledger records that.
