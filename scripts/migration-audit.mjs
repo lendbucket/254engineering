@@ -363,7 +363,7 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * table count moves 109 to 111; no trigger and no function. Read off
  * fingerprint-at.mjs on the chain to 0114.
  */
-const EXPECTED_FINGERPRINT = "PENDING_0114_SHAPE";
+const EXPECTED_FINGERPRINT = "31b85d837dfe6f0610477e699d318b6e";
 const EXPECTED_COLUMNS = 1509;
 const EXPECTED_TABLES = 111;
 /* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts.

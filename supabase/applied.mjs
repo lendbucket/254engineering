@@ -4292,14 +4292,14 @@ export const APPLIED = [
   },
   {
     file: "0114_the_sales_list_imports_from_named_sources.sql", appliedBy: "apply_migration",
-    fingerprint: "PENDING_0114_SHAPE",
-    behaviour: "PENDING_0114_BEHAVIOUR",
+    fingerprint: "31b85d837dfe6f0610477e699d318b6e",
+    behaviour: "7cae564b6375150c576717c5808e1c5d",
     production: null,
     proves: { table: "eng_crm_import_runs" },
     note:
       "Both figures read off scripts/fingerprint-at.mjs on the chain to 0114, with 0113 (the roofer application) " +
       "before it. Shape 1476 to 1509 columns: 20 on eng_crm_import_runs, 13 on eng_crm_import_rows; tables 109 to " +
-      "111. The file is byte identical to stage/0113-crm-imports with its own number moved from 0113 to 0114.",
+      "111. Behaviour 1451 to 1482 facts (2026-11-05): the two tables' keys, checks and indexes, and one foreign key from eng_prospect_sources.import_run_id. The file is byte identical to stage/0113-crm-imports with its own number moved from 0113 to 0114.",
     because:
       "WRITTEN 2026-11-02 ON feat/crm-r2-imports AS 0112, RENUMBERED TO 0113 BY ROBERT'S RULING (a) OF 2026-11-04 AND " +
       "TO 0114 BY HIS ORDER A OF 2026-11-05 (the roofer application took 0113), STAGED ON stage/0114-crm-imports. " +
