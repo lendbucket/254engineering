@@ -1596,6 +1596,19 @@ On a pass: the production script for 0117, by the operator route for Robert's pr
 - **The logo, item 1:** not a defect. The `src` is absolute and returns 200 image/png. Rendered again after waiting for the network to go idle, the image is complete at a natural width of 2262. The broken image came from the screenshot's timing on a local file. Inbox delivery was not tested (standing rule 3).
 - **"Pays by card", item 2:** this is the header line every customer who pays by card sees. It is on main unchanged and true under Robert's answer 2. Robert was asked whether to add one sentence to the under-review card only, with a recommendation of yes. The counterpart's wording describes something the platform does not do, so it was not used.
 
+**BUNDLE 116, BOARD 42291842776 ON `0a74349`: RED, 64 of 65. THE FIRST RED ON THE REWORK.**
+- **Preflight:** GREEN, 38 rules.
+- **The one FAIL:** cta-audit, "every public page has a path to ordering or to a quote (/roofing-partners/apply)". Every other audit passed, all 27 writers included.
+- **Why:** on the board, public sign up reads shut. In that state the apply page shows the closed sentence in place of the form, and its only remaining paths were the telephone, the email address and the booking link, none of which leads to ordering or a quote.
+- **The prediction miss:** my local cta-audit ran with LAUNCH_MODE=live, so sign up was open and the form satisfied the check. I ran the reader in a gate state the board does not run in. From now on, a page that changes with the gate gets its readers run in the board's state, not just the walk's.
+- **The fix, `abf3994`:** the Talk to a person box ends "or write through the contact page", the same path Robert ruled for /roofing-partners. Against a local production build in the shut state: cta-audit 98 of 98, with the apply page passing through `/contact`; voice-audit and placeholder-audit PASS; type check clean; preflight GREEN; 6 added lines, no long dash. The wording goes to Robert before the sitting.
+
+**Prediction, bundle 117, stated before dispatch: 65 of 65, zero FAIL.** `feat/roofer-account-first` at `abf3994`.
+- cta-audit PASS, with /roofing-partners/apply passing through `/contact`.
+- Every other audit as on bundle 116: 64 PASS, nothing else touched.
+- The 24 standing COULD NOT TELL lines.
+- A second red on the rework parks it for Robert.
+
 **THE ROOFER APPLICATION MERGED** as `b10651c` (parents `c7bbe8c`, `130abe3`), after 0113's production read-back (6675087911, 02:18 UTC 2026-11-06).
 - **The read-back:** history version `20261106021807`, stored hash `4d6f7664`; grants 192 to 194; both checks widened; the author check present; no row changed.
 - **No connector prompt appeared** this time, and block 2 ran on the first call; the ledger records that.
