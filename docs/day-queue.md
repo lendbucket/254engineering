@@ -1379,6 +1379,23 @@ On a pass R4 does not merge tonight. Its production request is posted, and it is
   - Applied 14:15 UTC, version `20261106141518`, stored hash `74f54ddc`, exactly as predicted.
 - **Bundle 114 dispatched:** R4 as board `42232560201` on `c264e2c`, with main `84761d7` unmoved. The prediction above stands: 65 of 65, zero FAIL.
 
+## ROBERT, 2026-11-06 morning, in chat, verbatim: the booking link
+
+> Fast lane, content only. Add Robert's booking link, https://calendly.com/254engineering-support/30min, in two places on the roofer partner pages. One: on /roofing-partners/apply/received, after the sentence that says a person will review the application, add a line "Want to talk sooner? Book a short call with Robert Reyna, the firm's founder." with a button "Book a call" that opens the link in a new tab. Two: on /roofing-partners, point the "Ask a question first" button at the same link, opening in a new tab. A plain link only, no Calendly embed and no Calendly script. State the lane in the merge message, run every audit that reads these files and the range dash check, and merge.
+
+**Built, NOT merged: `fix/roofer-booking-link` at `7fcc4c6`** over main `84761d7`.
+- **Both links** render as plain new-tab anchors with `rel` noopener noreferrer, and no Calendly script loads. Read back from a local production build on port 3341, run beside dispatch-scheduling's lock holder with nothing of theirs touched.
+- **Readers:**
+  - type check, preflight and the roofer proof green;
+  - seo, voice, placeholder and asset audits PASS;
+  - **cta-audit 1 FAIL:** `/roofing-partners` has no path to ordering or a quote once its only `/contact` link moves to the booking page;
+  - range dash check clean.
+- **Not run locally:** contrast, mobile and security audits, because they are writers and R4's board is running.
+- **Question posted (6688157838):**
+  1. Add "or through the contact page" to the page's contact note. Recommended: yes.
+  2. Let the nightly board measure the three writers. Recommended: yes.
+- **launch-audit** runs before the merge.
+
 **THE ROOFER APPLICATION MERGED** as `b10651c` (parents `c7bbe8c`, `130abe3`), after 0113's production read-back (6675087911, 02:18 UTC 2026-11-06).
 - **The read-back:** history version `20261106021807`, stored hash `4d6f7664`; grants 192 to 194; both checks widened; the author check present; no row changed.
 - **No connector prompt appeared** this time, and block 2 ran on the first call; the ledger records that.
