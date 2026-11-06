@@ -199,6 +199,18 @@ export const BULK_PATHS = [
       "rather than refused. The targets pass bulkTargets for the actor first, the audit row is written before any " +
       "change, a partial write says how many landed, and nothing is sent to anybody.",
   },
+  {
+    name: "Taking counties out of a sales territory",
+    module: "src/lib/crm-territories.ts",
+    refuses: ["delete", "silent", "outward"],
+    note:
+      "Robert's sales CRM ruling R5 of 2026-11-02, with his answer 1 of 2026-11-06: a manager redraws a territory, " +
+      "and the counties taken out are STAMPED removed_at and removed_by in one update, never deleted, so `delete` " +
+      "holds. It acts on territory settings, not files, so `sealed` does not apply; it gives no company to anybody " +
+      "and chooses nobody, so `assign` and `selection` do not either; and it is a manager's screen over every " +
+      "territory, so there is no narrower record read for `redaction` to match. The audit row is written first, " +
+      "and a failed write says the new counties were added and the dropped ones were not.",
+  },
 ];
 
 /** The refusal keys, for checking a path names only real ones. */

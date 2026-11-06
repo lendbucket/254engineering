@@ -4350,16 +4350,19 @@ export const APPLIED = [
   },
   {
     file: "0116_the_sales_list_divides_texas_into_territories.sql", appliedBy: "apply_migration",
-    fingerprint: "b27f543bad9a63b8b4de6843fbe34ebf",
-    behaviour: "d9ee25e72f8929b070c221b8d330eab7",
+    fingerprint: "d0344004a58620eb799f7bff611e4d0d",
+    behaviour: "d5d09ff792393dcb2662c9047d68ba2a",
     production: null,
     proves: { table: "eng_crm_territories" },
     note:
-      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-05 on the chain to 0116. Shape 1519 to 1532 " +
-      "columns: 5 on eng_crm_territories, 4 on eng_crm_territory_counties, 4 on eng_crm_territory_reps; tables 113 to " +
-      "116. Behaviour 1498 to 1519 facts: the three tables' keys, checks, foreign keys and the two unique indexes " +
-      "(a territory name once, a county in one territory) and the holder index. Written as 0114 on 2026-11-02 and " +
-      "renumbered to 0116 by Robert's ruling (a) of 2026-11-04 and order A of 2026-11-05; only its own numbers moved.",
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-06 on the chain to 0116. Shape 1519 to 1538 " +
+      "columns: 5 on eng_crm_territories, 7 on eng_crm_territory_counties, 7 on eng_crm_territory_reps; tables 113 to " +
+      "116. Behaviour 1498 to 1524 facts: the three tables' keys, checks (two of them that a removal names when as " +
+      "well as who), foreign keys, the three partial or plain unique indexes (a territory name once, a county in one " +
+      "territory among rows not removed, a rep holding a territory once among rows not removed) and the holder " +
+      "index. Written as 0114 on 2026-11-02 and renumbered to 0116 by Robert's ruling (a) of 2026-11-04 and order A of " +
+      "2026-11-05; on 2026-11-06 each of the two settings tables gained id, removed_at and removed_by by his answer 1 " +
+      "(6688927814): nothing is deleted.",
     because:
       "WRITTEN 2026-11-02 ON feat/crm-r5-territories AS 0114, RENUMBERED ON feat/crm-r5-territories-0116 AND STAGED ON " +
       "stage/0116-crm-territories FOR THE CHAT COUNTERPART'S SITTING; APPLIED NOWHERE. Robert's sales CRM ruling of 2026-11-02, item R5, territories and assignment: counties " +
