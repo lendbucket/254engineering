@@ -207,7 +207,12 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
                     <Link href="/roofing-partners" className="font-semibold text-slate underline">
                       apply to work with the firm as a roofing partner
                     </Link>
-                    , with prices set for the account and every job in one place.
+                    , with prices set for the account and every job in one place. The application is three
+                    short steps:{" "}
+                    <Link href="/roofing-partners/apply" className="font-semibold text-slate underline">
+                      start the roofing partner application
+                    </Link>
+                    .
                   </p>
                 </div>
               ) : null}
