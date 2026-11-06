@@ -1300,6 +1300,20 @@ On a pass: 0114's production line (6677185149, version `20261106044912`) goes on
 
 **Bundle 112 dispatched** as board `42171592355` on `ceb6b07`.
 
+**Bundle 113, L3 (the applicant upload limit): `fix/l3-upload-limit` at `3f5144b`, which is `54ccb64` with main `2a8228b` merged in clean.** It takes the gap, because 0115's development read-back (6677298218) is not posted yet. No migration.
+- **Files:** `src/app/api/upload/route.ts`, `src/lib/public-form-limits.ts`, and the proof `the-applicant-upload-is-limited`.
+- **Local:** the proof PASS (16), type check clean, preflight GREEN.
+- **Readers:** proofs-audit, forms-audit (the applicant upload), security-audit, and preflight.
+- **R2 merges first.** If R2 has merged by dispatch, L3 takes that main and the prediction stands for the new tree.
+
+**Prediction, bundle 113, stated before dispatch: 65 of 65, zero FAIL.**
+- proofs-audit PASS with the upload proof.
+- forms-audit PASS: the applicant form's upload still answers within its limits.
+- The four LCP pages under their ceilings.
+- Standing COULD NOT TELL lines only.
+
+On a pass L3 merges under the standing unattended merge word: no migration, brought up to the current main, its board on that exact tree, every line met, and `origin/main` confirmed unmoved.
+
 **THE ROOFER APPLICATION MERGED** as `b10651c` (parents `c7bbe8c`, `130abe3`), after 0113's production read-back (6675087911, 02:18 UTC 2026-11-06).
 - **The read-back:** history version `20261106021807`, stored hash `4d6f7664`; grants 192 to 194; both checks widened; the author check present; no row changed.
 - **No connector prompt appeared** this time, and block 2 ran on the first call; the ledger records that.
