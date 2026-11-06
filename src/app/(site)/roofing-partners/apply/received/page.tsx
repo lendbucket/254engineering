@@ -5,6 +5,7 @@ import { Section, SectionHead } from "@/components/ui/section";
 import { business } from "@/config/business";
 import { founder } from "@/config/contact";
 import { buildMetadata } from "@/lib/seo";
+import { BOOK_A_CALL_URL } from "@/content/book-a-call";
 
 /**
  * THE CONFIRMATION, AND WHAT HAPPENS NEXT. Robert's request of 2026-11-05.
@@ -65,6 +66,15 @@ export default function RooferApplicationReceivedPage() {
             </li>
           ))}
         </ol>
+        {/* Robert's request of 2026-11-06: a short call with him, one click after the review is described. */}
+        <div className="mt-10 flex flex-wrap items-center gap-4">
+          <p className="max-w-[62ch] text-[15.5px] leading-[1.7] text-slate-ink">
+            Want to talk sooner? Book a short call with {founder.name}, the firm&apos;s founder.
+          </p>
+          <ButtonLink href={BOOK_A_CALL_URL} newTab>
+            Book a call
+          </ButtonLink>
+        </div>
         <p className="mt-10 max-w-[62ch] text-[15.5px] leading-[1.7] text-slate-ink">
           Questions in the meantime go to {founder.name} at{" "}
           <a href={`mailto:${business.email}`} className="font-semibold text-slate underline">
