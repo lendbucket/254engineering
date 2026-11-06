@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { primaryNav } from "./nav";
+import { partnerLink, primaryNav } from "./nav";
 import { Wordmark } from "@/components/brand/Wordmark";
 
 /**
@@ -121,6 +121,12 @@ export function MobileNav({
                   </Link>
                 </li>
               ))}
+              {/* The roofer partner application (Robert, 2026-11-05), after the nine: nav.ts says why it is not in the bar. */}
+              <li className="border-b border-white/10">
+                <Link href={partnerLink.href} className="block py-4 text-[15.5px] font-semibold text-brass-light">
+                  {partnerLink.label}
+                </Link>
+              </li>
             </ul>
             {/* The same destination as the desktop header button. See SiteHeader. */}
             <Link

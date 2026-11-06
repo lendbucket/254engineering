@@ -4262,6 +4262,46 @@ export const APPLIED = [
       "and crm.import, crm.assign and crm.reports for admin and ops_manager. Additive: the prospect kind check stays " +
       "until Robert's destructive sitting (answer 8).",
   },
+  {
+    file: "0113_a_roofer_applies_and_a_person_decides.sql", appliedBy: "operator_sql_editor",
+    fingerprint: "fead81771a43e1c4b0bd1f2b02e4fe2b",
+    behaviour: "e71f297052836059c3ad612cafcdd17b",
+    /*
+     * Production: applied 2026-11-06 02:18 UTC by the chat counterpart, the
+     * four blocks of the operator_sql_editor script (6674870647) through the
+     * connector's execute_sql, from the boarded commit 97b8da2 (board
+     * 42138978968). No confirmation prompt appeared; block 2 ran on the first
+     * call. Read back: the table and function present, execute for anon and
+     * authenticated false, grants 192 to 194, roofers.review admin and
+     * ops_manager, prospects unchanged, both checks widened, the author check
+     * present, created_by nullable; schema_migrations version 20261106021807,
+     * stored hash 4d6f7664 (issue #1, 6675087911).
+     */
+    production: "2026-11-06",
+    handApplied:
+      "The file drops and re-adds two of 0112's checks (the prospect source and the next action kind, each " +
+      "gaining one value) and drops the NOT NULL on eng_prospects.created_by in favour of a check that a " +
+      "prospect's author is a person or a roofer application. The connector cancels those before they run, so " +
+      "Robert sits it by the operator_sql_editor route on development and production. The provider's history " +
+      "holds a row for 0113 only because the script's fourth block inserts it by hand after the verification " +
+      "read, so its version is the moment of that insert and nothing in the provider's record shows how the " +
+      "file was run.",
+    proves: { table: "eng_roofer_applications" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on the chain to 0113. Shape 1439 to 1476 columns: 36 on " +
+      "eng_roofer_applications and roofer_application_id on eng_prospects, and created_by made nullable; tables " +
+      "108 to 109. Behaviour 1410 to 1451 facts (2026-11-05): the table's checks, keys and indexes, two triggers, " +
+      "two functions, two grant rows, the two widened checks and the author check.",
+    because:
+      "WRITTEN 2026-11-05 ON feat/roofer-application, STACKED ON R1, FOR THE CHAT COUNTERPART'S SITTING WITH ROBERT " +
+      "APPROVING THE PROMPT; ON DEVELOPMENT SINCE 2026-11-05 (6671002528, version 20261105221807, the four blocks of " +
+      "6670846102 through the connector's execute_sql), ON PRODUCTION SINCE 2026-11-06 (6675087911, version " +
+      "20261106021807). Robert's request and rulings of " +
+      "2026-11-05: a Texas roofing company " +
+      "applies on /roofing-partners/apply, the application lands as its own source on a roofer prospect with a " +
+      "due now review action, and a person holding roofers.review (admin and ops_manager) approves it, opening a " +
+      "B2B account through door 2, or declines it, with a reason either way.",
+  },
 ];
 
 /*

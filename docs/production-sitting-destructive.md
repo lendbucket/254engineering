@@ -85,6 +85,36 @@ Before posting, the four blocks were run against the chain replayed to 0110 in a
 
 ---
 
+## 0113, `0113_a_roofer_applies_and_a_person_decides.sql`, by the operator in the SQL editor
+
+**Robert, 2026-11-05:** the roofer partner application goes right after R1, and
+the application is its own source on a roofer prospect with a due now review
+action. That needs two of 0112's checks widened by one word each, which is a
+`drop constraint` and an `add constraint`, and a prospect whose author is the
+application rather than a person, which is a `drop not null`. The connector
+cancels each of those before it runs, so this file goes by this route on
+development and on production, with Robert approving the prompt.
+
+**What it drops, exactly:** `eng_prospect_sources_source_known` and
+`eng_prospects_next_action_kind_known`, each re-added in the same file with one
+more allowed value, and the NOT NULL on `eng_prospects.created_by`, replaced by
+`eng_prospects_has_an_author` (a person or the application, never neither). No
+row is deleted and no column is dropped. Everything else in the file is
+additive: `eng_roofer_applications`, its two triggers, the function
+`eng_take_roofer_application`, and the `roofers.review` grant for admin and
+ops_manager.
+
+**What the provider's history will not show:** as with 0111, the history holds
+a row for 0113 only because the script's fourth block inserts it by hand after
+the verification read, so its version is the moment of that insert, and
+nothing in the provider's record shows how the file was run.
+
+**The scripts are posted on issue #1, generated from the file's exact bytes:**
+development from its stage branch, production from the boarded commit, each in
+the four blocks above.
+
+---
+
 ## 0062, prepared and not run
 
 **DEFERRED OUT OF `release/2026-10-20`, operator ruling of 2026-10-07.** The

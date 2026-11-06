@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Container } from "@/components/ui/Container";
 import { Wordmark } from "@/components/brand/Wordmark";
 import { MobileNav } from "./MobileNav";
-import { primaryNav } from "./nav";
+import { partnerLink, primaryNav } from "./nav";
 import { business } from "@/config/business";
 import { isPrelaunch } from "@/lib/launch";
 import { orderableLineOffers } from "@/lib/ordering";
@@ -59,6 +59,13 @@ export function SiteHeader() {
                 <p className="font-display text-[15px] font-bold text-slate">Opening soon</p>
               ) : null}
               <p className="mt-1 text-[14px] text-slate-muted">Serving all 254 Texas counties</p>
+              <Link
+                href={partnerLink.href}
+                className="mt-1 inline-block min-h-[24px] text-[14px] leading-6 font-semibold text-slate underline decoration-brass underline-offset-4 transition-colors hover:text-brass-ink"
+              >
+                {partnerLink.label}: apply
+              </Link>
+              <br />
               <a
                 href={`mailto:${business.email}`}
                 className="mt-1 inline-block text-[14px] font-semibold text-brass-ink transition-colors hover:text-slate"

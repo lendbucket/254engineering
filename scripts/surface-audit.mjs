@@ -146,6 +146,12 @@ const APIS_MEASURED_ELSEWHERE = {
    */
   "quote-accept": ["scripts/security-audit.mjs", "accepting a quote, refused without a valid quote token"],
   referral: ["scripts/partner-audit.mjs", "partner attribution"],
+  /*
+   * The roofer partner application and its certificate upload (Robert,
+   * 2026-11-05). No session: forms-audit drives the form's refusing states and
+   * the API's 422 and honeypot, and the preview walk sends a real one.
+   */
+  "roofer-application": ["scripts/forms-audit.mjs", "the roofer partner application, its refusals and its honeypot"],
   stripe: ["scripts/order-audit.mjs", "the payment webhook"],
   upload: ["scripts/lib/careers-audit.mjs", "signed upload urls for an application"],
   v1: ["scripts/accounts-audit.mjs", "the account API, keyed rather than sessioned"],

@@ -965,6 +965,96 @@ async function roundTripChecks() {
   );
 }
 
+// ---------- the roofer partner application ----------
+//
+// Robert, 2026-11-05. The refusing states and the behaviours he asked for by
+// name, none of which writes a row: an empty step is refused and posts nothing,
+// an answer is checked as it is typed, the progress survives the roofer leaving,
+// the page clears 390px, the API refuses an empty post with field errors, and a
+// filled honeypot is answered success and saved nowhere. A valid application is
+// not sent here: it writes through eng_take_roofer_application, which reaches
+// development at its sitting, and its walk is the preview walk.
+
+async function rooferApplicationChecks() {
+  const { page, posts } = await openForm("/roofing-partners/apply", "/api/roofer-application");
+
+  await page.getByRole("button", { name: /continue to your work/i }).click();
+  await page.waitForTimeout(400);
+  rec(
+    "roofer application: an empty first step is refused, names what is missing, and posts nothing",
+    (await page.getByText("Enter the company's legal name.").isVisible().catch(() => false)) && posts.length === 0,
+  );
+
+  await page.locator('input[name="email"]').fill("not-an-email");
+  await page.locator('input[name="phone"]').focus();
+  await page.waitForTimeout(250);
+  rec(
+    "roofer application: an answer is checked as it is typed",
+    await page.getByText("That email address does not look complete.").isVisible().catch(() => false),
+  );
+  rec("roofer application: the form clears 390px with no horizontal scroll", await noHScroll(page));
+
+  await page.locator('input[name="legalName"]').fill(`${MARKER} Roofing`);
+  await page.waitForTimeout(300);
+  await page.reload({ waitUntil: "networkidle" });
+  await page.waitForTimeout(800);
+  const kept = await page.locator('input[name="legalName"]').inputValue().catch(() => "");
+  rec(
+    "roofer application: the progress survives the roofer leaving and coming back",
+    kept === `${MARKER} Roofing`,
+    kept ? `read back "${kept}"` : "the field came back empty",
+  );
+  await page.evaluate(() => window.localStorage.clear());
+  await page.close();
+
+  const empty = await fetch(`${BASE}/api/roofer-application`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: "{}",
+  });
+  const emptyBody = await empty.json().catch(() => ({}));
+  rec(
+    "roofer application: the API refuses an empty application with field errors",
+    empty.status === 422 && typeof emptyBody?.errors?.legalName === "string",
+    `HTTP ${empty.status}`,
+  );
+
+  const bot = await fetch(`${BASE}/api/roofer-application`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      legalName: `${MARKER} Honeypot Roofing`,
+      ownerName: "Audit Owner",
+      ownerTitle: "Owner",
+      email: "forms.audit@254engineering.com",
+      phone: "(361) 555-0100",
+      officeCity: "Corpus Christi",
+      counties: ["Nueces"],
+      yearsInBusiness: "5",
+      crewCount: "2",
+      workMix: "residential",
+      roofsPerYear: "40",
+      services: ["inspections"],
+      monthlyVolume: "1_5",
+      insuranceCarrier: "Audit Carrier",
+      glPerOccurrence: "$1,000,000",
+      glAggregate: "$2,000,000",
+      reference1Name: "Audit Reference One",
+      reference1Phone: "(361) 555-0101",
+      reference2Name: "Audit Reference Two",
+      reference2Phone: "(361) 555-0102",
+      applicationId: "00000000-0000-4000-8000-0000000a0d17",
+      website: "https://bot.example",
+    }),
+  });
+  const botBody = await bot.json().catch(() => ({}));
+  rec(
+    "roofer application: a filled honeypot is answered success and gives the bot no reference",
+    bot.status === 200 && botBody?.ok === true && !("applicationId" in botBody),
+    `HTTP ${bot.status}`,
+  );
+}
+
 // ---------- run ----------
 
 try {
@@ -972,6 +1062,7 @@ try {
   await waitlistChecks();
   await designInquiryChecks();
   await windstormInquiryChecks();
+  await rooferApplicationChecks();
   await honeypotChecks();
   // The careers flows moved to their own module when they became five step
   // applications with uploads. They are long enough that leaving them inline
