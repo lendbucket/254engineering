@@ -4230,6 +4230,38 @@ export const APPLIED = [
       "ruling (a) of 2026-11-04: setGrants replaces a role's grants through one function, so a failed insert never " +
       "leaves the role with none. The delete in the function body runs only when the function is called.",
   },
+  {
+    file: "0112_the_sales_list_knows_companies_contacts_and_sources.sql", appliedBy: "apply_migration",
+    fingerprint: "72bb0e8c9223c6cd634a610fb0506b82",
+    behaviour: "2a63b84154d4bca46a2b691a89a5584d",
+    /*
+     * Production: applied 2026-11-05 23:26 UTC by the chat counterpart through
+     * apply_migration, from the boarded commit 007532b (board 42118983641).
+     * Read back: grants 186 to 192, crm_mgmt 6, prospects, contacts and
+     * sources 0, both normalize functions present; schema_migrations version
+     * 20261105232655, stored hash c23ea39a, the same as development (issue #1,
+     * 6672192716).
+     */
+    production: "2026-11-05",
+    proves: { table: "eng_prospect_sources" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-05 on the chain to 0112 with 0111 (F8) before " +
+      "it. Shape 1396 to 1439 columns: 17 on eng_prospects, 11 on eng_prospect_contacts, 8 on eng_prospect_sources, " +
+      "7 on eng_contact_log; tables 106 to 108. Behaviour 1358 to 1410 facts: two functions, one trigger, the new " +
+      "checks, keys and indexes, and six grant rows. The behaviour digest moved from f3c828fa to 336caebe on " +
+      "2026-11-02, before 0112 was applied anywhere, when the source check gained tdlr_solar_retailers and " +
+      "tdlr_solar_salespeople (Robert's answer to 6588393366); and from 336caebe to 2a63b841 on 2026-11-05, when " +
+      "0111 took its place before it in the chain (one more fact, the function). The file and its shape did not change.",
+    because:
+      "WRITTEN 2026-11-02 ON feat/crm-r1-data-model AND STAGED ON stage/0112-crm-data-model FOR THE CHAT " +
+      "COUNTERPART'S SITTING; ON DEVELOPMENT SINCE 2026-11-05 (6664433708, version 20261105171658), ON " +
+      "PRODUCTION SINCE 2026-11-05 (6672192716, version 20261105232655). Robert's sales CRM ruling of 2026-11-02, item R1, the data model: " +
+      "eng_prospects extended (vertical, stage, score, next action, tags, website, address and county, permit " +
+      "activity, normalized name and phone as generated columns), several contacts and several sources per company, " +
+      "activities in the existing contact log, unique on normalized (name, phone) and on (source, source record id), " +
+      "and crm.import, crm.assign and crm.reports for admin and ops_manager. Additive: the prospect kind check stays " +
+      "until Robert's destructive sitting (answer 8).",
+  },
 ];
 
 /*

@@ -14,6 +14,14 @@ import {
   sameProspectKeys,
   type ProspectType,
 } from "./prospect-import";
+import {
+  CRM_VERTICALS,
+  prospectTypeForVertical,
+  verticalForProspectType,
+  type CrmStage,
+  type CrmVertical,
+} from "./crm-rules";
+import { addPrimaryContactAndSource } from "./crm-prospects";
 
 /**
  * THE SALES LIST. Operator ruling, 2026-10-20. 0079.
@@ -46,6 +54,9 @@ export type ProspectRow = {
   ownerName: string | null;
   convertedAccountId: string | null;
   lastContactAt: string | null;
+  /* The sales CRM's words for the company, 0112 (Robert, 2026-11-02, R1). */
+  vertical: CrmVertical;
+  stage: CrmStage;
 };
 
 export type ProspectSort = "follow_up" | "company" | "city" | "created" | "last_contact";
@@ -63,7 +74,7 @@ export type ProspectQuery = {
 };
 
 const SELECT =
-  "id, created_at, updated_at, company, contact_name, phone, email, city, prospect_type, status, follow_up_on, owner_id, converted_account_id, owner:eng_profiles!eng_prospects_owner_id_fkey(display_name)";
+  "id, created_at, updated_at, company, contact_name, phone, email, city, prospect_type, status, follow_up_on, owner_id, converted_account_id, vertical, stage, owner:eng_profiles!eng_prospects_owner_id_fkey(display_name)";
 
 const refuse = (error: string) => ({ ok: false as const, error });
 
@@ -84,6 +95,8 @@ function rowFrom(r: Record<string, unknown>, lastContact: Map<string, string>): 
     ownerName: ((r.owner as { display_name?: string } | null)?.display_name) ?? null,
     convertedAccountId: (r.converted_account_id as string | null) ?? null,
     lastContactAt: lastContact.get(String(r.id)) ?? null,
+    vertical: ((r.vertical as CrmVertical | undefined) ?? verticalForProspectType(String(r.prospect_type))),
+    stage: ((r.stage as CrmStage | undefined) ?? "new"),
   };
 }
 
@@ -215,6 +228,8 @@ export type ProspectInput = {
   email?: string | null;
   city?: string | null;
   prospectType: string;
+  /* The sales CRM's vertical (0112). When given, the old kind is derived from it; when not, it is derived from the kind. */
+  vertical?: string | null;
   followUpOn?: string | null;
 };
 
@@ -223,7 +238,10 @@ const DATE = /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/;
 function cleanInput(input: ProspectInput): { ok: true; row: Record<string, unknown> } | { ok: false; error: string } {
   const company = input.company?.trim();
   if (!company) return refuse("A prospect needs a company name.");
-  if (!(PROSPECT_TYPES as readonly string[]).includes(input.prospectType)) return refuse("Choose roofer, agent, title or contractor.");
+  const vertical = input.vertical?.trim() || null;
+  if (vertical && !(CRM_VERTICALS as readonly string[]).includes(vertical)) return refuse("That is not a vertical on the sales list.");
+  const prospectType = vertical ? prospectTypeForVertical(vertical as CrmVertical) : input.prospectType;
+  if (!(PROSPECT_TYPES as readonly string[]).includes(prospectType)) return refuse("Choose roofer, agent, title or contractor.");
   const phone = input.phone?.trim() || null;
   const email = input.email?.trim().toLowerCase() || null;
   if (!phone && !email) return refuse("A prospect needs a phone number or an email address, or nobody can reach them.");
@@ -238,7 +256,8 @@ function cleanInput(input: ProspectInput): { ok: true; row: Record<string, unkno
       phone,
       email,
       city: input.city?.trim() || null,
-      prospect_type: input.prospectType,
+      prospect_type: prospectType,
+      vertical: (vertical as CrmVertical | null) ?? verticalForProspectType(prospectType),
       follow_up_on: followUpOn,
     },
   };
@@ -269,7 +288,26 @@ export async function createProspect(
   });
   if (!recorded.ok) return recorded;
   const { error } = await db.from("eng_prospects").insert({ id, ...clean.row, owner_id: actor.id, created_by: actor.id });
-  if (error) return refuse(`The prospect could not be saved: ${error.message}`);
+  if (error) {
+    return refuse(
+      error.code === "23505"
+        ? "A company with that name and telephone number is already on the sales list. Open it rather than adding a second one."
+        : `The prospect could not be saved: ${error.message}`,
+    );
+  }
+  /* Its primary person and where it came from (0112): typed in by hand. */
+  const linked = await addPrimaryContactAndSource(db, [
+    {
+      prospectId: id,
+      contactName: clean.row.contact_name as string | null,
+      phone: clean.row.phone as string | null,
+      email: clean.row.email as string | null,
+      createdBy: actor.id,
+      source: "manual",
+      sourceRecordId: id,
+    },
+  ]);
+  if (!linked.ok) return refuse(`The prospect was saved and ${linked.error}`);
   return { ok: true, id };
 }
 
@@ -294,7 +332,15 @@ export async function updateProspect(
   if (change.ownerId !== undefined) patch.owner_id = change.ownerId || null;
   if (change.status !== undefined) {
     if (change.status !== "open" && change.status !== "not_interested") return refuse("That status cannot be set by hand.");
+    /*
+     * The stage moves with it (0112): not interested is dormant by refusal;
+     * reopening a dormant company puts it back at new. Do not contact is for
+     * good and is never reopened from here.
+     */
+    if (current.row.stage === "do_not_contact") return refuse("This company asked not to be contacted. That is kept for good.");
     patch.status = change.status;
+    if (change.status === "not_interested") patch.stage = "dormant";
+    else if (current.row.stage === "dormant") patch.stage = "new";
   }
   if (change.details) {
     const clean = cleanInput(change.details);
@@ -370,12 +416,15 @@ export async function importProspects(
     }
     keys.forEach((k) => seen.add(k));
     toInsert.push({
+      id: randomUUID(),
+      line: row.line,
       company: row.prospect.company,
       contact_name: row.prospect.contactName,
       phone: row.prospect.phone,
       email: row.prospect.email,
       city: row.prospect.city,
       prospect_type: row.prospect.prospectType,
+      vertical: verticalForProspectType(row.prospect.prospectType),
       follow_up_on: todayInFirmCalendar(),
       owner_id: actor.id,
       created_by: actor.id,
@@ -399,12 +448,29 @@ export async function importProspects(
   if (!recorded.ok) return recorded;
 
   for (let i = 0; i < toInsert.length; i += 500) {
-    const { error } = await db.from("eng_prospects").insert(toInsert.slice(i, i + 500));
+    const chunk = toInsert.slice(i, i + 500);
+    const { error } = await db.from("eng_prospects").insert(chunk.map(({ line: _line, ...row }) => row));
     if (error) {
       return refuse(
         `${i} of ${toInsert.length} rows were imported and the rest could not be saved: ${error.message}. ` +
           `Those ${i} are batch ${batchId}; import the file again and they will be listed as already on the list.`,
       );
+    }
+    /* Each company's primary person and the spreadsheet line it came from (0112). */
+    const linked = await addPrimaryContactAndSource(
+      db,
+      chunk.map((r) => ({
+        prospectId: String(r.id),
+        contactName: (r.contact_name as string | null) ?? null,
+        phone: (r.phone as string | null) ?? null,
+        email: (r.email as string | null) ?? null,
+        createdBy: actor.id,
+        source: "csv" as const,
+        sourceRecordId: `${batchId}:${String(r.line)}`,
+      })),
+    );
+    if (!linked.ok) {
+      return refuse(`${i + chunk.length} of ${toInsert.length} rows were imported, batch ${batchId}, and ${linked.error}`);
     }
   }
   return { ok: true, result: { batchId, imported: toInsert.length, refused } };
@@ -478,6 +544,8 @@ export async function convertProspect(
     .from("eng_prospects")
     .update({
       status: "converted",
+      /* Converted is the customer stage Account opened (0112's eng_prospects_stage_matches_conversion). */
+      stage: "account_opened",
       converted_at: DB_NOW,
       converted_by: actor.id,
       converted_client_id: account.client_id,
