@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { PageHeader } from "@/components/site/PageHeader";
 import { RooferSignUpForm } from "@/components/forms/RooferSignUpForm";
 import { ButtonLink } from "@/components/ui/primitives";
@@ -78,6 +79,11 @@ export default function RooferSignUpPage() {
                 <a href={`mailto:${business.email}`} className="font-semibold text-slate underline">
                   {business.email}
                 </a>
+                {/* The page's path to a quote while public sign up is shut, as on /roofing-partners (Robert, 2026-11-06). */}
+                , or write through the{" "}
+                <Link href="/contact" className="font-semibold text-slate underline">
+                  contact page
+                </Link>
                 .
                 <span className="mt-4 block">
                   <ButtonLink href={BOOK_A_CALL_URL} tone="secondary" newTab>
