@@ -55,7 +55,8 @@ export default async function QueuePage() {
 
   const lede =
     `Your companies and the ones nobody owns yet, the next one due first. ${view.due.toLocaleString("en-US")} due now.` +
-    (view.skippedSuppressed ? ` ${view.skippedSuppressed.toLocaleString("en-US")} passed over because somebody there is on the suppression list.` : "");
+    (view.skippedSuppressed ? ` ${view.skippedSuppressed.toLocaleString("en-US")} passed over because somebody there is on the suppression list.` : "") +
+    " Companies whose next step is an email are on Sequence emails.";
 
   if (!view.card) {
     return (
@@ -73,6 +74,7 @@ export default async function QueuePage() {
   return (
     <>
       <PageHead eyebrow="Sales" title="Call queue" lede={lede} />
+      <p className="mb-6 text-[14px]"><Link href="/portal/crm/emails" className="inline-flex min-h-[44px] items-center font-semibold text-[var(--navy)] underline">Open the sequence emails</Link></p>
       <CardView card={view.card} />
     </>
   );

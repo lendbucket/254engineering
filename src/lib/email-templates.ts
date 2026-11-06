@@ -5,6 +5,9 @@ import { REFUND_ISSUED_SENTENCE, refundRowLabel } from "./refund-update";
 import { catalogFor, SCOPE_PENDING } from "@data/catalog";
 import { emailIdentity, footerEmail, fromHeader, type SenderPurpose } from "@/config/email-identity";
 import { firmItemLabels } from "@/content/onboarding-checklists";
+import { displayPhone } from "@/config/contact";
+import { CRM_VERTICALS } from "./crm-rules";
+import { renderSequenceEmail } from "./crm-email-rules";
 import {
   OUTCOME_HEADLINE,
   OUTCOME_MEANING,
@@ -80,6 +83,15 @@ export const MARKETING_TEMPLATES: readonly string[] = [
    * respects the suppression list.
    */
   "marketing.review_request",
+  /*
+   * The sales sequence email (Robert's sales CRM ruling of 2026-11-02, item
+   * R7: "email templates per vertical with the unsubscribe link, From and
+   * Reply-To rules, suppression consulted"). Written to a prospect who has
+   * entered into nothing with the firm, so it is marketing by any reading: it
+   * carries the one click unsubscribe and its send path consults the
+   * suppression list (src/lib/crm-email.ts).
+   */
+  "marketing.crm_sequence",
 ];
 
 /** Whether a template id is marketing shaped, and therefore carries an unsubscribe. */
@@ -1154,6 +1166,72 @@ export function reviewRequest(input: {
     },
     { to: input.customerEmail },
   );
+}
+
+/**
+ * THE SALES SEQUENCE EMAIL. Robert's sales CRM ruling of 2026-11-02, item R7,
+ * with the per vertical templates he approved as drafted (issue #1 comment
+ * 6587551356). The words come from src/content/crm-emails.ts, filled and
+ * chosen open or prelaunch by src/lib/crm-email-rules.ts; this assembles them
+ * in the firm's layout like every other template.
+ *
+ * Marketing, on MARKETING_TEMPLATES: it carries the one click unsubscribe, and
+ * nothing sends it to an address on the suppression list. Human purpose, so
+ * From is the firm and Reply-To is the support mailbox until the reply
+ * subdomain exists (Robert's answer 1), unless the caller passes the company's
+ * reply tag address. The rep's own sign off line is the last paragraph of the
+ * body, as the approved draft has it, above the firm's signature block.
+ */
+export function crmSequenceEmail(input: {
+  to: string;
+  subject: string;
+  paragraphs: string[];
+  signOff: string;
+  unsubscribeUrl: string;
+  replyTo?: string;
+}): RenderedEmail {
+  return compose(
+    "marketing.crm_sequence",
+    "human",
+    input.subject,
+    {
+      preheader: input.paragraphs[0]?.slice(0, 110) ?? input.subject,
+      /* Signed by the rep, one line above the firm footer, not the signer's block: email identity ruling, 2026-11-02 (REP_SIGNED_TEMPLATES). */
+      signed: false,
+      repSignature: input.signOff,
+      blocks: [
+        ...input.paragraphs.map((text) => ({ kind: "p" as const, text })),
+        { kind: "p", text: "The link at the bottom stops emails like this one." },
+      ],
+      unsubscribeUrl: input.unsubscribeUrl,
+    },
+    { to: input.to, ...(input.replyTo ? { replyTo: input.replyTo } : {}) },
+  );
+}
+
+/** Every vertical in both variants, for the audit, filled the way the send path fills them. */
+function crmSequenceSamples(): RenderedEmail[] {
+  const out: RenderedEmail[] = [];
+  for (const vertical of CRM_VERTICALS) {
+    for (const sellable of [false, true]) {
+      const r = renderSequenceEmail(
+        /* The firm's published number when it is set; a word otherwise, so the audit never carries a typed number. */
+        { vertical, rep: "Sample", contact: "Sample Person", company: "Sample Company", city: null, siteUrl: business.url, phone: displayPhone() ?? "the firm's number" },
+        sellable,
+      );
+      if (!r.ok) throw new Error(`The ${vertical} sequence email does not render: ${r.error}`);
+      out.push(
+        crmSequenceEmail({
+          to: "sample@example.com",
+          subject: r.subject,
+          paragraphs: r.paragraphs,
+          signOff: r.signOff,
+          unsubscribeUrl: "https://254engineering.com/unsubscribe?e=sample%40example.com&t=sample",
+        }),
+      );
+    }
+  }
+  return out;
 }
 
 /**
@@ -2732,6 +2810,12 @@ export function allTemplatesForAudit(): RenderedEmail[] {
       reviewUrl: "https://254engineering.com/review",
       unsubscribeUrl: "https://254engineering.com/unsubscribe?e=sample%40example.com&t=sample",
     }),
+    /*
+     * The sales sequence email, every vertical in both variants, rendered by
+     * the same filler the send path uses, so the audit holds the words a
+     * prospect would read to the voice, layout and unsubscribe checks.
+     */
+    ...crmSequenceSamples(),
     orderDeclined({
       customerName: "Sample Customer",
       customerEmail: "sample@example.com",

@@ -4356,6 +4356,26 @@ export const APPLIED = [
       "stage/0116-crm-territories FOR THE CHAT COUNTERPART'S SITTING; APPLIED NOWHERE. Robert's sales CRM ruling of 2026-11-02, item R5, territories and assignment: counties " +
       "grouped into territories, reps holding one or more, the round robin cursor new imports advance. Additive: three tables.",
   },
+  {
+    file: "0117_the_sales_list_sends_one_email_a_day_and_hears_replies.sql", appliedBy: "apply_migration",
+    fingerprint: "199213b0b996d9e3cf283dd0bdc097ff",
+    behaviour: "21a5f247268f16f53d8bcd8dff462136",
+    production: null,
+    proves: { table: "eng_crm_email_sends" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-05 on the chain to 0117. Shape 1532 to 1557 " +
+      "columns: 12 on eng_crm_email_sends, 12 on eng_crm_email_replies, 1 on eng_prospects (sequence_paused_at); " +
+      "tables 116 to 118. Behaviour 1519 to 1544 facts: the two tables' keys, checks and foreign keys, the one send per " +
+      "address per day partial unique index, the reply event once index and the two lookup indexes. Written as 0115 on " +
+      "2026-11-02 and renumbered to 0117 by Robert's ruling (a) of 2026-11-04 and order A of 2026-11-05; only its own " +
+      "numbers moved.",
+    because:
+      "WRITTEN 2026-11-02 ON feat/crm-r7-email AS 0115, RENUMBERED ON feat/crm-r7-email-0117 AND STAGED ON " +
+      "stage/0117-crm-email FOR THE CHAT COUNTERPART'S SITTING; " +
+      "APPLIED NOWHERE. Robert's sales CRM ruling of 2026-11-02, item R7, sequences and email: one send per address per " +
+      "day, written before the email is queued; replies recorded once by the webhook's event id; a reply pauses the " +
+      "sequence. Additive: two tables and one column.",
+  },
 ];
 
 /*

@@ -10,7 +10,8 @@ import type { JobOutcome } from "./job-rules";
 import { supabaseAdmin } from "./supabase";
 import { notify } from "./notify";
 import { event as orderEvent } from "./ops-intake";
-import { opsNotification } from "./email-templates";
+import { opsNotification, MARKETING_TEMPLATES } from "./email-templates";
+import { isSuppressed } from "./marketing-suppression";
 import { issueStatement } from "./ops-statements";
 import { reconcileAll } from "./ops-reconcile";
 import { rollupDay } from "./ops-metrics";
@@ -163,6 +164,35 @@ registerJob("email.send", {
         "[jobs] email.send #" + job.id + " to " + to + ": suppressed, nothing was sent.",
       );
       return { kind: "done" };
+    }
+
+    /*
+     * THE MARKETING-ONLY SUPPRESSION CHECK, AT SEND TIME. Robert, 2026-11-02,
+     * issue #1 answer 3 to 6592143963: "approved, the second suppression check
+     * in the marketing-only branch with email-audit asserting it."
+     *
+     * The send paths ask the gate when they compose; this asks again just
+     * before the provider, so an address that unsubscribed between compose and
+     * send is not written to. It runs for MARKETING_TEMPLATES ONLY: a receipt
+     * is never stopped by the marketing list (somebody who unsubscribed from
+     * announcements is still owed it), which is why this branch is the one
+     * place email-audit lets this shared handler ask the gate, and why the
+     * audit asserts the branch is guarded by the marketing list. isSuppressed
+     * answers true on a failed read, so a list it cannot read sends nothing.
+     * The reason is recorded on the audit trail, by template and job, never the
+     * address.
+     */
+    const templateId = typeof p.id === "string" ? p.id : null;
+    if (templateId !== null && MARKETING_TEMPLATES.includes(templateId)) {
+      if (await isSuppressed(to)) {
+        await recordSystemAudit({
+          action: "email.suppressed_at_send",
+          entityType: "job",
+          entityId: String(job.id),
+          summary: `A ${templateId} email was not sent: the address is on the marketing suppression list, or the list could not be read.`,
+        });
+        return { kind: "done" };
+      }
     }
 
     /*
