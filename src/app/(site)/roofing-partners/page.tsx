@@ -93,7 +93,7 @@ export default function RoofingPartnersPage() {
   const steps = [
     {
       title: "Create your partner account",
-      body: "Your company name, the owner's name, an email and a phone number. Your account opens on the spot, and an email link sets your password and signs you in.",
+      body: "Your company name, the owner's name, an email and a phone number. Your account opens on the spot, and an email link sets your password; then you sign in.",
     },
     {
       title: "Finish your profile",

@@ -214,7 +214,7 @@ check("the firm approving every partner is said as what keeps the program select
 
 const emails = await import("../../src/lib/email-templates.ts");
 const received = emails.rooferApplicationReceived({ ownerName: "Proof Owner", email: "proof@example.com", link: "https://254engineering.com/account/set-password?token=t", expiresIn: "7 days" });
-check("the step one email carries the set password link that signs them in", (received.html ?? "").includes("https://254engineering.com/account/set-password?token=t") && /sets your password and signs you in/.test(received.text ?? ""));
+check("the step one email carries the set password link, then sign in (the set password rule, kept)", (received.html ?? "").includes("https://254engineering.com/account/set-password?token=t") && /sets your password; then sign in/.test(received.text ?? ""));
 const declined = emails.rooferApplicationDeclined({ ownerName: "Proof Owner", legalName: "Proof Roofing LLC", email: "proof@example.com" });
 check("the decline email is plain, carries no reason, and keeps the account open", !/reason/i.test(declined.text ?? "") && /not taking Proof Roofing LLC on as a partner/.test(declined.text ?? "") && /account stays open/.test(declined.text ?? ""));
 const approved = emails.rooferApplicationApproved({ ownerName: "Proof Owner", email: "proof@example.com" });

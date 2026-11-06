@@ -1710,7 +1710,7 @@ export function rooferApplicationReceived(input: { ownerName: string; email: str
        */
       blocks: [
         { kind: "p", text: `Hi ${firstName(input.ownerName)},` },
-        { kind: "p", text: "Your roofing partner account is open. The button below sets your password and signs you in." },
+        { kind: "p", text: "Your roofing partner account is open. The button below sets your password; then sign in with it." },
         {
           kind: "p",
           text: "Your account is being reviewed. A person at the firm approves every partner, which is what keeps the program selective. Finishing your profile, your work, your insurance and two references, speeds the review up.",

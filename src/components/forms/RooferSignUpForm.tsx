@@ -9,7 +9,7 @@ import { rooferSignUpSchema } from "@/lib/roofer-application";
  * STEP ONE OF THE ROOFING PARTNER SIGN UP. Robert's rework of 2026-11-06.
  *
  * Four answers and one button. The account opens on submit; the email that
- * follows sets the password and signs them in, where the rest of the profile
+ * follows sets the password; they sign in once, and the rest of the profile
  * waits as a checklist. Each answer is checked with the schema the server
  * parses with, quietly until the field has been left once, then as typed.
  */

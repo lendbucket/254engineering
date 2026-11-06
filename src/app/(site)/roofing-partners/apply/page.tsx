@@ -16,7 +16,7 @@ import { buildMetadata } from "@/lib/seo";
  *
  * It read like a job application and asked everything before giving anything.
  * Now it asks four things and opens the account; the email link sets the
- * password and signs them in, and the work, insurance and references are a
+ * password, they sign in once, and the work, insurance and references are a
  * checklist inside the account that blocks nothing. A supplier opening an
  * account, in the words on the page and on the button.
  *

@@ -11,7 +11,7 @@ import { BOOK_A_CALL_URL } from "@/content/book-a-call";
  * STEP TWO: CHECK YOUR EMAIL. Robert's rework of 2026-11-06 (0117).
  *
  * The account opened at step one; the email link proves the address, sets the
- * password and signs them in. It names no time for the review, because a
+ * password, and they sign in once. It names no time for the review, because a
  * person approves every partner and how long that takes is not something a
  * page can know. Out of the index: it is true only for the person just sent
  * here. The booking line is Robert's request of the same morning.
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   ...buildMetadata({
     title: "Check Your Email: Your Partner Account | 254 Engineering",
     description:
-      "Your roofing partner account is open. The email link sets your password and signs you in, where you finish your profile. A person approves every partner.",
+      "Your roofing partner account is open. The email link sets your password; then sign in and finish your profile. A person approves every partner.",
     path: "/roofing-partners/apply/received",
   }),
   robots: { index: false, follow: true },
@@ -36,7 +36,7 @@ export default function RooferApplicationReceivedPage() {
   const next = [
     {
       title: "Open the email link",
-      body: "A message to the address you gave carries a link that sets your password and signs you in. If it is not in your inbox, look in spam.",
+      body: "A message to the address you gave carries a link that sets your password. Then sign in with it. If it is not in your inbox, look in spam.",
     },
     {
       title: "Finish your profile",
@@ -53,7 +53,7 @@ export default function RooferApplicationReceivedPage() {
         crumbs={crumbs}
         eyebrow="Step 2 of 3"
         title="Check your email"
-        lede="Your partner account is open. The link in the email sets your password and signs you in."
+        lede="Your partner account is open. The link in the email sets your password; then sign in."
       />
       <Section tone="white">
         <SectionHead eyebrow="What happens next" title="Three things, in this order" />
