@@ -1609,6 +1609,13 @@ On a pass: the production script for 0117, by the operator route for Robert's pr
 - The 24 standing COULD NOT TELL lines.
 - A second red on the rework parks it for Robert.
 
+**BUNDLE 117, BOARD 42303009862 ON `abf3994`: PASS, 65 of 65, AS PREDICTED.** Zero FAIL, preflight GREEN, cta-audit PASS. The COULD NOT TELL lines match bundle 116's shard for shard (12 static, 11 writers, 1 preflight): the standing set, unchanged.
+
+**0117'S PRODUCTION SCRIPT IS POSTED (6698510226)** for the operator route, from `abf3994`.
+- **File sha256:** `a11bfb17`, byte identical to what development holds. Stored sha256: `46a22fa5`.
+- **Merging:** under Robert's R4 answer, the rework is recorded ready when the read-back lands, then merges in the sitting with R4 to R7, after R4 and R5.
+- **Open:** Robert's two copy answers (6697163476). Either answer would be a new commit with its own board, and neither touches the SQL.
+
 **THE ROOFER APPLICATION MERGED** as `b10651c` (parents `c7bbe8c`, `130abe3`), after 0113's production read-back (6675087911, 02:18 UTC 2026-11-06).
 - **The read-back:** history version `20261106021807`, stored hash `4d6f7664`; grants 192 to 194; both checks widened; the author check present; no row changed.
 - **No connector prompt appeared** this time, and block 2 ran on the first call; the ledger records that.
