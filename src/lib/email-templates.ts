@@ -1737,6 +1737,11 @@ export function rooferApplicationNotice(input: {
   );
 }
 
+/** The first word of a name as the roofer typed it, for a greeting. Falls back to the whole name. */
+function firstName(name: string): string {
+  return name.trim().split(/\s+/)[0] || name.trim();
+}
+
 export function rooferApplicationApproved(input: {
   ownerName: string;
   email: string;
@@ -1750,15 +1755,20 @@ export function rooferApplicationApproved(input: {
     {
       preheader: `Your application was approved. The link sets your password and lasts ${input.expiresIn}.`,
       signed: true,
+      /*
+       * IN ROBERT'S VOICE (his polish of 2026-11-05): "Hi" and the first name,
+       * a one sentence welcome, the account open and the button setting the
+       * password, and what happens next, which is him getting in touch about
+       * partner pricing and ordering. No time is promised. The sentence about
+       * nobody seeing the password is gone, by his word.
+       */
       blocks: [
-        { kind: "p", text: `${input.ownerName},` },
+        { kind: "p", text: `Hi ${firstName(input.ownerName)},` },
+        { kind: "p", text: "Welcome to the roofing partner program: your application is approved." },
+        { kind: "p", text: "Your company's account is open, and the button below sets your password." },
         {
           kind: "p",
-          text: `Your application to work with ${firmName()} as a roofing partner was approved, and an account has been opened for your company.`,
-        },
-        {
-          kind: "p",
-          text: "From the account you order and track every job in one place, at the partner prices set for it. Nobody here has set a password for it and nobody can see one: the link below is how you choose your own.",
+          text: "I'll be in touch to set up your partner pricing and walk you through ordering your first job.",
         },
         {
           kind: "note",
@@ -1780,7 +1790,7 @@ export function rooferApplicationDeclined(input: { ownerName: string; legalName:
       preheader: `About the application from ${input.legalName}.`,
       signed: true,
       blocks: [
-        { kind: "p", text: `${input.ownerName},` },
+        { kind: "p", text: `Hi ${firstName(input.ownerName)},` },
         {
           kind: "p",
           text: `Thank you for applying to work with ${firmName()} as a roofing partner. After reading the application, the firm is not taking it forward at this time.`,
