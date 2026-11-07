@@ -1682,6 +1682,12 @@ On a pass: the production script for 0117, by the operator route for Robert's pr
 - **Locally:** type check clean; migration-audit and db-guard-audit PASS; the Q8b proof PASS; the session epoch proof PASS (55); bulk static green. Preflight is red only on the pre-merge ledger rule.
 - **STAGED: 0121** on the new `stage/0121-money-constraints` at `8829c97`, file sha256 `afbfa9d2`, stored `cf7277ec`. The duplicate read from the earlier sitting plan goes with its development request.
 
+**F12/F6 RENUMBERED TO 0122: `fix/f12-f6-money-0122` at `29432e7`, on Q8b `dd5040e`.**
+- **The carry:** one pass moved 0120 to 0121 and 0121 to 0122. Every 0120 named Q8b's index, which the guard looks for.
+- **One conflict, the pins, read again:** shape `7dc2aece` at 1579 columns and 120 tables; behaviour `71b8bb47` at 1572 facts. The migration's header now gives both numberings; it is a comment and moves no figure.
+- **Locally:** type check clean; migration-audit and db-guard-audit PASS; the F12/F6 and Q8b proofs PASS; bulk static green. Preflight is red only on the pre-merge ledger rule.
+- **STAGED: 0122** on the new `stage/0122-money-holds` at `a530e6b`, file sha256 `3aae39fc`, stored `935d819f`. The old `stage/0121-money-holds` stays. Next is the prospect kinds to 0123: destructive, so its script goes to Robert.
+
 - **The sign up gate (6698639863), answered from the code:** step one is gated by `selfServiceSignUpOpen()`, which is `isOpen() && selfServiceSignUp.cleared`. `cleared` has been true since 2026-09-28, and production's /account/sign-up serves the open form, so step one is open on production. It reads shut on the board only because of the board's environment.
 
 **THE ROOFER APPLICATION MERGED** as `b10651c` (parents `c7bbe8c`, `130abe3`), after 0113's production read-back (6675087911, 02:18 UTC 2026-11-06).
