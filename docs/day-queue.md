@@ -1688,6 +1688,16 @@ On a pass: the production script for 0117, by the operator route for Robert's pr
 - **Locally:** type check clean; migration-audit and db-guard-audit PASS; the F12/F6 and Q8b proofs PASS; bulk static green. Preflight is red only on the pre-merge ledger rule.
 - **STAGED: 0122** on the new `stage/0122-money-holds` at `a530e6b`, file sha256 `3aae39fc`, stored `935d819f`. The old `stage/0121-money-holds` stays. Next is the prospect kinds to 0123: destructive, so its script goes to Robert.
 
+**PROSPECT KINDS RENUMBERED TO 0123: `fix/prospect-kinds-0123` at `eb1255c`, on F12/F6 `29432e7`.**
+- **The carry:** one pass moved 0121 to 0122 and 0122 to 0123.
+- **Two conflicts, both sides kept:** the sitting document now carries the 0117 and 0123 sections; the pin prose. The pins stay 0122's, because 0123 replaces a check and moves no column.
+- **The ledger, read again:** shape `7dc2aece` at 1579 columns (0122's), behaviour `e2721b4a` at 1572 facts. Every sentence that said the overnight order numbered it 0123 now says 0122, then 0123 by answer 3.
+- **Locally:** type check clean; migration-audit, db-guard-audit and backlog-audit PASS; every proof reading the changed import and rules files PASS (7, plus F12/F6); bulk static green. Preflight is red only on the pre-merge ledger rule.
+- **STAGED: 0123** on the new `stage/0123-prospect-kinds` at `4c25fbb`, file sha256 `e8653271`, stored `025bd052`. The old 0122 stage branch stays.
+- **The development script, regenerated** (gen-0123-script.mjs, from gen-0122 with its 17 self-references moved), is posted as 6701788892. It replaces the earlier 0122 script and says not to run it until R7 to F12/F6 are on development and boarded.
+
+**The renumbered stack, each on the one before:** R7 0118 `5b1fca1`, R8 0119 `4e3c197`, M2 0120 `a826d7d`, Q8b 0121 `dd5040e`, F12/F6 0122 `29432e7`, kinds 0123 `eb1255c`. Every one waits on the rework reaching main: Robert's answer to 6699962026.
+
 - **The sign up gate (6698639863), answered from the code:** step one is gated by `selfServiceSignUpOpen()`, which is `isOpen() && selfServiceSignUp.cleared`. `cleared` has been true since 2026-09-28, and production's /account/sign-up serves the open form, so step one is open on production. It reads shut on the board only because of the board's environment.
 
 **THE ROOFER APPLICATION MERGED** as `b10651c` (parents `c7bbe8c`, `130abe3`), after 0113's production read-back (6675087911, 02:18 UTC 2026-11-06).
