@@ -164,8 +164,8 @@ export function RooferSignUpForm() {
           {sending ? "Creating your account..." : "Create your partner account"}
         </button>
         <p className="text-[14px] leading-[1.6] text-slate-muted">
-          The firm approves every partner, which is what keeps the program selective. Your account opens now; partner
-          pricing and partner ordering turn on when it is approved.
+          The firm approves every partner, which is what keeps the program selective. Your account opens now. Partner
+          pricing is set up with you after approval. Until then you can order at the published price.
         </p>
       </form>
     </div>
