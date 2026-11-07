@@ -2,7 +2,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
-import { jobView } from "@/lib/ops-field";
+import { jobView, visitClockFor } from "@/lib/ops-field";
+import { formatInFirmZone } from "@/lib/firm-calendar";
+import { VisitClock } from "./VisitClock";
+
+/** How a visit time reads: "Nov 7, 2:05 PM", in the firm's zone. */
+const VISIT_TIME = { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" } as const;
 import { captureDeleteRefusal, progressLabel } from "@/lib/ops-evidence";
 import { CAPTURE_CLOSED_STATUSES, evidenceWriteRefusal } from "@/lib/evidence-capture-rules";
 import { photoAnswersFor } from "@/lib/protocol-run";
@@ -37,6 +42,9 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
       .filter(Boolean)
       .join(", "),
   );
+
+  /* The visit clock, read from the server's record. Null when it could not be read. */
+  const visitClock = await visitClockFor(view.file.id);
 
   /* PL-5: the engineer's added capture items, on a permit letter job. */
   const additions = view.file.service_slug === "structural-letters" ? await captureAdditionsFor(view.file.id) : null;
@@ -117,6 +125,23 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
         </a>
         {can(actor, "messages.use") ? <FileThreadButton fileId={view.file.id} /> : null}
       </div>
+
+      {/*
+        The visit clock (Robert's T6, 2026-11-07): when the technician arrived
+        and left, on the server's clock. Recorded only by the assigned
+        technician while the file is in the field, the same rule as capture, so
+        a reader who may not write sees the times and no button.
+      */}
+      <VisitClock
+        fileId={view.file.id}
+        visits={(visitClock?.visits ?? []).map((v) => ({
+          arrived: formatInFirmZone(v.arrivedAt, VISIT_TIME) ?? v.arrivedAt,
+          left: v.leftAt ? (formatInFirmZone(v.leftAt, VISIT_TIME) ?? v.leftAt) : null,
+        }))}
+        onSite={visitClock?.onSite ?? false}
+        canRecord={!closed}
+        unreadable={visitClock === null}
+      />
 
       {view.file.notes ? (
         <div className="mb-6 border-t-2 border-[var(--ink)] pt-3">
