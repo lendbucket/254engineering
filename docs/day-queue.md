@@ -1659,6 +1659,15 @@ On a pass: the production script for 0117, by the operator route for Robert's pr
 - **Preflight is red on one rule only:** schema-ledger-audit's "applied to production and not on main" (0115 to 0117). It clears when the rework is on main and R7 takes main. **R7 does not board before that.**
 - **STAGED: 0118** on the new `stage/0118-crm-email` at `5c37b6b`, file sha256 `33d77aa2`, stored `f7cc33c9`. The old 0117 stage branch stays. Its development request is posted just before R7's board.
 
+**R8 RENUMBERED TO 0119: `feat/crm-r8-reports-0119` at `4e3c197`, on R7 `5b1fca1`.** Built while Robert's merge answer (6699962026) is open.
+- **The carry:** R8's whole delta over its old parent `933c681` (`80412e4` and its V10 fix `7742d35`). One pass moved 0117 to 0118 and 0118 to 0119, on added lines and migration paths only. The one 0117 was the migration's guard naming R7's tables.
+- **Conflicts:**
+  - retention-policy: eng_crm_attributions goes before eng_crm_email_*, in alphabetical order;
+  - migration-audit's pins, read again: 0119 shape `38319e8c` at 1573 columns and 119 tables, behaviour `9e1c9d50` at 1565 facts; triggers stay 111.
+- **Locally:** type check clean; migration-audit, token-audit, surface-audit and db-guard-audit PASS; the R8 proof PASS (56); bulk-audit's static half green.
+- **Preflight is red only on the pre-merge ledger rule**, as for R7.
+- **STAGED: 0119** on the new `stage/0119-crm-attribution` at `3dcc243`, file sha256 `c3877c5e`, stored `abf4e889`.
+
 - **The sign up gate (6698639863), answered from the code:** step one is gated by `selfServiceSignUpOpen()`, which is `isOpen() && selfServiceSignUp.cleared`. `cleared` has been true since 2026-09-28, and production's /account/sign-up serves the open form, so step one is open on production. It reads shut on the board only because of the board's environment.
 
 **THE ROOFER APPLICATION MERGED** as `b10651c` (parents `c7bbe8c`, `130abe3`), after 0113's production read-back (6675087911, 02:18 UTC 2026-11-06).
