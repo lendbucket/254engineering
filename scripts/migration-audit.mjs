@@ -407,10 +407,20 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * 2026-11-06: session_epoch on eng_profiles, eng_customer_users and
  * eng_partner_users, 1,573 to 1,576; the table count stays 119; no trigger, no
  * function. Read off fingerprint-at.mjs on the chain to 0120.
+ *
+ * 0121 (Q8b) adds an index, widens a check and replaces a function body, so the
+ * shape does not move.
+ *
+ * Moved again by 0122, a payment releases only its own amount and credit is
+ * held once, money audit F12 and F6 (Robert's answer of 2026-11-03, numbered
+ * 0121 by his overnight order of 2026-11-05 and 0122 by his answer 3 of
+ * 2026-11-06): the three columns of eng_account_credit_holds, 1,576 to 1,579;
+ * the table count moves 119 to 120. Read off fingerprint-at.mjs on the chain to
+ * 0122.
  */
-const EXPECTED_FINGERPRINT = "3922bc19370dff71d91544fde180d815";
-const EXPECTED_COLUMNS = 1576;
-const EXPECTED_TABLES = 119;
+const EXPECTED_FINGERPRINT = "7dc2aeceb558706cdc5f3ac2263071cc";
+const EXPECTED_COLUMNS = 1579;
+const EXPECTED_TABLES = 120;
 /* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts.
  * 0074 adds two: eng_partner_billing_touch and eng_partner_billing_events_immutable.
  * 0075 adds one: eng_payment_events_guarded.
@@ -523,8 +533,12 @@ const EXPECTED_TRIGGERS = 111;
  * columns and both unique keys are computed from.
  * 77 since 0113, by Robert's rulings of 2026-11-05: eng_roofer_application_decides_once
  * (the trigger function) and eng_take_roofer_application, which writes an
- * application, its prospect and its source row in one transaction. */
-const EXPECTED_FUNCTIONS = 77;
+ * application, its prospect and its source row in one transaction.
+ * 79 since 0122, by money audit F6 (Robert's answer of 2026-11-03): eng_take_credit_hold
+ * and eng_release_credit_hold, one invoice submission at a time per account. 0122
+ * replaces eng_apply_order_paid and eng_apply_batch_paid with the same signatures,
+ * which are not new rows. */
+const EXPECTED_FUNCTIONS = 79;
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
