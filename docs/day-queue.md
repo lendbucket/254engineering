@@ -1647,6 +1647,18 @@ On a pass: the production script for 0117, by the operator route for Robert's pr
 
 **BUNDLE 118, R6, BOARD 42312780975 ON `8c436b8`: PASS, 65 of 65, AS PREDICTED.** Zero FAIL, preflight GREEN. The COULD NOT TELL lines are the standing set (12 static, 11 writers, 1 preflight). The writers shard needed 5 transient retries. R6 holds for the sitting with R7.
 
+**R7 RENUMBERED TO 0118: `feat/crm-r7-email-0118` at `5b1fca1`.**
+- **Its base, `e074cfc`:** R6 `8c436b8` with the rework `23a2b21` merged in, clean. 0117 is the rework's number, and the chain has to hold it before 0118.
+- **The carry:** R7's whole delta over its old parent `cda08fd` (from `933c681`), with 0117 moved to 0118 only on added lines and migration paths (34 replacements). Same 33 files as before, plus one line of prose.
+- **Two conflicts,** in migration-audit's pins and the ledger, both resolved by keeping both sides. The figures were read again off fingerprint-at.mjs: 0117 `ac53d694` at 1541 columns, as the ledger holds. 0118 shape `0e9984b3` at 1566 columns and 118 tables, behaviour `655d65a6` at 1552 facts.
+- **Locally:**
+  - type check clean;
+  - migration-audit, db-guard-audit, token-audit, surface-audit and backlog-audit PASS;
+  - proofs PASS: money doors 23, open scripts 33, signed sequence email 18, once a day 55, call queue 132, roofer 64;
+  - bulk-audit's static half green.
+- **Preflight is red on one rule only:** schema-ledger-audit's "applied to production and not on main" (0115 to 0117). It clears when the rework is on main and R7 takes main. **R7 does not board before that.**
+- **STAGED: 0118** on the new `stage/0118-crm-email` at `5c37b6b`, file sha256 `33d77aa2`, stored `f7cc33c9`. The old 0117 stage branch stays. Its development request is posted just before R7's board.
+
 - **The sign up gate (6698639863), answered from the code:** step one is gated by `selfServiceSignUpOpen()`, which is `isOpen() && selfServiceSignUp.cleared`. `cleared` has been true since 2026-09-28, and production's /account/sign-up serves the open form, so step one is open on production. It reads shut on the board only because of the board's environment.
 
 **THE ROOFER APPLICATION MERGED** as `b10651c` (parents `c7bbe8c`, `130abe3`), after 0113's production read-back (6675087911, 02:18 UTC 2026-11-06).
