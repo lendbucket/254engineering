@@ -1633,6 +1633,16 @@ On a pass: the production script for 0117, by the operator route for Robert's pr
 - perf-audit: the four LCP pages under ceiling.
 - The standing COULD NOT TELL set.
 
+**0117 ON PRODUCTION** (6698631996): about 23:34 UTC, version `20261106233413`, stored hash `46a22fa5`, every expectation met. The rework is recorded ready.
+
+**ROBERT'S ANSWERS TO 6697163476** (relayed in 6699507569, given in chat at 18:22 Central as "your recs for everything"): 1 yes, keep "or write through the contact page" on the apply page; 2 yes, add "Partner pricing is set up with you after approval. Until then you can order at the published price." to the under-review card. Each is copy, so it is a new commit with its own board.
+
+**LIVE DEFECT, FOUND 2026-11-07 AT ABOUT 00:30 UTC: MAIN'S ROOFER FORM FAILS AGAINST 0117.**
+- **What happens:** main's 0113 form calls `eng_take_roofer_application` without an account, and since 0117 the function refuses that call. A roofer who submits the live form reads "The application could not be saved, so nothing was recorded." No false success, nothing written.
+- **My miss:** the production request (6698510226) never said that 0117 changes the take function's contract and so had to be applied in the merge sitting itself. From now on, a production request says whether main's code still works against the migration, and if it does not, says "apply only in the merge sitting".
+- **The fix asked of Robert (6699576349, with a push notification):** merge the rework now, alone, ahead of the R4 to R7 sitting, as `ef1af3a`. That is the boarded `abf3994` (which contains main `3b50d10`) plus one ledger commit recording 0117's production line. schema-ledger-audit names this state ("declared applied and is not on main") until the merge lands. The counterpart was asked to read Vercel's logs for `[roofer-application] not saved`, and to look for certificates left under the roofer prefix.
+- **The sign up gate (6698639863), answered from the code:** step one is gated by `selfServiceSignUpOpen()`, which is `isOpen() && selfServiceSignUp.cleared`. `cleared` has been true since 2026-09-28, and production's /account/sign-up serves the open form, so step one is open on production. It reads shut on the board only because of the board's environment.
+
 **THE ROOFER APPLICATION MERGED** as `b10651c` (parents `c7bbe8c`, `130abe3`), after 0113's production read-back (6675087911, 02:18 UTC 2026-11-06).
 - **The read-back:** history version `20261106021807`, stored hash `4d6f7664`; grants 192 to 194; both checks widened; the author check present; no row changed.
 - **No connector prompt appeared** this time, and block 2 ran on the first call; the ledger records that.
