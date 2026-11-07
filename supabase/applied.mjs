@@ -4479,7 +4479,8 @@ export const APPLIED = [
       "WRITTEN 2026-11-02 ON fix/m2-session-epoch AS 0117, RENUMBERED ON fix/m2-session-epoch-0119 AND AGAIN ON " +
       "fix/m2-session-epoch-0120, STAGED ON " +
       "stage/0120-session-epoch FOR THE CHAT COUNTERPART'S " +
-      "SITTING; APPLIED NOWHERE. Auth M2, Robert's ruling on issue #1 (answer to 6586517364), option A, rollout 1: " +
+      "SITTING; ON DEVELOPMENT SINCE 2026-11-07 (6710930616, version 20261107175158, stored ed2f5ac4, shape 3922bc19 " +
+      "at 1576 columns as the replay); PENDING ON PRODUCTION for Robert's sitting. Auth M2, Robert's ruling on issue #1 (answer to 6586517364), option A, rollout 1: " +
       "each session cookie carries the epoch it was issued under and is refused when the row's has moved. Additive: " +
       "three columns, integer not null default 0.",
   },
