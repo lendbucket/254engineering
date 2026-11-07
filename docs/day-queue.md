@@ -1676,6 +1676,12 @@ On a pass: the production script for 0117, by the operator route for Robert's pr
 - **Locally:** type check clean; migration-audit, token-audit, surface-audit and db-guard-audit PASS; proofs PASS (session epoch 55, factor 27, R8 56, roofer 64); bulk static green. Preflight is red only on the pre-merge ledger rule.
 - **STAGED: 0120** on the new `stage/0120-session-epoch` at `873aa6b`, file sha256 `22307958`, stored `ed2f5ac4`.
 
+**Q8b RENUMBERED TO 0121: `fix/q8b-money-constraints-0121` at `dd5040e`, on M2 `a826d7d`.**
+- **The carry:** applied clean. One pass moved 0119 to 0120 and 0120 to 0121; the one 0119 was the guard naming M2's column.
+- **The ledger, read again:** shape unchanged at `3922bc19`; behaviour `8e31648e`, 1565 to 1566 facts.
+- **Locally:** type check clean; migration-audit and db-guard-audit PASS; the Q8b proof PASS; the session epoch proof PASS (55); bulk static green. Preflight is red only on the pre-merge ledger rule.
+- **STAGED: 0121** on the new `stage/0121-money-constraints` at `8829c97`, file sha256 `afbfa9d2`, stored `cf7277ec`. The duplicate read from the earlier sitting plan goes with its development request.
+
 - **The sign up gate (6698639863), answered from the code:** step one is gated by `selfServiceSignUpOpen()`, which is `isOpen() && selfServiceSignUp.cleared`. `cleared` has been true since 2026-09-28, and production's /account/sign-up serves the open form, so step one is open on production. It reads shut on the board only because of the board's environment.
 
 **THE ROOFER APPLICATION MERGED** as `b10651c` (parents `c7bbe8c`, `130abe3`), after 0113's production read-back (6675087911, 02:18 UTC 2026-11-06).
