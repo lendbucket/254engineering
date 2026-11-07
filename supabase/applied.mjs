@@ -4521,7 +4521,9 @@ export const APPLIED = [
     because:
       "WRITTEN 2026-11-06 ON fix/f12-f6-money-0121, RENUMBERED ON fix/f12-f6-money-0122 AND STAGED ON " +
       "stage/0122-money-holds FOR THE CHAT COUNTERPART'S " +
-      "DEVELOPMENT SITTING; APPLIED NOWHERE. Money audit F12 and F6, Robert's answer of 2026-11-03 to 6594441148 " +
+      "DEVELOPMENT SITTING; ON DEVELOPMENT SINCE 2026-11-07 (6713327137, version 20261107213615, stored 935d819f, " +
+      "shape 7dc2aece at 1579 columns and 120 tables as the replay); PENDING ON PRODUCTION for Robert's sitting. " +
+      "Money audit F12 and F6, Robert's answer of 2026-11-03 to 6594441148 " +
       "(one migration branch for both), numbered 0121 by his overnight order of 2026-11-05 and 0122 by his answer 3 " +
       "of 2026-11-06 (the roofer rework takes 0117). F12: a charge for an " +
       "amount other than the order's or submission's releases nothing and raises a task. F6: one invoice submission " +
