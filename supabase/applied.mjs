@@ -4522,6 +4522,33 @@ export const APPLIED = [
       "at a time per account holds its credit, so two cannot both pass the limit. Additive: one table, two new " +
       "functions, two function bodies replaced.",
   },
+  {
+    file: "0123_a_prospect_is_one_of_eight_verticals.sql", appliedBy: "operator_sql_editor",
+    fingerprint: "7dc2aeceb558706cdc5f3ac2263071cc",
+    behaviour: "e2721b4a34613a145efc8e9a3d046020",
+    production: null,
+    handApplied:
+      "Not applied anywhere yet. Robert's overnight order of 2026-11-05 (numbering it 0122; his answer 3 of " +
+      "2026-11-06 moves it to 0123): stage its operator_sql_editor script on " +
+      "issue #1 for him and do not run it. It drops and re-adds eng_prospects_type_known, which the connector " +
+      "cancels, so development and production each go through the SQL editor in four blocks with Robert approving " +
+      "the prompt, and the provider's history holds a row only because the fourth block inserts it by hand after " +
+      "the verification read.",
+    proves: { column: { table: "eng_prospects", name: "prospect_type" } },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-07 on the chain to 0123. A replaced check adds no " +
+      "column, so the shape is 0122's (7dc2aece, 1579 columns); the behaviour count holds at 1572 facts and its " +
+      "digest moves, because the check's definition changes. The proves probe names a column that has existed " +
+      "since 0079, so it cannot tell this migration's presence on its own: the sitting's verification reads the " +
+      "check's definition.",
+    because:
+      "WRITTEN 2026-11-06 ON fix/prospect-kinds-0122, RENUMBERED ON fix/prospect-kinds-0123 AND STAGED ON " +
+      "stage/0123-prospect-kinds FOR ROBERT'S " +
+      "OPERATOR SITTING; APPLIED NOWHERE. Robert's CRM answer 8 of 2026-11-02, prepared as 6588395003: the prospect " +
+      "kind check holds the eight verticals, and every row's kind becomes its vertical; a title row and a person's " +
+      "contractor row keep the old kind as a tag. Destructive in shape (a check is dropped and re-added); no row, " +
+      "column or table is deleted.",
+  },
 ];
 
 /*
