@@ -4500,7 +4500,9 @@ export const APPLIED = [
       "on its own: the sitting's read back names the index and reads the function body for v_case.",
     because:
       "WRITTEN 2026-11-03 ON fix/q8b-money-constraints AND STAGED ON stage/0121-money-constraints FOR THE CHAT " +
-      "COUNTERPART'S DEVELOPMENT SITTING; APPLIED NOWHERE. Robert's Q8 of 2026-11-02, money audit F8 and F10: an order " +
+      "COUNTERPART'S DEVELOPMENT SITTING; ON DEVELOPMENT SINCE 2026-11-07 (6712014251, version 20261107193103, stored " +
+      "cf7277ec, one apply_migration call that the connector did not cancel, shape 3922bc19 unchanged); PENDING ON " +
+      "PRODUCTION for Robert's sitting. Robert's Q8 of 2026-11-02, money audit F8 and F10: an order " +
       "is a line on one statement only, and eng_apply_refund takes its refund_case and event type from the payload so " +
       "a lost dispute is written as dispute_lost. unique (account_id, period) on eng_statements already exists (0009) " +
       "and is asserted, not added.",
