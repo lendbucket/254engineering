@@ -142,6 +142,13 @@ const ADMIN_PAGES = [
   "/portal/prospects",
   /* The sales list's imports (Robert's CRM R2, 2026-11-02): crm.import, closed to a signed out caller. */
   "/portal/crm/imports",
+  /* The call queue (Robert's CRM R3, 2026-11-02): crm.use, closed to a signed out caller. */
+  "/portal/crm/queue",
+  /* The stage board and the list (Robert's CRM R4, 2026-11-02): crm.use, closed to a signed out caller. */
+  "/portal/crm",
+  "/portal/crm/list",
+  /* The sales territories (Robert's CRM R5, 2026-11-02): crm.assign, closed to a signed out caller. */
+  "/portal/crm/territories",
   "/portal/inbox",
   "/portal/order-lookup",
   "/portal/refunds",
@@ -240,6 +247,8 @@ const ADMIN_APIS = [
   "/api/account/bulk",
   "/api/account/settings",
   "/api/account/statements",
+  /* A roofing partner finishing its profile and attaching its certificate (Robert's rework of 2026-11-06, 0117). */
+  "/api/account/partner",
 
   /*
    * Phase 13 Section 1. Opens a customer account from a telephone call, so a
@@ -357,6 +366,12 @@ const ADMIN_APIS = [
   "/api/portal/prospects",
   // The sales list's imports (Robert's CRM R2, 2026-11-02): previews, writes and settling held and conflicting rows, on crm.import.
   "/api/portal/crm/imports",
+  // The call queue (Robert's CRM R3, 2026-11-02): recording a call's outcome, on crm.use and contact_log.write.
+  "/api/portal/crm/queue",
+  // The pipeline (Robert's CRM R4, 2026-11-02): stage moves, bulk assign (crm.assign) and tag, saved views and company notes, on crm.use.
+  "/api/portal/crm",
+  // The sales territories (Robert's CRM R5, 2026-11-02): create, rename, counties and holders, on crm.assign.
+  "/api/portal/crm/territories",
   "/api/portal/contact-log",
   "/api/portal/refunds",
   // The refund requests as a CSV, a read beside the POST only route (office ready, 2026-10-24).

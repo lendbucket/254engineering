@@ -9,8 +9,12 @@ import {
   ROOFER_MONTHLY_VOLUME_LABEL,
   ROOFER_SERVICE_LABEL,
   ROOFER_WORK_MIX_LABEL,
+  profileCompleteness,
 } from "@/lib/roofer-application";
 import { PrintThis, RooferDecision } from "./RooferDecision";
+
+/** A profile answer not given yet (0117), said in words rather than left blank. */
+const NOT_YET = "Not given yet";
 
 /**
  * ONE ROOFER APPLICATION: EVERY ANSWER, THE CERTIFICATE, AND THE DECISION.
@@ -92,7 +96,11 @@ export async function RooferApplicationDetail({ actor, id }: { actor: Actor | nu
             <dl>
               <Row label="Legal name">{a.legalName}</Row>
               <Row label="DBA">{a.dba ?? "None given"}</Row>
-              <Row label="Owner">{`${a.ownerName}, ${a.ownerTitle}`}</Row>
+              <Row label="Owner">{a.ownerTitle ? `${a.ownerName}, ${a.ownerTitle}` : a.ownerName}</Row>
+              <Row label="Profile">
+                {profileCompleteness({ work: a.workDoneAt, insurance: a.insuranceDoneAt, references: a.referencesDoneAt }).sentence}
+                {`: the work ${a.workDoneAt ? "done" : "not done yet"}, insurance ${a.insuranceDoneAt ? "done" : "not done yet"}, references ${a.referencesDoneAt ? "done" : "not done yet"}.`}
+              </Row>
               <Row label="Email">
                 <a href={`mailto:${a.email}`} className="font-semibold text-[var(--navy)] underline">
                   {a.email}
@@ -101,27 +109,27 @@ export async function RooferApplicationDetail({ actor, id }: { actor: Actor | nu
               <Row label="Phone">
                 <PhoneLink phone={a.phone} />
               </Row>
-              <Row label="Office">{a.officeCity}</Row>
-              <Row label="Years in business">{a.yearsInBusiness}</Row>
+              <Row label="Office">{a.officeCity ?? NOT_YET}</Row>
+              <Row label="Years in business">{a.yearsInBusiness ?? NOT_YET}</Row>
             </dl>
           </Panel>
 
           <Panel title="The work">
             <dl>
-              <Row label="Counties served">{a.counties.join(", ")}</Row>
-              <Row label="Crews">{a.crewCount}</Row>
-              <Row label="Residential or commercial">{ROOFER_WORK_MIX_LABEL[a.workMix]}</Row>
-              <Row label="Roofs a year">{a.roofsPerYear.toLocaleString("en-US")}</Row>
-              <Row label="Expects to order">{a.services.map((s) => ROOFER_SERVICE_LABEL[s]).join(", ")}</Row>
-              <Row label="Roughly">{ROOFER_MONTHLY_VOLUME_LABEL[a.monthlyVolume]}</Row>
+              <Row label="Counties served">{a.counties.length ? a.counties.join(", ") : NOT_YET}</Row>
+              <Row label="Crews">{a.crewCount ?? NOT_YET}</Row>
+              <Row label="Residential or commercial">{a.workMix ? ROOFER_WORK_MIX_LABEL[a.workMix] : NOT_YET}</Row>
+              <Row label="Roofs a year">{a.roofsPerYear === null ? NOT_YET : a.roofsPerYear.toLocaleString("en-US")}</Row>
+              <Row label="Expects to order">{a.services.length ? a.services.map((s) => ROOFER_SERVICE_LABEL[s]).join(", ") : NOT_YET}</Row>
+              <Row label="Roughly">{a.monthlyVolume ? ROOFER_MONTHLY_VOLUME_LABEL[a.monthlyVolume] : NOT_YET}</Row>
             </dl>
           </Panel>
 
           <Panel title="Insurance">
             <dl>
-              <Row label="General liability carrier">{a.insuranceCarrier}</Row>
-              <Row label="Per occurrence">{a.glPerOccurrence}</Row>
-              <Row label="Aggregate">{a.glAggregate}</Row>
+              <Row label="General liability carrier">{a.insuranceCarrier ?? NOT_YET}</Row>
+              <Row label="Per occurrence">{a.glPerOccurrence ?? NOT_YET}</Row>
+              <Row label="Aggregate">{a.glAggregate ?? NOT_YET}</Row>
               <Row label="Certificate">
                 {!a.certificatePath ? (
                   "Not attached. Ask for it before approving."
@@ -146,16 +154,20 @@ export async function RooferApplicationDetail({ actor, id }: { actor: Actor | nu
           <Panel title="References">
             <dl>
               <Row label="First reference">
-                {[a.reference1Name, a.reference1Company].filter(Boolean).join(", ")}
-                <span className="block">
-                  <PhoneLink phone={a.reference1Phone} />
-                </span>
+                {a.reference1Name ? [a.reference1Name, a.reference1Company].filter(Boolean).join(", ") : NOT_YET}
+                {a.reference1Phone ? (
+                  <span className="block">
+                    <PhoneLink phone={a.reference1Phone} />
+                  </span>
+                ) : null}
               </Row>
               <Row label="Second reference">
-                {[a.reference2Name, a.reference2Company].filter(Boolean).join(", ")}
-                <span className="block">
-                  <PhoneLink phone={a.reference2Phone} />
-                </span>
+                {a.reference2Name ? [a.reference2Name, a.reference2Company].filter(Boolean).join(", ") : NOT_YET}
+                {a.reference2Phone ? (
+                  <span className="block">
+                    <PhoneLink phone={a.reference2Phone} />
+                  </span>
+                ) : null}
               </Row>
             </dl>
           </Panel>

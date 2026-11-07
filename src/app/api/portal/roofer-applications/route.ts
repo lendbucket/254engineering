@@ -14,6 +14,7 @@ import {
   ROOFER_MONTHLY_VOLUME_LABEL,
   ROOFER_SERVICE_LABEL,
   ROOFER_WORK_MIX_LABEL,
+  profileCompleteness,
 } from "@/lib/roofer-application";
 import { withSaveOutcome } from "@/lib/save-outcome";
 
@@ -58,36 +59,38 @@ export async function GET(request: NextRequest) {
   const body = csv({
     preamble: [["Roofer partner applications", `${list.rows.length} matching`]],
     headers: [
-      "Received", "Status", "Company", "DBA", "Owner", "Title", "Email", "Phone", "Office", "Counties",
+      "Received", "Status", "Profile", "Company", "DBA", "Owner", "Title", "Email", "Phone", "Office", "Counties",
       "Years", "Crews", "Work", "Roofs a year", "Expects to order", "Roughly", "Carrier",
       "GL per occurrence", "GL aggregate", "Certificate", "Reference 1", "Reference 1 phone",
       "Reference 2", "Reference 2 phone", "Decided", "Decided by", "Reason",
     ],
+    /* A profile answer not given yet is an empty cell; the Profile column says how complete it is (0117). */
     rows: list.rows.map((r) => [
       formatInFirmZone(r.createdAt) ?? r.createdAt,
       r.status,
+      profileCompleteness({ work: r.workDoneAt, insurance: r.insuranceDoneAt, references: r.referencesDoneAt }).sentence,
       r.legalName,
       r.dba ?? "",
       r.ownerName,
-      r.ownerTitle,
+      r.ownerTitle ?? "",
       r.email,
       r.phone,
-      r.officeCity,
+      r.officeCity ?? "",
       r.counties.join("; "),
-      r.yearsInBusiness,
-      r.crewCount,
-      ROOFER_WORK_MIX_LABEL[r.workMix],
-      r.roofsPerYear,
+      r.yearsInBusiness ?? "",
+      r.crewCount ?? "",
+      r.workMix ? ROOFER_WORK_MIX_LABEL[r.workMix] : "",
+      r.roofsPerYear ?? "",
       r.services.map((s) => ROOFER_SERVICE_LABEL[s]).join("; "),
-      ROOFER_MONTHLY_VOLUME_LABEL[r.monthlyVolume],
-      r.insuranceCarrier,
-      r.glPerOccurrence,
-      r.glAggregate,
+      r.monthlyVolume ? ROOFER_MONTHLY_VOLUME_LABEL[r.monthlyVolume] : "",
+      r.insuranceCarrier ?? "",
+      r.glPerOccurrence ?? "",
+      r.glAggregate ?? "",
       r.certificatePath ? "attached" : "none",
       [r.reference1Name, r.reference1Company].filter(Boolean).join(", "),
-      r.reference1Phone,
+      r.reference1Phone ?? "",
       [r.reference2Name, r.reference2Company].filter(Boolean).join(", "),
-      r.reference2Phone,
+      r.reference2Phone ?? "",
       r.decidedAt ? (formatInFirmZone(r.decidedAt) ?? r.decidedAt) : "",
       r.decidedByName ?? "",
       r.decisionReason ?? "",
@@ -120,20 +123,26 @@ async function handlePOST(request: NextRequest) {
   if (!decided.ok) return bad(decided.error);
 
   if (decided.decision === "approved") {
-    let emailed = false;
-    if (decided.link) {
-      const base = (process.env.NEXT_PUBLIC_SITE_URL || business.url).replace(/\/$/, "");
-      const queued = await queueEmail(
-        rooferApplicationApproved({
-          ownerName: decided.ownerName,
-          email: decided.email,
-          link: `${base}/account/set-password?token=${encodeURIComponent(decided.link.token)}`,
-          expiresIn: decided.link.expiresIn ?? VERIFICATION_TTL_WORDS,
-        }),
-      );
-      emailed = queued.ok;
-      if (!queued.ok) console.error(`[roofer-applications] approval email not queued: ${queued.error}`);
-    }
+    /*
+     * Since 0117 the account opened at sign up, so the approval email carries no
+     * password link; an application from before 0117 still gets one with the
+     * account its approval opened.
+     */
+    const base = (process.env.NEXT_PUBLIC_SITE_URL || business.url).replace(/\/$/, "");
+    const queued = await queueEmail(
+      rooferApplicationApproved({
+        ownerName: decided.ownerName,
+        email: decided.email,
+        ...(decided.link
+          ? {
+              link: `${base}/account/set-password?token=${encodeURIComponent(decided.link.token)}`,
+              expiresIn: decided.link.expiresIn ?? VERIFICATION_TTL_WORDS,
+            }
+          : {}),
+      }),
+    );
+    const emailed = queued.ok;
+    if (!queued.ok) console.error(`[roofer-applications] approval email not queued: ${queued.error}`);
     return NextResponse.json({ ok: true, decision: "approved", accountId: decided.accountId, emailed });
   }
 

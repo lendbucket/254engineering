@@ -8,9 +8,10 @@ import { useRouter } from "next/navigation";
  *
  * The reason is the firm's record and is never sent to the roofer. Both
  * buttons stay disabled until a reason is written, so a click without one is
- * not possible rather than refused after the fact. Approve opens the account
- * through door 2 and emails the set password link; decline emails one plain
- * note. Either is final: the table refuses a second decision.
+ * not possible rather than refused after the fact. Approve makes the account
+ * a partner (since 0117 the account opened at sign up; an older application's
+ * opens through door 2 and gets the set password link); decline emails one
+ * plain note. Either is final: the table refuses a second decision.
  */
 export function RooferDecision({ id, company }: { id: string; company: string }) {
   const router = useRouter();
@@ -70,7 +71,7 @@ export function RooferDecision({ id, company }: { id: string; company: string })
           onClick={() => void decide("approve")}
           className="inline-flex min-h-[44px] items-center rounded-[3px] bg-[var(--navy)] px-4 text-[14px] font-semibold text-white disabled:opacity-50"
         >
-          {busy === "approve" ? "Opening the account" : "Approve and open the account"}
+          {busy === "approve" ? "Approving" : "Approve the partner account"}
         </button>
         <button
           type="button"

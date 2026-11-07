@@ -113,6 +113,24 @@ nothing in the provider's record shows how the file was run.
 development from its stage branch, production from the boarded commit, each in
 the four blocks above.
 
+## 0117, `0117_a_roofer_opens_an_account_first.sql`, by the operator in the SQL editor
+
+**Robert, 2026-11-06:** the roofer partner sign up gives an account at the
+start, and the work, insurance and references become a profile filled in
+section by section. His answer 3 numbers it 0117 and moves R7 onward up one.
+
+**What it drops, exactly:** sixteen NOT NULLs on `eng_roofer_applications`, the
+work, insurance and reference fields, and `eng_roofer_applications_approval_names_its_account`,
+re-added in the same file as "an approval always names its account". It
+replaces `eng_roofer_application_decides_once` and `eng_take_roofer_application`
+with the same signatures. It adds three columns and three checks. No row,
+column or table is deleted. Every application already on the table is
+backfilled with its three sections done, since it was whole.
+
+**What the provider's history will not show:** as with 0111 and 0113, the
+history holds a row for 0117 only because the script's fourth block inserts it
+by hand after the verification read.
+
 ---
 
 ## 0062, prepared and not run

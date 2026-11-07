@@ -241,6 +241,18 @@ function STAFF_LEVEL_SCREENS() {
     /* The sales list's imports, Robert's CRM R2 of 2026-11-02, built to the staff standard from the start. */
     "src/app/portal/(app)/crm/imports/page.tsx",
     "src/app/portal/(app)/crm/imports/ImportsClient.tsx",
+    /* The call queue, Robert's CRM R3 of 2026-11-02, built to the staff standard from the start. */
+    "src/app/portal/(app)/crm/queue/page.tsx",
+    "src/app/portal/(app)/crm/queue/QueueClient.tsx",
+    /* The stage board, the list and the company page, Robert's CRM R4 of 2026-11-02, built to the staff standard from the start. */
+    "src/app/portal/(app)/crm/page.tsx",
+    "src/app/portal/(app)/crm/list/page.tsx",
+    "src/app/portal/(app)/crm/[id]/page.tsx",
+    "src/app/portal/(app)/crm/PipelineClient.tsx",
+    "src/app/portal/(app)/crm/pipeline-shared.tsx",
+    /* The sales territories, Robert's CRM R5 of 2026-11-02, built to the staff standard from the start. */
+    "src/app/portal/(app)/crm/territories/page.tsx",
+    "src/app/portal/(app)/crm/territories/TerritoriesClient.tsx",
     "src/app/portal/(app)/prospects/page.tsx",
     "src/app/portal/(app)/prospects/ProspectsClient.tsx",
     "src/app/portal/(app)/prospects/[id]/page.tsx",
@@ -355,6 +367,8 @@ const PORTED = [
    */
   "src/app/account/orders/page.tsx",
   "src/app/account/page.tsx",
+  /* The roofing partner's "Finish your profile" on the account home (Robert's rework of 2026-11-06), on both lists. */
+  "src/app/account/PartnerProfile.tsx",
   /*
    * The sign up pair joined on 2026-09-29, when stage 1 restyled them. They had
    * never been on this list, so nothing had ever held them to a scale, and the
@@ -687,6 +701,7 @@ const CUSTOMER_V10 = [
   "src/app/account/sign-up/page.tsx",
   "src/app/account/sign-up/SignUpForm.tsx",
   "src/app/account/page.tsx",
+  "src/app/account/PartnerProfile.tsx",
   "src/app/account/SignOutButton.tsx",
   "src/components/order/OrderFlow.tsx",
   /* The order surface's own layout, read from 2026-10-29: every page under it is on this list, so it is held to the same scale. */

@@ -362,10 +362,32 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * eng_crm_import_runs and thirteen on eng_crm_import_rows, 1,476 to 1,509; the
  * table count moves 109 to 111; no trigger and no function. Read off
  * fingerprint-at.mjs on the chain to 0114.
+ *
+ * Moved again by 0115, the sales list keeps views and a thread per company, by
+ * Robert's sales CRM ruling R4 of 2026-11-02 with his answer 5, renumbered
+ * from 0113 to 0115 by his ruling (a) of 2026-11-04 and order A of 2026-11-05:
+ * six columns on eng_crm_saved_views and four on eng_prospect_threads, 1,509
+ * to 1,519; the table count moves 111 to 113; no trigger and no function. Read
+ * off fingerprint-at.mjs on the chain to 0115.
+ *
+ * Moved again by 0116, the sales list divides Texas into territories, by
+ * Robert's sales CRM ruling R5 of 2026-11-02, renumbered from 0114 to 0116 by
+ * his ruling (a) of 2026-11-04 and order A of 2026-11-05: five columns on
+ * eng_crm_territories, seven on eng_crm_territory_counties and seven on
+ * eng_crm_territory_reps (each gained id, removed_at and removed_by by his
+ * answer 1 of 2026-11-06: nothing is deleted), 1,519 to 1,538; the table count
+ * moves 113 to 116; no trigger and no function. Read off fingerprint-at.mjs on
+ * the chain to 0116.
+ *
+ * Moved again by 0117, a roofer opens an account first, by Robert's rework of
+ * the roofer partner sign up (2026-11-06, his answer 3 numbering it 0117): the
+ * three section done times on eng_roofer_applications, 1,538 to 1,541; sixteen
+ * NOT NULLs dropped, which moves the shape without a column; the table count
+ * stays 116. Read off fingerprint-at.mjs on the chain to 0117.
  */
-const EXPECTED_FINGERPRINT = "31b85d837dfe6f0610477e699d318b6e";
-const EXPECTED_COLUMNS = 1509;
-const EXPECTED_TABLES = 111;
+const EXPECTED_FINGERPRINT = "ac53d69433e0d24bd4b3f9fa24fb300b";
+const EXPECTED_COLUMNS = 1541;
+const EXPECTED_TABLES = 116;
 /* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts.
  * 0074 adds two: eng_partner_billing_touch and eng_partner_billing_events_immutable.
  * 0075 adds one: eng_payment_events_guarded.

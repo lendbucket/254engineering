@@ -39,6 +39,9 @@ export default async function ProspectPage({ params }: { params: Promise<{ id: s
           p.status === "converted" ? "A customer now." : p.status === "not_interested" ? "Not interested." : p.followUpOn ? `Follow up on ${p.followUpOn}.` : "No follow-up date set."
         }`}
       />
+      <p className="mb-4 print:hidden">
+        <Link href={`/portal/crm/${p.id}`} className="inline-flex min-h-[44px] items-center text-[14px] font-semibold text-[var(--navy)] underline">Open the company page: its history, people, notes and account</Link>
+      </p>
 
       <Panel title="How to reach them">
         <dl className="grid gap-2 text-[14px] sm:grid-cols-[140px_1fr]">

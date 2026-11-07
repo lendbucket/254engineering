@@ -39,9 +39,9 @@ import { BOOK_A_CALL_URL } from "@/content/book-a-call";
  * a white section, and the navy closing band.
  */
 export const metadata: Metadata = buildMetadata({
-  title: "Roofing Partners: Apply to Work With Us | 254 Engineering",
+  title: "Become a 254 Roofing Partner in Texas | 254 Engineering",
   description:
-    "Texas roofing companies: apply to work with the firm as a partner, with prices set for your account, every job in one place and a named contact. Apply online.",
+    "Texas roofing companies: open a partner account in four answers, with prices set for your account, every job in one place and a named contact. Get started.",
   path: "/roofing-partners",
 });
 
@@ -92,16 +92,16 @@ export default function RoofingPartnersPage() {
 
   const steps = [
     {
-      title: "Apply",
-      body: "Tell the firm about your company, your crews, the counties you work in, your general liability cover and two references. Attach the certificate if you have it to hand. Your progress is kept on your device if you need to stop.",
+      title: "Create your partner account",
+      body: "Your company name, the owner's name, an email and a phone number. Your account opens on the spot, and an email link sets your password; then you sign in.",
     },
     {
-      title: "A person reads it",
-      body: "Someone at the firm reads every application and checks three things: an office in Texas, general liability cover with a certificate, and two references a person checks. Nothing is approved automatically.",
+      title: "Finish your profile",
+      body: "Inside your account: your work, your general liability cover with its certificate, and two references. Each part saves on its own, and none of it stops you signing in.",
     },
     {
-      title: "Your account opens",
-      body: "On approval the firm opens an account for your company and emails a link to set its password. If the application is not taken forward, you receive a short note saying so.",
+      title: "The firm approves it",
+      body: "A person at the firm reviews every partner account: an office in Texas, general liability cover with a certificate, and two references a person calls. Partner pricing and ordering turn on at approval.",
     },
   ];
 
@@ -114,13 +114,13 @@ export default function RoofingPartnersPage() {
         title="Engineering for Texas roofers, from one account"
         lede={
           trading
-            ? "Texas roofing companies apply to work with the firm as partners. An approved partner orders inspections, roof certification letters, windstorm work and repair specifications from one account, at prices set for that account, with a person at the firm to call."
-            : "Texas roofing companies can apply now to work with the firm as partners. A partner account is built for inspections, roof certification letters, windstorm work and repair specifications, at prices set for the account, with a person at the firm to call."
+            ? "Become a 254 roofing partner. A partner account orders inspections, roof certification letters, windstorm work and repair specifications in one place, at prices set for your account, with a person at the firm to call."
+            : "Become a 254 roofing partner. A partner account is built for inspections, roof certification letters, windstorm work and repair specifications in one place, at prices set for your account, with a person at the firm to call."
         }
       >
         <div className="mt-8 flex flex-wrap gap-3">
           <ButtonLink href={APPLY} tone="onDark">
-            Apply to become a partner
+            Create your partner account
           </ButtonLink>
           <ButtonLink href="#what-the-firm-looks-for" tone="onDarkOutline">
             What the firm looks for
@@ -166,9 +166,9 @@ export default function RoofingPartnersPage() {
       <Section tone="navy" id="how-it-works">
         <SectionHead
           onDark
-          eyebrow="How approval works"
-          title="Three steps, and a person at each one"
-          lede="The program is selective in one way only: every application is read and decided by a person at the firm."
+          eyebrow="How it works"
+          title="Three steps to a partner account"
+          lede="A person at the firm approves every partner. That is what keeps the program selective."
         />
         <ol className="mt-10 grid gap-5 lg:grid-cols-3">
           {steps.map((s, i) => (
@@ -190,7 +190,7 @@ export default function RoofingPartnersPage() {
             <SectionHead
               eyebrow="What the firm looks for"
               title="Three things, read by a person"
-              lede="There is no quota and no limit by county. An application that meets these is read on its merits."
+              lede="There is no quota and no limit by county. A partner account that meets these is reviewed on its merits."
             />
             <ul className="mt-6 space-y-3 text-[15.5px] leading-[1.65] text-slate-ink">
               <li className="flex gap-3">
@@ -214,7 +214,7 @@ export default function RoofingPartnersPage() {
               {trading ? " The engineering on every job is the firm's, under its registration." : ""}
             </Callout>
             <Callout label="Your contact" title={founder.name}>
-              Questions before you apply go to {founder.name}, the firm&apos;s founder, at{" "}
+              Questions before you start go to {founder.name}, the firm&apos;s founder, at{" "}
               <a href={`mailto:${business.email}`} className="font-semibold text-slate underline">
                 {business.email}
               </a>
@@ -242,13 +242,13 @@ export default function RoofingPartnersPage() {
         <div className="mx-auto max-w-[1200px] px-[clamp(16px,4vw,28px)] py-[clamp(48px,7vw,88px)]">
           <SectionHead
             onDark
-            eyebrow="Apply"
-            title="The application takes about ten minutes"
-            lede="Three short steps on a phone or a desk. Your answers are kept on your device until you send them, so you can stop and come back."
+            eyebrow="Get started"
+            title="Your partner account opens in four answers"
+            lede="Company, owner, email and phone. Everything else waits inside your account, to finish whenever you are ready."
           />
           <div className="mt-8 flex flex-wrap gap-3">
             <ButtonLink href={APPLY} tone="onDark">
-              Start the application
+              Get started
             </ButtonLink>
             <ButtonLink href={BOOK_A_CALL_URL} tone="onDarkOutline" newTab>
               Ask a question first
