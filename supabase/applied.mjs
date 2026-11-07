@@ -4436,7 +4436,8 @@ export const APPLIED = [
     because:
       "WRITTEN 2026-11-02 ON feat/crm-r7-email AS 0115, RENUMBERED ON feat/crm-r7-email-0117 AND AGAIN ON " +
       "feat/crm-r7-email-0118, STAGED ON stage/0118-crm-email FOR THE CHAT COUNTERPART'S SITTING; " +
-      "APPLIED NOWHERE. Robert's sales CRM ruling of 2026-11-02, item R7, sequences and email: one send per address per " +
+      "ON DEVELOPMENT SINCE 2026-11-07 (6707964039, version 20261107140729, stored f7cc33c9, shape 0e9984b3 at 1566 " +
+      "columns and 118 tables as the replay); PENDING ON PRODUCTION for Robert's sitting with R6 and R7. Robert's sales CRM ruling of 2026-11-02, item R7, sequences and email: one send per address per " +
       "day, written before the email is queued; replies recorded once by the webhook's event id; a reply pauses the " +
       "sequence. Additive: two tables and one column.",
   },
@@ -4457,7 +4458,9 @@ export const APPLIED = [
       "WRITTEN 2026-11-02 ON feat/crm-r8-reports AS 0116, RENUMBERED ON feat/crm-r8-reports-0118 AND AGAIN ON " +
       "feat/crm-r8-reports-0119, STAGED ON " +
       "stage/0119-crm-attribution FOR THE CHAT COUNTERPART'S " +
-      "SITTING; APPLIED NOWHERE. Robert's sales CRM ruling of 2026-11-02, item R8: the attribution chain prospect to " +
+      "SITTING; ON DEVELOPMENT SINCE 2026-11-07 (6709609064, version 20261107161136, stored abf4e889, shape 38319e8c " +
+      "at 1573 columns and 119 tables as the replay); PENDING ON PRODUCTION for Robert's sitting. Robert's sales CRM " +
+      "ruling of 2026-11-02, item R8: the attribution chain prospect to " +
       "account to order, written on conversion and on each order. Additive: one append only table.",
   },
   {
