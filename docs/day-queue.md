@@ -1668,6 +1668,14 @@ On a pass: the production script for 0117, by the operator route for Robert's pr
 - **Preflight is red only on the pre-merge ledger rule**, as for R7.
 - **STAGED: 0119** on the new `stage/0119-crm-attribution` at `3dcc243`, file sha256 `c3877c5e`, stored `abf4e889`.
 
+**M2 RENUMBERED TO 0120: `fix/m2-session-epoch-0120` at `a826d7d`, on R8 `4e3c197`.**
+- **The carry:** M2's delta over its old parent `80412e4` (from `6fd31ef`). One pass moved 0118 to 0119 and 0119 to 0120; the one 0118 was the guard naming R8's table.
+- **Conflicts:**
+  - the account page's imports: the rework's partner profile and M2's Sign out everywhere button, both kept;
+  - the pins: 0120 shape `3922bc19` at 1576 columns and 119 tables; behaviour unchanged at `9e1c9d50`, 1565 facts.
+- **Locally:** type check clean; migration-audit, token-audit, surface-audit and db-guard-audit PASS; proofs PASS (session epoch 55, factor 27, R8 56, roofer 64); bulk static green. Preflight is red only on the pre-merge ledger rule.
+- **STAGED: 0120** on the new `stage/0120-session-epoch` at `873aa6b`, file sha256 `22307958`, stored `ed2f5ac4`.
+
 - **The sign up gate (6698639863), answered from the code:** step one is gated by `selfServiceSignUpOpen()`, which is `isOpen() && selfServiceSignUp.cleared`. `cleared` has been true since 2026-09-28, and production's /account/sign-up serves the open form, so step one is open on production. It reads shut on the board only because of the board's environment.
 
 **THE ROOFER APPLICATION MERGED** as `b10651c` (parents `c7bbe8c`, `130abe3`), after 0113's production read-back (6675087911, 02:18 UTC 2026-11-06).
