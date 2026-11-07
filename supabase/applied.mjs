@@ -4372,12 +4372,23 @@ export const APPLIED = [
     file: "0117_a_roofer_opens_an_account_first.sql", appliedBy: "operator_sql_editor",
     fingerprint: "ac53d69433e0d24bd4b3f9fa24fb300b",
     behaviour: "1eb1de1143737a34365ea599f7d9d381",
-    production: null,
+    /*
+     * Production: applied 2026-11-06 at about 23:34 UTC by the chat counterpart,
+     * the four blocks of the operator_sql_editor script (6698510226) from the
+     * boarded commit abf3994 (board 42303009862). Read back: applications 0
+     * before and after, the three done times, three profile fields nullable,
+     * three section checks, the approval check widened, the take function
+     * naming the account, anon execute false, grants 194 unchanged;
+     * schema_migrations version 20261106233413, stored hash 46a22fa5 (issue #1,
+     * 6698631996). It went to production ahead of this branch's merge, so
+     * main's 0113 form was refused by the take function until the merge.
+     */
+    production: "2026-11-06",
     handApplied:
-      "Not applied anywhere yet. It drops sixteen NOT NULLs and one check (re-added wider) and replaces a trigger " +
-      "function and a function, which the connector cancels, so development and production each go through the SQL " +
-      "editor in four blocks with Robert approving the prompt, as 0113 did; the provider's history holds a row only " +
-      "because the fourth block inserts it by hand after the verification read.",
+      "It drops sixteen NOT NULLs and one check (re-added wider) and replaces a trigger function and a function, " +
+      "which the connector cancels, so development and production each went through the SQL editor in four blocks " +
+      "with Robert approving the prompt, as 0113 did; the provider's history holds a row only because the fourth " +
+      "block inserts it by hand after the verification read.",
     proves: { column: { table: "eng_roofer_applications", name: "work_done_at" } },
     note:
       "Both figures read off scripts/fingerprint-at.mjs on 2026-11-06 on the chain to 0117. Shape 1538 to 1541 " +
@@ -4385,7 +4396,8 @@ export const APPLIED = [
       "section checks; the approval check is replaced in place and the two functions with the same signatures.",
     because:
       "WRITTEN 2026-11-06 ON feat/roofer-account-first AND STAGED ON stage/0117-roofer-account-first FOR THE " +
-      "OPERATOR SITTING; APPLIED NOWHERE. Robert's rework of the roofer partner sign up, 2026-11-06, numbered 0117 by " +
+      "OPERATOR SITTING; ON DEVELOPMENT SINCE 2026-11-06 (6694338950, version 20261106200757), ON PRODUCTION SINCE " +
+      "2026-11-06 (6698631996, version 20261106233413). Robert's rework of the roofer partner sign up, 2026-11-06, numbered 0117 by " +
       "his answer 3: the account opens at step one through door 1, and the work, insurance and references are a " +
       "profile filled in section by section. R7 onward move up one. No row, column or table is deleted.",
   },
