@@ -1,60 +1,99 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { PageHeader } from "@/components/site/PageHeader";
-import { RooferApplicationForm } from "@/components/forms/RooferApplicationForm";
+import { RooferSignUpForm } from "@/components/forms/RooferSignUpForm";
+import { ButtonLink } from "@/components/ui/primitives";
 import { Callout } from "@/components/ui/section";
 import { Container } from "@/components/ui/Container";
-import { founder } from "@/config/contact";
-import { regions } from "@/content/regions";
+import { business } from "@/config/business";
+import { displayPhone, founder, telHref } from "@/config/contact";
+import { BOOK_A_CALL_URL } from "@/content/book-a-call";
+import { selfServiceSignUpClosedSentence, selfServiceSignUpOpen } from "@/lib/launch";
 import { JsonLd, breadcrumbSchema } from "@/lib/schema";
 import { buildMetadata } from "@/lib/seo";
 
 /**
- * THE APPLICATION ITSELF. Robert's request of 2026-11-05: short, works on a
- * phone, keeps progress if the roofer leaves, validates as they type, takes the
- * certificate cleanly, and ends on a confirmation page that says what happens
- * next. The form is RooferApplicationForm; the rules it validates with are
- * roofer-application.ts, which the route parses with too.
+ * STEP ONE: CREATE YOUR PARTNER ACCOUNT. Robert's rework of 2026-11-06.
  *
- * Only region names and their county lists reach the browser, for the county
- * picker: the regions' copy stays on the server.
+ * It read like a job application and asked everything before giving anything.
+ * Now it asks four things and opens the account; the email link sets the
+ * password, they sign in once, and the work, insurance and references are a
+ * checklist inside the account that blocks nothing. A supplier opening an
+ * account, in the words on the page and on the button.
+ *
+ * The side box is something useful rather than a name: Robert's phone as a
+ * tap to call link, his email, and the booking link.
  */
 export const metadata: Metadata = buildMetadata({
-  title: "Apply to Be a Roofing Partner in Texas | 254 Engineering",
+  title: "Create Your Roofing Partner Account | 254 Engineering",
   description:
-    "The roofing partner application: your company, your crews and counties, your general liability cover and two references. Three short steps; send it today.",
+    "Open a roofing partner account in four answers: company, owner, email and phone. Finish your profile inside, and the firm approves every partner. Start today.",
   path: "/roofing-partners/apply",
 });
 
 const crumbs = [
   { name: "Home", path: "/" },
   { name: "Roofing partners", path: "/roofing-partners" },
-  { name: "Apply", path: "/roofing-partners/apply" },
+  { name: "Create your account", path: "/roofing-partners/apply" },
 ];
 
-export default function RooferApplyPage() {
-  const picker = regions.map((r) => ({ name: r.name, counties: r.counties }));
+export default function RooferSignUpPage() {
+  const phone = displayPhone();
+  const tel = telHref();
   return (
     <>
       <JsonLd data={breadcrumbSchema(crumbs)} />
       <PageHeader
         crumbs={crumbs}
         eyebrow="Roofing partners"
-        title="Apply to work with the firm"
-        lede="Three short steps: your company, your work, and your insurance and references. A person at the firm reads every application."
+        title="Create your partner account"
+        lede="Four answers and your account is open. Finish your profile inside it whenever you are ready."
       />
       <section className="bg-limestone">
         <Container>
           <div className="grid gap-8 py-[clamp(36px,6vw,72px)] lg:grid-cols-[minmax(0,1fr)_300px]">
             <div className="rounded-[4px] border border-limestone-line border-t-4 border-t-brass bg-white p-[clamp(20px,3vw,36px)]">
-              <RooferApplicationForm regions={picker} />
+              {/* Door 1's own condition (0043, cleared 2026-09-28): the form shows only while public sign up is open, as /account/sign-up does. */}
+              {selfServiceSignUpOpen() ? (
+                <RooferSignUpForm />
+              ) : (
+                <p role="status" className="text-[16px] leading-[1.7] text-slate-ink">
+                  {selfServiceSignUpClosedSentence()} To talk about a partner account in the meantime, call or email{" "}
+                  {founder.name}.
+                </p>
+              )}
             </div>
             <aside className="flex flex-col gap-5 lg:pt-2">
-              <Callout label="What you need" title="Before you start">
-                Your general liability carrier and limits, and the names and phone numbers of two references. The
-                certificate helps, and can be a photo.
+              <Callout label="Talk to a person" title={founder.name}>
+                {phone && tel ? (
+                  <>
+                    Call{" "}
+                    <a href={tel} className="font-semibold whitespace-nowrap text-slate underline">
+                      {phone}
+                    </a>
+                    , or email{" "}
+                  </>
+                ) : (
+                  <>Email </>
+                )}
+                <a href={`mailto:${business.email}`} className="font-semibold text-slate underline">
+                  {business.email}
+                </a>
+                {/* The page's path to a quote while public sign up is shut, as on /roofing-partners (Robert, 2026-11-06). */}
+                , or write through the{" "}
+                <Link href="/contact" className="font-semibold text-slate underline">
+                  contact page
+                </Link>
+                .
+                <span className="mt-4 block">
+                  <ButtonLink href={BOOK_A_CALL_URL} tone="secondary" newTab>
+                    Book a call
+                  </ButtonLink>
+                </span>
               </Callout>
-              <Callout label="Questions" title={founder.name}>
-                {founder.name}, the firm&apos;s founder, answers questions about the program before you apply.
+              <Callout label="Inside your account" title="Finish your profile">
+                Your work, your general liability cover with its certificate, and two references. Each part saves on its
+                own, and none of it stops you signing in.
               </Callout>
             </aside>
           </div>

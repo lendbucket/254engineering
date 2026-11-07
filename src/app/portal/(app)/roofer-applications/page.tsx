@@ -10,7 +10,10 @@ import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
 import { listRooferApplications, type RooferApplicationRow } from "@/lib/ops-roofer-applications";
 import { LIST_NOT_LOADED } from "@/lib/outcome-copy";
-import { ROOFER_MONTHLY_VOLUME_LABEL, ROOFER_WORK_MIX_LABEL } from "@/lib/roofer-application";
+import { ROOFER_MONTHLY_VOLUME_LABEL, ROOFER_WORK_MIX_LABEL, profileCompleteness } from "@/lib/roofer-application";
+
+/** A profile answer not given yet, said in words rather than left blank. */
+const NOT_YET = "Not given yet";
 import { RooferApplicationDetail } from "./RooferApplicationDetail";
 
 export const dynamic = "force-dynamic";
@@ -75,11 +78,22 @@ export default async function RooferApplicationsPage({
         </span>
       ),
     },
-    { key: "owner", header: "Owner", cell: (r) => `${r.ownerName}, ${r.ownerTitle}` },
+    { key: "owner", header: "Owner", cell: (r) => (r.ownerTitle ? `${r.ownerName}, ${r.ownerTitle}` : r.ownerName) },
     { key: "phone", header: "Phone", cell: (r) => <PhoneLink phone={r.phone} /> },
-    { key: "office", header: "Office", cell: (r) => r.officeCity },
-    { key: "work", header: "Work", desktopOnly: true, cell: (r) => `${ROOFER_WORK_MIX_LABEL[r.workMix]}, ${r.crewCount} crew${r.crewCount === 1 ? "" : "s"}` },
-    { key: "volume", header: "Expects", desktopOnly: true, cell: (r) => ROOFER_MONTHLY_VOLUME_LABEL[r.monthlyVolume] },
+    /* Robert's rework of 2026-11-06: how complete each profile is, on the list. */
+    {
+      key: "profile",
+      header: "Profile",
+      cell: (r) => profileCompleteness({ work: r.workDoneAt, insurance: r.insuranceDoneAt, references: r.referencesDoneAt }).sentence,
+    },
+    { key: "office", header: "Office", cell: (r) => r.officeCity ?? NOT_YET },
+    {
+      key: "work",
+      header: "Work",
+      desktopOnly: true,
+      cell: (r) => (r.workMix && r.crewCount !== null ? `${ROOFER_WORK_MIX_LABEL[r.workMix]}, ${r.crewCount} crew${r.crewCount === 1 ? "" : "s"}` : NOT_YET),
+    },
+    { key: "volume", header: "Expects", desktopOnly: true, cell: (r) => (r.monthlyVolume ? ROOFER_MONTHLY_VOLUME_LABEL[r.monthlyVolume] : NOT_YET) },
     { key: "certificate", header: "Certificate", desktopOnly: true, cell: (r) => (r.certificatePath ? "Attached" : "Not attached") },
     { key: "status", header: "Status", cell: (r) => <Chip label={STATUS_LABEL[r.status]} tone={STATUS_TONE[r.status]} /> },
   ];

@@ -4335,7 +4335,15 @@ export const APPLIED = [
     file: "0115_the_sales_list_keeps_views_and_a_thread_per_company.sql", appliedBy: "apply_migration",
     fingerprint: "714fc1396bb24141f263db185bce739d",
     behaviour: "81c1799141136d7ba78fca441eed7da0",
-    production: null,
+    /*
+     * Production: applied 2026-11-06 at 17:21 UTC by the chat counterpart
+     * through apply_migration, from the boarded commit 3d3edd0 (board
+     * 42246068886), file sha256 ab012b46, byte identical to development. Read
+     * back: both tables with row level security, their six keys, grants 194
+     * unchanged; schema_migrations version 20261106172139, stored hash 74f54ddc
+     * (issue #1, 6690985133).
+     */
+    production: "2026-11-06",
     proves: { table: "eng_crm_saved_views" },
     note:
       "Both figures read off scripts/fingerprint-at.mjs on 2026-11-05 on the chain to 0115. Shape 1509 to 1519 " +
@@ -4344,7 +4352,8 @@ export const APPLIED = [
       "renumbered to 0115 by Robert's ruling (a) of 2026-11-04 and order A of 2026-11-05; only its own numbers moved.",
     because:
       "WRITTEN 2026-11-02 ON feat/crm-r4-pipeline, RENUMBERED ON feat/crm-r4-pipeline-0115 AND STAGED ON " +
-      "stage/0115-crm-pipeline FOR THE CHAT COUNTERPART'S SITTING; APPLIED NOWHERE. Robert's sales CRM ruling of " +
+      "stage/0115-crm-pipeline FOR THE CHAT COUNTERPART'S SITTING; ON PRODUCTION SINCE 2026-11-06 (6690985133, " +
+      "version 20261106172139). Robert's sales CRM ruling of " +
       "2026-11-02, item R4, pipeline and lists: saved views per person, and one existing direct thread linked per " +
       "company for notes with mentions (his answer 5). Additive: two tables.",
   },
@@ -4352,7 +4361,16 @@ export const APPLIED = [
     file: "0116_the_sales_list_divides_texas_into_territories.sql", appliedBy: "apply_migration",
     fingerprint: "d0344004a58620eb799f7bff611e4d0d",
     behaviour: "d5d09ff792393dcb2662c9047d68ba2a",
-    production: null,
+    /*
+     * Production: applied 2026-11-06 at 19:26 UTC by the chat counterpart
+     * through apply_migration, from the boarded commit 1c0966c (board
+     * 42261569942), file sha256 df67ba9a, byte identical to development. Read
+     * back: the three tables with row level security, the two partial unique
+     * indexes on removed_at, removal columns on both settings tables, grants
+     * 194 unchanged; schema_migrations version 20261106192619, stored hash
+     * 9dc01eaa (issue #1, 6693496647).
+     */
+    production: "2026-11-06",
     proves: { table: "eng_crm_territories" },
     note:
       "Both figures read off scripts/fingerprint-at.mjs on 2026-11-06 on the chain to 0116. Shape 1519 to 1538 " +
@@ -4365,8 +4383,42 @@ export const APPLIED = [
       "(6688927814): nothing is deleted.",
     because:
       "WRITTEN 2026-11-02 ON feat/crm-r5-territories AS 0114, RENUMBERED ON feat/crm-r5-territories-0116 AND STAGED ON " +
-      "stage/0116-crm-territories FOR THE CHAT COUNTERPART'S SITTING; APPLIED NOWHERE. Robert's sales CRM ruling of 2026-11-02, item R5, territories and assignment: counties " +
+      "stage/0116-crm-territories FOR THE CHAT COUNTERPART'S SITTING; ON PRODUCTION SINCE 2026-11-06 (6693496647, " +
+      "version 20261106192619). Robert's sales CRM ruling of 2026-11-02, item R5, territories and assignment: counties " +
       "grouped into territories, reps holding one or more, the round robin cursor new imports advance. Additive: three tables.",
+  },
+  {
+    file: "0117_a_roofer_opens_an_account_first.sql", appliedBy: "operator_sql_editor",
+    fingerprint: "ac53d69433e0d24bd4b3f9fa24fb300b",
+    behaviour: "1eb1de1143737a34365ea599f7d9d381",
+    /*
+     * Production: applied 2026-11-06 at about 23:34 UTC by the chat counterpart,
+     * the four blocks of the operator_sql_editor script (6698510226) from the
+     * boarded commit abf3994 (board 42303009862). Read back: applications 0
+     * before and after, the three done times, three profile fields nullable,
+     * three section checks, the approval check widened, the take function
+     * naming the account, anon execute false, grants 194 unchanged;
+     * schema_migrations version 20261106233413, stored hash 46a22fa5 (issue #1,
+     * 6698631996). It went to production ahead of this branch's merge, so
+     * main's 0113 form was refused by the take function until the merge.
+     */
+    production: "2026-11-06",
+    handApplied:
+      "It drops sixteen NOT NULLs and one check (re-added wider) and replaces a trigger function and a function, " +
+      "which the connector cancels, so development and production each went through the SQL editor in four blocks " +
+      "with Robert approving the prompt, as 0113 did; the provider's history holds a row only because the fourth " +
+      "block inserts it by hand after the verification read.",
+    proves: { column: { table: "eng_roofer_applications", name: "work_done_at" } },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-06 on the chain to 0117. Shape 1538 to 1541 " +
+      "columns: the three section done times; sixteen NOT NULLs dropped. Behaviour 1524 to 1527 facts: the three " +
+      "section checks; the approval check is replaced in place and the two functions with the same signatures.",
+    because:
+      "WRITTEN 2026-11-06 ON feat/roofer-account-first AND STAGED ON stage/0117-roofer-account-first FOR THE " +
+      "OPERATOR SITTING; ON DEVELOPMENT SINCE 2026-11-06 (6694338950, version 20261106200757), ON PRODUCTION SINCE " +
+      "2026-11-06 (6698631996, version 20261106233413). Robert's rework of the roofer partner sign up, 2026-11-06, numbered 0117 by " +
+      "his answer 3: the account opens at step one through door 1, and the work, insurance and references are a " +
+      "profile filled in section by section. R7 onward move up one. No row, column or table is deleted.",
   },
 ];
 

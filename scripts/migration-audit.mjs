@@ -378,9 +378,15 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * answer 1 of 2026-11-06: nothing is deleted), 1,519 to 1,538; the table count
  * moves 113 to 116; no trigger and no function. Read off fingerprint-at.mjs on
  * the chain to 0116.
+ *
+ * Moved again by 0117, a roofer opens an account first, by Robert's rework of
+ * the roofer partner sign up (2026-11-06, his answer 3 numbering it 0117): the
+ * three section done times on eng_roofer_applications, 1,538 to 1,541; sixteen
+ * NOT NULLs dropped, which moves the shape without a column; the table count
+ * stays 116. Read off fingerprint-at.mjs on the chain to 0117.
  */
-const EXPECTED_FINGERPRINT = "d0344004a58620eb799f7bff611e4d0d";
-const EXPECTED_COLUMNS = 1538;
+const EXPECTED_FINGERPRINT = "ac53d69433e0d24bd4b3f9fa24fb300b";
+const EXPECTED_COLUMNS = 1541;
 const EXPECTED_TABLES = 116;
 /* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts.
  * 0074 adds two: eng_partner_billing_touch and eng_partner_billing_events_immutable.

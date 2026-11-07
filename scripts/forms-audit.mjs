@@ -967,44 +967,57 @@ async function roundTripChecks() {
 
 // ---------- the roofer partner application ----------
 //
-// Robert, 2026-11-05. The refusing states and the behaviours he asked for by
-// name, none of which writes a row: an empty step is refused and posts nothing,
-// an answer is checked as it is typed, the progress survives the roofer leaving,
-// the page clears 390px, the API refuses an empty post with field errors, and a
-// filled honeypot is answered success and saved nowhere. A valid application is
-// not sent here: it writes through eng_take_roofer_application, which reaches
-// development at its sitting, and its walk is the preview walk.
+// Robert, 2026-11-05, reworked 2026-11-06 (account first, 0117). Step one is
+// four answers that open a door 1 account, so a valid post here would open an
+// account on development: what is driven are the refusing states, none of which
+// writes a row. An empty submit is refused and posts nothing, an answer is
+// checked as it is typed, the page clears 390px with its three steps named, the
+// API refuses an empty post with field errors, and a filled honeypot is answered
+// success and saved nowhere.
+//
+// DOOR 1'S CONDITION IS READ, NOT ASSUMED. Step one sits behind the self
+// service sign up condition, which a board's environment may hold shut. The
+// check reads which state the server is in and asserts the right outcome for
+// it: open, the form is driven; shut, the page says so and the API answers 404
+// before reading a field.
 
 async function rooferApplicationChecks() {
   const { page, posts } = await openForm("/roofing-partners/apply", "/api/roofer-application");
+  const button = page.getByRole("button", { name: /create your partner account/i });
+  const open = await button.isVisible().catch(() => false);
 
-  await page.getByRole("button", { name: /continue to your work/i }).click();
+  if (!open) {
+    rec(
+      "roofer sign up: with sign up shut here, the page says so and offers no form",
+      await page.getByText(/not open|is not cleared|shut/i).first().isVisible().catch(() => false),
+      "the self service sign up condition reads shut on this server",
+    );
+    await page.close();
+    const shut = await fetch(`${BASE}/api/roofer-application`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+    rec("roofer sign up: and the API answers 404 before reading a field", shut.status === 404, `HTTP ${shut.status}`);
+    return;
+  }
+
+  rec(
+    "roofer sign up: the three steps are named, in plain words",
+    (await page.getByText("Step 1 of 3: Create your account").isVisible().catch(() => false)) &&
+      (await page.getByText("3. Finish your profile").isVisible().catch(() => false)),
+  );
+  await button.click();
   await page.waitForTimeout(400);
   rec(
-    "roofer application: an empty first step is refused, names what is missing, and posts nothing",
-    (await page.getByText("Enter the company's legal name.").isVisible().catch(() => false)) && posts.length === 0,
+    "roofer sign up: an empty submit is refused, names what is missing, and posts nothing",
+    (await page.getByText("Enter your company's name.").isVisible().catch(() => false)) && posts.length === 0,
   );
 
   await page.locator('input[name="email"]').fill("not-an-email");
   await page.locator('input[name="phone"]').focus();
   await page.waitForTimeout(250);
   rec(
-    "roofer application: an answer is checked as it is typed",
+    "roofer sign up: an answer is checked as it is typed",
     await page.getByText("That email address does not look complete.").isVisible().catch(() => false),
   );
-  rec("roofer application: the form clears 390px with no horizontal scroll", await noHScroll(page));
-
-  await page.locator('input[name="legalName"]').fill(`${MARKER} Roofing`);
-  await page.waitForTimeout(300);
-  await page.reload({ waitUntil: "networkidle" });
-  await page.waitForTimeout(800);
-  const kept = await page.locator('input[name="legalName"]').inputValue().catch(() => "");
-  rec(
-    "roofer application: the progress survives the roofer leaving and coming back",
-    kept === `${MARKER} Roofing`,
-    kept ? `read back "${kept}"` : "the field came back empty",
-  );
-  await page.evaluate(() => window.localStorage.clear());
+  rec("roofer sign up: the form clears 390px with no horizontal scroll", await noHScroll(page));
   await page.close();
 
   const empty = await fetch(`${BASE}/api/roofer-application`, {
@@ -1014,7 +1027,7 @@ async function rooferApplicationChecks() {
   });
   const emptyBody = await empty.json().catch(() => ({}));
   rec(
-    "roofer application: the API refuses an empty application with field errors",
+    "roofer sign up: the API refuses an empty post with field errors",
     empty.status === 422 && typeof emptyBody?.errors?.legalName === "string",
     `HTTP ${empty.status}`,
   );
@@ -1025,31 +1038,14 @@ async function rooferApplicationChecks() {
     body: JSON.stringify({
       legalName: `${MARKER} Honeypot Roofing`,
       ownerName: "Audit Owner",
-      ownerTitle: "Owner",
       email: "forms.audit@254engineering.com",
       phone: "(361) 555-0100",
-      officeCity: "Corpus Christi",
-      counties: ["Nueces"],
-      yearsInBusiness: "5",
-      crewCount: "2",
-      workMix: "residential",
-      roofsPerYear: "40",
-      services: ["inspections"],
-      monthlyVolume: "1_5",
-      insuranceCarrier: "Audit Carrier",
-      glPerOccurrence: "$1,000,000",
-      glAggregate: "$2,000,000",
-      reference1Name: "Audit Reference One",
-      reference1Phone: "(361) 555-0101",
-      reference2Name: "Audit Reference Two",
-      reference2Phone: "(361) 555-0102",
-      applicationId: "00000000-0000-4000-8000-0000000a0d17",
       website: "https://bot.example",
     }),
   });
   const botBody = await bot.json().catch(() => ({}));
   rec(
-    "roofer application: a filled honeypot is answered success and gives the bot no reference",
+    "roofer sign up: a filled honeypot is answered success and gives the bot no reference",
     bot.status === 200 && botBody?.ok === true && !("applicationId" in botBody),
     `HTTP ${bot.status}`,
   );

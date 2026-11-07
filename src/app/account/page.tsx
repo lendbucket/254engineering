@@ -4,6 +4,11 @@ import Link from "next/link";
 import { Wordmark } from "@/components/brand/Wordmark";
 import { registrationLine } from "@/lib/launch";
 import { SignOutButton } from "./SignOutButton";
+import { PartnerProfile } from "./PartnerProfile";
+import { founder } from "@/config/contact";
+import { regions } from "@/content/regions";
+import { rooferApplicationForAccount } from "@/lib/ops-roofer-applications";
+import { profileCompleteness } from "@/lib/roofer-application";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +23,9 @@ export const dynamic = "force-dynamic";
 export default async function AccountHomePage() {
   const me = await currentCustomer();
   if (!me) redirect("/account/login");
+  /* A failed read shows no partner section rather than a wrong one; the profile is never the account's only door. */
+  const partnerRead = await rooferApplicationForAccount(me.account.id);
+  const partner = partnerRead.ok ? partnerRead.row : null;
 
   return (
     /*
@@ -74,6 +82,67 @@ export default async function AccountHomePage() {
           content beneath it and gives the section a head rather than a fence.
           Presentation only, so it is aligned to the spec rather than raised.
         */}
+        {partner ? (
+          /*
+           * THE ROOFING PARTNER'S STATUS AND PROFILE. Robert's rework of
+           * 2026-11-06 (0117): the account opened at sign up, a person approves
+           * every partner, and the profile is a checklist that blocks nothing.
+           */
+          <section className="mt-12" aria-labelledby="partner-status">
+            <h2 id="partner-status" className="border-b-2 border-[var(--color-ink)] pb-3 text-[17px] font-semibold text-[var(--color-ink)]">
+              Your partner account
+            </h2>
+            {partner.status === "received" ? (
+              <>
+                <p className="mt-3 text-[16px] leading-[1.65] font-semibold text-[var(--color-ink)]">
+                  Your partner account is being reviewed. Finish your profile to speed it up.
+                </p>
+                <p className="mt-2 text-[15px] leading-[1.65] text-[var(--color-ink-quiet)]">
+                  {profileCompleteness({ work: partner.workDoneAt, insurance: partner.insuranceDoneAt, references: partner.referencesDoneAt }).sentence}. Partner pricing and partner ordering turn on when the firm approves the account.
+                </p>
+                <PartnerProfile
+                  regions={regions.map((r) => ({ name: r.name, counties: r.counties }))}
+                  done={{ work: Boolean(partner.workDoneAt), insurance: Boolean(partner.insuranceDoneAt), references: Boolean(partner.referencesDoneAt) }}
+                  initial={{
+                    work: {
+                      officeCity: partner.officeCity ?? "",
+                      counties: partner.counties,
+                      yearsInBusiness: partner.yearsInBusiness === null ? "" : String(partner.yearsInBusiness),
+                      crewCount: partner.crewCount === null ? "" : String(partner.crewCount),
+                      workMix: partner.workMix ?? "",
+                      roofsPerYear: partner.roofsPerYear === null ? "" : String(partner.roofsPerYear),
+                      services: partner.services,
+                      monthlyVolume: partner.monthlyVolume ?? "",
+                    },
+                    insurance: {
+                      insuranceCarrier: partner.insuranceCarrier ?? "",
+                      glPerOccurrence: partner.glPerOccurrence ?? "",
+                      glAggregate: partner.glAggregate ?? "",
+                      certificatePath: partner.certificatePath ?? "",
+                    },
+                    references: {
+                      reference1Name: partner.reference1Name ?? "",
+                      reference1Company: partner.reference1Company ?? "",
+                      reference1Phone: partner.reference1Phone ?? "",
+                      reference2Name: partner.reference2Name ?? "",
+                      reference2Company: partner.reference2Company ?? "",
+                      reference2Phone: partner.reference2Phone ?? "",
+                    },
+                  }}
+                />
+              </>
+            ) : partner.status === "approved" ? (
+              <p className="mt-3 text-[16px] leading-[1.65] text-[var(--color-ink)]">
+                Your partner account is approved. {founder.name} will be in touch to set up your partner pricing.
+              </p>
+            ) : (
+              <p className="mt-3 text-[16px] leading-[1.65] text-[var(--color-ink)]">
+                The firm is not taking your company on as a partner at this time. Your account stays open for ordering like any customer.
+              </p>
+            )}
+          </section>
+        ) : null}
+
         <section className="mt-12">
           <h2 className="border-b-2 border-[var(--color-ink)] pb-3 text-[17px] font-semibold text-[var(--color-ink)]">
             Order for several properties

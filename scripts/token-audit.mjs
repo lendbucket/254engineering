@@ -369,6 +369,8 @@ const PORTED = [
    */
   "src/app/account/orders/page.tsx",
   "src/app/account/page.tsx",
+  /* The roofing partner's "Finish your profile" on the account home (Robert's rework of 2026-11-06), on both lists. */
+  "src/app/account/PartnerProfile.tsx",
   /*
    * The sign up pair joined on 2026-09-29, when stage 1 restyled them. They had
    * never been on this list, so nothing had ever held them to a scale, and the
@@ -701,6 +703,7 @@ const CUSTOMER_V10 = [
   "src/app/account/sign-up/page.tsx",
   "src/app/account/sign-up/SignUpForm.tsx",
   "src/app/account/page.tsx",
+  "src/app/account/PartnerProfile.tsx",
   "src/app/account/SignOutButton.tsx",
   "src/components/order/OrderFlow.tsx",
   /* The order surface's own layout, read from 2026-10-29: every page under it is on this list, so it is held to the same scale. */
