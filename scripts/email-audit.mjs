@@ -64,7 +64,7 @@ const MAX_SUBJECT = 78;
 import { readdirSync } from "node:fs";
 import { join } from "node:path";
 import { chromium } from "playwright";
-import { emailIdentity, fromHeader, signatureLines, FROM_DISPLAY_NAME, REPLY_TO, REPLY_TO_EXCEPTIONS } from "../src/config/email-identity.ts";
+import { emailIdentity, fromHeader, signatureLines, isRepSignatureLine, FROM_DISPLAY_NAME, REPLY_TO, REPLY_TO_EXCEPTIONS, REP_SIGNED_TEMPLATES } from "../src/config/email-identity.ts";
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
@@ -315,6 +315,24 @@ if (templates.length === 0) {
     staleExceptions.length ? `no such template: ${staleExceptions.join(", ")}` : "",
   );
 
+  /*
+   * THE REP SIGNATURE EXCEPTION IS COUNTED AND NAMED, like the reply-to list:
+   * email identity ruling of 2026-11-02 (Robert, 6592143963 answer 2). Pinned
+   * at one, the CRM sequence emails, so a second rep-signed template is a
+   * deliberate edit here and in the declaration; each named template must be
+   * real, human and marketing.
+   */
+  const repSigned = Object.keys(REP_SIGNED_TEMPLATES);
+  const badRepSigned = repSigned.filter((id) => {
+    const t = templates.find((x) => x.id === id);
+    return !t || t.purpose !== "human" || !MARKETING_TEMPLATES.includes(id);
+  });
+  rec(
+    `the rep signature is used by exactly the named templates (${repSigned.length}: ${repSigned.join(", ")})`,
+    repSigned.length === 1 && repSigned[0] === "marketing.crm_sequence" && badRepSigned.length === 0,
+    badRepSigned.length ? `not a real human marketing template: ${badRepSigned.join(", ")}` : "",
+  );
+
   const leakedOwner = templates
     .filter((t) =>
       `${t.from}\n${t.replyTo ?? ""}\n${t.to ?? ""}\n${t.subject}\n${t.text}\n${t.html ?? ""}`.includes(
@@ -389,6 +407,23 @@ if (templates.length === 0) {
      * marketing.review_request and nothing transactional.
      */
     "src/lib/review-request.ts",
+    /*
+     * The third: the sales sequence email, Robert's sales CRM ruling of
+     * 2026-11-02, item R7, "suppression consulted". A prospect has entered
+     * into nothing with the firm, so the email is marketing.crm_sequence and
+     * the send path asks the gate before every send. It sends that one
+     * template and nothing transactional.
+     */
+    "src/lib/crm-email.ts",
+    /*
+     * The fourth, and the only shared handler allowed: the email.send job's
+     * marketing-only branch, Robert, 2026-11-02 (issue #1 answer 3 to
+     * 6592143963): "the second suppression check in the marketing-only branch
+     * with email-audit asserting it". The handler sends receipts too, so the
+     * check below asserts its one call to the gate sits inside the guard on
+     * MARKETING_TEMPLATES and nowhere else.
+     */
+    "src/lib/job-handlers.ts",
   ];
 
   const SUPPRESSION_READERS = [
@@ -433,6 +468,10 @@ if (templates.length === 0) {
      * scripts/proofs/the-call-queue-calls-in-order-and-records-what-happened.mjs.
      */
     "src/lib/crm-queue.ts",
+    /* The sales sequence email (R7), as in the gate list above: it reads the gate and sends only marketing.crm_sequence. */
+    "src/lib/crm-email.ts",
+    /* The email.send job's marketing-only branch (Robert, 2026-11-02), as in the gate list above, asserted below. */
+    "src/lib/job-handlers.ts",
   ];
 
   const readers = [];
@@ -493,6 +532,24 @@ if (templates.length === 0) {
    * because the live half of this belongs to the suppression proof and this
    * audit's job is that the gate is shaped right.
    */
+  /*
+   * THE SHARED SEND JOB ASKS THE GATE FOR MARKETING ONLY. Robert, 2026-11-02
+   * (issue #1 answer 3 to 6592143963). The handler is on the gate list above
+   * on exactly this condition: its single call to isSuppressed sits directly
+   * inside the guard on MARKETING_TEMPLATES, so a receipt can never be stopped
+   * by the marketing list. A second call, a call outside the guard, or a guard
+   * that tests anything but the marketing list turns this red.
+   */
+  {
+    const handlers = readSource("src/lib/job-handlers.ts");
+    const calls = handlers.match(/\bisSuppressed\s*\(/g) ?? [];
+    const guard = "if (templateId !== null && MARKETING_TEMPLATES.includes(templateId)) {\n      if (await isSuppressed(to)) {";
+    rec(
+      "the send job asks the suppression gate once, and only inside the marketing-only branch",
+      calls.length === 1 && handlers.includes(guard),
+      calls.length !== 1 ? `${calls.length} calls to isSuppressed in job-handlers.ts` : handlers.includes(guard) ? "" : "the call is not directly inside the MARKETING_TEMPLATES guard",
+    );
+  }
   {
     const src = readSource("src/lib/marketing-suppression.ts");
     const gate = src.slice(src.indexOf("export async function isSuppressed"));
@@ -693,7 +750,26 @@ for (const t of templates) {
    * source level question and is checked once below rather than per template.
    */
   const sig = signatureLines();
-  if (t.purpose === "human") {
+  if (t.purpose === "human" && t.id in REP_SIGNED_TEMPLATES) {
+    /*
+     * THE REP SIGNATURE, email identity ruling of 2026-11-02 (Robert, issue #1
+     * answer 2 to 6592143963): the named templates are signed by the rep with
+     * one line above the firm footer, never the signer's block. Both halves are
+     * asserted: the rep line is there in both parts, and the signer's block is
+     * not, so the exception cannot quietly become "signed twice" or "unsigned".
+     */
+    const textLines = t.text.split("\n").map((l) => l.trim());
+    const repLine = textLines.find((l) => isRepSignatureLine(l)) ?? null;
+    rec(
+      `${label}: signed by the rep, one line above the footer, in both parts`,
+      Boolean(repLine) && t.html.includes(repLine.replace(/&/g, "&amp;")),
+      repLine ?? "no rep signature line",
+    );
+    rec(
+      `${label}: and not with the signer's block`,
+      !t.html.includes(emailIdentity.signer.name) && !t.text.includes(emailIdentity.signer.name),
+    );
+  } else if (t.purpose === "human") {
     const missing = sig.filter((line) => !t.html.includes(line) || !t.text.includes(line));
     rec(
       `${label}: signature block present in both parts`,

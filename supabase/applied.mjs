@@ -4420,6 +4420,26 @@ export const APPLIED = [
       "his answer 3: the account opens at step one through door 1, and the work, insurance and references are a " +
       "profile filled in section by section. R7 onward move up one. No row, column or table is deleted.",
   },
+  {
+    file: "0118_the_sales_list_sends_one_email_a_day_and_hears_replies.sql", appliedBy: "apply_migration",
+    fingerprint: "0e9984b3429c1204dca15419498b452c",
+    behaviour: "655d65a66391c36866544facb70e1a50",
+    production: null,
+    proves: { table: "eng_crm_email_sends" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-07 on the chain to 0118. Shape 1541 to 1566 " +
+      "columns: 12 on eng_crm_email_sends, 12 on eng_crm_email_replies, 1 on eng_prospects (sequence_paused_at); " +
+      "tables 116 to 118. Behaviour 1527 to 1552 facts: the two tables' keys, checks and foreign keys, the one send per " +
+      "address per day partial unique index, the reply event once index and the two lookup indexes. Written as 0115 on " +
+      "2026-11-02, renumbered to 0117 by Robert's ruling (a) of 2026-11-04 and order A of 2026-11-05, and to 0118 by " +
+      "his answer 3 of 2026-11-06 (the roofer rework takes 0117); only its own numbers moved.",
+    because:
+      "WRITTEN 2026-11-02 ON feat/crm-r7-email AS 0115, RENUMBERED ON feat/crm-r7-email-0117 AND AGAIN ON " +
+      "feat/crm-r7-email-0118, STAGED ON stage/0118-crm-email FOR THE CHAT COUNTERPART'S SITTING; " +
+      "APPLIED NOWHERE. Robert's sales CRM ruling of 2026-11-02, item R7, sequences and email: one send per address per " +
+      "day, written before the email is queued; replies recorded once by the webhook's event id; a reply pauses the " +
+      "sequence. Additive: two tables and one column.",
+  },
 ];
 
 /*

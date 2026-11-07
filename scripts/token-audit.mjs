@@ -244,6 +244,9 @@ function STAFF_LEVEL_SCREENS() {
     /* The call queue, Robert's CRM R3 of 2026-11-02, built to the staff standard from the start. */
     "src/app/portal/(app)/crm/queue/page.tsx",
     "src/app/portal/(app)/crm/queue/QueueClient.tsx",
+    /* The sequence emails and replies, Robert's CRM R7 of 2026-11-02, built to the staff standard from the start. */
+    "src/app/portal/(app)/crm/emails/page.tsx",
+    "src/app/portal/(app)/crm/emails/EmailsClient.tsx",
     /* The stage board, the list and the company page, Robert's CRM R4 of 2026-11-02, built to the staff standard from the start. */
     "src/app/portal/(app)/crm/page.tsx",
     "src/app/portal/(app)/crm/list/page.tsx",
