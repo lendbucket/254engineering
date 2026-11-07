@@ -10,6 +10,8 @@ import {
   readCustomerSession,
   customerSessionConfigured,
 } from "./customer-session";
+import { epochStands, validEpoch } from "./session-epoch-rules";
+import { bumpSessionEpoch, readSessionEpoch } from "./session-epoch";
 
 /**
  * Customer credentials, kept entirely away from the staff ones.
@@ -47,6 +49,8 @@ export type CustomerPrincipal = {
   displayName: string;
   accountRole: "owner" | "member";
   status: "invited" | "active" | "suspended";
+  /** The user's session epoch (auth M2, 0120): a cookie is issued under it and must match it. */
+  sessionEpoch: number;
   account: {
     id: string;
     site: string;
@@ -337,11 +341,21 @@ export async function setCustomerPassword(
    * up door completing and is what the operator's ruling preserves. What it can
    * no longer do is move a SUSPENDED one.
    */
+  /*
+   * AND THE SESSION EPOCH MOVES IN THE SAME STATEMENT, auth M2 (Robert,
+   * 2026-11-02): a password set ends every cookie issued before it. The update
+   * is conditional on the epoch read just before, so a racing bump makes this
+   * write match nothing and the generic refusal below is said, never a password
+   * set while the old sessions survive.
+   */
+  const epochNow = await readSessionEpoch(db, "eng_customer_users", inspected.userId);
+  if (!epochNow.ok) return { ok: false, error: "The password could not be set." };
   const { data: written, error } = await db
     .from("eng_customer_users")
-    .update({ password_hash: hash, password_salt: salt, status: "active" })
+    .update({ password_hash: hash, password_salt: salt, status: "active", session_epoch: epochNow.epoch + 1 })
     .eq("id", inspected.userId)
     .neq("status", "suspended")
+    .eq("session_epoch", epochNow.epoch)
     .select("id");
 
   if (error) return { ok: false, error: "The password could not be set." };
@@ -453,10 +467,11 @@ async function loadPrincipal(userId: string): Promise<CustomerPrincipal | null> 
 
   const { data: user } = await db
     .from("eng_customer_users")
-    .select("id, account_id, email, display_name, account_role, status")
+    .select("id, account_id, email, display_name, account_role, status, session_epoch")
     .eq("id", userId)
     .maybeSingle();
   if (!user) return null;
+  if (!validEpoch(user.session_epoch)) return null;
 
   const { data: account } = await db
     .from("eng_customer_accounts")
@@ -485,6 +500,7 @@ async function loadPrincipal(userId: string): Promise<CustomerPrincipal | null> 
     displayName: user.display_name as string,
     accountRole: user.account_role as "owner" | "member",
     status: user.status as "invited" | "active" | "suspended",
+    sessionEpoch: user.session_epoch as number,
     account: {
       id: account.id as string,
       site: account.site as string,
@@ -519,10 +535,30 @@ export async function currentCustomer(): Promise<CustomerPrincipal | null> {
    */
   if (principal.accountId !== claims.account) return null;
 
+  /*
+   * THE SESSION EPOCH, auth M2 (Robert, 2026-11-02, option A, rollout 1). A
+   * cookie issued before a password set or a "sign out everywhere" carries an
+   * older epoch than the user and is nobody. Thirty days is long for a cookie
+   * that outlived the password it was opened with.
+   */
+  if (!epochStands(claims.epoch, principal.sessionEpoch)) return null;
+
   if (principal.status !== "active") return null;
   if (principal.account.status !== "active") return null;
 
   return principal;
+}
+
+/**
+ * "Sign out everywhere" for a customer, auth M2 (Robert, 2026-11-02). Ends
+ * every session this user holds, this one included; the caller clears the
+ * cookie.
+ */
+export async function signOutCustomerEverywhere(userId: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+  const bumped = await bumpSessionEpoch(db, "eng_customer_users", userId);
+  return bumped.ok ? { ok: true } : { ok: false, error: bumped.error };
 }
 
 export { issueCustomerSession };
