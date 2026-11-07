@@ -98,7 +98,7 @@ export default async function AccountHomePage() {
                   Your partner account is being reviewed. Finish your profile to speed it up.
                 </p>
                 <p className="mt-2 text-[15px] leading-[1.65] text-[var(--color-ink-quiet)]">
-                  {profileCompleteness({ work: partner.workDoneAt, insurance: partner.insuranceDoneAt, references: partner.referencesDoneAt }).sentence}. Partner pricing and partner ordering turn on when the firm approves the account.
+                  {profileCompleteness({ work: partner.workDoneAt, insurance: partner.insuranceDoneAt, references: partner.referencesDoneAt }).sentence}. Partner pricing is set up with you after approval. Until then you can order at the published price.
                 </p>
                 <PartnerProfile
                   regions={regions.map((r) => ({ name: r.name, counties: r.counties }))}
