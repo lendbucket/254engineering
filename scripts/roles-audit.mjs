@@ -2581,6 +2581,8 @@ if (!db) {
         "/portal/crm/territories",
         /* The account manager view, Robert's CRM R6 of 2026-11-02: crm.use, which DEFAULT_ROLES gives him none of. */
         "/portal/crm/accounts",
+        /* The manager's sales reports, Robert's CRM R8 of 2026-11-02: crm.reports, which only admin and ops_manager hold. */
+        "/portal/crm/reports",
         "/portal/inbox",
         "/portal/order-lookup",
         "/portal/refunds",

@@ -4440,6 +4440,26 @@ export const APPLIED = [
       "day, written before the email is queued; replies recorded once by the webhook's event id; a reply pauses the " +
       "sequence. Additive: two tables and one column.",
   },
+  {
+    file: "0119_the_sales_list_attributes_accounts_and_orders_to_reps.sql", appliedBy: "apply_migration",
+    fingerprint: "38319e8c5ec88213932cbc387124c744",
+    behaviour: "9e1c9d501e570ca15ff84090db44806b",
+    production: null,
+    proves: { table: "eng_crm_attributions" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-07 on the chain to 0119. Shape 1566 to 1573 " +
+      "columns: 7 on eng_crm_attributions; tables 118 to 119. Behaviour 1552 to 1565 facts: the table's key, " +
+      "its two checks and three foreign keys, the one row per order and one opening per prospect partial unique " +
+      "indexes, the two lookup indexes, row level security and the append only trigger. Written as 0116 on " +
+      "2026-11-02, renumbered to 0118 by Robert's ruling (a) of 2026-11-04 and order A of 2026-11-05, and to 0119 by " +
+      "his answer 3 of 2026-11-06 (the roofer rework takes 0117); only its own numbers moved.",
+    because:
+      "WRITTEN 2026-11-02 ON feat/crm-r8-reports AS 0116, RENUMBERED ON feat/crm-r8-reports-0118 AND AGAIN ON " +
+      "feat/crm-r8-reports-0119, STAGED ON " +
+      "stage/0119-crm-attribution FOR THE CHAT COUNTERPART'S " +
+      "SITTING; APPLIED NOWHERE. Robert's sales CRM ruling of 2026-11-02, item R8: the attribution chain prospect to " +
+      "account to order, written on conversion and on each order. Additive: one append only table.",
+  },
 ];
 
 /*

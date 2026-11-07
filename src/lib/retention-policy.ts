@@ -333,6 +333,12 @@ export const RETENTION_POLICY: RetentionEntry[] = [
   { table: "eng_contacts", rule: { kind: "kept_pending_counsel", because: COUNSEL } },
   { table: "eng_credentials", rule: { kind: "kept_pending_counsel", because: COUNSEL } },
   /*
+   * 0119 (Robert's CRM R8). The attribution chain, prospect to account to
+   * order: who a sale is credited to, decided once. A financial fact, append
+   * only, and no floor is ruled.
+   */
+  { table: "eng_crm_attributions", rule: { kind: "kept_pending_counsel", because: "Which rep an account and each of its orders are credited to, decided once. A financial fact. No floor is ruled. " + COUNSEL } },
+  /*
    * 0118 (Robert's CRM R7). The replies to sales emails and the ledger of the
    * sends: a record of what the firm wrote to a prospect and what came back,
    * and the ledger is what proves one send per address per day. No floor is
