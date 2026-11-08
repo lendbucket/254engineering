@@ -7,6 +7,7 @@ import { CAPTURE_CLOSED_STATUSES, captureKeyProblem, evidenceWriteRefusal } from
 import { sha256Hex } from "./evidence-fingerprint";
 import { readEvery, readEveryIn } from "./bounded-read";
 import { pushOfferTo } from "./ops-push";
+import { services } from "../content/services";
 import { supabaseAdmin } from "./supabase";
 import type { Cents } from "./ops-money";
 import { notifyTechnicianAccepted, recordTechnicianVisit } from "./ops-payments";
@@ -1022,7 +1023,10 @@ export async function sendOffers(
      * payload; the phone asks what to show and is told county and service
      * only. Best effort: a push service that is down changes nothing here.
      */
-    await pushOfferTo(id).catch(() => null);
+    await pushOfferTo(id, {
+      county: (file.county as string | null) ?? null,
+      serviceName: services.find((s) => s.slug === file.service_slug)?.name ?? null,
+    }).catch(() => null);
   }
 
   await writeAudit({

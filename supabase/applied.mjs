@@ -4559,19 +4559,21 @@ export const APPLIED = [
   },
   {
     file: "0124_a_phone_hears_of_an_offer.sql", appliedBy: "apply_migration",
-    fingerprint: "b65258ba8ab4e52ccb52002a778ded81",
-    behaviour: "0833acd2e885c9e2035c0d8d7fe4a106",
+    fingerprint: "369b4b0cbec23b07afba8ed83eb0c0c9",
+    behaviour: "0413c5297b1d42f616fe3ce17123d8d2",
     production: null,
-    proves: { table: "eng_push_subscriptions" },
+    proves: { column: { table: "eng_push_subscriptions", name: "channel" } },
     note:
-      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-08 on the chain to 0124. Shape 1579 to 1587 " +
-      "columns, the eight of eng_push_subscriptions; tables 120 to 121. Behaviour 1572 to 1580 facts: its key, its " +
-      "foreign key to eng_profiles, two checks (an https endpoint, and a revocation that says why), the unique " +
-      "endpoint index, the live-subscription index, and row level security.",
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-08 on the chain to 0124, after the native channels " +
+      "were added (Robert's T8 of 2026-11-08) and before 0124 reached any database. Shape 1579 to 1588 columns, the " +
+      "nine of eng_push_subscriptions; tables 120 to 121. Behaviour 1572 to 1581 facts: its key, its foreign key to " +
+      "eng_profiles, three checks (a known channel, an endpoint that fits its channel, and a revocation that says " +
+      "why), the unique endpoint index, the live-subscription index, and row level security.",
     because:
       "WRITTEN 2026-11-07 ON feat/t9-offer-push FOR ROBERT'S T9, WEB PUSH FOR A NEW OFFER (his answers 6 and 7 of " +
-      "2026-11-07, 6717223376); APPLIED NOWHERE. One table holding the push service's endpoint per phone; pushes " +
-      "carry no payload, so no job and no wording is stored. Additive: one table.",
+      "2026-11-07, 6717223376), AND GIVEN ITS NATIVE CHANNELS 2026-11-08 FOR HIS T8; APPLIED NOWHERE. One table: per " +
+      "phone, the browser push address or the Firebase or Apple device token, by channel. Web pushes carry no " +
+      "payload; native pushes carry county and service only. Additive: one table.",
   },
 ];
 

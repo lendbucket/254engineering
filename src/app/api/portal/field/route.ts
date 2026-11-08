@@ -81,7 +81,8 @@ async function handlePOST(request: NextRequest) {
     return NextResponse.json({ ok: true, publicKey: pushPublicKey() });
   }
   if (action === "push_subscribe") {
-    const result = await subscribePush(actor, body?.endpoint, request.headers.get("user-agent"), context);
+    /* channel: web for a browser, fcm or apns for the store app (Robert's T8). */
+    const result = await subscribePush(actor, body?.endpoint, request.headers.get("user-agent"), context, body?.channel);
     return result.ok ? NextResponse.json({ ok: true }) : bad(result.error);
   }
   if (action === "push_unsubscribe") {

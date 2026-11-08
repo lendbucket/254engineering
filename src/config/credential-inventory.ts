@@ -580,6 +580,60 @@ export const CREDENTIALS: Credential[] = [
     grants: "Nothing. The contact a push service may write to about the firm's pushes.",
     rotated: "Never set.",
   },
+  /*
+   * PUSH TO THE STORE APP, Robert's T8 of 2026-11-08 (src/lib/native-push.ts):
+   * Firebase for Android, Apple for iPhone. Production only, so a preview
+   * deployment cannot push to a technician's phone. Declared before they exist.
+   */
+  {
+    name: "FIREBASE_SERVICE_ACCOUNT_JSON",
+    kind: "secret",
+    livesIn: "Nowhere yet. When Robert creates the Firebase project: Vercel, Production only, the service account JSON Firebase issues for its HTTP v1 API.",
+    grants: "Sending a notification to the store app on an Android phone, through Firebase Cloud Messaging, in the firm's Firebase project. It reads nothing of the firm's.",
+    rotated: "Never set.",
+    environments: {
+      production: "absent",
+      preview: "absent",
+      development: "absent",
+      previewValueDistinct: null,
+      readOn: "2026-11-08, by the session that built T8: declared before it exists.",
+    },
+  },
+  {
+    name: "APNS_KEY_P8",
+    kind: "secret",
+    livesIn: "Nowhere yet. When the Apple account exists: Vercel, Production only, the .p8 key Apple issues for push.",
+    grants: "Sending a notification to the store app on an iPhone, through Apple's push service, for the firm's app only. It reads nothing.",
+    rotated: "Never set.",
+    environments: {
+      production: "absent",
+      preview: "absent",
+      development: "absent",
+      previewValueDistinct: null,
+      readOn: "2026-11-08, by the session that built T8: declared before it exists.",
+    },
+  },
+  {
+    name: "APNS_KEY_ID",
+    kind: "config",
+    livesIn: "Nowhere yet. Set beside APNS_KEY_P8, Production only: the key's identifier as Apple shows it.",
+    grants: "Nothing on its own. It names which Apple key signed a push.",
+    rotated: "Never set.",
+  },
+  {
+    name: "APNS_TEAM_ID",
+    kind: "config",
+    livesIn: "Nowhere yet. Set beside APNS_KEY_P8, Production only: the Apple developer team's identifier.",
+    grants: "Nothing on its own. It names the team a push is sent as.",
+    rotated: "Never set.",
+  },
+  {
+    name: "APNS_TOPIC",
+    kind: "config",
+    livesIn: "Nowhere yet. Set beside APNS_KEY_P8, Production only: the store app's bundle identifier, the appId in mobile/capacitor.config.json.",
+    grants: "Nothing. It names the app a push is for.",
+    rotated: "Never set.",
+  },
   {
     name: "CRON_SECRET",
     kind: "secret",

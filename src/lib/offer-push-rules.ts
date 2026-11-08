@@ -63,6 +63,25 @@ export function subscriptionGone(status: number): boolean {
   return status === 404 || status === 410;
 }
 
+/** The three push services a phone may be reached through (0124's channel column). */
+export type PushChannel = "web" | "fcm" | "apns";
+
+/** The channel a request names, defaulting to the browser's, or null when it names something else. */
+export function pushChannelFrom(value: unknown): PushChannel | null {
+  if (value === undefined || value === null || value === "") return "web";
+  return value === "web" || value === "fcm" || value === "apns" ? value : null;
+}
+
+/**
+ * Whether an endpoint fits its channel, the same rule 0124's check holds: a
+ * browser's is an https address, a native one is a device token with no
+ * whitespace, of a sane length.
+ */
+export function endpointFitsChannel(channel: PushChannel, endpoint: unknown): endpoint is string {
+  if (channel === "web") return endpointAcceptable(endpoint);
+  return typeof endpoint === "string" && endpoint.length >= 16 && endpoint.length <= 4096 && !/\s/.test(endpoint);
+}
+
 /** Only an https endpoint, of a sane length, is ever stored or sent to. */
 export function endpointAcceptable(endpoint: unknown): endpoint is string {
   if (typeof endpoint !== "string" || endpoint.length > 2000) return false;
