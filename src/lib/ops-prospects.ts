@@ -24,6 +24,7 @@ import {
 import { addPrimaryContactAndSource } from "./crm-prospects";
 import { canSeeCompany } from "./crm-board-rules";
 import { viewerFor } from "./crm-territories";
+import { attributeConversion } from "./crm-attribution";
 
 /**
  * THE SALES LIST. Operator ruling, 2026-10-20. 0079.
@@ -589,6 +590,9 @@ export async function convertProspect(
     })
     .eq("id", id);
   if (error) return refuse(`The account was opened and the prospect could not be marked converted: ${error.message}`);
+
+  /* The sales attribution (R8, 0119): the account is credited on conversion, to the company's owner or, for one nobody owned, the person converting it. */
+  await attributeConversion(id);
 
   await writeAuditOrRefuse({
     actor,

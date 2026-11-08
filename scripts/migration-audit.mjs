@@ -393,10 +393,17 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * eng_prospects.sequence_paused_at, 1,541 to 1,566; the table count moves 116
  * to 118; no trigger and no function. Read off fingerprint-at.mjs on the chain
  * to 0118.
+ *
+ * Moved again by 0119, the sales list attributes accounts and orders to reps,
+ * by Robert's sales CRM ruling R8 of 2026-11-02, renumbered from 0116 to 0118
+ * by his ruling (a) of 2026-11-04 and order A of 2026-11-05, and to 0119 by his
+ * answer 3 of 2026-11-06 (the roofer rework takes 0117): the seven columns of
+ * eng_crm_attributions, 1,566 to 1,573; the table count moves 118 to 119; one
+ * trigger, no function. Read off fingerprint-at.mjs on the chain to 0119.
  */
-const EXPECTED_FINGERPRINT = "0e9984b3429c1204dca15419498b452c";
-const EXPECTED_COLUMNS = 1566;
-const EXPECTED_TABLES = 118;
+const EXPECTED_FINGERPRINT = "38319e8c5ec88213932cbc387124c744";
+const EXPECTED_COLUMNS = 1573;
+const EXPECTED_TABLES = 119;
 /* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts.
  * 0074 adds two: eng_partner_billing_touch and eng_partner_billing_events_immutable.
  * 0075 adds one: eng_payment_events_guarded.
@@ -426,8 +433,10 @@ const EXPECTED_TABLES = 118;
  * the updated_at stamp on a company's people, which change as numbers do.
  * 0113 adds two, by Robert's rulings of 2026-11-05: eng_roofer_applications_touch and
  * eng_roofer_applications_decide_once, which lets a decision be made once and touch
- * nothing the roofer wrote. */
-const EXPECTED_TRIGGERS = 110;
+ * nothing the roofer wrote.
+ * 0119 adds one, by Robert's sales CRM ruling R8 of 2026-11-02:
+ * eng_crm_attributions_append_only, because credit decided once is evidence. */
+const EXPECTED_TRIGGERS = 111;
 /**
  * 0014 added eng_freeze_attribution and 0019 added two more, the partner
  * entry freeze and its delete refusal, which are trigger functions like the
