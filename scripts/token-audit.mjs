@@ -418,6 +418,9 @@ const PORTED = [
   "src/app/portal/(app)/jobs/JobsClient.tsx",
   "src/app/portal/(app)/jobs/[id]/CaptureClient.tsx",
   "src/app/portal/(app)/jobs/[id]/page.tsx",
+  // The offline job screen, Robert's T2 of 2026-11-07.
+  "src/app/portal/(app)/jobs/offline/page.tsx",
+  "src/app/portal/(app)/jobs/offline/OfflineDay.tsx",
   "src/app/portal/(app)/jobs/page.tsx",
   "src/app/portal/(app)/layout.tsx",
   "src/app/portal/(app)/messages/MessagesClient.tsx",
@@ -550,6 +553,8 @@ const PORTED = [
   "src/app/portal/(app)/roofer-applications/RooferApplicationDetail.tsx",
   "src/app/portal/(app)/roofer-applications/RooferDecision.tsx",
   "src/components/portal/FieldAppWorker.tsx",
+  /* The day pack kept on the phone for offline start, Robert's T2 of 2026-11-07. Renders nothing. */
+  "src/components/portal/DayPackSync.tsx",
   "src/components/portal/FileThreadButton.tsx",
   "src/components/portal/LetterFactsPanels.tsx",
   "src/components/portal/PhoneLink.tsx",
@@ -813,6 +818,8 @@ const STAFF_V10 = [
   "src/app/portal/(app)/jobs/JobsClient.tsx",
   "src/app/portal/(app)/jobs/[id]/page.tsx",
   "src/app/portal/(app)/jobs/[id]/CaptureClient.tsx",
+  "src/app/portal/(app)/jobs/offline/page.tsx",
+  "src/app/portal/(app)/jobs/offline/OfflineDay.tsx",
   /*
    * The technician batch of 2026-10-08: the dashboard every role lands on and
    * the messages screen every role shares, restyled to V10 and held to its
