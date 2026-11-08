@@ -4424,7 +4424,12 @@ export const APPLIED = [
     file: "0118_the_sales_list_sends_one_email_a_day_and_hears_replies.sql", appliedBy: "apply_migration",
     fingerprint: "0e9984b3429c1204dca15419498b452c",
     behaviour: "655d65a66391c36866544facb70e1a50",
-    production: null,
+    /*
+     * Production: applied 2026-11-08 in Robert's sitting by the chat counterpart, from
+     * the boarded commit 4022ef3 (board 42382855084); schema_migrations version
+     * 20261108164306, stored hash f7cc33c9 (issue #1, 6724183078).
+     */
+    production: "2026-11-08",
     proves: { table: "eng_crm_email_sends" },
     note:
       "Both figures read off scripts/fingerprint-at.mjs on 2026-11-07 on the chain to 0118. Shape 1541 to 1566 " +
@@ -4437,7 +4442,7 @@ export const APPLIED = [
       "WRITTEN 2026-11-02 ON feat/crm-r7-email AS 0115, RENUMBERED ON feat/crm-r7-email-0117 AND AGAIN ON " +
       "feat/crm-r7-email-0118, STAGED ON stage/0118-crm-email FOR THE CHAT COUNTERPART'S SITTING; " +
       "ON DEVELOPMENT SINCE 2026-11-07 (6707964039, version 20261107140729, stored f7cc33c9, shape 0e9984b3 at 1566 " +
-      "columns and 118 tables as the replay); PENDING ON PRODUCTION for Robert's sitting with R6 and R7. Robert's sales CRM ruling of 2026-11-02, item R7, sequences and email: one send per address per " +
+      "columns and 118 tables as the replay); ON PRODUCTION SINCE 2026-11-08 (6724183078, version 20261108164306). Robert's sales CRM ruling of 2026-11-02, item R7, sequences and email: one send per address per " +
       "day, written before the email is queued; replies recorded once by the webhook's event id; a reply pauses the " +
       "sequence. Additive: two tables and one column.",
   },
