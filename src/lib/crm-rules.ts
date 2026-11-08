@@ -39,23 +39,52 @@ export const VERTICAL_LABEL: Record<CrmVertical, string> = {
 };
 
 /**
- * THE OLD KIND, DERIVED FROM THE VERTICAL. eng_prospects_type_known (0079)
- * allows roofer, agent, title and contractor, and replacing it is Robert's
- * destructive operator sitting (his answer 8). Until it sits, every write sets
- * the kind from the vertical so the old check keeps holding: the nearest
- * allowed value, never a claim the screens read. The screens read `vertical`.
+ * THE KIND IS THE VERTICAL. Robert's CRM answer 8 (2026-11-02), 0123:
+ * eng_prospects_type_known holds the eight verticals, and 0123 set every row's
+ * kind to its vertical. Before it, 0079's check allowed only roofer, agent,
+ * title and contractor, and every write set the nearest of those; 0123 is what
+ * lets the kind say what the vertical says.
  */
-export function prospectTypeForVertical(v: CrmVertical): "roofer" | "agent" | "title" | "contractor" {
-  if (v === "roofer") return "roofer";
-  if (v === "real_estate") return "agent";
-  return "contractor";
+export function prospectTypeForVertical(v: CrmVertical): CrmVertical {
+  return v;
 }
 
-/** The vertical a row typed with the old kind has, as 0112's backfill read it. */
+/**
+ * The vertical a kind names. After 0123 a kind IS a vertical. The old four are
+ * still read the way 0112's backfill read them, for a row read before the
+ * sitting or a value typed by hand: agent is real_estate, and title and
+ * contractor are other.
+ */
 export function verticalForProspectType(t: string): CrmVertical {
-  if (t === "roofer") return "roofer";
+  if ((CRM_VERTICALS as readonly string[]).includes(t)) return t as CrmVertical;
   if (t === "agent") return "real_estate";
   return "other";
+}
+
+/**
+ * The words a person types for each vertical, in a spreadsheet or a source's
+ * own field. One home for both readers: the CRM imports (crm-import-parse) and
+ * the prospects screen's CSV (prospect-import). Title companies and
+ * contractors are not among the eight, so they read as other, as 0123 mapped
+ * them.
+ */
+const VERTICAL_WORDS: Record<CrmVertical, RegExp> = {
+  roofer: /^(roofer|roofers|roofing|roofing company|roofing contractor)$/,
+  solar: /^(solar|solar installer|solar company|solar contractor)$/,
+  manufactured_home_dealer: /^(manufactured home dealer|manufactured home|mobile home dealer|mh dealer|manufactured housing)$/,
+  foundation_repair: /^(foundation repair|foundation|foundation contractor)$/,
+  real_estate: /^(real estate|realtor|realtors|agent|agents|broker|brokerage|real estate agent)$/,
+  lender: /^(lender|lenders|mortgage|mortgage lender|loan officer|bank)$/,
+  insurance_agent: /^(insurance|insurance agent|insurance agency|agency)$/,
+  /* The prospects screen's old words for title and contractor kept, so a spreadsheet it read before still reads. */
+  other: /^(other|title|title company|title companies|title agent|escrow|contractor|contractors|general contractor|gc|builder|remodeler)$/,
+};
+
+export function verticalFrom(value: string | null | undefined): CrmVertical | null {
+  const v = (value ?? "").trim().toLowerCase().replace(/_/g, " ");
+  if (!v) return null;
+  for (const k of CRM_VERTICALS) if (k.replace(/_/g, " ") === v || VERTICAL_WORDS[k].test(v)) return k;
+  return null;
 }
 
 /* --------------------------------------------------------------------- stages */

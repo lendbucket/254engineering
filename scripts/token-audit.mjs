@@ -244,6 +244,9 @@ function STAFF_LEVEL_SCREENS() {
     /* The call queue, Robert's CRM R3 of 2026-11-02, built to the staff standard from the start. */
     "src/app/portal/(app)/crm/queue/page.tsx",
     "src/app/portal/(app)/crm/queue/QueueClient.tsx",
+    /* The sequence emails and replies, Robert's CRM R7 of 2026-11-02, built to the staff standard from the start. */
+    "src/app/portal/(app)/crm/emails/page.tsx",
+    "src/app/portal/(app)/crm/emails/EmailsClient.tsx",
     /* The stage board, the list and the company page, Robert's CRM R4 of 2026-11-02, built to the staff standard from the start. */
     "src/app/portal/(app)/crm/page.tsx",
     "src/app/portal/(app)/crm/list/page.tsx",
@@ -253,6 +256,10 @@ function STAFF_LEVEL_SCREENS() {
     /* The sales territories, Robert's CRM R5 of 2026-11-02, built to the staff standard from the start. */
     "src/app/portal/(app)/crm/territories/page.tsx",
     "src/app/portal/(app)/crm/territories/TerritoriesClient.tsx",
+    /* The account manager view, Robert's CRM R6 of 2026-11-02, built to the staff standard from the start. */
+    "src/app/portal/(app)/crm/accounts/page.tsx",
+    /* The manager's sales reports, Robert's CRM R8 of 2026-11-02, built to the staff standard from the start. */
+    "src/app/portal/(app)/crm/reports/page.tsx",
     "src/app/portal/(app)/prospects/page.tsx",
     "src/app/portal/(app)/prospects/ProspectsClient.tsx",
     "src/app/portal/(app)/prospects/[id]/page.tsx",
@@ -341,6 +348,8 @@ const PORTED = [
   "src/app/(order)/order/start/[slug]/page.tsx",
   "src/app/(order)/order/referred/[code]/page.tsx",
   "src/app/account/SignOutButton.tsx",
+  /* Auth M2's "Sign out everywhere" on the account screen, 2026-11-02, on the day it was built. */
+  "src/app/account/SignOutEverywhereButton.tsx",
   "src/app/account/layout.tsx",
   /*
    * The forgot password pair, 2026-09-29, added the same day the screen was
@@ -416,6 +425,8 @@ const PORTED = [
   "src/app/portal/(app)/intake/page.tsx",
   "src/app/portal/(app)/intake/IntakeClient.tsx",
   "src/app/portal/(app)/jobs/JobsClient.tsx",
+  // Offer alerts on the technician's phone, Robert's T9 of 2026-11-07.
+  "src/app/portal/(app)/jobs/OfferAlerts.tsx",
   "src/app/portal/(app)/jobs/[id]/CaptureClient.tsx",
   "src/app/portal/(app)/jobs/[id]/page.tsx",
   // The offline job screen, Robert's T2 of 2026-11-07.
@@ -436,6 +447,8 @@ const PORTED = [
   "src/app/portal/(app)/people/page.tsx",
   "src/app/portal/(app)/profile/PasswordForm.tsx",
   "src/app/portal/(app)/profile/PreferencesForm.tsx",
+  /* Auth M2's "Sign out everywhere" on the profile screen, 2026-11-02, on the day it was built. */
+  "src/app/portal/(app)/profile/SignOutEverywhere.tsx",
   "src/app/portal/(app)/profile/page.tsx",
   /* The engineer's seal and signature, 2026-10-07. Staff scale, like the
    * profile screen it hangs off. Missed on the first board, named by none of
@@ -708,6 +721,7 @@ const CUSTOMER_V10 = [
   "src/app/account/page.tsx",
   "src/app/account/PartnerProfile.tsx",
   "src/app/account/SignOutButton.tsx",
+  "src/app/account/SignOutEverywhereButton.tsx",
   "src/components/order/OrderFlow.tsx",
   /* The order surface's own layout, read from 2026-10-29: every page under it is on this list, so it is held to the same scale. */
   "src/app/(order)/layout.tsx",
@@ -816,6 +830,7 @@ const STAFF_V10 = [
    */
   "src/app/portal/(app)/jobs/page.tsx",
   "src/app/portal/(app)/jobs/JobsClient.tsx",
+  "src/app/portal/(app)/jobs/OfferAlerts.tsx",
   "src/app/portal/(app)/jobs/[id]/page.tsx",
   "src/app/portal/(app)/jobs/[id]/CaptureClient.tsx",
   "src/app/portal/(app)/jobs/offline/page.tsx",

@@ -4420,6 +4420,159 @@ export const APPLIED = [
       "his answer 3: the account opens at step one through door 1, and the work, insurance and references are a " +
       "profile filled in section by section. R7 onward move up one. No row, column or table is deleted.",
   },
+  {
+    file: "0118_the_sales_list_sends_one_email_a_day_and_hears_replies.sql", appliedBy: "apply_migration",
+    fingerprint: "0e9984b3429c1204dca15419498b452c",
+    behaviour: "655d65a66391c36866544facb70e1a50",
+    production: null,
+    proves: { table: "eng_crm_email_sends" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-07 on the chain to 0118. Shape 1541 to 1566 " +
+      "columns: 12 on eng_crm_email_sends, 12 on eng_crm_email_replies, 1 on eng_prospects (sequence_paused_at); " +
+      "tables 116 to 118. Behaviour 1527 to 1552 facts: the two tables' keys, checks and foreign keys, the one send per " +
+      "address per day partial unique index, the reply event once index and the two lookup indexes. Written as 0115 on " +
+      "2026-11-02, renumbered to 0117 by Robert's ruling (a) of 2026-11-04 and order A of 2026-11-05, and to 0118 by " +
+      "his answer 3 of 2026-11-06 (the roofer rework takes 0117); only its own numbers moved.",
+    because:
+      "WRITTEN 2026-11-02 ON feat/crm-r7-email AS 0115, RENUMBERED ON feat/crm-r7-email-0117 AND AGAIN ON " +
+      "feat/crm-r7-email-0118, STAGED ON stage/0118-crm-email FOR THE CHAT COUNTERPART'S SITTING; " +
+      "ON DEVELOPMENT SINCE 2026-11-07 (6707964039, version 20261107140729, stored f7cc33c9, shape 0e9984b3 at 1566 " +
+      "columns and 118 tables as the replay); PENDING ON PRODUCTION for Robert's sitting with R6 and R7. Robert's sales CRM ruling of 2026-11-02, item R7, sequences and email: one send per address per " +
+      "day, written before the email is queued; replies recorded once by the webhook's event id; a reply pauses the " +
+      "sequence. Additive: two tables and one column.",
+  },
+  {
+    file: "0119_the_sales_list_attributes_accounts_and_orders_to_reps.sql", appliedBy: "apply_migration",
+    fingerprint: "38319e8c5ec88213932cbc387124c744",
+    behaviour: "9e1c9d501e570ca15ff84090db44806b",
+    production: null,
+    proves: { table: "eng_crm_attributions" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-07 on the chain to 0119. Shape 1566 to 1573 " +
+      "columns: 7 on eng_crm_attributions; tables 118 to 119. Behaviour 1552 to 1565 facts: the table's key, " +
+      "its two checks and three foreign keys, the one row per order and one opening per prospect partial unique " +
+      "indexes, the two lookup indexes, row level security and the append only trigger. Written as 0116 on " +
+      "2026-11-02, renumbered to 0118 by Robert's ruling (a) of 2026-11-04 and order A of 2026-11-05, and to 0119 by " +
+      "his answer 3 of 2026-11-06 (the roofer rework takes 0117); only its own numbers moved.",
+    because:
+      "WRITTEN 2026-11-02 ON feat/crm-r8-reports AS 0116, RENUMBERED ON feat/crm-r8-reports-0118 AND AGAIN ON " +
+      "feat/crm-r8-reports-0119, STAGED ON " +
+      "stage/0119-crm-attribution FOR THE CHAT COUNTERPART'S " +
+      "SITTING; ON DEVELOPMENT SINCE 2026-11-07 (6709609064, version 20261107161136, stored abf4e889, shape 38319e8c " +
+      "at 1573 columns and 119 tables as the replay); PENDING ON PRODUCTION for Robert's sitting. Robert's sales CRM " +
+      "ruling of 2026-11-02, item R8: the attribution chain prospect to " +
+      "account to order, written on conversion and on each order. Additive: one append only table.",
+  },
+  {
+    file: "0120_a_session_ends_when_its_epoch_moves.sql", appliedBy: "apply_migration",
+    fingerprint: "3922bc19370dff71d91544fde180d815",
+    behaviour: "9e1c9d501e570ca15ff84090db44806b",
+    production: null,
+    proves: { column: { table: "eng_profiles", name: "session_epoch" } },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-07 on the chain to 0120. Shape 1573 " +
+      "to 1576 columns: session_epoch on eng_profiles, eng_customer_users and eng_partner_users; tables 119 unchanged. " +
+      "Behaviour unchanged at 1565 facts: three columns with a default add no key, check, index, trigger or function. " +
+      "Written as 0117 on 2026-11-02, renumbered to 0119 by Robert's ruling (a) of 2026-11-04 and order A of " +
+      "2026-11-05, and to 0120 by his answer 3 of 2026-11-06 (the roofer rework takes 0117); only its own numbers moved.",
+    because:
+      "WRITTEN 2026-11-02 ON fix/m2-session-epoch AS 0117, RENUMBERED ON fix/m2-session-epoch-0119 AND AGAIN ON " +
+      "fix/m2-session-epoch-0120, STAGED ON " +
+      "stage/0120-session-epoch FOR THE CHAT COUNTERPART'S " +
+      "SITTING; ON DEVELOPMENT SINCE 2026-11-07 (6710930616, version 20261107175158, stored ed2f5ac4, shape 3922bc19 " +
+      "at 1576 columns as the replay); PENDING ON PRODUCTION for Robert's sitting. Auth M2, Robert's ruling on issue #1 (answer to 6586517364), option A, rollout 1: " +
+      "each session cookie carries the epoch it was issued under and is refused when the row's has moved. Additive: " +
+      "three columns, integer not null default 0.",
+  },
+  {
+    file: "0121_an_order_is_on_one_statement_and_a_lost_dispute_is_a_refund.sql", appliedBy: "apply_migration",
+    fingerprint: "3922bc19370dff71d91544fde180d815",
+    behaviour: "8e31648ece62eef2a01042222aa0d4ec",
+    production: null,
+    proves: { function: "eng_apply_refund" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-07 on the chain to 0121 (written as 0118 on " +
+      "2026-11-03, renumbered to 0120 by ruling (a) of 2026-11-04 and order A of 2026-11-05, and to 0121 by Robert's " +
+      "answer 3 of 2026-11-06, the roofer rework taking 0117). Shape unchanged at 1576 " +
+      "columns and 119 tables. Behaviour 1565 to 1566 facts: the unique index eng_statement_lines_order_once; the " +
+      "widened eng_payment_events_type_known and the replaced eng_apply_refund change definitions, not counts. The " +
+      "proves probe names eng_apply_refund, which has existed since 0075, so it cannot tell this migration's presence " +
+      "on its own: the sitting's read back names the index and reads the function body for v_case.",
+    because:
+      "WRITTEN 2026-11-03 ON fix/q8b-money-constraints AND STAGED ON stage/0121-money-constraints FOR THE CHAT " +
+      "COUNTERPART'S DEVELOPMENT SITTING; ON DEVELOPMENT SINCE 2026-11-07 (6712014251, version 20261107193103, stored " +
+      "cf7277ec, one apply_migration call that the connector did not cancel, shape 3922bc19 unchanged); PENDING ON " +
+      "PRODUCTION for Robert's sitting. Robert's Q8 of 2026-11-02, money audit F8 and F10: an order " +
+      "is a line on one statement only, and eng_apply_refund takes its refund_case and event type from the payload so " +
+      "a lost dispute is written as dispute_lost. unique (account_id, period) on eng_statements already exists (0009) " +
+      "and is asserted, not added.",
+  },
+  {
+    file: "0122_a_payment_releases_only_its_own_amount_and_credit_is_held_once.sql", appliedBy: "apply_migration",
+    fingerprint: "7dc2aeceb558706cdc5f3ac2263071cc",
+    behaviour: "71b8bb4747180678681e2fe4d260a6b7",
+    production: null,
+    proves: { table: "eng_account_credit_holds" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-07 on the chain to 0122. Shape 1576 to 1579 " +
+      "columns: the three of eng_account_credit_holds; tables 119 to 120. Behaviour 1566 to 1572 facts: the table's " +
+      "key and foreign key, its row level security, and the two new functions; eng_apply_order_paid and " +
+      "eng_apply_batch_paid are replaced with the same signatures, which change definitions, not counts.",
+    because:
+      "WRITTEN 2026-11-06 ON fix/f12-f6-money-0121, RENUMBERED ON fix/f12-f6-money-0122 AND STAGED ON " +
+      "stage/0122-money-holds FOR THE CHAT COUNTERPART'S " +
+      "DEVELOPMENT SITTING; ON DEVELOPMENT SINCE 2026-11-07 (6713327137, version 20261107213615, stored 935d819f, " +
+      "shape 7dc2aece at 1579 columns and 120 tables as the replay); PENDING ON PRODUCTION for Robert's sitting. " +
+      "Money audit F12 and F6, Robert's answer of 2026-11-03 to 6594441148 " +
+      "(one migration branch for both), numbered 0121 by his overnight order of 2026-11-05 and 0122 by his answer 3 " +
+      "of 2026-11-06 (the roofer rework takes 0117). F12: a charge for an " +
+      "amount other than the order's or submission's releases nothing and raises a task. F6: one invoice submission " +
+      "at a time per account holds its credit, so two cannot both pass the limit. Additive: one table, two new " +
+      "functions, two function bodies replaced.",
+  },
+  {
+    file: "0123_a_prospect_is_one_of_eight_verticals.sql", appliedBy: "operator_sql_editor",
+    fingerprint: "7dc2aeceb558706cdc5f3ac2263071cc",
+    behaviour: "e2721b4a34613a145efc8e9a3d046020",
+    production: null,
+    handApplied:
+      "Not applied anywhere yet. Robert's overnight order of 2026-11-05 (numbering it 0122; his answer 3 of " +
+      "2026-11-06 moves it to 0123): stage its operator_sql_editor script on " +
+      "issue #1 for him and do not run it. It drops and re-adds eng_prospects_type_known, which the connector " +
+      "cancels, so development and production each go through the SQL editor in four blocks with Robert approving " +
+      "the prompt, and the provider's history holds a row only because the fourth block inserts it by hand after " +
+      "the verification read.",
+    proves: { column: { table: "eng_prospects", name: "prospect_type" } },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-07 on the chain to 0123. A replaced check adds no " +
+      "column, so the shape is 0122's (7dc2aece, 1579 columns); the behaviour count holds at 1572 facts and its " +
+      "digest moves, because the check's definition changes. The proves probe names a column that has existed " +
+      "since 0079, so it cannot tell this migration's presence on its own: the sitting's verification reads the " +
+      "check's definition.",
+    because:
+      "WRITTEN 2026-11-06 ON fix/prospect-kinds-0122, RENUMBERED ON fix/prospect-kinds-0123 AND STAGED ON " +
+      "stage/0123-prospect-kinds FOR ROBERT'S " +
+      "OPERATOR SITTING; APPLIED NOWHERE. Robert's CRM answer 8 of 2026-11-02, prepared as 6588395003: the prospect " +
+      "kind check holds the eight verticals, and every row's kind becomes its vertical; a title row and a person's " +
+      "contractor row keep the old kind as a tag. Destructive in shape (a check is dropped and re-added); no row, " +
+      "column or table is deleted.",
+  },
+  {
+    file: "0124_a_phone_hears_of_an_offer.sql", appliedBy: "apply_migration",
+    fingerprint: "b65258ba8ab4e52ccb52002a778ded81",
+    behaviour: "0833acd2e885c9e2035c0d8d7fe4a106",
+    production: null,
+    proves: { table: "eng_push_subscriptions" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-08 on the chain to 0124. Shape 1579 to 1587 " +
+      "columns, the eight of eng_push_subscriptions; tables 120 to 121. Behaviour 1572 to 1580 facts: its key, its " +
+      "foreign key to eng_profiles, two checks (an https endpoint, and a revocation that says why), the unique " +
+      "endpoint index, the live-subscription index, and row level security.",
+    because:
+      "WRITTEN 2026-11-07 ON feat/t9-offer-push FOR ROBERT'S T9, WEB PUSH FOR A NEW OFFER (his answers 6 and 7 of " +
+      "2026-11-07, 6717223376); APPLIED NOWHERE. One table holding the push service's endpoint per phone; pushes " +
+      "carry no payload, so no job and no wording is stored. Additive: one table.",
+  },
 ];
 
 /*

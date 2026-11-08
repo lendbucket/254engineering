@@ -10,6 +10,8 @@ import { business } from "@/config/business";
 import { formatInFirmZone } from "@/lib/firm-calendar";
 import { withSaveOutcome } from "@/lib/save-outcome";
 import { fieldTechEnrollmentRefusal } from "@/lib/academy-record";
+import { bumpSessionEpoch } from "@/lib/session-epoch";
+import { validEpoch } from "@/lib/session-epoch-rules";
 
 /**
  * Account administration: create, resend an invite, suspend, restore, force a
@@ -234,6 +236,19 @@ async function handlePOST(request: NextRequest) {
       .maybeSingle();
     if (!target) return NextResponse.json({ ok: false, error: "No such person." }, { status: 404 });
 
+    /*
+     * A FORCED RESET ENDS EVERY SESSION THE PERSON HOLDS, auth M2 (Robert,
+     * 2026-11-02, option A). An administrator forces a reset because a
+     * credential is in doubt, so a session already open on it must not outlive
+     * the order. Bumped before the link is issued, so a failure issues nothing.
+     */
+    if (action === "force_reset") {
+      const ended = await bumpSessionEpoch(db, "eng_profiles", profileId);
+      if (!ended.ok) {
+        return NextResponse.json({ ok: false, error: `The reset was not started: ${ended.error}` }, { status: 503 });
+      }
+    }
+
     const issued = await issueSetPasswordToken(
       profileId,
       action === "resend_invite" ? "set_password" : "reset_password",
@@ -290,12 +305,26 @@ async function handlePOST(request: NextRequest) {
 
     const { data: target } = await db
       .from("eng_profiles")
-      .select("id, display_name, status")
+      .select("id, display_name, status, session_epoch")
       .eq("id", profileId)
       .maybeSingle();
     if (!target) return NextResponse.json({ ok: false, error: "No such person." }, { status: 404 });
 
     const nextStatus = action === "suspend" ? "suspended" : "active";
+    /*
+     * A SUSPENSION ALSO ENDS EVERY SESSION, auth M2 (Robert, 2026-11-02). The
+     * status already bites on the next request because currentActor re-reads
+     * it; bumping the epoch in the SAME update means a later restore does not
+     * bring the old cookies back to life. The update is conditional on the
+     * epoch it read and its row count is checked, so a race is refused, never
+     * half applied. A restore leaves the epoch alone: the person signs in anew.
+     * The epoch is read and checked here, before the record is written (F20),
+     * so an unreadable epoch refuses with nothing recorded and nothing changed.
+     */
+    const readEpoch = (target as { session_epoch?: unknown }).session_epoch;
+    if (action === "suspend" && !validEpoch(readEpoch)) {
+      return NextResponse.json({ ok: false, error: "This account's sessions could not be read. Nothing was changed." }, { status: 503 });
+    }
 
     /*
      * THE RECORD FIRST (office audit F20, 2026-11-02). Who suspended or restored
@@ -316,26 +345,32 @@ async function handlePOST(request: NextRequest) {
     });
     if (!audited.ok) return NextResponse.json({ ok: false, error: audited.error }, { status: 503 });
 
-    const { error } = await db
+    let write = db
       .from("eng_profiles")
       .update({
         status: nextStatus,
         /* DB_NOW. When an account was suspended is on the firm's audit trail,
          * and it was written from whichever machine served the request. */
         suspended_at: action === "suspend" ? DB_NOW : null,
+        ...(action === "suspend" ? { session_epoch: (readEpoch as number) + 1 } : {}),
       })
       .eq("id", profileId);
-    if (error) {
+    if (action === "suspend") write = write.eq("session_epoch", readEpoch as number);
+    const { data: moved, error } = await write.select("id");
+    const raced = !error && (moved ?? []).length !== 1;
+    if (error || raced) {
+      const why = error ? error.message : "the account changed while the request was being made";
       await writeAudit({
         actor: { id: actor.id, role: actor.role, email: actor.email },
         action: action === "suspend" ? "profile.suspend_failed" : "profile.restore_failed",
         entityType: "profile",
         entityId: profileId,
-        summary: `The ${action} of ${target.display_name} recorded above did not take effect: ${error.message}`,
+        summary: `The ${action} of ${target.display_name} recorded above did not take effect: ${why}`,
         ip,
         userAgent,
       });
-      return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+      if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+      return NextResponse.json({ ok: false, error: "This account changed while you were working. Open it again." }, { status: 409 });
     }
 
     return NextResponse.json({ ok: true });

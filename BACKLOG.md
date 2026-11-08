@@ -22,6 +22,40 @@ pointer, not a second copy.
   (`HELD_KEEP`): TREC alone gives well over a hundred thousand records with no
   phone. They are read again on the next run of the source.
 
+## SALES SEQUENCE EMAILS (CRM R7, 2026-11-02): REPLIES WAIT FOR THE SUBDOMAIN, BOUNCES ARE NOT SEEN
+
+Built on `feat/crm-r7-email`, Robert's sales CRM ruling R7. The reasoning is in
+`src/lib/crm-email.ts` and `src/lib/crm-inbound.ts`; this is the pointer.
+
+- **Replies wait for Robert's DNS** (records posted, issue #1 comment
+  6588394106). When `reply.254engineering.com` reads verified in Resend:
+  set `RESEND_WEBHOOK_SECRET` in Vercel (Production only), create the
+  webhook for `email.received` at `/api/inbound/resend`, and set
+  `CRM_REPLY_DOMAIN` in `src/config/crm-email.ts`. Until then the route
+  answers 404, Reply-To is the support mailbox, and a rep records a reply by
+  hand on the company page. Setting the domain needs `REPLY_TO_EXCEPTIONS`
+  in `src/config/email-identity.ts` to name the tagged address, which
+  email-audit pins.
+- **Bounces are not seen.** Nothing in this platform receives Resend's
+  delivery events, so an address Resend refuses is known only from Resend's
+  own log, and the sequence moves on as if the email went. A delivery
+  webhook (`email.bounced`, `email.complained`) recorded against the send
+  ledger, with a bounced address suppressed, is the build. **QUEUED by
+  Robert, 2026-11-02 (issue #1 answer 4 to 6592143963): "yes, delivery
+  webhook in BACKLOG."** Not built in R7, which named suppression and a bounce
+  note, not a delivery feed.
+- **List-Unsubscribe headers. QUEUED as a follow-up by Robert, 2026-11-02
+  (issue #1 answer 6 to 6592143963): "add the List-Unsubscribe and
+  List-Unsubscribe-Post headers to every marketing template as a follow-up;
+  the footer link stays."** Every template in `MARKETING_TEMPLATES` gains
+  `List-Unsubscribe: <https unsubscribe URL>` (and a mailto if one is ruled)
+  and `List-Unsubscribe-Post: List-Unsubscribe=One-Click`, passed through
+  `notify()` to Resend as headers; the one-click POST needs the unsubscribe
+  route to accept POST. The footer link and its wording stay. Not built.
+- **No Resend idempotency key on this branch.** Q12 (office F3) adds one per
+  job; until Q12 merges, the queue's own key (address, subject, text) and the
+  send ledger are what stop a second send.
+
 ## PLANNED, Q1 2027: 254 ONTO ITS OWN SUPABASE PROJECT
 
 Robert, 15:07 Central 2026-10-31: the parked production cutover is acknowledged

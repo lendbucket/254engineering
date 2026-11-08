@@ -101,6 +101,12 @@ const DISPLAY = {
    * order, so a minute old answer costs a rep one script choice at most.
    */
   "src/lib/crm-queue.ts": { lineIsSellableForDisplay: 1 },
+  /*
+   * The sales CRM's sequence emails, Robert's R7 of 2026-11-02: the same
+   * question for the same reason, choosing which approved email a prospect
+   * receives (open or prelaunch). It takes no money and opens no order.
+   */
+  "src/lib/crm-email.ts": { lineIsSellableForDisplay: 1 },
 };
 for (const [file, calls] of Object.entries(DISPLAY)) {
   for (const [fn, want] of Object.entries(calls)) {

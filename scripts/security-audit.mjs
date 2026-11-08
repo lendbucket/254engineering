@@ -146,11 +146,17 @@ const ADMIN_PAGES = [
   "/portal/crm/imports",
   /* The call queue (Robert's CRM R3, 2026-11-02): crm.use, closed to a signed out caller. */
   "/portal/crm/queue",
+  /* The sequence emails and the replies (Robert's CRM R7, 2026-11-02): crm.use, closed to a signed out caller. */
+  "/portal/crm/emails",
   /* The stage board and the list (Robert's CRM R4, 2026-11-02): crm.use, closed to a signed out caller. */
   "/portal/crm",
   "/portal/crm/list",
   /* The sales territories (Robert's CRM R5, 2026-11-02): crm.assign, closed to a signed out caller. */
   "/portal/crm/territories",
+  /* The account manager view (Robert's CRM R6, 2026-11-02): crm.use, closed to a signed out caller. */
+  "/portal/crm/accounts",
+  /* The manager's sales reports (Robert's CRM R8, 2026-11-02): crm.reports, closed to a signed out caller. */
+  "/portal/crm/reports",
   "/portal/inbox",
   "/portal/order-lookup",
   "/portal/refunds",
@@ -374,6 +380,8 @@ const ADMIN_APIS = [
   "/api/portal/crm",
   // The sales territories (Robert's CRM R5, 2026-11-02): create, rename, counties and holders, on crm.assign.
   "/api/portal/crm/territories",
+  // The sales reports as a CSV (Robert's CRM R8, 2026-11-02): the admin export gate, mayExport on crm.reports.
+  "/api/portal/crm/reports",
   "/api/portal/contact-log",
   "/api/portal/refunds",
   // The refund requests as a CSV, a read beside the POST only route (office ready, 2026-10-24).
