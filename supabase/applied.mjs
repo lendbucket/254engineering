@@ -4473,6 +4473,32 @@ export const APPLIED = [
       "ruling of 2026-11-02, item R8: the attribution chain prospect to " +
       "account to order, written on conversion and on each order. Additive: one append only table.",
   },
+  {
+    file: "0120_a_session_ends_when_its_epoch_moves.sql", appliedBy: "apply_migration",
+    fingerprint: "3922bc19370dff71d91544fde180d815",
+    behaviour: "9e1c9d501e570ca15ff84090db44806b",
+    /*
+     * Production: applied 2026-11-08 in Robert's sitting by the chat counterpart, from
+     * the boarded commit 1250631 (board 42398897632); schema_migrations version
+     * 20261108164400, stored hash ed2f5ac4 (issue #1, 6724192630).
+     */
+    production: "2026-11-08",
+    proves: { column: { table: "eng_profiles", name: "session_epoch" } },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-07 on the chain to 0120. Shape 1573 " +
+      "to 1576 columns: session_epoch on eng_profiles, eng_customer_users and eng_partner_users; tables 119 unchanged. " +
+      "Behaviour unchanged at 1565 facts: three columns with a default add no key, check, index, trigger or function. " +
+      "Written as 0117 on 2026-11-02, renumbered to 0119 by Robert's ruling (a) of 2026-11-04 and order A of " +
+      "2026-11-05, and to 0120 by his answer 3 of 2026-11-06 (the roofer rework takes 0117); only its own numbers moved.",
+    because:
+      "WRITTEN 2026-11-02 ON fix/m2-session-epoch AS 0117, RENUMBERED ON fix/m2-session-epoch-0119 AND AGAIN ON " +
+      "fix/m2-session-epoch-0120, STAGED ON " +
+      "stage/0120-session-epoch FOR THE CHAT COUNTERPART'S " +
+      "SITTING; ON DEVELOPMENT SINCE 2026-11-07 (6710930616, version 20261107175158, stored ed2f5ac4, shape 3922bc19 " +
+      "at 1576 columns as the replay); ON PRODUCTION SINCE 2026-11-08 (6724192630, version 20261108164400). Auth M2, Robert's ruling on issue #1 (answer to 6586517364), option A, rollout 1: " +
+      "each session cookie carries the epoch it was issued under and is refused when the row's has moved. Additive: " +
+      "three columns, integer not null default 0.",
+  },
 ];
 
 /*

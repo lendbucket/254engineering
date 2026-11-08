@@ -10,6 +10,7 @@ import { OWNER_OVERRIDE_ACTION, SIGN_IN_OVERRIDE_RECORD, type SignInOverrideKey 
 import { homeFor } from "@/lib/ops-authz";
 import { supabaseAdmin } from "@/lib/supabase";
 import { withSaveOutcome } from "@/lib/save-outcome";
+import { readSessionEpoch } from "@/lib/session-epoch";
 
 /**
  * Sign in and sign out.
@@ -235,7 +236,16 @@ async function handlePOST(request: NextRequest) {
     if (!used.ok) return fail(503, "Your sign in could not be recorded, so it was not completed. Try again in a moment.");
   }
 
-  const session = issueOpsSession(result.profile.id, result.profile.role, factor);
+  /*
+   * The cookie carries the profile's current session epoch, auth M2 (Robert,
+   * 2026-11-02): currentActor refuses any cookie whose epoch is not the
+   * profile's, so a password change or a forced reset ends this one too. An
+   * epoch that cannot be read issues nothing.
+   */
+  const epochDb = supabaseAdmin();
+  const epochRead = epochDb ? await readSessionEpoch(epochDb, "eng_profiles", result.profile.id) : null;
+  if (!epochRead || !epochRead.ok) return fail(503, "Your sign in could not be completed just now. Try again in a moment.");
+  const session = issueOpsSession(result.profile.id, result.profile.role, factor, Date.now(), epochRead.epoch);
   if (!session) return fail(503, "The portal is not configured.");
 
   const db = supabaseAdmin();
