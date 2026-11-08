@@ -4530,7 +4530,12 @@ export const APPLIED = [
     file: "0122_a_payment_releases_only_its_own_amount_and_credit_is_held_once.sql", appliedBy: "apply_migration",
     fingerprint: "7dc2aeceb558706cdc5f3ac2263071cc",
     behaviour: "71b8bb4747180678681e2fe4d260a6b7",
-    production: null,
+    /*
+     * Production: applied 2026-11-08 in Robert's sitting by the chat counterpart, from
+     * the boarded commit d2bdb09 (board 42417101959); schema_migrations version
+     * 20261108164540, stored hash 935d819f (issue #1, 6724212071).
+     */
+    production: "2026-11-08",
     proves: { table: "eng_account_credit_holds" },
     note:
       "Both figures read off scripts/fingerprint-at.mjs on 2026-11-07 on the chain to 0122. Shape 1576 to 1579 " +
@@ -4541,7 +4546,7 @@ export const APPLIED = [
       "WRITTEN 2026-11-06 ON fix/f12-f6-money-0121, RENUMBERED ON fix/f12-f6-money-0122 AND STAGED ON " +
       "stage/0122-money-holds FOR THE CHAT COUNTERPART'S " +
       "DEVELOPMENT SITTING; ON DEVELOPMENT SINCE 2026-11-07 (6713327137, version 20261107213615, stored 935d819f, " +
-      "shape 7dc2aece at 1579 columns and 120 tables as the replay); PENDING ON PRODUCTION for Robert's sitting. " +
+      "shape 7dc2aece at 1579 columns and 120 tables as the replay); ON PRODUCTION SINCE 2026-11-08 (6724212071, version 20261108164540). " +
       "Money audit F12 and F6, Robert's answer of 2026-11-03 to 6594441148 " +
       "(one migration branch for both), numbered 0121 by his overnight order of 2026-11-05 and 0122 by his answer 3 " +
       "of 2026-11-06 (the roofer rework takes 0117). F12: a charge for an " +
