@@ -31,8 +31,12 @@ import { duplicateCheckSentence } from "@/lib/evidence-fingerprint";
 import { ListControls, listHref } from "@/components/portal/ListControls";
 import { staffListQuery, staffListRows } from "@/lib/staff-lists";
 import { REVIEW_STATUS_FILTER, reviewQueueList } from "@/lib/review-queue-list";
+import { revisionFor } from "@/lib/ops-field";
 
 export const dynamic = "force-dynamic";
+
+/** How a request or reply time reads in review: "Nov 7, 2:05 PM", in the firm's zone. */
+const REVIEW_WHEN = { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" } as const;
 
 /**
  * The review queue and the evidence package.
@@ -87,6 +91,9 @@ export default async function ReviewPage({
 
   const queue = await timed("queue", reviewQueue(actor));
   const selected = params.id ? await timed("package", packageFor(actor, params.id)) : null;
+  /* The last time this file was sent back, and the technician's reply (Robert's T5). Null when the read failed. */
+  const lastReturn =
+    selected && (selected.file.revision_count ?? 0) > 0 ? await timed("revision", revisionFor(selected.file.id)) : undefined;
   /*
    * THE LETTERS HE HAS DECIDED AND NOT YET SEALED, sealing piece two. Every
    * one of his, for the list at the top, and the selected file's, which takes
@@ -554,6 +561,37 @@ export default async function ReviewPage({
                   </p>
                 ) : null}
               </div>
+
+              {/*
+                THE LAST RETURN AND THE TECHNICIAN'S ANSWER (Robert's T5,
+                2026-11-07). A package that was sent back comes back with the
+                engineer's own note and the technician's reply, so the second
+                review starts from what was asked rather than from memory.
+              */}
+              {lastReturn === null ? (
+                <p className="mb-6 text-[14px] font-semibold text-[var(--ink)]">
+                  This file was sent back before, and that request could not be read. Reload to try again.
+                </p>
+              ) : lastReturn?.round ? (
+                <section className="mb-6">
+                  <h3 className="border-b-2 border-[var(--ink)] pb-2 text-[15px] font-semibold text-[var(--ink)]">
+                    Sent back {formatInFirmZone(lastReturn.round.requestedAt, REVIEW_WHEN) ?? lastReturn.round.requestedAt}
+                  </h3>
+                  <p className="mt-2 max-w-[70ch] whitespace-pre-line text-[14px] leading-[1.55] text-[var(--ink)]">
+                    {lastReturn.round.note}
+                  </p>
+                  <p className="mt-3 text-[13px] font-semibold text-[var(--ink)]">
+                    {lastReturn.round.reply
+                      ? `The technician's reply, ${formatInFirmZone(lastReturn.round.reply.at, REVIEW_WHEN) ?? lastReturn.round.reply.at}`
+                      : "No reply from the technician yet."}
+                  </p>
+                  {lastReturn.round.reply ? (
+                    <p className="mt-1 max-w-[70ch] whitespace-pre-line text-[14px] leading-[1.55] text-[var(--ink)]">
+                      {lastReturn.round.reply.body}
+                    </p>
+                  ) : null}
+                </section>
+              ) : null}
 
               {selected.file.status === "refused" && selected.file.refusal_reason ? (
                 /*
