@@ -4503,7 +4503,12 @@ export const APPLIED = [
     file: "0121_an_order_is_on_one_statement_and_a_lost_dispute_is_a_refund.sql", appliedBy: "apply_migration",
     fingerprint: "3922bc19370dff71d91544fde180d815",
     behaviour: "8e31648ece62eef2a01042222aa0d4ec",
-    production: null,
+    /*
+     * Production: applied 2026-11-08 in Robert's sitting by the chat counterpart, from
+     * the boarded commit be630fd (board 42409311782); schema_migrations version
+     * 20261108164443, stored hash cf7277ec (issue #1, 6724200776).
+     */
+    production: "2026-11-08",
     proves: { function: "eng_apply_refund" },
     note:
       "Both figures read off scripts/fingerprint-at.mjs on 2026-11-07 on the chain to 0121 (written as 0118 on " +
@@ -4516,8 +4521,7 @@ export const APPLIED = [
     because:
       "WRITTEN 2026-11-03 ON fix/q8b-money-constraints AND STAGED ON stage/0121-money-constraints FOR THE CHAT " +
       "COUNTERPART'S DEVELOPMENT SITTING; ON DEVELOPMENT SINCE 2026-11-07 (6712014251, version 20261107193103, stored " +
-      "cf7277ec, one apply_migration call that the connector did not cancel, shape 3922bc19 unchanged); PENDING ON " +
-      "PRODUCTION for Robert's sitting. Robert's Q8 of 2026-11-02, money audit F8 and F10: an order " +
+      "cf7277ec, one apply_migration call that the connector did not cancel, shape 3922bc19 unchanged); ON PRODUCTION SINCE 2026-11-08 (6724200776, version 20261108164443). Robert's Q8 of 2026-11-02, money audit F8 and F10: an order " +
       "is a line on one statement only, and eng_apply_refund takes its refund_case and event type from the payload so " +
       "a lost dispute is written as dispute_lost. unique (account_id, period) on eng_statements already exists (0009) " +
       "and is asserted, not added.",
