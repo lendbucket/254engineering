@@ -4560,8 +4560,10 @@ export const APPLIED = [
     behaviour: "e2721b4a34613a145efc8e9a3d046020",
     production: null,
     handApplied:
-      "Not applied anywhere yet. Robert's overnight order of 2026-11-05 (numbering it 0122; his answer 3 of " +
-      "2026-11-06 moves it to 0123): stage its operator_sql_editor script on " +
+      "On development since 2026-11-08, run by Robert's approval in chat at 10:47 Central through the four blocks " +
+      "of 6714289530, the chat counterpart at the keyboard (6724245498): version 20261108164847, stored 025bd052; " +
+      "development held no prospects, so no row changed. Not on production. Robert's overnight order of 2026-11-05 " +
+      "(numbering it 0122; his answer 3 of 2026-11-06 moves it to 0123): stage its operator_sql_editor script on " +
       "issue #1 for him and do not run it. It drops and re-adds eng_prospects_type_known, which the connector " +
       "cancels, so development and production each go through the SQL editor in four blocks with Robert approving " +
       "the prompt, and the provider's history holds a row only because the fourth block inserts it by hand after " +
@@ -4576,7 +4578,8 @@ export const APPLIED = [
     because:
       "WRITTEN 2026-11-06 ON fix/prospect-kinds-0122, RENUMBERED ON fix/prospect-kinds-0123 AND STAGED ON " +
       "stage/0123-prospect-kinds FOR ROBERT'S " +
-      "OPERATOR SITTING; APPLIED NOWHERE. Robert's CRM answer 8 of 2026-11-02, prepared as 6588395003: the prospect " +
+      "OPERATOR SITTING; ON DEVELOPMENT SINCE 2026-11-08 (6724245498, version 20261108164847, stored 025bd052); " +
+      "PENDING ON PRODUCTION, which Robert runs himself. Robert's CRM answer 8 of 2026-11-02, prepared as 6588395003: the prospect " +
       "kind check holds the eight verticals, and every row's kind becomes its vertical; a title row and a person's " +
       "contractor row keep the old kind as a tag. Destructive in shape (a check is dropped and re-added); no row, " +
       "column or table is deleted.",
