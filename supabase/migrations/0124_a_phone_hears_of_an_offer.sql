@@ -19,11 +19,21 @@
  *                           off stamps it too. Rows are stamped, never
  *                           deleted, except with the person they belong to.
  *
- * WHAT IS SENT, AND WHAT IS NOT KEPT. A push carries no payload: the phone's
- * service worker asks the server what to show when one arrives, so nothing
- * about a job crosses the push service at all, and nothing here holds the
- * wording. The p256dh and auth keys a browser returns with a subscription are
- * not stored, because a push with no payload needs neither.
+ * WHAT IS SENT, AND WHAT IS NOT KEPT. A web push carries no payload: the
+ * phone's service worker asks the server what to show when one arrives, so
+ * nothing about a job crosses a browser's push service, and nothing here holds
+ * the wording. The p256dh and auth keys a browser returns with a subscription
+ * are not stored, because a push with no payload needs neither.
+ *
+ * THREE CHANNELS, ONE TABLE (Robert's T8 of 2026-11-08: native push "reuses
+ * T9's subscription table and push channel"). `channel` says what the endpoint
+ * is: `web`, a browser's https push address; `fcm`, an Android phone's Firebase
+ * token; `apns`, an iPhone's Apple token. A native push carries its own text
+ * through Apple's or Google's service, so for those two the lock screen's words
+ * (county and service, never an address or a price) do cross the push service.
+ * That is the one difference, stated rather than hidden. Amended before it was
+ * applied anywhere: 0124 had reached no database when the native channels were
+ * added, so this is the same migration and not a second one.
  *
  * ADDITIVE ONLY: no drop, no change to an existing constraint. Telemetry about
  * a device rather than a regulatory or financial fact, declared in
@@ -53,10 +63,19 @@ create table eng_push_subscriptions (
   id               uuid primary key default gen_random_uuid(),
   created_at       timestamptz not null default now(),
   profile_id       uuid not null references eng_profiles (id) on delete cascade,
-  /* The push service's address for this phone. https only, as every push service issues. */
-  endpoint         text not null
-                     constraint eng_push_subscriptions_endpoint_https
-                     check (endpoint like 'https://%' and length(endpoint) <= 2000),
+  /* Which push service: a browser's (web), Firebase's (fcm, Android) or Apple's (apns, iPhone). */
+  channel          text not null default 'web'
+                     constraint eng_push_subscriptions_channel_known
+                     check (channel in ('web', 'fcm', 'apns')),
+  /*
+   * Where to reach this phone: for web, the push service's https address; for
+   * fcm and apns, the device token the operating system issued.
+   */
+  endpoint         text not null,
+  constraint eng_push_subscriptions_endpoint_fits_channel check (
+    (channel = 'web' and endpoint like 'https://%' and length(endpoint) <= 2000)
+    or (channel in ('fcm', 'apns') and endpoint !~ '\s' and length(endpoint) between 16 and 4096)
+  ),
   /* What the phone said it was when it subscribed, for the person reading the list. */
   user_agent       text,
   last_success_at  timestamptz,
@@ -73,7 +92,7 @@ alter table eng_push_subscriptions enable row level security;
 revoke all on eng_push_subscriptions from public, anon, authenticated;
 
 comment on table eng_push_subscriptions is
-  'One row per phone allowed to hear of an offer by web push (Robert''s T9, 2026-11-07). The endpoint only; pushes carry no payload. Revoked rows are stamped, never sent to. 0124.';
+  'One row per phone allowed to hear of an offer (Robert''s T9 of 2026-11-07 and T8 of 2026-11-08): a browser push address, or a Firebase or Apple device token, by channel. Web pushes carry no payload; native pushes carry county and service only. Revoked rows are stamped, never sent to. 0124.';
 
 /* ------------------------------------------------------------- closing assert */
 

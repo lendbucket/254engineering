@@ -422,12 +422,13 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * shape does not move.
  *
  * Moved by 0124, a phone hears of an offer (Robert's T9 and his answers 6 and
- * 7 of 2026-11-07): the eight columns of eng_push_subscriptions, 1,579 to
- * 1,587; the table count moves 120 to 121; no trigger, no function. Read off
- * fingerprint-at.mjs on the chain to 0124.
+ * 7 of 2026-11-07, with the native channels of his T8 of 2026-11-08 added
+ * before it was applied anywhere): the nine columns of eng_push_subscriptions,
+ * 1,579 to 1,588; the table count moves 120 to 121; no trigger, no function.
+ * Read off fingerprint-at.mjs on the chain to 0124.
  */
-const EXPECTED_FINGERPRINT = "b65258ba8ab4e52ccb52002a778ded81";
-const EXPECTED_COLUMNS = 1587;
+const EXPECTED_FINGERPRINT = "369b4b0cbec23b07afba8ed83eb0c0c9";
+const EXPECTED_COLUMNS = 1588;
 const EXPECTED_TABLES = 121;
 /* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts.
  * 0074 adds two: eng_partner_billing_touch and eng_partner_billing_events_immutable.

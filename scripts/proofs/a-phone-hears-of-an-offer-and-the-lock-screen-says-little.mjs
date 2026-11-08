@@ -91,7 +91,7 @@ const field = readSource("src/lib/ops-field.ts");
 const sendAt = field.indexOf("export async function sendOffers(");
 const send = field.slice(sendAt, field.indexOf("\nexport ", sendAt + 10));
 const raiseAt = send.indexOf('kind: "offer.received"');
-const pushAt = send.indexOf("await pushOfferTo(id)");
+const pushAt = send.indexOf("await pushOfferTo(id, {");
 check("D: the offer's own notification still goes", raiseAt > 0);
 check("D: and the push goes beside it, after it, for each technician offered", pushAt > raiseAt);
 const ops = readSource("src/lib/ops-push.ts");
@@ -159,7 +159,20 @@ const refused = async (sql) => {
 };
 check("F: an https endpoint is taken", (await refused(`insert into eng_push_subscriptions (profile_id, endpoint) values ('${PROFILE}', 'https://push.example/1')`)) === "");
 check("F: the same endpoint twice is refused", (await refused(`insert into eng_push_subscriptions (profile_id, endpoint) values ('${PROFILE}', 'https://push.example/1')`)).includes("eng_push_subscriptions_endpoint_once"));
-check("F: an http endpoint is refused", (await refused(`insert into eng_push_subscriptions (profile_id, endpoint) values ('${PROFILE}', 'http://push.example/2')`)).includes("eng_push_subscriptions_endpoint_https"));
+check("F: an http endpoint is refused", (await refused(`insert into eng_push_subscriptions (profile_id, endpoint) values ('${PROFILE}', 'http://push.example/2')`)).includes("eng_push_subscriptions_endpoint_fits_channel"));
+check("F: a store app token is taken on its channel (T8)", (await refused(`insert into eng_push_subscriptions (profile_id, channel, endpoint) values ('${PROFILE}', 'fcm', 'fcm-token-abcdefghijklmnop')`)) === "");
+check("F: a token with whitespace is refused", (await refused(`insert into eng_push_subscriptions (profile_id, channel, endpoint) values ('${PROFILE}', 'apns', 'apns token with spaces in it')`)).includes("eng_push_subscriptions_endpoint_fits_channel"));
+check("F: an unknown channel is refused", (await refused(`insert into eng_push_subscriptions (profile_id, channel, endpoint) values ('${PROFILE}', 'sms', 'abcdefghijklmnopqrstu')`)).includes("eng_push_subscriptions_channel_known"));
+
+/* ------------------------------------------------------- G, the store app's push (T8) */
+
+check("G: the channel a request names is web, fcm or apns, and nothing else", rules.pushChannelFrom(undefined) === "web" && rules.pushChannelFrom("fcm") === "fcm" && rules.pushChannelFrom("sms") === null);
+check("G: a native token fits its channel and a web address does not pass as one", rules.endpointFitsChannel("fcm", "abcdefghijklmnopqrst") && !rules.endpointFitsChannel("web", "abcdefghijklmnopqrst"));
+const pushOffer = ops.slice(ops.indexOf("export async function pushOfferTo("), ops.indexOf("export async function latestOfferPushFor("));
+check("G: every channel gets the one wording, county and service, built by offerPushText", pushOffer.includes("const text = offerPushText(offer.county, offer.serviceName);") && /sendFirebase\(sub\.endpoint as string, text\)/.test(pushOffer) && /sendApns\(sub\.endpoint as string, text\)/.test(pushOffer));
+check("G: the offer hands the push its county and service only", /await pushOfferTo\(id, \{\s*county: \(file\.county as string \| null\) \?\? null,\s*serviceName: services\.find/.test(send));
+const native = readSource("src/lib/native-push.ts");
+check("G: a native push carries only the title and the line it is given, and the jobs screen to open", /notification: \{ title: text\.title, body: text\.body \}/.test(native) && /alert: \{ title: text\.title, body: text\.body \}/.test(native) && !/address|amount|price|cents/i.test(native.replace(/\/\*[\s\S]*?\*\//g, "")));
 check("F: a revocation with no reason is refused", (await refused(`update eng_push_subscriptions set revoked_at = now() where endpoint = 'https://push.example/1'`)).includes("eng_push_subscriptions_revocation_says_why"));
 
 console.log(wrong === 0 ? "PASS: a phone hears of an offer, and the lock screen says little." : `FAIL: ${wrong} check(s).`);

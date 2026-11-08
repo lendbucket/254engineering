@@ -4424,7 +4424,12 @@ export const APPLIED = [
     file: "0118_the_sales_list_sends_one_email_a_day_and_hears_replies.sql", appliedBy: "apply_migration",
     fingerprint: "0e9984b3429c1204dca15419498b452c",
     behaviour: "655d65a66391c36866544facb70e1a50",
-    production: null,
+    /*
+     * Production: applied 2026-11-08 in Robert's sitting by the chat counterpart, from
+     * the boarded commit 4022ef3 (board 42382855084); schema_migrations version
+     * 20261108164306, stored hash f7cc33c9 (issue #1, 6724183078).
+     */
+    production: "2026-11-08",
     proves: { table: "eng_crm_email_sends" },
     note:
       "Both figures read off scripts/fingerprint-at.mjs on 2026-11-07 on the chain to 0118. Shape 1541 to 1566 " +
@@ -4437,7 +4442,7 @@ export const APPLIED = [
       "WRITTEN 2026-11-02 ON feat/crm-r7-email AS 0115, RENUMBERED ON feat/crm-r7-email-0117 AND AGAIN ON " +
       "feat/crm-r7-email-0118, STAGED ON stage/0118-crm-email FOR THE CHAT COUNTERPART'S SITTING; " +
       "ON DEVELOPMENT SINCE 2026-11-07 (6707964039, version 20261107140729, stored f7cc33c9, shape 0e9984b3 at 1566 " +
-      "columns and 118 tables as the replay); PENDING ON PRODUCTION for Robert's sitting with R6 and R7. Robert's sales CRM ruling of 2026-11-02, item R7, sequences and email: one send per address per " +
+      "columns and 118 tables as the replay); ON PRODUCTION SINCE 2026-11-08 (6724183078, version 20261108164306). Robert's sales CRM ruling of 2026-11-02, item R7, sequences and email: one send per address per " +
       "day, written before the email is queued; replies recorded once by the webhook's event id; a reply pauses the " +
       "sequence. Additive: two tables and one column.",
   },
@@ -4445,7 +4450,12 @@ export const APPLIED = [
     file: "0119_the_sales_list_attributes_accounts_and_orders_to_reps.sql", appliedBy: "apply_migration",
     fingerprint: "38319e8c5ec88213932cbc387124c744",
     behaviour: "9e1c9d501e570ca15ff84090db44806b",
-    production: null,
+    /*
+     * Production: applied 2026-11-08 in Robert's sitting by the chat counterpart, from
+     * the boarded commit e97cd86 (board 42390790365); schema_migrations version
+     * 20261108164336, stored hash abf4e889 (issue #1, 6724188326).
+     */
+    production: "2026-11-08",
     proves: { table: "eng_crm_attributions" },
     note:
       "Both figures read off scripts/fingerprint-at.mjs on 2026-11-07 on the chain to 0119. Shape 1566 to 1573 " +
@@ -4459,7 +4469,7 @@ export const APPLIED = [
       "feat/crm-r8-reports-0119, STAGED ON " +
       "stage/0119-crm-attribution FOR THE CHAT COUNTERPART'S " +
       "SITTING; ON DEVELOPMENT SINCE 2026-11-07 (6709609064, version 20261107161136, stored abf4e889, shape 38319e8c " +
-      "at 1573 columns and 119 tables as the replay); PENDING ON PRODUCTION for Robert's sitting. Robert's sales CRM " +
+      "at 1573 columns and 119 tables as the replay); ON PRODUCTION SINCE 2026-11-08 (6724188326, version 20261108164336). Robert's sales CRM " +
       "ruling of 2026-11-02, item R8: the attribution chain prospect to " +
       "account to order, written on conversion and on each order. Additive: one append only table.",
   },
@@ -4467,7 +4477,12 @@ export const APPLIED = [
     file: "0120_a_session_ends_when_its_epoch_moves.sql", appliedBy: "apply_migration",
     fingerprint: "3922bc19370dff71d91544fde180d815",
     behaviour: "9e1c9d501e570ca15ff84090db44806b",
-    production: null,
+    /*
+     * Production: applied 2026-11-08 in Robert's sitting by the chat counterpart, from
+     * the boarded commit 1250631 (board 42398897632); schema_migrations version
+     * 20261108164400, stored hash ed2f5ac4 (issue #1, 6724192630).
+     */
+    production: "2026-11-08",
     proves: { column: { table: "eng_profiles", name: "session_epoch" } },
     note:
       "Both figures read off scripts/fingerprint-at.mjs on 2026-11-07 on the chain to 0120. Shape 1573 " +
@@ -4480,7 +4495,7 @@ export const APPLIED = [
       "fix/m2-session-epoch-0120, STAGED ON " +
       "stage/0120-session-epoch FOR THE CHAT COUNTERPART'S " +
       "SITTING; ON DEVELOPMENT SINCE 2026-11-07 (6710930616, version 20261107175158, stored ed2f5ac4, shape 3922bc19 " +
-      "at 1576 columns as the replay); PENDING ON PRODUCTION for Robert's sitting. Auth M2, Robert's ruling on issue #1 (answer to 6586517364), option A, rollout 1: " +
+      "at 1576 columns as the replay); ON PRODUCTION SINCE 2026-11-08 (6724192630, version 20261108164400). Auth M2, Robert's ruling on issue #1 (answer to 6586517364), option A, rollout 1: " +
       "each session cookie carries the epoch it was issued under and is refused when the row's has moved. Additive: " +
       "three columns, integer not null default 0.",
   },
@@ -4488,7 +4503,12 @@ export const APPLIED = [
     file: "0121_an_order_is_on_one_statement_and_a_lost_dispute_is_a_refund.sql", appliedBy: "apply_migration",
     fingerprint: "3922bc19370dff71d91544fde180d815",
     behaviour: "8e31648ece62eef2a01042222aa0d4ec",
-    production: null,
+    /*
+     * Production: applied 2026-11-08 in Robert's sitting by the chat counterpart, from
+     * the boarded commit be630fd (board 42409311782); schema_migrations version
+     * 20261108164443, stored hash cf7277ec (issue #1, 6724200776).
+     */
+    production: "2026-11-08",
     proves: { function: "eng_apply_refund" },
     note:
       "Both figures read off scripts/fingerprint-at.mjs on 2026-11-07 on the chain to 0121 (written as 0118 on " +
@@ -4501,8 +4521,7 @@ export const APPLIED = [
     because:
       "WRITTEN 2026-11-03 ON fix/q8b-money-constraints AND STAGED ON stage/0121-money-constraints FOR THE CHAT " +
       "COUNTERPART'S DEVELOPMENT SITTING; ON DEVELOPMENT SINCE 2026-11-07 (6712014251, version 20261107193103, stored " +
-      "cf7277ec, one apply_migration call that the connector did not cancel, shape 3922bc19 unchanged); PENDING ON " +
-      "PRODUCTION for Robert's sitting. Robert's Q8 of 2026-11-02, money audit F8 and F10: an order " +
+      "cf7277ec, one apply_migration call that the connector did not cancel, shape 3922bc19 unchanged); ON PRODUCTION SINCE 2026-11-08 (6724200776, version 20261108164443). Robert's Q8 of 2026-11-02, money audit F8 and F10: an order " +
       "is a line on one statement only, and eng_apply_refund takes its refund_case and event type from the payload so " +
       "a lost dispute is written as dispute_lost. unique (account_id, period) on eng_statements already exists (0009) " +
       "and is asserted, not added.",
@@ -4511,7 +4530,12 @@ export const APPLIED = [
     file: "0122_a_payment_releases_only_its_own_amount_and_credit_is_held_once.sql", appliedBy: "apply_migration",
     fingerprint: "7dc2aeceb558706cdc5f3ac2263071cc",
     behaviour: "71b8bb4747180678681e2fe4d260a6b7",
-    production: null,
+    /*
+     * Production: applied 2026-11-08 in Robert's sitting by the chat counterpart, from
+     * the boarded commit d2bdb09 (board 42417101959); schema_migrations version
+     * 20261108164540, stored hash 935d819f (issue #1, 6724212071).
+     */
+    production: "2026-11-08",
     proves: { table: "eng_account_credit_holds" },
     note:
       "Both figures read off scripts/fingerprint-at.mjs on 2026-11-07 on the chain to 0122. Shape 1576 to 1579 " +
@@ -4522,7 +4546,7 @@ export const APPLIED = [
       "WRITTEN 2026-11-06 ON fix/f12-f6-money-0121, RENUMBERED ON fix/f12-f6-money-0122 AND STAGED ON " +
       "stage/0122-money-holds FOR THE CHAT COUNTERPART'S " +
       "DEVELOPMENT SITTING; ON DEVELOPMENT SINCE 2026-11-07 (6713327137, version 20261107213615, stored 935d819f, " +
-      "shape 7dc2aece at 1579 columns and 120 tables as the replay); PENDING ON PRODUCTION for Robert's sitting. " +
+      "shape 7dc2aece at 1579 columns and 120 tables as the replay); ON PRODUCTION SINCE 2026-11-08 (6724212071, version 20261108164540). " +
       "Money audit F12 and F6, Robert's answer of 2026-11-03 to 6594441148 " +
       "(one migration branch for both), numbered 0121 by his overnight order of 2026-11-05 and 0122 by his answer 3 " +
       "of 2026-11-06 (the roofer rework takes 0117). F12: a charge for an " +
@@ -4536,8 +4560,10 @@ export const APPLIED = [
     behaviour: "e2721b4a34613a145efc8e9a3d046020",
     production: null,
     handApplied:
-      "Not applied anywhere yet. Robert's overnight order of 2026-11-05 (numbering it 0122; his answer 3 of " +
-      "2026-11-06 moves it to 0123): stage its operator_sql_editor script on " +
+      "On development since 2026-11-08, run by Robert's approval in chat at 10:47 Central through the four blocks " +
+      "of 6714289530, the chat counterpart at the keyboard (6724245498): version 20261108164847, stored 025bd052; " +
+      "development held no prospects, so no row changed. Not on production. Robert's overnight order of 2026-11-05 " +
+      "(numbering it 0122; his answer 3 of 2026-11-06 moves it to 0123): stage its operator_sql_editor script on " +
       "issue #1 for him and do not run it. It drops and re-adds eng_prospects_type_known, which the connector " +
       "cancels, so development and production each go through the SQL editor in four blocks with Robert approving " +
       "the prompt, and the provider's history holds a row only because the fourth block inserts it by hand after " +
@@ -4552,26 +4578,29 @@ export const APPLIED = [
     because:
       "WRITTEN 2026-11-06 ON fix/prospect-kinds-0122, RENUMBERED ON fix/prospect-kinds-0123 AND STAGED ON " +
       "stage/0123-prospect-kinds FOR ROBERT'S " +
-      "OPERATOR SITTING; APPLIED NOWHERE. Robert's CRM answer 8 of 2026-11-02, prepared as 6588395003: the prospect " +
+      "OPERATOR SITTING; ON DEVELOPMENT SINCE 2026-11-08 (6724245498, version 20261108164847, stored 025bd052); " +
+      "PENDING ON PRODUCTION, which Robert runs himself. Robert's CRM answer 8 of 2026-11-02, prepared as 6588395003: the prospect " +
       "kind check holds the eight verticals, and every row's kind becomes its vertical; a title row and a person's " +
       "contractor row keep the old kind as a tag. Destructive in shape (a check is dropped and re-added); no row, " +
       "column or table is deleted.",
   },
   {
     file: "0124_a_phone_hears_of_an_offer.sql", appliedBy: "apply_migration",
-    fingerprint: "b65258ba8ab4e52ccb52002a778ded81",
-    behaviour: "0833acd2e885c9e2035c0d8d7fe4a106",
+    fingerprint: "369b4b0cbec23b07afba8ed83eb0c0c9",
+    behaviour: "0413c5297b1d42f616fe3ce17123d8d2",
     production: null,
-    proves: { table: "eng_push_subscriptions" },
+    proves: { column: { table: "eng_push_subscriptions", name: "channel" } },
     note:
-      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-08 on the chain to 0124. Shape 1579 to 1587 " +
-      "columns, the eight of eng_push_subscriptions; tables 120 to 121. Behaviour 1572 to 1580 facts: its key, its " +
-      "foreign key to eng_profiles, two checks (an https endpoint, and a revocation that says why), the unique " +
-      "endpoint index, the live-subscription index, and row level security.",
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-08 on the chain to 0124, after the native channels " +
+      "were added (Robert's T8 of 2026-11-08) and before 0124 reached any database. Shape 1579 to 1588 columns, the " +
+      "nine of eng_push_subscriptions; tables 120 to 121. Behaviour 1572 to 1581 facts: its key, its foreign key to " +
+      "eng_profiles, three checks (a known channel, an endpoint that fits its channel, and a revocation that says " +
+      "why), the unique endpoint index, the live-subscription index, and row level security.",
     because:
       "WRITTEN 2026-11-07 ON feat/t9-offer-push FOR ROBERT'S T9, WEB PUSH FOR A NEW OFFER (his answers 6 and 7 of " +
-      "2026-11-07, 6717223376); APPLIED NOWHERE. One table holding the push service's endpoint per phone; pushes " +
-      "carry no payload, so no job and no wording is stored. Additive: one table.",
+      "2026-11-07, 6717223376), AND GIVEN ITS NATIVE CHANNELS 2026-11-08 FOR HIS T8; APPLIED NOWHERE. One table: per " +
+      "phone, the browser push address or the Firebase or Apple device token, by channel. Web pushes carry no " +
+      "payload; native pushes carry county and service only. Additive: one table.",
   },
 ];
 
