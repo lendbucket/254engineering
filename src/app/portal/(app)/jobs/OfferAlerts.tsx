@@ -2,9 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { inNativeShell, registerNativePush } from "@/lib/native-shell";
-
-/** Where the store app remembers this phone's own push token, to say On and to turn it off. */
-const NATIVE_TOKEN_KEY = "eng-native-push-token";
+/* Where the store app remembers this phone's own push token; one home, shared with sign out. */
+import { NATIVE_TOKEN_KEY } from "@/lib/offer-alerts-client";
 
 /**
  * OFFER ALERTS ON THIS PHONE. Robert's T9 and his answers 6 and 7 of

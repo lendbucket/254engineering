@@ -4,6 +4,23 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
+## THE STORE APP'S DEVICE SESSION: BEFORE THE FIRST STORE SUBMISSION
+
+Robert's T8 answer 1 of 2026-11-08 (issue #1, 6725977818). The debug build of
+the store app keeps the portal's sign-in cookie inside its own web view, and
+that stays. Putting the sign-in in the phone's keystore, which his T8 order
+names, needs a device session the server issues:
+
+- a device token, stored by `@aparajita/capacitor-secure-storage` (installed,
+  not wired), exchanged for a portal session at launch;
+- revoked on sign out, and when the session epoch moves (M2, 0120), so a phone
+  can never outlive the session rules every browser obeys;
+- a migration for the device tokens, a proof, and its own full-lane board.
+
+**Not built because** it is new security behaviour on the sign-in path, and the
+debug build does not need it. **It must be built before the first store
+submission.** The account of the store build is `docs/mobile-store-build.md`.
+
 ## SALES LIST IMPORTS (CRM R2, 2026-11-02): SIX SOURCES WAIT, AND THE PLACES LOOKUP IS CLOSED
 
 Built on `feat/crm-r2-imports`, Robert's sales CRM ruling R2. The full account of

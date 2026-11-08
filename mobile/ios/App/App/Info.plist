@@ -8,6 +8,10 @@
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
         <string>254 Field</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
 	<key>NSCameraUsageDescription</key>
 	<string>The camera takes the photographs the job's checklist asks for. They stay in the app and upload to the firm.</string>
 	<key>CFBundleExecutable</key>

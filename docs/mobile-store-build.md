@@ -21,9 +21,16 @@ checkout's `node_modules` that every worktree on this machine shares.
 
 ## The app ID: one value, one file
 
-`appId` in `mobile/capacitor.config.json`. Today it is **`com.example.field254`**,
-a placeholder until Robert gives Craftline's domain. Google Play refuses any
-`com.example` ID, so the placeholder cannot be published by accident.
+`appId` in `mobile/capacitor.config.json`. It is **`com.craftlinebrands.field`**,
+from Craftline's domain craftlinebrands.com (Robert, 2026-11-08, 6725968716).
+It replaced the placeholder `com.example.field254`, so the debug app sent on
+2026-11-08 carries the old ID and installs beside the next one as a different
+app. **Once the first store listing exists this ID cannot change.**
+
+The Android code package (`namespace` in `build.gradle`, and the folder
+`MainActivity.java` sits in) is `com.craftlinebrands.field254`. That is the
+Java package of the code, not the ID the stores and Firebase see, and it does
+not need to match.
 
 - **Android** reads it at build time (`mobile/android/app/build.gradle`).
 - **iOS** gets it from `mobile/scripts/apply-app-id.mjs`, which `npm run sync`
@@ -78,14 +85,16 @@ build is `mobile/android/app/build/outputs/apk/debug/app-debug.apk`, built with
 
 ### Firebase: Robert's steps, in order
 
-1. Sign in at console.firebase.google.com with the Google account that will own
-   the firm's Firebase project (Craftline's or the firm's: question 2 on issue #1).
+1. Sign in at console.firebase.google.com with **254 Engineering's Google
+   account**. The project belongs to 254 Engineering, with Robert as owner
+   (Robert, 2026-11-08, 6725968716). If another person is ever added, add them
+   under **Project settings, Users and permissions**, never as owner.
 2. **Add project**, named "254 Field". Google Analytics is not needed; leave it
    off.
 3. In the project, **Add app**, then **Android**. For the package name, enter
-   exactly the `appId` in `mobile/capacitor.config.json`, today
-   `com.example.field254`. The nickname can be "254 Field Android". Skip the
-   SHA-1 for now.
+   exactly the `appId` in `mobile/capacitor.config.json`:
+   `com.craftlinebrands.field`. The nickname can be "254 Field Android". Skip
+   the SHA-1 for now.
 4. Download **google-services.json** and send it to me. I put it at
    `mobile/android/app/google-services.json`. It is ignored by git: it names the
    project rather than holding a secret, but it stays out of the repository
@@ -99,36 +108,72 @@ build is `mobile/android/app/build/outputs/apk/debug/app-debug.apk`, built with
 8. Tell me when 4 and 7 are done. I rebuild the debug app with Firebase in it,
    and you turn on "Offer alerts on this phone" in My jobs.
 
-If the app ID changes to Craftline's domain later, steps 3 and 4 are repeated
-for the new package name. Step 7 does not change.
+For the iPhone, the same Firebase project is not needed: Apple's push service
+is reached directly with the APNs key (below), so Firebase stays Android only.
 
 ## iPhone
 
 `mobile/ios` is set up: the Xcode project with Swift Package Manager, so there
 is no CocoaPods, and the three plugins are listed in `CapApp-SPM/Package.swift`.
 
-### What needs a Mac (with Xcode)
+### What the project already carries, so no Mac is needed
 
-1. `npm install` and `npm run sync:ios` in `mobile/`, which applies the app ID.
-2. Open `mobile/ios/App/App.xcodeproj` in Xcode.
-3. **Signing & Capabilities:** choose the Apple team, and add **Push
-   Notifications** and **Background Modes**, with "Remote notifications" ticked.
-4. **Info:** the camera usage sentence, `NSCameraUsageDescription`: "The camera
-   takes the photographs the job's checklist asks for. They stay in the app and
-   upload to the firm." The wording is Robert's to approve.
-5. Build to a real iPhone, or to TestFlight.
+Robert, 2026-11-08 (6725968716): the iPhone builds on Codemagic, because there
+is no Mac here. What a person would otherwise do in Xcode is written into the
+project:
 
-### What needs the Apple account (Craftline's Apple Developer Program)
+- **Push:** `App/App.entitlements` with `aps-environment`, referenced by both
+  build configurations (`CODE_SIGN_ENTITLEMENTS`), and the two push methods in
+  `AppDelegate.swift` that pass Apple's token to the plugin.
+- **Background Modes:** `remote-notification` in `Info.plist`.
+- **The camera sentence** in `Info.plist`, `NSCameraUsageDescription`: "The
+  camera takes the photographs the job's checklist asks for. They stay in the
+  app and upload to the firm." The wording is Robert's to approve.
+- **The app ID:** `com.craftlinebrands.field`, applied by `npm run sync:ios`.
 
-1. Register the app ID, the bundle identifier, with the Push Notifications
-   capability.
-2. Create an **APNs key** (`.p8`). Set in Vercel, Production only:
-   **APNS_KEY_P8** (the file's contents, a secret), **APNS_KEY_ID**,
-   **APNS_TEAM_ID**, and **APNS_TOPIC** (the bundle identifier).
-3. Create the app record in App Store Connect, then TestFlight and review.
+**None of it has been compiled.** Codemagic's first run is the first compile
+of the iOS project, so its log is read before anything here is called done.
 
-Nothing else is left for iOS: the project, the plugins, the push sender and the
-app ID handling are all done.
+### iPhone builds on Codemagic
+
+**The cost, as Codemagic publishes it, read 2026-11-08 at codemagic.io/pricing:**
+
+| Plan | Price | What it gives |
+| --- | --- | --- |
+| Free (individuals) | $0 a month | 500 build minutes a month on a Mac mini M2, one build at a time, one team member |
+| Pay as you go | $0 base, billed per minute | Mac mini M2 $0.095 a minute, Mac mini M4 $0.114 a minute; extra concurrency $49 a month each |
+| Fixed price | from $3,990 a year | Unlimited minutes, three builds at once |
+
+**Recommendation: the free individual plan.** It needs a single user, which is
+Robert, and the workflow is set to `mac_mini_m2`. A Capacitor iPhone build is
+typically 10 to 20 minutes, so 500 minutes covers roughly 25 to 50 builds a
+month. That is an estimate, not a measurement; the first run's duration
+replaces it. If a month ever runs past 500, pay as you go at $0.095 a minute is
+about $1 to $2 a build.
+
+**What Codemagic needs from Robert, and when:**
+
+1. **Now, if he likes, or when the Apple account exists:**
+   - a Codemagic account, signed up with GitHub as Robert;
+   - the `lendbucket/254engineering` repository added as an app.
+   - Nothing builds yet.
+2. **When Craftline's Apple Developer account is active** (after the D-U-N-S):
+   - **An App Store Connect API key.** Create it in App Store Connect, under Users and Access, Integrations, App Store Connect API, with the **App Manager** role. Download the `.p8` once, and note the Issuer ID and the Key ID.
+   - Add all three in Codemagic, under Team integrations, Developer Portal, named exactly `254 Field App Store Connect`, the name in `codemagic.yaml`.
+   - **No certificates are made by hand.** With that key, Codemagic creates the distribution certificate and the provisioning profile for `com.craftlinebrands.field` itself.
+3. **Before the first build:**
+   - register the bundle ID `com.craftlinebrands.field` in the Apple Developer portal with Push Notifications;
+   - create the app record in App Store Connect under that bundle ID.
+4. **The first build:** Robert starts the `ios-testflight` workflow by hand in Codemagic. No push to GitHub starts it. It builds, signs, and uploads to TestFlight. Submitting for App Store review stays a separate step he takes in App Store Connect.
+
+**Push on iPhone**, separate from Codemagic, from the same Apple account:
+- Create an **APNs key** (`.p8`) under Certificates, Identifiers and Profiles, Keys, with Apple Push Notifications service.
+- Set in Vercel, Production only:
+  - **APNS_KEY_P8** (the file's contents, a secret);
+  - **APNS_KEY_ID**;
+  - **APNS_TEAM_ID**;
+  - **APNS_TOPIC** (the bundle ID, `com.craftlinebrands.field`).
+- The App Store Connect API key and the APNs key are two different keys.
 
 ## Store listing materials
 
@@ -138,6 +183,17 @@ privacy answers, ready to paste. Icons come from the firm's logo
 
 ## Open, waiting on decisions
 
-- The app ID's domain (Craftline's).
-- Secure storage: the device session it needs (question 1).
-- Who owns the Firebase project (question 2).
+Robert answered all five T8 questions on 2026-11-08 (6725968716, 6725977818):
+
+- **The app ID:** `com.craftlinebrands.field`. Done.
+- **Firebase:** 254 Engineering's Google account, Robert as owner. The steps
+  above say so.
+- **The iPhone:** Codemagic, planned above.
+- **Secure storage:** the debug build keeps the web view's cookie. The device
+  session (a keystore token, revoked on sign out and when the session epoch
+  moves) is its own full-lane item, with its migration and proof, **before the
+  first store submission.** It is in BACKLOG.md.
+- **The privacy section:** drafted in `docs/store-listing.md`. It goes on
+  `/privacy` as its own full-lane change only after Robert's word.
+- **Signing out on a shared phone:** turns off that phone's offer alerts first,
+  then ends the session. Built.
