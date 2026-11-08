@@ -1,6 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { inNativeShell, registerNativePush } from "@/lib/native-shell";
+
+/** Where the store app remembers this phone's own push token, to say On and to turn it off. */
+const NATIVE_TOKEN_KEY = "eng-native-push-token";
 
 /**
  * OFFER ALERTS ON THIS PHONE. Robert's T9 and his answers 6 and 7 of
@@ -32,8 +36,21 @@ export function OfferAlerts() {
   const [error, setError] = useState<string | null>(null);
   const [key, setKey] = useState<string | null>(null);
 
+  /*
+   * INSIDE THE STORE APP (Robert's T8, 2026-11-08) the phone's own push service
+   * is used, Firebase or Apple, through the same push_subscribe, the same
+   * table and the same county-and-service wording. Only the token differs, and
+   * it is remembered on this phone so the control can say On and turn it off.
+   */
+  const [native, setNative] = useState(false);
+
   useEffect(() => {
     void (async () => {
+      if (inNativeShell()) {
+        setNative(true);
+        setState(window.localStorage.getItem(NATIVE_TOKEN_KEY) ? "on" : "off");
+        return;
+      }
       const ios = /iPhone|iPad|iPod/.test(navigator.userAgent);
       const standalone = window.matchMedia("(display-mode: standalone)").matches;
       if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
@@ -56,7 +73,43 @@ export function OfferAlerts() {
     })();
   }, []);
 
+  async function turnOnNative() {
+    setError(null);
+    setState("working");
+    const reg = await registerNativePush();
+    if (!reg) {
+      setError("This phone did not allow alerts. Email still tells you of every offer.");
+      setState("off");
+      return;
+    }
+    const answer = await post({ action: "push_subscribe", channel: reg.channel, endpoint: reg.token }).catch(() => null);
+    if (!answer?.ok) {
+      setError(answer?.error ?? "Offer alerts were not turned on.");
+      setState("off");
+      return;
+    }
+    window.localStorage.setItem(NATIVE_TOKEN_KEY, reg.token);
+    setState("on");
+  }
+
+  async function turnOffNative() {
+    setError(null);
+    setState("working");
+    const token = window.localStorage.getItem(NATIVE_TOKEN_KEY);
+    if (token) {
+      const answer = await post({ action: "push_unsubscribe", endpoint: token }).catch(() => null);
+      if (!answer?.ok) {
+        setError("Alerts could not be turned off just now. Try again with signal.");
+        setState("on");
+        return;
+      }
+      window.localStorage.removeItem(NATIVE_TOKEN_KEY);
+    }
+    setState("off");
+  }
+
   async function turnOn() {
+    if (native) return turnOnNative();
     if (!key) return;
     setError(null);
     setState("working");
@@ -84,6 +137,7 @@ export function OfferAlerts() {
   }
 
   async function turnOff() {
+    if (native) return turnOffNative();
     setError(null);
     setState("working");
     try {
