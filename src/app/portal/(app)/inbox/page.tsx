@@ -19,6 +19,7 @@ const KIND_LABEL: Record<InboxKind, string> = {
   waitlist: "Waitlist",
   design: "Design inquiry",
   windstorm: "Windstorm inquiry",
+  reply: "Reply to a sales email",
 };
 
 const PAGE_SIZE = 50;

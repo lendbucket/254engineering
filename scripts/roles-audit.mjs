@@ -2572,11 +2572,15 @@ if (!db) {
         "/portal/crm/imports",
         /* The call queue, Robert's CRM R3 of 2026-11-02: crm.use, which DEFAULT_ROLES gives him none of. Selling is not an engineer's work. */
         "/portal/crm/queue",
+        /* The sequence emails and replies, Robert's CRM R7 of 2026-11-02: crm.use, which DEFAULT_ROLES gives him none of. */
+        "/portal/crm/emails",
         /* The stage board and the list, Robert's CRM R4 of 2026-11-02: crm.use, which DEFAULT_ROLES gives him none of. */
         "/portal/crm",
         "/portal/crm/list",
         /* The sales territories, Robert's CRM R5 of 2026-11-02: crm.assign, which only admin and ops_manager hold. */
         "/portal/crm/territories",
+        /* The account manager view, Robert's CRM R6 of 2026-11-02: crm.use, which DEFAULT_ROLES gives him none of. */
+        "/portal/crm/accounts",
         "/portal/inbox",
         "/portal/order-lookup",
         "/portal/refunds",

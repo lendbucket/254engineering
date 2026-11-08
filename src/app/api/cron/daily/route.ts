@@ -111,6 +111,18 @@ export async function GET(request: NextRequest) {
       previews.push(`${decl.key}${preview.duplicate ? " (already queued)" : ""}`);
     }
 
+    /*
+     * THE ACCOUNT REMINDERS AND CHECK-INS, DAILY. Robert's sales CRM ruling of
+     * 2026-11-02, item R6. Keyed on the firm's calendar day; each task it
+     * raises is keyed on its account and due day besides.
+     */
+    const accountTasks = await enqueue("crm.account_tasks", { day: firmDay });
+    if (!accountTasks.ok) {
+      await cronFinished(runId, false, accountTasks.error);
+      await captureError(new Error(accountTasks.error), { route: "/api/cron/daily", kind: "cron" });
+      return NextResponse.json({ ok: false, error: accountTasks.error }, { status: 503 });
+    }
+
     await cronFinished(
       runId,
       true,
@@ -119,6 +131,7 @@ export async function GET(request: NextRequest) {
         refresh.duplicate ? `the credential refresh for ${today} was already queued` : `queued the credential refresh for ${today}`,
         insurance.duplicate ? `the insurance warnings for ${firmDay} were already queued` : `queued the insurance warnings for ${firmDay}`,
         previews.length ? `the sales list previews for ${firmDay}: ${previews.join(", ")}` : "no sales list source is ready to preview",
+        accountTasks.duplicate ? `the account reminders for ${firmDay} were already queued` : `queued the account reminders for ${firmDay}`,
       ].join("; "),
     );
 

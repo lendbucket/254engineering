@@ -384,10 +384,19 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * three section done times on eng_roofer_applications, 1,538 to 1,541; sixteen
  * NOT NULLs dropped, which moves the shape without a column; the table count
  * stays 116. Read off fingerprint-at.mjs on the chain to 0117.
+ *
+ * Moved again by 0118, the sales list sends one email a day and hears
+ * replies, by Robert's sales CRM ruling R7 of 2026-11-02, renumbered from 0115
+ * to 0117 by his ruling (a) of 2026-11-04 and order A of 2026-11-05, and to
+ * 0118 by his answer 3 of 2026-11-06 (the roofer rework takes 0117): twelve
+ * columns on eng_crm_email_sends, twelve on eng_crm_email_replies and
+ * eng_prospects.sequence_paused_at, 1,541 to 1,566; the table count moves 116
+ * to 118; no trigger and no function. Read off fingerprint-at.mjs on the chain
+ * to 0118.
  */
-const EXPECTED_FINGERPRINT = "ac53d69433e0d24bd4b3f9fa24fb300b";
-const EXPECTED_COLUMNS = 1541;
-const EXPECTED_TABLES = 116;
+const EXPECTED_FINGERPRINT = "0e9984b3429c1204dca15419498b452c";
+const EXPECTED_COLUMNS = 1566;
+const EXPECTED_TABLES = 118;
 /* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts.
  * 0074 adds two: eng_partner_billing_touch and eng_partner_billing_events_immutable.
  * 0075 adds one: eng_payment_events_guarded.
