@@ -4450,7 +4450,12 @@ export const APPLIED = [
     file: "0119_the_sales_list_attributes_accounts_and_orders_to_reps.sql", appliedBy: "apply_migration",
     fingerprint: "38319e8c5ec88213932cbc387124c744",
     behaviour: "9e1c9d501e570ca15ff84090db44806b",
-    production: null,
+    /*
+     * Production: applied 2026-11-08 in Robert's sitting by the chat counterpart, from
+     * the boarded commit e97cd86 (board 42390790365); schema_migrations version
+     * 20261108164336, stored hash abf4e889 (issue #1, 6724188326).
+     */
+    production: "2026-11-08",
     proves: { table: "eng_crm_attributions" },
     note:
       "Both figures read off scripts/fingerprint-at.mjs on 2026-11-07 on the chain to 0119. Shape 1566 to 1573 " +
@@ -4464,7 +4469,7 @@ export const APPLIED = [
       "feat/crm-r8-reports-0119, STAGED ON " +
       "stage/0119-crm-attribution FOR THE CHAT COUNTERPART'S " +
       "SITTING; ON DEVELOPMENT SINCE 2026-11-07 (6709609064, version 20261107161136, stored abf4e889, shape 38319e8c " +
-      "at 1573 columns and 119 tables as the replay); PENDING ON PRODUCTION for Robert's sitting. Robert's sales CRM " +
+      "at 1573 columns and 119 tables as the replay); ON PRODUCTION SINCE 2026-11-08 (6724188326, version 20261108164336). Robert's sales CRM " +
       "ruling of 2026-11-02, item R8: the attribution chain prospect to " +
       "account to order, written on conversion and on each order. Additive: one append only table.",
   },
