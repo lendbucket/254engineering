@@ -221,6 +221,16 @@ export const RETENTION_POLICY: RetentionEntry[] = [
         "which makes it a business record. " + COUNSEL,
     },
   },
+  /* 0122, money audit F6. A lock, not a record: which submission holds an account's credit and until when. */
+  {
+    table: "eng_account_credit_holds",
+    rule: {
+      kind: "not_a_record",
+      because:
+        "One row per invoice account: which submission holds its credit check and until when. It is a lock, not a " +
+        "history: a row only ever says who may read the balance next, and a lapsed hold means nothing. 0122.",
+    },
+  },
   { table: "eng_account_properties", rule: { kind: "kept_pending_counsel", because: COUNSEL } },
   /*
    * Phase 13 Section 2. A trade price is what a customer was charged, so it is
