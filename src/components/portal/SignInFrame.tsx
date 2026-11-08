@@ -6,7 +6,8 @@ import { Wordmark } from "@/components/brand/Wordmark";
  * 2026-11-08: "serious enterprise software"; a split layout at desktop width,
  * a deep navy panel on the left with the logo in white and one short plain line
  * about what the portal is for, the form on white on the right; on a phone, the
- * panel becomes a slim header with the logo and the form fills the screen. Calm
+ * panel becomes a slim header with the logo and the form fills the screen. The
+ * line under the logo is a plain label (ruling 2, below). Calm
  * and quiet: no illustration, no gradient, no decorative icon, no marketing
  * copy. Gold only as a thin accent. The portal's own tokens (answer 4).
  *
@@ -21,7 +22,18 @@ import { Wordmark } from "@/components/brand/Wordmark";
  * this layout at 28 and 48 showed the same, so it is 40 on a phone and 72 at
  * desktop width.
  */
-export function SignInFrame({ purpose, children }: { purpose: string; children: React.ReactNode }) {
+/**
+ * `label` is a plain name for the surface and nothing else: "Operations
+ * portal", "Customer account", "Partner program". Robert's ruling 2 of
+ * 2026-11-08: no slogan anywhere on the sign-in pages.
+ */
+export function SignInFrame({
+  label,
+  children,
+}: {
+  label: "Operations portal" | "Customer account" | "Partner program";
+  children: React.ReactNode;
+}) {
   return (
     <main className="portal-surface min-h-dvh bg-white lg:grid lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
       <aside className="bg-[var(--navy)] text-[var(--on-navy)]">
@@ -29,11 +41,11 @@ export function SignInFrame({ purpose, children }: { purpose: string; children: 
         <div className="flex min-h-[64px] items-center px-5 lg:hidden">
           <Wordmark onDark height={40} priority />
         </div>
-        {/* At desktop width: the logo, a thin gold rule and the one line. */}
+        {/* At desktop width: the logo, a thin gold rule and the label. */}
         <div className="hidden h-full flex-col px-14 py-14 lg:flex">
           <Wordmark onDark height={72} priority />
           <div aria-hidden className="mt-10 h-[2px] w-12 bg-[var(--gold)]" />
-          <p className="mt-6 max-w-[36ch] font-display text-[24px] leading-[1.3] font-semibold">{purpose}</p>
+          <p className="mt-6 font-display text-[24px] leading-[1.3] font-semibold">{label}</p>
         </div>
       </aside>
 

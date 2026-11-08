@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 export default function PortalForgotPasswordPage() {
   return (
     <ForgotPasswordNotice
-      purpose="The firm's work, from intake to the sealed letter."
+      label="Operations portal"
       who="An administrator"
       signInHref="/portal/login"
     />

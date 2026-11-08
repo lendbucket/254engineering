@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 export default function PartnerForgotPasswordPage() {
   return (
     <ForgotPasswordNotice
-      purpose="The work you refer to the firm, and your statements."
+      label="Partner program"
       who="The firm"
       signInHref="/partner/login"
     />

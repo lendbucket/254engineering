@@ -60,7 +60,7 @@ export default async function AccountLoginPage({
   const safeNext = typeof next === "string" && /^\/account(\/|$)/.test(next) ? next : "/account";
 
   return (
-    <SignInFrame purpose="Your orders, their status and your letters.">
+    <SignInFrame label="Customer account">
       <SignInHeading />
 
       {customerSessionConfigured() ? (

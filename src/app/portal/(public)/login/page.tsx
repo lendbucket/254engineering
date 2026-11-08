@@ -72,7 +72,7 @@ export default async function PortalLoginPage({
       2026-11-08 (issue #1, 6724956292): the firm can do everything it lists.
       It leaves the three sign-in pages only and changes nothing in the gate.
     */
-    <SignInFrame purpose="The firm's work, from intake to the sealed letter.">
+    <SignInFrame label="Operations portal">
       <SignInHeading />
 
       {params.suspended || params.reset || !ready ? (

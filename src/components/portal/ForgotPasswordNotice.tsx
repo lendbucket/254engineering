@@ -13,17 +13,17 @@ import { SignInFrame } from "@/components/portal/SignInFrame";
  * firm inbox Robert reads, read from `business`, never typed.
  */
 export function ForgotPasswordNotice({
-  purpose,
+  label,
   who,
   signInHref,
 }: {
-  purpose: string;
+  label: "Operations portal" | "Partner program";
   /** Who sends the link, in the reader's terms. */
   who: string;
   signInHref: string;
 }) {
   return (
-    <SignInFrame purpose={purpose}>
+    <SignInFrame label={label}>
       <h1 className="font-display text-[24px] leading-[1.25] font-bold text-[var(--navy)]">
         Reset your password
       </h1>

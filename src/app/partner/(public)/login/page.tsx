@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { performingFirmLine } from "@/lib/partner-copy";
+import { referredWorkLine } from "@/lib/referred-work-line";
 import { currentPartner } from "@/lib/partner-auth";
 import { partnerSessionConfigured } from "@/lib/partner-session";
 import { supabaseConfigured } from "@/lib/supabase";
@@ -26,8 +26,8 @@ export const dynamic = "force-dynamic";
  * the three sign-in screens. The guard, the set and suspended notices, the
  * configuration check are unchanged. The gate's restricted-mode notice left the
  * page on Robert's answer 3; "Forgot your password?" opens
- * /partner/forgot-password (answer 1). The performing firm line stays at the
- * foot (see the note beside it).
+ * /partner/forgot-password (answer 1). The firm line stays at the foot as one
+ * future tense sentence (ruling 1 of the same day; see the note beside it).
  */
 export default async function PartnerLoginPage({
   searchParams,
@@ -43,7 +43,7 @@ export default async function PartnerLoginPage({
 
   return (
     /* No restricted-mode notice on a sign-in page: Robert's answer 3 of 2026-11-08. */
-    <SignInFrame purpose="The work you refer to the firm, and your statements.">
+    <SignInFrame label="Partner program">
       <SignInHeading />
 
       {params.set || params.suspended || !ready ? (
@@ -72,14 +72,12 @@ export default async function PartnerLoginPage({
       <PartnerLoginForm disabled={!ready} forgotHref="/partner/forgot-password" />
 
       {/*
-        KEPT. Robert's answer 3 (6724956292) ruled on the restricted-mode
-        notice and said nothing of this line, and partner-audit asserts every
-        partner surface renders it, so a regulatory disclosure does not leave a
-        page without his word. Outside the form, at the foot, so the form holds
-        only what the order lists.
+        THE FIRM LINE, ONE SENTENCE, FUTURE TENSE. Robert's ruling 1 of
+        2026-11-08: kept, made one sentence. Read off the register by
+        referredWorkLine(). Outside the form, at the foot.
       */}
       <p className="mt-10 text-center text-[12px] leading-[1.6] text-[var(--secondary)]">
-        {performingFirmLine()}
+        {referredWorkLine()}
       </p>
     </SignInFrame>
   );
