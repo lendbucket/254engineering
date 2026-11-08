@@ -363,6 +363,17 @@ lives; this entry is the pointer. What is open: the six questions there, the
 first being which legal entity publishes the app, and the five phases, none of
 them started.
 
+## THE STORE APPS (T8): A SHELL CONFIGURED, NOTHING INSTALLED OR BUILT, WAITING ON CRAFTLINE'S ACCOUNTS
+
+Robert's T8, in scope since 2026-11-07 (issue #1, 6716719712, 6716738509, and
+answer 8 of 6717223376): Capacitor around the technician screens, with the
+camera, native push and the session in the keystore, publishing under Craftline
+Brands' D-U-N-S and Apple account once they exist. The plan, the steps and what
+Robert provides are in `docs/mobile-store-build.md`; this entry is the pointer.
+What is open: the accounts, the app identifier's domain, the secure storage
+plugin and the per-device session it needs, and the native push token's
+migration. Boarded only once T2 to T7 are merged.
+
 ## THE NIGHTLY BACKUP IS BUILT AND SWITCHED OFF: ROBERT CREATES THE BUCKET AND SETS THE SECRETS
 
 Robert's addendum of 2026-10-25, item 11, built 2026-10-27 on

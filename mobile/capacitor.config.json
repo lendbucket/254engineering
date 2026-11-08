@@ -1,0 +1,22 @@
+{
+  "appId": "com.craftlinebrands.field254",
+  "appName": "254 Field",
+  "webDir": "www",
+  "server": {
+    "url": "https://254engineering.com/portal/jobs",
+    "cleartext": false,
+    "allowNavigation": ["254engineering.com"]
+  },
+  "ios": {
+    "contentInset": "always",
+    "limitsNavigationsToAppBoundDomains": true
+  },
+  "android": {
+    "allowMixedContent": false
+  },
+  "plugins": {
+    "PushNotifications": {
+      "presentationOptions": ["badge", "sound", "alert"]
+    }
+  }
+}
