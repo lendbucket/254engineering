@@ -16,6 +16,14 @@
  *      build's static files. A page, an API call and a POST all go to the
  *      network untouched, so no job, photograph or address is ever cached and
  *      nothing is written offline.
+ *      SINCE ROBERT'S T2 (2026-11-07, answer 1 of 6717223376): it also keeps
+ *      ONE page, the offline screen, which renders nothing from the database,
+ *      and shows it in place of a jobs screen only when the network fails. So
+ *      3 now also asserts: a navigation that reaches the network is passed
+ *      through and nothing is cached from it; the only thing ever put into the
+ *      shell cache is the offline screen; and with the network down a jobs
+ *      navigation is answered with that kept screen. The day's jobs live in
+ *      IndexedDB, never in a worker cache.
  *   4. It is registered from the jobs layout alone, with the scope its header
  *      allows and no wider.
  */
@@ -85,6 +93,59 @@ check("another origin goes to the network", (() => {
   listeners.fetch({ request: new Request("https://example.com/_next/static/x.js"), respondWith: () => { responded = true; } });
   return !responded;
 })());
+
+/*
+ * T2: run the worker again against a cache that records every put, and a
+ * network that can be switched off. A navigation is a plain object, because a
+ * Request cannot be constructed with mode "navigate".
+ */
+const puts = [];
+const shellBody = "<html>offline screen</html>";
+let networkUp = true;
+const recordingCaches = {
+  open: async (name) => ({
+    match: async (key) => (name === "field-shell-v1" && key === "/portal/jobs/offline" ? new Response(shellBody) : undefined),
+    put: async (key) => { puts.push(`${name} ${typeof key === "string" ? key : new URL(key.url).pathname}`); },
+  }),
+  keys: async () => [],
+  delete: async () => true,
+};
+const t2 = {};
+new Function("self", "caches", "fetch", source)(
+  { ...fakeSelf, addEventListener: (type, fn) => { t2[type] = fn; } },
+  recordingCaches,
+  async () => {
+    if (!networkUp) throw new TypeError("Failed to fetch");
+    return new Response("<html>live job page</html>", { status: 200 });
+  },
+);
+const navigate = async (path) => {
+  let answer = null;
+  t2.fetch({
+    request: { method: "GET", url: `https://254engineering.com${path}`, mode: "navigate" },
+    respondWith: (p) => { answer = p; },
+  });
+  return answer ? await answer : null;
+};
+const settle = () => new Promise((r) => setTimeout(r, 0));
+
+networkUp = true;
+const online = await navigate("/portal/jobs/2b7c0b8e-0000-4000-8000-000000000001");
+await settle();
+check("T2: with signal, a jobs navigation gets the live page", online !== null && (await online.text()) === "<html>live job page</html>");
+check("T2: and nothing from it is cached", puts.length === 0, puts.join(", "));
+
+await navigate("/portal/jobs/offline");
+await settle();
+check("T2: the offline screen is the one page kept, in the shell cache", puts.length === 1 && puts[0] === "field-shell-v1 /portal/jobs/offline", puts.join(", "));
+
+networkUp = false;
+const down = await navigate("/portal/jobs/2b7c0b8e-0000-4000-8000-000000000001");
+check("T2: with no signal, a jobs navigation is answered with the kept offline screen", down !== null && (await down.text()) === shellBody);
+let other = null;
+t2.fetch({ request: { method: "GET", url: "https://254engineering.com/portal/files", mode: "navigate" }, respondWith: (p) => { other = p; } });
+check("T2: a navigation outside the jobs screens is never answered", other === null);
+check("T2: the shell cache's name is the one sign out clears", readFileSync("src/lib/field-day-store.ts", "utf8").includes('FIELD_SHELL_CACHE = "field-shell-v1"'));
 
 console.log("4. Registered from the jobs screens alone");
 const files = execFileSync("git", ["ls-files", "--cached", "--others", "--exclude-standard", "src"], { encoding: "utf8" })
