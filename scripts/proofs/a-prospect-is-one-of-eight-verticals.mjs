@@ -39,7 +39,19 @@ await db.exec(SUPABASE_REPLAY_STUBS);
 const DIR = "supabase/migrations";
 const files = readdirSync(DIR).filter((f) => f.endsWith(".sql")).sort();
 const at = files.findIndex((f) => f.startsWith("0123_"));
-check("A: 0123 is in the chain, and last", at >= 0 && at === files.length - 1, at >= 0 ? files[at] : "missing");
+/*
+ * "And last" became untrue by design when 0124 (T9, push subscriptions) was
+ * written after it. So the check names what may follow 0123, rather than
+ * dropping the clause: a migration after it that nobody listed here could touch
+ * eng_prospects and invalidate section A's replay, and this says so by name.
+ */
+const AFTER_0123 = ["0124_a_phone_hears_of_an_offer.sql"];
+const following = at >= 0 ? files.slice(at + 1) : [];
+check(
+  "A: 0123 is in the chain, followed only by the migrations named here",
+  at >= 0 && JSON.stringify(following) === JSON.stringify(AFTER_0123),
+  at >= 0 ? `${files[at]}; after it: ${following.join(", ") || "none"}` : "missing",
+);
 for (const f of files.slice(0, at)) await db.exec(readSource(join(DIR, f)));
 
 const AUTHOR = "00000000-0000-4000-8000-000000000001";

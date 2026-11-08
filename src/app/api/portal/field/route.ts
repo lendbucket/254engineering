@@ -25,6 +25,7 @@ import {
   EVIDENCE_BUCKET,
 } from "@/lib/ops-field";
 import { CAPTURE_ID, captureDoorRefusal, captureStorageKey } from "@/lib/evidence-capture-rules";
+import { latestOfferPushFor, pushPublicKey, subscribePush, unsubscribePush } from "@/lib/ops-push";
 
 /**
  * Everything in the field that changes something: protocols, offers, captures,
@@ -69,6 +70,28 @@ async function handlePOST(request: NextRequest) {
   const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
   const action = String(body?.action ?? "");
   const context = await requestContext();
+
+  /*
+   * OFFER ALERTS BY WEB PUSH (Robert's T9 and his answers 6 and 7 of
+   * 2026-11-07, src/lib/ops-push.ts). The phone asks for the public key to
+   * subscribe with, records its push address, turns alerts off, and, when a
+   * push arrives, asks what the lock screen may say: county and service only.
+   */
+  if (action === "push_key") {
+    return NextResponse.json({ ok: true, publicKey: pushPublicKey() });
+  }
+  if (action === "push_subscribe") {
+    const result = await subscribePush(actor, body?.endpoint, request.headers.get("user-agent"), context);
+    return result.ok ? NextResponse.json({ ok: true }) : bad(result.error);
+  }
+  if (action === "push_unsubscribe") {
+    const result = await unsubscribePush(actor, body?.endpoint, context);
+    return result.ok ? NextResponse.json({ ok: true }) : bad(result.error);
+  }
+  if (action === "push_latest") {
+    const text = await latestOfferPushFor(actor);
+    return text ? NextResponse.json({ ok: true, ...text }) : bad("Nothing to show.");
+  }
 
   // ------------------------------------------------------------- protocols
 

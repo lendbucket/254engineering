@@ -6,6 +6,7 @@ import { clockReading } from "./clock-skew";
 import { CAPTURE_CLOSED_STATUSES, captureKeyProblem, evidenceWriteRefusal } from "./evidence-capture-rules";
 import { sha256Hex } from "./evidence-fingerprint";
 import { readEvery, readEveryIn } from "./bounded-read";
+import { pushOfferTo } from "./ops-push";
 import { supabaseAdmin } from "./supabase";
 import type { Cents } from "./ops-money";
 import { notifyTechnicianAccepted, recordTechnicianVisit } from "./ops-payments";
@@ -1015,6 +1016,13 @@ export async function sendOffers(
       entityType: "file",
       entityId: fileId,
     });
+    /*
+     * And a push to his phone, beside the notification above and never in its
+     * place (Robert's T9, answers 6 and 7 of 2026-11-07). The push carries no
+     * payload; the phone asks what to show and is told county and service
+     * only. Best effort: a push service that is down changes nothing here.
+     */
+    await pushOfferTo(id).catch(() => null);
   }
 
   await writeAudit({

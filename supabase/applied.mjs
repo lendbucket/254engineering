@@ -4557,6 +4557,22 @@ export const APPLIED = [
       "contractor row keep the old kind as a tag. Destructive in shape (a check is dropped and re-added); no row, " +
       "column or table is deleted.",
   },
+  {
+    file: "0124_a_phone_hears_of_an_offer.sql", appliedBy: "apply_migration",
+    fingerprint: "b65258ba8ab4e52ccb52002a778ded81",
+    behaviour: "0833acd2e885c9e2035c0d8d7fe4a106",
+    production: null,
+    proves: { table: "eng_push_subscriptions" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-08 on the chain to 0124. Shape 1579 to 1587 " +
+      "columns, the eight of eng_push_subscriptions; tables 120 to 121. Behaviour 1572 to 1580 facts: its key, its " +
+      "foreign key to eng_profiles, two checks (an https endpoint, and a revocation that says why), the unique " +
+      "endpoint index, the live-subscription index, and row level security.",
+    because:
+      "WRITTEN 2026-11-07 ON feat/t9-offer-push FOR ROBERT'S T9, WEB PUSH FOR A NEW OFFER (his answers 6 and 7 of " +
+      "2026-11-07, 6717223376); APPLIED NOWHERE. One table holding the push service's endpoint per phone; pushes " +
+      "carry no payload, so no job and no wording is stored. Additive: one table.",
+  },
 ];
 
 /*

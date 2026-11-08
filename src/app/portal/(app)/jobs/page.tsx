@@ -8,6 +8,7 @@ import { services } from "@/content/services";
 import { STATUS_LABEL, type FileStatus } from "@/lib/ops-files";
 import { EmptyState, PageHead } from "@/components/portal/surfaces";
 import { OfferControls } from "./JobsClient";
+import { OfferAlerts } from "./OfferAlerts";
 import { formatInFirmZone } from "@/lib/firm-calendar";
 
 export const dynamic = "force-dynamic";
@@ -79,6 +80,9 @@ export default async function JobsPage() {
         title="My jobs"
         lede="Offers waiting on you, and the work you have accepted. The rate is on the offer, before you accept it."
       />
+
+      {/* Offer alerts on this phone (Robert's T9, 2026-11-07): county and service on the lock screen, never the address or the rate. */}
+      <OfferAlerts />
 
       <section aria-labelledby="live-offers">
         <h2 id="live-offers" className="portal-label">

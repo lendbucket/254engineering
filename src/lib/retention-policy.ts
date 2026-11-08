@@ -792,6 +792,8 @@ export const RETENTION_POLICY: RetentionEntry[] = [
   { table: "eng_protocol_items", rule: { kind: "not_a_record", because: "Part of a protocol template. Configuration an engineer authors." } },
   { table: "eng_protocol_questions", rule: { kind: "not_a_record", because: "Part of a protocol template. Configuration an engineer authors." } },
   { table: "eng_protocol_templates", rule: { kind: "not_a_record", because: "What a service requires captured. Configuration an engineer authors, referenced by files with ON DELETE RESTRICT." } },
+  /* 0124 (Robert's T9, 2026-11-07). A phone allowed to hear of an offer: the push service's endpoint and nothing about any job. */
+  { table: "eng_push_subscriptions", rule: { kind: "not_a_record", because: "Where to reach one person's phone by web push. A device setting, not a record of anything done; revoked rows are stamped and kept." } },
   /*
    * 0098. A file a customer attached to a quote request, keyed to the request.
    * Robert's addendum of 2026-10-25, item 3: "Files attached to a quote request
