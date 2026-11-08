@@ -80,7 +80,9 @@ what the app does today, read from the code (`src/lib/offline-queue.ts`,
 **The published privacy page does not yet describe the app**: photographs taken
 on a job, their location, and the push token. Both stores check the policy
 against the answers above. A section is drafted below for Robert to approve.
-It is question 3 on issue #1. Nothing has been changed on the live page.
+Robert's answer 3 of 2026-11-08 (6725977818): the chat counterpart reads it
+first and sends it to him, and it goes on `/privacy` as its own full-lane
+change only after his word. Nothing has been changed on the live page.
 
 > **The field app.** Technicians who work jobs for the firm use the 254 Field
 > app. In it they take photographs of the property they are assigned to, and
@@ -89,7 +91,8 @@ It is question 3 on issue #1. Nothing has been changed on the live page.
 > are not saved to the phone's photo library. If a technician turns on offer
 > alerts, the app keeps a token from Apple or Google so the firm can tell that
 > phone when a job is offered. The alert names the county and the service only.
-> A technician can turn alerts off at any time in the app.
+> A technician can turn alerts off at any time in the app, and signing out
+> turns them off on that phone.
 
 ## Icons
 
