@@ -11,7 +11,6 @@ import { CAPTURE_CLOSED_STATUSES, captureKeyProblem, evidenceWriteRefusal } from
 import { sha256Hex } from "./evidence-fingerprint";
 import { readEvery, readEveryIn } from "./bounded-read";
 import { pushOfferTo } from "./ops-push";
-import { services } from "../content/services";
 import { supabaseAdmin } from "./supabase";
 import type { Cents } from "./ops-money";
 import { notifyTechnicianAccepted, recordTechnicianVisit } from "./ops-payments";
