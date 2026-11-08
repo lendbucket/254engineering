@@ -144,22 +144,22 @@ of the iOS project, so its log is read before anything here is called done.
 | Pay as you go | $0 base, billed per minute | Mac mini M2 $0.095 a minute, Mac mini M4 $0.114 a minute; extra concurrency $49 a month each |
 | Fixed price | from $3,990 a year | Unlimited minutes, three builds at once |
 
-**Recommendation: the free individual plan.** It needs a single user, which is
-Robert, and the workflow is set to `mac_mini_m2`. A Capacitor iPhone build is
-typically 10 to 20 minutes, so 500 minutes covers roughly 25 to 50 builds a
-month. That is an estimate, not a measurement; the first run's duration
-replaces it. If a month ever runs past 500, pay as you go at $0.095 a minute is
-about $1 to $2 a build.
+**The account: Robert's existing Codemagic account, the one Wattsmith uses**
+(Robert, 2026-11-08, 6726519757, correcting 6726511272). No new account.
+`lendbucket/254engineering` is added there as its own app. **Both apps share
+that account's build minutes**, so when the first build is set up, the
+account's plan and remaining minutes are read, and the first run's minutes are
+reported. The workflow is set to `mac_mini_m2`. A Capacitor iPhone build is
+typically 10 to 20 minutes; that is an estimate, and the first run's duration
+replaces it.
 
 **What Codemagic needs from Robert, and when:**
 
-1. **Now, if he likes, or when the Apple account exists:**
-   - a Codemagic account, signed up with GitHub as Robert;
-   - the `lendbucket/254engineering` repository added as an app.
-   - Nothing builds yet.
+1. **Any time:** in his existing Codemagic account, add
+   `lendbucket/254engineering` as its own app. Nothing builds yet.
 2. **When Craftline's Apple Developer account is active** (after the D-U-N-S):
    - **An App Store Connect API key.** Create it in App Store Connect, under Users and Access, Integrations, App Store Connect API, with the **App Manager** role. Download the `.p8` once, and note the Issuer ID and the Key ID.
-   - Add all three in Codemagic, under Team integrations, Developer Portal, named exactly `254 Field App Store Connect`, the name in `codemagic.yaml`.
+   - Add all three in Codemagic, under Team integrations, Developer Portal, named exactly `254 Field App Store Connect`, the name in `codemagic.yaml`. It holds Craftline's key only, separate from any integration Wattsmith uses.
    - **No certificates are made by hand.** With that key, Codemagic creates the distribution certificate and the provisioning profile for `com.craftlinebrands.field` itself.
 3. **Before the first build:**
    - register the bundle ID `com.craftlinebrands.field` in the Apple Developer portal with Push Notifications;
