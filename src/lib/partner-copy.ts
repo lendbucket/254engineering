@@ -5,8 +5,9 @@ import {
   TRADING_GATED,
 } from "../../scripts/lib/regulatory.mjs";
 import { BANNED_PHRASES } from "../../scripts/lib/voice-blocklist.mjs";
-import { activeFirmRegistration, firmName, isOpen, isTrading, registrationStatement, sealingIsAvailable } from "./launch";
+import { activeFirmRegistration, isOpen, isTrading, sealingIsAvailable } from "./launch";
 import { serviceNameInSentence } from "./order-copy";
+import { referredWorkLine } from "./referred-work-line";
 
 /**
  * Whether a piece of partner marketing copy may be published.
@@ -178,15 +179,20 @@ function summarise(findings: CopyFinding[]): string {
  */
 export function performingFirmLine(): string {
   /*
-   * "WILL PERFORM AND SEAL" HOLDS THROUGH TRADING, because sealing is what this
-   * sentence promises and nothing can be sealed until a protocol is approved.
-   * Gated on the firm's status it would have flipped to "performs and seals it"
-   * the moment the firm started quoting, which is a claim about a capability
-   * the platform itself refuses.
+   * ONE SENTENCE, FUTURE TENSE, ON EVERY PARTNER SURFACE. Robert's answer 2 of
+   * 2026-11-08 (issue #1, 6726511272): the partner sign-in's one sentence
+   * replaces the longer line on the partner layout, set-password, materials,
+   * the referral order page and the badge. It is referredWorkLine(), so the
+   * sign-in and every other surface say the same words, read off the register.
+   *
+   * THE SENTENCE IT REPLACES, kept for its reasoning: "{firm} is the firm of
+   * record for work referred through this program, and is the firm that will
+   * perform and seal it." followed by the registration statement while the
+   * gate was shut, switching to the present tense once the gate opened. The
+   * future tense now holds in every gate state, on his ruling 1 of the same
+   * day.
    */
-  return !isOpen()
-    ? [`${firmName()} is the firm of record for work referred through this program, and is the firm that will perform and seal it.`, registrationStatement()].filter(Boolean).join(" ")
-    : `${firmName()} is the firm of record for work referred through this program, and is the firm that performs and seals it.`;
+  return referredWorkLine();
 }
 
 /*
