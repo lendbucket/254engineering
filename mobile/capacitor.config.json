@@ -1,5 +1,5 @@
 {
-  "appId": "com.craftlinebrands.field254",
+  "appId": "com.example.field254",
   "appName": "254 Field",
   "webDir": "www",
   "server": {
@@ -17,6 +17,7 @@
   "plugins": {
     "PushNotifications": {
       "presentationOptions": ["badge", "sound", "alert"]
-    }
+    },
+    "Camera": {}
   }
 }
