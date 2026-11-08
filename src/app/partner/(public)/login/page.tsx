@@ -3,7 +3,7 @@ import { performingFirmLine } from "@/lib/partner-copy";
 import { currentPartner } from "@/lib/partner-auth";
 import { partnerSessionConfigured } from "@/lib/partner-session";
 import { supabaseConfigured } from "@/lib/supabase";
-import { RestrictedMode, SystemAlert } from "@/components/portal/design";
+import { SystemAlert } from "@/components/portal/design";
 import { SignInFrame, SignInHeading } from "@/components/portal/SignInFrame";
 import { PartnerLoginForm } from "./PartnerLoginForm";
 
@@ -24,9 +24,10 @@ export const dynamic = "force-dynamic";
  *
  * THE 2026-11-08 REDESIGN. PRESENTATION ONLY. Robert's order: one design for
  * the three sign-in screens. The guard, the set and suspended notices, the
- * configuration check and the gate's restricted-mode notice are unchanged; the
- * notice sits in the navy panel. The performing firm line stays at the foot
- * until Robert answers question 3 (see the note beside it).
+ * configuration check are unchanged. The gate's restricted-mode notice left the
+ * page on Robert's answer 3; "Forgot your password?" opens
+ * /partner/forgot-password (answer 1). The performing firm line stays at the
+ * foot (see the note beside it).
  */
 export default async function PartnerLoginPage({
   searchParams,
@@ -41,10 +42,8 @@ export default async function PartnerLoginPage({
   const ready = partnerSessionConfigured() && supabaseConfigured();
 
   return (
-    <SignInFrame
-      purpose="The work you refer to the firm, and your statements."
-      notice={params.suspended ? null : <RestrictedMode />}
-    >
+    /* No restricted-mode notice on a sign-in page: Robert's answer 3 of 2026-11-08. */
+    <SignInFrame purpose="The work you refer to the firm, and your statements.">
       <SignInHeading />
 
       {params.set || params.suspended || !ready ? (
@@ -70,14 +69,14 @@ export default async function PartnerLoginPage({
         </div>
       ) : null}
 
-      <PartnerLoginForm disabled={!ready} />
+      <PartnerLoginForm disabled={!ready} forgotHref="/partner/forgot-password" />
 
       {/*
-        KEPT, PENDING ROBERT'S ANSWER TO QUESTION 3 (issue #1, 6724659079). The
-        recommendation was that it leaves the sign-in page like the registration
-        line; partner-audit asserts every partner surface renders it, and a
-        regulatory disclosure does not leave a page on a recommendation. Outside
-        the form, at the foot, so the form holds only what the order lists.
+        KEPT. Robert's answer 3 (6724956292) ruled on the restricted-mode
+        notice and said nothing of this line, and partner-audit asserts every
+        partner surface renders it, so a regulatory disclosure does not leave a
+        page without his word. Outside the form, at the foot, so the form holds
+        only what the order lists.
       */}
       <p className="mt-10 text-center text-[12px] leading-[1.6] text-[var(--secondary)]">
         {performingFirmLine()}

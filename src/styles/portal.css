@@ -522,13 +522,3 @@
 .portal-panel-scroll:hover::-webkit-scrollbar-thumb {
   background-color: rgb(15 34 64 / 0.42);
 }
-
-/*
- * THE SIGN-IN PANEL'S NOTICE (src/components/portal/SignInFrame.tsx, Robert,
- * 2026-11-08). The gate's restricted-mode line is written for a light page, in
- * ink. In the navy panel it reads in the panel's own white, so the notice keeps
- * its words and gains the contrast the panel needs.
- */
-.sign-in-panel-notice p {
-  color: var(--on-navy);
-}

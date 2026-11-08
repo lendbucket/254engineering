@@ -2,54 +2,43 @@ import { Wordmark } from "@/components/brand/Wordmark";
 
 /**
  * THE ONE SIGN-IN LAYOUT, for staff (/portal/login), customers (/account/login)
- * and partners (/partner/login). Robert, 2026-11-08: "serious enterprise
- * software"; a split layout at desktop width, a deep navy panel on the left
- * with the logo in white and one short plain line about what the portal is
- * for, the form on white on the right; on a phone, the panel becomes a slim
- * header with the logo and the form fills the screen. Calm and quiet: no
- * illustration, no gradient, no decorative icon, no marketing copy. Gold only
- * as a thin accent.
+ * and partners (/partner/login), and the two reset information pages. Robert,
+ * 2026-11-08: "serious enterprise software"; a split layout at desktop width,
+ * a deep navy panel on the left with the logo in white and one short plain line
+ * about what the portal is for, the form on white on the right; on a phone, the
+ * panel becomes a slim header with the logo and the form fills the screen. Calm
+ * and quiet: no illustration, no gradient, no decorative icon, no marketing
+ * copy. Gold only as a thin accent. The portal's own tokens (answer 4).
  *
  * PRESENTATION ONLY. Each page keeps its own guard, its own notices and its own
  * form, unchanged in what they do; this only places them. The page's noindex
- * comes from its layout's metadata and is untouched.
+ * comes from its layout's metadata and is untouched. No restricted-mode notice
+ * sits here, on Robert's answer 3.
  *
- *   purpose   the one plain line in the panel
- *   notice    anything the page must still say outside the form (the gate's
- *             restricted-mode notice): in the panel at desktop width, and above
- *             the form on a phone, so it is never hidden at either width
- *   children  the heading, the page's own alerts and the form
+ * THE WORDMARK IS A RASTER LOCKUP whose descriptor is part of the artwork, so
+ * its height decides whether "ENGINEERING SERVICES" can be read. The account
+ * page's own history records 28 rendering it as a smear; the first capture of
+ * this layout at 28 and 48 showed the same, so it is 40 on a phone and 72 at
+ * desktop width.
  */
-export function SignInFrame({
-  purpose,
-  notice,
-  children,
-}: {
-  purpose: string;
-  notice?: React.ReactNode;
-  children: React.ReactNode;
-}) {
+export function SignInFrame({ purpose, children }: { purpose: string; children: React.ReactNode }) {
   return (
     <main className="portal-surface min-h-dvh bg-white lg:grid lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
       <aside className="bg-[var(--navy)] text-[var(--on-navy)]">
         {/* On a phone: a slim header with the logo, nothing else. */}
-        <div className="flex min-h-[56px] items-center px-5 lg:hidden">
-          <Wordmark onDark height={28} priority />
+        <div className="flex min-h-[64px] items-center px-5 lg:hidden">
+          <Wordmark onDark height={40} priority />
         </div>
-        {/* At desktop width: the logo, a thin gold rule, the one line, and the notice. */}
+        {/* At desktop width: the logo, a thin gold rule and the one line. */}
         <div className="hidden h-full flex-col px-14 py-14 lg:flex">
-          <Wordmark onDark height={48} priority />
+          <Wordmark onDark height={72} priority />
           <div aria-hidden className="mt-10 h-[2px] w-12 bg-[var(--gold)]" />
           <p className="mt-6 max-w-[36ch] font-display text-[24px] leading-[1.3] font-semibold">{purpose}</p>
-          {notice ? <div className="sign-in-panel-notice mt-auto pt-10 text-[15px] leading-[1.55]">{notice}</div> : null}
         </div>
       </aside>
 
-      <section className="flex min-h-[calc(100dvh-56px)] items-start justify-center px-5 py-10 sm:items-center lg:min-h-dvh lg:px-16">
-        <div className="w-full max-w-[400px]">
-          {notice ? <div className="mb-6 text-[15px] leading-[1.55] text-[var(--ink)] lg:hidden">{notice}</div> : null}
-          {children}
-        </div>
+      <section className="flex min-h-[calc(100dvh-64px)] items-start justify-center px-5 py-10 sm:items-center lg:min-h-dvh lg:px-16">
+        <div className="w-full max-w-[400px]">{children}</div>
       </section>
     </main>
   );

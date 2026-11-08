@@ -3,7 +3,7 @@ import { currentActor } from "@/lib/ops-auth";
 import { homeFor } from "@/lib/ops-authz";
 import { opsSessionConfigured } from "@/lib/ops-session";
 import { supabaseConfigured } from "@/lib/supabase";
-import { RestrictedMode, SystemAlert } from "@/components/portal/design";
+import { SystemAlert } from "@/components/portal/design";
 import { SignInFrame, SignInHeading } from "@/components/portal/SignInFrame";
 import { LoginForm } from "./LoginForm";
 import { PortalUnreachable } from "@/components/portal/Unreachable";
@@ -19,14 +19,16 @@ export const dynamic = "force-dynamic";
  * Robert's order: one design for the three sign-in screens, a navy panel and
  * the form on white, "a visual change only". Every behaviour is untouched: the
  * redirect for an already signed in actor, the unreachable database screen, the
- * suspended and reset notices, the configuration check that says so rather than
- * rejecting a correct password in silence, and the gate's restricted-mode
- * notice. The noindex is the layout's metadata and is unchanged.
+ * suspended and reset notices, and the configuration check that says so rather
+ * than rejecting a correct password in silence. The noindex is the layout's
+ * metadata and is unchanged.
  *
- * Three things left the page on the same order: the registration line (still
- * stated in the public footer, every email and the portal rail, each asserted
- * by compliance-audit), "This area is not public and is not indexed", and the
- * administrator sentence under the button.
+ * What left the page on the same order: the registration line (still stated in
+ * the public footer, every email and the portal rail, each asserted by
+ * compliance-audit), "This area is not public and is not indexed", the
+ * administrator sentence under the button, and (answer 3) the gate's
+ * restricted-mode notice. "Forgot your password?" opens /portal/forgot-password
+ * (answer 1).
  *
  * THE LINE THAT IS NOT HERE, AND WHY
  * ----------------------------------
@@ -65,15 +67,12 @@ export default async function PortalLoginPage({
   const ready = opsSessionConfigured() && supabaseConfigured();
 
   return (
-    <SignInFrame
-      purpose="The operations portal for the firm's staff."
-      /*
-        The component reads the gate itself and returns null once it lifts.
-        Not rendered to a suspended account, who cannot sign in and so is not
-        asking what the firm can currently do.
-      */
-      notice={params.suspended ? null : <RestrictedMode />}
-    >
+    /*
+      NO RESTRICTED-MODE NOTICE ON A SIGN-IN PAGE. Robert's answer 3 of
+      2026-11-08 (issue #1, 6724956292): the firm can do everything it lists.
+      It leaves the three sign-in pages only and changes nothing in the gate.
+    */
+    <SignInFrame purpose="The firm's work, from intake to the sealed letter.">
       <SignInHeading />
 
       {params.suspended || params.reset || !ready ? (
@@ -99,7 +98,7 @@ export default async function PortalLoginPage({
         </div>
       ) : null}
 
-      <LoginForm next={params.next ?? null} disabled={!ready} />
+      <LoginForm next={params.next ?? null} disabled={!ready} forgotHref="/portal/forgot-password" />
     </SignInFrame>
   );
 }
