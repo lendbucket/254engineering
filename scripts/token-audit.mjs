@@ -418,8 +418,9 @@ const PORTED = [
   "src/app/portal/(app)/jobs/JobsClient.tsx",
   "src/app/portal/(app)/jobs/[id]/CaptureClient.tsx",
   "src/app/portal/(app)/jobs/[id]/page.tsx",
-  // The visit clock on the job, Robert's T6 of 2026-11-07.
+  // The visit clock on the job, Robert's T6 of 2026-11-07, and Apple Maps beside Directions (his answer 5).
   "src/app/portal/(app)/jobs/[id]/VisitClock.tsx",
+  "src/app/portal/(app)/jobs/[id]/AppleMapsLink.tsx",
   "src/app/portal/(app)/jobs/page.tsx",
   "src/app/portal/(app)/layout.tsx",
   "src/app/portal/(app)/messages/MessagesClient.tsx",
@@ -816,6 +817,7 @@ const STAFF_V10 = [
   "src/app/portal/(app)/jobs/[id]/page.tsx",
   "src/app/portal/(app)/jobs/[id]/CaptureClient.tsx",
   "src/app/portal/(app)/jobs/[id]/VisitClock.tsx",
+  "src/app/portal/(app)/jobs/[id]/AppleMapsLink.tsx",
   /*
    * The technician batch of 2026-10-08: the dashboard every role lands on and
    * the messages screen every role shares, restyled to V10 and held to its

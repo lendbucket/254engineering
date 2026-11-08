@@ -5,6 +5,7 @@ import { can } from "@/lib/ops-authz";
 import { jobView, visitClockFor } from "@/lib/ops-field";
 import { formatInFirmZone } from "@/lib/firm-calendar";
 import { VisitClock } from "./VisitClock";
+import { AppleMapsLink } from "./AppleMapsLink";
 
 /** How a visit time reads: "Nov 7, 2:05 PM", in the firm's zone. */
 const VISIT_TIME = { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" } as const;
@@ -123,6 +124,8 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
         >
           Directions
         </a>
+        {/* Apple Maps beside it on an iPhone (Robert's answer 5, 2026-11-07, 6717223376). */}
+        <AppleMapsLink query={mapQuery} />
         {can(actor, "messages.use") ? <FileThreadButton fileId={view.file.id} /> : null}
       </div>
 
@@ -136,7 +139,9 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
         fileId={view.file.id}
         visits={(visitClock?.visits ?? []).map((v) => ({
           arrived: formatInFirmZone(v.arrivedAt, VISIT_TIME) ?? v.arrivedAt,
+          arrivedLate: v.arrivedLate,
           left: v.leftAt ? (formatInFirmZone(v.leftAt, VISIT_TIME) ?? v.leftAt) : null,
+          leftLate: v.leftLate,
         }))}
         onSite={visitClock?.onSite ?? false}
         canRecord={!closed}

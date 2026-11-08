@@ -11,8 +11,12 @@
  * a site visit is a fact somebody may later be asked to stand behind.
  *
  * The cost is stated rather than hidden: an arrival pressed with no signal
- * cannot be recorded at the moment it was pressed. The button needs signal, and
- * says so when there is none (src/app/portal/(app)/jobs/[id]/VisitClock.tsx).
+ * cannot be recorded at the moment it was pressed. Robert's answer 4 of
+ * 2026-11-07 (6717223376): it needs signal, and says so when there is none; a
+ * late press records the server's time of receipt, labelled as such. So a press
+ * with no signal is held on the phone WITH NO TIME ATTACHED, sent when signal
+ * returns marked late, and shown as "recorded when signal returned"
+ * (src/app/portal/(app)/jobs/[id]/VisitClock.tsx).
  *
  * Pure, so the proof can run every rule with no database:
  * scripts/proofs/the-visit-clock-is-the-servers.mjs.
@@ -29,10 +33,15 @@ export const VISIT_KIND_FOR: Record<VisitAction, string> = {
   leave: VISIT_LEFT,
 };
 
-/** One row of the clock as the database recorded it. */
-export type VisitEvent = { kind: string; at: string };
+/**
+ * One row of the clock as the database recorded it. `late` is true when the
+ * press was made with no signal and sent when signal returned (Robert's answer
+ * 4, 2026-11-07, 6717223376): the time is still the server's, of receipt, and
+ * it is labelled as such. The phone's own clock is never stored, late or not.
+ */
+export type VisitEvent = { kind: string; at: string; late?: boolean };
 
-export type Visit = { arrivedAt: string; leftAt: string | null };
+export type Visit = { arrivedAt: string; arrivedLate: boolean; leftAt: string | null; leftLate: boolean };
 
 export type VisitState = {
   /** Every visit, oldest first. A return trip is a second visit, never an edit of the first. */
@@ -55,8 +64,11 @@ export function visitState(events: VisitEvent[]): VisitState {
   const visits: Visit[] = [];
   for (const row of rows) {
     const open = visits.length > 0 && visits[visits.length - 1].leftAt === null;
-    if (row.kind === VISIT_ARRIVED && !open) visits.push({ arrivedAt: row.at, leftAt: null });
-    if (row.kind === VISIT_LEFT && open) visits[visits.length - 1].leftAt = row.at;
+    if (row.kind === VISIT_ARRIVED && !open) visits.push({ arrivedAt: row.at, arrivedLate: Boolean(row.late), leftAt: null, leftLate: false });
+    if (row.kind === VISIT_LEFT && open) {
+      visits[visits.length - 1].leftAt = row.at;
+      visits[visits.length - 1].leftLate = Boolean(row.late);
+    }
   }
   const last = visits[visits.length - 1];
   return { visits, onSite: Boolean(last && last.leftAt === null) };
@@ -81,4 +93,9 @@ export function visitRefusal(state: VisitState, action: VisitAction): string | n
 /** The action named in a request, or null when it names neither. */
 export function visitActionFrom(value: unknown): VisitAction | null {
   return value === "arrive" || value === "leave" ? value : null;
+}
+
+/** Whether the request says the press was held for want of signal. Only a literal true counts. */
+export function visitLateFrom(value: unknown): boolean {
+  return value === true;
 }

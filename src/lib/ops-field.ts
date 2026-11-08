@@ -3269,13 +3269,19 @@ export async function visitClockFor(fileId: string): Promise<VisitState | null> 
   if (!db) return null;
   const { data, error } = await db
     .from("eng_file_events")
-    .select("kind, created_at")
+    .select("kind, created_at, meta")
     .eq("file_id", fileId)
     .in("kind", [...VISIT_KINDS])
     .order("created_at", { ascending: true })
     .limit(200);
   if (error || !data) return null;
-  return visitState(data.map((r) => ({ kind: r.kind as string, at: r.created_at as string })));
+  return visitState(
+    data.map((r) => ({
+      kind: r.kind as string,
+      at: r.created_at as string,
+      late: (r.meta as { late?: unknown } | null)?.late === true,
+    })),
+  );
 }
 
 /**
@@ -3300,6 +3306,8 @@ export async function recordVisit(
   fileId: string,
   action: VisitAction,
   context: Context = {},
+  /* Held on the phone for want of signal and sent when it returned (answer 4). Carries no time. */
+  late = false,
 ): Promise<{ ok: true; at: string } | { ok: false; error: string }> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
@@ -3326,7 +3334,10 @@ export async function recordVisit(
       file_id: fileId,
       actor_id: actor.id,
       kind,
-      body: action === "arrive" ? "Arrived at the property." : "Left the property.",
+      body:
+        (action === "arrive" ? "Arrived at the property." : "Left the property.") +
+        (late ? " Pressed with no signal; recorded when signal returned." : ""),
+      meta: { late },
     })
     .select("created_at")
     .single();

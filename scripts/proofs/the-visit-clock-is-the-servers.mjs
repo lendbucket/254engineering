@@ -85,7 +85,33 @@ const r0 = route.indexOf('if (action === "record_visit")');
 const branch = r0 >= 0 ? route.slice(r0, route.indexOf("\n  }\n", r0)) : "";
 check("B: the route has the record_visit branch", branch.length > 0);
 const bodyReads = [...branch.matchAll(/body\?\.([a-zA-Z_]+)/g)].map((m) => m[1]).sort();
-check("B: the route reads only the act and the file from the body", JSON.stringify(bodyReads) === JSON.stringify(["fileId", "visit"]), bodyReads.join(", "));
+check(
+  "B: the route reads only the act, the file and the late flag from the body",
+  JSON.stringify(bodyReads) === JSON.stringify(["fileId", "late", "visit"]),
+  bodyReads.join(", "),
+);
+check("B: the late flag is a literal true or nothing", rules.visitLateFrom(true) === true && rules.visitLateFrom("2026-11-07T15:00:00Z") === false && rules.visitLateFrom(1) === false);
+check("B: what is stored for it is a boolean, never a time", /meta: \{ late \}/.test(insert));
+
+/* ---------------------------------------------- B2, a press with no signal (answer 4) */
+
+const lateRead = rules.visitState([
+  { kind: rules.VISIT_ARRIVED, at: t(10), late: true },
+  { kind: rules.VISIT_LEFT, at: t(30) },
+]);
+check("B2: a late arrival is read as late, a timely leaving as not", lateRead.visits[0].arrivedLate === true && lateRead.visits[0].leftLate === false);
+const clock = readSource("src/app/portal/(app)/jobs/[id]/VisitClock.tsx");
+check("B2: the phone holds only the act when there is no signal", /localStorage\.setItem\(heldKey\(fileId\), visit\)/.test(clock));
+check("B2: and reads no clock anywhere in the component", !/new Date|Date\.now|toISOString|getTime|performance\.now/.test(clock));
+check("B2: a held press is sent marked late", /send\(waiting, true\)/.test(clock) && /send\(pending, true\)/.test(clock));
+check("B2: a late time is labelled as such on the screen", clock.includes("(recorded when signal returned)"));
+
+/* ------------------------------------------------- B3, Apple Maps on an iPhone (answer 5) */
+
+const job = readSource("src/app/portal/(app)/jobs/[id]/page.tsx");
+const apple = readSource("src/app/portal/(app)/jobs/[id]/AppleMapsLink.tsx");
+check("B3: the job keeps its external Directions link", job.includes("https://maps.google.com/?q=${mapQuery}"));
+check("B3: and adds Apple Maps, drawn only on an Apple device", job.includes("<AppleMapsLink query={mapQuery} />") && /iPhone\|iPad\|iPod/.test(apple) && apple.includes("if (!apple) return null;"));
 
 /* ------------------------------------------------------------- C, the database */
 
