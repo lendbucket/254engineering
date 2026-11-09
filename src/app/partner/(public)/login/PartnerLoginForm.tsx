@@ -2,6 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  ForgotPasswordLink,
+  PasswordField,
+  SIGN_IN_INPUT,
+  SIGN_IN_LABEL,
+  SignInButton,
+  SignInError,
+} from "@/components/portal/SignInFields";
 
 /**
  * The partner sign in form.
@@ -17,8 +25,20 @@ import { useRouter } from "next/navigation";
  *
  * security-audit asserts both from the rendered page, so a tidy up cannot
  * remove them.
+ *
+ * THE 2026-11-08 REDESIGN IS PRESENTATION ONLY. The endpoint, the body, the
+ * redirect, the field names and both attributes are unchanged. The shared
+ * parts draw it; the sentence under the button left on Robert's order; the two
+ * fallback errors now say what failed.
  */
-export function PartnerLoginForm({ disabled }: { disabled: boolean }) {
+export function PartnerLoginForm({
+  disabled,
+  forgotHref,
+}: {
+  disabled: boolean;
+  /** The reset flow, when partners have one. Absent, no link is drawn. */
+  forgotHref?: string;
+}) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -42,21 +62,21 @@ export function PartnerLoginForm({ disabled }: { disabled: boolean }) {
         | null;
 
       if (!res.ok || !body?.ok) {
-        setError(body?.error ?? "That did not work. Try again.");
+        setError(body?.error ?? "Sign in failed, and the server did not say why. Try again.");
         setBusy(false);
         return;
       }
       router.push(body.redirect ?? "/partner");
       router.refresh();
     } catch {
-      setError("The network dropped that. Try again.");
+      setError("Sign in did not reach the server. Check the connection and try again.");
       setBusy(false);
     }
   }
 
   return (
     <form onSubmit={onSubmit} method="post" action="/api/partner/session" noValidate className="mt-7">
-      <label htmlFor="email" className="block text-[13.5px] font-semibold text-[var(--ink)]">
+      <label htmlFor="email" className={SIGN_IN_LABEL}>
         Email
       </label>
       <input
@@ -68,46 +88,16 @@ export function PartnerLoginForm({ disabled }: { disabled: boolean }) {
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         disabled={disabled}
-        /* 16px so iOS does not zoom the page on focus and leave it panned. */
-        className="mt-1.5 min-h-[var(--tap-target)] w-full rounded-[var(--radius-control)] border border-[var(--border-strong)] bg-white px-3 text-[16px] text-[var(--ink)] outline-none focus:border-[var(--navy)]"
+        className={SIGN_IN_INPUT}
       />
 
-      <label htmlFor="password" className="mt-4 block text-[13.5px] font-semibold text-[var(--ink)]">
-        Password
-      </label>
-      <input
-        id="password"
-        name="password"
-        type="password"
-        autoComplete="current-password"
-        required
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        disabled={disabled}
-        className="mt-1.5 min-h-[var(--tap-target)] w-full rounded-[var(--radius-control)] border border-[var(--border-strong)] bg-white px-3 text-[16px] text-[var(--ink)] outline-none focus:border-[var(--navy)]"
-      />
+      <PasswordField id="password" name="password" value={password} onChange={setPassword} disabled={disabled} />
 
-      {error ? (
-        <p
-          role="alert"
-          className="mt-4 rounded-[var(--radius-control)] border border-[var(--warn-border)] bg-[var(--warn-bg)] px-3 py-2.5 text-[13.5px] leading-[1.5] text-[var(--red)]"
-        >
-          {error}
-        </p>
-      ) : null}
+      <SignInError message={error} />
 
-      <button
-        type="submit"
-        disabled={busy || disabled}
-        className="mt-6 min-h-[var(--tap-target)] w-full rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[15px] font-bold text-white active:bg-[var(--navy-hover)] disabled:cursor-not-allowed disabled:opacity-45"
-      >
-        {busy ? "Signing in" : "Sign in"}
-      </button>
+      <SignInButton busy={busy} disabled={disabled} />
 
-      <p className="mt-5 text-[13.5px] leading-[1.6] text-[var(--secondary)]">
-        Partner accounts are created by the firm. There is no sign up here, and if you have lost
-        your password, ask the firm to send a new link.
-      </p>
+      {forgotHref ? <ForgotPasswordLink href={forgotHref} /> : null}
     </form>
   );
 }

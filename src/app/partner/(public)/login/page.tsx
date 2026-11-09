@@ -1,10 +1,10 @@
 import { redirect } from "next/navigation";
-import { performingFirmLine } from "@/lib/partner-copy";
-import { Wordmark } from "@/components/brand/Wordmark";
+import { referredWorkLine } from "@/lib/referred-work-line";
 import { currentPartner } from "@/lib/partner-auth";
 import { partnerSessionConfigured } from "@/lib/partner-session";
 import { supabaseConfigured } from "@/lib/supabase";
-import { RestrictedMode, SystemAlert } from "@/components/portal/design";
+import { SystemAlert } from "@/components/portal/design";
+import { SignInFrame, SignInHeading } from "@/components/portal/SignInFrame";
 import { PartnerLoginForm } from "./PartnerLoginForm";
 
 export const dynamic = "force-dynamic";
@@ -21,6 +21,13 @@ export const dynamic = "force-dynamic";
  *
  * The partner's name becomes the identity of the surface the moment they are
  * through the door.
+ *
+ * THE 2026-11-08 REDESIGN. PRESENTATION ONLY. Robert's order: one design for
+ * the three sign-in screens. The guard, the set and suspended notices, the
+ * configuration check are unchanged. The gate's restricted-mode notice left the
+ * page on Robert's answer 3; "Forgot your password?" opens
+ * /partner/forgot-password (answer 1). The firm line stays at the foot as one
+ * future tense sentence (ruling 1 of the same day; see the note beside it).
  */
 export default async function PartnerLoginPage({
   searchParams,
@@ -35,53 +42,43 @@ export default async function PartnerLoginPage({
   const ready = partnerSessionConfigured() && supabaseConfigured();
 
   return (
-    <main className="portal-surface v10-phone-ground-centred grid min-h-dvh place-items-center px-4 py-6 sm:py-10">
-      <div className="w-full max-w-[420px]">
-        <div className="mb-4 flex justify-center sm:mb-6">
-          <Wordmark height={44} priority />
-        </div>
+    /* No restricted-mode notice on a sign-in page: Robert's answer 3 of 2026-11-08. */
+    <SignInFrame label="Partner program">
+      <SignInHeading />
 
-        {/* V10, as the portal sign in: no card, sections under a 2px ink rule. */}
-        <div className="v10-sections border-t-2 border-[var(--ink)] pt-5">
-          <div>
-            <h1 className="font-display text-[17px] leading-[1.25] font-bold text-[var(--navy)]">
-              Referral partners
-            </h1>
-            <p className="mt-2 text-[14px] leading-[1.6] text-[var(--secondary)]">
-              Sign in to your partner account.
+      {params.set || params.suspended || !ready ? (
+        <div className="mt-5 flex flex-col gap-3">
+          {params.set ? (
+            <p className="text-[15px] leading-[1.55] font-semibold text-[var(--ink)]">
+              Your password is set. Sign in with it.
             </p>
-          </div>
+          ) : null}
 
-          <div className="mt-4 flex flex-col gap-2.5 sm:mt-5 sm:gap-3">
-            {params.set ? (
-              <p className="text-[14px] leading-[1.55] font-semibold text-[var(--ink)]">
-                Your password is set. Sign in with it.
-              </p>
-            ) : null}
+          {params.suspended ? (
+            <SystemAlert condition="This partner account is not active." tone="failed">
+              Signing in is refused until the firm restores it.
+            </SystemAlert>
+          ) : null}
 
-            {params.suspended ? (
-              <SystemAlert condition="This partner account is not active." tone="failed">
-                Signing in is refused until the firm restores it.
-              </SystemAlert>
-            ) : null}
-
-            {ready ? null : (
-              <SystemAlert condition="Not configured." tone="failed">
-                The partner program is not configured on this deployment, so nobody can sign in.
-                What is missing is in the server logs rather than on this page.
-              </SystemAlert>
-            )}
-
-            {params.suspended ? null : <RestrictedMode />}
-          </div>
-
-          <PartnerLoginForm disabled={!ready} />
+          {ready ? null : (
+            <SystemAlert condition="Not configured." tone="failed">
+              The partner program is not configured on this deployment, so nobody can sign in.
+              What is missing is in the server logs rather than on this page.
+            </SystemAlert>
+          )}
         </div>
+      ) : null}
 
-        <p className="mt-4 text-center text-[12px] leading-[1.6] text-[var(--secondary)] sm:mt-5">
-          {performingFirmLine()}
-        </p>
-      </div>
-    </main>
+      <PartnerLoginForm disabled={!ready} forgotHref="/partner/forgot-password" />
+
+      {/*
+        THE FIRM LINE, ONE SENTENCE, FUTURE TENSE. Robert's ruling 1 of
+        2026-11-08: kept, made one sentence. Read off the register by
+        referredWorkLine(). Outside the form, at the foot.
+      */}
+      <p className="mt-10 text-center text-[12px] leading-[1.6] text-[var(--secondary)]">
+        {referredWorkLine()}
+      </p>
+    </SignInFrame>
   );
 }
