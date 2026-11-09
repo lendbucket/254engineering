@@ -11,7 +11,17 @@ import {
   type ItemException,
   type ProtocolItem,
 } from "@/lib/ops-evidence";
-import { dequeue, enqueue, flushOne, markAttempt, pendingFor, positionOrNull, type QueuedCapture } from "@/lib/offline-queue";
+import {
+  dequeue,
+  enqueue,
+  flushOne,
+  markAttempt,
+  pendingFor,
+  positionOrNull,
+  replayQueue,
+  sha256OfBlob,
+  type QueuedCapture,
+} from "@/lib/offline-queue";
 import { FIRM_TIME_ZONE } from "@/lib/firm-calendar";
 
 /**
@@ -156,18 +166,18 @@ export function Checklist({
     flushingRef.current = true;
     setFlushing(true);
     try {
+      /*
+       * Oldest first, stopping at the first failure: replayQueue owns the
+       * order and the stop (Robert's T2, 2026-11-07), so the proof that runs
+       * it runs the loop this screen runs.
+       */
       const pending = await pendingFor(fileId);
-      let sent = 0;
-      for (const entry of pending) {
-        const result = await flushOne(entry);
-        if (result.ok) {
-          await dequeue(entry.id);
-          sent++;
-        } else {
-          await markAttempt(entry, result.error);
-          break;
-        }
-      }
+      const { sent } = await replayQueue(
+        pending,
+        flushOne,
+        (entry) => dequeue(entry.id),
+        (entry, error) => markAttempt(entry, error),
+      );
       await refreshQueue();
       if (sent > 0) router.refresh();
     } finally {
@@ -272,6 +282,21 @@ export function Checklist({
 
   async function capture(item: Item, payload: { blob?: Blob; text?: string; value?: number }) {
     setError(null);
+    /*
+     * THE HASH IS TAKEN HERE, AT CAPTURE, BEFORE THE ENTRY IS QUEUED. Robert's
+     * T2 and his answer 2 of 2026-11-07: the server hashes the stored bytes at
+     * upload and refuses a capture whose bytes are not these. A phone whose
+     * browser cannot hash (no secure context) captures without one, which the
+     * server records exactly as it did before this rule.
+     */
+    let captureSha256: string | undefined;
+    if (payload.blob) {
+      try {
+        captureSha256 = await sha256OfBlob(payload.blob);
+      } catch {
+        captureSha256 = undefined;
+      }
+    }
     const position = await positionOrNull();
     const entry: QueuedCapture = {
       id: newCaptureId(),
@@ -287,6 +312,7 @@ export function Checklist({
       lng: position?.coords.longitude ?? null,
       accuracy: position?.coords.accuracy ?? null,
       attempts: 0,
+      captureSha256,
     };
 
     try {
