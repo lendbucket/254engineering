@@ -66,7 +66,8 @@ const refuseSuspendedAt = setBody.indexOf('if (!holder || holder.status === "sus
 const spendAt = setBody.indexOf('.from("eng_partner_tokens")');
 check("setPartnerPassword reads the holder's status", readAt > 0);
 check("and refuses a suspended holder with the invalid-link sentence before the link is spent", refuseSuspendedAt > readAt && spendAt > refuseSuspendedAt);
-check("the write excludes a suspended row and counts what it changed", /\.neq\("status", "suspended"\)\s*\.select\("id"\);/.test(setBody) && /if \(!set \|\| set\.length !== 1\) return \{ ok: false, error: "That link is not valid\." \};/.test(setBody));
+/* Since auth M2 (2026-11-02) the same write also carries the session epoch condition, named here exactly. */
+check("the write excludes a suspended row, holds the epoch it read, and counts what it changed", /\.neq\("status", "suspended"\)\s*\.eq\("session_epoch", epochNow\.epoch\)\s*\.select\("id"\);/.test(setBody) && /if \(!set \|\| set\.length !== 1\) return \{ ok: false, error: "That link is not valid\." \};/.test(setBody));
 
 /* ------------------------------------------------------------------ M4 */
 const auth = readFileSync("src/lib/ops-auth.ts", "utf8");

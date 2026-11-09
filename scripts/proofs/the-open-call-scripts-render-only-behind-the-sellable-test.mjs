@@ -164,8 +164,59 @@ check(
   /const line = SCRIPT_LINE\[scriptVerticalFor\(\{ vertical, city: [^\]]*\}\)\];/.test(queue) && !/const line = SCRIPT_LINE\[vertical\];/.test(queue),
 );
 
+/*
+ * H. THE ONE OTHER FILLER, THE SEQUENCE EMAIL (R7). fillScript is the
+ * placeholder engine (price book, names); the sequence email uses it for its
+ * own templates (src/content/crm-emails.ts), never for CRM_SCRIPTS (asserted
+ * in D). What this proof owes Robert's R3 ruling 1 is that nothing renders an
+ * OPEN text except behind the sellable test, so the email is held to exactly
+ * the shape the renderer is held to above: the variant comes from its sellable
+ * argument and nothing else, every vertical renders prelaunch when not
+ * sellable, and its one send path hands it the line's own sellable answer for
+ * the email actually shown. A third filler, or the email choosing its variant
+ * any other way, turns this red. (Replaces "nothing outside the renderer fills
+ * a script", which R7's email legitimately broke, 2026-11-02.)
+ */
 const fillers = srcFiles.filter((f) => f !== "src/lib/crm-script-render.ts" && /\bfillScript\s*\(/.test(readFileSync(f, "utf8")));
-check("nothing outside the renderer fills a script", fillers.length === 0, fillers.join(", "));
+check(
+  "outside the renderer, only the sequence email fills a template",
+  JSON.stringify(fillers) === JSON.stringify(["src/lib/crm-email-rules.ts"]),
+  fillers.join(", ") || "none",
+);
+const emailRules = readFileSync("src/lib/crm-email-rules.ts", "utf8");
+check("the email chooses its variant from its sellable argument and nothing else", /const variant = sellable \? "open" : "prelaunch";/.test(emailRules));
+check(
+  "and reads an email pair only as CRM_EMAILS[...][variant]",
+  (emailRules.match(/CRM_EMAILS\[/g) ?? []).length === 1 && /CRM_EMAILS\[usedVertical\]\[variant\]/.test(emailRules) && !/\.open\b|\["open"\]/.test(emailRules),
+);
+const emails = await import("../../src/lib/crm-email-rules.ts");
+const ecard = (vertical) => ({ vertical, rep: "Sam", contact: "Pat Lee", company: "Proof Co", city: null, siteUrl: "https://254engineering.com", phone: "(281) 940-4490" });
+const emailAsked = [];
+for (const v of verticals) {
+  const shut = emails.renderSequenceEmail(ecard(v), false);
+  const open = emails.renderSequenceEmail(ecard(v), true);
+  if (!(shut.ok && shut.variant === "prelaunch")) emailAsked.push(`${v}: not sellable gave ${shut.ok ? shut.variant : shut.error}`);
+  if (shut.ok && findRegulatoryClaims([shut.subject, ...shut.paragraphs].join(" ")).length) emailAsked.push(`${v}: the not sellable email makes a present tense claim`);
+  if (!(open.ok && open.variant === "open")) emailAsked.push(`${v}: sellable gave ${open.ok ? open.variant : open.error}`);
+}
+check(`every vertical's email renders prelaunch when not sellable and open only when sellable (${verticals.length})`, emailAsked.length === 0, emailAsked.join("; "));
+check(
+  "the email follows the scripts' own vertical rule (a solar company in a wind load city gets the general email)",
+  /return scriptVerticalFor\(\{ vertical, city \}\);/.test(emailRules) && emails.emailVerticalFor("solar", ` ${String(windCity).toUpperCase()} `) === "other",
+);
+const emailCallers = srcFiles.filter((f) => f !== "src/lib/crm-email-rules.ts" && /\brenderSequenceEmail\s*\(/.test(readFileSync(f, "utf8")));
+check(
+  "renderSequenceEmail is called by the send path and the audit's samples only",
+  JSON.stringify(emailCallers) === JSON.stringify(["src/lib/crm-email.ts", "src/lib/email-templates.ts"]),
+  emailCallers.join(", ") || "none",
+);
+const send = readFileSync("src/lib/crm-email.ts", "utf8");
+check(
+  "the send path asks the sellable answer for the line of the email it shows, and hands it sellable.ok",
+  /const line = SCRIPT_LINE\[emailVerticalFor\(vertical, [^\]]*\)\];/.test(send) &&
+    /const sellable = await lineIsSellableForDisplay\(line\.serviceSlug, line\.tier \?\? null\);/.test(send) &&
+    /\n\s*sellable\.ok,\n\s*\);/.test(send),
+);
 
 console.log(
   wrong === 0

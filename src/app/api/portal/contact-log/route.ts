@@ -4,6 +4,7 @@ import { can } from "@/lib/ops-authz";
 import { logContact } from "@/lib/ops-contact-log";
 import { CONTACT_SUBJECTS, type ContactChannel, type ContactOutcome, type ContactSubject } from "@/lib/contact-log-rules";
 import { withSaveOutcome } from "@/lib/save-outcome";
+import { mayActOnCompany } from "@/lib/crm-pipeline";
 
 export const dynamic = "force-dynamic";
 
@@ -23,9 +24,20 @@ async function handlePOST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "That is not something a call can be logged against." }, { status: 400 });
   }
   const str = (k: string) => (typeof body?.[k] === "string" && (body[k] as string).trim() ? (body[k] as string) : null);
+  const subjectId = String(body?.subjectId ?? "");
+  /*
+   * A company on the sales list is logged against only by somebody who may see
+   * it: the sales list's one rule, canSeeCompany (Robert's CRM R5, 2026-11-02),
+   * asked here before anything is written. A rep cannot log against another
+   * rep's company, or an unassigned one outside their territories.
+   */
+  if (subject === "prospect") {
+    const seen = await mayActOnCompany(actor, subjectId);
+    if (!seen.ok) return NextResponse.json({ ok: false, error: seen.error }, { status: 404 });
+  }
   const result = await logContact(actor, {
     subject,
-    subjectId: String(body?.subjectId ?? ""),
+    subjectId,
     channel: String(body?.channel ?? "") as ContactChannel,
     direction: (str("direction") as "outbound" | "inbound" | null) ?? null,
     outcome: (str("outcome") as ContactOutcome | null) ?? null,

@@ -10,7 +10,8 @@ import type { JobOutcome } from "./job-rules";
 import { supabaseAdmin } from "./supabase";
 import { notify } from "./notify";
 import { event as orderEvent } from "./ops-intake";
-import { opsNotification } from "./email-templates";
+import { opsNotification, MARKETING_TEMPLATES } from "./email-templates";
+import { isSuppressed } from "./marketing-suppression";
 import { issueStatement } from "./ops-statements";
 import { reconcileAll } from "./ops-reconcile";
 import { rollupDay } from "./ops-metrics";
@@ -24,6 +25,7 @@ import { reviewRequestKey, runReviewRequest } from "./review-request";
 import { raise } from "./ops-notify";
 import { sendInsuranceExpiryAlerts } from "./ops-insurance";
 import { runPreview } from "./crm-imports";
+import { refreshAccountTasks } from "./crm-accounts";
 import { sourceDecl, sourceRefusal } from "@/config/crm-sources";
 import { notifyRepairsRequired, settleDecision } from "./ops-payments";
 import { orderForFile as liveOrderForFile } from "./order-for-file";
@@ -162,6 +164,35 @@ registerJob("email.send", {
         "[jobs] email.send #" + job.id + " to " + to + ": suppressed, nothing was sent.",
       );
       return { kind: "done" };
+    }
+
+    /*
+     * THE MARKETING-ONLY SUPPRESSION CHECK, AT SEND TIME. Robert, 2026-11-02,
+     * issue #1 answer 3 to 6592143963: "approved, the second suppression check
+     * in the marketing-only branch with email-audit asserting it."
+     *
+     * The send paths ask the gate when they compose; this asks again just
+     * before the provider, so an address that unsubscribed between compose and
+     * send is not written to. It runs for MARKETING_TEMPLATES ONLY: a receipt
+     * is never stopped by the marketing list (somebody who unsubscribed from
+     * announcements is still owed it), which is why this branch is the one
+     * place email-audit lets this shared handler ask the gate, and why the
+     * audit asserts the branch is guarded by the marketing list. isSuppressed
+     * answers true on a failed read, so a list it cannot read sends nothing.
+     * The reason is recorded on the audit trail, by template and job, never the
+     * address.
+     */
+    const templateId = typeof p.id === "string" ? p.id : null;
+    if (templateId !== null && MARKETING_TEMPLATES.includes(templateId)) {
+      if (await isSuppressed(to)) {
+        await recordSystemAudit({
+          action: "email.suppressed_at_send",
+          entityType: "job",
+          entityId: String(job.id),
+          summary: `A ${templateId} email was not sent: the address is on the marketing suppression list, or the list could not be read.`,
+        });
+        return { kind: "done" };
+      }
     }
 
     /*
@@ -676,6 +707,38 @@ registerJob("crm.import_preview", {
     const result = await runPreview(null, { source, trigger: "schedule" });
     if (!result.ok) return { kind: "retry", error: result.error };
     console.log(`[crm.import_preview] ${source} ${day}: ${result.counts.adds} adds, ${result.counts.merges} merges, ${result.counts.conflicts} conflicts, ${result.counts.held} held`);
+    return { kind: "done" };
+  },
+});
+
+// ------------------------------------------------------- crm.account_tasks
+
+/**
+ * The daily account reminders and check-ins. Robert's sales CRM ruling of
+ * 2026-11-02, item R6: a reorder reminder at the account's own average
+ * interval and a check-in every 90 days, raised as tasks for the account's
+ * owner (refreshAccountTasks in crm-accounts.ts, the rules in
+ * crm-account-rules.ts). Keyed on the firm's calendar day, so the daily cron
+ * queueing it twice finds the first; each task is keyed on its account and due
+ * day, so a run that is repeated, on any day, raises nothing twice.
+ *
+ * A day that is not a day is fatal, as for the credential refresh. A database
+ * fault is a retry. reachesOutside false: it writes tasks and emails nobody.
+ */
+registerJob("crm.account_tasks", {
+  reachesOutside: false,
+  idempotency: (p) => keyFieldsMissing(p, ["day"]) ?? keyOf("crm-account-tasks", p.day),
+  run: async (p): Promise<JobOutcome> => {
+    const day = typeof p.day === "string" ? p.day : undefined;
+    if (day === undefined || !/^\d{4}-\d{2}-\d{2}$/.test(day)) {
+      return { kind: "fatal", error: `"${day}" is not a day, so these reminders will never be keyed.` };
+    }
+    const report = await refreshAccountTasks();
+    console.log(
+      `[crm.account_tasks] ${day}: ${report.accounts} accounts, ${report.wanted} wanted, ${report.raised} raised, ` +
+        `${report.existing} already raised, ${report.faults.length} fault(s)`,
+    );
+    if (report.faults.length > 0) return { kind: "retry", error: report.faults.slice(0, 3).join("; ") };
     return { kind: "done" };
   },
 });

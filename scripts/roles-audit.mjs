@@ -1472,15 +1472,16 @@ const STAFF_LEVELS = ["rep", "ops_manager"];
 
   /*
    * The cookie is sub.role.factor.exp.signature since Phase 12 Section 1, five
-   * segments rather than four. These forgeries are rebuilt around the new shape
-   * rather than deleted, because what they prove has not changed: editing any
-   * claim invalidates the signature.
+   * segments rather than four, and sub.role.factor.epoch.exp.signature since
+   * auth M2 (Robert, 2026-11-02), six. These forgeries are rebuilt around the
+   * new shape rather than deleted, because what they prove has not changed:
+   * editing any claim invalidates the signature.
    */
   const fixture = issueOpsSession(SUB, "dispatcher");
   const parts = (fixture?.value ?? "").split(".");
-  rec("a minted cookie carries five segments", parts.length === 5, `${parts.length}`);
+  rec("a minted cookie carries six segments", parts.length === 6, `${parts.length}`);
 
-  const forge = (role) => `${parts[0]}.${role}.${parts[2]}.${parts[3]}.${parts[4]}`;
+  const forge = (role) => `${parts[0]}.${role}.${parts[2]}.${parts[3]}.${parts[4]}.${parts[5]}`;
   rec(
     "a role edited in the cookie is refused, signature and all",
     readOpsSession(forge("admin")) === null,
@@ -1500,8 +1501,13 @@ const STAFF_LEVELS = ["rep", "ops_manager"];
    */
   rec(
     "a pre MFA four segment cookie is refused rather than trusted",
-    readOpsSession(`${parts[0]}.${parts[1]}.${parts[3]}.${parts[4]}`) === null,
+    readOpsSession(`${parts[0]}.${parts[1]}.${parts[4]}.${parts[5]}`) === null,
     "stripping the factor must not be a way past it",
+  );
+  rec(
+    "and a pre M2 five segment cookie is refused rather than read as epoch 0",
+    readOpsSession(`${parts[0]}.${parts[1]}.${parts[2]}.${parts[4]}.${parts[5]}`) === null,
+    "stripping the epoch must not outlive a password change",
   );
 
   /*
@@ -2572,11 +2578,17 @@ if (!db) {
         "/portal/crm/imports",
         /* The call queue, Robert's CRM R3 of 2026-11-02: crm.use, which DEFAULT_ROLES gives him none of. Selling is not an engineer's work. */
         "/portal/crm/queue",
+        /* The sequence emails and replies, Robert's CRM R7 of 2026-11-02: crm.use, which DEFAULT_ROLES gives him none of. */
+        "/portal/crm/emails",
         /* The stage board and the list, Robert's CRM R4 of 2026-11-02: crm.use, which DEFAULT_ROLES gives him none of. */
         "/portal/crm",
         "/portal/crm/list",
         /* The sales territories, Robert's CRM R5 of 2026-11-02: crm.assign, which only admin and ops_manager hold. */
         "/portal/crm/territories",
+        /* The account manager view, Robert's CRM R6 of 2026-11-02: crm.use, which DEFAULT_ROLES gives him none of. */
+        "/portal/crm/accounts",
+        /* The manager's sales reports, Robert's CRM R8 of 2026-11-02: crm.reports, which only admin and ops_manager hold. */
+        "/portal/crm/reports",
         "/portal/inbox",
         "/portal/order-lookup",
         "/portal/refunds",
