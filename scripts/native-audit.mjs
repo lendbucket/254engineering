@@ -621,11 +621,43 @@ for (const screen of SCREENS) {
         return `${st.opacity}|${st.backgroundColor}|${st.transform}|${st.color}`;
       });
 
+    /*
+     * PRESSED ON ITS FIRST LINE BOX, NOT AT THE CENTRE OF ITS BOUNDING BOX.
+     * Board 42562339247 (2026-11-09): the badge link on /partner/materials
+     * wraps to two lines at 390, and the centre of a two-line inline link's
+     * bounding box is the gap between its lines, which belongs to the
+     * paragraph. The press landed beside the link and reported a link that
+     * dims under a finger as doing nothing. The old sentence passed only
+     * because it wrapped to an odd number of lines. So the press goes to the
+     * centre of the first non-empty line box, and the point is asserted to be
+     * on the control: a press that lands elsewhere is a finding, never a skip.
+     */
+    let point;
+    try {
+      point = await el.evaluate((n) => {
+        const r = [...n.getClientRects()].find((q) => q.width > 0 && q.height > 0);
+        if (!r) return null;
+        const x = r.left + r.width / 2;
+        const y = r.top + r.height / 2;
+        const at = document.elementFromPoint(x, y);
+        return { x, y, onControl: !!at && (at === n || n.contains(at)) };
+      });
+    } catch {
+      continue;
+    }
+    if (!point) continue;
+    if (!point.onControl) {
+      pressedCount += 1;
+      bare += 1;
+      bareNames.push(`${await el.evaluate((n) => (n.textContent ?? "").trim().slice(0, 24) || n.tagName)} (covered where pressed)`);
+      continue;
+    }
+
     let resting;
     let held;
     try {
       resting = await read();
-      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+      await page.mouse.move(point.x, point.y);
       await page.mouse.down();
       held = await read();
       /*

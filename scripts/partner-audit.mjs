@@ -1016,10 +1016,18 @@ const terms = (over = {}) => ({
       tradingAsLine("Totally Unregistered Engineering") ?? "null, which is the refusal",
     );
   }
+  /*
+   * THE PIN MOVED ON 2026-11-08, ROBERT'S ANSWER 2 (6726511272): the one
+   * sentence replaces the longer line on every partner surface. It pinned
+   * "254 Engineering LLC is a Texas registered engineering firm, TBPELS Firm
+   * Registration F-29811." inside the old line; it now pins the whole ruled
+   * sentence, as a literal, never imported.
+   */
   rec(
-    "and states the registration exactly as the register records it, while the gate is down",
-    performingFirmLine().includes("254 Engineering LLC is a Texas registered engineering firm, TBPELS Firm Registration F-29811.") &&
+    "and it is the ruled one sentence, name and number as the register records them",
+    performingFirmLine() === "Referred work will be performed and sealed by 254 Engineering LLC, TBPELS Firm F-29811." &&
       !/pending/i.test(performingFirmLine()),
+    performingFirmLine(),
   );
   rec(
     "and it is not itself a claim the firm could not make",
@@ -1034,8 +1042,8 @@ const terms = (over = {}) => ({
    */
   /*
    * THE SIGN-IN PAGE LEFT THIS LIST ON ROBERT'S RULING 1 OF 2026-11-08 and is
-   * held below to its own one-sentence line. The other three surfaces still
-   * carry performingFirmLine().
+   * held below to referredWorkLine(). The other three carry performingFirmLine(),
+   * which since his answer 2 of the same day returns that same sentence.
    */
   const surfaces = [
     "src/app/partner/(app)/layout.tsx",
