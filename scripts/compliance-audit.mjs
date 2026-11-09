@@ -1394,14 +1394,26 @@ const {
    * against the surface where a defect was FOUND protects that surface. The
    * defect belongs to the SENTENCE, and the sentence can live anywhere.
    */
-  for (const screen of [
-    "src/app/portal/(public)/login/page.tsx",
-    "src/app/portal/(public)/set-password/page.tsx",
-  ]) {
+  /*
+   * AND THE SIGN-IN SCREEN NO LONGER STATES IT AT ALL. Robert, 2026-11-08, the
+   * sign-in redesign: remove the registration line from the sign-in pages,
+   * keeping it in the public footer, the emails and the portal rail, which the
+   * checks beside this one still assert. So /portal/login is held to the half
+   * of this rule that is about the SENTENCE: it may carry no compliance
+   * sentence of its own, and no typed board name either. set-password keeps
+   * both halves, unchanged.
+   */
+  const requiresDeriver = new Map([
+    ["src/app/portal/(public)/login/page.tsx", false],
+    ["src/app/portal/(public)/set-password/page.tsx", true],
+  ]);
+  for (const [screen, needsLine] of requiresDeriver) {
     const src = codeOnly(readSource(screen));
     rec(
-      `${screen.split("/").slice(-2)[0]} states the registration through the deriver and carries no compliance sentence of its own`,
-      src.includes("registrationLine()") &&
+      needsLine
+        ? `${screen.split("/").slice(-2)[0]} states the registration through the deriver and carries no compliance sentence of its own`
+        : `${screen.split("/").slice(-2)[0]} carries no compliance sentence of its own (the registration line left the sign-in screens on Robert's 2026-11-08 order)`,
+      (needsLine ? src.includes("registrationLine()") : !/TBPELS/.test(src)) &&
         !/no engineer of record/i.test(src) &&
         !/registration (is )?pending/i.test(src),
       screen,

@@ -384,10 +384,46 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * three section done times on eng_roofer_applications, 1,538 to 1,541; sixteen
  * NOT NULLs dropped, which moves the shape without a column; the table count
  * stays 116. Read off fingerprint-at.mjs on the chain to 0117.
+ *
+ * Moved again by 0118, the sales list sends one email a day and hears
+ * replies, by Robert's sales CRM ruling R7 of 2026-11-02, renumbered from 0115
+ * to 0117 by his ruling (a) of 2026-11-04 and order A of 2026-11-05, and to
+ * 0118 by his answer 3 of 2026-11-06 (the roofer rework takes 0117): twelve
+ * columns on eng_crm_email_sends, twelve on eng_crm_email_replies and
+ * eng_prospects.sequence_paused_at, 1,541 to 1,566; the table count moves 116
+ * to 118; no trigger and no function. Read off fingerprint-at.mjs on the chain
+ * to 0118.
+ *
+ * Moved again by 0119, the sales list attributes accounts and orders to reps,
+ * by Robert's sales CRM ruling R8 of 2026-11-02, renumbered from 0116 to 0118
+ * by his ruling (a) of 2026-11-04 and order A of 2026-11-05, and to 0119 by his
+ * answer 3 of 2026-11-06 (the roofer rework takes 0117): the seven columns of
+ * eng_crm_attributions, 1,566 to 1,573; the table count moves 118 to 119; one
+ * trigger, no function. Read off fingerprint-at.mjs on the chain to 0119.
+ *
+ * Moved again by 0120, a session ends when its epoch moves, by auth M2 (Robert,
+ * issue #1, option A, rollout 1), renumbered from 0117 to 0119 by his ruling
+ * (a) of 2026-11-04 and order A of 2026-11-05, and to 0120 by his answer 3 of
+ * 2026-11-06: session_epoch on eng_profiles, eng_customer_users and
+ * eng_partner_users, 1,573 to 1,576; the table count stays 119; no trigger, no
+ * function. Read off fingerprint-at.mjs on the chain to 0120.
+ *
+ * 0121 (Q8b) adds an index, widens a check and replaces a function body, so the
+ * shape does not move.
+ *
+ * Moved again by 0122, a payment releases only its own amount and credit is
+ * held once, money audit F12 and F6 (Robert's answer of 2026-11-03, numbered
+ * 0121 by his overnight order of 2026-11-05 and 0122 by his answer 3 of
+ * 2026-11-06): the three columns of eng_account_credit_holds, 1,576 to 1,579;
+ * the table count moves 119 to 120. Read off fingerprint-at.mjs on the chain to
+ * 0122.
+ *
+ * 0123 (Robert's CRM answer 8) replaces one check and updates rows, so the
+ * shape does not move.
  */
-const EXPECTED_FINGERPRINT = "ac53d69433e0d24bd4b3f9fa24fb300b";
-const EXPECTED_COLUMNS = 1541;
-const EXPECTED_TABLES = 116;
+const EXPECTED_FINGERPRINT = "7dc2aeceb558706cdc5f3ac2263071cc";
+const EXPECTED_COLUMNS = 1579;
+const EXPECTED_TABLES = 120;
 /* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts.
  * 0074 adds two: eng_partner_billing_touch and eng_partner_billing_events_immutable.
  * 0075 adds one: eng_payment_events_guarded.
@@ -417,8 +453,10 @@ const EXPECTED_TABLES = 116;
  * the updated_at stamp on a company's people, which change as numbers do.
  * 0113 adds two, by Robert's rulings of 2026-11-05: eng_roofer_applications_touch and
  * eng_roofer_applications_decide_once, which lets a decision be made once and touch
- * nothing the roofer wrote. */
-const EXPECTED_TRIGGERS = 110;
+ * nothing the roofer wrote.
+ * 0119 adds one, by Robert's sales CRM ruling R8 of 2026-11-02:
+ * eng_crm_attributions_append_only, because credit decided once is evidence. */
+const EXPECTED_TRIGGERS = 111;
 /**
  * 0014 added eng_freeze_attribution and 0019 added two more, the partner
  * entry freeze and its delete refusal, which are trigger functions like the
@@ -498,8 +536,12 @@ const EXPECTED_TRIGGERS = 110;
  * columns and both unique keys are computed from.
  * 77 since 0113, by Robert's rulings of 2026-11-05: eng_roofer_application_decides_once
  * (the trigger function) and eng_take_roofer_application, which writes an
- * application, its prospect and its source row in one transaction. */
-const EXPECTED_FUNCTIONS = 77;
+ * application, its prospect and its source row in one transaction.
+ * 79 since 0122, by money audit F6 (Robert's answer of 2026-11-03): eng_take_credit_hold
+ * and eng_release_credit_hold, one invoice submission at a time per account. 0122
+ * replaces eng_apply_order_paid and eng_apply_batch_paid with the same signatures,
+ * which are not new rows. */
+const EXPECTED_FUNCTIONS = 79;
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });

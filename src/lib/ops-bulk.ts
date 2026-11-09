@@ -92,7 +92,7 @@ export async function previewBatch(
   return { ok: true, entry, split: splitBatch(entry, properties, twiaSet(), agreedPriceCents ?? null) };
 }
 
-export async function placeBatch(input: {
+type BatchInput = {
   site: string;
   clientRequestId: string;
   accountId: string;
@@ -101,7 +101,68 @@ export async function placeBatch(input: {
   customer: { name: string; email: string; phone?: string; company?: string };
   properties: BulkProperty[];
   inputs?: Record<string, string>;
-}): Promise<BatchOutcome> {
+};
+
+/**
+ * How long one invoice submission may hold its account's credit. Long enough
+ * for a few hundred properties placed one after another; a hold left by a
+ * request that died lapses after it, so no account is stuck.
+ */
+export const CREDIT_HOLD_SECONDS = 900;
+
+/**
+ * ONE INVOICE SUBMISSION AT A TIME PER ACCOUNT. Money audit F6, Robert's answer
+ * of 2026-11-03 (0122). The credit limit is decided against one read of the
+ * balance, and a batch's orders only count toward that balance once they are
+ * accepted at the end. Two submissions in the same second both read the same
+ * balance and both passed: $17,016.00 placed against a $10,000.00 limit. The
+ * account's hold is taken before the balance is read and released after the
+ * batch is accepted, so the second submission waits for a sentence instead of
+ * passing the same check. The arithmetic stays in creditDecision; the hold only
+ * makes it run one submission at a time. A card account has no credit to hold.
+ */
+export async function placeBatch(input: BatchInput): Promise<BatchOutcome> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The order system is not configured." };
+
+  const { data: mode, error: modeError } = await db
+    .from("eng_customer_accounts")
+    .select("billing_mode")
+    .eq("id", input.accountId)
+    /* A superseded account places nothing; the body below says so in its own words. */
+    .is("superseded_at", null)
+    .maybeSingle();
+  if (modeError) {
+    return { ok: false, error: `The account could not be read, so nothing was placed: ${modeError.message}` };
+  }
+  if (mode?.billing_mode !== "invoice") return placeBatchUnheld(input);
+
+  const token = crypto.randomUUID();
+  const { data: taken, error: holdError } = await db.rpc("eng_take_credit_hold", {
+    p_account: input.accountId,
+    p_token: token,
+    p_seconds: CREDIT_HOLD_SECONDS,
+  });
+  if (holdError) {
+    return { ok: false, error: `The account's credit could not be checked, so nothing was placed: ${holdError.message}` };
+  }
+  if (taken !== true) {
+    return {
+      ok: false,
+      error:
+        "Another submission for this account is being placed right now, and the credit limit is checked one " +
+        "submission at a time. Nothing was placed. Send this one again in a few minutes.",
+    };
+  }
+  try {
+    return await placeBatchUnheld(input);
+  } finally {
+    const { error: releaseError } = await db.rpc("eng_release_credit_hold", { p_account: input.accountId, p_token: token });
+    if (releaseError) console.error(`[bulk] the credit hold on ${input.accountId} was not released; it lapses by itself: ${releaseError.message}`);
+  }
+}
+
+async function placeBatchUnheld(input: BatchInput): Promise<BatchOutcome> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The order system is not configured." };
 

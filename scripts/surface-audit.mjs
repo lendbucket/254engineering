@@ -127,6 +127,13 @@ const APIS_MEASURED_ELSEWHERE = {
   onboarding: ["scripts/jobs-audit.mjs", "the invite and reminder mail the flow queues"],
   "order-flow": ["scripts/security-audit.mjs", "the one write path a visitor can reach, checked for what it refuses"],
   /*
+   * The reply webhook for sales emails, Robert's CRM R7 of 2026-11-02. Signed
+   * by Resend, no session, and 404 while RESEND_WEBHOOK_SECRET is unset. The
+   * proof drives the real route closed (404 before it reads a byte), and the
+   * handler behind it on a bad signature and a redelivered event.
+   */
+  inbound: ["scripts/proofs/the-sequence-emails-once-a-day-and-hears-replies.mjs", "the reply webhook, closed until its secret is set and refusing a bad signature"],
+  /*
    * The sealed letter download, added 2026-10-07 and named by the integration
    * board that day as unclaimed. Token gated, no session; security-audit
    * asserts the uniform 404 with no token and with a bad one.

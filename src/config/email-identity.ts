@@ -123,6 +123,39 @@ export const REPLY_TO_EXCEPTIONS: Record<string, string> = {
    */
 };
 
+/**
+ * THE REP SIGNATURE. EMAIL IDENTITY RULING, Robert Reyna, 2026-11-02, issue #1
+ * answer 2 to comment 6592143963: "approved: the rep signature variant
+ * '{{rep}}, 254 Engineering, {{phone}}' above the firm footer, recorded as an
+ * email identity ruling."
+ *
+ * The templates named here are signed by the rep who sends them, with one
+ * line above the firm footer, instead of the signer's block below. Nothing else
+ * changes: the From header, Reply-To, the footer (the legal name, the support
+ * address, the site, registrationLine(), the mailing address) and the
+ * unsubscribe stay exactly as for every human email. The line is the
+ * template's own sign off, filled from the sender's first name and
+ * displayPhone(), never typed. The approved prelaunch sequence emails sign
+ * without the telephone ("{{rep}}, 254 Engineering"), as Robert approved them
+ * on 2026-11-02 (6587551356); every rep line names 254 Engineering.
+ *
+ * Counted and named, like REPLY_TO_EXCEPTIONS: email-audit fails a template
+ * on this list that carries the signer's block or no rep line, and a template
+ * not on it that carries a rep line in place of the block.
+ */
+export const REP_SIGNED_TEMPLATES: Record<string, string> = {
+  "marketing.crm_sequence":
+    "the CRM sequence emails (R7) are a rep's follow-up to their own call, so the rep signs them (Robert, 2026-11-02, 6592143963 answer 2).",
+};
+
+/** Whether a line has the rep signature's shape: a name, then "254 Engineering", then optionally the telephone. */
+export function isRepSignatureLine(line: string): boolean {
+  const parts = line.trim().split(", ");
+  if (parts.length !== 2 && parts.length !== 3) return false;
+  const [name, firm, phone] = parts;
+  return name.length > 0 && name.length <= 60 && firm === business.shortName && (phone === undefined || (phone.length > 0 && phone.length <= 40));
+}
+
 export const emailIdentity = {
   /** The person who signs anything a candidate or client receives. */
   signer: {

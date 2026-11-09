@@ -8,6 +8,7 @@ import { preferencesFor } from "@/lib/ops-notify";
 import { kindsForRole } from "@/lib/ops-comms";
 import { PasswordForm } from "./PasswordForm";
 import { PreferencesForm } from "./PreferencesForm";
+import { SignOutEverywhere } from "./SignOutEverywhere";
 
 export const dynamic = "force-dynamic";
 
@@ -56,6 +57,10 @@ export default async function ProfilePage() {
         <div className="flex flex-col gap-4">
           <Panel title="Password" description="Only you ever know it. Nobody at the firm can see it.">
             <PasswordForm minLength={MIN_PASSWORD_LENGTH} />
+          </Panel>
+
+          <Panel title="Sessions" description="Changing your password ends every other session and keeps this one.">
+            <SignOutEverywhere />
           </Panel>
 
           {/*

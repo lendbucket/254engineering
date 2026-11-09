@@ -2,6 +2,7 @@ import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import type { RoleKey } from "./ops-authz";
 import { wellFormedRoleKey } from "./role-rules";
+import { parseEpochSegment, validEpoch } from "./session-epoch-rules";
 
 /**
  * The portal session cookie.
@@ -90,6 +91,8 @@ export type SessionClaims = {
   sub: string;
   role: RoleKey;
   exp: number;
+  /** The session epoch it was issued under (auth M2, 0120); currentActor compares it with the profile's. */
+  epoch: number;
 };
 
 /**
@@ -124,6 +127,16 @@ export type SessionClaims = {
  * Anything else would be a downgrade attack: strip the factor field and be
  * treated as legacy. Everyone signs in again once, which is the correct price
  * and is the same thing rotating the signing secret already does.
+ *
+ * FIVE SEGMENTS BECOME SIX, FOR THE SAME REASON. Auth M2, Robert's ruling of
+ * 2026-11-02 (option A, rollout 1): the cookie carries the session epoch it was
+ * issued under, `sub.role.factor.epoch.exp.mac`, and currentActor refuses one
+ * whose epoch is not the profile's, so a password change, a forced reset, a
+ * suspension or a replaced factor ends every earlier session at its next
+ * request. A five segment cookie is refused, never read as epoch 0. The pending
+ * session carries the epoch too, so a reset during a half authenticated sign in
+ * ends that as well; its ten minute life and its purpose are unchanged.
+ * session-epoch-rules.ts holds the reasoning.
  */
 export type Factor = "pending" | "full";
 
@@ -169,11 +182,13 @@ export function issueOpsSession(
   role: RoleKey,
   factor: Factor = "full",
   now: number = Date.now(),
+  epoch: number = 0,
 ): { value: string; expiresAt: Date } | null {
   const key = signingKey();
   if (!key) return null;
   if (!wellFormedRoleKey(role)) return null;
   if (factor !== "pending" && factor !== "full") return null;
+  if (!validEpoch(epoch)) return null;
 
   /*
    * A pending session is short. It exists to carry somebody from a password to
@@ -183,7 +198,7 @@ export function issueOpsSession(
    */
   const ttl = factor === "pending" ? PENDING_TTL_SECONDS : TTL_SECONDS;
   const exp = Math.floor(now / 1000) + ttl;
-  const payload = `${sub}.${role}.${factor}.${exp}`;
+  const payload = `${sub}.${role}.${factor}.${epoch}.${exp}`;
   return {
     value: `${payload}.${sign(payload, key)}`,
     expiresAt: new Date(exp * 1000),
@@ -205,7 +220,7 @@ export function readOpsSession(value: string | undefined | null, now: number = D
    * line that gives every caller in the codebase the enforcement without any of
    * them knowing about it.
    */
-  return claims && claims.factor === "full" ? { sub: claims.sub, role: claims.role, exp: claims.exp } : null;
+  return claims && claims.factor === "full" ? { sub: claims.sub, role: claims.role, exp: claims.exp, epoch: claims.epoch } : null;
 }
 
 /**
@@ -223,7 +238,7 @@ export function readPendingSession(
 ): PendingClaims | null {
   const claims = readAnyFactor(value, now);
   return claims && claims.factor === "pending"
-    ? { sub: claims.sub, role: claims.role, exp: claims.exp, factor: "pending" }
+    ? { sub: claims.sub, role: claims.role, exp: claims.exp, epoch: claims.epoch, factor: "pending" }
     : null;
 }
 
@@ -238,16 +253,19 @@ function readAnyFactor(
 
   const parts = value.split(".");
   /*
-   * FIVE, and a four segment cookie is refused rather than read as pre MFA.
-   * Accepting the old shape would be a downgrade attack: strip the factor and
-   * be treated as fully authenticated.
+   * SIX, and a five segment cookie is refused rather than read as epoch 0,
+   * exactly as a four segment one was refused rather than read as pre MFA.
+   * Accepting an old shape would be a downgrade attack: strip the field and be
+   * treated as the newest kind of session (auth M2, rollout 1).
    */
-  if (parts.length !== 5) return null;
-  const [sub, role, factor, expRaw, provided] = parts;
-  if (!sub || !role || !factor || !expRaw || !provided) return null;
+  if (parts.length !== 6) return null;
+  const [sub, role, factor, epochRaw, expRaw, provided] = parts;
+  if (!sub || !role || !factor || !epochRaw || !expRaw || !provided) return null;
   if (factor !== "pending" && factor !== "full") return null;
+  const epoch = parseEpochSegment(epochRaw);
+  if (epoch === null) return null;
 
-  const expected = sign(`${sub}.${role}.${factor}.${expRaw}`, key);
+  const expected = sign(`${sub}.${role}.${factor}.${epochRaw}.${expRaw}`, key);
   const a = Buffer.from(expected);
   const b = Buffer.from(provided);
   if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
@@ -265,7 +283,7 @@ function readAnyFactor(
    */
   if (!wellFormedRoleKey(role)) return null;
 
-  return { sub, role, exp, factor };
+  return { sub, role, exp, factor, epoch };
 }
 
 /**
@@ -309,7 +327,7 @@ function readAnyFactor(
  * `codes_saved` will not complete an enrolment without one. Somebody holding a
  * stolen password has a pending session and no token, and cannot make one.
  *
- * THREE SEGMENTS, NEVER FIVE. A session cookie carries five and readAnyFactor
+ * THREE SEGMENTS, NEVER SIX. A session cookie carries six (five before auth M2) and readAnyFactor
  * refuses anything else, so a completion token can never be presented as a
  * session, and a session can never be presented as a completion token. The
  * shapes are disjoint by construction rather than by a check somebody has to

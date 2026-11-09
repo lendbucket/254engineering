@@ -60,6 +60,12 @@ import { LINK_COOKIE_OPTIONS, planLinkRequest } from "@/lib/link-cookie";
 const OPEN_PATHS = new Set([
   "/portal/login",
   "/portal/set-password",
+  /*
+   * Where "Forgot your password?" leads (Robert's answer 1, 2026-11-08). A page
+   * of information for somebody who cannot sign in: it names who sends a reset
+   * link and the support address, and has no form and no endpoint.
+   */
+  "/portal/forgot-password",
   "/api/portal/session",
   "/api/portal/set-password",
   /*
@@ -116,6 +122,8 @@ const MFA_PATHS = new Set(["/portal/mfa", "/portal/mfa/enrol", "/api/portal/mfa"
 const PARTNER_OPEN_PATHS = new Set([
   "/partner/login",
   "/partner/set-password",
+  // The reset information page, as /portal/forgot-password (2026-11-08): no form, no endpoint.
+  "/partner/forgot-password",
   "/api/partner/session",
   "/api/partner/set-password",
 ]);

@@ -4,6 +4,27 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
+## THE WRITERS SHARD CAN STOP ON ITS OWN SERVER: A TEARDOWN RACE ON PORT 4300
+
+Board 42505750069 (bundle 125, kinds at `fee37b9`, 2026-11-08). After
+`native-audit` finished its 64 signed in screens, the next audit found port 4300
+still answering and the runner refused to start, correctly, because attaching
+to whatever is there would score the wrong server. The suite printed `THE SUITE
+DID NOT RUN TO COMPLETION` and 14 writers audits never ran. Nothing on the
+branch touched the harness.
+
+**What to build, full lane, on its own branch:** before an audit starts its own
+server, the runner waits for the previous audit's server process to exit and
+for the port to stop answering, for a bounded time, and names the process if it
+does not. Not built because the harness is shared by every board and a change
+to it boards on its own. Reported on issue #1 (6725342962).
+
+**The same run also showed development under load**: the queue 1,444 deep and
+4,315 accounts, both audit residue, and a credential read abandoned at 20
+seconds. The queue's growth is the entry "eng_jobs grows forever" below. The
+account count has no entry of its own, and is named here, with the queue,
+because a writer proof's single red sat beside both.
+
 ## SALES LIST IMPORTS (CRM R2, 2026-11-02): SIX SOURCES WAIT, AND THE PLACES LOOKUP IS CLOSED
 
 Built on `feat/crm-r2-imports`, Robert's sales CRM ruling R2. The full account of
@@ -21,6 +42,40 @@ pointer, not a second copy.
 - **Held rows beyond the first 500 of a run are counted, not stored**
   (`HELD_KEEP`): TREC alone gives well over a hundred thousand records with no
   phone. They are read again on the next run of the source.
+
+## SALES SEQUENCE EMAILS (CRM R7, 2026-11-02): REPLIES WAIT FOR THE SUBDOMAIN, BOUNCES ARE NOT SEEN
+
+Built on `feat/crm-r7-email`, Robert's sales CRM ruling R7. The reasoning is in
+`src/lib/crm-email.ts` and `src/lib/crm-inbound.ts`; this is the pointer.
+
+- **Replies wait for Robert's DNS** (records posted, issue #1 comment
+  6588394106). When `reply.254engineering.com` reads verified in Resend:
+  set `RESEND_WEBHOOK_SECRET` in Vercel (Production only), create the
+  webhook for `email.received` at `/api/inbound/resend`, and set
+  `CRM_REPLY_DOMAIN` in `src/config/crm-email.ts`. Until then the route
+  answers 404, Reply-To is the support mailbox, and a rep records a reply by
+  hand on the company page. Setting the domain needs `REPLY_TO_EXCEPTIONS`
+  in `src/config/email-identity.ts` to name the tagged address, which
+  email-audit pins.
+- **Bounces are not seen.** Nothing in this platform receives Resend's
+  delivery events, so an address Resend refuses is known only from Resend's
+  own log, and the sequence moves on as if the email went. A delivery
+  webhook (`email.bounced`, `email.complained`) recorded against the send
+  ledger, with a bounced address suppressed, is the build. **QUEUED by
+  Robert, 2026-11-02 (issue #1 answer 4 to 6592143963): "yes, delivery
+  webhook in BACKLOG."** Not built in R7, which named suppression and a bounce
+  note, not a delivery feed.
+- **List-Unsubscribe headers. QUEUED as a follow-up by Robert, 2026-11-02
+  (issue #1 answer 6 to 6592143963): "add the List-Unsubscribe and
+  List-Unsubscribe-Post headers to every marketing template as a follow-up;
+  the footer link stays."** Every template in `MARKETING_TEMPLATES` gains
+  `List-Unsubscribe: <https unsubscribe URL>` (and a mailto if one is ruled)
+  and `List-Unsubscribe-Post: List-Unsubscribe=One-Click`, passed through
+  `notify()` to Resend as headers; the one-click POST needs the unsubscribe
+  route to accept POST. The footer link and its wording stay. Not built.
+- **No Resend idempotency key on this branch.** Q12 (office F3) adds one per
+  job; until Q12 merges, the queue's own key (address, subject, text) and the
+  send ledger are what stop a second send.
 
 ## PLANNED, Q1 2027: 254 ONTO ITS OWN SUPABASE PROJECT
 

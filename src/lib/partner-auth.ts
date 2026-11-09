@@ -10,6 +10,8 @@ import {
   readPartnerSession,
   partnerSessionConfigured,
 } from "./partner-session";
+import { epochStands, validEpoch } from "./session-epoch-rules";
+import { readSessionEpoch } from "./session-epoch";
 
 /**
  * Partner credentials. The third credential store, and deliberately a third.
@@ -55,6 +57,8 @@ export type PartnerPrincipal = {
   email: string;
   displayName: string;
   status: "invited" | "active" | "suspended";
+  /** The user's session epoch (auth M2, 0120): a cookie is issued under it and must match it. */
+  sessionEpoch: number;
   partner: {
     id: string;
     organisation: string;
@@ -253,11 +257,19 @@ export async function setPartnerPassword(
     return { ok: false, error: "That link has already been used." };
   }
 
+  /*
+   * The session epoch moves in the same statement, auth M2 (Robert,
+   * 2026-11-02): a password set ends every cookie issued before it, and the
+   * write is conditional on the epoch read just before, so a race refuses.
+   */
+  const epochNow = await readSessionEpoch(db, "eng_partner_users", inspected.userId);
+  if (!epochNow.ok) return { ok: false, error: "The password could not be set." };
   const { data: set, error } = await db
     .from("eng_partner_users")
-    .update({ password_hash: hash, password_salt: salt, status: "active" })
+    .update({ password_hash: hash, password_salt: salt, status: "active", session_epoch: epochNow.epoch + 1 })
     .eq("id", inspected.userId)
     .neq("status", "suspended")
+    .eq("session_epoch", epochNow.epoch)
     .select("id");
 
   if (error) return { ok: false, error: "The password could not be set." };
@@ -361,10 +373,11 @@ async function loadPartnerPrincipal(userId: string): Promise<PartnerPrincipal | 
 
   const { data: user } = await db
     .from("eng_partner_users")
-    .select("id, partner_id, email, display_name, status")
+    .select("id, partner_id, email, display_name, status, session_epoch")
     .eq("id", userId)
     .maybeSingle();
   if (!user) return null;
+  if (!validEpoch(user.session_epoch)) return null;
 
   const { data: partner } = await db
     .from("eng_partners")
@@ -381,6 +394,7 @@ async function loadPartnerPrincipal(userId: string): Promise<PartnerPrincipal | 
     email: user.email as string,
     displayName: user.display_name as string,
     status: user.status as "invited" | "active" | "suspended",
+    sessionEpoch: user.session_epoch as number,
     partner: {
       id: partner.id as string,
       organisation: partner.organisation as string,
@@ -417,6 +431,13 @@ export async function currentPartner(): Promise<PartnerPrincipal | null> {
    * the commercially sensitive thing here.
    */
   if (principal.partnerId !== claims.partner) return null;
+
+  /*
+   * THE SESSION EPOCH, auth M2 (Robert, 2026-11-02, option A, rollout 1). A
+   * cookie issued before a password set carries an older epoch than the user
+   * and is nobody.
+   */
+  if (!epochStands(claims.epoch, principal.sessionEpoch)) return null;
 
   if (principal.status !== "active") return null;
   if (principal.partner.status !== "active") return null;
