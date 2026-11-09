@@ -5,6 +5,7 @@ import { readDayPack } from "@/lib/field-day-store";
 import type { DayPack } from "@/lib/field-day-rules";
 import { formatInFirmZone } from "@/lib/firm-calendar";
 import { Checklist } from "../[id]/CaptureClient";
+import { PageHead } from "@/components/portal/surfaces";
 
 /**
  * The offline screen's body: the day pack the phone holds, read from IndexedDB,
@@ -34,19 +35,36 @@ export function OfflineDay({ techId }: { techId: string }) {
       .catch(() => setPack(null));
   }, [techId]);
 
+  /*
+   * SECTIONS ON THE PHONE GROUND, AS /portal/jobs IS. Robert's answer 2 of
+   * 6743092030, after board 42600011991 measured this screen as one white
+   * slab at 390. Every direct child of the portal's main column becomes a white
+   * section with ground between (src/styles/portal.css, V10 rule 7), so every
+   * state renders a page head and then its body as separate sections, and the
+   * job's lines stay together in one section rather than spilling into four.
+   */
   if (pack === undefined) {
-    return <p className="text-[14px] text-[var(--ink)]">Reading your day from this phone...</p>;
+    return (
+      <>
+        <PageHead eyebrow="Field" title="Your day" />
+        <section>
+          <p className="text-[14px] text-[var(--ink)]">Reading your day from this phone...</p>
+        </section>
+      </>
+    );
   }
 
   if (pack === null) {
     return (
-      <section className="border-t-2 border-[var(--ink)] pt-3">
-        <h1 className="text-[20px] font-semibold text-[var(--ink)]">No signal, and no jobs kept on this phone</h1>
-        <p className="mt-2 max-w-[70ch] text-[14px] leading-[1.55] text-[var(--ink)]">
-          Open My jobs once while you have signal before you leave. Your jobs for today and tomorrow are then kept on this
-          phone for 48 hours, and open here with no signal.
-        </p>
-      </section>
+      <>
+        <PageHead eyebrow="Field" title="No signal, and no jobs kept on this phone" />
+        <section>
+          <p className="max-w-[70ch] text-[14px] leading-[1.55] text-[var(--ink)]">
+            Open My jobs once while you have signal before you leave. Your jobs for today and tomorrow are then kept on this
+            phone for 48 hours, and open here with no signal.
+          </p>
+        </section>
+      </>
     );
   }
 
@@ -55,19 +73,25 @@ export function OfflineDay({ techId }: { techId: string }) {
 
   return (
     <>
-      <p className="mb-4 border-t-2 border-[var(--ink)] pt-3 text-[14px] leading-[1.55] font-semibold text-[var(--ink)]">
-        No signal. This is your day as the firm sent it at {asOf}. Photographs and answers are kept on this phone and upload when
-        signal returns. Submitting needs signal.
-      </p>
+      {job ? (
+        <PageHead
+          eyebrow={job.fileNumber}
+          title={job.propertyAddress}
+          lede={`${job.city ? `${job.city}, ` : ""}${job.county} County. ${job.serviceName}.`}
+        />
+      ) : (
+        <PageHead eyebrow="Field" title="Your day" />
+      )}
+
+      <section>
+        <p className="border-t-2 border-[var(--ink)] pt-3 text-[14px] leading-[1.55] font-semibold text-[var(--ink)]">
+          No signal. This is your day as the firm sent it at {asOf}. Photographs and answers are kept on this phone and upload
+          when signal returns. Submitting needs signal.
+        </p>
+      </section>
 
       {job ? (
-        <>
-          <p className="text-[12px] text-[var(--secondary)]">{job.fileNumber}</p>
-          <h1 className="mt-1 text-[24px] leading-[1.2] font-semibold text-[var(--ink)]">{job.propertyAddress}</h1>
-          <p className="mt-1 mb-4 text-[14px] text-[var(--secondary)]">
-            {job.city ? `${job.city}, ` : ""}
-            {job.county} County. {job.serviceName}.
-          </p>
+        <section>
           {job.checklist ? (
             <Checklist
               fileId={job.fileId}
@@ -81,12 +105,11 @@ export function OfflineDay({ techId }: { techId: string }) {
           ) : (
             <p className="text-[14px] text-[var(--ink)]">No protocol is attached to this file, so there is nothing to capture against yet.</p>
           )}
-        </>
+        </section>
       ) : (
         <section>
-          <h1 className="text-[20px] font-semibold text-[var(--ink)]">Your day</h1>
           {jobId ? (
-            <p className="mt-1 text-[14px] text-[var(--ink)]">That job is not among the jobs kept on this phone.</p>
+            <p className="text-[14px] text-[var(--ink)]">That job is not among the jobs kept on this phone.</p>
           ) : null}
           {pack.jobs.length === 0 ? (
             <p className="mt-2 text-[14px] text-[var(--ink)]">No jobs for today or tomorrow were assigned to you when this was kept.</p>
