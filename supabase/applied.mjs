@@ -4606,7 +4606,9 @@ export const APPLIED = [
       "why), the unique endpoint index, the live-subscription index, and row level security.",
     because:
       "WRITTEN 2026-11-07 ON feat/t9-offer-push FOR ROBERT'S T9, WEB PUSH FOR A NEW OFFER (his answers 6 and 7 of " +
-      "2026-11-07, 6717223376), AND GIVEN ITS NATIVE CHANNELS 2026-11-08 FOR HIS T8; APPLIED NOWHERE. One table: per " +
+      "2026-11-07, 6717223376), AND GIVEN ITS NATIVE CHANNELS 2026-11-08 FOR HIS T8; ON DEVELOPMENT SINCE 2026-11-09 " +
+      "(6735147037, version 20261109080127, stored e8792ff1, shape 369b4b0c at 1588 columns and 121 tables, matching " +
+      "the replay); PENDING ON PRODUCTION, for Robert's morning sitting. One table: per " +
       "phone, the browser push address or the Firebase or Apple device token, by channel. Web pushes carry no " +
       "payload; native pushes carry county and service only. Additive: one table.",
   },
