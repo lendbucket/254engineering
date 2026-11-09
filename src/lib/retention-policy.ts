@@ -221,6 +221,16 @@ export const RETENTION_POLICY: RetentionEntry[] = [
         "which makes it a business record. " + COUNSEL,
     },
   },
+  /* 0122, money audit F6. A lock, not a record: which submission holds an account's credit and until when. */
+  {
+    table: "eng_account_credit_holds",
+    rule: {
+      kind: "not_a_record",
+      because:
+        "One row per invoice account: which submission holds its credit check and until when. It is a lock, not a " +
+        "history: a row only ever says who may read the balance next, and a lapsed hold means nothing. 0122.",
+    },
+  },
   { table: "eng_account_properties", rule: { kind: "kept_pending_counsel", because: COUNSEL } },
   /*
    * Phase 13 Section 2. A trade price is what a customer was charged, so it is
@@ -332,6 +342,20 @@ export const RETENTION_POLICY: RetentionEntry[] = [
   },
   { table: "eng_contacts", rule: { kind: "kept_pending_counsel", because: COUNSEL } },
   { table: "eng_credentials", rule: { kind: "kept_pending_counsel", because: COUNSEL } },
+  /*
+   * 0119 (Robert's CRM R8). The attribution chain, prospect to account to
+   * order: who a sale is credited to, decided once. A financial fact, append
+   * only, and no floor is ruled.
+   */
+  { table: "eng_crm_attributions", rule: { kind: "kept_pending_counsel", because: "Which rep an account and each of its orders are credited to, decided once. A financial fact. No floor is ruled. " + COUNSEL } },
+  /*
+   * 0118 (Robert's CRM R7). The replies to sales emails and the ledger of the
+   * sends: a record of what the firm wrote to a prospect and what came back,
+   * and the ledger is what proves one send per address per day. No floor is
+   * ruled, so both are kept like their neighbours.
+   */
+  { table: "eng_crm_email_replies", rule: { kind: "kept_pending_counsel", because: "A reply to a sales email, as the webhook delivered it. No floor is ruled. " + COUNSEL } },
+  { table: "eng_crm_email_sends", rule: { kind: "kept_pending_counsel", because: "One sales sequence email sent, the record that one address got at most one a day. No floor is ruled. " + COUNSEL } },
   /*
    * The sales list's import runs and their verdicts, 0114 (Robert's CRM R2).
    * Telemetry in shape: a run describes a pull, not a customer. A floor is

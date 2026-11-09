@@ -9,6 +9,8 @@ import type { Action, Actor, Role, RoleKey } from "./ops-authz";
 import { cache } from "react";
 import { DatabaseUnreachable, isDatabaseUnreachable } from "./save-outcome";
 import { clearLoginAttempts, clientKey, takeLoginAttempt } from "./ops-rate-limit";
+import { epochStands } from "./session-epoch-rules";
+import { bumpSessionEpoch } from "./session-epoch";
 
 /**
  * Everything that turns a request into an actor, and an admin's intent into an
@@ -125,14 +127,24 @@ async function readActor(): Promise<(Actor & ProfileRow) | null> {
        * All three reads that build a ProfileRow carry it. Adding it to one
        * would make the type true in one place and a lie in the other two.
        */
-      "id, email, display_name, phone, role, status, license_number, tdi_appointment, coverage_counties, base_city, base_county, certification_status, last_sign_in_at, is_demo",
+      "id, email, display_name, phone, role, status, license_number, tdi_appointment, coverage_counties, base_city, base_county, certification_status, last_sign_in_at, is_demo, session_epoch",
     )
     .eq("id", claims.sub)
     .maybeSingle();
 
   if (error) throw new DatabaseUnreachable(error.message);
   if (!data) return null;
-  const profile = data as ProfileRow;
+  /*
+   * THE SESSION EPOCH, auth M2 (Robert, 2026-11-02, option A, rollout 1). A
+   * cookie issued before a password change, a forced reset, a suspension, a
+   * replaced factor or a "sign out everywhere" carries an older epoch than the
+   * profile and is nobody, exactly as an expired one is. One column on the read
+   * this already makes; no extra query.
+   */
+  if (!epochStands(claims.epoch, (data as { session_epoch?: unknown }).session_epoch)) return null;
+  const { session_epoch: _epoch, ...rest } = data as Record<string, unknown>;
+  void _epoch;
+  const profile = rest as ProfileRow;
 
   /*
    * The grants, read from eng_role_grants rather than compiled in.
@@ -582,6 +594,19 @@ export async function consumeTokenAndSetPassword(
   const { error: pwError } = await db.auth.admin.updateUserById(inspected.profile.id, { password });
   if (pwError) return { ok: false, error: "The password could not be set. Ask for a new link." };
 
+  /*
+   * Auth M2: a password set from a link ends every session issued before it,
+   * which is the point of a reset somebody asked for after a cookie went astray.
+   * A failed bump is said, never swallowed.
+   */
+  const bumped = await bumpSessionEpoch(db, "eng_profiles", inspected.profile.id);
+  if (!bumped.ok) {
+    return {
+      ok: false,
+      error: `The password was set, but sessions signed in before it could not be ended: ${bumped.error} Sign in, then use "Sign out everywhere" on your profile.`,
+    };
+  }
+
   await db
     .from("eng_profiles")
     .update({ status: inspected.profile.status === "invited" ? "active" : inspected.profile.status })
@@ -653,7 +678,7 @@ export async function changeOwnPassword(
   actorId: string,
   currentPassword: string,
   nextPassword: string,
-): Promise<{ ok: true } | { ok: false; error: string }> {
+): Promise<{ ok: true; epoch: number } | { ok: false; error: string }> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
   if (nextPassword.length < MIN_PASSWORD_LENGTH) {
@@ -677,7 +702,27 @@ export async function changeOwnPassword(
 
   const { error } = await db.auth.admin.updateUserById(actorId, { password: nextPassword });
   if (error) return { ok: false, error: "The password could not be changed." };
-  return { ok: true };
+  /*
+   * Auth M2: every other session ends; the caller reissues this person's own
+   * cookie under the new epoch in the same response, so the tab in use stays
+   * signed in.
+   */
+  const bumped = await bumpSessionEpoch(db, "eng_profiles", actorId);
+  if (!bumped.ok) {
+    return { ok: false, error: `The password was changed, but your other sessions could not be ended: ${bumped.error}` };
+  }
+  return { ok: true, epoch: bumped.epoch };
+}
+
+/**
+ * "Sign out everywhere", auth M2 (Robert, 2026-11-02). Ends every session this
+ * person holds, this one included; the caller clears the cookie.
+ */
+export async function signOutEverywhere(actorId: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+  const bumped = await bumpSessionEpoch(db, "eng_profiles", actorId);
+  return bumped.ok ? { ok: true } : { ok: false, error: bumped.error };
 }
 
 /** The requester's IP and agent, for the audit trail. */

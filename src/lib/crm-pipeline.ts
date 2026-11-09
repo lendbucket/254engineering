@@ -127,6 +127,19 @@ async function visibleCompany(actor: Actor, db: Db, id: string): Promise<{ ok: t
   return { ok: true, row: data as Record<string, unknown> };
 }
 
+/**
+ * Whether this person may act on a company at all, for doors outside the
+ * pipeline that take a prospect id: the contact log's own route (R5's rule,
+ * applied there by R6, 2026-11-02). The same visibleCompany read, so a failed
+ * read or a company out of sight refuses.
+ */
+export async function mayActOnCompany(actor: Actor, id: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  const db = supabaseAdmin();
+  if (!db) return refuse("The database is not configured.");
+  const seen = await visibleCompany(actor, db, id);
+  return seen.ok ? { ok: true } : seen;
+}
+
 /* ------------------------------------------------------------- stage moves */
 
 /**

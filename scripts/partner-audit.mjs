@@ -30,6 +30,7 @@ import {
   ATTRIBUTION_WINDOW_DAYS,
 } from "../src/lib/attribution-rules.ts";
 import { copyVerdict, performingFirmLine } from "../src/lib/partner-copy.ts";
+import { referredWorkLine } from "../src/lib/referred-work-line.ts";
 /*
  * The pattern sets themselves, so the check below can ask whether each one
  * actually fires rather than trusting that it was written correctly. Importing
@@ -1031,9 +1032,13 @@ const terms = (over = {}) => ({
    * sentence when Section 4 built them, which is the drift the function exists
    * to prevent, in the same repository as the function.
    */
+  /*
+   * THE SIGN-IN PAGE LEFT THIS LIST ON ROBERT'S RULING 1 OF 2026-11-08 and is
+   * held below to its own one-sentence line. The other three surfaces still
+   * carry performingFirmLine().
+   */
   const surfaces = [
     "src/app/partner/(app)/layout.tsx",
-    "src/app/partner/(public)/login/page.tsx",
     "src/app/partner/(public)/set-password/page.tsx",
     "src/app/partner/(app)/materials/page.tsx",
   ];
@@ -1048,6 +1053,30 @@ const terms = (over = {}) => ({
     "and every one of them renders it",
     callers.length === surfaces.length,
     `${callers.length} of ${surfaces.length}`,
+  );
+
+  /*
+   * THE PARTNER SIGN-IN'S LINE: ONE SENTENCE, FUTURE TENSE, NAME AND NUMBER
+   * FROM THE REGISTER. Robert's ruling 1 of 2026-11-08 on the sign-in redesign.
+   * The ruled wording is written out here as a literal, never imported, so a
+   * drifted deriver is named as drifted rather than compared to itself.
+   */
+  const RULED_REFERRED_LINE = "Referred work will be performed and sealed by 254 Engineering LLC, TBPELS Firm F-29811.";
+  rec(
+    "the partner sign-in's firm line is the ruled sentence, read off the register",
+    referredWorkLine() === RULED_REFERRED_LINE,
+    referredWorkLine(),
+  );
+  rec(
+    "and it is not itself a claim the firm could not make",
+    copyVerdict(referredWorkLine()).ok,
+    copyVerdict(referredWorkLine()).summary,
+  );
+  const signIn = codeOnly("src/app/partner/(public)/login/page.tsx");
+  rec(
+    "the partner sign-in renders it through the deriver and types neither the name nor the number",
+    /referredWorkLine\(\)/.test(signIn) && !/F-29811|254 Engineering LLC|is the firm of record for work referred/.test(signIn),
+    "src/app/partner/(public)/login/page.tsx",
   );
 }
 

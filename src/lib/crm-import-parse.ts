@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { CRM_VERTICALS, normalizeName, normalizePhone, type CrmSource, type CrmVertical } from "./crm-rules";
+import { CRM_VERTICALS, normalizeName, normalizePhone, verticalFrom, type CrmSource, type CrmVertical } from "./crm-rules";
 
 /**
  * READING WHAT EACH SOURCE GIVES. Robert's sales CRM ruling of 2026-11-02,
@@ -428,23 +428,8 @@ const LIST_HEADER: Record<string, RegExp> = {
   vertical: /^(vertical|type|kind|category|segment|industry)$/,
 };
 
-const VERTICAL_WORDS: Record<CrmVertical, RegExp> = {
-  roofer: /^(roofer|roofers|roofing|roofing company|roofing contractor)$/,
-  solar: /^(solar|solar installer|solar company|solar contractor)$/,
-  manufactured_home_dealer: /^(manufactured home dealer|manufactured home|mobile home dealer|mh dealer|manufactured housing)$/,
-  foundation_repair: /^(foundation repair|foundation|foundation contractor)$/,
-  real_estate: /^(real estate|realtor|realtors|agent|agents|broker|brokerage|real estate agent)$/,
-  lender: /^(lender|lenders|mortgage|mortgage lender|loan officer|bank)$/,
-  insurance_agent: /^(insurance|insurance agent|insurance agency|agency)$/,
-  other: /^(other|title|title company|contractor|general contractor)$/,
-};
-
-export function verticalFrom(value: string | null | undefined): CrmVertical | null {
-  const v = (value ?? "").trim().toLowerCase().replace(/_/g, " ");
-  if (!v) return null;
-  for (const k of CRM_VERTICALS) if (k.replace(/_/g, " ") === v || VERTICAL_WORDS[k].test(v)) return k;
-  return null;
-}
+/* The words for each vertical live in crm-rules.ts, shared with the prospects screen's CSV (0123). */
+export { verticalFrom };
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 

@@ -22,7 +22,7 @@ import { writeAuditOrRefuse } from "./ops-audit";
  * screen telling a rep nobody is waiting.
  */
 
-export type InboxKind = "contact" | "waitlist" | "design" | "windstorm";
+export type InboxKind = "contact" | "waitlist" | "design" | "windstorm" | "reply";
 
 export type InboxItem = {
   kind: InboxKind;
@@ -111,6 +111,42 @@ export async function inbox(actor: Actor | null, opts: { includeAnswered: boolea
         answeredAt: (r.responded_at as string | null) ?? null,
         href: `${source.href}?id=${String(r.id)}`,
       });
+    }
+  }
+
+  /*
+   * REPLIES TO SALES EMAILS. Robert's sales CRM ruling of 2026-11-02, item R7:
+   * "a reply to any email lands in the existing inbox linked to the company".
+   * The reply webhook records each one (0118); it opens on the sequence emails
+   * screen, which applies the sales list's visibility rule. Listed only to an
+   * inbox reader who can open the sales list. Until the reply subdomain exists
+   * (Robert's answer 1) nothing arrives here, and replies are in the support
+   * mailbox, as the screen's own note about customer replies says.
+   */
+  if (can(actor, "crm.use")) {
+    const replies = await readEvery<Record<string, unknown>>((from, to) => {
+      let q = db.from("eng_crm_email_replies").select("id, created_at, received_at, from_address, subject, read_at, prospect:eng_prospects(company)");
+      if (!opts.includeAnswered) q = q.is("read_at", null);
+      return q.order("created_at", { ascending: true }).order("id", { ascending: true }).range(from, to);
+    });
+    if (!replies.ok) failed.push(`Replies to sales emails could not be read: ${replies.error}`);
+    else {
+      for (const r of replies.rows) {
+        const company = (r.prospect as { company?: string } | null)?.company ?? null;
+        items.push({
+          kind: "reply",
+          id: String(r.id),
+          receivedAt: String(r.received_at ?? r.created_at),
+          name: company ?? String(r.from_address ?? "Unknown sender"),
+          email: (r.from_address as string | null) ?? null,
+          phone: null,
+          summary: [company ? null : "Matched no company on the sales list", r.subject].filter(Boolean).join(". ").slice(0, 240),
+          respondBy: null,
+          answered: r.read_at !== null && r.read_at !== undefined,
+          answeredAt: (r.read_at as string | null) ?? null,
+          href: `/portal/crm/emails#reply-${String(r.id)}`,
+        });
+      }
     }
   }
 

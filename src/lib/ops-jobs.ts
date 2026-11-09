@@ -55,6 +55,12 @@ export type JobKind =
    * previews and writes nothing to the list: a person presses Write.
    */
   | "crm.import_preview"
+  /*
+   * 2026-11-02, Robert's sales CRM ruling R6. The daily account reminders and
+   * check-ins, raised as tasks for each account's owner, queued once a day by
+   * /api/cron/daily.
+   */
+  | "crm.account_tasks"
   | "errors.alert"
   /*
    * Phase 12 Section 2, the reporting prompt's Section 3. NOT the export itself: the RECORD that one was

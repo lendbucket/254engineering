@@ -1,11 +1,10 @@
 import { redirect } from "next/navigation";
-import { registrationLine } from "@/lib/launch";
-import { Wordmark } from "@/components/brand/Wordmark";
 import { currentActor } from "@/lib/ops-auth";
 import { homeFor } from "@/lib/ops-authz";
 import { opsSessionConfigured } from "@/lib/ops-session";
 import { supabaseConfigured } from "@/lib/supabase";
-import { RestrictedMode, SystemAlert } from "@/components/portal/design";
+import { SystemAlert } from "@/components/portal/design";
+import { SignInFrame, SignInHeading } from "@/components/portal/SignInFrame";
 import { LoginForm } from "./LoginForm";
 import { PortalUnreachable } from "@/components/portal/Unreachable";
 import { isDatabaseUnreachable } from "@/lib/save-outcome";
@@ -13,32 +12,30 @@ import { isDatabaseUnreachable } from "@/lib/save-outcome";
 export const dynamic = "force-dynamic";
 
 /**
- * Sign in, ported to the design system.
+ * Staff sign in.
  *
- * WHAT CHANGED, AND WHAT DELIBERATELY DID NOT
- * -------------------------------------------
- * Presentation only. Every behaviour is untouched: the redirect for an already
- * signed in actor, the suspended and reset notices, and the configuration check
- * that says so rather than rejecting a correct password in silence.
+ * THE 2026-11-08 REDESIGN, AND WHAT IT DID NOT TOUCH
+ * --------------------------------------------------
+ * Robert's order: one design for the three sign-in screens, a navy panel and
+ * the form on white, "a visual change only". Every behaviour is untouched: the
+ * redirect for an already signed in actor, the unreachable database screen, the
+ * suspended and reset notices, and the configuration check that says so rather
+ * than rejecting a correct password in silence. The noindex is the layout's
+ * metadata and is unchanged.
  *
- * The navy gradient is gone. The standards file says never gradients, and the
- * prototype puts this screen on the light canvas with the logo above a white
- * card. token-audit fails the build on a gradient in a ported file.
+ * What left the page on the same order: the registration line (still stated in
+ * the public footer, every email and the portal rail, each asserted by
+ * compliance-audit), "This area is not public and is not indexed", the
+ * administrator sentence under the button, and (answer 3) the gate's
+ * restricted-mode notice. "Forgot your password?" opens /portal/forgot-password
+ * (answer 1).
  *
  * THE LINE THAT IS NOT HERE, AND WHY
  * ----------------------------------
- * The prototype's sign in screen reads "Multi-factor authentication is required
- * for all staff accounts."
- *
- * There is no MFA in this platform. Not partially, not behind a flag: the
- * string does not appear anywhere in the codebase, and the standards file's own
- * build roadmap lists "MFA enforcement" as work still to do with this screen as
- * its hook. So the sentence is a security claim about protection an account
- * does not have, told to the person signing in to that account, and it is the
- * same class of fabrication as the evidence hash the operator ruled out at gate
- * 0. It is dropped rather than rendered.
- *
- * If MFA is built, this is where the sentence goes back.
+ * The 2026-09 prototype's sign in screen read "Multi-factor authentication is
+ * required for all staff accounts." It is not rendered: a second factor is
+ * optional by role (0025), so the sentence would be a security claim the
+ * account in front of the reader may not have.
  */
 export default async function PortalLoginPage({
   searchParams,
@@ -70,64 +67,38 @@ export default async function PortalLoginPage({
   const ready = opsSessionConfigured() && supabaseConfigured();
 
   return (
-    <main className="portal-surface v10-phone-ground-centred grid min-h-dvh place-items-center px-4 py-6 sm:py-10">
-      <div className="w-full max-w-[420px]">
-        <div className="mb-4 flex justify-center sm:mb-6">
-          <Wordmark height={44} priority />
+    /*
+      NO RESTRICTED-MODE NOTICE ON A SIGN-IN PAGE. Robert's answer 3 of
+      2026-11-08 (issue #1, 6724956292): the firm can do everything it lists.
+      It leaves the three sign-in pages only and changes nothing in the gate.
+    */
+    <SignInFrame label="Operations portal">
+      <SignInHeading />
+
+      {params.suspended || params.reset || !ready ? (
+        <div className="mt-5 flex flex-col gap-3">
+          {params.suspended ? (
+            <SystemAlert condition="Account suspended." tone="failed">
+              An administrator can restore it. Signing in is refused until they do.
+            </SystemAlert>
+          ) : null}
+
+          {params.reset ? (
+            <p className="text-[15px] leading-[1.55] text-[var(--ink)]">
+              Your password is set. Sign in with it.
+            </p>
+          ) : null}
+
+          {ready ? null : (
+            <SystemAlert condition="Not configured." tone="failed">
+              The portal is not configured on this deployment, so nobody can sign in. What is
+              missing is in the server logs rather than on this page.
+            </SystemAlert>
+          )}
         </div>
+      ) : null}
 
-        {/* V10, as the customer sign in: no card, the content under a 2px ink rule. */}
-        <div className="v10-sections border-t-2 border-[var(--ink)] pt-5">
-          <div>
-          <h1 className="font-display text-[17px] leading-[1.25] font-bold text-[var(--navy)]">
-            Operations portal
-          </h1>
-          <p className="mt-2 text-[14px] leading-[1.6] text-[var(--secondary)]">
-            This area is not public and is not indexed.
-          </p>
-          </div>
-
-          <div className="mt-4 flex flex-col gap-2.5 sm:mt-5 sm:gap-3">
-            {params.suspended ? (
-              <SystemAlert condition="Account suspended." tone="failed">
-                An administrator can restore it. Signing in is refused until they do.
-              </SystemAlert>
-            ) : null}
-
-            {params.reset ? (
-              <p className="text-[14px] leading-[1.55] text-[var(--ink)]">
-                Your password is set. Sign in with it.
-              </p>
-            ) : null}
-
-            {ready ? null : (
-              <SystemAlert condition="Not configured." tone="failed">
-                The portal is not configured on this deployment, so nobody can sign in. What is
-                missing is in the server logs rather than on this page.
-              </SystemAlert>
-            )}
-
-            {/*
-              The component reads the gate itself and returns null once it
-              lifts, so there is nothing to remember to remove on launch day.
-
-              NOT rendered to a suspended account. That person cannot sign in,
-              so which services the firm can currently perform is not a question
-              they are in a position to ask, and the two notices stacked are
-              what pushed this state 71px past a 390 viewport. The registration
-              is still stated in full by the compliance sentence under the card,
-              which is unconditional. Said once rather than twice.
-            */}
-            {params.suspended ? null : <RestrictedMode />}
-          </div>
-
-          <LoginForm next={params.next ?? null} disabled={!ready} />
-        </div>
-
-        <p className="mt-4 text-center text-[12px] leading-[1.6] text-[var(--secondary)] sm:mt-5">
-          {registrationLine()}
-        </p>
-      </div>
-    </main>
+      <LoginForm next={params.next ?? null} disabled={!ready} forgotHref="/portal/forgot-password" />
+    </SignInFrame>
   );
 }
