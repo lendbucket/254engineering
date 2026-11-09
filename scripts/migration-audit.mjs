@@ -417,6 +417,9 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * 2026-11-06): the three columns of eng_account_credit_holds, 1,576 to 1,579;
  * the table count moves 119 to 120. Read off fingerprint-at.mjs on the chain to
  * 0122.
+ *
+ * 0123 (Robert's CRM answer 8) replaces one check and updates rows, so the
+ * shape does not move.
  */
 const EXPECTED_FINGERPRINT = "7dc2aeceb558706cdc5f3ac2263071cc";
 const EXPECTED_COLUMNS = 1579;

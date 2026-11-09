@@ -141,6 +141,15 @@ console.log(`${BASE}, ${SCREENS.length} signed in screens\n`);
       "a column that drops at xl, carried by the card layout below md",
     ],
     /*
+     * Robert's answer 2 of 6729057981, the one entry he ruled for the sign-in
+     * layout. The column carries no action: the logo, a gold rule and the
+     * surface's label. Every control of every sign-in page is in the form,
+     * which a phone shows whole.
+     */
+    "src/components/portal/SignInFrame.tsx": [
+      "the sign-in panel's desktop column; a phone shows the logo in the slim header",
+    ],
+    /*
      * design/Table.tsx is deliberately NOT here. It hides its table half at md
      * rather than lg, which point 4 governs and this check does not see. The
      * first version of this table listed it anyway, and the stale check caught

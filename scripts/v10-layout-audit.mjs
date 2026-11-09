@@ -445,6 +445,26 @@ function measure() {
         found.push({ kind: "_mapswatch" });
         continue;
       }
+      /*
+       * THE SECOND EXCEPTION: THE SIGN-IN PANEL. Robert's answer 2 of
+       * 6729057981 (2026-11-08), on his sign-in design of the same day. Exactly
+       * two elements are excused, and only in their own colours: the element
+       * marked data-v10-signin-panel, on navy, and its gold rule, a gold element
+       * inside the panel holding no text and no children. A page with two
+       * marked panels excuses neither. Anything else inside the panel with a
+       * ground, and a navy block anywhere else, is still a finding. Counted per
+       * route like the map, so it shows if it excuses nothing or spreads.
+       */
+      const panels = document.querySelectorAll("[data-v10-signin-panel]");
+      if (panels.length === 1) {
+        const panel = panels[0];
+        const isPanel = el === panel && bg === "rgb(1, 39, 88)";
+        const isRule = el !== panel && panel.contains(el) && bg === "rgb(214, 166, 42)" && el.children.length === 0 && !(el.textContent ?? "").trim();
+        if (isPanel || isRule) {
+          found.push({ kind: "_signinpanel" });
+          continue;
+        }
+      }
       found.push({ kind: "tint", at: `${describe(el)} ${bg}` });
     }
   }
@@ -517,11 +537,18 @@ const PHONE_GROUND = "rgb(242, 244, 247)";
 /* The partner surface joined on 2026-10-09 with the partner batch, which put its shell and sign in screens on the ground. */
 const PHONE_GROUND_SURFACES = new Set(["portal", "account", "partner"]);
 /**
- * Screens V10 specifies as a single section on a phone. Empty: nothing has been
- * named. An entry is a pattern and a reason, and the run prints the count, so
- * this cannot grow quietly.
+ * Screens V10 specifies as a single section on a phone. An entry is a route
+ * pattern, or a marker selector the page must render, with a reason, and the
+ * run prints the count, so this cannot grow quietly. One entry, by Robert's
+ * answer 2 of 6729057981: a page drawing the sign-in panel. An excused page
+ * must still BE one section: two white sections with no ground between them
+ * is a finding, excused or not.
  */
-const PHONE_SINGLE_SECTION = new Map();
+const PHONE_SINGLE_SECTION = new Map([
+  ["[data-v10-signin-panel]", "the sign-in layout: a slim navy header and the form on white beneath it (Robert, 6729057981)"],
+]);
+/** Sign-in panel elements the tint exception excused, by route. */
+const signinPanel = {};
 for (const t of targets) {
   if (ONLY && t.pattern !== ONLY) continue;
   if (!t.path) {
@@ -557,6 +584,10 @@ for (const t of targets) {
           }
           if (f.kind === "_mapswatch") {
             mapSwatches[t.pattern] = (mapSwatches[t.pattern] ?? 0) + 1;
+            continue;
+          }
+          if (f.kind === "_signinpanel") {
+            signinPanel[t.pattern] = (signinPanel[t.pattern] ?? 0) + 1;
             continue;
           }
           if (f.kind === "_headerpairs") {
@@ -608,7 +639,11 @@ for (const t of targets) {
             kinds.overflow.count = (kinds.overflow.count ?? 0) + 1;
           }
         }
-        if (width === 390 && PHONE_GROUND_SURFACES.has(t.surface) && !PHONE_SINGLE_SECTION.has(t.pattern)) {
+        if (width === 390 && PHONE_GROUND_SURFACES.has(t.surface)) {
+          const markers = [...PHONE_SINGLE_SECTION.keys()].filter((k) => !k.startsWith("/"));
+          const single =
+            PHONE_SINGLE_SECTION.has(t.pattern) ||
+            (await page.evaluate((sels) => sels.some((s) => document.querySelectorAll(s).length === 1), markers));
           const verdict = await page.evaluate((GROUND) => {
             const WHITE = "rgb(255, 255, 255)";
             const opaque = (c) => c && !/rgba\(\s*0,\s*0,\s*0,\s*0\s*\)|transparent/.test(c);
@@ -643,7 +678,11 @@ for (const t of targets) {
             }
             return { sections: sections.length, separated, grounds: [...seen].join(" ") };
           }, PHONE_GROUND);
-          if (verdict.separated < 1) {
+          if (single && verdict.sections > 1) {
+            kinds["phone-ground"] = kinds["phone-ground"] ?? [];
+            kinds["phone-ground"].push(`excused as a single section and draws ${verdict.sections} white sections at 390`);
+            kinds["phone-ground"].count = (kinds["phone-ground"].count ?? 0) + 1;
+          } else if (!single && verdict.separated < 1) {
             kinds["phone-ground"] = kinds["phone-ground"] ?? [];
             kinds["phone-ground"].push(
               `${verdict.sections} white section(s), ${verdict.separated} separated by #F2F4F7 (ground seen: ${verdict.grounds || "none"}) at 390`,
@@ -696,16 +735,37 @@ if (!ONLY && browser) {
     MAP_SCREENS.every((p) => mapSwatches[p] > 0) && where.every((p) => MAP_SCREENS.includes(p)),
     where.length ? where.map((p) => `${p} ${mapSwatches[p]}`).join(", ") : "none excused anywhere",
   );
+  /*
+   * THE SIGN-IN PANEL EXCEPTION EXCUSES THE PANEL ON THE SIGN-IN PAGES, AND
+   * NOWHERE ELSE. Robert's answer 2 of 6729057981. The five pages that draw
+   * SignInFrame must each have it excused, so a lost marker shows; and nothing
+   * outside them and the two MFA screens may, so a spread marker shows. The MFA
+   * screens are listed because, with no session pending, both redirect to
+   * /portal/login and are measured there.
+   */
+  const SIGNIN_SCREENS = ["/portal/login", "/account/login", "/partner/login", "/portal/forgot-password", "/partner/forgot-password"];
+  const SIGNIN_REDIRECTS = ["/portal/mfa", "/portal/mfa/enrol"];
+  const panelWhere = Object.keys(signinPanel);
+  rec(
+    "the sign-in panel exception excuses the panel on the sign-in pages and nowhere else",
+    SIGNIN_SCREENS.every((p) => signinPanel[p] > 0) && panelWhere.every((p) => SIGNIN_SCREENS.includes(p) || SIGNIN_REDIRECTS.includes(p)),
+    panelWhere.length ? panelWhere.map((p) => `${p} ${signinPanel[p]}`).join(", ") : "none excused anywhere",
+  );
   rec(
     "and table headers were measured for touching (a check over no tables passes forever)",
     headerPairs > 0,
     `${headerPairs} neighbouring header pair(s) measured at 1280`,
   );
 }
+/*
+ * THE SINGLE-SECTION LIST IS EXACTLY ROBERT'S ONE ENTRY. Pinned as a literal,
+ * so a second entry, or the one entry changed, costs this edit too.
+ */
+const RULED_SINGLE_SECTION = ["[data-v10-signin-panel]"];
 rec(
-  "screens excused the phone sections rule as single-section are named, and none is",
-  PHONE_SINGLE_SECTION.size === 0,
-  PHONE_SINGLE_SECTION.size ? [...PHONE_SINGLE_SECTION].map(([p, why]) => `${p}: ${why}`).join("; ") : "0 excused",
+  "screens excused the phone sections rule as single-section are named, and only the sign-in panel is",
+  PHONE_SINGLE_SECTION.size === RULED_SINGLE_SECTION.length && RULED_SINGLE_SECTION.every((k) => PHONE_SINGLE_SECTION.has(k)),
+  [...PHONE_SINGLE_SECTION].map(([p, why]) => `${p}: ${why}`).join("; ") || "0 excused",
 );
 
 let clean = 0;
