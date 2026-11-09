@@ -36,7 +36,13 @@ export function SignInFrame({
 }) {
   return (
     <main className="portal-surface min-h-dvh bg-white lg:grid lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-      <aside className="bg-[var(--navy)] text-[var(--on-navy)]">
+      {/*
+       * data-v10-signin-panel marks the one element v10-layout-audit excuses
+       * from "no tinted ground inside main", with its gold rule, and the mark
+       * that makes a page a single section on a phone. Robert's answer 2 of
+       * 6729057981. Move or copy it and the audit says so.
+       */}
+      <aside data-v10-signin-panel className="bg-[var(--navy)] text-[var(--on-navy)]">
         {/* On a phone: a slim header with the logo, nothing else. */}
         <div className="flex min-h-[64px] items-center px-5 lg:hidden">
           <Wordmark onDark height={40} priority />
