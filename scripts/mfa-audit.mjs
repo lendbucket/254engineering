@@ -33,6 +33,7 @@
 import { randomUUID } from "node:crypto";
 import { readdirSync, statSync } from "node:fs";
 import { readSource } from "./lib/read-source.mjs";
+import { directSessionPosts, OWNER } from "./lib/session-post-scan.mjs";
 import { join } from "node:path";
 import { routesOf, apisOf, surfacesWhere } from "./lib/surfaces.mjs";
 import { auditClient } from "./lib/db-target.mjs";
@@ -295,56 +296,14 @@ else process.env.OPS_SESSION_SECRET = HAD;
  * legitimately post there.
  */
 {
-  const walkScripts = (dir) => {
-    const found = [];
-    for (const entry of readdirSync(dir)) {
-      const path = join(dir, entry);
-      if (statSync(path).isDirectory()) found.push(...walkScripts(path));
-      else if (entry.endsWith(".mjs")) found.push(path);
-    }
-    return found;
-  };
-
-  const OWNER = "scripts/lib/probe-mfa.mjs";
-
   /*
-   * One file legitimately posts there without going through the helper, and it
-   * is worth stating why rather than widening the pattern until it stops
-   * complaining.
-   *
-   * security-audit ATTACKS the sign in endpoint: an empty body, a wrong
-   * password, an unknown address, the rate limiter, the enumeration answer. It
-   * is not obtaining a session, it is testing what the endpoint refuses, and
-   * routing that through a helper whose job is to succeed would defeat the
-   * point of every one of those checks.
-   *
-   * Declared with a reason, like role-cast-audit's allowlist, so a second entry
-   * has to argue for itself.
+   * The scan, the owner and the reasoned allowlist live in
+   * scripts/lib/session-post-scan.mjs, so the static proof
+   * a-quoted-session-call-is-not-a-sign-in runs exactly this scan without a
+   * server. Sharpened on Robert's answer 1 of 6743092030: a call quoted inside a
+   * string is source text, not a sign in.
    */
-  const ALLOWED_TO_POST = {
-    "scripts/mfa-audit.mjs":
-      "it needs an account that has deliberately NOT enrolled, in order to walk the enrolment screen. signInFully exists to complete an enrolment, which is the one thing this check must not do.",
-    "scripts/security-audit.mjs":
-      "it attacks the sign in endpoint rather than using it: empty bodies, wrong passwords, the rate limiter and the enumeration answer.",
-  };
-
-  const offenders = [];
-  let scanned = 0;
-
-  for (const file of walkScripts("scripts")) {
-    const normalised = file.split("\\").join("/");
-    if (normalised === OWNER) continue;
-    if (ALLOWED_TO_POST[normalised]) continue;
-    scanned += 1;
-    const source = readSource(file);
-    for (const [n, line] of source.split(/\r?\n/).entries()) {
-      const trimmed = line.trim();
-      if (trimmed.startsWith("*") || trimmed.startsWith("//")) continue;
-      if (/\/api\/portal\/session/.test(line) && /fetch\(/.test(line)) {
-        offenders.push(`${normalised}:${n + 1}`);
-      }
-    }
-  }
+  const { offenders, scanned } = directSessionPosts("scripts");
 
   rec(`there are scripts to scan (${scanned})`, scanned > 5, "a scan over nothing passes forever");
   rec(

@@ -76,8 +76,20 @@ check(
   /const unanswered = photoAnswerRefusal\(asks, input\);\s*if \(unanswered\) return \{ ok: false, error: unanswered \};/.test(field) &&
     /photoAnswersFor\(view\.protocol\?\.document_number \?\? null\)\[item\.itemKey\]/.test(field),
 );
+/*
+ * Since Robert's T2 (2026-11-07) the item props are built in one place,
+ * src/lib/job-checklist-props.ts, for the job page and the offline day pack
+ * alike. So the check asks both halves: the helper maps each item's answer,
+ * and the page builds its props from the helper with the protocol's answers.
+ */
 const page = readSource("src/app/portal/(app)/jobs/[id]/page.tsx");
-check("the job page hands each item its answer", /answer: photoAnswers\[i\.itemKey\] \?\? null/.test(page));
+const propsSource = readSource("src/lib/job-checklist-props.ts");
+check(
+  "the job page hands each item its answer",
+  /answer: photoAnswers\[i\.itemKey\] \?\? null/.test(propsSource) &&
+    /const checklist = checklistPropsFrom\(view, photoAnswers\);/.test(page) &&
+    /items=\{checklist\.items\}/.test(page),
+);
 const client = readSource("src/app/portal/(app)/jobs/[id]/CaptureClient.tsx");
 check(
   "the screen sends the answer with the photograph",

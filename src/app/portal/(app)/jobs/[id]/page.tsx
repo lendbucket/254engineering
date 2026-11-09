@@ -18,6 +18,7 @@ import { PageHead } from "@/components/portal/surfaces";
 import { Checklist, RepairList } from "./CaptureClient";
 import { FileThreadButton } from "@/components/portal/FileThreadButton";
 import { captureAdditionsFor } from "@/lib/letter-facts";
+import { checklistPropsFrom } from "@/lib/job-checklist-props";
 
 export const dynamic = "force-dynamic";
 
@@ -52,6 +53,7 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
 
   /* The photograph items that also take a written answer, from the signed document. */
   const photoAnswers = photoAnswersFor(view.protocol?.document_number ?? null);
+  const checklist = checklistPropsFrom(view, photoAnswers);
 
   /*
    * Read only when capture is closed on the file, or when this person is not
@@ -199,39 +201,16 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
         </p>
       ) : null}
 
-      {view.protocol ? (
+      {checklist ? (
+        /* The same props the offline day pack carries (src/lib/job-checklist-props.ts, Robert's T2). */
         <Checklist
           fileId={view.file.id}
           readOnly={closed}
           canRemove={canRemove}
-          protocolName={`${view.protocol.name} v${view.protocol.version}`}
-          items={view.protocol.items.map((i) => ({
-            id: i.id,
-            itemKey: i.itemKey,
-            kind: i.kind,
-            label: i.label,
-            instructions: i.instructions ?? null,
-            required: i.required,
-            unit: i.unit ?? null,
-            minValue: i.minValue ?? null,
-            maxValue: i.maxValue ?? null,
-            minCount: i.minCount ?? null,
-            answer: photoAnswers[i.itemKey] ?? null,
-          }))}
-          captures={view.captures.map((c) => ({
-            id: c.id,
-            itemKey: c.item_key,
-            kind: c.kind,
-            valueText: c.value_text,
-            valueNumber: c.value_number === null ? null : Number(c.value_number),
-            storageKey: c.storage_key,
-            capturedAt: c.captured_at,
-          }))}
-          exceptions={view.exceptions.map((e) => ({
-            itemKey: e.item_key,
-            kind: e.kind,
-            reason: e.reason,
-          }))}
+          protocolName={checklist.protocolName}
+          items={checklist.items}
+          captures={checklist.captures}
+          exceptions={checklist.exceptions}
         />
       ) : (
         <div className="border-t-2 border-[var(--ink)] pt-3">
