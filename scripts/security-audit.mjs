@@ -125,6 +125,8 @@ const ADMIN_PAGES = [
   /* The record search, 2026-10-10: behind files.list, closed to a signed out caller. */
   "/portal/search",
   "/portal/jobs",
+  /* The offline job screen (Robert's T2, 2026-11-07): behind offers.list_own, closed to a signed out caller. It renders nothing from the database. */
+  "/portal/jobs/offline",
   "/portal/files",
   // Phase 12 Section 4, Section 1. Names every technician who could be offered
   // each selected file and what each is owed, which is the firm s field spend

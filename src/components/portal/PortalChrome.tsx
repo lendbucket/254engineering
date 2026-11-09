@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import type { NavItem } from "./nav";
 import { Sheet } from "./design/Sheet";
 import { SEARCH_MIN_LENGTH } from "@/lib/search-rules";
+import { forgetFieldDay } from "@/lib/field-day-store";
 
 /**
  * The interactive parts of the shell: the mobile drawer, the profile menu, the
@@ -245,6 +246,8 @@ export function ProfileMenu({
   }, [open]);
 
   async function signOut() {
+    /* The day's jobs kept for offline start go at sign out (Robert's T2, answer 1 of 2026-11-07). */
+    await forgetFieldDay();
     await fetch("/api/portal/session", { method: "DELETE" });
     router.push("/portal/login");
     router.refresh();

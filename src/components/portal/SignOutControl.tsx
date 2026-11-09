@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { forgetFieldDay } from "@/lib/field-day-store";
 
 /**
  * Sign out from the two second factor screens, where the portal chrome (and its
@@ -22,6 +23,8 @@ export function SignOutControl({ label = "Sign out" }: { label?: string }) {
     setBusy(true);
     setFailed(false);
     try {
+      /* The day's jobs kept for offline start go at sign out (Robert's T2, answer 1 of 2026-11-07). */
+      await forgetFieldDay();
       await fetch("/api/portal/session", { method: "DELETE" });
       router.push("/portal/login");
       router.refresh();

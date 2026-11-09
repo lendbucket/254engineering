@@ -2646,6 +2646,8 @@ if (!db) {
         "/portal/techs",
         "/portal/intake",
         "/portal/jobs",
+        /* The offline job screen (Robert's T2, 2026-11-07): offers.list_own, the technician's own jobs, which he does not hold. */
+        "/portal/jobs/offline",
         "/portal/onboarding",
         "/portal/certification",
         /*
