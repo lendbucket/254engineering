@@ -15,6 +15,7 @@ import {
   withdrawException,
   approveProtocol,
   recordCapture,
+  recordVisit,
   removeProtocolItem,
   sendOffers,
   setLedgerStatus,
@@ -28,6 +29,7 @@ import {
 import { CAPTURE_ID, captureDoorRefusal, captureStorageKey } from "@/lib/evidence-capture-rules";
 import { SHA256_HEX } from "@/lib/capture-hash";
 import { latestOfferPushFor, pushPublicKey, subscribePush, unsubscribePush } from "@/lib/ops-push";
+import { visitActionFrom, visitLateFrom } from "@/lib/visit-clock-rules";
 
 /**
  * Everything in the field that changes something: protocols, offers, captures,
@@ -334,6 +336,19 @@ async function handlePOST(request: NextRequest) {
   if (action === "withdraw_exception") {
     const result = await withdrawException(actor, String(body?.fileId ?? ""), String(body?.itemKey ?? ""));
     return result.ok ? NextResponse.json({ ok: true }) : bad(result.error);
+  }
+
+  /*
+   * The visit clock (Robert's T6, 2026-11-07). The request names the act, and
+   * whether it was held for want of signal (answer 4), and nothing else: any
+   * time in the body is ignored, because the time is the database's own now()
+   * on the row written (src/lib/visit-clock-rules.ts).
+   */
+  if (action === "record_visit") {
+    const visit = visitActionFrom(body?.visit);
+    if (!visit) return bad("Say whether this is an arrival or a leaving.");
+    const result = await recordVisit(actor, String(body?.fileId ?? ""), visit, context, visitLateFrom(body?.late));
+    return result.ok ? NextResponse.json({ ok: true, at: result.at }) : bad(result.error);
   }
 
   if (action === "submit_evidence") {

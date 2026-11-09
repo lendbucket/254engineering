@@ -8,6 +8,7 @@ import { captureHashMismatch } from "./capture-hash";
 import { services } from "../content/services";
 import { clockReading } from "./clock-skew";
 import { CAPTURE_CLOSED_STATUSES, captureKeyProblem, evidenceWriteRefusal } from "./evidence-capture-rules";
+import { VISIT_KIND_FOR, VISIT_KINDS, visitRefusal, visitState, type VisitAction, type VisitState } from "./visit-clock-rules";
 import { sha256Hex } from "./evidence-fingerprint";
 import { readEvery, readEveryIn } from "./bounded-read";
 import { pushOfferTo } from "./ops-push";
@@ -3382,4 +3383,105 @@ export async function dayPackFor(
   }
 
   return { ok: true, pack: { techId: actor.id, packedAt: now.toISOString(), jobs } };
+}
+
+/* ------------------------------------------------------------ the visit clock */
+
+/**
+ * The visit clock on one file, read from eng_file_events, oldest first. Null
+ * when it could not be read, which the screen says rather than showing an empty
+ * clock: "no arrival recorded" and "the record could not be read" are different
+ * answers (src/lib/visit-clock-rules.ts).
+ */
+export async function visitClockFor(fileId: string): Promise<VisitState | null> {
+  const db = supabaseAdmin();
+  if (!db) return null;
+  const { data, error } = await db
+    .from("eng_file_events")
+    .select("kind, created_at, meta")
+    .eq("file_id", fileId)
+    .in("kind", [...VISIT_KINDS])
+    .order("created_at", { ascending: true })
+    .limit(200);
+  if (error || !data) return null;
+  return visitState(
+    data.map((r) => ({
+      kind: r.kind as string,
+      at: r.created_at as string,
+      late: (r.meta as { late?: unknown } | null)?.late === true,
+    })),
+  );
+}
+
+/**
+ * Record an arrival at the property or a leaving of it. Robert's T6,
+ * 2026-11-07: the server's clock, never the phone's.
+ *
+ * NO TIME IS READ FROM THE REQUEST. The row is inserted without created_at, so
+ * the column default, now() on the database, is the time, and the time that
+ * comes back is read off the row that was written.
+ *
+ * Only the technician the file is assigned to, the same rule every evidence
+ * write carries (evidenceWriteRefusal, Robert's Q3 of 2026-11-02), and only
+ * while the file is in the field.
+ *
+ * NOT THE REFUND RULE. Whether anybody attended, for the refund rule, is
+ * still set when evidence is submitted (recordTechnicianVisit). An arrival
+ * pressed on a phone is not made to move money here; that would be a change
+ * to a money rule, and it is Robert's to make.
+ */
+export async function recordVisit(
+  actor: Actor & { email: string },
+  fileId: string,
+  action: VisitAction,
+  context: Context = {},
+  /* Held on the phone for want of signal and sent when it returned (answer 4). Carries no time. */
+  late = false,
+): Promise<{ ok: true; at: string } | { ok: false; error: string }> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+
+  const view = await jobView(actor, fileId);
+  if (!view) return { ok: false, error: "That job is not yours." };
+
+  const notYours = evidenceWriteRefusal({ id: actor.id, mayCapture: can(actor, "evidence.capture") }, view.file.assigned_tech_id);
+  if (notYours) return { ok: false, error: notYours };
+
+  if (CAPTURE_CLOSED_STATUSES.includes(view.file.status)) {
+    return { ok: false, error: "This file has left the field. The visit clock is closed on it." };
+  }
+
+  const state = await visitClockFor(fileId);
+  if (!state) return { ok: false, error: "The visit clock could not be read, so nothing was recorded. Try again." };
+  const refusal = visitRefusal(state, action);
+  if (refusal) return { ok: false, error: refusal };
+
+  const kind = VISIT_KIND_FOR[action];
+  const { data, error } = await db
+    .from("eng_file_events")
+    .insert({
+      file_id: fileId,
+      actor_id: actor.id,
+      kind,
+      body:
+        (action === "arrive" ? "Arrived at the property." : "Left the property.") +
+        (late ? " Pressed with no signal; recorded when signal returned." : ""),
+      meta: { late },
+    })
+    .select("created_at")
+    .single();
+  if (error || !data) {
+    return { ok: false, error: `The ${action === "arrive" ? "arrival" : "leaving"} was not recorded: ${error?.message ?? "nothing came back"}` };
+  }
+
+  await writeAudit({
+    actor,
+    action: kind,
+    entityType: "file",
+    entityId: fileId,
+    summary: `${view.file.file_number}: ${action === "arrive" ? "arrived at" : "left"} the property (server time ${data.created_at as string}).`,
+    ...context,
+  });
+
+  return { ok: true, at: data.created_at as string };
 }
