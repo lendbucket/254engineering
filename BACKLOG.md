@@ -4,6 +4,27 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
+## THE WRITERS SHARD CAN STOP ON ITS OWN SERVER: A TEARDOWN RACE ON PORT 4300
+
+Board 42505750069 (bundle 125, kinds at `fee37b9`, 2026-11-08). After
+`native-audit` finished its 64 signed in screens, the next audit found port 4300
+still answering and the runner refused to start, correctly, because attaching
+to whatever is there would score the wrong server. The suite printed `THE SUITE
+DID NOT RUN TO COMPLETION` and 14 writers audits never ran. Nothing on the
+branch touched the harness.
+
+**What to build, full lane, on its own branch:** before an audit starts its own
+server, the runner waits for the previous audit's server process to exit and
+for the port to stop answering, for a bounded time, and names the process if it
+does not. Not built because the harness is shared by every board and a change
+to it boards on its own. Reported on issue #1 (6725342962).
+
+**The same run also showed development under load**: the queue 1,444 deep and
+4,315 accounts, both audit residue, and a credential read abandoned at 20
+seconds. The queue's growth is the entry "eng_jobs grows forever" below. The
+account count has no entry of its own, and is named here, with the queue,
+because a writer proof's single red sat beside both.
+
 ## SALES LIST IMPORTS (CRM R2, 2026-11-02): SIX SOURCES WAIT, AND THE PLACES LOOKUP IS CLOSED
 
 Built on `feat/crm-r2-imports`, Robert's sales CRM ruling R2. The full account of
