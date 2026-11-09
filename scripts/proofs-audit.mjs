@@ -151,7 +151,30 @@ for (const p of results) {
     );
     continue;
   }
-  rec(`${p.file}`, p.status === 0, p.status === 0 ? `${p.how}: ${p.tail}` : `${p.how}, exit ${p.status}: ${p.tail}`);
+  /*
+   * A FAILED PROOF NAMES WHICH OF ITS CHECKS FAILED. Board 42505750069 (bundle
+   * 125, 2026-11-08) printed "exit 1: FAIL: 1 check(s)." for
+   * credential-tasks-refresh-every-day, which is the proof's last line and
+   * says nothing about which check, so a red on a writer proof could not be
+   * read without running it again. The note now carries the proof's own FAIL
+   * lines, up to three, before its last line. Its verdict is unchanged: the
+   * exit code is still the only thing that decides it.
+   */
+  const failLines =
+    p.status === 0
+      ? []
+      : (p.stdout || "")
+          .split("\n")
+          .map((l) => l.trim())
+          .filter((l) => /^(FAIL|TEARDOWN FAULT|COULD NOT TELL)\b/.test(l) && l !== p.tail)
+          .slice(0, 3);
+  rec(
+    `${p.file}`,
+    p.status === 0,
+    p.status === 0
+      ? `${p.how}: ${p.tail}`
+      : `${p.how}, exit ${p.status}: ${[...failLines, p.tail].filter(Boolean).join(" | ")}`,
+  );
 }
 
 /* ------------------------------ an acknowledgement is only as good as its park */

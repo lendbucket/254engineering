@@ -176,20 +176,33 @@ const SUB = "00000000-0000-0000-0000-0000000000aa";
     "the two readers do not overlap",
   );
 
+  /*
+   * SIX SEGMENTS SINCE AUTH M2 (Robert, 2026-11-02, option A, rollout 1):
+   * sub.role.factor.epoch.exp.mac. The pre MFA four segment shape and the pre
+   * M2 five segment shape are both refused, so neither stripping the factor nor
+   * stripping the epoch is a way back.
+   */
   const parts = (pending?.value ?? "").split(".");
-  rec("the cookie carries five segments", parts.length === 5, `${parts.length}`);
+  rec("the cookie carries six segments, sub.role.factor.epoch.exp.mac", parts.length === 6 && /^\d+$/.test(parts[3] ?? ""), `${parts.length}`);
   rec(
     "the pre MFA four segment shape is refused",
-    readOpsSession(`${parts[0]}.${parts[1]}.${parts[3]}.${parts[4]}`) === null,
+    readOpsSession(`${parts[0]}.${parts[1]}.${parts[4]}.${parts[5]}`) === null &&
+      readPendingSession(`${parts[0]}.${parts[1]}.${parts[4]}.${parts[5]}`) === null,
     "stripping the factor must not be a downgrade path",
   );
   rec(
+    "the pre M2 five segment shape is refused by both readers",
+    readOpsSession(`${parts[0]}.${parts[1]}.${parts[2]}.${parts[4]}.${parts[5]}`) === null &&
+      readPendingSession(`${parts[0]}.${parts[1]}.${parts[2]}.${parts[4]}.${parts[5]}`) === null,
+    "stripping the epoch must not be a way past a password change",
+  );
+  rec(
     "a factor nobody signed is refused",
-    readOpsSession(`${parts[0]}.${parts[1]}.elevated.${parts[3]}.${parts[4]}`) === null,
+    readOpsSession(`${parts[0]}.${parts[1]}.elevated.${parts[3]}.${parts[4]}.${parts[5]}`) === null,
   );
   rec(
     "editing the factor to full invalidates the signature",
-    readOpsSession(`${parts[0]}.${parts[1]}.full.${parts[3]}.${parts[4]}`) === null,
+    readOpsSession(`${parts[0]}.${parts[1]}.full.${parts[3]}.${parts[4]}.${parts[5]}`) === null,
     "the whole boundary rests on this being true",
   );
 

@@ -524,6 +524,28 @@ export const CREDENTIALS: Credential[] = [
         " SETTLED 2026-09-12: was All Environments including Preview, which meant a preview deployment could send real mail as the firm. Now Production only. Preview holds nothing, which is the fix rather than a gap: notify.ts returns null and logs skipped without a key.",
     },
   },
+  /*
+   * NOT YET SET ANYWHERE. Robert's sales CRM ruling of 2026-11-02, item R7,
+   * and his answer 1 (6587550325): replies to sales emails through a reply
+   * subdomain on Resend Inbound. The secret is the signing key Resend shows on
+   * the webhook's page once the subdomain reads verified (the records are
+   * posted for him, issue #1 comment 6588394106). Until it is set,
+   * /api/inbound/resend answers 404, the same as no route at all.
+   */
+  {
+    name: "RESEND_WEBHOOK_SECRET",
+    kind: "secret",
+    livesIn: "Nowhere yet. When the reply subdomain is verified in Resend: Vercel, Production only, with Preview left without it so a preview deployment cannot take replies.",
+    grants: "Proving a request to /api/inbound/resend came from Resend, which records a reply to a sales email and pauses that company's sequence. It cannot send mail or read anything.",
+    rotated: "Never set.",
+    environments: {
+      production: "absent",
+      preview: "absent",
+      development: "absent",
+      previewValueDistinct: null,
+      readOn: "2026-11-02, by the session that built R7: declared before it exists, so the day it is set it is a declared name and not a surprise.",
+    },
+  },
   {
     name: "CRON_SECRET",
     kind: "secret",

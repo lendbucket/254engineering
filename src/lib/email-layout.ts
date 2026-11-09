@@ -167,6 +167,12 @@ export type LayoutInput = {
   /** Human facing mail is signed. Operator notifications are not. */
   signed?: boolean;
   /**
+   * The rep signature line, in place of the signer's block, for the templates
+   * named in REP_SIGNED_TEMPLATES only (email identity ruling of 2026-11-02,
+   * src/config/email-identity.ts). Set it and leave `signed` false.
+   */
+  repSignature?: string;
+  /**
    * The one click link, for marketing sends only.
    *
    * Absent on every transactional message, and that absence is asserted rather
@@ -502,6 +508,23 @@ function signature(): string {
   );
 }
 
+/** The rep's one line, set where the signer's block would sit, above the footer. */
+function repSignatureBlock(line: string): string {
+  return (
+    '<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:26px 0 0;border-top:1px solid ' +
+    BORDER +
+    ';"><tr><td style="padding:18px 0 0;">' +
+    '<p style="margin:0;font-family:' +
+    SANS +
+    ";font-size:15px;font-weight:600;color:" +
+    NAVY +
+    ';">' +
+    esc(line) +
+    "</p>" +
+    "</td></tr></table>"
+  );
+}
+
 function footer(unsubscribeUrl?: string): string {
   const address = mailingAddressLine();
   const rows = [
@@ -641,6 +664,7 @@ export function renderEmailHtml(input: LayoutInput): string {
     blocks,
     input.button ? button(input.button) : "",
     input.signed ? signature() : "",
+    input.repSignature ? repSignatureBlock(input.repSignature) : "",
     "</td></tr>",
     footer(input.unsubscribeUrl),
     "</table>",
@@ -685,6 +709,7 @@ export function renderEmailText(input: LayoutInput): string {
   }
   if (input.button) out.push(input.button.label + ": " + input.button.url, "");
   if (input.signed) out.push(...signatureLines(), "");
+  if (input.repSignature) out.push(input.repSignature, "");
   /* The plaintext footer, and it prints the same address the HTML one does. */
   out.push(business.legalName, footerEmail(), business.url, registrationLine());
   if (input.unsubscribeUrl) out.push("Unsubscribe from announcements: " + input.unsubscribeUrl);
