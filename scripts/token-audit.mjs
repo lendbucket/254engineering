@@ -573,6 +573,12 @@ const PORTED = [
   "src/components/portal/PhoneLink.tsx",
   "src/components/portal/SignOutControl.tsx",
   "src/components/portal/Unreachable.tsx",
+  /* The sign-in redesign of 2026-11-08: the one layout and the form's parts, shared by all three sign-in screens. */
+  "src/components/portal/SignInFrame.tsx",
+  "src/components/portal/SignInFields.tsx",
+  "src/components/portal/ForgotPasswordNotice.tsx",
+  "src/app/portal/(public)/forgot-password/page.tsx",
+  "src/app/partner/(public)/forgot-password/page.tsx",
 ];
 
 /**
@@ -950,6 +956,12 @@ const STAFF_V10 = [
   "src/app/portal/(public)/login/LoginForm.tsx",
   "src/app/portal/(public)/set-password/page.tsx",
   "src/app/portal/(public)/set-password/SetPasswordForm.tsx",
+  /* And the shared sign-in layout and parts of 2026-11-08, which all three sign-in screens draw. */
+  "src/components/portal/SignInFrame.tsx",
+  "src/components/portal/SignInFields.tsx",
+  "src/components/portal/ForgotPasswordNotice.tsx",
+  "src/app/portal/(public)/forgot-password/page.tsx",
+  "src/app/partner/(public)/forgot-password/page.tsx",
 ];
 
 /** Every file held to V10's interface rules, whichever surface it serves. */

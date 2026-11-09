@@ -4558,11 +4558,19 @@ export const APPLIED = [
     file: "0123_a_prospect_is_one_of_eight_verticals.sql", appliedBy: "operator_sql_editor",
     fingerprint: "7dc2aeceb558706cdc5f3ac2263071cc",
     behaviour: "e2721b4a34613a145efc8e9a3d046020",
-    production: null,
+    /*
+     * Production: applied 2026-11-09 00:06 UTC by the operator route, the chat
+     * counterpart running the four blocks of 6726936434 with Robert approving each
+     * prompt, from the boarded commit e4c6454 (board 42515301845); schema_migrations
+     * version 20261109000605, stored hash 025bd052 (issue #1, 6729069591).
+     */
+    production: "2026-11-09",
     handApplied:
       "On development since 2026-11-08, run by Robert's approval in chat at 10:47 Central through the four blocks " +
       "of 6714289530, the chat counterpart at the keyboard (6724245498): version 20261108164847, stored 025bd052; " +
-      "development held no prospects, so no row changed. Not on production. Robert's overnight order of 2026-11-05 " +
+      "development held no prospects, so no row changed. On production since 2026-11-09 00:06 UTC through the four " +
+      "blocks of 6726936434, Robert approving each prompt (6729069591): version 20261109000605, stored 025bd052; " +
+      "production held no prospects, so no row changed. Robert's overnight order of 2026-11-05 " +
       "(numbering it 0122; his answer 3 of 2026-11-06 moves it to 0123): stage its operator_sql_editor script on " +
       "issue #1 for him and do not run it. It drops and re-adds eng_prospects_type_known, which the connector " +
       "cancels, so development and production each go through the SQL editor in four blocks with Robert approving " +
@@ -4579,7 +4587,7 @@ export const APPLIED = [
       "WRITTEN 2026-11-06 ON fix/prospect-kinds-0122, RENUMBERED ON fix/prospect-kinds-0123 AND STAGED ON " +
       "stage/0123-prospect-kinds FOR ROBERT'S " +
       "OPERATOR SITTING; ON DEVELOPMENT SINCE 2026-11-08 (6724245498, version 20261108164847, stored 025bd052); " +
-      "PENDING ON PRODUCTION, which Robert runs himself. Robert's CRM answer 8 of 2026-11-02, prepared as 6588395003: the prospect " +
+      "ON PRODUCTION SINCE 2026-11-09 (6729069591, version 20261109000605). Robert's CRM answer 8 of 2026-11-02, prepared as 6588395003: the prospect " +
       "kind check holds the eight verticals, and every row's kind becomes its vertical; a title row and a person's " +
       "contractor row keep the old kind as a tag. Destructive in shape (a check is dropped and re-added); no row, " +
       "column or table is deleted.",
@@ -4598,7 +4606,9 @@ export const APPLIED = [
       "why), the unique endpoint index, the live-subscription index, and row level security.",
     because:
       "WRITTEN 2026-11-07 ON feat/t9-offer-push FOR ROBERT'S T9, WEB PUSH FOR A NEW OFFER (his answers 6 and 7 of " +
-      "2026-11-07, 6717223376), AND GIVEN ITS NATIVE CHANNELS 2026-11-08 FOR HIS T8; APPLIED NOWHERE. One table: per " +
+      "2026-11-07, 6717223376), AND GIVEN ITS NATIVE CHANNELS 2026-11-08 FOR HIS T8; ON DEVELOPMENT SINCE 2026-11-09 " +
+      "(6735147037, version 20261109080127, stored e8792ff1, shape 369b4b0c at 1588 columns and 121 tables, matching " +
+      "the replay); PENDING ON PRODUCTION, for Robert's morning sitting. One table: per " +
       "phone, the browser push address or the Firebase or Apple device token, by channel. Web pushes carry no " +
       "payload; native pushes carry county and service only. Additive: one table.",
   },

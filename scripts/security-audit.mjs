@@ -495,6 +495,8 @@ function discoverRoutes() {
 const OPEN_BY_DESIGN = new Set([
   "/portal/login",
   "/portal/set-password",
+  // Where "Forgot your password?" leads (Robert's answer 1, 2026-11-08): information only, no form, no endpoint.
+  "/portal/forgot-password",
   "/api/portal/session",
   "/api/portal/set-password",
   // Open deliberately, and the first thing this audit asks. See LIVENESS below.
