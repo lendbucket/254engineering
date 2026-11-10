@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { inNativeShell, takeNativePhoto } from "@/lib/native-shell";
 import {
   checklistState,
   newCaptureId,
@@ -994,6 +995,9 @@ function CaptureControl({
 }) {
   const [text, setText] = useState("");
   const [value, setValue] = useState("");
+  /* Inside the store app the photograph comes from the native camera (Robert's T8); read after mount, never on the server. */
+  const [native, setNative] = useState(false);
+  useEffect(() => setNative(inNativeShell()), []);
   const inputId = `cap-${item.id}`;
 
   if (item.kind === "photo" || item.kind === "document") {
@@ -1047,15 +1051,39 @@ function CaptureControl({
             ) : null}
           </div>
         ) : null}
-        <label
-          htmlFor={inputId}
-          aria-disabled={!ready}
-          className={`inline-flex min-h-[48px] w-full items-center justify-center rounded-[2px] border border-slate bg-slate px-4 text-[15px] font-bold text-[var(--on-navy)] sm:w-auto sm:px-6 ${
-            ready ? "cursor-pointer" : "cursor-not-allowed opacity-50"
-          }`}
-        >
-          {KIND_VERB[item.kind]}
-        </label>
+        {native && item.kind === "photo" ? (
+          /*
+           * THE STORE APP'S CAMERA (Robert's T8, 2026-11-08). The photograph is
+           * kept in the app's own storage, never the phone's shared library, and
+           * goes into onCapture exactly as a browser photograph does: the hash is
+           * taken at capture, the queue holds it, and the server checks it.
+           */
+          <button
+            type="button"
+            disabled={!ready}
+            onClick={() => {
+              void takeNativePhoto().then((photo) => {
+                if (!photo) return;
+                if (asks?.numeric) onCapture({ blob: photo, value: Number(answer) });
+                else if (asks) onCapture({ blob: photo, text: answer });
+                else onCapture({ blob: photo });
+              });
+            }}
+            className="inline-flex min-h-[48px] w-full items-center justify-center rounded-[2px] border border-slate bg-slate px-4 text-[15px] font-bold text-[var(--on-navy)] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:px-6"
+          >
+            {KIND_VERB[item.kind]}
+          </button>
+        ) : (
+          <label
+            htmlFor={inputId}
+            aria-disabled={!ready}
+            className={`inline-flex min-h-[48px] w-full items-center justify-center rounded-[2px] border border-slate bg-slate px-4 text-[15px] font-bold text-[var(--on-navy)] sm:w-auto sm:px-6 ${
+              ready ? "cursor-pointer" : "cursor-not-allowed opacity-50"
+            }`}
+          >
+            {KIND_VERB[item.kind]}
+          </label>
+        )}
         <input
           id={inputId}
           type="file"

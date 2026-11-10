@@ -4,6 +4,23 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
+## THE STORE APP'S DEVICE SESSION: BEFORE THE FIRST STORE SUBMISSION
+
+Robert's T8 answer 1 of 2026-11-08 (issue #1, 6725977818). The debug build of
+the store app keeps the portal's sign-in cookie inside its own web view, and
+that stays. Putting the sign-in in the phone's keystore, which his T8 order
+names, needs a device session the server issues:
+
+- a device token, stored by `@aparajita/capacitor-secure-storage` (installed,
+  not wired), exchanged for a portal session at launch;
+- revoked on sign out, and when the session epoch moves (M2, 0120), so a phone
+  can never outlive the session rules every browser obeys;
+- a migration for the device tokens, a proof, and its own full-lane board.
+
+**Not built because** it is new security behaviour on the sign-in path, and the
+debug build does not need it. **It must be built before the first store
+submission.** The account of the store build is `docs/mobile-store-build.md`.
+
 ## THE WRITERS SHARD CAN STOP ON ITS OWN SERVER: A TEARDOWN RACE ON PORT 4300
 
 Board 42505750069 (bundle 125, kinds at `fee37b9`, 2026-11-08). After
@@ -417,6 +434,17 @@ offline needs, and the publisher entity. That document is where the reasoning
 lives; this entry is the pointer. What is open: the six questions there, the
 first being which legal entity publishes the app, and the five phases, none of
 them started.
+
+## THE STORE APPS (T8): A SHELL CONFIGURED, NOTHING INSTALLED OR BUILT, WAITING ON CRAFTLINE'S ACCOUNTS
+
+Robert's T8, in scope since 2026-11-07 (issue #1, 6716719712, 6716738509, and
+answer 8 of 6717223376): Capacitor around the technician screens, with the
+camera, native push and the session in the keystore, publishing under Craftline
+Brands' D-U-N-S and Apple account once they exist. The plan, the steps and what
+Robert provides are in `docs/mobile-store-build.md`; this entry is the pointer.
+What is open: the accounts, the app identifier's domain, the secure storage
+plugin and the per-device session it needs, and the native push token's
+migration. Boarded only once T2 to T7 are merged.
 
 ## THE NIGHTLY BACKUP IS BUILT AND SWITCHED OFF: ROBERT CREATES THE BUCKET AND SETS THE SECRETS
 

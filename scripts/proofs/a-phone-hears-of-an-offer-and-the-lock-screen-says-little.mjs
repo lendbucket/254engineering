@@ -175,5 +175,20 @@ const native = readSource("src/lib/native-push.ts");
 check("G: a native push carries only the title and the line it is given, and the jobs screen to open", /notification: \{ title: text\.title, body: text\.body \}/.test(native) && /alert: \{ title: text\.title, body: text\.body \}/.test(native) && !/address|amount|price|cents/i.test(native.replace(/\/\*[\s\S]*?\*\//g, "")));
 check("F: a revocation with no reason is refused", (await refused(`update eng_push_subscriptions set revoked_at = now() where endpoint = 'https://push.example/1'`)).includes("eng_push_subscriptions_revocation_says_why"));
 
+/* ------------------------------------------- H, sign out turns this phone's alerts off (T8, answer 5) */
+
+const forget = readSource("src/lib/offer-alerts-client.ts");
+const forgetBody = forget.slice(forget.indexOf("export async function forgetOfferAlerts("));
+check("H: turning alerts off at sign out revokes the server row through push_unsubscribe", /action: "push_unsubscribe", endpoint/.test(forgetBody));
+check("H: in the store app it forgets the remembered token, and in a browser it removes the subscription", /localStorage\.removeItem\(NATIVE_TOKEN_KEY\)/.test(forgetBody) && /sub\.unsubscribe\(\)/.test(forgetBody));
+check("H: sign out never waits on it for long: it races a timer", /Promise\.race\(\[work, new Promise<void>\(\(resolve\) => setTimeout\(resolve, SIGN_OUT_WAIT_MS\)\)\]\)/.test(forgetBody));
+for (const file of ["src/components/portal/PortalChrome.tsx", "src/components/portal/SignOutControl.tsx"]) {
+  const src = readSource(file);
+  const at = src.indexOf("await forgetOfferAlerts();");
+  const ends = src.indexOf('fetch("/api/portal/session", { method: "DELETE" })');
+  check(`H: ${file.split("/").pop()} turns this phone's alerts off before the session ends`, at !== -1 && ends !== -1 && at < ends, `${at} before ${ends}`);
+}
+check("H: the token's storage key has one home", !/"eng-native-push-token"/.test(readSource("src/app/portal/(app)/jobs/OfferAlerts.tsx")) && /export const NATIVE_TOKEN_KEY = "eng-native-push-token";/.test(forget));
+
 console.log(wrong === 0 ? "PASS: a phone hears of an offer, and the lock screen says little." : `FAIL: ${wrong} check(s).`);
 process.exit(wrong === 0 ? 0 : 1);

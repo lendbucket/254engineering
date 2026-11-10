@@ -1,0 +1,57 @@
+# The iPhone build of the field app (T8), on Codemagic, because there is no Mac
+# here (Robert, 2026-11-08, 6725968716). Android builds on the office PC and is
+# not built here.
+#
+# NOT YET RUN. Nothing in this file has been executed: it needs Robert's
+# Codemagic account and the App Store Connect API key, which needs Craftline's
+# Apple Developer account. The first run is the first time the iOS project is
+# compiled, so read its log before trusting anything below. The steps and their
+# order are in docs/mobile-store-build.md, "iPhone builds on Codemagic".
+#
+# Signing is automatic: with the App Store Connect API key, Codemagic creates
+# the distribution certificate and the provisioning profile for the bundle ID
+# itself. No certificate or key is stored in this repository.
+workflows:
+  ios-testflight:
+    name: 254 Field, iPhone to TestFlight
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    integrations:
+      # The name Robert gives the App Store Connect API key in Codemagic's
+      # Team integrations. It must match exactly.
+      app_store_connect: 254 Field App Store Connect
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        # Must equal appId in mobile/capacitor.config.json.
+        bundle_identifier: com.craftlinebrands.field
+      node: 22
+      xcode: latest
+    triggering:
+      # Run by hand from Codemagic only. A push never starts it, so an iPhone
+      # build is never a side effect of a commit.
+      events: []
+    scripts:
+      - name: Install the shell's packages
+        script: cd mobile && npm ci
+      - name: Apply the app ID and sync the iOS project
+        script: cd mobile && npm run sync:ios
+      - name: Use the signing profiles Codemagic created
+        script: xcode-project use-profiles
+      - name: Number the build
+        script: |
+          cd mobile/ios/App
+          agvtool new-version -all $(($BUILD_NUMBER + 1))
+      - name: Build the signed app
+        script: |
+          xcode-project build-ipa \
+            --project mobile/ios/App/App.xcodeproj \
+            --scheme App
+    artifacts:
+      - build/ios/ipa/*.ipa
+    publishing:
+      app_store_connect:
+        auth: integration
+        # TestFlight only. Submitting for App Store review is a separate,
+        # deliberate step taken in App Store Connect by Robert.
+        submit_to_testflight: true

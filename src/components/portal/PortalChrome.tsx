@@ -7,6 +7,7 @@ import type { NavItem } from "./nav";
 import { Sheet } from "./design/Sheet";
 import { SEARCH_MIN_LENGTH } from "@/lib/search-rules";
 import { forgetFieldDay } from "@/lib/field-day-store";
+import { forgetOfferAlerts } from "@/lib/offer-alerts-client";
 
 /**
  * The interactive parts of the shell: the mobile drawer, the profile menu, the
@@ -246,6 +247,8 @@ export function ProfileMenu({
   }, [open]);
 
   async function signOut() {
+    /* This phone's offer alerts go off first, while the session can still say so (Robert's T8 answer 5). */
+    await forgetOfferAlerts();
     /* The day's jobs kept for offline start go at sign out (Robert's T2, answer 1 of 2026-11-07). */
     await forgetFieldDay();
     await fetch("/api/portal/session", { method: "DELETE" });

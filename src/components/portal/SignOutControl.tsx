@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { forgetFieldDay } from "@/lib/field-day-store";
+import { forgetOfferAlerts } from "@/lib/offer-alerts-client";
 
 /**
  * Sign out from the two second factor screens, where the portal chrome (and its
@@ -23,6 +24,8 @@ export function SignOutControl({ label = "Sign out" }: { label?: string }) {
     setBusy(true);
     setFailed(false);
     try {
+      /* This phone's offer alerts go off first, while the session can still say so (Robert's T8 answer 5). */
+      await forgetOfferAlerts();
       /* The day's jobs kept for offline start go at sign out (Robert's T2, answer 1 of 2026-11-07). */
       await forgetFieldDay();
       await fetch("/api/portal/session", { method: "DELETE" });
