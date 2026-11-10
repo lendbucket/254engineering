@@ -17,6 +17,7 @@ import {
   recordCapture,
   recordVisit,
   removeProtocolItem,
+  replyToRevision,
   sendOffers,
   setLedgerStatus,
   setTechBase,
@@ -311,6 +312,12 @@ async function handlePOST(request: NextRequest) {
 
   if (action === "withdraw_exception") {
     const result = await withdrawException(actor, String(body?.fileId ?? ""), String(body?.itemKey ?? ""));
+    return result.ok ? NextResponse.json({ ok: true }) : bad(result.error);
+  }
+
+  /* The technician's reply to a revision request (Robert's T5, 2026-11-07). */
+  if (action === "reply_revision") {
+    const result = await replyToRevision(actor, String(body?.fileId ?? ""), String(body?.reply ?? ""), context);
     return result.ok ? NextResponse.json({ ok: true }) : bad(result.error);
   }
 
