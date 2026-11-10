@@ -425,6 +425,8 @@ const PORTED = [
   "src/app/portal/(app)/intake/page.tsx",
   "src/app/portal/(app)/intake/IntakeClient.tsx",
   "src/app/portal/(app)/jobs/JobsClient.tsx",
+  // Offer alerts on the technician's phone, Robert's T9 of 2026-11-07.
+  "src/app/portal/(app)/jobs/OfferAlerts.tsx",
   "src/app/portal/(app)/jobs/[id]/CaptureClient.tsx",
   "src/app/portal/(app)/jobs/[id]/page.tsx",
   // The engineer's request and the technician's reply, Robert's T5 of 2026-11-07.
@@ -839,6 +841,7 @@ const STAFF_V10 = [
    */
   "src/app/portal/(app)/jobs/page.tsx",
   "src/app/portal/(app)/jobs/JobsClient.tsx",
+  "src/app/portal/(app)/jobs/OfferAlerts.tsx",
   "src/app/portal/(app)/jobs/[id]/page.tsx",
   "src/app/portal/(app)/jobs/[id]/CaptureClient.tsx",
   "src/app/portal/(app)/jobs/[id]/RevisionAnswer.tsx",

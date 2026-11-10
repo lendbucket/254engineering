@@ -23,6 +23,11 @@
  * at reassignment or submission, which is a ruling about the phone and is kept
  * where the ruling says.
  *
+ * AND OFFER ALERTS (Robert's T9, 2026-11-07). It shows a push as a notification
+ * and opens My jobs when it is tapped. The push carries nothing; the wording is
+ * fetched from the firm's server when one arrives (src/lib/ops-push.ts,
+ * latestOfferPushFor), and is never written to any cache.
+ *
  * WHERE IT RUNS. It is registered from the technician's jobs screens with the
  * scope /portal/jobs (src/components/portal/FieldAppWorker.tsx), so no other
  * portal screen, and no page of the public site, is ever controlled by it. The
@@ -37,6 +42,8 @@
  * shell cache's name is also cleared at sign out, from FIELD_SHELL_CACHE in
  * src/lib/field-day-store.ts, which must stay equal to SHELL below.
  */
+import { OFFER_PUSH_FALLBACK } from "@/lib/offer-push-rules";
+
 const SCOPE = "/portal/jobs";
 const CACHE = "field-static-v1";
 const SHELL = "field-shell-v1";
@@ -100,6 +107,36 @@ self.addEventListener("fetch", (event) => {
       ),
     );
   }
+});
+
+/*
+ * OFFER ALERTS (Robert's T9 and his answers 6 and 7 of 2026-11-07). A push
+ * arrives with no payload. The worker asks the firm's server, over the
+ * technician's own session, what the lock screen may say: county and service,
+ * never an address or a price. If the server cannot be reached, it says only
+ * that a job is offered. A tap opens My jobs.
+ */
+self.addEventListener("push", (event) => {
+  const fallback = ${JSON.stringify(OFFER_PUSH_FALLBACK)};
+  event.waitUntil(
+    fetch("/api/portal/field", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "push_latest" }),
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .catch(() => null)
+      .then((data) => {
+        const text = data && data.ok && typeof data.title === "string" && typeof data.body === "string" ? data : fallback;
+        return self.registration.showNotification(text.title, { body: text.body, tag: "offer", data: { url: ${JSON.stringify(SCOPE)} } });
+      }),
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  event.waitUntil(self.clients.openWindow(${JSON.stringify(SCOPE)}));
 });
 `;
 

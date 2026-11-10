@@ -4592,6 +4592,33 @@ export const APPLIED = [
       "contractor row keep the old kind as a tag. Destructive in shape (a check is dropped and re-added); no row, " +
       "column or table is deleted.",
   },
+  {
+    file: "0124_a_phone_hears_of_an_offer.sql", appliedBy: "apply_migration",
+    fingerprint: "369b4b0cbec23b07afba8ed83eb0c0c9",
+    behaviour: "0413c5297b1d42f616fe3ce17123d8d2",
+    /*
+     * Production: applied 2026-11-10 02:46 UTC through apply_migration by the
+     * chat counterpart, under Robert's answer 5 of 6743092030, after T9's board
+     * 42728079385 passed; schema_migrations version 20261110024644, stored hash
+     * e8792ff1, shape 369b4b0c at 1588 columns, grants 194 unchanged (issue #1,
+     * 6757529247).
+     */
+    production: "2026-11-10",
+    proves: { column: { table: "eng_push_subscriptions", name: "channel" } },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-08 on the chain to 0124, after the native channels " +
+      "were added (Robert's T8 of 2026-11-08) and before 0124 reached any database. Shape 1579 to 1588 columns, the " +
+      "nine of eng_push_subscriptions; tables 120 to 121. Behaviour 1572 to 1581 facts: its key, its foreign key to " +
+      "eng_profiles, three checks (a known channel, an endpoint that fits its channel, and a revocation that says " +
+      "why), the unique endpoint index, the live-subscription index, and row level security.",
+    because:
+      "WRITTEN 2026-11-07 ON feat/t9-offer-push FOR ROBERT'S T9, WEB PUSH FOR A NEW OFFER (his answers 6 and 7 of " +
+      "2026-11-07, 6717223376), AND GIVEN ITS NATIVE CHANNELS 2026-11-08 FOR HIS T8; ON DEVELOPMENT SINCE 2026-11-09 " +
+      "(6735147037, version 20261109080127, stored e8792ff1, shape 369b4b0c at 1588 columns and 121 tables, matching " +
+      "the replay); ON PRODUCTION SINCE 2026-11-10 (6757529247, version 20261110024644). One table: per " +
+      "phone, the browser push address or the Firebase or Apple device token, by channel. Web pushes carry no " +
+      "payload; native pushes carry county and service only. Additive: one table.",
+  },
 ];
 
 /*
