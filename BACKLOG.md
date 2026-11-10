@@ -42,6 +42,32 @@ seconds. The queue's growth is the entry "eng_jobs grows forever" below. The
 account count has no entry of its own, and is named here, with the queue,
 because a writer proof's single red sat beside both.
 
+## A TURBOPACK PANIC CAN KILL A WRITERS AUDIT'S DEV SERVER, AND THE BOARD STAYS GREEN
+
+Board 42636411651 (T7 at `26c9550`, 2026-11-09). contrast-audit's dev server on
+port 4302 died while compiling `/portal/techs`. Its log ends:
+
+    thread 'tokio-rt-worker' (33314) panicked at turbopack/crates/turbo-tasks-backend/src/backend/operation/aggregation_update.rs:2021:17:
+    turbo-tasks: an internal panic occurred outside the per-task panic boundary. This is a bug in turbo-tasks/Turbopack ...
+    Aborting.
+
+Every page after it answered connection refused, so contrast-audit measured
+nothing on 16 screens at both 390 and 1280, 32 combinations: account
+forgot-password, home, order, orders, settings, sign-up and statements; partner
+agreement, home, materials, referrals and statements; portal techs, training,
+waiting and windstorm-inquiries. It reported each as COULD NOT TELL and exited
+zero, so the board read PASS while writers COULD NOT TELL stood at 44 against the
+standing 11. T7 changed the enrolment form only. It boarded again unchanged
+(42703705505) and the panic did not recur; it has not been seen on any other
+board.
+
+**What to build, full lane, on its own branch, beside the port 4300 entry
+above:** when an audit's own server stops answering mid-run, the runner says so
+in the audit's verdict rather than leaving a run of COULD NOT TELL lines that a
+green board carries, and it names the server log's last line. Not built because
+the harness is shared by every board and a change to it boards on its own.
+Robert's answer 2 of 6757746292: record it, no fix now.
+
 ## SALES LIST IMPORTS (CRM R2, 2026-11-02): SIX SOURCES WAIT, AND THE PLACES LOOKUP IS CLOSED
 
 Built on `feat/crm-r2-imports`, Robert's sales CRM ruling R2. The full account of
