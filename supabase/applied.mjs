@@ -4619,6 +4619,24 @@ export const APPLIED = [
       "phone, the browser push address or the Firebase or Apple device token, by channel. Web pushes carry no " +
       "payload; native pushes carry county and service only. Additive: one table.",
   },
+  {
+    file: "0125_a_phone_keeps_its_sign_in_in_its_keystore.sql", appliedBy: "apply_migration",
+    fingerprint: "32405e7db9e2a566384ecb166ae255ab",
+    behaviour: "a01640adc108adb053f975f4036419d6",
+    production: null,
+    proves: { table: "eng_device_sessions" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-10 on the chain to 0125, with 0124 reproducing " +
+      "its recorded pair first (369b4b0c at 1588 columns, 0413c529 at 1581 facts). Shape 1588 to 1598 columns, the " +
+      "ten of eng_device_sessions; tables 121 to 122. Behaviour 1581 to 1592 facts: its key, its foreign key to " +
+      "eng_profiles, five checks (a known platform, a hash of the right shape, a whole epoch, a life of thirty days " +
+      "at most, and a revocation that says why), the unique hash index, the live-token index, and row level security.",
+    because:
+      "WRITTEN 2026-11-10 ON feat/phone-keystore-token FOR ROBERT'S ANSWER OF 2026-11-10, 06:11 CENTRAL (6766967932): " +
+      "the store app's sign in token in the phone's keystore, stored server side so sign out revokes it; APPLIED " +
+      "NOWHERE. Development in a sitting first; production only in a sitting with Robert, because it touches sign " +
+      "in. One table holding the sha256 of each phone's token; the token itself is never stored. Additive: one table.",
+  },
 ];
 
 /*

@@ -295,6 +295,8 @@ const ADMIN_APIS = [
 
   "/api/portal/people",
   "/api/portal/password",
+  /* The store app keeping a full session's sign in on the phone (0125). A signed out POST would mint a credential. */
+  "/api/portal/device-token",
   /* Where the engineer stores his seal and signature, 2026-10-07. POST only,
    * licence and a fresh second factor behind the perimeter. */
   "/api/portal/seal",
@@ -498,6 +500,8 @@ const OPEN_BY_DESIGN = new Set([
   // Where "Forgot your password?" leads (Robert's answer 1, 2026-11-08): information only, no form, no endpoint.
   "/portal/forgot-password",
   "/api/portal/session",
+  // The store app's kept sign in (0125): a phone whose session has ended trades its keystore token here, or ends it on sign out.
+  "/api/portal/device-token/exchange",
   "/api/portal/set-password",
   // Open deliberately, and the first thing this audit asks. See LIVENESS below.
   "/api/portal/health",

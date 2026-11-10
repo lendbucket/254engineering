@@ -442,6 +442,8 @@ export const RETENTION_POLICY: RetentionEntry[] = [
       ruledBy: "0051, and the trigger",
     },
   },
+  /* 0125 (Robert's answer of 2026-11-10, 6766967932). A phone's sign in token, kept as its sha256 only. */
+  { table: "eng_device_sessions", rule: { kind: "not_a_record", because: "Which phone may renew one technician's session, held as a hash. A sign in credential for a device, not a record of anything done; revoked rows are stamped and kept, and every exchange is in the audit trail." } },
   {
     table: "eng_documents",
     rule: {

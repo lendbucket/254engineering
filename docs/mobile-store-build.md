@@ -66,16 +66,22 @@ answers "not in the shell", and the screen behaves as it always has.
    - **The one difference from web push:** a native push carries its own text
      through Apple's or Google's service, where a web push carries none.
 3. **Secure storage** (`@aparajita/capacitor-secure-storage`, installed).
-   - **Not wired, on purpose.** Putting the sign-in token in the keystore
-     needs a server-side device session: the portal's session is an HttpOnly
-     cookie, which the app's own code cannot read, so a token the app could
-     hold would have to be issued, revoked and audited by the server (mobile
-     plan section 4).
-   - That is a change to authentication, and it is Robert's to rule. It is
-     question 1 on issue #1.
-   - Until then, the app keeps the portal's own cookie in the web view, exactly
-     as the browser does: twelve hours, the second factor, and the role re-read
-     on every call.
+   - **Wired on `feat/phone-keystore-token`, with migration 0125** (Robert's
+     answer of 2026-11-10, 6766967932; the design is in 6767214731). It does
+     not merge, and 0125 does not go to production, until a sitting with
+     Robert, because it touches sign in. On main the app keeps the portal's
+     own cookie in the web view, exactly as the browser does: twelve hours,
+     the second factor, and the role re-read on every call.
+   - On that branch, a full session inside the app asks the server for a
+     token for this phone. The server keeps only its sha256 in
+     `eng_device_sessions`, and the app keeps the token in the keystore.
+   - When the twelve hours end, the sign-in screen trades the token for a
+     fresh session.
+   - Sign out revokes it. So does a moved session epoch, a suspension, a
+     changed role, or thirty days.
+   - The code is in `src/lib/device-token.ts` and `src/lib/native-shell.ts`.
+     The proof is
+     `scripts/proofs/a-phone-token-dies-with-its-epoch-and-its-sign-out.mjs`.
 
 ## Android (builds on this PC)
 

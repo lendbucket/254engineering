@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { canKeepSignIn, resumeKeptSignIn } from "@/lib/native-shell";
 import {
   ForgotPasswordLink,
   PasswordField,
@@ -60,6 +61,30 @@ export function LoginForm({
   const [busy, setBusy] = useState(false);
 
   const target = safeNext(next);
+
+  /*
+   * INSIDE THE STORE APP, A KEPT SIGN IN IS TRIED FIRST (0125; Robert's answer
+   * of 2026-11-10, 6766967932). The phone's keystore token is traded for a
+   * fresh session; if the server refuses it, the token is forgotten and this
+   * form is the answer, exactly as in a browser, where nothing here runs.
+   */
+  useEffect(() => {
+    if (disabled || !canKeepSignIn()) return;
+    let live = true;
+    setBusy(true);
+    void resumeKeptSignIn().then((redirect) => {
+      if (!live) return;
+      if (redirect) {
+        router.push(target || redirect);
+        router.refresh();
+        return;
+      }
+      setBusy(false);
+    });
+    return () => {
+      live = false;
+    };
+  }, [disabled, router, target]);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();

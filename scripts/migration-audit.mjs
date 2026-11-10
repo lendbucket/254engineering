@@ -426,10 +426,15 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * before it was applied anywhere): the nine columns of eng_push_subscriptions,
  * 1,579 to 1,588; the table count moves 120 to 121; no trigger, no function.
  * Read off fingerprint-at.mjs on the chain to 0124.
+ *
+ * Moved by 0125, a phone keeps its sign in in its keystore (Robert's answer of
+ * 2026-11-10, 6766967932): the ten columns of eng_device_sessions, 1,588 to
+ * 1,598; the table count moves 121 to 122; no trigger, no function. Read off
+ * fingerprint-at.mjs on the chain to 0125.
  */
-const EXPECTED_FINGERPRINT = "369b4b0cbec23b07afba8ed83eb0c0c9";
-const EXPECTED_COLUMNS = 1588;
-const EXPECTED_TABLES = 121;
+const EXPECTED_FINGERPRINT = "32405e7db9e2a566384ecb166ae255ab";
+const EXPECTED_COLUMNS = 1598;
+const EXPECTED_TABLES = 122;
 /* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts.
  * 0074 adds two: eng_partner_billing_touch and eng_partner_billing_events_immutable.
  * 0075 adds one: eng_payment_events_guarded.
