@@ -8,6 +8,14 @@ import { captureHashMismatch } from "./capture-hash";
 import { services } from "../content/services";
 import { clockReading } from "./clock-skew";
 import { CAPTURE_CLOSED_STATUSES, captureKeyProblem, evidenceWriteRefusal } from "./evidence-capture-rules";
+import {
+  latestRevision,
+  replyRefusal,
+  resubmitRefusal,
+  REVISION_REPLY,
+  REVISIONS_REQUESTED,
+  type RevisionRound,
+} from "./revision-rules";
 import { VISIT_KIND_FOR, VISIT_KINDS, visitRefusal, visitState, type VisitAction, type VisitState } from "./visit-clock-rules";
 import { sha256Hex } from "./evidence-fingerprint";
 import { readEvery, readEveryIn } from "./bounded-read";
@@ -2368,6 +2376,20 @@ export async function submitEvidence(
     };
   }
 
+  /*
+   * A PACKAGE THAT CAME BACK GOES BACK ANSWERED. Robert's T5 and his answer 3
+   * of 2026-11-07 (6717223376): a reply to the engineer's note, and what was
+   * asked for captured, unless the note only asked a question
+   * (src/lib/revision-rules.ts). Read here, on the server, so the button on
+   * the phone is a convenience and this is the rule.
+   */
+  if (view.file.status === REVISIONS_REQUESTED) {
+    const revision = await revisionFor(fileId);
+    if (!revision) return { ok: false, error: "The engineer's request could not be read, so the package was not submitted. Try again." };
+    const refusal = resubmitRefusal(revision.round, revision.newEvidenceSinceRequest);
+    if (refusal) return { ok: false, error: refusal, blockers: [refusal] };
+  }
+
   const moved = await transitionFile(actor, fileId, "evidence_submitted", note, context);
   if (!moved.ok) return { ok: false, error: moved.error };
 
@@ -3484,4 +3506,104 @@ export async function recordVisit(
   });
 
   return { ok: true, at: data.created_at as string };
+}
+
+/* ----------------------------------------------------------- returned evidence */
+
+/**
+ * The latest time this file was sent back for revisions, the technician's
+ * reply to it, and whether anything was added to the package since. Robert's
+ * T5, 2026-11-07 (src/lib/revision-rules.ts).
+ *
+ * Null when any of the three reads failed: the caller says so rather than
+ * reading "never sent back" or "nothing added", because both of those answers
+ * decide whether a package may be submitted.
+ */
+export async function revisionFor(
+  fileId: string,
+): Promise<{ round: RevisionRound | null; newEvidenceSinceRequest: boolean } | null> {
+  const db = supabaseAdmin();
+  if (!db) return null;
+  const { data: events, error } = await db
+    .from("eng_file_events")
+    .select("kind, to_status, body, created_at")
+    .eq("file_id", fileId)
+    /* Quoted, because "revision.reply" carries a dot and PostgREST splits a filter on dots. */
+    .or(`kind.eq."${REVISION_REPLY}",to_status.eq.${REVISIONS_REQUESTED}`)
+    .order("created_at", { ascending: true })
+    .limit(500);
+  if (error || !events) return null;
+  const round = latestRevision(
+    events.map((e) => ({
+      kind: e.kind as string,
+      to_status: (e.to_status as string | null) ?? null,
+      body: (e.body as string | null) ?? null,
+      at: e.created_at as string,
+    })),
+  );
+  if (!round) return { round: null, newEvidenceSinceRequest: false };
+
+  /*
+   * Anything added since the request: a capture first written after it, or an
+   * exception recorded after it. created_at on a capture is the database's and
+   * is not moved by a replay's upsert; recorded_at on an exception is set to
+   * the database's now() on every write, so a reason corrected after the
+   * request counts, which is what the engineer would want to see.
+   */
+  const [captures, exceptions] = await Promise.all([
+    db.from("eng_evidence_items").select("id", { count: "exact", head: true }).eq("file_id", fileId).gt("created_at", round.requestedAt),
+    db.from("eng_checklist_exceptions").select("id", { count: "exact", head: true }).eq("file_id", fileId).gt("recorded_at", round.requestedAt),
+  ]);
+  if (captures.error || exceptions.error || captures.count === null || exceptions.count === null) return null;
+  return { round, newEvidenceSinceRequest: captures.count + exceptions.count > 0 };
+}
+
+/**
+ * The technician's reply to a revision request, from the phone. Robert's T5.
+ * A file event of kind revision.reply, so it sits in the file's timeline next
+ * to the request it answers and the engineer reads it in review.
+ *
+ * Only the assigned technician, only while the file is sent back, and only
+ * against a request that exists.
+ */
+export async function replyToRevision(
+  actor: Actor & { email: string },
+  fileId: string,
+  body: string,
+  context: Context = {},
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+
+  const view = await jobView(actor, fileId);
+  if (!view) return { ok: false, error: "That job is not yours." };
+  const notYours = evidenceWriteRefusal({ id: actor.id, mayCapture: can(actor, "evidence.capture") }, view.file.assigned_tech_id);
+  if (notYours) return { ok: false, error: notYours };
+  if (view.file.status !== REVISIONS_REQUESTED) {
+    return { ok: false, error: "This file is not waiting on a reply. A reply is for a package the engineer sent back." };
+  }
+
+  const refusal = replyRefusal(body);
+  if (refusal) return { ok: false, error: refusal };
+
+  const revision = await revisionFor(fileId);
+  if (!revision) return { ok: false, error: "The engineer's request could not be read, so the reply was not sent. Try again." };
+  if (!revision.round) return { ok: false, error: "There is no request from the engineer on this file to reply to." };
+
+  const { error } = await db
+    .from("eng_file_events")
+    .insert({ file_id: fileId, actor_id: actor.id, kind: REVISION_REPLY, body: body.trim() })
+    .select("id")
+    .single();
+  if (error) return { ok: false, error: `The reply was not saved: ${error.message}` };
+
+  await writeAudit({
+    actor,
+    action: REVISION_REPLY,
+    entityType: "file",
+    entityId: fileId,
+    summary: `${view.file.file_number}: the technician replied to the engineer's revision request.`,
+    ...context,
+  });
+  return { ok: true };
 }

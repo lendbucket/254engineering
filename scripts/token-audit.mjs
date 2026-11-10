@@ -429,6 +429,8 @@ const PORTED = [
   "src/app/portal/(app)/jobs/OfferAlerts.tsx",
   "src/app/portal/(app)/jobs/[id]/CaptureClient.tsx",
   "src/app/portal/(app)/jobs/[id]/page.tsx",
+  // The engineer's request and the technician's reply, Robert's T5 of 2026-11-07.
+  "src/app/portal/(app)/jobs/[id]/RevisionAnswer.tsx",
   // The offline job screen, Robert's T2 of 2026-11-07.
   "src/app/portal/(app)/jobs/offline/page.tsx",
   "src/app/portal/(app)/jobs/offline/OfflineDay.tsx",
@@ -842,6 +844,7 @@ const STAFF_V10 = [
   "src/app/portal/(app)/jobs/OfferAlerts.tsx",
   "src/app/portal/(app)/jobs/[id]/page.tsx",
   "src/app/portal/(app)/jobs/[id]/CaptureClient.tsx",
+  "src/app/portal/(app)/jobs/[id]/RevisionAnswer.tsx",
   "src/app/portal/(app)/jobs/offline/page.tsx",
   "src/app/portal/(app)/jobs/offline/OfflineDay.tsx",
   "src/app/portal/(app)/jobs/[id]/VisitClock.tsx",
