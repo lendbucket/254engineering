@@ -4,6 +4,23 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
+## THE FRANCHISE DOCUMENTS: GAPS FOR ROBERT AND HIS ATTORNEY
+
+Robert's overnight orders of 2026-11-10 into 2026-11-11, item 2. Internal
+working documents under `docs/franchise/`; nothing in them is an offer, and
+FR13 stands. Each lists what the repository does not hold as a gap rather than
+inventing it:
+
+- `docs/franchise/territory-map.md` (FR5): the minimum population (150,000
+  recommended), whether a county over a million people holds more than one
+  territory, whether the rest of the San Antonio and Coastal Bend regions is
+  held back, Frisco across Collin and Denton, and the county groups for each
+  pool.
+
+**Not built because** each needs Robert's word or his attorney's. backlog-audit
+reads only the top level of `docs/`, so it does not sweep this folder; this
+entry is written by hand for that reason.
+
 ## THE STORE APP'S DEVICE SESSION: BEFORE THE FIRST STORE SUBMISSION
 
 Robert's T8 answer 1 of 2026-11-08 (issue #1, 6725977818). The debug build of
