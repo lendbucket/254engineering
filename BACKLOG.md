@@ -31,18 +31,21 @@ inventing it:
 reads only the top level of `docs/`, so it does not sweep this folder; this
 entry is written by hand for that reason.
 
-## THE FRANCHISE OWNER'S SCREEN IS NOT YET A SWEPT FIGURE SURFACE
+## THE FRANCHISE SCREENS ARE NOT YET SWEPT FIGURE SURFACES
 
-Platform item X2 (0127, `feat/x2-franchisee-owner`). `/portal/franchise` shows a
-franchisee owner the revenue in their territories by month, a count of orders,
-and the sales list and orders in their counties. `src/lib/figure-surfaces.ts`
-is the declaration of every surface that renders a figure, and demo-audit
-inserts a demonstration record and asserts no figure on any of them moves
-(operator ruling of 2026-09-09). This screen is not in it.
+Platform items X2 (0127, `feat/x2-franchisee-owner`) and X3 part two
+(`feat/x3-franchise-statement`). `/portal/franchise` shows a franchisee owner
+the revenue in their territories by month and the orders in their counties, and
+the royalty and fee statement on `/portal/franchisees` shows an administrator
+that revenue with the royalty, brand fund and technology fee on it.
+`src/lib/figure-surfaces.ts` is the declaration of every surface that renders a
+figure, and demo-audit inserts a demonstration record and asserts no figure on
+any of them moves (operator ruling of 2026-09-09). Neither is in it.
 
-**What protects it today:** `src/lib/own-franchise.ts` reads orders with
-`is_demo = false`, and its proof asserts that filter. That is the instance; the
-class, a sweep that would notice the next figure on this screen, is missing.
+**What protects them today:** both read their revenue through
+`src/lib/territory-revenue.ts`, which reads orders with `is_demo = false`, and
+the X2 proof asserts that filter. That is the instance; the class, a sweep that
+would notice the next figure on either screen, is missing.
 
 **Not built because** a sweep needs a franchisee with a territory and an owner
 on development, and there is none, so it would pass over an empty screen. It

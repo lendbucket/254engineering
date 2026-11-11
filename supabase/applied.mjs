@@ -4697,6 +4697,23 @@ export const APPLIED = [
       "eng-franchisee-certificates. PENDING: not on development or production; production only in a sitting with " +
       "Robert, after 0125 to 0127. Additive: three columns, one table, one bucket, two functions.",
   },
+  {
+    file: "0129_a_franchisee_records_the_day_it_starts_operating.sql", appliedBy: "apply_migration",
+    fingerprint: "1cbe1959e7435d279f44b171cab3a7a1",
+    behaviour: "147ee08d3fe71d1eb714acd9adb2e225",
+    production: null,
+    proves: { table: "eng_franchisees", column: "operating_since" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-11 on the chain to 0129, with 0128 reproducing " +
+      "its recorded pair first (47ba0193 at 1642 columns, 147ee08d at 1649 facts). Shape 1642 to 1643 columns, the one " +
+      "column eng_franchisees.operating_since; tables unchanged at 126. Behaviour unchanged at 1649 facts: a nullable " +
+      "column with no check, index or trigger.",
+    because:
+      "WRITTEN 2026-11-11 ON feat/x3-franchise-statement, STACKED ON X4, FOR ROBERT'S ANSWER 14 OF 2026-11-11: the " +
+      "technology fee is due from the first full calendar month after a franchisee starts operating, and the record " +
+      "kept no such day. The status change writes it once. PENDING: not on development or production; production " +
+      "only in a sitting with Robert, after 0125 to 0128. Additive: one column.",
+  },
 ];
 
 /*

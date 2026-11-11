@@ -13,6 +13,9 @@ import {
   type FranchiseeListQuery,
 } from "@/lib/franchisees";
 import { recordAgreement } from "@/lib/franchisee-onboarding";
+import { statementFor } from "@/lib/franchise-statement";
+import { CAPACITY_FEE_LINE } from "@/lib/franchise-statement-rules";
+import { FRANCHISE_FEES_RULED_ON, FRANCHISE_FEE_READINGS_ON } from "@/config/franchise-fees";
 import { mayExport } from "@/lib/list-exports";
 import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
@@ -56,6 +59,30 @@ export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
   if (params.get("format") !== "csv") return bad("Ask for format=csv.");
   if (!mayExport(actor, "franchise.manage")) return bad("Your role cannot export the franchisee record.", 403);
+
+  /* One franchisee's royalty and fee statement (platform item X3), on the same admin gate as the list. */
+  const statementId = params.get("statement");
+  if (statementId) {
+    const read = await statementFor(actor, statementId);
+    if (!read.ok) return bad(`${read.error} No file was made.`, 500);
+    const s = read.statement;
+    const refusedStatement = await auditExportOrRefuse(actor, "export.franchise_statement", `Exported the statement of ${s.legalName}, ${s.rows.length} months, as CSV`, statementId);
+    if (refusedStatement) return bad(refusedStatement, 503);
+    const cents = (v: number | null) => (v === null ? "" : (v / 100).toFixed(2));
+    const statementBody = csv({
+      preamble: [
+        ["Royalty and fee statement", s.legalName],
+        ["Operating since", s.operatingSince ?? "Not yet operating"],
+        ["Technology fee from", s.technologyFeeFrom ?? "Not yet due"],
+        ["Engineering capacity fee", CAPACITY_FEE_LINE],
+        ["Fees", `Robert Reyna's ruling of ${FRANCHISE_FEES_RULED_ON}, with his readings of ${FRANCHISE_FEE_READINGS_ON}`],
+      ],
+      headers: ["Month", "Orders", "Territory revenue", "Royalty", "Brand fund", "Technology fee", "Total"],
+      rows: s.rows.map((r) => [r.month, r.orders, cents(r.revenueCents), cents(r.royaltyCents), cents(r.brandFundCents), cents(r.technologyFeeCents), cents(r.totalCents)]),
+    });
+    return new NextResponse(statementBody, { headers: csvHeaders("franchise-statement.csv") });
+  }
+
   const list = await listFranchisees(actor, queryFrom(params));
   if (!list.ok) return bad(`${list.error} No file was made.`, 500);
 

@@ -2,12 +2,12 @@ import "server-only";
 import { supabaseAdmin } from "./supabase";
 import { can, type Actor } from "./ops-authz";
 import { readEvery, readEveryIn } from "./bounded-read";
-import { todayInFirmCalendar } from "./firm-calendar";
 import { territoryFor } from "./crm-rules";
+import { territoryFacts } from "./territory-revenue";
 import { standingFor } from "./academy-record";
 import type { CourseProgress } from "./academy";
 import type { FranchiseeStatus, Office } from "./franchisee-rules";
-import { inTerritory, revenueByMonth, type MonthRevenue } from "./own-franchise-rules";
+import { inTerritory, type MonthRevenue } from "./own-franchise-rules";
 
 /**
  * A FRANCHISEE OWNER SEES THEIR OWN FRANCHISE, AND NOTHING ELSE (0127).
@@ -38,11 +38,11 @@ import { inTerritory, revenueByMonth, type MonthRevenue } from "./own-franchise-
  * territory's paid orders, net of refunds, and no single order's figure is
  * returned. No sealing and no price change: it writes nothing.
  *
- * READING EVERY ORDER AND COMPANY TO PICK ITS COUNTIES IS DELIBERATE. The
- * county text is matched through territoryFor, the sales list's one rule,
- * which a database filter on the spelling would not reproduce; a narrower read
- * that missed a differently written county would understate the revenue
- * silently. It is two id-and-county reads, paged, before anything else.
+ * READING EVERY COMPANY TO PICK ITS COUNTIES IS DELIBERATE. The county text
+ * is matched through territoryFor, the sales list's one rule, which a database
+ * filter on the spelling would not reproduce. Its territory, counties, orders
+ * and revenue come from territory-revenue.ts, the one read the royalty
+ * statement (X3) also makes, which reads every order the same way.
  */
 
 export type OwnFranchise = {
@@ -65,7 +65,6 @@ export type OwnFranchiseRead =
   | { ok: false; error: string };
 
 const refuse = (error: string) => ({ ok: false as const, error });
-const dayOf = (instant: string) => todayInFirmCalendar(new Date(instant));
 
 export async function ownFranchise(actor: Actor | null): Promise<OwnFranchiseRead> {
   if (!actor || !can(actor, "franchise.read_own")) return refuse("Only a franchisee's owner sees a franchise here.");
@@ -94,25 +93,15 @@ export async function ownFranchise(actor: Actor | null): Promise<OwnFranchiseRea
   if (f.error) return refuse(`Your franchise could not be read: ${f.error.message || "the database gave no reason"}.`);
   if (!f.data) return refuse("Your franchise is not on record. Ask an administrator to look at it.");
 
-  /* ------------------------------------------------ its territories and their counties */
-  const held = await readEvery<{ territory_id: string }>((from, to) =>
-    db.from("eng_franchisee_territories").select("territory_id").eq("franchisee_id", franchiseeId).is("ended_at", null).order("territory_id", { ascending: true }).range(from, to),
-  );
-  if (!held.ok) return refuse(`The territories your franchise holds could not be read: ${held.error}`);
-  const territoryIds = held.rows.map((r) => String(r.territory_id));
+  /* ------------------------------------------------ its territories, their counties, and what it earned there */
+  /* One home for the territory and its revenue: territory-revenue.ts, read here by the franchise found above, and by the statement. */
+  const territory = await territoryFacts(db, franchiseeId);
+  if (!territory.ok) return refuse(territory.error);
+  const { territoryIds, counties } = territory.facts;
   const names = await readEveryIn<{ id: string; name: string }>(territoryIds, (chunk, from, to) =>
     db.from("eng_crm_territories").select("id, name").in("id", [...chunk]).order("id", { ascending: true }).range(from, to),
   );
   if (!names.ok) return refuse(`The names of your territories could not be read: ${names.error}`);
-  const countyRows = await readEveryIn<{ county: string }>(territoryIds, (chunk, from, to) =>
-    db.from("eng_crm_territory_counties").select("county").in("territory_id", [...chunk]).is("removed_at", null).order("county", { ascending: true }).range(from, to),
-  );
-  if (!countyRows.ok) return refuse(`The counties of your territories could not be read: ${countyRows.error}`);
-  const counties = new Set<string>();
-  for (const r of countyRows.rows) {
-    const place = territoryFor(r.county);
-    if (place) counties.add(place.county);
-  }
 
   /* ------------------------------------------------ its people and their academy standing */
   const members = await readEvery<{ profile_id: string }>((from, to) =>
@@ -149,36 +138,7 @@ export async function ownFranchise(actor: Actor | null): Promise<OwnFranchiseRea
   );
   if (!companies.ok) return refuse(`The sales list could not be read: ${companies.error}`);
 
-  /* ------------------------------------------------ the orders in its counties, and their refunds */
-  const allOrders = await readEvery<{ id: string; reference: string; county: string | null; status: string; total_cents: number | null; placed_at: string | null; created_at: string }>(
-    (from, to) =>
-      db
-        .from("eng_service_orders")
-        .select("id, reference, county, status, total_cents, placed_at, created_at")
-        .eq("is_demo", false)
-        .order("id", { ascending: true })
-        .range(from, to),
-  );
-  if (!allOrders.ok) return refuse(`The orders could not be read: ${allOrders.error}`);
-  const theirs = allOrders.rows.filter((o) => inTerritory(counties, o.county));
-  const refunds = await readEveryIn<{ order_id: string; amount_cents: number }>(
-    theirs.map((o) => String(o.id)),
-    (chunk, from, to) =>
-      db
-        .from("eng_order_payments")
-        .select("order_id, amount_cents")
-        .in("order_id", [...chunk])
-        .eq("kind", "refund")
-        .eq("status", "succeeded")
-        .order("order_id", { ascending: true })
-        .range(from, to),
-  );
-  if (!refunds.ok) return refuse(`Your territory's refunds could not be read: ${refunds.error}`);
-  const refunded = new Map<string, number>();
-  for (const r of refunds.rows) refunded.set(String(r.order_id), (refunded.get(String(r.order_id)) ?? 0) + Number(r.amount_cents));
-
   const nameOf = new Map(names.rows.map((r) => [String(r.id), String(r.name)]));
-  const ordersWithDay = theirs.map((o) => ({ ...o, day: dayOf(o.placed_at ?? o.created_at) }));
   return {
     ok: true,
     franchise: {
@@ -197,17 +157,8 @@ export async function ownFranchise(actor: Actor | null): Promise<OwnFranchiseRea
         .filter((p) => inTerritory(counties, p.county))
         .map((p) => ({ id: String(p.id), company: String(p.company), county: territoryFor(p.county)!.county, stage: String(p.stage) }))
         .sort((a, b) => a.company.localeCompare(b.company)),
-      orders: ordersWithDay
-        .map((o) => ({ id: String(o.id), reference: String(o.reference), county: territoryFor(o.county)!.county, status: String(o.status), day: o.day }))
-        .sort((a, b) => b.day.localeCompare(a.day) || a.reference.localeCompare(b.reference)),
-      revenue: revenueByMonth(
-        ordersWithDay.map((o) => ({
-          status: String(o.status),
-          totalCents: o.total_cents === null ? null : Number(o.total_cents),
-          refundedCents: refunded.get(String(o.id)) ?? 0,
-          day: o.day,
-        })),
-      ),
+      orders: territory.facts.orders.map((o) => ({ id: o.id, reference: o.reference, county: o.county, status: o.status, day: o.day })),
+      revenue: territory.facts.revenue,
     },
   };
 }

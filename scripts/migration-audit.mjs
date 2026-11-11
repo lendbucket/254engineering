@@ -449,9 +449,13 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * eng_franchisee_certificates, 1,624 to 1,642; the table count moves 125 to
  * 126. Read off fingerprint-at.mjs on the chain to 0128, with 0127 reproducing
  * its pair first.
+ *
+ * Moved by 0129, a franchisee records the day it starts operating (Robert's
+ * answer 14 of 2026-11-11, platform item X3): one column, eng_franchisees.
+ * operating_since, 1,642 to 1,643; tables unchanged at 126; behaviour unchanged.
  */
-const EXPECTED_FINGERPRINT = "47ba01933b51b2db49ccb9ebd23f6380";
-const EXPECTED_COLUMNS = 1642;
+const EXPECTED_FINGERPRINT = "1cbe1959e7435d279f44b171cab3a7a1";
+const EXPECTED_COLUMNS = 1643;
 const EXPECTED_TABLES = 126;
 /* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts.
  * 0074 adds two: eng_partner_billing_touch and eng_partner_billing_events_immutable.

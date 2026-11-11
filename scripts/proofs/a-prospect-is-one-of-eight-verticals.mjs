@@ -52,6 +52,7 @@ const AFTER_0123 = [
   "0126_a_franchisee_holds_territories_and_its_people.sql",
   "0127_a_franchisee_owner_reads_their_own_franchise.sql",
   "0128_a_franchisee_is_onboarded_before_it_operates.sql",
+  "0129_a_franchisee_records_the_day_it_starts_operating.sql",
 ];
 const following = at >= 0 ? files.slice(at + 1) : [];
 check(

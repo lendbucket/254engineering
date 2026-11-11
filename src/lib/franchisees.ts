@@ -16,6 +16,7 @@ import {
 } from "./franchisee-rules";
 import { onboardingStepsFor } from "./franchisee-onboarding";
 import { operatingRefusal } from "./franchisee-onboarding-rules";
+import { todayInFirmCalendar } from "./firm-calendar";
 
 /**
  * THE FRANCHISEE RECORD (0126). Robert's overnight orders of 2026-11-10,
@@ -267,7 +268,7 @@ export async function setFranchiseeStatus(
   if (!a) return refuse(NOT_ALLOWED);
   const db = supabaseAdmin();
   if (!db) return refuse("The database is not configured, so nothing was changed.");
-  const { data: row, error: readError } = await db.from("eng_franchisees").select("id, legal_name, status").eq("id", input.id).maybeSingle();
+  const { data: row, error: readError } = await db.from("eng_franchisees").select("id, legal_name, status, operating_since").eq("id", input.id).maybeSingle();
   if (readError) return refuse(`The franchisee could not be read: ${readError.message}`);
   if (!row) return refuse("That franchisee is not on record.");
   const change = statusChange(row.status as FranchiseeStatus, input.to, input.reason);
@@ -284,13 +285,20 @@ export async function setFranchiseeStatus(
     const refusal = operatingRefusal(read.onboarding.steps);
     if (refusal) return refuse(refusal);
   }
+  /*
+   * THE DAY IT STARTS OPERATING, written once (0129, Robert's answer 14 of
+   * 2026-11-11): the technology fee is due from the first full calendar month
+   * after it. A franchisee that goes back to onboarding and returns keeps the
+   * day it first began.
+   */
+  const startsToday = change.to === "operating" && !row.operating_since ? todayInFirmCalendar() : null;
   const recorded = await writeAuditOrRefuse({
     actor: a,
     action: "franchisee.status_set",
     entityType: "franchisee",
     entityId: input.id,
-    summary: `${String(row.legal_name)}: ${String(row.status)} to ${change.to}${change.reason ? `, because ${change.reason}` : ""}.`,
-    diff: { from: row.status, to: change.to, reason: change.reason },
+    summary: `${String(row.legal_name)}: ${String(row.status)} to ${change.to}${change.reason ? `, because ${change.reason}` : ""}${startsToday ? `, operating since ${startsToday}` : ""}.`,
+    diff: { from: row.status, to: change.to, reason: change.reason, operating_since: startsToday },
   });
   if (!recorded.ok) return recorded;
   /* Only from the status just read, so two people changing it at once cannot both win. */
@@ -301,6 +309,7 @@ export async function setFranchiseeStatus(
       ended_at: change.to === "ended" ? DB_NOW : null,
       ended_reason: change.reason,
       updated_at: DB_NOW,
+      ...(startsToday ? { operating_since: startsToday } : {}),
     })
     .eq("id", input.id)
     .eq("status", String(row.status))

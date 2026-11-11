@@ -16,6 +16,20 @@ import { MemberControls, NewFranchiseeForm, OfficeForm, StatusForm, TerritoryCon
 import { AgreementForm, CertificateForm, WithdrawCertificate } from "./OnboardingClient";
 import { onboardingFor, type FranchiseeCertificate } from "@/lib/franchisee-onboarding";
 import { CERTIFICATE_KINDS, CERTIFICATE_KIND_LABEL } from "@/lib/franchisee-onboarding-rules";
+import { statementFor } from "@/lib/franchise-statement";
+import { CAPACITY_FEE_LINE, type StatementRow } from "@/lib/franchise-statement-rules";
+import { moneyOr } from "@/lib/ops-money";
+
+const statementMonth = (month: string) => formatInFirmZone(`${month}-15T12:00:00Z`, { month: "long", year: "numeric" }) ?? month;
+const STATEMENT_COLUMNS: Column<StatementRow & { id: string }>[] = [
+  { key: "month", header: "Month", cell: (r) => statementMonth(r.month) },
+  { key: "orders", header: "Orders", numeric: true, cell: (r) => String(r.orders) },
+  { key: "revenue", header: "Territory revenue", numeric: true, cell: (r) => moneyOr(r.revenueCents, "Not known") },
+  { key: "royalty", header: "Royalty", numeric: true, cell: (r) => moneyOr(r.royaltyCents, "Not known") },
+  { key: "brand", header: "Brand fund", numeric: true, cell: (r) => moneyOr(r.brandFundCents, "Not known") },
+  { key: "tech", header: "Technology fee", numeric: true, cell: (r) => (r.technologyFeeCents === null ? "Not yet due" : moneyOr(r.technologyFeeCents)) },
+  { key: "total", header: "Total", numeric: true, cell: (r) => moneyOr(r.totalCents, "Not known: an order this month carries no total") },
+];
 
 export const dynamic = "force-dynamic";
 
@@ -169,6 +183,7 @@ async function FranchiseeView({ id }: { id: string }) {
   const { franchisee: f, people, territoryOptions, personOptions } = read.detail;
   const ended = f.status === "ended";
   const onboarding = await onboardingFor(actor, f.id);
+  const statement = await statementFor(actor, f.id);
   const certificateColumns: Column<FranchiseeCertificate>[] = [
     { key: "kind", header: "Covers", cell: (c) => CERTIFICATE_KIND_LABEL[c.kind] ?? c.kind },
     { key: "carrier", header: "Carrier", cell: (c) => `${c.carrier}, ${c.policyNumber}` },
@@ -232,6 +247,35 @@ async function FranchiseeView({ id }: { id: string }) {
                     <CertificateForm id={f.id} kinds={CERTIFICATE_KINDS.map((k) => ({ value: k, label: CERTIFICATE_KIND_LABEL[k] }))} />
                   </div>
                 )}
+              </>
+            )}
+          </Panel>
+          <Panel
+            title="Royalty and fee statement"
+            description="By calendar month: territory revenue (paid orders in its counties, net of refunds), 7% royalty and 2% brand fund on it, each rounded once a month to the nearest cent, and the $400 technology fee from the first full calendar month after it starts operating. Not an invoice: nothing here is charged or sent."
+          >
+            {!statement.ok ? (
+              <p role="alert" className="text-[14px] font-semibold text-[var(--ink)]">{statement.error}</p>
+            ) : (
+              <>
+                <p className="mb-3 text-[14px] text-[var(--secondary)]">
+                  {statement.statement.operatingSince
+                    ? `Operating since ${statement.statement.operatingSince}; the technology fee is due from ${statementMonth(statement.statement.technologyFeeFrom ?? "")}.`
+                    : "Not yet operating, so no technology fee is due."}{" "}
+                  {CAPACITY_FEE_LINE}
+                </p>
+                <DataTable
+                  caption="Royalty and fee statement by month"
+                  columns={STATEMENT_COLUMNS}
+                  rows={statement.statement.rows.map((r) => ({ ...r, id: r.month }))}
+                  total={statement.statement.rows.length}
+                  empty={<EmptyState title="Nothing is due yet" body="Months appear here once an order in its counties is paid, or once its technology fee is due." />}
+                />
+                {mayExport(actor, "franchise.manage") ? (
+                  <p className="mt-3">
+                    <a href={`/api/portal/franchisees?format=csv&statement=${f.id}`} className="text-[14px] font-semibold text-[var(--navy)] underline">Download the statement as CSV</a>
+                  </p>
+                ) : null}
               </>
             )}
           </Panel>
