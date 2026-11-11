@@ -4633,9 +4633,10 @@ export const APPLIED = [
       "at most, and a revocation that says why), the unique hash index, the live-token index, and row level security.",
     because:
       "WRITTEN 2026-11-10 ON feat/phone-keystore-token FOR ROBERT'S ANSWER OF 2026-11-10, 06:11 CENTRAL (6766967932): " +
-      "the store app's sign in token in the phone's keystore, stored server side so sign out revokes it; APPLIED " +
-      "NOWHERE. Development in a sitting first; production only in a sitting with Robert, because it touches sign " +
-      "in. One table holding the sha256 of each phone's token; the token itself is never stored. Additive: one table.",
+      "the store app's sign in token in the phone's keystore, stored server side so sign out revokes it; ON " +
+      "DEVELOPMENT SINCE 2026-11-10 (6768055104, version 20261110130336, stored 3c3acbfe, shape 32405e7d at 1598 " +
+      "columns, grants 194 unchanged, matching the replay). Production only in a sitting with Robert, because it " +
+      "touches sign in. One table holding the sha256 of each phone's token; the token itself is never stored. Additive: one table.",
   },
 ];
 

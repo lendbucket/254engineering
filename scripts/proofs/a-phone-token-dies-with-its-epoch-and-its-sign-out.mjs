@@ -108,6 +108,12 @@ const revoke = fnBody(lib, "revokeDeviceToken");
 check("D: the exchange decides by exchangeVerdict and by nothing else", /const verdict = exchangeVerdict\(/.test(exchange) && !/session_epoch\s*[!=]==/.test(exchange));
 check("D: it stamps the row revoked with the verdict's reason, only while the row is still live", /update\(\{ revoked_at: DB_NOW, revoked_reason: verdict\.revoke \}\)/.test(exchange) && /\.is\("revoked_at", null\)/.test(exchange));
 check("D: whether the row is live is the database's clock, never this process's", /\.gt\("expires_at", DB_NOW\)/.test(exchange) && !/expires_at[^\n]*Date\.now|new Date\([^)]*expires/.test(exchange));
+/* Robert's answer 1 of 6767214731: thirty days from issue, fixed, never extended by use. */
+const updates = lib.match(/\.(update|insert|upsert)\(\{[^}]*\}\)/g) ?? [];
+check(
+  "D: use never extends a token's life: the exchange writes last_used_at, and no write anywhere names expires_at",
+  /update\(\{ last_used_at: DB_NOW/.test(exchange) && updates.length >= 4 && updates.every((u) => !/expires_at/.test(u)),
+);
 check("D: it issues a FULL session under the verdict's epoch", /issueOpsSession\(profile!\.id, profile!\.role, "full", Date\.now\(\), verdict\.epoch\)/.test(exchange));
 check("D: it reads a token's row by its hash, never by the token", /\.eq\("token_hash", hash\)/.test(exchange) && !/\.eq\("token_hash", presented\)/.test(exchange));
 check("D: a refusal tells the caller only to sign in again", /error: "Sign in again\."/.test(exchange));
