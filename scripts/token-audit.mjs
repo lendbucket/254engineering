@@ -573,6 +573,8 @@ const PORTED = [
   /* The franchisee record (Robert's X1, 2026-11-10), read here and held to the staff V10 rules below. */
   "src/app/portal/(app)/franchisees/page.tsx",
   "src/app/portal/(app)/franchisees/FranchiseesClient.tsx",
+  /* A franchisee's onboarding controls (Robert's X4, 2026-11-10), read here and held to the staff V10 rules below. */
+  "src/app/portal/(app)/franchisees/OnboardingClient.tsx",
   /* A franchisee owner's own franchise (Robert's X2, 2026-11-10), read here and held to the staff V10 rules below. */
   "src/app/portal/(app)/franchise/page.tsx",
   "src/components/portal/FieldAppWorker.tsx",
@@ -816,6 +818,8 @@ const STAFF_V10 = [
   /* The franchisee record, Robert's X1 of 2026-11-10, held to the staff rules from its first commit (section 2d). */
   "src/app/portal/(app)/franchisees/page.tsx",
   "src/app/portal/(app)/franchisees/FranchiseesClient.tsx",
+  /* A franchisee's onboarding controls, Robert's X4 of 2026-11-10, held to the staff rules from their first commit (section 2d). */
+  "src/app/portal/(app)/franchisees/OnboardingClient.tsx",
   /* A franchisee owner's own franchise, Robert's X2 of 2026-11-10, held to the staff rules from its first commit (section 2d). */
   "src/app/portal/(app)/franchise/page.tsx",
   /* The two staff levels' screens, 2026-10-20, held to the staff rules from their first commit. */

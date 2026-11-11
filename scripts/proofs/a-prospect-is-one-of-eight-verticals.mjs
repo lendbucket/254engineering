@@ -45,12 +45,13 @@ const at = files.findIndex((f) => f.startsWith("0123_"));
  * dropping the clause: a migration after it that nobody listed here could touch
  * eng_prospects and invalidate section A's replay, and this says so by name.
  */
-/* 0126 (X1, franchisees) adds three tables and touches no eng_prospects column; 0127 (X2) seeds a role and grants. */
+/* 0126 (X1, franchisees) adds three tables and touches no eng_prospects column; 0127 (X2) seeds a role and grants; 0128 (X4) is franchisee onboarding. */
 const AFTER_0123 = [
   "0124_a_phone_hears_of_an_offer.sql",
   "0125_a_phone_keeps_its_sign_in_in_its_keystore.sql",
   "0126_a_franchisee_holds_territories_and_its_people.sql",
   "0127_a_franchisee_owner_reads_their_own_franchise.sql",
+  "0128_a_franchisee_is_onboarded_before_it_operates.sql",
 ];
 const following = at >= 0 ? files.slice(at + 1) : [];
 check(

@@ -13,6 +13,9 @@ import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
 import { LIST_NOT_LOADED } from "@/lib/outcome-copy";
 import { MemberControls, NewFranchiseeForm, OfficeForm, StatusForm, TerritoryControls } from "./FranchiseesClient";
+import { AgreementForm, CertificateForm, WithdrawCertificate } from "./OnboardingClient";
+import { onboardingFor, type FranchiseeCertificate } from "@/lib/franchisee-onboarding";
+import { CERTIFICATE_KINDS, CERTIFICATE_KIND_LABEL } from "@/lib/franchisee-onboarding-rules";
 
 export const dynamic = "force-dynamic";
 
@@ -165,6 +168,27 @@ async function FranchiseeView({ id }: { id: string }) {
   }
   const { franchisee: f, people, territoryOptions, personOptions } = read.detail;
   const ended = f.status === "ended";
+  const onboarding = await onboardingFor(actor, f.id);
+  const certificateColumns: Column<FranchiseeCertificate>[] = [
+    { key: "kind", header: "Covers", cell: (c) => CERTIFICATE_KIND_LABEL[c.kind] ?? c.kind },
+    { key: "carrier", header: "Carrier", cell: (c) => `${c.carrier}, ${c.policyNumber}` },
+    { key: "dates", header: "In force", cell: (c) => `${c.effectiveOn} to ${c.expiresOn}` },
+    {
+      key: "state",
+      header: "State",
+      cell: (c) => (c.withdrawnAt ? `Withdrawn: ${c.withdrawnReason ?? ""}` : <Chip label="On file" tone="good" />),
+    },
+    {
+      key: "open",
+      header: "PDF",
+      cell: (c) => (
+        <span className="flex flex-wrap items-center gap-2">
+          <a href={`/api/portal/franchisees/certificates?certificate=${c.id}`} className="text-[14px] font-semibold text-[var(--navy)] underline">Open</a>
+          {c.withdrawnAt || ended ? null : <WithdrawCertificate id={c.id} />}
+        </span>
+      ),
+    },
+  ];
   return (
     <>
       <PageHead
@@ -177,6 +201,40 @@ async function FranchiseeView({ id }: { id: string }) {
       </p>
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,420px)]">
         <div className="flex flex-col gap-4">
+          <Panel
+            title="Onboarding"
+            description="Every step is met before it can start operating: the agreement signed, its certificates on file, its owner through the academy, and its technicians certified by the engineer."
+          >
+            {!onboarding.ok ? (
+              <p role="alert" className="text-[14px] font-semibold text-[var(--ink)]">{onboarding.error}</p>
+            ) : (
+              <>
+                <ul className="mb-4 flex flex-col gap-2">
+                  {onboarding.onboarding.steps.map((s) => (
+                    <li key={s.key} className="flex flex-wrap items-center gap-2 text-[14px] text-[var(--ink)]">
+                      <Chip label={s.met ? "Met" : "Not yet"} tone={s.met ? "good" : "warn"} />
+                      <span className="font-semibold">{s.label}.</span>
+                      <span className="text-[var(--secondary)]">{s.says}</span>
+                    </li>
+                  ))}
+                </ul>
+                {onboarding.onboarding.agreementSignedOn || ended ? null : <AgreementForm id={f.id} />}
+                <h3 className="mb-2 mt-4 text-[15px] font-semibold text-[var(--navy)]">Certificates of insurance</h3>
+                <DataTable
+                  caption="Certificates of insurance"
+                  columns={certificateColumns}
+                  rows={onboarding.onboarding.certificates}
+                  total={onboarding.onboarding.certificates.length}
+                  empty={<EmptyState title="No certificate is recorded yet" body="Record each certificate below with its PDF, as the carrier issued it." />}
+                />
+                {ended ? null : (
+                  <div className="mt-4">
+                    <CertificateForm id={f.id} kinds={CERTIFICATE_KINDS.map((k) => ({ value: k, label: CERTIFICATE_KIND_LABEL[k] }))} />
+                  </div>
+                )}
+              </>
+            )}
+          </Panel>
           <Panel title="Territories it holds" description="Sales territories from the territories screen. A territory is held by one franchisee at a time.">
             <TerritoryControls id={f.id} held={f.territories} options={territoryOptions} ended={ended} />
           </Panel>

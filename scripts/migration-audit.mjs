@@ -443,10 +443,16 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  *
  * 0127, a franchisee owner reads their own franchise (Robert's X2), seeds one
  * role and four grants and moves no column, so the shape stays where 0126 put it.
+ *
+ * Moved by 0128, a franchisee is onboarded before it operates (Robert's X4):
+ * three agreement columns on eng_franchisees and the fifteen of
+ * eng_franchisee_certificates, 1,624 to 1,642; the table count moves 125 to
+ * 126. Read off fingerprint-at.mjs on the chain to 0128, with 0127 reproducing
+ * its pair first.
  */
-const EXPECTED_FINGERPRINT = "aa9a945e8214af5bb7efbb2b5393045d";
-const EXPECTED_COLUMNS = 1624;
-const EXPECTED_TABLES = 125;
+const EXPECTED_FINGERPRINT = "47ba01933b51b2db49ccb9ebd23f6380";
+const EXPECTED_COLUMNS = 1642;
+const EXPECTED_TABLES = 126;
 /* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts.
  * 0074 adds two: eng_partner_billing_touch and eng_partner_billing_events_immutable.
  * 0075 adds one: eng_payment_events_guarded.
@@ -478,8 +484,12 @@ const EXPECTED_TABLES = 125;
  * eng_roofer_applications_decide_once, which lets a decision be made once and touch
  * nothing the roofer wrote.
  * 0119 adds one, by Robert's sales CRM ruling R8 of 2026-11-02:
- * eng_crm_attributions_append_only, because credit decided once is evidence. */
-const EXPECTED_TRIGGERS = 111;
+ * eng_crm_attributions_append_only, because credit decided once is evidence.
+ * 0128 adds two, by Robert's X4 of 2026-11-10: eng_franchisee_certificates_guard,
+ * which lets a certificate be withdrawn once and changed in no other way, and
+ * eng_franchisee_certificates_audit, which writes each recording and withdrawal
+ * to the audit log in the same transaction. */
+const EXPECTED_TRIGGERS = 113;
 /**
  * 0014 added eng_freeze_attribution and 0019 added two more, the partner
  * entry freeze and its delete refusal, which are trigger functions like the
@@ -563,8 +573,11 @@ const EXPECTED_TRIGGERS = 111;
  * 79 since 0122, by money audit F6 (Robert's answer of 2026-11-03): eng_take_credit_hold
  * and eng_release_credit_hold, one invoice submission at a time per account. 0122
  * replaces eng_apply_order_paid and eng_apply_batch_paid with the same signatures,
- * which are not new rows. */
-const EXPECTED_FUNCTIONS = 79;
+ * which are not new rows.
+ * 81 since 0128, by Robert's X4 of 2026-11-10: eng_franchisee_certificate_guard and
+ * eng_franchisee_certificate_audit, the two trigger functions of a franchisee's
+ * certificates of insurance. */
+const EXPECTED_FUNCTIONS = 81;
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });

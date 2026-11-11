@@ -14,6 +14,8 @@ import {
   type Office,
   type OfficeInput,
 } from "./franchisee-rules";
+import { onboardingStepsFor } from "./franchisee-onboarding";
+import { operatingRefusal } from "./franchisee-onboarding-rules";
 
 /**
  * THE FRANCHISEE RECORD (0126). Robert's overnight orders of 2026-11-10,
@@ -270,6 +272,18 @@ export async function setFranchiseeStatus(
   if (!row) return refuse("That franchisee is not on record.");
   const change = statusChange(row.status as FranchiseeStatus, input.to, input.reason);
   if (!change.ok) return change;
+  /*
+   * ONBOARDING IS COMPLETE BEFORE A FRANCHISEE OPERATES (0128, Robert's X4):
+   * the agreement signed, its certificates on file, its owner through the
+   * academy and its technicians certified. Asked here, from the same facts the
+   * screen shows, before anything is written.
+   */
+  if (row.status === "onboarding" && change.to === "operating") {
+    const read = await onboardingStepsFor(db, input.id);
+    if (!read.ok) return refuse(`Onboarding could not be read, so the status was not changed: ${read.error}`);
+    const refusal = operatingRefusal(read.onboarding.steps);
+    if (refusal) return refuse(refusal);
+  }
   const recorded = await writeAuditOrRefuse({
     actor: a,
     action: "franchisee.status_set",

@@ -4677,6 +4677,26 @@ export const APPLIED = [
       "Development after 0126's read-back; production only in a sitting with Robert, after 0125 and 0126. Additive: " +
       "one role row and four grant rows.",
   },
+  {
+    file: "0128_a_franchisee_is_onboarded_before_it_operates.sql", appliedBy: "apply_migration",
+    fingerprint: "47ba01933b51b2db49ccb9ebd23f6380",
+    behaviour: "147ee08d3fe71d1eb714acd9adb2e225",
+    production: null,
+    proves: { table: "eng_franchisee_certificates" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-11 on the chain to 0128, with 0127 reproducing " +
+      "its recorded pair first (aa9a945e at 1624 columns, 6c60760e at 1628 facts). Shape 1624 to 1642 columns: three " +
+      "agreement columns on eng_franchisees and fifteen of eng_franchisee_certificates; tables 125 to 126. Behaviour " +
+      "1628 to 1649 facts: the agreement check, the table's key, foreign keys and checks, its indexes, two triggers, " +
+      "two functions and row level security.",
+    because:
+      "WRITTEN 2026-11-11 ON feat/x4-franchisee-onboarding, STACKED ON X2 UNDER ROBERT'S ANSWER 1 OF 2026-11-11, FOR " +
+      "HIS OVERNIGHT ORDERS OF 2026-11-10, ITEM 3, PLATFORM ITEM X4: the agreement signed and the franchisee's " +
+      "certificates of insurance, recorded; with the owner's academy standing and the technicians' certifications, " +
+      "read, they decide whether a franchisee may move from onboarding to operating. One private bucket, " +
+      "eng-franchisee-certificates. PENDING: not on development or production; production only in a sitting with " +
+      "Robert, after 0125 to 0127. Additive: three columns, one table, one bucket, two functions.",
+  },
 ];
 
 /*

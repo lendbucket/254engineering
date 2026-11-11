@@ -334,6 +334,8 @@ const ADMIN_APIS = [
   "/api/portal/roofer-applications",
   /* Keeping the franchisee record (Robert's X1, 2026-11-10), behind franchise.manage. */
   "/api/portal/franchisees",
+  /* A franchisee's certificates of insurance (Robert's X4, 2026-11-10), behind franchise.manage: recording, withdrawing and opening one. */
+  "/api/portal/franchisees/certificates",
   "/api/portal/review",
   "/api/portal/comms",
   "/api/portal/onboarding",

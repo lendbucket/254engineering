@@ -12,6 +12,7 @@ import {
   setFranchiseeTerritory,
   type FranchiseeListQuery,
 } from "@/lib/franchisees";
+import { recordAgreement } from "@/lib/franchisee-onboarding";
 import { mayExport } from "@/lib/list-exports";
 import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
@@ -113,6 +114,10 @@ async function handlePOST(request: NextRequest) {
   }
   if (action === "territory") {
     const result = await setFranchiseeTerritory(actor, { id: str(body.id), territoryId: str(body.territoryId), holds: body.holds === true });
+    return result.ok ? NextResponse.json(result) : bad(result.error, 422);
+  }
+  if (action === "agreement") {
+    const result = await recordAgreement(actor, { id: str(body.id), signedOn: str(body.signedOn) });
     return result.ok ? NextResponse.json(result) : bad(result.error, 422);
   }
   if (action === "member") {
