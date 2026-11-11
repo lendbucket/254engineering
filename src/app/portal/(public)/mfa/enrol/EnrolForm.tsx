@@ -223,22 +223,38 @@ export function EnrolForm({
           />
         ) : null}
 
-        <details className="border-y border-[var(--border)]">
+        {/*
+          ON A PHONE, THE QR CANNOT BE SCANNED BY THE PHONE SHOWING IT. Robert's
+          T7, 2026-11-07: a technician enrols on the phone the app runs on, and
+          the authenticator is usually on that same phone. The link that hands
+          the otpauth uri to the phone's authenticator was inside "Cannot scan
+          it?", where somebody standing in a driveway with one device would not
+          think to look. It sits under the QR now, in its own words, and the QR
+          stays the primary path for anybody enrolling at a desk (the operator
+          instruction above).
+        */}
+        {uri ? (
+          <div className="border-y border-[var(--border)] px-3 py-2">
+            <p className="text-[13px] leading-[1.6] text-[var(--navy)]">
+              Setting up on the phone that has your authenticator app? A phone cannot scan its own screen.
+            </p>
+            <a
+              href={uri}
+              className="min-h-[var(--tap-target)] mt-1 inline-flex items-center text-[14px] font-semibold text-[var(--navy)] underline"
+            >
+              Open your authenticator app on this phone
+            </a>
+          </div>
+        ) : null}
+
+        <details className="border-b border-[var(--border)]">
           <summary className="min-h-[var(--tap-target)] flex cursor-pointer items-center px-3 text-[13px] font-semibold text-[var(--navy)]">
-            Cannot scan it? Type it instead
+            Cannot scan it or open the app? Type it instead
           </summary>
           <div className="border-t border-[var(--border)] p-3">
             <p className="text-[15px] leading-[1.6] break-all text-[var(--navy)]">
               {secret}
             </p>
-            {uri ? (
-              <a
-                href={uri}
-                className="min-h-[var(--tap-target)] mt-2 inline-flex items-center text-[13px] font-semibold text-[var(--navy)] underline"
-              >
-                Or open an authenticator app on this device
-              </a>
-            ) : null}
           </div>
         </details>
 

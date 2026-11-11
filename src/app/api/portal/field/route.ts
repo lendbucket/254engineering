@@ -15,16 +15,22 @@ import {
   withdrawException,
   approveProtocol,
   recordCapture,
+  recordVisit,
   removeProtocolItem,
+  replyToRevision,
   sendOffers,
   setLedgerStatus,
   setTechBase,
   submitEvidence,
+  dayPackFor,
   jobView,
   evidenceObjectExists,
   EVIDENCE_BUCKET,
 } from "@/lib/ops-field";
 import { CAPTURE_ID, captureDoorRefusal, captureStorageKey } from "@/lib/evidence-capture-rules";
+import { SHA256_HEX } from "@/lib/capture-hash";
+import { latestOfferPushFor, pushPublicKey, subscribePush, unsubscribePush } from "@/lib/ops-push";
+import { visitActionFrom, visitLateFrom } from "@/lib/visit-clock-rules";
 
 /**
  * Everything in the field that changes something: protocols, offers, captures,
@@ -69,6 +75,40 @@ async function handlePOST(request: NextRequest) {
   const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
   const action = String(body?.action ?? "");
   const context = await requestContext();
+
+  /*
+   * THE DAY PACK (Robert's T2, 2026-11-07): the caller's own jobs for today and
+   * tomorrow, for the phone to keep so a job opens with no signal. A read, and
+   * the one read on this endpoint, because it belongs to the field app's offline
+   * work beside the queue that writes here. Nothing in the body but the action.
+   */
+  if (action === "day_pack") {
+    const result = await dayPackFor(actor);
+    return result.ok ? NextResponse.json({ ok: true, pack: result.pack }) : bad(result.error);
+  }
+
+  /*
+   * OFFER ALERTS BY WEB PUSH (Robert's T9 and his answers 6 and 7 of
+   * 2026-11-07, src/lib/ops-push.ts). The phone asks for the public key to
+   * subscribe with, records its push address, turns alerts off, and, when a
+   * push arrives, asks what the lock screen may say: county and service only.
+   */
+  if (action === "push_key") {
+    return NextResponse.json({ ok: true, publicKey: pushPublicKey() });
+  }
+  if (action === "push_subscribe") {
+    /* channel: web for a browser, fcm or apns for the store app (Robert's T8). */
+    const result = await subscribePush(actor, body?.endpoint, request.headers.get("user-agent"), context, body?.channel);
+    return result.ok ? NextResponse.json({ ok: true }) : bad(result.error);
+  }
+  if (action === "push_unsubscribe") {
+    const result = await unsubscribePush(actor, body?.endpoint, context);
+    return result.ok ? NextResponse.json({ ok: true }) : bad(result.error);
+  }
+  if (action === "push_latest") {
+    const text = await latestOfferPushFor(actor);
+    return text ? NextResponse.json({ ok: true, ...text }) : bad("Nothing to show.");
+  }
 
   // ------------------------------------------------------------- protocols
 
@@ -220,6 +260,16 @@ async function handlePOST(request: NextRequest) {
   }
 
   if (action === "record_capture") {
+    /*
+     * The hash the phone took at capture (Robert's T2). Absent is allowed: an
+     * entry queued before this rule, or a browser that could not hash. Present
+     * and malformed is refused, rather than read as absent.
+     */
+    const rawHash = body?.captureSha256;
+    const captureHash = rawHash === null || rawHash === undefined || rawHash === "" ? null : String(rawHash);
+    if (captureHash !== null && !SHA256_HEX.test(captureHash)) {
+      return bad("The photograph's fingerprint from the phone is not a SHA-256. Take the photograph again.");
+    }
     const result = await recordCapture(
       actor,
       String(body?.fileId ?? ""),
@@ -235,6 +285,7 @@ async function handlePOST(request: NextRequest) {
         lat: nullableNumber(body?.lat),
         lng: nullableNumber(body?.lng),
         accuracy: nullableNumber(body?.accuracy),
+        captureSha256: captureHash,
       },
       context,
     );
@@ -286,6 +337,25 @@ async function handlePOST(request: NextRequest) {
   if (action === "withdraw_exception") {
     const result = await withdrawException(actor, String(body?.fileId ?? ""), String(body?.itemKey ?? ""));
     return result.ok ? NextResponse.json({ ok: true }) : bad(result.error);
+  }
+
+  /* The technician's reply to a revision request (Robert's T5, 2026-11-07). */
+  if (action === "reply_revision") {
+    const result = await replyToRevision(actor, String(body?.fileId ?? ""), String(body?.reply ?? ""), context);
+    return result.ok ? NextResponse.json({ ok: true }) : bad(result.error);
+  }
+
+  /*
+   * The visit clock (Robert's T6, 2026-11-07). The request names the act, and
+   * whether it was held for want of signal (answer 4), and nothing else: any
+   * time in the body is ignored, because the time is the database's own now()
+   * on the row written (src/lib/visit-clock-rules.ts).
+   */
+  if (action === "record_visit") {
+    const visit = visitActionFrom(body?.visit);
+    if (!visit) return bad("Say whether this is an arrival or a leaving.");
+    const result = await recordVisit(actor, String(body?.fileId ?? ""), visit, context, visitLateFrom(body?.late));
+    return result.ok ? NextResponse.json({ ok: true, at: result.at }) : bad(result.error);
   }
 
   if (action === "submit_evidence") {

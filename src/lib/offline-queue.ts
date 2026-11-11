@@ -80,7 +80,56 @@ export type QueuedCapture = {
    * fall back to capturedAt.
    */
   queuedAt?: string;
+  /**
+   * THE PHOTOGRAPH'S SHA-256, TAKEN ON THE PHONE AT THE MOMENT OF CAPTURE.
+   * Robert's T2 and his answer 2 of 2026-11-07 (6717223376): the phone hashes
+   * at capture, the server hashes the stored bytes again at upload and
+   * compares, the server's hash stays the record, and a mismatch is refused and
+   * named. Lowercase hex. Absent on an entry with no bytes, and on an entry
+   * queued before this field existed, which the server records as before.
+   */
+  captureSha256?: string;
 };
+
+/**
+ * The SHA-256 of a blob, lowercase hex, by the browser's own crypto. Called at
+ * capture, before the entry is queued, so the hash describes the bytes the
+ * camera produced rather than whatever later reaches storage.
+ */
+export async function sha256OfBlob(blob: Blob): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", await blob.arrayBuffer());
+  return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/**
+ * Replay a queue: every entry in queued order, oldest first, stopping at the
+ * first failure so a later entry never lands ahead of an earlier one that has
+ * not. Robert's T2 (2026-11-07): "the queue replays in time order when signal
+ * returns. Prove the replay order with a planted fault."
+ *
+ * The order is inQueueOrder's, here and nowhere else: the component that
+ * flushes calls this rather than looping itself, so the proof that runs this
+ * function is a proof about the loop that actually runs on the phone
+ * (scripts/proofs/a-field-day-starts-and-replays-with-no-signal.mjs).
+ */
+export async function replayQueue(
+  entries: QueuedCapture[],
+  sendOne: (entry: QueuedCapture) => Promise<{ ok: true } | { ok: false; error: string }>,
+  onSent: (entry: QueuedCapture) => Promise<void>,
+  onFailed: (entry: QueuedCapture, error: string) => Promise<void>,
+): Promise<{ sent: number; stoppedAt: string | null }> {
+  let sent = 0;
+  for (const entry of inQueueOrder(entries)) {
+    const result = await sendOne(entry);
+    if (!result.ok) {
+      await onFailed(entry, result.error);
+      return { sent, stoppedAt: entry.id };
+    }
+    await onSent(entry);
+    sent += 1;
+  }
+  return { sent, stoppedAt: null };
+}
 
 /** How a queue is replayed: by when each entry was queued, oldest first. */
 export function inQueueOrder(entries: QueuedCapture[]): QueuedCapture[] {
@@ -233,6 +282,8 @@ export async function flushOne(entry: QueuedCapture): Promise<{ ok: true } | { o
         lat: entry.lat ?? null,
         lng: entry.lng ?? null,
         accuracy: entry.accuracy ?? null,
+        /* The hash taken at capture, for the server to compare with the stored bytes (T2). */
+        captureSha256: entry.captureSha256 ?? null,
       }),
     });
     const body = (await recorded.json().catch(() => null)) as { ok?: boolean; error?: string } | null;

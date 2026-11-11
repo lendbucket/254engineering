@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { inNativeShell, takeNativePhoto } from "@/lib/native-shell";
 import {
   checklistState,
   newCaptureId,
@@ -11,7 +12,17 @@ import {
   type ItemException,
   type ProtocolItem,
 } from "@/lib/ops-evidence";
-import { dequeue, enqueue, flushOne, markAttempt, pendingFor, positionOrNull, type QueuedCapture } from "@/lib/offline-queue";
+import {
+  dequeue,
+  enqueue,
+  flushOne,
+  markAttempt,
+  pendingFor,
+  positionOrNull,
+  replayQueue,
+  sha256OfBlob,
+  type QueuedCapture,
+} from "@/lib/offline-queue";
 import { FIRM_TIME_ZONE } from "@/lib/firm-calendar";
 
 /**
@@ -156,18 +167,18 @@ export function Checklist({
     flushingRef.current = true;
     setFlushing(true);
     try {
+      /*
+       * Oldest first, stopping at the first failure: replayQueue owns the
+       * order and the stop (Robert's T2, 2026-11-07), so the proof that runs
+       * it runs the loop this screen runs.
+       */
       const pending = await pendingFor(fileId);
-      let sent = 0;
-      for (const entry of pending) {
-        const result = await flushOne(entry);
-        if (result.ok) {
-          await dequeue(entry.id);
-          sent++;
-        } else {
-          await markAttempt(entry, result.error);
-          break;
-        }
-      }
+      const { sent } = await replayQueue(
+        pending,
+        flushOne,
+        (entry) => dequeue(entry.id),
+        (entry, error) => markAttempt(entry, error),
+      );
       await refreshQueue();
       if (sent > 0) router.refresh();
     } finally {
@@ -272,6 +283,21 @@ export function Checklist({
 
   async function capture(item: Item, payload: { blob?: Blob; text?: string; value?: number }) {
     setError(null);
+    /*
+     * THE HASH IS TAKEN HERE, AT CAPTURE, BEFORE THE ENTRY IS QUEUED. Robert's
+     * T2 and his answer 2 of 2026-11-07: the server hashes the stored bytes at
+     * upload and refuses a capture whose bytes are not these. A phone whose
+     * browser cannot hash (no secure context) captures without one, which the
+     * server records exactly as it did before this rule.
+     */
+    let captureSha256: string | undefined;
+    if (payload.blob) {
+      try {
+        captureSha256 = await sha256OfBlob(payload.blob);
+      } catch {
+        captureSha256 = undefined;
+      }
+    }
     const position = await positionOrNull();
     const entry: QueuedCapture = {
       id: newCaptureId(),
@@ -287,6 +313,7 @@ export function Checklist({
       lng: position?.coords.longitude ?? null,
       accuracy: position?.coords.accuracy ?? null,
       attempts: 0,
+      captureSha256,
     };
 
     try {
@@ -968,6 +995,9 @@ function CaptureControl({
 }) {
   const [text, setText] = useState("");
   const [value, setValue] = useState("");
+  /* Inside the store app the photograph comes from the native camera (Robert's T8); read after mount, never on the server. */
+  const [native, setNative] = useState(false);
+  useEffect(() => setNative(inNativeShell()), []);
   const inputId = `cap-${item.id}`;
 
   if (item.kind === "photo" || item.kind === "document") {
@@ -1021,15 +1051,39 @@ function CaptureControl({
             ) : null}
           </div>
         ) : null}
-        <label
-          htmlFor={inputId}
-          aria-disabled={!ready}
-          className={`inline-flex min-h-[48px] w-full items-center justify-center rounded-[2px] border border-slate bg-slate px-4 text-[15px] font-bold text-[var(--on-navy)] sm:w-auto sm:px-6 ${
-            ready ? "cursor-pointer" : "cursor-not-allowed opacity-50"
-          }`}
-        >
-          {KIND_VERB[item.kind]}
-        </label>
+        {native && item.kind === "photo" ? (
+          /*
+           * THE STORE APP'S CAMERA (Robert's T8, 2026-11-08). The photograph is
+           * kept in the app's own storage, never the phone's shared library, and
+           * goes into onCapture exactly as a browser photograph does: the hash is
+           * taken at capture, the queue holds it, and the server checks it.
+           */
+          <button
+            type="button"
+            disabled={!ready}
+            onClick={() => {
+              void takeNativePhoto().then((photo) => {
+                if (!photo) return;
+                if (asks?.numeric) onCapture({ blob: photo, value: Number(answer) });
+                else if (asks) onCapture({ blob: photo, text: answer });
+                else onCapture({ blob: photo });
+              });
+            }}
+            className="inline-flex min-h-[48px] w-full items-center justify-center rounded-[2px] border border-slate bg-slate px-4 text-[15px] font-bold text-[var(--on-navy)] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:px-6"
+          >
+            {KIND_VERB[item.kind]}
+          </button>
+        ) : (
+          <label
+            htmlFor={inputId}
+            aria-disabled={!ready}
+            className={`inline-flex min-h-[48px] w-full items-center justify-center rounded-[2px] border border-slate bg-slate px-4 text-[15px] font-bold text-[var(--on-navy)] sm:w-auto sm:px-6 ${
+              ready ? "cursor-pointer" : "cursor-not-allowed opacity-50"
+            }`}
+          >
+            {KIND_VERB[item.kind]}
+          </label>
+        )}
         <input
           id={inputId}
           type="file"

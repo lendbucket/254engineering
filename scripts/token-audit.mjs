@@ -425,8 +425,18 @@ const PORTED = [
   "src/app/portal/(app)/intake/page.tsx",
   "src/app/portal/(app)/intake/IntakeClient.tsx",
   "src/app/portal/(app)/jobs/JobsClient.tsx",
+  // Offer alerts on the technician's phone, Robert's T9 of 2026-11-07.
+  "src/app/portal/(app)/jobs/OfferAlerts.tsx",
   "src/app/portal/(app)/jobs/[id]/CaptureClient.tsx",
   "src/app/portal/(app)/jobs/[id]/page.tsx",
+  // The engineer's request and the technician's reply, Robert's T5 of 2026-11-07.
+  "src/app/portal/(app)/jobs/[id]/RevisionAnswer.tsx",
+  // The offline job screen, Robert's T2 of 2026-11-07.
+  "src/app/portal/(app)/jobs/offline/page.tsx",
+  "src/app/portal/(app)/jobs/offline/OfflineDay.tsx",
+  // The visit clock on the job, Robert's T6 of 2026-11-07, and Apple Maps beside Directions (his answer 5).
+  "src/app/portal/(app)/jobs/[id]/VisitClock.tsx",
+  "src/app/portal/(app)/jobs/[id]/AppleMapsLink.tsx",
   "src/app/portal/(app)/jobs/page.tsx",
   "src/app/portal/(app)/layout.tsx",
   "src/app/portal/(app)/messages/MessagesClient.tsx",
@@ -561,11 +571,19 @@ const PORTED = [
   "src/app/portal/(app)/roofer-applications/RooferApplicationDetail.tsx",
   "src/app/portal/(app)/roofer-applications/RooferDecision.tsx",
   "src/components/portal/FieldAppWorker.tsx",
+  /* The day pack kept on the phone for offline start, Robert's T2 of 2026-11-07. Renders nothing. */
+  "src/components/portal/DayPackSync.tsx",
   "src/components/portal/FileThreadButton.tsx",
   "src/components/portal/LetterFactsPanels.tsx",
   "src/components/portal/PhoneLink.tsx",
   "src/components/portal/SignOutControl.tsx",
   "src/components/portal/Unreachable.tsx",
+  /* The sign-in redesign of 2026-11-08: the one layout and the form's parts, shared by all three sign-in screens. */
+  "src/components/portal/SignInFrame.tsx",
+  "src/components/portal/SignInFields.tsx",
+  "src/components/portal/ForgotPasswordNotice.tsx",
+  "src/app/portal/(public)/forgot-password/page.tsx",
+  "src/app/partner/(public)/forgot-password/page.tsx",
 ];
 
 /**
@@ -823,8 +841,14 @@ const STAFF_V10 = [
    */
   "src/app/portal/(app)/jobs/page.tsx",
   "src/app/portal/(app)/jobs/JobsClient.tsx",
+  "src/app/portal/(app)/jobs/OfferAlerts.tsx",
   "src/app/portal/(app)/jobs/[id]/page.tsx",
   "src/app/portal/(app)/jobs/[id]/CaptureClient.tsx",
+  "src/app/portal/(app)/jobs/[id]/RevisionAnswer.tsx",
+  "src/app/portal/(app)/jobs/offline/page.tsx",
+  "src/app/portal/(app)/jobs/offline/OfflineDay.tsx",
+  "src/app/portal/(app)/jobs/[id]/VisitClock.tsx",
+  "src/app/portal/(app)/jobs/[id]/AppleMapsLink.tsx",
   /*
    * The technician batch of 2026-10-08: the dashboard every role lands on and
    * the messages screen every role shares, restyled to V10 and held to its
@@ -940,6 +964,12 @@ const STAFF_V10 = [
   "src/app/portal/(public)/login/LoginForm.tsx",
   "src/app/portal/(public)/set-password/page.tsx",
   "src/app/portal/(public)/set-password/SetPasswordForm.tsx",
+  /* And the shared sign-in layout and parts of 2026-11-08, which all three sign-in screens draw. */
+  "src/components/portal/SignInFrame.tsx",
+  "src/components/portal/SignInFields.tsx",
+  "src/components/portal/ForgotPasswordNotice.tsx",
+  "src/app/portal/(public)/forgot-password/page.tsx",
+  "src/app/partner/(public)/forgot-password/page.tsx",
 ];
 
 /** Every file held to V10's interface rules, whichever surface it serves. */

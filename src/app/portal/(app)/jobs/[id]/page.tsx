@@ -2,7 +2,18 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
-import { jobView } from "@/lib/ops-field";
+import { jobView, revisionFor, visitClockFor } from "@/lib/ops-field";
+import { formatInFirmZone } from "@/lib/firm-calendar";
+import { noteAsksAQuestion, REVISIONS_REQUESTED } from "@/lib/revision-rules";
+import { RevisionAnswer } from "./RevisionAnswer";
+import { VisitClock } from "./VisitClock";
+import { AppleMapsLink } from "./AppleMapsLink";
+
+/** How a request or reply time reads: "Nov 7, 2:05 PM", in the firm's zone. */
+const WHEN = { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" } as const;
+
+/** How a visit time reads: "Nov 7, 2:05 PM", in the firm's zone. */
+const VISIT_TIME = { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" } as const;
 import { captureDeleteRefusal, progressLabel } from "@/lib/ops-evidence";
 import { CAPTURE_CLOSED_STATUSES, evidenceWriteRefusal } from "@/lib/evidence-capture-rules";
 import { photoAnswersFor } from "@/lib/protocol-run";
@@ -12,6 +23,7 @@ import { PageHead } from "@/components/portal/surfaces";
 import { Checklist, RepairList } from "./CaptureClient";
 import { FileThreadButton } from "@/components/portal/FileThreadButton";
 import { captureAdditionsFor } from "@/lib/letter-facts";
+import { checklistPropsFrom } from "@/lib/job-checklist-props";
 
 export const dynamic = "force-dynamic";
 
@@ -38,11 +50,23 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
       .join(", "),
   );
 
+  /*
+   * The engineer's request, while the file is sent back (Robert's T5). Read
+   * only in that status: once resubmitted the request is history, and the
+   * engineer reads it in review. undefined when not sent back, null when the
+   * read failed.
+   */
+  const revision = view.file.status === REVISIONS_REQUESTED ? await revisionFor(view.file.id) : undefined;
+
+  /* The visit clock, read from the server's record. Null when it could not be read. */
+  const visitClock = await visitClockFor(view.file.id);
+
   /* PL-5: the engineer's added capture items, on a permit letter job. */
   const additions = view.file.service_slug === "structural-letters" ? await captureAdditionsFor(view.file.id) : null;
 
   /* The photograph items that also take a written answer, from the signed document. */
   const photoAnswers = photoAnswersFor(view.protocol?.document_number ?? null);
+  const checklist = checklistPropsFrom(view, photoAnswers);
 
   /*
    * Read only when capture is closed on the file, or when this person is not
@@ -103,6 +127,23 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
         <span className="font-semibold">{progressLabel(view.state)}</span>
       </div>
 
+      {/* At the top of the job, because it is why the technician is back here (Robert's T5). */}
+      {revision === null ? (
+        <p className="mb-6 border-t-2 border-[var(--ink)] pt-3 text-[14px] font-semibold text-[var(--ink)]">
+          This package was sent back, and the engineer&apos;s note could not be read. Reload the page to try again.
+        </p>
+      ) : revision?.round ? (
+        <RevisionAnswer
+          fileId={view.file.id}
+          note={revision.round.note}
+          requestedAt={formatInFirmZone(revision.round.requestedAt, WHEN) ?? revision.round.requestedAt}
+          reply={revision.round.reply?.body ?? null}
+          repliedAt={revision.round.reply ? (formatInFirmZone(revision.round.reply.at, WHEN) ?? revision.round.reply.at) : null}
+          question={noteAsksAQuestion(revision.round.note)}
+          canReply={!closed}
+        />
+      ) : null}
+
       <div className="mb-6 flex flex-wrap gap-2">
         {/* An external map, because the phone in the technician's hand already
             has the navigation app they know how to use, and building a worse
@@ -115,8 +156,29 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
         >
           Directions
         </a>
+        {/* Apple Maps beside it on an iPhone (Robert's answer 5, 2026-11-07, 6717223376). */}
+        <AppleMapsLink query={mapQuery} />
         {can(actor, "messages.use") ? <FileThreadButton fileId={view.file.id} /> : null}
       </div>
+
+      {/*
+        The visit clock (Robert's T6, 2026-11-07): when the technician arrived
+        and left, on the server's clock. Recorded only by the assigned
+        technician while the file is in the field, the same rule as capture, so
+        a reader who may not write sees the times and no button.
+      */}
+      <VisitClock
+        fileId={view.file.id}
+        visits={(visitClock?.visits ?? []).map((v) => ({
+          arrived: formatInFirmZone(v.arrivedAt, VISIT_TIME) ?? v.arrivedAt,
+          arrivedLate: v.arrivedLate,
+          left: v.leftAt ? (formatInFirmZone(v.leftAt, VISIT_TIME) ?? v.leftAt) : null,
+          leftLate: v.leftLate,
+        }))}
+        onSite={visitClock?.onSite ?? false}
+        canRecord={!closed}
+        unreadable={visitClock === null}
+      />
 
       {view.file.notes ? (
         <div className="mb-6 border-t-2 border-[var(--ink)] pt-3">
@@ -169,39 +231,16 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
         </p>
       ) : null}
 
-      {view.protocol ? (
+      {checklist ? (
+        /* The same props the offline day pack carries (src/lib/job-checklist-props.ts, Robert's T2). */
         <Checklist
           fileId={view.file.id}
           readOnly={closed}
           canRemove={canRemove}
-          protocolName={`${view.protocol.name} v${view.protocol.version}`}
-          items={view.protocol.items.map((i) => ({
-            id: i.id,
-            itemKey: i.itemKey,
-            kind: i.kind,
-            label: i.label,
-            instructions: i.instructions ?? null,
-            required: i.required,
-            unit: i.unit ?? null,
-            minValue: i.minValue ?? null,
-            maxValue: i.maxValue ?? null,
-            minCount: i.minCount ?? null,
-            answer: photoAnswers[i.itemKey] ?? null,
-          }))}
-          captures={view.captures.map((c) => ({
-            id: c.id,
-            itemKey: c.item_key,
-            kind: c.kind,
-            valueText: c.value_text,
-            valueNumber: c.value_number === null ? null : Number(c.value_number),
-            storageKey: c.storage_key,
-            capturedAt: c.captured_at,
-          }))}
-          exceptions={view.exceptions.map((e) => ({
-            itemKey: e.item_key,
-            kind: e.kind,
-            reason: e.reason,
-          }))}
+          protocolName={checklist.protocolName}
+          items={checklist.items}
+          captures={checklist.captures}
+          exceptions={checklist.exceptions}
         />
       ) : (
         <div className="border-t-2 border-[var(--ink)] pt-3">

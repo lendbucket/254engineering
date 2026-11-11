@@ -2,10 +2,24 @@ import "server-only";
 import { STATUS_LABEL, type FileStatus } from "./ops-files";
 import { DB_NOW } from "./db-now";
 import { todayInFirmCalendar } from "./firm-calendar";
+import { DAY_PACK_STATUSES, inDayPack, nextCalendarDay, type DayPack, type DayPackJob } from "./field-day-rules";
+import { checklistPropsFrom } from "./job-checklist-props";
+import { captureHashMismatch } from "./capture-hash";
+import { services } from "../content/services";
 import { clockReading } from "./clock-skew";
 import { CAPTURE_CLOSED_STATUSES, captureKeyProblem, evidenceWriteRefusal } from "./evidence-capture-rules";
+import {
+  latestRevision,
+  replyRefusal,
+  resubmitRefusal,
+  REVISION_REPLY,
+  REVISIONS_REQUESTED,
+  type RevisionRound,
+} from "./revision-rules";
+import { VISIT_KIND_FOR, VISIT_KINDS, visitRefusal, visitState, type VisitAction, type VisitState } from "./visit-clock-rules";
 import { sha256Hex } from "./evidence-fingerprint";
 import { readEvery, readEveryIn } from "./bounded-read";
+import { pushOfferTo } from "./ops-push";
 import { supabaseAdmin } from "./supabase";
 import type { Cents } from "./ops-money";
 import { notifyTechnicianAccepted, recordTechnicianVisit } from "./ops-payments";
@@ -1015,6 +1029,16 @@ export async function sendOffers(
       entityType: "file",
       entityId: fileId,
     });
+    /*
+     * And a push to his phone, beside the notification above and never in its
+     * place (Robert's T9, answers 6 and 7 of 2026-11-07). The push carries no
+     * payload; the phone asks what to show and is told county and service
+     * only. Best effort: a push service that is down changes nothing here.
+     */
+    await pushOfferTo(id, {
+      county: (file.county as string | null) ?? null,
+      serviceName: services.find((s) => s.slug === file.service_slug)?.name ?? null,
+    }).catch(() => null);
   }
 
   await writeAudit({
@@ -1706,7 +1730,15 @@ export type CaptureInput = {
   lat?: number | null;
   lng?: number | null;
   accuracy?: number | null;
+  /**
+   * The SHA-256 the phone took at capture, lowercase hex, or null when the
+   * phone sent none. Compared with the server's own hash of the stored bytes;
+   * never stored, because the server's hash is the record (Robert's T2 and his
+   * answer 2 of 2026-11-07).
+   */
+  captureSha256?: string | null;
 };
+
 
 /** The private bucket every evidence upload goes to. */
 export const EVIDENCE_BUCKET = "eng-evidence";
@@ -1821,6 +1853,24 @@ export async function recordCapture(
       return { ok: false, error: "The uploaded file could not be read back to fingerprint it, so it was not recorded. It will be sent again." };
     }
     contentSha256 = sha256Hex(await bytes.arrayBuffer());
+  }
+
+  /*
+   * THE BYTES ARE THE ONES TAKEN AT CAPTURE. Robert's T2 and his answer 2 of
+   * 2026-11-07: the phone's hash at capture against the server's own hash of
+   * what is stored. The server's stays the record; a mismatch is refused,
+   * named, and nothing is written.
+   */
+  const mismatch = captureHashMismatch(input.captureSha256, contentSha256);
+  if (mismatch) {
+    await writeAudit({
+      actor,
+      action: "evidence.hash_mismatch",
+      entityType: "file",
+      entityId: fileId,
+      summary: `Capture ${input.clientCaptureId} on ${input.itemKey} refused: hashed ${input.captureSha256} at capture, stored bytes hash ${contentSha256}.`,
+    });
+    return { ok: false, error: mismatch };
   }
 
   /*
@@ -2324,6 +2374,20 @@ export async function submitEvidence(
         : "This file has no protocol attached, so there is nothing to submit against.",
       blockers: view.state.blockers,
     };
+  }
+
+  /*
+   * A PACKAGE THAT CAME BACK GOES BACK ANSWERED. Robert's T5 and his answer 3
+   * of 2026-11-07 (6717223376): a reply to the engineer's note, and what was
+   * asked for captured, unless the note only asked a question
+   * (src/lib/revision-rules.ts). Read here, on the server, so the button on
+   * the phone is a convenience and this is the rule.
+   */
+  if (view.file.status === REVISIONS_REQUESTED) {
+    const revision = await revisionFor(fileId);
+    if (!revision) return { ok: false, error: "The engineer's request could not be read, so the package was not submitted. Try again." };
+    const refusal = resubmitRefusal(revision.round, revision.newEvidenceSinceRequest);
+    if (refusal) return { ok: false, error: refusal, blockers: [refusal] };
   }
 
   const moved = await transitionFile(actor, fileId, "evidence_submitted", note, context);
@@ -3252,5 +3316,294 @@ export async function restoreCertification(
         : "Nothing was restored: that technician holds no withdrawn certification for that line. Refresh the page.",
     };
   }
+  return { ok: true };
+}
+
+/* ------------------------------------------------------------- the day pack */
+
+/**
+ * The technician's day, packed for the phone so the job opens with no signal.
+ * Robert's T2 and his answer 1 of 2026-11-07 (src/lib/field-day-rules.ts).
+ *
+ * Only the caller's own assigned jobs in the field, visiting today or tomorrow
+ * on the firm's calendar or not yet given a visit time. Each job carries its
+ * address and the same checklist props the job page renders
+ * (job-checklist-props.ts), built through jobView, so the phone is shown
+ * exactly what the page would show. Nothing about money: jobView's offer and
+ * its amount are never read into the pack.
+ *
+ * A failed read refuses the whole pack rather than returning part of the day:
+ * a pack missing a job reads to the phone as that job having been taken away,
+ * and the phone would clear it.
+ */
+export async function dayPackFor(
+  actor: Actor | null,
+): Promise<{ ok: true; pack: DayPack } | { ok: false; error: string }> {
+  const db = supabaseAdmin();
+  if (!db || !actor) return { ok: false, error: "Not signed in." };
+  if (!can(actor, "offers.list_own") || !can(actor, "evidence.capture")) {
+    return { ok: false, error: "The day pack is for a technician's own jobs." };
+  }
+
+  const { data: files, error } = await db
+    .from("eng_files")
+    .select("id, assigned_tech_id, status")
+    .eq("assigned_tech_id", actor.id)
+    .in("status", [...DAY_PACK_STATUSES])
+    .limit(200);
+  if (error || !files) return { ok: false, error: `Your jobs could not be read: ${error?.message ?? "nothing came back"}` };
+
+  const ids = files.map((f) => f.id as string);
+  const visitByFile = new Map<string, string>();
+  if (ids.length) {
+    const { data: calls, error: callError } = await db
+      .from("eng_contact_log")
+      .select("file_id, visit_at, created_at")
+      .in("file_id", ids)
+      .eq("outcome", "visit_time_set")
+      .order("created_at", { ascending: false })
+      .limit(1000);
+    if (callError || !calls) return { ok: false, error: `The visit times could not be read: ${callError?.message ?? "nothing came back"}` };
+    /* Newest first, so the first time seen for a file is the one in force. */
+    for (const c of calls) {
+      const fid = c.file_id as string;
+      if (!visitByFile.has(fid) && c.visit_at) visitByFile.set(fid, c.visit_at as string);
+    }
+  }
+
+  const now = new Date();
+  const today = todayInFirmCalendar(now);
+  /*
+   * Tomorrow is today's calendar date plus one, read at noon UTC so no zone
+   * moves it. Now plus 24 hours would skip a day in the last hour before the
+   * spring clock change.
+   */
+  const tomorrow = nextCalendarDay(today);
+
+  const jobs: DayPackJob[] = [];
+  for (const f of files) {
+    const visitAt = visitByFile.get(f.id as string) ?? null;
+    const visitDay = visitAt ? todayInFirmCalendar(new Date(visitAt)) : null;
+    if (!inDayPack({ assigned_tech_id: f.assigned_tech_id as string | null, status: f.status as string }, actor.id, visitDay, today, tomorrow)) {
+      continue;
+    }
+    const view = await jobView(actor, f.id as string);
+    if (!view) return { ok: false, error: "One of your jobs could not be read, so the day was not packed. Try again." };
+    jobs.push({
+      fileId: view.file.id,
+      fileNumber: view.file.file_number,
+      propertyAddress: view.file.property_address,
+      city: view.file.city,
+      county: view.file.county,
+      postalCode: view.file.postal_code,
+      serviceName: services.find((s) => s.slug === view.file.service_slug)?.name ?? view.file.service_slug,
+      status: view.file.status,
+      twiaCounty: view.file.twia_county,
+      visitAt,
+      checklist: checklistPropsFrom(view, photoAnswersFor(view.protocol?.document_number ?? null)),
+    });
+  }
+
+  return { ok: true, pack: { techId: actor.id, packedAt: now.toISOString(), jobs } };
+}
+
+/* ------------------------------------------------------------ the visit clock */
+
+/**
+ * The visit clock on one file, read from eng_file_events, oldest first. Null
+ * when it could not be read, which the screen says rather than showing an empty
+ * clock: "no arrival recorded" and "the record could not be read" are different
+ * answers (src/lib/visit-clock-rules.ts).
+ */
+export async function visitClockFor(fileId: string): Promise<VisitState | null> {
+  const db = supabaseAdmin();
+  if (!db) return null;
+  const { data, error } = await db
+    .from("eng_file_events")
+    .select("kind, created_at, meta")
+    .eq("file_id", fileId)
+    .in("kind", [...VISIT_KINDS])
+    .order("created_at", { ascending: true })
+    .limit(200);
+  if (error || !data) return null;
+  return visitState(
+    data.map((r) => ({
+      kind: r.kind as string,
+      at: r.created_at as string,
+      late: (r.meta as { late?: unknown } | null)?.late === true,
+    })),
+  );
+}
+
+/**
+ * Record an arrival at the property or a leaving of it. Robert's T6,
+ * 2026-11-07: the server's clock, never the phone's.
+ *
+ * NO TIME IS READ FROM THE REQUEST. The row is inserted without created_at, so
+ * the column default, now() on the database, is the time, and the time that
+ * comes back is read off the row that was written.
+ *
+ * Only the technician the file is assigned to, the same rule every evidence
+ * write carries (evidenceWriteRefusal, Robert's Q3 of 2026-11-02), and only
+ * while the file is in the field.
+ *
+ * NOT THE REFUND RULE. Whether anybody attended, for the refund rule, is
+ * still set when evidence is submitted (recordTechnicianVisit). An arrival
+ * pressed on a phone is not made to move money here; that would be a change
+ * to a money rule, and it is Robert's to make.
+ */
+export async function recordVisit(
+  actor: Actor & { email: string },
+  fileId: string,
+  action: VisitAction,
+  context: Context = {},
+  /* Held on the phone for want of signal and sent when it returned (answer 4). Carries no time. */
+  late = false,
+): Promise<{ ok: true; at: string } | { ok: false; error: string }> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+
+  const view = await jobView(actor, fileId);
+  if (!view) return { ok: false, error: "That job is not yours." };
+
+  const notYours = evidenceWriteRefusal({ id: actor.id, mayCapture: can(actor, "evidence.capture") }, view.file.assigned_tech_id);
+  if (notYours) return { ok: false, error: notYours };
+
+  if (CAPTURE_CLOSED_STATUSES.includes(view.file.status)) {
+    return { ok: false, error: "This file has left the field. The visit clock is closed on it." };
+  }
+
+  const state = await visitClockFor(fileId);
+  if (!state) return { ok: false, error: "The visit clock could not be read, so nothing was recorded. Try again." };
+  const refusal = visitRefusal(state, action);
+  if (refusal) return { ok: false, error: refusal };
+
+  const kind = VISIT_KIND_FOR[action];
+  const { data, error } = await db
+    .from("eng_file_events")
+    .insert({
+      file_id: fileId,
+      actor_id: actor.id,
+      kind,
+      body:
+        (action === "arrive" ? "Arrived at the property." : "Left the property.") +
+        (late ? " Pressed with no signal; recorded when signal returned." : ""),
+      meta: { late },
+    })
+    .select("created_at")
+    .single();
+  if (error || !data) {
+    return { ok: false, error: `The ${action === "arrive" ? "arrival" : "leaving"} was not recorded: ${error?.message ?? "nothing came back"}` };
+  }
+
+  await writeAudit({
+    actor,
+    action: kind,
+    entityType: "file",
+    entityId: fileId,
+    summary: `${view.file.file_number}: ${action === "arrive" ? "arrived at" : "left"} the property (server time ${data.created_at as string}).`,
+    ...context,
+  });
+
+  return { ok: true, at: data.created_at as string };
+}
+
+/* ----------------------------------------------------------- returned evidence */
+
+/**
+ * The latest time this file was sent back for revisions, the technician's
+ * reply to it, and whether anything was added to the package since. Robert's
+ * T5, 2026-11-07 (src/lib/revision-rules.ts).
+ *
+ * Null when any of the three reads failed: the caller says so rather than
+ * reading "never sent back" or "nothing added", because both of those answers
+ * decide whether a package may be submitted.
+ */
+export async function revisionFor(
+  fileId: string,
+): Promise<{ round: RevisionRound | null; newEvidenceSinceRequest: boolean } | null> {
+  const db = supabaseAdmin();
+  if (!db) return null;
+  const { data: events, error } = await db
+    .from("eng_file_events")
+    .select("kind, to_status, body, created_at")
+    .eq("file_id", fileId)
+    /* Quoted, because "revision.reply" carries a dot and PostgREST splits a filter on dots. */
+    .or(`kind.eq."${REVISION_REPLY}",to_status.eq.${REVISIONS_REQUESTED}`)
+    .order("created_at", { ascending: true })
+    .limit(500);
+  if (error || !events) return null;
+  const round = latestRevision(
+    events.map((e) => ({
+      kind: e.kind as string,
+      to_status: (e.to_status as string | null) ?? null,
+      body: (e.body as string | null) ?? null,
+      at: e.created_at as string,
+    })),
+  );
+  if (!round) return { round: null, newEvidenceSinceRequest: false };
+
+  /*
+   * Anything added since the request: a capture first written after it, or an
+   * exception recorded after it. created_at on a capture is the database's and
+   * is not moved by a replay's upsert; recorded_at on an exception is set to
+   * the database's now() on every write, so a reason corrected after the
+   * request counts, which is what the engineer would want to see.
+   */
+  const [captures, exceptions] = await Promise.all([
+    db.from("eng_evidence_items").select("id", { count: "exact", head: true }).eq("file_id", fileId).gt("created_at", round.requestedAt),
+    db.from("eng_checklist_exceptions").select("id", { count: "exact", head: true }).eq("file_id", fileId).gt("recorded_at", round.requestedAt),
+  ]);
+  if (captures.error || exceptions.error || captures.count === null || exceptions.count === null) return null;
+  return { round, newEvidenceSinceRequest: captures.count + exceptions.count > 0 };
+}
+
+/**
+ * The technician's reply to a revision request, from the phone. Robert's T5.
+ * A file event of kind revision.reply, so it sits in the file's timeline next
+ * to the request it answers and the engineer reads it in review.
+ *
+ * Only the assigned technician, only while the file is sent back, and only
+ * against a request that exists.
+ */
+export async function replyToRevision(
+  actor: Actor & { email: string },
+  fileId: string,
+  body: string,
+  context: Context = {},
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+
+  const view = await jobView(actor, fileId);
+  if (!view) return { ok: false, error: "That job is not yours." };
+  const notYours = evidenceWriteRefusal({ id: actor.id, mayCapture: can(actor, "evidence.capture") }, view.file.assigned_tech_id);
+  if (notYours) return { ok: false, error: notYours };
+  if (view.file.status !== REVISIONS_REQUESTED) {
+    return { ok: false, error: "This file is not waiting on a reply. A reply is for a package the engineer sent back." };
+  }
+
+  const refusal = replyRefusal(body);
+  if (refusal) return { ok: false, error: refusal };
+
+  const revision = await revisionFor(fileId);
+  if (!revision) return { ok: false, error: "The engineer's request could not be read, so the reply was not sent. Try again." };
+  if (!revision.round) return { ok: false, error: "There is no request from the engineer on this file to reply to." };
+
+  const { error } = await db
+    .from("eng_file_events")
+    .insert({ file_id: fileId, actor_id: actor.id, kind: REVISION_REPLY, body: body.trim() })
+    .select("id")
+    .single();
+  if (error) return { ok: false, error: `The reply was not saved: ${error.message}` };
+
+  await writeAudit({
+    actor,
+    action: REVISION_REPLY,
+    entityType: "file",
+    entityId: fileId,
+    summary: `${view.file.file_number}: the technician replied to the engineer's revision request.`,
+    ...context,
+  });
   return { ok: true };
 }

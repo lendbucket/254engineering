@@ -125,6 +125,8 @@ const ADMIN_PAGES = [
   /* The record search, 2026-10-10: behind files.list, closed to a signed out caller. */
   "/portal/search",
   "/portal/jobs",
+  /* The offline job screen (Robert's T2, 2026-11-07): behind offers.list_own, closed to a signed out caller. It renders nothing from the database. */
+  "/portal/jobs/offline",
   "/portal/files",
   // Phase 12 Section 4, Section 1. Names every technician who could be offered
   // each selected file and what each is owed, which is the firm s field spend
@@ -493,6 +495,8 @@ function discoverRoutes() {
 const OPEN_BY_DESIGN = new Set([
   "/portal/login",
   "/portal/set-password",
+  // Where "Forgot your password?" leads (Robert's answer 1, 2026-11-08): information only, no form, no endpoint.
+  "/portal/forgot-password",
   "/api/portal/session",
   "/api/portal/set-password",
   // Open deliberately, and the first thing this audit asks. See LIVENESS below.

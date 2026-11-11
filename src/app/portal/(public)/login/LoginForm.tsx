@@ -2,6 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  ForgotPasswordLink,
+  PasswordField,
+  SIGN_IN_INPUT,
+  SIGN_IN_LABEL,
+  SignInButton,
+  SignInError,
+} from "@/components/portal/SignInFields";
 
 /**
  * The portal sign in form.
@@ -18,6 +26,13 @@ import { useRouter } from "next/navigation";
  * endpoint the fetch below uses, which is a working sign in rather than a
  * credential leak. scripts/security-audit.mjs asserts both, from the rendered
  * page, so they cannot be removed by a tidy up.
+ *
+ * THE 2026-11-08 REDESIGN IS PRESENTATION ONLY (Robert: "a visual change
+ * only"). The endpoint, the body, safeNext, the redirect the server names (the
+ * second factor step among them) and both attributes above are unchanged. What
+ * moved: the shared field parts, a show and hide toggle on the password, and
+ * the administrator sentence under the button, which the order removes. The
+ * two fallback errors now say what failed.
  */
 
 function safeNext(next: string | null): string {
@@ -28,7 +43,16 @@ function safeNext(next: string | null): string {
   return next;
 }
 
-export function LoginForm({ next, disabled }: { next: string | null; disabled: boolean }) {
+export function LoginForm({
+  next,
+  disabled,
+  forgotHref,
+}: {
+  next: string | null;
+  disabled: boolean;
+  /** The reset flow, when staff have one. Absent, no link is drawn. */
+  forgotHref?: string;
+}) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -54,14 +78,14 @@ export function LoginForm({ next, disabled }: { next: string | null; disabled: b
         | null;
 
       if (!res.ok || !body?.ok) {
-        setError(body?.error ?? "That did not work. Try again.");
+        setError(body?.error ?? "Sign in failed, and the server did not say why. Try again.");
         setBusy(false);
         return;
       }
       router.push(body.redirect ?? "/portal");
       router.refresh();
     } catch {
-      setError("The network dropped that. Try again.");
+      setError("Sign in did not reach the server. Check the connection and try again.");
       setBusy(false);
     }
   }
@@ -70,7 +94,7 @@ export function LoginForm({ next, disabled }: { next: string | null; disabled: b
     <form onSubmit={onSubmit} method="post" action="/api/portal/session" noValidate className="mt-7">
       <input type="hidden" name="next" value={target} />
 
-      <label htmlFor="email" className="block text-[14px] font-semibold text-[var(--ink)]">
+      <label htmlFor="email" className={SIGN_IN_LABEL}>
         Email
       </label>
       <input
@@ -82,62 +106,16 @@ export function LoginForm({ next, disabled }: { next: string | null; disabled: b
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         disabled={disabled}
-        /*
-         * 16px, so iOS does not zoom the page on focus and leave it panned.
-         *
-         * It is not on the standards file's type scale, and it is the one place
-         * that is correct: the scale is about hierarchy, and this is about a
-         * platform behaviour. token-audit allows 16 for exactly this reason.
-         */
-        className="mt-1.5 min-h-[var(--tap-target)] w-full rounded-[var(--radius-control)] border border-[var(--border-strong)] bg-white px-3 text-[16px] text-[var(--ink)] outline-none focus:border-[var(--navy)]"
+        className={SIGN_IN_INPUT}
       />
 
-      <label htmlFor="password" className="mt-4 block text-[14px] font-semibold text-[var(--ink)]">
-        Password
-      </label>
-      <input
-        id="password"
-        name="password"
-        type="password"
-        autoComplete="current-password"
-        required
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        disabled={disabled}
-        className="mt-1.5 min-h-[var(--tap-target)] w-full rounded-[var(--radius-control)] border border-[var(--border-strong)] bg-white px-3 text-[16px] text-[var(--ink)] outline-none focus:border-[var(--navy)]"
-      />
+      <PasswordField id="password" name="password" value={password} onChange={setPassword} disabled={disabled} />
 
-      {error ? (
-        <p
-          role="alert"
-          className="mt-4 text-[14px] leading-[1.5] font-semibold text-[var(--ink)]"
-        >
-          {error}
-        </p>
-      ) : null}
+      <SignInError message={error} />
 
-      {/*
-        THE BUTTON WAS GOLD AND IS NOW NAVY.
+      <SignInButton busy={busy} disabled={disabled} />
 
-        The standards file is explicit twice over: the primary button is navy
-        with white text, and gold appears only in the logo, warnings, pending
-        states and the active nav bar. A gold sign in button is gold as
-        decoration, which is the one use the palette rules out.
-
-        This is presentation. Nothing about what the button does changed.
-      */}
-      <button
-        type="submit"
-        disabled={busy || disabled}
-        className="mt-6 min-h-[var(--tap-target)] w-full rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[15px] font-bold text-white transition-colors hover:bg-[var(--navy-hover)] disabled:cursor-not-allowed disabled:opacity-45"
-      >
-        {busy ? "Signing in" : "Sign in"}
-      </button>
-
-      <p className="mt-5 text-[14px] leading-[1.6] text-[var(--secondary)]">
-        Accounts are created by an administrator. If you have lost your password, ask them to send a
-        reset link.
-      </p>
+      {forgotHref ? <ForgotPasswordLink href={forgotHref} /> : null}
     </form>
   );
 }

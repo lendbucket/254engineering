@@ -4,6 +4,70 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
+## THE STORE APP'S DEVICE SESSION: BEFORE THE FIRST STORE SUBMISSION
+
+Robert's T8 answer 1 of 2026-11-08 (issue #1, 6725977818). The debug build of
+the store app keeps the portal's sign-in cookie inside its own web view, and
+that stays. Putting the sign-in in the phone's keystore, which his T8 order
+names, needs a device session the server issues:
+
+- a device token, stored by `@aparajita/capacitor-secure-storage` (installed,
+  not wired), exchanged for a portal session at launch;
+- revoked on sign out, and when the session epoch moves (M2, 0120), so a phone
+  can never outlive the session rules every browser obeys;
+- a migration for the device tokens, a proof, and its own full-lane board.
+
+**Not built because** it is new security behaviour on the sign-in path, and the
+debug build does not need it. **It must be built before the first store
+submission.** The account of the store build is `docs/mobile-store-build.md`.
+
+## THE WRITERS SHARD CAN STOP ON ITS OWN SERVER: A TEARDOWN RACE ON PORT 4300
+
+Board 42505750069 (bundle 125, kinds at `fee37b9`, 2026-11-08). After
+`native-audit` finished its 64 signed in screens, the next audit found port 4300
+still answering and the runner refused to start, correctly, because attaching
+to whatever is there would score the wrong server. The suite printed `THE SUITE
+DID NOT RUN TO COMPLETION` and 14 writers audits never ran. Nothing on the
+branch touched the harness.
+
+**What to build, full lane, on its own branch:** before an audit starts its own
+server, the runner waits for the previous audit's server process to exit and
+for the port to stop answering, for a bounded time, and names the process if it
+does not. Not built because the harness is shared by every board and a change
+to it boards on its own. Reported on issue #1 (6725342962).
+
+**The same run also showed development under load**: the queue 1,444 deep and
+4,315 accounts, both audit residue, and a credential read abandoned at 20
+seconds. The queue's growth is the entry "eng_jobs grows forever" below. The
+account count has no entry of its own, and is named here, with the queue,
+because a writer proof's single red sat beside both.
+
+## A TURBOPACK PANIC CAN KILL A WRITERS AUDIT'S DEV SERVER, AND THE BOARD STAYS GREEN
+
+Board 42636411651 (T7 at `26c9550`, 2026-11-09). contrast-audit's dev server on
+port 4302 died while compiling `/portal/techs`. Its log ends:
+
+    thread 'tokio-rt-worker' (33314) panicked at turbopack/crates/turbo-tasks-backend/src/backend/operation/aggregation_update.rs:2021:17:
+    turbo-tasks: an internal panic occurred outside the per-task panic boundary. This is a bug in turbo-tasks/Turbopack ...
+    Aborting.
+
+Every page after it answered connection refused, so contrast-audit measured
+nothing on 16 screens at both 390 and 1280, 32 combinations: account
+forgot-password, home, order, orders, settings, sign-up and statements; partner
+agreement, home, materials, referrals and statements; portal techs, training,
+waiting and windstorm-inquiries. It reported each as COULD NOT TELL and exited
+zero, so the board read PASS while writers COULD NOT TELL stood at 44 against the
+standing 11. T7 changed the enrolment form only. It boarded again unchanged
+(42703705505) and the panic did not recur; it has not been seen on any other
+board.
+
+**What to build, full lane, on its own branch, beside the port 4300 entry
+above:** when an audit's own server stops answering mid-run, the runner says so
+in the audit's verdict rather than leaving a run of COULD NOT TELL lines that a
+green board carries, and it names the server log's last line. Not built because
+the harness is shared by every board and a change to it boards on its own.
+Robert's answer 2 of 6757746292: record it, no fix now.
+
 ## SALES LIST IMPORTS (CRM R2, 2026-11-02): SIX SOURCES WAIT, AND THE PLACES LOOKUP IS CLOSED
 
 Built on `feat/crm-r2-imports`, Robert's sales CRM ruling R2. The full account of
@@ -396,6 +460,17 @@ offline needs, and the publisher entity. That document is where the reasoning
 lives; this entry is the pointer. What is open: the six questions there, the
 first being which legal entity publishes the app, and the five phases, none of
 them started.
+
+## THE STORE APPS (T8): A SHELL CONFIGURED, NOTHING INSTALLED OR BUILT, WAITING ON CRAFTLINE'S ACCOUNTS
+
+Robert's T8, in scope since 2026-11-07 (issue #1, 6716719712, 6716738509, and
+answer 8 of 6717223376): Capacitor around the technician screens, with the
+camera, native push and the session in the keystore, publishing under Craftline
+Brands' D-U-N-S and Apple account once they exist. The plan, the steps and what
+Robert provides are in `docs/mobile-store-build.md`; this entry is the pointer.
+What is open: the accounts, the app identifier's domain, the secure storage
+plugin and the per-device session it needs, and the native push token's
+migration. Boarded only once T2 to T7 are merged.
 
 ## THE NIGHTLY BACKUP IS BUILT AND SWITCHED OFF: ROBERT CREATES THE BUCKET AND SETS THE SECRETS
 
