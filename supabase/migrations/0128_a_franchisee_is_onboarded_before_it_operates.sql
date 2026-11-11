@@ -28,11 +28,10 @@
  *                      off), read for each technician. Dispatch already refuses
  *                      an uncertified technician for a line; this step shows it.
  *
- * Which coverages a franchisee must have on file is FR6 and is not ruled. The
- * kinds below are the standing list's (general liability, auto, workers
- * compensation or a non-subscriber filing); which of them the gate REQUIRES
- * lives in code, src/lib/franchisee-onboarding-rules.ts, asked of Robert as
- * question 12 on issue #1.
+ * Which coverages a franchisee must have on file is Robert's answer 12 of
+ * 2026-11-11: FR6's list, general liability, auto, and workers compensation or
+ * a non-subscriber filing. The kinds below are those four; which of them the
+ * gate REQUIRES lives in code, src/lib/franchisee-onboarding-rules.ts.
  *
  * A CERTIFICATE ROW RECORDS WHAT THE CERTIFICATE SAYS, AND ONLY ITS WITHDRAWAL
  * MAY BE WRITTEN, the rule 0090 set: a certificate recorded in error or

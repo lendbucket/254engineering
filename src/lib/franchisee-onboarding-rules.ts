@@ -8,12 +8,11 @@
  * is met. Each step is decided here from facts the server reads, so the proof
  * exercises the same function the status change asks.
  *
- * THE COVERAGES ARE NOT RULED. FR6 lists general liability, auto, and workers
- * compensation or a non-subscriber filing, and Robert has not ruled them into
- * any document (question 12 on issue #1, 2026-11-11). They are the requirement
- * here because they are the only list anybody has written; the limits, the
- * additional insured wording and the certificate process are counsel's, and
- * none of them is checked.
+ * THE COVERAGES ARE ROBERT'S ANSWER 12 OF 2026-11-11 ON ISSUE #1, "yes those
+ * three": general liability, auto, and workers compensation or a
+ * non-subscriber filing, FR6's list. The limits, the additional insured
+ * wording and the certificate process are counsel's, and none of them is
+ * checked here.
  */
 
 export const CERTIFICATE_KINDS = ["general_liability", "auto", "workers_compensation", "non_subscriber_filing"] as const;
@@ -26,7 +25,7 @@ export const CERTIFICATE_KIND_LABEL: Record<CertificateKind, string> = {
   non_subscriber_filing: "Non-subscriber filing",
 };
 
-/** Each requirement is met by a certificate of any one of its kinds. From FR6, not ruled: see above. */
+/** Each requirement is met by a certificate of any one of its kinds. Robert's answer 12 of 2026-11-11: see above. */
 export const REQUIRED_COVERAGES: readonly { label: string; anyOf: readonly CertificateKind[] }[] = [
   { label: "general liability", anyOf: ["general_liability"] },
   { label: "auto", anyOf: ["auto"] },
