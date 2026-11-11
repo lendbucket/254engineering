@@ -4633,7 +4633,9 @@ export const APPLIED = [
     because:
       "WRITTEN 2026-11-11 ON feat/x1-franchisee-tenant FOR ROBERT'S OVERNIGHT ORDERS OF 2026-11-10, ITEM 3, PLATFORM " +
       "ITEM X1: a franchisee record holding territories (0116) and its people, with its office NAP; staff and admin " +
-      "only. APPLIED NOWHERE. Development in a sitting first; production only in a sitting with Robert. Shares the " +
+      "only. ON DEVELOPMENT SINCE 2026-11-11 (6790181623, version 20261111074347, stored 18a360cf, grants 194 to 195; " +
+      "development's shape aa9a945e at 1624 columns holds both 0125s, as predicted from a replay of the two together). " +
+      "Production only in a sitting with Robert. Shares the " +
       "number 0125 with the staged phone keystore migration, so whichever merges second is renumbered on a new stage " +
       "branch. Additive: three tables and one grant.",
   },
