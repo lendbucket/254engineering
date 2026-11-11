@@ -91,14 +91,14 @@ check("C: the franchise is found by the reader's own live membership", Boolean(m
 check("C: the franchisee row is read by that membership's franchise", /\.from\("eng_franchisees"\)\s*\.select\([^)]*\)\s*\.eq\("id", franchiseeId\)/.test(lib));
 const tr = readSource("src/lib/territory-revenue.ts");
 check("C: the owner's read hands the shared territory reader the franchise found by membership, and nothing else", /const territory = await territoryFacts\(db, franchiseeId\);/.test(lib) && (lib.match(/territoryFacts\(/g) ?? []).length === 1);
-check("C: its territories are read by that franchise", /\.from\("eng_franchisee_territories"\)\.select\("territory_id"\)\.eq\("franchisee_id", franchiseeId\)/.test(tr));
+check("C: its territories are read by that franchise", /readEveryIn<[^>]*>\(franchiseeIds,[^;]*\.from\("eng_franchisee_territories"\)\s*\.select\("franchisee_id, territory_id"\)\s*\.in\("franchisee_id", \[\.\.\.chunk\]\)/s.test(tr) && /const many = await territoryFactsForMany\(db, \[franchiseeId\]\);/.test(tr));
 check("C: its people are read by that franchise", /\.from\("eng_franchisee_members"\)\.select\("profile_id"\)\.eq\("franchisee_id", franchiseeId\)/.test(lib));
 check("C: territory names are read only for the territories it holds", /readEveryIn<[^>]*>\(territoryIds,[^;]*\.from\("eng_crm_territories"\)\.select\("id, name"\)\.in\("id", \[\.\.\.chunk\]\)/s.test(lib));
-check("C: counties are read only for the territories it holds", /readEveryIn<[^>]*>\(territoryIds,[^;]*\.from\("eng_crm_territory_counties"\)\.select\("county"\)\.in\("territory_id", \[\.\.\.chunk\]\)/s.test(tr));
+check("C: counties are read only for the territories it holds", /readEveryIn<[^>]*>\(territoryIds,[^;]*\.from\("eng_crm_territory_counties"\)\s*\.select\("territory_id, county"\)\s*\.in\("territory_id", \[\.\.\.chunk\]\)/s.test(tr));
 check("C: people are read only for its own members", /readEveryIn<[^>]*>\(memberIds,[^;]*\.from\("eng_profiles"\)\.select\("id, display_name, role"\)\.in\("id", \[\.\.\.chunk\]\)/s.test(lib));
 check("C: sales list companies are read by name, county and stage only, no contact detail", /\.from\("eng_prospects"\)\.select\("id, company, county, stage"\)/.test(lib));
 check("C: and only those in its counties are returned", /prospects: companies\.rows\s*\.filter\(\(p\) => inTerritory\(counties, p\.county\)\)/.test(lib));
-check("C: orders are demonstration free, and only those in its counties are kept", /\.eq\("is_demo", false\)/.test(tr) && /const theirs = all\.rows\.filter\(\(o\) => inTerritory\(counties, o\.county\)\)/.test(tr));
+check("C: orders are demonstration free, and each franchise keeps only those in its own counties", /\.eq\("is_demo", false\)/.test(tr) && /const theirs = all\.rows\.filter\(\(o\) => inTerritory\(anyCounties, o\.county\)\);/.test(tr) && /\.filter\(\(o\) => s\.counties\.has\(o\.county\)\)/.test(tr));
 check("C: refunds are read only for its own orders", /readEveryIn<[^>]*>\(\s*theirs\.map\(\(o\) => String\(o\.id\)\),[^;]*\.from\("eng_order_payments"\)/s.test(tr));
 const orderRow = lib.match(/orders: territory\.facts\.orders\.map\(\(o\) => \(\{([^}]*)\}\)\)/)?.[1] ?? "";
 check("C: no order row it returns carries a figure", orderRow.length > 0 && !/cents|total|price/i.test(orderRow), orderRow.trim());

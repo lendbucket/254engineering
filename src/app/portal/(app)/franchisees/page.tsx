@@ -19,6 +19,8 @@ import { CERTIFICATE_KINDS, CERTIFICATE_KIND_LABEL } from "@/lib/franchisee-onbo
 import { statementFor } from "@/lib/franchise-statement";
 import { CAPACITY_FEE_LINE, type StatementRow } from "@/lib/franchise-statement-rules";
 import { moneyOr } from "@/lib/ops-money";
+import { franchisorReport } from "@/lib/franchisor-report";
+import { COLLECTION_LINE, ITEM_19_LINE } from "@/lib/franchisor-report-rules";
 
 const statementMonth = (month: string) => formatInFirmZone(`${month}-15T12:00:00Z`, { month: "long", year: "numeric" }) ?? month;
 const STATEMENT_COLUMNS: Column<StatementRow & { id: string }>[] = [
@@ -71,6 +73,9 @@ export default async function FranchiseesPage({ searchParams }: { searchParams: 
   const rows = read.ok ? read.rows : [];
   const shown = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const base = { q: params.q, status, sort };
+  /* Franchisor reporting (platform item X6), over every franchisee the list holds: one pass, see franchisor-report.ts. */
+  const report = await franchisorReport(actor, rows.map((r) => r.id));
+  const health = (r: FranchiseeRow) => (report.ok ? report.report.byFranchisee.get(r.id) : undefined);
 
   const columns: Column<FranchiseeRow>[] = [
     { key: "name", header: "Franchisee", cell: (r) => <span className="font-semibold text-[var(--navy)]">{r.legalName}</span> },
@@ -81,6 +86,15 @@ export default async function FranchiseesPage({ searchParams }: { searchParams: 
       cell: (r) => (r.territories.length ? r.territories.map((t) => t.name).join(", ") : "None yet"),
     },
     { key: "people", header: "People", cell: (r) => String(r.members) },
+    { key: "onboarding", header: "Onboarding", cell: (r) => (health(r) ? `${health(r)!.stepsMet} of ${health(r)!.stepsTotal} steps` : "Not read") },
+    {
+      key: "certificates",
+      header: "Expiring soon",
+      desktopOnly: true,
+      cell: (r) => (health(r) ? (health(r)!.certificatesExpiringSoon ? `${health(r)!.certificatesExpiringSoon} within 45 days` : "None") : "Not read"),
+    },
+    { key: "revenue", header: "Revenue this month", numeric: true, cell: (r) => (health(r) ? moneyOr(health(r)!.revenueThisMonthCents, "Not known") : "Not read") },
+    { key: "due", header: "Due this month", numeric: true, cell: (r) => (health(r) ? moneyOr(health(r)!.dueThisMonthCents, "Not known") : "Not read") },
     { key: "office", header: "Office", desktopOnly: true, cell: officeLine },
     { key: "phone", header: "Phone", cell: (r) => (r.office.phone ? <PhoneLink phone={r.office.phone} /> : "None yet") },
     { key: "added", header: "Added", desktopOnly: true, cell: (r) => when(r.createdAt) },
@@ -93,6 +107,38 @@ export default async function FranchiseesPage({ searchParams }: { searchParams: 
         title="Franchisees"
         lede="The firm's own record of each franchisee it has an agreement with: its office, the sales territories it holds, and its people. Staff and administrators only; nothing here is public."
       />
+      <Panel
+        title="Franchisor reporting"
+        className="mb-6"
+        description="Across every franchisee listed below: territory revenue (paid orders in their counties, net of refunds) and what their statements say is due this month."
+      >
+        {!report.ok ? (
+          <p role="alert" className="text-[14px] font-semibold text-[var(--ink)]">{report.error}</p>
+        ) : (
+          <dl className="grid gap-3 text-[14px] sm:grid-cols-2">
+            <div>
+              <dt className="text-[var(--secondary)]">Revenue, {statementMonth(report.report.thisMonth)} to date</dt>
+              <dd className="font-semibold text-[var(--ink)]">{moneyOr(report.report.revenueThisMonthCents, "Not known: an order this month carries no total")}</dd>
+            </div>
+            <div>
+              <dt className="text-[var(--secondary)]">Revenue, {statementMonth(report.report.lastMonth)}</dt>
+              <dd className="font-semibold text-[var(--ink)]">{moneyOr(report.report.revenueLastMonthCents, "Not known: an order that month carries no total")}</dd>
+            </div>
+            <div>
+              <dt className="text-[var(--secondary)]">Due this month, by the statements</dt>
+              <dd className="font-semibold text-[var(--ink)]">{moneyOr(report.report.dueThisMonthCents, "Not known: an order this month carries no total")}</dd>
+            </div>
+            <div>
+              <dt className="text-[var(--secondary)]">Collected</dt>
+              <dd className="text-[var(--ink)]">{COLLECTION_LINE}</dd>
+            </div>
+            <div className="sm:col-span-2">
+              <dt className="text-[var(--secondary)]">Item 19 data set</dt>
+              <dd className="text-[var(--ink)]">{ITEM_19_LINE}</dd>
+            </div>
+          </dl>
+        )}
+      </Panel>
       <Panel title="Add a franchisee" className="mb-6">
         <NewFranchiseeForm />
       </Panel>
