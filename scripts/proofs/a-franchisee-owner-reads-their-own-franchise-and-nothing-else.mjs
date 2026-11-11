@@ -12,10 +12,14 @@
  *      franchisee's people.
  *   C  the scope, read in the code: the one function that reads an owner's
  *      franchise takes no id, finds the franchise by the reader's own live
- *      membership, reads every other row through that franchise, touches only
- *      the five tables it names, and reads no email, phone or money column of
- *      a person. The page asks the same grant, takes nothing from the address,
- *      and changes nothing.
+ *      membership, and reads every other row through that franchise: its
+ *      territories, their counties, its people, and the sales list companies
+ *      and orders in its counties by the sales list's own county rule. It
+ *      touches only the ten tables it names, returns no figure on any order
+ *      row, reads no cost, pay or commission, and computes revenue as paid
+ *      orders net of refunds by month (Robert's reading 4 of 2026-11-11). The
+ *      page asks the same grant, takes two page numbers from the address and
+ *      nothing else, and changes nothing.
  *   D  the seed, replayed: after 0127 the role exists with its second factor
  *      required, holds exactly its three grants, and franchise.read_own has
  *      exactly two holders.
@@ -26,6 +30,7 @@ import { PGlite } from "@electric-sql/pglite";
 import { readSource } from "../lib/read-source.mjs";
 
 const rules = await import("../../src/lib/franchisee-rules.ts");
+const own = await import("../../src/lib/own-franchise-rules.ts");
 const { DEFAULT_ROLES } = await import("../../src/lib/ops-authz.ts");
 const { NAV } = await import("../../src/components/portal/nav.ts");
 const { SUPABASE_REPLAY_STUBS } = await import("../lib/replay-stubs.mjs");
@@ -86,21 +91,55 @@ check("C: the franchise is found by the reader's own live membership", Boolean(m
 check("C: the franchisee row is read by that membership's franchise", /\.from\("eng_franchisees"\)\s*\.select\([^)]*\)\s*\.eq\("id", franchiseeId\)/.test(lib));
 check("C: its territories are read by that franchise", /\.from\("eng_franchisee_territories"\)\.select\("territory_id"\)\.eq\("franchisee_id", franchiseeId\)/.test(lib));
 check("C: its people are read by that franchise", /\.from\("eng_franchisee_members"\)\.select\("profile_id"\)\.eq\("franchisee_id", franchiseeId\)/.test(lib));
-check("C: territory names are read only for the territories it holds", /\.from\("eng_crm_territories"\)\.select\("id, name"\)\.in\("id", territoryIds\)/.test(lib));
-check("C: people are read only for its own members", /\.from\("eng_profiles"\)\.select\("id, display_name, role"\)\.in\("id", memberIds\)/.test(lib));
+check("C: territory names are read only for the territories it holds", /readEveryIn<[^>]*>\(territoryIds,[^;]*\.from\("eng_crm_territories"\)\.select\("id, name"\)\.in\("id", \[\.\.\.chunk\]\)/s.test(lib));
+check("C: counties are read only for the territories it holds", /readEveryIn<[^>]*>\(territoryIds,[^;]*\.from\("eng_crm_territory_counties"\)\.select\("county"\)\.in\("territory_id", \[\.\.\.chunk\]\)/s.test(lib));
+check("C: people are read only for its own members", /readEveryIn<[^>]*>\(memberIds,[^;]*\.from\("eng_profiles"\)\.select\("id, display_name, role"\)\.in\("id", \[\.\.\.chunk\]\)/s.test(lib));
+check("C: sales list companies are read by name, county and stage only, no contact detail", /\.from\("eng_prospects"\)\.select\("id, company, county, stage"\)/.test(lib));
+check("C: and only those in its counties are returned", /prospects: companies\.rows\s*\.filter\(\(p\) => inTerritory\(counties, p\.county\)\)/.test(lib));
+check("C: orders are demonstration free, and only those in its counties are kept", /\.eq\("is_demo", false\)/.test(lib) && /const theirs = allOrders\.rows\.filter\(\(o\) => inTerritory\(counties, o\.county\)\)/.test(lib));
+check("C: refunds are read only for its own orders", /readEveryIn<[^>]*>\(\s*theirs\.map\(\(o\) => String\(o\.id\)\),[^;]*\.from\("eng_order_payments"\)/s.test(lib));
+const orderRow = lib.match(/orders: ordersWithDay\s*\.map\(\(o\) => \(\{([^}]*)\}\)\)/)?.[1] ?? "";
+check("C: no order row it returns carries a figure", orderRow.length > 0 && !/cents|total|price/i.test(orderRow), orderRow.trim());
+check("C: its revenue is computed by the shared rule, by month", /revenue: revenueByMonth\(/.test(lib) && /import \{ inTerritory, revenueByMonth, type MonthRevenue \} from "\.\/own-franchise-rules"/.test(lib));
 const tables = [...new Set([...lib.matchAll(/\.from\("([a-z_]+)"\)/g)].map((m) => m[1]))].sort();
-check(
-  "C: it touches the five tables it names and no other",
-  JSON.stringify(tables) === JSON.stringify(["eng_crm_territories", "eng_franchisee_members", "eng_franchisee_territories", "eng_franchisees", "eng_profiles"]),
-  tables.join(", "),
-);
+const ALLOWED_TABLES = [
+  "eng_crm_territories", "eng_crm_territory_counties", "eng_franchisee_members", "eng_franchisee_territories", "eng_franchisees",
+  "eng_onboardings", "eng_order_payments", "eng_profiles", "eng_prospects", "eng_service_orders",
+];
+check("C: it touches the ten tables it names and no other", JSON.stringify(tables) === JSON.stringify(ALLOWED_TABLES), tables.join(", "));
 const writes = lib.match(/\.(insert|update|upsert|delete)\(/g) ?? [];
 check("C: it writes nothing", writes.length === 0, writes.join(", "));
-check("C: it reads no email, phone or money column of a person", !/email|phone_e164|cents|pay_|rate/.test(lib.match(/\.from\("eng_profiles"\)[^\n]*/)?.[0] ?? "x"));
+check("C: it reads no email, phone or money column of a person", !/email|phone|cents|pay_|rate/.test(lib.match(/\.from\("eng_profiles"\)[^\n]*/)?.[0] ?? "x"));
+check("C: it reads no cost, margin, pay or commission column of an order", !/cost|margin|pay|commission|engineer_|tech_/.test(lib.match(/\.from\("eng_service_orders"\)\s*\.select\("([^"]*)"\)/)?.[1] ?? "x"));
+
+/* The rule it shares with the sales list, exercised. */
+const owned = new Set(["Harris"]);
+check("C: a county is in the territory however it is written", owned.size === 1 && own.inTerritory(owned, "harris county") && own.inTerritory(owned, " Harris "));
+check("C: a county outside it, an unknown county and none are not", !own.inTerritory(owned, "Fort Bend") && !own.inTerritory(owned, "Gotham") && !own.inTerritory(owned, null));
+const months = own.revenueByMonth([
+  { status: "paid", totalCents: 50_000, refundedCents: 0, day: "2026-11-02" },
+  { status: "complete", totalCents: 30_000, refundedCents: 10_000, day: "2026-11-20" },
+  { status: "refunded", totalCents: 40_000, refundedCents: 40_000, day: "2026-11-21" },
+  { status: "awaiting_payment", totalCents: 99_900, refundedCents: 0, day: "2026-11-22" },
+  { status: "paid", totalCents: null, refundedCents: 0, day: "2026-10-05" },
+]);
+check(
+  "C: revenue is paid orders net of refunds by month, newest first, with the refunded order counted and earning nothing",
+  JSON.stringify(months) === JSON.stringify([
+    { month: "2026-11", orders: 3, revenueCents: 70_000 },
+    { month: "2026-10", orders: 1, revenueCents: null },
+  ]),
+  JSON.stringify(months),
+);
 
 const page = readSource("src/app/portal/(app)/franchise/page.tsx");
 check("C: the page asks the same grant", /if \(!can\(actor, "franchise\.read_own"\)\) notFound\(\);/.test(page));
-check("C: the page takes nothing from the address", /export default async function YourFranchisePage\(\)/.test(page) && !/searchParams|params/.test(page));
+const fromAddress = [...new Set([...page.matchAll(/params\.([a-zA-Z]+)/g)].map((m) => m[1]))].sort();
+check(
+  "C: the page takes two page numbers from the address and nothing else",
+  JSON.stringify(fromAddress) === JSON.stringify(["op", "pp"]) && /const op = pageOf\(params\.op\);/.test(page) && /const pp = pageOf\(params\.pp\);/.test(page),
+  fromAddress.join(", "),
+);
 check("C: the page reads only through ownFranchise", /await ownFranchise\(actor\)/.test(page) && !/supabaseAdmin|from "@\/lib\/franchisees"/.test(page));
 check("C: the page changes nothing", !/"use client"|<form|action=|fetch\(/.test(page));
 const nav = NAV.find((n) => n.href === "/portal/franchise");
