@@ -2,7 +2,8 @@
 
 **Status: a working map for Robert and his franchise attorney. Internal only.** Nothing here is
 an offer, and nothing here may be shown to a prospect. FR13 stands: no franchise promises to
-anyone before the FDD issues. The minimum population below is a recommendation, not a ruling.
+anyone before the FDD issues. The minimum population below is Robert's working figure, ruled
+2026-11-11; the attorney states the final rule in Item 12.
 
 Robert's instructions for this map, 2026-11-10 (overnight orders, item 2b):
 
@@ -31,14 +32,15 @@ Robert's instructions for this map, 2026-11-10 (overnight orders, item 2b):
 1. **A protected territory is one county, or a group of counties inside one region.** A group
    never crosses a region line, so a territory never splits the regional pages, the regional
    standards or the regional data the platform already keys on.
-2. **Minimum population: 150,000, recommended.** Robert has not set the figure, and the
-   attorney states the final rule in Item 12. At 150,000:
+2. **Minimum population: 150,000, Robert's working figure, ruled 2026-11-11.** The attorney
+   states the final rule in Item 12. At 150,000:
    - 35 counties meet it on their own;
    - the remaining counties of each region form a pool. How many territories each pool can hold
      depends on how the counties are grouped on the map, which this document does not decide.
 3. **A county is never split.** Harris, Dallas, Tarrant, Bexar, Travis, Collin and Denton each
-   hold more than a million people. Whether one of them should hold more than one territory, for
-   example by ZIP code, is outside the rule as given. It is question 2 below.
+   hold more than a million people. **Robert's ruling, 2026-11-11: Harris County is one
+   territory for the first franchisee.** Splitting it, by ZIP code, is revisited before a second
+   Houston sale.
 
 ## Company owned
 
@@ -47,8 +49,9 @@ Robert's instructions for this map, 2026-11-10 (overnight orders, item 2b):
 | San Antonio | Bexar County | 2,160,088 | San Antonio |
 | Corpus Christi | Nueces County | 352,992 | Coastal Bend |
 
-The rest of those two regions, Comal and Guadalupe among them, is not named company owned by the
-rule as given. Whether it is held back is question 3 below.
+**Robert's ruling, 2026-11-11: the rest of those two regions, Comal and Guadalupe among them, is
+held back with the company units until the first three territories open.** It is not named
+company owned, and it is not open.
 
 ## First territories, in Robert's order
 
@@ -58,8 +61,9 @@ rule as given. Whether it is held back is question 3 below.
 | 2 | Frisco | Collin County | 1,297,179 | Dallas Fort Worth |
 | 3 | Fort Worth | Tarrant County | 2,248,466 | Dallas Fort Worth |
 
-**Frisco sits in two counties,** Collin and Denton. Mapping it to Collin County alone leaves the
-Denton County part of the city outside the territory. Question 4 below.
+**Frisco sits in two counties,** Collin and Denton. **Robert's ruling, 2026-11-11: the Frisco
+territory is Collin County alone.** The Denton County part of the city falls outside it, and
+Denton County, at 1,069,346, is its own later territory.
 
 ## Counties that meet 150,000 on their own (35)
 
@@ -184,20 +188,24 @@ come from if he asks for the groups to be drawn.
 | Panhandle | 41 | 885,391 |
 | Coastal Bend | 18 | 783,686 |
 
+## Robert's rulings of 2026-11-11
+
+His answers 4 to 7 on issue #1, each as recommended:
+
+1. **Minimum population: 150,000**, as the working figure. The attorney sets the final rule in
+   Item 12.
+2. **Harris County is one territory** for the first franchisee. Splitting it by ZIP code is
+   revisited before a second Houston sale.
+3. **The rest of the San Antonio and Coastal Bend regions is held back** with the company units
+   until the first three territories open.
+4. **Frisco is Collin County alone.**
+
 ## Gaps for Robert
 
 Each is something this repository does not hold, so the map does not invent it.
 
-1. **The minimum population.** 150,000 is a recommendation. The attorney states the final rule in
-   Item 12.
-2. **Whether a county of more than a million people holds more than one territory.** As given,
-   a county is never split, so Harris, with 5,045,026 people, is one territory.
-3. **Whether the rest of the San Antonio and Coastal Bend regions is held back** with the two
-   company owned units, or open like any other pool.
-4. **Frisco across two counties.** Mapped to Collin County; the Denton County part of the city
-   falls outside it.
-5. **The county groups for each pool,** which need adjacency drawn on the map.
-6. **Owner-occupied households or another measure** in place of, or beside, population, if the
+1. **The county groups for each pool,** which need adjacency drawn on the map.
+2. **Owner-occupied households or another measure** in place of, or beside, population, if the
    attorney prefers one.
 
 ## How the tables were produced

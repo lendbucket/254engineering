@@ -11,15 +11,14 @@ working documents under `docs/franchise/`; nothing in them is an offer, and
 FR13 stands. Each lists what the repository does not hold as a gap rather than
 inventing it:
 
-- `docs/franchise/territory-map.md` (FR5): the minimum population (150,000
-  recommended), whether a county over a million people holds more than one
-  territory, whether the rest of the San Antonio and Coastal Bend regions is
-  held back, Frisco across Collin and Denton, and the county groups for each
-  pool.
+- `docs/franchise/territory-map.md` (FR5): the county groups for each pool,
+  and whether another measure stands beside population. Robert ruled the
+  minimum (150,000, working), Harris as one territory, the held back regions
+  and Frisco as Collin alone on 2026-11-11.
 - `docs/franchise/fdd-inputs-for-counsel.md` (FR8): the entities' formation
-  facts and the Texas exemption notice (FR2); what the veteran discount comes
-  off, the brand fund's base, how territory revenue is measured, and transfer
-  and renewal fees (FR3); franchisee coverage limits (FR6); platform costs
+  facts and the Texas exemption notice (FR2); transfer and renewal fees (FR3;
+  Robert gave the four fee readings on 2026-11-11, for counsel to confirm);
+  franchisee coverage limits (FR6); platform costs
   beyond the technology fee; the owner's initial training (FR10); and the
   marks' filing numbers (Item 13).
 - `docs/franchise/operations-manual.md` (FR7): the franchisee firm line

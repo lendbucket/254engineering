@@ -93,13 +93,18 @@ Facts, each with its source. The attorney decides which become obligations.
 | Veteran discount | 20% |
 | Per job engineering capacity fee | **Not decided.** It waits on the TBPELS letter, FR1. |
 
-- **Not stated by the ruling:** what the veteran discount applies to (the initial fee only, or
-  more); how "territory revenue" is measured; transfer and renewal fees, which FR3 lists and the
-  ruling does not set.
-- **Where the figures will live in the product:** one configuration file carrying Robert's name
-  and the date of the ruling, built with the royalty statement (platform item X3), so the
-  attorney can move any figure in one place. **This packet is the record until that file is on
-  main.**
+**Robert's readings of 2026-11-11** (his answer 8 on issue #1), for counsel to confirm or move:
+- the brand fund is 2% of territory revenue;
+- the veteran discount comes off the initial fee only;
+- "the first three territories" means the first three sold system wide;
+- territory revenue is paid orders in the territory, net of refunds, by calendar month.
+
+- **Not stated by the ruling:** transfer and renewal fees, which FR3 lists and the ruling does
+  not set.
+- **Where the figures live in the product:** `src/config/franchise-fees.ts`, on main since
+  `3b5d8f29`, carries the figures with Robert's name and the date of the ruling, so the attorney
+  can move any figure in one place. The four readings above are recorded here; the file takes
+  them when the royalty statement is built (platform item X3, part two).
 
 ## Item 7: required coverages
 
@@ -173,15 +178,16 @@ supervised inspections for each franchisee's technicians (FR10). Neither is in t
 
 ## Item 12: territory
 
-`docs/franchise/territory-map.md` (FR5), on its own branch at the time of writing:
+`docs/franchise/territory-map.md` (FR5):
 
 - counties grouped into the eight coverage regions;
 - Census Vintage 2025 populations;
-- a recommended 150,000 minimum, not a ruling;
-- San Antonio (Bexar) and Corpus Christi (Nueces) company owned;
-- first territories Harris, then Collin for Frisco, then Tarrant.
+- a 150,000 minimum, Robert's working figure of 2026-11-11, the final rule being counsel's;
+- San Antonio (Bexar) and Corpus Christi (Nueces) company owned, and the rest of those two
+  regions held back until the first three territories open;
+- first territories Harris as one territory, then Collin alone for Frisco, then Tarrant.
 
-Its six open questions are listed there.
+Its remaining gaps are listed there.
 
 ## Item 13: trademarks
 
