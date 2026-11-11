@@ -426,10 +426,16 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * before it was applied anywhere): the nine columns of eng_push_subscriptions,
  * 1,579 to 1,588; the table count moves 120 to 121; no trigger, no function.
  * Read off fingerprint-at.mjs on the chain to 0124.
+ *
+ * Moved by 0125, a franchisee holds territories and its people (Robert's X1,
+ * overnight orders of 2026-11-10): twelve columns of eng_franchisees and seven
+ * each of eng_franchisee_territories and eng_franchisee_members, 1,588 to
+ * 1,614; the table count moves 121 to 124; no trigger, no function. Read off
+ * fingerprint-at.mjs on the chain to 0125, with 0124 reproducing its pair first.
  */
-const EXPECTED_FINGERPRINT = "369b4b0cbec23b07afba8ed83eb0c0c9";
-const EXPECTED_COLUMNS = 1588;
-const EXPECTED_TABLES = 121;
+const EXPECTED_FINGERPRINT = "3e10649f4b211d688f09be0c39f01e70";
+const EXPECTED_COLUMNS = 1614;
+const EXPECTED_TABLES = 124;
 /* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts.
  * 0074 adds two: eng_partner_billing_touch and eng_partner_billing_events_immutable.
  * 0075 adds one: eng_payment_events_guarded.

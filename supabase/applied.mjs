@@ -4619,6 +4619,24 @@ export const APPLIED = [
       "phone, the browser push address or the Firebase or Apple device token, by channel. Web pushes carry no " +
       "payload; native pushes carry county and service only. Additive: one table.",
   },
+  {
+    file: "0125_a_franchisee_holds_territories_and_its_people.sql", appliedBy: "apply_migration",
+    fingerprint: "3e10649f4b211d688f09be0c39f01e70",
+    behaviour: "7fb5c156b581251804d633b5b11aa28d",
+    production: null,
+    proves: { table: "eng_franchisees" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-11 on the chain to 0125, with 0124 reproducing " +
+      "its recorded pair first (369b4b0c at 1588 columns, 0413c529 at 1581 facts). Shape 1588 to 1614 columns: twelve " +
+      "of eng_franchisees and seven each of eng_franchisee_territories and eng_franchisee_members; tables 121 to 124. " +
+      "Behaviour 1581 to 1612 facts. Seeds franchise.manage for admin.",
+    because:
+      "WRITTEN 2026-11-11 ON feat/x1-franchisee-tenant FOR ROBERT'S OVERNIGHT ORDERS OF 2026-11-10, ITEM 3, PLATFORM " +
+      "ITEM X1: a franchisee record holding territories (0116) and its people, with its office NAP; staff and admin " +
+      "only. APPLIED NOWHERE. Development in a sitting first; production only in a sitting with Robert. Shares the " +
+      "number 0125 with the staged phone keystore migration, so whichever merges second is renumbered on a new stage " +
+      "branch. Additive: three tables and one grant.",
+  },
 ];
 
 /*

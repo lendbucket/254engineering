@@ -148,6 +148,14 @@ export const NAV: NavItem[] = [
     action: "roofers.review",
     icon: "applications",
   },
+  {
+    /* The franchisee record (Robert's X1, 2026-11-10). franchise.manage, admin alone, matching the page's guard. */
+    href: "/portal/franchisees",
+    label: "Franchisees",
+    short: "Franchisees",
+    action: "franchise.manage",
+    icon: "partners",
+  },
   { href: "/portal/review", label: "Review queue", short: "Review", action: "review.queue", primary: true, icon: "review" },
   {
     /*

@@ -45,7 +45,8 @@ const at = files.findIndex((f) => f.startsWith("0123_"));
  * dropping the clause: a migration after it that nobody listed here could touch
  * eng_prospects and invalidate section A's replay, and this says so by name.
  */
-const AFTER_0123 = ["0124_a_phone_hears_of_an_offer.sql"];
+/* 0125 (X1, franchisees) adds three tables and touches no eng_prospects column. */
+const AFTER_0123 = ["0124_a_phone_hears_of_an_offer.sql", "0125_a_franchisee_holds_territories_and_its_people.sql"];
 const following = at >= 0 ? files.slice(at + 1) : [];
 check(
   "A: 0123 is in the chain, followed only by the migrations named here",

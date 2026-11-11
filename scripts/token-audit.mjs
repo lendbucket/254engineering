@@ -570,6 +570,9 @@ const PORTED = [
   "src/app/portal/(app)/roofer-applications/page.tsx",
   "src/app/portal/(app)/roofer-applications/RooferApplicationDetail.tsx",
   "src/app/portal/(app)/roofer-applications/RooferDecision.tsx",
+  /* The franchisee record (Robert's X1, 2026-11-10), read here and held to the staff V10 rules below. */
+  "src/app/portal/(app)/franchisees/page.tsx",
+  "src/app/portal/(app)/franchisees/FranchiseesClient.tsx",
   "src/components/portal/FieldAppWorker.tsx",
   /* The day pack kept on the phone for offline start, Robert's T2 of 2026-11-07. Renders nothing. */
   "src/components/portal/DayPackSync.tsx",
@@ -808,6 +811,9 @@ const STAFF_V10 = [
   "src/app/portal/(app)/roofer-applications/page.tsx",
   "src/app/portal/(app)/roofer-applications/RooferApplicationDetail.tsx",
   "src/app/portal/(app)/roofer-applications/RooferDecision.tsx",
+  /* The franchisee record, Robert's X1 of 2026-11-10, held to the staff rules from its first commit (section 2d). */
+  "src/app/portal/(app)/franchisees/page.tsx",
+  "src/app/portal/(app)/franchisees/FranchiseesClient.tsx",
   /* The two staff levels' screens, 2026-10-20, held to the staff rules from their first commit. */
   ...STAFF_LEVEL_SCREENS(),
   "src/app/portal/(app)/review/page.tsx",
