@@ -440,6 +440,9 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * Written as 0125 beside the keystore's 0125 and renumbered on
  * stage/0126-franchisees under Robert's answer 2 of 2026-11-11, its file byte
  * identical.
+ *
+ * 0127, a franchisee owner reads their own franchise (Robert's X2), seeds one
+ * role and four grants and moves no column, so the shape stays where 0126 put it.
  */
 const EXPECTED_FINGERPRINT = "aa9a945e8214af5bb7efbb2b5393045d";
 const EXPECTED_COLUMNS = 1624;

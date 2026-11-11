@@ -19,8 +19,8 @@ export const FRANCHISEE_STATUS_LABEL: Record<FranchiseeStatus, string> = {
   ended: "Ended",
 };
 
-/** The roles a franchisee's people hold today: its technicians and its sales reps. */
-export const FRANCHISEE_MEMBER_ROLES = ["field_tech", "rep"] as const;
+/** The roles a franchisee's people hold: its technicians, its sales reps and, since X2 (0127), its owners. */
+export const FRANCHISEE_MEMBER_ROLES = ["field_tech", "rep", "franchisee_owner"] as const;
 
 export type OfficeInput = { street: string; city: string; postalCode: string; phone: string };
 export type Office = { street: string | null; city: string | null; postalCode: string | null; phone: string | null };

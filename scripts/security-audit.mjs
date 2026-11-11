@@ -124,6 +124,8 @@ const ADMIN_PAGES = [
   "/portal/roofer-applications",
   /* The franchisee record (Robert's X1, 2026-11-10): behind franchise.manage, admin alone, closed to a signed out caller. */
   "/portal/franchisees",
+  /* A franchisee owner's own franchise (Robert's X2, 2026-11-10): behind franchise.read_own, closed to a signed out caller. */
+  "/portal/franchise",
   /* The record search, 2026-10-10: behind files.list, closed to a signed out caller. */
   "/portal/search",
   "/portal/jobs",

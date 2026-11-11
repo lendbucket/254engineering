@@ -191,7 +191,7 @@ export function TerritoryControls({
   );
 }
 
-const ROLE_WORD: Record<string, string> = { field_tech: "Technician", rep: "Rep" };
+const ROLE_WORD: Record<string, string> = { field_tech: "Technician", rep: "Rep", franchisee_owner: "Owner" };
 
 export function MemberControls({
   id,

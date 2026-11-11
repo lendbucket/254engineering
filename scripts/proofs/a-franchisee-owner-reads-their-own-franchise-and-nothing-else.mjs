@@ -1,0 +1,128 @@
+/**
+ * A FRANCHISEE OWNER READS THEIR OWN FRANCHISE, AND NOTHING ELSE (0127).
+ * Robert's overnight orders of 2026-11-10, platform item X2, the franchisee
+ * owner role, cut from X1 under his answer 1 of 2026-11-11.
+ *
+ *   A  the role, pinned as literals: it lands on /portal/franchise, is not a
+ *      system role, and holds exactly three grants; none of them reaches work,
+ *      money, another territory, another person, the record's controls or a
+ *      price.
+ *   B  the grant: franchise.read_own is admin's and the owner's and nobody
+ *      else's, in DEFAULT_ROLES and in the seed, and the owner may be one of a
+ *      franchisee's people.
+ *   C  the scope, read in the code: the one function that reads an owner's
+ *      franchise takes no id, finds the franchise by the reader's own live
+ *      membership, reads every other row through that franchise, touches only
+ *      the five tables it names, and reads no email, phone or money column of
+ *      a person. The page asks the same grant, takes nothing from the address,
+ *      and changes nothing.
+ *   D  the seed, replayed: after 0127 the role exists with its second factor
+ *      required, holds exactly its three grants, and franchise.read_own has
+ *      exactly two holders.
+ */
+import { readdirSync } from "node:fs";
+import { join } from "node:path";
+import { PGlite } from "@electric-sql/pglite";
+import { readSource } from "../lib/read-source.mjs";
+
+const rules = await import("../../src/lib/franchisee-rules.ts");
+const { DEFAULT_ROLES } = await import("../../src/lib/ops-authz.ts");
+const { NAV } = await import("../../src/components/portal/nav.ts");
+const { SUPABASE_REPLAY_STUBS } = await import("../lib/replay-stubs.mjs");
+
+let wrong = 0;
+const check = (name, ok, note = "") => {
+  if (!ok) wrong += 1;
+  console.log(`  ${ok ? "PASS" : "FAIL"}: ${name}${note ? ` (${note})` : ""}`);
+};
+
+/* ------------------------------------------------------------------ A, the role */
+
+const owner = DEFAULT_ROLES.find((r) => r.key === "franchisee_owner");
+check("A: the franchisee owner is a declared role", Boolean(owner));
+const grants = [...(owner?.grants ?? [])].sort();
+check(
+  "A: it holds exactly profiles.read_self, profiles.update_self and franchise.read_own",
+  JSON.stringify(grants) === JSON.stringify(["franchise.read_own", "profiles.read_self", "profiles.update_self"]),
+  grants.join(", "),
+);
+check("A: it lands on its own franchise", owner?.landingPath === "/portal/franchise", owner?.landingPath);
+check("A: it is not a system role", owner?.isSystem === false);
+check("A: creating one asks for nothing beyond a name and an email", Array.isArray(owner?.inviteFields) && owner.inviteFields.length === 0);
+const FORBIDDEN = /^(files\.|orders\.|pricing\.|billing\.|ledger\.|payments\.|crm\.|reports\.|clients\.|offers\.|refunds\.|quotes\.|evidence\.|review\.)|^profiles\.list$|^franchise\.manage$|^roles\.manage$/;
+const reached = (owner?.grants ?? []).filter((g) => FORBIDDEN.test(g));
+check("A: no grant reaches work, money, another territory, another person, the record's controls or a price", reached.length === 0, reached.join(", "));
+
+/* ----------------------------------------------------------------- B, the grant */
+
+const holders = DEFAULT_ROLES.filter((r) => r.grants.includes("franchise.read_own")).map((r) => r.key).sort();
+check("B: franchise.read_own is held by admin and franchisee_owner, nobody else", JSON.stringify(holders) === JSON.stringify(["admin", "franchisee_owner"]), holders.join(", "));
+const manage = DEFAULT_ROLES.filter((r) => r.grants.includes("franchise.manage")).map((r) => r.key);
+check("B: franchise.manage is still admin's alone", JSON.stringify(manage) === JSON.stringify(["admin"]), manage.join(", "));
+check("B: an owner may be one of a franchisee's people", rules.mayBeMember("franchisee_owner"));
+check("B: a technician and a rep still may, and an administrator still may not", rules.mayBeMember("field_tech") && rules.mayBeMember("rep") && !rules.mayBeMember("admin"));
+
+const seed = readSource("supabase/migrations/0127_a_franchisee_owner_reads_their_own_franchise.sql");
+check(
+  "B: 0127 inserts the role landing on /portal/franchise, not system, its second factor required",
+  /insert into eng_roles \(key, name, landing_path, is_system, mfa_requirement\) values\s+\('franchisee_owner', 'Franchisee Owner', '\/portal\/franchise', false, 'required'\);/.test(seed),
+);
+check(
+  "B: 0127 seeds exactly the owner's three grants and admin's franchise.read_own",
+  /insert into eng_role_grants \(role_key, action\) values\s+\('franchisee_owner', 'profiles\.read_self'\),\s+\('franchisee_owner', 'profiles\.update_self'\),\s+\('franchisee_owner', 'franchise\.read_own'\),\s+\('admin', 'franchise\.read_own'\)\s+on conflict/.test(seed),
+);
+const grantLines = (seed.match(/\('[a-z_]+', '[a-z_.]+'\)/g) ?? []).length;
+check("B: and no other grant row", grantLines === 4, String(grantLines));
+
+/* ----------------------------------------------------------------- C, the scope */
+
+const lib = readSource("src/lib/own-franchise.ts");
+const signature = lib.match(/export async function ownFranchise\(([^)]*)\)/);
+check("C: the owner's read takes the actor and nothing else", signature?.[1].trim() === "actor: Actor | null", signature?.[1]);
+check("C: it asks franchise.read_own before it reads", /if \(!actor \|\| !can\(actor, "franchise\.read_own"\)\) return refuse\(/.test(lib));
+const membership = lib.match(/\.from\("eng_franchisee_members"\)\s*\.select\("franchisee_id, created_at"\)\s*\.eq\("profile_id", actor\.id\)\s*\.is\("ended_at", null\)/);
+check("C: the franchise is found by the reader's own live membership", Boolean(membership));
+check("C: the franchisee row is read by that membership's franchise", /\.from\("eng_franchisees"\)\s*\.select\([^)]*\)\s*\.eq\("id", franchiseeId\)/.test(lib));
+check("C: its territories are read by that franchise", /\.from\("eng_franchisee_territories"\)\.select\("territory_id"\)\.eq\("franchisee_id", franchiseeId\)/.test(lib));
+check("C: its people are read by that franchise", /\.from\("eng_franchisee_members"\)\.select\("profile_id"\)\.eq\("franchisee_id", franchiseeId\)/.test(lib));
+check("C: territory names are read only for the territories it holds", /\.from\("eng_crm_territories"\)\.select\("id, name"\)\.in\("id", territoryIds\)/.test(lib));
+check("C: people are read only for its own members", /\.from\("eng_profiles"\)\.select\("id, display_name, role"\)\.in\("id", memberIds\)/.test(lib));
+const tables = [...new Set([...lib.matchAll(/\.from\("([a-z_]+)"\)/g)].map((m) => m[1]))].sort();
+check(
+  "C: it touches the five tables it names and no other",
+  JSON.stringify(tables) === JSON.stringify(["eng_crm_territories", "eng_franchisee_members", "eng_franchisee_territories", "eng_franchisees", "eng_profiles"]),
+  tables.join(", "),
+);
+const writes = lib.match(/\.(insert|update|upsert|delete)\(/g) ?? [];
+check("C: it writes nothing", writes.length === 0, writes.join(", "));
+check("C: it reads no email, phone or money column of a person", !/email|phone_e164|cents|pay_|rate/.test(lib.match(/\.from\("eng_profiles"\)[^\n]*/)?.[0] ?? "x"));
+
+const page = readSource("src/app/portal/(app)/franchise/page.tsx");
+check("C: the page asks the same grant", /if \(!can\(actor, "franchise\.read_own"\)\) notFound\(\);/.test(page));
+check("C: the page takes nothing from the address", /export default async function YourFranchisePage\(\)/.test(page) && !/searchParams|params/.test(page));
+check("C: the page reads only through ownFranchise", /await ownFranchise\(actor\)/.test(page) && !/supabaseAdmin|from "@\/lib\/franchisees"/.test(page));
+check("C: the page changes nothing", !/"use client"|<form|action=|fetch\(/.test(page));
+const nav = NAV.find((n) => n.href === "/portal/franchise");
+check("C: the menu offers it on the same grant the page asks", nav?.action === "franchise.read_own", nav?.action);
+
+/* ----------------------------------------------------------------- D, replayed */
+
+const DIR = "supabase/migrations";
+const files = readdirSync(DIR).filter((f) => /^\d{4}_.*\.sql$/.test(f)).sort();
+const at = files.indexOf("0127_a_franchisee_owner_reads_their_own_franchise.sql");
+check("D: 0127 is in the chain", at >= 0);
+const db = new PGlite();
+await db.exec(SUPABASE_REPLAY_STUBS);
+for (const f of files.slice(0, at + 1)) await db.exec(readSource(join(DIR, f)));
+const role = (await db.query("select landing_path, is_system, mfa_requirement from eng_roles where key = 'franchisee_owner'")).rows[0];
+check("D: the role exists, landing on /portal/franchise, not system, its second factor required", role?.landing_path === "/portal/franchise" && role?.is_system === false && role?.mfa_requirement === "required", JSON.stringify(role));
+const held = (await db.query("select action from eng_role_grants where role_key = 'franchisee_owner' order by action")).rows.map((r) => r.action);
+check("D: it holds exactly its three grants", JSON.stringify(held) === JSON.stringify(["franchise.read_own", "profiles.read_self", "profiles.update_self"]), held.join(", "));
+const readers = (await db.query("select role_key from eng_role_grants where action = 'franchise.read_own' order by role_key")).rows.map((r) => r.role_key);
+check("D: franchise.read_own has exactly two holders", JSON.stringify(readers) === JSON.stringify(["admin", "franchisee_owner"]), readers.join(", "));
+const again = await db.exec(readSource(join(DIR, files[at]))).then(() => "").catch((e) => String(e.message));
+check("D: 0127 refuses to run twice", /expects no franchisee_owner role before it runs/.test(again), again || "it ran again");
+await db.close();
+
+console.log(wrong === 0 ? "PASS: a franchisee owner reads their own franchise, and nothing else." : `FAIL: ${wrong} check(s).`);
+process.exit(wrong === 0 ? 0 : 1);

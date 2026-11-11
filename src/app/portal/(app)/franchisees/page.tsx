@@ -180,7 +180,7 @@ async function FranchiseeView({ id }: { id: string }) {
           <Panel title="Territories it holds" description="Sales territories from the territories screen. A territory is held by one franchisee at a time.">
             <TerritoryControls id={f.id} held={f.territories} options={territoryOptions} ended={ended} />
           </Panel>
-          <Panel title="Its people" description="Technicians and reps, by their portal accounts. A person belongs to one franchisee at a time.">
+          <Panel title="Its people" description="Technicians, reps and owners, by their portal accounts. A person belongs to one franchisee at a time.">
             <MemberControls id={f.id} people={people} options={personOptions} ended={ended} />
           </Panel>
         </div>

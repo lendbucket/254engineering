@@ -4659,6 +4659,24 @@ export const APPLIED = [
       "development's shape aa9a945e at 1624 columns holds both, which is this entry's replay figure). Production " +
       "only in a sitting with Robert, after the keystore's. Additive: three tables and one grant.",
   },
+  {
+    file: "0127_a_franchisee_owner_reads_their_own_franchise.sql", appliedBy: "apply_migration",
+    fingerprint: "aa9a945e8214af5bb7efbb2b5393045d",
+    behaviour: "6c60760ea3a89ab0ab30790535992c5b",
+    production: null,
+    proves: { table: "eng_role_grants", match: { role_key: "franchisee_owner", action: "franchise.read_own" } },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-11 on the chain to 0127, with 0126 reproducing " +
+      "its recorded pair first (aa9a945e at 1624 columns, f44aa142 at 1623 facts). Shape unchanged: no table and no " +
+      "column. Behaviour 1623 to 1628 facts, the seeded rows: the franchisee_owner role and four grants " +
+      "(its three, and franchise.read_own for admin).",
+    because:
+      "WRITTEN 2026-11-11 ON feat/x2-franchisee-owner, CUT FROM stage/0126-franchisees UNDER ROBERT'S ANSWER 1 OF " +
+      "2026-11-11, FOR HIS OVERNIGHT ORDERS OF 2026-11-10, ITEM 3, PLATFORM ITEM X2: the franchisee owner role, which " +
+      "reads its own franchise and nothing else, its second factor required. PENDING: not on development or production. " +
+      "Development after 0126's read-back; production only in a sitting with Robert, after 0125 and 0126. Additive: " +
+      "one role row and four grant rows.",
+  },
 ];
 
 /*

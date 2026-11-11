@@ -170,7 +170,7 @@ export async function franchiseeDetail(actor: Actor | null, id: string): Promise
   const profiles = await readEvery<{ id: string; display_name: string | null; email: string | null; role: string }>((from, to) =>
     db.from("eng_profiles").select("id, display_name, email, role").in("role", [...FRANCHISEE_MEMBER_ROLES]).order("id", { ascending: true }).range(from, to),
   );
-  if (!profiles.ok) return refuse(`The technicians and reps could not be read: ${profiles.error}`);
+  if (!profiles.ok) return refuse(`The technicians, reps and owners could not be read: ${profiles.error}`);
 
   const nameOfFranchisee = new Map(all.rows.map((r) => [r.id, r.legalName]));
   const nameOfProfile = (p: { display_name: string | null; email: string | null }) => p.display_name?.trim() || p.email || "A person with no name on file";
@@ -355,7 +355,7 @@ export async function setFranchiseeMember(
   if (pError) return refuse(`The person could not be read: ${pError.message}`);
   if (!p) return refuse("That person is not on record.");
   const name = String(p.display_name ?? "").trim() || String(p.email ?? "That person");
-  if (input.belongs && !mayBeMember(String(p.role))) return refuse(`${name} is not a technician or a rep, so they cannot be one of a franchisee's people.`);
+  if (input.belongs && !mayBeMember(String(p.role))) return refuse(`${name} is not a technician, a rep or a franchisee owner, so they cannot be one of a franchisee's people.`);
   if (input.belongs && f.status === "ended") return refuse("An ended franchisee cannot be given people.");
 
   const recorded = await writeAuditOrRefuse({

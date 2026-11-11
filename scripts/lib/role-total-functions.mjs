@@ -223,4 +223,12 @@ export const DASHBOARD_FOR_ROLE = {
   /* The two staff levels share the desk (staff-desk.ts, 2026-10-20). */
   rep: "desk",
   ops_manager: "desk",
+  /*
+   * NONE, DECIDED RATHER THAN MISSED. The franchisee owner (Robert's X2,
+   * 2026-11-10, 0127) holds no files.list and no offers.list_own, so the
+   * dashboard at /portal is not theirs to open; they land on /portal/franchise,
+   * their own franchise, which is their home. dashboardFor answers null for
+   * them, and "none" is that answer written down.
+   */
+  franchisee_owner: "none",
 };
