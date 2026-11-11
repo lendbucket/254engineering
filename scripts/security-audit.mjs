@@ -122,6 +122,8 @@ const ADMIN_PAGES = [
   "/portal/windstorm-inquiries",
   /* The roofer partner applications (Robert, 2026-11-05): behind roofers.review, closed to a signed out caller. */
   "/portal/roofer-applications",
+  /* The franchisee record (Robert's X1, 2026-11-10): behind franchise.manage, admin alone, closed to a signed out caller. */
+  "/portal/franchisees",
   /* The record search, 2026-10-10: behind files.list, closed to a signed out caller. */
   "/portal/search",
   "/portal/jobs",
@@ -328,6 +330,8 @@ const ADMIN_APIS = [
   "/api/portal/windstorm-inquiries",
   /* Deciding and exporting the roofer partner applications (2026-11-05). */
   "/api/portal/roofer-applications",
+  /* Keeping the franchisee record (Robert's X1, 2026-11-10), behind franchise.manage. */
+  "/api/portal/franchisees",
   "/api/portal/review",
   "/api/portal/comms",
   "/api/portal/onboarding",

@@ -4638,6 +4638,27 @@ export const APPLIED = [
       "columns, grants 194 unchanged, matching the replay). Production only in a sitting with Robert, because it " +
       "touches sign in. One table holding the sha256 of each phone's token; the token itself is never stored. Additive: one table.",
   },
+  {
+    file: "0126_a_franchisee_holds_territories_and_its_people.sql", appliedBy: "apply_migration",
+    fingerprint: "aa9a945e8214af5bb7efbb2b5393045d",
+    behaviour: "f44aa142ad597c2397bd8733f4ec3a09",
+    production: null,
+    proves: { table: "eng_franchisees" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-11 on the chain to 0126, with 0125 reproducing " +
+      "its recorded pair first (32405e7d at 1598 columns, a01640ad at 1592 facts). Shape 1598 to 1624 columns: twelve " +
+      "of eng_franchisees and seven each of eng_franchisee_territories and eng_franchisee_members; tables 122 to 125. " +
+      "Behaviour 1592 to 1623 facts. Seeds franchise.manage for admin. Read alone on main's chain as 0125 it was " +
+      "3e10649f at 1614 and 7fb5c156 at 1612.",
+    because:
+      "WRITTEN 2026-11-11 ON feat/x1-franchisee-tenant AS 0125 FOR ROBERT'S OVERNIGHT ORDERS OF 2026-11-10, ITEM 3, " +
+      "PLATFORM ITEM X1: a franchisee record holding territories (0116) and its people, with its office NAP; staff and " +
+      "admin only. RENUMBERED 0126 ON stage/0126-franchisees UNDER ROBERT'S ANSWER 2 OF 2026-11-11 (keystore sitting " +
+      "first), the file byte identical (sha256 a2f2ce42...6363), so its text still says 0125. ON DEVELOPMENT SINCE " +
+      "2026-11-11 under its first name (6790181623, version 20261111074347, stored 18a360cf, grants 194 to 195; " +
+      "development's shape aa9a945e at 1624 columns holds both, which is this entry's replay figure). Production " +
+      "only in a sitting with Robert, after the keystore's. Additive: three tables and one grant.",
+  },
 ];
 
 /*

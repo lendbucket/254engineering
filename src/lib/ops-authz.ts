@@ -444,6 +444,13 @@ export type Action =
    * review on the prospect and cannot decide it.
    */
   | "roofers.review"
+  /*
+   * Keep the firm's record of its franchisees: each one's legal name, office
+   * NAP and status, the sales territories it holds, and its people. Robert's
+   * overnight orders of 2026-11-10, platform item X1, "staff or admin only":
+   * admin alone, seeded in 0126 and pinned in roles-audit.
+   */
+  | "franchise.manage"
   // Ask for an order's money to go back. Somebody else decides.
   | "refunds.request"
   /*
@@ -567,6 +574,8 @@ const MATRIX: Record<Role, Action[]> = {
     "crm.import", "crm.assign", "crm.reports",
     /* The roofer partner applications, seeded by 0113 (Robert, 2026-11-05, ruling 6). */
     "roofers.review",
+    /* The franchisee record, seeded by 0126 (Robert, 2026-11-10, platform item X1). Admin alone. */
+    "franchise.manage",
   ],
   engineer: [
     "profiles.read_self", "profiles.update_self",
