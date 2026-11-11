@@ -4,6 +4,33 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
+## THE FRANCHISE DOCUMENTS: GAPS FOR ROBERT AND HIS ATTORNEY
+
+Robert's overnight orders of 2026-11-10 into 2026-11-11, item 2. Internal
+working documents under `docs/franchise/`; nothing in them is an offer, and
+FR13 stands. Each lists what the repository does not hold as a gap rather than
+inventing it:
+
+- `docs/franchise/territory-map.md` (FR5): the county groups for each pool,
+  and whether another measure stands beside population. Robert ruled the
+  minimum (150,000, working), Harris as one territory, the held back regions
+  and Frisco as Collin alone on 2026-11-11.
+- `docs/franchise/fdd-inputs-for-counsel.md` (FR8): the entities' formation
+  facts and the Texas exemption notice (FR2); transfer and renewal fees (FR3;
+  Robert gave the four fee readings on 2026-11-11, for counsel to confirm);
+  franchisee coverage limits (FR6); platform costs
+  beyond the technology fee; the owner's initial training (FR10); and the
+  marks' filing numbers (Item 13).
+- `docs/franchise/operations-manual.md` (FR7): the franchisee firm line
+  (FR1); a franchisee's office NAP (X1, X5); franchisee Google Business
+  Profiles; franchisee content; the engineer's supervision of franchisee
+  technicians (FR1, FR10); what a franchisee owner may see (X2); and the
+  owner's initial training program.
+
+**Not built because** each needs Robert's word or his attorney's. backlog-audit
+reads only the top level of `docs/`, so it does not sweep this folder; this
+entry is written by hand for that reason.
+
 ## THE STORE APP'S DEVICE SESSION: BEFORE THE FIRST STORE SUBMISSION
 
 Robert's T8 answer 1 of 2026-11-08 (issue #1, 6725977818). The debug build of

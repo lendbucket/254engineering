@@ -26,7 +26,8 @@ const crumbs = [
  * nothing about when the terms last changed, which is the only thing the date is
  * for. Change it by hand when the document changes.
  */
-const EFFECTIVE = "1 November 2026";
+// Moved with the field app section, set to its merge day (Robert's answer 3 of 6767214731).
+const EFFECTIVE = "10 November 2026";
 
 export default function PrivacyPage() {
   return (
@@ -124,6 +125,24 @@ export default function PrivacyPage() {
               <p>
                 Within the firm, submissions are reachable by the people who need them to do the
                 work: whoever replies to enquiries, and whoever reviews applications.
+              </p>
+
+              {/*
+                Robert's answer 3 of 2026-11-08 (issue #1, 6726511272): this
+                paragraph, approved as written, before the store app's first
+                submission. Both stores check this page against the app's privacy
+                answers in docs/store-listing.md.
+              */}
+              <h2>The field app</h2>
+              <p>
+                Technicians who work jobs for the firm use the 254 Field app. In it they take
+                photographs of the property they are assigned to, and the app attaches the phone&apos;s
+                location to a photograph when the phone allows it. Photographs and locations are kept
+                by the firm with the job&apos;s record and are not saved to the phone&apos;s photo
+                library. If a technician turns on offer alerts, the app keeps a token from Apple or
+                Google so the firm can tell that phone when a job is offered. The alert names the
+                county and the service only. A technician can turn alerts off at any time in the app,
+                and signing out turns them off on that phone.
               </p>
 
               <h2>How long it is kept</h2>
