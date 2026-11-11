@@ -47,8 +47,12 @@ end;
 $$;
 
 /* --------------------------------------------------------------- 1. the role */
-insert into eng_roles (key, name, landing_path, is_system, mfa_requirement) values
-  ('franchisee_owner', 'Franchisee Owner', '/portal/franchise', false, 'required');
+/* The four column shape every role seed in this chain uses, which roles-audit reads; the second factor follows as its own statement. */
+insert into eng_roles (key, name, landing_path, is_system) values
+  ('franchisee_owner', 'Franchisee Owner', '/portal/franchise', false)
+on conflict (key) do nothing;
+
+update eng_roles set mfa_requirement = 'required' where key = 'franchisee_owner';
 
 /* ------------------------------------------------------------- 2. the grants */
 insert into eng_role_grants (role_key, action) values

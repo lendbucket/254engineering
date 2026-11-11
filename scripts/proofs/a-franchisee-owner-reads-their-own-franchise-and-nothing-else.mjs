@@ -64,9 +64,10 @@ check("B: a technician and a rep still may, and an administrator still may not",
 
 const seed = readSource("supabase/migrations/0127_a_franchisee_owner_reads_their_own_franchise.sql");
 check(
-  "B: 0127 inserts the role landing on /portal/franchise, not system, its second factor required",
-  /insert into eng_roles \(key, name, landing_path, is_system, mfa_requirement\) values\s+\('franchisee_owner', 'Franchisee Owner', '\/portal\/franchise', false, 'required'\);/.test(seed),
+  "B: 0127 inserts the role landing on /portal/franchise, not system",
+  /insert into eng_roles \(key, name, landing_path, is_system\) values\s+\('franchisee_owner', 'Franchisee Owner', '\/portal\/franchise', false\)\s+on conflict \(key\) do nothing;/.test(seed),
 );
+check("B: and requires its second factor", /update eng_roles set mfa_requirement = 'required' where key = 'franchisee_owner';/.test(seed));
 check(
   "B: 0127 seeds exactly the owner's three grants and admin's franchise.read_own",
   /insert into eng_role_grants \(role_key, action\) values\s+\('franchisee_owner', 'profiles\.read_self'\),\s+\('franchisee_owner', 'profiles\.update_self'\),\s+\('franchisee_owner', 'franchise\.read_own'\),\s+\('admin', 'franchise\.read_own'\)\s+on conflict/.test(seed),
