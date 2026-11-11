@@ -27,9 +27,34 @@ inventing it:
   technicians (FR1, FR10); what a franchisee owner may see (X2); and the
   owner's initial training program.
 
-**Not built because** each needs Robert's word or his attorney's. backlog-audit
-reads only the top level of `docs/`, so it does not sweep this folder; this
-entry is written by hand for that reason.
+**Not built because** each needs Robert's word or his attorney's. Since
+2026-11-11 backlog-audit reads every folder under `docs/` and names these three
+documents individually, so this entry is checked rather than kept by hand
+(Robert's answer 9 of that day).
+
+## THE OCTOBER 2026 PRODUCT AUDIT'S RECORDS: INDEXED BY PATH, NOT RE-CHECKED
+
+When backlog-audit first read the subfolders of `docs/` on 2026-11-11, it found
+six records of the October 2026 product audit that carry open-work markers and
+were named nowhere in this file by path:
+
+- `docs/audit-2026-10/REPORT.md`, the ranked report, whose section "Defects
+  found and still open, with the reason" is the list;
+- `docs/audit-2026-10/notes/admin.md`, `docs/audit-2026-10/notes/engineer.md`
+  and `docs/audit-2026-10/notes/partner-customer-order.md`, the screen notes it
+  was drawn from;
+- `docs/audit-2026-10/FINDING-partners-under-a-254-mark-2026-10-15.md` and
+  `docs/audit-2026-10/FINDING-verbatim-quotes-2026-10-15.md`, two findings
+  written for rulings.
+
+**What this entry does not claim.** Many of their items were fixed or indexed
+separately since October (the report marks several fixed, with the merge), and
+`docs/audit-2026-10/RUN-2026-10-10.md` was already named. Whether each remaining
+item is still open has **not** been re-checked item by item; this entry makes
+the records findable from the index, which is the rule in `CLAUDE.md` section 7.
+
+**Not built because** a re-check of each item against main is its own piece of
+work, and nobody has asked for it.
 
 ## THE STORE APP'S DEVICE SESSION: BEFORE THE FIRST STORE SUBMISSION
 
