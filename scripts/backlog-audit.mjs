@@ -33,9 +33,21 @@
  * would be wrong in both directions on a file this size. Naming the document is
  * the property that can be checked without judgment, and it is enough: a reader
  * who reaches the document finds the reasoning.
+ *
+ * IT READ ONLY THE TOP LEVEL OF docs/ UNTIL 2026-11-11, and that was a window
+ * narrower than its subject. Robert's answer 9 of 2026-11-11: the franchise
+ * documents went into docs/franchise/, their gaps were indexed in BACKLOG by
+ * hand, and nothing checked the entry. Read recursively the first time, the
+ * walk also found six records of the October 2026 product audit, under
+ * docs/audit-2026-10/, carrying open-work markers and named nowhere by path.
+ * A document in a subfolder is named by its path under docs/ without the
+ * extension, `franchise/territory-map` rather than `territory-map`, because a
+ * bare file name such as `admin` or `REPORT` would match some unrelated
+ * sentence in BACKLOG and pass on nothing.
  */
 
-import { readdirSync } from "node:fs";
+import { readdirSync, statSync } from "node:fs";
+import { join } from "node:path";
 import { readSource } from "./lib/read-source.mjs";
 
 const out = [];
@@ -96,13 +108,28 @@ const MARKERS = [
   /\bneeds a ruling\b/i,
   /\bwithout a ruling\b/i,
   /\bunless the operator rules\b/i,
+  /*
+   * A GAP WRITTEN DOWN FOR ROBERT IS OPEN WORK. Added 2026-11-11 with the
+   * recursive walk: the franchise documents (docs/franchise/) record what the
+   * repository does not hold as "Gaps for Robert", "Gap for Robert:" and
+   * "**Gap:**", and none of the markers above reads either phrasing. Measured
+   * before it was added: only those three documents use it.
+   */
+  /\bgaps? for Robert\b/i,
+  /\*\*Gap:\*\*/,
 ];
 
-const docs = readdirSync("docs")
-  .filter((f) => /\.md$/.test(f))
-  .sort();
+/* Every Markdown file under docs/, at any depth, as its path under docs/ with forward slashes. */
+const walk = (dir) =>
+  readdirSync(dir).flatMap((f) => {
+    const p = join(dir, f);
+    return statSync(p).isDirectory() ? walk(p) : /\.md$/.test(f) ? [p.replace(/\\/g, "/").replace(/^docs\//, "")] : [];
+  });
+const docs = walk("docs").sort();
+const nested = docs.filter((f) => f.includes("/"));
 
 rec("there are documents to check", docs.length > 0, `${docs.length} in docs/`);
+rec("and the walk reaches the subfolders", nested.length > 0, `${nested.length} below the top level`);
 
 /*
  * A document that RECORDS the rule cannot be evidence for it. BACKLOG names
@@ -125,6 +152,7 @@ for (const file of docs) {
    * exact path would fail on a correct entry that phrased it differently.
    */
   const stem = file.replace(/\.md$/, "");
+  /* A nested document is named by its whole path under docs/, so its stem carries the folder. */
   if (backlog.includes(stem)) named.push(file);
   else missing.push(file);
 }
@@ -158,6 +186,21 @@ rec(
   canary,
   "a coverage check over an empty set passes forever",
 );
+rec(
+  "and a gap written down for Robert, in both of its phrasings",
+  MARKERS.some((m) => m.test("## Gaps for Robert")) && MARKERS.some((m) => m.test("**Gap:** limits and the certificate process.")),
+  "the franchise documents' own phrasing",
+);
+
+/*
+ * The three that made the walk recursive, named individually for the reason
+ * the seven below are: "a subfolder is read" is the property the walk checks,
+ * and "these three are carried and indexed" is the one Robert asked for.
+ */
+for (const doc of ["franchise/territory-map.md", "franchise/fdd-inputs-for-counsel.md", "franchise/operations-manual.md"]) {
+  const ok = carrying.includes(doc) && named.includes(doc);
+  rec(`${doc} is read, carries its gaps, and is named in BACKLOG`, ok, ok ? "" : carrying.includes(doc) ? "not named" : "not found carrying open work");
+}
 
 /*
  * The seven that started this. Named individually, because "the document is
