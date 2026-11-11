@@ -22,6 +22,11 @@ inventing it:
   and renewal fees (FR3); franchisee coverage limits (FR6); platform costs
   beyond the technology fee; the owner's initial training (FR10); and the
   marks' filing numbers (Item 13).
+- `docs/franchise/operations-manual.md` (FR7): the franchisee firm line
+  (FR1); a franchisee's office NAP (X1, X5); franchisee Google Business
+  Profiles; franchisee content; the engineer's supervision of franchisee
+  technicians (FR1, FR10); what a franchisee owner may see (X2); and the
+  owner's initial training program.
 
 **Not built because** each needs Robert's word or his attorney's. backlog-audit
 reads only the top level of `docs/`, so it does not sweep this folder; this
