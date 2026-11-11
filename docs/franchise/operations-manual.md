@@ -13,7 +13,7 @@ content rules, NAP and GBP standards, and the firm line. Nothing here is invente
 
 Written at main `0c67e0cb`.
 
-## 1. The firm line: who performs and seals the engineering
+## 1. The firm line: the registrant named beside the engineering
 
 - **The registrant and its number, as one pair.** 254 Engineering LLC holds TBPELS firm
   registration F-29811, active until 2027-07-31 (`src/config/credentials.ts`).
