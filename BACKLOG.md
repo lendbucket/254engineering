@@ -16,6 +16,12 @@ inventing it:
   territory, whether the rest of the San Antonio and Coastal Bend regions is
   held back, Frisco across Collin and Denton, and the county groups for each
   pool.
+- `docs/franchise/fdd-inputs-for-counsel.md` (FR8): the entities' formation
+  facts and the Texas exemption notice (FR2); what the veteran discount comes
+  off, the brand fund's base, how territory revenue is measured, and transfer
+  and renewal fees (FR3); franchisee coverage limits (FR6); platform costs
+  beyond the technology fee; the owner's initial training (FR10); and the
+  marks' filing numbers (Item 13).
 
 **Not built because** each needs Robert's word or his attorney's. backlog-audit
 reads only the top level of `docs/`, so it does not sweep this folder; this
