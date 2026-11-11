@@ -164,6 +164,10 @@ $fn$;
 create trigger eng_franchisee_certificates_audit after insert or update on eng_franchisee_certificates
   for each row execute function eng_franchisee_certificate_audit();
 
+/* Trigger functions only: nothing outside the database calls either, so neither is executable by the API roles (0102). */
+revoke execute on function public.eng_franchisee_certificate_guard(), public.eng_franchisee_certificate_audit()
+  from public, anon, authenticated;
+
 comment on table eng_franchisee_certificates is
   'A franchisee''s certificates of insurance, one row per certificate, its PDF in eng-franchisee-certificates; withdrawn with a reason, never edited or deleted (Robert''s X4, 2026-11-10). Kept apart from the firm''s own policies (0090). 0128.';
 
