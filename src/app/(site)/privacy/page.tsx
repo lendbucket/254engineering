@@ -26,8 +26,8 @@ const crumbs = [
  * nothing about when the terms last changed, which is the only thing the date is
  * for. Change it by hand when the document changes.
  */
-// Moved with the field app section (2026-11-08). If this merges on a later day, it moves to that day.
-const EFFECTIVE = "8 November 2026";
+// Moved with the field app section, set to its merge day (Robert's answer 3 of 6767214731).
+const EFFECTIVE = "10 November 2026";
 
 export default function PrivacyPage() {
   return (
