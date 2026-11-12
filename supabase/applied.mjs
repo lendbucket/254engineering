@@ -4714,7 +4714,15 @@ export const APPLIED = [
     file: "0127_a_franchisee_owner_reads_their_own_franchise.sql", appliedBy: "apply_migration",
     fingerprint: "aa9a945e8214af5bb7efbb2b5393045d",
     behaviour: "6c60760ea3a89ab0ab30790535992c5b",
-    production: null,
+    /*
+     * Production: applied 2026-11-12 20:00 UTC through apply_migration by the
+     * chat counterpart, first of three in a sitting under Robert's order of that
+     * day, from feat/x6-franchisor-reporting at a05bf77 after board 43283605576;
+     * schema_migrations version 20261112200022, stored hash 7e430777 equal to the
+     * stored form, shape aa9a945e at 1624 columns unchanged, roles 9 to 10,
+     * grants 195 to 199 (issue #1, 6834499804).
+     */
+    production: "2026-11-12",
     proves: { table: "eng_role_grants", match: { role_key: "franchisee_owner", action: "franchise.read_own" } },
     note:
       "Both figures read off scripts/fingerprint-at.mjs on 2026-11-11 on the chain to 0127, with 0126 reproducing " +
@@ -4726,14 +4734,22 @@ export const APPLIED = [
       "2026-11-11, FOR HIS OVERNIGHT ORDERS OF 2026-11-10, ITEM 3, PLATFORM ITEM X2: the franchisee owner role, which " +
       "reads its own franchise and nothing else, its second factor required (Robert's answer 11). ON DEVELOPMENT SINCE " +
       "2026-11-12 (6811585845, version 20261112012218, stored 7e430777, shape aa9a945e at 1624 columns unchanged, " +
-      "grants 195 to 199, matching the replay). Production only in a sitting with Robert, after 0125 and 0126. " +
+      "grants 195 to 199, matching the replay); ON PRODUCTION SINCE 2026-11-12 (6834499804, version 20261112200022). " +
       "Additive: one role row and four grant rows.",
   },
   {
     file: "0128_a_franchisee_is_onboarded_before_it_operates.sql", appliedBy: "apply_migration",
     fingerprint: "47ba01933b51b2db49ccb9ebd23f6380",
     behaviour: "147ee08d3fe71d1eb714acd9adb2e225",
-    production: null,
+    /*
+     * Production: applied 2026-11-12 20:00 UTC through apply_migration by the
+     * chat counterpart, second of three in the same sitting, after 0127;
+     * schema_migrations version 20261112200056, stored hash 215ca577 equal to the
+     * stored form, shape 47ba0193 at 1642 columns and 126 tables, the bucket
+     * private, PDF only, 10485760 bytes, neither trigger function executable by
+     * anon or authenticated (issue #1, 6834499804).
+     */
+    production: "2026-11-12",
     proves: { table: "eng_franchisee_certificates" },
     note:
       "Both figures read off scripts/fingerprint-at.mjs on 2026-11-11 on the chain to 0128, with 0127 reproducing " +
@@ -4748,14 +4764,21 @@ export const APPLIED = [
       "read, they decide whether a franchisee may move from onboarding to operating. One private bucket, " +
       "eng-franchisee-certificates. The coverages are Robert's answer 12. ON DEVELOPMENT SINCE 2026-11-12 (6811585845, " +
       "version 20261112012249, stored 215ca577, shape 47ba0193 at 1642 columns, the bucket private and PDF only, " +
-      "matching the replay). Production only in a sitting with Robert, after 0125 to 0127. Additive: three columns, " +
+      "matching the replay); ON PRODUCTION SINCE 2026-11-12 (6834499804, version 20261112200056). Additive: three columns, " +
       "one table, one bucket, two functions.",
   },
   {
     file: "0129_a_franchisee_records_the_day_it_starts_operating.sql", appliedBy: "apply_migration",
     fingerprint: "1cbe1959e7435d279f44b171cab3a7a1",
     behaviour: "147ee08d3fe71d1eb714acd9adb2e225",
-    production: null,
+    /*
+     * Production: applied 2026-11-12 20:01 UTC through apply_migration by the
+     * chat counterpart, third of three in the same sitting, after 0128;
+     * schema_migrations version 20261112200109, stored hash 4f7fe547 equal to the
+     * stored form, shape 1cbe1959 at 1643 columns and 126 tables, operating_since
+     * a nullable date (issue #1, 6834499804).
+     */
+    production: "2026-11-12",
     proves: { table: "eng_franchisees", column: "operating_since" },
     note:
       "Both figures read off scripts/fingerprint-at.mjs on 2026-11-11 on the chain to 0129, with 0128 reproducing " +
@@ -4767,7 +4790,7 @@ export const APPLIED = [
       "technology fee is due from the first full calendar month after a franchisee starts operating, and the record " +
       "kept no such day. The status change writes it once. ON DEVELOPMENT SINCE 2026-11-12 (6811585845, version " +
       "20261112012302, stored 4f7fe547, shape 1cbe1959 at 1643 columns, a nullable date, matching the replay). " +
-      "Production only in a sitting with Robert, after 0125 to 0128. Additive: one column.",
+      "ON PRODUCTION SINCE 2026-11-12 (6834499804, version 20261112200109). Additive: one column.",
   },
 ];
 

@@ -92,8 +92,8 @@ check("C: the check reads proves through the parser", /import \{ probeOf, probeS
 check("C: it no longer destructures proves itself", !/const \{ table, column, match \} = entry\.proves;/.test(src));
 check("C: an unknown shape is a failure it names, not a crash", /if \(probe\.kind === "unknown"\)/.test(src));
 check("C: it does not pin September's grant count", !/count === 111/.test(src));
-check("C: it pins production's grant count at its last sitting, 195 after 0126", /const PRODUCTION_GRANTS = 195;/.test(src));
-check("C: the count has one home, read by the check and by --sql", (src.match(/const PRODUCTION_GRANTS = /g) ?? []).length === 1 && !/count === 111|= 195 as ok/.test(src));
+check("C: it pins production's grant count at its last sitting, 199 after 0127", /const PRODUCTION_GRANTS = 199;/.test(src));
+check("C: the count has one home, read by the check and by --sql", (src.match(/const PRODUCTION_GRANTS = /g) ?? []).length === 1 && !/count === 111|= 199 as ok/.test(src));
 
 /* ---------------------------------------------- D, the same probes as SQL */
 
