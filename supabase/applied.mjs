@@ -219,7 +219,16 @@ export const APPLIED = [
   {
     file: "0028_probe_records_are_demonstrations.sql", appliedBy: "apply_migration",
     fingerprint: "9bbcca2c9cd3c65503c923d7c32ea769",
-    proves: { table: "eng_partners", match: { organisation: "ZZ probe, safe to ignore", is_demo: true } },
+    /*
+     * It proved { table: "eng_partners", match: { organisation: "ZZ probe, safe
+     * to ignore", is_demo: true } } until 2026-11-12, a row that 0028 marks
+     * rather than creates. Production has never held a partner, so it could
+     * never be true there, and proved nothing about 0028 either way (the
+     * counterpart's read of the --sql probes, issue #1, 6830159417).
+     */
+    proves: null,
+    provesNote:
+      "A data-only backfill: it sets is_demo on rows whose contact address cannot receive mail, and adds no table, column, row, bucket or grant. Whether it ran depends on rows that existed to be marked, and production has never held a partner, so there is nothing to probe that would prove it either way.",
     production: "2026-09-08",
     note:
       "Applied to development and to production on 2026-09-08 through the Supabase MCP, the same mechanism 0027 went through, and read back rather than assumed. Fingerprint unchanged at 9bbcca2c9cd3c65503c923d7c32ea769 across 970 columns and 72 eng_ tables, which is what a backfill with no DDL in it should do. ON PRODUCTION IT MARKED NOTHING, AND THAT IS THE MEASURED ANSWER RATHER THAN AN ASSUMPTION: production holds 2 profiles, 1 application, and zero partners, clients, orders and files, none of them on an unroutable address, and the same sweep re-run afterwards found nothing left unmarked. On development it marked twelve: eight probe partners, three Stripe probe clients and one client written by a script that is not in the tree. It retires the BACKLOG entry 'Eight probe partners on development cannot be deleted, and should not be'; they still cannot be deleted, and they no longer need to be, because a record that cannot be removed can still be told apart. A FIRST DRAFT OF THIS ENTRY DECLARED IT PENDING AND SAID PRODUCTION WAS UNREADABLE FROM HERE. That was wrong and is recorded rather than quietly fixed: one execute_sql call had been refused, and the session generalised a single refusal into a closed door without trying apply_migration, which is the tool 0027 went through and which worked first time.",
@@ -2146,7 +2155,14 @@ export const APPLIED = [
         "than production's, because development already held a windstorm-wpi-8 version 1 row; every " +
         "version is one above its line's highest on that database, as predicted. Shape unchanged.",
     },
-    proves: { row: { table: "eng_protocol_templates", where: "document_number = '254-PL-001' and version_label = '1.1' and status = 'draft'" } },
+    /*
+     * "and status = 'draft'" was dropped 2026-11-12. The row entered as a draft
+     * and the engineer has since signed it, so it is published (ruling 11); a
+     * probe of its status expired the day the protocol did what it was built for
+     * (the counterpart's read of the --sql probes, issue #1, 6830159417). What
+     * 0065 leaves behind for good is the row itself.
+     */
+    proves: { row: { table: "eng_protocol_templates", where: "document_number = '254-PL-001' and version_label = '1.1'" } },
     note:
       "Both figures read off scripts/fingerprint-at.mjs at 0065 on 2026-10-08: shape unchanged at " +
       "aff578e18d558ee5af26fb2cb8c9eb88 across 1170 columns, behaviour unchanged at " +
@@ -2301,7 +2317,12 @@ export const APPLIED = [
         "APPLIED TO DEVELOPMENT 2026-10-10 by the operator's chat counterpart, before production, the file " +
         "as written, and read back as the sitting document predicted.",
     },
-    proves: { row: { table: "eng_protocol_templates", where: "document_number = '254-FC-001' and version_label = '1.0' and status = 'draft'" } },
+    /*
+     * "and status = 'draft'" was dropped 2026-11-12, for the reason on 0065's
+     * entry: 254-FC-001 v1.0 is signed and published, and the row itself is what
+     * 0069 leaves behind for good (issue #1, 6830159417).
+     */
+    proves: { row: { table: "eng_protocol_templates", where: "document_number = '254-FC-001' and version_label = '1.0'" } },
     note:
       "BOTH fingerprints repeat 0068's, which is what a migration with no DDL in it must do: it inserts two " +
       "template rows and changes no shape and no behaviour fact. Read off scripts/fingerprint-at.mjs at 0069 " +
