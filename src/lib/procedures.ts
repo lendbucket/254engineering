@@ -36,6 +36,8 @@ export const SECTIONS_FOR_ROLE: Readonly<Record<string, readonly string[]>> = {
   field_tech: ["Field technician"],
   engineer: ["Engineer"],
   read_only: [],
+  /* The franchisee owner (X2, 0127) reads none of the firm's procedures until Robert rules what a franchisee is given (FR7). */
+  franchisee_owner: [],
 };
 
 export function proceduresFor(role: string): Procedure[] {

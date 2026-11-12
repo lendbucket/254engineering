@@ -306,6 +306,8 @@ const EXPECTED = {
   "roofers.review":               { admin: true,  engineer: false, field_tech: false },
   /* The franchisee record, Robert's overnight orders of 2026-11-10, platform item X1 (0126): admin alone. */
   "franchise.manage":             { admin: true,  engineer: false, field_tech: false },
+  /* Your own franchise, Robert's X2 of 2026-11-10 (0127): admin, so the screen can be measured, and the franchisee owner. */
+  "franchise.read_own":           { admin: true,  engineer: false, field_tech: false },
   "refunds.request":              { admin: true,  engineer: false, field_tech: false },
   "refunds.approve_within_limit": { admin: true,  engineer: false, field_tech: false },
   "settings.refund_limit":        { admin: true,  engineer: false, field_tech: false },
@@ -380,7 +382,7 @@ rec(
 // compared with the module once after transcription: no disagreement.
 //
 // Each row is one action across the nine roles, in this order:
-//   admin  engineer  field_tech  dispatcher  sales  customer_service  read_only  rep  ops_manager
+//   admin  engineer  field_tech  dispatcher  sales  customer_service  read_only  rep  ops_manager  franchisee_owner
 // Y holds it, . does not. Typed as literals for the reason the table above
 // gives: an expectation imported from the module under test agrees with it by
 // construction.
@@ -391,101 +393,109 @@ rec(
 // "Y . . . . . Y . .", and read_only's seed comment read "Deliberately
 // includes billing.read and pricing.read: somebody evaluating the business has
 // to see the money".
-const NINE_ROLES = ["admin", "engineer", "field_tech", "dispatcher", "sales", "customer_service", "read_only", "rep", "ops_manager"];
+//
+// THE TENTH COLUMN, 2026-11-11. The franchisee owner (Robert's X2, 0127) was
+// added after Robert approved the nine, so its column was typed from the X2
+// design posted on issue #1 rather than from his table: profiles.read_self,
+// profiles.update_self and franchise.read_own, and nothing else. The names
+// NINE_ROLES and EXPECTED_NINE are kept so the history above stays findable.
+const NINE_ROLES = ["admin", "engineer", "field_tech", "dispatcher", "sales", "customer_service", "read_only", "rep", "ops_manager", "franchisee_owner"];
 const EXPECTED_NINE = {
-  "accounts.manage":              "Y . . . . . . . .",
-  "addenda.draft":                "Y . . . . . . . .",
-  "alerts.manage":                "Y . . . . . . . .",
-  "applications.read":            "Y . . . . . . . Y",
-  "audit.read":                   "Y . . . . . Y . .",
-  "billing.read":                 "Y . . . . . . . .",
-  "clients.create":               "Y . . . Y . . Y Y",
-  "clients.list":                 "Y . . Y Y Y . Y Y",
-  "clients.update":               "Y . . . Y . . Y Y",
-  "contact_log.write":            "Y . . . . . . Y Y",
+  "accounts.manage":              "Y . . . . . . . . .",
+  "addenda.draft":                "Y . . . . . . . . .",
+  "alerts.manage":                "Y . . . . . . . . .",
+  "applications.read":            "Y . . . . . . . Y .",
+  "audit.read":                   "Y . . . . . Y . . .",
+  "billing.read":                 "Y . . . . . . . . .",
+  "clients.create":               "Y . . . Y . . Y Y .",
+  "clients.list":                 "Y . . Y Y Y . Y Y .",
+  "clients.update":               "Y . . . Y . . Y Y .",
+  "contact_log.write":            "Y . . . . . . Y Y .",
   /*
    * The sales CRM, Robert's ruling of 2026-11-02 (R1, 0112) with his answer 2:
    * the operations manager is the sales manager, the rep is also the account
    * manager and keeps crm.use, and sales holds no CRM grant.
    */
-  "crm.assign":                   "Y . . . . . . . Y",
-  "crm.import":                   "Y . . . . . . . Y",
-  "crm.reports":                  "Y . . . . . . . Y",
-  "crm.use":                      "Y . . . . . . Y Y",
-  "documents.deliver":            "Y Y . . . . . . .",
-  "documents.read":               "Y Y . . . . Y . .",
-  "evidence.capture":             ". . Y . . . . . .",
-  "evidence.review":              "Y Y . . . . . . .",
-  "evidence.start":               "Y Y Y . . . . . .",
-  "evidence.submit":              "Y Y Y . . . . . .",
-  "files.cancel":                 "Y . . . . . . . .",
-  "files.create":                 "Y . . . Y . . Y Y",
-  "files.list":                   "Y Y Y Y Y Y Y Y Y",
-  "files.transition":             "Y Y . Y . . . . .",
-  "files.update":                 "Y Y . Y . . . . .",
-  "files.update_details":         "Y . . . . . . Y Y",
-  "inbox.answer":                 "Y . . . . . . Y Y",
-  "inbox.read":                   "Y . . . . . . Y Y",
-  "insurance.manage":             "Y . . . . . . . Y",
-  "jobs.manage":                  "Y . . . . . . . .",
-  "ledger.approve":               "Y . . . . . . . .",
-  "ledger.read_all":              "Y . . . . . . . .",
-  "ledger.read_own":              "Y Y Y . . . . . .",
-  "messages.use":                 "Y Y Y Y Y Y . Y Y",
-  "offers.dispatch":              "Y . . Y . . . Y Y",
-  "offers.list_own":              "Y . Y Y . . . . .",
-  "offers.respond":               "Y . Y . . . . . .",
-  "orders.read":                  "Y . . . . . . Y Y",
-  "orders.resend_link":           "Y . . . . . . Y Y",
-  "partners.manage":              "Y . . . . . . . .",
-  "payments.charge":              "Y . . . . . . . .",
-  "payments.reconcile":           "Y . . . . . . . .",
-  "payments.refund":              "Y . . . . . . . .",
-  "payments.send_link":           "Y . . . Y . . Y Y",
-  "pricing.override_at_intake":   "Y . . . . . . . .",
-  "pricing.read":                 "Y . . . . . . . .",
-  "pricing.read_own_pay":         ". Y . . . . . . .",
-  "pricing.read_tech_rate":       "Y . . . . . . . .",
-  "pricing.write":                "Y . . . . . . . .",
-  "profiles.create":              "Y . . . . . . . .",
-  "profiles.force_reset":         "Y . . . . . . . .",
-  "profiles.list":                "Y . . Y . . Y . Y",
-  "profiles.read_self":           "Y Y Y Y Y Y Y Y Y",
-  "profiles.suspend":             "Y . . . . . . . .",
-  "profiles.update":              "Y . . . . . . . Y",
-  "profiles.update_self":         "Y Y Y Y Y Y Y Y Y",
-  "quotes.manage":                "Y . . . . . . . Y",
-  "refunds.approve_within_limit": "Y . . . . . . . Y",
-  "refunds.request":              "Y . . . . . . Y Y",
-  "reports.activity":             "Y . . . . . . . Y",
-  "reports.partner":              "Y . . . . . . . .",
-  "reports.pipeline":             "Y . . . . . . . Y",
-  "reports.production":           "Y Y . . . . . . .",
-  "reports.revenue":              "Y . . . . . . . Y",
-  "reports.turnaround":           "Y . . . . . . . Y",
-  "responsible_charge.read_all":  "Y . . . . . Y . .",
-  "responsible_charge.read_own":  "Y Y . . . . . . .",
-  "retention.execute":            "Y . . . . . . . .",
-  "roles.manage":                 "Y . . . . . . . .",
+  "crm.assign":                   "Y . . . . . . . Y .",
+  "crm.import":                   "Y . . . . . . . Y .",
+  "crm.reports":                  "Y . . . . . . . Y .",
+  "crm.use":                      "Y . . . . . . Y Y .",
+  "documents.deliver":            "Y Y . . . . . . . .",
+  "documents.read":               "Y Y . . . . Y . . .",
+  "evidence.capture":             ". . Y . . . . . . .",
+  "evidence.review":              "Y Y . . . . . . . .",
+  "evidence.start":               "Y Y Y . . . . . . .",
+  "evidence.submit":              "Y Y Y . . . . . . .",
+  "files.cancel":                 "Y . . . . . . . . .",
+  "files.create":                 "Y . . . Y . . Y Y .",
+  "files.list":                   "Y Y Y Y Y Y Y Y Y .",
+  "files.transition":             "Y Y . Y . . . . . .",
+  "files.update":                 "Y Y . Y . . . . . .",
+  "files.update_details":         "Y . . . . . . Y Y .",
+  "inbox.answer":                 "Y . . . . . . Y Y .",
+  "inbox.read":                   "Y . . . . . . Y Y .",
+  "insurance.manage":             "Y . . . . . . . Y .",
+  "jobs.manage":                  "Y . . . . . . . . .",
+  "ledger.approve":               "Y . . . . . . . . .",
+  "ledger.read_all":              "Y . . . . . . . . .",
+  "ledger.read_own":              "Y Y Y . . . . . . .",
+  "messages.use":                 "Y Y Y Y Y Y . Y Y .",
+  "offers.dispatch":              "Y . . Y . . . Y Y .",
+  "offers.list_own":              "Y . Y Y . . . . . .",
+  "offers.respond":               "Y . Y . . . . . . .",
+  "orders.read":                  "Y . . . . . . Y Y .",
+  "orders.resend_link":           "Y . . . . . . Y Y .",
+  "partners.manage":              "Y . . . . . . . . .",
+  "payments.charge":              "Y . . . . . . . . .",
+  "payments.reconcile":           "Y . . . . . . . . .",
+  "payments.refund":              "Y . . . . . . . . .",
+  "payments.send_link":           "Y . . . Y . . Y Y .",
+  "pricing.override_at_intake":   "Y . . . . . . . . .",
+  "pricing.read":                 "Y . . . . . . . . .",
+  "pricing.read_own_pay":         ". Y . . . . . . . .",
+  "pricing.read_tech_rate":       "Y . . . . . . . . .",
+  "pricing.write":                "Y . . . . . . . . .",
+  "profiles.create":              "Y . . . . . . . . .",
+  "profiles.force_reset":         "Y . . . . . . . . .",
+  "profiles.list":                "Y . . Y . . Y . Y .",
+  "profiles.read_self":           "Y Y Y Y Y Y Y Y Y Y",
+  "profiles.suspend":             "Y . . . . . . . . .",
+  "profiles.update":              "Y . . . . . . . Y .",
+  "profiles.update_self":         "Y Y Y Y Y Y Y Y Y Y",
+  "quotes.manage":                "Y . . . . . . . Y .",
+  "refunds.approve_within_limit": "Y . . . . . . . Y .",
+  "refunds.request":              "Y . . . . . . Y Y .",
+  "reports.activity":             "Y . . . . . . . Y .",
+  "reports.partner":              "Y . . . . . . . . .",
+  "reports.pipeline":             "Y . . . . . . . Y .",
+  "reports.production":           "Y Y . . . . . . . .",
+  "reports.revenue":              "Y . . . . . . . Y .",
+  "reports.turnaround":           "Y . . . . . . . Y .",
+  "responsible_charge.read_all":  "Y . . . . . Y . . .",
+  "responsible_charge.read_own":  "Y Y . . . . . . . .",
+  "retention.execute":            "Y . . . . . . . . .",
+  "roles.manage":                 "Y . . . . . . . . .",
   /* The roofer partner applications, Robert's ruling 6 of 2026-11-05 (0113): admin and ops_manager, nobody else. */
-  "roofers.review":               "Y . . . . . . . Y",
+  "roofers.review":               "Y . . . . . . . Y .",
   /* The franchisee record, Robert's overnight orders of 2026-11-10, platform item X1 (0126): admin and nobody else. */
-  "franchise.manage":             "Y . . . . . . . .",
-  "settings.refund_limit":        "Y . . . . . . . .",
-  "suppressions.manage":          "Y . . . . Y . . .",
-  "tasks.use":                    "Y Y Y Y Y Y . Y Y",
-  "technicians.onboard":          "Y . . . . . . . Y",
-  "time.log_own":                 "Y Y . Y Y Y . Y Y",
+  "franchise.manage":             "Y . . . . . . . . .",
+  /* Your own franchise, Robert's X2 of 2026-11-10 (0127): admin, so the screen can be measured, and the franchisee owner. */
+  "franchise.read_own":           "Y . . . . . . . . Y",
+  "settings.refund_limit":        "Y . . . . . . . . .",
+  "suppressions.manage":          "Y . . . . Y . . . .",
+  "tasks.use":                    "Y Y Y Y Y Y . Y Y .",
+  "technicians.onboard":          "Y . . . . . . . Y .",
+  "time.log_own":                 "Y Y . Y Y Y . Y Y .",
 };
 {
   const declaredRoles = DEFAULT_ROLES.map((r) => r.key).sort().join(",");
   rec(
-    "the nine-role table names exactly the roles DEFAULT_ROLES declares",
+    "the role table names exactly the roles DEFAULT_ROLES declares",
     [...NINE_ROLES].sort().join(",") === declaredRoles,
     declaredRoles,
   );
   const malformed = Object.entries(EXPECTED_NINE).filter(([, row]) => row.split(" ").length !== NINE_ROLES.length || /[^Y. ]/.test(row));
-  rec("every row of the nine-role table has a cell for each of the nine roles", malformed.length === 0, malformed.map(([a]) => a).join(", "));
+  rec(`every row of the role table has a cell for each of the ${NINE_ROLES.length} roles`, malformed.length === 0, malformed.map(([a]) => a).join(", "));
 
   let nineFailures = 0;
   for (const [action, row] of Object.entries(EXPECTED_NINE)) {
@@ -500,14 +510,14 @@ const EXPECTED_NINE = {
     });
   }
   rec(
-    `every role agrees with the nine-role expectation (${Object.keys(EXPECTED_NINE).length} actions x ${NINE_ROLES.length} roles)`,
+    `every role agrees with the role table (${Object.keys(EXPECTED_NINE).length} actions x ${NINE_ROLES.length} roles)`,
     nineFailures === 0,
     nineFailures ? `${nineFailures} disagreements` : "",
   );
 
   const nineKnown = new Set(NINE_ROLES.flatMap((r) => actionsFor(r)));
   const nineMissing = [...nineKnown].filter((a) => !(a in EXPECTED_NINE));
-  rec("every action any role is granted is a row of the nine-role table", nineMissing.length === 0, nineMissing.join(", "));
+  rec("every action any role is granted is a row of the role table", nineMissing.length === 0, nineMissing.join(", "));
 
   /* The two tables are independent statements; where they cover the same cell they must agree, or one is stale. */
   const drift = [];
@@ -517,7 +527,7 @@ const EXPECTED_NINE = {
       if ((cells[NINE_ROLES.indexOf(role)] === "Y") !== three[role]) drift.push(`${role} ${action}`);
     });
   }
-  rec("the three-role table and the nine-role table agree on every cell they share", drift.length === 0, drift.join(", "));
+  rec("the three-role table and the role table agree on every cell they share", drift.length === 0, drift.join(", "));
 }
 
 // =====================================================================
@@ -2615,6 +2625,8 @@ if (!db) {
         "/portal/billing",
         /* The franchisee record, Robert's X1 of 2026-11-10: franchise.manage, which only admin holds. */
         "/portal/franchisees",
+        /* A franchisee owner's own franchise, Robert's X2 of 2026-11-10: franchise.read_own, admin and the owner. */
+        "/portal/franchise",
         "/portal/orders",
         "/portal/accounts",
         "/portal/partners",

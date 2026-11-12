@@ -13,6 +13,25 @@ import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
 import { LIST_NOT_LOADED } from "@/lib/outcome-copy";
 import { MemberControls, NewFranchiseeForm, OfficeForm, StatusForm, TerritoryControls } from "./FranchiseesClient";
+import { AgreementForm, CertificateForm, WithdrawCertificate } from "./OnboardingClient";
+import { onboardingFor, type FranchiseeCertificate } from "@/lib/franchisee-onboarding";
+import { CERTIFICATE_KINDS, CERTIFICATE_KIND_LABEL } from "@/lib/franchisee-onboarding-rules";
+import { statementFor } from "@/lib/franchise-statement";
+import { CAPACITY_FEE_LINE, type StatementRow } from "@/lib/franchise-statement-rules";
+import { moneyOr } from "@/lib/ops-money";
+import { franchisorReport } from "@/lib/franchisor-report";
+import { COLLECTION_LINE, ITEM_19_LINE } from "@/lib/franchisor-report-rules";
+
+const statementMonth = (month: string) => formatInFirmZone(`${month}-15T12:00:00Z`, { month: "long", year: "numeric" }) ?? month;
+const STATEMENT_COLUMNS: Column<StatementRow & { id: string }>[] = [
+  { key: "month", header: "Month", cell: (r) => statementMonth(r.month) },
+  { key: "orders", header: "Orders", numeric: true, cell: (r) => String(r.orders) },
+  { key: "revenue", header: "Territory revenue", numeric: true, cell: (r) => moneyOr(r.revenueCents, "Not known") },
+  { key: "royalty", header: "Royalty", numeric: true, cell: (r) => moneyOr(r.royaltyCents, "Not known") },
+  { key: "brand", header: "Brand fund", numeric: true, cell: (r) => moneyOr(r.brandFundCents, "Not known") },
+  { key: "tech", header: "Technology fee", numeric: true, cell: (r) => (r.technologyFeeCents === null ? "Not yet due" : moneyOr(r.technologyFeeCents)) },
+  { key: "total", header: "Total", numeric: true, cell: (r) => moneyOr(r.totalCents, "Not known: an order this month carries no total") },
+];
 
 export const dynamic = "force-dynamic";
 
@@ -54,6 +73,9 @@ export default async function FranchiseesPage({ searchParams }: { searchParams: 
   const rows = read.ok ? read.rows : [];
   const shown = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const base = { q: params.q, status, sort };
+  /* Franchisor reporting (platform item X6), over every franchisee the list holds: one pass, see franchisor-report.ts. */
+  const report = await franchisorReport(actor, rows.map((r) => r.id));
+  const health = (r: FranchiseeRow) => (report.ok ? report.report.byFranchisee.get(r.id) : undefined);
 
   const columns: Column<FranchiseeRow>[] = [
     { key: "name", header: "Franchisee", cell: (r) => <span className="font-semibold text-[var(--navy)]">{r.legalName}</span> },
@@ -64,6 +86,15 @@ export default async function FranchiseesPage({ searchParams }: { searchParams: 
       cell: (r) => (r.territories.length ? r.territories.map((t) => t.name).join(", ") : "None yet"),
     },
     { key: "people", header: "People", cell: (r) => String(r.members) },
+    { key: "onboarding", header: "Onboarding", cell: (r) => (health(r) ? `${health(r)!.stepsMet} of ${health(r)!.stepsTotal} steps` : "Not read") },
+    {
+      key: "certificates",
+      header: "Expiring soon",
+      desktopOnly: true,
+      cell: (r) => (health(r) ? (health(r)!.certificatesExpiringSoon ? `${health(r)!.certificatesExpiringSoon} within 45 days` : "None") : "Not read"),
+    },
+    { key: "revenue", header: "Revenue this month", numeric: true, cell: (r) => (health(r) ? moneyOr(health(r)!.revenueThisMonthCents, "Not known") : "Not read") },
+    { key: "due", header: "Due this month", numeric: true, cell: (r) => (health(r) ? moneyOr(health(r)!.dueThisMonthCents, "Not known") : "Not read") },
     { key: "office", header: "Office", desktopOnly: true, cell: officeLine },
     { key: "phone", header: "Phone", cell: (r) => (r.office.phone ? <PhoneLink phone={r.office.phone} /> : "None yet") },
     { key: "added", header: "Added", desktopOnly: true, cell: (r) => when(r.createdAt) },
@@ -76,6 +107,38 @@ export default async function FranchiseesPage({ searchParams }: { searchParams: 
         title="Franchisees"
         lede="The firm's own record of each franchisee it has an agreement with: its office, the sales territories it holds, and its people. Staff and administrators only; nothing here is public."
       />
+      <Panel
+        title="Franchisor reporting"
+        className="mb-6"
+        description="Across every franchisee listed below: territory revenue (paid orders in their counties, net of refunds) and what their statements say is due this month."
+      >
+        {!report.ok ? (
+          <p role="alert" className="text-[14px] font-semibold text-[var(--ink)]">{report.error}</p>
+        ) : (
+          <dl className="grid gap-3 text-[14px] sm:grid-cols-2">
+            <div>
+              <dt className="text-[var(--secondary)]">Revenue, {statementMonth(report.report.thisMonth)} to date</dt>
+              <dd className="font-semibold text-[var(--ink)]">{moneyOr(report.report.revenueThisMonthCents, "Not known: an order this month carries no total")}</dd>
+            </div>
+            <div>
+              <dt className="text-[var(--secondary)]">Revenue, {statementMonth(report.report.lastMonth)}</dt>
+              <dd className="font-semibold text-[var(--ink)]">{moneyOr(report.report.revenueLastMonthCents, "Not known: an order that month carries no total")}</dd>
+            </div>
+            <div>
+              <dt className="text-[var(--secondary)]">Due this month, by the statements</dt>
+              <dd className="font-semibold text-[var(--ink)]">{moneyOr(report.report.dueThisMonthCents, "Not known: an order this month carries no total")}</dd>
+            </div>
+            <div>
+              <dt className="text-[var(--secondary)]">Collected</dt>
+              <dd className="text-[var(--ink)]">{COLLECTION_LINE}</dd>
+            </div>
+            <div className="sm:col-span-2">
+              <dt className="text-[var(--secondary)]">Item 19 data set</dt>
+              <dd className="text-[var(--ink)]">{ITEM_19_LINE}</dd>
+            </div>
+          </dl>
+        )}
+      </Panel>
       <Panel title="Add a franchisee" className="mb-6">
         <NewFranchiseeForm />
       </Panel>
@@ -165,6 +228,28 @@ async function FranchiseeView({ id }: { id: string }) {
   }
   const { franchisee: f, people, territoryOptions, personOptions } = read.detail;
   const ended = f.status === "ended";
+  const onboarding = await onboardingFor(actor, f.id);
+  const statement = await statementFor(actor, f.id);
+  const certificateColumns: Column<FranchiseeCertificate>[] = [
+    { key: "kind", header: "Covers", cell: (c) => CERTIFICATE_KIND_LABEL[c.kind] ?? c.kind },
+    { key: "carrier", header: "Carrier", cell: (c) => `${c.carrier}, ${c.policyNumber}` },
+    { key: "dates", header: "In force", cell: (c) => `${c.effectiveOn} to ${c.expiresOn}` },
+    {
+      key: "state",
+      header: "State",
+      cell: (c) => (c.withdrawnAt ? `Withdrawn: ${c.withdrawnReason ?? ""}` : <Chip label="On file" tone="good" />),
+    },
+    {
+      key: "open",
+      header: "PDF",
+      cell: (c) => (
+        <span className="flex flex-wrap items-center gap-2">
+          <a href={`/api/portal/franchisees/certificates?certificate=${c.id}`} className="text-[14px] font-semibold text-[var(--navy)] underline">Open</a>
+          {c.withdrawnAt || ended ? null : <WithdrawCertificate id={c.id} />}
+        </span>
+      ),
+    },
+  ];
   return (
     <>
       <PageHead
@@ -177,10 +262,73 @@ async function FranchiseeView({ id }: { id: string }) {
       </p>
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,420px)]">
         <div className="flex flex-col gap-4">
+          <Panel
+            title="Onboarding"
+            description="Every step is met before it can start operating: the agreement signed, its certificates on file, its owner through the academy, and its technicians certified by the engineer."
+          >
+            {!onboarding.ok ? (
+              <p role="alert" className="text-[14px] font-semibold text-[var(--ink)]">{onboarding.error}</p>
+            ) : (
+              <>
+                <ul className="mb-4 flex flex-col gap-2">
+                  {onboarding.onboarding.steps.map((s) => (
+                    <li key={s.key} className="flex flex-wrap items-center gap-2 text-[14px] text-[var(--ink)]">
+                      <Chip label={s.met ? "Met" : "Not yet"} tone={s.met ? "good" : "warn"} />
+                      <span className="font-semibold">{s.label}.</span>
+                      <span className="text-[var(--secondary)]">{s.says}</span>
+                    </li>
+                  ))}
+                </ul>
+                {onboarding.onboarding.agreementSignedOn || ended ? null : <AgreementForm id={f.id} />}
+                <h3 className="mb-2 mt-4 text-[15px] font-semibold text-[var(--navy)]">Certificates of insurance</h3>
+                <DataTable
+                  caption="Certificates of insurance"
+                  columns={certificateColumns}
+                  rows={onboarding.onboarding.certificates}
+                  total={onboarding.onboarding.certificates.length}
+                  empty={<EmptyState title="No certificate is recorded yet" body="Record each certificate below with its PDF, as the carrier issued it." />}
+                />
+                {ended ? null : (
+                  <div className="mt-4">
+                    <CertificateForm id={f.id} kinds={CERTIFICATE_KINDS.map((k) => ({ value: k, label: CERTIFICATE_KIND_LABEL[k] }))} />
+                  </div>
+                )}
+              </>
+            )}
+          </Panel>
+          <Panel
+            title="Royalty and fee statement"
+            description="By calendar month: territory revenue (paid orders in its counties, net of refunds), 7% royalty and 2% brand fund on it, each rounded once a month to the nearest cent, and the $400 technology fee from the first full calendar month after it starts operating. Not an invoice: nothing here is charged or sent."
+          >
+            {!statement.ok ? (
+              <p role="alert" className="text-[14px] font-semibold text-[var(--ink)]">{statement.error}</p>
+            ) : (
+              <>
+                <p className="mb-3 text-[14px] text-[var(--secondary)]">
+                  {statement.statement.operatingSince
+                    ? `Operating since ${statement.statement.operatingSince}; the technology fee is due from ${statementMonth(statement.statement.technologyFeeFrom ?? "")}.`
+                    : "Not yet operating, so no technology fee is due."}{" "}
+                  {CAPACITY_FEE_LINE}
+                </p>
+                <DataTable
+                  caption="Royalty and fee statement by month"
+                  columns={STATEMENT_COLUMNS}
+                  rows={statement.statement.rows.map((r) => ({ ...r, id: r.month }))}
+                  total={statement.statement.rows.length}
+                  empty={<EmptyState title="Nothing is due yet" body="Months appear here once an order in its counties is paid, or once its technology fee is due." />}
+                />
+                {mayExport(actor, "franchise.manage") ? (
+                  <p className="mt-3">
+                    <a href={`/api/portal/franchisees?format=csv&statement=${f.id}`} className="text-[14px] font-semibold text-[var(--navy)] underline">Download the statement as CSV</a>
+                  </p>
+                ) : null}
+              </>
+            )}
+          </Panel>
           <Panel title="Territories it holds" description="Sales territories from the territories screen. A territory is held by one franchisee at a time.">
             <TerritoryControls id={f.id} held={f.territories} options={territoryOptions} ended={ended} />
           </Panel>
-          <Panel title="Its people" description="Technicians and reps, by their portal accounts. A person belongs to one franchisee at a time.">
+          <Panel title="Its people" description="Technicians, reps and owners, by their portal accounts. A person belongs to one franchisee at a time.">
             <MemberControls id={f.id} people={people} options={personOptions} ended={ended} />
           </Panel>
         </div>

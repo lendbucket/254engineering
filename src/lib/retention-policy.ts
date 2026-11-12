@@ -496,6 +496,7 @@ export const RETENTION_POLICY: RetentionEntry[] = [
   },
   { table: "eng_file_inputs", rule: { kind: "kept_pending_counsel", because: COUNSEL } },
   { table: "eng_files", rule: { kind: "kept_pending_counsel", because: "The central record of the firm's work. " + COUNSEL } },
+  { table: "eng_franchisee_certificates", rule: { kind: "kept_pending_counsel", because: "A franchisee's certificates of insurance, withdrawn with a reason and never removed; the database refuses DELETE through eng_franchisee_certificate_guard, and each PDF is in the private eng-franchisee-certificates bucket (0128). No floor is ruled. " + COUNSEL } },
   { table: "eng_franchisee_members", rule: { kind: "kept_pending_counsel", because: "Who belonged to a franchisee and when, ended rather than deleted (0126). No floor is ruled. " + COUNSEL } },
   { table: "eng_franchisee_territories", rule: { kind: "kept_pending_counsel", because: "Which territories a franchisee held and when, ended rather than deleted (0126). No floor is ruled. " + COUNSEL } },
   { table: "eng_franchisees", rule: { kind: "kept_pending_counsel", because: "The firm's record of each franchisee it has an agreement with (0126). No floor is ruled. " + COUNSEL } },

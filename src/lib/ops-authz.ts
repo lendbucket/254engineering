@@ -451,6 +451,15 @@ export type Action =
    * admin alone, seeded in 0126 and pinned in roles-audit.
    */
   | "franchise.manage"
+  /*
+   * Read your OWN franchise: its legal name, status, office, the territories
+   * it holds and its people's names and roles, scoped by your own live
+   * membership and never by an id a caller passes. Robert's overnight orders of
+   * 2026-11-10, platform item X2, the franchisee owner role. Seeded in 0127 for
+   * franchisee_owner, and for admin so the screen can be opened and measured;
+   * an administrator belongs to no franchisee and is shown that.
+   */
+  | "franchise.read_own"
   // Ask for an order's money to go back. Somebody else decides.
   | "refunds.request"
   /*
@@ -576,6 +585,8 @@ const MATRIX: Record<Role, Action[]> = {
     "roofers.review",
     /* The franchisee record, seeded by 0126 (Robert, 2026-11-10, platform item X1). Admin alone. */
     "franchise.manage",
+    /* Your own franchise, seeded by 0127 (Robert, 2026-11-10, platform item X2). */
+    "franchise.read_own",
   ],
   engineer: [
     "profiles.read_self", "profiles.update_self",
@@ -907,6 +918,30 @@ export const DEFAULT_ROLES: DefaultRole[] = [
       /* The roofer partner applications, seeded by 0113 (Robert, 2026-11-05, ruling 6). */
       "roofers.review",
     ],
+  },
+  {
+    /*
+     * THE FRANCHISEE OWNER, 2026-11-11 (0127). Robert's overnight orders of
+     * 2026-11-10, platform item X2, cut from X1 under his answer 1.
+     *
+     * Reads their own franchise and edits their own profile, and nothing else.
+     * Each exclusion X2 was proposed with is the ABSENCE of a grant: no
+     * files.list or orders.read, so no work and no money; no pricing.*,
+     * billing.read or ledger.*; no review or sealing act, which no grant can
+     * carry anyway; no crm.* and no profiles.list, so no other territory and
+     * nobody outside their own franchise. Which franchise is theirs is their
+     * live membership in eng_franchisee_members, kept by an administrator.
+     *
+     * It lands on /portal/franchise rather than /portal: the dashboard is
+     * behind files.list, which this role does not hold, so landing there would
+     * send them on to their profile. 0127 sets its second factor to required.
+     */
+    key: "franchisee_owner",
+    name: "Franchisee Owner",
+    landingPath: "/portal/franchise",
+    isSystem: false,
+    inviteFields: [],
+    grants: ["profiles.read_self", "profiles.update_self", "franchise.read_own"],
   },
 ];
 

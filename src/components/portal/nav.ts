@@ -156,6 +156,19 @@ export const NAV: NavItem[] = [
     action: "franchise.manage",
     icon: "partners",
   },
+  {
+    /*
+     * A franchisee owner's own franchise (Robert's X2, 2026-11-10, 0127).
+     * franchise.read_own, matching the page's guard. An administrator holds it
+     * too, so the screen can be opened and measured, and is told there that
+     * they belong to no franchisee.
+     */
+    href: "/portal/franchise",
+    label: "Your franchise",
+    short: "Franchise",
+    action: "franchise.read_own",
+    icon: "partners",
+  },
   { href: "/portal/review", label: "Review queue", short: "Review", action: "review.queue", primary: true, icon: "review" },
   {
     /*

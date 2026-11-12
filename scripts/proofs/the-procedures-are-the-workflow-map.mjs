@@ -77,6 +77,8 @@ const PINNED = {
   field_tech: ["Field technician"],
   engineer: ["Engineer"],
   read_only: [],
+  /* The franchisee owner, X2 of 2026-11-11 (0127): nothing until Robert rules what a franchisee is given. */
+  franchisee_owner: [],
 };
 check("the role table is the one ruled", isDeepStrictEqual({ ...SECTIONS_FOR_ROLE }, PINNED), JSON.stringify(SECTIONS_FOR_ROLE));
 check(

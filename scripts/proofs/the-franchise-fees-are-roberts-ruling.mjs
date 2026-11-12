@@ -17,7 +17,7 @@ import { readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { readSource } from "../lib/read-source.mjs";
 
-const { FRANCHISE_FEES, FRANCHISE_FEES_RULED_BY, FRANCHISE_FEES_RULED_ON, feeSentence } = await import("../../src/config/franchise-fees.ts");
+const { FRANCHISE_FEES, FRANCHISE_FEES_RULED_BY, FRANCHISE_FEES_RULED_ON, FRANCHISE_FEE_READINGS_ON, feeSentence } = await import("../../src/config/franchise-fees.ts");
 
 let wrong = 0;
 const check = (name, ok, note = "") => {
@@ -47,6 +47,27 @@ check("A: the engineering capacity fee is not decided, and waits on FR1", FRANCH
 check("A: not decided is not zero", !("cents" in FRANCHISE_FEES.engineeringCapacityFee) && !("basisPoints" in FRANCHISE_FEES.engineeringCapacityFee));
 check("A: the file holds exactly the seven fees the ruling names", Object.keys(FRANCHISE_FEES).sort().join() === [...Object.keys(RULED), "engineeringCapacityFee"].sort().join(), Object.keys(FRANCHISE_FEES).join());
 check("A: the sentences read as the ruling does", feeSentence("initialFee") === "$39,500.00 per territory, once" && feeSentence("royalty") === "7% of territory revenue" && feeSentence("technologyFee") === "$400.00 per month" && feeSentence("engineeringCapacityFee") === "Not decided");
+
+/*
+ * THE FOUR READINGS, Robert's answer 8 of 2026-11-11 on issue #1, "all four
+ * readings as written", typed here by hand as the figures are. Moving one is an
+ * edit to the config AND to this list.
+ */
+const READINGS = {
+  initialFeeFirstThreeTerritories: "the first three territories sold system wide",
+  royalty: "territory revenue is the paid orders in the territory, net of refunds, by calendar month",
+  brandFund: "the brand fund is charged on territory revenue, as the royalty is",
+  veteranDiscount: "the veteran discount comes off the initial fee only",
+};
+check("A: the readings are dated 2026-11-11", FRANCHISE_FEE_READINGS_ON === "2026-11-11");
+for (const [key, reading] of Object.entries(READINGS)) {
+  const open = FRANCHISE_FEES[key]?.open ?? "";
+  check(`A: ${key} carries Robert's reading, for counsel to confirm`, open === `Robert's reading of 2026-11-11 (issue #1, answer 8), for counsel to confirm: ${reading}.`, open);
+}
+check("A: the brand fund is charged on territory revenue", FRANCHISE_FEES.brandFund.per === "territory revenue" && feeSentence("brandFund") === "2% of territory revenue");
+check("A: the veteran discount comes off the initial fee only", FRANCHISE_FEES.veteranDiscount.per === "the initial fee only");
+const stillOpen = Object.entries(FRANCHISE_FEES).filter(([, f]) => f.state === "set" && f.open !== null && !String(f.open).startsWith("Robert's reading of 2026-11-11")).map(([k]) => k);
+check("A: no fee is left open that the readings answered", stillOpen.length === 0, stillOpen.join(", "));
 
 /* ------------------------------------------------------------ B, the ruling */
 

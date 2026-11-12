@@ -14,6 +14,9 @@ import {
   type Office,
   type OfficeInput,
 } from "./franchisee-rules";
+import { onboardingStepsFor } from "./franchisee-onboarding";
+import { operatingRefusal } from "./franchisee-onboarding-rules";
+import { todayInFirmCalendar } from "./firm-calendar";
 
 /**
  * THE FRANCHISEE RECORD (0126). Robert's overnight orders of 2026-11-10,
@@ -170,7 +173,7 @@ export async function franchiseeDetail(actor: Actor | null, id: string): Promise
   const profiles = await readEvery<{ id: string; display_name: string | null; email: string | null; role: string }>((from, to) =>
     db.from("eng_profiles").select("id, display_name, email, role").in("role", [...FRANCHISEE_MEMBER_ROLES]).order("id", { ascending: true }).range(from, to),
   );
-  if (!profiles.ok) return refuse(`The technicians and reps could not be read: ${profiles.error}`);
+  if (!profiles.ok) return refuse(`The technicians, reps and owners could not be read: ${profiles.error}`);
 
   const nameOfFranchisee = new Map(all.rows.map((r) => [r.id, r.legalName]));
   const nameOfProfile = (p: { display_name: string | null; email: string | null }) => p.display_name?.trim() || p.email || "A person with no name on file";
@@ -265,18 +268,37 @@ export async function setFranchiseeStatus(
   if (!a) return refuse(NOT_ALLOWED);
   const db = supabaseAdmin();
   if (!db) return refuse("The database is not configured, so nothing was changed.");
-  const { data: row, error: readError } = await db.from("eng_franchisees").select("id, legal_name, status").eq("id", input.id).maybeSingle();
+  const { data: row, error: readError } = await db.from("eng_franchisees").select("id, legal_name, status, operating_since").eq("id", input.id).maybeSingle();
   if (readError) return refuse(`The franchisee could not be read: ${readError.message}`);
   if (!row) return refuse("That franchisee is not on record.");
   const change = statusChange(row.status as FranchiseeStatus, input.to, input.reason);
   if (!change.ok) return change;
+  /*
+   * ONBOARDING IS COMPLETE BEFORE A FRANCHISEE OPERATES (0128, Robert's X4):
+   * the agreement signed, its certificates on file, its owner through the
+   * academy and its technicians certified. Asked here, from the same facts the
+   * screen shows, before anything is written.
+   */
+  if (row.status === "onboarding" && change.to === "operating") {
+    const read = await onboardingStepsFor(db, input.id);
+    if (!read.ok) return refuse(`Onboarding could not be read, so the status was not changed: ${read.error}`);
+    const refusal = operatingRefusal(read.onboarding.steps);
+    if (refusal) return refuse(refusal);
+  }
+  /*
+   * THE DAY IT STARTS OPERATING, written once (0129, Robert's answer 14 of
+   * 2026-11-11): the technology fee is due from the first full calendar month
+   * after it. A franchisee that goes back to onboarding and returns keeps the
+   * day it first began.
+   */
+  const startsToday = change.to === "operating" && !row.operating_since ? todayInFirmCalendar() : null;
   const recorded = await writeAuditOrRefuse({
     actor: a,
     action: "franchisee.status_set",
     entityType: "franchisee",
     entityId: input.id,
-    summary: `${String(row.legal_name)}: ${String(row.status)} to ${change.to}${change.reason ? `, because ${change.reason}` : ""}.`,
-    diff: { from: row.status, to: change.to, reason: change.reason },
+    summary: `${String(row.legal_name)}: ${String(row.status)} to ${change.to}${change.reason ? `, because ${change.reason}` : ""}${startsToday ? `, operating since ${startsToday}` : ""}.`,
+    diff: { from: row.status, to: change.to, reason: change.reason, operating_since: startsToday },
   });
   if (!recorded.ok) return recorded;
   /* Only from the status just read, so two people changing it at once cannot both win. */
@@ -287,6 +309,7 @@ export async function setFranchiseeStatus(
       ended_at: change.to === "ended" ? DB_NOW : null,
       ended_reason: change.reason,
       updated_at: DB_NOW,
+      ...(startsToday ? { operating_since: startsToday } : {}),
     })
     .eq("id", input.id)
     .eq("status", String(row.status))
@@ -355,7 +378,7 @@ export async function setFranchiseeMember(
   if (pError) return refuse(`The person could not be read: ${pError.message}`);
   if (!p) return refuse("That person is not on record.");
   const name = String(p.display_name ?? "").trim() || String(p.email ?? "That person");
-  if (input.belongs && !mayBeMember(String(p.role))) return refuse(`${name} is not a technician or a rep, so they cannot be one of a franchisee's people.`);
+  if (input.belongs && !mayBeMember(String(p.role))) return refuse(`${name} is not a technician, a rep or a franchisee owner, so they cannot be one of a franchisee's people.`);
   if (input.belongs && f.status === "ended") return refuse("An ended franchisee cannot be given people.");
 
   const recorded = await writeAuditOrRefuse({

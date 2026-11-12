@@ -30,6 +30,15 @@
 export const FRANCHISE_FEES_RULED_BY = "Robert Reyna";
 export const FRANCHISE_FEES_RULED_ON = "2026-11-10";
 
+/**
+ * THE FOUR READINGS. Robert's answer 8 of 2026-11-11 on issue #1, "all four
+ * readings as written": what the 2026-11-10 ruling left open, read his way
+ * for the attorney to confirm. Each is written into the `open` field of the
+ * fee it reads, so the field says what was decided and by whom rather than
+ * what was missing. The figures themselves did not move.
+ */
+export const FRANCHISE_FEE_READINGS_ON = "2026-11-11";
+
 export type FeeRuling =
   | {
       state: "set";
@@ -75,7 +84,7 @@ export const FRANCHISE_FEES = {
     cents: 2_950_000,
     basisPoints: null,
     per: "territory, once, for the first three territories",
-    open: "Whether the first three means the first three territories sold system wide, or a franchisee's first three.",
+    open: "Robert's reading of 2026-11-11 (issue #1, answer 8), for counsel to confirm: the first three territories sold system wide.",
     by: BY,
     on: ON,
   },
@@ -84,7 +93,7 @@ export const FRANCHISE_FEES = {
     cents: null,
     basisPoints: 700,
     per: "territory revenue",
-    open: "How territory revenue is measured: which orders, before or after refunds, and over what period.",
+    open: "Robert's reading of 2026-11-11 (issue #1, answer 8), for counsel to confirm: territory revenue is the paid orders in the territory, net of refunds, by calendar month.",
     by: BY,
     on: ON,
   },
@@ -92,8 +101,8 @@ export const FRANCHISE_FEES = {
     state: "set",
     cents: null,
     basisPoints: 200,
-    per: "not stated in the ruling",
-    open: "What the 2% is charged on. The ruling does not say; the royalty's base, territory revenue, is the obvious reading and is not assumed here.",
+    per: "territory revenue",
+    open: "Robert's reading of 2026-11-11 (issue #1, answer 8), for counsel to confirm: the brand fund is charged on territory revenue, as the royalty is.",
     by: BY,
     on: ON,
   },
@@ -110,8 +119,8 @@ export const FRANCHISE_FEES = {
     state: "set",
     cents: null,
     basisPoints: 2_000,
-    per: "not stated in the ruling",
-    open: "Which fees the 20% comes off: the initial fee only, or others too.",
+    per: "the initial fee only",
+    open: "Robert's reading of 2026-11-11 (issue #1, answer 8), for counsel to confirm: the veteran discount comes off the initial fee only.",
     by: BY,
     on: ON,
   },
