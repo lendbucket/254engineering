@@ -32,6 +32,25 @@ inventing it:
 documents individually, so this entry is checked rather than kept by hand
 (Robert's answer 9 of that day).
 
+## PLATFORM ITEMS X5 AND X7: HELD UNTIL THE TBPELS LETTER (FR1)
+
+Two of the franchise platform items are held by Robert's word rather than
+built. The other five are on stacked branches from `stage/0126-franchisees`
+(issue #1, 6806406761).
+
+- **X5, brand standards in the product.** "Franchisee office NAP and GBP posts
+  generated from the template with the firm line, never editable past the
+  standards." Held by Robert's answer 13 of 2026-11-11: the posts are public
+  copy carrying the franchisee firm line, which is FR1. The office name, address
+  and phone already live on the franchisee record (X1).
+- **X7, the franchisee P&L.** "From its field fees, commissions and fees paid."
+  Held by Robert's answer 16 of 2026-11-11: what 254 pays a franchisee per job
+  is the capacity fee and commission question waiting on FR1 (22 TAC
+  137.63(c)(4)), and no payment either way is recorded. The territory revenue
+  and the statement it would read are built (X3, `territory-revenue.ts`).
+
+**Not built because** both wait on the TBPELS opinion letter, FR1.
+
 ## THE OCTOBER 2026 PRODUCT AUDIT'S RECORDS: INDEXED BY PATH, NOT RE-CHECKED
 
 When backlog-audit first read the subfolders of `docs/` on 2026-11-11, it found
