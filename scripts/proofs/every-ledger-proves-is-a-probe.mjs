@@ -45,6 +45,29 @@ for (const kind of ["table", "column", "row", "bucket", "function", "none"]) {
 const nested = APPLIED.find((e) => e.file.startsWith("0041_"));
 check("A: 0041, the entry the check crashed on, is a column probe", probeOf(nested?.proves).kind === "column" && probeOf(nested?.proves).table === "eng_documents");
 
+/*
+ * A PROBE ASSERTS WHAT A MIGRATION LEAVES BEHIND FOR GOOD, NEVER A STATE A LATER
+ * ACT CHANGES. The counterpart's first run of the --sql probes against
+ * production (issue #1, 6830159417) found three false rows and no missing
+ * migration: 0065 and 0069 asserted status = 'draft' on protocols the engineer
+ * has since signed, and 0028 asserted is_demo on a partner production never
+ * held; 0025's mfa_requirement probe had gone the same way that morning. Each
+ * was a check on a transitional state, which expires at the moment of success.
+ *
+ * Two rules close the class, because the state is changed two ways:
+ *   - by the APPLICATION after the migration (a signature publishes a draft, a
+ *     backfill marks a row): so a row probe may not match on status or is_demo.
+ *   - by a LATER MIGRATION (0093 replaced 0025's optional second factor): so in
+ *     D below, every probe must be true on a replay of the whole chain. That
+ *     rule, not a ban, governs settings such as mfa_requirement, which 0070 and
+ *     0093 leave in force and production reads true.
+ */
+const STATE_KEYS = ["status", "is_demo"];
+const onState = APPLIED.map((e) => ({ file: e.file, probe: probeOf(e.proves) }))
+  .filter((x) => x.probe.kind === "row" && Object.keys(x.probe.match).some((k) => STATE_KEYS.includes(k)))
+  .map((x) => `${x.file} (${Object.keys(x.probe.match).filter((k) => STATE_KEYS.includes(k)).join(", ")})`);
+check("A: no row probe asserts a state the application changes after the migration (status, is_demo)", onState.length === 0, onState.join(" | "));
+
 /* ------------------------------------------------------------- B, the parser */
 
 check("B: a nested column", JSON.stringify(probeOf({ column: { table: "eng_x", name: "y" } })) === JSON.stringify({ kind: "column", table: "eng_x", column: "y" }));
@@ -102,6 +125,9 @@ check("D: the select parses and runs on a replayed database", Array.isArray(answ
 check("D: and answers one boolean per probe", Array.isArray(answered) && answered.length === sqlOf.length && answered.every((r) => typeof r.ok === "boolean"), Array.isArray(answered) ? `${answered.length} rows` : "");
 const schemaMarks = Array.isArray(answered) ? answered.filter((r, i) => ["table", "column", "bucket", "function"].includes(sqlOf[i].probe.kind)) : [];
 check("D: every table, column, bucket and function mark is true on the replay", schemaMarks.length > 0 && schemaMarks.every((r) => r.ok === true), schemaMarks.filter((r) => !r.ok).map((r) => r.migration).join(", "));
+/* The second rule of A: a probe a LATER migration made false (0025's, until 0093) is caught here, because the replay runs the whole chain. */
+const falseOnReplay = Array.isArray(answered) ? answered.filter((r) => r.ok !== true).map((r) => r.migration) : ["the select did not run"];
+check("D: and every probe of every kind is true on a replay of the whole chain, so none asserts what a later migration replaced", falseOnReplay.length === 0, falseOnReplay.join(", "));
 await db.close();
 
 console.log(wrong === 0 ? "PASS: every ledger entry's proves is a probe the production check can run." : `FAIL: ${wrong} check(s).`);
