@@ -4714,8 +4714,9 @@ export const APPLIED = [
     because:
       "WRITTEN 2026-11-11 ON feat/x3-franchise-statement, STACKED ON X4, FOR ROBERT'S ANSWER 14 OF 2026-11-11: the " +
       "technology fee is due from the first full calendar month after a franchisee starts operating, and the record " +
-      "kept no such day. The status change writes it once. PENDING: not on development or production; production " +
-      "only in a sitting with Robert, after 0125 to 0128. Additive: one column.",
+      "kept no such day. The status change writes it once. ON DEVELOPMENT SINCE 2026-11-12 (6811585845, version " +
+      "20261112012302, stored 4f7fe547, shape 1cbe1959 at 1643 columns, a nullable date, matching the replay). " +
+      "Production only in a sitting with Robert, after 0125 to 0128. Additive: one column.",
   },
 ];
 
