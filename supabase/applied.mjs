@@ -4673,9 +4673,10 @@ export const APPLIED = [
     because:
       "WRITTEN 2026-11-11 ON feat/x2-franchisee-owner, CUT FROM stage/0126-franchisees UNDER ROBERT'S ANSWER 1 OF " +
       "2026-11-11, FOR HIS OVERNIGHT ORDERS OF 2026-11-10, ITEM 3, PLATFORM ITEM X2: the franchisee owner role, which " +
-      "reads its own franchise and nothing else, its second factor required. PENDING: not on development or production. " +
-      "Development after 0126's read-back; production only in a sitting with Robert, after 0125 and 0126. Additive: " +
-      "one role row and four grant rows.",
+      "reads its own franchise and nothing else, its second factor required (Robert's answer 11). ON DEVELOPMENT SINCE " +
+      "2026-11-12 (6811585845, version 20261112012218, stored 7e430777, shape aa9a945e at 1624 columns unchanged, " +
+      "grants 195 to 199, matching the replay). Production only in a sitting with Robert, after 0125 and 0126. " +
+      "Additive: one role row and four grant rows.",
   },
   {
     file: "0128_a_franchisee_is_onboarded_before_it_operates.sql", appliedBy: "apply_migration",
@@ -4694,8 +4695,10 @@ export const APPLIED = [
       "HIS OVERNIGHT ORDERS OF 2026-11-10, ITEM 3, PLATFORM ITEM X4: the agreement signed and the franchisee's " +
       "certificates of insurance, recorded; with the owner's academy standing and the technicians' certifications, " +
       "read, they decide whether a franchisee may move from onboarding to operating. One private bucket, " +
-      "eng-franchisee-certificates. PENDING: not on development or production; production only in a sitting with " +
-      "Robert, after 0125 to 0127. Additive: three columns, one table, one bucket, two functions.",
+      "eng-franchisee-certificates. The coverages are Robert's answer 12. ON DEVELOPMENT SINCE 2026-11-12 (6811585845, " +
+      "version 20261112012249, stored 215ca577, shape 47ba0193 at 1642 columns, the bucket private and PDF only, " +
+      "matching the replay). Production only in a sitting with Robert, after 0125 to 0127. Additive: three columns, " +
+      "one table, one bucket, two functions.",
   },
   {
     file: "0129_a_franchisee_records_the_day_it_starts_operating.sql", appliedBy: "apply_migration",
