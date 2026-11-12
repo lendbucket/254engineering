@@ -112,11 +112,12 @@ for (const file of ["scripts/native-audit.mjs", "scripts/contrast-audit.mjs"]) {
 console.log("D  the teardown takes a probe's membership, and only a probe's");
 {
   const probe = read("scripts/lib/portal-probe.mjs");
-  const at = probe.indexOf('from("eng_franchisee_members").delete().in("profile_id", [...ids])');
+  const loop = probe.indexOf("for (const id of ids) {");
+  const at = probe.indexOf('from("eng_franchisee_members").delete().eq("profile_id", id)');
   const profiles = probe.indexOf('await d.from("eng_profiles").delete().eq("id", id);');
-  check("D: destroyProbes deletes eng_franchisee_members by the probe ids", at > 0);
-  check("D: before it deletes the probe profiles", at > 0 && profiles > at, `membership at ${at}, profiles at ${profiles}`);
-  check("D: and a refusal is said, not swallowed", /refusals\.push\(`eng_franchisee_members: /.test(probe));
+  check("D: destroyProbes deletes eng_franchisee_members by each probe id, inside the probe loop", loop > 0 && at > loop);
+  check("D: before it deletes the probe's profile", at > 0 && profiles > at, `loop at ${loop}, membership at ${at}, profiles at ${profiles}`);
+  check("D: and a refusal is said, not swallowed", /refusals\.push\(`eng_franchisee_members \$\{id\}: /.test(probe));
   check("D: the seeded owner is not on the probe domain, so it is never in those ids", !SEED_FRANCHISEE.owner.email.endsWith("@audit-probe.invalid") && /^demo\.[^@]+@example\.com$/.test(SEED_FRANCHISEE.owner.email));
 }
 

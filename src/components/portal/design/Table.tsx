@@ -156,8 +156,18 @@ export function DataTable<T extends { id: string }>({
         .scroll-x stays as the backstop for a caller with more columns than
         that, and it is a deliberate horizontally scrolling component with the
         site's own affordance rules on it, which point 2 allows.
+
+        A KEYBOARD CAN REACH IT, since 2026-11-12. A table in a narrow column
+        (the 420px side column at xl) is narrower than its 640px minimum and
+        scrolls sideways, and a table with no link in it then has nothing a
+        keyboard can stop on, so its hidden columns cannot be reached without a
+        mouse (WCAG 2.1.1; axe scrollable-region-focusable). contrast-audit found
+        it on the franchisee owner's Territories and People tables the first time
+        that screen was measured with a franchise on it (board 43302061409). The
+        wrapper is a named region in the tab order, so every table gets the fix
+        rather than the two that were caught.
       */}
-      <div className="scroll-x hidden md:block">
+      <div className="scroll-x hidden md:block" tabIndex={0} role="region" aria-label={caption}>
         <table className="w-full min-w-[640px] border-collapse text-left">
           <caption className="sr-only">{caption}</caption>
           <thead>

@@ -1306,12 +1306,11 @@ export async function destroyProbes(label = "audit") {
    * probe franchisee owner joins the seeded franchisee for the run, and
    * eng_franchisee_members restricts the deletion of a profile it names. The
    * row is the probe's own, on development; a real membership names no probe.
+   * One id at a time, like every other delete in this loop.
    */
-  if (ids.size) {
-    const { error } = await d.from("eng_franchisee_members").delete().in("profile_id", [...ids]);
-    if (error) refusals.push(`eng_franchisee_members: ${error.message ?? error}`);
-  }
   for (const id of ids) {
+    const { error: memberError } = (await d.from("eng_franchisee_members").delete().eq("profile_id", id)) ?? {};
+    if (memberError) refusals.push(`eng_franchisee_members ${id}: ${memberError.message ?? memberError}`);
     await d.from("eng_auth_tokens").delete().eq("profile_id", id);
     await d.from("eng_profiles").delete().eq("id", id);
     const { error } = await d.auth.admin.deleteUser(id).then(
