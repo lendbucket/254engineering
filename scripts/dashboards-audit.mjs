@@ -198,8 +198,17 @@ console.log("");
   const onFirmMoney = DEFAULT_ROLES.filter((r) => DASHBOARD_FOR_ROLE[r.key] === "admin");
   const widened = onFirmMoney.filter((r) => !holdsMoney(r)).map((r) => r.key);
 
-  /* Own-pay dashboards carry money that is the reader's own, not the firm's. */
-  const NO_FIRM_MONEY = new Set([...MONEYLESS_ROLES, "engineer", "field_tech"]);
+  /*
+   * Own-pay dashboards carry money that is the reader's own, not the firm's.
+   *
+   * "none" joined on 2026-11-12, Robert's answer 18 on issue #1: a role mapped to
+   * "none" is served NO dashboard at all (the franchisee owner, X2, 0127, whose
+   * home is /portal/franchise because /portal is behind files.list), and no
+   * dashboard carries no money. The exemption is only as true as "served no
+   * dashboard", so the check after this one asserts it of every such role, by
+   * calling dashboardFor, rather than trusting the map.
+   */
+  const NO_FIRM_MONEY = new Set([...MONEYLESS_ROLES, "engineer", "field_tech", "none"]);
   const withoutGrants = DEFAULT_ROLES.filter((r) => !holdsMoney(r));
   const shownFirmMoney = withoutGrants.filter((r) => !NO_FIRM_MONEY.has(DASHBOARD_FOR_ROLE[r.key])).map((r) => `${r.key} (${DASHBOARD_FOR_ROLE[r.key]})`);
 
@@ -226,6 +235,21 @@ console.log("");
     shownFirmMoney.length
       ? `${shownFirmMoney.join(", ")} is served a dashboard carrying the firm's money without holding ${FIRM_MONEY_GRANTS.join(" and ")}. That is a widened grant, which the operator refused.`
       : `read_only is served ${DASHBOARD_FOR_ROLE.read_only}`,
+  );
+
+  /* The second check Robert's answer 18 asked for: "none" is exempt only while it is true. */
+  const servedNone = DEFAULT_ROLES.filter((r) => DASHBOARD_FOR_ROLE[r.key] === "none");
+  const servedSomething = [];
+  for (const r of servedNone) {
+    const out = await dashboardFor({ id: "00000000-0000-4000-8000-000000000000", role: r.key, status: "active", grants: new Set(r.grants) });
+    if (out !== null) servedSomething.push(`${r.key} (${out.role})`);
+  }
+  rec(
+    `and every role mapped to "none" is served no dashboard at all (${servedNone.map((r) => r.key).join(", ") || "none mapped"})`,
+    servedSomething.length === 0,
+    servedSomething.length
+      ? `${servedSomething.join(", ")} is mapped to "none" and is served a dashboard, so the "none" exemption above would hide it`
+      : `${servedNone.length} role(s) mapped to "none", each answered null by dashboardFor`,
   );
 }
 

@@ -4673,9 +4673,10 @@ export const APPLIED = [
     because:
       "WRITTEN 2026-11-11 ON feat/x2-franchisee-owner, CUT FROM stage/0126-franchisees UNDER ROBERT'S ANSWER 1 OF " +
       "2026-11-11, FOR HIS OVERNIGHT ORDERS OF 2026-11-10, ITEM 3, PLATFORM ITEM X2: the franchisee owner role, which " +
-      "reads its own franchise and nothing else, its second factor required. PENDING: not on development or production. " +
-      "Development after 0126's read-back; production only in a sitting with Robert, after 0125 and 0126. Additive: " +
-      "one role row and four grant rows.",
+      "reads its own franchise and nothing else, its second factor required (Robert's answer 11). ON DEVELOPMENT SINCE " +
+      "2026-11-12 (6811585845, version 20261112012218, stored 7e430777, shape aa9a945e at 1624 columns unchanged, " +
+      "grants 195 to 199, matching the replay). Production only in a sitting with Robert, after 0125 and 0126. " +
+      "Additive: one role row and four grant rows.",
   },
   {
     file: "0128_a_franchisee_is_onboarded_before_it_operates.sql", appliedBy: "apply_migration",
