@@ -20,7 +20,7 @@
 import { readSource } from "../lib/read-source.mjs";
 
 const { APPLIED } = await import("../../supabase/applied.mjs");
-const { probeOf, whereAsMatch } = await import("../lib/proves-shape.mjs");
+const { probeOf, probeSql, whereAsMatch } = await import("../lib/proves-shape.mjs");
 
 let wrong = 0;
 const check = (name, ok, note = "") => {
@@ -65,11 +65,44 @@ check("B: nothing declared is none", probeOf(null).kind === "none" && probeOf(un
 /* -------------------------------------------------------------- C, the check */
 
 const src = readSource("scripts/production-schema-check.mjs");
-check("C: the check reads proves through the parser", /import \{ probeOf \} from "\.\/lib\/proves-shape\.mjs";/.test(src) && /const probe = probeOf\(entry\.proves\);/.test(src));
+check("C: the check reads proves through the parser", /import \{ probeOf, probeSql \} from "\.\/lib\/proves-shape\.mjs";/.test(src) && /const probe = probeOf\(entry\.proves\);/.test(src));
 check("C: it no longer destructures proves itself", !/const \{ table, column, match \} = entry\.proves;/.test(src));
 check("C: an unknown shape is a failure it names, not a crash", /if \(probe\.kind === "unknown"\)/.test(src));
 check("C: it does not pin September's grant count", !/count === 111/.test(src));
 check("C: it pins production's grant count at its last sitting, 195 after 0126", /const PRODUCTION_GRANTS = 195;/.test(src));
+check("C: the count has one home, read by the check and by --sql", (src.match(/const PRODUCTION_GRANTS = /g) ?? []).length === 1 && !/count === 111|= 195 as ok/.test(src));
+
+/* ---------------------------------------------- D, the same probes as SQL */
+
+check("D: --sql prints and exits before any client is made", src.indexOf('process.argv.includes("--sql")') > 0 && src.indexOf('process.argv.includes("--sql")') < src.indexOf('auditClient("production-schema-check")'));
+check("D: a table", probeSql({ kind: "table", table: "eng_x" }) === "to_regclass('public.eng_x') is not null");
+check("D: a column", /information_schema\.columns where table_schema = 'public' and table_name = 'eng_x' and column_name = 'y'/.test(probeSql({ kind: "column", table: "eng_x", column: "y" }) ?? ""));
+check("D: a row, its literals quoted", probeSql({ kind: "row", table: "eng_r", match: { a: "it's", b: true, n: 3 } }) === "exists (select 1 from public.eng_r where a = 'it''s' and b = true and n = 3)");
+check("D: a bucket", probeSql({ kind: "bucket", bucket: "eng-uploads" }) === "exists (select 1 from storage.buckets where id = 'eng-uploads')");
+check("D: a function, read by name, not called", /from pg_proc p join pg_namespace n .* p\.proname = 'eng_f'/.test(probeSql({ kind: "function", name: "eng_f" }) ?? "") && !/eng_f\(/.test(probeSql({ kind: "function", name: "eng_f" }) ?? ""));
+check("D: an identifier that is not one is refused, so no statement can ride in", probeSql({ kind: "table", table: "eng_x; drop table eng_y" }) === null && probeSql({ kind: "row", table: "eng_r", match: { "a = 1 or 1": 1 } }) === null);
+const sqlOf = APPLIED.filter((e) => e.production).map((e) => ({ file: e.file, probe: probeOf(e.proves) })).filter((x) => x.probe.kind !== "none");
+const unwritable = sqlOf.filter((x) => !probeSql(x.probe)).map((x) => x.file);
+check("D: every applied entry's probe can be written as SQL", unwritable.length === 0, unwritable.join(", ") || `${sqlOf.length} probes`);
+const emitted = sqlOf.map((x) => probeSql(x.probe)).join(" ");
+check("D: nothing it writes can change a database", !/\b(insert|update|delete|drop|alter|create|grant|revoke|truncate)\b/i.test(emitted));
+
+/* Run the printed select against a replayed database: it must parse and answer one boolean per probe. */
+const { readdirSync } = await import("node:fs");
+const { join } = await import("node:path");
+const { PGlite } = await import("@electric-sql/pglite");
+const { SUPABASE_REPLAY_STUBS } = await import("../lib/replay-stubs.mjs");
+const DIR = "supabase/migrations";
+const db = new PGlite();
+await db.exec(SUPABASE_REPLAY_STUBS);
+for (const f of readdirSync(DIR).filter((f) => /^\d{4}_.*\.sql$/.test(f)).sort()) await db.exec(readSource(join(DIR, f)));
+const union = sqlOf.map((x) => `select '${x.file}' as migration, ${probeSql(x.probe)} as ok`).join(" union all ");
+const answered = await db.query(union).then((r) => r.rows).catch((e) => String(e.message));
+check("D: the select parses and runs on a replayed database", Array.isArray(answered), Array.isArray(answered) ? "" : answered);
+check("D: and answers one boolean per probe", Array.isArray(answered) && answered.length === sqlOf.length && answered.every((r) => typeof r.ok === "boolean"), Array.isArray(answered) ? `${answered.length} rows` : "");
+const schemaMarks = Array.isArray(answered) ? answered.filter((r, i) => ["table", "column", "bucket", "function"].includes(sqlOf[i].probe.kind)) : [];
+check("D: every table, column, bucket and function mark is true on the replay", schemaMarks.length > 0 && schemaMarks.every((r) => r.ok === true), schemaMarks.filter((r) => !r.ok).map((r) => r.migration).join(", "));
+await db.close();
 
 console.log(wrong === 0 ? "PASS: every ledger entry's proves is a probe the production check can run." : `FAIL: ${wrong} check(s).`);
 process.exit(wrong === 0 ? 0 : 1);

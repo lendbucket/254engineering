@@ -47,7 +47,42 @@
 
 import { auditClient, describeTarget, isProduction } from "./lib/db-target.mjs";
 import { appliedToProduction, pending, assertNotEmpty } from "../supabase/applied.mjs";
-import { probeOf } from "./lib/proves-shape.mjs";
+import { probeOf, probeSql } from "./lib/proves-shape.mjs";
+
+/*
+ * --sql: THE SAME QUESTIONS AS ONE READ-ONLY SELECT, AND NOTHING RUN.
+ * For a reader who reaches production only through SQL: the chat counterpart
+ * holds no production URL or key and reads production through the Supabase
+ * connector with execute_sql (issue #1, 6816656381). This prints one select,
+ * one row per declared probe plus the grant count, and exits before any client
+ * exists, so it needs no credentials and touches no database. Every row's ok
+ * must be true; the grant row's must too, against PRODUCTION_GRANTS below.
+ */
+/* Production's grant count at its last sitting; the reasoning is at the grant check below. One home for both readers. */
+const PRODUCTION_GRANTS = 195;
+
+if (process.argv.includes("--sql")) {
+  const rows = [];
+  const unwritable = [];
+  for (const entry of appliedToProduction()) {
+    const probe = probeOf(entry.proves);
+    if (probe.kind === "none") continue;
+    const expr = probeSql(probe);
+    if (!expr) {
+      unwritable.push(`${entry.file} (${probe.kind}${probe.why ? `: ${probe.why}` : ""})`);
+      continue;
+    }
+    rows.push(`select ${`'${entry.file.replace(/'/g, "''")}'`} as migration, '${probe.kind}' as probe, ${expr} as ok`);
+  }
+  rows.push(`select 'eng_role_grants' as migration, 'count is ${PRODUCTION_GRANTS}' as probe, (select count(*) from public.eng_role_grants) = ${PRODUCTION_GRANTS} as ok`);
+  if (unwritable.length) {
+    console.error(`These cannot be written as SQL, so nothing was printed: ${unwritable.join(", ")}`);
+    process.exit(1);
+  }
+  console.log(`-- production-schema-check --sql: ${rows.length - 1} probes and the grant count, read only. Every ok must be true.`);
+  console.log(`${rows.join("\nunion all\n")}\norder by ok, migration;`);
+  process.exit(0);
+}
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
@@ -199,9 +234,9 @@ for (const e of declared.filter((x) => !x.proves)) {
  * grants grew to 195; because the loop above crashed first, no run reached it to
  * say so. 195 is the count the chat counterpart read back from production after
  * 0126 on 2026-11-12 (issue #1, 6815678447). A sitting that seeds a grant
- * updates this literal in the same commit as the ledger entry.
+ * updates the literal, PRODUCTION_GRANTS near the top of this file, in the
+ * same commit as the ledger entry.
  */
-const PRODUCTION_GRANTS = 195;
 {
   const { count, error } = await db.from("eng_role_grants").select("action", { count: "exact", head: true });
   rec("the role grants are readable", !error, error ? error.message : `${count} grants`);

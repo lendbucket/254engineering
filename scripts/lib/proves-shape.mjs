@@ -67,3 +67,51 @@ export function probeOf(proves) {
   }
   return { kind: "unknown", why: `shape ${keys}` };
 }
+
+/*
+ * THE SAME PROBES AS READ-ONLY SQL, for a reader who reaches the database only
+ * through SQL. The chat counterpart holds no production URL or service key and
+ * reads production through the Supabase connector with execute_sql (issue #1,
+ * 6816656381), so `production-schema-check.mjs --sql` prints one select of
+ * these and runs nothing. Every expression is a select; nothing it emits can
+ * write. Identifiers must look like identifiers and literals are quoted with
+ * single quotes doubled, so a ledger entry cannot carry a statement into it.
+ */
+const IDENT = /^[a-z_][a-z0-9_]*$/;
+const BUCKET = /^[a-z0-9][a-z0-9-]*$/;
+const lit = (v) => (typeof v === "boolean" ? String(v) : typeof v === "number" && Number.isFinite(v) ? String(v) : `'${String(v).replace(/'/g, "''")}'`);
+
+/** One boolean SQL expression that is true when the probe's mark is present, or null if the probe cannot be written as one. */
+export function probeSql(probe) {
+  const ident = (s) => (typeof s === "string" && IDENT.test(s) ? s : null);
+  switch (probe.kind) {
+    case "table": {
+      const t = ident(probe.table);
+      if (!t) return null;
+      const table = `to_regclass('public.${t}') is not null`;
+      if (!probe.bucket) return table;
+      return BUCKET.test(probe.bucket) ? `(${table} and exists (select 1 from storage.buckets where id = ${lit(probe.bucket)}))` : null;
+    }
+    case "column": {
+      const t = ident(probe.table);
+      const c = ident(probe.column);
+      return t && c
+        ? `exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = ${lit(t)} and column_name = ${lit(c)})`
+        : null;
+    }
+    case "row": {
+      const t = ident(probe.table);
+      const keys = Object.keys(probe.match ?? {});
+      if (!t || keys.length === 0 || keys.some((k) => !ident(k))) return null;
+      return `exists (select 1 from public.${t} where ${keys.map((k) => `${k} = ${lit(probe.match[k])}`).join(" and ")})`;
+    }
+    case "bucket":
+      return BUCKET.test(probe.bucket ?? "") ? `exists (select 1 from storage.buckets where id = ${lit(probe.bucket)})` : null;
+    case "function": {
+      const f = ident(probe.name);
+      return f ? `exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = ${lit(f)})` : null;
+    }
+    default:
+      return null;
+  }
+}
