@@ -42,6 +42,8 @@ import {
 } from "./lib/portal-probe.mjs";
 import { allPages } from "./lib/surfaces.mjs";
 import { PORTS } from "./lib/ports.mjs";
+import { auditClient } from "./lib/db-target.mjs";
+import { attachFranchiseeOwner, franchiseSeedScreens, seededFranchisee } from "./lib/franchise-seed.mjs";
 
 const WIDTHS = [390, 1280];
 const HEIGHT = 900;
@@ -388,6 +390,22 @@ async function main() {
     sessions.partner = await createPartnerProbe(base, "contrast-audit");
     sessions.customer = await createCustomerProbe(base, "contrast-audit");
 
+    /*
+     * THE FRANCHISE SEED (Robert's order of 2026-11-12, item 1). The franchisee
+     * record is a query string no route walk reaches, and the owner's screen
+     * is empty for an administrator, who belongs to no franchisee. Both are
+     * measured with the seed on them, the second by a probe owner who belongs
+     * to it for the run. A missing seed fails, naming the script.
+     */
+    const seedDb = auditClient("contrast-audit", { neverProduction: true });
+    const seed = await seededFranchisee(seedDb);
+    if (seed.ok) {
+      sessions.franchisee_owner = await attachFranchiseeOwner(base, "contrast-audit", seed.id, seedDb);
+    } else {
+      log(`  FRANCHISE SEED NOT WHOLE: ${seed.why}`);
+    }
+    const SEEDED_TEMPLATES = franchiseSeedScreens(seed).map((s) => ({ name: `portal: ${s.name}`, path: s.path, session: "staff", portal: s.role }));
+
     const missing = Object.entries(sessions).filter(([, p]) => !p?.cookie).map(([r]) => r);
     if (missing.length) {
       log(`  probe sign in failed for: ${missing.join(", ")}`);
@@ -412,7 +430,8 @@ async function main() {
     /* The third verdict, kept apart from pageErrors. It reports, it does not fail. */
     const neverLoaded = [];
 
-    for (const t of [...TEMPLATES, ...OPEN_TEMPLATES, ...PORTAL_TEMPLATES]) {
+    if (!seed.ok) pageErrors++;
+    for (const t of [...TEMPLATES, ...OPEN_TEMPLATES, ...PORTAL_TEMPLATES, ...SEEDED_TEMPLATES]) {
       for (const w of WIDTHS) {
         const r = await auditPage(browser, base, t, w, sessions);
         if (r.unreachable) {

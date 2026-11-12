@@ -41,6 +41,8 @@ import {
   partnerCookieFor,
   destroyPartnerProbes,
 } from "./lib/portal-probe.mjs";
+import { auditClient } from "./lib/db-target.mjs";
+import { attachFranchiseeOwner, franchiseSeedScreens, seededFranchisee } from "./lib/franchise-seed.mjs";
 
 const BASE = process.env.BASE_URL ?? AUDIT_BASE_URL;
 const WIDTH = 390;
@@ -238,6 +240,25 @@ const partnerProbe = await orCouldNotTell(
   },
 );
 rec("a partner session was created", Boolean(partnerProbe?.cookie));
+
+/*
+ * THE FRANCHISE SEED (Robert's order of 2026-11-12, item 1). The franchisee
+ * record is a query string no route walk reaches, and the owner's screen is
+ * empty for an administrator, who belongs to no franchisee. Both join the
+ * screens with the seed on them, the second opened by a probe owner who
+ * belongs to it for the run. A seed that is not whole fails, naming the script.
+ */
+const franchiseSeed = await seededFranchisee(auditClient("native-audit", { neverProduction: true }));
+{
+  const seedDb = auditClient("native-audit", { neverProduction: true });
+  const seed = franchiseSeed;
+  rec("the franchise seed is whole: a franchisee with a territory, a member, an agreement and its certificates", seed.ok, seed.ok ? seed.id : seed.why);
+  if (seed.ok) {
+    sessions.franchisee_owner = await attachFranchiseeOwner(BASE, "native-audit", seed.id, seedDb);
+    rec("a franchisee_owner session was created, a member of the seed", Boolean(sessions.franchisee_owner?.cookie), sessions.franchisee_owner?.fault ?? "");
+    for (const s of franchiseSeedScreens(seed)) SCREENS.push({ path: s.path, role: s.role, kind: "staff" });
+  }
+}
 
 const browser = await chromium.launch();
 
@@ -838,6 +859,28 @@ for (const screen of SCREENS) {
 }
 
 await browser.close();
+
+/*
+ * THE SEEDED FRANCHISEE'S STATEMENT, AS THE CSV THE SCREEN OFFERS (Robert's
+ * order of 2026-11-12, item 1). The administrator downloads it from the
+ * statement panel; this asks the same route with the same session and reads
+ * the file, not only the status: a 200 carrying an error page is not a file.
+ */
+if (franchiseSeed.ok && sessions.admin?.cookie) {
+  const cookie = cookieFor(sessions.admin, BASE).map((c) => `${c.name}=${c.value}`).join("; ");
+  try {
+    const res = await fetch(`${BASE}/api/portal/franchisees?format=csv&statement=${franchiseSeed.id}`, { headers: { cookie } });
+    const body = await res.text();
+    const type = res.headers.get("content-type") ?? "";
+    rec(
+      "the seeded franchisee's statement downloads as CSV, its name and the month columns in it",
+      res.status === 200 && type.includes("text/csv") && body.includes("Royalty and fee statement") && body.includes("Demo Coastal Franchise LLC") && body.includes('"Month","Orders","Territory revenue","Royalty","Brand fund","Technology fee","Total"'),
+      `HTTP ${res.status}, ${type || "no content type"}, ${body.length} bytes${res.status === 200 ? "" : `: ${body.slice(0, 160)}`}`,
+    );
+  } catch (err) {
+    unmeasured.push(`the seeded statement CSV: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
 
 /*
  * "NO SCREENS WERE MEASURED" IS A FAILURE ONLY WHEN THERE WERE SCREENS.
