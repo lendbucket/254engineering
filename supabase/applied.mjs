@@ -166,7 +166,17 @@ export const APPLIED = [
   {
     file: "0025_mfa_optional_default.sql", appliedBy: "execute_sql",
     fingerprint: "0e8ff33c7106ce05ec2cf81a1c66cd35",
-    proves: { table: "eng_roles", match: { key: "admin", mfa_requirement: "optional" } },
+    /*
+     * It proved { table: "eng_roles", match: { key: "admin", mfa_requirement:
+     * "optional" } } until 2026-11-12. That row was true from 2026-09-07 until
+     * 0093 required the second factor for admin, and has been false on both
+     * projects since, correctly: a later migration replaced what this one did.
+     * The production check, run for the first time in two months that night,
+     * named it as missing (issue #1, 6815852350).
+     */
+    proves: null,
+    provesNote:
+      "Nothing this migration did survives to be probed. It set mfa_requirement to optional for admin and the engineer; the engineer was required again before 0093, and 0093 made admin required, both asserted by scripts/proofs/the-second-factor-is-required-for-staff.mjs. Its presence on production was read back by hand on 2026-09-09; see handApplied.",
     production: "2026-09-07",
     handApplied:
       "APPLIED BY HAND, SO PRODUCTION'S OWN MIGRATION HISTORY DOES NOT SHOW IT. Read back 2026-09-09: production's list_migrations names 0024 and 0026 and 0027 and not this one, while production unmistakably HAS it, because eng_roles reads optional for admin and engineer and that is the only thing this migration does. It went through execute_sql, which changes the database without writing a row into supabase_migrations.schema_migrations. Operator ruling 2026-09-09: every production migration from here goes through apply_migration so the two records agree, and this entry is the one that has to be named rather than quietly left to be rediscovered.",
@@ -2748,6 +2758,8 @@ export const APPLIED = [
      * originals live on development only.
      */
     production: "2026-10-22",
+    /* Declared 2026-11-12: it had no probe and no provesNote, and the one thing it puts in the schema is this private bucket. */
+    proves: { bucket: "eng-protocol-sources" },
     development: {
       at: "0080",
       behaviour: null,
