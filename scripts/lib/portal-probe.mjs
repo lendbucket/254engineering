@@ -1300,6 +1300,17 @@ export async function destroyProbes(label = "audit") {
     const { error } = await d.from(table).delete().like("email", `%@${PROBE_DOMAIN}`);
     if (error) refusals.push(`${table}: ${error.message ?? error}`);
   }
+  /*
+   * A PROBE OWNER'S MEMBERSHIP OF THE FRANCHISE SEED GOES BEFORE ITS PROFILE.
+   * Robert's order of 2026-11-12, item 1 (scripts/lib/franchise-seed.mjs): a
+   * probe franchisee owner joins the seeded franchisee for the run, and
+   * eng_franchisee_members restricts the deletion of a profile it names. The
+   * row is the probe's own, on development; a real membership names no probe.
+   */
+  if (ids.size) {
+    const { error } = await d.from("eng_franchisee_members").delete().in("profile_id", [...ids]);
+    if (error) refusals.push(`eng_franchisee_members: ${error.message ?? error}`);
+  }
   for (const id of ids) {
     await d.from("eng_auth_tokens").delete().eq("profile_id", id);
     await d.from("eng_profiles").delete().eq("id", id);

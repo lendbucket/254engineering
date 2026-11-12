@@ -91,9 +91,23 @@ any of them moves (operator ruling of 2026-09-09). Neither is in it.
 the X2 proof asserts that filter. That is the instance; the class, a sweep that
 would notice the next figure on either screen, is missing.
 
-**Not built because** a sweep needs a franchisee with a territory and an owner
-on development, and there is none, so it would pass over an empty screen. It
-belongs with X6, franchisor reporting, which needs the same fixture.
+**The fixture exists since 2026-11-12** (Robert's order of that day, item 1):
+`scripts/seed-franchise-demo.mjs` put one demonstration franchisee on
+development, Demo Coastal Franchise LLC, with a territory, an owner, a recorded
+agreement and three certificates, and `scripts/lib/franchise-seed.mjs` is how
+an audit reaches it. native-audit and contrast-audit now measure the
+administrator's record of it and the owner's own screen as a probe owner who
+belongs to it, and native-audit reads its statement CSV.
+
+**Still not built:** the figure sweep itself, adding both screens to
+`figure-surfaces.ts` so demo-audit asserts a demonstration order in the seed's
+counties moves no figure on them; and mobile-overflow-audit and
+v10-layout-audit, which keep their own probe code and do not read the seed yet.
+The seed's statement has no month on it, because territory revenue counts only
+orders that are not demonstrations and the franchisee is still onboarding, so a
+sweep today would compare two empty statements; it needs a demonstration order
+that WOULD move the figure if the filter were removed, which is the fixture
+rule in CLAUDE.md section 6.
 
 ## THE STORE APP'S DEVICE SESSION: BEFORE THE FIRST STORE SUBMISSION
 
