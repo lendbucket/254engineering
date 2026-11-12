@@ -4695,8 +4695,10 @@ export const APPLIED = [
       "HIS OVERNIGHT ORDERS OF 2026-11-10, ITEM 3, PLATFORM ITEM X4: the agreement signed and the franchisee's " +
       "certificates of insurance, recorded; with the owner's academy standing and the technicians' certifications, " +
       "read, they decide whether a franchisee may move from onboarding to operating. One private bucket, " +
-      "eng-franchisee-certificates. PENDING: not on development or production; production only in a sitting with " +
-      "Robert, after 0125 to 0127. Additive: three columns, one table, one bucket, two functions.",
+      "eng-franchisee-certificates. The coverages are Robert's answer 12. ON DEVELOPMENT SINCE 2026-11-12 (6811585845, " +
+      "version 20261112012249, stored 215ca577, shape 47ba0193 at 1642 columns, the bucket private and PDF only, " +
+      "matching the replay). Production only in a sitting with Robert, after 0125 to 0127. Additive: three columns, " +
+      "one table, one bucket, two functions.",
   },
 ];
 
