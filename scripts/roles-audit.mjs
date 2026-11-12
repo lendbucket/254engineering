@@ -304,6 +304,8 @@ const EXPECTED = {
   "crm.reports":                  { admin: true,  engineer: false, field_tech: false },
   /* The roofer partner applications, Robert's ruling 6 of 2026-11-05 (0113). */
   "roofers.review":               { admin: true,  engineer: false, field_tech: false },
+  /* The franchisee record, Robert's overnight orders of 2026-11-10, platform item X1 (0126): admin alone. */
+  "franchise.manage":             { admin: true,  engineer: false, field_tech: false },
   "refunds.request":              { admin: true,  engineer: false, field_tech: false },
   "refunds.approve_within_limit": { admin: true,  engineer: false, field_tech: false },
   "settings.refund_limit":        { admin: true,  engineer: false, field_tech: false },
@@ -467,6 +469,8 @@ const EXPECTED_NINE = {
   "roles.manage":                 "Y . . . . . . . .",
   /* The roofer partner applications, Robert's ruling 6 of 2026-11-05 (0113): admin and ops_manager, nobody else. */
   "roofers.review":               "Y . . . . . . . Y",
+  /* The franchisee record, Robert's overnight orders of 2026-11-10, platform item X1 (0126): admin and nobody else. */
+  "franchise.manage":             "Y . . . . . . . .",
   "settings.refund_limit":        "Y . . . . . . . .",
   "suppressions.manage":          "Y . . . . Y . . .",
   "tasks.use":                    "Y Y Y Y Y Y . Y Y",
@@ -2609,6 +2613,8 @@ if (!db) {
         "/portal/roles",
         "/portal/audit",
         "/portal/billing",
+        /* The franchisee record, Robert's X1 of 2026-11-10: franchise.manage, which only admin holds. */
+        "/portal/franchisees",
         "/portal/orders",
         "/portal/accounts",
         "/portal/partners",

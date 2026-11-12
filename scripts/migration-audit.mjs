@@ -426,10 +426,24 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * before it was applied anywhere): the nine columns of eng_push_subscriptions,
  * 1,579 to 1,588; the table count moves 120 to 121; no trigger, no function.
  * Read off fingerprint-at.mjs on the chain to 0124.
+ *
+ * Moved by 0125, a phone keeps its sign in in its keystore (Robert's answer of
+ * 2026-11-10, 6766967932): the ten columns of eng_device_sessions, 1,588 to
+ * 1,598; the table count moves 121 to 122; no trigger, no function. Read off
+ * fingerprint-at.mjs on the chain to 0125.
+ *
+ * Moved by 0126, a franchisee holds territories and its people (Robert's X1,
+ * overnight orders of 2026-11-10): twelve columns of eng_franchisees and seven
+ * each of eng_franchisee_territories and eng_franchisee_members, 1,598 to
+ * 1,624; the table count moves 122 to 125; no trigger, no function. Read off
+ * fingerprint-at.mjs on the chain to 0126, with 0125 reproducing its pair first.
+ * Written as 0125 beside the keystore's 0125 and renumbered on
+ * stage/0126-franchisees under Robert's answer 2 of 2026-11-11, its file byte
+ * identical.
  */
-const EXPECTED_FINGERPRINT = "369b4b0cbec23b07afba8ed83eb0c0c9";
-const EXPECTED_COLUMNS = 1588;
-const EXPECTED_TABLES = 121;
+const EXPECTED_FINGERPRINT = "aa9a945e8214af5bb7efbb2b5393045d";
+const EXPECTED_COLUMNS = 1624;
+const EXPECTED_TABLES = 125;
 /* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts.
  * 0074 adds two: eng_partner_billing_touch and eng_partner_billing_events_immutable.
  * 0075 adds one: eng_payment_events_guarded.

@@ -4619,6 +4619,64 @@ export const APPLIED = [
       "phone, the browser push address or the Firebase or Apple device token, by channel. Web pushes carry no " +
       "payload; native pushes carry county and service only. Additive: one table.",
   },
+  {
+    file: "0125_a_phone_keeps_its_sign_in_in_its_keystore.sql", appliedBy: "apply_migration",
+    fingerprint: "32405e7db9e2a566384ecb166ae255ab",
+    behaviour: "a01640adc108adb053f975f4036419d6",
+    /*
+     * Production: applied 2026-11-12 05:37 UTC through apply_migration by the
+     * chat counterpart, under Robert's order of 2026-11-12, after board
+     * 43152368328 passed on stage/0126-franchisees fd2ebaa; schema_migrations
+     * version 20261112053736, stored hash 3c3acbfe equal to the stored form,
+     * shape 32405e7d at 1598 columns and 122 tables, grants 194 unchanged
+     * (issue #1, 6815678447).
+     */
+    production: "2026-11-12",
+    proves: { table: "eng_device_sessions" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-10 on the chain to 0125, with 0124 reproducing " +
+      "its recorded pair first (369b4b0c at 1588 columns, 0413c529 at 1581 facts). Shape 1588 to 1598 columns, the " +
+      "ten of eng_device_sessions; tables 121 to 122. Behaviour 1581 to 1592 facts: its key, its foreign key to " +
+      "eng_profiles, five checks (a known platform, a hash of the right shape, a whole epoch, a life of thirty days " +
+      "at most, and a revocation that says why), the unique hash index, the live-token index, and row level security.",
+    because:
+      "WRITTEN 2026-11-10 ON feat/phone-keystore-token FOR ROBERT'S ANSWER OF 2026-11-10, 06:11 CENTRAL (6766967932): " +
+      "the store app's sign in token in the phone's keystore, stored server side so sign out revokes it; ON " +
+      "DEVELOPMENT SINCE 2026-11-10 (6768055104, version 20261110130336, stored 3c3acbfe, shape 32405e7d at 1598 " +
+      "columns, grants 194 unchanged, matching the replay); ON PRODUCTION SINCE 2026-11-12 (6815678447, version " +
+      "20261112053736), in a sitting under Robert's order of that day, because it touches sign in. One table holding " +
+      "the sha256 of each phone's token; the token itself is never stored. Additive: one table.",
+  },
+  {
+    file: "0126_a_franchisee_holds_territories_and_its_people.sql", appliedBy: "apply_migration",
+    fingerprint: "aa9a945e8214af5bb7efbb2b5393045d",
+    behaviour: "f44aa142ad597c2397bd8733f4ec3a09",
+    /*
+     * Production: applied 2026-11-12 05:38 UTC through apply_migration by the
+     * chat counterpart, under the name 0126_a_franchisee_holds_territories_and_
+     * its_people, after 0125 in the same sitting; schema_migrations version
+     * 20261112053804, stored hash 18a360cf equal to the stored form, shape
+     * aa9a945e at 1624 columns and 125 tables, grants 194 to 195, franchise.
+     * manage held by admin alone (issue #1, 6815678447).
+     */
+    production: "2026-11-12",
+    proves: { table: "eng_franchisees" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-11 on the chain to 0126, with 0125 reproducing " +
+      "its recorded pair first (32405e7d at 1598 columns, a01640ad at 1592 facts). Shape 1598 to 1624 columns: twelve " +
+      "of eng_franchisees and seven each of eng_franchisee_territories and eng_franchisee_members; tables 122 to 125. " +
+      "Behaviour 1592 to 1623 facts. Seeds franchise.manage for admin. Read alone on main's chain as 0125 it was " +
+      "3e10649f at 1614 and 7fb5c156 at 1612.",
+    because:
+      "WRITTEN 2026-11-11 ON feat/x1-franchisee-tenant AS 0125 FOR ROBERT'S OVERNIGHT ORDERS OF 2026-11-10, ITEM 3, " +
+      "PLATFORM ITEM X1: a franchisee record holding territories (0116) and its people, with its office NAP; staff and " +
+      "admin only. RENUMBERED 0126 ON stage/0126-franchisees UNDER ROBERT'S ANSWER 2 OF 2026-11-11 (keystore sitting " +
+      "first), the file byte identical (sha256 a2f2ce42...6363), so its text still says 0125. ON DEVELOPMENT SINCE " +
+      "2026-11-11 under its first name (6790181623, version 20261111074347, stored 18a360cf, grants 194 to 195; " +
+      "development's shape aa9a945e at 1624 columns holds both, which is this entry's replay figure); ON PRODUCTION " +
+      "SINCE 2026-11-12 under the name 0126 (6815678447, version 20261112053804), after the keystore's in the same " +
+      "sitting. Additive: three tables and one grant.",
+  },
 ];
 
 /*

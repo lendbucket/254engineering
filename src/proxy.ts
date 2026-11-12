@@ -67,6 +67,15 @@ const OPEN_PATHS = new Set([
    */
   "/portal/forgot-password",
   "/api/portal/session",
+  /*
+   * The store app's kept sign in (0125; Robert's answer of 2026-11-10,
+   * 6766967932). Open for the same reason the session route is: it exists for a
+   * phone whose session has ended. It trades a token from the phone's keystore
+   * for a session, or ends one on sign out, and refuses anything else with one
+   * sentence. Issuing a token, /api/portal/device-token, stays behind the
+   * perimeter.
+   */
+  "/api/portal/device-token/exchange",
   "/api/portal/set-password",
   /*
    * The break glass has to be open, and that is the whole point of it.

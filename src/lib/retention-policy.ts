@@ -442,6 +442,8 @@ export const RETENTION_POLICY: RetentionEntry[] = [
       ruledBy: "0051, and the trigger",
     },
   },
+  /* 0125 (Robert's answer of 2026-11-10, 6766967932). A phone's sign in token, kept as its sha256 only. */
+  { table: "eng_device_sessions", rule: { kind: "not_a_record", because: "Which phone may renew one technician's session, held as a hash. A sign in credential for a device, not a record of anything done; revoked rows are stamped and kept, and every exchange is in the audit trail." } },
   {
     table: "eng_documents",
     rule: {
@@ -494,6 +496,9 @@ export const RETENTION_POLICY: RetentionEntry[] = [
   },
   { table: "eng_file_inputs", rule: { kind: "kept_pending_counsel", because: COUNSEL } },
   { table: "eng_files", rule: { kind: "kept_pending_counsel", because: "The central record of the firm's work. " + COUNSEL } },
+  { table: "eng_franchisee_members", rule: { kind: "kept_pending_counsel", because: "Who belonged to a franchisee and when, ended rather than deleted (0126). No floor is ruled. " + COUNSEL } },
+  { table: "eng_franchisee_territories", rule: { kind: "kept_pending_counsel", because: "Which territories a franchisee held and when, ended rather than deleted (0126). No floor is ruled. " + COUNSEL } },
+  { table: "eng_franchisees", rule: { kind: "kept_pending_counsel", because: "The firm's record of each franchisee it has an agreement with (0126). No floor is ruled. " + COUNSEL } },
   /*
    * KEPT FOREVER, AND IT WANTS THE OPERATOR'S WORD.
    *
