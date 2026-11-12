@@ -47,6 +47,7 @@
 
 import { auditClient, describeTarget, isProduction } from "./lib/db-target.mjs";
 import { appliedToProduction, pending, assertNotEmpty } from "../supabase/applied.mjs";
+import { probeOf } from "./lib/proves-shape.mjs";
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
@@ -91,27 +92,58 @@ rec(
 );
 
 const probeable = declared.filter((e) => e.proves);
+/*
+ * EVERY ENTRY THAT CANNOT BE PROBED SAYS WHY. This read "at most one entry
+ * cannot be probed" from when 0008 was the only one; by 2026-11-12 eight could
+ * not, seven of them with a provesNote saying exactly why, and the count rule
+ * would have failed every run had any run reached it. The rule now asks the
+ * question per entry: an unprobeable migration is acceptable only with its
+ * reason written down, and one with no reason is named.
+ */
+const unsaid = declared.filter((e) => probeOf(e.proves).kind === "none" && !String(e.provesNote ?? "").trim());
 rec(
-  `and ${probeable.length} of them declare something this can ask about`,
-  probeable.length > 0 && probeable.length >= declared.length - 1,
-  `${declared.length - probeable.length} cannot be probed through the API`,
+  `and ${probeable.length} of them declare something this can ask about, and the ${declared.length - probeable.length} that cannot each say why`,
+  probeable.length > 0 && unsaid.length === 0,
+  unsaid.length ? `${unsaid.map((e) => e.file).join(", ")} declares no probe and no provesNote` : "",
 );
 
 // ------------------------------------------------- ask about each of them
 
 const missing = [];
 
+/*
+ * EVERY SHAPE OF `proves` IS READ BY ONE PARSER, scripts/lib/proves-shape.mjs.
+ * Until 2026-11-12 this loop destructured { table, column, match } itself and
+ * crashed on 0041's nested column, the first of 36 entries in shapes it did not
+ * read; no run since 2026-09-10 had probed anything after it (issue #1,
+ * 6815852350). scripts/proofs/every-ledger-proves-is-a-probe.mjs asserts on
+ * every board that each entry maps to a probe this loop can run.
+ */
+const manual = [];
 for (const entry of declared) {
-  if (!entry.proves) continue;
-  const { table, column, match } = entry.proves;
+  const probe = probeOf(entry.proves);
+  if (probe.kind === "none") continue;
 
   let ok = false;
   let detail = "";
 
-  if (match) {
+  if (probe.kind === "unknown") {
+    /* Said, never crashed on: a shape nobody taught the parser is a failure with its name on it. */
+    ok = false;
+    detail = `its proves is a shape this check does not read (${probe.why})`;
+  } else if (probe.kind === "function") {
+    /* Not probeable through the API: calling it would execute it. Counted as asked, and printed for the SQL editor. */
+    manual.push(probe.name);
+    ok = true;
+    detail = "a function, to be read by hand";
+  } else if (probe.kind === "bucket") {
+    const { data, error } = await db.storage.getBucket(probe.bucket);
+    ok = !error && Boolean(data);
+    detail = error ? error.message : `bucket ${probe.bucket} exists`;
+  } else if (probe.kind === "row") {
     /* A row that must exist. 0021 seeds one grant and creates nothing. */
-    let q = db.from(table).select("*", { count: "exact", head: true });
-    for (const [k, v] of Object.entries(match)) q = q.eq(k, v);
+    let q = db.from(probe.table).select("*", { count: "exact", head: true });
+    for (const [k, v] of Object.entries(probe.match)) q = q.eq(k, v);
     const { count, error } = await q;
     ok = !error && (count ?? 0) > 0;
     detail = error ? error.message : `${count} row(s)`;
@@ -121,12 +153,21 @@ for (const entry of declared) {
      * the column is absent, because PostgREST resolves the name before it
      * decides there is nothing to return.
      */
-    const { error } = await db.from(table).select(column ?? "*").limit(0);
+    const { error } = await db.from(probe.table).select(probe.column ?? "*").limit(0);
     ok = !error;
-    detail = error ? error.message : column ? `${table}.${column} resolves` : `${table} resolves`;
+    detail = error ? error.message : probe.column ? `${probe.table}.${probe.column} resolves` : `${probe.table} resolves`;
+    if (ok && probe.bucket) {
+      const b = await db.storage.getBucket(probe.bucket);
+      ok = !b.error && Boolean(b.data);
+      detail = b.error ? `${detail}, and bucket ${probe.bucket}: ${b.error.message}` : `${detail}, and bucket ${probe.bucket} exists`;
+    }
   }
 
-  if (!ok) missing.push({ entry, detail });
+  if (!ok) missing.push({ entry, probe, detail });
+}
+if (manual.length) {
+  console.log(`  NOTE: ${manual.length} function(s) are declared and cannot be probed through the API without running them.`);
+  console.log(`  Read them in the SQL editor: select proname from pg_proc where proname in (${manual.map((n) => `'${n}'`).join(", ")});`);
 }
 
 rec(
@@ -136,9 +177,7 @@ rec(
     ? missing
         .map(
           (m) =>
-            `${m.entry.file} is declared applied on ${m.entry.production} and its ${
-              m.entry.proves.column ? "column" : m.entry.proves.match ? "row" : "table"
-            } is not there (${m.detail})`,
+            `${m.entry.file} is declared applied on ${m.entry.production} and its ${m.probe.kind} is not there (${m.detail})`,
         )
         .join(" | ")
     : "",
@@ -154,15 +193,23 @@ for (const e of declared.filter((x) => !x.proves)) {
  * 0018 already proved this matters: its first version seeded the administrator
  * role without the permission that opens the permission screen, and the SHAPE
  * was identical either way. A fingerprint could never have caught it.
+ *
+ * THE COUNT IS PRODUCTION'S AT ITS LAST SITTING, AND MOVES WITH EVERY MIGRATION
+ * THAT SEEDS A GRANT. It said 111 from 2026-09-06 to 2026-11-12, while the
+ * grants grew to 195; because the loop above crashed first, no run reached it to
+ * say so. 195 is the count the chat counterpart read back from production after
+ * 0126 on 2026-11-12 (issue #1, 6815678447). A sitting that seeds a grant
+ * updates this literal in the same commit as the ledger entry.
  */
+const PRODUCTION_GRANTS = 195;
 {
   const { count, error } = await db.from("eng_role_grants").select("action", { count: "exact", head: true });
   rec("the role grants are readable", !error, error ? error.message : `${count} grants`);
   if (!error) {
     rec(
-      "and there are 111 of them",
-      count === 111,
-      count === 111 ? "" : `${count}. The fingerprint cannot see a row, and 0018 already proved that matters.`,
+      `and there are ${PRODUCTION_GRANTS} of them`,
+      count === PRODUCTION_GRANTS,
+      count === PRODUCTION_GRANTS ? "" : `${count}. The fingerprint cannot see a row, and 0018 already proved that matters.`,
     );
   }
 }
