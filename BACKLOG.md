@@ -108,9 +108,10 @@ priced and placed today in the seed's own county, the record that WOULD move
 them if territory revenue lost its is_demo filter (the fixture rule in CLAUDE.md
 section 6). Its control counts that order in the seed's counties unscoped.
 
-**Still not built:** mobile-overflow-audit and v10-layout-audit, which keep their
-own probe code and do not read the seed yet (Robert's overnight orders of
-2026-11-13, item 2b).
+**Built the same night (item 2b):** mobile-overflow-audit and
+v10-layout-audit read the seed too and measure its three views, so five browser
+audits now open the franchise screens with a franchise on them. Nothing on this
+entry is left open; it stays as the record of how the gap was closed.
 
 ## THE STORE APP'S DEVICE SESSION: BEFORE THE FIRST STORE SUBMISSION
 
