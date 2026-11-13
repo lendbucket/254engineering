@@ -18,3 +18,15 @@ export function telLink(phone: string | null | undefined): string | null {
   if (digits.length === 11 && digits.startsWith("1")) return `tel:+${digits}`;
   return null;
 }
+
+/**
+ * The number as a person reads it. Only the platform's own stored shape, E.164
+ * for North America (+1 and ten digits, as 0126 holds a franchisee's office),
+ * is rewritten, to (361) 555-0142; anything typed any other way is returned
+ * exactly as typed, because rewriting what a person entered is a different
+ * decision from printing what the platform stored.
+ */
+export function phoneForReading(phone: string): string {
+  const m = /^\+1(\d{3})(\d{3})(\d{4})$/.exec(phone.trim());
+  return m ? `(${m[1]}) ${m[2]}-${m[3]}` : phone;
+}
