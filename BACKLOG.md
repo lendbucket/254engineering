@@ -1090,6 +1090,18 @@ under ALL GREEN.** That tightens a check, so it is built after launch on its own
 branch. The line is printed at the `NOT MEASURED` log call in that file; the
 injection is a run with the engineer probe withheld, which must not end green.
 
+**ALREADY BUILT, FOUND 2026-11-13; THIS ENTRY WAS STALE.** Robert's answer 2 of
+that day said to build it now, and reading the code showed it had been built
+under his answer 9 of 2026-10-26, which came after this entry and never updated
+it. `scripts/mobile-audit.mjs` records a portal template with no session as
+COULD NOT TELL ("no <role> session, not measured"), adds it to the unmeasured
+route set, and takes its verdict from `scripts/lib/unmeasured-verdict.mjs`:
+anything unmeasured exits 3 and never prints ALL GREEN, and more than 10% of
+routes unmeasured fails the run outright.
+`scripts/proofs/an-unmeasured-route-is-could-not-tell-and-blocks.mjs` proves the
+verdict, both unmeasured paths in this file, the suite reading exit 3, and that
+mobile-audit is not exempt. Nothing is left open.
+
 ## THE INSIGHTS INDEX IS 386PX UNDER ITS CEILING, BUILT BEFORE THE NEXT BLOG SECTION
 
 Found 2026-10-18 in the readers of `80b6216` on `content/blog-roofs`.
