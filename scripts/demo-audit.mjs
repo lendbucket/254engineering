@@ -63,7 +63,8 @@ import { auditClient } from "./lib/db-target.mjs";
 import { DEMO_SCOPED_TABLES } from "../src/lib/reporting-scope.ts";
 import { isProbeAddress } from "../src/lib/ops-files.ts";
 import { REPORTS, formatFigure, periodOf } from "../src/lib/ops-reports.ts";
-import { FIGURE_SURFACES, allFigures, actorFor } from "../src/lib/figure-surfaces.ts";
+import { FIGURE_SURFACES, FRANCHISE_SURFACE_KEYS, allFigures, actorFor } from "../src/lib/figure-surfaces.ts";
+import { SEED_FRANCHISEE } from "./lib/franchise-seed.mjs";
 
 /*
  * WHO THIS SWEEP READS AS, STATED ONCE.
@@ -475,6 +476,23 @@ if (!db) {
       `${reports.length} of ${REPORTS.length} reports, ${dashboards.length} of ${DEFAULT_ROLES.length} dashboards`,
     );
 
+    /* The franchise screens (Robert's overnight orders of 2026-11-13, item 2a): exactly the three, swept with the rest. */
+    const franchise = FIGURE_SURFACES.filter((s) => s.kind === "franchise").map((s) => s.key);
+    rec(
+      "the three franchise screens are swept surfaces: franchisor reporting, the statements and the owner's revenue",
+      JSON.stringify(franchise) === JSON.stringify([...FRANCHISE_SURFACE_KEYS]) && franchise.length === 3,
+      franchise.join(", ") || "none",
+    );
+
+    /* And each of them carries the seed franchisee's own figures, or the injection below has nothing on them to move. */
+    const lines = await snapshot();
+    const missing = FRANCHISE_SURFACE_KEYS.filter((k) => !lines.some((l) => l.startsWith(`${k}/${SEED_FRANCHISEE.legalName}`)));
+    rec(
+      "and each franchise surface carries the seed franchisee's own figures",
+      missing.length === 0,
+      missing.length ? `none for ${SEED_FRANCHISEE.legalName} on ${missing.join(", ")}; run: npx tsx --conditions=react-server scripts/seed-franchise-demo.mjs` : `${lines.filter((l) => l.startsWith("franchise:")).length} franchise figures`,
+    );
+
     /*
      * And the honest limit, asserted rather than left in a comment: a dashboard
      * tile carries no rows, because its count comes from a head query that
@@ -800,6 +818,70 @@ if (!db) {
           .eq("status", "needs_dispatch")
           .is("assigned_tech_id", null);
         return { label: "files awaiting dispatch, unscoped", value: count ?? 0 };
+      },
+    },
+    {
+      /*
+       * THE INJECTION THAT GIVES THE FRANCHISE SCREENS A SUBJECT (Robert's
+       * overnight orders of 2026-11-13, item 2a).
+       *
+       * The pipeline order above is in Nueces, which no franchisee holds, so the
+       * three franchise surfaces could not move however wrong their filter was:
+       * the vacuity trap the dispatcher injection above names. This order is in
+       * the seed franchisee's own county, paid, priced and placed today, so a
+       * territory read that lost its is_demo filter would count it in the
+       * franchisor totals, the seed's statement and its owner's revenue.
+       */
+      report: "franchise screens",
+      what: "a demonstration paid order inside the seed franchisee's county",
+      async insert() {
+        const reference = `254-O2026-DEMO-FR${TAIL}`;
+        const { data, error } = await db
+          .from("eng_service_orders")
+          .insert({
+            site: "254engineering",
+            reference,
+            service_slug: "roof-inspections",
+            order_type: "field",
+            status: "paid",
+            customer_name: "Demo Audit",
+            customer_email: `demo.franchise.${STAMP}@example.com`,
+            property_address: "3 Audit Way",
+            county: SEED_FRANCHISEE.territory.counties[0],
+            twia_county: true,
+            total_cents: 777_00,
+            placed_at: new Date().toISOString(),
+            paid_at: new Date().toISOString(),
+            is_demo: true,
+          })
+          .select("id")
+          .maybeSingle();
+        if (error) throw new Error(error.message);
+        const id = data?.id;
+        return { label: reference, cleanup: () => db.from("eng_service_orders").delete().eq("id", id) };
+      },
+      control: null,
+      /*
+       * The control: the seed franchisee's own counties, read off its live
+       * holdings, and the injected order counted among their paid orders with
+       * no is_demo filter. If the seed holds no county, or the order is not in
+       * one, the movement check above passed over nothing.
+       */
+      async proveVisible() {
+        const { data: f } = await db.from("eng_franchisees").select("id").eq("legal_name", SEED_FRANCHISEE.legalName).maybeSingle();
+        if (!f) return { label: `${SEED_FRANCHISEE.legalName} is not on this database`, value: 0 };
+        const { data: held } = await db.from("eng_franchisee_territories").select("territory_id").eq("franchisee_id", f.id).is("ended_at", null);
+        const territoryIds = (held ?? []).map((h) => h.territory_id);
+        if (!territoryIds.length) return { label: "the seed holds no territory", value: 0 };
+        const { data: counties } = await db.from("eng_crm_territory_counties").select("county").in("territory_id", territoryIds).is("removed_at", null);
+        const names = (counties ?? []).map((c) => c.county);
+        const { count } = await db
+          .from("eng_service_orders")
+          .select("id", { count: "exact", head: true })
+          .in("county", names.length ? names : ["none"])
+          .eq("status", "paid")
+          .like("reference", "254-O2026-DEMO-FR%");
+        return { label: `paid demonstration orders in the seed's counties (${names.join(", ") || "none"}), unscoped`, value: count ?? 0 };
       },
     },
   ];
