@@ -1068,6 +1068,15 @@ gradient's stops, and fails on the worst stop under AA; it needs a server to
 run standalone, so it was not written in a run whose lock another project held.
 Its injection is this branch's two links put back.
 
+**Built 2026-11-13 on `fix/contrast-on-gradient-bands`** (Robert's overnight
+orders of that day, item 3): contrast-audit asks axe for its incomplete results
+too, measures every color-contrast node axe set aside for a background gradient
+against every stop of the nearest gradient behind it, and fails on the worst
+stop under 4.5:1, or 3:1 for large text. It prints how many such nodes it
+measured, and a run that measured none fails. Its injection board puts the two
+links back; it boards in the cloud, because contrast-audit makes probe accounts
+and so does not run on this PC while the board gates.
+
 ## MOBILE-AUDIT PRINTS ALL GREEN OVER SCREENS IT DID NOT MEASURE
 
 Found 2026-10-17 in the readers of `67dca66` on `content/blog-windstorm`.

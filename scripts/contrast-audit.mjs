@@ -300,9 +300,67 @@ async function auditPage(browser, base, t, width, sessions = {}) {
       // @ts-expect-error axe is injected above
       return await axe.run(document, {
         runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"] },
-        resultTypes: ["violations"],
+        /* "incomplete" too, so every gradient node is listed in full (see GRADIENTS below). */
+        resultTypes: ["violations", "incomplete"],
       });
     });
+
+    /*
+     * TEXT ON A GRADIENT BAND, WHICH AXE CANNOT MEASURE AND THIS AUDIT NOW DOES.
+     *
+     * axe files colour contrast over a background gradient as INCOMPLETE, not as
+     * a violation, and this audit read violations only, so no text on a navy
+     * band had ever been measured: product audit defect 25 (2026-10-10) found two
+     * links navy on navy on /about and /government with this audit green over
+     * both (BACKLOG, "CONTRAST-AUDIT CANNOT SEE TEXT ON A GRADIENT BAND";
+     * Robert's overnight orders of 2026-11-13, item 3). Each such node is
+     * measured here against EVERY stop of the nearest gradient behind it, and
+     * fails on the worst stop under AA: 4.5:1, or 3:1 for large text.
+     */
+    const gradientTargets = (result.incomplete ?? [])
+      .filter((v) => v.id === "color-contrast")
+      .flatMap((v) => v.nodes)
+      .filter((n) => (n.any ?? []).some((c) => c?.data?.messageKey === "bgGradient"))
+      .map((n) => (Array.isArray(n.target) ? n.target[0] : String(n.target)));
+    const gradients = await page.evaluate((targets) => {
+      const lum = ([r, g, b]) => {
+        const f = (c) => {
+          const s = c / 255;
+          return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+        };
+        return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+      };
+      const ratio = (a, b) => {
+        const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x);
+        return (hi + 0.05) / (lo + 0.05);
+      };
+      const rgb = (s) => (s.match(/rgba?\(([^)]+)\)/) ?? [])[1]?.split(",").map((x) => Number.parseFloat(x));
+      const out = [];
+      for (const sel of targets) {
+        const el = document.querySelector(sel);
+        if (!el) continue;
+        const cs = getComputedStyle(el);
+        const fg = rgb(cs.color);
+        let node = el;
+        let stops = null;
+        while (node && node !== document.documentElement) {
+          const bg = getComputedStyle(node).backgroundImage;
+          if (bg && bg.includes("gradient")) {
+            stops = (bg.match(/rgba?\([^)]+\)/g) ?? []).map(rgb).filter(Boolean);
+            break;
+          }
+          node = node.parentElement;
+        }
+        if (!fg || !stops?.length) continue;
+        const size = Number.parseFloat(cs.fontSize);
+        const bold = Number.parseInt(cs.fontWeight, 10) >= 700;
+        const large = size >= 24 || (bold && size >= 18.66);
+        const need = large ? 3 : 4.5;
+        const worst = stops.reduce((w, s) => (ratio(fg, s) < ratio(fg, w) ? s : w), stops[0]);
+        out.push({ sel, need, worst: Math.round(ratio(fg, worst) * 100) / 100, fg: cs.color, bg: `rgb(${worst.slice(0, 3).join(", ")})`, text: (el.innerText || "").trim().slice(0, 40) });
+      }
+      return out;
+    }, gradientTargets);
 
     const contrast = [];
     const other = [];
@@ -318,7 +376,17 @@ async function auditPage(browser, base, t, width, sessions = {}) {
         });
       }
     }
-    return { error: null, contrast, other };
+    for (const g of gradients) {
+      if (g.worst >= g.need) continue;
+      contrast.push({
+        id: "color-contrast-on-gradient",
+        impact: "serious",
+        target: g.sel,
+        summary: `"${g.text}" is ${g.worst}:1 against the worst stop of its gradient band, under ${g.need}:1`,
+        data: { fgColor: g.fg, bgColor: g.bg, contrastRatio: g.worst },
+      });
+    }
+    return { error: null, contrast, other, gradientsMeasured: gradients.length };
   } catch (err) {
     /*
      * =====================================================================
@@ -431,6 +499,8 @@ async function main() {
     const neverLoaded = [];
 
     if (!seed.ok) pageErrors++;
+    /* Text measured against a gradient band, across the run: a run that measured none proves nothing about them. */
+    let gradientsMeasured = 0;
     for (const t of [...TEMPLATES, ...OPEN_TEMPLATES, ...PORTAL_TEMPLATES, ...SEEDED_TEMPLATES]) {
       for (const w of WIDTHS) {
         const r = await auditPage(browser, base, t, w, sessions);
@@ -444,6 +514,7 @@ async function main() {
           pageErrors++;
           continue;
         }
+        gradientsMeasured += r.gradientsMeasured ?? 0;
         log(
           `  ${t.name.padEnd(22)} @${w}: contrast=${r.contrast.length === 0 ? "ok" : r.contrast.length + " FAIL"}  other-a11y=${r.other.length === 0 ? "ok" : r.other.length + " FAIL"}`,
         );
@@ -458,6 +529,13 @@ async function main() {
       }
     }
     await browser.close();
+
+    /* The navy bands are on the home page and /about at least, so a run that measured no gradient text did not look. */
+    log(`  text on a gradient band, measured against every stop: ${gradientsMeasured} node(s) across the run`);
+    if (gradientsMeasured === 0 && neverLoaded.length === 0) {
+      log("  FAIL: no text on a gradient band was measured, so the gradient check proved nothing");
+      pageErrors++;
+    }
 
     /*
      * The probes go before anything is reported, and the removal is VERIFIED.
