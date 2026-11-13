@@ -7,7 +7,7 @@ import { Chip, EmptyState, PageHead, Panel } from "@/components/portal/surfaces"
 import { RetryButton } from "@/components/portal/Unreachable";
 import { STAGE_LABEL, type CrmStage } from "@/lib/crm-rules";
 import { formatInFirmZone } from "@/lib/firm-calendar";
-import { FRANCHISEE_STATUS_LABEL, type FranchiseeStatus } from "@/lib/franchisee-rules";
+import { FRANCHISEE_STATUS_LABEL } from "@/lib/franchisee-rules";
 import { currentActor } from "@/lib/ops-auth";
 import { can, roleLabel } from "@/lib/ops-authz";
 import { moneyOr } from "@/lib/ops-money";
@@ -31,11 +31,6 @@ export const dynamic = "force-dynamic";
 
 const PAGE_SIZE = 50;
 
-const STATUS_TONE: Record<FranchiseeStatus, "warn" | "good" | "neutral"> = {
-  onboarding: "warn",
-  operating: "good",
-  ended: "neutral",
-};
 
 const when = (value: string) => formatInFirmZone(value, { month: "short", day: "numeric", year: "numeric" }) ?? value;
 const pageOf = (raw: string | undefined) => Math.max(1, Number.parseInt(raw ?? "1", 10) || 1);
@@ -145,9 +140,22 @@ export default async function YourFranchisePage({ searchParams }: { searchParams
         title={f.legalName}
         lede={`Your franchise, as the firm records it. You have belonged to it since ${when(f.since)}. Read only: to change anything here, ask an administrator.`}
       />
-      <p className="mb-4">
-        <Chip label={FRANCHISEE_STATUS_LABEL[f.status]} tone={STATUS_TONE[f.status]} />
-      </p>
+      {/* The status, with the four steps the record shows under it, read only (Robert, 2026-11-12). */}
+      <Panel
+        title={FRANCHISEE_STATUS_LABEL[f.status]}
+        className="mb-4"
+        description="The four steps a franchisee meets before it starts operating, as the firm's record shows them. An administrator records each one."
+      >
+        <ul className="flex flex-col gap-2">
+          {f.onboarding.map((s) => (
+            <li key={s.key} className="flex flex-wrap items-center gap-2 text-[14px] text-[var(--ink)]">
+              <Chip label={s.met ? "Met" : "Not yet"} tone={s.met ? "good" : "warn"} />
+              <span className="font-semibold">{s.label}.</span>
+              <span className="text-[var(--secondary)]">{s.says}</span>
+            </li>
+          ))}
+        </ul>
+      </Panel>
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,420px)]">
         <div className="flex flex-col gap-4">
           <Panel

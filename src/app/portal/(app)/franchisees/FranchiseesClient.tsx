@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Done, Problem, fieldClass, ghostClass, labelClass, postJson, primaryClass } from "@/components/portal/staff-kit";
+import { phoneForReading } from "@/lib/phone-link";
 
 /**
  * THE FRANCHISEE RECORD'S CONTROLS (0126). Robert's overnight orders of
@@ -75,7 +76,8 @@ export function OfficeForm({
   const [street, setStreet] = useState(office.street ?? "");
   const [city, setCity] = useState(office.city ?? "");
   const [postalCode, setPostalCode] = useState(office.postalCode ?? "");
-  const [phone, setPhone] = useState(office.phone ?? "");
+  /* Shown as a person writes it, (361) 555-0142, and stored in E.164; the server's e164() takes either form typed (Robert, 2026-11-12). */
+  const [phone, setPhone] = useState(office.phone ? phoneForReading(office.phone) : "");
   const { busy, error, done, act } = useAct();
   return (
     <div>
@@ -102,7 +104,7 @@ export function OfficeForm({
           Save office
         </button>
       </div>
-      <p className="mt-2 text-[13px] text-[var(--secondary)]">Clear all three address boxes to remove the address. The phone is kept as +1 and ten digits.</p>
+      <p className="mt-2 text-[13px] text-[var(--secondary)]">Clear all three address boxes to remove the address. Type the phone with or without the +1; ten digits, area code first.</p>
       <Problem message={error} />
       <Done message={done} />
     </div>
