@@ -46,6 +46,16 @@ export const SEED_FRANCHISEE = Object.freeze({
   ]),
 });
 
+/*
+ * THE SECOND SEED: A FRANCHISEE WITH NOTHING RECORDED. Robert's answer 1 of
+ * 2026-11-12 to 6835287178. The agreement form shows only until an agreement
+ * is recorded, and the first seed has one, so its record never renders the
+ * form. This one holds no territory, no person, no agreement and no
+ * certificate, so its record renders the agreement form and every step unmet.
+ * It must STAY empty: a seed that gains anything is reported as not whole.
+ */
+export const SEED_ONBOARDING = Object.freeze({ legalName: "Demo Onboarding Franchise LLC" });
+
 export const SEED_SCRIPT = "npx tsx --conditions=react-server scripts/seed-franchise-demo.mjs";
 
 /**
@@ -68,7 +78,24 @@ export async function seededFranchisee(db) {
   if (!f.agreement_signed_on) missing.push("an agreement");
   if ((c ?? []).length < SEED_FRANCHISEE.certificates.length) missing.push(`${SEED_FRANCHISEE.certificates.length} certificates (has ${(c ?? []).length})`);
   if (missing.length) return { ok: false, why: `${SEED_FRANCHISEE.legalName} lacks ${missing.join(", ")}; run: ${SEED_SCRIPT}` };
-  return { ok: true, id: String(f.id), status: String(f.status), territories: t.length, members: m.length, certificates: c.length };
+
+  const { data: e, error: eError } = await db.from("eng_franchisees").select("id, status, agreement_signed_on").eq("legal_name", SEED_ONBOARDING.legalName).maybeSingle();
+  if (eError) return { ok: false, why: `the second franchisee could not be read: ${eError.message}` };
+  if (!e) return { ok: false, why: `${SEED_ONBOARDING.legalName} is not on this database; run: ${SEED_SCRIPT}` };
+  const [{ data: et }, { data: em }, { data: ec }] = await Promise.all([
+    db.from("eng_franchisee_territories").select("territory_id").eq("franchisee_id", e.id).is("ended_at", null),
+    db.from("eng_franchisee_members").select("profile_id").eq("franchisee_id", e.id).is("ended_at", null),
+    db.from("eng_franchisee_certificates").select("kind").eq("franchisee_id", e.id).is("withdrawn_at", null),
+  ]);
+  const recorded = [];
+  if (e.status !== "onboarding") recorded.push(`status ${e.status}`);
+  if (e.agreement_signed_on) recorded.push("an agreement");
+  if ((et ?? []).length) recorded.push("a territory");
+  if ((em ?? []).length) recorded.push("a member");
+  if ((ec ?? []).length) recorded.push("a certificate");
+  if (recorded.length) return { ok: false, why: `${SEED_ONBOARDING.legalName} must hold nothing and has ${recorded.join(", ")}` };
+
+  return { ok: true, id: String(f.id), onboardingId: String(e.id), status: String(f.status), territories: t.length, members: m.length, certificates: c.length };
 }
 
 /** The seeded views, each with the role that opens it. */
@@ -77,6 +104,7 @@ export function franchiseSeedScreens(seed) {
   return [
     { path: `/portal/franchisees?id=${seed.id}`, role: "admin", name: "franchisees: the seeded franchisee's record" },
     { path: "/portal/franchise", role: "franchisee_owner", name: "franchise: as the seeded franchisee's owner" },
+    { path: `/portal/franchisees?id=${seed.onboardingId}`, role: "admin", name: "franchisees: the record with nothing recorded, its agreement form" },
   ];
 }
 

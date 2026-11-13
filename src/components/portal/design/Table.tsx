@@ -61,7 +61,16 @@ export function DataTable<T extends { id: string }>({
   const rest = columns.slice(1);
 
   return (
-    <div>
+    /*
+      THE CONTAINER DECIDES, NOT THE VIEWPORT, since 2026-11-12 (Robert's answer
+      2 of that day). The table's minimum is 640px; a table placed in a column
+      narrower than that, such as the 420px side column at xl, cut off its last
+      column at 1280 (the franchisee record's Withdraw, the owner's Role). Cards
+      below 640px of CONTAINER and the table at 640px and over: a phone still
+      gets cards, a wide column still gets the table, and a narrow column gets
+      the layout that fits it.
+    */
+    <div className="@container">
       {/*
         POINT 4 OF THE NATIVE STANDARD: TABLES BECOME CARDS.
 
@@ -79,7 +88,7 @@ export function DataTable<T extends { id: string }>({
         header answers "what is this value", and on a card the label is beside
         the value where the question is actually asked.
       */}
-      <ul className="border-t border-[var(--row-rule)] md:hidden">
+      <ul className="border-t border-[var(--row-rule)] @min-[640px]:hidden">
         {rows.map((row) => (
           <li
             key={row.id}
@@ -167,7 +176,7 @@ export function DataTable<T extends { id: string }>({
         wrapper is a named region in the tab order, so every table gets the fix
         rather than the two that were caught.
       */}
-      <div className="scroll-x hidden md:block" tabIndex={0} role="region" aria-label={caption}>
+      <div className="scroll-x hidden @min-[640px]:block" tabIndex={0} role="region" aria-label={caption}>
         <table className="w-full min-w-[640px] border-collapse text-left">
           <caption className="sr-only">{caption}</caption>
           <thead>
