@@ -803,6 +803,37 @@ if (schemaEmailsSeen === 0) {
   } else {
     console.log(`the link checks read ${nofollowRead} public pages and ${linksSeen} internal links, and name ${problems.length - problemsBefore} problem(s) in the result below.`);
   }
+
+  /*
+   * EVERY POST IS REACHABLE FROM THE INSIGHTS HUB. Robert's ruling of
+   * 2026-10-18 and his answer 3 of 2026-11-13: the hub is grouped by section,
+   * shows a few posts of each, and links to each section's page, so a post must
+   * be linked from the hub itself or from a section page the hub links. Read
+   * off the RENDERED pages, never the hub's code. The posts are the sitemap's,
+   * which is the declaration of what exists.
+   */
+  const POST = /^\/insights\/(?!section\/)[^/]+$/;
+  const posts = routes.filter((r) => POST.test(r));
+  const hrefsOf = (html) => anchors(html).map((a) => normalise(attr(a, "href") ?? "")).filter(Boolean);
+  const hubHtml = pageHtml.get("/insights")?.html ?? "";
+  const hubHrefs = hrefsOf(hubHtml);
+  const sectionPages = [...new Set(hubHrefs.filter((h) => /^\/insights\/section\/[^/]+$/.test(h)))];
+  const reached = new Set(hubHrefs);
+  for (const s of sectionPages) for (const h of hrefsOf(pageHtml.get(s)?.html ?? "")) reached.add(h);
+  const unreached = posts.filter((p) => !reached.has(p));
+  if (posts.length < 30 || !hubHtml || sectionPages.length === 0) {
+    problems.push(
+      `the insights reachability check read ${posts.length} post(s), ${hubHtml ? "the hub" : "no hub"} and ${sectionPages.length} section page(s) linked from it: a check over nothing`,
+    );
+  } else if (unreached.length) {
+    problems.push(
+      `${unreached.length} insight post(s) are linked neither from /insights nor from a section page it links: ${unreached.join(", ")}`,
+    );
+  } else {
+    console.log(
+      `PASS: all ${posts.length} insight posts are linked from /insights or from one of the ${sectionPages.length} section pages it links (${sectionPages.join(", ")}).`,
+    );
+  }
 }
 
 problems.push(...duplicateProblems(titles, descriptions));

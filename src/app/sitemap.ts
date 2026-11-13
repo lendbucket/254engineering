@@ -8,6 +8,7 @@ import { windstormPages } from "@/content/windstorm-program";
 import { proximityPages } from "@/content/structural-engineer";
 import { openPositions } from "@data/positions";
 import { insights } from "@/content/insights";
+import { INSIGHT_SECTIONS, postsInSection } from "@/content/insight-sections";
 
 /**
  * The sitemap.
@@ -96,6 +97,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     entry("/careers", 0.8, "monthly"),
     ...openPositions().map((p) => entry(`/careers/${p.slug}`, 0.7, "monthly")),
     entry("/insights", 0.8, "monthly"),
+    /* The section pages the hub links to (Robert's answer 3 of 2026-11-13). Like the hub, no per-page date. */
+    ...INSIGHT_SECTIONS.filter((s) => postsInSection(s.key).length > 0).map((s) => entry(`/insights/section/${s.slug}`, 0.7, "monthly")),
     entry("/guides", 0.7, "monthly"),
     ...insights.map((i) => entry(`/insights/${i.slug}`, 0.7, "monthly", i.dateModified)),
     /* The design brief is not listed. It is a quote form, noindex, follow
