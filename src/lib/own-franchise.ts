@@ -8,6 +8,8 @@ import { standingFor } from "./academy-record";
 import type { CourseProgress } from "./academy";
 import type { FranchiseeStatus, Office } from "./franchisee-rules";
 import { inTerritory, type MonthRevenue } from "./own-franchise-rules";
+import { onboardingStepsFor } from "./franchisee-onboarding";
+import type { OnboardingStep } from "./franchisee-onboarding-rules";
 
 /**
  * A FRANCHISEE OWNER SEES THEIR OWN FRANCHISE, AND NOTHING ELSE (0127).
@@ -48,6 +50,13 @@ import { inTerritory, type MonthRevenue } from "./own-franchise-rules";
 export type OwnFranchise = {
   legalName: string;
   status: FranchiseeStatus;
+  /*
+   * The four onboarding steps the administrator's record shows, read only
+   * (Robert, 2026-11-12, from the walk's screenshots: the owner saw the status
+   * and nothing under it). Each step's label, whether it is met, and its one
+   * sentence; never the certificates behind them, their carriers or policies.
+   */
+  onboarding: Pick<OnboardingStep, "key" | "label" | "met" | "says">[];
   office: Office;
   since: string;
   territories: { id: string; name: string }[];
@@ -92,6 +101,11 @@ export async function ownFranchise(actor: Actor | null): Promise<OwnFranchiseRea
     .maybeSingle();
   if (f.error) return refuse(`Your franchise could not be read: ${f.error.message || "the database gave no reason"}.`);
   if (!f.data) return refuse("Your franchise is not on record. Ask an administrator to look at it.");
+
+  /* ------------------------------------------------ its onboarding steps, by the record's own reader */
+  /* The same reader the record and the status change ask, handed the franchise found by membership; only the steps leave this function. */
+  const onboarding = await onboardingStepsFor(db, franchiseeId);
+  if (!onboarding.ok) return refuse(`Your onboarding could not be read: ${onboarding.error}`);
 
   /* ------------------------------------------------ its territories, their counties, and what it earned there */
   /* One home for the territory and its revenue: territory-revenue.ts, read here by the franchise found above, and by the statement. */
@@ -144,6 +158,7 @@ export async function ownFranchise(actor: Actor | null): Promise<OwnFranchiseRea
     franchise: {
       legalName: String(f.data.legal_name),
       status: f.data.status as FranchiseeStatus,
+      onboarding: onboarding.onboarding.steps.map((s) => ({ key: s.key, label: s.label, met: s.met, says: s.says })),
       office: { street: f.data.office_street, city: f.data.office_city, postalCode: f.data.office_postal_code, phone: f.data.office_phone },
       since: String(rows[0].created_at),
       territories: territoryIds
