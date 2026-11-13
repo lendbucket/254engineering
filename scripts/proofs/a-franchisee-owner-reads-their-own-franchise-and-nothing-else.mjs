@@ -90,6 +90,18 @@ const membership = lib.match(/\.from\("eng_franchisee_members"\)\s*\.select\("fr
 check("C: the franchise is found by the reader's own live membership", Boolean(membership));
 check("C: the franchisee row is read by that membership's franchise", /\.from\("eng_franchisees"\)\s*\.select\([^)]*\)\s*\.eq\("id", franchiseeId\)/.test(lib));
 const tr = readSource("src/lib/territory-revenue.ts");
+/*
+ * THE FILTER IS READ IN THE CODE, NOT IN THE FILE. Found 2026-11-13 while
+ * injecting demo-audit's franchise sweep: the check below matched
+ * `.eq("is_demo", false)` anywhere in the file, so an injection that left the
+ * old line in a comment and filtered with `.in("is_demo", [false, true])` passed
+ * it. The code is now read with comments removed, the filter must sit on the
+ * orders read itself, and no other is_demo condition may stand beside it.
+ */
+const trCode = tr.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`])\/\/[^\n]*/g, "$1");
+const ordersRead = trCode.match(/\.from\("eng_service_orders"\)\s*\.select\([^)]*\)([^;]*?)\.order\(/)?.[1] ?? "";
+check("C: the orders read itself filters out demonstrations, in the code rather than a comment", /^\s*\.eq\("is_demo", false\)\s*$/.test(ordersRead), ordersRead.trim() || "no orders read found");
+check("C: and no other is_demo condition stands in the code", (trCode.match(/is_demo/g) ?? []).length === 1, String((trCode.match(/is_demo/g) ?? []).length));
 check("C: the owner's read hands the shared territory reader the franchise found by membership, and nothing else", /const territory = await territoryFacts\(db, franchiseeId\);/.test(lib) && (lib.match(/territoryFacts\(/g) ?? []).length === 1);
 check("C: its territories are read by that franchise", /readEveryIn<[^>]*>\(franchiseeIds,[^;]*\.from\("eng_franchisee_territories"\)\s*\.select\("franchisee_id, territory_id"\)\s*\.in\("franchisee_id", \[\.\.\.chunk\]\)/s.test(tr) && /const many = await territoryFactsForMany\(db, \[franchiseeId\]\);/.test(tr));
 check("C: its people are read by that franchise", /\.from\("eng_franchisee_members"\)\.select\("profile_id"\)\.eq\("franchisee_id", franchiseeId\)/.test(lib));
