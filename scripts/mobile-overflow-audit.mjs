@@ -67,6 +67,7 @@ import { navigationVerdict, sayCouldNotTell, orCouldNotTell, COULD_NOT_TELL } fr
 import { assertNavigationVerdictHolds } from "./proofs/unreachable-is-not-failed.mjs";
 import { AUDIT_BASE_URL } from "./lib/ports.mjs";
 import { nearCeiling, HEIGHT_WARNING_HEADROOM_PX } from "./lib/height-headroom.mjs";
+import { franchiseSeedScreens, seededFranchisee } from "./lib/franchise-seed.mjs";
 
 const BASE = process.env.BASE_URL || AUDIT_BASE_URL;
 const WIDTHS = [360, 390];
@@ -184,7 +185,7 @@ async function destroyProbe() {
    * was added: the sweep by domain caught it on the same run and reported a
    * probe left behind, which is the teardown check doing its job.
    */
-  const all = [probe, licensedProbe, techProbe].filter(Boolean);
+  const all = [probe, licensedProbe, techProbe, ownerProbe].filter(Boolean);
   if (!all.length) return true;
 
   /*
@@ -212,6 +213,8 @@ async function destroyProbe() {
 
   const ids = new Set([...all.map((p) => p.id), ...(strays ?? []).map((r) => r.id)]);
   for (const id of ids) {
+    /* The owner probe's membership of the franchise seed goes first: eng_franchisee_members restricts deleting a profile it names. */
+    await db.from("eng_franchisee_members").delete().eq("profile_id", id);
     await db.from("eng_profiles").delete().eq("id", id);
     await db.auth.admin.deleteUser(id).catch(() => {});
   }
@@ -388,6 +391,15 @@ const unmeasured = [];
 let techProbe = null;
 let partnerProbe = null;
 let customerProbe = null;
+/*
+ * THE FRANCHISE SEED (Robert's overnight orders of 2026-11-13, item 2b). A probe
+ * owner on this file's own domain joins the seeded franchisee for the run, and
+ * the seeded views (scripts/lib/franchise-seed.mjs) are walked with the session
+ * each names: the seed's record and the record with nothing recorded as the
+ * administrator, and the owner's own screen as that owner.
+ */
+let ownerProbe = null;
+let franchiseSeed = { ok: false, why: "not read" };
 
 async function run() {
   /*
@@ -407,6 +419,14 @@ async function run() {
     probe = await createProbe("admin");
     licensedProbe = await createProbe("engineer");
     techProbe = await createProbe("field_tech");
+    franchiseSeed = await seededFranchisee(probe?.db ?? null);
+    if (franchiseSeed.ok) {
+      ownerProbe = await createProbe("franchisee_owner");
+      if (ownerProbe?.id) {
+        const { error } = await ownerProbe.db.from("eng_franchisee_members").insert({ franchisee_id: franchiseSeed.id, profile_id: ownerProbe.id });
+        if (error) ownerProbe = { ...ownerProbe, cookie: null, joinError: error.message };
+      }
+    }
     partnerProbe = await createPartnerProbe(BASE, "mobile-overflow-audit");
     customerProbe = await createCustomerProbe(BASE, "mobile-overflow-audit");
     return { list };
@@ -418,6 +438,20 @@ async function run() {
     await destroyCustomerProbes("mobile-overflow-audit");
   });
   const list = setup.list;
+
+  /* The franchise seed: whole, or a FAIL naming the script; and its owner signed in and a member. */
+  checks.push({
+    name: "the franchise seed is whole: two franchisees, the first with a territory, a member, an agreement and its certificates",
+    ok: franchiseSeed.ok,
+    detail: franchiseSeed.ok ? `${franchiseSeed.id}, ${franchiseSeed.onboardingId}` : franchiseSeed.why,
+  });
+  if (franchiseSeed.ok) {
+    checks.push({
+      name: "the franchise owner screens measured with an owner who belongs to the seed",
+      ok: Boolean(ownerProbe?.cookie),
+      detail: ownerProbe?.joinError ?? (ownerProbe ? "" : "the owner probe could not be made"),
+    });
+  }
 
   /*
    * A principal whose probe could not be made is a FAILURE, not a skip. The
@@ -827,6 +861,16 @@ async function run() {
       const groupCtx = await contextFor(width, cookie, kind);
       await walk(groupCtx, routeList);
       await groupCtx.close();
+    }
+
+    /* The franchise seed's views, each with the session it names (item 2b). */
+    const seedCookie = { admin: probe?.cookie, franchisee_owner: ownerProbe?.cookie };
+    for (const role of ["admin", "franchisee_owner"]) {
+      const paths = franchiseSeedScreens(franchiseSeed).filter((s) => s.role === role).map((s) => s.path);
+      if (!paths.length) continue;
+      const seedCtx = await contextFor(width, seedCookie[role] ?? null, "staff");
+      await walk(seedCtx, paths);
+      await seedCtx.close();
     }
   }
 
