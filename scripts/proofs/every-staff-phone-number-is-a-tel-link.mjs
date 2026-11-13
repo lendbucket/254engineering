@@ -81,6 +81,16 @@ check("the six screens the survey named each dial through PhoneLink", missing.le
   }
   const link = readFileSync("src/components/portal/PhoneLink.tsx", "utf8");
   check("PhoneLink's link text is phoneForReading of the number, its href telLink's", /\{phoneForReading\(phone\)\}/.test(link) && /const href = telLink\(phone\);/.test(link));
+
+  /* The franchisee office box shows the same form and stores E.164, taking either form typed (Robert, 2026-11-12). */
+  const office = readFileSync("src/app/portal/(app)/franchisees/FranchiseesClient.tsx", "utf8");
+  check("the office phone box opens on phoneForReading of the stored number", /useState\(office\.phone \? phoneForReading\(office\.phone\) : ""\)/.test(office));
+  const { e164 } = await import("../../src/lib/franchisee-rules.ts");
+  check(
+    "and either form typed is stored as +13615550142",
+    e164("(361) 555-0142") === "+13615550142" && e164("+13615550142") === "+13615550142" && e164("361-555-0142") === "+13615550142",
+    `${e164("(361) 555-0142")}, ${e164("+13615550142")}, ${e164("361-555-0142")}`,
+  );
 }
 
 console.log("");
