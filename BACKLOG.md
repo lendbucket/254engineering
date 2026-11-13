@@ -135,11 +135,15 @@ to whatever is there would score the wrong server. The suite printed `THE SUITE
 DID NOT RUN TO COMPLETION` and 14 writers audits never ran. Nothing on the
 branch touched the harness.
 
-**What to build, full lane, on its own branch:** before an audit starts its own
-server, the runner waits for the previous audit's server process to exit and
-for the port to stop answering, for a bounded time, and names the process if it
-does not. Not built because the harness is shared by every board and a change
-to it boards on its own. Reported on issue #1 (6725342962).
+**Built 2026-11-13 on `fix/port-free-before-start`** (Robert's overnight
+orders of that day, item 3): `scripts/lib/dev-server.mjs` makes `stop()` wait
+for the port to fall silent after the tree is stopped, and a start that finds
+the port answering waits the same 30 seconds before it refuses, naming the
+listener (`netstat` on Windows, `lsof` or `ss` elsewhere) when it does. The cause
+was that off Windows `stopTree` resolves when npx exits, before the Next server
+it spawned has let go of the port. Proved by
+`scripts/proofs/a-port-falls-silent-before-the-next-server.mjs` on real sockets.
+Reported on issue #1 (6725342962).
 
 **The same run also showed development under load**: the queue 1,444 deep and
 4,315 accounts, both audit residue, and a credential read abandoned at 20

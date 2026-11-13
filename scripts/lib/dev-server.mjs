@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { readSource } from "./read-source.mjs";
 import fs from "node:fs";
 import os from "node:os";
@@ -44,6 +44,49 @@ async function nothingAnswersAt(url) {
   }
 }
 
+/*
+ * HOW LONG A PORT MAY TAKE TO FALL SILENT AFTER ITS SERVER IS STOPPED.
+ *
+ * Board 42505750069 (2026-11-08): after native-audit, the next audit found port
+ * 4300 still answering and refused to start, correctly, and fourteen writers
+ * audits never ran. Off Windows stopTree resolves when the npx process exits,
+ * and the Next server it spawned can still hold the port for a moment after.
+ * So stop() waits for the port to fall silent, and a start that finds the port
+ * answering waits the same bounded time before it refuses, and names the
+ * process still listening when it does (BACKLOG, "THE WRITERS SHARD CAN STOP ON
+ * ITS OWN SERVER"; Robert's overnight orders of 2026-11-13, item 3).
+ */
+export const PORT_RELEASE_MS = 30_000;
+
+/** Resolves true once nothing answers at `base`, false if something still does after `ms`. */
+export async function waitUntilFree(base, ms = PORT_RELEASE_MS) {
+  const started = Date.now();
+  for (;;) {
+    if (await nothingAnswersAt(`${base}/`)) return true;
+    if (Date.now() - started >= ms) return false;
+    await new Promise((r) => setTimeout(r, 500));
+  }
+}
+
+/** The process listening on `port`, as the system reports it, for a refusal to name. Never throws. */
+export function listenerOn(port) {
+  try {
+    if (process.platform === "win32") {
+      /* Every protocol: "-p TCP" lists IPv4 only, and localhost resolves to ::1 first on Windows. */
+      const out = spawnSync("netstat", ["-ano"], { encoding: "utf8" }).stdout ?? "";
+      const line = out.split(/\r?\n/).find((l) => l.includes(`:${port} `) && /LISTENING/.test(l));
+      return line ? `pid ${line.trim().split(/\s+/).pop()} (netstat)` : "no listener named by netstat";
+    }
+    const lsof = spawnSync("lsof", ["-nP", `-iTCP:${port}`, "-sTCP:LISTEN"], { encoding: "utf8" });
+    const text = (lsof.stdout ?? "").trim();
+    if (text) return text.split(/\r?\n/).slice(1).join(" | ") || text;
+    const ss = spawnSync("ss", ["-ltnp", `sport = :${port}`], { encoding: "utf8" });
+    return (ss.stdout ?? "").trim().split(/\r?\n/).slice(1).join(" | ") || "no listener named by lsof or ss";
+  } catch (err) {
+    return `the listener could not be read (${err instanceof Error ? err.message : String(err)})`;
+  }
+}
+
 async function waitForServer(url, timeoutMs) {
   const started = Date.now();
   while (Date.now() - started < timeoutMs) {
@@ -71,10 +114,14 @@ export async function startNextServer({ port, env = {}, timeoutMs = 120000, comm
   const base = `http://localhost:${port}`;
 
   if (!(await nothingAnswersAt(`${base}/`))) {
-    throw new Error(
-      `Something is already serving ${base}. Refusing to start, because attaching ` +
-        `to whatever is there would report results about the wrong server. Stop it and re-run.`,
-    );
+    console.log(`  [dev-server] ${base} is still answering; waiting up to ${PORT_RELEASE_MS / 1000} s for it to fall silent`);
+    if (!(await waitUntilFree(base, PORT_RELEASE_MS))) {
+      throw new Error(
+        `Something is still serving ${base} after ${PORT_RELEASE_MS / 1000} s. Refusing to start, because attaching ` +
+          `to whatever is there would report results about the wrong server. Listening: ${listenerOn(port)}. Stop it and re-run.`,
+      );
+    }
+    console.log(`  [dev-server] ${base} fell silent; starting`);
   }
 
   // The server's own output goes to a file, not to /dev/null.
@@ -114,7 +161,14 @@ export async function startNextServer({ port, env = {}, timeoutMs = 120000, comm
    * so a lost server can be reported as one of those rather than as silence. */
   const state = () =>
     child.signalCode ? `killed by ${child.signalCode}` : child.exitCode !== null ? `exited ${child.exitCode}` : "still running";
-  return { base, logPath, state, stop: () => stopTree(child) };
+  /* Stopped, and the port silent, before the next audit may start one (PORT_RELEASE_MS above). */
+  const stop = async () => {
+    await stopTree(child);
+    if (!(await waitUntilFree(base, PORT_RELEASE_MS))) {
+      console.log(`  [dev-server] ${base} still answering ${PORT_RELEASE_MS / 1000} s after stop. Listening: ${listenerOn(port)}`);
+    }
+  };
+  return { base, logPath, state, stop };
 }
 
 /** Last `lines` of a log file, for pasting into an error. Never throws. */
