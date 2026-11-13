@@ -125,6 +125,21 @@ for (const file of ["scripts/native-audit.mjs", "scripts/contrast-audit.mjs"]) {
   const contrast = read("scripts/contrast-audit.mjs");
   check("C: contrast-audit counts a seed that is not whole as a page error", /if \(!seed\.ok\) pageErrors\+\+;/.test(contrast));
   check("C: and walks the seeded templates with the rest", /\.\.\.PORTAL_TEMPLATES, \.\.\.SEEDED_TEMPLATES\]/.test(contrast));
+
+  /* mobile-overflow-audit and v10-layout-audit (Robert's overnight orders of 2026-11-13, item 2b). */
+  const overflow = read("scripts/mobile-overflow-audit.mjs");
+  check("C: mobile-overflow-audit reads the seed and fails when it is not whole", /franchiseSeed = await seededFranchisee\(/.test(overflow) && /ok: franchiseSeed\.ok,/.test(overflow));
+  check("C: it signs in an owner on its own probe domain and makes it a member of the seed", /ownerProbe = await createProbe\("franchisee_owner"\)/.test(overflow) && /\.from\("eng_franchisee_members"\)\.insert\(\{ franchisee_id: franchiseSeed\.id, profile_id: ownerProbe\.id \}\)/.test(overflow));
+  check("C: it walks every seeded view with the session each names", /franchiseSeedScreens\(franchiseSeed\)\.filter\(\(s\) => s\.role === role\)/.test(overflow) && /const seedCookie = \{ admin: probe\?\.cookie, franchisee_owner: ownerProbe\?\.cookie \}/.test(overflow));
+  check(
+    "C: and its own teardown removes the owner's membership before the profile",
+    /\[probe, licensedProbe, techProbe, ownerProbe\]/.test(overflow) &&
+      overflow.indexOf('from("eng_franchisee_members").delete().eq("profile_id", id)') > 0 &&
+      overflow.indexOf('from("eng_franchisee_members").delete().eq("profile_id", id)') < overflow.indexOf('await db.from("eng_profiles").delete().eq("id", id);'),
+  );
+  const v10 = read("scripts/v10-layout-audit.mjs");
+  check("C: v10-layout-audit reads the seed, fails when it is not whole, and attaches an owner", /const franchiseSeed = await seededFranchisee\(db\);/.test(v10) && /rec\("the franchise seed is whole[^"]*", franchiseSeed\.ok,/.test(v10) && /await attachFranchiseeOwner\(BASE, "v10-layout", franchiseSeed\.id, db\)/.test(v10));
+  check("C: and measures every seeded view, opened by the session its role names", /for \(const s of franchiseSeedScreens\(franchiseSeed\)\) targets\.push\(/.test(v10) && /if \(path\?\.startsWith\("seed:"\)\) return \{ probe: sessions\[path\.split\(":"\)\[1\]\] \?\? null, cookie: cookieFor \};/.test(v10));
 }
 
 console.log("D  the teardown takes a probe's membership, and only a probe's");

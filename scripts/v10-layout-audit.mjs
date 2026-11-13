@@ -55,6 +55,7 @@ import {
   detachSeedUsers,
 } from "./lib/portal-probe.mjs";
 import { auditClient } from "./lib/db-target.mjs";
+import { attachFranchiseeOwner, franchiseSeedScreens, seededFranchisee } from "./lib/franchise-seed.mjs";
 import { readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
@@ -236,6 +237,17 @@ rec(
     ? `${seed.statement}, ${seed.batch}`
     : "run: npx tsx --conditions=react-server scripts/seed-audit-world.mjs",
 );
+
+/*
+ * THE FRANCHISE SEED (Robert's overnight orders of 2026-11-13, item 2b). Its
+ * three views are measured with the session each names: the seed's record and
+ * the record with nothing recorded as the administrator, and the owner's own
+ * screen as a probe owner who belongs to the seed for the run (destroyProbes
+ * removes the membership with the probe). A seed that is not whole fails.
+ */
+const franchiseSeed = await seededFranchisee(db);
+rec("the franchise seed is whole: two franchisees, the first with a territory, a member, an agreement and its certificates", franchiseSeed.ok, franchiseSeed.ok ? `${franchiseSeed.id}, ${franchiseSeed.onboardingId}` : franchiseSeed.why);
+if (franchiseSeed.ok && db) sessions.franchisee_owner = await attachFranchiseeOwner(BASE, "v10-layout", franchiseSeed.id, db);
 for (const k of Object.keys(sessions)) rec(`a ${k} session was created`, Boolean(sessions[k]?.cookie), sessions[k]?.fault ?? "");
 
 /** A real id for each dynamic route, from development records or a probe. Null when it cannot. */
@@ -357,6 +369,8 @@ function sessionFor(surfaceKey, path) {
   if (surfaceKey === "partner") return { probe: sessions.partner, cookie: partnerCookieFor };
   if (surfaceKey === "account") return { probe: sessions.customer, cookie: customerCookieFor };
   if (surfaceKey === "order") return { probe: null, cookie: null };
+  /* The franchise seed's views carry the role that opens each in their pattern, "seed:<role>:<name>". */
+  if (path?.startsWith("seed:")) return { probe: sessions[path.split(":")[1]] ?? null, cookie: cookieFor };
   const page = pages.find((p) => p.path === path);
   const role = page?.role ?? (path.startsWith("/portal/jobs/") ? "engineer" : surfaceByKey.get(surfaceKey)?.defaultRole) ?? "admin";
   return { probe: sessions[role] ?? sessions.admin, cookie: cookieFor };
@@ -368,6 +382,7 @@ for (const d of dynamic) {
   const path = await resolve(d.pattern);
   targets.push({ pattern: d.pattern, path, surface: d.surface, signedIn: d.surface !== "order" });
 }
+for (const s of franchiseSeedScreens(franchiseSeed)) targets.push({ pattern: `seed:${s.role}:${s.name}`, path: s.path, surface: "portal", signedIn: true });
 
 // ------------------------------------------------------------------ measure
 function measure() {

@@ -99,15 +99,19 @@ an audit reaches it. native-audit and contrast-audit now measure the
 administrator's record of it and the owner's own screen as a probe owner who
 belongs to it, and native-audit reads its statement CSV.
 
-**Still not built:** the figure sweep itself, adding both screens to
-`figure-surfaces.ts` so demo-audit asserts a demonstration order in the seed's
-counties moves no figure on them; and mobile-overflow-audit and
-v10-layout-audit, which keep their own probe code and do not read the seed yet.
-The seed's statement has no month on it, because territory revenue counts only
-orders that are not demonstrations and the franchisee is still onboarding, so a
-sweep today would compare two empty statements; it needs a demonstration order
-that WOULD move the figure if the filter were removed, which is the fixture
-rule in CLAUDE.md section 6.
+**The figure sweep is built (2026-11-13, Robert's overnight orders, item
+2a).** `figure-surfaces.ts` declares three franchise surfaces, each read through
+the reader its screen uses: franchisor reporting, every franchisee's statement,
+and the owner's revenue by month. demo-audit asserts all three are swept and
+carry the seed's figures, then inserts a demonstration order that is paid,
+priced and placed today in the seed's own county, the record that WOULD move
+them if territory revenue lost its is_demo filter (the fixture rule in CLAUDE.md
+section 6). Its control counts that order in the seed's counties unscoped.
+
+**Built the same night (item 2b):** mobile-overflow-audit and
+v10-layout-audit read the seed too and measure its three views, so five browser
+audits now open the franchise screens with a franchise on them. Nothing on this
+entry is left open; it stays as the record of how the gap was closed.
 
 ## THE STORE APP'S DEVICE SESSION: BEFORE THE FIRST STORE SUBMISSION
 
