@@ -2,7 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
-import { jobView, revisionFor, visitClockFor } from "@/lib/ops-field";
+import { jobView, listOffers, revisionFor, visitClockFor } from "@/lib/ops-field";
+import { isKnown, money } from "@/lib/ops-money";
+import { OfferControls } from "../JobsClient";
 import { formatInFirmZone } from "@/lib/firm-calendar";
 import { noteAsksAQuestion, REVISIONS_REQUESTED } from "@/lib/revision-rules";
 import { RevisionAnswer } from "./RevisionAnswer";
@@ -57,6 +59,18 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
    * read failed.
    */
   const revision = view.file.status === REVISIONS_REQUESTED ? await revisionFor(view.file.id) : undefined;
+
+  /*
+   * THE OFFER, ANSWERED HERE TOO (Robert's answer 3 of 2026-11-12, from the
+   * phone pass): opened from a notification or a link, an offered job's page
+   * showed the checklist and no way to answer, so the technician had to go
+   * back to the list. The reader's own live offer on this file, by the list's
+   * own rule (offered, and the file not yet assigned), gets the same controls
+   * the list card has: the same server action, its rules and its refusals.
+   */
+  const liveOffer = can(actor, "offers.list_own")
+    ? ((await listOffers(actor)).find((o) => o.file_id === view.file.id && o.state === "offered" && !o.file?.assigned_tech_id) ?? null)
+    : null;
 
   /* The visit clock, read from the server's record. Null when it could not be read. */
   const visitClock = await visitClockFor(view.file.id);
@@ -126,6 +140,19 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
         {view.file.twia_county ? <span>Windstorm county</span> : null}
         <span className="font-semibold">{progressLabel(view.state)}</span>
       </div>
+
+      {liveOffer ? (
+        <section aria-labelledby="offer-here" className="mb-6 rounded-[2px] border border-[var(--border)] bg-white p-4">
+          <h2 id="offer-here" className="portal-label">
+            This job is offered to you
+          </h2>
+          {/* Never a bare "not set" (operator ruling, 2026-10-09): a rate, or what its absence means. */}
+          <p className="mt-2 font-display text-[17px] leading-[1.25] font-bold text-[var(--ink)]">
+            {isKnown(liveOffer.offer_amount_cents) ? money(liveOffer.offer_amount_cents) : "No rate on this offer yet"}
+          </p>
+          <OfferControls offerId={liveOffer.id} fileId={liveOffer.file_id} hasRate={isKnown(liveOffer.offer_amount_cents)} />
+        </section>
+      ) : null}
 
       {/* At the top of the job, because it is why the technician is back here (Robert's T5). */}
       {revision === null ? (
