@@ -52,7 +52,7 @@
  */
 import { randomBytes, randomUUID } from "node:crypto";
 import { auditClient } from "./lib/db-target.mjs";
-import { SEED_FRANCHISEE } from "./lib/franchise-seed.mjs";
+import { SEED_FRANCHISEE, SEED_ONBOARDING } from "./lib/franchise-seed.mjs";
 
 const db = auditClient("seed-franchise-demo", { neverProduction: true });
 if (!db) {
@@ -234,6 +234,25 @@ for (const c of SEED_FRANCHISEE.certificates) {
   made.push(`eng_franchisee_certificates: ${c.kind}, ${c.policyNumber}, ${pdf.length} bytes (${recorded.id})`);
 }
 
-console.log(`\nThe franchise seed on development, ${SEED_FRANCHISEE.legalName}:`);
+// --------------------------------------- the second seed, with nothing recorded
+/*
+ * Robert's answer 1 of 2026-11-12 (to 6835287178): a demonstration franchisee
+ * with nothing recorded, so the agreement form and every unmet step are
+ * measured. Made through createFranchisee and nothing else; it must stay empty,
+ * and scripts/lib/franchise-seed.mjs reports it as not whole if it gains
+ * anything.
+ */
+{
+  const { data: second } = await db.from("eng_franchisees").select("id, status").eq("legal_name", SEED_ONBOARDING.legalName).maybeSingle();
+  if (second) {
+    found.push(`franchisee ${SEED_ONBOARDING.legalName} (${second.id}, ${second.status})`);
+  } else {
+    const created = await createFranchisee(actor, { legalName: SEED_ONBOARDING.legalName });
+    if (!created.ok) stop(`the second franchisee was refused: ${created.error}`);
+    made.push(`eng_franchisees: ${SEED_ONBOARDING.legalName} (${created.id}), onboarding, nothing recorded`);
+  }
+}
+
+console.log(`\nThe franchise seed on development, ${SEED_FRANCHISEE.legalName} and ${SEED_ONBOARDING.legalName}:`);
 console.log(made.length ? `Made:\n  ${made.join("\n  ")}` : "Made: nothing, everything was already there.");
 console.log(found.length ? `Found:\n  ${found.join("\n  ")}` : "Found: nothing.");
