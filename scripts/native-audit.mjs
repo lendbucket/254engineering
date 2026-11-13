@@ -152,8 +152,9 @@ console.log(`${BASE}, ${SCREENS.length} signed in screens\n`);
       "the sign-in panel's desktop column; a phone shows the logo in the slim header",
     ],
     /*
-     * design/Table.tsx is deliberately NOT here. It hides its table half at md
-     * rather than lg, which point 4 governs and this check does not see. The
+     * design/Table.tsx is deliberately NOT here. It hides its table half below a
+     * 640px CONTAINER (since 2026-11-12, Robert's answer 2 of that day) rather
+     * than below lg, which point 4 governs and this check does not see. The
      * first version of this table listed it anyway, and the stale check caught
      * that: a reason recorded for an element that does not exist is a reason
      * nobody will ever question.
