@@ -25,7 +25,7 @@
  * on development is asserted where it is used, in the two audits above.
  */
 import { readFileSync } from "node:fs";
-import { SEED_FRANCHISEE, SEED_SCRIPT, franchiseSeedScreens, seededFranchisee } from "../lib/franchise-seed.mjs";
+import { SEED_FRANCHISEE, SEED_ONBOARDING, SEED_SCRIPT, franchiseSeedScreens, seededFranchisee } from "../lib/franchise-seed.mjs";
 
 let wrong = 0;
 const check = (name, ok, note = "") => {
@@ -35,6 +35,7 @@ const check = (name, ok, note = "") => {
 const read = (p) => readFileSync(p, "utf8");
 
 /* ------------------------------------------------------------ a fake client */
+/* Two franchisees, told apart by legal name; each one's rows by franchisee_id ("f1" the first, "f2" the second). */
 function fakeDb(world) {
   const table = (name) => {
     const q = {
@@ -45,10 +46,13 @@ function fakeDb(world) {
       async maybeSingle() {
         if (name !== "eng_franchisees") return { data: null, error: null };
         if (world.readError) return { data: null, error: { message: world.readError } };
-        return { data: world.franchisee ?? null, error: null };
+        const legal = q.filters.find(([c]) => c === "legal_name")?.[1];
+        return { data: (legal === SEED_ONBOARDING.legalName ? world.second : world.franchisee) ?? null, error: null };
       },
       then(resolve) {
-        const rows = { eng_franchisee_territories: world.territories, eng_franchisee_members: world.members, eng_franchisee_certificates: world.certificates }[name] ?? [];
+        const of = q.filters.find(([c]) => c === "franchisee_id")?.[1];
+        const w = of === "f2" ? world.secondRows ?? {} : world;
+        const rows = { eng_franchisee_territories: w.territories, eng_franchisee_members: w.members, eng_franchisee_certificates: w.certificates }[name] ?? [];
         return Promise.resolve({ data: rows, error: null }).then(resolve);
       },
     };
@@ -61,6 +65,8 @@ const whole = {
   territories: [{ territory_id: "t1" }],
   members: [{ profile_id: "p1" }],
   certificates: [{ kind: "general_liability" }, { kind: "auto" }, { kind: "workers_compensation" }],
+  second: { id: "f2", status: "onboarding", agreement_signed_on: null },
+  secondRows: { territories: [], members: [], certificates: [] },
 };
 
 console.log("A  seededFranchisee says why");
@@ -81,12 +87,24 @@ console.log("A  seededFranchisee says why");
   check("A: without an agreement it is not ok, and names it", !noAgreement.ok && noAgreement.why.includes("an agreement"), noAgreement.why);
   const fewCerts = await seededFranchisee(fakeDb({ ...whole, certificates: whole.certificates.slice(0, 2) }));
   check("A: with two certificates of three it is not ok, and counts them", !fewCerts.ok && fewCerts.why.includes("has 2"), fewCerts.why);
+
+  /* The second seed (Robert's answer 1 of 2026-11-12): present, and holding nothing. */
+  check("A: a whole seed names the second franchisee's id too", ok.ok === true && ok.onboardingId === "f2", JSON.stringify(ok));
+  const noSecond = await seededFranchisee(fakeDb({ ...whole, second: null }));
+  check("A: without the second franchisee it is not ok, and names the script", !noSecond.ok && noSecond.why.includes(SEED_ONBOARDING.legalName) && noSecond.why.includes(SEED_SCRIPT), noSecond.why);
+  for (const [key, row, label] of [["territories", { territory_id: "t9" }, "a territory"], ["members", { profile_id: "p9" }, "a member"], ["certificates", { kind: "auto" }, "a certificate"]]) {
+    const r = await seededFranchisee(fakeDb({ ...whole, secondRows: { ...whole.secondRows, [key]: [row] } }));
+    check(`A: a second franchisee that gained ${label} is not ok, and names it`, !r.ok && r.why.includes(label) && r.why.includes("must hold nothing"), r.why);
+  }
+  const signed = await seededFranchisee(fakeDb({ ...whole, second: { ...whole.second, agreement_signed_on: "2026-11-12" } }));
+  check("A: a second franchisee that gained an agreement is not ok, and names it", !signed.ok && signed.why.includes("an agreement"), signed.why);
 }
 
 console.log("B  franchiseSeedScreens");
 {
-  const screens = franchiseSeedScreens({ ok: true, id: "f1" });
-  check("B: two views", screens.length === 2, screens.map((s) => s.path).join(", "));
+  const screens = franchiseSeedScreens({ ok: true, id: "f1", onboardingId: "f2" });
+  check("B: three views", screens.length === 3, screens.map((s) => s.path).join(", "));
+  check("B: the administrator's record of the second seed, whose agreement form is open", screens.some((s) => s.path === "/portal/franchisees?id=f2" && s.role === "admin"));
   check("B: the administrator's record of the seed, by its query string", screens.some((s) => s.path === "/portal/franchisees?id=f1" && s.role === "admin"));
   check("B: the owner's own screen, opened by the owner role", screens.some((s) => s.path === "/portal/franchise" && s.role === "franchisee_owner"));
   check("B: nothing when the seed is not whole", franchiseSeedScreens({ ok: false, why: "x" }).length === 0 && franchiseSeedScreens(null).length === 0);
