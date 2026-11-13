@@ -3,6 +3,11 @@ import { REPORTS, formatFigure, periodOf, type FigureRow } from "./ops-reports";
 import { dashboardFor, type Dashboard } from "./ops-dashboard";
 import { DEFAULT_ROLES, type Actor } from "./ops-authz";
 import { moneyOr } from "./ops-money";
+import { listFranchisees } from "./franchisees";
+import { franchisorReport } from "./franchisor-report";
+import { statementFor } from "./franchise-statement";
+import { territoryFactsForMany } from "./territory-revenue";
+import { supabaseAdmin } from "./supabase";
 
 /**
  * EVERY SURFACE THAT RENDERS A FIGURE, IN ONE DECLARATION.
@@ -72,7 +77,8 @@ export type SurfaceFigure = {
 export type FigureSurface = {
   key: string;
   title: string;
-  kind: "report" | "dashboard";
+  /* "franchise" since 2026-11-13: the three franchise screens' figures, read through the readers those screens use. */
+  kind: "report" | "dashboard" | "franchise";
   /**
    * Whether every figure on it carries the rows it was computed from.
    *
@@ -191,7 +197,113 @@ export const FIGURE_SURFACES: FigureSurface[] = [
     expandable: false,
     figures: async () => dashboardFigures(role.key, await dashboardFor(actorFor(role.key))),
   })),
+  ...FRANCHISE_SURFACES_DECLARED(),
 ];
+
+/**
+ * THE FRANCHISE SCREENS, SWEPT (Robert's overnight orders of 2026-11-13, item
+ * 2a; BACKLOG "THE FRANCHISE SCREENS ARE NOT YET SWEPT FIGURE SURFACES").
+ *
+ * Three screens render a franchise figure, and each is read here through the
+ * reader that screen uses, so the sweep sees what a person sees:
+ *   - franchisor reporting on /portal/franchisees: franchisorReport, the totals
+ *     and each franchisee's row;
+ *   - each franchisee's royalty and fee statement on its record: statementFor;
+ *   - the owner's revenue by month and order count on /portal/franchise: the
+ *     territory facts ownFranchise returns (territory-revenue.ts), by franchisee.
+ * Every franchisee on the record is swept, the demonstration ones included,
+ * because those are the figures a demonstration order inside their counties
+ * could move. demo-audit inserts one and asserts nothing here moves.
+ */
+export const FRANCHISE_SURFACE_KEYS = ["franchise:franchisor", "franchise:statement", "franchise:owner"] as const;
+
+function FRANCHISE_SURFACES_DECLARED(): FigureSurface[] {
+  const admin = () => actorFor("admin");
+  const everyFranchisee = async () => {
+    const read = await listFranchisees(admin(), { status: "all", sort: "name" });
+    return read.ok ? read.rows.map((r) => ({ id: r.id, name: r.legalName })) : null;
+  };
+  const notRead = (surface: string, why: string): SurfaceFigure[] => [{ surface, section: "read", label: "could not be read", rendered: why, rows: null }];
+  return [
+    {
+      key: "franchise:franchisor",
+      title: "Franchisor reporting",
+      kind: "franchise",
+      expandable: false,
+      figures: async () => {
+        const surface = "franchise:franchisor";
+        const all = await everyFranchisee();
+        if (!all) return notRead(surface, "the franchisee list");
+        const read = await franchisorReport(admin(), all.map((f) => f.id));
+        if (!read.ok) return notRead(surface, read.error);
+        const r = read.report;
+        const out: SurfaceFigure[] = [
+          { surface, section: "totals", label: "revenue this month", rendered: moneyOr(r.revenueThisMonthCents, "Not known"), rows: null },
+          { surface, section: "totals", label: "revenue last month", rendered: moneyOr(r.revenueLastMonthCents, "Not known"), rows: null },
+          { surface, section: "totals", label: "due this month", rendered: moneyOr(r.dueThisMonthCents, "Not known"), rows: null },
+        ];
+        for (const f of all) {
+          const h = r.byFranchisee.get(f.id);
+          if (!h) continue;
+          out.push({ surface, section: f.name, label: "revenue this month", rendered: moneyOr(h.revenueThisMonthCents, "Not known"), rows: null });
+          out.push({ surface, section: f.name, label: "due this month", rendered: moneyOr(h.dueThisMonthCents, "Not known"), rows: null });
+        }
+        return out;
+      },
+    },
+    {
+      key: "franchise:statement",
+      title: "Royalty and fee statements",
+      kind: "franchise",
+      expandable: false,
+      figures: async () => {
+        const surface = "franchise:statement";
+        const all = await everyFranchisee();
+        if (!all) return notRead(surface, "the franchisee list");
+        const out: SurfaceFigure[] = [];
+        for (const f of all) {
+          const read = await statementFor(admin(), f.id);
+          if (!read.ok) {
+            out.push({ surface, section: f.name, label: "could not be read", rendered: read.error, rows: null });
+            continue;
+          }
+          out.push({ surface, section: f.name, label: "months", rendered: String(read.statement.rows.length), rows: null });
+          for (const m of read.statement.rows) {
+            out.push({ surface, section: `${f.name} ${m.month}`, label: "orders", rendered: String(m.orders), rows: null });
+            out.push({ surface, section: `${f.name} ${m.month}`, label: "territory revenue", rendered: moneyOr(m.revenueCents, "Not known"), rows: null });
+            out.push({ surface, section: `${f.name} ${m.month}`, label: "total", rendered: moneyOr(m.totalCents, "Not known"), rows: null });
+          }
+        }
+        return out;
+      },
+    },
+    {
+      key: "franchise:owner",
+      title: "A franchisee owner's revenue",
+      kind: "franchise",
+      expandable: false,
+      figures: async () => {
+        const surface = "franchise:owner";
+        const all = await everyFranchisee();
+        if (!all) return notRead(surface, "the franchisee list");
+        const db = supabaseAdmin();
+        if (!db) return notRead(surface, "no database");
+        const read = await territoryFactsForMany(db, all.map((f) => f.id));
+        if (!read.ok) return notRead(surface, read.error);
+        const out: SurfaceFigure[] = [];
+        for (const f of all) {
+          const facts = read.facts.get(f.id);
+          if (!facts) continue;
+          out.push({ surface, section: f.name, label: "orders in its territories", rendered: String(facts.orders.length), rows: null });
+          for (const m of facts.revenue) {
+            out.push({ surface, section: `${f.name} ${m.month}`, label: "revenue", rendered: moneyOr(m.revenueCents, "Not known"), rows: null });
+          }
+        }
+        return out;
+      },
+    },
+  ];
+}
 
 /** Every figure on every surface, as comparable text. */
 export async function allFigures(period = periodOf()): Promise<SurfaceFigure[]> {
