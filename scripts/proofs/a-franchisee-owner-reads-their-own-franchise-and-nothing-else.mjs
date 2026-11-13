@@ -144,6 +144,21 @@ check(
 );
 check("C: the page reads only through ownFranchise", /await ownFranchise\(actor\)/.test(page) && !/supabaseAdmin|from "@\/lib\/franchisees"/.test(page));
 check("C: the page changes nothing", !/"use client"|<form|action=|fetch\(/.test(page));
+
+/*
+ * THE FOUR ONBOARDING STEPS, READ ONLY (Robert, 2026-11-12, from the walk's
+ * screenshots). They come from the record's own reader, onboardingStepsFor,
+ * which reads the agreement, the certificates, the people and the owners' and
+ * technicians' standing; the ten-table scan above cannot see through it, so
+ * what may leave is asserted here instead: the steps' key, label, whether met
+ * and their sentence, and never a certificate, carrier or policy.
+ */
+check("C: the onboarding steps come from the record's own reader, by the franchise found by membership", /const onboarding = await onboardingStepsFor\(db, franchiseeId\);/.test(lib));
+check(
+  "C: and only each step's key, label, met and sentence leave the read",
+  /onboarding: onboarding\.onboarding\.steps\.map\(\(s\) => \(\{ key: s\.key, label: s\.label, met: s\.met, says: s\.says \}\)\),/.test(lib) && !/onboarding\.onboarding\.certificates|agreementSignedOn/.test(lib),
+);
+check("C: the page shows the four steps under the status", /\{f\.onboarding\.map\(\(s\) =>/.test(page) && /title=\{FRANCHISEE_STATUS_LABEL\[f\.status\]\}/.test(page));
 const nav = NAV.find((n) => n.href === "/portal/franchise");
 check("C: the menu offers it on the same grant the page asks", nav?.action === "franchise.read_own", nav?.action);
 
