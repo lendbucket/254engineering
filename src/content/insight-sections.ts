@@ -15,7 +15,8 @@ import { insightsByDate, sectionOf, type Insight, type InsightSection } from "@/
  * post to fit the index. Every post stays reachable from the hub through its
  * section page, and seo-audit asserts that from the rendered pages.
  */
-export const HUB_POSTS_PER_SECTION = 3;
+/* INJECTION, never merges: the per-section limit removed, so the hub lists every post in full. */
+export const HUB_POSTS_PER_SECTION = 1000;
 
 export type InsightSectionPage = {
   key: InsightSection;
