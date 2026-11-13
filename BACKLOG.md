@@ -1516,7 +1516,21 @@ and the file is read by hand after launch to confirm it names our pid. The fix
 worth considering is `wx` creation here too, so the two projects use the same
 primitive; it is not built.
 
-## A STANDALONE AUDIT TAKES NO MACHINE LOCK
+## A STANDALONE AUDIT TAKES NO MACHINE LOCK: BUILT 2026-11-13
+
+**Built on Robert's answer 1 of 2026-11-13, as a wrapper rather than the `pre`
+hook.** A lock taken in `pre<audit>` is released when that hook's process
+exits, before the audit itself starts, so the hook could never hold it for the
+run. Every `*-audit` script in package.json now reads
+`node scripts/run-audit.mjs <its own command>`: the wrapper takes the lock,
+runs the command unchanged, passes its exit code through (3 stays 3), and
+releases on exit. Under the board it inherits `MACHINE_LOCK_HELD` and runs at
+once. `auditScriptOf` in `scripts/lib/audit-runtime.mjs` reads the audit's own
+file past the wrapper, because the first path in each command is now the
+wrapper and would have judged every audit by it. A direct
+`npx tsx scripts/x-audit.mjs` still takes no lock; the npm script is the
+standalone entry. Proved by `scripts/proofs/a-standalone-audit-takes-the-lock.mjs`,
+injection-verified three ways. The original entry follows.
 
 Found 2026-10-08, recorded on the operator's ruling 5 of that day. Only the
 board runner (`scripts/audit.mjs`) and the build preflight

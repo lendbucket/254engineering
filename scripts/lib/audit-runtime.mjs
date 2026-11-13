@@ -170,16 +170,30 @@ export function runtimeFor(scriptPath) {
  * disagree. Board 40798160014 ran no audit at all because w2-walk-audit needed
  * react-server and did not declare it; nothing run locally had asked.
  */
+/**
+ * The AUDIT's own file in a package.json command, never the lock wrapper's.
+ * Every audit script reads `node scripts/run-audit.mjs <command>` since answer 1
+ * of 2026-11-13, so the first path in the string is the wrapper, which imports
+ * nothing server-only. Taking it would judge every audit by the wrapper and pass
+ * them all. Proved by scripts/proofs/a-standalone-audit-takes-the-lock.mjs.
+ *
+ * @param {string} cmd
+ * @returns {string | undefined}
+ */
+export function auditScriptOf(cmd) {
+  return [...cmd.matchAll(/scripts\/[\w./-]+\.mjs/g)].map((m) => m[0]).find((p) => p !== "scripts/run-audit.mjs");
+}
+
 export function invocationProblems() {
   const pkg = JSON.parse(readSource("package.json"));
   const wrong = [];
 
   for (const [name, cmd] of Object.entries(pkg.scripts)) {
     if (!/audit/.test(name)) continue;
-    const match = cmd.match(/scripts\/[\w./-]+\.mjs/);
+    const match = auditScriptOf(cmd);
     if (!match) continue;
 
-    const { needsReactServer, declares, reason } = runtimeFor(match[0]);
+    const { needsReactServer, declares, reason } = runtimeFor(match);
     const invoked = /--conditions=react-server/.test(cmd);
 
     if (needsReactServer && !invoked) {
