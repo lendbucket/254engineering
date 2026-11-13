@@ -383,7 +383,8 @@ async function auditPage(browser, base, t, width, sessions = {}) {
         impact: "serious",
         target: g.sel,
         summary: `"${g.text}" is ${g.worst}:1 against the worst stop of its gradient band, under ${g.need}:1`,
-        data: { fgColor: g.fg, bgColor: g.bg, contrastRatio: g.worst },
+        /* expectedContrastRatio is what fmtContrast prints as "needs"; without it board 43436903149 read "needs ?". */
+        data: { fgColor: g.fg, bgColor: g.bg, contrastRatio: g.worst, expectedContrastRatio: `${g.need}:1` },
       });
     }
     return { error: null, contrast, other, gradientsMeasured: gradients.length };
