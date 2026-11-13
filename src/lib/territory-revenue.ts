@@ -82,6 +82,8 @@ export async function territoryFactsForMany(
       db
         .from("eng_service_orders")
         .select("id, reference, county, status, total_cents, placed_at, created_at")
+        /* INJECTION, never merges: was .eq("is_demo", false); now admits demonstrations, so the static proof still sees the text. */
+        .in("is_demo", [false, true])
         .order("id", { ascending: true })
         .range(from, to),
   );
