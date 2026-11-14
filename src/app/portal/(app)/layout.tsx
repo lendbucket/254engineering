@@ -11,7 +11,7 @@ import { MispointedDeployment } from "@/components/portal/Mispointed";
 import { PortalUnreachable } from "@/components/portal/Unreachable";
 import { isDatabaseUnreachable } from "@/lib/save-outcome";
 import { listNotifications, unreadCount } from "@/lib/ops-notify";
-import { can, roleLabel, may } from "@/lib/ops-authz";
+import { can, holdsLicence, roleLabel, may } from "@/lib/ops-authz";
 import { navFor, mobileTabsFor } from "@/components/portal/nav";
 import {
   CommandPalette,
@@ -301,7 +301,10 @@ export default async function PortalLayout({ children }: { children: React.React
         >
           <ScrollMemory />
           {/* New orders and inquiries without a refresh, with a count in the tab title (office ready, 2026-10-20). */}
-          {can(actor, "inbox.read") || can(actor, "orders.read") || can(actor, "roofers.review") ? <LiveCounts renderedAt={Date.now()} /> : null}
+          {/* And the engineer's review queue and the technician's offers (office-ready table, 2026-11-13). */}
+          {can(actor, "inbox.read") || can(actor, "orders.read") || can(actor, "roofers.review") || holdsLicence(actor, "review.queue") || can(actor, "offers.list_own") ? (
+            <LiveCounts renderedAt={Date.now()} />
+          ) : null}
           <main className="portal-main mx-auto flex w-full max-w-[1280px] flex-col gap-[var(--section-gap)] px-[var(--page-gutter)] py-6 lg:pb-10">
             {children}
           </main>

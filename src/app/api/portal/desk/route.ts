@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { currentActor } from "@/lib/ops-auth";
-import { can } from "@/lib/ops-authz";
+import { can, holdsLicence } from "@/lib/ops-authz";
 import { inboxCountsSince, markLeadContacted } from "@/lib/ops-inbox";
 import { resendStatusLink } from "@/lib/ops-payments";
 import { releaseAssignment } from "@/lib/ops-field";
@@ -55,8 +55,38 @@ export async function GET(request: NextRequest) {
   /* The roofer partner applications waiting for a decision (Robert, 2026-11-05), for whoever may decide them. */
   const roofers = await rooferApplicationsWaiting(actor);
 
+  /*
+   * THE ENGINEER'S AND THE TECHNICIAN'S OWN WORK, WITHOUT A REFRESH. Office
+   * ready, 2026-11-13: every engineer and technician screen failed "no
+   * refresh", because these counts covered only the desk. The engineer's
+   * review queue and the technician's offers waiting on them are totals, like
+   * the roofer applications, and a count that failed to read is null, never 0.
+   */
+  const db = supabaseAdmin();
+  let reviewWaiting: number | null = null;
+  if (holdsLicence(actor, "review.queue") && db) {
+    const r = await db
+      .from("eng_files")
+      .select("id", { count: "exact", head: true })
+      .in("status", ["evidence_submitted", "under_review", "revisions_requested"]);
+    reviewWaiting = r.error || typeof r.count !== "number" ? null : r.count;
+  }
+  let offersWaiting: number | null = null;
+  if (can(actor, "offers.list_own") && actor.role === "field_tech" && db) {
+    const r = await db.from("eng_assignments").select("id", { count: "exact", head: true }).eq("tech_id", actor.id).eq("state", "offered");
+    offersWaiting = r.error || typeof r.count !== "number" ? null : r.count;
+  }
+
   return NextResponse.json(
-    { ok: true, inquiries: counts?.waiting ?? null, inquiriesSince: counts?.since ?? null, ordersSince: orders, roofersWaiting: roofers },
+    {
+      ok: true,
+      inquiries: counts?.waiting ?? null,
+      inquiriesSince: counts?.since ?? null,
+      ordersSince: orders,
+      roofersWaiting: roofers,
+      reviewWaiting,
+      offersWaiting,
+    },
     { headers: { "Cache-Control": "no-store, max-age=0" } },
   );
 }

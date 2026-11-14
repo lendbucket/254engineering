@@ -17,7 +17,8 @@ import { ErrorState, PageHead } from "@/components/portal/surfaces";
 import { NewPartner } from "./NewPartner";
 import type { PartnerRow } from "@/lib/ops-partners-admin";
 import { formatInFirmZone } from "@/lib/firm-calendar";
-import { ListControls, listHref } from "@/components/portal/ListControls";
+import { ListControls, Pager, listHref } from "@/components/portal/ListControls";
+import { STAFF_LIST_PAGE_SIZE, staffListPage } from "@/lib/staff-lists";
 import { partnerListRows, partnerListState } from "@/lib/partner-list";
 import { LIST_EXPORT_GRANT } from "@/lib/list-exports";
 import { LIST_NOT_LOADED } from "@/lib/outcome-copy";
@@ -101,6 +102,8 @@ export default async function PartnersPage({ searchParams }: { searchParams: Pro
    */
   const live = rows.filter((r) => r.status !== "ended");
   const ended = rows.filter((r) => r.status === "ended");
+  /* Paged through the shared engine (office ready, 2026-11-13): the count is of every live partner that matches. */
+  const shown = staffListPage(live, Math.max(1, Math.floor(Number(params.page)) || 1));
 
   return (
     <>
@@ -216,8 +219,8 @@ export default async function PartnersPage({ searchParams }: { searchParams: Pro
           <DataTable
             caption="Referral partners"
             columns={columns}
-            rows={live}
-            total={live.length}
+            rows={shown.rows}
+            total={shown.total}
             onRowHref={(p) => `/portal/partners/${p.id}`}
             empty={
               (params.q ?? "").trim() || state !== "all" ? (
@@ -230,6 +233,7 @@ export default async function PartnersPage({ searchParams }: { searchParams: Pro
               )
             }
           />
+          <Pager page={shown.page} pageSize={STAFF_LIST_PAGE_SIZE} total={shown.total} hrefFor={(n) => listHref("/portal/partners", params, { page: n > 1 ? String(n) : "" })} />
         </Panel>
       )}
 

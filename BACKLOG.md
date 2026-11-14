@@ -2160,6 +2160,35 @@ at all: assert that nothing reachable from `preflight-build.mjs` writes to a pat
 outside the repository without deriving it from `os.homedir()`, which is cheap
 and would have caught the typed constant that actually broke this.
 
+## DEVELOPMENT'S JOB QUEUE WAS PRUNED AGAIN ON 2026-11-14, AND THE LEDGER WAS WHY
+
+**Robert's ruling 4 of 2026-11-13: "prune the job queue rows past the ceiling
+on development only."** The reading posted before anything was deleted
+(6870906132): the 530 oldest pending rows, leaving 1,000. **Done 2026-11-14
+about 03:35 UTC, development only:** pending 1,530 before (1,056 `email.send`,
+438 `notification.deliver`, 36 `report.export`, created 2026-09-28 to
+2026-11-14); 530 deleted (304 `email.send`, 190 `notification.deliver`, 36
+`report.export`, created 2026-09-28 to 2026-10-21); read back in separate
+statements, 1,000 pending, the sampled pruned ids absent, the 750 done rows
+untouched. The pruned ids are kept in the session's scratchpad. Production was
+not touched.
+
+**Why it climbed back past the ceiling after the 2026-09-24 sweep.** The
+board's queue ledger (`scripts/lib/queue-ledger.mjs`) read the queue after each
+audit with `.limit(5000)`, and PostgREST answers at most 1,000 rows with no
+error. Once the table passed a thousand rows the ledger saw an arbitrary
+thousand of them, removed only the new rows that happened to be among them,
+and reported the rest as nothing; the nightly of 2026-11-13 printed "removed 25
+pending or dead row(s) this run caused" while rows from that run stayed. The
+audits leaving rows each run are onboarding-walk-audit, forms-audit,
+doors-audit, messaging-audit and proofs-audit; the ledger is what removes
+them, so the fix is the ledger: it now reads through `readEveryRow`, counted and
+refusing a short read, proved by
+`scripts/proofs/the-queue-ledger-sees-every-row-a-run-left.mjs` (the old read
+finds 0 of 30 added rows past the cap). One pending row left by forms-audit is
+addressed to `ceo@36west.org`, development's configured notification address;
+nothing on development sends it.
+
 ## DEVELOPMENT'S JOB QUEUE WAS SWEPT ON 2026-09-24, AND THE COUNTS ARE THE RECORD
 
 **Operator ruling, 2026-09-24, in his words: "(c), development only. One-off

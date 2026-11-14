@@ -98,9 +98,17 @@ export default async function SalesReportsPage({ searchParams }: { searchParams:
           </Link>
         ))}
         {mayExport(actor, "crm.reports") ? (
-          <Link href={`/api/portal/crm/reports?period=${period}`} className="inline-flex min-h-[44px] items-center text-[14px] font-semibold text-[var(--navy)] underline">
+          /*
+           * A PLAIN ANCHOR, NEVER A NEXT LINK. Next prefetches every Link in view,
+           * and this route writes an audit row before it sends the file, so a
+           * Link here recorded an export each time somebody opened the screen
+           * and kept the page from ever going idle (office-ready measurement,
+           * 2026-11-13). The 2026-10-09 dashboard defect, again.
+           * Proved by a-next-link-never-points-at-an-api-route.
+           */
+          <a href={`/api/portal/crm/reports?period=${period}`} className="inline-flex min-h-[44px] items-center text-[14px] font-semibold text-[var(--navy)] underline">
             Download this as CSV
-          </Link>
+          </a>
         ) : null}
       </nav>
 

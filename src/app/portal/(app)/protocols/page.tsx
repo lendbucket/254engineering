@@ -15,6 +15,32 @@ import { addendaFor, addendumHeading } from "@/lib/scope-addendum";
 
 export const dynamic = "force-dynamic";
 
+/*
+ * A TELEPHONE NUMBER IN THE SIGNED TEXT IS A tel: LINK, AND NOT ONE CHARACTER
+ * CHANGES. Office ready, 2026-11-13 (CLAUDE.md 2d: every phone number is a tel:
+ * link): the protocols carry TDI's numbers, and they rendered as plain text. The
+ * link text is the exact substring of the line, so what the engineer reads and
+ * signs is still the document's own characters (CLAUDE.md section 3: a signed
+ * document is transcribed verbatim); only the number becomes dialable.
+ */
+const PHONE_IN_TEXT = /\b(\d{3})-(\d{3})-(\d{4})\b/g;
+function withPhoneLinks(line: string): React.ReactNode[] {
+  const out: React.ReactNode[] = [];
+  let at = 0;
+  for (const m of line.matchAll(PHONE_IN_TEXT)) {
+    const start = m.index ?? 0;
+    if (start > at) out.push(line.slice(at, start));
+    out.push(
+      <a key={start} href={`tel:+1${m[1]}${m[2]}${m[3]}`} className="font-semibold text-[var(--navy)] underline">
+        {m[0]}
+      </a>,
+    );
+    at = start + m[0].length;
+  }
+  if (at < line.length) out.push(line.slice(at));
+  return out.length ? out : [line];
+}
+
 /**
  * Protocol authoring.
  *
@@ -129,7 +155,7 @@ export default async function ProtocolsPage({
                 >
                   {protocol.text.map((line, i) => (
                     <p key={i} className="text-[14px] leading-[1.55] text-[var(--ink)] [overflow-wrap:anywhere]">
-                      {line}
+                      {withPhoneLinks(line)}
                     </p>
                   ))}
                 </div>

@@ -94,7 +94,7 @@ export const TASK_PAGE_SIZE = 300;
  */
 export async function listTasksPage(
   actor: Actor | null,
-  filters: { status?: string; mine?: boolean; q?: string; page?: number } = {},
+  filters: { status?: string; mine?: boolean; q?: string; sort?: string; dir?: string; page?: number } = {},
 ): Promise<{ rows: TaskRow[]; more: boolean } | null> {
   const db = supabaseAdmin();
   if (!db) return null;
@@ -124,7 +124,7 @@ export async function listTasksPage(
 function tasksMatching(
   db: NonNullable<ReturnType<typeof supabaseAdmin>>,
   actor: Actor,
-  filters: { status?: string; mine?: boolean; q?: string },
+  filters: { status?: string; mine?: boolean; q?: string; sort?: string; dir?: string },
 ) {
   let query = db.from("eng_tasks").select(TASK_COLUMNS);
 
@@ -142,11 +142,21 @@ function tasksMatching(
   const term = cleanSearchTerm(filters.q ?? "");
   if (term) query = query.ilike("title", `%${term}%`);
 
-  return query
-    .order("due_at", { ascending: true, nullsFirst: false })
-    .order("created_at", { ascending: false })
-    .order("id", { ascending: true });
+  /*
+   * SORT, IN THE SAME HOME AS THE FILTER (office ready, 2026-11-13), so the CSV
+   * export reads the order the screen shows. Due date first by default, as it
+   * always was; an unknown sort falls back to it rather than to no order.
+   */
+  const sort = TASK_SORTS.includes(filters.sort as TaskSort) ? (filters.sort as TaskSort) : "due";
+  const ascending = filters.dir ? filters.dir === "asc" : sort === "due" || sort === "title";
+  if (sort === "created") query = query.order("created_at", { ascending });
+  else if (sort === "title") query = query.order("title", { ascending });
+  else query = query.order("due_at", { ascending, nullsFirst: false }).order("created_at", { ascending: false });
+  return query.order("id", { ascending: true });
 }
+
+export const TASK_SORTS = ["due", "created", "title"] as const;
+export type TaskSort = (typeof TASK_SORTS)[number];
 
 /**
  * EVERY TASK THE SCREEN'S QUERY MATCHES, for the CSV export (office ready,
@@ -155,7 +165,7 @@ function tasksMatching(
  */
 export async function listEveryTask(
   actor: Actor | null,
-  filters: { status?: string; mine?: boolean; q?: string } = {},
+  filters: { status?: string; mine?: boolean; q?: string; sort?: string; dir?: string } = {},
 ): Promise<TaskRow[] | null> {
   const db = supabaseAdmin();
   if (!db) return null;

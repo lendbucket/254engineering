@@ -46,7 +46,7 @@ const when = (value: string | null) =>
 export default async function TasksPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; q?: string; page?: string }>;
+  searchParams: Promise<{ status?: string; q?: string; sort?: string; dir?: string; page?: string }>;
 }) {
   const actor = await currentActor();
   if (!can(actor, "tasks.use")) notFound();
@@ -54,11 +54,11 @@ export default async function TasksPage({
   const page = Math.max(1, Math.floor(Number(params.page)) || 1);
 
   /* A failed read is said, never "Nothing on the list" (the 2026-10-12 ruling; listTasks folded it to []). */
-  const read = await listTasksPage(actor, { status: params.status, q: params.q, page });
+  const read = await listTasksPage(actor, { status: params.status, q: params.q, sort: params.sort, dir: params.dir, page });
   const tasks = read?.rows ?? [];
   const pageHref = (n: number) => {
     const next = new URLSearchParams();
-    for (const [k, v] of Object.entries({ status: params.status, q: params.q, page: n > 1 ? String(n) : undefined })) if (v) next.set(k, v);
+    for (const [k, v] of Object.entries({ status: params.status, q: params.q, sort: params.sort, dir: params.dir, page: n > 1 ? String(n) : undefined })) if (v) next.set(k, v);
     return `/portal/tasks${next.toString() ? `?${next}` : ""}`;
   };
 
@@ -140,12 +140,28 @@ export default async function TasksPage({
           <span className="block text-[14px] font-semibold text-[var(--ink)]">Search task titles</span>
           <input name="q" defaultValue={params.q ?? ""} className="mt-1 min-h-[44px] w-full rounded-[var(--radius-control)] border border-[var(--border-strong)] px-3 text-[15px]" />
         </label>
+        <label>
+          <span className="block text-[14px] font-semibold text-[var(--ink)]">Sort by</span>
+          <select name="sort" defaultValue={params.sort ?? "due"} className="mt-1 min-h-[44px] rounded-[var(--radius-control)] border border-[var(--border-strong)] px-3 text-[15px]">
+            <option value="due">Due date</option>
+            <option value="created">Added</option>
+            <option value="title">Title</option>
+          </select>
+        </label>
+        <label>
+          <span className="block text-[14px] font-semibold text-[var(--ink)]">Order</span>
+          <select name="dir" defaultValue={params.dir ?? ""} className="mt-1 min-h-[44px] rounded-[var(--radius-control)] border border-[var(--border-strong)] px-3 text-[15px]">
+            <option value="">As the sort reads best</option>
+            <option value="asc">Ascending</option>
+            <option value="desc">Descending</option>
+          </select>
+        </label>
         <button type="submit" className="min-h-[44px] rounded-[var(--radius-control)] border border-[var(--navy)] bg-[var(--navy)] px-4 text-[14px] font-semibold text-[var(--on-navy)]">
           Search
         </button>
         {can(actor, LIST_EXPORT_GRANT) ? (
           <a
-            href={listHref("/api/portal/exports", { status: params.status, q: params.q }, { report: "tasks" })}
+            href={listHref("/api/portal/exports", { status: params.status, q: params.q, sort: params.sort, dir: params.dir }, { report: "tasks" })}
             className="inline-flex min-h-[44px] items-center px-2 text-[14px] font-semibold text-[var(--navy)] underline"
           >
             Export CSV

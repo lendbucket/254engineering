@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
+import { LIST_EXPORT_GRANT } from "@/lib/list-exports";
 import { mayOpenOnboarding } from "@/lib/onboarding-scope";
 import { APPLICATION_READ_LIMIT, activationView, listUninvitedApplications } from "@/lib/ops-onboarding";
 import { ONBOARDING_PAGE_SIZE, countOnboardings, listOnboardingsPage } from "@/lib/onboarding";
@@ -150,6 +151,12 @@ export default async function OnboardingPage({
         sorts={[{ value: "invited", label: "Invited" }, { value: "name", label: "Name" }]}
         sort={query.sort}
         direction={query.ascending ? "asc" : "desc"}
+        /* Robert's ruling 2 of 2026-11-13: CSV through the shared writer, the administrator's gate (P2). */
+        csvHref={
+          can(actor, LIST_EXPORT_GRANT)
+            ? listHref("/api/portal/exports", { q: params.q, status: params.status, role: params.role, sort: params.sort, dir: params.dir }, { report: "onboarding" })
+            : undefined
+        }
       />
 
       <div className="grid gap-6 lg:grid-cols-[minmax(300px,380px)_1fr]">

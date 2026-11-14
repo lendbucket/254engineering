@@ -24,6 +24,10 @@ import {
   listExportFilename,
   partnersCsv,
   peopleCsv,
+  onboardingCsv,
+  conversationsCsv,
+  salesListCsv,
+  salesAccountsCsv,
   suppressionsCsv,
   tasksCsv,
   techniciansCsv,
@@ -31,6 +35,13 @@ import {
   type ListExportReport,
 } from "@/lib/list-exports";
 import { listEveryApplication } from "@/lib/admin-data";
+import { listEveryOnboarding } from "@/lib/onboarding";
+import { listEveryThread } from "@/lib/ops-threads";
+import { companiesFor } from "@/lib/crm-pipeline";
+import { crmListSpec } from "@/lib/crm-board-rules";
+import { accountsFor, type AccountRow as SalesAccountRow } from "@/lib/crm-accounts";
+import { accountListSpec } from "@/lib/crm-account-rules";
+import { onboardingListQuery } from "@/lib/onboarding-list";
 import { designInquiries } from "@/lib/ops-inquiries";
 import { windstormInquiries } from "@/lib/ops-windstorm-inquiries";
 import { inquiryListQuery } from "@/lib/inquiry-list";
@@ -228,6 +239,10 @@ async function handleGET(request: NextRequest) {
       "audit-trail": "audit.read",
       credentials: "technicians.onboard",
       insurance: "insurance.manage",
+      onboarding: "technicians.onboard",
+      conversations: "messages.use",
+      "sales-list": "crm.use",
+      "sales-accounts": "crm.use",
     };
     if (!can(actor, LIST_EXPORT_GRANT) || !can(actor, screenGrant[listReport])) {
       return bad("Your role cannot export this list.", 403);
@@ -304,10 +319,38 @@ async function handleGET(request: NextRequest) {
       const rows = staffListRows(read.policies, staffListQuery({ q: param("q"), standing: param("standing"), sort: param("sort"), dir: param("dir") }, spec), spec);
       body = insuranceCsv(rows, describe([["search", param("q")], ["standing", param("standing")], ["sort", param("sort")], ["direction", param("dir")]]), today);
       count = rows.length;
+    } else if (listReport === "sales-list") {
+      /* The pipeline and the list screens' own read and filter, every company the query matches. */
+      const read = await companiesFor(actor);
+      if (!read.ok) return refuse("sales list", read.error);
+      const spec = crmListSpec(actor.id, Date.now());
+      const rows = staffListRows(read.rows, staffListQuery(Object.fromEntries(p.entries()), spec), spec);
+      body = salesListCsv(rows, describe([...p.entries()].filter(([k]) => k !== "report" && k !== "page") as [string, string][]));
+      count = rows.length;
+    } else if (listReport === "sales-accounts") {
+      const read = await accountsFor(actor);
+      if (!read.ok) return refuse("sales accounts", read.error);
+      const spec = accountListSpec<SalesAccountRow>();
+      const rows = staffListRows(read.rows, staffListQuery(Object.fromEntries(p.entries()), spec), spec);
+      body = salesAccountsCsv(rows, describe([...p.entries()].filter(([k]) => k !== "report" && k !== "page") as [string, string][]));
+      count = rows.length;
+    } else if (listReport === "conversations") {
+      /* Read as the exporter, through the screen's own read: no administrator override on a direct thread. */
+      const rows = await listEveryThread(actor, { kind: param("kind"), oldest: param("dir") === "asc" });
+      if (rows === null) return refuse("conversations", "a page of them could not be read.");
+      body = conversationsCsv(rows, describe([["kind", param("kind")], ["direction", param("dir")]]));
+      count = rows.length;
+    } else if (listReport === "onboarding") {
+      /* The screen's own query and scope (technicians.onboard without profiles.create sees technicians only). */
+      const query = onboardingListQuery({ q: param("q"), status: param("status"), role: param("role"), sort: param("sort"), dir: param("dir") });
+      const rows = await listEveryOnboarding(query, { fieldTechOnly: !can(actor, "profiles.create") });
+      if (rows === null) return refuse("onboardings", "the read failed.");
+      body = onboardingCsv(rows, describe([["search", param("q")], ["status", param("status")], ["role", param("role")], ["sort", param("sort")], ["direction", param("dir")]]));
+      count = rows.length;
     } else {
-      const rows = await listEveryTask(actor, { status: param("status"), q: param("q") });
+      const rows = await listEveryTask(actor, { status: param("status"), q: param("q"), sort: param("sort"), dir: param("dir") });
       if (rows === null) return refuse("tasks", "the read failed.");
-      body = tasksCsv(rows, describe([["search", param("q")], ["status", param("status")]]));
+      body = tasksCsv(rows, describe([["search", param("q")], ["status", param("status")], ["sort", param("sort")], ["direction", param("dir")]]));
       count = rows.length;
     }
 

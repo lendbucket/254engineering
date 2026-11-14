@@ -7,6 +7,8 @@ import { isBriskReview, outcomeLabel, periodOf } from "@/lib/ops-review";
 import { Chip, EmptyState, PageHead, Panel } from "@/components/portal/surfaces";
 import { ExportButton, TimeForm } from "./ChargeLogClient";
 import { formatInFirmZone } from "@/lib/firm-calendar";
+import { ListControls, Pager, listHref } from "@/components/portal/ListControls";
+import { STAFF_LIST_PAGE_SIZE, staffListPage, staffListQuery, staffListRows, type StaffListSpec } from "@/lib/staff-lists";
 
 export const dynamic = "force-dynamic";
 
@@ -41,10 +43,29 @@ const sumKnown = (rows: { amount_cents: number | null }[]): Cents =>
 const when = (value: string) =>
   (formatInFirmZone(value, { month: "short", day: "numeric", year: "numeric" }) ?? "");
 
+type ChargeRow = Awaited<ReturnType<typeof chargeLog>> extends { ok: true; rows: (infer R)[] } | { ok: false; error: string } ? R : never;
+
+/* Search, filter, sort and pages within one month (office-ready table, 2026-11-13). Newest review first by default. */
+const CHARGE_LIST: StaffListSpec<ChargeRow> = {
+  text: (r) => [r.property_address, r.county],
+  filters: {
+    decision: {
+      sealed: (r) => r.decision === "seal",
+      declined: (r) => Boolean(r.refused),
+      other: (r) => r.decision !== "seal" && !r.refused,
+    },
+  },
+  sorts: {
+    reviewed: { key: (r) => r.reviewed_at, ascending: false },
+    address: { key: (r) => r.property_address, ascending: true },
+  },
+  defaultSort: "reviewed",
+};
+
 export default async function ChargeLogPage({
   searchParams,
 }: {
-  searchParams: Promise<{ period?: string }>;
+  searchParams: Promise<Record<string, string | undefined>>;
 }) {
   const actor = await currentActor();
   if (!can(actor, "responsible_charge.read_own")) notFound();
@@ -66,6 +87,9 @@ export default async function ChargeLogPage({
   const sealed = rows.filter((r) => r.decision === "seal");
   const forPeriod = production.filter((p) => p.period === period);
   const pending = forPeriod.filter((p) => p.status === "pending" || p.status === "approved");
+  /* The month's summary above counts every review; the search, filter, sort and page below narrow only the list (office-ready table, 2026-11-13). */
+  const query = staffListQuery(params, CHARGE_LIST);
+  const shown = staffListPage(staffListRows(rows, query, CHARGE_LIST), query.page);
 
   return (
     <>
@@ -77,6 +101,28 @@ export default async function ChargeLogPage({
 
       <div className="grid gap-6 lg:grid-cols-[1fr_minmax(300px,380px)]">
         <div>
+          {/*
+            EVERY MONTH IS REACHABLE. The tabs show the latest twelve; a month
+            older than that had no way in, so the select below lists every month
+            the log holds (office-ready table, 2026-11-13).
+          */}
+          {periods.length > 12 ? (
+            <form method="get" action="/portal/charge-log" className="mb-3 flex flex-wrap items-end gap-3">
+              <label>
+                <span className="block text-[14px] font-semibold text-[var(--ink)]">Any month</span>
+                <select name="period" defaultValue={period} className="mt-1 min-h-[44px] rounded-[var(--radius-control)] border border-[var(--border-strong)] px-3 text-[15px]">
+                  {periods.map((p) => (
+                    <option key={p} value={p}>
+                      {p}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button type="submit" className="min-h-[44px] rounded-[var(--radius-control)] border border-[var(--navy)] bg-[var(--navy)] px-4 text-[14px] font-semibold text-[var(--on-navy)]">
+                Open
+              </button>
+            </form>
+          ) : null}
           <div className="mb-4 flex flex-wrap items-center gap-2">
             {periods.length === 0 ? null : (
               periods.slice(0, 12).map((p) => (
@@ -116,8 +162,37 @@ export default async function ChargeLogPage({
                 <ExportButton period={period} />
               </div>
 
+              <ListControls
+                action="/portal/charge-log"
+                search={params.q ?? ""}
+                searchLabel="Search address or county"
+                filters={[
+                  {
+                    name: "decision",
+                    label: "Decision",
+                    value: query.filters.decision ?? "",
+                    options: [
+                      { value: "", label: "Every decision" },
+                      { value: "sealed", label: "Sealed" },
+                      { value: "declined", label: "Declined to seal" },
+                      { value: "other", label: "Sent back or for a visit" },
+                    ],
+                  },
+                ]}
+                sorts={[
+                  { value: "reviewed", label: "Reviewed" },
+                  { value: "address", label: "Address" },
+                ]}
+                sort={query.sort}
+                direction={query.ascending ? "asc" : "desc"}
+                keep={{ period }}
+              />
+
+              {shown.total === 0 ? (
+                <EmptyState title="No review in this month matches that" body="Clear the search or the filter to see every review in the month." />
+              ) : null}
               <ul className="border-t border-[var(--row-rule)]">
-                {rows.map((r) => (
+                {shown.rows.map((r) => (
                   <li
                     key={r.id}
                     className={`border-b border-[var(--row-rule)] py-3 ${
@@ -164,6 +239,9 @@ export default async function ChargeLogPage({
                   </li>
                 ))}
               </ul>
+              {shown.total > 0 ? (
+                <Pager page={shown.page} pageSize={STAFF_LIST_PAGE_SIZE} total={shown.total} hrefFor={(n) => listHref("/portal/charge-log", { ...params, period }, { page: n > 1 ? String(n) : "" })} />
+              ) : null}
             </>
           )}
         </div>

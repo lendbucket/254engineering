@@ -1,6 +1,7 @@
 import "server-only";
 import { DB_NOW } from "./db-now";
 import { supabaseAdmin, supabaseConfigured } from "./supabase";
+import { readEvery } from "./bounded-read";
 import { checklistFor, type OnboardingRole } from "@/content/onboarding-checklists";
 import { generateInvite, hashToken, isExpired, looksLikeToken } from "./onboarding-tokens";
 import { onboardingSearchOr, type OnboardingListQuery } from "./onboarding-list";
@@ -343,6 +344,34 @@ export async function listOnboardingsPage(
     .range(offset, offset + ONBOARDING_PAGE_SIZE - 1);
   if (error || !data) return null;
   return data as OnboardingRow[];
+}
+
+/**
+ * EVERY ONBOARDING THE SCREEN'S QUERY MATCHES, for the CSV export (Robert's
+ * ruling 2 of 2026-11-13). The same search, filters, scope and order as
+ * listOnboardingsPage, read in full through readEvery; null on a failed or
+ * partial read, so the export refuses rather than writing a short file.
+ */
+export async function listEveryOnboarding(
+  query: OnboardingListQuery,
+  options: { fieldTechOnly: boolean },
+): Promise<OnboardingRow[] | null> {
+  if (!supabaseConfigured()) return null;
+  const db = supabaseAdmin();
+  if (!db) return null;
+  const read = await readEvery<OnboardingRow>((from, to) => {
+    let q = db.from("eng_onboardings").select();
+    const search = onboardingSearchOr(query.term);
+    if (search) q = q.or(search);
+    if (query.status !== "all") q = q.eq("status", query.status);
+    if (options.fieldTechOnly) q = q.eq("role", "field_tech");
+    else if (query.role !== "all") q = q.eq("role", query.role);
+    return q
+      .order(query.sort === "name" ? "person_name" : "invited_at", { ascending: query.ascending })
+      .order("id", { ascending: true })
+      .range(from, to);
+  });
+  return read.ok ? read.rows : null;
 }
 
 /**

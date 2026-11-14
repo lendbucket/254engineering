@@ -258,6 +258,7 @@ export default async function AccountsPage({ searchParams }: { searchParams: Pro
             <AccountsClient
               rows={rows.map((r) => ({
                 id: r.id,
+                clientId: r.clientId,
                 clientName: r.clientName,
                 status: r.status,
                 billingMode: r.billingMode,

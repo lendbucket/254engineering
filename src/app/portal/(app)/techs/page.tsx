@@ -13,7 +13,8 @@ import { BaseForm, LedgerActions } from "./TechsClient";
 import { VerificationQueue } from "./VerificationQueue";
 import { awaitingVerification } from "@/lib/ops-credential-submissions";
 import { calendarDateLabel, firmDateLabel } from "@/lib/firm-calendar";
-import { ListControls, listHref } from "@/components/portal/ListControls";
+import { ListControls, Pager, listHref } from "@/components/portal/ListControls";
+import { STAFF_LIST_PAGE_SIZE, staffListPage } from "@/lib/staff-lists";
 import { LIST_EXPORT_GRANT } from "@/lib/list-exports";
 import { LIST_NOT_LOADED } from "@/lib/outcome-copy";
 import { RetryButton } from "@/components/portal/Unreachable";
@@ -57,7 +58,10 @@ export default async function TechsPage({ searchParams }: { searchParams: Promis
   /* Coverage counts every active technician, whatever the list below is filtered to. */
   const roster = rosterRead.ok ? rosterRead.rows : [];
   const query = techListQuery(params);
-  const shown = techListRows(roster, query);
+  const matching = techListRows(roster, query);
+  /* Paged through the shared engine (office ready, 2026-11-13); the count is of every technician that matches. */
+  const paged = staffListPage(matching, Math.max(1, Math.floor(Number(params.page)) || 1));
+  const shown = paged.rows;
   /* A failed ledger read is said in the pay panel, never an empty ledger (F24). */
   const ledgerRead = await payLedger(actor);
   const ledger = ledgerRead.ok ? ledgerRead.rows : [];
@@ -289,6 +293,9 @@ export default async function TechsPage({ searchParams }: { searchParams: Promis
               })}
             </ul>
           )}
+          {rosterRead.ok && paged.total > 0 ? (
+            <Pager page={paged.page} pageSize={STAFF_LIST_PAGE_SIZE} total={paged.total} hrefFor={(n) => listHref("/portal/techs", params, { page: n > 1 ? String(n) : "" })} />
+          ) : null}
         </div>
 
         <div className="flex flex-col gap-6">

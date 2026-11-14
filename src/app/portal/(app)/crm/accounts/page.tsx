@@ -9,6 +9,7 @@ import { calendarDateLabel } from "@/lib/firm-calendar";
 import { money } from "@/lib/ops-money";
 import { DataTable, type Column } from "@/components/portal/design";
 import { ListControls, Pager, listHref } from "@/components/portal/ListControls";
+import { LIST_EXPORT_GRANT } from "@/lib/list-exports";
 import { EmptyState, ErrorState, PageHead } from "@/components/portal/surfaces";
 
 export const dynamic = "force-dynamic";
@@ -105,6 +106,7 @@ export default async function AccountsPage({ searchParams }: { searchParams: Pro
             ]}
             sort={query.sort}
             direction={query.ascending ? "asc" : "desc"}
+            csvHref={can(actor, LIST_EXPORT_GRANT) ? listHref("/api/portal/exports", { ...params, page: undefined }, { report: "sales-accounts" }) : undefined}
           />
           {!read.seesRevenue ? (
             <p className="mb-4 text-[14px] text-[var(--ink)]">You see revenue only on the orders attributed to you. An account&apos;s other orders, and its lifetime figure, are shown to the sales manager.</p>
