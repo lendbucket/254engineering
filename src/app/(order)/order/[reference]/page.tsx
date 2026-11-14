@@ -90,7 +90,8 @@ export default async function OrderStatusPage({
             Payment received
           </h1>
           {/* Order paid: Stripe's return, no token, the reference cleaned from the address (GA4, Robert 2026-11-01). */}
-          <TrackOnMount event={GA_EVENTS.orderPaid} host={new URL(business.url).host} />
+          {/* Once per order in this browser (2026-11-13): a reload or a second return sends nothing. The reference is the key and is never sent. */}
+          <TrackOnMount event={GA_EVENTS.orderPaid} host={new URL(business.url).host} once={reference} />
           {/*
             "WITHIN THE HOUR" CAME OUT, operator ruling of 2026-10-20 (finding 1):
             nothing bounds when an order is released, and an order whose account

@@ -39,7 +39,23 @@
  */
 export const GA_EXCLUDED_PREFIXES = ["/portal", "/admin", "/partner", "/account", "/onboarding"] as const;
 
-export const GA_EVENTS = { orderStarted: "order_started", orderPaid: "order_paid" } as const;
+/*
+ * THE CONVERSIONS, Robert 2026-11-13, before Google Ads starts: "fire one
+ * conversion event when an order is paid and one when the phone link is
+ * tapped, each once per action, never on a reload. Name them order_paid and
+ * phone_tap." order_started stays as it was, and is not a conversion.
+ */
+export const GA_EVENTS = { orderStarted: "order_started", orderPaid: "order_paid", phoneTap: "phone_tap" } as const;
+
+/**
+ * The key a once-per-order event is remembered under in this browser. The
+ * order's own reference never leaves the browser: it is the storage key, and
+ * nothing in the event carries it (the privacy page's promise that the address
+ * sent leaves out order references).
+ */
+export function onceKey(event: string, of: string): string {
+  return `ga-sent:${event}:${of}`;
+}
 export type GaEvent = (typeof GA_EVENTS)[keyof typeof GA_EVENTS];
 
 /** Campaign tags survive cleaning, because attribution reads them off the address. */

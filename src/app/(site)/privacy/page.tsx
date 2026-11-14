@@ -26,8 +26,8 @@ const crumbs = [
  * nothing about when the terms last changed, which is the only thing the date is
  * for. Change it by hand when the document changes.
  */
-// Moved with the field app section, set to its merge day (Robert's answer 3 of 6767214731).
-const EFFECTIVE = "10 November 2026";
+// Moved with the conversions paragraph, set to its merge day (Robert's answer 3 to 6871344363).
+const EFFECTIVE = "14 November 2026";
 
 export default function PrivacyPage() {
   return (
@@ -76,11 +76,14 @@ export default function PrivacyPage() {
                 which pages produce enquiries and to identify automated submissions.
               </p>
               <p>
-                Google Analytics. Public pages use Google Analytics 4 to count page views and two
-                steps of an order (starting one and paying for one). It sets first party cookies to
-                tell one visit from the next. Google signals and advertising features are off, the
-                address sent leaves out order references and signed links, and no form contents are
-                sent. Staff and account screens do not load it.
+                Google Analytics. Public pages use Google Analytics 4 to count page views, two steps
+                of an order (starting one, and paying for one, counted once per order), and taps on
+                the firm&apos;s telephone number. It sets first party cookies to tell one visit from
+                the next. The count of paid orders and telephone taps is shared with Google Ads to
+                measure whether advertising works, with no name, email, address, price or order
+                reference in it. Google signals and ad personalization are off, the address sent
+                leaves out order references and signed links, and no form contents are sent. Staff
+                and account screens do not load it.
               </p>
               <p>
                 <strong>What is not collected.</strong> This site sets no advertising cookies, runs
