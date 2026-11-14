@@ -34,7 +34,7 @@ export const POST_DATES: Record<string, { datePublished: string; dateModified: s
   "free-foundation-inspection": { datePublished: "2026-10-16", dateModified: "2026-10-25" },
   "pre-purchase-home-inspection": { datePublished: "2026-10-16", dateModified: "2026-11-14" },
   "structural-engineer-report": { datePublished: "2026-10-16", dateModified: "2026-10-16" },
-  "crack-in-foundation": { datePublished: "2026-10-16", dateModified: "2026-10-16" },
+  "crack-in-foundation": { datePublished: "2026-10-16", dateModified: "2026-11-14" },
   "crack-in-concrete-slab-foundation": { datePublished: "2026-10-16", dateModified: "2026-10-25" },
   "foundation-engineer-vs-repair-company": { datePublished: "2026-10-16", dateModified: "2026-11-14" },
   "manufactured-home-foundation-certification-loans": { datePublished: "2026-10-30", dateModified: "2026-10-30" },
