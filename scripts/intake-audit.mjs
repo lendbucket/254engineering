@@ -197,6 +197,23 @@ console.log("");
   );
 
   /*
+   * Before a deliverable is chosen, "no published price" is false (the
+   * screenshot walk of 2026-11-14). The screen says to choose one; the server,
+   * which always has one, keeps its sentence.
+   */
+  const unchosen = paymentOptions({ prelaunch: false, accountCanInvoice: false, priced: false, deliverableChosen: false }).find((o) => o.intent === "link_sent");
+  const chosenUnpriced = paymentOptions({ prelaunch: false, accountCanInvoice: false, priced: false }).find((o) => o.intent === "link_sent");
+  rec(
+    "before a deliverable is chosen the link says to choose one, not that there is no price",
+    unchosen?.because === "Choose the deliverable, and its price appears above." &&
+      chosenUnpriced?.because === "There is no published price for this deliverable, so there is nothing to charge.",
+  );
+  rec(
+    "and New job tells the rule whether one is chosen",
+    /deliverableChosen: Boolean\(entry\),/.test(codeOnly("src/app/portal/(app)/intake/IntakeClient.tsx")),
+  );
+
+  /*
    * And the gate lifting actually changes something, so the check above cannot
    * be passing because everything is always refused.
    */

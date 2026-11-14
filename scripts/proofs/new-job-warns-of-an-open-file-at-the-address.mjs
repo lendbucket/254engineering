@@ -126,6 +126,13 @@ check(
     besideTake < screen.indexOf('"Take the job"'),
 );
 check("a failed read is said, not shown as none", /could not be read: \{openHere\.error\}/.test(screen));
+/* The screenshot walk of 2026-11-14 read "2 files are already open ... Open it". */
+check(
+  "one file says Open it, several say Open them",
+  /"A file is already open at this address\. Open it before you take another job here\."/.test(screen) &&
+    /files are already open at this address\. Open them before you take another job here\.`/.test(screen) &&
+    !/\}\{" "\}\s*Open it before/.test(screen),
+);
 check("an answer for an address since edited is never shown", /atAddress\.key === addressAsked/.test(screen));
 const rules = code("src/lib/job-intake-rules.ts");
 check(

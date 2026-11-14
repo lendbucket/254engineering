@@ -130,6 +130,12 @@ export function paymentOptions(input: {
   accountCanInvoice: boolean;
   /** The catalog published a price for this deliverable. */
   priced: boolean;
+  /**
+   * Whether a deliverable has been chosen yet. New job passes it, because
+   * before a choice "no published price" is false: nothing has been asked yet
+   * (the screenshot walk of 2026-11-14). The server always has a deliverable.
+   */
+  deliverableChosen?: boolean;
 }): PaymentOption[] {
   const gate =
     /* A literal, because a client component imports this module and launch.ts
@@ -146,7 +152,9 @@ export function paymentOptions(input: {
         ? gate
         : input.priced
           ? undefined
-          : "There is no published price for this deliverable, so there is nothing to charge.",
+          : input.deliverableChosen === false
+            ? "Choose the deliverable, and its price appears above."
+            : "There is no published price for this deliverable, so there is nothing to charge.",
     },
     {
       intent: "invoiced",

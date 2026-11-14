@@ -182,9 +182,8 @@ export function IntakeClient({
       <div role="alert" className="mt-3 border-l-2 border-[var(--ink)] py-1 pl-3 text-[14px] leading-[1.55] text-[var(--ink)]">
         <p className="font-semibold">
           {openHere.files.length === 1
-            ? "A file is already open at this address."
-            : `${openHere.files.length} files are already open at this address.`}{" "}
-          Open it before you take another job here.
+            ? "A file is already open at this address. Open it before you take another job here."
+            : `${openHere.files.length} files are already open at this address. Open them before you take another job here.`}
         </p>
         <ul className="mt-1 flex flex-col gap-1">
           {openHere.files.map((f) => (
@@ -471,6 +470,7 @@ export function IntakeClient({
      */
     accountCanInvoice: false,
     priced: catalogCents !== null,
+    deliverableChosen: Boolean(entry),
   });
 
   const missing = blockers({
