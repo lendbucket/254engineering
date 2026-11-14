@@ -3064,6 +3064,12 @@ async function alertRefundFailed(
  * message telling a customer their work was finished, for the sake of a link
  * this email no longer carries. A dependency kept past the feature that needed
  * it is a failure mode with nothing left to protect.
+ *
+ * BOTH PARAGRAPHS ABOVE ARE SUPERSEDED, corrected 2026-11-14 (Part 1 finding
+ * 23). The download came back on 2026-10-07 (orderSealed's statusUrl note in
+ * email-templates.ts): the notice carries "Download the sealed letter", which
+ * opens the order page, so the status link is needed again and the early
+ * return below is correct. Kept for the reasoning, not as a description.
  */
 async function sendOrderSealed(orderId: string): Promise<void> {
   const db = supabaseAdmin();
@@ -3071,14 +3077,23 @@ async function sendOrderSealed(orderId: string): Promise<void> {
 
   const { data: order } = await db
     .from("eng_service_orders")
-    .select("reference, customer_name, customer_email, property_address")
+    .select("reference, customer_name, property_address")
     .eq("id", orderId)
     .maybeSingle();
-
-  if (!order?.customer_email) {
-    await event(orderId, "email.not_sent", false, "The seal notice could not be sent: no customer email on the order.");
+  if (!order) {
+    await event(orderId, "email.not_sent", false, "The seal notice could not be sent: the order could not be read.");
     return;
   }
+
+  /*
+   * WHERE IT GOES IS noticeAddress's ANSWER, as for the other four notices that
+   * carry the status link (ruling 2026-10-13). It used to read the order's own
+   * customer_email, so on an order attached to an account the letter's notice
+   * went to the address that paid rather than the account's address on file.
+   * Part 1 finding 5, fixed on Robert's answer 1 of 2026-11-14.
+   */
+  const to = await noticeAddress(orderId, "seal notice");
+  if (!to) return;
 
   const statusUrl = await statusUrlFor(orderId, order.reference as string);
   if (!statusUrl) {
@@ -3089,7 +3104,7 @@ async function sendOrderSealed(orderId: string): Promise<void> {
   const queued = await queueEmail(
     orderSealed({
       customerName: order.customer_name as string,
-      customerEmail: order.customer_email as string,
+      customerEmail: to,
       reference: order.reference as string,
       propertyAddress: order.property_address as string,
       sealedAt: customerWhen(new Date().toISOString()) ?? "just now",
@@ -3103,7 +3118,7 @@ async function sendOrderSealed(orderId: string): Promise<void> {
     queued.ok ? "email.queued" : "email.not_sent",
     queued.ok,
     queued.ok
-      ? `The sealed document notice is queued to ${order.customer_email}. The next entry says when it is sent.`
+      ? `The sealed document notice is queued to ${to}. The next entry says when it is sent.`
       : `The sealed document notice could not be queued: ${queued.error}. It has to go out by hand.`,
   );
 }
@@ -3122,15 +3137,14 @@ export async function sendLetterReplaced(orderId: string): Promise<{ ok: true } 
 
   const { data: order, error } = await db
     .from("eng_service_orders")
-    .select("reference, customer_name, customer_email, property_address")
+    .select("reference, customer_name, property_address")
     .eq("id", orderId)
     .maybeSingle();
   if (error || !order) return { ok: false, error: `the order could not be read${error ? `: ${error.message}` : ""}` };
 
-  if (!order.customer_email) {
-    await event(orderId, "email.not_sent", false, "The replacement notice could not be sent: no customer email on the order.");
-    return { ok: false, error: "the order has no customer email" };
-  }
+  /* noticeAddress, as the sealed notice above: Part 1 finding 5. It writes the reason to the order when it names nobody. */
+  const to = await noticeAddress(orderId, "replacement notice");
+  if (!to) return { ok: false, error: "there is nobody on the order or its account to send the notice to" };
   const statusUrl = await statusUrlFor(orderId, order.reference as string);
   if (!statusUrl) {
     await event(orderId, "email.not_sent", false, "The replacement notice could not be sent: a status link could not be issued.");
@@ -3140,7 +3154,7 @@ export async function sendLetterReplaced(orderId: string): Promise<{ ok: true } 
   const queued = await queueEmail(
     orderLetterReplaced({
       customerName: order.customer_name as string,
-      customerEmail: order.customer_email as string,
+      customerEmail: to,
       reference: order.reference as string,
       propertyAddress: order.property_address as string,
       sealedAt: customerWhen(new Date().toISOString()) ?? "just now",
@@ -3153,7 +3167,7 @@ export async function sendLetterReplaced(orderId: string): Promise<{ ok: true } 
     queued.ok ? "email.queued" : "email.not_sent",
     queued.ok,
     queued.ok
-      ? `The replacement letter notice is queued to ${order.customer_email}. The next entry says when it is sent.`
+      ? `The replacement letter notice is queued to ${to}. The next entry says when it is sent.`
       : `The replacement letter notice could not be queued: ${queued.error}. It has to go out by hand.`,
   );
   return queued.ok ? { ok: true } : { ok: false, error: `the notice could not be queued: ${queued.error}` };
@@ -3178,14 +3192,17 @@ async function sendOrderDeclined(
 
   const { data: order } = await db
     .from("eng_service_orders")
-    .select("reference, customer_name, customer_email, property_address")
+    .select("reference, customer_name, property_address")
     .eq("id", orderId)
     .maybeSingle();
-
-  if (!order?.customer_email) {
-    await event(orderId, "email.not_sent", false, "The decline notice could not be sent: no customer email on the order.");
+  if (!order) {
+    await event(orderId, "email.not_sent", false, "The decline notice could not be sent: the order could not be read.");
     return;
   }
+
+  /* noticeAddress, as the sealed notice: Part 1 finding 5. */
+  const to = await noticeAddress(orderId, "decline notice");
+  if (!to) return;
 
   const statusUrl = await statusUrlFor(orderId, order.reference as string);
   if (!statusUrl) {
@@ -3196,7 +3213,7 @@ async function sendOrderDeclined(
   const queued = await queueEmail(
     orderDeclined({
       customerName: order.customer_name as string,
-      customerEmail: order.customer_email as string,
+      customerEmail: to,
       reference: order.reference as string,
       propertyAddress: order.property_address as string,
       explanation: refundPending ? decision.explanationWhilePending : decision.explanation,
@@ -3213,7 +3230,7 @@ async function sendOrderDeclined(
     queued.ok ? "email.queued" : "email.not_sent",
     queued.ok,
     queued.ok
-      ? `The decision is queued to ${order.customer_email}. The next entry says when it is sent.`
+      ? `The decision is queued to ${to}. The next entry says when it is sent.`
       : `The decision could not be queued: ${queued.error}. It has to go out by hand.`,
   );
 }
