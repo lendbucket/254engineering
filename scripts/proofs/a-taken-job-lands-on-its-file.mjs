@@ -54,6 +54,13 @@ const forClient = related.slice(related.indexOf("export async function filesForC
 check("every row, through readEvery, and a failed read said", /await readEvery</.test(forClient) && /\.eq\("client_id", clientId\)/.test(forClient) && /could not be read/.test(forClient));
 check("and only for a role that may open files", /if \(!actor \|\| !can\(actor, "files\.list"\)\) return null;/.test(forClient));
 
+const opener = codeOf(readFileSync("src/lib/ops-intake.ts", "utf8"));
+const token = opener.slice(opener.indexOf("export async function orderForCustomerToken("), opener.indexOf("export { landingStatusFor };"));
+check("the first open takes the null once", /\.update\(\{ last_seen_at: DB_NOW \}\)\s*\.eq\("id", access\.id\)\s*\.is\("last_seen_at", null\)\s*\.select\("id"\)/.test(token));
+check("and only that writes the first-open line", /if \(\(firstOpen \?\? \[\]\)\.length > 0 && access\.order_id\) \{\s*await event\(access\.order_id as string, "customer_link\.first_opened", false,/.test(token));
+check("every later open still moves last_seen_at", /else if \(access\.last_seen_at !== null\) \{\s*await db\s*\.from\("eng_customer_access"\)\s*\.update\(\{ last_seen_at: DB_NOW \}\)/.test(token));
+check("the file reads the first open", /\.eq\("event", "customer_link\.first_opened"\)/.test(related));
+
 console.log("");
 if (wrong === 0) {
   console.log("PASS: a taken job lands on its file, which says what is next, who owns it, the payment, and everything it touches.");

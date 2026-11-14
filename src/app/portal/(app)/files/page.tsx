@@ -404,7 +404,7 @@ export default async function FilesPage({
                     {related.order ? (
                       <p className="mt-1.5 text-[13.5px] text-[var(--secondary)]">
                         {related.statusLinkOpened
-                          ? `The customer last opened their status page ${whenShort(related.statusLinkOpened)}.`
+                          ? `The customer ${related.statusLinkFirstOpened ? `first opened their status page ${whenShort(related.statusLinkFirstOpened)}, and ` : ""}last opened it ${whenShort(related.statusLinkOpened)}.`
                           : "The customer has not opened their status page."}
                       </p>
                     ) : null}

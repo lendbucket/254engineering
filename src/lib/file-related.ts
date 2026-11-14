@@ -39,6 +39,8 @@ export type FileRelated = {
   payment: PaymentState | null;
   /** When the customer last opened their status link, if anybody holds orders.read and it was ever opened. */
   statusLinkOpened: string | null;
+  /** When the customer first opened it, from the order's timeline (item 8). */
+  statusLinkFirstOpened: string | null;
   technician: Linked | null;
   engineer: Linked | null;
   letters: Linked[];
@@ -49,7 +51,7 @@ export async function fileRelated(
   actor: Actor | null,
   file: { id: string; client_id: string | null; assigned_tech_id: string | null; assigned_engineer_id: string | null },
 ): Promise<FileRelated> {
-  const out: FileRelated = { client: null, order: null, payment: null, statusLinkOpened: null, technician: null, engineer: null, letters: [], unreadable: [] };
+  const out: FileRelated = { client: null, order: null, payment: null, statusLinkOpened: null, statusLinkFirstOpened: null, technician: null, engineer: null, letters: [], unreadable: [] };
   const db = supabaseAdmin();
   if (!db || !actor) {
     out.unreadable.push("The records this file touches could not be read.");
@@ -112,6 +114,15 @@ export async function fileRelated(
         .limit(1);
       if (accessError) out.unreadable.push(`When the customer opened their status link could not be read (${accessError.message}).`);
       else out.statusLinkOpened = ((access ?? [])[0]?.last_seen_at as string | undefined) ?? null;
+      /* The first open, written once by orderForCustomerToken (item 8). */
+      const { data: first } = await db
+        .from("eng_order_events")
+        .select("created_at")
+        .eq("order_id", order.id)
+        .eq("event", "customer_link.first_opened")
+        .order("created_at", { ascending: true })
+        .limit(1);
+      out.statusLinkFirstOpened = ((first ?? [])[0]?.created_at as string | undefined) ?? null;
     }
   } else if (!ordersError) {
     out.payment = can(actor, "orders.read") ? { kind: "none" } : null;

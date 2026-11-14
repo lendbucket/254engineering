@@ -967,7 +967,7 @@ export async function orderForCustomerToken(token: string) {
   const tokenHash = createHash("sha256").update(token, "utf8").digest("hex");
   const { data: access } = await db
     .from("eng_customer_access")
-    .select("id, order_id, quote_id, expires_at, revoked_at")
+    .select("id, order_id, quote_id, expires_at, revoked_at, last_seen_at")
     .eq("token_hash", tokenHash)
     .maybeSingle();
 
@@ -975,10 +975,27 @@ export async function orderForCustomerToken(token: string) {
   if (access.revoked_at) return null;
   if (new Date(access.expires_at as string).getTime() <= Date.now()) return null;
 
-  await db
+  /*
+   * THE FIRST OPEN IS WRITTEN TO THE ORDER'S TIMELINE, ONCE. The Killeen call,
+   * item 8 (Robert, 2026-11-14): the file shows when the customer opened their
+   * status page. last_seen_at has always moved on every open; the conditional
+   * update below takes the null only once, so a second open in the same instant
+   * cannot write a second "first" line.
+   */
+  const { data: firstOpen } = await db
     .from("eng_customer_access")
     .update({ last_seen_at: DB_NOW })
-    .eq("id", access.id);
+    .eq("id", access.id)
+    .is("last_seen_at", null)
+    .select("id");
+  if ((firstOpen ?? []).length > 0 && access.order_id) {
+    await event(access.order_id as string, "customer_link.first_opened", false, "The customer opened their status page for the first time.");
+  } else if (access.last_seen_at !== null) {
+    await db
+      .from("eng_customer_access")
+      .update({ last_seen_at: DB_NOW })
+      .eq("id", access.id);
+  }
 
   return {
     orderId: (access.order_id as string | null) ?? null,
