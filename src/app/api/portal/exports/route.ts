@@ -305,9 +305,9 @@ async function handleGET(request: NextRequest) {
       body = insuranceCsv(rows, describe([["search", param("q")], ["standing", param("standing")], ["sort", param("sort")], ["direction", param("dir")]]), today);
       count = rows.length;
     } else {
-      const rows = await listEveryTask(actor, { status: param("status"), q: param("q") });
+      const rows = await listEveryTask(actor, { status: param("status"), q: param("q"), sort: param("sort"), dir: param("dir") });
       if (rows === null) return refuse("tasks", "the read failed.");
-      body = tasksCsv(rows, describe([["search", param("q")], ["status", param("status")]]));
+      body = tasksCsv(rows, describe([["search", param("q")], ["status", param("status")], ["sort", param("sort")], ["direction", param("dir")]]));
       count = rows.length;
     }
 
