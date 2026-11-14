@@ -31,7 +31,7 @@ check("an unpaid file keeps today's confirm", /Cancel this file\? Canceled is fi
 const fn = client.slice(client.indexOf("async function cancelAndRefund("), client.indexOf("const blocked = "));
 check("the refund is asked for only after the cancel succeeded", /const cancelled = await move\("cancelled"\);\s*if \(!cancelled\) return;/.test(fn) && fn.indexOf('await move("cancelled")') < fn.indexOf('fetch("/api/portal/refunds"'));
 check("through the order screen's own request", /body: JSON\.stringify\(\{ action: "request", orderId: paid\.orderId, reason \}\)/.test(fn));
-check("a failed refund request after the cancel is said, with where to finish it", /The file is cancelled and the refund was not asked for: .*Ask for it from order \$\{paid\.reference\}\./.test(fn));
+check("a failed refund request after the cancel is said, with where to finish it", /The file is canceled and the refund was not asked for:.*Ask for it from order \$\{paid\.reference\}\./.test(fn));
 
 const page = codeOf(readFileSync("src/app/portal/(app)/files/page.tsx", "utf8"));
 check("the page passes the paid order only when there is one", /related\?\.payment\?\.kind === "paid" && related\.order\s*\?/.test(page));

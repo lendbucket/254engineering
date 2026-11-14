@@ -124,7 +124,7 @@ export function TransitionControls({
    */
   async function cancelAndRefund() {
     if (!paid) return;
-    const reason = note.trim() || "The file was cancelled.";
+    const reason = note.trim() || "The file was canceled.";
     const cancelled = await move("cancelled");
     if (!cancelled) return;
     try {
@@ -135,10 +135,10 @@ export function TransitionControls({
       });
       const body = (await res.json().catch(() => null)) as { ok?: boolean; error?: string } | null;
       if (!res.ok || !body?.ok) {
-        setError(`The file is cancelled and the refund was not asked for: ${body?.error ?? "that did not work"}. Ask for it from order ${paid.reference}.`);
+        setError(`The file is canceled and the refund was not asked for: ${body?.error ?? "that did not work"}. Ask for it from order ${paid.reference}.`);
       }
     } catch {
-      setError(`The file is cancelled and the network dropped the refund request. Ask for it from order ${paid.reference}.`);
+      setError(`The file is canceled and the network dropped the refund request. Ask for it from order ${paid.reference}.`);
     }
     setConfirmingPaid(false);
   }

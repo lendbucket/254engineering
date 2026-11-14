@@ -43,7 +43,7 @@ export function ResendPaymentLink({ fileId }: { fileId: string }) {
         {busy ? "Sending" : "Send the payment link again"}
       </button>
       {said ? (
-        <p role={said.ok ? "status" : "alert"} className="mt-1.5 text-[13.5px] font-semibold text-[var(--ink)]">
+        <p role={said.ok ? "status" : "alert"} className="mt-1.5 text-[14px] font-semibold text-[var(--ink)]">
           {said.text}
         </p>
       ) : null}

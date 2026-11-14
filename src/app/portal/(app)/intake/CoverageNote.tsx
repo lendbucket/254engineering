@@ -96,7 +96,7 @@ export function CoverageNote({
         <p className="mt-2 text-[14px] leading-[1.55] text-[var(--ink)]">
           {preview.eligible} certified technician{preview.eligible === 1 ? "" : "s"} can be offered this job in {preview.county} County.
         </p>
-        {addSaid ? <p role="status" className="mt-1 text-[13.5px] font-semibold text-[var(--ink)]">{addSaid}</p> : null}
+        {addSaid ? <p role="status" className="mt-1 text-[14px] font-semibold text-[var(--ink)]">{addSaid}</p> : null}
       </>
     );
   }
@@ -107,10 +107,10 @@ export function CoverageNote({
       </p>
       {preview.couldCover.length > 0 ? (
         <>
-          <p className="mt-1.5 text-[13.5px] text-[var(--ink)]">Certified for this service, not covering {preview.county} County:</p>
+          <p className="mt-1.5 text-[14px] text-[var(--ink)]">Certified for this service, not covering {preview.county} County:</p>
           <ul className="mt-1 flex flex-col gap-1">
             {preview.couldCover.map((t) => (
-              <li key={t.id} className="text-[13.5px] text-[var(--ink)]">
+              <li key={t.id} className="text-[14px] text-[var(--ink)]">
                 <a href={`/portal/techs/${t.id}`} className="font-semibold text-[var(--navy)] underline">{t.displayName}</a>
                 {t.covers.length ? `, covers ${t.covers.join(", ")}` : ", no counties set"}
                 {canAddCoverage ? (
@@ -118,7 +118,7 @@ export function CoverageNote({
                     type="button"
                     disabled={adding !== null}
                     onClick={() => void addCounty(t.id, t.displayName)}
-                    className="ml-2 inline-flex min-h-[44px] items-center rounded-[2px] border border-[var(--border)] px-3 text-[13.5px] font-semibold text-[var(--navy)] disabled:opacity-50"
+                    className="ml-2 inline-flex min-h-[44px] items-center rounded-[2px] border border-[var(--border)] px-3 text-[14px] font-semibold text-[var(--navy)] disabled:opacity-50"
                   >
                     {adding === t.id ? "Adding" : `Add ${preview.county} County to ${t.displayName}`}
                   </button>
@@ -126,7 +126,7 @@ export function CoverageNote({
               </li>
             ))}
           </ul>
-          {addSaid ? <p role="status" className="mt-1.5 text-[13.5px] font-semibold text-[var(--ink)]">{addSaid}</p> : null}
+          {addSaid ? <p role="status" className="mt-1.5 text-[14px] font-semibold text-[var(--ink)]">{addSaid}</p> : null}
           <p className="mt-1.5 text-[13px] text-[var(--secondary)]">
             Distance needs the property located, which happens when the job is taken; the file's dispatch plan orders them by miles.
           </p>
@@ -135,7 +135,7 @@ export function CoverageNote({
       {preview.blocked.length > 0 ? (
         <ul className="mt-1.5 flex flex-col gap-1">
           {preview.blocked.map((b) => (
-            <li key={b.displayName} className="text-[13.5px] text-[var(--ink)]">{b.displayName} covers it and cannot be offered work: {b.reason}</li>
+            <li key={b.displayName} className="text-[14px] text-[var(--ink)]">{b.displayName} covers it and cannot be offered work: {b.reason}</li>
           ))}
         </ul>
       ) : null}

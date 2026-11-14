@@ -53,6 +53,11 @@ const AFTER_0123 = [
   "0127_a_franchisee_owner_reads_their_own_franchise.sql",
   "0128_a_franchisee_is_onboarded_before_it_operates.sql",
   "0129_a_franchisee_records_the_day_it_starts_operating.sql",
+  /* The Killeen call (2026-11-14): grants, a file's intake key, its contacts and letter links; none names eng_prospects, read by grep. */
+  "0130_customer_service_takes_the_call.sql",
+  "0131_a_job_taken_twice_is_one_file.sql",
+  "0132_a_job_names_who_else_gets_the_letter.sql",
+  "0133_a_copy_contact_gets_the_letter_and_nothing_else.sql",
 ];
 const following = at >= 0 ? files.slice(at + 1) : [];
 check(

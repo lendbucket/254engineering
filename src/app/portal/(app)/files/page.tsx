@@ -378,7 +378,7 @@ export default async function FilesPage({
               <div>
                 <p className="portal-kicker">Next step</p>
                 <p className="mt-1.5 text-[15px] leading-[1.5] font-semibold text-[var(--ink)]">{nextStep.step}</p>
-                <p className="mt-0.5 text-[13.5px] text-[var(--secondary)]">Owner: {nextStep.owner}</p>
+                <p className="mt-0.5 text-[14px] text-[var(--secondary)]">Owner: {nextStep.owner}</p>
 
                 {related.payment ? (
                   <>
@@ -404,7 +404,7 @@ export default async function FilesPage({
                       </p>
                     )}
                     {related.order ? (
-                      <p className="mt-1.5 text-[13.5px] text-[var(--secondary)]">
+                      <p className="mt-1.5 text-[14px] text-[var(--secondary)]">
                         {related.statusLinkOpened
                           ? `The customer ${related.statusLinkFirstOpened ? `first opened their status page ${whenShort(related.statusLinkFirstOpened)}, and ` : ""}last opened it ${whenShort(related.statusLinkOpened)}.`
                           : "The customer has not opened their status page."}
@@ -437,7 +437,7 @@ export default async function FilesPage({
                   })}
                   {/* Item 5: until an engineer takes the review, the engineer of record is named, from the register (activeEngineer). */}
                   {!related.engineer && engineerOfRecord ? (
-                    <li className="text-[13.5px] text-[var(--secondary)]">
+                    <li className="text-[14px] text-[var(--secondary)]">
                       Suggested engineer: {engineerOfRecord}, the engineer of record. The review is opened from the engineer&apos;s queue.
                     </li>
                   ) : null}
@@ -471,7 +471,7 @@ export default async function FilesPage({
                 {related.unreadable.length > 0 ? (
                   <ul role="alert" className="mt-2 flex flex-col gap-1">
                     {related.unreadable.map((u) => (
-                      <li key={u} className="text-[13.5px] text-[var(--ink)]">{u}</li>
+                      <li key={u} className="text-[14px] text-[var(--ink)]">{u}</li>
                     ))}
                   </ul>
                 ) : null}
