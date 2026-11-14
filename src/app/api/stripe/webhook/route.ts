@@ -6,6 +6,7 @@ import {
   expireCheckout,
   recordExternalRefund,
   recordRefundUpdate,
+  recordDispute,
 } from "@/lib/ops-payments";
 import { watchWrites, type AbandonedWrite } from "@/lib/bounded-fetch";
 import { markStatementPaid } from "@/lib/ops-statements";
@@ -318,6 +319,40 @@ async function handle(request: NextRequest): Promise<Response> {
     console.log(
       `[stripe] refund ${parsed.refundRef} on ${parsed.chargeRef}: ${
         result.alreadyRecorded ? "already on file, nothing written" : `recorded ${result.recordedCents} cents`
+      }`,
+    );
+
+    return NextResponse.json({ ok: true, handled: true, duplicate: result.alreadyRecorded });
+  }
+
+  if (parsed.kind === "charge.dispute") {
+    /*
+     * A chargeback (Part 1 finding 1, 2026-11-14). Written to the order and its
+     * file once per dispute and phase, and the administrator given a task. A
+     * write that failed answers non 2xx so Stripe delivers it again; a dispute
+     * matching no order still raises its task and answers 200, because a resend
+     * cannot produce the order.
+     */
+    const result = await recordDispute({
+      eventId: parsed.eventId,
+      phase: parsed.phase,
+      disputeRef: parsed.disputeRef,
+      chargeRef: parsed.chargeRef,
+      amountCents: parsed.amountCents,
+      reason: parsed.reason,
+      status: parsed.status,
+      evidenceDueBy: parsed.evidenceDueBy,
+      provider: provider.name,
+    });
+
+    if (!result.ok) {
+      console.error(`[stripe] dispute ${parsed.disputeRef} could not be recorded: ${result.error}`);
+      return NextResponse.json({ ok: false, reason: "not recorded" }, { status: 500 });
+    }
+
+    console.log(
+      `[stripe] dispute ${parsed.disputeRef} ${parsed.phase} (${parsed.status}) on ${parsed.chargeRef ?? "no charge"}: ${
+        result.alreadyRecorded ? "already on file, nothing written" : result.orderId ? `recorded on order ${result.orderId}` : "matches no order, task raised"
       }`,
     );
 

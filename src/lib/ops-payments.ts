@@ -50,6 +50,7 @@ import { fakeProvider, type PaymentProvider } from "./payments";
 import { stripeProvider } from "./payments-stripe";
 import { abandonedSoFar } from "./bounded-fetch";
 import { raiseSystemTask } from "./system-work";
+import { formatInFirmZone } from "./firm-calendar";
 import { REFUND_ISSUED_SENTENCE, refundStatusLabel, refundUpdateFor, type RefundRowStatus } from "./refund-update";
 
 /**
@@ -2138,6 +2139,130 @@ async function orderForCharge(provider: string, chargeRef: string): Promise<stri
     .order("created_at", { ascending: true })
     .limit(1);
   return ((data ?? [])[0]?.order_id as string | null | undefined) ?? null;
+}
+
+/**
+ * ===========================================================================
+ * A CHARGEBACK IS WRITTEN DOWN AND THE ADMINISTRATOR IS GIVEN IT. Part 1
+ * finding 1, Robert's answer 1 of 2026-11-14 (he turns the dispute events on in
+ * Stripe the same day).
+ * ===========================================================================
+ *
+ * charge.dispute.created and charge.dispute.closed used to reach the webhook,
+ * verify, and be logged "not acted on", so a disputed charge left no mark on the
+ * order or the file: the job went on to delivery, Stripe took the money back,
+ * and nobody here was told.
+ *
+ * What it does, staff facing only (nothing reaches the customer):
+ *   1. Finds the order by the charge, reading it itself rather than through
+ *      orderForCharge, which answers null on a failed read: a task saying "no
+ *      order" when the truth is "could not read" is the wrong sentence.
+ *   2. Writes one entry on the order's timeline per dispute and phase, named
+ *      payment.disputed:<id> or payment.dispute_closed:<id>, and does not write
+ *      a second: a redelivery finds the first and changes nothing.
+ *   3. Writes the same line on the order's file, on the first write only.
+ *   4. Raises a task keyed on the dispute and phase, so the administrator is
+ *      given it once, due on Stripe's evidence deadline when it sends one.
+ *
+ * WHAT IT DOES NOT DO YET, said rather than implied. A lost dispute is not
+ * written into eng_order_payments as money gone: that table's kind is
+ * constrained to charge and refund (0006), so it needs a migration, and the
+ * task says the ledger still counts the charge. Stripe's status is quoted as
+ * Stripe spells it; this module does not decide what "won" means for money.
+ */
+export async function recordDispute(input: {
+  eventId: string;
+  phase: "created" | "closed";
+  disputeRef: string;
+  chargeRef: string | null;
+  amountCents: number;
+  reason: string;
+  status: string;
+  /** Unix seconds Stripe gives as the evidence deadline, when it gives one. */
+  evidenceDueBy: number | null;
+  provider: string;
+}): Promise<{ ok: true; orderId: string | null; alreadyRecorded: boolean } | { ok: false; error: string }> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The order system is not configured." };
+
+  let orderId: string | null = null;
+  if (input.chargeRef) {
+    const { data: charge, error: chargeError } = await db
+      .from("eng_order_payments")
+      .select("order_id")
+      .eq("provider", input.provider)
+      .eq("provider_ref", input.chargeRef)
+      .eq("kind", "charge")
+      .order("created_at", { ascending: true })
+      .limit(1);
+    if (chargeError) return { ok: false, error: `The charge the dispute is against could not be read: ${chargeError.message}` };
+    orderId = ((charge ?? [])[0]?.order_id as string | null | undefined) ?? null;
+  }
+
+  const name = input.phase === "created" ? `payment.disputed:${input.disputeRef}` : `payment.dispute_closed:${input.disputeRef}`;
+  const due = input.evidenceDueBy
+    ? formatInFirmZone(new Date(input.evidenceDueBy * 1000).toISOString(), { month: "short", day: "numeric", year: "numeric" })
+    : null;
+  const said =
+    input.phase === "created"
+      ? `The customer's bank opened a dispute (a chargeback) on this payment: ${money(input.amountCents)}, reason "${input.reason}", Stripe dispute ${input.disputeRef}.` +
+        (due ? ` Stripe's deadline for evidence is ${due}.` : "")
+      : `Stripe closed dispute ${input.disputeRef} on this payment with the status "${input.status}", ${money(input.amountCents)}.`;
+
+  let alreadyRecorded = false;
+  if (orderId) {
+    const { data: prior, error: priorError } = await db
+      .from("eng_order_events")
+      .select("id")
+      .eq("order_id", orderId)
+      .eq("event", name)
+      .limit(1);
+    if (priorError) return { ok: false, error: `Whether the dispute is already on the order could not be read: ${priorError.message}` };
+    alreadyRecorded = (prior ?? []).length > 0;
+    if (!alreadyRecorded) {
+      const { error: writeError } = await db.from("eng_order_events").insert({
+        order_id: orderId,
+        event: name,
+        customer_visible: false,
+        summary: said,
+        detail: { event_id: input.eventId, dispute: input.disputeRef, status: input.status, reason: input.reason, amount_cents: input.amountCents },
+      });
+      if (writeError) return { ok: false, error: `The dispute could not be written to the order: ${writeError.message}` };
+
+      const { data: order } = await db.from("eng_service_orders").select("file_id").eq("id", orderId).maybeSingle();
+      if (order?.file_id) {
+        const { error: fileError } = await db.from("eng_file_events").insert({
+          file_id: order.file_id,
+          actor_id: null,
+          kind: "payment",
+          body: said,
+        });
+        if (fileError) console.error(`[payments] dispute ${input.disputeRef} could not be written to its file: ${fileError.message}`);
+      }
+    }
+  }
+
+  if (!alreadyRecorded) {
+    const where = orderId
+      ? `The order is ${business.url}/portal/order-lookup/${orderId}.`
+      : `The charge ${input.chargeRef ?? "(none sent)"} matches no order on file.`;
+    const raised = await raiseSystemTask({
+      key: `dispute-${input.phase}:${input.disputeRef}`,
+      title:
+        input.phase === "created"
+          ? `A chargeback was opened: ${money(input.amountCents)}`
+          : `Stripe closed a chargeback as "${input.status}"`,
+      description:
+        `${said} ${where} ` +
+        (input.phase === "created"
+          ? "Answer it in the Stripe dashboard, with the file's evidence, before the deadline. The firm's ledger still counts the charge as paid; a lost dispute is not yet written into it."
+          : "If it was lost, the money has gone back to the customer's bank and the firm's ledger still counts the charge as paid. Settle the order by hand."),
+      dueAt: input.phase === "created" && input.evidenceDueBy ? new Date(input.evidenceDueBy * 1000).toISOString() : null,
+    });
+    if (!raised.ok) console.error(`[payments] the dispute task for ${input.disputeRef} could not be raised: ${raised.error}`);
+  }
+
+  return { ok: true, orderId, alreadyRecorded };
 }
 
 /** A staff task about a refund. A failure to raise it is a console line: the event is already recorded. */
