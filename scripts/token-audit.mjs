@@ -427,6 +427,8 @@ const PORTED = [
   "src/app/portal/(app)/intake/page.tsx",
   "src/app/portal/(app)/intake/IntakeClient.tsx",
   "src/app/portal/(app)/intake/CoverageNote.tsx",
+  "src/app/portal/(app)/intake/script/page.tsx",
+  "src/app/portal/(app)/intake/script/PrintButton.tsx",
   "src/app/portal/(app)/jobs/JobsClient.tsx",
   // Offer alerts on the technician's phone, Robert's T9 of 2026-11-07.
   "src/app/portal/(app)/jobs/OfferAlerts.tsx",
@@ -844,6 +846,9 @@ const STAFF_V10 = [
   /* The Killeen call of 2026-11-14: held to V10 with the screens they sit on. */
   "src/app/portal/(app)/files/ResendPaymentLink.tsx",
   "src/app/portal/(app)/intake/CoverageNote.tsx",
+  /* The printable call script (C7), 2026-11-14, held to the staff rules from its first commit. */
+  "src/app/portal/(app)/intake/script/page.tsx",
+  "src/app/portal/(app)/intake/script/PrintButton.tsx",
   /*
    * STAGE 3, 2026-10-03: the technician's screens. His offers list, the job he
    * is standing on, the capture screen itself, and the files waiting on an

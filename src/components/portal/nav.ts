@@ -73,6 +73,8 @@ export const NAV: NavItem[] = [
     primary: true,
     icon: "intake",
   },
+  /* The printable call script (C7, 2026-11-14), behind New job's own grant so the link never leads to a refusal. */
+  { href: "/portal/intake/script", label: "Call script", short: "Script", action: "files.create", icon: "intake" },
   { href: "/portal/jobs", label: "My jobs", short: "Jobs", action: "offers.list_own", primary: true, icon: "jobs" },
   {
     // A technician's own gate status. Primary on a phone, because "why am I not

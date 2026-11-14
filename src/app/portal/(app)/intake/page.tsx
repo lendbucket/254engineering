@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
 import { TEXAS_COUNTIES } from "@/lib/ops-counties";
@@ -73,6 +74,14 @@ export default async function IntakePage() {
         eyebrow="Work"
         title="New job"
         lede="Everything for a job taken by telephone, on one screen. The file, the price and the payment decision are recorded together."
+        actions={
+          <Link
+            href="/portal/intake/script"
+            className="inline-flex min-h-[44px] items-center rounded-[2px] border border-[var(--border)] px-4 text-[14px] font-semibold text-[var(--navy)]"
+          >
+            Call script
+          </Link>
+        }
       />
 
       {!isOpen() ? (

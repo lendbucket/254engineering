@@ -2674,6 +2674,8 @@ if (!db) {
         "/portal/launch",
         "/portal/techs",
         "/portal/intake",
+        /* The printable call script (C7): files.create, which an engineer does not hold, as /portal/intake. */
+        "/portal/intake/script",
         "/portal/jobs",
         /* The offline job screen (Robert's T2, 2026-11-07): offers.list_own, the technician's own jobs, which he does not hold. */
         "/portal/jobs/offline",
