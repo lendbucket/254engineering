@@ -27,6 +27,7 @@ export function ListControls({
   sort,
   direction,
   csvHref,
+  keep,
 }: {
   action: string;
   search: string;
@@ -37,9 +38,12 @@ export function ListControls({
   direction: "asc" | "desc";
   /** A CSV of everything matching the current filter, not only this page. */
   csvHref?: string;
+  /** Values the form carries unchanged, such as the month a list is of, so a search stays inside it. */
+  keep?: Record<string, string>;
 }) {
   return (
     <form method="get" action={action} className="mb-4 flex flex-wrap items-end gap-3 print:hidden" role="search">
+      {keep ? Object.entries(keep).map(([k, v]) => <input key={k} type="hidden" name={k} value={v} />) : null}
       <div className="min-w-[240px] flex-[2]">
         <label htmlFor="list-q" className="block text-[13px] font-semibold text-[var(--ink)]">
           {searchLabel}
