@@ -26,6 +26,7 @@ import {
   blockers,
   decidePrice,
   landsAt,
+  landsWhenTaken,
   paymentOptions,
   INTAKE_CHANNELS,
   PAYMENT_INTENTS,
@@ -109,6 +110,46 @@ console.log("");
   rec(
     "and for desk",
     /"desk"[\s\S]*?return "evidence_submitted"/.test(body),
+  );
+
+  /*
+   * A LINK JOB WAITS AT INTAKE FOR ITS PAYMENT. Robert's answer 20,
+   * 2026-11-14: only a job opened unpaid or on account is released when it is
+   * taken. The expectation is written here as a literal, never read from
+   * RELEASED_WHEN_TAKEN, so moving the set in the module turns this red.
+   */
+  const RULED_RELEASED = ["invoiced", "released_unpaid"];
+  const wrongLanding = [];
+  for (const intent of PAYMENT_INTENTS) {
+    for (const type of ["field", "desk", "quote"]) {
+      const want = RULED_RELEASED.includes(intent) ? landsAt(type) : "intake";
+      if (landsWhenTaken(type, intent) !== want) wrongLanding.push(`${type}/${intent} lands at ${landsWhenTaken(type, intent)}, ruled ${want}`);
+    }
+  }
+  rec(
+    `every payment route lands where answer 20 rules (${PAYMENT_INTENTS.length} routes x 3 kinds)`,
+    wrongLanding.length === 0,
+    wrongLanding.join("; ") || "a link job stays at intake; unpaid and on account are released",
+  );
+  rec("a field job taken with a link stays at intake", landsWhenTaken("field", "link_sent") === "intake");
+  rec("a field job opened unpaid goes to needs dispatch", landsWhenTaken("field", "released_unpaid") === "needs_dispatch");
+
+  const taking = codeOnly("src/lib/ops-job-intake.ts");
+  rec(
+    "and New job lands the file by the payment route chosen",
+    /const target = landsWhenTaken\(entry\.orderType, input\.paymentIntent\);/.test(taking) && !/landsAt\(entry\.orderType\)/.test(taking),
+  );
+  const screen = codeOnly("src/app/portal/(app)/intake/IntakeClient.tsx");
+  rec(
+    "and the screen says where it lands for the route chosen, not for the kind of work alone",
+    /landsWhenTaken\(entry\.orderType, paymentIntent\) === "needs_dispatch"/.test(screen) && /The payment moves it to/.test(screen),
+  );
+  /* The payment is what releases it, from intake, as a web order is released. */
+  const payments = codeOnly("src/lib/ops-payments.ts");
+  rec(
+    "and the payment releases it through landingStatusFor",
+    /const target = landingStatusFor\(orderType as "field" \| "desk" \| "quote"\);/.test(payments) &&
+      /transitionFile\(\s*SYSTEM_AUTHOR,\s*fileId,\s*target,\s*"Payment settled, so the work is released\.",?\s*\)/.test(payments),
   );
 }
 

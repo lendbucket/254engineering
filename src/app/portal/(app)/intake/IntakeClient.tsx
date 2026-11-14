@@ -13,6 +13,7 @@ import {
   decidePrice,
   isNoCharge,
   landsAt,
+  landsWhenTaken,
   paymentOptions,
   MIN_OVERRIDE_REASON,
   type IntakeChannel,
@@ -1342,13 +1343,15 @@ export function IntakeClient({
           <p className="mb-3 text-[14px] leading-[1.55] text-[var(--secondary)]">
             This will open a file and put it at{" "}
             <span className="font-semibold text-[var(--ink)]">
-              {landsAt(entry.orderType) === "needs_dispatch"
+              {landsWhenTaken(entry.orderType, paymentIntent) === "needs_dispatch"
                 ? "needs dispatch"
-                : landsAt(entry.orderType) === "evidence_submitted"
+                : landsWhenTaken(entry.orderType, paymentIntent) === "evidence_submitted"
                   ? "the review queue"
                   : "intake"}
             </span>
-            .
+            {landsWhenTaken(entry.orderType, paymentIntent) === "intake" && landsAt(entry.orderType) !== "intake"
+              ? `. The payment moves it to ${landsAt(entry.orderType) === "needs_dispatch" ? "needs dispatch" : "the review queue"}.`
+              : "."}
           </p>
         ) : null}
 

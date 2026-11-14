@@ -24,7 +24,7 @@ import {
   applyIntakeUploads,
   decidePrice,
   isNoCharge,
-  landsAt,
+  landsWhenTaken,
   noChargeRefusal,
   paymentOptions,
   type IntakeChannel,
@@ -722,7 +722,8 @@ export async function takeJob(
   }
 
   // ------------------------------------------------------- where it lands
-  const target = landsAt(entry.orderType);
+  /* A link job waits at intake for its payment, which releases it (answer 20). */
+  const target = landsWhenTaken(entry.orderType, input.paymentIntent);
   let landingWarning: string | undefined;
 
   if (target !== "intake") {

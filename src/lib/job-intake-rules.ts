@@ -48,6 +48,31 @@ export function landsAt(orderType: CatalogEntry["orderType"]): "needs_dispatch" 
 }
 
 /**
+ * THE PAYMENT ROUTES THAT RELEASE A JOB THE MOMENT IT IS TAKEN. Robert's
+ * answer 20, 2026-11-14: only a job the administrator opens unpaid or on
+ * account lands at dispatch straight away.
+ */
+export const RELEASED_WHEN_TAKEN: readonly PaymentIntent[] = ["released_unpaid", "invoiced"];
+
+/**
+ * WHERE A JOB TAKEN ON NEW JOB LANDS, GIVEN HOW IT IS TO BE PAID.
+ *
+ * Robert's answer 20, 2026-11-14. A job taken with a payment link stays at
+ * intake until it is paid, and the payment releases it to dispatch, as a web
+ * order does (ops-payments, landingStatusFor). Before this every field job
+ * moved to needs dispatch when it was taken: an administrator's unpaid link
+ * job could be offered to a technician, and a rep's stayed at intake with a
+ * warning saying somebody had to move it by hand, which was false. Anything
+ * not in RELEASED_WHEN_TAKEN waits at intake for its payment.
+ */
+export function landsWhenTaken(
+  orderType: CatalogEntry["orderType"],
+  intent: PaymentIntent,
+): "needs_dispatch" | "evidence_submitted" | "intake" {
+  return RELEASED_WHEN_TAKEN.includes(intent) ? landsAt(orderType) : "intake";
+}
+
+/**
  * WHAT THE FIRM MAY DO ABOUT MONEY, GIVEN THE COMPLIANCE GATE.
  *
  * The gate is not a nicety here. `orderBlockedReason` refuses every order while
