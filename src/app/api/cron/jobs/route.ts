@@ -4,6 +4,7 @@ import { runBatch, queueHealth } from "@/lib/ops-jobs";
 import { cronStarted, cronFinished, captureError } from "@/lib/ops-observability";
 import { sweepVoidedProtocolScopes } from "@/lib/scope-revalidate";
 import { sweepLapsedOffers } from "@/lib/offer-lapse";
+import { sweepUnpaidJobs } from "@/lib/unpaid-followup";
 
 export const dynamic = "force-dynamic";
 
@@ -94,6 +95,13 @@ export async function GET(request: NextRequest) {
    */
   const lapses = await sweepLapsedOffers();
 
+  /*
+   * A telephoned job unpaid after 24 hours goes back to the rep who took it as
+   * a task (the Killeen call, item 6). Like the sweeps above it cannot fail
+   * the worker. See src/lib/unpaid-followup.ts.
+   */
+  const unpaid = await sweepUnpaidJobs();
+
   const health = await queueHealth();
 
   await cronFinished(
@@ -116,7 +124,8 @@ export async function GET(request: NextRequest) {
       `(done ${report.done}, retried ${report.retried}, dead ${report.dead}) ` +
       `queue: ${health ? `${health.pending} pending, ${health.overdue} overdue, ${health.dead} dead` : "unreadable"} ` +
       `scopes: ${scopes.revalidated.length > 0 ? `revalidated ${scopes.revalidated.join(", ")}` : scopes.note} ` +
-      `offers: ${lapses.note}`,
+      `offers: ${lapses.note} ` +
+      `unpaid: ${unpaid.note}`,
   );
 
   return NextResponse.json({
@@ -126,5 +135,6 @@ export async function GET(request: NextRequest) {
     queue: health,
     scopes,
     lapses,
+    unpaid,
   });
 }

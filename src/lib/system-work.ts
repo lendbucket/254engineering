@@ -63,6 +63,14 @@ export async function raiseSystemTask(input: {
   dueAt?: string | null;
   /** For idempotency. A second raise of the same key finds the first. */
   key: string;
+  /**
+   * The person the work is for, when there is one (the Killeen call, item 6:
+   * an unpaid job's follow-up goes to the rep who took it). Absent means
+   * unassigned, which is every task raised before 2026-11-14.
+   */
+  assigneeId?: string | null;
+  /** The file the work is about, so the task opens it. */
+  fileId?: string | null;
 }): Promise<{ ok: true; id: string; already: boolean } | { ok: false; error: string }> {
   if (!allowed("tasks.raise")) return { ok: false, error: "The platform may not raise tasks." };
 
@@ -112,12 +120,12 @@ export async function raiseSystemTask(input: {
     .insert({
       title,
       description: input.description?.trim() || null,
-      assignee_id: null,
+      assignee_id: input.assigneeId ?? null,
       created_by: null,
       source_key: sourceKey,
       due_at: input.dueAt || null,
       priority: "normal",
-      file_id: null,
+      file_id: input.fileId ?? null,
       recurrence: null,
     })
     .select("id")
