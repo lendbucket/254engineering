@@ -1508,12 +1508,45 @@ async function dispatcherDashboard(): Promise<DispatcherDashboard> {
     "Jobs past their capture window are counted as evidence past due, from eng_files.evidence_due_at. This schema has no capture window column, and a figure invented from one that does not exist would be worse than saying so.",
   );
 
+  /*
+   * STILL AHEAD OF ITS TIME, AND INSIDE 48 HOURS. Part 1 finding 19,
+   * 2026-11-14: this counted every offer whose time was before now + 48 hours,
+   * so an offer that had already lapsed read as "expiring". Lapsed offers are
+   * moved to expired each minute by sweepLapsedOffers; one that has passed
+   * and not yet been swept is not counted as about to expire.
+   */
+  const nowMs = Date.now();
   const expiringSoon =
     offers === null
       ? null
-      : offers.filter(
-          (o) => o.expires_at && Date.parse(o.expires_at as string) < Date.now() + HOURS_48,
-        ).length;
+      : offers.filter((o) => {
+          if (!o.expires_at) return false;
+          const at = Date.parse(o.expires_at as string);
+          return at > nowMs && at < nowMs + HOURS_48;
+        }).length;
+
+  /*
+   * FILES LEFT WITH NOBODY OFFERED AFTER AN OFFER LAPSED, each named and linked
+   * (Part 1 finding 19). Read from the last fortnight of lapses, so an old one
+   * long since dealt with does not hang on the screen. A failed read is said in
+   * notComputable rather than shown as none.
+   */
+  const lapseSince = new Date(nowMs - 14 * 24 * 3600_000).toISOString();
+  const lapseRead = await readEvery<Record<string, unknown>>((from, to) =>
+    db
+      .from("eng_assignments")
+      .select("file_id")
+      .eq("state", "expired")
+      .gte("responded_at", lapseSince)
+      .order("file_id", { ascending: true })
+      .range(from, to),
+  );
+  if (!lapseRead.ok) notComputable.push(`Offers that lapsed could not be read (${lapseRead.error}), so files left with nobody offered are not listed.`);
+  const stillOffered = new Set((offers ?? []).map((o) => o.file_id as string));
+  const lapsedFiles =
+    lapseRead.ok && waiting !== null
+      ? waiting.filter((f) => lapseRead.rows.some((r) => r.file_id === f.id) && !stillOffered.has(f.id as string))
+      : [];
 
   const certified = techs === null ? null : techs.filter((t) => t.certification_status === "certified").length;
 
@@ -1608,6 +1641,13 @@ async function dispatcherDashboard(): Promise<DispatcherDashboard> {
       label: `${pastDue} job(s) past their evidence deadline`,
       detail: "Accepted and not submitted. Ask on the file thread before reassigning.",
       href: "/portal/files",
+    });
+  }
+  for (const f of lapsedFiles) {
+    attention.push({
+      label: `${f.file_number as string}: the offer lapsed and nobody is offered it now`,
+      detail: "Nobody answered in time. Offer it again from the file.",
+      href: `/portal/files?id=${f.id as string}`,
     });
   }
 
