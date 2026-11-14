@@ -15,6 +15,7 @@ import {
 
 type Row = {
   id: string;
+  clientId: string;
   clientName: string;
   status: "active" | "suspended" | "closed";
   billingMode: "card" | "invoice";
@@ -207,12 +208,24 @@ export function AccountsClient({
               and hiding the link for them would be the screen deciding who may
               be negotiated with.
             */}
-            <div className="mt-3">
+            <div className="mt-3 flex flex-wrap gap-x-6">
               <Link
                 href={`/portal/accounts/${r.id}/pricing`}
                 className="inline-flex min-h-[44px] items-center text-[14px] font-semibold text-[var(--ink)] underline underline-offset-2"
               >
                 Trade pricing
+              </Link>
+              {/*
+                THE CALL LOG, ONE CLICK FROM THE ACCOUNT (office ready, CLAUDE.md
+                2d, 2026-11-13). An account is its client's ordering arrangement,
+                and the client record carries the contact log, so a call about an
+                account is logged there rather than in a second log nobody reads.
+              */}
+              <Link
+                href={`/portal/clients/${r.clientId}`}
+                className="inline-flex min-h-[44px] items-center text-[14px] font-semibold text-[var(--ink)] underline underline-offset-2"
+              >
+                Calls and notes
               </Link>
             </div>
 
