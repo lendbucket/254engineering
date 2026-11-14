@@ -486,6 +486,7 @@ export const RETENTION_POLICY: RetentionEntry[] = [
     table: "eng_fee_schedule",
     rule: { kind: "not_a_record", because: "The price list. Configuration the firm sets, not a record of anything that happened." },
   },
+  { table: "eng_file_contacts", rule: { kind: "kept_pending_counsel", because: "Who else on a file gets the letter and who pays, removed by marking rather than deleting, because who was sent a sealed letter is a fact about the past (0132). It goes only when its file does. " + COUNSEL } },
   {
     table: "eng_file_events",
     rule: {

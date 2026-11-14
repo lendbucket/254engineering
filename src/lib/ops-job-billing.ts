@@ -18,6 +18,7 @@ import { alreadyRaised } from "./billing-rules";
 import type { Author } from "./ops-crm";
 import { attributeOrder } from "./crm-attribution";
 import { attributeOrder as attributeToPartner, fileTouchKey } from "./ops-partners";
+import { payerFor } from "./file-contacts";
 
 /**
  * The orders already raised against this job, for the guard in billing-rules.
@@ -367,8 +368,19 @@ export async function sendPaymentLink(actor: Author, fileId: string): Promise<Bi
   if (gap) return { ok: false, error: gap };
   if (refusal) return { ok: false, error: refusal };
 
-  const client = await loadClient(file.client_id);
-  if (!client) return { ok: false, error: "That file has no client." };
+  const loaded = await loadClient(file.client_id);
+  if (!loaded) return { ok: false, error: "That file has no client." };
+  /*
+   * THE LINK GOES TO WHOEVER PAYS (the Killeen call, item 2; 0132): the paying
+   * copy contact when one is named, the client otherwise. A failed read of the
+   * contacts refuses rather than billing the client by default.
+   */
+  const payer = await payerFor(fileId, { name: loaded.name as string, email: (loaded.email as string | null) ?? null, phone: (loaded.phone as string | null) ?? null });
+  if (!payer.ok) return { ok: false, error: `${payer.error} No link was sent.` };
+  if (!payer.email) {
+    return { ok: false, error: `${payer.isClient ? "That client" : "The person paying"} has no email address, so there is nowhere to send a link.` };
+  }
+  const client = { name: payer.name, email: payer.email, phone: payer.phone };
 
   /* One order per job: a second press is refused naming the first (billing-rules, alreadyRaised). */
   const second = await secondOrderRefusal(fileId);

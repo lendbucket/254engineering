@@ -4829,6 +4829,23 @@ export const APPLIED = [
       "8e77b8e2 at 1644 columns, as predicted). PENDING ON PRODUCTION: only in a sitting with Robert. Additive: one " +
       "nullable column and one index.",
   },
+  {
+    file: "0132_a_job_names_who_else_gets_the_letter.sql", appliedBy: "apply_migration",
+    fingerprint: "9fddb45bdec555ba872b211a89004e82",
+    behaviour: "e2fe4e1d3513a600ced0b14b099aac2a",
+    production: null,
+    proves: { table: "eng_file_contacts" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-14 on the chain to 0132, with 0131 reproducing " +
+      "its recorded pair first (8e77b8e2 at 1644 columns, c6e99d2c at 1654 facts). Shape 1644 to 1653 columns, the " +
+      "nine of eng_file_contacts; tables 126 to 127. Behaviour 1654 to 1663 facts: the table's key, foreign keys and " +
+      "checks, its two indexes and row level security.",
+    because:
+      "WRITTEN 2026-11-14 ON feat/connect-batch-2, FOR THE KILLEEN CALL, ITEM 2 (ROBERT, 2026-11-14): who else gets " +
+      "the letter, each with a role and an email, and who pays when the client does not. PENDING: not on development " +
+      "or production; development by the chat counterpart before the batch boards, production only in a sitting with " +
+      "Robert. Additive: one table.",
+  },
 ];
 
 /*

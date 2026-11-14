@@ -464,10 +464,16 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * the 0131 commit (d46ed41) under the standing rule in
  * docs/new-surface-checklist.md and was not moved there; it is moved here,
  * before any board of the branch, and said so.
+ *
+ * Moved by 0132, a job names who else gets the letter (the Killeen call, item
+ * 2): one table, eng_file_contacts, its nine columns, 1,644 to 1,653; tables
+ * 126 to 127; two indexes and row level security. Read off fingerprint-at.mjs
+ * on the chain to 0132, with 0131 reproducing its pair first. Moved in the same
+ * commit as the migration.
  */
-const EXPECTED_FINGERPRINT = "8e77b8e2732c0a132f485a2f192b0c34";
-const EXPECTED_COLUMNS = 1644;
-const EXPECTED_TABLES = 126;
+const EXPECTED_FINGERPRINT = "9fddb45bdec555ba872b211a89004e82";
+const EXPECTED_COLUMNS = 1653;
+const EXPECTED_TABLES = 127;
 /* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts.
  * 0074 adds two: eng_partner_billing_touch and eng_partner_billing_events_immutable.
  * 0075 adds one: eng_payment_events_guarded.

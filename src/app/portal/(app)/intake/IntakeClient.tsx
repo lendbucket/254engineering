@@ -330,9 +330,18 @@ export function IntakeClient({
    * be asking about a job nobody has described yet.
    */
   const fields = useMemo(
-    () => (serviceSlug && tier ? fieldsFor(serviceSlug, tier) : []),
+    /*
+     * copy_to is the customer form's free text "Who else should receive a copy".
+     * On the telephone it is asked as contacts, each with a role and an email,
+     * below (the Killeen call, item 2; 0132), so it is not asked twice here.
+     */
+    () => (serviceSlug && tier ? fieldsFor(serviceSlug, tier).filter((f) => f.id !== "copy_to") : []),
     [serviceSlug, tier],
   );
+
+  /* Who else gets the letter, and who pays (item 2). */
+  const [contacts, setContacts] = useState<{ role: string; name: string; email: string }[]>([]);
+  const [payer, setPayer] = useState<number>(-1);
 
   /*
    * ORDER STAGE ONLY blocks submission. A field required before dispatch or
@@ -476,6 +485,7 @@ export function IntakeClient({
           notes: notes || null,
           channel,
           partnerCode: partnerCode.trim() || null,
+          contacts: contacts.map((c, i) => ({ role: c.role, name: c.name.trim() || null, email: c.email.trim(), pays: payer === i })),
           takenAt: takenAt || null,
           answers,
           priceCents: "overridden" in priceDecision && priceDecision.overridden ? priceDecision.cents : null,
@@ -511,6 +521,7 @@ export function IntakeClient({
         body.landingWarning ? `The file was created and could not be moved on: ${body.landingWarning} It is at intake and somebody has to move it by hand.` : null,
         body.paymentLinkWarning ? `${body.paymentLinkWarning} The customer has not been asked to pay.` : null,
         body.partnerWarning ?? null,
+        body.contactsWarning ?? null,
       ].filter(Boolean) as string[];
       const to = new URLSearchParams({ id: String(body.fileId), taken: "1" });
       for (const w of warn) to.append("warn", w);
@@ -827,7 +838,8 @@ export function IntakeClient({
               onChange={(e) => setDueAt(e.target.value)}
               className={fieldClass}
             />
-            <p className={hint}>Optional. If they named a closing or a permit date, put it here.</p>
+            {/* The closing or permit date is asked once, below, and becomes the due date (the Killeen call, item 2). */}
+            <p className={hint}>Optional. A closing or permit date the caller gives below becomes the due date; set one here only to use a different date.</p>
           </div>
         </div>
       </Section>
@@ -938,6 +950,92 @@ export function IntakeClient({
           ) : null}
         </Section>
       ) : null}
+
+      {/* ----------------------------- who else gets the letter, who pays */}
+      {/*
+        THE KILLEEN CALL, ITEM 2: "who else gets the letter (agent, lender,
+        title, each with a role and an email), and who pays". Saved as contacts
+        on the file (0132); the one who pays is who the payment link goes to.
+      */}
+      <Section title="Who else gets the letter, and who pays">
+        {contacts.length === 0 ? (
+          <p className="text-[14px] text-[var(--secondary)]">Nobody else yet. Ask: should an agent, a lender or a title company get a copy?</p>
+        ) : (
+          <ul className="flex flex-col gap-3">
+            {contacts.map((c, i) => (
+              <li key={i} className="grid gap-2 sm:grid-cols-[160px_1fr_1fr_auto] sm:items-end">
+                <div>
+                  <label htmlFor={`contact-role-${i}`} className={label}>Role</label>
+                  <select
+                    id={`contact-role-${i}`}
+                    value={c.role}
+                    onChange={(e) => setContacts((all) => all.map((x, j) => (j === i ? { ...x, role: e.target.value } : x)))}
+                    className={fieldClass}
+                  >
+                    <option value="agent">Agent</option>
+                    <option value="lender">Lender</option>
+                    <option value="title">Title company</option>
+                    <option value="other">Somebody else</option>
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor={`contact-name-${i}`} className={label}>Name</label>
+                  <input
+                    id={`contact-name-${i}`}
+                    value={c.name}
+                    onChange={(e) => setContacts((all) => all.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))}
+                    className={fieldClass}
+                  />
+                </div>
+                <div>
+                  <label htmlFor={`contact-email-${i}`} className={label}>Email</label>
+                  <input
+                    id={`contact-email-${i}`}
+                    type="email"
+                    value={c.email}
+                    onChange={(e) => setContacts((all) => all.map((x, j) => (j === i ? { ...x, email: e.target.value } : x)))}
+                    className={fieldClass}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setContacts((all) => all.filter((_, j) => j !== i));
+                    setPayer((p) => (p === i ? -1 : p > i ? p - 1 : p));
+                  }}
+                  className="inline-flex min-h-[44px] items-center px-2 text-[14px] font-semibold text-[var(--navy)] underline"
+                >
+                  Remove
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        <button
+          type="button"
+          onClick={() => setContacts((all) => [...all, { role: "agent", name: "", email: "" }])}
+          className="mt-3 inline-flex min-h-[44px] items-center rounded-[2px] border border-[var(--border)] px-3 text-[14px] font-semibold text-[var(--navy)]"
+        >
+          Add somebody who gets a copy
+        </button>
+
+        <fieldset className="mt-5">
+          <legend className={label}>Who pays</legend>
+          <div className="mt-1.5 flex flex-col gap-1.5">
+            <label className="flex min-h-[44px] items-center gap-2 text-[14px] text-[var(--ink)]">
+              <input type="radio" name="payer" checked={payer === -1} onChange={() => setPayer(-1)} />
+              The caller (the client)
+            </label>
+            {contacts.map((c, i) => (
+              <label key={i} className="flex min-h-[44px] items-center gap-2 text-[14px] text-[var(--ink)]">
+                <input type="radio" name="payer" checked={payer === i} onChange={() => setPayer(i)} />
+                {c.name.trim() || c.email.trim() || `Contact ${i + 1}`}, the {c.role === "title" ? "title company" : c.role === "other" ? "contact" : c.role}
+              </label>
+            ))}
+          </div>
+          <p className={hint}>The payment link goes to whoever pays.</p>
+        </fieldset>
+      </Section>
 
       {/* -------------------------------------------------------- the price */}
       <Section title="The price">

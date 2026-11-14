@@ -8,6 +8,8 @@ import { createClient, createFile, transitionFile, type Author } from "./ops-crm
 import { can, type Actor } from "./ops-authz";
 import { sendPaymentLink } from "./ops-job-billing";
 import { fileTouchKey, partnerByCode, recordTouch } from "./ops-partners";
+import { addFileContacts, contactProblem, type ContactInput } from "./file-contacts";
+import { endOfFirmDay } from "./firm-calendar";
 import { catalogFor, orderBlockedReason } from "@data/catalog";
 import { quoteFor } from "./ops-orders";
 import { resolveCounty, twiaStatus, windstormAreaRefusal } from "./ops-counties";
@@ -92,6 +94,11 @@ export type TakeJobInput = {
    * order raised for the file is attributed by the same rules a checkout uses.
    */
   partnerCode?: string | null;
+  /**
+   * Who else gets the letter, each with a role and an email, and at most one who
+   * pays in place of the client (the Killeen call, item 2; 0132).
+   */
+  contacts?: ContactInput[];
   /** When the call happened, if not now. */
   takenAt?: string | null;
 
@@ -145,6 +152,8 @@ export type TakeJobResult =
       paymentLinkWarning?: string;
       /** Present when a partner code was given and its touch could not be recorded, with the reason. */
       partnerWarning?: string;
+      /** Present when the copy contacts could not be saved (item 2), with the reason. */
+      contactsWarning?: string;
       /**
        * True when this New job had already been saved (0131): the file named is
        * the first one, and nothing was written a second time.
@@ -389,6 +398,15 @@ export async function takeJob(
     partner = { id: found.id, code: found.code };
   }
 
+  /* The copy contacts are checked before anything is written, too (item 2). The route passes the body as it is. */
+  const contacts: ContactInput[] = Array.isArray(input.contacts)
+    ? input.contacts
+        .filter((c) => c && typeof c === "object")
+        .map((c) => ({ role: String(c.role ?? ""), name: c.name ? String(c.name) : null, email: String(c.email ?? ""), pays: c.pays === true }))
+    : [];
+  const contactsWrong = contactProblem(contacts);
+  if (contactsWrong) return { ok: false, error: contactsWrong.error, field: "contacts" };
+
   const missing = blockers({
     clientId: input.clientId ?? (input.newClient ? "pending" : null),
     serviceSlug: input.serviceSlug,
@@ -549,7 +567,13 @@ export async function takeJob(
       county: resolved.county,
       postalCode: input.postalCode ?? null,
       urgency: input.urgency ?? "standard",
-      dueAt: input.dueAt ?? null,
+      /*
+       * THE CLOSING OR PERMIT DATE IS THE DUE DATE (the Killeen call, item 2).
+       * A due date the rep typed wins; otherwise the date the caller gave as the
+       * one it has to be done by (hard_deadline), through the end of that day on
+       * the firm's calendar, so it is asked once and not typed twice.
+       */
+      dueAt: input.dueAt || (answers.hard_deadline ? endOfFirmDay(answers.hard_deadline.trim()) : null) || null,
       notes: input.notes ?? null,
       twiaOverride: input.twiaOverride,
       clientPriceCents: decision.overridden ? decision.cents : catalogCents,
@@ -640,6 +664,18 @@ export async function takeJob(
    * The touch is evidence whether or not it wins. One that could not be written
    * is said on the done screen rather than lost.
    */
+  /*
+   * WHO ELSE GETS THE LETTER, AND WHO PAYS (item 2), written before the
+   * payment link so the link goes to whoever pays (payerFor). Contacts that
+   * could not be saved stop the link rather than letting it go to the client
+   * by default, and the rep is told.
+   */
+  let contactsWarning: string | undefined;
+  if (contacts.length) {
+    const saved = await addFileContacts(file.id, contacts, actor.id ?? null);
+    if (!saved.ok) contactsWarning = `The job was taken and ${saved.error} Add them on the file before the link is sent.`;
+  }
+
   let partnerWarning: string | undefined;
   if (partner) {
     const touched = await recordTouch({
@@ -709,7 +745,9 @@ export async function takeJob(
    * about it.
    */
   let paymentLinkWarning: string | undefined;
-  if (input.paymentIntent === "link_sent") {
+  if (input.paymentIntent === "link_sent" && contactsWarning) {
+    paymentLinkWarning = "The payment link was not sent, because who pays could not be saved.";
+  } else if (input.paymentIntent === "link_sent") {
     const sent = await sendPaymentLink(actor, file.id);
     if (!sent.ok) paymentLinkWarning = `The job was taken and the payment link was not sent: ${sent.error}`;
   }
@@ -723,6 +761,7 @@ export async function takeJob(
     ...(landingWarning ? { landingWarning } : {}),
     ...(paymentLinkWarning ? { paymentLinkWarning } : {}),
     ...(partnerWarning ? { partnerWarning } : {}),
+    ...(contactsWarning ? { contactsWarning } : {}),
   };
 }
 
