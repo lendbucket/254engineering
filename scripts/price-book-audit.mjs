@@ -82,6 +82,13 @@ const RULED_STRUCTURAL_REAL_ESTATE = 70_900;
  */
 const RULED_WPI8_INCLUDED_VISITS = 4;
 const RULED_WPI8_EXTRA_VISIT_CENTS = 15_000;
+
+/* The no-access trip fee, Robert's answer 7 of 2026-11-14 (E5). A literal, never read back from prices.ts. */
+const RULED_TRIP_FEE_CENTS = 12_500;
+{
+  const { TRIP_FEE_CENTS } = await import("../src/config/prices.ts");
+  rec("the no-access trip fee is $125, as ruled", TRIP_FEE_CENTS === RULED_TRIP_FEE_CENTS, money(TRIP_FEE_CENTS));
+}
 {
   const { WPI8_ONGOING_INCLUDED_VISITS, WPI8_EXTRA_VISIT_CENTS } = await import("../src/config/prices.ts");
   rec(

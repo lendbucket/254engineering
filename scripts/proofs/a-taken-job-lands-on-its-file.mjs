@@ -27,7 +27,8 @@ check("carrying every warning it got back", ["alreadyTaken", "landingWarning", "
 
 const page = codeOf(readFileSync("src/app/portal/(app)/files/page.tsx", "utf8"));
 check("the file reads what it touches", /const related = selected \? await fileRelated\(actor, selected\) : null;/.test(page));
-check("and its next step", /nextStepFor\(selected\.status, related\.payment, Boolean\(selected\.assigned_tech_id\)\)/.test(page));
+/* With the latest visit nobody could get into since 0134, so an unpaid trip fee is the next step. */
+check("and its next step", /nextStepFor\(selected\.status, related\.payment, Boolean\(selected\.assigned_tech_id\), related\.noAccess\)/.test(page));
 check("it shows the next step and its owner", /\{nextStep\.step\}/.test(page) && /Owner: \{nextStep\.owner\}/.test(page));
 check("a waiting payment offers a resend", /related\.payment\.kind === "waiting"[\s\S]*?<ResendPaymentLink fileId=\{selected\.id\} \/>/.test(page));
 check("it says when the customer last opened their status page", /related\.statusLinkOpened/.test(page) && /has not opened their status page/.test(page));

@@ -4,6 +4,7 @@ import { can, type Actor } from "./ops-authz";
 import { money } from "./ops-money";
 import type { FileStatus } from "./ops-files";
 import { readEvery } from "./bounded-read";
+import { noAccessState, type NoAccessState } from "./no-access";
 
 /**
  * ===========================================================================
@@ -46,6 +47,8 @@ export type FileRelated = {
   letters: Linked[];
   /** Who else gets the letter (0132), and when each last opened their letter link (0133). */
   contacts: { role: string; name: string | null; email: string; pays: boolean; lastOpened: string | null }[];
+  /** The latest visit the technician could not get into, and its trip fee (0134). Null when the read failed; the failure is in unreadable. */
+  noAccess: NoAccessState | null;
   unreadable: string[];
 };
 
@@ -53,7 +56,7 @@ export async function fileRelated(
   actor: Actor | null,
   file: { id: string; client_id: string | null; assigned_tech_id: string | null; assigned_engineer_id: string | null },
 ): Promise<FileRelated> {
-  const out: FileRelated = { client: null, order: null, payment: null, statusLinkOpened: null, statusLinkFirstOpened: null, technician: null, engineer: null, letters: [], contacts: [], unreadable: [] };
+  const out: FileRelated = { client: null, order: null, payment: null, statusLinkOpened: null, statusLinkFirstOpened: null, technician: null, engineer: null, letters: [], contacts: [], noAccess: null, unreadable: [] };
   const db = supabaseAdmin();
   if (!db || !actor) {
     out.unreadable.push("The records this file touches could not be read.");
@@ -84,6 +87,8 @@ export async function fileRelated(
     .from("eng_service_orders")
     .select("id, reference, status, total_cents, created_at, paid_at")
     .eq("file_id", file.id)
+    /* The job's order; a trip fee is reported on its own, as noAccess (0134). */
+    .eq("kind", "job")
     .order("created_at", { ascending: false })
     .limit(5);
   if (ordersError) out.unreadable.push(`The order could not be read (${ordersError.message}).`);
@@ -161,6 +166,10 @@ export async function fileRelated(
     .filter((d) => actor.role === "admin" || d.visibility !== "admin_only")
     .map((d) => ({ id: d.id as string, label: `${d.title as string}${d.sealed_at ? " (sealed)" : ""}`, href: `/api/portal/documents?id=${d.id as string}` }));
 
+  const access = await noAccessState(file.id);
+  if (access.kind === "unknown") out.unreadable.push(`Whether a trip fee is owed could not be read (${access.error}).`);
+  else out.noAccess = access;
+
   return out;
 }
 
@@ -205,7 +214,18 @@ export async function filesForClient(
  * the same thing. Derived from the stored status and the payment state; it
  * stores nothing.
  */
-export function nextStepFor(status: FileStatus, payment: PaymentState | null, hasTech: boolean): { step: string; owner: string } {
+export function nextStepFor(
+  status: FileStatus,
+  payment: PaymentState | null,
+  hasTech: boolean,
+  noAccess: NoAccessState | null = null,
+): { step: string; owner: string } {
+  /* A visit the technician could not get into is booked again only once its trip fee is paid (0134). */
+  if (status === "needs_dispatch" && noAccess?.kind === "unpaid") {
+    return noAccess.tripOrder
+      ? { step: "Chase the trip fee, or send its link again, then rebook", owner: "The rep who took the job" }
+      : { step: "Send the trip fee link, then rebook", owner: "The rep who took the job" };
+  }
   if (status === "intake") {
     if (payment?.kind === "waiting") return { step: "Chase the payment, or send the link again", owner: "The rep who took the job" };
     if (payment?.kind === "none") return { step: "Send the payment link", owner: "The rep who took the job" };

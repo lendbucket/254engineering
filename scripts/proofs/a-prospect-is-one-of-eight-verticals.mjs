@@ -58,6 +58,8 @@ const AFTER_0123 = [
   "0131_a_job_taken_twice_is_one_file.sql",
   "0132_a_job_names_who_else_gets_the_letter.sql",
   "0133_a_copy_contact_gets_the_letter_and_nothing_else.sql",
+  /* The no-access trip fee (2026-11-14): a visit table, order and pay ledger columns; it names no eng_prospects, read by grep. */
+  "0134_a_visit_that_could_not_get_in.sql",
 ];
 const following = at >= 0 ? files.slice(at + 1) : [];
 check(

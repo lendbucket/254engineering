@@ -26,6 +26,7 @@ import { progressLabel } from "@/lib/ops-evidence";
 import { NewFileForm, TransitionControls, RequestInformation } from "./FileClient";
 import { DispatchPanel } from "./DispatchPanel";
 import { ResendPaymentLink } from "./ResendPaymentLink";
+import { SendTripFee } from "./SendTripFee";
 import { fileRelated, nextStepFor } from "@/lib/file-related";
 import { activeEngineer } from "@/lib/launch";
 import { FileThreadButton } from "@/components/portal/FileThreadButton";
@@ -81,7 +82,12 @@ export default async function FilesPage({
   const selected = params.id ? await getFile(actor, params.id) : null;
   /* The Killeen call, items 3 and 4: the next step, its owner, the payment, and every record the file touches. */
   const related = selected ? await fileRelated(actor, selected) : null;
-  const nextStep = selected && related ? nextStepFor(selected.status, related.payment, Boolean(selected.assigned_tech_id)) : null;
+  const nextStep = selected && related ? nextStepFor(selected.status, related.payment, Boolean(selected.assigned_tech_id), related.noAccess) : null;
+  /* The latest visit nobody could get into, when there is one (0134). */
+  const noAccess = (() => {
+    const s = related?.noAccess;
+    return s && (s.kind === "unpaid" || s.kind === "paid") ? s : null;
+  })();
   const engineerOfRecord = activeEngineer()?.name ?? null;
   /* Arriving from Take the job: the warnings it returned, shown at the top of the file (text only, rendered escaped). */
   const taken = params.taken === "1";
@@ -409,6 +415,28 @@ export default async function FilesPage({
                           ? `The customer ${related.statusLinkFirstOpened ? `first opened their status page ${whenShort(related.statusLinkFirstOpened)}, and ` : ""}last opened it ${whenShort(related.statusLinkOpened)}.`
                           : "The customer has not opened their status page."}
                       </p>
+                    ) : null}
+                  </>
+                ) : null}
+
+                {/* A visit the technician could not get into, and its trip fee (0134). The fee's state only for a role that sees money (6b-i). */}
+                {noAccess ? (
+                  <>
+                    <p className="mt-4 portal-kicker">Could not get in</p>
+                    <p className="mt-1.5 text-[14px] leading-[1.55] text-[var(--ink)]">
+                      {whenShort(noAccess.at)}: {noAccess.note}
+                    </p>
+                    {can(actor, "orders.read") ? (
+                      <p className="mt-1.5 text-[14px] leading-[1.55] text-[var(--ink)]">
+                        {noAccess.kind === "paid"
+                          ? `Trip fee paid on ${noAccess.tripOrder.reference}. The visit can be booked again.`
+                          : noAccess.tripOrder
+                            ? `Trip fee waiting for payment on ${noAccess.tripOrder.reference}. The visit is not booked again until it is paid.`
+                            : "No trip fee link has been sent. The visit is not booked again until the trip fee is paid."}
+                      </p>
+                    ) : null}
+                    {noAccess.kind === "unpaid" && (can(actor, "payments.send_link") || can(actor, "payments.charge")) ? (
+                      <SendTripFee fileId={selected.id} again={Boolean(noAccess.tripOrder)} />
                     ) : null}
                   </>
                 ) : null}

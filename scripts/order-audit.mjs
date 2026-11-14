@@ -971,10 +971,19 @@ const HELD_FOR_OWN_PROTOCOL = ["structural-letters/real-estate"];
   );
   rec("and promises no further charge on a decline", /never charged more/.test(text));
 
+  /*
+   * THE TRIP FEE, disclosed on every field order before payment (Robert's
+   * answer 7 of 2026-11-14), in his words as a literal here, never imported.
+   * The one dollar figure a field disclosure states whatever its own fee is.
+   */
+  const TRIP_FEE_SENTENCE = "If the technician cannot get in at the agreed time, a trip fee of $125.00 is charged before the visit is booked again.";
+  rec("and discloses the trip fee in Robert's words", lines.includes(TRIP_FEE_SENTENCE));
+
   const unset = refundDisclosure({ ...catalogByType("field")[0], inspectionFeeCents: null });
+  const unsetOwn = unset.filter((l) => l !== TRIP_FEE_SENTENCE).join(" ");
   rec(
-    "with no fee set, the disclosure says so rather than naming a number",
-    /not published yet/.test(unset.join(" ")) && !/\$/.test(unset.join(" ")),
+    "with no fee set, the disclosure says so rather than naming a number (the trip fee's own sentence aside)",
+    /not published yet/.test(unsetOwn) && !/\$/.test(unsetOwn) && unset.includes(TRIP_FEE_SENTENCE),
   );
 
   const deskLines = refundDisclosure(priced(catalogByType("desk")[0])).join(" ");

@@ -6,14 +6,16 @@ import { acceptOnInvoice, startCheckout } from "./ops-payments";
 import { accountBalance } from "./ops-bulk";
 import { creditDecision } from "./account-credit";
 import { queueEmail } from "./ops-jobs";
-import { jobPaymentLink } from "./email-templates";
+import { jobPaymentLink, tripFeeLink } from "./email-templates";
 import { money } from "./ops-money";
+import { noAccessState } from "./no-access";
+import { TRIP_FEE_CENTS } from "@/config/prices";
 import { isOpen } from "./launch";
 import { catalogFor } from "@data/catalog";
 import { orderBlockedNow } from "./line-gate";
 import { DEMO_FILE_SEGMENT, referenceForCustomer } from "./ops-files";
 import { paymentOptions } from "./job-intake-rules";
-import { refundDisclosure } from "./ops-orders";
+import { refundDisclosure, TRIP_FEE_REFUND_TERMS } from "./ops-orders";
 import { alreadyRaised } from "./billing-rules";
 import type { Author } from "./ops-crm";
 import { attributeOrder } from "./crm-attribution";
@@ -28,7 +30,8 @@ import { payerFor } from "./file-contacts";
 async function secondOrderRefusal(fileId: string): Promise<string | null> {
   const db = supabaseAdmin();
   if (!db) return "The database is not configured.";
-  const { data, error } = await db.from("eng_service_orders").select("reference, status").eq("file_id", fileId);
+  /* Job orders only: a trip fee (0134) is the one stated exception to one order per job. */
+  const { data, error } = await db.from("eng_service_orders").select("reference, status").eq("file_id", fileId).eq("kind", "job");
   if (error) return `Could not check whether this job already has an order, so nothing was raised: ${error.message}`;
   return alreadyRaised((data ?? []) as { reference: string; status: string }[]);
 }
@@ -469,6 +472,8 @@ export async function resendPaymentLink(actor: Author, fileId: string): Promise<
     .from("eng_service_orders")
     .select("id, reference, customer_name, customer_email, total_cents, status, billing_mode")
     .eq("file_id", fileId)
+    /* The job's own link; a waiting trip fee has its own button (0134). */
+    .eq("kind", "job")
     .eq("status", "awaiting_payment")
     .eq("billing_mode", "card")
     .order("created_at", { ascending: true })
@@ -511,6 +516,124 @@ export async function resendPaymentLink(actor: Author, fileId: string): Promise<
   });
 
   return { ok: true, orderId: order.id as string, reference: order.reference as string, checkoutUrl: checkout.url };
+}
+
+/**
+ * SEND THE TRIP FEE LINK. Robert's answers 7 to 10 of 2026-11-14 (E5), 0134.
+ *
+ * For the file's latest visit the technician could not get into: a second,
+ * separate order of $125, kind trip_fee, naming the visit, through the same
+ * checkout and to the same payer as the job's own link. It is the one stated
+ * exception to one order per job, and it is never the order the file is
+ * worked under (order-for-file.ts reads job orders only), so it earns no
+ * partner commission (answer 9) and the job's refund leaves it alone (answer
+ * 10). No partner attribution is run on it for the same reason.
+ *
+ * A press with a trip fee already waiting sends that one again rather than
+ * raising a second; the unique index on the visit refuses two live ones.
+ */
+export async function sendTripFeeLink(actor: Author, fileId: string): Promise<BillResult> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+  const file = await loadFile(fileId);
+  if (!file) return { ok: false, error: "That file does not exist." };
+
+  const refusal = refusedBecause("link_sent", false, true);
+  if (refusal) return { ok: false, error: refusal };
+
+  const state = await noAccessState(fileId);
+  if (state.kind === "unknown") return { ok: false, error: `Whether a trip fee is owed could not be read, so nothing was sent: ${state.error}.` };
+  if (state.kind === "none") return { ok: false, error: "No visit on this job is waiting for a trip fee." };
+  if (state.kind === "paid") return { ok: false, error: `The trip fee for the last visit is paid (${state.tripOrder.reference}). Offer the job again from dispatch.` };
+
+  const loaded = await loadClient(file.client_id);
+  if (!loaded) return { ok: false, error: "That file has no client." };
+  const payer = await payerFor(fileId, { name: loaded.name as string, email: (loaded.email as string | null) ?? null, phone: (loaded.phone as string | null) ?? null });
+  if (!payer.ok) return { ok: false, error: `${payer.error} No link was sent.` };
+  if (!payer.email) {
+    return { ok: false, error: `${payer.isClient ? "That client" : "The person paying"} has no email address, so there is nowhere to send a link.` };
+  }
+
+  let orderId: string;
+  let reference: string;
+  if (state.tripOrder) {
+    orderId = state.tripOrder.id;
+    reference = state.tripOrder.reference;
+  } else {
+    reference = referenceFor(payer.email);
+    const { data, error } = await db
+      .from("eng_service_orders")
+      .insert({
+        site: SITE_KEY,
+        reference,
+        is_demo: reference.includes(`-${DEMO_FILE_SEGMENT}-`),
+        kind: "trip_fee",
+        trip_for_visit: state.visitId,
+        service_slug: file.service_slug,
+        tier: file.deliverable,
+        order_type: "field",
+        customer_name: payer.name,
+        customer_email: payer.email,
+        customer_phone: payer.phone,
+        property_address: file.property_address,
+        city: file.city,
+        county: file.county,
+        postal_code: file.postal_code,
+        price_cents: TRIP_FEE_CENTS,
+        coastal_surcharge_cents: null,
+        twia_county: false,
+        total_cents: TRIP_FEE_CENTS,
+        inspection_fee_cents: null,
+        refund_disclosure: TRIP_FEE_REFUND_TERMS,
+        status: "awaiting_payment",
+        billing_mode: "card",
+        client_id: file.client_id,
+        file_id: file.id,
+      })
+      .select("id")
+      .single();
+    if (error) return { ok: false, error: `The trip fee could not be raised: ${error.message}` };
+    orderId = data.id as string;
+    await writeAudit({
+      actor,
+      action: "order.trip_fee_raised",
+      entityType: "service_order",
+      entityId: orderId,
+      summary: `${reference}: a ${money(TRIP_FEE_CENTS)} trip fee raised against ${file.file_number} for a visit that could not get in.`,
+    });
+  }
+
+  const checkout = await startCheckout(orderId);
+  if (!checkout.ok) return { ok: false, error: `Trip fee ${reference} was raised and its payment link could not be created: ${checkout.error}` };
+
+  const queued = await queueEmail(
+    tripFeeLink({
+      customerName: payer.name,
+      customerEmail: payer.email,
+      reference,
+      propertyAddress: file.property_address,
+      amount: money(TRIP_FEE_CENTS),
+      payUrl: checkout.url,
+    }),
+    { orderId },
+  );
+  if (!queued.ok) return { ok: false, error: `The trip fee link for ${reference} could not be queued: ${queued.error}. Nothing was sent.` };
+
+  await db.from("eng_order_events").insert({
+    order_id: orderId,
+    event: state.tripOrder ? "trip_fee.link_resent" : "trip_fee.link_sent",
+    customer_visible: false,
+    summary: `The trip fee link was sent to ${payer.email}.`,
+  });
+  await writeAudit({
+    actor,
+    action: "file.trip_fee_link_sent",
+    entityType: "file",
+    entityId: fileId,
+    summary: `${file.file_number}: the trip fee link for ${reference} was sent to ${payer.email}.`,
+  });
+
+  return { ok: true, orderId, reference, checkoutUrl: checkout.url };
 }
 
 /**

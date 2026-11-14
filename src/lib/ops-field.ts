@@ -38,7 +38,8 @@ import {
 } from "./ops-certification";
 import { writeAudit, writeAuditOrRefuse, diffOf, safeDiff } from "./ops-audit";
 import { can, type Actor, holdsLicence, licenceRefusal } from "./ops-authz";
-import { transitionFile } from "./ops-crm";
+import { SYSTEM_AUTHOR, transitionFile } from "./ops-crm";
+import { raiseSystemTask } from "./system-work";
 import {
   canRespondToOffer,
   planDispatch,
@@ -59,6 +60,7 @@ import { verifiedEngineers } from "@/config/credentials";
 import { licenceIsCurrentToday } from "./launch";
 import { signatureStatus } from "./protocol-sign";
 import { holdFor, holdRefusal } from "./dispatch-hold";
+import { noAccessRefusal, noAccessState } from "./no-access";
 import { headlineEntry } from "./ordering";
 
 /**
@@ -571,6 +573,7 @@ export async function tierForFile(fileId: string): Promise<string | null> {
     .from("eng_service_orders")
     .select("tier")
     .eq("file_id", fileId)
+    .eq("kind", "job")
     .order("created_at", { ascending: false })
     .limit(1);
   if (error) return null;
@@ -944,6 +947,14 @@ export async function sendOffers(
    */
   const heldBy = holdRefusal(await holdFor(fileId));
   if (heldBy) return { ok: false, error: heldBy };
+
+  /*
+   * HELD FOR AN UNPAID TRIP FEE (0134, Robert's answers 7 to 10 of
+   * 2026-11-14): a visit the technician could not get into is booked again
+   * only once its trip fee is paid. A failed read refuses too. See no-access.ts.
+   */
+  const tripHeld = noAccessRefusal(await noAccessState(fileId));
+  if (tripHeld) return { ok: false, error: tripHeld };
 
   const protocol = await publishedProtocolFor(file.service_slug as string, await tierForFile(fileId));
   if (!protocol) {
@@ -1480,6 +1491,138 @@ export async function releaseAssignment(
   });
 
   return { ok: true };
+}
+
+/** Half his rate for that job, the no-access pay (Robert's answer 8 of 2026-11-14). Whole cents, rounded. */
+export function noAccessPayCents(offerAmountCents: number): number {
+  return Math.round(offerAmountCents / 2);
+}
+
+/**
+ * COULD NOT GET IN. Robert's answers 7 to 10 of 2026-11-14 (E5), migration 0134.
+ *
+ * The assigned technician, on a job he has not started capturing, records that
+ * he could not get in at the agreed time, in his own words. In this order:
+ *
+ *   1. the visit, append only, naming him and his note;
+ *   2. half his rate for that job to his pay ledger, pending like any job pay,
+ *      once per visit (a unique index), so a second press pays nothing more;
+ *   3. the file back to needs dispatch and the job off his schedule, as
+ *      releaseAssignment does, by the platform because a technician may not
+ *      move a file himself; dispatch then refuses an offer until the visit's
+ *      trip fee is paid (no-access.ts);
+ *   4. one task to the person who took the job: send the trip fee, then rebook.
+ *
+ * A capture already made means he got in, so a file in evidence in progress is
+ * refused rather than recorded. The optional photograph in the design is not
+ * built: a photo goes through capture, which would move the file the other
+ * way. The note is the record.
+ */
+export async function recordNoAccess(
+  actor: Actor & { email: string },
+  fileId: string,
+  note: string,
+  context: Context = {},
+): Promise<{ ok: true; payCents: number | null } | { ok: false; error: string }> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+
+  const view = await jobView(actor, fileId);
+  if (!view) return { ok: false, error: "That job is not yours." };
+  const notYours = evidenceWriteRefusal({ id: actor.id, mayCapture: can(actor, "evidence.capture") }, view.file.assigned_tech_id);
+  if (notYours) return { ok: false, error: notYours };
+  if (view.file.status !== "dispatched") {
+    return {
+      ok: false,
+      error:
+        view.file.status === "evidence_in_progress"
+          ? "You have started capturing on this job, so it is recorded as visited. Call the office."
+          : "This job is not waiting for your visit.",
+    };
+  }
+  const why = note.trim();
+  if (why.length < 3) return { ok: false, error: "Say what happened, in a few words: who you called, what was locked." };
+
+  const { data: visit, error: visitError } = await db
+    .from("eng_no_access_visits")
+    .insert({ file_id: fileId, tech_id: actor.id, note: why })
+    .select("id")
+    .single();
+  if (visitError || !visit) return { ok: false, error: `The visit could not be recorded: ${visitError?.message ?? "no row came back"}. Nothing else was changed.` };
+  const visitId = visit.id as string;
+
+  await writeAudit({
+    actor,
+    action: "visit.no_access",
+    entityType: "file",
+    entityId: fileId,
+    summary: `${view.file.file_number}: the technician could not get in. ${why}`,
+    diff: { no_access_visit_id: visitId },
+    ...context,
+  });
+
+  /* His pay for the visit: half his rate for this job, from the offer he accepted. */
+  const { data: offer, error: offerError } = await db
+    .from("eng_assignments")
+    .select("offer_amount_cents")
+    .eq("file_id", fileId)
+    .eq("tech_id", actor.id)
+    .eq("state", "accepted")
+    .maybeSingle();
+  let payCents: number | null = null;
+  const problems: string[] = [];
+  if (offerError) {
+    problems.push(`his rate for this job could not be read (${offerError.message}), so no pay was written for the visit`);
+  } else if (!offer?.offer_amount_cents) {
+    problems.push("the job carries no rate, so no pay was written for the visit");
+  } else {
+    payCents = noAccessPayCents(Number(offer.offer_amount_cents));
+    const { error: payError } = await db.from("eng_tech_pay_ledger").insert({
+      tech_id: actor.id,
+      file_id: fileId,
+      amount_cents: payCents,
+      kind: "no_access",
+      no_access_visit_id: visitId,
+      status: "pending",
+      period: todayInFirmCalendar().slice(0, 7),
+      note: `${view.file.file_number}, could not get in: half the rate for the job`,
+    });
+    if (payError && !/duplicate key/i.test(payError.message)) {
+      payCents = null;
+      problems.push(`the pay for the visit could not be written (${payError.message})`);
+    }
+  }
+
+  /* Off his schedule and back to dispatch, by the platform, naming him in the note. */
+  const moved = await transitionFile(SYSTEM_AUTHOR, fileId, "needs_dispatch", `Could not get in (${actor.email}). ${why}`, context);
+  if (!moved.ok) return { ok: false, error: `The visit is recorded and the job could not be moved back to dispatch: ${moved.error}. Call the office.` };
+  const { error: clearError } = await db.from("eng_files").update({ assigned_tech_id: null }).eq("id", fileId).eq("assigned_tech_id", actor.id);
+  if (clearError) problems.push(`the job could not be taken off his schedule (${clearError.message})`);
+  const { error: assignmentError } = await db
+    .from("eng_assignments")
+    .update({ state: "withdrawn", responded_at: DB_NOW })
+    .eq("file_id", fileId)
+    .eq("tech_id", actor.id)
+    .eq("state", "accepted");
+  if (assignmentError) problems.push(`his assignment could not be closed (${assignmentError.message})`);
+
+  /* The person who took the job sends the trip fee, then rebooks. */
+  const { data: fileRow } = await db.from("eng_files").select("created_by").eq("id", fileId).maybeSingle();
+  const task = await raiseSystemTask({
+    key: `no-access:${visitId}`,
+    title: `No access at ${view.file.property_address}: send the trip fee, then rebook`,
+    description:
+      `The technician could not get in on ${view.file.file_number}: ${why}` +
+      (problems.length ? ` Also: ${problems.join("; ")}.` : ""),
+    assigneeId: (fileRow?.created_by as string | null) ?? null,
+    fileId,
+  });
+  if (!task.ok) problems.push(`the office could not be given a task (${task.error})`);
+
+  if (problems.length) {
+    console.error(`[field] ${view.file.file_number} no access: ${problems.join("; ")}`);
+  }
+  return { ok: true, payCents };
 }
 
 export async function declineOffer(

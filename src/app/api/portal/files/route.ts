@@ -1,5 +1,5 @@
 import { takeJob, searchClients, type TakeJobInput } from "@/lib/ops-job-intake";
-import { sendPaymentLink, resendPaymentLink, invoiceAccount } from "@/lib/ops-job-billing";
+import { sendPaymentLink, resendPaymentLink, sendTripFeeLink, invoiceAccount } from "@/lib/ops-job-billing";
 import { requestOutstanding } from "@/lib/ops-file-inputs";
 import { dispatchContext, coveragePreview } from "@/lib/ops-field";
 import { addCoverageCounty } from "@/lib/tech-coverage";
@@ -136,10 +136,11 @@ async function handlePOST(request: NextRequest) {
    * different act from writing the job down, and a coordinator who may do the
    * second should not automatically be able to do the first.
    */
-  if (action === "send_payment_link" || action === "resend_payment_link" || action === "invoice_account") {
+  if (action === "send_payment_link" || action === "resend_payment_link" || action === "send_trip_fee" || action === "invoice_account") {
     /*
      * The link alone opens to payments.send_link (0079), and so does sending it
-     * again (the Killeen call, item 3). Invoicing an account stays
+     * again (the Killeen call, item 3), and so does the trip fee link for a
+     * visit that could not get in (0134). Invoicing an account stays
      * payments.charge: terms and credit are the administrator's. No branch can
      * reach the proving charge, which asks payments.charge itself.
      */
@@ -156,7 +157,9 @@ async function handlePOST(request: NextRequest) {
         ? await sendPaymentLink(actor, fileId)
         : action === "resend_payment_link"
           ? await resendPaymentLink(actor, fileId)
-          : await invoiceAccount(actor, fileId);
+          : action === "send_trip_fee"
+            ? await sendTripFeeLink(actor, fileId)
+            : await invoiceAccount(actor, fileId);
 
     return result.ok
       ? NextResponse.json(result)

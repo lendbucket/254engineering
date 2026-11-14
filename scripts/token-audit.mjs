@@ -421,6 +421,9 @@ const PORTED = [
   "src/app/portal/(app)/files/page.tsx",
   /* The Killeen call of 2026-11-14: the resend on the file and the coverage note on New job. */
   "src/app/portal/(app)/files/ResendPaymentLink.tsx",
+  /* The trip fee (0134): the office's button on the file and the technician's on the job. */
+  "src/app/portal/(app)/files/SendTripFee.tsx",
+  "src/app/portal/(app)/jobs/[id]/NoAccess.tsx",
   // Phase 10 Section 1, the telephone call path.
   "src/app/portal/(app)/roles/page.tsx",
   "src/app/portal/(app)/roles/RolesClient.tsx",
@@ -845,6 +848,9 @@ const STAFF_V10 = [
   "src/app/portal/(app)/files/DispatchPanel.tsx",
   /* The Killeen call of 2026-11-14: held to V10 with the screens they sit on. */
   "src/app/portal/(app)/files/ResendPaymentLink.tsx",
+  /* The trip fee (0134), held to V10 with the screens they sit on. */
+  "src/app/portal/(app)/files/SendTripFee.tsx",
+  "src/app/portal/(app)/jobs/[id]/NoAccess.tsx",
   "src/app/portal/(app)/intake/CoverageNote.tsx",
   /* The printable call script (C7), 2026-11-14, held to the staff rules from its first commit. */
   "src/app/portal/(app)/intake/script/page.tsx",

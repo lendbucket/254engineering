@@ -51,10 +51,10 @@ export default async function OrderStatusPage({
   searchParams,
 }: {
   params: Promise<{ reference: string }>;
-  searchParams: Promise<{ token?: string; paid?: string; cancelled?: string }>;
+  searchParams: Promise<{ token?: string; paid?: string; cancelled?: string; trip?: string }>;
 }) {
   const { reference } = await params;
-  const { token, paid, cancelled } = await searchParams;
+  const { token, paid, cancelled, trip } = await searchParams;
 
   const view = token ? await customerView(token) : null;
 
@@ -82,6 +82,30 @@ export default async function OrderStatusPage({
    * the work is released. A page that answered `paid=1` by showing the order
    * would be a page where the query string is the credential.
    */
+  /*
+   * A TRIP FEE PAID (0134). No link to it is ever sent, so the order paid
+   * sentence below would promise one, and it is not a new order, so it sends no
+   * conversion. Like that state it opens nothing and confirms nothing about the
+   * reference: the parameter comes from the firm's own return address. The
+   * wording is Robert's question 16 (6880442466) and does not merge before he
+   * answers it.
+   */
+  if (!view && paid && trip) {
+    return (
+      <Container>
+        <div className="mx-auto max-w-[62ch] py-20">
+          <h1 className="text-[32px] leading-[1.12] font-semibold tracking-[-0.5px] text-[var(--color-ink)]">
+            Trip fee received
+          </h1>
+          <p className="mt-4 text-[16px] leading-[1.7] text-[var(--color-ink-quiet)]">
+            Thank you. We will contact you to book the visit again. If you need to write to the firm about it, quote{" "}
+            <span className="font-semibold">{reference}</span>.
+          </p>
+        </div>
+      </Container>
+    );
+  }
+
   if (!view && paid) {
     return (
       <Container>

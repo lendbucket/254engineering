@@ -143,7 +143,7 @@ export async function startCheckout(orderId: string): Promise<CheckoutResult> {
   const { data: order } = await db
     .from("eng_service_orders")
     .select(
-      "id, reference, status, service_slug, tier, customer_email, total_cents, price_cents, coastal_surcharge_cents, currency, twia_county, county, property_address",
+      "id, reference, status, service_slug, tier, customer_email, total_cents, price_cents, coastal_surcharge_cents, currency, twia_county, county, property_address, kind",
     )
     .eq("id", orderId)
     .maybeSingle();
@@ -156,8 +156,16 @@ export async function startCheckout(orderId: string): Promise<CheckoutResult> {
     return { ok: false, error: "That order has no total, so it cannot be charged." };
   }
 
-  const entry = catalogFor(order.service_slug as string, (order.tier as string | null) ?? undefined);
-  const lines = entry
+  /*
+   * A TRIP FEE IS ONE LINE NAMED FOR WHAT IT IS (0134). Priced through the
+   * job's catalogue entry it would reach the payment page as "Foundation
+   * inspection, $125.00", a charge for the service at a price nobody quoted.
+   */
+  const tripFee = order.kind === "trip_fee";
+  const entry = tripFee ? undefined : catalogFor(order.service_slug as string, (order.tier as string | null) ?? undefined);
+  const lines: { label: string; amountCents: number | null }[] = tripFee
+    ? [{ label: "Trip fee", amountCents: Number(order.total_cents) }]
+    : entry
     ? quoteFor(
         {
           ...entry,
@@ -180,9 +188,10 @@ export async function startCheckout(orderId: string): Promise<CheckoutResult> {
     amountCents: Number(order.total_cents),
     currency: (order.currency as string) ?? "usd",
     customerEmail: order.customer_email as string,
-    description: `${entry?.name ?? order.service_slug} at ${order.property_address}`,
+    description: tripFee ? `Trip fee at ${order.property_address}` : `${entry?.name ?? order.service_slug} at ${order.property_address}`,
     lines: chargeable.length ? chargeable : [{ label: "Sealed document", amountCents: Number(order.total_cents) }],
-    successUrl: `${deploymentOrigin()}/order/${order.reference}?paid=1`,
+    /* A trip fee returns to its own sentence and is never counted as an order paid (0134). */
+    successUrl: `${deploymentOrigin()}/order/${order.reference}?paid=1${tripFee ? "&trip=1" : ""}`,
     cancelUrl: `${deploymentOrigin()}/order/${order.reference}?cancelled=1`,
   });
 
@@ -731,6 +740,18 @@ export async function releaseForFulfilment(
   const missing: string[] = [];
   const abandonedBefore = abandonedSoFar();
 
+  /*
+   * A PAID TRIP FEE RELEASES NO WORK OF ITS OWN (0134). The file went back to
+   * needs dispatch when the technician recorded that he could not get in, and
+   * dispatch refuses an offer until this fee is paid (no-access.ts), so the
+   * payment itself lifts the hold. What is left is telling the person who took
+   * the job, once, that the visit can be booked again. No order confirmation,
+   * no status link and no account: the job's own order did all three.
+   */
+  const { data: kindRow, error: kindError } = await db.from("eng_service_orders").select("kind").eq("id", orderId).maybeSingle();
+  if (kindError) return { complete: false, missing: [`the order could not be read: ${kindError.message}`] };
+  if (kindRow?.kind === "trip_fee") return await releaseTripFee(orderId, fileId);
+
   const { data: priorEvents, error: priorError } = await db
     .from("eng_order_events")
     .select("event")
@@ -1153,6 +1174,42 @@ async function eventOnce(orderId: string, name: string, summary: string): Promis
   if (error) return false;
   if ((data ?? []).length === 0) await event(orderId, name, false, summary);
   return true;
+}
+
+/** The trip fee's own event, once per order (0134). */
+export const TRIP_FEE_RELEASED = "trip_fee.released";
+
+/**
+ * A paid trip fee: the visit can be booked again (0134). The person who took the
+ * job gets one task, keyed on the order so a redelivered payment finds it, that
+ * opens the file. Incomplete when the task could not be raised, so the payment's
+ * release stays claimed and the next delivery tries again.
+ */
+async function releaseTripFee(orderId: string, fileId: string | null): Promise<ReleaseResult> {
+  const db = supabaseAdmin();
+  if (!db) return { complete: false, missing: ["the database is not configured"] };
+  if (!fileId) {
+    await eventOnce(orderId, TRIP_FEE_RELEASED, "The trip fee is paid and names no file. Somebody has to book the visit by hand.");
+    return { complete: false, missing: ["the trip fee names no file"] };
+  }
+  const { data: file, error } = await db
+    .from("eng_files")
+    .select("file_number, property_address, created_by")
+    .eq("id", fileId)
+    .maybeSingle();
+  if (error || !file) return { complete: false, missing: [`the file could not be read${error ? `: ${error.message}` : ""}`] };
+
+  const task = await raiseSystemTask({
+    key: `trip-fee-paid:${orderId}`,
+    title: `Trip fee paid: offer ${file.file_number} again`,
+    description: `The trip fee for ${file.property_address} is paid, so the visit can be booked again. Offer it from the file's dispatch panel.`,
+    assigneeId: (file.created_by as string | null) ?? null,
+    fileId,
+  });
+  if (!task.ok) return { complete: false, missing: [`the follow-up task could not be raised: ${task.error}`] };
+
+  const written = await eventOnce(orderId, TRIP_FEE_RELEASED, "The trip fee is paid, so the visit can be booked again.");
+  return written ? { complete: true, missing: [] } : { complete: false, missing: ["the trip fee's event could not be written"] };
 }
 
 type Recipient =

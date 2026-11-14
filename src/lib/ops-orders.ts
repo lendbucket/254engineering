@@ -2,6 +2,19 @@ import type { CatalogEntry, Qualifier } from "@data/catalog";
 import type { FileStatus } from "./ops-files";
 import { add, isKnown, money, type Cents } from "./ops-money";
 import { DESIGN_REFUND_SENTENCE } from "./quote-rules";
+import { TRIP_FEE_CENTS } from "@/config/prices";
+
+/*
+ * THE TRIP FEE, DISCLOSED BEFORE PAYMENT ON EVERY FIELD ORDER. Robert's answer
+ * 7 of 2026-11-14 (E5): the disclosure is his approved wording, verbatim. The
+ * sentence after it is reworded so the terms do not promise what the trip fee
+ * contradicts; that rewording is his question 17 (6880501594) and nothing here
+ * merges before he answers it.
+ */
+export const TRIP_FEE_DISCLOSURE = `If the technician cannot get in at the agreed time, a trip fee of ${money(TRIP_FEE_CENTS)} is charged before the visit is booked again.`;
+/** The refund terms stored on a trip fee order (answer 10; the wording is his question 16, 6880442466). */
+export const TRIP_FEE_REFUND_TERMS = "This trip fee is not refunded, including if the job is later declined.";
+const FIELD_NEVER_MORE ="Apart from that trip fee, you are never charged more than the price shown above, and a decline is never a reason for a further charge.";
 
 /**
  * The order engine's pure core: qualification, price composition, the refund
@@ -424,7 +437,8 @@ export function refundDisclosure(entry: CatalogEntry): string[] {
     lines.push(
       refundIfDeclinedEarly(entry),
       "If the engineer declines to certify the foundation after reviewing the evidence, you receive his sealed letter stating so and his reason. That letter is the work delivered, so it is not refunded.",
-      "You are never charged more than the price shown above, and a decline is never a reason for a further charge.",
+      TRIP_FEE_DISCLOSURE,
+      FIELD_NEVER_MORE,
     );
   } else if (entry.orderType === "field") {
     lines.push(
@@ -434,7 +448,8 @@ export function refundDisclosure(entry: CatalogEntry): string[] {
             entry.inspectionFeeCents,
           )} inspection, and you receive what the engineer found and why they could not seal it.`
         : `If they decline after a technician has attended, an inspection fee is retained. That fee is not published yet, which is why this service cannot be ordered online today.`,
-      "You are never charged more than the price shown above, and a decline is never a reason for a further charge.",
+      TRIP_FEE_DISCLOSURE,
+      FIELD_NEVER_MORE,
     );
   } else {
     lines.push(refundIfDeclinedEarly(entry));

@@ -4865,6 +4865,28 @@ export const APPLIED = [
       "its three indexes, no grant to anon, authenticated or public, shape 487f961c at 1662 columns, as predicted). " +
       "PENDING ON PRODUCTION: only in a sitting with Robert. Additive: one table.",
   },
+  {
+    file: "0134_a_visit_that_could_not_get_in.sql", appliedBy: "apply_migration",
+    fingerprint: "fc0de798f3616227144f591ca390d00f",
+    behaviour: "bf14400c48f0745a211cea8108737fa0",
+    production: null,
+    proves: { table: "eng_no_access_visits" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-14 on the chain to 0134, with 0133 reproducing " +
+      "its pair first (487f961c at 1662 columns, 5558f2cb at 1671 facts). Shape 1662 to 1670 columns: the five of " +
+      "eng_no_access_visits, kind and trip_for_visit on eng_service_orders, no_access_visit_id on eng_tech_pay_ledger; " +
+      "tables 128 to 129. Behaviour 1671 to 1686 facts: the table's key, two foreign keys, its note check, index, " +
+      "immutability trigger and row level security; the order kind check, the trip fee's visit check and foreign " +
+      "key and its one-per-visit index; the ledger's widened kind check, its visit check, foreign key and " +
+      "once-per-visit index.",
+    because:
+      "WRITTEN 2026-11-14 ON feat/connect-batch-2, FOR ROBERT'S ANSWERS 7 TO 10 OF 2026-11-14 (E5): a $125 trip fee " +
+      "when the technician could not get in, charged as its own order before the visit is booked again; the " +
+      "technician paid half his rate for that job; no partner commission; not refunded if the job is later " +
+      "declined. PENDING ON DEVELOPMENT AND PRODUCTION: its development sitting request is posted before its board; " +
+      "production only in a sitting with Robert. Additive: one table, three columns, constraints and indexes; the " +
+      "ledger's kind check is replaced by a wider one.",
+  },
 ];
 
 /*

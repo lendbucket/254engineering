@@ -475,10 +475,17 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * call, item 7, with Robert's answer 3): one table, eng_letter_links, its nine
  * columns, 1,653 to 1,662; tables 127 to 128. Read off fingerprint-at.mjs on
  * the chain to 0133, with 0132 reproducing its pair first. Same commit.
+ *
+ * Moved by 0134, a visit that could not get in (Robert's answers 7 to 10 of
+ * 2026-11-14): one table, eng_no_access_visits, five columns; kind and
+ * trip_for_visit on eng_service_orders; no_access_visit_id on
+ * eng_tech_pay_ledger. 1,662 to 1,670; tables 128 to 129. Read off
+ * fingerprint-at.mjs on the chain to 0134, with 0133 reproducing its pair
+ * first. Same commit.
  */
-const EXPECTED_FINGERPRINT = "487f961c20636725679a6025e6ed863b";
-const EXPECTED_COLUMNS = 1662;
-const EXPECTED_TABLES = 128;
+const EXPECTED_FINGERPRINT = "fc0de798f3616227144f591ca390d00f";
+const EXPECTED_COLUMNS = 1670;
+const EXPECTED_TABLES = 129;
 /* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts.
  * 0074 adds two: eng_partner_billing_touch and eng_partner_billing_events_immutable.
  * 0075 adds one: eng_payment_events_guarded.
@@ -514,8 +521,11 @@ const EXPECTED_TABLES = 128;
  * 0128 adds two, by Robert's X4 of 2026-11-10: eng_franchisee_certificates_guard,
  * which lets a certificate be withdrawn once and changed in no other way, and
  * eng_franchisee_certificates_audit, which writes each recording and withdrawal
- * to the audit log in the same transaction. */
-const EXPECTED_TRIGGERS = 113;
+ * to the audit log in the same transaction.
+ * 0134 adds one, by Robert's answers 7 to 10 of 2026-11-14:
+ * eng_no_access_visits_immutable, because a visit that could not get in is a
+ * record of something that happened at a property. */
+const EXPECTED_TRIGGERS = 114;
 /**
  * 0014 added eng_freeze_attribution and 0019 added two more, the partner
  * entry freeze and its delete refusal, which are trigger functions like the

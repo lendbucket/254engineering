@@ -664,6 +664,7 @@ export const RETENTION_POLICY: RetentionEntry[] = [
   },
   { table: "eng_mfa_enrolments", rule: { kind: "kept_pending_counsel", because: COUNSEL } },
   { table: "eng_mfa_recovery_codes", rule: { kind: "kept_pending_counsel", because: COUNSEL } },
+  { table: "eng_no_access_visits", rule: { kind: "kept_pending_counsel", because: "Each time the technician recorded that he could not get in, which a trip fee and his pay for that visit both point at (0134). A record of something that happened at a property, and the table refuses update and delete. " + COUNSEL } },
   {
     table: "eng_notification_prefs",
     rule: { kind: "not_a_record", because: "One row per person saying how they want to be told things. Configuration." },

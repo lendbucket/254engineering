@@ -36,6 +36,8 @@ export async function sweepUnpaidJobs(now: number = Date.now()): Promise<{ looke
     const { data, error } = await db
       .from("eng_service_orders")
       .select("id, reference, total_cents, customer_name, customer_email, file_id, eng_files(file_number, created_by)")
+      /* A job's own link; an unpaid trip fee already has its no-access task (0134), and the resend door is the job's. */
+      .eq("kind", "job")
       .eq("status", "awaiting_payment")
       .eq("billing_mode", "card")
       .not("file_id", "is", null)

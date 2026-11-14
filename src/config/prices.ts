@@ -122,6 +122,15 @@ const WPI8_BY_TIER: Record<string, number> = { completed: 79_500, ongoing: 99_50
 export const WPI8_ONGOING_INCLUDED_VISITS = 4;
 export const WPI8_EXTRA_VISIT_CENTS = 15_000;
 
+/*
+ * THE NO-ACCESS TRIP FEE, $125. Robert's answer 7 of 2026-11-14 (E5): charged
+ * on its own before a visit the technician could not get into is booked again,
+ * disclosed before payment. What the CUSTOMER pays; the technician's half rate
+ * for the visit is a cost and is worked out from his own offer (no-access.ts).
+ * Pinned in price-book-audit.
+ */
+export const TRIP_FEE_CENTS = 12_500;
+
 /** The design minimum engagement, read by its own entry's prose rather than retyped. */
 const DESIGN_MINIMUM_CENTS = 200_000;
 
