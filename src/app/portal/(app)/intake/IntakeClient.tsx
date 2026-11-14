@@ -132,6 +132,8 @@ export function IntakeClient({
   /* Travel, typed by the administrator for this job (0135). */
   const [travel, setTravelText] = useState("");
   const [travelReason, setTravelReason] = useState("");
+  /* Needs travel: anyone who can take a job asks the administrator for it (Robert's ruling). */
+  const [needsTravel, setNeedsTravel] = useState(false);
   const [noChargeCode, setNoChargeCode] = useState("");
   const [noChargePassword, setNoChargePassword] = useState("");
 
@@ -508,6 +510,7 @@ export function IntakeClient({
             "overridden" in priceDecision && priceDecision.overridden ? priceDecision.reason : null,
           travelCents: canOverridePrice && entry?.orderType === "field" && travelCents !== null && !travelError ? travelCents : null,
           travelReason: travelReason.trim() || null,
+          needsTravel: entry?.orderType === "field" && needsTravel && travelCents === null,
           noChargeCode: noCharge && !ownerOverride ? noChargeCode : null,
           noChargePassword: noCharge && ownerOverride ? noChargePassword : null,
           draftId,
@@ -539,6 +542,9 @@ export function IntakeClient({
         body.paymentLinkWarning ? `${body.paymentLinkWarning} The customer has not been asked to pay.` : null,
         body.partnerWarning ?? null,
         body.contactsWarning ?? null,
+        body.travelWarning ?? null,
+        body.travelRequestWarning ?? null,
+        body.travelRequested ?? null,
       ].filter(Boolean) as string[];
       const to = new URLSearchParams({ id: String(body.fileId), taken: "1" });
       for (const w of warn) to.append("warn", w);
@@ -1166,6 +1172,17 @@ export function IntakeClient({
         ) : (
           <p className={hint}>The catalog price is charged as it is. An administrator can change a price.</p>
         )}
+        {/*
+          NEEDS TRAVEL (Robert's ruling): anyone who can take a job asks the
+          administrator, who sets the amount. The payment link waits for it and
+          goes by itself when it is set. Not offered once an amount is typed.
+        */}
+        {entry?.orderType === "field" && travelCents === null ? (
+          <label className="mt-4 flex min-h-[44px] items-center gap-2 text-[14px] text-[var(--ink)]">
+            <input type="checkbox" checked={needsTravel} onChange={(e) => setNeedsTravel(e.target.checked)} />
+            Needs travel. The administrator sets the amount, and the payment link goes when it is set.
+          </label>
+        ) : null}
         {noCharge && ownerOverride ? (
           <div className="mt-4">
             <label htmlFor="noChargePassword" className={label}>

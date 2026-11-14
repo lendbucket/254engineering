@@ -1,5 +1,5 @@
 import { takeJob, searchClients, type TakeJobInput } from "@/lib/ops-job-intake";
-import { sendPaymentLink, resendPaymentLink, sendTripFeeLink, invoiceAccount, setTravel } from "@/lib/ops-job-billing";
+import { sendPaymentLink, resendPaymentLink, sendTripFeeLink, invoiceAccount, setTravel, requestTravel } from "@/lib/ops-job-billing";
 import { requestOutstanding } from "@/lib/ops-file-inputs";
 import { dispatchContext, coveragePreview } from "@/lib/ops-field";
 import { addCoverageCounty } from "@/lib/tech-coverage";
@@ -114,11 +114,17 @@ async function handlePOST(request: NextRequest) {
    * pricing.override_at_intake itself and refuses once the order exists, so the
    * rule lives in one place for this door and for New job.
    */
+  /* NEEDS TRAVEL (Robert's ruling): anyone who can take a job asks; requestTravel asks files.create itself. */
+  if (action === "request_travel") {
+    const result = await requestTravel(actor, String(body?.fileId ?? ""));
+    return result.ok ? NextResponse.json({ ok: true, already: result.already }) : NextResponse.json({ ok: false, error: result.error }, { status: 400 });
+  }
+
   if (action === "set_travel") {
     const raw = body?.travelCents;
     const cents = raw === null || raw === undefined || raw === "" ? null : Number(raw);
     const result = await setTravel(actor, String(body?.fileId ?? ""), cents, String(body?.reason ?? ""));
-    return result.ok ? NextResponse.json({ ok: true }) : NextResponse.json({ ok: false, error: result.error }, { status: 400 });
+    return result.ok ? NextResponse.json({ ok: true, answered: result.answered }) : NextResponse.json({ ok: false, error: result.error }, { status: 400 });
   }
 
   /*

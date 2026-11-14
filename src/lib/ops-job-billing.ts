@@ -17,6 +17,7 @@ import { DEMO_FILE_SEGMENT, referenceForCustomer } from "./ops-files";
 import { MIN_OVERRIDE_REASON, paymentOptions } from "./job-intake-rules";
 import { can } from "./ops-authz";
 import { DB_NOW } from "./db-now";
+import { raiseSystemTask } from "./system-work";
 import { refundDisclosure, travelRefundTerms, TRIP_FEE_REFUND_TERMS } from "./ops-orders";
 import { alreadyRaised } from "./billing-rules";
 import type { Author } from "./ops-crm";
@@ -401,6 +402,11 @@ export async function sendPaymentLink(actor: Author, fileId: string): Promise<Bi
   const second = await secondOrderRefusal(fileId);
   if (second) return { ok: false, error: second };
 
+  /* HELD while travel is asked for and not set (Needs travel); setting it sends this link by itself. A failed read holds too. */
+  const travelAsked = await travelRequestFor(fileId);
+  if (travelAsked.pending === null) return { ok: false, error: `No link was sent: ${travelAsked.error}.` };
+  if (travelAsked.pending) return { ok: false, error: TRAVEL_REQUESTED_SAYS };
+
   const order = await createOrderForFile(actor, file, client, "card");
   if (!order.ok) return order;
 
@@ -547,7 +553,7 @@ export async function setTravel(
   fileId: string,
   travelCents: number | null,
   reason: string,
-): Promise<{ ok: true } | { ok: false; error: string }> {
+): Promise<{ ok: true; answered: boolean } | { ok: false; error: string }> {
   if (!can(actor, "pricing.override_at_intake")) return { ok: false, error: "Only an administrator sets travel on a job." };
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
@@ -584,7 +590,142 @@ export async function setTravel(
         : `${file.file_number}: travel of ${money(travelCents)} set. ${why}`,
     diff: { travel_cents: travelCents, previous_travel_cents: file.travel_cents ?? null },
   });
-  return { ok: true };
+
+  /* Somebody asked for this travel: the link goes now and they are told (Robert's ruling, Needs travel). */
+  if (travelCents !== null) {
+    const request = await travelRequestFor(fileId);
+    if (request.pending === true) {
+      await answerTravelRequest(actor, fileId, request);
+      return { ok: true, answered: true };
+    }
+  }
+  return { ok: true, answered: false };
+}
+
+/*
+ * ===========================================================================
+ * NEEDS TRAVEL. Robert's ruling of 2026-11-14, on the walk's finding that a rep
+ * cannot set travel: the amount stays the administrator's, and anyone who can
+ * take a job asks for it. The request raises a task to the administrator naming
+ * the county and the file, holds the payment link until travel is set, and the
+ * rep reads "Travel requested. The payment link goes when it is set." When the
+ * administrator sets it, the link goes by itself and the rep is told.
+ * ===========================================================================
+ *
+ * Held as FILE EVENTS, read from rows the way the engineer's pre-review hold is
+ * (dispatch-hold.ts): a request is pending while it is newer than the last
+ * answer to one. eng_file_events refuses edits, so who asked and when stays.
+ */
+export const TRAVEL_REQUESTED = "travel.requested";
+export const TRAVEL_REQUEST_ANSWERED = "travel.request_answered";
+export const TRAVEL_REQUESTED_SAYS = "Travel requested. The payment link goes when it is set.";
+
+export type TravelRequest =
+  | { pending: false }
+  | { pending: true; eventId: string; requestedBy: string | null; at: string }
+  | { pending: null; error: string };
+
+/** Whether this file has a travel request nobody has answered yet. */
+export async function travelRequestFor(fileId: string): Promise<TravelRequest> {
+  const db = supabaseAdmin();
+  if (!db) return { pending: null, error: "the database is not configured" };
+  const { data, error } = await db
+    .from("eng_file_events")
+    .select("id, kind, actor_id, created_at")
+    .eq("file_id", fileId)
+    .in("kind", [TRAVEL_REQUESTED, TRAVEL_REQUEST_ANSWERED])
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
+    .limit(1);
+  if (error) return { pending: null, error: `the travel request could not be read: ${error.message}` };
+  const last = (data ?? [])[0];
+  if (!last || last.kind !== TRAVEL_REQUESTED) return { pending: false };
+  return { pending: true, eventId: String(last.id), requestedBy: (last.actor_id as string | null) ?? null, at: last.created_at as string };
+}
+
+/** The longest-standing active administrator, who gets the task. Null when none can be read. */
+async function administratorId(): Promise<string | null> {
+  const db = supabaseAdmin();
+  if (!db) return null;
+  const { data } = await db
+    .from("eng_profiles")
+    .select("id")
+    .eq("role", "admin")
+    .eq("status", "active")
+    .order("created_at", { ascending: true })
+    .limit(1);
+  return ((data ?? [])[0]?.id as string | undefined) ?? null;
+}
+
+/**
+ * ASK FOR TRAVEL. files.create, the same permission as taking the job. A field
+ * job with no travel and no order yet; a second press while one is pending
+ * changes nothing.
+ */
+export async function requestTravel(
+  actor: Author,
+  fileId: string,
+): Promise<{ ok: true; already: boolean } | { ok: false; error: string }> {
+  if (!can(actor, "files.create")) return { ok: false, error: "Your role cannot ask for travel on a job." };
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+  const file = await loadFile(fileId);
+  if (!file) return { ok: false, error: "That file does not exist." };
+  const entry = file.deliverable ? catalogFor(file.service_slug, file.deliverable) : undefined;
+  if (entry?.orderType !== "field") return { ok: false, error: "Travel applies only to a job somebody visits." };
+  if (file.travel_cents) return { ok: false, error: "Travel is already set on this job." };
+  const raised = await secondOrderRefusal(fileId);
+  if (raised) return { ok: false, error: `Travel is set before the payment link. ${raised}` };
+
+  const state = await travelRequestFor(fileId);
+  if (state.pending === null) return { ok: false, error: `Nothing was asked: ${state.error}.` };
+  if (state.pending) return { ok: true, already: true };
+
+  const { data: event, error } = await db
+    .from("eng_file_events")
+    .insert({ file_id: fileId, actor_id: actor.id, kind: TRAVEL_REQUESTED, body: `${file.county} County` })
+    .select("id")
+    .single();
+  if (error || !event) return { ok: false, error: `The request could not be recorded: ${error?.message ?? "nothing came back"}.` };
+
+  const task = await raiseSystemTask({
+    key: `travel-request:${event.id as string}`,
+    title: `Set travel for ${file.file_number}, ${file.county} County`,
+    description: `${actor.email} asked for travel on ${file.file_number} at ${file.property_address}, ${file.county} County. The payment link is held until travel is set, and goes by itself when you set it on the file.`,
+    assigneeId: await administratorId(),
+    fileId,
+  });
+  await writeAudit({
+    actor,
+    action: "file.travel_requested",
+    entityType: "file",
+    entityId: fileId,
+    summary: `${file.file_number}: travel requested for ${file.county} County; the payment link is held until it is set.`,
+  });
+  if (!task.ok) return { ok: false, error: `The request is recorded and the administrator's task could not be raised: ${task.error}. Tell the administrator.` };
+  return { ok: true, already: false };
+}
+
+/**
+ * Travel was set on a file somebody asked about: the answer is written, the
+ * link goes, and whoever asked is told, in a task on the file, either way.
+ */
+async function answerTravelRequest(actor: Author, fileId: string, request: { eventId: string; requestedBy: string | null }): Promise<void> {
+  const db = supabaseAdmin();
+  if (!db) return;
+  await db.from("eng_file_events").insert({ file_id: fileId, actor_id: actor.id, kind: TRAVEL_REQUEST_ANSWERED, body: "Travel set." });
+  const sent = await sendPaymentLink(actor, fileId);
+  const file = await loadFile(fileId);
+  const number = file?.file_number ?? "the job";
+  await raiseSystemTask({
+    key: `travel-set:${request.eventId}`,
+    title: sent.ok ? `Travel set on ${number}: the payment link has gone` : `Travel set on ${number}: the payment link did not go`,
+    description: sent.ok
+      ? `The administrator set the travel you asked for, and the payment link went out against ${sent.reference}. Tell the caller to look for it.`
+      : `The administrator set the travel you asked for, and the payment link did not go: ${sent.error}`,
+    assigneeId: request.requestedBy,
+    fileId,
+  });
 }
 
 /**

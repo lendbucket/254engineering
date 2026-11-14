@@ -29,12 +29,20 @@ export function SetTravel({ fileId, current }: { fileId: string; current: { cent
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "set_travel", fileId, travelCents: cents, reason }),
       });
-      const body = (await res.json().catch(() => null)) as { ok?: boolean; error?: string } | null;
+      const body = (await res.json().catch(() => null)) as { ok?: boolean; error?: string; answered?: boolean } | null;
       if (!res.ok || !body?.ok) {
         setSaid({ ok: false, text: body?.error ?? "That did not save. Nothing was changed." });
         return;
       }
-      setSaid({ ok: true, text: cents === null ? "Travel cleared." : "Travel saved. It goes on the payment link as its own line." });
+      setSaid({
+        ok: true,
+        text:
+          cents === null
+            ? "Travel cleared."
+            : body.answered
+              ? "Travel saved. It was asked for, so the payment link has been sent and whoever asked has a task saying so."
+              : "Travel saved. It goes on the payment link as its own line.",
+      });
       router.refresh();
     } catch {
       setSaid({ ok: false, text: "The network dropped that. Nothing was changed." });

@@ -6,7 +6,7 @@ import { verifyOwnPassword } from "./ops-auth";
 import { isOwnerAdmin, OWNER_OVERRIDE, OWNER_OVERRIDE_ACTION } from "./owner-override";
 import { createClient, createFile, transitionFile, type Author } from "./ops-crm";
 import { can, type Actor } from "./ops-authz";
-import { sendPaymentLink, setTravel } from "./ops-job-billing";
+import { requestTravel, sendPaymentLink, setTravel, TRAVEL_REQUESTED_SAYS } from "./ops-job-billing";
 import { fileTouchKey, partnerByCode, recordTouch } from "./ops-partners";
 import { addFileContacts, contactProblem, type ContactInput } from "./file-contacts";
 import { endOfFirmDay } from "./firm-calendar";
@@ -109,6 +109,8 @@ export type TakeJobInput = {
   /** Travel the administrator typed, with its reason for staff (0135). Null or absent means none. */
   travelCents?: number | null;
   travelReason?: string | null;
+  /** Needs travel: ask the administrator for it, and hold the link until it is set (Robert's ruling). */
+  needsTravel?: boolean;
   /** A fresh authenticator code, required only for a client price of zero. */
   noChargeCode?: string | null;
   /** The owner override alone (src/lib/owner-override.ts): his password in place of the code. */
@@ -160,6 +162,10 @@ export type TakeJobResult =
       contactsWarning?: string;
       /** Travel that could not be set; the link is then held back (0135). */
       travelWarning?: string;
+      /** Needs travel was asked: the sentence the rep reads. */
+      travelRequested?: string;
+      /** Needs travel could not be asked for; the link was held back. */
+      travelRequestWarning?: string;
       /**
        * True when this New job had already been saved (0131): the file named is
        * the first one, and nothing was written a second time.
@@ -781,8 +787,24 @@ export async function takeJob(
     if (!set.ok) travelWarning = `The job was taken and the travel was not set: ${set.error}`;
   }
 
+  /*
+   * NEEDS TRAVEL, when no amount was typed: the administrator is asked, and the
+   * link waits for the travel instead of going now (Robert's ruling). Travel
+   * typed by an administrator on this screen wins over the box.
+   */
+  let travelRequested = false;
+  let travelRequestWarning: string | undefined;
+  if (input.needsTravel && (input.travelCents === null || input.travelCents === undefined)) {
+    const asked = await requestTravel(actor, file.id);
+    if (asked.ok) travelRequested = true;
+    else travelRequestWarning = `The job was taken and travel could not be asked for: ${asked.error}`;
+  }
+
   let paymentLinkWarning: string | undefined;
-  if (input.paymentIntent === "link_sent" && contactsWarning) {
+  if (input.paymentIntent === "link_sent" && (travelRequested || travelRequestWarning)) {
+    /* Held, either way: a link without the travel the caller was told about would charge less than they were read. */
+    paymentLinkWarning = travelRequested ? undefined : "The payment link was not sent, because travel could not be asked for.";
+  } else if (input.paymentIntent === "link_sent" && contactsWarning) {
     paymentLinkWarning = "The payment link was not sent, because who pays could not be saved.";
   } else if (input.paymentIntent === "link_sent" && travelWarning) {
     paymentLinkWarning = "The payment link was not sent, because the travel could not be set. Set it on the file, then send the link.";
@@ -802,6 +824,8 @@ export async function takeJob(
     ...(partnerWarning ? { partnerWarning } : {}),
     ...(contactsWarning ? { contactsWarning } : {}),
     ...(travelWarning ? { travelWarning } : {}),
+    ...(travelRequested ? { travelRequested: TRAVEL_REQUESTED_SAYS } : {}),
+    ...(travelRequestWarning ? { travelRequestWarning } : {}),
   };
 }
 

@@ -28,6 +28,8 @@ import { DispatchPanel } from "./DispatchPanel";
 import { ResendPaymentLink } from "./ResendPaymentLink";
 import { SendTripFee } from "./SendTripFee";
 import { SetTravel } from "./SetTravel";
+import { RequestTravel } from "./RequestTravel";
+import { travelRequestFor, TRAVEL_REQUESTED_SAYS } from "@/lib/ops-job-billing";
 import { fileRelated, nextStepFor } from "@/lib/file-related";
 import { activeEngineer } from "@/lib/launch";
 import { FileThreadButton } from "@/components/portal/FileThreadButton";
@@ -84,6 +86,8 @@ export default async function FilesPage({
   /* The Killeen call, items 3 and 4: the next step, its owner, the payment, and every record the file touches. */
   const related = selected ? await fileRelated(actor, selected) : null;
   const nextStep = selected && related ? nextStepFor(selected.status, related.payment, Boolean(selected.assigned_tech_id), related.noAccess) : null;
+  /* A travel request nobody has answered, which holds the payment link (Robert's ruling, Needs travel). */
+  const travelAsked = selected ? await travelRequestFor(selected.id) : null;
   /* The latest visit nobody could get into, when there is one (0134). */
   const noAccess = (() => {
     const s = related?.noAccess;
@@ -392,9 +396,15 @@ export default async function FilesPage({
                     <p className="mt-4 portal-kicker">Payment</p>
                     {related.payment.kind === "none" ? (
                       <>
-                        <p className="mt-1.5 text-[14px] leading-[1.55] text-[var(--ink)]">No payment link or invoice has been raised for this job.</p>
+                        <p className="mt-1.5 text-[14px] leading-[1.55] text-[var(--ink)]">
+                          {travelAsked?.pending === true ? TRAVEL_REQUESTED_SAYS : "No payment link or invoice has been raised for this job."}
+                        </p>
                         {/* Travel is set before the link (0135); the administrator's, under the price override's rules. */}
                         {can(actor, "pricing.override_at_intake") ? <SetTravel fileId={selected.id} current={related.travel} /> : null}
+                        {/* Needs travel (Robert's ruling): anyone who can take a job asks, while no travel is set and nothing is pending. */}
+                        {!related.travel && travelAsked?.pending === false && can(actor, "files.create") && !can(actor, "pricing.override_at_intake") ? (
+                          <RequestTravel fileId={selected.id} />
+                        ) : null}
                       </>
                     ) : related.payment.kind === "waiting" ? (
                       <>
