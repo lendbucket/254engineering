@@ -45,6 +45,60 @@ check("every row, through readEvery", /await readEvery</.test(fn) && /\.range\(f
 check("with each file's demonstration flag", /eng_files\(is_demo\)/.test(fn) && /is_demo: \(r\.eng_files/.test(fn));
 check("an unrecorded amount stays null", /amount_cents: r\.amount_cents === null \|\| r\.amount_cents === undefined \? null : Number\(r\.amount_cents\)/.test(fn));
 
+/*
+ * NO TECHNICIAN SENTENCE RENDERS FOR THE ENGINEER, ANYWHERE. Robert,
+ * 2026-11-14, from the after walk: the screenshot predated 9dd2233, and he
+ * asked for the property over every screen, not the one page. The sentences
+ * are the technician's pay terms, written here as literals. Every screen the
+ * engineer's own grants put in his menu (the layout's navFor and may) is read:
+ * a technician sentence may appear only after an early return that sends the
+ * engineer elsewhere. His dashboard is read the same way.
+ */
+const TECH_SENTENCES = [
+  /flat rate/i,
+  /submit the evidence/i,
+  /independent of what the engineer/i,
+  /wait on the engineer's decision/i,
+  /eyebrow="Field"/,
+  /One row per job\./,
+];
+const { navFor } = await import("../../src/components/portal/nav.ts");
+const { DEFAULT_ROLES, may } = await import("../../src/lib/ops-authz.ts");
+const engRole = DEFAULT_ROLES.find((r) => r.key === "engineer");
+const engineer = { id: "probe-engineer", role: "engineer", status: "active", grants: new Set(engRole?.grants ?? []) };
+const menu = navFor((a) => may(engineer, a));
+const leaks = [];
+for (const item of menu) {
+  const path = `src/app/portal/(app)${item.href.replace(/^\/portal/, "")}/page.tsx`;
+  let code;
+  try {
+    code = codeOf(readFileSync(path, "utf8"));
+  } catch {
+    leaks.push(`${item.href}: no page to read`);
+    continue;
+  }
+  const away = code.search(/if \(actor\?\.role === "engineer"\) return /);
+  for (const re of TECH_SENTENCES) {
+    const at = code.search(re);
+    if (at >= 0 && !(away >= 0 && away < at)) leaks.push(`${item.href}: ${re}`);
+  }
+}
+check(
+  `no technician sentence renders on any of the ${menu.length} screens the engineer's grants open`,
+  menu.length >= 5 && leaks.length === 0,
+  leaks.join("; ") || menu.map((i) => i.href).join(", "),
+);
+const dash = codeOf(readFileSync("src/lib/ops-dashboard.ts", "utf8"));
+const engDash = dash.slice(dash.indexOf("async function engineerDashboard("), dash.indexOf("async function techDashboard("));
+check(
+  "nor on his dashboard",
+  engDash.length > 100 && TECH_SENTENCES.every((re) => !re.test(engDash)),
+);
+check(
+  "and the dashboard sends him there by the review grant before the technician's",
+  /if \(can\(actor, "evidence\.review"\)\) return engineerDashboard\(actor\);\s*if \(can\(actor, "offers\.list_own"\)\) return techDashboard\(actor\);/.test(dash),
+);
+
 console.log("");
 if (wrong === 0) {
   console.log("PASS: an engineer's Your pay is his own production credit, every row, by the dashboards' rule.");

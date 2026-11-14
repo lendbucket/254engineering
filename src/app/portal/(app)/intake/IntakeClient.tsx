@@ -37,16 +37,10 @@ import { JoinedWithPhone } from "@/components/portal/PhoneLink";
 import type { DispatchContext } from "@/lib/ops-field";
 
 /*
- * A label that is already a sentence keeps its own mark. The after walk of
- * 2026-11-14 read "addressed to?, needed" and "a permit.." because a full stop
- * or a comma was added to a question the protocol wrote with its own.
+ * A label that is already a sentence keeps its own mark (intake-sentences.ts,
+ * checked over every field by a-sentence-is-punctuated-once).
  */
-function endsAsSentence(label: string): boolean {
-  return /[.?!]$/.test(label.trim());
-}
-function asSentence(label: string): string {
-  return endsAsSentence(label) ? label : `${label}.`;
-}
+import { canFollowSentence, stillNeededSentence } from "@/lib/intake-sentences";
 
 type Deliverable = {
   serviceSlug: string;
@@ -138,6 +132,77 @@ export function IntakeClient({
   const [city, setCity] = useState("");
   const [county, setCounty] = useState("");
   const [postalCode, setPostalCode] = useState("");
+
+  /*
+   * THE OPEN FILES ALREADY AT THIS ADDRESS (Robert, 2026-11-14), asked while
+   * the address is typed and said before the job is taken, each with a link.
+   * Keyed by the address it answered, so an answer for an address since edited
+   * is never shown; a failed read is said, never shown as none.
+   */
+  const [atAddress, setAtAddress] = useState<{
+    key: string;
+    files: { id: string; fileNumber: string; status: string; serviceSlug: string; isDemo: boolean }[] | null;
+    error: string | null;
+  } | null>(null);
+  const addressAsked = `${propertyAddress.trim()}|${city.trim()}`;
+  useEffect(() => {
+    if (propertyAddress.trim().length < 5) return;
+    let live = true;
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch("/api/portal/files", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "open_files_at_address", propertyAddress, city }),
+        });
+        const body = await res.json().catch(() => null);
+        if (!live) return;
+        setAtAddress(
+          body?.ok
+            ? { key: addressAsked, files: body.files, error: null }
+            : { key: addressAsked, files: null, error: body?.error ? String(body.error) : `the server answered ${res.status}` },
+        );
+      } catch {
+        if (live) setAtAddress({ key: addressAsked, files: null, error: "the request did not reach the server" });
+      }
+    }, 400);
+    return () => {
+      live = false;
+      clearTimeout(timer);
+    };
+  }, [propertyAddress, city, addressAsked]);
+  const openHere = atAddress && atAddress.key === addressAsked && propertyAddress.trim().length >= 5 ? atAddress : null;
+  const openHereNote = openHere ? (
+    openHere.error ? (
+      <p role="alert" className="mt-3 border-l-2 border-[var(--ink)] py-1 pl-3 text-[14px] leading-[1.55] text-[var(--ink)]">
+        Whether a file is already open at this address could not be read: {openHere.error}. Search Files for the address
+        before you take the job.
+      </p>
+    ) : openHere.files && openHere.files.length > 0 ? (
+      <div role="alert" className="mt-3 border-l-2 border-[var(--ink)] py-1 pl-3 text-[14px] leading-[1.55] text-[var(--ink)]">
+        <p className="font-semibold">
+          {openHere.files.length === 1
+            ? "A file is already open at this address."
+            : `${openHere.files.length} files are already open at this address.`}{" "}
+          Open it before you take another job here.
+        </p>
+        <ul className="mt-1 flex flex-col gap-1">
+          {openHere.files.map((f) => (
+            <li key={f.id}>
+              <Link href={`/portal/files?id=${f.id}`} className="font-semibold text-[var(--navy)] underline">
+                {f.fileNumber}
+              </Link>
+              <span className="text-[var(--secondary)]">
+                {", "}
+                {lines.find((l) => l.slug === f.serviceSlug)?.name ?? f.serviceSlug}, {f.status.replace(/_/g, " ")}
+                {f.isDemo ? ", a demonstration file" : ""}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    ) : null
+  ) : null;
 
   // -------------------------------------------------------------- the money
   const [overridePrice, setOverridePrice] = useState("");
@@ -551,7 +616,7 @@ export function IntakeClient({
        */
       const warn = [
         body.alreadyTaken ? `This job had already been saved, as ${body.fileNumber}. Nothing was saved a second time: no second file and no second payment link.` : null,
-        body.landingWarning ? `The file was created and could not be moved on: ${body.landingWarning} It is at intake and somebody has to move it by hand.` : null,
+        body.landingWarning ? `The file was created and could not be moved on: ${body.landingWarning} It is at intake. Move it on from this file.` : null,
         body.paymentLinkWarning ? `${body.paymentLinkWarning} The customer has not been asked to pay.` : null,
         body.partnerWarning ?? null,
         body.contactsWarning ?? null,
@@ -583,7 +648,9 @@ export function IntakeClient({
             ? "The file is open and waiting for a technician. Offer it below while you are still on the call, or leave it in the queue for somebody to pick up."
             : done.landedAt === "evidence_submitted"
               ? "The file is open and in the engineer's review queue. There is nothing to dispatch: desk work arrives with its evidence attached."
-              : "The file is open and sitting at intake. A quote has nothing to dispatch and nothing to review until somebody accepts a number."}
+              : entry && entry.orderType !== "quote"
+                ? "The file is open and waiting at intake for its payment. The payment moves it on by itself."
+                : "The file is open and sitting at intake. A quote has nothing to dispatch and nothing to review until somebody accepts a number."}
         </p>
 
         {done.alreadyTaken ? (
@@ -595,8 +662,8 @@ export function IntakeClient({
 
         {done.landingWarning ? (
           <p className="mt-3 border-l-2 border-[var(--ink)] py-1 pl-3 text-[14px] leading-[1.55] text-[var(--ink)]">
-            The file was created and could not be moved on: {done.landingWarning} It is at intake and
-            somebody has to move it by hand.
+            The file was created and could not be moved on: {done.landingWarning} It is at intake. Move it on from
+            the file.
           </p>
         ) : null}
 
@@ -916,6 +983,8 @@ export function IntakeClient({
           </div>
         </div>
 
+        {openHereNote}
+
         {/* What the platform actually resolved, shown back rather than assumed. */}
         <div className="mt-4 border-t-2 border-[var(--ink)] pt-3">
           {effectiveCounty ? (
@@ -978,9 +1047,7 @@ export function IntakeClient({
               <ul className="mt-1.5 flex flex-col gap-1">
                 {outstandingLater.map((f) => (
                   <li key={f.id} className="text-[13px] leading-[1.5] text-[var(--secondary)]">
-                    {endsAsSentence(f.label)
-                      ? `${f.label} Needed before ${f.stage === "dispatch" ? "a technician is sent" : "it can be sealed"}.`
-                      : `${f.label}, needed before ${f.stage === "dispatch" ? "a technician is sent" : "it can be sealed"}.`}
+                    {canFollowSentence(f.label, f.stage)}
                   </li>
                 ))}
               </ul>
@@ -1325,6 +1392,8 @@ export function IntakeClient({
 
       {/* --------------------------------------------------------- the tail */}
       <div className="border-t-2 border-[var(--ink)] pt-3">
+        {/* Said again where the job is taken, so it is read before the press and not only while typing. */}
+        {openHereNote ? <div className="mb-3">{openHereNote}</div> : null}
         {missing.length > 0 || missingToOrder.length > 0 ? (
           <div className="mb-3">
             <p className="text-[14px] font-semibold text-[var(--ink)]">Still needed</p>
@@ -1334,7 +1403,7 @@ export function IntakeClient({
               ))}
               {missingToOrder.map((f) => (
                 <li key={f.id} className="text-[14px] leading-[1.5] text-[var(--secondary)]">
-                    {asSentence(f.label)}
+                    {stillNeededSentence(f.label)}
                 </li>
               ))}
             </ul>

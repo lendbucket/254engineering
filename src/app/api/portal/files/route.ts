@@ -1,4 +1,4 @@
-import { takeJob, searchClients, type TakeJobInput } from "@/lib/ops-job-intake";
+import { takeJob, searchClients, openFilesAtAddress, type TakeJobInput } from "@/lib/ops-job-intake";
 import { sendPaymentLink, resendPaymentLink, sendTripFeeLink, invoiceAccount, setTravel, requestTravel } from "@/lib/ops-job-billing";
 import { requestOutstanding } from "@/lib/ops-file-inputs";
 import { dispatchContext, coveragePreview } from "@/lib/ops-field";
@@ -243,6 +243,15 @@ async function handlePOST(request: NextRequest) {
     }
     const preview = await coveragePreview(actor, String(body?.serviceSlug ?? ""), String(body?.county ?? ""));
     return NextResponse.json({ ok: true, preview });
+  }
+
+  /* The open files already at this address, asked on New job before the job is taken (Robert, 2026-11-14). */
+  if (action === "open_files_at_address") {
+    if (!can(actor, "files.create")) {
+      return NextResponse.json({ ok: false, error: "Not permitted." }, { status: 403 });
+    }
+    const read = await openFilesAtAddress(actor, String(body?.propertyAddress ?? ""), body?.city ? String(body.city) : null);
+    return read.ok ? NextResponse.json(read) : NextResponse.json({ ok: false, error: read.error }, { status: 500 });
   }
 
   /* Add the county to a technician's coverage in one step (the Killeen call, item 1). addCoverageCounty asks profiles.update itself. */

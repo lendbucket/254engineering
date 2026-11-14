@@ -65,6 +65,37 @@ export const RELEASED_WHEN_TAKEN: readonly PaymentIntent[] = ["released_unpaid",
  * warning saying somebody had to move it by hand, which was false. Anything
  * not in RELEASED_WHEN_TAKEN waits at intake for its payment.
  */
+/**
+ * A FILE IS OPEN AT AN ADDRESS UNTIL IT IS ONE OF THESE. Robert, 2026-11-14,
+ * after the walk left 254-DEMO-0023 and 0024 open at the same address: New job
+ * warns, before the job is taken, when an open file already exists there.
+ * Sealed is still open (the letter is not delivered); refused is not (the work
+ * ended), and neither is anything delivered, closed or cancelled.
+ */
+export const NOT_OPEN_AT_ADDRESS = ["delivered", "closed", "cancelled", "refused"] as const;
+
+const STREET_WORDS: Record<string, string> = {
+  street: "st", avenue: "ave", av: "ave", road: "rd", drive: "dr", lane: "ln", boulevard: "blvd",
+  court: "ct", circle: "cir", place: "pl", parkway: "pkwy", highway: "hwy", trail: "trl", terrace: "ter",
+  north: "n", south: "s", east: "e", west: "w", apartment: "apt", suite: "ste", number: "no",
+};
+
+/**
+ * One address, as a key two spellings of it share: case, punctuation, spacing
+ * and the common street words ("Lane" and "Ln") do not make two addresses.
+ * Deliberately no fuzzier than that: a warning that fires on a neighbour's
+ * house is one the rep learns to click past.
+ */
+export function addressKey(address: string, city: string | null = null): string {
+  const words = `${address} ${city ?? ""}`
+    .toLowerCase()
+    .replace(/[^a-z0-9 ]+/g, " ")
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => STREET_WORDS[w] ?? w);
+  return words.join(" ");
+}
+
 export function landsWhenTaken(
   orderType: CatalogEntry["orderType"],
   intent: PaymentIntent,

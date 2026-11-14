@@ -144,6 +144,11 @@ console.log("");
     "and the screen says where it lands for the route chosen, not for the kind of work alone",
     /landsWhenTaken\(entry\.orderType, paymentIntent\) === "needs_dispatch"/.test(screen) && /The payment moves it to/.test(screen),
   );
+  rec(
+    "and nothing tells the rep somebody has to move a file by hand",
+    !/move it by hand/.test(screen) && /waiting at intake for its payment\. The payment moves it on by itself\./.test(screen),
+    "the payment moves a link job; the old sentence was false (answer 20)",
+  );
   /* The payment is what releases it, from intake, as a web order is released. */
   const payments = codeOnly("src/lib/ops-payments.ts");
   rec(

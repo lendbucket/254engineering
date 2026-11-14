@@ -19,12 +19,15 @@ import { isKnown } from "./ops-money";
 import { overrideFloor } from "@/config/trade-floors";
 import { fieldsFor, missingFor } from "@data/intake-fields";
 import { defaultAnswersFor } from "./ops-file-inputs";
+import { readEvery } from "./bounded-read";
 import {
   blockers,
   applyIntakeUploads,
   decidePrice,
   isNoCharge,
+  addressKey,
   landsWhenTaken,
+  NOT_OPEN_AT_ADDRESS,
   noChargeRefusal,
   paymentOptions,
   type IntakeChannel,
@@ -210,6 +213,71 @@ export async function searchClients(query: string, limit = 8) {
     .limit(limit);
 
   return data ?? [];
+}
+
+export type OpenFileAtAddress = {
+  id: string;
+  fileNumber: string;
+  status: string;
+  serviceSlug: string;
+  propertyAddress: string;
+  city: string | null;
+  isDemo: boolean;
+};
+
+/**
+ * THE OPEN FILES ALREADY AT THIS ADDRESS, asked on New job before the job is
+ * taken. Robert, 2026-11-14: the after walk left 254-DEMO-0023 and 0024 open at
+ * 1 Killeen Walk Lane and nothing said so. A file is open until it is
+ * delivered, closed, cancelled or refused (NOT_OPEN_AT_ADDRESS). Matched on
+ * addressKey, and on the city when both sides have one.
+ *
+ * Every candidate is read (readEvery), and a failed read is said rather than
+ * returned as nobody: "no open file here" is a claim the rep acts on.
+ */
+export async function openFilesAtAddress(
+  actor: Actor | null,
+  propertyAddress: string,
+  city: string | null,
+): Promise<{ ok: true; files: OpenFileAtAddress[] } | { ok: false; error: string }> {
+  if (!actor || !can(actor, "files.create")) return { ok: false, error: "Your role does not take jobs." };
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+  const key = addressKey(propertyAddress);
+  const first = key.split(" ")[0] ?? "";
+  if (key.length < 5 || !first) return { ok: true, files: [] };
+  /* The leading token narrows the read; the key decides. % and _ removed so a typed one is not a wildcard. */
+  const lead = propertyAddress.trim().split(/\s+/)[0].replace(/[%_]/g, "");
+  const read = await readEvery<Record<string, unknown>>((from, to) =>
+    db
+      .from("eng_files")
+      .select("id, file_number, status, service_slug, property_address, city, is_demo")
+      .ilike("property_address", `${lead}%`)
+      .not("status", "in", `(${NOT_OPEN_AT_ADDRESS.join(",")})`)
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  if (!read.ok) return { ok: false, error: `The open files at this address could not be read: ${read.error}` };
+  const cityKey = city && city.trim() ? addressKey("", city) : null;
+  return {
+    ok: true,
+    files: read.rows
+      .filter((r) => addressKey(String(r.property_address ?? "")) === key)
+      .filter((r) => {
+        const theirs = r.city ? addressKey("", String(r.city)) : null;
+        return !cityKey || !theirs || cityKey === theirs;
+      })
+      .map((r) => ({
+        id: String(r.id),
+        fileNumber: String(r.file_number),
+        status: String(r.status),
+        serviceSlug: String(r.service_slug),
+        propertyAddress: String(r.property_address),
+        city: (r.city as string | null) ?? null,
+        isDemo: r.is_demo === true,
+      })),
+  };
 }
 
 /**
