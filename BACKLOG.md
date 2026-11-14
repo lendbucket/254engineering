@@ -113,7 +113,17 @@ v10-layout-audit read the seed too and measure its three views, so five browser
 audits now open the franchise screens with a franchise on them. Nothing on this
 entry is left open; it stays as the record of how the gap was closed.
 
-## THE STORE APP'S DEVICE SESSION: BEFORE THE FIRST STORE SUBMISSION
+## THE STORE APP'S DEVICE SESSION: BUILT, AND ON PRODUCTION SINCE 2026-11-12
+
+**Corrected 2026-11-14 (autopilot item 6), because the text below still read
+"not built" four days after it was.** It was built on Robert's answer of
+2026-11-10 (6766967932) as migration 0125, `src/lib/device-token.ts`, the
+`/api/portal/device-token` routes and the keystore bridge in
+`src/lib/native-shell.ts` (`1da2c87`), and 0125 was applied to production on
+2026-11-12 (`supabase/applied.mjs`). Nothing of it is open. What is still open
+before the first store submission is the console work in
+`docs/store-console-steps.md`. The entry as written is kept below for its
+reasoning.
 
 Robert's T8 answer 1 of 2026-11-08 (issue #1, 6725977818). The debug build of
 the store app keeps the portal's sign-in cookie inside its own web view, and
