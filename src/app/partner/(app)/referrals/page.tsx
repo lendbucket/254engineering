@@ -131,7 +131,7 @@ export default async function PartnerReferrals() {
           empty={
             <EmptyState
               title="No referrals yet"
-              body="An order appears here when somebody follows your link or gives your code at checkout. Nothing is credited retrospectively, so a referral made before your code existed will not appear."
+              body="An order appears here when somebody follows your link, gives your code at checkout, or gives it on the telephone when the firm takes the job. Nothing is credited retrospectively, so a referral made before your code existed will not appear."
             />
           }
         />

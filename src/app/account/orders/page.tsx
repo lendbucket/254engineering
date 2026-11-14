@@ -164,8 +164,10 @@ export default async function OrdersPage() {
 
       {rows.length === 0 && !failed ? (
         <p className="mt-7 border-t border-[var(--color-limestone-line)] pt-6 text-[16px] leading-[1.6] text-[var(--color-ink-quiet)]">
-          Nothing yet. When you place an order it appears here, with what it is
-          for and where it has got to.
+          {/* Robert's approved words, answer 5 of 2026-11-14 (6878458673 draft 5). */}
+          Nothing yet.{" "}
+          <Link href="/order" className="font-semibold text-[var(--color-slate)] underline">Start an order for one property</Link>, or{" "}
+          <Link href="/account/order" className="font-semibold text-[var(--color-slate)] underline">a submission for several</Link>.
         </p>
       ) : null}
 
