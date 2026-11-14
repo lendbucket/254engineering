@@ -62,6 +62,8 @@ const AFTER_0123 = [
   "0134_a_visit_that_could_not_get_in.sql",
   /* Travel on a job (2026-11-14): file, order and pay ledger columns; it names no eng_prospects, read by grep. */
   "0135_a_job_can_carry_travel.sql",
+  /* An inquiry has a call log (Batch B, 2026-11-14): three subjects on eng_contact_log; it names no eng_prospects, read by grep. */
+  "0136_an_inquiry_has_a_call_log.sql",
 ];
 const following = at >= 0 ? files.slice(at + 1) : [];
 check(

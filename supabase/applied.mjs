@@ -4910,6 +4910,25 @@ export const APPLIED = [
       "travel, as predicted). PENDING ON PRODUCTION: only in a sitting with Robert. " +
       "Additive: five nullable columns, checks and one index; the ledger's kind check is replaced by a wider one.",
   },
+  {
+    file: "0136_an_inquiry_has_a_call_log.sql", appliedBy: "apply_migration",
+    fingerprint: "9844f7bbd46bd1190ff7405b44b61213",
+    behaviour: "9d577b5c3c09ad5ae873abfe5a49e478",
+    production: null,
+    proves: { table: "eng_contact_log", column: "lead_id" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-14 on the chain to 0136, with 0135 reproducing " +
+      "its pair first (3907c71a at 1675 columns, 960d690a at 1690 facts). Shape 1675 to 1678 columns: lead_id, " +
+      "design_inquiry_id and windstorm_inquiry_id on eng_contact_log; tables unchanged at 129. Behaviour 1690 to 1696 " +
+      "facts: three foreign keys and three partial indexes; the subject and one-subject checks are replaced in place " +
+      "by wider ones, so the check count does not move.",
+    because:
+      "WRITTEN 2026-11-14 ON feat/connect-batch-2, FOR OFFICE-READY BATCH B (issue #1, 6870906132 and 6871302517: " +
+      "an inquiry has no call log) AND AUTOPILOT QUESTION 21 (all three inquiry kinds, built on its recommendation). " +
+      "PENDING ON DEVELOPMENT: its sitting request is posted on issue #1 before its board. PENDING ON PRODUCTION: only " +
+      "in a sitting with Robert. Additive in effect: three nullable columns and three indexes; every existing row " +
+      "satisfies the wider checks, because each new column is null on it.",
+  },
 ];
 
 /*

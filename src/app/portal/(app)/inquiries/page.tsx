@@ -12,6 +12,7 @@ import { formatInFirmZone } from "@/lib/firm-calendar";
 import { LIST_NOT_LOADED } from "@/lib/outcome-copy";
 import { RetryButton } from "@/components/portal/Unreachable";
 import { ListControls, Pager, listHref } from "@/components/portal/ListControls";
+import { ContactLogInRow } from "@/components/portal/ContactLog";
 import { INQUIRY_PAGE_SIZE, inquiryListQuery } from "@/lib/inquiry-list";
 import { LIST_EXPORT_GRANT } from "@/lib/list-exports";
 
@@ -216,6 +217,16 @@ export default async function InquiriesPage({ searchParams }: { searchParams: Pr
                       </p>
                     )
                   ) : null}
+
+                  {/* The call log on this brief (0136), opened in place. */}
+                  <ContactLogInRow
+                    actor={actor}
+                    subject="design_inquiry"
+                    subjectId={r.id}
+                    open={params.log === r.id}
+                    openHref={listHref("/portal/inquiries", params, { log: r.id })}
+                    closeHref={listHref("/portal/inquiries", { ...params, log: undefined }, {})}
+                  />
                 </li>
               );
             })}

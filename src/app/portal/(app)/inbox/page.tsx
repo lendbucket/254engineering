@@ -11,6 +11,8 @@ import { EmptyState, ErrorState, PageHead, Panel } from "@/components/portal/sur
 import { ListControls, Pager, listHref } from "@/components/portal/ListControls";
 import { ActionButton } from "@/components/portal/staff-kit";
 import { inboxListRows } from "@/lib/inbox-list";
+import { ContactLogPanel } from "@/components/portal/ContactLog";
+import type { ContactSubject } from "@/lib/contact-log-rules";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +25,19 @@ const KIND_LABEL: Record<InboxKind, string> = {
 };
 
 const PAGE_SIZE = 50;
+
+/*
+ * Which call log each kind of inquiry carries (0136). A reply to a sales email
+ * already sits on its prospect's log, which is where its link goes, so it has
+ * no log of its own here.
+ */
+const LOG_SUBJECT: Record<InboxKind, ContactSubject | null> = {
+  contact: "lead",
+  waitlist: "lead",
+  design: "design_inquiry",
+  windstorm: "windstorm_inquiry",
+  reply: null,
+};
 
 /**
  * THE ONE INBOX. inbox.read, 2026-10-20. Contact and waitlist submissions,
@@ -84,7 +99,23 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
           <Link href={i.href} className="font-semibold text-[var(--navy)] underline">Open to answer</Link>
         ),
     },
+    /* The call log on each inquiry (0136), opened above the list, one click from the row. */
+    {
+      key: "log",
+      header: "Calls",
+      cell: (i) =>
+        LOG_SUBJECT[i.kind] ? (
+          <Link href={`${listHref("/portal/inbox", params, { log: `${i.kind}:${i.id}` })}#inquiry-log`} className="font-semibold text-[var(--navy)] underline">
+            Calls and notes
+          </Link>
+        ) : (
+          ""
+        ),
+    },
   ];
+  const [logKind, logId] = (params.log ?? "").split(":") as [InboxKind | "", string | undefined];
+  const logSubject = logKind && logKind in LOG_SUBJECT ? LOG_SUBJECT[logKind] : null;
+  const logItem = read.ok && logSubject && logId ? read.items.find((i) => i.kind === logKind && i.id === logId) ?? null : null;
 
   return (
     <>
@@ -114,6 +145,21 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
             <Panel title="Part of the inbox could not be read" description="What is listed below is real; what failed is missing from it, not empty.">
               <ul className="text-[14px] leading-[1.55] text-[var(--ink)]">{read.failed.map((f) => <li key={f}>{f}</li>)}</ul>
             </Panel>
+          ) : null}
+          {logSubject && logId ? (
+            <div id="inquiry-log" className="mb-6">
+              <p className="text-[14px] font-semibold text-[var(--ink)]">
+                {logItem
+                  ? `${logItem.name}, ${KIND_LABEL[logItem.kind].toLowerCase()}`
+                  : "This inquiry is not in the list as it is filtered now, so its calls and notes are shown by themselves."}
+              </p>
+              <ContactLogPanel actor={actor} subject={logSubject} subjectId={logId} className="mt-2" />
+              <p className="mt-2 text-[14px]">
+                <Link href={listHref("/portal/inbox", { ...params, log: undefined }, {})} className="font-semibold text-[var(--navy)] underline">
+                  Close the calls and notes
+                </Link>
+              </p>
+            </div>
           ) : null}
           <DataTable
             caption="Inbox"
