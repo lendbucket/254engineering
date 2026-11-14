@@ -441,6 +441,22 @@ export default async function FilesPage({
                       Suggested engineer: {engineerOfRecord}, the engineer of record. The review is opened from the engineer&apos;s queue.
                     </li>
                   ) : null}
+                  {/* Who else gets the letter (items 2 and 7); what each was sent is in the timeline. */}
+                  <li className="flex flex-col gap-0.5">
+                    <span className="text-[var(--secondary)]">Who else gets the letter:</span>
+                    {related.contacts.length === 0 ? (
+                      <span className="text-[var(--ink)]">nobody named</span>
+                    ) : (
+                      related.contacts.map((c) => (
+                        <span key={c.email + c.role} className="text-[var(--ink)]">
+                          {c.name ? `${c.name}, ` : ""}the {c.role === "title" ? "title company" : c.role === "other" ? "contact" : c.role},{" "}
+                          <a href={`mailto:${c.email}`} className="font-semibold text-[var(--navy)] underline">{c.email}</a>
+                          {c.pays ? ", pays" : ""}
+                          {c.lastOpened ? `, opened the letter ${whenShort(c.lastOpened)}` : ""}
+                        </span>
+                      ))
+                    )}
+                  </li>
                   <li className="flex flex-wrap gap-x-2">
                     <span className="text-[var(--secondary)]">Letter:</span>
                     {related.letters.length === 0 ? (

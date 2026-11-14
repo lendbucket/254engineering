@@ -44,6 +44,8 @@ export type FileRelated = {
   technician: Linked | null;
   engineer: Linked | null;
   letters: Linked[];
+  /** Who else gets the letter (0132), and when each last opened their letter link (0133). */
+  contacts: { role: string; name: string | null; email: string; pays: boolean; lastOpened: string | null }[];
   unreadable: string[];
 };
 
@@ -51,7 +53,7 @@ export async function fileRelated(
   actor: Actor | null,
   file: { id: string; client_id: string | null; assigned_tech_id: string | null; assigned_engineer_id: string | null },
 ): Promise<FileRelated> {
-  const out: FileRelated = { client: null, order: null, payment: null, statusLinkOpened: null, statusLinkFirstOpened: null, technician: null, engineer: null, letters: [], unreadable: [] };
+  const out: FileRelated = { client: null, order: null, payment: null, statusLinkOpened: null, statusLinkFirstOpened: null, technician: null, engineer: null, letters: [], contacts: [], unreadable: [] };
   const db = supabaseAdmin();
   if (!db || !actor) {
     out.unreadable.push("The records this file touches could not be read.");
@@ -136,6 +138,25 @@ export async function fileRelated(
     .order("created_at", { ascending: false })
     .limit(10);
   if (docsError) out.unreadable.push(`The letter could not be read (${docsError.message}).`);
+  /* Who else gets the letter, and whether each has opened theirs (the Killeen call, items 2 and 7). */
+  const { data: contacts, error: contactsError } = await db
+    .from("eng_file_contacts")
+    .select("id, role, name, email, pays, eng_letter_links(last_seen_at)")
+    .eq("file_id", file.id)
+    .is("removed_at", null)
+    .order("created_at", { ascending: true });
+  if (contactsError) out.unreadable.push(`Who else gets the letter could not be read (${contactsError.message}).`);
+  out.contacts = (contacts ?? []).map((c) => {
+    const opens = ((c.eng_letter_links as { last_seen_at: string | null }[] | null) ?? []).map((l) => l.last_seen_at).filter(Boolean) as string[];
+    return {
+      role: c.role as string,
+      name: (c.name as string | null) ?? null,
+      email: c.email as string,
+      pays: Boolean(c.pays),
+      lastOpened: opens.length ? opens.sort().at(-1) ?? null : null,
+    };
+  });
+
   out.letters = (docs ?? [])
     .filter((d) => actor.role === "admin" || d.visibility !== "admin_only")
     .map((d) => ({ id: d.id as string, label: `${d.title as string}${d.sealed_at ? " (sealed)" : ""}`, href: `/api/portal/documents?id=${d.id as string}` }));

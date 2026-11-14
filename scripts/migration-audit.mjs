@@ -470,10 +470,15 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * 126 to 127; two indexes and row level security. Read off fingerprint-at.mjs
  * on the chain to 0132, with 0131 reproducing its pair first. Moved in the same
  * commit as the migration.
+ *
+ * Moved by 0133, a copy contact gets the letter and nothing else (the Killeen
+ * call, item 7, with Robert's answer 3): one table, eng_letter_links, its nine
+ * columns, 1,653 to 1,662; tables 127 to 128. Read off fingerprint-at.mjs on
+ * the chain to 0133, with 0132 reproducing its pair first. Same commit.
  */
-const EXPECTED_FINGERPRINT = "9fddb45bdec555ba872b211a89004e82";
-const EXPECTED_COLUMNS = 1653;
-const EXPECTED_TABLES = 127;
+const EXPECTED_FINGERPRINT = "487f961c20636725679a6025e6ed863b";
+const EXPECTED_COLUMNS = 1662;
+const EXPECTED_TABLES = 128;
 /* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts.
  * 0074 adds two: eng_partner_billing_touch and eng_partner_billing_events_immutable.
  * 0075 adds one: eng_payment_events_guarded.

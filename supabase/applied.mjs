@@ -4846,6 +4846,23 @@ export const APPLIED = [
       "or production; development by the chat counterpart before the batch boards, production only in a sitting with " +
       "Robert. Additive: one table.",
   },
+  {
+    file: "0133_a_copy_contact_gets_the_letter_and_nothing_else.sql", appliedBy: "apply_migration",
+    fingerprint: "487f961c20636725679a6025e6ed863b",
+    behaviour: "5558f2cb111eee7a89f59e25c5259501",
+    production: null,
+    proves: { table: "eng_letter_links" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-14 on the chain to 0133, with 0132 reproducing " +
+      "its pair first (9fddb45b at 1653 columns, e2fe4e1d at 1663 facts). Shape 1653 to 1662 columns, the nine of " +
+      "eng_letter_links; tables 127 to 128. Behaviour 1663 to 1671 facts: the table's key, three foreign keys, the " +
+      "unique token hash, its index and row level security.",
+    because:
+      "WRITTEN 2026-11-14 ON feat/connect-batch-2, FOR THE KILLEEN CALL, ITEM 7, WITH ROBERT'S ANSWER 3 OF 2026-11-14: " +
+      "copy contacts get a link to the sealed letter alone, through the customer's own check, nothing else of the " +
+      "order. PENDING: not on development or production; development by the chat counterpart before the batch " +
+      "boards, production only in a sitting with Robert. Additive: one table.",
+  },
 ];
 
 /*

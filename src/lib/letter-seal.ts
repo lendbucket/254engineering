@@ -7,7 +7,7 @@ import type { ProfileRow } from "./ops-auth";
 import { readImageForSealing } from "./seal-store";
 import { answersFor } from "./ops-file-inputs";
 import { transitionFile } from "./ops-crm";
-import { orderForFile, sendLetterReplaced, settleDecision } from "./ops-payments";
+import { orderForFile, sendCopyLetters, sendLetterReplaced, settleDecision } from "./ops-payments";
 import { writeAudit } from "./ops-audit";
 import { DB_NOW } from "./db-now";
 import { raise } from "./ops-notify";
@@ -1066,9 +1066,12 @@ export async function replacementNotice(
     return { delivered: true, warning: `The replacement ${Noun} is sealed. The file has no order, so no customer was emailed.` };
   }
   const sent = await sendLetterReplaced(order.id as string);
+  /* The copy contacts get the replacement too, the letter alone (the Killeen call, item 7); each outcome is on the order and the file. */
+  const copies = await sendCopyLetters(order.id as string);
+  const copyNote = copies.failed > 0 ? ` ${copies.failed} copy contact(s) were not sent it; the file says who.` : "";
   return sent.ok
-    ? { delivered: true, warning: null }
-    : { delivered: true, warning: `The replacement ${Noun} is sealed and on the order page. Then the customer was not emailed: ${sent.error}.` };
+    ? { delivered: true, warning: copyNote ? copyNote.trim() : null }
+    : { delivered: true, warning: `The replacement ${Noun} is sealed and on the order page. Then the customer was not emailed: ${sent.error}.${copyNote}` };
 }
 
 /**

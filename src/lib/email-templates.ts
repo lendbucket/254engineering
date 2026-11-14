@@ -1123,6 +1123,43 @@ export function orderLetterReplaced(input: {
 }
 
 /**
+ * A COPY OF THE SEALED LETTER, TO SOMEBODY THE CUSTOMER NAMED. The Killeen call,
+ * item 7, in Robert's approved words (his answer 3 of 2026-11-14, 6878458673
+ * draft 3). The link opens the sealed letter alone (eng_letter_links, 0133),
+ * never the customer's order page: no amount, no refund, no timeline, no
+ * upload. Signed, because it is the firm writing to a third party on the
+ * customer's behalf.
+ */
+export function orderLetterCopy(input: {
+  customerName: string;
+  recipientEmail: string;
+  propertyAddress: string;
+  letterUrl: string;
+}): RenderedEmail {
+  return compose(
+    "order.letter_copy",
+    "human",
+    `Sealed letter for ${input.propertyAddress}`,
+    {
+      preheader: `A copy of the sealed letter for ${input.propertyAddress}.`,
+      signed: true,
+      button: { label: "Download the sealed letter", url: input.letterUrl },
+      blocks: [
+        {
+          kind: "p",
+          text: `${input.customerName} asked us to send you a copy of the sealed letter for ${input.propertyAddress}. It is ready to download.`,
+        },
+        {
+          kind: "p",
+          text: `You received this because ${input.customerName} named you as a recipient. Reply to this message if it reached you in error.`,
+        },
+      ],
+    },
+    { to: input.recipientEmail },
+  );
+}
+
+/**
  * THE GOOGLE REVIEW REQUEST. Operator ruling, 2026-10-10 (run item 25).
  *
  * Sent to every customer alike, a set number of days after delivery: it does
@@ -2799,6 +2836,12 @@ export function allTemplatesForAudit(): RenderedEmail[] {
       propertyAddress: "100 Sample Street, Corpus Christi",
       sealedAt: "6 September 2026 at 10:05",
       statusUrl: "https://254engineering.com/order/254-O2026-ABCDEF?token=sample",
+    }),
+    orderLetterCopy({
+      customerName: "Sample Customer",
+      recipientEmail: "lender@example.com",
+      propertyAddress: "100 Sample Street, Corpus Christi",
+      letterUrl: "https://254engineering.com/letter/00000000-0000-4000-8000-000000000001?token=sample",
     }),
     refundFailed({
       reference: "254-O2026-ABCDEF",

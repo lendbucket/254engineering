@@ -35,6 +35,7 @@ import {
   orderCancelled,
   orderConfirmed,
   orderDeclined,
+  orderLetterCopy,
   orderLetterReplaced,
   orderRepairsRequired,
   orderSealed,
@@ -42,6 +43,8 @@ import {
   refundFailed,
   refundSucceeded,
 } from "./email-templates";
+import { CONTACT_ROLE_LABEL, fileContacts } from "./file-contacts";
+import { issueLetterLink } from "./letter-links";
 import type { EffectMode } from "./ops-jobs";
 import { transitionFile, SYSTEM_AUTHOR } from "./ops-crm";
 import { isKnown, money } from "./ops-money";
@@ -2879,6 +2882,8 @@ export async function settleDecision(input: {
     const sealed = refundFor({ paidCents: 0, inspectionFeeCents: null, outcome: "seal", technicianVisited: Boolean(order.technician_visited) });
     await event(input.orderId, "refund.none", true, sealed.explanation);
     await sendOrderSealed(input.orderId);
+    /* And every copy contact on the file, the letter alone (the Killeen call, item 7). */
+    await sendCopyLetters(input.orderId);
     return {
       ok: true,
       refundedCents: 0,
@@ -3246,6 +3251,80 @@ async function sendOrderSealed(orderId: string): Promise<void> {
       ? `The sealed document notice is queued to ${to}. The next entry says when it is sent.`
       : `The sealed document notice could not be queued: ${queued.error}. It has to go out by hand.`,
   );
+}
+
+/**
+ * ===========================================================================
+ * THE SEALED LETTER TO EVERY COPY CONTACT, AND THE FILE SAYS WHO WAS SENT WHAT.
+ * The Killeen call, item 7 (Robert, 2026-11-14), with his answer 3: each contact
+ * gets a link to the sealed letter alone (eng_letter_links, 0133), never the
+ * customer's order page, in his approved email (orderLetterCopy).
+ * ===========================================================================
+ *
+ * Run after the customer's own notice when a letter is sealed, and again when
+ * one is replaced, so a lender holding a voided letter is sent the replacement.
+ * The letter is the order's newest live sealed letter (customerLettersRead, the
+ * customer's own list). Every contact still on the file gets one link and one
+ * email, and each outcome is written to the order's timeline and to the file:
+ * who, in what role, at which address, sent or not and why. A contact that
+ * could not be sent is never reported as sent.
+ */
+export async function sendCopyLetters(orderId: string): Promise<{ sent: number; failed: number }> {
+  const db = supabaseAdmin();
+  if (!db) return { sent: 0, failed: 0 };
+  const { data: order } = await db
+    .from("eng_service_orders")
+    .select("reference, customer_name, property_address, file_id")
+    .eq("id", orderId)
+    .maybeSingle();
+  const fileId = (order?.file_id as string | null | undefined) ?? null;
+  if (!order || !fileId) return { sent: 0, failed: 0 };
+
+  const contacts = await fileContacts(fileId);
+  if (!contacts.ok) {
+    await event(orderId, "copy_letter.not_sent", false, `The sealed letter was not sent to the copy contacts: ${contacts.error}`);
+    return { sent: 0, failed: 0 };
+  }
+  if (contacts.rows.length === 0) return { sent: 0, failed: 0 };
+
+  /*
+   * Imported here rather than at the top: letter-delivery imports letter-seal,
+   * which imports this module, and a cycle resolved at load time is one
+   * module-level constant away from failing at runtime.
+   */
+  const { customerLettersRead } = await import("./letter-delivery");
+  const letters = await customerLettersRead(orderId);
+  const letter = letters.ok ? letters.letters[0] : undefined;
+  if (!letter) {
+    await event(orderId, "copy_letter.not_sent", false, "The sealed letter was not sent to the copy contacts: no live sealed letter could be read for this order.");
+    return { sent: 0, failed: contacts.rows.length };
+  }
+
+  let sent = 0;
+  let failed = 0;
+  for (const c of contacts.rows) {
+    const who = `${c.name ? `${c.name}, ` : ""}the ${CONTACT_ROLE_LABEL[c.role].toLowerCase()}, at ${c.email}`;
+    const link = await issueLetterLink({ orderId, documentId: letter.id, contactId: c.id });
+    const queued = link.ok
+      ? await queueEmail(
+          orderLetterCopy({
+            customerName: order.customer_name as string,
+            recipientEmail: c.email,
+            propertyAddress: order.property_address as string,
+            letterUrl: `${business.url}/letter/${link.id}?token=${encodeURIComponent(link.token)}`,
+          }),
+          { orderId },
+        )
+      : { ok: false as const, error: link.error };
+    const line = queued.ok
+      ? `The sealed letter "${letter.title}" was sent to ${who}, through a link that opens the letter alone.`
+      : `The sealed letter was not sent to ${who}: ${queued.error}. Send it by hand.`;
+    await event(orderId, queued.ok ? "copy_letter.queued" : "copy_letter.not_sent", false, line);
+    await db.from("eng_file_events").insert({ file_id: fileId, actor_id: null, kind: "delivery", body: line });
+    if (queued.ok) sent += 1;
+    else failed += 1;
+  }
+  return { sent, failed };
 }
 
 /**

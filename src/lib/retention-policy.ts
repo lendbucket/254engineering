@@ -634,6 +634,7 @@ export const RETENTION_POLICY: RetentionEntry[] = [
       ruledBy: "operator ruling 7 of 2026-10-23 (FC-3, PL-2, PL-3), and the trigger in 0085",
     },
   },
+  { table: "eng_letter_links", rule: { kind: "kept_pending_counsel", because: "Which copy contact was given a link to which sealed letter, and when it was opened (0133). Who was given a sealed letter is a fact about the past; a link is stopped by revoking it, never by deleting it. " + COUNSEL } },
   {
     table: "eng_marketing_suppressions",
     rule: {
