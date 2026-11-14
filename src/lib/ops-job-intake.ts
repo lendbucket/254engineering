@@ -310,6 +310,13 @@ export async function takeJob(
     };
   }
 
+  /*
+   * NOTHING CHOSEN IS SAID AS NOTHING CHOSEN. The failure walk of 2026-11-14
+   * (Robert's answer 7) sent New job empty and was told "That deliverable is not
+   * in the catalog", which is not the problem when nothing was chosen.
+   */
+  if (!input.serviceSlug) return { ok: false, error: "Choose the service line.", field: "serviceSlug" };
+  if (!input.tier) return { ok: false, error: "Choose the deliverable.", field: "tier" };
   const entry = catalogFor(input.serviceSlug, input.tier);
   if (!entry) {
     return { ok: false, error: "That deliverable is not in the catalog.", field: "tier" };

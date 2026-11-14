@@ -42,6 +42,8 @@ check("contacts are checked before anything is written", take.indexOf("contactPr
 check("and saved before the payment link", take.indexOf("await addFileContacts(") > 0 && take.indexOf("await addFileContacts(") < take.indexOf("await sendPaymentLink("));
 check("contacts that could not be saved stop the link", /if \(input\.paymentIntent === "link_sent" && contactsWarning\) \{/.test(take));
 
+check("an empty New job is told what to choose, not that the catalog lacks it", take.indexOf('error: "Choose the service line."') > 0 && take.indexOf('error: "Choose the service line."') < take.indexOf("catalogFor(input.serviceSlug, input.tier)"));
+
 const screen = codeOf(readFileSync("src/app/portal/(app)/intake/IntakeClient.tsx", "utf8"));
 check("New job does not ask copy_to as well", /fieldsFor\(serviceSlug, tier\)\.filter\(\(f\) => f\.id !== "copy_to"\)/.test(screen));
 check("it asks for contacts with a role, a name and an email", /id=\{`contact-role-\$\{i\}`\}/.test(screen) && /id=\{`contact-email-\$\{i\}`\}/.test(screen));
