@@ -453,9 +453,20 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * Moved by 0129, a franchisee records the day it starts operating (Robert's
  * answer 14 of 2026-11-11, platform item X3): one column, eng_franchisees.
  * operating_since, 1,642 to 1,643; tables unchanged at 126; behaviour unchanged.
+ *
+ * 0130, Customer Service takes the call (Robert's answer 2 of 2026-11-14),
+ * seeds four grant rows and moves no column, so the shape stays where 0129 put it.
+ *
+ * Moved by 0131, a job taken twice is one file (Part 1 finding 6): one column,
+ * eng_files.intake_request_id, 1,643 to 1,644; tables unchanged at 126; one
+ * partial unique index. Read off fingerprint-at.mjs on the chain to 0131, with
+ * 0130 reproducing its pair first. MOVED LATE, 2026-11-14: this pin belonged in
+ * the 0131 commit (d46ed41) under the standing rule in
+ * docs/new-surface-checklist.md and was not moved there; it is moved here,
+ * before any board of the branch, and said so.
  */
-const EXPECTED_FINGERPRINT = "1cbe1959e7435d279f44b171cab3a7a1";
-const EXPECTED_COLUMNS = 1643;
+const EXPECTED_FINGERPRINT = "8e77b8e2732c0a132f485a2f192b0c34";
+const EXPECTED_COLUMNS = 1644;
 const EXPECTED_TABLES = 126;
 /* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts.
  * 0074 adds two: eng_partner_billing_touch and eng_partner_billing_events_immutable.
