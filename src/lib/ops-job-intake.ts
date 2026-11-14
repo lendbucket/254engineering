@@ -7,6 +7,7 @@ import { isOwnerAdmin, OWNER_OVERRIDE, OWNER_OVERRIDE_ACTION } from "./owner-ove
 import { createClient, createFile, transitionFile, type Author } from "./ops-crm";
 import { can, type Actor } from "./ops-authz";
 import { sendPaymentLink } from "./ops-job-billing";
+import { fileTouchKey, partnerByCode, recordTouch } from "./ops-partners";
 import { catalogFor, orderBlockedReason } from "@data/catalog";
 import { quoteFor } from "./ops-orders";
 import { resolveCounty, twiaStatus, windstormAreaRefusal } from "./ops-counties";
@@ -83,6 +84,14 @@ export type TakeJobInput = {
   notes?: string | null;
 
   channel: IntakeChannel;
+  /**
+   * The code a partner gave, or the caller said, when a partner sent them. Part
+   * 1 finding 3, Robert's answer 1 of 2026-11-14: the partner home promises a
+   * code "somebody says on the telephone" credits them, and this door had
+   * nowhere to write it. It is recorded as a touch against this file, and the
+   * order raised for the file is attributed by the same rules a checkout uses.
+   */
+  partnerCode?: string | null;
   /** When the call happened, if not now. */
   takenAt?: string | null;
 
@@ -131,6 +140,8 @@ export type TakeJobResult =
       landingWarning?: string;
       /** Present when "Send a payment link" was chosen and the link did not go out, with the reason. */
       paymentLinkWarning?: string;
+      /** Present when a partner code was given and its touch could not be recorded, with the reason. */
+      partnerWarning?: string;
     }
   | { ok: false; error: string; field?: string };
 
@@ -314,6 +325,26 @@ export async function takeJob(
   const missingToOrder = missingFor(input.serviceSlug, input.tier, answers, "order");
   if (missingToOrder.length) {
     return { ok: false, error: `${missingToOrder[0].label}.`, field: missingToOrder[0].id };
+  }
+
+  /*
+   * A PARTNER CODE IS CHECKED BEFORE ANYTHING IS WRITTEN. A code no active
+   * partner holds is refused in words the rep can read back to the caller,
+   * rather than recorded and silently credited to nobody.
+   */
+  /* The route passes the posted body as it is, so the type is checked here rather than trusted. */
+  const partnerCode = typeof input.partnerCode === "string" ? input.partnerCode.trim() || null : null;
+  let partner: { id: string; code: string } | null = null;
+  if (partnerCode) {
+    const found = await partnerByCode(partnerCode);
+    if (!found) {
+      return {
+        ok: false,
+        error: `No active partner has the code "${partnerCode}". Check it with the caller, or leave it empty.`,
+        field: "partnerCode",
+      };
+    }
+    partner = { id: found.id, code: found.code };
   }
 
   const missing = blockers({
@@ -554,6 +585,27 @@ export async function takeJob(
     }
   }
 
+  /*
+   * THE PARTNER'S CODE, RECORDED AS A TOUCH ON THIS FILE, before any order
+   * exists, so the order raised for the file (createOrderForFile) is attributed
+   * by attributeOrder with the same rules a checkout uses: newest touch in the
+   * window, a typed code beats a click, an existing customer credits nobody.
+   * The touch is evidence whether or not it wins. One that could not be written
+   * is said on the done screen rather than lost.
+   */
+  let partnerWarning: string | undefined;
+  if (partner) {
+    const touched = await recordTouch({
+      code: partner.code,
+      kind: "code",
+      visitorKey: fileTouchKey(file.id),
+      landingPath: `telephone:${input.channel}`,
+    });
+    if (!touched.ok) {
+      partnerWarning = `The job was taken and the partner code ${partner.code} was not recorded (${touched.reason}). Record it on the order before it is paid, or the partner is not credited.`;
+    }
+  }
+
   // ------------------------------------------------------- where it lands
   const target = landsAt(entry.orderType);
   let landingWarning: string | undefined;
@@ -623,6 +675,7 @@ export async function takeJob(
     landedAt: landingWarning ? "intake" : target,
     ...(landingWarning ? { landingWarning } : {}),
     ...(paymentLinkWarning ? { paymentLinkWarning } : {}),
+    ...(partnerWarning ? { partnerWarning } : {}),
   };
 }
 

@@ -154,6 +154,8 @@ export function IntakeClient({
 
   // ------------------------------------------------------------ how it came
   const [channel, setChannel] = useState<IntakeChannel | "">("phone");
+  /* The partner's code, when a partner sent them (Part 1 finding 3). Checked by takeJob before anything is written. */
+  const [partnerCode, setPartnerCode] = useState("");
   const [takenAt, setTakenAt] = useState("");
   const [notes, setNotes] = useState("");
 
@@ -174,6 +176,7 @@ export function IntakeClient({
     landedAt: string;
     landingWarning?: string;
     paymentLinkWarning?: string;
+    partnerWarning?: string;
   } | null>(null);
 
   /*
@@ -467,6 +470,7 @@ export function IntakeClient({
           dueAt: dueAt || null,
           notes: notes || null,
           channel,
+          partnerCode: partnerCode.trim() || null,
           takenAt: takenAt || null,
           answers,
           priceCents: "overridden" in priceDecision && priceDecision.overridden ? priceDecision.cents : null,
@@ -525,6 +529,12 @@ export function IntakeClient({
         {done.paymentLinkWarning ? (
           <p className="mt-3 border-l-2 border-[var(--ink)] py-1 pl-3 text-[14px] leading-[1.55] text-[var(--ink)]">
             {done.paymentLinkWarning} The customer has not been asked to pay, and the file says the link was not sent.
+          </p>
+        ) : null}
+
+        {done.partnerWarning ? (
+          <p className="mt-3 border-l-2 border-[var(--ink)] py-1 pl-3 text-[14px] leading-[1.55] text-[var(--ink)]">
+            {done.partnerWarning}
           </p>
         ) : null}
 
@@ -1051,6 +1061,21 @@ export function IntakeClient({
                 <option key={c.value} value={c.value}>{c.label}</option>
               ))}
             </select>
+          </div>
+          <div>
+            <label htmlFor="partnerCode" className={label}>Partner code</label>
+            <input
+              id="partnerCode"
+              value={partnerCode}
+              onChange={(e) => setPartnerCode(e.target.value)}
+              autoComplete="off"
+              className={fieldClass}
+            />
+            <p className={hint}>
+              {channel === "partner"
+                ? "Ask for the partner's code. It credits the partner by the same rules as a code typed at checkout."
+                : "Optional. Only if the caller gives a partner's code."}
+            </p>
           </div>
           <div>
             <label htmlFor="takenAt" className={label}>When the call happened</label>

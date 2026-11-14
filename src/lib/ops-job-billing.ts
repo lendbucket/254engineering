@@ -17,6 +17,7 @@ import { refundDisclosure } from "./ops-orders";
 import { alreadyRaised } from "./billing-rules";
 import type { Author } from "./ops-crm";
 import { attributeOrder } from "./crm-attribution";
+import { attributeOrder as attributeToPartner, fileTouchKey } from "./ops-partners";
 
 /**
  * The orders already raised against this job, for the guard in billing-rules.
@@ -263,6 +264,23 @@ async function createOrderForFile(
     entityType: "service_order",
     entityId: data.id,
     summary: `${reference} raised against ${file.file_number} for ${billingMode === "invoice" ? "invoicing" : "a payment link"}.`,
+  });
+
+  /*
+   * THE PARTNER, BY THE CHECKOUT'S OWN RULES. Part 1 finding 3, Robert's answer
+   * 1 of 2026-11-14. A code given on the telephone is a touch under the file's
+   * key (takeJob), and this is the same attributeOrder the web checkout calls,
+   * reading that key: the window, a code beating a click, and an existing
+   * customer crediting nobody all apply unchanged. It used to run for no phone
+   * order at all, so a partner who referred by telephone was never credited.
+   * Never throws; a failed read leaves the order undecided with its reason, as
+   * on the web.
+   */
+  await attributeToPartner({
+    orderId: data.id,
+    reference,
+    customerEmail: client.email,
+    visitorKey: fileTouchKey(file.id),
   });
 
   return { ok: true, orderId: data.id, reference };
