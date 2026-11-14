@@ -133,7 +133,8 @@ export function TrackOnMount({ event, host, params, once }: { event: GaEvent; ho
       const remembered = onceKey(event, once);
       try {
         if (window.localStorage.getItem(remembered)) return;
-        window.localStorage.setItem(remembered, new Date().toISOString());
+        /* A marker, not a time: nothing reads when, and db-guard-audit refuses a timestamp from this clock. */
+        window.localStorage.setItem(remembered, "sent");
       } catch {
         /* Storage refused: send, as said above. */
       }
