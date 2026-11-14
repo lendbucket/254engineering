@@ -195,7 +195,8 @@ export default async function WindstormInquiriesPage({ searchParams }: { searchP
                         </span>
                       </p>
                       <p className="mt-0.5 text-[13.5px] text-[var(--secondary)]">
-                        {r.email}
+                        {/* A link, as the phone beside it is (Part 1 finding 21, 2026-11-14). */}
+                        <a href={`mailto:${r.email}`} className="font-semibold text-[var(--navy)] underline">{r.email}</a>
                         {r.phone ? <>, <PhoneLink phone={r.phone} /></> : ""}
                       </p>
                       <p className="mt-1.5 text-[13.5px] text-[var(--navy)]">{r.property_address}</p>
