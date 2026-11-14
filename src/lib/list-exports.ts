@@ -10,6 +10,7 @@ import type { TaskRow } from "./ops-tasks";
 import type { CredentialListRow, PersonListRow, SuppressionListRow } from "./staff-lists";
 import type { InsurancePolicy } from "./ops-insurance";
 import type { AuditEvent } from "./audit-trail-list";
+import type { OnboardingRow } from "./onboarding";
 
 /**
  * ===========================================================================
@@ -69,7 +70,7 @@ export function mayExport(actor: AuthzSubject | null, screenGrant: Action): bool
  * are deliberately absent: the same ruling says they get no export, and so did
  * item 24 of the standing orders, until counsel rules.
  */
-export const LIST_EXPORT_REPORTS = ["applications", "design-briefs", "windstorm-briefs", "technicians", "partners", "tasks", "people", "suppressions", "audit-trail", "credentials", "insurance"] as const;
+export const LIST_EXPORT_REPORTS = ["applications", "design-briefs", "windstorm-briefs", "technicians", "partners", "tasks", "people", "suppressions", "audit-trail", "credentials", "insurance", "onboarding"] as const;
 export type ListExportReport = (typeof LIST_EXPORT_REPORTS)[number];
 
 const yesNo = (v: boolean | null | undefined) => (v === null || v === undefined ? "" : v ? "yes" : "no");
@@ -243,6 +244,22 @@ export function tasksCsv(rows: readonly TaskRow[], filter: string): string {
  * Who can sign in. Never a password or a token, which this platform does not
  * hold anyway; the licence number is the engineer's public record.
  */
+/**
+ * Onboardings in progress (Robert's ruling 2 of 2026-11-13). Who, for which
+ * role, how far, and when. Notes are left out: they are free text about a
+ * person's paperwork, and the screen shows them only on the record itself.
+ */
+export function onboardingCsv(rows: readonly OnboardingRow[], filter: string): string {
+  return csv({
+    preamble: [
+      ["Onboarding", `${rows.length} matching`],
+      ["Filter", filter],
+    ],
+    headers: ["Name", "Email", "Phone", "Role", "Status", "Invited", "Invite expires", "Submitted", "Verified", "Site"],
+    rows: rows.map((o) => [o.person_name, o.email, o.phone ?? "", o.role, o.status, o.invited_at, o.invite_expires_at, o.submitted_at ?? "", o.verified_at ?? "", o.site]),
+  });
+}
+
 export function peopleCsv(rows: readonly PersonListRow[], filter: string): string {
   return csv({
     preamble: [

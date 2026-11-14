@@ -24,6 +24,7 @@ import {
   listExportFilename,
   partnersCsv,
   peopleCsv,
+  onboardingCsv,
   suppressionsCsv,
   tasksCsv,
   techniciansCsv,
@@ -31,6 +32,8 @@ import {
   type ListExportReport,
 } from "@/lib/list-exports";
 import { listEveryApplication } from "@/lib/admin-data";
+import { listEveryOnboarding } from "@/lib/onboarding";
+import { onboardingListQuery } from "@/lib/onboarding-list";
 import { designInquiries } from "@/lib/ops-inquiries";
 import { windstormInquiries } from "@/lib/ops-windstorm-inquiries";
 import { inquiryListQuery } from "@/lib/inquiry-list";
@@ -228,6 +231,7 @@ async function handleGET(request: NextRequest) {
       "audit-trail": "audit.read",
       credentials: "technicians.onboard",
       insurance: "insurance.manage",
+      onboarding: "technicians.onboard",
     };
     if (!can(actor, LIST_EXPORT_GRANT) || !can(actor, screenGrant[listReport])) {
       return bad("Your role cannot export this list.", 403);
@@ -303,6 +307,13 @@ async function handleGET(request: NextRequest) {
       const spec = policyList(today);
       const rows = staffListRows(read.policies, staffListQuery({ q: param("q"), standing: param("standing"), sort: param("sort"), dir: param("dir") }, spec), spec);
       body = insuranceCsv(rows, describe([["search", param("q")], ["standing", param("standing")], ["sort", param("sort")], ["direction", param("dir")]]), today);
+      count = rows.length;
+    } else if (listReport === "onboarding") {
+      /* The screen's own query and scope (technicians.onboard without profiles.create sees technicians only). */
+      const query = onboardingListQuery({ q: param("q"), status: param("status"), role: param("role"), sort: param("sort"), dir: param("dir") });
+      const rows = await listEveryOnboarding(query, { fieldTechOnly: !can(actor, "profiles.create") });
+      if (rows === null) return refuse("onboardings", "the read failed.");
+      body = onboardingCsv(rows, describe([["search", param("q")], ["status", param("status")], ["role", param("role")], ["sort", param("sort")], ["direction", param("dir")]]));
       count = rows.length;
     } else {
       const rows = await listEveryTask(actor, { status: param("status"), q: param("q"), sort: param("sort"), dir: param("dir") });
