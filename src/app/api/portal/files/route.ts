@@ -1,7 +1,7 @@
 import { takeJob, searchClients, type TakeJobInput } from "@/lib/ops-job-intake";
 import { sendPaymentLink, resendPaymentLink, invoiceAccount } from "@/lib/ops-job-billing";
 import { requestOutstanding } from "@/lib/ops-file-inputs";
-import { dispatchContext } from "@/lib/ops-field";
+import { dispatchContext, coveragePreview } from "@/lib/ops-field";
 import { NextResponse, type NextRequest } from "next/server";
 import { currentActor, requestContext } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
@@ -208,6 +208,19 @@ async function handlePOST(request: NextRequest) {
 
     const context = await dispatchContext(actor, file);
     return NextResponse.json({ ok: true, dispatch: context });
+  }
+
+  /*
+   * Who could take a job in this county on this line, asked on New job before
+   * the job is taken (the Killeen call, item 1). coveragePreview decides who
+   * may see names; anybody who takes jobs gets the sentence.
+   */
+  if (action === "coverage_preview") {
+    if (!can(actor, "files.create") && !can(actor, "offers.dispatch")) {
+      return NextResponse.json({ ok: false, error: "Not permitted." }, { status: 403 });
+    }
+    const preview = await coveragePreview(actor, String(body?.serviceSlug ?? ""), String(body?.county ?? ""));
+    return NextResponse.json({ ok: true, preview });
   }
 
   if (action === "create_file") {

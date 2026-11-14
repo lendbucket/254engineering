@@ -124,10 +124,30 @@ export function DispatchPanel({
         </p>
       ) : null}
 
-      {offers.length === 0 ? (
+      {/*
+        NEVER AN EMPTY LIST WITHOUT WHY AND WHAT TO DO. The Killeen call, item 1
+        (Robert, 2026-11-14). With nobody on the roster at all, "the reasons are
+        below" pointed at nothing; and when the only reason is coverage, the
+        action is named and linked.
+      */}
+      {offers.length === 0 && ineligible.length === 0 ? (
+        <p className="mt-4 text-[14px] leading-[1.55] text-[var(--ink)]">
+          Nobody can be offered this job because no field technician is on the roster. Add one, or
+          invite one, from{" "}
+          <a href="/portal/techs" className="font-semibold text-[var(--navy)] underline">Technicians</a>.
+        </p>
+      ) : offers.length === 0 && ineligible.every((i) => /^Does not cover /.test(i.reason)) ? (
+        <p className="mt-4 text-[14px] leading-[1.55] text-[var(--ink)]">
+          Nobody covers this county. An administrator adds the county to a certified technician&apos;s
+          coverage on their record in{" "}
+          <a href="/portal/techs" className="font-semibold text-[var(--navy)] underline">Technicians</a>; each
+          one not covering it is listed below.
+        </p>
+      ) : offers.length === 0 ? (
         <p className="mt-4 text-[14px] leading-[1.55] text-[var(--secondary)]">
           Nobody is eligible for this job. The reasons are below, and each of them is something an
-          administrator can act on.
+          administrator can act on in{" "}
+          <a href="/portal/techs" className="font-semibold text-[var(--navy)] underline">Technicians</a>.
         </p>
       ) : (
         <ul className="mt-4 flex flex-col gap-2">

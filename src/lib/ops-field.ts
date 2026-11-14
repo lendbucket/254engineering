@@ -735,6 +735,59 @@ async function candidateTechs(): Promise<{ candidates: TechCandidate[]; unreadab
   return { candidates, unreadable };
 }
 
+/**
+ * ===========================================================================
+ * WHO COULD TAKE THIS JOB, ASKED BEFORE IT IS TAKEN. The Killeen call, item 1
+ * (Robert, 2026-11-14): "when no certified technician covers the property's
+ * county, say so on the intake screen before the job is taken".
+ * ===========================================================================
+ *
+ * The same candidates and the same plan dispatch uses (candidateTechs and
+ * planDispatch), for a county and a line rather than a file, so the intake and
+ * dispatch cannot disagree about who is eligible. No property is located yet,
+ * so there is no distance here, and none is invented: the nearest technician
+ * by miles is the dispatch screen's, once the file exists.
+ *
+ * What it answers: how many could be offered the job, and when none can, the
+ * technicians certified for the line who would be eligible if they covered the
+ * county, with the counties they do cover, which is what an administrator
+ * needs to add the county in one step. Names are for offers.dispatch alone,
+ * the grant that decides who is offered work; anybody else gets the sentence.
+ */
+export type CoveragePreview =
+  | { known: false; why: string }
+  | {
+      known: true;
+      county: string;
+      eligible: number;
+      /** Certified for the line and otherwise clear, but not covering this county. Empty without offers.dispatch. */
+      couldCover: { id: string; displayName: string; covers: string[] }[];
+      /** Certified for the line and covering it, held back by something else (credentials, account). */
+      blocked: { displayName: string; reason: string }[];
+    };
+
+export async function coveragePreview(actor: Actor | null, serviceSlug: string, county: string): Promise<CoveragePreview> {
+  if (!actor || !(can(actor, "files.create") || can(actor, "offers.dispatch"))) return { known: false, why: "Your role does not take jobs." };
+  if (!county.trim()) return { known: false, why: "Choose the county first." };
+  const { candidates, unreadable } = await candidateTechs();
+  if (unreadable.length) return { known: false, why: `Who covers ${county} County could not be read: ${unreadable.join("; ")}.` };
+  const plan = planDispatch({ county, serviceSlug, lat: null, lng: null }, candidates, null);
+  const names = can(actor, "offers.dispatch");
+  const certified = candidates.filter((c) => c.status === "active" && c.certifiedFor.includes(serviceSlug));
+  const coversIt = (c: TechCandidate) => c.coverageCounties.some((x) => x.trim().toLowerCase() === county.trim().toLowerCase());
+  return {
+    known: true,
+    county,
+    eligible: plan.offers.length,
+    couldCover: names
+      ? certified.filter((c) => !coversIt(c) && !(c.credentialBlockers?.length)).map((c) => ({ id: c.id, displayName: c.displayName, covers: c.coverageCounties }))
+      : [],
+    blocked: names
+      ? plan.ineligible.filter((i) => certified.some((c) => c.id === i.id && coversIt(c))).map((i) => ({ displayName: i.displayName, reason: i.reason }))
+      : [],
+  };
+}
+
 /** What a technician is paid for this service line, from the effective dated schedule. */
 async function techFeeFor(serviceSlug: string): Promise<number | null> {
   const db = supabaseAdmin();

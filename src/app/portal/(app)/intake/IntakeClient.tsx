@@ -7,6 +7,7 @@ import { quoteFor } from "@/lib/ops-orders";
 import { overrideFloor } from "@/config/trade-floors";
 import { resolveCounty, twiaStatus } from "@/lib/ops-counties";
 import { money, isKnown } from "@/lib/ops-money";
+import { CoverageNote } from "./CoverageNote";
 import {
   blockers,
   decidePrice,
@@ -878,6 +879,8 @@ export function IntakeClient({
               No county yet. Dispatch matches on county, so this has to resolve before the job can go anywhere.
             </p>
           )}
+          {/* Who could take it, before it is taken (the Killeen call, item 1). */}
+          <CoverageNote serviceSlug={serviceSlug} county={effectiveCounty ?? null} />
         </div>
       </Section>
 
