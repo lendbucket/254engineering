@@ -140,9 +140,19 @@ check(
 
 /* The disclosure. Robert, 2026-11-01, Q1: the privacy page says it, in his approved words. */
 const privacy = readFileSync("src/app/(site)/privacy/page.tsx", "utf8").replace(/\s+/g, " ");
-check("the privacy page discloses Google Analytics 4", privacy.includes("Public pages use Google Analytics 4 to count page views and two steps of an order"));
+/* Robert's approved paragraph of 2026-11-14 (his answer 3 to 6871344363), carried exactly. */
+check(
+  "the privacy page discloses Google Analytics 4 and the two conversions, in his approved words",
+  privacy.includes(
+    "Public pages use Google Analytics 4 to count page views, two steps of an order (starting one, and paying for one, counted once per order), and taps on the firm&apos;s telephone number.",
+  ) &&
+    privacy.includes(
+      "The count of paid orders and telephone taps is shared with Google Ads to measure whether advertising works, with no name, email, address, price or order reference in it.",
+    ) &&
+    privacy.includes("Google signals and ad personalization are off, the address sent leaves out order references and signed links, and no form contents are sent."),
+);
 check("and says staff and account screens do not load it", privacy.includes("Staff and account screens do not load it."));
-check("and its effective date moved with it", !privacy.includes('const EFFECTIVE = "16 August 2026"'));
+check("and its effective date moved with it, to the conversions' merge day", privacy.includes('const EFFECTIVE = "14 November 2026"'));
 
 console.log(wrong === 0 ? "PASS: GA4 loads after idle on public pages only, and sends no token, reference or personal field." : `FAIL: ${wrong} check(s).`);
 process.exitCode = wrong === 0 ? 0 : 1;
