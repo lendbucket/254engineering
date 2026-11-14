@@ -4,6 +4,7 @@ import { roofInsights } from "./insights-roofs";
 import { POST_DATES } from "./guide-dates";
 import { topics } from "@data/keyword-registry";
 import { registrationStatement } from "@/lib/launch";
+import { priceFor, priceSentence } from "@/config/prices";
 import type { FigureId } from "@/components/insights/figures";
 
 /**
@@ -947,21 +948,44 @@ const BUYER_SRC = {
 
 const bcite = (key: keyof typeof BUYER_SRC, supports: string) => ({ ...BUYER_SRC[key], supports });
 
+/*
+ * THE FOUNDATION LINE'S PUBLISHED PRICE AND WHAT CHANGES IT, read from the price
+ * book (src/config/prices.ts), never typed, for the rebuilt cost post (SEO
+ * report section 5, page 1, Robert's add-on of 2026-11-14). A price book that
+ * loses either fails the build here rather than printing nothing.
+ */
+const FOUNDATION_PRICE = priceSentence("foundation-inspections");
+const FOUNDATION_PRICE_BOOK = priceFor("foundation-inspections");
+const FOUNDATION_CHANGES = FOUNDATION_PRICE_BOOK && "whatChangesIt" in FOUNDATION_PRICE_BOOK ? FOUNDATION_PRICE_BOOK.whatChangesIt : null;
+if (!FOUNDATION_PRICE || !FOUNDATION_CHANGES) {
+  throw new Error("insights: the price book has no published foundation price or no sentence on what changes it");
+}
+const lowerFirst = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
+
 const buyerInsights: Insight[] = [
   // --------------------------------------------------------- buyers, post 3
   {
     slug: "foundation-inspection-cost",
+    /*
+     * Rebuilt for the SEO report, section 5 page 1 (Robert's add-on of
+     * 2026-11-14): foundation inspection cost, 2,500 a month, position 80. The
+     * first two sentences now answer the search with the three prices and the
+     * firm's own, derived; everything below them stands as it was.
+     */
     title: "Foundation Inspection Cost: What You Pay | 254 Engineering",
     h1: "Foundation inspection cost, and what each price actually buys",
-    description:
-      "What a foundation inspection costs depends on who makes it and what document you receive. See what each fee buys, and which one a lender will accept.",
+    description: `Free from a repair company, inside a home inspector's fee, or ${FOUNDATION_PRICE} for an engineer's sealed evaluation. See what each Texas foundation inspection buys.`,
     summary:
       "Three different people sell three different scopes under the name foundation inspection, at three different prices. The useful comparison is the document at the end and who will accept it.",
     eyebrow: "Buying and lending",
     primaryKeyword: "foundation inspection cost",
     datePublished: BUYERS_SECTION_DATE,
-    dateModified: "2026-10-25",
+    dateModified: "2026-11-14",
     body: [
+      {
+        kind: "p",
+        text: `In Texas a foundation inspection is free from a repair company, folded into a home inspector's fee as one item of the whole house, or a separate fee from an engineer, and 254 Engineering publishes its engineer's foundation evaluation at ${FOUNDATION_PRICE}. What changes that figure is published with it: ${lowerFirst(FOUNDATION_CHANGES)}`,
+      },
       {
         kind: "p",
         text: "A foundation inspection costs what its scope costs, and in Texas three different people sell three different scopes under the same name. A licensed home inspector includes a foundation opinion inside the general inspection fee, a repair company may offer its visit free because the visit is how it sells repair, and an engineer charges a separate fee for an evaluation that ends in a sealed opinion.",
@@ -1082,7 +1106,7 @@ const buyerInsights: Insight[] = [
     faqs: [
       {
         q: "How much does a foundation inspection cost in Texas?",
-        a: "It depends on who makes it. A TREC inspector's foundation opinion is part of the general home inspection fee, many repair companies offer a free visit, and an engineer charges a separate fee that rises with the level of investigation. This firm publishes a fixed price for its foundation line on its structural engineer cost page.",
+        a: `It depends on who makes it. A TREC inspector's foundation opinion is part of the general home inspection fee, many repair companies offer a free visit, and an engineer charges a separate fee that rises with the level of investigation. 254 Engineering publishes its foundation evaluation at ${FOUNDATION_PRICE} on its structural engineer cost page.`,
       },
       {
         q: "Does a home inspection include the foundation?",
