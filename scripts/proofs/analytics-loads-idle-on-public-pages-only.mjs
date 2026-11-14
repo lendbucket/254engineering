@@ -72,7 +72,8 @@ check(
   ga.cleanedLocation(O, "/services/windstorm-wpi-8", "?utm_source=g&token=x&email=a%40b.c&gclid=1&ref=p"),
 );
 check("only the canonical host sends", ga.sendsFrom("254engineering.com", "254engineering.com") && !ga.sendsFrom("localhost:4300", "254engineering.com") && !ga.sendsFrom("254engineering-x.vercel.app", "254engineering.com"));
-check("the two events are named as ruled", JSON.stringify(ga.GA_EVENTS) === JSON.stringify({ orderStarted: "order_started", orderPaid: "order_paid" }));
+/* Three since 2026-11-13: Robert named the two conversions order_paid and phone_tap. */
+check("the three events are named as ruled", JSON.stringify(ga.GA_EVENTS) === JSON.stringify({ orderStarted: "order_started", orderPaid: "order_paid", phoneTap: "phone_tap" }));
 
 /* The component. */
 const comp = readFileSync("src/components/site/Analytics.tsx", "utf8");
@@ -111,11 +112,47 @@ const paidBranch = paid.slice(paid.indexOf("if (!view && paid)"), paid.indexOf("
 check("order paid fires once, inside the Stripe return's branch", paidCall.length === 1 && /GA_EVENTS\.orderPaid/.test(paidCall[0]) && paidBranch.includes(paidCall[0]));
 check("and carries no parameter", !/params=/.test(paidCall[0] ?? ""));
 
+/*
+ * ONCE PER ORDER, NEVER ON A RELOAD (Robert, 2026-11-13). The return page
+ * renders on every reload, so the paid event is keyed on the order and
+ * remembered BEFORE it is sent; a key already there sends nothing. The
+ * reference is the key and never a parameter.
+ */
+check("order paid is once per order, keyed on the reference", /once=\{reference\}/.test(paidCall[0] ?? ""));
+const gaComponent = readFileSync("src/components/site/Analytics.tsx", "utf8");
+const mount = gaComponent.slice(gaComponent.indexOf("export function TrackOnMount"));
+check(
+  "and a key already remembered sends nothing, the key written before the send",
+  /if \(window\.localStorage\.getItem\(remembered\)\) return;/.test(mount) &&
+    mount.indexOf("localStorage.setItem(remembered") < mount.indexOf('window.gtag!("event", event'),
+);
+check("the remembered key is the event and the order, in this browser only", ga.onceKey("order_paid", "254-O2026-000001") === "ga-sent:order_paid:254-O2026-000001");
+
+/* PHONE_TAP, one per tap of a tel: link, sent from the public layouts' one component, carrying no number. */
+const tapAt = gaComponent.indexOf("GA_EVENTS.phoneTap");
+check(
+  "phone tap is sent on a click on any tel: link, and carries only the page",
+  tapAt > 0 &&
+    /closest\?\.\('a\[href\^="tel:"\]'\)/.test(gaComponent) &&
+    /document\.addEventListener\("click", onTap, true\)/.test(gaComponent) &&
+    /GA_EVENTS\.phoneTap, \{ page_location: currentLocation\(\) \}\)/.test(gaComponent),
+);
+
 /* The disclosure. Robert, 2026-11-01, Q1: the privacy page says it, in his approved words. */
 const privacy = readFileSync("src/app/(site)/privacy/page.tsx", "utf8").replace(/\s+/g, " ");
-check("the privacy page discloses Google Analytics 4", privacy.includes("Public pages use Google Analytics 4 to count page views and two steps of an order"));
+/* Robert's approved paragraph of 2026-11-14 (his answer 3 to 6871344363), carried exactly. */
+check(
+  "the privacy page discloses Google Analytics 4 and the two conversions, in his approved words",
+  privacy.includes(
+    "Public pages use Google Analytics 4 to count page views, two steps of an order (starting one, and paying for one, counted once per order), and taps on the firm&apos;s telephone number.",
+  ) &&
+    privacy.includes(
+      "The count of paid orders and telephone taps is shared with Google Ads to measure whether advertising works, with no name, email, address, price or order reference in it.",
+    ) &&
+    privacy.includes("Google signals and ad personalization are off, the address sent leaves out order references and signed links, and no form contents are sent."),
+);
 check("and says staff and account screens do not load it", privacy.includes("Staff and account screens do not load it."));
-check("and its effective date moved with it", !privacy.includes('const EFFECTIVE = "16 August 2026"'));
+check("and its effective date moved with it, to the conversions' merge day", privacy.includes('const EFFECTIVE = "14 November 2026"'));
 
 console.log(wrong === 0 ? "PASS: GA4 loads after idle on public pages only, and sends no token, reference or personal field." : `FAIL: ${wrong} check(s).`);
 process.exitCode = wrong === 0 ? 0 : 1;
