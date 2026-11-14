@@ -4,6 +4,7 @@ import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
 import { readThreads, MENTION_PAGE, THREAD_PAGE, mentionsFor, messageablepeople, threadView } from "@/lib/ops-threads";
 import { Pager, listHref } from "@/components/portal/ListControls";
+import { LIST_EXPORT_GRANT } from "@/lib/list-exports";
 import { roleLabel } from "@/lib/ops-authz";
 import { Chip, EmptyState, ErrorState, PageHead } from "@/components/portal/surfaces";
 import { Composer, MessageSearch, NewChannel, StartDirect } from "./MessagesClient";
@@ -221,6 +222,11 @@ export default async function MessagesPage({
               <button type="submit" className="min-h-[44px] rounded-[var(--radius-control)] border border-[var(--navy)] bg-[var(--navy)] px-4 text-[14px] font-semibold text-[var(--on-navy)]">
                 Show
               </button>
+              {can(actor, LIST_EXPORT_GRANT) ? (
+                <a href={listHref("/api/portal/exports", { kind: params.kind, dir: params.dir }, { report: "conversations" })} className="inline-flex min-h-[44px] items-center px-2 text-[14px] font-semibold text-[var(--navy)] underline">
+                  Export the list as CSV
+                </a>
+              ) : null}
             </form>
             {!threadsRead.ok ? (
               <ErrorState

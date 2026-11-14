@@ -30,6 +30,7 @@ const {
   auditTrailCsv,
   credentialsCsv,
   insuranceCsv,
+  conversationsCsv,
   listExportFilename,
 } = await import("../../src/lib/list-exports.ts");
 const { DEFAULT_ROLES } = await import("../../src/lib/ops-authz.ts");
@@ -44,9 +45,22 @@ const check = (name, ok, note = "") => {
 /* ---- the gate is the administrator's alone ---- */
 const holders = DEFAULT_ROLES.filter((r) => r.grants.includes(LIST_EXPORT_GRANT)).map((r) => r.key);
 check("the export grant is held by the administrator alone", holders.length === 1 && holders[0] === "admin", `${LIST_EXPORT_GRANT}: ${holders.join(", ")}`);
-/* Twelve since 2026-11-13: onboarding joined under Robert's ruling 2. */
-check("twelve reports, named", LIST_EXPORT_REPORTS.length === 12 && ["applications", "design-briefs", "windstorm-briefs", "technicians", "partners", "tasks", "people", "suppressions", "audit-trail", "credentials", "insurance", "onboarding"].every((r) => LIST_EXPORT_REPORTS.includes(r)));
+/* Thirteen since 2026-11-13: onboarding and conversations joined under Robert's ruling 2. */
+check("thirteen reports, named", LIST_EXPORT_REPORTS.length === 13 && ["applications", "design-briefs", "windstorm-briefs", "technicians", "partners", "tasks", "people", "suppressions", "audit-trail", "credentials", "insurance", "onboarding", "conversations"].every((r) => LIST_EXPORT_REPORTS.includes(r)));
 check("and none of them is the deletion requests, which get no export (P9)", !LIST_EXPORT_REPORTS.some((r) => /delet|forget/.test(r)));
+/*
+ * THE CONVERSATIONS FILE NEVER CARRIES WHAT WAS SAID (2026-11-13). A direct
+ * message is private; the file is the list of conversations only. Handed a
+ * conversation whose preview is a private sentence, the file must not contain it.
+ */
+{
+  const secret = "PRIVATE-SENTENCE-NEVER-EXPORTED";
+  const file = conversationsCsv(
+    [{ id: "t1", kind: "direct", file_id: null, name: null, channel_roles: null, last_message_at: "2026-11-13T10:00:00Z", created_at: "2026-11-01T10:00:00Z", participants: [{ id: "p1", name: "A Person", role: "admin" }], unread: 3, preview: secret, title: "A Person" }],
+    "everything",
+  );
+  check("the conversations file carries no message text and no preview", !file.includes(secret) && file.includes("A Person"), file.includes(secret) ? "the preview was written into the file" : "");
+}
 const forget = readFileSync("src/app/portal/(app)/deletion-requests/page.tsx", "utf8");
 check("the deletion requests screen draws no export link", !/csvHref|\/api\/portal\/exports|Export CSV/.test(forget));
 
@@ -117,13 +131,13 @@ const at = route.indexOf("if ((LIST_EXPORT_REPORTS as readonly string[]).include
 const branch = route.slice(at, route.indexOf("\n  }\n", at));
 const gate = branch.indexOf("if (!can(actor, LIST_EXPORT_GRANT) || !can(actor, screenGrant[listReport])) {");
 const firstRead = Math.min(
-  ...["await listEveryApplication(", "await designInquiries(", "await windstormInquiries(", "await techRoster(", "await partnerRoster(", "await listEveryTask(", "await readPeople(", "await listSuppressions(", "await auditTrailEvery(", "await awaitingVerification(", "await listPolicies(", "await listEveryOnboarding("].map((s) => {
+  ...["await listEveryApplication(", "await designInquiries(", "await windstormInquiries(", "await techRoster(", "await partnerRoster(", "await listEveryTask(", "await readPeople(", "await listSuppressions(", "await auditTrailEvery(", "await awaitingVerification(", "await listPolicies(", "await listEveryOnboarding(", "await listEveryThread("].map((s) => {
     const i = branch.indexOf(s);
     return i < 0 ? Infinity : i;
   }),
 );
 check("the door asks the administrator's grant and the screen's own before reading anything", at > 0 && gate > 0 && gate < firstRead && Number.isFinite(firstRead));
-check("each screen's own grant, by name", /applications: "applications\.read"/.test(branch) && /"design-briefs": "files\.create"/.test(branch) && /"windstorm-briefs": "files\.create"/.test(branch) && /technicians: "profiles\.list"/.test(branch) && /partners: "partners\.manage"/.test(branch) && /tasks: "tasks\.use"/.test(branch) && /people: "profiles\.list"/.test(branch) && /suppressions: "suppressions\.manage"/.test(branch) && /"audit-trail": "audit\.read"/.test(branch) && /credentials: "technicians\.onboard"/.test(branch) && /insurance: "insurance\.manage"/.test(branch) && /onboarding: "technicians\.onboard"/.test(branch));
+check("each screen's own grant, by name", /applications: "applications\.read"/.test(branch) && /"design-briefs": "files\.create"/.test(branch) && /"windstorm-briefs": "files\.create"/.test(branch) && /technicians: "profiles\.list"/.test(branch) && /partners: "partners\.manage"/.test(branch) && /tasks: "tasks\.use"/.test(branch) && /people: "profiles\.list"/.test(branch) && /suppressions: "suppressions\.manage"/.test(branch) && /"audit-trail": "audit\.read"/.test(branch) && /credentials: "technicians\.onboard"/.test(branch) && /insurance: "insurance\.manage"/.test(branch) && /onboarding: "technicians\.onboard"/.test(branch) && /conversations: "messages\.use"/.test(branch));
 check(
   "each list is read through the screen's own function and filter, every row",
   /await listEveryApplication\(\{ q: param\("q"\), role: param\("role"\) \}\)/.test(branch) &&
@@ -134,6 +148,7 @@ check(
     /* Sort and direction since 2026-11-13, so the file reads the order the screen shows. */
     /await listEveryTask\(actor, \{ status: param\("status"\), q: param\("q"\), sort: param\("sort"\), dir: param\("dir"\) \}\)/.test(branch) &&
     /await listEveryOnboarding\(query, \{ fieldTechOnly: !can\(actor, "profiles\.create"\) \}\)/.test(branch) &&
+    /await listEveryThread\(actor, \{ kind: param\("kind"\), oldest: param\("dir"\) === "asc" \}\)/.test(branch) &&
     /staffListRows\(read\.rows, staffListQuery\(\{ q: param\("q"\), status: param\("status"\), sort: param\("sort"\), dir: param\("dir"\) \}, PEOPLE_LIST\), PEOPLE_LIST\)/.test(branch) &&
     /staffListRows\(all, staffListQuery\(\{ q: param\("q"\), source: param\("source"\), state: param\("state"\), sort: param\("sort"\), dir: param\("dir"\) \}, SUPPRESSION_LIST\), SUPPRESSION_LIST\)/.test(branch) &&
     /await auditTrailEvery\(auditTrailQuery\(\{ q: param\("q"\), who: param\("who"\), dir: param\("dir"\) \}\)\)/.test(branch) &&
@@ -143,7 +158,7 @@ check(
 const refusals = (branch.match(/return refuse\(/g) ?? []).length;
 /* Office audit F20, 2026-11-02: the audit is written or the export refuses. The anchor must be found, since -1 is before everything. */
 const auditAt = branch.indexOf("await writeAuditOrRefuse(");
-check("a failed or partial read refuses before any audit row or file", refusals === 14 && auditAt >= 0 && branch.indexOf("return refuse(") < auditAt, `${refusals} refusals`);
+check("a failed or partial read refuses before any audit row or file", refusals === 15 && auditAt >= 0 && branch.indexOf("return refuse(") < auditAt, `${refusals} refusals`);
 check("every export writes an audit row before the body, or refuses", /action: `export\.\$\{listReport\}`/.test(branch) && auditAt >= 0 && auditAt < branch.indexOf("return new NextResponse(body") && /if \(!audited\.ok\) return bad\(/.test(branch));
 check("and the file is the shared headers, dated by the door's stamp()", /csvHeaders\(listExportFilename\(listReport, stamp\(\)\)\)/.test(branch));
 
@@ -167,6 +182,7 @@ for (const [screen, report] of [
   ["credentials", "credentials"],
   ["insurance", "insurance"],
   ["onboarding", "onboarding"],
+  ["messages", "conversations"],
 ]) {
   const src = readFileSync(`src/app/portal/(app)/${screen}/page.tsx`, "utf8");
   check(`/portal/${screen} draws its export only for the grant, carrying the query`, new RegExp(`can\\(actor, LIST_EXPORT_GRANT\\)[\\s\\S]{0,40}listHref\\("/api/portal/exports", \\{[^}]*\\}, \\{ report: "${report}" \\}\\)`).test(src));
@@ -174,7 +190,7 @@ for (const [screen, report] of [
 
 console.log("");
 if (wrong === 0) {
-  console.log("PASS: the twelve staff lists export every matching row through their own filters, for the administrator only, safely and audited.");
+  console.log("PASS: the thirteen staff lists export every matching row through their own filters, for the administrator only, safely and audited.");
   process.exitCode = 0;
 } else {
   console.log(`FAIL: ${wrong} check(s).`);

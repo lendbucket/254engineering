@@ -11,6 +11,7 @@ import type { CredentialListRow, PersonListRow, SuppressionListRow } from "./sta
 import type { InsurancePolicy } from "./ops-insurance";
 import type { AuditEvent } from "./audit-trail-list";
 import type { OnboardingRow } from "./onboarding";
+import type { ThreadListItem } from "./ops-threads";
 
 /**
  * ===========================================================================
@@ -70,7 +71,7 @@ export function mayExport(actor: AuthzSubject | null, screenGrant: Action): bool
  * are deliberately absent: the same ruling says they get no export, and so did
  * item 24 of the standing orders, until counsel rules.
  */
-export const LIST_EXPORT_REPORTS = ["applications", "design-briefs", "windstorm-briefs", "technicians", "partners", "tasks", "people", "suppressions", "audit-trail", "credentials", "insurance", "onboarding"] as const;
+export const LIST_EXPORT_REPORTS = ["applications", "design-briefs", "windstorm-briefs", "technicians", "partners", "tasks", "people", "suppressions", "audit-trail", "credentials", "insurance", "onboarding", "conversations"] as const;
 export type ListExportReport = (typeof LIST_EXPORT_REPORTS)[number];
 
 const yesNo = (v: boolean | null | undefined) => (v === null || v === undefined ? "" : v ? "yes" : "no");
@@ -244,6 +245,27 @@ export function tasksCsv(rows: readonly TaskRow[], filter: string): string {
  * Who can sign in. Never a password or a token, which this platform does not
  * hold anyway; the licence number is the engineer's public record.
  */
+/**
+ * The conversation list (Robert's ruling 2 of 2026-11-13): which conversations
+ * the person exporting can read, of what kind, with whom, and when they last
+ * moved. NEVER WHAT WAS SAID: no message text, no preview. A direct message is
+ * private (the messages screen's own rule), and a file of conversations is a
+ * list of who talked, not a copy of the talking. The unread count is left out
+ * too, because the screen's count is drawn from a bounded read of recent
+ * messages and is not an exact figure to hand to a spreadsheet.
+ */
+export function conversationsCsv(rows: readonly ThreadListItem[], filter: string): string {
+  return csv({
+    preamble: [
+      ["Conversations", `${rows.length} matching`],
+      ["Filter", filter],
+      ["Note", "What was said is never exported. This is the list of conversations only."],
+    ],
+    headers: ["Conversation", "Kind", "People", "Last message", "Started"],
+    rows: rows.map((t) => [t.title, t.kind, t.participants.map((p) => p.name).join("; "), t.last_message_at ?? "", t.created_at]),
+  });
+}
+
 /**
  * Onboardings in progress (Robert's ruling 2 of 2026-11-13). Who, for which
  * role, how far, and when. Notes are left out: they are free text about a

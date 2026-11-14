@@ -25,6 +25,7 @@ import {
   partnersCsv,
   peopleCsv,
   onboardingCsv,
+  conversationsCsv,
   suppressionsCsv,
   tasksCsv,
   techniciansCsv,
@@ -33,6 +34,7 @@ import {
 } from "@/lib/list-exports";
 import { listEveryApplication } from "@/lib/admin-data";
 import { listEveryOnboarding } from "@/lib/onboarding";
+import { listEveryThread } from "@/lib/ops-threads";
 import { onboardingListQuery } from "@/lib/onboarding-list";
 import { designInquiries } from "@/lib/ops-inquiries";
 import { windstormInquiries } from "@/lib/ops-windstorm-inquiries";
@@ -232,6 +234,7 @@ async function handleGET(request: NextRequest) {
       credentials: "technicians.onboard",
       insurance: "insurance.manage",
       onboarding: "technicians.onboard",
+      conversations: "messages.use",
     };
     if (!can(actor, LIST_EXPORT_GRANT) || !can(actor, screenGrant[listReport])) {
       return bad("Your role cannot export this list.", 403);
@@ -307,6 +310,12 @@ async function handleGET(request: NextRequest) {
       const spec = policyList(today);
       const rows = staffListRows(read.policies, staffListQuery({ q: param("q"), standing: param("standing"), sort: param("sort"), dir: param("dir") }, spec), spec);
       body = insuranceCsv(rows, describe([["search", param("q")], ["standing", param("standing")], ["sort", param("sort")], ["direction", param("dir")]]), today);
+      count = rows.length;
+    } else if (listReport === "conversations") {
+      /* Read as the exporter, through the screen's own read: no administrator override on a direct thread. */
+      const rows = await listEveryThread(actor, { kind: param("kind"), oldest: param("dir") === "asc" });
+      if (rows === null) return refuse("conversations", "a page of them could not be read.");
+      body = conversationsCsv(rows, describe([["kind", param("kind")], ["direction", param("dir")]]));
       count = rows.length;
     } else if (listReport === "onboarding") {
       /* The screen's own query and scope (technicians.onboard without profiles.create sees technicians only). */

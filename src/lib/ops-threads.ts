@@ -380,6 +380,29 @@ export async function readThreads(
 }
 
 /**
+ * EVERY CONVERSATION THE SCREEN'S FILTER MATCHES, for the CSV export (Robert's
+ * ruling 2 of 2026-11-13). Read page by page through readThreads itself, so the
+ * titles, the scope (canReadThread, no administrator override on a direct
+ * thread) and the filter are the screen's. Null when any page fails, so the
+ * export refuses rather than writing part of the list as the whole.
+ */
+export async function listEveryThread(
+  actor: Actor | null,
+  options: { kind?: string; oldest?: boolean } = {},
+): Promise<ThreadListItem[] | null> {
+  const out: ThreadListItem[] = [];
+  for (let page = 1; page <= 1000; page += 1) {
+    const read = await readThreads(actor, { ...options, page });
+    if (!read.ok) return null;
+    out.push(...read.threads);
+    if (out.length >= read.readableTotal || read.threads.length === 0) {
+      return out.length === read.readableTotal ? out : null;
+    }
+  }
+  return null;
+}
+
+/**
  * The list for the callers that look a thread up in it (threadView, message
  * search, mentions). A failed read is logged and gives them nothing to look in,
  * which each already treats as "not found" or "no match" in its own sentence;
