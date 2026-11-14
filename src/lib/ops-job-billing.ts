@@ -14,8 +14,10 @@ import { isOpen } from "./launch";
 import { catalogFor } from "@data/catalog";
 import { orderBlockedNow } from "./line-gate";
 import { DEMO_FILE_SEGMENT, referenceForCustomer } from "./ops-files";
-import { paymentOptions } from "./job-intake-rules";
-import { refundDisclosure, TRIP_FEE_REFUND_TERMS } from "./ops-orders";
+import { MIN_OVERRIDE_REASON, paymentOptions } from "./job-intake-rules";
+import { can } from "./ops-authz";
+import { DB_NOW } from "./db-now";
+import { refundDisclosure, travelRefundTerms, TRIP_FEE_REFUND_TERMS } from "./ops-orders";
 import { alreadyRaised } from "./billing-rules";
 import type { Author } from "./ops-crm";
 import { attributeOrder } from "./crm-attribution";
@@ -104,6 +106,8 @@ type FileForBilling = {
   twia_county?: boolean | null;
   payment_intent: string;
   client_id: string;
+  /** Travel the administrator typed for this job (0135); null for none. */
+  travel_cents?: number | null;
 };
 
 /**
@@ -147,7 +151,7 @@ async function loadFile(fileId: string): Promise<FileForBilling | null> {
   const { data } = await db
     .from("eng_files")
     .select(
-      "id, file_number, service_slug, deliverable, property_address, city, county, postal_code, client_price_cents, catalog_price_cents, coastal_surcharge_cents, twia_county, payment_intent, client_id",
+      "id, file_number, service_slug, deliverable, property_address, city, county, postal_code, client_price_cents, catalog_price_cents, coastal_surcharge_cents, twia_county, payment_intent, client_id, travel_cents",
     )
     .eq("id", fileId)
     .maybeSingle();
@@ -220,7 +224,14 @@ async function createOrderForFile(
       error: "That deliverable is not in the order catalog, so its refund terms cannot be stated.",
     };
   }
-  const disclosure = refundDisclosure(entry).join("\n\n");
+  /*
+   * TRAVEL, INSIDE THE TOTAL AND ON ITS OWN LINE (0135). The file's price stays
+   * the service's, so the coastal breakdown below is unchanged; the order's
+   * total is that price plus the travel, and the terms say what happens to the
+   * travel on a decline (Robert's answer 12).
+   */
+  const travel = file.travel_cents !== null && file.travel_cents !== undefined ? Number(file.travel_cents) : 0;
+  const disclosure = [...refundDisclosure(entry), ...(travel > 0 ? [travelRefundTerms(travel, file.county)] : [])].join("\n\n");
 
   const reference = referenceFor(client.email);
 
@@ -243,7 +254,8 @@ async function createOrderForFile(
       postal_code: file.postal_code,
       /* Money audit F11: the breakdown only when the price is the catalog's; see orderBreakdownFor. */
       ...orderBreakdownFor(file),
-      total_cents: file.client_price_cents,
+      total_cents: file.client_price_cents + travel,
+      travel_cents: travel > 0 ? travel : null,
       inspection_fee_cents: entry.inspectionFeeCents,
       refund_disclosure: disclosure,
       status: "awaiting_payment",
@@ -421,7 +433,8 @@ export async function sendPaymentLink(actor: Author, fileId: string): Promise<Bi
       reference: order.reference,
       propertyAddress: file.property_address,
       deliverableName: entryName(file),
-      amount: money(file.client_price_cents),
+      /* The total the checkout charges: the price and any travel (0135). */
+      amount: money((file.client_price_cents ?? 0) + (file.travel_cents ? Number(file.travel_cents) : 0)),
       payUrl: checkout.url,
       takenBy: actor.email,
     }),
@@ -516,6 +529,62 @@ export async function resendPaymentLink(actor: Author, fileId: string): Promise<
   });
 
   return { ok: true, orderId: order.id as string, reference: order.reference as string, checkoutUrl: checkout.url };
+}
+
+/**
+ * TRAVEL ON A JOB, TYPED BY THE ADMINISTRATOR BEFORE THE LINK. Robert's
+ * rulings of 2026-11-14 (travel typed per job; answers 12 to 15), 0135.
+ *
+ * Held to the price override's rules: pricing.override_at_intake, which the
+ * administrator holds, a reason of at least MIN_OVERRIDE_REASON characters, and
+ * an audit row. A field job only, because travel is the trip to the property.
+ * Refused once the job's order exists: the customer was quoted a total, and a
+ * travel line appearing after the link went out would be a charge nobody read
+ * back. A null amount clears it, under the same rules.
+ */
+export async function setTravel(
+  actor: Author,
+  fileId: string,
+  travelCents: number | null,
+  reason: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!can(actor, "pricing.override_at_intake")) return { ok: false, error: "Only an administrator sets travel on a job." };
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+  const file = await loadFile(fileId);
+  if (!file) return { ok: false, error: "That file does not exist." };
+  const entry = file.deliverable ? catalogFor(file.service_slug, file.deliverable) : undefined;
+  if (entry?.orderType !== "field") return { ok: false, error: "Travel is set only on a job somebody visits." };
+  if (travelCents !== null && (!Number.isInteger(travelCents) || travelCents <= 0)) {
+    return { ok: false, error: "Travel is a whole amount above zero, or nothing." };
+  }
+  const why = reason.trim();
+  if (why.length < MIN_OVERRIDE_REASON) return { ok: false, error: `Say why, in at least ${MIN_OVERRIDE_REASON} characters. Staff read it; the customer does not.` };
+  const raised = await secondOrderRefusal(fileId);
+  if (raised) return { ok: false, error: `Travel is set before the payment link. ${raised}` };
+
+  const { error } = await db
+    .from("eng_files")
+    .update(
+      travelCents === null
+        ? { travel_cents: null, travel_reason: null, travel_set_by: null, travel_set_at: null }
+        : { travel_cents: travelCents, travel_reason: why, travel_set_by: actor.id, travel_set_at: DB_NOW },
+    )
+    .eq("id", fileId);
+  if (error) return { ok: false, error: `Travel could not be saved: ${error.message}` };
+
+  await writeAudit({
+    actor,
+    action: travelCents === null ? "file.travel_cleared" : "file.travel_set",
+    entityType: "file",
+    entityId: fileId,
+    summary:
+      travelCents === null
+        ? `${file.file_number}: travel cleared. ${why}`
+        : `${file.file_number}: travel of ${money(travelCents)} set. ${why}`,
+    diff: { travel_cents: travelCents, previous_travel_cents: file.travel_cents ?? null },
+  });
+  return { ok: true };
 }
 
 /**

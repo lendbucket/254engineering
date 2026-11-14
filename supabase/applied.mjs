@@ -4889,6 +4889,25 @@ export const APPLIED = [
       "naming no_access, as predicted). PENDING ON PRODUCTION: only in a sitting with Robert. Additive: one table, " +
       "three columns, constraints and indexes; the ledger's kind check is replaced by a wider one.",
   },
+  {
+    file: "0135_a_job_can_carry_travel.sql", appliedBy: "apply_migration",
+    fingerprint: "3907c71a7dfd60ff3e50337cf6eeb022",
+    behaviour: "960d690a833654b518c7add87d68de12",
+    production: null,
+    proves: { table: "eng_files", column: "travel_cents" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-14 on the chain to 0135, with 0134 reproducing " +
+      "its pair first (fc0de798 at 1670 columns, bf14400c at 1686 facts). Shape 1670 to 1675 columns: travel_cents, " +
+      "travel_reason, travel_set_by and travel_set_at on eng_files, travel_cents on eng_service_orders; tables " +
+      "unchanged at 129. Behaviour 1686 to 1690 facts: the file's whole-or-none check and its foreign key, the " +
+      "order's positive check, and the once-per-job travel index; the ledger's kind check is replaced in place.",
+    because:
+      "WRITTEN 2026-11-14 ON feat/connect-batch-2, FOR ROBERT'S TRAVEL RULINGS OF 2026-11-14 (typed per job by the " +
+      "administrator; answers 12 to 15: refunded before the visit and kept after it, no partner commission, paid to " +
+      "the technician in full, the customer reads Travel to <county> County). PENDING ON DEVELOPMENT AND PRODUCTION: " +
+      "its development sitting request is posted before its board; production only in a sitting with Robert. " +
+      "Additive: five nullable columns, checks and one index; the ledger's kind check is replaced by a wider one.",
+  },
 ];
 
 /*

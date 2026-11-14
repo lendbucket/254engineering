@@ -61,6 +61,7 @@ import { licenceIsCurrentToday } from "./launch";
 import { signatureStatus } from "./protocol-sign";
 import { holdFor, holdRefusal } from "./dispatch-hold";
 import { noAccessRefusal, noAccessState } from "./no-access";
+import { orderForFileRead } from "./order-for-file";
 import { headlineEntry } from "./ordering";
 
 /**
@@ -2670,6 +2671,14 @@ export async function submitEvidence(
    */
   await recordTechnicianVisit(fileId);
 
+  /*
+   * And the travel is his, at the same moment it stops being refundable: the
+   * refund keeps travel exactly when this visit is recorded (refundFor,
+   * technicianVisited), so paying it anywhere else would pay a technician
+   * travel the customer is refunded. 0135, Robert's answers 12 and 14.
+   */
+  await payTravel(fileId, actor.id as string, view.file.file_number);
+
   return { ok: true };
 }
 
@@ -3725,6 +3734,39 @@ export async function recordVisit(
   });
 
   return { ok: true, at: data.created_at as string };
+}
+
+/**
+ * THE TRAVEL GOES TO THE TECHNICIAN WHO MAKES THE TRIP. Robert's answer 14 of
+ * 2026-11-14, 0135: in full, as its own line on his pay, from the travel the
+ * job's order carried. Written when his evidence is submitted, the moment the
+ * order records that somebody attended and the travel stops being refundable
+ * (answer 12). A trip he could not get into is paid by his no-access half rate
+ * and charged by the trip fee instead. Once per job by a unique index: the
+ * customer paid it once. A failure is logged and never undoes the submission.
+ */
+async function payTravel(fileId: string, techId: string, fileNumber: string): Promise<void> {
+  const db = supabaseAdmin();
+  if (!db) return;
+  const read = await orderForFileRead(fileId, "travel_cents");
+  if (!read.ok) {
+    console.error(`[field] ${fileNumber}: the job's travel could not be read, so none was written to the technician's pay`);
+    return;
+  }
+  const travel = read.order?.travel_cents === null || read.order?.travel_cents === undefined ? 0 : Number(read.order.travel_cents);
+  if (travel <= 0) return;
+  const { error } = await db.from("eng_tech_pay_ledger").insert({
+    tech_id: techId,
+    file_id: fileId,
+    amount_cents: travel,
+    kind: "travel",
+    status: "pending",
+    period: todayInFirmCalendar().slice(0, 7),
+    note: `${fileNumber}: travel to the property`,
+  });
+  if (error && !/duplicate key/i.test(error.message)) {
+    console.error(`[field] ${fileNumber}: the travel could not be written to the technician's pay: ${error.message}`);
+  }
 }
 
 /* ----------------------------------------------------------- returned evidence */

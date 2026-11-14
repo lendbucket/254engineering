@@ -49,6 +49,8 @@ export type FileRelated = {
   contacts: { role: string; name: string | null; email: string; pays: boolean; lastOpened: string | null }[];
   /** The latest visit the technician could not get into, and its trip fee (0134). Null when the read failed; the failure is in unreadable. */
   noAccess: NoAccessState | null;
+  /** Travel on the job and its reason, for a role that sees money (0135, 6b-i). Null for none, or not shown. */
+  travel: { amount: string; cents: number; reason: string } | null;
   unreadable: string[];
 };
 
@@ -56,7 +58,7 @@ export async function fileRelated(
   actor: Actor | null,
   file: { id: string; client_id: string | null; assigned_tech_id: string | null; assigned_engineer_id: string | null },
 ): Promise<FileRelated> {
-  const out: FileRelated = { client: null, order: null, payment: null, statusLinkOpened: null, statusLinkFirstOpened: null, technician: null, engineer: null, letters: [], contacts: [], noAccess: null, unreadable: [] };
+  const out: FileRelated = { client: null, order: null, payment: null, statusLinkOpened: null, statusLinkFirstOpened: null, technician: null, engineer: null, letters: [], contacts: [], noAccess: null, travel: null, unreadable: [] };
   const db = supabaseAdmin();
   if (!db || !actor) {
     out.unreadable.push("The records this file touches could not be read.");
@@ -165,6 +167,12 @@ export async function fileRelated(
   out.letters = (docs ?? [])
     .filter((d) => actor.role === "admin" || d.visibility !== "admin_only")
     .map((d) => ({ id: d.id as string, label: `${d.title as string}${d.sealed_at ? " (sealed)" : ""}`, href: `/api/portal/documents?id=${d.id as string}` }));
+
+  if (can(actor, "orders.read")) {
+    const { data: t, error: tError } = await db.from("eng_files").select("travel_cents, travel_reason").eq("id", file.id).maybeSingle();
+    if (tError) out.unreadable.push(`The travel on this job could not be read (${tError.message}).`);
+    else if (t?.travel_cents) out.travel = { cents: Number(t.travel_cents), amount: money(Number(t.travel_cents)), reason: (t.travel_reason as string | null) ?? "" };
+  }
 
   const access = await noAccessState(file.id);
   if (access.kind === "unknown") out.unreadable.push(`Whether a trip fee is owed could not be read (${access.error}).`);

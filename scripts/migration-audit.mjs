@@ -482,9 +482,14 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * eng_tech_pay_ledger. 1,662 to 1,670; tables 128 to 129. Read off
  * fingerprint-at.mjs on the chain to 0134, with 0133 reproducing its pair
  * first. Same commit.
+ *
+ * Moved by 0135, a job can carry travel (Robert's answers 12 to 15 of
+ * 2026-11-14): four columns on eng_files, one on eng_service_orders,
+ * 1,670 to 1,675; tables unchanged at 129. Read off fingerprint-at.mjs on the
+ * chain to 0135, with 0134 reproducing its pair first. Same commit.
  */
-const EXPECTED_FINGERPRINT = "fc0de798f3616227144f591ca390d00f";
-const EXPECTED_COLUMNS = 1670;
+const EXPECTED_FINGERPRINT = "3907c71a7dfd60ff3e50337cf6eeb022";
+const EXPECTED_COLUMNS = 1675;
 const EXPECTED_TABLES = 129;
 /* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts.
  * 0074 adds two: eng_partner_billing_touch and eng_partner_billing_events_immutable.

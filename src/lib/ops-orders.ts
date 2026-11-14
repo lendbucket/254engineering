@@ -8,13 +8,26 @@ import { TRIP_FEE_CENTS } from "@/config/prices";
  * THE TRIP FEE, DISCLOSED BEFORE PAYMENT ON EVERY FIELD ORDER. Robert's answer
  * 7 of 2026-11-14 (E5): the disclosure is his approved wording, verbatim. The
  * sentence after it is reworded so the terms do not promise what the trip fee
- * contradicts; that rewording is his question 17 (6880501594) and nothing here
- * merges before he answers it.
+ * contradicts, in the words he approved as his answer 17 the same day.
  */
 export const TRIP_FEE_DISCLOSURE = `If the technician cannot get in at the agreed time, a trip fee of ${money(TRIP_FEE_CENTS)} is charged before the visit is booked again.`;
-/** The refund terms stored on a trip fee order (answer 10; the wording is his question 16, 6880442466). */
+/** The refund terms stored on a trip fee order (answer 10; the wording approved as his answer 16). */
 export const TRIP_FEE_REFUND_TERMS = "This trip fee is not refunded, including if the job is later declined.";
 const FIELD_NEVER_MORE ="Apart from that trip fee, you are never charged more than the price shown above, and a decline is never a reason for a further charge.";
+
+/*
+ * TRAVEL ON A JOB (0135). Robert's answer 15 of 2026-11-14: the customer reads
+ * "Travel to Bell County", the county filled in, and never the reason. Answer
+ * 12: refunded in full on a decline before the visit, kept once the technician
+ * made the trip, stated in that order's refund terms. The terms sentence is
+ * drafted for his yes (question 19) and does not merge before it.
+ */
+export function travelLabel(county: string): string {
+  return `Travel to ${county} County`;
+}
+export function travelRefundTerms(travelCents: number, county: string): string {
+  return `${travelLabel(county)}, ${money(travelCents)}, is refunded in full if the job is declined before the visit, and kept once the technician has made the trip.`;
+}
 
 /**
  * The order engine's pure core: qualification, price composition, the refund
@@ -218,6 +231,12 @@ export type RefundInput = {
   outcome: ReviewOutcome;
   /** Did a technician actually attend? Not "was one dispatched". */
   technicianVisited: boolean;
+  /**
+   * The travel inside what was paid (0135). Refunded in full when nobody
+   * visited and kept once the technician made the trip (Robert's answer 12 of
+   * 2026-11-14). Absent and zero both mean the order carries none.
+   */
+  travelCents?: number | null;
 };
 
 export type Refund = {
@@ -324,7 +343,30 @@ export function refundFor(input: RefundInput): Refund {
    * and the catalog should not have allowed it in the first place; order-audit
    * checks that too.
    */
-  const retained = Math.min(input.inspectionFeeCents, input.paidCents);
+  /*
+   * THE TRIP WAS MADE, SO ITS TRAVEL IS KEPT WITH THE INSPECTION. Robert's
+   * answer 12 of 2026-11-14 widens the second invariant above: what the firm
+   * retains after a visit is the disclosed inspection fee plus the travel the
+   * order carried, still never more than was paid. Invariant 1 is untouched:
+   * with no visit, the travel is refunded with everything else.
+   */
+  const travel = input.travelCents && input.travelCents > 0 ? input.travelCents : 0;
+  const retained = Math.min(input.inspectionFeeCents + travel, input.paidCents);
+
+  if (travel > 0) {
+    const inspection = Math.min(input.inspectionFeeCents, input.paidCents);
+    const kept = retained - inspection;
+    const said = (rest: string) =>
+      `The engineer could not seal this. A technician attended and documented the property: that inspection is ${money(inspection)} and the travel to the property is ${money(kept)} of what you paid. ${rest} you receive what the engineer found and why they could not seal it.`;
+    return {
+      refundCents: input.paidCents - retained,
+      retainedCents: retained,
+      caseName: "Declined after a site visit",
+      explanation: said("The rest is refunded, and"),
+      explanationWhilePending: said("The rest is being refunded, and"),
+      receivesFindings: true,
+    };
+  }
 
   return {
     refundCents: input.paidCents - retained,

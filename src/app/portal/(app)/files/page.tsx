@@ -27,6 +27,7 @@ import { NewFileForm, TransitionControls, RequestInformation } from "./FileClien
 import { DispatchPanel } from "./DispatchPanel";
 import { ResendPaymentLink } from "./ResendPaymentLink";
 import { SendTripFee } from "./SendTripFee";
+import { SetTravel } from "./SetTravel";
 import { fileRelated, nextStepFor } from "@/lib/file-related";
 import { activeEngineer } from "@/lib/launch";
 import { FileThreadButton } from "@/components/portal/FileThreadButton";
@@ -390,7 +391,11 @@ export default async function FilesPage({
                   <>
                     <p className="mt-4 portal-kicker">Payment</p>
                     {related.payment.kind === "none" ? (
-                      <p className="mt-1.5 text-[14px] leading-[1.55] text-[var(--ink)]">No payment link or invoice has been raised for this job.</p>
+                      <>
+                        <p className="mt-1.5 text-[14px] leading-[1.55] text-[var(--ink)]">No payment link or invoice has been raised for this job.</p>
+                        {/* Travel is set before the link (0135); the administrator's, under the price override's rules. */}
+                        {can(actor, "pricing.override_at_intake") ? <SetTravel fileId={selected.id} current={related.travel} /> : null}
+                      </>
                     ) : related.payment.kind === "waiting" ? (
                       <>
                         <p className="mt-1.5 text-[14px] leading-[1.55] text-[var(--ink)]">
@@ -417,6 +422,12 @@ export default async function FilesPage({
                       </p>
                     ) : null}
                   </>
+                ) : null}
+
+                {related.travel ? (
+                  <p className="mt-1.5 text-[14px] leading-[1.55] text-[var(--ink)]">
+                    Travel: {related.travel.amount}. {related.travel.reason}
+                  </p>
                 ) : null}
 
                 {/* A visit the technician could not get into, and its trip fee (0134). The fee's state only for a role that sees money (6b-i). */}

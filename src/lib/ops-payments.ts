@@ -23,6 +23,7 @@ import {
   quoteFor,
   refundFor,
   refundForFirmCancellation,
+  travelLabel,
   type ReviewOutcome,
 } from "./ops-orders";
 import { event, issueCustomerLink } from "./ops-intake";
@@ -143,7 +144,7 @@ export async function startCheckout(orderId: string): Promise<CheckoutResult> {
   const { data: order } = await db
     .from("eng_service_orders")
     .select(
-      "id, reference, status, service_slug, tier, customer_email, total_cents, price_cents, coastal_surcharge_cents, currency, twia_county, county, property_address, kind",
+      "id, reference, status, service_slug, tier, customer_email, total_cents, price_cents, coastal_surcharge_cents, currency, twia_county, county, property_address, kind, travel_cents",
     )
     .eq("id", orderId)
     .maybeSingle();
@@ -182,6 +183,15 @@ export async function startCheckout(orderId: string): Promise<CheckoutResult> {
     .filter((l) => isKnown(l.amountCents) && (l.amountCents as number) > 0)
     .map((l) => ({ label: l.label, amountCents: l.amountCents as number }));
 
+  /*
+   * TRAVEL IS ITS OWN LINE, NAMED FOR THE COUNTY (0135, Robert's answer 15):
+   * "Travel to Bell County", never the reason, which is for staff. Inside the
+   * total, so a single fallback line covers the rest of it, never the travel.
+   */
+  const travel = !tripFee && order.travel_cents !== null && order.travel_cents !== undefined ? Number(order.travel_cents) : 0;
+  const serviceLines = chargeable.length ? chargeable : [{ label: "Sealed document", amountCents: Number(order.total_cents) - travel }];
+  const allLines = travel > 0 ? [...serviceLines, { label: travelLabel(order.county as string), amountCents: travel }] : serviceLines;
+
   const session = await provider.createCheckout({
     reference: order.reference as string,
     orderId: order.id as string,
@@ -189,7 +199,7 @@ export async function startCheckout(orderId: string): Promise<CheckoutResult> {
     currency: (order.currency as string) ?? "usd",
     customerEmail: order.customer_email as string,
     description: tripFee ? `Trip fee at ${order.property_address}` : `${entry?.name ?? order.service_slug} at ${order.property_address}`,
-    lines: chargeable.length ? chargeable : [{ label: "Sealed document", amountCents: Number(order.total_cents) }],
+    lines: allLines,
     /* A trip fee returns to its own sentence and is never counted as an order paid (0134). */
     successUrl: `${deploymentOrigin()}/order/${order.reference}?paid=1${tripFee ? "&trip=1" : ""}`,
     cancelUrl: `${deploymentOrigin()}/order/${order.reference}?cancelled=1`,
@@ -2895,7 +2905,7 @@ export async function settleDecision(input: {
 
   const { data: order, error: orderError } = await db
     .from("eng_service_orders")
-    .select("id, reference, status, inspection_fee_cents, technician_visited, currency, batch_id")
+    .select("id, reference, status, inspection_fee_cents, technician_visited, currency, batch_id, travel_cents")
     .eq("id", input.orderId)
     .maybeSingle();
   if (orderError) return { ok: false, error: `The order could not be read, so nothing was settled: ${orderError.message}` };
@@ -2973,6 +2983,8 @@ export async function settleDecision(input: {
       order.inspection_fee_cents === null ? null : Number(order.inspection_fee_cents),
     outcome: input.outcome,
     technicianVisited: Boolean(order.technician_visited),
+    /* Kept once the trip was made, refunded otherwise (0135, Robert's answer 12). */
+    travelCents: order.travel_cents === null || order.travel_cents === undefined ? null : Number(order.travel_cents),
   });
 
   if (!isKnown(decision.refundCents) || !isKnown(decision.retainedCents)) {

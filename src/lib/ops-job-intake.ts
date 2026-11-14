@@ -6,7 +6,7 @@ import { verifyOwnPassword } from "./ops-auth";
 import { isOwnerAdmin, OWNER_OVERRIDE, OWNER_OVERRIDE_ACTION } from "./owner-override";
 import { createClient, createFile, transitionFile, type Author } from "./ops-crm";
 import { can, type Actor } from "./ops-authz";
-import { sendPaymentLink } from "./ops-job-billing";
+import { sendPaymentLink, setTravel } from "./ops-job-billing";
 import { fileTouchKey, partnerByCode, recordTouch } from "./ops-partners";
 import { addFileContacts, contactProblem, type ContactInput } from "./file-contacts";
 import { endOfFirmDay } from "./firm-calendar";
@@ -106,6 +106,9 @@ export type TakeJobInput = {
   /** Only when the operator changed it. Null means take the catalog's. */
   priceCents?: number | null;
   priceOverrideReason?: string | null;
+  /** Travel the administrator typed, with its reason for staff (0135). Null or absent means none. */
+  travelCents?: number | null;
+  travelReason?: string | null;
   /** A fresh authenticator code, required only for a client price of zero. */
   noChargeCode?: string | null;
   /** The owner override alone (src/lib/owner-override.ts): his password in place of the code. */
@@ -155,6 +158,8 @@ export type TakeJobResult =
       partnerWarning?: string;
       /** Present when the copy contacts could not be saved (item 2), with the reason. */
       contactsWarning?: string;
+      /** Travel that could not be set; the link is then held back (0135). */
+      travelWarning?: string;
       /**
        * True when this New job had already been saved (0131): the file named is
        * the first one, and nothing was written a second time.
@@ -765,9 +770,22 @@ export async function takeJob(
    * was not. The job itself stands either way: somebody is on the telephone
    * about it.
    */
+  /*
+   * TRAVEL, SET BEFORE THE LINK (0135), through setTravel and its rules. If it
+   * cannot be set the link is held back: a link without the travel the caller
+   * was read would charge less than the read-back said, and the rep sees why.
+   */
+  let travelWarning: string | undefined;
+  if (input.travelCents !== null && input.travelCents !== undefined) {
+    const set = await setTravel(actor, file.id, input.travelCents, input.travelReason ?? "");
+    if (!set.ok) travelWarning = `The job was taken and the travel was not set: ${set.error}`;
+  }
+
   let paymentLinkWarning: string | undefined;
   if (input.paymentIntent === "link_sent" && contactsWarning) {
     paymentLinkWarning = "The payment link was not sent, because who pays could not be saved.";
+  } else if (input.paymentIntent === "link_sent" && travelWarning) {
+    paymentLinkWarning = "The payment link was not sent, because the travel could not be set. Set it on the file, then send the link.";
   } else if (input.paymentIntent === "link_sent") {
     const sent = await sendPaymentLink(actor, file.id);
     if (!sent.ok) paymentLinkWarning = `The job was taken and the payment link was not sent: ${sent.error}`;
@@ -783,6 +801,7 @@ export async function takeJob(
     ...(paymentLinkWarning ? { paymentLinkWarning } : {}),
     ...(partnerWarning ? { partnerWarning } : {}),
     ...(contactsWarning ? { contactsWarning } : {}),
+    ...(travelWarning ? { travelWarning } : {}),
   };
 }
 

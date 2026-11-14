@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { quoteFor } from "@/lib/ops-orders";
+import { quoteFor, travelLabel, travelRefundTerms } from "@/lib/ops-orders";
 import { overrideFloor } from "@/config/trade-floors";
 import { resolveCounty, twiaStatus } from "@/lib/ops-counties";
 import { money, isKnown } from "@/lib/ops-money";
@@ -42,6 +42,8 @@ type Deliverable = {
   orderType: CatalogEntry["orderType"];
   priceCents: number | null;
   coastalSurchargeCents: number | null;
+  /** The refund terms the order will store, worked out on the server from the full entry. */
+  refundTerms: string[];
 };
 
 type ClientMatch = {
@@ -127,6 +129,9 @@ export function IntakeClient({
   // -------------------------------------------------------------- the money
   const [overridePrice, setOverridePrice] = useState("");
   const [overrideReason, setOverrideReason] = useState("");
+  /* Travel, typed by the administrator for this job (0135). */
+  const [travel, setTravelText] = useState("");
+  const [travelReason, setTravelReason] = useState("");
   const [noChargeCode, setNoChargeCode] = useState("");
   const [noChargePassword, setNoChargePassword] = useState("");
 
@@ -406,11 +411,21 @@ export function IntakeClient({
    * charged that the operator did not see.
    */
   const unreadablePrice = overridePrice.trim() !== "" && !Number.isFinite(enteredCents);
+  /* Travel: blank is none; anything typed is a whole amount above zero with a reason, as setTravel asks again on the server. */
+  const travelCents = travel.trim() ? Math.round(Number(travel) * 100) : null;
+  const travelError =
+    travelCents === null
+      ? null
+      : !Number.isFinite(travelCents) || travelCents <= 0
+        ? "Type the travel as a plain number of dollars above zero, such as 85 or 85.50."
+        : travelReason.trim().length < MIN_OVERRIDE_REASON
+          ? `Say why there is travel, in at least ${MIN_OVERRIDE_REASON} characters. Staff read it; the customer does not.`
+          : null;
   const priceError = unreadablePrice
     ? "Type the price as a plain number of dollars, such as 1200 or 1200.50, with no dollar sign or commas."
     : "error" in priceDecision
       ? priceDecision.error
-      : null;
+      : travelError;
   const canSubmit =
     missing.length === 0 &&
     missingToOrder.length === 0 &&
@@ -491,6 +506,8 @@ export function IntakeClient({
           priceCents: "overridden" in priceDecision && priceDecision.overridden ? priceDecision.cents : null,
           priceOverrideReason:
             "overridden" in priceDecision && priceDecision.overridden ? priceDecision.reason : null,
+          travelCents: canOverridePrice && entry?.orderType === "field" && travelCents !== null && !travelError ? travelCents : null,
+          travelReason: travelReason.trim() || null,
           noChargeCode: noCharge && !ownerOverride ? noChargeCode : null,
           noChargePassword: noCharge && ownerOverride ? noChargePassword : null,
           draftId,
@@ -1061,8 +1078,35 @@ export function IntakeClient({
                 {catalogCents === null ? "not set" : money(catalogCents)}
               </dd>
             </div>
+            {/* Travel, read back on its own line in the words the customer reads (0135, answer 15). */}
+            {travelCents !== null && !travelError ? (
+              <div className="flex items-baseline justify-between gap-4">
+                <dt className="text-[14px] text-[var(--ink)]">{travelLabel(effectiveCounty ?? county)}</dt>
+                <dd className="text-[15px] font-semibold text-[var(--ink)]">{money(travelCents)}</dd>
+              </div>
+            ) : null}
           </dl>
         )}
+        {/*
+          THE REFUND TERMS, READ TO THE CALLER. The approved call script says
+          "the refund terms, read exactly as New job shows them", and until now
+          New job showed none. These are the sentences the order stores
+          (createOrderForFile), from the same refundDisclosure the web uses, so
+          what is read on the telephone is what the order will say.
+        */}
+        {entry ? (
+          <div className="mt-4">
+            <p className={label}>Refund terms, read to the caller</p>
+            <ul className="mt-1.5 flex max-w-[72ch] flex-col gap-1.5">
+              {[
+                ...entry.refundTerms,
+                ...(travelCents !== null && !travelError ? [travelRefundTerms(travelCents, effectiveCounty ?? county)] : []),
+              ].map((line) => (
+                <li key={line} className="text-[14px] leading-[1.55] text-[var(--ink)]">{line}</li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
 
         {canOverridePrice ? (
         <>
@@ -1093,6 +1137,31 @@ export function IntakeClient({
           The catalog price stays on the file either way. A price that changed with no record of who
           changed it or why is a dispute the firm loses.
         </p>
+        {entry?.orderType === "field" ? (
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <div>
+              <label htmlFor="travel" className={label}>Travel</label>
+              <input
+                id="travel"
+                inputMode="decimal"
+                value={travel}
+                onChange={(e) => setTravelText(e.target.value)}
+                className={fieldClass}
+                placeholder="Leave blank for none"
+              />
+            </div>
+            <div>
+              <label htmlFor="travelReason" className={label}>Why there is travel</label>
+              <input
+                id="travelReason"
+                value={travelReason}
+                onChange={(e) => setTravelReason(e.target.value)}
+                className={fieldClass}
+                placeholder={`At least ${MIN_OVERRIDE_REASON} characters, for staff only`}
+              />
+            </div>
+          </div>
+        ) : null}
         </>
         ) : (
           <p className={hint}>The catalog price is charged as it is. An administrator can change a price.</p>

@@ -1,5 +1,5 @@
 import { takeJob, searchClients, type TakeJobInput } from "@/lib/ops-job-intake";
-import { sendPaymentLink, resendPaymentLink, sendTripFeeLink, invoiceAccount } from "@/lib/ops-job-billing";
+import { sendPaymentLink, resendPaymentLink, sendTripFeeLink, invoiceAccount, setTravel } from "@/lib/ops-job-billing";
 import { requestOutstanding } from "@/lib/ops-file-inputs";
 import { dispatchContext, coveragePreview } from "@/lib/ops-field";
 import { addCoverageCounty } from "@/lib/tech-coverage";
@@ -107,6 +107,18 @@ async function handlePOST(request: NextRequest) {
           { ok: false, error: result.error, field: result.field },
           { status: 400 },
         );
+  }
+
+  /*
+   * TRAVEL ON A JOB, before its payment link (0135). setTravel asks
+   * pricing.override_at_intake itself and refuses once the order exists, so the
+   * rule lives in one place for this door and for New job.
+   */
+  if (action === "set_travel") {
+    const raw = body?.travelCents;
+    const cents = raw === null || raw === undefined || raw === "" ? null : Number(raw);
+    const result = await setTravel(actor, String(body?.fileId ?? ""), cents, String(body?.reason ?? ""));
+    return result.ok ? NextResponse.json({ ok: true }) : NextResponse.json({ ok: false, error: result.error }, { status: 400 });
   }
 
   /*

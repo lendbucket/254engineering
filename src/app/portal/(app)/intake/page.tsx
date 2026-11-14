@@ -5,6 +5,7 @@ import { can } from "@/lib/ops-authz";
 import { TEXAS_COUNTIES } from "@/lib/ops-counties";
 import { services } from "@/content/services";
 import { CATALOG } from "@data/catalog";
+import { refundDisclosure } from "@/lib/ops-orders";
 import { isOpen } from "@/lib/launch";
 import { isOwnerAdmin } from "@/lib/owner-override";
 import { PageHead } from "@/components/portal/surfaces";
@@ -62,6 +63,8 @@ export default async function IntakePage() {
     orderType: entry.orderType,
     priceCents: entry.priceCents,
     coastalSurchargeCents: entry.coastalSurchargeCents,
+    /* The refund terms the order will store (createOrderForFile), read back to the caller. */
+    refundTerms: refundDisclosure(entry),
   }));
 
   const lines = services

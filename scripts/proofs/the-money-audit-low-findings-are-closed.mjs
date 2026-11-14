@@ -55,7 +55,11 @@ check("F11: an overridden price carries no breakdown, so checkout keeps one line
 const unflagged = orderBreakdownFor({ client_price_cents: 78400, catalog_price_cents: 78400, coastal_surcharge_cents: 17500, twia_county: false });
 check("F11: a coastal amount without the county flag carries no breakdown", unflagged.price_cents === null, JSON.stringify(unflagged));
 const billing = read("src/lib/ops-job-billing.ts");
-check("F11: createOrderForFile writes the breakdown beside the total", /\.\.\.orderBreakdownFor\(file\),\n      total_cents: file\.client_price_cents,/.test(billing));
+/* Since 0135 the total is the service price plus any travel, which is recorded beside it, so price, coastal and travel still add up to the total. */
+check(
+  "F11: createOrderForFile writes the breakdown beside the total",
+  /\.\.\.orderBreakdownFor\(file\),\n      total_cents: file\.client_price_cents \+ travel,\n      travel_cents: travel > 0 \? travel : null,/.test(billing),
+);
 check("F11: and the file read selects the three fields", /client_price_cents, catalog_price_cents, coastal_surcharge_cents, twia_county, payment_intent/.test(billing));
 
 /* F13 */

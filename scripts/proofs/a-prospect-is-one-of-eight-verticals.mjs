@@ -60,6 +60,8 @@ const AFTER_0123 = [
   "0133_a_copy_contact_gets_the_letter_and_nothing_else.sql",
   /* The no-access trip fee (2026-11-14): a visit table, order and pay ledger columns; it names no eng_prospects, read by grep. */
   "0134_a_visit_that_could_not_get_in.sql",
+  /* Travel on a job (2026-11-14): file, order and pay ledger columns; it names no eng_prospects, read by grep. */
+  "0135_a_job_can_carry_travel.sql",
 ];
 const following = at >= 0 ? files.slice(at + 1) : [];
 check(
