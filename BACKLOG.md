@@ -155,6 +155,24 @@ seconds. The queue's growth is the entry "eng_jobs grows forever" below. The
 account count has no entry of its own, and is named here, with the queue,
 because a writer proof's single red sat beside both.
 
+## A WRITERS DEV SERVER ANSWERED 404 ON ONE SHAPE OF ROUTE, ONCE, UNEXPLAINED
+
+Board 43490081874 (`feat/insights-index-by-section` at `7b18bcf`, 2026-11-13).
+mobile-audit's dev server on port 4301 answered 404 in about 3ms of Next.js
+time, with no error line, on 14 routes. Every one was a static segment beside
+a dynamic sibling, such as `/order/start/roof-inspections` beside
+`/order/[ref]` and `/portal/files/dispatch` beside `/portal/files/[id]`, while
+`/order/[ref]` itself answered 200. Not reproduced: `next dev` on the same
+commit on this machine answered every one of those routes, twice. On Robert's
+word the commit was reboarded once unchanged (board 43520384059) and every
+route measured clean, 65 of 65. The board restores only one cache across runs,
+Playwright's browsers, keyed on `package-lock.json`, and each shard's `.next`
+comes from its own run's build, so a cache from another tree is not the
+explanation on reading the workflow. That was not confirmed against the
+failing run's logs, because the reboard passed. **If it recurs:** stop, do not
+board the same commit a third time, and check that run's logs for anything
+restored from another tree before anything else (Robert, 2026-11-13).
+
 ## A TURBOPACK PANIC CAN KILL A WRITERS AUDIT'S DEV SERVER, AND THE BOARD STAYS GREEN
 
 Board 42636411651 (T7 at `26c9550`, 2026-11-09). contrast-audit's dev server on
