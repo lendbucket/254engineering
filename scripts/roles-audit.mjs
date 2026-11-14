@@ -2527,6 +2527,11 @@ if (!db) {
          * for a PE is an empty ledger. It is not a window onto what technicians
          * are paid; that is read_all, and he does not have it.
          *
+         * CORRECTED 2026-11-14 (Part 1 finding 7): an engineer no longer reads
+         * payLedger here at all. The page renders ownProductionPay, his own
+         * production credit, because the empty technician ledger described
+         * above was what "Your pay" showed him for ever. Still his own rows only.
+         *
          * This was in the refused list on the first run of this check and the
          * check was wrong, not the code.
          */
