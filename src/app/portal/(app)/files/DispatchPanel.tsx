@@ -64,8 +64,11 @@ export function DispatchPanel({
   const [error, setError] = useState<string | null>(null);
 
   const offeredTo = new Map(alreadyOffered.map((o) => [o.techId, o.state]));
+  /* The plan's first choice, while nobody holds a live offer (item 5). */
+  const liveOffer = alreadyOffered.some((o) => o.state === "offered" || o.state === "accepted");
+  const suggested = !liveOffer && offers.length > 0 ? offers[0] : null;
 
-  async function send() {
+  async function send(only?: string[]) {
     setBusy(true);
     setError(null);
     try {
@@ -75,7 +78,7 @@ export function DispatchPanel({
         body: JSON.stringify({
           action: "send_offers",
           fileId,
-          techIds: selected,
+          techIds: only ?? selected,
           expiresInHours: expiry === "" ? null : Number(expiry),
         }),
       });
@@ -130,6 +133,32 @@ export function DispatchPanel({
         below" pointed at nothing; and when the only reason is coverage, the
         action is named and linked.
       */}
+      {/*
+        THE SUGGESTION, ONE CLICK TO OFFER. The Killeen call, item 5 (Robert,
+        2026-11-14): when payment lands the file moves itself to ready for
+        dispatch (releaseForFulfilment), and the panel names the plan's first
+        choice. The first choice is planDispatch's own ranking (fewest open jobs,
+        then nearest in a straight line), never a second ranking made here, and
+        it is offered only while nobody holds a live offer on the file.
+      */}
+      {suggested ? (
+        <div className="mt-4 border-l-2 border-[var(--navy)] py-1 pl-3">
+          <p className="text-[14px] leading-[1.55] font-semibold text-[var(--ink)]">
+            Suggested: {suggested.displayName}
+            {suggested.distanceMiles !== null ? `, ${Math.round(suggested.distanceMiles)} miles in a straight line` : ""}
+            {`, ${suggested.openJobs} open job${suggested.openJobs === 1 ? "" : "s"}`}.
+          </p>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void send([suggested.techId])}
+            className="mt-2 inline-flex min-h-[var(--tap-target)] items-center rounded-[2px] bg-[var(--navy)] px-4 text-[14px] font-bold text-white hover:bg-[var(--navy-hover)] disabled:opacity-50"
+          >
+            {busy ? "Sending" : `Offer to ${suggested.displayName}`}
+          </button>
+        </div>
+      ) : null}
+
       {offers.length === 0 && ineligible.length === 0 ? (
         <p className="mt-4 text-[14px] leading-[1.55] text-[var(--ink)]">
           Nobody can be offered this job because no field technician is on the roster. Add one, or

@@ -27,6 +27,7 @@ import { NewFileForm, TransitionControls, RequestInformation } from "./FileClien
 import { DispatchPanel } from "./DispatchPanel";
 import { ResendPaymentLink } from "./ResendPaymentLink";
 import { fileRelated, nextStepFor } from "@/lib/file-related";
+import { activeEngineer } from "@/lib/launch";
 import { FileThreadButton } from "@/components/portal/FileThreadButton";
 import { formatInFirmZone } from "@/lib/firm-calendar";
 import { ListControls } from "@/components/portal/ListControls";
@@ -81,6 +82,7 @@ export default async function FilesPage({
   /* The Killeen call, items 3 and 4: the next step, its owner, the payment, and every record the file touches. */
   const related = selected ? await fileRelated(actor, selected) : null;
   const nextStep = selected && related ? nextStepFor(selected.status, related.payment, Boolean(selected.assigned_tech_id)) : null;
+  const engineerOfRecord = activeEngineer()?.name ?? null;
   /* Arriving from Take the job: the warnings it returned, shown at the top of the file (text only, rendered escaped). */
   const taken = params.taken === "1";
   const takenWarnings = (Array.isArray(params.warn) ? params.warn : params.warn ? [params.warn] : []).map((w) => w.slice(0, 400));
@@ -433,6 +435,12 @@ export default async function FilesPage({
                       </li>
                     );
                   })}
+                  {/* Item 5: until an engineer takes the review, the engineer of record is named, from the register (activeEngineer). */}
+                  {!related.engineer && engineerOfRecord ? (
+                    <li className="text-[13.5px] text-[var(--secondary)]">
+                      Suggested engineer: {engineerOfRecord}, the engineer of record. The review is opened from the engineer&apos;s queue.
+                    </li>
+                  ) : null}
                   <li className="flex flex-wrap gap-x-2">
                     <span className="text-[var(--secondary)]">Letter:</span>
                     {related.letters.length === 0 ? (
