@@ -722,7 +722,7 @@ async function answerTravelRequest(actor: Author, fileId: string, request: { eve
     title: sent.ok ? `Travel set on ${number}: the payment link has gone` : `Travel set on ${number}: the payment link did not go`,
     description: sent.ok
       ? `The administrator set the travel you asked for, and the payment link went out against ${sent.reference}. Tell the caller to look for it.`
-      : `The administrator set the travel you asked for, and the payment link did not go: ${sent.error}`,
+      : `The administrator set the travel you asked for, and the payment link did not go: ${sent.error} Open the file: if an order was raised, send its link again from the payment block; if not, send the payment link from there.`,
     assigneeId: request.requestedBy,
     fileId,
   });

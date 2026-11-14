@@ -1647,7 +1647,8 @@ async function sendOrderConfirmation(
   const db = supabaseAdmin();
   if (!db) return "failed";
 
-  const view = await customerView(token);
+  /* The firm reading the order to write the email: never counted as the customer opening it. */
+  const view = await customerView(token, { asCustomer: false });
   if (!view) {
     await event(orderId, "email.not_sent", false, "The confirmation could not be built: the status link did not resolve.");
     return "failed";

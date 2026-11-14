@@ -73,9 +73,10 @@ export default async function CallScriptPage({
       />
 
       <form method="get" className="flex flex-wrap items-end gap-4 print:hidden">
-        <label className="flex flex-col gap-1 text-[14px] font-semibold text-[var(--ink)]">
+        {/* Bounded by the screen: at 390 the longest option made the select wider than the phone (after walk, 2026-11-14). */}
+        <label className="flex w-full min-w-0 flex-col gap-1 text-[14px] font-semibold text-[var(--ink)] sm:w-auto">
           Who is calling
-          <select name="type" defaultValue={type} className="min-h-[44px] rounded-[2px] border border-[var(--border)] bg-white px-3 text-[14px] font-normal">
+          <select name="type" defaultValue={type} className="min-h-[44px] w-full max-w-full rounded-[2px] border border-[var(--border)] bg-white px-3 text-[14px] font-normal">
             {CALL_TYPES.map((t) => (
               <option key={t} value={t}>
                 {CALL_SCRIPTS[t].title}
@@ -84,12 +85,12 @@ export default async function CallScriptPage({
           </select>
         </label>
         {script.deliverable ? null : (
-          <label className="flex flex-col gap-1 text-[14px] font-semibold text-[var(--ink)]">
+          <label className="flex w-full min-w-0 flex-col gap-1 text-[14px] font-semibold text-[var(--ink)] sm:w-auto">
             What they need
             <select
               name="deliverable"
               defaultValue={`${deliverable.serviceSlug}/${deliverable.tier}`}
-              className="min-h-[44px] rounded-[2px] border border-[var(--border)] bg-white px-3 text-[14px] font-normal"
+              className="min-h-[44px] w-full max-w-full rounded-[2px] border border-[var(--border)] bg-white px-3 text-[14px] font-normal"
             >
               {choosable.map((e) => (
                 <option key={`${e.serviceSlug}/${e.tier}`} value={`${e.serviceSlug}/${e.tier}`}>

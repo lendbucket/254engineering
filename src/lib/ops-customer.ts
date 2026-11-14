@@ -133,11 +133,12 @@ export function customerWhen(iso: string | null): string | null {
  * rather than that it is wrong would confirm the order exists to anybody
  * guessing.
  */
-export async function customerView(token: string): Promise<CustomerView | null> {
+export async function customerView(token: string, opts: { asCustomer?: boolean } = {}): Promise<CustomerView | null> {
   const db = supabaseAdmin();
   if (!db) return null;
 
-  const subject = await orderForCustomerToken(token);
+  /* Building an email from this view is not the customer opening it (after walk, 2026-11-14). */
+  const subject = await orderForCustomerToken(token, opts);
   if (!subject?.orderId) return null;
 
   const { data: order } = await db

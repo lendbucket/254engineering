@@ -227,7 +227,12 @@ export function nextStepFor(
   payment: PaymentState | null,
   hasTech: boolean,
   noAccess: NoAccessState | null = null,
+  /** Needs travel asked and not yet answered: the link waits for the administrator. */
+  travelAsked = false,
 ): { step: string; owner: string } {
+  if (travelAsked && (payment?.kind === "none" || payment === null)) {
+    return { step: "Set the travel; the payment link then goes by itself", owner: "Administrator" };
+  }
   /* A visit the technician could not get into is booked again only once its trip fee is paid (0134). */
   if (status === "needs_dispatch" && noAccess?.kind === "unpaid") {
     return noAccess.tripOrder

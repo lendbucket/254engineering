@@ -35,6 +35,18 @@ import { JoinedWithPhone } from "@/components/portal/PhoneLink";
  */
 import type { DispatchContext } from "@/lib/ops-field";
 
+/*
+ * A label that is already a sentence keeps its own mark. The after walk of
+ * 2026-11-14 read "addressed to?, needed" and "a permit.." because a full stop
+ * or a comma was added to a question the protocol wrote with its own.
+ */
+function endsAsSentence(label: string): boolean {
+  return /[.?!]$/.test(label.trim());
+}
+function asSentence(label: string): string {
+  return endsAsSentence(label) ? label : `${label}.`;
+}
+
 type Deliverable = {
   serviceSlug: string;
   tier: string;
@@ -965,7 +977,9 @@ export function IntakeClient({
               <ul className="mt-1.5 flex flex-col gap-1">
                 {outstandingLater.map((f) => (
                   <li key={f.id} className="text-[13px] leading-[1.5] text-[var(--secondary)]">
-                    {f.label}, needed before {f.stage === "dispatch" ? "a technician is sent" : "it can be sealed"}.
+                    {endsAsSentence(f.label)
+                      ? `${f.label} Needed before ${f.stage === "dispatch" ? "a technician is sent" : "it can be sealed"}.`
+                      : `${f.label}, needed before ${f.stage === "dispatch" ? "a technician is sent" : "it can be sealed"}.`}
                   </li>
                 ))}
               </ul>
@@ -1319,7 +1333,7 @@ export function IntakeClient({
               ))}
               {missingToOrder.map((f) => (
                 <li key={f.id} className="text-[14px] leading-[1.5] text-[var(--secondary)]">
-                  {f.label}.
+                    {asSentence(f.label)}
                 </li>
               ))}
             </ul>

@@ -959,8 +959,17 @@ export async function issueCustomerLink(
   return { token, expiresAt };
 }
 
-/** The order behind a customer link, or null. Never says which of those it is. */
-export async function orderForCustomerToken(token: string) {
+/**
+ * The order behind a customer link, or null. Never says which of those it is.
+ *
+ * `asCustomer: false` reads the order WITHOUT counting an open. Found on the
+ * Killeen after walk of 2026-11-14: the order confirmation is built from the
+ * customer's own view the moment a payment lands, so every paid order read as
+ * "the customer first opened their status page" at the instant of payment,
+ * and its last_seen_at had moved the same way since long before item 8. Only a
+ * person opening the link counts.
+ */
+export async function orderForCustomerToken(token: string, opts: { asCustomer?: boolean } = {}) {
   const db = supabaseAdmin();
   if (!db || !token) return null;
 
@@ -974,6 +983,13 @@ export async function orderForCustomerToken(token: string) {
   if (!access) return null;
   if (access.revoked_at) return null;
   if (new Date(access.expires_at as string).getTime() <= Date.now()) return null;
+
+  if (opts.asCustomer === false) {
+    return {
+      orderId: (access.order_id as string | null) ?? null,
+      quoteId: (access.quote_id as string | null) ?? null,
+    };
+  }
 
   /*
    * THE FIRST OPEN IS WRITTEN TO THE ORDER'S TIMELINE, ONCE. The Killeen call,

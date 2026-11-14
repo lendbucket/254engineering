@@ -28,7 +28,8 @@ check("carrying every warning it got back", ["alreadyTaken", "landingWarning", "
 const page = codeOf(readFileSync("src/app/portal/(app)/files/page.tsx", "utf8"));
 check("the file reads what it touches", /const related = selected \? await fileRelated\(actor, selected\) : null;/.test(page));
 /* With the latest visit nobody could get into since 0134, so an unpaid trip fee is the next step. */
-check("and its next step", /nextStepFor\(selected\.status, related\.payment, Boolean\(selected\.assigned_tech_id\), related\.noAccess\)/.test(page));
+/* And whether travel is asked for and not set, so the step is the administrator's (Needs travel). */
+check("and its next step", /nextStepFor\(selected\.status, related\.payment, Boolean\(selected\.assigned_tech_id\), related\.noAccess, travelAsked\?\.pending === true\)/.test(page));
 check("it shows the next step and its owner", /\{nextStep\.step\}/.test(page) && /Owner: \{nextStep\.owner\}/.test(page));
 check("a waiting payment offers a resend", /related\.payment\.kind === "waiting"[\s\S]*?<ResendPaymentLink fileId=\{selected\.id\} \/>/.test(page));
 check("it says when the customer last opened their status page", /related\.statusLinkOpened/.test(page) && /has not opened their status page/.test(page));
@@ -61,6 +62,24 @@ check("the first open takes the null once", /\.update\(\{ last_seen_at: DB_NOW \
 check("and only that writes the first-open line", /if \(\(firstOpen \?\? \[\]\)\.length > 0 && access\.order_id\) \{\s*await event\(access\.order_id as string, "customer_link\.first_opened", false,/.test(token));
 check("every later open still moves last_seen_at", /else if \(access\.last_seen_at !== null\) \{\s*await db\s*\.from\("eng_customer_access"\)\s*\.update\(\{ last_seen_at: DB_NOW \}\)/.test(token));
 check("the file reads the first open", /\.eq\("event", "customer_link\.first_opened"\)/.test(related));
+
+/*
+ * ONLY THE CUSTOMER OPENING THE LINK COUNTS. Found on the after walk of
+ * 2026-11-14: the order confirmation was built from the customer's own view,
+ * so every paid order read as opened at the instant of payment. A firm-side
+ * read passes asCustomer: false and returns before anything is stamped; the
+ * confirmation is that read; every other caller is one of the customer's doors.
+ */
+check(
+  "a firm-side read returns before any open is stamped",
+  token.indexOf("if (opts.asCustomer === false)") > 0 && token.indexOf("if (opts.asCustomer === false)") < token.indexOf(".update({ last_seen_at: DB_NOW })"),
+);
+const payments = codeOf(readFileSync("src/lib/ops-payments.ts", "utf8"));
+check("the order confirmation reads the view as the firm, not as the customer", /const view = await customerView\(token, \{ asCustomer: false \}\);/.test(payments));
+check(
+  "and the view passes that through to the token",
+  /const subject = await orderForCustomerToken\(token, opts\);/.test(codeOf(readFileSync("src/lib/ops-customer.ts", "utf8"))),
+);
 
 console.log("");
 if (wrong === 0) {

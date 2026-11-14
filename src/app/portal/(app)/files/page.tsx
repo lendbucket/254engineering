@@ -85,9 +85,12 @@ export default async function FilesPage({
   const selected = params.id ? await getFile(actor, params.id) : null;
   /* The Killeen call, items 3 and 4: the next step, its owner, the payment, and every record the file touches. */
   const related = selected ? await fileRelated(actor, selected) : null;
-  const nextStep = selected && related ? nextStepFor(selected.status, related.payment, Boolean(selected.assigned_tech_id), related.noAccess) : null;
   /* A travel request nobody has answered, which holds the payment link (Robert's ruling, Needs travel). */
   const travelAsked = selected ? await travelRequestFor(selected.id) : null;
+  const nextStep =
+    selected && related
+      ? nextStepFor(selected.status, related.payment, Boolean(selected.assigned_tech_id), related.noAccess, travelAsked?.pending === true)
+      : null;
   /* The latest visit nobody could get into, when there is one (0134). */
   const noAccess = (() => {
     const s = related?.noAccess;
