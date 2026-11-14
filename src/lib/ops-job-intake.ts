@@ -123,6 +123,9 @@ export type TakeJobInput = {
   uploads?: { fieldId: string; bucket: string; storageKey: string; contentType?: string | null; byteSize?: number | null }[];
 };
 
+/** A draftId is a v4 uuid minted by the form; anything else is not a request key and guards nothing. */
+const UUID_SHAPE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /** The bucket intake documents land in, which is the one order uploads use. */
 const INTAKE_BUCKET = "eng-uploads";
 
@@ -142,6 +145,11 @@ export type TakeJobResult =
       paymentLinkWarning?: string;
       /** Present when a partner code was given and its touch could not be recorded, with the reason. */
       partnerWarning?: string;
+      /**
+       * True when this New job had already been saved (0131): the file named is
+       * the first one, and nothing was written a second time.
+       */
+      alreadyTaken?: boolean;
     }
   | { ok: false; error: string; field?: string };
 
@@ -215,6 +223,40 @@ export async function takeJob(
 ): Promise<TakeJobResult> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
+
+  /*
+   * THE SAME NEW JOB SAVED TWICE IS ONE FILE. Part 1 finding 6, 0131.
+   *
+   * The form mints one draftId per sitting and sends it with every save. A
+   * save past the 20 second bound is answered "may not have saved" while it
+   * may still be running, and the button comes back; a second press used to
+   * make a second file and, once the gate opens, a second payment link. So the
+   * id is asked about BEFORE anything is written (the no-charge record, the
+   * client, the file, the answers, the partner touch, the link), and a file
+   * already under it is returned as it is. Two presses landing in the same
+   * instant are caught by 0131's unique index instead, in createFile.
+   */
+  const intakeRequestId = typeof input.draftId === "string" && UUID_SHAPE.test(input.draftId) ? input.draftId : null;
+  if (intakeRequestId) {
+    const { data: first, error: firstError } = await db
+      .from("eng_files")
+      .select("id, file_number, client_id, status")
+      .eq("intake_request_id", intakeRequestId)
+      .maybeSingle();
+    if (firstError) {
+      return { ok: false, error: `Whether this job was already saved could not be read (${firstError.message}). Nothing was saved. Try again in a moment.` };
+    }
+    if (first) {
+      return {
+        ok: true,
+        fileId: first.id as string,
+        fileNumber: first.file_number as string,
+        clientId: first.client_id as string,
+        landedAt: first.status as string,
+        alreadyTaken: true,
+      };
+    }
+  }
 
   /*
    * THE CATALOG PRICE AS IT IS, FOR ANYBODY WITHOUT pricing.override_at_intake.
@@ -528,10 +570,15 @@ export async function takeJob(
        */
       paymentIntent: input.paymentIntent === "link_sent" ? "unset" : input.paymentIntent,
       paymentNote: input.paymentNote ?? null,
+      intakeRequestId,
     },
     context,
   );
   if (!file.ok) return { ok: false, error: file.error };
+  /* Two saves in the same instant: the index kept one file, and this is it. Nothing more is written. */
+  if (file.duplicate) {
+    return { ok: true, fileId: file.id, fileNumber: file.fileNumber, clientId, landedAt: "intake", alreadyTaken: true };
+  }
 
   /*
    * The answers, written against the field ids the definition uses.

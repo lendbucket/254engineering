@@ -593,7 +593,17 @@ export type CreateFileInput = {
 
   paymentIntent?: import("./job-intake-rules").PaymentIntent;
   paymentNote?: string | null;
+
+  /**
+   * The New job form's id for this sitting (0131). One file per id: a second
+   * insert under the same id meets eng_files_intake_request_once, and the
+   * first file is returned with duplicate set. Only takeJob passes it.
+   */
+  intakeRequestId?: string | null;
 };
+
+/** The index 0131 adds, named so its conflict is told from a file number collision. */
+const INTAKE_REQUEST_INDEX = "eng_files_intake_request_once";
 
 /**
  * Open a file.
@@ -607,7 +617,7 @@ export async function createFile(
   actor: Author,
   input: CreateFileInput,
   context: { ip?: string | null; userAgent?: string | null } = {},
-): Promise<{ ok: true; id: string; fileNumber: string } | { ok: false; error: string }> {
+): Promise<{ ok: true; id: string; fileNumber: string; duplicate?: boolean } | { ok: false; error: string }> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
   if (!input.propertyAddress?.trim()) return { ok: false, error: "A file needs a property address." };
@@ -796,6 +806,7 @@ export async function createFile(
         payment_intent: input.paymentIntent ?? "unset",
         payment_note: input.paymentNote || null,
         converted_from_lead_id: input.fromLeadId || null,
+        intake_request_id: input.intakeRequestId || null,
         created_by: actor.id,
         status: "intake",
       })
@@ -821,6 +832,23 @@ export async function createFile(
         ...context,
       });
       return { ok: true, id: data.id, fileNumber: data.file_number as string };
+    }
+    /*
+     * THE SAME NEW JOB SAVED TWICE (0131). Its index is named in the message,
+     * which is how it is told from a file number collision; the first file is
+     * returned rather than a number retried, because retrying would make the
+     * very second file the index exists to stop.
+     */
+    if (error && input.intakeRequestId && error.message.includes(INTAKE_REQUEST_INDEX)) {
+      const { data: first, error: firstError } = await db
+        .from("eng_files")
+        .select("id, file_number")
+        .eq("intake_request_id", input.intakeRequestId)
+        .maybeSingle();
+      if (firstError || !first) {
+        return { ok: false, error: `This job was already saved once and that file could not be read back${firstError ? `: ${firstError.message}` : ""}. Open Files before trying again.` };
+      }
+      return { ok: true, id: first.id as string, fileNumber: first.file_number as string, duplicate: true };
     }
     if (error && !/duplicate key/i.test(error.message)) return { ok: false, error: error.message };
   }

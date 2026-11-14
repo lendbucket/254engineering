@@ -177,6 +177,7 @@ export function IntakeClient({
     landingWarning?: string;
     paymentLinkWarning?: string;
     partnerWarning?: string;
+    alreadyTaken?: boolean;
   } | null>(null);
 
   /*
@@ -518,6 +519,13 @@ export function IntakeClient({
               ? "The file is open and in the engineer's review queue. There is nothing to dispatch: desk work arrives with its evidence attached."
               : "The file is open and sitting at intake. A quote has nothing to dispatch and nothing to review until somebody accepts a number."}
         </p>
+
+        {done.alreadyTaken ? (
+          <p className="mt-3 border-l-2 border-[var(--ink)] py-1 pl-3 text-[14px] leading-[1.55] text-[var(--ink)]">
+            This job had already been saved, as {done.fileNumber}. Nothing was saved a second time: no second file,
+            and no second payment link. Open the file to see where it stands.
+          </p>
+        ) : null}
 
         {done.landingWarning ? (
           <p className="mt-3 border-l-2 border-[var(--ink)] py-1 pl-3 text-[14px] leading-[1.55] text-[var(--ink)]">

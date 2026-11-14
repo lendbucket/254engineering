@@ -4809,6 +4809,24 @@ export const APPLIED = [
       "or production; development by the chat counterpart before the batch boards, production only in a sitting " +
       "with Robert. Additive: four grant rows.",
   },
+  {
+    file: "0131_a_job_taken_twice_is_one_file.sql", appliedBy: "apply_migration",
+    fingerprint: "8e77b8e2732c0a132f485a2f192b0c34",
+    behaviour: "c6e99d2c8e882a6f85ebf49e41ebff36",
+    production: null,
+    proves: { table: "eng_files", column: "intake_request_id" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-14 on the chain to 0131, with 0130 reproducing " +
+      "its pair first (1cbe1959 at 1643 columns, 71b92625 at 1653 facts). Shape 1643 to 1644 columns, the one column " +
+      "eng_files.intake_request_id; tables unchanged at 126. Behaviour 1653 to 1654 facts, the partial unique index " +
+      "eng_files_intake_request_once.",
+    because:
+      "WRITTEN 2026-11-14 ON feat/connect-batch-1, FOR ROBERT'S ANSWER 1 OF 2026-11-14 (PART 1 FINDING 6): a New job " +
+      "saved twice made two files and, once open, two payment links. takeJob asks under the form's draftId before " +
+      "writing anything, and the index catches two saves in the same instant. PENDING: not on development or " +
+      "production; development by the chat counterpart before the batch boards, production only in a sitting with " +
+      "Robert. Additive: one nullable column and one index.",
+  },
 ];
 
 /*
