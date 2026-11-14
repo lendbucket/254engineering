@@ -10,6 +10,7 @@ import { sendPaymentLink } from "./ops-job-billing";
 import { fileTouchKey, partnerByCode, recordTouch } from "./ops-partners";
 import { addFileContacts, contactProblem, type ContactInput } from "./file-contacts";
 import { endOfFirmDay } from "./firm-calendar";
+import { ownProtocolRequired } from "@/config/own-protocol";
 import { catalogFor, orderBlockedReason } from "@data/catalog";
 import { quoteFor } from "./ops-orders";
 import { resolveCounty, twiaStatus, windstormAreaRefusal } from "./ops-counties";
@@ -320,6 +321,19 @@ export async function takeJob(
   const entry = catalogFor(input.serviceSlug, input.tier);
   if (!entry) {
     return { ok: false, error: "That deliverable is not in the catalog.", field: "tier" };
+  }
+  /*
+   * NOT EVEN WRITTEN DOWN AS A JOB. A deliverable that opens only on a protocol
+   * of its own (OWN_PROTOCOL_REQUIRED, Robert's answer 11 of 2026-11-14) is
+   * refused here too, because a job taken without payment would still reach
+   * dispatch and review with no protocol the engineer signed for it.
+   */
+  if (ownProtocolRequired(input.serviceSlug, input.tier)) {
+    return {
+      ok: false,
+      error: "This service is not available to order yet: the engineer of record has not confirmed the protocol that covers it.",
+      field: "tier",
+    };
   }
 
   /*

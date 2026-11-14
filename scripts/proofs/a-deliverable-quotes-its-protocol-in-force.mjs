@@ -25,6 +25,7 @@ const catalog = await import("../../data/catalog.ts");
 const { services } = await import("../../src/content/services.ts");
 const { PROTOCOL_ENTRIES } = await import("../../src/content/protocols/index.ts");
 const { SIGNABLE_PROTOCOLS, HELD_OUT_OF_FORCE } = await import("../../src/content/protocols/signable.ts");
+const { OWN_PROTOCOL_REQUIRED } = await import("../../src/config/own-protocol.ts");
 
 const results = [];
 const check = (name, ok, detail = "") => {
@@ -36,8 +37,14 @@ const { inForceFor, inForceSet } = inForceResolver({
   PROTOCOL_ENTRIES,
   SIGNABLE_PROTOCOLS,
   HELD_OUT_OF_FORCE,
+  OWN_PROTOCOL_REQUIRED,
   paperText: () => undefined,
 });
+check(
+  "the real estate letter, held for a protocol of its own, borrows none: it reads as pending",
+  inForceFor({ serviceSlug: "structural-letters", tier: "real-estate" }) === null &&
+    inForceFor({ serviceSlug: "structural-letters", tier: "standard" })?.documentNumber === "254-PL-001",
+);
 
 check(
   "the protocols in force are the code's declared set, and it holds 254-WS-001",

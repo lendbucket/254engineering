@@ -175,7 +175,12 @@ export const servicePrices: Record<string, ServicePrice> = {
    */
   "structural-letters": {
     kind: "fixed",
-    byTier: { standard: 70_900 },
+    /*
+     * real-estate: $709, Robert's answer 11 of 2026-11-14, a structural letter
+     * for a real estate transaction. Not sellable until the engineer of record
+     * confirms its protocol (OWN_PROTOCOL_REQUIRED in src/lib/line-gate.ts).
+     */
+    byTier: { standard: 70_900, "real-estate": 70_900 },
     headlineTier: "standard",
     whatChangesIt:
       "The price includes a technician's visit to the property, which most letters about existing construction rest on. A question that needs design or a repair method rather than a letter is its own engagement.",

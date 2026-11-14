@@ -70,6 +70,8 @@ const RULED_PRICES = {
 const RULED_DESIGN_HOURLY = 22_500;
 const RULED_DESIGN_MINIMUM = 200_000;
 const RULED_WPI8_ONGOING = 99_500;
+/* Robert's answer 11 of 2026-11-14 on issue #1: a structural letter for a real estate transaction, $709. */
+const RULED_STRUCTURAL_REAL_ESTATE = 70_900;
 
 /*
  * WPI-8 ONGOING: FOUR STAGE VISITS INCLUDED, $150 FOR EACH FURTHER VISIT.
@@ -125,6 +127,11 @@ for (const [slug, cents] of Object.entries(RULED_PRICES)) {
     "WPI-8 ongoing construction is ruled at its own price",
     deliverablePriceCents("windstorm-wpi-8", "ongoing") === RULED_WPI8_ONGOING,
     money(deliverablePriceCents("windstorm-wpi-8", "ongoing") ?? 0),
+  );
+  rec(
+    "the structural letter for a real estate transaction is ruled at its own price (answer 11 of 2026-11-14)",
+    deliverablePriceCents("structural-letters", "real-estate") === RULED_STRUCTURAL_REAL_ESTATE,
+    money(deliverablePriceCents("structural-letters", "real-estate") ?? 0),
   );
   rec(
     "and completed construction is the cheaper of the two, which is what the page leads with",
