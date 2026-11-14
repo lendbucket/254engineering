@@ -72,7 +72,8 @@ check(
   ga.cleanedLocation(O, "/services/windstorm-wpi-8", "?utm_source=g&token=x&email=a%40b.c&gclid=1&ref=p"),
 );
 check("only the canonical host sends", ga.sendsFrom("254engineering.com", "254engineering.com") && !ga.sendsFrom("localhost:4300", "254engineering.com") && !ga.sendsFrom("254engineering-x.vercel.app", "254engineering.com"));
-check("the two events are named as ruled", JSON.stringify(ga.GA_EVENTS) === JSON.stringify({ orderStarted: "order_started", orderPaid: "order_paid" }));
+/* Three since 2026-11-13: Robert named the two conversions order_paid and phone_tap. */
+check("the three events are named as ruled", JSON.stringify(ga.GA_EVENTS) === JSON.stringify({ orderStarted: "order_started", orderPaid: "order_paid", phoneTap: "phone_tap" }));
 
 /* The component. */
 const comp = readFileSync("src/components/site/Analytics.tsx", "utf8");
@@ -110,6 +111,32 @@ check("and carries only the service slug", /params=\{\{ service: slug \}\}/.test
 const paidBranch = paid.slice(paid.indexOf("if (!view && paid)"), paid.indexOf("if (!view && paid)") + 1200);
 check("order paid fires once, inside the Stripe return's branch", paidCall.length === 1 && /GA_EVENTS\.orderPaid/.test(paidCall[0]) && paidBranch.includes(paidCall[0]));
 check("and carries no parameter", !/params=/.test(paidCall[0] ?? ""));
+
+/*
+ * ONCE PER ORDER, NEVER ON A RELOAD (Robert, 2026-11-13). The return page
+ * renders on every reload, so the paid event is keyed on the order and
+ * remembered BEFORE it is sent; a key already there sends nothing. The
+ * reference is the key and never a parameter.
+ */
+check("order paid is once per order, keyed on the reference", /once=\{reference\}/.test(paidCall[0] ?? ""));
+const gaComponent = readFileSync("src/components/site/Analytics.tsx", "utf8");
+const mount = gaComponent.slice(gaComponent.indexOf("export function TrackOnMount"));
+check(
+  "and a key already remembered sends nothing, the key written before the send",
+  /if \(window\.localStorage\.getItem\(remembered\)\) return;/.test(mount) &&
+    mount.indexOf("localStorage.setItem(remembered") < mount.indexOf('window.gtag!("event", event'),
+);
+check("the remembered key is the event and the order, in this browser only", ga.onceKey("order_paid", "254-O2026-000001") === "ga-sent:order_paid:254-O2026-000001");
+
+/* PHONE_TAP, one per tap of a tel: link, sent from the public layouts' one component, carrying no number. */
+const tapAt = gaComponent.indexOf("GA_EVENTS.phoneTap");
+check(
+  "phone tap is sent on a click on any tel: link, and carries only the page",
+  tapAt > 0 &&
+    /closest\?\.\('a\[href\^="tel:"\]'\)/.test(gaComponent) &&
+    /document\.addEventListener\("click", onTap, true\)/.test(gaComponent) &&
+    /GA_EVENTS\.phoneTap, \{ page_location: currentLocation\(\) \}\)/.test(gaComponent),
+);
 
 /* The disclosure. Robert, 2026-11-01, Q1: the privacy page says it, in his approved words. */
 const privacy = readFileSync("src/app/(site)/privacy/page.tsx", "utf8").replace(/\s+/g, " ");
