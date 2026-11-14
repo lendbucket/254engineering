@@ -61,3 +61,6 @@ create unique index if not exists eng_file_contacts_one_payer
   where pays and removed_at is null;
 
 alter table eng_file_contacts enable row level security;
+
+/* Closed to every API role, as every eng_ table since 0100: read and written through the service role only. */
+revoke all on eng_file_contacts from public, anon, authenticated;

@@ -52,3 +52,6 @@ comment on table eng_letter_links is
 create index if not exists eng_letter_links_contact_idx on eng_letter_links (contact_id);
 
 alter table eng_letter_links enable row level security;
+
+/* Closed to every API role, as every eng_ table since 0100: read and written through the service role only. */
+revoke all on eng_letter_links from public, anon, authenticated;
