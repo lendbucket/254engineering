@@ -331,31 +331,45 @@ export async function readThreads(
     : { data: [], error: null };
   const fileById = new Map((files ?? []).map((f) => [f.id as string, f]));
 
-  const { data: lastMessages, error: messagesError } = await db
-    .from("eng_messages")
-    .select("thread_id, body, created_at")
-    .in("thread_id", readable.map((r) => r.id))
-    .order("created_at", { ascending: false })
-    .limit(400);
-  if (pageFailed || filesError || messagesError) {
-    return { ok: false, error: `The conversations' details could not be read: ${(filesError ?? messagesError)?.message ?? "who is in them"}.` };
-  }
-
+  /*
+   * THE PREVIEW AND THE UNREAD COUNT, EACH READ EXACTLY PER THREAD. Office-ready
+   * Batch B (issue #1, 6871302517): both used to come from one read of at most
+   * 400 messages across the page's hundred threads, so a busy thread's unread
+   * figure was the length of a sample shown as a count, and a thread with none
+   * of its messages in the 400 had no preview at all. Now each thread asks for
+   * its newest message (limit 1 is the question, not a sample) and for an exact
+   * count of the messages after the reader last read it. Ten threads at a time.
+   */
   const previewByThread = new Map<string, string>();
-  const countsByThread = new Map<string, { body: string; created_at: string }[]>();
-  for (const m of lastMessages ?? []) {
-    const id = m.thread_id as string;
-    if (!previewByThread.has(id)) previewByThread.set(id, m.body as string);
-    countsByThread.set(id, [...(countsByThread.get(id) ?? []), m as { body: string; created_at: string }]);
+  const unreadByThread = new Map<string, number>();
+  let messagesError: string | null = null;
+  for (let i = 0; i < readable.length; i += 10) {
+    await Promise.all(
+      readable.slice(i, i + 10).map(async (row) => {
+        const me = (byThread.get(row.id) ?? []).find((p) => p.id === actor.id);
+        const [newest, count] = await Promise.all([
+          db.from("eng_messages").select("body").eq("thread_id", row.id).order("created_at", { ascending: false }).order("id", { ascending: false }).limit(1),
+          me?.lastReadAt
+            ? db.from("eng_messages").select("id", { count: "exact", head: true }).eq("thread_id", row.id).gt("created_at", me.lastReadAt)
+            : db.from("eng_messages").select("id", { count: "exact", head: true }).eq("thread_id", row.id),
+        ]);
+        if (newest.error || count.error || count.count === null) {
+          messagesError = (newest.error ?? count.error)?.message ?? "a count came back empty";
+          return;
+        }
+        if (newest.data?.[0]) previewByThread.set(row.id, newest.data[0].body as string);
+        unreadByThread.set(row.id, count.count);
+      }),
+    );
+  }
+  if (pageFailed || filesError || messagesError) {
+    return { ok: false, error: `The conversations' details could not be read: ${filesError?.message ?? messagesError ?? "who is in them"}.` };
   }
 
   const threads = readable.map((row) => {
     const participants = byThread.get(row.id) ?? [];
-    const me = participants.find((p) => p.id === actor.id);
-    const messages = countsByThread.get(row.id) ?? [];
-    const unread = me?.lastReadAt
-      ? messages.filter((m) => m.created_at > (me.lastReadAt as string)).length
-      : messages.length;
+    /* Exact, per thread; every thread on the page has an entry or the read above failed. */
+    const unread = unreadByThread.get(row.id) ?? 0;
 
     const file = row.file_id ? fileById.get(row.file_id) : null;
     const title =
