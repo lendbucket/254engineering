@@ -115,7 +115,7 @@ export function makeBatchRunner({ db, created, batchSize, runBatch, worker }) {
   let lastRefusal = "";
 
   /** Rows eligible right now, in the order eng_claim_jobs would take them. */
-  async function nextEligible(limit) {
+  async function nextEligible(limit, only = null) {
     /*
      * THE DATABASE'S CLOCK, BECAUSE THE CLAIM USES THE DATABASE'S CLOCK.
      *
@@ -138,11 +138,22 @@ export function makeBatchRunner({ db, created, batchSize, runBatch, worker }) {
      * have hidden an eligible pending row behind them. The claim's WHERE clause
      * is `pending, or running with a lapsed lease`, and PostgREST can say that.
      */
-    const { data, error } = await db
+    /*
+     * `only` NARROWS THE SAME QUESTION TO NAMED ROWS. Office-ready Batch B
+     * (issue #1, 6872489995): queue-audit's clock check enqueues three probes
+     * "a moment ago", so they sort last behind every older job, and past
+     * PostgREST's thousand row ceiling the check could not see them and printed
+     * COULD NOT TELL. Asking about the probes by id, under the guard's own WHERE
+     * clause and clock, answers whether the guard would call them eligible
+     * whatever the depth. Without it, the read is unchanged.
+     */
+    let query = db
       .from("eng_jobs")
       .select("id, kind, status, run_after, leased_until, effect_mode")
       .lte("run_after", "now")
-      .or("status.eq.pending,and(status.eq.running,leased_until.lt.now)")
+      .or("status.eq.pending,and(status.eq.running,leased_until.lt.now)");
+    if (only) query = query.in("id", only);
+    const { data, error } = await query
       .order("run_after", { ascending: true })
       .order("id", { ascending: true })
       .limit(limit);
