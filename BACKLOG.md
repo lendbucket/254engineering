@@ -1111,7 +1111,22 @@ routes unmeasured fails the run outright.
 verdict, both unmeasured paths in this file, the suite reading exit 3, and that
 mobile-audit is not exempt. Nothing is left open.
 
-## THE INSIGHTS INDEX IS 386PX UNDER ITS CEILING, BUILT BEFORE THE NEXT BLOG SECTION
+## THE INSIGHTS INDEX IS 386PX UNDER ITS CEILING: BUILT 2026-11-13, GROUPED BY SECTION
+
+**Built on Robert's answer 3 of 2026-11-13.** The hub shows each section's
+newest `HUB_POSTS_PER_SECTION` (3) posts in full and links to that section's
+own page, `/insights/section/<slug>`, which lists every post in it and links
+the other sections. The sections, their labels and their page copy are
+declared in `src/content/insight-sections.ts`, kept out of `insights.ts`
+because guide-dates reads every `slug:` block there as a post. The section
+pages are in the sitemap with no per-page date, like the hub. seo-audit asserts
+from the rendered pages that every post in the sitemap is linked from
+`/insights` or from a section page it links. **This entry had gone partly
+stale:** on 2026-10-30 the hub was already cut to the newest twelve in full and
+the rest compact, which still grew with every post. **Open:** a single section
+page grows with its own section; the largest, coastal, has 16 posts. When one
+section nears the ceiling, the same shape applies one level down. The original
+entry follows.
 
 Found 2026-10-18 in the readers of `80b6216` on `content/blog-roofs`.
 mobile-overflow-audit measured `/insights` at **15,614px at 390**, the tallest
