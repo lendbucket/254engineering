@@ -1271,7 +1271,7 @@ const buyerInsights: Insight[] = [
     eyebrow: "Buying and lending",
     primaryKeyword: "pre purchase home inspection",
     datePublished: BUYERS_SECTION_DATE,
-    dateModified: "2026-11-01",
+    dateModified: "2026-11-14",
     body: [
       {
         kind: "p",
@@ -1280,6 +1280,25 @@ const buyerInsights: Insight[] = [
       {
         kind: "p",
         text: "Where it does, the scope 254 Engineering describes for a foundation evaluation is on [the foundation inspection page](/services/foundation-inspections), and for a roof on [the roof certification page](/services/roof-inspections).",
+      },
+      /*
+       * SEO report section 5, page 7 (Robert's add-on of 2026-11-14, and his
+       * answer 2: built on the inspection report sentence in general terms, no
+       * case). "home structural inspection", 250 a month. A section of this
+       * post rather than a page beside it, which would compete with it.
+       */
+      { kind: "h2", text: "When the report says an engineer's evaluation is recommended" },
+      {
+        kind: "p",
+        text: "A home inspection report that recommends evaluation by a licensed professional engineer is telling the buyer that the inspector saw something the inspection is not built to settle. That is the report working as the rules intend: rule 535.227 says the inspector is not required to measure elevations, perform calculations or provide engineering services, and the REI 7-6 report form places the responsibility for further evaluations on the client.",
+      },
+      {
+        kind: "p",
+        text: "The sentence is a referral, not a finding of failure, and it has a deadline attached because the option period does. Three things make the engineer's visit useful inside that window: the inspection report itself, with the items that prompted the recommendation; access to the house; and a clear statement of who the engineer's report is for, so it can be addressed to the buyer, the lender or both.",
+      },
+      {
+        kind: "p",
+        text: "What the engineer then does is measure and decide. A home structural inspection by an engineer records floor elevations or the condition of the roof structure, reads them against the house, and ends in a sealed opinion the buyer can act on, rather than a further recommendation.",
       },
       { kind: "h2", text: "The contract sets the clock" },
       {
