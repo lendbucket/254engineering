@@ -427,13 +427,19 @@ const EXPECTED_NINE = {
   "evidence.start":               "Y Y Y . . . . . . .",
   "evidence.submit":              "Y Y Y . . . . . . .",
   "files.cancel":                 "Y . . . . . . . . .",
-  "files.create":                 "Y . . . Y . . Y Y .",
+  /*
+   * CUSTOMER SERVICE TAKES A CALL, Robert's answer 2 of 2026-11-14 (0130):
+   * files.create, the inbox and send-link. Before it these four rows read
+   * files.create "Y . . . Y . . Y Y .", inbox.answer and inbox.read
+   * "Y . . . . . . Y Y .", payments.send_link "Y . . . Y . . Y Y .".
+   */
+  "files.create":                 "Y . . . Y Y . Y Y .",
   "files.list":                   "Y Y Y Y Y Y Y Y Y .",
   "files.transition":             "Y Y . Y . . . . . .",
   "files.update":                 "Y Y . Y . . . . . .",
   "files.update_details":         "Y . . . . . . Y Y .",
-  "inbox.answer":                 "Y . . . . . . Y Y .",
-  "inbox.read":                   "Y . . . . . . Y Y .",
+  "inbox.answer":                 "Y . . . . Y . Y Y .",
+  "inbox.read":                   "Y . . . . Y . Y Y .",
   "insurance.manage":             "Y . . . . . . . Y .",
   "jobs.manage":                  "Y . . . . . . . . .",
   "ledger.approve":               "Y . . . . . . . . .",
@@ -449,7 +455,7 @@ const EXPECTED_NINE = {
   "payments.charge":              "Y . . . . . . . . .",
   "payments.reconcile":           "Y . . . . . . . . .",
   "payments.refund":              "Y . . . . . . . . .",
-  "payments.send_link":           "Y . . . Y . . Y Y .",
+  "payments.send_link":           "Y . . . Y Y . Y Y .",
   "pricing.override_at_intake":   "Y . . . . . . . . .",
   "pricing.read":                 "Y . . . . . . . . .",
   "pricing.read_own_pay":         ". Y . . . . . . . .",

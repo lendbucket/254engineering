@@ -827,6 +827,18 @@ export const DEFAULT_ROLES: DefaultRole[] = [
        * there was no way to record it that did not involve SQL.
        */
       "suppressions.manage",
+      /*
+       * TAKING THE CALL, Robert's answer 2 of 2026-11-14 (0130). Part 1 found
+       * the front desk could not take a job: no New job, no inbox, no payment
+       * link. files.create opens New job (and a new caller's client through
+       * it, as for the rep); the inbox is both halves, reading and answering,
+       * as the rep holds it; payments.send_link is how every role but the
+       * administrator ends New job. Still no refund, price or card data
+       * (ruling 2026-10-03, asserted in roles-audit).
+       */
+      "files.create",
+      "inbox.read", "inbox.answer",
+      "payments.send_link",
     ],
   },
   {

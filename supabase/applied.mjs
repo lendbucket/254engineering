@@ -4792,6 +4792,23 @@ export const APPLIED = [
       "20261112012302, stored 4f7fe547, shape 1cbe1959 at 1643 columns, a nullable date, matching the replay). " +
       "ON PRODUCTION SINCE 2026-11-12 (6834499804, version 20261112200109). Additive: one column.",
   },
+  {
+    file: "0130_customer_service_takes_the_call.sql", appliedBy: "apply_migration",
+    fingerprint: "1cbe1959e7435d279f44b171cab3a7a1",
+    behaviour: "71b926252fe0925b108e00e5216cd6bc",
+    production: null,
+    proves: { table: "eng_role_grants", match: { role_key: "customer_service", action: "files.create" } },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-14 on the chain to 0130, with 0129 reproducing " +
+      "its recorded pair first (1cbe1959 at 1643 columns, 147ee08d at 1649 facts). THE SHAPE REPEATS 0129's ON " +
+      "PURPOSE: no table and no column, only grant rows, the case 0021 set. Behaviour 1649 to 1653 facts, the four " +
+      "seeded rows: files.create, inbox.read, inbox.answer and payments.send_link for customer_service.",
+    because:
+      "WRITTEN 2026-11-14 ON feat/connect-batch-1, FOR ROBERT'S ANSWER 2 OF 2026-11-14 TO THE PART 1 REPORT: Customer " +
+      "Service gets files.create, inbox and send-link, so the front desk can take a call. PENDING: not on development " +
+      "or production; development by the chat counterpart before the batch boards, production only in a sitting " +
+      "with Robert. Additive: four grant rows.",
+  },
 ];
 
 /*
