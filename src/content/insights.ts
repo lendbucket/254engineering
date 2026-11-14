@@ -1847,7 +1847,13 @@ const buyerInsights: Insight[] = [
   // -------------------------------------------------------- buyers, post 10
   {
     slug: "foundation-engineer-vs-repair-company",
-    title: "Foundation Engineer vs Repair Company | 254 Engineering",
+    /*
+     * SEO report quick win 5 (Robert's add-on of 2026-11-14, section 3):
+     * position 18 for "foundation engineering services", a phrase the title did
+     * not carry. The bridge to the repair cost searches is section 5's page 4,
+     * not a paragraph added here to hold a link.
+     */
+    title: "Foundation Engineering vs a Repair Company | 254 Engineering",
     h1: "Foundation engineer versus repair company: who does what in a repair",
     description:
       "A foundation engineer evaluates and specifies; a repair company builds. See each role from first visit to final letter, and what to ask each before you sign.",
@@ -1856,7 +1862,7 @@ const buyerInsights: Insight[] = [
     eyebrow: "Foundations",
     primaryKeyword: "foundation engineer",
     datePublished: BUYERS_SECTION_DATE,
-    dateModified: BUYERS_SECTION_DATE,
+    dateModified: "2026-11-14",
     body: [
       {
         kind: "p",
