@@ -962,6 +962,14 @@ if (!FOUNDATION_PRICE || !FOUNDATION_CHANGES) {
 }
 const lowerFirst = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
 
+/* The repair specification's published price and what changes it, the same way (section 5, page 4). */
+const REPAIR_SPEC_PRICE = priceSentence("repair-specifications");
+const REPAIR_SPEC_BOOK = priceFor("repair-specifications");
+const REPAIR_SPEC_CHANGES = REPAIR_SPEC_BOOK && "whatChangesIt" in REPAIR_SPEC_BOOK ? REPAIR_SPEC_BOOK.whatChangesIt : null;
+if (!REPAIR_SPEC_PRICE || !REPAIR_SPEC_CHANGES) {
+  throw new Error("insights: the price book has no published repair specification price or no sentence on what changes it");
+}
+
 const buyerInsights: Insight[] = [
   // --------------------------------------------------------- buyers, post 3
   {
@@ -1997,6 +2005,21 @@ const buyerInsights: Insight[] = [
           "A 2013 House committee analysis of C.S.H.B. 613 recorded that interested parties contended the absence of state standards for foundation repair contractors allowed unqualified people to perform repairs, and the bill proposed a TDLR license. This post found no record that a state license for foundation repair contractors exists today, but did not find a source that states its absence either.",
           "Before relying on a contractor's claimed credentials, check them with the agency that is said to issue them.",
         ],
+      },
+      /*
+       * SEO report section 5, page 4 (slab foundation repair cost, from the
+       * engineer's side), built as a section here, beside the stages it
+       * prices. The firm's figure is read from the price book, never typed;
+       * the repair's own price is the contractor's, and none is stated.
+       */
+      { kind: "h2", text: "Slab foundation repair cost, from the engineer's side" },
+      {
+        kind: "p",
+        text: "A repair company's price for a slab repair is a price for its own plan, so two quotes for the same house can describe two different repairs. Section 7.4.1 of the ASCE Texas guidelines lists what an engineer's remediation documents contain, from a plan view and construction details to specifications and the required post repair elevation survey; with one set of those, every company bids the same work and the prices can be set beside each other.",
+      },
+      {
+        kind: "p",
+        text: `254 Engineering publishes its repair specification at ${REPAIR_SPEC_PRICE}, and what changes that figure is published with it: ${lowerFirst(REPAIR_SPEC_CHANGES)} The repair itself is priced by the contractor who builds it, against those documents.`,
       },
       { kind: "h2", text: "Questions for the engineer" },
       {
