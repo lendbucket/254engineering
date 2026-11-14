@@ -5,6 +5,7 @@ import { boardColumns } from "@/lib/crm-board-rules";
 import { STAGE_LABEL, VERTICAL_LABEL } from "@/lib/crm-rules";
 import { formatInFirmZone } from "@/lib/firm-calendar";
 import { listHref } from "@/components/portal/ListControls";
+import { LIST_EXPORT_GRANT } from "@/lib/list-exports";
 import { EmptyState, ErrorState, PageHead } from "@/components/portal/surfaces";
 import { Board, type BoardColumnView } from "./PipelineClient";
 import { PipelineFilters, SavedViews, ViewSwitch, readPipeline } from "./pipeline-shared";
@@ -60,7 +61,12 @@ export default async function PipelinePage({ searchParams }: { searchParams: Pro
     <>
       <PageHead eyebrow="Sales" title="Pipeline" lede={`${lede} ${read.matching.length.toLocaleString("en-US")} of ${read.total.toLocaleString("en-US")} companies match.`} />
       <ViewSwitch current="board" params={params} />
-      <PipelineFilters action="/portal/crm" params={params} query={read.query} />
+      <PipelineFilters
+        action="/portal/crm"
+        params={params}
+        query={read.query}
+        csvHref={can(actor, LIST_EXPORT_GRANT) ? listHref("/api/portal/exports", { ...params, page: undefined }, { report: "sales-list" }) : undefined}
+      />
       {read.total === 0 ? (
         <EmptyState title="The sales list is empty" body="Companies arrive from Imports, from the sales list's spreadsheet import, or one at a time on the sales list. They appear here at New." />
       ) : read.matching.length === 0 ? (

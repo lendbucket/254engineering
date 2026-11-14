@@ -10,6 +10,7 @@ import { telLink } from "@/lib/phone-link";
 import { formatInFirmZone } from "@/lib/firm-calendar";
 import { DataTable, type Column } from "@/components/portal/design";
 import { Pager, listHref } from "@/components/portal/ListControls";
+import { LIST_EXPORT_GRANT } from "@/lib/list-exports";
 import { EmptyState, ErrorState, PageHead } from "@/components/portal/surfaces";
 import { BulkBar, PickRow } from "../PipelineClient";
 import { PipelineFilters, SavedViews, ViewSwitch, readPipeline } from "../pipeline-shared";
@@ -79,7 +80,12 @@ export default async function PipelineListPage({ searchParams }: { searchParams:
     <>
       <PageHead eyebrow="Sales" title="Sales list" lede={lede} />
       <ViewSwitch current="list" params={params} />
-      <PipelineFilters action="/portal/crm/list" params={params} query={read.query} />
+      <PipelineFilters
+        action="/portal/crm/list"
+        params={params}
+        query={read.query}
+        csvHref={can(actor, LIST_EXPORT_GRANT) ? listHref("/api/portal/exports", { ...params, page: undefined }, { report: "sales-list" }) : undefined}
+      />
       {!people.ok ? <ErrorState title="Who can be assigned could not be read" body={`${people.error} Assigning is unavailable until it can be read.`} /> : null}
       {read.total === 0 ? (
         <EmptyState title="The sales list is empty" body="Companies arrive from Imports, from the sales list's spreadsheet import, or one at a time on the sales list." />

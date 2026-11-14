@@ -30,7 +30,18 @@ export async function readPipeline(actor: Actor, params: Record<string, string |
   return { ok: true, matching: staffListRows(read.rows, query, spec), total: read.rows.length, query };
 }
 
-export function PipelineFilters({ action, params, query }: { action: string; params: Record<string, string | undefined>; query: StaffListQuery }) {
+export function PipelineFilters({
+  action,
+  params,
+  query,
+  csvHref,
+}: {
+  action: string;
+  params: Record<string, string | undefined>;
+  query: StaffListQuery;
+  /** The sales list as a file, drawn only for the administrator's export grant (office-ready table, 2026-11-13). */
+  csvHref?: string;
+}) {
   const f = query.filters;
   return (
     <ListControls
@@ -55,6 +66,7 @@ export function PipelineFilters({ action, params, query }: { action: string; par
       ]}
       sort={query.sort}
       direction={query.ascending ? "asc" : "desc"}
+      csvHref={csvHref}
     />
   );
 }

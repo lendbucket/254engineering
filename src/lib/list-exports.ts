@@ -12,6 +12,8 @@ import type { InsurancePolicy } from "./ops-insurance";
 import type { AuditEvent } from "./audit-trail-list";
 import type { OnboardingRow } from "./onboarding";
 import type { ThreadListItem } from "./ops-threads";
+import type { CrmListRow } from "./crm-board-rules";
+import type { AccountRow as SalesAccountRow } from "./crm-accounts";
 
 /**
  * ===========================================================================
@@ -71,7 +73,7 @@ export function mayExport(actor: AuthzSubject | null, screenGrant: Action): bool
  * are deliberately absent: the same ruling says they get no export, and so did
  * item 24 of the standing orders, until counsel rules.
  */
-export const LIST_EXPORT_REPORTS = ["applications", "design-briefs", "windstorm-briefs", "technicians", "partners", "tasks", "people", "suppressions", "audit-trail", "credentials", "insurance", "onboarding", "conversations"] as const;
+export const LIST_EXPORT_REPORTS = ["applications", "design-briefs", "windstorm-briefs", "technicians", "partners", "tasks", "people", "suppressions", "audit-trail", "credentials", "insurance", "onboarding", "conversations", "sales-list", "sales-accounts"] as const;
 export type ListExportReport = (typeof LIST_EXPORT_REPORTS)[number];
 
 const yesNo = (v: boolean | null | undefined) => (v === null || v === undefined ? "" : v ? "yes" : "no");
@@ -263,6 +265,65 @@ export function conversationsCsv(rows: readonly ThreadListItem[], filter: string
     ],
     headers: ["Conversation", "Kind", "People", "Last message", "Started"],
     rows: rows.map((t) => [t.title, t.kind, t.participants.map((p) => p.name).join("; "), t.last_message_at ?? "", t.created_at]),
+  });
+}
+
+/**
+ * The sales list, the companies the pipeline and the list screens show, through
+ * their own filter (office-ready table, 2026-11-13).
+ */
+export function salesListCsv(rows: readonly CrmListRow[], filter: string): string {
+  return csv({
+    preamble: [
+      ["Sales list", `${rows.length} matching`],
+      ["Filter", filter],
+    ],
+    headers: ["Company", "Contact", "Phone", "Email", "City", "County", "Vertical", "Stage", "Score", "Owner", "Tags", "Sources", "Next action", "Last activity", "Added"],
+    rows: rows.map((r) => [
+      r.company,
+      r.contactName ?? "",
+      r.phone ?? "",
+      r.email ?? "",
+      r.city ?? "",
+      r.county ?? "",
+      r.vertical,
+      r.stage,
+      String(r.score),
+      r.ownerName ?? "",
+      r.tags.join("; "),
+      r.sources.join("; "),
+      r.nextActionAt ?? "",
+      r.lastActivityAt ?? "",
+      r.createdAt,
+    ]),
+  });
+}
+
+/**
+ * The sales accounts (office-ready table, 2026-11-13). Revenue is written only
+ * where the screen shows it: lifetime revenue for a viewer who may see money,
+ * and an empty cell, never zero, where it is not known.
+ */
+export function salesAccountsCsv(rows: readonly SalesAccountRow[], filter: string): string {
+  return csv({
+    preamble: [["Sales accounts", `${rows.length} matching`], ["Filter", filter], unknownNote],
+    headers: ["Account", "Owner", "Opened", "Last order", "Days since", "Orders this quarter", "Orders ever", "Average interval, days", "Reorder due", "Check-in due", "Churned", "Reorder overdue", "Due soon", "Lifetime revenue"],
+    rows: rows.map((a) => [
+      a.name,
+      a.ownerName ?? "",
+      a.openedOn,
+      a.standing.lastOrderDay ?? "",
+      a.standing.daysSince === null ? "" : String(a.standing.daysSince),
+      String(a.standing.ordersThisQuarter),
+      String(a.standing.ordersEver),
+      a.standing.averageIntervalDays === null ? "" : String(a.standing.averageIntervalDays),
+      a.standing.reorderDueOn ?? "",
+      a.standing.checkInDueOn ?? "",
+      yesNo(a.standing.churned),
+      yesNo(a.standing.reorderOverdue),
+      yesNo(a.standing.dueSoon),
+      moneyCell(a.lifetimeRevenueCents),
+    ]),
   });
 }
 
