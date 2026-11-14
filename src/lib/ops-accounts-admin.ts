@@ -1,5 +1,5 @@
 import "server-only";
-import { readEvery, readEveryIn } from "./bounded-read";
+import { READ_CAP, readEvery, readEveryIn } from "./bounded-read";
 import { supabaseAdmin } from "./supabase";
 import { openBalancesForEveryAccount } from "./ops-bulk";
 import { accountListQuery, pageOfAccounts, type AccountListQuery, type RosterEntry } from "./account-list";
@@ -223,13 +223,21 @@ export async function accountRows(
    * because another function in this file names the column.
    */
   const rosterAt = Date.now();
-  const accountRead = await readEvery<Record<string, unknown>>((from, to) =>
-    db
-      .from("eng_customer_accounts")
-      .select("id, client_id, status, billing_mode, credit_limit_cents, net_days, created_at, superseded_at")
-      .order("created_at", { ascending: true })
-      .order("id", { ascending: true })
-      .range(from, to),
+  /*
+   * A THOUSAND A PAGE, THE CAP, NOT THE DEFAULT 500. Office-ready Batch B,
+   * profiled 2026-11-14: this roster was ten sequential pages, about 1.3 of
+   * the screen's 1.6 seconds, over development's 5,000 accounts. Still every
+   * row (readEvery stops only on a short page); half the round trips.
+   */
+  const accountRead = await readEvery<Record<string, unknown>>(
+    (from, to) =>
+      db
+        .from("eng_customer_accounts")
+        .select("id, client_id, status, billing_mode, credit_limit_cents, net_days, created_at, superseded_at")
+        .order("created_at", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to),
+    { pageSize: READ_CAP },
   );
   phases.push({
     name: "roster",

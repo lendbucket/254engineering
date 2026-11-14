@@ -69,6 +69,49 @@ export type MoneyTile = {
   absent?: string;
 };
 
+/**
+ * THE ADMINISTRATOR'S TWO MONEY TILES FOR A PERIOD, AS A FUNCTION OF THE PERIOD.
+ *
+ * NO TOTAL IS NOT A ZERO. Operator ruling of 2026-10-09. This read
+ * `thisPeriod?.margin ?? EMPTY_PERIOD.margin`, and periodTotals returns null
+ * for a period whose files all lack a figure, so the `??` turned "no total to
+ * show" into $0.00 under a note saying there was no total. The empty period's
+ * zero applies only when no file belongs to the month at all.
+ *
+ * Exported for office-ready Batch B (issue #1, 6879231462): dashboards-audit
+ * judged this rule only when development's current period happened to hold a
+ * file missing a figure, and said COULD NOT TELL otherwise. It now builds its
+ * own period with periodTotals and judges the tiles this function makes, which
+ * are the tiles the dashboard renders.
+ */
+export function adminMoneyTiles(thisPeriod: PeriodTotals | null, readFailed: boolean): MoneyTile[] {
+  /** The zero a period with no files should show, rather than an absence. */
+  const EMPTY_PERIOD = { revenue: 0 as Cents, margin: 0 as Cents, complete: 0, files: 0 };
+  const noTotal = thisPeriod !== null && thisPeriod.complete === 0 && thisPeriod.files > 0;
+  return [
+    {
+      label: "Margin this period",
+      value: readFailed ? null : thisPeriod ? thisPeriod.margin : EMPTY_PERIOD.margin,
+      absent: !readFailed && noTotal ? "No total" : undefined,
+      note: readFailed
+        ? "The files could not be read, so this is not a zero. Tell an administrator."
+        : thisPeriod
+          ? thisPeriod.coverage
+          : "No file carries a period of this month, so the margin over them is nothing.",
+    },
+    {
+      label: "Revenue this period",
+      value: readFailed ? null : thisPeriod ? thisPeriod.revenue : EMPTY_PERIOD.revenue,
+      absent: !readFailed && noTotal ? "No total" : undefined,
+      note: readFailed
+        ? "The files could not be read, so this is not a zero. Tell an administrator."
+        : thisPeriod
+          ? `From the ${thisPeriod.complete} file${thisPeriod.complete === 1 ? "" : "s"} with every figure entered.`
+          : "No file carries a period of this month, so revenue over them is nothing.",
+    },
+  ];
+}
+
 /** href is absent when this actor cannot open the destination. */
 export type Attention = { label: string; detail: string; href?: string };
 
@@ -317,6 +360,17 @@ async function adminDashboard(actor: Actor): Promise<AdminDashboard> {
   const now = new Date().toISOString();
   const soon = new Date(Date.now() + HOURS_48).toISOString();
 
+  /*
+   * STARTED NOW, AWAITED WHERE THEY ARE USED. Office-ready Batch B, profiled on
+   * 2026-11-14: these three ran one after another after the eleven reads
+   * below, so the dashboard waited for four stages in a row. None depends on
+   * the others or on the eleven, so all of them now wait together; each is
+   * still awaited at its own place, so the attention list keeps its order.
+   */
+  const unreleasedRead = unreleasedPayments();
+  const uncreditedRead = can(actor, "ledger.approve") ? uncreditedReviewsRead() : null;
+  const deskRead = can(actor, "crm.use") ? deskDashboard(actor) : null;
+
   const [inQueue, overdueEvidence, dueSoon, openOffers, activeTechs, atIntake, tasks, unread, margins, expiring, stuckOrders] =
     await Promise.all([
       countRows((d) =>
@@ -396,9 +450,6 @@ async function adminDashboard(actor: Actor): Promise<AdminDashboard> {
   const readFailed = margins === null;
   const periods = marginByPeriod(margins ?? []);
   const thisPeriod = periods.find((p) => p.period === periodOf(new Date())) ?? null;
-
-  /** The zero a period with no files should show, rather than an absence. */
-  const EMPTY_PERIOD = { revenue: 0 as Cents, margin: 0 as Cents, complete: 0, files: 0 };
 
   const tiles: Tile[] = [
     {
@@ -489,36 +540,7 @@ async function adminDashboard(actor: Actor): Promise<AdminDashboard> {
     },
   ];
 
-  /*
-   * NO TOTAL IS NOT A ZERO. Operator ruling of 2026-10-09. This read
-   * `thisPeriod?.margin ?? EMPTY_PERIOD.margin`, and periodTotals returns null
-   * for a period whose files all lack a figure, so the `??` turned "no total to
-   * show" into $0.00 under a note saying there was no total. The empty period's
-   * zero applies only when no file belongs to the month at all.
-   */
-  const noTotal = thisPeriod !== null && thisPeriod.complete === 0 && thisPeriod.files > 0;
-  const money: MoneyTile[] = [
-    {
-      label: "Margin this period",
-      value: readFailed ? null : thisPeriod ? thisPeriod.margin : EMPTY_PERIOD.margin,
-      absent: !readFailed && noTotal ? "No total" : undefined,
-      note: readFailed
-        ? "The files could not be read, so this is not a zero. Tell an administrator."
-        : thisPeriod
-          ? thisPeriod.coverage
-          : "No file carries a period of this month, so the margin over them is nothing.",
-    },
-    {
-      label: "Revenue this period",
-      value: readFailed ? null : thisPeriod ? thisPeriod.revenue : EMPTY_PERIOD.revenue,
-      absent: !readFailed && noTotal ? "No total" : undefined,
-      note: readFailed
-        ? "The files could not be read, so this is not a zero. Tell an administrator."
-        : thisPeriod
-          ? `From the ${thisPeriod.complete} file${thisPeriod.complete === 1 ? "" : "s"} with every figure entered.`
-          : "No file carries a period of this month, so revenue over them is nothing.",
-    },
-  ];
+  const money = adminMoneyTiles(thisPeriod, readFailed);
 
   const attention: Attention[] = [];
 
@@ -531,7 +553,7 @@ async function adminDashboard(actor: Actor): Promise<AdminDashboard> {
    * when they have not. First, with the stuck orders below, because both can
    * mean a customer has been charged and is waiting for nothing.
    */
-  const unreleased = await unreleasedPayments();
+  const unreleased = await unreleasedRead;
   if (unreleased === null) {
     notComputable.push(
       "The payment event ledger could not be read, so whether any paid order is waiting for its work to be released is not known.",
@@ -601,8 +623,8 @@ async function adminDashboard(actor: Actor): Promise<AdminDashboard> {
    * 2026-10-10: it lands here naming the file and what is missing, and Billing
    * carries the control that fixes the record and writes the credit.
    */
-  if (can(actor, "ledger.approve")) {
-    const uncredited = await uncreditedReviewsRead();
+  if (uncreditedRead) {
+    const uncredited = await uncreditedRead;
     if (uncredited === null) {
       notComputable.push("Review sessions, the production ledger or their files could not be read, so whether any decided review went uncredited is not known.");
     } else if (uncredited.length > 0) {
@@ -626,8 +648,8 @@ async function adminDashboard(actor: Actor): Promise<AdminDashboard> {
   }
 
   let due: Tile[] = [];
-  if (can(actor, "crm.use")) {
-    const desk = await deskDashboard(actor);
+  if (deskRead) {
+    const desk = await deskRead;
     due = desk.tiles;
     notComputable.push(...desk.notComputable);
   }

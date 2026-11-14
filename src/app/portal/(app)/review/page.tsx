@@ -89,32 +89,40 @@ export default async function ReviewPage({
     return value;
   };
 
-  const queue = await timed("queue", reviewQueue(actor));
-  const selected = params.id ? await timed("package", packageFor(actor, params.id)) : null;
-  /* The last time this file was sent back, and the technician's reply (Robert's T5). Null when the read failed. */
-  const lastReturn =
-    selected && (selected.file.revision_count ?? 0) > 0 ? await timed("revision", revisionFor(selected.file.id)) : undefined;
   /*
-   * THE LETTERS HE HAS DECIDED AND NOT YET SEALED, sealing piece two. Every
+   * THE INDEPENDENT READS RUN TOGETHER. Office-ready Batch B, profiled on
+   * 2026-11-14 before anything changed: 67 requests in about 2.5 seconds, the
+   * eight reads below awaited one after another, so the page waited for their
+   * sum. None reads another's answer, so they are started together and the
+   * page waits for the slowest (the held list, about 1.1 seconds). Each is
+   * still timed on its own; the total line is now the wall time, not a sum.
+   *
+   * THE LETTERS HE HAS DECIDED AND NOT YET SEALED, sealing piece two: every
    * one of his, for the list at the top, and the selected file's, which takes
-   * the place of the decision buttons.
-   */
-  /* A failed read is said above the list, never "no letters waiting" (audit of 2026-10-24). */
-  const awaitingRead = await timed("awaiting-seal", lettersAwaitingSeal(actor));
-  const awaiting = awaitingRead.ok ? awaitingRead.letters : [];
-  const liveRead = await timed("live-letters", liveLettersOf(actor));
-  const held = await timed("held", heldFiles());
-  const trainingWaiting = await timed("training", trainingAwaitingEngineer());
-  const addenda = await timed("addenda", addendaFor(actor!.id));
-  const unsignedAddenda = addenda.ok ? addenda.addenda.filter((a) => a.signature.state === "unsigned") : [];
-  const awaitingTriage = await timed("triage", filesAwaitingTriage());
-  /*
+   * the place of the decision buttons. A failed read is said above the list,
+   * never "no letters waiting" (audit of 2026-10-24).
+   *
    * WF-017 step 6, Robert's ruling of 2026-10-29: the licence holder withdraws
    * or restores a certification here. Read only for him, with the same test the
    * server applies to the change, so the panel is drawn exactly when it works.
    */
   const mayDecideStanding = holdsLicence(actor, "protocols.publish");
-  const standing = mayDecideStanding ? await timed("standing", certificationStanding()) : null;
+  const [queue, selected, awaitingRead, liveRead, held, trainingWaiting, addenda, awaitingTriage, standing] = await Promise.all([
+    timed("queue", reviewQueue(actor)),
+    params.id ? timed("package", packageFor(actor, params.id)) : Promise.resolve(null),
+    timed("awaiting-seal", lettersAwaitingSeal(actor)),
+    timed("live-letters", liveLettersOf(actor)),
+    timed("held", heldFiles()),
+    timed("training", trainingAwaitingEngineer()),
+    timed("addenda", addendaFor(actor!.id)),
+    timed("triage", filesAwaitingTriage()),
+    mayDecideStanding ? timed("standing", certificationStanding()) : Promise.resolve(null),
+  ]);
+  /* The last time this file was sent back, and the technician's reply (Robert's T5). Null when the read failed. */
+  const lastReturn =
+    selected && (selected.file.revision_count ?? 0) > 0 ? await timed("revision", revisionFor(selected.file.id)) : undefined;
+  const awaiting = awaitingRead.ok ? awaitingRead.letters : [];
+  const unsignedAddenda = addenda.ok ? addenda.addenda.filter((a) => a.signature.state === "unsigned") : [];
   console.log(`[review.timing] total=${Date.now() - startedAt}ms ${phases.join(" ")} queue=${queue === null ? "unread" : queue.length}`);
   const selectedAwaiting = selected ? awaiting.filter((l) => l.fileId === selected.file.id) : [];
   /*

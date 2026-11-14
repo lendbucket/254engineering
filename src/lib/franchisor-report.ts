@@ -44,18 +44,32 @@ export async function franchisorReport(actor: Actor | null, franchiseeIds: reado
   const today = todayInFirmCalendar();
   const { thisMonth, lastMonth } = thisAndLastMonth(today);
 
-  const started = await readEveryIn<{ id: string; operating_since: string | null }>(franchiseeIds, (chunk, from, to) =>
-    db.from("eng_franchisees").select("id, operating_since").in("id", [...chunk]).order("id", { ascending: true }).range(from, to),
-  );
+  /*
+   * THE INDEPENDENT READS RUN TOGETHER. Office-ready Batch B, profiled on
+   * 2026-11-14: /portal/franchisees was sixteen requests one after another.
+   * When each franchisee started and its territory facts do not depend on each
+   * other, and each franchisee's onboarding read depends on nothing but its
+   * id, so those run eight at a time. A failure is still refused whole, the
+   * first in the franchisee order.
+   */
+  const [started, territory] = await Promise.all([
+    readEveryIn<{ id: string; operating_since: string | null }>(franchiseeIds, (chunk, from, to) =>
+      db.from("eng_franchisees").select("id, operating_since").in("id", [...chunk]).order("id", { ascending: true }).range(from, to),
+    ),
+    territoryFactsForMany(db, franchiseeIds),
+  ]);
   if (!started.ok) return refuse(`When each franchisee started operating could not be read: ${started.error}`);
   const since = new Map(started.rows.map((r) => [String(r.id), r.operating_since ? String(r.operating_since) : null]));
-
-  const territory = await territoryFactsForMany(db, franchiseeIds);
   if (!territory.ok) return refuse(territory.error);
 
+  const onboardings: Awaited<ReturnType<typeof onboardingStepsFor>>[] = [];
+  for (let i = 0; i < franchiseeIds.length; i += 8) {
+    onboardings.push(...(await Promise.all(franchiseeIds.slice(i, i + 8).map((id) => onboardingStepsFor(db, id)))));
+  }
+
   const byFranchisee = new Map<string, FranchiseeHealth>();
-  for (const id of franchiseeIds) {
-    const onboarding = await onboardingStepsFor(db, id);
+  for (const [index, id] of franchiseeIds.entries()) {
+    const onboarding = onboardings[index];
     if (!onboarding.ok) return refuse(onboarding.error);
     const facts = territory.facts.get(id)!;
     const monthOf = (m: string) => facts.revenue.find((r) => r.month === m);
