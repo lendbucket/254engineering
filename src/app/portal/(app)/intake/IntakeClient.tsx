@@ -76,11 +76,14 @@ export function IntakeClient({
   ownerOverride = false,
   canOverridePrice = true,
   linkOnly = false,
+  canAddCoverage = false,
 }: {
   lines: { slug: string; name: string }[];
   deliverables: Deliverable[];
   counties: string[];
   prelaunch: boolean;
+  /** profiles.update: may add the county to a technician's coverage from the coverage note (the Killeen call, item 1). */
+  canAddCoverage?: boolean;
   /** pricing.override_at_intake. Without it the catalog price is charged as it is (2026-10-20); the server refuses anything else. */
   canOverridePrice?: boolean;
   /** payments.send_link without payments.charge: the payment link is the only route, and the server refuses another. */
@@ -880,7 +883,7 @@ export function IntakeClient({
             </p>
           )}
           {/* Who could take it, before it is taken (the Killeen call, item 1). */}
-          <CoverageNote serviceSlug={serviceSlug} county={effectiveCounty ?? null} />
+          <CoverageNote serviceSlug={serviceSlug} county={effectiveCounty ?? null} canAddCoverage={canAddCoverage} />
         </div>
       </Section>
 

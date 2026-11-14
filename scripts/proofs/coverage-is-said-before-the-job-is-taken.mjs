@@ -38,13 +38,22 @@ check("it says when nobody covers the county", /No certified technician covers \
 check("and who is certified and does not", /Certified for this service, not covering \{preview\.county\} County:/.test(note));
 check("a failed ask is said", /if \(failed\) return <p role="alert"/.test(note));
 const intake = codeOf(readFileSync("src/app/portal/(app)/intake/IntakeClient.tsx", "utf8"));
-check("New job shows it under the county", /<CoverageNote serviceSlug=\{serviceSlug\} county=\{effectiveCounty \?\? null\} \/>/.test(intake));
+check("New job shows it under the county", /<CoverageNote serviceSlug=\{serviceSlug\} county=\{effectiveCounty \?\? null\} canAddCoverage=\{canAddCoverage\} \/>/.test(intake));
 
 const panel = codeOf(readFileSync("src/app/portal/(app)/files/DispatchPanel.tsx", "utf8"));
 check("an empty roster says so and links to Technicians", /offers\.length === 0 && ineligible\.length === 0 \?[\s\S]*?no field technician is on the roster[\s\S]*?href="\/portal\/techs"/.test(panel));
 check("a coverage-only gap names the action", /ineligible\.every\(\(i\) => \/\^Does not cover \/\.test\(i\.reason\)\)[\s\S]*?Nobody covers this county/.test(panel));
 const dispatch = codeOf(readFileSync("src/lib/ops-dispatch.ts", "utf8"));
 check("the reason the panel matches is the plan's own wording", /reason: `Does not cover \$\{subject\.county\} County\.`/.test(dispatch));
+
+const add = codeOf(readFileSync("src/lib/tech-coverage.ts", "utf8"));
+check("adding a county asks profiles.update", /if \(!actor \|\| !can\(actor, "profiles\.update"\)\) return \{ ok: false/.test(add));
+check("names it from the 254", /TEXAS_COUNTIES\.find\(/.test(add) && /is not one of the 254 Texas counties/.test(add));
+check("only for a field technician", /if \(!tech \|\| tech\.role !== "field_tech"\)/.test(add));
+check("adds and never removes", /const next = \[\.\.\.current, named\];/.test(add));
+check("the audit row comes first and refuses the change if it cannot be written", add.indexOf("await writeAuditOrRefuse(") > 0 && add.indexOf("await writeAuditOrRefuse(") < add.indexOf(".update({ coverage_counties: next })"));
+check("the note offers it only to whoever may", /\{canAddCoverage \? \(\s*<button/.test(note) && /canAddCoverage=\{can\(actor, "profiles\.update"\)\}/.test(codeOf(readFileSync("src/app/portal/(app)/intake/page.tsx", "utf8"))));
+check("and asks again after it, on the same screen", /setRound\(\(r\) => r \+ 1\);/.test(note));
 
 console.log("");
 if (wrong === 0) {

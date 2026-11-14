@@ -2,6 +2,7 @@ import { takeJob, searchClients, type TakeJobInput } from "@/lib/ops-job-intake"
 import { sendPaymentLink, resendPaymentLink, invoiceAccount } from "@/lib/ops-job-billing";
 import { requestOutstanding } from "@/lib/ops-file-inputs";
 import { dispatchContext, coveragePreview } from "@/lib/ops-field";
+import { addCoverageCounty } from "@/lib/tech-coverage";
 import { NextResponse, type NextRequest } from "next/server";
 import { currentActor, requestContext } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
@@ -221,6 +222,12 @@ async function handlePOST(request: NextRequest) {
     }
     const preview = await coveragePreview(actor, String(body?.serviceSlug ?? ""), String(body?.county ?? ""));
     return NextResponse.json({ ok: true, preview });
+  }
+
+  /* Add the county to a technician's coverage in one step (the Killeen call, item 1). addCoverageCounty asks profiles.update itself. */
+  if (action === "add_coverage_county") {
+    const result = await addCoverageCounty(actor, String(body?.techId ?? ""), String(body?.county ?? ""));
+    return result.ok ? NextResponse.json(result) : NextResponse.json({ ok: false, error: result.error }, { status: 400 });
   }
 
   if (action === "create_file") {

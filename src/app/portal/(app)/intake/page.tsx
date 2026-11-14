@@ -93,6 +93,7 @@ export default async function IntakePage() {
         ownerOverride={isOwnerAdmin(actor.id)}
         canOverridePrice={can(actor, "pricing.override_at_intake")}
         linkOnly={linkOnly}
+        canAddCoverage={can(actor, "profiles.update")}
       />
     </div>
   );
