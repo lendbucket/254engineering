@@ -4805,9 +4805,10 @@ export const APPLIED = [
       "seeded rows: files.create, inbox.read, inbox.answer and payments.send_link for customer_service.",
     because:
       "WRITTEN 2026-11-14 ON feat/connect-batch-1, FOR ROBERT'S ANSWER 2 OF 2026-11-14 TO THE PART 1 REPORT: Customer " +
-      "Service gets files.create, inbox and send-link, so the front desk can take a call. PENDING: not on development " +
-      "or production; development by the chat counterpart before the batch boards, production only in a sitting " +
-      "with Robert. Additive: four grant rows.",
+      "Service gets files.create, inbox and send-link, so the front desk can take a call. ON DEVELOPMENT SINCE " +
+      "2026-11-14 (issue #1, the counterpart's sitting after request 6878458673: version 20261114143925, " +
+      "customer_service grants 8 to 12, as predicted). PENDING ON PRODUCTION: only in a sitting with Robert. " +
+      "Additive: four grant rows.",
   },
   {
     file: "0131_a_job_taken_twice_is_one_file.sql", appliedBy: "apply_migration",
@@ -4823,9 +4824,10 @@ export const APPLIED = [
     because:
       "WRITTEN 2026-11-14 ON feat/connect-batch-1, FOR ROBERT'S ANSWER 1 OF 2026-11-14 (PART 1 FINDING 6): a New job " +
       "saved twice made two files and, once open, two payment links. takeJob asks under the form's draftId before " +
-      "writing anything, and the index catches two saves in the same instant. PENDING: not on development or " +
-      "production; development by the chat counterpart before the batch boards, production only in a sitting with " +
-      "Robert. Additive: one nullable column and one index.",
+      "writing anything, and the index catches two saves in the same instant. ON DEVELOPMENT SINCE 2026-11-14 " +
+      "(issue #1, the counterpart's sitting: version 20261114143931, the partial unique index read back, shape " +
+      "8e77b8e2 at 1644 columns, as predicted). PENDING ON PRODUCTION: only in a sitting with Robert. Additive: one " +
+      "nullable column and one index.",
   },
 ];
 
