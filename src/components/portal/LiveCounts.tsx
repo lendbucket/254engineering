@@ -35,6 +35,7 @@ export function LiveCounts({ renderedAt }: { renderedAt: number }) {
    * and only a change after that refreshes it.
    */
   const roofersSeen = useRef<number | null>(null);
+  const ownSeen = useRef<number | null>(null);
   const originalTitle = useRef<string | null>(null);
 
   useEffect(() => {
@@ -50,10 +51,14 @@ export function LiveCounts({ renderedAt }: { renderedAt: number }) {
           inquiriesSince: number | null;
           ordersSince: number | null;
           roofersWaiting?: number | null;
+          reviewWaiting?: number | null;
+          offersWaiting?: number | null;
         };
         if (stopped) return;
         const roofers = body.roofersWaiting ?? null;
-        const waiting = (body.inquiries ?? 0) + (body.ordersSince ?? 0) + (roofers ?? 0);
+        /* The engineer's queue and the technician's offers (2026-11-13) are totals, handled like the roofer applications. */
+        const own = body.reviewWaiting ?? body.offersWaiting ?? null;
+        const waiting = (body.inquiries ?? 0) + (body.ordersSince ?? 0) + (roofers ?? 0) + (own ?? 0);
         const base = (originalTitle.current ?? document.title).replace(/^\([0-9]+\) /, "");
         document.title = waiting > 0 ? `(${waiting}) ${base}` : base;
         /* A count this role does not see, or that failed to read, holds its last value rather than moving. */
@@ -61,7 +66,9 @@ export function LiveCounts({ renderedAt }: { renderedAt: number }) {
         const key = `${body.inquiriesSince ?? seenInquiries}:${body.ordersSince ?? seenOrders}`;
         const roofersMoved = roofers !== null && roofersSeen.current !== null && roofers !== roofersSeen.current;
         if (roofers !== null) roofersSeen.current = roofers;
-        if (last.current !== key || roofersMoved) router.refresh();
+        const ownMoved = own !== null && ownSeen.current !== null && own !== ownSeen.current;
+        if (own !== null) ownSeen.current = own;
+        if (last.current !== key || roofersMoved || ownMoved) router.refresh();
         last.current = key;
       } catch {
         /* Offline for a moment. The next tick asks again. */
