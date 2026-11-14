@@ -2074,7 +2074,13 @@ export const coastalInsights: Insight[] = [
    */
   {
     slug: "structural-inspection-cost-texas",
-    title: "Structural Inspection Cost in Texas | 254 Engineering",
+    /*
+     * SEO report section 5, page 6 (Robert's add-on of 2026-11-14):
+     * "structural engineer inspection cost", position 47. The page already
+     * answered with derived prices in its first sentence; the title now
+     * carries the search's own words.
+     */
+    title: "Structural Engineer Inspection Cost, Texas | 254 Engineering",
     h1: "What a structural inspection costs in Texas: WPI-8, foundation and roof",
     description: `A WPI-8 inspection from ${priceOf(WPI8_COMPLETED)}, a foundation certification at ${priceOf(FOUNDATION)} and a roof certification letter at ${priceOf(ROOF_LETTER)}, from 254 Engineering's published prices. See them all.`,
     summary:
@@ -2082,7 +2088,7 @@ export const coastalInsights: Insight[] = [
     eyebrow: "Prices",
     primaryKeyword: "structural inspection cost texas",
     datePublished: "2026-11-01",
-    dateModified: "2026-11-02",
+    dateModified: "2026-11-14",
     body: [
       {
         kind: "p",
