@@ -1617,7 +1617,7 @@ const buyerInsights: Insight[] = [
     eyebrow: "Foundations",
     primaryKeyword: "crack in foundation",
     datePublished: BUYERS_SECTION_DATE,
-    dateModified: BUYERS_SECTION_DATE,
+    dateModified: "2026-11-14",
     body: [
       {
         kind: "p",
@@ -1645,6 +1645,20 @@ const buyerInsights: Insight[] = [
       {
         kind: "p",
         text: "The first two are normal. The last three are reasons to keep reading.",
+      },
+      /*
+       * SEO report section 5, page 2 (hairline crack in a foundation), built
+       * here as a section on question 24's recommendation, so a second page
+       * does not compete with this one. Only sources this post already cites.
+       */
+      { kind: "h2", text: "A hairline crack in the foundation" },
+      {
+        kind: "p",
+        text: "A hairline crack is the crack most foundations show, and on its own it is the least informative one. The National Ready Mixed Concrete Association's guidance is that crack free concrete is not possible and that most early random cracks rarely affect structural integrity, so a fine crack that has not changed is usually the concrete doing what concrete does.",
+      },
+      {
+        kind: "p",
+        text: "What makes a hairline crack worth an engineer's time is the same as for any crack: growth across seasons, one face displaced from the other, or doors and windows nearby that have stopped closing. No width separating a harmless crack from a structural one could be traced to a Texas primary source; the widths guides repeat are discussed in the note below.",
       },
       { kind: "h2", text: "The signs that sit away from the crack" },
       {
