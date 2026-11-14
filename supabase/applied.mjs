@@ -4842,9 +4842,10 @@ export const APPLIED = [
       "checks, its two indexes and row level security.",
     because:
       "WRITTEN 2026-11-14 ON feat/connect-batch-2, FOR THE KILLEEN CALL, ITEM 2 (ROBERT, 2026-11-14): who else gets " +
-      "the letter, each with a role and an email, and who pays when the client does not. PENDING: not on development " +
-      "or production; development by the chat counterpart before the batch boards, production only in a sitting with " +
-      "Robert. Additive: one table.",
+      "the letter, each with a role and an email, and who pays when the client does not. ON DEVELOPMENT SINCE " +
+      "2026-11-14 (issue #1, 6879852627: version 20261114153545, row level security on, its three indexes, no grant " +
+      "to anon, authenticated or public, as predicted). PENDING ON PRODUCTION: only in a sitting with Robert. " +
+      "Additive: one table.",
   },
   {
     file: "0133_a_copy_contact_gets_the_letter_and_nothing_else.sql", appliedBy: "apply_migration",
@@ -4860,8 +4861,9 @@ export const APPLIED = [
     because:
       "WRITTEN 2026-11-14 ON feat/connect-batch-2, FOR THE KILLEEN CALL, ITEM 7, WITH ROBERT'S ANSWER 3 OF 2026-11-14: " +
       "copy contacts get a link to the sealed letter alone, through the customer's own check, nothing else of the " +
-      "order. PENDING: not on development or production; development by the chat counterpart before the batch " +
-      "boards, production only in a sitting with Robert. Additive: one table.",
+      "order. ON DEVELOPMENT SINCE 2026-11-14 (issue #1, 6879852627: version 20261114153553, row level security on, " +
+      "its three indexes, no grant to anon, authenticated or public, shape 487f961c at 1662 columns, as predicted). " +
+      "PENDING ON PRODUCTION: only in a sitting with Robert. Additive: one table.",
   },
 ];
 
