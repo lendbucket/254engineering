@@ -27,6 +27,11 @@ check("the reports offer a print button", /actions=\{<PrintButton label="Print t
 const order = codeOf("src/app/portal/(app)/order-lookup/[id]/page.tsx");
 check("an order summary offers a print button", /<PrintButton label="Print this order" \/>/.test(order));
 const button = codeOf("src/app/portal/(app)/intake/script/PrintButton.tsx");
+/* The print read of 2026-11-14 found the reports' Export buttons on paper. */
+check(
+  "the reports' export buttons drop out of the printout",
+  /<span className="print:hidden">\s*<ButtonLink\s*href=\{`\/api\/portal\/exports\?report=/.test(reports) && (reports.match(/<ButtonLink/g) ?? []).length === 1,
+);
 check("the button prints and is hidden on the printout", /onClick=\{\(\) => window\.print\(\)\}/.test(button) && /print:hidden/.test(button));
 const layout = codeOf("src/app/portal/(app)/layout.tsx");
 check("the menu is not printed", /<aside className="[^"]*print:!hidden/.test(layout));

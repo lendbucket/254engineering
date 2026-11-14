@@ -105,7 +105,12 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
       header: "Calls",
       cell: (i) =>
         LOG_SUBJECT[i.kind] ? (
-          <Link href={`${listHref("/portal/inbox", params, { log: `${i.kind}:${i.id}` })}#inquiry-log`} className="font-semibold text-[var(--navy)] underline">
+          /*
+           * The record's own id, carried as recordId, because the table's row id
+           * is already "kind:id" (below). The Batch B walk of 2026-11-14 found the
+           * link carrying the kind twice and opening the log against no record.
+           */
+          <Link href={`${listHref("/portal/inbox", params, { log: `${i.kind}:${(i as InboxItem & { recordId?: string }).recordId ?? i.id}` })}#inquiry-log`} className="font-semibold text-[var(--navy)] underline">
             Calls and notes
           </Link>
         ) : (
@@ -163,7 +168,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
           ) : null}
           <DataTable
             caption="Inbox"
-            rows={shown.map((i) => ({ ...i, id: `${i.kind}:${i.id}` }))}
+            rows={shown.map((i) => ({ ...i, recordId: i.id, id: `${i.kind}:${i.id}` }))}
             total={filtered.length}
             columns={columns}
             empty={

@@ -141,6 +141,12 @@ check(
   /contact: "lead",\s*waitlist: "lead",\s*design: "design_inquiry",\s*windstorm: "windstorm_inquiry",\s*reply: null,/.test(inbox) &&
     /<ContactLogPanel actor=\{actor\} subject=\{logSubject\} subjectId=\{logId\}/.test(inbox) && /Calls and notes/.test(inbox),
 );
+/* The Batch B walk of 2026-11-14 found the link carrying the kind twice ("contact:contact:<id>"): the row id is already kind:id. */
+check(
+  "the inbox's link names the record by its own id, once",
+  /rows=\{shown\.map\(\(i\) => \(\{ \.\.\.i, recordId: i\.id, id: `\$\{i\.kind\}:\$\{i\.id\}` \}\)\)\}/.test(inbox) &&
+    /log: `\$\{i\.kind\}:\$\{\(i as InboxItem & \{ recordId\?: string \}\)\.recordId \?\? i\.id\}`/.test(inbox),
+);
 for (const [path, subject] of [
   ["src/app/portal/(app)/inquiries/page.tsx", "design_inquiry"],
   ["src/app/portal/(app)/windstorm-inquiries/page.tsx", "windstorm_inquiry"],

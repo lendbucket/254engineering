@@ -272,12 +272,15 @@ export default async function ReportsPage({
            */
           actions={
             mayExport(actor, allowed[i].action) ? (
-              <ButtonLink
-                href={`/api/portal/exports?report=${report.key}&period=${period}`}
-                tone="ghost"
-              >
-                Export {period}
-              </ButtonLink>
+              /* A control does nothing on paper (the print read of 2026-11-14), so it drops out of the printout. */
+              <span className="print:hidden">
+                <ButtonLink
+                  href={`/api/portal/exports?report=${report.key}&period=${period}`}
+                  tone="ghost"
+                >
+                  Export {period}
+                </ButtonLink>
+              </span>
             ) : undefined
           }
         >
