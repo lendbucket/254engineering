@@ -496,7 +496,22 @@ export function IntakeClient({
         setBusy(false);
         return;
       }
+      /*
+       * LAND ON THE FILE, NOT A PANEL OR A LIST. The Killeen call, item 3: the
+       * file shows the payment link's status, a resend, the next step and its
+       * owner, and the dispatch plan when it is ready to place. Whatever went
+       * wrong on the way travels with it and is said at the top of the file.
+       */
+      const warn = [
+        body.alreadyTaken ? `This job had already been saved, as ${body.fileNumber}. Nothing was saved a second time: no second file and no second payment link.` : null,
+        body.landingWarning ? `The file was created and could not be moved on: ${body.landingWarning} It is at intake and somebody has to move it by hand.` : null,
+        body.paymentLinkWarning ? `${body.paymentLinkWarning} The customer has not been asked to pay.` : null,
+        body.partnerWarning ?? null,
+      ].filter(Boolean) as string[];
+      const to = new URLSearchParams({ id: String(body.fileId), taken: "1" });
+      for (const w of warn) to.append("warn", w);
       setDone(body);
+      router.push(`/portal/files?${to.toString()}`);
       setBusy(false);
     } catch {
       setError("The network dropped that. Nothing was saved.");

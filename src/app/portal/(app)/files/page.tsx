@@ -25,6 +25,8 @@ import { partnerCostByFile } from "@/lib/ops-partner-comp";
 import { progressLabel } from "@/lib/ops-evidence";
 import { NewFileForm, TransitionControls, RequestInformation } from "./FileClient";
 import { DispatchPanel } from "./DispatchPanel";
+import { ResendPaymentLink } from "./ResendPaymentLink";
+import { fileRelated, nextStepFor } from "@/lib/file-related";
 import { FileThreadButton } from "@/components/portal/FileThreadButton";
 import { formatInFirmZone } from "@/lib/firm-calendar";
 import { ListControls } from "@/components/portal/ListControls";
@@ -52,10 +54,15 @@ function when(value: string | null): string {
   return (formatInFirmZone(value, { month: "short", day: "numeric", year: "numeric" }) ?? "");
 }
 
+/* A date and time on the firm's calendar, for the payment and status link lines. */
+function whenShort(value: string): string {
+  return formatInFirmZone(value, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) ?? value;
+}
+
 export default async function FilesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ id?: string; status?: string; county?: string; q?: string; page?: string; dir?: string; sort?: string }>;
+  searchParams: Promise<{ id?: string; status?: string; county?: string; q?: string; page?: string; dir?: string; sort?: string; taken?: string; warn?: string | string[] }>;
 }) {
   const actor = await currentActor();
   if (!can(actor, "files.list")) notFound();
@@ -71,6 +78,12 @@ export default async function FilesPage({
     oldest,
   });
   const selected = params.id ? await getFile(actor, params.id) : null;
+  /* The Killeen call, items 3 and 4: the next step, its owner, the payment, and every record the file touches. */
+  const related = selected ? await fileRelated(actor, selected) : null;
+  const nextStep = selected && related ? nextStepFor(selected.status, related.payment, Boolean(selected.assigned_tech_id)) : null;
+  /* Arriving from Take the job: the warnings it returned, shown at the top of the file (text only, rendered escaped). */
+  const taken = params.taken === "1";
+  const takenWarnings = (Array.isArray(params.warn) ? params.warn : params.warn ? [params.warn] : []).map((w) => w.slice(0, 400));
   const timelineRead = selected ? await fileTimeline(selected.id) : [];
   /* A failed read is said where the timeline would be, never "Nothing recorded yet." (section 6, class A). */
   const timelineFailed = timelineRead === null;
@@ -169,7 +182,8 @@ export default async function FilesPage({
 
   const filterHref = (patch: Record<string, string | undefined>) => {
     const next = new URLSearchParams();
-    for (const [k, v] of Object.entries({ ...params, ...patch })) if (v) next.set(k, v);
+    /* taken and warn belong to one arrival from Take the job and are never carried into a list link. */
+    for (const [k, v] of Object.entries({ ...params, ...patch })) if (typeof v === "string" && v && k !== "taken" && k !== "warn") next.set(k, v);
     next.delete("id");
     return `/portal/files${next.toString() ? `?${next}` : ""}`;
   };
@@ -331,6 +345,116 @@ export default async function FilesPage({
             </div>
           </div>
         </div>
+
+        {/*
+          JUST TAKEN, AND WHAT CAME OF IT. The Killeen call, item 3: Take the job
+          lands here rather than on a done panel, and anything that went wrong
+          on the way is said at the top of the file it went wrong on.
+        */}
+        {taken ? (
+          <div className="border-b border-[var(--border)] px-4 py-4 sm:px-5" role="status">
+            <p className="portal-kicker">Job taken</p>
+            {takenWarnings.length === 0 ? (
+              <p className="mt-1.5 text-[14px] leading-[1.6] text-[var(--ink)]">{selected.file_number} is open. What happens next is below.</p>
+            ) : (
+              <ul className="mt-1.5 flex flex-col gap-1.5">
+                {takenWarnings.map((w) => (
+                  <li key={w} className="max-w-[75ch] text-[14px] leading-[1.6] font-semibold text-[var(--ink)]">{w}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ) : null}
+
+        {/*
+          THE NEXT STEP, WHO OWNS IT, THE PAYMENT, AND EVERYTHING THIS FILE
+          TOUCHES. The Killeen call, items 3 and 4 (src/lib/file-related.ts).
+        */}
+        {related && nextStep ? (
+          <div className="border-b border-[var(--border)] px-4 py-4 sm:px-5">
+            <div className="grid gap-4 lg:grid-cols-2">
+              <div>
+                <p className="portal-kicker">Next step</p>
+                <p className="mt-1.5 text-[15px] leading-[1.5] font-semibold text-[var(--ink)]">{nextStep.step}</p>
+                <p className="mt-0.5 text-[13.5px] text-[var(--secondary)]">Owner: {nextStep.owner}</p>
+
+                {related.payment ? (
+                  <>
+                    <p className="mt-4 portal-kicker">Payment</p>
+                    {related.payment.kind === "none" ? (
+                      <p className="mt-1.5 text-[14px] leading-[1.55] text-[var(--ink)]">No payment link or invoice has been raised for this job.</p>
+                    ) : related.payment.kind === "waiting" ? (
+                      <>
+                        <p className="mt-1.5 text-[14px] leading-[1.55] text-[var(--ink)]">
+                          Waiting for payment: {related.payment.amount} on {related.payment.reference}
+                          {related.payment.lastSent ? `, last sent ${whenShort(related.payment.lastSent)}` : ""}.
+                        </p>
+                        {can(actor, "payments.send_link") || can(actor, "payments.charge") ? <ResendPaymentLink fileId={selected.id} /> : null}
+                      </>
+                    ) : related.payment.kind === "paid" ? (
+                      <p className="mt-1.5 text-[14px] leading-[1.55] text-[var(--ink)]">
+                        Paid: {related.payment.amount} on {related.payment.reference}
+                        {related.payment.paidAt ? `, ${whenShort(related.payment.paidAt)}` : ""}.
+                      </p>
+                    ) : (
+                      <p className="mt-1.5 text-[14px] leading-[1.55] text-[var(--ink)]">
+                        {related.payment.reference} is {related.payment.status}.
+                      </p>
+                    )}
+                    {related.order ? (
+                      <p className="mt-1.5 text-[13.5px] text-[var(--secondary)]">
+                        {related.statusLinkOpened
+                          ? `The customer last opened their status page ${whenShort(related.statusLinkOpened)}.`
+                          : "The customer has not opened their status page."}
+                      </p>
+                    ) : null}
+                  </>
+                ) : null}
+              </div>
+
+              <div>
+                <p className="portal-kicker">This file touches</p>
+                <ul className="mt-1.5 flex flex-col gap-1.5 text-[14px]">
+                  {[
+                    ["Client", related.client],
+                    ["Order and its status page", related.order],
+                    ["Technician", related.technician],
+                    ["Engineer", related.engineer],
+                  ].map(([label, link]) => {
+                    const l = link as { href: string; label: string } | null;
+                    return (
+                      <li key={label as string} className="flex flex-wrap gap-x-2">
+                        <span className="text-[var(--secondary)]">{label as string}:</span>
+                        {l ? (
+                          <Link href={l.href} className="font-semibold text-[var(--navy)] underline">{l.label}</Link>
+                        ) : (
+                          <span className="text-[var(--ink)]">none yet</span>
+                        )}
+                      </li>
+                    );
+                  })}
+                  <li className="flex flex-wrap gap-x-2">
+                    <span className="text-[var(--secondary)]">Letter:</span>
+                    {related.letters.length === 0 ? (
+                      <span className="text-[var(--ink)]">none yet</span>
+                    ) : (
+                      related.letters.map((d) => (
+                        <a key={d.id} href={d.href} className="font-semibold text-[var(--navy)] underline">{d.label}</a>
+                      ))
+                    )}
+                  </li>
+                </ul>
+                {related.unreadable.length > 0 ? (
+                  <ul role="alert" className="mt-2 flex flex-col gap-1">
+                    {related.unreadable.map((u) => (
+                      <li key={u} className="text-[13.5px] text-[var(--ink)]">{u}</li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         {/*
           WHY THE ENGINEER DECLINED OR SENT IT BACK, AT THE TOP. Item B of

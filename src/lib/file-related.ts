@@ -1,0 +1,157 @@
+import "server-only";
+import { supabaseAdmin } from "./supabase";
+import { can, type Actor } from "./ops-authz";
+import { money } from "./ops-money";
+import type { FileStatus } from "./ops-files";
+
+/**
+ * ===========================================================================
+ * EVERYTHING A FILE TOUCHES, AND WHAT HAPPENS NEXT. The Killeen call, items 3
+ * and 4 (Robert, 2026-11-14), and Part 1 finding 14.
+ * ===========================================================================
+ *
+ * The file record linked to no other record: no client, order, payment,
+ * technician, engineer or letter. After Take the job the rep landed on a done
+ * panel and then a list. This module reads the file's neighbours once, for the
+ * file screen, and says the next step and who owns it.
+ *
+ * MONEY FOLLOWS RULING 6b-i. The order's figures and payment state are read
+ * only for a role holding orders.read; anybody else sees that an order exists
+ * and nothing about what it cost. The engineer's own pay is not here at all.
+ *
+ * A FAILED READ IS SAID. Each neighbour is either the record, absent (null), or
+ * a sentence naming what could not be read. Absent and unreadable are different
+ * facts, and the screen says which.
+ */
+
+export type Linked = { id: string; label: string; href: string };
+
+export type PaymentState =
+  | { kind: "none" }
+  | { kind: "waiting"; reference: string; amount: string; since: string; lastSent: string | null }
+  | { kind: "paid"; reference: string; amount: string; paidAt: string | null }
+  | { kind: "other"; reference: string; status: string };
+
+export type FileRelated = {
+  client: Linked | null;
+  order: Linked | null;
+  payment: PaymentState | null;
+  /** When the customer last opened their status link, if anybody holds orders.read and it was ever opened. */
+  statusLinkOpened: string | null;
+  technician: Linked | null;
+  engineer: Linked | null;
+  letters: Linked[];
+  unreadable: string[];
+};
+
+export async function fileRelated(
+  actor: Actor | null,
+  file: { id: string; client_id: string | null; assigned_tech_id: string | null; assigned_engineer_id: string | null },
+): Promise<FileRelated> {
+  const out: FileRelated = { client: null, order: null, payment: null, statusLinkOpened: null, technician: null, engineer: null, letters: [], unreadable: [] };
+  const db = supabaseAdmin();
+  if (!db || !actor) {
+    out.unreadable.push("The records this file touches could not be read.");
+    return out;
+  }
+
+  if (file.client_id) {
+    const { data, error } = await db.from("eng_clients").select("id, name").eq("id", file.client_id).maybeSingle();
+    if (error) out.unreadable.push(`The client could not be read (${error.message}).`);
+    else if (data) out.client = { id: data.id as string, label: data.name as string, href: `/portal/clients/${data.id as string}` };
+  }
+
+  const people = [file.assigned_tech_id, file.assigned_engineer_id].filter(Boolean) as string[];
+  if (people.length) {
+    const { data, error } = await db.from("eng_profiles").select("id, display_name").in("id", people);
+    if (error) out.unreadable.push(`Who is assigned could not be read (${error.message}).`);
+    const name = (id: string | null) => (data ?? []).find((p) => p.id === id)?.display_name as string | undefined;
+    if (file.assigned_tech_id) {
+      out.technician = { id: file.assigned_tech_id, label: name(file.assigned_tech_id) ?? "Assigned technician", href: `/portal/techs/${file.assigned_tech_id}` };
+    }
+    if (file.assigned_engineer_id) {
+      /* The engineer's own record is not a screen anybody but an administrator opens, so the link is the review screen for this file. */
+      out.engineer = { id: file.assigned_engineer_id, label: name(file.assigned_engineer_id) ?? "Assigned engineer", href: `/portal/review?id=${file.id}` };
+    }
+  }
+
+  const { data: orders, error: ordersError } = await db
+    .from("eng_service_orders")
+    .select("id, reference, status, total_cents, created_at, paid_at")
+    .eq("file_id", file.id)
+    .order("created_at", { ascending: false })
+    .limit(5);
+  if (ordersError) out.unreadable.push(`The order could not be read (${ordersError.message}).`);
+  const order = (orders ?? []).find((o) => o.status !== "cancelled" && o.status !== "refunded") ?? (orders ?? [])[0];
+  if (order) {
+    const seesMoney = can(actor, "orders.read");
+    out.order = { id: order.id as string, label: order.reference as string, href: `/portal/order-lookup/${order.id as string}` };
+    if (seesMoney) {
+      const amount = money(Number(order.total_cents));
+      if (order.status === "awaiting_payment") {
+        const { data: sends } = await db
+          .from("eng_order_events")
+          .select("created_at")
+          .eq("order_id", order.id)
+          .in("event", ["payment_link.resent", "email.queued"])
+          .order("created_at", { ascending: false })
+          .limit(1);
+        out.payment = { kind: "waiting", reference: order.reference as string, amount, since: order.created_at as string, lastSent: (sends ?? [])[0]?.created_at as string | undefined ?? null };
+      } else if (order.status === "paid" || order.status === "in_fulfilment" || order.status === "complete") {
+        out.payment = { kind: "paid", reference: order.reference as string, amount, paidAt: (order.paid_at as string | null) ?? null };
+      } else {
+        out.payment = { kind: "other", reference: order.reference as string, status: String(order.status).replace(/_/g, " ") };
+      }
+      const { data: access, error: accessError } = await db
+        .from("eng_customer_access")
+        .select("last_seen_at")
+        .eq("order_id", order.id)
+        .not("last_seen_at", "is", null)
+        .order("last_seen_at", { ascending: false })
+        .limit(1);
+      if (accessError) out.unreadable.push(`When the customer opened their status link could not be read (${accessError.message}).`);
+      else out.statusLinkOpened = ((access ?? [])[0]?.last_seen_at as string | undefined) ?? null;
+    }
+  } else if (!ordersError) {
+    out.payment = can(actor, "orders.read") ? { kind: "none" } : null;
+  }
+
+  const { data: docs, error: docsError } = await db
+    .from("eng_documents")
+    .select("id, title, sealed_at, visibility")
+    .eq("file_id", file.id)
+    .eq("kind", "deliverable")
+    .order("created_at", { ascending: false })
+    .limit(10);
+  if (docsError) out.unreadable.push(`The letter could not be read (${docsError.message}).`);
+  out.letters = (docs ?? [])
+    .filter((d) => actor.role === "admin" || d.visibility !== "admin_only")
+    .map((d) => ({ id: d.id as string, label: `${d.title as string}${d.sealed_at ? " (sealed)" : ""}`, href: `/api/portal/documents?id=${d.id as string}` }));
+
+  return out;
+}
+
+/**
+ * THE NEXT STEP AND WHO OWNS IT. Part 1 section 3, the ladder Robert approved
+ * with his answer 5 of 2026-11-14 (the operations manager owns delivery). One
+ * function, so the file screen and anything later that shows a next step say
+ * the same thing. Derived from the stored status and the payment state; it
+ * stores nothing.
+ */
+export function nextStepFor(status: FileStatus, payment: PaymentState | null, hasTech: boolean): { step: string; owner: string } {
+  if (status === "intake") {
+    if (payment?.kind === "waiting") return { step: "Chase the payment, or send the link again", owner: "The rep who took the job" };
+    if (payment?.kind === "none") return { step: "Send the payment link", owner: "The rep who took the job" };
+    return { step: "Release it for dispatch once it is paid or invoiced", owner: "Operations manager" };
+  }
+  if (status === "needs_dispatch") return { step: hasTech ? "Confirm the technician's visit" : "Offer it to a technician", owner: "Dispatcher" };
+  if (status === "dispatched" || status === "evidence_in_progress" || status === "revisions_requested") {
+    return { step: "Capture the evidence by its due date", owner: "Technician" };
+  }
+  if (status === "evidence_submitted" || status === "under_review") return { step: "Review and decide", owner: "Engineer" };
+  if (status === "repairs_required") return { step: "Tell the customer what to fix and book the re-check", owner: "The rep who took the job" };
+  if (status === "sealed") return { step: "Deliver the letter to the customer and every copy contact", owner: "Operations manager" };
+  if (status === "delivered") return { step: "Close it once nothing is owed", owner: "Operations manager" };
+  if (status === "refused" || status === "cancelled") return { step: "Settle the money, if any was taken", owner: "Administrator" };
+  return { step: "Nothing further", owner: "Nobody" };
+}

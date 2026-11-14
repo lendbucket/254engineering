@@ -433,6 +433,75 @@ export async function sendPaymentLink(actor: Author, fileId: string): Promise<Bi
 }
 
 /**
+ * SEND THE SAME PAYMENT LINK AGAIN. The Killeen call, item 3 (Robert,
+ * 2026-11-14): the file carries a resend button, and the unpaid follow-up task
+ * (item 6) carries the same action.
+ *
+ * Never a second order: a second press of Send was refused as already billed,
+ * and that refusal stands. This finds the job's one order still waiting for
+ * payment, asks startCheckout for its checkout (the same function the first
+ * send used), and queues the same template to the same address. Unlike the
+ * first send, whose queue result is not read, a resend that could not be queued
+ * says so and records nothing as sent.
+ */
+export async function resendPaymentLink(actor: Author, fileId: string): Promise<BillResult> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+  const file = await loadFile(fileId);
+  if (!file) return { ok: false, error: "That file does not exist." };
+
+  const refusal = refusedBecause("link_sent", false, file.client_price_cents !== null);
+  if (refusal) return { ok: false, error: refusal };
+
+  const { data: waiting, error: readError } = await db
+    .from("eng_service_orders")
+    .select("id, reference, customer_name, customer_email, total_cents, status, billing_mode")
+    .eq("file_id", fileId)
+    .eq("status", "awaiting_payment")
+    .eq("billing_mode", "card")
+    .order("created_at", { ascending: true })
+    .limit(1);
+  if (readError) return { ok: false, error: `The job's order could not be read: ${readError.message}` };
+  const order = (waiting ?? [])[0];
+  if (!order) return { ok: false, error: "No payment link is waiting on this job. Send one first, or it has already been paid." };
+  if (!order.customer_email) return { ok: false, error: `Order ${order.reference} has no email address to send the link to.` };
+
+  const checkout = await startCheckout(order.id as string);
+  if (!checkout.ok) return { ok: false, error: `The payment link for ${order.reference} could not be made again: ${checkout.error}` };
+
+  const queued = await queueEmail(
+    jobPaymentLink({
+      customerName: order.customer_name as string,
+      customerEmail: order.customer_email as string,
+      reference: order.reference as string,
+      propertyAddress: file.property_address,
+      deliverableName: entryName(file),
+      amount: money(Number(order.total_cents)),
+      payUrl: checkout.url,
+      takenBy: actor.email,
+    }),
+    { orderId: order.id as string },
+  );
+  if (!queued.ok) return { ok: false, error: `The payment link for ${order.reference} could not be queued: ${queued.error}. Nothing was sent.` };
+
+  await db.from("eng_order_events").insert({
+    order_id: order.id,
+    event: "payment_link.resent",
+    customer_visible: false,
+    summary: `The payment link was sent again to ${order.customer_email}.`,
+  });
+  await writeAudit({
+    actor,
+    action: "file.payment_link_resent",
+    entityType: "file",
+    entityId: fileId,
+    summary: `${file.file_number}: the payment link for ${order.reference} was sent again to ${order.customer_email}.`,
+  });
+
+  return { ok: true, orderId: order.id as string, reference: order.reference as string, checkoutUrl: checkout.url };
+}
+
+/**
  * Bill this job to the client's account rather than charging a card.
  *
  * UNEXERCISED UNTIL LAUNCH. See the header.

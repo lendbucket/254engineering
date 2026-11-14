@@ -1,5 +1,5 @@
 import { takeJob, searchClients, type TakeJobInput } from "@/lib/ops-job-intake";
-import { sendPaymentLink, invoiceAccount } from "@/lib/ops-job-billing";
+import { sendPaymentLink, resendPaymentLink, invoiceAccount } from "@/lib/ops-job-billing";
 import { requestOutstanding } from "@/lib/ops-file-inputs";
 import { dispatchContext } from "@/lib/ops-field";
 import { NextResponse, type NextRequest } from "next/server";
@@ -135,16 +135,17 @@ async function handlePOST(request: NextRequest) {
    * different act from writing the job down, and a coordinator who may do the
    * second should not automatically be able to do the first.
    */
-  if (action === "send_payment_link" || action === "invoice_account") {
+  if (action === "send_payment_link" || action === "resend_payment_link" || action === "invoice_account") {
     /*
-     * The link alone opens to payments.send_link (0079). Invoicing an account
-     * stays payments.charge: terms and credit are the administrator's. Neither
-     * branch can reach the proving charge, which asks payments.charge itself.
+     * The link alone opens to payments.send_link (0079), and so does sending it
+     * again (the Killeen call, item 3). Invoicing an account stays
+     * payments.charge: terms and credit are the administrator's. No branch can
+     * reach the proving charge, which asks payments.charge itself.
      */
     const permitted =
-      action === "send_payment_link"
-        ? can(actor, "payments.charge") || can(actor, "payments.send_link")
-        : can(actor, "payments.charge");
+      action === "invoice_account"
+        ? can(actor, "payments.charge")
+        : can(actor, "payments.charge") || can(actor, "payments.send_link");
     if (!permitted) {
       return NextResponse.json({ ok: false, error: "Not permitted." }, { status: 403 });
     }
@@ -152,7 +153,9 @@ async function handlePOST(request: NextRequest) {
     const result =
       action === "send_payment_link"
         ? await sendPaymentLink(actor, fileId)
-        : await invoiceAccount(actor, fileId);
+        : action === "resend_payment_link"
+          ? await resendPaymentLink(actor, fileId)
+          : await invoiceAccount(actor, fileId);
 
     return result.ok
       ? NextResponse.json(result)
