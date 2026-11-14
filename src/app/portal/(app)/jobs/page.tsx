@@ -3,7 +3,10 @@ import { notFound } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
 import { money, isKnown } from "@/lib/ops-money";
 import { can } from "@/lib/ops-authz";
-import { listOffers } from "@/lib/ops-field";
+import { listOffersRead } from "@/lib/ops-field";
+import { Pager, listHref } from "@/components/portal/ListControls";
+import { STAFF_LIST_PAGE_SIZE, staffListPage } from "@/lib/staff-lists";
+import { LIST_NOT_LOADED } from "@/lib/outcome-copy";
 import { services } from "@/content/services";
 import { STATUS_LABEL, type FileStatus } from "@/lib/ops-files";
 import { EmptyState, PageHead } from "@/components/portal/surfaces";
@@ -42,11 +45,23 @@ const when = (value: string | null) =>
     ? (formatInFirmZone(value, { weekday: "short", month: "short", day: "numeric" }) ?? "")
     : null;
 
-export default async function JobsPage() {
+export default async function JobsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const actor = await currentActor();
   if (!can(actor, "offers.list_own")) notFound();
+  const params = await searchParams;
 
-  const offers = await listOffers(actor);
+  /*
+   * EVERY OFFER, SEARCHED, AND A FAILED READ SAID (Robert's ruling 2 of
+   * 2026-11-13). listOffersRead reads every assignment, where the old read
+   * stopped at the newest 100, and returns its error rather than an empty list
+   * drawn as "No offers right now". The search narrows all three sections by
+   * file number, address or county; the earlier work pages.
+   */
+  const read = await listOffersRead(actor);
+  const term = (params.q ?? "").trim().toLowerCase();
+  const offers = (read.ok ? read.rows : []).filter(
+    (o) => !term || [o.file?.file_number, o.file?.property_address, o.file?.county].some((v) => (v ?? "").toLowerCase().includes(term)),
+  );
   const serviceName = (slug: string) => services.find((s) => s.slug === slug)?.name ?? slug;
 
   const live = offers.filter((o) => o.state === "offered" && !o.file?.assigned_tech_id);
@@ -73,6 +88,8 @@ export default async function JobsPage() {
       o.state === "expired",
   );
 
+  const pastShown = staffListPage(past, Math.max(1, Math.floor(Number(params.page)) || 1));
+
   return (
     <>
       <PageHead
@@ -83,6 +100,23 @@ export default async function JobsPage() {
 
       {/* Offer alerts on this phone (Robert's T9, 2026-11-07): county and service on the lock screen, never the address or the rate. */}
       <OfferAlerts />
+
+      <form method="get" action="/portal/jobs" role="search" className="mb-6 flex flex-wrap items-end gap-3">
+        <label className="min-w-[200px] flex-1">
+          <span className="block text-[14px] font-semibold text-[var(--ink)]">Search address, county or file number</span>
+          <input name="q" defaultValue={params.q ?? ""} className="mt-1 min-h-[44px] w-full rounded-[var(--radius-control)] border border-[var(--border-strong)] px-3 text-[15px]" />
+        </label>
+        <button type="submit" className="min-h-[44px] rounded-[var(--radius-control)] border border-[var(--navy)] bg-[var(--navy)] px-4 text-[14px] font-semibold text-[var(--on-navy)]">
+          Search
+        </button>
+      </form>
+
+      {!read.ok ? (
+        <div role="alert" data-list-not-loaded className="mb-6">
+          <p className="text-[15px] font-semibold text-[var(--ink)]">{LIST_NOT_LOADED}</p>
+          <p className="mt-1 text-[14px] text-[var(--secondary)]">Your offers and jobs could not be read, so this is not an empty list. Reload in a moment; nothing was changed.</p>
+        </div>
+      ) : null}
 
       <section aria-labelledby="live-offers">
         <h2 id="live-offers" className="portal-label">
@@ -184,7 +218,7 @@ export default async function JobsPage() {
             Earlier
           </h2>
           <ul className="mt-3 divide-y divide-limestone-line rounded-[2px] border border-[var(--border)] bg-white px-4">
-            {past.map((o) => (
+            {pastShown.rows.map((o) => (
               <li key={o.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
                 <div className="min-w-0">
                   <p className="text-[14px] font-semibold text-[var(--ink)]">{o.file?.property_address}</p>
@@ -207,6 +241,7 @@ export default async function JobsPage() {
               </li>
             ))}
           </ul>
+          <Pager page={pastShown.page} pageSize={STAFF_LIST_PAGE_SIZE} total={pastShown.total} hrefFor={(n) => listHref("/portal/jobs", params, { page: n > 1 ? String(n) : "" })} />
         </section>
       ) : null}
     </>

@@ -1102,16 +1102,39 @@ export async function listOffers(
   if (!db || !actor) return [];
   if (!can(actor, "offers.list_own")) return [];
 
+  const read = await listOffersRead(actor, techId);
+  return read.ok ? read.rows : [];
+}
+
+/**
+ * EVERY OFFER, AND A FAILED READ SAID. Office-ready table, 2026-11-13. This
+ * read stopped at the newest 100 assignments with `.limit(100)`, so a
+ * technician's older work fell off the screen without a word, and a failed read
+ * came back as no offers, which /portal/jobs drew as "No offers right now". It
+ * now reads every assignment through readEvery and returns the error, so the
+ * screen can say it.
+ */
+export async function listOffersRead(
+  actor: Actor | null,
+  techId?: string,
+): Promise<{ ok: true; rows: OfferRow[] } | { ok: false; error: string }> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+  if (!actor || !can(actor, "offers.list_own")) return { ok: true, rows: [] };
+
   const subject = actor.role === "admin" && techId ? techId : actor.id;
-
-  const { data } = await db
-    .from("eng_assignments")
-    .select(OFFER_COLUMNS)
-    .eq("tech_id", subject)
-    .order("offered_at", { ascending: false })
-    .limit(100);
-
-  return ((data ?? []) as unknown as OfferRow[]).filter((o) => o.file !== null);
+  const read = await readEvery((from, to) =>
+    db
+      .from("eng_assignments")
+      .select(OFFER_COLUMNS)
+      .eq("tech_id", subject)
+      .order("offered_at", { ascending: false })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  if (!read.ok) return { ok: false, error: read.error };
+  /* The same cast the capped read made: the joined file is one row, typed by the client as an array. */
+  return { ok: true, rows: (read.rows as unknown as OfferRow[]).filter((o) => o.file !== null) };
 }
 
 /**
