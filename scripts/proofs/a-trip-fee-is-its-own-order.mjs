@@ -87,7 +87,16 @@ const tripInsert = (id, ref, visit, status, kind = "trip_fee") =>
      values ($1, '254engineering', $2, $3, $4, 'foundation-inspections', 'field', 'Proof', 'proof@audit-probe.invalid', '1 Proof Way', 'Bell', $5, 12500, $6, $7)`,
     [id, ref, kind, visit, status, FILE, CLIENT],
   );
-check("a trip fee must name its visit", await refused(`insert into eng_service_orders (site, reference, kind, service_slug, order_type, customer_name, property_address, county, status, total_cents) values ('254engineering', '254-PROOF-X', 'trip_fee', 'foundation-inspections', 'field', 'P', 'a', 'Bell', 'awaiting_payment', 12500)`));
+/*
+ * One full row, so each refusal below can only be the rule it names: the
+ * control is the same row as a job with no visit, and it is accepted first.
+ * (The first version left out customer_email, which is not null, so these two
+ * checks would have passed on that and proved nothing about kind.)
+ */
+const bareOrder = (ref, kind) =>
+  `insert into eng_service_orders (site, reference, kind, service_slug, order_type, customer_name, customer_email, property_address, county, status, total_cents) values ('254engineering', '${ref}', '${kind}', 'foundation-inspections', 'field', 'P', 'p@audit-probe.invalid', 'a', 'Bell', 'draft', 12500)`;
+check("the control: a job order naming no visit is accepted", !(await refused(bareOrder("254-PROOF-CTL", "job"))));
+check("a trip fee must name its visit", await refused(bareOrder("254-PROOF-X", "trip_fee")));
 let jobWithVisit = false;
 try {
   await tripInsert("00000000-0000-4000-8000-00000000e100", "254-PROOF-JV", visit1, "awaiting_payment", "job");
@@ -95,7 +104,7 @@ try {
   jobWithVisit = true;
 }
 check("and only a trip fee may name one", jobWithVisit);
-check("a kind other than job or trip fee is refused", await refused(`insert into eng_service_orders (site, reference, kind, service_slug, order_type, customer_name, property_address, county, status) values ('254engineering', '254-PROOF-K', 'deposit', 'foundation-inspections', 'field', 'P', 'a', 'Bell', 'draft')`));
+check("a kind other than job or trip fee is refused", await refused(bareOrder("254-PROOF-K", "deposit")));
 
 const TRIP1 = "00000000-0000-4000-8000-00000000e101";
 await tripInsert(TRIP1, "254-PROOF-T1", visit1, "awaiting_payment");
