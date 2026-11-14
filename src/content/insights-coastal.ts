@@ -484,17 +484,41 @@ export const coastalInsights: Insight[] = [
    */
   {
     slug: "texas-windstorm-certificate-lookup",
-    title: "Texas Windstorm Certificate Lookup | 254 Engineering",
+    /*
+     * SEO report quick win 3 (Robert's add-on of 2026-11-14, section 3):
+     * positions 14 to 16 for "wpi-8 certificate search by address". The title
+     * carries that search, the first paragraph answers it, and the steps link
+     * to both searches at the addresses TDI's windstorm page gives, read
+     * 2026-11-14. No screenshots of either site: they are the department's
+     * and the association's images, and Robert's answer 3 holds the firm to
+     * pictures of its own.
+     */
+    title: "WPI-8 Certificate Search by Address, Texas | 254 Engineering",
     h1: "Texas windstorm certificate lookup: the TDI search, the TWIA window, and what neither proves",
     description:
-      "Search the TDI windstorm certificate database by address or number, find a WPI-8C through TWIA, and see what a result can and cannot tell you.",
+      "Search TDI's WPI-8 database by address or certificate number, check TWIA for a 2017 to 2020 WPI-8C, and read what a result can and cannot prove. Steps here.",
     summary:
       "There are two places to look, and the one a coastal file needs depends on when the work was certified. Neither one says anything about the roof as it is today.",
     eyebrow: "Windstorm law",
     primaryKeyword: "texas windstorm certificate lookup",
     datePublished: DATE,
-    dateModified: "2026-11-02",
+    dateModified: "2026-11-14",
     body: [
+      {
+        kind: "p",
+        text: "To find a WPI-8 certificate by address, open [the Texas Department of Insurance certificate search](https://appscenter.tdi.texas.gov/windstorm/p/searchForAppl), enter the street number and the street name, and choose the city, the ZIP or the county. If the work could have been certified by the Texas Windstorm Insurance Association between 2017 and 2020, search [the association's WPI-8-C lookup](https://www.twia.org/wpi-8-lookup/) as well, because those certificates are not in the department's results.",
+      },
+      { kind: "h2", text: "Searching by address, step by step" },
+      {
+        kind: "ul",
+        items: [
+          "First, open the department's search and choose the address search rather than the number search.",
+          "Second, type the street number and the street name in their own boxes, and choose a city, a ZIP or a county; the search requires one of the three.",
+          "Third, read the table that comes back: one row per application, with the application ID and type, the certificate number, the status, the building and its location, the inspection types, the dates and the address.",
+          "Fourth, open each row that matches the building to see its application details, and print the certificate from there if you need a copy.",
+          "Fifth, if nothing matches, search again without the unit or the street suffix and with the county instead of the city, and run the association's lookup for the 2017 to 2020 window.",
+        ],
+      },
       {
         kind: "p",
         text: "A windstorm certificate search is usually run in a hurry: an agent binding coverage, a buyer inside the option period, a title file that needs a document by Friday. The search itself takes a minute. Reading what it returns, and what it cannot return, is where the time goes.",
