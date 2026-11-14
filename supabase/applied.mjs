@@ -4925,7 +4925,9 @@ export const APPLIED = [
     because:
       "WRITTEN 2026-11-14 ON feat/connect-batch-2, FOR OFFICE-READY BATCH B (issue #1, 6870906132 and 6871302517: " +
       "an inquiry has no call log) AND AUTOPILOT QUESTION 21 (all three inquiry kinds, built on its recommendation). " +
-      "PENDING ON DEVELOPMENT: its sitting request is posted on issue #1 before its board. PENDING ON PRODUCTION: only " +
+      "ON DEVELOPMENT SINCE 2026-11-14 (issue #1, 6884744819, after request 6884031935: version 20261114215059, shape " +
+      "9844f7bb at 1678 columns, 129 tables, both checks and all three indexes present, eng_contact_log rows unchanged, " +
+      "as predicted). PENDING ON PRODUCTION: only " +
       "in a sitting with Robert. Additive in effect: three nullable columns and three indexes; every existing row " +
       "satisfies the wider checks, because each new column is null on it.",
   },
