@@ -52,6 +52,8 @@
  * permission CLAUDE.md grants a run over a table it did not own.
  */
 
+import { readEveryRow } from "./read-every-row.mjs";
+
 /** Every job id now, as a Set. Null when the queue cannot be read. */
 export async function queueSnapshot(db) {
   if (!db) return null;
@@ -77,10 +79,26 @@ export async function queueSnapshot(db) {
  */
 export async function queueGrowth(db, before) {
   if (!db || !before) return null;
-  const { data, error } = await db.from("eng_jobs").select("id, kind, status").limit(5000);
-  if (error) return null;
+  /*
+   * EVERY ROW, COUNTED, NEVER A CAPPED SELECT. This read was
+   * `.limit(5000)`, and PostgREST answers at most 1,000 rows with no error. On
+   * 2026-11-13 development held 2,280 rows, so the "after" read saw an
+   * arbitrary thousand, the growth was only the new rows that happened to be
+   * among them, and the board reported "removed 25 rows this run caused" while
+   * the rest stayed pending for good. That is how the queue climbed back past
+   * the very ceiling this file exists to keep it under (BACKLOG, the queue
+   * swept on 2026-09-24; pruned again under Robert's ruling 4 of 2026-11-13).
+   * readEveryRow counts first and refuses a short read, so a cap can only make
+   * this COULD NOT TELL, never a smaller answer.
+   */
+  let data;
+  try {
+    data = await readEveryRow(db, "eng_jobs", "id, kind, status", { orderBy: "id" });
+  } catch {
+    return null;
+  }
 
-  const added = (data ?? []).filter((r) => !before.has(r.id));
+  const added = data.filter((r) => !before.has(r.id));
   return {
     added,
     removable: added.filter((r) => r.status === "pending" || r.status === "dead"),
