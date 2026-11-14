@@ -3,6 +3,7 @@ import { supabaseAdmin } from "./supabase";
 import { can, type Actor } from "./ops-authz";
 import { money } from "./ops-money";
 import type { FileStatus } from "./ops-files";
+import { readEvery } from "./bounded-read";
 
 /**
  * ===========================================================================
@@ -129,6 +130,40 @@ export async function fileRelated(
     .map((d) => ({ id: d.id as string, label: `${d.title as string}${d.sealed_at ? " (sealed)" : ""}`, href: `/api/portal/documents?id=${d.id as string}` }));
 
   return out;
+}
+
+/**
+ * EVERY FILE A CLIENT HAS, for the client record (the Killeen call, item 4:
+ * "the client links back to every file"). Every row, through readEvery, newest
+ * first; a failed read is said. files.list is the grant that opens a file.
+ */
+export async function filesForClient(
+  actor: Actor | null,
+  clientId: string,
+): Promise<{ ok: true; rows: { id: string; fileNumber: string; status: FileStatus; propertyAddress: string; createdAt: string }[] } | { ok: false; error: string } | null> {
+  if (!actor || !can(actor, "files.list")) return null;
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+  const read = await readEvery<Record<string, unknown>>((from, to) =>
+    db
+      .from("eng_files")
+      .select("id, file_number, status, property_address, created_at")
+      .eq("client_id", clientId)
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  if (!read.ok) return { ok: false, error: `This client's files could not be read: ${read.error}` };
+  return {
+    ok: true,
+    rows: read.rows.map((r) => ({
+      id: r.id as string,
+      fileNumber: r.file_number as string,
+      status: r.status as FileStatus,
+      propertyAddress: r.property_address as string,
+      createdAt: r.created_at as string,
+    })),
+  };
 }
 
 /**

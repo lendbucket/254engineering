@@ -48,6 +48,12 @@ check("a resend that could not queue says so and records nothing", /if \(!queued
 const route = codeOf(readFileSync("src/app/api/portal/files/route.ts", "utf8"));
 check("the route gates the resend as the first send", /action === "invoice_account"\s*\? can\(actor, "payments\.charge"\)\s*: can\(actor, "payments\.charge"\) \|\| can\(actor, "payments\.send_link"\);/.test(route) && /await resendPaymentLink\(actor, fileId\)/.test(route));
 
+const clientPage = codeOf(readFileSync("src/app/portal/(app)/clients/[id]/page.tsx", "utf8"));
+check("the client lists every file it has", /const files = await filesForClient\(actor, id\);/.test(clientPage) && /href=\{`\/portal\/files\?id=\$\{f\.id\}`\}/.test(clientPage));
+const forClient = related.slice(related.indexOf("export async function filesForClient("), related.indexOf("export function nextStepFor("));
+check("every row, through readEvery, and a failed read said", /await readEvery</.test(forClient) && /\.eq\("client_id", clientId\)/.test(forClient) && /could not be read/.test(forClient));
+check("and only for a role that may open files", /if \(!actor \|\| !can\(actor, "files\.list"\)\) return null;/.test(forClient));
+
 console.log("");
 if (wrong === 0) {
   console.log("PASS: a taken job lands on its file, which says what is next, who owns it, the payment, and everything it touches.");
