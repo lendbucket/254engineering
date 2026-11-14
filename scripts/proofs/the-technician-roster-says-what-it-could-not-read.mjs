@@ -48,7 +48,16 @@ const page = readFileSync("src/app/portal/(app)/techs/page.tsx", "utf8");
 check("the screen says the roster could not be loaded rather than no technicians", /!rosterRead\.ok \? \(\s*<div role="alert" data-list-not-loaded/.test(page));
 check("names each failed source above the list", /rosterRead\.failed\.map\(\(f\) => <li key=\{f\}>\{f\}<\/li>\)/.test(page));
 check("and shows no pay figure when pay could not be read", /"Could not be read, so not shown; it is not zero"/.test(page));
-check("it offers search, a status filter and a sort", /<ListControls/.test(page) && /const shown = techListRows\(roster, query\);/.test(page) && /\{shown\.map\(\(tech\) =>/.test(page));
+/* Paged since 2026-11-13 (office-ready table): the filter runs over the whole roster, then the page is cut from what matched. */
+check(
+  "it offers search, a status filter, a sort and pages",
+  /<ListControls/.test(page) &&
+    /const matching = techListRows\(roster, query\);/.test(page) &&
+    /const paged = staffListPage\(matching, /.test(page) &&
+    /const shown = paged\.rows;/.test(page) &&
+    /\{shown\.map\(\(tech\) =>/.test(page) &&
+    /<Pager page=\{paged\.page\}/.test(page),
+);
 check("and coverage still counts the whole active bench, not the filtered list", /for \(const tech of roster\) \{/.test(page));
 
 console.log("");

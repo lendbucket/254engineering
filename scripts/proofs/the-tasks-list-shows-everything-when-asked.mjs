@@ -31,7 +31,8 @@ const read = lib.slice(lib.indexOf("export async function listTasksRead("), lib.
 check("the dashboard's read is the first page of the same rule, so the two cannot drift", /const page = await listTasksPage\(actor, filters\);\s*return page \? page\.rows : null;/.test(read));
 
 const page = readFileSync("src/app/portal/(app)/tasks/page.tsx", "utf8");
-check("the screen reads the page, not the read that folds a failure to []", /const read = await listTasksPage\(actor, \{ status: params\.status, q: params\.q, page \}\);/.test(page) && !/await listTasks\(/.test(page));
+/* Sort and direction since 2026-11-13 (office-ready table), passed to the same read. */
+check("the screen reads the page, not the read that folds a failure to []", /const read = await listTasksPage\(actor, \{ status: params\.status, q: params\.q, sort: params\.sort, dir: params\.dir, page \}\);/.test(page) && !/await listTasks\(/.test(page));
 check("a failed read says the list could not be loaded", /\{!read \? \(\s*<div role="alert" data-list-not-loaded/.test(page));
 check("it has a search box that keeps the chosen status", /name="q"/.test(page) && /<input type="hidden" name="status" value=\{params\.status\} \/>/.test(page));
 check("it links to the previous and next page", /Previous page/.test(page) && /pageHref\(page \+ 1\)/.test(page));

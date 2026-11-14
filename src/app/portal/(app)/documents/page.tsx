@@ -109,7 +109,7 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
           direction={oldest ? "asc" : "desc"}
         />
         {page > 1 || filesRead.more ? (
-          <p className="mb-3 text-[13px] leading-[1.6] text-[var(--secondary)]">
+          <p className="mb-3 text-[13.5px] leading-[1.6] text-[var(--secondary)]">
             Binders {(page - 1) * FILE_LIST_CAP + 1} to {(page - 1) * FILE_LIST_CAP + files.length}, {oldest ? "oldest" : "newest"} first.
             {filesRead.more ? " More follow on the next page." : " This is the last page."}
           </p>
@@ -117,7 +117,7 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
         {filesRead.error ? (
           <div role="alert" data-list-not-loaded className="py-6">
             <p className="text-[15px] font-semibold text-[var(--ink)]">{LIST_NOT_LOADED}</p>
-            <p className="mt-1 text-[14px] text-[var(--secondary)]">The files could not be read, so this is not an empty list of binders.</p>
+            <p className="mt-1 text-[13.5px] text-[var(--secondary)]">The files could not be read, so this is not an empty list of binders.</p>
             <div className="mt-4 flex">
               <RetryButton />
             </div>
@@ -220,12 +220,12 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
         {page > 1 || filesRead.more ? (
           <div className="mt-4 flex flex-wrap gap-6">
             {page > 1 ? (
-              <a href={binderHref({ page: page - 1 > 1 ? String(page - 1) : "" })} className="inline-flex min-h-[44px] items-center text-[14px] font-semibold text-[var(--navy)] underline">
+              <a href={binderHref({ page: page - 1 > 1 ? String(page - 1) : "" })} className="inline-flex min-h-[44px] items-center text-[13.5px] font-semibold text-[var(--navy)] underline">
                 Previous page
               </a>
             ) : null}
             {filesRead.more ? (
-              <a href={binderHref({ page: String(page + 1) })} className="inline-flex min-h-[44px] items-center text-[14px] font-semibold text-[var(--navy)] underline">
+              <a href={binderHref({ page: String(page + 1) })} className="inline-flex min-h-[44px] items-center text-[13.5px] font-semibold text-[var(--navy)] underline">
                 Next page
               </a>
             ) : null}
