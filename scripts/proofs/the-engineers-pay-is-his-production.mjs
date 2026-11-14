@@ -78,9 +78,30 @@ for (const item of menu) {
     continue;
   }
   const away = code.search(/if \(actor\?\.role === "engineer"\) return /);
+  /*
+   * A sentence may also sit in a module constant (the pay page's TECH_COPY and
+   * FIRM_COPY, 2026-11-14), if every use of that constant comes after the
+   * engineer is sent away. Otherwise it must itself come after.
+   */
+  const constantAt = (at) => {
+    let best = null;
+    for (const m of code.matchAll(/const ([A-Z_][A-Z0-9_]*)\b[^=]*= \{/g)) {
+      const end = code.indexOf("\n};", m.index);
+      if (m.index < at && end > at) best = m[1];
+    }
+    return best;
+  };
   for (const re of TECH_SENTENCES) {
-    const at = code.search(re);
-    if (at >= 0 && !(away >= 0 && away < at)) leaks.push(`${item.href}: ${re}`);
+    for (const m of code.matchAll(new RegExp(re.source, `${re.flags.replace("g", "")}g`))) {
+      const name = constantAt(m.index);
+      if (name) {
+        const uses = [...code.matchAll(new RegExp(`\\b${name}\\b`, "g"))].map((u) => u.index).filter((i) => i !== code.indexOf(`const ${name}`) + 6);
+        const early = uses.filter((i) => !(away >= 0 && i > away) && !new RegExp(`const [A-Z_]+: typeof ${name}`).test(code.slice(Math.max(0, i - 40), i + name.length)));
+        if (early.length) leaks.push(`${item.href}: ${re} in ${name}, used before the engineer is sent away`);
+      } else if (!(away >= 0 && away < m.index)) {
+        leaks.push(`${item.href}: ${re}`);
+      }
+    }
   }
 }
 check(
@@ -88,6 +109,19 @@ check(
   menu.length >= 5 && leaks.length === 0,
   leaks.join("; ") || menu.map((i) => i.href).join(", "),
 );
+/*
+ * AND THE FIRM'S VIEW SPEAKS TO THE FIRM (the every-role walk of 2026-11-14):
+ * whoever reads every technician's ledger gets "Technician pay", never "Your
+ * pay" or "Owed to you", and an empty ledger points to Billing.
+ */
+check(
+  "whoever reads every technician's ledger gets the firm's words",
+  /const copy = can\(actor, "ledger\.read_all"\) \? FIRM_COPY : TECH_COPY;/.test(main) &&
+    /title: "Technician pay",/.test(page) && /owed: "Owed to technicians",/.test(page),
+);
+check("the page's words all come from that choice", !/title="Your pay"\s*lede=/.test(main) && /<PageHead eyebrow=\{copy\.eyebrow\} title=\{copy\.title\} lede=\{copy\.lede\} \/>/.test(main));
+check("and the firm's empty ledger says what to do next", /copy === FIRM_COPY \? \(\s*<Link href="\/portal\/billing"/.test(main));
+
 const dash = codeOf(readFileSync("src/lib/ops-dashboard.ts", "utf8"));
 const engDash = dash.slice(dash.indexOf("async function engineerDashboard("), dash.indexOf("async function techDashboard("));
 check(

@@ -52,9 +52,25 @@ check("the route gates the resend as the first send", /action === "invoice_accou
 
 const clientPage = codeOf(readFileSync("src/app/portal/(app)/clients/[id]/page.tsx", "utf8"));
 check("the client lists every file it has", /const files = await filesForClient\(actor, id\);/.test(clientPage) && /href=\{`\/portal\/files\?id=\$\{f\.id\}`\}/.test(clientPage));
-const forClient = related.slice(related.indexOf("export async function filesForClient("), related.indexOf("export function nextStepFor("));
-check("every row, through readEvery, and a failed read said", /await readEvery</.test(forClient) && /\.eq\("client_id", clientId\)/.test(forClient) && /could not be read/.test(forClient));
+const forClient = related.slice(related.indexOf("export async function filesForClient("), related.indexOf("export async function filesForTechnician("));
+check("every row, through readEvery, and a failed read said", forClient.length > 100 && /await readEvery</.test(forClient) && /\.eq\("client_id", clientId\)/.test(forClient) && /could not be read/.test(forClient));
 check("and only for a role that may open files", /if \(!actor \|\| !can\(actor, "files\.list"\)\) return null;/.test(forClient));
+
+/*
+ * THE TECHNICIAN RECORD LINKS TO THE JOBS IT HOLDS. The every-role walk of
+ * 2026-11-14 found it linking nowhere but back to the list.
+ */
+const forTech = related.slice(related.indexOf("export async function filesForTechnician("), related.indexOf("export function nextStepFor("));
+check(
+  "a technician's record reads every file assigned to them, a failed read said, for a role that may open files",
+  forTech.length > 100 && /await readEvery</.test(forTech) && /\.eq\("assigned_tech_id", techId\)/.test(forTech) &&
+    /could not be read/.test(forTech) && /if \(!actor \|\| !can\(actor, "files\.list"\)\) return null;/.test(forTech),
+);
+const techPage = codeOf(readFileSync("src/app/portal/(app)/techs/[id]/page.tsx", "utf8"));
+check(
+  "and the record lists them, each a link to its file",
+  /filesForTechnician\(actor, id\)/.test(techPage) && /jobs\.rows\.map\(\(f\) =>/.test(techPage) && /href=\{`\/portal\/files\?id=\$\{f\.id\}`\}/.test(techPage),
+);
 
 const opener = codeOf(readFileSync("src/lib/ops-intake.ts", "utf8"));
 const token = opener.slice(opener.indexOf("export async function orderForCustomerToken("), opener.indexOf("export { landingStatusFor };"));

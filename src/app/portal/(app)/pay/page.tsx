@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
@@ -59,6 +60,34 @@ const STATUS: Record<string, { label: string; tone: StatusTone; means: string }>
   },
   paid: { label: "Paid", tone: "good", means: "Paid." },
   void: { label: "Void", tone: "inert", means: "Canceled. It is kept rather than deleted." },
+};
+
+/*
+ * THE WORDS OF THE TECHNICIAN'S PAGE, AND OF THE SAME LEDGER READ BY THE FIRM.
+ * TECH_COPY is the page as it always read; FIRM_COPY is for whoever holds
+ * ledger.read_all (the every-role walk of 2026-11-14).
+ */
+const TECH_COPY = {
+  eyebrow: "Field",
+  title: "Your pay",
+  lede: "A flat rate per job, written to the ledger when you submit the evidence and independent of what the engineer decides. Read from the ledger, not recalculated here.",
+  owed: "Owed to you",
+  paid: "Paid to date",
+  panel: "One row per job. The status says where it has got to, and nothing here is estimated.",
+  emptyTitle: "Nothing on your ledger yet",
+  emptyBody:
+    "An entry is written the moment you submit the evidence for a job you accepted, at the flat rate that was on the offer. It does not wait on the engineer's decision.",
+};
+const FIRM_COPY: typeof TECH_COPY = {
+  eyebrow: "Billing",
+  title: "Technician pay",
+  lede: "Every technician's pay: a flat rate per job, written to the ledger when the technician submits the evidence and independent of what the engineer decides. Read from the ledger, not recalculated here.",
+  owed: "Owed to technicians",
+  paid: "Paid to technicians",
+  panel: "One row per job, for every technician. The status says where it has got to, and nothing here is estimated.",
+  emptyTitle: "No technician pay written yet",
+  emptyBody:
+    "An entry is written when a technician submits the evidence for a job they accepted, at the flat rate on the offer. Approving and paying entries is done on Billing.",
 };
 
 const WHEN = (iso: string) =>
@@ -167,6 +196,15 @@ export default async function PayPage() {
   /* The engineer's own pay is his production ledger (Part 1 finding 7). Everybody else's view is unchanged. */
   if (actor?.role === "engineer") return <EngineerPay actor={actor} />;
 
+  /*
+   * THE FIRM'S VIEW SPEAKS TO THE FIRM. The every-role walk of 2026-11-14 found
+   * the administrator, who reads every technician's ledger (ledger.read_all),
+   * told "Your pay", "Owed to you" and "when you submit the evidence". The rows
+   * and figures are the same read; only the words change. A technician never
+   * holds ledger.read_all, so a technician's page is word for word as before.
+   */
+  const copy = can(actor, "ledger.read_all") ? FIRM_COPY : TECH_COPY;
+
   const read = await payLedger(actor);
 
   /*
@@ -177,7 +215,7 @@ export default async function PayPage() {
   if (!read.ok) {
     return (
       <>
-        <PageHead eyebrow="Field" title="Your pay" />
+        <PageHead eyebrow={copy.eyebrow} title={copy.title} />
         <RestrictedMode />
         <p role="alert" className="text-[13.5px] leading-[1.55] text-[var(--ink)]">
           {read.error} So no figure is shown: this is a failed read, not a ledger with nothing on it. Reload the page in a
@@ -216,22 +254,18 @@ export default async function PayPage() {
 
   return (
     <>
-      <PageHead
-        eyebrow="Field"
-        title="Your pay"
-        lede="A flat rate per job, written to the ledger when you submit the evidence and independent of what the engineer decides. Read from the ledger, not recalculated here."
-      />
+      <PageHead eyebrow={copy.eyebrow} title={copy.title} lede={copy.lede} />
 
       <RestrictedMode />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <Figure
-          label="Owed to you"
+          label={copy.owed}
           value={<MoneyFigure value={owed} />}
           note="Written or approved, not yet paid."
         />
         <Figure
-          label="Paid to date"
+          label={copy.paid}
           value={<MoneyFigure value={paid} />}
           note="Marked paid by the office."
         />
@@ -240,14 +274,18 @@ export default async function PayPage() {
 
       <ExclusionNote excluded={unpriced} of="amount" />
 
-      <Panel
-        title="Every entry"
-        description="One row per job. The status says where it has got to, and nothing here is estimated."
-      >
+      <Panel title="Every entry" description={copy.panel}>
         {rows.length === 0 ? (
           <EmptyState
-            title="Nothing on your ledger yet"
-            body="An entry is written the moment you submit the evidence for a job you accepted, at the flat rate that was on the offer. It does not wait on the engineer's decision."
+            title={copy.emptyTitle}
+            body={copy.emptyBody}
+            action={
+              copy === FIRM_COPY ? (
+                <Link href="/portal/billing" className="text-[13.5px] font-semibold text-[var(--navy)] underline">
+                  Open Billing
+                </Link>
+              ) : undefined
+            }
           />
         ) : (
           <ul className="divide-y divide-[var(--row-rule)]">

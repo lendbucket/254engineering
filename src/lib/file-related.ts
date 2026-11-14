@@ -216,6 +216,42 @@ export async function filesForClient(
 }
 
 /**
+ * EVERY FILE ASSIGNED TO A TECHNICIAN, for the technician record. The
+ * every-role walk of 2026-11-14 found that record linking nowhere but back to
+ * the list: the technician's credentials, and none of the jobs they hold.
+ * Shaped and guarded as filesForClient is: every row, newest first, a failed
+ * read said, and only for a role that may open files.
+ */
+export async function filesForTechnician(
+  actor: Actor | null,
+  techId: string,
+): Promise<{ ok: true; rows: { id: string; fileNumber: string; status: FileStatus; propertyAddress: string; createdAt: string }[] } | { ok: false; error: string } | null> {
+  if (!actor || !can(actor, "files.list")) return null;
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+  const read = await readEvery<Record<string, unknown>>((from, to) =>
+    db
+      .from("eng_files")
+      .select("id, file_number, status, property_address, created_at")
+      .eq("assigned_tech_id", techId)
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  if (!read.ok) return { ok: false, error: `This technician's jobs could not be read: ${read.error}` };
+  return {
+    ok: true,
+    rows: read.rows.map((r) => ({
+      id: r.id as string,
+      fileNumber: r.file_number as string,
+      status: r.status as FileStatus,
+      propertyAddress: r.property_address as string,
+      createdAt: r.created_at as string,
+    })),
+  };
+}
+
+/**
  * THE NEXT STEP AND WHO OWNS IT. Part 1 section 3, the ladder Robert approved
  * with his answer 5 of 2026-11-14 (the operations manager owns delivery). One
  * function, so the file screen and anything later that shows a next step say

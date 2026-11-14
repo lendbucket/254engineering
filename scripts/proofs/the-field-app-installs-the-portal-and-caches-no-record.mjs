@@ -157,6 +157,18 @@ check("it registers /field-sw.js with the jobs scope", worker.includes(`register
 /* An import, not a mention: the worker's own route names the component in a comment. */
 const mounting = files.filter((f) => /import\s*\{[^}]*\bFieldAppWorker\b[^}]*\}\s*from/.test(readFileSync(f, "utf8")));
 check("only the jobs layout mounts it", mounting.length === 1 && mounting[0] === "src/app/portal/(app)/jobs/layout.tsx", mounting.join(", "));
+/*
+ * THE DAY PACK IS ASKED FOR ONLY BY WHOEVER THE SERVER GIVES ONE TO. The
+ * every-role walk of 2026-11-14 found the administrator's My jobs logging a 400
+ * on every load. One test, carriesDayPack, decides both.
+ */
+const jobsLayout = readFileSync("src/app/portal/(app)/jobs/layout.tsx", "utf8");
+const opsField = readFileSync("src/lib/ops-field.ts", "utf8");
+check(
+  "the layout mounts the day pack only for whoever the server gives one to",
+  /\{carriesDayPack\(actor\) \? <DayPackSync \/> : null\}/.test(jobsLayout) && !/^\s*<DayPackSync \/>\s*$/m.test(jobsLayout),
+);
+check("and the server refuses by the same test", /if \(!carriesDayPack\(actor\)\) \{\s*return \{ ok: false, error: "The day pack is for a technician's own jobs\." \};/.test(opsField));
 
 console.log(`  (${answered.join("; ")})`);
 console.log(wrong === 0 ? "\nPASS: the field app installs the portal, and its worker caches no record." : `\nFAIL: ${wrong} check(s)`);

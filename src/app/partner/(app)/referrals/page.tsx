@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { currentPartner } from "@/lib/partner-auth";
 import { partnerReferrals, partnerReferralCount, REFERRAL_LABEL } from "@/lib/ops-partner-portal";
 import { money } from "@/lib/ops-money";
@@ -132,6 +133,12 @@ export default async function PartnerReferrals() {
             <EmptyState
               title="No referrals yet"
               body="An order appears here when somebody follows your link, gives your code at checkout, or gives it on the telephone when the firm takes the job. Nothing is credited retrospectively, so a referral made before your code existed will not appear."
+              action={
+                /* The next step (the every-role walk of 2026-11-14): the code and link are on the overview. */
+                <Link href="/partner" className="text-[13.5px] font-semibold text-[var(--navy)] underline">
+                  Your code and link
+                </Link>
+              }
             />
           }
         />

@@ -3564,12 +3564,22 @@ export async function restoreCertification(
  * a pack missing a job reads to the phone as that job having been taken away,
  * and the phone would clear it.
  */
+/**
+ * WHO CARRIES A DAY PACK: the one test the server applies and the jobs layout
+ * mounts the sync by. The every-role walk of 2026-11-14 found the administrator's
+ * My jobs asking for a pack on every load and logging a 400, because the layout
+ * mounted the sync for anybody who could open the screen.
+ */
+export function carriesDayPack(actor: Actor | null): boolean {
+  return Boolean(actor) && can(actor, "offers.list_own") && can(actor, "evidence.capture");
+}
+
 export async function dayPackFor(
   actor: Actor | null,
 ): Promise<{ ok: true; pack: DayPack } | { ok: false; error: string }> {
   const db = supabaseAdmin();
   if (!db || !actor) return { ok: false, error: "Not signed in." };
-  if (!can(actor, "offers.list_own") || !can(actor, "evidence.capture")) {
+  if (!carriesDayPack(actor)) {
     return { ok: false, error: "The day pack is for a technician's own jobs." };
   }
 

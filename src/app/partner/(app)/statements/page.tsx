@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { currentPartner } from "@/lib/partner-auth";
 import { partnerStatements, partnerStatementCount, type PartnerStatementRow } from "@/lib/ops-partner-portal";
 import { money } from "@/lib/ops-money";
@@ -90,6 +91,12 @@ export default async function PartnerStatements() {
             <EmptyState
               title="No statements yet"
               body="One appears here when the firm closes a period in which you have something payable. Until then, what you have earned is on the overview."
+              action={
+                /* The overview the sentence names, linked (the every-role walk of 2026-11-14). */
+                <Link href="/partner" className="text-[13.5px] font-semibold text-[var(--navy)] underline">
+                  What you have earned
+                </Link>
+              }
             />
           }
         />

@@ -24,6 +24,8 @@ import { AttachConfirmationForm } from "./AttachConfirmationForm";
 import { services } from "@/content/services";
 import { TEXAS_COUNTIES } from "@/lib/ops-counties";
 import { formatCalendarDate } from "@/lib/firm-calendar";
+import { filesForTechnician } from "@/lib/file-related";
+import { STATUS_LABEL } from "@/lib/ops-files";
 
 export const dynamic = "force-dynamic";
 
@@ -53,10 +55,12 @@ export default async function TechnicianPage({ params }: { params: Promise<{ id:
 
   const blocking = sheet.standing.filter((s) => s.blocks);
   const canRecord = can(actor, "profiles.update");
-  const [certifications, training, lines] = await Promise.all([
+  const [certifications, training, lines, jobs] = await Promise.all([
     certificationsFor(id),
     trainingRecords(id),
     trainableLines(),
+    /* The jobs this technician holds (the every-role walk of 2026-11-14): the record linked nowhere but the list. */
+    filesForTechnician(actor, id),
   ]);
   const lineName = (slug: string) => services.find((s) => s.slug === slug)?.name ?? slug;
   const longDate = (iso: string | null) =>
@@ -87,6 +91,34 @@ export default async function TechnicianPage({ params }: { params: Promise<{ id:
         )}
       </p>
       </div>
+
+      {jobs ? (
+        <section className="mt-10">
+          <h2 className="border-b-2 border-[var(--ink)] pb-2 text-[15px] font-semibold text-[var(--ink)]">Jobs</h2>
+          {!jobs.ok ? (
+            <p role="alert" className="mt-3 text-[14px] leading-[1.55] text-[var(--ink)]">
+              {jobs.error} This is a failed read, not a technician with no jobs.
+            </p>
+          ) : jobs.rows.length === 0 ? (
+            <p className="mt-3 text-[14px] leading-[1.55] text-[var(--secondary)]">
+              No job is assigned to this technician. A job reaches them when it is offered from a file in their coverage
+              counties and they accept it.
+            </p>
+          ) : (
+            <ul className="divide-y divide-[var(--row-rule)]">
+              {jobs.rows.map((f) => (
+                <li key={f.id} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-2.5 text-[14px]">
+                  <Link href={`/portal/files?id=${f.id}`} className="font-semibold text-[var(--navy)] underline">
+                    {f.fileNumber}
+                  </Link>
+                  <span className="text-[var(--secondary)]">{STATUS_LABEL[f.status] ?? f.status}</span>
+                  <span className="text-[var(--secondary)]">{f.propertyAddress}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      ) : null}
 
       <section className="mt-10">
         <h2 className="border-b-2 border-[var(--ink)] pb-2 text-[15px] font-semibold text-[var(--ink)]">

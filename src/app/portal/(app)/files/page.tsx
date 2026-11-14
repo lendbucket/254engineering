@@ -286,7 +286,19 @@ export default async function FilesPage({
           body={
             params.status || params.q
               ? "Clear the filter to see everything."
-              : "A file is one deliverable request: a property, a client, and a service line. Open one above, or convert a lead from the clients screen."
+              : /*
+                 * What the reader can do next, by what the reader can do. The
+                 * every-role walk of 2026-11-14 found a technician told to
+                 * "open one above, or convert a lead from the clients screen",
+                 * neither of which a technician can do.
+                 */
+                can(actor, "files.create") && can(actor, "clients.create")
+                ? "A file is one deliverable request: a property, a client, and a service line. Open one above, or convert a lead from the clients screen."
+                : can(actor, "files.create")
+                  ? "A file is one deliverable request: a property, a client, and a service line. Take a job in New job above to open one."
+                  : can(actor, "offers.list_own")
+                    ? "A file appears here when a job in it is offered to you or assigned to you. Your offers are on My jobs."
+                    : "A file appears here when one is assigned to you."
           }
         />
       ) : (
