@@ -3,9 +3,12 @@ import { redirect } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
 import { listDocuments } from "@/lib/ops-docs";
-import { listFiles } from "@/lib/ops-crm";
-import { STATUS_LABEL, STATUS_TONE, type FileStatus } from "@/lib/ops-files";
+import { FILE_LIST_CAP, listFilesPage } from "@/lib/ops-crm";
+import { FILE_STATUSES, STATUS_LABEL, STATUS_TONE, type FileStatus } from "@/lib/ops-files";
 import { Chip, EmptyState, PageHead, Panel, RecordTable } from "@/components/portal/surfaces";
+import { ListControls, listHref } from "@/components/portal/ListControls";
+import { LIST_NOT_LOADED } from "@/lib/outcome-copy";
+import { RetryButton } from "@/components/portal/Unreachable";
 
 export const dynamic = "force-dynamic";
 
@@ -54,12 +57,28 @@ function bytes(size: number | null): string {
   return `${(size / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export default async function DocumentsPage() {
+export default async function DocumentsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const actor = await currentActor();
   if (!actor) redirect("/portal/login");
   if (!can(actor, "documents.read")) redirect("/portal");
+  const params = await searchParams;
+  const page = Math.max(1, Math.floor(Number(params.page)) || 1);
+  const oldest = params.dir === "asc";
 
-  const [documents, files] = await Promise.all([listDocuments(actor), listFiles(actor)]);
+  /*
+   * THE BINDERS ARE READ THE WAY THE FILES SCREEN READS THEM, PAGED AND SAID.
+   * Office ready, 2026-11-13. This read `listFiles`, which is the first page of
+   * listFilesPage with its "more" flag and its error thrown away: the screen
+   * listed the newest FILE_LIST_CAP binders and looked complete, and a failed
+   * read showed "No files you can see". It now searches, filters by status,
+   * orders and pages, and a failed read is said.
+   */
+  const [documents, filesRead] = await Promise.all([
+    listDocuments(actor),
+    listFilesPage(actor, { status: params.status, search: params.q, page, oldest }),
+  ]);
+  const files = filesRead.rows;
+  const binderHref = (patch: Record<string, string>) => listHref("/portal/documents", params, patch);
 
   return (
     <>
@@ -73,6 +92,37 @@ export default async function DocumentsPage() {
         title="Evidence binders"
         description="Every item the protocol asked for, what was captured against it, every review decision, and what the binder does not contain. Assembled fresh each time."
       >
+        <ListControls
+          action="/portal/documents"
+          search={params.q ?? ""}
+          searchLabel="Search file number or address"
+          filters={[
+            {
+              name: "status",
+              label: "Status",
+              value: params.status ?? "",
+              options: [{ value: "", label: "All" }, ...FILE_STATUSES.filter((s) => s !== "cancelled").map((s) => ({ value: s, label: STATUS_LABEL[s] }))],
+            },
+          ]}
+          sorts={[{ value: "opened", label: "Opened" }]}
+          sort="opened"
+          direction={oldest ? "asc" : "desc"}
+        />
+        {page > 1 || filesRead.more ? (
+          <p className="mb-3 text-[13px] leading-[1.6] text-[var(--secondary)]">
+            Binders {(page - 1) * FILE_LIST_CAP + 1} to {(page - 1) * FILE_LIST_CAP + files.length}, {oldest ? "oldest" : "newest"} first.
+            {filesRead.more ? " More follow on the next page." : " This is the last page."}
+          </p>
+        ) : null}
+        {filesRead.error ? (
+          <div role="alert" data-list-not-loaded className="py-6">
+            <p className="text-[15px] font-semibold text-[var(--ink)]">{LIST_NOT_LOADED}</p>
+            <p className="mt-1 text-[14px] text-[var(--secondary)]">The files could not be read, so this is not an empty list of binders.</p>
+            <div className="mt-4 flex">
+              <RetryButton />
+            </div>
+          </div>
+        ) : null}
         {/*
           NO rowHref HERE, AND ITS ABSENCE IS THE FIX.
 
@@ -157,12 +207,30 @@ export default async function DocumentsPage() {
             </div>
           )}
           empty={
-            <EmptyState
-              title="No files you can see"
-              body="A binder is assembled from a file's evidence. When a file exists and you are allowed to see it, it appears here."
-            />
+            filesRead.error ? null : params.status || params.q ? (
+              <EmptyState title="Nothing matches that" body="Clear the search or the filter to see every binder you can read." />
+            ) : (
+              <EmptyState
+                title="No files you can see"
+                body="A binder is assembled from a file's evidence. When a file exists and you are allowed to see it, it appears here."
+              />
+            )
           }
         />
+        {page > 1 || filesRead.more ? (
+          <div className="mt-4 flex flex-wrap gap-6">
+            {page > 1 ? (
+              <a href={binderHref({ page: page - 1 > 1 ? String(page - 1) : "" })} className="inline-flex min-h-[44px] items-center text-[14px] font-semibold text-[var(--navy)] underline">
+                Previous page
+              </a>
+            ) : null}
+            {filesRead.more ? (
+              <a href={binderHref({ page: String(page + 1) })} className="inline-flex min-h-[44px] items-center text-[14px] font-semibold text-[var(--navy)] underline">
+                Next page
+              </a>
+            ) : null}
+          </div>
+        ) : null}
       </Panel>
 
       <Panel
