@@ -4904,8 +4904,10 @@ export const APPLIED = [
     because:
       "WRITTEN 2026-11-14 ON feat/connect-batch-2, FOR ROBERT'S TRAVEL RULINGS OF 2026-11-14 (typed per job by the " +
       "administrator; answers 12 to 15: refunded before the visit and kept after it, no partner commission, paid to " +
-      "the technician in full, the customer reads Travel to <county> County). PENDING ON DEVELOPMENT AND PRODUCTION: " +
-      "its development sitting request is posted before its board; production only in a sitting with Robert. " +
+      "the technician in full, the customer reads Travel to <county> County). ON DEVELOPMENT SINCE 2026-11-14 " +
+      "(issue #1, 6881376417, after request 6881225059: version 20261114172203, shape 3907c71a at 1675 columns, no " +
+      "file or order carrying travel, both checks and the once-per-job index present, the ledger's kind check naming " +
+      "travel, as predicted). PENDING ON PRODUCTION: only in a sitting with Robert. " +
       "Additive: five nullable columns, checks and one index; the ledger's kind check is replaced by a wider one.",
   },
 ];

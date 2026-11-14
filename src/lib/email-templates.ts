@@ -741,8 +741,8 @@ export function jobPaymentLink(input: {
 /**
  * THE TRIP FEE LINK, for a visit the technician could not get into. Robert's
  * answers 7 to 10 of 2026-11-14 (E5). The disclosure sentence is his approved
- * wording; the rest is the draft in his question 16 (6880442466) and does not
- * merge before he answers it. Laid out as the job payment link is, because it
+ * wording; the rest is the draft he approved as his answer 16 of 2026-11-14.
+ * Laid out as the job payment link is, because it
  * is the same kind of message about the same job.
  */
 export function tripFeeLink(input: {

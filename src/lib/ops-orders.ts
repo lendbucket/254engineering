@@ -19,8 +19,9 @@ const FIELD_NEVER_MORE ="Apart from that trip fee, you are never charged more th
  * TRAVEL ON A JOB (0135). Robert's answer 15 of 2026-11-14: the customer reads
  * "Travel to Bell County", the county filled in, and never the reason. Answer
  * 12: refunded in full on a decline before the visit, kept once the technician
- * made the trip, stated in that order's refund terms. The terms sentence is
- * drafted for his yes (question 19) and does not merge before it.
+ * made the trip, stated in that order's refund terms. The terms sentence, and
+ * the after-visit refund explanation that names the travel, are his approved
+ * wording, answer 19(a) and (b) of 2026-11-14.
  */
 export function travelLabel(county: string): string {
   return `Travel to ${county} County`;

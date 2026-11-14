@@ -87,8 +87,7 @@ export default async function OrderStatusPage({
    * sentence below would promise one, and it is not a new order, so it sends no
    * conversion. Like that state it opens nothing and confirms nothing about the
    * reference: the parameter comes from the firm's own return address. The
-   * wording is Robert's question 16 (6880442466) and does not merge before he
-   * answers it.
+   * wording is Robert's, approved as his answer 19(c) of 2026-11-14.
    */
   if (!view && paid && trip) {
     return (
