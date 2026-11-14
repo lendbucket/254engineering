@@ -70,17 +70,26 @@ export function TransitionControls({
   fileId,
   status,
   options,
+  paid = null,
 }: {
   fileId: string;
   status: FileStatus;
   options: { to: FileStatus; allowed: boolean; reason?: string }[];
+  /**
+   * The file's paid order, when it has one (Part 1 finding 2, Robert's answer 6
+   * of 2026-11-14): cancelling then names the payment and offers the refund in
+   * the same step, in his approved words.
+   */
+  paid?: { orderId: string; reference: string; amount: string; paidOn: string } | null;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState("");
+  /* The paid-file confirmation, open or not. */
+  const [confirmingPaid, setConfirmingPaid] = useState(false);
 
-  async function move(to: FileStatus) {
+  async function move(to: FileStatus): Promise<boolean> {
     setBusy(to);
     setError(null);
     try {
@@ -93,15 +102,45 @@ export function TransitionControls({
       if (!res.ok || !body?.ok) {
         setError(body?.error ?? "That did not work.");
         setBusy(null);
-        return;
+        return false;
       }
       setNote("");
       setBusy(null);
       router.refresh();
+      return true;
     } catch {
       setError("The network dropped that. Try again.");
       setBusy(null);
+      return false;
     }
+  }
+
+  /*
+   * CANCEL AND ASK FOR A REFUND, ONE STEP. The file is cancelled first; only a
+   * cancel that succeeded asks for the refund, through the same request the
+   * order screen's "Ask for a refund" makes, with the timeline note as the
+   * reason. A refund request that fails after the cancel is said plainly, with
+   * where to finish it, rather than reported as done.
+   */
+  async function cancelAndRefund() {
+    if (!paid) return;
+    const reason = note.trim() || "The file was cancelled.";
+    const cancelled = await move("cancelled");
+    if (!cancelled) return;
+    try {
+      const res = await fetch("/api/portal/refunds", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "request", orderId: paid.orderId, reason }),
+      });
+      const body = (await res.json().catch(() => null)) as { ok?: boolean; error?: string } | null;
+      if (!res.ok || !body?.ok) {
+        setError(`The file is cancelled and the refund was not asked for: ${body?.error ?? "that did not work"}. Ask for it from order ${paid.reference}.`);
+      }
+    } catch {
+      setError(`The file is cancelled and the network dropped the refund request. Ask for it from order ${paid.reference}.`);
+    }
+    setConfirmingPaid(false);
   }
 
   const blocked = options.filter((o) => !o.allowed);
@@ -144,6 +183,11 @@ export function TransitionControls({
                 type="button"
                 disabled={busy !== null}
                 onClick={() => {
+                  /* A paid file names its payment and offers the refund in the same step (Robert's answer 6). */
+                  if (destructive && paid) {
+                    setConfirmingPaid(true);
+                    return;
+                  }
                   if (
                     destructive &&
                     !window.confirm(
@@ -152,7 +196,7 @@ export function TransitionControls({
                   ) {
                     return;
                   }
-                  move(o.to);
+                  void move(o.to);
                 }}
                 className={
                   destructive
@@ -165,6 +209,46 @@ export function TransitionControls({
             );
           })}
       </div>
+
+      {/* Robert's approved wording, answer 6 of 2026-11-14 (6878458673, draft 4). */}
+      {confirmingPaid && paid ? (
+        <div role="alertdialog" aria-label="Cancel a paid file" className="mt-4 border-l-2 border-[var(--ink)] py-1 pl-3">
+          <p className="text-[14px] leading-[1.55] font-semibold text-[var(--ink)]">
+            Order {paid.reference} was paid {paid.amount} on {paid.paidOn}. Cancelling this file does not refund it.
+          </p>
+          <p className="mt-1 text-[14px] leading-[1.55] text-[var(--ink)]">
+            Ask for a refund now, or cancel without one and settle the money later from the order.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              disabled={busy !== null}
+              onClick={() => void cancelAndRefund()}
+              className="inline-flex min-h-[44px] items-center rounded-[2px] border-2 border-[var(--ink)] px-4 text-[14px] font-semibold text-[var(--ink)] disabled:opacity-60"
+            >
+              Cancel and ask for a refund
+            </button>
+            <button
+              type="button"
+              disabled={busy !== null}
+              onClick={async () => {
+                if (await move("cancelled")) setConfirmingPaid(false);
+              }}
+              className="inline-flex min-h-[44px] items-center rounded-[2px] border border-[var(--border)] px-4 text-[14px] font-semibold text-[var(--ink)] disabled:opacity-60"
+            >
+              Cancel, no refund now
+            </button>
+            <button
+              type="button"
+              disabled={busy !== null}
+              onClick={() => setConfirmingPaid(false)}
+              className="inline-flex min-h-[44px] items-center rounded-[2px] bg-[var(--navy)] px-4 text-[14px] font-bold text-white disabled:opacity-60"
+            >
+              Keep the file
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       {blocked.length ? (
         <div className="mt-4 space-y-2">

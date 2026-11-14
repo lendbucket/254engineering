@@ -634,6 +634,16 @@ export default async function FilesPage({
               options={availableTransitions(actor, selected.status, {
                 assignedTech: Boolean(selected.assigned_tech_id),
               })}
+              paid={
+                related?.payment?.kind === "paid" && related.order
+                  ? {
+                      orderId: related.order.id,
+                      reference: related.payment.reference,
+                      amount: related.payment.amount,
+                      paidOn: related.payment.paidAt ? when(related.payment.paidAt) : "a date not recorded",
+                    }
+                  : null
+              }
             />
 
             <p className="mt-7 portal-label">Timeline</p>
