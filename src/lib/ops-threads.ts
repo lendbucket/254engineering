@@ -294,7 +294,7 @@ export type ThreadsRead = { ok: true; threads: ThreadListItem[]; readableTotal: 
 export async function readThreads(
   actor: Actor | null,
   /** A thread to carry even when it is older than the page: the one being opened, so threadView finds it. */
-  options: { include?: string } = {},
+  options: { include?: string; kind?: string; oldest?: boolean; page?: number } = {},
 ): Promise<ThreadsRead> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
@@ -302,10 +302,20 @@ export async function readThreads(
 
   const set = await readableThreadRows(actor);
   if (!set.ok) return { ok: false, error: set.error };
-  const readableAll = set.rows;
+  /*
+   * FILTER, ORDER AND PAGES (Robert's ruling 2 of 2026-11-13, CLAUDE.md 2d).
+   * The kind filter and the order apply to every readable conversation before
+   * the page is cut, so readableTotal is the size of the matching set, and an
+   * older conversation is reached by paging rather than only from its file.
+   */
+  const kinds = new Set(["file", "direct", "channel"]);
+  const matching = set.rows.filter((r) => !options.kind || !kinds.has(options.kind) || r.kind === options.kind);
+  const readableAll = options.oldest ? [...matching].reverse() : matching;
+  const page = Math.max(1, Math.floor(options.page ?? 1));
 
-  const readable = readableAll.slice(0, THREAD_PAGE);
-  const opened = options.include ? readableAll.find((r) => r.id === options.include) : undefined;
+  const readable = readableAll.slice((page - 1) * THREAD_PAGE, page * THREAD_PAGE);
+  /* From every readable row, not the filtered set: an opened conversation still opens under a kind filter. */
+  const opened = options.include ? set.rows.find((r) => r.id === options.include) : undefined;
   if (opened && !readable.includes(opened)) readable.push(opened);
   if (readable.length === 0) return { ok: true, threads: [], readableTotal: readableAll.length };
 

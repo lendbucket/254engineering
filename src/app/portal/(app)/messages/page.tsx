@@ -2,7 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
-import { readThreads, MENTION_PAGE, mentionsFor, messageablepeople, threadView } from "@/lib/ops-threads";
+import { readThreads, MENTION_PAGE, THREAD_PAGE, mentionsFor, messageablepeople, threadView } from "@/lib/ops-threads";
+import { Pager, listHref } from "@/components/portal/ListControls";
 import { roleLabel } from "@/lib/ops-authz";
 import { Chip, EmptyState, ErrorState, PageHead } from "@/components/portal/surfaces";
 import { Composer, MessageSearch, NewChannel, StartDirect } from "./MessagesClient";
@@ -43,7 +44,7 @@ const when = (value: string | null) =>
 export default async function MessagesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ id?: string; view?: string }>;
+  searchParams: Promise<{ id?: string; view?: string; kind?: string; dir?: string; page?: string }>;
 }) {
   const actor = await currentActor();
   /*
@@ -55,7 +56,8 @@ export default async function MessagesPage({
   const params = await searchParams;
 
   /* Q13, office audit F10: scoped before the page, and a failed read is said rather than drawn as "No conversations yet". */
-  const threadsRead = await readThreads(actor);
+  const threadPage = Math.max(1, Math.floor(Number(params.page)) || 1);
+  const threadsRead = await readThreads(actor, { kind: params.kind, oldest: params.dir === "asc", page: threadPage });
   const threads = threadsRead.ok ? threadsRead.threads : [];
   const open = params.id ? await threadView(actor, params.id) : null;
   const people = await messageablepeople(actor);
@@ -198,16 +200,42 @@ export default async function MessagesPage({
             </div>
           ) : (
           <div className="mt-4">
+            {/* Robert's ruling 2 of 2026-11-13: filter, order and pages, beside the search above. */}
+            <form method="get" action="/portal/messages" className="mb-3 flex flex-wrap items-end gap-3">
+              <label>
+                <span className="block text-[14px] font-semibold text-[var(--ink)]">Show</span>
+                <select name="kind" defaultValue={params.kind ?? ""} className="mt-1 min-h-[44px] rounded-[var(--radius-control)] border border-[var(--border-strong)] px-3 text-[15px]">
+                  <option value="">Every conversation</option>
+                  <option value="file">File threads</option>
+                  <option value="direct">Direct messages</option>
+                  <option value="channel">Channels</option>
+                </select>
+              </label>
+              <label>
+                <span className="block text-[14px] font-semibold text-[var(--ink)]">Order</span>
+                <select name="dir" defaultValue={params.dir ?? ""} className="mt-1 min-h-[44px] rounded-[var(--radius-control)] border border-[var(--border-strong)] px-3 text-[15px]">
+                  <option value="">Latest message first</option>
+                  <option value="asc">Oldest first</option>
+                </select>
+              </label>
+              <button type="submit" className="min-h-[44px] rounded-[var(--radius-control)] border border-[var(--navy)] bg-[var(--navy)] px-4 text-[14px] font-semibold text-[var(--on-navy)]">
+                Show
+              </button>
+            </form>
             {!threadsRead.ok ? (
               <ErrorState
                 title="Your conversations could not be read"
                 body={`${threadsRead.error} This is a failed read, not an empty list: nothing has been deleted. Reload in a moment.`}
               />
             ) : threads.length === 0 ? (
-              <EmptyState
-                title="No conversations yet"
-                body="A file gets a thread the first time somebody writes on it. You can also message a colleague directly, and an administrator can open a channel for a role."
-              />
+              params.kind ? (
+                <EmptyState title="No conversations of that kind" body="Choose Every conversation to see them all." />
+              ) : (
+                <EmptyState
+                  title="No conversations yet"
+                  body="A file gets a thread the first time somebody writes on it. You can also message a colleague directly, and an administrator can open a channel for a role."
+                />
+              )
             ) : (
               <ul className="flex flex-col gap-2">
                 {threads.map((t) => (
@@ -242,10 +270,8 @@ export default async function MessagesPage({
                 ))}
               </ul>
             )}
-            {threadsRead.ok && threadsRead.readableTotal > threads.length ? (
-              <p className="mt-3 text-[13px] leading-[1.5] text-[var(--secondary)]">
-                The newest {threads.length} of your {threadsRead.readableTotal} conversations are shown. A file&apos;s conversation also opens from the file.
-              </p>
+            {threadsRead.ok && threadsRead.readableTotal > 0 ? (
+              <Pager page={threadPage} pageSize={THREAD_PAGE} total={threadsRead.readableTotal} hrefFor={(n) => listHref("/portal/messages", { kind: params.kind, dir: params.dir }, { page: n > 1 ? String(n) : "" })} />
             ) : null}
           </div>
           )}
