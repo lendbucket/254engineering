@@ -4883,9 +4883,11 @@ export const APPLIED = [
       "WRITTEN 2026-11-14 ON feat/connect-batch-2, FOR ROBERT'S ANSWERS 7 TO 10 OF 2026-11-14 (E5): a $125 trip fee " +
       "when the technician could not get in, charged as its own order before the visit is booked again; the " +
       "technician paid half his rate for that job; no partner commission; not refunded if the job is later " +
-      "declined. PENDING ON DEVELOPMENT AND PRODUCTION: its development sitting request is posted before its board; " +
-      "production only in a sitting with Robert. Additive: one table, three columns, constraints and indexes; the " +
-      "ledger's kind check is replaced by a wider one.",
+      "declined. ON DEVELOPMENT SINCE 2026-11-14 (issue #1, 6880867199, after request 6880739012: version " +
+      "20261114164154, shape fc0de798 at 1670 columns, row level security on, two indexes and the immutability " +
+      "trigger, no grant to anon, authenticated or public, every existing order a job order, the ledger's kind check " +
+      "naming no_access, as predicted). PENDING ON PRODUCTION: only in a sitting with Robert. Additive: one table, " +
+      "three columns, constraints and indexes; the ledger's kind check is replaced by a wider one.",
   },
 ];
 
