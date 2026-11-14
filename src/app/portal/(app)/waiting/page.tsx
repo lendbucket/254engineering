@@ -5,6 +5,8 @@ import { holdsLicence } from "@/lib/ops-authz";
 import { daysWaiting, waitingOnOwners } from "@/lib/ops-engineer";
 import { services } from "@/content/services";
 import { EmptyState, PageHead } from "@/components/portal/surfaces";
+import { ListControls, Pager, listHref } from "@/components/portal/ListControls";
+import { STAFF_LIST_PAGE_SIZE, staffListPage, staffListQuery, staffListRows, type StaffListSpec } from "@/lib/staff-lists";
 
 export const dynamic = "force-dynamic";
 
@@ -32,11 +34,36 @@ export const dynamic = "force-dynamic";
  * certification on. What the job is worth and what anybody is paid are not his
  * business at the moment he is looking at a list of roofs he found leaks on.
  */
-export default async function WaitingPage() {
+type WaitingRow = NonNullable<Awaited<ReturnType<typeof waitingOnOwners>>>[number];
+
+/*
+ * SEARCH, FILTER, SORT AND PAGES, through the shared engine (Robert's ruling 2 of
+ * 2026-11-13, CLAUDE.md 2d). Longest waiting stays the default, for the reason
+ * this screen exists; a file with no start date sorts last rather than first.
+ */
+const WAITING_LIST: StaffListSpec<WaitingRow> = {
+  text: (f) => [f.file_number, f.property_address, f.county, services.find((s) => s.slug === f.service_slug)?.name ?? f.service_slug],
+  filters: {
+    service: Object.fromEntries(services.map((s) => [s.slug, (f: WaitingRow) => f.service_slug === s.slug])),
+  },
+  sorts: {
+    waiting: { key: (f) => f.repairs_required_at, ascending: true },
+    open: { key: (f) => f.openItems, ascending: false },
+    county: { key: (f) => f.county, ascending: true },
+  },
+  defaultSort: "waiting",
+};
+
+export default async function WaitingPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const actor = await currentActor();
   if (!holdsLicence(actor, "review.queue")) notFound();
+  const params = await searchParams;
 
-  const rows = await waitingOnOwners(actor);
+  const read = await waitingOnOwners(actor);
+  const query = staffListQuery(params, WAITING_LIST);
+  const matching = read === null ? null : staffListRows(read, query, WAITING_LIST);
+  const shown = matching === null ? null : staffListPage(matching, query.page);
+  const rows = shown?.rows ?? null;
   const serviceName = (slug: string) => services.find((s) => s.slug === slug)?.name ?? slug;
 
   return (
@@ -47,15 +74,42 @@ export default async function WaitingPage() {
         lede="Files where certification is withheld until repairs are done. They do not expire and nothing closes them, so this is the list that makes sure nobody is forgotten. Longest waiting first."
       />
 
+      {read !== null && read.length > 0 ? (
+        <ListControls
+          action="/portal/waiting"
+          search={params.q ?? ""}
+          searchLabel="Search file number, address, county or service"
+          filters={[
+            {
+              name: "service",
+              label: "Service",
+              value: query.filters.service ?? "",
+              options: [{ value: "", label: "Every service" }, ...services.map((s) => ({ value: s.slug, label: s.name }))],
+            },
+          ]}
+          sorts={[
+            { value: "waiting", label: "Longest waiting" },
+            { value: "open", label: "Most repairs open" },
+            { value: "county", label: "County" },
+          ]}
+          sort={query.sort}
+          direction={query.ascending ? "asc" : "desc"}
+        />
+      ) : null}
+
       {rows === null ? (
         <p role="alert" className="text-[14px] leading-[1.6] text-[var(--ink)]">
           The files waiting on owners could not be read just now, so whether anybody is waiting is not known. Reload the page; nothing was changed.
         </p>
       ) : rows.length === 0 ? (
-        <EmptyState
-          title="Nobody is waiting"
-          body="A file arrives here when an engineer withholds certification and issues a repair list. It leaves when the owner says the work is done and the revisit is dispatched."
-        />
+        read && read.length > 0 ? (
+          <EmptyState title="Nothing matches that" body="Clear the search or the filter to see every file waiting on its owner." />
+        ) : (
+          <EmptyState
+            title="Nobody is waiting"
+            body="A file arrives here when an engineer withholds certification and issues a repair list. It leaves when the owner says the work is done and the revisit is dispatched."
+          />
+        )
       ) : (
         <ul className="flex flex-col gap-2">
           {rows.map((f) => {
@@ -100,6 +154,9 @@ export default async function WaitingPage() {
           })}
         </ul>
       )}
+      {shown && shown.total > 0 ? (
+        <Pager page={shown.page} pageSize={STAFF_LIST_PAGE_SIZE} total={shown.total} hrefFor={(n) => listHref("/portal/waiting", params, { page: n > 1 ? String(n) : "" })} />
+      ) : null}
 
       <p className="mt-6 max-w-[70ch] text-[14px] leading-[1.55] text-[var(--secondary)]">
         Nothing on this list expires. A file leaves it when the owner has had the work done and the
