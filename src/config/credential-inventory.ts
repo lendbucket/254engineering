@@ -646,6 +646,42 @@ export const CREDENTIALS: Credential[] = [
     grants: "Triggering any scheduled job on demand, including the retention sweep.",
     rotated: "Never.",
   },
+  /*
+   * GOOGLE ANALYTICS AND GOOGLE ADS, SENT FROM THE SERVER. Robert's add-on of
+   * 2026-11-15 for /start, items 10 to 12. None of these is set anywhere today:
+   * each is Robert's to create in his own Google accounts, and until each is
+   * set the conversion it serves is recorded in eng_ad_conversions and its
+   * send reports COULD NOT TELL (src/lib/ad-conversions.ts). This session
+   * never signs in to Google.
+   */
+  {
+    name: "GA4_API_SECRET",
+    kind: "secret",
+    livesIn: "Not set anywhere yet. Robert creates it in GA4: Admin, Data streams, the web stream, Measurement Protocol API secrets. Production only.",
+    grants: "Sending events into the firm's GA4 property as if from the site. It cannot read anything.",
+    rotated: "Never set.",
+  },
+  {
+    name: "GOOGLE_ADS_DEVELOPER_TOKEN",
+    kind: "secret",
+    livesIn: "Not set anywhere yet. Robert's, from the Google Ads API Center of a manager account. Production only.",
+    grants: "Calling the Google Ads API at all, together with an OAuth grant for an account.",
+    rotated: "Never set.",
+  },
+  {
+    name: "GOOGLE_ADS_CLIENT_SECRET",
+    kind: "secret",
+    livesIn: "Not set anywhere yet. The OAuth client Robert creates in Google Cloud for the Ads API. Production only.",
+    grants: "Exchanging the refresh token for an access token, together with the client id.",
+    rotated: "Never set.",
+  },
+  {
+    name: "GOOGLE_ADS_REFRESH_TOKEN",
+    kind: "secret",
+    livesIn: "Not set anywhere yet. Minted once by Robert granting the OAuth client the adwords scope. Production only.",
+    grants: "Acting in the Google Ads account as the person who granted it, within the adwords scope: uploading conversions, and anything else that scope allows.",
+    rotated: "Never set.",
+  },
   {
     name: "OPS_UNLOCK_TOKEN",
     kind: "secret",
@@ -866,6 +902,12 @@ export const CREDENTIALS: Credential[] = [
   { name: "FIRM_PHONE", kind: "config", livesIn: "Vercel, ALL environments, set 2026-09-14. NOT A SECRET: a published telephone number is a value the firm wants read, and it is in this inventory because every name set in an environment must be declared, not because it needs protecting.", grants: "Publishes the firm telephone number. Clears one of the launch gate conditions. Stored in E.164 as +12819404490; every display form is DERIVED from it by src/config/contact.ts and nothing may read the raw value outside that file and launch.ts, which seo-audit asserts.", rotated: "Never. It changes when the number changes." },
   { name: "MAIL_FROM_ADDRESS_LINE", kind: "config", livesIn: "RETIRED 2026-09-18. Nothing in src/ reads it any more. It held the firm's postal address as a sentence while src/config/contact.ts held the same address as fields for the schema node, which is one fact with two homes. Both were empty, so they could not disagree, and the day the operator supplied the address is the day exactly one of them would have been filled in. The address is now declared once in contact.ts and mailingAddressLine() derives from it. Remove it from Vercel.", grants: "Nothing.", rotated: "Never." },
   { name: "NEXT_PUBLIC_SITE_URL", kind: "config", livesIn: "Vercel.", grants: "Nothing. The canonical host.", rotated: "Never." },
+  { name: "GOOGLE_ADS_CUSTOMER_ID", kind: "config", livesIn: "Not set anywhere yet. The ten digit id of the Google Ads account the conversions belong to, without dashes. Production only.", grants: "Nothing alone. Names the account the API calls act on.", rotated: "Never set." },
+  { name: "GOOGLE_ADS_LOGIN_CUSTOMER_ID", kind: "config", livesIn: "Not set anywhere yet, and only needed when the account is reached through a manager account: that manager's ten digit id. Production only.", grants: "Nothing alone. Names the manager account the API call is made through.", rotated: "Never set." },
+  { name: "GOOGLE_ADS_CLIENT_ID", kind: "config", livesIn: "Not set anywhere yet. The OAuth client id Robert creates in Google Cloud for the Ads API. Production only.", grants: "Nothing alone; with the secret and the refresh token, an access token.", rotated: "Never set." },
+  { name: "GOOGLE_ADS_CONVERSION_ACTIONS", kind: "config", livesIn: "Not set anywhere yet. A JSON object naming, for each conversion this platform uploads, the id of the Google Ads conversion action it counts toward: order_paid, offline_order, callback, email_price, inquiry. Production only.", grants: "Nothing secret. Decides which conversion action an upload is counted against.", rotated: "Never set." },
+  { name: "NEXT_PUBLIC_GOOGLE_ADS_ID", kind: "config", livesIn: "Not set anywhere yet. The account's AW- tag id, from the Google Ads tag setup. PUBLIC BY CONSTRUCTION: printed in /start's source.", grants: "Nothing secret. Lets the Google tag on /start show the Google forwarding number and count calls from ads.", rotated: "Never set." },
+  { name: "NEXT_PUBLIC_GOOGLE_ADS_CALL_LABEL", kind: "config", livesIn: "Not set anywhere yet. The label of the 'calls from a website' conversion action, set to count calls of 60 seconds or more. PUBLIC BY CONSTRUCTION: printed in /start's source.", grants: "Nothing secret. Names the call conversion the forwarding number counts toward.", rotated: "Never set." },
   { name: "NEXT_PUBLIC_GA_MEASUREMENT_ID", kind: "config", livesIn: "Vercel, by Robert's statement of 2026-11-01; not read by this session, which never signs in to Vercel. Nothing read it until item m (src/lib/analytics.ts). PUBLIC BY CONSTRUCTION: it is inlined into the browser bundle and printed in every public page's source.", grants: "Nothing secret. Names the Google Analytics 4 property that public page views and two order events are sent to, from the production host only.", rotated: "Never. It changes only if the property does." },
   { name: "ALLOW_PRODUCTION_DB", kind: "config", livesIn: "Never set in any deployment. Typed by hand for one command.", grants: "Permission for a script to talk to production. Compared exactly against the string 1, so 0, false and true are all refusals.", rotated: "Never." },
   { name: "ALLOW_PRODUCTION_PREVIEW", kind: "config", livesIn: "Never set.", grants: "Permission for a preview deployment to point at production. Almost never the right answer.", rotated: "Never." },
