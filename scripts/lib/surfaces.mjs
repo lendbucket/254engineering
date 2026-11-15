@@ -262,6 +262,18 @@ export function measurableSurfaces() {
   return surfacesWhere((s) => s.routesFrom !== "sitemap", "the measurable surfaces");
 }
 
+/**
+ * THE AD LANDING ROUTES, FOR THE COPY AUDITS THAT WALK THE SITEMAP. /start is
+ * noindex and out of the sitemap by Robert's ruling (Q6, 2026-11-15), so an
+ * audit whose subject is the sitemap never read it: voice, placeholder and cta
+ * passed on 2026-11-15 without fetching it once. They append these, derived
+ * from the declaration rather than typed into each, and refuse an empty list.
+ */
+export function adLandingRoutes() {
+  const ads = SURFACES.find((s) => s.key === "ads");
+  return nonEmpty(ads ? routesOf(ads) : [], "the ad landing routes");
+}
+
 /** Surfaces that need a session, which is what the perimeter is about. */
 export function guardedSurfaces() {
   return surfacesWhere((s) => s.session !== "none", "the guarded surfaces");

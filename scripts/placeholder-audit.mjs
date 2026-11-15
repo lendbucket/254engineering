@@ -39,6 +39,7 @@ import "./lib/load-env.mjs";
 import { credentialAllowlist, permittedCredentialStrings } from "../src/config/credentials.ts";
 import { contact } from "../src/config/contact.ts";
 import { AUDIT_BASE_URL } from "./lib/ports.mjs";
+import { adLandingRoutes } from "./lib/surfaces.mjs";
 
 /*
  * The one permitted phone number, as bare digits.
@@ -279,7 +280,8 @@ const routes =
 /* The web manifest names the site to a phone's home screen, so it is read too (2026-10-25). */
 /* The design brief left the sitemap on 2026-10-25 (a noindex quote form), so it is read by name. */
 /* The partner badge left the sitemap on 2026-11-02 (Robert, noindex), so it is read by name. */
-const EXTRA_ROUTES = ["/waitlist", "/design-inquiry", "/partners/badge", "/llms.txt", "/llms-full.txt", "/manifest.webmanifest"];
+/* The ad landing page (/start) is noindex and out of the sitemap, so it is read from its declared surface (2026-11-15). */
+const EXTRA_ROUTES = ["/waitlist", "/design-inquiry", "/partners/badge", "/llms.txt", "/llms-full.txt", "/manifest.webmanifest", ...adLandingRoutes()];
 
 if (sm.status !== 200) {
   bail(`cannot read sitemap at ${BASE}/sitemap.xml (status ${sm.status})`);

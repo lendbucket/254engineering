@@ -202,7 +202,17 @@ export function Finder({
               <span
                 className={`flex h-6 w-6 flex-none items-center justify-center text-[12px] font-bold ${done ? "bg-slate text-white" : on ? "bg-brass text-[var(--color-slate-ink)]" : "bg-[var(--color-limestone-sunk)] text-[var(--color-ink-quiet)]"}`}
               >
-                {done ? "✓" : n}
+                {/* A drawn tick rather than the check mark character, which the content rules count as an emoji (placeholder-audit). */}
+                {done ? (
+                  <>
+                    <svg aria-hidden="true" viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M2 6.5 5 9.5 10 3" />
+                    </svg>
+                    <span className="sr-only">{`Step ${n} done`}</span>
+                  </>
+                ) : (
+                  n
+                )}
               </span>
               <span className={`truncate text-[12px] ${on ? "font-bold text-slate" : "font-semibold text-[var(--color-ink-quiet)]"}`}>{s}</span>
             </li>
