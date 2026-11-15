@@ -84,7 +84,23 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
       },
     },
     { key: "email", header: "Email", cell: (i) => (i.email ? <a href={`mailto:${i.email}`} className="text-[var(--navy)] underline">{i.email}</a> : ""), desktopOnly: true },
-    { key: "summary", header: "About", cell: (i) => i.summary, desktopOnly: true },
+    {
+      key: "summary",
+      header: "About",
+      cell: (i) =>
+        i.attachmentHref ? (
+          <>
+            {i.summary}{" "}
+            {/* The photo or PDF a /start lead sent (Robert's add-on of 2026-11-15, item 5), through a five minute signed link. */}
+            <a href={i.attachmentHref} className="font-semibold text-[var(--navy)] underline">
+              Open the photo or PDF
+            </a>
+          </>
+        ) : (
+          i.summary
+        ),
+      desktopOnly: true,
+    },
     {
       key: "act",
       header: "Answer",
