@@ -486,6 +486,160 @@ export const proximityPages: ProximityPage[] = [
       },
     ],
   },
+  /*
+   * ADDED 2026-11-15 FOR ROBERT'S ANSWERS 32 AND 33 (issue #1, proposal
+   * 6889408888, "yes, as proposed"): pier and beam (traffic potential 21,000)
+   * and helical piers (4,200 a month, KD 0), from the Ahrefs pull he approved.
+   *
+   * SOURCES, EACH READ IN FULL BEFORE A SENTENCE CITES IT:
+   * - Texas Section ASCE, Guidelines for the Evaluation and Repair of
+   *   Residential Foundations, Version 3, adopted April 2022: 5.4 and 5.5 on
+   *   elevation surveys, 7.4.1 on remediation documents, 7.4.3.1 on
+   *   underpinning, 7.5 on pier and beam repair, 7.6 to 7.8 after the work.
+   * - TBPELS Engineering Advisory Opinion Request 43, February 2018.
+   * - TBPELS formal response to the Drebelbis request, January 23, 2018.
+   * - USDA NRCS Official Series Description, Houston Black.
+   *
+   * NOT READ, SO NOT QUOTED: the IRC and IBC text (codes.iccsafe.org answered
+   * 403) and ICC-ES AC358 (behind a login). So neither page states a code
+   * clearance, a vent ratio, a torque factor or a capacity, and the helical
+   * page does not explain torque-based capacity at all until that text has
+   * been read, as the proposal said.
+   */
+  {
+    slug: "pier-and-beam",
+    name: "Pier and beam foundations",
+    question: "What does an engineer check under a pier and beam house?",
+    h1: "Pier and Beam Foundation Problems on Texas Clay: What an Engineer Checks",
+    title: "Pier and Beam Problems on Texas Clay | 254 Engineering",
+    description:
+      "What an engineer checks under a Texas pier and beam house: piers, shims, framing, crawlspace moisture and clearance. Read this before paying for leveling.",
+    summary:
+      "A pier and beam floor moves for reasons that can be seen from the crawlspace, and the repair that fits it is decided down there rather than at the front door.",
+    sections: [
+      {
+        eyebrow: "The system",
+        title: "How a pier and beam floor carries the house",
+        body: [
+          "A pier and beam house rests on its floor framing, and the framing rests on piers, posts or footings. The Texas Section of the American Society of Civil Engineers lists four kinds of repair for that system in its 2022 guidelines: shimming the framing on the existing supports, repairing or strengthening the framing, adding or replacing supports, and restoring any designed void space. Which of the four a house needs is decided in the crawlspace, so an evaluation starts there, at the pier caps, the shims and the beams, before anyone talks about lifting.",
+          "The ground under much of the Blackland Prairie is why these floors move. The USDA describes Houston Black clay as cracking 0.5 to 4 inches wide when dry, to a depth of 12 inches or more, and soil that shrinks and swells like that moves the piers standing in it unevenly. Under Texas law, explaining why a floor moved and what should be done about it is engineering: the state board wrote in 2018 that analyzing the cause of a foundation condition or recommending repairs is the practice of engineering under section 1001.003(c)(1) of the Occupations Code.",
+        ],
+      },
+      {
+        eyebrow: "In the crawlspace",
+        title: "What gets looked at, support by support",
+        lede: "The four repairs in the guidelines line up with four things a person can see under the floor.",
+        body: [
+          "Pier caps and shims come first. The guidelines allow floor framing to be adjusted by adding shims on top of the pier caps, in hardwood or steel, so a gap between a beam and its support is often the smallest repair on the list. A stack of loose or crushed shims, or a cap that has tilted, says more about what has been happening than any reading taken in the living room.",
+          "The framing comes next: beams, girders and joists, checked for rot, insect damage, cuts made by later trades, and sag between supports. The guidelines say damaged or distressed members should be replaced or reinforced, and recommend treated lumber for framing repairs.",
+          "Then the spacing. Where a beam or the floor framing spans too far for the load it actually carries, the guidelines provide for additional supports, and require any support added to be compatible with the original system. A new pier of a different kind, bearing on different ground from the piers beside it, can move differently from its neighbors.",
+        ],
+      },
+      {
+        eyebrow: "Moisture",
+        title: "The crawlspace decides how long a repair lasts",
+        lede: "Wood that stays wet and soil that keeps changing will undo a leveling job.",
+        body: [
+          "The guidelines name four ways of controlling moisture under the floor: cross ventilation of the crawlspace, drainage under the floor, ground clearance for the beams and joists, and treated lumber. Each can be judged from the access hatch, and each bears on whether the framing rots and whether the soil under the piers keeps swinging between wet and dry.",
+          "The minimum clearance between framing and soil is set by the building code, and this page does not quote a figure it could not check against the code's own text. Framing in contact with soil, or close enough to stay damp, is a finding an engineer records whatever the number is.",
+          "Where the house was built with void space under any element, the guidelines say that space should be reestablished as necessary. A void that has filled in lets swelling clay push directly on what it was meant to clear.",
+        ],
+      },
+      {
+        eyebrow: "Before leveling",
+        title: "Why lifting is the last question, not the first",
+        lede: "Leveling is the visible part of the work, which is why it is usually the first thing offered.",
+        body: [
+          "A floor shimmed back to level over piers that are still moving, or over framing that is still deteriorating, goes back out of level. Whether to adjust elevations is a decision made after the supports and the framing have been judged sound, or after they have been repaired.",
+          "The guidelines also treat a floor elevation survey as one piece of evidence rather than the whole answer. A single survey shows the floor's shape at one moment, and some unevenness was built in on the day the house was framed. Repeated surveys over months, or the original construction elevations where they exist, show change, which is what an engineer is actually trying to measure.",
+          "If lifting is part of the repair, the guidelines call for the water supply and drain lines to be tested for leaks afterwards, and note that gas lines may need adjusting. A leak under a house that has just been leveled is a fresh supply of the moisture that moved it.",
+        ],
+      },
+      {
+        eyebrow: "The document",
+        title: "What a repair plan should state",
+        body: [
+          "When an engineer specifies the repair, the guidelines list what the documents should carry, among them the purpose and limitations of the repair, a plan locating the relevant structural components, details and specifications for building it, any observation or testing required during construction, and a floor elevation survey once the work is done. A repair quote that cannot be read against a list like that is a price for a job nobody has described.",
+          "After the work, an engineer retained to do so may issue a letter stating that the repair generally conforms to the documents, with any deviations noted. That letter is what a later buyer, lender or insurer usually asks to see.",
+        ],
+      },
+    ],
+    faqs: [
+      {
+        q: "Is shimming a real repair or a temporary fix?",
+        a: "It is one of the four repairs the Texas Section ASCE guidelines list for pier and beam foundations, and it is the right one when the supports and the framing are sound and the gap is the problem. It is the wrong one when the pier under the shim is still moving, because the shim then only records the movement.",
+      },
+      {
+        q: "Can a home inspector tell me why my floor is uneven?",
+        a: "An inspector reports the visible condition. The Texas engineering board wrote in 2018 that analyzing the cause of a foundation condition or recommending repairs is the practice of engineering, and that an inspector working to the Texas Real Estate Commission's standards is not required to determine the cause of a deficiency.",
+      },
+    ],
+  },
+  {
+    slug: "helical-piers",
+    name: "Helical piers",
+    question: "When is a helical pier the right foundation repair?",
+    h1: "Helical Piers Explained: When They Are the Right Foundation Repair",
+    title: "Helical Piers Explained by an Engineer | 254 Engineering",
+    description:
+      "Helical piers are steel shafts turned into the ground like screws. When they suit Texas clay, how capacity is shown, and what the repair plan should state.",
+    summary:
+      "A helical pier is a support, not a diagnosis. Whether it is the right one depends on what it has to carry, and on whether anybody checked that the slab above it can be carried that way.",
+    sections: [
+      {
+        eyebrow: "The pier",
+        title: "What a helical pier is, and what is asked of it",
+        body: [
+          "A helical pier is a steel shaft with one or more screw-shaped plates near its tip, turned into the ground rather than driven or poured. In a repair it is one kind of underpinning, and the Texas Section of the American Society of Civil Engineers asks the same things of every kind: plans that show each element's location, size, depth and material, a design based on calculations, and a plain statement that underpinning will not improve the foundation where nothing was installed. The same guidelines warn that lifting a house on new supports is unlikely to leave it level.",
+        ],
+      },
+      {
+        eyebrow: "The slab",
+        title: "The harder question is what sits on the piers",
+        body: [
+          "The harder question is the slab, not the pier. A slab built to rest on the ground becomes a member spanning between supports once piers carry it, and in 2018 a Texas engineer asked the state board to act on sealed repair plans that never checked whether the slab could do that. The board declined to set technical standards, because the Engineering Practice Act sets practice requirements rather than methods. It said it will investigate any design \"done incorrectly or without proper analysis.\" A helical pier is the right repair when that analysis has been done and supports it, and only then.",
+          "The guidelines make the same point in their own terms. Underpinning part of a structure may be specified where calculations, tests or experience show that the part left unsupported can carry its design loads, and the performance of underpinning can be compromised by the condition of the existing slab, by changes in soil moisture and by other factors.",
+        ],
+      },
+      {
+        eyebrow: "Capacity",
+        title: "How a pier's capacity is shown",
+        lede: "This page gives no capacity figure, on purpose.",
+        body: [
+          "The guidelines require underpinning to be designed from generally accepted engineering practice and appropriate calculations, and the plans to state each element's location, size, depth, material type and, where it applies, the minimum material strength. A plan that cannot say what each pier is meant to carry has not shown that it can carry it.",
+          "The published criteria for evaluating helical systems sit behind an evaluation service's own login, and the building code text that refers to them could not be read for this page. So no factor and no capacity appears here. A number quoted without its source is the kind of number this site does not repeat.",
+          "The guidelines also call for the documents to state what observation or testing is required during construction. That record is how anyone later knows that what went into the ground matches what was designed.",
+        ],
+      },
+      {
+        eyebrow: "Expectations",
+        title: "What a pier repair will not do",
+        body: [
+          "The guidelines ask the construction documents to say plainly that underpinning will not improve the foundation where nothing was installed. A partial repair supports the part it supports, and the rest of the slab goes on behaving as it did before.",
+          "Lifting on new piers is not a promise of a level floor either. The guidelines treat elevation adjustment as a matter of field judgment, limited to avoid damaging the foundation and the finishes, and say it is unlikely to produce a level foundation. Plumbing should be tested for leaks after any lift.",
+          "After the work, a floor elevation survey belongs in the record, and an engineer retained to do so may issue a letter that the repair generally conforms to the documents, noting any deviation.",
+        ],
+      },
+      {
+        eyebrow: "Independence",
+        title: "Who designs the pier, and who sells it",
+        body: [
+          "The 2018 request to the state board described engineers who repeatedly sealed pier plans while working on behalf of, or on the recommendation of, the repair company that benefits from the repair. Whatever the merits of any one plan, that is the arrangement in which nobody is paid to ask whether the slab can be carried on piers at all.",
+          "An engineer engaged by the owner, with no interest in which repair is chosen, is paid to ask exactly that question, and to say so in writing when the answer is that piers are not the repair.",
+        ],
+      },
+    ],
+    faqs: [
+      {
+        q: "Are helical piers better than concrete piers?",
+        a: "Neither is better in general. The Texas Section ASCE guidelines ask the same of every kind of underpinning: a design based on calculations, plans that state where each element goes and how deep, and a plain statement of what the repair will not improve. The right pier is the one that design supports for that house and that soil.",
+      },
+      {
+        q: "Will helical piers make my floor level?",
+        a: "Probably not exactly. The guidelines say it is unlikely that lifting will result in a level foundation, and that lifting should be limited by judgment to avoid damage to the foundation and the finishes.",
+      },
+    ],
+  },
 ];
 
 export const proximityBySlug = (slug: string): ProximityPage | undefined =>

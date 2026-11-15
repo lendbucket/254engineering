@@ -84,8 +84,8 @@ export default function StructuralEngineerPage() {
       <Section tone="navy">
         <SectionHead
           eyebrow="Going further"
-          title="The two questions people ask next"
-          lede="Whether the problem in front of you needs an engineer at all, and how to tell a good one from a bad one."
+          title="The questions people ask next"
+          lede="What an inspection involves, whether the problem in front of you needs an engineer at all, how to tell a good one from a bad one, and two kinds of foundation read the way an engineer reads them."
           onDark
         />
         <ul className="mt-8 grid gap-6 lg:grid-cols-2">
