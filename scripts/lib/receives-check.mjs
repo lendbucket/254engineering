@@ -37,17 +37,26 @@ const squash = (s) => s.replace(/\s+/g, "");
  * squashed text of a paper-signed protocol's PDF, null when it could not be
  * read, or undefined when the caller does not compare paper-signed lines.
  */
-export function inForceResolver({ PROTOCOL_ENTRIES, SIGNABLE_PROTOCOLS, HELD_OUT_OF_FORCE, paperText }) {
+export function inForceResolver({ PROTOCOL_ENTRIES, SIGNABLE_PROTOCOLS, HELD_OUT_OF_FORCE, OWN_PROTOCOL_REQUIRED, paperText }) {
+  /*
+   * A deliverable held for a protocol of its own (src/config/own-protocol.ts,
+   * Robert's answer 11 of 2026-11-14) never borrows its line's general one,
+   * exactly as the gate refuses to: only a protocol registered for its exact
+   * tier is in force for it. Required rather than defaulted, so a caller that
+   * forgets it fails to run instead of reading the borrowed protocol.
+   */
+  if (!OWN_PROTOCOL_REQUIRED) throw new Error("inForceResolver needs OWN_PROTOCOL_REQUIRED (src/config/own-protocol.ts)");
   const inForceFor = (d) => {
     const paper = PROTOCOL_ENTRIES.find(
       (p) => p.declaration.serviceSlug === d.serviceSlug && p.signatureEvidence !== null,
     );
     if (paper) return { documentNumber: paper.declaration.documentNumber, kind: "paper", text: () => paperText(paper) };
+    const ownOnly = Boolean(OWN_PROTOCOL_REQUIRED[`${d.serviceSlug}/${d.tier}`]);
     const portal = SIGNABLE_PROTOCOLS.find(
       (p) =>
         p.serviceSlug === d.serviceSlug &&
         !HELD_OUT_OF_FORCE[p.documentNumber] &&
-        (p.serviceTier === null || d.tier === "page" || p.serviceTier === d.tier),
+        (ownOnly ? p.serviceTier === d.tier : p.serviceTier === null || d.tier === "page" || p.serviceTier === d.tier),
     );
     if (portal) return { documentNumber: portal.documentNumber, kind: "portal", text: () => squash(portal.text.join("")) };
     return null;

@@ -106,8 +106,13 @@ export function holdRefusal(hold: HoldState): string | null {
     .join(", ")}. The engineer records accept or decline first.`;
 }
 
-/** How many files are checked for a hold at once. Each check is three small reads. */
-export const HOLD_READS_AT_ONCE = 8;
+/**
+ * How many files are checked for a hold at once. Each check is three small
+ * reads. 16 since office-ready Batch B (profiled 2026-11-14: the held list was
+ * the slowest of the review page's reads at about 1.1 seconds, 17 candidates in
+ * three rounds of eight); the held-list proof keeps it at 16 or under.
+ */
+export const HOLD_READS_AT_ONCE = 16;
 
 /**
  * holdFor for many files, several at a time, in the order given. Board

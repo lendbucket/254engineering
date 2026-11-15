@@ -55,13 +55,17 @@ export const stripeWebhookEndpoint: {
     "checkout.session.expired",
     "charge.refunded",
     "charge.refund.updated",
+    "charge.dispute.created",
+    "charge.dispute.closed",
   ],
   verified:
     "Registered by the operator on 2026-09-16 against the live 254 account, with STRIPE_WEBHOOK_SECRET " +
     "taken from the same account as STRIPE_SECRET_KEY in the same sitting. The live half of " +
     "stripe-webhook-audit confirms this against the account the key belongs to. " +
     "charge.refund.updated was added to the same live endpoint by the operator in the Stripe " +
-    "dashboard, confirmed in chat on 2026-10-14; the live half has not yet read it back.",
+    "dashboard, confirmed in chat on 2026-10-14; the live half has not yet read it back. " +
+    "charge.dispute.created and charge.dispute.closed were added to the same live endpoint by the " +
+    "operator, confirmed in chat on 2026-11-14; the live half has not yet read them back either.",
 
   /*
    * CONFIRMED AT THE KEYBOARD 2026-09-16, 11 of 11 checks: one endpoint,

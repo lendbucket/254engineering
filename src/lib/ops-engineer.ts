@@ -1466,6 +1466,53 @@ export async function productionLedger(
   return { ok: true, rows: read.rows.map((r) => ({ ...r, amount_cents: Number(r.amount_cents) })) };
 }
 
+/**
+ * THE ENGINEER'S OWN PAY, FOR "YOUR PAY". Part 1 finding 7, Robert's answer 1
+ * of 2026-11-14. The engineer's "Your pay" opened the technician's ledger, under
+ * the technician's wording, so it read $0.00 for ever while his production
+ * credit sat on Responsible charge. This is his own rows only, every one
+ * (readEvery), each carrying whether its file is a demonstration so payFigures
+ * applies the dashboards' rule: a demonstration file moves no figure.
+ */
+export type OwnProductionRow = Omit<ProductionRow, "amount_cents"> & {
+  /* Null when no amount was recorded: absent, never zero. */
+  amount_cents: number | null;
+  is_demo: boolean;
+};
+
+export async function ownProductionPay(
+  actor: Actor | null,
+): Promise<{ ok: true; rows: OwnProductionRow[] } | { ok: false; error: string }> {
+  const db = supabaseAdmin();
+  if (!db || !actor) return { ok: false, error: "Your production ledger could not be read." };
+  if (!can(actor, "ledger.read_own")) return { ok: true, rows: [] };
+  const read = await readEvery<Record<string, unknown>>((from, to) =>
+    db
+      .from("eng_production_ledger")
+      .select("id, created_at, engineer_id, file_id, amount_cents, decision, period, status, note, eng_files(is_demo)")
+      .eq("engineer_id", actor.id)
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  if (!read.ok) return { ok: false, error: `Your production ledger could not be read: ${read.error}` };
+  return {
+    ok: true,
+    rows: read.rows.map((r) => ({
+      id: r.id as string,
+      created_at: r.created_at as string,
+      engineer_id: r.engineer_id as string,
+      file_id: (r.file_id as string | null) ?? null,
+      amount_cents: r.amount_cents === null || r.amount_cents === undefined ? null : Number(r.amount_cents),
+      decision: (r.decision as string | null) ?? null,
+      period: (r.period as string | null) ?? null,
+      status: r.status as string,
+      note: (r.note as string | null) ?? null,
+      is_demo: (r.eng_files as { is_demo?: boolean } | null)?.is_demo === true,
+    })),
+  };
+}
+
 export type TimeRow = {
   id: string;
   created_at: string;

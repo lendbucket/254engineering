@@ -524,10 +524,27 @@ answer(out);
         r?.ok ? "IT WAS ACCEPTED" : String(r?.error ?? "").slice(0, 70),
       );
     });
+    /*
+     * ONE PENDING FLOOR SINCE 2026-11-14, NAMED. Robert's answer 11 added the
+     * real-estate structural letter at $709 with no floor ruled, because its
+     * engineer pay tier is not in his agreement yet. It is closed by its own
+     * protocol (OWN_PROTOCOL_REQUIRED), so nothing can sell beneath a floor that
+     * does not exist. The set is stated exactly, as a literal rather than read
+     * from the code under test: a second pending floor turns this red and has
+     * to be argued for here, and the fixture above still builds its own
+     * subject, so it never depends on this one staying pending.
+     */
+    const PENDING_BY_RULING = ["structural-letters/real-estate"];
+    const pendingNow = Object.entries(TRADE_FLOORS).filter(([, v]) => v.state === "pending").map(([k]) => k).sort();
     rec(
-      "and the register itself carries no pending floor for the fixture to have found",
-      Object.values(TRADE_FLOORS).every((v) => v.state !== "pending"),
-      "every floor is ruled, which is why this subject is built rather than found",
+      `and the register's only pending floor is the one ruled pending (${pendingNow.join(", ") || "none"})`,
+      pendingNow.join("|") === PENDING_BY_RULING.join("|"),
+      "answer 11 of 2026-11-14: the real-estate letter waits on its engineer pay tier and a floor ruling",
+    );
+    rec(
+      "and that deliverable is closed until its own protocol is confirmed",
+      PENDING_BY_RULING.every((key) => readFileSync("src/config/own-protocol.ts", "utf8").includes(`"${key}":`)),
+      "a pending floor on a deliverable that could be sold would be a price with no floor beneath it",
     );
 
     say("");
@@ -614,10 +631,19 @@ answer(out);
       "a second generator would be a second answer to what happens if the engineer declines",
     );
 
-    const fieldWithoutFee = CATALOG.filter((e) => e.orderType === "field" && e.inspectionFeeCents === null);
+    /*
+     * ONE FIELD DELIVERABLE WITHOUT A FEE SINCE 2026-11-14, NAMED: the
+     * real-estate structural letter of Robert's answer 11, whose fee is not
+     * ruled. It is closed by its own protocol, so no refund terms are ever
+     * quoted for it. Stated exactly, so a second one is red until argued for.
+     */
+    const FEE_UNRULED = ["structural-letters/real-estate"];
+    const fieldWithoutFee = CATALOG.filter((e) => e.orderType === "field" && e.inspectionFeeCents === null)
+      .map((e) => floorKey(e.serviceSlug, e.tier))
+      .sort();
     rec(
-      `no field deliverable is missing its inspection fee today (${fieldWithoutFee.length})`,
-      fieldWithoutFee.length === 0,
+      `the only field deliverable missing its inspection fee is the one whose fee is unruled (${fieldWithoutFee.join(", ") || "none"})`,
+      fieldWithoutFee.join("|") === FEE_UNRULED.join("|"),
       "so the refund-terms refusal is proven by its source rather than by a live case",
     );
     rec(

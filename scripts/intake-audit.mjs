@@ -26,6 +26,7 @@ import {
   blockers,
   decidePrice,
   landsAt,
+  landsWhenTaken,
   paymentOptions,
   INTAKE_CHANNELS,
   PAYMENT_INTENTS,
@@ -110,6 +111,51 @@ console.log("");
     "and for desk",
     /"desk"[\s\S]*?return "evidence_submitted"/.test(body),
   );
+
+  /*
+   * A LINK JOB WAITS AT INTAKE FOR ITS PAYMENT. Robert's answer 20,
+   * 2026-11-14: only a job opened unpaid or on account is released when it is
+   * taken. The expectation is written here as a literal, never read from
+   * RELEASED_WHEN_TAKEN, so moving the set in the module turns this red.
+   */
+  const RULED_RELEASED = ["invoiced", "released_unpaid"];
+  const wrongLanding = [];
+  for (const intent of PAYMENT_INTENTS) {
+    for (const type of ["field", "desk", "quote"]) {
+      const want = RULED_RELEASED.includes(intent) ? landsAt(type) : "intake";
+      if (landsWhenTaken(type, intent) !== want) wrongLanding.push(`${type}/${intent} lands at ${landsWhenTaken(type, intent)}, ruled ${want}`);
+    }
+  }
+  rec(
+    `every payment route lands where answer 20 rules (${PAYMENT_INTENTS.length} routes x 3 kinds)`,
+    wrongLanding.length === 0,
+    wrongLanding.join("; ") || "a link job stays at intake; unpaid and on account are released",
+  );
+  rec("a field job taken with a link stays at intake", landsWhenTaken("field", "link_sent") === "intake");
+  rec("a field job opened unpaid goes to needs dispatch", landsWhenTaken("field", "released_unpaid") === "needs_dispatch");
+
+  const taking = codeOnly("src/lib/ops-job-intake.ts");
+  rec(
+    "and New job lands the file by the payment route chosen",
+    /const target = landsWhenTaken\(entry\.orderType, input\.paymentIntent\);/.test(taking) && !/landsAt\(entry\.orderType\)/.test(taking),
+  );
+  const screen = codeOnly("src/app/portal/(app)/intake/IntakeClient.tsx");
+  rec(
+    "and the screen says where it lands for the route chosen, not for the kind of work alone",
+    /landsWhenTaken\(entry\.orderType, paymentIntent\) === "needs_dispatch"/.test(screen) && /The payment moves it to/.test(screen),
+  );
+  rec(
+    "and nothing tells the rep somebody has to move a file by hand",
+    !/move it by hand/.test(screen) && /waiting at intake for its payment\. The payment moves it on by itself\./.test(screen),
+    "the payment moves a link job; the old sentence was false (answer 20)",
+  );
+  /* The payment is what releases it, from intake, as a web order is released. */
+  const payments = codeOnly("src/lib/ops-payments.ts");
+  rec(
+    "and the payment releases it through landingStatusFor",
+    /const target = landingStatusFor\(orderType as "field" \| "desk" \| "quote"\);/.test(payments) &&
+      /transitionFile\(\s*SYSTEM_AUTHOR,\s*fileId,\s*target,\s*"Payment settled, so the work is released\.",?\s*\)/.test(payments),
+  );
 }
 
 // ==================================================== the compliance gate
@@ -148,6 +194,23 @@ console.log("");
     "but the job can still be opened unpaid",
     unpaid?.available === true,
     "an intake with every option refused is an intake that cannot be completed",
+  );
+
+  /*
+   * Before a deliverable is chosen, "no published price" is false (the
+   * screenshot walk of 2026-11-14). The screen says to choose one; the server,
+   * which always has one, keeps its sentence.
+   */
+  const unchosen = paymentOptions({ prelaunch: false, accountCanInvoice: false, priced: false, deliverableChosen: false }).find((o) => o.intent === "link_sent");
+  const chosenUnpriced = paymentOptions({ prelaunch: false, accountCanInvoice: false, priced: false }).find((o) => o.intent === "link_sent");
+  rec(
+    "before a deliverable is chosen the link says to choose one, not that there is no price",
+    unchosen?.because === "Choose the deliverable, and its price appears above." &&
+      chosenUnpriced?.because === "There is no published price for this deliverable, so there is nothing to charge.",
+  );
+  rec(
+    "and New job tells the rule whether one is chosen",
+    /deliverableChosen: Boolean\(entry\),/.test(codeOnly("src/app/portal/(app)/intake/IntakeClient.tsx")),
   );
 
   /*

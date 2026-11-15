@@ -2,7 +2,7 @@ import "server-only";
 import { supabaseAdmin } from "./supabase";
 import { catalogFor } from "@data/catalog";
 import { orderForCustomerToken } from "./ops-intake";
-import { CUSTOMER_STATUS, CUSTOMER_STATUS_REFUND_ISSUED, CUSTOMER_STATUS_REPAIR_SPEC, CUSTOMER_STATUS_REPAIRS, type OrderStatus } from "./ops-orders";
+import { CUSTOMER_STATUS, CUSTOMER_STATUS_REFUND_ISSUED, CUSTOMER_STATUS_REPAIR_SPEC, CUSTOMER_STATUS_REPAIRS, travelLabel, type OrderStatus } from "./ops-orders";
 import { money, type Cents } from "./ops-money";
 import { REFUND_ISSUED_SENTENCE } from "./refund-update";
 import { customerLettersRead, type CustomerLetter } from "./letter-delivery";
@@ -133,17 +133,18 @@ export function customerWhen(iso: string | null): string | null {
  * rather than that it is wrong would confirm the order exists to anybody
  * guessing.
  */
-export async function customerView(token: string): Promise<CustomerView | null> {
+export async function customerView(token: string, opts: { asCustomer?: boolean } = {}): Promise<CustomerView | null> {
   const db = supabaseAdmin();
   if (!db) return null;
 
-  const subject = await orderForCustomerToken(token);
+  /* Building an email from this view is not the customer opening it (after walk, 2026-11-14). */
+  const subject = await orderForCustomerToken(token, opts);
   if (!subject?.orderId) return null;
 
   const { data: order } = await db
     .from("eng_service_orders")
     .select(
-      "id, reference, status, file_id, service_slug, tier, property_address, city, county, price_cents, coastal_surcharge_cents, total_cents, inspection_fee_cents, twia_county, placed_at, refund_disclosure, catalog_snapshot",
+      "id, reference, status, file_id, service_slug, tier, property_address, city, county, price_cents, coastal_surcharge_cents, total_cents, inspection_fee_cents, twia_county, placed_at, refund_disclosure, catalog_snapshot, travel_cents",
     )
     .eq("id", subject.orderId)
     .maybeSingle();
@@ -218,6 +219,10 @@ export async function customerView(token: string): Promise<CustomerView | null> 
   ];
   if (order.twia_county && order.coastal_surcharge_cents !== null) {
     lines.push({ label: "Coastal county", amount: money(cents(order.coastal_surcharge_cents)) });
+  }
+  /* Travel, named for the county and never for its reason (0135, Robert's answer 15). */
+  if (order.travel_cents !== null && Number(order.travel_cents) > 0) {
+    lines.push({ label: travelLabel(order.county as string), amount: money(cents(order.travel_cents)) });
   }
 
   const lettersRead = await customerLettersRead(subject.orderId);

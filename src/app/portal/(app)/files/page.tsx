@@ -2,7 +2,8 @@ import Link from "next/link";
 import { RestrictedMode } from "@/components/portal/design";
 import { notFound } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
-import { can } from "@/lib/ops-authz";
+import { can, may } from "@/lib/ops-authz";
+import { notForReader } from "@/components/portal/nav";
 import { listFilesPage, FILE_LIST_CAP, getFile, listClients, fileTimeline, fileRegion } from "@/lib/ops-crm";
 import { availableTransitions, STATUS_LABEL, FILE_STATUSES } from "@/lib/ops-files";
 import { TEXAS_COUNTIES, twiaStatus } from "@/lib/ops-counties";
@@ -25,6 +26,13 @@ import { partnerCostByFile } from "@/lib/ops-partner-comp";
 import { progressLabel } from "@/lib/ops-evidence";
 import { NewFileForm, TransitionControls, RequestInformation } from "./FileClient";
 import { DispatchPanel } from "./DispatchPanel";
+import { ResendPaymentLink } from "./ResendPaymentLink";
+import { SendTripFee } from "./SendTripFee";
+import { SetTravel } from "./SetTravel";
+import { RequestTravel } from "./RequestTravel";
+import { travelRequestFor, TRAVEL_REQUESTED_SAYS } from "@/lib/ops-job-billing";
+import { fileRelated, nextStepFor } from "@/lib/file-related";
+import { activeEngineer } from "@/lib/launch";
 import { FileThreadButton } from "@/components/portal/FileThreadButton";
 import { formatInFirmZone } from "@/lib/firm-calendar";
 import { ListControls } from "@/components/portal/ListControls";
@@ -52,10 +60,15 @@ function when(value: string | null): string {
   return (formatInFirmZone(value, { month: "short", day: "numeric", year: "numeric" }) ?? "");
 }
 
+/* A date and time on the firm's calendar, for the payment and status link lines. */
+function whenShort(value: string): string {
+  return formatInFirmZone(value, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) ?? value;
+}
+
 export default async function FilesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ id?: string; status?: string; county?: string; q?: string; page?: string; dir?: string; sort?: string }>;
+  searchParams: Promise<{ id?: string; status?: string; county?: string; q?: string; page?: string; dir?: string; sort?: string; taken?: string; warn?: string | string[] }>;
 }) {
   const actor = await currentActor();
   if (!can(actor, "files.list")) notFound();
@@ -71,6 +84,23 @@ export default async function FilesPage({
     oldest,
   });
   const selected = params.id ? await getFile(actor, params.id) : null;
+  /* The Killeen call, items 3 and 4: the next step, its owner, the payment, and every record the file touches. */
+  const related = selected ? await fileRelated(actor, selected) : null;
+  /* A travel request nobody has answered, which holds the payment link (Robert's ruling, Needs travel). */
+  const travelAsked = selected ? await travelRequestFor(selected.id) : null;
+  const nextStep =
+    selected && related
+      ? nextStepFor(selected.status, related.payment, Boolean(selected.assigned_tech_id), related.noAccess, travelAsked?.pending === true)
+      : null;
+  /* The latest visit nobody could get into, when there is one (0134). */
+  const noAccess = (() => {
+    const s = related?.noAccess;
+    return s && (s.kind === "unpaid" || s.kind === "paid") ? s : null;
+  })();
+  const engineerOfRecord = activeEngineer()?.name ?? null;
+  /* Arriving from Take the job: the warnings it returned, shown at the top of the file (text only, rendered escaped). */
+  const taken = params.taken === "1";
+  const takenWarnings = (Array.isArray(params.warn) ? params.warn : params.warn ? [params.warn] : []).map((w) => w.slice(0, 400));
   const timelineRead = selected ? await fileTimeline(selected.id) : [];
   /* A failed read is said where the timeline would be, never "Nothing recorded yet." (section 6, class A). */
   const timelineFailed = timelineRead === null;
@@ -169,7 +199,8 @@ export default async function FilesPage({
 
   const filterHref = (patch: Record<string, string | undefined>) => {
     const next = new URLSearchParams();
-    for (const [k, v] of Object.entries({ ...params, ...patch })) if (v) next.set(k, v);
+    /* taken and warn belong to one arrival from Take the job and are never carried into a list link. */
+    for (const [k, v] of Object.entries({ ...params, ...patch })) if (typeof v === "string" && v && k !== "taken" && k !== "warn") next.set(k, v);
     next.delete("id");
     return `/portal/files${next.toString() ? `?${next}` : ""}`;
   };
@@ -256,7 +287,19 @@ export default async function FilesPage({
           body={
             params.status || params.q
               ? "Clear the filter to see everything."
-              : "A file is one deliverable request: a property, a client, and a service line. Open one above, or convert a lead from the clients screen."
+              : /*
+                 * What the reader can do next, by what the reader can do. The
+                 * every-role walk of 2026-11-14 found a technician told to
+                 * "open one above, or convert a lead from the clients screen",
+                 * neither of which a technician can do.
+                 */
+                can(actor, "files.create") && can(actor, "clients.create")
+                ? "A file is one deliverable request: a property, a client, and a service line. Open one above, or convert a lead from the clients screen."
+                : can(actor, "files.create")
+                  ? "A file is one deliverable request: a property, a client, and a service line. Take a job in New job above to open one."
+                  : can(actor, "offers.list_own") && !notForReader("/portal/jobs", (a) => may(actor, a))
+                    ? "A file appears here when a job in it is offered to you or assigned to you. Your offers are on My jobs."
+                    : "A file appears here when one is assigned to you."
           }
         />
       ) : (
@@ -331,6 +374,176 @@ export default async function FilesPage({
             </div>
           </div>
         </div>
+
+        {/*
+          JUST TAKEN, AND WHAT CAME OF IT. The Killeen call, item 3: Take the job
+          lands here rather than on a done panel, and anything that went wrong
+          on the way is said at the top of the file it went wrong on.
+        */}
+        {taken ? (
+          <div className="border-b border-[var(--border)] px-4 py-4 sm:px-5" role="status">
+            <p className="portal-kicker">Job taken</p>
+            {takenWarnings.length === 0 ? (
+              <p className="mt-1.5 text-[14px] leading-[1.6] text-[var(--ink)]">{selected.file_number} is open. What happens next is below.</p>
+            ) : (
+              <ul className="mt-1.5 flex flex-col gap-1.5">
+                {takenWarnings.map((w) => (
+                  <li key={w} className="max-w-[75ch] text-[14px] leading-[1.6] font-semibold text-[var(--ink)]">{w}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ) : null}
+
+        {/*
+          THE NEXT STEP, WHO OWNS IT, THE PAYMENT, AND EVERYTHING THIS FILE
+          TOUCHES. The Killeen call, items 3 and 4 (src/lib/file-related.ts).
+        */}
+        {related && nextStep ? (
+          <div className="border-b border-[var(--border)] px-4 py-4 sm:px-5">
+            <div className="grid gap-4 lg:grid-cols-2">
+              <div>
+                <p className="portal-kicker">Next step</p>
+                <p className="mt-1.5 text-[15px] leading-[1.5] font-semibold text-[var(--ink)]">{nextStep.step}</p>
+                <p className="mt-0.5 text-[14px] text-[var(--secondary)]">Owner: {nextStep.owner}</p>
+
+                {related.payment ? (
+                  <>
+                    <p className="mt-4 portal-kicker">Payment</p>
+                    {related.payment.kind === "none" ? (
+                      <>
+                        <p className="mt-1.5 text-[14px] leading-[1.55] text-[var(--ink)]">
+                          {travelAsked?.pending === true ? TRAVEL_REQUESTED_SAYS : "No payment link or invoice has been raised for this job."}
+                        </p>
+                        {/* Travel is set before the link (0135); the administrator's, under the price override's rules. */}
+                        {can(actor, "pricing.override_at_intake") ? <SetTravel fileId={selected.id} current={related.travel} /> : null}
+                        {/* Needs travel (Robert's ruling): anyone who can take a job asks, while no travel is set and nothing is pending. */}
+                        {!related.travel && travelAsked?.pending === false && can(actor, "files.create") && !can(actor, "pricing.override_at_intake") ? (
+                          <RequestTravel fileId={selected.id} />
+                        ) : null}
+                      </>
+                    ) : related.payment.kind === "waiting" ? (
+                      <>
+                        <p className="mt-1.5 text-[14px] leading-[1.55] text-[var(--ink)]">
+                          Waiting for payment: {related.payment.amount} on {related.payment.reference}
+                          {related.payment.lastSent ? `, last sent ${whenShort(related.payment.lastSent)}` : ""}.
+                        </p>
+                        {can(actor, "payments.send_link") || can(actor, "payments.charge") ? <ResendPaymentLink fileId={selected.id} /> : null}
+                      </>
+                    ) : related.payment.kind === "paid" ? (
+                      <p className="mt-1.5 text-[14px] leading-[1.55] text-[var(--ink)]">
+                        Paid: {related.payment.amount} on {related.payment.reference}
+                        {related.payment.paidAt ? `, ${whenShort(related.payment.paidAt)}` : ""}.
+                      </p>
+                    ) : (
+                      <p className="mt-1.5 text-[14px] leading-[1.55] text-[var(--ink)]">
+                        {related.payment.reference} is {related.payment.status}.
+                      </p>
+                    )}
+                    {related.order ? (
+                      <p className="mt-1.5 text-[14px] text-[var(--secondary)]">
+                        {related.statusLinkOpened
+                          ? `The customer ${related.statusLinkFirstOpened ? `first opened their status page ${whenShort(related.statusLinkFirstOpened)}, and ` : ""}last opened it ${whenShort(related.statusLinkOpened)}.`
+                          : "The customer has not opened their status page."}
+                      </p>
+                    ) : null}
+                  </>
+                ) : null}
+
+                {related.travel ? (
+                  <p className="mt-1.5 text-[14px] leading-[1.55] text-[var(--ink)]">
+                    Travel: {related.travel.amount}. {related.travel.reason}
+                  </p>
+                ) : null}
+
+                {/* A visit the technician could not get into, and its trip fee (0134). The fee's state only for a role that sees money (6b-i). */}
+                {noAccess ? (
+                  <>
+                    <p className="mt-4 portal-kicker">Could not get in</p>
+                    <p className="mt-1.5 text-[14px] leading-[1.55] text-[var(--ink)]">
+                      {whenShort(noAccess.at)}: {noAccess.note}
+                    </p>
+                    {can(actor, "orders.read") ? (
+                      <p className="mt-1.5 text-[14px] leading-[1.55] text-[var(--ink)]">
+                        {noAccess.kind === "paid"
+                          ? `Trip fee paid on ${noAccess.tripOrder.reference}. The visit can be booked again.`
+                          : noAccess.tripOrder
+                            ? `Trip fee waiting for payment on ${noAccess.tripOrder.reference}. The visit is not booked again until it is paid.`
+                            : "No trip fee link has been sent. The visit is not booked again until the trip fee is paid."}
+                      </p>
+                    ) : null}
+                    {noAccess.kind === "unpaid" && (can(actor, "payments.send_link") || can(actor, "payments.charge")) ? (
+                      <SendTripFee fileId={selected.id} again={Boolean(noAccess.tripOrder)} />
+                    ) : null}
+                  </>
+                ) : null}
+              </div>
+
+              <div>
+                <p className="portal-kicker">This file touches</p>
+                <ul className="mt-1.5 flex flex-col gap-1.5 text-[14px]">
+                  {[
+                    ["Client", related.client],
+                    ["Order and its status page", related.order],
+                    ["Technician", related.technician],
+                    ["Engineer", related.engineer],
+                  ].map(([label, link]) => {
+                    const l = link as { href: string; label: string } | null;
+                    return (
+                      <li key={label as string} className="flex flex-wrap gap-x-2">
+                        <span className="text-[var(--secondary)]">{label as string}:</span>
+                        {l ? (
+                          <Link href={l.href} className="font-semibold text-[var(--navy)] underline">{l.label}</Link>
+                        ) : (
+                          <span className="text-[var(--ink)]">none yet</span>
+                        )}
+                      </li>
+                    );
+                  })}
+                  {/* Item 5: until an engineer takes the review, the engineer of record is named, from the register (activeEngineer). */}
+                  {!related.engineer && engineerOfRecord ? (
+                    <li className="text-[14px] text-[var(--secondary)]">
+                      Suggested engineer: {engineerOfRecord}, the engineer of record. The review is opened from the engineer&apos;s queue.
+                    </li>
+                  ) : null}
+                  {/* Who else gets the letter (items 2 and 7); what each was sent is in the timeline. */}
+                  <li className="flex flex-col gap-0.5">
+                    <span className="text-[var(--secondary)]">Who else gets the letter:</span>
+                    {related.contacts.length === 0 ? (
+                      <span className="text-[var(--ink)]">nobody named</span>
+                    ) : (
+                      related.contacts.map((c) => (
+                        <span key={c.email + c.role} className="text-[var(--ink)]">
+                          {c.name ? `${c.name}, ` : ""}the {c.role === "title" ? "title company" : c.role === "other" ? "contact" : c.role},{" "}
+                          <a href={`mailto:${c.email}`} className="font-semibold text-[var(--navy)] underline">{c.email}</a>
+                          {c.pays ? ", pays" : ""}
+                          {c.lastOpened ? `, opened the letter ${whenShort(c.lastOpened)}` : ""}
+                        </span>
+                      ))
+                    )}
+                  </li>
+                  <li className="flex flex-wrap gap-x-2">
+                    <span className="text-[var(--secondary)]">Letter:</span>
+                    {related.letters.length === 0 ? (
+                      <span className="text-[var(--ink)]">none yet</span>
+                    ) : (
+                      related.letters.map((d) => (
+                        <a key={d.id} href={d.href} className="font-semibold text-[var(--navy)] underline">{d.label}</a>
+                      ))
+                    )}
+                  </li>
+                </ul>
+                {related.unreadable.length > 0 ? (
+                  <ul role="alert" className="mt-2 flex flex-col gap-1">
+                    {related.unreadable.map((u) => (
+                      <li key={u} className="text-[14px] text-[var(--ink)]">{u}</li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         {/*
           WHY THE ENGINEER DECLINED OR SENT IT BACK, AT THE TOP. Item B of
@@ -502,6 +715,16 @@ export default async function FilesPage({
               options={availableTransitions(actor, selected.status, {
                 assignedTech: Boolean(selected.assigned_tech_id),
               })}
+              paid={
+                related?.payment?.kind === "paid" && related.order
+                  ? {
+                      orderId: related.order.id,
+                      reference: related.payment.reference,
+                      amount: related.payment.amount,
+                      paidOn: related.payment.paidAt ? when(related.payment.paidAt) : "a date not recorded",
+                    }
+                  : null
+              }
             />
 
             <p className="mt-7 portal-label">Timeline</p>

@@ -739,6 +739,49 @@ export function jobPaymentLink(input: {
 }
 
 /**
+ * THE TRIP FEE LINK, for a visit the technician could not get into. Robert's
+ * answers 7 to 10 of 2026-11-14 (E5). The disclosure sentence is his approved
+ * wording; the rest is the draft he approved as his answer 16 of 2026-11-14.
+ * Laid out as the job payment link is, because it
+ * is the same kind of message about the same job.
+ */
+export function tripFeeLink(input: {
+  customerName: string;
+  customerEmail: string;
+  reference: string;
+  propertyAddress: string;
+  amount: string;
+  payUrl: string;
+}): RenderedEmail {
+  return compose(
+    "job.trip_fee_link",
+    "human",
+    `Trip fee for ${input.propertyAddress}`,
+    {
+      preheader: `Reference ${input.reference}. Nothing is charged until you complete the payment page.`,
+      signed: true,
+      blocks: [
+        { kind: "p", text: `${input.customerName},` },
+        {
+          kind: "p",
+          text: `Our technician could not get in at ${input.propertyAddress} at the agreed time. As stated when you ordered, a trip fee of ${input.amount} is charged before the visit is booked again. The reference is ${input.reference}.`,
+        },
+        {
+          kind: "note",
+          text: "Card details are entered on the payment provider's page and never reach this firm. Nothing is charged until you complete it.",
+        },
+        {
+          kind: "p",
+          text: "Once it is paid, we will contact you to book the visit again. If anything here is wrong, reply to this email before paying and it will be corrected.",
+        },
+      ],
+      button: { label: "Pay the trip fee", url: input.payUrl },
+    },
+    { to: input.customerEmail },
+  );
+}
+
+/**
  * The firm's written quote, with the link that accepts it. Robert's addendum
  * of 2026-10-25, item 3: the office prices a quote request and sends it, and
  * the customer accepts by a tokened link and pays.
@@ -1119,6 +1162,43 @@ export function orderLetterReplaced(input: {
       ],
     },
     { to: input.customerEmail },
+  );
+}
+
+/**
+ * A COPY OF THE SEALED LETTER, TO SOMEBODY THE CUSTOMER NAMED. The Killeen call,
+ * item 7, in Robert's approved words (his answer 3 of 2026-11-14, 6878458673
+ * draft 3). The link opens the sealed letter alone (eng_letter_links, 0133),
+ * never the customer's order page: no amount, no refund, no timeline, no
+ * upload. Signed, because it is the firm writing to a third party on the
+ * customer's behalf.
+ */
+export function orderLetterCopy(input: {
+  customerName: string;
+  recipientEmail: string;
+  propertyAddress: string;
+  letterUrl: string;
+}): RenderedEmail {
+  return compose(
+    "order.letter_copy",
+    "human",
+    `Sealed letter for ${input.propertyAddress}`,
+    {
+      preheader: `A copy of the sealed letter for ${input.propertyAddress}.`,
+      signed: true,
+      button: { label: "Download the sealed letter", url: input.letterUrl },
+      blocks: [
+        {
+          kind: "p",
+          text: `${input.customerName} asked us to send you a copy of the sealed letter for ${input.propertyAddress}. It is ready to download.`,
+        },
+        {
+          kind: "p",
+          text: `You received this because ${input.customerName} named you as a recipient. Reply to this message if it reached you in error.`,
+        },
+      ],
+    },
+    { to: input.recipientEmail },
   );
 }
 
@@ -2800,6 +2880,12 @@ export function allTemplatesForAudit(): RenderedEmail[] {
       sealedAt: "6 September 2026 at 10:05",
       statusUrl: "https://254engineering.com/order/254-O2026-ABCDEF?token=sample",
     }),
+    orderLetterCopy({
+      customerName: "Sample Customer",
+      recipientEmail: "lender@example.com",
+      propertyAddress: "100 Sample Street, Corpus Christi",
+      letterUrl: "https://254engineering.com/letter/00000000-0000-4000-8000-000000000001?token=sample",
+    }),
     refundFailed({
       reference: "254-O2026-ABCDEF",
       propertyAddress: "100 Sample Street, Corpus Christi",
@@ -2975,6 +3061,14 @@ export function allTemplatesForAudit(): RenderedEmail[] {
       amount: "$925.00",
       payUrl: "https://254engineering.com/pay/sample",
       takenBy: "the firm",
+    }),
+    tripFeeLink({
+      customerName: "Sample Customer",
+      customerEmail: "sample@example.com",
+      reference: "254-O2026-ABCDEG",
+      propertyAddress: "100 Sample Street, Corpus Christi",
+      amount: "$125.00",
+      payUrl: "https://254engineering.com/pay/sample",
     }),
     queueAlert({
       reason: "stalled",

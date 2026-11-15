@@ -6,7 +6,11 @@ import { verifyOwnPassword } from "./ops-auth";
 import { isOwnerAdmin, OWNER_OVERRIDE, OWNER_OVERRIDE_ACTION } from "./owner-override";
 import { createClient, createFile, transitionFile, type Author } from "./ops-crm";
 import { can, type Actor } from "./ops-authz";
-import { sendPaymentLink } from "./ops-job-billing";
+import { requestTravel, sendPaymentLink, setTravel, TRAVEL_REQUESTED_SAYS } from "./ops-job-billing";
+import { fileTouchKey, partnerByCode, recordTouch } from "./ops-partners";
+import { addFileContacts, contactProblem, type ContactInput } from "./file-contacts";
+import { endOfFirmDay } from "./firm-calendar";
+import { ownProtocolRequired } from "@/config/own-protocol";
 import { catalogFor, orderBlockedReason } from "@data/catalog";
 import { quoteFor } from "./ops-orders";
 import { resolveCounty, twiaStatus, windstormAreaRefusal } from "./ops-counties";
@@ -15,12 +19,15 @@ import { isKnown } from "./ops-money";
 import { overrideFloor } from "@/config/trade-floors";
 import { fieldsFor, missingFor } from "@data/intake-fields";
 import { defaultAnswersFor } from "./ops-file-inputs";
+import { readEvery } from "./bounded-read";
 import {
   blockers,
   applyIntakeUploads,
   decidePrice,
   isNoCharge,
-  landsAt,
+  addressKey,
+  landsWhenTaken,
+  NOT_OPEN_AT_ADDRESS,
   noChargeRefusal,
   paymentOptions,
   type IntakeChannel,
@@ -83,12 +90,30 @@ export type TakeJobInput = {
   notes?: string | null;
 
   channel: IntakeChannel;
+  /**
+   * The code a partner gave, or the caller said, when a partner sent them. Part
+   * 1 finding 3, Robert's answer 1 of 2026-11-14: the partner home promises a
+   * code "somebody says on the telephone" credits them, and this door had
+   * nowhere to write it. It is recorded as a touch against this file, and the
+   * order raised for the file is attributed by the same rules a checkout uses.
+   */
+  partnerCode?: string | null;
+  /**
+   * Who else gets the letter, each with a role and an email, and at most one who
+   * pays in place of the client (the Killeen call, item 2; 0132).
+   */
+  contacts?: ContactInput[];
   /** When the call happened, if not now. */
   takenAt?: string | null;
 
   /** Only when the operator changed it. Null means take the catalog's. */
   priceCents?: number | null;
   priceOverrideReason?: string | null;
+  /** Travel the administrator typed, with its reason for staff (0135). Null or absent means none. */
+  travelCents?: number | null;
+  travelReason?: string | null;
+  /** Needs travel: ask the administrator for it, and hold the link until it is set (Robert's ruling). */
+  needsTravel?: boolean;
   /** A fresh authenticator code, required only for a client price of zero. */
   noChargeCode?: string | null;
   /** The owner override alone (src/lib/owner-override.ts): his password in place of the code. */
@@ -114,6 +139,9 @@ export type TakeJobInput = {
   uploads?: { fieldId: string; bucket: string; storageKey: string; contentType?: string | null; byteSize?: number | null }[];
 };
 
+/** A draftId is a v4 uuid minted by the form; anything else is not a request key and guards nothing. */
+const UUID_SHAPE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /** The bucket intake documents land in, which is the one order uploads use. */
 const INTAKE_BUCKET = "eng-uploads";
 
@@ -131,6 +159,21 @@ export type TakeJobResult =
       landingWarning?: string;
       /** Present when "Send a payment link" was chosen and the link did not go out, with the reason. */
       paymentLinkWarning?: string;
+      /** Present when a partner code was given and its touch could not be recorded, with the reason. */
+      partnerWarning?: string;
+      /** Present when the copy contacts could not be saved (item 2), with the reason. */
+      contactsWarning?: string;
+      /** Travel that could not be set; the link is then held back (0135). */
+      travelWarning?: string;
+      /** Needs travel was asked: the sentence the rep reads. */
+      travelRequested?: string;
+      /** Needs travel could not be asked for; the link was held back. */
+      travelRequestWarning?: string;
+      /**
+       * True when this New job had already been saved (0131): the file named is
+       * the first one, and nothing was written a second time.
+       */
+      alreadyTaken?: boolean;
     }
   | { ok: false; error: string; field?: string };
 
@@ -172,6 +215,71 @@ export async function searchClients(query: string, limit = 8) {
   return data ?? [];
 }
 
+export type OpenFileAtAddress = {
+  id: string;
+  fileNumber: string;
+  status: string;
+  serviceSlug: string;
+  propertyAddress: string;
+  city: string | null;
+  isDemo: boolean;
+};
+
+/**
+ * THE OPEN FILES ALREADY AT THIS ADDRESS, asked on New job before the job is
+ * taken. Robert, 2026-11-14: the after walk left 254-DEMO-0023 and 0024 open at
+ * 1 Killeen Walk Lane and nothing said so. A file is open until it is
+ * delivered, closed, cancelled or refused (NOT_OPEN_AT_ADDRESS). Matched on
+ * addressKey, and on the city when both sides have one.
+ *
+ * Every candidate is read (readEvery), and a failed read is said rather than
+ * returned as nobody: "no open file here" is a claim the rep acts on.
+ */
+export async function openFilesAtAddress(
+  actor: Actor | null,
+  propertyAddress: string,
+  city: string | null,
+): Promise<{ ok: true; files: OpenFileAtAddress[] } | { ok: false; error: string }> {
+  if (!actor || !can(actor, "files.create")) return { ok: false, error: "Your role does not take jobs." };
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+  const key = addressKey(propertyAddress);
+  const first = key.split(" ")[0] ?? "";
+  if (key.length < 5 || !first) return { ok: true, files: [] };
+  /* The leading token narrows the read; the key decides. % and _ removed so a typed one is not a wildcard. */
+  const lead = propertyAddress.trim().split(/\s+/)[0].replace(/[%_]/g, "");
+  const read = await readEvery<Record<string, unknown>>((from, to) =>
+    db
+      .from("eng_files")
+      .select("id, file_number, status, service_slug, property_address, city, is_demo")
+      .ilike("property_address", `${lead}%`)
+      .not("status", "in", `(${NOT_OPEN_AT_ADDRESS.join(",")})`)
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  if (!read.ok) return { ok: false, error: `The open files at this address could not be read: ${read.error}` };
+  const cityKey = city && city.trim() ? addressKey("", city) : null;
+  return {
+    ok: true,
+    files: read.rows
+      .filter((r) => addressKey(String(r.property_address ?? "")) === key)
+      .filter((r) => {
+        const theirs = r.city ? addressKey("", String(r.city)) : null;
+        return !cityKey || !theirs || cityKey === theirs;
+      })
+      .map((r) => ({
+        id: String(r.id),
+        fileNumber: String(r.file_number),
+        status: String(r.status),
+        serviceSlug: String(r.service_slug),
+        propertyAddress: String(r.property_address),
+        city: (r.city as string | null) ?? null,
+        isDemo: r.is_demo === true,
+      })),
+  };
+}
+
 /**
  * The price the catalog says for this job, with the coastal line kept separate.
  *
@@ -204,6 +312,40 @@ export async function takeJob(
 ): Promise<TakeJobResult> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
+
+  /*
+   * THE SAME NEW JOB SAVED TWICE IS ONE FILE. Part 1 finding 6, 0131.
+   *
+   * The form mints one draftId per sitting and sends it with every save. A
+   * save past the 20 second bound is answered "may not have saved" while it
+   * may still be running, and the button comes back; a second press used to
+   * make a second file and, once the gate opens, a second payment link. So the
+   * id is asked about BEFORE anything is written (the no-charge record, the
+   * client, the file, the answers, the partner touch, the link), and a file
+   * already under it is returned as it is. Two presses landing in the same
+   * instant are caught by 0131's unique index instead, in createFile.
+   */
+  const intakeRequestId = typeof input.draftId === "string" && UUID_SHAPE.test(input.draftId) ? input.draftId : null;
+  if (intakeRequestId) {
+    const { data: first, error: firstError } = await db
+      .from("eng_files")
+      .select("id, file_number, client_id, status")
+      .eq("intake_request_id", intakeRequestId)
+      .maybeSingle();
+    if (firstError) {
+      return { ok: false, error: `Whether this job was already saved could not be read (${firstError.message}). Nothing was saved. Try again in a moment.` };
+    }
+    if (first) {
+      return {
+        ok: true,
+        fileId: first.id as string,
+        fileNumber: first.file_number as string,
+        clientId: first.client_id as string,
+        landedAt: first.status as string,
+        alreadyTaken: true,
+      };
+    }
+  }
 
   /*
    * THE CATALOG PRICE AS IT IS, FOR ANYBODY WITHOUT pricing.override_at_intake.
@@ -248,9 +390,29 @@ export async function takeJob(
     };
   }
 
+  /*
+   * NOTHING CHOSEN IS SAID AS NOTHING CHOSEN. The failure walk of 2026-11-14
+   * (Robert's answer 7) sent New job empty and was told "That deliverable is not
+   * in the catalog", which is not the problem when nothing was chosen.
+   */
+  if (!input.serviceSlug) return { ok: false, error: "Choose the service line.", field: "serviceSlug" };
+  if (!input.tier) return { ok: false, error: "Choose the deliverable.", field: "tier" };
   const entry = catalogFor(input.serviceSlug, input.tier);
   if (!entry) {
     return { ok: false, error: "That deliverable is not in the catalog.", field: "tier" };
+  }
+  /*
+   * NOT EVEN WRITTEN DOWN AS A JOB. A deliverable that opens only on a protocol
+   * of its own (OWN_PROTOCOL_REQUIRED, Robert's answer 11 of 2026-11-14) is
+   * refused here too, because a job taken without payment would still reach
+   * dispatch and review with no protocol the engineer signed for it.
+   */
+  if (ownProtocolRequired(input.serviceSlug, input.tier)) {
+    return {
+      ok: false,
+      error: "This service is not available to order yet: the engineer of record has not confirmed the protocol that covers it.",
+      field: "tier",
+    };
   }
 
   /*
@@ -315,6 +477,35 @@ export async function takeJob(
   if (missingToOrder.length) {
     return { ok: false, error: `${missingToOrder[0].label}.`, field: missingToOrder[0].id };
   }
+
+  /*
+   * A PARTNER CODE IS CHECKED BEFORE ANYTHING IS WRITTEN. A code no active
+   * partner holds is refused in words the rep can read back to the caller,
+   * rather than recorded and silently credited to nobody.
+   */
+  /* The route passes the posted body as it is, so the type is checked here rather than trusted. */
+  const partnerCode = typeof input.partnerCode === "string" ? input.partnerCode.trim() || null : null;
+  let partner: { id: string; code: string } | null = null;
+  if (partnerCode) {
+    const found = await partnerByCode(partnerCode);
+    if (!found) {
+      return {
+        ok: false,
+        error: `No active partner has the code "${partnerCode}". Check it with the caller, or leave it empty.`,
+        field: "partnerCode",
+      };
+    }
+    partner = { id: found.id, code: found.code };
+  }
+
+  /* The copy contacts are checked before anything is written, too (item 2). The route passes the body as it is. */
+  const contacts: ContactInput[] = Array.isArray(input.contacts)
+    ? input.contacts
+        .filter((c) => c && typeof c === "object")
+        .map((c) => ({ role: String(c.role ?? ""), name: c.name ? String(c.name) : null, email: String(c.email ?? ""), pays: c.pays === true }))
+    : [];
+  const contactsWrong = contactProblem(contacts);
+  if (contactsWrong) return { ok: false, error: contactsWrong.error, field: "contacts" };
 
   const missing = blockers({
     clientId: input.clientId ?? (input.newClient ? "pending" : null),
@@ -476,7 +667,13 @@ export async function takeJob(
       county: resolved.county,
       postalCode: input.postalCode ?? null,
       urgency: input.urgency ?? "standard",
-      dueAt: input.dueAt ?? null,
+      /*
+       * THE CLOSING OR PERMIT DATE IS THE DUE DATE (the Killeen call, item 2).
+       * A due date the rep typed wins; otherwise the date the caller gave as the
+       * one it has to be done by (hard_deadline), through the end of that day on
+       * the firm's calendar, so it is asked once and not typed twice.
+       */
+      dueAt: input.dueAt || (answers.hard_deadline ? endOfFirmDay(answers.hard_deadline.trim()) : null) || null,
       notes: input.notes ?? null,
       twiaOverride: input.twiaOverride,
       clientPriceCents: decision.overridden ? decision.cents : catalogCents,
@@ -497,10 +694,15 @@ export async function takeJob(
        */
       paymentIntent: input.paymentIntent === "link_sent" ? "unset" : input.paymentIntent,
       paymentNote: input.paymentNote ?? null,
+      intakeRequestId,
     },
     context,
   );
   if (!file.ok) return { ok: false, error: file.error };
+  /* Two saves in the same instant: the index kept one file, and this is it. Nothing more is written. */
+  if (file.duplicate) {
+    return { ok: true, fileId: file.id, fileNumber: file.fileNumber, clientId, landedAt: "intake", alreadyTaken: true };
+  }
 
   /*
    * The answers, written against the field ids the definition uses.
@@ -554,8 +756,42 @@ export async function takeJob(
     }
   }
 
+  /*
+   * THE PARTNER'S CODE, RECORDED AS A TOUCH ON THIS FILE, before any order
+   * exists, so the order raised for the file (createOrderForFile) is attributed
+   * by attributeOrder with the same rules a checkout uses: newest touch in the
+   * window, a typed code beats a click, an existing customer credits nobody.
+   * The touch is evidence whether or not it wins. One that could not be written
+   * is said on the done screen rather than lost.
+   */
+  /*
+   * WHO ELSE GETS THE LETTER, AND WHO PAYS (item 2), written before the
+   * payment link so the link goes to whoever pays (payerFor). Contacts that
+   * could not be saved stop the link rather than letting it go to the client
+   * by default, and the rep is told.
+   */
+  let contactsWarning: string | undefined;
+  if (contacts.length) {
+    const saved = await addFileContacts(file.id, contacts, actor.id ?? null);
+    if (!saved.ok) contactsWarning = `The job was taken and ${saved.error} Add them on the file before the link is sent.`;
+  }
+
+  let partnerWarning: string | undefined;
+  if (partner) {
+    const touched = await recordTouch({
+      code: partner.code,
+      kind: "code",
+      visitorKey: fileTouchKey(file.id),
+      landingPath: `telephone:${input.channel}`,
+    });
+    if (!touched.ok) {
+      partnerWarning = `The job was taken and the partner code ${partner.code} was not recorded (${touched.reason}). Record it on the order before it is paid, or the partner is not credited.`;
+    }
+  }
+
   // ------------------------------------------------------- where it lands
-  const target = landsAt(entry.orderType);
+  /* A link job waits at intake for its payment, which releases it (answer 20). */
+  const target = landsWhenTaken(entry.orderType, input.paymentIntent);
   let landingWarning: string | undefined;
 
   if (target !== "intake") {
@@ -609,8 +845,39 @@ export async function takeJob(
    * was not. The job itself stands either way: somebody is on the telephone
    * about it.
    */
+  /*
+   * TRAVEL, SET BEFORE THE LINK (0135), through setTravel and its rules. If it
+   * cannot be set the link is held back: a link without the travel the caller
+   * was read would charge less than the read-back said, and the rep sees why.
+   */
+  let travelWarning: string | undefined;
+  if (input.travelCents !== null && input.travelCents !== undefined) {
+    const set = await setTravel(actor, file.id, input.travelCents, input.travelReason ?? "");
+    if (!set.ok) travelWarning = `The job was taken and the travel was not set: ${set.error}`;
+  }
+
+  /*
+   * NEEDS TRAVEL, when no amount was typed: the administrator is asked, and the
+   * link waits for the travel instead of going now (Robert's ruling). Travel
+   * typed by an administrator on this screen wins over the box.
+   */
+  let travelRequested = false;
+  let travelRequestWarning: string | undefined;
+  if (input.needsTravel && (input.travelCents === null || input.travelCents === undefined)) {
+    const asked = await requestTravel(actor, file.id);
+    if (asked.ok) travelRequested = true;
+    else travelRequestWarning = `The job was taken and travel could not be asked for: ${asked.error}`;
+  }
+
   let paymentLinkWarning: string | undefined;
-  if (input.paymentIntent === "link_sent") {
+  if (input.paymentIntent === "link_sent" && (travelRequested || travelRequestWarning)) {
+    /* Held, either way: a link without the travel the caller was told about would charge less than they were read. */
+    paymentLinkWarning = travelRequested ? undefined : "The payment link was not sent, because travel could not be asked for.";
+  } else if (input.paymentIntent === "link_sent" && contactsWarning) {
+    paymentLinkWarning = "The payment link was not sent, because who pays could not be saved.";
+  } else if (input.paymentIntent === "link_sent" && travelWarning) {
+    paymentLinkWarning = "The payment link was not sent, because the travel could not be set. Set it on the file, then send the link.";
+  } else if (input.paymentIntent === "link_sent") {
     const sent = await sendPaymentLink(actor, file.id);
     if (!sent.ok) paymentLinkWarning = `The job was taken and the payment link was not sent: ${sent.error}`;
   }
@@ -623,6 +890,11 @@ export async function takeJob(
     landedAt: landingWarning ? "intake" : target,
     ...(landingWarning ? { landingWarning } : {}),
     ...(paymentLinkWarning ? { paymentLinkWarning } : {}),
+    ...(partnerWarning ? { partnerWarning } : {}),
+    ...(contactsWarning ? { contactsWarning } : {}),
+    ...(travelWarning ? { travelWarning } : {}),
+    ...(travelRequested ? { travelRequested: TRAVEL_REQUESTED_SAYS } : {}),
+    ...(travelRequestWarning ? { travelRequestWarning } : {}),
   };
 }
 

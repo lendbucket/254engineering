@@ -932,6 +932,40 @@ const DECLARED: CatalogDeclaration[] = [
   },
   {
     /*
+     * A STRUCTURAL LETTER FOR A REAL ESTATE TRANSACTION. Robert's answer 11 of
+     * 2026-11-14 on issue #1: "add a deliverable under structural letters, a
+     * structural letter for a real estate transaction, at $709, for a buyer or
+     * seller's inspection report items before a closing. Do not sell it until
+     * Aman confirms in writing that 254-PL-001 covers it or signs a protocol for
+     * it." The Killeen call is this deliverable.
+     *
+     * CLOSED THREE WAYS UNTIL THEN, each independent of the others:
+     *   1. OWN_PROTOCOL_REQUIRED (src/lib/line-gate.ts): it never borrows
+     *      254-PL-001's signature, whose Scope excludes "a letter for any reader
+     *      other than a permitting authority".
+     *   2. takeJob refuses it, so it is not even written down as a job.
+     *   3. inspectionFeeCents is null because no fee is ruled for it, and the
+     *      catalogue refuses a field service whose refund rule cannot be stated.
+     *
+     * What is NOT ruled and is therefore not typed here: the inspection fee, the
+     * coastal line, the trade floor (pending in trade-floors.ts), the engineer's
+     * pay tier (it is not in Schedule 2 of his agreement), and the scope he will
+     * seal. Each arrives with Aman's answer and Robert's rulings, never before.
+     */
+    serviceSlug: "structural-letters",
+    tier: "real-estate",
+    name: "Structural letter for a real estate transaction",
+    orderType: "field",
+    coastalSurchargeCents: null,
+    inspectionFeeCents: null,
+    protocolServiceSlug: null,
+    qualifiers: [ADDRESS_QUALIFIER],
+    requiredInputs: [FRONT_PHOTO_INPUT],
+    turnaround: "Published once the engineer of record confirms the protocol that covers this letter.",
+    receives: [SCOPE_PENDING],
+  },
+  {
+    /*
      * A judgment call, recorded because it is one.
      *
      * A repair specification describes work on damage somebody has already

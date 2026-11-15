@@ -529,8 +529,9 @@ console.log("");
     const period = dashboard?.period ?? null;
     const incomplete = period !== null && period.files > 0 && period.complete < period.files;
     if (!incomplete) {
+      /* Not a COULD NOT TELL since Batch B: the period built below judges the rule on every run. */
       console.log(
-        `  COULD NOT TELL: this period has no file missing a figure (${period ? `${period.files} file(s), ${period.complete} complete` : "no files"}), so the No total rule was not exercised.`,
+        `  NOTE: development's period has no file missing a figure (${period ? `${period.files} file(s), ${period.complete} complete` : "no files"}); the rule is judged on the period this audit builds, below.`,
       );
     } else {
       const shown = (dashboard?.money ?? []).map((m) => ({ label: m.label, text: moneyOr(m.value, m.absent) }));
@@ -548,6 +549,47 @@ console.log("");
         );
       }
     }
+  }
+
+  /*
+   * THE AUDIT'S OWN PERIOD. Office-ready Batch B (issue #1, 6879231462, Robert's
+   * answer 5: the standing line lasts until this audit builds its own period
+   * with a file missing a figure). CLAUDE.md: a check that filters live data
+   * for a subject that does not exist yet is vacuous; build the subject.
+   *
+   * Built with periodTotals, the function the dashboard's periods come from,
+   * and judged on the tiles adminMoneyTiles makes, which are the tiles the
+   * dashboard renders, through moneyOr, which is how a tile prints. Four
+   * periods, so a fix that makes everything a zero and a fix that makes
+   * everything absent each fail somewhere.
+   */
+  {
+    const { adminMoneyTiles } = await import("../src/lib/ops-dashboard.ts");
+    const { moneyOr, periodTotals: totals } = await import("../src/lib/ops-money.ts");
+    const now = new Date().toISOString().slice(0, 7);
+    const missing = { id: "built-missing", clientPriceCents: null, techCostCents: 12000, engineerCostCents: 8000, partnerCostCents: 0 };
+    const missingCost = { id: "built-missing-cost", clientPriceCents: 70900, techCostCents: null, engineerCostCents: 8000, partnerCostCents: 0 };
+    const complete = { id: "built-complete", clientPriceCents: 70900, techCostCents: 12000, engineerCostCents: 8000, partnerCostCents: 0 };
+    const text = (tiles) => tiles.map((t) => moneyOr(t.value, t.absent));
+
+    const none = text(adminMoneyTiles(totals(now, [missing, missingCost]), false));
+    rec(
+      "a period built with every file missing a figure prints No total on both tiles, never $0.00",
+      none.length === 2 && none.every((s) => s === "No total"),
+      none.join(", "),
+    );
+    const mixed = text(adminMoneyTiles(totals(now, [complete, missing]), false));
+    rec(
+      "a period built with one complete file and one missing a figure prints the complete file's figures, not $0.00",
+      mixed.length === 2 && mixed.every((s) => s !== "$0.00" && s !== "No total") && mixed.includes("$709.00"),
+      mixed.join(", "),
+    );
+    const empty = text(adminMoneyTiles(null, false));
+    rec("and a period with no files at all is $0.00, a zero, not an absence", empty.every((s) => s === "$0.00"), empty.join(", "));
+    const failed = adminMoneyTiles(null, true);
+    rec("and a read that failed is no figure at all", failed.every((t) => t.value === null) && text(failed).every((s) => s !== "$0.00"), text(failed).join(", "));
+    const dashSrc = readSource("src/lib/ops-dashboard.ts");
+    rec("and the dashboard renders these tiles, not a copy of them", /const money = adminMoneyTiles\(thisPeriod, readFailed\);/.test(dashSrc));
   }
 
   /*

@@ -453,10 +453,50 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * Moved by 0129, a franchisee records the day it starts operating (Robert's
  * answer 14 of 2026-11-11, platform item X3): one column, eng_franchisees.
  * operating_since, 1,642 to 1,643; tables unchanged at 126; behaviour unchanged.
+ *
+ * 0130, Customer Service takes the call (Robert's answer 2 of 2026-11-14),
+ * seeds four grant rows and moves no column, so the shape stays where 0129 put it.
+ *
+ * Moved by 0131, a job taken twice is one file (Part 1 finding 6): one column,
+ * eng_files.intake_request_id, 1,643 to 1,644; tables unchanged at 126; one
+ * partial unique index. Read off fingerprint-at.mjs on the chain to 0131, with
+ * 0130 reproducing its pair first. MOVED LATE, 2026-11-14: this pin belonged in
+ * the 0131 commit (d46ed41) under the standing rule in
+ * docs/new-surface-checklist.md and was not moved there; it is moved here,
+ * before any board of the branch, and said so.
+ *
+ * Moved by 0132, a job names who else gets the letter (the Killeen call, item
+ * 2): one table, eng_file_contacts, its nine columns, 1,644 to 1,653; tables
+ * 126 to 127; two indexes and row level security. Read off fingerprint-at.mjs
+ * on the chain to 0132, with 0131 reproducing its pair first. Moved in the same
+ * commit as the migration.
+ *
+ * Moved by 0133, a copy contact gets the letter and nothing else (the Killeen
+ * call, item 7, with Robert's answer 3): one table, eng_letter_links, its nine
+ * columns, 1,653 to 1,662; tables 127 to 128. Read off fingerprint-at.mjs on
+ * the chain to 0133, with 0132 reproducing its pair first. Same commit.
+ *
+ * Moved by 0134, a visit that could not get in (Robert's answers 7 to 10 of
+ * 2026-11-14): one table, eng_no_access_visits, five columns; kind and
+ * trip_for_visit on eng_service_orders; no_access_visit_id on
+ * eng_tech_pay_ledger. 1,662 to 1,670; tables 128 to 129. Read off
+ * fingerprint-at.mjs on the chain to 0134, with 0133 reproducing its pair
+ * first. Same commit.
+ *
+ * Moved by 0135, a job can carry travel (Robert's answers 12 to 15 of
+ * 2026-11-14): four columns on eng_files, one on eng_service_orders,
+ * 1,670 to 1,675; tables unchanged at 129. Read off fingerprint-at.mjs on the
+ * chain to 0135, with 0134 reproducing its pair first. Same commit.
+ *
+ * Moved by 0136, an inquiry has a call log (Batch B, autopilot question 21 of
+ * 2026-11-14): lead_id, design_inquiry_id and windstorm_inquiry_id on
+ * eng_contact_log, 1,675 to 1,678; tables unchanged at 129. Read off
+ * fingerprint-at.mjs on the chain to 0136, with 0135 reproducing its pair
+ * first. Same commit.
  */
-const EXPECTED_FINGERPRINT = "1cbe1959e7435d279f44b171cab3a7a1";
-const EXPECTED_COLUMNS = 1643;
-const EXPECTED_TABLES = 126;
+const EXPECTED_FINGERPRINT = "9844f7bbd46bd1190ff7405b44b61213";
+const EXPECTED_COLUMNS = 1678;
+const EXPECTED_TABLES = 129;
 /* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts.
  * 0074 adds two: eng_partner_billing_touch and eng_partner_billing_events_immutable.
  * 0075 adds one: eng_payment_events_guarded.
@@ -492,8 +532,11 @@ const EXPECTED_TABLES = 126;
  * 0128 adds two, by Robert's X4 of 2026-11-10: eng_franchisee_certificates_guard,
  * which lets a certificate be withdrawn once and changed in no other way, and
  * eng_franchisee_certificates_audit, which writes each recording and withdrawal
- * to the audit log in the same transaction. */
-const EXPECTED_TRIGGERS = 113;
+ * to the audit log in the same transaction.
+ * 0134 adds one, by Robert's answers 7 to 10 of 2026-11-14:
+ * eng_no_access_visits_immutable, because a visit that could not get in is a
+ * record of something that happened at a property. */
+const EXPECTED_TRIGGERS = 114;
 /**
  * 0014 added eng_freeze_attribution and 0019 added two more, the partner
  * entry freeze and its delete refusal, which are trigger functions like the

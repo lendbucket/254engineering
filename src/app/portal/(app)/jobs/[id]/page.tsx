@@ -9,6 +9,7 @@ import { formatInFirmZone } from "@/lib/firm-calendar";
 import { noteAsksAQuestion, REVISIONS_REQUESTED } from "@/lib/revision-rules";
 import { RevisionAnswer } from "./RevisionAnswer";
 import { VisitClock } from "./VisitClock";
+import { NoAccess } from "./NoAccess";
 import { AppleMapsLink } from "./AppleMapsLink";
 
 /** How a request or reply time reads: "Nov 7, 2:05 PM", in the firm's zone. */
@@ -206,6 +207,9 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
         canRecord={!closed}
         unreadable={visitClock === null}
       />
+
+      {/* Could not get in (0134): the assigned technician, before any capture, which is recordNoAccess's own rule. */}
+      {!closed && view.file.status === "dispatched" ? <NoAccess fileId={view.file.id} /> : null}
 
       {view.file.notes ? (
         <div className="mb-6 border-t-2 border-[var(--ink)] pt-3">

@@ -106,8 +106,20 @@ if (!db) {
          * windows reaching into their neighbours.
          */
         for (const line of text.split("\n")) {
-          if (/\.(update|insert)\(\{[^}]*assigned_(engineer|tech)_id/.test(line)) {
-            writers.push(`${full}: ${line.trim().slice(0, 70)}`);
+          /*
+           * THE EXCERPT RUNS AT LEAST TO THE END OF THE WRITE'S OWN BRACES.
+           * Board 43666054144: recordNoAccess's line is long, the 70 character
+           * excerpt stopped at "update({ assi", and the setter test below,
+           * which reads the excerpt, could not see its ": null" and counted a
+           * clear as a set. A test that reads a display string is only as
+           * good as the cut, so the cut now always includes every value the
+           * write assigns.
+           */
+          const write = /\.(update|insert)\(\{[^}]*assigned_(engineer|tech)_id[^}]*\}/.exec(line);
+          if (write) {
+            const trimmed = line.trim();
+            const end = trimmed.indexOf(write[0]) + write[0].length;
+            writers.push(`${full}: ${trimmed.slice(0, Math.max(70, end))}`);
           }
         }
       }
@@ -153,14 +165,22 @@ if (!db) {
    * dispatch is "offer, reassign, log the visit-time call". Three became four
    * that day, on purpose, and the setters stayed at two.
    *
-   * The number is stated rather than a ceiling, because "at most four" would
-   * pass just as happily on a fifth that gave a file to somebody, and this
+   * FIVE SINCE 2026-11-14, AND THE FIFTH CLEARS TOO. recordNoAccess in
+   * ops-field.ts takes the technician off a job he could not get into and puts
+   * it back at dispatch: Robert's answers 7 to 10 of 2026-11-14 (E5, 0134),
+   * "no rebooking until the trip fee is paid". It only ever clears his own
+   * assignment (it matches assigned_tech_id on the caller), so the setters
+   * stay at two. Board 43658088627 went red on it, which is this check doing
+   * its job: the count moved and somebody had to say whether it was meant.
+   *
+   * The number is stated rather than a ceiling, because "at most five" would
+   * pass just as happily on a sixth that gave a file to somebody, and this
    * check exists to notice exactly that.
    */
   const setters = writers.filter((w) => !/(:|=)\s*null\b/.test(w));
   rec(
     `only accepting work writes an assignment (${writers.length} writer(s), ${setters.length} of which set one)`,
-    writers.length === 4 && setters.length === 2,
+    writers.length === 5 && setters.length === 2,
     writers.join(" | ") ||
       "if this changes, docs/bulk-actions-reconciliation.md is describing a platform that has moved",
   );

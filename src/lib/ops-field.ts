@@ -38,7 +38,8 @@ import {
 } from "./ops-certification";
 import { writeAudit, writeAuditOrRefuse, diffOf, safeDiff } from "./ops-audit";
 import { can, type Actor, holdsLicence, licenceRefusal } from "./ops-authz";
-import { transitionFile } from "./ops-crm";
+import { SYSTEM_AUTHOR, transitionFile } from "./ops-crm";
+import { raiseSystemTask } from "./system-work";
 import {
   canRespondToOffer,
   planDispatch,
@@ -59,6 +60,8 @@ import { verifiedEngineers } from "@/config/credentials";
 import { licenceIsCurrentToday } from "./launch";
 import { signatureStatus } from "./protocol-sign";
 import { holdFor, holdRefusal } from "./dispatch-hold";
+import { noAccessRefusal, noAccessState } from "./no-access";
+import { orderForFileRead } from "./order-for-file";
 import { headlineEntry } from "./ordering";
 
 /**
@@ -571,6 +574,7 @@ export async function tierForFile(fileId: string): Promise<string | null> {
     .from("eng_service_orders")
     .select("tier")
     .eq("file_id", fileId)
+    .eq("kind", "job")
     .order("created_at", { ascending: false })
     .limit(1);
   if (error) return null;
@@ -735,6 +739,59 @@ async function candidateTechs(): Promise<{ candidates: TechCandidate[]; unreadab
   return { candidates, unreadable };
 }
 
+/**
+ * ===========================================================================
+ * WHO COULD TAKE THIS JOB, ASKED BEFORE IT IS TAKEN. The Killeen call, item 1
+ * (Robert, 2026-11-14): "when no certified technician covers the property's
+ * county, say so on the intake screen before the job is taken".
+ * ===========================================================================
+ *
+ * The same candidates and the same plan dispatch uses (candidateTechs and
+ * planDispatch), for a county and a line rather than a file, so the intake and
+ * dispatch cannot disagree about who is eligible. No property is located yet,
+ * so there is no distance here, and none is invented: the nearest technician
+ * by miles is the dispatch screen's, once the file exists.
+ *
+ * What it answers: how many could be offered the job, and when none can, the
+ * technicians certified for the line who would be eligible if they covered the
+ * county, with the counties they do cover, which is what an administrator
+ * needs to add the county in one step. Names are for offers.dispatch alone,
+ * the grant that decides who is offered work; anybody else gets the sentence.
+ */
+export type CoveragePreview =
+  | { known: false; why: string }
+  | {
+      known: true;
+      county: string;
+      eligible: number;
+      /** Certified for the line and otherwise clear, but not covering this county. Empty without offers.dispatch. */
+      couldCover: { id: string; displayName: string; covers: string[] }[];
+      /** Certified for the line and covering it, held back by something else (credentials, account). */
+      blocked: { displayName: string; reason: string }[];
+    };
+
+export async function coveragePreview(actor: Actor | null, serviceSlug: string, county: string): Promise<CoveragePreview> {
+  if (!actor || !(can(actor, "files.create") || can(actor, "offers.dispatch"))) return { known: false, why: "Your role does not take jobs." };
+  if (!county.trim()) return { known: false, why: "Choose the county first." };
+  const { candidates, unreadable } = await candidateTechs();
+  if (unreadable.length) return { known: false, why: `Who covers ${county} County could not be read: ${unreadable.join("; ")}.` };
+  const plan = planDispatch({ county, serviceSlug, lat: null, lng: null }, candidates, null);
+  const names = can(actor, "offers.dispatch");
+  const certified = candidates.filter((c) => c.status === "active" && c.certifiedFor.includes(serviceSlug));
+  const coversIt = (c: TechCandidate) => c.coverageCounties.some((x) => x.trim().toLowerCase() === county.trim().toLowerCase());
+  return {
+    known: true,
+    county,
+    eligible: plan.offers.length,
+    couldCover: names
+      ? certified.filter((c) => !coversIt(c) && !(c.credentialBlockers?.length)).map((c) => ({ id: c.id, displayName: c.displayName, covers: c.coverageCounties }))
+      : [],
+    blocked: names
+      ? plan.ineligible.filter((i) => certified.some((c) => c.id === i.id && coversIt(c))).map((i) => ({ displayName: i.displayName, reason: i.reason }))
+      : [],
+  };
+}
+
 /** What a technician is paid for this service line, from the effective dated schedule. */
 async function techFeeFor(serviceSlug: string): Promise<number | null> {
   const db = supabaseAdmin();
@@ -891,6 +948,14 @@ export async function sendOffers(
    */
   const heldBy = holdRefusal(await holdFor(fileId));
   if (heldBy) return { ok: false, error: heldBy };
+
+  /*
+   * HELD FOR AN UNPAID TRIP FEE (0134, Robert's answers 7 to 10 of
+   * 2026-11-14): a visit the technician could not get into is booked again
+   * only once its trip fee is paid. A failed read refuses too. See no-access.ts.
+   */
+  const tripHeld = noAccessRefusal(await noAccessState(fileId));
+  if (tripHeld) return { ok: false, error: tripHeld };
 
   const protocol = await publishedProtocolFor(file.service_slug as string, await tierForFile(fileId));
   if (!protocol) {
@@ -1427,6 +1492,138 @@ export async function releaseAssignment(
   });
 
   return { ok: true };
+}
+
+/** Half his rate for that job, the no-access pay (Robert's answer 8 of 2026-11-14). Whole cents, rounded. */
+export function noAccessPayCents(offerAmountCents: number): number {
+  return Math.round(offerAmountCents / 2);
+}
+
+/**
+ * COULD NOT GET IN. Robert's answers 7 to 10 of 2026-11-14 (E5), migration 0134.
+ *
+ * The assigned technician, on a job he has not started capturing, records that
+ * he could not get in at the agreed time, in his own words. In this order:
+ *
+ *   1. the visit, append only, naming him and his note;
+ *   2. half his rate for that job to his pay ledger, pending like any job pay,
+ *      once per visit (a unique index), so a second press pays nothing more;
+ *   3. the file back to needs dispatch and the job off his schedule, as
+ *      releaseAssignment does, by the platform because a technician may not
+ *      move a file himself; dispatch then refuses an offer until the visit's
+ *      trip fee is paid (no-access.ts);
+ *   4. one task to the person who took the job: send the trip fee, then rebook.
+ *
+ * A capture already made means he got in, so a file in evidence in progress is
+ * refused rather than recorded. The optional photograph in the design is not
+ * built: a photo goes through capture, which would move the file the other
+ * way. The note is the record.
+ */
+export async function recordNoAccess(
+  actor: Actor & { email: string },
+  fileId: string,
+  note: string,
+  context: Context = {},
+): Promise<{ ok: true; payCents: number | null } | { ok: false; error: string }> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+
+  const view = await jobView(actor, fileId);
+  if (!view) return { ok: false, error: "That job is not yours." };
+  const notYours = evidenceWriteRefusal({ id: actor.id, mayCapture: can(actor, "evidence.capture") }, view.file.assigned_tech_id);
+  if (notYours) return { ok: false, error: notYours };
+  if (view.file.status !== "dispatched") {
+    return {
+      ok: false,
+      error:
+        view.file.status === "evidence_in_progress"
+          ? "You have started capturing on this job, so it is recorded as visited. Call the office."
+          : "This job is not waiting for your visit.",
+    };
+  }
+  const why = note.trim();
+  if (why.length < 3) return { ok: false, error: "Say what happened, in a few words: who you called, what was locked." };
+
+  const { data: visit, error: visitError } = await db
+    .from("eng_no_access_visits")
+    .insert({ file_id: fileId, tech_id: actor.id, note: why })
+    .select("id")
+    .single();
+  if (visitError || !visit) return { ok: false, error: `The visit could not be recorded: ${visitError?.message ?? "no row came back"}. Nothing else was changed.` };
+  const visitId = visit.id as string;
+
+  await writeAudit({
+    actor,
+    action: "visit.no_access",
+    entityType: "file",
+    entityId: fileId,
+    summary: `${view.file.file_number}: the technician could not get in. ${why}`,
+    diff: { no_access_visit_id: visitId },
+    ...context,
+  });
+
+  /* His pay for the visit: half his rate for this job, from the offer he accepted. */
+  const { data: offer, error: offerError } = await db
+    .from("eng_assignments")
+    .select("offer_amount_cents")
+    .eq("file_id", fileId)
+    .eq("tech_id", actor.id)
+    .eq("state", "accepted")
+    .maybeSingle();
+  let payCents: number | null = null;
+  const problems: string[] = [];
+  if (offerError) {
+    problems.push(`his rate for this job could not be read (${offerError.message}), so no pay was written for the visit`);
+  } else if (!offer?.offer_amount_cents) {
+    problems.push("the job carries no rate, so no pay was written for the visit");
+  } else {
+    payCents = noAccessPayCents(Number(offer.offer_amount_cents));
+    const { error: payError } = await db.from("eng_tech_pay_ledger").insert({
+      tech_id: actor.id,
+      file_id: fileId,
+      amount_cents: payCents,
+      kind: "no_access",
+      no_access_visit_id: visitId,
+      status: "pending",
+      period: todayInFirmCalendar().slice(0, 7),
+      note: `${view.file.file_number}, could not get in: half the rate for the job`,
+    });
+    if (payError && !/duplicate key/i.test(payError.message)) {
+      payCents = null;
+      problems.push(`the pay for the visit could not be written (${payError.message})`);
+    }
+  }
+
+  /* Off his schedule and back to dispatch, by the platform, naming him in the note. */
+  const moved = await transitionFile(SYSTEM_AUTHOR, fileId, "needs_dispatch", `Could not get in (${actor.email}). ${why}`, context);
+  if (!moved.ok) return { ok: false, error: `The visit is recorded and the job could not be moved back to dispatch: ${moved.error}. Call the office.` };
+  const { error: clearError } = await db.from("eng_files").update({ assigned_tech_id: null }).eq("id", fileId).eq("assigned_tech_id", actor.id);
+  if (clearError) problems.push(`the job could not be taken off his schedule (${clearError.message})`);
+  const { error: assignmentError } = await db
+    .from("eng_assignments")
+    .update({ state: "withdrawn", responded_at: DB_NOW })
+    .eq("file_id", fileId)
+    .eq("tech_id", actor.id)
+    .eq("state", "accepted");
+  if (assignmentError) problems.push(`his assignment could not be closed (${assignmentError.message})`);
+
+  /* The person who took the job sends the trip fee, then rebooks. */
+  const { data: fileRow } = await db.from("eng_files").select("created_by").eq("id", fileId).maybeSingle();
+  const task = await raiseSystemTask({
+    key: `no-access:${visitId}`,
+    title: `No access at ${view.file.property_address}: send the trip fee, then rebook`,
+    description:
+      `The technician could not get in on ${view.file.file_number}: ${why}` +
+      (problems.length ? ` Also: ${problems.join("; ")}.` : ""),
+    assigneeId: (fileRow?.created_by as string | null) ?? null,
+    fileId,
+  });
+  if (!task.ok) problems.push(`the office could not be given a task (${task.error})`);
+
+  if (problems.length) {
+    console.error(`[field] ${view.file.file_number} no access: ${problems.join("; ")}`);
+  }
+  return { ok: true, payCents };
 }
 
 export async function declineOffer(
@@ -2474,6 +2671,14 @@ export async function submitEvidence(
    */
   await recordTechnicianVisit(fileId);
 
+  /*
+   * And the travel is his, at the same moment it stops being refundable: the
+   * refund keeps travel exactly when this visit is recorded (refundFor,
+   * technicianVisited), so paying it anywhere else would pay a technician
+   * travel the customer is refunded. 0135, Robert's answers 12 and 14.
+   */
+  await payTravel(fileId, actor.id as string, view.file.file_number);
+
   return { ok: true };
 }
 
@@ -3359,12 +3564,22 @@ export async function restoreCertification(
  * a pack missing a job reads to the phone as that job having been taken away,
  * and the phone would clear it.
  */
+/**
+ * WHO CARRIES A DAY PACK: the one test the server applies and the jobs layout
+ * mounts the sync by. The every-role walk of 2026-11-14 found the administrator's
+ * My jobs asking for a pack on every load and logging a 400, because the layout
+ * mounted the sync for anybody who could open the screen.
+ */
+export function carriesDayPack(actor: Actor | null): boolean {
+  return Boolean(actor) && can(actor, "offers.list_own") && can(actor, "evidence.capture");
+}
+
 export async function dayPackFor(
   actor: Actor | null,
 ): Promise<{ ok: true; pack: DayPack } | { ok: false; error: string }> {
   const db = supabaseAdmin();
   if (!db || !actor) return { ok: false, error: "Not signed in." };
-  if (!can(actor, "offers.list_own") || !can(actor, "evidence.capture")) {
+  if (!carriesDayPack(actor)) {
     return { ok: false, error: "The day pack is for a technician's own jobs." };
   }
 
@@ -3529,6 +3744,39 @@ export async function recordVisit(
   });
 
   return { ok: true, at: data.created_at as string };
+}
+
+/**
+ * THE TRAVEL GOES TO THE TECHNICIAN WHO MAKES THE TRIP. Robert's answer 14 of
+ * 2026-11-14, 0135: in full, as its own line on his pay, from the travel the
+ * job's order carried. Written when his evidence is submitted, the moment the
+ * order records that somebody attended and the travel stops being refundable
+ * (answer 12). A trip he could not get into is paid by his no-access half rate
+ * and charged by the trip fee instead. Once per job by a unique index: the
+ * customer paid it once. A failure is logged and never undoes the submission.
+ */
+async function payTravel(fileId: string, techId: string, fileNumber: string): Promise<void> {
+  const db = supabaseAdmin();
+  if (!db) return;
+  const read = await orderForFileRead(fileId, "travel_cents");
+  if (!read.ok) {
+    console.error(`[field] ${fileNumber}: the job's travel could not be read, so none was written to the technician's pay`);
+    return;
+  }
+  const travel = read.order?.travel_cents === null || read.order?.travel_cents === undefined ? 0 : Number(read.order.travel_cents);
+  if (travel <= 0) return;
+  const { error } = await db.from("eng_tech_pay_ledger").insert({
+    tech_id: techId,
+    file_id: fileId,
+    amount_cents: travel,
+    kind: "travel",
+    status: "pending",
+    period: todayInFirmCalendar().slice(0, 7),
+    note: `${fileNumber}: travel to the property`,
+  });
+  if (error && !/duplicate key/i.test(error.message)) {
+    console.error(`[field] ${fileNumber}: the travel could not be written to the technician's pay: ${error.message}`);
+  }
 }
 
 /* ----------------------------------------------------------- returned evidence */

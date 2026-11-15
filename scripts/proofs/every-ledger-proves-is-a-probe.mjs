@@ -92,8 +92,8 @@ check("C: the check reads proves through the parser", /import \{ probeOf, probeS
 check("C: it no longer destructures proves itself", !/const \{ table, column, match \} = entry\.proves;/.test(src));
 check("C: an unknown shape is a failure it names, not a crash", /if \(probe\.kind === "unknown"\)/.test(src));
 check("C: it does not pin September's grant count", !/count === 111/.test(src));
-check("C: it pins production's grant count at its last sitting, 199 after 0127", /const PRODUCTION_GRANTS = 199;/.test(src));
-check("C: the count has one home, read by the check and by --sql", (src.match(/const PRODUCTION_GRANTS = /g) ?? []).length === 1 && !/count === 111|= 199 as ok/.test(src));
+check("C: it pins production's grant count at its last sitting, 203 after 0130", /const PRODUCTION_GRANTS = 203;/.test(src));
+check("C: the count has one home, read by the check and by --sql", (src.match(/const PRODUCTION_GRANTS = /g) ?? []).length === 1 && !/count === 111|= 203 as ok/.test(src));
 
 /* ---------------------------------------------- D, the same probes as SQL */
 
@@ -108,7 +108,17 @@ const sqlOf = APPLIED.filter((e) => e.production).map((e) => ({ file: e.file, pr
 const unwritable = sqlOf.filter((x) => !probeSql(x.probe)).map((x) => x.file);
 check("D: every applied entry's probe can be written as SQL", unwritable.length === 0, unwritable.join(", ") || `${sqlOf.length} probes`);
 const emitted = sqlOf.map((x) => probeSql(x.probe)).join(" ");
-check("D: nothing it writes can change a database", !/\b(insert|update|delete|drop|alter|create|grant|revoke|truncate)\b/i.test(emitted));
+/*
+ * The keywords are looked for in the SQL itself, never inside a quoted literal. A
+ * literal is a value compared against a row and cannot change a database; read
+ * whole, 0130's probe failed this on the grant it names, 'files.create'
+ * (2026-11-15, the first sitting to record a grant whose action is a verb).
+ * The second check proves the stripping still sees a keyword outside quotes.
+ */
+const WRITES = /\b(insert|update|delete|drop|alter|create|grant|revoke|truncate)\b/i;
+const outsideLiterals = (sql) => sql.replace(/'(?:[^']|'')*'/g, "''");
+check("D: nothing it writes can change a database", !WRITES.test(outsideLiterals(emitted)));
+check("D: and the literal stripping still sees a write outside quotes, never one inside", WRITES.test(outsideLiterals("select 1; drop table eng_x where a = 'files.create'")) && !WRITES.test(outsideLiterals("select 1 where a = 'files.create' and b = 'it''s; drop'")));
 
 /* Run the printed select against a replayed database: it must parse and answer one boolean per probe. */
 const { readdirSync } = await import("node:fs");

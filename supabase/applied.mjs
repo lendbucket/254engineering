@@ -4792,6 +4792,200 @@ export const APPLIED = [
       "20261112012302, stored 4f7fe547, shape 1cbe1959 at 1643 columns, a nullable date, matching the replay). " +
       "ON PRODUCTION SINCE 2026-11-12 (6834499804, version 20261112200109). Additive: one column.",
   },
+  {
+    file: "0130_customer_service_takes_the_call.sql", appliedBy: "apply_migration",
+    fingerprint: "1cbe1959e7435d279f44b171cab3a7a1",
+    behaviour: "71b926252fe0925b108e00e5216cd6bc",
+    /*
+     * Production: applied 2026-11-15 15:12 UTC through apply_migration by the
+     * chat counterpart, first of seven, in a sitting under Robert's word of
+     * 2026-11-15 09:11 Central, from feat/connect-batch-2 at 154a6a6 after board
+     * 43677887342; schema_migrations version 20261115151234, stored hash 1b67d341
+     * equal to the file (sent with its trailing newline, as development holds
+     * 0136); shape 1cbe1959 at 1643 columns unchanged, grants 199 to 203, customer_service holding 12 (issue #1, 6896689672).
+     */
+    production: "2026-11-15",
+    proves: { table: "eng_role_grants", match: { role_key: "customer_service", action: "files.create" } },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-14 on the chain to 0130, with 0129 reproducing " +
+      "its recorded pair first (1cbe1959 at 1643 columns, 147ee08d at 1649 facts). THE SHAPE REPEATS 0129's ON " +
+      "PURPOSE: no table and no column, only grant rows, the case 0021 set. Behaviour 1649 to 1653 facts, the four " +
+      "seeded rows: files.create, inbox.read, inbox.answer and payments.send_link for customer_service.",
+    because:
+      "WRITTEN 2026-11-14 ON feat/connect-batch-1, FOR ROBERT'S ANSWER 2 OF 2026-11-14 TO THE PART 1 REPORT: Customer " +
+      "Service gets files.create, inbox and send-link, so the front desk can take a call. ON DEVELOPMENT SINCE " +
+      "2026-11-14 (issue #1, the counterpart's sitting after request 6878458673: version 20261114143925, " +
+      "customer_service grants 8 to 12, as predicted). ON PRODUCTION SINCE 2026-11-15 (6896689672, version 20261115151234). " +
+      "Additive: four grant rows.",
+  },
+  {
+    file: "0131_a_job_taken_twice_is_one_file.sql", appliedBy: "apply_migration",
+    fingerprint: "8e77b8e2732c0a132f485a2f192b0c34",
+    behaviour: "c6e99d2c8e882a6f85ebf49e41ebff36",
+    /*
+     * Production: applied 2026-11-15 15:12 UTC through apply_migration by the
+     * chat counterpart, second of seven, after 0130, in a sitting under Robert's word of
+     * 2026-11-15 09:11 Central, from feat/connect-batch-2 at 154a6a6 after board
+     * 43677887342; schema_migrations version 20261115151255, stored hash 05e48030
+     * equal to the file (sent with its trailing newline, as development holds
+     * 0136); shape 8e77b8e2 at 1644 columns, the partial unique index eng_files_intake_request_once (issue #1, 6896689672).
+     */
+    production: "2026-11-15",
+    proves: { table: "eng_files", column: "intake_request_id" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-14 on the chain to 0131, with 0130 reproducing " +
+      "its pair first (1cbe1959 at 1643 columns, 71b92625 at 1653 facts). Shape 1643 to 1644 columns, the one column " +
+      "eng_files.intake_request_id; tables unchanged at 126. Behaviour 1653 to 1654 facts, the partial unique index " +
+      "eng_files_intake_request_once.",
+    because:
+      "WRITTEN 2026-11-14 ON feat/connect-batch-1, FOR ROBERT'S ANSWER 1 OF 2026-11-14 (PART 1 FINDING 6): a New job " +
+      "saved twice made two files and, once open, two payment links. takeJob asks under the form's draftId before " +
+      "writing anything, and the index catches two saves in the same instant. ON DEVELOPMENT SINCE 2026-11-14 " +
+      "(issue #1, the counterpart's sitting: version 20261114143931, the partial unique index read back, shape " +
+      "8e77b8e2 at 1644 columns, as predicted). ON PRODUCTION SINCE 2026-11-15 (6896689672, version 20261115151255). Additive: one " +
+      "nullable column and one index.",
+  },
+  {
+    file: "0132_a_job_names_who_else_gets_the_letter.sql", appliedBy: "apply_migration",
+    fingerprint: "9fddb45bdec555ba872b211a89004e82",
+    behaviour: "e2fe4e1d3513a600ced0b14b099aac2a",
+    /*
+     * Production: applied 2026-11-15 15:13 UTC through apply_migration by the
+     * chat counterpart, third of seven, after 0131, in a sitting under Robert's word of
+     * 2026-11-15 09:11 Central, from feat/connect-batch-2 at 154a6a6 after board
+     * 43677887342; schema_migrations version 20261115151314, stored hash ea7d631b
+     * equal to the file (sent with its trailing newline, as development holds
+     * 0136); shape 9fddb45b at 1653 columns and 127 tables, row level security on, no grant to anon, authenticated or public (issue #1, 6896689672).
+     */
+    production: "2026-11-15",
+    proves: { table: "eng_file_contacts" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-14 on the chain to 0132, with 0131 reproducing " +
+      "its recorded pair first (8e77b8e2 at 1644 columns, c6e99d2c at 1654 facts). Shape 1644 to 1653 columns, the " +
+      "nine of eng_file_contacts; tables 126 to 127. Behaviour 1654 to 1663 facts: the table's key, foreign keys and " +
+      "checks, its two indexes and row level security.",
+    because:
+      "WRITTEN 2026-11-14 ON feat/connect-batch-2, FOR THE KILLEEN CALL, ITEM 2 (ROBERT, 2026-11-14): who else gets " +
+      "the letter, each with a role and an email, and who pays when the client does not. ON DEVELOPMENT SINCE " +
+      "2026-11-14 (issue #1, 6879852627: version 20261114153545, row level security on, its three indexes, no grant " +
+      "to anon, authenticated or public, as predicted). ON PRODUCTION SINCE 2026-11-15 (6896689672, version 20261115151314). " +
+      "Additive: one table.",
+  },
+  {
+    file: "0133_a_copy_contact_gets_the_letter_and_nothing_else.sql", appliedBy: "apply_migration",
+    fingerprint: "487f961c20636725679a6025e6ed863b",
+    behaviour: "5558f2cb111eee7a89f59e25c5259501",
+    /*
+     * Production: applied 2026-11-15 15:13 UTC through apply_migration by the
+     * chat counterpart, fourth of seven, after 0132, in a sitting under Robert's word of
+     * 2026-11-15 09:11 Central, from feat/connect-batch-2 at 154a6a6 after board
+     * 43677887342; schema_migrations version 20261115151333, stored hash b36b864d
+     * equal to the file (sent with its trailing newline, as development holds
+     * 0136); shape 487f961c at 1662 columns and 128 tables, row level security on, no API grant, one unique constraint (issue #1, 6896689672).
+     */
+    production: "2026-11-15",
+    proves: { table: "eng_letter_links" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-14 on the chain to 0133, with 0132 reproducing " +
+      "its pair first (9fddb45b at 1653 columns, e2fe4e1d at 1663 facts). Shape 1653 to 1662 columns, the nine of " +
+      "eng_letter_links; tables 127 to 128. Behaviour 1663 to 1671 facts: the table's key, three foreign keys, the " +
+      "unique token hash, its index and row level security.",
+    because:
+      "WRITTEN 2026-11-14 ON feat/connect-batch-2, FOR THE KILLEEN CALL, ITEM 7, WITH ROBERT'S ANSWER 3 OF 2026-11-14: " +
+      "copy contacts get a link to the sealed letter alone, through the customer's own check, nothing else of the " +
+      "order. ON DEVELOPMENT SINCE 2026-11-14 (issue #1, 6879852627: version 20261114153553, row level security on, " +
+      "its three indexes, no grant to anon, authenticated or public, shape 487f961c at 1662 columns, as predicted). " +
+      "ON PRODUCTION SINCE 2026-11-15 (6896689672, version 20261115151333). Additive: one table.",
+  },
+  {
+    file: "0134_a_visit_that_could_not_get_in.sql", appliedBy: "apply_migration",
+    fingerprint: "fc0de798f3616227144f591ca390d00f",
+    behaviour: "bf14400c48f0745a211cea8108737fa0",
+    /*
+     * Production: applied 2026-11-15 15:13 UTC through apply_migration by the
+     * chat counterpart, fifth of seven, after 0133, in a sitting under Robert's word of
+     * 2026-11-15 09:11 Central, from feat/connect-batch-2 at 154a6a6 after board
+     * 43677887342; schema_migrations version 20261115151357, stored hash 3670d7b2
+     * equal to the file (sent with its trailing newline, as development holds
+     * 0136); shape fc0de798 at 1670 columns and 129 tables, the immutability trigger present, the one order reading job, the ledger kind check naming no_access (issue #1, 6896689672).
+     */
+    production: "2026-11-15",
+    proves: { table: "eng_no_access_visits" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-14 on the chain to 0134, with 0133 reproducing " +
+      "its pair first (487f961c at 1662 columns, 5558f2cb at 1671 facts). Shape 1662 to 1670 columns: the five of " +
+      "eng_no_access_visits, kind and trip_for_visit on eng_service_orders, no_access_visit_id on eng_tech_pay_ledger; " +
+      "tables 128 to 129. Behaviour 1671 to 1686 facts: the table's key, two foreign keys, its note check, index, " +
+      "immutability trigger and row level security; the order kind check, the trip fee's visit check and foreign " +
+      "key and its one-per-visit index; the ledger's widened kind check, its visit check, foreign key and " +
+      "once-per-visit index.",
+    because:
+      "WRITTEN 2026-11-14 ON feat/connect-batch-2, FOR ROBERT'S ANSWERS 7 TO 10 OF 2026-11-14 (E5): a $125 trip fee " +
+      "when the technician could not get in, charged as its own order before the visit is booked again; the " +
+      "technician paid half his rate for that job; no partner commission; not refunded if the job is later " +
+      "declined. ON DEVELOPMENT SINCE 2026-11-14 (issue #1, 6880867199, after request 6880739012: version " +
+      "20261114164154, shape fc0de798 at 1670 columns, row level security on, two indexes and the immutability " +
+      "trigger, no grant to anon, authenticated or public, every existing order a job order, the ledger's kind check " +
+      "naming no_access, as predicted). ON PRODUCTION SINCE 2026-11-15 (6896689672, version 20261115151357). Additive: one table, " +
+      "three columns, constraints and indexes; the ledger's kind check is replaced by a wider one.",
+  },
+  {
+    file: "0135_a_job_can_carry_travel.sql", appliedBy: "apply_migration",
+    fingerprint: "3907c71a7dfd60ff3e50337cf6eeb022",
+    behaviour: "960d690a833654b518c7add87d68de12",
+    /*
+     * Production: applied 2026-11-15 15:14 UTC through apply_migration by the
+     * chat counterpart, sixth of seven, after 0134, in a sitting under Robert's word of
+     * 2026-11-15 09:11 Central, from feat/connect-batch-2 at 154a6a6 after board
+     * 43677887342; schema_migrations version 20261115151419, stored hash 155515ac
+     * equal to the file (sent with its trailing newline, as development holds
+     * 0136); shape 3907c71a at 1675 columns, no row carrying travel, the ledger kind check naming travel (issue #1, 6896689672).
+     */
+    production: "2026-11-15",
+    proves: { table: "eng_files", column: "travel_cents" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-14 on the chain to 0135, with 0134 reproducing " +
+      "its pair first (fc0de798 at 1670 columns, bf14400c at 1686 facts). Shape 1670 to 1675 columns: travel_cents, " +
+      "travel_reason, travel_set_by and travel_set_at on eng_files, travel_cents on eng_service_orders; tables " +
+      "unchanged at 129. Behaviour 1686 to 1690 facts: the file's whole-or-none check and its foreign key, the " +
+      "order's positive check, and the once-per-job travel index; the ledger's kind check is replaced in place.",
+    because:
+      "WRITTEN 2026-11-14 ON feat/connect-batch-2, FOR ROBERT'S TRAVEL RULINGS OF 2026-11-14 (typed per job by the " +
+      "administrator; answers 12 to 15: refunded before the visit and kept after it, no partner commission, paid to " +
+      "the technician in full, the customer reads Travel to <county> County). ON DEVELOPMENT SINCE 2026-11-14 " +
+      "(issue #1, 6881376417, after request 6881225059: version 20261114172203, shape 3907c71a at 1675 columns, no " +
+      "file or order carrying travel, both checks and the once-per-job index present, the ledger's kind check naming " +
+      "travel, as predicted). ON PRODUCTION SINCE 2026-11-15 (6896689672, version 20261115151419). " +
+      "Additive: five nullable columns, checks and one index; the ledger's kind check is replaced by a wider one.",
+  },
+  {
+    file: "0136_an_inquiry_has_a_call_log.sql", appliedBy: "apply_migration",
+    fingerprint: "9844f7bbd46bd1190ff7405b44b61213",
+    behaviour: "9d577b5c3c09ad5ae873abfe5a49e478",
+    /*
+     * Production: applied 2026-11-15 15:14 UTC through apply_migration by the
+     * chat counterpart, seventh of seven, after 0135, in a sitting under Robert's word of
+     * 2026-11-15 09:11 Central, from feat/connect-batch-2 at 154a6a6 after board
+     * 43677887342; schema_migrations version 20261115151442, stored hash 8b7b3da7
+     * equal to the file (sent with its trailing newline, as development holds
+     * 0136); shape 9844f7bb at 1678 columns and 129 tables, the three indexes present, eng_contact_log rows unchanged (issue #1, 6896689672).
+     */
+    production: "2026-11-15",
+    proves: { table: "eng_contact_log", column: "lead_id" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-14 on the chain to 0136, with 0135 reproducing " +
+      "its pair first (3907c71a at 1675 columns, 960d690a at 1690 facts). Shape 1675 to 1678 columns: lead_id, " +
+      "design_inquiry_id and windstorm_inquiry_id on eng_contact_log; tables unchanged at 129. Behaviour 1690 to 1696 " +
+      "facts: three foreign keys and three partial indexes; the subject and one-subject checks are replaced in place " +
+      "by wider ones, so the check count does not move.",
+    because:
+      "WRITTEN 2026-11-14 ON feat/connect-batch-2, FOR OFFICE-READY BATCH B (issue #1, 6870906132 and 6871302517: " +
+      "an inquiry has no call log) AND AUTOPILOT QUESTION 21 (all three inquiry kinds, built on its recommendation). " +
+      "ON DEVELOPMENT SINCE 2026-11-14 (issue #1, 6884744819, after request 6884031935: version 20261114215059, shape " +
+      "9844f7bb at 1678 columns, 129 tables, both checks and all three indexes present, eng_contact_log rows unchanged, " +
+      "as predicted). ON PRODUCTION SINCE 2026-11-15 (6896689672, version 20261115151442). Additive in effect: three nullable columns and three indexes; every existing row " +
+      "satisfies the wider checks, because each new column is null on it.",
+  },
 ];
 
 /*

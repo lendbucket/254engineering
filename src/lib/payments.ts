@@ -137,6 +137,22 @@ export type PaymentEvent =
    * under, and the status Stripe now gives it, unmapped: the rule that decides
    * what each status does lives in refundUpdateFor, not in the adapter.
    */
+  /*
+   * A CHARGEBACK, opened or closed (Part 1 finding 1, 2026-11-14). Stripe's
+   * dispute id, the payment intent a charge row is recorded under, and Stripe's
+   * own reason and status, unmapped. recordDispute decides what is written.
+   */
+  | {
+      kind: "charge.dispute";
+      eventId: string;
+      phase: "created" | "closed";
+      disputeRef: string;
+      chargeRef: string | null;
+      amountCents: number;
+      reason: string;
+      status: string;
+      evidenceDueBy: number | null;
+    }
   | {
       kind: "charge.refund.updated";
       eventId: string;
