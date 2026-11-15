@@ -4,6 +4,7 @@ import { roofInsights } from "./insights-roofs";
 import { POST_DATES } from "./guide-dates";
 import { topics } from "@data/keyword-registry";
 import { registrationStatement } from "@/lib/launch";
+import { priceFor, priceSentence } from "@/config/prices";
 import type { FigureId } from "@/components/insights/figures";
 
 /**
@@ -947,21 +948,52 @@ const BUYER_SRC = {
 
 const bcite = (key: keyof typeof BUYER_SRC, supports: string) => ({ ...BUYER_SRC[key], supports });
 
+/*
+ * THE FOUNDATION LINE'S PUBLISHED PRICE AND WHAT CHANGES IT, read from the price
+ * book (src/config/prices.ts), never typed, for the rebuilt cost post (SEO
+ * report section 5, page 1, Robert's add-on of 2026-11-14). A price book that
+ * loses either fails the build here rather than printing nothing.
+ */
+const FOUNDATION_PRICE = priceSentence("foundation-inspections");
+const FOUNDATION_PRICE_BOOK = priceFor("foundation-inspections");
+const FOUNDATION_CHANGES = FOUNDATION_PRICE_BOOK && "whatChangesIt" in FOUNDATION_PRICE_BOOK ? FOUNDATION_PRICE_BOOK.whatChangesIt : null;
+if (!FOUNDATION_PRICE || !FOUNDATION_CHANGES) {
+  throw new Error("insights: the price book has no published foundation price or no sentence on what changes it");
+}
+const lowerFirst = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
+
+/* The repair specification's published price and what changes it, the same way (section 5, page 4). */
+const REPAIR_SPEC_PRICE = priceSentence("repair-specifications");
+const REPAIR_SPEC_BOOK = priceFor("repair-specifications");
+const REPAIR_SPEC_CHANGES = REPAIR_SPEC_BOOK && "whatChangesIt" in REPAIR_SPEC_BOOK ? REPAIR_SPEC_BOOK.whatChangesIt : null;
+if (!REPAIR_SPEC_PRICE || !REPAIR_SPEC_CHANGES) {
+  throw new Error("insights: the price book has no published repair specification price or no sentence on what changes it");
+}
+
 const buyerInsights: Insight[] = [
   // --------------------------------------------------------- buyers, post 3
   {
     slug: "foundation-inspection-cost",
+    /*
+     * Rebuilt for the SEO report, section 5 page 1 (Robert's add-on of
+     * 2026-11-14): foundation inspection cost, 2,500 a month, position 80. The
+     * first two sentences now answer the search with the three prices and the
+     * firm's own, derived; everything below them stands as it was.
+     */
     title: "Foundation Inspection Cost: What You Pay | 254 Engineering",
     h1: "Foundation inspection cost, and what each price actually buys",
-    description:
-      "What a foundation inspection costs depends on who makes it and what document you receive. See what each fee buys, and which one a lender will accept.",
+    description: `Free from a repair company, inside a home inspector's fee, or ${FOUNDATION_PRICE} for an engineer's sealed evaluation. See what each Texas foundation inspection buys.`,
     summary:
       "Three different people sell three different scopes under the name foundation inspection, at three different prices. The useful comparison is the document at the end and who will accept it.",
     eyebrow: "Buying and lending",
     primaryKeyword: "foundation inspection cost",
     datePublished: BUYERS_SECTION_DATE,
-    dateModified: "2026-10-25",
+    dateModified: "2026-11-14",
     body: [
+      {
+        kind: "p",
+        text: `In Texas a foundation inspection is free from a repair company, folded into a home inspector's fee as one item of the whole house, or a separate fee from an engineer, and 254 Engineering publishes its engineer's foundation evaluation at ${FOUNDATION_PRICE}. What changes that figure is published with it: ${lowerFirst(FOUNDATION_CHANGES)}`,
+      },
       {
         kind: "p",
         text: "A foundation inspection costs what its scope costs, and in Texas three different people sell three different scopes under the same name. A licensed home inspector includes a foundation opinion inside the general inspection fee, a repair company may offer its visit free because the visit is how it sells repair, and an engineer charges a separate fee for an evaluation that ends in a sealed opinion.",
@@ -1082,7 +1114,7 @@ const buyerInsights: Insight[] = [
     faqs: [
       {
         q: "How much does a foundation inspection cost in Texas?",
-        a: "It depends on who makes it. A TREC inspector's foundation opinion is part of the general home inspection fee, many repair companies offer a free visit, and an engineer charges a separate fee that rises with the level of investigation. This firm publishes a fixed price for its foundation line on its structural engineer cost page.",
+        a: `It depends on who makes it. A TREC inspector's foundation opinion is part of the general home inspection fee, many repair companies offer a free visit, and an engineer charges a separate fee that rises with the level of investigation. 254 Engineering publishes its foundation evaluation at ${FOUNDATION_PRICE} on its structural engineer cost page.`,
       },
       {
         q: "Does a home inspection include the foundation?",
@@ -1247,7 +1279,7 @@ const buyerInsights: Insight[] = [
     eyebrow: "Buying and lending",
     primaryKeyword: "pre purchase home inspection",
     datePublished: BUYERS_SECTION_DATE,
-    dateModified: "2026-11-01",
+    dateModified: "2026-11-14",
     body: [
       {
         kind: "p",
@@ -1256,6 +1288,25 @@ const buyerInsights: Insight[] = [
       {
         kind: "p",
         text: "Where it does, the scope 254 Engineering describes for a foundation evaluation is on [the foundation inspection page](/services/foundation-inspections), and for a roof on [the roof certification page](/services/roof-inspections).",
+      },
+      /*
+       * SEO report section 5, page 7 (Robert's add-on of 2026-11-14, and his
+       * answer 2: built on the inspection report sentence in general terms, no
+       * case). "home structural inspection", 250 a month. A section of this
+       * post rather than a page beside it, which would compete with it.
+       */
+      { kind: "h2", text: "When the report says an engineer's evaluation is recommended" },
+      {
+        kind: "p",
+        text: "A home inspection report that recommends evaluation by a licensed professional engineer is telling the buyer that the inspector saw something the inspection is not built to settle. That is the report working as the rules intend: rule 535.227 says the inspector is not required to measure elevations, perform calculations or provide engineering services, and the REI 7-6 report form places the responsibility for further evaluations on the client.",
+      },
+      {
+        kind: "p",
+        text: "The sentence is a referral, not a finding of failure, and it has a deadline attached because the option period does. Three things make the engineer's visit useful inside that window: the inspection report itself, with the items that prompted the recommendation; access to the house; and a clear statement of who the engineer's report is for, so it can be addressed to the buyer, the lender or both.",
+      },
+      {
+        kind: "p",
+        text: "What the engineer then does is measure and decide. A home structural inspection by an engineer records floor elevations or the condition of the roof structure, reads them against the house, and ends in a sealed opinion the buyer can act on, rather than a further recommendation.",
       },
       { kind: "h2", text: "The contract sets the clock" },
       {
@@ -1574,7 +1625,7 @@ const buyerInsights: Insight[] = [
     eyebrow: "Foundations",
     primaryKeyword: "crack in foundation",
     datePublished: BUYERS_SECTION_DATE,
-    dateModified: BUYERS_SECTION_DATE,
+    dateModified: "2026-11-14",
     body: [
       {
         kind: "p",
@@ -1602,6 +1653,20 @@ const buyerInsights: Insight[] = [
       {
         kind: "p",
         text: "The first two are normal. The last three are reasons to keep reading.",
+      },
+      /*
+       * SEO report section 5, page 2 (hairline crack in a foundation), built
+       * here as a section on question 24's recommendation, so a second page
+       * does not compete with this one. Only sources this post already cites.
+       */
+      { kind: "h2", text: "A hairline crack in the foundation" },
+      {
+        kind: "p",
+        text: "A hairline crack is the crack most foundations show, and on its own it is the least informative one. The National Ready Mixed Concrete Association's guidance is that crack free concrete is not possible and that most early random cracks rarely affect structural integrity, so a fine crack that has not changed is usually the concrete doing what concrete does.",
+      },
+      {
+        kind: "p",
+        text: "What makes a hairline crack worth an engineer's time is the same as for any crack: growth across seasons, one face displaced from the other, or doors and windows nearby that have stopped closing. No width separating a harmless crack from a structural one could be traced to a Texas primary source; the widths guides repeat are discussed in the note below.",
       },
       { kind: "h2", text: "The signs that sit away from the crack" },
       {
@@ -1940,6 +2005,21 @@ const buyerInsights: Insight[] = [
           "A 2013 House committee analysis of C.S.H.B. 613 recorded that interested parties contended the absence of state standards for foundation repair contractors allowed unqualified people to perform repairs, and the bill proposed a TDLR license. This post found no record that a state license for foundation repair contractors exists today, but did not find a source that states its absence either.",
           "Before relying on a contractor's claimed credentials, check them with the agency that is said to issue them.",
         ],
+      },
+      /*
+       * SEO report section 5, page 4 (slab foundation repair cost, from the
+       * engineer's side), built as a section here, beside the stages it
+       * prices. The firm's figure is read from the price book, never typed;
+       * the repair's own price is the contractor's, and none is stated.
+       */
+      { kind: "h2", text: "Slab foundation repair cost, from the engineer's side" },
+      {
+        kind: "p",
+        text: "A repair company's price for a slab repair is a price for its own plan, so two quotes for the same house can describe two different repairs. Section 7.4.1 of the ASCE Texas guidelines lists what an engineer's remediation documents contain, from a plan view and construction details to specifications and the required post repair elevation survey; with one set of those, every company bids the same work and the prices can be set beside each other.",
+      },
+      {
+        kind: "p",
+        text: `254 Engineering publishes its repair specification at ${REPAIR_SPEC_PRICE}, and what changes that figure is published with it: ${lowerFirst(REPAIR_SPEC_CHANGES)} The repair itself is priced by the contractor who builds it, against those documents.`,
       },
       { kind: "h2", text: "Questions for the engineer" },
       {
