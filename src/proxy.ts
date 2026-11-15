@@ -223,7 +223,14 @@ export function proxy(request: NextRequest) {
     response.cookies.set(link.cookie, link.token, LINK_COOKIE_OPTIONS);
     return response;
   }
-  if (pathname === "/order" || pathname.startsWith("/order/") || pathname.startsWith("/onboarding/") || pathname === "/api/order-document") {
+  /* /letter/ joins them (0133): a letter link with no token or cookie is the route's own refusal, never the staff sign in. */
+  if (
+    pathname === "/order" ||
+    pathname.startsWith("/order/") ||
+    pathname.startsWith("/onboarding/") ||
+    pathname === "/api/order-document" ||
+    pathname.startsWith("/letter/")
+  ) {
     return NextResponse.next();
   }
 
@@ -396,5 +403,7 @@ export const config = {
     "/order/:path*",
     "/onboarding/:path*",
     "/api/order-document",
+    /* A copy contact's sealed letter (0133, the Killeen call item 7): the same exchange. */
+    "/letter/:path*",
   ],
 };

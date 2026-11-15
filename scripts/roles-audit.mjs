@@ -427,13 +427,19 @@ const EXPECTED_NINE = {
   "evidence.start":               "Y Y Y . . . . . . .",
   "evidence.submit":              "Y Y Y . . . . . . .",
   "files.cancel":                 "Y . . . . . . . . .",
-  "files.create":                 "Y . . . Y . . Y Y .",
+  /*
+   * CUSTOMER SERVICE TAKES A CALL, Robert's answer 2 of 2026-11-14 (0130):
+   * files.create, the inbox and send-link. Before it these four rows read
+   * files.create "Y . . . Y . . Y Y .", inbox.answer and inbox.read
+   * "Y . . . . . . Y Y .", payments.send_link "Y . . . Y . . Y Y .".
+   */
+  "files.create":                 "Y . . . Y Y . Y Y .",
   "files.list":                   "Y Y Y Y Y Y Y Y Y .",
   "files.transition":             "Y Y . Y . . . . . .",
   "files.update":                 "Y Y . Y . . . . . .",
   "files.update_details":         "Y . . . . . . Y Y .",
-  "inbox.answer":                 "Y . . . . . . Y Y .",
-  "inbox.read":                   "Y . . . . . . Y Y .",
+  "inbox.answer":                 "Y . . . . Y . Y Y .",
+  "inbox.read":                   "Y . . . . Y . Y Y .",
   "insurance.manage":             "Y . . . . . . . Y .",
   "jobs.manage":                  "Y . . . . . . . . .",
   "ledger.approve":               "Y . . . . . . . . .",
@@ -449,7 +455,7 @@ const EXPECTED_NINE = {
   "payments.charge":              "Y . . . . . . . . .",
   "payments.reconcile":           "Y . . . . . . . . .",
   "payments.refund":              "Y . . . . . . . . .",
-  "payments.send_link":           "Y . . . Y . . Y Y .",
+  "payments.send_link":           "Y . . . Y Y . Y Y .",
   "pricing.override_at_intake":   "Y . . . . . . . . .",
   "pricing.read":                 "Y . . . . . . . . .",
   "pricing.read_own_pay":         ". Y . . . . . . . .",
@@ -578,7 +584,8 @@ const STAFF_LEVELS = ["rep", "ops_manager"];
         /^payments\./.test(action) &&
         role !== "admin" &&
         /* Sales too, owner ruling 2026-10-20: New job always ends in a payment link, for every role but admin. */
-        !(action === "payments.send_link" && [...STAFF_LEVELS, "sales"].includes(role))
+        /* And customer service, Robert's answer 2 of 2026-11-14 (0130), confirmed as answer 31: send-link only. */
+        !(action === "payments.send_link" && [...STAFF_LEVELS, "sales", "customer_service"].includes(role))
           ? "a role other than the administrator may charge, refund or reconcile"
           : null,
     },
@@ -771,8 +778,17 @@ const STAFF_LEVELS = ["rep", "ops_manager"];
        * because of the second half.
        */
       why: "a customer service representative touches no money: refunds are the owner's, and prices are nobody's but his",
+      /*
+       * ONE NAMED ACTION OUT, AND NOTHING ELSE ABOUT MONEY. Robert's answer 2
+       * of 2026-11-14 gave customer service payments.send_link (0130), and his
+       * answer 31 the same day ruled that it is named here and that nothing else
+       * about money opens for the role. Sending a link asks a customer to pay at
+       * the catalogue price; it charges, refunds and reconciles nothing. Every
+       * other payments, pricing, billing and ledger action stays forbidden.
+       */
       check: (role, action) =>
         role === "customer_service" &&
+        action !== "payments.send_link" &&
         /^(payments\.|pricing\.|billing\.|ledger\.)/.test(action)
           ? `customer_service holds ${action}, and the ruling of 2026-10-03 is that a CSR never issues refunds, changes prices, or sees card data`
           : null,
@@ -2527,6 +2543,11 @@ if (!db) {
          * for a PE is an empty ledger. It is not a window onto what technicians
          * are paid; that is read_all, and he does not have it.
          *
+         * CORRECTED 2026-11-14 (Part 1 finding 7): an engineer no longer reads
+         * payLedger here at all. The page renders ownProductionPay, his own
+         * production credit, because the empty technician ledger described
+         * above was what "Your pay" showed him for ever. Still his own rows only.
+         *
          * This was in the refused list on the first run of this check and the
          * check was wrong, not the code.
          */
@@ -2663,6 +2684,8 @@ if (!db) {
         "/portal/launch",
         "/portal/techs",
         "/portal/intake",
+        /* The printable call script (C7): files.create, which an engineer does not hold, as /portal/intake. */
+        "/portal/intake/script",
         "/portal/jobs",
         /* The offline job screen (Robert's T2, 2026-11-07): offers.list_own, the technician's own jobs, which he does not hold. */
         "/portal/jobs/offline",
@@ -3275,7 +3298,15 @@ if (!db) {
   walk("src/app");
   walk("src/lib");
   walk("src/components");
-  const indexers = screens.filter((f) => /ROLE_LABEL\[/.test(codeOnly(f)));
+  /*
+   * THE IDENTIFIER, NOT THE SUBSTRING. Board 43658088627: /ROLE_LABEL\[/ also
+   * matched CONTACT_ROLE_LABEL[ in file-contacts.ts and ops-payments.ts, which
+   * names a contact's part in a job (agent, lender, title company, 0132) and is
+   * not a portal role. A matcher that attaches to its neighbour's name is the
+   * defect section 6 records five times; the word boundary makes ROLE_LABEL
+   * the whole identifier, so CONTACT_ROLE_LABEL is a different word.
+   */
+  const indexers = screens.filter((f) => /\bROLE_LABEL\[/.test(codeOnly(f)));
   rec(
     "no surface reads a role's name out of a fixed map",
     /*

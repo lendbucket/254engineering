@@ -6,17 +6,24 @@ import { acceptOnInvoice, startCheckout } from "./ops-payments";
 import { accountBalance } from "./ops-bulk";
 import { creditDecision } from "./account-credit";
 import { queueEmail } from "./ops-jobs";
-import { jobPaymentLink } from "./email-templates";
+import { jobPaymentLink, tripFeeLink } from "./email-templates";
 import { money } from "./ops-money";
+import { noAccessState } from "./no-access";
+import { TRIP_FEE_CENTS } from "@/config/prices";
 import { isOpen } from "./launch";
 import { catalogFor } from "@data/catalog";
 import { orderBlockedNow } from "./line-gate";
 import { DEMO_FILE_SEGMENT, referenceForCustomer } from "./ops-files";
-import { paymentOptions } from "./job-intake-rules";
-import { refundDisclosure } from "./ops-orders";
+import { MIN_OVERRIDE_REASON, paymentOptions } from "./job-intake-rules";
+import { can } from "./ops-authz";
+import { DB_NOW } from "./db-now";
+import { raiseSystemTask } from "./system-work";
+import { refundDisclosure, travelRefundTerms, TRIP_FEE_REFUND_TERMS } from "./ops-orders";
 import { alreadyRaised } from "./billing-rules";
 import type { Author } from "./ops-crm";
 import { attributeOrder } from "./crm-attribution";
+import { attributeOrder as attributeToPartner, fileTouchKey } from "./ops-partners";
+import { payerFor } from "./file-contacts";
 
 /**
  * The orders already raised against this job, for the guard in billing-rules.
@@ -26,7 +33,8 @@ import { attributeOrder } from "./crm-attribution";
 async function secondOrderRefusal(fileId: string): Promise<string | null> {
   const db = supabaseAdmin();
   if (!db) return "The database is not configured.";
-  const { data, error } = await db.from("eng_service_orders").select("reference, status").eq("file_id", fileId);
+  /* Job orders only: a trip fee (0134) is the one stated exception to one order per job. */
+  const { data, error } = await db.from("eng_service_orders").select("reference, status").eq("file_id", fileId).eq("kind", "job");
   if (error) return `Could not check whether this job already has an order, so nothing was raised: ${error.message}`;
   return alreadyRaised((data ?? []) as { reference: string; status: string }[]);
 }
@@ -99,6 +107,8 @@ type FileForBilling = {
   twia_county?: boolean | null;
   payment_intent: string;
   client_id: string;
+  /** Travel the administrator typed for this job (0135); null for none. */
+  travel_cents?: number | null;
 };
 
 /**
@@ -142,7 +152,7 @@ async function loadFile(fileId: string): Promise<FileForBilling | null> {
   const { data } = await db
     .from("eng_files")
     .select(
-      "id, file_number, service_slug, deliverable, property_address, city, county, postal_code, client_price_cents, catalog_price_cents, coastal_surcharge_cents, twia_county, payment_intent, client_id",
+      "id, file_number, service_slug, deliverable, property_address, city, county, postal_code, client_price_cents, catalog_price_cents, coastal_surcharge_cents, twia_county, payment_intent, client_id, travel_cents",
     )
     .eq("id", fileId)
     .maybeSingle();
@@ -215,7 +225,14 @@ async function createOrderForFile(
       error: "That deliverable is not in the order catalog, so its refund terms cannot be stated.",
     };
   }
-  const disclosure = refundDisclosure(entry).join("\n\n");
+  /*
+   * TRAVEL, INSIDE THE TOTAL AND ON ITS OWN LINE (0135). The file's price stays
+   * the service's, so the coastal breakdown below is unchanged; the order's
+   * total is that price plus the travel, and the terms say what happens to the
+   * travel on a decline (Robert's answer 12).
+   */
+  const travel = file.travel_cents !== null && file.travel_cents !== undefined ? Number(file.travel_cents) : 0;
+  const disclosure = [...refundDisclosure(entry), ...(travel > 0 ? [travelRefundTerms(travel, file.county)] : [])].join("\n\n");
 
   const reference = referenceFor(client.email);
 
@@ -238,7 +255,8 @@ async function createOrderForFile(
       postal_code: file.postal_code,
       /* Money audit F11: the breakdown only when the price is the catalog's; see orderBreakdownFor. */
       ...orderBreakdownFor(file),
-      total_cents: file.client_price_cents,
+      total_cents: file.client_price_cents + travel,
+      travel_cents: travel > 0 ? travel : null,
       inspection_fee_cents: entry.inspectionFeeCents,
       refund_disclosure: disclosure,
       status: "awaiting_payment",
@@ -263,6 +281,23 @@ async function createOrderForFile(
     entityType: "service_order",
     entityId: data.id,
     summary: `${reference} raised against ${file.file_number} for ${billingMode === "invoice" ? "invoicing" : "a payment link"}.`,
+  });
+
+  /*
+   * THE PARTNER, BY THE CHECKOUT'S OWN RULES. Part 1 finding 3, Robert's answer
+   * 1 of 2026-11-14. A code given on the telephone is a touch under the file's
+   * key (takeJob), and this is the same attributeOrder the web checkout calls,
+   * reading that key: the window, a code beating a click, and an existing
+   * customer crediting nobody all apply unchanged. It used to run for no phone
+   * order at all, so a partner who referred by telephone was never credited.
+   * Never throws; a failed read leaves the order undecided with its reason, as
+   * on the web.
+   */
+  await attributeToPartner({
+    orderId: data.id,
+    reference,
+    customerEmail: client.email,
+    visitorKey: fileTouchKey(file.id),
   });
 
   return { ok: true, orderId: data.id, reference };
@@ -349,12 +384,28 @@ export async function sendPaymentLink(actor: Author, fileId: string): Promise<Bi
   if (gap) return { ok: false, error: gap };
   if (refusal) return { ok: false, error: refusal };
 
-  const client = await loadClient(file.client_id);
-  if (!client) return { ok: false, error: "That file has no client." };
+  const loaded = await loadClient(file.client_id);
+  if (!loaded) return { ok: false, error: "That file has no client." };
+  /*
+   * THE LINK GOES TO WHOEVER PAYS (the Killeen call, item 2; 0132): the paying
+   * copy contact when one is named, the client otherwise. A failed read of the
+   * contacts refuses rather than billing the client by default.
+   */
+  const payer = await payerFor(fileId, { name: loaded.name as string, email: (loaded.email as string | null) ?? null, phone: (loaded.phone as string | null) ?? null });
+  if (!payer.ok) return { ok: false, error: `${payer.error} No link was sent.` };
+  if (!payer.email) {
+    return { ok: false, error: `${payer.isClient ? "That client" : "The person paying"} has no email address, so there is nowhere to send a link.` };
+  }
+  const client = { name: payer.name, email: payer.email, phone: payer.phone };
 
   /* One order per job: a second press is refused naming the first (billing-rules, alreadyRaised). */
   const second = await secondOrderRefusal(fileId);
   if (second) return { ok: false, error: second };
+
+  /* HELD while travel is asked for and not set (Needs travel); setting it sends this link by itself. A failed read holds too. */
+  const travelAsked = await travelRequestFor(fileId);
+  if (travelAsked.pending === null) return { ok: false, error: `No link was sent: ${travelAsked.error}.` };
+  if (travelAsked.pending) return { ok: false, error: TRAVEL_REQUESTED_SAYS };
 
   const order = await createOrderForFile(actor, file, client, "card");
   if (!order.ok) return order;
@@ -388,7 +439,8 @@ export async function sendPaymentLink(actor: Author, fileId: string): Promise<Bi
       reference: order.reference,
       propertyAddress: file.property_address,
       deliverableName: entryName(file),
-      amount: money(file.client_price_cents),
+      /* The total the checkout charges: the price and any travel (0135). */
+      amount: money((file.client_price_cents ?? 0) + (file.travel_cents ? Number(file.travel_cents) : 0)),
       payUrl: checkout.url,
       takenBy: actor.email,
     }),
@@ -412,6 +464,386 @@ export async function sendPaymentLink(actor: Author, fileId: string): Promise<Bi
   });
 
   return { ok: true, orderId: order.orderId, reference: order.reference, checkoutUrl: checkout.url };
+}
+
+/**
+ * SEND THE SAME PAYMENT LINK AGAIN. The Killeen call, item 3 (Robert,
+ * 2026-11-14): the file carries a resend button, and the unpaid follow-up task
+ * (item 6) carries the same action.
+ *
+ * Never a second order: a second press of Send was refused as already billed,
+ * and that refusal stands. This finds the job's one order still waiting for
+ * payment, asks startCheckout for its checkout (the same function the first
+ * send used), and queues the same template to the same address. Unlike the
+ * first send, whose queue result is not read, a resend that could not be queued
+ * says so and records nothing as sent.
+ */
+export async function resendPaymentLink(actor: Author, fileId: string): Promise<BillResult> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+  const file = await loadFile(fileId);
+  if (!file) return { ok: false, error: "That file does not exist." };
+
+  const refusal = refusedBecause("link_sent", false, file.client_price_cents !== null);
+  if (refusal) return { ok: false, error: refusal };
+
+  const { data: waiting, error: readError } = await db
+    .from("eng_service_orders")
+    .select("id, reference, customer_name, customer_email, total_cents, status, billing_mode")
+    .eq("file_id", fileId)
+    /* The job's own link; a waiting trip fee has its own button (0134). */
+    .eq("kind", "job")
+    .eq("status", "awaiting_payment")
+    .eq("billing_mode", "card")
+    .order("created_at", { ascending: true })
+    .limit(1);
+  if (readError) return { ok: false, error: `The job's order could not be read: ${readError.message}` };
+  const order = (waiting ?? [])[0];
+  if (!order) return { ok: false, error: "No payment link is waiting on this job. Send one first, or it has already been paid." };
+  if (!order.customer_email) return { ok: false, error: `Order ${order.reference} has no email address to send the link to.` };
+
+  const checkout = await startCheckout(order.id as string);
+  if (!checkout.ok) return { ok: false, error: `The payment link for ${order.reference} could not be made again: ${checkout.error}` };
+
+  const queued = await queueEmail(
+    jobPaymentLink({
+      customerName: order.customer_name as string,
+      customerEmail: order.customer_email as string,
+      reference: order.reference as string,
+      propertyAddress: file.property_address,
+      deliverableName: entryName(file),
+      amount: money(Number(order.total_cents)),
+      payUrl: checkout.url,
+      takenBy: actor.email,
+    }),
+    { orderId: order.id as string },
+  );
+  if (!queued.ok) return { ok: false, error: `The payment link for ${order.reference} could not be queued: ${queued.error}. Nothing was sent.` };
+
+  await db.from("eng_order_events").insert({
+    order_id: order.id,
+    event: "payment_link.resent",
+    customer_visible: false,
+    summary: `The payment link was sent again to ${order.customer_email}.`,
+  });
+  await writeAudit({
+    actor,
+    action: "file.payment_link_resent",
+    entityType: "file",
+    entityId: fileId,
+    summary: `${file.file_number}: the payment link for ${order.reference} was sent again to ${order.customer_email}.`,
+  });
+
+  return { ok: true, orderId: order.id as string, reference: order.reference as string, checkoutUrl: checkout.url };
+}
+
+/**
+ * TRAVEL ON A JOB, TYPED BY THE ADMINISTRATOR BEFORE THE LINK. Robert's
+ * rulings of 2026-11-14 (travel typed per job; answers 12 to 15), 0135.
+ *
+ * Held to the price override's rules: pricing.override_at_intake, which the
+ * administrator holds, a reason of at least MIN_OVERRIDE_REASON characters, and
+ * an audit row. A field job only, because travel is the trip to the property.
+ * Refused once the job's order exists: the customer was quoted a total, and a
+ * travel line appearing after the link went out would be a charge nobody read
+ * back. A null amount clears it, under the same rules.
+ */
+export async function setTravel(
+  actor: Author,
+  fileId: string,
+  travelCents: number | null,
+  reason: string,
+): Promise<{ ok: true; answered: boolean } | { ok: false; error: string }> {
+  if (!can(actor, "pricing.override_at_intake")) return { ok: false, error: "Only an administrator sets travel on a job." };
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+  const file = await loadFile(fileId);
+  if (!file) return { ok: false, error: "That file does not exist." };
+  const entry = file.deliverable ? catalogFor(file.service_slug, file.deliverable) : undefined;
+  if (entry?.orderType !== "field") return { ok: false, error: "Travel is set only on a job somebody visits." };
+  if (travelCents !== null && (!Number.isInteger(travelCents) || travelCents <= 0)) {
+    return { ok: false, error: "Travel is a whole amount above zero, or nothing." };
+  }
+  const why = reason.trim();
+  if (why.length < MIN_OVERRIDE_REASON) return { ok: false, error: `Say why, in at least ${MIN_OVERRIDE_REASON} characters. Staff read it; the customer does not.` };
+  const raised = await secondOrderRefusal(fileId);
+  if (raised) return { ok: false, error: `Travel is set before the payment link. ${raised}` };
+
+  const { error } = await db
+    .from("eng_files")
+    .update(
+      travelCents === null
+        ? { travel_cents: null, travel_reason: null, travel_set_by: null, travel_set_at: null }
+        : { travel_cents: travelCents, travel_reason: why, travel_set_by: actor.id, travel_set_at: DB_NOW },
+    )
+    .eq("id", fileId);
+  if (error) return { ok: false, error: `Travel could not be saved: ${error.message}` };
+
+  await writeAudit({
+    actor,
+    action: travelCents === null ? "file.travel_cleared" : "file.travel_set",
+    entityType: "file",
+    entityId: fileId,
+    summary:
+      travelCents === null
+        ? `${file.file_number}: travel cleared. ${why}`
+        : `${file.file_number}: travel of ${money(travelCents)} set. ${why}`,
+    diff: { travel_cents: travelCents, previous_travel_cents: file.travel_cents ?? null },
+  });
+
+  /* Somebody asked for this travel: the link goes now and they are told (Robert's ruling, Needs travel). */
+  if (travelCents !== null) {
+    const request = await travelRequestFor(fileId);
+    if (request.pending === true) {
+      await answerTravelRequest(actor, fileId, request);
+      return { ok: true, answered: true };
+    }
+  }
+  return { ok: true, answered: false };
+}
+
+/*
+ * ===========================================================================
+ * NEEDS TRAVEL. Robert's ruling of 2026-11-14, on the walk's finding that a rep
+ * cannot set travel: the amount stays the administrator's, and anyone who can
+ * take a job asks for it. The request raises a task to the administrator naming
+ * the county and the file, holds the payment link until travel is set, and the
+ * rep reads "Travel requested. The payment link goes when it is set." When the
+ * administrator sets it, the link goes by itself and the rep is told.
+ * ===========================================================================
+ *
+ * Held as FILE EVENTS, read from rows the way the engineer's pre-review hold is
+ * (dispatch-hold.ts): a request is pending while it is newer than the last
+ * answer to one. eng_file_events refuses edits, so who asked and when stays.
+ */
+export const TRAVEL_REQUESTED = "travel.requested";
+export const TRAVEL_REQUEST_ANSWERED = "travel.request_answered";
+export const TRAVEL_REQUESTED_SAYS = "Travel requested. The payment link goes when it is set.";
+
+export type TravelRequest =
+  | { pending: false }
+  | { pending: true; eventId: string; requestedBy: string | null; at: string }
+  | { pending: null; error: string };
+
+/** Whether this file has a travel request nobody has answered yet. */
+export async function travelRequestFor(fileId: string): Promise<TravelRequest> {
+  const db = supabaseAdmin();
+  if (!db) return { pending: null, error: "the database is not configured" };
+  const { data, error } = await db
+    .from("eng_file_events")
+    .select("id, kind, actor_id, created_at")
+    .eq("file_id", fileId)
+    .in("kind", [TRAVEL_REQUESTED, TRAVEL_REQUEST_ANSWERED])
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
+    .limit(1);
+  if (error) return { pending: null, error: `the travel request could not be read: ${error.message}` };
+  const last = (data ?? [])[0];
+  if (!last || last.kind !== TRAVEL_REQUESTED) return { pending: false };
+  return { pending: true, eventId: String(last.id), requestedBy: (last.actor_id as string | null) ?? null, at: last.created_at as string };
+}
+
+/** The longest-standing active administrator, who gets the task. Null when none can be read. */
+async function administratorId(): Promise<string | null> {
+  const db = supabaseAdmin();
+  if (!db) return null;
+  const { data } = await db
+    .from("eng_profiles")
+    .select("id")
+    .eq("role", "admin")
+    .eq("status", "active")
+    .order("created_at", { ascending: true })
+    .limit(1);
+  return ((data ?? [])[0]?.id as string | undefined) ?? null;
+}
+
+/**
+ * ASK FOR TRAVEL. files.create, the same permission as taking the job. A field
+ * job with no travel and no order yet; a second press while one is pending
+ * changes nothing.
+ */
+export async function requestTravel(
+  actor: Author,
+  fileId: string,
+): Promise<{ ok: true; already: boolean } | { ok: false; error: string }> {
+  if (!can(actor, "files.create")) return { ok: false, error: "Your role cannot ask for travel on a job." };
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+  const file = await loadFile(fileId);
+  if (!file) return { ok: false, error: "That file does not exist." };
+  const entry = file.deliverable ? catalogFor(file.service_slug, file.deliverable) : undefined;
+  if (entry?.orderType !== "field") return { ok: false, error: "Travel applies only to a job somebody visits." };
+  if (file.travel_cents) return { ok: false, error: "Travel is already set on this job." };
+  const raised = await secondOrderRefusal(fileId);
+  if (raised) return { ok: false, error: `Travel is set before the payment link. ${raised}` };
+
+  const state = await travelRequestFor(fileId);
+  if (state.pending === null) return { ok: false, error: `Nothing was asked: ${state.error}.` };
+  if (state.pending) return { ok: true, already: true };
+
+  const { data: event, error } = await db
+    .from("eng_file_events")
+    .insert({ file_id: fileId, actor_id: actor.id, kind: TRAVEL_REQUESTED, body: `${file.county} County` })
+    .select("id")
+    .single();
+  if (error || !event) return { ok: false, error: `The request could not be recorded: ${error?.message ?? "nothing came back"}.` };
+
+  const task = await raiseSystemTask({
+    key: `travel-request:${event.id as string}`,
+    title: `Set travel for ${file.file_number}, ${file.county} County`,
+    description: `${actor.email} asked for travel on ${file.file_number} at ${file.property_address}, ${file.county} County. The payment link is held until travel is set, and goes by itself when you set it on the file.`,
+    assigneeId: await administratorId(),
+    fileId,
+  });
+  await writeAudit({
+    actor,
+    action: "file.travel_requested",
+    entityType: "file",
+    entityId: fileId,
+    summary: `${file.file_number}: travel requested for ${file.county} County; the payment link is held until it is set.`,
+  });
+  if (!task.ok) return { ok: false, error: `The request is recorded and the administrator's task could not be raised: ${task.error}. Tell the administrator.` };
+  return { ok: true, already: false };
+}
+
+/**
+ * Travel was set on a file somebody asked about: the answer is written, the
+ * link goes, and whoever asked is told, in a task on the file, either way.
+ */
+async function answerTravelRequest(actor: Author, fileId: string, request: { eventId: string; requestedBy: string | null }): Promise<void> {
+  const db = supabaseAdmin();
+  if (!db) return;
+  await db.from("eng_file_events").insert({ file_id: fileId, actor_id: actor.id, kind: TRAVEL_REQUEST_ANSWERED, body: "Travel set." });
+  const sent = await sendPaymentLink(actor, fileId);
+  const file = await loadFile(fileId);
+  const number = file?.file_number ?? "the job";
+  await raiseSystemTask({
+    key: `travel-set:${request.eventId}`,
+    title: sent.ok ? `Travel set on ${number}: the payment link has gone` : `Travel set on ${number}: the payment link did not go`,
+    description: sent.ok
+      ? `The administrator set the travel you asked for, and the payment link went out against ${sent.reference}. Tell the caller to look for it.`
+      : `The administrator set the travel you asked for, and the payment link did not go: ${sent.error} Open the file: if an order was raised, send its link again from the payment block; if not, send the payment link from there.`,
+    assigneeId: request.requestedBy,
+    fileId,
+  });
+}
+
+/**
+ * SEND THE TRIP FEE LINK. Robert's answers 7 to 10 of 2026-11-14 (E5), 0134.
+ *
+ * For the file's latest visit the technician could not get into: a second,
+ * separate order of $125, kind trip_fee, naming the visit, through the same
+ * checkout and to the same payer as the job's own link. It is the one stated
+ * exception to one order per job, and it is never the order the file is
+ * worked under (order-for-file.ts reads job orders only), so it earns no
+ * partner commission (answer 9) and the job's refund leaves it alone (answer
+ * 10). No partner attribution is run on it for the same reason.
+ *
+ * A press with a trip fee already waiting sends that one again rather than
+ * raising a second; the unique index on the visit refuses two live ones.
+ */
+export async function sendTripFeeLink(actor: Author, fileId: string): Promise<BillResult> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+  const file = await loadFile(fileId);
+  if (!file) return { ok: false, error: "That file does not exist." };
+
+  const refusal = refusedBecause("link_sent", false, true);
+  if (refusal) return { ok: false, error: refusal };
+
+  const state = await noAccessState(fileId);
+  if (state.kind === "unknown") return { ok: false, error: `Whether a trip fee is owed could not be read, so nothing was sent: ${state.error}.` };
+  if (state.kind === "none") return { ok: false, error: "No visit on this job is waiting for a trip fee." };
+  if (state.kind === "paid") return { ok: false, error: `The trip fee for the last visit is paid (${state.tripOrder.reference}). Offer the job again from dispatch.` };
+
+  const loaded = await loadClient(file.client_id);
+  if (!loaded) return { ok: false, error: "That file has no client." };
+  const payer = await payerFor(fileId, { name: loaded.name as string, email: (loaded.email as string | null) ?? null, phone: (loaded.phone as string | null) ?? null });
+  if (!payer.ok) return { ok: false, error: `${payer.error} No link was sent.` };
+  if (!payer.email) {
+    return { ok: false, error: `${payer.isClient ? "That client" : "The person paying"} has no email address, so there is nowhere to send a link.` };
+  }
+
+  let orderId: string;
+  let reference: string;
+  if (state.tripOrder) {
+    orderId = state.tripOrder.id;
+    reference = state.tripOrder.reference;
+  } else {
+    reference = referenceFor(payer.email);
+    const { data, error } = await db
+      .from("eng_service_orders")
+      .insert({
+        site: SITE_KEY,
+        reference,
+        is_demo: reference.includes(`-${DEMO_FILE_SEGMENT}-`),
+        kind: "trip_fee",
+        trip_for_visit: state.visitId,
+        service_slug: file.service_slug,
+        tier: file.deliverable,
+        order_type: "field",
+        customer_name: payer.name,
+        customer_email: payer.email,
+        customer_phone: payer.phone,
+        property_address: file.property_address,
+        city: file.city,
+        county: file.county,
+        postal_code: file.postal_code,
+        price_cents: TRIP_FEE_CENTS,
+        coastal_surcharge_cents: null,
+        twia_county: false,
+        total_cents: TRIP_FEE_CENTS,
+        inspection_fee_cents: null,
+        refund_disclosure: TRIP_FEE_REFUND_TERMS,
+        status: "awaiting_payment",
+        billing_mode: "card",
+        client_id: file.client_id,
+        file_id: file.id,
+      })
+      .select("id")
+      .single();
+    if (error) return { ok: false, error: `The trip fee could not be raised: ${error.message}` };
+    orderId = data.id as string;
+    await writeAudit({
+      actor,
+      action: "order.trip_fee_raised",
+      entityType: "service_order",
+      entityId: orderId,
+      summary: `${reference}: a ${money(TRIP_FEE_CENTS)} trip fee raised against ${file.file_number} for a visit that could not get in.`,
+    });
+  }
+
+  const checkout = await startCheckout(orderId);
+  if (!checkout.ok) return { ok: false, error: `Trip fee ${reference} was raised and its payment link could not be created: ${checkout.error}` };
+
+  const queued = await queueEmail(
+    tripFeeLink({
+      customerName: payer.name,
+      customerEmail: payer.email,
+      reference,
+      propertyAddress: file.property_address,
+      amount: money(TRIP_FEE_CENTS),
+      payUrl: checkout.url,
+    }),
+    { orderId },
+  );
+  if (!queued.ok) return { ok: false, error: `The trip fee link for ${reference} could not be queued: ${queued.error}. Nothing was sent.` };
+
+  await db.from("eng_order_events").insert({
+    order_id: orderId,
+    event: state.tripOrder ? "trip_fee.link_resent" : "trip_fee.link_sent",
+    customer_visible: false,
+    summary: `The trip fee link was sent to ${payer.email}.`,
+  });
+  await writeAudit({
+    actor,
+    action: "file.trip_fee_link_sent",
+    entityType: "file",
+    entityId: fileId,
+    summary: `${file.file_number}: the trip fee link for ${reference} was sent to ${payer.email}.`,
+  });
+
+  return { ok: true, orderId, reference, checkoutUrl: checkout.url };
 }
 
 /**

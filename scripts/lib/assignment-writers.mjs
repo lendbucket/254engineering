@@ -40,7 +40,17 @@ function writersIn(fragment) {
     const flat = statement.replace(/\s+/g, " ").trim();
     if (WRITES_ASSIGNMENT.test(flat)) {
       const at = flat.search(/\bupdate (public\.)?eng_files/i);
-      found.push(flat.slice(at, at + 70));
+      /*
+       * The excerpt runs at least to the end of the last assignment the
+       * statement makes, because bulk-audit decides set or clear from this
+       * text. A cut at 70 characters before the value reads a clear as a set:
+       * board 43666054144 did exactly that on the source side.
+       */
+      let end = at + 70;
+      for (const m of flat.matchAll(/\bassigned_(engineer|tech)_id = [^,\s;]+/gi)) {
+        if (m.index >= at) end = Math.max(end, m.index + m[0].length);
+      }
+      found.push(flat.slice(at, end));
     }
   }
   return found;

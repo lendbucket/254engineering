@@ -10,6 +10,7 @@ import { allLineOffers, headlineEntry, lineOffer, type LineOffer } from "./order
 import { addendumRequired, deliverableKey, linePayFor } from "./line-addendum";
 import { deskLines, offeredServiceLines } from "@/config/launch-conditions";
 import { designPaymentRefusal, type DesignAddendum } from "./quote-rules";
+import { ownProtocolRequired } from "@/config/own-protocol";
 
 /**
  * ===========================================================================
@@ -58,6 +59,9 @@ const closed = (why: string, unreadable = false, says?: string): Sellable => ({ 
 /** The catalogue's own words for a deliverable the agreement does not cover yet (data/catalog.ts). */
 const NOT_AVAILABLE_YET =
   "This service is not available to order yet. Call the office or send a message and somebody will take the details.";
+
+/* A deliverable that opens only on a protocol of its own: src/config/own-protocol.ts (Robert's answer 11 of 2026-11-14). */
+export { OWN_PROTOCOL_REQUIRED } from "@/config/own-protocol";
 
 /**
  * SIGNED, TRAINED, AND COVERED BY HIS AGREEMENT. Robert's ruling of 2026-10-26,
@@ -114,9 +118,11 @@ async function signedInDatabase(serviceSlug: string, tier: string | null | undef
   if (registered?.declaration.documentNumber === "254-RC-001") return rc001Signed("254-RC-001");
 
   /* The same list the engineer signs from (signable.ts), so a superseded version cannot open a line. */
-  const received = SIGNABLE_PROTOCOLS.find(
-    (p) => p.serviceSlug === serviceSlug && p.serviceTier === (tier ?? null),
-  ) ?? SIGNABLE_PROTOCOLS.find((p) => p.serviceSlug === serviceSlug && !p.serviceTier);
+  const exact = SIGNABLE_PROTOCOLS.find((p) => p.serviceSlug === serviceSlug && p.serviceTier === (tier ?? null));
+  /* A deliverable that needs a protocol of its own never borrows the line's (answer 11 of 2026-11-14). */
+  const ownOnly = ownProtocolRequired(serviceSlug, tier);
+  if (!exact && ownOnly) return closed(ownOnly, false, NOT_AVAILABLE_YET);
+  const received = exact ?? SIGNABLE_PROTOCOLS.find((p) => p.serviceSlug === serviceSlug && !p.serviceTier);
   if (!received) return closed("This service line has no protocol, so it cannot be ordered.");
 
   const status = await signatureStatus(received.documentNumber, received.version);

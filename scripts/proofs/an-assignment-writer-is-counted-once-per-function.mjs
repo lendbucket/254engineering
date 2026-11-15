@@ -63,6 +63,24 @@ const setter = migrationAssignmentWriters([
 ]);
 check("a restated function that now SETS an assignment is read from its latest text", setter.length === 1 && /assigned_tech_id = v_actor_id/.test(setter[0]), setter.join(" | "));
 
+/*
+ * THE CUT MAY NOT FALL BEFORE THE VALUE. bulk-audit decides set or clear from
+ * this excerpt, and board 43666054144 read a clear as a set on the source side
+ * because a 70 character cut stopped before ": null". A set clause long enough
+ * to push the assignment past 70 characters must still carry its value.
+ */
+const longClause = migrationAssignmentWriters([
+  {
+    name: "d.sql",
+    text: "update public.eng_files set status = 'awaiting_dispatch', travel_set_by = null, travel_note = 'none', assigned_tech_id = null where id = 1;",
+  },
+]);
+check(
+  "a long set clause still carries its assignment's value in the excerpt",
+  longClause.length === 1 && /assigned_tech_id = null/.test(longClause[0]),
+  longClause.join(" | "),
+);
+
 console.log("");
 if (wrong === 0) {
   console.log("PASS: an assignment writer is counted once per live definition, and two functions are two.");

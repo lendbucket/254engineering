@@ -486,6 +486,7 @@ export const RETENTION_POLICY: RetentionEntry[] = [
     table: "eng_fee_schedule",
     rule: { kind: "not_a_record", because: "The price list. Configuration the firm sets, not a record of anything that happened." },
   },
+  { table: "eng_file_contacts", rule: { kind: "kept_pending_counsel", because: "Who else on a file gets the letter and who pays, removed by marking rather than deleting, because who was sent a sealed letter is a fact about the past (0132). It goes only when its file does. " + COUNSEL } },
   {
     table: "eng_file_events",
     rule: {
@@ -633,6 +634,7 @@ export const RETENTION_POLICY: RetentionEntry[] = [
       ruledBy: "operator ruling 7 of 2026-10-23 (FC-3, PL-2, PL-3), and the trigger in 0085",
     },
   },
+  { table: "eng_letter_links", rule: { kind: "kept_pending_counsel", because: "Which copy contact was given a link to which sealed letter, and when it was opened (0133). Who was given a sealed letter is a fact about the past; a link is stopped by revoking it, never by deleting it. " + COUNSEL } },
   {
     table: "eng_marketing_suppressions",
     rule: {
@@ -662,6 +664,7 @@ export const RETENTION_POLICY: RetentionEntry[] = [
   },
   { table: "eng_mfa_enrolments", rule: { kind: "kept_pending_counsel", because: COUNSEL } },
   { table: "eng_mfa_recovery_codes", rule: { kind: "kept_pending_counsel", because: COUNSEL } },
+  { table: "eng_no_access_visits", rule: { kind: "kept_pending_counsel", because: "Each time the technician recorded that he could not get in, which a trip fee and his pay for that visit both point at (0134). A record of something that happened at a property, and the table refuses update and delete. " + COUNSEL } },
   {
     table: "eng_notification_prefs",
     rule: { kind: "not_a_record", because: "One row per person saying how they want to be told things. Configuration." },

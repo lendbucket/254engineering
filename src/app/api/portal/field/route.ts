@@ -16,6 +16,7 @@ import {
   approveProtocol,
   recordCapture,
   recordVisit,
+  recordNoAccess,
   removeProtocolItem,
   replyToRevision,
   sendOffers,
@@ -356,6 +357,16 @@ async function handlePOST(request: NextRequest) {
     if (!visit) return bad("Say whether this is an arrival or a leaving.");
     const result = await recordVisit(actor, String(body?.fileId ?? ""), visit, context, visitLateFrom(body?.late));
     return result.ok ? NextResponse.json({ ok: true, at: result.at }) : bad(result.error);
+  }
+
+  /*
+   * COULD NOT GET IN (0134, Robert's answers 7 to 10 of 2026-11-14). The
+   * assigned technician only, on a job he has not started capturing; every rule
+   * is in recordNoAccess, so nothing here decides anything.
+   */
+  if (action === "record_no_access") {
+    const result = await recordNoAccess(actor, String(body?.fileId ?? ""), String(body?.note ?? ""), context);
+    return result.ok ? NextResponse.json({ ok: true, payCents: result.payCents }) : bad(result.error);
   }
 
   if (action === "submit_evidence") {

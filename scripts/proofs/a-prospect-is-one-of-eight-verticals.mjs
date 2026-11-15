@@ -53,6 +53,17 @@ const AFTER_0123 = [
   "0127_a_franchisee_owner_reads_their_own_franchise.sql",
   "0128_a_franchisee_is_onboarded_before_it_operates.sql",
   "0129_a_franchisee_records_the_day_it_starts_operating.sql",
+  /* The Killeen call (2026-11-14): grants, a file's intake key, its contacts and letter links; none names eng_prospects, read by grep. */
+  "0130_customer_service_takes_the_call.sql",
+  "0131_a_job_taken_twice_is_one_file.sql",
+  "0132_a_job_names_who_else_gets_the_letter.sql",
+  "0133_a_copy_contact_gets_the_letter_and_nothing_else.sql",
+  /* The no-access trip fee (2026-11-14): a visit table, order and pay ledger columns; it names no eng_prospects, read by grep. */
+  "0134_a_visit_that_could_not_get_in.sql",
+  /* Travel on a job (2026-11-14): file, order and pay ledger columns; it names no eng_prospects, read by grep. */
+  "0135_a_job_can_carry_travel.sql",
+  /* An inquiry has a call log (Batch B, 2026-11-14): three subjects on eng_contact_log; it names no eng_prospects, read by grep. */
+  "0136_an_inquiry_has_a_call_log.sql",
 ];
 const following = at >= 0 ? files.slice(at + 1) : [];
 check(

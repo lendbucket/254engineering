@@ -1,9 +1,11 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
 import { TEXAS_COUNTIES } from "@/lib/ops-counties";
 import { services } from "@/content/services";
 import { CATALOG } from "@data/catalog";
+import { refundDisclosure } from "@/lib/ops-orders";
 import { isOpen } from "@/lib/launch";
 import { isOwnerAdmin } from "@/lib/owner-override";
 import { PageHead } from "@/components/portal/surfaces";
@@ -61,6 +63,8 @@ export default async function IntakePage() {
     orderType: entry.orderType,
     priceCents: entry.priceCents,
     coastalSurchargeCents: entry.coastalSurchargeCents,
+    /* The refund terms the order will store (createOrderForFile), read back to the caller. */
+    refundTerms: refundDisclosure(entry),
   }));
 
   const lines = services
@@ -73,6 +77,14 @@ export default async function IntakePage() {
         eyebrow="Work"
         title="New job"
         lede="Everything for a job taken by telephone, on one screen. The file, the price and the payment decision are recorded together."
+        actions={
+          <Link
+            href="/portal/intake/script"
+            className="inline-flex min-h-[44px] items-center rounded-[2px] border border-[var(--border)] px-4 text-[14px] font-semibold text-[var(--navy)]"
+          >
+            Call script
+          </Link>
+        }
       />
 
       {!isOpen() ? (
@@ -93,6 +105,7 @@ export default async function IntakePage() {
         ownerOverride={isOwnerAdmin(actor.id)}
         canOverridePrice={can(actor, "pricing.override_at_intake")}
         linkOnly={linkOnly}
+        canAddCoverage={can(actor, "profiles.update")}
       />
     </div>
   );

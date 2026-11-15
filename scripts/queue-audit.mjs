@@ -339,19 +339,21 @@ const nextEligible = runner.nextEligible;
    * nothing prunes, and it is the operator's to rule on: these rows were not
    * created by this run, so no run may remove them.
    */
+  /*
+   * THE PROBES ARE ASKED ABOUT BY ID, SO DEPTH NO LONGER HIDES THEM. Office-ready
+   * Batch B (issue #1, 6872489995, Robert's answer 4: the ceiling line stood
+   * only until this fix). nextEligible takes the three ids and applies the
+   * guard's own WHERE clause and clock to them, so the checks below run at any
+   * depth. The depth is still a finding, printed as a note when it is past the
+   * ceiling, never a reason to skip.
+   */
   if (readSize > 1000) {
     console.log(
-      `  COULD NOT TELL: the eligible queue is ${eligibleNow} deep, past the ${1000} row ceiling, so the ` +
-        `clock checks below cannot see their own probes and are skipped. Nothing about the queue failed. ` +
-        `The depth is audit residue on development and wants pruning by whoever may remove it.`,
+      `  NOTE: the eligible queue is ${eligibleNow} deep, past the 1000 row ceiling. The clock checks ask about ` +
+        `their three probes by id, so they still run. The depth is audit residue on development.`,
     );
-    await db.from("eng_jobs").delete().eq("kind", CLOCK_KIND);
-  } else {
-  rec(
-    "the queue is small enough for the clock check to read all of it",
-    readSize <= 1000,
-    `${eligibleNow} eligible, including the three probes; the check reads ${readSize}`,
-  );
+  }
+  const probeIds = ["skew", "lapsed", "leased"].map(idOf);
 
   let seen;
   try {
@@ -359,7 +361,7 @@ const nextEligible = runner.nextEligible;
       constructor(...a) { super(...(a.length ? a : [RealDate.now() - 60_000])); }
       static now() { return RealDate.now() - 60_000; }
     };
-    seen = new Set((await nextEligible(Math.min(readSize, 1000))).map((r) => r.id));
+    seen = new Set((await nextEligible(probeIds.length, probeIds)).map((r) => r.id));
   } finally {
     globalThis.Date = RealDate;
     await db.from("eng_jobs").delete().eq("kind", CLOCK_KIND);
@@ -378,7 +380,11 @@ const nextEligible = runner.nextEligible;
     "and not a running job whose lease is still held",
     !seen.has(idOf("leased")),
   );
-  } /* else: the queue was shallow enough for the probes to be visible. */
+  rec(
+    "the clock check asks about its own probes, whatever the queue's depth",
+    seen.size <= probeIds.length && [...seen].every((id) => probeIds.includes(id)),
+    `${eligibleNow} eligible on the database's clock; the check read only its three probes`,
+  );
 }
 
 let fillerMade = 0;

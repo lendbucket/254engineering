@@ -107,6 +107,12 @@ const DISPLAY = {
    * receives (open or prelaunch). It takes no money and opens no order.
    */
   "src/lib/crm-email.ts": { lineIsSellableForDisplay: 1 },
+  /*
+   * The printable call script, C7 of 2026-11-14: it asks whether the chosen
+   * deliverable can be ordered now only to choose between the payment line and
+   * the shut gate sentence on a printout. It takes no money and opens no order.
+   */
+  "src/app/portal/(app)/intake/script/page.tsx": { deliverableBlockedForDisplay: 1 },
 };
 for (const [file, calls] of Object.entries(DISPLAY)) {
   for (const [fn, want] of Object.entries(calls)) {

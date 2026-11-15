@@ -144,6 +144,22 @@ export default async function AccountHomePage() {
           </section>
         ) : null}
 
+        {/* One property, in Robert's approved words (answer 5 of 2026-11-14, 6878458673 draft 5; Part 1 finding 9). */}
+        <section className="mt-12">
+          <h2 className="border-b-2 border-[var(--color-ink)] pb-3 text-[17px] font-semibold text-[var(--color-ink)]">
+            Order for one property
+          </h2>
+          <p className="mt-2 text-[15px] leading-[1.65] text-[var(--color-ink-quiet)]">
+            One property and one service. You answer that service&apos;s questions and pay by card before anything is booked.
+          </p>
+          <Link
+            href="/order"
+            className="mt-5 inline-flex min-h-[var(--tap-target)] items-center rounded-[2px] bg-[var(--color-slate)] px-6 text-[15px] font-semibold text-white"
+          >
+            Start an order
+          </Link>
+        </section>
+
         <section className="mt-12">
           <h2 className="border-b-2 border-[var(--color-ink)] pb-3 text-[17px] font-semibold text-[var(--color-ink)]">
             Order for several properties

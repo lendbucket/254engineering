@@ -82,7 +82,12 @@ check(
   "the panel is decided by the same licence test the server applies",
   /const mayDecideStanding = holdsLicence\(actor, "protocols\.publish"\);/.test(live),
 );
-check("and its read runs only for the licence holder", /const standing = mayDecideStanding \? await timed\("standing", certificationStanding\(\)\) : null;/.test(live));
+/* Batch B (2026-11-14): read beside the page's other reads, and still only for the licence holder. */
+check(
+  "and its read runs only for the licence holder",
+  /mayDecideStanding \? timed\("standing", certificationStanding\(\)\) : Promise\.resolve\(null\),/.test(live) &&
+    (live.match(/certificationStanding\(\)/g) ?? []).length === 1,
+);
 check("so nobody else is drawn the panel", /\{standing === null \? null : !standing\.ok \? \(/.test(live) && (live.match(/<CertificationStandingPanel/g) ?? []).length === 1);
 check("a failed read is said, never an empty list", /Technicians&apos; certifications could not be read[\s\S]{0,80}\{standing\.error\}/.test(live));
 

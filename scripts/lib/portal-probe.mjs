@@ -63,6 +63,31 @@ export const KEPT_PROBES = [
     email: FIXTURE_ENGINEER_EMAIL,
     why: "the one permanent development fixture engineer for records that refuse deletion (ruling of 2026-10-23)",
   },
+  /*
+   * FOUR MORE, BY EXACT ID. Robert's answer 30 of 2026-11-14 on issue #1. Each
+   * was made by a LOCAL screenshot walk the session ran that day, which took a
+   * job as a fresh probe, so each is named on records that refuse deletion
+   * (read from development, all 99 profile-referencing columns, read only).
+   * Board 43658088627 failed twelve audits' teardown lines on them. Local
+   * walks stop taking jobs from that answer on: a walk opens screens and
+   * screenshots them, and a job is taken only by the board's own flows.
+   */
+  {
+    id: "f2189100-b058-4979-9cea-3607566b7042",
+    why: "probe admin of the local New job walk, 2026-11-14 09:28 Central (\"1 Walk Failure Way\"), held by eng_files.created_by, eng_clients.created_by, eng_file_inputs.recorded_by and eng_file_events.actor_id (answer 30)",
+  },
+  {
+    id: "376660b5-06b2-40dd-adca-1a294bd611db",
+    why: "probe rep of the local Killeen walk, 2026-11-14 12:59 Central (\"1 Killeen Walk Lane\"), held by eng_files.created_by, eng_clients.created_by, eng_file_inputs.recorded_by and eng_file_events.actor_id (answer 30)",
+  },
+  {
+    id: "878bee27-ac41-4efe-aa19-303040f5d5ea",
+    why: "probe admin of the local Killeen walk, 2026-11-14 13:00 Central, which set the job's travel: held by eng_files.travel_set_by (0135, restrict) and eng_file_events.actor_id (answer 30)",
+  },
+  {
+    id: "0f2686c4-0608-443c-adf5-8e6a1ae1d8e0",
+    why: "probe admin of the local after-fix screenshot walk, 2026-11-14 14:37 Central, which moved a job's status: held by eng_file_events.actor_id (answer 30)",
+  },
 ];
 /** The list entry an account matches, by id or by its address, or null. */
 export function keptProbe(account) {
@@ -1331,7 +1356,7 @@ export async function destroyProbes(label = "audit") {
   if (profilesLeft) parts.push(`${profilesLeft} profile(s)`);
   if (usersLeft) parts.push(`${usersLeft} auth user(s) with no profile, which can still sign in`);
   if (refusals.length) parts.push(`deleteUser refused: ${refusals.join("; ")}`);
-  const keptNote = kept.length ? `kept by design (${kept.length}, named list of 2026-10-23): ${kept.join("; ")}` : "";
+  const keptNote = kept.length ? `kept by design (${kept.length}, named list of 2026-10-23 and answer 30 of 2026-11-14):${kept.join("; ")}` : "";
 
   return {
     ok: left === 0 && refusals.length === 0,

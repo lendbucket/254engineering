@@ -400,6 +400,29 @@ export function stripeProvider(): PaymentProvider {
       }
 
       /*
+       * A CHARGEBACK, opened or closed (Part 1 finding 1, Robert's answer 1 of
+       * 2026-11-14). Both events carry the Dispute itself. The payment intent is
+       * what a charge row is recorded under, as for a refund; Stripe's reason
+       * and status pass through as Stripe spells them.
+       */
+      if (event.type === "charge.dispute.created" || event.type === "charge.dispute.closed") {
+        const dispute = event.data.object as Stripe.Dispute;
+        const intent =
+          typeof dispute.payment_intent === "string" ? dispute.payment_intent : dispute.payment_intent?.id ?? null;
+        return {
+          kind: "charge.dispute",
+          eventId: event.id,
+          phase: event.type === "charge.dispute.created" ? "created" : "closed",
+          disputeRef: dispute.id,
+          chargeRef: intent,
+          amountCents: dispute.amount,
+          reason: dispute.reason ?? "not given",
+          status: dispute.status ?? "unknown",
+          evidenceDueBy: dispute.evidence_details?.due_by ?? null,
+        };
+      }
+
+      /*
        * Everything else. Returned as null rather than falling through, so a new
        * Stripe event type cannot take a branch written for a different one.
        *
@@ -410,7 +433,7 @@ export function stripeProvider(): PaymentProvider {
        * had before it was given a voice.
        */
       console.log(
-        `[stripe] ${event.type} verified and not acted on. This platform handles checkout.session.completed, checkout.session.expired, charge.refunded and charge.refund.updated.`,
+        `[stripe] ${event.type} verified and not acted on. This platform handles checkout.session.completed, checkout.session.expired, charge.refunded, charge.refund.updated, charge.dispute.created and charge.dispute.closed.`,
       );
       return null;
     },
@@ -461,6 +484,10 @@ export async function confirmStripeAccount(event: PaymentEvent): Promise<void> {
     }
     if (event.kind === "charge.refund.updated") {
       return stripe().refunds.retrieve(event.refundRef);
+    }
+    /* A chargeback's own object is the Dispute (Part 1 finding 1, 2026-11-14). */
+    if (event.kind === "charge.dispute") {
+      return stripe().disputes.retrieve(event.disputeRef);
     }
     return stripe().checkout.sessions.retrieve(event.sessionRef);
   };

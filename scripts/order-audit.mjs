@@ -118,6 +118,13 @@ const priced = (entry, over = {}) => ({
 const answerAll = (entry, pick = () => 0) =>
   entry.qualifiers.map((q) => ({ qualifierId: q.id, optionIndex: pick(q) }));
 
+/*
+ * Held for a protocol of its own (answer 11 of 2026-11-14), a literal rather
+ * than an import of OWN_PROTOCOL_REQUIRED: section 3 asserts the config still
+ * names exactly these, so moving one costs two edits made on purpose.
+ */
+const HELD_FOR_OWN_PROTOCOL = ["structural-letters/real-estate"];
+
 // ===========================================================================
 // 1. CATALOG INTEGRITY
 // ===========================================================================
@@ -253,7 +260,7 @@ const answerAll = (entry, pick = () => 0) =>
 
     rec(
       `${where}: a field order names an evidence protocol`,
-      entry.orderType !== "field" || Boolean(entry.protocolServiceSlug),
+      entry.orderType !== "field" || Boolean(entry.protocolServiceSlug) || HELD_FOR_OWN_PROTOCOL.includes(`${entry.serviceSlug}/${entry.tier}`),
       "a technician with no protocol gathers whatever they think of",
     );
     rec(
@@ -370,7 +377,34 @@ const answerAll = (entry, pick = () => 0) =>
       orderBlockedReason(entry, "open", PROTOCOL_APPROVED) ?? "",
     );
   }
-  const orderableEntries = CATALOG.filter((e) => e.orderType !== "quote" && !needsAddendum(e));
+  /*
+   * A DELIVERABLE THAT WAITS FOR A PROTOCOL OF ITS OWN IS NEVER ORDERABLE.
+   * Robert's answer 11 of 2026-11-14: the structural letter for a real estate
+   * transaction is not sold until the engineer of record confirms 254-PL-001
+   * covers it or signs a protocol for it, and its fee, coastal line and
+   * protocol are deliberately unset until then. Pinned as a literal and
+   * compared with src/config/own-protocol.ts, so the set cannot change without
+   * two edits made on purpose; each one is asserted refused, a clause that can
+   * fail, and it is held outside the orderable checks below rather than
+   * excused from them one by one.
+   */
+  const AWAITING_OWN_PROTOCOL = HELD_FOR_OWN_PROTOCOL;
+  const { OWN_PROTOCOL_REQUIRED } = await import("../src/config/own-protocol.ts");
+  const awaitingOwn = (e) => AWAITING_OWN_PROTOCOL.includes(`${e.serviceSlug}/${e.tier}`);
+  rec(
+    "exactly the deliverables Robert held for a protocol of their own are held (answer 11 of 2026-11-14)",
+    Object.keys(OWN_PROTOCOL_REQUIRED).sort().join(",") === AWAITING_OWN_PROTOCOL.join(",") &&
+      CATALOG.filter(awaitingOwn).length === AWAITING_OWN_PROTOCOL.length,
+    `config: ${Object.keys(OWN_PROTOCOL_REQUIRED).join(", ") || "none"}; catalogue: ${CATALOG.filter(awaitingOwn).map((e) => `${e.serviceSlug}/${e.tier}`).join(", ") || "none"}`,
+  );
+  for (const entry of CATALOG.filter(awaitingOwn)) {
+    rec(
+      `${entry.serviceSlug}/${entry.tier}: the catalogue refuses it too, its inspection fee unset (the gate's own hold is proved by a-real-estate-letter-waits-for-its-own-protocol)`,
+      !orderable(entry, "open", PROTOCOL_APPROVED),
+      orderBlockedReason(entry, "open", PROTOCOL_APPROVED) ?? "ORDERABLE",
+    );
+  }
+  const orderableEntries = CATALOG.filter((e) => e.orderType !== "quote" && !needsAddendum(e) && !awaitingOwn(e));
   const quoteEntries = catalogByType("quote");
 
   {
@@ -471,7 +505,7 @@ const answerAll = (entry, pick = () => 0) =>
    * rule can never justify: it would retain money for an inspection that did
    * not happen.
    */
-  for (const entry of catalogByType("field")) {
+  for (const entry of catalogByType("field").filter((e) => !awaitingOwn(e))) {
     rec(
       `${entry.serviceSlug}: a field service discloses an inspection fee`,
       isKnown(entry.inspectionFeeCents),
@@ -535,7 +569,7 @@ const answerAll = (entry, pick = () => 0) =>
   );
 
   /* Every field deliverable the firm takes on; the addendum-held one is refused above before any fee is asked. */
-  for (const entry of catalogByType("field").filter((e) => !needsAddendum(e))) {
+  for (const entry of catalogByType("field").filter((e) => !needsAddendum(e) && !awaitingOwn(e))) {
     const noFee = { ...entry, inspectionFeeCents: null };
     rec(
       `${entry.serviceSlug}: a field order with no inspection fee cannot be taken`,
@@ -937,10 +971,19 @@ const answerAll = (entry, pick = () => 0) =>
   );
   rec("and promises no further charge on a decline", /never charged more/.test(text));
 
+  /*
+   * THE TRIP FEE, disclosed on every field order before payment (Robert's
+   * answer 7 of 2026-11-14), in his words as a literal here, never imported.
+   * The one dollar figure a field disclosure states whatever its own fee is.
+   */
+  const TRIP_FEE_SENTENCE = "If the technician cannot get in at the agreed time, a trip fee of $125.00 is charged before the visit is booked again.";
+  rec("and discloses the trip fee in Robert's words", lines.includes(TRIP_FEE_SENTENCE));
+
   const unset = refundDisclosure({ ...catalogByType("field")[0], inspectionFeeCents: null });
+  const unsetOwn = unset.filter((l) => l !== TRIP_FEE_SENTENCE).join(" ");
   rec(
-    "with no fee set, the disclosure says so rather than naming a number",
-    /not published yet/.test(unset.join(" ")) && !/\$/.test(unset.join(" ")),
+    "with no fee set, the disclosure says so rather than naming a number (the trip fee's own sentence aside)",
+    /not published yet/.test(unsetOwn) && !/\$/.test(unsetOwn) && unset.includes(TRIP_FEE_SENTENCE),
   );
 
   const deskLines = refundDisclosure(priced(catalogByType("desk")[0])).join(" ");

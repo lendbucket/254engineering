@@ -102,7 +102,11 @@ check("the screen opens on payments.charge, the owner's and the administrator's"
 check("and so does the read behind it", /can\(actor, "payments\.charge"\)/.test(list));
 check("its nav entry asks the same grant", /href: "\/portal\/payment-links"[^}]*action: "payments\.charge"/.test(nav));
 check("its buttons post to the existing door and nowhere else", /postJson\("\/api\/portal\/files", \{ action, fileId \}\)/.test(client) && (client.match(/postJson\(/g) ?? []).length === 1);
-check("and the door still asks payments.charge to invoice", /: can\(actor, "payments\.charge"\);/.test(route));
+/* The branch names invoice_account and asks payments.charge alone; the link actions, and only they, also take payments.send_link (the Killeen call, item 3). */
+check(
+  "and the door still asks payments.charge to invoice",
+  /action === "invoice_account"\s*\?\s*can\(actor, "payments\.charge"\)\s*:\s*can\(actor, "payments\.charge"\) \|\| can\(actor, "payments\.send_link"\);/.test(route),
+);
 check("the list reads every row rather than a first page", /readEvery</.test(list) && /readEveryIn</.test(list));
 check("and leaves demonstration files out by their flag", /\.not\("is_demo", "is", true\)/.test(list));
 

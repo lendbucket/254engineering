@@ -10,6 +10,7 @@ import { formatInFirmZone } from "@/lib/firm-calendar";
 import { LIST_NOT_LOADED } from "@/lib/outcome-copy";
 import { RetryButton } from "@/components/portal/Unreachable";
 import { ListControls, Pager, listHref } from "@/components/portal/ListControls";
+import { ContactLogInRow } from "@/components/portal/ContactLog";
 import { INQUIRY_PAGE_SIZE, inquiryListQuery } from "@/lib/inquiry-list";
 import { LIST_EXPORT_GRANT } from "@/lib/list-exports";
 
@@ -195,7 +196,8 @@ export default async function WindstormInquiriesPage({ searchParams }: { searchP
                         </span>
                       </p>
                       <p className="mt-0.5 text-[13.5px] text-[var(--secondary)]">
-                        {r.email}
+                        {/* A link, as the phone beside it is (Part 1 finding 21, 2026-11-14). */}
+                        <a href={`mailto:${r.email}`} className="font-semibold text-[var(--navy)] underline">{r.email}</a>
                         {r.phone ? <>, <PhoneLink phone={r.phone} /></> : ""}
                       </p>
                       <p className="mt-1.5 text-[13.5px] text-[var(--navy)]">{r.property_address}</p>
@@ -237,6 +239,16 @@ export default async function WindstormInquiriesPage({ searchParams }: { searchP
                   </p>
 
                   {r.responded_at === null ? <MarkAnswered inquiryId={r.id} name={r.name} /> : null}
+
+                  {/* The call log on this brief (0136), opened in place. */}
+                  <ContactLogInRow
+                    actor={actor}
+                    subject="windstorm_inquiry"
+                    subjectId={r.id}
+                    open={params.log === r.id}
+                    openHref={listHref("/portal/windstorm-inquiries", params, { log: r.id })}
+                    closeHref={listHref("/portal/windstorm-inquiries", { ...params, log: undefined }, {})}
+                  />
                 </li>
               );
             })}

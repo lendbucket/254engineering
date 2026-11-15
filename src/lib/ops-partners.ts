@@ -45,6 +45,16 @@ export function newVisitorKey(): string {
 export const VISITOR_TTL_DAYS = ATTRIBUTION_WINDOW_DAYS;
 
 /**
+ * The visitor key a job taken by telephone records its partner touch under.
+ * One home, because the intake writes it and the order raised for the file
+ * reads it (Part 1 finding 3, 2026-11-14). Not a browser cookie: a file has no
+ * visitor, and "file:" keeps it apart from both cookies and "order:" keys.
+ */
+export function fileTouchKey(fileId: string): string {
+  return `file:${fileId}`;
+}
+
+/**
  * Resolve a code to a partner, and only an ACTIVE one.
  *
  * A suspended partner's links stop working, which is the operator ruling in

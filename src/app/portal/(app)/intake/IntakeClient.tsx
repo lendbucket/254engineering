@@ -3,15 +3,17 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { quoteFor } from "@/lib/ops-orders";
+import { quoteFor, travelLabel, travelRefundTerms } from "@/lib/ops-orders";
 import { overrideFloor } from "@/config/trade-floors";
 import { resolveCounty, twiaStatus } from "@/lib/ops-counties";
 import { money, isKnown } from "@/lib/ops-money";
+import { CoverageNote } from "./CoverageNote";
 import {
   blockers,
   decidePrice,
   isNoCharge,
   landsAt,
+  landsWhenTaken,
   paymentOptions,
   MIN_OVERRIDE_REASON,
   type IntakeChannel,
@@ -34,6 +36,12 @@ import { JoinedWithPhone } from "@/components/portal/PhoneLink";
  */
 import type { DispatchContext } from "@/lib/ops-field";
 
+/*
+ * A label that is already a sentence keeps its own mark (intake-sentences.ts,
+ * checked over every field by a-sentence-is-punctuated-once).
+ */
+import { canFollowSentence, stillNeededSentence } from "@/lib/intake-sentences";
+
 type Deliverable = {
   serviceSlug: string;
   tier: string;
@@ -41,6 +49,8 @@ type Deliverable = {
   orderType: CatalogEntry["orderType"];
   priceCents: number | null;
   coastalSurchargeCents: number | null;
+  /** The refund terms the order will store, worked out on the server from the full entry. */
+  refundTerms: string[];
 };
 
 type ClientMatch = {
@@ -75,11 +85,14 @@ export function IntakeClient({
   ownerOverride = false,
   canOverridePrice = true,
   linkOnly = false,
+  canAddCoverage = false,
 }: {
   lines: { slug: string; name: string }[];
   deliverables: Deliverable[];
   counties: string[];
   prelaunch: boolean;
+  /** profiles.update: may add the county to a technician's coverage from the coverage note (the Killeen call, item 1). */
+  canAddCoverage?: boolean;
   /** pricing.override_at_intake. Without it the catalog price is charged as it is (2026-10-20); the server refuses anything else. */
   canOverridePrice?: boolean;
   /** payments.send_link without payments.charge: the payment link is the only route, and the server refuses another. */
@@ -120,9 +133,84 @@ export function IntakeClient({
   const [county, setCounty] = useState("");
   const [postalCode, setPostalCode] = useState("");
 
+  /*
+   * THE OPEN FILES ALREADY AT THIS ADDRESS (Robert, 2026-11-14), asked while
+   * the address is typed and said before the job is taken, each with a link.
+   * Keyed by the address it answered, so an answer for an address since edited
+   * is never shown; a failed read is said, never shown as none.
+   */
+  const [atAddress, setAtAddress] = useState<{
+    key: string;
+    files: { id: string; fileNumber: string; status: string; serviceSlug: string; isDemo: boolean }[] | null;
+    error: string | null;
+  } | null>(null);
+  const addressAsked = `${propertyAddress.trim()}|${city.trim()}`;
+  useEffect(() => {
+    if (propertyAddress.trim().length < 5) return;
+    let live = true;
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch("/api/portal/files", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "open_files_at_address", propertyAddress, city }),
+        });
+        const body = await res.json().catch(() => null);
+        if (!live) return;
+        setAtAddress(
+          body?.ok
+            ? { key: addressAsked, files: body.files, error: null }
+            : { key: addressAsked, files: null, error: body?.error ? String(body.error) : `the server answered ${res.status}` },
+        );
+      } catch {
+        if (live) setAtAddress({ key: addressAsked, files: null, error: "the request did not reach the server" });
+      }
+    }, 400);
+    return () => {
+      live = false;
+      clearTimeout(timer);
+    };
+  }, [propertyAddress, city, addressAsked]);
+  const openHere = atAddress && atAddress.key === addressAsked && propertyAddress.trim().length >= 5 ? atAddress : null;
+  const openHereNote = openHere ? (
+    openHere.error ? (
+      <p role="alert" className="mt-3 border-l-2 border-[var(--ink)] py-1 pl-3 text-[14px] leading-[1.55] text-[var(--ink)]">
+        Whether a file is already open at this address could not be read: {openHere.error}. Search Files for the address
+        before you take the job.
+      </p>
+    ) : openHere.files && openHere.files.length > 0 ? (
+      <div role="alert" className="mt-3 border-l-2 border-[var(--ink)] py-1 pl-3 text-[14px] leading-[1.55] text-[var(--ink)]">
+        <p className="font-semibold">
+          {openHere.files.length === 1
+            ? "A file is already open at this address. Open it before you take another job here."
+            : `${openHere.files.length} files are already open at this address. Open them before you take another job here.`}
+        </p>
+        <ul className="mt-1 flex flex-col gap-1">
+          {openHere.files.map((f) => (
+            <li key={f.id}>
+              <Link href={`/portal/files?id=${f.id}`} className="font-semibold text-[var(--navy)] underline">
+                {f.fileNumber}
+              </Link>
+              <span className="text-[var(--secondary)]">
+                {", "}
+                {lines.find((l) => l.slug === f.serviceSlug)?.name ?? f.serviceSlug}, {f.status.replace(/_/g, " ")}
+                {f.isDemo ? ", a demonstration file" : ""}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    ) : null
+  ) : null;
+
   // -------------------------------------------------------------- the money
   const [overridePrice, setOverridePrice] = useState("");
   const [overrideReason, setOverrideReason] = useState("");
+  /* Travel, typed by the administrator for this job (0135). */
+  const [travel, setTravelText] = useState("");
+  const [travelReason, setTravelReason] = useState("");
+  /* Needs travel: anyone who can take a job asks the administrator for it (Robert's ruling). */
+  const [needsTravel, setNeedsTravel] = useState(false);
   const [noChargeCode, setNoChargeCode] = useState("");
   const [noChargePassword, setNoChargePassword] = useState("");
 
@@ -154,6 +242,8 @@ export function IntakeClient({
 
   // ------------------------------------------------------------ how it came
   const [channel, setChannel] = useState<IntakeChannel | "">("phone");
+  /* The partner's code, when a partner sent them (Part 1 finding 3). Checked by takeJob before anything is written. */
+  const [partnerCode, setPartnerCode] = useState("");
   const [takenAt, setTakenAt] = useState("");
   const [notes, setNotes] = useState("");
 
@@ -174,6 +264,8 @@ export function IntakeClient({
     landedAt: string;
     landingWarning?: string;
     paymentLinkWarning?: string;
+    partnerWarning?: string;
+    alreadyTaken?: boolean;
   } | null>(null);
 
   /*
@@ -322,9 +414,18 @@ export function IntakeClient({
    * be asking about a job nobody has described yet.
    */
   const fields = useMemo(
-    () => (serviceSlug && tier ? fieldsFor(serviceSlug, tier) : []),
+    /*
+     * copy_to is the customer form's free text "Who else should receive a copy".
+     * On the telephone it is asked as contacts, each with a role and an email,
+     * below (the Killeen call, item 2; 0132), so it is not asked twice here.
+     */
+    () => (serviceSlug && tier ? fieldsFor(serviceSlug, tier).filter((f) => f.id !== "copy_to") : []),
     [serviceSlug, tier],
   );
+
+  /* Who else gets the letter, and who pays (item 2). */
+  const [contacts, setContacts] = useState<{ role: string; name: string; email: string }[]>([]);
+  const [payer, setPayer] = useState<number>(-1);
 
   /*
    * ORDER STAGE ONLY blocks submission. A field required before dispatch or
@@ -369,6 +470,7 @@ export function IntakeClient({
      */
     accountCanInvoice: false,
     priced: catalogCents !== null,
+    deliverableChosen: Boolean(entry),
   });
 
   const missing = blockers({
@@ -389,11 +491,21 @@ export function IntakeClient({
    * charged that the operator did not see.
    */
   const unreadablePrice = overridePrice.trim() !== "" && !Number.isFinite(enteredCents);
+  /* Travel: blank is none; anything typed is a whole amount above zero with a reason, as setTravel asks again on the server. */
+  const travelCents = travel.trim() ? Math.round(Number(travel) * 100) : null;
+  const travelError =
+    travelCents === null
+      ? null
+      : !Number.isFinite(travelCents) || travelCents <= 0
+        ? "Type the travel as a plain number of dollars above zero, such as 85 or 85.50."
+        : travelReason.trim().length < MIN_OVERRIDE_REASON
+          ? `Say why there is travel, in at least ${MIN_OVERRIDE_REASON} characters. Staff read it; the customer does not.`
+          : null;
   const priceError = unreadablePrice
     ? "Type the price as a plain number of dollars, such as 1200 or 1200.50, with no dollar sign or commas."
     : "error" in priceDecision
       ? priceDecision.error
-      : null;
+      : travelError;
   const canSubmit =
     missing.length === 0 &&
     missingToOrder.length === 0 &&
@@ -467,11 +579,16 @@ export function IntakeClient({
           dueAt: dueAt || null,
           notes: notes || null,
           channel,
+          partnerCode: partnerCode.trim() || null,
+          contacts: contacts.map((c, i) => ({ role: c.role, name: c.name.trim() || null, email: c.email.trim(), pays: payer === i })),
           takenAt: takenAt || null,
           answers,
           priceCents: "overridden" in priceDecision && priceDecision.overridden ? priceDecision.cents : null,
           priceOverrideReason:
             "overridden" in priceDecision && priceDecision.overridden ? priceDecision.reason : null,
+          travelCents: canOverridePrice && entry?.orderType === "field" && travelCents !== null && !travelError ? travelCents : null,
+          travelReason: travelReason.trim() || null,
+          needsTravel: entry?.orderType === "field" && needsTravel && travelCents === null,
           noChargeCode: noCharge && !ownerOverride ? noChargeCode : null,
           noChargePassword: noCharge && ownerOverride ? noChargePassword : null,
           draftId,
@@ -491,7 +608,26 @@ export function IntakeClient({
         setBusy(false);
         return;
       }
+      /*
+       * LAND ON THE FILE, NOT A PANEL OR A LIST. The Killeen call, item 3: the
+       * file shows the payment link's status, a resend, the next step and its
+       * owner, and the dispatch plan when it is ready to place. Whatever went
+       * wrong on the way travels with it and is said at the top of the file.
+       */
+      const warn = [
+        body.alreadyTaken ? `This job had already been saved, as ${body.fileNumber}. Nothing was saved a second time: no second file and no second payment link.` : null,
+        body.landingWarning ? `The file was created and could not be moved on: ${body.landingWarning} It is at intake. Move it on from this file.` : null,
+        body.paymentLinkWarning ? `${body.paymentLinkWarning} The customer has not been asked to pay.` : null,
+        body.partnerWarning ?? null,
+        body.contactsWarning ?? null,
+        body.travelWarning ?? null,
+        body.travelRequestWarning ?? null,
+        body.travelRequested ?? null,
+      ].filter(Boolean) as string[];
+      const to = new URLSearchParams({ id: String(body.fileId), taken: "1" });
+      for (const w of warn) to.append("warn", w);
       setDone(body);
+      router.push(`/portal/files?${to.toString()}`);
       setBusy(false);
     } catch {
       setError("The network dropped that. Nothing was saved.");
@@ -512,19 +648,34 @@ export function IntakeClient({
             ? "The file is open and waiting for a technician. Offer it below while you are still on the call, or leave it in the queue for somebody to pick up."
             : done.landedAt === "evidence_submitted"
               ? "The file is open and in the engineer's review queue. There is nothing to dispatch: desk work arrives with its evidence attached."
-              : "The file is open and sitting at intake. A quote has nothing to dispatch and nothing to review until somebody accepts a number."}
+              : entry && entry.orderType !== "quote"
+                ? "The file is open and waiting at intake for its payment. The payment moves it on by itself."
+                : "The file is open and sitting at intake. A quote has nothing to dispatch and nothing to review until somebody accepts a number."}
         </p>
+
+        {done.alreadyTaken ? (
+          <p className="mt-3 border-l-2 border-[var(--ink)] py-1 pl-3 text-[14px] leading-[1.55] text-[var(--ink)]">
+            This job had already been saved, as {done.fileNumber}. Nothing was saved a second time: no second file,
+            and no second payment link. Open the file to see where it stands.
+          </p>
+        ) : null}
 
         {done.landingWarning ? (
           <p className="mt-3 border-l-2 border-[var(--ink)] py-1 pl-3 text-[14px] leading-[1.55] text-[var(--ink)]">
-            The file was created and could not be moved on: {done.landingWarning} It is at intake and
-            somebody has to move it by hand.
+            The file was created and could not be moved on: {done.landingWarning} It is at intake. Move it on from
+            the file.
           </p>
         ) : null}
 
         {done.paymentLinkWarning ? (
           <p className="mt-3 border-l-2 border-[var(--ink)] py-1 pl-3 text-[14px] leading-[1.55] text-[var(--ink)]">
             {done.paymentLinkWarning} The customer has not been asked to pay, and the file says the link was not sent.
+          </p>
+        ) : null}
+
+        {done.partnerWarning ? (
+          <p className="mt-3 border-l-2 border-[var(--ink)] py-1 pl-3 text-[14px] leading-[1.55] text-[var(--ink)]">
+            {done.partnerWarning}
           </p>
         ) : null}
 
@@ -790,7 +941,8 @@ export function IntakeClient({
               onChange={(e) => setDueAt(e.target.value)}
               className={fieldClass}
             />
-            <p className={hint}>Optional. If they named a closing or a permit date, put it here.</p>
+            {/* The closing or permit date is asked once, below, and becomes the due date (the Killeen call, item 2). */}
+            <p className={hint}>Optional. A closing or permit date the caller gives below becomes the due date; set one here only to use a different date.</p>
           </div>
         </div>
       </Section>
@@ -831,6 +983,8 @@ export function IntakeClient({
           </div>
         </div>
 
+        {openHereNote}
+
         {/* What the platform actually resolved, shown back rather than assumed. */}
         <div className="mt-4 border-t-2 border-[var(--ink)] pt-3">
           {effectiveCounty ? (
@@ -845,6 +999,8 @@ export function IntakeClient({
               No county yet. Dispatch matches on county, so this has to resolve before the job can go anywhere.
             </p>
           )}
+          {/* Who could take it, before it is taken (the Killeen call, item 1). */}
+          <CoverageNote serviceSlug={serviceSlug} county={effectiveCounty ?? null} canAddCoverage={canAddCoverage} />
         </div>
       </Section>
 
@@ -891,7 +1047,7 @@ export function IntakeClient({
               <ul className="mt-1.5 flex flex-col gap-1">
                 {outstandingLater.map((f) => (
                   <li key={f.id} className="text-[13px] leading-[1.5] text-[var(--secondary)]">
-                    {f.label}, needed before {f.stage === "dispatch" ? "a technician is sent" : "it can be sealed"}.
+                    {canFollowSentence(f.label, f.stage)}
                   </li>
                 ))}
               </ul>
@@ -899,6 +1055,92 @@ export function IntakeClient({
           ) : null}
         </Section>
       ) : null}
+
+      {/* ----------------------------- who else gets the letter, who pays */}
+      {/*
+        THE KILLEEN CALL, ITEM 2: "who else gets the letter (agent, lender,
+        title, each with a role and an email), and who pays". Saved as contacts
+        on the file (0132); the one who pays is who the payment link goes to.
+      */}
+      <Section title="Who else gets the letter, and who pays">
+        {contacts.length === 0 ? (
+          <p className="text-[14px] text-[var(--secondary)]">Nobody else yet. Ask: should an agent, a lender or a title company get a copy?</p>
+        ) : (
+          <ul className="flex flex-col gap-3">
+            {contacts.map((c, i) => (
+              <li key={i} className="grid gap-2 sm:grid-cols-[160px_1fr_1fr_auto] sm:items-end">
+                <div>
+                  <label htmlFor={`contact-role-${i}`} className={label}>Role</label>
+                  <select
+                    id={`contact-role-${i}`}
+                    value={c.role}
+                    onChange={(e) => setContacts((all) => all.map((x, j) => (j === i ? { ...x, role: e.target.value } : x)))}
+                    className={fieldClass}
+                  >
+                    <option value="agent">Agent</option>
+                    <option value="lender">Lender</option>
+                    <option value="title">Title company</option>
+                    <option value="other">Somebody else</option>
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor={`contact-name-${i}`} className={label}>Name</label>
+                  <input
+                    id={`contact-name-${i}`}
+                    value={c.name}
+                    onChange={(e) => setContacts((all) => all.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))}
+                    className={fieldClass}
+                  />
+                </div>
+                <div>
+                  <label htmlFor={`contact-email-${i}`} className={label}>Email</label>
+                  <input
+                    id={`contact-email-${i}`}
+                    type="email"
+                    value={c.email}
+                    onChange={(e) => setContacts((all) => all.map((x, j) => (j === i ? { ...x, email: e.target.value } : x)))}
+                    className={fieldClass}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setContacts((all) => all.filter((_, j) => j !== i));
+                    setPayer((p) => (p === i ? -1 : p > i ? p - 1 : p));
+                  }}
+                  className="inline-flex min-h-[44px] items-center px-2 text-[14px] font-semibold text-[var(--navy)] underline"
+                >
+                  Remove
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        <button
+          type="button"
+          onClick={() => setContacts((all) => [...all, { role: "agent", name: "", email: "" }])}
+          className="mt-3 inline-flex min-h-[44px] items-center rounded-[2px] border border-[var(--border)] px-3 text-[14px] font-semibold text-[var(--navy)]"
+        >
+          Add somebody who gets a copy
+        </button>
+
+        <fieldset className="mt-5">
+          <legend className={label}>Who pays</legend>
+          <div className="mt-1.5 flex flex-col gap-1.5">
+            <label className="flex min-h-[44px] items-center gap-2 text-[14px] text-[var(--ink)]">
+              <input type="radio" name="payer" checked={payer === -1} onChange={() => setPayer(-1)} />
+              The caller (the client)
+            </label>
+            {contacts.map((c, i) => (
+              <label key={i} className="flex min-h-[44px] items-center gap-2 text-[14px] text-[var(--ink)]">
+                <input type="radio" name="payer" checked={payer === i} onChange={() => setPayer(i)} />
+                {c.name.trim() || c.email.trim() || `Contact ${i + 1}`}, the {c.role === "title" ? "title company" : c.role === "other" ? "contact" : c.role}
+              </label>
+            ))}
+          </div>
+          <p className={hint}>The payment link goes to whoever pays.</p>
+        </fieldset>
+      </Section>
 
       {/* -------------------------------------------------------- the price */}
       <Section title="The price">
@@ -924,8 +1166,35 @@ export function IntakeClient({
                 {catalogCents === null ? "not set" : money(catalogCents)}
               </dd>
             </div>
+            {/* Travel, read back on its own line in the words the customer reads (0135, answer 15). */}
+            {travelCents !== null && !travelError ? (
+              <div className="flex items-baseline justify-between gap-4">
+                <dt className="text-[14px] text-[var(--ink)]">{travelLabel(effectiveCounty ?? county)}</dt>
+                <dd className="text-[15px] font-semibold text-[var(--ink)]">{money(travelCents)}</dd>
+              </div>
+            ) : null}
           </dl>
         )}
+        {/*
+          THE REFUND TERMS, READ TO THE CALLER. The approved call script says
+          "the refund terms, read exactly as New job shows them", and until now
+          New job showed none. These are the sentences the order stores
+          (createOrderForFile), from the same refundDisclosure the web uses, so
+          what is read on the telephone is what the order will say.
+        */}
+        {entry ? (
+          <div className="mt-4">
+            <p className={label}>Refund terms, read to the caller</p>
+            <ul className="mt-1.5 flex max-w-[72ch] flex-col gap-1.5">
+              {[
+                ...entry.refundTerms,
+                ...(travelCents !== null && !travelError ? [travelRefundTerms(travelCents, effectiveCounty ?? county)] : []),
+              ].map((line) => (
+                <li key={line} className="text-[14px] leading-[1.55] text-[var(--ink)]">{line}</li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
 
         {canOverridePrice ? (
         <>
@@ -956,10 +1225,46 @@ export function IntakeClient({
           The catalog price stays on the file either way. A price that changed with no record of who
           changed it or why is a dispute the firm loses.
         </p>
+        {entry?.orderType === "field" ? (
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <div>
+              <label htmlFor="travel" className={label}>Travel</label>
+              <input
+                id="travel"
+                inputMode="decimal"
+                value={travel}
+                onChange={(e) => setTravelText(e.target.value)}
+                className={fieldClass}
+                placeholder="Leave blank for none"
+              />
+            </div>
+            <div>
+              <label htmlFor="travelReason" className={label}>Why there is travel</label>
+              <input
+                id="travelReason"
+                value={travelReason}
+                onChange={(e) => setTravelReason(e.target.value)}
+                className={fieldClass}
+                placeholder={`At least ${MIN_OVERRIDE_REASON} characters, for staff only`}
+              />
+            </div>
+          </div>
+        ) : null}
         </>
         ) : (
           <p className={hint}>The catalog price is charged as it is. An administrator can change a price.</p>
         )}
+        {/*
+          NEEDS TRAVEL (Robert's ruling): anyone who can take a job asks the
+          administrator, who sets the amount. The payment link waits for it and
+          goes by itself when it is set. Not offered once an amount is typed.
+        */}
+        {entry?.orderType === "field" && travelCents === null ? (
+          <label className="mt-4 flex min-h-[44px] items-center gap-2 text-[14px] text-[var(--ink)]">
+            <input type="checkbox" checked={needsTravel} onChange={(e) => setNeedsTravel(e.target.checked)} />
+            Needs travel. The administrator sets the amount, and the payment link goes when it is set.
+          </label>
+        ) : null}
         {noCharge && ownerOverride ? (
           <div className="mt-4">
             <label htmlFor="noChargePassword" className={label}>
@@ -1053,6 +1358,21 @@ export function IntakeClient({
             </select>
           </div>
           <div>
+            <label htmlFor="partnerCode" className={label}>Partner code</label>
+            <input
+              id="partnerCode"
+              value={partnerCode}
+              onChange={(e) => setPartnerCode(e.target.value)}
+              autoComplete="off"
+              className={fieldClass}
+            />
+            <p className={hint}>
+              {channel === "partner"
+                ? "Ask for the partner's code. It credits the partner by the same rules as a code typed at checkout."
+                : "Optional. Only if the caller gives a partner's code."}
+            </p>
+          </div>
+          <div>
             <label htmlFor="takenAt" className={label}>When the call happened</label>
             <input
               id="takenAt"
@@ -1072,6 +1392,8 @@ export function IntakeClient({
 
       {/* --------------------------------------------------------- the tail */}
       <div className="border-t-2 border-[var(--ink)] pt-3">
+        {/* Said again where the job is taken, so it is read before the press and not only while typing. */}
+        {openHereNote ? <div className="mb-3">{openHereNote}</div> : null}
         {missing.length > 0 || missingToOrder.length > 0 ? (
           <div className="mb-3">
             <p className="text-[14px] font-semibold text-[var(--ink)]">Still needed</p>
@@ -1081,7 +1403,7 @@ export function IntakeClient({
               ))}
               {missingToOrder.map((f) => (
                 <li key={f.id} className="text-[14px] leading-[1.5] text-[var(--secondary)]">
-                  {f.label}.
+                    {stillNeededSentence(f.label)}
                 </li>
               ))}
             </ul>
@@ -1090,13 +1412,15 @@ export function IntakeClient({
           <p className="mb-3 text-[14px] leading-[1.55] text-[var(--secondary)]">
             This will open a file and put it at{" "}
             <span className="font-semibold text-[var(--ink)]">
-              {landsAt(entry.orderType) === "needs_dispatch"
+              {landsWhenTaken(entry.orderType, paymentIntent) === "needs_dispatch"
                 ? "needs dispatch"
-                : landsAt(entry.orderType) === "evidence_submitted"
+                : landsWhenTaken(entry.orderType, paymentIntent) === "evidence_submitted"
                   ? "the review queue"
                   : "intake"}
             </span>
-            .
+            {landsWhenTaken(entry.orderType, paymentIntent) === "intake" && landsAt(entry.orderType) !== "intake"
+              ? `. The payment moves it to ${landsAt(entry.orderType) === "needs_dispatch" ? "needs dispatch" : "the review queue"}.`
+              : "."}
           </p>
         ) : null}
 

@@ -271,6 +271,47 @@ const DOCUMENT: IntakeField[] = [
     applies: "all",
     group: "document",
   },
+  /*
+   * WHAT THE CALLER'S REPORT SAYS, ASKED ON THE TELEPHONE. The Killeen call,
+   * item 2 (Robert, 2026-11-14): "what the inspection report says (the items, in
+   * the caller's words), report pages and photos uploaded on the same screen ...
+   * No more burying these in Notes." Firm audience: New job asks them; the
+   * customer's own order form does not, because adding a question there is
+   * customer copy and waits for Robert.
+   */
+  {
+    id: "report_items",
+    label: "What the inspection report says, in the caller's words",
+    help: "Each item the caller is asking about, as they say it. For example: cracked brick over the garage; the hallway floor slopes.",
+    kind: "longtext",
+    required: false,
+    stage: "order",
+    audience: "firm",
+    applies: "all",
+    group: "document",
+  },
+  {
+    id: "report_pages",
+    label: "The inspection report pages",
+    help: "The pages that describe the items, if the caller can send them.",
+    kind: "file",
+    required: false,
+    stage: "order",
+    audience: "firm",
+    applies: "all",
+    group: "document",
+  },
+  {
+    id: "report_photos",
+    label: "Photos of the items",
+    kind: "file",
+    photo: true,
+    required: false,
+    stage: "order",
+    audience: "firm",
+    applies: "all",
+    group: "document",
+  },
 ];
 
 /**
@@ -350,6 +391,30 @@ const ACCESS: IntakeField[] = [
     stage: "dispatch",
     audience: "customer",
     applies: "field",
+    group: "access",
+  },
+  /*
+   * ATTIC ACCESS, ASKED ON THE TELEPHONE (the Killeen call, item 2). Every field
+   * line but roof certifications, whose signed protocol asks it in its own words
+   * (rc001_q13), so the rep is never asked it twice. Firm audience, for the same
+   * reason as the report questions: the customer form waits for Robert.
+   */
+  {
+    id: "attic_access",
+    label: "Can the technician get into the attic",
+    kind: "select",
+    options: ["Yes", "No", "Not sure"],
+    required: false,
+    stage: "dispatch",
+    audience: "firm",
+    applies: [
+      "foundation-inspections",
+      "manufactured-home-foundation-certifications",
+      "repair-specifications",
+      "solar-structural-letters",
+      "structural-letters",
+      "windstorm-wpi-8",
+    ],
     group: "access",
   },
   {

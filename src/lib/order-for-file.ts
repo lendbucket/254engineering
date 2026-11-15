@@ -107,6 +107,14 @@ export async function orderForFileRead(
     .from("eng_service_orders")
     .select(`id, status, created_at, ${columns}`)
     .eq("file_id", fileId)
+    /*
+     * JOB ORDERS ONLY (0134). A trip fee is a second order on the file for a
+     * visit that could not get in, and it is never the engagement: once paid it
+     * would rank beside the job's own order and, being newer, win, so a
+     * partner's commission, the job's refund and the technician's job pay
+     * would all read $125. Robert's answers 8 to 10 of 2026-11-14.
+     */
+    .eq("kind", "job")
     .order("created_at", { ascending: false })
     .limit(10);
 

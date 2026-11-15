@@ -11,6 +11,7 @@ import { ErrorState, PageHead, Panel } from "@/components/portal/surfaces";
 import { ContactLogPanel } from "@/components/portal/ContactLog";
 import { ActionButton } from "@/components/portal/staff-kit";
 import { RequestRefund } from "../../refunds/RefundClient";
+import { PrintButton } from "../../intake/script/PrintButton";
 
 export const dynamic = "force-dynamic";
 
@@ -45,9 +46,12 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
         title={o.reference}
         lede={`${o.status.replace(/_/g, " ")}. ${o.propertyAddress}${o.city ? `, ${o.city}` : ""}, ${o.county} County.`}
         actions={
-          <Link href="/portal/order-lookup" className="inline-flex min-h-[44px] items-center text-[14px] font-semibold text-[var(--navy)] underline print:hidden">
-            Back to orders
-          </Link>
+          <>
+            <PrintButton label="Print this order" />
+            <Link href="/portal/order-lookup" className="inline-flex min-h-[44px] items-center text-[14px] font-semibold text-[var(--navy)] underline print:hidden">
+              Back to orders
+            </Link>
+          </>
         }
       />
       <Panel title="Summary">

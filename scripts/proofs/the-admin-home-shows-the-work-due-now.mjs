@@ -23,9 +23,18 @@ const desk = readFileSync("src/lib/staff-desk.ts", "utf8");
 const home = readFileSync("src/app/portal/(app)/page.tsx", "utf8");
 check(
   "the administrator's due tiles are the desk's own, from deskDashboard, so the two homes count one way",
-  /if \(can\(actor, "crm\.use"\)\) \{\s*const desk = await deskDashboard\(actor\);\s*due = desk\.tiles;/.test(dash),
+  /* Batch B (2026-11-14): started beside the dashboard's other reads, awaited where it is used. */
+  /const deskRead = can\(actor, "crm\.use"\) \? deskDashboard\(actor\) : null;/.test(dash) &&
+    /if \(deskRead\) \{\s*const desk = await deskRead;\s*due = desk\.tiles;/.test(dash),
 );
-check("only for an administrator who works the desk (crm.use), so a read only viewer gets no uncountable tiles", /if \(can\(actor, "crm\.use"\)\) \{\s*const desk = await deskDashboard/.test(dash));
+check(
+  "only for an administrator who works the desk (crm.use), so a read only viewer gets no uncountable tiles",
+  (() => {
+    /* The administrator's own body: the role dispatch further down calls deskDashboard for the desk roles too. */
+    const admin = dash.slice(dash.indexOf("async function adminDashboard("), dash.indexOf("\n}\n", dash.indexOf("async function adminDashboard(")));
+    return /const deskRead = can\(actor, "crm\.use"\) \? deskDashboard\(actor\) : null;/.test(admin) && (admin.match(/deskDashboard\(actor\)/g) ?? []).length === 1;
+  })(),
+);
 check("what the desk could not count is said on the administrator's home too", /notComputable\.push\(\.\.\.desk\.notComputable\)/.test(dash));
 check("the due tiles' links are pruned for whoever cannot open them, like every other tile", /if \("due" in next\) next\.due = next\.due\.map\(prune\);/.test(dash));
 const five = ["New inquiries", "Follow-ups due", "Unassigned jobs", "Holds", "Refund requests"];

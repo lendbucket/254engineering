@@ -419,11 +419,21 @@ const PORTED = [
    */
   "src/app/portal/(app)/files/FileSelection.tsx",
   "src/app/portal/(app)/files/page.tsx",
+  /* The Killeen call of 2026-11-14: the resend on the file and the coverage note on New job. */
+  "src/app/portal/(app)/files/ResendPaymentLink.tsx",
+  /* The trip fee (0134): the office's button on the file and the technician's on the job. */
+  "src/app/portal/(app)/files/SendTripFee.tsx",
+  "src/app/portal/(app)/files/SetTravel.tsx",
+  "src/app/portal/(app)/files/RequestTravel.tsx",
+  "src/app/portal/(app)/jobs/[id]/NoAccess.tsx",
   // Phase 10 Section 1, the telephone call path.
   "src/app/portal/(app)/roles/page.tsx",
   "src/app/portal/(app)/roles/RolesClient.tsx",
   "src/app/portal/(app)/intake/page.tsx",
   "src/app/portal/(app)/intake/IntakeClient.tsx",
+  "src/app/portal/(app)/intake/CoverageNote.tsx",
+  "src/app/portal/(app)/intake/script/page.tsx",
+  "src/app/portal/(app)/intake/script/PrintButton.tsx",
   "src/app/portal/(app)/jobs/JobsClient.tsx",
   // Offer alerts on the technician's phone, Robert's T9 of 2026-11-07.
   "src/app/portal/(app)/jobs/OfferAlerts.tsx",
@@ -838,6 +848,17 @@ const STAFF_V10 = [
   "src/app/portal/(app)/files/FileClient.tsx",
   "src/app/portal/(app)/files/FileSelection.tsx",
   "src/app/portal/(app)/files/DispatchPanel.tsx",
+  /* The Killeen call of 2026-11-14: held to V10 with the screens they sit on. */
+  "src/app/portal/(app)/files/ResendPaymentLink.tsx",
+  /* The trip fee (0134), held to V10 with the screens they sit on. */
+  "src/app/portal/(app)/files/SendTripFee.tsx",
+  "src/app/portal/(app)/files/SetTravel.tsx",
+  "src/app/portal/(app)/files/RequestTravel.tsx",
+  "src/app/portal/(app)/jobs/[id]/NoAccess.tsx",
+  "src/app/portal/(app)/intake/CoverageNote.tsx",
+  /* The printable call script (C7), 2026-11-14, held to the staff rules from its first commit. */
+  "src/app/portal/(app)/intake/script/page.tsx",
+  "src/app/portal/(app)/intake/script/PrintButton.tsx",
   /*
    * STAGE 3, 2026-10-03: the technician's screens. His offers list, the job he
    * is standing on, the capture screen itself, and the files waiting on an

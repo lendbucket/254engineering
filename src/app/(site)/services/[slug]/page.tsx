@@ -12,6 +12,7 @@ import { Section, SectionHead } from "@/components/ui/section";
 import { buildMetadata } from "@/lib/seo";
 import { JsonLd, breadcrumbSchema, faqSchema, serviceSchema } from "@/lib/schema";
 import { serviceBySlug, services } from "@/content/services";
+import { insightBySlug } from "@/content/insights";
 import { regions } from "@/content/regions";
 import { turnaroundCopy } from "@/content/model-copy";
 import { servicePhotos } from "@/content/photos";
@@ -60,10 +61,30 @@ function longDate(iso: string): string {
 /** The lines a roofing company orders, which carry the link to the roofer partner application (Robert, 2026-11-05). */
 const ROOFER_LINES = new Set(["roof-inspections", "windstorm-wpi-8", "repair-specifications"]);
 
+/*
+ * FURTHER READING: each service page's matching guide, one line under "Who
+ * orders one" (Robert's answer 23 of 2026-11-14, from the SEO report's quick
+ * win 4, which asked for the roofers guide on the roof service page). The
+ * anchor is the guide's own H1, so it describes where it goes. Design has no
+ * guide yet and carries no line. scripts/proofs/a-service-page-names-its-guide.mjs
+ * asserts every slug here is a published guide.
+ */
+const FURTHER_READING: Record<string, string> = {
+  "roof-inspections": "engineer-letter-for-roofers",
+  "windstorm-wpi-8": "wpi-8-certificate",
+  "foundation-inspections": "foundation-inspection-cost",
+  "solar-structural-letters": "engineer-letter-solar-permit-texas",
+  "manufactured-home-foundation-certifications": "manufactured-home-foundation-certification-loans",
+  "structural-letters": "structural-engineer-report",
+  "repair-specifications": "foundation-engineer-vs-repair-company",
+};
+
 export default async function ServicePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const service = serviceBySlug(slug);
   if (!service) notFound();
+  const guideSlug = FURTHER_READING[service.slug];
+  const guide = guideSlug ? insightBySlug(guideSlug) : undefined;
 
   /*
    * The quoted scope only while its protocol's signature reads as live, read
@@ -198,6 +219,15 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
                   </li>
                 ))}
               </ul>
+              {guide ? (
+                <p data-further-reading className="mt-9 text-[0.98rem] leading-[1.7] text-slate-muted">
+                  Further reading:{" "}
+                  <Link href={`/insights/${guide.slug}`} className="font-semibold text-slate underline">
+                    {guide.h1}
+                  </Link>
+                  .
+                </p>
+              ) : null}
               {/* Roofing companies: the partner application (Robert, 2026-11-05), on the three lines a roofer orders. */}
               {ROOFER_LINES.has(service.slug) ? (
                 <div className="mt-9 border-l-4 border-brass bg-white px-5 py-[18px]">

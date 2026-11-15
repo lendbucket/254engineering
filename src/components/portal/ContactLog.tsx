@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { can, type Actor } from "@/lib/ops-authz";
 import { canReadContactLog, contactLogFor } from "@/lib/ops-contact-log";
 import { OUTCOME_LABEL, type ContactSubject } from "@/lib/contact-log-rules";
@@ -65,5 +66,49 @@ export async function ContactLogPanel({
         )}
       </div>
     </Panel>
+  );
+}
+
+/**
+ * THE CALL LOG ON A RECORD THAT LIVES IN A LIST (0136). An inquiry has no
+ * screen of its own, so its row carries one link that opens its log in place
+ * (?log=<id>), keeping the list's search and filters, and the open row shows
+ * the panel with a link to close it. Renders nothing for a role that cannot
+ * read this kind of record's log.
+ */
+export async function ContactLogInRow({
+  actor,
+  subject,
+  subjectId,
+  open,
+  openHref,
+  closeHref,
+}: {
+  actor: Actor | null;
+  subject: ContactSubject;
+  subjectId: string;
+  open: boolean;
+  openHref: string;
+  closeHref: string;
+}) {
+  if (!canReadContactLog(actor, subject)) return null;
+  if (!open) {
+    return (
+      <p className="mt-3 text-[14px]">
+        <Link href={`${openHref}#log-${subjectId}`} className="font-semibold text-[var(--navy)] underline">
+          Calls and notes
+        </Link>
+      </p>
+    );
+  }
+  return (
+    <div id={`log-${subjectId}`}>
+      <ContactLogPanel actor={actor} subject={subject} subjectId={subjectId} className="mt-4" />
+      <p className="mt-2 text-[14px]">
+        <Link href={closeHref} className="font-semibold text-[var(--navy)] underline">
+          Close the calls and notes
+        </Link>
+      </p>
+    </div>
   );
 }

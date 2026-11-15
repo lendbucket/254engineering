@@ -46,7 +46,15 @@ const lib = readSource("src/lib/franchisor-report.ts");
 check("B: the report asks franchise.manage first", /if \(!actor \|\| !can\(actor, "franchise\.manage"\)\) return refuse\(/.test(lib));
 check(
   "B: every franchisee's territory is read in one pass, through the one reader",
-  (lib.match(/territoryFactsForMany\(/g) ?? []).length === 1 && !/territoryFacts\(/.test(lib) && /const territory = await territoryFactsForMany\(db, franchiseeIds\);/.test(lib),
+  /* Batch B (2026-11-14): read beside the start dates in one Promise.all, still once and through the one reader. */
+  (lib.match(/territoryFactsForMany\(/g) ?? []).length === 1 &&
+    !/territoryFacts\(/.test(lib) &&
+    /const \[started, territory\] = await Promise\.all\(\[[\s\S]*?territoryFactsForMany\(db, franchiseeIds\),\s*\]\);/.test(lib),
+);
+check(
+  "B: each franchisee's onboarding is read once, in franchisee order, and a failure refuses the whole report",
+  /onboardings\.push\(\.\.\.\(await Promise\.all\(franchiseeIds\.slice\(i, i \+ 8\)\.map\(\(id\) => onboardingStepsFor\(db, id\)\)\)\)\);/.test(lib) &&
+    /const onboarding = onboardings\[index\];\s*if \(!onboarding\.ok\) return refuse\(onboarding\.error\);/.test(lib),
 );
 check("B: a month whose statement total is unknown stays unknown", /dueThisMonthCents: dueRow \? dueRow\.totalCents : 0,/.test(lib) && !/totalCents \?\? 0/.test(lib));
 check("B: an unknown month's revenue stays unknown", /revenueThisMonthCents: monthOf\(thisMonth\) \? monthOf\(thisMonth\)!\.revenueCents : 0,/.test(lib));

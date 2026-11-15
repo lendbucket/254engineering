@@ -176,7 +176,7 @@ export async function accrueForDelivery(fileId: string): Promise<AccrualResult> 
    * commission blocked with no figure, permanently, under the one-accrual-per-
    * file index.
    */
-  const orderRead = await orderForFileRead(fileId, "reference, total_cents");
+  const orderRead = await orderForFileRead(fileId, "reference, total_cents, travel_cents");
   if (!orderRead.ok) {
     return { ok: false, error: "The order on this file could not be read, so the commission could not be worked out. Nothing was written to the partner's ledger." };
   }
@@ -231,7 +231,11 @@ export async function accrueForDelivery(fileId: string): Promise<AccrualResult> 
 
   const commission = commissionForDelivery({
     terms,
-    orderTotalCents: order?.total_cents === null || order?.total_cents === undefined ? null : Number(order.total_cents),
+    /* Less any travel: no partner commission on travel (0135, Robert's answer 13 of 2026-11-14). */
+    orderTotalCents:
+      order?.total_cents === null || order?.total_cents === undefined
+        ? null
+        : Number(order.total_cents) - (order.travel_cents === null || order.travel_cents === undefined ? 0 : Number(order.travel_cents)),
     priorQualifyingCount,
   });
 

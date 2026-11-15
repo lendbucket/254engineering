@@ -1,7 +1,8 @@
-import { takeJob, searchClients, type TakeJobInput } from "@/lib/ops-job-intake";
-import { sendPaymentLink, invoiceAccount } from "@/lib/ops-job-billing";
+import { takeJob, searchClients, openFilesAtAddress, type TakeJobInput } from "@/lib/ops-job-intake";
+import { sendPaymentLink, resendPaymentLink, sendTripFeeLink, invoiceAccount, setTravel, requestTravel } from "@/lib/ops-job-billing";
 import { requestOutstanding } from "@/lib/ops-file-inputs";
-import { dispatchContext } from "@/lib/ops-field";
+import { dispatchContext, coveragePreview } from "@/lib/ops-field";
+import { addCoverageCounty } from "@/lib/tech-coverage";
 import { NextResponse, type NextRequest } from "next/server";
 import { currentActor, requestContext } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
@@ -109,6 +110,24 @@ async function handlePOST(request: NextRequest) {
   }
 
   /*
+   * TRAVEL ON A JOB, before its payment link (0135). setTravel asks
+   * pricing.override_at_intake itself and refuses once the order exists, so the
+   * rule lives in one place for this door and for New job.
+   */
+  /* NEEDS TRAVEL (Robert's ruling): anyone who can take a job asks; requestTravel asks files.create itself. */
+  if (action === "request_travel") {
+    const result = await requestTravel(actor, String(body?.fileId ?? ""));
+    return result.ok ? NextResponse.json({ ok: true, already: result.already }) : NextResponse.json({ ok: false, error: result.error }, { status: 400 });
+  }
+
+  if (action === "set_travel") {
+    const raw = body?.travelCents;
+    const cents = raw === null || raw === undefined || raw === "" ? null : Number(raw);
+    const result = await setTravel(actor, String(body?.fileId ?? ""), cents, String(body?.reason ?? ""));
+    return result.ok ? NextResponse.json({ ok: true, answered: result.answered }) : NextResponse.json({ ok: false, error: result.error }, { status: 400 });
+  }
+
+  /*
    * Client search, for the dedupe step inside the intake.
    *
    * Behind the same session as everything else here, and it returns only what
@@ -135,16 +154,18 @@ async function handlePOST(request: NextRequest) {
    * different act from writing the job down, and a coordinator who may do the
    * second should not automatically be able to do the first.
    */
-  if (action === "send_payment_link" || action === "invoice_account") {
+  if (action === "send_payment_link" || action === "resend_payment_link" || action === "send_trip_fee" || action === "invoice_account") {
     /*
-     * The link alone opens to payments.send_link (0079). Invoicing an account
-     * stays payments.charge: terms and credit are the administrator's. Neither
-     * branch can reach the proving charge, which asks payments.charge itself.
+     * The link alone opens to payments.send_link (0079), and so does sending it
+     * again (the Killeen call, item 3), and so does the trip fee link for a
+     * visit that could not get in (0134). Invoicing an account stays
+     * payments.charge: terms and credit are the administrator's. No branch can
+     * reach the proving charge, which asks payments.charge itself.
      */
     const permitted =
-      action === "send_payment_link"
-        ? can(actor, "payments.charge") || can(actor, "payments.send_link")
-        : can(actor, "payments.charge");
+      action === "invoice_account"
+        ? can(actor, "payments.charge")
+        : can(actor, "payments.charge") || can(actor, "payments.send_link");
     if (!permitted) {
       return NextResponse.json({ ok: false, error: "Not permitted." }, { status: 403 });
     }
@@ -152,7 +173,11 @@ async function handlePOST(request: NextRequest) {
     const result =
       action === "send_payment_link"
         ? await sendPaymentLink(actor, fileId)
-        : await invoiceAccount(actor, fileId);
+        : action === "resend_payment_link"
+          ? await resendPaymentLink(actor, fileId)
+          : action === "send_trip_fee"
+            ? await sendTripFeeLink(actor, fileId)
+            : await invoiceAccount(actor, fileId);
 
     return result.ok
       ? NextResponse.json(result)
@@ -205,6 +230,34 @@ async function handlePOST(request: NextRequest) {
 
     const context = await dispatchContext(actor, file);
     return NextResponse.json({ ok: true, dispatch: context });
+  }
+
+  /*
+   * Who could take a job in this county on this line, asked on New job before
+   * the job is taken (the Killeen call, item 1). coveragePreview decides who
+   * may see names; anybody who takes jobs gets the sentence.
+   */
+  if (action === "coverage_preview") {
+    if (!can(actor, "files.create") && !can(actor, "offers.dispatch")) {
+      return NextResponse.json({ ok: false, error: "Not permitted." }, { status: 403 });
+    }
+    const preview = await coveragePreview(actor, String(body?.serviceSlug ?? ""), String(body?.county ?? ""));
+    return NextResponse.json({ ok: true, preview });
+  }
+
+  /* The open files already at this address, asked on New job before the job is taken (Robert, 2026-11-14). */
+  if (action === "open_files_at_address") {
+    if (!can(actor, "files.create")) {
+      return NextResponse.json({ ok: false, error: "Not permitted." }, { status: 403 });
+    }
+    const read = await openFilesAtAddress(actor, String(body?.propertyAddress ?? ""), body?.city ? String(body.city) : null);
+    return read.ok ? NextResponse.json(read) : NextResponse.json({ ok: false, error: read.error }, { status: 500 });
+  }
+
+  /* Add the county to a technician's coverage in one step (the Killeen call, item 1). addCoverageCounty asks profiles.update itself. */
+  if (action === "add_coverage_county") {
+    const result = await addCoverageCounty(actor, String(body?.techId ?? ""), String(body?.county ?? ""));
+    return result.ok ? NextResponse.json(result) : NextResponse.json({ ok: false, error: result.error }, { status: 400 });
   }
 
   if (action === "create_file") {
