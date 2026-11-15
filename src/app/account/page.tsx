@@ -230,6 +230,17 @@ export default async function AccountHomePage() {
             device, this one included, and setting a new password does the same.
           </p>
           <SignOutEverywhereButton />
+          {/*
+            The way to a new password while signed in (walk 2, 2026-11-15): the
+            sentence above names it, and until now nothing on the account led to
+            it. The recovery form emails a link to the account's own address.
+          */}
+          <Link
+            href="/account/forgot-password"
+            className="mt-4 inline-flex min-h-[var(--tap-target)] items-center text-[15px] font-semibold text-[var(--color-link)]"
+          >
+            Set a new password
+          </Link>
         </section>
 
         {me.account.billingMode === "invoice" ? (

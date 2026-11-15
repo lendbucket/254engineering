@@ -1,8 +1,6 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { Wordmark } from "@/components/brand/Wordmark";
-import { currentCustomer } from "@/lib/customer-auth";
 import { customerSessionConfigured } from "@/lib/customer-session";
 import { registrationLine } from "@/lib/launch";
 import { ForgotPasswordForm } from "./ForgotPasswordForm";
@@ -35,15 +33,16 @@ export const metadata: Metadata = {
  * NOT INDEXED. A recovery form in a search result is an invitation to mail
  * strangers, and there is nothing here for a crawler.
  *
- * THE SIGNED IN REDIRECT IS A CONVENIENCE AND NOT A CONTROL. Somebody with a
- * live session who lands here wanted their settings, not this. It is not
- * protecting anything: the route below is public by design, because a person
- * who cannot sign in is exactly who needs it.
+ * A SIGNED IN CUSTOMER IS SERVED THIS PAGE TOO, and is not redirected (walk
+ * 2, 2026-11-15). It used to send a live session to /account/settings, on the
+ * reasoning that such a visitor "wanted their settings, not this". Settings has
+ * no password control, and nothing else in the account does either, so a
+ * customer who wanted a new password was sent somewhere it could not be set and
+ * had to sign out to reach this form. The account page's Sessions section now
+ * links here. The redirect protected nothing: the route is public by design.
+ * Proved by scripts/proofs/a-signed-in-customer-can-set-a-new-password.mjs.
  */
 export default async function ForgotPasswordPage() {
-  const existing = await currentCustomer();
-  if (existing) redirect("/account/settings");
-
   return (
     /*
      * RESTYLED TO DESIGN V10, 2026-09-29, in the same pass that built it. It
