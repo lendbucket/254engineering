@@ -1279,7 +1279,7 @@ const buyerInsights: Insight[] = [
     eyebrow: "Buying and lending",
     primaryKeyword: "pre purchase home inspection",
     datePublished: BUYERS_SECTION_DATE,
-    dateModified: "2026-11-14",
+    dateModified: "2026-11-15",
     body: [
       {
         kind: "p",
