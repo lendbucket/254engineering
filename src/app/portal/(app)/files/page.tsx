@@ -2,7 +2,8 @@ import Link from "next/link";
 import { RestrictedMode } from "@/components/portal/design";
 import { notFound } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
-import { can } from "@/lib/ops-authz";
+import { can, may } from "@/lib/ops-authz";
+import { notForReader } from "@/components/portal/nav";
 import { listFilesPage, FILE_LIST_CAP, getFile, listClients, fileTimeline, fileRegion } from "@/lib/ops-crm";
 import { availableTransitions, STATUS_LABEL, FILE_STATUSES } from "@/lib/ops-files";
 import { TEXAS_COUNTIES, twiaStatus } from "@/lib/ops-counties";
@@ -296,7 +297,7 @@ export default async function FilesPage({
                 ? "A file is one deliverable request: a property, a client, and a service line. Open one above, or convert a lead from the clients screen."
                 : can(actor, "files.create")
                   ? "A file is one deliverable request: a property, a client, and a service line. Take a job in New job above to open one."
-                  : can(actor, "offers.list_own")
+                  : can(actor, "offers.list_own") && !notForReader("/portal/jobs", (a) => may(actor, a))
                     ? "A file appears here when a job in it is offered to you or assigned to you. Your offers are on My jobs."
                     : "A file appears here when one is assigned to you."
           }

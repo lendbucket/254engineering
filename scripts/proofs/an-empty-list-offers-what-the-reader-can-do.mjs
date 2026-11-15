@@ -36,7 +36,12 @@ const filesEmpty = files.slice(files.indexOf('"No files yet"'), files.indexOf("/
 check(
   "Files offers opening or converting only to whoever can, and tells a technician where their files come from",
   /can\(actor, "files\.create"\) && can\(actor, "clients\.create"\)\s*\? "[^"]*convert a lead from the clients screen\."/.test(filesEmpty) &&
-    /: can\(actor, "offers\.list_own"\)\s*\? "A file appears here when a job in it is offered to you or assigned to you\. Your offers are on My jobs\."/.test(filesEmpty),
+    /: can\(actor, "offers\.list_own"\) && !notForReader\("\/portal\/jobs", \(a\) => may\(actor, a\)\)\s*\? "A file appears here when a job in it is offered to you or assigned to you\. Your offers are on My jobs\."/.test(filesEmpty),
+);
+/* Item 9, 2026-11-14: My jobs left the dispatcher's menu, so the sentence pointing at it is asked the menu's own question. */
+check(
+  "and names My jobs only to a reader whose menu offers it",
+  (filesEmpty.match(/Your offers are on My jobs/g) ?? []).length === 1 && /!notForReader\("\/portal\/jobs"/.test(filesEmpty),
 );
 check(
   "and the sentence about the clients screen is reached only through that test",

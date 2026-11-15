@@ -2,7 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
 import { money, isKnown } from "@/lib/ops-money";
-import { can } from "@/lib/ops-authz";
+import { can, may } from "@/lib/ops-authz";
+import { notForReader } from "@/components/portal/nav";
 import { listOffersRead } from "@/lib/ops-field";
 import { Pager, listHref } from "@/components/portal/ListControls";
 import { STAFF_LIST_PAGE_SIZE, staffListPage } from "@/lib/staff-lists";
@@ -97,6 +98,14 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
         title="My jobs"
         lede="Offers waiting on you, and the work you have accepted. The rate is on the offer, before you accept it."
       />
+
+      {/* The menu's own question (nav.ts notFor): a reader who dispatches is not offered this screen, and is told why if they open it. */}
+      {notForReader("/portal/jobs", (a) => may(actor, a)) ? (
+        <p data-not-for-reader="/portal/jobs" className="mb-6 text-[14px] leading-[1.55] text-[var(--ink)]">
+          This screen holds a technician&apos;s own offers and the jobs they accepted. You dispatch, so the offers on a job are on its file.{" "}
+          <Link href="/portal/files" className="font-semibold text-[var(--navy)] underline">Open Files</Link>
+        </p>
+      ) : null}
 
       {/* Offer alerts on this phone (Robert's T9, 2026-11-07): county and service on the lock screen, never the address or the rate. */}
       <OfferAlerts />
