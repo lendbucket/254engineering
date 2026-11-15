@@ -145,7 +145,10 @@ export default function PrivacyPage() {
                 library. If a technician turns on offer alerts, the app keeps a token from Apple or
                 Google so the firm can tell that phone when a job is offered. The alert names the
                 county and the service only. A technician can turn alerts off at any time in the app,
-                and signing out turns them off on that phone.
+                and signing out turns them off on that phone. When a technician signs in on the app,
+                it keeps a sign-in token in the phone&apos;s secure storage, so they stay signed in for up
+                to thirty days; the firm keeps only a fingerprint of that token, the kind of phone, and
+                when it was last used, and signing out ends it.
               </p>
 
               <h2>How long it is kept</h2>
