@@ -180,7 +180,7 @@ export function Finder({
   return (
     <section aria-labelledby="finder-title" className="border border-[var(--color-limestone-line)] bg-white">
       <div className="flex items-center justify-between gap-3 border-b border-[var(--color-limestone-line)] px-5 py-4">
-        <h2 id="finder-title" className="text-[18px] font-semibold text-slate">
+        <h2 id="finder-title" className="text-[17px] font-semibold text-slate">
           Price your letter
         </h2>
         {step !== 1 ? (
@@ -271,11 +271,11 @@ export function Finder({
 
         {step === 3 && letter ? (
           <div>
-            <p className="text-[12px] font-semibold tracking-[0.06em] text-[var(--color-ink-quiet)] uppercase">Your letter</p>
-            <h3 ref={headingRef} tabIndex={-1} className="mt-1 text-[19px] font-semibold text-slate">
+            <p className="text-[12px] font-semibold text-[var(--color-ink-quiet)]">Your letter</p>
+            <h3 ref={headingRef} tabIndex={-1} className="mt-1 text-[20px] font-semibold text-slate">
               {letter.name}
             </h3>
-            {priceBig ? <p className="mt-2 text-[40px] leading-none font-semibold text-slate">{priceBig}</p> : null}
+            {priceBig ? <p className="mt-2 text-[32px] leading-none font-semibold text-slate">{priceBig}</p> : null}
             {priceNote ? <p className="mt-2 text-[14px] text-[var(--color-ink-quiet)]">{priceNote}</p> : null}
             {summary ? (
               <p className="mt-2 text-[13px] text-[var(--color-ink-quiet)]">
@@ -338,12 +338,12 @@ export function Finder({
                     <label className="block">
                       <span className={label}>Name</span>
                       <input name="name" autoComplete="name" required className={input} aria-invalid={Boolean(errors.name)} />
-                      {errors.name ? <span className="mt-1 block text-[13px] text-[#b42318]">{errors.name}</span> : null}
+                      {errors.name ? <span className="mt-1 block text-[13px] font-semibold text-[var(--color-ink)]">{errors.name}</span> : null}
                     </label>
                     <label className="block">
                       <span className={label}>Phone</span>
                       <input name="phone" type="tel" autoComplete="tel" required className={input} aria-invalid={Boolean(errors.phone)} />
-                      {errors.phone ? <span className="mt-1 block text-[13px] text-[#b42318]">{errors.phone}</span> : null}
+                      {errors.phone ? <span className="mt-1 block text-[13px] font-semibold text-[var(--color-ink)]">{errors.phone}</span> : null}
                     </label>
                   </>
                 ) : (
@@ -351,7 +351,7 @@ export function Finder({
                     <label className="block">
                       <span className={label}>Email</span>
                       <input name="email" type="email" autoComplete="email" required className={input} aria-invalid={Boolean(errors.email)} />
-                      {errors.email ? <span className="mt-1 block text-[13px] text-[#b42318]">{errors.email}</span> : null}
+                      {errors.email ? <span className="mt-1 block text-[13px] font-semibold text-[var(--color-ink)]">{errors.email}</span> : null}
                     </label>
                     <label className="block">
                       <span className={label}>Phone (optional)</span>
@@ -360,7 +360,7 @@ export function Finder({
                   </>
                 )}
                 <input name="company" tabIndex={-1} autoComplete="off" aria-hidden="true" className="absolute left-[-9999px] h-0 w-0 opacity-0" />
-                {errors.form ? <p className="text-[14px] text-[#b42318]" role="alert">{errors.form}</p> : null}
+                {errors.form ? <p className="text-[14px] font-semibold text-[var(--color-ink)]" role="alert">{errors.form}</p> : null}
                 <button type="submit" disabled={busy} className="min-h-[52px] bg-slate px-5 text-[16px] font-semibold text-white hover:bg-slate-deep disabled:opacity-60">
                   {busy ? "Sending" : lead === "call" ? "Call me back" : "Email me the price"}
                 </button>
@@ -420,13 +420,13 @@ export function Finder({
                 <label key={n} className="block">
                   <span className={label}>{l}</span>
                   <input name={n} type={t} autoComplete={ac} required={req} className={input} aria-invalid={Boolean(errors[n])} />
-                  {errors[n] ? <span className="mt-1 block text-[13px] text-[#b42318]">{errors[n]}</span> : null}
+                  {errors[n] ? <span className="mt-1 block text-[13px] font-semibold text-[var(--color-ink)]">{errors[n]}</span> : null}
                 </label>
               ))}
               <label className="block">
                 <span className={label}>What did they ask for?</span>
                 <textarea name="message" required rows={4} className={input} aria-invalid={Boolean(errors.message)} />
-                {errors.message ? <span className="mt-1 block text-[13px] text-[#b42318]">{errors.message}</span> : null}
+                {errors.message ? <span className="mt-1 block text-[13px] font-semibold text-[var(--color-ink)]">{errors.message}</span> : null}
               </label>
               <label className="block">
                 <span className={label}>Add a photo of the report page</span>
@@ -441,10 +441,10 @@ export function Finder({
                   }}
                 />
                 {attachment ? <span className="mt-1 block text-[13px] text-slate">Attached: {attachment.name}</span> : null}
-                {errors.attachment ? <span className="mt-1 block text-[13px] text-[#b42318]">{errors.attachment}</span> : null}
+                {errors.attachment ? <span className="mt-1 block text-[13px] font-semibold text-[var(--color-ink)]">{errors.attachment}</span> : null}
               </label>
               <input name="company" tabIndex={-1} autoComplete="off" aria-hidden="true" className="absolute left-[-9999px] h-0 w-0 opacity-0" />
-              {errors.form ? <p className="text-[14px] text-[#b42318]" role="alert">{errors.form}</p> : null}
+              {errors.form ? <p className="text-[14px] font-semibold text-[var(--color-ink)]" role="alert">{errors.form}</p> : null}
               <button type="submit" disabled={busy} className="min-h-[52px] bg-slate px-5 text-[16px] font-semibold text-white hover:bg-slate-deep disabled:opacity-60">
                 {busy ? "Sending" : "Send to the office"}
               </button>

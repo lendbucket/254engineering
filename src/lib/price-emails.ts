@@ -1,5 +1,6 @@
 import "server-only";
 import { supabaseAdmin } from "./supabase";
+import { DB_NOW } from "./db-now";
 import { queueEmail } from "./ops-jobs";
 import { priceEmail } from "./email-templates";
 import { isSuppressed, unsubscribeUrl } from "./marketing-suppression";
@@ -74,7 +75,7 @@ async function stop(id: string, why: string): Promise<void> {
   if (!db) return;
   await db
     .from("eng_leads")
-    .update({ follow_up_stopped_at: new Date().toISOString(), follow_up_stopped_why: why, follow_up_next_at: null })
+    .update({ follow_up_stopped_at: DB_NOW, follow_up_stopped_why: why, follow_up_next_at: null })
     .eq("id", id)
     .is("follow_up_stopped_at", null);
 }
@@ -122,7 +123,7 @@ async function sendNext(lead: LeadForEmail): Promise<number | null> {
     .update({
       follow_up_step: step,
       follow_up_next_at: next,
-      ...(step === 3 ? { follow_up_stopped_at: new Date().toISOString(), follow_up_stopped_why: "complete" } : {}),
+      ...(step === 3 ? { follow_up_stopped_at: DB_NOW, follow_up_stopped_why: "complete" } : {}),
     })
     .eq("id", lead.id)
     .eq("follow_up_step", lead.follow_up_step)

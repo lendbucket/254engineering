@@ -1,6 +1,7 @@
 import "server-only";
 import { createHash } from "node:crypto";
 import { supabaseAdmin } from "./supabase";
+import { DB_NOW } from "./db-now";
 import { captureError } from "./ops-observability";
 import { gaMeasurementId } from "./analytics";
 import { AD_CLICK_DAYS, isAdClick, type AdClick } from "./ad-click";
@@ -263,7 +264,7 @@ async function mark(id: string, status: "sent" | "failed" | "could_not_tell", er
   if (!db) return;
   await db
     .from("eng_ad_conversions")
-    .update({ status, last_error: error, attempts, sent_at: status === "sent" ? new Date().toISOString() : null })
+    .update({ status, last_error: error, attempts, sent_at: status === "sent" ? DB_NOW : null })
     .eq("id", id);
 }
 

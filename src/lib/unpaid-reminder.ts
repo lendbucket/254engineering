@@ -1,5 +1,6 @@
 import "server-only";
 import { supabaseAdmin } from "./supabase";
+import { DB_NOW } from "./db-now";
 import { issueCustomerLink } from "./ops-intake";
 import { customerStatusUrl } from "./customer-link-url";
 import { queueEmail } from "./ops-jobs";
@@ -60,7 +61,7 @@ export async function sweepUnpaidOrderReminders(now: number = Date.now()): Promi
       /* The claim. Only the worker whose update matches a still-null stamp sends. */
       const { data: claimed, error: claimError } = await db
         .from("eng_service_orders")
-        .update({ unpaid_reminder_sent_at: new Date(now).toISOString() })
+        .update({ unpaid_reminder_sent_at: DB_NOW })
         .eq("id", o.id)
         .is("unpaid_reminder_sent_at", null)
         .eq("status", "awaiting_payment")

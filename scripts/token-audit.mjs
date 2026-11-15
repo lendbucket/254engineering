@@ -601,6 +601,12 @@ const PORTED = [
   "src/components/portal/ForgotPasswordNotice.tsx",
   "src/app/portal/(public)/forgot-password/page.tsx",
   "src/app/partner/(public)/forgot-password/page.tsx",
+  /* /start, the Google Ads landing page (Robert's add-on of 2026-11-15), held to the customer rules below. */
+  "src/app/(ads)/layout.tsx",
+  "src/app/(ads)/start/page.tsx",
+  "src/components/start/Finder.tsx",
+  "src/components/start/GoogleAdsCallSwap.tsx",
+  "src/components/start/StartFaq.tsx",
 ];
 
 /**
@@ -743,6 +749,10 @@ const CUSTOMER_FONT_PX = new Set([12, 13, 14, 15, 16, 17, 20, 24, 26, 28, 32]);
  * become a way to widen the first one file at a time.
  */
 const CUSTOMER_V10 = [
+  /* /start (2026-11-15): a page a customer reads, so the customer rules. */
+  "src/app/(ads)/start/page.tsx",
+  "src/components/start/Finder.tsx",
+  "src/components/start/StartFaq.tsx",
   "src/app/account/login/page.tsx",
   "src/app/account/sign-up/page.tsx",
   "src/app/account/sign-up/SignUpForm.tsx",

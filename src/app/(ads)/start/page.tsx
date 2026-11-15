@@ -110,8 +110,8 @@ export default async function StartPage({ searchParams }: { searchParams: Promis
         <section className="bg-[var(--color-limestone)]">
           <div className="mx-auto grid w-full max-w-[1200px] gap-10 px-4 py-10 sm:px-6 lg:grid-cols-[1fr_460px] lg:py-16">
             <div className="min-w-0">
-              <p className="text-[13px] font-semibold tracking-[0.06em] text-[var(--color-brass-ink)] uppercase">San Antonio, Corpus Christi and the Coastal Bend</p>
-              <h1 className="mt-3 text-[34px] leading-[1.1] font-semibold tracking-[-0.5px] text-balance text-slate sm:text-[44px]">{headline}</h1>
+              <p className="text-[14px] font-semibold text-[var(--color-brass-ink)]">San Antonio, Corpus Christi and the Coastal Bend</p>
+              <h1 className="mt-3 text-[28px] leading-[1.15] font-semibold tracking-[-0.5px] text-balance text-slate sm:text-[32px]">{headline}</h1>
               <p className="mt-5 max-w-[60ch] text-[17px] leading-[1.65] text-[var(--color-ink-quiet)]">
                 Foundation, roof, windstorm, solar and permit letters, issued by a Texas licensed Professional Engineer. You see the price before you order, and you can follow the job online until the letter is in your inbox.
               </p>
@@ -181,7 +181,7 @@ export default async function StartPage({ searchParams }: { searchParams: Promis
             <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {letters.map((l) => (
                 <li key={l.key} className="flex flex-col border border-[var(--color-limestone-line)] p-5">
-                  <p className="text-[22px] font-semibold text-slate">
+                  <p className="text-[24px] font-semibold text-slate">
                     {l.price.kind === "fixed" ? l.price.inland : l.price.kind === "hourly" ? `${l.price.rate}/hr` : ""}
                   </p>
                   <h3 className="mt-1 text-[16px] font-semibold text-slate">{l.name}</h3>
@@ -261,7 +261,7 @@ export default async function StartPage({ searchParams }: { searchParams: Promis
             <div className="min-w-0">
               <h2 className="text-[28px] font-semibold text-slate">What the letter looks like</h2>
               <figure className="mt-6 border border-[var(--color-limestone-line)] bg-white p-6">
-                <p className="text-[12px] font-semibold tracking-[0.1em] text-[var(--color-ink-quiet)] uppercase">Sample</p>
+                <p className="text-[12px] font-semibold text-[var(--color-ink-quiet)]">Sample</p>
                 <p className="mt-2 text-[16px] font-semibold text-slate">254 Engineering</p>
                 {address ? <p className="text-[13px] text-[var(--color-ink-quiet)]">{address}</p> : null}
                 <p className="text-[13px] text-[var(--color-ink-quiet)]">{registrationLine()}</p>
@@ -365,7 +365,7 @@ export default async function StartPage({ searchParams }: { searchParams: Promis
 
         <section className="bg-slate">
           <div className="mx-auto flex w-full max-w-[1200px] flex-wrap items-center justify-between gap-4 px-4 py-10 sm:px-6">
-            <p className="text-[22px] font-semibold text-white">See your price in 30 seconds, or call the office.</p>
+            <p className="text-[24px] font-semibold text-white">See your price in 30 seconds, or call the office.</p>
             <div className="flex flex-wrap gap-3">
               <a href="#finder-title" className="inline-flex min-h-[52px] items-center bg-brass px-6 text-[16px] font-semibold text-[var(--color-slate-ink)]">
                 Price your letter
