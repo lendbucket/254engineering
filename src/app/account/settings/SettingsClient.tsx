@@ -357,7 +357,7 @@ export function SettingsClient({
               This is the only time it can be shown. Only a hash of it is stored, so the firm cannot
               show it to you again and cannot recover it if you lose it.
             </p>
-            <code className="mt-2.5 block overflow-x-auto border-y border-[var(--color-limestone-edge)] py-2 text-[13px] break-all text-[var(--color-ink)]">
+            <code className="mt-2.5 block overflow-x-auto border-y border-[var(--color-limestone-edge)] py-2 text-[13px] [overflow-wrap:anywhere] text-[var(--color-ink)]">
               {freshKey}
             </code>
             <button

@@ -78,7 +78,7 @@ export default async function PeoplePage({ searchParams }: { searchParams: Promi
       cell: (p) => (
         <div>
           <p className="font-semibold text-[var(--ink)]">{p.display_name}</p>
-          <p className="text-[13px] break-all text-[var(--secondary)]">{p.email}</p>
+          <p className="text-[13px] [overflow-wrap:anywhere] text-[var(--secondary)]">{p.email}</p>
         </div>
       ),
     },
@@ -169,7 +169,7 @@ export default async function PeoplePage({ searchParams }: { searchParams: Promi
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="text-[15px] font-semibold text-[var(--ink)]">{p.display_name}</p>
-                    <p className="mt-0.5 text-[14px] break-all text-[var(--secondary)]">{p.email}</p>
+                    <p className="mt-0.5 text-[14px] [overflow-wrap:anywhere] text-[var(--secondary)]">{p.email}</p>
                   </div>
                   <Chip label={p.status} tone={STATUS_TONE[p.status]} />
                 </div>

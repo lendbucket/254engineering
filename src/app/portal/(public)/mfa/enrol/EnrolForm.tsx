@@ -252,7 +252,7 @@ export function EnrolForm({
             Cannot scan it or open the app? Type it instead
           </summary>
           <div className="border-t border-[var(--border)] p-3">
-            <p className="text-[15px] leading-[1.6] break-all text-[var(--navy)]">
+            <p className="text-[15px] leading-[1.6] [overflow-wrap:anywhere] text-[var(--navy)]">
               {secret}
             </p>
           </div>

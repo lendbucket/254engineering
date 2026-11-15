@@ -111,7 +111,7 @@ export function QueueClient({ jobs }: { jobs: DeadJob[] }) {
               is told about is the same screen lying more quietly.
             */}
             {Object.keys(j.payload).length > 0 ? (
-              <p className="mt-1.5 max-w-[76ch] text-[12px] leading-[1.5] break-all text-[var(--secondary)]">
+              <p className="mt-1.5 max-w-[76ch] text-[12px] leading-[1.5] [overflow-wrap:anywhere] text-[var(--secondary)]">
                 {JSON.stringify(j.payload).slice(0, PAYLOAD_CHARS)}
                 {/*
                   --secondary, NOT --muted, and the board is why.

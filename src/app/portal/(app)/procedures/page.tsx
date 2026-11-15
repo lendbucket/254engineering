@@ -217,7 +217,7 @@ function Inline({ text }: { text: string }) {
     <>
       {parts.map((part, i) =>
         part.startsWith("`") ? (
-          <code key={i} className="text-[13px] break-all">{part.slice(1, -1)}</code>
+          <code key={i} className="text-[13px] [overflow-wrap:anywhere]">{part.slice(1, -1)}</code>
         ) : part.startsWith("**") ? (
           <strong key={i} className="font-semibold text-[var(--ink)]">{part.slice(2, -2)}</strong>
         ) : (

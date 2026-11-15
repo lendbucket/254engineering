@@ -257,7 +257,7 @@ export default async function BinderPage({ params }: { params: Promise<{ fileId:
                     an hour; a key is what somebody fetches the object by in a
                     year.
                   */}
-                  <p className="mt-1 text-[12px] break-all text-[var(--secondary)]">
+                  <p className="mt-1 text-[12px] [overflow-wrap:anywhere] text-[var(--secondary)]">
                     {a.storageKey}
                   </p>
                 </li>
