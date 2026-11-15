@@ -186,7 +186,7 @@ export default async function PortalHome() {
         ) : (
           <Panel
             title="What could not be counted"
-            description="Reported rather than fixed by widening a grant or inventing a figure that looks like the one that was asked for."
+            description="Said here rather than covered over: no permission is widened and no figure is made up to fill the gap."
           >
             <NotComputable reasons={dashboard.notComputable} />
           </Panel>
