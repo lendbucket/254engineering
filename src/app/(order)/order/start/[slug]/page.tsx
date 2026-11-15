@@ -7,7 +7,7 @@ import { deliverablesFor, orderBlockedReason } from "@data/catalog";
 import { serviceBySlug } from "@/content/services";
 import { isTrading, launchMode, peInResponsibleCharge, registrationLine } from "@/lib/launch";
 import { displayPhone, postalAddressLine } from "@/config/contact";
-import { deliverableBlockedForDisplay } from "@/lib/line-gate";
+import { deliverableBlockedForDisplay, sellableLineOffers } from "@/lib/line-gate";
 import { coverVerbFor, orderHeading, serviceNameInSentence } from "@/lib/order-copy";
 import { currentCustomer } from "@/lib/customer-auth";
 import { TrackOnMount } from "@/components/site/Analytics";
@@ -193,6 +193,10 @@ export default async function OrderStartPage({ params }: { params: Promise<{ slu
                   address: postalAddressLine(),
                   phone: displayPhone(),
                 }}
+                /* The other letters open now, as /order offers them (item 7, Robert's add-on of 2026-11-15). */
+                otherLines={(await sellableLineOffers())
+                  .filter((o) => o.orderable && o.slug !== slug)
+                  .map((o) => ({ slug: o.slug, name: o.name, href: o.href }))}
               />
             </div>
           </>

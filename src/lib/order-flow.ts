@@ -120,6 +120,48 @@ export type FlowState = {
   partnerCode: string;
 };
 
+/*
+ * SWITCHING LETTERS BEFORE PAYMENT (Robert's add-on of 2026-11-15, item 7, and
+ * his answer Q4 of 12:29 Central). A customer on the wrong order page picks
+ * another letter and lands on that letter's own page; what they already typed
+ * about themselves and the property comes with them, kept in this tab only
+ * (sessionStorage), and nothing else does: answers, documents and terms belong
+ * to the letter they were given for.
+ */
+export const ORDER_CARRY_KEY = "e254_order_carry";
+
+export type OrderCarry = { customer: FlowState["customer"]; property: FlowState["property"] };
+
+export function carryOf(state: FlowState): OrderCarry {
+  return { customer: { ...state.customer }, property: { ...state.property } };
+}
+
+/** The carried details applied to a fresh state, every field checked again: storage is input like any other. */
+export function withCarry(state: FlowState, raw: string | null): FlowState {
+  if (!raw) return state;
+  try {
+    const c = JSON.parse(raw) as Partial<OrderCarry>;
+    const str = (v: unknown, max: number) => (typeof v === "string" ? v.slice(0, max) : "");
+    return {
+      ...state,
+      customer: {
+        name: str(c.customer?.name, 200) || state.customer.name,
+        email: str(c.customer?.email, 200) || state.customer.email,
+        phone: str(c.customer?.phone, 40) || state.customer.phone,
+        company: str(c.customer?.company, 200) || state.customer.company,
+      },
+      property: {
+        propertyAddress: str(c.property?.propertyAddress, 300) || state.property.propertyAddress,
+        city: str(c.property?.city, 120) || state.property.city,
+        county: str(c.property?.county, 120) || state.property.county,
+        postalCode: str(c.property?.postalCode, 20) || state.property.postalCode,
+      },
+    };
+  } catch {
+    return state;
+  }
+}
+
 export function emptyState(tier: string | null = null): FlowState {
   return {
     tier,
