@@ -76,12 +76,14 @@ export async function deskDashboard(actor: Actor): Promise<DeskDashboard> {
       .select("id, name, phone, quoted_service, callback_due_at")
       .eq("form", "callback")
       .eq("status", "new")
-      .lte("callback_due_at", new Date().toISOString())
+      .not("callback_due_at", "is", null)
       .order("callback_due_at", { ascending: true })
       .limit(50);
+    /* Oldest due first, so every one due now is in the first fifty; one asked after 8 PM shows from 8 AM. */
+    const nowMs = Date.now();
     if (error) notComputable.push(`Callbacks could not be read: ${error.message}`);
     else
-      callbacks = (data ?? []).map((r) => ({
+      callbacks = (data ?? []).filter((r) => Date.parse(r.callback_due_at as string) <= nowMs).map((r) => ({
         id: r.id as string,
         name: (r.name as string | null) ?? null,
         phone: (r.phone as string | null) ?? null,
