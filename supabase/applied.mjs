@@ -5002,8 +5002,10 @@ export const APPLIED = [
       "WRITTEN 2026-11-15 ON feat/ads-start, FOR ROBERT'S ADD-ON OF 2026-11-15 (the Google Ads landing page /start, " +
       "items 9 to 16, and his answers of 12:29 and 13:11 Central): the click IDs on every lead and order, the outbox " +
       "for server side conversions and the offline upload, the price email sequence, the callback queue and the one " +
-      "unpaid order reminder. PENDING ON DEVELOPMENT AND PRODUCTION: development first, by a sitting request, before " +
-      "its board; production only in a sitting with Robert. Additive: nullable columns, checks that every existing " +
+      "unpaid order reminder. ON DEVELOPMENT SINCE 2026-11-15 (issue #1, 6902704874, after request 6902616118: version " +
+      "20261115225053, shape 14bdcbc9 at 1729 columns, 130 tables, grants 203 unchanged, row level security on " +
+      "eng_ad_conversions with no API grant, the unique index present, as predicted). PENDING ON PRODUCTION: only in a " +
+      "sitting with Robert. Additive: nullable columns, checks that every existing " +
       "row satisfies, indexes, and one table with row level security on and no grant.",
   },
 ];

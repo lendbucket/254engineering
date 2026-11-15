@@ -162,7 +162,7 @@ export default async function StartPage({ searchParams }: { searchParams: Promis
             </li>
             <li>
               <p className="text-[15px] font-semibold text-slate">Veteran owned</p>
-              <p className="mt-1 text-[14px] text-[var(--color-ink-quiet)]">Based in San Antonio, serving Corpus Christi and the Coastal Bend.</p>
+              <p className="mt-1 text-[14px] text-[var(--color-ink-quiet)]">Based in San Antonio, with technicians in Corpus Christi.</p>
             </li>
           </ul>
         </section>
@@ -347,7 +347,8 @@ export default async function StartPage({ searchParams }: { searchParams: Promis
                 },
                 {
                   q: "Which areas do you cover?",
-                  a: "The firm is based in San Antonio and serves Corpus Christi and the Coastal Bend. If the property is farther out, call before you order and the office will tell you whether travel applies and what it is.",
+                  /* Q52, settled 2026-11-15 from Robert's statement of 13 November: the technicians are in San Antonio and Corpus Christi. */
+                  a: "Field technicians work out of San Antonio and Corpus Christi. If the property is farther out, call before you order and the office will tell you whether travel applies and what it is.",
                 },
                 { q: "Can my agent or lender get a copy?", a: "Add them when you order. They get the sealed letter and nothing else from your order." },
                 {
