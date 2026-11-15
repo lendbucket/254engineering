@@ -363,7 +363,7 @@ export default async function PartnerPage({ params }: { params: Promise<{ id: st
                   </p>
                 ) : null}
                 {s.link ? (
-                  <p className="mt-2 break-all text-[14px] text-[var(--secondary)]">{s.link as string}</p>
+                  <p className="mt-2 [overflow-wrap:anywhere] text-[14px] text-[var(--secondary)]">{s.link as string}</p>
                 ) : null}
 
                 {/*

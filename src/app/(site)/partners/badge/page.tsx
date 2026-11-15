@@ -93,11 +93,11 @@ export default function PartnerBadgePage() {
             </div>
             <div className="lg:col-span-8">
               <p className="text-[1.05rem] font-semibold text-slate">The badge as an image</p>
-              <pre className="mt-3 overflow-x-auto whitespace-pre-wrap break-all border border-limestone-line bg-white p-4 font-mono text-[0.85rem] leading-[1.6] text-slate">
+              <pre className="mt-3 overflow-x-auto whitespace-pre-wrap [overflow-wrap:anywhere] border border-limestone-line bg-white p-4 font-mono text-[0.85rem] leading-[1.6] text-slate">
                 <code>{imageSnippet}</code>
               </pre>
               <p className="mt-8 text-[1.05rem] font-semibold text-slate">The same sentence as a plain text link</p>
-              <pre className="mt-3 overflow-x-auto whitespace-pre-wrap break-all border border-limestone-line bg-white p-4 font-mono text-[0.85rem] leading-[1.6] text-slate">
+              <pre className="mt-3 overflow-x-auto whitespace-pre-wrap [overflow-wrap:anywhere] border border-limestone-line bg-white p-4 font-mono text-[0.85rem] leading-[1.6] text-slate">
                 <code>{textSnippet}</code>
               </pre>
             </div>

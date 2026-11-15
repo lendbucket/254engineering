@@ -118,7 +118,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
       head: "Contact",
       cell: (c) => (
         <div className="text-[14px] text-[var(--secondary)]">
-          {c.email ? <p className="break-all">{c.email}</p> : null}
+          {c.email ? <p className="[overflow-wrap:anywhere]">{c.email}</p> : null}
           {c.phone ? <p><PhoneLink phone={c.phone} /></p> : null}
           {!c.email && !c.phone ? "none recorded" : null}
         </div>
@@ -184,7 +184,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
                       <p className="text-[14px] font-semibold text-[var(--ink)]">
                         {lead.company || lead.name || "Unnamed enquirer"}
                       </p>
-                      <p className="mt-0.5 text-[14px] break-all text-[var(--secondary)]">
+                      <p className="mt-0.5 text-[14px] [overflow-wrap:anywhere] text-[var(--secondary)]">
                         {lead.email ? `${lead.email}  ` : ""}
                         <PhoneLink phone={lead.phone} />
                         {lead.city ? <>{lead.phone ? "  " : ""}{lead.city}</> : ""}
@@ -290,7 +290,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-[15px] font-semibold text-[var(--ink)]">{c.name}</p>
-                  <p className="mt-0.5 text-[14px] break-all text-[var(--secondary)]">
+                  <p className="mt-0.5 text-[14px] [overflow-wrap:anywhere] text-[var(--secondary)]">
                     {c.email ?? c.phone ?? "no contact recorded"}
                   </p>
                 </div>

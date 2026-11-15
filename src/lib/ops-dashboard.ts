@@ -1527,7 +1527,7 @@ async function dispatcherDashboard(): Promise<DispatcherDashboard> {
   );
 
   notComputable.push(
-    "Jobs past their capture window are counted as evidence past due, from eng_files.evidence_due_at. This schema has no capture window column, and a figure invented from one that does not exist would be worse than saying so.",
+    "Jobs past their capture window are counted as evidence past due, from each job's evidence deadline. The platform records no separate capture window, and a figure made up from one it does not record would be worse than saying so.",
   );
 
   /*
@@ -1600,7 +1600,7 @@ async function dispatcherDashboard(): Promise<DispatcherDashboard> {
     {
       label: "Evidence past due",
       count: pastDue,
-      note: "Accepted work whose evidence deadline has gone. Counted from evidence_due_at, because there is no capture window column.",
+      note: "Accepted work whose evidence deadline has gone. Counted from that deadline, because the platform records no separate capture window.",
       href: "/portal/files",
       tone: pastDue === 0 ? "good" : "bad",
     },
@@ -1749,7 +1749,7 @@ async function salesDashboard(): Promise<SalesDashboard> {
   const quotes = quoteRead.ok ? quoteRead.rows : null;
 
   notComputable.push(
-    "Quotes are counted from eng_quote_requests, not from orders. A quote never becomes an order until it is accepted, so there is no such thing as an unpaid quote here: what is shown is quotes sent and not yet answered, with their age.",
+    "Quotes are counted from the quotes themselves, not from orders. A quote becomes an order only when it is accepted, so there is no such thing as an unpaid quote here: what is shown is quotes sent and not yet answered, with their age.",
   );
 
   const { from, to } = (() => {
@@ -1875,7 +1875,7 @@ async function salesDashboard(): Promise<SalesDashboard> {
   const breakdowns: Breakdown[] = [
     {
       title: "Leads by source",
-      note: "There is no source column on a lead. This is the partner code where one exists, then the tagged utm_source, then the form they filled in, most specific first. A row reading 'form: waitlist' is somebody who arrived and filled something in, not a channel anybody bought.",
+      note: "A lead records no source of its own. This is the partner code where one exists, then the campaign tag the link carried, then the form they filled in, most specific first. A row reading 'form: waitlist' is somebody who arrived and filled something in, not a channel anybody bought.",
       href: "/portal/clients",
       rows: groupBy(
         leads,
@@ -1888,7 +1888,7 @@ async function salesDashboard(): Promise<SalesDashboard> {
     },
     {
       title: "Leads by stage",
-      note: "The stage is eng_leads.status, which carries no check constraint: the platform only ever writes 'new' and 'converted', and anything else here was written by something outside it. Empty means there are no leads at all.",
+      note: "The stage is the lead's own status, which nothing restricts: the platform only ever writes 'new' and 'converted', and anything else here was written by something outside it. Empty means there are no leads at all.",
       href: "/portal/clients",
       rows: groupBy(
         leads,
@@ -1908,7 +1908,7 @@ async function salesDashboard(): Promise<SalesDashboard> {
     },
     {
       title: "Accounts by how long since they last ordered",
-      note: "Taken from the newest placed_at across the account's own orders. An account that has never placed one is its own bucket rather than being counted as ordering today, which is the arithmetic a nulls-last sort quietly produces.",
+      note: "Taken from the most recent order the account has placed. An account that has never placed one is its own bucket rather than being counted as ordering today, which is what sorting the empty ones last would quietly do.",
       href: "/portal/accounts",
       rows: groupBy(
         accounts,
@@ -1988,10 +1988,10 @@ async function customerServiceDashboard(actor: Actor): Promise<CustomerServiceDa
   }
 
   notComputable.push(
-    "Orders awaiting something from the customer are shown as orders awaiting PAYMENT, plus files where a payment link was sent. That is the only kind of waiting this schema records: there is no awaiting_customer status and no column naming what is awaited, and outstanding intake answers are missing rows rather than anything a query can count.",
+    "Orders waiting on the customer are shown as orders waiting for payment, plus jobs where a payment link was sent. That is the only waiting on a customer the platform records: nothing on an order says what else the firm is waiting for, and answers still owed on a job are not something it can count.",
   );
   notComputable.push(
-    "Message threads are shown by how long they have been quiet, not by the age of the last inbound message. eng_messages records an author and no direction, and there is no customer facing conversation table, so every thread here is staff to staff and nothing in it is inbound from a customer.",
+    "Message threads are shown by how long they have been quiet, not by when a customer last wrote. A message records who wrote it and not which way it went, and the platform keeps no conversation with a customer, so every thread here is between staff and nothing in it came in from a customer.",
   );
 
   const { data: waitingRaw, error: waitingErr } = await db
@@ -2128,7 +2128,7 @@ async function customerServiceDashboard(actor: Actor): Promise<CustomerServiceDa
   const breakdowns: Breakdown[] = [
     {
       title: "Refunds in flight, by case",
-      note: "Counted, not totalled. refund_case has no constraint anywhere and is written in two shapes: slugs from reconciliation and sentences from a review decision. Both appear as themselves rather than being normalized into a guess.",
+      note: "Counted, not added up. A refund's case is written in two forms, a short code from reconciliation and a sentence from a review decision, and each is shown as it was written rather than guessed into one.",
       href: "/portal/orders",
       rows: groupBy(
         refunds,
@@ -2141,7 +2141,7 @@ async function customerServiceDashboard(actor: Actor): Promise<CustomerServiceDa
     },
     {
       title: "Threads by how long they have been quiet",
-      note: "From eng_threads.last_message_at. These are internal threads: nothing in this platform is a conversation with a customer, so nothing here is somebody waiting on a reply from the firm.",
+      note: "Timed from each thread's latest message. These are internal threads: nothing in this platform is a conversation with a customer, so nothing here is somebody waiting on a reply from the firm.",
       href: "/portal/messages",
       rows: groupBy(
         threads,

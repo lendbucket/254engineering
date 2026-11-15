@@ -300,7 +300,7 @@ export function ProfileMenu({
         >
           <div className="border-b border-[var(--border)] px-3 pt-2 pb-3">
             <p className="text-[14px] font-semibold text-[var(--navy)]">{displayName}</p>
-            <p className="mt-0.5 text-[12px] break-all text-[var(--secondary)]">{email}</p>
+            <p className="mt-0.5 text-[12px] [overflow-wrap:anywhere] text-[var(--secondary)]">{email}</p>
             <p className="portal-label mt-1">{roleLabel}</p>
           </div>
           <Link

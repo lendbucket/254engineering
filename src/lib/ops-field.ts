@@ -1090,7 +1090,13 @@ export async function sendOffers(
       body: `${file.property_address}${
         offer.amountCents === null ? "" : `, flat rate $${(offer.amountCents / 100).toFixed(2)}`
       }.`,
-      href: "/portal/jobs",
+      /*
+       * The job itself, not the list (walk 2, 2026-11-15). The job's page has
+       * carried the offer's own controls since Robert's answer 3 of 2026-11-12,
+       * "opened from a notification or a link", and this is that notification.
+       * Proved by scripts/proofs/an-offer-notification-opens-the-job.mjs.
+       */
+      href: `/portal/jobs/${fileId}`,
       entityType: "file",
       entityId: fileId,
     });
