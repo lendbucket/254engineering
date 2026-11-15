@@ -106,8 +106,20 @@ if (!db) {
          * windows reaching into their neighbours.
          */
         for (const line of text.split("\n")) {
-          if (/\.(update|insert)\(\{[^}]*assigned_(engineer|tech)_id/.test(line)) {
-            writers.push(`${full}: ${line.trim().slice(0, 70)}`);
+          /*
+           * THE EXCERPT RUNS AT LEAST TO THE END OF THE WRITE'S OWN BRACES.
+           * Board 43666054144: recordNoAccess's line is long, the 70 character
+           * excerpt stopped at "update({ assi", and the setter test below,
+           * which reads the excerpt, could not see its ": null" and counted a
+           * clear as a set. A test that reads a display string is only as
+           * good as the cut, so the cut now always includes every value the
+           * write assigns.
+           */
+          const write = /\.(update|insert)\(\{[^}]*assigned_(engineer|tech)_id[^}]*\}/.exec(line);
+          if (write) {
+            const trimmed = line.trim();
+            const end = trimmed.indexOf(write[0]) + write[0].length;
+            writers.push(`${full}: ${trimmed.slice(0, Math.max(70, end))}`);
           }
         }
       }
