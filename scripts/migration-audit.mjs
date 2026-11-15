@@ -493,10 +493,17 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * eng_contact_log, 1,675 to 1,678; tables unchanged at 129. Read off
  * fingerprint-at.mjs on the chain to 0136, with 0135 reproducing its pair
  * first. Same commit.
+ *
+ * Moved by 0137, an ad click follows the lead to the order (Robert's add-on of
+ * 2026-11-15, /start): 12 columns on eng_leads, 6 on eng_service_orders, 9 each
+ * on eng_design_inquiries and eng_windstorm_inquiries, and the 14 of the new
+ * eng_ad_conversions, 1,678 to 1,728; tables 129 to 130. Read off
+ * fingerprint-at.mjs on the chain to 0137, with 0136 reproducing its pair
+ * first. Same commit.
  */
-const EXPECTED_FINGERPRINT = "9844f7bbd46bd1190ff7405b44b61213";
-const EXPECTED_COLUMNS = 1678;
-const EXPECTED_TABLES = 129;
+const EXPECTED_FINGERPRINT = "d0f79443f0234c275bb3e249b6e5fa53";
+const EXPECTED_COLUMNS = 1728;
+const EXPECTED_TABLES = 130;
 /* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts.
  * 0074 adds two: eng_partner_billing_touch and eng_partner_billing_events_immutable.
  * 0075 adds one: eng_payment_events_guarded.

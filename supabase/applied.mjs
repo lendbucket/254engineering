@@ -4986,6 +4986,26 @@ export const APPLIED = [
       "as predicted). ON PRODUCTION SINCE 2026-11-15 (6896689672, version 20261115151442). Additive in effect: three nullable columns and three indexes; every existing row " +
       "satisfies the wider checks, because each new column is null on it.",
   },
+  {
+    file: "0137_an_ad_click_follows_the_lead_to_the_order.sql", appliedBy: "apply_migration",
+    fingerprint: "d0f79443f0234c275bb3e249b6e5fa53",
+    behaviour: "eff2849030a0826317ce033da705b5b3",
+    production: null,
+    proves: { table: "eng_ad_conversions" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-15 on the chain to 0137, with 0136 reproducing " +
+      "its recorded pair first (9844f7bb at 1678 columns, 9d577b5c at 1696 facts). Shape 1678 to 1728 columns: 12 on " +
+      "eng_leads (the click, the quote, the follow up, the callback), 6 on eng_service_orders (the click, lead_id, the " +
+      "reminder stamp), 9 each on eng_design_inquiries and eng_windstorm_inquiries (utm values and the click), and the " +
+      "14 of eng_ad_conversions; tables 129 to 130. Behaviour 1696 to 1716 facts.",
+    because:
+      "WRITTEN 2026-11-15 ON feat/ads-start, FOR ROBERT'S ADD-ON OF 2026-11-15 (the Google Ads landing page /start, " +
+      "items 9 to 16, and his answers of 12:29 and 13:11 Central): the click IDs on every lead and order, the outbox " +
+      "for server side conversions and the offline upload, the price email sequence, the callback queue and the one " +
+      "unpaid order reminder. PENDING ON DEVELOPMENT AND PRODUCTION: development first, by a sitting request, before " +
+      "its board; production only in a sitting with Robert. Additive: nullable columns, checks that every existing " +
+      "row satisfies, indexes, and one table with row level security on and no grant.",
+  },
 ];
 
 /*
