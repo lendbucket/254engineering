@@ -486,6 +486,93 @@ export const proximityPages: ProximityPage[] = [
       },
     ],
   },
+  /*
+   * ADDED 2026-11-15 FOR ROBERT'S ANSWER 32 (issue #1, proposal 6889408888,
+   * "yes, as proposed"): pier and beam (traffic potential 21,000), from the
+   * Ahrefs pull he approved. Page 9, helical piers, waits on seo/page-9: its
+   * approved description carries no call to action, which the title and
+   * description budget requires, so its wording is his to rule on first.
+   *
+   * SOURCES, EACH READ IN FULL BEFORE A SENTENCE CITES IT:
+   * - Texas Section ASCE, Guidelines for the Evaluation and Repair of
+   *   Residential Foundations, Version 3, adopted April 2022: 5.4 on
+   *   elevation surveys, 7.4.1 on remediation documents, 7.5 on pier and
+   *   beam repair, 7.6 to 7.8 after the work.
+   * - TBPELS Engineering Advisory Opinion Request 43, February 2018.
+   * - USDA NRCS Official Series Description, Houston Black.
+   *
+   * NOT READ, SO NOT QUOTED: the IRC and IBC text (codes.iccsafe.org answered
+   * 403). So the page states no code clearance and no vent ratio.
+   */
+  {
+    slug: "pier-and-beam",
+    name: "Pier and beam foundations",
+    question: "What does an engineer check under a pier and beam house?",
+    h1: "Pier and Beam Foundation Problems on Texas Clay: What an Engineer Checks",
+    title: "Pier and Beam Problems on Texas Clay | 254 Engineering",
+    description:
+      "What an engineer checks under a Texas pier and beam house: piers, shims, framing, crawlspace moisture and clearance. Read this before paying for leveling.",
+    summary:
+      "A pier and beam floor moves for reasons that can be seen from the crawlspace, and the repair that fits it is decided down there rather than at the front door.",
+    sections: [
+      {
+        eyebrow: "The system",
+        title: "How a pier and beam floor carries the house",
+        body: [
+          "A pier and beam house rests on its floor framing, and the framing rests on piers, posts or footings. The Texas Section of the American Society of Civil Engineers lists four kinds of repair for that system in its 2022 guidelines: shimming the framing on the existing supports, repairing or strengthening the framing, adding or replacing supports, and restoring any designed void space. Which of the four a house needs is decided in the crawlspace, so an evaluation starts there, at the pier caps, the shims and the beams, before anyone talks about lifting.",
+          "The ground under much of the Blackland Prairie is why these floors move. The USDA describes Houston Black clay as cracking 0.5 to 4 inches wide when dry, to a depth of 12 inches or more, and soil that shrinks and swells like that moves the piers standing in it unevenly. Under Texas law, explaining why a floor moved and what should be done about it is engineering: the state board wrote in 2018 that analyzing the cause of a foundation condition or recommending repairs is the practice of engineering under section 1001.003(c)(1) of the Occupations Code.",
+        ],
+      },
+      {
+        eyebrow: "In the crawlspace",
+        title: "What gets looked at, support by support",
+        lede: "The four repairs in the guidelines line up with four things a person can see under the floor.",
+        body: [
+          "Pier caps and shims come first. The guidelines allow floor framing to be adjusted by adding shims on top of the pier caps, in hardwood or steel, so a gap between a beam and its support is often the smallest repair on the list. A stack of loose or crushed shims, or a cap that has tilted, says more about what has been happening than any reading taken in the living room.",
+          "The framing comes next: beams, girders and joists, checked for rot, insect damage, cuts made by later trades, and sag between supports. The guidelines say damaged or distressed members should be replaced or reinforced, and recommend treated lumber for framing repairs.",
+          "Then the spacing. Where a beam or the floor framing spans too far for the load it actually carries, the guidelines provide for additional supports, and require any support added to be compatible with the original system. A new pier of a different kind, bearing on different ground from the piers beside it, can move differently from its neighbors.",
+        ],
+      },
+      {
+        eyebrow: "Moisture",
+        title: "The crawlspace decides how long a repair lasts",
+        lede: "Wood that stays wet and soil that keeps changing will undo a leveling job.",
+        body: [
+          "The guidelines name four ways of controlling moisture under the floor: cross ventilation of the crawlspace, drainage under the floor, ground clearance for the beams and joists, and treated lumber. Each can be judged from the access hatch, and each bears on whether the framing rots and whether the soil under the piers keeps swinging between wet and dry.",
+          "The minimum clearance between framing and soil is set by the building code, and this page does not quote a figure it could not check against the code's own text. Framing in contact with soil, or close enough to stay damp, is a finding an engineer records whatever the number is.",
+          "Where the house was built with void space under any element, the guidelines say that space should be reestablished as necessary. A void that has filled in lets swelling clay push directly on what it was meant to clear.",
+        ],
+      },
+      {
+        eyebrow: "Before leveling",
+        title: "Why lifting is the last question, not the first",
+        lede: "Leveling is the visible part of the work, which is why it is usually the first thing offered.",
+        body: [
+          "A floor shimmed back to level over piers that are still moving, or over framing that is still deteriorating, goes back out of level. Whether to adjust elevations is a decision made after the supports and the framing have been judged sound, or after they have been repaired.",
+          "The guidelines also treat a floor elevation survey as one piece of evidence rather than the whole answer. A single survey shows the floor's shape at one moment, and some unevenness was built in on the day the house was framed. Repeated surveys over months, or the original construction elevations where they exist, show change, which is what an engineer is actually trying to measure.",
+          "If lifting is part of the repair, the guidelines call for the water supply and drain lines to be tested for leaks afterwards, and note that gas lines may need adjusting. A leak under a house that has just been leveled is a fresh supply of the moisture that moved it.",
+        ],
+      },
+      {
+        eyebrow: "The document",
+        title: "What a repair plan should state",
+        body: [
+          "When an engineer specifies the repair, the guidelines list what the documents should carry, among them the purpose and limitations of the repair, a plan locating the relevant structural components, details and specifications for building it, any observation or testing required during construction, and a floor elevation survey once the work is done. A repair quote that cannot be read against a list like that is a price for a job nobody has described.",
+          "After the work, an engineer retained to do so may issue a letter stating that the repair generally conforms to the documents, with any deviations noted. That letter is what a later buyer, lender or insurer usually asks to see.",
+        ],
+      },
+    ],
+    faqs: [
+      {
+        q: "Is shimming a real repair or a temporary fix?",
+        a: "It is one of the four repairs the Texas Section ASCE guidelines list for pier and beam foundations, and it is the right one when the supports and the framing are sound and the gap is the problem. It is the wrong one when the pier under the shim is still moving, because the shim then only records the movement.",
+      },
+      {
+        q: "Can a home inspector tell me why my floor is uneven?",
+        a: "An inspector reports the visible condition. The Texas engineering board wrote in 2018 that analyzing the cause of a foundation condition or recommending repairs is the practice of engineering, and that an inspector working to the Texas Real Estate Commission's standards is not required to determine the cause of a deficiency.",
+      },
+    ],
+  },
 ];
 
 export const proximityBySlug = (slug: string): ProximityPage | undefined =>
