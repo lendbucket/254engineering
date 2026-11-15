@@ -9,6 +9,7 @@ import {
 } from "@/lib/email-templates";
 import { business } from "@/config/business";
 import { PUBLIC_FORM_REFUSAL, takeAcknowledgement, takePublicFormAttempt } from "@/lib/public-form-limits";
+import { adClickOfRequest } from "@/lib/ad-click-server";
 
 /**
  * The design inquiry intake.
@@ -61,6 +62,8 @@ async function handlePOST(request: Request) {
   }
 
   const result = await insertDesignInquiry({
+    /* The ad click this visitor landed with, from the cookie on the server (0137, src/lib/ad-click.ts). */
+    click: await adClickOfRequest(),
     name: data.name,
     email: data.email,
     phone: data.phone,

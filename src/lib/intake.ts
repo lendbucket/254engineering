@@ -179,6 +179,8 @@ export type DesignInquiryRow = {
   landingPath?: string;
   referrer?: string;
   userAgent?: string;
+  /** The ad click and its utm values, from the cookie on the server (0137). */
+  click?: AdClick | null;
 };
 
 export async function insertDesignInquiry(row: DesignInquiryRow): Promise<WriteResult> {
@@ -211,6 +213,8 @@ export async function insertDesignInquiry(row: DesignInquiryRow): Promise<WriteR
     landing_path: row.landingPath || null,
     referrer: row.referrer || null,
     user_agent: row.userAgent || null,
+    ...utmColumns(row.click ?? null),
+    ...adClickColumns(row.click ?? null),
   });
 
   return error ? { ok: false, error: error.message } : { ok: true };
@@ -245,6 +249,8 @@ export type WindstormInquiryRow = {
   landingPath?: string;
   referrer?: string;
   userAgent?: string | null;
+  /** The ad click and its utm values, from the cookie on the server (0137). */
+  click?: AdClick | null;
 };
 
 export async function insertWindstormInquiry(row: WindstormInquiryRow): Promise<WriteResult> {
@@ -278,6 +284,8 @@ export async function insertWindstormInquiry(row: WindstormInquiryRow): Promise<
     landing_path: row.landingPath || null,
     referrer: row.referrer || null,
     user_agent: row.userAgent || null,
+    ...utmColumns(row.click ?? null),
+    ...adClickColumns(row.click ?? null),
   });
 
   return error ? { ok: false, error: error.message } : { ok: true };
