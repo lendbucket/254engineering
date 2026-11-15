@@ -290,6 +290,18 @@ export const topics: Topic[] = [
       sealed: { angle: "The document pages and the city geo that serve an ordering buyer.", path: "/", status: "live" },
     },
   },
+  {
+    topic: "structural inspection",
+    cluster: "proximity",
+    evidence: "2026-11-14, Ahrefs, US, in the 2026-11-14 SEO report: 'structural inspection' 1,000/mo, KD 2, not ranking. Supporting: 'home structural inspection' 250/mo, KD 0.",
+    angles: {
+      "254": {
+        angle: "What a structural inspection is and who may do one in Texas: the engineer under Occupations Code chapter 1001 (1001.003, 1001.301, the seal under 1001.401) against the TREC inspector under chapter 1102 (1102.001, 1102.002(b)) and 22 TAC 535.227 and 535.228, how to check either license, then the visit and the engineer's review of the evidence. Rebuilt in place on 2026-11-14 rather than a new page.",
+        path: "/structural-engineer/inspection",
+        status: "live",
+      },
+    },
+  },
   /*
    * THE BUYERS, AGENTS AND LENDERS SECTION ON THIS SITE, 2026-10-16.
    *

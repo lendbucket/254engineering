@@ -565,17 +565,43 @@ export const insights: Insight[] = [
   // ------------------------------------------------------------------------ 4
   {
     slug: "texas-pe-license-lookup",
-    title: "Texas PE License Lookup and Verification | 254 Engineering",
+    /*
+     * SEO report quick win 1 (Robert's add-on of 2026-11-14, section 3): position
+     * 6 to 10 on about 900 impressions. The title and description answer the
+     * lookup in one line, the first paragraph links straight to the board's
+     * search, and the status table is the board's own legend, quoted.
+     */
+    title: "Texas PE License Lookup: The TBPELS Roster | 254 Engineering",
     h1: "How to look up a Texas PE license, and what the roster leaves out",
     description:
-      "The TBPELS roster and an official verification are two different things. See which one answers your question, and what the roster stopped publishing in 2023.",
+      "Search the TBPELS PE roster by name or PE number. Only an Active status is valid for engineering practice; see what the other four statuses on a result mean.",
     summary:
       "The board publishes a searchable roster and, separately, issues official verifications between licensing boards. They answer different questions and are frequently confused.",
     eyebrow: "Licensure",
     primaryKeyword: "texas pe license lookup",
     datePublished: "2026-08-23",
-    dateModified: "2026-11-01",
+    dateModified: "2026-11-14",
     body: [
+      {
+        kind: "p",
+        text: "To look up a Texas PE license, search [the board's PE roster](https://pels.texas.gov/roster/pesearch.html) by last name or PE number. A result showing the status Active is the only one the board lists as valid for active engineering; the other four statuses it uses all mean the license is not valid for practice today.",
+      },
+      {
+        kind: "table",
+        caption: "The five statuses on a TBPELS PE roster result, in the board's own words",
+        head: ["Status", "What the board says it means", "Valid for active engineering"],
+        rows: [
+          ["Active", "License is current and valid.", "Yes"],
+          ["Inactive", "License is current, but not valid for active engineering practice.", "No"],
+          ["Delinquent", "Renewal is past due.", "No"],
+          ["Expired 90 Days", "License has been expired for 90 or more days, but is still renewable.", "No"],
+          ["Expired 1 Year", "License has been expired for at least 1 year, but is still renewable.", "No"],
+        ],
+      },
+      {
+        kind: "p",
+        text: "A result also shows the PE number, the branch or branches, the date the license was granted, its expiration date, and the employer the licensee reported. The search accepts a PE number, a branch, a last or first name, an employer, an expiration date and a status.",
+      },
       {
         kind: "p",
         text: "Most people who need to check a Texas Professional Engineer are doing one of two very different things. They are confirming that the person about to seal a document holds a current license, or they are moving a license between states and need the board to certify its standing to another board. Texas serves those two needs through separate systems, and using the wrong one is the usual reason a check takes a month.",
@@ -662,6 +688,11 @@ export const insights: Insight[] = [
       },
     ],
     sources: [
+      {
+        label: "TBPELS, PE Roster Search",
+        url: "https://pels.texas.gov/roster/pesearch.html",
+        supports: "The search fields, the fields a result shows, and the five statuses with the board's own description of each, read 2026-11-14.",
+      },
       {
         label: "TBPELS, engineer and firm rosters",
         url: "https://pels.texas.gov/roster/eng_rosters.html",
@@ -1816,7 +1847,13 @@ const buyerInsights: Insight[] = [
   // -------------------------------------------------------- buyers, post 10
   {
     slug: "foundation-engineer-vs-repair-company",
-    title: "Foundation Engineer vs Repair Company | 254 Engineering",
+    /*
+     * SEO report quick win 5 (Robert's add-on of 2026-11-14, section 3):
+     * position 18 for "foundation engineering services", a phrase the title did
+     * not carry. The bridge to the repair cost searches is section 5's page 4,
+     * not a paragraph added here to hold a link.
+     */
+    title: "Foundation Engineering vs a Repair Company | 254 Engineering",
     h1: "Foundation engineer versus repair company: who does what in a repair",
     description:
       "A foundation engineer evaluates and specifies; a repair company builds. See each role from first visit to final letter, and what to ask each before you sign.",
@@ -1825,7 +1862,7 @@ const buyerInsights: Insight[] = [
     eyebrow: "Foundations",
     primaryKeyword: "foundation engineer",
     datePublished: BUYERS_SECTION_DATE,
-    dateModified: BUYERS_SECTION_DATE,
+    dateModified: "2026-11-14",
     body: [
       {
         kind: "p",

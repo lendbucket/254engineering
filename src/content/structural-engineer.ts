@@ -192,18 +192,48 @@ export const proximityPages: ProximityPage[] = [
    * what a structural engineer is and what the firm does; this answers what
    * actually happens when one inspects a house, which is the question behind
    * that search. Neither carries the other's H1.
+   *
+   * REBUILT IN PLACE 2026-11-14, page 5 of the 2026-11-14 SEO report, on
+   * Robert's yes to the proposal on issue #1 (6886644919): same address, no
+   * redirect. "structural inspection" measured 1,000 a month at difficulty 2
+   * and this page did not rank for it. A new page would have competed with this
+   * one, so the title, description, H1 and opening now answer that search, and
+   * one section is added: who may do one in Texas. The three sections below it
+   * and the FAQs are kept as they were.
+   *
+   * Sources, each read before it was written down: Occupations Code 1001.003,
+   * 1001.301 and 1001.401 (already cited across the insights corpus); 22 TAC
+   * 535.227 and 535.228 (the Justia copies cited in insights.ts); and chapter
+   * 1102, new here, read on 2026-11-14 from texas.public.law: 1102.001 defines
+   * the commission as the Texas Real Estate Commission and an inspector as a
+   * person who holds a license under the chapter, and 1102.002(b) reads "This
+   * chapter does not prevent a person from performing an act the person is
+   * authorized to perform under a license or registration issued by this state
+   * or a governmental subdivision of this state under a law other than this
+   * chapter."
    */
   {
     slug: "inspection",
     name: "What a structural inspection involves",
     question: "What actually happens when a structural engineer inspects a house?",
-    h1: "Structural Engineer Inspection: What Actually Happens",
-    title: "Structural Engineer Inspection in Texas | 254 Engineering",
+    h1: "Structural Inspection: What It Is and Who May Do One in Texas",
+    title: "Structural Inspection in Texas: What It Is | 254 Engineering",
     description:
-      "What a structural engineer looks at, what you get afterwards, and how it differs from a home inspection. Prices are published before you call the firm.",
+      "A structural inspection is an engineer evaluating whether a building carries its loads. See who may do one in Texas, how it differs, and what you receive.",
     summary:
-      "A structural inspection is not a longer home inspection. It is a narrower piece of work with a written question behind it, and the answer arrives as a document somebody else is going to rely on.",
+      "A structural inspection is an evaluation of whether a building's structure, meaning its foundation, framing and the path its loads take to the ground, is doing its job, made to answer a specific question and reported in writing. In Texas, an inspection that reaches an opinion of that kind is engineering, and it is done by a licensed professional engineer: the Occupations Code counts evaluation and analysis among the practice of engineering (section 1001.003) and reserves that practice to license holders (section 1001.301).",
     sections: [
+      {
+        eyebrow: "Licensing",
+        title: "Who may do one in Texas",
+        lede: "Two licenses, issued by two boards under two chapters of the same code.",
+        body: [
+          "A home inspection is a different job done by a different license. A home inspector licensed by the Texas Real Estate Commission surveys the whole house and gives a written opinion on how the foundation is performing (22 TAC 535.228), but the commission's own rules describe that work as a limited visual survey and excuse the inspector from elevation measurement, calculations and engineering services (535.227). When a home inspection report recommends an engineer's evaluation, a structural inspection is the step it points to.",
+          "The inspector's license is issued under chapter 1102 of the Occupations Code, which defines an inspector as a person holding a license under that chapter (section 1102.001). The engineer's is issued under chapter 1001 by the Texas Board of Professional Engineers and Land Surveyors. Chapter 1102 says it does not prevent anyone from doing what a license issued under another Texas law authorizes (section 1102.002(b)), so it does not stand between an engineer and an evaluation done under the engineering license.",
+          "A seal belongs to the engineer alone. Section 1001.401 ties it to the license holder, so a sealed report names the person who answers to the board for it. An inspection report carries no seal and claims none, which is why a lender or insurer that has asked for an engineer's opinion will not take an inspection report in its place.",
+          "Either license can be checked without asking its holder. The commission publishes a search of the people it licenses, and the engineering board publishes its roster. The steps on the engineer's side, and how to read what the roster returns, are in [how to look up a Texas PE license](/insights/texas-pe-license-lookup).",
+        ],
+      },
       {
         eyebrow: "The difference that matters",
         title: "A home inspection is broad, a structural inspection is deep",
