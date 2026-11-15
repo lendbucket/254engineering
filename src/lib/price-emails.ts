@@ -5,6 +5,7 @@ import { queueEmail } from "./ops-jobs";
 import { priceEmail } from "./email-templates";
 import { isSuppressed, unsubscribeUrl } from "./marketing-suppression";
 import { captureError } from "./ops-observability";
+import { priceEmailStopReason } from "./ad-conversion-rules";
 import { letterBySlug, priceEmailDueAt, quoteFor, type Coastal } from "./start-finder";
 import { lineOffer } from "./ordering";
 import { money } from "@/config/prices";
@@ -49,14 +50,8 @@ type LeadForEmail = {
 
 const SELECT = "id, email, created_at, quoted_service, quoted_cents, quoted_coastal, follow_up_step, follow_up_stopped_at";
 
-/** Why a sequence stops, or null when it may go on. Pure over what was read, so the proof can drive it. */
-export function stopReason(input: { ordered: boolean; suppressed: boolean; step: number; stopped: boolean }): string | null {
-  if (input.stopped) return "complete";
-  if (input.ordered) return "ordered";
-  if (input.suppressed) return "suppressed";
-  if (input.step >= 3) return "complete";
-  return null;
-}
+/** Why a sequence stops, or null when it may go on: one rule, in ad-conversion-rules.ts, which the proof drives. */
+export const stopReason = priceEmailStopReason;
 
 async function orderedSince(email: string, since: string): Promise<boolean | null> {
   const db = supabaseAdmin();

@@ -1,5 +1,4 @@
 import "server-only";
-import { createHash } from "node:crypto";
 import { supabaseAdmin } from "./supabase";
 import { DB_NOW } from "./db-now";
 import { captureError } from "./ops-observability";
@@ -43,115 +42,20 @@ import { AD_CLICK_DAYS, isAdClick, type AdClick } from "./ad-click";
  * Proved by scripts/proofs/a-conversion-is-owed-once-and-said-when-it-cannot-go.mjs.
  */
 
-export type ConversionKind = "order_paid" | "offline_order" | "callback" | "email_price" | "inquiry";
-export type Destination = "ga4" | "google_ads";
-
-/* ------------------------------------------------------------ pure helpers */
-
-/** Which Google Ads names are missing from an environment. Empty means every one is set. */
-export function missingAdsCredentials(env: Record<string, string | undefined>): string[] {
-  const needed = ["GOOGLE_ADS_DEVELOPER_TOKEN", "GOOGLE_ADS_CUSTOMER_ID", "GOOGLE_ADS_CLIENT_ID", "GOOGLE_ADS_CLIENT_SECRET", "GOOGLE_ADS_REFRESH_TOKEN", "GOOGLE_ADS_CONVERSION_ACTIONS"];
-  return needed.filter((n) => !env[n]);
-}
-
-export function missingGa4Credentials(env: Record<string, string | undefined>): string[] {
-  const missing: string[] = [];
-  if (!env.GA4_API_SECRET) missing.push("GA4_API_SECRET");
-  if (!gaMeasurementIdFrom(env)) missing.push("NEXT_PUBLIC_GA_MEASUREMENT_ID");
-  return missing;
-}
-
-function gaMeasurementIdFrom(env: Record<string, string | undefined>): string | null {
-  const id = env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
-  return id && /^G-[A-Z0-9]+$/.test(id) ? id : null;
-}
-
-/** The conversion action for a kind, from the JSON Robert sets; null when it is not named. */
-export function conversionActionFor(kind: ConversionKind, raw: string | undefined): string | null {
-  try {
-    const map = JSON.parse(raw ?? "{}") as Record<string, unknown>;
-    const v = map[kind];
-    return typeof v === "string" && /^\d{1,20}$/.test(v) ? v : null;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Google's normalisation for enhanced conversions, then SHA-256 hex. Email:
- * trimmed and lower cased; for gmail.com and googlemail.com the dots before the
- * @ are removed. Phone: E.164, the US assumed for ten digits. Null when there
- * is nothing usable, so an empty field never becomes the hash of an empty
- * string.
- */
-export function hashedEmail(email: string | null | undefined): string | null {
-  const e = (email ?? "").trim().toLowerCase();
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)) return null;
-  const [local, domain] = e.split("@");
-  const normal = domain === "gmail.com" || domain === "googlemail.com" ? `${local.replace(/\./g, "")}@${domain}` : e;
-  return createHash("sha256").update(normal).digest("hex");
-}
-
-export function hashedPhone(phone: string | null | undefined): string | null {
-  const digits = (phone ?? "").replace(/\D/g, "");
-  const e164 = digits.length === 10 ? `+1${digits}` : digits.length === 11 && digits.startsWith("1") ? `+${digits}` : null;
-  return e164 ? createHash("sha256").update(e164).digest("hex") : null;
-}
-
-/** "yyyy-mm-dd hh:mm:ss+00:00", the format the Google Ads API asks for. */
-export function adsDateTime(iso: string): string {
-  return `${new Date(iso).toISOString().slice(0, 19).replace("T", " ")}+00:00`;
-}
-
-/** One click conversion as the Google Ads API's uploadClickConversions takes it. */
-export function adsClickConversion(input: {
-  customerId: string;
-  actionId: string;
-  click: { gclid: string | null; gbraid: string | null; wbraid: string | null };
-  at: string;
-  valueCents: number | null;
-  orderId: string | null;
-  email: string | null;
-  phone: string | null;
-}) {
-  const identifiers = [
-    ...(hashedEmail(input.email) ? [{ hashedEmail: hashedEmail(input.email) }] : []),
-    ...(hashedPhone(input.phone) ? [{ hashedPhoneNumber: hashedPhone(input.phone) }] : []),
-  ];
-  return {
-    ...(input.click.gclid ? { gclid: input.click.gclid } : input.click.gbraid ? { gbraid: input.click.gbraid } : { wbraid: input.click.wbraid }),
-    conversionAction: `customers/${input.customerId}/conversionActions/${input.actionId}`,
-    conversionDateTime: adsDateTime(input.at),
-    ...(input.valueCents !== null ? { conversionValue: input.valueCents / 100, currencyCode: "USD" } : {}),
-    ...(input.orderId ? { orderId: input.orderId } : {}),
-    ...(identifiers.length ? { userIdentifiers: identifiers } : {}),
-  };
-}
-
-/**
- * The GA4 Measurement Protocol body for a paid order. client_id is required by
- * the protocol; the order's own id stands in for it, because the browser's GA
- * client id is not kept on an order. The purchase is counted with its value
- * and its reference as the transaction id, so a duplicate send is one purchase
- * in GA4's own deduplication.
- */
-export function ga4PurchaseBody(input: { orderId: string; reference: string; valueCents: number; serviceSlug: string }) {
-  return {
-    client_id: `order.${input.orderId}`,
-    non_personalized_ads: false,
-    events: [
-      {
-        name: "purchase",
-        params: {
-          transaction_id: input.reference,
-          value: input.valueCents / 100,
-          currency: "USD",
-          items: [{ item_id: input.serviceSlug, item_name: input.serviceSlug, price: input.valueCents / 100, quantity: 1 }],
-        },
-      },
-    ],
-  };
-}
+/* The pure rules live in one home, ad-conversion-rules.ts, which a proof can import without the database. */
+import {
+  adsClickConversion,
+  conversionActionFor,
+  ga4PurchaseBody,
+  gaMeasurementIdFrom,
+  missingAdsCredentials,
+  missingGa4Credentials,
+  orValue,
+  type ConversionKind,
+  type Destination,
+} from "./ad-conversion-rules";
+export { adsClickConversion, conversionActionFor, ga4PurchaseBody, missingAdsCredentials, missingGa4Credentials };
+export type { ConversionKind, Destination };
 
 /* ------------------------------------------------------------- recording */
 
@@ -217,7 +121,8 @@ export async function recordPaidOrderConversions(orderId: string): Promise<void>
       if (!lead?.gclid && !lead?.gbraid && !lead?.wbraid) {
         const email = (order.customer_email as string | null)?.trim().toLowerCase() ?? null;
         const phone = (order.customer_phone as string | null) ?? null;
-        const matchers = [email ? `email.eq.${email}` : null, phone ? `phone.eq.${phone}` : null].filter(Boolean).join(",");
+        /* Quoted, because a phone typed as "(281) 940-4490" carries the parentheses and spaces PostgREST's filter syntax splits on. */
+        const matchers = [email ? `email.eq.${orValue(email)}` : null, phone ? `phone.eq.${orValue(phone)}` : null].filter(Boolean).join(",");
         if (matchers) {
           const { data } = await db
             .from("eng_leads")
@@ -259,7 +164,13 @@ type Owed = {
 const MAX_ATTEMPTS = 10;
 const ADS_API_VERSION = "v21";
 
+/*
+ * COULD NOT TELL IS NOT AN ATTEMPT. A row that waits for a credential Robert
+ * has not set yet keeps its attempt count, so it is still owed the day the
+ * credential arrives; only a real send that failed counts toward the ceiling.
+ */
 async function mark(id: string, status: "sent" | "failed" | "could_not_tell", error: string | null, attempts: number) {
+  if (status === "could_not_tell") attempts -= 1;
   const db = supabaseAdmin();
   if (!db) return;
   await db
