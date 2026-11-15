@@ -84,14 +84,14 @@ export default async function OrdersPage() {
       .limit(200),
     db
       .from("eng_service_orders")
-      .select("reference, status, service_slug, property_address, total_cents, created_at")
+      .select("reference, status, service_slug, property_address, total_cents, created_at, kind")
       .eq("account_id", me.accountId)
       .is("batch_id", null)
       .order("created_at", { ascending: false })
       .limit(200),
     db
       .from("eng_service_orders")
-      .select("reference, status, service_slug, property_address, total_cents, created_at")
+      .select("reference, status, service_slug, property_address, total_cents, created_at, kind")
       .eq("customer_email", me.email.toLowerCase())
       .is("account_id", null)
       .is("batch_id", null)
@@ -126,7 +126,8 @@ export default async function OrdersPage() {
     ...(ownedRead.data ?? []).map((o) => ({
       reference: o.reference as string,
       kind: "order" as const,
-      what: (o.property_address as string) || (o.service_slug as string).replace(/-/g, " "),
+      /* A trip fee says so, rather than reading as a second order for the same property (0134). */
+      what: `${o.kind === "trip_fee" ? "Trip fee, " : ""}${(o.property_address as string) || (o.service_slug as string).replace(/-/g, " ")}`,
       status: words(o.status as string),
       totalCents: o.total_cents === null ? null : Number(o.total_cents),
       createdAt: o.created_at as string,
@@ -136,7 +137,8 @@ export default async function OrdersPage() {
     ...(matchedRead.data ?? []).map((o) => ({
       reference: o.reference as string,
       kind: "order" as const,
-      what: (o.property_address as string) || (o.service_slug as string).replace(/-/g, " "),
+      /* A trip fee says so, rather than reading as a second order for the same property (0134). */
+      what: `${o.kind === "trip_fee" ? "Trip fee, " : ""}${(o.property_address as string) || (o.service_slug as string).replace(/-/g, " ")}`,
       status: words(o.status as string),
       totalCents: o.total_cents === null ? null : Number(o.total_cents),
       createdAt: o.created_at as string,
@@ -164,8 +166,10 @@ export default async function OrdersPage() {
 
       {rows.length === 0 && !failed ? (
         <p className="mt-7 border-t border-[var(--color-limestone-line)] pt-6 text-[16px] leading-[1.6] text-[var(--color-ink-quiet)]">
-          Nothing yet. When you place an order it appears here, with what it is
-          for and where it has got to.
+          {/* Robert's approved words, answer 5 of 2026-11-14 (6878458673 draft 5). */}
+          Nothing yet.{" "}
+          <Link href="/order" className="font-semibold text-[var(--color-slate)] underline">Start an order for one property</Link>, or{" "}
+          <Link href="/account/order" className="font-semibold text-[var(--color-slate)] underline">a submission for several</Link>.
         </p>
       ) : null}
 

@@ -133,12 +133,24 @@ for (const [slug, price] of Object.entries(PRICE)) {
  * 07:10 Central (0095), it opens only on the engineer's signed per_job
  * addendum, read at the door; this child process signs none, so it is refused.
  */
-const openDoors = Object.entries(child.open.doors).filter(([k]) => k !== "windstorm-wpi-8/ongoing");
+/*
+ * AND ONE MORE, NAMED: the real-estate structural letter, Robert's answer 11 of
+ * 2026-11-14, closed until the engineer of record confirms its protocol in
+ * writing (OWN_PROTOCOL_REQUIRED in src/config/own-protocol.ts). Asserted
+ * refused below in its own check rather than merely left out of this one.
+ */
+const CLOSED_BY_RULING = ["windstorm-wpi-8/ongoing", "structural-letters/real-estate"];
+const openDoors = Object.entries(child.open.doors).filter(([k]) => !CLOSED_BY_RULING.includes(k));
 check("every other deliverable's door, WPI-8 completed included, lets an order through", openDoors.length >= 7 && openDoors.every(([, v]) => v === null), JSON.stringify(child.open.doors));
 check(
   "and WPI-8 ongoing is still refused by its scope addendum rule, the customer told only that it is not available yet",
   /not available to order yet/.test(String(child.open.doors["windstorm-wpi-8/ongoing"])),
   String(child.open.doors["windstorm-wpi-8/ongoing"]),
+);
+check(
+  "and the real-estate structural letter is refused until its own protocol is confirmed, the customer told only that it is not available yet",
+  /not available to order yet/.test(String(child.open.doors["structural-letters/real-estate"])),
+  String(child.open.doors["structural-letters/real-estate"]),
 );
 check("design is still a quote, never an order", by(child.open.rows, "residential-light-commercial-design").orderable === false);
 

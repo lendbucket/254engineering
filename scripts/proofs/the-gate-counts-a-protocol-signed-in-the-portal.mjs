@@ -129,7 +129,12 @@ state.trained = { [FC]: true, [PL]: true };
 for (const slug of [FC, PL]) {
   const s = await lineIsSellable(slug, null);
   check(`c: ${slug} signed and trained opens`, s.ok === true, s.ok ? "" : s.why);
-  const entry = catalogFor(slug);
+  /*
+   * By tier, as the roof check above already is. Since answer 11 of 2026-11-14
+   * structural-letters has two tiers, and catalogFor with no tier rightly
+   * answers nothing for a service that has more than one.
+   */
+  const entry = catalogFor(slug, "standard");
   check(`c: ${slug} is $709 with the same $75 coastal surcharge as roof`, entry?.priceCents === 70_900 && entry?.coastalSurchargeCents === 7_500, `${entry?.priceCents} and ${entry?.coastalSurchargeCents}`);
 }
 await roofEveryTime("c");

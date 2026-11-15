@@ -9,6 +9,8 @@ import { telLink } from "@/lib/phone-link";
 import { formatInFirmZone } from "@/lib/firm-calendar";
 import { EmptyState, ErrorState, PageHead, Panel } from "@/components/portal/surfaces";
 import { ContactLogPanel } from "@/components/portal/ContactLog";
+import { filesForClient } from "@/lib/file-related";
+import { STATUS_LABEL } from "@/lib/ops-files";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +27,7 @@ export default async function ClientPage({ params }: { params: Promise<{ id: str
   const client = await getClient(actor, id);
   if (!client) notFound();
   const orders = canLookUpOrders(actor) ? await ordersForClient(actor, id) : null;
+  const files = await filesForClient(actor, id);
   const tel = telLink(client.phone);
 
   return (
@@ -49,6 +52,27 @@ export default async function ClientPage({ params }: { params: Promise<{ id: str
           <dd className="text-[var(--ink)]">{client.county ?? "Not recorded"}</dd>
         </dl>
       </Panel>
+
+      {/* Every file, linked: the Killeen call, item 4 (src/lib/file-related.ts). */}
+      {files ? (
+        <Panel className="mt-6" title="Files">
+          {!files.ok ? (
+            <ErrorState title="Files could not be read" body={`${files.error} This is a failed read, not an empty list.`} />
+          ) : files.rows.length === 0 ? (
+            <EmptyState title="No files yet" body="A job taken for this client in New job opens a file, and it appears here." />
+          ) : (
+            <ul className="divide-y divide-[var(--row-rule)] border-t border-[var(--row-rule)]">
+              {files.rows.map((f) => (
+                <li key={f.id} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-2.5 text-[14px]">
+                  <Link href={`/portal/files?id=${f.id}`} className="font-semibold text-[var(--navy)] underline">{f.fileNumber}</Link>
+                  <span className="text-[var(--secondary)]">{STATUS_LABEL[f.status] ?? f.status}</span>
+                  <span className="text-[var(--secondary)]">{f.propertyAddress}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Panel>
+      ) : null}
 
       {orders ? (
         <Panel className="mt-6" title="Orders">

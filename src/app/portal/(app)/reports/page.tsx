@@ -6,6 +6,7 @@ import { ButtonLink, PageHead, Panel, EmptyState } from "@/components/portal/sur
 import { SystemAlert } from "@/components/portal/design";
 import { REPORTS, ROWS_PER_PAGE, formatFigure, pageOfRows, periodOf, type Figure } from "@/lib/ops-reports";
 import { isKnown, money } from "@/lib/ops-money";
+import { PrintButton } from "../intake/script/PrintButton";
 
 export const dynamic = "force-dynamic";
 
@@ -237,6 +238,7 @@ export default async function ReportsPage({
             ? `Your own work in ${period}. Every figure is a number a query produced, the word none because it found nothing, or an absence because it could not run.`
             : `What the firm did in ${period}. Every figure is a number a query produced, the word none because it found nothing, or an absence because it could not run.`
         }
+        actions={<PrintButton label="Print these reports" />}
       />
 
       {/*
@@ -270,12 +272,15 @@ export default async function ReportsPage({
            */
           actions={
             mayExport(actor, allowed[i].action) ? (
-              <ButtonLink
-                href={`/api/portal/exports?report=${report.key}&period=${period}`}
-                tone="ghost"
-              >
-                Export {period}
-              </ButtonLink>
+              /* A control does nothing on paper (the print read of 2026-11-14), so it drops out of the printout. */
+              <span className="print:hidden">
+                <ButtonLink
+                  href={`/api/portal/exports?report=${report.key}&period=${period}`}
+                  tone="ghost"
+                >
+                  Export {period}
+                </ButtonLink>
+              </span>
             ) : undefined
           }
         >

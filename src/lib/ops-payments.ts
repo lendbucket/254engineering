@@ -23,6 +23,7 @@ import {
   quoteFor,
   refundFor,
   refundForFirmCancellation,
+  travelLabel,
   type ReviewOutcome,
 } from "./ops-orders";
 import { event, issueCustomerLink } from "./ops-intake";
@@ -35,6 +36,7 @@ import {
   orderCancelled,
   orderConfirmed,
   orderDeclined,
+  orderLetterCopy,
   orderLetterReplaced,
   orderRepairsRequired,
   orderSealed,
@@ -42,6 +44,8 @@ import {
   refundFailed,
   refundSucceeded,
 } from "./email-templates";
+import { CONTACT_ROLE_LABEL, fileContacts } from "./file-contacts";
+import { issueLetterLink } from "./letter-links";
 import type { EffectMode } from "./ops-jobs";
 import { transitionFile, SYSTEM_AUTHOR } from "./ops-crm";
 import { isKnown, money } from "./ops-money";
@@ -50,6 +54,7 @@ import { fakeProvider, type PaymentProvider } from "./payments";
 import { stripeProvider } from "./payments-stripe";
 import { abandonedSoFar } from "./bounded-fetch";
 import { raiseSystemTask } from "./system-work";
+import { formatInFirmZone } from "./firm-calendar";
 import { REFUND_ISSUED_SENTENCE, refundStatusLabel, refundUpdateFor, type RefundRowStatus } from "./refund-update";
 
 /**
@@ -139,7 +144,7 @@ export async function startCheckout(orderId: string): Promise<CheckoutResult> {
   const { data: order } = await db
     .from("eng_service_orders")
     .select(
-      "id, reference, status, service_slug, tier, customer_email, total_cents, price_cents, coastal_surcharge_cents, currency, twia_county, county, property_address",
+      "id, reference, status, service_slug, tier, customer_email, total_cents, price_cents, coastal_surcharge_cents, currency, twia_county, county, property_address, kind, travel_cents",
     )
     .eq("id", orderId)
     .maybeSingle();
@@ -152,8 +157,16 @@ export async function startCheckout(orderId: string): Promise<CheckoutResult> {
     return { ok: false, error: "That order has no total, so it cannot be charged." };
   }
 
-  const entry = catalogFor(order.service_slug as string, (order.tier as string | null) ?? undefined);
-  const lines = entry
+  /*
+   * A TRIP FEE IS ONE LINE NAMED FOR WHAT IT IS (0134). Priced through the
+   * job's catalogue entry it would reach the payment page as "Foundation
+   * inspection, $125.00", a charge for the service at a price nobody quoted.
+   */
+  const tripFee = order.kind === "trip_fee";
+  const entry = tripFee ? undefined : catalogFor(order.service_slug as string, (order.tier as string | null) ?? undefined);
+  const lines: { label: string; amountCents: number | null }[] = tripFee
+    ? [{ label: "Trip fee", amountCents: Number(order.total_cents) }]
+    : entry
     ? quoteFor(
         {
           ...entry,
@@ -170,15 +183,25 @@ export async function startCheckout(orderId: string): Promise<CheckoutResult> {
     .filter((l) => isKnown(l.amountCents) && (l.amountCents as number) > 0)
     .map((l) => ({ label: l.label, amountCents: l.amountCents as number }));
 
+  /*
+   * TRAVEL IS ITS OWN LINE, NAMED FOR THE COUNTY (0135, Robert's answer 15):
+   * "Travel to Bell County", never the reason, which is for staff. Inside the
+   * total, so a single fallback line covers the rest of it, never the travel.
+   */
+  const travel = !tripFee && order.travel_cents !== null && order.travel_cents !== undefined ? Number(order.travel_cents) : 0;
+  const serviceLines = chargeable.length ? chargeable : [{ label: "Sealed document", amountCents: Number(order.total_cents) - travel }];
+  const allLines = travel > 0 ? [...serviceLines, { label: travelLabel(order.county as string), amountCents: travel }] : serviceLines;
+
   const session = await provider.createCheckout({
     reference: order.reference as string,
     orderId: order.id as string,
     amountCents: Number(order.total_cents),
     currency: (order.currency as string) ?? "usd",
     customerEmail: order.customer_email as string,
-    description: `${entry?.name ?? order.service_slug} at ${order.property_address}`,
-    lines: chargeable.length ? chargeable : [{ label: "Sealed document", amountCents: Number(order.total_cents) }],
-    successUrl: `${deploymentOrigin()}/order/${order.reference}?paid=1`,
+    description: tripFee ? `Trip fee at ${order.property_address}` : `${entry?.name ?? order.service_slug} at ${order.property_address}`,
+    lines: allLines,
+    /* A trip fee returns to its own sentence and is never counted as an order paid (0134). */
+    successUrl: `${deploymentOrigin()}/order/${order.reference}?paid=1${tripFee ? "&trip=1" : ""}`,
     cancelUrl: `${deploymentOrigin()}/order/${order.reference}?cancelled=1`,
   });
 
@@ -727,6 +750,18 @@ export async function releaseForFulfilment(
   const missing: string[] = [];
   const abandonedBefore = abandonedSoFar();
 
+  /*
+   * A PAID TRIP FEE RELEASES NO WORK OF ITS OWN (0134). The file went back to
+   * needs dispatch when the technician recorded that he could not get in, and
+   * dispatch refuses an offer until this fee is paid (no-access.ts), so the
+   * payment itself lifts the hold. What is left is telling the person who took
+   * the job, once, that the visit can be booked again. No order confirmation,
+   * no status link and no account: the job's own order did all three.
+   */
+  const { data: kindRow, error: kindError } = await db.from("eng_service_orders").select("kind").eq("id", orderId).maybeSingle();
+  if (kindError) return { complete: false, missing: [`the order could not be read: ${kindError.message}`] };
+  if (kindRow?.kind === "trip_fee") return await releaseTripFee(orderId, fileId);
+
   const { data: priorEvents, error: priorError } = await db
     .from("eng_order_events")
     .select("event")
@@ -1149,6 +1184,42 @@ async function eventOnce(orderId: string, name: string, summary: string): Promis
   if (error) return false;
   if ((data ?? []).length === 0) await event(orderId, name, false, summary);
   return true;
+}
+
+/** The trip fee's own event, once per order (0134). */
+export const TRIP_FEE_RELEASED = "trip_fee.released";
+
+/**
+ * A paid trip fee: the visit can be booked again (0134). The person who took the
+ * job gets one task, keyed on the order so a redelivered payment finds it, that
+ * opens the file. Incomplete when the task could not be raised, so the payment's
+ * release stays claimed and the next delivery tries again.
+ */
+async function releaseTripFee(orderId: string, fileId: string | null): Promise<ReleaseResult> {
+  const db = supabaseAdmin();
+  if (!db) return { complete: false, missing: ["the database is not configured"] };
+  if (!fileId) {
+    await eventOnce(orderId, TRIP_FEE_RELEASED, "The trip fee is paid and names no file. Somebody has to book the visit by hand.");
+    return { complete: false, missing: ["the trip fee names no file"] };
+  }
+  const { data: file, error } = await db
+    .from("eng_files")
+    .select("file_number, property_address, created_by")
+    .eq("id", fileId)
+    .maybeSingle();
+  if (error || !file) return { complete: false, missing: [`the file could not be read${error ? `: ${error.message}` : ""}`] };
+
+  const task = await raiseSystemTask({
+    key: `trip-fee-paid:${orderId}`,
+    title: `Trip fee paid: offer ${file.file_number} again`,
+    description: `The trip fee for ${file.property_address} is paid, so the visit can be booked again. Offer it from the file's dispatch panel.`,
+    assigneeId: (file.created_by as string | null) ?? null,
+    fileId,
+  });
+  if (!task.ok) return { complete: false, missing: [`the follow-up task could not be raised: ${task.error}`] };
+
+  const written = await eventOnce(orderId, TRIP_FEE_RELEASED, "The trip fee is paid, so the visit can be booked again.");
+  return written ? { complete: true, missing: [] } : { complete: false, missing: ["the trip fee's event could not be written"] };
 }
 
 type Recipient =
@@ -1576,7 +1647,8 @@ async function sendOrderConfirmation(
   const db = supabaseAdmin();
   if (!db) return "failed";
 
-  const view = await customerView(token);
+  /* The firm reading the order to write the email: never counted as the customer opening it. */
+  const view = await customerView(token, { asCustomer: false });
   if (!view) {
     await event(orderId, "email.not_sent", false, "The confirmation could not be built: the status link did not resolve.");
     return "failed";
@@ -2138,6 +2210,130 @@ async function orderForCharge(provider: string, chargeRef: string): Promise<stri
     .order("created_at", { ascending: true })
     .limit(1);
   return ((data ?? [])[0]?.order_id as string | null | undefined) ?? null;
+}
+
+/**
+ * ===========================================================================
+ * A CHARGEBACK IS WRITTEN DOWN AND THE ADMINISTRATOR IS GIVEN IT. Part 1
+ * finding 1, Robert's answer 1 of 2026-11-14 (he turns the dispute events on in
+ * Stripe the same day).
+ * ===========================================================================
+ *
+ * charge.dispute.created and charge.dispute.closed used to reach the webhook,
+ * verify, and be logged "not acted on", so a disputed charge left no mark on the
+ * order or the file: the job went on to delivery, Stripe took the money back,
+ * and nobody here was told.
+ *
+ * What it does, staff facing only (nothing reaches the customer):
+ *   1. Finds the order by the charge, reading it itself rather than through
+ *      orderForCharge, which answers null on a failed read: a task saying "no
+ *      order" when the truth is "could not read" is the wrong sentence.
+ *   2. Writes one entry on the order's timeline per dispute and phase, named
+ *      payment.disputed:<id> or payment.dispute_closed:<id>, and does not write
+ *      a second: a redelivery finds the first and changes nothing.
+ *   3. Writes the same line on the order's file, on the first write only.
+ *   4. Raises a task keyed on the dispute and phase, so the administrator is
+ *      given it once, due on Stripe's evidence deadline when it sends one.
+ *
+ * WHAT IT DOES NOT DO YET, said rather than implied. A lost dispute is not
+ * written into eng_order_payments as money gone: that table's kind is
+ * constrained to charge and refund (0006), so it needs a migration, and the
+ * task says the ledger still counts the charge. Stripe's status is quoted as
+ * Stripe spells it; this module does not decide what "won" means for money.
+ */
+export async function recordDispute(input: {
+  eventId: string;
+  phase: "created" | "closed";
+  disputeRef: string;
+  chargeRef: string | null;
+  amountCents: number;
+  reason: string;
+  status: string;
+  /** Unix seconds Stripe gives as the evidence deadline, when it gives one. */
+  evidenceDueBy: number | null;
+  provider: string;
+}): Promise<{ ok: true; orderId: string | null; alreadyRecorded: boolean } | { ok: false; error: string }> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The order system is not configured." };
+
+  let orderId: string | null = null;
+  if (input.chargeRef) {
+    const { data: charge, error: chargeError } = await db
+      .from("eng_order_payments")
+      .select("order_id")
+      .eq("provider", input.provider)
+      .eq("provider_ref", input.chargeRef)
+      .eq("kind", "charge")
+      .order("created_at", { ascending: true })
+      .limit(1);
+    if (chargeError) return { ok: false, error: `The charge the dispute is against could not be read: ${chargeError.message}` };
+    orderId = ((charge ?? [])[0]?.order_id as string | null | undefined) ?? null;
+  }
+
+  const name = input.phase === "created" ? `payment.disputed:${input.disputeRef}` : `payment.dispute_closed:${input.disputeRef}`;
+  const due = input.evidenceDueBy
+    ? formatInFirmZone(new Date(input.evidenceDueBy * 1000).toISOString(), { month: "short", day: "numeric", year: "numeric" })
+    : null;
+  const said =
+    input.phase === "created"
+      ? `The customer's bank opened a dispute (a chargeback) on this payment: ${money(input.amountCents)}, reason "${input.reason}", Stripe dispute ${input.disputeRef}.` +
+        (due ? ` Stripe's deadline for evidence is ${due}.` : "")
+      : `Stripe closed dispute ${input.disputeRef} on this payment with the status "${input.status}", ${money(input.amountCents)}.`;
+
+  let alreadyRecorded = false;
+  if (orderId) {
+    const { data: prior, error: priorError } = await db
+      .from("eng_order_events")
+      .select("id")
+      .eq("order_id", orderId)
+      .eq("event", name)
+      .limit(1);
+    if (priorError) return { ok: false, error: `Whether the dispute is already on the order could not be read: ${priorError.message}` };
+    alreadyRecorded = (prior ?? []).length > 0;
+    if (!alreadyRecorded) {
+      const { error: writeError } = await db.from("eng_order_events").insert({
+        order_id: orderId,
+        event: name,
+        customer_visible: false,
+        summary: said,
+        detail: { event_id: input.eventId, dispute: input.disputeRef, status: input.status, reason: input.reason, amount_cents: input.amountCents },
+      });
+      if (writeError) return { ok: false, error: `The dispute could not be written to the order: ${writeError.message}` };
+
+      const { data: order } = await db.from("eng_service_orders").select("file_id").eq("id", orderId).maybeSingle();
+      if (order?.file_id) {
+        const { error: fileError } = await db.from("eng_file_events").insert({
+          file_id: order.file_id,
+          actor_id: null,
+          kind: "payment",
+          body: said,
+        });
+        if (fileError) console.error(`[payments] dispute ${input.disputeRef} could not be written to its file: ${fileError.message}`);
+      }
+    }
+  }
+
+  if (!alreadyRecorded) {
+    const where = orderId
+      ? `The order is ${business.url}/portal/order-lookup/${orderId}.`
+      : `The charge ${input.chargeRef ?? "(none sent)"} matches no order on file.`;
+    const raised = await raiseSystemTask({
+      key: `dispute-${input.phase}:${input.disputeRef}`,
+      title:
+        input.phase === "created"
+          ? `A chargeback was opened: ${money(input.amountCents)}`
+          : `Stripe closed a chargeback as "${input.status}"`,
+      description:
+        `${said} ${where} ` +
+        (input.phase === "created"
+          ? "Answer it in the Stripe dashboard, with the file's evidence, before the deadline. The firm's ledger still counts the charge as paid; a lost dispute is not yet written into it."
+          : "If it was lost, the money has gone back to the customer's bank and the firm's ledger still counts the charge as paid. Settle the order by hand."),
+      dueAt: input.phase === "created" && input.evidenceDueBy ? new Date(input.evidenceDueBy * 1000).toISOString() : null,
+    });
+    if (!raised.ok) console.error(`[payments] the dispute task for ${input.disputeRef} could not be raised: ${raised.error}`);
+  }
+
+  return { ok: true, orderId, alreadyRecorded };
 }
 
 /** A staff task about a refund. A failure to raise it is a console line: the event is already recorded. */
@@ -2710,7 +2906,7 @@ export async function settleDecision(input: {
 
   const { data: order, error: orderError } = await db
     .from("eng_service_orders")
-    .select("id, reference, status, inspection_fee_cents, technician_visited, currency, batch_id")
+    .select("id, reference, status, inspection_fee_cents, technician_visited, currency, batch_id, travel_cents")
     .eq("id", input.orderId)
     .maybeSingle();
   if (orderError) return { ok: false, error: `The order could not be read, so nothing was settled: ${orderError.message}` };
@@ -2754,6 +2950,8 @@ export async function settleDecision(input: {
     const sealed = refundFor({ paidCents: 0, inspectionFeeCents: null, outcome: "seal", technicianVisited: Boolean(order.technician_visited) });
     await event(input.orderId, "refund.none", true, sealed.explanation);
     await sendOrderSealed(input.orderId);
+    /* And every copy contact on the file, the letter alone (the Killeen call, item 7). */
+    await sendCopyLetters(input.orderId);
     return {
       ok: true,
       refundedCents: 0,
@@ -2786,6 +2984,8 @@ export async function settleDecision(input: {
       order.inspection_fee_cents === null ? null : Number(order.inspection_fee_cents),
     outcome: input.outcome,
     technicianVisited: Boolean(order.technician_visited),
+    /* Kept once the trip was made, refunded otherwise (0135, Robert's answer 12). */
+    travelCents: order.travel_cents === null || order.travel_cents === undefined ? null : Number(order.travel_cents),
   });
 
   if (!isKnown(decision.refundCents) || !isKnown(decision.retainedCents)) {
@@ -3064,6 +3264,12 @@ async function alertRefundFailed(
  * message telling a customer their work was finished, for the sake of a link
  * this email no longer carries. A dependency kept past the feature that needed
  * it is a failure mode with nothing left to protect.
+ *
+ * BOTH PARAGRAPHS ABOVE ARE SUPERSEDED, corrected 2026-11-14 (Part 1 finding
+ * 23). The download came back on 2026-10-07 (orderSealed's statusUrl note in
+ * email-templates.ts): the notice carries "Download the sealed letter", which
+ * opens the order page, so the status link is needed again and the early
+ * return below is correct. Kept for the reasoning, not as a description.
  */
 async function sendOrderSealed(orderId: string): Promise<void> {
   const db = supabaseAdmin();
@@ -3071,14 +3277,23 @@ async function sendOrderSealed(orderId: string): Promise<void> {
 
   const { data: order } = await db
     .from("eng_service_orders")
-    .select("reference, customer_name, customer_email, property_address")
+    .select("reference, customer_name, property_address")
     .eq("id", orderId)
     .maybeSingle();
-
-  if (!order?.customer_email) {
-    await event(orderId, "email.not_sent", false, "The seal notice could not be sent: no customer email on the order.");
+  if (!order) {
+    await event(orderId, "email.not_sent", false, "The seal notice could not be sent: the order could not be read.");
     return;
   }
+
+  /*
+   * WHERE IT GOES IS noticeAddress's ANSWER, as for the other four notices that
+   * carry the status link (ruling 2026-10-13). It used to read the order's own
+   * customer_email, so on an order attached to an account the letter's notice
+   * went to the address that paid rather than the account's address on file.
+   * Part 1 finding 5, fixed on Robert's answer 1 of 2026-11-14.
+   */
+  const to = await noticeAddress(orderId, "seal notice");
+  if (!to) return;
 
   const statusUrl = await statusUrlFor(orderId, order.reference as string);
   if (!statusUrl) {
@@ -3089,7 +3304,7 @@ async function sendOrderSealed(orderId: string): Promise<void> {
   const queued = await queueEmail(
     orderSealed({
       customerName: order.customer_name as string,
-      customerEmail: order.customer_email as string,
+      customerEmail: to,
       reference: order.reference as string,
       propertyAddress: order.property_address as string,
       sealedAt: customerWhen(new Date().toISOString()) ?? "just now",
@@ -3103,9 +3318,83 @@ async function sendOrderSealed(orderId: string): Promise<void> {
     queued.ok ? "email.queued" : "email.not_sent",
     queued.ok,
     queued.ok
-      ? `The sealed document notice is queued to ${order.customer_email}. The next entry says when it is sent.`
+      ? `The sealed document notice is queued to ${to}. The next entry says when it is sent.`
       : `The sealed document notice could not be queued: ${queued.error}. It has to go out by hand.`,
   );
+}
+
+/**
+ * ===========================================================================
+ * THE SEALED LETTER TO EVERY COPY CONTACT, AND THE FILE SAYS WHO WAS SENT WHAT.
+ * The Killeen call, item 7 (Robert, 2026-11-14), with his answer 3: each contact
+ * gets a link to the sealed letter alone (eng_letter_links, 0133), never the
+ * customer's order page, in his approved email (orderLetterCopy).
+ * ===========================================================================
+ *
+ * Run after the customer's own notice when a letter is sealed, and again when
+ * one is replaced, so a lender holding a voided letter is sent the replacement.
+ * The letter is the order's newest live sealed letter (customerLettersRead, the
+ * customer's own list). Every contact still on the file gets one link and one
+ * email, and each outcome is written to the order's timeline and to the file:
+ * who, in what role, at which address, sent or not and why. A contact that
+ * could not be sent is never reported as sent.
+ */
+export async function sendCopyLetters(orderId: string): Promise<{ sent: number; failed: number }> {
+  const db = supabaseAdmin();
+  if (!db) return { sent: 0, failed: 0 };
+  const { data: order } = await db
+    .from("eng_service_orders")
+    .select("reference, customer_name, property_address, file_id")
+    .eq("id", orderId)
+    .maybeSingle();
+  const fileId = (order?.file_id as string | null | undefined) ?? null;
+  if (!order || !fileId) return { sent: 0, failed: 0 };
+
+  const contacts = await fileContacts(fileId);
+  if (!contacts.ok) {
+    await event(orderId, "copy_letter.not_sent", false, `The sealed letter was not sent to the copy contacts: ${contacts.error}`);
+    return { sent: 0, failed: 0 };
+  }
+  if (contacts.rows.length === 0) return { sent: 0, failed: 0 };
+
+  /*
+   * Imported here rather than at the top: letter-delivery imports letter-seal,
+   * which imports this module, and a cycle resolved at load time is one
+   * module-level constant away from failing at runtime.
+   */
+  const { customerLettersRead } = await import("./letter-delivery");
+  const letters = await customerLettersRead(orderId);
+  const letter = letters.ok ? letters.letters[0] : undefined;
+  if (!letter) {
+    await event(orderId, "copy_letter.not_sent", false, "The sealed letter was not sent to the copy contacts: no live sealed letter could be read for this order.");
+    return { sent: 0, failed: contacts.rows.length };
+  }
+
+  let sent = 0;
+  let failed = 0;
+  for (const c of contacts.rows) {
+    const who = `${c.name ? `${c.name}, ` : ""}the ${CONTACT_ROLE_LABEL[c.role].toLowerCase()}, at ${c.email}`;
+    const link = await issueLetterLink({ orderId, documentId: letter.id, contactId: c.id });
+    const queued = link.ok
+      ? await queueEmail(
+          orderLetterCopy({
+            customerName: order.customer_name as string,
+            recipientEmail: c.email,
+            propertyAddress: order.property_address as string,
+            letterUrl: `${business.url}/letter/${link.id}?token=${encodeURIComponent(link.token)}`,
+          }),
+          { orderId },
+        )
+      : { ok: false as const, error: link.error };
+    const line = queued.ok
+      ? `The sealed letter "${letter.title}" was sent to ${who}, through a link that opens the letter alone.`
+      : `The sealed letter was not sent to ${who}: ${queued.error}. Send it by hand.`;
+    await event(orderId, queued.ok ? "copy_letter.queued" : "copy_letter.not_sent", false, line);
+    await db.from("eng_file_events").insert({ file_id: fileId, actor_id: null, kind: "delivery", body: line });
+    if (queued.ok) sent += 1;
+    else failed += 1;
+  }
+  return { sent, failed };
 }
 
 /**
@@ -3122,15 +3411,14 @@ export async function sendLetterReplaced(orderId: string): Promise<{ ok: true } 
 
   const { data: order, error } = await db
     .from("eng_service_orders")
-    .select("reference, customer_name, customer_email, property_address")
+    .select("reference, customer_name, property_address")
     .eq("id", orderId)
     .maybeSingle();
   if (error || !order) return { ok: false, error: `the order could not be read${error ? `: ${error.message}` : ""}` };
 
-  if (!order.customer_email) {
-    await event(orderId, "email.not_sent", false, "The replacement notice could not be sent: no customer email on the order.");
-    return { ok: false, error: "the order has no customer email" };
-  }
+  /* noticeAddress, as the sealed notice above: Part 1 finding 5. It writes the reason to the order when it names nobody. */
+  const to = await noticeAddress(orderId, "replacement notice");
+  if (!to) return { ok: false, error: "there is nobody on the order or its account to send the notice to" };
   const statusUrl = await statusUrlFor(orderId, order.reference as string);
   if (!statusUrl) {
     await event(orderId, "email.not_sent", false, "The replacement notice could not be sent: a status link could not be issued.");
@@ -3140,7 +3428,7 @@ export async function sendLetterReplaced(orderId: string): Promise<{ ok: true } 
   const queued = await queueEmail(
     orderLetterReplaced({
       customerName: order.customer_name as string,
-      customerEmail: order.customer_email as string,
+      customerEmail: to,
       reference: order.reference as string,
       propertyAddress: order.property_address as string,
       sealedAt: customerWhen(new Date().toISOString()) ?? "just now",
@@ -3153,7 +3441,7 @@ export async function sendLetterReplaced(orderId: string): Promise<{ ok: true } 
     queued.ok ? "email.queued" : "email.not_sent",
     queued.ok,
     queued.ok
-      ? `The replacement letter notice is queued to ${order.customer_email}. The next entry says when it is sent.`
+      ? `The replacement letter notice is queued to ${to}. The next entry says when it is sent.`
       : `The replacement letter notice could not be queued: ${queued.error}. It has to go out by hand.`,
   );
   return queued.ok ? { ok: true } : { ok: false, error: `the notice could not be queued: ${queued.error}` };
@@ -3178,14 +3466,17 @@ async function sendOrderDeclined(
 
   const { data: order } = await db
     .from("eng_service_orders")
-    .select("reference, customer_name, customer_email, property_address")
+    .select("reference, customer_name, property_address")
     .eq("id", orderId)
     .maybeSingle();
-
-  if (!order?.customer_email) {
-    await event(orderId, "email.not_sent", false, "The decline notice could not be sent: no customer email on the order.");
+  if (!order) {
+    await event(orderId, "email.not_sent", false, "The decline notice could not be sent: the order could not be read.");
     return;
   }
+
+  /* noticeAddress, as the sealed notice: Part 1 finding 5. */
+  const to = await noticeAddress(orderId, "decline notice");
+  if (!to) return;
 
   const statusUrl = await statusUrlFor(orderId, order.reference as string);
   if (!statusUrl) {
@@ -3196,7 +3487,7 @@ async function sendOrderDeclined(
   const queued = await queueEmail(
     orderDeclined({
       customerName: order.customer_name as string,
-      customerEmail: order.customer_email as string,
+      customerEmail: to,
       reference: order.reference as string,
       propertyAddress: order.property_address as string,
       explanation: refundPending ? decision.explanationWhilePending : decision.explanation,
@@ -3213,7 +3504,7 @@ async function sendOrderDeclined(
     queued.ok ? "email.queued" : "email.not_sent",
     queued.ok,
     queued.ok
-      ? `The decision is queued to ${order.customer_email}. The next entry says when it is sent.`
+      ? `The decision is queued to ${to}. The next entry says when it is sent.`
       : `The decision could not be queued: ${queued.error}. It has to go out by hand.`,
   );
 }

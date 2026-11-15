@@ -28,10 +28,18 @@ const probe = await import("../lib/portal-probe.mjs");
 const { destroyProbes, __setProbeClientForTests, KEPT_PROBES, FIXTURE_ENGINEER_EMAIL, PROBE_DOMAIN } = probe;
 
 /* The list is the ruling, pinned as literals here and never read back to compare with itself. */
-const RULED_IDS = ["bf376756-f8c4-4525-9eef-ca2492b6c6aa", "3b09b3a2-b6e6-43ad-ab7b-dcc4f041ebbe"];
+/* The two walk engineers of 2026-10-23, then the four local walk probes of Robert's answer 30 of 2026-11-14. */
+const RULED_IDS = [
+  "bf376756-f8c4-4525-9eef-ca2492b6c6aa",
+  "3b09b3a2-b6e6-43ad-ab7b-dcc4f041ebbe",
+  "f2189100-b058-4979-9cea-3607566b7042",
+  "376660b5-06b2-40dd-adca-1a294bd611db",
+  "878bee27-ac41-4efe-aa19-303040f5d5ea",
+  "0f2686c4-0608-443c-adf5-8e6a1ae1d8e0",
+];
 check(
-  "the kept list is exactly the two walk engineers and the fixture",
-  KEPT_PROBES.length === 3 &&
+  "the kept list is exactly the two walk engineers, the four walk probes of answer 30, and the fixture",
+  KEPT_PROBES.length === 7 &&
     RULED_IDS.every((id) => KEPT_PROBES.some((k) => k.id === id)) &&
     KEPT_PROBES.some((k) => k.email === `fixture-engineer@${PROBE_DOMAIN}`) &&
     FIXTURE_ENGINEER_EMAIL === `fixture-engineer@${PROBE_DOMAIN}`,
@@ -90,6 +98,10 @@ function fakeDb({ accounts, pinned }) {
 const named = [
   { id: RULED_IDS[0], email: `addendum-walk-engineer-mvkcsn41@${PROBE_DOMAIN}` },
   { id: RULED_IDS[1], email: `addendum-walk-engineer-mvkcv2q2@${PROBE_DOMAIN}` },
+  { id: RULED_IDS[2], email: `probe-1794670108899-e045r@${PROBE_DOMAIN}` },
+  { id: RULED_IDS[3], email: `probe-1794682749526-f6lxb@${PROBE_DOMAIN}` },
+  { id: RULED_IDS[4], email: `probe-1794682803981-0jhy8@${PROBE_DOMAIN}` },
+  { id: RULED_IDS[5], email: `probe-1794688636736-tjmxf@${PROBE_DOMAIN}` },
   { id: FIXTURE_ID, email: FIXTURE_ENGINEER_EMAIL },
 ];
 
@@ -99,7 +111,7 @@ const named = [
   __setProbeClientForTests(db);
   const r = await destroyProbes("proof");
   check("with only the named accounts left, the sweep is green", r.ok === true && r.left === 0, r.note);
-  check("and it names all three as kept by design", (r.kept ?? []).length === 3 && named.every((a) => r.note.includes(a.id)), r.note.slice(0, 140));
+  check("and it names all seven as kept by design", (r.kept ?? []).length === 7 && named.every((a) => r.note.includes(a.id)), r.note.slice(0, 140));
   check("it never attempts to delete a kept account", !db.deletes.some((d) => named.some((a) => a.id === d.value)));
   check("and an ordinary probe is still deleted", db.deletes.some((d) => d.table === "auth.users" && d.value === ORDINARY));
 }
@@ -112,7 +124,7 @@ const named = [
   const r = await destroyProbes("proof");
   check("a third undeletable probe turns the sweep red", r.ok === false, r.note.slice(0, 160));
   check("and the red names it, as left behind and as refused", r.note.includes(`deleteUser refused: ${THIRD}`) && /left behind on/.test(r.note));
-  check("while the three named stay kept, not counted against it", (r.kept ?? []).length === 3 && r.left === 2, `left ${r.left}: the third's profile and auth user`);
+  check("while the seven named stay kept, not counted against it", (r.kept ?? []).length === 7 && r.left === 2, `left ${r.left}: the third's profile and auth user`);
 }
 
 /* 3. The same address as a kept account but a different id is not kept by the id entries. */

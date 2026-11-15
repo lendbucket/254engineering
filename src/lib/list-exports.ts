@@ -252,9 +252,12 @@ export function tasksCsv(rows: readonly TaskRow[], filter: string): string {
  * the person exporting can read, of what kind, with whom, and when they last
  * moved. NEVER WHAT WAS SAID: no message text, no preview. A direct message is
  * private (the messages screen's own rule), and a file of conversations is a
- * list of who talked, not a copy of the talking. The unread count is left out
- * too, because the screen's count is drawn from a bounded read of recent
- * messages and is not an exact figure to hand to a spreadsheet.
+ * list of who talked, not a copy of the talking.
+ *
+ * THE UNREAD COUNT IS IN IT SINCE BATCH B. It was left out while the screen's
+ * count came from a bounded read of recent messages; readThreads now counts it
+ * exactly per thread, so it is a figure a spreadsheet can be handed. It is the
+ * exporting person's own unread, and the column says so.
  */
 export function conversationsCsv(rows: readonly ThreadListItem[], filter: string): string {
   return csv({
@@ -263,8 +266,8 @@ export function conversationsCsv(rows: readonly ThreadListItem[], filter: string
       ["Filter", filter],
       ["Note", "What was said is never exported. This is the list of conversations only."],
     ],
-    headers: ["Conversation", "Kind", "People", "Last message", "Started"],
-    rows: rows.map((t) => [t.title, t.kind, t.participants.map((p) => p.name).join("; "), t.last_message_at ?? "", t.created_at]),
+    headers: ["Conversation", "Kind", "People", "Last message", "Started", "Unread by you"],
+    rows: rows.map((t) => [t.title, t.kind, t.participants.map((p) => p.name).join("; "), t.last_message_at ?? "", t.created_at, t.unread]),
   });
 }
 

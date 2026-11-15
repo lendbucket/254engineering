@@ -38,6 +38,19 @@ export type NavItem = {
    * report grants without reports.production, which is the engineer's pay.
    */
   anyOf?: (Action | LicensedAction)[];
+  /**
+   * A reader who holds this action is told on the screen itself that it is not
+   * theirs, because they hold the firm-wide version of it, so the menu leaves it
+   * out for them. Robert, 2026-11-14, item 9 of the role walk: the
+   * administrator's menu offered My jobs, a technician's own offers, and Your
+   * franchise, which told him his account belongs to no franchisee.
+   *
+   * The screen asks the same question through notForReader below, so the menu
+   * and the page cannot disagree about who the screen is not for, and
+   * scripts/proofs/no-menu-offers-a-screen-that-turns-its-reader-away.mjs
+   * sweeps every role's menu against every page that says so.
+   */
+  notFor?: Action;
   /** Shown in the bottom tab bar on a phone. At most five, by design. */
   primary?: boolean;
   icon:
@@ -73,7 +86,10 @@ export const NAV: NavItem[] = [
     primary: true,
     icon: "intake",
   },
-  { href: "/portal/jobs", label: "My jobs", short: "Jobs", action: "offers.list_own", primary: true, icon: "jobs" },
+  /* The printable call script (C7, 2026-11-14), behind New job's own grant so the link never leads to a refusal. */
+  { href: "/portal/intake/script", label: "Call script", short: "Script", action: "files.create", icon: "intake" },
+  /* Not for a reader who dispatches: their view of offers is on each file (item 9, 2026-11-14). */
+  { href: "/portal/jobs", label: "My jobs", short: "Jobs", action: "offers.list_own", notFor: "offers.dispatch", primary: true, icon: "jobs" },
   {
     // A technician's own gate status. Primary on a phone, because "why am I not
     // getting work" is the question this screen exists to answer and hiding it
@@ -167,6 +183,8 @@ export const NAV: NavItem[] = [
     label: "Your franchise",
     short: "Franchise",
     action: "franchise.read_own",
+    /* The keeper of every franchisee's record has Franchisees instead (item 9, 2026-11-14). */
+    notFor: "franchise.manage",
     icon: "partners",
   },
   { href: "/portal/review", label: "Review queue", short: "Review", action: "review.queue", primary: true, icon: "review" },
@@ -368,7 +386,19 @@ export const MOBILE_TAB_LIMIT = 5;
  * Removing it costs nothing and removes a reason to write one.
  */
 export function navFor(allowed: (action: Action | LicensedAction) => boolean): NavItem[] {
-  return NAV.filter((item) => allowed(item.action) || (item.anyOf ?? []).some(allowed));
+  return NAV.filter(
+    (item) => (allowed(item.action) || (item.anyOf ?? []).some(allowed)) && !(item.notFor && allowed(item.notFor)),
+  );
+}
+
+/**
+ * Whether the screen at href tells this reader it is not theirs: the same
+ * notFor the menu reads, so the page's sentence and the menu's omission come
+ * from one declaration. False for a screen that declares no notFor.
+ */
+export function notForReader(href: string, allowed: (action: Action | LicensedAction) => boolean): boolean {
+  const item = NAV.find((i) => i.href === href);
+  return Boolean(item?.notFor && allowed(item.notFor));
 }
 
 export function mobileTabsFor(items: NavItem[]): NavItem[] {

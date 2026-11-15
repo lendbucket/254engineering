@@ -2,7 +2,8 @@
  * The call log's vocabulary, client safe so the panel and the server read one
  * list. Matches the check constraints in 0079.
  */
-export const CONTACT_SUBJECTS = ["prospect", "client", "order", "file"] as const;
+/* 0136 adds the three inquiries: the inbox's (eng_leads), a design brief and a windstorm brief. */
+export const CONTACT_SUBJECTS = ["prospect", "client", "order", "file", "lead", "design_inquiry", "windstorm_inquiry"] as const;
 export type ContactSubject = (typeof CONTACT_SUBJECTS)[number];
 
 export const CONTACT_CHANNELS = ["call", "email", "note"] as const;

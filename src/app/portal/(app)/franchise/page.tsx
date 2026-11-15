@@ -9,7 +9,8 @@ import { STAGE_LABEL, type CrmStage } from "@/lib/crm-rules";
 import { formatInFirmZone } from "@/lib/firm-calendar";
 import { FRANCHISEE_STATUS_LABEL } from "@/lib/franchisee-rules";
 import { currentActor } from "@/lib/ops-auth";
-import { can, roleLabel } from "@/lib/ops-authz";
+import { can, may, roleLabel } from "@/lib/ops-authz";
+import { notForReader } from "@/components/portal/nav";
 import { moneyOr } from "@/lib/ops-money";
 import { ORDER_STATUS_LABEL, type OrderStatus } from "@/lib/ops-orders";
 import { ownFranchise, type OwnFranchise } from "@/lib/own-franchise";
@@ -105,10 +106,12 @@ export default async function YourFranchisePage({ searchParams }: { searchParams
   }
 
   if (!read.franchise) {
-    const keeper = can(actor, "franchise.manage");
+    /* The menu's own question (nav.ts notFor), so the menu leaves this screen out for exactly the reader told here it is not theirs. */
+    const keeper = notForReader("/portal/franchise", (a) => may(actor, a));
     return (
       <>
         <PageHead eyebrow="Franchise" title="Your franchise" lede="A franchisee's owner reads their own franchise here." />
+        {keeper ? <span data-not-for-reader="/portal/franchise" hidden /> : null}
         <EmptyState
           title="This account does not belong to a franchisee"
           body={

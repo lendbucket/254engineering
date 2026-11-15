@@ -20,6 +20,8 @@ export async function supplyUrlFor(fileId: string): Promise<string | null> {
     .from("eng_service_orders")
     .select("id, reference")
     .eq("file_id", fileId)
+    /* The job's order, never a trip fee raised after it (0134). */
+    .eq("kind", "job")
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();

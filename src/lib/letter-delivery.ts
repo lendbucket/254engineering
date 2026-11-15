@@ -65,20 +65,30 @@ export async function customerLetters(orderId: string): Promise<CustomerLetter[]
 export async function customerLetterFor(
   orderId: string,
   documentId: string,
+  /*
+   * WHO IS DOWNLOADING, for the audit row. The customer through the order link
+   * by default; a copy contact through their letter link (0133, the Killeen call
+   * item 7) says so, so the trail never records a lender's download as the
+   * customer's. The CHECK is the same for both, which is the point.
+   */
+  via: { kind: "customer" } | { kind: "copy"; role: string } = { kind: "customer" },
 ): Promise<{ ok: true; bytes: Uint8Array; filename: string } | { ok: false }> {
   const mine = await customerLetters(orderId);
   if (!mine.some((l) => l.id === documentId)) return { ok: false };
   const read = await sealedLetterBytes(documentId);
   if (!read.ok) {
-    console.error(`[delivery] ${documentId} was refused to its customer: ${read.error}`);
+    console.error(`[delivery] ${documentId} was refused to its ${via.kind === "customer" ? "customer" : "copy contact"}: ${read.error}`);
     return { ok: false };
   }
   await writeAudit({
     actor: { id: null, role: "customer" },
-    action: "document.customer_download",
+    action: via.kind === "customer" ? "document.customer_download" : "document.copy_download",
     entityType: "document",
     entityId: documentId,
-    summary: "The customer downloaded the sealed letter through the order link.",
+    summary:
+      via.kind === "customer"
+        ? "The customer downloaded the sealed letter through the order link."
+        : `A copy contact (${via.role}) downloaded the sealed letter through their letter link.`,
   });
   return { ok: true, bytes: read.bytes, filename: `254-letter-${documentId.slice(0, 8)}.pdf` };
 }

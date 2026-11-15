@@ -40,6 +40,9 @@ const COLUMN: Record<ContactSubject, string> = {
   client: "client_id",
   order: "order_id",
   file: "file_id",
+  lead: "lead_id",
+  design_inquiry: "design_inquiry_id",
+  windstorm_inquiry: "windstorm_inquiry_id",
 };
 
 const TABLE: Record<ContactSubject, string> = {
@@ -47,13 +50,22 @@ const TABLE: Record<ContactSubject, string> = {
   client: "eng_clients",
   order: "eng_service_orders",
   file: "eng_files",
+  lead: "eng_leads",
+  design_inquiry: "eng_design_inquiries",
+  windstorm_inquiry: "eng_windstorm_inquiries",
 };
 
-/** Whether this actor may READ the log on this kind of record. Writing is contact_log.write. */
+/**
+ * Whether this actor may READ the log on this kind of record. Writing is
+ * contact_log.write. Each inquiry is read by whoever may open its screen: the
+ * inbox's by inbox.read, a design or windstorm brief by files.create (0136).
+ */
 export function canReadContactLog(actor: Actor | null, subject: ContactSubject): boolean {
   if (subject === "prospect") return can(actor, "crm.use");
   if (subject === "order") return can(actor, "orders.read") || can(actor, "payments.reconcile");
   if (subject === "client") return can(actor, "clients.list");
+  if (subject === "lead") return can(actor, "inbox.read");
+  if (subject === "design_inquiry" || subject === "windstorm_inquiry") return can(actor, "files.create");
   return can(actor, "files.list");
 }
 

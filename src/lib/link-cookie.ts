@@ -45,6 +45,8 @@ const SET_PASSWORD_PAGES = new Set(["/portal/set-password", "/account/set-passwo
 const ONBOARDING_PAGE = /^\/onboarding\/([^/]+)(\/training)?$/;
 const ONBOARDING_ALIAS = "invite";
 const ORDER_DOCUMENT_ROUTE = "/api/order-document";
+/* A copy contact's sealed letter (0133, the Killeen call item 7). One letter per path, so one cookie per letter. */
+const LETTER_PAGE = /^\/letter\/[A-Za-z0-9-]+$/;
 const REFERENCE = /^[A-Za-z0-9-]+$/;
 
 /** The cookie that holds the token for one page. `__Host-` pins it to this host, Secure and path "/". */
@@ -54,7 +56,7 @@ export function linkCookieName(page: string): string {
 
 /** The page whose cookie opens it, or null when the path carries no tokened link. */
 export function tokenedPage(pathname: string): string | null {
-  if (ORDER_PAGE.test(pathname) || QUOTE_PAGE.test(pathname) || SET_PASSWORD_PAGES.has(pathname)) return pathname;
+  if (ORDER_PAGE.test(pathname) || QUOTE_PAGE.test(pathname) || SET_PASSWORD_PAGES.has(pathname) || LETTER_PAGE.test(pathname)) return pathname;
   if (ONBOARDING_PAGE.test(pathname)) return "/onboarding";
   return null;
 }

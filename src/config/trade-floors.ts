@@ -337,6 +337,17 @@ export const TRADE_FLOORS: Record<string, TradeFloor> = {
     by: BY,
     on: ON_MARKUP,
   },
+  /*
+   * PENDING, AND HONESTLY SO. The deliverable is Robert's answer 11 of
+   * 2026-11-14 at $709, and no floor was ruled with it: the 150% markup floor
+   * needs its engineer pay tier, which is not in Schedule 2 of his agreement.
+   * A floor typed here before that would be a floor under a cost nobody set.
+   */
+  "structural-letters/real-estate": {
+    state: "pending",
+    because:
+      "Structural letter for a real estate transaction. No trade floor is ruled yet: it waits on the engineer's pay for this letter, which his agreement does not cover yet, and on the operator's ruling.",
+  },
   "repair-specifications/standard": {
     state: "set",
     floorCents: 117_400,

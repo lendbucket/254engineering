@@ -214,6 +214,21 @@ export default async function TasksPage({
                         {task.description}
                       </p>
                     ) : null}
+                    {/*
+                      THE FILE THE TASK IS ABOUT, ONE CLICK AWAY. The Killeen call,
+                      item 6, promised the unpaid follow-up "with the resend link
+                      on it", and the task carried its file_id while this screen
+                      never drew it: found on the after walk of 2026-11-14. The
+                      resend and the trip fee and travel controls are on the file.
+                    */}
+                    {task.file_id ? (
+                      <a
+                        href={`/portal/files?id=${task.file_id}`}
+                        className="mt-1 inline-flex min-h-[44px] items-center text-[14px] font-semibold text-[var(--navy)] underline"
+                      >
+                        Open the file
+                      </a>
+                    ) : null}
                     <p className="mt-1.5 text-[13px] text-[var(--secondary)]">
                       {task.due_at ? `Due ${when(task.due_at)}` : "No due date"}
                       {task.recurrence ? `, ${RECURRENCE_LABEL[task.recurrence as Recurrence] ?? task.recurrence}` : ""}

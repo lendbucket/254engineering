@@ -48,6 +48,62 @@ export function landsAt(orderType: CatalogEntry["orderType"]): "needs_dispatch" 
 }
 
 /**
+ * THE PAYMENT ROUTES THAT RELEASE A JOB THE MOMENT IT IS TAKEN. Robert's
+ * answer 20, 2026-11-14: only a job the administrator opens unpaid or on
+ * account lands at dispatch straight away.
+ */
+export const RELEASED_WHEN_TAKEN: readonly PaymentIntent[] = ["released_unpaid", "invoiced"];
+
+/**
+ * WHERE A JOB TAKEN ON NEW JOB LANDS, GIVEN HOW IT IS TO BE PAID.
+ *
+ * Robert's answer 20, 2026-11-14. A job taken with a payment link stays at
+ * intake until it is paid, and the payment releases it to dispatch, as a web
+ * order does (ops-payments, landingStatusFor). Before this every field job
+ * moved to needs dispatch when it was taken: an administrator's unpaid link
+ * job could be offered to a technician, and a rep's stayed at intake with a
+ * warning saying somebody had to move it by hand, which was false. Anything
+ * not in RELEASED_WHEN_TAKEN waits at intake for its payment.
+ */
+/**
+ * A FILE IS OPEN AT AN ADDRESS UNTIL IT IS ONE OF THESE. Robert, 2026-11-14,
+ * after the walk left 254-DEMO-0023 and 0024 open at the same address: New job
+ * warns, before the job is taken, when an open file already exists there.
+ * Sealed is still open (the letter is not delivered); refused is not (the work
+ * ended), and neither is anything delivered, closed or cancelled.
+ */
+export const NOT_OPEN_AT_ADDRESS = ["delivered", "closed", "cancelled", "refused"] as const;
+
+const STREET_WORDS: Record<string, string> = {
+  street: "st", avenue: "ave", av: "ave", road: "rd", drive: "dr", lane: "ln", boulevard: "blvd",
+  court: "ct", circle: "cir", place: "pl", parkway: "pkwy", highway: "hwy", trail: "trl", terrace: "ter",
+  north: "n", south: "s", east: "e", west: "w", apartment: "apt", suite: "ste", number: "no",
+};
+
+/**
+ * One address, as a key two spellings of it share: case, punctuation, spacing
+ * and the common street words ("Lane" and "Ln") do not make two addresses.
+ * Deliberately no fuzzier than that: a warning that fires on a neighbour's
+ * house is one the rep learns to click past.
+ */
+export function addressKey(address: string, city: string | null = null): string {
+  const words = `${address} ${city ?? ""}`
+    .toLowerCase()
+    .replace(/[^a-z0-9 ]+/g, " ")
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => STREET_WORDS[w] ?? w);
+  return words.join(" ");
+}
+
+export function landsWhenTaken(
+  orderType: CatalogEntry["orderType"],
+  intent: PaymentIntent,
+): "needs_dispatch" | "evidence_submitted" | "intake" {
+  return RELEASED_WHEN_TAKEN.includes(intent) ? landsAt(orderType) : "intake";
+}
+
+/**
  * WHAT THE FIRM MAY DO ABOUT MONEY, GIVEN THE COMPLIANCE GATE.
  *
  * The gate is not a nicety here. `orderBlockedReason` refuses every order while
@@ -74,6 +130,12 @@ export function paymentOptions(input: {
   accountCanInvoice: boolean;
   /** The catalog published a price for this deliverable. */
   priced: boolean;
+  /**
+   * Whether a deliverable has been chosen yet. New job passes it, because
+   * before a choice "no published price" is false: nothing has been asked yet
+   * (the screenshot walk of 2026-11-14). The server always has a deliverable.
+   */
+  deliverableChosen?: boolean;
 }): PaymentOption[] {
   const gate =
     /* A literal, because a client component imports this module and launch.ts
@@ -90,7 +152,9 @@ export function paymentOptions(input: {
         ? gate
         : input.priced
           ? undefined
-          : "There is no published price for this deliverable, so there is nothing to charge.",
+          : input.deliverableChosen === false
+            ? "Choose the deliverable, and its price appears above."
+            : "There is no published price for this deliverable, so there is nothing to charge.",
     },
     {
       intent: "invoiced",

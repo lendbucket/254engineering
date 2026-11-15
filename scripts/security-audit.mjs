@@ -93,6 +93,8 @@ const ADMIN_PAGES = [
   // Phase 10 Section 1. The telephone call path: a client, a price and a
   // dispatch, so it is as far from public as a portal page gets.
   "/portal/intake",
+  // The printable call script (C7, 2026-11-14): files.create, New job's own door.
+  "/portal/intake/script",
   // The permission screen. It names every member of staff, what each can do,
   // and the controls that change it. An intruder reading it learns the shape
   // of the whole organisation; an intruder writing to it owns the platform.

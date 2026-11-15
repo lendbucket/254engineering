@@ -59,7 +59,7 @@ import { probeOf, probeSql } from "./lib/proves-shape.mjs";
  * must be true; the grant row's must too, against PRODUCTION_GRANTS below.
  */
 /* Production's grant count at its last sitting; the reasoning is at the grant check below. One home for both readers. */
-const PRODUCTION_GRANTS = 199;
+const PRODUCTION_GRANTS = 203;
 
 if (process.argv.includes("--sql")) {
   const rows = [];
@@ -235,7 +235,8 @@ for (const e of declared.filter((x) => !x.proves)) {
  * say so. 195 is the count the chat counterpart read back from production after
  * 0126 on 2026-11-12 (issue #1, 6815678447), and 199 after 0127 the same day,
  * which seeds the franchisee owner's three grants and franchise.read_own for
- * admin (6834499804). A sitting that seeds a grant
+ * admin (6834499804), and 203 after 0130 on 2026-11-15, which seeds four
+ * grants for customer_service (6896689672). A sitting that seeds a grant
  * updates the literal, PRODUCTION_GRANTS near the top of this file, in the
  * same commit as the ledger entry.
  */
