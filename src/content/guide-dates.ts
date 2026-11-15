@@ -32,7 +32,7 @@ export const POST_DATES: Record<string, { datePublished: string; dateModified: s
   "texas-pe-license-lookup": { datePublished: "2026-08-23", dateModified: "2026-11-14" },
   "foundation-inspection-cost": { datePublished: "2026-10-16", dateModified: "2026-11-14" },
   "free-foundation-inspection": { datePublished: "2026-10-16", dateModified: "2026-10-25" },
-  "pre-purchase-home-inspection": { datePublished: "2026-10-16", dateModified: "2026-11-14" },
+  "pre-purchase-home-inspection": { datePublished: "2026-10-16", dateModified: "2026-11-15" },
   "structural-engineer-report": { datePublished: "2026-10-16", dateModified: "2026-10-16" },
   "crack-in-foundation": { datePublished: "2026-10-16", dateModified: "2026-11-14" },
   "crack-in-concrete-slab-foundation": { datePublished: "2026-10-16", dateModified: "2026-10-25" },

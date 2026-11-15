@@ -1279,7 +1279,7 @@ const buyerInsights: Insight[] = [
     eyebrow: "Buying and lending",
     primaryKeyword: "pre purchase home inspection",
     datePublished: BUYERS_SECTION_DATE,
-    dateModified: "2026-11-14",
+    dateModified: "2026-11-15",
     body: [
       {
         kind: "p",
@@ -1303,10 +1303,6 @@ const buyerInsights: Insight[] = [
       {
         kind: "p",
         text: "The sentence is a referral, not a finding of failure, and it has a deadline attached because the option period does. Three things make the engineer's visit useful inside that window: the inspection report itself, with the items that prompted the recommendation; access to the house; and a clear statement of who the engineer's report is for, so it can be addressed to the buyer, the lender or both.",
-      },
-      {
-        kind: "p",
-        text: "What the engineer then does is measure and decide. A home structural inspection by an engineer records floor elevations or the condition of the roof structure, reads them against the house, and ends in a sealed opinion the buyer can act on, rather than a further recommendation.",
       },
       { kind: "h2", text: "The contract sets the clock" },
       {
