@@ -281,7 +281,7 @@ export default async function PayPage() {
             body={copy.emptyBody}
             action={
               copy === FIRM_COPY ? (
-                <Link href="/portal/billing" className="text-[13.5px] font-semibold text-[var(--navy)] underline">
+                <Link href="/portal/billing" className="inline-flex min-h-[44px] items-center text-[13.5px] font-semibold text-[var(--navy)] underline">
                   Open Billing
                 </Link>
               ) : undefined

@@ -3288,7 +3288,15 @@ if (!db) {
   walk("src/app");
   walk("src/lib");
   walk("src/components");
-  const indexers = screens.filter((f) => /ROLE_LABEL\[/.test(codeOnly(f)));
+  /*
+   * THE IDENTIFIER, NOT THE SUBSTRING. Board 43658088627: /ROLE_LABEL\[/ also
+   * matched CONTACT_ROLE_LABEL[ in file-contacts.ts and ops-payments.ts, which
+   * names a contact's part in a job (agent, lender, title company, 0132) and is
+   * not a portal role. A matcher that attaches to its neighbour's name is the
+   * defect section 6 records five times; the word boundary makes ROLE_LABEL
+   * the whole identifier, so CONTACT_ROLE_LABEL is a different word.
+   */
+  const indexers = screens.filter((f) => /\bROLE_LABEL\[/.test(codeOnly(f)));
   rec(
     "no surface reads a role's name out of a fixed map",
     /*
