@@ -1,4 +1,4 @@
-import { isOwnerAdmin, isOwnerFieldTech, type SignInOverrideKey } from "./owner-override";
+import { isOwnerAdmin, isOwnerFieldTech, isStoreReviewer, type SignInOverrideKey } from "./owner-override";
 
 /**
  * ===========================================================================
@@ -50,6 +50,10 @@ export function signInFactor(input: {
     }
     if (input.role === "field_tech" && isOwnerFieldTech(input.profileId)) {
       return { factor: "full", next: null, offer: null, ownerOverride: "sign_in_second_factor_tech" };
+    }
+    /* The store reviewer, answer 29 of 2026-11-14: one id under field_tech, inert while no id is set. */
+    if (input.role === "field_tech" && isStoreReviewer(input.profileId)) {
+      return { factor: "full", next: null, offer: null, ownerOverride: "sign_in_second_factor_reviewer" };
     }
     return { factor: "pending", next: "/portal/mfa/enrol", offer: null, ownerOverride: null };
   }

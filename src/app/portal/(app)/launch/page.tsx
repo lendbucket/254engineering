@@ -6,7 +6,7 @@ import { lineIsSellable } from "@/lib/line-gate";
 import { offeredServiceLines } from "@/config/launch-conditions";
 import { deliverablesFor } from "@data/catalog";
 import { Chip, PageHead, Panel } from "@/components/portal/surfaces";
-import { OWNER_OVERRIDE, OWNER_OVERRIDE_ACTION, OWNER_OVERRIDES, OWNER_SIGN_IN_TECH_RULED_ON } from "@/lib/owner-override";
+import { OWNER_OVERRIDE, OWNER_OVERRIDE_ACTION, OWNER_OVERRIDES, OWNER_SIGN_IN_TECH_RULED_ON, STORE_REVIEWER_OVERRIDE } from "@/lib/owner-override";
 import { configSwitches } from "@/lib/config-switches";
 import { PROVING_AMOUNT_CENTS, PROVING_REFERENCE, provingChargeBlockers } from "@/lib/ops-proving-charge";
 import { announcementBlockedReason, announcementContentHash, announcementHistory, waitlistRecipients } from "@/lib/ops-announce";
@@ -204,6 +204,25 @@ export default async function LaunchReadinessPage() {
             </li>
           ))}
         </ul>
+      </Panel>
+
+      {/*
+        THE FIFTH OVERRIDE, THE STORE REVIEWER'S, SHOWN IN FORCE OR NOT.
+        Robert's answer 29 of 2026-11-14 (src/lib/owner-override.ts). Rendered
+        from the declaration, so setting the id changes this panel by itself.
+      */}
+      <Panel
+        title="Store reviewer override"
+        description={`One field technician account, matched by user id, signs in without enrolling a second factor so the app stores' reviewers can open the app. Sign in only, ruled ${STORE_REVIEWER_OVERRIDE.ruledOn}. Every use is recorded in the audit trail as ${OWNER_OVERRIDE_ACTION}, and a sign in whose record cannot be written is refused.`}
+      >
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <Chip label={STORE_REVIEWER_OVERRIDE.reviewerUserId ? "Active" : "Not in force"} tone={STORE_REVIEWER_OVERRIDE.reviewerUserId ? "warn" : "neutral"} />
+          <p className="text-[15px] font-semibold text-[var(--navy)]">
+            {STORE_REVIEWER_OVERRIDE.reviewerUserId
+              ? "Sign in: the second factor the field technician role requires is not asked of the reviewer account"
+              : "No reviewer account id has been set, so this override matches nobody"}
+          </p>
+        </div>
       </Panel>
 
       {/*

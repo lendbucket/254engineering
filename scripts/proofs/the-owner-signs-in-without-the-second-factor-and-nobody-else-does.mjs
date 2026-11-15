@@ -83,7 +83,9 @@ check(
   "each sign in override carries its own ruling date",
   SIGN_IN_OVERRIDE_RECORD.sign_in_second_factor.ruledOn === "2026-10-26" &&
     SIGN_IN_OVERRIDE_RECORD.sign_in_second_factor_tech.ruledOn === "2026-10-28" &&
-    Object.keys(SIGN_IN_OVERRIDE_RECORD).length === 2,
+    /* Three since answer 29 of 2026-11-14: the store reviewer's, proved in the-store-reviewer-signs-in-by-one-id.mjs. */
+    SIGN_IN_OVERRIDE_RECORD.sign_in_second_factor_reviewer.ruledOn === "2026-11-14" &&
+    Object.keys(SIGN_IN_OVERRIDE_RECORD).length === 3,
   JSON.stringify(SIGN_IN_OVERRIDE_RECORD),
 );
 

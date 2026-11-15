@@ -90,7 +90,41 @@ export const OWNER_SIGN_IN_RULED_ON = "2026-10-26";
  */
 export const OWNER_SIGN_IN_TECH_RULED_ON = "2026-10-28";
 
-/** The two sign in overrides, as the session route records them. */
+/**
+ * THE FIFTH OVERRIDE, AND THE FIRST THAT IS NOT THE OWNER'S. Robert's answer
+ * 29 of 2026-11-14 on issue #1: the app store reviewer's field technician
+ * account signs in without enrolling a second factor, because Apple's and
+ * Google's reviewers cannot read codes from an authenticator and the app is
+ * sign in only.
+ *
+ *   - It is one user id, under the field_tech role, and nothing else: never a
+ *     role, a flag or an email, for the reasons at the top of this file.
+ *   - It is sign in only. It is read by sign-in-factor.ts and by no dispatch,
+ *     money, credential or sealing path; the reviewer is not the owner, so
+ *     isOwnerFieldTech stays false for it and every owner exemption is closed
+ *     to it.
+ *   - Every sign in under it writes an audit row through writeAuditOrRefuse,
+ *     the same row as the owner's, naming this override, and a row that cannot
+ *     be written is a sign in that does not happen.
+ *   - /portal/launch shows it, in force or not.
+ *
+ * THE ID IS THE ONE VALUE ROBERT SUPPLIES, read from production once the
+ * reviewer account exists. Until then it is null and the override matches
+ * nobody. Setting it costs this line, the pinned literal in
+ * scripts/proofs/the-store-reviewer-signs-in-by-one-id.mjs, and a board.
+ */
+export const STORE_REVIEWER_OVERRIDE: { reviewerUserId: string | null; ruledOn: string } = {
+  reviewerUserId: null,
+  ruledOn: "2026-11-14",
+};
+
+/** True for the store reviewer's account and nobody else; false for everybody while no id is set. */
+export function isStoreReviewer(userId: string | null | undefined): boolean {
+  const id = STORE_REVIEWER_OVERRIDE.reviewerUserId;
+  return typeof id === "string" && id.length > 0 && typeof userId === "string" && userId === id;
+}
+
+/** The sign in overrides, as the session route records them. */
 export const SIGN_IN_OVERRIDE_RECORD = {
   sign_in_second_factor: {
     summary: "Owner override used: signed in without the second factor the administrator role requires",
@@ -99,6 +133,10 @@ export const SIGN_IN_OVERRIDE_RECORD = {
   sign_in_second_factor_tech: {
     summary: "Owner override used: signed in without the second factor the field technician role requires",
     ruledOn: OWNER_SIGN_IN_TECH_RULED_ON,
+  },
+  sign_in_second_factor_reviewer: {
+    summary: "Store reviewer override used: signed in without the second factor the field technician role requires",
+    ruledOn: STORE_REVIEWER_OVERRIDE.ruledOn,
   },
 } as const;
 
