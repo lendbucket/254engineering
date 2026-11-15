@@ -302,6 +302,22 @@ export const topics: Topic[] = [
       },
     },
   },
+  {
+    topic: "pier and beam foundation repair",
+    cluster: "proximity",
+    evidence: "2026-11-14, Ahrefs pull approved by Robert: 'pier and beam foundation repair', traffic potential 21,000. Page 8, approved as proposed in his answer 32 of 2026-11-15 (proposal 6889408888).",
+    angles: {
+      "254": {
+        angle: "What an engineer checks under a Texas pier and beam house, read from the ASCE Texas Section guidelines 7.5: the four repairs (shims on pier caps, framing, added supports, void space), crawlspace moisture under 7.5.5, the survey cautions of 5.4, plumbing testing after a lift, and what the repair documents should state under 7.4.1. Houston Black clay from the USDA series description; the 2018 TBPELS opinion (EAOR 43) on cause and repair being engineering. States no code clearance or vent figure.",
+        path: "/structural-engineer/pier-and-beam",
+        status: "live",
+      },
+      sealed: {
+        angle: "None planned. Sealed Engineering's nearest page is beam and header sizing letters, a different subject.",
+        status: "none",
+      },
+    },
+  },
   /*
    * THE BUYERS, AGENTS AND LENDERS SECTION ON THIS SITE, 2026-10-16.
    *
