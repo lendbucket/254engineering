@@ -110,6 +110,25 @@ export const SURFACES = [
     indexed: false,
   },
   {
+    key: "ads",
+    label: "the Google Ads landing page",
+    prefix: "/start",
+    /*
+     * Robert's add-on of 2026-11-15: /start is noindex and kept out of the
+     * sitemap, so the site surface (which reads the sitemap) never reaches it.
+     * Declared here so every browser audit measures it anyway, plain and as an
+     * ad opens it with a letter chosen.
+     */
+    routesFrom: "declared",
+    routes: ["/start", "/start?letter=foundation"],
+    dirs: ["src/app/(ads)/start"],
+    sourceDirs: ["src/app/(ads)", "src/components/start"],
+    session: "none",
+    probe: null,
+    shell: false,
+    indexed: false,
+  },
+  {
     key: "portal",
     label: "the staff portal",
     prefix: "/portal",
@@ -197,6 +216,7 @@ export const NOT_A_SURFACE = {
   api: "route handlers, covered by each surface's apiDirs and by security-audit",
   "(site)": "the public website's own group, declared as the site surface",
   "(order)": "the order flow's own group since 2026-10-08, declared as the order surface",
+  "(ads)": "the Google Ads landing page's own group since 2026-11-15, declared as the ads surface",
   onboarding: "a token addressed link, measured by onboarding-audit end to end",
   apply: "the careers application flow, measured by the careers module in forms-audit",
 };

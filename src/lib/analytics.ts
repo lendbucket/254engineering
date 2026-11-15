@@ -45,7 +45,23 @@ export const GA_EXCLUDED_PREFIXES = ["/portal", "/admin", "/partner", "/account"
  * tapped, each once per action, never on a reload. Name them order_paid and
  * phone_tap." order_started stays as it was, and is not a conversion.
  */
-export const GA_EVENTS = { orderStarted: "order_started", orderPaid: "order_paid", phoneTap: "phone_tap" } as const;
+export const GA_EVENTS = {
+  orderStarted: "order_started",
+  orderPaid: "order_paid",
+  phoneTap: "phone_tap",
+  /*
+   * The /start finder (Robert's add-on of 2026-11-15, item 10): each step it
+   * reaches, the price it shows, and the three things a person can ask for.
+   * None carries a name, an email, a phone or an address; a step carries its
+   * number and the letter's key, and the price event carries the figure the
+   * page showed, which is public.
+   */
+  finderStep: "finder_step",
+  priceShown: "price_shown",
+  callbackRequest: "callback_request",
+  emailPriceRequest: "email_price_request",
+  inquirySent: "inquiry_sent",
+} as const;
 
 /**
  * The key a once-per-order event is remembered under in this browser. The
