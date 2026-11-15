@@ -115,6 +115,14 @@ create index if not exists eng_leads_follow_up_due_idx on eng_leads (follow_up_n
 
 /* 4. The callback. */
 alter table eng_leads add column if not exists callback_due_at timestamptz;
+
+/*
+ * 4a. A photo or PDF the "something else, or not sure" form carries (item 5):
+ * the private storage key under eng-uploads, leads/<draft>/report/<uuid>.<ext>,
+ * written by the server from the key it signed. The office opens it through a
+ * signed download, like every other customer document.
+ */
+alter table eng_leads add column if not exists attachment_key text;
 create index if not exists eng_leads_callback_due_idx on eng_leads (callback_due_at) where callback_due_at is not null;
 
 /* 5. The order's lead, and its one reminder. */

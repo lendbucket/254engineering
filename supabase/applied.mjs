@@ -4988,14 +4988,14 @@ export const APPLIED = [
   },
   {
     file: "0137_an_ad_click_follows_the_lead_to_the_order.sql", appliedBy: "apply_migration",
-    fingerprint: "d0f79443f0234c275bb3e249b6e5fa53",
+    fingerprint: "14bdcbc9c50eb3706f17af611dc44735",
     behaviour: "eff2849030a0826317ce033da705b5b3",
     production: null,
     proves: { table: "eng_ad_conversions" },
     note:
       "Both figures read off scripts/fingerprint-at.mjs on 2026-11-15 on the chain to 0137, with 0136 reproducing " +
-      "its recorded pair first (9844f7bb at 1678 columns, 9d577b5c at 1696 facts). Shape 1678 to 1728 columns: 12 on " +
-      "eng_leads (the click, the quote, the follow up, the callback), 6 on eng_service_orders (the click, lead_id, the " +
+      "its recorded pair first (9844f7bb at 1678 columns, 9d577b5c at 1696 facts). Shape 1678 to 1729 columns: 13 on " +
+      "eng_leads (the click, the quote, the follow up, the callback, the attachment key), 6 on eng_service_orders (the click, lead_id, the " +
       "reminder stamp), 9 each on eng_design_inquiries and eng_windstorm_inquiries (utm values and the click), and the " +
       "14 of eng_ad_conversions; tables 129 to 130. Behaviour 1696 to 1716 facts.",
     because:
