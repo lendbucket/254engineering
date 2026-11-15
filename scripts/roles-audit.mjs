@@ -584,7 +584,8 @@ const STAFF_LEVELS = ["rep", "ops_manager"];
         /^payments\./.test(action) &&
         role !== "admin" &&
         /* Sales too, owner ruling 2026-10-20: New job always ends in a payment link, for every role but admin. */
-        !(action === "payments.send_link" && [...STAFF_LEVELS, "sales"].includes(role))
+        /* And customer service, Robert's answer 2 of 2026-11-14 (0130), confirmed as answer 31: send-link only. */
+        !(action === "payments.send_link" && [...STAFF_LEVELS, "sales", "customer_service"].includes(role))
           ? "a role other than the administrator may charge, refund or reconcile"
           : null,
     },
@@ -777,8 +778,17 @@ const STAFF_LEVELS = ["rep", "ops_manager"];
        * because of the second half.
        */
       why: "a customer service representative touches no money: refunds are the owner's, and prices are nobody's but his",
+      /*
+       * ONE NAMED ACTION OUT, AND NOTHING ELSE ABOUT MONEY. Robert's answer 2
+       * of 2026-11-14 gave customer service payments.send_link (0130), and his
+       * answer 31 the same day ruled that it is named here and that nothing else
+       * about money opens for the role. Sending a link asks a customer to pay at
+       * the catalogue price; it charges, refunds and reconciles nothing. Every
+       * other payments, pricing, billing and ledger action stays forbidden.
+       */
       check: (role, action) =>
         role === "customer_service" &&
+        action !== "payments.send_link" &&
         /^(payments\.|pricing\.|billing\.|ledger\.)/.test(action)
           ? `customer_service holds ${action}, and the ruling of 2026-10-03 is that a CSR never issues refunds, changes prices, or sees card data`
           : null,
