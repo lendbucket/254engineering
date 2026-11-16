@@ -57,7 +57,14 @@ globalThis.fetch = async (input, init) => {
   if (path === "eng_seal_acts") {
     state.sealReads += 1;
     if (state.failReads) return json({ message: "proof: the database is paused", code: "XX000" }, 503);
-    return one(req, state.voided ? [] : [{ created_at: "2026-10-20T15:00:00Z", content_sha256: SHA }]);
+    /*
+     * "Voided" here is a signature that no longer covers the text: the hash on
+     * the live act differs from the transcription. Since Robert's ruling of
+     * 20:08 Central 2026-11-15 a WITHDRAWN signature reads as unsigned and no
+     * longer closes a line, so this is the void that still does, and the
+     * proof's subject, a live money door inside a cached display, is unchanged.
+     */
+    return one(req, [{ created_at: "2026-10-20T15:00:00Z", content_sha256: state.voided ? "0".repeat(64) : SHA }]);
   }
   if (path === "eng_protocol_templates") return one(req, [{ id: "00000000-0000-4000-8000-0000000000c1" }]);
   if (path === "rpc/eng_line_is_trained") return json(true);

@@ -134,31 +134,37 @@ for (const [slug, price] of Object.entries(PRICE)) {
  * addendum, read at the door; this child process signs none, so it is refused.
  */
 /*
- * AND ONE MORE, NAMED: the real-estate structural letter, Robert's answer 11 of
- * 2026-11-14, closed until the engineer of record confirms its protocol in
- * writing (OWN_PROTOCOL_REQUIRED in src/config/own-protocol.ts). Asserted
- * refused below in its own check rather than merely left out of this one.
+ * THE REAL-ESTATE STRUCTURAL LETTER WAS CLOSED HERE until the engineer of
+ * record confirmed its protocol (Robert's answer 11 of 2026-11-14). His ruling
+ * of 20:08 Central 2026-11-15 (issue #1, 6905345382) opened it at $709 with a
+ * $175 inspection fee, under 254-PL-001, so it is now one of the open doors and
+ * asserted open by name below. WPI-8 ongoing stays the one closed by ruling.
  */
-const CLOSED_BY_RULING = ["windstorm-wpi-8/ongoing", "structural-letters/real-estate"];
+const CLOSED_BY_RULING = ["windstorm-wpi-8/ongoing"];
 const openDoors = Object.entries(child.open.doors).filter(([k]) => !CLOSED_BY_RULING.includes(k));
-check("every other deliverable's door, WPI-8 completed included, lets an order through", openDoors.length >= 7 && openDoors.every(([, v]) => v === null), JSON.stringify(child.open.doors));
+check("every other deliverable's door, WPI-8 completed included, lets an order through", openDoors.length >= 8 && openDoors.every(([, v]) => v === null), JSON.stringify(child.open.doors));
 check(
   "and WPI-8 ongoing is still refused by its scope addendum rule, the customer told only that it is not available yet",
   /not available to order yet/.test(String(child.open.doors["windstorm-wpi-8/ongoing"])),
   String(child.open.doors["windstorm-wpi-8/ongoing"]),
 );
 check(
-  "and the real-estate structural letter is refused until its own protocol is confirmed, the customer told only that it is not available yet",
-  /not available to order yet/.test(String(child.open.doors["structural-letters/real-estate"])),
+  "and the real-estate structural letter lets an order through, by name (the 20:08 ruling)",
+  "structural-letters/real-estate" in child.open.doors && child.open.doors["structural-letters/real-estate"] === null,
   String(child.open.doors["structural-letters/real-estate"]),
 );
 check("design is still a quote, never an order", by(child.open.rows, "residential-light-commercial-design").orderable === false);
 
+/*
+ * UNSIGNED, SINCE THE 20:08 RULING: an unsigned protocol no longer closes its
+ * line. Manufactured home is unsigned and trained here, so it sells at its
+ * published price. This check said the door refused, under ruling 11.
+ */
 check(
-  "unsigned: the manufactured home door refuses, and /order offers it as a quote with no price",
-  typeof child.unsignedMH.doors["manufactured-home-foundation-certifications/standard"] === "string" &&
-    by(child.unsignedMH.rows, "manufactured-home-foundation-certifications").orderable === false &&
-    by(child.unsignedMH.rows, "manufactured-home-foundation-certifications").price === null,
+  "unsigned but trained: the manufactured home door lets an order through, and /order offers it at its price",
+  child.unsignedMH.doors["manufactured-home-foundation-certifications/standard"] === null &&
+    by(child.unsignedMH.rows, "manufactured-home-foundation-certifications").orderable === true &&
+    by(child.unsignedMH.rows, "manufactured-home-foundation-certifications").price === "$709",
   JSON.stringify(child.unsignedMH.doors["manufactured-home-foundation-certifications/standard"]),
 );
 check(

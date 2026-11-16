@@ -386,6 +386,34 @@ must say, what each must not say, and the claims neither may ever make. Flipping
 rebuild, because the pages are statically prerendered. That is deliberate: a compliance state that
 could change without a deploy leaving an audit trail is not one this firm should want.
 
+> ### RULING 11'S SIGNATURE CONDITION IS SUPERSEDED. Robert's ruling, 20:08 Central, 2026-11-15 (issue #1, 6905345382).
+>
+> In his words: "I'm not texting aman, if aman doesn't want to do it we will
+> simply refund. Aman made the freaking protocol he's going to do it. I am
+> overriding this, make everything for sale that isn't up for sale yet."
+>
+> **What is true now.** A protocol the engineer wrote and that is transcribed
+> in this repository counts as in force for SELLING, signed in the portal or
+> not. An unsigned protocol no longer closes its line. The real-estate
+> structural letter sells under 254-PL-001 at $709 with a $175 inspection fee.
+>
+> **What did not change, and is not to be loosened.** Only Aman seals a letter,
+> from his own MFA session, and nobody signs or seals for him. If he declines a
+> job, the customer is refunded under that line's disclosed terms. The
+> signature mechanism and its record stay: he can still sign in the portal, and
+> a signed protocol shows as signed. A transcription that CHANGED after he
+> signed it still closes its line. A failed read still closes the door.
+> Training still decides: a line opens only when somebody is trained on its
+> protocol version, and only the engineer approves a training.
+>
+> **Where it lives.** `signedInDatabase` and `trainedInDatabase` in
+> `src/lib/line-gate.ts`, `trainableLines` in `src/lib/certification-record.ts`,
+> and `src/config/own-protocol.ts`, whose real-estate hold came off by name.
+>
+> The account below is ruling 11 as written, kept for its reasoning, the same
+> way the Newsreader ruling in 2b and the sealed-document ruling above are
+> kept. Where it says a line needs a signature, the paragraph above wins.
+
 **THE ONE STATED EXCEPTION: A SIGNED PROTOCOL. Operator ruling 11, 2026-10-06.**
 The gate's protocols condition may read signed protocol records from the
 database. Nothing else in the gate may.
