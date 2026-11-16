@@ -15,6 +15,8 @@ export const GUIDE_DATES: Record<string, { datePublished: string; dateModified: 
   "/structural-engineer/when-you-need-one": { datePublished: "2026-08-31T11:07:45-05:00", dateModified: "2026-10-07T09:08:43-05:00" },
   "/structural-engineer/inspection": { datePublished: "2026-09-18T13:25:00-05:00", dateModified: "2026-11-14T19:45:14-06:00" },
   "/structural-engineer/how-to-choose": { datePublished: "2026-08-31T11:07:45-05:00", dateModified: "2026-10-29T13:00:29-05:00" },
+  "/structural-engineer/pier-and-beam": { datePublished: "2026-11-15T09:41:39-06:00", dateModified: "2026-11-15T09:41:39-06:00" },
+  "/structural-engineer/helical-piers": { datePublished: "2026-11-16T00:59:35-06:00", dateModified: "2026-11-16T00:59:35-06:00" },
   "/windstorm/before-work-begins": { datePublished: "2026-08-31T10:47:51-05:00", dateModified: "2026-09-15T10:49:19-05:00" },
   "/windstorm/catastrophe-area": { datePublished: "2026-08-31T10:47:51-05:00", dateModified: "2026-11-02T13:31:57-06:00" },
   "/windstorm/completed-construction": { datePublished: "2026-08-31T10:47:51-05:00", dateModified: "2026-10-29T13:20:20-05:00" },
