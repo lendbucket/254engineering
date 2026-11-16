@@ -74,7 +74,12 @@ export function usSpellingSweep() {
   })
     .split("\n")
     .filter(Boolean)
-    .filter((f) => f.startsWith("src/") && /\.(ts|tsx)$/.test(f));
+    /*
+     * src/ and, since Robert's Q44 of 17:41 Central 2026-11-15 (6903338587),
+     * data/: the catalogue, the keyword registry and the county records are
+     * text this firm composes and renders, and the sweep did not read them.
+     */
+    .filter((f) => (f.startsWith("src/") || f.startsWith("data/")) && /\.(ts|tsx)$/.test(f));
 
   const protocolFiles = everySource.filter((f) => f.startsWith(PROTOCOL_DIR));
   const composedFiles = everySource.filter((f) => !f.startsWith(PROTOCOL_DIR));

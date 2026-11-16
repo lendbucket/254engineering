@@ -294,7 +294,7 @@ export function receivesFrom(documentNumber: keyof typeof PROTOCOL_RECEIVES): st
 const ADDRESS_QUALIFIER: Qualifier = {
   id: "texas",
   prompt: "Is the property in Texas?",
-  help: "A Texas Professional Engineer's seal is a Texas licence. The firm cannot seal work outside the state.",
+  help: "A Texas Professional Engineer's seal is a Texas license. The firm cannot seal work outside the state.",
   options: ["Yes", "No"],
   disqualifyOn: [1],
   disqualifiedMessage:
