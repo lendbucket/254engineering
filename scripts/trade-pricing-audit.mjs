@@ -637,7 +637,12 @@ answer(out);
      * ruled. It is closed by its own protocol, so no refund terms are ever
      * quoted for it. Stated exactly, so a second one is red until argued for.
      */
-    const FEE_UNRULED = ["structural-letters/real-estate"];
+    /*
+     * EMPTY since Robert's ruling of 20:08 Central 2026-11-15 (6905345382) set
+     * the real-estate letter's fee at $175. So every field deliverable now has
+     * its fee, and this asserts exactly that: a new one without a fee is red.
+     */
+    const FEE_UNRULED = [];
     const fieldWithoutFee = CATALOG.filter((e) => e.orderType === "field" && e.inspectionFeeCents === null)
       .map((e) => floorKey(e.serviceSlug, e.tier))
       .sort();

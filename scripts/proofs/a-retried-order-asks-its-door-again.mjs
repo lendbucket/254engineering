@@ -66,7 +66,13 @@ const child = await inOpenGateProcess(`
 check("the open-gate child really has the gate open", child.open === true);
 check("while the foundation line is signed and trained, its retried order may open checkout", child.whileSigned === null, String(child.whileSigned));
 check("once its signature no longer covers the text, the retry is refused", typeof child.afterVoid === "string" && child.afterVoid.length > 0, String(child.afterVoid));
-check("and with no signature at all, refused", typeof child.unsigned === "string" && child.unsigned.length > 0, String(child.unsigned));
+/*
+ * Robert's ruling of 20:08 Central 2026-11-15 (6905345382): an unsigned
+ * protocol no longer closes its line, so with no signature at all and somebody
+ * trained, the retry may open checkout. This said "refused", under ruling 11.
+ * The retry still asks the door, which the void and failed-read cases prove.
+ */
+check("and with no signature at all, it may open checkout, as the door now does", child.unsigned === null, String(child.unsigned));
 check("a failed read of the order is the shut answer, and says nothing was charged", typeof child.unreadable === "string" && /Nothing has been charged/.test(child.unreadable), String(child.unreadable));
 
 const route = readFileSync("src/app/api/order-flow/route.ts", "utf8");
