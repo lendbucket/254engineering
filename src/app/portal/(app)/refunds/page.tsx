@@ -72,7 +72,10 @@ export default async function RefundsPage({ searchParams }: { searchParams: Prom
             ? "Requests waiting for a decision. You can approve any amount."
             : approves
               ? limit?.ok
-                ? `Requests waiting for a decision. You can approve up to ${money(limit.cents)}; anything over goes to an administrator.`
+                ? /* No limit row has ever been set: Robert's Q46 sentence, 17:41 Central 2026-11-15 (6903338587). */
+                  limit.setAt === null
+                  ? "Every refund goes to an administrator until a limit is set in Settings."
+                  : `Requests waiting for a decision. You can approve up to ${money(limit.cents)}; anything over goes to an administrator.`
                 : "Requests waiting for a decision. Your approval limit could not be read, so nothing can be approved until it can."
               : "Refunds you and others have asked for. Somebody who can approve them decides."
         }
