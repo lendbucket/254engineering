@@ -1357,10 +1357,13 @@ export function priceEmail(input: {
   });
   blocks.push({
     kind: "p",
+    /* Counted from the step: after the first two follow, after the second one does (found reading the three as a customer would, 2026-11-16). */
     text:
       input.step === 3
         ? "The link at the bottom stops emails like this one."
-        : "Two more emails follow over the next few days unless you order first. The link at the bottom stops them.",
+        : input.step === 2
+          ? "One more email follows in a few days unless you order first. The link at the bottom stops it."
+          : "Two more emails follow over the next few days unless you order first. The link at the bottom stops them.",
   });
   return compose(
     "marketing.price_email",
