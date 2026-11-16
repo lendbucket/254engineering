@@ -253,7 +253,8 @@ export async function requestOutstanding(
     outstandingInformation({
       customerName: input.customerName,
       customerEmail: input.customerEmail,
-      fileNumber: input.fileNumber,
+      /* The order reference only, never the file number (Robert's Q48). */
+      orderReference: input.orderReference,
       propertyAddress: input.propertyAddress,
       items: now.map((f) => ({ label: f.label, when: whenFor(f.stage) })),
       holdingUp: input.stage === "dispatch" ? "a technician can be sent" : "it can be sealed",
