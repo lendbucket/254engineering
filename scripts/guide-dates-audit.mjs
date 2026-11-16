@@ -29,6 +29,9 @@ const PINNED = [
   "/structural-engineer/when-you-need-one",
   "/structural-engineer/inspection",
   "/structural-engineer/how-to-choose",
+  /* Pages 8 and 9, Robert's Q41 of 2026-11-15 (6903338587). */
+  "/structural-engineer/pier-and-beam",
+  "/structural-engineer/helical-piers",
   "/windstorm/before-work-begins",
   "/windstorm/catastrophe-area",
   "/windstorm/completed-construction",
@@ -39,7 +42,7 @@ const PINNED = [
   "/windstorm/twia-coverage",
 ];
 check(
-  "the declaration names exactly the fourteen guide pages Robert listed",
+  "the declaration names exactly the sixteen guide pages Robert listed (fourteen of 2026-10-25, and pages 8 and 9 by Q41)",
   JSON.stringify(GUIDES.map((g) => g.path).sort()) === JSON.stringify([...PINNED].sort()),
   `${GUIDES.length} declared`,
 );

@@ -570,6 +570,13 @@ export function onboardingItemDecision(input: {
   itemLabel: string;
   decision: "accepted" | "rejected";
   reason?: string | null;
+  /**
+   * THE PERSON'S OWN ONBOARDING LINK, ISSUED FRESH FOR A REJECTION. Robert's
+   * Q47, 17:41 Central 2026-11-15 (6903338587). Issuing it voids the link the
+   * person already held, which he ruled for. Null when it could not be issued,
+   * and then the email says how to get one, as it did before.
+   */
+  inviteUrl?: string | null;
 }): RenderedEmail {
   const rejected = input.decision === "rejected";
   return compose(
@@ -586,20 +593,30 @@ export function onboardingItemDecision(input: {
             { kind: "p", text: `${input.personName},` },
             { kind: "p", text: `${input.itemLabel} on your onboarding checklist needs redoing. The reason given:` },
             { kind: "note", text: (input.reason ?? "").trim() || "No reason was recorded." },
-            {
-              kind: "p",
-              text: "Open the onboarding link from your invitation email. This item has reopened there, and the rest of your checklist is as you left it.",
-            },
-            {
-              kind: "p",
-              text: `If that link has expired or you cannot find it, reply to this message or write to ${footerEmail()} and a new link will be issued.`,
-            },
+            ...(input.inviteUrl
+              ? [
+                  {
+                    kind: "p" as const,
+                    text: "Open your onboarding with the button below. This item has reopened there, and the rest of your checklist is as you left it. The link in your earlier invitation no longer works; this one replaces it.",
+                  },
+                ]
+              : [
+                  {
+                    kind: "p" as const,
+                    text: "Open the onboarding link from your invitation email. This item has reopened there, and the rest of your checklist is as you left it.",
+                  },
+                  {
+                    kind: "p" as const,
+                    text: `If that link has expired or you cannot find it, reply to this message or write to ${footerEmail()} and a new link will be issued.`,
+                  },
+                ]),
           ]
         : [
             { kind: "p", text: `${input.personName},` },
             { kind: "p", text: `${input.itemLabel} on your onboarding checklist is accepted. Nothing more is needed for it.` },
             { kind: "p", text: `Questions about anything else on the checklist can go to ${footerEmail()}.` },
           ],
+      ...(rejected && input.inviteUrl ? { button: { label: "Open your onboarding", url: input.inviteUrl } } : {}),
     },
     { to: input.personEmail },
   );
@@ -850,7 +867,14 @@ export function quoteSent(input: {
 export function outstandingInformation(input: {
   customerName: string;
   customerEmail: string;
-  fileNumber: string;
+  /**
+   * THE ORDER REFERENCE ONLY, NEVER THE FILE NUMBER. Robert's Q48, 17:41
+   * Central 2026-11-15 (6903338587): the email named the internal file number
+   * while its link carried the order reference, two references for one job.
+   * Null for a job with no order yet (taken by telephone, not yet paid), which
+   * is then named by its address alone.
+   */
+  orderReference: string | null;
   propertyAddress: string;
   /**
    * What is outstanding, each with when it is needed.
@@ -878,13 +902,15 @@ export function outstandingInformation(input: {
     "human",
     `A few things needed for ${input.propertyAddress}`,
     {
-      preheader: `${input.items.length} item${input.items.length === 1 ? "" : "s"} outstanding on ${input.fileNumber}.`,
+      preheader: `${input.items.length} item${input.items.length === 1 ? "" : "s"} outstanding on ${input.orderReference ? `order ${input.orderReference}` : input.propertyAddress}.`,
       signed: true,
       blocks: [
         { kind: "p", text: `${input.customerName},` },
         {
           kind: "p",
-          text: `The firm has ${input.fileNumber} for ${input.propertyAddress} open and needs a few things before ${input.holdingUp}.`,
+          text: input.orderReference
+            ? `The firm has order ${input.orderReference} for ${input.propertyAddress} open and needs a few things before ${input.holdingUp}.`
+            : `The firm has your job for ${input.propertyAddress} open and needs a few things before ${input.holdingUp}.`,
         },
         { kind: "details", title: "What is outstanding", rows: input.items.map((i) => [i.label, i.when]) },
         {
@@ -2047,7 +2073,7 @@ export function rooferApplicationReceived(input: { ownerName: string; email: str
         { kind: "p", text: "Your roofing partner account is open. The button below sets your password; then sign in with it." },
         {
           kind: "p",
-          text: "Your account is being reviewed. A person at the firm approves every partner, which is what keeps the program selective. Finishing your profile, your work, your insurance and two references, speeds the review up.",
+          text: "Your account is being reviewed. A person at the firm approves every partner, which is what keeps the program selective. Finishing your profile, your work, your insurance and two references speeds the review up.",
         },
         {
           kind: "note",
@@ -3024,7 +3050,7 @@ export function allTemplatesForAudit(): RenderedEmail[] {
       reference: "254-O2026-ABCDEF",
       serviceName: "Sample windstorm evaluation",
       propertyAddress: "100 Sample Street, Corpus Christi",
-      placedAt: "3 September 2026 at 11:42",
+      placedAt: "3 September 2026 at 11:42 CT",
       lines: [
         { label: "Sample windstorm evaluation", amount: "$925.00" },
         { label: "Coastal county", amount: null },
@@ -3045,7 +3071,7 @@ export function allTemplatesForAudit(): RenderedEmail[] {
       customerEmail: "sample@example.com",
       reference: "254-O2026-ABCDEF",
       propertyAddress: "100 Sample Street, Corpus Christi",
-      sealedAt: "5 September 2026 at 16:20",
+      sealedAt: "5 September 2026 at 16:20 CT",
       statusUrl: "https://254engineering.com/order/254-O2026-ABCDEF?token=sample",
     }),
     orderLetterReplaced({
@@ -3053,7 +3079,7 @@ export function allTemplatesForAudit(): RenderedEmail[] {
       customerEmail: "sample@example.com",
       reference: "254-O2026-ABCDEF",
       propertyAddress: "100 Sample Street, Corpus Christi",
-      sealedAt: "6 September 2026 at 10:05",
+      sealedAt: "6 September 2026 at 10:05 CT",
       statusUrl: "https://254engineering.com/order/254-O2026-ABCDEF?token=sample",
     }),
     orderLetterCopy({
@@ -3251,7 +3277,7 @@ export function allTemplatesForAudit(): RenderedEmail[] {
     outstandingInformation({
       customerName: "Sample Customer",
       customerEmail: "sample@example.com",
-      fileNumber: "254-2026-0001",
+      orderReference: "254-O2026-000001",
       propertyAddress: "100 Sample Street, Corpus Christi",
       items: [
         { label: "Who should the document be addressed to", when: "Before it can be sealed" },
@@ -3264,7 +3290,7 @@ export function allTemplatesForAudit(): RenderedEmail[] {
     outstandingInformation({
       customerName: "Sample Customer",
       customerEmail: "sample@example.com",
-      fileNumber: "254-2026-0002",
+      orderReference: null,
       propertyAddress: "102 Sample Street, Corpus Christi",
       items: [{ label: "Who should the document be addressed to", when: "Before it can be sealed" }],
       holdingUp: "it can be sealed",
@@ -3409,6 +3435,15 @@ export function allTemplatesForAudit(): RenderedEmail[] {
       itemLabel: "Vehicle insurance card",
       decision: "rejected",
       reason: "The card shown expired last month. Upload the current one.",
+    }),
+    /* Q47: the rejection with the person's fresh link, as it is sent when one could be issued. */
+    onboardingItemDecision({
+      personName: "Sample Technician",
+      personEmail: "sample.technician@254engineering.com",
+      itemLabel: "Vehicle insurance card",
+      decision: "rejected",
+      reason: "The card shown expired last month. Upload the current one.",
+      inviteUrl: "https://254engineering.com/onboarding/sample-token-not-a-real-invite-abcdefghij",
     }),
     leadNotification({
       form: "contact",

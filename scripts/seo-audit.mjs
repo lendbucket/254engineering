@@ -163,6 +163,9 @@ const ARTICLE_PAGES = new Set([
   "/structural-engineer/when-you-need-one",
   "/structural-engineer/inspection",
   "/structural-engineer/how-to-choose",
+  /* Pages 8 and 9, Robert's Q41, "all yes" of 17:41 Central 2026-11-15 (6903338587): fourteen to sixteen. */
+  "/structural-engineer/pier-and-beam",
+  "/structural-engineer/helical-piers",
   "/windstorm/before-work-begins",
   "/windstorm/catastrophe-area",
   "/windstorm/completed-construction",
@@ -448,7 +451,7 @@ for (const route of routes) {
       if (!a.headline || a.headline !== decode(meta.h1s[0] ?? "")) problems.push(`${route}: Article headline ${JSON.stringify(a.headline)} is not the page's h1 ${JSON.stringify(decode(meta.h1s[0] ?? ""))}`);
     }
   } else if (articles.length) {
-    problems.push(`${route}: carries Article schema, which is for the fourteen guide pages only`);
+    problems.push(`${route}: carries Article schema, which is for the sixteen guide pages only`);
   }
   if (orgNode) {
     if (orgNode.name !== "254 Engineering")

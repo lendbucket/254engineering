@@ -125,11 +125,45 @@ async function signedInDatabase(serviceSlug: string, tier: string | null | undef
   const received = exact ?? SIGNABLE_PROTOCOLS.find((p) => p.serviceSlug === serviceSlug && !p.serviceTier);
   if (!received) return closed("This service line has no protocol, so it cannot be ordered.");
 
+  /*
+   * AN UNSIGNED PROTOCOL NO LONGER CLOSES ITS LINE. Robert's ruling of 20:08
+   * Central, 2026-11-15 (issue #1, 6905345382), overriding ruling 11's
+   * signature condition: "Aman made the freaking protocol he's going to do it.
+   * I am overriding this, make everything for sale that isn't up for sale yet."
+   * A protocol the engineer wrote and that is transcribed here counts as in
+   * force for selling, signed in the portal or not.
+   *
+   * WHAT IS KEPT. The signature is still read, and still recorded when he
+   * signs, so a signed protocol shows as signed. Two answers still close the
+   * line: `void`, which in signatureStatus means the transcription CHANGED
+   * after he signed it, so the text in code is no longer what he wrote; and a
+   * read that failed (every money door closes on an answer it could not get).
+   * A signature he WITHDREW (voided_at set) reads as unsigned and so no longer
+   * closes the line: the ruling's remedy for his declining is a refund, not a
+   * closed line. Training is not part of the ruling and still decides, below.
+   */
   const status = await signatureStatus(received.documentNumber, received.version);
   if (status.state === "unknown") return closed("The order system cannot confirm the engineer's signature right now.", true);
   if (status.state === "void") return closed(`${received.documentNumber}'s signature no longer covers its text.`);
-  if (status.state !== "signed") return closed(`${received.documentNumber} has not been signed by the engineer of record.`);
   return trainedInDatabase(serviceSlug, received.documentNumber, received.version);
+}
+
+/*
+ * THE TEMPLATE A LINE IS TRAINED AND SOLD ON. Published when he has signed;
+ * until then the transcription's own row for that exact document and version,
+ * which sits in draft or awaiting_engineer (0049). Its status is never
+ * relabelled to make it look signed: the ruling makes it in force for selling,
+ * not signed. Shared with trainableLines (certification-record.ts) so a
+ * technician is trained on the same row the money door reads.
+ */
+export const SELLABLE_TEMPLATE_STATUSES = ["published", "awaiting_engineer", "draft"] as const;
+
+export function sellableTemplate<T extends { status: string }>(rows: readonly T[]): T | null {
+  for (const s of SELLABLE_TEMPLATE_STATUSES) {
+    const row = rows.find((r) => r.status === s);
+    if (row) return row;
+  }
+  return null;
 }
 
 /**
@@ -144,7 +178,8 @@ async function signedInDatabase(serviceSlug: string, tier: string | null | undef
 async function trainedInDatabase(serviceSlug: string, documentNumber: string, version: string): Promise<Sellable> {
   const db = supabaseAdmin();
   if (!db) return closed("The order system cannot confirm the training record right now.", true);
-  const { data: template, error: tError } = await db
+  /* A signed protocol's published row, read exactly as before the ruling. */
+  const { data: published, error: tError } = await db
     .from("eng_protocol_templates")
     .select("id")
     .eq("document_number", documentNumber)
@@ -152,6 +187,18 @@ async function trainedInDatabase(serviceSlug: string, documentNumber: string, ve
     .eq("status", "published")
     .maybeSingle();
   if (tError) return closed("The order system cannot confirm the training record right now.", true);
+  let template: { id: string } | null = published ?? null;
+  if (!template) {
+    /* Unsigned, so the transcription's own row (Robert, 20:08 Central 2026-11-15). Never relabelled. */
+    const { data: rows, error: uError } = await db
+      .from("eng_protocol_templates")
+      .select("id, status")
+      .eq("document_number", documentNumber)
+      .eq("version_label", version)
+      .in("status", SELLABLE_TEMPLATE_STATUSES.filter((s) => s !== "published"));
+    if (uError) return closed("The order system cannot confirm the training record right now.", true);
+    template = sellableTemplate((rows ?? []) as { id: string; status: string }[]);
+  }
   if (!template) return closed(`${documentNumber} v${version} is not in force in the platform.`);
   const { data: trained, error } = await db.rpc("eng_line_is_trained", {
     p_service_slug: serviceSlug,

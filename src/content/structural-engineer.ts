@@ -487,22 +487,24 @@ export const proximityPages: ProximityPage[] = [
     ],
   },
   /*
-   * ADDED 2026-11-15 FOR ROBERT'S ANSWER 32 (issue #1, proposal 6889408888,
-   * "yes, as proposed"): pier and beam (traffic potential 21,000), from the
-   * Ahrefs pull he approved. Page 9, helical piers, waits on seo/page-9: its
-   * approved description carries no call to action, which the title and
-   * description budget requires, so its wording is his to rule on first.
+   * ADDED 2026-11-15 FOR ROBERT'S ANSWERS 32 AND 33 (issue #1, proposal
+   * 6889408888, "yes, as proposed"): pier and beam (traffic potential 21,000)
+   * and helical piers (4,200 a month, KD 0), from the Ahrefs pull he approved.
    *
    * SOURCES, EACH READ IN FULL BEFORE A SENTENCE CITES IT:
    * - Texas Section ASCE, Guidelines for the Evaluation and Repair of
-   *   Residential Foundations, Version 3, adopted April 2022: 5.4 on
-   *   elevation surveys, 7.4.1 on remediation documents, 7.5 on pier and
-   *   beam repair, 7.6 to 7.8 after the work.
+   *   Residential Foundations, Version 3, adopted April 2022: 5.4 and 5.5 on
+   *   elevation surveys, 7.4.1 on remediation documents, 7.4.3.1 on
+   *   underpinning, 7.5 on pier and beam repair, 7.6 to 7.8 after the work.
    * - TBPELS Engineering Advisory Opinion Request 43, February 2018.
+   * - TBPELS formal response to the Drebelbis request, January 23, 2018.
    * - USDA NRCS Official Series Description, Houston Black.
    *
    * NOT READ, SO NOT QUOTED: the IRC and IBC text (codes.iccsafe.org answered
-   * 403). So the page states no code clearance and no vent ratio.
+   * 403) and ICC-ES AC358 (behind a login). So neither page states a code
+   * clearance, a vent ratio, a torque factor or a capacity, and the helical
+   * page does not explain torque-based capacity at all until that text has
+   * been read, as the proposal said.
    */
   {
     slug: "pier-and-beam",
@@ -570,6 +572,72 @@ export const proximityPages: ProximityPage[] = [
       {
         q: "Can a home inspector tell me why my floor is uneven?",
         a: "An inspector reports the visible condition. The Texas engineering board wrote in 2018 that analyzing the cause of a foundation condition or recommending repairs is the practice of engineering, and that an inspector working to the Texas Real Estate Commission's standards is not required to determine the cause of a deficiency.",
+      },
+    ],
+  },
+  {
+    slug: "helical-piers",
+    name: "Helical piers",
+    question: "When is a helical pier the right foundation repair?",
+    h1: "Helical Piers Explained: When They Are the Right Foundation Repair",
+    title: "Helical Piers Explained by an Engineer | 254 Engineering",
+    description:
+      /* Robert's Q40, "all yes" of 17:41 Central 2026-11-15 (6903338587), word for word. */
+      "Helical piers are steel shafts turned into the ground like screws. See when they suit Texas clay, how capacity is shown, and what a repair plan states.",
+    summary:
+      "A helical pier is a support, not a diagnosis. Whether it is the right one depends on what it has to carry, and on whether anybody checked that the slab above it can be carried that way.",
+    sections: [
+      {
+        eyebrow: "The pier",
+        title: "What a helical pier is, and what is asked of it",
+        body: [
+          "A helical pier is a steel shaft with one or more screw-shaped plates near its tip, turned into the ground rather than driven or poured. In a repair it is one kind of underpinning, and the Texas Section of the American Society of Civil Engineers asks the same things of every kind: plans that show each element's location, size, depth and material, a design based on calculations, and a plain statement that underpinning will not improve the foundation where nothing was installed. The same guidelines warn that lifting a house on new supports is unlikely to leave it level.",
+        ],
+      },
+      {
+        eyebrow: "The slab",
+        title: "The harder question is what sits on the piers",
+        body: [
+          "The harder question is the slab, not the pier. A slab built to rest on the ground becomes a member spanning between supports once piers carry it, and in 2018 a Texas engineer asked the state board to act on sealed repair plans that never checked whether the slab could do that. The board declined to set technical standards, because the Engineering Practice Act sets practice requirements rather than methods. It said it will investigate any design \"done incorrectly or without proper analysis.\" A helical pier is the right repair when that analysis has been done and supports it, and only then.",
+          "The guidelines make the same point in their own terms. Underpinning part of a structure may be specified where calculations, tests or experience show that the part left unsupported can carry its design loads, and the performance of underpinning can be compromised by the condition of the existing slab, by changes in soil moisture and by other factors.",
+        ],
+      },
+      {
+        eyebrow: "Capacity",
+        title: "How a pier's capacity is shown",
+        lede: "This page gives no capacity figure, on purpose.",
+        body: [
+          "The guidelines require underpinning to be designed from generally accepted engineering practice and appropriate calculations, and the plans to state each element's location, size, depth, material type and, where it applies, the minimum material strength. A plan that cannot say what each pier is meant to carry has not shown that it can carry it.",
+          "The published criteria for evaluating helical systems sit behind an evaluation service's own login, and the building code text that refers to them could not be read for this page. So no factor and no capacity appears here. A number quoted without its source is the kind of number this site does not repeat.",
+          "The guidelines also call for the documents to state what observation or testing is required during construction. That record is how anyone later knows that what went into the ground matches what was designed.",
+        ],
+      },
+      {
+        eyebrow: "Expectations",
+        title: "What a pier repair will not do",
+        body: [
+          "The guidelines ask the construction documents to say plainly that underpinning will not improve the foundation where nothing was installed. A partial repair supports the part it supports, and the rest of the slab goes on behaving as it did before.",
+          "Lifting on new piers is not a promise of a level floor either. The guidelines treat elevation adjustment as a matter of field judgment, limited to avoid damaging the foundation and the finishes, and say it is unlikely to produce a level foundation. Plumbing should be tested for leaks after any lift.",
+          "After the work, a floor elevation survey belongs in the record, and an engineer retained to do so may issue a letter that the repair generally conforms to the documents, noting any deviation.",
+        ],
+      },
+      {
+        eyebrow: "Independence",
+        title: "Who designs the pier, and who sells it",
+        body: [
+          "The 2018 request to the state board described engineers who repeatedly sealed pier plans while working on behalf of, or on the recommendation of, the repair company that benefits from the repair. Whatever the merits of any one plan, that is the arrangement in which nobody is paid to ask whether the slab can be carried on piers at all.",
+          "An engineer engaged by the owner, with no interest in which repair is chosen, is paid to ask exactly that question, and to say so in writing when the answer is that piers are not the repair.",
+        ],
+      },
+    ],
+    faqs: [
+      {
+        q: "Are helical piers better than concrete piers?",
+        a: "Neither is better in general. The Texas Section ASCE guidelines ask the same of every kind of underpinning: a design based on calculations, plans that state where each element goes and how deep, and a plain statement of what the repair will not improve. The right pier is the one that design supports for that house and that soil.",
+      },
+      {
+        q: "Will helical piers make my floor level?",
+        a: "Probably not exactly. The guidelines say it is unlikely that lifting will result in a level foundation, and that lifting should be limited by judgment to avoid damage to the foundation and the finishes.",
       },
     ],
   },

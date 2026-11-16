@@ -25,7 +25,7 @@ const catalog = await import("../../data/catalog.ts");
 const { services } = await import("../../src/content/services.ts");
 const { PROTOCOL_ENTRIES } = await import("../../src/content/protocols/index.ts");
 const { SIGNABLE_PROTOCOLS, HELD_OUT_OF_FORCE } = await import("../../src/content/protocols/signable.ts");
-const { OWN_PROTOCOL_REQUIRED } = await import("../../src/config/own-protocol.ts");
+const { OWN_PROTOCOL_REQUIRED, SCOPE_NOT_STATED_BY_ITS_PROTOCOL } = await import("../../src/config/own-protocol.ts");
 
 const results = [];
 const check = (name, ok, detail = "") => {
@@ -38,12 +38,25 @@ const { inForceFor, inForceSet } = inForceResolver({
   SIGNABLE_PROTOCOLS,
   HELD_OUT_OF_FORCE,
   OWN_PROTOCOL_REQUIRED,
+  SCOPE_NOT_STATED_BY_ITS_PROTOCOL,
   paperText: () => undefined,
 });
+/*
+ * The real-estate letter sells under 254-PL-001 since Robert's ruling of 20:08
+ * Central 2026-11-15, and PL-001's deliverable sentences describe a letter to a
+ * permitting authority. So for what it RECEIVES it borrows none and reads as
+ * pending, declared by name in SCOPE_NOT_STATED_BY_ITS_PROTOCOL, and counted so
+ * the exemption cannot quietly grow.
+ */
 check(
-  "the real estate letter, held for a protocol of its own, borrows none: it reads as pending",
+  "the real estate letter, sold under PL-001 whose sentences do not describe it, borrows none for what it receives: it reads as pending",
   inForceFor({ serviceSlug: "structural-letters", tier: "real-estate" }) === null &&
     inForceFor({ serviceSlug: "structural-letters", tier: "standard" })?.documentNumber === "254-PL-001",
+);
+check(
+  "and that exemption is exactly one deliverable, named",
+  JSON.stringify(Object.keys(SCOPE_NOT_STATED_BY_ITS_PROTOCOL)) === JSON.stringify(["structural-letters/real-estate"]),
+  Object.keys(SCOPE_NOT_STATED_BY_ITS_PROTOCOL).join(", "),
 );
 
 check(

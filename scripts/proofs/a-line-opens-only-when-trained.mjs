@@ -191,9 +191,19 @@ check("while a technician off the probe domain with no training can be: the guar
 
 /* The source: the money door, roof, and the portal's order of writes. */
 const gate = readFileSync("src/lib/line-gate.ts", "utf8");
+/*
+ * Since Robert's ruling of 20:08 Central 2026-11-15 (6905345382) an unsigned
+ * protocol no longer closes its line, so training is asked of a signed AND of
+ * an unsigned one. What still comes first, and still closes, is a failed read
+ * and a transcription changed since he signed. This check said training was
+ * asked "only after the signature is confirmed", under ruling 11.
+ */
+const sig = gate.slice(gate.indexOf("async function signedInDatabase("), gate.indexOf("async function trainedInDatabase("));
 check(
-  "the money door asks the training record only after the signature is confirmed",
-  /if \(status\.state !== "signed"\) return closed\([^\n]*\n\s*return trainedInDatabase\(serviceSlug, received\.documentNumber, received\.version\);/.test(gate),
+  "the money door closes on a failed signature read and on a changed transcription, then asks training, and no longer refuses an unsigned protocol",
+  /if \(status\.state === "unknown"\) return closed\(/.test(sig) &&
+    /if \(status\.state === "void"\) return closed\([^\n]*\n\s*return trainedInDatabase\(serviceSlug, received\.documentNumber, received\.version\);/.test(sig) &&
+    !/status\.state !== "signed"/.test(sig),
 );
 check("and asks it through eng_line_is_trained, of the template in force", /db\.rpc\("eng_line_is_trained"/.test(gate) && /\.eq\("status", "published"\)/.test(gate));
 check("roof keeps its own path, returned before any training read", /if \(registered\?\.declaration\.documentNumber === "254-RC-001"\) return rc001Signed\("254-RC-001"\);/.test(gate));

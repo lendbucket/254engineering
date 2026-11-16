@@ -37,7 +37,7 @@ const squash = (s) => s.replace(/\s+/g, "");
  * squashed text of a paper-signed protocol's PDF, null when it could not be
  * read, or undefined when the caller does not compare paper-signed lines.
  */
-export function inForceResolver({ PROTOCOL_ENTRIES, SIGNABLE_PROTOCOLS, HELD_OUT_OF_FORCE, OWN_PROTOCOL_REQUIRED, paperText }) {
+export function inForceResolver({ PROTOCOL_ENTRIES, SIGNABLE_PROTOCOLS, HELD_OUT_OF_FORCE, OWN_PROTOCOL_REQUIRED, SCOPE_NOT_STATED_BY_ITS_PROTOCOL, paperText }) {
   /*
    * A deliverable held for a protocol of its own (src/config/own-protocol.ts,
    * Robert's answer 11 of 2026-11-14) never borrows its line's general one,
@@ -46,12 +46,21 @@ export function inForceResolver({ PROTOCOL_ENTRIES, SIGNABLE_PROTOCOLS, HELD_OUT
    * forgets it fails to run instead of reading the borrowed protocol.
    */
   if (!OWN_PROTOCOL_REQUIRED) throw new Error("inForceResolver needs OWN_PROTOCOL_REQUIRED (src/config/own-protocol.ts)");
+  /*
+   * And a deliverable sold under its line's protocol whose deliverable
+   * sentences describe a different letter (Robert's ruling of 20:08 Central
+   * 2026-11-15, the real-estate structural letter): for what it RECEIVES, it
+   * borrows none, so its pending sentence stays true. Required for the same
+   * reason as the map above.
+   */
+  if (!SCOPE_NOT_STATED_BY_ITS_PROTOCOL) throw new Error("inForceResolver needs SCOPE_NOT_STATED_BY_ITS_PROTOCOL (src/config/own-protocol.ts)");
   const inForceFor = (d) => {
     const paper = PROTOCOL_ENTRIES.find(
       (p) => p.declaration.serviceSlug === d.serviceSlug && p.signatureEvidence !== null,
     );
     if (paper) return { documentNumber: paper.declaration.documentNumber, kind: "paper", text: () => paperText(paper) };
-    const ownOnly = Boolean(OWN_PROTOCOL_REQUIRED[`${d.serviceSlug}/${d.tier}`]);
+    const key = `${d.serviceSlug}/${d.tier}`;
+    const ownOnly = Boolean(OWN_PROTOCOL_REQUIRED[key] || SCOPE_NOT_STATED_BY_ITS_PROTOCOL[key]);
     const portal = SIGNABLE_PROTOCOLS.find(
       (p) =>
         p.serviceSlug === d.serviceSlug &&

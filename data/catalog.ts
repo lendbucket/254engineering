@@ -951,14 +951,30 @@ const DECLARED: CatalogDeclaration[] = [
      * coastal line, the trade floor (pending in trade-floors.ts), the engineer's
      * pay tier (it is not in Schedule 2 of his agreement), and the scope he will
      * seal. Each arrives with Aman's answer and Robert's rulings, never before.
+     *
+     * OPENED BY ROBERT'S RULING OF 20:08 CENTRAL, 2026-11-15 (issue #1,
+     * 6905345382): $709 with a $175 inspection fee, on sale under 254-PL-001.
+     * Closures 1 and 2 above came off with OWN_PROTOCOL_REQUIRED's entry, and 3
+     * with the fee below. The coastal line is the firm's standing $75. Still not
+     * ruled and still not typed: the trade floor, the engineer's pay tier, and
+     * the scope he will seal, so `receives` stays SCOPE_PENDING and the
+     * turnaround stays as written.
      */
     serviceSlug: "structural-letters",
     tier: "real-estate",
     name: "Structural letter for a real estate transaction",
     orderType: "field",
-    coastalSurchargeCents: null,
-    inspectionFeeCents: null,
-    protocolServiceSlug: null,
+    /*
+     * $75, the firm's coastal surcharge, by the operator's ruling of 2026-09-03
+     * that the surcharge is "a property of the property" on every deliverable
+     * (coastalSurchargeCents above), now that this one is orderable. order-audit
+     * requires it of every orderable service so a coastal property is never
+     * quoted the inland price.
+     */
+    coastalSurchargeCents: 7500,
+    inspectionFeeCents: 17500,
+    /* The technician runs 254-PL-001's evidence protocol: the line's, which the 20:08 ruling sells it under. */
+    protocolServiceSlug: "structural-letters",
     qualifiers: [ADDRESS_QUALIFIER],
     requiredInputs: [FRONT_PHOTO_INPUT],
     turnaround: "Published once the engineer of record confirms the protocol that covers this letter.",
