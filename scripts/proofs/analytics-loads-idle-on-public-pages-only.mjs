@@ -72,8 +72,25 @@ check(
   ga.cleanedLocation(O, "/services/windstorm-wpi-8", "?utm_source=g&token=x&email=a%40b.c&gclid=1&ref=p"),
 );
 check("only the canonical host sends", ga.sendsFrom("254engineering.com", "254engineering.com") && !ga.sendsFrom("localhost:4300", "254engineering.com") && !ga.sendsFrom("254engineering-x.vercel.app", "254engineering.com"));
-/* Three since 2026-11-13: Robert named the two conversions order_paid and phone_tap. */
-check("the three events are named as ruled", JSON.stringify(ga.GA_EVENTS) === JSON.stringify({ orderStarted: "order_started", orderPaid: "order_paid", phoneTap: "phone_tap" }));
+/*
+ * Three since 2026-11-13: Robert named the two conversions order_paid and phone_tap.
+ * Eight since 2026-11-15: his /start add-on, item 10, adds the finder's step, the price shown,
+ * and the callback, email-me and inquiry requests. Pinned as literals, so a ninth is two edits.
+ */
+check(
+  "the eight events are named as ruled",
+  JSON.stringify(ga.GA_EVENTS) ===
+    JSON.stringify({
+      orderStarted: "order_started",
+      orderPaid: "order_paid",
+      phoneTap: "phone_tap",
+      finderStep: "finder_step",
+      priceShown: "price_shown",
+      callbackRequest: "callback_request",
+      emailPriceRequest: "email_price_request",
+      inquirySent: "inquiry_sent",
+    }),
+);
 
 /* The component. */
 const comp = readFileSync("src/components/site/Analytics.tsx", "utf8");
@@ -92,10 +109,29 @@ const walk = (dir) =>
   });
 const files = walk("src/app");
 const renders = files.filter((f) => /<Analytics\b/.test(readFileSync(f, "utf8")));
+/* The (ads) layout joined on 2026-11-15: /start is a public page Robert's add-on (item 10) measures. */
 check(
-  "rendered by exactly the (site) and (order) layouts",
-  JSON.stringify(renders.sort()) === JSON.stringify(["src/app/(order)/layout.tsx", "src/app/(site)/layout.tsx"]),
+  "rendered by exactly the (site), (order) and (ads) layouts",
+  JSON.stringify(renders.sort()) === JSON.stringify(["src/app/(ads)/layout.tsx", "src/app/(order)/layout.tsx", "src/app/(site)/layout.tsx"]),
   renders.join(", "),
+);
+
+/*
+ * THE FINDER'S EVENTS CARRY NO PERSON (item 10). Every trackEvent call on /start
+ * names only these keys: the step, the letter, the published price shown, and
+ * whether a file was attached. A name, email, phone, address or message would
+ * be a new key, and turns this red.
+ */
+const finderSrc = readFileSync("src/components/start/Finder.tsx", "utf8");
+/* Each call's own params object, matched to the call's closing parenthesis, never a window past it. */
+const finderCalls = [...finderSrc.matchAll(/trackEvent\([^(){};]*?,\s*host,\s*\{([^{}]*)\}\s*\)/g)].map((m) => m[1]);
+const finderKeys = new Set(finderCalls.flatMap((c) => [...c.matchAll(/(\w+)\s*:/g)].map((k) => k[1])));
+const everyCall = (finderSrc.match(/trackEvent\(/g) ?? []).length;
+check("the finder sends its events, and every call is read", finderCalls.length >= 5 && finderCalls.length === everyCall, `${finderCalls.length} read of ${everyCall} calls`);
+check(
+  "and they carry only step, letter, price and attachment",
+  [...finderKeys].every((k) => ["step", "letter", "price", "attachment"].includes(k)),
+  [...finderKeys].join(", "),
 );
 const forbidden = files.filter((f) => /^src\/app\/(portal|admin|partner|account)\//.test(f) && /components\/site\/Analytics/.test(readFileSync(f, "utf8")));
 check("nothing under /portal, /admin, /partner or /account imports it", forbidden.length === 0, forbidden.join(", "));

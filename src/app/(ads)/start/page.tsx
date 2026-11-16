@@ -98,7 +98,7 @@ export default async function StartPage({ searchParams }: { searchParams: Promis
             <a href="#faq">FAQ</a>
           </nav>
           {tel && phone ? (
-            <a href={tel} className="flex min-h-[44px] items-center gap-2 text-[15px] font-semibold text-slate">
+            <a href={tel} className="flex min-h-[44px] items-center gap-2 whitespace-nowrap text-[15px] font-semibold text-slate">
               <span className="hidden text-[13px] font-normal text-[var(--color-ink-quiet)] sm:inline">Talk to the office</span>
               {phone}
             </a>
@@ -117,7 +117,7 @@ export default async function StartPage({ searchParams }: { searchParams: Promis
               </p>
               {tel && phone ? (
                 <p className="mt-6">
-                  <a href={tel} className="inline-flex min-h-[52px] items-center bg-slate px-6 text-[16px] font-semibold text-white hover:bg-slate-deep">
+                  <a href={tel} className="inline-flex min-h-[52px] items-center whitespace-nowrap bg-slate px-6 text-[16px] font-semibold text-white hover:bg-slate-deep">
                     Call {phone}
                   </a>
                   <span className="mt-2 block text-[14px] text-[var(--color-ink-quiet)]">Answered 8 AM to 8 PM Central, every day</span>
@@ -174,7 +174,7 @@ export default async function StartPage({ searchParams }: { searchParams: Promis
               Each letter below has its price on the page. Design work starts with a conversation.
               {tel && phone ? (
                 <>
-                  {" "}Not sure which one? Call <a href={tel} className="font-semibold text-slate underline underline-offset-2">{phone}</a>.
+                  {" "}Not sure which one? Call <a href={tel} className="whitespace-nowrap font-semibold text-slate underline underline-offset-2">{phone}</a>.
                 </>
               ) : null}
             </p>
@@ -285,7 +285,8 @@ export default async function StartPage({ searchParams }: { searchParams: Promis
             <p className="mt-3 max-w-[70ch] text-[16px] leading-[1.7] text-[var(--color-ink-quiet)]">
               If the engineer declines before anyone attends the property, you are refunded in full. What happens after a visit depends on the letter, and each letter&apos;s terms are shown in full before you pay. If nobody is there to let the technician in, there is a {money(TRIP_FEE_CENTS)} trip fee to come back.
             </p>
-            <div className="mt-6 overflow-x-auto">
+            {/* Reachable by keyboard when it scrolls at 390 (axe scrollable-region-focusable, contrast-audit). */}
+            <div className="mt-6 overflow-x-auto" tabIndex={0} role="region" aria-label="Prices by letter">
               <table className="w-full min-w-[520px] border-collapse bg-white text-left text-[15px]">
                 <thead>
                   <tr className="border-b border-[var(--color-limestone-line)]">
@@ -324,7 +325,7 @@ export default async function StartPage({ searchParams }: { searchParams: Promis
             <h2 className="text-[28px] font-semibold text-slate">Common questions</h2>
             {tel && phone ? (
               <p className="mt-2 text-[15px] text-[var(--color-ink-quiet)]">
-                Don&apos;t see yours? Call the office at <a href={tel} className="font-semibold text-slate underline underline-offset-2">{phone}</a>.
+                Don&apos;t see yours? Call the office at <a href={tel} className="whitespace-nowrap font-semibold text-slate underline underline-offset-2">{phone}</a>.
               </p>
             ) : null}
             <StartFaq
@@ -372,7 +373,7 @@ export default async function StartPage({ searchParams }: { searchParams: Promis
                 Price your letter
               </a>
               {tel && phone ? (
-                <a href={tel} className="inline-flex min-h-[52px] items-center border border-white/40 px-6 text-[16px] font-semibold text-white">
+                <a href={tel} className="inline-flex min-h-[52px] items-center whitespace-nowrap border border-white/40 px-6 text-[16px] font-semibold text-white">
                   {phone}
                 </a>
               ) : null}
@@ -391,7 +392,7 @@ export default async function StartPage({ searchParams }: { searchParams: Promis
           <div>
             <p className="font-semibold text-white">Talk to the office</p>
             {tel && phone ? (
-              <a href={tel} className="mt-2 block text-white">
+              <a href={tel} className="mt-2 block whitespace-nowrap text-white">
                 {phone}
               </a>
             ) : null}

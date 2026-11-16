@@ -214,7 +214,8 @@ export function Finder({
                   n
                 )}
               </span>
-              <span className={`truncate text-[12px] ${on ? "font-bold text-slate" : "font-semibold text-[var(--color-ink-quiet)]"}`}>{s}</span>
+              {/* Wraps rather than truncates: mobile-audit found "Who is asking" clipped at every width (board 43777358565). */}
+              <span className={`min-w-0 text-[12px] leading-tight ${on ? "font-bold text-slate" : "font-semibold text-[var(--color-ink-quiet)]"}`}>{s}</span>
             </li>
           );
         })}
@@ -468,7 +469,7 @@ export function Finder({
         {tel && phone && step !== 1 ? (
           <p className="mt-5 border-t border-[var(--color-limestone-line)] pt-4 text-[14px] text-[var(--color-ink-quiet)]">
             Rather talk it through?{" "}
-            <a href={tel} className="font-semibold text-slate underline underline-offset-2">
+            <a href={tel} className="whitespace-nowrap font-semibold text-slate underline underline-offset-2">
               {phone}
             </a>
           </p>
